@@ -30,9 +30,9 @@ import numpy as np
 from pandas._libs import reduction as libreduction
 from pandas._typing import (
     ArrayLike,
-    FrameOrSeries,
     Manager,
     Manager2D,
+    NDFrameT,
     SingleManager,
 )
 from pandas.util._decorators import (
@@ -98,7 +98,7 @@ AggScalar = Union[str, Callable[..., Any]]
 ScalarResult = TypeVar("ScalarResult")
 
 
-def generate_property(name: str, klass: type[FrameOrSeries]):
+def generate_property(name: str, klass: type[NDFrameT]):
     """
     Create a property for a GroupBy subclass to dispatch to DataFrame/Series.
 
@@ -121,7 +121,7 @@ def generate_property(name: str, klass: type[FrameOrSeries]):
     return property(prop)
 
 
-def pin_allowlisted_properties(klass: type[FrameOrSeries], allowlist: frozenset[str]):
+def pin_allowlisted_properties(klass: type[NDFrameT], allowlist: frozenset[str]):
     """
     Create GroupBy member defs for DataFrame/Series names in a allowlist.
 

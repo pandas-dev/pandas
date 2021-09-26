@@ -22,9 +22,9 @@ from pandas._config import get_option
 from pandas._typing import (
     Axis,
     FilePathOrBuffer,
-    FrameOrSeries,
     IndexLabel,
     Level,
+    NDFrameT,
     Scalar,
 )
 from pandas.compat._optional import import_optional_dependency
@@ -3190,10 +3190,10 @@ class Styler(StylerRenderer):
 
 
 def _validate_apply_axis_arg(
-    arg: FrameOrSeries | Sequence | np.ndarray,
+    arg: NDFrameT | Sequence | np.ndarray,
     arg_name: str,
     dtype: Any | None,
-    data: FrameOrSeries,
+    data: NDFrameT,
 ) -> np.ndarray:
     """
     For the apply-type methods, ``axis=None`` creates ``data`` as DataFrame, and for
@@ -3310,10 +3310,10 @@ def _background_gradient(
 
 
 def _highlight_between(
-    data: FrameOrSeries,
+    data: NDFrameT,
     props: str,
-    left: Scalar | Sequence | np.ndarray | FrameOrSeries | None = None,
-    right: Scalar | Sequence | np.ndarray | FrameOrSeries | None = None,
+    left: Scalar | Sequence | np.ndarray | NDFrameT | None = None,
+    right: Scalar | Sequence | np.ndarray | NDFrameT | None = None,
     inclusive: bool | str = True,
 ) -> np.ndarray:
     """

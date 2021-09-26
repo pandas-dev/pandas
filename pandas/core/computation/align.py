@@ -15,7 +15,7 @@ import warnings
 
 import numpy as np
 
-from pandas._typing import FrameOrSeries
+from pandas._typing import NDFrameT
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.generic import (
@@ -33,9 +33,9 @@ if TYPE_CHECKING:
 
 def _align_core_single_unary_op(
     term,
-) -> tuple[partial | type[FrameOrSeries], dict[str, Index] | None]:
+) -> tuple[partial | type[NDFrameT], dict[str, Index] | None]:
 
-    typ: partial | type[FrameOrSeries]
+    typ: partial | type[NDFrameT]
     axes: dict[str, Index] | None = None
 
     if isinstance(term.value, np.ndarray):
@@ -49,7 +49,7 @@ def _align_core_single_unary_op(
 
 
 def _zip_axes_from_type(
-    typ: type[FrameOrSeries], new_axes: Sequence[Index]
+    typ: type[NDFrameT], new_axes: Sequence[Index]
 ) -> dict[str, Index]:
     return {name: new_axes[i] for i, name in enumerate(typ._AXIS_ORDERS)}
 
