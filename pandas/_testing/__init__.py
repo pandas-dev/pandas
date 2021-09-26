@@ -388,8 +388,6 @@ _names = [
 ]
 
 
-
-
 def index_subclass_makers_generator():
     make_index_funcs = [
         makeDateIndex,
