@@ -96,12 +96,12 @@ class GroupByIndexingMixin:
         --------
             >>> df = pd.DataFrame([["a", 1], ["a", 2], ["a", 3], ["b", 4], ["b", 5]],
             ...                   columns=["A", "B"])
-            >>> df.groupby("A", as_index=False)._body[1:2]
+            >>> df.groupby("A")._body[1:2]
                A  B
             1  a  2
             4  b  5
 
-            >>> df.groupby("A", as_index=False)._body[1, -1]
+            >>> df.groupby("A")._body[1, -1]
                A  B
             1  a  2
             2  a  3
