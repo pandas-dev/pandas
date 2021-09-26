@@ -9,8 +9,9 @@ from typing import (
 import numpy as np
 
 from pandas._typing import (
-    FrameOrSeriesUnion,
+    DataFrame,
     PositionalIndexer,
+    Series,
 )
 from pandas.util._decorators import (
     cache_readonly,
@@ -215,7 +216,7 @@ class GroupByIndexingMixin:
 
         return mask
 
-    def _apply_mask(self, mask: np.ndarray) -> FrameOrSeriesUnion:
+    def _apply_mask(self, mask: np.ndarray) -> DataFrame | Series:
         if TYPE_CHECKING:
             self = cast(groupby.GroupBy, self)
 
@@ -244,7 +245,7 @@ class BodyGroupByIndexer:
     def __init__(self, groupby_object: groupby.GroupBy):
         self.groupby_object = groupby_object
 
-    def __getitem__(self, arg: PositionalIndexer | tuple) -> FrameOrSeriesUnion:
+    def __getitem__(self, arg: PositionalIndexer | tuple) -> DataFrame | Series:
         """
         Select by positional index per group.
 
