@@ -32,7 +32,6 @@ from pandas._typing import (
     ArrayLike,
     Manager,
     Manager2D,
-    NDFrameT,
     SingleManager,
 )
 from pandas.util._decorators import (
