@@ -8,11 +8,7 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import (
-    DataFrame,
-    PositionalIndexer,
-    Series,
-)
+from pandas._typing import PositionalIndexer
 from pandas.util._decorators import (
     cache_readonly,
     doc,
@@ -21,6 +17,11 @@ from pandas.util._decorators import (
 from pandas.core.dtypes.common import (
     is_integer,
     is_list_like,
+)
+
+from pandas import (
+    DataFrame,
+    Series,
 )
 
 if TYPE_CHECKING:
