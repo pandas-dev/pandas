@@ -72,6 +72,7 @@ from pandas.util._validators import (
     validate_ascending,
     validate_bool_kwarg,
     validate_fillna_kwargs,
+    validate_inclusive,
 )
 
 from pandas.core.dtypes.common import (
@@ -124,13 +125,13 @@ from pandas.core.construction import (
 )
 from pandas.core.describe import describe_ndframe
 from pandas.core.flags import Flags
-from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import (
     DatetimeIndex,
     Index,
     MultiIndex,
     PeriodIndex,
     RangeIndex,
+    default_index,
     ensure_index,
 )
 from pandas.core.internals import (
@@ -3453,6 +3454,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...                         archive_name='out.csv')  # doctest: +SKIP
         >>> df.to_csv('out.zip', index=False,
         ...           compression=compression_opts)  # doctest: +SKIP
+
+        To write a csv file to a new folder or nested folder you will first
+        need to create it using either Pathlib or os:
+
+        >>> from pathlib import Path
+        >>> filepath = Path('folder/subfolder/out.csv')
+        >>> filepath.parent.mkdir(parents=True, exist_ok=True)
+        >>> df.to_csv(filepath)
+
+        >>> import os
+        >>> os.makedirs('folder/subfolder', exist_ok=True)
+        >>> df.to_csv('folder/subfolder/out.csv')
         """
         df = self if isinstance(self, ABCDataFrame) else self.to_frame()
 
@@ -3940,6 +3953,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         maybe_shortcut = False
         if self.ndim == 2 and isinstance(self.columns, MultiIndex):
             try:
+                # By using engine's __contains__ we effectively
+                # restrict to same-length tuples
                 maybe_shortcut = key not in self.columns._engine
             except TypeError:
                 pass
@@ -4588,7 +4603,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if ignore_index:
             axis = 1 if isinstance(self, ABCDataFrame) else 0
-            new_data.set_axis(axis, ibase.default_index(len(indexer)))
+            new_data.set_axis(axis, default_index(len(indexer)))
 
         result = self._constructor(new_data)
 
@@ -5329,7 +5344,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         result = self.take(sampled_indices, axis=axis)
 
         if ignore_index:
-            result.index = ibase.default_index(len(result))
+            result.index = default_index(len(result))
 
         return result
 
@@ -7694,16 +7709,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if not isinstance(index, DatetimeIndex):
             raise TypeError("Index must be DatetimeIndex")
 
-        if (include_start != lib.no_default or include_end != lib.no_default) and (
-            inclusive is not None
-        ):
+        old_include_arg_used = (include_start != lib.no_default) or (
+            include_end != lib.no_default
+        )
+
+        if old_include_arg_used and inclusive is not None:
             raise ValueError(
                 "Deprecated arguments `include_start` and `include_end` "
                 "cannot be passed if `inclusive` has been given."
             )
         # If any of the deprecated arguments ('include_start', 'include_end')
         # have been passed
-        elif (include_start != lib.no_default) or (include_end != lib.no_default):
+        elif old_include_arg_used:
             warnings.warn(
                 "`include_start` and `include_end` are deprecated in "
                 "favour of `inclusive`.",
@@ -7720,20 +7737,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 (False, False): "neither",
             }
             inclusive = inc_dict[(left, right)]
-        else:  # On arg removal inclusive can default to "both"
-            if inclusive is None:
-                inclusive = "both"
-            elif inclusive not in ["both", "neither", "left", "right"]:
-                raise ValueError(
-                    f"Inclusive has to be either string of 'both', "
-                    f"'left', 'right', or 'neither'. Got {inclusive}."
-                )
-
+        elif inclusive is None:
+            # On arg removal inclusive can default to "both"
+            inclusive = "both"
+        left_inclusive, right_inclusive = validate_inclusive(inclusive)
         indexer = index.indexer_between_time(
             start_time,
             end_time,
-            include_start=inclusive in ["both", "left"],
-            include_end=inclusive in ["both", "right"],
+            include_start=left_inclusive,
+            include_end=right_inclusive,
         )
         return self._take_with_is_copy(indexer, axis=axis)
 
