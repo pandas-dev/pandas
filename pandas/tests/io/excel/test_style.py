@@ -61,9 +61,9 @@ shared_style_params = [
     ("number-format: $??,???.00;", ["number_format"], "$??,???.00"),
     ("text-align: left;", ["alignment", "horizontal"], "left"),
     (
-        "vertical-align: middle;",
+        "vertical-align: bottom;",
         ["alignment", "vertical"],
-        {"xlsxwriter": None, "openpyxl": "center"},  # xlsxwriter Fails
+        {"xlsxwriter": None, "openpyxl": "bottom"},  # xlsxwriter Fails
     ),
 ]
 
