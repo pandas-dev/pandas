@@ -340,8 +340,7 @@ class SeriesGroupBy(GroupBy[Series]):
     ):
 
         obj = self._selected_obj
-        objvals = obj._values
-        data = obj._mgr
+        data = self._get_data_to_aggregate()
 
         if numeric_only and not is_numeric_dtype(obj.dtype):
             # GH#41291 match Series behavior
@@ -365,12 +364,10 @@ class SeriesGroupBy(GroupBy[Series]):
 
             return result
 
-        result = array_func(objvals)
-
-        ser = self.obj._constructor(
-            result, index=self.grouper.result_index, name=obj.name
-        )
-        return self._reindex_output(ser)
+        new_mgr = data.grouped_reduce(array_func, ignore_failures=True)
+        res = self._wrap_agged_manager(new_mgr)
+        res.index = self.grouper.result_index
+        return self._reindex_output(res)
 
     def _indexed_output_to_ndframe(
         self, output: Mapping[base.OutputKey, ArrayLike]
