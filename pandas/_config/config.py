@@ -570,6 +570,12 @@ def _get_root(key: str) -> tuple[dict[str, Any], str]:
     return cursor, path[-1]
 
 
+def _is_deprecated(key: str) -> bool:
+    """Returns True if the given option has been deprecated"""
+    key = key.lower()
+    return key in _deprecated_options
+
+
 def _get_deprecated_option(key: str):
     """
     Retrieves the metadata for a deprecated option, if `key` is deprecated.
