@@ -395,11 +395,16 @@ This module will ultimately house types for repeatedly used concepts like "path-
 Validating type hints
 ~~~~~~~~~~~~~~~~~~~~~
 
-pandas uses `mypy <http://mypy-lang.org>`_ to statically analyze the code base and type hints. After making any change you can ensure your type hints are correct by running
+pandas uses `mypy <http://mypy-lang.org>`_ and `pyright <https://github.com/microsoft/pyright>`_ to statically analyze the code base and type hints. After making any change you can ensure your type hints are correct by running
 
 .. code-block:: shell
 
    mypy pandas
+
+   # let pre-commit setup and run pyright
+   pre-commit run --all-files pyright
+   # or if pyright is installed (requires node.js)
+   pyright
 
 .. _contributing.ci:
 

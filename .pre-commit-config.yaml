@@ -89,7 +89,8 @@ repos:
         language: node
         pass_filenames: false
         types: [python]
-        additional_dependencies: ['pyright@1.1.170']
+        # note: keep version in sync with .github/workflows/ci.yml
+        additional_dependencies: ['pyright@1.1.171']
 -   repo: local
     hooks:
     -   id: flake8-rst
