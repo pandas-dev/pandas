@@ -12,7 +12,6 @@ from pandas._libs.tslibs import Timedelta
 import pandas._libs.window.aggregations as window_aggregations
 from pandas._typing import (
     Axis,
-    NDFrameT,
     TimedeltaConvertibleTypes,
 )
 

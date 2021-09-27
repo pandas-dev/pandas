@@ -25,7 +25,6 @@ from pandas._typing import (
     FilePathOrBuffer,
     IndexLabel,
     Level,
-    NDFrameT,
     Scalar,
 )
 from pandas.compat._optional import import_optional_dependency
@@ -60,9 +59,6 @@ from pandas.io.formats.style_render import (
     non_reducing_slice,
     refactor_levels,
 )
-
-if TYPE_CHECKING:
-    from pandas.core.generic import NDFrame
 
 try:
     from matplotlib import colors
