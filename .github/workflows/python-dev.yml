@@ -34,7 +34,7 @@ jobs:
       NUMPY_WHEELS_AVAILABLE: ${{ matrix.os == 'ubuntu-latest' }}
 
     concurrency:
-      group: ${{ github.ref }}-dev
+      group: ${{ github.ref }}-${{ matrix.os }}-dev
       cancel-in-progress: ${{github.event_name == 'pull_request'}}
 
     steps:
@@ -48,6 +48,7 @@ jobs:
         python-version: '3.10-dev'
 
     - name: Install dependencies
+      shell: bash
       run: |
         python -m pip install --upgrade pip setuptools wheel
         if [[ $NUMPY_WHEELS_AVAILABLE ==  true]]; then 
