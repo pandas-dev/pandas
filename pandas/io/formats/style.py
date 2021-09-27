@@ -8,7 +8,6 @@ import copy
 from functools import partial
 import operator
 from typing import (
-    TYPE_CHECKING,
     Any,
     Callable,
     Hashable,
