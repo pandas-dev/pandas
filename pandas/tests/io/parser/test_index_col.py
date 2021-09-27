@@ -19,7 +19,6 @@ import pandas._testing as tm
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
-@skip_pyarrow
 @pytest.mark.parametrize("with_header", [True, False])
 def test_index_col_named(all_parsers, with_header):
     parser = all_parsers
@@ -228,7 +227,6 @@ I2,1,3
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
 @pytest.mark.slow
 def test_index_col_large_csv(all_parsers):
     # https://github.com/pandas-dev/pandas/issues/37094
