@@ -26,9 +26,12 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macOS-latest, windows-latest]
-
+    
     name: actions-310-dev
     timeout-minutes: 60
+    
+    environment:
+      NUMPY_WHEELS_AVAILABLE: ${{ matrix.os == "ubuntu-latest" }}
 
     concurrency:
       group: ${{ github.ref }}-dev
