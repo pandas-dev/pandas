@@ -60,7 +60,6 @@ dependencies:
   - flask
   - pytest>=6.0
   - pytest-cov
-  - pytest-cython
   - pytest-xdist>=1.31
   - pytest-asyncio
   - pytest-instafail
@@ -123,3 +122,4 @@ dependencies:
     - types-PyMySQL
     - types-pytz
     - types-setuptools
+    - pytest-cython
