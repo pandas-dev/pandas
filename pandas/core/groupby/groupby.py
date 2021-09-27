@@ -2655,10 +2655,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
             return vals
 
-        if is_scalar(q):
-            res = self.quantile([q], interpolation=interpolation)
-            nlevels = res.index.nlevels
-            return res.droplevel(nlevels - 1, axis=0)
+        orig_scalar = is_scalar(q)
+        if orig_scalar:
+            q = [q]
 
         qs = np.array(q, dtype=np.float64)
         ids, _, ngroups = self.grouper.group_info
@@ -2729,6 +2728,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         else:
             res = obj._constructor(res_mgr)
 
+        if orig_scalar:
+            # Avoid expensive MultiIndex construction
+            return self._wrap_aggregated_output(res)
         return self._wrap_aggregated_output(res, qs=qs)
 
     @final
