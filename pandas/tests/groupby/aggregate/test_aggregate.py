@@ -1309,3 +1309,11 @@ def test_groupby_mean_complex():
     result = data.groupby(data.index % 2).mean()
     expected = Series([8 + 18j, 10 + 22j])
     tm.assert_series_equal(result, expected)
+
+
+def test_groupby_sum_complex():
+    # GH#43701
+    data = Series(np.arange(20).reshape(10, 2).dot([1, 2j]))
+    result = data.groupby(data.index % 2).sum()
+    expected = Series([40 + 90j, 50 + 110j])
+    tm.assert_series_equal(result, expected)
