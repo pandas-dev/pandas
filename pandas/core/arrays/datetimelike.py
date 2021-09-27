@@ -1714,10 +1714,73 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
         values = self.view("i8")
         values = cast(np.ndarray, values)
-        nanos = to_offset(freq).nanos
+        try:
+            nanos = to_offset(freq).nanos
+        except ValueError:
+            # non-fixed frequency
+            if mode == RoundTo.NEAREST_HALF_EVEN:
+                raise AmbiguousTimeError("THE FUCK DUDE ?")
+            return self._round_non_fixed(freq, mode, ambiguous, nonexistent)
+
         result_i8 = round_nsint64(values, mode, nanos)
         result = self._maybe_mask_results(result_i8, fill_value=iNaT)
         result = result.view(self._ndarray.dtype)
+        return self._simple_new(result, dtype=self.dtype)
+
+# ==============================================
+# here is jooyoung's implementation of the ceil with the month start frequence
+# ==============================================
+
+    def generates_month(self, start=None, end=None, freq=None, periods=None):
+            offset = to_offset(freq)
+            start = Timestamp(start)
+            start = start if start is not NaT else None
+            end = Timestamp(end)
+            end = end if end is not NaT else None
+
+            if start and not offset.is_on_offset(start):
+                start = offset.rollforward(start)
+
+            elif end and not offset.is_on_offset(end):
+                end = offset.rollback(end)
+
+            
+            if periods is None and end < start and offset.n >= 0:
+                end = None
+                periods = 0
+
+            if end is None:
+                end = start + (periods - 1) * offset
+
+            if start is None:
+                start = end - (periods - 1) * offset
+
+            cur = start
+            print("my", cur, "vs", end, "vs", start)
+            while cur <= end:
+                yield cur
+                print(cur)
+                if cur == end:
+                    break
+                next_date = offset.apply(cur)
+                if next_date <= cur:
+                    raise ValueError(f"Offset {offset} did not increment date")
+                cur = next_date
+
+    def generator(self, start, freq, periods):
+        xdr = self.generates_month(start=start, freq=freq, periods=periods)
+        values = np.array([x.value for x in xdr], dtype=np.int64)
+        print(values.view("M8[ns]"))
+        #dtarr = DatetimeArray._simple_new(values, freq=freq)
+        #print(dtarr)
+        return values.view("M8[ns]")
+
+    def _round_non_fixed(self, freq, mode, ambiguous, nonexistent):
+        offset = to_offset(freq)
+        values = self.view("i8")
+        values = cast(np.ndarray, values)
+        result = self.generator(Timestamp(values.view(self._ndarray.dtype)[0]), offset.name, offset.n)[-1]
+        result = np.array([result])
         return self._simple_new(result, dtype=self.dtype)
 
     @Appender((_round_doc + _round_example).format(op="round"))

@@ -2,9 +2,12 @@ from datetime import datetime
 
 from dateutil.tz import gettz
 import numpy as np
+from pandas.core.arrays.datetimes import DatetimeArray
 import pytest
 import pytz
 from pytz import utc
+
+from pandas.core.indexes.datetimes import date_range, DatetimeIndex
 
 from pandas._libs import lib
 from pandas._libs.tslibs import (
@@ -86,6 +89,94 @@ class TestTimestampUnaryOps:
         stamp = Timestamp("2000-01-05 05:09:15.13")
         with pytest.raises(ValueError, match=INVALID_FREQ_ERR_MSG):
             stamp.round("foo")
+
+    #def test_date_range_for_renewex(self):
+    #    import pdb; pdb.set_trace()
+    #    dr = date_range(start=Timestamp("2000-01-05 05:09:15.13"), end=Timestamp("2000-02-05 05:09:15.13"), freq="1MS")
+
+    def test_renewex(self):
+        start = Timestamp("2000-01-05 05:09:15.13")
+        freq = "MS"
+        periods = 3
+
+        def generates_month(start=None, end=None, freq=None, periods=None):
+            offset = to_offset(freq)
+            start = Timestamp(start)
+            start = start if start is not NaT else None
+            end = Timestamp(end)
+            end = end if end is not NaT else None
+
+            if start and not offset.is_on_offset(start):
+                start = offset.rollforward(start)
+
+            elif end and not offset.is_on_offset(end):
+                end = offset.rollback(end)
+
+            
+            if periods is None and end < start and offset.n >= 0:
+                end = None
+                periods = 0
+
+            if end is None:
+                end = start + (periods - 1) * offset
+
+            if start is None:
+                start = end - (periods - 1) * offset
+
+            cur = start
+            print("my", cur, "vs", end, "vs", start)
+            while cur <= end:
+                yield cur
+                print(cur)
+                if cur == end:
+                    break
+                next_date = offset.apply(cur)
+                if next_date <= cur:
+                    raise ValueError(f"Offset {offset} did not increment date")
+                cur = next_date
+            return (3)
+
+        def generator(start, freq, periods):
+            xdr = generates_month(start=start, freq=freq, periods=periods)
+            values = np.array([x.value for x in xdr], dtype=np.int64)
+            print(values.view("M8[ns]"))
+            dtarr = DatetimeArray._simple_new(values, freq=freq)
+            print(dtarr)
+            print(date_range(start=start, freq=freq, periods=periods))
+            return (3)
+        
+        assert generator(start, freq, periods) == 3 #date_range(start=start, freq=freq, periods=periods)
+
+    # @pytest.mark.parametrize(
+    #     "timestamp, freq, expected",
+    #     [
+    #         ("2000-01-05 05:09:15.13", "1MS", "2000-01-01 00:00:00"),
+    #         ("2000-01-20 05:09:15.13", "1MS", "2000-01-01 00:00:00"),
+    #         ("2000-01-05 05:09:15.13", "1M", "1999-12-31 23:59:59"),
+    #         ("2000-01-20 05:09:15.13", "1M", "1999-12-31 23:59:59"),
+    #     ]
+    # )
+    
+    # def test_floor_non_fixed_frequencies(self, timestamp, freq, expected):
+    #     dt = Timestamp(timestamp)
+    #     result = dt.floor(freq)
+    #     expected = Timestamp(expected)
+    #     assert result == expected
+
+    # @pytest.mark.parametrize(
+    #     "timestamp, freq, expected",
+    #     [
+    #         ("2000-01-05 05:09:15.13", "1MS", "2000-02-01 00:00:00"),
+    #         ("2000-01-20 05:09:15.13", "1MS", "2000-02-01 00:00:00"),
+    #         ("2000-01-05 05:09:15.13", "1M", "2000-01-31 23:59:59"),
+    #         ("2000-01-20 05:09:15.13", "1M", "2000-01-31 23:59:59"),
+    #     ]
+    # )
+    # def test_ceil_non_fixed_frequencies(self, timestamp, freq, expected):
+    #     dt = Timestamp(timestamp)
+    #     result = dt.ceil(freq)
+    #     expected = Timestamp(expected)
+    #     assert result == expected
 
     @pytest.mark.parametrize(
         "test_input, rounder, freq, expected",

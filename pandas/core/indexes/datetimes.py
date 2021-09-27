@@ -1032,6 +1032,8 @@ def date_range(
     if freq is None and com.any_none(periods, start, end):
         freq = "D"
 
+    #print("here")
+    #import pdb; pdb.set_trace()
     dtarr = DatetimeArray._generate_range(
         start=start,
         end=end,
@@ -1042,6 +1044,7 @@ def date_range(
         closed=closed,
         **kwargs,
     )
+    #print(dtarr)
     return DatetimeIndex._simple_new(dtarr, name=name)
 
 

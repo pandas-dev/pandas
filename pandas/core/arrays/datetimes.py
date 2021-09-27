@@ -326,11 +326,12 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     def _simple_new(  # type: ignore[override]
         cls, values: np.ndarray, freq: BaseOffset | None = None, dtype=DT64NS_DTYPE
     ) -> DatetimeArray:
-        assert isinstance(values, np.ndarray)
-        assert values.dtype == DT64NS_DTYPE
+        #assert isinstance(values, np.ndarray)
+        #assert values.dtype == DT64NS_DTYPE jooyoung
 
         result = super()._simple_new(values, dtype)
         result._freq = freq
+        #print("result", result)
         return result
 
     @classmethod
@@ -448,6 +449,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
             _tz = start.tz if start is not None else end.tz
             values = values.view("M8[ns]")
+            #print("values", values)
             index = cls._simple_new(values, freq=freq, dtype=tz_to_dtype(_tz))
 
             if tz is not None and index.tz is None:
@@ -482,6 +484,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             index = index[:-1]
 
         dtype = tz_to_dtype(tz)
+        #print("final", index._ndarray, freq, dtype)
         return cls._simple_new(index._ndarray, freq=freq, dtype=dtype)
 
     # -----------------------------------------------------------------
@@ -2524,7 +2527,6 @@ def generate_range(start=None, end=None, periods=None, offset=BDay()):
     dates : generator object
     """
     offset = to_offset(offset)
-
     start = Timestamp(start)
     start = start if start is not NaT else None
     end = Timestamp(end)
@@ -2547,16 +2549,19 @@ def generate_range(start=None, end=None, periods=None, offset=BDay()):
         start = end - (periods - 1) * offset
 
     cur = start
+    print("original", cur, "vs", end, "vs", start)
     if offset.n >= 0:
         while cur <= end:
             yield cur
 
+            #print("cur", cur)
             if cur == end:
                 # GH#24252 avoid overflows by not performing the addition
                 # in offset.apply unless we have to
                 break
 
             # faster than cur + offset
+            #import pdb; pdb.set_trace()
             next_date = offset.apply(cur)
             if next_date <= cur:
                 raise ValueError(f"Offset {offset} did not increment date")
