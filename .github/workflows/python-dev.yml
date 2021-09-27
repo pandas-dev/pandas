@@ -31,7 +31,7 @@ jobs:
     timeout-minutes: 60
     
     env:
-      NUMPY_WHEELS_AVAILABLE: ${{ matrix.os == "ubuntu-latest" }}
+      NUMPY_WHEELS_AVAILABLE: ${{ matrix.os == 'ubuntu-latest' }}
 
     concurrency:
       group: ${{ github.ref }}-dev
