@@ -540,7 +540,7 @@ class NaTType(_NaT):
         Examples
         --------
         >>> pd.Timestamp.fromtimestamp(1584199972)
-        Timestamp('2020-03-14 21:02:52')
+        Timestamp('2020-03-14 15:32:52')
         """,
     )
     fromtimestamp = _make_error_func(
