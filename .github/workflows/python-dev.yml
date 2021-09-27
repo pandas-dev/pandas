@@ -51,7 +51,8 @@ jobs:
       shell: bash
       run: |
         python -m pip install --upgrade pip setuptools wheel
-        if [[ "$NUMPY_WHEELS_AVAILABLE" ]]; then 
+        echo $NUMPY_WHEELS_AVAILABLE
+        if [[ "$NUMPY_WHEELS_AVAILABLE" == "true" ]]; then
           pip install -i https://pypi.anaconda.org/scipy-wheels-nightly/simple numpy
         else
           pip install git+https://github.com/numpy/numpy.git
