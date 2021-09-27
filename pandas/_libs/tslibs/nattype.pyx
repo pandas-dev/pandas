@@ -705,7 +705,7 @@ class NaTType(_NaT):
 
         Examples
         --------
-        >>> pd.Timestamp.now()    # doctest: +SKIP
+        >>> pd.Timestamp.now()  # doctest: +SKIP
         Timestamp('2020-11-16 22:06:16.378782')
 
         Analogous for ``pd.NaT``:
