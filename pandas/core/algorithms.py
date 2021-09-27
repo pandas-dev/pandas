@@ -28,6 +28,7 @@ from pandas._typing import (
     ArrayLike,
     DtypeObj,
     Scalar,
+    TakeIndexer,
     npt,
 )
 from pandas.util._decorators import doc
@@ -1431,7 +1432,11 @@ class SelectNFrame(SelectN):
 
 
 def take(
-    arr, indices: np.ndarray, axis: int = 0, allow_fill: bool = False, fill_value=None
+    arr,
+    indices: TakeIndexer,
+    axis: int = 0,
+    allow_fill: bool = False,
+    fill_value=None,
 ):
     """
     Take elements from an array.
@@ -1441,7 +1446,7 @@ def take(
     arr : array-like or scalar value
         Non array-likes (sequences/scalars without a dtype) are coerced
         to an ndarray.
-    indices : sequence of integers
+    indices : sequence of int or one-dimensional np.ndarray of int
         Indices to be taken.
     axis : int, default 0
         The axis over which to select values.
