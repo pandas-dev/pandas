@@ -1424,14 +1424,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 # if this function is invalid for this dtype, we will ignore it.
                 result = self.grouper.agg_series(obj, f)
             except TypeError:
-                warnings.warn(
-                    f"Dropping invalid columns in {type(self).__name__}.agg "
-                    "is deprecated. In a future version, a TypeError will be raised. "
-                    "Before calling .agg, select only columns which should be "
-                    "valid for the aggregating function.",
-                    FutureWarning,
-                    stacklevel=3,
-                )
+                warn_dropping_nuisance_columns_deprecated(type(self), "agg")
                 continue
 
             key = base.OutputKey(label=name, position=idx)
@@ -1502,10 +1495,52 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         # test_groupby_duplicate_columns with object dtype values
         return ensure_block_shape(res_values, ndim=ndim)
 
+    @final
     def _cython_agg_general(
         self, how: str, alt: Callable, numeric_only: bool, min_count: int = -1
     ):
-        raise AbstractMethodError(self)
+        # Note: we never get here with how="ohlc" for DataFrameGroupBy;
+        #  that goes through SeriesGroupBy
+
+        data = self._get_data_to_aggregate()
+        is_ser = data.ndim == 1
+
+        if numeric_only:
+            if is_ser and not is_numeric_dtype(self._selected_obj.dtype):
+                # GH#41291 match Series behavior
+                raise NotImplementedError(
+                    f"{type(self).__name__}.{how} does not implement numeric_only."
+                )
+            elif not is_ser:
+                data = data.get_numeric_data(copy=False)
+
+        def array_func(values: ArrayLike) -> ArrayLike:
+            try:
+                result = self.grouper._cython_operation(
+                    "aggregate", values, how, axis=data.ndim - 1, min_count=min_count
+                )
+            except NotImplementedError:
+                # generally if we have numeric_only=False
+                # and non-applicable functions
+                # try to python agg
+                # TODO: shouldn't min_count matter?
+                result = self._agg_py_fallback(values, ndim=data.ndim, alt=alt)
+
+            return result
+
+        # TypeError -> we may have an exception in trying to aggregate
+        #  continue and exclude the block
+        new_mgr = data.grouped_reduce(array_func, ignore_failures=True)
+
+        if not is_ser and len(new_mgr) < len(data):
+            warn_dropping_nuisance_columns_deprecated(type(self), how)
+
+        res = self._wrap_agged_manager(new_mgr)
+        if is_ser:
+            res.index = self.grouper.result_index
+            return self._reindex_output(res)
+        else:
+            return res
 
     def _cython_transform(
         self, how: str, numeric_only: bool = True, axis: int = 0, **kwargs
@@ -1771,8 +1806,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         # _wrap_agged_manager() returns. GH 35028
         with com.temp_setattr(self, "observed", True):
             result = self._wrap_agged_manager(new_mgr)
-            if result.ndim == 1:
-                result.index = self.grouper.result_index
+
+        if result.ndim == 1:
+            result.index = self.grouper.result_index
 
         return self._reindex_output(result, fill_value=0)
 
@@ -2710,18 +2746,15 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         res_mgr = mgr.grouped_reduce(blk_func, ignore_failures=True)
         if not is_ser and len(res_mgr.items) != len(mgr.items):
-            warnings.warn(
-                "Dropping invalid columns in "
-                f"{type(self).__name__}.quantile is deprecated. "
-                "In a future version, a TypeError will be raised. "
-                "Before calling .quantile, select only columns which "
-                "should be valid for the function.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
+            warn_dropping_nuisance_columns_deprecated(type(self), "quantile")
+
             if len(res_mgr.items) == 0:
                 # re-call grouped_reduce to get the desired exception message
                 mgr.grouped_reduce(blk_func, ignore_failures=False)
+                # grouped_reduce _should_ raise, so this should not be reached
+                raise TypeError(  # pragma: no cover
+                    "All columns were dropped in grouped_reduce"
+                )
 
         if is_ser:
             res = self._wrap_agged_manager(res_mgr)
@@ -3154,30 +3187,20 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         if not is_ser and len(res_mgr.items) != len(mgr.items):
             howstr = how.replace("group_", "")
-            warnings.warn(
-                "Dropping invalid columns in "
-                f"{type(self).__name__}.{howstr} is deprecated. "
-                "In a future version, a TypeError will be raised. "
-                f"Before calling .{howstr}, select only columns which "
-                "should be valid for the function.",
-                FutureWarning,
-                stacklevel=3,
-            )
+            warn_dropping_nuisance_columns_deprecated(type(self), howstr)
+
             if len(res_mgr.items) == 0:
                 # We re-call grouped_reduce to get the right exception message
-                try:
-                    mgr.grouped_reduce(blk_func, ignore_failures=False)
-                except Exception as err:
-                    error_msg = str(err)
-                    raise TypeError(error_msg)
-                # We should never get here
-                raise TypeError("All columns were dropped in grouped_reduce")
+                mgr.grouped_reduce(blk_func, ignore_failures=False)
+                # grouped_reduce _should_ raise, so this should not be reached
+                raise TypeError(  # pragma: no cover
+                    "All columns were dropped in grouped_reduce"
+                )
 
         if is_ser:
             out = self._wrap_agged_manager(res_mgr)
-            out.index = self.grouper.result_index
         else:
-            out = type(obj)(res_mgr)
+            out = obj._constructor(res_mgr)
 
         return self._wrap_aggregated_output(out)
 
@@ -3631,3 +3654,15 @@ def _insert_quantile_level(idx: Index, qs: npt.NDArray[np.float64]) -> MultiInde
     else:
         mi = MultiIndex.from_product([idx, qs])
     return mi
+
+
+def warn_dropping_nuisance_columns_deprecated(cls, how: str) -> None:
+    warnings.warn(
+        "Dropping invalid columns in "
+        f"{cls.__name__}.{how} is deprecated. "
+        "In a future version, a TypeError will be raised. "
+        f"Before calling .{how}, select only columns which "
+        "should be valid for the function.",
+        FutureWarning,
+        stacklevel=find_stack_level(),
+    )
