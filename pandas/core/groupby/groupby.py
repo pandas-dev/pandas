@@ -1493,10 +1493,52 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         # test_groupby_duplicate_columns with object dtype values
         return ensure_block_shape(res_values, ndim=ndim)
 
+    @final
     def _cython_agg_general(
         self, how: str, alt: Callable, numeric_only: bool, min_count: int = -1
     ):
-        raise AbstractMethodError(self)
+        # Note: we never get here with how="ohlc" for DataFrameGroupBy;
+        #  that goes through SeriesGroupBy
+
+        data = self._get_data_to_aggregate()
+        is_ser = data.ndim == 1
+
+        if numeric_only:
+            if is_ser and not is_numeric_dtype(self._selected_obj.dtype):
+                # GH#41291 match Series behavior
+                raise NotImplementedError(
+                    f"{type(self).__name__}.{how} does not implement numeric_only."
+                )
+            elif not is_ser:
+                data = data.get_numeric_data(copy=False)
+
+        def array_func(values: ArrayLike) -> ArrayLike:
+            try:
+                result = self.grouper._cython_operation(
+                    "aggregate", values, how, axis=data.ndim - 1, min_count=min_count
+                )
+            except NotImplementedError:
+                # generally if we have numeric_only=False
+                # and non-applicable functions
+                # try to python agg
+                # TODO: shouldn't min_count matter?
+                result = self._agg_py_fallback(values, ndim=data.ndim, alt=alt)
+
+            return result
+
+        # TypeError -> we may have an exception in trying to aggregate
+        #  continue and exclude the block
+        new_mgr = data.grouped_reduce(array_func, ignore_failures=True)
+
+        if not is_ser and len(new_mgr) < len(data):
+            warn_dropping_nuisance_columns_deprecated(type(self), how)
+
+        res = self._wrap_agged_manager(new_mgr)
+        if is_ser:
+            res.index = self.grouper.result_index
+            return self._reindex_output(res)
+        else:
+            return res
 
     def _cython_transform(
         self, how: str, numeric_only: bool = True, axis: int = 0, **kwargs

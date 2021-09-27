@@ -48,7 +48,6 @@ from pandas.core.dtypes.common import (
     is_dict_like,
     is_integer_dtype,
     is_interval_dtype,
-    is_numeric_dtype,
     is_scalar,
 )
 from pandas.core.dtypes.missing import (
@@ -334,40 +333,6 @@ class SeriesGroupBy(GroupBy[Series]):
 
         output = self._reindex_output(output)
         return output
-
-    def _cython_agg_general(
-        self, how: str, alt: Callable, numeric_only: bool, min_count: int = -1
-    ):
-
-        obj = self._selected_obj
-        data = self._get_data_to_aggregate()
-
-        if numeric_only and not is_numeric_dtype(obj.dtype):
-            # GH#41291 match Series behavior
-            raise NotImplementedError(
-                f"{type(self).__name__}.{how} does not implement numeric_only."
-            )
-
-        # This is overkill because it is only called once, but is here to
-        #  mirror the array_func used in DataFrameGroupBy._cython_agg_general
-        def array_func(values: ArrayLike) -> ArrayLike:
-            try:
-                result = self.grouper._cython_operation(
-                    "aggregate", values, how, axis=data.ndim - 1, min_count=min_count
-                )
-            except NotImplementedError:
-                # generally if we have numeric_only=False
-                # and non-applicable functions
-                # try to python agg
-                # TODO: shouldn't min_count matter?
-                result = self._agg_py_fallback(values, ndim=data.ndim, alt=alt)
-
-            return result
-
-        new_mgr = data.grouped_reduce(array_func, ignore_failures=True)
-        res = self._wrap_agged_manager(new_mgr)
-        res.index = self.grouper.result_index
-        return self._reindex_output(res)
 
     def _indexed_output_to_ndframe(
         self, output: Mapping[base.OutputKey, ArrayLike]
@@ -967,39 +932,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     continue
 
                 yield values
-
-    def _cython_agg_general(
-        self, how: str, alt: Callable, numeric_only: bool, min_count: int = -1
-    ) -> DataFrame:
-        # Note: we never get here with how="ohlc"; that goes through SeriesGroupBy
-
-        data: Manager2D = self._get_data_to_aggregate()
-
-        if numeric_only:
-            data = data.get_numeric_data(copy=False)
-
-        def array_func(values: ArrayLike) -> ArrayLike:
-            try:
-                result = self.grouper._cython_operation(
-                    "aggregate", values, how, axis=data.ndim - 1, min_count=min_count
-                )
-            except NotImplementedError:
-                # generally if we have numeric_only=False
-                # and non-applicable functions
-                # try to python agg
-                # TODO: shouldn't min_count matter?
-                result = self._agg_py_fallback(values, ndim=data.ndim, alt=alt)
-
-            return result
-
-        # TypeError -> we may have an exception in trying to aggregate
-        #  continue and exclude the block
-        new_mgr = data.grouped_reduce(array_func, ignore_failures=True)
-
-        if len(new_mgr) < len(data):
-            warn_dropping_nuisance_columns_deprecated(type(self), how)
-
-        return self._wrap_agged_manager(new_mgr)
 
     def _aggregate_frame(self, func, *args, **kwargs) -> DataFrame:
         if self.grouper.nkeys != 1:
