@@ -55,6 +55,7 @@ jobs:
           pip install -i https://pypi.anaconda.org/scipy-wheels-nightly/simple numpy
         else
           pip install git+https://github.com/numpy/numpy.git
+        fi
         pip install git+https://github.com/nedbat/coveragepy.git
         pip install cython python-dateutil pytz hypothesis pytest>=6.2.5 pytest-xdist pytest-cov
         pip list
