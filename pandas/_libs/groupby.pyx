@@ -531,9 +531,8 @@ def group_add(add_t[:, ::1] out,
                     else:
                         t = sumx[lab, j] + val
                     sumx[lab, j] = t
-                elif skipna == False:
-                    # NOTE: Does this case need to be considered?
-                    pass
+                elif not skipna:
+                    sumx[lab, j] += val
 
         for i in range(ncounts):
             for j in range(K):
@@ -560,7 +559,7 @@ def group_add(add_t[:, ::1] out,
                         compensation[lab, j] = t - sumx[lab, j] - y
                         sumx[lab, j] = t
                     # don't skip nan
-                    elif skipna == False:
+                    elif not skipna:
                         sumx[lab, j] = NAN
                         break
 
@@ -613,7 +612,7 @@ def group_prod(floating[:, ::1] out,
                     nobs[lab, j] += 1
                     prodx[lab, j] *= val
                 # don't skip nan
-                elif skipna == False:
+                elif not skipna:
                     prodx[lab, j] = NAN
                     break
 
@@ -687,6 +686,7 @@ def group_mean(floating[:, ::1] out,
                int64_t[::1] counts,
                ndarray[floating, ndim=2] values,
                const intp_t[::1] labels,
+               bint skipna=True,
                Py_ssize_t min_count=-1) -> None:
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
@@ -724,8 +724,7 @@ def group_mean(floating[:, ::1] out,
                     compensation[lab, j] = t - sumx[lab, j] - y
                     sumx[lab, j] = t
                 # don't skip nan
-                elif skipna == False:
-                    # NOTE: Unsure about this, should this loop break here?
+                elif not skipna:
                     sumx[lab, j] = NAN
                     break
 
