@@ -376,15 +376,9 @@ class TestDataFrameJoin:
 
 
 def test_join_duplicate_indicies():
-<<<<<<< HEAD
     # GH#43700 addresses issue GH#36336
     df1 = pd.DataFrame(np.random.randn(5), index=[0, 1, 2, 3, 3], columns=['a'])
     df2 = pd.DataFrame(np.random.randn(5), index=[0, 1, 2, 2, 4], columns=['b'])
     result = df1.join(df2, how='outer')
-=======
-    df1 = pd.DataFrame(np.random.randn(5), index=[0, 1, 2, 3, 3], columns=["a"])
-    df2 = pd.DataFrame(np.random.randn(5), index=[0, 1, 2, 2, 4], columns=["b"])
-    result = df1.join(df2, how="outer")
->>>>>>> 37dcba0642bfcbfc7d3313e889e4ba58a9b6d71a
     expected = pd.concat([df1, df2], axis=1)
     tm.assert_frame_equal(result, expected)
