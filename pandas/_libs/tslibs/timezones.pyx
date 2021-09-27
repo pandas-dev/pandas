@@ -385,24 +385,24 @@ def tz_standardize(tz: tzinfo) -> tzinfo:
     -------
     tzinfo
 
-    Examples:
+    Examples
     --------
-    >>> tz
+    >>> tz    # doctest: +SKIP
     <DstTzInfo 'US/Pacific' PST-1 day, 16:00:00 STD>
 
-    >>> tz_standardize(tz)
+    >>> tz_standardize(tz)  # doctest: +SKIP
     <DstTzInfo 'US/Pacific' LMT-1 day, 16:07:00 STD>
 
-    >>> tz
+    >>> tz    # doctest: +SKIP
     <DstTzInfo 'US/Pacific' LMT-1 day, 16:07:00 STD>
 
-    >>> tz_standardize(tz)
+    >>> tz_standardize(tz)  # doctest: +SKIP
     <DstTzInfo 'US/Pacific' LMT-1 day, 16:07:00 STD>
 
-    >>> tz
+    >>> tz    # doctest: +SKIP
     dateutil.tz.tz.tzutc
 
-    >>> tz_standardize(tz)
+    >>> tz_standardize(tz)  # doctest: +SKIP
     dateutil.tz.tz.tzutc
     """
     if treat_tz_as_pytz(tz):

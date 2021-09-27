@@ -26,6 +26,7 @@ from cpython.tuple cimport (
     PyTuple_SET_ITEM,
 )
 from cython cimport floating
+import datetime
 
 PyDateTime_IMPORT
 
@@ -188,7 +189,7 @@ def is_scalar(val: object) -> bool:
     >>> pd.api.types.is_scalar((0, 2))
     False
 
-    pandas supports PEP 3141 numbers:
+    >>> # pandas supports PEP 3141 numbers:
 
     >>> from fractions import Fraction
     >>> pd.api.types.is_scalar(Fraction(3, 5))
@@ -260,7 +261,7 @@ def is_iterator(obj: object) -> bool:
     True
     >>> is_iterator([1, 2, 3])
     False
-    >>> is_iterator(datetime(2017, 1, 1))
+    >>> is_iterator(datetime.datetime(2017, 1, 1))
     False
     >>> is_iterator("foo")
     False
@@ -1075,7 +1076,7 @@ def is_list_like(obj: object, allow_sets: bool = True) -> bool:
     True
     >>> is_list_like({1, 2, 3})
     True
-    >>> is_list_like(datetime(2017, 1, 1))
+    >>> is_list_like(datetime.datetime(2017, 1, 1))
     False
     >>> is_list_like("foo")
     False

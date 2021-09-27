@@ -540,7 +540,7 @@ class NaTType(_NaT):
         Examples
         --------
         >>> pd.Timestamp.fromtimestamp(1584199972)
-        Timestamp('2020-03-14 15:32:52')
+        Timestamp('2020-03-14 21:02:52')
         """,
     )
     fromtimestamp = _make_error_func(
@@ -581,7 +581,7 @@ class NaTType(_NaT):
 
         Examples
         --------
-        >>> pd.Timestamp.utcnow()
+        >>> pd.Timestamp.utcnow()   # doctest: +SKIP
         Timestamp('2020-11-16 22:50:18.092888+0000', tz='UTC')
         """,
     )
@@ -705,7 +705,7 @@ class NaTType(_NaT):
 
         Examples
         --------
-        >>> pd.Timestamp.now()
+        >>> pd.Timestamp.now()    # doctest: +SKIP
         Timestamp('2020-11-16 22:06:16.378782')
 
         Analogous for ``pd.NaT``:
@@ -730,7 +730,7 @@ class NaTType(_NaT):
 
         Examples
         --------
-        >>> pd.Timestamp.today()
+        >>> pd.Timestamp.today()    # doctest: +SKIP
         Timestamp('2020-11-16 22:37:39.969883')
 
         Analogous for ``pd.NaT``:

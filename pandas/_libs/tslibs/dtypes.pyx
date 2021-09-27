@@ -226,7 +226,7 @@ class Resolution(Enum):
 
         Examples
         --------
-        >>> Resolution.from_attrname('second')
+        >>> Resolution.from_attrname('second')    # doctest: +SKIP
         2
 
         >>> Resolution.from_attrname('second') == Resolution.RESO_SEC
@@ -243,7 +243,7 @@ class Resolution(Enum):
 
         Examples
         --------
-        >>> Resolution.get_reso_from_freq('H')
+        >>> Resolution.get_reso_from_freq('H')  # doctest: +SKIP
         4
 
         >>> Resolution.get_reso_from_freq('H') == Resolution.RESO_HR
