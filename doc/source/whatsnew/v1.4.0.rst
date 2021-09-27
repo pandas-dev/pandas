@@ -418,6 +418,7 @@ Interval
 
 Indexing
 ^^^^^^^^
+- Bug in :meth:`Series.rename` when index in Series is MultiIndex and level in rename is provided. (:issue:`43659`)
 - Bug in :meth:`DataFrame.truncate` and :meth:`Series.truncate` when the object's Index has a length greater than one but only one unique value (:issue:`42365`)
 - Bug in :meth:`Series.loc` and :meth:`DataFrame.loc` with a :class:`MultiIndex` when indexing with a tuple in which one of the levels is also a tuple (:issue:`27591`)
 - Bug in :meth:`Series.loc` when with a :class:`MultiIndex` whose first level contains only ``np.nan`` values (:issue:`42055`)
