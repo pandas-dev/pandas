@@ -282,7 +282,7 @@ class ExponentialMovingWindow(BaseWindow):
 
     def __init__(
         self,
-        obj: NDFrameT,
+        obj: NDFrame,
         com: float | None = None,
         span: float | None = None,
         halflife: float | TimedeltaConvertibleTypes | None = None,
@@ -291,7 +291,7 @@ class ExponentialMovingWindow(BaseWindow):
         adjust: bool = True,
         ignore_na: bool = False,
         axis: Axis = 0,
-        times: str | np.ndarray | NDFrameT | None = None,
+        times: str | np.ndarray | NDFrame | None = None,
         method: str = "single",
         *,
         selection=None,
@@ -745,7 +745,7 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
 class OnlineExponentialMovingWindow(ExponentialMovingWindow):
     def __init__(
         self,
-        obj: NDFrameT,
+        obj: NDFrame,
         com: float | None = None,
         span: float | None = None,
         halflife: float | TimedeltaConvertibleTypes | None = None,
@@ -754,7 +754,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         adjust: bool = True,
         ignore_na: bool = False,
         axis: Axis = 0,
-        times: str | np.ndarray | NDFrameT | None = None,
+        times: str | np.ndarray | NDFrame | None = None,
         engine: str = "numba",
         engine_kwargs: dict[str, bool] | None = None,
         *,

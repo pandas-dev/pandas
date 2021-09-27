@@ -25,9 +25,9 @@ from pandas.core.dtypes.generic import (
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.computation.common import result_type_many
-from pandas.core.generic import NDFrame
 
 if TYPE_CHECKING:
+    from pandas.core.generic import NDFrame
     from pandas.core.indexes.api import Index
 
 

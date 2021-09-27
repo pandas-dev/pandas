@@ -8,6 +8,7 @@ import copy
 from functools import partial
 import operator
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Hashable,
@@ -59,6 +60,9 @@ from pandas.io.formats.style_render import (
     non_reducing_slice,
     refactor_levels,
 )
+
+if TYPE_CHECKING:
+    from pandas.core.generic import NDFrame
 
 try:
     from matplotlib import colors
@@ -3190,10 +3194,10 @@ class Styler(StylerRenderer):
 
 
 def _validate_apply_axis_arg(
-    arg: NDFrameT | Sequence | np.ndarray,
+    arg: NDFrame | Sequence | np.ndarray,
     arg_name: str,
     dtype: Any | None,
-    data: NDFrameT,
+    data: NDFrame,
 ) -> np.ndarray:
     """
     For the apply-type methods, ``axis=None`` creates ``data`` as DataFrame, and for
@@ -3310,10 +3314,10 @@ def _background_gradient(
 
 
 def _highlight_between(
-    data: NDFrameT,
+    data: NDFrame,
     props: str,
-    left: Scalar | Sequence | np.ndarray | NDFrameT | None = None,
-    right: Scalar | Sequence | np.ndarray | NDFrameT | None = None,
+    left: Scalar | Sequence | np.ndarray | NDFrame | None = None,
+    right: Scalar | Sequence | np.ndarray | NDFrame | None = None,
     inclusive: bool | str = True,
 ) -> np.ndarray:
     """
