@@ -21,6 +21,7 @@ from typing import (
     Mapping,
     TypeVar,
     Union,
+    cast,
 )
 import warnings
 
@@ -30,7 +31,9 @@ from pandas._libs import reduction as libreduction
 from pandas._typing import (
     ArrayLike,
     FrameOrSeries,
+    Manager,
     Manager2D,
+    SingleManager,
 )
 from pandas.util._decorators import (
     Appender,
@@ -158,18 +161,21 @@ def pin_allowlisted_properties(klass: type[FrameOrSeries], allowlist: frozenset[
 class SeriesGroupBy(GroupBy[Series]):
     _apply_allowlist = base.series_apply_allowlist
 
-    def _wrap_agged_manager(self, mgr: Manager2D) -> Series:
-        single = mgr.iget(0)
+    def _wrap_agged_manager(self, mgr: Manager) -> Series:
+        if mgr.ndim == 1:
+            mgr = cast(SingleManager, mgr)
+            single = mgr
+        else:
+            mgr = cast(Manager2D, mgr)
+            single = mgr.iget(0)
         ser = self.obj._constructor(single, name=self.obj.name)
-        ser.index = self.grouper.result_index
+        # NB: caller is responsible for setting ser.index
         return ser
 
-    def _get_data_to_aggregate(self) -> Manager2D:
-        obj = self._obj_with_exclusions
-        df = obj.to_frame()
-        df.columns = [obj.name]  # in case name is None, we need to overwrite [0]
-
-        return df._mgr
+    def _get_data_to_aggregate(self) -> SingleManager:
+        ser = self._obj_with_exclusions
+        single = ser._mgr
+        return single
 
     def _iterate_slices(self) -> Iterable[Series]:
         yield self._selected_obj
@@ -1517,7 +1523,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         #  values converted
         return self._reindex_output(result)._convert(datetime=True)
 
-    def _iterate_column_groupbys(self, obj: FrameOrSeries):
+    def _iterate_column_groupbys(self, obj: DataFrame | Series):
         for i, colname in enumerate(obj.columns):
             yield colname, SeriesGroupBy(
                 obj.iloc[:, i],
@@ -1526,7 +1532,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 exclusions=self.exclusions,
             )
 
-    def _apply_to_column_groupbys(self, func, obj: FrameOrSeries) -> DataFrame:
+    def _apply_to_column_groupbys(self, func, obj: DataFrame | Series) -> DataFrame:
         from pandas.core.reshape.concat import concat
 
         columns = obj.columns

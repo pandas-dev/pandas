@@ -33,6 +33,7 @@ from pandas._typing import (
     FrameOrSeries,
 )
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import (
@@ -271,8 +272,9 @@ class Apply(metaclass=abc.ABCMeta):
                     "No transform functions were provided",
                 }:
                     raise err
-                elif not isinstance(err, TypeError):
-                    all_type_errors = False
+                else:
+                    if not isinstance(err, TypeError):
+                        all_type_errors = False
                     failed_names.append(name)
         # combine results
         if not results:
@@ -280,12 +282,11 @@ class Apply(metaclass=abc.ABCMeta):
             raise klass("Transform function failed")
         if len(failed_names) > 0:
             warnings.warn(
-                f"{failed_names} did not transform successfully and did not raise "
-                f"a TypeError. If any error is raised except for TypeError, "
-                f"this will raise in a future version of pandas. "
+                f"{failed_names} did not transform successfully. If any error is "
+                f"raised, this will raise in a future version of pandas. "
                 f"Drop these columns/ops to avoid this warning.",
                 FutureWarning,
-                stacklevel=4,
+                stacklevel=find_stack_level(),
             )
         return concat(results, axis=1)
 
@@ -1051,7 +1052,6 @@ class SeriesApply(NDFrameApply):
         result = super().agg()
         if result is None:
             f = self.f
-            args = self.args
             kwargs = self.kwargs
 
             # string, list-like, and dict-like are entirely handled in super
@@ -1070,9 +1070,9 @@ class SeriesApply(NDFrameApply):
             # then .agg and .apply would have different semantics if the
             # operation is actually defined on the Series, e.g. str
             try:
-                result = self.obj.apply(f, *args, **kwargs)
+                result = self.obj.apply(f)
             except (ValueError, AttributeError, TypeError):
-                result = f(self.obj, *args, **kwargs)
+                result = f(self.obj)
 
         return result
 
@@ -1338,7 +1338,7 @@ def _make_unique_kwarg_list(
 
 
 def relabel_result(
-    result: FrameOrSeries,
+    result: DataFrame | Series,
     func: dict[str, list[Callable | str]],
     columns: Iterable[Hashable],
     order: Iterable[int],
