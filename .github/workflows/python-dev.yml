@@ -71,6 +71,7 @@ jobs:
         python -c "import pandas; pandas.show_versions();"
 
     - name: Test with pytest
+      shell: bash
       run: |
         ci/run_tests.sh
       # GH 41935
