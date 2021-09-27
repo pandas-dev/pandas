@@ -474,8 +474,8 @@ def test_include_css_style_rules_only_for_visible_cells(styler_mi):
     result = (
         styler_mi.set_uuid("")
         .applymap(lambda v: "color: blue;")
-        .hide_columns(styler_mi.data.columns[1:])
-        .hide_index(styler_mi.data.index[1:])
+        .hide(styler_mi.data.columns[1:], axis="columns")
+        .hide(styler_mi.data.index[1:], axis="index")
         .to_html()
     )
     expected_styles = dedent(
@@ -495,8 +495,8 @@ def test_include_css_style_rules_only_for_visible_index_labels(styler_mi):
     result = (
         styler_mi.set_uuid("")
         .applymap_index(lambda v: "color: blue;", axis="index")
-        .hide_columns(styler_mi.data.columns)
-        .hide_index(styler_mi.data.index[1:])
+        .hide(styler_mi.data.columns, axis="columns")
+        .hide(styler_mi.data.index[1:], axis="index")
         .to_html()
     )
     expected_styles = dedent(
@@ -516,8 +516,8 @@ def test_include_css_style_rules_only_for_visible_column_labels(styler_mi):
     result = (
         styler_mi.set_uuid("")
         .applymap_index(lambda v: "color: blue;", axis="columns")
-        .hide_columns(styler_mi.data.columns[1:])
-        .hide_index(styler_mi.data.index)
+        .hide(styler_mi.data.columns[1:], axis="columns")
+        .hide(styler_mi.data.index, axis="index")
         .to_html()
     )
     expected_styles = dedent(

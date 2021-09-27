@@ -2112,6 +2112,9 @@ class Styler(StylerRenderer):
 
         .. versionchanged:: 1.3.0
 
+        .. deprecated:: 1.4.0
+           This method should be replaced by ``hide(axis="columns", **kwargs)``
+
         Parameters
         ----------
         subset : label, array-like, IndexSlice, optional
@@ -2135,99 +2138,14 @@ class Styler(StylerRenderer):
 
         See Also
         --------
-        Styler.hide_columns: Hide the entire column headers row, or specific columns.
-
-        Examples
-        --------
-        Simple application hiding specific rows:
-
-        >>> df = pd.DataFrame([[1,2], [3,4], [5,6]], index=["a", "b", "c"])
-        >>> df.style.hide_index(["a", "b"])  # doctest: +SKIP
-             0    1
-        c    5    6
-
-        Hide the index and retain the data values:
-
-        >>> midx = pd.MultiIndex.from_product([["x", "y"], ["a", "b", "c"]])
-        >>> df = pd.DataFrame(np.random.randn(6,6), index=midx, columns=midx)
-        >>> df.style.format("{:.1f}").hide_index()  # doctest: +SKIP
-                         x                    y
-           a      b      c      a      b      c
-         0.1    0.0    0.4    1.3    0.6   -1.4
-         0.7    1.0    1.3    1.5   -0.0   -0.2
-         1.4   -0.8    1.6   -0.2   -0.4   -0.3
-         0.4    1.0   -0.2   -0.8   -1.2    1.1
-        -0.6    1.2    1.8    1.9    0.3    0.3
-         0.8    0.5   -0.3    1.2    2.2   -0.8
-
-        Hide specific rows but retain the index:
-
-        >>> df.style.format("{:.1f}").hide_index(subset=(slice(None), ["a", "c"]))
-        ...   # doctest: +SKIP
-                                 x                    y
-                   a      b      c      a      b      c
-        x   b    0.7    1.0    1.3    1.5   -0.0   -0.2
-        y   b   -0.6    1.2    1.8    1.9    0.3    0.3
-
-        Hide specific rows and the index:
-
-        >>> df.style.format("{:.1f}").hide_index(
-        ...     subset=(slice(None), ["a", "c"])).hide_index()  # doctest: +SKIP
-                         x                    y
-           a      b      c      a      b      c
-         0.7    1.0    1.3    1.5   -0.0   -0.2
-        -0.6    1.2    1.8    1.9    0.3    0.3
-
-        Hide a specific level:
-
-        >>> df.style.format("{:,.1f}").hide_index(level=1)  # doctest: +SKIP
-                             x                    y
-               a      b      c      a      b      c
-        x    0.1    0.0    0.4    1.3    0.6   -1.4
-             0.7    1.0    1.3    1.5   -0.0   -0.2
-             1.4   -0.8    1.6   -0.2   -0.4   -0.3
-        y    0.4    1.0   -0.2   -0.8   -1.2    1.1
-            -0.6    1.2    1.8    1.9    0.3    0.3
-             0.8    0.5   -0.3    1.2    2.2   -0.8
-
-        Hiding just the index level names:
-
-        >>> df.index.names = ["lev0", "lev1"]
-        >>> df.style.format("{:,.1f}").hide_index(names=True)  # doctest: +SKIP
-                                 x                    y
-                   a      b      c      a      b      c
-        x   a    0.1    0.0    0.4    1.3    0.6   -1.4
-            b    0.7    1.0    1.3    1.5   -0.0   -0.2
-            c    1.4   -0.8    1.6   -0.2   -0.4   -0.3
-        y   a    0.4    1.0   -0.2   -0.8   -1.2    1.1
-            b   -0.6    1.2    1.8    1.9    0.3    0.3
-            c    0.8    0.5   -0.3    1.2    2.2   -0.8
+        Styler.hide: Hide the entire index / columns, or specific rows / columns.
         """
-        if level is not None and subset is not None:
-            raise ValueError("`subset` and `level` cannot be passed simultaneously")
-
-        if subset is None:
-            if level is None and names:
-                # this combination implies user shows the index and hides just names
-                self.hide_index_names = True
-                return self
-
-            levels_ = refactor_levels(level, self.index)
-            self.hide_index_ = [
-                True if lev in levels_ else False for lev in range(self.index.nlevels)
-            ]
-        else:
-            subset_ = IndexSlice[subset, :]  # new var so mypy reads not Optional
-            subset = non_reducing_slice(subset_)
-            hide = self.data.loc[subset]
-            hrows = self.index.get_indexer_for(hide.index)
-            # error: Incompatible types in assignment (expression has type
-            # "ndarray", variable has type "Sequence[int]")
-            self.hidden_rows = hrows  # type: ignore[assignment]
-
-        if names:
-            self.hide_index_names = True
-        return self
+        warnings.warn(
+            "this method is deprecated in favour of `Styler.hide(axis='index')`",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.hide(axis=0, level=level, subset=subset, names=names)
 
     def hide_columns(
         self,
@@ -2246,6 +2164,9 @@ class Styler(StylerRenderer):
             data-values will be hidden, whilst the column headers row remains visible.
 
         .. versionchanged:: 1.3.0
+
+        ..deprecated:: 1.4.0
+          This method should be replaced by ``hide(axis="columns", **kwargs)``
 
         Parameters
         ----------
@@ -2270,70 +2191,114 @@ class Styler(StylerRenderer):
 
         See Also
         --------
-        Styler.hide_index: Hide the entire index, or specific keys in the index.
+        Styler.hide: Hide the entire index / columns, or specific rows / columns.
+        """
+        warnings.warn(
+            "this method is deprecated in favour of `Styler.hide(axis='columns')`",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.hide(axis=1, level=level, subset=subset, names=names)
+
+    def hide(
+        self,
+        subset: Subset | None = None,
+        axis: Axis = 0,
+        level: Level | list[Level] | None = None,
+        names: bool = False,
+    ) -> Styler:
+        """
+        Hide the entire index / column headers, or specific rows / columns from display.
+
+        This method has multiple functionality (see examples):
+
+          - if ``subset`` is ``None`` then the entire index / columns headers (or
+            specified levels) are hidden whilst displaying all data-values, as well
+            as levels names.
+          - if ``subset`` is ``None``, but ``names`` is *True* then just the level names
+            for the given ``axis`` are hidden but the labels will remain.
+          - if a ``subset`` is given then those specific labels along the given
+            ``axis`` will be hidden whilst the index / column headers remain visible.
+
+        .. versionadded:: 1.4.0
+
+        Parameters
+        ----------
+        subset : label, array-like, IndexSlice, optional
+            A valid 1d input or single key along the axis within
+            `DataFrame.loc[<subset>, :]` or `DataFrame.loc[:, <subset>]` depending
+            upon ``axis``, to limit ``data`` to select hidden rows / columns.
+        axis : {"index", 0, "columns", 1}
+            Apply to the index or columns.
+        level : int, str, list
+            The level(s) to hide in a MultiIndex if hiding the entire index / column
+            headers. Cannot be used simultaneously with ``subset``.
+        names : bool
+            Whether to hide the level name(s) of the index / columns headers in the case
+            it (or at least one the levels) remains visible.
+
+        Returns
+        -------
+        self : Styler
 
         Examples
         --------
-        Simple application hiding specific columns:
+        Simple application hiding specific rows:
 
-        >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=["a", "b", "c"])
-        >>> df.style.hide_columns(["a", "b"])  # doctest: +SKIP
-             c
-        0    3
-        1    6
+        >>> df = pd.DataFrame([[1,2], [3,4], [5,6]], index=["a", "b", "c"])
+        >>> df.style.hide(["a", "b"])  # doctest: +SKIP
+             0    1
+        c    5    6
 
-        Hide column headers and retain the data values:
+        Hide the index and retain the data values:
 
         >>> midx = pd.MultiIndex.from_product([["x", "y"], ["a", "b", "c"]])
         >>> df = pd.DataFrame(np.random.randn(6,6), index=midx, columns=midx)
-        >>> df.style.format("{:.1f}").hide_columns()  # doctest: +SKIP
-        x   a    0.1    0.0    0.4    1.3    0.6   -1.4
-            b    0.7    1.0    1.3    1.5   -0.0   -0.2
-            c    1.4   -0.8    1.6   -0.2   -0.4   -0.3
-        y   a    0.4    1.0   -0.2   -0.8   -1.2    1.1
-            b   -0.6    1.2    1.8    1.9    0.3    0.3
-            c    0.8    0.5   -0.3    1.2    2.2   -0.8
+        >>> df.style.format("{:.1f}").hide()  # doctest: +SKIP
+                         x                    y
+           a      b      c      a      b      c
+         0.1    0.0    0.4    1.3    0.6   -1.4
+         0.7    1.0    1.3    1.5   -0.0   -0.2
+         1.4   -0.8    1.6   -0.2   -0.4   -0.3
+         0.4    1.0   -0.2   -0.8   -1.2    1.1
+        -0.6    1.2    1.8    1.9    0.3    0.3
+         0.8    0.5   -0.3    1.2    2.2   -0.8
 
-        Hide specific columns but retain the column headers:
+        Hide specific rows but retain the index:
 
-        >>> df.style.format("{:.1f}").hide_columns(subset=(slice(None), ["a", "c"]))
+        >>> df.style.format("{:.1f}").hide(subset=(slice(None), ["a", "c"]))
         ...   # doctest: +SKIP
-                   x      y
-                   b      b
-        x   a    0.0    0.6
-            b    1.0   -0.0
-            c   -0.8   -0.4
-        y   a    1.0   -1.2
-            b    1.2    0.3
-            c    0.5    2.2
+                                 x                    y
+                   a      b      c      a      b      c
+        x   b    0.7    1.0    1.3    1.5   -0.0   -0.2
+        y   b   -0.6    1.2    1.8    1.9    0.3    0.3
 
-        Hide specific columns and the column headers:
+        Hide specific rows and the index:
 
-        >>> df.style.format("{:.1f}").hide_columns(
-        ...    subset=(slice(None), ["a", "c"])).hide_columns()  # doctest: +SKIP
-        x   a    0.0    0.6
-            b    1.0   -0.0
-            c   -0.8   -0.4
-        y   a    1.0   -1.2
-            b    1.2    0.3
-            c    0.5    2.2
+        >>> df.style.format("{:.1f}").hide(
+        ...     subset=(slice(None), ["a", "c"])).hide()  # doctest: +SKIP
+                         x                    y
+           a      b      c      a      b      c
+         0.7    1.0    1.3    1.5   -0.0   -0.2
+        -0.6    1.2    1.8    1.9    0.3    0.3
 
         Hide a specific level:
 
-        >>> df.style.format("{:.1f}").hide_columns(level=1)  # doctest: +SKIP
-                   x                    y
-        x   a    0.1    0.0    0.4    1.3    0.6   -1.4
-            b    0.7    1.0    1.3    1.5   -0.0   -0.2
-            c    1.4   -0.8    1.6   -0.2   -0.4   -0.3
-        y   a    0.4    1.0   -0.2   -0.8   -1.2    1.1
-            b   -0.6    1.2    1.8    1.9    0.3    0.3
-            c    0.8    0.5   -0.3    1.2    2.2   -0.8
+        >>> df.style.format("{:,.1f}").hide(level=1)  # doctest: +SKIP
+                             x                    y
+               a      b      c      a      b      c
+        x    0.1    0.0    0.4    1.3    0.6   -1.4
+             0.7    1.0    1.3    1.5   -0.0   -0.2
+             1.4   -0.8    1.6   -0.2   -0.4   -0.3
+        y    0.4    1.0   -0.2   -0.8   -1.2    1.1
+            -0.6    1.2    1.8    1.9    0.3    0.3
+             0.8    0.5   -0.3    1.2    2.2   -0.8
 
-        Hiding just the column level names:
+        Hiding just the index level names:
 
-        >>> df.columns.names = ["lev0", "lev1"]
-        >>> df.style.format("{:.1f").hide_columns(names=True)  # doctest: +SKIP
-                   x                    y
+        >>> df.index.names = ["lev0", "lev1"]
+        >>> df.style.format("{:,.1f}").hide(names=True)  # doctest: +SKIP
+                                 x                    y
                    a      b      c      a      b      c
         x   a    0.1    0.0    0.4    1.3    0.6   -1.4
             b    0.7    1.0    1.3    1.5   -0.0   -0.2
@@ -2341,31 +2306,47 @@ class Styler(StylerRenderer):
         y   a    0.4    1.0   -0.2   -0.8   -1.2    1.1
             b   -0.6    1.2    1.8    1.9    0.3    0.3
             c    0.8    0.5   -0.3    1.2    2.2   -0.8
+
+        Examples all produce equivalently transposed effects with ``axis="columns"``.
         """
+        axis = self.data._get_axis_number(axis)
+        if axis == 0:
+            obj, objs, alt = "index", "index", "rows"
+        else:
+            obj, objs, alt = "column", "columns", "columns"
+
         if level is not None and subset is not None:
             raise ValueError("`subset` and `level` cannot be passed simultaneously")
 
         if subset is None:
             if level is None and names:
-                # this combination implies user shows the column headers but hides names
-                self.hide_column_names = True
+                # this combination implies user shows the index and hides just names
+                setattr(self, f"hide_{obj}_names", True)
                 return self
 
-            levels_ = refactor_levels(level, self.columns)
-            self.hide_columns_ = [
-                True if lev in levels_ else False for lev in range(self.columns.nlevels)
-            ]
+            levels_ = refactor_levels(level, getattr(self, objs))
+            setattr(
+                self,
+                f"hide_{objs}_",
+                [
+                    True if lev in levels_ else False
+                    for lev in range(getattr(self, objs).nlevels)
+                ],
+            )
         else:
-            subset_ = IndexSlice[:, subset]  # new var so mypy reads not Optional
+            if axis == 0:
+                subset_ = IndexSlice[subset, :]  # new var so mypy reads not Optional
+            else:
+                subset_ = IndexSlice[:, subset]  # new var so mypy reads not Optional
             subset = non_reducing_slice(subset_)
             hide = self.data.loc[subset]
-            hcols = self.columns.get_indexer_for(hide.columns)
+            h_els = getattr(self, objs).get_indexer_for(getattr(hide, objs))
             # error: Incompatible types in assignment (expression has type
             # "ndarray", variable has type "Sequence[int]")
-            self.hidden_columns = hcols  # type: ignore[assignment]
+            setattr(self, f"hidden_{alt}", h_els)  # type: ignore[assignment]
 
         if names:
-            self.hide_column_names = True
+            setattr(self, f"hide_{obj}_names", True)
         return self
 
     # -----------------------------------------------------------------------

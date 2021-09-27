@@ -360,7 +360,7 @@ def test_multiindex_columns_hidden():
     s = df.style
     assert "{tabular}{lrrrr}" in s.to_latex()
     s.set_table_styles([])  # reset the position command
-    s.hide_columns([("A", 2)])
+    s.hide([("A", 2)], axis="columns")
     assert "{tabular}{lrrr}" in s.to_latex()
 
 
@@ -386,7 +386,7 @@ def test_sparse_options(df_ext, option, value):
 
 
 def test_hidden_index(styler):
-    styler.hide_index()
+    styler.hide(axis="index")
     expected = dedent(
         """\
         \\begin{tabular}{rrl}
