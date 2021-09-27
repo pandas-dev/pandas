@@ -69,13 +69,50 @@ markers = [
 ]
 
 [tool.mypy]
-platform = "linux-64"
+# Import discovery
+namespace_packages = false
+explicit_package_bases = false
 ignore_missing_imports = true
-no_implicit_optional = true
+follow_imports = "normal"
+follow_imports_for_stubs = false
+no_site_packages = false
+no_silence_site_packages = false
+# Platform configuration
+platform = "linux-64"
+# Disallow dynamic typing
+disallow_any_unimported = false # TODO
+disallow_any_expr = false # TODO
+disallow_any_decorated = false # TODO
+disallow_any_explicit = false # TODO
+disallow_any_generics = false # TODO
+disallow_subclassing_any = false # TODO
+# Untyped definitions and calls
+disallow_untyped_calls = false # TODO
+disallow_untyped_defs = false # TODO
+disallow_incomplete_defs = false # TODO
 check_untyped_defs = true
-strict_equality = true
+disallow_untyped_decorators = false # GH#33455
+# None and Optional handling
+no_implicit_optional = true
+strict_optional = true
+# Configuring warnings
 warn_redundant_casts = true
 warn_unused_ignores = true
+warn_no_return = true
+warn_return_any = false # TODO
+warn_unreachable = false # GH#27396
+# Suppressing errors
+show_none_errors = true
+ignore_errors = false
+# Miscellaneous strictness flags
+allow_untyped_globals = false
+allow_redefinition = false
+local_partial_types = false
+implicit_reexport = true
+strict_equality = true
+# Configuring error messages
+show_error_context = false
+show_column_numbers = false
 show_error_codes = true
 
 [[tool.mypy.overrides]]
@@ -129,7 +166,6 @@ reportImportCycles = false
 reportIncompatibleMethodOverride = false
 reportIncompatibleVariableOverride = false
 reportInvalidStubStatement = false
-reportInvalidTypeVarUse = false
 reportMissingImports = false
 reportMissingModuleSource = false
 reportMissingTypeArgument = false
@@ -139,11 +175,9 @@ reportOptionalIterable = false
 reportOptionalMemberAccess = false
 reportOptionalOperand = false
 reportOptionalSubscript = false
-reportOverlappingOverload = false
 reportPrivateImportUsage = false
 reportPrivateUsage = false
 reportPropertyTypeMismatch = false
-reportSelfClsParameterName = false
 reportUnboundVariable = false
 reportUnknownArgumentType = false
 reportUnknownLambdaType = false
