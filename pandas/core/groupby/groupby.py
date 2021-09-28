@@ -44,9 +44,9 @@ from pandas._libs import (
 import pandas._libs.groupby as libgroupby
 from pandas._typing import (
     ArrayLike,
-    FrameOrSeries,
     IndexLabel,
     PositionalIndexer,
+    NDFrameT,
     RandomState,
     Scalar,
     T,
@@ -558,7 +558,7 @@ _KeysArgType = Union[
 ]
 
 
-class BaseGroupBy(PandasObject, SelectionMixin[FrameOrSeries], GroupByIndexingMixin):
+class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT]):
     _group_selection: IndexLabel | None = None
     _apply_allowlist: frozenset[str] = frozenset()
     _hidden_attrs = PandasObject._hidden_attrs | {
@@ -746,7 +746,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[FrameOrSeries], GroupByIndexingMi
         return obj._take_with_is_copy(inds, axis=self.axis)
 
     @final
-    def __iter__(self) -> Iterator[tuple[Hashable, FrameOrSeries]]:
+    def __iter__(self) -> Iterator[tuple[Hashable, NDFrameT]]:
         """
         Groupby iterator.
 
@@ -762,7 +762,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[FrameOrSeries], GroupByIndexingMi
 OutputFrameOrSeries = TypeVar("OutputFrameOrSeries", bound=NDFrame)
 
 
-class GroupBy(BaseGroupBy[FrameOrSeries]):
+class GroupBy(BaseGroupBy[NDFrameT]):
     """
     Class for grouping and aggregating relational data.
 
@@ -836,7 +836,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
     @final
     def __init__(
         self,
-        obj: FrameOrSeries,
+        obj: NDFrameT,
         keys: _KeysArgType | None = None,
         axis: int = 0,
         level: IndexLabel | None = None,
@@ -1600,7 +1600,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             return self._transform_general(func, *args, **kwargs)
 
     @final
-    def _wrap_transform_fast_result(self, result: FrameOrSeries) -> FrameOrSeries:
+    def _wrap_transform_fast_result(self, result: NDFrameT) -> NDFrameT:
         """
         Fast transform path for aggregations.
         """
@@ -2063,7 +2063,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
     @final
     @doc(_groupby_agg_method_template, fname="first", no=False, mc=-1)
     def first(self, numeric_only: bool = False, min_count: int = -1):
-        def first_compat(obj: FrameOrSeries, axis: int = 0):
+        def first_compat(obj: NDFrameT, axis: int = 0):
             def first(x: Series):
                 """Helper function for first item that isn't NA."""
                 arr = x.array[notna(x.array)]
@@ -2088,7 +2088,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
     @final
     @doc(_groupby_agg_method_template, fname="last", no=False, mc=-1)
     def last(self, numeric_only: bool = False, min_count: int = -1):
-        def last_compat(obj: FrameOrSeries, axis: int = 0):
+        def last_compat(obj: NDFrameT, axis: int = 0):
             def last(x: Series):
                 """Helper function for last item that isn't NA."""
                 arr = x.array[notna(x.array)]
