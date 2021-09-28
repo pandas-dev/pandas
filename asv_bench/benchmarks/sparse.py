@@ -195,4 +195,17 @@ class Take:
         self.sp_arr.take(indices, allow_fill=allow_fill)
 
 
+class GetItem:
+    def setup(self):
+        N = 1_000_000
+        arr = make_array(N, 1e-5, np.nan, np.float64)
+        self.sp_arr = SparseArray(arr)
+
+    def time_integer_indexing(self):
+        self.sp_arr[78]
+
+    def time_slice(self):
+        self.sp_arr[1:]
+
+
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
