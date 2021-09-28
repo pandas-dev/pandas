@@ -642,7 +642,7 @@ accepts the special syntax in :meth:`GroupBy.agg`, known as "named aggregation",
   be a callable or a string alias.
 
 .. versionchanged:: 1.4.0
-   ``pandas.NamedAgg`` is no longer a collections.namedtuple but a typing.NamedTuple.
+   ``pandas.NamedAgg`` is no longer a ``collections.namedtuple`` but now a ``typing.NamedTuple``.
 
 .. ipython:: python
 
