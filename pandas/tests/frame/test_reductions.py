@@ -1367,7 +1367,7 @@ class TestDataFrameReductions:
         tz = tz_naive_fixture
         if isinstance(tz, tzlocal) and is_platform_windows():
             pytest.skip(
-                reason="GH#37659 OSError raised within tzlocal bc Windows "
+                "GH#37659 OSError raised within tzlocal bc Windows "
                 "chokes in times before 1970-01-01"
             )
 
