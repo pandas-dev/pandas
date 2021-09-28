@@ -480,7 +480,7 @@ ctypedef fused add_t:
     complex128_t
     object
 
-ctypedef fused common_t:
+ctypedef fused mean_t:
     float64_t
     float32_t
     complex64_t
@@ -675,9 +675,9 @@ def group_var(floating[:, ::1] out,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def group_mean(common_t[:, ::1] out,
+def group_mean(mean_t[:, ::1] out,
                int64_t[::1] counts,
-               ndarray[common_t, ndim=2] values,
+               ndarray[mean_t, ndim=2] values,
                const intp_t[::1] labels,
                Py_ssize_t min_count=-1,
                bint is_datetimelike=False,
@@ -717,8 +717,8 @@ def group_mean(common_t[:, ::1] out,
 
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
-        common_t val, count, y, t, nan_val
-        common_t[:, ::1] sumx, compensation
+        mean_t val, count, y, t, nan_val
+        mean_t[:, ::1] sumx, compensation
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
 
