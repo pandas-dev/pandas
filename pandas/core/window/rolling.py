@@ -27,7 +27,7 @@ import pandas._libs.window.aggregations as window_aggregations
 from pandas._typing import (
     ArrayLike,
     Axis,
-    FrameOrSeries,
+    NDFrameT,
     WindowingRankType,
 )
 from pandas.compat._optional import import_optional_dependency
@@ -227,7 +227,7 @@ class BaseWindow(SelectionMixin):
         if self.method not in ["table", "single"]:
             raise ValueError("method must be 'table' or 'single")
 
-    def _create_data(self, obj: FrameOrSeries) -> FrameOrSeries:
+    def _create_data(self, obj: NDFrameT) -> NDFrameT:
         """
         Split data into blocks & return conformed data.
         """
@@ -796,7 +796,7 @@ class BaseWindowGroupby(BaseWindow):
         result.index = result_index
         return result
 
-    def _create_data(self, obj: FrameOrSeries) -> FrameOrSeries:
+    def _create_data(self, obj: NDFrameT) -> NDFrameT:
         """
         Split data into blocks & return conformed data.
         """
