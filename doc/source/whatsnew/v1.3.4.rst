@@ -17,9 +17,11 @@ Fixed regressions
 - Fixed regression in :meth:`merge` with integer and ``NaN`` keys failing with ``outer`` merge (:issue:`43550`)
 - Fixed regression in :meth:`DataFrame.corr` raising ``ValueError`` with ``method="spearman"`` on 32-bit platforms (:issue:`43588`)
 - Fixed performance regression in :meth:`MultiIndex.equals` (:issue:`43549`)
+- Fixed performance regression in :meth:`.GroupBy.first` and :meth:`.GroupBy.last` with :class:`StringDtype` (:issue:`41596`)
 - Fixed regression in :meth:`Series.cat.reorder_categories` failing to update the categories on the ``Series`` (:issue:`43232`)
 - Fixed regression in :meth:`Series.cat.categories` setter failing to update the categories on the ``Series`` (:issue:`43334`)
--
+- Fixed regression in :meth:`pandas.read_csv` raising ``UnicodeDecodeError`` exception when ``memory_map=True`` (:issue:`43540`)
+- Fixed regression in :meth:`Series.aggregate` attempting to pass ``args`` and ``kwargs`` multiple times to the user supplied ``func`` in certain cases (:issue:`43357`)
 
 .. ---------------------------------------------------------------------------
 
@@ -28,6 +30,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 - Fixed bug in :meth:`.GroupBy.mean` with datetimelike values including ``NaT`` values returning incorrect results (:issue:`43132`)
+- Fixed bug in :meth:`Series.aggregate` not passing the first ``args`` to the user supplied ``func`` in certain cases (:issue:`43357`)
 
 .. ---------------------------------------------------------------------------
 

@@ -104,6 +104,13 @@ if [[ -z "$CHECK" || "$CHECK" == "typing" ]]; then
     MSG='Performing static analysis using mypy' ; echo $MSG
     mypy pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    # run pyright, if it is installed
+    if command -v pyright &> /dev/null ; then
+        MSG='Performing static analysis using pyright' ; echo $MSG
+        pyright
+        RET=$(($RET + $?)) ; echo $MSG "DONE"
+    fi
 fi
 
 exit $RET

@@ -21,6 +21,7 @@ from typing import (
     Mapping,
     TypeVar,
     Union,
+    cast,
 )
 import warnings
 
@@ -29,8 +30,9 @@ import numpy as np
 from pandas._libs import reduction as libreduction
 from pandas._typing import (
     ArrayLike,
-    FrameOrSeries,
+    Manager,
     Manager2D,
+    SingleManager,
 )
 from pandas.util._decorators import (
     Appender,
@@ -45,7 +47,6 @@ from pandas.core.dtypes.common import (
     is_dict_like,
     is_integer_dtype,
     is_interval_dtype,
-    is_numeric_dtype,
     is_scalar,
 )
 from pandas.core.dtypes.missing import (
@@ -75,6 +76,7 @@ from pandas.core.groupby.groupby import (
     _apply_docs,
     _transform_template,
     group_selection_context,
+    warn_dropping_nuisance_columns_deprecated,
 )
 from pandas.core.indexes.api import (
     Index,
@@ -95,7 +97,7 @@ AggScalar = Union[str, Callable[..., Any]]
 ScalarResult = TypeVar("ScalarResult")
 
 
-def generate_property(name: str, klass: type[FrameOrSeries]):
+def generate_property(name: str, klass: type[DataFrame | Series]):
     """
     Create a property for a GroupBy subclass to dispatch to DataFrame/Series.
 
@@ -118,7 +120,9 @@ def generate_property(name: str, klass: type[FrameOrSeries]):
     return property(prop)
 
 
-def pin_allowlisted_properties(klass: type[FrameOrSeries], allowlist: frozenset[str]):
+def pin_allowlisted_properties(
+    klass: type[DataFrame | Series], allowlist: frozenset[str]
+):
     """
     Create GroupBy member defs for DataFrame/Series names in a allowlist.
 
@@ -158,18 +162,21 @@ def pin_allowlisted_properties(klass: type[FrameOrSeries], allowlist: frozenset[
 class SeriesGroupBy(GroupBy[Series]):
     _apply_allowlist = base.series_apply_allowlist
 
-    def _wrap_agged_manager(self, mgr: Manager2D) -> Series:
-        single = mgr.iget(0)
+    def _wrap_agged_manager(self, mgr: Manager) -> Series:
+        if mgr.ndim == 1:
+            mgr = cast(SingleManager, mgr)
+            single = mgr
+        else:
+            mgr = cast(Manager2D, mgr)
+            single = mgr.iget(0)
         ser = self.obj._constructor(single, name=self.obj.name)
-        ser.index = self.grouper.result_index
+        # NB: caller is responsible for setting ser.index
         return ser
 
-    def _get_data_to_aggregate(self) -> Manager2D:
-        obj = self._obj_with_exclusions
-        df = obj.to_frame()
-        df.columns = [obj.name]  # in case name is None, we need to overwrite [0]
-
-        return df._mgr
+    def _get_data_to_aggregate(self) -> SingleManager:
+        ser = self._obj_with_exclusions
+        single = ser._mgr
+        return single
 
     def _iterate_slices(self) -> Iterable[Series]:
         yield self._selected_obj
@@ -327,43 +334,6 @@ class SeriesGroupBy(GroupBy[Series]):
 
         output = self._reindex_output(output)
         return output
-
-    def _cython_agg_general(
-        self, how: str, alt: Callable, numeric_only: bool, min_count: int = -1
-    ):
-
-        obj = self._selected_obj
-        objvals = obj._values
-        data = obj._mgr
-
-        if numeric_only and not is_numeric_dtype(obj.dtype):
-            # GH#41291 match Series behavior
-            raise NotImplementedError(
-                f"{type(self).__name__}.{how} does not implement numeric_only."
-            )
-
-        # This is overkill because it is only called once, but is here to
-        #  mirror the array_func used in DataFrameGroupBy._cython_agg_general
-        def array_func(values: ArrayLike) -> ArrayLike:
-            try:
-                result = self.grouper._cython_operation(
-                    "aggregate", values, how, axis=data.ndim - 1, min_count=min_count
-                )
-            except NotImplementedError:
-                # generally if we have numeric_only=False
-                # and non-applicable functions
-                # try to python agg
-                # TODO: shouldn't min_count matter?
-                result = self._agg_py_fallback(values, ndim=data.ndim, alt=alt)
-
-            return result
-
-        result = array_func(objvals)
-
-        ser = self.obj._constructor(
-            result, index=self.grouper.result_index, name=obj.name
-        )
-        return self._reindex_output(ser)
 
     def _indexed_output_to_ndframe(
         self, output: Mapping[base.OutputKey, ArrayLike]
@@ -964,46 +934,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
                 yield values
 
-    def _cython_agg_general(
-        self, how: str, alt: Callable, numeric_only: bool, min_count: int = -1
-    ) -> DataFrame:
-        # Note: we never get here with how="ohlc"; that goes through SeriesGroupBy
-
-        data: Manager2D = self._get_data_to_aggregate()
-
-        if numeric_only:
-            data = data.get_numeric_data(copy=False)
-
-        def array_func(values: ArrayLike) -> ArrayLike:
-            try:
-                result = self.grouper._cython_operation(
-                    "aggregate", values, how, axis=data.ndim - 1, min_count=min_count
-                )
-            except NotImplementedError:
-                # generally if we have numeric_only=False
-                # and non-applicable functions
-                # try to python agg
-                # TODO: shouldn't min_count matter?
-                result = self._agg_py_fallback(values, ndim=data.ndim, alt=alt)
-
-            return result
-
-        # TypeError -> we may have an exception in trying to aggregate
-        #  continue and exclude the block
-        new_mgr = data.grouped_reduce(array_func, ignore_failures=True)
-
-        if len(new_mgr) < len(data):
-            warnings.warn(
-                f"Dropping invalid columns in {type(self).__name__}.{how} "
-                "is deprecated. In a future version, a TypeError will be raised. "
-                f"Before calling .{how}, select only columns which should be "
-                "valid for the function.",
-                FutureWarning,
-                stacklevel=4,
-            )
-
-        return self._wrap_agged_manager(new_mgr)
-
     def _aggregate_frame(self, func, *args, **kwargs) -> DataFrame:
         if self.grouper.nkeys != 1:
             raise AssertionError("Number of keys must be 1")
@@ -1189,14 +1119,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         res_mgr.set_axis(1, mgr.axes[1])
 
         if len(res_mgr) < len(mgr):
-            warnings.warn(
-                f"Dropping invalid columns in {type(self).__name__}.{how} "
-                "is deprecated. In a future version, a TypeError will be raised. "
-                f"Before calling .{how}, select only columns which should be "
-                "valid for the transforming function.",
-                FutureWarning,
-                stacklevel=4,
-            )
+            warn_dropping_nuisance_columns_deprecated(type(self), how)
 
         res_df = self.obj._constructor(res_mgr)
         if self.axis == 1:
@@ -1308,14 +1231,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 output[i] = sgb.transform(wrapper)
             except TypeError:
                 # e.g. trying to call nanmean with string values
-                warnings.warn(
-                    f"Dropping invalid columns in {type(self).__name__}.transform "
-                    "is deprecated. In a future version, a TypeError will be raised. "
-                    "Before calling .transform, select only columns which should be "
-                    "valid for the transforming function.",
-                    FutureWarning,
-                    stacklevel=5,
-                )
+                warn_dropping_nuisance_columns_deprecated(type(self), "transform")
             else:
                 inds.append(i)
 
@@ -1517,7 +1433,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         #  values converted
         return self._reindex_output(result)._convert(datetime=True)
 
-    def _iterate_column_groupbys(self, obj: FrameOrSeries):
+    def _iterate_column_groupbys(self, obj: DataFrame | Series):
         for i, colname in enumerate(obj.columns):
             yield colname, SeriesGroupBy(
                 obj.iloc[:, i],
@@ -1526,7 +1442,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 exclusions=self.exclusions,
             )
 
-    def _apply_to_column_groupbys(self, func, obj: FrameOrSeries) -> DataFrame:
+    def _apply_to_column_groupbys(self, func, obj: DataFrame | Series) -> DataFrame:
         from pandas.core.reshape.concat import concat
 
         columns = obj.columns
