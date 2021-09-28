@@ -273,8 +273,9 @@ class Apply(metaclass=abc.ABCMeta):
                     "No transform functions were provided",
                 }:
                     raise err
-                elif not isinstance(err, TypeError):
-                    all_type_errors = False
+                else:
+                    if not isinstance(err, TypeError):
+                        all_type_errors = False
                     failed_names.append(name)
         # combine results
         if not results:
@@ -282,12 +283,11 @@ class Apply(metaclass=abc.ABCMeta):
             raise klass("Transform function failed")
         if len(failed_names) > 0:
             warnings.warn(
-                f"{failed_names} did not transform successfully and did not raise "
-                f"a TypeError. If any error is raised except for TypeError, "
-                f"this will raise in a future version of pandas. "
+                f"{failed_names} did not transform successfully. If any error is "
+                f"raised, this will raise in a future version of pandas. "
                 f"Drop these columns/ops to avoid this warning.",
                 FutureWarning,
-                stacklevel=4,
+                stacklevel=find_stack_level(),
             )
         return concat(results, axis=1)
 
@@ -1370,7 +1370,7 @@ def _make_unique_kwarg_list(
 
 
 def relabel_result(
-    result: FrameOrSeries,
+    result: DataFrame | Series,
     func: dict[str, list[Callable | str]],
     columns: Iterable[Hashable],
     order: Iterable[int],
