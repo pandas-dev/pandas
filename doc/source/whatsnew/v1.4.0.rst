@@ -545,6 +545,7 @@ Reshaping
 - Bug in :func:`crosstab` when inputs are are categorical Series, there are categories that are not present in one or both of the Series, and ``margins=True``. Previously the margin value for missing categories was ``NaN``. It is now correctly reported as 0 (:issue:`43505`)
 - Bug in :func:`concat` would fail when the ``objs`` argument all had the same index and the ``keys`` argument contained duplicates (:issue:`43595`)
 - Bug in :func:`concat` which ignored the ``sort`` parameter (:issue:`43375`)
+- Fixed bug in :func:`merge` with :class:`MultiIndex` as column index for the ``on`` argument returning an error when assigning a column internally (:issue:`43734`)
 
 Sparse
 ^^^^^^
