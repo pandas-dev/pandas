@@ -1,5 +1,4 @@
 from typing import (
-    Any,
     Hashable,
     Literal,
 )

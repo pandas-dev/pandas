@@ -632,7 +632,6 @@ def _build_xpath_expr(attrs) -> str:
 
 
 _re_namespace = {"re": "http://exslt.org/regular-expressions"}
-_valid_schemes = "http", "file", "ftp"
 
 
 class _LxmlFrameParser(_HtmlFrameParser):

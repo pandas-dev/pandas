@@ -876,7 +876,7 @@ class DataFrameFormatter:
             need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
             str_columns = [
                 [" " + x if not self._get_formatter(i) and need_leadsp[x] else x]
-                for i, (col, x) in enumerate(zip(columns, fmt_columns))
+                for i, x in enumerate(fmt_columns)
             ]
         # self.str_columns = str_columns
         return str_columns

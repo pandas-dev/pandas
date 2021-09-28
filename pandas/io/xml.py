@@ -297,9 +297,7 @@ class _EtreeFrameParser(_XMLFrameParser):
         dicts = [{k: d[k] if k in d.keys() else None for k in keys} for d in dicts]
 
         if self.names:
-            dicts = [
-                {nm: v for nm, (k, v) in zip(self.names, d.items())} for d in dicts
-            ]
+            dicts = [{nm: v for nm, v in zip(self.names, d.values())} for d in dicts]
 
         return dicts
 
@@ -478,9 +476,7 @@ class _LxmlFrameParser(_XMLFrameParser):
         dicts = [{k: d[k] if k in d.keys() else None for k in keys} for d in dicts]
 
         if self.names:
-            dicts = [
-                {nm: v for nm, (k, v) in zip(self.names, d.items())} for d in dicts
-            ]
+            dicts = [{nm: v for nm, v in zip(self.names, d.values())} for d in dicts]
 
         return dicts
 
