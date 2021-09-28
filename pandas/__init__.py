@@ -131,7 +131,7 @@ from pandas.core.reshape.api import (
     qcut,
 )
 
-import pandas.api
+from pandas import api, arrays, errors, io, plotting, testing, tseries
 from pandas.util._print_versions import show_versions
 
 from pandas.io.api import (
@@ -170,8 +170,6 @@ from pandas.io.api import (
 from pandas.io.json import _json_normalize as json_normalize
 
 from pandas.util._tester import test
-import pandas.testing
-import pandas.arrays
 
 # use the closest tagged version if possible
 from pandas._version import get_versions
@@ -180,7 +178,6 @@ v = get_versions()
 __version__ = v.get("closest-tag", v["version"])
 __git_version__ = v.get("full-revisionid")
 del get_versions, v
-
 
 # GH 27101
 __deprecated_num_index_names = ["Float64Index", "Int64Index", "UInt64Index"]
@@ -303,3 +300,122 @@ Here are just a few of the things that pandas does well:
   - Time series-specific functionality: date range generation and frequency
     conversion, moving window statistics, date shifting and lagging.
 """
+
+# Use __all__ to let type checkers know what is part of the public API.
+# Pandas is not (yet) a py.typed library: the public API is determined
+# based on the documentation.
+__all__ = [
+    "BooleanDtype",
+    "Categorical",
+    "CategoricalDtype",
+    "CategoricalIndex",
+    "DataFrame",
+    "DateOffset",
+    "DatetimeIndex",
+    "DatetimeTZDtype",
+    "ExcelFile",
+    "ExcelWriter",
+    "Flags",
+    "Float32Dtype",
+    "Float64Dtype",
+    "Grouper",
+    "HDFStore",
+    "Index",
+    "IndexSlice",
+    "Int16Dtype",
+    "Int32Dtype",
+    "Int64Dtype",
+    "Int8Dtype",
+    "Interval",
+    "IntervalDtype",
+    "IntervalIndex",
+    "MultiIndex",
+    "NA",
+    "NaT",
+    "NamedAgg",
+    "NumericIndex",
+    "Period",
+    "PeriodDtype",
+    "PeriodIndex",
+    "RangeIndex",
+    "Series",
+    "SparseDtype",
+    "StringDtype",
+    "Timedelta",
+    "TimedeltaIndex",
+    "Timestamp",
+    "UInt16Dtype",
+    "UInt32Dtype",
+    "UInt64Dtype",
+    "UInt8Dtype",
+    "api",
+    "array",
+    "arrays",
+    "bdate_range",
+    "concat",
+    "crosstab",
+    "cut",
+    "date_range",
+    "describe_option",
+    "errors",
+    "eval",
+    "factorize",
+    "get_dummies",
+    "get_option",
+    "infer_freq",
+    "interval_range",
+    "io",
+    "isna",
+    "isnull",
+    "json_normalize",
+    "lreshape",
+    "melt",
+    "merge",
+    "merge_asof",
+    "merge_ordered",
+    "notna",
+    "notnull",
+    "offsets",
+    "option_context",
+    "options",
+    "period_range",
+    "pivot",
+    "pivot_table",
+    "plotting",
+    "qcut",
+    "read_clipboard",
+    "read_csv",
+    "read_excel",
+    "read_feather",
+    "read_fwf",
+    "read_gbq",
+    "read_hdf",
+    "read_html",
+    "read_json",
+    "read_orc",
+    "read_parquet",
+    "read_pickle",
+    "read_sas",
+    "read_spss",
+    "read_sql",
+    "read_sql_query",
+    "read_sql_table",
+    "read_stata",
+    "read_table",
+    "read_xml",
+    "reset_option",
+    "set_eng_float_format",
+    "set_option",
+    "show_versions",
+    "test",
+    "testing",
+    "timedelta_range",
+    "to_datetime",
+    "to_numeric",
+    "to_pickle",
+    "to_timedelta",
+    "tseries",
+    "unique",
+    "value_counts",
+    "wide_to_long",
+]
