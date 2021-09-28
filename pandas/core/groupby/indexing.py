@@ -109,9 +109,11 @@ class GroupByIndexingMixin:
             4  b  5
         """
         if TYPE_CHECKING:
-            self = cast(groupby.GroupBy, self)
+            groupby = cast(groupby.GroupBy, self)
+        else:
+            groupby = self
 
-        return BodyGroupByIndexer(self)
+        return BodyGroupByIndexer(groupby)
 
     def _make_mask(self, arg: PositionalIndexer | tuple) -> np.ndarray:
         if is_list_like(arg):
@@ -218,26 +220,32 @@ class GroupByIndexingMixin:
 
     def _apply_mask(self, mask: np.ndarray) -> DataFrame | Series:
         if TYPE_CHECKING:
-            self = cast(groupby.GroupBy, self)
-
-        if self.axis == 0:
-            return self._selected_obj[mask]
+            groupby = cast(groupby.GroupBy, self)
         else:
-            return self._selected_obj.iloc[:, mask]
+            groupby = self
+
+        if groupby.axis == 0:
+            return groupby._selected_obj[mask]
+        else:
+            return groupby._selected_obj.iloc[:, mask]
 
     @cache_readonly
     def _ascending_count(self) -> np.ndarray:
         if TYPE_CHECKING:
-            self = cast(groupby.GroupBy, self)
+            groupby = cast(groupby.GroupBy, self)
+        else:
+            groupby = self
 
-        return self._cumcount_array()
+        return groupby._cumcount_array()
 
     @cache_readonly
     def _descending_count(self) -> np.ndarray:
         if TYPE_CHECKING:
-            self = cast(groupby.GroupBy, self)
+            groupby = cast(groupby.GroupBy, self)
+        else:
+            groupby = self
 
-        return self._cumcount_array(ascending=False)
+        return groupby._cumcount_array(ascending=False)
 
 
 @doc(GroupByIndexingMixin._body)

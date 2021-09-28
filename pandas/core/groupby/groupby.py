@@ -45,8 +45,8 @@ import pandas._libs.groupby as libgroupby
 from pandas._typing import (
     ArrayLike,
     IndexLabel,
-    PositionalIndexer,
     NDFrameT,
+    PositionalIndexer,
     RandomState,
     Scalar,
     T,
@@ -558,7 +558,7 @@ _KeysArgType = Union[
 ]
 
 
-class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT]):
+class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
     _group_selection: IndexLabel | None = None
     _apply_allowlist: frozenset[str] = frozenset()
     _hidden_attrs = PandasObject._hidden_attrs | {
@@ -2448,7 +2448,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self,
         n: PositionalIndexer | tuple,
         dropna: Literal["any", "all", None] = None,
-    ) -> FrameOrSeries:
+    ) -> NDFrameT:
         """
         Take the nth row from each group if n is an int, otherwise a subset of rows.
 
