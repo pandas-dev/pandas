@@ -700,10 +700,13 @@ def test_concat_posargs_deprecation():
     tm.assert_frame_equal(result, expected)
 
 
-def test_concat_series_with_decreasing_rangeindex():
+@pytest.mark.parametrize(
+    "ser2_index", [pd.RangeIndex(0, -1, -1), pd.RangeIndex(0, 1, 1)]
+)
+def test_concat_series_with_rangeindex(ser2_index):
     # GH#41965
     ser1 = Series([], index=pd.RangeIndex(0), dtype="int64")
-    ser2 = Series([0], index=pd.RangeIndex(0, -1, -1), dtype="int64")
+    ser2 = Series([0], index=ser2_index, dtype="int64")
     # expected should be exactly ser2, as ser1 is empty
     expected = ser2.copy()
     result = concat([ser1, ser2])

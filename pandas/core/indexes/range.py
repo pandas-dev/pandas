@@ -438,12 +438,14 @@ class RangeIndex(NumericIndex):
         self, indices, axis: int = 0, allow_fill: bool = True, fill_value=None, **kwargs
     ) -> Int64Index | RangeIndex:
         with rewrite_exception("Int64Index", type(self).__name__):
-            if fill_value is None:
-                try:
-                    slc = maybe_indices_to_slice(indices, len(indices))
+            if (
+                fill_value is None
+                and isinstance(indices, np.ndarray)
+                and indices.dtype == int
+            ):
+                slc = maybe_indices_to_slice(indices, len(indices))
+                if isinstance(slc, slice):
                     return self[slc]
-                except (ValueError, TypeError):
-                    pass
             return self._int64index.take(
                 indices,
                 axis=axis,
