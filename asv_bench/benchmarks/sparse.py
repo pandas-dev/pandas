@@ -95,11 +95,11 @@ class ToCooFrame:
     def setup(self):
         N = 10000
         k = 10
-        arr = np.full((N, k), np.nan)
+        arr = np.zeros((N, k), dtype=float)
         arr[0, 0] = 3.0
         arr[12, 7] = -1.0
         arr[0, 9] = 11.2
-        self.df = pd.DataFrame(arr, dtype=pd.SparseDtype("float"))
+        self.df = pd.DataFrame(arr, dtype=pd.SparseDtype("float", fill_value=0.0))
 
     def time_to_coo(self):
         self.df.sparse.to_coo()
