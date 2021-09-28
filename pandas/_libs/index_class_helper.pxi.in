@@ -45,8 +45,7 @@ cdef class {{name}}Engine(IndexEngine):
     cdef void _call_map_locations(self, ndarray[{{dtype}}_t] values):
         self.mapping.map_locations(values)
 
-    cdef _maybe_get_bool_indexer(self, object val):
-        # Returns ndarray[bool] or int
+    cdef ndarray _get_bool_indexer(self, object val):
         cdef:
             ndarray[uint8_t, ndim=1, cast=True] indexer
             ndarray[{{dtype}}_t, ndim=1] values
@@ -71,6 +70,7 @@ cdef class {{name}}Engine(IndexEngine):
             #  when trying to cast it to ndarray
             raise KeyError(val)
 
-        return self._unpack_bool_indexer(indexer, val)
+        return indexer
+
 
 {{endfor}}
