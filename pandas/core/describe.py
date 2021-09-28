@@ -22,7 +22,7 @@ import warnings
 import numpy as np
 
 from pandas._libs.tslibs import Timestamp
-from pandas._typing import FrameOrSeries
+from pandas._typing import NDFrameT
 from pandas.util._validators import validate_percentile
 
 from pandas.core.dtypes.common import (
@@ -45,12 +45,12 @@ if TYPE_CHECKING:
 
 def describe_ndframe(
     *,
-    obj: FrameOrSeries,
+    obj: NDFrameT,
     include: str | Sequence[str] | None,
     exclude: str | Sequence[str] | None,
     datetime_is_numeric: bool,
     percentiles: Sequence[float] | np.ndarray | None,
-) -> FrameOrSeries:
+) -> NDFrameT:
     """Describe series or dataframe.
 
     Called from pandas.core.generic.NDFrame.describe()
@@ -91,7 +91,7 @@ def describe_ndframe(
         )
 
     result = describer.describe(percentiles=percentiles)
-    return cast(FrameOrSeries, result)
+    return cast(NDFrameT, result)
 
 
 class NDFrameDescriberAbstract(ABC):

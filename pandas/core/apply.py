@@ -30,7 +30,7 @@ from pandas._typing import (
     AggFuncTypeDict,
     AggObjType,
     Axis,
-    FrameOrSeries,
+    NDFrameT,
 )
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
@@ -1120,7 +1120,7 @@ class SeriesApply(NDFrameApply):
 class GroupByApply(Apply):
     def __init__(
         self,
-        obj: GroupBy[FrameOrSeries],
+        obj: GroupBy[NDFrameT],
         func: AggFuncType,
         args,
         kwargs,

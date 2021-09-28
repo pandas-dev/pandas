@@ -101,11 +101,11 @@ TimedeltaConvertibleTypes = Union[
 ]
 Timezone = Union[str, tzinfo]
 
-# FrameOrSeries is stricter and ensures that the same subclass of NDFrame always is
-# used. E.g. `def func(a: FrameOrSeries) -> FrameOrSeries: ...` means that if a
+# NDFrameT is stricter and ensures that the same subclass of NDFrame always is
+# used. E.g. `def func(a: NDFrameT) -> NDFrameT: ...` means that if a
 # Series is passed into a function, a Series is always returned and if a DataFrame is
 # passed in, a DataFrame is always returned.
-FrameOrSeries = TypeVar("FrameOrSeries", bound="NDFrame")
+NDFrameT = TypeVar("NDFrameT", bound="NDFrame")
 
 Axis = Union[str, int]
 IndexLabel = Union[Hashable, Sequence[Hashable]]
