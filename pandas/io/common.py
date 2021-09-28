@@ -6,15 +6,19 @@ import codecs
 from collections import abc
 import dataclasses
 import gzip
+import io
 from io import (
     BufferedIOBase,
     BytesIO,
     RawIOBase,
     StringIO,
+    TextIOBase,
     TextIOWrapper,
 )
 import mmap
 import os
+from pathlib import Path
+import tempfile
 from typing import (
     IO,
     Any,
@@ -49,7 +53,6 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.core.dtypes.common import is_file_like
 
 lzma = import_lzma()
-
 
 _VALID_URLS = set(uses_relative + uses_netloc + uses_params)
 _VALID_URLS.discard("")
@@ -102,7 +105,7 @@ class IOHandles:
         avoid closing the potentially user-created buffer.
         """
         if self.is_wrapped:
-            assert isinstance(self.handle, TextIOWrapper)
+            assert isinstance(self.handle, (TextIOWrapper, BytesIOWrapper))
             self.handle.flush()
             self.handle.detach()
             self.created_handles.remove(self.handle)
@@ -272,10 +275,6 @@ def _get_filepath_or_buffer(
         compression_method = None
 
     compression = dict(compression, method=compression_method)
-
-    # uniform encoding names
-    if encoding is not None:
-        encoding = encoding.replace("_", "-").lower()
 
     # bz2 and xz do not write the byte order mark for utf-16 and utf-32
     # print a warning when writing such files
@@ -518,6 +517,21 @@ def infer_compression(
     raise ValueError(msg)
 
 
+def check_parent_directory(path: Path | str) -> None:
+    """
+    Check if parent directory of a file exists, raise OSError if it does not
+
+    Parameters
+    ----------
+    path: Path or str
+        Path to check parent directory of
+
+    """
+    parent = Path(path).parent
+    if not parent.is_dir():
+        raise OSError(fr"Cannot save file into a non-existent directory: '{parent}'")
+
+
 def get_handle(
     path_or_buf: FilePathOrBuffer,
     mode: str,
@@ -584,25 +598,11 @@ def get_handle(
     if _is_binary_mode(path_or_buf, mode) and "b" not in mode:
         mode += "b"
 
-    # valdiate errors
+    # validate encoding and errors
+    if isinstance(encoding, str):
+        codecs.lookup(encoding)
     if isinstance(errors, str):
-        errors = errors.lower()
-    if errors not in (
-        None,
-        "strict",
-        "ignore",
-        "replace",
-        "xmlcharrefreplace",
-        "backslashreplace",
-        "namereplace",
-        "surrogateescape",
-        "surrogatepass",
-    ):
-        raise ValueError(
-            f"Invalid value for `encoding_errors` ({errors}). Please see "
-            + "https://docs.python.org/3/library/codecs.html#error-handlers "
-            + "for valid values."
-        )
+        codecs.lookup_error(errors)
 
     # open URLs
     ioargs = _get_filepath_or_buffer(
@@ -629,6 +629,10 @@ def get_handle(
     is_path = isinstance(handle, str)
     compression_args = dict(ioargs.compression)
     compression = compression_args.pop("method")
+
+    # Only for write methods
+    if "r" not in mode and is_path:
+        check_parent_directory(str(handle))
 
     if compression:
         # compression libraries do not like an explicit text-mode
@@ -712,7 +716,16 @@ def get_handle(
 
     # Convert BytesIO or file objects passed with an encoding
     is_wrapped = False
-    if is_text and (compression or _is_binary_mode(handle, ioargs.mode)):
+    if not is_text and ioargs.mode == "rb" and isinstance(handle, TextIOBase):
+        handle = BytesIOWrapper(
+            handle,
+            encoding=ioargs.encoding,
+        )
+        handles.append(handle)
+        # the (text) handle is always provided by the caller
+        # since get_handle would have opened it in binary mode
+        is_wrapped = True
+    elif is_text and (compression or _is_binary_mode(handle, ioargs.mode)):
         handle = TextIOWrapper(
             # error: Argument 1 to "TextIOWrapper" has incompatible type
             # "Union[IO[bytes], IO[Any], RawIOBase, BufferedIOBase, TextIOBase, mmap]";
@@ -726,6 +739,12 @@ def get_handle(
         # only marked as wrapped when the caller provided a handle
         is_wrapped = not (
             isinstance(ioargs.filepath_or_buffer, str) or ioargs.should_close
+        )
+
+    if "r" in ioargs.mode and not hasattr(handle, "read"):
+        raise TypeError(
+            "Expected file path name or file-like object, "
+            f"got {type(ioargs.filepath_or_buffer)} type"
         )
 
     handles.reverse()  # close the most recently added buffer first
@@ -858,7 +877,8 @@ class _MMapWrapper(abc.Iterator):
         if self.decode:
             # memory mapping is applied before compression. Encoding should
             # be applied to the de-compressed data.
-            return content.decode(self.encoding, errors=self.errors)
+            final = size == -1 or len(content) < size
+            return self.decoder.decode(content, final=final)
         return content
 
     def __next__(self) -> str:
@@ -876,6 +896,46 @@ class _MMapWrapper(abc.Iterator):
 
         # IncrementalDecoder seems to push newline to the next line
         return newline.lstrip("\n")
+
+
+# Wrapper that wraps a StringIO buffer and reads bytes from it
+# Created for compat with pyarrow read_csv
+class BytesIOWrapper(io.BytesIO):
+    buffer: StringIO | TextIOBase | None
+
+    def __init__(self, buffer: StringIO | TextIOBase, encoding: str = "utf-8"):
+        self.buffer = buffer
+        self.encoding = encoding
+        # Because a character can be represented by more than 1 byte,
+        # it is possible that reading will produce more bytes than n
+        # We store the extra bytes in this overflow variable, and append the
+        # overflow to the front of the bytestring the next time reading is performed
+        self.overflow = b""
+
+    def __getattr__(self, attr: str):
+        return getattr(self.buffer, attr)
+
+    def read(self, n: int | None = -1) -> bytes:
+        assert self.buffer is not None
+        bytestring = self.buffer.read(n).encode(self.encoding)
+        # When n=-1/n greater than remaining bytes: Read entire file/rest of file
+        combined_bytestring = self.overflow + bytestring
+        if n is None or n < 0 or n >= len(combined_bytestring):
+            self.overflow = b""
+            return combined_bytestring
+        else:
+            to_return = combined_bytestring[:n]
+            self.overflow = combined_bytestring[n:]
+            return to_return
+
+    def detach(self):
+        # Slightly modified from Python's TextIOWrapper detach method
+        if self.buffer is None:
+            raise ValueError("buffer is already detached")
+        self.flush()
+        buffer = self.buffer
+        self.buffer = None
+        return buffer
 
 
 def _maybe_memory_map(
@@ -943,8 +1003,15 @@ def _is_binary_mode(handle: FilePathOrBuffer, mode: str) -> bool:
     if "t" in mode or "b" in mode:
         return "b" in mode
 
-    # classes that expect string but have 'b' in mode
-    text_classes = (codecs.StreamWriter, codecs.StreamReader, codecs.StreamReaderWriter)
+    # exceptions
+    text_classes = (
+        # classes that expect string but have 'b' in mode
+        codecs.StreamWriter,
+        codecs.StreamReader,
+        codecs.StreamReaderWriter,
+        # cannot be wrapped in TextIOWrapper GH43439
+        tempfile.SpooledTemporaryFile,
+    )
     if issubclass(type(handle), text_classes):
         return False
 

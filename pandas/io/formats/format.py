@@ -96,7 +96,10 @@ from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.reshape.concat import concat
 
-from pandas.io.common import stringify_path
+from pandas.io.common import (
+    check_parent_directory,
+    stringify_path,
+)
 from pandas.io.formats.printing import (
     adjoin,
     justify,
@@ -873,7 +876,7 @@ class DataFrameFormatter:
             need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
             str_columns = [
                 [" " + x if not self._get_formatter(i) and need_leadsp[x] else x]
-                for i, (col, x) in enumerate(zip(columns, fmt_columns))
+                for i, x in enumerate(fmt_columns)
             ]
         # self.str_columns = str_columns
         return str_columns
@@ -1147,6 +1150,7 @@ def get_buffer(buf: FilePathOrBuffer[str] | None, encoding: str | None = None):
     if hasattr(buf, "write"):
         yield buf
     elif isinstance(buf, str):
+        check_parent_directory(str(buf))
         with open(buf, "w", encoding=encoding, newline="") as f:
             # GH#30034 open instead of codecs.open prevents a file leak
             #  if we have an invalid encoding argument.

@@ -32,10 +32,6 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Looking for unwanted patterns
-      run: ci/code_checks.sh patterns
-      if: always()
-
     - name: Cache conda
       uses: actions/cache@v2
       with:
@@ -49,12 +45,17 @@ jobs:
         environment-file: ${{ env.ENV_FILE }}
         use-only-tar-bz2: true
 
+    - name: Install node.js (for pyright)
+      uses: actions/setup-node@v2
+      with:
+        node-version: "16"
+
+    - name: Install pyright
+      # note: keep version in sync with .pre-commit-config.yaml
+      run: npm install -g pyright@1.1.171
+
     - name: Build Pandas
       uses: ./.github/actions/build_pandas
-
-    - name: Linting
-      run: ci/code_checks.sh lint
-      if: always()
 
     - name: Checks on imported code
       run: ci/code_checks.sh code
@@ -176,6 +177,7 @@ jobs:
         PANDAS_DATA_MANAGER: array
         PATTERN: ${{ matrix.pattern }}
         PYTEST_WORKERS: "auto"
+        PYTEST_TARGET: pandas
       run: |
         source activate pandas-dev
         ci/run_tests.sh
