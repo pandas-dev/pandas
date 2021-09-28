@@ -164,6 +164,7 @@ def _maybe_cache(
     format: str | None,
     cache: bool,
     convert_listlike: Callable,
+    errors: str = "raise",
 ) -> Series:
     """
     Create a cache of unique dates from an array of dates
@@ -177,6 +178,10 @@ def _maybe_cache(
         True attempts to create a cache of converted values
     convert_listlike : function
         Conversion function to apply on dates
+    errors : {'ignore', 'raise', 'coerce'}, default 'raise'
+        - If 'raise', then invalid parsing will raise an exception.
+        - If 'coerce', then invalid parsing will be set as NaT.
+        - If 'ignore', then invalid parsing will return the input.
 
     Returns
     -------
@@ -195,7 +200,16 @@ def _maybe_cache(
         unique_dates = unique(arg)
         if len(unique_dates) < len(arg):
             cache_dates = convert_listlike(unique_dates, format)
-            cache_array = Series(cache_dates, index=unique_dates)
+            try:
+                cache_array = Series(cache_dates, index=unique_dates)
+            except OutOfBoundsDatetime:
+                # caching attempts to create a DatetimeIndex, which may raise
+                # an OOB. If that's the desired behavior, then just reraise...
+                if errors == "raise":
+                    raise
+                # ... otherwise, continue without the cache.
+                return cache_array
+
             # GH#39882 and GH#35888 in case of None and NaT we get duplicates
             if not cache_array.index.is_unique:
                 cache_array = cache_array[~cache_array.index.duplicated()]
@@ -893,32 +907,25 @@ def to_datetime(
             else:
                 result = arg.tz_localize(tz)
     elif isinstance(arg, ABCSeries):
-        cache_array = _maybe_cache(arg, format, cache, convert_listlike)
+        cache_array = _maybe_cache(arg, format, cache, convert_listlike, errors)
+
         if not cache_array.empty:
             result = arg.map(cache_array)
         else:
-            values = convert_listlike(arg._values, format)
+            values = convert_listlike(arg._values, format, errors)
             result = arg._constructor(values, index=arg.index, name=arg.name)
     elif isinstance(arg, (ABCDataFrame, abc.MutableMapping)):
         result = _assemble_from_unit_mappings(arg, errors, tz)
     elif isinstance(arg, Index):
-        cache_array = _maybe_cache(arg, format, cache, convert_listlike)
+        cache_array = _maybe_cache(arg, format, cache, convert_listlike, errors)
+
         if not cache_array.empty:
             result = _convert_and_box_cache(arg, cache_array, name=arg.name)
         else:
             result = convert_listlike(arg, format, name=arg.name)
     elif is_list_like(arg):
-        try:
-            cache_array = _maybe_cache(arg, format, cache, convert_listlike)
-        except OutOfBoundsDatetime:
-            # caching attempts to create a DatetimeIndex, which may raise
-            # an OOB. If that's the desired behavior, then just reraise...
-            if errors == "raise":
-                raise
-            # ... otherwise, continue without the cache.
-            from pandas import Series
+        cache_array = _maybe_cache(arg, format, cache, convert_listlike, errors)
 
-            cache_array = Series([], dtype=object)  # just an empty array
         if not cache_array.empty:
             result = _convert_and_box_cache(arg, cache_array)
         else:

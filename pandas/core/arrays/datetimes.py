@@ -2223,14 +2223,14 @@ def objects_to_datetime64ns(
             allow_mixed=allow_mixed,
         )
         result = result.reshape(data.shape, order=order)
-    except ValueError as err:
+    except ValueError:
         try:
             values, tz_parsed = conversion.datetime_to_datetime64(data.ravel("K"))
             # If tzaware, these values represent unix timestamps, so we
             #  return them as i8 to distinguish from wall times
             values = values.reshape(data.shape, order=order)
             return values.view("i8"), tz_parsed
-        except (ValueError, TypeError):
+        except (ValueError, TypeError) as err:
             raise err
 
     if tz_parsed is not None:
