@@ -9,6 +9,8 @@ from pandas import (
 )
 from pandas.arrays import SparseArray
 
+from .pandas_vb_common import BaseIO
+
 
 def make_array(size, dense_proportion, fill_value, dtype):
     dense_size = int(size * dense_proportion)
@@ -105,6 +107,22 @@ class ToCooFrame:
         self.df.sparse.to_coo()
 
 
+class ToCSV(BaseIO):
+    fname = "__test__.csv"
+
+    def setup(self):
+        N = 500_000
+        sp_arr = SparseArray(make_array(N, 1e-5, np.nan, np.float64))
+        self.ser = Series(sp_arr)
+        self.df = pd.DataFrame({"A": self.ser, "B": self.ser.copy()})
+
+    def time_to_csv_series(self):
+        self.ser.to_csv(self.fname)
+
+    def time_to_csv_frame(self):
+        self.df.to_csv(self.fname)
+
+
 class Arithmetic:
 
     params = ([0.1, 0.01], [0, np.nan])
@@ -193,6 +211,19 @@ class Take:
 
     def time_take(self, indices, allow_fill):
         self.sp_arr.take(indices, allow_fill=allow_fill)
+
+
+class GetItem:
+    def setup(self):
+        N = 1_000_000
+        arr = make_array(N, 1e-5, np.nan, np.float64)
+        self.sp_arr = SparseArray(arr)
+
+    def time_integer_indexing(self):
+        self.sp_arr[78]
+
+    def time_slice(self):
+        self.sp_arr[1:]
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
