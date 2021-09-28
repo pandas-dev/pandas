@@ -1,7 +1,10 @@
 from __future__ import annotations
 
-from collections import namedtuple
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    NamedTuple,
+)
 import warnings
 
 from matplotlib.artist import setp
@@ -35,8 +38,11 @@ class BoxPlot(LinePlot):
     _layout_type = "horizontal"
 
     _valid_return_types = (None, "axes", "dict", "both")
-    # namedtuple to hold results
-    BP = namedtuple("BP", ["ax", "lines"])
+
+    class BP(NamedTuple):
+        # namedtuple to hold results
+        ax: Axes
+        lines: Any
 
     def __init__(self, data, return_type="axes", **kwargs):
         # Do not call LinePlot.__init__ which may fill nan

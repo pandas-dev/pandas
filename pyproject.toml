@@ -188,7 +188,6 @@ reportUnnecessaryIsInstance = false
 reportUnsupportedDunderAll = false
 reportUntypedBaseClass = false
 reportUntypedFunctionDecorator = false
-reportUntypedNamedTuple = false
 reportUnusedClass = false
 reportUnusedFunction = false
 reportUnusedImport = false

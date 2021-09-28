@@ -8,12 +8,12 @@
 # for complete details.
 from __future__ import annotations
 
-import collections
 import itertools
 import re
 from typing import (
     Callable,
     Iterator,
+    NamedTuple,
     SupportsInt,
     Tuple,
     Union,
@@ -109,9 +109,14 @@ VersionComparisonMethod = Callable[
     [Union[CmpKey, LegacyCmpKey], Union[CmpKey, LegacyCmpKey]], bool
 ]
 
-_Version = collections.namedtuple(
-    "_Version", ["epoch", "release", "dev", "pre", "post", "local"]
-)
+
+class _Version(NamedTuple):
+    epoch: int
+    release: tuple[int, ...]
+    dev: tuple[str, int] | None
+    pre: tuple[str, int] | None
+    post: tuple[str, int] | None
+    local: LocalType | None
 
 
 def parse(version: str) -> LegacyVersion | Version:

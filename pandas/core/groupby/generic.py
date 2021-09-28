@@ -7,10 +7,7 @@ which here returns a DataFrameGroupBy object.
 """
 from __future__ import annotations
 
-from collections import (
-    abc,
-    namedtuple,
-)
+from collections import abc
 from functools import partial
 from textwrap import dedent
 from typing import (
@@ -19,6 +16,7 @@ from typing import (
     Hashable,
     Iterable,
     Mapping,
+    NamedTuple,
     TypeVar,
     Union,
     cast,
@@ -87,7 +85,12 @@ from pandas.core.util.numba_ import maybe_use_numba
 
 from pandas.plotting import boxplot_frame_groupby
 
-NamedAgg = namedtuple("NamedAgg", ["column", "aggfunc"])
+
+class NamedAgg(NamedTuple):
+    column: Hashable
+    aggfunc: str | Callable
+
+
 # TODO(typing) the return value on this callable should be any *scalar*.
 AggScalar = Union[str, Callable[..., Any]]
 # TODO: validate types on ScalarResult and move to _typing
