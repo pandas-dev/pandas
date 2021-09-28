@@ -226,7 +226,7 @@ class TestPDApi(Base):
             + self.funcs_read
             + self.funcs_json
             + self.funcs_to
-        )
+        ) - set(self.deprecated_classes)
         actual = set(pd.__all__)
 
         extraneous = actual - expected
