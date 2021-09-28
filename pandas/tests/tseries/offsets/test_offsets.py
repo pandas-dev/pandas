@@ -528,6 +528,7 @@ class TestCommon(Base):
 class TestDateOffset(Base):
     def setup_method(self, method):
         self.d = Timestamp(datetime(2008, 1, 2))
+        self.d2 = Timestamp("2021-10-01 08:00:00.000000000")
         _offset_map.clear()
 
     def test_repr(self):
@@ -540,10 +541,19 @@ class TestDateOffset(Base):
         assert DateOffset(2) == 2 * DateOffset(1)
         assert DateOffset(2) == DateOffset(1) * 2
 
+        assert DateOffset(milliseconds=3) * 2 == DateOffset(milliseconds=3, n=2)
+
     def test_constructor(self):
 
         assert (self.d + DateOffset(months=2)) == datetime(2008, 3, 2)
         assert (self.d - DateOffset(months=2)) == datetime(2007, 11, 2)
+
+        assert self.d2 + DateOffset(milliseconds=7) == Timestamp(
+            "2021-10-01 08:00:00.007000000"
+        )
+        assert self.d2 - DateOffset(milliseconds=7) == Timestamp(
+            "2021-10-01 07:59:59.993000000"
+        )
 
         assert (self.d + DateOffset(2)) == datetime(2008, 1, 4)
 
@@ -555,12 +565,15 @@ class TestDateOffset(Base):
 
     def test_copy(self):
         assert DateOffset(months=2).copy() == DateOffset(months=2)
+        assert DateOffset(milliseconds=1).copy() == DateOffset(milliseconds=1)
 
     def test_eq(self):
         offset1 = DateOffset(days=1)
         offset2 = DateOffset(days=365)
 
         assert offset1 != offset2
+
+        assert DateOffset(milliseconds=3) != DateOffset(milliseconds=7)
 
 
 class TestOffsetNames:
