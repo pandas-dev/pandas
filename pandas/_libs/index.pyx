@@ -224,12 +224,6 @@ cdef class IndexEngine:
     cdef _call_monotonic(self, values):
         return algos.is_monotonic(values, timelike=False)
 
-    def get_backfill_indexer(self, other: np.ndarray, limit=None) -> np.ndarray:
-        return algos.backfill(self.values, other, limit=limit)
-
-    def get_pad_indexer(self, other: np.ndarray, limit=None) -> np.ndarray:
-        return algos.pad(self.values, other, limit=limit)
-
     cdef _make_hash_table(self, Py_ssize_t n):
         raise NotImplementedError
 
