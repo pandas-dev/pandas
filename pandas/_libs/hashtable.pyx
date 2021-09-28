@@ -98,7 +98,8 @@ cdef class ObjectFactorizer(Factorizer):
         --------
         Factorize values with nans replaced by na_sentinel
 
-        >>> factorize(np.array([1,2,np.nan], dtype='O'), na_sentinel=20)# doctest: +SKIP
+        >>> fac = ObjectFactorizer(3)
+        >>> fac.factorize(np.array([1,2,np.nan], dtype='O'), na_sentinel=20)
         array([ 0,  1, 20])
         """
         cdef:
@@ -142,7 +143,9 @@ cdef class Int64Factorizer(Factorizer):
         --------
         Factorize values with nans replaced by na_sentinel
 
-        >>> factorize(np.array([1,2,np.nan], dtype='O'), na_sentinel=20)# doctest: +SKIP
+        >>> fac = Int64Factorizer(3)
+        >>> arr = np.array([1,2,np.nan]).astype(np.int64)
+        >>> fac.factorize(arr, na_sentinel=20)
         array([ 0,  1, 20])
         """
         cdef:
