@@ -530,8 +530,11 @@ class Styler(StylerRenderer):
         multicol_align : {"r", "c", "l", "naive-l", "naive-r"}, optional
             If sparsifying hierarchical MultiIndex columns whether to align text at
             the left, centrally, or at the right. If not given defaults to
-            ``pandas.options.styler.latex.multicol_align``. If a naive option is
-            given renders without multicol.
+            ``pandas.options.styler.latex.multicol_align``, which is "r".
+            If a naive option is given renders without multicol.
+            Pipe decorators can also be added to non-naive values to draw vertical
+            rules, e.g. "\|r" will draw a rule on the left side of right aligned merged
+            cells.
 
             .. versionchanged:: 1.4.0
         siunitx : bool, default False
@@ -3247,7 +3250,7 @@ def _background_gradient(
     text_color_threshold: float = 0.408,
     vmin: float | None = None,
     vmax: float | None = None,
-    gmap: Sequence | np.ndarray | FrameOrSeries | None = None,
+    gmap: Sequence | np.ndarray | DataFrame | Series | None = None,
     text_only: bool = False,
 ):
     """
@@ -3354,7 +3357,7 @@ def _highlight_between(
     return np.where(g_left & l_right, props, "")
 
 
-def _highlight_value(data: FrameOrSeries, op: str, props: str) -> np.ndarray:
+def _highlight_value(data: DataFrame | Series, op: str, props: str) -> np.ndarray:
     """
     Return an array of css strings based on the condition of values matching an op.
     """
@@ -3365,7 +3368,7 @@ def _highlight_value(data: FrameOrSeries, op: str, props: str) -> np.ndarray:
 
 
 def _bar(
-    data: FrameOrSeries,
+    data: NDFrame,
     align: str | float | int | Callable,
     colors: list[str],
     width: float,
