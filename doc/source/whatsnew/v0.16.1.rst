@@ -168,7 +168,7 @@ values NOT in the categories, similarly to how you can reindex ANY pandas index.
                                  ordered=False, name='B',
                                  dtype='category')
 
-See the :ref:`documentation <indexing.categoricalindex>` for more. (:issue:`7629`, :issue:`10038`, :issue:`10039`)
+See the :ref:`documentation <advanced.categoricalindex>` for more. (:issue:`7629`, :issue:`10038`, :issue:`10039`)
 
 .. _whatsnew_0161.enhancements.sample:
 

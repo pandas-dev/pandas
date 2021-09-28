@@ -25,6 +25,7 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
+from pandas.core.api import Float64Index
 from pandas.tests.indexing.common import _mklbl
 from pandas.tests.indexing.test_floats import gen_obj
 
@@ -33,7 +34,7 @@ from pandas.tests.indexing.test_floats import gen_obj
 
 
 class TestFancy:
-    """ pure get/set item & fancy indexing """
+    """pure get/set item & fancy indexing"""
 
     def test_setitem_ndarray_1d(self):
         # GH5508
@@ -94,6 +95,8 @@ class TestFancy:
             msgs.append("Index data must be 1-dimensional")
         if isinstance(index, pd.IntervalIndex) and indexer_sli is tm.iloc:
             msgs.append("Index data must be 1-dimensional")
+        if isinstance(index, (pd.TimedeltaIndex, pd.DatetimeIndex, pd.PeriodIndex)):
+            msgs.append("Data must be 1-dimensional")
         if len(index) == 0 or isinstance(index, pd.MultiIndex):
             msgs.append("positional indexers are out-of-bounds")
         msg = "|".join(msgs)
@@ -111,15 +114,6 @@ class TestFancy:
         if indexer_sli is tm.iloc:
             err = ValueError
             msg = f"Cannot set values with ndim > {obj.ndim}"
-        elif (
-            isinstance(index, pd.IntervalIndex)
-            and indexer_sli is tm.setitem
-            and obj.ndim == 1
-        ):
-            err = AttributeError
-            msg = (
-                "'pandas._libs.interval.IntervalTree' object has no attribute 'get_loc'"
-            )
         else:
             err = ValueError
             msg = "|".join(
@@ -127,6 +121,7 @@ class TestFancy:
                     r"Buffer has wrong number of dimensions \(expected 1, got 3\)",
                     "Cannot set values with ndim > 1",
                     "Index data must be 1-dimensional",
+                    "Data must be 1-dimensional",
                     "Array conditional must be same shape as self",
                 ]
             )
@@ -149,7 +144,7 @@ class TestFancy:
         assert df.loc[np.inf, 0] == 3
 
         result = df.index
-        expected = pd.Float64Index([1, 2, np.inf])
+        expected = Float64Index([1, 2, np.inf])
         tm.assert_index_equal(result, expected)
 
     def test_setitem_dtype_upcast(self):
@@ -338,7 +333,7 @@ class TestFancy:
         # GH 10610
         df = DataFrame(np.random.random((10, 5)), columns=["a"] + [20, 21, 22, 23])
 
-        with pytest.raises(KeyError, match=re.escape("'[-8, 26] not in index'")):
+        with pytest.raises(KeyError, match=re.escape("'[26, -8] not in index'")):
             df[[22, 26, -8]]
         assert df[21].shape[0] == df.shape[0]
 
@@ -524,7 +519,7 @@ class TestFancy:
         with pytest.raises(KeyError, match="'2011'"):
             df["2011"]
 
-        with pytest.raises(KeyError, match="'2011'"):
+        with pytest.raises(KeyError, match="^0$"):
             df.loc["2011", 0]
 
     def test_astype_assignment(self):

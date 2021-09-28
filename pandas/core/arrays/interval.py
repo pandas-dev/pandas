@@ -9,14 +9,19 @@ import textwrap
 from typing import (
     Sequence,
     TypeVar,
+    Union,
     cast,
+    overload,
 )
 
 import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import NaT
+from pandas._libs import (
+    NaT,
+    lib,
+)
 from pandas._libs.interval import (
     VALID_CLOSED,
     Interval,
@@ -28,6 +33,9 @@ from pandas._typing import (
     ArrayLike,
     Dtype,
     NpDtype,
+    PositionalIndexer,
+    ScalarIndexer,
+    SequenceIndexer,
 )
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender
@@ -64,6 +72,7 @@ from pandas.core.dtypes.missing import (
 from pandas.core.algorithms import (
     isin,
     take,
+    unique,
     value_counts,
 )
 from pandas.core.arrays.base import (
@@ -85,6 +94,7 @@ from pandas.core.ops import (
 )
 
 IntervalArrayT = TypeVar("IntervalArrayT", bound="IntervalArray")
+IntervalOrNA = Union[Interval, float]
 
 _interval_shared_docs: dict[str, str] = {}
 
@@ -224,6 +234,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             left, right, infer_closed = intervals_to_interval_bounds(
                 data, validate_closed=closed is None
             )
+            if left.dtype == object:
+                left = lib.maybe_convert_objects(left)
+                right = lib.maybe_convert_objects(right)
             closed = closed or infer_closed
 
         return cls._simple_new(
@@ -628,7 +641,17 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def __len__(self) -> int:
         return len(self._left)
 
-    def __getitem__(self, key):
+    @overload
+    def __getitem__(self, key: ScalarIndexer) -> IntervalOrNA:
+        ...
+
+    @overload
+    def __getitem__(self: IntervalArrayT, key: SequenceIndexer) -> IntervalArrayT:
+        ...
+
+    def __getitem__(
+        self: IntervalArrayT, key: PositionalIndexer
+    ) -> IntervalArrayT | IntervalOrNA:
         key = check_array_indexer(self, key)
         left = self._left[key]
         right = self._right[key]
@@ -911,9 +934,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def isna(self) -> np.ndarray:
         return isna(self._left)
 
-    def shift(
-        self: IntervalArrayT, periods: int = 1, fill_value: object = None
-    ) -> IntervalArray:
+    def shift(self, periods: int = 1, fill_value: object = None) -> IntervalArray:
         if not len(self) or periods == 0:
             return self.copy()
 
@@ -1209,8 +1230,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         endpoints. Intervals that only have an open endpoint in common do not
         overlap.
 
-        .. versionadded:: 0.24.0
-
         Parameters
         ----------
         other : %(klass)s
@@ -1289,8 +1308,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         Return an %(klass)s identical to the current one, but closed on the
         specified side.
-
-        .. versionadded:: 0.24.0
 
         Parameters
         ----------
@@ -1613,6 +1630,30 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         else:
             comb = np.concatenate([left, right], axis=1)
         return comb
+
+    def _from_combined(self, combined: np.ndarray) -> IntervalArray:
+        """
+        Create a new IntervalArray with our dtype from a 1D complex128 ndarray.
+        """
+        nc = combined.view("i8").reshape(-1, 2)
+
+        dtype = self._left.dtype
+        if needs_i8_conversion(dtype):
+            new_left = type(self._left)._from_sequence(nc[:, 0], dtype=dtype)
+            new_right = type(self._right)._from_sequence(nc[:, 1], dtype=dtype)
+        else:
+            new_left = nc[:, 0].view(dtype)
+            new_right = nc[:, 1].view(dtype)
+        return self._shallow_copy(left=new_left, right=new_right)
+
+    def unique(self) -> IntervalArray:
+        # No overload variant of "__getitem__" of "ExtensionArray" matches argument
+        # type "Tuple[slice, int]"
+        nc = unique(
+            self._combined.view("complex128")[:, 0]  # type: ignore[call-overload]
+        )
+        nc = nc[:, None]
+        return self._from_combined(nc)
 
 
 def _maybe_convert_platform_interval(values) -> ArrayLike:

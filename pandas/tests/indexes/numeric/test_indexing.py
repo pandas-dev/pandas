@@ -24,12 +24,17 @@ class TestGetLoc:
     @pytest.mark.parametrize("method", [None, "pad", "backfill", "nearest"])
     def test_get_loc(self, method):
         index = Index([0, 1, 2])
-        assert index.get_loc(1, method=method) == 1
+        warn = None if method is None else FutureWarning
+
+        with tm.assert_produces_warning(warn, match="deprecated"):
+            assert index.get_loc(1, method=method) == 1
 
         if method:
-            assert index.get_loc(1, method=method, tolerance=0) == 1
+            with tm.assert_produces_warning(warn, match="deprecated"):
+                assert index.get_loc(1, method=method, tolerance=0) == 1
 
     @pytest.mark.parametrize("method", [None, "pad", "backfill", "nearest"])
+    @pytest.mark.filterwarnings("ignore:Passing method:FutureWarning")
     def test_get_loc_raises_bad_label(self, method):
         index = Index([0, 1, 2])
         if method:
@@ -43,6 +48,7 @@ class TestGetLoc:
     @pytest.mark.parametrize(
         "method,loc", [("pad", 1), ("backfill", 2), ("nearest", 1)]
     )
+    @pytest.mark.filterwarnings("ignore:Passing method:FutureWarning")
     def test_get_loc_tolerance(self, method, loc):
         index = Index([0, 1, 2])
         assert index.get_loc(1.1, method) == loc
@@ -52,12 +58,14 @@ class TestGetLoc:
     def test_get_loc_outside_tolerance_raises(self, method):
         index = Index([0, 1, 2])
         with pytest.raises(KeyError, match="1.1"):
-            index.get_loc(1.1, method, tolerance=0.05)
+            with tm.assert_produces_warning(FutureWarning, match="deprecated"):
+                index.get_loc(1.1, method, tolerance=0.05)
 
     def test_get_loc_bad_tolerance_raises(self):
         index = Index([0, 1, 2])
         with pytest.raises(ValueError, match="must be numeric"):
-            index.get_loc(1.1, "nearest", tolerance="invalid")
+            with tm.assert_produces_warning(FutureWarning, match="deprecated"):
+                index.get_loc(1.1, "nearest", tolerance="invalid")
 
     def test_get_loc_tolerance_no_method_raises(self):
         index = Index([0, 1, 2])
@@ -67,8 +75,10 @@ class TestGetLoc:
     def test_get_loc_raises_missized_tolerance(self):
         index = Index([0, 1, 2])
         with pytest.raises(ValueError, match="tolerance size must match"):
-            index.get_loc(1.1, "nearest", tolerance=[1, 1])
+            with tm.assert_produces_warning(FutureWarning, match="deprecated"):
+                index.get_loc(1.1, "nearest", tolerance=[1, 1])
 
+    @pytest.mark.filterwarnings("ignore:Passing method:FutureWarning")
     def test_get_loc_float64(self):
         idx = Float64Index([0.0, 1.0, 2.0])
         for method in [None, "pad", "backfill", "nearest"]:
@@ -139,7 +149,16 @@ class TestGetLoc:
         # GH#39382
         idx = Index(vals)
         with pytest.raises(KeyError, match="nan"):
-            idx.get_loc(np.nan, method=method)
+            with tm.assert_produces_warning(FutureWarning, match="deprecated"):
+                idx.get_loc(np.nan, method=method)
+
+    @pytest.mark.parametrize("dtype", ["f8", "i8", "u8"])
+    def test_get_loc_numericindex_none_raises(self, dtype):
+        # case that goes through searchsorted and key is non-comparable to values
+        arr = np.arange(10 ** 7, dtype=dtype)
+        idx = Index(arr)
+        with pytest.raises(KeyError, match="None"):
+            idx.get_loc(None)
 
 
 class TestGetIndexer:
@@ -376,6 +395,19 @@ class TestWhere:
         result = index.where(klass(cond))
         tm.assert_index_equal(result, expected)
 
+    def test_where_uin64(self):
+        idx = UInt64Index([0, 6, 2])
+        mask = np.array([False, True, False])
+        other = np.array([1], dtype=np.int64)
+
+        expected = UInt64Index([1, 6, 1])
+
+        result = idx.where(mask, other)
+        tm.assert_index_equal(result, expected)
+
+        result = idx.putmask(~mask, other)
+        tm.assert_index_equal(result, expected)
+
 
 class TestTake:
     @pytest.mark.parametrize("klass", [Float64Index, Int64Index, UInt64Index])
@@ -521,7 +553,9 @@ class TestGetSliceBounds:
     @pytest.mark.parametrize("side, expected", [("left", 4), ("right", 5)])
     def test_get_slice_bounds_within(self, kind, side, expected):
         index = Index(range(6))
-        result = index.get_slice_bound(4, kind=kind, side=side)
+        with tm.assert_produces_warning(FutureWarning, match="'kind' argument"):
+
+            result = index.get_slice_bound(4, kind=kind, side=side)
         assert result == expected
 
     @pytest.mark.parametrize("kind", ["getitem", "loc", None])
@@ -529,5 +563,6 @@ class TestGetSliceBounds:
     @pytest.mark.parametrize("bound, expected", [(-1, 0), (10, 6)])
     def test_get_slice_bounds_outside(self, kind, side, expected, bound):
         index = Index(range(6))
-        result = index.get_slice_bound(bound, kind=kind, side=side)
+        with tm.assert_produces_warning(FutureWarning, match="'kind' argument"):
+            result = index.get_slice_bound(bound, kind=kind, side=side)
         assert result == expected

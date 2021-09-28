@@ -24,7 +24,7 @@ class Generic:
         return self._typ._AXIS_LEN
 
     def _axes(self):
-        """ return the axes for my object typ """
+        """return the axes for my object typ"""
         return self._typ._AXIS_ORDERS
 
     def _construct(self, shape, value=None, dtype=None, **kwargs):

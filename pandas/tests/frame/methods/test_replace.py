@@ -1,11 +1,8 @@
+from __future__ import annotations
+
 from datetime import datetime
 from io import StringIO
 import re
-from typing import (
-    Dict,
-    List,
-    Union,
-)
 
 import numpy as np
 import pytest
@@ -24,12 +21,12 @@ import pandas._testing as tm
 
 
 @pytest.fixture
-def mix_ab() -> Dict[str, List[Union[int, str]]]:
+def mix_ab() -> dict[str, list[int | str]]:
     return {"a": list(range(4)), "b": list("ab..")}
 
 
 @pytest.fixture
-def mix_abc() -> Dict[str, List[Union[float, str]]]:
+def mix_abc() -> dict[str, list[float | str]]:
     return {"a": list(range(4)), "b": list("ab.."), "c": ["a", "b", np.nan, "d"]}
 
 

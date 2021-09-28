@@ -17,7 +17,10 @@ import numpy as np
 
 from pandas._libs import index as libindex
 from pandas._libs.lib import no_default
-from pandas._typing import Dtype
+from pandas._typing import (
+    Dtype,
+    npt,
+)
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     cache_readonly,
@@ -98,6 +101,7 @@ class RangeIndex(NumericIndex):
     _engine_type = libindex.Int64Engine
     _dtype_validation_metadata = (is_signed_integer_dtype, "signed integer")
     _range: range
+    _is_backward_compat_public_numeric_index: bool = False
 
     # --------------------------------------------------------------------
     # Constructors
@@ -173,7 +177,7 @@ class RangeIndex(NumericIndex):
 
     @cache_readonly
     def _constructor(self) -> type[Int64Index]:
-        """ return the class to use for construction """
+        """return the class to use for construction"""
         return Int64Index
 
     @cache_readonly
@@ -197,7 +201,7 @@ class RangeIndex(NumericIndex):
         return res
 
     def _get_data_as_items(self):
-        """ return a list of tuples of start, stop, step """
+        """return a list of tuples of start, stop, step"""
         rng = self._range
         return [("start", rng.start), ("stop", rng.stop), ("step", rng.step)]
 
@@ -350,7 +354,7 @@ class RangeIndex(NumericIndex):
 
     @property
     def is_unique(self) -> bool:
-        """ return if the index has unique values """
+        """return if the index has unique values"""
         return True
 
     @cache_readonly
@@ -385,6 +389,7 @@ class RangeIndex(NumericIndex):
                     return self._range.index(new_key)
                 except ValueError as err:
                     raise KeyError(key) from err
+            self._check_indexing_error(key)
             raise KeyError(key)
         return super().get_loc(key, method=method, tolerance=tolerance)
 
@@ -394,8 +399,7 @@ class RangeIndex(NumericIndex):
         method: str | None = None,
         limit: int | None = None,
         tolerance=None,
-    ) -> np.ndarray:
-        # -> np.ndarray[np.intp]
+    ) -> npt.NDArray[np.intp]:
         if com.any_not_none(method, tolerance, limit):
             return super()._get_indexer(
                 target, method=method, tolerance=tolerance, limit=limit
@@ -407,10 +411,6 @@ class RangeIndex(NumericIndex):
             # GH 28678: work on reversed range for simplicity
             reverse = self._range[::-1]
             start, stop, step = reverse.start, reverse.stop, reverse.step
-
-        if not is_signed_integer_dtype(target):
-            # checks/conversions/roundings are delegated to general method
-            return super()._get_indexer(target, method=method, tolerance=tolerance)
 
         target_array = np.asarray(target)
         locs = target_array - start
@@ -505,7 +505,7 @@ class RangeIndex(NumericIndex):
         nv.validate_max(args, kwargs)
         return self._minmax("max")
 
-    def argsort(self, *args, **kwargs) -> np.ndarray:
+    def argsort(self, *args, **kwargs) -> npt.NDArray[np.intp]:
         """
         Returns the indices that would sort the index and its
         underlying data.
@@ -532,7 +532,7 @@ class RangeIndex(NumericIndex):
 
     def factorize(
         self, sort: bool = False, na_sentinel: int | None = -1
-    ) -> tuple[np.ndarray, RangeIndex]:
+    ) -> tuple[npt.NDArray[np.intp], RangeIndex]:
         codes = np.arange(len(self), dtype=np.intp)
         uniques = self
         if sort and self.step < 0:
@@ -552,13 +552,11 @@ class RangeIndex(NumericIndex):
     # Set Operations
 
     def _intersection(self, other: Index, sort=False):
+        # caller is responsible for checking self and other are both non-empty
 
         if not isinstance(other, RangeIndex):
             # Int64Index
             return super()._intersection(other, sort=sort)
-
-        if not len(self) or not len(other):
-            return self._simple_new(_empty_range)
 
         first = self._range[::-1] if self.step < 0 else self._range
         second = other._range[::-1] if other.step < 0 else other._range

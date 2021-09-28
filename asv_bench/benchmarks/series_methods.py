@@ -27,6 +27,19 @@ class SeriesConstructor:
         Series(data=self.data, index=self.idx)
 
 
+class ToFrame:
+    params = [["int64", "datetime64[ns]", "category", "Int64"], [None, "foo"]]
+    param_names = ["dtype", "name"]
+
+    def setup(self, dtype, name):
+        arr = np.arange(10 ** 5)
+        ser = Series(arr, dtype=dtype)
+        self.ser = ser
+
+    def time_to_frame(self, dtype, name):
+        self.ser.to_frame(name)
+
+
 class NSort:
 
     params = ["first", "last", "all"]
@@ -145,7 +158,6 @@ class Mode:
     param_names = ["N", "dtype"]
 
     def setup(self, N, dtype):
-        np.random.seed(42)
         self.s = Series(np.random.randint(0, N, size=10 * N)).astype(dtype)
 
     def time_mode(self, N, dtype):

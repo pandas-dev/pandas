@@ -516,6 +516,7 @@ class TestPivotTable:
             result = pd.pivot(df, "b", "a", "c")
         tm.assert_frame_equal(result, pv.T)
 
+    @pytest.mark.filterwarnings("ignore:Timestamp.freq is deprecated:FutureWarning")
     @pytest.mark.parametrize("method", [True, False])
     def test_pivot_with_tz(self, method):
         # GH 5878
@@ -1855,7 +1856,7 @@ class TestPivotTable:
             observed=observed,
             aggfunc="sum",
         )
-        expected_columns = pd.Int64Index([2013, 2014], name="Year")
+        expected_columns = Index([2013, 2014], name="Year", dtype="int64")
         expected_index = pd.CategoricalIndex(
             months, categories=months, ordered=False, name="Month"
         )
@@ -2145,6 +2146,23 @@ class TestPivotTable:
                 [["d1", "d4", "d3"], ["a", "b", "c"]], names=["a", "col"]
             ),
         )
+        tm.assert_frame_equal(result, expected)
+
+    def test_pivot_table_with_margins_and_numeric_columns(self):
+        # GH 26568
+        df = DataFrame([["a", "x", 1], ["a", "y", 2], ["b", "y", 3], ["b", "z", 4]])
+        df.columns = [10, 20, 30]
+
+        result = df.pivot_table(
+            index=10, columns=20, values=30, aggfunc="sum", fill_value=0, margins=True
+        )
+
+        expected = DataFrame([[1, 2, 0, 3], [0, 3, 4, 7], [1, 5, 4, 10]])
+        expected.columns = ["x", "y", "z", "All"]
+        expected.index = ["a", "b", "All"]
+        expected.columns.name = 20
+        expected.index.name = 10
+
         tm.assert_frame_equal(result, expected)
 
 

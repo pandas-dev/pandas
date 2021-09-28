@@ -11,7 +11,7 @@ def setup_path():
 
 @pytest.fixture(scope="module", autouse=True)
 def setup_mode():
-    """ Reset testing mode fixture"""
+    """Reset testing mode fixture"""
     tm.reset_testing_mode()
     yield
     tm.set_testing_mode()

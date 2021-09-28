@@ -4,6 +4,7 @@ from datetime import (
 )
 from functools import partial
 import os
+from pathlib import Path
 from urllib.error import URLError
 from zipfile import BadZipFile
 
@@ -575,8 +576,12 @@ class TestReaders:
     def test_dtype_mangle_dup_cols(self, read_ext, dtypes, exp_value):
         # GH#35211
         basename = "df_mangle_dup_col_dtypes"
-        result = pd.read_excel(basename + read_ext, dtype={"a": str, **dtypes})
+        dtype_dict = {"a": str, **dtypes}
+        dtype_dict_copy = dtype_dict.copy()
+        # GH#42462
+        result = pd.read_excel(basename + read_ext, dtype=dtype_dict)
         expected = DataFrame({"a": ["1"], "a.1": [exp_value]})
+        assert dtype_dict == dtype_dict_copy, "dtype dict changed"
         tm.assert_frame_equal(result, expected)
 
     def test_reader_spaces(self, read_ext):
@@ -1189,18 +1194,25 @@ class TestReaders:
         # GH 12157
         f = "test_squeeze" + read_ext
 
-        actual = pd.read_excel(f, sheet_name="two_columns", index_col=0, squeeze=True)
-        expected = Series([2, 3, 4], [4, 5, 6], name="b")
-        expected.index.name = "a"
-        tm.assert_series_equal(actual, expected)
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="The squeeze argument has been deprecated "
+            "and will be removed in a future version.\n\n",
+        ):
+            actual = pd.read_excel(
+                f, sheet_name="two_columns", index_col=0, squeeze=True
+            )
+            expected = Series([2, 3, 4], [4, 5, 6], name="b")
+            expected.index.name = "a"
+            tm.assert_series_equal(actual, expected)
 
-        actual = pd.read_excel(f, sheet_name="two_columns", squeeze=True)
-        expected = DataFrame({"a": [4, 5, 6], "b": [2, 3, 4]})
-        tm.assert_frame_equal(actual, expected)
+            actual = pd.read_excel(f, sheet_name="two_columns", squeeze=True)
+            expected = DataFrame({"a": [4, 5, 6], "b": [2, 3, 4]})
+            tm.assert_frame_equal(actual, expected)
 
-        actual = pd.read_excel(f, sheet_name="one_column", squeeze=True)
-        expected = Series([1, 2, 3], name="a")
-        tm.assert_series_equal(actual, expected)
+            actual = pd.read_excel(f, sheet_name="one_column", squeeze=True)
+            expected = Series([1, 2, 3], name="a")
+            tm.assert_series_equal(actual, expected)
 
     def test_deprecated_kwargs(self, read_ext):
         with tm.assert_produces_warning(FutureWarning, raise_on_extra_warnings=False):
@@ -1248,6 +1260,34 @@ class TestReaders:
         file_name = "trailing_blanks" + read_ext
         result = pd.read_excel(file_name)
         assert result.shape == (3, 3)
+
+    def test_ignore_chartsheets_by_str(self, request, read_ext):
+        # GH 41448
+        if pd.read_excel.keywords["engine"] == "odf":
+            pytest.skip("chartsheets do not exist in the ODF format")
+        if pd.read_excel.keywords["engine"] == "pyxlsb":
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="pyxlsb can't distinguish chartsheets from worksheets"
+                )
+            )
+        with pytest.raises(ValueError, match="Worksheet named 'Chart1' not found"):
+            pd.read_excel("chartsheet" + read_ext, sheet_name="Chart1")
+
+    def test_ignore_chartsheets_by_int(self, request, read_ext):
+        # GH 41448
+        if pd.read_excel.keywords["engine"] == "odf":
+            pytest.skip("chartsheets do not exist in the ODF format")
+        if pd.read_excel.keywords["engine"] == "pyxlsb":
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="pyxlsb can't distinguish chartsheets from worksheets"
+                )
+            )
+        with pytest.raises(
+            ValueError, match="Worksheet index 1 is invalid, 1 worksheets found"
+        ):
+            pd.read_excel("chartsheet" + read_ext, sheet_name=1)
 
 
 class TestExcelFileRead:
@@ -1499,3 +1539,34 @@ class TestExcelFileRead:
         with pytest.raises(ValueError, match="Value must be one of *"):
             with pd.option_context(f"io.excel{read_ext}.reader", "abc"):
                 pass
+
+    def test_ignore_chartsheets(self, request, engine, read_ext):
+        # GH 41448
+        if engine == "odf":
+            pytest.skip("chartsheets do not exist in the ODF format")
+        if engine == "pyxlsb":
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="pyxlsb can't distinguish chartsheets from worksheets"
+                )
+            )
+        with pd.ExcelFile("chartsheet" + read_ext) as excel:
+            assert excel.sheet_names == ["Sheet1"]
+
+    def test_corrupt_files_closed(self, request, engine, read_ext):
+        # GH41778
+        errors = (BadZipFile,)
+        if engine is None:
+            pytest.skip()
+        elif engine == "xlrd":
+            import xlrd
+
+            errors = (BadZipFile, xlrd.biffh.XLRDError)
+
+        with tm.ensure_clean(f"corrupt{read_ext}") as file:
+            Path(file).write_text("corrupt")
+            with tm.assert_produces_warning(False):
+                try:
+                    pd.ExcelFile(file, engine=engine)
+                except errors:
+                    pass

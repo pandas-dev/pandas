@@ -5,6 +5,8 @@ import cython
 from libc.math cimport round
 from libcpp.deque cimport deque
 
+from pandas._libs.algos cimport TiebreakEnumType
+
 import numpy as np
 
 cimport numpy as cnp
@@ -50,6 +52,8 @@ cdef extern from "../src/skiplist.h":
     double skiplist_get(skiplist_t*, int, int*) nogil
     int skiplist_insert(skiplist_t*, double) nogil
     int skiplist_remove(skiplist_t*, double) nogil
+    int skiplist_rank(skiplist_t*, double) nogil
+    int skiplist_min_rank(skiplist_t*, double) nogil
 
 cdef:
     float32_t MINfloat32 = np.NINF
@@ -310,7 +314,10 @@ cdef inline void add_var(float64_t val, float64_t *nobs, float64_t *mean_x,
     t = y - mean_x[0]
     compensation[0] = t + mean_x[0] - y
     delta = t
-    mean_x[0] = mean_x[0] + delta / nobs[0]
+    if nobs[0]:
+        mean_x[0] = mean_x[0] + delta / nobs[0]
+    else:
+        mean_x[0] = 0
     ssqdm_x[0] = ssqdm_x[0] + (val - prev_mean) * (val - mean_x[0])
 
 
@@ -792,7 +799,7 @@ def roll_median_c(const float64_t[:] values, ndarray[int64_t] start,
                     val = values[j]
                     if notnan(val):
                         nobs += 1
-                        err = skiplist_insert(sl, val) != 1
+                        err = skiplist_insert(sl, val) == -1
                         if err:
                             break
 
@@ -803,7 +810,7 @@ def roll_median_c(const float64_t[:] values, ndarray[int64_t] start,
                     val = values[j]
                     if notnan(val):
                         nobs += 1
-                        err = skiplist_insert(sl, val) != 1
+                        err = skiplist_insert(sl, val) == -1
                         if err:
                             break
 
@@ -1134,6 +1141,122 @@ def roll_quantile(const float64_t[:] values, ndarray[int64_t] start,
     skiplist_destroy(skiplist)
 
     return output
+
+
+rolling_rank_tiebreakers = {
+    "average": TiebreakEnumType.TIEBREAK_AVERAGE,
+    "min": TiebreakEnumType.TIEBREAK_MIN,
+    "max": TiebreakEnumType.TIEBREAK_MAX,
+}
+
+
+def roll_rank(const float64_t[:] values, ndarray[int64_t] start,
+              ndarray[int64_t] end, int64_t minp, bint percentile,
+              str method, bint ascending) -> np.ndarray:
+    """
+    O(N log(window)) implementation using skip list
+
+    derived from roll_quantile
+    """
+    cdef:
+        Py_ssize_t i, j, s, e, N = len(values), idx
+        float64_t rank_min = 0, rank = 0
+        int64_t nobs = 0, win
+        float64_t val
+        skiplist_t *skiplist
+        float64_t[::1] output
+        TiebreakEnumType rank_type
+
+    try:
+        rank_type = rolling_rank_tiebreakers[method]
+    except KeyError:
+        raise ValueError(f"Method '{method}' is not supported")
+
+    is_monotonic_increasing_bounds = is_monotonic_increasing_start_end_bounds(
+        start, end
+    )
+    # we use the Fixed/Variable Indexer here as the
+    # actual skiplist ops outweigh any window computation costs
+    output = np.empty(N, dtype=np.float64)
+
+    win = (end - start).max()
+    if win == 0:
+        output[:] = NaN
+        return np.asarray(output)
+    skiplist = skiplist_init(<int>win)
+    if skiplist == NULL:
+        raise MemoryError("skiplist_init failed")
+
+    with nogil:
+        for i in range(N):
+            s = start[i]
+            e = end[i]
+
+            if i == 0 or not is_monotonic_increasing_bounds:
+                if not is_monotonic_increasing_bounds:
+                    nobs = 0
+                    skiplist_destroy(skiplist)
+                    skiplist = skiplist_init(<int>win)
+
+                # setup
+                for j in range(s, e):
+                    val = values[j] if ascending else -values[j]
+                    if notnan(val):
+                        nobs += 1
+                        rank = skiplist_insert(skiplist, val)
+                        if rank == -1:
+                            raise MemoryError("skiplist_insert failed")
+                        if rank_type == TiebreakEnumType.TIEBREAK_AVERAGE:
+                            # The average rank of `val` is the sum of the ranks of all
+                            # instances of `val` in the skip list divided by the number
+                            # of instances. The sum of consecutive integers from 1 to N
+                            # is N * (N + 1) / 2.
+                            # The sum of the ranks is the sum of integers from the
+                            # lowest rank to the highest rank, which is the sum of
+                            # integers from 1 to the highest rank minus the sum of
+                            # integers from 1 to one less than the lowest rank.
+                            rank_min = skiplist_min_rank(skiplist, val)
+                            rank = (((rank * (rank + 1) / 2)
+                                    - ((rank_min - 1) * rank_min / 2))
+                                    / (rank - rank_min + 1))
+                        elif rank_type == TiebreakEnumType.TIEBREAK_MIN:
+                            rank = skiplist_min_rank(skiplist, val)
+                    else:
+                        rank = NaN
+
+            else:
+                # calculate deletes
+                for j in range(start[i - 1], s):
+                    val = values[j] if ascending else -values[j]
+                    if notnan(val):
+                        skiplist_remove(skiplist, val)
+                        nobs -= 1
+
+                # calculate adds
+                for j in range(end[i - 1], e):
+                    val = values[j] if ascending else -values[j]
+                    if notnan(val):
+                        nobs += 1
+                        rank = skiplist_insert(skiplist, val)
+                        if rank == -1:
+                            raise MemoryError("skiplist_insert failed")
+                        if rank_type == TiebreakEnumType.TIEBREAK_AVERAGE:
+                            rank_min = skiplist_min_rank(skiplist, val)
+                            rank = (((rank * (rank + 1) / 2)
+                                    - ((rank_min - 1) * rank_min / 2))
+                                    / (rank - rank_min + 1))
+                        elif rank_type == TiebreakEnumType.TIEBREAK_MIN:
+                            rank = skiplist_min_rank(skiplist, val)
+                    else:
+                        rank = NaN
+            if nobs >= minp:
+                output[i] = rank / nobs if percentile else rank
+            else:
+                output[i] = NaN
+
+    skiplist_destroy(skiplist)
+
+    return np.asarray(output)
 
 
 def roll_apply(object obj,
@@ -1486,7 +1609,7 @@ def roll_weighted_var(const float64_t[:] values, const float64_t[:] weights,
 
 def ewma(const float64_t[:] vals, const int64_t[:] start, const int64_t[:] end,
          int minp, float64_t com, bint adjust, bint ignore_na,
-         const float64_t[:] deltas) -> np.ndarray:
+         const float64_t[:] deltas=None) -> np.ndarray:
     """
     Compute exponentially-weighted moving average using center-of-mass.
 
@@ -1499,7 +1622,8 @@ def ewma(const float64_t[:] vals, const int64_t[:] start, const int64_t[:] end,
     com : float64
     adjust : bool
     ignore_na : bool
-    deltas : ndarray (float64 type)
+    deltas : ndarray (float64 type), optional. If None, implicitly assumes equally
+             spaced points (used when `times` is not passed)
 
     Returns
     -------
@@ -1508,13 +1632,16 @@ def ewma(const float64_t[:] vals, const int64_t[:] start, const int64_t[:] end,
 
     cdef:
         Py_ssize_t i, j, s, e, nobs, win_size, N = len(vals), M = len(start)
-        const float64_t[:] sub_deltas, sub_vals
+        const float64_t[:] sub_vals
+        const float64_t[:] sub_deltas=None
         ndarray[float64_t] sub_output, output = np.empty(N, dtype=np.float64)
         float64_t alpha, old_wt_factor, new_wt, weighted_avg, old_wt, cur
-        bint is_observation
+        bint is_observation, use_deltas
 
     if N == 0:
         return output
+
+    use_deltas = deltas is not None
 
     alpha = 1. / (1. + com)
     old_wt_factor = 1. - alpha
@@ -1526,7 +1653,8 @@ def ewma(const float64_t[:] vals, const int64_t[:] start, const int64_t[:] end,
         sub_vals = vals[s:e]
         # note that len(deltas) = len(vals) - 1 and deltas[i] is to be used in
         # conjunction with vals[i+1]
-        sub_deltas = deltas[s:e - 1]
+        if use_deltas:
+            sub_deltas = deltas[s:e - 1]
         win_size = len(sub_vals)
         sub_output = np.empty(win_size, dtype=np.float64)
 
@@ -1544,7 +1672,10 @@ def ewma(const float64_t[:] vals, const int64_t[:] start, const int64_t[:] end,
                 if weighted_avg == weighted_avg:
 
                     if is_observation or not ignore_na:
-                        old_wt *= old_wt_factor ** sub_deltas[i - 1]
+                        if use_deltas:
+                            old_wt *= old_wt_factor ** sub_deltas[i - 1]
+                        else:
+                            old_wt *= old_wt_factor
                         if is_observation:
 
                             # avoid numerical errors on constant series

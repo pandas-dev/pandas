@@ -18,7 +18,6 @@ from pandas.arrays import (
     IntegerArray,
     IntervalArray,
     SparseArray,
-    StringArray,
     TimedeltaArray,
 )
 from pandas.core.arrays import (
@@ -132,8 +131,16 @@ from pandas.tests.extension.decimal import (
         ([1, None], "Int16", pd.array([1, None], dtype="Int16")),
         (pd.Series([1, 2]), None, PandasArray(np.array([1, 2], dtype=np.int64))),
         # String
-        (["a", None], "string", StringArray._from_sequence(["a", None])),
-        (["a", None], pd.StringDtype(), StringArray._from_sequence(["a", None])),
+        (
+            ["a", None],
+            "string",
+            pd.StringDtype().construct_array_type()._from_sequence(["a", None]),
+        ),
+        (
+            ["a", None],
+            pd.StringDtype(),
+            pd.StringDtype().construct_array_type()._from_sequence(["a", None]),
+        ),
         # Boolean
         ([True, None], "boolean", BooleanArray._from_sequence([True, None])),
         ([True, None], pd.BooleanDtype(), BooleanArray._from_sequence([True, None])),
@@ -253,8 +260,14 @@ cet = pytz.timezone("CET")
         ([1, 2.0], FloatingArray._from_sequence([1.0, 2.0])),
         ([1, np.nan, 2.0], FloatingArray._from_sequence([1.0, None, 2.0])),
         # string
-        (["a", "b"], StringArray._from_sequence(["a", "b"])),
-        (["a", None], StringArray._from_sequence(["a", None])),
+        (
+            ["a", "b"],
+            pd.StringDtype().construct_array_type()._from_sequence(["a", "b"]),
+        ),
+        (
+            ["a", None],
+            pd.StringDtype().construct_array_type()._from_sequence(["a", None]),
+        ),
         # Boolean
         ([True, False], BooleanArray._from_sequence([True, False])),
         ([True, None], BooleanArray._from_sequence([True, None])),
@@ -294,6 +307,14 @@ def test_nd_raises(data):
 def test_scalar_raises():
     with pytest.raises(ValueError, match="Cannot pass scalar '1'"):
         pd.array(1)
+
+
+def test_bounds_check():
+    # GH21796
+    with pytest.raises(
+        TypeError, match=r"cannot safely cast non-equivalent int(32|64) to uint16"
+    ):
+        pd.array([-1, 2, 3], dtype="UInt16")
 
 
 # ---------------------------------------------------------------------------
@@ -371,8 +392,8 @@ class TestArrayAnalytics:
         assert is_scalar(result)
         assert result == 1
 
-    def test_searchsorted_numeric_dtypes_scalar(self, any_real_dtype):
-        arr = pd.array([1, 3, 90], dtype=any_real_dtype)
+    def test_searchsorted_numeric_dtypes_scalar(self, any_real_numpy_dtype):
+        arr = pd.array([1, 3, 90], dtype=any_real_numpy_dtype)
         result = arr.searchsorted(30)
         assert is_scalar(result)
         assert result == 2
@@ -381,8 +402,8 @@ class TestArrayAnalytics:
         expected = np.array([2], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_searchsorted_numeric_dtypes_vector(self, any_real_dtype):
-        arr = pd.array([1, 3, 90], dtype=any_real_dtype)
+    def test_searchsorted_numeric_dtypes_vector(self, any_real_numpy_dtype):
+        arr = pd.array([1, 3, 90], dtype=any_real_numpy_dtype)
         result = arr.searchsorted([2, 30])
         expected = np.array([1, 2], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
@@ -410,8 +431,8 @@ class TestArrayAnalytics:
         assert is_scalar(result)
         assert result == 1
 
-    def test_searchsorted_sorter(self, any_real_dtype):
-        arr = pd.array([3, 1, 2], dtype=any_real_dtype)
+    def test_searchsorted_sorter(self, any_real_numpy_dtype):
+        arr = pd.array([3, 1, 2], dtype=any_real_numpy_dtype)
         result = arr.searchsorted([0, 3], sorter=np.argsort(arr))
         expected = np.array([0, 2], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)

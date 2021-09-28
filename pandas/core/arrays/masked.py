@@ -5,6 +5,7 @@ from typing import (
     Any,
     Sequence,
     TypeVar,
+    overload,
 )
 
 import numpy as np
@@ -15,10 +16,13 @@ from pandas._libs import (
 )
 from pandas._typing import (
     ArrayLike,
-    Dtype,
+    AstypeArg,
     NpDtype,
     PositionalIndexer,
     Scalar,
+    ScalarIndexer,
+    SequenceIndexer,
+    npt,
     type_t,
 )
 from pandas.errors import AbstractMethodError
@@ -60,7 +64,7 @@ from pandas.core.indexers import check_array_indexer
 if TYPE_CHECKING:
     from pandas import Series
     from pandas.core.arrays import BooleanArray
-
+from pandas.compat.numpy import function as nv
 
 BaseMaskedArrayT = TypeVar("BaseMaskedArrayT", bound="BaseMaskedArray")
 
@@ -78,7 +82,7 @@ class BaseMaskedDtype(ExtensionDtype):
 
     @cache_readonly
     def numpy_dtype(self) -> np.dtype:
-        """ Return an instance of our numpy dtype """
+        """Return an instance of our numpy dtype"""
         return np.dtype(self.type)
 
     @cache_readonly
@@ -87,7 +91,7 @@ class BaseMaskedDtype(ExtensionDtype):
 
     @cache_readonly
     def itemsize(self) -> int:
-        """ Return the number of bytes in this dtype """
+        """Return the number of bytes in this dtype"""
         return self.numpy_dtype.itemsize
 
     @classmethod
@@ -111,6 +115,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     # The value used to fill '_data' to avoid upcasting
     _internal_fill_value: Scalar
+    # Fill values used for any/all
+    _truthy_value = Scalar  # bool(_truthy_value) = True
+    _falsey_value = Scalar  # bool(_falsey_value) = False
 
     def __init__(self, values: np.ndarray, mask: np.ndarray, copy: bool = False):
         # values is supposed to already be validated in the subclass
@@ -123,6 +130,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             raise ValueError("values must be a 1D array")
         if mask.ndim != 1:
             raise ValueError("mask must be a 1D array")
+        if values.shape != mask.shape:
+            raise ValueError("values and mask must have same shape")
 
         if copy:
             values = values.copy()
@@ -135,7 +144,17 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def dtype(self) -> BaseMaskedDtype:
         raise AbstractMethodError(self)
 
-    def __getitem__(self, item: PositionalIndexer) -> BaseMaskedArray | Any:
+    @overload
+    def __getitem__(self, item: ScalarIndexer) -> Any:
+        ...
+
+    @overload
+    def __getitem__(self: BaseMaskedArrayT, item: SequenceIndexer) -> BaseMaskedArrayT:
+        ...
+
+    def __getitem__(
+        self: BaseMaskedArrayT, item: PositionalIndexer
+    ) -> BaseMaskedArrayT | Any:
         if is_integer(item):
             if self._mask[item]:
                 return self.dtype.na_value
@@ -208,12 +227,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def __invert__(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
         return type(self)(~self._data, self._mask.copy())
 
-    # error: Argument 1 of "to_numpy" is incompatible with supertype "ExtensionArray";
-    # supertype defines the argument type as "Union[ExtensionDtype, str, dtype[Any],
-    # Type[str], Type[float], Type[int], Type[complex], Type[bool], Type[object], None]"
-    def to_numpy(  # type: ignore[override]
+    def to_numpy(
         self,
-        dtype: NpDtype | None = None,
+        dtype: npt.DTypeLike | None = None,
         copy: bool = False,
         na_value: Scalar = lib.no_default,
     ) -> np.ndarray:
@@ -280,9 +296,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if na_value is lib.no_default:
             na_value = libmissing.NA
         if dtype is None:
-            # error: Incompatible types in assignment (expression has type
-            # "Type[object]", variable has type "Union[str, dtype[Any], None]")
-            dtype = object  # type: ignore[assignment]
+            dtype = object
         if self._hasna:
             if (
                 not is_object_dtype(dtype)
@@ -301,7 +315,19 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             data = self._data.astype(dtype, copy=copy)
         return data
 
-    def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:
+    @overload
+    def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
+        ...
+
+    @overload
+    def astype(self, dtype: ExtensionDtype, copy: bool = ...) -> ExtensionArray:
+        ...
+
+    @overload
+    def astype(self, dtype: AstypeArg, copy: bool = ...) -> ArrayLike:
+        ...
+
+    def astype(self, dtype: AstypeArg, copy: bool = True) -> ArrayLike:
         dtype = pandas_dtype(dtype)
 
         if is_dtype_equal(dtype, self.dtype):
@@ -403,15 +429,21 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         from pandas.core.arrays import BooleanArray
 
-        result = isin(self._data, values)
+        # algorithms.isin will eventually convert values to an ndarray, so no extra
+        # cost to doing it here first
+        values_arr = np.asarray(values)
+        result = isin(self._data, values_arr)
+
         if self._hasna:
-            if libmissing.NA in values:
-                result += self._mask
-            else:
-                result *= np.invert(self._mask)
-        # error: No overload variant of "zeros_like" matches argument types
-        # "BaseMaskedArray", "Type[bool]"
-        mask = np.zeros_like(self, dtype=bool)  # type: ignore[call-overload]
+            values_have_NA = is_object_dtype(values_arr.dtype) and any(
+                val is self.dtype.na_value for val in values_arr
+            )
+
+            # For now, NA does not propagate so set result according to presence of NA,
+            # see https://github.com/pandas-dev/pandas/pull/38379 for some discussion
+            result[self._mask] = values_have_NA
+
+        mask = np.zeros(self._data.shape, dtype=bool)
         return BooleanArray(result, mask, copy=False)
 
     def copy(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
@@ -489,6 +521,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return Series(counts, index=index)
 
     def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
+        if name in {"any", "all"}:
+            return getattr(self, name)(skipna=skipna, **kwargs)
+
         data = self._data
         mask = self._mask
 
@@ -508,3 +543,156 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             return libmissing.NA
 
         return result
+
+    def any(self, *, skipna: bool = True, **kwargs):
+        """
+        Return whether any element is truthy.
+
+        Returns False unless there is at least one element that is truthy.
+        By default, NAs are skipped. If ``skipna=False`` is specified and
+        missing values are present, similar :ref:`Kleene logic <boolean.kleene>`
+        is used as for logical operations.
+
+        .. versionchanged:: 1.4.0
+
+        Parameters
+        ----------
+        skipna : bool, default True
+            Exclude NA values. If the entire array is NA and `skipna` is
+            True, then the result will be False, as for an empty array.
+            If `skipna` is False, the result will still be True if there is
+            at least one element that is truthy, otherwise NA will be returned
+            if there are NA's present.
+        **kwargs : any, default None
+            Additional keywords have no effect but might be accepted for
+            compatibility with NumPy.
+
+        Returns
+        -------
+        bool or :attr:`pandas.NA`
+
+        See Also
+        --------
+        numpy.any : Numpy version of this method.
+        BaseMaskedArray.all : Return whether all elements are truthy.
+
+        Examples
+        --------
+        The result indicates whether any element is truthy (and by default
+        skips NAs):
+
+        >>> pd.array([True, False, True]).any()
+        True
+        >>> pd.array([True, False, pd.NA]).any()
+        True
+        >>> pd.array([False, False, pd.NA]).any()
+        False
+        >>> pd.array([], dtype="boolean").any()
+        False
+        >>> pd.array([pd.NA], dtype="boolean").any()
+        False
+        >>> pd.array([pd.NA], dtype="Float64").any()
+        False
+
+        With ``skipna=False``, the result can be NA if this is logically
+        required (whether ``pd.NA`` is True or False influences the result):
+
+        >>> pd.array([True, False, pd.NA]).any(skipna=False)
+        True
+        >>> pd.array([1, 0, pd.NA]).any(skipna=False)
+        True
+        >>> pd.array([False, False, pd.NA]).any(skipna=False)
+        <NA>
+        >>> pd.array([0, 0, pd.NA]).any(skipna=False)
+        <NA>
+        """
+        kwargs.pop("axis", None)
+        nv.validate_any((), kwargs)
+
+        values = self._data.copy()
+        np.putmask(values, self._mask, self._falsey_value)
+        result = values.any()
+        if skipna:
+            return result
+        else:
+            if result or len(self) == 0 or not self._mask.any():
+                return result
+            else:
+                return self.dtype.na_value
+
+    def all(self, *, skipna: bool = True, **kwargs):
+        """
+        Return whether all elements are truthy.
+
+        Returns True unless there is at least one element that is falsey.
+        By default, NAs are skipped. If ``skipna=False`` is specified and
+        missing values are present, similar :ref:`Kleene logic <boolean.kleene>`
+        is used as for logical operations.
+
+        .. versionchanged:: 1.4.0
+
+        Parameters
+        ----------
+        skipna : bool, default True
+            Exclude NA values. If the entire array is NA and `skipna` is
+            True, then the result will be True, as for an empty array.
+            If `skipna` is False, the result will still be False if there is
+            at least one element that is falsey, otherwise NA will be returned
+            if there are NA's present.
+        **kwargs : any, default None
+            Additional keywords have no effect but might be accepted for
+            compatibility with NumPy.
+
+        Returns
+        -------
+        bool or :attr:`pandas.NA`
+
+        See Also
+        --------
+        numpy.all : Numpy version of this method.
+        BooleanArray.any : Return whether any element is truthy.
+
+        Examples
+        --------
+        The result indicates whether all elements are truthy (and by default
+        skips NAs):
+
+        >>> pd.array([True, True, pd.NA]).all()
+        True
+        >>> pd.array([1, 1, pd.NA]).all()
+        True
+        >>> pd.array([True, False, pd.NA]).all()
+        False
+        >>> pd.array([], dtype="boolean").all()
+        True
+        >>> pd.array([pd.NA], dtype="boolean").all()
+        True
+        >>> pd.array([pd.NA], dtype="Float64").all()
+        True
+
+        With ``skipna=False``, the result can be NA if this is logically
+        required (whether ``pd.NA`` is True or False influences the result):
+
+        >>> pd.array([True, True, pd.NA]).all(skipna=False)
+        <NA>
+        >>> pd.array([1, 1, pd.NA]).all(skipna=False)
+        <NA>
+        >>> pd.array([True, False, pd.NA]).all(skipna=False)
+        False
+        >>> pd.array([1, 0, pd.NA]).all(skipna=False)
+        False
+        """
+        kwargs.pop("axis", None)
+        nv.validate_all((), kwargs)
+
+        values = self._data.copy()
+        np.putmask(values, self._mask, self._truthy_value)
+        result = values.all()
+
+        if skipna:
+            return result
+        else:
+            if not result or len(self) == 0 or not self._mask.any():
+                return result
+            else:
+                return self.dtype.na_value

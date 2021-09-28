@@ -14,6 +14,7 @@ from datetime import (
 from decimal import Decimal
 from fractions import Fraction
 from io import StringIO
+import itertools
 from numbers import Number
 import re
 
@@ -147,6 +148,18 @@ def test_is_list_like_recursion():
 
     with tm.external_error_raised(RecursionError):
         foo()
+
+
+def test_is_list_like_iter_is_none():
+    # GH 43373
+    # is_list_like was yielding false positives with __iter__ == None
+    class NotListLike:
+        def __getitem__(self, item):
+            return self
+
+        __iter__ = None
+
+    assert not inference.is_list_like(NotListLike())
 
 
 def test_is_sequence():
@@ -658,8 +671,9 @@ class TestInference:
         )
         tm.assert_numpy_array_equal(out, exp)
 
+        # with convert_timedelta=True, the nan is a valid NA value for td64
         arr = np.array([np.timedelta64(1, "s"), np.nan], dtype=object)
-        exp = arr.copy()
+        exp = exp[::-1]
         out = lib.maybe_convert_objects(
             arr, convert_datetime=True, convert_timedelta=True
         )
@@ -715,6 +729,16 @@ class TestInference:
         )
         # no OutOfBoundsDatetime/OutOfBoundsTimedeltas
         tm.assert_numpy_array_equal(out, arr)
+
+    def test_maybe_convert_objects_mixed_datetimes(self):
+        ts = Timestamp("now")
+        vals = [ts, ts.to_pydatetime(), ts.to_datetime64(), pd.NaT, np.nan, None]
+
+        for data in itertools.permutations(vals):
+            data = np.array(list(data), dtype=object)
+            expected = DatetimeIndex(data)._data._ndarray
+            result = lib.maybe_convert_objects(data, convert_datetime=True)
+            tm.assert_numpy_array_equal(result, expected)
 
     def test_maybe_convert_objects_timedelta64_nat(self):
         obj = np.timedelta64("NaT", "ns")

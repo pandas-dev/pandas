@@ -692,9 +692,10 @@ def test_asfreq_non_unique():
     rng2 = rng.repeat(2).values
     ts = Series(np.random.randn(len(rng2)), index=rng2)
 
-    msg = "cannot reindex from a duplicate axis"
+    msg = "cannot reindex on an axis with duplicate labels"
     with pytest.raises(ValueError, match=msg):
-        ts.asfreq("B")
+        with tm.assert_produces_warning(FutureWarning, match="non-unique"):
+            ts.asfreq("B")
 
 
 def test_resample_axis1():
@@ -1739,8 +1740,8 @@ def test_get_timestamp_range_edges(first, last, freq, exp_first, exp_last):
     last = Period(last)
     last = last.to_timestamp(last.freq)
 
-    exp_first = Timestamp(exp_first, freq=freq)
-    exp_last = Timestamp(exp_last, freq=freq)
+    exp_first = Timestamp(exp_first)
+    exp_last = Timestamp(exp_last)
 
     freq = pd.tseries.frequencies.to_offset(freq)
     result = _get_timestamp_range_edges(first, last, freq)
