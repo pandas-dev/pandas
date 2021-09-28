@@ -3703,13 +3703,14 @@ class Index(IndexOpsMixin, PandasObject):
             )
 
         if self.is_monotonic_increasing and target.is_monotonic_increasing:
-            engine_method = (
-                self._engine.get_pad_indexer
-                if method == "pad"
-                else self._engine.get_backfill_indexer
-            )
             target_values = target._get_engine_target()
-            indexer = engine_method(target_values, limit)
+            own_values = self._get_engine_target()
+
+            if method == "pad":
+                indexer = libalgos.pad(own_values, target_values, limit=limit)
+            else:
+                # i.e. "backfill"
+                indexer = libalgos.backfill(own_values, target_values, limit=limit)
         else:
             indexer = self._get_fill_indexer_searchsorted(target, method, limit)
         if tolerance is not None and len(self):
@@ -4320,12 +4321,8 @@ class Index(IndexOpsMixin, PandasObject):
         )
         mask = left_idx == -1
 
-        # error: Argument 1 to "take" of "ExtensionArray" has incompatible
-        # type "ndarray[Any, dtype[signedinteger[Any]]]"; expected "Sequence[int]"
-        join_array = self._values.take(left_idx)  # type: ignore[arg-type]
-        # error: Argument 1 to "take" of "ExtensionArray" has incompatible type
-        # "ndarray[Any, dtype[signedinteger[Any]]]"; expected "Sequence[int]"
-        right = other._values.take(right_idx)  # type: ignore[arg-type]
+        join_array = self._values.take(left_idx)
+        right = other._values.take(right_idx)
 
         if isinstance(join_array, np.ndarray):
             np.putmask(join_array, mask, right)

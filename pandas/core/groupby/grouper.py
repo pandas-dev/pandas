@@ -5,6 +5,8 @@ split-apply-combine paradigm.
 from __future__ import annotations
 
 from typing import (
+    TYPE_CHECKING,
+    Any,
     Hashable,
     final,
 )
@@ -46,6 +48,9 @@ from pandas.core.indexes.api import (
 from pandas.core.series import Series
 
 from pandas.io.formats.printing import pprint_thing
+
+if TYPE_CHECKING:
+    from pandas.core.generic import NDFrame
 
 
 class Grouper:
@@ -299,7 +304,9 @@ class Grouper:
             raise ValueError("_set_grouper must be called before ax is accessed")
         return index
 
-    def _get_grouper(self, obj: FrameOrSeries, validate: bool = True):
+    def _get_grouper(
+        self, obj: FrameOrSeries, validate: bool = True
+    ) -> tuple[Any, ops.BaseGrouper, FrameOrSeries]:
         """
         Parameters
         ----------
@@ -326,10 +333,12 @@ class Grouper:
             dropna=self.dropna,
         )
 
-        return self.binner, self.grouper, self.obj
+        # error: Incompatible return value type (got "Tuple[None, None, None]",
+        # expected "Tuple[Any, BaseGrouper, FrameOrSeries]")
+        return self.binner, self.grouper, self.obj  # type: ignore[return-value]
 
     @final
-    def _set_grouper(self, obj: FrameOrSeries, sort: bool = False):
+    def _set_grouper(self, obj: NDFrame, sort: bool = False):
         """
         given an object and the specifications, setup the internal grouper
         for this particular specification
@@ -459,7 +468,7 @@ class Grouping:
         self,
         index: Index,
         grouper=None,
-        obj: FrameOrSeries | None = None,
+        obj: NDFrame | None = None,
         level=None,
         sort: bool = True,
         observed: bool = False,
@@ -501,11 +510,9 @@ class Grouping:
             # what key/level refer to exactly, don't need to
             # check again as we have by this point converted these
             # to an actual value (rather than a pd.Grouper)
+            assert self.obj is not None  # for mypy
             _, newgrouper, newobj = self.grouping_vector._get_grouper(
-                # error: Value of type variable "FrameOrSeries" of "_get_grouper"
-                # of "Grouper" cannot be "Optional[FrameOrSeries]"
-                self.obj,  # type: ignore[type-var]
-                validate=False,
+                self.obj, validate=False
             )
             self.obj = newobj
 
