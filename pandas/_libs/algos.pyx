@@ -45,6 +45,7 @@ from numpy cimport (
 cnp.import_array()
 
 cimport pandas._libs.util as util
+from pandas._libs.dtypes cimport rank_t
 from pandas._libs.khash cimport (
     kh_destroy_int64,
     kh_get_int64,
@@ -859,13 +860,6 @@ def is_monotonic(ndarray[algos_t, ndim=1] arr, bint timelike):
 # ----------------------------------------------------------------------
 # rank_1d, rank_2d
 # ----------------------------------------------------------------------
-
-ctypedef fused rank_t:
-    object
-    float64_t
-    uint64_t
-    int64_t
-
 
 cdef rank_t get_rank_nan_fill_val(bint rank_nans_highest, rank_t[:] _=None):
     """

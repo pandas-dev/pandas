@@ -43,6 +43,7 @@ from pandas._libs.algos import (
     take_2d_axis1_float64_float64,
 )
 
+from pandas._libs.dtypes cimport rank_t
 from pandas._libs.missing cimport checknull
 
 
@@ -920,14 +921,6 @@ def group_quantile(ndarray[float64_t, ndim=2] out,
 # ----------------------------------------------------------------------
 # group_nth, group_last, group_rank
 # ----------------------------------------------------------------------
-
-ctypedef fused rank_t:
-    float64_t
-    float32_t
-    int64_t
-    uint64_t
-    object
-
 
 cdef inline bint _treat_as_na(rank_t val, bint is_datetimelike) nogil:
     if rank_t is object:
