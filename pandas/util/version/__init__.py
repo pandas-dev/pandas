@@ -116,7 +116,7 @@ class _Version(NamedTuple):
     dev: tuple[str, int] | None
     pre: tuple[str, int] | None
     post: tuple[str, int] | None
-    local: LocalType | None
+    local: tuple[str | int, ...] | None
 
 
 def parse(version: str) -> LegacyVersion | Version:
@@ -509,7 +509,7 @@ def _parse_letter_version(
 _local_version_separators = re.compile(r"[\._-]")
 
 
-def _parse_local_version(local: str) -> LocalType | None:
+def _parse_local_version(local: str) -> tuple[str | int, ...] | None:
     """
     Takes a string like abc.1.twelve and turns it into ("abc", 1, "twelve").
     """
@@ -527,7 +527,7 @@ def _cmpkey(
     pre: tuple[str, int] | None,
     post: tuple[str, int] | None,
     dev: tuple[str, int] | None,
-    local: tuple[SubLocalType] | None,
+    local: tuple[str | int, ...] | None,
 ) -> CmpKey:
 
     # When we compare a release version, we want to compare it with all of the
