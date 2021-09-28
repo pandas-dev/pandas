@@ -641,9 +641,6 @@ accepts the special syntax in :meth:`GroupBy.agg`, known as "named aggregation",
   to make it clearer what the arguments are. As usual, the aggregation can
   be a callable or a string alias.
 
-.. versionchanged:: 1.4.0
-   ``pandas.NamedAgg`` is no longer a ``collections.namedtuple`` but now a ``typing.NamedTuple``.
-
 .. ipython:: python
 
    animals = pd.DataFrame(
@@ -662,7 +659,7 @@ accepts the special syntax in :meth:`GroupBy.agg`, known as "named aggregation",
    )
 
 
-``pandas.NamedAgg`` is just a ``typing.NamedTuple``. Plain tuples are allowed as well.
+``pandas.NamedAgg`` is just a ``namedtuple``. Plain tuples are allowed as well.
 
 .. ipython:: python
 
