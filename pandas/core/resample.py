@@ -25,8 +25,8 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._typing import (
-    FrameOrSeries,
     IndexLabel,
+    NDFrameT,
     T,
     TimedeltaConvertibleTypes,
     TimestampConvertibleTypes,
@@ -198,9 +198,9 @@ class Resampler(BaseGroupBy, PandasObject):
 
     # error: Signature of "obj" incompatible with supertype "BaseGroupBy"
     @property
-    def obj(self) -> FrameOrSeries:  # type: ignore[override]
+    def obj(self) -> NDFrameT:  # type: ignore[override]
         # error: Incompatible return value type (got "Optional[Any]",
-        # expected "FrameOrSeries")
+        # expected "NDFrameT")
         return self.groupby.obj  # type: ignore[return-value]
 
     @property
@@ -220,7 +220,7 @@ class Resampler(BaseGroupBy, PandasObject):
             self.groupby.key is not None or self.groupby.level is not None
         )
 
-    def _convert_obj(self, obj: FrameOrSeries) -> FrameOrSeries:
+    def _convert_obj(self, obj: NDFrameT) -> NDFrameT:
         """
         Provide any conversions for the object in order to correctly handle.
 
@@ -1260,7 +1260,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
             return super()._get_binner_for_time()
         return self.groupby._get_period_bins(self.ax)
 
-    def _convert_obj(self, obj: FrameOrSeries) -> FrameOrSeries:
+    def _convert_obj(self, obj: NDFrameT) -> NDFrameT:
         obj = super()._convert_obj(obj)
 
         if self._from_selection:
@@ -1795,12 +1795,12 @@ class TimeGrouper(Grouper):
 
 
 def _take_new_index(
-    obj: FrameOrSeries, indexer: npt.NDArray[np.intp], new_index: Index, axis: int = 0
-) -> FrameOrSeries:
+    obj: NDFrameT, indexer: npt.NDArray[np.intp], new_index: Index, axis: int = 0
+) -> NDFrameT:
 
     if isinstance(obj, ABCSeries):
         new_values = algos.take_nd(obj._values, indexer)
-        # error: Incompatible return value type (got "Series", expected "FrameOrSeries")
+        # error: Incompatible return value type (got "Series", expected "NDFrameT")
         return obj._constructor(  # type: ignore[return-value]
             new_values, index=new_index, name=obj.name
         )
@@ -1809,7 +1809,7 @@ def _take_new_index(
             raise NotImplementedError("axis 1 is not supported")
         new_mgr = obj._mgr.reindex_indexer(new_axis=new_index, indexer=indexer, axis=1)
         # error: Incompatible return value type
-        # (got "DataFrame", expected "FrameOrSeries")
+        # (got "DataFrame", expected "NDFrameT")
         return obj._constructor(new_mgr)  # type: ignore[return-value]
     else:
         raise ValueError("'obj' should be either a Series or a DataFrame")
@@ -2039,13 +2039,13 @@ def _adjust_dates_anchored(
 
 
 def asfreq(
-    obj: FrameOrSeries,
+    obj: NDFrameT,
     freq,
     method=None,
     how=None,
     normalize: bool = False,
     fill_value=None,
-) -> FrameOrSeries:
+) -> NDFrameT:
     """
     Utility frequency conversion method for Series/DataFrame.
 

@@ -22,8 +22,8 @@ import pandas._libs.lib as lib
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
-    FrameOrSeries,
     IndexLabel,
+    NDFrameT,
     Shape,
     npt,
 )
@@ -181,13 +181,13 @@ class SpecificationError(Exception):
     pass
 
 
-class SelectionMixin(Generic[FrameOrSeries]):
+class SelectionMixin(Generic[NDFrameT]):
     """
     mixin implementing the selection & aggregation interface on a group-like
     object sub-classes need to define: obj, exclusions
     """
 
-    obj: FrameOrSeries
+    obj: NDFrameT
     _selection: IndexLabel | None = None
     exclusions: frozenset[Hashable]
     _internal_names = ["_cache", "__setstate__"]
@@ -221,7 +221,11 @@ class SelectionMixin(Generic[FrameOrSeries]):
             return self.obj[self._selection_list]
 
         if len(self.exclusions) > 0:
-            return self.obj.drop(self.exclusions, axis=1)
+            # equivalent to `self.obj.drop(self.exclusions, axis=1)
+            #  but this avoids consolidating and making a copy
+            return self.obj._drop_axis(
+                self.exclusions, axis=1, consolidate=False, only_slice=True
+            )
         else:
             return self.obj
 
