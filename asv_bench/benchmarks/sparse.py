@@ -9,8 +9,6 @@ from pandas import (
 )
 from pandas.arrays import SparseArray
 
-from .pandas_vb_common import BaseIO
-
 
 def make_array(size, dense_proportion, fill_value, dtype):
     dense_size = int(size * dense_proportion)
@@ -105,22 +103,6 @@ class ToCooFrame:
 
     def time_to_coo(self):
         self.df.sparse.to_coo()
-
-
-class ToCSV(BaseIO):
-    fname = "__test__.csv"
-
-    def setup(self):
-        N = 500_000
-        sp_arr = SparseArray(make_array(N, 1e-5, np.nan, np.float64))
-        self.ser = Series(sp_arr)
-        self.df = pd.DataFrame({"A": self.ser, "B": self.ser.copy()})
-
-    def time_to_csv_series(self):
-        self.ser.to_csv(self.fname)
-
-    def time_to_csv_frame(self):
-        self.df.to_csv(self.fname)
 
 
 class Arithmetic:
