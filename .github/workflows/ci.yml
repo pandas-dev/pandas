@@ -32,6 +32,9 @@ jobs:
       with:
         fetch-depth: 0
 
+    - name: numpy>=1.21.0 for type checkers
+      run: sed -i "s/numpy>=1.18.5/numpy>=1.21.0/g" ${{ env.ENV_FILE }}
+
     - name: Cache conda
       uses: actions/cache@v2
       with:
