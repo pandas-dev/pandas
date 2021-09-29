@@ -64,6 +64,7 @@ xlrd
 xlsxwriter
 xlwt
 odfpy
+pyxlsb
 fastparquet>=0.4.0
 pyarrow>=0.17.0
 python-snappy
