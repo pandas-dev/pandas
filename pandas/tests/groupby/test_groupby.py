@@ -2546,13 +2546,9 @@ def test_multiindex_groupby_mixed_cols_axis1(func, expected, dtype, result_dtype
     "func, expected_data, result_dtype_dict",
     [
         ("sum", [[2, 4], [10, 12], [18, 20]], {10: "int64", 20: "int64"}),
-        # 1.2.5: 10: float64
         # std should ideally return Int64 #43330
         ("std", [[2 ** 0.5] * 2] * 3, "float64"),
-        # 1.2.5: ValueError: Length mismatch: Expected axis
-        # has 0 elements, new values have 3 elements
         ("var", [[2] * 2] * 3, {10: "float64", 20: "float64"}),
-        # 1.2.5: DataError: No numeric types to aggregate
     ],
 )
 def test_groupby_mixed_cols_axis1(func, expected_data, result_dtype_dict):
