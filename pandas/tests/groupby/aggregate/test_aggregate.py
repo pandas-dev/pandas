@@ -339,8 +339,14 @@ def test_multiple_functions_tuples_and_non_tuples(df):
     expected = df.groupby("A")["C"].agg(ex_funcs)
     tm.assert_frame_equal(result, expected)
 
-    result = df.groupby("A").agg(funcs)
-    expected = df.groupby("A").agg(ex_funcs)
+    with tm.assert_produces_warning(
+        FutureWarning, match=r"\['B'\] did not aggregate successfully"
+    ):
+        result = df.groupby("A").agg(funcs)
+    with tm.assert_produces_warning(
+        FutureWarning, match=r"\['B'\] did not aggregate successfully"
+    ):
+        expected = df.groupby("A").agg(ex_funcs)
     tm.assert_frame_equal(result, expected)
 
 
@@ -858,6 +864,16 @@ def test_groupby_aggregate_empty_key_empty_return():
     df = DataFrame({"a": [1, 1, 2], "b": [1, 2, 3], "c": [1, 2, 4]})
     result = df.groupby("a").agg({"b": []})
     expected = DataFrame(columns=MultiIndex(levels=[["b"], []], codes=[[], []]))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_aggregate_empty_with_multiindex_frame():
+    # GH 39178
+    df = DataFrame(columns=["a", "b", "c"])
+    result = df.groupby(["a", "b"]).agg(d=("c", list))
+    expected = DataFrame(
+        columns=["d"], index=MultiIndex([[], []], [[], []], names=["a", "b"])
+    )
     tm.assert_frame_equal(result, expected)
 
 
