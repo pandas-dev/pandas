@@ -189,7 +189,7 @@ def is_scalar(val: object) -> bool:
     >>> pd.api.types.is_scalar((0, 2))
     False
 
-    pandas supports PEP 3141 numbers:     # doctest: +SKIP
+    pandas supports PEP 3141 numbers:
 
     >>> from fractions import Fraction
     >>> pd.api.types.is_scalar(Fraction(3, 5))

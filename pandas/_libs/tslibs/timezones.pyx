@@ -387,22 +387,24 @@ def tz_standardize(tz: tzinfo) -> tzinfo:
 
     Examples
     --------
-    >>> tz    # doctest: +SKIP
+    >>> from datetime import datetime
+    >>> from pytz import timezone as tz
+    >>> tz = tz('US/Pacific').normalize(datetime(2014,1,1, tzinfo=pytz.utc)).tzinfo
+    >>> tz
     <DstTzInfo 'US/Pacific' PST-1 day, 16:00:00 STD>
-
-    >>> tz_standardize(tz)  # doctest: +SKIP
+    >>> tz_standardize(tz)
     <DstTzInfo 'US/Pacific' LMT-1 day, 16:07:00 STD>
 
-    >>> tz    # doctest: +SKIP
+    >>> from pytz import timezone
+    >>> tz = timezone('US/Pacific')
+    >>> tz
+    <DstTzInfo 'US/Pacific' LMT-1 day, 16:07:00 STD>
+    >>> tz_standardize(tz)
     <DstTzInfo 'US/Pacific' LMT-1 day, 16:07:00 STD>
 
-    >>> tz_standardize(tz)  # doctest: +SKIP
-    <DstTzInfo 'US/Pacific' LMT-1 day, 16:07:00 STD>
-
-    >>> tz    # doctest: +SKIP
+    >>> tz        # doctest: +SKIP
     dateutil.tz.tz.tzutc
-
-    >>> tz_standardize(tz)  # doctest: +SKIP
+    >>> tz_standardize(tz)    # doctest: +SKIP
     dateutil.tz.tz.tzutc
     """
     if treat_tz_as_pytz(tz):
