@@ -2,7 +2,6 @@ import numpy as np
 
 from pandas._typing import npt
 
-
 def unstack(
     values: np.ndarray,  # reshape_t[:, :]
     mask: np.ndarray,  # const uint8_t[:]
