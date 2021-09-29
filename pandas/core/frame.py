@@ -8295,7 +8295,6 @@ NaN 12.3   33.0
 
         columns: list[str | tuple]
         if is_scalar(column) or isinstance(column, tuple):
-            assert isinstance(column, (str, tuple))
             columns = [column]
         elif isinstance(column, list) and all(
             map(lambda c: is_scalar(c) or isinstance(c, tuple), column)
