@@ -1,5 +1,3 @@
-import warnings
-
 cimport cython
 
 import numpy as np
