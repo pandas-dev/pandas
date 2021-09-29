@@ -34,7 +34,11 @@ from pandas._libs import (
     algos,
     hashtable as _hash,
 )
-from pandas._libs.missing import checknull
+
+from pandas._libs.missing cimport (
+    checknull,
+    is_matching_na,
+)
 
 
 cdef inline bint is_definitely_invalid_key(object val):
@@ -146,8 +150,16 @@ cdef class IndexEngine:
         cdef:
             ndarray[uint8_t, ndim=1, cast=True] indexer
 
-        indexer = self.values == val
+        indexer = self._get_bool_indexer(val)
         return self._unpack_bool_indexer(indexer, val)
+
+    cdef ndarray _get_bool_indexer(self, object val):
+        """
+        Return a ndarray[bool] of locations where val matches self.values.
+
+        If val is not NA, this is equivalent to `self.values == val`
+        """
+        raise NotImplementedError("Implemented by subclasses")
 
     cdef _unpack_bool_indexer(self,
                               ndarray[uint8_t, ndim=1, cast=True] indexer,
@@ -223,12 +235,6 @@ cdef class IndexEngine:
 
     cdef _call_monotonic(self, values):
         return algos.is_monotonic(values, timelike=False)
-
-    def get_backfill_indexer(self, other: np.ndarray, limit=None) -> np.ndarray:
-        return algos.backfill(self.values, other, limit=limit)
-
-    def get_pad_indexer(self, other: np.ndarray, limit=None) -> np.ndarray:
-        return algos.pad(self.values, other, limit=limit)
 
     cdef _make_hash_table(self, Py_ssize_t n):
         raise NotImplementedError
@@ -425,6 +431,25 @@ cdef class ObjectEngine(IndexEngine):
         except TypeError as err:
             raise KeyError(val) from err
         return loc
+
+    cdef ndarray _get_bool_indexer(self, object val):
+        # We need to check for equality and for matching NAs
+        cdef:
+            ndarray values = self.values
+
+        if not checknull(val):
+            return values == val
+
+        cdef:
+            ndarray[uint8_t] result = np.empty(len(values), dtype=np.uint8)
+            Py_ssize_t i
+            object item
+
+        for i in range(len(values)):
+            item = values[i]
+            result[i] = is_matching_na(item, val)
+
+        return result.view(bool)
 
 
 cdef class DatetimeEngine(Int64Engine):

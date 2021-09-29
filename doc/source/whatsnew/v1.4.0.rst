@@ -93,7 +93,7 @@ Multithreaded CSV reading with a new CSV Engine based on pyarrow
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :func:`pandas.read_csv` now accepts ``engine="pyarrow"`` (requires at least ``pyarrow`` 0.17.0) as an argument, allowing for faster csv parsing on multicore machines
-with pyarrow installed. See the :doc:`I/O docs </user_guide/io>` for more info. (:issue:`23697`)
+with pyarrow installed. See the :doc:`I/O docs </user_guide/io>` for more info. (:issue:`23697`, :issue:`43706`)
 
 .. _whatsnew_140.enhancements.window_rank:
 
@@ -357,8 +357,10 @@ Performance improvements
 - Performance improvement in indexing with a :class:`MultiIndex` indexer on another :class:`MultiIndex` (:issue:43370`)
 - Performance improvement in :meth:`GroupBy.quantile` (:issue:`43469`)
 - :meth:`SparseArray.min` and :meth:`SparseArray.max` no longer require converting to a dense array (:issue:`43526`)
+- Indexing into a :class:`SparseArray` with a ``slice`` with ``step=1`` no longer requires converting to a dense array (:issue:`43777`)
 - Performance improvement in :meth:`SparseArray.take` with ``allow_fill=False`` (:issue:`43654`)
 - Performance improvement in :meth:`.Rolling.mean` and :meth:`.Expanding.mean` with ``engine="numba"`` (:issue:`43612`)
+-
 
 .. ---------------------------------------------------------------------------
 
@@ -418,6 +420,7 @@ Interval
 
 Indexing
 ^^^^^^^^
+- Bug in :meth:`Series.rename` when index in Series is MultiIndex and level in rename is provided. (:issue:`43659`)
 - Bug in :meth:`DataFrame.truncate` and :meth:`Series.truncate` when the object's Index has a length greater than one but only one unique value (:issue:`42365`)
 - Bug in :meth:`Series.loc` and :meth:`DataFrame.loc` with a :class:`MultiIndex` when indexing with a tuple in which one of the levels is also a tuple (:issue:`27591`)
 - Bug in :meth:`Series.loc` when with a :class:`MultiIndex` whose first level contains only ``np.nan`` values (:issue:`42055`)
@@ -430,7 +433,8 @@ Indexing
 - Bug in :meth:`DataFrame.drop` where the error message did not show missing labels with commas when raising ``KeyError`` (:issue:`42881`)
 - Bug in :meth:`DataFrame.query` where method calls in query strings led to errors when the ``numexpr`` package was installed. (:issue:`22435`)
 - Bug in :meth:`DataFrame.nlargest` and :meth:`Series.nlargest` where sorted result did not count indexes containing ``np.nan`` (:issue:`28984`)
-
+- Bug in indexing on a non-unique object-dtype :class:`Index` with an NA scalar (e.g. ``np.nan``) (:issue:`43711`)
+-
 
 Missing
 ^^^^^^^
@@ -498,7 +502,7 @@ Sparse
 ^^^^^^
 - Bug in :meth:`DataFrame.sparse.to_coo` raising ``AttributeError`` when column names are not unique (:issue:`29564`)
 - Bug in :meth:`SparseArray.max` and :meth:`SparseArray.min` raising ``ValueError`` for arrays with 0 non-null elements (:issue:`43527`)
--
+- Bug in :meth:`DataFrame.sparse.to_coo` silently converting non-zero fill values to zero (:issue:`24817`)
 -
 
 ExtensionArray

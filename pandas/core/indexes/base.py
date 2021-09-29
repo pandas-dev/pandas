@@ -315,8 +315,8 @@ class Index(IndexOpsMixin, PandasObject):
     @final
     def _left_indexer_unique(self: _IndexT, other: _IndexT) -> npt.NDArray[np.intp]:
         # Caller is responsible for ensuring other.dtype == self.dtype
-        sv = self._get_join_target()
-        ov = other._get_join_target()
+        sv = self._get_engine_target()
+        ov = other._get_engine_target()
         return libjoin.left_join_indexer_unique(sv, ov)
 
     @final
@@ -324,8 +324,8 @@ class Index(IndexOpsMixin, PandasObject):
         self: _IndexT, other: _IndexT
     ) -> tuple[ArrayLike, npt.NDArray[np.intp], npt.NDArray[np.intp]]:
         # Caller is responsible for ensuring other.dtype == self.dtype
-        sv = self._get_join_target()
-        ov = other._get_join_target()
+        sv = self._get_engine_target()
+        ov = other._get_engine_target()
         joined_ndarray, lidx, ridx = libjoin.left_join_indexer(sv, ov)
         joined = self._from_join_target(joined_ndarray)
         return joined, lidx, ridx
@@ -335,8 +335,8 @@ class Index(IndexOpsMixin, PandasObject):
         self: _IndexT, other: _IndexT
     ) -> tuple[ArrayLike, npt.NDArray[np.intp], npt.NDArray[np.intp]]:
         # Caller is responsible for ensuring other.dtype == self.dtype
-        sv = self._get_join_target()
-        ov = other._get_join_target()
+        sv = self._get_engine_target()
+        ov = other._get_engine_target()
         joined_ndarray, lidx, ridx = libjoin.inner_join_indexer(sv, ov)
         joined = self._from_join_target(joined_ndarray)
         return joined, lidx, ridx
@@ -346,8 +346,8 @@ class Index(IndexOpsMixin, PandasObject):
         self: _IndexT, other: _IndexT
     ) -> tuple[ArrayLike, npt.NDArray[np.intp], npt.NDArray[np.intp]]:
         # Caller is responsible for ensuring other.dtype == self.dtype
-        sv = self._get_join_target()
-        ov = other._get_join_target()
+        sv = self._get_engine_target()
+        ov = other._get_engine_target()
         joined_ndarray, lidx, ridx = libjoin.outer_join_indexer(sv, ov)
         joined = self._from_join_target(joined_ndarray)
         return joined, lidx, ridx
@@ -894,6 +894,8 @@ class Index(IndexOpsMixin, PandasObject):
             # Item "ndarray[Any, Any]" of "Union[ExtensionArray, ndarray[Any, Any]]"
             # has no attribute "_ndarray"
             values = self._data._ndarray  # type: ignore[union-attr]
+        elif is_interval_dtype(self.dtype):
+            values = np.asarray(self._data)
         else:
             values = self._get_engine_target()
         return values.ravel(order=order)
@@ -3703,13 +3705,14 @@ class Index(IndexOpsMixin, PandasObject):
             )
 
         if self.is_monotonic_increasing and target.is_monotonic_increasing:
-            engine_method = (
-                self._engine.get_pad_indexer
-                if method == "pad"
-                else self._engine.get_backfill_indexer
-            )
             target_values = target._get_engine_target()
-            indexer = engine_method(target_values, limit)
+            own_values = self._get_engine_target()
+
+            if method == "pad":
+                indexer = libalgos.pad(own_values, target_values, limit=limit)
+            else:
+                # i.e. "backfill"
+                indexer = libalgos.backfill(own_values, target_values, limit=limit)
         else:
             indexer = self._get_fill_indexer_searchsorted(target, method, limit)
         if tolerance is not None and len(self):
@@ -4616,12 +4619,6 @@ class Index(IndexOpsMixin, PandasObject):
         # error: Incompatible return value type (got "Union[ExtensionArray,
         # ndarray]", expected "ndarray")
         return self._values  # type: ignore[return-value]
-
-    def _get_join_target(self) -> np.ndarray:
-        """
-        Get the ndarray that we will pass to libjoin functions.
-        """
-        return self._get_engine_target()
 
     def _from_join_target(self, result: np.ndarray) -> ArrayLike:
         """
