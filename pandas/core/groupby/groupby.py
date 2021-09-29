@@ -1212,7 +1212,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 numeric_only = True
                 # GH#42395 GH#43108 GH#43154
                 # Regression from 1.2.5 to 1.3 caused object columns to be dropped
-                obj = self._obj_with_exclusions
+                if self.axis:
+                    obj = self._obj_with_exclusions.T
+                else:
+                    obj = self._obj_with_exclusions
                 check = obj._get_numeric_data()
                 if len(obj.columns) and not len(check.columns) and not obj.empty:
                     numeric_only = False
