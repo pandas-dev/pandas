@@ -1967,7 +1967,7 @@ class Styler(StylerRenderer):
         axis: int = 0,
         overwrite: bool = True,
         css: dict[str, str] | None = None,
-        cell_ids: bool | None = None
+        cell_ids: bool | None = None,
     ) -> Styler:
         """
         Set the table styles included within the ``<style>`` HTML element.
@@ -2091,7 +2091,7 @@ class Styler(StylerRenderer):
                 "level": "level",
                 "data": "data",
                 "blank": "blank",
-                **css,   # overwrite default with optional changes
+                **css,  # overwrite default with optional changes
             }
         if cell_ids is not None:
             self.cell_ids = cell_ids
