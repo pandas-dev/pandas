@@ -78,7 +78,7 @@ class RegisteredOption(NamedTuple):
     key: str
     defval: object
     doc: str
-    validator: Callable[[object], Any] | None
+    validator: Callable[[Any], Any] | None
     cb: Callable[[str], Any] | None
 
 
@@ -438,7 +438,7 @@ def register_option(
     key: str,
     defval: object,
     doc: str = "",
-    validator: Callable[[object], Any] | None = None,
+    validator: Callable[[Any], Any] | None = None,
     cb: Callable[[str], Any] | None = None,
 ) -> None:
     """
