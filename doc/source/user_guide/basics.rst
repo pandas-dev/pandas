@@ -1064,6 +1064,7 @@ aggregations. This is similar to how ``.groupby.agg`` works.
    mdf.dtypes
 
 .. ipython:: python
+   :okwarning:
 
    mdf.agg(["min", "sum"])
 
