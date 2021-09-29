@@ -443,9 +443,12 @@ class RangeIndex(NumericIndex):
                 and isinstance(indices, np.ndarray)
                 and indices.dtype == int
             ):
-                slc = maybe_indices_to_slice(indices, len(indices))
-                if isinstance(slc, slice):
+                try:
+                    slc = maybe_indices_to_slice(indices, len(indices))
                     return self[slc]
+                except ValueError:
+                    # Buffer dtype mismatch, expected 'intp_t' but got something else
+                    pass
             return self._int64index.take(
                 indices,
                 axis=axis,
