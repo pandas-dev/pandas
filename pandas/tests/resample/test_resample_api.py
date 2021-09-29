@@ -350,10 +350,12 @@ def test_agg():
     expected = pd.concat([a_mean, a_std, b_mean, b_std], axis=1)
     expected.columns = pd.MultiIndex.from_product([["A", "B"], ["mean", "std"]])
     for t in cases:
-        with tm.assert_produces_warning(None):
-            # .var on dt64 column raises and is dropped, but the path in core.apply
-            #  that it goes through will still suppress a TypeError even
-            #  once the deprecations in the groupby code are enforced
+        warn = FutureWarning if t in cases[1:3] else None
+        with tm.assert_produces_warning(
+            warn,
+            match=r"\['date'\] did not aggregate successfully",
+        ):
+            # .var on dt64 column raises and is dropped
             result = t.aggregate([np.mean, np.std])
         tm.assert_frame_equal(result, expected)
 

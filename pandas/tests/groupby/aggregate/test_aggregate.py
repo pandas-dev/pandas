@@ -339,8 +339,14 @@ def test_multiple_functions_tuples_and_non_tuples(df):
     expected = df.groupby("A")["C"].agg(ex_funcs)
     tm.assert_frame_equal(result, expected)
 
-    result = df.groupby("A").agg(funcs)
-    expected = df.groupby("A").agg(ex_funcs)
+    with tm.assert_produces_warning(
+        FutureWarning, match=r"\['B'\] did not aggregate successfully"
+    ):
+        result = df.groupby("A").agg(funcs)
+    with tm.assert_produces_warning(
+        FutureWarning, match=r"\['B'\] did not aggregate successfully"
+    ):
+        expected = df.groupby("A").agg(ex_funcs)
     tm.assert_frame_equal(result, expected)
 
 

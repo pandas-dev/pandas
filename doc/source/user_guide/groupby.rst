@@ -578,7 +578,7 @@ column, which produces an aggregated result with a hierarchical index:
 
 .. ipython:: python
 
-   grouped.agg([np.sum, np.mean, np.std])
+   grouped[["C", "D"]].agg([np.sum, np.mean, np.std])
 
 
 The resulting aggregations are named for the functions themselves. If you
@@ -597,7 +597,7 @@ For a grouped ``DataFrame``, you can rename in a similar manner:
 .. ipython:: python
 
    (
-       grouped.agg([np.sum, np.mean, np.std]).rename(
+       grouped[["C", "D"]].agg([np.sum, np.mean, np.std]).rename(
            columns={"sum": "foo", "mean": "bar", "std": "baz"}
        )
    )

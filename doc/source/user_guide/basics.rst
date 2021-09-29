@@ -1045,6 +1045,9 @@ not noted for a particular column will be ``NaN``:
 Mixed dtypes
 ++++++++++++
 
+.. deprecated:: 1.4.0
+   Attempting to determine which columns cannot be aggregated and silently dropping them from the results is deprecated and will be removed in a future version. If any porition of the columns or operations provided fail, the call to ``.agg`` will raise.
+
 When presented with mixed dtypes that cannot aggregate, ``.agg`` will only take the valid
 aggregations. This is similar to how ``.groupby.agg`` works.
 
@@ -1061,6 +1064,7 @@ aggregations. This is similar to how ``.groupby.agg`` works.
    mdf.dtypes
 
 .. ipython:: python
+   :okwarning:
 
    mdf.agg(["min", "sum"])
 

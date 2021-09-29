@@ -1087,12 +1087,16 @@ def test_agg_multiple_mixed_no_warning():
         index=["min", "sum"],
     )
     # sorted index
-    with tm.assert_produces_warning(None):
+    with tm.assert_produces_warning(
+        FutureWarning, match=r"\['D'\] did not aggregate successfully"
+    ):
         result = mdf.agg(["min", "sum"])
 
     tm.assert_frame_equal(result, expected)
 
-    with tm.assert_produces_warning(None):
+    with tm.assert_produces_warning(
+        FutureWarning, match=r"\['D'\] did not aggregate successfully"
+    ):
         result = mdf[["D", "C", "B", "A"]].agg(["sum", "min"])
 
     # GH40420: the result of .agg should have an index that is sorted
@@ -1201,7 +1205,10 @@ def test_nuiscance_columns():
     expected = Series([6, 6.0, "foobarbaz"], index=["A", "B", "C"])
     tm.assert_series_equal(result, expected)
 
-    result = df.agg(["sum"])
+    with tm.assert_produces_warning(
+        FutureWarning, match=r"\['D'\] did not aggregate successfully"
+    ):
+        result = df.agg(["sum"])
     expected = DataFrame(
         [[6, 6.0, "foobarbaz"]], index=["sum"], columns=["A", "B", "C"]
     )
@@ -1433,7 +1440,10 @@ def test_aggregation_func_column_order():
         return s.sum() / 2
 
     aggs = ["sum", foo, "count", "min"]
-    result = df.agg(aggs)
+    with tm.assert_produces_warning(
+        FutureWarning, match=r"\['item'\] did not aggregate successfully"
+    ):
+        result = df.agg(aggs)
     expected = DataFrame(
         {
             "item": ["123456", np.nan, 6, "1"],
@@ -1452,3 +1462,20 @@ def test_apply_getitem_axis_1():
     result = df[["a", "a"]].apply(lambda x: x[0] + x[1], axis=1)
     expected = Series([0, 2, 4])
     tm.assert_series_equal(result, expected)
+
+
+def test_nuisance_depr_passes_through_warnings():
+    # GH 43740
+    # DataFrame.agg with list-likes may emit warnings for both individual
+    # args and for entire columns, but we only want to emit once. We
+    # catch and suppress the warnings for individual args, but need to make
+    # sure if some other warnings were raised, they get passed through to
+    # the user.
+
+    def foo(x):
+        warnings.warn("Hello, World!")
+        return x.sum()
+
+    df = DataFrame({"a": [1, 2, 3]})
+    with tm.assert_produces_warning(UserWarning, match="Hello, World!"):
+        df.agg([foo])
