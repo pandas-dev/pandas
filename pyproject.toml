@@ -166,6 +166,7 @@ reportFunctionMemberAccess = false
 reportImportCycles = false
 reportIncompatibleMethodOverride = false
 reportIncompatibleVariableOverride = false
+reportMissingImports = false
 reportMissingModuleSource = false
 reportMissingTypeArgument = false
 reportMissingTypeStubs = false
