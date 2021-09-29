@@ -1963,7 +1963,7 @@ class Styler(StylerRenderer):
 
     def set_table_styles(
         self,
-        table_styles: dict[Any, CSSStyles] | CSSStyles,
+        table_styles: dict[Any, CSSStyles] | CSSStyles | None = None,
         axis: int = 0,
         overwrite: bool = True,
         css: dict[str, str] | None = None,
@@ -2096,7 +2096,9 @@ class Styler(StylerRenderer):
         if cell_ids is not None:
             self.cell_ids = cell_ids
 
-        if isinstance(table_styles, dict):
+        if table_styles is None:
+            return self
+        elif isinstance(table_styles, dict):
             axis = self.data._get_axis_number(axis)
             obj = self.data.index if axis == 1 else self.data.columns
             idf = f".{self.css['row']}" if axis == 1 else f".{self.css['col']}"
