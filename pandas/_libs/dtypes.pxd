@@ -9,7 +9,7 @@ from numpy cimport (
     uint64_t,
 )
 
-ctypedef fused rank_t:
+ctypedef fused numeric_object_t:
     float64_t
     float32_t
     int64_t
