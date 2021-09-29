@@ -727,14 +727,15 @@ cpdef ndarray[object] ensure_string_array(
             continue
 
         if not checknull(val):
-            result[i] = str(val)
+            # f"{val}" is faster than str(val)
+            result[i] = f"{val}"
         else:
             if convert_na_value:
                 val = na_value
             if skipna:
                 result[i] = val
             else:
-                result[i] = str(val)
+                result[i] = f"{val}"
 
     return result
 
