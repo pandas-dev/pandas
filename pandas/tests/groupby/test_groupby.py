@@ -2516,17 +2516,10 @@ def test_rolling_wrong_param_min_period():
     [
         ("sum", [5, 7, 9], "int64", {}),
         ("std", [4.5 ** 0.5] * 3, int, {"i": float, "j": float, "k": float}),
-        # 1.2.5: ValueError: Length mismatch: Expected axis
-        # has 0 elements, new values have 3 elements
         ("var", [4.5] * 3, int, {"i": float, "j": float, "k": float}),
-        # 1.2.5: DataError: No numeric types to aggregate
         ("sum", [5, 7, 9], "Int64", {"j": "int64"}),
-        # 1.2.5: j:float64
         ("std", [4.5 ** 0.5] * 3, "Int64", {"i": float, "j": float, "k": float}),
-        # 1.2.5: ValueError: Length mismatch: Expected axis
-        # has 0 elements, new values have 3 elements
         ("var", [4.5] * 3, "Int64", {"i": "float64", "j": "float64", "k": "float64"}),
-        # 1.2.5: DataError: No numeric types to aggregate
     ],
 )
 def test_multiindex_groupby_mixed_cols_axis1(func, expected, dtype, result_dtype_dict):
@@ -2546,7 +2539,7 @@ def test_multiindex_groupby_mixed_cols_axis1(func, expected, dtype, result_dtype
     "func, expected_data, result_dtype_dict",
     [
         ("sum", [[2, 4], [10, 12], [18, 20]], {10: "int64", 20: "int64"}),
-        # std should ideally return Int64 #43330
+        # std should ideally return Int64 / Float64 #43330
         ("std", [[2 ** 0.5] * 2] * 3, "float64"),
         ("var", [[2] * 2] * 3, {10: "float64", 20: "float64"}),
     ],
