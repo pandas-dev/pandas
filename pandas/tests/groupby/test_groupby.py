@@ -873,13 +873,7 @@ def test_omit_nuisance(df):
 
 @pytest.mark.parametrize(
     "agg_function",
-    [
-        "mean",
-        "sum",
-        "std",
-        "var",
-        "sem",
-    ],
+    ["sum", "mean", "prod", "std", "var", "median", "skew"],
 )
 def test_omit_nuisance_agg(df, agg_function):
     # GH 38774, GH 38815
