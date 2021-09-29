@@ -30,7 +30,7 @@ import pandas._libs.reduction as libreduction
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
-    FrameOrSeries,
+    NDFrameT,
     Shape,
     npt,
 )
@@ -684,8 +684,8 @@ class BaseGrouper:
         return len(self.groupings)
 
     def get_iterator(
-        self, data: FrameOrSeries, axis: int = 0
-    ) -> Iterator[tuple[Hashable, FrameOrSeries]]:
+        self, data: NDFrameT, axis: int = 0
+    ) -> Iterator[tuple[Hashable, NDFrameT]]:
         """
         Groupby iterator
 
@@ -1166,10 +1166,10 @@ def _is_indexed_like(obj, axes, axis: int) -> bool:
 # Splitting / application
 
 
-class DataSplitter(Generic[FrameOrSeries]):
+class DataSplitter(Generic[NDFrameT]):
     def __init__(
         self,
-        data: FrameOrSeries,
+        data: NDFrameT,
         labels: npt.NDArray[np.intp],
         ngroups: int,
         axis: int = 0,
@@ -1205,7 +1205,7 @@ class DataSplitter(Generic[FrameOrSeries]):
             yield self._chop(sdata, slice(start, end))
 
     @cache_readonly
-    def sorted_data(self) -> FrameOrSeries:
+    def sorted_data(self) -> NDFrameT:
         return self.data.take(self._sort_idx, axis=self.axis)
 
     def _chop(self, sdata, slice_obj: slice) -> NDFrame:
