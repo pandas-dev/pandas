@@ -406,7 +406,7 @@ pandas uses `mypy <http://mypy-lang.org>`_ and `pyright <https://github.com/micr
    # or if pyright is installed (requires node.js)
    pyright
 
-Please make sure to have `numpy>=1.21.0` installed when validating types, since this is the first version that provides `numpy.typing`.
+Please make sure to have ``numpy>=1.21.0`` installed when validating types, since this is the first version that provides ``numpy.typing``.
 
 .. _contributing.ci:
 
