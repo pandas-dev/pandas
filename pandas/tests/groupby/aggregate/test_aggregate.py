@@ -1303,17 +1303,21 @@ def test_group_mean_datetime64_nat(input_data, expected_output):
     tm.assert_series_equal(result, expected)
 
 
-def test_groupby_mean_complex():
+@pytest.mark.parametrize(
+    "func, output", [("mean", [8 + 18j, 10 + 22j]), ("sum", [40 + 90j, 50 + 110j])]
+)
+def test_groupby_complex(func, output):
     # GH#43701
     data = Series(np.arange(20).reshape(10, 2).dot([1, 2j]))
-    result = data.groupby(data.index % 2).mean()
-    expected = Series([8 + 18j, 10 + 22j])
+    result = data.groupby(data.index % 2).agg(func)
+    expected = Series(output)
     tm.assert_series_equal(result, expected)
 
 
-def test_groupby_sum_complex():
+@pytest.mark.parametrize("func", ["min", "max", "var"])
+def test_groupby_complex_raises(func):
     # GH#43701
     data = Series(np.arange(20).reshape(10, 2).dot([1, 2j]))
-    result = data.groupby(data.index % 2).sum()
-    expected = Series([40 + 90j, 50 + 110j])
-    tm.assert_series_equal(result, expected)
+    msg = "No matching signature found"
+    with pytest.raises(TypeError, match=msg):
+        data.groupby(data.index % 2).agg(func)
