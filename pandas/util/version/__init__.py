@@ -8,12 +8,12 @@
 # for complete details.
 from __future__ import annotations
 
+import collections
 import itertools
 import re
 from typing import (
     Callable,
     Iterator,
-    NamedTuple,
     SupportsInt,
     Tuple,
     Union,
@@ -109,14 +109,9 @@ VersionComparisonMethod = Callable[
     [Union[CmpKey, LegacyCmpKey], Union[CmpKey, LegacyCmpKey]], bool
 ]
 
-
-class _Version(NamedTuple):
-    epoch: int
-    release: tuple[int, ...]
-    dev: tuple[str, int] | None
-    pre: tuple[str, int] | None
-    post: tuple[str, int] | None
-    local: tuple[str | int, ...] | None
+_Version = collections.namedtuple(
+    "_Version", ["epoch", "release", "dev", "pre", "post", "local"]
+)
 
 
 def parse(version: str) -> LegacyVersion | Version:
@@ -509,7 +504,7 @@ def _parse_letter_version(
 _local_version_separators = re.compile(r"[\._-]")
 
 
-def _parse_local_version(local: str) -> tuple[str | int, ...] | None:
+def _parse_local_version(local: str) -> LocalType | None:
     """
     Takes a string like abc.1.twelve and turns it into ("abc", 1, "twelve").
     """
@@ -527,7 +522,7 @@ def _cmpkey(
     pre: tuple[str, int] | None,
     post: tuple[str, int] | None,
     dev: tuple[str, int] | None,
-    local: tuple[str | int, ...] | None,
+    local: tuple[SubLocalType] | None,
 ) -> CmpKey:
 
     # When we compare a release version, we want to compare it with all of the
