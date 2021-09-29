@@ -1966,6 +1966,8 @@ class Styler(StylerRenderer):
         table_styles: dict[Any, CSSStyles] | CSSStyles,
         axis: int = 0,
         overwrite: bool = True,
+        css: dict[str, str] | None = None,
+        cell_ids: bool | None = None
     ) -> Styler:
         """
         Set the table styles included within the ``<style>`` HTML element.
@@ -2005,6 +2007,16 @@ class Styler(StylerRenderer):
 
             .. versionadded:: 1.2.0
 
+        css : dict, optional
+            A dict of strings used to replace the default CSS classes described below.
+
+            .. versionadded:: 1.4.0
+
+        cell_ids : bool, optional
+            Whether to include ids on every element of the format *T_{uuid}_rowM_colN*.
+
+            .. versionadded:: 1.4.0
+
         Returns
         -------
         self : Styler
@@ -2015,6 +2027,22 @@ class Styler(StylerRenderer):
             attribute of ``<td>`` HTML elements.
         Styler.set_table_attributes: Set the table attributes added to the ``<table>``
             HTML element.
+
+        Notes
+        -----
+        The default CSS classes dict, whose values can be replaced is as follows:
+
+        .. code-block:: python
+
+            css = {"row_heading": "row_heading",
+                   "col_heading": "col_heading",
+                   "index_name": "index_name",
+                   "col": "col",
+                   "col_trim": "col_trim",
+                   "row_trim": "row_trim",
+                   "level": "level",
+                   "data": "data",
+                   "blank": "blank}
 
         Examples
         --------
@@ -2051,6 +2079,23 @@ class Styler(StylerRenderer):
         See `Table Visualization <../../user_guide/style.ipynb>`_ user guide for
         more details.
         """
+        if css is not None:
+            self.css = {
+                "row_heading": "row_heading",
+                "col_heading": "col_heading",
+                "index_name": "index_name",
+                "col": "col",
+                "row": "row",
+                "col_trim": "col_trim",
+                "row_trim": "row_trim",
+                "level": "level",
+                "data": "data",
+                "blank": "blank",
+                **css,   # overwrite default with optional changes
+            }
+        if cell_ids is not None:
+            self.cell_ids = cell_ids
+
         if isinstance(table_styles, dict):
             axis = self.data._get_axis_number(axis)
             obj = self.data.index if axis == 1 else self.data.columns
