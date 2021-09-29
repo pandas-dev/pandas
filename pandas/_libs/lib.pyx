@@ -727,8 +727,12 @@ cpdef ndarray[object] ensure_string_array(
             continue
 
         if not checknull(val):
-            # f"{val}" is faster than str(val)
-            result[i] = f"{val}"
+            if not isinstance(val, np.floating):
+                # f"{val}" is faster than str(val)
+                result[i] = f"{val}"
+            else:
+                # f"{val}" is not always equivalent to str(val) for floats
+                result[i] = str(val)
         else:
             if convert_na_value:
                 val = na_value
