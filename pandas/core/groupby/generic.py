@@ -85,18 +85,17 @@ from pandas.core.util.numba_ import maybe_use_numba
 
 from pandas.plotting import boxplot_frame_groupby
 
-
-class NamedAgg(NamedTuple):
-    column: Hashable
-    aggfunc: str | Callable
-
-
 # TODO(typing) the return value on this callable should be any *scalar*.
 AggScalar = Union[str, Callable[..., Any]]
 # TODO: validate types on ScalarResult and move to _typing
 # Blocked from using by https://github.com/python/mypy/issues/1484
 # See note at _mangle_lambda_list
 ScalarResult = TypeVar("ScalarResult")
+
+
+class NamedAgg(NamedTuple):
+    column: Hashable
+    aggfunc: AggScalar
 
 
 def generate_property(name: str, klass: type[DataFrame | Series]):

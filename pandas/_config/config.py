@@ -78,7 +78,7 @@ class RegisteredOption(NamedTuple):
     key: str
     defval: object
     doc: str
-    validator: Callable[[Any], Any] | None
+    validator: Callable[[object], Any] | None
     cb: Callable[[str], Any] | None
 
 
@@ -438,7 +438,7 @@ def register_option(
     key: str,
     defval: object,
     doc: str = "",
-    validator: Callable[[Any], Any] | None = None,
+    validator: Callable[[object], Any] | None = None,
     cb: Callable[[str], Any] | None = None,
 ) -> None:
     """
@@ -539,7 +539,7 @@ def deprecate_option(
         re-routed to `rkey` including set/get/reset.
         rkey must be a fully-qualified option name (e.g "x.y.z.rkey").
         used by the default message if no `msg` is specified.
-    removal_ver : optional
+    removal_ver : str, optional
         Specifies the version in which this option will
         be removed. used by the default message if no `msg` is specified.
 

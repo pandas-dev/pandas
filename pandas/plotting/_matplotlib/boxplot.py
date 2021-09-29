@@ -31,6 +31,7 @@ from pandas.plotting._matplotlib.tools import (
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
+    from matplotlib.lines import Line2D
 
 
 class BoxPlot(LinePlot):
@@ -42,7 +43,7 @@ class BoxPlot(LinePlot):
     class BP(NamedTuple):
         # namedtuple to hold results
         ax: Axes
-        lines: Any
+        lines: dict[str, Line2D]
 
     def __init__(self, data, return_type="axes", **kwargs):
         # Do not call LinePlot.__init__ which may fill nan
