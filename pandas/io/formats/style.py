@@ -145,6 +145,8 @@ class Styler(StylerRenderer):
     css : dict, optional
         A dict of strings used to replace the default CSS classes described below.
 
+        .. versionadded:: 1.4.0
+
     Attributes
     ----------
     env : Jinja2 jinja2.Environment
