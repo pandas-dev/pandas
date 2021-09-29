@@ -225,6 +225,56 @@ def test_agg_str_with_kwarg_axis_1_raises(df, reduction_func):
         gb.agg(reduction_func, axis=1)
 
 
+@pytest.mark.parametrize(
+    "func, expected, dtype, result_dtype_dict",
+    [
+        ("sum", [5, 7, 9], "int64", {}),
+        ("std", [4.5 ** 0.5] * 3, int, {"i": float, "j": float, "k": float}),
+        ("var", [4.5] * 3, int, {"i": float, "j": float, "k": float}),
+        ("sum", [5, 7, 9], "Int64", {"j": "int64"}),
+        ("std", [4.5 ** 0.5] * 3, "Int64", {"i": float, "j": float, "k": float}),
+        ("var", [4.5] * 3, "Int64", {"i": "float64", "j": "float64", "k": "float64"}),
+    ],
+)
+def test_multiindex_groupby_mixed_cols_axis1(func, expected, dtype, result_dtype_dict):
+    # GH#43209
+    df = DataFrame(
+        [[1, 2, 3, 4, 5, 6]] * 3,
+        columns=MultiIndex.from_product([["a", "b"], ["i", "j", "k"]]),
+    ).astype({("a", "j"): dtype, ("b", "j"): dtype})
+    result = df.groupby(level=1, axis=1).agg(func)
+    expected = DataFrame([expected] * 3, columns=["i", "j", "k"]).astype(
+        result_dtype_dict
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "func, expected_data, result_dtype_dict",
+    [
+        ("sum", [[2, 4], [10, 12], [18, 20]], {10: "int64", 20: "int64"}),
+        # std should ideally return Int64 / Float64 #43330
+        ("std", [[2 ** 0.5] * 2] * 3, "float64"),
+        ("var", [[2] * 2] * 3, {10: "float64", 20: "float64"}),
+    ],
+)
+def test_groupby_mixed_cols_axis1(func, expected_data, result_dtype_dict):
+    # GH#43209
+    df = DataFrame(
+        np.arange(12).reshape(3, 4),
+        index=Index([0, 1, 0], name="y"),
+        columns=Index([10, 20, 10, 20], name="x"),
+        dtype="int64",
+    ).astype({10: "Int64"})
+    result = df.groupby("x", axis=1).agg(func)
+    expected = DataFrame(
+        data=expected_data,
+        index=Index([0, 1, 0], name="y"),
+        columns=Index([10, 20], name="x"),
+    ).astype(result_dtype_dict)
+    tm.assert_frame_equal(result, expected)
+
+
 def test_aggregate_item_by_item(df):
     grouped = df.groupby("A")
 
