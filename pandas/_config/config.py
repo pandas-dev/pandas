@@ -50,7 +50,6 @@ Implementation
 
 from __future__ import annotations
 
-from collections import namedtuple
 from contextlib import (
     ContextDecorator,
     contextmanager,
@@ -60,14 +59,28 @@ from typing import (
     Any,
     Callable,
     Iterable,
+    NamedTuple,
     cast,
 )
 import warnings
 
 from pandas._typing import F
 
-DeprecatedOption = namedtuple("DeprecatedOption", "key msg rkey removal_ver")
-RegisteredOption = namedtuple("RegisteredOption", "key defval doc validator cb")
+
+class DeprecatedOption(NamedTuple):
+    key: str
+    msg: str | None
+    rkey: str | None
+    removal_ver: str | None
+
+
+class RegisteredOption(NamedTuple):
+    key: str
+    defval: object
+    doc: str
+    validator: Callable[[Any], Any] | None
+    cb: Callable[[str], Any] | None
+
 
 # holds deprecated option metadata
 _deprecated_options: dict[str, DeprecatedOption] = {}
@@ -497,7 +510,10 @@ def register_option(
 
 
 def deprecate_option(
-    key: str, msg: str | None = None, rkey: str | None = None, removal_ver=None
+    key: str,
+    msg: str | None = None,
+    rkey: str | None = None,
+    removal_ver: str | None = None,
 ) -> None:
     """
     Mark option `key` as deprecated, if code attempts to access this option,
@@ -523,7 +539,7 @@ def deprecate_option(
         re-routed to `rkey` including set/get/reset.
         rkey must be a fully-qualified option name (e.g "x.y.z.rkey").
         used by the default message if no `msg` is specified.
-    removal_ver : optional
+    removal_ver : str, optional
         Specifies the version in which this option will
         be removed. used by the default message if no `msg` is specified.
 
