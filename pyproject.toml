@@ -69,6 +69,7 @@ markers = [
 ]
 
 [tool.mypy]
+python_version = "3.8"
 # Import discovery
 namespace_packages = false
 explicit_package_bases = false
