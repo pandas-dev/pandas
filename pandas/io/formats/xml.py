@@ -195,14 +195,18 @@ class BaseXMLFormatter:
         This method will add indexes into attr_cols or elem_cols.
         """
 
+        if not self.index:
+            return
+
+        first_key = next(iter(self.frame_dicts))
         indexes: list[str] = [
-            x for x in self.frame_dicts[0].keys() if x not in self.orig_cols
+            x for x in self.frame_dicts[first_key].keys() if x not in self.orig_cols
         ]
 
-        if self.attr_cols and self.index:
+        if self.attr_cols:
             self.attr_cols = indexes + self.attr_cols
 
-        if self.elem_cols and self.index:
+        if self.elem_cols:
             self.elem_cols = indexes + self.elem_cols
 
     def get_prefix_uri(self) -> str:
@@ -260,8 +264,6 @@ class BaseXMLFormatter:
     def write_output(self) -> str | None:
         xml_doc = self.build_tree()
 
-        out_str: str | None
-
         if self.path_or_buffer is not None:
             with get_handle(
                 self.path_or_buffer,
@@ -307,7 +309,7 @@ class EtreeXMLFormatter(BaseXMLFormatter):
             self.elem_row = SubElement(self.root, f"{self.prefix_uri}{self.row_name}")
 
             if not self.attr_cols and not self.elem_cols:
-                self.elem_cols = list(self.frame_dicts[0].keys())
+                self.elem_cols = list(self.d.keys())
                 self.build_elems()
 
             else:
@@ -357,9 +359,9 @@ class EtreeXMLFormatter(BaseXMLFormatter):
             flat_col = col
             if isinstance(col, tuple):
                 flat_col = (
-                    "".join(str(c) for c in col).strip()
+                    "".join([str(c) for c in col]).strip()
                     if "" in col
-                    else "_".join(str(c) for c in col).strip()
+                    else "_".join([str(c) for c in col]).strip()
                 )
 
             attr_name = f"{self.prefix_uri}{flat_col}"
@@ -384,9 +386,9 @@ class EtreeXMLFormatter(BaseXMLFormatter):
             flat_col = col
             if isinstance(col, tuple):
                 flat_col = (
-                    "".join(str(c) for c in col).strip()
+                    "".join([str(c) for c in col]).strip()
                     if "" in col
-                    else "_".join(str(c) for c in col).strip()
+                    else "_".join([str(c) for c in col]).strip()
                 )
 
             elem_name = f"{self.prefix_uri}{flat_col}"
@@ -477,7 +479,7 @@ class LxmlXMLFormatter(BaseXMLFormatter):
             self.elem_row = SubElement(self.root, f"{self.prefix_uri}{self.row_name}")
 
             if not self.attr_cols and not self.elem_cols:
-                self.elem_cols = list(self.frame_dicts[0].keys())
+                self.elem_cols = list(self.d.keys())
                 self.build_elems()
 
             else:
@@ -529,9 +531,9 @@ class LxmlXMLFormatter(BaseXMLFormatter):
             flat_col = col
             if isinstance(col, tuple):
                 flat_col = (
-                    "".join(str(c) for c in col).strip()
+                    "".join([str(c) for c in col]).strip()
                     if "" in col
-                    else "_".join(str(c) for c in col).strip()
+                    else "_".join([str(c) for c in col]).strip()
                 )
 
             attr_name = f"{self.prefix_uri}{flat_col}"
@@ -556,9 +558,9 @@ class LxmlXMLFormatter(BaseXMLFormatter):
             flat_col = col
             if isinstance(col, tuple):
                 flat_col = (
-                    "".join(str(c) for c in col).strip()
+                    "".join([str(c) for c in col]).strip()
                     if "" in col
-                    else "_".join(str(c) for c in col).strip()
+                    else "_".join([str(c) for c in col]).strip()
                 )
 
             elem_name = f"{self.prefix_uri}{flat_col}"

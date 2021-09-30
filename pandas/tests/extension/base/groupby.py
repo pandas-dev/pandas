@@ -22,14 +22,14 @@ class BaseGroupbyTests(BaseExtensionTests):
     def test_groupby_extension_agg(self, as_index, data_for_grouping):
         df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1, 4], "B": data_for_grouping})
         result = df.groupby("B", as_index=as_index).A.mean()
-        _, index = pd.factorize(data_for_grouping, sort=True)
+        _, uniques = pd.factorize(data_for_grouping, sort=True)
 
-        index = pd.Index(index, name="B")
-        expected = pd.Series([3.0, 1.0, 4.0], index=index, name="A")
         if as_index:
+            index = pd.Index._with_infer(uniques, name="B")
+            expected = pd.Series([3.0, 1.0, 4.0], index=index, name="A")
             self.assert_series_equal(result, expected)
         else:
-            expected = expected.reset_index()
+            expected = pd.DataFrame({"B": uniques, "A": [3.0, 1.0, 4.0]})
             self.assert_frame_equal(result, expected)
 
     def test_groupby_agg_extension(self, data_for_grouping):
@@ -53,7 +53,7 @@ class BaseGroupbyTests(BaseExtensionTests):
         result = df.groupby("B", sort=False).A.mean()
         _, index = pd.factorize(data_for_grouping, sort=False)
 
-        index = pd.Index(index, name="B")
+        index = pd.Index._with_infer(index, name="B")
         expected = pd.Series([1.0, 3.0, 4.0], index=index, name="A")
         self.assert_series_equal(result, expected)
 

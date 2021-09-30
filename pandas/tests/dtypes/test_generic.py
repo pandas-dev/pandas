@@ -7,6 +7,11 @@ from pandas.core.dtypes import generic as gt
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.core.api import (
+    Float64Index,
+    Int64Index,
+    UInt64Index,
+)
 
 
 class TestABCClasses:
@@ -23,9 +28,9 @@ class TestABCClasses:
     timedelta_array = pd.core.arrays.TimedeltaArray(timedelta_index)
 
     abc_pairs = [
-        ("ABCInt64Index", pd.Int64Index([1, 2, 3])),
-        ("ABCUInt64Index", pd.UInt64Index([1, 2, 3])),
-        ("ABCFloat64Index", pd.Float64Index([1, 2, 3])),
+        ("ABCInt64Index", Int64Index([1, 2, 3])),
+        ("ABCUInt64Index", UInt64Index([1, 2, 3])),
+        ("ABCFloat64Index", Float64Index([1, 2, 3])),
         ("ABCMultiIndex", multi_index),
         ("ABCDatetimeIndex", datetime_index),
         ("ABCRangeIndex", pd.RangeIndex(3)),

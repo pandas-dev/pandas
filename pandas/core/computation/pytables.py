@@ -11,6 +11,7 @@ from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
 )
+from pandas._typing import npt
 from pandas.compat.chainmap import DeepChainMap
 
 from pandas.core.dtypes.common import is_list_like
@@ -223,14 +224,11 @@ class BinOp(ops.BinOp):
             return TermValue(int(v), v, kind)
         elif meta == "category":
             metadata = extract_array(self.metadata, extract_numpy=True)
+            result: npt.NDArray[np.intp] | np.intp | int
             if v not in metadata:
                 result = -1
             else:
-                # error: Incompatible types in assignment (expression has type
-                # "Union[Any, ndarray]", variable has type "int")
-                result = metadata.searchsorted(  # type: ignore[assignment]
-                    v, side="left"
-                )
+                result = metadata.searchsorted(v, side="left")
             return TermValue(result, result, "integer")
         elif kind == "integer":
             v = int(float(v))
@@ -579,7 +577,7 @@ class PyTablesExpr(expr.Expr):
                 else:
                     w = _validate_where(w)
                     where[idx] = w
-            _where = " & ".join(f"({w})" for w in com.flatten(where))
+            _where = " & ".join([f"({w})" for w in com.flatten(where)])
         else:
             # _validate_where ensures we otherwise have a string
             _where = where

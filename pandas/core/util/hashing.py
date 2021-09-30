@@ -16,10 +16,7 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas._libs.hashing import hash_object_array
-from pandas._typing import (
-    ArrayLike,
-    FrameOrSeriesUnion,
-)
+from pandas._typing import ArrayLike
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -35,6 +32,7 @@ from pandas.core.dtypes.generic import (
 if TYPE_CHECKING:
     from pandas import (
         Categorical,
+        DataFrame,
         Index,
         MultiIndex,
         Series,
@@ -78,7 +76,7 @@ def combine_hash_arrays(arrays: Iterator[np.ndarray], num_items: int) -> np.ndar
 
 
 def hash_pandas_object(
-    obj: Index | FrameOrSeriesUnion,
+    obj: Index | DataFrame | Series,
     index: bool = True,
     encoding: str = "utf8",
     hash_key: str | None = _default_hash_key,
@@ -331,7 +329,9 @@ def _hash_ndarray(
             )
 
             codes, categories = factorize(vals, sort=False)
-            cat = Categorical(codes, Index(categories), ordered=False, fastpath=True)
+            cat = Categorical(
+                codes, Index._with_infer(categories), ordered=False, fastpath=True
+            )
             return _hash_categorical(cat, encoding, hash_key)
 
         try:

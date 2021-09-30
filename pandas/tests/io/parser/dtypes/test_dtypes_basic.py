@@ -16,6 +16,10 @@ from pandas import (
 )
 import pandas._testing as tm
 
+# TODO(1.4): Change me into xfail at release time
+# and xfail individual tests
+pytestmark = pytest.mark.usefixtures("pyarrow_skip")
+
 
 @pytest.mark.parametrize("dtype", [str, object])
 @pytest.mark.parametrize("check_orig", [True, False])
@@ -245,8 +249,12 @@ def test_dtype_mangle_dup_cols(all_parsers, dtypes, exp_value):
     # GH#35211
     parser = all_parsers
     data = """a,a\n1,1"""
-    result = parser.read_csv(StringIO(data), dtype={"a": str, **dtypes})
+    dtype_dict = {"a": str, **dtypes}
+    # GH#42462
+    dtype_dict_copy = dtype_dict.copy()
+    result = parser.read_csv(StringIO(data), dtype=dtype_dict)
     expected = DataFrame({"a": ["1"], "a.1": [exp_value]})
+    assert dtype_dict == dtype_dict_copy, "dtype dict changed"
     tm.assert_frame_equal(result, expected)
 
 
@@ -256,4 +264,30 @@ def test_dtype_mangle_dup_cols_single_dtype(all_parsers):
     data = """a,a\n1,1"""
     result = parser.read_csv(StringIO(data), dtype=str)
     expected = DataFrame({"a": ["1"], "a.1": ["1"]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dtype_multi_index(all_parsers):
+    # GH 42446
+    parser = all_parsers
+    data = "A,B,B\nX,Y,Z\n1,2,3"
+
+    result = parser.read_csv(
+        StringIO(data),
+        header=list(range(2)),
+        dtype={
+            ("A", "X"): np.int32,
+            ("B", "Y"): np.int32,
+            ("B", "Z"): np.float32,
+        },
+    )
+
+    expected = DataFrame(
+        {
+            ("A", "X"): np.int32([1]),
+            ("B", "Y"): np.int32([2]),
+            ("B", "Z"): np.float32([3]),
+        }
+    )
+
     tm.assert_frame_equal(result, expected)

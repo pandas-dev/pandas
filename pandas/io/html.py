@@ -627,12 +627,11 @@ def _build_xpath_expr(attrs) -> str:
     if "class_" in attrs:
         attrs["class"] = attrs.pop("class_")
 
-    s = " and ".join(f"@{k}={repr(v)}" for k, v in attrs.items())
+    s = " and ".join([f"@{k}={repr(v)}" for k, v in attrs.items()])
     return f"[{s}]"
 
 
 _re_namespace = {"re": "http://exslt.org/regular-expressions"}
-_valid_schemes = "http", "file", "ftp"
 
 
 class _LxmlFrameParser(_HtmlFrameParser):
@@ -861,7 +860,7 @@ def _parser_dispatch(flavor):
 
 
 def _print_as_set(s) -> str:
-    arg = ", ".join(pprint_thing(el) for el in s)
+    arg = ", ".join([pprint_thing(el) for el in s])
     return f"{{{arg}}}"
 
 

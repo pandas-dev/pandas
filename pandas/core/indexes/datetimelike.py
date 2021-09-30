@@ -7,9 +7,11 @@ from datetime import datetime
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     Sequence,
     TypeVar,
     cast,
+    final,
 )
 import warnings
 
@@ -18,7 +20,6 @@ import numpy as np
 from pandas._libs import (
     NaT,
     Timedelta,
-    iNaT,
     lib,
 )
 from pandas._libs.tslibs import (
@@ -26,10 +27,7 @@ from pandas._libs.tslibs import (
     NaTType,
     Resolution,
     Tick,
-)
-from pandas._typing import (
-    Callable,
-    final,
+    parsing,
 )
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
@@ -63,7 +61,6 @@ from pandas.core.indexes.base import (
 from pandas.core.indexes.extension import (
     NDArrayBackedExtensionIndex,
     inherit_names,
-    make_wrapped_arith_op,
 )
 from pandas.core.tools.timedeltas import to_timedelta
 
@@ -99,7 +96,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     hasnans = cache_readonly(
         DatetimeLikeArrayMixin._hasnans.fget  # type: ignore[attr-defined]
     )
-    _hasnans = hasnans  # for index / array -agnostic code
 
     @property
     def _is_all_dates(self) -> bool:
@@ -199,120 +195,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         """
         return list(self.astype(object))
 
-    def min(self, axis=None, skipna=True, *args, **kwargs):
-        """
-        Return the minimum value of the Index or minimum along
-        an axis.
-
-        See Also
-        --------
-        numpy.ndarray.min
-        Series.min : Return the minimum value in a Series.
-        """
-        nv.validate_min(args, kwargs)
-        nv.validate_minmax_axis(axis)
-
-        if not len(self):
-            return self._na_value
-
-        i8 = self.asi8
-
-        if len(i8) and self.is_monotonic_increasing:
-            # quick check
-            if i8[0] != iNaT:
-                return self._data._box_func(i8[0])
-
-        if self.hasnans:
-            if not skipna:
-                return self._na_value
-            i8 = i8[~self._isnan]
-
-        if not len(i8):
-            return self._na_value
-
-        min_stamp = i8.min()
-        return self._data._box_func(min_stamp)
-
-    def argmin(self, axis=None, skipna=True, *args, **kwargs):
-        """
-        Returns the indices of the minimum values along an axis.
-
-        See `numpy.ndarray.argmin` for more information on the
-        `axis` parameter.
-
-        See Also
-        --------
-        numpy.ndarray.argmin
-        """
-        nv.validate_argmin(args, kwargs)
-        nv.validate_minmax_axis(axis)
-
-        i8 = self.asi8
-        if self.hasnans:
-            mask = self._isnan
-            if mask.all() or not skipna:
-                return -1
-            i8 = i8.copy()
-            i8[mask] = np.iinfo("int64").max
-        return i8.argmin()
-
-    def max(self, axis=None, skipna=True, *args, **kwargs):
-        """
-        Return the maximum value of the Index or maximum along
-        an axis.
-
-        See Also
-        --------
-        numpy.ndarray.max
-        Series.max : Return the maximum value in a Series.
-        """
-        nv.validate_max(args, kwargs)
-        nv.validate_minmax_axis(axis)
-
-        if not len(self):
-            return self._na_value
-
-        i8 = self.asi8
-
-        if len(i8) and self.is_monotonic:
-            # quick check
-            if i8[-1] != iNaT:
-                return self._data._box_func(i8[-1])
-
-        if self.hasnans:
-            if not skipna:
-                return self._na_value
-            i8 = i8[~self._isnan]
-
-        if not len(i8):
-            return self._na_value
-
-        max_stamp = i8.max()
-        return self._data._box_func(max_stamp)
-
-    def argmax(self, axis=None, skipna=True, *args, **kwargs):
-        """
-        Returns the indices of the maximum values along an axis.
-
-        See `numpy.ndarray.argmax` for more information on the
-        `axis` parameter.
-
-        See Also
-        --------
-        numpy.ndarray.argmax
-        """
-        nv.validate_argmax(args, kwargs)
-        nv.validate_minmax_axis(axis)
-
-        i8 = self.asi8
-        if self.hasnans:
-            mask = self._isnan
-            if mask.all() or not skipna:
-                return -1
-            i8 = i8.copy()
-            i8[mask] = 0
-        return i8.argmax()
-
     # --------------------------------------------------------------------
     # Rendering Methods
 
@@ -356,10 +238,11 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         """
         attrs = super()._format_attrs()
         for attrib in self._attributes:
+            # iterating over _attributes prevents us from doing this for PeriodIndex
             if attrib == "freq":
                 freq = self.freqstr
                 if freq is not None:
-                    freq = repr(freq)
+                    freq = repr(freq)  # e.g. D -> 'D'
                 # Argument 1 to "append" of "list" has incompatible type
                 # "Tuple[str, Optional[str]]"; expected "Tuple[str, Union[str, int]]"
                 attrs.append(("freq", freq))  # type: ignore[arg-type]
@@ -398,11 +281,24 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     # --------------------------------------------------------------------
     # Indexing Methods
 
-    def _validate_partial_date_slice(self, reso: Resolution):
+    def _can_partial_date_slice(self, reso: Resolution) -> bool:
         raise NotImplementedError
 
-    def _parsed_string_to_bounds(self, reso: Resolution, parsed: datetime):
+    def _parsed_string_to_bounds(self, reso: Resolution, parsed):
         raise NotImplementedError
+
+    def _parse_with_reso(self, label: str):
+        # overridden by TimedeltaIndex
+        parsed, reso_str = parsing.parse_time_string(label, self.freq)
+        reso = Resolution.from_attrname(reso_str)
+        return parsed, reso
+
+    def _get_string_slice(self, key: str):
+        parsed, reso = self._parse_with_reso(key)
+        try:
+            return self._partial_date_slice(reso, parsed)
+        except KeyError as err:
+            raise KeyError(key) from err
 
     @final
     def _partial_date_slice(
@@ -420,7 +316,8 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         -------
         slice or ndarray[intp]
         """
-        self._validate_partial_date_slice(reso)
+        if not self._can_partial_date_slice(reso):
+            raise ValueError
 
         t1, t2 = self._parsed_string_to_bounds(reso, parsed)
         vals = self._data._ndarray
@@ -448,25 +345,45 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
             # try to find the dates
             return (lhs_mask & rhs_mask).nonzero()[0]
 
+    def _maybe_cast_slice_bound(self, label, side: str, kind=lib.no_default):
+        """
+        If label is a string, cast it to scalar type according to resolution.
+
+        Parameters
+        ----------
+        label : object
+        side : {'left', 'right'}
+        kind : {'loc', 'getitem'} or None
+
+        Returns
+        -------
+        label : object
+
+        Notes
+        -----
+        Value of `side` parameter should be validated in caller.
+        """
+        assert kind in ["loc", "getitem", None, lib.no_default]
+        self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
+
+        if isinstance(label, str):
+            try:
+                parsed, reso = self._parse_with_reso(label)
+            except ValueError as err:
+                # DTI -> parsing.DateParseError
+                # TDI -> 'unit abbreviation w/o a number'
+                # PI -> string cannot be parsed as datetime-like
+                raise self._invalid_indexer("slice", label) from err
+
+            lower, upper = self._parsed_string_to_bounds(reso, parsed)
+            return lower if side == "left" else upper
+        elif not isinstance(label, self._data._recognized_scalars):
+            raise self._invalid_indexer("slice", label)
+
+        return label
+
     # --------------------------------------------------------------------
     # Arithmetic Methods
-
-    __add__ = make_wrapped_arith_op("__add__")
-    __sub__ = make_wrapped_arith_op("__sub__")
-    __radd__ = make_wrapped_arith_op("__radd__")
-    __rsub__ = make_wrapped_arith_op("__rsub__")
-    __pow__ = make_wrapped_arith_op("__pow__")
-    __rpow__ = make_wrapped_arith_op("__rpow__")
-    __mul__ = make_wrapped_arith_op("__mul__")
-    __rmul__ = make_wrapped_arith_op("__rmul__")
-    __floordiv__ = make_wrapped_arith_op("__floordiv__")
-    __rfloordiv__ = make_wrapped_arith_op("__rfloordiv__")
-    __mod__ = make_wrapped_arith_op("__mod__")
-    __rmod__ = make_wrapped_arith_op("__rmod__")
-    __divmod__ = make_wrapped_arith_op("__divmod__")
-    __rdivmod__ = make_wrapped_arith_op("__rdivmod__")
-    __truediv__ = make_wrapped_arith_op("__truediv__")
-    __rtruediv__ = make_wrapped_arith_op("__rtruediv__")
 
     def shift(self: _T, periods: int = 1, freq=None) -> _T:
         """
@@ -586,7 +503,8 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         result._data._freq = self._get_join_freq(other)
         return result
 
-    def _get_join_target(self) -> np.ndarray:
+    def _get_engine_target(self) -> np.ndarray:
+        # engine methods and libjoin methods need dt64/td64 values cast to i8
         return self._data._ndarray.view("i8")
 
     def _from_join_target(self, result: np.ndarray):
@@ -625,19 +543,16 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
     _is_monotonic_decreasing = Index.is_monotonic_decreasing
     _is_unique = Index.is_unique
 
+    _join_precedence = 10
+
     def _with_freq(self, freq):
         arr = self._data._with_freq(freq)
         return type(self)._simple_new(arr, name=self._name)
 
-    @property
-    def _has_complex_internals(self) -> bool:
-        # used to avoid libreduction code paths, which raise or require conversion
-        return False
-
     def is_type_compatible(self, kind: str) -> bool:
         warnings.warn(
             f"{type(self).__name__}.is_type_compatible is deprecated and will be "
-            "removed in a future version",
+            "removed in a future version.",
             FutureWarning,
             stacklevel=2,
         )
@@ -648,15 +563,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
 
     def _intersection(self, other: Index, sort=False) -> Index:
         """
-        intersection specialized to the case with matching dtypes.
+        intersection specialized to the case with matching dtypes and both non-empty.
         """
         other = cast("DatetimeTimedeltaMixin", other)
-        if len(self) == 0:
-            return self.copy()._get_reconciled_name_object(other)
-        if len(other) == 0:
-            return other.copy()._get_reconciled_name_object(self)
 
-        elif not self._can_fast_intersect(other):
+        if not self._can_fast_intersect(other):
             result = Index._intersection(self, other, sort=sort)
             # We need to invalidate the freq because Index._intersection
             #  uses _shallow_copy on a view of self._data, which will preserve
@@ -665,6 +576,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             #  and type(result) is type(self._data)
             result = self._wrap_setop_result(other, result)
             return result._with_freq(None)._with_freq("infer")
+
+        else:
+            return self._fast_intersect(other, sort)
+
+    def _fast_intersect(self, other, sort):
 
         # to make our life easier, "sort" the two ranges
         if self[0] <= other[0]:
@@ -743,11 +659,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         return (right_start == left_end + freq) or right_start in left
 
     def _fast_union(self: _T, other: _T, sort=None) -> _T:
-        if len(other) == 0:
-            return self.view(type(self))
-
-        if len(self) == 0:
-            return other.view(type(self))
+        # Caller is responsible for ensuring self and other are non-empty
 
         # to make our life easier, "sort" the two ranges
         if self[0] <= other[0]:
@@ -758,8 +670,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             left, right = self, other
             left_start = left[0]
             loc = right.searchsorted(left_start, side="left")
-            # error: Slice index must be an integer or None
-            right_chunk = right._values[:loc]  # type: ignore[misc]
+            right_chunk = right._values[:loc]
             dates = concat_compat((left._values, right_chunk))
             # With sort being False, we can't infer that result.freq == self.freq
             # TODO: no tests rely on the _with_freq("infer"); needed?
@@ -775,8 +686,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         # concatenate
         if left_end < right_end:
             loc = right.searchsorted(left_end, side="right")
-            # error: Slice index must be an integer or None
-            right_chunk = right._values[loc:]  # type: ignore[misc]
+            right_chunk = right._values[loc:]
             dates = concat_compat([left._values, right_chunk])
             # The can_fast_union check ensures that the result.freq
             #  should match self.freq
@@ -797,39 +707,4 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             #  that result.freq == self.freq
             return result
         else:
-            return super()._union(other, sort=sort)._with_freq("infer")
-
-    # --------------------------------------------------------------------
-    # Join Methods
-    _join_precedence = 10
-
-    def join(
-        self,
-        other,
-        how: str = "left",
-        level=None,
-        return_indexers: bool = False,
-        sort: bool = False,
-    ):
-        """
-        See Index.join
-        """
-        pself, pother = self._maybe_promote(other)
-        if pself is not self or pother is not other:
-            return pself.join(
-                pother, how=how, level=level, return_indexers=return_indexers, sort=sort
-            )
-
-        self._maybe_utc_convert(other)  # raises if we dont have tzawareness compat
-        return Index.join(
-            self,
-            other,
-            how=how,
-            level=level,
-            return_indexers=return_indexers,
-            sort=sort,
-        )
-
-    def _maybe_utc_convert(self: _T, other: Index) -> tuple[_T, Index]:
-        # Overridden by DatetimeIndex
-        return self, other
+            return super()._union(other, sort)._with_freq("infer")

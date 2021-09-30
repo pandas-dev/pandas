@@ -33,7 +33,6 @@ class CParserWrapper(ParserBase):
     def __init__(self, src: FilePathOrBuffer, **kwds):
         self.kwds = kwds
         kwds = kwds.copy()
-
         ParserBase.__init__(self, kwds)
 
         self.low_memory = kwds.pop("low_memory", False)
@@ -365,7 +364,9 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
                 numpy_dtypes,  # type: ignore[arg-type]
                 [],
             )
-            if common_type == object:
+            # error: Non-overlapping equality check (left operand type: "dtype[Any]",
+            # right operand type: "Type[object]")
+            if common_type == object:  # type: ignore[comparison-overlap]
                 warning_columns.append(str(name))
 
         dtype = dtypes.pop()
@@ -388,7 +389,7 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
         warning_names = ",".join(warning_columns)
         warning_message = " ".join(
             [
-                f"Columns ({warning_names}) have mixed types."
+                f"Columns ({warning_names}) have mixed types. "
                 f"Specify dtype option on import or set low_memory=False."
             ]
         )

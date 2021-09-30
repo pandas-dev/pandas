@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime
 from functools import partial
 from textwrap import dedent
+from typing import TYPE_CHECKING
 import warnings
 
 import numpy as np
@@ -11,17 +12,26 @@ from pandas._libs.tslibs import Timedelta
 import pandas._libs.window.aggregations as window_aggregations
 from pandas._typing import (
     Axis,
-    FrameOrSeries,
-    FrameOrSeriesUnion,
     TimedeltaConvertibleTypes,
 )
+
+if TYPE_CHECKING:
+    from pandas import DataFrame, Series
+    from pandas.core.generic import NDFrame
+
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_datetime64_ns_dtype
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.common as common  # noqa: PDF018
+from pandas.core.indexers.objects import (
+    BaseIndexer,
+    ExponentialMovingWindowIndexer,
+    GroupbyIndexer,
+)
 from pandas.core.util.numba_ import maybe_use_numba
 from pandas.core.window.common import zsqrt
 from pandas.core.window.doc import (
@@ -35,12 +45,10 @@ from pandas.core.window.doc import (
     template_see_also,
     window_agg_numba_parameters,
 )
-from pandas.core.window.indexers import (
-    BaseIndexer,
-    ExponentialMovingWindowIndexer,
-    GroupbyIndexer,
+from pandas.core.window.numba_ import (
+    generate_ewma_numba_table_func,
+    generate_numba_ewma_func,
 )
-from pandas.core.window.numba_ import generate_numba_ewma_func
 from pandas.core.window.online import (
     EWMMeanState,
     generate_online_numba_ewma_func,
@@ -85,7 +93,7 @@ def get_center_of_mass(
 
 
 def _calculate_deltas(
-    times: str | np.ndarray | FrameOrSeries | None,
+    times: str | np.ndarray | NDFrame | None,
     halflife: float | TimedeltaConvertibleTypes | None,
 ) -> np.ndarray:
     """
@@ -105,9 +113,9 @@ def _calculate_deltas(
     np.ndarray
         Diff of the times divided by the half-life
     """
-    # error: Item "str" of "Union[str, ndarray, FrameOrSeries, None]" has no
+    # error: Item "str" of "Union[str, ndarray, NDFrameT, None]" has no
     # attribute "view"
-    # error: Item "None" of "Union[str, ndarray, FrameOrSeries, None]" has no
+    # error: Item "None" of "Union[str, ndarray, NDFrameT, None]" has no
     # attribute "view"
     _times = np.asarray(
         times.view(np.int64), dtype=np.float64  # type: ignore[union-attr]
@@ -200,6 +208,16 @@ class ExponentialMovingWindow(BaseWindow):
         If 1-D array like, a sequence with the same shape as the observations.
 
         Only applicable to ``mean()``.
+    method : str {'single', 'table'}, default 'single'
+        Execute the rolling operation per single column or row (``'single'``)
+        or over the entire object (``'table'``).
+
+        This argument is only implemented when specifying ``engine='numba'``
+        in the method call.
+
+        Only applicable to ``mean()``
+
+        .. versionadded:: 1.4.0
 
     Returns
     -------
@@ -258,11 +276,12 @@ class ExponentialMovingWindow(BaseWindow):
         "ignore_na",
         "axis",
         "times",
+        "method",
     ]
 
     def __init__(
         self,
-        obj: FrameOrSeries,
+        obj: NDFrame,
         com: float | None = None,
         span: float | None = None,
         halflife: float | TimedeltaConvertibleTypes | None = None,
@@ -271,7 +290,8 @@ class ExponentialMovingWindow(BaseWindow):
         adjust: bool = True,
         ignore_na: bool = False,
         axis: Axis = 0,
-        times: str | np.ndarray | FrameOrSeries | None = None,
+        times: str | np.ndarray | NDFrame | None = None,
+        method: str = "single",
         *,
         selection=None,
     ):
@@ -281,7 +301,7 @@ class ExponentialMovingWindow(BaseWindow):
             on=None,
             center=False,
             closed=None,
-            method="single",
+            method=method,
             axis=axis,
             selection=selection,
         )
@@ -296,11 +316,20 @@ class ExponentialMovingWindow(BaseWindow):
             if not self.adjust:
                 raise NotImplementedError("times is not supported with adjust=False.")
             if isinstance(self.times, str):
+                warnings.warn(
+                    (
+                        "Specifying times as a string column label is deprecated "
+                        "and will be removed in a future version. Pass the column "
+                        "into times instead."
+                    ),
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
                 self.times = self._selected_obj[self.times]
             if not is_datetime64_ns_dtype(self.times):
                 raise ValueError("times must be datetime64[ns] dtype.")
             # error: Argument 1 to "len" has incompatible type "Union[str, ndarray,
-            # FrameOrSeries, None]"; expected "Sized"
+            # NDFrameT, None]"; expected "Sized"
             if len(self.times) != len(obj):  # type: ignore[arg-type]
                 raise ValueError("times must be the same length as the object.")
             if not isinstance(self.halflife, (str, datetime.timedelta)):
@@ -437,23 +466,32 @@ class ExponentialMovingWindow(BaseWindow):
     )
     def mean(self, *args, engine=None, engine_kwargs=None, **kwargs):
         if maybe_use_numba(engine):
-            ewma_func = generate_numba_ewma_func(
-                engine_kwargs, self._com, self.adjust, self.ignore_na, self._deltas
-            )
+            if self.method == "single":
+                ewma_func = generate_numba_ewma_func(
+                    engine_kwargs, self._com, self.adjust, self.ignore_na, self._deltas
+                )
+                numba_cache_key = (lambda x: x, "ewma")
+            else:
+                ewma_func = generate_ewma_numba_table_func(
+                    engine_kwargs, self._com, self.adjust, self.ignore_na, self._deltas
+                )
+                numba_cache_key = (lambda x: x, "ewma_table")
             return self._apply(
                 ewma_func,
-                numba_cache_key=(lambda x: x, "ewma"),
+                numba_cache_key=numba_cache_key,
             )
         elif engine in ("cython", None):
             if engine_kwargs is not None:
                 raise ValueError("cython engine does not accept engine_kwargs")
             nv.validate_window_func("mean", args, kwargs)
+
+            deltas = None if self.times is None else self._deltas
             window_func = partial(
                 window_aggregations.ewma,
                 com=self._com,
                 adjust=self.adjust,
                 ignore_na=self.ignore_na,
-                deltas=self._deltas,
+                deltas=deltas,
             )
             return self._apply(window_func)
         else:
@@ -558,7 +596,7 @@ class ExponentialMovingWindow(BaseWindow):
     )
     def cov(
         self,
-        other: FrameOrSeriesUnion | None = None,
+        other: DataFrame | Series | None = None,
         pairwise: bool | None = None,
         bias: bool = False,
         **kwargs,
@@ -625,7 +663,7 @@ class ExponentialMovingWindow(BaseWindow):
     )
     def corr(
         self,
-        other: FrameOrSeriesUnion | None = None,
+        other: DataFrame | Series | None = None,
         pairwise: bool | None = None,
         **kwargs,
     ):
@@ -706,7 +744,7 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
 class OnlineExponentialMovingWindow(ExponentialMovingWindow):
     def __init__(
         self,
-        obj: FrameOrSeries,
+        obj: NDFrame,
         com: float | None = None,
         span: float | None = None,
         halflife: float | TimedeltaConvertibleTypes | None = None,
@@ -715,7 +753,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         adjust: bool = True,
         ignore_na: bool = False,
         axis: Axis = 0,
-        times: str | np.ndarray | FrameOrSeries | None = None,
+        times: str | np.ndarray | NDFrame | None = None,
         engine: str = "numba",
         engine_kwargs: dict[str, bool] | None = None,
         *,
@@ -761,7 +799,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
 
     def corr(
         self,
-        other: FrameOrSeriesUnion | None = None,
+        other: DataFrame | Series | None = None,
         pairwise: bool | None = None,
         **kwargs,
     ):
@@ -769,7 +807,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
 
     def cov(
         self,
-        other: FrameOrSeriesUnion | None = None,
+        other: DataFrame | Series | None = None,
         pairwise: bool | None = None,
         bias: bool = False,
         **kwargs,

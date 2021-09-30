@@ -15,13 +15,10 @@ from pandas._libs import (
 )
 from pandas._libs.tslibs import (
     BaseOffset,
+    NaT,
     Period,
     Resolution,
     Tick,
-)
-from pandas._libs.tslibs.parsing import (
-    DateParseError,
-    parse_time_string,
 )
 from pandas._typing import (
     Dtype,
@@ -35,6 +32,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import PeriodDtype
+from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
 from pandas.core.arrays.period import (
     PeriodArray,
@@ -337,7 +335,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             warnings.warn(
                 "The 'how' keyword in PeriodIndex.astype is deprecated and "
                 "will be removed in a future version. "
-                "Use index.to_timestamp(how=how) instead",
+                "Use index.to_timestamp(how=how) instead.",
                 FutureWarning,
                 stacklevel=2,
             )
@@ -409,120 +407,79 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         orig_key = key
 
         self._check_indexing_error(key)
-        if isinstance(key, str):
+
+        if is_valid_na_for_dtype(key, self.dtype):
+            key = NaT
+
+        elif isinstance(key, str):
 
             try:
-                loc = self._get_string_slice(key)
-                return loc
-            except (TypeError, ValueError):
-                pass
-
-            try:
-                asdt, reso_str = parse_time_string(key, self.freq)
-            except (ValueError, DateParseError) as err:
+                parsed, reso = self._parse_with_reso(key)
+            except ValueError as err:
                 # A string with invalid format
                 raise KeyError(f"Cannot interpret '{key}' as period") from err
 
-            reso = Resolution.from_attrname(reso_str)
-            grp = reso.freq_group.value
-            freqn = self.dtype.freq_group_code
+            if self._can_partial_date_slice(reso):
+                try:
+                    return self._partial_date_slice(reso, parsed)
+                except KeyError as err:
+                    # TODO: pass if method is not None, like DTI does?
+                    raise KeyError(key) from err
 
-            # _get_string_slice will handle cases where grp < freqn
-            assert grp >= freqn
-
-            # BusinessDay is a bit strange. It has a *lower* code, but we never parse
-            # a string as "BusinessDay" resolution, just Day.
-            if grp == freqn or (
-                reso == Resolution.RESO_DAY and self.dtype.freq.name == "B"
-            ):
-                key = Period(asdt, freq=self.freq)
+            if reso == self.dtype.resolution:
+                # the reso < self.dtype.resolution case goes through _get_string_slice
+                key = Period(parsed, freq=self.freq)
                 loc = self.get_loc(key, method=method, tolerance=tolerance)
+                # Recursing instead of falling through matters for the exception
+                #  message in test_get_loc3 (though not clear if that really matters)
                 return loc
             elif method is None:
                 raise KeyError(key)
             else:
-                key = asdt
+                key = Period(parsed, freq=self.freq)
 
-        elif is_integer(key):
-            # Period constructor will cast to string, which we dont want
+        elif isinstance(key, Period):
+            sfreq = self.freq
+            kfreq = key.freq
+            if not (
+                sfreq.n == kfreq.n
+                and sfreq._period_dtype_code == kfreq._period_dtype_code
+            ):
+                # GH#42247 For the subset of DateOffsets that can be Period freqs,
+                #  checking these two attributes is sufficient to check equality,
+                #  and much more performant than `self.freq == key.freq`
+                raise KeyError(key)
+        elif isinstance(key, datetime):
+            try:
+                key = Period(key, freq=self.freq)
+            except ValueError as err:
+                # we cannot construct the Period
+                raise KeyError(orig_key) from err
+        else:
+            # in particular integer, which Period constructor would cast to string
             raise KeyError(key)
-        elif isinstance(key, Period) and key.freq != self.freq:
-            raise KeyError(key)
-
-        try:
-            key = Period(key, freq=self.freq)
-        except ValueError as err:
-            # we cannot construct the Period
-            raise KeyError(orig_key) from err
 
         try:
             return Index.get_loc(self, key, method, tolerance)
         except KeyError as err:
             raise KeyError(orig_key) from err
 
+    @doc(DatetimeIndexOpsMixin._maybe_cast_slice_bound)
     def _maybe_cast_slice_bound(self, label, side: str, kind=lib.no_default):
-        """
-        If label is a string or a datetime, cast it to Period.ordinal according
-        to resolution.
-
-        Parameters
-        ----------
-        label : object
-        side : {'left', 'right'}
-        kind : {'loc', 'getitem'}, or None
-
-        Returns
-        -------
-        bound : Period or object
-
-        Notes
-        -----
-        Value of `side` parameter should be validated in caller.
-
-        """
-        assert kind in ["loc", "getitem", None, lib.no_default]
-        self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
-
         if isinstance(label, datetime):
-            return Period(label, freq=self.freq)
-        elif isinstance(label, str):
-            try:
-                parsed, reso_str = parse_time_string(label, self.freq)
-            except ValueError as err:
-                # string cannot be parsed as datetime-like
-                raise self._invalid_indexer("slice", label) from err
+            label = Period(label, freq=self.freq)
 
-            reso = Resolution.from_attrname(reso_str)
-            lower, upper = self._parsed_string_to_bounds(reso, parsed)
-            return lower if side == "left" else upper
-        elif not isinstance(label, self._data._recognized_scalars):
-            raise self._invalid_indexer("slice", label)
-
-        return label
+        return super()._maybe_cast_slice_bound(label, side, kind=kind)
 
     def _parsed_string_to_bounds(self, reso: Resolution, parsed: datetime):
         grp = reso.freq_group
         iv = Period(parsed, freq=grp.value)
         return (iv.asfreq(self.freq, how="start"), iv.asfreq(self.freq, how="end"))
 
-    def _validate_partial_date_slice(self, reso: Resolution):
+    def _can_partial_date_slice(self, reso: Resolution) -> bool:
         assert isinstance(reso, Resolution), (type(reso), reso)
-        grp = reso.freq_group
-        freqn = self.dtype.freq_group_code
-
-        if not grp.value < freqn:
-            # TODO: we used to also check for
-            #  reso in ["day", "hour", "minute", "second"]
-            #  why is that check not needed?
-            raise ValueError
-
-    def _get_string_slice(self, key: str):
-        parsed, reso_str = parse_time_string(key, self.freq)
-        reso = Resolution.from_attrname(reso_str)
-        try:
-            return self._partial_date_slice(reso, parsed)
-        except KeyError as err:
-            raise KeyError(key) from err
+        # e.g. test_getitem_setitem_periodindex
+        return reso > self.dtype.resolution
 
 
 def period_range(
