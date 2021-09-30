@@ -24,7 +24,10 @@ cnp.import_array()
 from pandas._libs.algos import ensure_int64
 
 from pandas._libs.arrays cimport NDArrayBacked
-from pandas._libs.util cimport is_integer_object
+from pandas._libs.util cimport (
+    is_array,
+    is_integer_object,
+)
 
 
 @cython.final
@@ -61,8 +64,15 @@ cdef class BlockPlacement:
                 self._has_array = True
         else:
             # Cython memoryview interface requires ndarray to be writeable.
-            arr = np.require(val, dtype=np.intp, requirements='W')
-            assert arr.ndim == 1, arr.shape
+            if (
+                not is_array(val)
+                or not cnp.PyArray_ISWRITEABLE(val)
+                or (<ndarray>val).descr.type_num != cnp.NPY_INTP
+            ):
+                arr = np.require(val, dtype=np.intp, requirements='W')
+            else:
+                arr = val
+            # Caller is responsible for ensuring arr.ndim == 1
             self._as_array = arr
             self._has_array = True
 
@@ -254,11 +264,13 @@ cdef class BlockPlacement:
 
         if slc is not None and slc.step == 1:
             new_slc = slice(slc.start * factor, slc.stop * factor, 1)
-            new_placement = np.arange(new_slc.start, new_slc.stop, dtype=np.intp)
+            # equiv: np.arange(new_slc.start, new_slc.stop, dtype=np.intp)
+            new_placement = cnp.PyArray_Arange(new_slc.start, new_slc.stop, 1, NPY_INTP)
         else:
             # Note: test_pivot_table_empty_aggfunc gets here with `slc is not None`
             mapped = [
-                np.arange(x * factor, (x + 1) * factor, dtype=np.intp)
+                # equiv: np.arange(x * factor, (x + 1) * factor, dtype=np.intp)
+                cnp.PyArray_Arange(x * factor, (x + 1) * factor, 1, NPY_INTP)
                 for x in self
             ]
             new_placement = np.concatenate(mapped)
@@ -681,15 +693,17 @@ cdef class BlockManager:
             cnp.npy_intp length = self.shape[0]
             SharedBlock blk
             BlockPlacement bp
+            ndarray[intp_t] new_blknos, new_blklocs
 
         # equiv: np.empty(length, dtype=np.intp)
         new_blknos = cnp.PyArray_EMPTY(1, &length, cnp.NPY_INTP, 0)
         new_blklocs = cnp.PyArray_EMPTY(1, &length, cnp.NPY_INTP, 0)
-        new_blknos.fill(-1)
-        new_blklocs.fill(-1)
+        # equiv: new_blknos.fill(-1)
+        cnp.PyArray_FILLWBYTE(new_blknos, -1)
+        cnp.PyArray_FILLWBYTE(new_blklocs, -1)
 
         for blkno, blk in enumerate(self.blocks):
-            bp = blk.mgr_locs
+            bp = blk._mgr_locs
             # Iterating over `bp` is a faster equivalent to
             #  new_blknos[bp.indexer] = blkno
             #  new_blklocs[bp.indexer] = np.arange(len(bp))
