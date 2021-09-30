@@ -45,6 +45,7 @@ from numpy cimport (
 cnp.import_array()
 
 cimport pandas._libs.util as util
+from pandas._libs.dtypes cimport numeric_object_t
 from pandas._libs.khash cimport (
     kh_destroy_int64,
     kh_get_int64,
@@ -66,13 +67,6 @@ cdef:
     float64_t NaN = <float64_t>np.NaN
     int64_t NPY_NAT = get_nat()
 
-cdef enum TiebreakEnumType:
-    TIEBREAK_AVERAGE
-    TIEBREAK_MIN,
-    TIEBREAK_MAX
-    TIEBREAK_FIRST
-    TIEBREAK_FIRST_DESCENDING
-    TIEBREAK_DENSE
 
 tiebreakers = {
     "average": TIEBREAK_AVERAGE,
@@ -519,97 +513,6 @@ def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarr
 
 
 # ----------------------------------------------------------------------
-# Kendall correlation
-# Wikipedia article: https://en.wikipedia.org/wiki/Kendall_rank_correlation_coefficient
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def nancorr_kendall(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarray:
-    """
-    Perform kendall correlation on a 2d array
-
-    Parameters
-    ----------
-    mat : np.ndarray[float64_t, ndim=2]
-        Array to compute kendall correlation on
-    minp : int, default 1
-        Minimum number of observations required per pair of columns
-        to have a valid result.
-
-    Returns
-    -------
-    numpy.ndarray[float64_t, ndim=2]
-        Correlation matrix
-    """
-    cdef:
-        Py_ssize_t i, j, k, xi, yi, N, K
-        ndarray[float64_t, ndim=2] result
-        ndarray[float64_t, ndim=2] ranked_mat
-        ndarray[uint8_t, ndim=2] mask
-        float64_t currj
-        ndarray[uint8_t, ndim=1] valid
-        ndarray[int64_t] sorted_idxs
-        ndarray[float64_t, ndim=1] col
-        int64_t n_concordant
-        int64_t total_concordant = 0
-        int64_t total_discordant = 0
-        float64_t kendall_tau
-        int64_t n_obs
-
-    N, K = (<object>mat).shape
-
-    result = np.empty((K, K), dtype=np.float64)
-    mask = np.isfinite(mat)
-
-    ranked_mat = np.empty((N, K), dtype=np.float64)
-
-    for i in range(K):
-        ranked_mat[:, i] = rank_1d(mat[:, i])
-
-    for xi in range(K):
-        sorted_idxs = ranked_mat[:, xi].argsort()
-        ranked_mat = ranked_mat[sorted_idxs]
-        mask = mask[sorted_idxs]
-        for yi in range(xi + 1, K):
-            valid = mask[:, xi] & mask[:, yi]
-            if valid.sum() < minp:
-                result[xi, yi] = NaN
-                result[yi, xi] = NaN
-            else:
-                # Get columns and order second column using 1st column ranks
-                if not valid.all():
-                    col = ranked_mat[valid.nonzero()][:, yi]
-                else:
-                    col = ranked_mat[:, yi]
-                n_obs = col.shape[0]
-                total_concordant = 0
-                total_discordant = 0
-                for j in range(n_obs - 1):
-                    currj = col[j]
-                    # Count num concordant and discordant pairs
-                    n_concordant = 0
-                    for k in range(j, n_obs):
-                        if col[k] > currj:
-                            n_concordant += 1
-                    total_concordant += n_concordant
-                    total_discordant += (n_obs - 1 - j - n_concordant)
-                # Note: we do total_concordant+total_discordant here which is
-                # equivalent to the C(n, 2), the total # of pairs,
-                # listed on wikipedia
-                kendall_tau = (total_concordant - total_discordant) / \
-                              (total_concordant + total_discordant)
-                result[xi, yi] = kendall_tau
-                result[yi, xi] = kendall_tau
-
-        if mask[:, xi].sum() > minp:
-            result[xi, xi] = 1
-        else:
-            result[xi, xi] = NaN
-
-    return result
-
-
-# ----------------------------------------------------------------------
 
 ctypedef fused algos_t:
     float64_t
@@ -958,34 +861,30 @@ def is_monotonic(ndarray[algos_t, ndim=1] arr, bint timelike):
 # rank_1d, rank_2d
 # ----------------------------------------------------------------------
 
-ctypedef fused rank_t:
-    object
-    float64_t
-    uint64_t
-    int64_t
-
-
-cdef rank_t get_rank_nan_fill_val(bint rank_nans_highest, rank_t[:] _=None):
+cdef numeric_object_t get_rank_nan_fill_val(
+        bint rank_nans_highest,
+        numeric_object_t[:] _=None
+):
     """
     Return the value we'll use to represent missing values when sorting depending
     on if we'd like missing values to end up at the top/bottom. (The second parameter
     is unused, but needed for fused type specialization)
     """
     if rank_nans_highest:
-        if rank_t is object:
+        if numeric_object_t is object:
             return Infinity()
-        elif rank_t is int64_t:
+        elif numeric_object_t is int64_t:
             return util.INT64_MAX
-        elif rank_t is uint64_t:
+        elif numeric_object_t is uint64_t:
             return util.UINT64_MAX
         else:
             return np.inf
     else:
-        if rank_t is object:
+        if numeric_object_t is object:
             return NegInfinity()
-        elif rank_t is int64_t:
+        elif numeric_object_t is int64_t:
             return NPY_NAT
-        elif rank_t is uint64_t:
+        elif numeric_object_t is uint64_t:
             return 0
         else:
             return -np.inf
@@ -994,7 +893,7 @@ cdef rank_t get_rank_nan_fill_val(bint rank_nans_highest, rank_t[:] _=None):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def rank_1d(
-    ndarray[rank_t, ndim=1] values,
+    ndarray[numeric_object_t, ndim=1] values,
     const intp_t[:] labels=None,
     bint is_datetimelike=False,
     ties_method="average",
@@ -1007,7 +906,7 @@ def rank_1d(
 
     Parameters
     ----------
-    values : array of rank_t values to be ranked
+    values : array of numeric_object_t values to be ranked
     labels : np.ndarray[np.intp] or None
         Array containing unique label for each group, with its ordering
         matching up to the corresponding record in `values`. If not called
@@ -1037,11 +936,11 @@ def rank_1d(
         int64_t[::1] grp_sizes
         intp_t[:] lexsort_indexer
         float64_t[::1] out
-        ndarray[rank_t, ndim=1] masked_vals
-        rank_t[:] masked_vals_memview
+        ndarray[numeric_object_t, ndim=1] masked_vals
+        numeric_object_t[:] masked_vals_memview
         uint8_t[:] mask
         bint keep_na, nans_rank_highest, check_labels, check_mask
-        rank_t nan_fill_val
+        numeric_object_t nan_fill_val
 
     tiebreak = tiebreakers[ties_method]
     if tiebreak == TIEBREAK_FIRST:
@@ -1062,21 +961,22 @@ def rank_1d(
     check_labels = labels is not None
 
     # For cases where a mask is not possible, we can avoid mask checks
-    check_mask = not (rank_t is uint64_t or (rank_t is int64_t and not is_datetimelike))
+    check_mask = not (numeric_object_t is uint64_t or
+                      (numeric_object_t is int64_t and not is_datetimelike))
 
     # Copy values into new array in order to fill missing data
     # with mask, without obfuscating location of missing data
     # in values array
-    if rank_t is object and values.dtype != np.object_:
+    if numeric_object_t is object and values.dtype != np.object_:
         masked_vals = values.astype('O')
     else:
         masked_vals = values.copy()
 
-    if rank_t is object:
+    if numeric_object_t is object:
         mask = missing.isnaobj(masked_vals)
-    elif rank_t is int64_t and is_datetimelike:
+    elif numeric_object_t is int64_t and is_datetimelike:
         mask = (masked_vals == NPY_NAT).astype(np.uint8)
-    elif rank_t is float64_t:
+    elif numeric_object_t is float64_t:
         mask = np.isnan(masked_vals).astype(np.uint8)
     else:
         mask = np.zeros(shape=len(masked_vals), dtype=np.uint8)
@@ -1088,7 +988,7 @@ def rank_1d(
     # will flip the ordering to still end up with lowest rank.
     # Symmetric logic applies to `na_option == 'bottom'`
     nans_rank_highest = ascending ^ (na_option == 'top')
-    nan_fill_val = get_rank_nan_fill_val[rank_t](nans_rank_highest)
+    nan_fill_val = get_rank_nan_fill_val[numeric_object_t](nans_rank_highest)
     if nans_rank_highest:
         order = [masked_vals, mask]
     else:
@@ -1135,7 +1035,7 @@ cdef void rank_sorted_1d(
     int64_t[::1] grp_sizes,
     const intp_t[:] sort_indexer,
     # Can make const with cython3 (https://github.com/cython/cython/issues/3222)
-    rank_t[:] masked_vals,
+    numeric_object_t[:] masked_vals,
     const uint8_t[:] mask,
     bint check_mask,
     Py_ssize_t N,
@@ -1159,7 +1059,7 @@ cdef void rank_sorted_1d(
         if labels is None.
     sort_indexer : intp_t[:]
         Array of indices which sorts masked_vals
-    masked_vals : rank_t[:]
+    masked_vals : numeric_object_t[:]
         The values input to rank_1d, with missing values replaced by fill values
     mask : uint8_t[:]
         Array where entries are True if the value is missing, False otherwise.
@@ -1191,7 +1091,7 @@ cdef void rank_sorted_1d(
     # that sorted value for retrieval back from the original
     # values / masked_vals arrays
     # TODO: de-duplicate once cython supports conditional nogil
-    if rank_t is object:
+    if numeric_object_t is object:
         with gil:
             for i in range(N):
                 at_end = i == N - 1
@@ -1399,7 +1299,7 @@ cdef void rank_sorted_1d(
 
 
 def rank_2d(
-    ndarray[rank_t, ndim=2] in_arr,
+    ndarray[numeric_object_t, ndim=2] in_arr,
     int axis=0,
     bint is_datetimelike=False,
     ties_method="average",
@@ -1414,13 +1314,13 @@ def rank_2d(
         Py_ssize_t k, n, col
         float64_t[::1, :] out  # Column-major so columns are contiguous
         int64_t[::1] grp_sizes
-        ndarray[rank_t, ndim=2] values
-        rank_t[:, :] masked_vals
+        ndarray[numeric_object_t, ndim=2] values
+        numeric_object_t[:, :] masked_vals
         intp_t[:, :] sort_indexer
         uint8_t[:, :] mask
         TiebreakEnumType tiebreak
         bint check_mask, keep_na, nans_rank_highest
-        rank_t nan_fill_val
+        numeric_object_t nan_fill_val
 
     tiebreak = tiebreakers[ties_method]
     if tiebreak == TIEBREAK_FIRST:
@@ -1430,24 +1330,25 @@ def rank_2d(
     keep_na = na_option == 'keep'
 
     # For cases where a mask is not possible, we can avoid mask checks
-    check_mask = not (rank_t is uint64_t or (rank_t is int64_t and not is_datetimelike))
+    check_mask = not (numeric_object_t is uint64_t or
+                      (numeric_object_t is int64_t and not is_datetimelike))
 
     if axis == 1:
         values = np.asarray(in_arr).T.copy()
     else:
         values = np.asarray(in_arr).copy()
 
-    if rank_t is object:
+    if numeric_object_t is object:
         if values.dtype != np.object_:
             values = values.astype('O')
 
     nans_rank_highest = ascending ^ (na_option == 'top')
     if check_mask:
-        nan_fill_val = get_rank_nan_fill_val[rank_t](nans_rank_highest)
+        nan_fill_val = get_rank_nan_fill_val[numeric_object_t](nans_rank_highest)
 
-        if rank_t is object:
+        if numeric_object_t is object:
             mask = missing.isnaobj2d(values).view(np.uint8)
-        elif rank_t is float64_t:
+        elif numeric_object_t is float64_t:
             mask = np.isnan(values).view(np.uint8)
 
         # int64 and datetimelike

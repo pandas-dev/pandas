@@ -4,9 +4,11 @@ from functools import wraps
 from typing import (
     TYPE_CHECKING,
     Any,
+    Literal,
     Sequence,
     TypeVar,
     cast,
+    overload,
 )
 
 import numpy as np
@@ -16,7 +18,11 @@ from pandas._libs.arrays import NDArrayBacked
 from pandas._typing import (
     F,
     PositionalIndexer2D,
+    PositionalIndexerTuple,
+    ScalarIndexer,
+    SequenceIndexer,
     Shape,
+    TakeIndexer,
     npt,
     type_t,
 )
@@ -48,7 +54,6 @@ NDArrayBackedExtensionArrayT = TypeVar(
 )
 
 if TYPE_CHECKING:
-    from typing import Literal
 
     from pandas._typing import (
         NumpySorter,
@@ -97,7 +102,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
     def take(
         self: NDArrayBackedExtensionArrayT,
-        indices: Sequence[int],
+        indices: TakeIndexer,
         *,
         allow_fill: bool = False,
         fill_value: Any = None,
@@ -108,9 +113,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
         new_data = take(
             self._ndarray,
-            # error: Argument 2 to "take" has incompatible type "Sequence[int]";
-            # expected "ndarray"
-            indices,  # type: ignore[arg-type]
+            indices,
             allow_fill=allow_fill,
             fill_value=fill_value,
             axis=axis,
@@ -204,6 +207,17 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
     def _validate_setitem_value(self, value):
         return value
+
+    @overload
+    def __getitem__(self, key: ScalarIndexer) -> Any:
+        ...
+
+    @overload
+    def __getitem__(
+        self: NDArrayBackedExtensionArrayT,
+        key: SequenceIndexer | PositionalIndexerTuple,
+    ) -> NDArrayBackedExtensionArrayT:
+        ...
 
     def __getitem__(
         self: NDArrayBackedExtensionArrayT,
@@ -308,7 +322,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     # ------------------------------------------------------------------------
     # __array_function__ methods
 
-    def putmask(self: NDArrayBackedExtensionArrayT, mask: np.ndarray, value) -> None:
+    def putmask(self, mask: np.ndarray, value) -> None:
         """
         Analogue to np.putmask(self, mask, value)
 

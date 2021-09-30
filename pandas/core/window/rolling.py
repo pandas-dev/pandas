@@ -27,7 +27,8 @@ import pandas._libs.window.aggregations as window_aggregations
 from pandas._typing import (
     ArrayLike,
     Axis,
-    FrameOrSeries,
+    NDFrameT,
+    WindowingRankType,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -48,6 +49,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import notna
 
+from pandas.core._numba import executor
 from pandas.core.algorithms import factorize
 from pandas.core.apply import ResamplerWindowApply
 from pandas.core.arrays import ExtensionArray
@@ -102,6 +104,7 @@ if TYPE_CHECKING:
         DataFrame,
         Series,
     )
+    from pandas.core.generic import NDFrame
     from pandas.core.groupby.ops import BaseGrouper
     from pandas.core.internals import Block  # noqa:F401
 
@@ -115,7 +118,7 @@ class BaseWindow(SelectionMixin):
 
     def __init__(
         self,
-        obj: FrameOrSeries,
+        obj: NDFrame,
         window=None,
         min_periods: int | None = None,
         center: bool = False,
@@ -155,7 +158,7 @@ class BaseWindow(SelectionMixin):
             )
 
         self._selection = selection
-        self.validate()
+        self._validate()
 
     @property
     def win_type(self):
@@ -179,6 +182,14 @@ class BaseWindow(SelectionMixin):
         return self._win_freq_i8 is not None
 
     def validate(self) -> None:
+        warnings.warn(
+            "validate is deprecated and will be removed in a future version.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self._validate()
+
+    def _validate(self) -> None:
         if self.center is not None and not is_bool(self.center):
             raise ValueError("center must be a boolean")
         if self.min_periods is not None:
@@ -216,7 +227,7 @@ class BaseWindow(SelectionMixin):
         if self.method not in ["table", "single"]:
             raise ValueError("method must be 'table' or 'single")
 
-    def _create_data(self, obj: FrameOrSeries) -> FrameOrSeries:
+    def _create_data(self, obj: NDFrameT) -> NDFrameT:
         """
         Split data into blocks & return conformed data.
         """
@@ -567,6 +578,44 @@ class BaseWindow(SelectionMixin):
         else:
             return self._apply_tablewise(homogeneous_func, name)
 
+    def _numba_apply(
+        self,
+        func: Callable[..., Any],
+        numba_cache_key_str: str,
+        engine_kwargs: dict[str, bool] | None = None,
+    ):
+        window_indexer = self._get_window_indexer()
+        min_periods = (
+            self.min_periods
+            if self.min_periods is not None
+            else window_indexer.window_size
+        )
+        obj = self._create_data(self._selected_obj)
+        if self.axis == 1:
+            obj = obj.T
+        values = self._prep_values(obj.to_numpy())
+        if values.ndim == 1:
+            values = values.reshape(-1, 1)
+        start, end = window_indexer.get_window_bounds(
+            num_values=len(values),
+            min_periods=min_periods,
+            center=self.center,
+            closed=self.closed,
+        )
+        aggregator = executor.generate_shared_aggregator(
+            func, engine_kwargs, numba_cache_key_str
+        )
+        result = aggregator(values, start, end, min_periods)
+        NUMBA_FUNC_CACHE[(func, numba_cache_key_str)] = aggregator
+        result = result.T if self.axis == 1 else result
+        if obj.ndim == 1:
+            result = result.squeeze()
+            out = obj._constructor(result, index=obj.index, name=obj.name)
+            return out
+        else:
+            out = obj._constructor(result, index=obj.index, columns=obj.columns)
+            return self._resolve_output(out, obj)
+
     def aggregate(self, func, *args, **kwargs):
         result = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
         if result is None:
@@ -583,11 +632,11 @@ class BaseWindowGroupby(BaseWindow):
 
     _grouper: BaseGrouper
     _as_index: bool
-    _attributes = ["_grouper"]
+    _attributes: list[str] = ["_grouper"]
 
     def __init__(
         self,
-        obj: FrameOrSeries,
+        obj: DataFrame | Series,
         *args,
         _grouper: BaseGrouper,
         _as_index: bool = True,
@@ -612,7 +661,7 @@ class BaseWindowGroupby(BaseWindow):
         numba_cache_key: tuple[Callable, str] | None = None,
         numba_args: tuple[Any, ...] = (),
         **kwargs,
-    ) -> FrameOrSeries:
+    ) -> DataFrame | Series:
         result = super()._apply(
             func,
             name,
@@ -747,7 +796,7 @@ class BaseWindowGroupby(BaseWindow):
         result.index = result_index
         return result
 
-    def _create_data(self, obj: FrameOrSeries) -> FrameOrSeries:
+    def _create_data(self, obj: NDFrameT) -> NDFrameT:
         """
         Split data into blocks & return conformed data.
         """
@@ -959,8 +1008,8 @@ class Window(BaseWindow):
         "method",
     ]
 
-    def validate(self):
-        super().validate()
+    def _validate(self):
+        super()._validate()
 
         if not isinstance(self.win_type, str):
             raise ValueError(f"Invalid win_type {self.win_type}")
@@ -1322,15 +1371,16 @@ class RollingAndExpandingMixin(BaseWindow):
         if maybe_use_numba(engine):
             if self.method == "table":
                 func = generate_manual_numpy_nan_agg_with_axis(np.nanmean)
+                return self.apply(
+                    func,
+                    raw=True,
+                    engine=engine,
+                    engine_kwargs=engine_kwargs,
+                )
             else:
-                func = np.nanmean
+                from pandas.core._numba.kernels import sliding_mean
 
-            return self.apply(
-                func,
-                raw=True,
-                engine=engine,
-                engine_kwargs=engine_kwargs,
-            )
+                return self._numba_apply(sliding_mean, "rolling_mean", engine_kwargs)
         window_func = window_aggregations.roll_mean
         return self._apply(window_func, name="mean", **kwargs)
 
@@ -1409,6 +1459,22 @@ class RollingAndExpandingMixin(BaseWindow):
             )
 
         return self._apply(window_func, name="quantile", **kwargs)
+
+    def rank(
+        self,
+        method: WindowingRankType = "average",
+        ascending: bool = True,
+        pct: bool = False,
+        **kwargs,
+    ):
+        window_func = partial(
+            window_aggregations.roll_rank,
+            method=method,
+            ascending=ascending,
+            percentile=pct,
+        )
+
+        return self._apply(window_func, name="rank", **kwargs)
 
     def cov(
         self,
@@ -1500,7 +1566,7 @@ class RollingAndExpandingMixin(BaseWindow):
 
 class Rolling(RollingAndExpandingMixin):
 
-    _attributes = [
+    _attributes: list[str] = [
         "window",
         "min_periods",
         "center",
@@ -1511,8 +1577,8 @@ class Rolling(RollingAndExpandingMixin):
         "method",
     ]
 
-    def validate(self):
-        super().validate()
+    def _validate(self):
+        super()._validate()
 
         # we allow rolling on a datetimelike index
         if (
@@ -2158,6 +2224,81 @@ class Rolling(RollingAndExpandingMixin):
         return super().quantile(
             quantile=quantile,
             interpolation=interpolation,
+            **kwargs,
+        )
+
+    @doc(
+        template_header,
+        ".. versionadded:: 1.4.0 \n\n",
+        create_section_header("Parameters"),
+        dedent(
+            """
+        method : {{'average', 'min', 'max'}}, default 'average'
+            How to rank the group of records that have the same value (i.e. ties):
+
+            * average: average rank of the group
+            * min: lowest rank in the group
+            * max: highest rank in the group
+
+        ascending : bool, default True
+            Whether or not the elements should be ranked in ascending order.
+        pct : bool, default False
+            Whether or not to display the returned rankings in percentile
+            form.
+        """
+        ).replace("\n", "", 1),
+        kwargs_compat,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        template_see_also,
+        create_section_header("Examples"),
+        dedent(
+            """
+        >>> s = pd.Series([1, 4, 2, 3, 5, 3])
+        >>> s.rolling(3).rank()
+        0    NaN
+        1    NaN
+        2    2.0
+        3    2.0
+        4    3.0
+        5    1.5
+        dtype: float64
+
+        >>> s.rolling(3).rank(method="max")
+        0    NaN
+        1    NaN
+        2    2.0
+        3    2.0
+        4    3.0
+        5    2.0
+        dtype: float64
+
+        >>> s.rolling(3).rank(method="min")
+        0    NaN
+        1    NaN
+        2    2.0
+        3    2.0
+        4    3.0
+        5    1.0
+        dtype: float64
+        """
+        ).replace("\n", "", 1),
+        window_method="rolling",
+        aggregation_description="rank",
+        agg_method="rank",
+    )
+    def rank(
+        self,
+        method: WindowingRankType = "average",
+        ascending: bool = True,
+        pct: bool = False,
+        **kwargs,
+    ):
+        return super().rank(
+            method=method,
+            ascending=ascending,
+            pct=pct,
             **kwargs,
         )
 

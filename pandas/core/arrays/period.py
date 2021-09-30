@@ -6,6 +6,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Literal,
     Sequence,
 )
 
@@ -76,7 +77,6 @@ from pandas.core.arrays.base import ExtensionArray
 import pandas.core.common as com
 
 if TYPE_CHECKING:
-    from typing import Literal
 
     from pandas._typing import (
         NumpySorter,
@@ -351,9 +351,7 @@ class PeriodArray(dtl.DatelikeOps):
     def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
         if dtype == "i8":
             return self.asi8
-        # error: Non-overlapping equality check (left operand type: "Optional[Union[str,
-        # dtype[Any]]]", right operand type: "Type[bool]")
-        elif dtype == bool:  # type: ignore[comparison-overlap]
+        elif dtype == bool:
             return ~self._isnan
 
         # This will raise TypeError for non-object dtypes
