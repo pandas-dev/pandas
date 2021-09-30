@@ -688,7 +688,7 @@ class TestGrouping:
         )
 
         tm.assert_numpy_array_equal(
-            gr.grouper.group_info[1], np.array([], dtype=np.dtype(np.int64))
+            gr.grouper.group_info[1], np.array([], dtype=np.dtype(np.intp))
         )
 
         assert gr.grouper.group_info[2] == 0
