@@ -8293,7 +8293,7 @@ NaN 12.3   33.0
         if not self.columns.is_unique:
             raise ValueError("columns must be unique")
 
-        columns: list[str | tuple]
+        columns: list[Scalar | tuple]
         if is_scalar(column) or isinstance(column, tuple):
             columns = [column]
         elif isinstance(column, list) and all(
