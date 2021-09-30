@@ -64,7 +64,11 @@ cdef class BlockPlacement:
                 self._has_array = True
         else:
             # Cython memoryview interface requires ndarray to be writeable.
-            if not is_array(val) or not cnp.PyArray_ISWRITEABLE(val):
+            if (
+                not is_array(val)
+                or not cnp.PyArray_ISWRITEABLE(val)
+                or (<ndarray>val).descr.type_num != cnp.NPY_INTP
+            ):
                 arr = np.require(val, dtype=np.intp, requirements='W')
             else:
                 arr = val
