@@ -27,7 +27,7 @@ def test_at_timezone():
 
 
 def test_selection_methods_of_assigned_col():
-    # GH#29282
+    # GH 29282
     df = DataFrame(data={"a": [1, 2, 3], "b": [4, 5, 6]})
     df2 = DataFrame(data={"c": [7, 8, 9]}, index=[2, 1, 0])
     df["c"] = df2["c"]
