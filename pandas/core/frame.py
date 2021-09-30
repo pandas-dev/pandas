@@ -4913,7 +4913,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Drop a specific index combination from the MultiIndex
         DataFrame, i.e., drop the combination ``'falcon'`` and
-        ``'weight'``, which deletes only the corrsponding row
+        ``'weight'``, which deletes only the corresponding row
 
         >>> df.drop(index=('falcon', 'weight'))
                         big     small
