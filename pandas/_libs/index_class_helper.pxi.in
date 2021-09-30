@@ -36,6 +36,11 @@ cdef class {{name}}Engine(IndexEngine):
     {{if name not in {'Float64', 'Float32'} }}
         if not util.is_integer_object(val):
             raise KeyError(val)
+        {{if name.startswith("U")}}
+        if val < 0:
+            # cannot have negative values with unsigned int dtype
+            raise KeyError(val)
+        {{endif}}
     {{else}}
         if not util.is_integer_object(val) and not util.is_float_object(val):
             # in particular catch bool and avoid casting True -> 1.0
