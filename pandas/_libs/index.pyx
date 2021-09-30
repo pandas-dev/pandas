@@ -85,6 +85,26 @@ cdef ndarray _get_bool_indexer(ndarray values, object val):
 _SIZE_CUTOFF = 1_000_000
 
 
+cdef _unpack_bool_indexer(ndarray[uint8_t, ndim=1, cast=True] indexer, object val):
+    """
+    Possibly unpack a boolean mask to a single indexer.
+    """
+    # Returns ndarray[bool] or int
+    cdef:
+        ndarray[intp_t, ndim=1] found
+        int count
+
+    found = np.where(indexer)[0]
+    count = len(found)
+
+    if count > 1:
+        return indexer
+    if count == 1:
+        return int(found[0])
+
+    raise KeyError(val)
+
+
 @cython.freelist(32)
 cdef class IndexEngine:
 
@@ -182,25 +202,7 @@ cdef class IndexEngine:
             ndarray[uint8_t, ndim=1, cast=True] indexer
 
         indexer = _get_bool_indexer(self.values, val)
-        return self._unpack_bool_indexer(indexer, val)
-
-    cdef _unpack_bool_indexer(self,
-                              ndarray[uint8_t, ndim=1, cast=True] indexer,
-                              object val):
-        # Returns ndarray[bool] or int
-        cdef:
-            ndarray[intp_t, ndim=1] found
-            int count
-
-        found = np.where(indexer)[0]
-        count = len(found)
-
-        if count > 1:
-            return indexer
-        if count == 1:
-            return int(found[0])
-
-        raise KeyError(val)
+        return _unpack_bool_indexer(indexer, val)
 
     def sizeof(self, deep: bool = False) -> int:
         """ return the sizeof our mapping """
