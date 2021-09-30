@@ -78,7 +78,7 @@ class RegisteredOption(NamedTuple):
     key: str
     defval: object
     doc: str
-    validator: Callable[[Any], Any] | None
+    validator: Callable[[object], Any] | None
     cb: Callable[[str], Any] | None
 
 
@@ -438,7 +438,7 @@ def register_option(
     key: str,
     defval: object,
     doc: str = "",
-    validator: Callable[[Any], Any] | None = None,
+    validator: Callable[[object], Any] | None = None,
     cb: Callable[[str], Any] | None = None,
 ) -> None:
     """
@@ -839,7 +839,7 @@ def is_one_of_factory(legal_values) -> Callable[[Any], None]:
     return inner
 
 
-def is_nonnegative_int(value: int | None) -> None:
+def is_nonnegative_int(value: object) -> None:
     """
     Verify that value is None or a positive int.
 
