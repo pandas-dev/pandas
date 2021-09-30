@@ -298,7 +298,6 @@ cdef class IndexEngine:
             Py_ssize_t i, j, n, n_t, n_alloc
             bint d_has_nan = False, stargets_has_nan = False, need_nan_check = True
 
-        self._ensure_mapping_populated()
         values = self.values
         stargets = set(targets)
 
@@ -740,7 +739,6 @@ cdef class BaseMultiIndexCodesEngine:
         return self._base.get_loc(self, lab_int)
 
     def get_indexer_non_unique(self, target: np.ndarray) -> np.ndarray:
-        # target: MultiIndex
         indexer = self._base.get_indexer_non_unique(self, target)
 
         return indexer
