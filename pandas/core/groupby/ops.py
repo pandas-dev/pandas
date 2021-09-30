@@ -807,7 +807,7 @@ class BaseGrouper:
         return Index(self.group_info[0]).is_monotonic
 
     @cache_readonly
-    def group_info(self) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.int64], int]:
+    def group_info(self) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
         comp_ids, obs_group_ids = self._get_compressed_codes()
 
         ngroups = len(obs_group_ids)
@@ -829,14 +829,14 @@ class BaseGrouper:
         return ids
 
     @final
-    def _get_compressed_codes(self) -> tuple[np.ndarray, npt.NDArray[np.int64]]:
+    def _get_compressed_codes(self) -> tuple[np.ndarray, npt.NDArray[np.intp]]:
         # The first returned ndarray may have any signed integer dtype
         if len(self.groupings) > 1:
             group_index = get_group_index(self.codes, self.shape, sort=True, xnull=True)
             return compress_group_index(group_index, sort=self._sort)
 
         ping = self.groupings[0]
-        return ping.codes, np.arange(len(ping.group_index), dtype=np.int64)
+        return ping.codes, np.arange(len(ping.group_index), dtype=np.intp)
 
     @final
     @cache_readonly
@@ -1105,9 +1105,9 @@ class BinGrouper(BaseGrouper):
         return indices
 
     @cache_readonly
-    def group_info(self) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.int64], int]:
+    def group_info(self) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
         ngroups = self.ngroups
-        obs_group_ids = np.arange(ngroups, dtype=np.int64)
+        obs_group_ids = np.arange(ngroups, dtype=np.intp)
         rep = np.diff(np.r_[0, self.bins])
 
         rep = ensure_platform_int(rep)
