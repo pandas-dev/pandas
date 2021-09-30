@@ -49,15 +49,20 @@ jobs:
       run: |
         pip list
         python setup.py sdist --formats=gztar
+        # Remove numpy for clean env for python 3.10
+        # Unneeded after conda-forge adds python 3.10
+        pip uninstall numpy
 
     - uses: conda-incubator/setup-miniconda@v2
       with:
         activate-environment: pandas-sdist
         python-version: ${{ matrix.python-version }}
+      # TODO: Remove after conda-forge adds python 3.10
+      if: ${{ matrix.python-version != "3.10-dev" }}
 
     - name: Install pandas from sdist
       run: |
-        conda list
+        pip list
         python -m pip install dist/*.gz
 
     - name: Import pandas
