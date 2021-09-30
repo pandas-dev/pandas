@@ -408,7 +408,9 @@ class TestBlockManager:
         cols = Index(list("abc"))
         values = np.random.rand(3, 3)
         block = new_block(
-            values=values.copy(), placement=np.arange(3), ndim=values.ndim
+            values=values.copy(),
+            placement=np.arange(3, dtype=np.intp),
+            ndim=values.ndim,
         )
         mgr = BlockManager(blocks=(block,), axes=[cols, Index(np.arange(3))])
 

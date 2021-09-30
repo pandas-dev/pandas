@@ -1227,7 +1227,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         nbs = self._slice_take_blocks_ax0(taker, only_slice=True)
         new_columns = self.items[~is_deleted]
         axes = [new_columns, self.axes[1]]
-        return type(self)(tuple(nbs), axes)
+        return type(self)(tuple(nbs), axes, verify_integrity=False)
 
     # ----------------------------------------------------------------
     # Block-wise Operation
@@ -2043,7 +2043,7 @@ def _merge_blocks(
 
 def _fast_count_smallints(arr: npt.NDArray[np.intp]):
     """Faster version of set(arr) for sequences of small numbers."""
-    counts = np.bincount(arr.astype(np.int_, copy=False))
+    counts = np.bincount(arr)
     nz = counts.nonzero()[0]
     # Note: list(zip(...) outperforms list(np.c_[nz, counts[nz]]) here,
     #  in one benchmark by a factor of 11
