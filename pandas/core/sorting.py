@@ -6,6 +6,7 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     DefaultDict,
+    Hashable,
     Iterable,
     Sequence,
 )
@@ -576,7 +577,7 @@ def get_flattened_list(
 
 def get_indexer_dict(
     label_list: list[np.ndarray], keys: list[Index]
-) -> dict[str | tuple, np.ndarray]:
+) -> dict[Hashable, npt.NDArray[np.intp]]:
     """
     Returns
     -------

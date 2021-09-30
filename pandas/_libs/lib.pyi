@@ -5,6 +5,7 @@ from typing import (
     Any,
     Callable,
     Generator,
+    Hashable,
     Literal,
     overload,
 )
@@ -197,7 +198,7 @@ def indices_fast(
     labels: np.ndarray,  # const int64_t[:]
     keys: list,
     sorted_labels: list[npt.NDArray[np.int64]],
-) -> dict: ...
+) -> dict[Hashable, npt.NDArray[np.intp]]: ...
 def generate_slices(
     labels: np.ndarray, ngroups: int  # const intp_t[:]
 ) -> tuple[npt.NDArray[np.int64], npt.NDArray[np.int64]]: ...

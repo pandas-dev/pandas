@@ -17,6 +17,7 @@ import numpy as np
 from pandas._typing import (
     ArrayLike,
     NDFrameT,
+    npt,
 )
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
@@ -604,7 +605,7 @@ class Grouping:
         return len(self.group_index)
 
     @cache_readonly
-    def indices(self):
+    def indices(self) -> dict[Hashable, npt.NDArray[np.intp]]:
         # we have a list of groupers
         if isinstance(self.grouping_vector, ops.BaseGrouper):
             return self.grouping_vector.indices
