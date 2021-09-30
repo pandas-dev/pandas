@@ -78,8 +78,8 @@ follow_imports_for_stubs = false
 no_site_packages = false
 no_silence_site_packages = false
 # Platform configuration
-platform = "linux-64"
 python_version = "3.8"
+platform = "linux-64"
 # Disallow dynamic typing
 disallow_any_unimported = false # TODO
 disallow_any_expr = false # TODO
