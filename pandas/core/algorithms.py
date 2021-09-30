@@ -1610,9 +1610,7 @@ def searchsorted(
             value = cast(int, dtype.type(value))
         else:
             value = pd_array(cast(ArrayLike, value), dtype=dtype)
-    elif not (
-        is_object_dtype(arr) or is_numeric_dtype(arr) or is_categorical_dtype(arr)
-    ):
+    else:
         # E.g. if `arr` is an array with dtype='datetime64[ns]'
         # and `value` is a pd.Timestamp, we may need to convert value
         arr = ensure_wrapped_if_datetimelike(arr)

@@ -347,6 +347,7 @@ Other Deprecations
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - Performance improvement in :meth:`.GroupBy.sample`, especially when ``weights`` argument provided (:issue:`34483`)
+- Performance improvement when converting non-string arrays to string arrays (:issue:`34483`)
 - Performance improvement in :meth:`.GroupBy.transform` for user-defined functions (:issue:`41598`)
 - Performance improvement in constructing :class:`DataFrame` objects (:issue:`42631`)
 - Performance improvement in :meth:`GroupBy.shift` when ``fill_value`` argument is provided (:issue:`26615`)
@@ -488,6 +489,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.rolling.corr` when the :class:`DataFrame` columns was a :class:`MultiIndex` (:issue:`21157`)
 - Bug in :meth:`DataFrame.groupby.rolling` when specifying ``on`` and calling ``__getitem__`` would subsequently return incorrect results (:issue:`43355`)
 - Bug in :meth:`GroupBy.apply` with time-based :class:`Grouper` objects incorrectly raising ``ValueError`` in corner cases where the grouping vector contains a ``NaT`` (:issue:`43500`, :issue:`43515`)
+- Bug in :meth:`GroupBy.mean` failing with ``complex`` dtype (:issue:`43701`)
 
 Reshaping
 ^^^^^^^^^
