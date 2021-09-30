@@ -20,14 +20,13 @@ from numpy cimport (
 cnp.import_array()
 
 
-cdef extern from "src/headers/cmath" namespace "std":
+cdef extern from "../src/headers/cmath" namespace "std":
     bint isnan(float64_t) nogil
     bint notnan(float64_t) nogil
     int signbit(float64_t) nogil
     float64_t sqrt(float64_t x) nogil
 
 from pandas._libs.algos import is_monotonic
-
 from pandas._libs.dtypes cimport numeric_t
 
 
@@ -880,7 +879,7 @@ cdef inline void remove_mm(numeric_t aold, Py_ssize_t *nobs) nogil:
 
 
 cdef inline numeric_t calc_mm(int64_t minp, Py_ssize_t nobs,
-                            numeric_t value) nogil:
+                              numeric_t value) nogil:
     cdef:
         numeric_t result
 
@@ -940,7 +939,7 @@ def roll_min(ndarray[float64_t] values, ndarray[int64_t] start,
     return _roll_min_max(values, start, end, minp, is_max=0)
 
 
-cdef _roll_min_max(ndarray[numeric_t ] values,
+cdef _roll_min_max(ndarray[numeric_t] values,
                    ndarray[int64_t] starti,
                    ndarray[int64_t] endi,
                    int64_t minp,
