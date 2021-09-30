@@ -28,6 +28,7 @@ from pandas._typing import (
     DtypeObj,
     F,
     Shape,
+    npt,
 )
 from pandas.util._decorators import cache_readonly
 from pandas.util._validators import validate_bool_kwarg
@@ -1278,7 +1279,13 @@ class Block(PandasObject):
 
         return result_blocks
 
-    def _unstack(self, unstacker, fill_value, new_placement, allow_fill: bool):
+    def _unstack(
+        self,
+        unstacker,
+        fill_value,
+        new_placement: npt.NDArray[np.intp],
+        allow_fill: bool,
+    ):
         """
         Return a list of unstacked blocks of self
 
@@ -1668,7 +1675,13 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
 
         return [self.make_block_same_class(result)]
 
-    def _unstack(self, unstacker, fill_value, new_placement, allow_fill: bool):
+    def _unstack(
+        self,
+        unstacker,
+        fill_value,
+        new_placement: npt.NDArray[np.intp],
+        allow_fill: bool,
+    ):
         # ExtensionArray-safe unstack.
         # We override ObjectBlock._unstack, which unstacks directly on the
         # values of the array. For EA-backed blocks, this would require
