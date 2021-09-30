@@ -8201,7 +8201,7 @@ NaN 12.3   33.0
 
     def explode(
         self,
-        column: str | tuple | list[str | tuple],
+        column: Scalar | tuple | list[Scalar | tuple],
         ignore_index: bool = False,
     ) -> DataFrame:
         """
@@ -8211,7 +8211,7 @@ NaN 12.3   33.0
 
         Parameters
         ----------
-        column : str or tuple or list thereof
+        column : Scalar or tuple or list thereof
             Column(s) to explode.
             For multiple columns, specify a non-empty list with each element
             be str or tuple, and all specified columns their list-like data
