@@ -23,7 +23,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.8", "3.9"]
+        python-version: ["3.8", "3.9", "3.10-dev"]
     concurrency:
       group: ${{github.ref}}-${{matrix.python-version}}-sdist
       cancel-in-progress: ${{github.event_name == 'pull_request'}}
