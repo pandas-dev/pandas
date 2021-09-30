@@ -4911,6 +4911,10 @@ class DataFrame(NDFrame, OpsMixin):
                 weight  1.0     0.8
                 length  0.3     0.2
 
+        Drop a specific index combination from the MultiIndex
+        DataFrame, i.e., drop the combination ``'falcon'`` and
+        ``'weight'``, which deletes only the corrsponding row
+
         >>> df.drop(index=('falcon', 'weight'))
                         big     small
         lama    speed   45.0    30.0
