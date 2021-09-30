@@ -42,7 +42,7 @@ class BoxPlot(LinePlot):
     class BP(NamedTuple):
         # namedtuple to hold results
         ax: Axes
-        lines: dict[str, Line2D]
+        lines: dict[str, list[Line2D]]
 
     def __init__(self, data, return_type="axes", **kwargs):
         # Do not call LinePlot.__init__ which may fill nan
