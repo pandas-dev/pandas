@@ -125,6 +125,7 @@ Other enhancements
 - Attempting to write into a file in missing parent directory with :meth:`DataFrame.to_csv`, :meth:`DataFrame.to_html`, :meth:`DataFrame.to_excel`, :meth:`DataFrame.to_feather`, :meth:`DataFrame.to_parquet`, :meth:`DataFrame.to_stata`, :meth:`DataFrame.to_json`, :meth:`DataFrame.to_pickle`, and :meth:`DataFrame.to_xml` now explicitly mentions missing parent directory, the same is true for :class:`Series` counterparts (:issue:`24306`)
 - :meth:`IntegerArray.all` , :meth:`IntegerArray.any`, :meth:`FloatingArray.any`, and :meth:`FloatingArray.all` use Kleene logic (:issue:`41967`)
 - Added support for nullable boolean and integer types in :meth:`DataFrame.to_stata`, :class:`~pandas.io.stata.StataWriter`, :class:`~pandas.io.stata.StataWriter117`, and :class:`~pandas.io.stata.StataWriterUTF8` (:issue:`40855`)
+- :meth:`DataFrame.to_parquet` now writes Parquet compliant data for columns which contain lists or arrays when using PyArrow 4.0.0 or greater (:issue:`43689`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -186,45 +187,9 @@ Now the float-dtype is respected. Since the common dtype for these DataFrames is
 
     res
 
-.. _whatsnew_140.notable_bug_fixes.write_compliant_parquet_nested_type:
+.. _whatsnew_140.notable_bug_fixes.notable_bug_fix3:
 
-Write compliant Parquet nested types if possible
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-When using :meth:`DataFrame.to_parquet` to write a DataFrame to Parquet, if any of the columns contained arrays
-of values the :mod:`pyarrow` engine would write a non-compliant format. This behavior is now fixed when the installed
-version of PyArrow is at least ``4.0.0``.
-
-https://github.com/apache/parquet-format/blob/master/LogicalTypes.md#nested-types
-
-.. ipython:: python
-
-    import pandas as pd
-    import pyarrow.parquet as pq
-
-    df = pd.DataFrame({"int_array_col": [[1, 2, 3], [4, 5, 6]]})
-    df.to_parquet("/tmp/sample_df")
-    parquet_table = pq.read_table("/tmp/sample_df")
-
-*Previous behavior*:
-
-.. code-block:: ipython
-
-    In [4]: parquet_table.schema.types
-    Out[4]:
-    [ListType(list<item: int64>)]
-
-*New behavior*:
-
-.. code-block:: ipython
-
-    In [4]: parquet_table.schema.types
-    Out[4]:
-    [ListType(list<element: int64>)]
-
-.. _whatsnew_140.notable_bug_fixes.notable_bug_fix4:
-
-notable_bug_fix4
+notable_bug_fix3
 ^^^^^^^^^^^^^^^^
 
 .. ---------------------------------------------------------------------------
