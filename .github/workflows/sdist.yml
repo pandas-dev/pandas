@@ -58,7 +58,7 @@ jobs:
         activate-environment: pandas-sdist
         python-version: ${{ matrix.python-version }}
       # TODO: Remove after conda-forge adds python 3.10
-      if: ${{ matrix.python-version != "3.10-dev" }}
+      if: ${{ matrix.python-version != '3.10-dev' }}
 
     - name: Install pandas from sdist
       run: |
