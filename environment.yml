@@ -122,3 +122,4 @@ dependencies:
     - types-PyMySQL
     - types-pytz
     - types-setuptools
+    - pytest-cython

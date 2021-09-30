@@ -84,6 +84,10 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
       pandas/tseries/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Cython Doctests' ; echo $MSG
+    python -m pytest --doctest-cython pandas/_libs
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
 fi
 
 ### DOCSTRINGS ###
