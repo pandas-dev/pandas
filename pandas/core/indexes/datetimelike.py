@@ -189,12 +189,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         tolerance = np.asarray(to_timedelta(tolerance).to_numpy())
         return super()._convert_tolerance(tolerance, target)
 
-    def tolist(self) -> list:
-        """
-        Return a list of the underlying data.
-        """
-        return list(self.astype(object))
-
     # --------------------------------------------------------------------
     # Rendering Methods
 
