@@ -169,10 +169,7 @@ class HashTable:
         na_sentinel: int = ...,
         na_value: object = ...,
         mask=...,
-    ) -> tuple[
-        np.ndarray,  # np.ndarray[subclass-specific]
-        npt.NDArray[np.intp],
-    ]: ...
+    ) -> tuple[np.ndarray, npt.NDArray[np.intp],]: ...  # np.ndarray[subclass-specific]
 
 class Complex128HashTable(HashTable): ...
 class Complex64HashTable(HashTable): ...
@@ -184,10 +181,7 @@ class Int64HashTable(HashTable):
     def get_labels_groupby(
         self,
         values: np.ndarray,  # const int64_t[:]
-    ) -> tuple[
-        npt.NDArray[np.intp],
-        npt.NDArray[np.int64],
-    ]: ...
+    ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.int64],]: ...
 
 class Int32HashTable(HashTable): ...
 class Int16HashTable(HashTable): ...
@@ -222,10 +216,7 @@ def mode(values: np.ndarray, dropna: bool) -> np.ndarray: ...
 def value_count(
     values: np.ndarray,
     dropna: bool,
-) -> tuple[
-    np.ndarray,  # np.ndarray[same-as-values]
-    npt.NDArray[np.int64],
-]: ...
+) -> tuple[np.ndarray, npt.NDArray[np.int64],]: ...  # np.ndarray[same-as-values]
 
 # arr and values should have same dtype
 def ismember(
