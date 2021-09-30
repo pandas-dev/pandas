@@ -1,21 +1,27 @@
 from __future__ import annotations
 
-from collections import namedtuple
 from typing import (
     TYPE_CHECKING,
     Iterator,
+    NamedTuple,
 )
 
 from pandas._typing import ArrayLike
 
 if TYPE_CHECKING:
+    from pandas._libs.internals import BlockPlacement
+
     from pandas.core.internals.blocks import Block
     from pandas.core.internals.managers import BlockManager
 
 
-BlockPairInfo = namedtuple(
-    "BlockPairInfo", ["lvals", "rvals", "locs", "left_ea", "right_ea", "rblk"]
-)
+class BlockPairInfo(NamedTuple):
+    lvals: ArrayLike
+    rvals: ArrayLike
+    locs: BlockPlacement
+    left_ea: bool
+    right_ea: bool
+    rblk: Block
 
 
 def _iter_block_pairs(

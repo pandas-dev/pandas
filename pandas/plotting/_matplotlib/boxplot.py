@@ -1,7 +1,9 @@
 from __future__ import annotations
 
-from collections import namedtuple
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    NamedTuple,
+)
 import warnings
 
 from matplotlib.artist import setp
@@ -28,6 +30,7 @@ from pandas.plotting._matplotlib.tools import (
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
+    from matplotlib.lines import Line2D
 
 
 class BoxPlot(LinePlot):
@@ -35,8 +38,11 @@ class BoxPlot(LinePlot):
     _layout_type = "horizontal"
 
     _valid_return_types = (None, "axes", "dict", "both")
-    # namedtuple to hold results
-    BP = namedtuple("BP", ["ax", "lines"])
+
+    class BP(NamedTuple):
+        # namedtuple to hold results
+        ax: Axes
+        lines: dict[str, list[Line2D]]
 
     def __init__(self, data, return_type="axes", **kwargs):
         # Do not call LinePlot.__init__ which may fill nan
