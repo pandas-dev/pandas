@@ -13,7 +13,11 @@ from numpy cimport (
 cnp.import_array()
 
 from pandas._libs.algos import groupsort_indexer
-from pandas._libs.dtypes cimport numeric_object_t, numeric_t
+
+from pandas._libs.dtypes cimport (
+    numeric_object_t,
+    numeric_t,
+)
 
 
 @cython.wraparound(False)
@@ -256,7 +260,10 @@ def ffill_indexer(const intp_t[:] indexer) -> np.ndarray:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def left_join_indexer_unique(ndarray[numeric_object_t] left, ndarray[numeric_object_t] right):
+def left_join_indexer_unique(
+    ndarray[numeric_object_t] left,
+    ndarray[numeric_object_t] right
+):
     cdef:
         Py_ssize_t i, j, nleft, nright
         ndarray[intp_t] indexer

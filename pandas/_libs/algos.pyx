@@ -45,7 +45,11 @@ from numpy cimport (
 cnp.import_array()
 
 cimport pandas._libs.util as util
-from pandas._libs.dtypes cimport numeric_object_t, numeric_t, iu_64_floating_obj_t
+from pandas._libs.dtypes cimport (
+    iu_64_floating_obj_t,
+    numeric_object_t,
+    numeric_t,
+)
 from pandas._libs.khash cimport (
     kh_destroy_int64,
     kh_get_int64,
@@ -55,9 +59,7 @@ from pandas._libs.khash cimport (
     kh_resize_int64,
     khiter_t,
 )
-from pandas._libs.util cimport (
-    get_nat,
-)
+from pandas._libs.util cimport get_nat
 
 import pandas._libs.missing as missing
 
@@ -541,7 +543,11 @@ def validate_limit(nobs: int | None, limit=None) -> int:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def pad(ndarray[numeric_object_t] old, ndarray[numeric_object_t] new, limit=None) -> ndarray:
+def pad(
+    ndarray[numeric_object_t] old,
+    ndarray[numeric_object_t] new,
+    limit=None
+) -> ndarray:
     # -> ndarray[intp_t, ndim=1]
     cdef:
         Py_ssize_t i, j, nleft, nright
@@ -687,7 +693,11 @@ D
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def backfill(ndarray[numeric_object_t] old, ndarray[numeric_object_t] new, limit=None) -> ndarray:
+def backfill(
+    ndarray[numeric_object_t] old,
+    ndarray[numeric_object_t] new,
+    limit=None
+) -> ndarray:
     # -> ndarray[intp_t, ndim=1]
     cdef:
         Py_ssize_t i, j, nleft, nright

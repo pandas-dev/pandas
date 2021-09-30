@@ -31,9 +31,7 @@ from numpy.math cimport NAN
 cnp.import_array()
 
 from pandas._libs.algos cimport kth_smallest_c
-from pandas._libs.util cimport (
-    get_nat,
-)
+from pandas._libs.util cimport get_nat
 
 from pandas._libs.algos import (
     ensure_platform_int,
@@ -42,7 +40,11 @@ from pandas._libs.algos import (
     take_2d_axis1_float64_float64,
 )
 
-from pandas._libs.dtypes cimport iu_64_floating_obj_t, iu_64_floating_t, numeric_t
+from pandas._libs.dtypes cimport (
+    iu_64_floating_obj_t,
+    iu_64_floating_t,
+    numeric_t,
+)
 from pandas._libs.missing cimport checknull
 
 
