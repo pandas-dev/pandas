@@ -4911,6 +4911,10 @@ class DataFrame(NDFrame, OpsMixin):
                 weight  1.0     0.8
                 length  0.3     0.2
 
+        Drop a specific combination from the DataFrame, i.e.,
+        ``'falcon`` and ``'weight'``, which then deletes
+        the corresponding row.
+
         >>> df.drop(index=('falcon', 'weight'))
                         big     small
         lama    speed   45.0    30.0
