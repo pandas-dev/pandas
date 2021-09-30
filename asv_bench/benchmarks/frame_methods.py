@@ -379,8 +379,10 @@ class Fillna:
             "object",
             "int32",
             "int64",
+            "Int64",
             "float32",
             "float64",
+            "Float64",
             "datetime64[ns]",
             "datetime64[ns, tz]",
             "timedelta64[ns]",
@@ -399,16 +401,23 @@ class Fillna:
                 "timedelta64[ns]": timedelta_range(start="1 day", periods=N, freq="1D"),
             }
             self.df = DataFrame({f"col_{i}": data[dtype] for i in range(M)})
-            self.df[::2] = None
             self.value = (
-                dict(zip(self.df.columns, data[dtype][:M])) if not method else None
+                dict(zip(self.df.columns, self.df.sample().iloc[0]))
+                if not method
+                else None
             )
+            self.df[::2] = None
         else:
             data = np.random.randn(N, M)
-            data = data.astype(dtype)
-            self.df = DataFrame({f"col_{i}": data[i] for i in range(M)})
+            if dtype in ["int32", "int64", "Int64"]:
+                data = data.round()
+            self.df = DataFrame({f"col_{i}": data[i] for i in range(M)}, dtype=dtype)
+            self.value = (
+                dict(zip(self.df.columns, self.df.sample().iloc[0]))
+                if not method
+                else None
+            )
             self.df[::2] = None
-            self.value = dict(zip(self.df.columns, data[M])) if not method else None
 
     def time_frame_fillna(self, inplace, method, dtype):
         self.df.fillna(value=self.value, inplace=inplace, method=method)

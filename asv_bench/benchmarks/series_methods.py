@@ -65,8 +65,10 @@ class Fillna:
             "object",
             "int32",
             "int64",
+            "Int64",
             "float32",
             "float64",
+            "Float64",
             "datetime64[ns]",
             "datetime64[ns, tz]",
             "timedelta64[ns]",
@@ -85,14 +87,19 @@ class Fillna:
                 "timedelta64[ns]": timedelta_range(start="1 day", periods=N, freq="1D"),
             }
             self.ser = Series(data[dtype])
+            self.value = (
+                dict(zip(self.ser.index, self.ser.values)) if not method else None
+            )
             self.ser[::2] = None
-            self.value = dict(zip(self.ser.index, data[dtype])) if not method else None
         else:
             data = np.random.randn(N)
-            data = data.astype(dtype)
+            if dtype in ["int32", "int64", "Int64"]:
+                data = data.round()
             self.ser = Series(data, dtype=dtype)
+            self.value = (
+                dict(zip(self.ser.index, self.ser.values)) if not method else None
+            )
             self.ser[::2] = None
-            self.value = dict(zip(self.ser.index, data)) if not method else None
 
     def time_series_fillna(self, inplace, method, dtype):
         self.ser.fillna(value=self.value, inplace=inplace, method=method)
