@@ -388,14 +388,14 @@ def tz_standardize(tz: tzinfo) -> tzinfo:
     Examples
     --------
     >>> from datetime import datetime
-    >>> from pytz import timezone as tz
-    >>> tz = tz('US/Pacific').normalize(datetime(2014,1,1, tzinfo=pytz.utc)).tzinfo
+    >>> from pytz import timezone
+    >>> tz = timezone('US/Pacific').normalize(datetime(2014,1,1, \
+    tzinfo=pytz.utc)).tzinfo
     >>> tz
     <DstTzInfo 'US/Pacific' PST-1 day, 16:00:00 STD>
     >>> tz_standardize(tz)
     <DstTzInfo 'US/Pacific' LMT-1 day, 16:07:00 STD>
 
-    >>> from pytz import timezone
     >>> tz = timezone('US/Pacific')
     >>> tz
     <DstTzInfo 'US/Pacific' LMT-1 day, 16:07:00 STD>
