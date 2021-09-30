@@ -157,19 +157,18 @@ cdef class IndexEngine:
 
         try:
             return self.mapping.get_item(val)
-        except (TypeError, ValueError, OverflowError):
+        except OverflowError as err:
             # GH#41775 OverflowError e.g. if we are uint64 and val is -1
-            raise KeyError(val)
+            #  or if we are int64 and value is np.iinfo(np.int64).max+1
+            #  (the uint64 with -1 case should actually be excluded by _check_type)
+            raise KeyError(val) from err
 
     cdef Py_ssize_t _searchsorted_left(self, val) except? -1:
         """
         See ObjectEngine._searchsorted_left.__doc__.
         """
-        try:
-            loc = self.values.searchsorted(val, side="left")
-        except TypeError as err:
-            # GH#35788 e.g. val=None with float64 values
-            raise KeyError(val)
+        # Caller is responsible for ensuring _check_type has already been called
+        loc = self.values.searchsorted(val, side="left")
         return loc
 
     cdef inline _get_loc_duplicates(self, object val):
@@ -184,6 +183,7 @@ cdef class IndexEngine:
                 right = values.searchsorted(val, side='right')
             except TypeError:
                 # e.g. GH#29189 get_loc(None) with a Float64Index
+                #  2021-09-29 Now only reached for object-dtype
                 raise KeyError(val)
 
             diff = right - left
