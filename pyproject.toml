@@ -69,7 +69,6 @@ markers = [
 ]
 
 [tool.mypy]
-python_version = "3.8"
 # Import discovery
 namespace_packages = false
 explicit_package_bases = false
@@ -80,6 +79,7 @@ no_site_packages = false
 no_silence_site_packages = false
 # Platform configuration
 platform = "linux-64"
+python_version = "3.8"
 # Disallow dynamic typing
 disallow_any_unimported = false # TODO
 disallow_any_expr = false # TODO
