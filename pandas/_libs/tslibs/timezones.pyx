@@ -402,11 +402,6 @@ def tz_standardize(tz: tzinfo) -> tzinfo:
     <DstTzInfo 'US/Pacific' LMT-1 day, 16:07:00 STD>
     >>> tz_standardize(tz)
     <DstTzInfo 'US/Pacific' LMT-1 day, 16:07:00 STD>
-
-    >>> tz        # doctest: +SKIP
-    dateutil.tz.tz.tzutc
-    >>> tz_standardize(tz)    # doctest: +SKIP
-    dateutil.tz.tz.tzutc
     """
     if treat_tz_as_pytz(tz):
         return pytz.timezone(str(tz))
