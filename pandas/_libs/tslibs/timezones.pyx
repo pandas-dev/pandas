@@ -389,8 +389,9 @@ def tz_standardize(tz: tzinfo) -> tzinfo:
     --------
     >>> from datetime import datetime
     >>> from pytz import timezone
-    >>> tz = timezone('US/Pacific').normalize(datetime(2014,1,1, \
-    tzinfo=pytz.utc)).tzinfo
+    >>> tz = timezone('US/Pacific').normalize(
+    ...     datetime(2014, 1, 1, tzinfo=pytz.utc)
+    ... ).tzinfo
     >>> tz
     <DstTzInfo 'US/Pacific' PST-1 day, 16:00:00 STD>
     >>> tz_standardize(tz)
