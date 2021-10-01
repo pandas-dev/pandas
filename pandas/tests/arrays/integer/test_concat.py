@@ -63,3 +63,11 @@ def test_concat_series_with_numpy(to_concat_dtypes, result_dtype):
     result = pd.concat([s2, s1], ignore_index=True)
     expected = pd.Series([0, 1, 0, 1, pd.NA], dtype=object).astype(result_dtype)
     tm.assert_series_equal(result, expected)
+
+def test_concat_frame_with_sort_false():
+    result = pd.concat([pd.DataFrame({i: i}, index=[i]) for i in range(2, 0, -1)], sort=False)
+    expected = pd.DataFrame([[2, np.nan], [np.nan, 1]], index=[2,1], columns=[2,1])
+    import ipdb; ipdb.set_trace()
+
+    tm.assert_frame_equal(result, expected)
+

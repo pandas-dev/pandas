@@ -184,7 +184,10 @@ def union_indexes(indexes, sort: bool = True) -> Index:
     if len(indexes) == 1:
         result = indexes[0]
         if isinstance(result, list):
-            result = Index(sorted(result))
+            if sort:
+                result = Index(sorted(result))
+            else:
+                result = Index(result)
         return result
 
     indexes, kind = _sanitize_and_check(indexes)
@@ -219,7 +222,7 @@ def union_indexes(indexes, sort: bool = True) -> Index:
             return result.union_many(indexes[1:])
         else:
             for other in indexes[1:]:
-                result = result.union(other)
+                result = result.union(other, sort=None if sort else False)
             return result
     elif kind == "array":
         index = indexes[0]
