@@ -43,6 +43,7 @@ from pandas._libs.algos import (
     take_2d_axis1_float64_float64,
 )
 
+from pandas._libs.dtypes cimport numeric_object_t
 from pandas._libs.missing cimport checknull
 
 
@@ -480,6 +481,12 @@ ctypedef fused add_t:
     complex128_t
     object
 
+ctypedef fused mean_t:
+    float64_t
+    float32_t
+    complex64_t
+    complex128_t
+
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -669,15 +676,50 @@ def group_var(floating[:, ::1] out,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def group_mean(floating[:, ::1] out,
+def group_mean(mean_t[:, ::1] out,
                int64_t[::1] counts,
-               ndarray[floating, ndim=2] values,
+               ndarray[mean_t, ndim=2] values,
                const intp_t[::1] labels,
-               Py_ssize_t min_count=-1) -> None:
+               Py_ssize_t min_count=-1,
+               bint is_datetimelike=False,
+               const uint8_t[:, ::1] mask=None,
+               uint8_t[:, ::1] result_mask=None
+               ) -> None:
+    """
+    Compute the mean per label given a label assignment for each value.
+    NaN values are ignored.
+
+    Parameters
+    ----------
+    out : np.ndarray[floating]
+        Values into which this method will write its results.
+    counts : np.ndarray[int64]
+        A zeroed array of the same shape as labels,
+        populated by group sizes during algorithm.
+    values : np.ndarray[floating]
+        2-d array of the values to find the mean of.
+    labels : np.ndarray[np.intp]
+        Array containing unique label for each group, with its
+        ordering matching up to the corresponding record in `values`.
+    min_count : Py_ssize_t
+        Only used in add and prod. Always -1.
+    is_datetimelike : bool
+        True if `values` contains datetime-like entries.
+    mask : ndarray[bool, ndim=2], optional
+        Not used.
+    result_mask : ndarray[bool, ndim=2], optional
+        Not used.
+
+    Notes
+    -----
+    This method modifies the `out` parameter rather than returning an object.
+    `counts` is modified to hold group sizes
+    """
+
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
-        floating val, count, y, t
-        floating[:, ::1] sumx, compensation
+        mean_t val, count, y, t, nan_val
+        mean_t[:, ::1] sumx, compensation
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
 
@@ -686,12 +728,13 @@ def group_mean(floating[:, ::1] out,
     if len_values != len_labels:
         raise ValueError("len(index) != len(labels)")
 
-    nobs = np.zeros((<object>out).shape, dtype=np.int64)
     # the below is equivalent to `np.zeros_like(out)` but faster
+    nobs = np.zeros((<object>out).shape, dtype=np.int64)
     sumx = np.zeros((<object>out).shape, dtype=(<object>out).base.dtype)
     compensation = np.zeros((<object>out).shape, dtype=(<object>out).base.dtype)
 
     N, K = (<object>values).shape
+    nan_val = NPY_NAT if is_datetimelike else NAN
 
     with nogil:
         for i in range(N):
@@ -703,7 +746,7 @@ def group_mean(floating[:, ::1] out,
             for j in range(K):
                 val = values[i, j]
                 # not nan
-                if val == val:
+                if val == val and not (is_datetimelike and val == NPY_NAT):
                     nobs[lab, j] += 1
                     y = val - compensation[lab, j]
                     t = sumx[lab, j] + y
@@ -714,7 +757,7 @@ def group_mean(floating[:, ::1] out,
             for j in range(K):
                 count = nobs[i, j]
                 if nobs[i, j] == 0:
-                    out[i, j] = NAN
+                    out[i, j] = nan_val
                 else:
                     out[i, j] = sumx[i, j] / count
 
@@ -885,23 +928,15 @@ def group_quantile(ndarray[float64_t, ndim=2] out,
 # group_nth, group_last, group_rank
 # ----------------------------------------------------------------------
 
-ctypedef fused rank_t:
-    float64_t
-    float32_t
-    int64_t
-    uint64_t
-    object
-
-
-cdef inline bint _treat_as_na(rank_t val, bint is_datetimelike) nogil:
-    if rank_t is object:
+cdef inline bint _treat_as_na(numeric_object_t val, bint is_datetimelike) nogil:
+    if numeric_object_t is object:
         # Should never be used, but we need to avoid the `val != val` below
         #  or else cython will raise about gil acquisition.
         raise NotImplementedError
 
-    elif rank_t is int64_t:
+    elif numeric_object_t is int64_t:
         return is_datetimelike and val == NPY_NAT
-    elif rank_t is uint64_t:
+    elif numeric_object_t is uint64_t:
         # There is no NA value for uint64
         return False
     else:
@@ -909,12 +944,12 @@ cdef inline bint _treat_as_na(rank_t val, bint is_datetimelike) nogil:
 
 
 # GH#31710 use memorviews once cython 0.30 is released so we can
-#  use `const rank_t[:, :] values`
+#  use `const numeric_object_t[:, :] values`
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def group_last(rank_t[:, ::1] out,
+def group_last(numeric_object_t[:, ::1] out,
                int64_t[::1] counts,
-               ndarray[rank_t, ndim=2] values,
+               ndarray[numeric_object_t, ndim=2] values,
                const intp_t[::1] labels,
                Py_ssize_t min_count=-1) -> None:
     """
@@ -922,8 +957,8 @@ def group_last(rank_t[:, ::1] out,
     """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
-        rank_t val
-        ndarray[rank_t, ndim=2] resx
+        numeric_object_t val
+        ndarray[numeric_object_t, ndim=2] resx
         ndarray[int64_t, ndim=2] nobs
         bint runtime_error = False
 
@@ -934,14 +969,14 @@ def group_last(rank_t[:, ::1] out,
 
     min_count = max(min_count, 1)
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
-    if rank_t is object:
+    if numeric_object_t is object:
         resx = np.empty((<object>out).shape, dtype=object)
     else:
         resx = np.empty_like(out)
 
     N, K = (<object>values).shape
 
-    if rank_t is object:
+    if numeric_object_t is object:
         # TODO: De-duplicate once conditional-nogil is available
         for i in range(N):
             lab = labels[i]
@@ -983,9 +1018,9 @@ def group_last(rank_t[:, ::1] out,
             for i in range(ncounts):
                 for j in range(K):
                     if nobs[i, j] < min_count:
-                        if rank_t is int64_t:
+                        if numeric_object_t is int64_t:
                             out[i, j] = NPY_NAT
-                        elif rank_t is uint64_t:
+                        elif numeric_object_t is uint64_t:
                             runtime_error = True
                             break
                         else:
@@ -1001,12 +1036,12 @@ def group_last(rank_t[:, ::1] out,
 
 
 # GH#31710 use memorviews once cython 0.30 is released so we can
-#  use `const rank_t[:, :] values`
+#  use `const numeric_object_t[:, :] values`
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def group_nth(rank_t[:, ::1] out,
+def group_nth(numeric_object_t[:, ::1] out,
               int64_t[::1] counts,
-              ndarray[rank_t, ndim=2] values,
+              ndarray[numeric_object_t, ndim=2] values,
               const intp_t[::1] labels,
               int64_t min_count=-1,
               int64_t rank=1,
@@ -1016,8 +1051,8 @@ def group_nth(rank_t[:, ::1] out,
     """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
-        rank_t val
-        ndarray[rank_t, ndim=2] resx
+        numeric_object_t val
+        ndarray[numeric_object_t, ndim=2] resx
         ndarray[int64_t, ndim=2] nobs
         bint runtime_error = False
 
@@ -1028,14 +1063,14 @@ def group_nth(rank_t[:, ::1] out,
 
     min_count = max(min_count, 1)
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
-    if rank_t is object:
+    if numeric_object_t is object:
         resx = np.empty((<object>out).shape, dtype=object)
     else:
         resx = np.empty_like(out)
 
     N, K = (<object>values).shape
 
-    if rank_t is object:
+    if numeric_object_t is object:
         # TODO: De-duplicate once conditional-nogil is available
         for i in range(N):
             lab = labels[i]
@@ -1080,9 +1115,9 @@ def group_nth(rank_t[:, ::1] out,
             for i in range(ncounts):
                 for j in range(K):
                     if nobs[i, j] < min_count:
-                        if rank_t is int64_t:
+                        if numeric_object_t is int64_t:
                             out[i, j] = NPY_NAT
-                        elif rank_t is uint64_t:
+                        elif numeric_object_t is uint64_t:
                             runtime_error = True
                             break
                         else:
@@ -1099,7 +1134,7 @@ def group_nth(rank_t[:, ::1] out,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_rank(float64_t[:, ::1] out,
-               ndarray[rank_t, ndim=2] values,
+               ndarray[numeric_object_t, ndim=2] values,
                const intp_t[::1] labels,
                int ngroups,
                bint is_datetimelike, str ties_method="average",
@@ -1111,7 +1146,7 @@ def group_rank(float64_t[:, ::1] out,
     ----------
     out : np.ndarray[np.float64, ndim=2]
         Values to which this method will write its results.
-    values : np.ndarray of rank_t values to be ranked
+    values : np.ndarray of numeric_object_t values to be ranked
     labels : np.ndarray[np.intp]
         Array containing unique label for each group, with its ordering
         matching up to the corresponding record in `values`

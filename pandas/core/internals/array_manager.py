@@ -1035,7 +1035,7 @@ class ArrayManager(BaseArrayManager):
 
     def unstack(self, unstacker, fill_value) -> ArrayManager:
         """
-        Return a BlockManager with all blocks unstacked..
+        Return a BlockManager with all blocks unstacked.
 
         Parameters
         ----------
