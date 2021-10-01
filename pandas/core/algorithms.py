@@ -96,6 +96,7 @@ if TYPE_CHECKING:
     )
     from pandas.core.arrays import (
         DatetimeArray,
+        ExtensionArray,
         TimedeltaArray,
     )
 
@@ -1535,7 +1536,7 @@ def take(
 
 def searchsorted(
     arr: ArrayLike,
-    value: NumpyValueArrayLike,
+    value: NumpyValueArrayLike | ExtensionArray,
     side: Literal["left", "right"] = "left",
     sorter: NumpySorter = None,
 ) -> npt.NDArray[np.intp] | np.intp:
@@ -1609,14 +1610,14 @@ def searchsorted(
             value = cast(int, dtype.type(value))
         else:
             value = pd_array(cast(ArrayLike, value), dtype=dtype)
-    elif not (
-        is_object_dtype(arr) or is_numeric_dtype(arr) or is_categorical_dtype(arr)
-    ):
+    else:
         # E.g. if `arr` is an array with dtype='datetime64[ns]'
         # and `value` is a pd.Timestamp, we may need to convert value
         arr = ensure_wrapped_if_datetimelike(arr)
 
-    return arr.searchsorted(value, side=side, sorter=sorter)
+    # Argument 1 to "searchsorted" of "ndarray" has incompatible type
+    # "Union[NumpyValueArrayLike, ExtensionArray]"; expected "NumpyValueArrayLike"
+    return arr.searchsorted(value, side=side, sorter=sorter)  # type: ignore[arg-type]
 
 
 # ---- #

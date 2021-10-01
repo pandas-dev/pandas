@@ -28,7 +28,7 @@ class SparseIndex:
 class IntIndex(SparseIndex):
     indices: npt.NDArray[np.int32]
     def __init__(
-        self, length: int, indices: Sequence[int], check_integrity: bool = True
+        self, length: int, indices: Sequence[int], check_integrity: bool = ...
     ): ...
 
 class BlockIndex(SparseIndex):

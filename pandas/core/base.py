@@ -14,6 +14,7 @@ from typing import (
     TypeVar,
     cast,
     final,
+    overload,
 )
 
 import numpy as np
@@ -22,8 +23,8 @@ import pandas._libs.lib as lib
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
-    FrameOrSeries,
     IndexLabel,
+    NDFrameT,
     Shape,
     npt,
 )
@@ -181,13 +182,13 @@ class SpecificationError(Exception):
     pass
 
 
-class SelectionMixin(Generic[FrameOrSeries]):
+class SelectionMixin(Generic[NDFrameT]):
     """
     mixin implementing the selection & aggregation interface on a group-like
     object sub-classes need to define: obj, exclusions
     """
 
-    obj: FrameOrSeries
+    obj: NDFrameT
     _selection: IndexLabel | None = None
     exclusions: frozenset[Hashable]
     _internal_names = ["_cache", "__setstate__"]
@@ -1230,14 +1231,50 @@ class IndexOpsMixin(OpsMixin):
         0  # wrong result, correct would be 1
         """
 
+    # This overload is needed so that the call to searchsorted in
+    # pandas.core.resample.TimeGrouper._get_period_bins picks the correct result
+
+    @overload
+    # The following ignore is also present in numpy/__init__.pyi
+    # Possibly a mypy bug??
+    # error: Overloaded function signatures 1 and 2 overlap with incompatible
+    # return types  [misc]
+    def searchsorted(  # type: ignore[misc]
+        self,
+        value: npt._ScalarLike_co,
+        side: Literal["left", "right"] = "left",
+        sorter: NumpySorter = None,
+    ) -> np.intp:
+        ...
+
+    @overload
+    def searchsorted(
+        self,
+        value: npt.ArrayLike | ExtensionArray,
+        side: Literal["left", "right"] = "left",
+        sorter: NumpySorter = None,
+    ) -> npt.NDArray[np.intp]:
+        ...
+
     @doc(_shared_docs["searchsorted"], klass="Index")
     def searchsorted(
         self,
-        value: NumpyValueArrayLike,
+        value: NumpyValueArrayLike | ExtensionArray,
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter = None,
     ) -> npt.NDArray[np.intp] | np.intp:
-        return algorithms.searchsorted(self._values, value, side=side, sorter=sorter)
+
+        values = self._values
+        if not isinstance(values, np.ndarray):
+            # Going through EA.searchsorted directly improves performance GH#38083
+            return values.searchsorted(value, side=side, sorter=sorter)
+
+        return algorithms.searchsorted(
+            values,
+            value,
+            side=side,
+            sorter=sorter,
+        )
 
     def drop_duplicates(self, keep="first"):
         duplicated = self._duplicated(keep=keep)

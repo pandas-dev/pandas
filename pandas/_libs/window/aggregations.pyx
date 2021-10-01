@@ -20,15 +20,14 @@ from numpy cimport (
 cnp.import_array()
 
 
-cdef extern from "src/headers/cmath" namespace "std":
+cdef extern from "../src/headers/cmath" namespace "std":
     bint isnan(float64_t) nogil
     bint notnan(float64_t) nogil
     int signbit(float64_t) nogil
     float64_t sqrt(float64_t x) nogil
 
 from pandas._libs.algos import is_monotonic
-
-from pandas._libs.util cimport numeric
+from pandas._libs.dtypes cimport numeric_t
 
 
 cdef extern from "../src/skiplist.h":
@@ -851,18 +850,18 @@ def roll_median_c(const float64_t[:] values, ndarray[int64_t] start,
 # https://github.com/pydata/bottleneck
 
 
-cdef inline numeric init_mm(numeric ai, Py_ssize_t *nobs, bint is_max) nogil:
+cdef inline numeric_t init_mm(numeric_t ai, Py_ssize_t *nobs, bint is_max) nogil:
 
-    if numeric in cython.floating:
+    if numeric_t in cython.floating:
         if ai == ai:
             nobs[0] = nobs[0] + 1
         elif is_max:
-            if numeric == cython.float:
+            if numeric_t == cython.float:
                 ai = MINfloat32
             else:
                 ai = MINfloat64
         else:
-            if numeric == cython.float:
+            if numeric_t == cython.float:
                 ai = MAXfloat32
             else:
                 ai = MAXfloat64
@@ -873,18 +872,18 @@ cdef inline numeric init_mm(numeric ai, Py_ssize_t *nobs, bint is_max) nogil:
     return ai
 
 
-cdef inline void remove_mm(numeric aold, Py_ssize_t *nobs) nogil:
+cdef inline void remove_mm(numeric_t aold, Py_ssize_t *nobs) nogil:
     """ remove a value from the mm calc """
-    if numeric in cython.floating and aold == aold:
+    if numeric_t in cython.floating and aold == aold:
         nobs[0] = nobs[0] - 1
 
 
-cdef inline numeric calc_mm(int64_t minp, Py_ssize_t nobs,
-                            numeric value) nogil:
+cdef inline numeric_t calc_mm(int64_t minp, Py_ssize_t nobs,
+                              numeric_t value) nogil:
     cdef:
-        numeric result
+        numeric_t result
 
-    if numeric in cython.floating:
+    if numeric_t in cython.floating:
         if nobs >= minp:
             result = value
         else:
@@ -940,13 +939,13 @@ def roll_min(ndarray[float64_t] values, ndarray[int64_t] start,
     return _roll_min_max(values, start, end, minp, is_max=0)
 
 
-cdef _roll_min_max(ndarray[numeric] values,
+cdef _roll_min_max(ndarray[numeric_t] values,
                    ndarray[int64_t] starti,
                    ndarray[int64_t] endi,
                    int64_t minp,
                    bint is_max):
     cdef:
-        numeric ai
+        numeric_t ai
         int64_t curr_win_size, start
         Py_ssize_t i, k, nobs = 0, N = len(values)
         deque Q[int64_t]  # min/max always the front

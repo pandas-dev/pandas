@@ -449,7 +449,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         self.name = name
         self._set_axis(0, index, fastpath=True)
 
-    def _init_dict(self, data, index=None, dtype: Dtype | None = None):
+    def _init_dict(
+        self, data, index: Index | None = None, dtype: DtypeObj | None = None
+    ):
         """
         Derive the "_mgr" and "index" attributes of a new Series from a
         dictionary input.
@@ -458,9 +460,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         ----------
         data : dict or dict-like
             Data used to populate the new Series.
-        index : Index or index-like, default None
+        index : Index or None, default None
             Index for the new Series: if None, use dict keys.
-        dtype : dtype, default None
+        dtype : np.dtype, ExtensionDtype, or None, default None
             The dtype for the new Series: if None, infer from data.
 
         Returns
@@ -468,6 +470,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         _data : BlockManager for the new Series
         index : index for the new Series
         """
+        keys: Index | tuple
+
         # Looking for NaN in dict doesn't work ({np.nan : 1}[float('nan')]
         # raises KeyError), so we iterate the entire dict, and align
         if data:
@@ -2790,13 +2794,14 @@ Name: Max Speed, dtype: float64
         return self.dot(np.transpose(other))
 
     @doc(base.IndexOpsMixin.searchsorted, klass="Series")
-    def searchsorted(
+    # Signature of "searchsorted" incompatible with supertype "IndexOpsMixin"
+    def searchsorted(  # type: ignore[override]
         self,
-        value: NumpyValueArrayLike,
+        value: NumpyValueArrayLike | ExtensionArray,
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter = None,
     ) -> npt.NDArray[np.intp] | np.intp:
-        return algorithms.searchsorted(self._values, value, side=side, sorter=sorter)
+        return base.IndexOpsMixin.searchsorted(self, value, side=side, sorter=sorter)
 
     # -------------------------------------------------------------------
     # Combination

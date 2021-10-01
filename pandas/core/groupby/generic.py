@@ -7,10 +7,7 @@ which here returns a DataFrameGroupBy object.
 """
 from __future__ import annotations
 
-from collections import (
-    abc,
-    namedtuple,
-)
+from collections import abc
 from functools import partial
 from textwrap import dedent
 from typing import (
@@ -19,6 +16,7 @@ from typing import (
     Hashable,
     Iterable,
     Mapping,
+    NamedTuple,
     TypeVar,
     Union,
     cast,
@@ -30,7 +28,6 @@ import numpy as np
 from pandas._libs import reduction as libreduction
 from pandas._typing import (
     ArrayLike,
-    FrameOrSeries,
     Manager,
     Manager2D,
     SingleManager,
@@ -76,7 +73,6 @@ from pandas.core.groupby.groupby import (
     _agg_template,
     _apply_docs,
     _transform_template,
-    group_selection_context,
     warn_dropping_nuisance_columns_deprecated,
 )
 from pandas.core.indexes.api import (
@@ -89,7 +85,6 @@ from pandas.core.util.numba_ import maybe_use_numba
 
 from pandas.plotting import boxplot_frame_groupby
 
-NamedAgg = namedtuple("NamedAgg", ["column", "aggfunc"])
 # TODO(typing) the return value on this callable should be any *scalar*.
 AggScalar = Union[str, Callable[..., Any]]
 # TODO: validate types on ScalarResult and move to _typing
@@ -98,7 +93,12 @@ AggScalar = Union[str, Callable[..., Any]]
 ScalarResult = TypeVar("ScalarResult")
 
 
-def generate_property(name: str, klass: type[FrameOrSeries]):
+class NamedAgg(NamedTuple):
+    column: Hashable
+    aggfunc: AggScalar
+
+
+def generate_property(name: str, klass: type[DataFrame | Series]):
     """
     Create a property for a GroupBy subclass to dispatch to DataFrame/Series.
 
@@ -121,7 +121,9 @@ def generate_property(name: str, klass: type[FrameOrSeries]):
     return property(prop)
 
 
-def pin_allowlisted_properties(klass: type[FrameOrSeries], allowlist: frozenset[str]):
+def pin_allowlisted_properties(
+    klass: type[DataFrame | Series], allowlist: frozenset[str]
+):
     """
     Create GroupBy member defs for DataFrame/Series names in a allowlist.
 
@@ -242,7 +244,7 @@ class SeriesGroupBy(GroupBy[Series]):
     def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
 
         if maybe_use_numba(engine):
-            with group_selection_context(self):
+            with self._group_selection_context():
                 data = self._selected_obj
             result = self._aggregate_with_numba(
                 data.to_frame(), func, *args, engine_kwargs=engine_kwargs, **kwargs
@@ -844,7 +846,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
 
         if maybe_use_numba(engine):
-            with group_selection_context(self):
+            with self._group_selection_context():
                 data = self._selected_obj
             result = self._aggregate_with_numba(
                 data, func, *args, engine_kwargs=engine_kwargs, **kwargs
