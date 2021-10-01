@@ -1145,6 +1145,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 index=self.grouper.result_index, columns=data.columns
             )
             result = result.astype(data.dtypes.to_dict(), copy=False)
+            # TODO: will this astype mess up with non-unique columns?
+            #if not len(values):
+            #    breakpoint()
+            #    #result = result[[]]
             return result
 
         # GH12824
@@ -1824,6 +1828,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             result = [index[i] if i >= 0 else np.nan for i in indices]
             return df._constructor_sliced(result, index=res.index)
 
+        func.__name__ = "idxmax"
         return self._python_apply_general(func, self._obj_with_exclusions)
 
     @Appender(DataFrame.idxmin.__doc__)
@@ -1845,6 +1850,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             result = [index[i] if i >= 0 else np.nan for i in indices]
             return df._constructor_sliced(result, index=res.index)
 
+        func.__name__ = "idxmin"
         return self._python_apply_general(func, self._obj_with_exclusions)
 
     boxplot = boxplot_frame_groupby

@@ -720,6 +720,8 @@ class BaseGrouper:
         group_keys = self._get_group_keys()
         result_values = None
 
+        assert callable(f)
+
         if data.ndim == 2 and any(
             isinstance(x, ExtensionArray) for x in data._iter_column_arrays()
         ):
@@ -782,6 +784,12 @@ class BaseGrouper:
             if not _is_indexed_like(res, group_axes, axis):
                 mutated = True
             result_values.append(res)
+
+        if not isinstance(f, str):  # TODO: WTF?
+            if len(group_keys) == 0 and f.__name__ not in ["idxmin", "idxmax", "nanargmin", "nanargmax"]:
+                # there have been zero function calls, so we do one dummy call
+                #  so that we can raise TypeError where appropriate
+                f(data.iloc[:0])
 
         return group_keys, result_values, mutated
 

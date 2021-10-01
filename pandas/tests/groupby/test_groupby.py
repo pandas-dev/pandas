@@ -1898,6 +1898,30 @@ def test_empty_groupby(columns, keys, values, method, op, request):
                 tm.assert_equal(result, expected)
                 return
 
+            if op in ["mad", "min", "max", "skew"] and isinstance(values, Categorical):
+                # Categorical doesn't implement, so with numeric_only=True
+                #  these are dropped and we get an empty DataFrame back
+                result = get_result()
+                expected = df.set_index(keys)[[]]
+
+                # with numeric_only=True, these are dropped, and we get
+                # an empty DataFrame back
+                if len(keys) != 1:
+                    # Categorical is special without 'observed=True'
+                    lev = Categorical([0], dtype=values.dtype)
+                    mi = MultiIndex.from_product([lev, lev], names=keys)
+                    expected = DataFrame([], columns=[], index=mi)
+                else:
+                    # all columns are dropped, but we end up with one row
+                    # Categorical is special without 'observed=True'
+                    lev = Categorical([0], dtype=values.dtype)
+                    ci = Index(lev, name=keys[0])
+                    expected = DataFrame([], columns=[], index=ci)
+                #expected = df.set_index(keys)[columns]
+
+                tm.assert_equal(result, expected)
+                return
+
     result = get_result()
     expected = df.set_index(keys)[columns]
     if override_dtype is not None:
