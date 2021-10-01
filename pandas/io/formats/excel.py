@@ -531,6 +531,13 @@ class ExcelFormatter:
             )
         return val
 
+    def _yield_cell(self, styles, xlstyle, row_i, col_i, **kwargs):
+        if styles:
+            css = ";".join(a + ":" + str(v) for (a, v) in styles[row_i, col_i])
+            xlstyle = self.style_converter(css)
+        kwargs["style"] = xlstyle
+        yield ExcelCell(**kwargs)
+
     def _format_header_mi(self) -> Iterable[ExcelCell]:
         if self.columns.nlevels > 1:
             if not self.index:
@@ -554,7 +561,7 @@ class ExcelFormatter:
             coloffset = len(self.df.index[0]) - 1
 
         styles = None if self.styler is None else self.styler.ctx_columns
-        xlstyle = self.header_style
+        # xlstyle = self.header_style
 
         if self.merge_cells:
             # Format multi-index as a merged cells.
@@ -572,14 +579,14 @@ class ExcelFormatter:
                 values = levels.take(level_codes)
                 for i, span_val in spans.items():
                     spans_multiple_cells = span_val > 1
-                    if styles:
-                        css = ";".join(a + ":" + str(v) for (a, v) in styles[lnum, i])
-                        xlstyle = self.style_converter(css)
-                    yield ExcelCell(
+                    self._yield_cell(
+                        styles=styles,
+                        xlstyle=self.header_style,
+                        row_i=lnum,
+                        col_i=i,
                         row=lnum,
                         col=coloffset + i + 1,
                         val=values[i],
-                        style=xlstyle,
                         mergestart=lnum if spans_multiple_cells else None,
                         mergeend=(
                             coloffset + i + span_val if spans_multiple_cells else None
@@ -589,10 +596,19 @@ class ExcelFormatter:
             # Format in legacy format with dots to indicate levels.
             for i, values in enumerate(zip(*level_strs)):
                 v = ".".join(map(pprint_thing, values))
-                if styles:
-                    css = ";".join(a + ":" + str(v) for (a, v) in styles[lnum, i])
-                    xlstyle = self.style_converter(css)
-                yield ExcelCell(lnum, coloffset + i + 1, v, xlstyle)
+                self._yield_cell(
+                    styles=styles,
+                    xlstyle=self.header_style,
+                    row_i=lnum,
+                    col_i=i,
+                    row=lnum,
+                    col=coloffset + i + 1,
+                    val=v,
+                )
+                # if styles:
+                #     css = ";".join(a + ":" + str(v) for (a, v) in styles[lnum, i])
+                #     xlstyle = self.style_converter(css)
+                # yield ExcelCell(lnum, coloffset + i + 1, v, xlstyle)
 
         self.rowcounter = lnum
 
