@@ -16,18 +16,3 @@ cdef extern from "src/headers/stdint.h":
     enum: INT32_MIN
     enum: INT64_MAX
     enum: INT64_MIN
-
-
-ctypedef fused numeric:
-    cnp.int8_t
-    cnp.int16_t
-    cnp.int32_t
-    cnp.int64_t
-
-    cnp.uint8_t
-    cnp.uint16_t
-    cnp.uint32_t
-    cnp.uint64_t
-
-    cnp.float32_t
-    cnp.float64_t
