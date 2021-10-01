@@ -1,5 +1,3 @@
-from itertools import product
-
 import numpy as np
 import pytest
 
@@ -11,8 +9,8 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.fixture(params=product([True, False], [True, False]))
-def close_open_fixture(request):
+@pytest.fixture(params=["both", "neither", "left", "right"])
+def inclusive_endpoints_fixture(request):
     return request.param
 
 

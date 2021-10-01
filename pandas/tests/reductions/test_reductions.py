@@ -964,6 +964,7 @@ class TestSeriesReductions:
         expected = bool_agg_func == "any" and None not in data
         assert result == expected
 
+    @pytest.mark.parametrize("dtype", ["boolean", "Int64", "UInt64", "Float64"])
     @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
     @pytest.mark.parametrize("skipna", [True, False])
     @pytest.mark.parametrize(
@@ -971,18 +972,19 @@ class TestSeriesReductions:
         #                           [skipna=True/any, skipna=True/all]]
         "data,expected_data",
         [
-            ([False, False, False], [[False, False], [False, False]]),
-            ([True, True, True], [[True, True], [True, True]]),
+            ([0, 0, 0], [[False, False], [False, False]]),
+            ([1, 1, 1], [[True, True], [True, True]]),
             ([pd.NA, pd.NA, pd.NA], [[pd.NA, pd.NA], [False, True]]),
-            ([False, pd.NA, False], [[pd.NA, False], [False, False]]),
-            ([True, pd.NA, True], [[True, pd.NA], [True, True]]),
-            ([True, pd.NA, False], [[True, False], [True, False]]),
+            ([0, pd.NA, 0], [[pd.NA, False], [False, False]]),
+            ([1, pd.NA, 1], [[True, pd.NA], [True, True]]),
+            ([1, pd.NA, 0], [[True, False], [True, False]]),
         ],
     )
-    def test_any_all_boolean_kleene_logic(
-        self, bool_agg_func, skipna, data, expected_data
+    def test_any_all_nullable_kleene_logic(
+        self, bool_agg_func, skipna, data, dtype, expected_data
     ):
-        ser = Series(data, dtype="boolean")
+        # GH-37506, GH-41967
+        ser = Series(data, dtype=dtype)
         expected = expected_data[skipna][bool_agg_func == "all"]
 
         result = getattr(ser, bool_agg_func)(skipna=skipna)
@@ -1486,4 +1488,51 @@ class TestSeriesMode:
         ser = Series([True, False, True, pd.NA], dtype="boolean")
         result = ser.mode()
         expected = Series({0: True}, dtype="boolean")
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "array,expected,dtype",
+        [
+            (
+                [0, 1j, 1, 1, 1 + 1j, 1 + 2j],
+                Series([1], dtype=np.complex128),
+                np.complex128,
+            ),
+            (
+                [0, 1j, 1, 1, 1 + 1j, 1 + 2j],
+                Series([1], dtype=np.complex64),
+                np.complex64,
+            ),
+            (
+                [1 + 1j, 2j, 1 + 1j],
+                Series([1 + 1j], dtype=np.complex128),
+                np.complex128,
+            ),
+        ],
+    )
+    def test_single_mode_value_complex(self, array, expected, dtype):
+        result = Series(array, dtype=dtype).mode()
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "array,expected,dtype",
+        [
+            (
+                # no modes
+                [0, 1j, 1, 1 + 1j, 1 + 2j],
+                Series([0j, 1j, 1 + 0j, 1 + 1j, 1 + 2j], dtype=np.complex128),
+                np.complex128,
+            ),
+            (
+                [1 + 1j, 2j, 1 + 1j, 2j, 3],
+                Series([2j, 1 + 1j], dtype=np.complex64),
+                np.complex64,
+            ),
+        ],
+    )
+    def test_multimode_complex(self, array, expected, dtype):
+        # GH 17927
+        # mode tries to sort multimodal series.
+        # Complex numbers are sorted by their magnitude
+        result = Series(array, dtype=dtype).mode()
         tm.assert_series_equal(result, expected)

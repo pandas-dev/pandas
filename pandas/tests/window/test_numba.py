@@ -14,7 +14,7 @@ import pandas._testing as tm
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
 
 
-@td.skip_if_no("numba", "0.46.0")
+@td.skip_if_no("numba")
 @pytest.mark.filterwarnings("ignore:\\nThe keyword argument")
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
 class TestEngine:
@@ -43,44 +43,52 @@ class TestEngine:
         )
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "data", [DataFrame(np.eye(5)), Series(range(5), name="foo")]
+    )
     def test_numba_vs_cython_rolling_methods(
-        self, nogil, parallel, nopython, arithmetic_numba_supported_operators
+        self, data, nogil, parallel, nopython, arithmetic_numba_supported_operators
     ):
 
         method = arithmetic_numba_supported_operators
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
 
-        df = DataFrame(np.eye(5))
-        roll = df.rolling(2)
+        roll = data.rolling(2)
         result = getattr(roll, method)(engine="numba", engine_kwargs=engine_kwargs)
         expected = getattr(roll, method)(engine="cython")
 
         # Check the cache
-        assert (getattr(np, f"nan{method}"), "Rolling_apply_single") in NUMBA_FUNC_CACHE
+        if method != "mean":
+            assert (
+                getattr(np, f"nan{method}"),
+                "Rolling_apply_single",
+            ) in NUMBA_FUNC_CACHE
 
-        tm.assert_frame_equal(result, expected)
+        tm.assert_equal(result, expected)
 
+    @pytest.mark.parametrize("data", [DataFrame(np.eye(5)), Series(range(5))])
     def test_numba_vs_cython_expanding_methods(
-        self, nogil, parallel, nopython, arithmetic_numba_supported_operators
+        self, data, nogil, parallel, nopython, arithmetic_numba_supported_operators
     ):
 
         method = arithmetic_numba_supported_operators
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
 
-        df = DataFrame(np.eye(5))
-        expand = df.expanding()
+        data = DataFrame(np.eye(5))
+        expand = data.expanding()
         result = getattr(expand, method)(engine="numba", engine_kwargs=engine_kwargs)
         expected = getattr(expand, method)(engine="cython")
 
         # Check the cache
-        assert (
-            getattr(np, f"nan{method}"),
-            "Expanding_apply_single",
-        ) in NUMBA_FUNC_CACHE
+        if method != "mean":
+            assert (
+                getattr(np, f"nan{method}"),
+                "Expanding_apply_single",
+            ) in NUMBA_FUNC_CACHE
 
-        tm.assert_frame_equal(result, expected)
+        tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize("jit", [True, False])
     def test_cache_apply(self, jit, nogil, parallel, nopython):
@@ -150,7 +158,7 @@ class TestEngine:
         tm.assert_frame_equal(result, expected)
 
 
-@td.skip_if_no("numba", "0.46.0")
+@td.skip_if_no("numba")
 class TestEWMMean:
     @pytest.mark.parametrize(
         "grouper", [lambda x: x, lambda x: x.groupby("A")], ids=["None", "groupby"]
@@ -229,7 +237,7 @@ class TestEWMMean:
         tm.assert_frame_equal(result, expected)
 
 
-@td.skip_if_no("numba", "0.46.0")
+@td.skip_if_no("numba")
 def test_use_global_config():
     def f(x):
         return np.mean(x) + 2
@@ -241,7 +249,7 @@ def test_use_global_config():
     tm.assert_series_equal(expected, result)
 
 
-@td.skip_if_no("numba", "0.46.0")
+@td.skip_if_no("numba")
 def test_invalid_kwargs_nopython():
     with pytest.raises(NumbaUtilError, match="numba does not support kwargs with"):
         Series(range(1)).rolling(1).apply(
@@ -249,7 +257,7 @@ def test_invalid_kwargs_nopython():
         )
 
 
-@td.skip_if_no("numba", "0.46.0")
+@td.skip_if_no("numba")
 @pytest.mark.slow
 @pytest.mark.filterwarnings("ignore:\\nThe keyword argument")
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
