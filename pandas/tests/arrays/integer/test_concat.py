@@ -65,11 +65,3 @@ def test_concat_series_with_numpy(to_concat_dtypes, result_dtype):
     tm.assert_series_equal(result, expected)
 
 
-def test_concat_frame_with_sort_false():
-    # GH 43375
-    result = pd.concat(
-        [pd.DataFrame({i: i}, index=[i]) for i in range(2, 0, -1)], sort=False
-    )
-    expected = pd.DataFrame([[2, np.nan], [np.nan, 1]], index=[2, 1], columns=[2, 1])
-
-    tm.assert_frame_equal(result, expected)

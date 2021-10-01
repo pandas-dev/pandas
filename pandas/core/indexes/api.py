@@ -219,7 +219,6 @@ def union_indexes(indexes, sort: bool = True) -> Index:
             return result.union_many(indexes[1:])
         else:
             for other in indexes[1:]:
-                import pdb; pdb.set_trace()
                 result = result.union(other, sort=None if sort else False)
             return result
     elif kind == "array":
