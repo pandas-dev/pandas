@@ -36,13 +36,12 @@ def test_selection_methods_of_assigned_col():
     expected = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [9, 11, 7]})
     tm.assert_frame_equal(result, expected)
     result = df.at[1, "c"]
-    expected = 11
-    assert result == expected
+    assert result == 11
+
     result = df["c"]
     expected = Series([9, 11, 7], name="c")
-    print(result)
-    print(expected)
     tm.assert_series_equal(result, expected)
+
     result = df[["c"]]
     expected = DataFrame({"c": [9, 11, 7]})
     tm.assert_frame_equal(result, expected)
