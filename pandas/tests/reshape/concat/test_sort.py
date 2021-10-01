@@ -89,7 +89,8 @@ class TestConcatSort:
         result = pd.concat(
             [pd.DataFrame({i: i}, index=[i]) for i in range(2, 0, -1)], sort=False
         )
-        expected = pd.DataFrame([[2, np.nan], [np.nan, 1]], index=[2, 1], columns=[2, 1])
+        expected = pd.DataFrame(
+            [[2, np.nan], [np.nan, 1]], index=[2, 1], columns=[2, 1]
+        )
 
         tm.assert_frame_equal(result, expected)
-

@@ -63,5 +63,3 @@ def test_concat_series_with_numpy(to_concat_dtypes, result_dtype):
     result = pd.concat([s2, s1], ignore_index=True)
     expected = pd.Series([0, 1, 0, 1, pd.NA], dtype=object).astype(result_dtype)
     tm.assert_series_equal(result, expected)
-
-
