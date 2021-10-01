@@ -85,4 +85,5 @@ types-python-dateutil
 types-PyMySQL
 types-pytz
 types-setuptools
+pytest-cython
 setuptools>=51.0.0
