@@ -1095,8 +1095,10 @@ class MultiIndex(Index):
             return MultiIndexPyIntEngine(self.levels, self.codes, offsets)
         return MultiIndexUIntEngine(self.levels, self.codes, offsets)
 
+    # Return type "Callable[..., MultiIndex]" of "_constructor" incompatible with return
+    # type "Type[MultiIndex]" in supertype "Index"
     @property
-    def _constructor(self) -> Callable[..., MultiIndex]:
+    def _constructor(self) -> Callable[..., MultiIndex]:  # type: ignore[override]
         return type(self).from_tuples
 
     @doc(Index._shallow_copy)

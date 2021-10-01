@@ -81,8 +81,9 @@ def _inherit_from_data(name: str, delegate, cache: bool = False, wrap: bool = Fa
         method = attr
 
     else:
-
-        def method(self, *args, **kwargs):
+        # error: Incompatible redefinition (redefinition with type "Callable[[Any,
+        # VarArg(Any), KwArg(Any)], Any]", original type "property")
+        def method(self, *args, **kwargs):  # type: ignore[misc]
             if "inplace" in kwargs:
                 raise ValueError(f"cannot use inplace with {type(self).__name__}")
             result = attr(self._data, *args, **kwargs)
@@ -94,7 +95,8 @@ def _inherit_from_data(name: str, delegate, cache: bool = False, wrap: bool = Fa
                 return Index(result, name=self.name)
             return result
 
-        method.__name__ = name
+        # error: "property" has no attribute "__name__"
+        method.__name__ = name  # type: ignore[attr-defined]
         method.__doc__ = attr.__doc__
     return method
 

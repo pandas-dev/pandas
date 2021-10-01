@@ -3681,7 +3681,11 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             tgt_values = target._get_engine_target()
             if target._is_multi and self._is_multi:
-                tgt_values = self._engine._extract_level_codes(target)
+                engine = self._engine
+                # error: "IndexEngine" has no attribute "_extract_level_codes"
+                tgt_values = engine._extract_level_codes(  # type: ignore[attr-defined]
+                    target
+                )
 
             indexer = self._engine.get_indexer(tgt_values)
 
@@ -3758,7 +3762,8 @@ class Index(IndexOpsMixin, PandasObject):
         if self._is_multi:
             # TODO: get_indexer_with_fill docstring says values must be _sorted_
             #  but that doesn't appear to be enforced
-            return self._engine.get_indexer_with_fill(
+            # error: "IndexEngine" has no attribute "get_indexer_with_fill"
+            return self._engine.get_indexer_with_fill(  # type: ignore[attr-defined]
                 target=target._values, values=self._values, method=method, limit=limit
             )
 
@@ -4677,7 +4682,8 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self._data
 
-    @cache_readonly
+    # error: Decorated property not supported
+    @cache_readonly  # type: ignore[misc]
     @doc(IndexOpsMixin.array)
     def array(self) -> ExtensionArray:
         array = self._data
@@ -5596,7 +5602,11 @@ class Index(IndexOpsMixin, PandasObject):
         #  self and non-Multi target
         tgt_values = target._get_engine_target()
         if self._is_multi and target._is_multi:
-            tgt_values = self._engine._extract_level_codes(target)
+            engine = self._engine
+            # error: "IndexEngine" has no attribute "_extract_level_codes"
+            tgt_values = engine._extract_level_codes(  # type: ignore[attr-defined]
+                target
+            )
 
         indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
         return ensure_platform_int(indexer), ensure_platform_int(missing)
@@ -7049,7 +7059,9 @@ def unpack_nested_dtype(other: _IndexT) -> _IndexT:
     if is_categorical_dtype(dtype):
         # If there is ever a SparseIndex, this could get dispatched
         #  here too.
-        return dtype.categories
+        # error: Item  "dtype[Any]"/"ExtensionDtype" of "Union[dtype[Any],
+        # ExtensionDtype]" has no attribute "categories"
+        return dtype.categories  # type: ignore[union-attr]
     return other
 
 

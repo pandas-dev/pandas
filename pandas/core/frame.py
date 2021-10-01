@@ -10716,10 +10716,14 @@ NaN 12.3   33.0
     _info_axis_number = 1
     _info_axis_name = "columns"
 
-    index: Index = properties.AxisProperty(
+    # error: Incompatible types in assignment (expression has type "AxisProperty",
+    # variable has type "Index")
+    index: Index = properties.AxisProperty(  # type: ignore[assignment]
         axis=1, doc="The index (row labels) of the DataFrame."
     )
-    columns: Index = properties.AxisProperty(
+    # error: Incompatible types in assignment (expression has type "AxisProperty",
+    # variable has type "Index")
+    columns: Index = properties.AxisProperty(  # type: ignore[assignment]
         axis=0, doc="The column labels of the DataFrame."
     )
 
