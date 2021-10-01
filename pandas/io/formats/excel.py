@@ -561,7 +561,6 @@ class ExcelFormatter:
             coloffset = len(self.df.index[0]) - 1
 
         styles = None if self.styler is None else self.styler.ctx_columns
-        # xlstyle = self.header_style
 
         if self.merge_cells:
             # Format multi-index as a merged cells.
@@ -596,7 +595,7 @@ class ExcelFormatter:
             # Format in legacy format with dots to indicate levels.
             for i, values in enumerate(zip(*level_strs)):
                 v = ".".join(map(pprint_thing, values))
-                self._yield_cell(
+                yield from self._yield_cell(
                     styles=styles,
                     xlstyle=self.header_style,
                     row_i=lnum,
@@ -605,10 +604,6 @@ class ExcelFormatter:
                     col=coloffset + i + 1,
                     val=v,
                 )
-                # if styles:
-                #     css = ";".join(a + ":" + str(v) for (a, v) in styles[lnum, i])
-                #     xlstyle = self.style_converter(css)
-                # yield ExcelCell(lnum, coloffset + i + 1, v, xlstyle)
 
         self.rowcounter = lnum
 
@@ -633,12 +628,16 @@ class ExcelFormatter:
                     colnames = self.header
 
             styles = None if self.styler is None else self.styler.ctx_columns
-            xlstyle = self.header_style
             for colindex, colname in enumerate(colnames):
-                if styles:
-                    css = ";".join(a + ":" + str(v) for (a, v) in styles[0, colindex])
-                    xlstyle = self.style_converter(css)
-                yield ExcelCell(self.rowcounter, colindex + coloffset, colname, xlstyle)
+                yield from self._yield_cell(
+                    styles=styles,
+                    xlstyle=self.header_style,
+                    row_i=0,
+                    col_i=colindex,
+                    row=self.rowcounter,
+                    col=colindex + coloffset,
+                    val=colname,
+                )
 
     def _format_header(self) -> Iterable[ExcelCell]:
         if isinstance(self.columns, MultiIndex):
@@ -697,13 +696,16 @@ class ExcelFormatter:
                 index_values = self.df.index.to_timestamp()
 
             styles = None if self.styler is None else self.styler.ctx_index
-            xlstyle = self.header_style
             for idx, idxval in enumerate(index_values):
-                if styles:
-                    css = ";".join(a + ":" + str(v) for (a, v) in styles[idx, 0])
-                    xlstyle = self.style_converter(css)
-                yield ExcelCell(self.rowcounter + idx, 0, idxval, xlstyle)
-
+                yield from self._yield_cell(
+                    styles=styles,
+                    xlstyle=self.header_style,
+                    row_i=idx,
+                    col_i=0,
+                    row=self.rowcounter + idx,
+                    col=0,
+                    val=idxval,
+                )
             coloffset = 1
         else:
             coloffset = 0
@@ -738,8 +740,6 @@ class ExcelFormatter:
                     yield ExcelCell(self.rowcounter - 1, cidx, name, self.header_style)
 
             styles = None if self.styler is None else self.styler.ctx_index
-            xlstyle = self.header_style
-
             if self.merge_cells:
                 # Format hierarchical rows as merged cells.
                 level_strs = self.df.index.format(
@@ -759,16 +759,14 @@ class ExcelFormatter:
 
                     for i, span_val in spans.items():
                         spans_multiple_cells = span_val > 1
-                        if styles:
-                            css = ";".join(
-                                a + ":" + str(v) for (a, v) in styles[i, gcolidx]
-                            )
-                            xlstyle = self.style_converter(css)
-                        yield ExcelCell(
+                        yield from self._yield_cell(
+                            styles=styles,
+                            xlstyle=self.header_style,
+                            row_i=i,
+                            col_i=gcolidx,
                             row=self.rowcounter + i,
                             col=gcolidx,
                             val=values[i],
-                            style=xlstyle,
                             mergestart=(
                                 self.rowcounter + i + span_val - 1
                                 if spans_multiple_cells
