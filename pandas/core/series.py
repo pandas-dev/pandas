@@ -3670,7 +3670,8 @@ Keep all original rows and also all original values
         mask = isna(values)
 
         if mask.any():
-            result = Series(-1, index=self.index, name=self.name, dtype=np.intp)
+            result = np.empty(len(self), dtype=np.intp)
+            result.fill(-1)
             notmask = ~mask
             result[notmask] = np.argsort(values[notmask], kind=kind)
         else:
