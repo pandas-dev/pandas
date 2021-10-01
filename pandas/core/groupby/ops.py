@@ -786,7 +786,12 @@ class BaseGrouper:
             result_values.append(res)
 
         if not isinstance(f, str):  # TODO: WTF?
-            if len(group_keys) == 0 and f.__name__ not in ["idxmin", "idxmax", "nanargmin", "nanargmax"]:
+            if len(group_keys) == 0 and f.__name__ not in [
+                "idxmin",
+                "idxmax",
+                "nanargmin",
+                "nanargmax",
+            ]:
                 # there have been zero function calls, so we do one dummy call
                 #  so that we can raise TypeError where appropriate
                 f(data.iloc[:0])

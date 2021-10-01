@@ -1917,7 +1917,7 @@ def test_empty_groupby(columns, keys, values, method, op, request):
                     lev = Categorical([0], dtype=values.dtype)
                     ci = Index(lev, name=keys[0])
                     expected = DataFrame([], columns=[], index=ci)
-                #expected = df.set_index(keys)[columns]
+                # expected = df.set_index(keys)[columns]
 
                 tm.assert_equal(result, expected)
                 return

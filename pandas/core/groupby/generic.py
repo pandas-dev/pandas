@@ -1146,7 +1146,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             )
             result = result.astype(data.dtypes.to_dict(), copy=False)
             # TODO: will this astype mess up with non-unique columns?
-            #if not len(values):
+            # if not len(values):
             #    breakpoint()
             #    #result = result[[]]
             return result

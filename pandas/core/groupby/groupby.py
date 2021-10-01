@@ -942,7 +942,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             if name in base.plotting_methods:
                 return self.apply(curried)
 
-            #if self.ndim == 1 and self._obj_with_exclusions.size == 0 and name not in ["idxmax", "idxmin"]:# and self._obj_with_exclusions.dtype != object:
+            # if self.ndim == 1 and self._obj_with_exclusions.size == 0 and name not in ["idxmax", "idxmin"]:# and self._obj_with_exclusions.dtype != object:
             #    # make sure the function is called at least once so we get
             #    #  a TypeError if appropriate
             #    curried(self._obj_with_exclusions.iloc[:0])
