@@ -7,6 +7,7 @@ from datetime import (
     timedelta,
 )
 from decimal import Decimal
+from functools import partial
 import locale
 
 from dateutil.parser import parse
@@ -989,6 +990,30 @@ class TestToDatetime:
         expected_series = Series(
             expected_values,
             dtype="datetime64[ns]",
+        )
+        tm.assert_series_equal(result_series, expected_series)
+
+    @pytest.mark.parametrize(
+        "constructor",
+        (
+            partial(Series, dtype="object"),
+            list,
+            np.array,
+        ),
+    )
+    @pytest.mark.parametrize(
+        "datetimelikes,expected_values",
+        (datetime(3000, 1, 1, 0, 0, 0, 0, pytz.UTC), NaT),
+    )
+    def test_convert_object_to_datetime_nat_utc(
+        self, cache, datetimelikes, expected_values, constructor
+    ):
+        # GH#43732
+        res = constructor(datetimelikes * (start_caching_at + 1))
+        result_series = Series(to_datetime(res, errors="coerce", cache=cache, utc=True))
+        expected_series = Series(
+            (expected_values * (start_caching_at + 1)),
+            dtype="datetime64[ns, UTC]",
         )
         tm.assert_series_equal(result_series, expected_series)
 
