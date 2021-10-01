@@ -370,6 +370,8 @@ class Apply(metaclass=abc.ABCMeta):
                     # Capture and suppress any warnings emitted by us in the call
                     # to agg below, but pass through any warnings that were
                     # generated otherwise.
+                    # This is necessary because of https://bugs.python.org/issue29672
+                    # See GH #43741 for more details
                     with warnings.catch_warnings(record=True) as record:
                         new_res = colg.aggregate(arg)
                     if len(record) > 0:
