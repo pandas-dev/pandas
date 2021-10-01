@@ -873,6 +873,18 @@ def test_omit_nuisance(df):
 
 @pytest.mark.parametrize(
     "agg_function",
+    ["max", "min"],
+)
+def test_keep_nuisance_agg(df, agg_function):
+    # GH 38815
+    grouped = df.groupby("A")
+    result = getattr(grouped, agg_function)().columns
+    expected = df.loc[:, ["B", "C", "D"]].columns
+    np.testing.assert_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "agg_function",
     ["sum", "mean", "prod", "std", "var", "median", "skew"],
 )
 def test_omit_nuisance_agg(df, agg_function):
