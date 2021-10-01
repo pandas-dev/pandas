@@ -22,7 +22,6 @@ from pandas._config import get_option
 from pandas._typing import (
     Axis,
     FilePathOrBuffer,
-    FrameOrSeries,
     IndexLabel,
     Level,
     Scalar,
@@ -3190,10 +3189,10 @@ class Styler(StylerRenderer):
 
 
 def _validate_apply_axis_arg(
-    arg: FrameOrSeries | Sequence | np.ndarray,
+    arg: NDFrame | Sequence | np.ndarray,
     arg_name: str,
     dtype: Any | None,
-    data: FrameOrSeries,
+    data: NDFrame,
 ) -> np.ndarray:
     """
     For the apply-type methods, ``axis=None`` creates ``data`` as DataFrame, and for
@@ -3250,7 +3249,7 @@ def _background_gradient(
     text_color_threshold: float = 0.408,
     vmin: float | None = None,
     vmax: float | None = None,
-    gmap: Sequence | np.ndarray | FrameOrSeries | None = None,
+    gmap: Sequence | np.ndarray | DataFrame | Series | None = None,
     text_only: bool = False,
 ):
     """
@@ -3310,10 +3309,10 @@ def _background_gradient(
 
 
 def _highlight_between(
-    data: FrameOrSeries,
+    data: NDFrame,
     props: str,
-    left: Scalar | Sequence | np.ndarray | FrameOrSeries | None = None,
-    right: Scalar | Sequence | np.ndarray | FrameOrSeries | None = None,
+    left: Scalar | Sequence | np.ndarray | NDFrame | None = None,
+    right: Scalar | Sequence | np.ndarray | NDFrame | None = None,
     inclusive: bool | str = True,
 ) -> np.ndarray:
     """
@@ -3357,7 +3356,7 @@ def _highlight_between(
     return np.where(g_left & l_right, props, "")
 
 
-def _highlight_value(data: FrameOrSeries, op: str, props: str) -> np.ndarray:
+def _highlight_value(data: DataFrame | Series, op: str, props: str) -> np.ndarray:
     """
     Return an array of css strings based on the condition of values matching an op.
     """
@@ -3368,7 +3367,7 @@ def _highlight_value(data: FrameOrSeries, op: str, props: str) -> np.ndarray:
 
 
 def _bar(
-    data: FrameOrSeries,
+    data: NDFrame,
     align: str | float | int | Callable,
     colors: list[str],
     width: float,
