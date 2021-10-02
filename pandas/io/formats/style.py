@@ -191,7 +191,7 @@ class Styler(StylerRenderer):
     * Data cells include ``data``
     * Trimmed cells include ``col_trim`` or ``row_trim``.
 
-    Any, or all, or these classes can be renamed by using the ``css`` argument, giving
+    Any, or all, or these classes can be renamed by using the ``css_class_names`` argument, giving
     a value such as `{"row": "MY_ROW_CLASS", "col_trim": "", "row_trim": ""}`.
     """
 
