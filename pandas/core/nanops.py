@@ -178,6 +178,8 @@ def _bn_ok_dtype(dtype: DtypeObj, name: str) -> bool:
 def _has_infs(result) -> bool:
     if isinstance(result, np.ndarray):
         if result.dtype == "f8" or result.dtype == "f4":
+            # Note: outside of an nanops-specific test, we always have
+            #  result.ndim == 1, so there is no risk of this ravel making a copy.
             return lib.has_infs(result.ravel("K"))
     try:
         return np.isinf(result).any()
