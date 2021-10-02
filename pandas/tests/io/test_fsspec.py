@@ -38,6 +38,8 @@ def cleared_fs():
     memfs.store.clear()
 
 
+# Different behavior for before 2021.6.0
+@td.skip_if_no("fsspec", "2021.6.0")
 def test_read_csv(cleared_fs):
     from fsspec.implementations.memory import MemoryFile
 
@@ -294,7 +296,7 @@ def test_markdown_options(fsspectest):
     df = DataFrame({"a": [0]})
     df.to_markdown("testmem://afile", storage_options={"test": "md_write"})
     assert fsspectest.test[0] == "md_write"
-    assert fsspectest.cat("afile")
+    assert fsspectest.cat("testmem://afile")
 
 
 @td.skip_if_no("pyarrow")
