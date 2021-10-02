@@ -142,8 +142,8 @@ class Styler(StylerRenderer):
         uses ``pandas.options.styler.format.formatter``.
 
         .. versionadded:: 1.4.0
-    css : dict, optional
-        A dict of strings used to replace the default CSS classes described below.
+    css_class_names : dict, optional
+        A dict of strings used to replace the default CSS class names described below.
 
         .. versionadded:: 1.4.0
 
@@ -210,7 +210,7 @@ class Styler(StylerRenderer):
         thousands: str | None = None,
         escape: str | None = None,
         formatter: ExtFormatter | None = None,
-        css: dict[str, str] | None = None,
+        css_class_names: dict[str, str] | None = None,
     ):
         super().__init__(
             data=data,
@@ -221,7 +221,7 @@ class Styler(StylerRenderer):
             caption=caption,
             cell_ids=cell_ids,
             precision=precision,
-            css=css,
+            css=css_class_names,
         )
 
         # validate ordered args
@@ -1966,7 +1966,7 @@ class Styler(StylerRenderer):
         table_styles: dict[Any, CSSStyles] | CSSStyles | None = None,
         axis: int = 0,
         overwrite: bool = True,
-        css: dict[str, str] | None = None,
+        css_class_names: dict[str, str] | None = None,
         cell_ids: bool | None = None,
     ) -> Styler:
         """
@@ -2007,7 +2007,7 @@ class Styler(StylerRenderer):
 
             .. versionadded:: 1.2.0
 
-        css : dict, optional
+        css_class_names : dict, optional
             A dict of strings used to replace the default CSS classes described below.
 
             .. versionadded:: 1.4.0
@@ -2034,15 +2034,15 @@ class Styler(StylerRenderer):
 
         .. code-block:: python
 
-            css = {"row_heading": "row_heading",
-                   "col_heading": "col_heading",
-                   "index_name": "index_name",
-                   "col": "col",
-                   "col_trim": "col_trim",
-                   "row_trim": "row_trim",
-                   "level": "level",
-                   "data": "data",
-                   "blank": "blank}
+            css_class_names = {"row_heading": "row_heading",
+                               "col_heading": "col_heading",
+                               "index_name": "index_name",
+                               "col": "col",
+                               "col_trim": "col_trim",
+                               "row_trim": "row_trim",
+                               "level": "level",
+                               "data": "data",
+                               "blank": "blank}
 
         Examples
         --------
@@ -2079,7 +2079,7 @@ class Styler(StylerRenderer):
         See `Table Visualization <../../user_guide/style.ipynb>`_ user guide for
         more details.
         """
-        if css is not None:
+        if css_class_names is not None:
             self.css = {
                 "row_heading": "row_heading",
                 "col_heading": "col_heading",
@@ -2091,7 +2091,7 @@ class Styler(StylerRenderer):
                 "level": "level",
                 "data": "data",
                 "blank": "blank",
-                **css,  # overwrite default with optional changes
+                **css_class_names,  # overwrite default with optional changes
             }
         if cell_ids is not None:
             self.cell_ids = cell_ids
