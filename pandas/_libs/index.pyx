@@ -313,7 +313,7 @@ cdef class IndexEngine:
         missing : np.ndarray[np.intp]
         """
         cdef:
-            ndarray values, x
+            ndarray values
             ndarray[intp_t] result, missing
             set stargets, remaining_stargets
             dict d = {}
@@ -366,7 +366,9 @@ cdef class IndexEngine:
                     # GH#35392
                     if need_nan_check:
                         # Do this check only once
-                        stargets_has_nan = any(util.is_nan(val) for x in stargets)
+                        stargets_has_nan = any(
+                            util.is_nan(starget) for starget in stargets
+                        )
                         need_nan_check = False
 
                     if stargets_has_nan:
