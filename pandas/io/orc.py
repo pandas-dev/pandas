@@ -3,7 +3,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from pandas._typing import FilePathOrBuffer
+from pandas._typing import (
+    FilePath,
+    ReadBuffer,
+)
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.io.common import get_handle
@@ -13,7 +16,7 @@ if TYPE_CHECKING:
 
 
 def read_orc(
-    path: FilePathOrBuffer, columns: list[str] | None = None, **kwargs
+    path: FilePath | ReadBuffer[bytes], columns: list[str] | None = None, **kwargs
 ) -> DataFrame:
     """
     Load an ORC object from the file path, returning a DataFrame.

@@ -7,8 +7,10 @@ from typing import (
 )
 
 from pandas._typing import (
-    FilePathOrBuffer,
+    FilePath,
+    ReadBuffer,
     StorageOptions,
+    WriteBuffer,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
@@ -26,7 +28,7 @@ from pandas.io.common import get_handle
 @doc(storage_options=generic._shared_docs["storage_options"])
 def to_feather(
     df: DataFrame,
-    path: FilePathOrBuffer[bytes],
+    path: FilePath | WriteBuffer[bytes],
     storage_options: StorageOptions = None,
     **kwargs,
 ):
@@ -93,7 +95,7 @@ def to_feather(
 
 @doc(storage_options=generic._shared_docs["storage_options"])
 def read_feather(
-    path: FilePathOrBuffer[bytes],
+    path: FilePath | ReadBuffer[bytes],
     columns: Sequence[Hashable] | None = None,
     use_threads: bool = True,
     storage_options: StorageOptions = None,

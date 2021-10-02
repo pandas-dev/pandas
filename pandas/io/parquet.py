@@ -3,15 +3,14 @@ from __future__ import annotations
 
 import io
 import os
-from typing import (
-    Any,
-    AnyStr,
-)
+from typing import Any
 from warnings import catch_warnings
 
 from pandas._typing import (
-    FilePathOrBuffer,
+    FilePath,
+    ReadBuffer,
     StorageOptions,
+    WriteBuffer,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
@@ -69,12 +68,14 @@ def get_engine(engine: str) -> BaseImpl:
 
 
 def _get_path_or_handle(
-    path: FilePathOrBuffer,
+    path: FilePath | ReadBuffer[bytes] | WriteBuffer[bytes],
     fs: Any,
     storage_options: StorageOptions = None,
     mode: str = "rb",
     is_dir: bool = False,
-) -> tuple[FilePathOrBuffer, IOHandles[bytes] | None, Any]:
+) -> tuple[
+    FilePath | ReadBuffer[bytes] | WriteBuffer[bytes], IOHandles[bytes] | None, Any
+]:
     """File handling for PyArrow."""
     path_or_handle = stringify_path(path)
     if is_fsspec_url(path_or_handle) and fs is None:
@@ -157,7 +158,7 @@ class PyArrowImpl(BaseImpl):
     def write(
         self,
         df: DataFrame,
-        path: FilePathOrBuffer[AnyStr],
+        path: FilePath | WriteBuffer[bytes],
         compression: str | None = "snappy",
         index: bool | None = None,
         storage_options: StorageOptions = None,
@@ -353,7 +354,7 @@ class FastParquetImpl(BaseImpl):
 @doc(storage_options=generic._shared_docs["storage_options"])
 def to_parquet(
     df: DataFrame,
-    path: FilePathOrBuffer | None = None,
+    path: FilePath | WriteBuffer[bytes] | None = None,
     engine: str = "auto",
     compression: str | None = "snappy",
     index: bool | None = None,
@@ -415,7 +416,7 @@ def to_parquet(
         partition_cols = [partition_cols]
     impl = get_engine(engine)
 
-    path_or_buf: FilePathOrBuffer = io.BytesIO() if path is None else path
+    path_or_buf: FilePath | WriteBuffer[bytes] = io.BytesIO() if path is None else path
 
     impl.write(
         df,

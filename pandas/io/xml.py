@@ -7,9 +7,9 @@ from __future__ import annotations
 import io
 
 from pandas._typing import (
-    Buffer,
     CompressionOptions,
-    FilePathOrBuffer,
+    FilePath,
+    ReadBuffer,
     StorageOptions,
 )
 from pandas.compat._optional import import_optional_dependency
@@ -198,9 +198,6 @@ class _EtreeFrameParser(_XMLFrameParser):
     Internal class to parse XML into DataFrames with the Python
     standard library XML module: `xml.etree.ElementTree`.
     """
-
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
 
     def parse_data(self) -> list[dict[str, str | None]]:
         from xml.etree.ElementTree import XML
@@ -571,11 +568,11 @@ class _LxmlFrameParser(_XMLFrameParser):
 
 
 def get_data_from_filepath(
-    filepath_or_buffer,
+    filepath_or_buffer: FilePath | bytes | ReadBuffer[bytes] | ReadBuffer[str],
     encoding,
     compression,
     storage_options,
-) -> str | bytes | Buffer:
+) -> str | bytes | ReadBuffer[bytes] | ReadBuffer[str]:
     """
     Extract raw XML data.
 
@@ -587,7 +584,8 @@ def get_data_from_filepath(
     This method turns (1) into (2) to simplify the rest of the processing.
     It returns input types (2) and (3) unchanged.
     """
-    filepath_or_buffer = stringify_path(filepath_or_buffer)
+    if not isinstance(filepath_or_buffer, bytes):
+        filepath_or_buffer = stringify_path(filepath_or_buffer)
 
     if (
         isinstance(filepath_or_buffer, str)
@@ -606,7 +604,10 @@ def get_data_from_filepath(
             storage_options=storage_options,
         ) as handle_obj:
             filepath_or_buffer = (
-                handle_obj.handle.read()
+                # error: Incompatible types in assignment (expression has type
+                # "Union[str, IO[str]]", variable has type "Union[Union[str,
+                # PathLike[str]], bytes, ReadBuffer[bytes], ReadBuffer[str]]")
+                handle_obj.handle.read()  # type: ignore[assignment]
                 if hasattr(handle_obj.handle, "read")
                 else handle_obj.handle
             )
@@ -728,7 +729,7 @@ def _parse(
 
 @doc(storage_options=_shared_docs["storage_options"])
 def read_xml(
-    path_or_buffer: FilePathOrBuffer,
+    path_or_buffer: FilePath | ReadBuffer[bytes] | ReadBuffer[str],
     xpath: str | None = "./*",
     namespaces: dict | list[dict] | None = None,
     elems_only: bool | None = False,
@@ -736,7 +737,7 @@ def read_xml(
     names: list[str] | None = None,
     encoding: str | None = "utf-8",
     parser: str | None = "lxml",
-    stylesheet: FilePathOrBuffer | None = None,
+    stylesheet: FilePath | ReadBuffer[bytes] | ReadBuffer[str] | None = None,
     compression: CompressionOptions = "infer",
     storage_options: StorageOptions = None,
 ) -> DataFrame:

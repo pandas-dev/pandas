@@ -13,7 +13,10 @@ from typing import (
     overload,
 )
 
-from pandas._typing import FilePathOrBuffer
+from pandas._typing import (
+    FilePath,
+    ReadBuffer,
+)
 
 from pandas.io.common import stringify_path
 
@@ -44,7 +47,7 @@ class ReaderBase(metaclass=ABCMeta):
 
 @overload
 def read_sas(
-    filepath_or_buffer: FilePathOrBuffer,
+    filepath_or_buffer: FilePath | ReadBuffer[bytes],
     format: str | None = ...,
     index: Hashable | None = ...,
     encoding: str | None = ...,
@@ -56,7 +59,7 @@ def read_sas(
 
 @overload
 def read_sas(
-    filepath_or_buffer: FilePathOrBuffer,
+    filepath_or_buffer: FilePath | ReadBuffer[bytes],
     format: str | None = ...,
     index: Hashable | None = ...,
     encoding: str | None = ...,
@@ -67,7 +70,7 @@ def read_sas(
 
 
 def read_sas(
-    filepath_or_buffer: FilePathOrBuffer,
+    filepath_or_buffer: FilePath | ReadBuffer[bytes],
     format: str | None = None,
     index: Hashable | None = None,
     encoding: str | None = None,

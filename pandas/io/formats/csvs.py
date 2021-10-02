@@ -20,10 +20,11 @@ import numpy as np
 from pandas._libs import writers as libwriters
 from pandas._typing import (
     CompressionOptions,
-    FilePathOrBuffer,
+    FilePath,
     FloatFormatType,
     IndexLabel,
     StorageOptions,
+    WriteBuffer,
 )
 
 from pandas.core.dtypes.generic import (
@@ -48,7 +49,7 @@ class CSVFormatter:
     def __init__(
         self,
         formatter: DataFrameFormatter,
-        path_or_buf: FilePathOrBuffer[str] | FilePathOrBuffer[bytes] = "",
+        path_or_buf: FilePath | WriteBuffer[str] | WriteBuffer[bytes] = "",
         sep: str = ",",
         cols: Sequence[Hashable] | None = None,
         index_label: IndexLabel | None = None,
@@ -245,7 +246,7 @@ class CSVFormatter:
 
             # Note: self.encoding is irrelevant here
             self.writer = csvlib.writer(
-                handles.handle,  # type: ignore[arg-type]
+                handles.handle,
                 lineterminator=self.line_terminator,
                 delimiter=self.sep,
                 quoting=self.quoting,

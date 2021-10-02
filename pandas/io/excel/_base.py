@@ -6,6 +6,7 @@ from io import BytesIO
 import os
 from textwrap import fill
 from typing import (
+    IO,
     Any,
     Mapping,
     cast,
@@ -17,10 +18,11 @@ from pandas._config import config
 
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._typing import (
-    Buffer,
     DtypeArg,
-    FilePathOrBuffer,
+    FilePath,
+    ReadBuffer,
     StorageOptions,
+    WriteExcelBuffer,
 )
 from pandas.compat._optional import (
     get_version,
@@ -816,7 +818,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     # ExcelWriter.
     def __new__(
         cls,
-        path: FilePathOrBuffer | ExcelWriter,
+        path: FilePath | WriteExcelBuffer | ExcelWriter,
         engine=None,
         date_format=None,
         datetime_format=None,
@@ -918,7 +920,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
     def __init__(
         self,
-        path: FilePathOrBuffer | ExcelWriter,
+        path: FilePath | WriteExcelBuffer | ExcelWriter,
         engine=None,
         date_format=None,
         datetime_format=None,
@@ -942,7 +944,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
         # cast ExcelWriter to avoid adding 'if self.handles is not None'
         self.handles = IOHandles(
-            cast(Buffer[bytes], path), compression={"copression": None}
+            cast(IO[bytes], path), compression={"copression": None}
         )
         if not isinstance(path, ExcelWriter):
             self.handles = get_handle(
@@ -1061,7 +1063,7 @@ PEEK_SIZE = max(map(len, XLS_SIGNATURES + (ZIP_SIGNATURE,)))
 
 @doc(storage_options=_shared_docs["storage_options"])
 def inspect_excel_format(
-    content_or_path: FilePathOrBuffer,
+    content_or_path: FilePath | ReadBuffer[bytes],
     storage_options: StorageOptions = None,
 ) -> str | None:
     """
@@ -1108,9 +1110,7 @@ def inspect_excel_format(
         elif not peek.startswith(ZIP_SIGNATURE):
             return None
 
-        # ZipFile typing is overly-strict
-        # https://github.com/python/typeshed/issues/4212
-        zf = zipfile.ZipFile(stream)  # type: ignore[arg-type]
+        zf = zipfile.ZipFile(stream)
 
         # Workaround for some third party files that use forward slashes and
         # lower case names.
