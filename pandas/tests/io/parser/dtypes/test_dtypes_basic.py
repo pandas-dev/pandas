@@ -204,6 +204,11 @@ def test_1000_sep_decimal_float_precision(
     # test decimal and thousand sep handling in across 'float_precision'
     # parsers
     decimal_number_check(c_parser_only, numeric_decimal, thousands, float_precision)
+    text, value = numeric_decimal
+    text = " " + text + " "
+    if isinstance(value, str):  # the negative cases (parse as text)
+        value = " " + value + " "
+    decimal_number_check(c_parser_only, (text, value), thousands, float_precision)
 
 
 def decimal_number_check(parser, numeric_decimal, thousands, float_precision):
@@ -220,6 +225,24 @@ def decimal_number_check(parser, numeric_decimal, thousands, float_precision):
     )
     val = df.iloc[0, 0]
     assert val == numeric_decimal[1]
+
+
+@pytest.mark.parametrize("float_precision", [None, "legacy", "high", "round_trip"])
+def test_skip_whitespace(c_parser_only, float_precision):
+    DATA = """id\tnum\t
+1\t1.2 \t
+1\t 2.1\t
+2\t 1\t
+2\t 1.2 \t
+"""
+    df = c_parser_only.read_csv(
+        StringIO(DATA),
+        float_precision=float_precision,
+        sep="\t",
+        header=0,
+        dtype={1: np.float64},
+    )
+    tm.assert_series_equal(df.iloc[:, 1], pd.Series([1.2, 2.1, 1.0, 1.2], name="num"))
 
 
 def test_true_values_cast_to_bool(all_parsers):
