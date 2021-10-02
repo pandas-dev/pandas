@@ -175,6 +175,7 @@ def is_scalar(val: object) -> bool:
 
     Examples
     --------
+    >>> import datetime
     >>> dt = datetime.datetime(2018, 10, 3)
     >>> pd.api.types.is_scalar(dt)
     True
@@ -256,11 +257,12 @@ def is_iterator(obj: object) -> bool:
 
     Examples
     --------
+    >>> import datetime
     >>> is_iterator((x for x in []))
     True
     >>> is_iterator([1, 2, 3])
     False
-    >>> is_iterator(datetime(2017, 1, 1))
+    >>> is_iterator(datetime.datetime(2017, 1, 1))
     False
     >>> is_iterator("foo")
     False
@@ -727,14 +729,19 @@ cpdef ndarray[object] ensure_string_array(
             continue
 
         if not checknull(val):
-            result[i] = str(val)
+            if not isinstance(val, np.floating):
+                # f"{val}" is faster than str(val)
+                result[i] = f"{val}"
+            else:
+                # f"{val}" is not always equivalent to str(val) for floats
+                result[i] = str(val)
         else:
             if convert_na_value:
                 val = na_value
             if skipna:
                 result[i] = val
             else:
-                result[i] = str(val)
+                result[i] = f"{val}"
 
     return result
 
@@ -1071,11 +1078,12 @@ def is_list_like(obj: object, allow_sets: bool = True) -> bool:
 
     Examples
     --------
+    >>> import datetime
     >>> is_list_like([1, 2, 3])
     True
     >>> is_list_like({1, 2, 3})
     True
-    >>> is_list_like(datetime(2017, 1, 1))
+    >>> is_list_like(datetime.datetime(2017, 1, 1))
     False
     >>> is_list_like("foo")
     False
@@ -1350,6 +1358,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
 
     Examples
     --------
+    >>> import datetime
     >>> infer_dtype(['foo', 'bar'])
     'string'
 
