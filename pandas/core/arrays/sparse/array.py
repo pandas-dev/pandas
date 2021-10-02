@@ -1597,9 +1597,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         else:
             return type(self)(result)
 
-    def __abs__(self):
-        return np.abs(self)
-
     # ------------------------------------------------------------------------
     # Ops
     # ------------------------------------------------------------------------
@@ -1680,6 +1677,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
     def __invert__(self) -> SparseArray:
         return self._unary_method(operator.invert)
+
+    def __abs__(self) -> SparseArray:
+        return self._unary_method(operator.abs)
 
     # ----------
     # Formatting
