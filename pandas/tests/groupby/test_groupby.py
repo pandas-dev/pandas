@@ -873,7 +873,7 @@ def test_omit_nuisance(df):
 
 @pytest.mark.parametrize(
     "agg_function",
-    ["max", "min", "skew"],
+    ["max", "min"],
 )
 def test_keep_nuisance_agg(df, agg_function):
     # GH 38815
@@ -893,6 +893,21 @@ def test_omit_nuisance_agg(df, agg_function):
     result = getattr(grouped, agg_function)()
     expected = getattr(df.loc[:, ["A", "C", "D"]].groupby("A"), agg_function)()
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "agg_function",
+    ["skew"],
+)
+def test_omit_nuisance_warnings(df, agg_function):
+    # GH 38815
+    with tm.assert_produces_warning(
+        FutureWarning, filter_level="always", check_stacklevel=False
+    ):
+        grouped = df.groupby("A")
+        result = getattr(grouped, agg_function)()
+        expected = getattr(df.loc[:, ["A", "C", "D"]].groupby("A"), agg_function)()
+        tm.assert_frame_equal(result, expected)
 
 
 def test_omit_nuisance_python_multiple(three_group):
