@@ -41,7 +41,7 @@ def cleared_fs():
 def test_read_csv(cleared_fs):
     from fsspec.implementations.memory import MemoryFile
 
-    cleared_fs.store["test/test.csv"] = MemoryFile(data=text)
+    cleared_fs.store["/test/test.csv"] = MemoryFile(data=text)
     df2 = read_csv("memory://test/test.csv", parse_dates=["dt"])
 
     tm.assert_frame_equal(df1, df2)
