@@ -9,7 +9,7 @@ repos:
     -   id: absolufy-imports
         files: ^pandas/
 -   repo: https://github.com/python/black
-    rev: 21.7b0
+    rev: 21.9b0
     hooks:
     -   id: black
 -   repo: https://github.com/codespell-project/codespell
@@ -58,7 +58,7 @@ repos:
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v2.23.3
+    rev: v2.29.0
     hooks:
     -   id: pyupgrade
         args: [--py38-plus]
@@ -81,6 +81,16 @@ repos:
             - flake8-comprehensions==3.1.0
             - flake8-bugbear==21.3.2
             - pandas-dev-flaker==0.2.0
+-   repo: local
+    hooks:
+    -   id: pyright
+        name: pyright
+        entry: pyright
+        language: node
+        pass_filenames: false
+        types: [python]
+        # note: keep version in sync with .github/workflows/ci.yml
+        additional_dependencies: ['pyright@1.1.171']
 -   repo: local
     hooks:
     -   id: flake8-rst
