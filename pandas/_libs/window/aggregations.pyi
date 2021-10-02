@@ -6,6 +6,8 @@ from typing import (
 
 import numpy as np
 
+from pandas._typing import WindowingRankType
+
 def roll_sum(
     values: np.ndarray,  # const float64_t[:]
     start: np.ndarray,  # np.ndarray[np.int64]
@@ -62,6 +64,15 @@ def roll_quantile(
     minp: int,  # int64_t
     quantile: float,  # float64_t
     interpolation: Literal["linear", "lower", "higher", "nearest", "midpoint"],
+) -> np.ndarray: ...  # np.ndarray[float]
+def roll_rank(
+    values: np.ndarray,
+    start: np.ndarray,
+    end: np.ndarray,
+    minp: int,
+    percentile: bool,
+    method: WindowingRankType,
+    ascending: bool,
 ) -> np.ndarray: ...  # np.ndarray[float]
 def roll_apply(
     obj: object,

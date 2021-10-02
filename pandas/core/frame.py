@@ -138,7 +138,7 @@ from pandas.core import (
     ops,
 )
 from pandas.core.accessor import CachedAccessor
-from pandas.core.aggregation import (
+from pandas.core.apply import (
     reconstruct_func,
     relabel_result,
 )
@@ -160,11 +160,11 @@ from pandas.core.generic import (
     _shared_docs,
 )
 from pandas.core.indexers import check_key_length
-from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import (
     DatetimeIndex,
     Index,
     PeriodIndex,
+    default_index,
     ensure_index,
     ensure_index_from_sequences,
 )
@@ -5780,7 +5780,7 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             new_obj = self.copy()
 
-        new_index = ibase.default_index(len(new_obj))
+        new_index = default_index(len(new_obj))
         if level is not None:
             if not isinstance(level, (tuple, list)):
                 level = [level]
@@ -6101,7 +6101,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         result = self[-duplicated]
         if ignore_index:
-            result.index = ibase.default_index(len(result))
+            result.index = default_index(len(result))
 
         if inplace:
             self._update_inplace(result)
@@ -6317,7 +6317,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         if ignore_index:
             new_data.set_axis(
-                self._get_block_manager_axis(axis), ibase.default_index(len(indexer))
+                self._get_block_manager_axis(axis), default_index(len(indexer))
             )
 
         result = self._constructor(new_data)
@@ -8201,7 +8201,7 @@ NaN 12.3   33.0
 
     def explode(
         self,
-        column: str | tuple | list[str | tuple],
+        column: IndexLabel,
         ignore_index: bool = False,
     ) -> DataFrame:
         """
@@ -8211,7 +8211,7 @@ NaN 12.3   33.0
 
         Parameters
         ----------
-        column : str or tuple or list thereof
+        column : IndexLabel
             Column(s) to explode.
             For multiple columns, specify a non-empty list with each element
             be str or tuple, and all specified columns their list-like data
@@ -8293,9 +8293,8 @@ NaN 12.3   33.0
         if not self.columns.is_unique:
             raise ValueError("columns must be unique")
 
-        columns: list[str | tuple]
+        columns: list[Hashable]
         if is_scalar(column) or isinstance(column, tuple):
-            assert isinstance(column, (str, tuple))
             columns = [column]
         elif isinstance(column, list) and all(
             map(lambda c: is_scalar(c) or isinstance(c, tuple), column)
@@ -8320,7 +8319,7 @@ NaN 12.3   33.0
             result = DataFrame({c: df[c].explode() for c in columns})
         result = df.drop(columns, axis=1).join(result)
         if ignore_index:
-            result.index = ibase.default_index(len(result))
+            result.index = default_index(len(result))
         else:
             result.index = self.index.take(result.index)
         result = result.reindex(columns=self.columns, copy=False)
@@ -10286,7 +10285,7 @@ NaN 12.3   33.0
         data = data.apply(f, axis=axis)
         # Ensure index is type stable (should always use int index)
         if data.empty:
-            data.index = ibase.default_index(0)
+            data.index = default_index(0)
 
         return data
 

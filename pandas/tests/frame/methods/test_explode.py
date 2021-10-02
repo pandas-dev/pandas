@@ -53,14 +53,18 @@ def test_error_multi_columns(input_subset, error_message):
         df.explode(input_subset)
 
 
-def test_basic():
+@pytest.mark.parametrize(
+    "scalar",
+    ["a", 0, 1.5, pd.Timedelta("1 days"), pd.Timestamp("2019-12-31")],
+)
+def test_basic(scalar):
     df = pd.DataFrame(
-        {"A": pd.Series([[0, 1, 2], np.nan, [], (3, 4)], index=list("abcd")), "B": 1}
+        {scalar: pd.Series([[0, 1, 2], np.nan, [], (3, 4)], index=list("abcd")), "B": 1}
     )
-    result = df.explode("A")
+    result = df.explode(scalar)
     expected = pd.DataFrame(
         {
-            "A": pd.Series(
+            scalar: pd.Series(
                 [0, 1, 2, np.nan, np.nan, 3, 4], index=list("aaabcdd"), dtype=object
             ),
             "B": 1,
