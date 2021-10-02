@@ -5529,8 +5529,7 @@ class DataFrame(NDFrame, OpsMixin):
             else:
                 arrays.append(frame[col]._values)
                 names.append(col)
-                if drop:
-                    to_remove.append(col)
+                to_remove.append(col)
 
             if len(arrays[-1]) != len(self):
                 # check newest element against length of calling frame, since
@@ -5547,14 +5546,25 @@ class DataFrame(NDFrame, OpsMixin):
             raise ValueError(f"Index has duplicate keys: {duplicates}")
 
         # use set to handle duplicate column names gracefully in case of drop
-        for c in set(to_remove):
-            del frame[c]
-
+        if len(to_remove) > 0:
+            to_remove = set(to_remove)
+            cast = frame.dtypes.filter(to_remove, axis=0).to_dict()
+            if drop:
+                for c in to_remove:
+                    del frame[c]
+        else:
+            cast = None
+            
         # clear up memory usage
         index._cleanup()
-
+        
+        if isinstance(self.index, MultiIndex):
+            index = index.astype(cast, copy=False)
+        else:
+            for _ in cast.values():
+                index = index.astype(_, copy=False)
         frame.index = index
-
+        
         if not inplace:
             return frame
 
