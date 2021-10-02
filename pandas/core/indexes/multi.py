@@ -3677,7 +3677,7 @@ class MultiIndex(Index):
             if not isinstance(dtype, dict):
                 try:
                     dtype = dict(dtype)
-                except Exception as e:
+                except Exception:
                     dtype = dict(zip(range(len(self.levels)), dtype))
                     
             if isinstance(dtype, dict):
@@ -3691,9 +3691,10 @@ class MultiIndex(Index):
                     }
                 return self.set_levels(
                     [
-                        self.levels[i].astype(dtype[i], copy=copy) for i in range(len(self.levels)) if i in dtype
+                        self.levels[i].astype(dtype[i], copy=copy)
+                        for i in range(len(self.levels)) if i in dtype
                     ],
-                    level=dtype.keys()
+                    level=dtype.keys(), inplace=copy
                 )
             else:
                 raise e
