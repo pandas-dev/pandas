@@ -873,7 +873,7 @@ def test_omit_nuisance(df):
 
 @pytest.mark.parametrize(
     "agg_function",
-    ["max", "min"],
+    ["max", "min", "skew"],
 )
 def test_keep_nuisance_agg(df, agg_function):
     # GH 38815
@@ -885,7 +885,7 @@ def test_keep_nuisance_agg(df, agg_function):
 
 @pytest.mark.parametrize(
     "agg_function",
-    ["sum", "mean", "prod", "std", "var", "median", "skew"],
+    ["sum", "mean", "prod", "std", "var", "median"],
 )
 def test_omit_nuisance_agg(df, agg_function):
     # GH 38774, GH 38815
