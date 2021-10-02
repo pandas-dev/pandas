@@ -365,6 +365,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         """
         return self.to_numpy(dtype=dtype)
 
+    _HANDLED_TYPES: tuple[type, ...]
+
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # For MaskedArray inputs, we apply the ufunc to ._data
         # and mask the result.
