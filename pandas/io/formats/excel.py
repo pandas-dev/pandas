@@ -575,8 +575,6 @@ class ExcelFormatter:
         if self.index and isinstance(self.df.index, MultiIndex):
             coloffset = len(self.df.index[0]) - 1
 
-        styles = None if self.styler is None else self.styler.ctx_columns
-
         if self.merge_cells:
             # Format multi-index as a merged cells.
             for lnum, name in enumerate(columns.names):
@@ -600,7 +598,7 @@ class ExcelFormatter:
                         col=coloffset + i + 1,
                         val=values[i],
                         style=self.header_style,
-                        css_styles=styles,
+                        css_styles=getattr(self.styler, "ctx_columns", None),
                         css_row=lnum,
                         css_col=i,
                         css_converter=self.style_converter,
@@ -616,7 +614,7 @@ class ExcelFormatter:
                     col=coloffset + i + 1,
                     val=v,
                     style=self.header_style,
-                    css_styles=styles,
+                    css_styles=getattr(self.styler, "ctx_columns", None),
                     css_row=lnum,
                     css_col=i,
                     css_converter=self.style_converter,
@@ -644,14 +642,13 @@ class ExcelFormatter:
                 else:
                     colnames = self.header
 
-            styles = None if self.styler is None else self.styler.ctx_columns
             for colindex, colname in enumerate(colnames):
                 yield CssExcelCell(
                     row=self.rowcounter,
                     col=colindex + coloffset,
                     val=colname,
                     style=self.header_style,
-                    css_styles=styles,
+                    css_styles=getattr(self.styler, "ctx_columns", None),
                     css_row=0,
                     css_col=colindex,
                     css_converter=self.style_converter,
@@ -713,14 +710,13 @@ class ExcelFormatter:
             if isinstance(self.df.index, PeriodIndex):
                 index_values = self.df.index.to_timestamp()
 
-            styles = None if self.styler is None else self.styler.ctx_index
             for idx, idxval in enumerate(index_values):
                 yield CssExcelCell(
                     row=self.rowcounter + idx,
                     col=0,
                     val=idxval,
                     style=self.header_style,
-                    css_styles=styles,
+                    css_styles=getattr(self.styler, "ctx_index", None),
                     css_row=idx,
                     css_col=0,
                     css_converter=self.style_converter,
@@ -758,7 +754,6 @@ class ExcelFormatter:
                 for cidx, name in enumerate(index_labels):
                     yield ExcelCell(self.rowcounter - 1, cidx, name, self.header_style)
 
-            styles = None if self.styler is None else self.styler.ctx_index
             if self.merge_cells:
                 # Format hierarchical rows as merged cells.
                 level_strs = self.df.index.format(
@@ -786,7 +781,7 @@ class ExcelFormatter:
                             col=gcolidx,
                             val=values[i],
                             style=self.header_style,
-                            css_styles=styles,
+                            css_styles=getattr(self.styler, "ctx_index", None),
                             css_row=i,
                             css_col=gcolidx,
                             css_converter=self.style_converter,
@@ -804,7 +799,7 @@ class ExcelFormatter:
                             col=gcolidx,
                             val=indexcolval,
                             style=self.header_style,
-                            css_styles=styles,
+                            css_styles=getattr(self.styler, "ctx_index", None),
                             css_row=idx,
                             css_col=gcolidx,
                             css_converter=self.style_converter,
@@ -819,7 +814,6 @@ class ExcelFormatter:
         return is_list_like(self.header)
 
     def _generate_body(self, coloffset: int) -> Iterable[ExcelCell]:
-        styles = None if self.styler is None else self.styler.ctx
         # Write the body of the frame data series by series.
         for colidx in range(len(self.columns)):
             series = self.df.iloc[:, colidx]
@@ -829,7 +823,7 @@ class ExcelFormatter:
                     col=colidx + coloffset,
                     val=val,
                     style=None,
-                    css_styles=styles,
+                    css_styles=getattr(self.styler, "ctx", None),
                     css_row=i,
                     css_col=colidx,
                     css_converter=self.style_converter,
