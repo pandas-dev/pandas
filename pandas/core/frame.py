@@ -8201,7 +8201,7 @@ NaN 12.3   33.0
 
     def explode(
         self,
-        column: Scalar | tuple | list[Scalar | tuple],
+        column: IndexLabel,
         ignore_index: bool = False,
     ) -> DataFrame:
         """
@@ -8211,7 +8211,7 @@ NaN 12.3   33.0
 
         Parameters
         ----------
-        column : Scalar or tuple or list thereof
+        column : IndexLabel
             Column(s) to explode.
             For multiple columns, specify a non-empty list with each element
             be str or tuple, and all specified columns their list-like data
@@ -8293,7 +8293,7 @@ NaN 12.3   33.0
         if not self.columns.is_unique:
             raise ValueError("columns must be unique")
 
-        columns: list[Scalar | tuple]
+        columns: list[Hashable]
         if is_scalar(column) or isinstance(column, tuple):
             columns = [column]
         elif isinstance(column, list) and all(
