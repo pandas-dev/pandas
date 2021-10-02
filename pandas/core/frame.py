@@ -5558,11 +5558,14 @@ class DataFrame(NDFrame, OpsMixin):
         # clear up memory usage
         index._cleanup()
         
-        if isinstance(self.index, MultiIndex):
-            index = index.astype(cast, copy=False)
-        else:
-            for _ in cast.values():
-                index = index.astype(_, copy=False)
+        # Ensure Index typing
+        if cast is not None:
+            if isinstance(self.index, MultiIndex):
+                index = index.astype(cast, copy=False)
+            else:
+                for _ in cast.values():
+                    index = index.astype(_, copy=False)
+                    
         frame.index = index
         
         if not inplace:
