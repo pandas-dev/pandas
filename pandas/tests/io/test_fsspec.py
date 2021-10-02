@@ -38,12 +38,9 @@ def cleared_fs():
     memfs.store.clear()
 
 
-# Different behavior for before 2021.6.0
-@td.skip_if_no("fsspec", "2021.6.0")
 def test_read_csv(cleared_fs):
-    from fsspec.implementations.memory import MemoryFile
-
-    cleared_fs.store["/test/test.csv"] = MemoryFile(data=text)
+    with cleared_fs.open("test/test.csv", "wb") as w:
+        w.write(text)
     df2 = read_csv("memory://test/test.csv", parse_dates=["dt"])
 
     tm.assert_frame_equal(df1, df2)
