@@ -2080,19 +2080,7 @@ class Styler(StylerRenderer):
         more details.
         """
         if css_class_names is not None:
-            self.css = {
-                "row_heading": "row_heading",
-                "col_heading": "col_heading",
-                "index_name": "index_name",
-                "col": "col",
-                "row": "row",
-                "col_trim": "col_trim",
-                "row_trim": "row_trim",
-                "level": "level",
-                "data": "data",
-                "blank": "blank",
-                **css_class_names,  # overwrite default with optional changes
-            }
+            self.css = {**self.css, **css_class_names}
         if cell_ids is not None:
             self.cell_ids = cell_ids
 
