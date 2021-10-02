@@ -149,7 +149,9 @@ def _normalise_json(
                 data=value,
                 # to avoid adding the separator to the start of every key
                 # GH#43831 avoid adding key if key_string blank
-                key_string=new_key if key_string == "" else new_key[len(separator) :],
+                key_string=new_key
+                if new_key[: len(separator)] != separator
+                else new_key[len(separator) :],
                 normalized_dict=normalized_dict,
                 separator=separator,
             )
