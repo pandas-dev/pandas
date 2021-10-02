@@ -3669,8 +3669,35 @@ class MultiIndex(Index):
     # --------------------------------------------------------------------
 
     @doc(Index.astype)
-    def astype(self, dtype, copy: bool = True):
-        dtype = pandas_dtype(dtype)
+    def astype(self, dtype, copy: bool = True) -> MultiIndex:
+        try:
+            dtype = pandas_dtype(dtype)
+        except Exception as e:
+            # dict typing with index level names/int
+            if not isinstance(dtype, dict):
+                try:
+                    dtype = dict(dtype)
+                except Exception as e:
+                    dtype = dict(zip(range(len(self.levels)), dtype))
+                    
+            if isinstance(dtype, dict):
+                try:
+                    dtype = {
+                        self.names.index(k): pandas_dtype(dtype[k]) for k in dtype
+                    }
+                except Exception:
+                    dtype = {
+                        k: pandas_dtype(dtype[k]) for k in dtype
+                    }
+                return self.set_levels(
+                    [
+                        self.levels[i].astype(dtype[i], copy=copy) for i in range(len(self.levels)) if i in dtype
+                    ],
+                    level=dtype.keys()
+                )
+            else:
+                raise e
+                
         if is_categorical_dtype(dtype):
             msg = "> 1 ndim Categorical are not supported at this time"
             raise NotImplementedError(msg)
