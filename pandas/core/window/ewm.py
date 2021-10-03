@@ -46,8 +46,8 @@ from pandas.core.window.doc import (
     window_agg_numba_parameters,
 )
 from pandas.core.window.numba_ import (
-    generate_ewma_numba_table_func,
-    generate_numba_ewma_func,
+    generate_ewm_numba_table_func,
+    generate_numba_ewm_func,
 )
 from pandas.core.window.online import (
     EWMMeanState,
@@ -207,7 +207,7 @@ class ExponentialMovingWindow(BaseWindow):
 
         If 1-D array like, a sequence with the same shape as the observations.
 
-        Only applicable to ``mean()``.
+        Only applicable to ``mean()`` and ``sum()``.
     method : str {'single', 'table'}, default 'single'
         Execute the rolling operation per single column or row (``'single'``)
         or over the entire object (``'table'``).
@@ -467,12 +467,12 @@ class ExponentialMovingWindow(BaseWindow):
     def mean(self, *args, engine=None, engine_kwargs=None, **kwargs):
         if maybe_use_numba(engine):
             if self.method == "single":
-                ewma_func = generate_numba_ewma_func(
+                ewma_func = generate_numba_ewm_func(
                     engine_kwargs, self._com, self.adjust, self.ignore_na, self._deltas
                 )
                 numba_cache_key = (lambda x: x, "ewma")
             else:
-                ewma_func = generate_ewma_numba_table_func(
+                ewma_func = generate_ewm_numba_table_func(
                     engine_kwargs, self._com, self.adjust, self.ignore_na, self._deltas
                 )
                 numba_cache_key = (lambda x: x, "ewma_table")
@@ -487,11 +487,12 @@ class ExponentialMovingWindow(BaseWindow):
 
             deltas = None if self.times is None else self._deltas
             window_func = partial(
-                window_aggregations.ewma,
+                window_aggregations.ewm,
                 com=self._com,
                 adjust=self.adjust,
                 ignore_na=self.ignore_na,
                 deltas=deltas,
+                normalize=True,
             )
             return self._apply(window_func)
         else:
