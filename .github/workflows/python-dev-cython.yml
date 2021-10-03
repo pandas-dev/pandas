@@ -27,7 +27,10 @@ jobs:
 
     strategy:
       matrix:
-        PYTEST_TARGET: ["pandas/tests/[a-h]*", "pandas/tests/[i-z]*"]
+        test1:
+          PYTEST_TARGET: "pandas/tests/[a-h]*"
+        test2:
+          PYTEST_TARGET: "pandas/tests/[i-z]*"
 
     concurrency:
       group: ${{ github.ref }}-dev
