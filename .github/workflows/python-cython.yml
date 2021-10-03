@@ -12,13 +12,6 @@ on:
     paths-ignore:
       - "doc/**"
 
-env:
-  PYTEST_WORKERS: "auto"
-  PANDAS_CI: 1
-  PATTERN: "not slow and not network and not clipboard"
-  COVERAGE: true
-
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -27,6 +20,9 @@ jobs:
 
     strategy:
       matrix:
+        PYTEST_WORKERS: "auto"
+        PATTERN: "not slow and not network and not clipboard"
+        COVERAGE: true
         PYTEST_TARGET: ["pandas/tests/[a-h]*", "pandas/tests/[i-z]*"]
 
     concurrency:
