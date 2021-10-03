@@ -116,12 +116,14 @@ cdef class IndexEngine:
     cdef:
         bint unique, monotonic_inc, monotonic_dec
         bint need_monotonic_check, need_unique_check
+        object _np_type
 
     def __init__(self, ndarray values):
         self.values = values
 
         self.over_size_threshold = len(values) >= _SIZE_CUTOFF
         self.clear_mapping()
+        self._np_type = values.dtype.type
 
     def __contains__(self, val: object) -> bool:
         # We assume before we get here:
@@ -168,7 +170,7 @@ cdef class IndexEngine:
         See ObjectEngine._searchsorted_left.__doc__.
         """
         # Caller is responsible for ensuring _check_type has already been called
-        loc = self.values.searchsorted(val, side="left")
+        loc = self.values.searchsorted(self._np_type(val), side="left")
         return loc
 
     cdef inline _get_loc_duplicates(self, object val):
