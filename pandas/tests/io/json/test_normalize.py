@@ -220,6 +220,13 @@ class TestJSONNormalize:
         expected = Index(["name", "pop", "country", "states_name"]).sort_values()
         assert result.columns.sort_values().equals(expected)
 
+    def test_normalize_with_multichar_separator(self):
+        # GH #43831
+        data = {"a": [1, 2], "b": {"b_1": 2, "b_2": (3, 4)}}
+        result = json_normalize(data, sep="__")
+        expected = DataFrame([[[1, 2], 2, (3, 4)]], columns=["a", "b__b_1", "b__b_2"])
+        tm.assert_frame_equal(result, expected)
+
     def test_value_array_record_prefix(self):
         # GH 21536
         result = json_normalize({"A": [1, 2]}, "A", record_prefix="Prefix.")
