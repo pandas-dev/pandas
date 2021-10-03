@@ -1454,12 +1454,12 @@ class BarPlot(MPLPlot):
         pos = kwargs.pop("position", 0.5)
         kwargs.setdefault("align", "center")
 
-        self.x_mode = kwargs.pop("x_mode", "sequential")
+        self.positioning = kwargs.pop("positioning", "sequential")
         default_width = 0.5
-        if self.x_mode == "sequential":
+        if self.positioning == "sequential":
             self.tick_pos = np.arange(len(data))
             self.ax_pos = self.tick_pos
-        elif self.x_mode == "numerical":
+        elif self.positioning == "numerical":
             if is_categorical_dtype(data.index):
                 self.tick_pos = np.array(data.index.codes)
             else:
@@ -1484,14 +1484,16 @@ class BarPlot(MPLPlot):
                     except TypeError as err:
                         raise ValueError(f"Cannot determine a proper bar width: {err}")
             self.ax_pos = self.tick_pos
-        elif self.x_mode == "categorical":
+        elif self.positioning == "categorical":
             if not is_categorical_dtype(data.index):
-                raise ValueError("x_mode='categorical' needs a categorical index")
+                raise ValueError("positioning='categorical' needs a categorical index")
             self.tick_pos = np.arange(len(data.index.dtype.categories))
             self.ax_pos = np.array(data.index.codes)
         else:
             modes = "{'sequential', 'numerical', 'categorical'}"
-            raise ValueError(f"x_mode must be a value in {modes} got: {self.x_mode}")
+            raise ValueError(
+                f"positioning must be a value in {modes} got: {self.positioning}"
+            )
 
         self.bar_width = kwargs.pop("width", default_width)
 
@@ -1502,19 +1504,27 @@ class BarPlot(MPLPlot):
         MPLPlot.__init__(self, data, **kwargs)
 
         if self.stacked or self.subplots:
-            self.tickoffset = self.bar_width * pos
-            if kwargs["align"] == "edge":
-                self.lim_offset = self.bar_width / 2
-            else:
-                self.lim_offset = 0 * self.bar_width
+            # No need to sub-split the bar between the series
+            sub_bar = 1.0
         else:
-            if kwargs["align"] == "edge":
-                w = self.bar_width / self.nseries
-                self.tickoffset = self.bar_width * (pos - 0.5) + w * 0.5
-                self.lim_offset = w * 0.5
-            else:
-                self.tickoffset = self.bar_width * pos
-                self.lim_offset = 0 * self.bar_width
+            # distribute the full bar between the series
+            sub_bar = 1 / self.nseries
+
+        # tick_offset: fraction of bar width to move the x value
+        #              passed to matplotlib bar
+        # lim_offset: fraction of bar width to move the X-lim
+        if kwargs["align"] == "edge":
+            # With this correction the rest of the algorithm
+            # is equal to the "center" case
+            lim_offset = 0.5 * sub_bar
+            tick_offset = pos - 0.5 + lim_offset
+        else:
+            lim_offset = 0.0
+            tick_offset = pos
+
+        # Measure both in "bar-widths"
+        self.tickoffset = self.bar_width * tick_offset
+        self.lim_offset = self.bar_width * lim_offset
 
         self.ax_pos = self.ax_pos - self.tickoffset
 
@@ -1542,7 +1552,12 @@ class BarPlot(MPLPlot):
         ncolors = len(colors)
 
         pos_prior = neg_prior = np.zeros(len(self.data))
-        K = self.nseries
+
+        # Width of each bar
+        if self.subplots or self.stacked:
+            w = self.bar_width
+        else:
+            w = self.bar_width / self.nseries
 
         for i, (label, y) in enumerate(self._iter_data(fillna=0)):
             ax = self._get_ax(i)
@@ -1569,46 +1584,27 @@ class BarPlot(MPLPlot):
             start = start + self._start_base
 
             if self.subplots:
-                w = self.bar_width / 2
-                rect = self._plot(
-                    ax,
-                    self.ax_pos + w,
-                    y,
-                    self.bar_width,
-                    start=start,
-                    label=label,
-                    log=self.log,
-                    **kwds,
-                )
+                offset = w / 2
                 ax.set_title(label)
             elif self.stacked:
                 mask = y > 0
                 start = np.where(mask, pos_prior, neg_prior) + self._start_base
-                w = self.bar_width / 2
-                rect = self._plot(
-                    ax,
-                    self.ax_pos + w,
-                    y,
-                    self.bar_width,
-                    start=start,
-                    label=label,
-                    log=self.log,
-                    **kwds,
-                )
                 pos_prior = pos_prior + np.where(mask, y, 0)
                 neg_prior = neg_prior + np.where(mask, 0, y)
+                offset = w / 2
             else:
-                w = self.bar_width / K
-                rect = self._plot(
-                    ax,
-                    self.ax_pos + (i + 0.5) * w,
-                    y,
-                    w,
-                    start=start,
-                    label=label,
-                    log=self.log,
-                    **kwds,
-                )
+                offset = (i + 0.5) * w
+
+            rect = self._plot(
+                ax,
+                self.ax_pos + offset,
+                y,
+                w,
+                start=start,
+                label=label,
+                log=self.log,
+                **kwds,
+            )
             self._append_legend_handles_labels(rect, label)
 
     def _post_plot_logic(self, ax: Axes, data):
@@ -1617,9 +1613,9 @@ class BarPlot(MPLPlot):
         e_edge = max(self.tick_pos) - self.tickoffset
         margin = 0.25
         x_values = data.index
-        if self.x_mode == "numerical":
+        if self.positioning == "numerical":
             margin = 0.5 * self.bar_width
-        elif self.x_mode == "categorical":
+        elif self.positioning == "categorical":
             x_values = data.index.dtype.categories
         else:
             # Compatibility with previous version

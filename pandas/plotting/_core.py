@@ -457,7 +457,7 @@ x_compat : bool, optional
 
 
 _bar_option_doc = """
-x_mode : {'sequential', 'numerical', 'categorial'}, default 'sequential'
+positioning : {'sequential', 'numerical', 'categorial'}, default 'sequential'
     Select the mode for the axis with the categories:
 
     - 'sequential' :
@@ -564,7 +564,7 @@ Plot only selected categories for the DataFrame.
 
     >>> ax = df.plot.%(kind)s(x='lifespan'%(rot)s)
 
-**Using the advance x_mode**
+**Using the advance positioning**
 
 The classic %(kind)s plot adds one after the other each
 of the x elements to the axis, so each category is at
@@ -573,7 +573,7 @@ despite of its real value.
 If the x values are relevant by their value this can produce
 plots difficult to compare.
 
-With x_mode='numeric' the position of the x coordinates honors their
+With positioning='numerical' the position of the x coordinates honors their
 numeric value.
 
 .. plot::
@@ -584,7 +584,7 @@ numeric value.
     ...     'cpu': [0.9, 0.2, 0.6, 0.95, 0.5],
     ...     'ram': [0.4, 0.9, 0.7, 0.99, 0.4]
     ... })
-    >>> ax = df.plot.%(kind)s(x='machine', x_mode='numerical'%(rot)s)
+    >>> ax = df.plot.%(kind)s(x='machine', positioning='numerical'%(rot)s)
 
 That is easier to correlate with data from other sample.
 
@@ -596,7 +596,7 @@ That is easier to correlate with data from other sample.
     ...     'cpu': [0.4, 0.2, 0.9, 0.7, 0.5, 0.7],
     ...     'ram': [0.9, 0.9, 0.7, 0.9, 0.4, 0.6]
     ... })
-    >>> ax = df.plot.%(kind)s(x='machine', x_mode='numerical'%(rot)s)
+    >>> ax = df.plot.%(kind)s(x='machine', positioning='numerical'%(rot)s)
 
 For categorical indexes, it is also convenient to include the missing
 categories so the plots are aligned and easy to compare
@@ -619,10 +619,10 @@ categories so the plots are aligned and easy to compare
     ...     index=pd.CategoricalIndex(index_wonderland, dtype=animal))
     >>> fig, axes = plt.subplots(2, 1, sharex='all')
     >>> axes[0] = df_zoo.plot.%(kind)s(
-    ...     ax=axes[0], x_mode='categorical', ylabel='Zoo'%(rot)s
+    ...     ax=axes[0], positioning='categorical', ylabel='Zoo'%(rot)s
     ... )
     >>> axes[1] = df_wonderland.plot.%(kind)s(
-    ...     ax=axes[1], x_mode='categorical', ylabel='Wonderland'%(rot)s
+    ...     ax=axes[1], positioning='categorical', ylabel='Wonderland'%(rot)s
     ... )
 """
 

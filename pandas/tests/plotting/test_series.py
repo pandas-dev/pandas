@@ -828,7 +828,7 @@ class TestSeriesPlots(TestPlotBase):
         # Single plot
         _, ax = self.plt.subplots()
         idx = pd.CategoricalIndex(["A", "C", "E"], dtype=cat)
-        ax = Series(range(3), index=idx).plot.bar(ax=ax, x_mode="categorical")
+        ax = Series(range(3), index=idx).plot.bar(ax=ax, positioning="categorical")
         tm.assert_numpy_array_equal(ax.xaxis.get_ticklocs(), expected_ticks)
         # First 3 patches are the series in positions:
         # A => 0 - width / 2 = -0.25
@@ -842,7 +842,7 @@ class TestSeriesPlots(TestPlotBase):
         _, ax = self.plt.subplots()
         # Width is (5 - 1) / 2 = 2
         int_index = [1, 5, 10]
-        ax = Series([0, 2, 4], index=int_index).plot.bar(x_mode="numerical")
+        ax = Series([0, 2, 4], index=int_index).plot.bar(positioning="numerical")
         self._assert_rect_x_list(ax, int_index, -2 * 0.5)
         tm.close()
 
@@ -850,14 +850,14 @@ class TestSeriesPlots(TestPlotBase):
         _, ax = self.plt.subplots()
         # Width is (0.2 - 0.1) / 2 = 0.05
         float_index = [0.1, 0.2, 0.5]
-        ax = Series([0, 2, 4], index=float_index).plot.bar(x_mode="numerical")
+        ax = Series([0, 2, 4], index=float_index).plot.bar(positioning="numerical")
         self._assert_rect_x_list(ax, float_index, -0.05 * 0.5)
         tm.close()
 
         # Categorical
         _, ax = self.plt.subplots()
         cat_index = pd.Categorical(["A", "C", "E"], ["A", "B", "C", "D", "E"])
-        ax = Series([0, 2, 4], index=cat_index).plot.bar(x_mode="numerical")
+        ax = Series([0, 2, 4], index=cat_index).plot.bar(positioning="numerical")
         self._assert_rect_x_list(ax, cat_index.codes, -0.25)
         tm.close()
 
@@ -865,7 +865,7 @@ class TestSeriesPlots(TestPlotBase):
         _, ax = self.plt.subplots()
         # Width is 2 days / 2 = 1 day
         epoch_index = pd.to_datetime(["2021-01-01", "2021-01-03", "2021-01-06"])
-        ax = Series([0, 2, 4], index=epoch_index).plot.bar(x_mode="numerical")
+        ax = Series([0, 2, 4], index=epoch_index).plot.bar(positioning="numerical")
         # Matplotlib internally use days since to 1970-01-01 00:00:00
         origin = pd.Timestamp(1970, 1, 1).to_julian_date()
         self._assert_rect_x_list(ax, epoch_index.to_julian_date(), -origin - 0.5)
@@ -877,7 +877,7 @@ class TestSeriesPlots(TestPlotBase):
         # Width is half of previous case
         width = pd.Timedelta(12, "h")
         ax = Series([0, 2, 4], index=epoch_index).plot.bar(
-            x_mode="numerical", width=width
+            positioning="numerical", width=width
         )
         # Matplotlib internally use days since to 1970-01-01 00:00:00
         self._assert_rect_x_list(ax, epoch_index.to_julian_date(), -origin - 0.25)
@@ -889,12 +889,12 @@ class TestSeriesPlots(TestPlotBase):
         with pytest.raises(
             ValueError, match="Cannot determine a proper bar width:.*MonthEnd.*"
         ):
-            s.plot.bar(x_mode="numerical")
+            s.plot.bar(positioning="numerical")
 
     def test_bar_invalid_x_mode(self):
         # Try to use a width of different unit
         s = Series([0, 2, 4], index=[1, 5, 10])
         with pytest.raises(
-            ValueError, match="x_mode must be a value in .* got: invalid_mode"
+            ValueError, match="positioning must be a value in .* got: invalid_mode"
         ):
-            s.plot.bar(x_mode="invalid_mode")
+            s.plot.bar(positioning="invalid_mode")
