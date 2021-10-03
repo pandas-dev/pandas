@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import os
+import pandas._testing as tm
+
 from typing import TYPE_CHECKING
 from tempfile import gettempdir
 
@@ -10,10 +12,8 @@ from pandas.compat._optional import import_optional_dependency
 
 from pandas.io.common import get_handle
 
-from pandas.core import generic
-from pandas.util._decorators import doc
-
-from pandas import DataFrame
+if TYPE_CHECKING:
+    from pandas import DataFrame
 
 
 def read_orc(
@@ -105,29 +105,19 @@ def to_orc(
     else:
         try:
             assert engine.__name__ == 'pyarrow', "engine must be 'pyarrow' module"
-            assert hasattr(engine, 'orc'), "'pyarrow' module must have version > 4.0.0 with orc module"
+            assert hasattr(engine, 'orc'), "'pyarrow' module must have orc module"
         except Exception as e:
-            raise ValueError("Wrong engine passed, %s" % (
-                e,
-            ))
+            raise ValueError("Wrong engine passed, %s" % e)
             
     if path is None:
         # to bytes: tmp path, pyarrow auto closes buffers
-        path = os.path.join(gettempdir(), os.urandom(12).hex())
-        try:
+        with tm.ensure_clean(os.path.join(gettempdir(), os.urandom(12).hex())) as path:
             engine.orc.write_table(
                 engine.Table.from_pandas(df, preserve_index=index),
                 path, **kwargs
             )
             with open(path, 'rb') as path:
                 return path.read()
-        except BaseException as e:
-            raise e
-        finally:
-            try:
-                os.remove(path)
-            except Exception as e:
-                pass
     else:
         engine.orc.write_table(
             engine.Table.from_pandas(df, preserve_index=index),
