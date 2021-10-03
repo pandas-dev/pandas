@@ -381,6 +381,7 @@ if linetrace:
     # https://pypkg.com/pypi/pytest-cython/f/tests/example-project/setup.py
     directives["linetrace"] = True
     macros = [("CYTHON_TRACE", "1"), ("CYTHON_TRACE_NOGIL", "1")]
+    extra_compile_args.append("-Wno-error=maybe-uninitialized")
 
 # silence build warnings about deprecated API usage
 # we can't do anything about these warnings because they stem from
