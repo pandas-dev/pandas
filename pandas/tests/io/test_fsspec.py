@@ -39,9 +39,8 @@ def cleared_fs():
 
 
 def test_read_csv(cleared_fs):
-    from fsspec.implementations.memory import MemoryFile
-
-    cleared_fs.store["test/test.csv"] = MemoryFile(data=text)
+    with cleared_fs.open("test/test.csv", "wb") as w:
+        w.write(text)
     df2 = read_csv("memory://test/test.csv", parse_dates=["dt"])
 
     tm.assert_frame_equal(df1, df2)
@@ -294,7 +293,7 @@ def test_markdown_options(fsspectest):
     df = DataFrame({"a": [0]})
     df.to_markdown("testmem://afile", storage_options={"test": "md_write"})
     assert fsspectest.test[0] == "md_write"
-    assert fsspectest.cat("afile")
+    assert fsspectest.cat("testmem://afile")
 
 
 @td.skip_if_no("pyarrow")
