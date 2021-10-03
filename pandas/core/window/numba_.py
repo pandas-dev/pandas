@@ -108,7 +108,8 @@ def generate_numba_ewm_func(
     """
     nopython, nogil, parallel = get_jit_arguments(engine_kwargs)
 
-    cache_key = (lambda x: x, "ewma")
+    str_key = "ewm_mean" if normalize else "ewm_sum"
+    cache_key = (lambda x: x, str_key)
     if cache_key in NUMBA_FUNC_CACHE:
         return NUMBA_FUNC_CACHE[cache_key]
 
@@ -282,7 +283,8 @@ def generate_ewm_numba_table_func(
     """
     nopython, nogil, parallel = get_jit_arguments(engine_kwargs)
 
-    cache_key = (lambda x: x, "ewma_table")
+    str_key = "ewm_mean_table" if normalize else "ewm_sum_table"
+    cache_key = (lambda x: x, str_key)
     if cache_key in NUMBA_FUNC_CACHE:
         return NUMBA_FUNC_CACHE[cache_key]
 
