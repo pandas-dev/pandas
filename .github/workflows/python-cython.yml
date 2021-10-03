@@ -22,7 +22,7 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-    name: actions-310-dev
+    name: python_cython_build
     timeout-minutes: 60
 
     strategy:
@@ -30,7 +30,7 @@ jobs:
         PYTEST_TARGET: ["pandas/tests/[a-h]*", "pandas/tests/[i-z]*"]
 
     concurrency:
-      group: ${{ github.ref }}-dev-${{ matrix.PYTEST_TARGET }}
+      group: ${{ github.ref }}-${{ matrix.PYTEST_TARGET }}
       cancel-in-progress: ${{github.event_name == 'pull_request'}}
 
     steps:
@@ -38,10 +38,8 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Set up Python Dev Version
+    - name: Set up Python
       uses: actions/setup-python@v2
-      with:
-        python-version: '3.10-dev'
 
     - name: Install dependencies
       run: |
