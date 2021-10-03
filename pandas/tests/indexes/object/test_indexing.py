@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.missing import is_matching_na
+from pandas._libs.tslibs.nattype import NaT
 
 import pandas as pd
 from pandas import Index
@@ -91,6 +92,42 @@ class TestGetIndexerNonUnique:
         if is_matching_na(nulls_fixture, float("NaN")):
             index = Index(["a", float("NaN"), "b", float("NaN")])
             indexer, missing = index.get_indexer_non_unique([nulls_fixture])
+
+            expected_indexer = np.array([1, 3], dtype=np.intp)
+            tm.assert_numpy_array_equal(indexer, expected_indexer)
+            tm.assert_numpy_array_equal(missing, expected_missing)
+
+        # NaTs
+        if is_matching_na(nulls_fixture, NaT):
+            # NaT vs dt64nat
+            index = Index(
+                np.array(
+                    ["2021-10-02", nulls_fixture, np.datetime64("NaT"), nulls_fixture],
+                    dtype=object,
+                )
+            )
+            indexer, missing = index.get_indexer_non_unique([nulls_fixture])
+
+            expected_indexer = np.array([1, 3], dtype=np.intp)
+            tm.assert_numpy_array_equal(indexer, expected_indexer)
+            tm.assert_numpy_array_equal(missing, expected_missing)
+
+            # dt64nat vs td64nat
+            index = Index(
+                np.array(
+                    [
+                        "2021-10-02",
+                        np.datetime64("NaT"),
+                        np.timedelta64("NaT"),
+                        np.datetime64("NaT"),
+                    ],
+                    dtype=object,
+                )
+            )
+            # pass as index to prevent target from being casted to DatetimeIndex
+            indexer, missing = index.get_indexer_non_unique(
+                Index([np.datetime64("NaT")], dtype=object)
+            )
 
             expected_indexer = np.array([1, 3], dtype=np.intp)
             tm.assert_numpy_array_equal(indexer, expected_indexer)
