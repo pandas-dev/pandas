@@ -174,7 +174,7 @@ cdef class IndexEngine:
     cdef inline _get_loc_duplicates(self, object val):
         # -> Py_ssize_t | slice | ndarray[bool]
         cdef:
-            Py_ssize_t diff
+            Py_ssize_t diff, left, right
 
         if self.is_monotonic_increasing:
             values = self.values
@@ -318,8 +318,8 @@ cdef class IndexEngine:
             set stargets, remaining_stargets
             dict d = {}
             object val
-            int count = 0, count_missing = 0
-            Py_ssize_t i, j, n, n_t, n_alloc
+            Py_ssize_t count = 0, count_missing = 0
+            Py_ssize_t i, j, n, n_t, n_alloc, start, end
             bint d_has_nan = False, stargets_has_nan = False, need_nan_check = True
 
         values = self.values
@@ -481,7 +481,8 @@ cdef class DatetimeEngine(Int64Engine):
         #  with either a Timestamp or NaT (Timedelta or NaT for TimedeltaEngine)
 
         cdef:
-            int64_t loc
+            Py_ssize_t loc
+
         if is_definitely_invalid_key(val):
             raise TypeError(f"'{val}' is an invalid key")
 
