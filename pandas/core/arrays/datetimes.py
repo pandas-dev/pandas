@@ -39,7 +39,7 @@ from pandas._libs.tslibs import (
 )
 from pandas._typing import npt
 from pandas.errors import PerformanceWarning
-from pandas.util._validators import validate_endpoints
+from pandas.util._validators import validate_inclusive
 
 from pandas.core.dtypes.cast import astype_dt64_to_dt64tz
 from pandas.core.dtypes.common import (
@@ -394,7 +394,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         normalize=False,
         ambiguous="raise",
         nonexistent="raise",
-        closed=None,
+        inclusive="both",
     ):
 
         periods = dtl.validate_periods(periods)
@@ -417,7 +417,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         if start is NaT or end is NaT:
             raise ValueError("Neither `start` nor `end` can be NaT")
 
-        left_closed, right_closed = validate_endpoints(closed)
+        left_inclusive, right_inclusive = validate_inclusive(inclusive)
         start, end, _normalized = _maybe_normalize_endpoints(start, end, normalize)
         tz = _infer_tz_from_endpoints(start, end, tz)
 
@@ -477,10 +477,15 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             arr = arr.astype("M8[ns]", copy=False)
             index = cls._simple_new(arr, freq=None, dtype=dtype)
 
-        if not left_closed and len(index) and index[0] == start:
-            index = index[1:]
-        if not right_closed and len(index) and index[-1] == end:
-            index = index[:-1]
+        if start == end:
+            if not left_inclusive and not right_inclusive:
+                index = index[1:-1]
+        else:
+            if not left_inclusive or not right_inclusive:
+                if not left_inclusive and len(index) and index[0] == start:
+                    index = index[1:]
+                if not right_inclusive and len(index) and index[-1] == end:
+                    index = index[:-1]
 
         dtype = tz_to_dtype(tz)
         return cls._simple_new(index._ndarray, freq=freq, dtype=dtype)
