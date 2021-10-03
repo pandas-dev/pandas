@@ -1,4 +1,4 @@
-name: Python Dev with Cython
+name: Python build with Cython
 
 on:
   push:
