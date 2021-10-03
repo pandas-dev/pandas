@@ -71,20 +71,19 @@ class BaseMethodsTests(BaseExtensionTests):
 
     def test_argsort(self, data_for_sorting):
         result = pd.Series(data_for_sorting).argsort()
-        expected = pd.Series(np.array([2, 0, 1], dtype=np.int64))
+        # argsort result gets passed to take, so should be np.intp
+        expected = pd.Series(np.array([2, 0, 1], dtype=np.intp))
         self.assert_series_equal(result, expected)
 
     def test_argsort_missing_array(self, data_missing_for_sorting):
         result = data_missing_for_sorting.argsort()
-        expected = np.array([2, 0, 1], dtype=np.dtype("int"))
-        # we don't care whether it's int32 or int64
-        result = result.astype("int64", casting="safe")
-        expected = expected.astype("int64", casting="safe")
+        # argsort result gets passed to take, so should be np.intp
+        expected = np.array([2, 0, 1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
     def test_argsort_missing(self, data_missing_for_sorting):
         result = pd.Series(data_missing_for_sorting).argsort()
-        expected = pd.Series(np.array([1, -1, 0], dtype=np.int64))
+        expected = pd.Series(np.array([1, -1, 0], dtype=np.intp))
         self.assert_series_equal(result, expected)
 
     def test_argmin_argmax(self, data_for_sorting, data_missing_for_sorting, na_value):

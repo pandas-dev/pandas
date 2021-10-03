@@ -1423,7 +1423,8 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
         # this will handle ndarray-like
         # e.g. categoricals
         dtype = value.dtype
-        if not isinstance(dtype, np.dtype):
+        if not cnp.PyArray_DescrCheck(dtype):
+            # i.e. not isinstance(dtype, np.dtype)
             inferred = _try_infer_map(value.dtype)
             if inferred is not None:
                 return inferred
@@ -2723,7 +2724,8 @@ cdef _infer_all_nats(dtype, ndarray datetimes, ndarray timedeltas):
     """
     If we have all-NaT values, cast these to the given dtype.
     """
-    if isinstance(dtype, np.dtype):
+    if cnp.PyArray_DescrCheck(dtype):
+        # i.e. isinstance(dtype, np.dtype):
         if dtype == "M8[ns]":
             result = datetimes
         elif dtype == "m8[ns]":

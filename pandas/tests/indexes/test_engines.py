@@ -69,7 +69,7 @@ class TestTimedeltaEngine:
             pd.Timedelta(days=42).to_timedelta64(),
         ],
     )
-    def test_not_contains_requires_timestamp(self, scalar):
+    def test_not_contains_requires_timedelta(self, scalar):
         tdi1 = pd.timedelta_range("42 days", freq="9h", periods=1234)
         tdi2 = tdi1.insert(1, pd.NaT)  # non-monotonic
         tdi3 = tdi1.insert(3, tdi1[0])  # non-unique
