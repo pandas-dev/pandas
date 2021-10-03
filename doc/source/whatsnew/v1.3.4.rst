@@ -24,6 +24,8 @@ Fixed regressions
 - Fixed regression in :meth:`pandas.read_csv` raising ``UnicodeDecodeError`` exception when ``memory_map=True`` (:issue:`43540`)
 - Fixed regression in :meth:`DataFrame.explode` raising ``AssertionError`` when ``column`` is any scalar which is not a string (:issue:`43314`)
 - Fixed regression in :meth:`Series.aggregate` attempting to pass ``args`` and ``kwargs`` multiple times to the user supplied ``func`` in certain cases (:issue:`43357`)
+- Fixed regression when iterating over a :class:`DataFrame.groupby.rolling` object causing the resulting DataFrames to have an incorrect index if the input groupings were not sorted (:issue:`43386`)
+- Fixed regression in :meth:`DataFrame.groupby.rolling.cov` and :meth:`DataFrame.groupby.rolling.corr` computing incorrect results if the input groupings were not sorted (:issue:`43386`)
 
 .. ---------------------------------------------------------------------------
 
