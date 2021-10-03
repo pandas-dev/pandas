@@ -2552,7 +2552,8 @@ class DataFrame(NDFrame, OpsMixin):
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
     def to_feather(self, path: FilePathOrBuffer[AnyStr], **kwargs) -> None:
         """
-        Write a DataFrame to the binary Feather format.
+        Write a DataFrame to the binary Feather format. Requires a default index.
+        For saving the DataFrame with your custom index, use e.g. `to_parquet`.
 
         Parameters
         ----------
