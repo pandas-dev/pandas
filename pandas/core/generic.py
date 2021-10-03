@@ -2029,6 +2029,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             self, method="__array_wrap__"
         )
 
+    @final
     def __array_ufunc__(
         self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any
     ):
