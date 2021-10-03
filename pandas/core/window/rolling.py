@@ -301,8 +301,8 @@ class BaseWindow(SelectionMixin):
         return f"{type(self).__name__} [{attrs}]"
 
     def __iter__(self):
-        obj = self._create_data(self._selected_obj)
-        obj = obj.set_axis(self._on)
+        obj = self._selected_obj.set_axis(self._on)
+        obj = self._create_data(obj)
         indexer = self._get_window_indexer()
 
         start, end = indexer.get_window_bounds(
@@ -727,6 +727,7 @@ class BaseWindowGroupby(BaseWindow):
         """
         # Manually drop the grouping column first
         target = target.drop(columns=self._grouper.names, errors="ignore")
+        target = self._create_data(target)
         result = super()._apply_pairwise(target, other, pairwise, func)
         # 1) Determine the levels + codes of the groupby levels
         if other is not None:
