@@ -1543,7 +1543,7 @@ class DataFrame(NDFrame, OpsMixin):
             If 'tight', assume a dict with keys ['index', 'columns', 'data',
             'index_names', 'column_names'].
 
-            .. versionadded:: 1.2.0
+            .. versionadded:: 1.4.0
                'tight' as an allowed value for the ``orient`` argument
 
         dtype : dtype, default None
@@ -1629,6 +1629,7 @@ class DataFrame(NDFrame, OpsMixin):
             realdata = data["data"]
 
             def create_index(indexlist, namelist):
+                index: Index
                 if len(namelist) > 1:
                     index = MultiIndex.from_tuples(indexlist, names=namelist)
                 else:
@@ -1737,7 +1738,7 @@ class DataFrame(NDFrame, OpsMixin):
             Abbreviations are allowed. `s` indicates `series` and `sp`
             indicates `split`.
 
-            .. versionadded:: 1.2.0
+            .. versionadded:: 1.4.0
                 'tight' as an allowed value for the ``orient`` argument
 
         into : class, default dict
@@ -1877,7 +1878,7 @@ class DataFrame(NDFrame, OpsMixin):
                     (
                         "data",
                         [
-                            list(map(com.maybe_box_datetimelike, t))
+                            list(map(maybe_box_native, t))
                             for t in self.itertuples(index=False, name=None)
                         ],
                     ),
