@@ -8,6 +8,9 @@ from pandas.io.excel import ExcelWriter
 from pandas.io.formats.excel import ExcelFormatter
 
 pytest.importorskip("jinja2")
+# jinja2 is currently required for Styler.__init__(). Technically Styler.to_excel
+# could compute styles and render to excel without jinja2, since there is no
+# 'template' file, but this needs the import error to delayed until render time.
 
 
 def assert_equal_cell_styles(cell1, cell2):
