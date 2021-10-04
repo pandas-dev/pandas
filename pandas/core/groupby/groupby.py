@@ -3424,7 +3424,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     "Group by product space too large to allocate arrays! "
                     "Consider setting `observed=True` to reduce size."
                 ) from err
-            elif isinstance(err, MemoryError):
+            elif isinstance(err, MemoryError) and not self.observed:
                 raise MemoryError(
                     err_str + ". Consider setting `observed=True` to reduce size of "
                     "group by product space if appropriate."

@@ -1,3 +1,5 @@
+import sys
+
 from datetime import datetime
 from decimal import Decimal
 from io import StringIO
@@ -2515,6 +2517,9 @@ def test_groupby_categorical_crossproduct():
             df[i] = v
         return df
 
+    def is_32bit():
+        return not (sys.maxsize > 2 ** 32)
+
     # This combination will trigger the signed integer overflow for a 64 bit
     # integer, thus triggering the ValueError code path. If somehow this doesn't
     # throw a ValueError, it will throw a MemoryError, trying to allocate > 4 exibytes
@@ -2542,9 +2547,18 @@ def test_groupby_categorical_crossproduct():
         g = df.groupby(list(df.columns))
         with timeout(1):
             g[1].sum()
-    g = df.groupby(list(df.columns), observed=True)
-    with timeout(1):
-        assert g[1].sum().max() == 24
+
+    # This cross-product is still too large for a 32-bit architecture.
+    if not is_32bit():
+        g = df.groupby(list(df.columns), observed=True)
+        with timeout(1):
+            assert g[1].sum().max() == 24
+    else:
+        message = r"Unable to allocate.+"
+        with pytest.raises(MemoryError, match=message):
+            g = df.groupby(list(df.columns), observed=True)
+            with timeout(1):
+                g[1].sum()
 
 
 def test_rolling_wrong_param_min_period():
