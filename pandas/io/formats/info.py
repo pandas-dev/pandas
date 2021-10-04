@@ -10,11 +10,8 @@ from typing import (
     TYPE_CHECKING,
     Iterable,
     Iterator,
-    List,
     Mapping,
-    Optional,
     Sequence,
-    Union,
 )
 
 from pandas._config import get_option
@@ -114,7 +111,7 @@ class BaseInfo(ABC):
     """
 
     data: DataFrame | Series
-    memory_usage: Union[bool, str]
+    memory_usage: bool | str
 
     @property
     @abstractmethod
@@ -502,7 +499,7 @@ class SeriesInfoPrinter(InfoPrinterAbstract):
         else:
             return SeriesTableBuilderNonVerbose(info=self.info)
 
-    def _initialize_show_counts(self, show_counts: Optional[bool]) -> bool:
+    def _initialize_show_counts(self, show_counts: bool | None) -> bool:
         if show_counts is None:
             return True
         else:
@@ -806,13 +803,13 @@ class SeriesTableBuilder(TableBuilderAbstract):
     def __init__(self, *, info: SeriesInfo):
         self.info: SeriesInfo = info
 
-    def get_lines(self) -> List[str]:
+    def get_lines(self) -> list[str]:
         self._lines = []
         self._fill_non_empty_info()
         return self._lines
 
     @property
-    def data(self) -> "Series":
+    def data(self) -> Series:
         """Series."""
         return self.info.data
 
