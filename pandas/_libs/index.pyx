@@ -23,7 +23,11 @@ cnp.import_array()
 
 from pandas._libs cimport util
 from pandas._libs.hashtable cimport HashTable
-from pandas._libs.tslibs.nattype cimport c_NaT as NaT
+from pandas._libs.tslibs.nattype cimport (
+    c_NaT as NaT,
+    is_dt64nat,
+    is_td64nat,
+)
 from pandas._libs.tslibs.period cimport is_period_object
 from pandas._libs.tslibs.timedeltas cimport _Timedelta
 from pandas._libs.tslibs.timestamps cimport _Timestamp
@@ -319,10 +323,13 @@ cdef class IndexEngine:
             ndarray[intp_t] result, missing
             set stargets, remaining_stargets
             dict d = {}
-            object val
+            object val, dt64nat, td64nat
             Py_ssize_t count = 0, count_missing = 0
             Py_ssize_t i, j, n, n_t, n_alloc, start, end
             bint d_has_nan = False, stargets_has_nan = False, need_nan_check = True
+            d_has_dt64nat = False, stargets_has_dt64nat = False,
+            need_dt64nat_check = True, d_has_td64nat = False,
+            stargets_has_td64nat = False, need_td64nat_check = True
 
         values = self.values
         stargets = set(targets)
@@ -380,12 +387,53 @@ cdef class IndexEngine:
                             d_has_nan = True
                         d[np.nan].append(i)
 
+                elif is_dt64nat(val):
+                    if need_dt64nat_check:
+                        # Do this check only once
+                        stargets_has_dt64nat = any(
+                            is_dt64nat(starget) for starget in stargets
+                        )
+                        need_dt64nat_check = False
+
+                    if stargets_has_dt64nat:
+                        if not d_has_dt64nat:
+                            dt64nat = np.datetime64("NaT")
+                            d[dt64nat] = []
+                            d_has_dt64nat = True
+                        d[dt64nat].append(i)
+
+                elif is_td64nat(val):
+                    if need_td64nat_check:
+                        # Do this check only once
+                        stargets_has_td64nat = any(
+                            is_td64nat(starget) for starget in stargets
+                        )
+                        need_td64nat_check = False
+
+                    if stargets_has_td64nat:
+                        if not d_has_td64nat:
+                            td64nat = np.timedelta64("NaT")
+                            d[td64nat] = []
+                            d_has_td64nat = True
+                        d[td64nat].append(i)
+
         for i in range(n_t):
             val = targets[i]
-
             # found
-            if val in d or (d_has_nan and util.is_nan(val)):
-                key = val if not util.is_nan(val) else np.nan
+            if (
+                val in d
+                or d_has_nan and util.is_nan(val)
+                or d_has_dt64nat and is_dt64nat(val)
+                or d_has_td64nat and is_td64nat(val)
+            ):
+                key = val
+                if d_has_nan and util.is_nan(key):
+                    key = np.nan
+                elif d_has_dt64nat and is_dt64nat(key):
+                    key = dt64nat
+                elif d_has_td64nat and is_td64nat(key):
+                    key = td64nat
+
                 for j in d[key]:
 
                     # realloc if needed
