@@ -574,7 +574,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 dtype = object
 
         out = np.full(self.shape, fill_value, dtype=dtype)
-        out[self.sp_index.to_int_index().indices] = self.sp_values
+        out[self.sp_index.indices] = self.sp_values
         return out
 
     def __setitem__(self, key, value):
@@ -796,7 +796,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if len(self) == 0 or self.sp_index.npoints == len(self):
             return -1
 
-        indices = self.sp_index.to_int_index().indices
+        indices = self.sp_index.indices
         if not len(indices) or indices[0] > 0:
             return 0
 
@@ -903,7 +903,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 if end < 0:
                     end += len(self)
 
-                indices = self.sp_index.to_int_index().indices
+                indices = self.sp_index.indices
                 keep_inds = np.flatnonzero((indices >= start) & (indices < end))
                 sp_vals = self.sp_values[keep_inds]
 
@@ -1111,7 +1111,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             indices = []
 
             for arr in to_concat:
-                int_idx = arr.sp_index.to_int_index().indices.copy()
+                int_idx = arr.sp_index.indices.copy()
                 int_idx += length  # TODO: wraparound
                 length += arr.sp_index.length
 
@@ -1324,9 +1324,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
     def nonzero(self):
         if self.fill_value == 0:
-            return (self.sp_index.to_int_index().indices,)
+            return (self.sp_index.indices,)
         else:
-            return (self.sp_index.to_int_index().indices[self.sp_values != 0],)
+            return (self.sp_index.indices[self.sp_values != 0],)
 
     # ------------------------------------------------------------------------
     # Reductions
@@ -1642,11 +1642,14 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         if isinstance(other, np.ndarray):
             # TODO: make this more flexible than just ndarray...
-            if len(self) != len(other):
-                raise AssertionError(f"length mismatch: {len(self)} vs. {len(other)}")
             other = SparseArray(other, fill_value=self.fill_value)
 
         if isinstance(other, SparseArray):
+            if len(self) != len(other):
+                raise ValueError(
+                    f"operands have mismatched length {len(self)} and {len(other)}"
+                )
+
             op_name = op.__name__.strip("_")
             return _sparse_array_op(self, other, op, op_name)
         else:
