@@ -2536,7 +2536,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         if not dropna:
             with self._group_selection_context():
-                mask = self._make_mask(n)
+                mask = self._make_mask_from_positional_indexer(n)
 
                 ids, _, _ = self.grouper.group_info
 
@@ -3319,8 +3319,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         0  1  2
         """
         self._reset_group_selection()
-        mask = self._make_mask(slice(None, n))
-        return self._apply_mask(mask)
+        mask = self._make_mask_from_positional_indexer(slice(None, n))
+        return self._apply_positional_indexer_mask(mask)
 
     @final
     @Substitution(name="groupby")
@@ -3360,11 +3360,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         self._reset_group_selection()
         if n:
-            mask = self._make_mask(slice(-n, None))
+            mask = self._make_mask_from_positional_indexer(slice(-n, None))
         else:
-            mask = self._make_mask([])
+            mask = self._make_mask_from_positional_indexer([])
 
-        return self._apply_mask(mask)
+        return self._apply_positional_indexer_mask(mask)
 
     @final
     def _reindex_output(

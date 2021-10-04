@@ -1,4 +1,4 @@
-# Test GroupBy._body positional grouped indexing GH#42864
+# Test GroupBy._positional_selector positional grouped indexing GH#42864
 
 import random
 
@@ -21,7 +21,7 @@ import pandas._testing as tm
 )
 def test_int(slice_test_df, slice_test_grouped, arg, expected_rows):
     # Test single integer
-    result = slice_test_grouped._body[arg]
+    result = slice_test_grouped._positional_selector[arg]
     expected = slice_test_df.iloc[expected_rows]
 
     tm.assert_frame_equal(result, expected)
@@ -29,7 +29,7 @@ def test_int(slice_test_df, slice_test_grouped, arg, expected_rows):
 
 def test_slice(slice_test_df, slice_test_grouped):
     # Test single slice
-    result = slice_test_grouped._body[0:3:2]
+    result = slice_test_grouped._positional_selector[0:3:2]
     expected = slice_test_df.iloc[[0, 1, 4, 5]]
 
     tm.assert_frame_equal(result, expected)
@@ -52,7 +52,7 @@ def test_slice(slice_test_df, slice_test_grouped):
 )
 def test_list(slice_test_df, slice_test_grouped, arg, expected_rows):
     # Test lists of integers and integer valued iterables
-    result = slice_test_grouped._body[arg]
+    result = slice_test_grouped._positional_selector[arg]
     expected = slice_test_df.iloc[expected_rows]
 
     tm.assert_frame_equal(result, expected)
@@ -60,7 +60,7 @@ def test_list(slice_test_df, slice_test_grouped, arg, expected_rows):
 
 def test_ints(slice_test_df, slice_test_grouped):
     # Test tuple of ints
-    result = slice_test_grouped._body[0, 2, -1]
+    result = slice_test_grouped._positional_selector[0, 2, -1]
     expected = slice_test_df.iloc[[0, 1, 3, 4, 5, 7]]
 
     tm.assert_frame_equal(result, expected)
@@ -68,7 +68,7 @@ def test_ints(slice_test_df, slice_test_grouped):
 
 def test_slices(slice_test_df, slice_test_grouped):
     # Test tuple of slices
-    result = slice_test_grouped._body[:2, -2:]
+    result = slice_test_grouped._positional_selector[:2, -2:]
     expected = slice_test_df.iloc[[0, 1, 2, 3, 4, 6, 7]]
 
     tm.assert_frame_equal(result, expected)
@@ -76,7 +76,7 @@ def test_slices(slice_test_df, slice_test_grouped):
 
 def test_mix(slice_test_df, slice_test_grouped):
     # Test mixed tuple of ints and slices
-    result = slice_test_grouped._body[0, 1, -2:]
+    result = slice_test_grouped._positional_selector[0, 1, -2:]
     expected = slice_test_df.iloc[[0, 1, 2, 3, 4, 6, 7]]
 
     tm.assert_frame_equal(result, expected)
@@ -92,7 +92,7 @@ def test_mix(slice_test_df, slice_test_grouped):
 )
 def test_as_index(slice_test_df, arg, expected_rows):
     # Test the default as_index behaviour
-    result = slice_test_df.groupby("Group", sort=False)._body[arg]
+    result = slice_test_df.groupby("Group", sort=False)._positional_selector[arg]
     expected = slice_test_df.iloc[expected_rows]
 
     tm.assert_frame_equal(result, expected)
@@ -106,12 +106,12 @@ def test_doc_examples():
 
     grouped = df.groupby("A", as_index=False)
 
-    result = grouped._body[1:2]
+    result = grouped._positional_selector[1:2]
     expected = pd.DataFrame([["a", 2], ["b", 5]], columns=["A", "B"], index=[1, 4])
 
     tm.assert_frame_equal(result, expected)
 
-    result = grouped._body[1, -1]
+    result = grouped._positional_selector[1, -1]
     expected = pd.DataFrame(
         [["a", 2], ["a", 3], ["b", 5]], columns=["A", "B"], index=[1, 2, 4]
     )
@@ -184,7 +184,7 @@ def test_against_head_and_tail(arg, method, simulated):
     size = arg if arg >= 0 else n_rows_per_group + arg
 
     if method == "head":
-        result = grouped._body[:arg]
+        result = grouped._positional_selector[:arg]
 
         if simulated:
             indices = []
@@ -199,7 +199,7 @@ def test_against_head_and_tail(arg, method, simulated):
             expected = grouped.head(arg)
 
     else:
-        result = grouped._body[-arg:]
+        result = grouped._positional_selector[-arg:]
 
         if simulated:
             indices = []
@@ -230,7 +230,7 @@ def test_against_df_iloc(start, stop, step):
     df = pd.DataFrame(data)
     grouped = df.groupby("group", as_index=False)
 
-    result = grouped._body[start:stop:step]
+    result = grouped._positional_selector[start:stop:step]
     expected = df.iloc[start:stop:step]
 
     tm.assert_frame_equal(result, expected)
@@ -240,7 +240,7 @@ def test_series():
     # Test grouped Series
     ser = pd.Series([1, 2, 3, 4, 5], index=["a", "a", "a", "b", "b"])
     grouped = ser.groupby(level=0)
-    result = grouped._body[1:2]
+    result = grouped._positional_selector[1:2]
     expected = pd.Series([2, 5], index=["a", "b"])
 
     tm.assert_series_equal(result, expected)
@@ -256,7 +256,7 @@ def test_step(step):
 
     grouped = df.groupby("A", as_index=False)
 
-    result = grouped._body[::step]
+    result = grouped._positional_selector[::step]
 
     data = [["x", f"x{i}"] for i in range(0, 5, step)]
     data += [["y", f"y{i}"] for i in range(0, 4, step)]
@@ -281,7 +281,7 @@ def column_group_df():
 
 def test_column_axis(column_group_df):
     g = column_group_df.groupby(column_group_df.iloc[1], axis=1)
-    result = g._body[1:-1]
+    result = g._positional_selector[1:-1]
     expected = column_group_df.iloc[:, [1, 3]]
 
     tm.assert_frame_equal(result, expected)
