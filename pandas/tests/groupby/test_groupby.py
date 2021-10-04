@@ -1,8 +1,7 @@
-import sys
-
 from datetime import datetime
 from decimal import Decimal
 from io import StringIO
+import sys
 
 import numpy as np
 import pytest
