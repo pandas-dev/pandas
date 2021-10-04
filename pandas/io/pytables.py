@@ -39,7 +39,6 @@ from pandas._libs.tslibs import timezones
 from pandas._typing import (
     ArrayLike,
     DtypeArg,
-    FrameOrSeries,
     Shape,
 )
 from pandas.compat._optional import import_optional_dependency
@@ -262,7 +261,7 @@ def _tables():
 def to_hdf(
     path_or_buf,
     key: str,
-    value: FrameOrSeries,
+    value: DataFrame | Series,
     mode: str = "a",
     complevel: int | None = None,
     complib: str | None = None,
@@ -275,7 +274,7 @@ def to_hdf(
     data_columns: bool | list[str] | None = None,
     errors: str = "strict",
     encoding: str = "UTF-8",
-):
+) -> None:
     """store this object, close it if we opened it"""
     if append:
         f = lambda store: store.append(
@@ -1070,7 +1069,7 @@ class HDFStore:
     def put(
         self,
         key: str,
-        value: FrameOrSeries,
+        value: DataFrame | Series,
         format=None,
         index=True,
         append=False,
@@ -1195,7 +1194,7 @@ class HDFStore:
     def append(
         self,
         key: str,
-        value: FrameOrSeries,
+        value: DataFrame | Series,
         format=None,
         axes=None,
         index=True,
@@ -1637,7 +1636,7 @@ class HDFStore:
         self,
         group,
         format=None,
-        value: FrameOrSeries | None = None,
+        value: DataFrame | Series | None = None,
         encoding: str = "UTF-8",
         errors: str = "strict",
     ) -> GenericFixed | Table:
@@ -1728,7 +1727,7 @@ class HDFStore:
     def _write_to_group(
         self,
         key: str,
-        value: FrameOrSeries,
+        value: DataFrame | Series,
         format,
         axes=None,
         index=True,
@@ -1745,7 +1744,7 @@ class HDFStore:
         encoding=None,
         errors: str = "strict",
         track_times: bool = True,
-    ):
+    ) -> None:
         # we don't want to store a table node at all if our object is 0-len
         # as there are not dtypes
         if getattr(value, "empty", None) and (format == "table" or append):
@@ -3016,7 +3015,9 @@ class GenericFixed(Fixed):
         node._v_attrs.value_type = str(value.dtype)
         node._v_attrs.shape = value.shape
 
-    def write_array(self, key: str, obj: FrameOrSeries, items: Index | None = None):
+    def write_array(
+        self, key: str, obj: DataFrame | Series, items: Index | None = None
+    ) -> None:
         # TODO: we only have a few tests that get here, the only EA
         #  that gets passed is DatetimeArray, and we never have
         #  both self._filters and EA
@@ -3469,14 +3470,9 @@ class Table(Fixed):
         key : str
         values : ndarray
         """
-        # error: Incompatible types in assignment (expression has type
-        # "Series", variable has type "ndarray")
-        values = Series(values)  # type: ignore[assignment]
-        # error: Value of type variable "FrameOrSeries" of "put" of "HDFStore"
-        # cannot be "ndarray"
-        self.parent.put(  # type: ignore[type-var]
+        self.parent.put(
             self._get_metadata_path(key),
-            values,
+            Series(values),
             format="table",
             encoding=self.encoding,
             errors=self.errors,
