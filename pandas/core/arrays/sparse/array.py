@@ -1642,11 +1642,14 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         if isinstance(other, np.ndarray):
             # TODO: make this more flexible than just ndarray...
-            if len(self) != len(other):
-                raise AssertionError(f"length mismatch: {len(self)} vs. {len(other)}")
             other = SparseArray(other, fill_value=self.fill_value)
 
         if isinstance(other, SparseArray):
+            if len(self) != len(other):
+                raise ValueError(
+                    f"operands have mismatched length {len(self)} and {len(other)}"
+                )
+
             op_name = op.__name__.strip("_")
             return _sparse_array_op(self, other, op, op_name)
         else:
