@@ -575,7 +575,7 @@ def get_data_from_filepath(
     encoding,
     compression,
     storage_options,
-) -> str | bytes | Buffer[str]:
+) -> str | bytes | Buffer:
     """
     Extract raw XML data.
 

@@ -1,3 +1,4 @@
+# pyright: strict
 """Common IO api utilities"""
 from __future__ import annotations
 
@@ -543,24 +544,9 @@ def get_handle(
     *,
     encoding: str | None = ...,
     compression: CompressionOptions = ...,
-    is_text: Literal[True],
     memory_map: bool = ...,
-    errors: str | None = ...,
-    storage_options: StorageOptions = ...,
-) -> IOHandles[str]:
-    ...
-
-
-@overload
-def get_handle(
-    path_or_buf: FilePathOrBuffer,
-    mode: str,
-    *,
-    encoding: str | None = ...,
-    compression: CompressionOptions = ...,
     is_text: Literal[False],
     errors: str | None = ...,
-    memory_map: bool = ...,
     storage_options: StorageOptions = ...,
 ) -> IOHandles[bytes]:
     ...
@@ -574,6 +560,7 @@ def get_handle(
     encoding: str | None = ...,
     compression: CompressionOptions = ...,
     memory_map: bool = ...,
+    is_text: Literal[True] = True,
     errors: str | None = ...,
     storage_options: StorageOptions = ...,
 ) -> IOHandles[str]:
