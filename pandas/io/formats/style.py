@@ -22,7 +22,6 @@ from pandas._config import get_option
 from pandas._typing import (
     Axis,
     FilePathOrBuffer,
-    FrameOrSeries,
     IndexLabel,
     Level,
     Scalar,
@@ -530,8 +529,11 @@ class Styler(StylerRenderer):
         multicol_align : {"r", "c", "l", "naive-l", "naive-r"}, optional
             If sparsifying hierarchical MultiIndex columns whether to align text at
             the left, centrally, or at the right. If not given defaults to
-            ``pandas.options.styler.latex.multicol_align``. If a naive option is
-            given renders without multicol.
+            ``pandas.options.styler.latex.multicol_align``, which is "r".
+            If a naive option is given renders without multicol.
+            Pipe decorators can also be added to non-naive values to draw vertical
+            rules, e.g. "\|r" will draw a rule on the left side of right aligned merged
+            cells.
 
             .. versionchanged:: 1.4.0
         siunitx : bool, default False
@@ -1184,6 +1186,8 @@ class Styler(StylerRenderer):
         ]
         deep = [  # nested lists or dicts
             "_display_funcs",
+            "_display_funcs_index",
+            "_display_funcs_columns",
             "hidden_rows",
             "hidden_columns",
             "ctx",
@@ -1814,7 +1818,7 @@ class Styler(StylerRenderer):
         self,
         axis: Axis = 0,
         pixel_size: int | None = None,
-        levels: list[int] | None = None,
+        levels: Level | list[Level] | None = None,
     ) -> Styler:
         """
         Add CSS to permanently display the index or column headers in a scrolling frame.
@@ -1827,7 +1831,7 @@ class Styler(StylerRenderer):
             Required to configure the width of index cells or the height of column
             header cells when sticking a MultiIndex (or with a named Index).
             Defaults to 75 and 25 respectively.
-        levels : list of int
+        levels : int, str, list, optional
             If ``axis`` is a MultiIndex the specific levels to stick. If ``None`` will
             stick all levels.
 
@@ -1891,11 +1895,12 @@ class Styler(StylerRenderer):
         else:
             # handle the MultiIndex case
             range_idx = list(range(obj.nlevels))
-            levels = sorted(levels) if levels else range_idx
+            levels_: list[int] = refactor_levels(levels, obj) if levels else range_idx
+            levels_ = sorted(levels_)
 
             if axis == 1:
                 styles = []
-                for i, level in enumerate(levels):
+                for i, level in enumerate(levels_):
                     styles.append(
                         {
                             "selector": f"thead tr:nth-child({level+1}) th",
@@ -1920,7 +1925,7 @@ class Styler(StylerRenderer):
 
             else:
                 styles = []
-                for i, level in enumerate(levels):
+                for i, level in enumerate(levels_):
                     props_ = props + (
                         f"left:{i * pixel_size}px; "
                         f"min-width:{pixel_size}px; "
@@ -3184,10 +3189,10 @@ class Styler(StylerRenderer):
 
 
 def _validate_apply_axis_arg(
-    arg: FrameOrSeries | Sequence | np.ndarray,
+    arg: NDFrame | Sequence | np.ndarray,
     arg_name: str,
     dtype: Any | None,
-    data: FrameOrSeries,
+    data: NDFrame,
 ) -> np.ndarray:
     """
     For the apply-type methods, ``axis=None`` creates ``data`` as DataFrame, and for
@@ -3244,7 +3249,7 @@ def _background_gradient(
     text_color_threshold: float = 0.408,
     vmin: float | None = None,
     vmax: float | None = None,
-    gmap: Sequence | np.ndarray | FrameOrSeries | None = None,
+    gmap: Sequence | np.ndarray | DataFrame | Series | None = None,
     text_only: bool = False,
 ):
     """
@@ -3304,10 +3309,10 @@ def _background_gradient(
 
 
 def _highlight_between(
-    data: FrameOrSeries,
+    data: NDFrame,
     props: str,
-    left: Scalar | Sequence | np.ndarray | FrameOrSeries | None = None,
-    right: Scalar | Sequence | np.ndarray | FrameOrSeries | None = None,
+    left: Scalar | Sequence | np.ndarray | NDFrame | None = None,
+    right: Scalar | Sequence | np.ndarray | NDFrame | None = None,
     inclusive: bool | str = True,
 ) -> np.ndarray:
     """
@@ -3351,7 +3356,7 @@ def _highlight_between(
     return np.where(g_left & l_right, props, "")
 
 
-def _highlight_value(data: FrameOrSeries, op: str, props: str) -> np.ndarray:
+def _highlight_value(data: DataFrame | Series, op: str, props: str) -> np.ndarray:
     """
     Return an array of css strings based on the condition of values matching an op.
     """
@@ -3362,7 +3367,7 @@ def _highlight_value(data: FrameOrSeries, op: str, props: str) -> np.ndarray:
 
 
 def _bar(
-    data: FrameOrSeries,
+    data: NDFrame,
     align: str | float | int | Callable,
     colors: list[str],
     width: float,

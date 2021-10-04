@@ -17,7 +17,7 @@ def dt64arr_to_periodarr(
 ) -> npt.NDArray[np.int64]: ...  # np.ndarray[np.int64, ndim=1]
 def is_date_array_normalized(
     stamps: npt.NDArray[np.int64],  # const int64_t[:]
-    tz: tzinfo | None = None,
+    tz: tzinfo | None = ...,
 ) -> bool: ...
 def normalize_i8_timestamps(
     stamps: npt.NDArray[np.int64],  # const int64_t[:]
@@ -25,12 +25,12 @@ def normalize_i8_timestamps(
 ) -> npt.NDArray[np.int64]: ...
 def get_resolution(
     stamps: npt.NDArray[np.int64],  # const int64_t[:]
-    tz: tzinfo | None = None,
+    tz: tzinfo | None = ...,
 ) -> Resolution: ...
 def ints_to_pydatetime(
     arr: npt.NDArray[np.int64],  # const int64_t[:}]
-    tz: tzinfo | None = None,
-    freq: str | BaseOffset | None = None,
-    fold: bool = False,
-    box: str = "datetime",
+    tz: tzinfo | None = ...,
+    freq: str | BaseOffset | None = ...,
+    fold: bool = ...,
+    box: str = ...,
 ) -> npt.NDArray[np.object_]: ...

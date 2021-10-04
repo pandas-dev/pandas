@@ -4,11 +4,8 @@ Shared methods for Index subclasses backed by ExtensionArray.
 from __future__ import annotations
 
 from typing import (
-    TYPE_CHECKING,
     Hashable,
-    Literal,
     TypeVar,
-    overload,
 )
 
 import numpy as np
@@ -26,13 +23,9 @@ from pandas.util._exceptions import rewrite_exception
 
 from pandas.core.dtypes.common import (
     is_dtype_equal,
-    is_object_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCSeries,
-)
+from pandas.core.dtypes.generic import ABCDataFrame
 
 from pandas.core.arrays import (
     Categorical,
@@ -42,17 +35,8 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
-from pandas.core.arrays.base import ExtensionArray
 from pandas.core.indexers import deprecate_ndim_indexing
 from pandas.core.indexes.base import Index
-from pandas.core.ops import get_op_result_name
-
-if TYPE_CHECKING:
-
-    from pandas._typing import (
-        NumpySorter,
-        NumpyValueArrayLike,
-    )
 
 _T = TypeVar("_T", bound="NDArrayBackedExtensionIndex")
 
@@ -154,94 +138,6 @@ def inherit_names(names: list[str], delegate, cache: bool = False, wrap: bool = 
     return wrapper
 
 
-def _make_wrapped_comparison_op(opname: str):
-    """
-    Create a comparison method that dispatches to ``._data``.
-    """
-
-    def wrapper(self, other):
-        if isinstance(other, ABCSeries):
-            # the arrays defer to Series for comparison ops but the indexes
-            #  don't, so we have to unwrap here.
-            other = other._values
-
-        other = _maybe_unwrap_index(other)
-
-        op = getattr(self._data, opname)
-        return op(other)
-
-    wrapper.__name__ = opname
-    return wrapper
-
-
-def _make_wrapped_arith_op(opname: str):
-    def method(self, other):
-        if (
-            isinstance(other, Index)
-            and is_object_dtype(other.dtype)
-            and type(other) is not Index
-        ):
-            # We return NotImplemented for object-dtype index *subclasses* so they have
-            # a chance to implement ops before we unwrap them.
-            # See https://github.com/pandas-dev/pandas/issues/31109
-            return NotImplemented
-
-        try:
-            meth = getattr(self._data, opname)
-        except AttributeError as err:
-            # e.g. Categorical, IntervalArray
-            cls = type(self).__name__
-            raise TypeError(
-                f"cannot perform {opname} with this index type: {cls}"
-            ) from err
-
-        result = meth(_maybe_unwrap_index(other))
-        return _wrap_arithmetic_op(self, other, result)
-
-    method.__name__ = opname
-    return method
-
-
-def _wrap_arithmetic_op(self, other, result):
-    if result is NotImplemented:
-        return NotImplemented
-
-    if isinstance(result, tuple):
-        # divmod, rdivmod
-        assert len(result) == 2
-        return (
-            _wrap_arithmetic_op(self, other, result[0]),
-            _wrap_arithmetic_op(self, other, result[1]),
-        )
-
-    if not isinstance(result, Index):
-        # Index.__new__ will choose appropriate subclass for dtype
-        result = Index(result)
-
-    res_name = get_op_result_name(self, other)
-    result.name = res_name
-    return result
-
-
-def _maybe_unwrap_index(obj):
-    """
-    If operating against another Index object, we need to unwrap the underlying
-    data before deferring to the DatetimeArray/TimedeltaArray/PeriodArray
-    implementation, otherwise we will incorrectly return NotImplemented.
-
-    Parameters
-    ----------
-    obj : object
-
-    Returns
-    -------
-    unwrapped object
-    """
-    if isinstance(obj, Index):
-        return obj._data
-    return obj
-
-
 class ExtensionIndex(Index):
     """
     Index subclass for indexes backed by ExtensionArray.
@@ -284,30 +180,6 @@ class ExtensionIndex(Index):
         result._reset_identity()
         return result
 
-    __eq__ = _make_wrapped_comparison_op("__eq__")
-    __ne__ = _make_wrapped_comparison_op("__ne__")
-    __lt__ = _make_wrapped_comparison_op("__lt__")
-    __gt__ = _make_wrapped_comparison_op("__gt__")
-    __le__ = _make_wrapped_comparison_op("__le__")
-    __ge__ = _make_wrapped_comparison_op("__ge__")
-
-    __add__ = _make_wrapped_arith_op("__add__")
-    __sub__ = _make_wrapped_arith_op("__sub__")
-    __radd__ = _make_wrapped_arith_op("__radd__")
-    __rsub__ = _make_wrapped_arith_op("__rsub__")
-    __pow__ = _make_wrapped_arith_op("__pow__")
-    __rpow__ = _make_wrapped_arith_op("__rpow__")
-    __mul__ = _make_wrapped_arith_op("__mul__")
-    __rmul__ = _make_wrapped_arith_op("__rmul__")
-    __floordiv__ = _make_wrapped_arith_op("__floordiv__")
-    __rfloordiv__ = _make_wrapped_arith_op("__rfloordiv__")
-    __mod__ = _make_wrapped_arith_op("__mod__")
-    __rmod__ = _make_wrapped_arith_op("__rmod__")
-    __divmod__ = _make_wrapped_arith_op("__divmod__")
-    __rdivmod__ = _make_wrapped_arith_op("__rdivmod__")
-    __truediv__ = _make_wrapped_arith_op("__truediv__")
-    __rtruediv__ = _make_wrapped_arith_op("__rtruediv__")
-
     # ---------------------------------------------------------------------
     # NDarray-Like Methods
 
@@ -324,49 +196,7 @@ class ExtensionIndex(Index):
         deprecate_ndim_indexing(result)
         return result
 
-    # This overload is needed so that the call to searchsorted in
-    # pandas.core.resample.TimeGrouper._get_period_bins picks the correct result
-
-    @overload
-    # The following ignore is also present in numpy/__init__.pyi
-    # Possibly a mypy bug??
-    # error: Overloaded function signatures 1 and 2 overlap with incompatible
-    # return types  [misc]
-    def searchsorted(  # type: ignore[misc]
-        self,
-        value: npt._ScalarLike_co,
-        side: Literal["left", "right"] = "left",
-        sorter: NumpySorter = None,
-    ) -> np.intp:
-        ...
-
-    @overload
-    def searchsorted(
-        self,
-        value: npt.ArrayLike | ExtensionArray,
-        side: Literal["left", "right"] = "left",
-        sorter: NumpySorter = None,
-    ) -> npt.NDArray[np.intp]:
-        ...
-
-    def searchsorted(
-        self,
-        value: NumpyValueArrayLike | ExtensionArray,
-        side: Literal["left", "right"] = "left",
-        sorter: NumpySorter = None,
-    ) -> npt.NDArray[np.intp] | np.intp:
-        # overriding IndexOpsMixin improves performance GH#38083
-        return self._data.searchsorted(value, side=side, sorter=sorter)
-
     # ---------------------------------------------------------------------
-
-    def _get_engine_target(self) -> np.ndarray:
-        return np.asarray(self._data)
-
-    def _from_join_target(self, result: np.ndarray) -> ArrayLike:
-        # ATM this is only for IntervalIndex, implicit assumption
-        #  about _get_engine_target
-        return type(self._data)._from_sequence(result, dtype=self.dtype)
 
     def delete(self, loc):
         """
