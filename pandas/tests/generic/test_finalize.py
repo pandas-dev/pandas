@@ -761,7 +761,6 @@ def test_groupby_finalize(obj, method):
     [
         lambda x: x.agg(["sum", "count"]),
         lambda x: x.transform(lambda y: y),
-        # lambda x: x.apply(lambda y: y), Fixed with #42252
         lambda x: x.agg("std"),
         lambda x: x.agg("var"),
         lambda x: x.agg("sem"),

@@ -5539,10 +5539,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # Issue #41828, retain the attrs only if all NDFrame have the same
             # attrs.
             attrs = other.objs[0].attrs
-            for obj in other.objs[1:]:
-                if obj.attrs != attrs:
-                    break
-            else:
+            check_attrs = all([objs.attrs == attrs for objs in other.objs[1:]])
+            if check_attrs:
                 for name in attrs:
                     self.attrs[name] = attrs[name]
 
