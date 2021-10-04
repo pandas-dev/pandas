@@ -15,7 +15,6 @@ import pandas._testing as tm
 
 class TestMultiIndexBasic:
     def test_multiindex_perf_warn(self):
-
         df = DataFrame(
             {
                 "jim": [0, 0, 1, 1],
@@ -47,7 +46,6 @@ class TestMultiIndexBasic:
         _index._SIZE_CUTOFF = old_cutoff
 
     def test_multi_nan_indexing(self):
-
         # GH 3588
         df = DataFrame(
             {
@@ -69,6 +67,28 @@ class TestMultiIndexBasic:
             ],
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_exclusive_nat_column_indexing(self):
+        # GH 38025
+        # test multi indexing when one column exclusively contains NaT values
+        df = DataFrame(
+            {
+                "a": [pd.NaT, pd.NaT, pd.NaT, pd.NaT],
+                "b": ["C1", "C2", "C3", "C4"],
+                "c": [10, 15, np.nan, 20],
+            }
+        )
+        df = df.set_index(["a", "b"])
+        expected = DataFrame(
+            {
+                "c": [10, 15, np.nan, 20],
+            },
+            index=[
+                Index([pd.NaT, pd.NaT, pd.NaT, pd.NaT], name="a"),
+                Index(["C1", "C2", "C3", "C4"], name="b"),
+            ],
+        )
+        tm.assert_frame_equal(df, expected)
 
     def test_nested_tuples_duplicates(self):
         # GH#30892
