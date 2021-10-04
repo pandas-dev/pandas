@@ -8,6 +8,7 @@ import pytest
 
 from pandas import (
     Categorical,
+    DataFrame,
     DatetimeIndex,
     Index,
     IntervalIndex,
@@ -262,19 +263,19 @@ class TestSetitemBooleanMask:
         expected = Series(["a", "b", "c"])
         tm.assert_series_equal(ser, expected)
 
-    def test_setitem_boolean_nullable_int_types(self, any_nullable_numeric_dtype):
+    def test_setitem_boolean_nullable_int_types(self, any_numeric_ea_dtype):
         # GH: 26468
-        ser = Series([5, 6, 7, 8], dtype=any_nullable_numeric_dtype)
-        ser[ser > 6] = Series(range(4), dtype=any_nullable_numeric_dtype)
-        expected = Series([5, 6, 2, 3], dtype=any_nullable_numeric_dtype)
+        ser = Series([5, 6, 7, 8], dtype=any_numeric_ea_dtype)
+        ser[ser > 6] = Series(range(4), dtype=any_numeric_ea_dtype)
+        expected = Series([5, 6, 2, 3], dtype=any_numeric_ea_dtype)
         tm.assert_series_equal(ser, expected)
 
-        ser = Series([5, 6, 7, 8], dtype=any_nullable_numeric_dtype)
-        ser.loc[ser > 6] = Series(range(4), dtype=any_nullable_numeric_dtype)
+        ser = Series([5, 6, 7, 8], dtype=any_numeric_ea_dtype)
+        ser.loc[ser > 6] = Series(range(4), dtype=any_numeric_ea_dtype)
         tm.assert_series_equal(ser, expected)
 
-        ser = Series([5, 6, 7, 8], dtype=any_nullable_numeric_dtype)
-        loc_ser = Series(range(4), dtype=any_nullable_numeric_dtype)
+        ser = Series([5, 6, 7, 8], dtype=any_numeric_ea_dtype)
+        loc_ser = Series(range(4), dtype=any_numeric_ea_dtype)
         ser.loc[ser > 6] = loc_ser.loc[loc_ser > 1]
         tm.assert_series_equal(ser, expected)
 
@@ -945,3 +946,17 @@ def test_setitem_int_as_positional_fallback_deprecation():
     with tm.assert_produces_warning(FutureWarning, match=msg):
         ser3[4] = 99
     tm.assert_series_equal(ser3, expected3)
+
+
+def test_setitem_with_bool_indexer():
+    # GH#42530
+
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    result = df.pop("b")
+    result[[True, False, False]] = 9
+    expected = Series(data=[9, 5, 6], name="b")
+    tm.assert_series_equal(result, expected)
+
+    df.loc[[True, False, False], "a"] = 10
+    expected = DataFrame({"a": [10, 2, 3]})
+    tm.assert_frame_equal(df, expected)

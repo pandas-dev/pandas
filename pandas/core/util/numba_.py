@@ -9,8 +9,6 @@ import numpy as np
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import NumbaUtilError
 
-from pandas.util.version import Version
-
 GLOBAL_USE_NUMBA: bool = False
 NUMBA_FUNC_CACHE: dict[tuple[Callable, str], Callable] = {}
 
@@ -87,12 +85,7 @@ def jit_user_function(
     """
     numba = import_optional_dependency("numba")
 
-    if Version(numba.__version__) >= Version("0.49.0"):
-        is_jitted = numba.extending.is_jitted(func)
-    else:
-        is_jitted = isinstance(func, numba.targets.registry.CPUDispatcher)
-
-    if is_jitted:
+    if numba.extending.is_jitted(func):
         # Don't jit a user passed jitted function
         numba_func = func
     else:

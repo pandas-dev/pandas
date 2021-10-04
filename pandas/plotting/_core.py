@@ -1267,6 +1267,18 @@ class PlotAccessor(PandasObject):
             >>> data = np.random.randn(25, 4)
             >>> df = pd.DataFrame(data, columns=list('ABCD'))
             >>> ax = df.plot.box()
+
+        You can also generate groupings if you specify the `by` parameter (which
+        can take a column name, or a list or tuple of column names):
+
+        .. versionchanged:: 1.4.0
+
+        .. plot::
+            :context: close-figs
+
+            >>> age_list = [8, 10, 12, 14, 72, 74, 76, 78, 20, 25, 30, 35, 60, 85]
+            >>> df = pd.DataFrame({"gender": list("MMMMMMMMFFFFFF"), "age": age_list})
+            >>> ax = df.plot.box(column="age", by="gender", figsize=(10, 8))
         """
         return self(kind="box", by=by, **kwargs)
 
@@ -1306,8 +1318,8 @@ class PlotAccessor(PandasObject):
 
         Examples
         --------
-        When we draw a dice 6000 times, we expect to get each value around 1000
-        times. But when we draw two dices and sum the result, the distribution
+        When we roll a die 6000 times, we expect to get each value around 1000
+        times. But when we roll two dice and sum the result, the distribution
         is going to be quite different. A histogram illustrates those
         distributions.
 

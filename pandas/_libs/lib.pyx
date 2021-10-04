@@ -176,6 +176,7 @@ def is_scalar(val: object) -> bool:
 
     Examples
     --------
+    >>> import datetime
     >>> dt = datetime.datetime(2018, 10, 3)
     >>> pd.api.types.is_scalar(dt)
     True
@@ -257,11 +258,12 @@ def is_iterator(obj: object) -> bool:
 
     Examples
     --------
+    >>> import datetime
     >>> is_iterator((x for x in []))
     True
     >>> is_iterator([1, 2, 3])
     False
-    >>> is_iterator(datetime(2017, 1, 1))
+    >>> is_iterator(datetime.datetime(2017, 1, 1))
     False
     >>> is_iterator("foo")
     False
@@ -755,6 +757,11 @@ cpdef ndarray[object] ensure_string_array(
 
         if not check_null(val):
             if coerce =="all" or coerce == "non-null":
+                if not isinstance(val, np.floating):
+                # f"{val}" is faster than str(val)
+                result[i] = f"{val}"
+            else:
+                # f"{val}" is not always equivalent to str(val) for floats
                 result[i] = str(val)
             else:
                 raise ValueError(f"Element {val} is not a string or valid null."
@@ -766,7 +773,7 @@ cpdef ndarray[object] ensure_string_array(
             if skipna:
                 result[i] = val
             else:
-                result[i] = str(val)
+                result[i] = f"{val}"
 
     return result
 
@@ -1103,11 +1110,12 @@ def is_list_like(obj: object, allow_sets: bool = True) -> bool:
 
     Examples
     --------
+    >>> import datetime
     >>> is_list_like([1, 2, 3])
     True
     >>> is_list_like({1, 2, 3})
     True
-    >>> is_list_like(datetime(2017, 1, 1))
+    >>> is_list_like(datetime.datetime(2017, 1, 1))
     False
     >>> is_list_like("foo")
     False
@@ -1124,7 +1132,7 @@ def is_list_like(obj: object, allow_sets: bool = True) -> bool:
 cdef inline bint c_is_list_like(object obj, bint allow_sets) except -1:
     return (
         # equiv: `isinstance(obj, abc.Iterable)`
-        hasattr(obj, "__iter__") and not isinstance(obj, type)
+        getattr(obj, "__iter__", None) is not None and not isinstance(obj, type)
         # we do not count strings/unicode/bytes as list-like
         and not isinstance(obj, (str, bytes))
         # exclude zero-dimensional numpy arrays, effectively scalars
@@ -1382,6 +1390,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
 
     Examples
     --------
+    >>> import datetime
     >>> infer_dtype(['foo', 'bar'])
     'string'
 
@@ -1446,7 +1455,8 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
         # this will handle ndarray-like
         # e.g. categoricals
         dtype = value.dtype
-        if not isinstance(dtype, np.dtype):
+        if not cnp.PyArray_DescrCheck(dtype):
+            # i.e. not isinstance(dtype, np.dtype)
             inferred = _try_infer_map(value.dtype)
             if inferred is not None:
                 return inferred
@@ -2139,9 +2149,9 @@ cpdef bint is_interval_array(ndarray values):
                 return False
             elif numeric:
                 if not (
-                        util.is_float_object(val.left)
-                        or util.is_integer_object(val.left)
-                    ):
+                    util.is_float_object(val.left)
+                    or util.is_integer_object(val.left)
+                ):
                     # i.e. datetime64 or timedelta64
                     return False
             elif td64:
@@ -2746,7 +2756,8 @@ cdef _infer_all_nats(dtype, ndarray datetimes, ndarray timedeltas):
     """
     If we have all-NaT values, cast these to the given dtype.
     """
-    if isinstance(dtype, np.dtype):
+    if cnp.PyArray_DescrCheck(dtype):
+        # i.e. isinstance(dtype, np.dtype):
         if dtype == "M8[ns]":
             result = datetimes
         elif dtype == "m8[ns]":

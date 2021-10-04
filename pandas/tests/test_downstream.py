@@ -32,6 +32,7 @@ def df():
 # TODO(ArrayManager) dask is still accessing the blocks
 # https://github.com/dask/dask/pull/7318
 @td.skip_array_manager_not_yet_implemented
+@pytest.mark.filterwarnings("ignore:.*64Index is deprecated:FutureWarning")
 def test_dask(df):
 
     toolz = import_module("toolz")  # noqa
@@ -73,10 +74,26 @@ def test_oo_optimizable():
     subprocess.check_call([sys.executable, "-OO", "-c", "import pandas"])
 
 
+def test_oo_optimized_datetime_index_unpickle():
+    # GH 42866
+    subprocess.check_call(
+        [
+            sys.executable,
+            "-OO",
+            "-c",
+            (
+                "import pandas as pd, pickle; "
+                "pickle.loads(pickle.dumps(pd.date_range('2021-01-01', periods=1)))"
+            ),
+        ]
+    )
+
+
 @tm.network
 # Cython import warning
 @pytest.mark.filterwarnings("ignore:pandas.util.testing is deprecated")
 @pytest.mark.filterwarnings("ignore:can't:ImportWarning")
+@pytest.mark.filterwarnings("ignore:.*64Index is deprecated:FutureWarning")
 @pytest.mark.filterwarnings(
     # patsy needs to update their imports
     "ignore:Using or importing the ABCs from 'collections:DeprecationWarning"
