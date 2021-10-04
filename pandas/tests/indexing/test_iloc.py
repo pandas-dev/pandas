@@ -931,7 +931,7 @@ class TestiLocBaseIndependent:
         expected = Series([NaT, 1, 2], dtype="timedelta64[ns]")
         tm.assert_series_equal(series, expected)
 
-    @pytest.mark.parametrize("not_na", [Interval(0, 1), 'a', 1.0])
+    @pytest.mark.parametrize("not_na", [Interval(0, 1), "a", 1.0])
     @pytest.mark.parametrize("na", [np.nan, NaT])
     def test_setitem_mix_of_nan_and_interval(self, not_na, na):
         # GH#27937
