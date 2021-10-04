@@ -1,16 +1,28 @@
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 
 import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
 from pandas.core.indexes.datetimes import date_range
-from pandas.core.indexes.period import PeriodIndex, period_range
+from pandas.core.indexes.period import (
+    PeriodIndex,
+    period_range,
+)
 from pandas.core.indexes.timedeltas import timedelta_range
 
-from pandas.tseries.offsets import BDay, Minute
+from pandas.tseries.offsets import (
+    BDay,
+    Minute,
+)
 
 DATE_RANGE = (date_range, "dti", datetime(2005, 1, 1), datetime(2005, 1, 10))
 PERIOD_RANGE = (period_range, "pi", datetime(2005, 1, 1), datetime(2005, 1, 10))
@@ -30,7 +42,7 @@ def _index_factory():
 @pytest.fixture
 def create_index(_index_factory):
     def _create_index(*args, **kwargs):
-        """ return the _index_factory created using the args, kwargs """
+        """return the _index_factory created using the args, kwargs"""
         return _index_factory(*args, **kwargs)
 
     return _create_index
@@ -40,25 +52,30 @@ def create_index(_index_factory):
 def test_deprecating_on_loffset_and_base():
     # GH 31809
 
-    idx = pd.date_range("2001-01-01", periods=4, freq="T")
-    df = pd.DataFrame(data=4 * [range(2)], index=idx, columns=["a", "b"])
+    idx = date_range("2001-01-01", periods=4, freq="T")
+    df = DataFrame(data=4 * [range(2)], index=idx, columns=["a", "b"])
 
     with tm.assert_produces_warning(FutureWarning):
         pd.Grouper(freq="10s", base=0)
     with tm.assert_produces_warning(FutureWarning):
         pd.Grouper(freq="10s", loffset="0s")
-    with tm.assert_produces_warning(FutureWarning):
+
+    # not checking the stacklevel for .groupby().resample() because it's complicated to
+    # reconcile it with the stacklevel for Series.resample() and DataFrame.resample();
+    # see GH #37603
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         df.groupby("a").resample("3T", base=0).sum()
-    with tm.assert_produces_warning(FutureWarning):
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         df.groupby("a").resample("3T", loffset="0s").sum()
+    msg = "'offset' and 'base' cannot be present at the same time"
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with pytest.raises(ValueError, match=msg):
+            df.groupby("a").resample("3T", base=0, offset=0).sum()
+
     with tm.assert_produces_warning(FutureWarning):
         df.resample("3T", base=0).sum()
     with tm.assert_produces_warning(FutureWarning):
         df.resample("3T", loffset="0s").sum()
-    msg = "'offset' and 'base' cannot be present at the same time"
-    with tm.assert_produces_warning(FutureWarning):
-        with pytest.raises(ValueError, match=msg):
-            df.groupby("a").resample("3T", base=0, offset=0).sum()
 
 
 @all_ts
@@ -226,7 +243,7 @@ def test_loffset_returns_datetimeindex(frame, kind, agg_arg):
 )
 def test_resample_with_non_zero_base(start, end, start_freq, end_freq, base, offset):
     # GH 23882
-    s = pd.Series(0, index=pd.period_range(start, end, freq=start_freq))
+    s = Series(0, index=period_range(start, end, freq=start_freq))
     s = s + np.arange(len(s))
     with tm.assert_produces_warning(FutureWarning):
         result = s.resample(end_freq, base=base).mean()
@@ -261,3 +278,30 @@ def test_resample_base_with_timedeltaindex():
 
     tm.assert_index_equal(without_base.index, exp_without_base)
     tm.assert_index_equal(with_base.index, exp_with_base)
+
+
+def test_interpolate_posargs_deprecation():
+    # GH 41485
+    idx = pd.to_datetime(["1992-08-27 07:46:48", "1992-08-27 07:46:59"])
+    s = Series([1, 4], index=idx)
+
+    msg = (
+        r"In a future version of pandas all arguments of Resampler\.interpolate "
+        r"except for the argument 'method' will be keyword-only"
+    )
+
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = s.resample("3s").interpolate("linear", 0)
+
+    idx = pd.to_datetime(
+        [
+            "1992-08-27 07:46:48",
+            "1992-08-27 07:46:51",
+            "1992-08-27 07:46:54",
+            "1992-08-27 07:46:57",
+        ]
+    )
+    expected = Series([1.0, 1.0, 1.0, 1.0], index=idx)
+
+    expected.index._data.freq = "3s"
+    tm.assert_series_equal(result, expected)

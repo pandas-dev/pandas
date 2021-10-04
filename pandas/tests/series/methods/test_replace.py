@@ -75,10 +75,9 @@ class TestSeriesReplace:
         with pytest.raises(ValueError, match=msg):
             ser.replace([1, 2, 3], [np.nan, 0])
 
-        # make sure that we aren't just masking a TypeError because bools don't
-        # implement indexing
-        with pytest.raises(TypeError, match="Cannot compare types .+"):
-            ser.replace([1, 2], [np.nan, 0])
+        # ser is dt64 so can't hold 1 or 2, so this replace is a no-op
+        result = ser.replace([1, 2], [np.nan, 0])
+        tm.assert_series_equal(result, ser)
 
         ser = pd.Series([0, 1, 2, 3, 4])
         result = ser.replace([0, 1, 2, 3, 4], [4, 3, 2, 1, 0])
@@ -96,6 +95,8 @@ class TestSeriesReplace:
         expected = ser.ffill()
         result = ser.replace(np.nan)
         tm.assert_series_equal(result, expected)
+
+    def test_replace_datetime64(self):
         # GH 5797
         ser = pd.Series(pd.date_range("20130101", periods=5))
         expected = ser.copy()
@@ -105,6 +106,7 @@ class TestSeriesReplace:
         result = ser.replace(pd.Timestamp("20130103"), pd.Timestamp("20120101"))
         tm.assert_series_equal(result, expected)
 
+    def test_replace_nat_with_tz(self):
         # GH 11792: Test with replacing NaT in a list with tz data
         ts = pd.Timestamp("2015/01/01", tz="UTC")
         s = pd.Series([pd.NaT, pd.Timestamp("2015/01/01", tz="UTC")])
@@ -142,19 +144,6 @@ class TestSeriesReplace:
             return_value = s.replace([1, 2, 3], inplace=True, method="crash_cymbal")
             assert return_value is None
         tm.assert_series_equal(s, ser)
-
-    def test_replace_with_empty_list(self):
-        # GH 21977
-        s = pd.Series([[1], [2, 3], [], np.nan, [4]])
-        expected = s
-        result = s.replace([], np.nan)
-        tm.assert_series_equal(result, expected)
-
-        # GH 19266
-        with pytest.raises(ValueError, match="cannot assign mismatch"):
-            s.replace({np.nan: []})
-        with pytest.raises(ValueError, match="cannot assign mismatch"):
-            s.replace({np.nan: ["dummy", "alt"]})
 
     def test_replace_mixed_types(self):
         s = pd.Series(np.arange(5), dtype="int64")
@@ -222,6 +211,15 @@ class TestSeriesReplace:
         expected = pd.Series(["yes", False, "yes"])
         tm.assert_series_equal(result, expected)
 
+    def test_replace_Int_with_na(self, any_int_ea_dtype):
+        # GH 38267
+        result = pd.Series([0, None], dtype=any_int_ea_dtype).replace(0, pd.NA)
+        expected = pd.Series([pd.NA, pd.NA], dtype=any_int_ea_dtype)
+        tm.assert_series_equal(result, expected)
+        result = pd.Series([0, 1], dtype=any_int_ea_dtype).replace(0, pd.NA)
+        result.replace(1, pd.NA, inplace=True)
+        tm.assert_series_equal(result, expected)
+
     def test_replace2(self):
         N = 100
         ser = pd.Series(np.fabs(np.random.randn(N)), tm.makeDateIndex(N), dtype=object)
@@ -256,9 +254,9 @@ class TestSeriesReplace:
         assert (ser[6:10] == -1).all()
         assert (ser[20:30] == -1).all()
 
-    def test_replace_with_dictlike_and_string_dtype(self):
+    def test_replace_with_dictlike_and_string_dtype(self, nullable_string_dtype):
         # GH 32621
-        s = pd.Series(["one", "two", np.nan], dtype="string")
+        s = pd.Series(["one", "two", np.nan], dtype=nullable_string_dtype)
         expected = pd.Series(["1", "2", np.nan])
         result = s.replace({"one": "1", "two": "2"})
         tm.assert_series_equal(expected, result)
@@ -266,9 +264,9 @@ class TestSeriesReplace:
     def test_replace_with_empty_dictlike(self):
         # GH 15289
         s = pd.Series(list("abcd"))
-        tm.assert_series_equal(s, s.replace(dict()))
+        tm.assert_series_equal(s, s.replace({}))
 
-        with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             empty_series = pd.Series([])
         tm.assert_series_equal(s, s.replace(empty_series))
 
@@ -304,7 +302,7 @@ class TestSeriesReplace:
     @pytest.mark.parametrize(
         "categorical, numeric",
         [
-            (pd.Categorical("A", categories=["A", "B"]), [1]),
+            (pd.Categorical(["A"], categories=["A", "B"]), [1]),
             (pd.Categorical(("A",), categories=["A", "B"]), [1]),
             (pd.Categorical(("A", "B"), categories=["A", "B"]), [1, 2]),
         ],
@@ -437,10 +435,12 @@ class TestSeriesReplace:
         with pytest.raises(ValueError, match=msg):
             ser.replace(to_replace, value)
 
-    def test_replace_extension_other(self):
+    def test_replace_extension_other(self, frame_or_series):
         # https://github.com/pandas-dev/pandas/issues/34530
-        ser = pd.Series(pd.array([1, 2, 3], dtype="Int64"))
-        ser.replace("", "")  # no exception
+        obj = frame_or_series(pd.array([1, 2, 3], dtype="Int64"))
+        result = obj.replace("", "")  # no exception
+        # should not have changed dtype
+        tm.assert_equal(obj, result)
 
     def test_replace_with_compiled_regex(self):
         # https://github.com/pandas-dev/pandas/issues/35680

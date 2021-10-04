@@ -4,8 +4,7 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-
-from .base import BaseExtensionTests
+from pandas.tests.extension.base.base import BaseExtensionTests
 
 
 class BaseReduceTests(BaseExtensionTests):
@@ -21,14 +20,19 @@ class BaseReduceTests(BaseExtensionTests):
 
 
 class BaseNoReduceTests(BaseReduceTests):
-    """ we don't define any reductions """
+    """we don't define any reductions"""
 
     @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna):
         op_name = all_numeric_reductions
         s = pd.Series(data)
 
-        with pytest.raises(TypeError):
+        msg = (
+            "[Cc]annot perform|Categorical is not ordered for operation|"
+            "'Categorical' does not implement reduction|"
+        )
+
+        with pytest.raises(TypeError, match=msg):
             getattr(s, op_name)(skipna=skipna)
 
     @pytest.mark.parametrize("skipna", [True, False])
@@ -36,7 +40,12 @@ class BaseNoReduceTests(BaseReduceTests):
         op_name = all_boolean_reductions
         s = pd.Series(data)
 
-        with pytest.raises(TypeError):
+        msg = (
+            "[Cc]annot perform|Categorical is not ordered for operation|"
+            "'Categorical' does not implement reduction|"
+        )
+
+        with pytest.raises(TypeError, match=msg):
             getattr(s, op_name)(skipna=skipna)
 
 

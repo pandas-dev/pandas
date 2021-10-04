@@ -19,6 +19,25 @@ from pandas.tseries.offsets import BDay
 
 
 class TestShift:
+    @pytest.mark.parametrize(
+        "ser",
+        [
+            Series([np.arange(5)]),
+            date_range("1/1/2011", periods=24, freq="H"),
+            Series(range(5), index=date_range("2017", periods=5)),
+        ],
+    )
+    @pytest.mark.parametrize("shift_size", [0, 1, 2])
+    def test_shift_always_copy(self, ser, shift_size):
+        # GH22397
+        assert ser.shift(shift_size) is not ser
+
+    @pytest.mark.parametrize("move_by_freq", [pd.Timedelta("1D"), pd.Timedelta("1min")])
+    def test_datetime_shift_always_copy(self, move_by_freq):
+        # GH#22397
+        ser = Series(range(5), index=date_range("2017", periods=5))
+        assert ser.shift(freq=move_by_freq) is not ser
+
     def test_shift(self, datetime_series):
         shifted = datetime_series.shift(1)
         unshifted = shifted.shift(-1)
@@ -135,14 +154,14 @@ class TestShift:
         result = ts.shift(2, fill_value=0.0)
         tm.assert_series_equal(result, exp)
 
-        ts = pd.Series([1, 2, 3])
+        ts = Series([1, 2, 3])
         res = ts.shift(2, fill_value=0)
         assert res.dtype == ts.dtype
 
     def test_shift_categorical_fill_value(self):
-        ts = pd.Series(["a", "b", "c", "d"], dtype="category")
+        ts = Series(["a", "b", "c", "d"], dtype="category")
         res = ts.shift(1, fill_value="a")
-        expected = pd.Series(
+        expected = Series(
             pd.Categorical(
                 ["a", "a", "b", "c"], categories=["a", "b", "c", "d"], ordered=False
             )
@@ -150,8 +169,8 @@ class TestShift:
         tm.assert_equal(res, expected)
 
         # check for incorrect fill_value
-        msg = "'fill_value=f' is not present in this Categorical's categories"
-        with pytest.raises(ValueError, match=msg):
+        msg = r"Cannot setitem on a Categorical with a new category \(f\)"
+        with pytest.raises(TypeError, match=msg):
             ts.shift(1, fill_value="f")
 
     def test_shift_dst(self):
@@ -302,7 +321,7 @@ class TestShift:
 
     def test_shift_categorical(self):
         # GH#9416
-        s = pd.Series(["a", "b", "c", "d"], dtype="category")
+        s = Series(["a", "b", "c", "d"], dtype="category")
 
         tm.assert_series_equal(s.iloc[:-1], s.shift(1).shift(-1).dropna())
 
@@ -321,27 +340,27 @@ class TestShift:
 
     def test_shift_dt64values_int_fill_deprecated(self):
         # GH#31971
-        ser = pd.Series([pd.Timestamp("2020-01-01"), pd.Timestamp("2020-01-02")])
+        ser = Series([pd.Timestamp("2020-01-01"), pd.Timestamp("2020-01-02")])
 
         with tm.assert_produces_warning(FutureWarning):
             result = ser.shift(1, fill_value=0)
 
-        expected = pd.Series([pd.Timestamp(0), ser[0]])
+        expected = Series([pd.Timestamp(0), ser[0]])
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("periods", [1, 2, 3, 4])
     def test_shift_preserve_freqstr(self, periods):
         # GH#21275
-        ser = pd.Series(
+        ser = Series(
             range(periods),
-            index=pd.date_range("2016-1-1 00:00:00", periods=periods, freq="H"),
+            index=date_range("2016-1-1 00:00:00", periods=periods, freq="H"),
         )
 
         result = ser.shift(1, "2H")
 
-        expected = pd.Series(
+        expected = Series(
             range(periods),
-            index=pd.date_range("2016-1-1 02:00:00", periods=periods, freq="H"),
+            index=date_range("2016-1-1 02:00:00", periods=periods, freq="H"),
         )
         tm.assert_series_equal(result, expected)
 
@@ -353,7 +372,7 @@ class TestShift:
         # GH21049 Verify whether non writable numpy array is shiftable
         input_data.setflags(write=False)
 
-        result = pd.Series(input_data).shift(1)
-        expected = pd.Series(output_data, dtype="float64")
+        result = Series(input_data).shift(1)
+        expected = Series(output_data, dtype="float64")
 
         tm.assert_series_equal(result, expected)

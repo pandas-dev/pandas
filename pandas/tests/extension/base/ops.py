@@ -1,12 +1,11 @@
-from typing import Optional, Type
+from __future__ import annotations
 
 import pytest
 
 import pandas as pd
 import pandas._testing as tm
 from pandas.core import ops
-
-from .base import BaseExtensionTests
+from pandas.tests.extension.base.base import BaseExtensionTests
 
 
 class BaseOpsUtil(BaseExtensionTests):
@@ -18,17 +17,21 @@ class BaseOpsUtil(BaseExtensionTests):
 
         self._check_op(s, op, other, op_name, exc)
 
+    def _combine(self, obj, other, op):
+        if isinstance(obj, pd.DataFrame):
+            if len(obj.columns) != 1:
+                raise NotImplementedError
+            expected = obj.iloc[:, 0].combine(other, op).to_frame()
+        else:
+            expected = obj.combine(other, op)
+        return expected
+
     def _check_op(self, s, op, other, op_name, exc=NotImplementedError):
         if exc is None:
             result = op(s, other)
-            if isinstance(s, pd.DataFrame):
-                if len(s.columns) != 1:
-                    raise NotImplementedError
-                expected = s.iloc[:, 0].combine(other, op).to_frame()
-                self.assert_frame_equal(result, expected)
-            else:
-                expected = s.combine(other, op)
-                self.assert_series_equal(result, expected)
+            expected = self._combine(s, other, op)
+            assert isinstance(result, type(s))
+            self.assert_equal(result, expected)
         else:
             with pytest.raises(exc):
                 op(s, other)
@@ -61,10 +64,10 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
     * divmod_exc = TypeError
     """
 
-    series_scalar_exc: Optional[Type[TypeError]] = TypeError
-    frame_scalar_exc: Optional[Type[TypeError]] = TypeError
-    series_array_exc: Optional[Type[TypeError]] = TypeError
-    divmod_exc: Optional[Type[TypeError]] = TypeError
+    series_scalar_exc: type[TypeError] | None = TypeError
+    frame_scalar_exc: type[TypeError] | None = TypeError
+    series_array_exc: type[TypeError] | None = TypeError
+    divmod_exc: type[TypeError] | None = TypeError
 
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
         # series & scalar
@@ -72,7 +75,6 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
         s = pd.Series(data)
         self.check_opname(s, op_name, s.iloc[0], exc=self.series_scalar_exc)
 
-    @pytest.mark.xfail(run=False, reason="_reduce needs implementation")
     def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
         # frame & scalar
         op_name = all_arithmetic_operators
@@ -107,12 +109,6 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
         result = s + data
         expected = pd.Series(data + data)
         self.assert_series_equal(result, expected)
-
-    def test_error(self, data, all_arithmetic_operators):
-        # invalid ops
-        op_name = all_arithmetic_operators
-        with pytest.raises(AttributeError):
-            getattr(data, op_name)
 
     @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
     def test_direct_arith_with_ndframe_returns_not_implemented(self, data, box):

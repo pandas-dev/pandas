@@ -3,16 +3,18 @@ from warnings import catch_warnings
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
-from pandas.tests.io.pytables.common import ensure_clean_path, ensure_clean_store
+from pandas.tests.io.pytables.common import (
+    ensure_clean_path,
+    ensure_clean_store,
+)
 
 from pandas.io.pytables import read_hdf
-
-# GH10447
 
 
 def test_complex_fixed(setup_path):
@@ -62,7 +64,6 @@ def test_complex_table(setup_path):
         tm.assert_frame_equal(df, reread)
 
 
-@td.xfail_non_writeable
 def test_complex_mixed_fixed(setup_path):
     complex64 = np.array(
         [1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j], dtype=np.complex64
@@ -154,8 +155,17 @@ def test_complex_indexing_error(setup_path):
         {"A": [1, 2, 3, 4], "B": ["a", "b", "c", "d"], "C": complex128},
         index=list("abcd"),
     )
+
+    msg = (
+        "Columns containing complex values can be stored "
+        "but cannot be indexed when using table format. "
+        "Either use fixed format, set index=False, "
+        "or do not include the columns containing complex "
+        "values to data_columns when initializing the table."
+    )
+
     with ensure_clean_store(setup_path) as store:
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             store.append("df", df, data_columns=["C"])
 
 
@@ -163,8 +173,16 @@ def test_complex_series_error(setup_path):
     complex128 = np.array([1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j])
     s = Series(complex128, index=list("abcd"))
 
+    msg = (
+        "Columns containing complex values can be stored "
+        "but cannot be indexed when using table format. "
+        "Either use fixed format, set index=False, "
+        "or do not include the columns containing complex "
+        "values to data_columns when initializing the table."
+    )
+
     with ensure_clean_path(setup_path) as path:
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             s.to_hdf(path, "obj", format="t")
 
     with ensure_clean_path(setup_path) as path:
@@ -182,4 +200,4 @@ def test_complex_append(setup_path):
         store.append("df", df, data_columns=["b"])
         store.append("df", df)
         result = store.select("df")
-        tm.assert_frame_equal(pd.concat([df, df], 0), result)
+        tm.assert_frame_equal(pd.concat([df, df], axis=0), result)

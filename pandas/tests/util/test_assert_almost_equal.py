@@ -1,7 +1,12 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, Series, Timestamp
+from pandas import (
+    DataFrame,
+    Index,
+    Series,
+    Timestamp,
+)
 import pandas._testing as tm
 
 
@@ -146,6 +151,37 @@ def test_assert_not_almost_equal_numbers_rtol(a, b):
     _assert_not_almost_equal_both(a, b, rtol=0.05)
 
 
+@pytest.mark.parametrize(
+    "a,b,rtol",
+    [
+        (1.00001, 1.00005, 0.001),
+        (-0.908356 + 0.2j, -0.908358 + 0.2j, 1e-3),
+        (0.1 + 1.009j, 0.1 + 1.006j, 0.1),
+        (0.1001 + 2.0j, 0.1 + 2.001j, 0.01),
+    ],
+)
+def test_assert_almost_equal_complex_numbers(a, b, rtol):
+    _assert_almost_equal_both(a, b, rtol=rtol)
+    _assert_almost_equal_both(np.complex64(a), np.complex64(b), rtol=rtol)
+    _assert_almost_equal_both(np.complex128(a), np.complex128(b), rtol=rtol)
+
+
+@pytest.mark.parametrize(
+    "a,b,rtol",
+    [
+        (0.58310768, 0.58330768, 1e-7),
+        (-0.908 + 0.2j, -0.978 + 0.2j, 0.001),
+        (0.1 + 1j, 0.1 + 2j, 0.01),
+        (-0.132 + 1.001j, -0.132 + 1.005j, 1e-5),
+        (0.58310768j, 0.58330768j, 1e-9),
+    ],
+)
+def test_assert_not_almost_equal_complex_numbers(a, b, rtol):
+    _assert_not_almost_equal_both(a, b, rtol=rtol)
+    _assert_not_almost_equal_both(np.complex64(a), np.complex64(b), rtol=rtol)
+    _assert_not_almost_equal_both(np.complex128(a), np.complex128(b), rtol=rtol)
+
+
 @pytest.mark.parametrize("a,b", [(0, 0), (0, 0.0), (0, np.float64(0)), (0.00000001, 0)])
 def test_assert_almost_equal_numbers_with_zeros(a, b):
     _assert_almost_equal_both(a, b)
@@ -197,7 +233,7 @@ def test_assert_not_almost_equal_dicts(a, b):
 @pytest.mark.parametrize("val", [1, 2])
 def test_assert_almost_equal_dict_like_object(val):
     dict_val = 1
-    real_dict = dict(a=val)
+    real_dict = {"a": val}
 
     class DictLikeObj:
         def keys(self):

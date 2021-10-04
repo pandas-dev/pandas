@@ -3,12 +3,16 @@ import pytest
 from pandas.errors import NumbaUtilError
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, option_context
+from pandas import (
+    DataFrame,
+    Series,
+    option_context,
+)
 import pandas._testing as tm
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
 
 
-@td.skip_if_no("numba", "0.46.0")
+@td.skip_if_no("numba")
 def test_correct_function_signature():
     def incorrect_function(x):
         return x + 1
@@ -24,7 +28,7 @@ def test_correct_function_signature():
         data.groupby("key")["data"].transform(incorrect_function, engine="numba")
 
 
-@td.skip_if_no("numba", "0.46.0")
+@td.skip_if_no("numba")
 def test_check_nopython_kwargs():
     def incorrect_function(x, **kwargs):
         return x + 1
@@ -40,7 +44,7 @@ def test_check_nopython_kwargs():
         data.groupby("key")["data"].transform(incorrect_function, engine="numba", a=1)
 
 
-@td.skip_if_no("numba", "0.46.0")
+@td.skip_if_no("numba")
 @pytest.mark.filterwarnings("ignore:\\nThe keyword argument")
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
 @pytest.mark.parametrize("jit", [True, False])
@@ -69,7 +73,7 @@ def test_numba_vs_cython(jit, pandas_obj, nogil, parallel, nopython):
     tm.assert_equal(result, expected)
 
 
-@td.skip_if_no("numba", "0.46.0")
+@td.skip_if_no("numba")
 @pytest.mark.filterwarnings("ignore:\\nThe keyword argument")
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
 @pytest.mark.parametrize("jit", [True, False])
@@ -114,7 +118,7 @@ def test_cache(jit, pandas_obj, nogil, parallel, nopython):
     tm.assert_equal(result, expected)
 
 
-@td.skip_if_no("numba", "0.46.0")
+@td.skip_if_no("numba")
 def test_use_global_config():
     def func_1(values, index):
         return values + 1
@@ -129,7 +133,7 @@ def test_use_global_config():
     tm.assert_frame_equal(expected, result)
 
 
-@td.skip_if_no("numba", "0.46.0")
+@td.skip_if_no("numba")
 @pytest.mark.parametrize(
     "agg_func", [["min", "max"], "min", {"B": ["min", "max"], "C": "sum"}]
 )
@@ -143,3 +147,32 @@ def test_multifunc_notimplimented(agg_func):
 
     with pytest.raises(NotImplementedError, match="Numba engine can"):
         grouped[1].transform(agg_func, engine="numba")
+
+
+@td.skip_if_no("numba")
+def test_args_not_cached():
+    # GH 41647
+    def sum_last(values, index, n):
+        return values[-n:].sum()
+
+    df = DataFrame({"id": [0, 0, 1, 1], "x": [1, 1, 1, 1]})
+    grouped_x = df.groupby("id")["x"]
+    result = grouped_x.transform(sum_last, 1, engine="numba")
+    expected = Series([1.0] * 4, name="x")
+    tm.assert_series_equal(result, expected)
+
+    result = grouped_x.transform(sum_last, 2, engine="numba")
+    expected = Series([2.0] * 4, name="x")
+    tm.assert_series_equal(result, expected)
+
+
+@td.skip_if_no("numba")
+def test_index_data_correctly_passed():
+    # GH 43133
+    def f(values, index):
+        return index - 1
+
+    df = DataFrame({"group": ["A", "A", "B"], "v": [4, 5, 6]}, index=[-1, -2, -3])
+    result = df.groupby("group").transform(f, engine="numba")
+    expected = DataFrame([-4.0, -3.0, -2.0], columns=["v"], index=[-1, -2, -3])
+    tm.assert_frame_equal(result, expected)

@@ -1,8 +1,10 @@
 import numpy as np
 import pytest
 
-import pandas as pd
-from pandas import Index, MultiIndex
+from pandas import (
+    Index,
+    MultiIndex,
+)
 import pandas._testing as tm
 
 
@@ -46,17 +48,17 @@ def test_join_level_corner_case(idx):
 
 def test_join_self(idx, join_type):
     joined = idx.join(idx, how=join_type)
-    assert idx is joined
+    tm.assert_index_equal(joined, idx)
 
 
 def test_join_multi():
     # GH 10665
-    midx = pd.MultiIndex.from_product([np.arange(4), np.arange(4)], names=["a", "b"])
-    idx = pd.Index([1, 2, 5], name="b")
+    midx = MultiIndex.from_product([np.arange(4), np.arange(4)], names=["a", "b"])
+    idx = Index([1, 2, 5], name="b")
 
     # inner
     jidx, lidx, ridx = midx.join(idx, how="inner", return_indexers=True)
-    exp_idx = pd.MultiIndex.from_product([np.arange(4), [1, 2]], names=["a", "b"])
+    exp_idx = MultiIndex.from_product([np.arange(4), [1, 2]], names=["a", "b"])
     exp_lidx = np.array([1, 2, 5, 6, 9, 10, 13, 14], dtype=np.intp)
     exp_ridx = np.array([0, 1, 0, 1, 0, 1, 0, 1], dtype=np.intp)
     tm.assert_index_equal(jidx, exp_idx)
@@ -93,8 +95,8 @@ def test_join_multi_wrong_order():
     # GH 25760
     # GH 28956
 
-    midx1 = pd.MultiIndex.from_product([[1, 2], [3, 4]], names=["a", "b"])
-    midx2 = pd.MultiIndex.from_product([[1, 2], [3, 4]], names=["b", "a"])
+    midx1 = MultiIndex.from_product([[1, 2], [3, 4]], names=["a", "b"])
+    midx2 = MultiIndex.from_product([[1, 2], [3, 4]], names=["b", "a"])
 
     join_idx, lidx, ridx = midx1.join(midx2, return_indexers=True)
 
@@ -108,8 +110,8 @@ def test_join_multi_wrong_order():
 def test_join_multi_return_indexers():
     # GH 34074
 
-    midx1 = pd.MultiIndex.from_product([[1, 2], [3, 4], [5, 6]], names=["a", "b", "c"])
-    midx2 = pd.MultiIndex.from_product([[1, 2], [3, 4]], names=["a", "b"])
+    midx1 = MultiIndex.from_product([[1, 2], [3, 4], [5, 6]], names=["a", "b", "c"])
+    midx2 = MultiIndex.from_product([[1, 2], [3, 4]], names=["a", "b"])
 
     result = midx1.join(midx2, return_indexers=False)
     tm.assert_index_equal(result, midx1)

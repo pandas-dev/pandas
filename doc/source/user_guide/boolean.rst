@@ -12,6 +12,11 @@
 Nullable Boolean data type
 **************************
 
+.. note::
+
+   BooleanArray is currently experimental. Its API or implementation may
+   change without warning.
+
 .. versionadded:: 1.0.0
 
 
@@ -82,7 +87,7 @@ the ``NA`` really is ``True`` or ``False``, since ``True & True`` is ``True``,
 but ``True & False`` is ``False``, so we can't determine the output.
 
 
-This differs from how ``np.nan`` behaves in logical operations. Pandas treated
+This differs from how ``np.nan`` behaves in logical operations. pandas treated
 ``np.nan`` is *always false in the output*.
 
 In ``or``

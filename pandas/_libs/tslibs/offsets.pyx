@@ -1,7 +1,6 @@
 import operator
 import re
 import time
-from typing import Any
 import warnings
 
 import cython
@@ -24,7 +23,10 @@ from dateutil.relativedelta import relativedelta
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport int64_t, ndarray
+from numpy cimport (
+    int64_t,
+    ndarray,
+)
 
 cnp.import_array()
 
@@ -57,7 +59,10 @@ from pandas._libs.tslibs.conversion cimport (
     convert_datetime_to_tsobject,
     localize_pydatetime,
 )
-from pandas._libs.tslibs.nattype cimport NPY_NAT, c_NaT as NaT
+from pandas._libs.tslibs.nattype cimport (
+    NPY_NAT,
+    c_NaT as NaT,
+)
 from pandas._libs.tslibs.np_datetime cimport (
     dt64_to_dtstruct,
     dtstruct_to_dt64,
@@ -219,7 +224,9 @@ cdef _wrap_timedelta_result(result):
 
 
 cdef _get_calendar(weekmask, holidays, calendar):
-    """Generate busdaycalendar"""
+    """
+    Generate busdaycalendar
+    """
     if isinstance(calendar, np.busdaycalendar):
         if not holidays:
             holidays = tuple(calendar.holidays)
@@ -356,7 +363,7 @@ cdef class BaseOffset:
         self.normalize = normalize
         self._cache = {}
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other) -> bool:
         if isinstance(other, str):
             try:
                 # GH#23524 if to_offset fails, we are dealing with an
@@ -659,14 +666,18 @@ cdef class BaseOffset:
         return nint
 
     def __setstate__(self, state):
-        """Reconstruct an instance from a pickled state"""
+        """
+        Reconstruct an instance from a pickled state
+        """
         self.n = state.pop("n")
         self.normalize = state.pop("normalize")
         self._cache = state.pop("_cache", {})
         # At this point we expect state to be empty
 
     def __getstate__(self):
-        """Return a pickleable state"""
+        """
+        Return a pickleable state
+        """
         state = {}
         state["n"] = self.n
         state["normalize"] = self.normalize
@@ -685,7 +696,7 @@ cdef class BaseOffset:
 
     def onOffset(self, dt) -> bool:
         warnings.warn(
-            "onOffset is a deprecated, use is_on_offset instead",
+            "onOffset is a deprecated, use is_on_offset instead.",
             FutureWarning,
             stacklevel=1,
         )
@@ -693,7 +704,7 @@ cdef class BaseOffset:
 
     def isAnchored(self) -> bool:
         warnings.warn(
-            "isAnchored is a deprecated, use is_anchored instead",
+            "isAnchored is a deprecated, use is_anchored instead.",
             FutureWarning,
             stacklevel=1,
         )
@@ -703,6 +714,26 @@ cdef class BaseOffset:
         # TODO: Does this make sense for the general case?  It would help
         # if there were a canonical docstring for what is_anchored means.
         return self.n == 1
+
+    # ------------------------------------------------------------------
+
+    def is_month_start(self, _Timestamp ts):
+        return ts._get_start_end_field("is_month_start", self)
+
+    def is_month_end(self, _Timestamp ts):
+        return ts._get_start_end_field("is_month_end", self)
+
+    def is_quarter_start(self, _Timestamp ts):
+        return ts._get_start_end_field("is_quarter_start", self)
+
+    def is_quarter_end(self, _Timestamp ts):
+        return ts._get_start_end_field("is_quarter_end", self)
+
+    def is_year_start(self, _Timestamp ts):
+        return ts._get_start_end_field("is_year_start", self)
+
+    def is_year_end(self, _Timestamp ts):
+        return ts._get_start_end_field("is_year_end", self)
 
 
 cdef class SingleConstructorOffset(BaseOffset):
@@ -784,6 +815,11 @@ cdef class Tick(SingleConstructorOffset):
 
     def is_anchored(self) -> bool:
         return False
+
+    # This is identical to BaseOffset.__hash__, but has to be redefined here
+    # for Python 3, because we've redefined __eq__.
+    def __hash__(self) -> int:
+        return hash(self._params)
 
     # --------------------------------------------------------------------
     # Comparison and Arithmetic Methods
@@ -971,7 +1007,9 @@ cdef class RelativeDeltaOffset(BaseOffset):
             object.__setattr__(self, key, val)
 
     def __getstate__(self):
-        """Return a pickleable state"""
+        """
+        Return a pickleable state
+        """
         # RelativeDeltaOffset (technically DateOffset) is the only non-cdef
         #  class, so the only one with __dict__
         state = self.__dict__.copy()
@@ -980,7 +1018,9 @@ cdef class RelativeDeltaOffset(BaseOffset):
         return state
 
     def __setstate__(self, state):
-        """Reconstruct an instance from a pickled state"""
+        """
+        Reconstruct an instance from a pickled state
+        """
 
         if "offset" in state:
             # Older (<0.22.0) versions have offset attribute instead of _offset
@@ -1112,12 +1152,13 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     """
     Standard kind of date increment used for a date range.
 
-    Works exactly like relativedelta in terms of the keyword args you
-    pass in, use of the keyword n is discouraged-- you would be better
+    Works exactly like the keyword argument form of relativedelta.
+    Note that the positional argument form of relativedelata is not
+    supported. Use of the keyword n is discouraged-- you would be better
     off specifying n in the keywords you use, but regardless it is
     there for you. n is needed for DateOffset subclasses.
 
-    DateOffset work as follows.  Each offset specify a set of dates
+    DateOffset works as follows.  Each offset specify a set of dates
     that conform to the DateOffset.  For example, Bday defines this
     set to be the set of dates that are weekdays (M-F).  To test if a
     date is in the set of a DateOffset dateOffset we can use the
@@ -1202,9 +1243,8 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     >>> ts + DateOffset(months=2)
     Timestamp('2017-03-01 09:10:11')
     """
-
-    pass
-
+    def __setattr__(self, name, value):
+        raise AttributeError("DateOffset objects are immutable.")
 
 # --------------------------------------------------------------------
 
@@ -1374,7 +1414,11 @@ cdef class BusinessDay(BusinessMixin):
     @apply_array_wraps
     def _apply_array(self, dtarr):
         i8other = dtarr.view("i8")
-        return shift_bdays(i8other, self.n)
+        res = _shift_bdays(i8other, self.n)
+        if self.offset:
+            res = res.view("M8[ns]") + Timedelta(self.offset)
+            res = res.view("i8")
+        return res
 
     def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
@@ -1385,6 +1429,19 @@ cdef class BusinessDay(BusinessMixin):
 cdef class BusinessHour(BusinessMixin):
     """
     DateOffset subclass representing possibly n business hours.
+
+    Parameters
+    ----------
+    n : int, default 1
+        The number of months represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+    weekmask : str, Default 'Mon Tue Wed Thu Fri'
+        Weekmask of valid business days, passed to ``numpy.busdaycalendar``.
+    start : str, default "09:00"
+        Start time of your custom business hour in 24h format.
+    end : str, default: "17:00"
+        End time of your custom business hour in 24h format.
     """
 
     _prefix = "BH"
@@ -1397,7 +1454,7 @@ cdef class BusinessHour(BusinessMixin):
 
     def __init__(
             self, n=1, normalize=False, start="09:00", end="17:00", offset=timedelta(0)
-        ):
+    ):
         BusinessMixin.__init__(self, n, normalize, offset)
 
         # must be validated here to equality check
@@ -1872,7 +1929,7 @@ cdef class BYearEnd(YearOffset):
 
     Examples
     --------
-    >>> from pandas.tseries.offset import BYearEnd
+    >>> from pandas.tseries.offsets import BYearEnd
     >>> ts = pd.Timestamp('2020-05-24 05:01:15')
     >>> ts - BYearEnd()
     Timestamp('2019-12-31 05:01:15')
@@ -1898,7 +1955,7 @@ cdef class BYearBegin(YearOffset):
 
     Examples
     --------
-    >>> from pandas.tseries.offset import BYearBegin
+    >>> from pandas.tseries.offsets import BYearBegin
     >>> ts = pd.Timestamp('2020-05-24 05:01:15')
     >>> ts + BYearBegin()
     Timestamp('2021-01-01 05:01:15')
@@ -2033,7 +2090,7 @@ cdef class BQuarterEnd(QuarterOffset):
 
     Examples
     --------
-    >>> from pandas.tseries.offset import BQuarterEnd
+    >>> from pandas.tseries.offsets import BQuarterEnd
     >>> ts = pd.Timestamp('2020-05-24 05:01:15')
     >>> ts + BQuarterEnd()
     Timestamp('2020-06-30 05:01:15')
@@ -2061,7 +2118,7 @@ cdef class BQuarterBegin(QuarterOffset):
 
     Examples
     --------
-    >>> from pandas.tseries.offset import BQuarterBegin
+    >>> from pandas.tseries.offsets import BQuarterBegin
     >>> ts = pd.Timestamp('2020-05-24 05:01:15')
     >>> ts + BQuarterBegin()
     Timestamp('2020-06-01 05:01:15')
@@ -2171,7 +2228,7 @@ cdef class BusinessMonthEnd(MonthOffset):
 
     Examples
     --------
-    >>> from pandas.tseries.offset import BMonthEnd
+    >>> from pandas.tseries.offsets import BMonthEnd
     >>> ts = pd.Timestamp('2020-05-24 05:01:15')
     >>> ts + BMonthEnd()
     Timestamp('2020-05-29 05:01:15')
@@ -2190,7 +2247,7 @@ cdef class BusinessMonthBegin(MonthOffset):
 
     Examples
     --------
-    >>> from pandas.tseries.offset import BMonthBegin
+    >>> from pandas.tseries.offsets import BMonthBegin
     >>> ts=pd.Timestamp('2020-05-24 05:01:15')
     >>> ts + BMonthBegin()
     Timestamp('2020-06-01 05:01:15')
@@ -3233,6 +3290,19 @@ cdef class CustomBusinessDay(BusinessDay):
 cdef class CustomBusinessHour(BusinessHour):
     """
     DateOffset subclass representing possibly n custom business days.
+
+    Parameters
+    ----------
+    n : int, default 1
+        The number of months represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+    weekmask : str, Default 'Mon Tue Wed Thu Fri'
+        Weekmask of valid business days, passed to ``numpy.busdaycalendar``.
+    start : str, default "09:00"
+        Start time of your custom business hour in 24h format.
+    end : str, default: "17:00"
+        End time of your custom business hour in 24h format.
     """
 
     _prefix = "CBH"
@@ -3300,7 +3370,10 @@ cdef class _CustomBusinessMonth(BusinessMixin):
         """
         Define default roll function to be called in apply method.
         """
-        cbday = CustomBusinessDay(n=self.n, normalize=False, **self.kwds)
+        cbday_kwds = self.kwds.copy()
+        cbday_kwds['offset'] = timedelta(0)
+
+        cbday = CustomBusinessDay(n=1, normalize=False, **cbday_kwds)
 
         if self._prefix.endswith("S"):
             # MonthBegin
@@ -3344,6 +3417,9 @@ cdef class _CustomBusinessMonth(BusinessMixin):
 
         new = cur_month_offset_date + n * self.m_offset
         result = self.cbday_roll(new)
+
+        if self.offset:
+            result = result + self.offset
         return result
 
 
@@ -3521,7 +3597,7 @@ cpdef to_offset(freq):
             f"to_offset does not support tuples {freq}, pass as a string instead"
         )
 
-    elif isinstance(freq, timedelta):
+    elif PyDelta_Check(freq):
         return delta_to_tick(freq)
 
     elif isinstance(freq, str):
@@ -3529,7 +3605,7 @@ cpdef to_offset(freq):
         stride_sign = None
 
         try:
-            split = re.split(opattern, freq)
+            split = opattern.split(freq)
             if split[-1] != "" and not split[-1].isspace():
                 # the last element must be blank
                 raise ValueError("last element must be blank")
@@ -3604,7 +3680,9 @@ def shift_day(other: datetime, days: int) -> datetime:
 
 
 cdef inline int year_add_months(npy_datetimestruct dts, int months) nogil:
-    """new year number after shifting npy_datetimestruct number of months"""
+    """
+    New year number after shifting npy_datetimestruct number of months.
+    """
     return dts.year + (dts.month + months - 1) // 12
 
 
@@ -3702,7 +3780,9 @@ cdef inline void _shift_months(const int64_t[:] dtindex,
                                Py_ssize_t count,
                                int months,
                                str day_opt) nogil:
-    """See shift_months.__doc__"""
+    """
+    See shift_months.__doc__
+    """
     cdef:
         Py_ssize_t i
         int months_to_roll
@@ -3734,7 +3814,9 @@ cdef inline void _shift_quarters(const int64_t[:] dtindex,
                                  int q1start_month,
                                  str day_opt,
                                  int modby) nogil:
-    """See shift_quarters.__doc__"""
+    """
+    See shift_quarters.__doc__
+    """
     cdef:
         Py_ssize_t i
         int months_since, n
@@ -3758,7 +3840,7 @@ cdef inline void _shift_quarters(const int64_t[:] dtindex,
         out[i] = dtstruct_to_dt64(&dts)
 
 
-cdef ndarray[int64_t] shift_bdays(const int64_t[:] i8other, int periods):
+cdef ndarray[int64_t] _shift_bdays(const int64_t[:] i8other, int periods):
     """
     Implementation of BusinessDay.apply_offset.
 
@@ -3815,7 +3897,7 @@ cdef ndarray[int64_t] shift_bdays(const int64_t[:] i8other, int periods):
     return result.base
 
 
-def shift_month(stamp: datetime, months: int, day_opt: object=None) -> datetime:
+def shift_month(stamp: datetime, months: int, day_opt: object = None) -> datetime:
     """
     Given a datetime (or Timestamp) `stamp`, an integer `months` and an
     option `day_opt`, return a new datetimelike that many months later,
@@ -3990,7 +4072,9 @@ cdef inline int _roll_qtrday(npy_datetimestruct* dts,
                              int n,
                              int months_since,
                              str day_opt) nogil except? -1:
-    """See roll_qtrday.__doc__"""
+    """
+    See roll_qtrday.__doc__
+    """
 
     if n > 0:
         if months_since < 0 or (months_since == 0 and

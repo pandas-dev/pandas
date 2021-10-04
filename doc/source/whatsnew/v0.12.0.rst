@@ -47,7 +47,7 @@ API changes
 
     .. ipython:: python
 
-        p = pd.DataFrame({'first': [4, 5, 8], 'second': [0, 0, 3]})
+        p = pd.DataFrame({"first": [4, 5, 8], "second": [0, 0, 3]})
         p % 0
         p % p
         p / p
@@ -95,8 +95,8 @@ API changes
 
     .. ipython:: python
 
-       df = pd.DataFrame(range(5), index=list('ABCDE'), columns=['a'])
-       mask = (df.a % 2 == 0)
+       df = pd.DataFrame(range(5), index=list("ABCDE"), columns=["a"])
+       mask = df.a % 2 == 0
        mask
 
        # this is what you should use
@@ -141,21 +141,24 @@ API changes
       .. code-block:: python
 
          from pandas.io.parsers import ExcelFile
-         xls = ExcelFile('path_to_file.xls')
-         xls.parse('Sheet1', index_col=None, na_values=['NA'])
+
+         xls = ExcelFile("path_to_file.xls")
+         xls.parse("Sheet1", index_col=None, na_values=["NA"])
 
       With
 
       .. code-block:: python
 
          import pandas as pd
-         pd.read_excel('path_to_file.xls', 'Sheet1', index_col=None, na_values=['NA'])
+
+         pd.read_excel("path_to_file.xls", "Sheet1", index_col=None, na_values=["NA"])
 
     - added top-level function ``read_sql`` that is equivalent to the following
 
       .. code-block:: python
 
          from pandas.io.sql import read_frame
+
          read_frame(...)
 
   - ``DataFrame.to_html`` and ``DataFrame.to_latex`` now accept a path for
@@ -200,7 +203,7 @@ IO enhancements
     .. ipython:: python
        :okwarning:
 
-        df = pd.DataFrame({'a': range(3), 'b': list('abc')})
+        df = pd.DataFrame({"a": range(3), "b": list("abc")})
         print(df)
         html = df.to_html()
         alist = pd.read_html(html, index_col=0)
@@ -248,16 +251,18 @@ IO enhancements
       .. ipython:: python
 
          from pandas._testing import makeCustomDataframe as mkdf
+
          df = mkdf(5, 3, r_idx_nlevels=2, c_idx_nlevels=4)
-         df.to_csv('mi.csv')
-         print(open('mi.csv').read())
-         pd.read_csv('mi.csv', header=[0, 1, 2, 3], index_col=[0, 1])
+         df.to_csv("mi.csv")
+         print(open("mi.csv").read())
+         pd.read_csv("mi.csv", header=[0, 1, 2, 3], index_col=[0, 1])
 
       .. ipython:: python
          :suppress:
 
          import os
-         os.remove('mi.csv')
+
+         os.remove("mi.csv")
 
   - Support for ``HDFStore`` (via ``PyTables 3.0.0``) on Python3
 
@@ -304,8 +309,8 @@ Other enhancements
 
     .. ipython:: python
 
-        df = pd.DataFrame({'a': list('ab..'), 'b': [1, 2, 3, 4]})
-        df.replace(regex=r'\s*\.\s*', value=np.nan)
+        df = pd.DataFrame({"a": list("ab.."), "b": [1, 2, 3, 4]})
+        df.replace(regex=r"\s*\.\s*", value=np.nan)
 
     to replace all occurrences of the string ``'.'`` with zero or more
     instances of surrounding white space with ``NaN``.
@@ -314,7 +319,7 @@ Other enhancements
 
     .. ipython:: python
 
-        df.replace('.', np.nan)
+        df.replace(".", np.nan)
 
     to replace all occurrences of the string ``'.'`` with ``NaN``.
 
@@ -359,8 +364,8 @@ Other enhancements
 
     .. ipython:: python
 
-       dff = pd.DataFrame({'A': np.arange(8), 'B': list('aabbbbcc')})
-       dff.groupby('B').filter(lambda x: len(x) > 2)
+       dff = pd.DataFrame({"A": np.arange(8), "B": list("aabbbbcc")})
+       dff.groupby("B").filter(lambda x: len(x) > 2)
 
     Alternatively, instead of dropping the offending groups, we can return a
     like-indexed objects where the groups that do not pass the filter are
@@ -368,7 +373,7 @@ Other enhancements
 
     .. ipython:: python
 
-       dff.groupby('B').filter(lambda x: len(x) > 2, dropna=False)
+       dff.groupby("B").filter(lambda x: len(x) > 2, dropna=False)
 
   - Series and DataFrame hist methods now take a ``figsize`` argument (:issue:`3834`)
 
@@ -397,23 +402,24 @@ Experimental features
 
       from pandas.tseries.offsets import CustomBusinessDay
       from datetime import datetime
+
       # As an interesting example, let's look at Egypt where
       # a Friday-Saturday weekend is observed.
-      weekmask_egypt = 'Sun Mon Tue Wed Thu'
+      weekmask_egypt = "Sun Mon Tue Wed Thu"
       # They also observe International Workers' Day so let's
       # add that for a couple of years
-      holidays = ['2012-05-01', datetime(2013, 5, 1), np.datetime64('2014-05-01')]
+      holidays = ["2012-05-01", datetime(2013, 5, 1), np.datetime64("2014-05-01")]
       bday_egypt = CustomBusinessDay(holidays=holidays, weekmask=weekmask_egypt)
       dt = datetime(2013, 4, 30)
       print(dt + 2 * bday_egypt)
       dts = pd.date_range(dt, periods=5, freq=bday_egypt)
-      print(pd.Series(dts.weekday, dts).map(pd.Series('Mon Tue Wed Thu Fri Sat Sun'.split())))
+      print(pd.Series(dts.weekday, dts).map(pd.Series("Mon Tue Wed Thu Fri Sat Sun".split())))
 
 Bug fixes
 ~~~~~~~~~
 
   - Plotting functions now raise a ``TypeError`` before trying to plot anything
-    if the associated objects have have a dtype of ``object`` (:issue:`1818`,
+    if the associated objects have a dtype of ``object`` (:issue:`1818`,
     :issue:`3572`, :issue:`3911`, :issue:`3912`), but they will try to convert object arrays to
     numeric arrays if possible so that you can still plot, for example, an
     object array with floats. This happens before any drawing takes place which
@@ -424,20 +430,20 @@ Bug fixes
 
   - ``Series.str`` now supports iteration (:issue:`3638`). You can iterate over the
     individual elements of each string in the ``Series``. Each iteration yields
-    yields a ``Series`` with either a single character at each index of the
-    original ``Series`` or ``NaN``. For example,
+    a ``Series`` with either a single character at each index of the original
+    ``Series`` or ``NaN``. For example,
 
     .. ipython:: python
         :okwarning:
 
-        strs = 'go', 'bow', 'joe', 'slow'
+        strs = "go", "bow", "joe", "slow"
         ds = pd.Series(strs)
 
         for s in ds.str:
             print(s)
 
         s
-        s.dropna().values.item() == 'w'
+        s.dropna().values.item() == "w"
 
     The last element yielded by the iterator will be a ``Series`` containing
     the last element of the longest string in the ``Series`` with all other

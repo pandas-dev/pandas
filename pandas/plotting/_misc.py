@@ -318,7 +318,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
 
     Examples
     --------
-    This example draws a basic bootstap plot for a Series.
+    This example draws a basic bootstrap plot for a Series.
 
     .. plot::
         :context: close-figs
@@ -530,7 +530,8 @@ class _Options(dict):
         -------
         None
         """
-        self.__init__()
+        # error: Cannot access "__init__" directly
+        self.__init__()  # type: ignore[misc]
 
     def _get_canonical_key(self, key):
         return self._ALIASES.get(key, key)

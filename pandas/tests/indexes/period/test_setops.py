@@ -1,10 +1,11 @@
 import numpy as np
-import pytest
-
-from pandas._libs.tslibs import IncompatibleFrequency
 
 import pandas as pd
-from pandas import PeriodIndex, date_range, period_range
+from pandas import (
+    PeriodIndex,
+    date_range,
+    period_range,
+)
 import pandas._testing as tm
 
 
@@ -145,12 +146,12 @@ class TestPeriodIndex:
             tm.assert_index_equal(result, index)
         assert tm.equalContents(result, index)
 
-        # raise if different frequencies
+        # cast if different frequencies
         index = period_range("1/1/2000", "1/20/2000", freq="D")
         index2 = period_range("1/1/2000", "1/20/2000", freq="W-WED")
-        msg = r"Input has different freq=W-WED from PeriodIndex\(freq=D\)"
-        with pytest.raises(IncompatibleFrequency, match=msg):
-            index.union(index2, sort=sort)
+        result = index.union(index2, sort=sort)
+        expected = index.astype(object).union(index2.astype(object), sort=sort)
+        tm.assert_index_equal(result, expected)
 
     # TODO: belongs elsewhere
     def test_union_dataframe_index(self):
@@ -178,17 +179,17 @@ class TestPeriodIndex:
             tm.assert_index_equal(result, index[10:-5])
         assert tm.equalContents(result, index[10:-5])
 
-        # raise if different frequencies
+        # cast if different frequencies
         index = period_range("1/1/2000", "1/20/2000", freq="D")
         index2 = period_range("1/1/2000", "1/20/2000", freq="W-WED")
-        msg = r"Input has different freq=W-WED from PeriodIndex\(freq=D\)"
-        with pytest.raises(IncompatibleFrequency, match=msg):
-            index.intersection(index2, sort=sort)
+
+        result = index.intersection(index2, sort=sort)
+        expected = pd.Index([], dtype=object)
+        tm.assert_index_equal(result, expected)
 
         index3 = period_range("1/1/2000", "1/20/2000", freq="2D")
-        msg = r"Input has different freq=2D from PeriodIndex\(freq=D\)"
-        with pytest.raises(IncompatibleFrequency, match=msg):
-            index.intersection(index3, sort=sort)
+        result = index.intersection(index3, sort=sort)
+        tm.assert_index_equal(result, expected)
 
     def test_intersection_cases(self, sort):
         base = period_range("6/1/2000", "6/30/2000", freq="D", name="idx")
@@ -318,7 +319,8 @@ class TestPeriodIndex:
             (rng7, other7, expected7),
         ]:
             result_difference = rng.difference(other, sort=sort)
-            if sort is None:
+            if sort is None and len(other):
+                # We dont sort (yet?) when empty GH#24959
                 expected = expected.sort_values()
             tm.assert_index_equal(result_difference, expected)
 
@@ -339,3 +341,32 @@ class TestPeriodIndex:
         expected = PeriodIndex(["20160920", "20160921"], freq="D")
         tm.assert_index_equal(idx_diff, expected)
         tm.assert_attr_equal("freq", idx_diff, expected)
+
+    def test_intersection_equal_duplicates(self):
+        # GH#38302
+        idx = period_range("2011-01-01", periods=2)
+        idx_dup = idx.append(idx)
+        result = idx_dup.intersection(idx_dup)
+        tm.assert_index_equal(result, idx)
+
+    def test_union_duplicates(self):
+        # GH#36289
+        idx = period_range("2011-01-01", periods=2)
+        idx_dup = idx.append(idx)
+
+        idx2 = period_range("2011-01-02", periods=2)
+        idx2_dup = idx2.append(idx2)
+        result = idx_dup.union(idx2_dup)
+
+        expected = PeriodIndex(
+            [
+                "2011-01-01",
+                "2011-01-01",
+                "2011-01-02",
+                "2011-01-02",
+                "2011-01-03",
+                "2011-01-03",
+            ],
+            freq="D",
+        )
+        tm.assert_index_equal(result, expected)

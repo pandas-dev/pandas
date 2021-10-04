@@ -23,21 +23,32 @@ def test_foo():
 
 For more information, refer to the ``pytest`` documentation on ``skipif``.
 """
+from __future__ import annotations
+
 from contextlib import contextmanager
-from distutils.version import LooseVersion
 import locale
-from typing import Callable, Optional
+from typing import Callable
+import warnings
 
 import numpy as np
 import pytest
 
-from pandas.compat import IS64, is_platform_windows
+from pandas._config import get_option
+
+from pandas.compat import (
+    IS64,
+    is_platform_windows,
+)
 from pandas.compat._optional import import_optional_dependency
 
-from pandas.core.computation.expressions import NUMEXPR_INSTALLED, USE_NUMEXPR
+from pandas.core.computation.expressions import (
+    NUMEXPR_INSTALLED,
+    USE_NUMEXPR,
+)
+from pandas.util.version import Version
 
 
-def safe_import(mod_name: str, min_version: Optional[str] = None):
+def safe_import(mod_name: str, min_version: str | None = None):
     """
     Parameters
     ----------
@@ -51,10 +62,20 @@ def safe_import(mod_name: str, min_version: Optional[str] = None):
     object
         The imported module if successful, or False
     """
-    try:
-        mod = __import__(mod_name)
-    except ImportError:
-        return False
+    with warnings.catch_warnings():
+        # Suppress warnings that we can't do anything about,
+        #  e.g. from aiohttp
+        warnings.filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            module="aiohttp",
+            message=".*decorator is deprecated since Python 3.8.*",
+        )
+
+        try:
+            mod = __import__(mod_name)
+        except ImportError:
+            return False
 
     if not min_version:
         return mod
@@ -66,28 +87,10 @@ def safe_import(mod_name: str, min_version: Optional[str] = None):
         except AttributeError:
             # xlrd uses a capitalized attribute name
             version = getattr(sys.modules[mod_name], "__VERSION__")
-        if version:
-            from distutils.version import LooseVersion
-
-            if LooseVersion(version) >= LooseVersion(min_version):
-                return mod
+        if version and Version(version) >= Version(min_version):
+            return mod
 
     return False
-
-
-# TODO:
-# remove when gh-24839 is fixed.
-# this affects numpy 1.16 and pytables 3.4.4
-tables = safe_import("tables")
-xfail_non_writeable = pytest.mark.xfail(
-    tables
-    and LooseVersion(np.__version__) >= LooseVersion("1.16")
-    and LooseVersion(tables.__version__) < LooseVersion("3.5.1"),
-    reason=(
-        "gh-25511, gh-24839. pytables needs a "
-        "release beyond 3.4.4 to support numpy 1.16.x"
-    ),
-)
 
 
 def _skip_if_no_mpl():
@@ -137,7 +140,7 @@ def skip_if_installed(package: str):
 
 # TODO: return type, _pytest.mark.structures.MarkDecorator is not public
 # https://github.com/pytest-dev/pytest/issues/7469
-def skip_if_no(package: str, min_version: Optional[str] = None):
+def skip_if_no(package: str, min_version: str | None = None):
     """
     Generic function to help skip tests when required packages are not
     present on the testing system.
@@ -201,11 +204,13 @@ skip_if_no_ne = pytest.mark.skipif(
 
 # TODO: return type, _pytest.mark.structures.MarkDecorator is not public
 # https://github.com/pytest-dev/pytest/issues/7469
-def skip_if_np_lt(ver_str: str, *args, reason: Optional[str] = None):
+def skip_if_np_lt(ver_str: str, *args, reason: str | None = None):
     if reason is None:
         reason = f"NumPy {ver_str} or greater required"
     return pytest.mark.skipif(
-        np.__version__ < LooseVersion(ver_str), *args, reason=reason
+        Version(np.__version__) < Version(ver_str),
+        *args,
+        reason=reason,
     )
 
 
@@ -278,3 +283,14 @@ def async_mark():
         async_mark = pytest.mark.skip(reason="Missing dependency pytest-asyncio")
 
     return async_mark
+
+
+skip_array_manager_not_yet_implemented = pytest.mark.skipif(
+    get_option("mode.data_manager") == "array",
+    reason="Not yet implemented for ArrayManager",
+)
+
+skip_array_manager_invalid_test = pytest.mark.skipif(
+    get_option("mode.data_manager") == "array",
+    reason="Test that relies on BlockManager internals or specific behaviour",
+)

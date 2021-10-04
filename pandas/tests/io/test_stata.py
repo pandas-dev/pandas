@@ -16,7 +16,11 @@ from pandas.core.dtypes.common import is_categorical_dtype
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.frame import DataFrame, Series
+from pandas.core.frame import (
+    DataFrame,
+    Series,
+)
+from pandas.core.indexes.api import ensure_index
 
 from pandas.io.parsers import read_csv
 from pandas.io.stata import (
@@ -25,14 +29,16 @@ from pandas.io.stata import (
     PossiblePrecisionLoss,
     StataMissingValue,
     StataReader,
+    StataWriter,
     StataWriterUTF8,
+    ValueLabelTypeMismatch,
     read_stata,
 )
 
 
 @pytest.fixture()
 def mixed_frame():
-    return pd.DataFrame(
+    return DataFrame(
         {
             "a": [1, 2, 3, 4],
             "b": [1.0, 3.0, 27.0, 81.0],
@@ -385,7 +391,7 @@ class TestStata:
     def test_write_preserves_original(self):
         # 9795
         np.random.seed(423)
-        df = pd.DataFrame(np.random.randn(5, 4), columns=list("abcd"))
+        df = DataFrame(np.random.randn(5, 4), columns=list("abcd"))
         df.loc[2, "a":"c"] = np.nan
         df_copy = df.copy()
         with tm.ensure_clean() as path:
@@ -427,7 +433,7 @@ class TestStata:
         formatted = formatted.astype(np.int32)
 
         with tm.ensure_clean() as path:
-            with tm.assert_produces_warning(pd.io.stata.InvalidColumnName):
+            with tm.assert_produces_warning(InvalidColumnName):
                 original.to_stata(path, None)
 
             written_and_read_again = self.read_dta(path)
@@ -550,6 +556,7 @@ class TestStata:
             msg = "time_stamp should be datetime type"
             with pytest.raises(ValueError, match=msg):
                 original.to_stata(path, time_stamp=time_stamp, version=version)
+            assert not os.path.isfile(path)
 
     def test_numeric_column_names(self):
         original = DataFrame(np.reshape(np.arange(25.0), (5, 5)))
@@ -634,9 +641,9 @@ class TestStata:
         # Data obtained from:
         # http://go.worldbank.org/ZXY29PVJ21
         dpath = os.path.join(self.dirpath, "S4_EDUC1.dta")
-        df = pd.read_stata(dpath)
+        df = read_stata(dpath)
         df0 = [[1, 1, 3, -2], [2, 1, 2, -2], [4, 1, 1, -2]]
-        df0 = pd.DataFrame(df0)
+        df0 = DataFrame(df0)
         df0.columns = ["clustnum", "pri_schl", "psch_num", "psch_dis"]
         df0["clustnum"] = df0["clustnum"].astype(np.int16)
         df0["pri_schl"] = df0["pri_schl"].astype(np.int8)
@@ -990,7 +997,7 @@ class TestStata:
     def test_categorical_warnings_and_errors(self):
         # Warning for non-string labels
         # Error for labels too long
-        original = pd.DataFrame.from_records(
+        original = DataFrame.from_records(
             [["a" * 10000], ["b" * 10000], ["c" * 10000], ["d" * 10000]],
             columns=["Too_long"],
         )
@@ -1006,14 +1013,14 @@ class TestStata:
             with pytest.raises(ValueError, match=msg):
                 original.to_stata(path)
 
-        original = pd.DataFrame.from_records(
+        original = DataFrame.from_records(
             [["a"], ["b"], ["c"], ["d"], [1]], columns=["Too_long"]
         )
         original = pd.concat(
             [original[col].astype("category") for col in original], axis=1
         )
 
-        with tm.assert_produces_warning(pd.io.stata.ValueLabelTypeMismatch):
+        with tm.assert_produces_warning(ValueLabelTypeMismatch):
             original.to_stata(path)
             # should get a warning for mixed content
 
@@ -1021,7 +1028,7 @@ class TestStata:
     def test_categorical_with_stata_missing_values(self, version):
         values = [["a" + str(i)] for i in range(120)]
         values.append([np.nan])
-        original = pd.DataFrame.from_records(values, columns=["many_labels"])
+        original = DataFrame.from_records(values, columns=["many_labels"])
         original = pd.concat(
             [original[col].astype("category") for col in original], axis=1
         )
@@ -1059,7 +1066,7 @@ class TestStata:
                     (col, pd.Categorical.from_codes(codes, labels, ordered=True))
                 )
             else:
-                cols.append((col, pd.Series(labels, dtype=np.float32)))
+                cols.append((col, Series(labels, dtype=np.float32)))
         expected = DataFrame.from_dict(dict(cols))
 
         # Read with and with out categoricals, ensure order is identical
@@ -1089,7 +1096,7 @@ class TestStata:
         cat = pd.Categorical.from_codes(
             codes=codes, categories=categories, ordered=True
         )
-        expected = pd.Series(cat, name="srh")
+        expected = Series(cat, name="srh")
         tm.assert_series_equal(expected, parsed["srh"])
 
     @pytest.mark.parametrize("file", ["dta19_115", "dta19_117"])
@@ -1169,7 +1176,7 @@ class TestStata:
             if is_categorical_dtype(ser.dtype):
                 cat = ser._values.remove_unused_categories()
                 if cat.categories.dtype == object:
-                    categories = pd.Index(cat.categories._values)
+                    categories = ensure_index(cat.categories._values)
                     cat = cat.set_categories(categories)
                 from_frame[col] = cat
         return from_frame
@@ -1358,7 +1365,7 @@ class TestStata:
             dt.datetime(2012, 12, 21, 12, 21, 12, 21000),
             dt.datetime(1776, 7, 4, 7, 4, 7, 4000),
         ]
-        original = pd.DataFrame(
+        original = DataFrame(
             {
                 "nums": [1.0, 2.0, 3.0],
                 "strs": ["apple", "banana", "cherry"],
@@ -1381,7 +1388,7 @@ class TestStata:
             tm.assert_frame_equal(reread, direct)
 
     def test_unsupported_type(self):
-        original = pd.DataFrame({"a": [1 + 2j, 2 + 4j]})
+        original = DataFrame({"a": [1 + 2j, 2 + 4j]})
 
         msg = "Data type complex128 not supported"
         with pytest.raises(NotImplementedError, match=msg):
@@ -1394,7 +1401,7 @@ class TestStata:
             dt.datetime(2012, 12, 21, 12, 21, 12, 21000),
             dt.datetime(1776, 7, 4, 7, 4, 7, 4000),
         ]
-        original = pd.DataFrame(
+        original = DataFrame(
             {
                 "nums": [1.0, 2.0, 3.0],
                 "strs": ["apple", "banana", "cherry"],
@@ -1408,7 +1415,7 @@ class TestStata:
                 original.to_stata(path, convert_dates={"dates": "tC"})
 
         dates = pd.date_range("1-1-1990", periods=3, tz="Asia/Hong_Kong")
-        original = pd.DataFrame(
+        original = DataFrame(
             {
                 "nums": [1.0, 2.0, 3.0],
                 "strs": ["apple", "banana", "cherry"],
@@ -1439,7 +1446,7 @@ The repeated labels are:\n-+\nwolof
         # SAS when exporting to Stata format. We do not know of any
         # on-line documentation for this version.
         df = read_stata(self.dta24_111)
-        original = pd.DataFrame(
+        original = DataFrame(
             {
                 "y": [1, 1, 1, 1, 1, 0, 0, np.NaN, 0, 0],
                 "x": [1, 2, 1, 3, np.NaN, 4, 3, 5, 1, 6],
@@ -1527,12 +1534,12 @@ The repeated labels are:\n-+\nwolof
     def test_value_labels_iterator(self, write_index):
         # GH 16923
         d = {"A": ["B", "E", "C", "A", "E"]}
-        df = pd.DataFrame(data=d)
+        df = DataFrame(data=d)
         df["A"] = df["A"].astype("category")
         with tm.ensure_clean() as path:
             df.to_stata(path, write_index=write_index)
 
-            with pd.read_stata(path, iterator=True) as dta_iter:
+            with read_stata(path, iterator=True) as dta_iter:
                 value_labels = dta_iter.value_labels()
         assert value_labels == {"A": {0: "A", 1: "B", 2: "C", 3: "E"}}
 
@@ -1542,7 +1549,7 @@ The repeated labels are:\n-+\nwolof
         df.index.name = "index"
         with tm.ensure_clean() as path:
             df.to_stata(path)
-            reread = pd.read_stata(path, index_col="index")
+            reread = read_stata(path, index_col="index")
         tm.assert_frame_equal(df, reread)
 
     @pytest.mark.parametrize(
@@ -1643,7 +1650,7 @@ The repeated labels are:\n-+\nwolof
         )
         original.index.name = "index"
 
-        with tm.assert_produces_warning(pd.io.stata.InvalidColumnName):
+        with tm.assert_produces_warning(InvalidColumnName):
             with tm.ensure_clean() as path:
                 original.to_stata(path, convert_strl=["long", 1], version=117)
                 reread = self.read_dta(path)
@@ -1658,7 +1665,7 @@ The repeated labels are:\n-+\nwolof
             dt.datetime(2012, 12, 21, 12, 21, 12, 21000),
             dt.datetime(1776, 7, 4, 7, 4, 7, 4000),
         ]
-        original = pd.DataFrame(
+        original = DataFrame(
             {
                 "nums": [1.0, 2.0, 3.0],
                 "strs": ["apple", "banana", "cherry"],
@@ -1682,7 +1689,7 @@ The repeated labels are:\n-+\nwolof
             bio.seek(0)
             with open(path, "wb") as dta:
                 dta.write(bio.read())
-            reread = pd.read_stata(path, index_col="index")
+            reread = read_stata(path, index_col="index")
         tm.assert_frame_equal(df, reread)
 
     def test_gzip_writing(self):
@@ -1693,7 +1700,7 @@ The repeated labels are:\n-+\nwolof
             with gzip.GzipFile(path, "wb") as gz:
                 df.to_stata(gz, version=114)
             with gzip.GzipFile(path, "rb") as gz:
-                reread = pd.read_stata(gz, index_col="index")
+                reread = read_stata(gz, index_col="index")
         tm.assert_frame_equal(df, reread)
 
     def test_unicode_dta_118(self):
@@ -1709,14 +1716,14 @@ The repeated labels are:\n-+\nwolof
             ["", "", "s", "", "s"],
             ["", "", " ", "", " "],
         ]
-        expected = pd.DataFrame(values, columns=columns)
+        expected = DataFrame(values, columns=columns)
 
         tm.assert_frame_equal(unicode_df, expected)
 
     def test_mixed_string_strl(self):
         # GH 23633
         output = [{"mixed": "string" * 500, "number": 0}, {"mixed": None, "number": 1}]
-        output = pd.DataFrame(output)
+        output = DataFrame(output)
         output.number = output.number.astype("int32")
 
         with tm.ensure_clean() as path:
@@ -1737,7 +1744,7 @@ The repeated labels are:\n-+\nwolof
     @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     def test_all_none_exception(self, version):
         output = [{"none": "none", "number": 0}, {"none": None, "number": 1}]
-        output = pd.DataFrame(output)
+        output = DataFrame(output)
         output.loc[:, "none"] = None
         with tm.ensure_clean() as path:
             with pytest.raises(ValueError, match="Column `none` cannot be exported"):
@@ -1791,7 +1798,7 @@ the string values returned are correct."""
             assert len(w) == 151
             assert w[0].message.args[0] == msg
 
-        expected = pd.DataFrame([["Düsseldorf"]] * 151, columns=["kreis1849"])
+        expected = DataFrame([["Düsseldorf"]] * 151, columns=["kreis1849"])
         tm.assert_frame_equal(encoded, expected)
 
     @pytest.mark.slow
@@ -1808,7 +1815,7 @@ the string values returned are correct."""
     @pytest.mark.parametrize("version", [118, 119, None])
     def test_utf8_writer(self, version):
         cat = pd.Categorical(["a", "β", "ĉ"], ordered=True)
-        data = pd.DataFrame(
+        data = DataFrame(
             [
                 [1.0, 1, "ᴬ", "ᴀ relatively long ŝtring"],
                 [2.0, 2, "ᴮ", ""],
@@ -1864,8 +1871,8 @@ def test_backward_compat(version, datapath):
     data_base = datapath("io", "data", "stata")
     ref = os.path.join(data_base, "stata-compat-118.dta")
     old = os.path.join(data_base, f"stata-compat-{version}.dta")
-    expected = pd.read_stata(ref)
-    old_dta = pd.read_stata(old)
+    expected = read_stata(ref)
+    old_dta = read_stata(old)
     tm.assert_frame_equal(old_dta, expected, check_dtype=False)
 
 
@@ -1916,10 +1923,10 @@ def test_compression_dict(method, file_ext):
         compression = {"method": method, "archive_name": archive_name}
         df.to_stata(path, compression=compression)
         if method == "zip" or file_ext == "zip":
-            zp = zipfile.ZipFile(path, "r")
-            assert len(zp.filelist) == 1
-            assert zp.filelist[0].filename == archive_name
-            fp = io.BytesIO(zp.read(zp.filelist[0]))
+            with zipfile.ZipFile(path, "r") as zp:
+                assert len(zp.filelist) == 1
+                assert zp.filelist[0].filename == archive_name
+                fp = io.BytesIO(zp.read(zp.filelist[0]))
         else:
             fp = path
         reread = read_stata(fp, index_col="index")
@@ -1949,7 +1956,7 @@ def test_chunked_categorical_partial(dirpath):
                 if i < 2:
                     idx = pd.Index(["a", "b"])
                 else:
-                    idx = pd.Float64Index([3.0])
+                    idx = pd.Index([3.0], dtype="float64")
                 tm.assert_index_equal(block.cats.cat.categories, idx)
     with tm.assert_produces_warning(CategoricalConversionWarning):
         with StataReader(dta_file, chunksize=5) as reader:
@@ -1966,9 +1973,6 @@ def test_iterator_errors(dirpath):
         StataReader(dta_file, chunksize=0)
     with pytest.raises(ValueError, match="chunksize must be a positive"):
         StataReader(dta_file, chunksize="apple")
-    with pytest.raises(ValueError, match="chunksize must be set to a positive"):
-        with StataReader(dta_file) as reader:
-            reader.__next__()
 
 
 def test_iterator_value_labels():
@@ -1977,9 +1981,226 @@ def test_iterator_value_labels():
     df = DataFrame({f"col{k}": pd.Categorical(values, ordered=True) for k in range(2)})
     with tm.ensure_clean() as path:
         df.to_stata(path, write_index=False)
-        reader = pd.read_stata(path, chunksize=100)
         expected = pd.Index(["a_label", "b_label", "c_label"], dtype="object")
-        for j, chunk in enumerate(reader):
-            for i in range(2):
-                tm.assert_index_equal(chunk.dtypes[i].categories, expected)
-            tm.assert_frame_equal(chunk, df.iloc[j * 100 : (j + 1) * 100])
+        with read_stata(path, chunksize=100) as reader:
+            for j, chunk in enumerate(reader):
+                for i in range(2):
+                    tm.assert_index_equal(chunk.dtypes[i].categories, expected)
+                tm.assert_frame_equal(chunk, df.iloc[j * 100 : (j + 1) * 100])
+
+
+def test_precision_loss():
+    df = DataFrame(
+        [[sum(2 ** i for i in range(60)), sum(2 ** i for i in range(52))]],
+        columns=["big", "little"],
+    )
+    with tm.ensure_clean() as path:
+        with tm.assert_produces_warning(
+            PossiblePrecisionLoss, match="Column converted from int64 to float64"
+        ):
+            df.to_stata(path, write_index=False)
+        reread = read_stata(path)
+        expected_dt = Series([np.float64, np.float64], index=["big", "little"])
+        tm.assert_series_equal(reread.dtypes, expected_dt)
+        assert reread.loc[0, "little"] == df.loc[0, "little"]
+        assert reread.loc[0, "big"] == float(df.loc[0, "big"])
+
+
+def test_compression_roundtrip(compression):
+    df = DataFrame(
+        [[0.123456, 0.234567, 0.567567], [12.32112, 123123.2, 321321.2]],
+        index=["A", "B"],
+        columns=["X", "Y", "Z"],
+    )
+    df.index.name = "index"
+
+    with tm.ensure_clean() as path:
+
+        df.to_stata(path, compression=compression)
+        reread = read_stata(path, compression=compression, index_col="index")
+        tm.assert_frame_equal(df, reread)
+
+        # explicitly ensure file was compressed.
+        with tm.decompress_file(path, compression) as fh:
+            contents = io.BytesIO(fh.read())
+        reread = read_stata(contents, index_col="index")
+        tm.assert_frame_equal(df, reread)
+
+
+@pytest.mark.parametrize("to_infer", [True, False])
+@pytest.mark.parametrize("read_infer", [True, False])
+def test_stata_compression(compression_only, read_infer, to_infer):
+    compression = compression_only
+
+    ext = "gz" if compression == "gzip" else compression
+    filename = f"test.{ext}"
+
+    df = DataFrame(
+        [[0.123456, 0.234567, 0.567567], [12.32112, 123123.2, 321321.2]],
+        index=["A", "B"],
+        columns=["X", "Y", "Z"],
+    )
+    df.index.name = "index"
+
+    to_compression = "infer" if to_infer else compression
+    read_compression = "infer" if read_infer else compression
+
+    with tm.ensure_clean(filename) as path:
+        df.to_stata(path, compression=to_compression)
+        result = read_stata(path, compression=read_compression, index_col="index")
+        tm.assert_frame_equal(result, df)
+
+
+def test_non_categorical_value_labels():
+    data = DataFrame(
+        {
+            "fully_labelled": [1, 2, 3, 3, 1],
+            "partially_labelled": [1.0, 2.0, np.nan, 9.0, np.nan],
+            "Y": [7, 7, 9, 8, 10],
+            "Z": pd.Categorical(["j", "k", "l", "k", "j"]),
+        }
+    )
+
+    with tm.ensure_clean() as path:
+        value_labels = {
+            "fully_labelled": {1: "one", 2: "two", 3: "three"},
+            "partially_labelled": {1.0: "one", 2.0: "two"},
+        }
+        expected = {**value_labels, "Z": {0: "j", 1: "k", 2: "l"}}
+
+        writer = StataWriter(path, data, value_labels=value_labels)
+        writer.write_file()
+
+        reader = StataReader(path)
+        reader_value_labels = reader.value_labels()
+        assert reader_value_labels == expected
+
+        msg = "Can't create value labels for notY, it wasn't found in the dataset."
+        with pytest.raises(KeyError, match=msg):
+            value_labels = {"notY": {7: "label1", 8: "label2"}}
+            writer = StataWriter(path, data, value_labels=value_labels)
+
+        msg = (
+            "Can't create value labels for Z, value labels "
+            "can only be applied to numeric columns."
+        )
+        with pytest.raises(ValueError, match=msg):
+            value_labels = {"Z": {1: "a", 2: "k", 3: "j", 4: "i"}}
+            writer = StataWriter(path, data, value_labels=value_labels)
+
+
+def test_non_categorical_value_label_name_conversion():
+    # Check conversion of invalid variable names
+    data = DataFrame(
+        {
+            "invalid~!": [1, 1, 2, 3, 5, 8],  # Only alphanumeric and _
+            "6_invalid": [1, 1, 2, 3, 5, 8],  # Must start with letter or _
+            "invalid_name_longer_than_32_characters": [8, 8, 9, 9, 8, 8],  # Too long
+            "aggregate": [2, 5, 5, 6, 6, 9],  # Reserved words
+            (1, 2): [1, 2, 3, 4, 5, 6],  # Hashable non-string
+        }
+    )
+
+    value_labels = {
+        "invalid~!": {1: "label1", 2: "label2"},
+        "6_invalid": {1: "label1", 2: "label2"},
+        "invalid_name_longer_than_32_characters": {8: "eight", 9: "nine"},
+        "aggregate": {5: "five"},
+        (1, 2): {3: "three"},
+    }
+
+    expected = {
+        "invalid__": {1: "label1", 2: "label2"},
+        "_6_invalid": {1: "label1", 2: "label2"},
+        "invalid_name_longer_than_32_char": {8: "eight", 9: "nine"},
+        "_aggregate": {5: "five"},
+        "_1__2_": {3: "three"},
+    }
+
+    with tm.ensure_clean() as path:
+        with tm.assert_produces_warning(InvalidColumnName):
+            data.to_stata(path, value_labels=value_labels)
+
+        reader = StataReader(path)
+        reader_value_labels = reader.value_labels()
+        assert reader_value_labels == expected
+
+
+def test_non_categorical_value_label_convert_categoricals_error():
+    # Mapping more than one value to the same label is valid for Stata
+    # labels, but can't be read with convert_categoricals=True
+    value_labels = {
+        "repeated_labels": {10: "Ten", 20: "More than ten", 40: "More than ten"}
+    }
+
+    data = DataFrame(
+        {
+            "repeated_labels": [10, 10, 20, 20, 40, 40],
+        }
+    )
+
+    with tm.ensure_clean() as path:
+        data.to_stata(path, value_labels=value_labels)
+
+        reader = StataReader(path, convert_categoricals=False)
+        reader_value_labels = reader.value_labels()
+        assert reader_value_labels == value_labels
+
+        col = "repeated_labels"
+        repeats = "-" * 80 + "\n" + "\n".join(["More than ten"])
+
+        msg = f"""
+Value labels for column {col} are not unique. These cannot be converted to
+pandas categoricals.
+
+Either read the file with `convert_categoricals` set to False or use the
+low level interface in `StataReader` to separately read the values and the
+value_labels.
+
+The repeated labels are:
+{repeats}
+"""
+        with pytest.raises(ValueError, match=msg):
+            read_stata(path, convert_categoricals=True)
+
+
+@pytest.mark.parametrize("version", [114, 117, 118, 119, None])
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        pd.BooleanDtype,
+        pd.Int8Dtype,
+        pd.Int16Dtype,
+        pd.Int32Dtype,
+        pd.Int64Dtype,
+        pd.UInt8Dtype,
+        pd.UInt16Dtype,
+        pd.UInt32Dtype,
+        pd.UInt64Dtype,
+    ],
+)
+def test_nullable_support(dtype, version):
+    df = DataFrame(
+        {
+            "a": Series([1.0, 2.0, 3.0]),
+            "b": Series([1, pd.NA, pd.NA], dtype=dtype.name),
+            "c": Series(["a", "b", None]),
+        }
+    )
+    dtype_name = df.b.dtype.numpy_dtype.name
+    # Only use supported names: no uint, bool or int64
+    dtype_name = dtype_name.replace("u", "")
+    if dtype_name == "int64":
+        dtype_name = "int32"
+    elif dtype_name == "bool":
+        dtype_name = "int8"
+    value = StataMissingValue.BASE_MISSING_VALUES[dtype_name]
+    smv = StataMissingValue(value)
+    expected_b = Series([1, smv, smv], dtype=object, name="b")
+    expected_c = Series(["a", "b", ""], name="c")
+    with tm.ensure_clean() as path:
+        df.to_stata(path, write_index=False, version=version)
+        reread = read_stata(path, convert_missing=True)
+        tm.assert_series_equal(df.a, reread.a)
+        tm.assert_series_equal(reread.b, expected_b)
+        tm.assert_series_equal(reread.c, expected_c)

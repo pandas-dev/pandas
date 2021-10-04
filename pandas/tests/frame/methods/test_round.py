@@ -2,7 +2,11 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series, date_range
+from pandas import (
+    DataFrame,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -58,13 +62,12 @@ class TestDataFrameRound:
 
         # float input to `decimals`
         non_int_round_dict = {"col1": 1, "col2": 0.5}
-        msg = "integer argument expected, got float"
+        msg = "Values in decimals must be integers"
         with pytest.raises(TypeError, match=msg):
             df.round(non_int_round_dict)
 
         # String input
         non_int_round_dict = {"col1": 1, "col2": "foo"}
-        msg = r"an integer is required \(got type str\)"
         with pytest.raises(TypeError, match=msg):
             df.round(non_int_round_dict)
 
@@ -74,7 +77,6 @@ class TestDataFrameRound:
 
         # List input
         non_int_round_dict = {"col1": 1, "col2": [1, 2]}
-        msg = r"an integer is required \(got type list\)"
         with pytest.raises(TypeError, match=msg):
             df.round(non_int_round_dict)
 
@@ -102,7 +104,6 @@ class TestDataFrameRound:
         # nan in Series round
         nan_round_Series = Series({"col1": np.nan, "col2": 1})
 
-        msg = "integer argument expected, got float"
         with pytest.raises(TypeError, match=msg):
             df.round(nan_round_Series)
 
@@ -168,7 +169,7 @@ class TestDataFrameRound:
     def test_round_with_duplicate_columns(self):
         # GH#11611
 
-        df = pd.DataFrame(
+        df = DataFrame(
             np.random.random([3, 3]),
             columns=["A", "B", "C"],
             index=["first", "second", "third"],
@@ -178,7 +179,7 @@ class TestDataFrameRound:
         rounded = dfs.round()
         tm.assert_index_equal(rounded.index, dfs.index)
 
-        decimals = pd.Series([1, 0, 2], index=["A", "B", "A"])
+        decimals = Series([1, 0, 2], index=["A", "B", "A"])
         msg = "Index of decimals must be unique"
         with pytest.raises(ValueError, match=msg):
             df.round(decimals)
@@ -195,7 +196,7 @@ class TestDataFrameRound:
     def test_round_nonunique_categorical(self):
         # See GH#21809
         idx = pd.CategoricalIndex(["low"] * 3 + ["hi"] * 3)
-        df = pd.DataFrame(np.random.rand(6, 3), columns=list("abc"))
+        df = DataFrame(np.random.rand(6, 3), columns=list("abc"))
 
         expected = df.round(3)
         expected.index = idx

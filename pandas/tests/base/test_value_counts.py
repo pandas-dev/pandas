@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import iNaT
-from pandas.compat.numpy import np_array_datetime64_compat
+from pandas.compat import np_array_datetime64_compat
 
 from pandas.core.dtypes.common import needs_i8_conversion
 
@@ -30,10 +30,10 @@ def test_value_counts(index_or_series_obj):
     result = obj.value_counts()
 
     counter = collections.Counter(obj)
-    expected = pd.Series(dict(counter.most_common()), dtype=np.int64, name=obj.name)
+    expected = Series(dict(counter.most_common()), dtype=np.int64, name=obj.name)
     expected.index = expected.index.astype(obj.dtype)
     if isinstance(obj, pd.MultiIndex):
-        expected.index = pd.Index(expected.index)
+        expected.index = Index(expected.index)
 
     # TODO: Order of entries with the same count is inconsistent on CI (gh-32449)
     if obj.duplicated().any():
@@ -67,7 +67,7 @@ def test_value_counts_null(null_obj, index_or_series_obj):
     # because np.nan == np.nan is False, but None == None is True
     # np.nan would be duplicated, whereas None wouldn't
     counter = collections.Counter(obj.dropna())
-    expected = pd.Series(dict(counter.most_common()), dtype=np.int64)
+    expected = Series(dict(counter.most_common()), dtype=np.int64)
     expected.index = expected.index.astype(obj.dtype)
 
     result = obj.value_counts()
@@ -80,7 +80,7 @@ def test_value_counts_null(null_obj, index_or_series_obj):
 
     # can't use expected[null_obj] = 3 as
     # IntervalIndex doesn't allow assignment
-    new_entry = pd.Series({np.nan: 3}, dtype=np.int64)
+    new_entry = Series({np.nan: 3}, dtype=np.int64)
     expected = expected.append(new_entry)
 
     result = obj.value_counts(dropna=False)
@@ -153,16 +153,16 @@ def test_value_counts_bins(index_or_series):
     # these return the same
     res4 = s1.value_counts(bins=4, dropna=True)
     intervals = IntervalIndex.from_breaks([0.997, 1.5, 2.0, 2.5, 3.0])
-    exp4 = Series([2, 1, 1, 0], index=intervals.take([0, 3, 1, 2]))
+    exp4 = Series([2, 1, 1, 0], index=intervals.take([0, 1, 3, 2]))
     tm.assert_series_equal(res4, exp4)
 
     res4 = s1.value_counts(bins=4, dropna=False)
     intervals = IntervalIndex.from_breaks([0.997, 1.5, 2.0, 2.5, 3.0])
-    exp4 = Series([2, 1, 1, 0], index=intervals.take([0, 3, 1, 2]))
+    exp4 = Series([2, 1, 1, 0], index=intervals.take([0, 1, 3, 2]))
     tm.assert_series_equal(res4, exp4)
 
     res4n = s1.value_counts(bins=4, normalize=True)
-    exp4n = Series([0.5, 0.25, 0.25, 0], index=intervals.take([0, 3, 1, 2]))
+    exp4n = Series([0.5, 0.25, 0.25, 0], index=intervals.take([0, 1, 3, 2]))
     tm.assert_series_equal(res4n, exp4n)
 
     # handle NA's properly
@@ -232,16 +232,17 @@ def test_value_counts_datetime64(index_or_series):
 
     # with NaT
     s = df["dt"].copy()
-    s = klass(list(s.values) + [pd.NaT])
+    s = klass(list(s.values) + [pd.NaT] * 4)
 
     result = s.value_counts()
     assert result.index.dtype == "datetime64[ns]"
     tm.assert_series_equal(result, expected_s)
 
     result = s.value_counts(dropna=False)
-    expected_s[pd.NaT] = 1
+    expected_s = pd.concat([Series([4], index=DatetimeIndex([pd.NaT])), expected_s])
     tm.assert_series_equal(result, expected_s)
 
+    assert s.dtype == "datetime64[ns]"
     unique = s.unique()
     assert unique.dtype == "datetime64[ns]"
 
@@ -274,3 +275,17 @@ def test_value_counts_datetime64(index_or_series):
     td2 = klass(td2, name="dt")
     result2 = td2.value_counts()
     tm.assert_series_equal(result2, expected_s)
+
+
+@pytest.mark.parametrize("dropna", [True, False])
+def test_value_counts_with_nan(dropna, index_or_series):
+    # GH31944
+    klass = index_or_series
+    values = [True, pd.NA, np.nan]
+    s = klass(values)
+    res = s.value_counts(dropna=dropna)
+    if dropna is True:
+        expected = Series([1], index=[True])
+    else:
+        expected = Series([2, 1], index=[pd.NA, True])
+    tm.assert_series_equal(res, expected)

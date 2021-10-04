@@ -6,13 +6,16 @@ Eventually, we'll want to parametrize the type and support
 multiple dtypes. Not all methods are implemented yet, and the
 current implementation is not efficient.
 """
+from __future__ import annotations
+
 import copy
 import itertools
 import operator
-from typing import Type
 
 import numpy as np
 import pyarrow as pa
+
+from pandas._typing import type_t
 
 import pandas as pd
 from pandas.api.extensions import (
@@ -21,6 +24,8 @@ from pandas.api.extensions import (
     register_extension_dtype,
     take,
 )
+from pandas.api.types import is_scalar
+from pandas.core.arraylike import OpsMixin
 
 
 @register_extension_dtype
@@ -32,7 +37,7 @@ class ArrowBoolDtype(ExtensionDtype):
     na_value = pa.NULL
 
     @classmethod
-    def construct_array_type(cls) -> Type["ArrowBoolArray"]:
+    def construct_array_type(cls) -> type_t[ArrowBoolArray]:
         """
         Return the array type associated with this dtype.
 
@@ -56,7 +61,7 @@ class ArrowStringDtype(ExtensionDtype):
     na_value = pa.NULL
 
     @classmethod
-    def construct_array_type(cls) -> Type["ArrowStringArray"]:
+    def construct_array_type(cls) -> type_t[ArrowStringArray]:
         """
         Return the array type associated with this dtype.
 
@@ -67,7 +72,9 @@ class ArrowStringDtype(ExtensionDtype):
         return ArrowStringArray
 
 
-class ArrowExtensionArray(ExtensionArray):
+class ArrowExtensionArray(OpsMixin, ExtensionArray):
+    _data: pa.ChunkedArray
+
     @classmethod
     def from_scalars(cls, values):
         arr = pa.chunked_array([pa.array(np.asarray(values))])
@@ -86,7 +93,7 @@ class ArrowExtensionArray(ExtensionArray):
         return f"{type(self).__name__}({repr(self._data)})"
 
     def __getitem__(self, item):
-        if pd.api.types.is_scalar(item):
+        if is_scalar(item):
             return self._data.to_pandas()[item]
         else:
             vals = self._data.to_pandas()[item]
@@ -107,7 +114,7 @@ class ArrowExtensionArray(ExtensionArray):
     def dtype(self):
         return self._dtype
 
-    def _boolean_op(self, other, op):
+    def _logical_method(self, other, op):
         if not isinstance(other, type(self)):
             raise NotImplementedError()
 
@@ -120,16 +127,10 @@ class ArrowExtensionArray(ExtensionArray):
         if not isinstance(other, type(self)):
             return False
 
-        return self._boolean_op(other, operator.eq)
-
-    def __and__(self, other):
-        return self._boolean_op(other, operator.and_)
-
-    def __or__(self, other):
-        return self._boolean_op(other, operator.or_)
+        return self._logical_method(other, operator.eq)
 
     @property
-    def nbytes(self):
+    def nbytes(self) -> int:
         return sum(
             x.size
             for chunk in self._data.chunks
@@ -162,7 +163,7 @@ class ArrowExtensionArray(ExtensionArray):
     def __invert__(self):
         return type(self).from_scalars(~self._data.to_pandas())
 
-    def _reduce(self, name: str, skipna: bool = True, **kwargs):
+    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         if skipna:
             arr = self[~self.isna()]
         else:

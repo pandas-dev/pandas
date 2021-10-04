@@ -1,13 +1,45 @@
 from collections import ChainMap
+import inspect
 
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, MultiIndex
+import pandas.util._test_decorators as td
+
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    merge,
+)
 import pandas._testing as tm
 
 
 class TestRename:
+    def test_rename_signature(self):
+        sig = inspect.signature(DataFrame.rename)
+        parameters = set(sig.parameters)
+        assert parameters == {
+            "self",
+            "mapper",
+            "index",
+            "columns",
+            "axis",
+            "inplace",
+            "copy",
+            "level",
+            "errors",
+        }
+
+    @pytest.mark.parametrize("klass", [Series, DataFrame])
+    def test_rename_mi(self, klass):
+        obj = klass(
+            [11, 21, 31],
+            index=MultiIndex.from_tuples([("A", x) for x in ["a", "B", "c"]]),
+        )
+        obj.rename(str.lower)
+
     def test_rename(self, float_frame):
         mapping = {"A": "a", "B": "b", "C": "c", "D": "d"}
 
@@ -52,8 +84,8 @@ class TestRename:
     @pytest.mark.parametrize(
         "args,kwargs",
         [
-            ((ChainMap({"A": "a"}, {"B": "b"}),), dict(axis="columns")),
-            ((), dict(columns=ChainMap({"A": "a"}, {"B": "b"}))),
+            ((ChainMap({"A": "a"}, {"B": "b"}),), {"axis": "columns"}),
+            ((), {"columns": ChainMap({"A": "a"}, {"B": "b"})}),
         ],
     )
     def test_rename_chainmap(self, args, kwargs):
@@ -138,6 +170,7 @@ class TestRename:
         renamed = df.rename(index={"foo1": "foo3", "bar2": "bar3"}, level=0)
         tm.assert_index_equal(renamed.index, new_index)
 
+    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) setitem copy/view
     def test_rename_nocopy(self, float_frame):
         renamed = float_frame.rename(columns={"C": "foo"}, copy=False)
         renamed["foo"] = 1.0
@@ -328,3 +361,45 @@ class TestRename:
 
         with pytest.raises(TypeError, match=msg):
             df.rename({}, columns={}, index={})
+
+    @td.skip_array_manager_not_yet_implemented
+    def test_rename_with_duplicate_columns(self):
+        # GH#4403
+        df4 = DataFrame(
+            {"RT": [0.0454], "TClose": [22.02], "TExg": [0.0422]},
+            index=MultiIndex.from_tuples(
+                [(600809, 20130331)], names=["STK_ID", "RPT_Date"]
+            ),
+        )
+
+        df5 = DataFrame(
+            {
+                "RPT_Date": [20120930, 20121231, 20130331],
+                "STK_ID": [600809] * 3,
+                "STK_Name": ["饡驦", "饡驦", "饡驦"],
+                "TClose": [38.05, 41.66, 30.01],
+            },
+            index=MultiIndex.from_tuples(
+                [(600809, 20120930), (600809, 20121231), (600809, 20130331)],
+                names=["STK_ID", "RPT_Date"],
+            ),
+        )
+        # TODO: can we construct this without merge?
+        k = merge(df4, df5, how="inner", left_index=True, right_index=True)
+        result = k.rename(columns={"TClose_x": "TClose", "TClose_y": "QT_Close"})
+        str(result)
+        result.dtypes
+
+        expected = DataFrame(
+            [[0.0454, 22.02, 0.0422, 20130331, 600809, "饡驦", 30.01]],
+            columns=[
+                "RT",
+                "TClose",
+                "TExg",
+                "RPT_Date",
+                "STK_ID",
+                "STK_Name",
+                "QT_Close",
+            ],
+        ).set_index(["STK_ID", "RPT_Date"], drop=False)
+        tm.assert_frame_equal(result, expected)

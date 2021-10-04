@@ -1,4 +1,4 @@
-Directory containing the pandas website (hosted at https://pandas.io).
+Directory containing the pandas website (hosted at https://pandas.pydata.org).
 
 The website sources are in `web/pandas/`, which also include a `config.yml` file
 containing the settings to build the website. The website is generated with the

@@ -1,15 +1,19 @@
-import textwrap
-from typing import List, Set
+from __future__ import annotations
 
-from pandas._libs import NaT, lib
+import textwrap
+
+from pandas._libs import (
+    NaT,
+    lib,
+)
 from pandas.errors import InvalidIndexError
 
-import pandas.core.common as com
 from pandas.core.indexes.base import (
     Index,
     _new_Index,
     ensure_index,
     ensure_index_from_sequences,
+    get_unanimous_names,
 )
 from pandas.core.indexes.category import CategoricalIndex
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -57,8 +61,9 @@ __all__ = [
     "ensure_index_from_sequences",
     "get_objs_combined_axis",
     "union_indexes",
-    "get_consensus_names",
+    "get_unanimous_names",
     "all_indexes_same",
+    "default_index",
 ]
 
 
@@ -92,12 +97,12 @@ def get_objs_combined_axis(
     return _get_combined_index(obs_idxes, intersect=intersect, sort=sort, copy=copy)
 
 
-def _get_distinct_objs(objs: List[Index]) -> List[Index]:
+def _get_distinct_objs(objs: list[Index]) -> list[Index]:
     """
     Return a list with distinct elements of "objs" (different ids).
     Preserves order.
     """
-    ids: Set[int] = set()
+    ids: set[int] = set()
     res = []
     for obj in objs:
         if id(obj) not in ids:
@@ -107,7 +112,7 @@ def _get_distinct_objs(objs: List[Index]) -> List[Index]:
 
 
 def _get_combined_index(
-    indexes: List[Index],
+    indexes: list[Index],
     intersect: bool = False,
     sort: bool = False,
     copy: bool = False,
@@ -158,7 +163,7 @@ def _get_combined_index(
     return index
 
 
-def union_indexes(indexes, sort=True) -> Index:
+def union_indexes(indexes, sort: bool = True) -> Index:
     """
     Return the union of indexes.
 
@@ -221,9 +226,9 @@ def union_indexes(indexes, sort=True) -> Index:
         if not all(index.equals(other) for other in indexes[1:]):
             index = _unique_indices(indexes)
 
-        name = get_consensus_names(indexes)[0]
+        name = get_unanimous_names(*indexes)[0]
         if name != index.name:
-            index = index._shallow_copy(name=name)
+            index = index.rename(name)
         return index
     else:  # kind='list'
         return _unique_indices(indexes)
@@ -267,31 +272,7 @@ def _sanitize_and_check(indexes):
         return indexes, "array"
 
 
-def get_consensus_names(indexes):
-    """
-    Give a consensus 'names' to indexes.
-
-    If there's exactly one non-empty 'names', return this,
-    otherwise, return empty.
-
-    Parameters
-    ----------
-    indexes : list of Index objects
-
-    Returns
-    -------
-    list
-        A list representing the consensus 'names' found.
-    """
-    # find the non-none names, need to tupleify to make
-    # the set hashable, then reverse on return
-    consensus_names = {tuple(i.names) for i in indexes if com.any_not_none(*i.names)}
-    if len(consensus_names) == 1:
-        return list(list(consensus_names)[0])
-    return [None] * indexes[0].nlevels
-
-
-def all_indexes_same(indexes):
+def all_indexes_same(indexes) -> bool:
     """
     Determine if all indexes contain the same elements.
 
@@ -306,7 +287,9 @@ def all_indexes_same(indexes):
     """
     itr = iter(indexes)
     first = next(itr)
-    for index in itr:
-        if not first.equals(index):
-            return False
-    return True
+    return all(first.equals(index) for index in itr)
+
+
+def default_index(n: int) -> RangeIndex:
+    rng = range(0, n)
+    return RangeIndex._simple_new(rng, name=None)

@@ -4,15 +4,23 @@ HTML IO.
 
 """
 
+from __future__ import annotations
+
 from collections import abc
 import numbers
 import os
 import re
-from typing import Dict, List, Optional, Pattern, Sequence, Union
+from typing import (
+    Pattern,
+    Sequence,
+)
 
 from pandas._typing import FilePathOrBuffer
 from pandas.compat._optional import import_optional_dependency
-from pandas.errors import AbstractMethodError, EmptyDataError
+from pandas.errors import (
+    AbstractMethodError,
+    EmptyDataError,
+)
 from pandas.util._decorators import deprecate_nonkeyword_arguments
 
 from pandas.core.dtypes.common import is_list_like
@@ -20,7 +28,12 @@ from pandas.core.dtypes.common import is_list_like
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.frame import DataFrame
 
-from pandas.io.common import is_url, urlopen, validate_header_arg
+from pandas.io.common import (
+    is_url,
+    stringify_path,
+    urlopen,
+    validate_header_arg,
+)
 from pandas.io.formats.printing import pprint_thing
 from pandas.io.parsers import TextParser
 
@@ -39,17 +52,13 @@ def _importers():
         return
 
     global _HAS_BS4, _HAS_LXML, _HAS_HTML5LIB
-    bs4 = import_optional_dependency("bs4", raise_on_missing=False, on_version="ignore")
+    bs4 = import_optional_dependency("bs4", errors="ignore")
     _HAS_BS4 = bs4 is not None
 
-    lxml = import_optional_dependency(
-        "lxml.etree", raise_on_missing=False, on_version="ignore"
-    )
+    lxml = import_optional_dependency("lxml.etree", errors="ignore")
     _HAS_LXML = lxml is not None
 
-    html5lib = import_optional_dependency(
-        "html5lib", raise_on_missing=False, on_version="ignore"
-    )
+    html5lib = import_optional_dependency("html5lib", errors="ignore")
     _HAS_HTML5LIB = html5lib is not None
 
     _IMPORTS = True
@@ -435,7 +444,7 @@ class _HtmlFrameParser:
         to subsequent cells.
         """
         all_texts = []  # list of rows, each a list of str
-        remainder = []  # list of (index, text, nrows)
+        remainder: list[tuple[int, str, int]] = []  # list of (index, text, nrows)
 
         for tr in rows:
             texts = []  # the output for this row
@@ -623,7 +632,6 @@ def _build_xpath_expr(attrs) -> str:
 
 
 _re_namespace = {"re": "http://exslt.org/regular-expressions"}
-_valid_schemes = "http", "file", "ftp"
 
 
 class _LxmlFrameParser(_HtmlFrameParser):
@@ -704,7 +712,11 @@ class _LxmlFrameParser(_HtmlFrameParser):
         pandas.io.html._HtmlFrameParser._build_doc
         """
         from lxml.etree import XMLSyntaxError
-        from lxml.html import HTMLParser, fromstring, parse
+        from lxml.html import (
+            HTMLParser,
+            fromstring,
+            parse,
+        )
 
         parser = HTMLParser(recover=True, encoding=self.encoding)
 
@@ -794,9 +806,8 @@ def _data_to_frame(**kwargs):
 
     # fill out elements of body that are "ragged"
     _expand_elements(body)
-    tp = TextParser(body, header=header, **kwargs)
-    df = tp.read()
-    return df
+    with TextParser(body, header=header, **kwargs) as tp:
+        return tp.read()
 
 
 _valid_parsers = {
@@ -849,7 +860,7 @@ def _parser_dispatch(flavor):
 
 
 def _print_as_set(s) -> str:
-    arg = ", ".join(pprint_thing(el) for el in s)
+    arg = ", ".join([pprint_thing(el) for el in s])
     return f"{{{arg}}}"
 
 
@@ -910,6 +921,7 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, **kwargs):
         else:
             break
     else:
+        assert retained is not None  # for mypy
         raise retained
 
     ret = []
@@ -924,21 +936,21 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, **kwargs):
 @deprecate_nonkeyword_arguments(version="2.0")
 def read_html(
     io: FilePathOrBuffer,
-    match: Union[str, Pattern] = ".+",
-    flavor: Optional[str] = None,
-    header: Optional[Union[int, Sequence[int]]] = None,
-    index_col: Optional[Union[int, Sequence[int]]] = None,
-    skiprows: Optional[Union[int, Sequence[int], slice]] = None,
-    attrs: Optional[Dict[str, str]] = None,
+    match: str | Pattern = ".+",
+    flavor: str | None = None,
+    header: int | Sequence[int] | None = None,
+    index_col: int | Sequence[int] | None = None,
+    skiprows: int | Sequence[int] | slice | None = None,
+    attrs: dict[str, str] | None = None,
     parse_dates: bool = False,
-    thousands: Optional[str] = ",",
-    encoding: Optional[str] = None,
+    thousands: str | None = ",",
+    encoding: str | None = None,
     decimal: str = ".",
-    converters: Optional[Dict] = None,
+    converters: dict | None = None,
     na_values=None,
     keep_default_na: bool = True,
     displayed_only: bool = True,
-) -> List[DataFrame]:
+) -> list[DataFrame]:
     r"""
     Read HTML tables into a ``list`` of ``DataFrame`` objects.
 
@@ -1079,6 +1091,9 @@ def read_html(
             "data (you passed a negative value)"
         )
     validate_header_arg(header)
+
+    io = stringify_path(io)
+
     return _parse(
         flavor=flavor,
         io=io,

@@ -18,6 +18,19 @@ entails.
 For the table of contents, see the `pandas-cookbook GitHub
 repository <https://github.com/jvns/pandas-cookbook>`_.
 
+pandas workshop by Stefanie Molin
+---------------------------------
+
+An introductory workshop by `Stefanie Molin <https://github.com/stefmolin>`_
+designed to quickly get you up to speed with pandas using real-world datasets.
+It covers getting started with pandas, data wrangling, and data visualization
+(with some exposure to matplotlib and seaborn). The
+`pandas-workshop GitHub repository <https://github.com/stefmolin/pandas-workshop>`_
+features detailed environment setup instructions (including a Binder environment),
+slides and notebooks for following along, and exercises to practice the concepts.
+There is also a lab with new exercises on a dataset not covered in the workshop for
+additional practice.
+
 Learn pandas by Hernan Rojas
 ----------------------------
 

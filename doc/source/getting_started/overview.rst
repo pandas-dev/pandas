@@ -6,7 +6,7 @@
 Package overview
 ****************
 
-**pandas** is a `Python <https://www.python.org>`__ package providing fast,
+pandas is a `Python <https://www.python.org>`__ package providing fast,
 flexible, and expressive data structures designed to make working with
 "relational" or "labeled" data both easy and intuitive. It aims to be the
 fundamental high-level building block for doing practical, **real-world** data
@@ -29,7 +29,7 @@ and :class:`DataFrame` (2-dimensional), handle the vast majority of typical use
 cases in finance, statistics, social science, and many areas of
 engineering. For R users, :class:`DataFrame` provides everything that R's
 ``data.frame`` provides and much more. pandas is built on top of `NumPy
-<https://www.numpy.org>`__ and is intended to integrate well within a scientific
+<https://numpy.org>`__ and is intended to integrate well within a scientific
 computing environment with many other 3rd party libraries.
 
 Here are just a few of the things that pandas does well:
@@ -40,7 +40,7 @@ Here are just a few of the things that pandas does well:
     higher dimensional objects
   - Automatic and explicit **data alignment**: objects can be explicitly
     aligned to a set of labels, or the user can simply ignore the labels and
-    let `Series`, `DataFrame`, etc. automatically align the data for you in
+    let ``Series``, ``DataFrame``, etc. automatically align the data for you in
     computations
   - Powerful, flexible **group by** functionality to perform
     split-apply-combine operations on data sets, for both aggregating and
@@ -75,7 +75,7 @@ Some other notes
    specialized tool.
 
  - pandas is a dependency of `statsmodels
-   <https://www.statsmodels.org/stable/index.html>`__, making it an important part of the
+   <https://statsmodels.org>`__, making it an important part of the
    statistical computing ecosystem in Python.
 
  - pandas has been used extensively in production in financial applications.
@@ -147,7 +147,7 @@ pandas possible. Thanks to `all of our contributors <https://github.com/pandas-d
 
 If you're interested in contributing, please visit the :ref:`contributing guide <contributing>`.
 
-pandas is a `NumFOCUS <https://www.numfocus.org/open-source-projects/>`__ sponsored project.
+pandas is a `NumFOCUS <https://numfocus.org/sponsored-projects>`__ sponsored project.
 This will help ensure the success of the development of pandas as a world-class open-source
 project and makes it possible to `donate <https://pandas.pydata.org/donate.html>`__ to the project.
 
@@ -168,10 +168,9 @@ The list of the Core Team members and more detailed information can be found on 
 Institutional partners
 ----------------------
 
-The information about current institutional partners can be found on `pandas website page <https://pandas.pydata.org/about.html>`__.
+The information about current institutional partners can be found on `pandas website page <https://pandas.pydata.org/about/sponsors.html>`__.
 
 License
 -------
 
 .. literalinclude:: ../../../LICENSE
-

@@ -3,6 +3,8 @@ These benchmarks are for Series and DataFrame indexing methods.  For the
 lower-level methods directly on Index and subclasses, see index_object.py,
 indexing_engine.py, and index_cached.py
 """
+import itertools
+import string
 import warnings
 
 import numpy as np
@@ -191,7 +193,7 @@ class Take:
         }
         index = indexes[index]
         self.s = Series(np.random.rand(N), index=index)
-        self.indexer = [True, False, True, True, False] * 20000
+        self.indexer = np.random.randint(0, N, size=N)
 
     def time_take(self, index):
         self.s.take(self.indexer)
@@ -241,6 +243,20 @@ class IntervalIndexing:
         monotonic.loc[80000:]
 
 
+class DatetimeIndexIndexing:
+    def setup(self):
+        dti = date_range("2016-01-01", periods=10000, tz="US/Pacific")
+        dti2 = dti.tz_convert("UTC")
+        self.dti = dti
+        self.dti2 = dti2
+
+    def time_get_indexer_mismatched_tz(self):
+        # reached via e.g.
+        #  ser = Series(range(len(dti)), index=dti)
+        #  ser[dti2]
+        self.dti.get_indexer(self.dti2)
+
+
 class CategoricalIndexIndexing:
 
     params = ["monotonic_incr", "monotonic_decr", "non_monotonic"]
@@ -255,6 +271,9 @@ class CategoricalIndexIndexing:
             "non_monotonic": CategoricalIndex(list("abc" * N)),
         }
         self.data = indices[index]
+        self.data_unique = CategoricalIndex(
+            ["".join(perm) for perm in itertools.permutations(string.printable, 3)]
+        )
 
         self.int_scalar = 10000
         self.int_list = list(range(10000))
@@ -281,7 +300,7 @@ class CategoricalIndexIndexing:
         self.data.get_loc(self.cat_scalar)
 
     def time_get_indexer_list(self, index):
-        self.data.get_indexer(self.cat_list)
+        self.data_unique.get_indexer(self.cat_list)
 
 
 class MethodLookup:
@@ -347,16 +366,30 @@ class InsertColumns:
     def setup(self):
         self.N = 10 ** 3
         self.df = DataFrame(index=range(self.N))
+        self.df2 = DataFrame(np.random.randn(self.N, 2))
 
     def time_insert(self):
-        np.random.seed(1234)
         for i in range(100):
             self.df.insert(0, i, np.random.randn(self.N), allow_duplicates=True)
 
+    def time_insert_middle(self):
+        # same as time_insert but inserting to a middle column rather than
+        #  front or back (which have fast-paths)
+        for i in range(100):
+            self.df2.insert(
+                1, "colname", np.random.randn(self.N), allow_duplicates=True
+            )
+
     def time_assign_with_setitem(self):
-        np.random.seed(1234)
         for i in range(100):
             self.df[i] = np.random.randn(self.N)
+
+    def time_assign_list_like_with_setitem(self):
+        self.df[list(range(100))] = np.random.randn(self.N, 100)
+
+    def time_assign_list_of_columns_concat(self):
+        df = DataFrame(np.random.randn(self.N, 100))
+        concat([self.df, df], axis=1)
 
 
 class ChainIndexing:
@@ -366,12 +399,14 @@ class ChainIndexing:
 
     def setup(self, mode):
         self.N = 1000000
+        self.df = DataFrame({"A": np.arange(self.N), "B": "foo"})
 
     def time_chained_indexing(self, mode):
+        df = self.df
+        N = self.N
         with warnings.catch_warnings(record=True):
             with option_context("mode.chained_assignment", mode):
-                df = DataFrame({"A": np.arange(self.N), "B": "foo"})
-                df2 = df[df.A > self.N // 2]
+                df2 = df[df.A > N // 2]
                 df2["C"] = 1.0
 
 

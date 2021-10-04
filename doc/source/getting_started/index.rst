@@ -9,82 +9,49 @@ Getting started
 Installation
 ------------
 
-.. raw:: html
+.. panels::
+    :card: + install-card
+    :column: col-lg-6 col-md-6 col-sm-12 col-xs-12 p-3
 
-    <div class="container">
-        <div class="row">
-            <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12 d-flex install-block">
-                <div class="card install-card shadow w-100">
-                <div class="card-header">
-                    Working with conda?
-                </div>
-                <div class="card-body">
-                    <p class="card-text">
+    Working with conda?
+    ^^^^^^^^^^^^^^^^^^^
 
-pandas is part of the `Anaconda <https://docs.continuum.io/anaconda/>`__ distribution and can be
-installed with Anaconda or Miniconda:
+    pandas is part of the `Anaconda <https://docs.continuum.io/anaconda/>`__
+    distribution and can be installed with Anaconda or Miniconda:
 
-.. raw:: html
+    ++++++++++++++++++++++
 
-                    </p>
-                </div>
-                <div class="card-footer text-muted">
+    .. code-block:: bash
 
-.. code-block:: bash
+        conda install pandas
 
-   conda install pandas
+    ---
 
-.. raw:: html
+    Prefer pip?
+    ^^^^^^^^^^^
 
-                </div>
-                </div>
-            </div>
-            <div class="col-lg-6 col-md-6 col-sm-12 col-xs-12 d-flex install-block">
-                <div class="card install-card shadow w-100">
-                <div class="card-header">
-                    Prefer pip?
-                </div>
-                <div class="card-body">
-                    <p class="card-text">
+    pandas can be installed via pip from `PyPI <https://pypi.org/project/pandas>`__.
 
-pandas can be installed via pip from `PyPI <https://pypi.org/project/pandas>`__.
+    ++++
 
-.. raw:: html
+    .. code-block:: bash
 
-                    </p>
-                </div>
-                <div class="card-footer text-muted">
+        pip install pandas
 
-.. code-block:: bash
+    ---
+    :column: col-12 p-3
 
-   pip install pandas
+    In-depth instructions?
+    ^^^^^^^^^^^^^^^^^^^^^^
 
-.. raw:: html
+    Installing a specific version? Installing from source? Check the advanced
+    installation page.
 
-                </div>
-                </div>
-            </div>
-            <div class="col-12 d-flex install-block">
-                <div class="card install-card shadow w-100">
-                <div class="card-header">
-                    In-depth instructions?
-                </div>
-                <div class="card-body">
-                    <p class="card-text">Installing a specific version?
-                      Installing from source?
-                      Check the advanced installation page.</p>
+    .. link-button:: ./install.html
+        :type: url
+        :text: Learn more
+        :classes: btn-secondary stretched-link
 
-.. container:: custom-button
-
-    :ref:`Learn more <install>`
-
-.. raw:: html
-
-                </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
 .. _gentle_intro:
 
@@ -116,7 +83,7 @@ Intro to pandas
                 <div class="card-body">
 
 When working with tabular data, such as data stored in spreadsheets or databases, pandas is the right tool for you. pandas will help you
-to explore, clean and process your data. In pandas, a data table is called a :class:`DataFrame`.
+to explore, clean, and process your data. In pandas, a data table is called a :class:`DataFrame`.
 
 .. image:: ../_static/schemas/01_table_dataframe.svg
    :align: center
@@ -351,7 +318,7 @@ Adding a column to a :class:`DataFrame` based on existing data in other columns 
                 <div class="card-body">
 
 Basic statistics (mean, median, min, max, counts...) are easily calculable. These or custom aggregations can be applied on the entire
-data set, a sliding window of the data or grouped by categories. The latter is also known as the split-apply-combine approach.
+data set, a sliding window of the data, or grouped by categories. The latter is also known as the split-apply-combine approach.
 
 .. image:: ../_static/schemas/06_groupby.svg
    :align: center
@@ -444,7 +411,7 @@ from long to wide format. With aggregations built-in, a pivot table is created w
             <div id="collapseEight" class="collapse" data-parent="#accordion">
                 <div class="card-body">
 
-Multiple tables can be concatenated both column wise as row wise and database-like join/merge operations are provided to combine multiple tables of data.
+Multiple tables can be concatenated both column wise and row wise as database-like join/merge operations are provided to combine multiple tables of data.
 
 .. image:: ../_static/schemas/08_concat_row.svg
    :align: center
@@ -533,7 +500,7 @@ pandas has great support for time series and has an extensive set of tools for w
             <div id="collapseTen" class="collapse" data-parent="#accordion">
                 <div class="card-body">
 
-Data sets do not only contain numerical data. pandas provides a wide range of functions to cleaning textual data and extract useful information from it.
+Data sets do not only contain numerical data. pandas provides a wide range of functions to clean textual data and extract useful information from it.
 
 .. raw:: html
 
@@ -547,7 +514,7 @@ Data sets do not only contain numerical data. pandas provides a wide range of fu
                         </span>
                         <span class="badge gs-badge-link">
 
-:ref:`To user guide <timeseries>`
+:ref:`To user guide <text>`
 
 .. raw:: html
 
@@ -569,81 +536,90 @@ Coming from...
 Are you familiar with other software for manipulating tablular data? Learn
 the pandas-equivalent operations compared to software you already know:
 
-.. raw:: html
+.. panels::
+    :card: + comparison-card text-center shadow
+    :column: col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex
 
-    <div class="container">
-        <div class="row">
-            <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
-                <div class="card text-center intro-card shadow">
-                <img src="../_static/logo_r.svg" class="card-img-top" alt="R project logo" height="72">
-                <div class="card-body flex-fill">
-                    <p class="card-text">The <a href="https://www.r-project.org/">R programming language</a> provides the <code>dataframe</code> data structure and multiple packages,
-                        such as <a href="https://www.tidyverse.org/">tidyverse</a> use and extend <code>data.frame</code>s for convenient data handling
-                        functionalities similar to pandas.</p>
+    ---
+    :card: + comparison-card-r
+    :img-top: ../_static/logo_r.svg
 
-.. container:: custom-button
+    The `R programming language <https://www.r-project.org/>`__ provides the
+    ``data.frame`` data structure and multiple packages, such as
+    `tidyverse <https://www.tidyverse.org>`__ use and extend ``data.frame``
+    for convenient data handling functionalities similar to pandas.
 
-    :ref:`Learn more <compare_with_r>`
+    +++
 
-.. raw:: html
+    .. link-button:: compare_with_r
+        :type: ref
+        :text: Learn more
+        :classes: btn-secondary stretched-link
 
-                </div>
-                </div>
-            </div>
-            <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
-                <div class="card text-center intro-card shadow">
-                <img src="../_static/logo_sql.svg" class="card-img-top" alt="SQL logo" height="72">
-                <div class="card-body flex-fill">
-                    <p class="card-text">Already familiar to <code>SELECT</code>, <code>GROUP BY</code>, <code>JOIN</code>, etc.?
-                    Most of these SQL manipulations do have equivalents in pandas.</p>
 
-.. container:: custom-button
+    ---
+    :card: + comparison-card-sql
+    :img-top: ../_static/logo_sql.svg
 
-    :ref:`Learn more <compare_with_sql>`
+    Already familiar to ``SELECT``, ``GROUP BY``, ``JOIN``, etc.?
+    Most of these SQL manipulations do have equivalents in pandas.
 
-.. raw:: html
+    +++
 
-                    </div>
-                    </div>
-                </div>
-                <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
-                    <div class="card text-center intro-card shadow">
-                    <img src="../_static/logo_stata.svg" class="card-img-top" alt="STATA logo" height="52">
-                    <div class="card-body flex-fill">
-                        <p class="card-text">The <code>data set</code> included in the
-                            <a href="https://en.wikipedia.org/wiki/Stata">STATA</a> statistical software suite corresponds
-                            to the pandas <code>dataframe</code>. Many of the operations known from STATA have an equivalent
-                            in pandas.</p>
+    .. link-button:: compare_with_sql
+        :type: ref
+        :text: Learn more
+        :classes: btn-secondary stretched-link
 
-.. container:: custom-button
 
-    :ref:`Learn more <compare_with_stata>`
+    ---
+    :card: + comparison-card-stata
+    :img-top: ../_static/logo_stata.svg
 
-.. raw:: html
+    The ``data set`` included in the `STATA <https://en.wikipedia.org/wiki/Stata>`__
+    statistical software suite corresponds to the pandas ``DataFrame``.
+    Many of the operations known from STATA have an equivalent in pandas.
 
-                    </div>
-                    </div>
-                </div>
-                <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
-                    <div class="card text-center intro-card shadow">
-                    <img src="../_static/logo_sas.svg" class="card-img-top" alt="SAS logo" height="52">
-                    <div class="card-body flex-fill">
-                        <p class="card-text">The  <a href="https://en.wikipedia.org/wiki/SAS_(software)">SAS</a> statistical software suite
-                            also provides the <code>data set</code> corresponding to the pandas <code>dataframe</code>.
-                            Also SAS vectorized operations, filtering, string processing operations, and more have similar
-                            functions in pandas.</p>
+    +++
 
-.. container:: custom-button
+    .. link-button:: compare_with_stata
+        :type: ref
+        :text: Learn more
+        :classes: btn-secondary stretched-link
 
-    :ref:`Learn more <compare_with_sas>`
 
-.. raw:: html
+    ---
+    :card: + comparison-card-excel
+    :img-top: ../_static/spreadsheets/logo_excel.svg
 
-                    </div>
-                    </div>
-                </div>
-        </div>
-    </div>
+    Users of `Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__
+    or other spreadsheet programs will find that many of the concepts are
+    transferrable to pandas.
+
+    +++
+
+    .. link-button:: compare_with_spreadsheets
+        :type: ref
+        :text: Learn more
+        :classes: btn-secondary stretched-link
+
+
+    ---
+    :card: + comparison-card-sas
+    :img-top: ../_static/logo_sas.svg
+
+    The `SAS <https://en.wikipedia.org/wiki/SAS_(software)>`__ statistical software suite
+    also provides the ``data set`` corresponding to the pandas ``DataFrame``.
+    Also SAS vectorized operations, filtering, string processing operations,
+    and more have similar functions in pandas.
+
+    +++
+
+    .. link-button:: compare_with_sas
+        :type: ref
+        :text: Learn more
+        :classes: btn-secondary stretched-link
+
 
 Tutorials
 ---------

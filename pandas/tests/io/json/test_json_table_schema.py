@@ -6,7 +6,11 @@ import sys
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.dtypes import CategoricalDtype, DatetimeTZDtype, PeriodDtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    DatetimeTZDtype,
+    PeriodDtype,
+)
 
 import pandas as pd
 from pandas import DataFrame
@@ -240,7 +244,7 @@ class TestTableOrient:
 
     def test_read_json_from_to_json_results(self):
         # GH32383
-        df = pd.DataFrame(
+        df = DataFrame(
             {
                 "_id": {"row_0": 0},
                 "category": {"row_0": "Goods"},
@@ -252,7 +256,7 @@ class TestTableOrient:
             }
         )
         result1 = pd.read_json(df.to_json())
-        result2 = pd.DataFrame.from_dict(json.loads(df.to_json()))
+        result2 = DataFrame.from_dict(json.loads(df.to_json()))
         tm.assert_frame_equal(result1, df)
         tm.assert_frame_equal(result2, df)
 
@@ -439,7 +443,11 @@ class TestTableOrient:
         "ignore:an integer is required (got type float)*:DeprecationWarning"
     )
     def test_date_format_raises(self):
-        with pytest.raises(ValueError):
+        msg = (
+            "Trying to write with `orient='table'` and `date_format='epoch'`. Table "
+            "Schema requires dates to be formatted with `date_format='iso'`"
+        )
+        with pytest.raises(ValueError, match=msg):
             self.df.to_json(orient="table", date_format="epoch")
 
         # others work
@@ -616,13 +624,13 @@ class TestTableOrient:
     )
     def test_warns_non_roundtrippable_names(self, idx):
         # GH 19130
-        df = pd.DataFrame(index=idx)
+        df = DataFrame(index=idx)
         df.index.name = "index"
         with tm.assert_produces_warning():
             set_default_names(df)
 
     def test_timestamp_in_columns(self):
-        df = pd.DataFrame(
+        df = DataFrame(
             [[1, 2]], columns=[pd.Timestamp("2016"), pd.Timedelta(10, unit="s")]
         )
         result = df.to_json(orient="table")
@@ -634,8 +642,8 @@ class TestTableOrient:
         "case",
         [
             pd.Series([1], index=pd.Index([1], name="a"), name="a"),
-            pd.DataFrame({"A": [1]}, index=pd.Index([1], name="A")),
-            pd.DataFrame(
+            DataFrame({"A": [1]}, index=pd.Index([1], name="A")),
+            DataFrame(
                 {"A": [1]},
                 index=pd.MultiIndex.from_arrays([["a"], [1]], names=["A", "a"]),
             ),
@@ -647,7 +655,7 @@ class TestTableOrient:
 
     def test_mi_falsey_name(self):
         # GH 16203
-        df = pd.DataFrame(
+        df = DataFrame(
             np.random.randn(4, 4),
             index=pd.MultiIndex.from_product([("A", "B"), ("a", "b")]),
         )
@@ -676,6 +684,11 @@ class TestTableOrientReader:
             {"floats": [1.0, 2.0, 3.0, 4.0]},
             {"floats": [1.1, 2.2, 3.3, 4.4]},
             {"bools": [True, False, False, True]},
+            {
+                "timezones": pd.date_range(
+                    "2016-01-01", freq="d", periods=4, tz="US/Central"
+                )  # added in # GH 35973
+            },
         ],
     )
     @pytest.mark.skipif(sys.version_info[:3] == (3, 7, 0), reason="GH-35309")
@@ -688,14 +701,7 @@ class TestTableOrientReader:
     @pytest.mark.parametrize("index_nm", [None, "idx", "index"])
     @pytest.mark.parametrize(
         "vals",
-        [
-            {"timedeltas": pd.timedelta_range("1H", periods=4, freq="T")},
-            {
-                "timezones": pd.date_range(
-                    "2016-01-01", freq="d", periods=4, tz="US/Central"
-                )
-            },
-        ],
+        [{"timedeltas": pd.timedelta_range("1H", periods=4, freq="T")}],
     )
     def test_read_json_table_orient_raises(self, index_nm, vals, recwarn):
         df = DataFrame(vals, index=pd.Index(range(4), name=index_nm))
@@ -703,6 +709,49 @@ class TestTableOrientReader:
         with pytest.raises(NotImplementedError, match="can not yet read "):
             pd.read_json(out, orient="table")
 
+    @pytest.mark.parametrize(
+        "idx",
+        [
+            pd.Index(range(4)),
+            pd.date_range(
+                "2020-08-30",
+                freq="d",
+                periods=4,
+            )._with_freq(None),
+            pd.date_range(
+                "2020-08-30", freq="d", periods=4, tz="US/Central"
+            )._with_freq(None),
+            pd.MultiIndex.from_product(
+                [
+                    pd.date_range("2020-08-30", freq="d", periods=2, tz="US/Central"),
+                    ["x", "y"],
+                ],
+            ),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "vals",
+        [
+            {"floats": [1.1, 2.2, 3.3, 4.4]},
+            {"dates": pd.date_range("2020-08-30", freq="d", periods=4)},
+            {
+                "timezones": pd.date_range(
+                    "2020-08-30", freq="d", periods=4, tz="Europe/London"
+                )
+            },
+        ],
+    )
+    @pytest.mark.skipif(sys.version_info[:3] == (3, 7, 0), reason="GH-35309")
+    def test_read_json_table_timezones_orient(self, idx, vals, recwarn):
+        # GH 35973
+        df = DataFrame(vals, index=idx)
+        out = df.to_json(orient="table")
+        result = pd.read_json(out, orient="table")
+        tm.assert_frame_equal(df, result)
+
+    @pytest.mark.filterwarnings(
+        "ignore:an integer is required (got type float)*:DeprecationWarning"
+    )
     def test_comprehensive(self):
         df = DataFrame(
             {
@@ -713,8 +762,7 @@ class TestTableOrientReader:
                 "E": pd.Series(pd.Categorical(["a", "b", "c", "c"])),
                 "F": pd.Series(pd.Categorical(["a", "b", "c", "c"], ordered=True)),
                 "G": [1.1, 2.2, 3.3, 4.4],
-                # 'H': pd.date_range('2016-01-01', freq='d', periods=4,
-                #                   tz='US/Central'),
+                "H": pd.date_range("2016-01-01", freq="d", periods=4, tz="US/Central"),
                 "I": [True, False, False, True],
             },
             index=pd.Index(range(4), name="idx"),
@@ -730,7 +778,7 @@ class TestTableOrientReader:
     )
     def test_multiindex(self, index_names):
         # GH 18912
-        df = pd.DataFrame(
+        df = DataFrame(
             [["Arr", "alpha", [1, 2, 3, 4]], ["Bee", "Beta", [10, 20, 30, 40]]],
             index=[["A", "B"], ["Null", "Eins"]],
             columns=["Aussprache", "Griechisch", "Args"],
@@ -742,7 +790,7 @@ class TestTableOrientReader:
 
     def test_empty_frame_roundtrip(self):
         # GH 21287
-        df = pd.DataFrame(columns=["a", "b", "c"])
+        df = DataFrame(columns=["a", "b", "c"])
         expected = df.copy()
         out = df.to_json(orient="table")
         result = pd.read_json(out, orient="table")

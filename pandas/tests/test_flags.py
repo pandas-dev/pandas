@@ -41,8 +41,8 @@ class TestFlags:
         flags["allows_duplicate_labels"] = False
         assert flags["allows_duplicate_labels"] is False
 
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match="a"):
             flags["a"]
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="a"):
             flags["a"] = 10

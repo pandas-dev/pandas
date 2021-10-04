@@ -1,7 +1,11 @@
 import numpy as np
 import pytest
 
-from pandas import Index, Int64Index, UInt64Index
+from pandas import (
+    Index,
+    Int64Index,
+    UInt64Index,
+)
 import pandas._testing as tm
 
 

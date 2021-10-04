@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas.core.dtypes.base import registry
+from pandas.core.dtypes.base import _registry as registry
 
 import pandas as pd
 import pandas._testing as tm
@@ -14,14 +14,21 @@ from pandas.api.types import is_scalar
 from pandas.arrays import (
     BooleanArray,
     DatetimeArray,
+    FloatingArray,
     IntegerArray,
     IntervalArray,
     SparseArray,
-    StringArray,
     TimedeltaArray,
 )
-from pandas.core.arrays import PandasArray, integer_array, period_array
-from pandas.tests.extension.decimal import DecimalArray, DecimalDtype, to_decimal
+from pandas.core.arrays import (
+    PandasArray,
+    period_array,
+)
+from pandas.tests.extension.decimal import (
+    DecimalArray,
+    DecimalDtype,
+    to_decimal,
+)
 
 
 @pytest.mark.parametrize(
@@ -36,6 +43,11 @@ from pandas.tests.extension.decimal import DecimalArray, DecimalDtype, to_decima
             PandasArray(np.array([1.0, 2.0], dtype=np.dtype("float32"))),
         ),
         (np.array([1, 2], dtype="int64"), None, IntegerArray._from_sequence([1, 2])),
+        (
+            np.array([1.0, 2.0], dtype="float64"),
+            None,
+            FloatingArray._from_sequence([1.0, 2.0]),
+        ),
         # String alias passes through to NumPy
         ([1, 2], "float32", PandasArray(np.array([1, 2], dtype="float32"))),
         # Period alias
@@ -116,11 +128,19 @@ from pandas.tests.extension.decimal import DecimalArray, DecimalDtype, to_decima
         # Sparse
         ([0, 1], "Sparse[int64]", SparseArray([0, 1], dtype="int64")),
         # IntegerNA
-        ([1, None], "Int16", integer_array([1, None], dtype="Int16")),
+        ([1, None], "Int16", pd.array([1, None], dtype="Int16")),
         (pd.Series([1, 2]), None, PandasArray(np.array([1, 2], dtype=np.int64))),
         # String
-        (["a", None], "string", StringArray._from_sequence(["a", None])),
-        (["a", None], pd.StringDtype(), StringArray._from_sequence(["a", None])),
+        (
+            ["a", None],
+            "string",
+            pd.StringDtype().construct_array_type()._from_sequence(["a", None]),
+        ),
+        (
+            ["a", None],
+            pd.StringDtype(),
+            pd.StringDtype().construct_array_type()._from_sequence(["a", None]),
+        ),
         # Boolean
         ([True, None], "boolean", BooleanArray._from_sequence([True, None])),
         ([True, None], pd.BooleanDtype(), BooleanArray._from_sequence([True, None])),
@@ -204,7 +224,9 @@ cet = pytz.timezone("CET")
                 datetime.datetime(2000, 1, 1, tzinfo=cet),
                 datetime.datetime(2001, 1, 1, tzinfo=cet),
             ],
-            DatetimeArray._from_sequence(["2000", "2001"], tz=cet),
+            DatetimeArray._from_sequence(
+                ["2000", "2001"], dtype=pd.DatetimeTZDtype(tz=cet)
+            ),
         ),
         # timedelta
         (
@@ -224,9 +246,28 @@ cet = pytz.timezone("CET")
         ([1, None], IntegerArray._from_sequence([1, None])),
         ([1, pd.NA], IntegerArray._from_sequence([1, pd.NA])),
         ([1, np.nan], IntegerArray._from_sequence([1, np.nan])),
+        # float
+        ([0.1, 0.2], FloatingArray._from_sequence([0.1, 0.2])),
+        ([0.1, None], FloatingArray._from_sequence([0.1, pd.NA])),
+        ([0.1, np.nan], FloatingArray._from_sequence([0.1, pd.NA])),
+        ([0.1, pd.NA], FloatingArray._from_sequence([0.1, pd.NA])),
+        # integer-like float
+        ([1.0, 2.0], FloatingArray._from_sequence([1.0, 2.0])),
+        ([1.0, None], FloatingArray._from_sequence([1.0, pd.NA])),
+        ([1.0, np.nan], FloatingArray._from_sequence([1.0, pd.NA])),
+        ([1.0, pd.NA], FloatingArray._from_sequence([1.0, pd.NA])),
+        # mixed-integer-float
+        ([1, 2.0], FloatingArray._from_sequence([1.0, 2.0])),
+        ([1, np.nan, 2.0], FloatingArray._from_sequence([1.0, None, 2.0])),
         # string
-        (["a", "b"], StringArray._from_sequence(["a", "b"])),
-        (["a", None], StringArray._from_sequence(["a", None])),
+        (
+            ["a", "b"],
+            pd.StringDtype().construct_array_type()._from_sequence(["a", "b"]),
+        ),
+        (
+            ["a", None],
+            pd.StringDtype().construct_array_type()._from_sequence(["a", None]),
+        ),
         # Boolean
         ([True, False], BooleanArray._from_sequence([True, False])),
         ([True, None], BooleanArray._from_sequence([True, None])),
@@ -257,7 +298,7 @@ def test_array_inference_fails(data):
     tm.assert_extension_array_equal(result, expected)
 
 
-@pytest.mark.parametrize("data", [np.array([[1, 2], [3, 4]]), [[1, 2], [3, 4]]])
+@pytest.mark.parametrize("data", [np.array(0)])
 def test_nd_raises(data):
     with pytest.raises(ValueError, match="PandasArray must be 1-dimensional"):
         pd.array(data, dtype="int64")
@@ -266,6 +307,14 @@ def test_nd_raises(data):
 def test_scalar_raises():
     with pytest.raises(ValueError, match="Cannot pass scalar '1'"):
         pd.array(1)
+
+
+def test_bounds_check():
+    # GH21796
+    with pytest.raises(
+        TypeError, match=r"cannot safely cast non-equivalent int(32|64) to uint16"
+    ):
+        pd.array([-1, 2, 3], dtype="UInt16")
 
 
 # ---------------------------------------------------------------------------
@@ -343,8 +392,8 @@ class TestArrayAnalytics:
         assert is_scalar(result)
         assert result == 1
 
-    def test_searchsorted_numeric_dtypes_scalar(self, any_real_dtype):
-        arr = pd.array([1, 3, 90], dtype=any_real_dtype)
+    def test_searchsorted_numeric_dtypes_scalar(self, any_real_numpy_dtype):
+        arr = pd.array([1, 3, 90], dtype=any_real_numpy_dtype)
         result = arr.searchsorted(30)
         assert is_scalar(result)
         assert result == 2
@@ -353,8 +402,8 @@ class TestArrayAnalytics:
         expected = np.array([2], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_searchsorted_numeric_dtypes_vector(self, any_real_dtype):
-        arr = pd.array([1, 3, 90], dtype=any_real_dtype)
+    def test_searchsorted_numeric_dtypes_vector(self, any_real_numpy_dtype):
+        arr = pd.array([1, 3, 90], dtype=any_real_numpy_dtype)
         result = arr.searchsorted([2, 30])
         expected = np.array([1, 2], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
@@ -382,8 +431,8 @@ class TestArrayAnalytics:
         assert is_scalar(result)
         assert result == 1
 
-    def test_searchsorted_sorter(self, any_real_dtype):
-        arr = pd.array([3, 1, 2], dtype=any_real_dtype)
+    def test_searchsorted_sorter(self, any_real_numpy_dtype):
+        arr = pd.array([3, 1, 2], dtype=any_real_numpy_dtype)
         result = arr.searchsorted([0, 3], sorter=np.argsort(arr))
         expected = np.array([0, 2], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)

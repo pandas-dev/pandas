@@ -1,9 +1,13 @@
+from datetime import datetime
 import re
 
 import numpy as np
 import pytest
 
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+    NaT,
+)
 import pandas._testing as tm
 
 
@@ -434,3 +438,50 @@ def test_drop_duplicates_null_in_object_column(nulls_fixture):
     df = DataFrame([[1, nulls_fixture], [2, "a"]], dtype=object)
     result = df.drop_duplicates()
     tm.assert_frame_equal(result, df)
+
+
+@pytest.mark.parametrize("keep", ["first", "last", False])
+def test_drop_duplicates_series_vs_dataframe(keep):
+    # GH#14192
+    df = DataFrame(
+        {
+            "a": [1, 1, 1, "one", "one"],
+            "b": [2, 2, np.nan, np.nan, np.nan],
+            "c": [3, 3, np.nan, np.nan, "three"],
+            "d": [1, 2, 3, 4, 4],
+            "e": [
+                datetime(2015, 1, 1),
+                datetime(2015, 1, 1),
+                datetime(2015, 2, 1),
+                NaT,
+                NaT,
+            ],
+        }
+    )
+    for column in df.columns:
+        dropped_frame = df[[column]].drop_duplicates(keep=keep)
+        dropped_series = df[column].drop_duplicates(keep=keep)
+        tm.assert_frame_equal(dropped_frame, dropped_series.to_frame())
+
+
+@pytest.mark.parametrize("arg", [[1], 1, "True", [], 0])
+def test_drop_duplicates_non_boolean_ignore_index(arg):
+    # GH#38274
+    df = DataFrame({"a": [1, 2, 1, 3]})
+    msg = '^For argument "ignore_index" expected type bool, received type .*.$'
+    with pytest.raises(ValueError, match=msg):
+        df.drop_duplicates(ignore_index=arg)
+
+
+def test_drop_duplicates_pos_args_deprecation():
+    # GH#41485
+    df = DataFrame({"a": [1, 1, 2], "b": [1, 1, 3], "c": [1, 1, 3]})
+    msg = (
+        "In a future version of pandas all arguments of "
+        "DataFrame.drop_duplicates except for the argument 'subset' "
+        "will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.drop_duplicates(["b", "c"], "last")
+    expected = DataFrame({"a": [1, 2], "b": [1, 3], "c": [1, 3]}, index=[1, 2])
+    tm.assert_frame_equal(expected, result)

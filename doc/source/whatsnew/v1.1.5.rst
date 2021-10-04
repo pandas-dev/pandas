@@ -1,0 +1,56 @@
+.. _whatsnew_115:
+
+What's new in 1.1.5 (December 07, 2020)
+---------------------------------------
+
+These are the changes in pandas 1.1.5. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_115.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Fixed regression in addition of a timedelta-like scalar to a :class:`DatetimeIndex` raising incorrectly (:issue:`37295`)
+- Fixed regression in :meth:`Series.groupby` raising when the :class:`Index` of the :class:`Series` had a tuple as its name (:issue:`37755`)
+- Fixed regression in :meth:`DataFrame.loc` and :meth:`Series.loc` for ``__setitem__`` when one-dimensional tuple was given to select from :class:`MultiIndex` (:issue:`37711`)
+- Fixed regression in inplace operations on :class:`Series` with ``ExtensionDtype`` with NumPy dtyped operand (:issue:`37910`)
+- Fixed regression in metadata propagation for ``groupby`` iterator (:issue:`37343`)
+- Fixed regression in :class:`MultiIndex` constructed from a :class:`DatetimeIndex` not retaining frequency (:issue:`35563`)
+- Fixed regression in :class:`Index` constructor raising a ``AttributeError`` when passed a :class:`SparseArray` with datetime64 values (:issue:`35843`)
+- Fixed regression in :meth:`DataFrame.unstack` with columns with integer dtype (:issue:`37115`)
+- Fixed regression in indexing on a :class:`Series` with ``CategoricalDtype`` after unpickling (:issue:`37631`)
+- Fixed regression in :meth:`DataFrame.groupby` aggregation with out-of-bounds datetime objects in an object-dtype column (:issue:`36003`)
+- Fixed regression in ``df.groupby(..).rolling(..)`` with the resulting :class:`MultiIndex` when grouping by a label that is in the index (:issue:`37641`)
+- Fixed regression in :meth:`DataFrame.fillna` not filling ``NaN`` after other operations such as :meth:`DataFrame.pivot` (:issue:`36495`).
+- Fixed performance regression in ``df.groupby(..).rolling(..)`` (:issue:`38038`)
+- Fixed regression in :meth:`MultiIndex.intersection` returning duplicates when at least one of the indexes had duplicates (:issue:`36915`)
+- Fixed regression in :meth:`.GroupBy.first` and :meth:`.GroupBy.last` where ``None`` was considered a non-NA value (:issue:`38286`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_115.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+- Bug in pytables methods in python 3.9 (:issue:`38041`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_115.other:
+
+Other
+~~~~~
+- Only set ``-Werror`` as a compiler flag in the CI jobs (:issue:`33315`, :issue:`33314`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_115.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.1.4..v1.1.5|HEAD

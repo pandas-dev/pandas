@@ -20,7 +20,7 @@ New features
   ``DataFrame.append`` (:issue:`468`, :issue:`479`, :issue:`273`)
 
 - :ref:`Can <merging.concatenation>` pass multiple DataFrames to
-  `DataFrame.append` to concatenate (stack) and multiple Series to
+  ``DataFrame.append`` to concatenate (stack) and multiple Series to
   ``Series.append`` too
 
 - :ref:`Can<basics.dataframe.from_list_of_dicts>` pass list of dicts (e.g., a
@@ -31,10 +31,22 @@ New features
 
 - Handle differently-indexed output values in ``DataFrame.apply`` (:issue:`498`)
 
-.. ipython:: python
+.. code-block:: ipython
 
-   df = pd.DataFrame(np.random.randn(10, 4))
-   df.apply(lambda x: x.describe())
+   In [1]: df = pd.DataFrame(np.random.randn(10, 4))
+   In [2]: df.apply(lambda x: x.describe())
+   Out[2]:
+                  0          1          2          3
+   count  10.000000  10.000000  10.000000  10.000000
+   mean    0.190912  -0.395125  -0.731920  -0.403130
+   std     0.730951   0.813266   1.112016   0.961912
+   min    -0.861849  -2.104569  -1.776904  -1.469388
+   25%    -0.411391  -0.698728  -1.501401  -1.076610
+   50%     0.380863  -0.228039  -1.191943  -1.004091
+   75%     0.658444   0.057974  -0.034326   0.461706
+   max     1.212112   0.577046   1.643563   1.071804
+
+   [8 rows x 4 columns]
 
 - :ref:`Add<advanced.reorderlevels>` ``reorder_levels`` method to Series and
   DataFrame (:issue:`534`)
@@ -116,13 +128,31 @@ One of the potentially riskiest API changes in 0.7.0, but also one of the most
 important, was a complete review of how **integer indexes** are handled with
 regard to label-based indexing. Here is an example:
 
-.. ipython:: python
+.. code-block:: ipython
 
-    s = pd.Series(np.random.randn(10), index=range(0, 20, 2))
-    s
-    s[0]
-    s[2]
-    s[4]
+    In [3]: s = pd.Series(np.random.randn(10), index=range(0, 20, 2))
+    In [4]: s
+    Out[4]:
+    0    -1.294524
+    2     0.413738
+    4     0.276662
+    6    -0.472035
+    8    -0.013960
+    10   -0.362543
+    12   -0.006154
+    14   -0.923061
+    16    0.895717
+    18    0.805244
+    Length: 10, dtype: float64
+
+    In [5]: s[0]
+    Out[5]: -1.2945235902555294
+
+    In [6]: s[2]
+    Out[6]: 0.41373810535784006
+
+    In [7]: s[4]
+    Out[7]: 0.2766617129497566
 
 This is all exactly identical to the behavior before. However, if you ask for a
 key **not** contained in the Series, in versions 0.6.1 and prior, Series would
@@ -235,22 +265,65 @@ slice to a Series when getting and setting values via ``[]`` (i.e. the
 ``__getitem__`` and ``__setitem__`` methods). The behavior will be the same as
 passing similar input to ``ix`` **except in the case of integer indexing**:
 
-.. ipython:: python
+.. code-block:: ipython
 
-   s = pd.Series(np.random.randn(6), index=list('acegkm'))
-   s
-   s[['m', 'a', 'c', 'e']]
-   s['b':'l']
-   s['c':'k']
+  In [8]: s = pd.Series(np.random.randn(6), index=list('acegkm'))
+
+  In [9]: s
+  Out[9]:
+  a   -1.206412
+  c    2.565646
+  e    1.431256
+  g    1.340309
+  k   -1.170299
+  m   -0.226169
+  Length: 6, dtype: float64
+
+  In [10]: s[['m', 'a', 'c', 'e']]
+  Out[10]:
+  m   -0.226169
+  a   -1.206412
+  c    2.565646
+  e    1.431256
+  Length: 4, dtype: float64
+
+  In [11]: s['b':'l']
+  Out[11]:
+  c    2.565646
+  e    1.431256
+  g    1.340309
+  k   -1.170299
+  Length: 4, dtype: float64
+
+  In [12]: s['c':'k']
+  Out[12]:
+  c    2.565646
+  e    1.431256
+  g    1.340309
+  k   -1.170299
+  Length: 4, dtype: float64
 
 In the case of integer indexes, the behavior will be exactly as before
 (shadowing ``ndarray``):
 
-.. ipython:: python
+.. code-block:: ipython
 
-   s = pd.Series(np.random.randn(6), index=range(0, 12, 2))
-   s[[4, 0, 2]]
-   s[1:5]
+  In [13]: s = pd.Series(np.random.randn(6), index=range(0, 12, 2))
+
+  In [14]: s[[4, 0, 2]]
+  Out[14]:
+  4    0.132003
+  0    0.410835
+  2    0.813850
+  Length: 3, dtype: float64
+
+  In [15]: s[1:5]
+  Out[15]:
+  2    0.813850
+  4    0.132003
+  6   -0.827317
+  8   -0.076467
+  Length: 4, dtype: float64
 
 If you wish to do indexing with sequences and slicing on an integer index with
 label semantics, use ``ix``.
@@ -282,7 +355,7 @@ Performance improvements
 - Substantially improve performance of multi-GroupBy aggregation when a
   Python function is passed, reuse ndarray object in Cython (:issue:`496`)
 - Can store objects indexed by tuples and floats in HDFStore (:issue:`492`)
-- Don't print length by default in Series.to_string, add `length` option (:issue:`489`)
+- Don't print length by default in Series.to_string, add ``length`` option (:issue:`489`)
 - Improve Cython code for multi-groupby to aggregate without having to sort
   the data (:issue:`93`)
 - Improve MultiIndex reindexing speed by storing tuples in the MultiIndex,

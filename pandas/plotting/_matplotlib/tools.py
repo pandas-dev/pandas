@@ -1,36 +1,65 @@
 # being a bit too dynamic
+from __future__ import annotations
+
 from math import ceil
-from typing import TYPE_CHECKING, Iterable, List, Sequence, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Iterable,
+    Sequence,
+)
 import warnings
 
 import matplotlib.table
 import matplotlib.ticker as ticker
 import numpy as np
 
-from pandas._typing import FrameOrSeries
-
 from pandas.core.dtypes.common import is_list_like
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCIndex,
+    ABCSeries,
+)
 
 from pandas.plotting._matplotlib import compat
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from matplotlib.axis import Axis
-    from matplotlib.lines import Line2D  # noqa:F401
+    from matplotlib.figure import Figure
+    from matplotlib.lines import Line2D
     from matplotlib.table import Table
 
+    from pandas import (
+        DataFrame,
+        Series,
+    )
 
-def format_date_labels(ax: "Axes", rot):
+
+def do_adjust_figure(fig: Figure):
+    """Whether fig has constrained_layout enabled."""
+    if not hasattr(fig, "get_constrained_layout"):
+        return False
+    return not fig.get_constrained_layout()
+
+
+def maybe_adjust_figure(fig: Figure, *args, **kwargs):
+    """Call fig.subplots_adjust unless fig has constrained_layout enabled."""
+    if do_adjust_figure(fig):
+        fig.subplots_adjust(*args, **kwargs)
+
+
+def format_date_labels(ax: Axes, rot):
     # mini version of autofmt_xdate
     for label in ax.get_xticklabels():
         label.set_ha("right")
         label.set_rotation(rot)
     fig = ax.get_figure()
-    fig.subplots_adjust(bottom=0.2)
+    maybe_adjust_figure(fig, bottom=0.2)
 
 
-def table(ax, data: FrameOrSeries, rowLabels=None, colLabels=None, **kwargs) -> "Table":
+def table(
+    ax, data: DataFrame | Series, rowLabels=None, colLabels=None, **kwargs
+) -> Table:
     if isinstance(data, ABCSeries):
         data = data.to_frame()
     elif isinstance(data, ABCDataFrame):
@@ -52,19 +81,17 @@ def table(ax, data: FrameOrSeries, rowLabels=None, colLabels=None, **kwargs) -> 
     return table
 
 
-def _get_layout(nplots: int, layout=None, layout_type: str = "box") -> Tuple[int, int]:
+def _get_layout(nplots: int, layout=None, layout_type: str = "box") -> tuple[int, int]:
     if layout is not None:
         if not isinstance(layout, (tuple, list)) or len(layout) != 2:
             raise ValueError("Layout must be a tuple of (rows, columns)")
 
         nrows, ncols = layout
 
-        # Python 2 compat
-        ceil_ = lambda x: int(ceil(x))
         if nrows == -1 and ncols > 0:
-            layout = nrows, ncols = (ceil_(float(nplots) / ncols), ncols)
+            layout = nrows, ncols = (ceil(nplots / ncols), ncols)
         elif ncols == -1 and nrows > 0:
-            layout = nrows, ncols = (nrows, ceil_(float(nplots) / nrows))
+            layout = nrows, ncols = (nrows, ceil(nplots / nrows))
         elif ncols <= 0 and nrows <= 0:
             msg = "At least one dimension of layout must be positive"
             raise ValueError(msg)
@@ -194,20 +221,22 @@ def create_subplots(
         fig = plt.figure(**fig_kw)
     else:
         if is_list_like(ax):
-            ax = flatten_axes(ax)
+            if squeeze:
+                ax = flatten_axes(ax)
             if layout is not None:
                 warnings.warn(
-                    "When passing multiple axes, layout keyword is ignored", UserWarning
+                    "When passing multiple axes, layout keyword is ignored.",
+                    UserWarning,
                 )
             if sharex or sharey:
                 warnings.warn(
                     "When passing multiple axes, sharex and sharey "
-                    "are ignored. These settings must be specified when creating axes",
+                    "are ignored. These settings must be specified when creating axes.",
                     UserWarning,
                     stacklevel=4,
                 )
-            if len(ax) == naxes:
-                fig = ax[0].get_figure()
+            if ax.size == naxes:
+                fig = ax.flat[0].get_figure()
                 return fig, ax
             else:
                 raise ValueError(
@@ -225,7 +254,7 @@ def create_subplots(
         else:
             warnings.warn(
                 "To output multiple subplots, the figure containing "
-                "the passed axes is being cleared",
+                "the passed axes is being cleared.",
                 UserWarning,
                 stacklevel=4,
             )
@@ -281,7 +310,7 @@ def create_subplots(
     return fig, axes
 
 
-def _remove_labels_from_axis(axis: "Axis"):
+def _remove_labels_from_axis(axis: Axis):
     for t in axis.get_majorticklabels():
         t.set_visible(False)
 
@@ -297,8 +326,58 @@ def _remove_labels_from_axis(axis: "Axis"):
     axis.get_label().set_visible(False)
 
 
+def _has_externally_shared_axis(ax1: matplotlib.axes, compare_axis: str) -> bool:
+    """
+    Return whether an axis is externally shared.
+
+    Parameters
+    ----------
+    ax1 : matplotlib.axes
+        Axis to query.
+    compare_axis : str
+        `"x"` or `"y"` according to whether the X-axis or Y-axis is being
+        compared.
+
+    Returns
+    -------
+    bool
+        `True` if the axis is externally shared. Otherwise `False`.
+
+    Notes
+    -----
+    If two axes with different positions are sharing an axis, they can be
+    referred to as *externally* sharing the common axis.
+
+    If two axes sharing an axis also have the same position, they can be
+    referred to as *internally* sharing the common axis (a.k.a twinning).
+
+    _handle_shared_axes() is only interested in axes externally sharing an
+    axis, regardless of whether either of the axes is also internally sharing
+    with a third axis.
+    """
+    if compare_axis == "x":
+        axes = ax1.get_shared_x_axes()
+    elif compare_axis == "y":
+        axes = ax1.get_shared_y_axes()
+    else:
+        raise ValueError(
+            "_has_externally_shared_axis() needs 'x' or 'y' as a second parameter"
+        )
+
+    axes = axes.get_siblings(ax1)
+
+    # Retain ax1 and any of its siblings which aren't in the same position as it
+    ax1_points = ax1.get_position().get_points()
+
+    for ax2 in axes:
+        if not np.array_equal(ax1_points, ax2.get_position().get_points()):
+            return True
+
+    return False
+
+
 def handle_shared_axes(
-    axarr: Iterable["Axes"],
+    axarr: Iterable[Axes],
     nplots: int,
     naxes: int,
     nrows: int,
@@ -314,6 +393,11 @@ def handle_shared_axes(
             row_num = lambda x: x.rowNum
             col_num = lambda x: x.colNum
 
+        if compat.mpl_ge_3_4_0():
+            is_first_col = lambda x: x.get_subplotspec().is_first_col()
+        else:
+            is_first_col = lambda x: x.is_first_col()
+
         if nrows > 1:
             try:
                 # first find out the ax layout,
@@ -328,16 +412,20 @@ def handle_shared_axes(
                     # the last in the column, because below is no subplot/gap.
                     if not layout[row_num(ax) + 1, col_num(ax)]:
                         continue
-                    if sharex or len(ax.get_shared_x_axes().get_siblings(ax)) > 1:
+                    if sharex or _has_externally_shared_axis(ax, "x"):
                         _remove_labels_from_axis(ax.xaxis)
 
             except IndexError:
                 # if gridspec is used, ax.rowNum and ax.colNum may different
                 # from layout shape. in this case, use last_row logic
+                if compat.mpl_ge_3_4_0():
+                    is_last_row = lambda x: x.get_subplotspec().is_last_row()
+                else:
+                    is_last_row = lambda x: x.is_last_row()
                 for ax in axarr:
-                    if ax.is_last_row():
+                    if is_last_row(ax):
                         continue
-                    if sharex or len(ax.get_shared_x_axes().get_siblings(ax)) > 1:
+                    if sharex or _has_externally_shared_axis(ax, "x"):
                         _remove_labels_from_axis(ax.xaxis)
 
         if ncols > 1:
@@ -345,22 +433,22 @@ def handle_shared_axes(
                 # only the first column should get y labels -> set all other to
                 # off as we only have labels in the first column and we always
                 # have a subplot there, we can skip the layout test
-                if ax.is_first_col():
+                if is_first_col(ax):
                     continue
-                if sharey or len(ax.get_shared_y_axes().get_siblings(ax)) > 1:
+                if sharey or _has_externally_shared_axis(ax, "y"):
                     _remove_labels_from_axis(ax.yaxis)
 
 
-def flatten_axes(axes: Union["Axes", Sequence["Axes"]]) -> Sequence["Axes"]:
+def flatten_axes(axes: Axes | Sequence[Axes]) -> np.ndarray:
     if not is_list_like(axes):
         return np.array([axes])
-    elif isinstance(axes, (np.ndarray, ABCIndexClass)):
-        return axes.ravel()
+    elif isinstance(axes, (np.ndarray, ABCIndex)):
+        return np.asarray(axes).ravel()
     return np.array(axes)
 
 
 def set_ticks_props(
-    axes: Union["Axes", Sequence["Axes"]],
+    axes: Axes | Sequence[Axes],
     xlabelsize=None,
     xrot=None,
     ylabelsize=None,
@@ -380,7 +468,7 @@ def set_ticks_props(
     return axes
 
 
-def get_all_lines(ax: "Axes") -> List["Line2D"]:
+def get_all_lines(ax: Axes) -> list[Line2D]:
     lines = ax.get_lines()
 
     if hasattr(ax, "right_ax"):
@@ -392,10 +480,10 @@ def get_all_lines(ax: "Axes") -> List["Line2D"]:
     return lines
 
 
-def get_xlim(lines: Iterable["Line2D"]) -> Tuple[float, float]:
+def get_xlim(lines: Iterable[Line2D]) -> tuple[float, float]:
     left, right = np.inf, -np.inf
-    for l in lines:
-        x = l.get_xdata(orig=False)
+    for line in lines:
+        x = line.get_xdata(orig=False)
         left = min(np.nanmin(x), left)
         right = max(np.nanmax(x), right)
     return left, right

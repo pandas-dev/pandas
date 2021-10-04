@@ -10,7 +10,7 @@ class Flags:
     Parameters
     ----------
     obj : Series or DataFrame
-        The object these flags are associated with
+        The object these flags are associated with.
     allows_duplicate_labels : bool, default True
         Whether to allow duplicate labels in this object. By default,
         duplicate labels are permitted. Setting this to ``False`` will
@@ -68,9 +68,9 @@ class Flags:
         Examples
         --------
         >>> df = pd.DataFrame({"A": [1, 2]}, index=['a', 'a'])
-        >>> df.allows_duplicate_labels
+        >>> df.flags.allows_duplicate_labels
         True
-        >>> df.allows_duplicate_labels = False
+        >>> df.flags.allows_duplicate_labels = False
         Traceback (most recent call last):
             ...
         pandas.errors.DuplicateLabelError: Index has duplicates.

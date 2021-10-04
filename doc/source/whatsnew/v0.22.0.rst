@@ -8,7 +8,7 @@ Version 0.22.0 (December 29, 2017)
 .. ipython:: python
    :suppress:
 
-   from pandas import * # noqa F401, F403
+   from pandas import *  # noqa F401, F403
 
 
 This is a major release from 0.21.1 and includes a single, API-breaking change.
@@ -20,7 +20,7 @@ release note (singular!).
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Pandas 0.22.0 changes the handling of empty and all-*NA* sums and products. The
+pandas 0.22.0 changes the handling of empty and all-*NA* sums and products. The
 summary is that
 
 * The sum of an empty or all-*NA* ``Series`` is now ``0``
@@ -119,7 +119,7 @@ instead of ``NaN``.
 
 .. ipython:: python
 
-   grouper = pd.Categorical(['a', 'a'], categories=['a', 'b'])
+   grouper = pd.Categorical(["a", "a"], categories=["a", "b"])
    pd.Series([1, 2]).groupby(grouper).sum()
 
 To restore the 0.21 behavior of returning ``NaN`` for unobserved groups,
@@ -159,15 +159,14 @@ sum and ``1`` for product.
 
 .. ipython:: python
 
-   s = pd.Series([1, 1, np.nan, np.nan],
-                 index=pd.date_range('2017', periods=4))
-   s.resample('2d').sum()
+   s = pd.Series([1, 1, np.nan, np.nan], index=pd.date_range("2017", periods=4))
+   s.resample("2d").sum()
 
 To restore the 0.21 behavior of returning ``NaN``, use ``min_count>=1``.
 
 .. ipython:: python
 
-   s.resample('2d').sum(min_count=1)
+   s.resample("2d").sum(min_count=1)
 
 In particular, upsampling and taking the sum or product is affected, as
 upsampling introduces missing values even if the original series was
@@ -190,7 +189,7 @@ entirely valid.
 
 .. ipython:: python
 
-   idx = pd.DatetimeIndex(['2017-01-01', '2017-01-02'])
+   idx = pd.DatetimeIndex(["2017-01-01", "2017-01-02"])
    pd.Series([1, 2], index=idx).resample("12H").sum()
 
 Once again, the ``min_count`` keyword is available to restore the 0.21 behavior.

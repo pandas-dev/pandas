@@ -53,7 +53,7 @@ New features
 Window functions are now methods
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Window functions have been refactored to be methods on ``Series/DataFrame`` objects, rather than top-level functions, which are now deprecated. This allows these window-type functions, to have a similar API to that of ``.groupby``. See the full documentation :ref:`here <stats.moments>` (:issue:`11603`, :issue:`12373`)
+Window functions have been refactored to be methods on ``Series/DataFrame`` objects, rather than top-level functions, which are now deprecated. This allows these window-type functions, to have a similar API to that of ``.groupby``. See the full documentation :ref:`here <window.overview>` (:issue:`11603`, :issue:`12373`)
 
 
 .. ipython:: python
@@ -290,7 +290,7 @@ A new, friendlier ``ValueError`` is added to protect against the mistake of supp
 .. code-block:: ipython
 
     In [2]: pd.Series(['a', 'b', np.nan, 'c']).str.cat(' ')
-    ValueError: Did you mean to supply a `sep` keyword?
+    ValueError: Did you mean to supply a ``sep`` keyword?
 
 
 .. _whatsnew_0180.enhancements.rounding:
@@ -610,7 +610,7 @@ Subtraction by ``Timedelta`` in a ``Series`` by a ``Timestamp`` works (:issue:`1
    pd.Timestamp('2012-01-01') - ser
 
 
-``NaT.isoformat()`` now returns ``'NaT'``. This change allows allows
+``NaT.isoformat()`` now returns ``'NaT'``. This change allows
 ``pd.Timestamp`` to rehydrate any timestamp like object from its isoformat
 (:issue:`12300`).
 

@@ -1,13 +1,23 @@
 import numpy as np
-from numpy.random import randn
 import pytest
 
-from pandas._libs.join import inner_join, left_outer_join
-
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, concat, merge
+from pandas import (
+    Categorical,
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    Timestamp,
+    concat,
+    merge,
+)
 import pandas._testing as tm
-from pandas.tests.reshape.merge.test_merge import NGROUPS, N, get_test_data
+from pandas.tests.reshape.merge.test_merge import (
+    NGROUPS,
+    N,
+    get_test_data,
+)
 
 a_ = np.array
 
@@ -42,96 +52,6 @@ class TestJoin:
         self.source = DataFrame(
             {"MergedA": data["A"], "MergedD": data["D"]}, index=data["C"]
         )
-
-    def test_cython_left_outer_join(self):
-        left = a_([0, 1, 2, 1, 2, 0, 0, 1, 2, 3, 3], dtype=np.int64)
-        right = a_([1, 1, 0, 4, 2, 2, 1], dtype=np.int64)
-        max_group = 5
-
-        ls, rs = left_outer_join(left, right, max_group)
-
-        exp_ls = left.argsort(kind="mergesort")
-        exp_rs = right.argsort(kind="mergesort")
-
-        exp_li = a_([0, 1, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 7, 7, 8, 8, 9, 10])
-        exp_ri = a_([0, 0, 0, 1, 2, 3, 1, 2, 3, 1, 2, 3, 4, 5, 4, 5, 4, 5, -1, -1])
-
-        exp_ls = exp_ls.take(exp_li)
-        exp_ls[exp_li == -1] = -1
-
-        exp_rs = exp_rs.take(exp_ri)
-        exp_rs[exp_ri == -1] = -1
-
-        tm.assert_numpy_array_equal(ls, exp_ls, check_dtype=False)
-        tm.assert_numpy_array_equal(rs, exp_rs, check_dtype=False)
-
-    def test_cython_right_outer_join(self):
-        left = a_([0, 1, 2, 1, 2, 0, 0, 1, 2, 3, 3], dtype=np.int64)
-        right = a_([1, 1, 0, 4, 2, 2, 1], dtype=np.int64)
-        max_group = 5
-
-        rs, ls = left_outer_join(right, left, max_group)
-
-        exp_ls = left.argsort(kind="mergesort")
-        exp_rs = right.argsort(kind="mergesort")
-
-        #            0        1        1        1
-        exp_li = a_(
-            [
-                0,
-                1,
-                2,
-                3,
-                4,
-                5,
-                3,
-                4,
-                5,
-                3,
-                4,
-                5,
-                #            2        2        4
-                6,
-                7,
-                8,
-                6,
-                7,
-                8,
-                -1,
-            ]
-        )
-        exp_ri = a_([0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6])
-
-        exp_ls = exp_ls.take(exp_li)
-        exp_ls[exp_li == -1] = -1
-
-        exp_rs = exp_rs.take(exp_ri)
-        exp_rs[exp_ri == -1] = -1
-
-        tm.assert_numpy_array_equal(ls, exp_ls, check_dtype=False)
-        tm.assert_numpy_array_equal(rs, exp_rs, check_dtype=False)
-
-    def test_cython_inner_join(self):
-        left = a_([0, 1, 2, 1, 2, 0, 0, 1, 2, 3, 3], dtype=np.int64)
-        right = a_([1, 1, 0, 4, 2, 2, 1, 4], dtype=np.int64)
-        max_group = 5
-
-        ls, rs = inner_join(left, right, max_group)
-
-        exp_ls = left.argsort(kind="mergesort")
-        exp_rs = right.argsort(kind="mergesort")
-
-        exp_li = a_([0, 1, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 7, 7, 8, 8])
-        exp_ri = a_([0, 0, 0, 1, 2, 3, 1, 2, 3, 1, 2, 3, 4, 5, 4, 5, 4, 5])
-
-        exp_ls = exp_ls.take(exp_li)
-        exp_ls[exp_li == -1] = -1
-
-        exp_rs = exp_rs.take(exp_ri)
-        exp_rs[exp_ri == -1] = -1
-
-        tm.assert_numpy_array_equal(ls, exp_ls, check_dtype=False)
-        tm.assert_numpy_array_equal(rs, exp_rs, check_dtype=False)
 
     def test_left_outer_join(self):
         joined_key2 = merge(self.df, self.df2, on="key2")
@@ -382,10 +302,10 @@ class TestJoin:
 
     def test_join_unconsolidated(self):
         # GH #331
-        a = DataFrame(randn(30, 2), columns=["a", "b"])
-        c = Series(randn(30))
+        a = DataFrame(np.random.randn(30, 2), columns=["a", "b"])
+        c = Series(np.random.randn(30))
         a["c"] = c
-        d = DataFrame(randn(30, 1), columns=["q"])
+        d = DataFrame(np.random.randn(30, 1), columns=["q"])
 
         # it works!
         a.join(d)
@@ -497,15 +417,16 @@ class TestJoin:
         other_df = DataFrame([(1, 2, 3), (7, 10, 6)], columns=["a", "b", "d"])
         other_df.set_index("a", inplace=True)
         # GH 9455, 12219
-        with tm.assert_produces_warning(UserWarning):
+        msg = "merging between different levels is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             result = merge(new_df, other_df, left_index=True, right_index=True)
         assert ("b", "mean") in result
         assert "b" in result
 
     def test_join_float64_float32(self):
 
-        a = DataFrame(randn(10, 2), columns=["a", "b"], dtype=np.float64)
-        b = DataFrame(randn(10, 1), columns=["c"], dtype=np.float32)
+        a = DataFrame(np.random.randn(10, 2), columns=["a", "b"], dtype=np.float64)
+        b = DataFrame(np.random.randn(10, 1), columns=["c"], dtype=np.float32)
         joined = a.join(b)
         assert joined.dtypes["a"] == "float64"
         assert joined.dtypes["b"] == "float64"
@@ -597,7 +518,7 @@ class TestJoin:
 
         # smoke test
         joined = left.join(right, on="key", sort=False)
-        tm.assert_index_equal(joined.index, pd.Index(list(range(4))))
+        tm.assert_index_equal(joined.index, Index(range(4)), exact=True)
 
     def test_join_mixed_non_unique_index(self):
         # GH 12814, unorderable types in py3 with a non-unique index
@@ -709,7 +630,8 @@ class TestJoin:
         dta = x.merge(y, left_index=True, right_index=True).merge(
             z, left_index=True, right_index=True, how="outer"
         )
-        dta = dta.merge(w, left_index=True, right_index=True)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            dta = dta.merge(w, left_index=True, right_index=True)
         expected = concat([x, y, z, w], axis=1)
         expected.columns = ["x_x", "y_x", "x_y", "y_y", "x_x", "y_x", "x_y", "y_y"]
         tm.assert_frame_equal(dta, expected)
@@ -743,7 +665,7 @@ class TestJoin:
 
     def test_join_on_tz_aware_datetimeindex(self):
         # GH 23931, 26335
-        df1 = pd.DataFrame(
+        df1 = DataFrame(
             {
                 "date": pd.date_range(
                     start="2018-01-01", periods=5, tz="America/Chicago"
@@ -752,7 +674,7 @@ class TestJoin:
             }
         )
 
-        df2 = pd.DataFrame(
+        df2 = DataFrame(
             {
                 "date": pd.date_range(
                     start="2018-01-03", periods=5, tz="America/Chicago"
@@ -762,7 +684,7 @@ class TestJoin:
         )
         result = df1.join(df2.set_index("date"), on="date")
         expected = df1.copy()
-        expected["vals_2"] = pd.Series([np.nan] * 2 + list("tuv"), dtype=object)
+        expected["vals_2"] = Series([np.nan] * 2 + list("tuv"), dtype=object)
         tm.assert_frame_equal(result, expected)
 
     def test_join_datetime_string(self):
@@ -786,8 +708,8 @@ class TestJoin:
         result = dfb.join(dfa.set_index(["x", "y"]), on=["x", "y"])
         expected = DataFrame(
             [
-                [pd.Timestamp("2012-08-02 00:00:00"), "J", 1, 15],
-                [pd.Timestamp("2013-04-06 00:00:00"), "L", 2, 20],
+                [Timestamp("2012-08-02 00:00:00"), "J", 1, 15],
+                [Timestamp("2013-04-06 00:00:00"), "L", 2, 20],
             ],
             index=[2, 4],
             columns=["x", "y", "z", "a"],
@@ -879,3 +801,87 @@ def _join_by_hand(a, b, how="left"):
     for col, s in b_re.items():
         a_re[col] = s
     return a_re.reindex(columns=result_columns)
+
+
+def test_join_inner_multiindex_deterministic_order():
+    # GH: 36910
+    left = DataFrame(
+        data={"e": 5},
+        index=MultiIndex.from_tuples([(1, 2, 4)], names=("a", "b", "d")),
+    )
+    right = DataFrame(
+        data={"f": 6}, index=MultiIndex.from_tuples([(2, 3)], names=("b", "c"))
+    )
+    result = left.join(right, how="inner")
+    expected = DataFrame(
+        {"e": [5], "f": [6]},
+        index=MultiIndex.from_tuples([(2, 1, 4, 3)], names=("b", "a", "d", "c")),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    ("input_col", "output_cols"), [("b", ["a", "b"]), ("a", ["a_x", "a_y"])]
+)
+def test_join_cross(input_col, output_cols):
+    # GH#5401
+    left = DataFrame({"a": [1, 3]})
+    right = DataFrame({input_col: [3, 4]})
+    result = left.join(right, how="cross", lsuffix="_x", rsuffix="_y")
+    expected = DataFrame({output_cols[0]: [1, 1, 3, 3], output_cols[1]: [3, 4, 3, 4]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_join_multiindex_one_level(join_type):
+    # GH#36909
+    left = DataFrame(
+        data={"c": 3}, index=MultiIndex.from_tuples([(1, 2)], names=("a", "b"))
+    )
+    right = DataFrame(data={"d": 4}, index=MultiIndex.from_tuples([(2,)], names=("b",)))
+    result = left.join(right, how=join_type)
+    expected = DataFrame(
+        {"c": [3], "d": [4]},
+        index=MultiIndex.from_tuples([(2, 1)], names=["b", "a"]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "categories, values",
+    [
+        (["Y", "X"], ["Y", "X", "X"]),
+        ([2, 1], [2, 1, 1]),
+        ([2.5, 1.5], [2.5, 1.5, 1.5]),
+        (
+            [Timestamp("2020-12-31"), Timestamp("2019-12-31")],
+            [Timestamp("2020-12-31"), Timestamp("2019-12-31"), Timestamp("2019-12-31")],
+        ),
+    ],
+)
+def test_join_multiindex_not_alphabetical_categorical(categories, values):
+    # GH#38502
+    left = DataFrame(
+        {
+            "first": ["A", "A"],
+            "second": Categorical(categories, categories=categories),
+            "value": [1, 2],
+        }
+    ).set_index(["first", "second"])
+    right = DataFrame(
+        {
+            "first": ["A", "A", "B"],
+            "second": Categorical(values, categories=categories),
+            "value": [3, 4, 5],
+        }
+    ).set_index(["first", "second"])
+    result = left.join(right, lsuffix="_left", rsuffix="_right")
+
+    expected = DataFrame(
+        {
+            "first": ["A", "A"],
+            "second": Categorical(categories, categories=categories),
+            "value_left": [1, 2],
+            "value_right": [3, 4],
+        }
+    ).set_index(["first", "second"])
+    tm.assert_frame_equal(result, expected)

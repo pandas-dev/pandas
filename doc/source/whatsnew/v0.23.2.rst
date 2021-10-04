@@ -11,7 +11,7 @@ and bug fixes. We recommend that all users upgrade to this version.
 
 .. note::
 
-   Pandas 0.23.2 is first pandas release that's compatible with
+   pandas 0.23.2 is first pandas release that's compatible with
    Python 3.7 (:issue:`20552`)
 
 .. warning::

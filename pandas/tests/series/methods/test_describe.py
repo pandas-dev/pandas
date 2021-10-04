@@ -1,35 +1,45 @@
 import numpy as np
 
-from pandas import Period, Series, Timedelta, Timestamp, date_range
+from pandas import (
+    Period,
+    Series,
+    Timedelta,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 
 
 class TestSeriesDescribe:
-    def test_describe(self):
-        s = Series([0, 1, 2, 3, 4], name="int_data")
-        result = s.describe()
+    def test_describe_ints(self):
+        ser = Series([0, 1, 2, 3, 4], name="int_data")
+        result = ser.describe()
         expected = Series(
-            [5, 2, s.std(), 0, 1, 2, 3, 4],
+            [5, 2, ser.std(), 0, 1, 2, 3, 4],
             name="int_data",
             index=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],
         )
         tm.assert_series_equal(result, expected)
 
-        s = Series([True, True, False, False, False], name="bool_data")
-        result = s.describe()
+    def test_describe_bools(self):
+        ser = Series([True, True, False, False, False], name="bool_data")
+        result = ser.describe()
         expected = Series(
             [5, 2, False, 3], name="bool_data", index=["count", "unique", "top", "freq"]
         )
         tm.assert_series_equal(result, expected)
 
-        s = Series(["a", "a", "b", "c", "d"], name="str_data")
-        result = s.describe()
+    def test_describe_strs(self):
+
+        ser = Series(["a", "a", "b", "c", "d"], name="str_data")
+        result = ser.describe()
         expected = Series(
             [5, 4, "a", 2], name="str_data", index=["count", "unique", "top", "freq"]
         )
         tm.assert_series_equal(result, expected)
 
-        s = Series(
+    def test_describe_timedelta64(self):
+        ser = Series(
             [
                 Timedelta("1 days"),
                 Timedelta("2 days"),
@@ -39,21 +49,22 @@ class TestSeriesDescribe:
             ],
             name="timedelta_data",
         )
-        result = s.describe()
+        result = ser.describe()
         expected = Series(
-            [5, s[2], s.std(), s[0], s[1], s[2], s[3], s[4]],
+            [5, ser[2], ser.std(), ser[0], ser[1], ser[2], ser[3], ser[4]],
             name="timedelta_data",
             index=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],
         )
         tm.assert_series_equal(result, expected)
 
-        s = Series(
+    def test_describe_period(self):
+        ser = Series(
             [Period("2020-01", "M"), Period("2020-01", "M"), Period("2019-12", "M")],
             name="period_data",
         )
-        result = s.describe()
+        result = ser.describe()
         expected = Series(
-            [3, 2, s[0], 2],
+            [3, 2, ser[0], 2],
             name="period_data",
             index=["count", "unique", "top", "freq"],
         )

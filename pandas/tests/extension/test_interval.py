@@ -25,9 +25,9 @@ from pandas.tests.extension import base
 
 def make_data():
     N = 100
-    left = np.random.uniform(size=N).cumsum()
-    right = left + np.random.uniform(size=N)
-    return [Interval(l, r) for l, r in zip(left, right)]
+    left_array = np.random.uniform(size=N).cumsum()
+    right_array = left_array + np.random.uniform(size=N)
+    return [Interval(left, right) for left, right in zip(left_array, right_array)]
 
 
 @pytest.fixture
@@ -133,11 +133,15 @@ class TestMissing(BaseInterval, base.BaseMissingTests):
         pass
 
     @unsupported_fill
+    def test_fillna_no_op_returns_copy(self):
+        pass
+
+    @unsupported_fill
     def test_fillna_series(self):
         pass
 
-    def test_non_scalar_raises(self, data_missing):
-        msg = "Got a 'list' instead."
+    def test_fillna_non_scalar_raises(self, data_missing):
+        msg = "can only insert Interval objects and NA into an IntervalArray"
         with pytest.raises(TypeError, match=msg):
             data_missing.fillna([1, 1])
 
@@ -147,9 +151,7 @@ class TestReshaping(BaseInterval, base.BaseReshapingTests):
 
 
 class TestSetitem(BaseInterval, base.BaseSetitemTests):
-    @pytest.mark.xfail(reason="GH#27147 setitem changes underlying index")
-    def test_setitem_preserves_views(self, data):
-        super().test_setitem_preserves_views(data)
+    pass
 
 
 class TestPrinting(BaseInterval, base.BasePrintingTests):

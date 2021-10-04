@@ -44,9 +44,16 @@ __version__ = "1.7.0"
 
 import contextlib
 import ctypes
-from ctypes import c_size_t, c_wchar, c_wchar_p, get_errno, sizeof
+from ctypes import (
+    c_size_t,
+    c_wchar,
+    c_wchar_p,
+    get_errno,
+    sizeof,
+)
 import os
 import platform
+from shutil import which
 import subprocess
 import time
 import warnings
@@ -59,7 +66,7 @@ HAS_DISPLAY = os.getenv("DISPLAY", False)
 EXCEPT_MSG = """
     Pyperclip could not find a copy/paste mechanism for your system.
     For more information, please visit
-    https://pyperclip.readthedocs.io/en/latest/introduction.html#not-implemented-error
+    https://pyperclip.readthedocs.io/en/latest/#not-implemented-error
     """
 
 ENCODING = "utf-8"
@@ -109,7 +116,7 @@ def init_osx_pbcopy_clipboard():
 
     def paste_osx_pbcopy():
         p = subprocess.Popen(["pbpaste", "r"], stdout=subprocess.PIPE, close_fds=True)
-        stdout, stderr = p.communicate()
+        stdout = p.communicate()[0]
         return stdout.decode(ENCODING)
 
     return copy_osx_pbcopy, paste_osx_pbcopy
@@ -187,7 +194,7 @@ def init_xclip_clipboard():
             stderr=subprocess.PIPE,
             close_fds=True,
         )
-        stdout, stderr = p.communicate()
+        stdout = p.communicate()[0]
         # Intentionally ignore extraneous output on stderr when clipboard is empty
         return stdout.decode(ENCODING)
 
@@ -215,7 +222,7 @@ def init_xsel_clipboard():
         p = subprocess.Popen(
             ["xsel", selection_flag, "-o"], stdout=subprocess.PIPE, close_fds=True
         )
-        stdout, stderr = p.communicate()
+        stdout = p.communicate()[0]
         return stdout.decode(ENCODING)
 
     return copy_xsel, paste_xsel
@@ -243,7 +250,7 @@ def init_klipper_clipboard():
             stdout=subprocess.PIPE,
             close_fds=True,
         )
-        stdout, stderr = p.communicate()
+        stdout = p.communicate()[0]
 
         # Workaround for https://bugs.kde.org/show_bug.cgi?id=342874
         # TODO: https://github.com/asweigart/pyperclip/issues/43
@@ -264,18 +271,18 @@ def init_dev_clipboard_clipboard():
         text = _stringifyText(text)  # Converts non-str values to str.
         if text == "":
             warnings.warn(
-                "Pyperclip cannot copy a blank string to the clipboard on Cygwin."
+                "Pyperclip cannot copy a blank string to the clipboard on Cygwin. "
                 "This is effectively a no-op."
             )
         if "\r" in text:
             warnings.warn("Pyperclip cannot handle \\r characters on Cygwin.")
 
-        with open("/dev/clipboard", "wt") as fo:
-            fo.write(text)
+        with open("/dev/clipboard", "wt") as fd:
+            fd.write(text)
 
     def paste_dev_clipboard() -> str:
-        with open("/dev/clipboard") as fo:
-            content = fo.read()
+        with open("/dev/clipboard") as fd:
+            content = fd.read()
         return content
 
     return copy_dev_clipboard, paste_dev_clipboard
@@ -486,7 +493,7 @@ def init_wsl_clipboard():
             stderr=subprocess.PIPE,
             close_fds=True,
         )
-        stdout, stderr = p.communicate()
+        stdout = p.communicate()[0]
         # WSL appends "\r\n" to the contents.
         return stdout[:-2].decode(ENCODING)
 
@@ -511,7 +518,7 @@ def determine_clipboard():
         # see https://github.com/asweigart/pyperclip/issues/55
         if os.path.exists("/dev/clipboard"):
             warnings.warn(
-                "Pyperclip's support for Cygwin is not perfect,"
+                "Pyperclip's support for Cygwin is not perfect, "
                 "see https://github.com/asweigart/pyperclip/issues/55"
             )
             return init_dev_clipboard_clipboard()
@@ -521,9 +528,8 @@ def determine_clipboard():
         return init_windows_clipboard()
 
     if platform.system() == "Linux":
-        with open("/proc/version") as f:
-            if "Microsoft" in f.read():
-                return init_wsl_clipboard()
+        if which("wslconfig.exe"):
+            return init_wsl_clipboard()
 
     # Setup for the MAC OS X platform:
     if os.name == "mac" or platform.system() == "Darwin":

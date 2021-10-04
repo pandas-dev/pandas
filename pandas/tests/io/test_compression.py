@@ -47,18 +47,14 @@ def test_compression_size(obj, method, compression_only):
 @pytest.mark.parametrize("method", ["to_csv", "to_json"])
 def test_compression_size_fh(obj, method, compression_only):
     with tm.ensure_clean() as path:
-        f, handles = icom.get_handle(path, "w", compression=compression_only)
-        with f:
-            getattr(obj, method)(f)
-            assert not f.closed
-        assert f.closed
+        with icom.get_handle(path, "w", compression=compression_only) as handles:
+            getattr(obj, method)(handles.handle)
+            assert not handles.handle.closed
         compressed_size = os.path.getsize(path)
     with tm.ensure_clean() as path:
-        f, handles = icom.get_handle(path, "w", compression=None)
-        with f:
-            getattr(obj, method)(f)
-            assert not f.closed
-        assert f.closed
+        with icom.get_handle(path, "w", compression=None) as handles:
+            getattr(obj, method)(handles.handle)
+            assert not handles.handle.closed
         uncompressed_size = os.path.getsize(path)
         assert uncompressed_size > compressed_size
 
@@ -99,7 +95,14 @@ def test_series_compression_defaults_to_infer(
     extension = icom._compression_to_extension[compression_only]
     with tm.ensure_clean("compressed" + extension) as path:
         getattr(input, write_method)(path, **write_kwargs)
-        output = read_method(path, compression=compression_only, **read_kwargs)
+        if "squeeze" in read_kwargs:
+            kwargs = read_kwargs.copy()
+            del kwargs["squeeze"]
+            output = read_method(path, compression=compression_only, **kwargs).squeeze(
+                "columns"
+            )
+        else:
+            output = read_method(path, compression=compression_only, **read_kwargs)
     tm.assert_series_equal(output, input, check_names=False)
 
 
@@ -111,10 +114,9 @@ def test_compression_warning(compression_only):
         columns=["X", "Y", "Z"],
     )
     with tm.ensure_clean() as path:
-        f, handles = icom.get_handle(path, "w", compression=compression_only)
-        with tm.assert_produces_warning(RuntimeWarning, check_stacklevel=False):
-            with f:
-                df.to_csv(f, compression=compression_only)
+        with icom.get_handle(path, "w", compression=compression_only) as handles:
+            with tm.assert_produces_warning(RuntimeWarning):
+                df.to_csv(handles.handle, compression=compression_only)
 
 
 def test_compression_binary(compression_only):
@@ -205,8 +207,8 @@ def test_with_missing_lzma_runtime():
         import sys
         import pytest
         sys.modules['lzma'] = None
-        import pandas
-        df = pandas.DataFrame()
+        import pandas as pd
+        df = pd.DataFrame()
         with pytest.raises(RuntimeError, match='lzma module'):
             df.to_csv('foo.csv', compression='xz')
         """

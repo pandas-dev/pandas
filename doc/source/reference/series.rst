@@ -22,10 +22,6 @@ Attributes
    :toctree: api/
 
    Series.index
-
-.. autosummary::
-   :toctree: api/
-
    Series.array
    Series.values
    Series.dtype
@@ -256,7 +252,6 @@ Combining / comparing / joining / merging
 
    Series.append
    Series.compare
-   Series.replace
    Series.update
 
 Time Series-related
@@ -280,7 +275,7 @@ Time Series-related
 Accessors
 ---------
 
-Pandas provides dtype-specific methods under various accessors.
+pandas provides dtype-specific methods under various accessors.
 These are separate namespaces within :class:`Series` that only apply
 to specific data types.
 
@@ -323,8 +318,10 @@ Datetime properties
    Series.dt.week
    Series.dt.weekofyear
    Series.dt.dayofweek
+   Series.dt.day_of_week
    Series.dt.weekday
    Series.dt.dayofyear
+   Series.dt.day_of_year
    Series.dt.quarter
    Series.dt.is_month_start
    Series.dt.is_month_end
@@ -418,6 +415,7 @@ strings and apply several methods to it. These can be accessed like
    Series.str.extractall
    Series.str.find
    Series.str.findall
+   Series.str.fullmatch
    Series.str.get
    Series.str.index
    Series.str.join
@@ -429,6 +427,8 @@ strings and apply several methods to it. These can be accessed like
    Series.str.normalize
    Series.str.pad
    Series.str.partition
+   Series.str.removeprefix
+   Series.str.removesuffix
    Series.str.repeat
    Series.str.replace
    Series.str.rfind

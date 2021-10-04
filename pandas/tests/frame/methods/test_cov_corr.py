@@ -6,7 +6,11 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame, Series, isna
+from pandas import (
+    DataFrame,
+    Series,
+    isna,
+)
 import pandas._testing as tm
 
 
@@ -25,17 +29,16 @@ class TestDataFrameCov:
         frame = float_frame.copy()
         frame["A"][:5] = np.nan
         frame["B"][5:10] = np.nan
-        result = float_frame.cov(min_periods=len(float_frame) - 8)
-        expected = float_frame.cov()
+        result = frame.cov(min_periods=len(frame) - 8)
+        expected = frame.cov()
         expected.loc["A", "B"] = np.nan
         expected.loc["B", "A"] = np.nan
+        tm.assert_frame_equal(result, expected)
 
         # regular
-        float_frame["A"][:5] = np.nan
-        float_frame["B"][:10] = np.nan
-        cov = float_frame.cov()
-
-        tm.assert_almost_equal(cov["A"]["C"], float_frame["A"].cov(float_frame["C"]))
+        result = frame.cov()
+        expected = frame["A"].cov(frame["C"])
+        tm.assert_almost_equal(result["A"]["C"], expected)
 
         # exclude non-numeric types
         result = float_string_frame.cov()
@@ -74,10 +77,10 @@ class TestDataFrameCov:
     )
     def test_cov_nullable_integer(self, other_column):
         # https://github.com/pandas-dev/pandas/issues/33803
-        data = pd.DataFrame({"a": pd.array([1, 2, None]), "b": other_column})
+        data = DataFrame({"a": pd.array([1, 2, None]), "b": other_column})
         result = data.cov()
         arr = np.array([[0.5, 0.5], [0.5, 1.0]])
-        expected = pd.DataFrame(arr, columns=["a", "b"], index=["a", "b"])
+        expected = DataFrame(arr, columns=["a", "b"], index=["a", "b"])
         tm.assert_frame_equal(result, expected)
 
 
@@ -89,6 +92,7 @@ class TestDataFrameCorr:
     def test_corr_scipy_method(self, float_frame, method):
         float_frame["A"][:5] = np.nan
         float_frame["B"][5:10] = np.nan
+        float_frame["A"][:10] = float_frame["A"][10:20]
 
         correls = float_frame.corr(method=method)
         expected = float_frame["A"].corr(float_frame["C"], method=method)
@@ -96,11 +100,7 @@ class TestDataFrameCorr:
 
     # ---------------------------------------------------------------------
 
-    @td.skip_if_no_scipy
-    def test_corr_non_numeric(self, float_frame, float_string_frame):
-        float_frame["A"][:5] = np.nan
-        float_frame["B"][5:10] = np.nan
-
+    def test_corr_non_numeric(self, float_string_frame):
         # exclude non-numeric types
         result = float_string_frame.corr()
         expected = float_string_frame.loc[:, ["A", "B", "C", "D"]].corr()
@@ -124,11 +124,9 @@ class TestDataFrameCorr:
         assert rs.loc["B", "B"] == 1
         assert isna(rs.loc["C", "C"])
 
-    @td.skip_if_no_scipy
     @pytest.mark.parametrize("meth", ["pearson", "spearman"])
     def test_corr_constant(self, meth):
         # constant --> all NA
-
         df = DataFrame(
             {
                 "A": [1, 1, 1, np.nan, np.nan, np.nan],
@@ -139,41 +137,41 @@ class TestDataFrameCorr:
         assert isna(rs.values).all()
 
     @td.skip_if_no_scipy
-    def test_corr_int_and_boolean(self):
+    @pytest.mark.parametrize("meth", ["pearson", "kendall", "spearman"])
+    def test_corr_int_and_boolean(self, meth):
         # when dtypes of pandas series are different
         # then ndarray will have dtype=object,
         # so it need to be properly handled
         df = DataFrame({"a": [True, False], "b": [1, 0]})
 
         expected = DataFrame(np.ones((2, 2)), index=["a", "b"], columns=["a", "b"])
-        for meth in ["pearson", "kendall", "spearman"]:
 
-            with warnings.catch_warnings(record=True):
-                warnings.simplefilter("ignore", RuntimeWarning)
-                result = df.corr(meth)
-            tm.assert_frame_equal(result, expected)
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("ignore", RuntimeWarning)
+            result = df.corr(meth)
+        tm.assert_frame_equal(result, expected)
 
-    def test_corr_cov_independent_index_column(self):
+    @pytest.mark.parametrize("method", ["cov", "corr"])
+    def test_corr_cov_independent_index_column(self, method):
         # GH#14617
-        df = pd.DataFrame(np.random.randn(4 * 10).reshape(10, 4), columns=list("abcd"))
-        for method in ["cov", "corr"]:
-            result = getattr(df, method)()
-            assert result.index is not result.columns
-            assert result.index.equals(result.columns)
+        df = DataFrame(np.random.randn(4 * 10).reshape(10, 4), columns=list("abcd"))
+        result = getattr(df, method)()
+        assert result.index is not result.columns
+        assert result.index.equals(result.columns)
 
     def test_corr_invalid_method(self):
         # GH#22298
-        df = pd.DataFrame(np.random.normal(size=(10, 2)))
+        df = DataFrame(np.random.normal(size=(10, 2)))
         msg = "method must be either 'pearson', 'spearman', 'kendall', or a callable, "
         with pytest.raises(ValueError, match=msg):
             df.corr(method="____")
 
     def test_corr_int(self):
         # dtypes other than float64 GH#1761
-        df3 = DataFrame({"a": [1, 2, 3, 4], "b": [1, 2, 3, 4]})
+        df = DataFrame({"a": [1, 2, 3, 4], "b": [1, 2, 3, 4]})
 
-        df3.cov()
-        df3.corr()
+        df.cov()
+        df.corr()
 
     @td.skip_if_no_scipy
     @pytest.mark.parametrize(
@@ -186,27 +184,57 @@ class TestDataFrameCorr:
     @pytest.mark.parametrize("method", ["pearson", "spearman", "kendall"])
     def test_corr_nullable_integer(self, nullable_column, other_column, method):
         # https://github.com/pandas-dev/pandas/issues/33803
-        data = pd.DataFrame({"a": nullable_column, "b": other_column})
+        data = DataFrame({"a": nullable_column, "b": other_column})
         result = data.corr(method=method)
-        expected = pd.DataFrame(np.ones((2, 2)), columns=["a", "b"], index=["a", "b"])
+        expected = DataFrame(np.ones((2, 2)), columns=["a", "b"], index=["a", "b"])
         tm.assert_frame_equal(result, expected)
 
-    def test_corr_item_cache(self):
+    def test_corr_item_cache(self, using_array_manager):
         # Check that corr does not lead to incorrect entries in item_cache
 
-        df = pd.DataFrame({"A": range(10)})
+        df = DataFrame({"A": range(10)})
         df["B"] = range(10)[::-1]
 
         ser = df["A"]  # populate item_cache
-        assert len(df._mgr.blocks) == 2
+        if not using_array_manager:
+            assert len(df._mgr.blocks) == 2
 
         _ = df.corr()
 
-        # Check that the corr didnt break link between ser and df
+        # Check that the corr didn't break link between ser and df
         ser.values[0] = 99
         assert df.loc[0, "A"] == 99
         assert df["A"] is ser
         assert df.values[0, 0] == 99
+
+    @pytest.mark.parametrize("length", [2, 20, 200, 2000])
+    def test_corr_for_constant_columns(self, length):
+        # GH: 37448
+        df = DataFrame(length * [[0.4, 0.1]], columns=["A", "B"])
+        result = df.corr()
+        expected = DataFrame(
+            {"A": [np.nan, np.nan], "B": [np.nan, np.nan]}, index=["A", "B"]
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_calc_corr_small_numbers(self):
+        # GH: 37452
+        df = DataFrame(
+            {"A": [1.0e-20, 2.0e-20, 3.0e-20], "B": [1.0e-20, 2.0e-20, 3.0e-20]}
+        )
+        result = df.corr()
+        expected = DataFrame({"A": [1.0, 1.0], "B": [1.0, 1.0]}, index=["A", "B"])
+        tm.assert_frame_equal(result, expected)
+
+    @td.skip_if_no_scipy
+    @pytest.mark.parametrize("method", ["pearson", "spearman", "kendall"])
+    def test_corr_min_periods_greater_than_length(self, method):
+        df = DataFrame({"A": [1, 2], "B": [1, 2]})
+        result = df.corr(method=method, min_periods=3)
+        expected = DataFrame(
+            {"A": [np.nan, np.nan], "B": [np.nan, np.nan]}, index=["A", "B"]
+        )
+        tm.assert_frame_equal(result, expected)
 
 
 class TestDataFrameCorrWith:
@@ -275,26 +303,26 @@ class TestDataFrameCorrWith:
 
     def test_corrwith_mixed_dtypes(self):
         # GH#18570
-        df = pd.DataFrame(
+        df = DataFrame(
             {"a": [1, 4, 3, 2], "b": [4, 6, 7, 3], "c": ["a", "b", "c", "d"]}
         )
-        s = pd.Series([0, 6, 7, 3])
+        s = Series([0, 6, 7, 3])
         result = df.corrwith(s)
         corrs = [df["a"].corr(s), df["b"].corr(s)]
-        expected = pd.Series(data=corrs, index=["a", "b"])
+        expected = Series(data=corrs, index=["a", "b"])
         tm.assert_series_equal(result, expected)
 
     def test_corrwith_index_intersection(self):
-        df1 = pd.DataFrame(np.random.random(size=(10, 2)), columns=["a", "b"])
-        df2 = pd.DataFrame(np.random.random(size=(10, 3)), columns=["a", "b", "c"])
+        df1 = DataFrame(np.random.random(size=(10, 2)), columns=["a", "b"])
+        df2 = DataFrame(np.random.random(size=(10, 3)), columns=["a", "b", "c"])
 
         result = df1.corrwith(df2, drop=True).index.sort_values()
         expected = df1.columns.intersection(df2.columns).sort_values()
         tm.assert_index_equal(result, expected)
 
     def test_corrwith_index_union(self):
-        df1 = pd.DataFrame(np.random.random(size=(10, 2)), columns=["a", "b"])
-        df2 = pd.DataFrame(np.random.random(size=(10, 3)), columns=["a", "b", "c"])
+        df1 = DataFrame(np.random.random(size=(10, 2)), columns=["a", "b"])
+        df2 = DataFrame(np.random.random(size=(10, 3)), columns=["a", "b", "c"])
 
         result = df1.corrwith(df2, drop=False).index.sort_values()
         expected = df1.columns.union(df2.columns).sort_values()
@@ -302,18 +330,18 @@ class TestDataFrameCorrWith:
 
     def test_corrwith_dup_cols(self):
         # GH#21925
-        df1 = pd.DataFrame(np.vstack([np.arange(10)] * 3).T)
+        df1 = DataFrame(np.vstack([np.arange(10)] * 3).T)
         df2 = df1.copy()
         df2 = pd.concat((df2, df2[0]), axis=1)
 
         result = df1.corrwith(df2)
-        expected = pd.Series(np.ones(4), index=[0, 0, 1, 2])
+        expected = Series(np.ones(4), index=[0, 0, 1, 2])
         tm.assert_series_equal(result, expected)
 
     @td.skip_if_no_scipy
     def test_corrwith_spearman(self):
         # GH#21925
-        df = pd.DataFrame(np.random.random(size=(100, 3)))
+        df = DataFrame(np.random.random(size=(100, 3)))
         result = df.corrwith(df ** 2, method="spearman")
         expected = Series(np.ones(len(result)))
         tm.assert_series_equal(result, expected)
@@ -321,7 +349,7 @@ class TestDataFrameCorrWith:
     @td.skip_if_no_scipy
     def test_corrwith_kendall(self):
         # GH#21925
-        df = pd.DataFrame(np.random.random(size=(100, 3)))
+        df = DataFrame(np.random.random(size=(100, 3)))
         result = df.corrwith(df ** 2, method="kendall")
         expected = Series(np.ones(len(result)))
         tm.assert_series_equal(result, expected)

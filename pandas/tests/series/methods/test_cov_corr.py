@@ -6,7 +6,10 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import Series, isna
+from pandas import (
+    Series,
+    isna,
+)
 import pandas._testing as tm
 
 
@@ -135,8 +138,8 @@ class TestSeriesCorr:
 
     def test_corr_invalid_method(self):
         # GH PR #22298
-        s1 = pd.Series(np.random.randn(10))
-        s2 = pd.Series(np.random.randn(10))
+        s1 = Series(np.random.randn(10))
+        s2 = Series(np.random.randn(10))
         msg = "method must be either 'pearson', 'spearman', 'kendall', or a callable, "
         with pytest.raises(ValueError, match=msg):
             s1.corr(s2, method="____")

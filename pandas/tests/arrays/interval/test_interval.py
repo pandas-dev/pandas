@@ -90,7 +90,7 @@ class TestMethods:
         tm.assert_interval_array_equal(result, expected)
 
     def test_shift_datetime(self):
-        a = IntervalArray.from_breaks(pd.date_range("2000", periods=4))
+        a = IntervalArray.from_breaks(date_range("2000", periods=4))
         result = a.shift(2)
         expected = a.take([-1, -1, 0], allow_fill=True)
         tm.assert_interval_array_equal(result, expected)
@@ -123,6 +123,31 @@ class TestSetitem:
 
         tm.assert_extension_array_equal(result, expected)
 
+    def test_setitem_mismatched_closed(self):
+        arr = IntervalArray.from_breaks(range(4))
+        orig = arr.copy()
+        other = arr.set_closed("both")
+
+        msg = "'value.closed' is 'both', expected 'right'"
+        with pytest.raises(ValueError, match=msg):
+            arr[0] = other[0]
+        with pytest.raises(ValueError, match=msg):
+            arr[:1] = other[:1]
+        with pytest.raises(ValueError, match=msg):
+            arr[:0] = other[:0]
+        with pytest.raises(ValueError, match=msg):
+            arr[:] = other[::-1]
+        with pytest.raises(ValueError, match=msg):
+            arr[:] = list(other[::-1])
+        with pytest.raises(ValueError, match=msg):
+            arr[:] = other[::-1].astype(object)
+        with pytest.raises(ValueError, match=msg):
+            arr[:] = other[::-1].astype("category")
+
+        # empty list should be no-op
+        arr[:0] = []
+        tm.assert_interval_array_equal(arr, orig)
+
 
 def test_repr():
     # GH 25022
@@ -131,7 +156,7 @@ def test_repr():
     expected = (
         "<IntervalArray>\n"
         "[(0, 1], (1, 2]]\n"
-        "Length: 2, closed: right, dtype: interval[int64]"
+        "Length: 2, dtype: interval[int64, right]"
     )
     assert result == expected
 
@@ -140,7 +165,7 @@ def test_repr():
 # Arrow interaction
 
 
-pyarrow_skip = td.skip_if_no("pyarrow", min_version="0.15.1.dev")
+pyarrow_skip = td.skip_if_no("pyarrow")
 
 
 @pyarrow_skip
@@ -223,7 +248,7 @@ def test_arrow_array_missing():
 @pyarrow_skip
 @pytest.mark.parametrize(
     "breaks",
-    [[0.0, 1.0, 2.0, 3.0], pd.date_range("2017", periods=4, freq="D")],
+    [[0.0, 1.0, 2.0, 3.0], date_range("2017", periods=4, freq="D")],
     ids=["float", "datetime64[ns]"],
 )
 def test_arrow_table_roundtrip(breaks):
@@ -246,11 +271,18 @@ def test_arrow_table_roundtrip(breaks):
     expected = pd.concat([df, df], ignore_index=True)
     tm.assert_frame_equal(result, expected)
 
+    # GH-41040
+    table = pa.table(
+        [pa.chunked_array([], type=table.column(0).type)], schema=table.schema
+    )
+    result = table.to_pandas()
+    tm.assert_frame_equal(result, expected[0:0])
+
 
 @pyarrow_skip
 @pytest.mark.parametrize(
     "breaks",
-    [[0.0, 1.0, 2.0, 3.0], pd.date_range("2017", periods=4, freq="D")],
+    [[0.0, 1.0, 2.0, 3.0], date_range("2017", periods=4, freq="D")],
     ids=["float", "datetime64[ns]"],
 )
 def test_arrow_table_roundtrip_without_metadata(breaks):

@@ -1,12 +1,26 @@
 cimport cython
-from cpython.mem cimport PyMem_Free, PyMem_Malloc
-from cpython.ref cimport Py_INCREF, PyObject
-from libc.stdlib cimport free, malloc
+from cpython.mem cimport (
+    PyMem_Free,
+    PyMem_Malloc,
+)
+from cpython.ref cimport (
+    Py_INCREF,
+    PyObject,
+)
+from libc.stdlib cimport (
+    free,
+    malloc,
+)
 
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport float64_t, ndarray, uint8_t, uint32_t
+from numpy cimport (
+    float64_t,
+    ndarray,
+    uint8_t,
+    uint32_t,
+)
 from numpy.math cimport NAN
 
 cnp.import_array()
@@ -14,45 +28,32 @@ cnp.import_array()
 
 from pandas._libs cimport util
 from pandas._libs.khash cimport (
-    kh_destroy_float64,
-    kh_destroy_int64,
-    kh_destroy_pymap,
-    kh_destroy_str,
-    kh_destroy_uint64,
-    kh_exist_float64,
-    kh_exist_int64,
-    kh_exist_pymap,
-    kh_exist_str,
-    kh_exist_uint64,
-    kh_float64_t,
-    kh_get_float64,
-    kh_get_int64,
-    kh_get_pymap,
-    kh_get_str,
-    kh_get_strbox,
-    kh_get_uint64,
-    kh_init_float64,
-    kh_init_int64,
-    kh_init_pymap,
-    kh_init_str,
-    kh_init_strbox,
-    kh_init_uint64,
-    kh_int64_t,
-    kh_put_float64,
-    kh_put_int64,
-    kh_put_pymap,
-    kh_put_str,
-    kh_put_strbox,
-    kh_put_uint64,
-    kh_resize_float64,
-    kh_resize_int64,
-    kh_resize_pymap,
-    kh_resize_str,
-    kh_resize_uint64,
+    KHASH_TRACE_DOMAIN,
+    are_equivalent_float32_t,
+    are_equivalent_float64_t,
+    are_equivalent_khcomplex64_t,
+    are_equivalent_khcomplex128_t,
+    kh_needed_n_buckets,
+    kh_python_hash_equal,
+    kh_python_hash_func,
     kh_str_t,
+    khcomplex64_t,
+    khcomplex128_t,
     khiter_t,
 )
 from pandas._libs.missing cimport checknull
+
+
+def get_hashtable_trace_domain():
+    return KHASH_TRACE_DOMAIN
+
+
+def object_hash(obj):
+    return kh_python_hash_func(obj)
+
+
+def objects_are_equal(a, b):
+    return kh_python_hash_equal(a, b)
 
 
 cdef int64_t NPY_NAT = util.get_nat()
@@ -65,30 +66,45 @@ include "hashtable_class_helper.pxi"
 include "hashtable_func_helper.pxi"
 
 cdef class Factorizer:
+    cdef readonly:
+        Py_ssize_t count
+
+    def __cinit__(self, size_hint: int):
+        self.count = 0
+
+    def get_count(self) -> int:
+        return self.count
+
+
+cdef class ObjectFactorizer(Factorizer):
     cdef public:
         PyObjectHashTable table
         ObjectVector uniques
-        Py_ssize_t count
 
-    def __init__(self, size_hint):
+    def __cinit__(self, size_hint: int):
         self.table = PyObjectHashTable(size_hint)
         self.uniques = ObjectVector()
-        self.count = 0
-
-    def get_count(self):
-        return self.count
 
     def factorize(
         self, ndarray[object] values, sort=False, na_sentinel=-1, na_value=None
-    ):
+    ) -> np.ndarray:
         """
+
+        Returns
+        -------
+        np.ndarray[np.intp]
+
         Examples
         --------
         Factorize values with nans replaced by na_sentinel
 
-        >>> factorize(np.array([1,2,np.nan], dtype='O'), na_sentinel=20)
+        >>> fac = ObjectFactorizer(3)
+        >>> fac.factorize(np.array([1,2,np.nan], dtype='O'), na_sentinel=20)
         array([ 0,  1, 20])
         """
+        cdef:
+            ndarray[intp_t] labels
+
         if self.uniques.external_view_exists:
             uniques = ObjectVector()
             uniques.extend(self.uniques.to_array())
@@ -98,8 +114,6 @@ cdef class Factorizer:
         mask = (labels == na_sentinel)
         # sort on
         if sort:
-            if labels.dtype != np.intp:
-                labels = labels.astype(np.intp)
             sorter = self.uniques.to_array().argsort()
             reverse_indexer = np.empty(len(sorter), dtype=np.intp)
             reverse_indexer.put(sorter, np.arange(len(sorter)))
@@ -108,35 +122,34 @@ cdef class Factorizer:
         self.count = len(self.uniques)
         return labels
 
-    def unique(self, ndarray[object] values):
-        # just for fun
-        return self.table.unique(values)
 
-
-cdef class Int64Factorizer:
+cdef class Int64Factorizer(Factorizer):
     cdef public:
         Int64HashTable table
         Int64Vector uniques
-        Py_ssize_t count
 
-    def __init__(self, size_hint):
+    def __cinit__(self, size_hint: int):
         self.table = Int64HashTable(size_hint)
         self.uniques = Int64Vector()
-        self.count = 0
-
-    def get_count(self):
-        return self.count
 
     def factorize(self, const int64_t[:] values, sort=False,
-                  na_sentinel=-1, na_value=None):
+                  na_sentinel=-1, na_value=None) -> np.ndarray:
         """
+        Returns
+        -------
+        ndarray[intp_t]
+
         Examples
         --------
         Factorize values with nans replaced by na_sentinel
 
-        >>> factorize(np.array([1,2,np.nan], dtype='O'), na_sentinel=20)
-        array([ 0,  1, 20])
+        >>> fac = Int64Factorizer(3)
+        >>> fac.factorize(np.array([1,2,3]), na_sentinel=20)
+        array([0, 1, 2])
         """
+        cdef:
+            ndarray[intp_t] labels
+
         if self.uniques.external_view_exists:
             uniques = Int64Vector()
             uniques.extend(self.uniques.to_array())
@@ -147,9 +160,6 @@ cdef class Int64Factorizer:
 
         # sort on
         if sort:
-            if labels.dtype != np.intp:
-                labels = labels.astype(np.intp)
-
             sorter = self.uniques.to_array().argsort()
             reverse_indexer = np.empty(len(sorter), dtype=np.intp)
             reverse_indexer.put(sorter, np.arange(len(sorter)))
@@ -162,7 +172,7 @@ cdef class Int64Factorizer:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def unique_label_indices(const int64_t[:] labels):
+def unique_label_indices(const int64_t[:] labels) -> ndarray:
     """
     Indices of the first occurrences of the unique labels
     *excluding* -1. equivalent to:
@@ -176,7 +186,7 @@ def unique_label_indices(const int64_t[:] labels):
         ndarray[int64_t, ndim=1] arr
         Int64VectorData *ud = idx.data
 
-    kh_resize_int64(table, min(n, SIZE_HINT_LIMIT))
+    kh_resize_int64(table, min(kh_needed_n_buckets(n), SIZE_HINT_LIMIT))
 
     with nogil:
         for i in range(n):

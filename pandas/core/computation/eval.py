@@ -1,23 +1,27 @@
 """
 Top level ``eval`` module.
 """
+from __future__ import annotations
 
 import tokenize
-from typing import Optional
 import warnings
 
 from pandas._libs.lib import no_default
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.computation.engines import ENGINES
-from pandas.core.computation.expr import PARSERS, Expr
+from pandas.core.computation.expr import (
+    PARSERS,
+    Expr,
+)
+from pandas.core.computation.ops import BinOp
 from pandas.core.computation.parsing import tokenize_string
 from pandas.core.computation.scope import ensure_scope
 
 from pandas.io.formats.printing import pprint_thing
 
 
-def _check_engine(engine: Optional[str]) -> str:
+def _check_engine(engine: str | None) -> str:
     """
     Make sure a valid engine is passed.
 
@@ -39,9 +43,10 @@ def _check_engine(engine: Optional[str]) -> str:
         Engine name.
     """
     from pandas.core.computation.check import NUMEXPR_INSTALLED
+    from pandas.core.computation.expressions import USE_NUMEXPR
 
     if engine is None:
-        engine = "numexpr" if NUMEXPR_INSTALLED else "python"
+        engine = "numexpr" if USE_NUMEXPR else "python"
 
     if engine not in ENGINES:
         valid_engines = list(ENGINES.keys())
@@ -52,12 +57,11 @@ def _check_engine(engine: Optional[str]) -> str:
     # TODO: validate this in a more general way (thinking of future engines
     # that won't necessarily be import-able)
     # Could potentially be done on engine instantiation
-    if engine == "numexpr":
-        if not NUMEXPR_INSTALLED:
-            raise ImportError(
-                "'numexpr' is not installed or an unsupported version. Cannot use "
-                "engine='numexpr' for query/eval if 'numexpr' is not installed"
-            )
+    if engine == "numexpr" and not NUMEXPR_INSTALLED:
+        raise ImportError(
+            "'numexpr' is not installed or an unsupported version. Cannot use "
+            "engine='numexpr' for query/eval if 'numexpr' is not installed"
+        )
 
     return engine
 
@@ -159,9 +163,9 @@ def _check_for_locals(expr: str, stack_level: int, parser: str):
 
 
 def eval(
-    expr,
-    parser="pandas",
-    engine: Optional[str] = None,
+    expr: str | BinOp,  # we leave BinOp out of the docstr bc it isn't for users
+    parser: str = "pandas",
+    engine: str | None = None,
     truediv=no_default,
     local_dict=None,
     global_dict=None,
@@ -212,7 +216,8 @@ def eval(
 
     truediv : bool, optional
         Whether to use true division, like in Python >= 3.
-        deprecated:: 1.0.0
+
+        .. deprecated:: 1.0.0
 
     local_dict : dict or None, optional
         A dictionary of local variables, taken from locals() by default.
@@ -241,7 +246,8 @@ def eval(
 
     Returns
     -------
-    ndarray, numeric scalar, DataFrame, Series
+    ndarray, numeric scalar, DataFrame, Series, or None
+        The completion value of evaluating the given code or None if ``inplace=True``.
 
     Raises
     ------
@@ -305,10 +311,12 @@ def eval(
             stacklevel=2,
         )
 
+    exprs: list[str | BinOp]
     if isinstance(expr, str):
         _check_expression(expr)
         exprs = [e.strip() for e in expr.splitlines() if e.strip() != ""]
     else:
+        # ops.BinOp; for internal compat, not intended to be passed by users
         exprs = [expr]
     multi_line = len(exprs) > 1
 

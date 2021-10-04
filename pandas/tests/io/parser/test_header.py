@@ -11,10 +11,18 @@ import pytest
 
 from pandas.errors import ParserError
 
-from pandas import DataFrame, Index, MultiIndex
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+)
 import pandas._testing as tm
 
+# TODO(1.4): Change me to xfails at release time
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
+
+@skip_pyarrow
 def test_read_with_bad_header(all_parsers):
     parser = all_parsers
     msg = r"but only \d+ lines in file"
@@ -82,6 +90,7 @@ def test_no_header_prefix(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 def test_header_with_index_col(all_parsers):
     parser = all_parsers
     data = """foo,1,2,3
@@ -119,6 +128,7 @@ baz,12,13,14,15
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 def test_header_multi_index(all_parsers):
     parser = all_parsers
     expected = tm.makeCustomDataframe(5, 3, r_idx_nlevels=2, c_idx_nlevels=4)
@@ -144,7 +154,7 @@ R_l0_g4,R_l1_g4,R4C0,R4C1,R4C2
     "kwargs,msg",
     [
         (
-            dict(index_col=["foo", "bar"]),
+            {"index_col": ["foo", "bar"]},
             (
                 "index_col must only contain "
                 "row numbers when specifying "
@@ -152,11 +162,11 @@ R_l0_g4,R_l1_g4,R4C0,R4C1,R4C2
             ),
         ),
         (
-            dict(index_col=[0, 1], names=["foo", "bar"]),
+            {"index_col": [0, 1], "names": ["foo", "bar"]},
             ("cannot specify names when specifying a multi-index header"),
         ),
         (
-            dict(index_col=[0, 1], usecols=["foo", "bar"]),
+            {"index_col": [0, 1], "usecols": ["foo", "bar"]},
             ("cannot specify usecols when specifying a multi-index header"),
         ),
     ],
@@ -181,16 +191,17 @@ R_l0_g4,R_l1_g4,R4C0,R4C1,R4C2
         parser.read_csv(StringIO(data), header=[0, 1, 2, 3], **kwargs)
 
 
-_TestTuple = namedtuple("names", ["first", "second"])
+_TestTuple = namedtuple("_TestTuple", ["first", "second"])
 
 
+@skip_pyarrow
 @pytest.mark.parametrize(
     "kwargs",
     [
-        dict(header=[0, 1]),
-        dict(
-            skiprows=3,
-            names=[
+        {"header": [0, 1]},
+        {
+            "skiprows": 3,
+            "names": [
                 ("a", "q"),
                 ("a", "r"),
                 ("a", "s"),
@@ -198,10 +209,10 @@ _TestTuple = namedtuple("names", ["first", "second"])
                 ("c", "u"),
                 ("c", "v"),
             ],
-        ),
-        dict(
-            skiprows=3,
-            names=[
+        },
+        {
+            "skiprows": 3,
+            "names": [
                 _TestTuple("a", "q"),
                 _TestTuple("a", "r"),
                 _TestTuple("a", "s"),
@@ -209,7 +220,7 @@ _TestTuple = namedtuple("names", ["first", "second"])
                 _TestTuple("c", "u"),
                 _TestTuple("c", "v"),
             ],
-        ),
+        },
     ],
 )
 def test_header_multi_index_common_format1(all_parsers, kwargs):
@@ -231,13 +242,14 @@ two,7,8,9,10,11,12"""
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 @pytest.mark.parametrize(
     "kwargs",
     [
-        dict(header=[0, 1]),
-        dict(
-            skiprows=2,
-            names=[
+        {"header": [0, 1]},
+        {
+            "skiprows": 2,
+            "names": [
                 ("a", "q"),
                 ("a", "r"),
                 ("a", "s"),
@@ -245,10 +257,10 @@ two,7,8,9,10,11,12"""
                 ("c", "u"),
                 ("c", "v"),
             ],
-        ),
-        dict(
-            skiprows=2,
-            names=[
+        },
+        {
+            "skiprows": 2,
+            "names": [
                 _TestTuple("a", "q"),
                 _TestTuple("a", "r"),
                 _TestTuple("a", "s"),
@@ -256,7 +268,7 @@ two,7,8,9,10,11,12"""
                 _TestTuple("c", "u"),
                 _TestTuple("c", "v"),
             ],
-        ),
+        },
     ],
 )
 def test_header_multi_index_common_format2(all_parsers, kwargs):
@@ -277,13 +289,14 @@ two,7,8,9,10,11,12"""
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 @pytest.mark.parametrize(
     "kwargs",
     [
-        dict(header=[0, 1]),
-        dict(
-            skiprows=2,
-            names=[
+        {"header": [0, 1]},
+        {
+            "skiprows": 2,
+            "names": [
                 ("a", "q"),
                 ("a", "r"),
                 ("a", "s"),
@@ -291,10 +304,10 @@ two,7,8,9,10,11,12"""
                 ("c", "u"),
                 ("c", "v"),
             ],
-        ),
-        dict(
-            skiprows=2,
-            names=[
+        },
+        {
+            "skiprows": 2,
+            "names": [
                 _TestTuple("a", "q"),
                 _TestTuple("a", "r"),
                 _TestTuple("a", "s"),
@@ -302,7 +315,7 @@ two,7,8,9,10,11,12"""
                 _TestTuple("c", "u"),
                 _TestTuple("c", "v"),
             ],
-        ),
+        },
     ],
 )
 def test_header_multi_index_common_format3(all_parsers, kwargs):
@@ -324,6 +337,7 @@ q,r,s,t,u,v
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 def test_header_multi_index_common_format_malformed1(all_parsers):
     parser = all_parsers
     expected = DataFrame(
@@ -344,6 +358,7 @@ q,r,s,t,u,v
     tm.assert_frame_equal(expected, result)
 
 
+@skip_pyarrow
 def test_header_multi_index_common_format_malformed2(all_parsers):
     parser = all_parsers
     expected = DataFrame(
@@ -365,6 +380,7 @@ q,r,s,t,u,v
     tm.assert_frame_equal(expected, result)
 
 
+@skip_pyarrow
 def test_header_multi_index_common_format_malformed3(all_parsers):
     parser = all_parsers
     expected = DataFrame(
@@ -385,6 +401,19 @@ q,r,s,t,u,v
     tm.assert_frame_equal(expected, result)
 
 
+@skip_pyarrow
+def test_header_multi_index_blank_line(all_parsers):
+    # GH 40442
+    parser = all_parsers
+    data = [[None, None], [1, 2], [3, 4]]
+    columns = MultiIndex.from_tuples([("a", "A"), ("b", "B")])
+    expected = DataFrame(data, columns=columns)
+    data = "a,b\nA,B\n,\n1,2\n3,4"
+    result = parser.read_csv(StringIO(data), header=[0, 1])
+    tm.assert_frame_equal(expected, result)
+
+
+@skip_pyarrow
 @pytest.mark.parametrize(
     "data,header", [("1,2,3\n4,5,6", None), ("foo,bar,baz\n1,2,3\n4,5,6", 0)]
 )
@@ -397,7 +426,8 @@ def test_header_names_backward_compat(all_parsers, data, header):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("kwargs", [dict(), dict(index_col=False)])
+@skip_pyarrow
+@pytest.mark.parametrize("kwargs", [{}, {"index_col": False}])
 def test_read_only_header_no_rows(all_parsers, kwargs):
     # See gh-7773
     parser = all_parsers
@@ -410,10 +440,10 @@ def test_read_only_header_no_rows(all_parsers, kwargs):
 @pytest.mark.parametrize(
     "kwargs,names",
     [
-        (dict(), [0, 1, 2, 3, 4]),
-        (dict(prefix="X"), ["X0", "X1", "X2", "X3", "X4"]),
+        ({}, [0, 1, 2, 3, 4]),
+        ({"prefix": "X"}, ["X0", "X1", "X2", "X3", "X4"]),
         (
-            dict(names=["foo", "bar", "baz", "quux", "panda"]),
+            {"names": ["foo", "bar", "baz", "quux", "panda"]},
             ["foo", "bar", "baz", "quux", "panda"],
         ),
     ],
@@ -442,6 +472,7 @@ def test_non_int_header(all_parsers, header):
         parser.read_csv(StringIO(data), header=header)
 
 
+@skip_pyarrow
 def test_singleton_header(all_parsers):
     # see gh-7757
     data = """a,b,c\n0,1,2\n1,2,3"""
@@ -452,6 +483,7 @@ def test_singleton_header(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 @pytest.mark.parametrize(
     "data,expected",
     [
@@ -498,6 +530,7 @@ def test_mangles_multi_index(all_parsers, data, expected):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 @pytest.mark.parametrize("index_col", [None, [0]])
 @pytest.mark.parametrize(
     "columns", [None, (["", "Unnamed"]), (["Unnamed", ""]), (["Unnamed", "NotUnnamed"])]
@@ -541,6 +574,7 @@ def test_multi_index_unnamed(all_parsers, index_col, columns):
         tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 def test_read_csv_multiindex_columns(all_parsers):
     # GH#6051
     parser = all_parsers
@@ -570,3 +604,19 @@ def test_read_csv_multiindex_columns(all_parsers):
     tm.assert_frame_equal(df1, expected.iloc[:1])
     df2 = parser.read_csv(StringIO(s2), header=[0, 1])
     tm.assert_frame_equal(df2, expected)
+
+
+@skip_pyarrow
+def test_read_csv_multi_header_length_check(all_parsers):
+    # GH#43102
+    parser = all_parsers
+
+    case = """row11,row12,row13
+row21,row22, row23
+row31,row32
+"""
+
+    with pytest.raises(
+        ParserError, match="Header rows must have an equal number of columns."
+    ):
+        parser.read_csv(StringIO(case), header=[0, 2])

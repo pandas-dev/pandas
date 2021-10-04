@@ -2,7 +2,11 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Index, MultiIndex, Series
+from pandas import (
+    Index,
+    MultiIndex,
+    Series,
+)
 import pandas._testing as tm
 
 
@@ -10,6 +14,8 @@ def test_equals(idx):
     assert idx.equals(idx)
     assert idx.equals(idx.copy())
     assert idx.equals(idx.astype(object))
+    assert idx.equals(idx.to_flat_index())
+    assert idx.equals(idx.to_flat_index().astype("category"))
 
     assert not idx.equals(list(idx))
     assert not idx.equals(np.array(idx))
@@ -20,7 +26,7 @@ def test_equals(idx):
 
     if idx.nlevels == 1:
         # do not test MultiIndex
-        assert not idx.equals(pd.Series(idx))
+        assert not idx.equals(Series(idx))
 
 
 def test_equals_op(idx):
@@ -84,6 +90,46 @@ def test_equals_op(idx):
         tm.assert_series_equal(series_a == item, Series(expected3))
 
 
+def test_compare_tuple():
+    # GH#21517
+    mi = MultiIndex.from_product([[1, 2]] * 2)
+
+    all_false = np.array([False, False, False, False])
+
+    result = mi == mi[0]
+    expected = np.array([True, False, False, False])
+    tm.assert_numpy_array_equal(result, expected)
+
+    result = mi != mi[0]
+    tm.assert_numpy_array_equal(result, ~expected)
+
+    result = mi < mi[0]
+    tm.assert_numpy_array_equal(result, all_false)
+
+    result = mi <= mi[0]
+    tm.assert_numpy_array_equal(result, expected)
+
+    result = mi > mi[0]
+    tm.assert_numpy_array_equal(result, ~expected)
+
+    result = mi >= mi[0]
+    tm.assert_numpy_array_equal(result, ~all_false)
+
+
+def test_compare_tuple_strs():
+    # GH#34180
+
+    mi = MultiIndex.from_tuples([("a", "b"), ("b", "c"), ("c", "a")])
+
+    result = mi == ("c", "a")
+    expected = np.array([False, False, True])
+    tm.assert_numpy_array_equal(result, expected)
+
+    result = mi == ("c",)
+    expected = np.array([False, False, False])
+    tm.assert_numpy_array_equal(result, expected)
+
+
 def test_equals_multi(idx):
     assert idx.equals(idx)
     assert not idx.equals(idx.values)
@@ -145,10 +191,16 @@ def test_identical(idx):
     mi2 = mi2.set_names(["new1", "new2"])
     assert mi.identical(mi2)
 
-    mi3 = Index(mi.tolist(), names=mi.names)
+    with tm.assert_produces_warning(FutureWarning):
+        # subclass-specific keywords to pd.Index
+        mi3 = Index(mi.tolist(), names=mi.names)
+
     msg = r"Unexpected keyword arguments {'names'}"
     with pytest.raises(TypeError, match=msg):
-        Index(mi.tolist(), names=mi.names, tupleize_cols=False)
+        with tm.assert_produces_warning(FutureWarning):
+            # subclass-specific keywords to pd.Index
+            Index(mi.tolist(), names=mi.names, tupleize_cols=False)
+
     mi4 = Index(mi.tolist(), tupleize_cols=False)
     assert mi.identical(mi3)
     assert not mi.identical(mi4)
@@ -162,11 +214,21 @@ def test_equals_operator(idx):
 
 def test_equals_missing_values():
     # make sure take is not using -1
-    i = pd.MultiIndex.from_tuples([(0, pd.NaT), (0, pd.Timestamp("20130101"))])
+    i = MultiIndex.from_tuples([(0, pd.NaT), (0, pd.Timestamp("20130101"))])
     result = i[0:1].equals(i[0])
     assert not result
     result = i[1:2].equals(i[1])
     assert not result
+
+
+def test_equals_missing_values_differently_sorted():
+    # GH#38439
+    mi1 = MultiIndex.from_tuples([(81.0, np.nan), (np.nan, np.nan)])
+    mi2 = MultiIndex.from_tuples([(np.nan, np.nan), (81.0, np.nan)])
+    assert not mi1.equals(mi2)
+
+    mi2 = MultiIndex.from_tuples([(81.0, np.nan), (np.nan, np.nan)])
+    assert mi1.equals(mi2)
 
 
 def test_is_():
@@ -202,7 +264,7 @@ def test_is_():
 
 
 def test_is_all_dates(idx):
-    assert not idx.is_all_dates
+    assert not idx._is_all_dates
 
 
 def test_is_numeric(idx):
@@ -215,14 +277,14 @@ def test_multiindex_compare():
     # Ensure comparison operations for MultiIndex with nlevels == 1
     # behave consistently with those for MultiIndex with nlevels > 1
 
-    midx = pd.MultiIndex.from_product([[0, 1]])
+    midx = MultiIndex.from_product([[0, 1]])
 
     # Equality self-test: MultiIndex object vs self
-    expected = pd.Series([True, True])
-    result = pd.Series(midx == midx)
+    expected = Series([True, True])
+    result = Series(midx == midx)
     tm.assert_series_equal(result, expected)
 
     # Greater than comparison: MultiIndex object vs self
-    expected = pd.Series([False, False])
-    result = pd.Series(midx > midx)
+    expected = Series([False, False])
+    result = Series(midx > midx)
     tm.assert_series_equal(result, expected)

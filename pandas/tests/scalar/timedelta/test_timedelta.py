@@ -4,10 +4,19 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import NaT, iNaT
+from pandas._libs import lib
+from pandas._libs.tslibs import (
+    NaT,
+    iNaT,
+)
 
 import pandas as pd
-from pandas import Timedelta, TimedeltaIndex, offsets, to_timedelta
+from pandas import (
+    Timedelta,
+    TimedeltaIndex,
+    offsets,
+    to_timedelta,
+)
 import pandas._testing as tm
 
 
@@ -160,108 +169,117 @@ class TestTimedeltas:
         assert result.astype("int64") == iNaT
 
     @pytest.mark.parametrize(
-        "units, np_unit",
-        [
-            (["W", "w"], "W"),
-            (["D", "d", "days", "day", "Days", "Day"], "D"),
-            (
-                ["m", "minute", "min", "minutes", "t", "Minute", "Min", "Minutes", "T"],
+        "unit, np_unit",
+        [(value, "W") for value in ["W", "w"]]
+        + [(value, "D") for value in ["D", "d", "days", "day", "Days", "Day"]]
+        + [
+            (value, "m")
+            for value in [
                 "m",
-            ),
-            (["s", "seconds", "sec", "second", "S", "Seconds", "Sec", "Second"], "s"),
-            (
-                [
-                    "ms",
-                    "milliseconds",
-                    "millisecond",
-                    "milli",
-                    "millis",
-                    "l",
-                    "MS",
-                    "Milliseconds",
-                    "Millisecond",
-                    "Milli",
-                    "Millis",
-                    "L",
-                ],
+                "minute",
+                "min",
+                "minutes",
+                "t",
+                "Minute",
+                "Min",
+                "Minutes",
+                "T",
+            ]
+        ]
+        + [
+            (value, "s")
+            for value in [
+                "s",
+                "seconds",
+                "sec",
+                "second",
+                "S",
+                "Seconds",
+                "Sec",
+                "Second",
+            ]
+        ]
+        + [
+            (value, "ms")
+            for value in [
                 "ms",
-            ),
-            (
-                [
-                    "us",
-                    "microseconds",
-                    "microsecond",
-                    "micro",
-                    "micros",
-                    "u",
-                    "US",
-                    "Microseconds",
-                    "Microsecond",
-                    "Micro",
-                    "Micros",
-                    "U",
-                ],
+                "milliseconds",
+                "millisecond",
+                "milli",
+                "millis",
+                "l",
+                "MS",
+                "Milliseconds",
+                "Millisecond",
+                "Milli",
+                "Millis",
+                "L",
+            ]
+        ]
+        + [
+            (value, "us")
+            for value in [
                 "us",
-            ),
-            (
-                [
-                    "ns",
-                    "nanoseconds",
-                    "nanosecond",
-                    "nano",
-                    "nanos",
-                    "n",
-                    "NS",
-                    "Nanoseconds",
-                    "Nanosecond",
-                    "Nano",
-                    "Nanos",
-                    "N",
-                ],
+                "microseconds",
+                "microsecond",
+                "micro",
+                "micros",
+                "u",
+                "US",
+                "Microseconds",
+                "Microsecond",
+                "Micro",
+                "Micros",
+                "U",
+            ]
+        ]
+        + [
+            (value, "ns")
+            for value in [
                 "ns",
-            ),
+                "nanoseconds",
+                "nanosecond",
+                "nano",
+                "nanos",
+                "n",
+                "NS",
+                "Nanoseconds",
+                "Nanosecond",
+                "Nano",
+                "Nanos",
+                "N",
+            ]
         ],
     )
     @pytest.mark.parametrize("wrapper", [np.array, list, pd.Index])
-    def test_unit_parser(self, units, np_unit, wrapper):
+    def test_unit_parser(self, unit, np_unit, wrapper):
         # validate all units, GH 6855, GH 21762
-        for unit in units:
-            # array-likes
-            expected = TimedeltaIndex(
-                [np.timedelta64(i, np_unit) for i in np.arange(5).tolist()]
-            )
-            result = to_timedelta(wrapper(range(5)), unit=unit)
-            tm.assert_index_equal(result, expected)
-            result = TimedeltaIndex(wrapper(range(5)), unit=unit)
-            tm.assert_index_equal(result, expected)
+        # array-likes
+        expected = TimedeltaIndex(
+            [np.timedelta64(i, np_unit) for i in np.arange(5).tolist()]
+        )
+        result = to_timedelta(wrapper(range(5)), unit=unit)
+        tm.assert_index_equal(result, expected)
+        result = TimedeltaIndex(wrapper(range(5)), unit=unit)
+        tm.assert_index_equal(result, expected)
 
-            if unit == "M":
-                # M is treated as minutes in string repr
-                expected = TimedeltaIndex(
-                    [np.timedelta64(i, "m") for i in np.arange(5).tolist()]
-                )
+        str_repr = [f"{x}{unit}" for x in np.arange(5)]
+        result = to_timedelta(wrapper(str_repr))
+        tm.assert_index_equal(result, expected)
+        result = to_timedelta(wrapper(str_repr))
+        tm.assert_index_equal(result, expected)
 
-            str_repr = [f"{x}{unit}" for x in np.arange(5)]
-            result = to_timedelta(wrapper(str_repr))
-            tm.assert_index_equal(result, expected)
-            result = TimedeltaIndex(wrapper(str_repr))
-            tm.assert_index_equal(result, expected)
+        # scalar
+        expected = Timedelta(np.timedelta64(2, np_unit).astype("timedelta64[ns]"))
+        result = to_timedelta(2, unit=unit)
+        assert result == expected
+        result = Timedelta(2, unit=unit)
+        assert result == expected
 
-            # scalar
-            expected = Timedelta(np.timedelta64(2, np_unit).astype("timedelta64[ns]"))
-
-            result = to_timedelta(2, unit=unit)
-            assert result == expected
-            result = Timedelta(2, unit=unit)
-            assert result == expected
-
-            if unit == "M":
-                expected = Timedelta(np.timedelta64(2, "m").astype("timedelta64[ns]"))
-
-            result = to_timedelta(f"2{unit}")
-            assert result == expected
-            result = Timedelta(f"2{unit}")
-            assert result == expected
+        result = to_timedelta(f"2{unit}")
+        assert result == expected
+        result = Timedelta(f"2{unit}")
+        assert result == expected
 
     @pytest.mark.parametrize("unit", ["Y", "y", "M"])
     def test_unit_m_y_raises(self, unit):
@@ -347,6 +365,67 @@ class TestTimedeltas:
         ]:
             with pytest.raises(ValueError, match=msg):
                 t1.round(freq)
+
+    def test_round_implementation_bounds(self):
+        # See also: analogous test for Timestamp
+        # GH#38964
+        result = Timedelta.min.ceil("s")
+        expected = Timedelta.min + Timedelta(seconds=1) - Timedelta(145224193)
+        assert result == expected
+
+        result = Timedelta.max.floor("s")
+        expected = Timedelta.max - Timedelta(854775807)
+        assert result == expected
+
+        with pytest.raises(OverflowError, match="value too large"):
+            Timedelta.min.floor("s")
+
+        # the second message here shows up in windows builds
+        msg = "|".join(
+            ["Python int too large to convert to C long", "int too big to convert"]
+        )
+        with pytest.raises(OverflowError, match=msg):
+            Timedelta.max.ceil("s")
+
+    @pytest.mark.parametrize("n", range(100))
+    @pytest.mark.parametrize(
+        "method", [Timedelta.round, Timedelta.floor, Timedelta.ceil]
+    )
+    def test_round_sanity(self, method, n, request):
+        val = np.random.randint(iNaT + 1, lib.i8max, dtype=np.int64)
+        td = Timedelta(val)
+
+        assert method(td, "ns") == td
+
+        res = method(td, "us")
+        nanos = 1000
+        assert np.abs((res - td).value) < nanos
+        assert res.value % nanos == 0
+
+        res = method(td, "ms")
+        nanos = 1_000_000
+        assert np.abs((res - td).value) < nanos
+        assert res.value % nanos == 0
+
+        res = method(td, "s")
+        nanos = 1_000_000_000
+        assert np.abs((res - td).value) < nanos
+        assert res.value % nanos == 0
+
+        res = method(td, "min")
+        nanos = 60 * 1_000_000_000
+        assert np.abs((res - td).value) < nanos
+        assert res.value % nanos == 0
+
+        res = method(td, "h")
+        nanos = 60 * 60 * 1_000_000_000
+        assert np.abs((res - td).value) < nanos
+        assert res.value % nanos == 0
+
+        res = method(td, "D")
+        nanos = 24 * 60 * 60 * 1_000_000_000
+        assert np.abs((res - td).value) < nanos
+        assert res.value % nanos == 0
 
     def test_contains(self):
         # Checking for any NaT-like objects
@@ -473,8 +552,8 @@ class TestTimedeltas:
 
         # GH 12727
         # timedelta limits correspond to int64 boundaries
-        assert min_td.value == np.iinfo(np.int64).min + 1
-        assert max_td.value == np.iinfo(np.int64).max
+        assert min_td.value == iNaT + 1
+        assert max_td.value == lib.i8max
 
         # Beyond lower limit, a NAT before the Overflow
         assert (min_td - Timedelta(1, "ns")) is NaT

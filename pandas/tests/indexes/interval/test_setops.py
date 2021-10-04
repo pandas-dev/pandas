@@ -1,13 +1,13 @@
 import numpy as np
 import pytest
 
-from pandas import Index, IntervalIndex, Timestamp, interval_range
+from pandas import (
+    Index,
+    IntervalIndex,
+    Timestamp,
+    interval_range,
+)
 import pandas._testing as tm
-
-
-@pytest.fixture(scope="class", params=[None, "foo"])
-def name(request):
-    return request.param
 
 
 def monotonic_index(start, end, dtype="int64", closed="right"):
@@ -37,15 +37,27 @@ class TestIntervalIndex:
         tm.assert_index_equal(index.union(index, sort=sort), index)
         tm.assert_index_equal(index.union(index[:1], sort=sort), index)
 
+    def test_union_empty_result(self, closed, sort):
         # GH 19101: empty result, same dtype
         index = empty_index(dtype="int64", closed=closed)
         result = index.union(index, sort=sort)
         tm.assert_index_equal(result, index)
 
-        # GH 19101: empty result, different dtypes
+        # GH 19101: empty result, different numeric dtypes -> common dtype is f8
         other = empty_index(dtype="float64", closed=closed)
         result = index.union(other, sort=sort)
-        tm.assert_index_equal(result, index)
+        expected = other
+        tm.assert_index_equal(result, expected)
+
+        other = index.union(index, sort=sort)
+        tm.assert_index_equal(result, expected)
+
+        other = empty_index(dtype="uint64", closed=closed)
+        result = index.union(other, sort=sort)
+        tm.assert_index_equal(result, expected)
+
+        result = other.union(index, sort=sort)
+        tm.assert_index_equal(result, expected)
 
     def test_intersection(self, closed, sort):
         index = monotonic_index(0, 11, closed=closed)
@@ -64,28 +76,10 @@ class TestIntervalIndex:
 
         tm.assert_index_equal(index.intersection(index, sort=sort), index)
 
-        # GH 19101: empty result, same dtype
-        other = monotonic_index(300, 314, closed=closed)
-        expected = empty_index(dtype="int64", closed=closed)
-        result = index.intersection(other, sort=sort)
-        tm.assert_index_equal(result, expected)
-
-        # GH 19101: empty result, different dtypes
-        other = monotonic_index(300, 314, dtype="float64", closed=closed)
-        result = index.intersection(other, sort=sort)
-        tm.assert_index_equal(result, expected)
-
         # GH 26225: nested intervals
         index = IntervalIndex.from_tuples([(1, 2), (1, 3), (1, 4), (0, 2)])
         other = IntervalIndex.from_tuples([(1, 2), (1, 3)])
         expected = IntervalIndex.from_tuples([(1, 2), (1, 3)])
-        result = index.intersection(other)
-        tm.assert_index_equal(result, expected)
-
-        # GH 26225: duplicate element
-        index = IntervalIndex.from_tuples([(1, 2), (1, 2), (2, 3), (3, 4)])
-        other = IntervalIndex.from_tuples([(1, 2), (2, 3)])
-        expected = IntervalIndex.from_tuples([(1, 2), (1, 2), (2, 3)])
         result = index.intersection(other)
         tm.assert_index_equal(result, expected)
 
@@ -100,6 +94,33 @@ class TestIntervalIndex:
         index = IntervalIndex([np.nan, np.nan])
         other = IntervalIndex([np.nan])
         expected = IntervalIndex([np.nan])
+        result = index.intersection(other)
+        tm.assert_index_equal(result, expected)
+
+    def test_intersection_empty_result(self, closed, sort):
+        index = monotonic_index(0, 11, closed=closed)
+
+        # GH 19101: empty result, same dtype
+        other = monotonic_index(300, 314, closed=closed)
+        expected = empty_index(dtype="int64", closed=closed)
+        result = index.intersection(other, sort=sort)
+        tm.assert_index_equal(result, expected)
+
+        # GH 19101: empty result, different numeric dtypes -> common dtype is float64
+        other = monotonic_index(300, 314, dtype="float64", closed=closed)
+        result = index.intersection(other, sort=sort)
+        expected = other[:0]
+        tm.assert_index_equal(result, expected)
+
+        other = monotonic_index(300, 314, dtype="uint64", closed=closed)
+        result = index.intersection(other, sort=sort)
+        tm.assert_index_equal(result, expected)
+
+    def test_intersection_duplicates(self):
+        # GH#38743
+        index = IntervalIndex.from_tuples([(1, 2), (1, 2), (2, 3), (3, 4)])
+        other = IntervalIndex.from_tuples([(1, 2), (2, 3)])
+        expected = IntervalIndex.from_tuples([(1, 2), (2, 3)])
         result = index.intersection(other)
         tm.assert_index_equal(result, expected)
 
@@ -143,8 +164,10 @@ class TestIntervalIndex:
             index.left.astype("float64"), index.right, closed=closed
         )
         result = index.symmetric_difference(other, sort=sort)
+        expected = empty_index(dtype="float64", closed=closed)
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:'<' not supported between:RuntimeWarning")
     @pytest.mark.parametrize(
         "op_name", ["union", "intersection", "difference", "symmetric_difference"]
     )
@@ -161,21 +184,19 @@ class TestIntervalIndex:
         result = set_op(Index([1, 2, 3]), sort=sort)
         tm.assert_index_equal(result, expected)
 
-        # mixed closed
-        msg = (
-            "can only do set operations between two IntervalIndex objects "
-            "that are closed on the same side"
-        )
+        # mixed closed -> cast to object
         for other_closed in {"right", "left", "both", "neither"} - {closed}:
             other = monotonic_index(0, 11, closed=other_closed)
-            with pytest.raises(ValueError, match=msg):
-                set_op(other, sort=sort)
+            expected = getattr(index.astype(object), op_name)(other, sort=sort)
+            if op_name == "difference":
+                expected = index
+            result = set_op(other, sort=sort)
+            tm.assert_index_equal(result, expected)
 
-        # GH 19016: incompatible dtypes
+        # GH 19016: incompatible dtypes -> cast to object
         other = interval_range(Timestamp("20180101"), periods=9, closed=closed)
-        msg = (
-            f"can only do {op_name} between two IntervalIndex objects that have "
-            "compatible dtypes"
-        )
-        with pytest.raises(TypeError, match=msg):
-            set_op(other, sort=sort)
+        expected = getattr(index.astype(object), op_name)(other, sort=sort)
+        if op_name == "difference":
+            expected = index
+        result = set_op(other, sort=sort)
+        tm.assert_index_equal(result, expected)

@@ -3,26 +3,17 @@ import pytz
 
 from pandas._libs.tslibs import timezones
 
-from pandas import DatetimeIndex, NaT, Series, Timestamp, date_range
+from pandas import (
+    DatetimeIndex,
+    NaT,
+    Series,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 
 
 class TestTZLocalize:
-    def test_series_tz_localize(self):
-
-        rng = date_range("1/1/2011", periods=100, freq="H")
-        ts = Series(1, index=rng)
-
-        result = ts.tz_localize("utc")
-        assert result.index.tz.zone == "UTC"
-
-        # Can't localize if already tz-aware
-        rng = date_range("1/1/2011", periods=100, freq="H", tz="utc")
-        ts = Series(1, index=rng)
-
-        with pytest.raises(TypeError, match="Already tz-aware"):
-            ts.tz_localize("US/Eastern")
-
     def test_series_tz_localize_ambiguous_bool(self):
         # make sure that we are correctly accepting bool values as ambiguous
 
@@ -49,6 +40,23 @@ class TestTZLocalize:
 
         result = ser.dt.tz_localize("US/Central", ambiguous=[False])
         tm.assert_series_equal(result, expected1)
+
+    def test_series_tz_localize_matching_index(self):
+        # Matching the index of the result with that of the original series
+        # GH 43080
+        dt_series = Series(
+            date_range(start="2021-01-01T02:00:00", periods=5, freq="1D"),
+            index=[2, 6, 7, 8, 11],
+            dtype="category",
+        )
+        result = dt_series.dt.tz_localize("Europe/Berlin")
+        expected = Series(
+            date_range(
+                start="2021-01-01T02:00:00", periods=5, freq="1D", tz="Europe/Berlin"
+            ),
+            index=[2, 6, 7, 8, 11],
+        )
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("tz", ["Europe/Warsaw", "dateutil/Europe/Warsaw"])
     @pytest.mark.parametrize(

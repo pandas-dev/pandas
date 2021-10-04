@@ -3,7 +3,10 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    Series,
+)
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import period_range
 
@@ -31,12 +34,6 @@ resample_methods = downsample_methods + upsample_methods + series_methods
 @pytest.fixture(params=downsample_methods)
 def downsample_method(request):
     """Fixture for parametrization of Grouper downsample methods."""
-    return request.param
-
-
-@pytest.fixture(params=upsample_methods)
-def upsample_method(request):
-    """Fixture for parametrization of Grouper upsample methods."""
     return request.param
 
 

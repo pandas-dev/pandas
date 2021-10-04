@@ -1,9 +1,16 @@
 from datetime import timedelta
+from itertools import product
 
 import numpy as np
 import pytest
 
-from pandas import Timedelta, offsets, to_timedelta
+from pandas._libs.tslibs import OutOfBoundsTimedelta
+
+from pandas import (
+    Timedelta,
+    offsets,
+    to_timedelta,
+)
 
 
 def test_construction():
@@ -193,8 +200,44 @@ def test_overflow_on_construction():
     with pytest.raises(OverflowError, match=msg):
         Timedelta(7 * 19999, unit="D")
 
-    with pytest.raises(OverflowError, match=msg):
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
         Timedelta(timedelta(days=13 * 19999))
+
+
+@pytest.mark.parametrize(
+    "val, unit, name",
+    [
+        (3508, "M", " months"),
+        (15251, "W", " weeks"),  # 1
+        (106752, "D", " days"),  # change from previous:
+        (2562048, "h", " hours"),  # 0 hours
+        (153722868, "m", " minutes"),  # 13 minutes
+        (9223372037, "s", " seconds"),  # 44 seconds
+    ],
+)
+def test_construction_out_of_bounds_td64(val, unit, name):
+    # TODO: parametrize over units just above/below the implementation bounds
+    #  once GH#38964 is resolved
+
+    # Timedelta.max is just under 106752 days
+    td64 = np.timedelta64(val, unit)
+    assert td64.astype("m8[ns]").view("i8") < 0  # i.e. naive astype will be wrong
+
+    msg = str(val) + name
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        Timedelta(td64)
+
+    # But just back in bounds and we are OK
+    assert Timedelta(td64 - 1) == td64 - 1
+
+    td64 *= -1
+    assert td64.astype("m8[ns]").view("i8") > 0  # i.e. naive astype will be wrong
+
+    with pytest.raises(OutOfBoundsTimedelta, match="-" + msg):
+        Timedelta(td64)
+
+    # But just back in bounds and we are OK
+    assert Timedelta(td64 + 1) == td64 + 1
 
 
 @pytest.mark.parametrize(
@@ -228,6 +271,17 @@ def test_overflow_on_construction():
         ("P0DT0H0M0.001S", Timedelta(milliseconds=1)),
         ("P0DT0H1M0S", Timedelta(minutes=1)),
         ("P1DT25H61M61S", Timedelta(days=1, hours=25, minutes=61, seconds=61)),
+        ("PT1S", Timedelta(seconds=1)),
+        ("PT0S", Timedelta(seconds=0)),
+        ("P1WT0S", Timedelta(days=7, seconds=0)),
+        ("P1D", Timedelta(days=1)),
+        ("P1DT1H", Timedelta(days=1, hours=1)),
+        ("P1W", Timedelta(days=7)),
+        ("PT300S", Timedelta(seconds=300)),
+        ("P1DT0H0M00000000000S", Timedelta(days=1)),
+        ("PT-6H3M", Timedelta(hours=-6, minutes=3)),
+        ("-PT6H3M", Timedelta(hours=-6, minutes=-3)),
+        ("-PT-6H+3M", Timedelta(hours=6, minutes=-3)),
     ],
 )
 def test_iso_constructor(fmt, exp):
@@ -241,8 +295,9 @@ def test_iso_constructor(fmt, exp):
         "PDTHMS",
         "P0DT999H999M999S",
         "P1DT0H0M0.0000000000000S",
-        "P1DT0H0M00000000000S",
         "P1DT0H0M0.S",
+        "P",
+        "-P",
     ],
 )
 def test_iso_constructor_raises(fmt):
@@ -303,3 +358,22 @@ def test_string_with_unit(constructor, value, unit, expectation):
     exp, match = expectation
     with pytest.raises(exp, match=match):
         _ = constructor(value, unit=unit)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "".join(elements)
+        for repetition in (1, 2)
+        for elements in product("+-, ", repeat=repetition)
+    ],
+)
+def test_string_without_numbers(value):
+    # GH39710 Timedelta input string with only symbols and no digits raises an error
+    msg = (
+        "symbols w/o a number"
+        if value != "--"
+        else "only leading negative signs are allowed"
+    )
+    with pytest.raises(ValueError, match=msg):
+        Timedelta(value)

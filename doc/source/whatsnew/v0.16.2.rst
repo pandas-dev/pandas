@@ -6,7 +6,7 @@ Version 0.16.2 (June 12, 2015)
 {{ header }}
 
 
-This is a minor bug-fix release from 0.16.1 and includes a a large number of
+This is a minor bug-fix release from 0.16.1 and includes a large number of
 bug fixes along some new features (:meth:`~DataFrame.pipe` method), enhancements, and performance improvements.
 
 We recommend that all users upgrade to this version.
@@ -48,9 +48,10 @@ This can be rewritten as
 
 .. code-block:: python
 
-   (df.pipe(h)                   # noqa F821
-      .pipe(g, arg1=1)           # noqa F821
-      .pipe(f, arg2=2, arg3=3)   # noqa F821
+   (
+       df.pipe(h)  # noqa F821
+       .pipe(g, arg1=1)  # noqa F821
+       .pipe(f, arg2=2, arg3=3)  # noqa F821
    )
 
 Now both the code and the logic flow from top to bottom. Keyword arguments are next to
@@ -64,15 +65,16 @@ of ``(function, keyword)`` indicating where the DataFrame should flow. For examp
 
    import statsmodels.formula.api as sm
 
-   bb = pd.read_csv('data/baseball.csv', index_col='id')
+   bb = pd.read_csv("data/baseball.csv", index_col="id")
 
    # sm.ols takes (formula, data)
-   (bb.query('h > 0')
-      .assign(ln_h=lambda df: np.log(df.h))
-      .pipe((sm.ols, 'data'), 'hr ~ ln_h + year + g + C(lg)')
-      .fit()
-      .summary()
-    )
+   (
+       bb.query("h > 0")
+       .assign(ln_h=lambda df: np.log(df.h))
+       .pipe((sm.ols, "data"), "hr ~ ln_h + year + g + C(lg)")
+       .fit()
+       .summary()
+   )
 
 The pipe method is inspired by unix pipes, which stream text through
 processes. More recently dplyr_ and magrittr_ have introduced the
@@ -89,7 +91,7 @@ See the :ref:`documentation <basics.pipe>` for more. (:issue:`10129`)
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
-- Added `rsplit` to Index/Series StringMethods (:issue:`10303`)
+- Added ``rsplit`` to Index/Series StringMethods (:issue:`10303`)
 
 - Removed the hard-coded size limits on the ``DataFrame`` HTML representation
   in the IPython notebook, and leave this to IPython itself (only for IPython
@@ -145,7 +147,7 @@ Bug fixes
 - Bug in ``setitem`` where type promotion is applied to the entire block (:issue:`10280`)
 - Bug in ``Series`` arithmetic methods may incorrectly hold names (:issue:`10068`)
 - Bug in ``GroupBy.get_group`` when grouping on multiple keys, one of which is categorical. (:issue:`10132`)
-- Bug in ``DatetimeIndex`` and ``TimedeltaIndex`` names are lost after timedelta arithmetics ( :issue:`9926`)
+- Bug in ``DatetimeIndex`` and ``TimedeltaIndex`` names are lost after timedelta arithmetic ( :issue:`9926`)
 - Bug in ``DataFrame`` construction from nested ``dict`` with ``datetime64`` (:issue:`10160`)
 - Bug in ``Series`` construction from ``dict`` with ``datetime64`` keys (:issue:`9456`)
 - Bug in ``Series.plot(label="LABEL")`` not correctly setting the label (:issue:`10119`)

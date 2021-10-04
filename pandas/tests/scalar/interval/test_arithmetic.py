@@ -3,7 +3,11 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-from pandas import Interval, Timedelta, Timestamp
+from pandas import (
+    Interval,
+    Timedelta,
+    Timestamp,
+)
 
 
 @pytest.mark.parametrize("method", ["__add__", "__sub__"])

@@ -41,12 +41,16 @@ I want to store passenger data of the Titanic. For a number of passengers, I kno
 
 .. ipython:: python
 
-    df = pd.DataFrame({
-        "Name": ["Braund, Mr. Owen Harris",
-                 "Allen, Mr. William Henry",
-                 "Bonnell, Miss. Elizabeth"],
-        "Age": [22, 35, 58],
-        "Sex": ["male", "male", "female"]}
+    df = pd.DataFrame(
+        {
+            "Name": [
+                "Braund, Mr. Owen Harris",
+                "Allen, Mr. William Henry",
+                "Bonnell, Miss. Elizabeth",
+            ],
+            "Age": [22, 35, 58],
+            "Sex": ["male", "male", "female"],
+        }
     )
     df
 
@@ -172,7 +176,7 @@ these are by default not taken into account by the :func:`~DataFrame.describe` m
 
 Many pandas operations return a ``DataFrame`` or a ``Series``. The
 :func:`~DataFrame.describe` method is an example of a pandas operation returning a
-pandas ``Series``.
+pandas ``Series`` or a pandas ``DataFrame``.
 
 .. raw:: html
 

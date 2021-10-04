@@ -1,41 +1,29 @@
-from datetime import date, datetime, timedelta
-
-from dateutil import tz
-import numpy as np
-import pytest
-
 import pandas as pd
-from pandas import DataFrame, Index, Series, Timestamp, date_range
+from pandas import (
+    DataFrame,
+    Index,
+    Series,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 
 
 class TestDatetimeIndex:
-    def test_setitem_with_datetime_tz(self):
-        # 16889
-        # support .loc with alignment and tz-aware DatetimeIndex
-        mask = np.array([True, False, True, False])
+    def test_datetimeindex_transpose_empty_df(self):
+        """
+        Regression test for:
+        https://github.com/pandas-dev/pandas/issues/41382
+        """
+        df = DataFrame(index=pd.DatetimeIndex([]))
 
-        idx = date_range("20010101", periods=4, tz="UTC")
-        df = DataFrame({"a": np.arange(4)}, index=idx).astype("float64")
+        expected = pd.DatetimeIndex([], dtype="datetime64[ns]", freq=None)
 
-        result = df.copy()
-        result.loc[mask, :] = df.loc[mask, :]
-        tm.assert_frame_equal(result, df)
+        result1 = df.T.sum().index
+        result2 = df.sum(axis=1).index
 
-        result = df.copy()
-        result.loc[mask] = df.loc[mask]
-        tm.assert_frame_equal(result, df)
-
-        idx = date_range("20010101", periods=4)
-        df = DataFrame({"a": np.arange(4)}, index=idx).astype("float64")
-
-        result = df.copy()
-        result.loc[mask, :] = df.loc[mask, :]
-        tm.assert_frame_equal(result, df)
-
-        result = df.copy()
-        result.loc[mask] = df.loc[mask]
-        tm.assert_frame_equal(result, df)
+        tm.assert_index_equal(result1, expected)
+        tm.assert_index_equal(result2, expected)
 
     def test_indexing_with_datetime_tz(self):
 
@@ -49,24 +37,20 @@ class TestDatetimeIndex:
         df.iloc[1, 1] = pd.NaT
         df.iloc[1, 2] = pd.NaT
 
+        expected = Series(
+            [Timestamp("2013-01-02 00:00:00-0500", tz="US/Eastern"), pd.NaT, pd.NaT],
+            index=list("ABC"),
+            dtype="object",
+            name=1,
+        )
+
         # indexing
         result = df.iloc[1]
-        expected = Series(
-            [Timestamp("2013-01-02 00:00:00-0500", tz="US/Eastern"), pd.NaT, pd.NaT],
-            index=list("ABC"),
-            dtype="object",
-            name=1,
-        )
         tm.assert_series_equal(result, expected)
         result = df.loc[1]
-        expected = Series(
-            [Timestamp("2013-01-02 00:00:00-0500", tz="US/Eastern"), pd.NaT, pd.NaT],
-            index=list("ABC"),
-            dtype="object",
-            name=1,
-        )
         tm.assert_series_equal(result, expected)
 
+    def test_indexing_fast_xs(self):
         # indexing - fast_xs
         df = DataFrame({"a": date_range("2014-01-01", periods=10, tz="UTC")})
         result = df.iloc[5]
@@ -82,27 +66,6 @@ class TestDatetimeIndex:
         result = df[df.a > df.a[3]]
         expected = df.iloc[4:]
         tm.assert_frame_equal(result, expected)
-
-        # indexing - setting an element
-        df = DataFrame(
-            data=pd.to_datetime(["2015-03-30 20:12:32", "2015-03-12 00:11:11"]),
-            columns=["time"],
-        )
-        df["new_col"] = ["new", "old"]
-        df.time = df.set_index("time").index.tz_localize("UTC")
-        v = df[df.new_col == "new"].set_index("time").index.tz_convert("US/Pacific")
-
-        # trying to set a single element on a part of a different timezone
-        # this converts to object
-        df2 = df.copy()
-        df2.loc[df2.new_col == "new", "time"] = v
-
-        expected = Series([v[0], df.loc[1, "time"]], name="time")
-        tm.assert_series_equal(df2.time, expected)
-
-        v = df.loc[df.new_col == "new", "time"] + pd.Timedelta("1s")
-        df.loc[df.new_col == "new", "time"] = v
-        tm.assert_series_equal(df.loc[df.new_col == "new", "time"], v)
 
     def test_consistency_with_tz_aware_scalar(self):
         # xef gh-12938
@@ -133,7 +96,7 @@ class TestDatetimeIndex:
         result = df[0].at[0]
         assert result == expected
 
-    def test_indexing_with_datetimeindex_tz(self):
+    def test_indexing_with_datetimeindex_tz(self, indexer_sl):
 
         # GH 12050
         # indexing on a series with a datetimeindex with tz
@@ -145,7 +108,7 @@ class TestDatetimeIndex:
 
         for sel in (index, list(index)):
             # getitem
-            result = ser[sel]
+            result = indexer_sl(ser)[sel]
             expected = ser.copy()
             if sel is not index:
                 expected.index = expected.index._with_freq(None)
@@ -153,135 +116,20 @@ class TestDatetimeIndex:
 
             # setitem
             result = ser.copy()
-            result[sel] = 1
-            expected = Series(1, index=index)
-            tm.assert_series_equal(result, expected)
-
-            # .loc getitem
-            result = ser.loc[sel]
-            expected = ser.copy()
-            if sel is not index:
-                expected.index = expected.index._with_freq(None)
-            tm.assert_series_equal(result, expected)
-
-            # .loc setitem
-            result = ser.copy()
-            result.loc[sel] = 1
+            indexer_sl(result)[sel] = 1
             expected = Series(1, index=index)
             tm.assert_series_equal(result, expected)
 
         # single element indexing
 
         # getitem
-        assert ser[index[1]] == 1
+        assert indexer_sl(ser)[index[1]] == 1
 
         # setitem
         result = ser.copy()
-        result[index[1]] = 5
+        indexer_sl(result)[index[1]] = 5
         expected = Series([0, 5], index=index)
         tm.assert_series_equal(result, expected)
-
-        # .loc getitem
-        assert ser.loc[index[1]] == 1
-
-        # .loc setitem
-        result = ser.copy()
-        result.loc[index[1]] = 5
-        expected = Series([0, 5], index=index)
-        tm.assert_series_equal(result, expected)
-
-    def test_partial_setting_with_datetimelike_dtype(self):
-
-        # GH9478
-        # a datetimeindex alignment issue with partial setting
-        df = DataFrame(
-            np.arange(6.0).reshape(3, 2),
-            columns=list("AB"),
-            index=date_range("1/1/2000", periods=3, freq="1H"),
-        )
-        expected = df.copy()
-        expected["C"] = [expected.index[0]] + [pd.NaT, pd.NaT]
-
-        mask = df.A < 1
-        df.loc[mask, "C"] = df.loc[mask].index
-        tm.assert_frame_equal(df, expected)
-
-    def test_loc_setitem_datetime(self):
-
-        # GH 9516
-        dt1 = Timestamp("20130101 09:00:00")
-        dt2 = Timestamp("20130101 10:00:00")
-
-        for conv in [
-            lambda x: x,
-            lambda x: x.to_datetime64(),
-            lambda x: x.to_pydatetime(),
-            lambda x: np.datetime64(x),
-        ]:
-
-            df = DataFrame()
-            df.loc[conv(dt1), "one"] = 100
-            df.loc[conv(dt2), "one"] = 200
-
-            expected = DataFrame({"one": [100.0, 200.0]}, index=[dt1, dt2])
-            tm.assert_frame_equal(df, expected)
-
-    def test_series_partial_set_datetime(self):
-        # GH 11497
-
-        idx = date_range("2011-01-01", "2011-01-02", freq="D", name="idx")
-        ser = Series([0.1, 0.2], index=idx, name="s")
-
-        result = ser.loc[[Timestamp("2011-01-01"), Timestamp("2011-01-02")]]
-        exp = Series([0.1, 0.2], index=idx, name="s")
-        exp.index = exp.index._with_freq(None)
-        tm.assert_series_equal(result, exp, check_index_type=True)
-
-        keys = [
-            Timestamp("2011-01-02"),
-            Timestamp("2011-01-02"),
-            Timestamp("2011-01-01"),
-        ]
-        exp = Series(
-            [0.2, 0.2, 0.1], index=pd.DatetimeIndex(keys, name="idx"), name="s"
-        )
-        tm.assert_series_equal(ser.loc[keys], exp, check_index_type=True)
-
-        keys = [
-            Timestamp("2011-01-03"),
-            Timestamp("2011-01-02"),
-            Timestamp("2011-01-03"),
-        ]
-        with pytest.raises(KeyError, match="with any missing labels"):
-            ser.loc[keys]
-
-    def test_series_partial_set_period(self):
-        # GH 11497
-
-        idx = pd.period_range("2011-01-01", "2011-01-02", freq="D", name="idx")
-        ser = Series([0.1, 0.2], index=idx, name="s")
-
-        result = ser.loc[
-            [pd.Period("2011-01-01", freq="D"), pd.Period("2011-01-02", freq="D")]
-        ]
-        exp = Series([0.1, 0.2], index=idx, name="s")
-        tm.assert_series_equal(result, exp, check_index_type=True)
-
-        keys = [
-            pd.Period("2011-01-02", freq="D"),
-            pd.Period("2011-01-02", freq="D"),
-            pd.Period("2011-01-01", freq="D"),
-        ]
-        exp = Series([0.2, 0.2, 0.1], index=pd.PeriodIndex(keys, name="idx"), name="s")
-        tm.assert_series_equal(ser.loc[keys], exp, check_index_type=True)
-
-        keys = [
-            pd.Period("2011-01-03", freq="D"),
-            pd.Period("2011-01-02", freq="D"),
-            pd.Period("2011-01-03", freq="D"),
-        ]
-        with pytest.raises(KeyError, match="with any missing labels"):
-            ser.loc[keys]
 
     def test_nanosecond_getitem_setitem_with_tz(self):
         # GH 11679
@@ -297,85 +145,38 @@ class TestDatetimeIndex:
         expected = DataFrame(-1, index=index, columns=["a"])
         tm.assert_frame_equal(result, expected)
 
-    def test_loc_getitem_across_dst(self):
-        # GH 21846
-        idx = pd.date_range(
-            "2017-10-29 01:30:00", tz="Europe/Berlin", periods=5, freq="30 min"
+    def test_getitem_millisecond_resolution(self, frame_or_series):
+        # GH#33589
+
+        keys = [
+            "2017-10-25T16:25:04.151",
+            "2017-10-25T16:25:04.252",
+            "2017-10-25T16:50:05.237",
+            "2017-10-25T16:50:05.238",
+        ]
+        obj = frame_or_series(
+            [1, 2, 3, 4],
+            index=[Timestamp(x) for x in keys],
         )
-        series2 = pd.Series([0, 1, 2, 3, 4], index=idx)
-
-        t_1 = pd.Timestamp(
-            "2017-10-29 02:30:00+02:00", tz="Europe/Berlin", freq="30min"
+        result = obj[keys[1] : keys[2]]
+        expected = frame_or_series(
+            [2, 3],
+            index=[
+                Timestamp(keys[1]),
+                Timestamp(keys[2]),
+            ],
         )
-        t_2 = pd.Timestamp(
-            "2017-10-29 02:00:00+01:00", tz="Europe/Berlin", freq="30min"
-        )
-        result = series2.loc[t_1:t_2]
-        expected = pd.Series([2, 3], index=idx[2:4])
-        tm.assert_series_equal(result, expected)
+        tm.assert_equal(result, expected)
 
-        result = series2[t_1]
-        expected = 2
-        assert result == expected
+    def test_str_subclass(self):
+        # GH 37366
+        class mystring(str):
+            pass
 
-    def test_loc_incremental_setitem_with_dst(self):
-        # GH 20724
-        base = datetime(2015, 11, 1, tzinfo=tz.gettz("US/Pacific"))
-        idxs = [base + timedelta(seconds=i * 900) for i in range(16)]
-        result = pd.Series([0], index=[idxs[0]])
-        for ts in idxs:
-            result.loc[ts] = 1
-        expected = pd.Series(1, index=idxs)
-        tm.assert_series_equal(result, expected)
-
-    def test_loc_setitem_with_existing_dst(self):
-        # GH 18308
-        start = pd.Timestamp("2017-10-29 00:00:00+0200", tz="Europe/Madrid")
-        end = pd.Timestamp("2017-10-29 03:00:00+0100", tz="Europe/Madrid")
-        ts = pd.Timestamp("2016-10-10 03:00:00", tz="Europe/Madrid")
-        idx = pd.date_range(start, end, closed="left", freq="H")
-        result = pd.DataFrame(index=idx, columns=["value"])
-        result.loc[ts, "value"] = 12
-        expected = pd.DataFrame(
-            [np.nan] * len(idx) + [12],
-            index=idx.append(pd.DatetimeIndex([ts])),
-            columns=["value"],
-            dtype=object,
-        )
-        tm.assert_frame_equal(result, expected)
-
-    def test_loc_str_slicing(self):
-        ix = pd.period_range(start="2017-01-01", end="2018-01-01", freq="M")
-        ser = ix.to_series()
-        result = ser.loc[:"2017-12"]
-        expected = ser.iloc[:-1]
-
-        tm.assert_series_equal(result, expected)
-
-    def test_loc_label_slicing(self):
-        ix = pd.period_range(start="2017-01-01", end="2018-01-01", freq="M")
-        ser = ix.to_series()
-        result = ser.loc[: ix[-2]]
-        expected = ser.iloc[:-1]
-
-        tm.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "slice_, positions",
-        [
-            [slice(date(2018, 1, 1), None), [0, 1, 2]],
-            [slice(date(2019, 1, 2), None), [2]],
-            [slice(date(2020, 1, 1), None), []],
-            [slice(None, date(2020, 1, 1)), [0, 1, 2]],
-            [slice(None, date(2019, 1, 1)), [0]],
-        ],
-    )
-    def test_getitem_slice_date(self, slice_, positions):
-        # https://github.com/pandas-dev/pandas/issues/31501
-        s = pd.Series(
-            [0, 1, 2],
-            pd.DatetimeIndex(["2019-01-01", "2019-01-01T06:00:00", "2019-01-02"]),
-        )
-        result = s[slice_]
-        expected = s.take(positions)
-        tm.assert_series_equal(result, expected)
+        data = ["2020-10-22 01:21:00+00:00"]
+        index = pd.DatetimeIndex(data)
+        df = DataFrame({"a": [1]}, index=index)
+        df["b"] = 2
+        df[mystring("c")] = 3
+        expected = DataFrame({"a": [1], "b": [2], mystring("c"): [3]}, index=index)
+        tm.assert_equal(df, expected)
