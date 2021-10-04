@@ -3,13 +3,9 @@ import re
 import numpy as np
 import pytest
 
-from pandas._libs import (
-    algos as libalgos,
-    index as libindex,
-)
+from pandas._libs import index as libindex
 
 import pandas as pd
-import pandas._testing as tm
 
 
 @pytest.fixture(
@@ -73,7 +69,7 @@ class TestTimedeltaEngine:
             pd.Timedelta(days=42).to_timedelta64(),
         ],
     )
-    def test_not_contains_requires_timestamp(self, scalar):
+    def test_not_contains_requires_timedelta(self, scalar):
         tdi1 = pd.timedelta_range("42 days", freq="9h", periods=1234)
         tdi2 = tdi1.insert(1, pd.NaT)  # non-monotonic
         tdi3 = tdi1.insert(3, tdi1[0])  # non-unique
@@ -145,30 +141,6 @@ class TestNumericEngine:
         result = engine.get_loc(2)
         assert (result == expected).all()
 
-    def test_get_backfill_indexer(self, numeric_indexing_engine_type_and_dtype):
-        engine_type, dtype = numeric_indexing_engine_type_and_dtype
-
-        arr = np.array([1, 5, 10], dtype=dtype)
-        engine = engine_type(arr)
-
-        new = np.arange(12, dtype=dtype)
-        result = engine.get_backfill_indexer(new)
-
-        expected = libalgos.backfill(arr, new)
-        tm.assert_numpy_array_equal(result, expected)
-
-    def test_get_pad_indexer(self, numeric_indexing_engine_type_and_dtype):
-        engine_type, dtype = numeric_indexing_engine_type_and_dtype
-
-        arr = np.array([1, 5, 10], dtype=dtype)
-        engine = engine_type(arr)
-
-        new = np.arange(12, dtype=dtype)
-        result = engine.get_pad_indexer(new)
-
-        expected = libalgos.pad(arr, new)
-        tm.assert_numpy_array_equal(result, expected)
-
 
 class TestObjectEngine:
     engine_type = libindex.ObjectEngine
@@ -225,23 +197,3 @@ class TestObjectEngine:
         expected = np.array([False, True, False] * num, dtype=bool)
         result = engine.get_loc("b")
         assert (result == expected).all()
-
-    def test_get_backfill_indexer(self):
-        arr = np.array(["a", "e", "j"], dtype=self.dtype)
-        engine = self.engine_type(arr)
-
-        new = np.array(list("abcdefghij"), dtype=self.dtype)
-        result = engine.get_backfill_indexer(new)
-
-        expected = libalgos.backfill["object"](arr, new)
-        tm.assert_numpy_array_equal(result, expected)
-
-    def test_get_pad_indexer(self):
-        arr = np.array(["a", "e", "j"], dtype=self.dtype)
-        engine = self.engine_type(arr)
-
-        new = np.array(list("abcdefghij"), dtype=self.dtype)
-        result = engine.get_pad_indexer(new)
-
-        expected = libalgos.pad["object"](arr, new)
-        tm.assert_numpy_array_equal(result, expected)
