@@ -710,6 +710,7 @@ def test_concat_retain_attrs_df():
     df = pd.concat([df1, df2])
     assert df.attrs[1] == 1
 
+
 def test_concat_retain_attrs_series():
     # GH#41828
     d = [1, 2]
@@ -719,6 +720,7 @@ def test_concat_retain_attrs_series():
     df2.attrs = {1: 1}
     df = pd.concat([df1, df2])
     assert df.attrs[1] == 1
+
 
 def test_concat_drop_attrs():
     # GH#41828
