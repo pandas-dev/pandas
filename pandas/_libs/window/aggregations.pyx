@@ -1673,21 +1673,25 @@ def ewm(const float64_t[:] vals, const int64_t[:] start, const int64_t[:] end,
                 if weighted == weighted:
 
                     if is_observation or not ignore_na:
-                        if use_deltas:
-                            old_wt *= old_wt_factor ** sub_deltas[i - 1]
-                        else:
-                            old_wt *= old_wt_factor
-                        if is_observation:
-
-                            # avoid numerical errors on constant series
-                            if weighted != cur:
-                                weighted = old_wt * weighted + new_wt * cur
-                                if normalize:
-                                    weighted = weighted / (old_wt + new_wt)
-                            if adjust:
-                                old_wt += new_wt
+                        if normalize:
+                            if use_deltas:
+                                old_wt *= old_wt_factor ** sub_deltas[i - 1]
                             else:
-                                old_wt = 1.
+                                old_wt *= old_wt_factor
+                        else:
+                            weighted = old_wt_factor * weighted
+                        if is_observation:
+                            if normalize:
+                                # avoid numerical errors on constant series
+                                if weighted != cur:
+                                    weighted = old_wt * weighted + new_wt * cur
+                                    weighted /= (old_wt + new_wt)
+                                if adjust:
+                                    old_wt += new_wt
+                                else:
+                                    old_wt = 1.
+                            else:
+                                weighted += cur
                 elif is_observation:
                     weighted = cur
 

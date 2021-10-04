@@ -145,21 +145,25 @@ def generate_numba_ewm_func(
                 if not np.isnan(weighted):
 
                     if is_observation or not ignore_na:
-
-                        # note that len(deltas) = len(vals) - 1 and deltas[i] is to be
-                        # used in conjunction with vals[i+1]
-                        old_wt *= old_wt_factor ** deltas[start + j - 1]
+                        if normalize:
+                            # note that len(deltas) = len(vals) - 1 and deltas[i]
+                            # is to be used in conjunction with vals[i+1]
+                            old_wt *= old_wt_factor ** deltas[start + j - 1]
+                        else:
+                            weighted = old_wt_factor * weighted
                         if is_observation:
-
-                            # avoid numerical errors on constant series
-                            if weighted != cur:
-                                weighted = old_wt * weighted + new_wt * cur
-                                if normalize:
-                                    weighted = weighted / (old_wt + new_wt)
-                            if adjust:
-                                old_wt += new_wt
+                            if normalize:
+                                # avoid numerical errors on constant series
+                                if weighted != cur:
+                                    weighted = old_wt * weighted + new_wt * cur
+                                    if normalize:
+                                        weighted = weighted / (old_wt + new_wt)
+                                if adjust:
+                                    old_wt += new_wt
+                                else:
+                                    old_wt = 1.0
                             else:
-                                old_wt = 1.0
+                                weighted += cur
                 elif is_observation:
                     weighted = cur
 
@@ -313,20 +317,27 @@ def generate_ewm_numba_table_func(
             for j in numba.prange(len(cur)):
                 if not np.isnan(weighted[j]):
                     if is_observations[j] or not ignore_na:
-
-                        # note that len(deltas) = len(vals) - 1 and deltas[i] is to be
-                        # used in conjunction with vals[i+1]
-                        old_wt[j] *= old_wt_factor ** deltas[i - 1]
+                        if normalize:
+                            # note that len(deltas) = len(vals) - 1 and deltas[i]
+                            # is to be used in conjunction with vals[i+1]
+                            old_wt[j] *= old_wt_factor ** deltas[i - 1]
+                        else:
+                            weighted[j] = old_wt[j] * weighted[j]
                         if is_observations[j]:
-                            # avoid numerical errors on constant series
-                            if weighted[j] != cur[j]:
-                                weighted[j] = old_wt[j] * weighted[j] + new_wt * cur[j]
-                                if normalize:
-                                    weighted[j] = weighted[j] / (old_wt[j] + new_wt)
-                            if adjust:
-                                old_wt[j] += new_wt
+                            if normalize:
+                                # avoid numerical errors on constant series
+                                if weighted[j] != cur[j]:
+                                    weighted[j] = (
+                                        old_wt[j] * weighted[j] + new_wt * cur[j]
+                                    )
+                                    if normalize:
+                                        weighted[j] = weighted[j] / (old_wt[j] + new_wt)
+                                if adjust:
+                                    old_wt[j] += new_wt
+                                else:
+                                    old_wt[j] = 1.0
                             else:
-                                old_wt[j] = 1.0
+                                weighted[j] += cur[j]
                 elif is_observations[j]:
                     weighted[j] = cur[j]
 

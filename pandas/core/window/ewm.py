@@ -207,7 +207,7 @@ class ExponentialMovingWindow(BaseWindow):
 
         If 1-D array like, a sequence with the same shape as the observations.
 
-        Only applicable to ``mean()`` and ``sum()``.
+        Only applicable to ``mean()``.
     method : str {'single', 'table'}, default 'single'
         Execute the rolling operation per single column or row (``'single'``)
         or over the entire object (``'table'``).
@@ -525,6 +525,8 @@ class ExponentialMovingWindow(BaseWindow):
         agg_method="sum",
     )
     def sum(self, *args, engine=None, engine_kwargs=None, **kwargs):
+        if not self.adjust:
+            raise NotImplementedError("sum is not implemented with adjust=False")
         if maybe_use_numba(engine):
             if self.method == "single":
                 ewma_func = generate_numba_ewm_func(
