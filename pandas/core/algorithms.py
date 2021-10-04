@@ -28,6 +28,7 @@ from pandas._typing import (
     ArrayLike,
     DtypeObj,
     Scalar,
+    TakeIndexer,
     npt,
 )
 from pandas.util._decorators import doc
@@ -95,6 +96,7 @@ if TYPE_CHECKING:
     )
     from pandas.core.arrays import (
         DatetimeArray,
+        ExtensionArray,
         TimedeltaArray,
     )
 
@@ -422,7 +424,7 @@ def unique(values):
     """
     values = _ensure_arraylike(values)
 
-    if is_extension_array_dtype(values):
+    if is_extension_array_dtype(values.dtype):
         # Dispatch to extension dtype's unique.
         return values.unique()
 
@@ -947,7 +949,7 @@ def mode(values, dropna: bool = True) -> Series:
     mode : Series
     """
     from pandas import Series
-    import pandas.core.indexes.base as ibase
+    from pandas.core.indexes.api import default_index
 
     values = _ensure_arraylike(values)
     original = values
@@ -973,7 +975,7 @@ def mode(values, dropna: bool = True) -> Series:
 
     result = _reconstruct_data(npresult, original.dtype, original)
     # Ensure index is type stable (should always use int index)
-    return Series(result, index=ibase.default_index(len(result)))
+    return Series(result, index=default_index(len(result)))
 
 
 def rank(
@@ -1431,7 +1433,11 @@ class SelectNFrame(SelectN):
 
 
 def take(
-    arr, indices: np.ndarray, axis: int = 0, allow_fill: bool = False, fill_value=None
+    arr,
+    indices: TakeIndexer,
+    axis: int = 0,
+    allow_fill: bool = False,
+    fill_value=None,
 ):
     """
     Take elements from an array.
@@ -1441,7 +1447,7 @@ def take(
     arr : array-like or scalar value
         Non array-likes (sequences/scalars without a dtype) are coerced
         to an ndarray.
-    indices : sequence of integers
+    indices : sequence of int or one-dimensional np.ndarray of int
         Indices to be taken.
     axis : int, default 0
         The axis over which to select values.
@@ -1530,7 +1536,7 @@ def take(
 
 def searchsorted(
     arr: ArrayLike,
-    value: NumpyValueArrayLike,
+    value: NumpyValueArrayLike | ExtensionArray,
     side: Literal["left", "right"] = "left",
     sorter: NumpySorter = None,
 ) -> npt.NDArray[np.intp] | np.intp:
@@ -1604,14 +1610,14 @@ def searchsorted(
             value = cast(int, dtype.type(value))
         else:
             value = pd_array(cast(ArrayLike, value), dtype=dtype)
-    elif not (
-        is_object_dtype(arr) or is_numeric_dtype(arr) or is_categorical_dtype(arr)
-    ):
+    else:
         # E.g. if `arr` is an array with dtype='datetime64[ns]'
         # and `value` is a pd.Timestamp, we may need to convert value
         arr = ensure_wrapped_if_datetimelike(arr)
 
-    return arr.searchsorted(value, side=side, sorter=sorter)
+    # Argument 1 to "searchsorted" of "ndarray" has incompatible type
+    # "Union[NumpyValueArrayLike, ExtensionArray]"; expected "NumpyValueArrayLike"
+    return arr.searchsorted(value, side=side, sorter=sorter)  # type: ignore[arg-type]
 
 
 # ---- #
