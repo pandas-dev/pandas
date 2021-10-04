@@ -878,9 +878,11 @@ def test_omit_nuisance(df):
 def test_keep_nuisance_agg(df, agg_function):
     # GH 38815
     grouped = df.groupby("A")
-    result = getattr(grouped, agg_function)().columns
-    expected = df.loc[:, ["B", "C", "D"]].columns
-    np.testing.assert_array_equal(result, expected)
+    result = getattr(grouped, agg_function)()
+    expected = result.copy()
+    expected.loc["bar", "B"] = getattr(df.loc[df["A"] == "bar", "B"], agg_function)()
+    expected.loc["foo", "B"] = getattr(df.loc[df["A"] == "foo", "B"], agg_function)()
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -895,18 +897,14 @@ def test_omit_nuisance_agg(df, agg_function):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "agg_function",
-    ["skew"],
-)
-def test_omit_nuisance_warnings(df, agg_function):
+def test_omit_nuisance_warnings(df):
     # GH 38815
     with tm.assert_produces_warning(
         FutureWarning, filter_level="always", check_stacklevel=False
     ):
         grouped = df.groupby("A")
-        result = getattr(grouped, agg_function)()
-        expected = getattr(df.loc[:, ["A", "C", "D"]].groupby("A"), agg_function)()
+        result = grouped.skew()
+        expected = df.loc[:, ["A", "C", "D"]].groupby("A").skew()
         tm.assert_frame_equal(result, expected)
 
 
