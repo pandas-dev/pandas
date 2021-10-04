@@ -6,6 +6,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Literal,
     Sequence,
 )
 
@@ -41,6 +42,7 @@ from pandas._typing import (
     AnyArrayLike,
     Dtype,
     NpDtype,
+    npt,
 )
 from pandas.util._decorators import (
     cache_readonly,
@@ -71,10 +73,18 @@ from pandas.core.dtypes.missing import (
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import datetimelike as dtl
+from pandas.core.arrays.base import ExtensionArray
 import pandas.core.common as com
 
 if TYPE_CHECKING:
+
+    from pandas._typing import (
+        NumpySorter,
+        NumpyValueArrayLike,
+    )
+
     from pandas.core.arrays import DatetimeArray
+
 
 _shared_doc_kwargs = {
     "klass": "PeriodArray",
@@ -341,9 +351,7 @@ class PeriodArray(dtl.DatelikeOps):
     def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
         if dtype == "i8":
             return self.asi8
-        # error: Non-overlapping equality check (left operand type: "Optional[Union[str,
-        # dtype[Any]]]", right operand type: "Type[bool]")
-        elif dtype == bool:  # type: ignore[comparison-overlap]
+        elif dtype == bool:
             return ~self._isnan
 
         # This will raise TypeError for non-object dtypes
@@ -644,12 +652,17 @@ class PeriodArray(dtl.DatelikeOps):
             return self.asfreq(dtype.freq)
         return super().astype(dtype, copy=copy)
 
-    def searchsorted(self, value, side="left", sorter=None) -> np.ndarray:
-        value = self._validate_searchsorted_value(value).view("M8[ns]")
+    def searchsorted(
+        self,
+        value: NumpyValueArrayLike | ExtensionArray,
+        side: Literal["left", "right"] = "left",
+        sorter: NumpySorter = None,
+    ) -> npt.NDArray[np.intp] | np.intp:
+        npvalue = self._validate_searchsorted_value(value).view("M8[ns]")
 
         # Cast to M8 to get datetime-like NaT placement
         m8arr = self._ndarray.view("M8[ns]")
-        return m8arr.searchsorted(value, side=side, sorter=sorter)
+        return m8arr.searchsorted(npvalue, side=side, sorter=sorter)
 
     def fillna(self, value=None, method=None, limit=None) -> PeriodArray:
         if method is not None:

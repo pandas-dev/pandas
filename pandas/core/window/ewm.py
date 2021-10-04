@@ -12,15 +12,16 @@ from pandas._libs.tslibs import Timedelta
 import pandas._libs.window.aggregations as window_aggregations
 from pandas._typing import (
     Axis,
-    FrameOrSeries,
     TimedeltaConvertibleTypes,
 )
 
 if TYPE_CHECKING:
     from pandas import DataFrame, Series
+    from pandas.core.generic import NDFrame
 
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_datetime64_ns_dtype
 from pandas.core.dtypes.missing import isna
@@ -92,7 +93,7 @@ def get_center_of_mass(
 
 
 def _calculate_deltas(
-    times: str | np.ndarray | FrameOrSeries | None,
+    times: str | np.ndarray | NDFrame | None,
     halflife: float | TimedeltaConvertibleTypes | None,
 ) -> np.ndarray:
     """
@@ -112,9 +113,9 @@ def _calculate_deltas(
     np.ndarray
         Diff of the times divided by the half-life
     """
-    # error: Item "str" of "Union[str, ndarray, FrameOrSeries, None]" has no
+    # error: Item "str" of "Union[str, ndarray, NDFrameT, None]" has no
     # attribute "view"
-    # error: Item "None" of "Union[str, ndarray, FrameOrSeries, None]" has no
+    # error: Item "None" of "Union[str, ndarray, NDFrameT, None]" has no
     # attribute "view"
     _times = np.asarray(
         times.view(np.int64), dtype=np.float64  # type: ignore[union-attr]
@@ -280,7 +281,7 @@ class ExponentialMovingWindow(BaseWindow):
 
     def __init__(
         self,
-        obj: FrameOrSeries,
+        obj: NDFrame,
         com: float | None = None,
         span: float | None = None,
         halflife: float | TimedeltaConvertibleTypes | None = None,
@@ -289,7 +290,7 @@ class ExponentialMovingWindow(BaseWindow):
         adjust: bool = True,
         ignore_na: bool = False,
         axis: Axis = 0,
-        times: str | np.ndarray | FrameOrSeries | None = None,
+        times: str | np.ndarray | NDFrame | None = None,
         method: str = "single",
         *,
         selection=None,
@@ -315,11 +316,20 @@ class ExponentialMovingWindow(BaseWindow):
             if not self.adjust:
                 raise NotImplementedError("times is not supported with adjust=False.")
             if isinstance(self.times, str):
+                warnings.warn(
+                    (
+                        "Specifying times as a string column label is deprecated "
+                        "and will be removed in a future version. Pass the column "
+                        "into times instead."
+                    ),
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
                 self.times = self._selected_obj[self.times]
             if not is_datetime64_ns_dtype(self.times):
                 raise ValueError("times must be datetime64[ns] dtype.")
             # error: Argument 1 to "len" has incompatible type "Union[str, ndarray,
-            # FrameOrSeries, None]"; expected "Sized"
+            # NDFrameT, None]"; expected "Sized"
             if len(self.times) != len(obj):  # type: ignore[arg-type]
                 raise ValueError("times must be the same length as the object.")
             if not isinstance(self.halflife, (str, datetime.timedelta)):
@@ -734,7 +744,7 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
 class OnlineExponentialMovingWindow(ExponentialMovingWindow):
     def __init__(
         self,
-        obj: FrameOrSeries,
+        obj: NDFrame,
         com: float | None = None,
         span: float | None = None,
         halflife: float | TimedeltaConvertibleTypes | None = None,
@@ -743,7 +753,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         adjust: bool = True,
         ignore_na: bool = False,
         axis: Axis = 0,
-        times: str | np.ndarray | FrameOrSeries | None = None,
+        times: str | np.ndarray | NDFrame | None = None,
         engine: str = "numba",
         engine_kwargs: dict[str, bool] | None = None,
         *,

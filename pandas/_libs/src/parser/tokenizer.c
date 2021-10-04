@@ -1784,6 +1784,8 @@ char* _str_copy_decimal_str_c(const char *s, char **endpos, char decimal,
     size_t length = strlen(s);
     char *s_copy = malloc(length + 1);
     char *dst = s_copy;
+    // Skip leading whitespace.
+    while (isspace_ascii(*p)) p++;
     // Copy Leading sign
     if (*p == '+' || *p == '-') {
         *dst++ = *p++;
@@ -1798,10 +1800,25 @@ char* _str_copy_decimal_str_c(const char *s, char **endpos, char decimal,
        *dst++ = '.';
        p++;
     }
-    // Copy the remainder of the string as is.
-    strncpy(dst, p, length + 1 - (p - s));
+    // Copy fractional part after decimal (if any)
+    while (isdigit_ascii(*p)) {
+       *dst++ = *p++;
+    }
+    // Copy exponent if any
+    if (toupper_ascii(*p) == toupper_ascii('E')) {
+       *dst++ = *p++;
+       // Copy leading exponent sign (if any)
+       if (*p == '+' || *p == '-') {
+           *dst++ = *p++;
+       }
+       // Copy exponent digits
+       while (isdigit_ascii(*p)) {
+           *dst++ = *p++;
+       }
+    }
+    *dst++ = '\0';  // terminate
     if (endpos != NULL)
-        *endpos = (char *)(s + length);
+        *endpos = (char *)p;
     return s_copy;
 }
 
@@ -1839,6 +1856,11 @@ double round_trip(const char *p, char **q, char decimal, char sci, char tsep,
 
     PyGILState_Release(gstate);
     free(pc);
+    if (skip_trailing && q != NULL && *q != p) {
+        while (isspace_ascii(**q)) {
+            (*q)++;
+        }
+    }
     return r;
 }
 

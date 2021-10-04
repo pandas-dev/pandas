@@ -13,6 +13,7 @@ from pandas._libs import (
     iNaT,
     lib,
 )
+from pandas.compat.numpy import np_version_under1p19
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
@@ -41,6 +42,7 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
+from pandas.core.api import Int64Index
 from pandas.core.arrays import (
     IntervalArray,
     period_array,
@@ -660,7 +662,7 @@ class TestSeriesConstructors:
             timedelta_range("1 day", periods=3),
             period_range("2012Q1", periods=3, freq="Q"),
             Index(list("abc")),
-            pd.Int64Index([1, 2, 3]),
+            Int64Index([1, 2, 3]),
             RangeIndex(0, 3),
         ],
         ids=lambda x: type(x).__name__,
@@ -1839,3 +1841,25 @@ def test_constructor(rand_series_with_duplicate_datetimeindex):
     dups = rand_series_with_duplicate_datetimeindex
     assert isinstance(dups, Series)
     assert isinstance(dups.index, DatetimeIndex)
+
+
+@pytest.mark.parametrize(
+    "input_dict,expected",
+    [
+        ({0: 0}, np.array([[0]], dtype=np.int64)),
+        ({"a": "a"}, np.array([["a"]], dtype=object)),
+        ({1: 1}, np.array([[1]], dtype=np.int64)),
+    ],
+)
+@pytest.mark.skipif(np_version_under1p19, reason="fails on numpy below 1.19")
+def test_numpy_array(input_dict, expected):
+    result = np.array([Series(input_dict)])
+    tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.skipif(
+    not np_version_under1p19, reason="check failure on numpy below 1.19"
+)
+def test_numpy_array_np_v1p19():
+    with pytest.raises(KeyError, match="0"):
+        np.array([Series({1: 1})])
