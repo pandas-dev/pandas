@@ -322,7 +322,7 @@ def generate_ewm_numba_table_func(
                             # is to be used in conjunction with vals[i+1]
                             old_wt[j] *= old_wt_factor ** deltas[i - 1]
                         else:
-                            weighted[j] = old_wt[j] * weighted[j]
+                            weighted[j] = old_wt_factor * weighted[j]
                         if is_observations[j]:
                             if normalize:
                                 # avoid numerical errors on constant series
