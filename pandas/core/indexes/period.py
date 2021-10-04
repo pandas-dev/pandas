@@ -308,7 +308,16 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         """
         if not isinstance(dtype, PeriodDtype):
             return False
-        return dtype.freq == self.freq
+        # For the subset of DateOffsets that can be a dtype.freq, it
+        #  suffices (and is much faster) to compare the dtype_code rather than
+        #  the freq itself.
+        # See also: PeriodDtype.__eq__
+        freq = dtype.freq
+        own_freq = self.freq
+        return (
+            freq._period_dtype_code == own_freq._period_dtype_code
+            and freq.n == own_freq.n
+        )
 
     # ------------------------------------------------------------------------
     # Index Methods

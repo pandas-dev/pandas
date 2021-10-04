@@ -2,7 +2,10 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Index
+from pandas import (
+    Index,
+    NaT,
+)
 import pandas._testing as tm
 
 
@@ -56,3 +59,20 @@ class TestGetLoc:
 
         res = oidx.get_loc(tup)
         assert res == loc
+
+    def test_get_loc_nan_object_dtype_nonmonotonic_nonunique(self):
+        # case that goes through _maybe_get_bool_indexer
+        idx = Index(["foo", np.nan, None, "foo", 1.0, None], dtype=object)
+
+        # we dont raise KeyError on nan
+        res = idx.get_loc(np.nan)
+        assert res == 1
+
+        # we only match on None, not on np.nan
+        res = idx.get_loc(None)
+        expected = np.array([False, False, True, False, False, True])
+        tm.assert_numpy_array_equal(res, expected)
+
+        # we don't match at all on mismatched NA
+        with pytest.raises(KeyError, match="NaT"):
+            idx.get_loc(NaT)
