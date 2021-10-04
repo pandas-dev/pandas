@@ -126,6 +126,7 @@ Other enhancements
 - Attempting to write into a file in missing parent directory with :meth:`DataFrame.to_csv`, :meth:`DataFrame.to_html`, :meth:`DataFrame.to_excel`, :meth:`DataFrame.to_feather`, :meth:`DataFrame.to_parquet`, :meth:`DataFrame.to_stata`, :meth:`DataFrame.to_json`, :meth:`DataFrame.to_pickle`, and :meth:`DataFrame.to_xml` now explicitly mentions missing parent directory, the same is true for :class:`Series` counterparts (:issue:`24306`)
 - :meth:`IntegerArray.all` , :meth:`IntegerArray.any`, :meth:`FloatingArray.any`, and :meth:`FloatingArray.all` use Kleene logic (:issue:`41967`)
 - Added support for nullable boolean and integer types in :meth:`DataFrame.to_stata`, :class:`~pandas.io.stata.StataWriter`, :class:`~pandas.io.stata.StataWriter117`, and :class:`~pandas.io.stata.StataWriterUTF8` (:issue:`40855`)
+- The error raised when an optional dependency can't be imported now includes the original exception, for easier investigation.
 -
 
 .. ---------------------------------------------------------------------------
@@ -142,7 +143,8 @@ These are bug fixes that might have notable behavior changes.
 Inconsistent date string parsing
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``dayfirst`` option of :func:`to_datetime` isn't strict, and this can lead to surprising behaviour:
+The ``dayfirst`` option of :func:`to_datetime` isn't strict, and this can lead to sur
+ising behaviour:
 
 .. ipython:: python
     :okwarning:
