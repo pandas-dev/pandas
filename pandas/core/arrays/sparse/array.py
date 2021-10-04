@@ -574,7 +574,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 dtype = object
 
         out = np.full(self.shape, fill_value, dtype=dtype)
-        out[self.sp_index.to_int_index().indices] = self.sp_values
+        out[self.sp_index.indices] = self.sp_values
         return out
 
     def __setitem__(self, key, value):
@@ -796,7 +796,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if len(self) == 0 or self.sp_index.npoints == len(self):
             return -1
 
-        indices = self.sp_index.to_int_index().indices
+        indices = self.sp_index.indices
         if not len(indices) or indices[0] > 0:
             return 0
 
@@ -892,13 +892,39 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         elif isinstance(key, tuple):
             data_slice = self.to_dense()[key]
         elif isinstance(key, slice):
-            # special case to preserve dtypes
-            if key == slice(None):
-                return self.copy()
-            # TODO: this logic is surely elsewhere
-            # TODO: this could be more efficient
-            indices = np.arange(len(self), dtype=np.int32)[key]
-            return self.take(indices)
+
+            # Avoid densifying when handling contiguous slices
+            if key.step is None or key.step == 1:
+                start = 0 if key.start is None else key.start
+                if start < 0:
+                    start += len(self)
+
+                end = len(self) if key.stop is None else key.stop
+                if end < 0:
+                    end += len(self)
+
+                indices = self.sp_index.indices
+                keep_inds = np.flatnonzero((indices >= start) & (indices < end))
+                sp_vals = self.sp_values[keep_inds]
+
+                sp_index = indices[keep_inds].copy()
+
+                # If we've sliced to not include the start of the array, all our indices
+                # should be shifted. NB: here we are careful to also not shift by a
+                # negative value for a case like [0, 1][-100:] where the start index
+                # should be treated like 0
+                if start > 0:
+                    sp_index -= start
+
+                # Length of our result should match applying this slice to a range
+                # of the length of our original array
+                new_len = len(range(len(self))[key])
+                new_sp_index = make_sparse_index(new_len, sp_index, self.kind)
+                return type(self)._simple_new(sp_vals, new_sp_index, self.dtype)
+            else:
+                indices = np.arange(len(self), dtype=np.int32)[key]
+                return self.take(indices)
+
         else:
             # TODO: I think we can avoid densifying when masking a
             # boolean SparseArray with another. Need to look at the
@@ -1085,7 +1111,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             indices = []
 
             for arr in to_concat:
-                int_idx = arr.sp_index.to_int_index().indices.copy()
+                int_idx = arr.sp_index.indices.copy()
                 int_idx += length  # TODO: wraparound
                 length += arr.sp_index.length
 
@@ -1298,9 +1324,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
     def nonzero(self):
         if self.fill_value == 0:
-            return (self.sp_index.to_int_index().indices,)
+            return (self.sp_index.indices,)
         else:
-            return (self.sp_index.to_int_index().indices[self.sp_values != 0],)
+            return (self.sp_index.indices[self.sp_values != 0],)
 
     # ------------------------------------------------------------------------
     # Reductions
@@ -1571,9 +1597,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         else:
             return type(self)(result)
 
-    def __abs__(self):
-        return np.abs(self)
-
     # ------------------------------------------------------------------------
     # Ops
     # ------------------------------------------------------------------------
@@ -1619,11 +1642,14 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         if isinstance(other, np.ndarray):
             # TODO: make this more flexible than just ndarray...
-            if len(self) != len(other):
-                raise AssertionError(f"length mismatch: {len(self)} vs. {len(other)}")
             other = SparseArray(other, fill_value=self.fill_value)
 
         if isinstance(other, SparseArray):
+            if len(self) != len(other):
+                raise ValueError(
+                    f"operands have mismatched length {len(self)} and {len(other)}"
+                )
+
             op_name = op.__name__.strip("_")
             return _sparse_array_op(self, other, op, op_name)
         else:
@@ -1654,6 +1680,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
     def __invert__(self) -> SparseArray:
         return self._unary_method(operator.invert)
+
+    def __abs__(self) -> SparseArray:
+        return self._unary_method(operator.abs)
 
     # ----------
     # Formatting
@@ -1745,10 +1774,10 @@ def make_sparse_index(length: int, indices, kind: Literal["integer"]) -> IntInde
 
 def make_sparse_index(length: int, indices, kind: SparseIndexKind) -> SparseIndex:
     index: SparseIndex
-    if kind == "block" or isinstance(kind, BlockIndex):
+    if kind == "block":
         locs, lens = splib.get_blocks(indices)
         index = BlockIndex(length, locs, lens)
-    elif kind == "integer" or isinstance(kind, IntIndex):
+    elif kind == "integer":
         index = IntIndex(length, indices)
     else:  # pragma: no cover
         raise ValueError("must be block or integer type")

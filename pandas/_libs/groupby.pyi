@@ -6,9 +6,9 @@ from pandas._typing import npt
 
 def group_median_float64(
     out: np.ndarray,  # ndarray[float64_t, ndim=2]
-    counts: np.ndarray,  # ndarray[int64_t]
+    counts: npt.NDArray[np.int64],
     values: np.ndarray,  # ndarray[float64_t, ndim=2]
-    labels: np.ndarray,  # ndarray[int64_t]
+    labels: npt.NDArray[np.int64],
     min_count: int = ...,  # Py_ssize_t
 ) -> None: ...
 def group_cumprod_float64(
@@ -37,7 +37,7 @@ def group_fillna_indexer(
     out: np.ndarray,  # ndarray[intp_t]
     labels: np.ndarray,  # ndarray[int64_t]
     sorted_labels: npt.NDArray[np.intp],
-    mask: np.ndarray,  # ndarray[uint8_t]
+    mask: npt.NDArray[np.uint8],
     direction: Literal["ffill", "bfill"],
     limit: int,  # int64_t
     dropna: bool,
