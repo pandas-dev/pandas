@@ -115,7 +115,7 @@ Example:
 Groupby positional indexing
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-It is now posible to specify positional ranges relative to the ends of each group.
+It is now possible to specify positional ranges relative to the ends of each group.
 
 Negative arguments for :meth:`.GroupBy.head` and :meth:`.GroupBy.tail` now work correctly and result in ranges relative to the end and start of each group, respectively.
 Previously, negative arguments returned empty frames.
