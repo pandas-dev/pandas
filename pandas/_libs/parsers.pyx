@@ -108,6 +108,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.inference import is_dict_like
 
 cdef:
     float64_t INF = <float64_t>np.inf
@@ -355,7 +356,7 @@ cdef class TextReader:
                   thousands=None,       # bytes | str
                   dtype=None,
                   usecols=None,
-                  on_bad_lines = ERROR,
+                  on_bad_lines=ERROR,
                   bint na_filter=True,
                   na_values=None,
                   na_fvalues=None,
@@ -605,10 +606,6 @@ cdef class TextReader:
         cdef:
             void *ptr
 
-        if not hasattr(source, "read"):
-            raise IOError(f'Expected file path name or file-like object, '
-                          f'got {type(source)} type')
-
         ptr = new_rd_source(source)
         self.parser.source = ptr
         self.parser.cb_io = &buffer_rd_bytes
@@ -689,6 +686,7 @@ cdef class TextReader:
                                 count = counts.get(name, 0)
                             if (
                                 self.dtype is not None
+                                and is_dict_like(self.dtype)
                                 and self.dtype.get(old_name) is not None
                                 and self.dtype.get(name) is None
                             ):
@@ -998,7 +996,7 @@ cdef class TextReader:
                 if col_dtype is not None:
                     warnings.warn((f"Both a converter and dtype were specified "
                                    f"for column {name} - only the converter will "
-                                   f"be used"), ParserWarning,
+                                   f"be used."), ParserWarning,
                                   stacklevel=5)
                 results[i] = _apply_converter(conv, self.parser, i, start, end)
                 continue
@@ -1278,6 +1276,8 @@ cdef class TextReader:
                 # generate extra (bogus) headers if there are more columns than headers
                 if j >= len(self.header[0]):
                     return j
+                elif self.has_mi_columns:
+                    return tuple(header_row[j] for header_row in self.header)
                 else:
                     return self.header[0][j]
             else:
@@ -1438,7 +1438,7 @@ cdef _categorical_convert(parser_t *parser, int64_t col,
 
             if na_filter:
                 if kh_get_str_starts_item(na_hashset, word):
-                # is in NA values
+                    # is in NA values
                     na_count += 1
                     codes[i] = NA
                     continue
@@ -1574,7 +1574,7 @@ cdef inline int _try_double_nogil(parser_t *parser,
                             strcasecmp(word, cposinfty) == 0):
                         data[0] = INF
                     elif (strcasecmp(word, cneginf) == 0 or
-                            strcasecmp(word, cneginfty) == 0 ):
+                            strcasecmp(word, cneginfty) == 0):
                         data[0] = NEGINF
                     else:
                         return 1

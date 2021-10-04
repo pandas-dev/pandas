@@ -138,7 +138,7 @@ A DataFrame.
 
 
 def _parse_date(datestr: str) -> datetime:
-    """ Given a date in xport format, return Python date. """
+    """Given a date in xport format, return Python date."""
     try:
         # e.g. "16FEB11:10:07:55"
         return datetime.strptime(datestr, "%d%b%y:%H:%M:%S")
@@ -393,7 +393,7 @@ class XportReader(ReaderBase, abc.Iterator):
         total_records_length = self.filepath_or_buffer.tell() - self.record_start
 
         if total_records_length % 80 != 0:
-            warnings.warn("xport file may be corrupted")
+            warnings.warn("xport file may be corrupted.")
 
         if self.record_length > 80:
             self.filepath_or_buffer.seek(self.record_start)

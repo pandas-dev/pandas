@@ -5,13 +5,15 @@ import pandas.util._test_decorators as td
 
 from pandas import (
     DataFrame,
-    Float64Index,
-    Int64Index,
     MultiIndex,
     date_range,
     to_datetime,
 )
 import pandas._testing as tm
+from pandas.core.api import (
+    Float64Index,
+    Int64Index,
+)
 
 
 class TestMultiIndexPartial:
@@ -158,8 +160,8 @@ class TestMultiIndexPartial:
             assert isinstance(mi.levels[0], Float64Index)
 
         assert 14 not in mi.levels[0]
-        assert not mi.levels[0]._should_fallback_to_positional()
-        assert not mi._should_fallback_to_positional()
+        assert not mi.levels[0]._should_fallback_to_positional
+        assert not mi._should_fallback_to_positional
 
         with pytest.raises(KeyError, match="14"):
             ser[14]

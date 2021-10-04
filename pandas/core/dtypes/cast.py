@@ -15,6 +15,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Sized,
+    TypeVar,
     cast,
     overload,
 )
@@ -57,7 +58,6 @@ from pandas.core.dtypes.common import (
     is_complex_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
-    is_datetime_or_timedelta_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_float,
@@ -77,6 +77,7 @@ from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
     IntervalDtype,
+    PandasDtype,
     PeriodDtype,
 )
 from pandas.core.dtypes.generic import (
@@ -92,7 +93,6 @@ from pandas.core.dtypes.missing import (
 )
 
 if TYPE_CHECKING:
-    from typing import Literal
 
     from pandas.core.arrays import (
         DatetimeArray,
@@ -107,11 +107,13 @@ _int16_max = np.iinfo(np.int16).max
 _int32_max = np.iinfo(np.int32).max
 _int64_max = np.iinfo(np.int64).max
 
+NumpyArrayT = TypeVar("NumpyArrayT", bound=np.ndarray)
+
 
 def maybe_convert_platform(
     values: list | tuple | range | np.ndarray | ExtensionArray,
 ) -> ArrayLike:
-    """ try to do platform conversion, allow ndarray or list here """
+    """try to do platform conversion, allow ndarray or list here"""
     arr: ArrayLike
 
     if isinstance(values, (list, tuple, range)):
@@ -179,9 +181,7 @@ def maybe_box_native(value: Scalar) -> Scalar:
     -------
     scalar or Series
     """
-    if is_datetime_or_timedelta_dtype(value):
-        value = maybe_box_datetimelike(value)
-    elif is_float(value):
+    if is_float(value):
         # error: Argument 1 to "float" has incompatible type
         # "Union[Union[str, int, float, bool], Union[Any, Timestamp, Timedelta, Any]]";
         # expected "Union[SupportsFloat, _SupportsIndex, str]"
@@ -193,6 +193,8 @@ def maybe_box_native(value: Scalar) -> Scalar:
         value = int(value)  # type: ignore[arg-type]
     elif is_bool(value):
         value = bool(value)
+    elif isinstance(value, (np.datetime64, np.timedelta64)):
+        value = maybe_box_datetimelike(value)
     return value
 
 
@@ -419,18 +421,14 @@ def maybe_cast_to_extension_array(
     -------
     ExtensionArray or obj
     """
-    from pandas.core.arrays.string_ import StringArray
-    from pandas.core.arrays.string_arrow import ArrowStringArray
+    from pandas.core.arrays.string_ import BaseStringArray
 
     assert isinstance(cls, type), f"must pass a type: {cls}"
     assertion_msg = f"must pass a subclass of ExtensionArray: {cls}"
     assert issubclass(cls, ABCExtensionArray), assertion_msg
 
     # Everything can be converted to StringArrays, but we may not want to convert
-    if (
-        issubclass(cls, (StringArray, ArrowStringArray))
-        and lib.infer_dtype(obj) != "string"
-    ):
+    if issubclass(cls, BaseStringArray) and lib.infer_dtype(obj) != "string":
         return obj
 
     try:
@@ -663,7 +661,10 @@ def _ensure_dtype_type(value, dtype: np.dtype):
     object
     """
     # Start with exceptions in which we do _not_ cast to numpy types
-    if dtype == np.object_:
+
+    # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
+    # operand type: "Type[object_]")
+    if dtype == np.object_:  # type: ignore[comparison-overlap]
         return value
 
     # Note: before we get here we have already excluded isna(value)
@@ -779,6 +780,21 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> tuple[DtypeObj, 
     return dtype, val
 
 
+def dict_compat(d: dict[Scalar, Scalar]) -> dict[Scalar, Scalar]:
+    """
+    Convert datetimelike-keyed dicts to a Timestamp-keyed dict.
+
+    Parameters
+    ----------
+    d: dict-like object
+
+    Returns
+    -------
+    dict
+    """
+    return {maybe_box_datetimelike(key): value for key, value in d.items()}
+
+
 def infer_dtype_from_array(
     arr, pandas_dtype: bool = False
 ) -> tuple[DtypeObj, ArrayLike]:
@@ -870,10 +886,10 @@ def maybe_infer_dtype_type(element):
 
 
 def maybe_upcast(
-    values: np.ndarray,
+    values: NumpyArrayT,
     fill_value: Scalar = np.nan,
     copy: bool = False,
-) -> tuple[np.ndarray, Scalar]:
+) -> tuple[NumpyArrayT, Scalar]:
     """
     Provide explicit type promotion and coercion.
 
@@ -917,7 +933,7 @@ def invalidate_string_dtypes(dtype_set: set[DtypeObj]):
 
 
 def coerce_indexer_dtype(indexer, categories):
-    """ coerce the indexer input array to the smallest dtype possible """
+    """coerce the indexer input array to the smallest dtype possible"""
     length = len(categories)
     if length < _int8_max:
         return ensure_int8(indexer)
@@ -1077,14 +1093,11 @@ def astype_nansafe(
         The dtype was a datetime64/timedelta64 dtype, but it had no unit.
     """
     if arr.ndim > 1:
-        # Make sure we are doing non-copy ravel and reshape.
-        flags = arr.flags
-        flat = arr.ravel("K")
+        flat = arr.ravel()
         result = astype_nansafe(flat, dtype, copy=copy, skipna=skipna)
-        order: Literal["C", "F"] = "F" if flags.f_contiguous else "C"
         # error: Item "ExtensionArray" of "Union[ExtensionArray, ndarray]" has no
         # attribute "reshape"
-        return result.reshape(arr.shape, order=order)  # type: ignore[union-attr]
+        return result.reshape(arr.shape)  # type: ignore[union-attr]
 
     # We get here with 0-dim from sparse
     arr = np.atleast_1d(arr)
@@ -1097,7 +1110,10 @@ def astype_nansafe(
         raise ValueError("dtype must be np.dtype or ExtensionDtype")
 
     if arr.dtype.kind in ["m", "M"] and (
-        issubclass(dtype.type, str) or dtype == object
+        issubclass(dtype.type, str)
+        # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
+        # operand type: "Type[object]")
+        or dtype == object  # type: ignore[comparison-overlap]
     ):
         from pandas.core.construction import ensure_wrapped_if_datetimelike
 
@@ -1108,7 +1124,9 @@ def astype_nansafe(
         return lib.ensure_string_array(arr, skipna=skipna, convert_na_value=False)
 
     elif is_datetime64_dtype(arr):
-        if dtype == np.int64:
+        # Non-overlapping equality check (left operand type: "dtype[Any]", right
+        # operand type: "Type[signedinteger[Any]]")
+        if dtype == np.int64:  # type: ignore[comparison-overlap]
             warnings.warn(
                 f"casting {arr.dtype} values to int64 with .astype(...) "
                 "is deprecated and will raise in a future version. "
@@ -1128,7 +1146,9 @@ def astype_nansafe(
         raise TypeError(f"cannot astype a datetimelike from [{arr.dtype}] to [{dtype}]")
 
     elif is_timedelta64_dtype(arr):
-        if dtype == np.int64:
+        # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
+        # operand type: "Type[signedinteger[Any]]")
+        if dtype == np.int64:  # type: ignore[comparison-overlap]
             warnings.warn(
                 f"casting {arr.dtype} values to int64 with .astype(...) "
                 "is deprecated and will raise in a future version. "
@@ -1286,6 +1306,9 @@ def astype_array_safe(
         raise TypeError(msg)
 
     dtype = pandas_dtype(dtype)
+    if isinstance(dtype, PandasDtype):
+        # Ensure we don't end up with a PandasArray
+        dtype = dtype.numpy_dtype
 
     try:
         new_values = astype_array(values, dtype, copy=copy)
@@ -1402,10 +1425,9 @@ def convert_dtypes(
 
         if is_string_dtype(inferred_dtype):
             if not convert_string:
-                inferred_dtype = input_array.dtype
+                return input_array.dtype
             else:
-                inferred_dtype = pandas_dtype("string")
-            return inferred_dtype
+                return pandas_dtype("string")
 
         if convert_integer:
             target_int_dtype = pandas_dtype("Int64")
@@ -1458,7 +1480,9 @@ def convert_dtypes(
     else:
         return input_array.dtype
 
-    return inferred_dtype
+    # error: Incompatible return value type (got "Union[str, Union[dtype[Any],
+    # ExtensionDtype]]", expected "Union[dtype[Any], ExtensionDtype]")
+    return inferred_dtype  # type: ignore[return-value]
 
 
 def maybe_infer_to_datetimelike(
@@ -1835,7 +1859,9 @@ def construct_2d_arraylike_from_scalar(
 
     if dtype.kind in ["m", "M"]:
         value = maybe_unbox_datetimelike_tz_deprecation(value, dtype, stacklevel=4)
-    elif dtype == object:
+    # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
+    # operand type: "Type[object]")
+    elif dtype == object:  # type: ignore[comparison-overlap]
         if isinstance(value, (np.timedelta64, np.datetime64)):
             # calling np.array below would cast to pytimedelta/pydatetime
             out = np.empty(shape, dtype=object)
@@ -1977,8 +2003,6 @@ def maybe_cast_to_integer_array(
     Takes any dtype and returns the casted version, raising for when data is
     incompatible with integer/unsigned integer dtypes.
 
-    .. versionadded:: 0.24.0
-
     Parameters
     ----------
     arr : np.ndarray or list
@@ -2065,7 +2089,7 @@ def maybe_cast_to_integer_array(
         warnings.warn(
             f"Constructing Series or DataFrame from {arr.dtype} values and "
             f"dtype={dtype} is deprecated and will raise in a future version. "
-            "Use values.view(dtype) instead",
+            "Use values.view(dtype) instead.",
             FutureWarning,
             stacklevel=find_stack_level(),
         )
@@ -2165,11 +2189,18 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
         # ExtensionBlock._can_hold_element
         return True
 
+    # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
+    # operand type: "Type[object]")
+    if dtype == object:  # type: ignore[comparison-overlap]
+        return True
+
     tipo = maybe_infer_dtype_type(element)
 
     if dtype.kind in ["i", "u"]:
         if tipo is not None:
             if tipo.kind not in ["i", "u"]:
+                if is_float(element) and element.is_integer():
+                    return True
                 # Anything other than integer we cannot hold
                 return False
             elif dtype.itemsize < tipo.itemsize:
@@ -2209,9 +2240,6 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
         if tipo is not None:
             return tipo.kind == "b"
         return lib.is_bool(element)
-
-    elif dtype == object:
-        return True
 
     elif dtype.kind == "S":
         # TODO: test tests.frame.methods.test_replace tests get here,

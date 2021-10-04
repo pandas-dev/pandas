@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from pandas.core.dtypes.common import (
+    is_datetime64tz_dtype,
     is_interval_dtype,
     is_period_dtype,
 )
@@ -328,6 +329,9 @@ class BaseReshapingTests(BaseExtensionTests):
             )
             if obj == "series":
                 # TODO: special cases belong in dtype-specific tests
+                if is_datetime64tz_dtype(data.dtype):
+                    assert expected.dtypes.apply(is_datetime64tz_dtype).all()
+                    expected = expected.astype(object)
                 if is_period_dtype(data.dtype):
                     assert expected.dtypes.apply(is_period_dtype).all()
                     expected = expected.astype(object)

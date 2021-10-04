@@ -444,7 +444,7 @@ class TestPeriodSeriesComparisons:
 
 
 class TestPeriodIndexSeriesComparisonConsistency:
-    """ Test PeriodIndex and Period Series Ops consistency """
+    """Test PeriodIndex and Period Series Ops consistency"""
 
     # TODO: needs parametrization+de-duplication
 
@@ -753,7 +753,7 @@ class TestPeriodIndexArithmetic:
 
         with pytest.raises(TypeError, match=msg):
             rng - tdarr
-        msg = r"cannot subtract PeriodArray from timedelta64\[ns\]"
+        msg = r"cannot subtract period\[Q-DEC\]-dtype from TimedeltaArray"
         with pytest.raises(TypeError, match=msg):
             tdarr - rng
 
@@ -1306,7 +1306,7 @@ class TestPeriodSeriesArithmetic:
 
 
 class TestPeriodIndexSeriesMethods:
-    """ Test PeriodIndex and Period Series Ops consistency """
+    """Test PeriodIndex and Period Series Ops consistency"""
 
     def _check(self, values, func, expected):
         idx = PeriodIndex(values)

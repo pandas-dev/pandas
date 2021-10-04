@@ -1,12 +1,9 @@
 """
 Engine classes for :func:`~pandas.eval`
 """
+from __future__ import annotations
 
 import abc
-from typing import (
-    Dict,
-    Type,
-)
 
 from pandas.core.computation.align import (
     align_terms,
@@ -40,7 +37,7 @@ def _check_ne_builtin_clash(expr: Expr) -> None:
     overlap = names & _ne_builtins
 
     if overlap:
-        s = ", ".join(repr(x) for x in overlap)
+        s = ", ".join([repr(x) for x in overlap])
         raise NumExprClobberingError(
             f'Variables in expression "{expr}" overlap with builtins: ({s})'
         )
@@ -140,7 +137,7 @@ class PythonEngine(AbstractEngine):
         pass
 
 
-ENGINES: Dict[str, Type[AbstractEngine]] = {
+ENGINES: dict[str, type[AbstractEngine]] = {
     "numexpr": NumExprEngine,
     "python": PythonEngine,
 }

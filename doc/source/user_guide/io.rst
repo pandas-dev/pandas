@@ -31,7 +31,6 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     binary;`Feather Format <https://github.com/wesm/feather>`__;:ref:`read_feather<io.feather>`;:ref:`to_feather<io.feather>`
     binary;`Parquet Format <https://parquet.apache.org/>`__;:ref:`read_parquet<io.parquet>`;:ref:`to_parquet<io.parquet>`
     binary;`ORC Format <https://orc.apache.org/>`__;:ref:`read_orc<io.orc>`;
-    binary;`Msgpack <https://msgpack.org/>`__;:ref:`read_msgpack<io.msgpack>`;:ref:`to_msgpack<io.msgpack>`
     binary;`Stata <https://en.wikipedia.org/wiki/Stata>`__;:ref:`read_stata<io.stata_reader>`;:ref:`to_stata<io.stata_writer>`
     binary;`SAS <https://en.wikipedia.org/wiki/SAS_(software)>`__;:ref:`read_sas<io.sas_reader>`;
     binary;`SPSS <https://en.wikipedia.org/wiki/SPSS>`__;:ref:`read_spss<io.spss_reader>`;
@@ -161,9 +160,15 @@ dtype : Type name or dict of column -> type, default ``None``
   (unsupported with ``engine='python'``). Use ``str`` or ``object`` together
   with suitable ``na_values`` settings to preserve and
   not interpret dtype.
-engine : {``'c'``, ``'python'``}
-  Parser engine to use. The C engine is faster while the Python engine is
-  currently more feature-complete.
+engine : {``'c'``, ``'python'``, ``'pyarrow'``}
+  Parser engine to use. The C and pyarrow engines are faster, while the python engine
+  is currently more feature-complete. Multithreading is currently only supported by
+  the pyarrow engine.
+
+  .. versionadded:: 1.4.0
+
+     The "pyarrow" engine was added as an *experimental* engine, and some features
+     are unsupported, or may not work correctly, with this engine.
 converters : dict, default ``None``
   Dict of functions for converting values in certain columns. Keys can either be
   integers or column labels.
@@ -297,7 +302,6 @@ compression : {``'infer'``, ``'gzip'``, ``'bz2'``, ``'zip'``, ``'xz'``, ``None``
   create a reproducible gzip archive:
   ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
 
-  .. versionchanged:: 0.24.0 'infer' option added and set to default.
   .. versionchanged:: 1.1.0 dict option extended to support ``gzip`` and ``bz2``.
   .. versionchanged:: 1.2.0 Previous versions forwarded dict entries for 'gzip' to ``gzip.open``.
 thousands : str, default ``None``
@@ -351,14 +355,14 @@ error_bad_lines : boolean, default ``None``
   ``DataFrame`` that is returned. See :ref:`bad lines <io.bad_lines>`
   below.
 
-  .. deprecated:: 1.3
+  .. deprecated:: 1.3.0
      The ``on_bad_lines`` parameter should be used instead to specify behavior upon
      encountering a bad line instead.
 warn_bad_lines : boolean, default ``None``
   If error_bad_lines is ``False``, and warn_bad_lines is ``True``, a warning for
   each "bad line" will be output.
 
-  .. deprecated:: 1.3
+  .. deprecated:: 1.3.0
      The ``on_bad_lines`` parameter should be used instead to specify behavior upon
      encountering a bad line instead.
 on_bad_lines : {{'error', 'warn', 'skip'}}, default 'error'
@@ -369,7 +373,7 @@ on_bad_lines : {{'error', 'warn', 'skip'}}, default 'error'
         - 'warn', print a warning when a bad line is encountered and skip that line.
         - 'skip', skip bad lines without raising or warning when they are encountered.
 
-    .. versionadded:: 1.3
+    .. versionadded:: 1.3.0
 
 .. _io.dtypes:
 
@@ -1204,6 +1208,10 @@ Returning Series
 Using the ``squeeze`` keyword, the parser will return output with a single column
 as a ``Series``:
 
+.. deprecated:: 1.4.0
+   Users should append ``.squeeze("columns")`` to the DataFrame returned by
+   ``read_csv`` instead.
+
 .. ipython:: python
    :suppress:
 
@@ -1213,6 +1221,7 @@ as a ``Series``:
        fh.write(data)
 
 .. ipython:: python
+   :okwarning:
 
    print(open("tmp.csv").read())
 
@@ -1624,11 +1633,17 @@ Specifying ``iterator=True`` will also return the ``TextFileReader`` object:
 Specifying the parser engine
 ''''''''''''''''''''''''''''
 
-Under the hood pandas uses a fast and efficient parser implemented in C as well
-as a Python implementation which is currently more feature-complete. Where
-possible pandas uses the C parser (specified as ``engine='c'``), but may fall
-back to Python if C-unsupported options are specified. Currently, C-unsupported
-options include:
+Pandas currently supports three engines, the C engine, the python engine, and an experimental
+pyarrow engine (requires the ``pyarrow`` package). In general, the pyarrow engine is fastest
+on larger workloads and is equivalent in speed to the C engine on most other workloads.
+The python engine tends to be slower than the pyarrow and C engines on most workloads. However,
+the pyarrow engine is much less robust than the C engine, which lacks a few features compared to the
+Python engine.
+
+Where possible, pandas uses the C parser (specified as ``engine='c'``), but it may fall
+back to Python if C-unsupported options are specified.
+
+Currently, options unsupported by the C and pyarrow engines include:
 
 * ``sep`` other than a single character (e.g. regex separators)
 * ``skipfooter``
@@ -1636,6 +1651,32 @@ options include:
 
 Specifying any of the above options will produce a ``ParserWarning`` unless the
 python engine is selected explicitly using ``engine='python'``.
+
+Options that are unsupported by the pyarrow engine which are not covered by the list above include:
+
+* ``float_precision``
+* ``chunksize``
+* ``comment``
+* ``nrows``
+* ``thousands``
+* ``memory_map``
+* ``dialect``
+* ``warn_bad_lines``
+* ``error_bad_lines``
+* ``on_bad_lines``
+* ``delim_whitespace``
+* ``quoting``
+* ``lineterminator``
+* ``converters``
+* ``decimal``
+* ``iterator``
+* ``dayfirst``
+* ``infer_datetime_format``
+* ``verbose``
+* ``skipinitialspace``
+* ``low_memory``
+
+Specifying these options with ``engine='pyarrow'`` will raise a ``ValueError``.
 
 .. _io.remote:
 
@@ -2466,14 +2507,16 @@ Read a URL with no options:
 
 .. ipython:: python
 
-   url = (
-       "https://raw.githubusercontent.com/pandas-dev/pandas/master/"
-       "pandas/tests/io/data/html/spam.html"
-   )
+   url = "https://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list"
    dfs = pd.read_html(url)
    dfs
 
-Read in the content of the "banklist.html" file and pass it to ``read_html``
+.. note::
+
+   The data from the above URL changes every Monday so the resulting data above
+   and the data below may be slightly different.
+
+Read in the content of the file from the above URL and pass it to ``read_html``
 as a string:
 
 .. ipython:: python
@@ -2713,8 +2756,6 @@ table CSS classes. Note that these classes are *appended* to the existing
 
 The ``render_links`` argument provides the ability to add hyperlinks to cells
 that contain URLs.
-
-.. versionadded:: 0.24
 
 .. ipython:: python
 
@@ -3590,8 +3631,6 @@ indices to be parsed.
 
 Element order is ignored, so ``usecols=[0, 1]`` is the same as ``[1, 0]``.
 
-.. versionadded:: 0.24
-
 If ``usecols`` is a list of strings, it is assumed that each string corresponds
 to a column name provided either by the user in ``names`` or inferred from the
 document header row(s). Those strings define which columns will be parsed:
@@ -3601,8 +3640,6 @@ document header row(s). Those strings define which columns will be parsed:
     pd.read_excel("path_to_file.xls", "Sheet1", usecols=["foo", "bar"])
 
 Element order is ignored, so ``usecols=['baz', 'joe']`` is the same as ``['joe', 'baz']``.
-
-.. versionadded:: 0.24
 
 If ``usecols`` is callable, the callable function will be evaluated against
 the column names, returning names where the callable function evaluates to ``True``.
@@ -4016,21 +4053,13 @@ Passing options to the compression protocol in order to speed up compression:
 msgpack
 -------
 
-pandas support for ``msgpack`` has been removed in version 1.0.0.  It is recommended to use pyarrow for on-the-wire transmission of pandas objects.
+pandas support for ``msgpack`` has been removed in version 1.0.0. It is
+recommended to use :ref:`pickle <io.pickle>` instead.
 
-Example pyarrow usage:
+Alternatively, you can also the Arrow IPC serialization format for on-the-wire
+transmission of pandas objects. For documentation on pyarrow, see
+`here <https://arrow.apache.org/docs/python/ipc.html>`__.
 
-.. code-block:: python
-
-    import pandas as pd
-    import pyarrow as pa
-
-    df = pd.DataFrame({"A": [1, 2, 3]})
-
-    context = pa.default_serialization_context()
-    df_bytestring = context.serialize(df).to_buffer().to_pybytes()
-
-For documentation on pyarrow, see `here <https://arrow.apache.org/docs/python/index.html>`__.
 
 .. _io.hdf5:
 
@@ -4259,9 +4288,6 @@ everything in the sub-store and **below**, so be *careful*.
 
 You can walk through the group hierarchy using the ``walk`` method which
 will yield a tuple for each group key along with the relative keys of its contents.
-
-.. versionadded:: 0.24.0
-
 
 .. ipython:: python
 
@@ -5439,8 +5465,6 @@ underlying engine's default behavior.
 Partitioning Parquet files
 ''''''''''''''''''''''''''
 
-.. versionadded:: 0.24.0
-
 Parquet supports partitioning of data based on the values of one or more columns.
 
 .. ipython:: python
@@ -5547,12 +5571,22 @@ below and the SQLAlchemy `documentation <https://docs.sqlalchemy.org/en/latest/c
    # Create your engine.
    engine = create_engine("sqlite:///:memory:")
 
-If you want to manage your own connections you can pass one of those instead:
+If you want to manage your own connections you can pass one of those instead. The example below opens a
+connection to the database using a Python context manager that automatically closes the connection after
+the block has completed.
+See the `SQLAlchemy docs <https://docs.sqlalchemy.org/en/latest/core/connections.html#basic-usage>`__
+for an explanation of how the database connection is handled.
 
 .. code-block:: python
 
    with engine.connect() as conn, conn.begin():
        data = pd.read_sql_table("data", conn)
+
+.. warning::
+
+	When you open a connection to a database you are also responsible for closing it.
+	Side effects of leaving a connection open may include locking the database or
+	other breaking behaviour.
 
 Writing DataFrames
 ''''''''''''''''''
@@ -5668,8 +5702,6 @@ will convert the data to UTC.
 Insertion method
 ++++++++++++++++
 
-.. versionadded:: 0.24.0
-
 The parameter ``method`` controls the SQL insertion clause used.
 Possible values are:
 
@@ -5712,7 +5744,7 @@ Example of a callable using PostgreSQL `COPY clause
           writer.writerows(data_iter)
           s_buf.seek(0)
 
-          columns = ', '.join('"{}"'.format(k) for k in keys)
+          columns = ', '.join(['"{}"'.format(k) for k in keys])
           if table.schema:
               table_name = '{}.{}'.format(table.schema, table.name)
           else:

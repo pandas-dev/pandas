@@ -23,6 +23,10 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
+from pandas.core.api import (
+    Float64Index,
+    Int64Index,
+)
 
 dti4 = date_range("2016-01-01", periods=4)
 dti = dti4[:-1]
@@ -339,6 +343,7 @@ class TestGetLoc:
 
     # TODO: This method came from test_period; de-dup with version above
     @pytest.mark.parametrize("method", [None, "pad", "backfill", "nearest"])
+    @pytest.mark.filterwarnings("ignore:Passing method:FutureWarning")
     def test_get_loc_method(self, method):
         idx = period_range("2000-01-01", periods=3)
 
@@ -352,6 +357,7 @@ class TestGetLoc:
             idx.get_loc(key, method=method)
 
     # TODO: This method came from test_period; de-dup with version above
+    @pytest.mark.filterwarnings("ignore:Passing method:FutureWarning")
     def test_get_loc3(self):
 
         idx = period_range("2000-01-01", periods=5)[::2]
@@ -513,11 +519,13 @@ class TestGetIndexer:
                 continue
             # Two different error message patterns depending on dtypes
             msg = "|".join(
-                re.escape(msg)
-                for msg in (
-                    f"Cannot compare dtypes {pi.dtype} and {other.dtype}",
-                    " not supported between instances of ",
-                )
+                [
+                    re.escape(msg)
+                    for msg in (
+                        f"Cannot compare dtypes {pi.dtype} and {other.dtype}",
+                        " not supported between instances of ",
+                    )
+                ]
             )
             with pytest.raises(TypeError, match=msg):
                 pi.get_indexer(other2, method=method)
@@ -925,10 +933,10 @@ class TestAsOfLocs:
 
         msg = "must be DatetimeIndex or PeriodIndex"
         with pytest.raises(TypeError, match=msg):
-            pi.asof_locs(pd.Int64Index(pi.asi8), mask)
+            pi.asof_locs(Int64Index(pi.asi8), mask)
 
         with pytest.raises(TypeError, match=msg):
-            pi.asof_locs(pd.Float64Index(pi.asi8), mask)
+            pi.asof_locs(Float64Index(pi.asi8), mask)
 
         with pytest.raises(TypeError, match=msg):
             # TimedeltaIndex

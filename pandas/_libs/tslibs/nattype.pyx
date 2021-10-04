@@ -143,7 +143,7 @@ cdef class _NaT(datetime):
                 return True
             warnings.warn(
                 "Comparison of NaT with datetime.date is deprecated in "
-                "order to match the standard library behavior.  "
+                "order to match the standard library behavior. "
                 "In a future version these will be considered non-comparable.",
                 FutureWarning,
                 stacklevel=1,
@@ -409,8 +409,20 @@ class NaTType(_NaT):
     # These are the ones that can get their docstrings from datetime.
 
     # nan methods
-    weekday = _make_nan_func("weekday", datetime.weekday.__doc__)
-    isoweekday = _make_nan_func("isoweekday", datetime.isoweekday.__doc__)
+    weekday = _make_nan_func(
+        "weekday",
+        """
+        Return the day of the week represented by the date.
+        Monday == 0 ... Sunday == 6.
+        """,
+    )
+    isoweekday = _make_nan_func(
+        "isoweekday",
+        """
+        Return the day of the week represented by the date.
+        Monday == 1 ... Sunday == 7.
+        """,
+    )
     total_seconds = _make_nan_func("total_seconds", timedelta.total_seconds.__doc__)
     month_name = _make_nan_func(
         "month_name",
@@ -569,7 +581,7 @@ class NaTType(_NaT):
 
         Examples
         --------
-        >>> pd.Timestamp.utcnow()
+        >>> pd.Timestamp.utcnow()   # doctest: +SKIP
         Timestamp('2020-11-16 22:50:18.092888+0000', tz='UTC')
         """,
     )
@@ -693,7 +705,7 @@ class NaTType(_NaT):
 
         Examples
         --------
-        >>> pd.Timestamp.now()
+        >>> pd.Timestamp.now()  # doctest: +SKIP
         Timestamp('2020-11-16 22:06:16.378782')
 
         Analogous for ``pd.NaT``:
@@ -718,7 +730,7 @@ class NaTType(_NaT):
 
         Examples
         --------
-        >>> pd.Timestamp.today()
+        >>> pd.Timestamp.today()    # doctest: +SKIP
         Timestamp('2020-11-16 22:37:39.969883')
 
         Analogous for ``pd.NaT``:
@@ -744,7 +756,6 @@ class NaTType(_NaT):
             * 'NaT' will return NaT for an ambiguous time.
             * 'raise' will raise an AmbiguousTimeError for an ambiguous time.
 
-            .. versionadded:: 0.24.0
         nonexistent : {'raise', 'shift_forward', 'shift_backward, 'NaT', \
 timedelta}, default 'raise'
             A nonexistent time does not exist in a particular timezone
@@ -758,8 +769,6 @@ timedelta}, default 'raise'
             * timedelta objects will shift nonexistent times by the timedelta.
             * 'raise' will raise an NonExistentTimeError if there are
               nonexistent times.
-
-            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -822,7 +831,6 @@ timedelta}, default 'raise'
             * 'NaT' will return NaT for an ambiguous time.
             * 'raise' will raise an AmbiguousTimeError for an ambiguous time.
 
-            .. versionadded:: 0.24.0
         nonexistent : {'raise', 'shift_forward', 'shift_backward, 'NaT', \
 timedelta}, default 'raise'
             A nonexistent time does not exist in a particular timezone
@@ -836,8 +844,6 @@ timedelta}, default 'raise'
             * timedelta objects will shift nonexistent times by the timedelta.
             * 'raise' will raise an NonExistentTimeError if there are
               nonexistent times.
-
-            .. versionadded:: 0.24.0
 
         Raises
         ------
@@ -896,7 +902,6 @@ timedelta}, default 'raise'
             * 'NaT' will return NaT for an ambiguous time.
             * 'raise' will raise an AmbiguousTimeError for an ambiguous time.
 
-            .. versionadded:: 0.24.0
         nonexistent : {'raise', 'shift_forward', 'shift_backward, 'NaT', \
 timedelta}, default 'raise'
             A nonexistent time does not exist in a particular timezone
@@ -910,8 +915,6 @@ timedelta}, default 'raise'
             * timedelta objects will shift nonexistent times by the timedelta.
             * 'raise' will raise an NonExistentTimeError if there are
               nonexistent times.
-
-            .. versionadded:: 0.24.0
 
         Raises
         ------
@@ -1040,8 +1043,6 @@ default 'raise'
             * timedelta objects will shift nonexistent times by the timedelta.
             * 'raise' will raise an NonExistentTimeError if there are
               nonexistent times.
-
-            .. versionadded:: 0.24.0
 
         Returns
         -------

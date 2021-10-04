@@ -7,17 +7,19 @@ from datetime import datetime
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     Sequence,
     TypeVar,
     cast,
+    final,
 )
+import warnings
 
 import numpy as np
 
 from pandas._libs import (
     NaT,
     Timedelta,
-    iNaT,
     lib,
 )
 from pandas._libs.tslibs import (
@@ -25,8 +27,8 @@ from pandas._libs.tslibs import (
     NaTType,
     Resolution,
     Tick,
+    parsing,
 )
-from pandas._typing import Callable
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender,
@@ -39,12 +41,12 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_integer,
     is_list_like,
-    is_period_dtype,
 )
 from pandas.core.dtypes.concat import concat_compat
 
 from pandas.core.arrays import (
     DatetimeArray,
+    ExtensionArray,
     PeriodArray,
     TimedeltaArray,
 )
@@ -58,9 +60,7 @@ from pandas.core.indexes.base import (
 from pandas.core.indexes.extension import (
     NDArrayBackedExtensionIndex,
     inherit_names,
-    make_wrapped_arith_op,
 )
-from pandas.core.indexes.numeric import Int64Index
 from pandas.core.tools.timedeltas import to_timedelta
 
 if TYPE_CHECKING:
@@ -95,28 +95,10 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     hasnans = cache_readonly(
         DatetimeLikeArrayMixin._hasnans.fget  # type: ignore[attr-defined]
     )
-    _hasnans = hasnans  # for index / array -agnostic code
 
     @property
     def _is_all_dates(self) -> bool:
         return True
-
-    # ------------------------------------------------------------------------
-    # Abstract data attributes
-
-    @property
-    def values(self) -> np.ndarray:
-        # Note: PeriodArray overrides this to return an ndarray of objects.
-        return self._data._ndarray
-
-    def __array_wrap__(self, result, context=None):
-        """
-        Gets called after a ufunc and other functions.
-        """
-        out = super().__array_wrap__(result, context=context)
-        if isinstance(out, DatetimeTimedeltaMixin) and self.freq is not None:
-            out = out._with_freq("infer")
-        return out
 
     # ------------------------------------------------------------------------
 
@@ -165,21 +147,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
             return False
         return True
 
-    @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
-    def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
-        nv.validate_take((), kwargs)
-        indices = np.asarray(indices, dtype=np.intp)
-
-        maybe_slice = lib.maybe_indices_to_slice(indices, len(self))
-
-        result = NDArrayBackedExtensionIndex.take(
-            self, indices, axis, allow_fill, fill_value, **kwargs
-        )
-        if isinstance(maybe_slice, slice):
-            freq = self._data._get_getitem_freq(maybe_slice)
-            result._data._freq = freq
-        return result
-
     _can_hold_na = True
 
     _na_value: NaTType = NaT
@@ -188,126 +155,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     def _convert_tolerance(self, tolerance, target):
         tolerance = np.asarray(to_timedelta(tolerance).to_numpy())
         return super()._convert_tolerance(tolerance, target)
-
-    def tolist(self) -> list:
-        """
-        Return a list of the underlying data.
-        """
-        return list(self.astype(object))
-
-    def min(self, axis=None, skipna=True, *args, **kwargs):
-        """
-        Return the minimum value of the Index or minimum along
-        an axis.
-
-        See Also
-        --------
-        numpy.ndarray.min
-        Series.min : Return the minimum value in a Series.
-        """
-        nv.validate_min(args, kwargs)
-        nv.validate_minmax_axis(axis)
-
-        if not len(self):
-            return self._na_value
-
-        i8 = self.asi8
-
-        if len(i8) and self.is_monotonic_increasing:
-            # quick check
-            if i8[0] != iNaT:
-                return self._data._box_func(i8[0])
-
-        if self.hasnans:
-            if not skipna:
-                return self._na_value
-            i8 = i8[~self._isnan]
-
-        if not len(i8):
-            return self._na_value
-
-        min_stamp = i8.min()
-        return self._data._box_func(min_stamp)
-
-    def argmin(self, axis=None, skipna=True, *args, **kwargs):
-        """
-        Returns the indices of the minimum values along an axis.
-
-        See `numpy.ndarray.argmin` for more information on the
-        `axis` parameter.
-
-        See Also
-        --------
-        numpy.ndarray.argmin
-        """
-        nv.validate_argmin(args, kwargs)
-        nv.validate_minmax_axis(axis)
-
-        i8 = self.asi8
-        if self.hasnans:
-            mask = self._isnan
-            if mask.all() or not skipna:
-                return -1
-            i8 = i8.copy()
-            i8[mask] = np.iinfo("int64").max
-        return i8.argmin()
-
-    def max(self, axis=None, skipna=True, *args, **kwargs):
-        """
-        Return the maximum value of the Index or maximum along
-        an axis.
-
-        See Also
-        --------
-        numpy.ndarray.max
-        Series.max : Return the maximum value in a Series.
-        """
-        nv.validate_max(args, kwargs)
-        nv.validate_minmax_axis(axis)
-
-        if not len(self):
-            return self._na_value
-
-        i8 = self.asi8
-
-        if len(i8) and self.is_monotonic:
-            # quick check
-            if i8[-1] != iNaT:
-                return self._data._box_func(i8[-1])
-
-        if self.hasnans:
-            if not skipna:
-                return self._na_value
-            i8 = i8[~self._isnan]
-
-        if not len(i8):
-            return self._na_value
-
-        max_stamp = i8.max()
-        return self._data._box_func(max_stamp)
-
-    def argmax(self, axis=None, skipna=True, *args, **kwargs):
-        """
-        Returns the indices of the maximum values along an axis.
-
-        See `numpy.ndarray.argmax` for more information on the
-        `axis` parameter.
-
-        See Also
-        --------
-        numpy.ndarray.argmax
-        """
-        nv.validate_argmax(args, kwargs)
-        nv.validate_minmax_axis(axis)
-
-        i8 = self.asi8
-        if self.hasnans:
-            mask = self._isnan
-            if mask.all() or not skipna:
-                return -1
-            i8 = i8.copy()
-            i8[mask] = 0
-        return i8.argmax()
 
     # --------------------------------------------------------------------
     # Rendering Methods
@@ -352,10 +199,11 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         """
         attrs = super()._format_attrs()
         for attrib in self._attributes:
+            # iterating over _attributes prevents us from doing this for PeriodIndex
             if attrib == "freq":
                 freq = self.freqstr
                 if freq is not None:
-                    freq = repr(freq)
+                    freq = repr(freq)  # e.g. D -> 'D'
                 # Argument 1 to "append" of "list" has incompatible type
                 # "Tuple[str, Optional[str]]"; expected "Tuple[str, Union[str, int]]"
                 attrs.append(("freq", freq))  # type: ignore[arg-type]
@@ -394,12 +242,26 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     # --------------------------------------------------------------------
     # Indexing Methods
 
-    def _validate_partial_date_slice(self, reso: Resolution):
+    def _can_partial_date_slice(self, reso: Resolution) -> bool:
         raise NotImplementedError
 
-    def _parsed_string_to_bounds(self, reso: Resolution, parsed: datetime):
+    def _parsed_string_to_bounds(self, reso: Resolution, parsed):
         raise NotImplementedError
 
+    def _parse_with_reso(self, label: str):
+        # overridden by TimedeltaIndex
+        parsed, reso_str = parsing.parse_time_string(label, self.freq)
+        reso = Resolution.from_attrname(reso_str)
+        return parsed, reso
+
+    def _get_string_slice(self, key: str):
+        parsed, reso = self._parse_with_reso(key)
+        try:
+            return self._partial_date_slice(reso, parsed)
+        except KeyError as err:
+            raise KeyError(key) from err
+
+    @final
     def _partial_date_slice(
         self,
         reso: Resolution,
@@ -415,7 +277,8 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         -------
         slice or ndarray[intp]
         """
-        self._validate_partial_date_slice(reso)
+        if not self._can_partial_date_slice(reso):
+            raise ValueError
 
         t1, t2 = self._parsed_string_to_bounds(reso, parsed)
         vals = self._data._ndarray
@@ -443,25 +306,45 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
             # try to find the dates
             return (lhs_mask & rhs_mask).nonzero()[0]
 
+    def _maybe_cast_slice_bound(self, label, side: str, kind=lib.no_default):
+        """
+        If label is a string, cast it to scalar type according to resolution.
+
+        Parameters
+        ----------
+        label : object
+        side : {'left', 'right'}
+        kind : {'loc', 'getitem'} or None
+
+        Returns
+        -------
+        label : object
+
+        Notes
+        -----
+        Value of `side` parameter should be validated in caller.
+        """
+        assert kind in ["loc", "getitem", None, lib.no_default]
+        self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
+
+        if isinstance(label, str):
+            try:
+                parsed, reso = self._parse_with_reso(label)
+            except ValueError as err:
+                # DTI -> parsing.DateParseError
+                # TDI -> 'unit abbreviation w/o a number'
+                # PI -> string cannot be parsed as datetime-like
+                raise self._invalid_indexer("slice", label) from err
+
+            lower, upper = self._parsed_string_to_bounds(reso, parsed)
+            return lower if side == "left" else upper
+        elif not isinstance(label, self._data._recognized_scalars):
+            raise self._invalid_indexer("slice", label)
+
+        return label
+
     # --------------------------------------------------------------------
     # Arithmetic Methods
-
-    __add__ = make_wrapped_arith_op("__add__")
-    __sub__ = make_wrapped_arith_op("__sub__")
-    __radd__ = make_wrapped_arith_op("__radd__")
-    __rsub__ = make_wrapped_arith_op("__rsub__")
-    __pow__ = make_wrapped_arith_op("__pow__")
-    __rpow__ = make_wrapped_arith_op("__rpow__")
-    __mul__ = make_wrapped_arith_op("__mul__")
-    __rmul__ = make_wrapped_arith_op("__rmul__")
-    __floordiv__ = make_wrapped_arith_op("__floordiv__")
-    __rfloordiv__ = make_wrapped_arith_op("__rfloordiv__")
-    __mod__ = make_wrapped_arith_op("__mod__")
-    __rmod__ = make_wrapped_arith_op("__rmod__")
-    __divmod__ = make_wrapped_arith_op("__divmod__")
-    __rdivmod__ = make_wrapped_arith_op("__rdivmod__")
-    __truediv__ = make_wrapped_arith_op("__truediv__")
-    __rtruediv__ = make_wrapped_arith_op("__rtruediv__")
 
     def shift(self: _T, periods: int = 1, freq=None) -> _T:
         """
@@ -475,9 +358,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         periods : int, default 1
             Number of periods (or increments) to shift by,
             can be positive or negative.
-
-            .. versionchanged:: 0.24.0
-
         freq : pandas.DateOffset, pandas.Timedelta or string, optional
             Frequency increment to shift by.
             If None, the index is shifted by its own `freq` attribute.
@@ -496,101 +376,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         arr = self._data.view()
         arr._freq = self.freq
         result = arr._time_shift(periods, freq=freq)
-        return type(self)(result, name=self.name)
-
-    # --------------------------------------------------------------------
-    # List-like Methods
-
-    def _get_delete_freq(self, loc: int | slice | Sequence[int]):
-        """
-        Find the `freq` for self.delete(loc).
-        """
-        freq = None
-        if is_period_dtype(self.dtype):
-            freq = self.freq
-        elif self.freq is not None:
-            if is_integer(loc):
-                if loc in (0, -len(self), -1, len(self) - 1):
-                    freq = self.freq
-            else:
-                if is_list_like(loc):
-                    # error: Incompatible types in assignment (expression has
-                    # type "Union[slice, ndarray]", variable has type
-                    # "Union[int, slice, Sequence[int]]")
-                    loc = lib.maybe_indices_to_slice(  # type: ignore[assignment]
-                        np.asarray(loc, dtype=np.intp), len(self)
-                    )
-                if isinstance(loc, slice) and loc.step in (1, None):
-                    if loc.start in (0, None) or loc.stop in (len(self), None):
-                        freq = self.freq
-        return freq
-
-    def _get_insert_freq(self, loc: int, item):
-        """
-        Find the `freq` for self.insert(loc, item).
-        """
-        value = self._data._validate_scalar(item)
-        item = self._data._box_func(value)
-
-        freq = None
-        if is_period_dtype(self.dtype):
-            freq = self.freq
-        elif self.freq is not None:
-            # freq can be preserved on edge cases
-            if self.size:
-                if item is NaT:
-                    pass
-                elif (loc == 0 or loc == -len(self)) and item + self.freq == self[0]:
-                    freq = self.freq
-                elif (loc == len(self)) and item - self.freq == self[-1]:
-                    freq = self.freq
-            else:
-                # Adding a single item to an empty index may preserve freq
-                if self.freq.is_on_offset(item):
-                    freq = self.freq
-        return freq
-
-    @doc(NDArrayBackedExtensionIndex.delete)
-    def delete(self: _T, loc) -> _T:
-        result = super().delete(loc)
-        result._data._freq = self._get_delete_freq(loc)
-        return result
-
-    @doc(NDArrayBackedExtensionIndex.insert)
-    def insert(self, loc: int, item):
-        result = super().insert(loc, item)
-        if isinstance(result, type(self)):
-            # i.e. parent class method did not cast
-            result._data._freq = self._get_insert_freq(loc, item)
-        return result
-
-    # --------------------------------------------------------------------
-    # Join/Set Methods
-
-    def _get_join_freq(self, other):
-        """
-        Get the freq to attach to the result of a join operation.
-        """
-        if is_period_dtype(self.dtype):
-            freq = self.freq
-        else:
-            self = cast(DatetimeTimedeltaMixin, self)
-            freq = self.freq if self._can_fast_union(other) else None
-        return freq
-
-    def _wrap_joined_index(self, joined, other):
-        assert other.dtype == self.dtype, (other.dtype, self.dtype)
-        result = super()._wrap_joined_index(joined, other)
-        result._data._freq = self._get_join_freq(other)
-        return result
-
-    def _get_join_target(self) -> np.ndarray:
-        return self._data._ndarray.view("i8")
-
-    def _from_join_target(self, result: np.ndarray):
-        # view e.g. i8 back to M8[ns]
-        result = result.view(self._data._ndarray.dtype)
-        return self._data._from_backing_data(result)
+        return type(self)._simple_new(result, name=self.name)
 
     # --------------------------------------------------------------------
 
@@ -599,7 +385,12 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         try:
             res = self._data._validate_listlike(keyarr, allow_object=True)
         except (ValueError, TypeError):
-            res = com.asarray_tuplesafe(keyarr)
+            if not isinstance(keyarr, ExtensionArray):
+                # e.g. we don't want to cast DTA to ndarray[object]
+                res = com.asarray_tuplesafe(keyarr)
+                # TODO: com.asarray_tuplesafe shouldn't cast e.g. DatetimeArray
+            else:
+                res = keyarr
         return Index(res, dtype=res.dtype)
 
 
@@ -618,32 +409,36 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
     _is_monotonic_decreasing = Index.is_monotonic_decreasing
     _is_unique = Index.is_unique
 
+    _join_precedence = 10
+
     def _with_freq(self, freq):
         arr = self._data._with_freq(freq)
         return type(self)._simple_new(arr, name=self._name)
 
-    @property
-    def _has_complex_internals(self) -> bool:
-        # used to avoid libreduction code paths, which raise or require conversion
-        return False
-
     def is_type_compatible(self, kind: str) -> bool:
+        warnings.warn(
+            f"{type(self).__name__}.is_type_compatible is deprecated and will be "
+            "removed in a future version.",
+            FutureWarning,
+            stacklevel=2,
+        )
         return kind in self._data._infer_matches
+
+    @property
+    def values(self) -> np.ndarray:
+        # NB: For Datetime64TZ this is lossy
+        return self._data._ndarray
 
     # --------------------------------------------------------------------
     # Set Operation Methods
 
     def _intersection(self, other: Index, sort=False) -> Index:
         """
-        intersection specialized to the case with matching dtypes.
+        intersection specialized to the case with matching dtypes and both non-empty.
         """
         other = cast("DatetimeTimedeltaMixin", other)
-        if len(self) == 0:
-            return self.copy()._get_reconciled_name_object(other)
-        if len(other) == 0:
-            return other.copy()._get_reconciled_name_object(self)
 
-        elif not self._can_fast_intersect(other):
+        if not self._can_fast_intersect(other):
             result = Index._intersection(self, other, sort=sort)
             # We need to invalidate the freq because Index._intersection
             #  uses _shallow_copy on a view of self._data, which will preserve
@@ -652,6 +447,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             #  and type(result) is type(self._data)
             result = self._wrap_setop_result(other, result)
             return result._with_freq(None)._with_freq("infer")
+
+        else:
+            return self._fast_intersect(other, sort)
+
+    def _fast_intersect(self, other, sort):
 
         # to make our life easier, "sort" the two ranges
         if self[0] <= other[0]:
@@ -687,7 +487,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         elif self.freq.is_anchored():
             # this along with matching freqs ensure that we "line up",
             #  so intersection will preserve freq
-            return True
+            # GH#42104
+            return self.freq.n == 1
 
         elif isinstance(self.freq, Tick):
             # We "line up" if and only if the difference between two of our points
@@ -696,7 +497,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             remainder = diff % self.freq.delta
             return remainder == Timedelta(0)
 
-        return True
+        # GH#42104
+        return self.freq.n == 1
 
     def _can_fast_union(self: _T, other: _T) -> bool:
         # Assumes that type(self) == type(other), as per the annotation
@@ -728,11 +530,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         return (right_start == left_end + freq) or right_start in left
 
     def _fast_union(self: _T, other: _T, sort=None) -> _T:
-        if len(other) == 0:
-            return self.view(type(self))
-
-        if len(self) == 0:
-            return other.view(type(self))
+        # Caller is responsible for ensuring self and other are non-empty
 
         # to make our life easier, "sort" the two ranges
         if self[0] <= other[0]:
@@ -743,8 +541,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             left, right = self, other
             left_start = left[0]
             loc = right.searchsorted(left_start, side="left")
-            # error: Slice index must be an integer or None
-            right_chunk = right._values[:loc]  # type: ignore[misc]
+            right_chunk = right._values[:loc]
             dates = concat_compat((left._values, right_chunk))
             # With sort being False, we can't infer that result.freq == self.freq
             # TODO: no tests rely on the _with_freq("infer"); needed?
@@ -760,8 +557,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         # concatenate
         if left_end < right_end:
             loc = right.searchsorted(left_end, side="right")
-            # error: Slice index must be an integer or None
-            right_chunk = right._values[loc:]  # type: ignore[misc]
+            right_chunk = right._values[loc:]
             dates = concat_compat([left._values, right_chunk])
             # The can_fast_union check ensures that the result.freq
             #  should match self.freq
@@ -782,43 +578,120 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             #  that result.freq == self.freq
             return result
         else:
-            i8self = Int64Index._simple_new(self.asi8)
-            i8other = Int64Index._simple_new(other.asi8)
-            i8result = i8self._union(i8other, sort=sort)
-            result = type(self)(i8result, dtype=self.dtype, freq="infer")
-            return result
+            return super()._union(other, sort)._with_freq("infer")
 
     # --------------------------------------------------------------------
     # Join Methods
-    _join_precedence = 10
 
-    def join(
-        self,
-        other,
-        how: str = "left",
-        level=None,
-        return_indexers: bool = False,
-        sort: bool = False,
-    ):
+    def _get_join_freq(self, other):
         """
-        See Index.join
+        Get the freq to attach to the result of a join operation.
         """
-        pself, pother = self._maybe_promote(other)
-        if pself is not self or pother is not other:
-            return pself.join(
-                pother, how=how, level=level, return_indexers=return_indexers, sort=sort
-            )
+        freq = None
+        if self._can_fast_union(other):
+            freq = self.freq
+        return freq
 
-        self._maybe_utc_convert(other)  # raises if we dont have tzawareness compat
-        return Index.join(
-            self,
-            other,
-            how=how,
-            level=level,
-            return_indexers=return_indexers,
-            sort=sort,
+    def _wrap_joined_index(self, joined, other):
+        assert other.dtype == self.dtype, (other.dtype, self.dtype)
+        result = super()._wrap_joined_index(joined, other)
+        result._data._freq = self._get_join_freq(other)
+        return result
+
+    def _get_engine_target(self) -> np.ndarray:
+        # engine methods and libjoin methods need dt64/td64 values cast to i8
+        return self._data._ndarray.view("i8")
+
+    def _from_join_target(self, result: np.ndarray):
+        # view e.g. i8 back to M8[ns]
+        result = result.view(self._data._ndarray.dtype)
+        return self._data._from_backing_data(result)
+
+    # --------------------------------------------------------------------
+    # List-like Methods
+
+    def _get_delete_freq(self, loc: int | slice | Sequence[int]):
+        """
+        Find the `freq` for self.delete(loc).
+        """
+        freq = None
+        if self.freq is not None:
+            if is_integer(loc):
+                if loc in (0, -len(self), -1, len(self) - 1):
+                    freq = self.freq
+            else:
+                if is_list_like(loc):
+                    # error: Incompatible types in assignment (expression has
+                    # type "Union[slice, ndarray]", variable has type
+                    # "Union[int, slice, Sequence[int]]")
+                    loc = lib.maybe_indices_to_slice(  # type: ignore[assignment]
+                        np.asarray(loc, dtype=np.intp), len(self)
+                    )
+                if isinstance(loc, slice) and loc.step in (1, None):
+                    if loc.start in (0, None) or loc.stop in (len(self), None):
+                        freq = self.freq
+        return freq
+
+    def _get_insert_freq(self, loc: int, item):
+        """
+        Find the `freq` for self.insert(loc, item).
+        """
+        value = self._data._validate_scalar(item)
+        item = self._data._box_func(value)
+
+        freq = None
+        if self.freq is not None:
+            # freq can be preserved on edge cases
+            if self.size:
+                if item is NaT:
+                    pass
+                elif (loc == 0 or loc == -len(self)) and item + self.freq == self[0]:
+                    freq = self.freq
+                elif (loc == len(self)) and item - self.freq == self[-1]:
+                    freq = self.freq
+            else:
+                # Adding a single item to an empty index may preserve freq
+                if self.freq.is_on_offset(item):
+                    freq = self.freq
+        return freq
+
+    @doc(NDArrayBackedExtensionIndex.delete)
+    def delete(self, loc):
+        result = super().delete(loc)
+        result._data._freq = self._get_delete_freq(loc)
+        return result
+
+    @doc(NDArrayBackedExtensionIndex.insert)
+    def insert(self, loc: int, item):
+        result = super().insert(loc, item)
+        if isinstance(result, type(self)):
+            # i.e. parent class method did not cast
+            result._data._freq = self._get_insert_freq(loc, item)
+        return result
+
+    # --------------------------------------------------------------------
+    # NDArray-Like Methods
+
+    def __array_wrap__(self, result, context=None):
+        """
+        Gets called after a ufunc and other functions.
+        """
+        out = super().__array_wrap__(result, context=context)
+        if isinstance(out, DatetimeTimedeltaMixin) and self.freq is not None:
+            out = out._with_freq("infer")
+        return out
+
+    @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
+    def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
+        nv.validate_take((), kwargs)
+        indices = np.asarray(indices, dtype=np.intp)
+
+        result = NDArrayBackedExtensionIndex.take(
+            self, indices, axis, allow_fill, fill_value, **kwargs
         )
 
-    def _maybe_utc_convert(self: _T, other: Index) -> tuple[_T, Index]:
-        # Overridden by DatetimeIndex
-        return self, other
+        maybe_slice = lib.maybe_indices_to_slice(indices, len(self))
+        if isinstance(maybe_slice, slice):
+            freq = self._data._get_getitem_freq(maybe_slice)
+            result._data._freq = freq
+        return result

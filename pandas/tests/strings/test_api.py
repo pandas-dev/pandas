@@ -6,6 +6,7 @@ from pandas import (
     MultiIndex,
     Series,
     _testing as tm,
+    get_option,
 )
 from pandas.core import strings as strings
 
@@ -128,7 +129,9 @@ def test_api_per_method(
 def test_api_for_categorical(any_string_method, any_string_dtype, request):
     # https://github.com/pandas-dev/pandas/issues/10661
 
-    if any_string_dtype == "arrow_string":
+    if any_string_dtype == "string[pyarrow]" or (
+        any_string_dtype == "string" and get_option("string_storage") == "pyarrow"
+    ):
         # unsupported operand type(s) for +: 'ArrowStringArray' and 'str'
         mark = pytest.mark.xfail(raises=TypeError, reason="Not Implemented")
         request.node.add_marker(mark)

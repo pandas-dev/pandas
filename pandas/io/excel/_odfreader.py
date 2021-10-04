@@ -1,4 +1,4 @@
-from typing import List
+from __future__ import annotations
 
 import numpy as np
 
@@ -51,7 +51,7 @@ class ODFReader(BaseExcelReader):
         return ""
 
     @property
-    def sheet_names(self) -> List[str]:
+    def sheet_names(self) -> list[str]:
         """Return a list of sheet names present in the document"""
         from odf.table import Table
 
@@ -78,7 +78,7 @@ class ODFReader(BaseExcelReader):
         self.close()
         raise ValueError(f"sheet {name} not found")
 
-    def get_sheet_data(self, sheet, convert_float: bool) -> List[List[Scalar]]:
+    def get_sheet_data(self, sheet, convert_float: bool) -> list[list[Scalar]]:
         """
         Parse an ODF Table into a list of lists
         """
@@ -96,12 +96,12 @@ class ODFReader(BaseExcelReader):
         empty_rows = 0
         max_row_len = 0
 
-        table: List[List[Scalar]] = []
+        table: list[list[Scalar]] = []
 
         for sheet_row in sheet_rows:
             sheet_cells = [x for x in sheet_row.childNodes if x.qname in cell_names]
             empty_cells = 0
-            table_row: List[Scalar] = []
+            table_row: list[Scalar] = []
 
             for sheet_cell in sheet_cells:
                 if sheet_cell.qname == table_cell_name:

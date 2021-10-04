@@ -36,6 +36,7 @@ from pandas._typing import (
     NpDtype,
 )
 from pandas.compat.numpy import function as nv
+from pandas.util._validators import validate_endpoints
 
 from pandas.core.dtypes.cast import astype_td64_unit_conversion
 from pandas.core.dtypes.common import (
@@ -70,6 +71,7 @@ from pandas.core.construction import extract_array
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
 if TYPE_CHECKING:
+    from pandas import DataFrame
     from pandas.core.arrays import (
         DatetimeArray,
         PeriodArray,
@@ -95,8 +97,6 @@ def _field_accessor(name: str, alias: str, docstring: str):
 class TimedeltaArray(dtl.TimelikeOps):
     """
     Pandas ExtensionArray for timedelta data.
-
-    .. versionadded:: 0.24.0
 
     .. warning::
 
@@ -313,7 +313,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         if end is not None:
             end = Timedelta(end)
 
-        left_closed, right_closed = dtl.validate_endpoints(closed)
+        left_closed, right_closed = validate_endpoints(closed)
 
         if freq is not None:
             index = generate_regular_range(start, end, periods, freq)
@@ -882,14 +882,14 @@ class TimedeltaArray(dtl.TimelikeOps):
     )
 
     @property
-    def components(self):
+    def components(self) -> DataFrame:
         """
         Return a dataframe of the components (days, hours, minutes,
         seconds, milliseconds, microseconds, nanoseconds) of the Timedeltas.
 
         Returns
         -------
-        a DataFrame
+        DataFrame
         """
         from pandas import DataFrame
 

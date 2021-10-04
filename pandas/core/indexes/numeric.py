@@ -15,6 +15,7 @@ from pandas._libs import (
 from pandas._typing import (
     Dtype,
     DtypeObj,
+    npt,
 )
 from pandas.util._decorators import (
     cache_readonly,
@@ -42,20 +43,19 @@ from pandas.core.indexes.base import (
     maybe_extract_name,
 )
 
-_num_index_shared_docs = {}
 
-
-_num_index_shared_docs[
-    "class_descr"
-] = """
+class NumericIndex(Index):
+    """
     Immutable sequence used for indexing and alignment. The basic object
-    storing axis labels for all pandas objects. %(klass)s is a special case
-    of `Index` with purely %(ltype)s labels. %(extra)s.
+    storing axis labels for all pandas objects. NumericIndex is a special case
+    of `Index` with purely numpy int/uint/float labels.
+
+    .. versionadded:: 1.4.0
 
     Parameters
     ----------
     data : array-like (1-dimensional)
-    dtype : NumPy dtype (default: %(dtype)s)
+    dtype : NumPy dtype (default: None)
     copy : bool
         Make a copy of input ndarray.
     name : object
@@ -66,38 +66,40 @@ _num_index_shared_docs[
     None
 
     Methods
-    -------
+    ----------
     None
 
     See Also
     --------
     Index : The base pandas Index type.
+    Int64Index : Index of purely int64 labels (deprecated).
+    UInt64Index : Index of purely uint64 labels (deprecated).
+    Float64Index : Index of  purely float64 labels (deprecated).
 
     Notes
     -----
-    An Index instance can **only** contain hashable objects.
-"""
+    An NumericIndex instance can **only** contain numpy int64/32/16/8, uint64/32/16/8 or
+    float64/32/16 dtype. In particular, ``NumericIndex`` *can not* hold Pandas numeric
+    dtypes (:class:`Int64Dtype`, :class:`Int32Dtype` etc.).
 
-
-class NumericIndex(Index):
+    Examples
+    --------
+    >>> pd.NumericIndex([1, 2, 3], dtype="int8")
+    NumericIndex([1, 2, 3], dtype='int8')
+    >>> pd.NumericIndex([1, 2, 3], dtype="float32")
+    NumericIndex([1.0, 2.0, 3.0], dtype='float32')
     """
-    Provide numeric type operations.
 
-    This is an abstract class.
-    """
-
-    _index_descr_args = {
-        "klass": "NumericIndex",
-        "ltype": "integer or float",
-        "dtype": "inferred",
-        "extra": "",
-    }
+    _typ = "numericindex"
     _values: np.ndarray
-    _default_dtype: np.dtype
-    _dtype_validation_metadata: tuple[Callable[..., bool], str]
-
+    _default_dtype: np.dtype | None = None
+    _dtype_validation_metadata: tuple[Callable[..., bool], str] = (
+        is_numeric_dtype,
+        "numeric type",
+    )
     _is_numeric_dtype = True
     _can_hold_strings = False
+    _is_backward_compat_public_numeric_index: bool = True
 
     @cache_readonly
     def _can_hold_na(self) -> bool:
@@ -153,7 +155,12 @@ class NumericIndex(Index):
             if not isinstance(data, (ABCSeries, list, tuple)):
                 data = list(data)
 
+            orig = data
             data = np.asarray(data, dtype=dtype)
+            if dtype is None and data.dtype.kind == "f":
+                if cls is UInt64Index and (data >= 0).all():
+                    # https://github.com/numpy/numpy/issues/19146
+                    data = np.asarray(orig, dtype=np.uint64)
 
         if issubclass(data.dtype.type, str):
             cls._string_data_error(data)
@@ -161,7 +168,15 @@ class NumericIndex(Index):
         dtype = cls._ensure_dtype(dtype)
 
         if copy or not is_dtype_equal(data.dtype, dtype):
-            subarr = np.array(data, dtype=dtype, copy=copy)
+            # TODO: the try/except below is because it's difficult to predict the error
+            # and/or error message from different combinations of data and dtype.
+            # Efforts to avoid this try/except welcome.
+            # See https://github.com/pandas-dev/pandas/pull/41153#discussion_r676206222
+            try:
+                subarr = np.array(data, dtype=dtype, copy=copy)
+                cls._validate_dtype(subarr.dtype)
+            except (TypeError, ValueError):
+                raise ValueError(f"data is not compatible with {cls.__name__}")
             cls._assert_safe_casting(data, subarr)
         else:
             subarr = data
@@ -185,12 +200,24 @@ class NumericIndex(Index):
             )
 
     @classmethod
-    def _ensure_dtype(
-        cls,
-        dtype: Dtype | None,
-    ) -> np.dtype | None:
-        """Ensure int64 dtype for Int64Index, etc. Assumed dtype is validated."""
-        return cls._default_dtype
+    def _ensure_dtype(cls, dtype: Dtype | None) -> np.dtype | None:
+        """
+        Ensure int64 dtype for Int64Index etc. but allow int32 etc. for NumericIndex.
+
+        Assumes dtype has already been validated.
+        """
+        if dtype is None:
+            return cls._default_dtype
+
+        dtype = pandas_dtype(dtype)
+        assert isinstance(dtype, np.dtype)
+
+        if cls._is_backward_compat_public_numeric_index:
+            # dtype for NumericIndex
+            return dtype
+        else:
+            # dtype for Int64Index, UInt64Index etc. Needed for backwards compat.
+            return cls._default_dtype
 
     def __contains__(self, key) -> bool:
         """
@@ -210,8 +237,8 @@ class NumericIndex(Index):
 
     @doc(Index.astype)
     def astype(self, dtype, copy=True):
+        dtype = pandas_dtype(dtype)
         if is_float_dtype(self.dtype):
-            dtype = pandas_dtype(dtype)
             if needs_i8_conversion(dtype):
                 raise TypeError(
                     f"Cannot convert Float64Index to dtype {dtype}; integer "
@@ -221,13 +248,23 @@ class NumericIndex(Index):
                 # TODO(jreback); this can change once we have an EA Index type
                 # GH 13149
                 arr = astype_nansafe(self._values, dtype=dtype)
-                return Int64Index(arr, name=self.name)
+                if isinstance(self, Float64Index):
+                    return Int64Index(arr, name=self.name)
+                else:
+                    return NumericIndex(arr, name=self.name, dtype=dtype)
+        elif self._is_backward_compat_public_numeric_index:
+            # this block is needed so e.g. NumericIndex[int8].astype("int32") returns
+            # NumericIndex[int32] and not Int64Index with dtype int64.
+            # When Int64Index etc. are removed from the code base, removed this also.
+            if not is_extension_array_dtype(dtype) and is_numeric_dtype(dtype):
+                return self._constructor(self, dtype=dtype, copy=copy)
 
         return super().astype(dtype, copy=copy)
 
     # ----------------------------------------------------------------
     # Indexing Methods
 
+    @cache_readonly
     @doc(Index._should_fallback_to_positional)
     def _should_fallback_to_positional(self) -> bool:
         return False
@@ -239,7 +276,7 @@ class NumericIndex(Index):
 
             # We always treat __getitem__ slicing as label-based
             # translate to locations
-            return self.slice_indexer(key.start, key.stop, key.step, kind=kind)
+            return self.slice_indexer(key.start, key.stop, key.step)
 
         return super()._convert_slice_indexer(key, kind=kind)
 
@@ -325,16 +362,60 @@ class NumericIndex(Index):
         )
 
 
+_num_index_shared_docs = {}
+
+
+_num_index_shared_docs[
+    "class_descr"
+] = """
+    Immutable sequence used for indexing and alignment. The basic object
+    storing axis labels for all pandas objects. %(klass)s is a special case
+    of `Index` with purely %(ltype)s labels. %(extra)s.
+
+    .. deprecated:: 1.4.0
+        In pandas v2.0 %(klass)s will be removed and :class:`NumericIndex` used instead.
+        %(klass)s will remain fully functional for the duration of pandas 1.x.
+
+    Parameters
+    ----------
+    data : array-like (1-dimensional)
+    dtype : NumPy dtype (default: %(dtype)s)
+    copy : bool
+        Make a copy of input ndarray.
+    name : object
+        Name to be stored in the index.
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    ----------
+    None
+
+    See Also
+    --------
+    Index : The base pandas Index type.
+    NumericIndex : Index of numpy int/uint/float data.
+
+    Notes
+    -----
+    An Index instance can **only** contain hashable objects.
+"""
+
+
 class IntegerIndex(NumericIndex):
     """
     This is an abstract class for Int64Index, UInt64Index.
     """
 
+    _is_backward_compat_public_numeric_index: bool = False
+
     @property
-    def asi8(self) -> np.ndarray:
+    def asi8(self) -> npt.NDArray[np.int64]:
         # do not cache or you'll create a memory leak
         warnings.warn(
-            "Index.asi8 is deprecated and will be removed in a future version",
+            "Index.asi8 is deprecated and will be removed in a future version.",
             FutureWarning,
             stacklevel=2,
         )
@@ -370,6 +451,16 @@ class UInt64Index(IntegerIndex):
     _default_dtype = np.dtype(np.uint64)
     _dtype_validation_metadata = (is_unsigned_integer_dtype, "unsigned integer")
 
+    def _validate_fill_value(self, value):
+        # e.g. np.array([1]) we want np.array([1], dtype=np.uint64)
+        #  see test_where_uin64
+        super()._validate_fill_value(value)
+        if hasattr(value, "dtype") and is_signed_integer_dtype(value.dtype):
+            if (value >= 0).all():
+                return value.astype(self.dtype)
+            raise TypeError
+        return value
+
 
 class Float64Index(NumericIndex):
     _index_descr_args = {
@@ -384,3 +475,4 @@ class Float64Index(NumericIndex):
     _engine_type = libindex.Float64Engine
     _default_dtype = np.dtype(np.float64)
     _dtype_validation_metadata = (is_float_dtype, "float")
+    _is_backward_compat_public_numeric_index: bool = False

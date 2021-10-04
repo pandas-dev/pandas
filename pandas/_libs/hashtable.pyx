@@ -34,6 +34,8 @@ from pandas._libs.khash cimport (
     are_equivalent_khcomplex64_t,
     are_equivalent_khcomplex128_t,
     kh_needed_n_buckets,
+    kh_python_hash_equal,
+    kh_python_hash_func,
     kh_str_t,
     khcomplex64_t,
     khcomplex128_t,
@@ -44,6 +46,14 @@ from pandas._libs.missing cimport checknull
 
 def get_hashtable_trace_domain():
     return KHASH_TRACE_DOMAIN
+
+
+def object_hash(obj):
+    return kh_python_hash_func(obj)
+
+
+def objects_are_equal(a, b):
+    return kh_python_hash_equal(a, b)
 
 
 cdef int64_t NPY_NAT = util.get_nat()
@@ -88,7 +98,8 @@ cdef class ObjectFactorizer(Factorizer):
         --------
         Factorize values with nans replaced by na_sentinel
 
-        >>> factorize(np.array([1,2,np.nan], dtype='O'), na_sentinel=20)
+        >>> fac = ObjectFactorizer(3)
+        >>> fac.factorize(np.array([1,2,np.nan], dtype='O'), na_sentinel=20)
         array([ 0,  1, 20])
         """
         cdef:
@@ -132,8 +143,9 @@ cdef class Int64Factorizer(Factorizer):
         --------
         Factorize values with nans replaced by na_sentinel
 
-        >>> factorize(np.array([1,2,np.nan], dtype='O'), na_sentinel=20)
-        array([ 0,  1, 20])
+        >>> fac = Int64Factorizer(3)
+        >>> fac.factorize(np.array([1,2,3]), na_sentinel=20)
+        array([0, 1, 2])
         """
         cdef:
             ndarray[intp_t] labels

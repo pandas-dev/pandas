@@ -50,7 +50,6 @@ Implementation
 
 from __future__ import annotations
 
-from collections import namedtuple
 from contextlib import (
     ContextDecorator,
     contextmanager,
@@ -60,14 +59,28 @@ from typing import (
     Any,
     Callable,
     Iterable,
+    NamedTuple,
     cast,
 )
 import warnings
 
 from pandas._typing import F
 
-DeprecatedOption = namedtuple("DeprecatedOption", "key msg rkey removal_ver")
-RegisteredOption = namedtuple("RegisteredOption", "key defval doc validator cb")
+
+class DeprecatedOption(NamedTuple):
+    key: str
+    msg: str | None
+    rkey: str | None
+    removal_ver: str | None
+
+
+class RegisteredOption(NamedTuple):
+    key: str
+    defval: object
+    doc: str
+    validator: Callable[[object], Any] | None
+    cb: Callable[[str], Any] | None
+
 
 # holds deprecated option metadata
 _deprecated_options: dict[str, DeprecatedOption] = {}
@@ -157,7 +170,7 @@ def _describe_option(pat: str = "", _print_desc: bool = True):
     if len(keys) == 0:
         raise OptionError("No such keys(s)")
 
-    s = "\n".join(_build_option_description(k) for k in keys)
+    s = "\n".join([_build_option_description(k) for k in keys])
 
     if _print_desc:
         print(s)
@@ -189,7 +202,7 @@ def get_default_val(pat: str):
 
 
 class DictWrapper:
-    """ provide attribute-style access to a nested dict"""
+    """provide attribute-style access to a nested dict"""
 
     def __init__(self, d: dict[str, Any], prefix: str = ""):
         object.__setattr__(self, "d", d)
@@ -425,7 +438,7 @@ def register_option(
     key: str,
     defval: object,
     doc: str = "",
-    validator: Callable[[Any], Any] | None = None,
+    validator: Callable[[object], Any] | None = None,
     cb: Callable[[str], Any] | None = None,
 ) -> None:
     """
@@ -497,7 +510,10 @@ def register_option(
 
 
 def deprecate_option(
-    key: str, msg: str | None = None, rkey: str | None = None, removal_ver=None
+    key: str,
+    msg: str | None = None,
+    rkey: str | None = None,
+    removal_ver: str | None = None,
 ) -> None:
     """
     Mark option `key` as deprecated, if code attempts to access this option,
@@ -523,7 +539,7 @@ def deprecate_option(
         re-routed to `rkey` including set/get/reset.
         rkey must be a fully-qualified option name (e.g "x.y.z.rkey").
         used by the default message if no `msg` is specified.
-    removal_ver : optional
+    removal_ver : str, optional
         Specifies the version in which this option will
         be removed. used by the default message if no `msg` is specified.
 
@@ -571,7 +587,7 @@ def _get_root(key: str) -> tuple[dict[str, Any], str]:
 
 
 def _is_deprecated(key: str) -> bool:
-    """ Returns True if the given option has been deprecated """
+    """Returns True if the given option has been deprecated"""
     key = key.lower()
     return key in _deprecated_options
 
@@ -643,7 +659,7 @@ def _warn_if_deprecated(key: str) -> bool:
 
 
 def _build_option_description(k: str) -> str:
-    """ Builds a formatted description of a registered option and prints it """
+    """Builds a formatted description of a registered option and prints it"""
     o = _get_registered_option(k)
     d = _get_deprecated_option(k)
 
@@ -667,7 +683,7 @@ def _build_option_description(k: str) -> str:
 
 
 def pp_options_list(keys: Iterable[str], width=80, _print: bool = False):
-    """ Builds a concise listing of available options, grouped by prefix """
+    """Builds a concise listing of available options, grouped by prefix"""
     from itertools import groupby
     from textwrap import wrap
 
@@ -823,7 +839,7 @@ def is_one_of_factory(legal_values) -> Callable[[Any], None]:
     return inner
 
 
-def is_nonnegative_int(value: int | None) -> None:
+def is_nonnegative_int(value: object) -> None:
     """
     Verify that value is None or a positive int.
 

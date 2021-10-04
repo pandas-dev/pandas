@@ -1183,18 +1183,14 @@ def df_cat(df):
     return df_cat
 
 
-@pytest.mark.parametrize(
-    "operation, kwargs", [("agg", {"dtype": "category"}), ("apply", {})]
-)
-def test_seriesgroupby_observed_true(df_cat, operation, kwargs):
+@pytest.mark.parametrize("operation", ["agg", "apply"])
+def test_seriesgroupby_observed_true(df_cat, operation):
     # GH 24880
-    index = MultiIndex.from_frame(
-        DataFrame(
-            {"A": ["foo", "foo", "bar", "bar"], "B": ["one", "two", "one", "three"]},
-            **kwargs,
-        )
-    )
+    lev_a = Index(["foo", "foo", "bar", "bar"], dtype=df_cat["A"].dtype, name="A")
+    lev_b = Index(["one", "two", "one", "three"], dtype=df_cat["B"].dtype, name="B")
+    index = MultiIndex.from_arrays([lev_a, lev_b])
     expected = Series(data=[1, 3, 2, 4], index=index, name="C")
+
     grouped = df_cat.groupby(["A", "B"], observed=True)["C"]
     result = getattr(grouped, operation)(sum)
     tm.assert_series_equal(result, expected)
@@ -1225,18 +1221,16 @@ def test_seriesgroupby_observed_false_or_none(df_cat, observed, operation):
     [
         (
             True,
-            MultiIndex.from_tuples(
+            MultiIndex.from_arrays(
                 [
-                    ("foo", "one", "min"),
-                    ("foo", "one", "max"),
-                    ("foo", "two", "min"),
-                    ("foo", "two", "max"),
-                    ("bar", "one", "min"),
-                    ("bar", "one", "max"),
-                    ("bar", "three", "min"),
-                    ("bar", "three", "max"),
-                ],
-                names=["A", "B", None],
+                    Index(["foo"] * 4 + ["bar"] * 4, dtype="category", name="A"),
+                    Index(
+                        ["one", "one", "two", "two", "one", "one", "three", "three"],
+                        dtype="category",
+                        name="B",
+                    ),
+                    Index(["min", "max"] * 4),
+                ]
             ),
             [1, 1, 3, 3, 2, 2, 4, 4],
         ),
@@ -1593,20 +1587,6 @@ def test_agg_cython_category_not_implemented_fallback():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("func", ["min", "max"])
-def test_aggregate_categorical_lost_index(func: str):
-    # GH: 28641 groupby drops index, when grouping over categorical column with min/max
-    ds = Series(["b"], dtype="category").cat.as_ordered()
-    df = DataFrame({"A": [1997], "B": ds})
-    result = df.groupby("A").agg({"B": func})
-    expected = DataFrame({"B": ["b"]}, index=Index([1997], name="A"))
-
-    # ordered categorical dtype should be preserved
-    expected["B"] = expected["B"].astype(ds.dtype)
-
-    tm.assert_frame_equal(result, expected)
-
-
 def test_aggregate_categorical_with_isnan():
     # GH 29837
     df = DataFrame(
@@ -1755,3 +1735,15 @@ def test_groupby_categorical_indices_unused_categories():
     assert result.keys() == expected.keys()
     for key in result.keys():
         tm.assert_numpy_array_equal(result[key], expected[key])
+
+
+@pytest.mark.parametrize("func", ["first", "last"])
+def test_groupby_last_first_preserve_categoricaldtype(func):
+    # GH#33090
+    df = DataFrame({"a": [1, 2, 3]})
+    df["b"] = df["a"].astype("category")
+    result = getattr(df.groupby("a")["b"], func)()
+    expected = Series(
+        Categorical([1, 2, 3]), name="b", index=Index([1, 2, 3], name="a")
+    )
+    tm.assert_series_equal(expected, result)

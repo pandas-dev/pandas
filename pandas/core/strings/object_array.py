@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable  # noqa: PDF001
 import re
 import textwrap
+from typing import TYPE_CHECKING
 import unicodedata
 
 import numpy as np
@@ -20,6 +21,9 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.strings.base import BaseStringArrayMethods
 
+if TYPE_CHECKING:
+    from pandas import Series
+
 
 class ObjectStringArrayMixin(BaseStringArrayMethods):
     """
@@ -36,7 +40,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True
     ):
         """
-        Map a callable over valid element of the array.
+        Map a callable over valid elements of the array.
 
         Parameters
         ----------
@@ -173,8 +177,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
             return self._str_map(scalar_rep, dtype=str)
         else:
-            from pandas.core.arrays.string_ import StringArray
-            from pandas.core.arrays.string_arrow import ArrowStringArray
+            from pandas.core.arrays.string_ import BaseStringArray
 
             def rep(x, r):
                 if x is libmissing.NA:
@@ -186,7 +189,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
             repeats = np.asarray(repeats, dtype=object)
             result = libops.vec_binop(np.asarray(self), repeats, rep)
-            if isinstance(self, (StringArray, ArrowStringArray)):
+            if isinstance(self, BaseStringArray):
                 # Not going through map, so we have to do this here.
                 result = type(self)._from_sequence(result)
             return result
@@ -414,6 +417,30 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
     def _str_rstrip(self, to_strip=None):
         return self._str_map(lambda x: x.rstrip(to_strip))
+
+    def _str_removeprefix(self, prefix: str) -> Series:
+        # outstanding question on whether to use native methods for users
+        # on Python 3.9+ https://git.io/JE9QK, in which case we could do
+        # return self._str_map(str.removeprefix)
+
+        def removeprefix(text: str) -> str:
+            if text.startswith(prefix):
+                return text[len(prefix) :]
+            return text
+
+        return self._str_map(removeprefix)
+
+    def _str_removesuffix(self, suffix: str) -> Series:
+        # this could be used on Python 3.9+
+        # f = lambda x: x.removesuffix(suffix)
+        # return self._str_map(str.removesuffix)
+
+        def removesuffix(text: str) -> str:
+            if text.endswith(suffix):
+                return text[: -len(suffix)]
+            return text
+
+        return self._str_map(removesuffix)
 
     def _str_extract(self, pat: str, flags: int = 0, expand: bool = True):
         regex = re.compile(pat, flags=flags)

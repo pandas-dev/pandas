@@ -25,6 +25,7 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
+from pandas.core.api import Float64Index
 from pandas.tests.indexing.common import _mklbl
 from pandas.tests.indexing.test_floats import gen_obj
 
@@ -33,7 +34,7 @@ from pandas.tests.indexing.test_floats import gen_obj
 
 
 class TestFancy:
-    """ pure get/set item & fancy indexing """
+    """pure get/set item & fancy indexing"""
 
     def test_setitem_ndarray_1d(self):
         # GH5508
@@ -113,15 +114,6 @@ class TestFancy:
         if indexer_sli is tm.iloc:
             err = ValueError
             msg = f"Cannot set values with ndim > {obj.ndim}"
-        elif (
-            isinstance(index, pd.IntervalIndex)
-            and indexer_sli is tm.setitem
-            and obj.ndim == 1
-        ):
-            err = AttributeError
-            msg = (
-                "'pandas._libs.interval.IntervalTree' object has no attribute 'get_loc'"
-            )
         else:
             err = ValueError
             msg = "|".join(
@@ -152,7 +144,7 @@ class TestFancy:
         assert df.loc[np.inf, 0] == 3
 
         result = df.index
-        expected = pd.Float64Index([1, 2, np.inf])
+        expected = Float64Index([1, 2, np.inf])
         tm.assert_index_equal(result, expected)
 
     def test_setitem_dtype_upcast(self):
@@ -527,7 +519,7 @@ class TestFancy:
         with pytest.raises(KeyError, match="'2011'"):
             df["2011"]
 
-        with pytest.raises(KeyError, match="'2011'"):
+        with pytest.raises(KeyError, match="^0$"):
             df.loc["2011", 0]
 
     def test_astype_assignment(self):

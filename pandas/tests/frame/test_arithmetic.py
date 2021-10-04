@@ -763,7 +763,7 @@ class TestFrameArithmetic:
         if opname in ["__rmod__", "__rfloordiv__"]:
             # Series ops may return mixed int/float dtypes in cases where
             #   DataFrame op will return all-float.  So we upcast `expected`
-            dtype = np.common_type(*[x.values for x in exvals.values()])
+            dtype = np.common_type(*(x.values for x in exvals.values()))
 
         expected = DataFrame(exvals, columns=df.columns, index=df.index, dtype=dtype)
 
