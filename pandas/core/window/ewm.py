@@ -207,7 +207,6 @@ class ExponentialMovingWindow(BaseWindow):
 
         .. deprecated:: 1.4.0
 
-
         If 1-D array like, a sequence with the same shape as the observations.
 
         Only applicable to ``mean()``.
