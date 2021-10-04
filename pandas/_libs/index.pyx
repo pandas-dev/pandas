@@ -116,12 +116,14 @@ cdef class IndexEngine:
     cdef:
         bint unique, monotonic_inc, monotonic_dec
         bint need_monotonic_check, need_unique_check
+        object _np_type
 
     def __init__(self, ndarray values):
         self.values = values
 
         self.over_size_threshold = len(values) >= _SIZE_CUTOFF
         self.clear_mapping()
+        self._np_type = values.dtype.type
 
     def __contains__(self, val: object) -> bool:
         # We assume before we get here:
@@ -157,25 +159,24 @@ cdef class IndexEngine:
 
         try:
             return self.mapping.get_item(val)
-        except (TypeError, ValueError, OverflowError):
+        except OverflowError as err:
             # GH#41775 OverflowError e.g. if we are uint64 and val is -1
-            raise KeyError(val)
+            #  or if we are int64 and value is np.iinfo(np.int64).max+1
+            #  (the uint64 with -1 case should actually be excluded by _check_type)
+            raise KeyError(val) from err
 
     cdef Py_ssize_t _searchsorted_left(self, val) except? -1:
         """
         See ObjectEngine._searchsorted_left.__doc__.
         """
-        try:
-            loc = self.values.searchsorted(val, side="left")
-        except TypeError as err:
-            # GH#35788 e.g. val=None with float64 values
-            raise KeyError(val)
+        # Caller is responsible for ensuring _check_type has already been called
+        loc = self.values.searchsorted(self._np_type(val), side="left")
         return loc
 
     cdef inline _get_loc_duplicates(self, object val):
         # -> Py_ssize_t | slice | ndarray[bool]
         cdef:
-            Py_ssize_t diff
+            Py_ssize_t diff, left, right
 
         if self.is_monotonic_increasing:
             values = self.values
@@ -184,6 +185,7 @@ cdef class IndexEngine:
                 right = values.searchsorted(val, side='right')
             except TypeError:
                 # e.g. GH#29189 get_loc(None) with a Float64Index
+                #  2021-09-29 Now only reached for object-dtype
                 raise KeyError(val)
 
             diff = right - left
@@ -318,11 +320,10 @@ cdef class IndexEngine:
             set stargets, remaining_stargets
             dict d = {}
             object val
-            int count = 0, count_missing = 0
-            Py_ssize_t i, j, n, n_t, n_alloc
+            Py_ssize_t count = 0, count_missing = 0
+            Py_ssize_t i, j, n, n_t, n_alloc, start, end
             bint d_has_nan = False, stargets_has_nan = False, need_nan_check = True
 
-        self._ensure_mapping_populated()
         values = self.values
         stargets = set(targets)
 
@@ -482,7 +483,8 @@ cdef class DatetimeEngine(Int64Engine):
         #  with either a Timestamp or NaT (Timedelta or NaT for TimedeltaEngine)
 
         cdef:
-            int64_t loc
+            Py_ssize_t loc
+
         if is_definitely_invalid_key(val):
             raise TypeError(f"'{val}' is an invalid key")
 
@@ -745,7 +747,6 @@ cdef class BaseMultiIndexCodesEngine:
         return self._base.get_loc(self, lab_int)
 
     def get_indexer_non_unique(self, target: np.ndarray) -> np.ndarray:
-        # target: MultiIndex
         indexer = self._base.get_indexer_non_unique(self, target)
 
         return indexer
