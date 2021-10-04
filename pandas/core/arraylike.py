@@ -244,6 +244,8 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
 
     cls = type(self)
 
+    kwargs = _standardize_out_kwarg(**kwargs)
+
     # for backwards compatibility check and potentially fallback for non-aligned frames
     result = _maybe_fallback(ufunc, method, *inputs, **kwargs)
     if result is not NotImplemented:
@@ -318,6 +320,11 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
     def reconstruct(result):
         if lib.is_scalar(result):
             return result
+
+        if isinstance(result, tuple):
+            # np.modf, np.frexp, np.divmod
+            return tuple(reconstruct(x) for x in result)
+
         if result.ndim != self.ndim:
             if method == "outer":
                 if self.ndim == 2:
@@ -349,6 +356,13 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
             result = result.__finalize__(self)
         return result
 
+    if "out" in kwargs:
+        result = _dispatch_ufunc_with_out(self, ufunc, method, *inputs, **kwargs)
+        return reconstruct(result)
+
+    # We still get here with kwargs `axis` for e.g. np.maximum.accumulate
+    #  and `dtype` and `keepdims` for np.ptp
+
     if self.ndim > 1 and (len(inputs) > 1 or ufunc.nout > 1):
         # Just give up on preserving types in the complex case.
         # In theory we could preserve them for them.
@@ -375,8 +389,66 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
             # Those can have an axis keyword and thus can't be called block-by-block
             result = getattr(ufunc, method)(np.asarray(inputs[0]), **kwargs)
 
-    if ufunc.nout > 1:
-        result = tuple(reconstruct(x) for x in result)
-    else:
-        result = reconstruct(result)
+    result = reconstruct(result)
     return result
+
+
+def _standardize_out_kwarg(**kwargs) -> dict:
+    """
+    If kwargs contain "out1" and "out2", replace that with a tuple "out"
+
+    np.divmod, np.modf, np.frexp can have either `out=(out1, out2)` or
+    `out1=out1, out2=out2)`
+    """
+    if "out" not in kwargs and "out1" in kwargs and "out2" in kwargs:
+        out1 = kwargs.pop("out1")
+        out2 = kwargs.pop("out2")
+        out = (out1, out2)
+        kwargs["out"] = out
+    return kwargs
+
+
+def _dispatch_ufunc_with_out(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
+    """
+    If we have an `out` keyword, then call the ufunc without `out` and then
+    set the result into the given `out`.
+    """
+
+    # Note: we assume _standardize_out_kwarg has already been called.
+    out = kwargs.pop("out")
+    where = kwargs.pop("where", None)
+
+    result = getattr(ufunc, method)(*inputs, **kwargs)
+
+    if result is NotImplemented:
+        return NotImplemented
+
+    if isinstance(result, tuple):
+        # i.e. np.divmod, np.modf, np.frexp
+        if not isinstance(out, tuple) or len(out) != len(result):
+            raise NotImplementedError
+
+        for arr, res in zip(out, result):
+            _assign_where(arr, res, where)
+
+        return out
+
+    if isinstance(out, tuple):
+        if len(out) == 1:
+            out = out[0]
+        else:
+            raise NotImplementedError
+
+    _assign_where(out, result, where)
+    return out
+
+
+def _assign_where(out, result, where) -> None:
+    """
+    Set a ufunc result into 'out', masking with a 'where' argument if necessary.
+    """
+    if where is None:
+        # no 'where' arg passed to ufunc
+        out[:] = result
+    else:
+        np.putmask(out, where, result)

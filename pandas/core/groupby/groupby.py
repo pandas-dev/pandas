@@ -546,18 +546,6 @@ class GroupByPlot(PandasObject):
         return attr
 
 
-@contextmanager
-def group_selection_context(groupby: GroupBy) -> Iterator[GroupBy]:
-    """
-    Set / reset the group_selection_context.
-    """
-    groupby._set_group_selection()
-    try:
-        yield groupby
-    finally:
-        groupby._reset_group_selection()
-
-
 _KeysArgType = Union[
     Hashable,
     List[Hashable],
@@ -915,7 +903,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def _make_wrapper(self, name: str) -> Callable:
         assert name in self._apply_allowlist
 
-        with group_selection_context(self):
+        with self._group_selection_context():
             # need to setup the selection
             # as are not passed directly but in the grouper
             f = getattr(self._obj_with_exclusions, name)
@@ -991,6 +979,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # GH12839 clear cached selection too when changing group selection
             self._group_selection = None
             self._reset_cache("_selected_obj")
+
+    @contextmanager
+    def _group_selection_context(self) -> Iterator[GroupBy]:
+        """
+        Set / reset the _group_selection_context.
+        """
+        self._set_group_selection()
+        try:
+            yield self
+        finally:
+            self._reset_group_selection()
 
     def _iterate_slices(self) -> Iterable[Series]:
         raise AbstractMethodError(self)
@@ -1213,7 +1212,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 numeric_only = True
                 # GH#42395 GH#43108 GH#43154
                 # Regression from 1.2.5 to 1.3 caused object columns to be dropped
-                obj = self._obj_with_exclusions
+                if self.axis:
+                    obj = self._obj_with_exclusions.T
+                else:
+                    obj = self._obj_with_exclusions
                 check = obj._get_numeric_data()
                 if len(obj.columns) and not len(check.columns) and not obj.empty:
                     numeric_only = False
@@ -1365,7 +1367,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # fails on *some* columns, e.g. a numeric operation
                 # on a string grouper column
 
-                with group_selection_context(self):
+                with self._group_selection_context():
                     return self._python_apply_general(f, self._selected_obj)
 
         return result
@@ -1445,7 +1447,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         npfunc: Callable,
     ):
 
-        with group_selection_context(self):
+        with self._group_selection_context():
             # try a cython aggregation if we can
             result = self._cython_agg_general(
                 how=alias,
@@ -1552,7 +1554,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         if maybe_use_numba(engine):
             # TODO: tests with self._selected_obj.ndim == 1 on DataFrameGroupBy
-            with group_selection_context(self):
+            with self._group_selection_context():
                 data = self._selected_obj
             df = data if data.ndim == 2 else data.to_frame()
             result = self._transform_with_numba(
@@ -1954,7 +1956,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
         else:
             func = lambda x: x.var(ddof=ddof)
-            with group_selection_context(self):
+            with self._group_selection_context():
                 return self._python_agg_general(func)
 
     @final
@@ -2146,7 +2148,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @doc(DataFrame.describe)
     def describe(self, **kwargs):
-        with group_selection_context(self):
+        with self._group_selection_context():
             result = self.apply(lambda x: x.describe(**kwargs))
             if self.axis == 1:
                 return result.T
@@ -2530,7 +2532,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 nth_values = list(set(n))
 
             nth_array = np.array(nth_values, dtype=np.intp)
-            with group_selection_context(self):
+            with self._group_selection_context():
 
                 mask_left = np.in1d(self._cumcount_array(), nth_array)
                 mask_right = np.in1d(
@@ -2827,7 +2829,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         5    0
         dtype: int64
         """
-        with group_selection_context(self):
+        with self._group_selection_context():
             index = self._selected_obj.index
             result = self._obj_1d_constructor(
                 self.grouper.group_info[0], index, dtype=np.int64
@@ -2891,7 +2893,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         5    0
         dtype: int64
         """
-        with group_selection_context(self):
+        with self._group_selection_context():
             index = self._selected_obj._get_axis(self.axis)
             cumcounts = self._cumcount_array(ascending=ascending)
             return self._obj_1d_constructor(cumcounts, index)

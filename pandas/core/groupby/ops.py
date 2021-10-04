@@ -307,7 +307,7 @@ class WrappedCythonOp:
         elif how in ["mean", "median", "var"]:
             if isinstance(dtype, (BooleanDtype, _IntegerDtype)):
                 return Float64Dtype()
-            elif is_float_dtype(dtype):
+            elif is_float_dtype(dtype) or is_complex_dtype(dtype):
                 return dtype
             elif is_numeric_dtype(dtype):
                 return np.dtype(np.float64)
@@ -749,14 +749,14 @@ class BaseGrouper:
             # group might be modified
             group_axes = group.axes
             res = f(group)
-            if not _is_indexed_like(res, group_axes, axis):
+            if not mutated and not _is_indexed_like(res, group_axes, axis):
                 mutated = True
             result_values.append(res)
 
         return result_values, mutated
 
     @cache_readonly
-    def indices(self):
+    def indices(self) -> dict[Hashable, npt.NDArray[np.intp]]:
         """dict {group name -> group indices}"""
         if len(self.groupings) == 1 and isinstance(self.result_index, CategoricalIndex):
             # This shows unused categories in indices GH#38642
@@ -807,7 +807,7 @@ class BaseGrouper:
         return Index(self.group_info[0]).is_monotonic
 
     @cache_readonly
-    def group_info(self):
+    def group_info(self) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
         comp_ids, obs_group_ids = self._get_compressed_codes()
 
         ngroups = len(obs_group_ids)
@@ -817,22 +817,26 @@ class BaseGrouper:
 
     @final
     @cache_readonly
-    def codes_info(self) -> np.ndarray:
+    def codes_info(self) -> npt.NDArray[np.intp]:
         # return the codes of items in original grouped axis
         ids, _, _ = self.group_info
         if self.indexer is not None:
             sorter = np.lexsort((ids, self.indexer))
             ids = ids[sorter]
+            ids = ensure_platform_int(ids)
+            # TODO: if numpy annotates np.lexsort, this ensure_platform_int
+            #  may become unnecessary
         return ids
 
     @final
-    def _get_compressed_codes(self) -> tuple[np.ndarray, np.ndarray]:
+    def _get_compressed_codes(self) -> tuple[np.ndarray, npt.NDArray[np.intp]]:
+        # The first returned ndarray may have any signed integer dtype
         if len(self.groupings) > 1:
             group_index = get_group_index(self.codes, self.shape, sort=True, xnull=True)
             return compress_group_index(group_index, sort=self._sort)
 
         ping = self.groupings[0]
-        return ping.codes, np.arange(len(ping.group_index))
+        return ping.codes, np.arange(len(ping.group_index), dtype=np.intp)
 
     @final
     @cache_readonly
@@ -1017,7 +1021,7 @@ class BinGrouper(BaseGrouper):
 
     """
 
-    bins: np.ndarray  # np.ndarray[np.int64]
+    bins: npt.NDArray[np.int64]
     binlabels: Index
     mutated: bool
 
@@ -1101,9 +1105,9 @@ class BinGrouper(BaseGrouper):
         return indices
 
     @cache_readonly
-    def group_info(self):
+    def group_info(self) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
         ngroups = self.ngroups
-        obs_group_ids = np.arange(ngroups, dtype=np.int64)
+        obs_group_ids = np.arange(ngroups, dtype=np.intp)
         rep = np.diff(np.r_[0, self.bins])
 
         rep = ensure_platform_int(rep)

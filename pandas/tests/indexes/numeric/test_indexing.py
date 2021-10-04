@@ -160,6 +160,17 @@ class TestGetLoc:
         with pytest.raises(KeyError, match="None"):
             idx.get_loc(None)
 
+    def test_get_loc_overflows(self):
+        # unique but non-monotonic goes through IndexEngine.mapping.get_item
+        idx = Index([0, 2, 1])
+
+        val = np.iinfo(np.int64).max + 1
+
+        with pytest.raises(KeyError, match=str(val)):
+            idx.get_loc(val)
+        with pytest.raises(KeyError, match=str(val)):
+            idx._engine.get_loc(val)
+
 
 class TestGetIndexer:
     def test_get_indexer(self):
