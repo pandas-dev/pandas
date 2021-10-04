@@ -1,4 +1,3 @@
-# pyright: strict
 """Common IO api utilities"""
 from __future__ import annotations
 
