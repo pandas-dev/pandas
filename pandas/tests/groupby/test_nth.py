@@ -2,7 +2,14 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, isna
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    Timestamp,
+    isna,
+)
 import pandas._testing as tm
 
 
@@ -99,6 +106,26 @@ def test_first_last_with_None(method):
     result = getattr(groups, method)()
 
     tm.assert_frame_equal(result, df)
+
+
+@pytest.mark.parametrize("method", ["first", "last"])
+@pytest.mark.parametrize(
+    "df, expected",
+    [
+        (
+            DataFrame({"id": "a", "value": [None, "foo", np.nan]}),
+            DataFrame({"value": ["foo"]}, index=Index(["a"], name="id")),
+        ),
+        (
+            DataFrame({"id": "a", "value": [np.nan]}, dtype=object),
+            DataFrame({"value": [None]}, index=Index(["a"], name="id")),
+        ),
+    ],
+)
+def test_first_last_with_None_expanded(method, df, expected):
+    # GH 32800, 38286
+    result = getattr(df.groupby("id"), method)()
+    tm.assert_frame_equal(result, expected)
 
 
 def test_first_last_nth_dtypes(df_mixed_floats):
@@ -513,6 +540,30 @@ def test_groupby_head_tail(op, n, expected_rows, columns, as_index):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "op, n, expected_cols",
+    [
+        ("head", -1, []),
+        ("head", 0, []),
+        ("head", 1, [0, 2]),
+        ("head", 7, [0, 1, 2]),
+        ("tail", -1, []),
+        ("tail", 0, []),
+        ("tail", 1, [1, 2]),
+        ("tail", 7, [0, 1, 2]),
+    ],
+)
+def test_groupby_head_tail_axis_1(op, n, expected_cols):
+    # GH 9772
+    df = DataFrame(
+        [[1, 2, 3], [1, 4, 5], [2, 6, 7], [3, 8, 9]], columns=["A", "B", "C"]
+    )
+    g = df.groupby([0, 0, 1], axis=1)
+    expected = df.iloc[:, expected_cols]
+    result = getattr(g, op)(n)
+    tm.assert_frame_equal(result, expected)
+
+
 def test_group_selection_cache():
     # GH 12839 nth, head, and tail should return same result consistently
     df = DataFrame([[1, 2], [1, 4], [5, 6]], columns=["A", "B"])
@@ -590,3 +641,68 @@ def test_nth_nan_in_grouper(dropna):
     )
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_first_categorical_and_datetime_data_nat():
+    # GH 20520
+    df = DataFrame(
+        {
+            "group": ["first", "first", "second", "third", "third"],
+            "time": 5 * [np.datetime64("NaT")],
+            "categories": Series(["a", "b", "c", "a", "b"], dtype="category"),
+        }
+    )
+    result = df.groupby("group").first()
+    expected = DataFrame(
+        {
+            "time": 3 * [np.datetime64("NaT")],
+            "categories": Series(["a", "c", "a"]).astype(
+                pd.CategoricalDtype(["a", "b", "c"])
+            ),
+        }
+    )
+    expected.index = Index(["first", "second", "third"], name="group")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_first_multi_key_groupbby_categorical():
+    # GH 22512
+    df = DataFrame(
+        {
+            "A": [1, 1, 1, 2, 2],
+            "B": [100, 100, 200, 100, 100],
+            "C": ["apple", "orange", "mango", "mango", "orange"],
+            "D": ["jupiter", "mercury", "mars", "venus", "venus"],
+        }
+    )
+    df = df.astype({"D": "category"})
+    result = df.groupby(by=["A", "B"]).first()
+    expected = DataFrame(
+        {
+            "C": ["apple", "mango", "mango"],
+            "D": Series(["jupiter", "mars", "venus"]).astype(
+                pd.CategoricalDtype(["jupiter", "mars", "mercury", "venus"])
+            ),
+        }
+    )
+    expected.index = MultiIndex.from_tuples(
+        [(1, 100), (1, 200), (2, 100)], names=["A", "B"]
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["first", "last", "nth"])
+def test_groupby_last_first_nth_with_none(method, nulls_fixture):
+    # GH29645
+    expected = Series(["y"])
+    data = Series(
+        [nulls_fixture, nulls_fixture, nulls_fixture, "y", nulls_fixture],
+        index=[0, 0, 0, 0, 0],
+    ).groupby(level=0)
+
+    if method == "nth":
+        result = getattr(data, method)(3)
+    else:
+        result = getattr(data, method)()
+
+    tm.assert_series_equal(result, expected)

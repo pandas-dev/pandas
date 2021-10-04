@@ -1,7 +1,7 @@
 """
 Templating for ops docstrings
 """
-from typing import Dict, Optional
+from __future__ import annotations
 
 
 def make_flex_doc(op_name: str, typ: str) -> str:
@@ -294,7 +294,7 @@ _returns_series = """Series\n    The result of the operation."""
 
 _returns_tuple = """2-Tuple of Series\n    The result of the operation."""
 
-_op_descriptions: Dict[str, Dict[str, Optional[str]]] = {
+_op_descriptions: dict[str, dict[str, str | None]] = {
     # Arithmetic Operators
     "add": {
         "op": "+",

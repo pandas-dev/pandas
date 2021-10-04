@@ -31,18 +31,18 @@ namespace:
 * :func:`~pandas.option_context` - execute a codeblock with a set of options
   that revert to prior settings after execution.
 
-**Note:** Developers can check out `pandas/core/config.py <https://github.com/pandas-dev/pandas/blob/master/pandas/core/config.py>`_ for more information.
+**Note:** Developers can check out `pandas/core/config_init.py <https://github.com/pandas-dev/pandas/blob/master/pandas/core/config_init.py>`_ for more information.
 
 All of the functions above accept a regexp pattern (``re.search`` style) as an argument,
 and so passing in a substring will work - as long as it is unambiguous:
 
 .. ipython:: python
 
-   pd.get_option("display.max_rows")
-   pd.set_option("display.max_rows", 101)
-   pd.get_option("display.max_rows")
-   pd.set_option("max_r", 102)
-   pd.get_option("display.max_rows")
+   pd.get_option("display.chop_threshold")
+   pd.set_option("display.chop_threshold", 2)
+   pd.get_option("display.chop_threshold")
+   pd.set_option("chop", 4)
+   pd.get_option("display.chop_threshold")
 
 
 The following will **not work** because it matches multiple option names, e.g.
@@ -52,7 +52,7 @@ The following will **not work** because it matches multiple option names, e.g.
    :okexcept:
 
    try:
-       pd.get_option("column")
+       pd.get_option("max")
    except KeyError as e:
        print(e)
 
@@ -124,13 +124,13 @@ are restored automatically when you exit the ``with`` block:
 Setting startup options in Python/IPython environment
 -----------------------------------------------------
 
-Using startup scripts for the Python/IPython environment to import pandas and set options makes working with pandas more efficient.  To do this, create a .py or .ipy script in the startup directory of the desired profile.  An example where the startup folder is in a default ipython profile can be found at:
+Using startup scripts for the Python/IPython environment to import pandas and set options makes working with pandas more efficient.  To do this, create a .py or .ipy script in the startup directory of the desired profile.  An example where the startup folder is in a default IPython profile can be found at:
 
 .. code-block:: none
 
   $IPYTHONDIR/profile_default/startup
 
-More information can be found in the `ipython documentation
+More information can be found in the `IPython documentation
 <https://ipython.org/ipython-doc/stable/interactive/tutorial.html#startup-files>`__.  An example startup script for pandas is displayed below:
 
 .. code-block:: python
@@ -138,7 +138,7 @@ More information can be found in the `ipython documentation
   import pandas as pd
 
   pd.set_option("display.max_rows", 999)
-  pd.set_option("precision", 5)
+  pd.set_option("display.precision", 5)
 
 .. _options.frequently_used:
 
@@ -153,27 +153,27 @@ lines are replaced by an ellipsis.
 .. ipython:: python
 
    df = pd.DataFrame(np.random.randn(7, 2))
-   pd.set_option("max_rows", 7)
+   pd.set_option("display.max_rows", 7)
    df
-   pd.set_option("max_rows", 5)
+   pd.set_option("display.max_rows", 5)
    df
-   pd.reset_option("max_rows")
+   pd.reset_option("display.max_rows")
 
 Once the ``display.max_rows`` is exceeded, the ``display.min_rows`` options
 determines how many rows are shown in the truncated repr.
 
 .. ipython:: python
 
-   pd.set_option("max_rows", 8)
-   pd.set_option("min_rows", 4)
+   pd.set_option("display.max_rows", 8)
+   pd.set_option("display.min_rows", 4)
    # below max_rows -> all rows shown
    df = pd.DataFrame(np.random.randn(7, 2))
    df
    # above max_rows -> only min_rows (4) rows shown
    df = pd.DataFrame(np.random.randn(9, 2))
    df
-   pd.reset_option("max_rows")
-   pd.reset_option("min_rows")
+   pd.reset_option("display.max_rows")
+   pd.reset_option("display.min_rows")
 
 ``display.expand_frame_repr`` allows for the representation of
 dataframes to stretch across pages, wrapped over the full column vs row-wise.
@@ -193,13 +193,13 @@ dataframes to stretch across pages, wrapped over the full column vs row-wise.
 .. ipython:: python
 
    df = pd.DataFrame(np.random.randn(10, 10))
-   pd.set_option("max_rows", 5)
+   pd.set_option("display.max_rows", 5)
    pd.set_option("large_repr", "truncate")
    df
    pd.set_option("large_repr", "info")
    df
    pd.reset_option("large_repr")
-   pd.reset_option("max_rows")
+   pd.reset_option("display.max_rows")
 
 ``display.max_colwidth`` sets the maximum width of columns.  Cells
 of this length or longer will be truncated with an ellipsis.
@@ -253,9 +253,9 @@ This is only a suggestion.
 .. ipython:: python
 
    df = pd.DataFrame(np.random.randn(5, 5))
-   pd.set_option("precision", 7)
+   pd.set_option("display.precision", 7)
    df
-   pd.set_option("precision", 4)
+   pd.set_option("display.precision", 4)
    df
 
 ``display.chop_threshold`` sets at what level pandas rounds to zero when
@@ -332,7 +332,7 @@ display.large_repr                      truncate     For DataFrames exceeding ma
                                                      (the behaviour in earlier versions of pandas).
                                                      allowable settings, ['truncate', 'info']
 display.latex.repr                      False        Whether to produce a latex DataFrame
-                                                     representation for jupyter frontends
+                                                     representation for Jupyter frontends
                                                      that support it.
 display.latex.escape                    True         Escapes special characters in DataFrames, when
                                                      using the to_latex method.
@@ -413,7 +413,7 @@ display.show_dimensions                 truncate     Whether to print out dimens
                                                      frame is truncated (e.g. not display
                                                      all rows and/or columns)
 display.width                           80           Width of the display in characters.
-                                                     In case python/IPython is running in
+                                                     In case Python/IPython is running in
                                                      a terminal this can be set to None
                                                      and pandas will correctly auto-detect
                                                      the width. Note that the IPython notebook,
@@ -432,6 +432,16 @@ display.html.use_mathjax                True         When True, Jupyter notebook
                                                      dollar symbol.
 io.excel.xls.writer                     xlwt         The default Excel writer engine for
                                                      'xls' files.
+
+                                                     .. deprecated:: 1.2.0
+
+                                                        As `xlwt <https://pypi.org/project/xlwt/>`__
+                                                        package is no longer maintained, the ``xlwt``
+                                                        engine will be removed in a future version of
+                                                        pandas. Since this is the only engine in pandas
+                                                        that supports writing to ``.xls`` files,
+                                                        this option will also be removed.
+
 io.excel.xlsm.writer                    openpyxl     The default Excel writer engine for
                                                      'xlsm' files. Available options:
                                                      'openpyxl' (the default).
@@ -446,6 +456,10 @@ io.hdf.dropna_table                     True         drop ALL nan rows when appe
 io.parquet.engine                       None         The engine to use as a default for
                                                      parquet reading and writing. If None
                                                      then try 'pyarrow' and 'fastparquet'
+io.sql.engine                           None         The engine to use as a default for
+                                                     sql reading and writing, with SQLAlchemy
+                                                     as a higher level interface. If None
+                                                     then try 'sqlalchemy'
 mode.chained_assignment                 warn         Controls ``SettingWithCopyWarning``:
                                                      'raise', 'warn', or None. Raise an
                                                      exception, warn, or no action if
@@ -468,6 +482,36 @@ plotting.backend                        matplotlib   Change the plotting backend
                                                      like Bokeh, Altair, etc.
 plotting.matplotlib.register_converters True         Register custom converters with
                                                      matplotlib. Set to False to de-register.
+styler.sparse.index                     True         "Sparsify" MultiIndex display for rows
+                                                     in Styler output (don't display repeated
+                                                     elements in outer levels within groups).
+styler.sparse.columns                   True         "Sparsify" MultiIndex display for columns
+                                                     in Styler output.
+styler.render.repr                      html         Standard output format for Styler rendered in Jupyter Notebook.
+                                                     Should be one of "html" or "latex".
+styler.render.max_elements              262144       Maximum number of datapoints that Styler will render
+                                                     trimming either rows, columns or both to fit.
+styler.render.max_rows                  None         Maximum number of rows that Styler will render. By default
+                                                     this is dynamic based on ``max_elements``.
+styler.render.max_columns               None         Maximum number of columns that Styler will render. By default
+                                                     this is dynamic based on ``max_elements``.
+styler.render.encoding                  utf-8        Default encoding for output HTML or LaTeX files.
+styler.format.formatter                 None         Object to specify formatting functions to ``Styler.format``.
+styler.format.na_rep                    None         String representation for missing data.
+styler.format.precision                 6            Precision to display floating point and complex numbers.
+styler.format.decimal                   .            String representation for decimal point separator for floating
+                                                     point and complex numbers.
+styler.format.thousands                 None         String representation for thousands separator for
+                                                     integers, and floating point and complex numbers.
+styler.format.escape                    None         Whether to escape "html" or "latex" special
+                                                     characters in the display representation.
+styler.html.mathjax                     True         If set to False will render specific CSS classes to
+                                                     table attributes that will prevent Mathjax from rendering
+                                                     in Jupyter Notebook.
+styler.latex.multicol_align             r            Alignment of headers in a merged column due to sparsification. Can be in {"r", "c", "l"}.
+styler.latex.multirow_align             c            Alignment of index labels in a merged row due to sparsification. Can be in {"c", "t", "b"}.
+styler.latex.environment                None         If given will replace the default ``\\begin{table}`` environment. If "longtable" is specified
+                                                     this will render with a specific "longtable" template with longtable features.
 ======================================= ============ ==================================
 
 

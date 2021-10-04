@@ -1,0 +1,47 @@
+name: pandas-dev
+channels:
+  - conda-forge
+dependencies:
+  - python=3.8
+
+  # tools
+  - cython>=0.29.21
+  - pytest>=6.0
+  - pytest-cov
+  - pytest-xdist>=1.31
+  - hypothesis>=5.5.3
+
+  # required
+  - numpy<1.20  # GH#39541 compat for pyarrow<3
+  - python-dateutil
+  - pytz
+
+  # optional
+  - beautifulsoup4
+  - blosc=1.20.1
+  - python-blosc
+  - fastparquet=0.4.0
+  - html5lib
+  - ipython
+  - jinja2
+  - lxml=4.5.0
+  - matplotlib
+  - nomkl
+  - numexpr
+  - openpyxl
+  - pandas-gbq
+  - protobuf>=3.12.4
+  - pyarrow=0.17.1 # GH 38803
+  - pytables>=3.6.1
+  - scipy
+  - xarray=0.15.1
+  - xlrd
+  - xlsxwriter
+  - xlwt
+  - moto
+  - flask
+
+  # sql
+  - psycopg2=2.8.4
+  - pymysql=0.10.1
+  - sqlalchemy=1.3.11

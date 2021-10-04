@@ -3,7 +3,12 @@ import pytest
 import pytz
 
 import pandas as pd
-from pandas import DataFrame, Index, Series, date_range
+from pandas import (
+    DataFrame,
+    Index,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
 
 

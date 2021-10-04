@@ -1,4 +1,4 @@
-FROM continuumio/miniconda3
+FROM quay.io/condaforge/miniforge3
 
 # if you forked pandas, you can pass in your own GitHub username to use your fork
 # i.e. gh_username=myname
@@ -14,10 +14,6 @@ RUN apt-get update \
     #
     # Verify git, process tools, lsb-release (common in install instructions for CLIs) installed
     && apt-get -y install git iproute2 procps iproute2 lsb-release \
-    #
-    # Install C compilers (gcc not enough, so just went with build-essential which admittedly might be overkill),
-    # needed to build pandas C extensions
-    && apt-get -y install build-essential \
     #
     # cleanup
     && apt-get autoremove -y \
@@ -39,9 +35,14 @@ RUN mkdir "$pandas_home" \
 # we just update the base/root one from the 'environment.yml' file instead of creating a new one.
 #
 # Set up environment
-RUN conda env update -n base -f "$pandas_home/environment.yml"
+RUN conda install -y mamba
+RUN mamba env update -n base -f "$pandas_home/environment.yml"
 
 # Build C extensions and pandas
-RUN cd "$pandas_home" \
-    && python setup.py build_ext --inplace -j 4 \
+SHELL ["/bin/bash", "-c"]
+RUN . /opt/conda/etc/profile.d/conda.sh \
+    && conda activate base \
+    && cd "$pandas_home" \
+    && export \
+    && python setup.py build_ext -j 4 \
     && python -m pip install -e .

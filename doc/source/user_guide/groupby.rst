@@ -125,8 +125,6 @@ We could naturally group by either the ``A`` or ``B`` columns, or both:
    grouped = df.groupby("A")
    grouped = df.groupby(["A", "B"])
 
-.. versionadded:: 0.24
-
 If we also have a MultiIndex on columns ``A`` and ``B``, we can group by all
 but the specified columns
 
@@ -320,14 +318,6 @@ number:
 
    s.groupby(level="second").sum()
 
-The aggregation functions such as ``sum`` will take the level parameter
-directly. Additionally, the resulting index will be named according to the
-chosen level:
-
-.. ipython:: python
-
-   s.sum(level="second")
-
 Grouping with multiple levels is supported.
 
 .. ipython:: python
@@ -401,7 +391,6 @@ something different for each of the columns. Thus, using ``[]`` similar to
 getting a column from a DataFrame, you can do:
 
 .. ipython:: python
-   :suppress:
 
    df = pd.DataFrame(
        {
@@ -412,7 +401,7 @@ getting a column from a DataFrame, you can do:
        }
    )
 
-.. ipython:: python
+   df
 
    grouped = df.groupby(["A"])
    grouped_C = grouped["C"]
@@ -478,7 +467,7 @@ Aggregation
 
 Once the GroupBy object has been created, several methods are available to
 perform a computation on the grouped data. These operations are similar to the
-:ref:`aggregating API <basics.aggregate>`, :ref:`window functions API <stats.aggregate>`,
+:ref:`aggregating API <basics.aggregate>`, :ref:`window API <window.overview>`,
 and :ref:`resample API <timeseries.aggregate>`.
 
 An obvious one is aggregation via the
@@ -523,6 +512,15 @@ index are the group names and whose values are the sizes of each group.
 .. ipython:: python
 
    grouped.describe()
+
+Another aggregation example is to compute the number of unique values of each group. This is similar to the ``value_counts`` function, except that it only counts unique values.
+
+.. ipython:: python
+
+   ll = [['foo', 1], ['foo', 2], ['foo', 2], ['bar', 1], ['bar', 1]]
+   df4 = pd.DataFrame(ll, columns=["A", "B"])
+   df4
+   df4.groupby("A")["B"].nunique()
 
 .. note::
 
@@ -580,7 +578,7 @@ column, which produces an aggregated result with a hierarchical index:
 
 .. ipython:: python
 
-   grouped.agg([np.sum, np.mean, np.std])
+   grouped[["C", "D"]].agg([np.sum, np.mean, np.std])
 
 
 The resulting aggregations are named for the functions themselves. If you
@@ -599,7 +597,7 @@ For a grouped ``DataFrame``, you can rename in a similar manner:
 .. ipython:: python
 
    (
-       grouped.agg([np.sum, np.mean, np.std]).rename(
+       grouped[["C", "D"]].agg([np.sum, np.mean, np.std]).rename(
            columns={"sum": "foo", "mean": "bar", "std": "baz"}
        )
    )
@@ -672,7 +670,7 @@ accepts the special syntax in :meth:`GroupBy.agg`, known as "named aggregation",
    )
 
 
-If your desired output column names are not valid python keywords, construct a dictionary
+If your desired output column names are not valid Python keywords, construct a dictionary
 and unpack the keyword arguments
 
 .. ipython:: python
@@ -738,6 +736,26 @@ optimized Cython implementations:
 Of course ``sum`` and ``mean`` are implemented on pandas objects, so the above
 code would work even without the special versions via dispatching (see below).
 
+.. _groupby.aggregate.udfs:
+
+Aggregations with User-Defined Functions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Users can also provide their own functions for custom aggregations. When aggregating
+with a User-Defined Function (UDF), the UDF should not mutate the provided ``Series``, see
+:ref:`gotchas.udf-mutation` for more information.
+
+.. ipython:: python
+
+   animals.groupby("kind")[["height"]].agg(lambda x: set(x))
+
+The resulting dtype will reflect that of the aggregating function. If the results from different groups have
+different dtypes, then a common dtype will be determined in the same way as ``DataFrame`` construction.
+
+.. ipython:: python
+
+   animals.groupby("kind")[["height"]].agg(lambda x: x.astype(int).sum())
+
 .. _groupby.transform:
 
 Transformation
@@ -758,7 +776,11 @@ as the one being grouped. The transform function must:
 * (Optionally) operates on the entire group chunk. If this is supported, a
   fast path is used starting from the *second* chunk.
 
-For example, suppose we wished to standardize the data within each group:
+Similar to :ref:`groupby.aggregate.udfs`, the resulting dtype will reflect that of the
+transformation function. If the results from different groups have different dtypes, then
+a common dtype will be determined in the same way as ``DataFrame`` construction.
+
+Suppose we wished to standardize the data within each group:
 
 .. ipython:: python
 
@@ -975,6 +997,7 @@ instance method on each data group. This is pretty easy to do by passing lambda
 functions:
 
 .. ipython:: python
+   :okwarning:
 
    grouped = df.groupby("A")
    grouped.agg(lambda x: x.std())
@@ -984,6 +1007,7 @@ arguments. Using a bit of metaprogramming cleverness, GroupBy now has the
 ability to "dispatch" method calls to the groups:
 
 .. ipython:: python
+   :okwarning:
 
    grouped.std()
 
@@ -1064,12 +1088,15 @@ that is itself a series, and possibly upcast the result to a DataFrame:
     s
     s.apply(f)
 
-
 .. note::
 
    ``apply`` can act as a reducer, transformer, *or* filter function, depending on exactly what is passed to it.
    So depending on the path taken, and exactly what you are grouping. Thus the grouped columns(s) may be included in
    the output as well as set the indices.
+
+Similar to :ref:`groupby.aggregate.udfs`, the resulting dtype will reflect that of the
+apply function. If the results from different groups have different dtypes, then
+a common dtype will be determined in the same way as ``DataFrame`` construction.
 
 
 Numba Accelerated Routines
@@ -1078,11 +1105,9 @@ Numba Accelerated Routines
 .. versionadded:: 1.1
 
 If `Numba <https://numba.pydata.org/>`__ is installed as an optional dependency, the ``transform`` and
-``aggregate`` methods support ``engine='numba'`` and ``engine_kwargs`` arguments. The ``engine_kwargs``
-argument is a dictionary of keyword arguments that will be passed into the
-`numba.jit decorator <https://numba.pydata.org/numba-doc/latest/reference/jit-compilation.html#numba.jit>`__.
-These keyword arguments will be applied to the passed function. Currently only ``nogil``, ``nopython``,
-and ``parallel`` are supported, and their default values are set to ``False``, ``True`` and ``False`` respectively.
+``aggregate`` methods support ``engine='numba'`` and ``engine_kwargs`` arguments.
+See :ref:`enhancing performance with Numba <enhancingperf.numba>` for general usage of the arguments
+and performance considerations.
 
 The function signature must start with ``values, index`` **exactly** as the data belonging to each group
 will be passed into ``values``, and the group index will be passed into ``index``.
@@ -1090,54 +1115,8 @@ will be passed into ``values``, and the group index will be passed into ``index`
 .. warning::
 
    When using ``engine='numba'``, there will be no "fall back" behavior internally. The group
-   data and group index will be passed as numpy arrays to the JITed user defined function, and no
+   data and group index will be passed as NumPy arrays to the JITed user defined function, and no
    alternative execution attempts will be tried.
-
-.. note::
-
-   In terms of performance, **the first time a function is run using the Numba engine will be slow**
-   as Numba will have some function compilation overhead. However, the compiled functions are cached,
-   and subsequent calls will be fast. In general, the Numba engine is performant with
-   a larger amount of data points (e.g. 1+ million).
-
-.. code-block:: ipython
-
-   In [1]: N = 10 ** 3
-
-   In [2]: data = {0: [str(i) for i in range(100)] * N, 1: list(range(100)) * N}
-
-   In [3]: df = pd.DataFrame(data, columns=[0, 1])
-
-   In [4]: def f_numba(values, index):
-      ...:     total = 0
-      ...:     for i, value in enumerate(values):
-      ...:         if i % 2:
-      ...:             total += value + 5
-      ...:         else:
-      ...:             total += value * 2
-      ...:     return total
-      ...:
-
-   In [5]: def f_cython(values):
-      ...:     total = 0
-      ...:     for i, value in enumerate(values):
-      ...:         if i % 2:
-      ...:             total += value + 5
-      ...:         else:
-      ...:             total += value * 2
-      ...:     return total
-      ...:
-
-   In [6]: groupby = df.groupby(0)
-   # Run the first time, compilation time will affect performance
-   In [7]: %timeit -r 1 -n 1 groupby.aggregate(f_numba, engine='numba')  # noqa: E225
-   2.14 s ± 0 ns per loop (mean ± std. dev. of 1 run, 1 loop each)
-   # Function is cached and performance will improve
-   In [8]: %timeit groupby.aggregate(f_numba, engine='numba')
-   4.93 ms ± 32.3 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
-
-   In [9]: %timeit groupby.aggregate(f_cython, engine='cython')
-   18.6 ms ± 84.8 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
 
 Other useful features
 ---------------------
@@ -1589,11 +1568,9 @@ column index name will be used as the name of the inserted column:
        }
    )
 
-
    def compute_metrics(x):
        result = {"b_sum": x["b"].sum(), "c_mean": x["c"].mean()}
        return pd.Series(result, name="metrics")
-
 
    result = df.groupby("a").apply(compute_metrics)
 

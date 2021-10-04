@@ -6,7 +6,10 @@ from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.cast import find_common_type
 
-from pandas.core.accessor import PandasDelegate, delegate_names
+from pandas.core.accessor import (
+    PandasDelegate,
+    delegate_names,
+)
 from pandas.core.arrays.sparse.array import SparseArray
 from pandas.core.arrays.sparse.dtype import SparseDtype
 
@@ -110,6 +113,8 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         column_levels : tuple/list
         sort_labels : bool, default False
             Sort the row and column labels before forming the sparse matrix.
+            When `row_levels` and/or `column_levels` refer to a single level,
+            set to `True` for a faster execution.
 
         Returns
         -------
@@ -329,42 +334,48 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         import_optional_dependency("scipy")
         from scipy.sparse import coo_matrix
 
-        dtype = find_common_type(self._parent.dtypes)
+        dtype = find_common_type(self._parent.dtypes.to_list())
         if isinstance(dtype, SparseDtype):
             dtype = dtype.subtype
 
-        cols, rows, datas = [], [], []
-        for col, name in enumerate(self._parent):
-            s = self._parent[name]
-            row = s.array.sp_index.to_int_index().indices
+        cols, rows, data = [], [], []
+        for col, (_, ser) in enumerate(self._parent.iteritems()):
+            sp_arr = ser.array
+            if sp_arr.fill_value != 0:
+                raise ValueError("fill value must be 0 when converting to COO matrix")
+
+            row = sp_arr.sp_index.indices
             cols.append(np.repeat(col, len(row)))
             rows.append(row)
-            datas.append(s.array.sp_values.astype(dtype, copy=False))
+            data.append(sp_arr.sp_values.astype(dtype, copy=False))
 
         cols = np.concatenate(cols)
         rows = np.concatenate(rows)
-        datas = np.concatenate(datas)
-        return coo_matrix((datas, (rows, cols)), shape=self._parent.shape)
+        data = np.concatenate(data)
+        return coo_matrix((data, (rows, cols)), shape=self._parent.shape)
 
     @property
     def density(self) -> float:
         """
         Ratio of non-sparse points to total (dense) data points.
         """
-        return np.mean([column.array.density for _, column in self._parent.items()])
+        tmp = np.mean([column.array.density for _, column in self._parent.items()])
+        return tmp
 
     @staticmethod
     def _prep_index(data, index, columns):
-        from pandas.core.indexes.api import ensure_index
-        import pandas.core.indexes.base as ibase
+        from pandas.core.indexes.api import (
+            default_index,
+            ensure_index,
+        )
 
         N, K = data.shape
         if index is None:
-            index = ibase.default_index(N)
+            index = default_index(N)
         else:
             index = ensure_index(index)
         if columns is None:
-            columns = ibase.default_index(K)
+            columns = default_index(K)
         else:
             columns = ensure_index(columns)
 

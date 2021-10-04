@@ -41,26 +41,27 @@ by defining the staticmethods ``assert_frame_equal`` and
 ``assert_series_equal`` on your base test class.
 
 """
-from .casting import BaseCastingTests  # noqa
-from .constructors import BaseConstructorsTests  # noqa
-from .dtype import BaseDtypeTests  # noqa
-from .getitem import BaseGetitemTests  # noqa
-from .groupby import BaseGroupbyTests  # noqa
-from .interface import BaseInterfaceTests  # noqa
-from .io import BaseParsingTests  # noqa
-from .methods import BaseMethodsTests  # noqa
-from .missing import BaseMissingTests  # noqa
-from .ops import (  # noqa
+from pandas.tests.extension.base.casting import BaseCastingTests  # noqa
+from pandas.tests.extension.base.constructors import BaseConstructorsTests  # noqa
+from pandas.tests.extension.base.dim2 import Dim2CompatTests  # noqa
+from pandas.tests.extension.base.dtype import BaseDtypeTests  # noqa
+from pandas.tests.extension.base.getitem import BaseGetitemTests  # noqa
+from pandas.tests.extension.base.groupby import BaseGroupbyTests  # noqa
+from pandas.tests.extension.base.interface import BaseInterfaceTests  # noqa
+from pandas.tests.extension.base.io import BaseParsingTests  # noqa
+from pandas.tests.extension.base.methods import BaseMethodsTests  # noqa
+from pandas.tests.extension.base.missing import BaseMissingTests  # noqa
+from pandas.tests.extension.base.ops import (  # noqa
     BaseArithmeticOpsTests,
     BaseComparisonOpsTests,
     BaseOpsUtil,
     BaseUnaryOpsTests,
 )
-from .printing import BasePrintingTests  # noqa
-from .reduce import (  # noqa
+from pandas.tests.extension.base.printing import BasePrintingTests  # noqa
+from pandas.tests.extension.base.reduce import (  # noqa
     BaseBooleanReduceTests,
     BaseNoReduceTests,
     BaseNumericReduceTests,
 )
-from .reshaping import BaseReshapingTests  # noqa
-from .setitem import BaseSetitemTests  # noqa
+from pandas.tests.extension.base.reshaping import BaseReshapingTests  # noqa
+from pandas.tests.extension.base.setitem import BaseSetitemTests  # noqa

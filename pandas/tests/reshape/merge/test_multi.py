@@ -2,7 +2,13 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, Timestamp
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    Timestamp,
+)
 import pandas._testing as tm
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.merge import merge
@@ -36,13 +42,13 @@ def right():
 @pytest.fixture
 def left_multi():
     return DataFrame(
-        dict(
-            Origin=["A", "A", "B", "B", "C"],
-            Destination=["A", "B", "A", "C", "A"],
-            Period=["AM", "AM", "IP", "AM", "OP"],
-            TripPurp=["hbw", "nhb", "hbo", "nhb", "hbw"],
-            Trips=[1987, 3647, 2470, 4296, 4444],
-        ),
+        {
+            "Origin": ["A", "A", "B", "B", "C"],
+            "Destination": ["A", "B", "A", "C", "A"],
+            "Period": ["AM", "AM", "IP", "AM", "OP"],
+            "TripPurp": ["hbw", "nhb", "hbo", "nhb", "hbw"],
+            "Trips": [1987, 3647, 2470, 4296, 4444],
+        },
         columns=["Origin", "Destination", "Period", "TripPurp", "Trips"],
     ).set_index(["Origin", "Destination", "Period", "TripPurp"])
 
@@ -50,13 +56,13 @@ def left_multi():
 @pytest.fixture
 def right_multi():
     return DataFrame(
-        dict(
-            Origin=["A", "A", "B", "B", "C", "C", "E"],
-            Destination=["A", "B", "A", "B", "A", "B", "F"],
-            Period=["AM", "AM", "IP", "AM", "OP", "IP", "AM"],
-            LinkType=["a", "b", "c", "b", "a", "b", "a"],
-            Distance=[100, 80, 90, 80, 75, 35, 55],
-        ),
+        {
+            "Origin": ["A", "A", "B", "B", "C", "C", "E"],
+            "Destination": ["A", "B", "A", "B", "A", "B", "F"],
+            "Period": ["AM", "AM", "IP", "AM", "OP", "IP", "AM"],
+            "LinkType": ["a", "b", "c", "b", "a", "b", "a"],
+            "Distance": [100, 80, 90, 80, 75, 35, 55],
+        },
         columns=["Origin", "Destination", "Period", "LinkType", "Distance"],
     ).set_index(["Origin", "Destination", "Period", "LinkType"])
 
@@ -106,7 +112,7 @@ class TestMergeMulti:
         on_cols = ["key1", "key2"]
         result = left.join(right, on=on_cols, how=join_type).reset_index(drop=True)
 
-        expected = pd.merge(left, right.reset_index(), on=on_cols, how=join_type)
+        expected = merge(left, right.reset_index(), on=on_cols, how=join_type)
 
         tm.assert_frame_equal(result, expected)
 
@@ -114,7 +120,7 @@ class TestMergeMulti:
             drop=True
         )
 
-        expected = pd.merge(
+        expected = merge(
             left, right.reset_index(), on=on_cols, how=join_type, sort=True
         )
 
@@ -194,13 +200,13 @@ class TestMergeMulti:
 
     def test_merge_multiple_cols_with_mixed_cols_index(self):
         # GH29522
-        s = pd.Series(
+        s = Series(
             range(6),
             MultiIndex.from_product([["A", "B"], [1, 2, 3]], names=["lev1", "lev2"]),
             name="Amount",
         )
         df = DataFrame({"lev1": list("AAABBB"), "lev2": [1, 2, 3, 1, 2, 3], "col": 0})
-        result = pd.merge(df, s.reset_index(), on=["lev1", "lev2"])
+        result = merge(df, s.reset_index(), on=["lev1", "lev2"])
         expected = DataFrame(
             {
                 "lev1": list("AAABBB"),
@@ -528,22 +534,24 @@ class TestMergeMulti:
         tm.assert_frame_equal(results_merge, expected)
         tm.assert_frame_equal(results_join, expected)
 
-    def test_join_multi_levels(self):
-
-        # GH 3662
-        # merge multi-levels
+    @pytest.fixture
+    def household(self):
         household = DataFrame(
-            dict(
-                household_id=[1, 2, 3],
-                male=[0, 1, 0],
-                wealth=[196087.3, 316478.7, 294750],
-            ),
+            {
+                "household_id": [1, 2, 3],
+                "male": [0, 1, 0],
+                "wealth": [196087.3, 316478.7, 294750],
+            },
             columns=["household_id", "male", "wealth"],
         ).set_index("household_id")
+        return household
+
+    @pytest.fixture
+    def portfolio(self):
         portfolio = DataFrame(
-            dict(
-                household_id=[1, 2, 2, 3, 3, 3, 4],
-                asset_id=[
+            {
+                "household_id": [1, 2, 2, 3, 3, 3, 4],
+                "asset_id": [
                     "nl0000301109",
                     "nl0000289783",
                     "gb00b03mlx29",
@@ -552,7 +560,7 @@ class TestMergeMulti:
                     "nl0000289965",
                     np.nan,
                 ],
-                name=[
+                "name": [
                     "ABN Amro",
                     "Robeco",
                     "Royal Dutch Shell",
@@ -561,17 +569,27 @@ class TestMergeMulti:
                     "Postbank BioTech Fonds",
                     np.nan,
                 ],
-                share=[1.0, 0.4, 0.6, 0.15, 0.6, 0.25, 1.0],
-            ),
+                "share": [1.0, 0.4, 0.6, 0.15, 0.6, 0.25, 1.0],
+            },
             columns=["household_id", "asset_id", "name", "share"],
         ).set_index(["household_id", "asset_id"])
-        result = household.join(portfolio, how="inner")
+        return portfolio
+
+    @pytest.fixture
+    def expected(self):
         expected = (
             DataFrame(
-                dict(
-                    male=[0, 1, 1, 0, 0, 0],
-                    wealth=[196087.3, 316478.7, 316478.7, 294750.0, 294750.0, 294750.0],
-                    name=[
+                {
+                    "male": [0, 1, 1, 0, 0, 0],
+                    "wealth": [
+                        196087.3,
+                        316478.7,
+                        316478.7,
+                        294750.0,
+                        294750.0,
+                        294750.0,
+                    ],
+                    "name": [
                         "ABN Amro",
                         "Robeco",
                         "Royal Dutch Shell",
@@ -579,9 +597,9 @@ class TestMergeMulti:
                         "AAB Eastern Europe Equity Fund",
                         "Postbank BioTech Fonds",
                     ],
-                    share=[1.00, 0.40, 0.60, 0.15, 0.60, 0.25],
-                    household_id=[1, 2, 2, 3, 3, 3],
-                    asset_id=[
+                    "share": [1.00, 0.40, 0.60, 0.15, 0.60, 0.25],
+                    "household_id": [1, 2, 2, 3, 3, 3],
+                    "asset_id": [
                         "nl0000301109",
                         "nl0000289783",
                         "gb00b03mlx29",
@@ -589,12 +607,25 @@ class TestMergeMulti:
                         "lu0197800237",
                         "nl0000289965",
                     ],
-                )
+                }
             )
             .set_index(["household_id", "asset_id"])
             .reindex(columns=["male", "wealth", "name", "share"])
         )
+        return expected
+
+    def test_join_multi_levels(self, portfolio, household, expected):
+        portfolio = portfolio.copy()
+        household = household.copy()
+
+        # GH 3662
+        # merge multi-levels
+        result = household.join(portfolio, how="inner")
         tm.assert_frame_equal(result, expected)
+
+    def test_join_multi_levels_merge_equivalence(self, portfolio, household, expected):
+        portfolio = portfolio.copy()
+        household = household.copy()
 
         # equivalency
         result = merge(
@@ -605,13 +636,17 @@ class TestMergeMulti:
         ).set_index(["household_id", "asset_id"])
         tm.assert_frame_equal(result, expected)
 
+    def test_join_multi_levels_outer(self, portfolio, household, expected):
+        portfolio = portfolio.copy()
+        household = household.copy()
+
         result = household.join(portfolio, how="outer")
         expected = concat(
             [
                 expected,
                 (
                     DataFrame(
-                        dict(share=[1.00]),
+                        {"share": [1.00]},
                         index=MultiIndex.from_tuples(
                             [(4, np.nan)], names=["household_id", "asset_id"]
                         ),
@@ -622,6 +657,10 @@ class TestMergeMulti:
             sort=True,
         ).reindex(columns=expected.columns)
         tm.assert_frame_equal(result, expected)
+
+    def test_join_multi_levels_invalid(self, portfolio, household):
+        portfolio = portfolio.copy()
+        household = household.copy()
 
         # invalid cases
         household.index.name = "foo"
@@ -642,9 +681,9 @@ class TestMergeMulti:
         # some more advanced merges
         # GH6360
         household = DataFrame(
-            dict(
-                household_id=[1, 2, 2, 3, 3, 3, 4],
-                asset_id=[
+            {
+                "household_id": [1, 2, 2, 3, 3, 3, 4],
+                "asset_id": [
                     "nl0000301109",
                     "nl0000301109",
                     "gb00b03mlx29",
@@ -653,30 +692,36 @@ class TestMergeMulti:
                     "nl0000289965",
                     np.nan,
                 ],
-                share=[1.0, 0.4, 0.6, 0.15, 0.6, 0.25, 1.0],
-            ),
+                "share": [1.0, 0.4, 0.6, 0.15, 0.6, 0.25, 1.0],
+            },
             columns=["household_id", "asset_id", "share"],
         ).set_index(["household_id", "asset_id"])
 
         log_return = DataFrame(
-            dict(
-                asset_id=[
+            {
+                "asset_id": [
                     "gb00b03mlx29",
                     "gb00b03mlx29",
                     "gb00b03mlx29",
                     "lu0197800237",
                     "lu0197800237",
                 ],
-                t=[233, 234, 235, 180, 181],
-                log_return=[0.09604978, -0.06524096, 0.03532373, 0.03025441, 0.036997],
-            )
+                "t": [233, 234, 235, 180, 181],
+                "log_return": [
+                    0.09604978,
+                    -0.06524096,
+                    0.03532373,
+                    0.03025441,
+                    0.036997,
+                ],
+            }
         ).set_index(["asset_id", "t"])
 
         expected = (
             DataFrame(
-                dict(
-                    household_id=[2, 2, 2, 3, 3, 3, 3, 3],
-                    asset_id=[
+                {
+                    "household_id": [2, 2, 2, 3, 3, 3, 3, 3],
+                    "asset_id": [
                         "gb00b03mlx29",
                         "gb00b03mlx29",
                         "gb00b03mlx29",
@@ -686,9 +731,9 @@ class TestMergeMulti:
                         "lu0197800237",
                         "lu0197800237",
                     ],
-                    t=[233, 234, 235, 233, 234, 235, 180, 181],
-                    share=[0.6, 0.6, 0.6, 0.15, 0.15, 0.15, 0.6, 0.6],
-                    log_return=[
+                    "t": [233, 234, 235, 233, 234, 235, 180, 181],
+                    "share": [0.6, 0.6, 0.6, 0.15, 0.15, 0.15, 0.6, 0.6],
+                    "log_return": [
                         0.09604978,
                         -0.06524096,
                         0.03532373,
@@ -698,7 +743,7 @@ class TestMergeMulti:
                         0.03025441,
                         0.036997,
                     ],
-                )
+                }
             )
             .set_index(["household_id", "asset_id", "t"])
             .reindex(columns=["share", "log_return"])
@@ -715,9 +760,9 @@ class TestMergeMulti:
 
         expected = (
             DataFrame(
-                dict(
-                    household_id=[1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4],
-                    asset_id=[
+                {
+                    "household_id": [1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4],
+                    "asset_id": [
                         "nl0000301109",
                         "nl0000301109",
                         "gb00b03mlx29",
@@ -731,8 +776,21 @@ class TestMergeMulti:
                         "nl0000289965",
                         None,
                     ],
-                    t=[None, None, 233, 234, 235, 233, 234, 235, 180, 181, None, None],
-                    share=[
+                    "t": [
+                        None,
+                        None,
+                        233,
+                        234,
+                        235,
+                        233,
+                        234,
+                        235,
+                        180,
+                        181,
+                        None,
+                        None,
+                    ],
+                    "share": [
                         1.0,
                         0.4,
                         0.6,
@@ -746,7 +804,7 @@ class TestMergeMulti:
                         0.25,
                         1.0,
                     ],
-                    log_return=[
+                    "log_return": [
                         None,
                         None,
                         0.09604978,
@@ -760,7 +818,7 @@ class TestMergeMulti:
                         None,
                         None,
                     ],
-                )
+                }
             )
             .set_index(["household_id", "asset_id", "t"])
             .reindex(columns=["share", "log_return"])
@@ -782,7 +840,7 @@ class TestJoinMultiMulti:
     ):
         # Multi-index join tests
         expected = (
-            pd.merge(
+            merge(
                 left_multi.reset_index(),
                 right_multi.reset_index(),
                 how=join_type,
@@ -803,7 +861,7 @@ class TestJoinMultiMulti:
         right_multi = right_multi.drop(columns=right_multi.columns)
 
         expected = (
-            pd.merge(
+            merge(
                 left_multi.reset_index(),
                 right_multi.reset_index(),
                 how=join_type,
@@ -859,7 +917,7 @@ class TestJoinMultiMulti:
         )
 
         result = left.join(right)
-        expected = pd.merge(
+        expected = merge(
             left.reset_index(), right.reset_index(), on=["key"], how="inner"
         ).set_index(["key", "X", "Y"])
 

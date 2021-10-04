@@ -7,10 +7,17 @@ import pytest
 from pandas.compat import PYPY
 
 import pandas as pd
-from pandas import DataFrame, Index, Series
+from pandas import (
+    DataFrame,
+    Index,
+    Series,
+)
 import pandas._testing as tm
 from pandas.core.accessor import PandasDelegate
-from pandas.core.base import NoNewAttributesMixin, PandasObject
+from pandas.core.base import (
+    NoNewAttributesMixin,
+    PandasObject,
+)
 
 
 @pytest.fixture(
@@ -40,7 +47,7 @@ class TestPandasDelegate:
         foo = property(_get_foo, _set_foo, doc="foo property")
 
         def bar(self, *args, **kwargs):
-            """ a test bar method """
+            """a test bar method"""
             pass
 
     class Delegate(PandasDelegate, PandasObject):
@@ -117,9 +124,7 @@ class TestConstruction:
         [
             Series,
             lambda x, **kwargs: DataFrame({"a": x}, **kwargs)["a"],
-            pytest.param(
-                lambda x, **kwargs: DataFrame(x, **kwargs)[0], marks=pytest.mark.xfail
-            ),
+            lambda x, **kwargs: DataFrame(x, **kwargs)[0],
             Index,
         ],
     )

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import codecs
 import json
 import locale
@@ -5,13 +7,16 @@ import os
 import platform
 import struct
 import sys
-from typing import Dict, Optional, Union
 
 from pandas._typing import JSONSerializable
-from pandas.compat._optional import VERSIONS, _get_version, import_optional_dependency
+from pandas.compat._optional import (
+    VERSIONS,
+    get_version,
+    import_optional_dependency,
+)
 
 
-def _get_commit_hash() -> Optional[str]:
+def _get_commit_hash() -> str | None:
     """
     Use vendored versioneer code to get git hash, which handles
     git worktree correctly.
@@ -22,7 +27,7 @@ def _get_commit_hash() -> Optional[str]:
     return versions["full-revisionid"]
 
 
-def _get_sys_info() -> Dict[str, JSONSerializable]:
+def _get_sys_info() -> dict[str, JSONSerializable]:
     """
     Returns system information as a JSON serializable dictionary.
     """
@@ -30,7 +35,7 @@ def _get_sys_info() -> Dict[str, JSONSerializable]:
     language_code, encoding = locale.getlocale()
     return {
         "commit": _get_commit_hash(),
-        "python": ".".join(str(i) for i in sys.version_info),
+        "python": ".".join([str(i) for i in sys.version_info]),
         "python-bits": struct.calcsize("P") * 8,
         "OS": uname_result.system,
         "OS-release": uname_result.release,
@@ -44,7 +49,7 @@ def _get_sys_info() -> Dict[str, JSONSerializable]:
     }
 
 
-def _get_dependency_info() -> Dict[str, JSONSerializable]:
+def _get_dependency_info() -> dict[str, JSONSerializable]:
     """
     Returns dependency information as a JSON serializable dictionary.
     """
@@ -78,16 +83,14 @@ def _get_dependency_info() -> Dict[str, JSONSerializable]:
     ]
     deps.extend(list(VERSIONS))
 
-    result: Dict[str, JSONSerializable] = {}
+    result: dict[str, JSONSerializable] = {}
     for modname in deps:
-        mod = import_optional_dependency(
-            modname, raise_on_missing=False, on_version="ignore"
-        )
-        result[modname] = _get_version(mod) if mod else None
+        mod = import_optional_dependency(modname, errors="ignore")
+        result[modname] = get_version(mod) if mod else None
     return result
 
 
-def show_versions(as_json: Union[str, bool] = False) -> None:
+def show_versions(as_json: str | bool = False) -> None:
     """
     Provide useful information, important for bug reports.
 
@@ -106,10 +109,10 @@ def show_versions(as_json: Union[str, bool] = False) -> None:
     deps = _get_dependency_info()
 
     if as_json:
-        j = dict(system=sys_info, dependencies=deps)
+        j = {"system": sys_info, "dependencies": deps}
 
         if as_json is True:
-            print(j)
+            sys.stdout.writelines(json.dumps(j, indent=2))
         else:
             assert isinstance(as_json, str)  # needed for mypy
             with codecs.open(as_json, "wb", encoding="utf8") as f:

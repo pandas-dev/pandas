@@ -1,23 +1,65 @@
-from typing import TYPE_CHECKING, Optional, Tuple, Type, TypeVar
+from __future__ import annotations
+
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Sequence,
+    TypeVar,
+    overload,
+)
 
 import numpy as np
 
-from pandas._libs import lib, missing as libmissing
-from pandas._typing import Scalar
+from pandas._libs import (
+    lib,
+    missing as libmissing,
+)
+from pandas._typing import (
+    ArrayLike,
+    AstypeArg,
+    NpDtype,
+    PositionalIndexer,
+    Scalar,
+    ScalarIndexer,
+    SequenceIndexer,
+    npt,
+    type_t,
+)
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import cache_readonly, doc
+from pandas.util._decorators import (
+    cache_readonly,
+    doc,
+)
+from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
+    is_bool_dtype,
+    is_dtype_equal,
+    is_float_dtype,
     is_integer,
+    is_integer_dtype,
     is_object_dtype,
     is_scalar,
     is_string_dtype,
+    pandas_dtype,
 )
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.inference import is_array_like
+from pandas.core.dtypes.missing import (
+    isna,
+    notna,
+)
 
-from pandas.core import nanops
-from pandas.core.algorithms import factorize_array, take
+from pandas.core import (
+    missing,
+    nanops,
+    ops,
+)
+from pandas.core.algorithms import (
+    factorize_array,
+    isin,
+    take,
+)
 from pandas.core.array_algos import masked_reductions
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
@@ -25,7 +67,9 @@ from pandas.core.indexers import check_array_indexer
 
 if TYPE_CHECKING:
     from pandas import Series
+    from pandas.core.arrays import BooleanArray
 
+from pandas.compat.numpy import function as nv
 
 BaseMaskedArrayT = TypeVar("BaseMaskedArrayT", bound="BaseMaskedArray")
 
@@ -37,13 +81,13 @@ class BaseMaskedDtype(ExtensionDtype):
 
     name: str
     base = None
-    type: Type
+    type: type
 
     na_value = libmissing.NA
 
     @cache_readonly
     def numpy_dtype(self) -> np.dtype:
-        """ Return an instance of our numpy dtype """
+        """Return an instance of our numpy dtype"""
         return np.dtype(self.type)
 
     @cache_readonly
@@ -52,11 +96,11 @@ class BaseMaskedDtype(ExtensionDtype):
 
     @cache_readonly
     def itemsize(self) -> int:
-        """ Return the number of bytes in this dtype """
+        """Return the number of bytes in this dtype"""
         return self.numpy_dtype.itemsize
 
     @classmethod
-    def construct_array_type(cls) -> Type["BaseMaskedArray"]:
+    def construct_array_type(cls) -> type_t[BaseMaskedArray]:
         """
         Return the array type associated with this dtype.
 
@@ -76,6 +120,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     # The value used to fill '_data' to avoid upcasting
     _internal_fill_value: Scalar
+    # Fill values used for any/all
+    _truthy_value = Scalar  # bool(_truthy_value) = True
+    _falsey_value = Scalar  # bool(_falsey_value) = False
 
     def __init__(self, values: np.ndarray, mask: np.ndarray, copy: bool = False):
         # values is supposed to already be validated in the subclass
@@ -88,6 +135,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             raise ValueError("values must be a 1D array")
         if mask.ndim != 1:
             raise ValueError("mask must be a 1D array")
+        if values.shape != mask.shape:
+            raise ValueError("values and mask must have same shape")
 
         if copy:
             values = values.copy()
@@ -100,7 +149,17 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def dtype(self) -> BaseMaskedDtype:
         raise AbstractMethodError(self)
 
-    def __getitem__(self, item):
+    @overload
+    def __getitem__(self, item: ScalarIndexer) -> Any:
+        ...
+
+    @overload
+    def __getitem__(self: BaseMaskedArrayT, item: SequenceIndexer) -> BaseMaskedArrayT:
+        ...
+
+    def __getitem__(
+        self: BaseMaskedArrayT, item: PositionalIndexer
+    ) -> BaseMaskedArrayT | Any:
         if is_integer(item):
             if self._mask[item]:
                 return self.dtype.na_value
@@ -110,7 +169,40 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         return type(self)(self._data[item], self._mask[item])
 
-    def _coerce_to_array(self, values) -> Tuple[np.ndarray, np.ndarray]:
+    @doc(ExtensionArray.fillna)
+    def fillna(
+        self: BaseMaskedArrayT, value=None, method=None, limit=None
+    ) -> BaseMaskedArrayT:
+        value, method = validate_fillna_kwargs(value, method)
+
+        mask = self._mask
+
+        if is_array_like(value):
+            if len(value) != len(self):
+                raise ValueError(
+                    f"Length of 'value' does not match. Got ({len(value)}) "
+                    f" expected {len(self)}"
+                )
+            value = value[mask]
+
+        if mask.any():
+            if method is not None:
+                func = missing.get_fill_func(method)
+                new_values, new_mask = func(
+                    self._data.copy(),
+                    limit=limit,
+                    mask=mask.copy(),
+                )
+                return type(self)(new_values, new_mask.view(np.bool_))
+            else:
+                # fill with value
+                new_values = self.copy()
+                new_values[mask] = value
+        else:
+            new_values = self.copy()
+        return new_values
+
+    def _coerce_to_array(self, values) -> tuple[np.ndarray, np.ndarray]:
         raise AbstractMethodError(self)
 
     def __setitem__(self, key, value) -> None:
@@ -138,10 +230,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return len(self._data)
 
     def __invert__(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
-        return type(self)(~self._data, self._mask)
+        return type(self)(~self._data, self._mask.copy())
 
     def to_numpy(
-        self, dtype=None, copy: bool = False, na_value: Scalar = lib.no_default
+        self,
+        dtype: npt.DTypeLike | None = None,
+        copy: bool = False,
+        na_value: Scalar = lib.no_default,
     ) -> np.ndarray:
         """
         Convert to a NumPy Array.
@@ -225,14 +320,109 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             data = self._data.astype(dtype, copy=copy)
         return data
 
+    @overload
+    def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
+        ...
+
+    @overload
+    def astype(self, dtype: ExtensionDtype, copy: bool = ...) -> ExtensionArray:
+        ...
+
+    @overload
+    def astype(self, dtype: AstypeArg, copy: bool = ...) -> ArrayLike:
+        ...
+
+    def astype(self, dtype: AstypeArg, copy: bool = True) -> ArrayLike:
+        dtype = pandas_dtype(dtype)
+
+        if is_dtype_equal(dtype, self.dtype):
+            if copy:
+                return self.copy()
+            return self
+
+        # if we are astyping to another nullable masked dtype, we can fastpath
+        if isinstance(dtype, BaseMaskedDtype):
+            # TODO deal with NaNs for FloatingArray case
+            data = self._data.astype(dtype.numpy_dtype, copy=copy)
+            # mask is copied depending on whether the data was copied, and
+            # not directly depending on the `copy` keyword
+            mask = self._mask if data is self._data else self._mask.copy()
+            cls = dtype.construct_array_type()
+            return cls(data, mask, copy=False)
+
+        if isinstance(dtype, ExtensionDtype):
+            eacls = dtype.construct_array_type()
+            return eacls._from_sequence(self, dtype=dtype, copy=copy)
+
+        raise NotImplementedError("subclass must implement astype to np.dtype")
+
     __array_priority__ = 1000  # higher than ndarray so ops dispatch to us
 
-    def __array__(self, dtype=None) -> np.ndarray:
+    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
         """
         the array interface, return my values
         We return an object array here to preserve our scalar values
         """
         return self.to_numpy(dtype=dtype)
+
+    _HANDLED_TYPES: tuple[type, ...]
+
+    def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
+        # For MaskedArray inputs, we apply the ufunc to ._data
+        # and mask the result.
+        if method == "reduce":
+            # Not clear how to handle missing values in reductions. Raise.
+            raise NotImplementedError("The 'reduce' method is not supported.")
+
+        out = kwargs.get("out", ())
+
+        for x in inputs + out:
+            if not isinstance(x, self._HANDLED_TYPES + (BaseMaskedArray,)):
+                return NotImplemented
+
+        # for binary ops, use our custom dunder methods
+        result = ops.maybe_dispatch_ufunc_to_dunder_op(
+            self, ufunc, method, *inputs, **kwargs
+        )
+        if result is not NotImplemented:
+            return result
+
+        mask = np.zeros(len(self), dtype=bool)
+        inputs2 = []
+        for x in inputs:
+            if isinstance(x, BaseMaskedArray):
+                mask |= x._mask
+                inputs2.append(x._data)
+            else:
+                inputs2.append(x)
+
+        def reconstruct(x):
+            # we don't worry about scalar `x` here, since we
+            # raise for reduce up above.
+            from pandas.core.arrays import (
+                BooleanArray,
+                FloatingArray,
+                IntegerArray,
+            )
+
+            if is_bool_dtype(x.dtype):
+                m = mask.copy()
+                return BooleanArray(x, m)
+            elif is_integer_dtype(x.dtype):
+                m = mask.copy()
+                return IntegerArray(x, m)
+            elif is_float_dtype(x.dtype):
+                m = mask.copy()
+                return FloatingArray(x, m)
+            else:
+                x[mask] = np.nan
+            return x
+
+        result = getattr(ufunc, method)(*inputs2, **kwargs)
+        if isinstance(result, tuple):
+            return tuple(reconstruct(x) for x in result)
+        else:
+            return reconstruct(result)
 
     def __arrow_array__(self, type=None):
         """
@@ -247,10 +437,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         # Note: this is expensive right now! The hope is that we can
         # make this faster by having an optional mask, but not have to change
         # source code using it..
-        return self._mask.any()
+
+        # error: Incompatible return value type (got "bool_", expected "bool")
+        return self._mask.any()  # type: ignore[return-value]
 
     def isna(self) -> np.ndarray:
-        return self._mask
+        return self._mask.copy()
 
     @property
     def _na_value(self):
@@ -261,7 +453,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return self._data.nbytes + self._mask.nbytes
 
     @classmethod
-    def _concat_same_type(cls: Type[BaseMaskedArrayT], to_concat) -> BaseMaskedArrayT:
+    def _concat_same_type(
+        cls: type[BaseMaskedArrayT], to_concat: Sequence[BaseMaskedArrayT]
+    ) -> BaseMaskedArrayT:
         data = np.concatenate([x._data for x in to_concat])
         mask = np.concatenate([x._mask for x in to_concat])
         return cls(data, mask)
@@ -271,7 +465,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         indexer,
         *,
         allow_fill: bool = False,
-        fill_value: Optional[Scalar] = None,
+        fill_value: Scalar | None = None,
     ) -> BaseMaskedArrayT:
         # we always fill with 1 internally
         # to avoid upcasting
@@ -293,6 +487,29 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         return type(self)(result, mask, copy=False)
 
+    # error: Return type "BooleanArray" of "isin" incompatible with return type
+    # "ndarray" in supertype "ExtensionArray"
+    def isin(self, values) -> BooleanArray:  # type: ignore[override]
+
+        from pandas.core.arrays import BooleanArray
+
+        # algorithms.isin will eventually convert values to an ndarray, so no extra
+        # cost to doing it here first
+        values_arr = np.asarray(values)
+        result = isin(self._data, values_arr)
+
+        if self._hasna:
+            values_have_NA = is_object_dtype(values_arr.dtype) and any(
+                val is self.dtype.na_value for val in values_arr
+            )
+
+            # For now, NA does not propagate so set result according to presence of NA,
+            # see https://github.com/pandas-dev/pandas/pull/38379 for some discussion
+            result[self._mask] = values_have_NA
+
+        mask = np.zeros(self._data.shape, dtype=bool)
+        return BooleanArray(result, mask, copy=False)
+
     def copy(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
         data, mask = self._data, self._mask
         data = data.copy()
@@ -300,7 +517,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return type(self)(data, mask, copy=False)
 
     @doc(ExtensionArray.factorize)
-    def factorize(self, na_sentinel: int = -1) -> Tuple[np.ndarray, ExtensionArray]:
+    def factorize(self, na_sentinel: int = -1) -> tuple[np.ndarray, ExtensionArray]:
         arr = self._data
         mask = self._mask
 
@@ -308,10 +525,16 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         # the hashtables don't handle all different types of bits
         uniques = uniques.astype(self.dtype.numpy_dtype, copy=False)
-        uniques = type(self)(uniques, np.zeros(len(uniques), dtype=bool))
-        return codes, uniques
+        # error: Incompatible types in assignment (expression has type
+        # "BaseMaskedArray", variable has type "ndarray")
+        uniques = type(self)(  # type: ignore[assignment]
+            uniques, np.zeros(len(uniques), dtype=bool)
+        )
+        # error: Incompatible return value type (got "Tuple[ndarray, ndarray]",
+        # expected "Tuple[ndarray, ExtensionArray]")
+        return codes, uniques  # type: ignore[return-value]
 
-    def value_counts(self, dropna: bool = True) -> "Series":
+    def value_counts(self, dropna: bool = True) -> Series:
         """
         Returns a Series containing counts of each unique value.
 
@@ -328,7 +551,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         --------
         Series.value_counts
         """
-        from pandas import Index, Series
+        from pandas import (
+            Index,
+            Series,
+        )
         from pandas.arrays import IntegerArray
 
         # compute counts on the data with no nans
@@ -359,10 +585,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return Series(counts, index=index)
 
     def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
+        if name in {"any", "all"}:
+            return getattr(self, name)(skipna=skipna, **kwargs)
+
         data = self._data
         mask = self._mask
 
-        if name in {"sum", "prod", "min", "max"}:
+        if name in {"sum", "prod", "min", "max", "mean"}:
             op = getattr(masked_reductions, name)
             return op(data, mask, skipna=skipna, **kwargs)
 
@@ -378,3 +607,156 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             return libmissing.NA
 
         return result
+
+    def any(self, *, skipna: bool = True, **kwargs):
+        """
+        Return whether any element is truthy.
+
+        Returns False unless there is at least one element that is truthy.
+        By default, NAs are skipped. If ``skipna=False`` is specified and
+        missing values are present, similar :ref:`Kleene logic <boolean.kleene>`
+        is used as for logical operations.
+
+        .. versionchanged:: 1.4.0
+
+        Parameters
+        ----------
+        skipna : bool, default True
+            Exclude NA values. If the entire array is NA and `skipna` is
+            True, then the result will be False, as for an empty array.
+            If `skipna` is False, the result will still be True if there is
+            at least one element that is truthy, otherwise NA will be returned
+            if there are NA's present.
+        **kwargs : any, default None
+            Additional keywords have no effect but might be accepted for
+            compatibility with NumPy.
+
+        Returns
+        -------
+        bool or :attr:`pandas.NA`
+
+        See Also
+        --------
+        numpy.any : Numpy version of this method.
+        BaseMaskedArray.all : Return whether all elements are truthy.
+
+        Examples
+        --------
+        The result indicates whether any element is truthy (and by default
+        skips NAs):
+
+        >>> pd.array([True, False, True]).any()
+        True
+        >>> pd.array([True, False, pd.NA]).any()
+        True
+        >>> pd.array([False, False, pd.NA]).any()
+        False
+        >>> pd.array([], dtype="boolean").any()
+        False
+        >>> pd.array([pd.NA], dtype="boolean").any()
+        False
+        >>> pd.array([pd.NA], dtype="Float64").any()
+        False
+
+        With ``skipna=False``, the result can be NA if this is logically
+        required (whether ``pd.NA`` is True or False influences the result):
+
+        >>> pd.array([True, False, pd.NA]).any(skipna=False)
+        True
+        >>> pd.array([1, 0, pd.NA]).any(skipna=False)
+        True
+        >>> pd.array([False, False, pd.NA]).any(skipna=False)
+        <NA>
+        >>> pd.array([0, 0, pd.NA]).any(skipna=False)
+        <NA>
+        """
+        kwargs.pop("axis", None)
+        nv.validate_any((), kwargs)
+
+        values = self._data.copy()
+        np.putmask(values, self._mask, self._falsey_value)
+        result = values.any()
+        if skipna:
+            return result
+        else:
+            if result or len(self) == 0 or not self._mask.any():
+                return result
+            else:
+                return self.dtype.na_value
+
+    def all(self, *, skipna: bool = True, **kwargs):
+        """
+        Return whether all elements are truthy.
+
+        Returns True unless there is at least one element that is falsey.
+        By default, NAs are skipped. If ``skipna=False`` is specified and
+        missing values are present, similar :ref:`Kleene logic <boolean.kleene>`
+        is used as for logical operations.
+
+        .. versionchanged:: 1.4.0
+
+        Parameters
+        ----------
+        skipna : bool, default True
+            Exclude NA values. If the entire array is NA and `skipna` is
+            True, then the result will be True, as for an empty array.
+            If `skipna` is False, the result will still be False if there is
+            at least one element that is falsey, otherwise NA will be returned
+            if there are NA's present.
+        **kwargs : any, default None
+            Additional keywords have no effect but might be accepted for
+            compatibility with NumPy.
+
+        Returns
+        -------
+        bool or :attr:`pandas.NA`
+
+        See Also
+        --------
+        numpy.all : Numpy version of this method.
+        BooleanArray.any : Return whether any element is truthy.
+
+        Examples
+        --------
+        The result indicates whether all elements are truthy (and by default
+        skips NAs):
+
+        >>> pd.array([True, True, pd.NA]).all()
+        True
+        >>> pd.array([1, 1, pd.NA]).all()
+        True
+        >>> pd.array([True, False, pd.NA]).all()
+        False
+        >>> pd.array([], dtype="boolean").all()
+        True
+        >>> pd.array([pd.NA], dtype="boolean").all()
+        True
+        >>> pd.array([pd.NA], dtype="Float64").all()
+        True
+
+        With ``skipna=False``, the result can be NA if this is logically
+        required (whether ``pd.NA`` is True or False influences the result):
+
+        >>> pd.array([True, True, pd.NA]).all(skipna=False)
+        <NA>
+        >>> pd.array([1, 1, pd.NA]).all(skipna=False)
+        <NA>
+        >>> pd.array([True, False, pd.NA]).all(skipna=False)
+        False
+        >>> pd.array([1, 0, pd.NA]).all(skipna=False)
+        False
+        """
+        kwargs.pop("axis", None)
+        nv.validate_all((), kwargs)
+
+        values = self._data.copy()
+        np.putmask(values, self._mask, self._truthy_value)
+        result = values.all()
+
+        if skipna:
+            return result
+        else:
+            if not result or len(self) == 0 or not self._mask.any():
+                return result
+            else:
+                return self.dtype.na_value

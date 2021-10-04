@@ -2,7 +2,11 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series, date_range
+from pandas import (
+    DataFrame,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -58,13 +62,12 @@ class TestDataFrameRound:
 
         # float input to `decimals`
         non_int_round_dict = {"col1": 1, "col2": 0.5}
-        msg = "integer argument expected, got float"
+        msg = "Values in decimals must be integers"
         with pytest.raises(TypeError, match=msg):
             df.round(non_int_round_dict)
 
         # String input
         non_int_round_dict = {"col1": 1, "col2": "foo"}
-        msg = r"an integer is required \(got type str\)"
         with pytest.raises(TypeError, match=msg):
             df.round(non_int_round_dict)
 
@@ -74,7 +77,6 @@ class TestDataFrameRound:
 
         # List input
         non_int_round_dict = {"col1": 1, "col2": [1, 2]}
-        msg = r"an integer is required \(got type list\)"
         with pytest.raises(TypeError, match=msg):
             df.round(non_int_round_dict)
 
@@ -102,7 +104,6 @@ class TestDataFrameRound:
         # nan in Series round
         nan_round_Series = Series({"col1": np.nan, "col2": 1})
 
-        msg = "integer argument expected, got float"
         with pytest.raises(TypeError, match=msg):
             df.round(nan_round_Series)
 

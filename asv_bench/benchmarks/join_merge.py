@@ -2,7 +2,15 @@ import string
 
 import numpy as np
 
-from pandas import DataFrame, MultiIndex, Series, concat, date_range, merge, merge_asof
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    Series,
+    concat,
+    date_range,
+    merge,
+    merge_asof,
+)
 
 from .pandas_vb_common import tm
 
@@ -132,6 +140,9 @@ class Join:
     def time_join_dataframe_index_shuffle_key_bigger_sort(self, sort):
         self.df_shuf.join(self.df_key2, on="key2", sort=sort)
 
+    def time_join_dataframes_cross(self, sort):
+        self.df.loc[:2000].join(self.df_key1, how="cross", sort=sort)
+
 
 class JoinIndex:
     def setup(self):
@@ -155,7 +166,7 @@ class JoinNonUnique:
         daily_dates = date_index.to_period("D").to_timestamp("S", "S")
         self.fracofday = date_index.values - daily_dates.values
         self.fracofday = self.fracofday.astype("timedelta64[ns]")
-        self.fracofday = self.fracofday.astype(np.float64) / 86400000000000.0
+        self.fracofday = self.fracofday.astype(np.float64) / 86_400_000_000_000
         self.fracofday = Series(self.fracofday, daily_dates)
         index = date_range(date_index.min(), date_index.max(), freq="D")
         self.temp = Series(1.0, index)[self.fracofday.index]
@@ -204,6 +215,9 @@ class Merge:
 
     def time_merge_dataframe_integer_key(self, sort):
         merge(self.df, self.df2, on="key1", sort=sort)
+
+    def time_merge_dataframes_cross(self, sort):
+        merge(self.left.loc[:2000], self.right.loc[:2000], how="cross", sort=sort)
 
 
 class I8Merge:

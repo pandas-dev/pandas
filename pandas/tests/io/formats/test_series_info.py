@@ -7,7 +7,12 @@ import pytest
 
 from pandas.compat import PYPY
 
-from pandas import CategoricalIndex, MultiIndex, Series, date_range
+from pandas import (
+    CategoricalIndex,
+    MultiIndex,
+    Series,
+    date_range,
+)
 
 
 def test_info_categorical_column_just_works():

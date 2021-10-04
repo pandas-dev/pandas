@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas import Categorical, Index
+from pandas import (
+    Categorical,
+    Index,
+)
 import pandas._testing as tm
 
 
@@ -78,8 +81,8 @@ class TestTake:
     def test_take_fill_value_new_raises(self):
         # https://github.com/pandas-dev/pandas/issues/23296
         cat = Categorical(["a", "b", "c"])
-        xpr = r"'fill_value=d' is not present in this Categorical's categories"
-        with pytest.raises(ValueError, match=xpr):
+        xpr = r"Cannot setitem on a Categorical with a new category \(d\)"
+        with pytest.raises(TypeError, match=xpr):
             cat.take([0, 1, -1], fill_value="d", allow_fill=True)
 
     def test_take_nd_deprecated(self):

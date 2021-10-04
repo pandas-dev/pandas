@@ -3,11 +3,20 @@
 
 import cython
 
-from libc.stdlib cimport free, malloc
+from libc.stdlib cimport (
+    free,
+    malloc,
+)
 
 import numpy as np
 
-from numpy cimport import_array, ndarray, uint8_t, uint32_t, uint64_t
+from numpy cimport (
+    import_array,
+    ndarray,
+    uint8_t,
+    uint32_t,
+    uint64_t,
+)
 
 import_array()
 
@@ -18,7 +27,9 @@ DEF dROUNDS = 4
 
 
 @cython.boundscheck(False)
-def hash_object_array(ndarray[object] arr, str key, str encoding="utf8"):
+def hash_object_array(
+    ndarray[object] arr, str key, str encoding="utf8"
+) -> np.ndarray[np.uint64]:
     """
     Parameters
     ----------

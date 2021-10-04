@@ -29,7 +29,6 @@ method_blocklist = {
         "skew",
         "cumprod",
         "cummax",
-        "rank",
         "pct_change",
         "min",
         "var",
@@ -69,9 +68,18 @@ class ApplyDictReturn:
 
 
 class Apply:
-    def setup_cache(self):
-        N = 10 ** 4
-        labels = np.random.randint(0, 2000, size=N)
+
+    param_names = ["factor"]
+    params = [4, 5]
+
+    def setup(self, factor):
+        N = 10 ** factor
+        # two cases:
+        # - small groups: small data (N**4) + many labels (2000) -> average group
+        #   size of 5 (-> larger overhead of slicing method)
+        # - larger groups: larger data (N**5) + fewer labels (20) -> average group
+        #   size of 5000
+        labels = np.random.randint(0, 2000 if factor == 4 else 20, size=N)
         labels2 = np.random.randint(0, 3, size=N)
         df = DataFrame(
             {
@@ -81,13 +89,13 @@ class Apply:
                 "value2": ["foo", "bar", "baz", "qux"] * (N // 4),
             }
         )
-        return df
+        self.df = df
 
-    def time_scalar_function_multi_col(self, df):
-        df.groupby(["key", "key2"]).apply(lambda x: 1)
+    def time_scalar_function_multi_col(self, factor):
+        self.df.groupby(["key", "key2"]).apply(lambda x: 1)
 
-    def time_scalar_function_single_col(self, df):
-        df.groupby("key").apply(lambda x: 1)
+    def time_scalar_function_single_col(self, factor):
+        self.df.groupby("key").apply(lambda x: 1)
 
     @staticmethod
     def df_copy_function(g):
@@ -95,11 +103,11 @@ class Apply:
         g.name
         return g.copy()
 
-    def time_copy_function_multi_col(self, df):
-        df.groupby(["key", "key2"]).apply(self.df_copy_function)
+    def time_copy_function_multi_col(self, factor):
+        self.df.groupby(["key", "key2"]).apply(self.df_copy_function)
 
-    def time_copy_overhead_single_col(self, df):
-        df.groupby("key").apply(self.df_copy_function)
+    def time_copy_overhead_single_col(self, factor):
+        self.df.groupby("key").apply(self.df_copy_function)
 
 
 class Groups:
@@ -126,6 +134,9 @@ class Groups:
 
     def time_series_groups(self, data, key):
         self.ser.groupby(self.ser).groups
+
+    def time_series_indices(self, data, key):
+        self.ser.groupby(self.ser).indices
 
 
 class GroupManyLabels:
@@ -358,6 +369,18 @@ class Size:
         self.draws.groupby(self.cats).size()
 
 
+class Shift:
+    def setup(self):
+        N = 18
+        self.df = DataFrame({"g": ["a", "b"] * 9, "v": list(range(N))})
+
+    def time_defaults(self):
+        self.df.groupby("g").shift()
+
+    def time_fill_value(self):
+        self.df.groupby("g").shift(fill_value=99)
+
+
 class FillNA:
     def setup(self):
         N = 100
@@ -380,9 +403,9 @@ class FillNA:
 
 class GroupByMethods:
 
-    param_names = ["dtype", "method", "application"]
+    param_names = ["dtype", "method", "application", "ncols"]
     params = [
-        ["int", "float", "object", "datetime"],
+        ["int", "float", "object", "datetime", "uint"],
         [
             "all",
             "any",
@@ -420,17 +443,37 @@ class GroupByMethods:
             "var",
         ],
         ["direct", "transformation"],
+        [1, 2, 5, 10],
     ]
 
-    def setup(self, dtype, method, application):
+    def setup(self, dtype, method, application, ncols):
         if method in method_blocklist.get(dtype, {}):
             raise NotImplementedError  # skip benchmark
+
+        if ncols != 1 and method in ["value_counts", "unique"]:
+            # DataFrameGroupBy doesn't have these methods
+            raise NotImplementedError
+
+        if application == "transformation" and method in [
+            "head",
+            "tail",
+            "unique",
+            "value_counts",
+            "size",
+        ]:
+            # DataFrameGroupBy doesn't have these methods
+            raise NotImplementedError
+
         ngroups = 1000
         size = ngroups * 2
-        rng = np.arange(ngroups)
-        values = rng.take(np.random.randint(0, ngroups, size=size))
+        rng = np.arange(ngroups).reshape(-1, 1)
+        rng = np.broadcast_to(rng, (len(rng), ncols))
+        taker = np.random.randint(0, ngroups, size=size)
+        values = rng.take(taker, axis=0)
         if dtype == "int":
             key = np.random.randint(0, size, size=size)
+        elif dtype == "uint":
+            key = np.random.randint(0, size, size=size, dtype=dtype)
         elif dtype == "float":
             key = np.concatenate(
                 [np.random.random(ngroups) * 0.1, np.random.random(ngroups) * 10.0]
@@ -440,23 +483,91 @@ class GroupByMethods:
         elif dtype == "datetime":
             key = date_range("1/1/2011", periods=size, freq="s")
 
-        df = DataFrame({"values": values, "key": key})
+        cols = [f"values{n}" for n in range(ncols)]
+        df = DataFrame(values, columns=cols)
+        df["key"] = key
 
-        if application == "transform":
+        if len(cols) == 1:
+            cols = cols[0]
+
+        if application == "transformation":
             if method == "describe":
                 raise NotImplementedError
 
-            self.as_group_method = lambda: df.groupby("key")["values"].transform(method)
-            self.as_field_method = lambda: df.groupby("values")["key"].transform(method)
+            self.as_group_method = lambda: df.groupby("key")[cols].transform(method)
+            self.as_field_method = lambda: df.groupby(cols)["key"].transform(method)
         else:
-            self.as_group_method = getattr(df.groupby("key")["values"], method)
-            self.as_field_method = getattr(df.groupby("values")["key"], method)
+            self.as_group_method = getattr(df.groupby("key")[cols], method)
+            self.as_field_method = getattr(df.groupby(cols)["key"], method)
 
-    def time_dtype_as_group(self, dtype, method, application):
+    def time_dtype_as_group(self, dtype, method, application, ncols):
         self.as_group_method()
 
-    def time_dtype_as_field(self, dtype, method, application):
+    def time_dtype_as_field(self, dtype, method, application, ncols):
         self.as_field_method()
+
+
+class GroupByCythonAgg:
+    """
+    Benchmarks specifically targetting our cython aggregation algorithms
+    (using a big enough dataframe with simple key, so a large part of the
+    time is actually spent in the grouped aggregation).
+    """
+
+    param_names = ["dtype", "method"]
+    params = [
+        ["float64"],
+        [
+            "sum",
+            "prod",
+            "min",
+            "max",
+            "mean",
+            "median",
+            "var",
+            "first",
+            "last",
+            "any",
+            "all",
+        ],
+    ]
+
+    def setup(self, dtype, method):
+        N = 1_000_000
+        df = DataFrame(np.random.randn(N, 10), columns=list("abcdefghij"))
+        df["key"] = np.random.randint(0, 100, size=N)
+        self.df = df
+
+    def time_frame_agg(self, dtype, method):
+        self.df.groupby("key").agg(method)
+
+
+class Cumulative:
+    param_names = ["dtype", "method"]
+    params = [
+        ["float64", "int64", "Float64", "Int64"],
+        ["cummin", "cummax", "cumsum"],
+    ]
+
+    def setup(self, dtype, method):
+        N = 500_000
+        vals = np.random.randint(-10, 10, (N, 5))
+        null_vals = vals.astype(float, copy=True)
+        null_vals[::2, :] = np.nan
+        null_vals[::3, :] = np.nan
+        df = DataFrame(vals, columns=list("abcde"), dtype=dtype)
+        null_df = DataFrame(null_vals, columns=list("abcde"), dtype=dtype)
+        keys = np.random.randint(0, 100, size=N)
+        df["key"] = keys
+        null_df["key"] = keys
+        self.df = df
+        self.null_df = null_df
+
+    def time_frame_transform(self, dtype, method):
+        self.df.groupby("key").transform(method)
+
+    def time_frame_transform_many_nulls(self, dtype, method):
+        self.null_df.groupby("key").transform(method)
 
 
 class RankWithTies:
@@ -486,10 +597,42 @@ class Float32:
         tmp2 = (np.random.random(10000) * 10.0).astype(np.float32)
         tmp = np.concatenate((tmp1, tmp2))
         arr = np.repeat(tmp, 10)
-        self.df = DataFrame(dict(a=arr, b=arr))
+        self.df = DataFrame({"a": arr, "b": arr})
 
     def time_sum(self):
         self.df.groupby(["a"])["b"].sum()
+
+
+class String:
+    # GH#41596
+    param_names = ["dtype", "method"]
+    params = [
+        ["str", "string[python]"],
+        [
+            "sum",
+            "prod",
+            "min",
+            "max",
+            "mean",
+            "median",
+            "var",
+            "first",
+            "last",
+            "any",
+            "all",
+        ],
+    ]
+
+    def setup(self, dtype, method):
+        cols = list("abcdefghjkl")
+        self.df = DataFrame(
+            np.random.randint(0, 100, size=(1_000_000, len(cols))),
+            columns=cols,
+            dtype=dtype,
+        )
+
+    def time_str_func(self, dtype, method):
+        self.df.groupby("a")[self.df.columns[1:]].agg(method)
 
 
 class Categories:
@@ -625,7 +768,7 @@ class TransformBools:
     def setup(self):
         N = 120000
         transition_points = np.sort(np.random.choice(np.arange(N), 1400))
-        transitions = np.zeros(N, dtype=np.bool)
+        transitions = np.zeros(N, dtype=np.bool_)
         transitions[transition_points] = True
         self.g = transitions.cumsum()
         self.df = DataFrame({"signal": np.random.rand(N)})
@@ -754,6 +897,20 @@ class AggEngine:
             return total
 
         self.grouper.agg(function, engine="cython")
+
+
+class Sample:
+    def setup(self):
+        N = 10 ** 3
+        self.df = DataFrame({"a": np.zeros(N)})
+        self.groups = np.arange(0, N)
+        self.weights = np.ones(N)
+
+    def time_sample(self):
+        self.df.groupby(self.groups).sample(n=1)
+
+    def time_sample_weights(self):
+        self.df.groupby(self.groups).sample(n=1, weights=self.weights)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

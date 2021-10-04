@@ -36,11 +36,3 @@ def test_read_writer_table():
     result = pd.read_excel("writertable.odt", sheet_name="Table1", index_col=0)
 
     tm.assert_frame_equal(result, expected)
-
-
-def test_nonexistent_sheetname_raises(read_ext):
-    # GH-27676
-    # Specifying a non-existent sheet_name parameter should throw an error
-    # with the sheet name.
-    with pytest.raises(ValueError, match="sheet xyz not found"):
-        pd.read_excel("blank.ods", sheet_name="xyz")

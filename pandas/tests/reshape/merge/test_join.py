@@ -2,9 +2,22 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, concat, merge
+from pandas import (
+    Categorical,
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    Timestamp,
+    concat,
+    merge,
+)
 import pandas._testing as tm
-from pandas.tests.reshape.merge.test_merge import NGROUPS, N, get_test_data
+from pandas.tests.reshape.merge.test_merge import (
+    NGROUPS,
+    N,
+    get_test_data,
+)
 
 a_ = np.array
 
@@ -404,7 +417,8 @@ class TestJoin:
         other_df = DataFrame([(1, 2, 3), (7, 10, 6)], columns=["a", "b", "d"])
         other_df.set_index("a", inplace=True)
         # GH 9455, 12219
-        with tm.assert_produces_warning(UserWarning):
+        msg = "merging between different levels is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             result = merge(new_df, other_df, left_index=True, right_index=True)
         assert ("b", "mean") in result
         assert "b" in result
@@ -504,7 +518,7 @@ class TestJoin:
 
         # smoke test
         joined = left.join(right, on="key", sort=False)
-        tm.assert_index_equal(joined.index, Index(list(range(4))))
+        tm.assert_index_equal(joined.index, Index(range(4)), exact=True)
 
     def test_join_mixed_non_unique_index(self):
         # GH 12814, unorderable types in py3 with a non-unique index
@@ -616,7 +630,8 @@ class TestJoin:
         dta = x.merge(y, left_index=True, right_index=True).merge(
             z, left_index=True, right_index=True, how="outer"
         )
-        dta = dta.merge(w, left_index=True, right_index=True)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            dta = dta.merge(w, left_index=True, right_index=True)
         expected = concat([x, y, z, w], axis=1)
         expected.columns = ["x_x", "y_x", "x_y", "y_y", "x_x", "y_x", "x_y", "y_y"]
         tm.assert_frame_equal(dta, expected)
@@ -693,8 +708,8 @@ class TestJoin:
         result = dfb.join(dfa.set_index(["x", "y"]), on=["x", "y"])
         expected = DataFrame(
             [
-                [pd.Timestamp("2012-08-02 00:00:00"), "J", 1, 15],
-                [pd.Timestamp("2013-04-06 00:00:00"), "L", 2, 20],
+                [Timestamp("2012-08-02 00:00:00"), "J", 1, 15],
+                [Timestamp("2013-04-06 00:00:00"), "L", 2, 20],
             ],
             index=[2, 4],
             columns=["x", "y", "z", "a"],
@@ -802,4 +817,71 @@ def test_join_inner_multiindex_deterministic_order():
         {"e": [5], "f": [6]},
         index=MultiIndex.from_tuples([(2, 1, 4, 3)], names=("b", "a", "d", "c")),
     )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    ("input_col", "output_cols"), [("b", ["a", "b"]), ("a", ["a_x", "a_y"])]
+)
+def test_join_cross(input_col, output_cols):
+    # GH#5401
+    left = DataFrame({"a": [1, 3]})
+    right = DataFrame({input_col: [3, 4]})
+    result = left.join(right, how="cross", lsuffix="_x", rsuffix="_y")
+    expected = DataFrame({output_cols[0]: [1, 1, 3, 3], output_cols[1]: [3, 4, 3, 4]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_join_multiindex_one_level(join_type):
+    # GH#36909
+    left = DataFrame(
+        data={"c": 3}, index=MultiIndex.from_tuples([(1, 2)], names=("a", "b"))
+    )
+    right = DataFrame(data={"d": 4}, index=MultiIndex.from_tuples([(2,)], names=("b",)))
+    result = left.join(right, how=join_type)
+    expected = DataFrame(
+        {"c": [3], "d": [4]},
+        index=MultiIndex.from_tuples([(2, 1)], names=["b", "a"]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "categories, values",
+    [
+        (["Y", "X"], ["Y", "X", "X"]),
+        ([2, 1], [2, 1, 1]),
+        ([2.5, 1.5], [2.5, 1.5, 1.5]),
+        (
+            [Timestamp("2020-12-31"), Timestamp("2019-12-31")],
+            [Timestamp("2020-12-31"), Timestamp("2019-12-31"), Timestamp("2019-12-31")],
+        ),
+    ],
+)
+def test_join_multiindex_not_alphabetical_categorical(categories, values):
+    # GH#38502
+    left = DataFrame(
+        {
+            "first": ["A", "A"],
+            "second": Categorical(categories, categories=categories),
+            "value": [1, 2],
+        }
+    ).set_index(["first", "second"])
+    right = DataFrame(
+        {
+            "first": ["A", "A", "B"],
+            "second": Categorical(values, categories=categories),
+            "value": [3, 4, 5],
+        }
+    ).set_index(["first", "second"])
+    result = left.join(right, lsuffix="_left", rsuffix="_right")
+
+    expected = DataFrame(
+        {
+            "first": ["A", "A"],
+            "second": Categorical(categories, categories=categories),
+            "value_left": [1, 2],
+            "value_right": [3, 4],
+        }
+    ).set_index(["first", "second"])
     tm.assert_frame_equal(result, expected)

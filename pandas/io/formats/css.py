@@ -1,9 +1,9 @@
 """
 Utilities for interpreting CSS from Stylers for formatting non-HTML outputs.
 """
+from __future__ import annotations
 
 import re
-from typing import Dict, Optional
 import warnings
 
 
@@ -88,8 +88,8 @@ class CSSResolver:
     def __call__(
         self,
         declarations_str: str,
-        inherited: Optional[Dict[str, str]] = None,
-    ) -> Dict[str, str]:
+        inherited: dict[str, str] | None = None,
+    ) -> dict[str, str]:
         """
         The given declarations to atomic properties.
 
@@ -137,9 +137,9 @@ class CSSResolver:
 
     def _update_initial(
         self,
-        props: Dict[str, str],
-        inherited: Dict[str, str],
-    ) -> Dict[str, str]:
+        props: dict[str, str],
+        inherited: dict[str, str],
+    ) -> dict[str, str]:
         # 1. resolve inherited, initial
         for prop, val in inherited.items():
             if prop not in props:
@@ -159,9 +159,9 @@ class CSSResolver:
 
     def _update_font_size(
         self,
-        props: Dict[str, str],
-        inherited: Dict[str, str],
-    ) -> Dict[str, str]:
+        props: dict[str, str],
+        inherited: dict[str, str],
+    ) -> dict[str, str]:
         # 2. resolve relative font size
         if props.get("font-size"):
             props["font-size"] = self.size_to_pt(
@@ -171,7 +171,7 @@ class CSSResolver:
             )
         return props
 
-    def _get_font_size(self, props: Dict[str, str]) -> Optional[float]:
+    def _get_font_size(self, props: dict[str, str]) -> float | None:
         if props.get("font-size"):
             font_size_string = props["font-size"]
             return self._get_float_font_size_from_pt(font_size_string)
@@ -181,7 +181,7 @@ class CSSResolver:
         assert font_size_string.endswith("pt")
         return float(font_size_string.rstrip("pt"))
 
-    def _update_other_units(self, props: Dict[str, str]) -> Dict[str, str]:
+    def _update_other_units(self, props: dict[str, str]) -> dict[str, str]:
         font_size = self._get_font_size(props)
         # 3. TODO: resolve other font-relative units
         for side in self.SIDES:

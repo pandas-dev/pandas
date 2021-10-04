@@ -2,7 +2,11 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Categorical, CategoricalIndex, Series
+from pandas import (
+    Categorical,
+    CategoricalIndex,
+    Series,
+)
 import pandas._testing as tm
 
 
@@ -185,7 +189,7 @@ class TestSeriesValueCounts:
             (
                 Series([False, True, True, pd.NA]),
                 False,
-                Series([2, 1, 1], index=[True, pd.NA, False]),
+                Series([2, 1, 1], index=[True, False, pd.NA]),
             ),
             (
                 Series([False, True, True, pd.NA]),
@@ -195,7 +199,7 @@ class TestSeriesValueCounts:
             (
                 Series(range(3), index=[True, False, np.nan]).index,
                 False,
-                Series([1, 1, 1], index=[pd.NA, False, True]),
+                Series([1, 1, 1], index=[True, False, np.nan]),
             ),
         ],
     )
@@ -203,3 +207,22 @@ class TestSeriesValueCounts:
         # GH32146
         out = ser.value_counts(dropna=dropna)
         tm.assert_series_equal(out, exp)
+
+    @pytest.mark.parametrize(
+        "input_array,expected",
+        [
+            (
+                [1 + 1j, 1 + 1j, 1, 3j, 3j, 3j],
+                Series([3, 2, 1], index=pd.Index([3j, 1 + 1j, 1], dtype=np.complex128)),
+            ),
+            (
+                [1 + 1j, 1 + 1j, 1, 3j, 3j, 3j],
+                Series([3, 2, 1], index=pd.Index([3j, 1 + 1j, 1], dtype=np.complex64)),
+            ),
+        ],
+    )
+    def test_value_counts_complex_numbers(self, input_array, expected):
+        # GH 17927
+        # Complex Index dtype is cast to object
+        result = Series(input_array).value_counts()
+        tm.assert_series_equal(result, expected)

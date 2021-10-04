@@ -2,7 +2,12 @@ import cython
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport int32_t, int64_t, intp_t, ndarray
+from numpy cimport (
+    int32_t,
+    int64_t,
+    intp_t,
+    ndarray,
+)
 
 cnp.import_array()
 
@@ -195,7 +200,7 @@ cdef inline int64_t get_datetime64_nanos(object val) except? -1:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def ensure_datetime64ns(arr: ndarray, copy: bool=True):
+def ensure_datetime64ns(arr: ndarray, copy: bool = True):
     """
     Ensure a np.datetime64 array has dtype specifically 'datetime64[ns]'
 
@@ -224,7 +229,7 @@ def ensure_datetime64ns(arr: ndarray, copy: bool=True):
 
     ivalues = arr.view(np.int64).ravel("K")
 
-    result = np.empty(shape, dtype=DT64NS_DTYPE)
+    result = np.empty_like(arr, dtype=DT64NS_DTYPE)
     iresult = result.ravel("K").view(np.int64)
 
     if len(iresult) == 0:
@@ -234,6 +239,11 @@ def ensure_datetime64ns(arr: ndarray, copy: bool=True):
         return result
 
     unit = get_datetime64_unit(arr.flat[0])
+    if unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
+        # without raising explicitly here, we end up with a SystemError
+        # built-in function ensure_datetime64ns returned a result with an error
+        raise ValueError("datetime64/timedelta64 must have a unit specified")
+
     if unit == NPY_FR_ns:
         if copy:
             arr = arr.copy()
@@ -250,14 +260,14 @@ def ensure_datetime64ns(arr: ndarray, copy: bool=True):
     return result
 
 
-def ensure_timedelta64ns(arr: ndarray, copy: bool=True):
+def ensure_timedelta64ns(arr: ndarray, copy: bool = True):
     """
     Ensure a np.timedelta64 array has dtype specifically 'timedelta64[ns]'
 
     Parameters
     ----------
     arr : ndarray
-    copy : boolean, default True
+    copy : bool, default True
 
     Returns
     -------
@@ -284,9 +294,8 @@ def ensure_timedelta64ns(arr: ndarray, copy: bool=True):
         else:
             bad_val = tdmax
 
-        raise OutOfBoundsTimedelta(
-            f"Out of bounds for nanosecond {arr.dtype.name} {bad_val}"
-        )
+        msg = f"Out of bounds for nanosecond {arr.dtype.name} {str(bad_val)}"
+        raise OutOfBoundsTimedelta(msg)
 
     return dt64_result.view(TD64NS_DTYPE)
 
@@ -307,7 +316,7 @@ def datetime_to_datetime64(ndarray[object] values):
 
     Returns
     -------
-    result : ndarray[int64_t]
+    result : ndarray[datetime64ns]
     inferred_tz : tzinfo or None
     """
     cdef:
@@ -497,7 +506,7 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, tzinfo tz,
         obj.value -= int(offset.total_seconds() * 1e9)
 
     if isinstance(ts, ABCTimestamp):
-        obj.value += ts.nanosecond
+        obj.value += <int64_t>ts.nanosecond
         obj.dts.ps = ts.nanosecond * 1000
 
     if nanos:
@@ -801,14 +810,14 @@ cdef inline datetime _localize_pydatetime(datetime dt, tzinfo tz):
         return dt.replace(tzinfo=tz)
 
 
-cpdef inline datetime localize_pydatetime(datetime dt, object tz):
+cpdef inline datetime localize_pydatetime(datetime dt, tzinfo tz):
     """
     Take a datetime/Timestamp in UTC and localizes to timezone tz.
 
     Parameters
     ----------
     dt : datetime or Timestamp
-    tz : tzinfo, "UTC", or None
+    tz : tzinfo or None
 
     Returns
     -------

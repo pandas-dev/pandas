@@ -5,7 +5,14 @@ from itertools import product
 import numpy as np
 import pytest
 
-from pandas import DataFrame, MultiIndex, Series, array, concat, merge
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    Series,
+    array,
+    concat,
+    merge,
+)
 import pandas._testing as tm
 from pandas.core.algorithms import safe_sort
 import pandas.core.common as com
@@ -60,7 +67,6 @@ class TestSorting:
             assert left[k] == v
         assert len(left) == len(right)
 
-    @pytest.mark.arm_slow
     def test_int64_overflow_moar(self):
 
         # GH9096
@@ -270,12 +276,24 @@ class TestMerge:
         for k, lval in ldict.items():
             rval = rdict.get(k, [np.nan])
             for lv, rv in product(lval, rval):
-                vals.append(k + tuple([lv, rv]))
+                vals.append(
+                    k
+                    + (
+                        lv,
+                        rv,
+                    )
+                )
 
         for k, rval in rdict.items():
             if k not in ldict:
                 for rv in rval:
-                    vals.append(k + tuple([np.nan, rv]))
+                    vals.append(
+                        k
+                        + (
+                            np.nan,
+                            rv,
+                        )
+                    )
 
         def align(df):
             df = df.sort_values(df.columns.tolist())

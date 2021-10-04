@@ -1,6 +1,8 @@
 """
 datetimelike delegation
 """
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 import warnings
 
@@ -17,9 +19,19 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import ABCSeries
 
-from pandas.core.accessor import PandasDelegate, delegate_names
-from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
-from pandas.core.base import NoNewAttributesMixin, PandasObject
+from pandas.core.accessor import (
+    PandasDelegate,
+    delegate_names,
+)
+from pandas.core.arrays import (
+    DatetimeArray,
+    PeriodArray,
+    TimedeltaArray,
+)
+from pandas.core.base import (
+    NoNewAttributesMixin,
+    PandasObject,
+)
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
@@ -33,7 +45,7 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         "name",
     }
 
-    def __init__(self, data: "Series", orig):
+    def __init__(self, data: Series, orig):
         if not isinstance(data, ABCSeries):
             raise TypeError(
                 f"cannot convert an object of type {type(data)} to a datetimelike index"
@@ -271,7 +283,7 @@ class DatetimeProperties(Properties):
         Please use Series.dt.isocalendar().week instead.
         """
         warnings.warn(
-            "Series.dt.weekofyear and Series.dt.week have been deprecated.  "
+            "Series.dt.weekofyear and Series.dt.week have been deprecated. "
             "Please use Series.dt.isocalendar().week instead.",
             FutureWarning,
             stacklevel=2,
@@ -462,7 +474,7 @@ class PeriodProperties(Properties):
 class CombinedDatetimelikeProperties(
     DatetimeProperties, TimedeltaProperties, PeriodProperties
 ):
-    def __new__(cls, data: "Series"):
+    def __new__(cls, data: Series):
         # CombinedDatetimelikeProperties isn't really instantiated. Instead
         # we need to choose which parent (datetime or timedelta) is
         # appropriate. Since we're checking the dtypes anyway, we'll just
@@ -480,6 +492,7 @@ class CombinedDatetimelikeProperties(
                 name=orig.name,
                 copy=False,
                 dtype=orig._values.categories.dtype,
+                index=orig.index,
             )
 
         if is_datetime64_dtype(data.dtype):

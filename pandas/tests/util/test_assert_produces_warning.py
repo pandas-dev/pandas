@@ -5,7 +5,10 @@ import warnings
 
 import pytest
 
-from pandas.errors import DtypeWarning, PerformanceWarning
+from pandas.errors import (
+    DtypeWarning,
+    PerformanceWarning,
+)
 
 import pandas._testing as tm
 
@@ -91,19 +94,49 @@ def test_catch_warning_category_and_match(category, message, match):
         warnings.warn(message, category)
 
 
-@pytest.mark.parametrize(
-    "message, match",
-    [
-        ("Warning message", "Not this message"),
-        ("Warning message", "warning"),
-        ("Warning message", r"\d+"),
-    ],
-)
-def test_fail_to_match(category, message, match):
-    msg = f"Did not see warning {repr(category.__name__)} matching"
-    with pytest.raises(AssertionError, match=msg):
+def test_fail_to_match_runtime_warning():
+    category = RuntimeWarning
+    match = "Did not see this warning"
+    unmatched = (
+        r"Did not see warning 'RuntimeWarning' matching 'Did not see this warning'. "
+        r"The emitted warning messages are "
+        r"\[RuntimeWarning\('This is not a match.'\), "
+        r"RuntimeWarning\('Another unmatched warning.'\)\]"
+    )
+    with pytest.raises(AssertionError, match=unmatched):
         with tm.assert_produces_warning(category, match=match):
-            warnings.warn(message, category)
+            warnings.warn("This is not a match.", category)
+            warnings.warn("Another unmatched warning.", category)
+
+
+def test_fail_to_match_future_warning():
+    category = FutureWarning
+    match = "Warning"
+    unmatched = (
+        r"Did not see warning 'FutureWarning' matching 'Warning'. "
+        r"The emitted warning messages are "
+        r"\[FutureWarning\('This is not a match.'\), "
+        r"FutureWarning\('Another unmatched warning.'\)\]"
+    )
+    with pytest.raises(AssertionError, match=unmatched):
+        with tm.assert_produces_warning(category, match=match):
+            warnings.warn("This is not a match.", category)
+            warnings.warn("Another unmatched warning.", category)
+
+
+def test_fail_to_match_resource_warning():
+    category = ResourceWarning
+    match = r"\d+"
+    unmatched = (
+        r"Did not see warning 'ResourceWarning' matching '\\d\+'. "
+        r"The emitted warning messages are "
+        r"\[ResourceWarning\('This is not a match.'\), "
+        r"ResourceWarning\('Another unmatched warning.'\)\]"
+    )
+    with pytest.raises(AssertionError, match=unmatched):
+        with tm.assert_produces_warning(category, match=match):
+            warnings.warn("This is not a match.", category)
+            warnings.warn("Another unmatched warning.", category)
 
 
 def test_fail_to_catch_actual_warning(pair_different_warnings):
@@ -152,3 +185,20 @@ def test_right_category_wrong_match_raises(pair_different_warnings):
         with tm.assert_produces_warning(target_category, match=r"^Match this"):
             warnings.warn("Do not match it", target_category)
             warnings.warn("Match this", other_category)
+
+
+@pytest.mark.parametrize("false_or_none", [False, None])
+class TestFalseOrNoneExpectedWarning:
+    def test_raise_on_warning(self, false_or_none):
+        msg = r"Caused unexpected warning\(s\)"
+        with pytest.raises(AssertionError, match=msg):
+            with tm.assert_produces_warning(false_or_none):
+                f()
+
+    def test_no_raise_without_warning(self, false_or_none):
+        with tm.assert_produces_warning(false_or_none):
+            pass
+
+    def test_no_raise_with_false_raise_on_extra(self, false_or_none):
+        with tm.assert_produces_warning(false_or_none, raise_on_extra_warnings=False):
+            f()

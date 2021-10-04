@@ -15,11 +15,8 @@ Simplified, condensed, new-user friendly, in-line examples have been inserted wh
 augment the Stack-Overflow and GitHub links.  Many of the links contain expanded information,
 above what the in-line examples offer.
 
-pandas (pd) and Numpy (np) are the only two abbreviated imported modules. The rest are kept
+pandas (pd) and NumPy (np) are the only two abbreviated imported modules. The rest are kept
 explicitly imported for newer users.
-
-These examples are written for Python 3.  Minor tweaks might be necessary for earlier python
-versions.
 
 Idioms
 ------
@@ -71,7 +68,7 @@ Or use pandas where after you've set up a mask
    )
    df.where(df_mask, -1000)
 
-`if-then-else using numpy's where()
+`if-then-else using NumPy's where()
 <https://stackoverflow.com/questions/19913659/pandas-conditional-creation-of-a-series-dataframe-column>`__
 
 .. ipython:: python
@@ -497,14 +494,11 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
 
    S = pd.Series([i / 100.0 for i in range(1, 11)])
 
-
    def cum_ret(x, y):
        return x * (1 + y)
 
-
    def red(x):
        return functools.reduce(cum_ret, x, 1.0)
-
 
    S.expanding().apply(red, raw=True)
 
@@ -517,11 +511,9 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
    df = pd.DataFrame({"A": [1, 1, 2, 2], "B": [1, -1, 1, 2]})
    gb = df.groupby("A")
 
-
    def replace(g):
        mask = g < 0
        return g.where(mask, g[~mask].mean())
-
 
    gb.transform(replace)
 
@@ -554,12 +546,10 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
    rng = pd.date_range(start="2014-10-07", periods=10, freq="2min")
    ts = pd.Series(data=list(range(10)), index=rng)
 
-
    def MyCust(x):
        if len(x) > 2:
            return x[1] * 1.234
        return pd.NaT
-
 
    mhc = {"Mean": np.mean, "Max": np.max, "Custom": MyCust}
    ts.resample("5min").apply(mhc)
@@ -806,10 +796,8 @@ Apply
        index=["I", "II", "III"],
    )
 
-
    def SeriesFromSubList(aList):
        return pd.Series(aList)
-
 
    df_orgz = pd.concat(
        {ind: row.apply(SeriesFromSubList) for ind, row in df.iterrows()}
@@ -830,11 +818,9 @@ Rolling Apply to multiple columns where function calculates a Series before a Sc
    )
    df
 
-
    def gm(df, const):
        v = ((((df["A"] + df["B"]) + 1).cumprod()) - 1) * const
        return v.iloc[-1]
-
 
    s = pd.Series(
        {
@@ -862,10 +848,8 @@ Rolling Apply to multiple columns where function returns a Scalar (Volume Weight
    )
    df
 
-
    def vwap(bars):
        return (bars.Close * bars.Volume).sum() / bars.Volume.sum()
-
 
    window = 5
    s = pd.concat(
@@ -1013,7 +997,7 @@ The :ref:`Plotting <visualization>` docs.
 `Setting x-axis major and minor labels
 <https://stackoverflow.com/questions/12945971/pandas-timeseries-plot-setting-x-axis-major-and-minor-ticks-and-labels>`__
 
-`Plotting multiple charts in an ipython notebook
+`Plotting multiple charts in an IPython Jupyter notebook
 <https://stackoverflow.com/questions/16392921/make-more-than-one-chart-in-same-ipython-notebook-cell>`__
 
 `Creating a multi-line plot
@@ -1227,6 +1211,9 @@ The :ref:`Excel <io.excel>` docs
 `Modifying formatting in XlsxWriter output
 <https://pbpython.com/improve-pandas-excel-output.html>`__
 
+`Loading only visible sheets
+<https://github.com/pandas-dev/pandas/issues/19842#issuecomment-892150745>`__
+
 .. _cookbook.html:
 
 HTML
@@ -1316,7 +1303,7 @@ is closed.
 
 .. ipython:: python
 
-   store = pd.HDFStore("test.h5", "w", diver="H5FD_CORE")
+   store = pd.HDFStore("test.h5", "w", driver="H5FD_CORE")
 
    df = pd.DataFrame(np.random.randn(8, 3))
    store["test"] = df
@@ -1409,11 +1396,11 @@ Often it's useful to obtain the lower (or upper) triangular form of a correlatio
     df = pd.DataFrame(np.random.random(size=(100, 5)))
 
     corr_mat = df.corr()
-    mask = np.tril(np.ones_like(corr_mat, dtype=np.bool), k=-1)
+    mask = np.tril(np.ones_like(corr_mat, dtype=np.bool_), k=-1)
 
     corr_mat.where(mask)
 
-The ``method`` argument within ``DataFrame.corr`` can accept a callable in addition to the named correlation types.  Here we compute the ``distance correlation <https://en.wikipedia.org/wiki/Distance_correlation>``__ matrix for a ``DataFrame`` object.
+The ``method`` argument within ``DataFrame.corr`` can accept a callable in addition to the named correlation types.  Here we compute the `distance correlation <https://en.wikipedia.org/wiki/Distance_correlation>`__ matrix for a ``DataFrame`` object.
 
 .. ipython:: python
 

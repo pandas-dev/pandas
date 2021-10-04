@@ -1,0 +1,20 @@
+name: pandas-dev
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.8
+
+  # tools
+  - cython>=0.29.21
+  - pytest>=6.0
+  - pytest-cov
+  - pytest-xdist>=1.31
+  - hypothesis>=5.5.3
+
+  # pandas dependencies
+  - numpy
+  - python-dateutil
+  - nomkl
+  - pytz
+  - tabulate==0.8.7

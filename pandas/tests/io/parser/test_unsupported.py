@@ -14,8 +14,8 @@ from pandas.errors import ParserError
 
 import pandas._testing as tm
 
-import pandas.io.parsers as parsers
 from pandas.io.parsers import read_csv
+import pandas.io.parsers.readers as parsers
 
 
 @pytest.fixture(params=["python", "python-fwf"], ids=lambda val: val)
@@ -86,7 +86,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
             read_csv(StringIO(data), lineterminator="~~")
 
     def test_python_engine(self, python_engine):
-        from pandas.io.parsers import _python_unsupported as py_unsupported
+        from pandas.io.parsers.readers import _python_unsupported as py_unsupported
 
         data = """1,2,3,,
 1,2,3,4,
@@ -121,3 +121,26 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
         with pytest.raises(ValueError, match=msg):
             read_csv(NoNextBuffer(data), engine=python_engine)
+
+    def test_pyarrow_engine(self):
+        from pandas.io.parsers.readers import _pyarrow_unsupported as pa_unsupported
+
+        data = """1,2,3,,
+        1,2,3,4,
+        1,2,3,4,5
+        1,2,,,
+        1,2,3,4,"""
+
+        for default in pa_unsupported:
+            msg = (
+                f"The {repr(default)} option is not "
+                f"supported with the 'pyarrow' engine"
+            )
+            kwargs = {default: object()}
+            default_needs_bool = {"on_bad_lines", "error_bad_lines"}
+            if default == "dialect":
+                kwargs[default] = "excel"  # test a random dialect
+            elif default in default_needs_bool:
+                kwargs[default] = True
+            with pytest.raises(ValueError, match=msg):
+                read_csv(StringIO(data), engine="pyarrow", **kwargs)

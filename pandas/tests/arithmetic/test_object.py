@@ -9,7 +9,10 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Series, Timestamp
+from pandas import (
+    Series,
+    Timestamp,
+)
 import pandas._testing as tm
 from pandas.core import ops
 
@@ -308,7 +311,7 @@ class TestArithmetic:
             index - "foo"
 
         with pytest.raises(TypeError, match=msg):
-            index - np.array([2, "foo"])
+            index - np.array([2, "foo"], dtype=object)
 
     def test_rsub_object(self):
         # GH#19369
@@ -338,7 +341,6 @@ class MyIndex(pd.Index):
     def _simple_new(cls, values, name=None, dtype=None):
         result = object.__new__(cls)
         result._data = values
-        result._index_data = values
         result._name = name
         result._calls = 0
         result._reset_identity()
@@ -347,7 +349,7 @@ class MyIndex(pd.Index):
 
     def __add__(self, other):
         self._calls += 1
-        return self._simple_new(self._index_data)
+        return self._simple_new(self._data)
 
     def __radd__(self, other):
         return self.__add__(other)

@@ -6,8 +6,11 @@ import pytest
 import pandas as pd
 import pandas._testing as tm
 from pandas.tests.extension import base
-
-from .array import JSONArray, JSONDtype, make_data
+from pandas.tests.extension.json.array import (
+    JSONArray,
+    JSONDtype,
+    make_data,
+)
 
 
 @pytest.fixture
@@ -143,6 +146,13 @@ class TestInterface(BaseJSON, base.BaseInterfaceTests):
         with pytest.raises(AssertionError, match=msg):
             self.assert_frame_equal(a.to_frame(), b.to_frame())
 
+    @pytest.mark.xfail(
+        reason="comparison method not implemented for JSONArray (GH-37867)"
+    )
+    def test_contains(self, data):
+        # GH-37867
+        super().test_contains(data)
+
 
 class TestConstructors(BaseJSON, base.BaseConstructorsTests):
     @pytest.mark.skip(reason="not implemented constructor from dtype")
@@ -216,12 +226,6 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
     def test_sort_values_frame(self):
         # TODO (EA.factorize): see if _values_for_factorize allows this.
         pass
-
-    def test_argsort(self, data_for_sorting):
-        super().test_argsort(data_for_sorting)
-
-    def test_argsort_missing(self, data_missing_for_sorting):
-        super().test_argsort_missing(data_missing_for_sorting)
 
     @pytest.mark.parametrize("ascending", [True, False])
     def test_sort_values(self, data_for_sorting, ascending, sort_by_key):
@@ -302,14 +306,17 @@ class TestGroupby(BaseJSON, base.BaseGroupbyTests):
         we'll be able to dispatch unique.
         """
 
-    @pytest.mark.parametrize("as_index", [True, False])
-    def test_groupby_extension_agg(self, as_index, data_for_grouping):
-        super().test_groupby_extension_agg(as_index, data_for_grouping)
+    @pytest.mark.xfail(reason="GH#39098: Converts agg result to object")
+    def test_groupby_agg_extension(self, data_for_grouping):
+        super().test_groupby_agg_extension(data_for_grouping)
 
 
 class TestArithmeticOps(BaseJSON, base.BaseArithmeticOpsTests):
-    def test_error(self, data, all_arithmetic_operators):
-        pass
+    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators, request):
+        if len(data[0]) != 1:
+            mark = pytest.mark.xfail(reason="raises in coercing to Series")
+            request.node.add_marker(mark)
+        super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
 
     def test_add_series_with_extension_array(self, data):
         ser = pd.Series(data)

@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from __future__ import annotations
 
 import numpy as np
 
@@ -21,24 +21,24 @@ class TablePlotter:
         self.cell_height = cell_height
         self.font_size = font_size
 
-    def _shape(self, df: pd.DataFrame) -> Tuple[int, int]:
+    def _shape(self, df: pd.DataFrame) -> tuple[int, int]:
         """
         Calculate table shape considering index levels.
         """
         row, col = df.shape
         return row + df.columns.nlevels, col + df.index.nlevels
 
-    def _get_cells(self, left, right, vertical) -> Tuple[int, int]:
+    def _get_cells(self, left, right, vertical) -> tuple[int, int]:
         """
         Calculate appropriate figure size based on left and right data.
         """
         if vertical:
             # calculate required number of cells
-            vcells = max(sum(self._shape(l)[0] for l in left), self._shape(right)[0])
-            hcells = max(self._shape(l)[1] for l in left) + self._shape(right)[1]
+            vcells = max(sum(self._shape(df)[0] for df in left), self._shape(right)[0])
+            hcells = max(self._shape(df)[1] for df in left) + self._shape(right)[1]
         else:
-            vcells = max([self._shape(l)[0] for l in left] + [self._shape(right)[0]])
-            hcells = sum([self._shape(l)[1] for l in left] + [self._shape(right)[1]])
+            vcells = max([self._shape(df)[0] for df in left] + [self._shape(right)[0]])
+            hcells = sum([self._shape(df)[1] for df in left] + [self._shape(right)[1]])
         return hcells, vcells
 
     def plot(self, left, right, labels=None, vertical: bool = True):
@@ -58,7 +58,7 @@ class TablePlotter:
 
         if not isinstance(left, list):
             left = [left]
-        left = [self._conv(l) for l in left]
+        left = [self._conv(df) for df in left]
         right = self._conv(right)
 
         hcells, vcells = self._get_cells(left, right, vertical)
@@ -73,8 +73,8 @@ class TablePlotter:
         if vertical:
             gs = gridspec.GridSpec(len(left), hcells)
             # left
-            max_left_cols = max(self._shape(l)[1] for l in left)
-            max_left_rows = max(self._shape(l)[0] for l in left)
+            max_left_cols = max(self._shape(df)[1] for df in left)
+            max_left_rows = max(self._shape(df)[0] for df in left)
             for i, (l, label) in enumerate(zip(left, labels)):
                 ax = fig.add_subplot(gs[i, 0:max_left_cols])
                 self._make_table(ax, l, title=label, height=1.0 / max_left_rows)
@@ -88,10 +88,10 @@ class TablePlotter:
             gs = gridspec.GridSpec(1, hcells)
             # left
             i = 0
-            for l, label in zip(left, labels):
-                sp = self._shape(l)
+            for df, label in zip(left, labels):
+                sp = self._shape(df)
                 ax = fig.add_subplot(gs[0, i : i + sp[1]])
-                self._make_table(ax, l, title=label, height=height)
+                self._make_table(ax, df, title=label, height=height)
                 i += sp[1]
             # right
             ax = plt.subplot(gs[0, i:])
@@ -134,7 +134,7 @@ class TablePlotter:
             data.columns = col
         return data
 
-    def _make_table(self, ax, df, title: str, height: Optional[float] = None):
+    def _make_table(self, ax, df, title: str, height: float | None = None):
         if df is None:
             ax.set_visible(False)
             return

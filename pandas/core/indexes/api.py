@@ -1,7 +1,11 @@
-import textwrap
-from typing import List, Set
+from __future__ import annotations
 
-from pandas._libs import NaT, lib
+import textwrap
+
+from pandas._libs import (
+    NaT,
+    lib,
+)
 from pandas.errors import InvalidIndexError
 
 from pandas.core.indexes.base import (
@@ -59,6 +63,7 @@ __all__ = [
     "union_indexes",
     "get_unanimous_names",
     "all_indexes_same",
+    "default_index",
 ]
 
 
@@ -92,12 +97,12 @@ def get_objs_combined_axis(
     return _get_combined_index(obs_idxes, intersect=intersect, sort=sort, copy=copy)
 
 
-def _get_distinct_objs(objs: List[Index]) -> List[Index]:
+def _get_distinct_objs(objs: list[Index]) -> list[Index]:
     """
     Return a list with distinct elements of "objs" (different ids).
     Preserves order.
     """
-    ids: Set[int] = set()
+    ids: set[int] = set()
     res = []
     for obj in objs:
         if id(obj) not in ids:
@@ -107,7 +112,7 @@ def _get_distinct_objs(objs: List[Index]) -> List[Index]:
 
 
 def _get_combined_index(
-    indexes: List[Index],
+    indexes: list[Index],
     intersect: bool = False,
     sort: bool = False,
     copy: bool = False,
@@ -158,7 +163,7 @@ def _get_combined_index(
     return index
 
 
-def union_indexes(indexes, sort=True) -> Index:
+def union_indexes(indexes, sort: bool = True) -> Index:
     """
     Return the union of indexes.
 
@@ -267,7 +272,7 @@ def _sanitize_and_check(indexes):
         return indexes, "array"
 
 
-def all_indexes_same(indexes):
+def all_indexes_same(indexes) -> bool:
     """
     Determine if all indexes contain the same elements.
 
@@ -282,7 +287,9 @@ def all_indexes_same(indexes):
     """
     itr = iter(indexes)
     first = next(itr)
-    for index in itr:
-        if not first.equals(index):
-            return False
-    return True
+    return all(first.equals(index) for index in itr)
+
+
+def default_index(n: int) -> RangeIndex:
+    rng = range(0, n)
+    return RangeIndex._simple_new(rng, name=None)

@@ -1,10 +1,19 @@
+import re
+
 import numpy as np
 import pytest
 
-from pandas import DataFrame, MultiIndex
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    options,
+)
 import pandas._testing as tm
 
-from pandas.io.excel import ExcelWriter, _XlwtWriter
+from pandas.io.excel import (
+    ExcelWriter,
+    _XlwtWriter,
+)
 
 xlwt = pytest.importorskip("xlwt")
 
@@ -69,3 +78,48 @@ def test_write_append_mode_raises(ext):
     with tm.ensure_clean(ext) as f:
         with pytest.raises(ValueError, match=msg):
             ExcelWriter(f, engine="xlwt", mode="a")
+
+
+def test_to_excel_xlwt_warning(ext):
+    # GH 26552
+    df = DataFrame(np.random.randn(3, 10))
+    with tm.ensure_clean(ext) as path:
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="As the xlwt package is no longer maintained",
+        ):
+            df.to_excel(path)
+
+
+def test_option_xls_writer_deprecated(ext):
+    # GH 26552
+    with tm.assert_produces_warning(
+        FutureWarning,
+        match="As the xlwt package is no longer maintained",
+        check_stacklevel=False,
+    ):
+        options.io.excel.xls.writer = "xlwt"
+
+
+@pytest.mark.parametrize("write_only", [True, False])
+def test_kwargs(ext, write_only):
+    # GH 42286
+    # xlwt doesn't utilize kwargs, only test that supplying a kwarg works
+    kwargs = {"write_only": write_only}
+    with tm.ensure_clean(ext) as f:
+        msg = re.escape("Use of **kwargs is deprecated")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            with ExcelWriter(f, engine="openpyxl", **kwargs) as writer:
+                # xlwt won't allow us to close without writing something
+                DataFrame().to_excel(writer)
+
+
+@pytest.mark.parametrize("write_only", [True, False])
+def test_engine_kwargs(ext, write_only):
+    # GH 42286
+    # xlwt doesn't utilize kwargs, only test that supplying a engine_kwarg works
+    engine_kwargs = {"write_only": write_only}
+    with tm.ensure_clean(ext) as f:
+        with ExcelWriter(f, engine="openpyxl", engine_kwargs=engine_kwargs) as writer:
+            # xlwt won't allow us to close without writing something
+            DataFrame().to_excel(writer)

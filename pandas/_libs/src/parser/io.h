@@ -14,36 +14,7 @@ The full license is in the LICENSE file, distributed with this software.
 #include <Python.h>
 #include "tokenizer.h"
 
-typedef struct _file_source {
-    /* The file being read. */
-    int fd;
-
-    char *buffer;
-    size_t size;
-} file_source;
-
 #define FS(source) ((file_source *)source)
-
-#if !defined(_WIN32) && !defined(HAVE_MMAP)
-#define HAVE_MMAP
-#endif  // HAVE_MMAP
-
-typedef struct _memory_map {
-    int fd;
-
-    /* Size of the file, in bytes. */
-    char *memmap;
-    size_t size;
-
-    size_t position;
-} memory_map;
-
-void *new_mmap(char *fname);
-
-int del_mmap(void *src);
-
-void *buffer_mmap_bytes(void *source, size_t nbytes, size_t *bytes_read,
-                        int *status);
 
 typedef struct _rd_source {
     PyObject *obj;
@@ -53,17 +24,11 @@ typedef struct _rd_source {
 
 #define RDS(source) ((rd_source *)source)
 
-void *new_file_source(char *fname, size_t buffer_size);
-
 void *new_rd_source(PyObject *obj);
 
-int del_file_source(void *src);
 int del_rd_source(void *src);
 
-void *buffer_file_bytes(void *source, size_t nbytes, size_t *bytes_read,
-                        int *status);
-
 void *buffer_rd_bytes(void *source, size_t nbytes, size_t *bytes_read,
-                      int *status);
+                      int *status, const char *encoding_errors);
 
 #endif  // PANDAS__LIBS_SRC_PARSER_IO_H_

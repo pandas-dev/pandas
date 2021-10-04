@@ -50,7 +50,7 @@ decorate a class, providing the name of attribute to add. The class's
 
 Now users can access your methods using the ``geo`` namespace:
 
-      >>> ds = pd.Dataframe(
+      >>> ds = pd.DataFrame(
       ...     {"longitude": np.linspace(0, 10), "latitude": np.linspace(0, 20)}
       ... )
       >>> ds.geo.center
@@ -106,9 +106,7 @@ extension array for IP Address data, this might be ``ipaddress.IPv4Address``.
 
 See the `extension dtype source`_ for interface definition.
 
-.. versionadded:: 0.24.0
-
-:class:`pandas.api.extension.ExtensionDtype` can be registered to pandas to allow creation via a string dtype name.
+:class:`pandas.api.extensions.ExtensionDtype` can be registered to pandas to allow creation via a string dtype name.
 This allows one to instantiate ``Series`` and ``.astype()`` with a registered string name, for
 example ``'category'`` is a registered string accessor for the ``CategoricalDtype``.
 
@@ -127,7 +125,7 @@ data. We do require that your array be convertible to a NumPy array, even if
 this is relatively expensive (as it is for ``Categorical``).
 
 They may be backed by none, one, or many NumPy arrays. For example,
-``pandas.Categorical`` is an extension array backed by two arrays,
+:class:`pandas.Categorical` is an extension array backed by two arrays,
 one for codes and one for categories. An array of IPv6 addresses may
 be backed by a NumPy structured array with two fields, one for the
 lower 64 bits and one for the upper 64 bits. Or they may be backed
@@ -140,8 +138,6 @@ and comments contain guidance for properly implementing the interface.
 
 :class:`~pandas.api.extensions.ExtensionArray` operator support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. versionadded:: 0.24.0
 
 By default, there are no operators defined for the class :class:`~pandas.api.extensions.ExtensionArray`.
 There are two approaches for providing operator support for your ExtensionArray:
@@ -219,7 +215,7 @@ and re-boxes it if necessary.
 
 If applicable, we highly recommend that you implement ``__array_ufunc__`` in your
 extension array to avoid coercion to an ndarray. See
-`the numpy documentation <https://numpy.org/doc/stable/reference/generated/numpy.lib.mixins.NDArrayOperatorsMixin.html>`__
+`the NumPy documentation <https://numpy.org/doc/stable/reference/generated/numpy.lib.mixins.NDArrayOperatorsMixin.html>`__
 for an example.
 
 As part of your implementation, we require that you defer to pandas when a pandas
@@ -329,21 +325,11 @@ Each data structure has several *constructor properties* for returning a new
 data structure as the result of an operation. By overriding these properties,
 you can retain subclasses through ``pandas`` data manipulations.
 
-There are 3 constructor properties to be defined:
+There are 3 possible constructor properties to be defined on a subclass:
 
-* ``_constructor``: Used when a manipulation result has the same dimensions as the original.
-* ``_constructor_sliced``: Used when a manipulation result has one lower dimension(s) as the original, such as ``DataFrame`` single columns slicing.
-* ``_constructor_expanddim``: Used when a manipulation result has one higher dimension as the original, such as ``Series.to_frame()``.
-
-Following table shows how ``pandas`` data structures define constructor properties by default.
-
-===========================  ======================= =============
-Property Attributes          ``Series``              ``DataFrame``
-===========================  ======================= =============
-``_constructor``             ``Series``              ``DataFrame``
-``_constructor_sliced``      ``NotImplementedError`` ``Series``
-``_constructor_expanddim``   ``DataFrame``           ``NotImplementedError``
-===========================  ======================= =============
+* ``DataFrame/Series._constructor``: Used when a manipulation result has the same dimension as the original.
+* ``DataFrame._constructor_sliced``: Used when a ``DataFrame`` (sub-)class manipulation result should be a ``Series`` (sub-)class.
+* ``Series._constructor_expanddim``: Used when a ``Series`` (sub-)class manipulation result should be a ``DataFrame`` (sub-)class, e.g. ``Series.to_frame()``.
 
 Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame`` overriding constructor properties.
 

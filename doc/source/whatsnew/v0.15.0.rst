@@ -405,7 +405,7 @@ Rolling/expanding moments improvements
 
 - :func:`rolling_window` now normalizes the weights properly in rolling mean mode (`mean=True`) so that
   the calculated weighted means (e.g. 'triang', 'gaussian') are distributed about the same means as those
-  calculated without weighting (i.e. 'boxcar'). See :ref:`the note on normalization <stats.moments.normalization>` for further details. (:issue:`7618`)
+  calculated without weighting (i.e. 'boxcar'). See :ref:`the note on normalization <window.weighted>` for further details. (:issue:`7618`)
 
   .. ipython:: python
 
@@ -490,7 +490,7 @@ Rolling/expanding moments improvements
   now have an optional ``adjust`` argument, just like :func:`ewma` does,
   affecting how the weights are calculated.
   The default value of ``adjust`` is ``True``, which is backwards-compatible.
-  See :ref:`Exponentially weighted moment functions <stats.moments.exponentially_weighted>` for details. (:issue:`7911`)
+  See :ref:`Exponentially weighted moment functions <window.exponentially_weighted>` for details. (:issue:`7911`)
 
 - :func:`ewma`, :func:`ewmstd`, :func:`ewmvol`, :func:`ewmvar`, :func:`ewmcov`, and :func:`ewmcorr`
   now have an optional ``ignore_na`` argument.
@@ -595,7 +595,7 @@ Rolling/expanding moments improvements
      3    1.425439
      dtype: float64
 
-  See :ref:`Exponentially weighted moment functions <stats.moments.exponentially_weighted>` for details. (:issue:`7912`)
+  See :ref:`Exponentially weighted moment functions <window.exponentially_weighted>` for details. (:issue:`7912`)
 
 
 .. _whatsnew_0150.sql:

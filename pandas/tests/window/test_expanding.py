@@ -3,8 +3,11 @@ import pytest
 
 from pandas.errors import UnsupportedFunctionCall
 
-import pandas as pd
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+    Series,
+)
 import pandas._testing as tm
 from pandas.core.window import Expanding
 
@@ -19,10 +22,10 @@ def test_doc_string():
 @pytest.mark.filterwarnings(
     "ignore:The `center` argument on `expanding` will be removed in the future"
 )
-def test_constructor(which):
+def test_constructor(frame_or_series):
     # GH 12669
 
-    c = which.expanding
+    c = frame_or_series(range(5)).expanding
 
     # valid
     c(min_periods=1)
@@ -34,10 +37,10 @@ def test_constructor(which):
 @pytest.mark.filterwarnings(
     "ignore:The `center` argument on `expanding` will be removed in the future"
 )
-def test_constructor_invalid(which, w):
+def test_constructor_invalid(frame_or_series, w):
     # not valid
 
-    c = which.expanding
+    c = frame_or_series(range(5)).expanding
     msg = "min_periods must be an integer"
     with pytest.raises(ValueError, match=msg):
         c(min_periods=w)
@@ -50,7 +53,7 @@ def test_constructor_invalid(which, w):
 @pytest.mark.parametrize("method", ["std", "mean", "sum", "max", "min", "var"])
 def test_numpy_compat(method):
     # see gh-12811
-    e = Expanding(Series([2, 4, 6]), window=2)
+    e = Expanding(Series([2, 4, 6]))
 
     msg = "numpy operations are not valid with window objects"
 
@@ -82,8 +85,8 @@ def test_empty_df_expanding(expander):
 
     # Verifies that datetime and integer expanding windows can be applied
     # to empty DataFrames with datetime index
-    expected = DataFrame(index=pd.DatetimeIndex([]))
-    result = DataFrame(index=pd.DatetimeIndex([])).expanding(expander).sum()
+    expected = DataFrame(index=DatetimeIndex([]))
+    result = DataFrame(index=DatetimeIndex([])).expanding(expander).sum()
     tm.assert_frame_equal(result, expected)
 
 
@@ -118,30 +121,27 @@ def test_expanding_axis(axis_frame):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("constructor", [Series, DataFrame])
-def test_expanding_count_with_min_periods(constructor):
+def test_expanding_count_with_min_periods(frame_or_series):
     # GH 26996
-    result = constructor(range(5)).expanding(min_periods=3).count()
-    expected = constructor([np.nan, np.nan, 3.0, 4.0, 5.0])
+    result = frame_or_series(range(5)).expanding(min_periods=3).count()
+    expected = frame_or_series([np.nan, np.nan, 3.0, 4.0, 5.0])
     tm.assert_equal(result, expected)
 
 
-@pytest.mark.parametrize("constructor", [Series, DataFrame])
-def test_expanding_count_default_min_periods_with_null_values(constructor):
+def test_expanding_count_default_min_periods_with_null_values(frame_or_series):
     # GH 26996
     values = [1, 2, 3, np.nan, 4, 5, 6]
     expected_counts = [1.0, 2.0, 3.0, 3.0, 4.0, 5.0, 6.0]
 
-    result = constructor(values).expanding().count()
-    expected = constructor(expected_counts)
+    result = frame_or_series(values).expanding().count()
+    expected = frame_or_series(expected_counts)
     tm.assert_equal(result, expected)
 
 
-@pytest.mark.parametrize("constructor", [Series, DataFrame])
-def test_expanding_count_with_min_periods_exceeding_series_length(constructor):
+def test_expanding_count_with_min_periods_exceeding_series_length(frame_or_series):
     # GH 25857
-    result = constructor(range(5)).expanding(min_periods=6).count()
-    expected = constructor([np.nan, np.nan, np.nan, np.nan, np.nan])
+    result = frame_or_series(range(5)).expanding(min_periods=6).count()
+    expected = frame_or_series([np.nan, np.nan, np.nan, np.nan, np.nan])
     tm.assert_equal(result, expected)
 
 
@@ -246,10 +246,9 @@ def test_center_deprecate_warning():
         df.expanding()
 
 
-@pytest.mark.parametrize("constructor", ["DataFrame", "Series"])
-def test_expanding_sem(constructor):
+def test_expanding_sem(frame_or_series):
     # GH: 26476
-    obj = getattr(pd, constructor)([0, 1, 2])
+    obj = frame_or_series([0, 1, 2])
     result = obj.expanding().sem()
     if isinstance(result, DataFrame):
         result = Series(result[0].values)
@@ -264,4 +263,28 @@ def test_expanding_skew_kurt_numerical_stability(method):
     expected = getattr(s.expanding(3), method)()
     s = s + 5000
     result = getattr(s.expanding(3), method)()
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("window", [1, 3, 10, 20])
+@pytest.mark.parametrize("method", ["min", "max", "average"])
+@pytest.mark.parametrize("pct", [True, False])
+@pytest.mark.parametrize("ascending", [True, False])
+@pytest.mark.parametrize("test_data", ["default", "duplicates", "nans"])
+def test_rank(window, method, pct, ascending, test_data):
+    length = 20
+    if test_data == "default":
+        ser = Series(data=np.random.rand(length))
+    elif test_data == "duplicates":
+        ser = Series(data=np.random.choice(3, length))
+    elif test_data == "nans":
+        ser = Series(
+            data=np.random.choice([1.0, 0.25, 0.75, np.nan, np.inf, -np.inf], length)
+        )
+
+    expected = ser.expanding(window).apply(
+        lambda x: x.rank(method=method, pct=pct, ascending=ascending).iloc[-1]
+    )
+    result = ser.expanding(window).rank(method=method, pct=pct, ascending=ascending)
+
     tm.assert_series_equal(result, expected)

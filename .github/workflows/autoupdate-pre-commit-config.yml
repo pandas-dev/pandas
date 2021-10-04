@@ -2,7 +2,7 @@ name: "Update pre-commit config"
 
 on:
   schedule:
-    - cron: "0 7 * * 1" # At 07:00 on each Monday.
+    - cron: "0 7 1 * *" # At 07:00 on 1st of every month.
   workflow_dispatch:
 
 jobs:
@@ -23,7 +23,7 @@ jobs:
       - name: Update pre-commit config packages
         uses: technote-space/create-pr-action@v2
         with:
-          GITHUB_TOKEN: ${{ secrets.ACTION_TRIGGER_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           EXECUTE_COMMANDS: |
             pip install pre-commit
             pre-commit autoupdate || (exit 0);

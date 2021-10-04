@@ -55,7 +55,7 @@ of multi-axis indexing.
       *label* of the index. This use is **not** an integer position along the
       index.).
     * A list or array of labels ``['a', 'b', 'c']``.
-    * A slice object with labels ``'a':'f'`` (Note that contrary to usual python
+    * A slice object with labels ``'a':'f'`` (Note that contrary to usual Python
       slices, **both** the start and the stop are included, when present in the
       index! See :ref:`Slicing with labels <indexing.slicing_with_labels>`
       and :ref:`Endpoints are inclusive <advanced.endpoints_are_inclusive>`.)
@@ -327,7 +327,7 @@ The ``.loc`` attribute is the primary access method. The following are valid inp
 
 * A single label, e.g. ``5`` or ``'a'`` (Note that ``5`` is interpreted as a *label* of the index. This use is **not** an integer position along the index.).
 * A list or array of labels ``['a', 'b', 'c']``.
-* A slice object with labels ``'a':'f'`` (Note that contrary to usual python
+* A slice object with labels ``'a':'f'`` (Note that contrary to usual Python
   slices, **both** the start and the stop are included, when present in the
   index! See :ref:`Slicing with labels <indexing.slicing_with_labels>`.
 * A boolean array.
@@ -380,6 +380,8 @@ NA values in a boolean array propagate as ``False``:
 
 .. versionchanged:: 1.0.2
 
+.. ipython:: python
+
    mask = pd.array([True, False, True, False, pd.NA, False], dtype="boolean")
    mask
    df1[mask]
@@ -427,7 +429,7 @@ For the rationale behind this behavior, see
    s = pd.Series(list('abcdef'), index=[0, 3, 2, 5, 4, 2])
    s.loc[3:5]
 
-Also, if the index has duplicate labels *and* either the start or the stop label is dupulicated,
+Also, if the index has duplicate labels *and* either the start or the stop label is duplicated,
 an error will be raised. For instance, in the above example, ``s.loc[2:5]`` would raise a ``KeyError``.
 
 For more information about duplicate labels, see
@@ -509,11 +511,11 @@ For getting a cross section using an integer position (equiv to ``df.xs(1)``):
 
    df1.iloc[1]
 
-Out of range slice indexes are handled gracefully just as in Python/Numpy.
+Out of range slice indexes are handled gracefully just as in Python/NumPy.
 
 .. ipython:: python
 
-    # these are allowed in python/numpy.
+    # these are allowed in Python/NumPy.
     x = list('abcdef')
     x
     x[4:10]
@@ -584,48 +586,20 @@ without using a temporary variable.
    (bb.groupby(['year', 'team']).sum()
       .loc[lambda df: df['r'] > 100])
 
-.. _indexing.deprecate_ix:
 
-IX indexer is deprecated
-------------------------
+.. _combining_positional_and_label_based_indexing:
 
-.. warning::
+Combining positional and label-based indexing
+---------------------------------------------
 
-   .. versionchanged:: 1.0.0
-
-   The ``.ix`` indexer was removed, in favor of the more strict ``.iloc`` and ``.loc`` indexers.
-
-``.ix`` offers a lot of magic on the inference of what the user wants to do. To wit, ``.ix`` can decide
-to index *positionally* OR via *labels* depending on the data type of the index. This has caused quite a
-bit of user confusion over the years.
-
-The recommended methods of indexing are:
-
-* ``.loc`` if you want to *label* index.
-* ``.iloc`` if you want to *positionally* index.
+If you wish to get the 0th and the 2nd elements from the index in the 'A' column, you can do:
 
 .. ipython:: python
 
   dfd = pd.DataFrame({'A': [1, 2, 3],
                       'B': [4, 5, 6]},
                      index=list('abc'))
-
   dfd
-
-Previous behavior, where you wish to get the 0th and the 2nd elements from the index in the 'A' column.
-
-.. code-block:: ipython
-
-  In [3]: dfd.ix[[0, 2], 'A']
-  Out[3]:
-  a    1
-  c    3
-  Name: A, dtype: int64
-
-Using ``.loc``. Here we will select the appropriate indexes from the index, then use *label* indexing.
-
-.. ipython:: python
-
   dfd.loc[dfd.index[[0, 2]], 'A']
 
 This can also be expressed using ``.iloc``, by explicitly getting locations on the indexers, and using
@@ -727,7 +701,7 @@ Having a duplicated index will raise for a ``.reindex()``:
 .. code-block:: ipython
 
    In [17]: s.reindex(labels)
-   ValueError: cannot reindex from a duplicate axis
+   ValueError: cannot reindex on an axis with duplicate labels
 
 Generally, you can intersect the desired labels with the current
 axis, and then reindex.
@@ -743,7 +717,7 @@ However, this would *still* raise if your resulting index is duplicated.
    In [41]: labels = ['a', 'd']
 
    In [42]: s.loc[s.index.intersection(labels)].reindex(labels)
-   ValueError: cannot reindex from a duplicate axis
+   ValueError: cannot reindex on an axis with duplicate labels
 
 
 .. _indexing.basics.partial_setting:
@@ -1158,6 +1132,40 @@ Mask
    s.mask(s >= 0)
    df.mask(df >= 0)
 
+.. _indexing.np_where:
+
+Setting with enlargement conditionally using :func:`numpy`
+----------------------------------------------------------
+
+An alternative to :meth:`~pandas.DataFrame.where` is to use :func:`numpy.where`.
+Combined with setting a new column, you can use it to enlarge a DataFrame where the
+values are determined conditionally.
+
+Consider you have two choices to choose from in the following DataFrame. And you want to
+set a new column color to 'green' when the second column has 'Z'.  You can do the
+following:
+
+.. ipython:: python
+
+   df = pd.DataFrame({'col1': list('ABBC'), 'col2': list('ZZXY')})
+   df['color'] = np.where(df['col2'] == 'Z', 'green', 'red')
+   df
+
+If you have multiple conditions, you can use :func:`numpy.select` to achieve that.  Say
+corresponding to three conditions there are three choice of colors, with a fourth color
+as a fallback, you can do the following.
+
+.. ipython:: python
+
+   conditions = [
+       (df['col2'] == 'Z') & (df['col1'] == 'A'),
+       (df['col2'] == 'Z') & (df['col1'] == 'B'),
+       (df['col1'] == 'B')
+   ]
+   choices = ['yellow', 'blue', 'purple']
+   df['color'] = np.select(conditions, choices, default='black')
+   df
+
 .. _indexing.query:
 
 The :meth:`~pandas.DataFrame.query` Method
@@ -1285,8 +1293,8 @@ Full numpy-like syntax:
    df.query('(a < b) & (b < c)')
    df[(df['a'] < df['b']) & (df['b'] < df['c'])]
 
-Slightly nicer by removing the parentheses (by binding making comparison
-operators bind tighter than ``&`` and ``|``).
+Slightly nicer by removing the parentheses (comparison operators bind tighter
+than ``&`` and ``|``):
 
 .. ipython:: python
 
@@ -1515,8 +1523,8 @@ Looking up values by index/column labels
 ----------------------------------------
 
 Sometimes you want to extract a set of values given a sequence of row labels
-and column labels, this can be achieved by ``DataFrame.melt`` combined by filtering the corresponding
-rows with ``DataFrame.loc``.  For instance:
+and column labels, this can be achieved by ``pandas.factorize``  and NumPy indexing.
+For instance:
 
 .. ipython:: python
 
@@ -1524,9 +1532,8 @@ rows with ``DataFrame.loc``.  For instance:
                        'A': [80, 23, np.nan, 22],
                        'B': [80, 55, 76, 67]})
     df
-    melt = df.melt('col')
-    melt = melt.loc[melt['col'] == melt['variable'], 'value']
-    melt.reset_index(drop=True)
+    idx, cols = pd.factorize(df['col'])
+    df.reindex(cols, axis=1).to_numpy()[np.arange(len(df)), idx]
 
 Formerly this could be achieved with the dedicated ``DataFrame.lookup`` method
 which was deprecated in version 1.2.0.

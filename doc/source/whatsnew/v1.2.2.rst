@@ -1,0 +1,49 @@
+.. _whatsnew_122:
+
+What's new in 1.2.2 (February 09, 2021)
+---------------------------------------
+
+These are the changes in pandas 1.2.2. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_122.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+
+- Fixed regression in :func:`read_excel` that caused it to raise ``AttributeError`` when checking version of older xlrd versions (:issue:`38955`)
+- Fixed regression in :class:`DataFrame` constructor reordering element when construction from datetime ndarray with dtype not ``"datetime64[ns]"`` (:issue:`39422`)
+- Fixed regression in :meth:`DataFrame.astype` and :meth:`Series.astype` not casting to bytes dtype (:issue:`39474`)
+- Fixed regression in :meth:`~DataFrame.to_pickle` failing to create bz2/xz compressed pickle files with ``protocol=5`` (:issue:`39002`)
+- Fixed regression in :func:`pandas.testing.assert_series_equal` and :func:`pandas.testing.assert_frame_equal` always raising ``AssertionError`` when comparing extension dtypes (:issue:`39410`)
+- Fixed regression in :meth:`~DataFrame.to_csv` opening ``codecs.StreamWriter`` in binary mode instead of in text mode and ignoring user-provided ``mode`` (:issue:`39247`)
+- Fixed regression in :meth:`Categorical.astype` casting to incorrect dtype when ``np.int32`` is passed to dtype argument (:issue:`39402`)
+- Fixed regression in :meth:`~DataFrame.to_excel` creating corrupt files when appending (``mode="a"``) to an existing file (:issue:`39576`)
+- Fixed regression in :meth:`DataFrame.transform` failing in case of an empty DataFrame or Series (:issue:`39636`)
+- Fixed regression in :meth:`~DataFrame.groupby` or :meth:`~DataFrame.resample` when aggregating an all-NaN or numeric object dtype column (:issue:`39329`)
+- Fixed regression in :meth:`.Rolling.count` where the ``min_periods`` argument would be set to ``0`` after the operation (:issue:`39554`)
+- Fixed regression in :func:`read_excel` that incorrectly raised when the argument ``io`` was a non-path and non-buffer and the ``engine`` argument was specified (:issue:`39528`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_122.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+- :func:`pandas.read_excel` error message when a specified ``sheetname`` does not exist is now uniform across engines (:issue:`39250`)
+- Fixed bug in :func:`pandas.read_excel` producing incorrect results when the engine ``openpyxl`` is used and the excel file is missing or has incorrect dimension information; the fix requires ``openpyxl`` >= 3.0.0, prior versions may still fail (:issue:`38956`, :issue:`39001`)
+- Fixed bug in :func:`pandas.read_excel` sometimes producing a ``DataFrame`` with trailing rows of ``np.nan`` when the engine ``openpyxl`` is used (:issue:`39181`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_122.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.2.1..v1.2.2

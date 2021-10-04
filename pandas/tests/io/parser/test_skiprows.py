@@ -11,8 +11,14 @@ import pytest
 
 from pandas.errors import EmptyDataError
 
-from pandas import DataFrame, Index
+from pandas import (
+    DataFrame,
+    Index,
+)
 import pandas._testing as tm
+
+# XFAIL ME PLS once hanging tests issues identified
+pytestmark = pytest.mark.usefixtures("pyarrow_skip")
 
 
 @pytest.mark.parametrize("skiprows", [list(range(6)), 6])
@@ -93,7 +99,7 @@ line 12",2
 2,"line 21
 line 22",2
 3,"line 31",1""",
-            dict(skiprows=[1]),
+            {"skiprows": [1]},
             DataFrame(
                 [[2, "line 21\nline 22", 2], [3, "line 31", 1]],
                 columns=["id", "text", "num_lines"],
@@ -101,7 +107,7 @@ line 22",2
         ),
         (
             "a,b,c\n~a\n b~,~e\n d~,~f\n f~\n1,2,~12\n 13\n 14~",
-            dict(quotechar="~", skiprows=[2]),
+            {"quotechar": "~", "skiprows": [2]},
             DataFrame([["a\n b", "e\n d", "f\n f"]], columns=["a", "b", "c"]),
         ),
         (
@@ -111,7 +117,7 @@ line 22",2
                 "example\n sentence\n two~,url2\n~"
                 "example\n sentence\n three~,url3"
             ),
-            dict(quotechar="~", skiprows=[1, 3]),
+            {"quotechar": "~", "skiprows": [1, 3]},
             DataFrame([["example\n sentence\n two", "url2"]], columns=["Text", "url"]),
         ),
     ],
@@ -222,8 +228,8 @@ def test_skiprows_infield_quote(all_parsers):
 @pytest.mark.parametrize(
     "kwargs,expected",
     [
-        (dict(), DataFrame({"1": [3, 5]})),
-        (dict(header=0, names=["foo"]), DataFrame({"foo": [3, 5]})),
+        ({}, DataFrame({"1": [3, 5]})),
+        ({"header": 0, "names": ["foo"]}, DataFrame({"foo": [3, 5]})),
     ],
 )
 def test_skip_rows_callable(all_parsers, kwargs, expected):
