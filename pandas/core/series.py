@@ -3670,16 +3670,14 @@ Keep all original rows and also all original values
         mask = isna(values)
 
         if mask.any():
-            result = Series(-1, index=self.index, name=self.name, dtype="int64")
+            result = np.full(len(self), -1, dtype=np.intp)
             notmask = ~mask
             result[notmask] = np.argsort(values[notmask], kind=kind)
-            return self._constructor(result, index=self.index).__finalize__(
-                self, method="argsort"
-            )
         else:
-            return self._constructor(
-                np.argsort(values, kind=kind), index=self.index, dtype="int64"
-            ).__finalize__(self, method="argsort")
+            result = np.argsort(values, kind=kind)
+
+        res = self._constructor(result, index=self.index, name=self.name, dtype=np.intp)
+        return res.__finalize__(self, method="argsort")
 
     def nlargest(self, n=5, keep="first") -> Series:
         """

@@ -959,6 +959,8 @@ class Block(PandasObject):
 
         elif exact_match and is_ea_value:
             if not self.is_object and isinstance(value, (IntegerArray, FloatingArray)):
+                # _can_hold_element will only allow us to get here if value
+                #  has no NA entries.
                 values[indexer] = value.to_numpy(value.dtype.numpy_dtype)
             else:
                 values[indexer] = np.asarray(value)
@@ -979,7 +981,7 @@ class Block(PandasObject):
 
         if transpose:
             values = values.T
-        block = self.make_block(values)
+        block = type(self)(values, placement=self._mgr_locs, ndim=self.ndim)
         return block
 
     @final
@@ -1491,7 +1493,8 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
             mask = mask.reshape(new_values.shape)
 
         new_values[mask] = new
-        return [self.make_block(values=new_values)]
+        nb = type(self)(new_values, placement=self._mgr_locs, ndim=self.ndim)
+        return [nb]
 
     @property
     def is_view(self) -> bool:
