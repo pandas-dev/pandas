@@ -714,8 +714,34 @@ def to_datetime(
         Warning: yearfirst=True is not strict, but will prefer to parse
         with year first (this is a known bug, based on dateutil behavior).
     utc : bool, default None
-        Return UTC DatetimeIndex if True (converting any tz-aware
-        datetime.datetime objects as well).
+        Control timezone localization and conversion.
+
+        - if True, returns a timezone-aware UTC-localized Timestamp, Series or
+          DatetimeIndex. Any tz-naive element will be *localized* as UTC.
+          Any already tz-aware input element (e.g. timezone-aware
+          datetime.datetime object, or datetime string with explicit timezone
+          offset) will be *converted* to UTC.
+
+        - If False (default), for scalar inputs, the result will be a
+          timezone-aware Timestamp if the scalar is timezone-aware, otherwise
+          it will be a timezone-naive Timestamp.
+          For multiple inputs (list, series):
+
+           - Tz-aware datetime.datetime inputs are not supported (raise
+             ValueError).
+           - The result will be a timezone-aware Series or DatetimeIndex
+             ONLY if all time offsets in string datetime inputs are
+             identical.
+           - If all inputs are timezone-naive, the result will be
+             timezone-naive.
+           - In other cases, for example if the time offset is
+             not identical in all string entries, the result will be an Index
+             of dtype object.
+
+        See pandas general documentation about timezone conversion and
+        localization:
+        https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#time-zone-handling
+
     format : str, default None
         The strftime to parse time, eg "%d/%m/%Y", note that "%f" will parse
         all the way up to nanoseconds.
@@ -763,8 +789,9 @@ def to_datetime(
         Return type depends on input:
 
         - list-like:
-            - DatetimeIndex, if timezone naive or aware with constant time offset
-            - Index of object dtype, if timezone aware with mixed time offsets
+            - DatetimeIndex, if timezone naive or aware with constant time
+              offset.
+            - Index of object dtype, if timezone aware with mixed time offsets.
         - Series: Series of datetime64 dtype
         - scalar: Timestamp
 
@@ -842,7 +869,7 @@ def to_datetime(
                   dtype='datetime64[ns]', freq=None)
 
     In case input is list-like and the elements of input are of mixed
-    timezones, return will have object type Index if utc=False.
+    time offsets, return will have object type Index if utc=False.
 
     >>> pd.to_datetime(['2018-10-26 12:00 -0530', '2018-10-26 12:00 -0500'])
     Index([2018-10-26 12:00:00-05:30, 2018-10-26 12:00:00-05:00], dtype='object')
