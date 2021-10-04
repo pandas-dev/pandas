@@ -6,11 +6,13 @@ import operator
 from shutil import get_terminal_size
 from typing import (
     TYPE_CHECKING,
+    Any,
     Hashable,
     Sequence,
     TypeVar,
     Union,
     cast,
+    overload,
 )
 from warnings import (
     catch_warnings,
@@ -32,10 +34,15 @@ from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.lib import no_default
 from pandas._typing import (
     ArrayLike,
+    AstypeArg,
     Dtype,
     NpDtype,
     Ordered,
+    PositionalIndexer2D,
+    PositionalIndexerTuple,
     Scalar,
+    ScalarIndexer,
+    SequenceIndexer,
     Shape,
     npt,
     type_t,
@@ -45,6 +52,7 @@ from pandas.util._decorators import (
     cache_readonly,
     deprecate_kwarg,
 )
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -482,7 +490,19 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy=False):
         return Categorical(scalars, dtype=dtype, copy=copy)
 
-    def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:
+    @overload
+    def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
+        ...
+
+    @overload
+    def astype(self, dtype: ExtensionDtype, copy: bool = ...) -> ExtensionArray:
+        ...
+
+    @overload
+    def astype(self, dtype: AstypeArg, copy: bool = ...) -> ArrayLike:
+        ...
+
+    def astype(self, dtype: AstypeArg, copy: bool = True) -> ArrayLike:
         """
         Coerce this type to another dtype
 
@@ -1097,10 +1117,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             warn(
                 "The `inplace` parameter in pandas.Categorical."
                 "reorder_categories is deprecated and will be removed in "
-                "a future version. Removing unused categories will always "
+                "a future version. Reordering categories will always "
                 "return a new Categorical object.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
         else:
             inplace = False
@@ -2003,7 +2023,18 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     # ------------------------------------------------------------------
 
-    def __getitem__(self, key):
+    @overload
+    def __getitem__(self, key: ScalarIndexer) -> Any:
+        ...
+
+    @overload
+    def __getitem__(
+        self: CategoricalT,
+        key: SequenceIndexer | PositionalIndexerTuple,
+    ) -> CategoricalT:
+        ...
+
+    def __getitem__(self: CategoricalT, key: PositionalIndexer2D) -> CategoricalT | Any:
         """
         Return an item.
         """
@@ -2031,7 +2062,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         from pandas import Index
 
         # tupleize_cols=False for e.g. test_fillna_iterable_category GH#41914
-        to_add = Index(value, tupleize_cols=False).difference(self.categories)
+        to_add = Index._with_infer(value, tupleize_cols=False).difference(
+            self.categories
+        )
 
         # no assignments of values not in categories, but it's always ok to set
         # something to np.nan
@@ -2308,10 +2341,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         counts = self.value_counts(dropna=False)
         freqs = counts / counts.sum()
 
+        from pandas import Index
         from pandas.core.reshape.concat import concat
 
         result = concat([counts, freqs], axis=1)
-        result.columns = ["counts", "freqs"]
+        result.columns = Index(["counts", "freqs"])
         result.index.name = "categories"
 
         return result
@@ -2455,11 +2489,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         # sep may not be in categories. Just bail on this.
         from pandas.core.arrays import PandasArray
 
-        # error: Argument 1 to "PandasArray" has incompatible type
-        # "ExtensionArray"; expected "Union[ndarray, PandasArray]"
-        return PandasArray(self.astype(str))._str_get_dummies(  # type: ignore[arg-type]
-            sep
-        )
+        return PandasArray(self.astype(str))._str_get_dummies(sep)
 
 
 # The Series.cat accessor
@@ -2741,6 +2771,7 @@ def factorize_from_iterable(values) -> tuple[np.ndarray, Index]:
         # as values but its codes are by def [0, ..., len(n_categories) - 1]
         cat_codes = np.arange(len(values.categories), dtype=values.codes.dtype)
         cat = Categorical.from_codes(cat_codes, dtype=values.dtype)
+
         categories = CategoricalIndex(cat)
         codes = values.codes
     else:

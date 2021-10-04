@@ -3,18 +3,22 @@ Module containing utilities for NDFrame.sample() and .GroupBy.sample()
 """
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import FrameOrSeries
 
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
 )
 
+if TYPE_CHECKING:
+    from pandas.core.generic import NDFrame
 
-def preprocess_weights(obj: FrameOrSeries, weights, axis: int) -> np.ndarray:
+
+def preprocess_weights(obj: NDFrame, weights, axis: int) -> np.ndarray:
     """
     Process and validate the `weights` argument to `NDFrame.sample` and
     `.GroupBy.sample`.
@@ -63,7 +67,11 @@ def preprocess_weights(obj: FrameOrSeries, weights, axis: int) -> np.ndarray:
     if (weights < 0).any():
         raise ValueError("weight vector many not include negative values")
 
-    weights[np.isnan(weights)] = 0
+    missing = np.isnan(weights)
+    if missing.any():
+        # Don't modify weights in place
+        weights = weights.copy()
+        weights[missing] = 0
     return weights
 
 

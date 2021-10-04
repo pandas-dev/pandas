@@ -15,7 +15,7 @@ dependencies:
   # pandas dependencies
   - beautifulsoup4
   - bottleneck
-  - fsspec>=0.8.0, <2021.6.0
+  - fsspec>=0.8.0
   - gcsfs
   - html5lib
   - jinja2
@@ -23,6 +23,7 @@ dependencies:
   - matplotlib
   - moto>=1.3.14
   - flask
+  - numba
   - numexpr
   - numpy
   - openpyxl

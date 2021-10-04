@@ -113,6 +113,8 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         column_levels : tuple/list
         sort_labels : bool, default False
             Sort the row and column labels before forming the sparse matrix.
+            When `row_levels` and/or `column_levels` refer to a single level,
+            set to `True` for a faster execution.
 
         Returns
         -------
@@ -337,12 +339,15 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
             dtype = dtype.subtype
 
         cols, rows, data = [], [], []
-        for col, name in enumerate(self._parent):
-            s = self._parent[name]
-            row = s.array.sp_index.to_int_index().indices
+        for col, (_, ser) in enumerate(self._parent.iteritems()):
+            sp_arr = ser.array
+            if sp_arr.fill_value != 0:
+                raise ValueError("fill value must be 0 when converting to COO matrix")
+
+            row = sp_arr.sp_index.indices
             cols.append(np.repeat(col, len(row)))
             rows.append(row)
-            data.append(s.array.sp_values.astype(dtype, copy=False))
+            data.append(sp_arr.sp_values.astype(dtype, copy=False))
 
         cols = np.concatenate(cols)
         rows = np.concatenate(rows)
@@ -359,16 +364,18 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
 
     @staticmethod
     def _prep_index(data, index, columns):
-        from pandas.core.indexes.api import ensure_index
-        import pandas.core.indexes.base as ibase
+        from pandas.core.indexes.api import (
+            default_index,
+            ensure_index,
+        )
 
         N, K = data.shape
         if index is None:
-            index = ibase.default_index(N)
+            index = default_index(N)
         else:
             index = ensure_index(index)
         if columns is None:
-            columns = ibase.default_index(K)
+            columns = default_index(K)
         else:
             columns = ensure_index(columns)
 
