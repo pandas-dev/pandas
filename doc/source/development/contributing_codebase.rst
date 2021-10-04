@@ -23,11 +23,10 @@ contributing them to the project::
 
    ./ci/code_checks.sh
 
-The script verifies the linting of code files, it looks for common mistake patterns
-(like missing spaces around sphinx directives that make the documentation not
-being rendered properly) and it also validates the doctests. It is possible to
-run the checks independently by using the parameters ``lint``, ``patterns`` and
-``doctests`` (e.g. ``./ci/code_checks.sh lint``).
+The script validates the doctests, formatting in docstrings, static typing, and
+imported modules. It is possible to run the checks independently by using the
+parameters ``docstring``, ``code``, ``typing``, and ``doctests``
+(e.g. ``./ci/code_checks.sh doctests``).
 
 In addition, because a lot of people use our library, it is important that we
 do not make sudden changes to the code that could have the potential to break
@@ -182,7 +181,7 @@ run this command, though it may take longer::
 
    git diff upstream/master --name-only -- "*.py" | xargs -r flake8
 
-Note that on OSX, the ``-r`` flag is not available, so you have to omit it and
+Note that on macOS, the ``-r`` flag is not available, so you have to omit it and
 run this slightly modified command::
 
    git diff upstream/master --name-only -- "*.py" | xargs flake8
@@ -245,7 +244,7 @@ Alternatively, you can run a command similar to what was suggested for ``black``
 
     git diff upstream/master --name-only -- "*.py" | xargs -r isort
 
-Where similar caveats apply if you are on OSX or Windows.
+Where similar caveats apply if you are on macOS or Windows.
 
 You can then verify the changes look ok, then git :any:`commit <contributing.commit-code>` and :any:`push <contributing.push-code>`.
 
@@ -396,11 +395,18 @@ This module will ultimately house types for repeatedly used concepts like "path-
 Validating type hints
 ~~~~~~~~~~~~~~~~~~~~~
 
-pandas uses `mypy <http://mypy-lang.org>`_ to statically analyze the code base and type hints. After making any change you can ensure your type hints are correct by running
+pandas uses `mypy <http://mypy-lang.org>`_ and `pyright <https://github.com/microsoft/pyright>`_ to statically analyze the code base and type hints. After making any change you can ensure your type hints are correct by running
 
 .. code-block:: shell
 
    mypy pandas
+
+   # let pre-commit setup and run pyright
+   pre-commit run --hook-stage manual --all-files pyright
+   # or if pyright is installed (requires node.js)
+   pyright
+
+A recent version of ``numpy`` (>=1.21.0) is required for type validation.
 
 .. _contributing.ci:
 
@@ -812,7 +818,21 @@ Changes should be reflected in the release notes located in ``doc/source/whatsne
 This file contains an ongoing change log for each release.  Add an entry to this file to
 document your fix, enhancement or (unavoidable) breaking change.  Make sure to include the
 GitHub issue number when adding your entry (using ``:issue:`1234``` where ``1234`` is the
-issue/pull request number).
+issue/pull request number). Your entry should be written using full sentences and proper
+grammar.
+
+When mentioning parts of the API, use a Sphinx ``:func:``, ``:meth:``, or ``:class:``
+directive as appropriate. Not all public API functions and methods have a
+documentation page; ideally links would only be added if they resolve. You can
+usually find similar examples by checking the release notes for one of the previous
+versions.
+
+If your code is a bugfix, add your entry to the relevant bugfix section. Avoid
+adding to the ``Other`` section; only in rare cases should entries go there.
+Being as concise as possible, the description of the bug should include how the
+user may encounter it and an indication of the bug itself, e.g.
+"produces incorrect results" or "incorrectly raises". It may be necessary to also
+indicate the new behavior.
 
 If your code is an enhancement, it is most likely necessary to add usage
 examples to the existing documentation.  This can be done following the section

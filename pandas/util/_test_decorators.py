@@ -286,7 +286,8 @@ def async_mark():
 
 
 skip_array_manager_not_yet_implemented = pytest.mark.skipif(
-    get_option("mode.data_manager") == "array", reason="JSON C code relies on Blocks"
+    get_option("mode.data_manager") == "array",
+    reason="Not yet implemented for ArrayManager",
 )
 
 skip_array_manager_invalid_test = pytest.mark.skipif(

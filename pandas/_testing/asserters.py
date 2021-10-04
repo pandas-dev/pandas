@@ -107,6 +107,7 @@ def assert_almost_equal(
             FutureWarning,
             stacklevel=2,
         )
+        # https://github.com/python/mypy/issues/7642
         # error: Argument 1 to "_get_tol_from_less_precise" has incompatible
         # type "Union[bool, int, NoDefault]"; expected "Union[bool, int]"
         rtol = atol = _get_tol_from_less_precise(
@@ -302,10 +303,10 @@ def assert_index_equal(
 
     Examples
     --------
-    >>> from pandas.testing import assert_index_equal
+    >>> from pandas import testing as tm
     >>> a = pd.Index([1, 2, 3])
     >>> b = pd.Index([1, 2, 3])
-    >>> assert_index_equal(a, b)
+    >>> tm.assert_index_equal(a, b)
     """
     __tracebackhide__ = True
 
@@ -340,6 +341,7 @@ def assert_index_equal(
             FutureWarning,
             stacklevel=2,
         )
+        # https://github.com/python/mypy/issues/7642
         # error: Argument 1 to "_get_tol_from_less_precise" has incompatible
         # type "Union[bool, int, NoDefault]"; expected "Union[bool, int]"
         rtol = atol = _get_tol_from_less_precise(
@@ -792,10 +794,10 @@ def assert_extension_array_equal(
 
     Examples
     --------
-    >>> from pandas.testing import assert_extension_array_equal
+    >>> from pandas import testing as tm
     >>> a = pd.Series([1, 2, 3, 4])
     >>> b, c = a.array, a.array
-    >>> assert_extension_array_equal(b, c)
+    >>> tm.assert_extension_array_equal(b, c)
     """
     if check_less_precise is not no_default:
         warnings.warn(
@@ -936,10 +938,10 @@ def assert_series_equal(
 
     Examples
     --------
-    >>> from pandas.testing import assert_series_equal
+    >>> from pandas import testing as tm
     >>> a = pd.Series([1, 2, 3, 4])
     >>> b = pd.Series([1, 2, 3, 4])
-    >>> assert_series_equal(a, b)
+    >>> tm.assert_series_equal(a, b)
     """
     __tracebackhide__ = True
 
@@ -1201,7 +1203,7 @@ def assert_frame_equal(
     This example shows comparing two DataFrames that are equal
     but with columns of differing dtypes.
 
-    >>> from pandas._testing import assert_frame_equal
+    >>> from pandas.testing import assert_frame_equal
     >>> df1 = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
     >>> df2 = pd.DataFrame({'a': [1, 2], 'b': [3.0, 4.0]})
 

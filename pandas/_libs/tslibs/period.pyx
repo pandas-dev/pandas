@@ -197,7 +197,7 @@ cdef freq_conv_func get_asfreq_func(int from_freq, int to_freq) nogil:
             return <freq_conv_func>asfreq_BtoW
         elif to_group == FR_BUS:
             return <freq_conv_func>no_op
-        elif to_group  in [FR_DAY, FR_HR, FR_MIN, FR_SEC, FR_MS, FR_US, FR_NS]:
+        elif to_group in [FR_DAY, FR_HR, FR_MIN, FR_SEC, FR_MS, FR_US, FR_NS]:
             return <freq_conv_func>asfreq_BtoDT
         else:
             return <freq_conv_func>nofunc
@@ -2375,7 +2375,7 @@ cdef class _Period(PeriodMixin):
         >>>
         >>> a = Period(freq='D', year=2001, month=1, day=1)
         >>> a.strftime('%d-%b-%Y')
-        '01-Jan-2006'
+        '01-Jan-2001'
         >>> a.strftime('%b. %d, %Y was a %A')
         'Jan. 01, 2001 was a Monday'
         """

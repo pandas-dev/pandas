@@ -185,7 +185,7 @@ class LegacyVersion(_BaseVersion):
 
         warnings.warn(
             "Creating a LegacyVersion has been deprecated and will be "
-            "removed in the next major release",
+            "removed in the next major release.",
             DeprecationWarning,
         )
 
@@ -373,11 +373,11 @@ class Version(_BaseVersion):
             parts.append(f"{self.epoch}!")
 
         # Release segment
-        parts.append(".".join(str(x) for x in self.release))
+        parts.append(".".join([str(x) for x in self.release]))
 
         # Pre-release
         if self.pre is not None:
-            parts.append("".join(str(x) for x in self.pre))
+            parts.append("".join([str(x) for x in self.pre]))
 
         # Post-release
         if self.post is not None:
@@ -419,7 +419,7 @@ class Version(_BaseVersion):
     @property
     def local(self) -> str | None:
         if self._version.local:
-            return ".".join(str(x) for x in self._version.local)
+            return ".".join([str(x) for x in self._version.local])
         else:
             return None
 
@@ -436,7 +436,7 @@ class Version(_BaseVersion):
             parts.append(f"{self.epoch}!")
 
         # Release segment
-        parts.append(".".join(str(x) for x in self.release))
+        parts.append(".".join([str(x) for x in self.release]))
 
         return "".join(parts)
 

@@ -40,7 +40,7 @@ def test_mode(setup_path):
 
             # constructor
             if mode in ["r", "r+"]:
-                with pytest.raises(IOError, match=msg):
+                with pytest.raises(OSError, match=msg):
                     HDFStore(path, mode=mode)
 
             else:
@@ -52,7 +52,7 @@ def test_mode(setup_path):
 
             # context
             if mode in ["r", "r+"]:
-                with pytest.raises(IOError, match=msg):
+                with pytest.raises(OSError, match=msg):
                     with HDFStore(path, mode=mode) as store:
                         pass
             else:
@@ -63,7 +63,7 @@ def test_mode(setup_path):
 
             # conv write
             if mode in ["r", "r+"]:
-                with pytest.raises(IOError, match=msg):
+                with pytest.raises(OSError, match=msg):
                     df.to_hdf(path, "df", mode=mode)
                 df.to_hdf(path, "df", mode="w")
             else:

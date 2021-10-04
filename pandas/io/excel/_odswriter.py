@@ -29,6 +29,7 @@ class ODSWriter(ExcelWriter):
         storage_options: StorageOptions = None,
         if_sheet_exists: str | None = None,
         engine_kwargs: dict[str, Any] | None = None,
+        **kwargs,
     ):
         from odf.opendocument import OpenDocumentSpreadsheet
 

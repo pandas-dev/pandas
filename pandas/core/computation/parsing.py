@@ -49,6 +49,7 @@ def create_valid_python_identifier(name: str) -> str:
             "!": "_EXCLAMATIONMARK_",
             "$": "_DOLLARSIGN_",
             "€": "_EUROSIGN_",
+            "°": "_DEGREESIGN_",
             # Including quotes works, but there are exceptions.
             "'": "_SINGLEQUOTE_",
             '"': "_DOUBLEQUOTE_",
@@ -57,7 +58,7 @@ def create_valid_python_identifier(name: str) -> str:
         }
     )
 
-    name = "".join(special_characters_replacements.get(char, char) for char in name)
+    name = "".join([special_characters_replacements.get(char, char) for char in name])
     name = "BACKTICK_QUOTED_STRING_" + name
 
     if not name.isidentifier():

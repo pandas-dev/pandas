@@ -1,5 +1,5 @@
 """
-Benchmarks in this fiel depend exclusively on code in _libs/
+Benchmarks in this file depend exclusively on code in _libs/
 
 If a PR does not edit anything in _libs, it is very unlikely that benchmarks
 in this file will be affected.
@@ -48,7 +48,7 @@ class NumericEngineIndexing:
             "non_monotonic": np.array([1, 2, 3] * N, dtype=dtype),
         }[index_type]
 
-        self.data = engine(lambda: arr, len(arr))
+        self.data = engine(arr)
         # code belows avoids populating the mapping etc. while timing.
         self.data.get_loc(2)
 
@@ -70,7 +70,7 @@ class ObjectEngineIndexing:
             "non_monotonic": np.array(list("abc") * N, dtype=object),
         }[index_type]
 
-        self.data = libindex.ObjectEngine(lambda: arr, len(arr))
+        self.data = libindex.ObjectEngine(arr)
         # code belows avoids populating the mapping etc. while timing.
         self.data.get_loc("b")
 

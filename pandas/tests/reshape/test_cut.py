@@ -32,8 +32,9 @@ def test_simple():
     tm.assert_numpy_array_equal(result, expected, check_dtype=False)
 
 
-def test_bins():
-    data = np.array([0.2, 1.4, 2.5, 6.2, 9.7, 2.1])
+@pytest.mark.parametrize("func", [list, np.array])
+def test_bins(func):
+    data = func([0.2, 1.4, 2.5, 6.2, 9.7, 2.1])
     result, bins = cut(data, 3, retbins=True)
 
     intervals = IntervalIndex.from_breaks(bins.round(3))
@@ -66,18 +67,6 @@ def test_no_right():
 
     tm.assert_categorical_equal(result, expected)
     tm.assert_almost_equal(bins, np.array([0.2, 2.575, 4.95, 7.325, 9.7095]))
-
-
-def test_array_like():
-    data = [0.2, 1.4, 2.5, 6.2, 9.7, 2.1]
-    result, bins = cut(data, 3, retbins=True)
-
-    intervals = IntervalIndex.from_breaks(bins.round(3))
-    intervals = intervals.take([0, 0, 0, 1, 2, 0])
-    expected = Categorical(intervals, ordered=True)
-
-    tm.assert_categorical_equal(result, expected)
-    tm.assert_almost_equal(bins, np.array([0.1905, 3.36666667, 6.53333333, 9.7]))
 
 
 def test_bins_from_interval_index():
@@ -691,3 +680,57 @@ def test_cut_no_warnings():
     labels = [f"{i} - {i + 9}" for i in range(0, 100, 10)]
     with tm.assert_produces_warning(False):
         df["group"] = cut(df.value, range(0, 105, 10), right=False, labels=labels)
+
+
+def test_cut_with_duplicated_index_lowest_included():
+    # GH 42185
+    expected = Series(
+        [Interval(-0.001, 2, closed="right")] * 3
+        + [Interval(2, 4, closed="right"), Interval(-0.001, 2, closed="right")],
+        index=[0, 1, 2, 3, 0],
+        dtype="category",
+    ).cat.as_ordered()
+
+    s = Series([0, 1, 2, 3, 0], index=[0, 1, 2, 3, 0])
+    result = cut(s, bins=[0, 2, 4], include_lowest=True)
+    tm.assert_series_equal(result, expected)
+
+
+def test_cut_with_nonexact_categorical_indices():
+    # GH 42424
+
+    ser = Series(range(0, 100))
+    ser1 = cut(ser, 10).value_counts().head(5)
+    ser2 = cut(ser, 10).value_counts().tail(5)
+    result = DataFrame({"1": ser1, "2": ser2})
+
+    index = pd.CategoricalIndex(
+        [
+            Interval(-0.099, 9.9, closed="right"),
+            Interval(9.9, 19.8, closed="right"),
+            Interval(19.8, 29.7, closed="right"),
+            Interval(29.7, 39.6, closed="right"),
+            Interval(39.6, 49.5, closed="right"),
+            Interval(49.5, 59.4, closed="right"),
+            Interval(59.4, 69.3, closed="right"),
+            Interval(69.3, 79.2, closed="right"),
+            Interval(79.2, 89.1, closed="right"),
+            Interval(89.1, 99, closed="right"),
+        ],
+        ordered=True,
+    )
+
+    expected = DataFrame(
+        {"1": [10] * 5 + [np.nan] * 5, "2": [np.nan] * 5 + [10] * 5}, index=index
+    )
+
+    tm.assert_frame_equal(expected, result)
+
+
+def test_cut_with_timestamp_tuple_labels():
+    # GH 40661
+    labels = [(Timestamp(10),), (Timestamp(20),), (Timestamp(30),)]
+    result = cut([2, 4, 6], bins=[1, 3, 5, 7], labels=labels)
+
+    expected = Categorical.from_codes([0, 1, 2], labels, ordered=True)
+    tm.assert_categorical_equal(result, expected)

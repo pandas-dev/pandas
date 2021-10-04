@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from typing import MutableMapping
+from typing import (
+    Any,
+    MutableMapping,
+)
 
 from pandas.compat._optional import import_optional_dependency
 
@@ -246,3 +249,30 @@ def pop_header_name(row, index_col):
     header_name = None if header_name == "" else header_name
 
     return header_name, row[:i] + [""] + row[i + 1 :]
+
+
+def combine_kwargs(engine_kwargs: dict[str, Any] | None, kwargs: dict) -> dict:
+    """
+    Used to combine two sources of kwargs for the backend engine.
+
+    Use of kwargs is deprecated, this function is solely for use in 1.3 and should
+    be removed in 1.4/2.0. Also _base.ExcelWriter.__new__ ensures either engine_kwargs
+    or kwargs must be None or empty respectively.
+
+    Parameters
+    ----------
+    engine_kwargs: dict
+        kwargs to be passed through to the engine.
+    kwargs: dict
+        kwargs to be psased through to the engine (deprecated)
+
+    Returns
+    -------
+    engine_kwargs combined with kwargs
+    """
+    if engine_kwargs is None:
+        result = {}
+    else:
+        result = engine_kwargs.copy()
+    result.update(kwargs)
+    return result

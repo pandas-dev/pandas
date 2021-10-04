@@ -308,7 +308,16 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         """
         if not isinstance(dtype, PeriodDtype):
             return False
-        return dtype.freq == self.freq
+        # For the subset of DateOffsets that can be a dtype.freq, it
+        #  suffices (and is much faster) to compare the dtype_code rather than
+        #  the freq itself.
+        # See also: PeriodDtype.__eq__
+        freq = dtype.freq
+        own_freq = self.freq
+        return (
+            freq._period_dtype_code == own_freq._period_dtype_code
+            and freq.n == own_freq.n
+        )
 
     # ------------------------------------------------------------------------
     # Index Methods
@@ -335,7 +344,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             warnings.warn(
                 "The 'how' keyword in PeriodIndex.astype is deprecated and "
                 "will be removed in a future version. "
-                "Use index.to_timestamp(how=how) instead",
+                "Use index.to_timestamp(how=how) instead.",
                 FutureWarning,
                 stacklevel=2,
             )
@@ -438,10 +447,17 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             else:
                 key = Period(parsed, freq=self.freq)
 
-        elif isinstance(key, Period) and key.freq != self.freq:
-            raise KeyError(key)
         elif isinstance(key, Period):
-            pass
+            sfreq = self.freq
+            kfreq = key.freq
+            if not (
+                sfreq.n == kfreq.n
+                and sfreq._period_dtype_code == kfreq._period_dtype_code
+            ):
+                # GH#42247 For the subset of DateOffsets that can be Period freqs,
+                #  checking these two attributes is sufficient to check equality,
+                #  and much more performant than `self.freq == key.freq`
+                raise KeyError(key)
         elif isinstance(key, datetime):
             try:
                 key = Period(key, freq=self.freq)
@@ -457,44 +473,12 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         except KeyError as err:
             raise KeyError(orig_key) from err
 
+    @doc(DatetimeIndexOpsMixin._maybe_cast_slice_bound)
     def _maybe_cast_slice_bound(self, label, side: str, kind=lib.no_default):
-        """
-        If label is a string or a datetime, cast it to Period.ordinal according
-        to resolution.
-
-        Parameters
-        ----------
-        label : object
-        side : {'left', 'right'}
-        kind : {'loc', 'getitem'}, or None
-
-        Returns
-        -------
-        bound : Period or object
-
-        Notes
-        -----
-        Value of `side` parameter should be validated in caller.
-
-        """
-        assert kind in ["loc", "getitem", None, lib.no_default]
-        self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
-
         if isinstance(label, datetime):
-            return Period(label, freq=self.freq)
-        elif isinstance(label, str):
-            try:
-                parsed, reso = self._parse_with_reso(label)
-            except ValueError as err:
-                # string cannot be parsed as datetime-like
-                raise self._invalid_indexer("slice", label) from err
+            label = Period(label, freq=self.freq)
 
-            lower, upper = self._parsed_string_to_bounds(reso, parsed)
-            return lower if side == "left" else upper
-        elif not isinstance(label, self._data._recognized_scalars):
-            raise self._invalid_indexer("slice", label)
-
-        return label
+        return super()._maybe_cast_slice_bound(label, side, kind=kind)
 
     def _parsed_string_to_bounds(self, reso: Resolution, parsed: datetime):
         grp = reso.freq_group
@@ -503,16 +487,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
     def _can_partial_date_slice(self, reso: Resolution) -> bool:
         assert isinstance(reso, Resolution), (type(reso), reso)
-        grp = reso.freq_group
-        freqn = self.dtype.freq_group_code
-
-        if not grp.value < freqn:
-            # TODO: we used to also check for
-            #  reso in ["day", "hour", "minute", "second"]
-            #  why is that check not needed?
-            return False
-
-        return True
+        # e.g. test_getitem_setitem_periodindex
+        return reso > self.dtype.resolution
 
 
 def period_range(

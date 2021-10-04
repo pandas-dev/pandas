@@ -14,7 +14,6 @@ from pandas._typing import (
     AggFuncType,
     AggFuncTypeBase,
     AggFuncTypeDict,
-    FrameOrSeriesUnion,
     IndexLabel,
 )
 from pandas.util._decorators import (
@@ -254,7 +253,7 @@ def __internal_pivot_table(
 
 
 def _add_margins(
-    table: FrameOrSeriesUnion,
+    table: DataFrame | Series,
     data,
     values,
     rows,
@@ -482,7 +481,7 @@ def pivot(
     if columns is None:
         raise TypeError("pivot() missing 1 required argument: 'columns'")
 
-    columns = com.convert_to_list_like(columns)
+    columns_listlike = com.convert_to_list_like(columns)
 
     if values is None:
         if index is not None:
@@ -494,28 +493,27 @@ def pivot(
         # error: Unsupported operand types for + ("List[Any]" and "ExtensionArray")
         # error: Unsupported left operand type for + ("ExtensionArray")
         indexed = data.set_index(
-            cols + columns, append=append  # type: ignore[operator]
+            cols + columns_listlike, append=append  # type: ignore[operator]
         )
     else:
         if index is None:
-            index = [Series(data.index, name=data.index.name)]
+            index_list = [Series(data.index, name=data.index.name)]
         else:
-            index = com.convert_to_list_like(index)
-            index = [data[idx] for idx in index]
+            index_list = [data[idx] for idx in com.convert_to_list_like(index)]
 
-        data_columns = [data[col] for col in columns]
-        index.extend(data_columns)
-        index = MultiIndex.from_arrays(index)
+        data_columns = [data[col] for col in columns_listlike]
+        index_list.extend(data_columns)
+        multiindex = MultiIndex.from_arrays(index_list)
 
         if is_list_like(values) and not isinstance(values, tuple):
             # Exclude tuple because it is seen as a single column name
             values = cast(Sequence[Hashable], values)
             indexed = data._constructor(
-                data[values]._values, index=index, columns=values
+                data[values]._values, index=multiindex, columns=values
             )
         else:
-            indexed = data._constructor_sliced(data[values]._values, index=index)
-    return indexed.unstack(columns)
+            indexed = data._constructor_sliced(data[values]._values, index=multiindex)
+    return indexed.unstack(columns_listlike)
 
 
 def crosstab(

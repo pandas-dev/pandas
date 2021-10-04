@@ -171,7 +171,7 @@ cdef class _Timestamp(ABCTimestamp):
     @property
     def freq(self):
         warnings.warn(
-            "Timestamp.freq is deprecated and will be removed in a future version",
+            "Timestamp.freq is deprecated and will be removed in a future version.",
             FutureWarning,
             stacklevel=1,
         )
@@ -235,8 +235,8 @@ cdef class _Timestamp(ABCTimestamp):
             # We follow the stdlib datetime behavior of never being equal
             warnings.warn(
                 "Comparison of Timestamp with datetime.date is deprecated in "
-                "order to match the standard library behavior.  "
-                "In a future version these will be considered non-comparable."
+                "order to match the standard library behavior. "
+                "In a future version these will be considered non-comparable. "
                 "Use 'ts == pd.Timestamp(date)' or 'ts.date() == date' instead.",
                 FutureWarning,
                 stacklevel=1,
@@ -270,9 +270,9 @@ cdef class _Timestamp(ABCTimestamp):
         if op == Py_EQ:
             return False
         if op == Py_LE or op == Py_LT:
-            return other.year <= self.year
+            return self.year <= other.year
         if op == Py_GE or op == Py_GT:
-            return other.year >= self.year
+            return self.year >= other.year
 
     cdef bint _can_compare(self, datetime other):
         if self.tzinfo is not None:
@@ -425,7 +425,7 @@ cdef class _Timestamp(ABCTimestamp):
                 warnings.warn(
                     "Timestamp.freq is deprecated and will be removed in a future "
                     "version. When you have a freq, use "
-                    f"freq.{field}(timestamp) instead",
+                    f"freq.{field}(timestamp) instead.",
                     FutureWarning,
                     stacklevel=1,
                 )
@@ -858,7 +858,7 @@ cdef class _Timestamp(ABCTimestamp):
         NaT
         """
         if self.nanosecond != 0 and warn:
-            warnings.warn("Discarding nonzero nanoseconds in conversion",
+            warnings.warn("Discarding nonzero nanoseconds in conversion.",
                           UserWarning, stacklevel=2)
 
         return datetime(self.year, self.month, self.day,
@@ -909,16 +909,20 @@ cdef class _Timestamp(ABCTimestamp):
         Examples
         --------
         >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
-        >>> ts.to_period(freq='Y) # Year end frequency
-        numpy.datetime64('2020-03-14T15:32:52.192548651')
+        >>> # Year end frequency
+        >>> ts.to_period(freq='Y')
+        Period('2020', 'A-DEC')
 
-        >>> ts.to_period(freq='M') # Month end frequency
+        >>> # Month end frequency
+        >>> ts.to_period(freq='M')
         Period('2020-03', 'M')
 
-        >>> ts.to_period(freq='W') # Weekly frequency
+        >>> # Weekly frequency
+        >>> ts.to_period(freq='W')
         Period('2020-03-09/2020-03-15', 'W-SUN')
 
-        >>> ts.to_period(freq='Q') # Quarter end frequency
+        >>> # Quarter end frequency
+        >>> ts.to_period(freq='Q')
         Period('2020Q1', 'Q-DEC')
         """
         from pandas import Period
@@ -1059,7 +1063,7 @@ class Timestamp(_Timestamp):
 
         Examples
         --------
-        >>> pd.Timestamp.now()
+        >>> pd.Timestamp.now()  # doctest: +SKIP
         Timestamp('2020-11-16 22:06:16.378782')
 
         Analogous for ``pd.NaT``:
@@ -1087,7 +1091,7 @@ class Timestamp(_Timestamp):
 
         Examples
         --------
-        >>> pd.Timestamp.today()
+        >>> pd.Timestamp.today()    # doctest: +SKIP
         Timestamp('2020-11-16 22:37:39.969883')
 
         Analogous for ``pd.NaT``:
@@ -1106,7 +1110,7 @@ class Timestamp(_Timestamp):
 
         Examples
         --------
-        >>> pd.Timestamp.utcnow()
+        >>> pd.Timestamp.utcnow()   # doctest: +SKIP
         Timestamp('2020-11-16 22:50:18.092888+0000', tz='UTC')
         """
         return cls.now(UTC)
@@ -1329,6 +1333,19 @@ class Timestamp(_Timestamp):
                              "the tz parameter. Use tz_convert instead.")
 
         tzobj = maybe_get_tz(tz)
+        if tzobj is not None and is_datetime64_object(ts_input):
+            # GH#24559, GH#42288 In the future we will treat datetime64 as
+            #  wall-time (consistent with DatetimeIndex)
+            warnings.warn(
+                "In a future version, when passing a np.datetime64 object and "
+                "a timezone to Timestamp, the datetime64 will be interpreted "
+                "as a wall time, not a UTC time.  To interpret as a UTC time, "
+                "use `Timestamp(dt64).tz_localize('UTC').tz_convert(tz)`",
+                FutureWarning,
+                stacklevel=1,
+            )
+            # Once this deprecation is enforced, we can do
+            #  return Timestamp(ts_input).tz_localize(tzobj)
         ts = convert_to_tsobject(ts_input, tzobj, unit, 0, 0, nanosecond or 0)
 
         if ts.value == NPY_NAT:
@@ -1945,7 +1962,21 @@ default 'raise'
                  self.second / 3600.0 +
                  self.microsecond / 3600.0 / 1e+6 +
                  self.nanosecond / 3600.0 / 1e+9
-                ) / 24.0)
+                 ) / 24.0)
+
+    def isoweekday(self):
+        """
+        Return the day of the week represented by the date.
+        Monday == 1 ... Sunday == 7.
+        """
+        return super().isoweekday()
+
+    def weekday(self):
+        """
+        Return the day of the week represented by the date.
+        Monday == 0 ... Sunday == 6.
+        """
+        return super().weekday()
 
 
 # Aliases

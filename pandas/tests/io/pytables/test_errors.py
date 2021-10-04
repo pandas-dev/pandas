@@ -214,7 +214,7 @@ def test_read_hdf_errors(setup_path):
 
     with ensure_clean_path(setup_path) as path:
         msg = r"File [\S]* does not exist"
-        with pytest.raises(IOError, match=msg):
+        with pytest.raises(OSError, match=msg):
             read_hdf(path, "key")
 
         df.to_hdf(path, "df")
@@ -222,7 +222,7 @@ def test_read_hdf_errors(setup_path):
         store.close()
 
         msg = "The HDFStore must be open for reading."
-        with pytest.raises(IOError, match=msg):
+        with pytest.raises(OSError, match=msg):
             read_hdf(store, "df")
 
 

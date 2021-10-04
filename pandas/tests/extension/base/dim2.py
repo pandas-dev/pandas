@@ -183,16 +183,11 @@ class Dim2CompatTests(BaseExtensionTests):
             if method in ["sum", "prod"] and data.dtype.kind in ["i", "u"]:
                 # FIXME: kludge
                 if data.dtype.kind == "i":
-                    dtype = pd.Int64Dtype
+                    dtype = pd.Int64Dtype()
                 else:
-                    dtype = pd.UInt64Dtype
+                    dtype = pd.UInt64Dtype()
 
                 expected = data.astype(dtype)
-                if type(expected) != type(data):
-                    mark = pytest.mark.xfail(
-                        reason="IntegerArray.astype is broken GH#38983"
-                    )
-                    request.node.add_marker(mark)
                 assert type(expected) == type(data), type(expected)
                 assert dtype == expected.dtype
 
