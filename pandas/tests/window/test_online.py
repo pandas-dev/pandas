@@ -10,7 +10,7 @@ from pandas import (
 import pandas._testing as tm
 
 
-@td.skip_if_no("numba", "0.46.0")
+@td.skip_if_no("numba")
 @pytest.mark.filterwarnings("ignore:\\nThe keyword argument")
 class TestEWM:
     def test_invalid_update(self):

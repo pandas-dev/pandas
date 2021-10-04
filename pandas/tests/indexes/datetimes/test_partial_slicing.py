@@ -16,7 +16,6 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.indexing import IndexingError
 
 
 class TestSlicing:
@@ -337,11 +336,10 @@ class TestSlicing:
         result = df_multi.loc[("2013-06-19 09:30:00", "ACCT1", "ABC")]
         tm.assert_series_equal(result, expected)
 
-        # this is an IndexingError as we don't do partial string selection on
-        # multi-levels.
-        msg = "Too many indexers"
-        with pytest.raises(IndexingError, match=msg):
-            df_multi.loc[("2013-06-19", "ACCT1", "ABC")]
+        # partial string indexing on first level, scalar indexing on the other two
+        result = df_multi.loc[("2013-06-19", "ACCT1", "ABC")]
+        expected = df_multi.iloc[:1].droplevel([1, 2])
+        tm.assert_frame_equal(result, expected)
 
     def test_partial_slicing_with_multiindex_series(self):
         # GH 4294

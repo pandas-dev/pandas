@@ -69,10 +69,11 @@ pyarrow>=0.17.0
 python-snappy
 tables>=3.6.1
 s3fs>=0.4.0
-fsspec>=0.7.4, <2021.6.0
+aiobotocore
+fsspec>=0.7.4
 gcsfs>=0.6.0
 sqlalchemy
-xarray
+xarray<0.19
 cftime
 pyreadstat
 tabulate>=0.8.3
@@ -84,3 +85,5 @@ types-python-dateutil
 types-PyMySQL
 types-pytz
 types-setuptools
+pytest-cython
+setuptools>=51.0.0

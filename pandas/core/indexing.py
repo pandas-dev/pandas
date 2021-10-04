@@ -30,7 +30,6 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_sequence,
-    needs_i8_conversion,
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
@@ -56,11 +55,8 @@ from pandas.core.indexers import (
     length_of_indexer,
 )
 from pandas.core.indexes.api import (
-    CategoricalIndex,
     Index,
-    IntervalIndex,
     MultiIndex,
-    ensure_index,
 )
 
 if TYPE_CHECKING:
@@ -646,32 +642,23 @@ class _LocationIndexer(NDFrameIndexerBase):
             self._ensure_listlike_indexer(key)
 
         if self.axis is not None:
-            return self._convert_tuple(key, is_setter=True)
+            return self._convert_tuple(key)
 
         ax = self.obj._get_axis(0)
 
-        if isinstance(ax, MultiIndex) and self.name != "iloc":
-            with suppress(TypeError, KeyError, InvalidIndexError):
+        if isinstance(ax, MultiIndex) and self.name != "iloc" and is_hashable(key):
+            with suppress(KeyError, InvalidIndexError):
                 # TypeError e.g. passed a bool
                 return ax.get_loc(key)
 
         if isinstance(key, tuple):
             with suppress(IndexingError):
-                return self._convert_tuple(key, is_setter=True)
+                return self._convert_tuple(key)
 
         if isinstance(key, range):
             return list(key)
 
-        try:
-            return self._convert_to_indexer(key, axis=0, is_setter=True)
-        except TypeError as e:
-
-            # invalid indexer type vs 'other' indexing errors
-            if "cannot do" in str(e):
-                raise
-            elif "unhashable type" in str(e):
-                raise
-            raise IndexingError(key) from e
+        return self._convert_to_indexer(key, axis=0)
 
     def _ensure_listlike_indexer(self, key, axis=None, value=None):
         """
@@ -768,21 +755,19 @@ class _LocationIndexer(NDFrameIndexerBase):
             return any(is_nested_tuple(tup, ax) for ax in self.obj.axes)
         return False
 
-    def _convert_tuple(self, key, is_setter: bool = False):
+    def _convert_tuple(self, key):
         keyidx = []
         if self.axis is not None:
             axis = self.obj._get_axis_number(self.axis)
             for i in range(self.ndim):
                 if i == axis:
-                    keyidx.append(
-                        self._convert_to_indexer(key, axis=axis, is_setter=is_setter)
-                    )
+                    keyidx.append(self._convert_to_indexer(key, axis=axis))
                 else:
                     keyidx.append(slice(None))
         else:
             self._validate_key_length(key)
             for i, k in enumerate(key):
-                idx = self._convert_to_indexer(k, axis=i, is_setter=is_setter)
+                idx = self._convert_to_indexer(k, axis=i)
                 keyidx.append(idx)
 
         return tuple(keyidx)
@@ -880,8 +865,8 @@ class _LocationIndexer(NDFrameIndexerBase):
         # a tuple passed to a series with a multi-index
         if len(tup) > self.ndim:
             if self.name != "loc":
-                # This should never be reached, but lets be explicit about it
-                raise ValueError("Too many indices")
+                # This should never be reached, but let's be explicit about it
+                raise ValueError("Too many indices")  # pragma: no cover
             if all(is_hashable(x) or com.is_null_slice(x) for x in tup):
                 # GH#10521 Series should reduce MultiIndex dimensions instead of
                 #  DataFrame, IndexingError is not raised when slice(None,None,None)
@@ -924,7 +909,7 @@ class _LocationIndexer(NDFrameIndexerBase):
 
         return obj
 
-    def _convert_to_indexer(self, key, axis: int, is_setter: bool = False):
+    def _convert_to_indexer(self, key, axis: int):
         raise AbstractMethodError(self)
 
     def __getitem__(self, key):
@@ -1129,12 +1114,6 @@ class _LocIndexer(_LocationIndexer):
         try:
             # fast path for series or for tup devoid of slices
             return self._get_label(tup, axis=axis)
-        except TypeError as err:
-            # slices are unhashable
-            # FIXME: this raises when we have a DatetimeIndex first level and a
-            #  string for the first tup entry
-            #  see test_partial_slicing_with_multiindex
-            raise IndexingError("No label returned") from err
 
         except KeyError as ek:
             # raise KeyError if number of indexers match
@@ -1149,7 +1128,6 @@ class _LocIndexer(_LocationIndexer):
             key = list(key)
 
         labels = self.obj._get_axis(axis)
-        key = labels._get_partial_string_timestamp_match_key(key)
 
         if isinstance(key, slice):
             self._validate_key(key, axis)
@@ -1196,7 +1174,7 @@ class _LocIndexer(_LocationIndexer):
             #  return a DatetimeIndex instead of a slice object.
             return self.obj.take(indexer, axis=axis)
 
-    def _convert_to_indexer(self, key, axis: int, is_setter: bool = False):
+    def _convert_to_indexer(self, key, axis: int):
         """
         Convert indexing key into something we can use to do actual fancy
         indexing on a ndarray.
@@ -1220,7 +1198,7 @@ class _LocIndexer(_LocationIndexer):
         is_int_index = labels.is_integer()
         is_int_positional = is_integer(key) and not is_int_index
 
-        if is_scalar(key) or isinstance(labels, MultiIndex):
+        if is_scalar(key) or (isinstance(labels, MultiIndex) and is_hashable(key)):
             # Otherwise get_loc will raise InvalidIndexError
 
             # if we are a label return me
@@ -1235,8 +1213,6 @@ class _LocIndexer(_LocationIndexer):
                 # GH35015, using datetime as column indices raises exception
                 if not isinstance(labels, MultiIndex):
                     raise
-            except TypeError:
-                pass
             except ValueError:
                 if not is_int_positional:
                     raise
@@ -1300,93 +1276,11 @@ class _LocIndexer(_LocationIndexer):
             Indexer for the return object, -1 denotes keys not found.
         """
         ax = self.obj._get_axis(axis)
+        axis_name = self.obj._get_axis_name(axis)
 
-        keyarr = key
-        if not isinstance(keyarr, Index):
-            keyarr = com.asarray_tuplesafe(keyarr)
-
-        if isinstance(ax, MultiIndex):
-            # get_indexer expects a MultiIndex or sequence of tuples, but
-            #  we may be doing partial-indexing, so need an extra check
-
-            # Have the index compute an indexer or return None
-            # if it cannot handle:
-            indexer = ax._convert_listlike_indexer(keyarr)
-            # We only act on all found values:
-            if indexer is not None and (indexer != -1).all():
-                # _validate_read_indexer is a no-op if no -1s, so skip
-                return ax[indexer], indexer
-
-        if ax._index_as_unique:
-            indexer = ax.get_indexer_for(keyarr)
-            keyarr = ax.reindex(keyarr)[0]
-        else:
-            keyarr, indexer, new_indexer = ax._reindex_non_unique(keyarr)
-
-        self._validate_read_indexer(keyarr, indexer, axis)
-
-        if needs_i8_conversion(ax.dtype) or isinstance(
-            ax, (IntervalIndex, CategoricalIndex)
-        ):
-            # For CategoricalIndex take instead of reindex to preserve dtype.
-            #  For IntervalIndex this is to map integers to the Intervals they match to.
-            keyarr = ax.take(indexer)
-            if keyarr.dtype.kind in ["m", "M"]:
-                # DTI/TDI.take can infer a freq in some cases when we dont want one
-                if isinstance(key, list) or (
-                    isinstance(key, type(ax)) and key.freq is None
-                ):
-                    keyarr = keyarr._with_freq(None)
+        keyarr, indexer = ax._get_indexer_strict(key, axis_name)
 
         return keyarr, indexer
-
-    def _validate_read_indexer(self, key, indexer, axis: int):
-        """
-        Check that indexer can be used to return a result.
-
-        e.g. at least one element was found,
-        unless the list of keys was actually empty.
-
-        Parameters
-        ----------
-        key : list-like
-            Targeted labels (only used to show correct error message).
-        indexer: array-like of booleans
-            Indices corresponding to the key,
-            (with -1 indicating not found).
-        axis : int
-            Dimension on which the indexing is being made.
-
-        Raises
-        ------
-        KeyError
-            If at least one key was requested but none was found.
-        """
-        if len(key) == 0:
-            return
-
-        # Count missing values:
-        missing_mask = indexer < 0
-        missing = (missing_mask).sum()
-
-        if missing:
-            ax = self.obj._get_axis(axis)
-
-            # TODO: remove special-case; this is just to keep exception
-            #  message tests from raising while debugging
-            use_interval_msg = isinstance(ax, IntervalIndex) or (
-                isinstance(ax, CategoricalIndex)
-                and isinstance(ax.categories, IntervalIndex)
-            )
-
-            if missing == len(indexer):
-                axis_name = self.obj._get_axis_name(axis)
-                if use_interval_msg:
-                    key = list(key)
-                raise KeyError(f"None of [{key}] are in the [{axis_name}]")
-
-            not_found = list(ensure_index(key)[missing_mask.nonzero()[0]].unique())
-            raise KeyError(f"{not_found} not in index")
 
 
 @doc(IndexingMixin.iloc)
@@ -1451,7 +1345,7 @@ class _iLocIndexer(_LocationIndexer):
 
         if isinstance(indexer, ABCDataFrame):
             warnings.warn(
-                "DataFrame indexer for .iloc is deprecated and will be removed in"
+                "DataFrame indexer for .iloc is deprecated and will be removed in "
                 "a future version.\n"
                 "consider using .loc with a DataFrame indexer for automatic alignment.",
                 FutureWarning,
@@ -1590,7 +1484,7 @@ class _iLocIndexer(_LocationIndexer):
         labels._validate_positional_slice(slice_obj)
         return self.obj._slice(slice_obj, axis=axis)
 
-    def _convert_to_indexer(self, key, axis: int, is_setter: bool = False):
+    def _convert_to_indexer(self, key, axis: int):
         """
         Much simpler as we only have to deal with our valid types.
         """
@@ -1802,6 +1696,10 @@ class _iLocIndexer(_LocationIndexer):
             elif lplane_indexer == 0 and len(value) == len(self.obj.index):
                 # We get here in one case via .loc with a all-False mask
                 pass
+
+            elif self._is_scalar_access(indexer):
+                # We are setting nested data
+                self._setitem_single_column(indexer[1], value, pi)
 
             elif len(ilocs) == len(value):
                 # We are setting multiple columns in a single row.
@@ -2023,6 +1921,7 @@ class _iLocIndexer(_LocationIndexer):
                 # no columns and scalar
                 raise ValueError("cannot set a frame with no defined columns")
 
+            has_dtype = hasattr(value, "dtype")
             if isinstance(value, ABCSeries):
                 # append a Series
                 value = value.reindex(index=self.obj.columns, copy=True)
@@ -2040,7 +1939,18 @@ class _iLocIndexer(_LocationIndexer):
 
                 value = Series(value, index=self.obj.columns, name=indexer)
 
-            self.obj._mgr = self.obj.append(value)._mgr
+            if not len(self.obj):
+                # We will ignore the existing dtypes instead of using
+                #  internals.concat logic
+                df = value.to_frame().T
+                df.index = [indexer]
+                if not has_dtype:
+                    # i.e. if we already had a Series or ndarray, keep that
+                    #  dtype.  But if we had a list or dict, then do inference
+                    df = df.infer_objects()
+                self.obj._mgr = df._mgr
+            else:
+                self.obj._mgr = self.obj.append(value)._mgr
             self.obj._maybe_update_cacher(clear=True)
 
     def _ensure_iterable_column_indexer(self, column_indexer):

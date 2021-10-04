@@ -11,6 +11,7 @@ import operator
 from typing import (
     TYPE_CHECKING,
     Hashable,
+    Literal,
 )
 import warnings
 
@@ -25,7 +26,6 @@ from pandas._libs import (
 )
 from pandas._libs.tslibs import (
     Resolution,
-    parsing,
     timezones,
     to_offset,
 )
@@ -33,6 +33,7 @@ from pandas._libs.tslibs.offsets import prefix_mapping
 from pandas._typing import (
     Dtype,
     DtypeObj,
+    npt,
 )
 from pandas.util._decorators import (
     cache_readonly,
@@ -91,7 +92,8 @@ def _new_DatetimeIndex(cls, d):
                 # These are already stored in our DatetimeArray; if they are
                 #  also in the pickle and don't match, we have a problem.
                 if key in d:
-                    assert d.pop(key) == getattr(dta, key)
+                    assert d[key] == getattr(dta, key)
+                    d.pop(key)
         result = cls._simple_new(dta, **d)
     else:
         with warnings.catch_warnings():
@@ -495,7 +497,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             if keep_tz:
                 warnings.warn(
                     "The 'keep_tz' keyword in DatetimeIndex.to_series "
-                    "is deprecated and will be removed in a future version.  "
+                    "is deprecated and will be removed in a future version. "
                     "You can stop passing 'keep_tz' to silence this warning.",
                     FutureWarning,
                     stacklevel=2,
@@ -610,7 +612,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 msg = (
                     "Indexing a timezone-aware DatetimeIndex with a "
                     "timezone-naive datetime is deprecated and will "
-                    "raise KeyError in a future version.  "
+                    "raise KeyError in a future version. "
                     "Use a timezone-aware object instead."
                 )
             warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
@@ -684,51 +686,13 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             key = key.tz_convert(self.tz)
         return key
 
+    @doc(DatetimeTimedeltaMixin._maybe_cast_slice_bound)
     def _maybe_cast_slice_bound(self, label, side: str, kind=lib.no_default):
-        """
-        If label is a string, cast it to datetime according to resolution.
-
-        Parameters
-        ----------
-        label : object
-        side : {'left', 'right'}
-        kind : {'loc', 'getitem'} or None
-
-        Returns
-        -------
-        label : object
-
-        Notes
-        -----
-        Value of `side` parameter should be validated in caller.
-        """
-        assert kind in ["loc", "getitem", None, lib.no_default]
-        self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
-
-        if isinstance(label, str):
-            try:
-                parsed, reso = self._parse_with_reso(label)
-            except parsing.DateParseError as err:
-                raise self._invalid_indexer("slice", label) from err
-
-            lower, upper = self._parsed_string_to_bounds(reso, parsed)
-            # lower, upper form the half-open interval:
-            #   [parsed, parsed + 1 freq)
-            # because label may be passed to searchsorted
-            # the bounds need swapped if index is reverse sorted and has a
-            # length > 1 (is_monotonic_decreasing gives True for empty
-            # and length 1 index)
-            if self._is_strictly_monotonic_decreasing and len(self) > 1:
-                return upper if side == "left" else lower
-            return lower if side == "left" else upper
-        elif isinstance(label, (self._data._recognized_scalars, date)):
-            self._deprecate_mismatched_indexing(label)
-        else:
-            raise self._invalid_indexer("slice", label)
-
+        label = super()._maybe_cast_slice_bound(label, side, kind=kind)
+        self._deprecate_mismatched_indexing(label)
         return self._maybe_cast_for_get_loc(label)
 
-    def slice_indexer(self, start=None, end=None, step=None, kind=None):
+    def slice_indexer(self, start=None, end=None, step=None, kind=lib.no_default):
         """
         Return indexer for specified label slice.
         Index.slice_indexer, customized to handle time slicing.
@@ -742,6 +706,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
           value-based selection in non-monotonic cases.
 
         """
+        self._deprecated_arg(kind, "kind", "slice_indexer")
+
         # For historical reasons DatetimeIndex supports slices between two
         # instances of datetime.time as if it were applying a slice mask to
         # an array of (self.hour, self.minute, self.seconds, self.microsecond).
@@ -799,6 +765,15 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         else:
             return indexer
 
+    @doc(Index.get_slice_bound)
+    def get_slice_bound(
+        self, label, side: Literal["left", "right"], kind=lib.no_default
+    ) -> int:
+        # GH#42855 handle date here instead of _maybe_cast_slice_bound
+        if isinstance(label, date) and not isinstance(label, datetime):
+            label = Timestamp(label).to_pydatetime()
+        return super().get_slice_bound(label, side=side, kind=kind)
+
     # --------------------------------------------------------------------
 
     @property
@@ -807,7 +782,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         # sure we can't have ambiguous indexing
         return "datetime64"
 
-    def indexer_at_time(self, time, asof: bool = False) -> np.ndarray:
+    def indexer_at_time(self, time, asof: bool = False) -> npt.NDArray[np.intp]:
         """
         Return index locations of values at particular time of day
         (e.g. 9:30AM).
@@ -848,7 +823,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     def indexer_between_time(
         self, start_time, end_time, include_start: bool = True, include_end: bool = True
-    ) -> np.ndarray:
+    ) -> npt.NDArray[np.intp]:
         """
         Return index locations of values between particular times of day
         (e.g., 9:00-9:30AM).
@@ -906,7 +881,8 @@ def date_range(
     tz=None,
     normalize: bool = False,
     name: Hashable = None,
-    closed=None,
+    closed: str | None | lib.NoDefault = lib.no_default,
+    inclusive: str | None = None,
     **kwargs,
 ) -> DatetimeIndex:
     """
@@ -944,6 +920,14 @@ def date_range(
     closed : {None, 'left', 'right'}, optional
         Make the interval closed with respect to the given frequency to
         the 'left', 'right', or both sides (None, the default).
+
+        .. deprecated:: 1.4.0
+           Argument `closed` has been deprecated to standardize boundary inputs.
+           Use `inclusive` instead, to set each bound as closed or open.
+    inclusive : {"both", "neither", "left", "right"}, default "both"
+        Include boundaries; Whether to set each bound as closed or open.
+
+        .. versionadded:: 1.4.0
     **kwargs
         For compatibility. Has no effect on the result.
 
@@ -1054,6 +1038,28 @@ def date_range(
     DatetimeIndex(['2017-01-02', '2017-01-03', '2017-01-04'],
                   dtype='datetime64[ns]', freq='D')
     """
+    if inclusive is not None and not isinstance(closed, lib.NoDefault):
+        raise ValueError(
+            "Deprecated argument `closed` cannot be passed"
+            "if argument `inclusive` is not None"
+        )
+    elif not isinstance(closed, lib.NoDefault):
+        warnings.warn(
+            "Argument `closed` is deprecated in favor of `inclusive`.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        if closed is None:
+            inclusive = "both"
+        elif closed in ("left", "right"):
+            inclusive = closed
+        else:
+            raise ValueError(
+                "Argument `closed` has to be either 'left', 'right' or None"
+            )
+    elif inclusive is None:
+        inclusive = "both"
+
     if freq is None and com.any_none(periods, start, end):
         freq = "D"
 
@@ -1064,7 +1070,7 @@ def date_range(
         freq=freq,
         tz=tz,
         normalize=normalize,
-        closed=closed,
+        inclusive=inclusive,
         **kwargs,
     )
     return DatetimeIndex._simple_new(dtarr, name=name)
@@ -1080,7 +1086,8 @@ def bdate_range(
     name: Hashable = None,
     weekmask=None,
     holidays=None,
-    closed=None,
+    closed: lib.NoDefault = lib.no_default,
+    inclusive: str | None = None,
     **kwargs,
 ) -> DatetimeIndex:
     """
@@ -1115,6 +1122,14 @@ def bdate_range(
     closed : str, default None
         Make the interval closed with respect to the given frequency to
         the 'left', 'right', or both sides (None).
+
+        .. deprecated:: 1.4.0
+           Argument `closed` has been deprecated to standardize boundary inputs.
+           Use `inclusive` instead, to set each bound as closed or open.
+    inclusive : {"both", "neither", "left", "right"}, default "both"
+        Include boundaries; Whether to set each bound as closed or open.
+
+        .. versionadded:: 1.4.0
     **kwargs
         For compatibility. Has no effect on the result.
 
@@ -1168,6 +1183,7 @@ def bdate_range(
         normalize=normalize,
         name=name,
         closed=closed,
+        inclusive=inclusive,
         **kwargs,
     )
 
