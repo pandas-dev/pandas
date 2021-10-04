@@ -758,11 +758,11 @@ cpdef ndarray[object] ensure_string_array(
         if not check_null(val):
             if coerce =="all" or coerce == "non-null":
                 if not isinstance(val, np.floating):
-                # f"{val}" is faster than str(val)
-                result[i] = f"{val}"
-            else:
-                # f"{val}" is not always equivalent to str(val) for floats
-                result[i] = str(val)
+                    # f"{val}" is faster than str(val)
+                    result[i] = f"{val}"
+                else:
+                    # f"{val}" is not always equivalent to str(val) for floats
+                    result[i] = str(val)
             else:
                 raise ValueError(f"Element {val} is not a string or valid null."
                                  "If you want it to be coerced to a string,"
