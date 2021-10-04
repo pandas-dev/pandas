@@ -1515,7 +1515,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         new_data = self._mgr.apply(blk_func)
         res = self._constructor(new_data)
-        return res.__finalize__(self, method="__neg__")
+        return res.__finalize__(self, method="__pos__")
 
     @final
     def __invert__(self):
