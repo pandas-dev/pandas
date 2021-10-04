@@ -114,32 +114,19 @@ def test_group_diff_object_raises(object_dtype):
     with pytest.raises(TypeError, match=r"unsupported operand type\(s\) for -"):
         df.groupby("a")["b"].diff()
         
-@pytest.mark.parametrize(
-    "obj",
-        [
-            tm.SubclassedDataFrame(columns=["a", "b", "c"]),
-        ],
-    )
-def test_empty_shift_with_fill(obj):
-    # GH 41264, single-index check
 
-    shifted = obj.groupby(['a']).shift(1)
-    shifted_with_fill = obj.groupby(['a']).shift(1, fill_value=0)
-    
+def test_empty_shift_with_fill():
+    # GH 41264, single-index check
+    df = DataFrame(columns=["a", "b", "c"])
+    shifted = df.groupby(['a']).shift(1)
+    shifted_with_fill = df.groupby(['a']).shift(1, fill_value=0)
     tm.assert_frame_equal(shifted, shifted_with_fill)
     tm.assert_index_equal(shifted.index, shifted_with_fill.index)
 
-@pytest.mark.parametrize(
-    "obj",
-        [
-            tm.SubclassedDataFrame(columns=["a", "b", "c"]),
-        ],
-    )
-def test_multindex_empty_shift_with_fill(obj):
+def test_multindex_empty_shift_with_fill():
     # GH 41264, multi-index check
-
-    shifted = obj.groupby(['a','b']).shift(1)
-    shifted_with_fill = obj.groupby(['a','b']).shift(1, fill_value=0)
-    
+    df = DataFrame(columns=["a", "b", "c"])
+    shifted = df.groupby(['a','b']).shift(1)
+    shifted_with_fill = df.groupby(['a','b']).shift(1, fill_value=0)
     tm.assert_frame_equal(shifted, shifted_with_fill)
     tm.assert_index_equal(shifted.index, shifted_with_fill.index)
