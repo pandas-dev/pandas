@@ -518,7 +518,7 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
--
+- Bug in :func:`array` failing to preserve :class:`PandasArray` (:issue:`43887`)
 -
 
 Styler
