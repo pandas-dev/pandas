@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import textwrap
+from typing import Union
 
 from pandas._libs import (
     NaT,
@@ -163,7 +164,7 @@ def _get_combined_index(
     return index
 
 
-def union_indexes(indexes, sort: bool = True) -> Index:
+def union_indexes(indexes, sort: Union[bool, None] = True) -> Index:
     """
     Return the union of indexes.
 
