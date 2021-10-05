@@ -281,6 +281,12 @@ Other API changes
 - :meth:`Index.get_indexer_for` no longer accepts keyword arguments (other than 'target'); in the past these would be silently ignored if the index was not unique (:issue:`42310`)
 -
 
+.. _whatsnew_130.api_breaking.build:
+
+Build
+^^^^^
+- The minimum version of Cython needed to compile pandas is now ``0.29.24`` (:issue:`43729`)
+
 .. ---------------------------------------------------------------------------
 
 .. _whatsnew_140.deprecations:
