@@ -1,5 +1,3 @@
-# Copyright (c) 2021, NVIDIA CORPORATION.
-
 import operator
 import re
 import time
