@@ -843,8 +843,8 @@ def to_datetime(
         - Series or DataFrame: Series of datetime64 dtype
         - scalar: Timestamp
 
-        Warning: in some situations the return type can not be one of the above
-        and is is rather datetime.datetime (scalar input) or Series with object
+        Note: in some situations the return type can not be one of the above
+        and is rather datetime.datetime (scalar input) or Series with object
         dtype containing datetime.datetime objects (array-like or Series
         input). See above documentation for details, as well as examples
         below.
