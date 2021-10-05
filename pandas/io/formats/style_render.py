@@ -123,7 +123,7 @@ class StylerRenderer:
         self.hide_columns_: list = [False] * self.columns.nlevels
         self.hidden_rows: Sequence[int] = []  # sequence for specific hidden rows/cols
         self.hidden_columns: Sequence[int] = []
-        self.descriptors: list[str, Callable, tuple[str, Callable]] = []
+        self.descriptors: list[str | Callable | tuple[str, Callable]] = []
         self.ctx: DefaultDict[tuple[int, int], CSSList] = defaultdict(list)
         self.ctx_index: DefaultDict[tuple[int, int], CSSList] = defaultdict(list)
         self.ctx_columns: DefaultDict[tuple[int, int], CSSList] = defaultdict(list)
@@ -480,7 +480,8 @@ class StylerRenderer:
         ] * (self.index.nlevels - sum(self.hide_index_) - 1)
 
         if isinstance(descriptor, str):
-            name, func = descriptor, getattr(Series, descriptor)
+            name: str | None = descriptor
+            func: Callable = getattr(Series, descriptor)
         elif isinstance(descriptor, tuple):
             name, func = descriptor[0], descriptor[1]
         else:
