@@ -764,7 +764,7 @@ def to_datetime(
             with year first.
 
     utc : bool, default None
-        Control timezone localization and conversion.
+        Control timezone-related parsing, localization and conversion.
 
         - if True, returns a timezone-aware UTC-localized Timestamp, Series or
           DatetimeIndex. Any tz-naive element will be *localized* as UTC.
