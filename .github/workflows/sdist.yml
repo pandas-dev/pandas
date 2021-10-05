@@ -33,13 +33,9 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-
     - name: Build pandas sdist
       run: |
+        pipx run build --version
         pipx run build --sdist
 
     - uses: conda-incubator/setup-miniconda@v2
