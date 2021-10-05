@@ -931,6 +931,17 @@ class TestiLocBaseIndependent:
         expected = Series([NaT, 1, 2], dtype="timedelta64[ns]")
         tm.assert_series_equal(series, expected)
 
+    @pytest.mark.parametrize("not_na", [Interval(0, 1), "a", 1.0])
+    def test_setitem_mix_of_nan_and_interval(self, not_na, nulls_fixture):
+        # GH#27937
+        dtype = CategoricalDtype(categories=[not_na])
+        ser = Series(
+            [nulls_fixture, nulls_fixture, nulls_fixture, nulls_fixture], dtype=dtype
+        )
+        ser.iloc[:3] = [nulls_fixture, not_na, nulls_fixture]
+        exp = Series([nulls_fixture, not_na, nulls_fixture, nulls_fixture], dtype=dtype)
+        tm.assert_series_equal(ser, exp)
+
     def test_iloc_setitem_empty_frame_raises_with_3d_ndarray(self):
         idx = Index([])
         obj = DataFrame(np.random.randn(len(idx), len(idx)), index=idx, columns=idx)
