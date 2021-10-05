@@ -1061,10 +1061,7 @@ def to_datetime(
     else:
         result = convert_listlike(np.array([arg]), format)[0]
 
-    #  error: Incompatible return value type (got "Union[Timestamp, NaTType,
-    # Series, Index]", expected "Union[DatetimeIndex, Series, float, str,
-    # NaTType, None]")
-    return result  # type: ignore[return-value]
+    return result
 
 
 # mappings for assembling units
