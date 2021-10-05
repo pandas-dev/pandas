@@ -142,11 +142,18 @@ class Styler(StylerRenderer):
         uses ``pandas.options.styler.format.formatter``.
 
         .. versionadded:: 1.4.0
+    css_class_names : dict, optional
+        A dict of strings used to replace the default CSS class names described below.
+
+        .. versionadded:: 1.4.0
 
     Attributes
     ----------
     env : Jinja2 jinja2.Environment
-    template : Jinja2 Template
+    template_html : Jinja2 Template
+    template_html_table : Jinja2 Template
+    template_html_style : Jinja2 Template
+    template_latex : Jinja2 Template
     loader : Jinja2 Loader
 
     See Also
@@ -182,6 +189,11 @@ class Styler(StylerRenderer):
 
     * Blank cells include ``blank``
     * Data cells include ``data``
+    * Trimmed cells include ``col_trim`` or ``row_trim``.
+
+    Any, or all, or these classes can be renamed by using the ``css_class_names``
+    argument, giving a value such as
+    *{"row": "MY_ROW_CLASS", "col_trim": "", "row_trim": ""}*.
     """
 
     def __init__(
@@ -199,6 +211,7 @@ class Styler(StylerRenderer):
         thousands: str | None = None,
         escape: str | None = None,
         formatter: ExtFormatter | None = None,
+        css_class_names: dict[str, str] | None = None,
     ):
         super().__init__(
             data=data,
@@ -209,6 +222,7 @@ class Styler(StylerRenderer):
             caption=caption,
             cell_ids=cell_ids,
             precision=precision,
+            css=css_class_names,
         )
 
         # validate ordered args
@@ -1159,6 +1173,7 @@ class Styler(StylerRenderer):
           - caption
 
         Non-data dependent attributes [copied and exported]:
+          - css
           - hidden index state and hidden columns state (.hide_index_, .hide_columns_)
           - table_attributes
           - table_styles
@@ -1185,6 +1200,7 @@ class Styler(StylerRenderer):
             "template_html",
         ]
         deep = [  # nested lists or dicts
+            "css",
             "_display_funcs",
             "_display_funcs_index",
             "_display_funcs_columns",
@@ -1948,9 +1964,11 @@ class Styler(StylerRenderer):
 
     def set_table_styles(
         self,
-        table_styles: dict[Any, CSSStyles] | CSSStyles,
+        table_styles: dict[Any, CSSStyles] | CSSStyles | None = None,
         axis: int = 0,
         overwrite: bool = True,
+        css_class_names: dict[str, str] | None = None,
+        cell_ids: bool | None = None,
     ) -> Styler:
         """
         Set the table styles included within the ``<style>`` HTML element.
@@ -1990,6 +2008,16 @@ class Styler(StylerRenderer):
 
             .. versionadded:: 1.2.0
 
+        css_class_names : dict, optional
+            A dict of strings used to replace the default CSS classes described below.
+
+            .. versionadded:: 1.4.0
+
+        cell_ids : bool, optional
+            Whether to include ids on every element of the format *T_{uuid}_rowM_colN*.
+
+            .. versionadded:: 1.4.0
+
         Returns
         -------
         self : Styler
@@ -2000,6 +2028,22 @@ class Styler(StylerRenderer):
             attribute of ``<td>`` HTML elements.
         Styler.set_table_attributes: Set the table attributes added to the ``<table>``
             HTML element.
+
+        Notes
+        -----
+        The default CSS classes dict, whose values can be replaced is as follows:
+
+        .. code-block:: python
+
+            css_class_names = {"row_heading": "row_heading",
+                               "col_heading": "col_heading",
+                               "index_name": "index_name",
+                               "col": "col",
+                               "col_trim": "col_trim",
+                               "row_trim": "row_trim",
+                               "level": "level",
+                               "data": "data",
+                               "blank": "blank}
 
         Examples
         --------
@@ -2036,10 +2080,17 @@ class Styler(StylerRenderer):
         See `Table Visualization <../../user_guide/style.ipynb>`_ user guide for
         more details.
         """
-        if isinstance(table_styles, dict):
+        if css_class_names is not None:
+            self.css = {**self.css, **css_class_names}
+        if cell_ids is not None:
+            self.cell_ids = cell_ids
+
+        if table_styles is None:
+            return self
+        elif isinstance(table_styles, dict):
             axis = self.data._get_axis_number(axis)
             obj = self.data.index if axis == 1 else self.data.columns
-            idf = ".row" if axis == 1 else ".col"
+            idf = f".{self.css['row']}" if axis == 1 else f".{self.css['col']}"
 
             table_styles = [
                 {
