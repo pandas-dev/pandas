@@ -168,7 +168,6 @@ if TYPE_CHECKING:
         DataFrame,
         IntervalIndex,
         MultiIndex,
-        RangeIndex,
         Series,
     )
     from pandas.core.arrays import PeriodArray
@@ -316,8 +315,8 @@ class Index(IndexOpsMixin, PandasObject):
     @final
     def _left_indexer_unique(self: _IndexT, other: _IndexT) -> npt.NDArray[np.intp]:
         # Caller is responsible for ensuring other.dtype == self.dtype
-        sv = self._get_join_target()
-        ov = other._get_join_target()
+        sv = self._get_engine_target()
+        ov = other._get_engine_target()
         return libjoin.left_join_indexer_unique(sv, ov)
 
     @final
@@ -325,8 +324,8 @@ class Index(IndexOpsMixin, PandasObject):
         self: _IndexT, other: _IndexT
     ) -> tuple[ArrayLike, npt.NDArray[np.intp], npt.NDArray[np.intp]]:
         # Caller is responsible for ensuring other.dtype == self.dtype
-        sv = self._get_join_target()
-        ov = other._get_join_target()
+        sv = self._get_engine_target()
+        ov = other._get_engine_target()
         joined_ndarray, lidx, ridx = libjoin.left_join_indexer(sv, ov)
         joined = self._from_join_target(joined_ndarray)
         return joined, lidx, ridx
@@ -336,8 +335,8 @@ class Index(IndexOpsMixin, PandasObject):
         self: _IndexT, other: _IndexT
     ) -> tuple[ArrayLike, npt.NDArray[np.intp], npt.NDArray[np.intp]]:
         # Caller is responsible for ensuring other.dtype == self.dtype
-        sv = self._get_join_target()
-        ov = other._get_join_target()
+        sv = self._get_engine_target()
+        ov = other._get_engine_target()
         joined_ndarray, lidx, ridx = libjoin.inner_join_indexer(sv, ov)
         joined = self._from_join_target(joined_ndarray)
         return joined, lidx, ridx
@@ -347,8 +346,8 @@ class Index(IndexOpsMixin, PandasObject):
         self: _IndexT, other: _IndexT
     ) -> tuple[ArrayLike, npt.NDArray[np.intp], npt.NDArray[np.intp]]:
         # Caller is responsible for ensuring other.dtype == self.dtype
-        sv = self._get_join_target()
-        ov = other._get_join_target()
+        sv = self._get_engine_target()
+        ov = other._get_engine_target()
         joined_ndarray, lidx, ridx = libjoin.outer_join_indexer(sv, ov)
         joined = self._from_join_target(joined_ndarray)
         return joined, lidx, ridx
@@ -820,7 +819,7 @@ class Index(IndexOpsMixin, PandasObject):
         # to avoid a reference cycle, bind `target_values` to a local variable, so
         # `self` is not passed into the lambda.
         target_values = self._get_engine_target()
-        return self._engine_type(lambda: target_values, len(self))
+        return self._engine_type(target_values)
 
     @final
     @cache_readonly
@@ -891,7 +890,14 @@ class Index(IndexOpsMixin, PandasObject):
             FutureWarning,
             stacklevel=2,
         )
-        values = self._get_engine_target()
+        if needs_i8_conversion(self.dtype):
+            # Item "ndarray[Any, Any]" of "Union[ExtensionArray, ndarray[Any, Any]]"
+            # has no attribute "_ndarray"
+            values = self._data._ndarray  # type: ignore[union-attr]
+        elif is_interval_dtype(self.dtype):
+            values = np.asarray(self._data)
+        else:
+            values = self._get_engine_target()
         return values.ravel(order=order)
 
     def view(self, cls=None):
@@ -3055,6 +3061,7 @@ class Index(IndexOpsMixin, PandasObject):
             and self.is_monotonic
             and other.is_monotonic
             and not (self.has_duplicates and other.has_duplicates)
+            and self._can_use_libjoin
         ):
             # Both are unique and monotonic, so can use outer join
             try:
@@ -3185,13 +3192,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         intersection specialized to the case with matching dtypes.
         """
-        if (
-            self.is_monotonic
-            and other.is_monotonic
-            and not is_interval_dtype(self.dtype)
-        ):
-            # For IntervalIndex _inner_indexer is not more performant than get_indexer,
-            #  so don't take this fastpath
+        if self.is_monotonic and other.is_monotonic and self._can_use_libjoin:
             try:
                 result = self._inner_indexer(other)[0]
             except TypeError:
@@ -3704,13 +3705,14 @@ class Index(IndexOpsMixin, PandasObject):
             )
 
         if self.is_monotonic_increasing and target.is_monotonic_increasing:
-            engine_method = (
-                self._engine.get_pad_indexer
-                if method == "pad"
-                else self._engine.get_backfill_indexer
-            )
             target_values = target._get_engine_target()
-            indexer = engine_method(target_values, limit)
+            own_values = self._get_engine_target()
+
+            if method == "pad":
+                indexer = libalgos.pad(own_values, target_values, limit=limit)
+            else:
+                # i.e. "backfill"
+                indexer = libalgos.backfill(own_values, target_values, limit=limit)
         else:
             indexer = self._get_fill_indexer_searchsorted(target, method, limit)
         if tolerance is not None and len(self):
@@ -4174,12 +4176,15 @@ class Index(IndexOpsMixin, PandasObject):
             return self._join_non_unique(other, how=how)
         elif not self.is_unique or not other.is_unique:
             if self.is_monotonic and other.is_monotonic:
-                return self._join_monotonic(other, how=how)
+                if self._can_use_libjoin:
+                    # otherwise we will fall through to _join_via_get_indexer
+                    return self._join_monotonic(other, how=how)
             else:
                 return self._join_non_unique(other, how=how)
         elif (
             self.is_monotonic
             and other.is_monotonic
+            and self._can_use_libjoin
             and (
                 not isinstance(self, ABCMultiIndex)
                 or not any(is_categorical_dtype(dtype) for dtype in self.dtypes)
@@ -4318,12 +4323,8 @@ class Index(IndexOpsMixin, PandasObject):
         )
         mask = left_idx == -1
 
-        # error: Argument 1 to "take" of "ExtensionArray" has incompatible
-        # type "ndarray[Any, dtype[signedinteger[Any]]]"; expected "Sequence[int]"
-        join_array = self._values.take(left_idx)  # type: ignore[arg-type]
-        # error: Argument 1 to "take" of "ExtensionArray" has incompatible type
-        # "ndarray[Any, dtype[signedinteger[Any]]]"; expected "Sequence[int]"
-        right = other._values.take(right_idx)  # type: ignore[arg-type]
+        join_array = self._values.take(left_idx)
+        right = other._values.take(right_idx)
 
         if isinstance(join_array, np.ndarray):
             np.putmask(join_array, mask, right)
@@ -4541,6 +4542,15 @@ class Index(IndexOpsMixin, PandasObject):
             name = get_op_result_name(self, other)
             return self._constructor._with_infer(joined, name=name)
 
+    @cache_readonly
+    def _can_use_libjoin(self) -> bool:
+        """
+        Whether we can use the fastpaths implement in _libs.join
+        """
+        # Note: this will need to be updated when e.g. Nullable dtypes
+        #  are supported in Indexes.
+        return not is_interval_dtype(self.dtype)
+
     # --------------------------------------------------------------------
     # Uncategorized Methods
 
@@ -4609,12 +4619,6 @@ class Index(IndexOpsMixin, PandasObject):
         # error: Incompatible return value type (got "Union[ExtensionArray,
         # ndarray]", expected "ndarray")
         return self._values  # type: ignore[return-value]
-
-    def _get_join_target(self) -> np.ndarray:
-        """
-        Get the ndarray that we will pass to libjoin functions.
-        """
-        return self._get_engine_target()
 
     def _from_join_target(self, result: np.ndarray) -> ArrayLike:
         """
@@ -6340,8 +6344,11 @@ class Index(IndexOpsMixin, PandasObject):
         KeyError
             If not all of the labels are found in the selected axis
         """
-        arr_dtype = "object" if self.dtype == "object" else None
-        labels = com.index_labels_to_array(labels, dtype=arr_dtype)
+        if not isinstance(labels, Index):
+            # avoid materializing e.g. RangeIndex
+            arr_dtype = "object" if self.dtype == "object" else None
+            labels = com.index_labels_to_array(labels, dtype=arr_dtype)
+
         indexer = self.get_indexer_for(labels)
         mask = indexer == -1
         if mask.any():
@@ -6797,12 +6804,6 @@ def trim_front(strings: list[str]) -> list[str]:
 def _validate_join_method(method: str) -> None:
     if method not in ["left", "right", "inner", "outer"]:
         raise ValueError(f"do not recognize join method {method}")
-
-
-def default_index(n: int) -> RangeIndex:
-    from pandas.core.indexes.range import RangeIndex
-
-    return RangeIndex(0, n, name=None)
 
 
 def maybe_extract_name(name, obj, cls) -> Hashable:

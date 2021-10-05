@@ -45,6 +45,15 @@ jobs:
         environment-file: ${{ env.ENV_FILE }}
         use-only-tar-bz2: true
 
+    - name: Install node.js (for pyright)
+      uses: actions/setup-node@v2
+      with:
+        node-version: "16"
+
+    - name: Install pyright
+      # note: keep version in sync with .pre-commit-config.yaml
+      run: npm install -g pyright@1.1.171
+
     - name: Build Pandas
       uses: ./.github/actions/build_pandas
 
