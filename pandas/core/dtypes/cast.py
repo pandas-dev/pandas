@@ -77,6 +77,7 @@ from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
     IntervalDtype,
+    PandasDtype,
     PeriodDtype,
 )
 from pandas.core.dtypes.generic import (
@@ -1305,6 +1306,9 @@ def astype_array_safe(
         raise TypeError(msg)
 
     dtype = pandas_dtype(dtype)
+    if isinstance(dtype, PandasDtype):
+        # Ensure we don't end up with a PandasArray
+        dtype = dtype.numpy_dtype
 
     try:
         new_values = astype_array(values, dtype, copy=copy)
@@ -2185,6 +2189,11 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
         # ExtensionBlock._can_hold_element
         return True
 
+    # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
+    # operand type: "Type[object]")
+    if dtype == object:  # type: ignore[comparison-overlap]
+        return True
+
     tipo = maybe_infer_dtype_type(element)
 
     if dtype.kind in ["i", "u"]:
@@ -2231,11 +2240,6 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
         if tipo is not None:
             return tipo.kind == "b"
         return lib.is_bool(element)
-
-    # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-    # operand type: "Type[object]")
-    elif dtype == object:  # type: ignore[comparison-overlap]
-        return True
 
     elif dtype.kind == "S":
         # TODO: test tests.frame.methods.test_replace tests get here,

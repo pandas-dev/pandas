@@ -17,6 +17,7 @@ from pandas import (
     MultiIndex,
     RangeIndex,
     Series,
+    Timedelta,
     Timestamp,
     date_range,
     read_csv,
@@ -242,6 +243,10 @@ def test_pass_args_kwargs(ts, tsframe):
         expected = df_grouped.quantile(0.8)
         tm.assert_frame_equal(apply_result, expected, check_names=False)
         tm.assert_frame_equal(agg_result, expected)
+
+        apply_result = df_grouped.apply(DataFrame.quantile, [0.4, 0.8])
+        expected_seq = df_grouped.quantile([0.4, 0.8])
+        tm.assert_frame_equal(apply_result, expected_seq, check_names=False)
 
         agg_result = df_grouped.agg(f, q=80)
         apply_result = df_grouped.apply(DataFrame.quantile, q=0.8)
@@ -578,7 +583,10 @@ def test_frame_multi_key_function_list():
 
     grouped = data.groupby(["A", "B"])
     funcs = [np.mean, np.std]
-    agged = grouped.agg(funcs)
+    with tm.assert_produces_warning(
+        FutureWarning, match=r"\['C'\] did not aggregate successfully"
+    ):
+        agged = grouped.agg(funcs)
     expected = pd.concat(
         [grouped["D"].agg(funcs), grouped["E"].agg(funcs), grouped["F"].agg(funcs)],
         keys=["D", "E", "F"],
@@ -845,11 +853,6 @@ def test_groupby_multi_corner(df):
 
 def test_omit_nuisance(df):
     grouped = df.groupby("A")
-
-    result = grouped.mean()
-    expected = df.loc[:, ["A", "C", "D"]].groupby("A").mean()
-    tm.assert_frame_equal(result, expected)
-
     agged = grouped.agg(np.mean)
     exp = grouped.mean()
     tm.assert_frame_equal(agged, exp)
@@ -868,12 +871,41 @@ def test_omit_nuisance(df):
         grouped.agg(lambda x: x.sum(0, numeric_only=False))
 
 
-def test_omit_nuisance_sem(df):
-    # GH 38774 - sem should work with nuisance columns
+@pytest.mark.parametrize(
+    "agg_function",
+    ["max", "min"],
+)
+def test_keep_nuisance_agg(df, agg_function):
+    # GH 38815
     grouped = df.groupby("A")
-    result = grouped.sem()
-    expected = df.loc[:, ["A", "C", "D"]].groupby("A").sem()
+    result = getattr(grouped, agg_function)()
+    expected = result.copy()
+    expected.loc["bar", "B"] = getattr(df.loc[df["A"] == "bar", "B"], agg_function)()
+    expected.loc["foo", "B"] = getattr(df.loc[df["A"] == "foo", "B"], agg_function)()
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "agg_function",
+    ["sum", "mean", "prod", "std", "var", "median"],
+)
+def test_omit_nuisance_agg(df, agg_function):
+    # GH 38774, GH 38815
+    grouped = df.groupby("A")
+    result = getattr(grouped, agg_function)()
+    expected = getattr(df.loc[:, ["A", "C", "D"]].groupby("A"), agg_function)()
+    tm.assert_frame_equal(result, expected)
+
+
+def test_omit_nuisance_warnings(df):
+    # GH 38815
+    with tm.assert_produces_warning(
+        FutureWarning, filter_level="always", check_stacklevel=False
+    ):
+        grouped = df.groupby("A")
+        result = grouped.skew()
+        expected = df.loc[:, ["A", "C", "D"]].groupby("A").skew()
+        tm.assert_frame_equal(result, expected)
 
 
 def test_omit_nuisance_python_multiple(three_group):
@@ -1007,6 +1039,30 @@ def test_groupby_complex():
     with tm.assert_produces_warning(FutureWarning):
         result = a.sum(level=0)
     tm.assert_series_equal(result, expected)
+
+
+def test_groupby_complex_numbers():
+    # GH 17927
+    df = DataFrame(
+        [
+            {"a": 1, "b": 1 + 1j},
+            {"a": 1, "b": 1 + 2j},
+            {"a": 4, "b": 1},
+        ]
+    )
+    expected = DataFrame(
+        np.array([1, 1, 1], dtype=np.int64),
+        index=Index([(1 + 1j), (1 + 2j), (1 + 0j)], dtype="object", name="b"),
+        columns=Index(["a"], dtype="object"),
+    )
+    result = df.groupby("b", sort=False).count()
+    tm.assert_frame_equal(result, expected)
+
+    # Sorted by the magnitude of the complex numbers
+    # Complex Index dtype is cast to object
+    expected.index = Index([(1 + 0j), (1 + 1j), (1 + 2j)], dtype="object", name="b")
+    result = df.groupby("b", sort=True).count()
+    tm.assert_frame_equal(result, expected)
 
 
 def test_groupby_series_indexed_differently():
@@ -2365,6 +2421,67 @@ def test_groupby_empty_multi_column(as_index, numeric_only):
         index = RangeIndex(0)
         columns = ["A", "B", "C"] if not numeric_only else ["A", "B"]
     expected = DataFrame([], columns=columns, index=index)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_aggregation_non_numeric_dtype():
+    # GH #43108
+    df = DataFrame(
+        [["M", [1]], ["M", [1]], ["W", [10]], ["W", [20]]], columns=["MW", "v"]
+    )
+
+    expected = DataFrame(
+        {
+            "v": [[1, 1], [10, 20]],
+        },
+        index=Index(["M", "W"], dtype="object", name="MW"),
+    )
+
+    gb = df.groupby(by=["MW"])
+    result = gb.sum()
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_aggregation_multi_non_numeric_dtype():
+    # GH #42395
+    df = DataFrame(
+        {
+            "x": [1, 0, 1, 1, 0],
+            "y": [Timedelta(i, "days") for i in range(1, 6)],
+            "z": [Timedelta(i * 10, "days") for i in range(1, 6)],
+        }
+    )
+
+    expected = DataFrame(
+        {
+            "y": [Timedelta(i, "days") for i in range(7, 9)],
+            "z": [Timedelta(i * 10, "days") for i in range(7, 9)],
+        },
+        index=Index([0, 1], dtype="int64", name="x"),
+    )
+
+    gb = df.groupby(by=["x"])
+    result = gb.sum()
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_aggregation_numeric_with_non_numeric_dtype():
+    # GH #43108
+    df = DataFrame(
+        {
+            "x": [1, 0, 1, 1, 0],
+            "y": [Timedelta(i, "days") for i in range(1, 6)],
+            "z": list(range(1, 6)),
+        }
+    )
+
+    expected = DataFrame(
+        {"z": [7, 8]},
+        index=Index([0, 1], dtype="int64", name="x"),
+    )
+
+    gb = df.groupby(by=["x"])
+    result = gb.sum()
     tm.assert_frame_equal(result, expected)
 
 

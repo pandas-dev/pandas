@@ -26,7 +26,6 @@ from pandas._libs import (
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
-    FrameOrSeries,
     IndexLabel,
     Suffixes,
     npt,
@@ -37,6 +36,7 @@ from pandas.util._decorators import (
     Substitution,
 )
 
+from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import (
     ensure_float64,
     ensure_int64,
@@ -70,6 +70,7 @@ from pandas import (
     Categorical,
     Index,
     MultiIndex,
+    Series,
 )
 from pandas.core import groupby
 import pandas.core.algorithms as algos
@@ -81,10 +82,7 @@ from pandas.core.internals import concatenate_managers
 from pandas.core.sorting import is_int64_overflow_possible
 
 if TYPE_CHECKING:
-    from pandas import (
-        DataFrame,
-        Series,
-    )
+    from pandas import DataFrame
     from pandas.core.arrays import DatetimeArray
 
 
@@ -904,17 +902,22 @@ class _MergeOperation:
                 # error: Item "bool" of "Union[Any, bool]" has no attribute "all"
                 if mask_left.all():  # type: ignore[union-attr]
                     key_col = Index(rvals)
+                    result_dtype = rvals.dtype
                 # error: Item "bool" of "Union[Any, bool]" has no attribute "all"
                 elif (
                     right_indexer is not None
                     and mask_right.all()  # type: ignore[union-attr]
                 ):
                     key_col = Index(lvals)
+                    result_dtype = lvals.dtype
                 else:
                     key_col = Index(lvals).where(~mask_left, rvals)
+                    result_dtype = find_common_type([lvals.dtype, rvals.dtype])
 
                 if result._is_label_reference(name):
-                    result[name] = key_col
+                    result[name] = Series(
+                        key_col, dtype=result_dtype, index=result.index
+                    )
                 elif result._is_level_reference(name):
                     if isinstance(result.index, MultiIndex):
                         key_col.name = name
@@ -2169,10 +2172,16 @@ def _factorize_keys(
 
     rizer = klass(max(len(lk), len(rk)))
 
-    llab = rizer.factorize(lk)
-    rlab = rizer.factorize(rk)
-    assert llab.dtype == np.intp, llab.dtype
-    assert rlab.dtype == np.intp, rlab.dtype
+    # Argument 1 to "factorize" of "ObjectFactorizer" has incompatible type
+    # "Union[ndarray[Any, dtype[signedinteger[_64Bit]]],
+    # ndarray[Any, dtype[object_]]]"; expected "ndarray[Any, dtype[object_]]"
+    llab = rizer.factorize(lk)  # type: ignore[arg-type]
+    # Argument 1 to "factorize" of "ObjectFactorizer" has incompatible type
+    # "Union[ndarray[Any, dtype[signedinteger[_64Bit]]],
+    # ndarray[Any, dtype[object_]]]"; expected "ndarray[Any, dtype[object_]]"
+    rlab = rizer.factorize(rk)  # type: ignore[arg-type]
+    assert llab.dtype == np.dtype(np.intp), llab.dtype
+    assert rlab.dtype == np.dtype(np.intp), rlab.dtype
 
     count = rizer.get_count()
 
@@ -2255,7 +2264,7 @@ def _any(x) -> bool:
     return x is not None and com.any_not_none(*x)
 
 
-def _validate_operand(obj: FrameOrSeries) -> DataFrame:
+def _validate_operand(obj: DataFrame | Series) -> DataFrame:
     if isinstance(obj, ABCDataFrame):
         return obj
     elif isinstance(obj, ABCSeries):
