@@ -556,16 +556,6 @@ class TestDateOffset(Base):
 
     @pytest.mark.parametrize("offset_type", list(liboffsets._relativedelta_kwds))
     def test_constructor(self, offset_type):
-        # assert (self.d + DateOffset(months=2)) == datetime(2008, 3, 2)
-        # assert (self.d - DateOffset(months=2)) == datetime(2007, 11, 2)
-
-        # assert self.d + DateOffset(milliseconds=7) == Timestamp(
-        #     "2008-01-02 00:00:00.007000000"
-        # )
-        # assert self.d - DateOffset(milliseconds=7) == Timestamp(
-        #     "2008-01-01 23:59:59.993000000"
-        # )
-
         DateOffset(**{offset_type: 2})
 
     def test_default_constructor(self):
