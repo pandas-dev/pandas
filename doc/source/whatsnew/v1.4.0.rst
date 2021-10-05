@@ -143,8 +143,7 @@ These are bug fixes that might have notable behavior changes.
 Inconsistent date string parsing
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``dayfirst`` option of :func:`to_datetime` isn't strict, and this can lead to sur
-ising behaviour:
+The ``dayfirst`` option of :func:`to_datetime` isn't strict, and this can lead to surprising behaviour:
 
 .. ipython:: python
     :okwarning:
