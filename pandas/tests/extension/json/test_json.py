@@ -227,12 +227,6 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
         # TODO (EA.factorize): see if _values_for_factorize allows this.
         pass
 
-    def test_argsort(self, data_for_sorting):
-        super().test_argsort(data_for_sorting)
-
-    def test_argsort_missing(self, data_missing_for_sorting):
-        super().test_argsort_missing(data_missing_for_sorting)
-
     @pytest.mark.parametrize("ascending", [True, False])
     def test_sort_values(self, data_for_sorting, ascending, sort_by_key):
         super().test_sort_values(data_for_sorting, ascending, sort_by_key)
