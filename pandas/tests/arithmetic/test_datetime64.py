@@ -1878,7 +1878,7 @@ class TestTimestampSeriesArithmetic:
 
         # subtraction
         tm.assert_series_equal(-NaT + datetime_series, nat_series_dtype_timestamp)
-        msg = "Unary negative expects"
+        msg = "bad operand type for unary -: 'DatetimeArray'"
         with pytest.raises(TypeError, match=msg):
             -single_nat_dtype_datetime + datetime_series
 

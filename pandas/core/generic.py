@@ -36,6 +36,7 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._typing import (
+    ArrayLike,
     Axis,
     CompressionOptions,
     Dtype,
@@ -90,7 +91,6 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_number,
     is_numeric_dtype,
-    is_object_dtype,
     is_re_compilable,
     is_scalar,
     is_timedelta64_dtype,
@@ -1495,36 +1495,27 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     def __neg__(self):
-        values = self._values
-        if is_bool_dtype(values):
-            arr = operator.inv(values)
-        elif (
-            is_numeric_dtype(values)
-            or is_timedelta64_dtype(values)
-            or is_object_dtype(values)
-        ):
-            arr = operator.neg(values)
-        else:
-            raise TypeError(f"Unary negative expects numeric dtype, not {values.dtype}")
-        return self.__array_wrap__(arr)
+        def blk_func(values: ArrayLike):
+            if is_bool_dtype(values.dtype):
+                return operator.inv(values)
+            else:
+                return operator.neg(values)
+
+        new_data = self._mgr.apply(blk_func)
+        res = self._constructor(new_data)
+        return res.__finalize__(self, method="__neg__")
 
     @final
     def __pos__(self):
-        values = self._values
-        if is_bool_dtype(values):
-            arr = values
-        elif (
-            is_numeric_dtype(values)
-            or is_timedelta64_dtype(values)
-            or is_object_dtype(values)
-        ):
-            arr = operator.pos(values)
-        else:
-            raise TypeError(
-                "Unary plus expects bool, numeric, timedelta, "
-                f"or object dtype, not {values.dtype}"
-            )
-        return self.__array_wrap__(arr)
+        def blk_func(values: ArrayLike):
+            if is_bool_dtype(values.dtype):
+                return values.copy()
+            else:
+                return operator.pos(values)
+
+        new_data = self._mgr.apply(blk_func)
+        res = self._constructor(new_data)
+        return res.__finalize__(self, method="__pos__")
 
     @final
     def __invert__(self):
