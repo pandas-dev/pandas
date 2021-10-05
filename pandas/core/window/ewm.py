@@ -469,27 +469,21 @@ class ExponentialMovingWindow(BaseWindow):
     def mean(self, *args, engine=None, engine_kwargs=None, **kwargs):
         if maybe_use_numba(engine):
             if self.method == "single":
-                ewma_func = generate_numba_ewm_func(
-                    engine_kwargs,
-                    self._com,
-                    self.adjust,
-                    self.ignore_na,
-                    self._deltas,
-                    True,
-                )
+                func = generate_numba_ewm_func
                 numba_cache_key = (lambda x: x, "ewm_mean")
             else:
-                ewma_func = generate_ewm_numba_table_func(
-                    engine_kwargs,
-                    self._com,
-                    self.adjust,
-                    self.ignore_na,
-                    self._deltas,
-                    True,
-                )
+                func = generate_ewm_numba_table_func
                 numba_cache_key = (lambda x: x, "ewm_mean_table")
+            ewm_func = func(
+                engine_kwargs=engine_kwargs,
+                com=self._com,
+                adjust=self.adjust,
+                ignore_na=self.ignore_na,
+                deltas=self._deltas,
+                normalize=True,
+            )
             return self._apply(
-                ewma_func,
+                ewm_func,
                 numba_cache_key=numba_cache_key,
             )
         elif engine in ("cython", None):
@@ -531,27 +525,21 @@ class ExponentialMovingWindow(BaseWindow):
             raise NotImplementedError("sum is not implemented with adjust=False")
         if maybe_use_numba(engine):
             if self.method == "single":
-                ewma_func = generate_numba_ewm_func(
-                    engine_kwargs,
-                    self._com,
-                    self.adjust,
-                    self.ignore_na,
-                    self._deltas,
-                    False,
-                )
+                func = generate_numba_ewm_func
                 numba_cache_key = (lambda x: x, "ewm_sum")
             else:
-                ewma_func = generate_ewm_numba_table_func(
-                    engine_kwargs,
-                    self._com,
-                    self.adjust,
-                    self.ignore_na,
-                    self._deltas,
-                    False,
-                )
+                func = generate_ewm_numba_table_func
                 numba_cache_key = (lambda x: x, "ewm_sum_table")
+            ewm_func = func(
+                engine_kwargs=engine_kwargs,
+                com=self._com,
+                adjust=self.adjust,
+                ignore_na=self.ignore_na,
+                deltas=self._deltas,
+                normalize=False,
+            )
             return self._apply(
-                ewma_func,
+                ewm_func,
                 numba_cache_key=numba_cache_key,
             )
         elif engine in ("cython", None):
