@@ -62,6 +62,18 @@ from pandas.tseries.offsets import (
 
 _ApplyCases = List[Tuple[BaseOffset, Dict[datetime, datetime]]]
 
+_ARITHMATIC_DATE_OFFSET = [
+    "years",
+    "months",
+    "weeks",
+    "days",
+    "hours",
+    "minutes",
+    "seconds",
+    "milliseconds",
+    "microseconds",
+]
+
 
 class TestCommon(Base):
     # executed value created by Base._get_offset
@@ -528,7 +540,6 @@ class TestCommon(Base):
 class TestDateOffset(Base):
     def setup_method(self, method):
         self.d = Timestamp(datetime(2008, 1, 2))
-        self.d2 = Timestamp("2021-10-01 08:00:00.000000000")
         _offset_map.clear()
 
     def test_repr(self):
@@ -543,29 +554,134 @@ class TestDateOffset(Base):
 
         assert DateOffset(milliseconds=3) * 2 == DateOffset(milliseconds=3, n=2)
 
-    def test_constructor(self):
+    @pytest.mark.parametrize("offset_type", list(liboffsets._relativedelta_kwds))
+    def test_constructor(self, offset_type):
+        # assert (self.d + DateOffset(months=2)) == datetime(2008, 3, 2)
+        # assert (self.d - DateOffset(months=2)) == datetime(2007, 11, 2)
 
-        assert (self.d + DateOffset(months=2)) == datetime(2008, 3, 2)
-        assert (self.d - DateOffset(months=2)) == datetime(2007, 11, 2)
+        # assert self.d + DateOffset(milliseconds=7) == Timestamp(
+        #     "2008-01-02 00:00:00.007000000"
+        # )
+        # assert self.d - DateOffset(milliseconds=7) == Timestamp(
+        #     "2008-01-01 23:59:59.993000000"
+        # )
 
-        assert self.d2 + DateOffset(milliseconds=7) == Timestamp(
-            "2021-10-01 08:00:00.007000000"
-        )
-        assert self.d2 - DateOffset(milliseconds=7) == Timestamp(
-            "2021-10-01 07:59:59.993000000"
-        )
+        DateOffset(**{offset_type: 2})
 
+    def test_default_constructor(self):
         assert (self.d + DateOffset(2)) == datetime(2008, 1, 4)
 
+    def test_is_anchored(self):
         assert not DateOffset(2).is_anchored()
         assert DateOffset(1).is_anchored()
-
-        d = datetime(2008, 1, 31)
-        assert (d + DateOffset(months=1)) == datetime(2008, 2, 29)
 
     def test_copy(self):
         assert DateOffset(months=2).copy() == DateOffset(months=2)
         assert DateOffset(milliseconds=1).copy() == DateOffset(milliseconds=1)
+
+    @pytest.mark.parametrize(
+        "arithmatic_offset_type, expected",
+        zip(
+            _ARITHMATIC_DATE_OFFSET,
+            [
+                "2009-01-02",
+                "2008-02-02",
+                "2008-01-09",
+                "2008-01-03",
+                "2008-01-02 01:00:00",
+                "2008-01-02 00:01:00",
+                "2008-01-02 00:00:01",
+                "2008-01-02 00:00:00.001000000",
+                "2008-01-02 00:00:00.000001000",
+            ],
+        ),
+    )
+    def test_add(self, arithmatic_offset_type, expected):
+        assert DateOffset(**{arithmatic_offset_type: 1}).__add__(self.d) == Timestamp(
+            expected
+        )
+        assert DateOffset(**{arithmatic_offset_type: 1}).__radd__(self.d) == Timestamp(
+            expected
+        )
+
+    @pytest.mark.parametrize(
+        "arithmatic_offset_type, expected",
+        zip(
+            _ARITHMATIC_DATE_OFFSET,
+            [
+                "2007-01-02",
+                "2007-12-02",
+                "2007-12-26",
+                "2008-01-01",
+                "2008-01-01 23:00:00",
+                "2008-01-01 23:59:00",
+                "2008-01-01 23:59:59",
+                "2008-01-01 23:59:59.999000000",
+                "2008-01-01 23:59:59.999999000",
+            ],
+        ),
+    )
+    def test_sub(self, arithmatic_offset_type, expected):
+        assert DateOffset(**{arithmatic_offset_type: 1}).__rsub__(self.d) == Timestamp(
+            expected
+        )
+        with pytest.raises(TypeError, match="Cannot subtract datetime from offset"):
+            DateOffset(**{arithmatic_offset_type: 1}).__sub__(self.d) == Timestamp(
+                expected
+            )
+
+    @pytest.mark.parametrize(
+        "arithmatic_offset_type, n, expected",
+        zip(
+            _ARITHMATIC_DATE_OFFSET,
+            range(1, 10),
+            [
+                "2009-01-02",
+                "2008-03-02",
+                "2008-01-23",
+                "2008-01-06",
+                "2008-01-02 05:00:00",
+                "2008-01-02 00:06:00",
+                "2008-01-02 00:00:07",
+                "2008-01-02 00:00:00.008000000",
+                "2008-01-02 00:00:00.000009000",
+            ],
+        ),
+    )
+    def test_mul_add(self, arithmatic_offset_type, n, expected):
+        assert DateOffset(**{arithmatic_offset_type: 1}).__mul__(n).__add__(
+            self.d
+        ) == Timestamp(expected)
+        assert DateOffset(**{arithmatic_offset_type: 1}).__mul__(n).__radd__(
+            self.d
+        ) == Timestamp(expected)
+
+    @pytest.mark.parametrize(
+        "arithmatic_offset_type, n, expected",
+        zip(
+            _ARITHMATIC_DATE_OFFSET,
+            range(1, 10),
+            [
+                "2007-01-02",
+                "2007-11-02",
+                "2007-12-12",
+                "2007-12-29",
+                "2008-01-01 19:00:00",
+                "2008-01-01 23:54:00",
+                "2008-01-01 23:59:53",
+                "2008-01-01 23:59:59.992000000",
+                "2008-01-01 23:59:59.999991000",
+            ],
+        ),
+    )
+    def test_mul_sub(self, arithmatic_offset_type, n, expected):
+        assert DateOffset(**{arithmatic_offset_type: 1}).__mul__(n).__rsub__(
+            self.d
+        ) == Timestamp(expected)
+
+    def test_leap_year(self):
+        d = datetime(2008, 1, 31)
+        assert (d + DateOffset(months=1)) == datetime(2008, 2, 29)
 
     def test_eq(self):
         offset1 = DateOffset(days=1)
