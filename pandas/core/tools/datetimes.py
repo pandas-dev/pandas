@@ -685,9 +685,50 @@ def to_datetime(
     infer_datetime_format: bool = False,
     origin="unix",
     cache: bool = True,
-) -> DatetimeIndex | Series | DatetimeScalar | NaTType | None:
+) -> DatetimeIndex | Index | Series | Timestamp | DatetimeScalar | NaTType | None:
     """
     Convert argument to datetime.
+
+    This function converts a scalar, array-like, :class:`Series` or
+    :class:`DataFrame`/dict-like to a pandas datetime object.
+
+    - scalars can be int, float, str, datetime object (from stdlib datetime
+      module or numpy). They are converted to :class:`Timestamp` when possible,
+      otherwise they are converted to ``datetime.datetime``. None/NaN/null
+      scalars are converted to ``NaT``.
+
+    - array-like can contain int, float, str, datetime objects. They are
+      converted to :class:`DatetimeIndex` when possible, otherwise they are
+      converted to :class:`Index` with object dtype, containing
+      ``datetime.datetime``. None/NaN/null entries are converted to ``NaT`` in
+      both cases.
+
+    - :class:`Series` are converted to :class:`Series` with datetime64 dtype
+      when possible, otherwise they are converted to :class:`Series` with
+      object dtype, containing ``datetime.datetime``. None/NaN/null entries
+      are converted to ``NaT`` in both cases.
+
+    - :class:`DataFrame`/dict-like are converted to :class:`Series` with
+      datetime64 dtype. For each row a datetime is created from assembling
+      the various dataframe columns. Column keys can be common abbreviations
+      like [‘year’, ‘month’, ‘day’, ‘minute’, ‘second’, ‘ms’, ‘us’, ‘ns’]) or
+      plurals of the same.
+
+    The following causes are responsible for datetime.datetime objects being
+    returned (possibly inside an Index or a Series with object dtype) instead
+    of a proper pandas designated type (Timestamp, DatetimeIndex or Series
+    with datetime64 dtype):
+
+    - when any input element is before Timestamp.min or after Timestamp.max,
+      see `timestamp limitations
+      <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html
+      #timeseries-timestamp-limits>`_.
+
+    - when utc=False (default) and the input is an array-like or Series
+      containing mixed naive/aware datetime, or aware with mixed time offsets.
+      Note that this happens in the (quite frequent) situation when the
+      timezone has a daylight savings policy. In that case you may wish to
+      use utc=True.
 
     Parameters
     ----------
@@ -747,15 +788,16 @@ def to_datetime(
              not identical in all string entries, the result will be an Index
              of dtype object.
 
-        See pandas general documentation about timezone conversion and
-        localization:
-        https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#time-zone-handling
+        See pandas general documentation about `timezone conversion and
+        localization
+        <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html
+        #time-zone-handling>`_.
 
     format : str, default None
         The strftime to parse time, eg "%d/%m/%Y", note that "%f" will parse
-        all the way up to nanoseconds.
-        See strftime documentation for more information on choices:
-        https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior.
+        all the way up to nanoseconds. See `strftime documentation
+        <https://docs.python.org/3/library/datetime.html
+        #strftime-and-strptime-behavior>`_ for more information on choices.
     exact : bool, True by default
         Behaves as:
         - If True, require an exact format match.
@@ -797,17 +839,25 @@ def to_datetime(
         If parsing succeeded.
         Return type depends on input:
 
-        - list-like:
-            - DatetimeIndex, if timezone naive or aware with constant time
-              offset.
-            - Index of object dtype, if timezone aware with mixed time offsets.
-        - Series: Series of datetime64 dtype
+        - array-like: DatetimeIndex
+        - Series or DataFrame: Series of datetime64 dtype
         - scalar: Timestamp
 
-        In case when it is not possible to return designated types (e.g. when
-        any element of input is before Timestamp.min or after Timestamp.max)
-        return will have datetime.datetime type (or corresponding
-        array/Series).
+        Warning: in some situations the return type can not be one of the above
+        and is is rather datetime.datetime (scalar input) or Series with object
+        dtype containing datetime.datetime objects (array-like or Series
+        input). See above documentation for details, as well as examples
+        below.
+
+    Raises
+    ------
+    ParserError
+        When parsing a date from string fails.
+    ValueError
+        When another datetime conversion error happens. For example when one
+        of 'year', 'month', day' is missing in a :class:`DataFrame`, or when
+        a Tz-aware datetime.datetime is found in an array-like of mixed time
+        offsets, and utc=False.
 
     See Also
     --------
@@ -877,16 +927,76 @@ def to_datetime(
     DatetimeIndex(['1960-01-02', '1960-01-03', '1960-01-04'],
                   dtype='datetime64[ns]', freq=None)
 
-    In case input is list-like and the elements of input are of mixed
-    time offsets, return will have object type Index if utc=False.
+    .. warning:: By default (utc=False), all items in an input array must
+        either be all tz-naive, or all tz-aware with the same offset. Mixed
+        offsets result in datetime.datetime objects being returned instead,
+        see examples below.
 
-    >>> pd.to_datetime(['2018-10-26 12:00 -0530', '2018-10-26 12:00 -0500'])
-    Index([2018-10-26 12:00:00-05:30, 2018-10-26 12:00:00-05:00], dtype='object')
+    Default (utc=False) and tz-naive returns tz-naive DatetimeIndex:
+
+    >>> pd.to_datetime(['2018-10-26 12:00', '2018-10-26 13:00:15'])
+    DatetimeIndex(['2018-10-26 12:00:00', '2018-10-26 13:00:15'], \
+    dtype='datetime64[ns]', freq=None)
+
+    Default (utc=False) and tz-aware with constant offset returns tz-aware
+    DatetimeIndex:
+
+    >>> pd.to_datetime(['2018-10-26 12:00 -0500', '2018-10-26 13:00 -0500'])
+    DatetimeIndex(['2018-10-26 12:00:00-05:00', '2018-10-26 13:00:00-05:00'], \
+    dtype='datetime64[ns, pytz.FixedOffset(-300)]', freq=None)
+
+    Default (utc=False) and tz-aware with mixed offsets (for example from a
+    timezone with daylight savings) returns a simple Index containing
+    datetime.datetime objects:
+
+    >>> pd.to_datetime(['2020-10-25 02:00 +0200', '2020-10-25 04:00 +0100'])
+    Index([2020-10-25 02:00:00+02:00, 2020-10-25 04:00:00+01:00], \
+    dtype='object')
+
+    Default (utc=False) and a mix of tz-aware and tz-naive returns a tz-aware
+    DatetimeIndex if the tz-naive are datetime...
+
+    >>> from datetime import datetime
+    >>> pd.to_datetime(["2020-01-01 01:00 -01:00", datetime(2020, 1, 1, 3, 0)])
+    DatetimeIndex(['2020-01-01 01:00:00-01:00', '2020-01-01 02:00:00-01:00'], \
+    dtype='datetime64[ns, pytz.FixedOffset(-60)]', freq=None)
+
+    ...but does not if the tz-naive are strings
+
+    >>> pd.to_datetime(["2020-01-01 01:00 -01:00", "2020-01-01 03:00"])
+    Index([2020-01-01 01:00:00-01:00, 2020-01-01 03:00:00], dtype='object')
+
+    Special case: mixing tz-aware string and datetime fails when utc=False,
+    even if they have the same time offset.
+
+    >>> from datetime import datetime, timezone, timedelta
+    >>> d = datetime(2020, 1, 1, 18, tzinfo=timezone(-timedelta(hours=1)))
+    >>> d
+    datetime.datetime(2020, 1, 1, 18, 0, \
+    tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=82800)))
+    >>> pd.to_datetime(["2020-01-01 17:00 -0100", d])
+    Traceback (most recent call last):
+        ...
+    ValueError: Tz-aware datetime.datetime cannot be converted to datetime64 \
+    unless utc=True
+
+    Setting utc=True solves most of the above issues, as tz-naive elements
+    will be localized to UTC, while tz-aware ones will simply be converted to
+    UTC (exact same datetime, but represented differently):
 
     >>> pd.to_datetime(['2018-10-26 12:00 -0530', '2018-10-26 12:00 -0500'],
     ...                utc=True)
-    DatetimeIndex(['2018-10-26 17:30:00+00:00', '2018-10-26 17:00:00+00:00'],
-                  dtype='datetime64[ns, UTC]', freq=None)
+    DatetimeIndex(['2018-10-26 17:30:00+00:00', '2018-10-26 17:00:00+00:00'], \
+    dtype='datetime64[ns, UTC]', freq=None)
+
+    >>> pd.to_datetime(['2018-10-26 12:00', '2018-10-26 12:00 -0530',
+    ...                datetime(2020, 1, 1, 18),
+    ...                datetime(2020, 1, 1, 18,
+    ...                tzinfo=timezone(-timedelta(hours=1)))],
+    ...                utc=True)
+    DatetimeIndex(['2018-10-26 12:00:00+00:00', '2018-10-26 17:30:00+00:00', \
+    '2020-01-01 18:00:00+00:00', '2020-01-01 19:00:00+00:00'], \
+    dtype='datetime64[ns, UTC]', freq=None)
     """
     if arg is None:
         return None
