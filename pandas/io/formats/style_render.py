@@ -109,6 +109,9 @@ class StylerRenderer:
             "level": "level",
             "data": "data",
             "blank": "blank",
+            "descriptor": "descriptor",
+            "descriptor_value": "descriptor_value",
+            "descriptor_name": "descriptor_name",
         }
         if css is not None:
             self.css = {**self.css, **css}  # overwrite default with optional changes
@@ -300,7 +303,9 @@ class StylerRenderer:
           1) |       ..                   |       ..      |             ..            |
              |  index_blanks ...          | column_name_n |  column_headers (level_n) |
              +----------------------------+---------------+---------------------------+
-          2) |  index_names (level_0 to level_n) ...      | column_blanks ...         |
+          2) |  index_blanks ...          | descriptor    |  value by column          |
+             +----------------------------+---------------+---------------------------+
+          3) |  index_names (level_0 to level_n) ...      | column_blanks ...         |
              +----------------------------+---------------+---------------------------+
 
         Parameters
@@ -336,7 +341,12 @@ class StylerRenderer:
                 )
                 head.append(header_row)
 
-        # 2) index names
+        # 2) Descriptor calcs
+        for r, descriptor in enumerate(self.descriptors):
+            descriptor_row = self._generate_descriptor_row((r, descriptor), max_cols)
+            head.append(descriptor_row)
+
+        # 3) index names
         if (
             self.data.index.names
             and com.any_not_none(*self.data.index.names)
@@ -441,6 +451,92 @@ class StylerRenderer:
                 )
             )
         return index_blanks + column_name + column_headers
+
+    def _generate_descriptor_row(self, iter: tuple, max_cols: int):
+        """
+        Generate the row containing calculated descriptor values for columns:
+
+         +----------------------------+---------------+---------------------------+
+         |  index_blanks ...          | descriptor_i  |  value_i by col           |
+         +----------------------------+---------------+---------------------------+
+
+        Parameters
+        ----------
+        iter : tuple
+            Looping variables from outer scope
+        max_cols : int
+            Permissible number of columns
+
+        Returns
+        -------
+        list of elements
+        """
+
+        r, descriptor = iter
+
+        # number of index blanks is governed by number of hidden index levels
+        index_blanks = [
+            _element("th", self.css["blank"], self.css["blank_value"], True)
+        ] * (self.index.nlevels - sum(self.hide_index_) - 1)
+
+        if isinstance(descriptor, str):
+            name, func = descriptor, getattr(Series, descriptor)
+        elif isinstance(descriptor, tuple):
+            name, func = descriptor[0], descriptor[1]
+        else:
+            name, func = None, descriptor
+
+        descriptor_name = [
+            _element(
+                "th",
+                f"{self.css['blank']}"
+                if name is None
+                else f"{self.css['descriptor_name']} {self.css['descriptor']}{r}",
+                name
+                if (name is not None and not self.hide_column_names)
+                else self.css["blank_value"],
+                not all(self.hide_index_),
+            )
+        ]
+
+        descriptor_values = []
+        for c, col in enumerate(self.columns[:max_cols]):
+            if c not in self.hidden_columns:
+                header_element_visible = True
+                try:
+                    header_element_value = func(self.data[col])
+                except:
+                    header_element_value = self.css["blank_value"]
+            else:
+                header_element_visible = False
+                header_element_value = None
+            header_element = _element(
+                "th",
+                (
+                    f"{self.css['descriptor_value']} {self.css['descriptor']}{r} "
+                    f"{self.css['col']}{c}"
+                ),
+                header_element_value,
+                header_element_visible,
+                attributes="",
+            )
+            descriptor_values.append(header_element)
+
+        if len(self.data.columns) > max_cols:
+            # add an extra column with `...` value to indicate trimming
+            descriptor_values.append(
+                _element(
+                    "th",
+                    (
+                        f"{self.css['descriptor_value']} {self.css['descriptor']}{r} "
+                        f"{self.css['col_trim']}"
+                    ),
+                    "...",
+                    True,
+                    attributes="",
+                )
+            )
+        return index_blanks + descriptor_name + descriptor_values
 
     def _generate_index_names_row(self, iter: tuple, max_cols):
         """
