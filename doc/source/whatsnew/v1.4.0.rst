@@ -406,6 +406,8 @@ Numeric
 - Bug in :meth:`DataFrame.rank` raising ``ValueError`` with ``object`` columns and ``method="first"`` (:issue:`41931`)
 - Bug in :meth:`DataFrame.rank` treating missing values and extreme values as equal (for example ``np.nan`` and ``np.inf``), causing incorrect results when ``na_option="bottom"`` or ``na_option="top`` used (:issue:`41931`)
 - Bug in ``numexpr`` engine still being used when the option ``compute.use_numexpr`` is set to ``False`` (:issue:`32556`)
+- Bug in :class:`DataFrame` arithmetic ops with a subclass whose :meth:`_constructor` attribute is a callable other than the subclass itself (:issue:`43201`)
+-
 
 Conversion
 ^^^^^^^^^^
