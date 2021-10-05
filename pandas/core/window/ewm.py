@@ -205,6 +205,8 @@ class ExponentialMovingWindow(BaseWindow):
 
         If str, the name of the column in the DataFrame representing the times.
 
+        .. deprecated:: 1.4.0
+
         If 1-D array like, a sequence with the same shape as the observations.
 
         Only applicable to ``mean()``.
