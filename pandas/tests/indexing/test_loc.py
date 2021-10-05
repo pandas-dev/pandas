@@ -2858,9 +2858,15 @@ class TestLocSeries:
         )
 
         tm.assert_frame_equal(df, expected)
+
+
 def test_loc_multiindex():
-    df = pd.DataFrame(index=pd.MultiIndex.from_product([list('abc'), list('de'), list('f')]), columns=['Val'])
-    df1=df.loc[np.s_[:,'d',:]]
-    df2=pd.DataFrame(index=pd.MultiIndex.from_product([list('abc'), list('d'), list('f')]), columns=['Val'])
+    df = DataFrame(
+        index = MultiIndex.from_product([list('abc'), list('de'), list('f')]), columns = ['Val']
+    )
+    df1 = df.loc[np.s_[:, 'd', :]]
+    df2 = DataFrame(
+        index = MultiIndex.from_product([list('abc'), list('d'), list('f')]), columns = ['Val']
+    )
     tm.assert_frame_equal(df1,df2)
 
