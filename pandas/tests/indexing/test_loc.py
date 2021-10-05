@@ -2862,11 +2862,13 @@ class TestLocSeries:
 
 def test_loc_multiindex():
     df = DataFrame(
-        index = MultiIndex.from_product([list('abc'), list('de'), list('f')]), columns = ['Val']
+        index = MultiIndex.from_product([list("abc"), list("de"), list("f")]), 
+        columns = ["Val"],
     )
-    df1 = df.loc[np.s_[:, 'd', :]]
+    df1 = df.loc[np.s_[:, "d", :]]
     df2 = DataFrame(
-        index = MultiIndex.from_product([list('abc'), list('d'), list('f')]), columns = ['Val']
+        index = MultiIndex.from_product([list("abc"), list("d"), list("f")]),
+        columns = ["Val"],
     )
     tm.assert_frame_equal(df1, df2)
 
