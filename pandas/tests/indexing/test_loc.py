@@ -38,7 +38,7 @@ import pandas._testing as tm
 from pandas.api.types import is_scalar
 from pandas.core.api import Float64Index
 from pandas.tests.indexing.common import Base
-import unittest
+
 
 
 class TestLoc(Base):
@@ -2858,12 +2858,9 @@ class TestLocSeries:
         )
 
         tm.assert_frame_equal(df, expected)
-class TestLoc3(unittest.TestCase): 
-    #test case for issue #43599
-    def test_loc_multiindex(self):
-        df = DataFrame(index=MultiIndex.from_product([list('abc'), list('de'), list('f')]), columns=['Val'])
-        df1=df.loc[np.s_[:,'d',:]]
-        df2=DataFrame(index=MultiIndex.from_product([list('abc'), list('d'), list('f')]), columns=['Val'])
-        tm.assert_frame_equal(df1,df2)
-
+def test_loc_multiindex():
+    df = pd.DataFrame(index=pd.MultiIndex.from_product([list('abc'), list('de'), list('f')]), columns=['Val'])
+    df1=df.loc[np.s_[:,'d',:]]
+    df2=pd.DataFrame(index=pd.MultiIndex.from_product([list('abc'), list('d'), list('f')]), columns=['Val'])
+    tm.assert_frame_equal(df1,df2)
 
