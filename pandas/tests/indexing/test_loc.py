@@ -2868,5 +2868,5 @@ def test_loc_multiindex():
     df2 = DataFrame(
         index = MultiIndex.from_product([list('abc'), list('d'), list('f')]), columns = ['Val']
     )
-    tm.assert_frame_equal(df1,df2)
+    tm.assert_frame_equal(df1, df2)
 
