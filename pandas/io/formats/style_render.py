@@ -105,6 +105,7 @@ class StylerRenderer:
         self.hide_columns_: list = [False] * self.columns.nlevels
         self.hidden_rows: Sequence[int] = []  # sequence for specific hidden rows/cols
         self.hidden_columns: Sequence[int] = []
+        self.descriptors: list[str, Callable, tuple[str, Callable]] = []
         self.ctx: DefaultDict[tuple[int, int], CSSList] = defaultdict(list)
         self.ctx_index: DefaultDict[tuple[int, int], CSSList] = defaultdict(list)
         self.ctx_columns: DefaultDict[tuple[int, int], CSSList] = defaultdict(list)
