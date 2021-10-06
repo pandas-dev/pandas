@@ -8,18 +8,16 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 # ensure_dtype
 # ----------------------------------------------------------------------
 
-cdef int PLATFORM_INT = (<ndarray>np.arange(0, dtype=np.intp)).descr.type_num
-
 
 def ensure_platform_int(object arr):
     # GH3033, GH1392
     # platform int is the size of the int pointer, e.g. np.intp
     if util.is_array(arr):
-        if (<ndarray>arr).descr.type_num == PLATFORM_INT:
+        if (<ndarray>arr).descr.type_num == cnp.NPY_INTP:
             return arr
         else:
             # equiv: arr.astype(np.intp)
-            return cnp.PyArray_Cast(<ndarray>arr, PLATFORM_INT)
+            return cnp.PyArray_Cast(<ndarray>arr, cnp.NPY_INTP)
     else:
         return np.array(arr, dtype=np.intp)
 

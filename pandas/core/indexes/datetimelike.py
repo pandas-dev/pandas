@@ -41,7 +41,6 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_integer,
     is_list_like,
-    is_period_dtype,
 )
 from pandas.core.dtypes.concat import concat_compat
 
@@ -102,23 +101,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         return True
 
     # ------------------------------------------------------------------------
-    # Abstract data attributes
-
-    @property
-    def values(self) -> np.ndarray:
-        # Note: PeriodArray overrides this to return an ndarray of objects.
-        return self._data._ndarray
-
-    def __array_wrap__(self, result, context=None):
-        """
-        Gets called after a ufunc and other functions.
-        """
-        out = super().__array_wrap__(result, context=context)
-        if isinstance(out, DatetimeTimedeltaMixin) and self.freq is not None:
-            out = out._with_freq("infer")
-        return out
-
-    # ------------------------------------------------------------------------
 
     def equals(self, other: Any) -> bool:
         """
@@ -165,21 +147,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
             return False
         return True
 
-    @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
-    def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
-        nv.validate_take((), kwargs)
-        indices = np.asarray(indices, dtype=np.intp)
-
-        maybe_slice = lib.maybe_indices_to_slice(indices, len(self))
-
-        result = NDArrayBackedExtensionIndex.take(
-            self, indices, axis, allow_fill, fill_value, **kwargs
-        )
-        if isinstance(maybe_slice, slice):
-            freq = self._data._get_getitem_freq(maybe_slice)
-            result._data._freq = freq
-        return result
-
     _can_hold_na = True
 
     _na_value: NaTType = NaT
@@ -188,12 +155,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     def _convert_tolerance(self, tolerance, target):
         tolerance = np.asarray(to_timedelta(tolerance).to_numpy())
         return super()._convert_tolerance(tolerance, target)
-
-    def tolist(self) -> list:
-        """
-        Return a list of the underlying data.
-        """
-        return list(self.astype(object))
 
     # --------------------------------------------------------------------
     # Rendering Methods
@@ -415,102 +376,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         arr = self._data.view()
         arr._freq = self.freq
         result = arr._time_shift(periods, freq=freq)
-        return type(self)(result, name=self.name)
-
-    # --------------------------------------------------------------------
-    # List-like Methods
-
-    def _get_delete_freq(self, loc: int | slice | Sequence[int]):
-        """
-        Find the `freq` for self.delete(loc).
-        """
-        freq = None
-        if is_period_dtype(self.dtype):
-            freq = self.freq
-        elif self.freq is not None:
-            if is_integer(loc):
-                if loc in (0, -len(self), -1, len(self) - 1):
-                    freq = self.freq
-            else:
-                if is_list_like(loc):
-                    # error: Incompatible types in assignment (expression has
-                    # type "Union[slice, ndarray]", variable has type
-                    # "Union[int, slice, Sequence[int]]")
-                    loc = lib.maybe_indices_to_slice(  # type: ignore[assignment]
-                        np.asarray(loc, dtype=np.intp), len(self)
-                    )
-                if isinstance(loc, slice) and loc.step in (1, None):
-                    if loc.start in (0, None) or loc.stop in (len(self), None):
-                        freq = self.freq
-        return freq
-
-    def _get_insert_freq(self, loc: int, item):
-        """
-        Find the `freq` for self.insert(loc, item).
-        """
-        value = self._data._validate_scalar(item)
-        item = self._data._box_func(value)
-
-        freq = None
-        if is_period_dtype(self.dtype):
-            freq = self.freq
-        elif self.freq is not None:
-            # freq can be preserved on edge cases
-            if self.size:
-                if item is NaT:
-                    pass
-                elif (loc == 0 or loc == -len(self)) and item + self.freq == self[0]:
-                    freq = self.freq
-                elif (loc == len(self)) and item - self.freq == self[-1]:
-                    freq = self.freq
-            else:
-                # Adding a single item to an empty index may preserve freq
-                if self.freq.is_on_offset(item):
-                    freq = self.freq
-        return freq
-
-    @doc(NDArrayBackedExtensionIndex.delete)
-    def delete(self: _T, loc) -> _T:
-        result = super().delete(loc)
-        result._data._freq = self._get_delete_freq(loc)
-        return result
-
-    @doc(NDArrayBackedExtensionIndex.insert)
-    def insert(self, loc: int, item):
-        result = super().insert(loc, item)
-        if isinstance(result, type(self)):
-            # i.e. parent class method did not cast
-            result._data._freq = self._get_insert_freq(loc, item)
-        return result
-
-    # --------------------------------------------------------------------
-    # Join/Set Methods
-
-    def _get_join_freq(self, other):
-        """
-        Get the freq to attach to the result of a join operation.
-        """
-        if is_period_dtype(self.dtype):
-            freq = self.freq
-        else:
-            self = cast(DatetimeTimedeltaMixin, self)
-            freq = self.freq if self._can_fast_union(other) else None
-        return freq
-
-    def _wrap_joined_index(self, joined, other):
-        assert other.dtype == self.dtype, (other.dtype, self.dtype)
-        result = super()._wrap_joined_index(joined, other)
-        result._data._freq = self._get_join_freq(other)
-        return result
-
-    def _get_engine_target(self) -> np.ndarray:
-        # engine methods and libjoin methods need dt64/td64 values cast to i8
-        return self._data._ndarray.view("i8")
-
-    def _from_join_target(self, result: np.ndarray):
-        # view e.g. i8 back to M8[ns]
-        result = result.view(self._data._ndarray.dtype)
-        return self._data._from_backing_data(result)
+        return type(self)._simple_new(result, name=self.name)
 
     # --------------------------------------------------------------------
 
@@ -557,6 +423,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             stacklevel=2,
         )
         return kind in self._data._infer_matches
+
+    @property
+    def values(self) -> np.ndarray:
+        # NB: For Datetime64TZ this is lossy
+        return self._data._ndarray
 
     # --------------------------------------------------------------------
     # Set Operation Methods
@@ -708,3 +579,119 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             return result
         else:
             return super()._union(other, sort)._with_freq("infer")
+
+    # --------------------------------------------------------------------
+    # Join Methods
+
+    def _get_join_freq(self, other):
+        """
+        Get the freq to attach to the result of a join operation.
+        """
+        freq = None
+        if self._can_fast_union(other):
+            freq = self.freq
+        return freq
+
+    def _wrap_joined_index(self, joined, other):
+        assert other.dtype == self.dtype, (other.dtype, self.dtype)
+        result = super()._wrap_joined_index(joined, other)
+        result._data._freq = self._get_join_freq(other)
+        return result
+
+    def _get_engine_target(self) -> np.ndarray:
+        # engine methods and libjoin methods need dt64/td64 values cast to i8
+        return self._data._ndarray.view("i8")
+
+    def _from_join_target(self, result: np.ndarray):
+        # view e.g. i8 back to M8[ns]
+        result = result.view(self._data._ndarray.dtype)
+        return self._data._from_backing_data(result)
+
+    # --------------------------------------------------------------------
+    # List-like Methods
+
+    def _get_delete_freq(self, loc: int | slice | Sequence[int]):
+        """
+        Find the `freq` for self.delete(loc).
+        """
+        freq = None
+        if self.freq is not None:
+            if is_integer(loc):
+                if loc in (0, -len(self), -1, len(self) - 1):
+                    freq = self.freq
+            else:
+                if is_list_like(loc):
+                    # error: Incompatible types in assignment (expression has
+                    # type "Union[slice, ndarray]", variable has type
+                    # "Union[int, slice, Sequence[int]]")
+                    loc = lib.maybe_indices_to_slice(  # type: ignore[assignment]
+                        np.asarray(loc, dtype=np.intp), len(self)
+                    )
+                if isinstance(loc, slice) and loc.step in (1, None):
+                    if loc.start in (0, None) or loc.stop in (len(self), None):
+                        freq = self.freq
+        return freq
+
+    def _get_insert_freq(self, loc: int, item):
+        """
+        Find the `freq` for self.insert(loc, item).
+        """
+        value = self._data._validate_scalar(item)
+        item = self._data._box_func(value)
+
+        freq = None
+        if self.freq is not None:
+            # freq can be preserved on edge cases
+            if self.size:
+                if item is NaT:
+                    pass
+                elif (loc == 0 or loc == -len(self)) and item + self.freq == self[0]:
+                    freq = self.freq
+                elif (loc == len(self)) and item - self.freq == self[-1]:
+                    freq = self.freq
+            else:
+                # Adding a single item to an empty index may preserve freq
+                if self.freq.is_on_offset(item):
+                    freq = self.freq
+        return freq
+
+    @doc(NDArrayBackedExtensionIndex.delete)
+    def delete(self, loc):
+        result = super().delete(loc)
+        result._data._freq = self._get_delete_freq(loc)
+        return result
+
+    @doc(NDArrayBackedExtensionIndex.insert)
+    def insert(self, loc: int, item):
+        result = super().insert(loc, item)
+        if isinstance(result, type(self)):
+            # i.e. parent class method did not cast
+            result._data._freq = self._get_insert_freq(loc, item)
+        return result
+
+    # --------------------------------------------------------------------
+    # NDArray-Like Methods
+
+    def __array_wrap__(self, result, context=None):
+        """
+        Gets called after a ufunc and other functions.
+        """
+        out = super().__array_wrap__(result, context=context)
+        if isinstance(out, DatetimeTimedeltaMixin) and self.freq is not None:
+            out = out._with_freq("infer")
+        return out
+
+    @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
+    def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
+        nv.validate_take((), kwargs)
+        indices = np.asarray(indices, dtype=np.intp)
+
+        result = NDArrayBackedExtensionIndex.take(
+            self, indices, axis, allow_fill, fill_value, **kwargs
+        )
+
+        maybe_slice = lib.maybe_indices_to_slice(indices, len(self))
+        if isinstance(maybe_slice, slice):
+            freq = self._data._get_getitem_freq(maybe_slice)
+            result._data._freq = freq
+        return result

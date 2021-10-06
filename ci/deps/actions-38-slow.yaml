@@ -13,7 +13,7 @@ dependencies:
 
   # pandas dependencies
   - beautifulsoup4
-  - fsspec>=0.7.4, <2021.6.0
+  - fsspec>=0.7.4
   - html5lib
   - lxml
   - matplotlib
