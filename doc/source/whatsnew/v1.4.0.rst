@@ -366,6 +366,7 @@ Performance improvements
 - Performance improvement in :meth:`SparseArray.take` with ``allow_fill=False`` (:issue:`43654`)
 - Performance improvement in :meth:`.Rolling.mean` and :meth:`.Expanding.mean` with ``engine="numba"`` (:issue:`43612`)
 - Improved performance of :meth:`pandas.read_csv` with ``memory_map=True`` when file encoding is UTF-8 (:issue:`43787`)
+- Performance improvement in :meth:`RangeIndex.sort_values` overriding `Index.sort_values` (:issue:`43666`)
 -
 
 .. ---------------------------------------------------------------------------
