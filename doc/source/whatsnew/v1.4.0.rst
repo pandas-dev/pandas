@@ -364,6 +364,7 @@ Performance improvements
 - Indexing into a :class:`SparseArray` with a ``slice`` with ``step=1`` no longer requires converting to a dense array (:issue:`43777`)
 - Performance improvement in :meth:`SparseArray.take` with ``allow_fill=False`` (:issue:`43654`)
 - Performance improvement in :meth:`.Rolling.mean` and :meth:`.Expanding.mean` with ``engine="numba"`` (:issue:`43612`)
+- Performance improvement in :meth:`RangeIndex.sort_values` overriding `Index.sort_values` (:issue:`43666`)
 -
 
 .. ---------------------------------------------------------------------------

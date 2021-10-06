@@ -49,6 +49,10 @@ from pandas.core.indexes.numeric import (
     Int64Index,
     NumericIndex,
 )
+from pandas.core.sorting import (
+    ensure_key_mapped,
+    nargsort,
+)
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
 if TYPE_CHECKING:
@@ -556,23 +560,34 @@ class RangeIndex(NumericIndex):
         key: Callable | None = None,
     ):
         sorted_index = self
-        if ascending:
-            if self.step < 0:
-                sorted_index = RangeIndex(
-                    start=self.stop - self.step,
-                    stop=self.start - self.step,
-                    step=self.step * -1,
-                )
+        indexer = RangeIndex(start=0, stop=self.size, step=1)
+        if key is not None:
+            idx = ensure_key_mapped(self, key)
+            indexer = nargsort(
+                items=sorted_index, ascending=ascending, na_position=na_position, key=key
+            )
+            sorted_index = self.take(indexer)
         else:
-            if self.step > 0:
-                sorted_index = RangeIndex(
-                    start=self.stop - self.step,
-                    stop=self.start - self.step,
-                    step=self.step * -1,
-                )
+            sorted_index = self
+            if ascending:
+                if self.step < 0:
+                    sorted_index = RangeIndex(
+                        start=self.stop - self.step,
+                        stop=self.start - self.step,
+                        step=self.step * -1,
+                    )
+                    indexer = RangeIndex(start=self.size - 1, stop=-1, step=-1)
+            else:
+                if self.step > 0:
+                    sorted_index = RangeIndex(
+                        start=self.stop - self.step,
+                        stop=self.start - self.step,
+                        step=self.step * -1,
+                    )
+                    indexer = RangeIndex(start=self.size - 1, stop=-1, step=-1)
 
         if return_indexer:
-            return sorted_index, RangeIndex(start=0, stop=self.size, step=1)
+            return sorted_index, indexer
         else:
             return sorted_index
 
