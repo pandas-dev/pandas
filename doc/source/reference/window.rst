@@ -88,6 +88,7 @@ Exponentially-weighted window functions
    :toctree: api/
 
    ExponentialMovingWindow.mean
+   ExponentialMovingWindow.sum
    ExponentialMovingWindow.std
    ExponentialMovingWindow.var
    ExponentialMovingWindow.corr

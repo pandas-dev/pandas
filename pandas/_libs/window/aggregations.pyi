@@ -100,7 +100,7 @@ def roll_weighted_var(
     minp: int,  # int64_t
     ddof: int,  # unsigned int
 ) -> np.ndarray: ...  # np.ndarray[np.float64]
-def ewma(
+def ewm(
     vals: np.ndarray,  # const float64_t[:]
     start: np.ndarray,  # const int64_t[:]
     end: np.ndarray,  # const int64_t[:]
@@ -109,6 +109,7 @@ def ewma(
     adjust: bool,
     ignore_na: bool,
     deltas: np.ndarray,  # const float64_t[:]
+    normalize: bool,
 ) -> np.ndarray: ...  # np.ndarray[np.float64]
 def ewmcov(
     input_x: np.ndarray,  # const float64_t[:]
