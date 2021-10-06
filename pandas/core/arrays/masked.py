@@ -121,6 +121,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     # The value used to fill '_data' to avoid upcasting
     _internal_fill_value: Scalar
+    # our underlying data and mask are each ndarrays
     _data: np.ndarray
     _mask: np.ndarray
 
