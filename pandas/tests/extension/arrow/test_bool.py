@@ -54,7 +54,10 @@ class TestInterface(BaseArrowTests, base.BaseInterfaceTests):
         # __setitem__ does not work, so we only have a smoke-test
         data.view()
 
-    @pytest.mark.xfail(raises=AssertionError, reason="Not implemented yet")
+    @pytest.mark.xfail(
+        raises=AttributeError,
+        reason="__eq__ incorrectly returns bool instead of ndarray[bool]",
+    )
     def test_contains(self, data, data_missing):
         super().test_contains(data, data_missing)
 

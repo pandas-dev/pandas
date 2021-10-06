@@ -65,6 +65,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import (
+    arraylike,
     missing,
     ops,
 )
@@ -1365,6 +1366,20 @@ class ExtensionArray:
                 f"Default 'empty' implementation is invalid for dtype='{dtype}'"
             )
         return result
+
+    def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
+        if any(
+            isinstance(other, (ABCSeries, ABCIndex, ABCDataFrame)) for other in inputs
+        ):
+            return NotImplemented
+
+        result = arraylike.maybe_dispatch_ufunc_to_dunder_op(
+            self, ufunc, method, *inputs, **kwargs
+        )
+        if result is not NotImplemented:
+            return result
+
+        return arraylike.default_array_ufunc(self, ufunc, method, *inputs, **kwargs)
 
 
 class ExtensionOpsMixin:

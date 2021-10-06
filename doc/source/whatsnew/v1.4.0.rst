@@ -522,7 +522,7 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
--
+- NumPy ufuncs ``np.abs``, ``np.positive``, ``np.negative`` now correctly preserve dtype when called on ExtensionArrays that implement ``__abs__, __pos__, __neg__``, respectively. In particular this is fixed for :class:`TimedeltaArray` (:issue:`43899`)
 -
 
 Styler
