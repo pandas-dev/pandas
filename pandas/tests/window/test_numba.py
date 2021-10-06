@@ -159,28 +159,31 @@ class TestEngine:
 
 
 @td.skip_if_no("numba")
-class TestEWMMean:
+class TestEWM:
     @pytest.mark.parametrize(
         "grouper", [lambda x: x, lambda x: x.groupby("A")], ids=["None", "groupby"]
     )
-    def test_invalid_engine(self, grouper):
+    @pytest.mark.parametrize("method", ["mean", "sum"])
+    def test_invalid_engine(self, grouper, method):
         df = DataFrame({"A": ["a", "b", "a", "b"], "B": range(4)})
         with pytest.raises(ValueError, match="engine must be either"):
-            grouper(df).ewm(com=1.0).mean(engine="foo")
+            getattr(grouper(df).ewm(com=1.0), method)(engine="foo")
 
     @pytest.mark.parametrize(
         "grouper", [lambda x: x, lambda x: x.groupby("A")], ids=["None", "groupby"]
     )
-    def test_invalid_engine_kwargs(self, grouper):
+    @pytest.mark.parametrize("method", ["mean", "sum"])
+    def test_invalid_engine_kwargs(self, grouper, method):
         df = DataFrame({"A": ["a", "b", "a", "b"], "B": range(4)})
         with pytest.raises(ValueError, match="cython engine does not"):
-            grouper(df).ewm(com=1.0).mean(
+            getattr(grouper(df).ewm(com=1.0), method)(
                 engine="cython", engine_kwargs={"nopython": True}
             )
 
     @pytest.mark.parametrize("grouper", ["None", "groupby"])
+    @pytest.mark.parametrize("method", ["mean", "sum"])
     def test_cython_vs_numba(
-        self, grouper, nogil, parallel, nopython, ignore_na, adjust
+        self, grouper, method, nogil, parallel, nopython, ignore_na, adjust
     ):
         if grouper == "None":
             grouper = lambda x: x
@@ -188,15 +191,16 @@ class TestEWMMean:
         else:
             grouper = lambda x: x.groupby("A")
             warn = None
-
+        if method == "sum":
+            adjust = True
         df = DataFrame({"A": ["a", "b", "a", "b"], "B": range(4)})
         ewm = grouper(df).ewm(com=1.0, adjust=adjust, ignore_na=ignore_na)
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
         with tm.assert_produces_warning(warn, match="nuisance"):
             # GH#42738
-            result = ewm.mean(engine="numba", engine_kwargs=engine_kwargs)
-            expected = ewm.mean(engine="cython")
+            result = getattr(ewm, method)(engine="numba", engine_kwargs=engine_kwargs)
+            expected = getattr(ewm, method)(engine="cython")
 
         tm.assert_frame_equal(result, expected)
 
@@ -358,15 +362,16 @@ class TestTableMethod:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("data", [np.eye(3), np.ones((2, 3)), np.ones((3, 2))])
-    def test_table_method_ewm(self, data, axis, nogil, parallel, nopython):
+    @pytest.mark.parametrize("method", ["mean", "sum"])
+    def test_table_method_ewm(self, data, method, axis, nogil, parallel, nopython):
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
 
         df = DataFrame(data)
 
-        result = df.ewm(com=1, method="table", axis=axis).mean(
+        result = getattr(df.ewm(com=1, method="table", axis=axis), method)(
             engine_kwargs=engine_kwargs, engine="numba"
         )
-        expected = df.ewm(com=1, method="single", axis=axis).mean(
+        expected = getattr(df.ewm(com=1, method="single", axis=axis), method)(
             engine_kwargs=engine_kwargs, engine="numba"
         )
         tm.assert_frame_equal(result, expected)
