@@ -264,8 +264,6 @@ class BaseXMLFormatter:
     def write_output(self) -> str | None:
         xml_doc = self.build_tree()
 
-        out_str: str | None
-
         if self.path_or_buffer is not None:
             with get_handle(
                 self.path_or_buffer,

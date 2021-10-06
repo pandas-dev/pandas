@@ -104,7 +104,7 @@ parser_defaults = {
     "chunksize": None,
     "verbose": False,
     "encoding": None,
-    "squeeze": False,
+    "squeeze": None,
     "compression": None,
     "mangle_dupe_cols": True,
     "infer_datetime_format": False,

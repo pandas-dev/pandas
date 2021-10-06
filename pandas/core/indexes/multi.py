@@ -29,6 +29,7 @@ from pandas._libs.hashtable import duplicated
 from pandas._typing import (
     AnyArrayLike,
     DtypeObj,
+    F,
     Scalar,
     Shape,
     npt,
@@ -185,7 +186,7 @@ class MultiIndexPyIntEngine(libindex.BaseMultiIndexCodesEngine, libindex.ObjectE
         return np.bitwise_or.reduce(codes, axis=1)
 
 
-def names_compat(meth):
+def names_compat(meth: F) -> F:
     """
     A decorator to allow either `name` or `names` keyword but not both.
 
@@ -201,7 +202,7 @@ def names_compat(meth):
 
         return meth(self_or_cls, *args, **kwargs)
 
-    return new_meth
+    return cast(F, new_meth)
 
 
 class MultiIndex(Index):
@@ -1541,11 +1542,6 @@ class MultiIndex(Index):
                     f"not {level + 1}"
                 ) from err
         return level
-
-    @property
-    def _has_complex_internals(self) -> bool:
-        # used to avoid libreduction code paths, which raise or require conversion
-        return True
 
     @cache_readonly
     def is_monotonic_increasing(self) -> bool:
@@ -3548,8 +3544,13 @@ class MultiIndex(Index):
             if len(self_values) == 0 and len(other_values) == 0:
                 continue
 
-            if not array_equivalent(self_values, other_values):
-                return False
+            if not isinstance(self_values, np.ndarray):
+                # i.e. ExtensionArray
+                if not self_values.equals(other_values):
+                    return False
+            else:
+                if not array_equivalent(self_values, other_values):
+                    return False
 
         return True
 
