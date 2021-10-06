@@ -128,7 +128,7 @@ Other enhancements
 - Added support for nullable boolean and integer types in :meth:`DataFrame.to_stata`, :class:`~pandas.io.stata.StataWriter`, :class:`~pandas.io.stata.StataWriter117`, and :class:`~pandas.io.stata.StataWriterUTF8` (:issue:`40855`)
 - :meth:`DataFrame.__pos__`, :meth:`DataFrame.__neg__` now retain ``ExtensionDtype`` dtypes (:issue:`43883`)
 - The error raised when an optional dependency can't be imported now includes the original exception, for easier investigation (:issue:`43882`)
--
+- Added :meth:`.ExponentialMovingWindow.sum` (:issue:`13297`)
 
 .. ---------------------------------------------------------------------------
 
@@ -522,7 +522,7 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
--
+- NumPy ufuncs ``np.abs``, ``np.positive``, ``np.negative`` now correctly preserve dtype when called on ExtensionArrays that implement ``__abs__, __pos__, __neg__``, respectively. In particular this is fixed for :class:`TimedeltaArray` (:issue:`43899`)
 -
 
 Styler
