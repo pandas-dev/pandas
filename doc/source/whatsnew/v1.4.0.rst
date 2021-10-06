@@ -127,7 +127,8 @@ Other enhancements
 - :meth:`IntegerArray.all` , :meth:`IntegerArray.any`, :meth:`FloatingArray.any`, and :meth:`FloatingArray.all` use Kleene logic (:issue:`41967`)
 - Added support for nullable boolean and integer types in :meth:`DataFrame.to_stata`, :class:`~pandas.io.stata.StataWriter`, :class:`~pandas.io.stata.StataWriter117`, and :class:`~pandas.io.stata.StataWriterUTF8` (:issue:`40855`)
 - :meth:`DataFrame.__pos__`, :meth:`DataFrame.__neg__` now retain ``ExtensionDtype`` dtypes (:issue:`43883`)
-
+- The error raised when an optional dependency can't be imported now includes the original exception, for easier investigation (:issue:`43882`)
+-
 
 .. ---------------------------------------------------------------------------
 
@@ -364,6 +365,7 @@ Performance improvements
 - Indexing into a :class:`SparseArray` with a ``slice`` with ``step=1`` no longer requires converting to a dense array (:issue:`43777`)
 - Performance improvement in :meth:`SparseArray.take` with ``allow_fill=False`` (:issue:`43654`)
 - Performance improvement in :meth:`.Rolling.mean` and :meth:`.Expanding.mean` with ``engine="numba"`` (:issue:`43612`)
+- Improved performance of :meth:`pandas.read_csv` with ``memory_map=True`` when file encoding is UTF-8 (:issue:`43787`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -406,6 +408,8 @@ Numeric
 - Bug in :meth:`DataFrame.rank` raising ``ValueError`` with ``object`` columns and ``method="first"`` (:issue:`41931`)
 - Bug in :meth:`DataFrame.rank` treating missing values and extreme values as equal (for example ``np.nan`` and ``np.inf``), causing incorrect results when ``na_option="bottom"`` or ``na_option="top`` used (:issue:`41931`)
 - Bug in ``numexpr`` engine still being used when the option ``compute.use_numexpr`` is set to ``False`` (:issue:`32556`)
+- Bug in :class:`DataFrame` arithmetic ops with a subclass whose :meth:`_constructor` attribute is a callable other than the subclass itself (:issue:`43201`)
+-
 
 Conversion
 ^^^^^^^^^^
