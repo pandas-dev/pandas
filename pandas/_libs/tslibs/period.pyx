@@ -2375,7 +2375,7 @@ cdef class _Period(PeriodMixin):
         >>>
         >>> a = Period(freq='D', year=2001, month=1, day=1)
         >>> a.strftime('%d-%b-%Y')
-        '01-Jan-2006'
+        '01-Jan-2001'
         >>> a.strftime('%b. %d, %Y was a %A')
         'Jan. 01, 2001 was a Monday'
         """
