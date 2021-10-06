@@ -542,5 +542,5 @@ class TestRangeIndex(NumericBase):
         }
         values = RangeIndex(0, 10, 2)
         result = values.sort_values(key=lambda x: x.map(sort_order))
-        expected = Index([6, 8, 4, 2, 0], dtype='int64')
-        tm.assert_index_equal(result, expected)
+        expected = Index([4, 8, 6, 0, 2], dtype='int64')
+        tm.assert_index_equal(result, expected, check_exact=True)
