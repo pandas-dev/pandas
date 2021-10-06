@@ -728,13 +728,6 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Index Internals Methods
 
-    @final
-    def _get_attributes_dict(self) -> dict[str_t, Any]:
-        """
-        Return an attributes dict for my class.
-        """
-        return {k: getattr(self, k, None) for k in self._attributes}
-
     def _shallow_copy(self: _IndexT, values, name: Hashable = no_default) -> _IndexT:
         """
         Create a new Index with the same class as the caller, don't copy the
@@ -859,9 +852,7 @@ class Index(IndexOpsMixin, PandasObject):
         if is_bool_dtype(result) or lib.is_scalar(result) or np.ndim(result) > 1:
             return result
 
-        attrs = self._get_attributes_dict()
-        attrs.pop("freq", None)  # For DatetimeIndex/TimedeltaIndex
-        return Index(result, **attrs)
+        return Index(result, name=self.name)
 
     @cache_readonly
     def dtype(self) -> DtypeObj:
@@ -2493,8 +2484,7 @@ class Index(IndexOpsMixin, PandasObject):
     # Pickle Methods
 
     def __reduce__(self):
-        d = {"data": self._data}
-        d.update(self._get_attributes_dict())
+        d = {"data": self._data, "name": self.name}
         return _new_Index, (type(self), d), None
 
     # --------------------------------------------------------------------
@@ -5820,29 +5810,29 @@ class Index(IndexOpsMixin, PandasObject):
 
         new_values = self._map_values(mapper, na_action=na_action)
 
-        attributes = self._get_attributes_dict()
-
         # we can return a MultiIndex
         if new_values.size and isinstance(new_values[0], tuple):
             if isinstance(self, MultiIndex):
                 names = self.names
-            elif attributes.get("name"):
-                names = [attributes.get("name")] * len(new_values[0])
+            elif self.name:
+                names = [self.name] * len(new_values[0])
             else:
                 names = None
             return MultiIndex.from_tuples(new_values, names=names)
 
-        attributes["copy"] = False
+        dtype = None
         if not new_values.size:
             # empty
-            attributes["dtype"] = self.dtype
+            dtype = self.dtype
 
         if self._is_backward_compat_public_numeric_index and is_numeric_dtype(
             new_values.dtype
         ):
-            return self._constructor(new_values, **attributes)
+            return self._constructor(
+                new_values, dtype=dtype, copy=False, name=self.name
+            )
 
-        return Index._with_infer(new_values, **attributes)
+        return Index._with_infer(new_values, dtype=dtype, copy=False, name=self.name)
 
     # TODO: De-duplicate with map, xref GH#32349
     @final
