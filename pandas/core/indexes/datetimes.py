@@ -357,12 +357,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         return self.tz is None and is_dates_only(self._values)  # type: ignore[arg-type]
 
     def __reduce__(self):
-
-        # we use a special reduce here because we need
-        # to simply set the .tz (and not reinterpret it)
-
-        d = {"data": self._data}
-        d.update(self._get_attributes_dict())
+        d = {"data": self._data, "name": self.name}
         return _new_DatetimeIndex, (type(self), d), None
 
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:

@@ -206,7 +206,7 @@ class RangeIndex(NumericIndex):
         return [("start", rng.start), ("stop", rng.stop), ("step", rng.step)]
 
     def __reduce__(self):
-        d = self._get_attributes_dict()
+        d = {"name": self.name}
         d.update(dict(self._get_data_as_items()))
         return ibase._new_Index, (type(self), d), None
 
@@ -913,7 +913,6 @@ class RangeIndex(NumericIndex):
 
         # TODO: if other is a RangeIndex we may have more efficient options
         other = extract_array(other, extract_numpy=True, extract_range=True)
-        attrs = self._get_attributes_dict()
 
         left, right = self, other
 
@@ -935,7 +934,7 @@ class RangeIndex(NumericIndex):
                 rstart = op(left.start, right)
                 rstop = op(left.stop, right)
 
-            result = type(self)(rstart, rstop, rstep, **attrs)
+            result = type(self)(rstart, rstop, rstep, name=self.name)
 
             # for compat with numpy / Int64Index
             # even if we can represent as a RangeIndex, return
