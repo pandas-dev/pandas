@@ -50,7 +50,6 @@ from pandas.core.indexes.numeric import (
     NumericIndex,
 )
 from pandas.core.sorting import (
-    ensure_key_mapped,
     nargsort,
 )
 from pandas.core.ops.common import unpack_zerodim_and_defer
@@ -562,11 +561,13 @@ class RangeIndex(NumericIndex):
         sorted_index = self
         indexer = RangeIndex(start=0, stop=self.size, step=1)
         if key is not None:
-            idx = ensure_key_mapped(self, key)
             indexer = nargsort(
-                items=sorted_index, ascending=ascending, na_position=na_position, key=key
+                items=sorted_index,
+                ascending=ascending,
+                na_position=na_position,
+                key=key
             )
-            sorted_index = self.take(indexer)
+            sorted_index = sorted_index.take(indexer)
         else:
             sorted_index = self
             if ascending:
