@@ -1366,11 +1366,9 @@ class TestDataFrameReductions:
         # GH#36907
         tz = tz_naive_fixture
         if isinstance(tz, tzlocal) and is_platform_windows():
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason="GH#37659 OSError raised within tzlocal bc Windows "
-                    "chokes in times before 1970-01-01"
-                )
+            pytest.skip(
+                "GH#37659 OSError raised within tzlocal bc Windows "
+                "chokes in times before 1970-01-01"
             )
 
         df = DataFrame(
