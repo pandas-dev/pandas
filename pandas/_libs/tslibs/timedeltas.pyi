@@ -7,12 +7,12 @@ from typing import (
 )
 
 import numpy as np
-from pands._typing import npt
 
 from pandas._libs.tslibs import (
     NaTType,
     Tick,
 )
+from pandas._typing import npt
 
 _S = TypeVar("_S")
 
