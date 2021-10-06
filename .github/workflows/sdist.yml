@@ -54,6 +54,7 @@ jobs:
       with:
         activate-environment: pandas-sdist
         python-version: ${{ matrix.python-version }}
+        channels: conda-forge
 
     - name: Install pandas from sdist
       run: |
