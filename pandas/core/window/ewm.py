@@ -46,8 +46,8 @@ from pandas.core.window.doc import (
     window_agg_numba_parameters,
 )
 from pandas.core.window.numba_ import (
-    generate_ewm_numba_table_func,
     generate_numba_ewm_func,
+    generate_numba_ewm_table_func,
 )
 from pandas.core.window.online import (
     EWMMeanState,
@@ -472,7 +472,7 @@ class ExponentialMovingWindow(BaseWindow):
                 func = generate_numba_ewm_func
                 numba_cache_key = (lambda x: x, "ewm_mean")
             else:
-                func = generate_ewm_numba_table_func
+                func = generate_numba_ewm_table_func
                 numba_cache_key = (lambda x: x, "ewm_mean_table")
             ewm_func = func(
                 engine_kwargs=engine_kwargs,
@@ -528,7 +528,7 @@ class ExponentialMovingWindow(BaseWindow):
                 func = generate_numba_ewm_func
                 numba_cache_key = (lambda x: x, "ewm_sum")
             else:
-                func = generate_ewm_numba_table_func
+                func = generate_numba_ewm_table_func
                 numba_cache_key = (lambda x: x, "ewm_sum_table")
             ewm_func = func(
                 engine_kwargs=engine_kwargs,

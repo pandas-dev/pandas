@@ -259,7 +259,7 @@ def generate_manual_numpy_nan_agg_with_axis(nan_func):
     return nan_agg_with_axis
 
 
-def generate_ewm_numba_table_func(
+def generate_numba_ewm_table_func(
     engine_kwargs: dict[str, bool] | None,
     com: float,
     adjust: bool,
