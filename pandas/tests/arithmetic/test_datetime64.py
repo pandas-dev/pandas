@@ -2163,7 +2163,7 @@ class TestDatetimeIndexArithmetic:
         result -= tdi
         tm.assert_index_equal(result, expected)
 
-        # DTA.__isub__
+        # DTA.__isub__ GH#43904
         dta = dti._data.copy()
         dta -= tdi
         tm.assert_datetime_array_equal(dta, expected._data)
