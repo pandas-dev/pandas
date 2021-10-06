@@ -148,7 +148,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     """
 
     _typ = "periodindex"
-    _attributes = ["name"]
 
     _data: PeriodArray
     freq: BaseOffset
