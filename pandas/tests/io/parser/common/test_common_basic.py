@@ -675,7 +675,7 @@ def test_read_table_equivalency_to_read_csv(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-#@pytest.mark.skipif(PY310, reason="This test is leaking, causing subsequent tests to fail with a cryptic error.")
+# @pytest.mark.skipif(PY310, reason="This test is leaking, causing subsequent tests to fail with a cryptic error.")
 @pytest.mark.parametrize("read_func", ["read_csv", "read_table"])
 def test_read_csv_and_table_sys_setprofile(all_parsers, read_func):
     # GH#41069
