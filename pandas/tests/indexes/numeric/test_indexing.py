@@ -395,15 +395,14 @@ class TestWhere:
             UInt64Index(np.arange(5, dtype="uint64")),
         ],
     )
-    @pytest.mark.parametrize("klass", [list, tuple, np.array, Series])
-    def test_where(self, klass, index):
+    def test_where(self, listlike_box_with_tuple, index):
         cond = [True] * len(index)
         expected = index
-        result = index.where(klass(cond))
+        result = index.where(listlike_box_with_tuple(cond))
 
         cond = [False] + [True] * (len(index) - 1)
         expected = Float64Index([index._na_value] + index[1:].tolist())
-        result = index.where(klass(cond))
+        result = index.where(listlike_box_with_tuple(cond))
         tm.assert_index_equal(result, expected)
 
     def test_where_uint64(self):
