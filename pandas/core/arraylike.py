@@ -357,7 +357,7 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
         return result
 
     if "out" in kwargs:
-        result = _dispatch_ufunc_with_out(self, ufunc, method, *inputs, **kwargs)
+        result = dispatch_ufunc_with_out(self, ufunc, method, *inputs, **kwargs)
         return reconstruct(result)
 
     # We still get here with kwargs `axis` for e.g. np.maximum.accumulate
@@ -410,7 +410,7 @@ def _standardize_out_kwarg(**kwargs) -> dict:
     return kwargs
 
 
-def _dispatch_ufunc_with_out(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
+def dispatch_ufunc_with_out(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
     """
     If we have an `out` keyword, then call the ufunc without `out` and then
     set the result into the given `out`.

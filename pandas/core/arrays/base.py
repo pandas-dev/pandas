@@ -1379,6 +1379,11 @@ class ExtensionArray:
         if result is not NotImplemented:
             return result
 
+        if "out" in kwargs:
+            return arraylike.dispatch_ufunc_with_out(
+                self, ufunc, method, *inputs, **kwargs
+            )
+
         return arraylike.default_array_ufunc(self, ufunc, method, *inputs, **kwargs)
 
 
