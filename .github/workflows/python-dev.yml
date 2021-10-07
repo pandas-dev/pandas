@@ -61,7 +61,7 @@ jobs:
       run: |
         ci/run_tests.sh
       # GH 41935
-      continue-on-error: true
+      #continue-on-error: true
 
     - name: Publish test results
       uses: actions/upload-artifact@master
