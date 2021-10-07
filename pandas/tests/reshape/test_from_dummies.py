@@ -32,14 +32,41 @@ def dummies_with_unassigned():
     )
 
 
-def test_from_dummies_no_prefix_basic():
+def test_from_dummies_no_prefix_string_cats_basic():
     dummies = DataFrame({"a": [1, 0, 0, 1], "b": [0, 1, 0, 0], "c": [0, 0, 1, 0]})
     expected = DataFrame({"categories": ["a", "b", "c", "a"]})
     result = from_dummies(dummies)
     tm.assert_frame_equal(result, expected)
 
 
-def test_from_dummies_no_prefix_contains_get_dummies_NaN_column():
+def test_from_dummies_no_prefix_int_cats_basic():
+    dummies = DataFrame(
+        {1: [1, 0, 0, 0], 25: [0, 1, 0, 0], 2: [0, 0, 1, 0], 5: [0, 0, 0, 1]}
+    )
+    expected = DataFrame({"categories": [1, 25, 2, 5]}, dtype="object")
+    result = from_dummies(dummies)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_from_dummies_no_prefix_float_cats_basic():
+    dummies = DataFrame(
+        {1.0: [1, 0, 0, 0], 25.0: [0, 1, 0, 0], 2.5: [0, 0, 1, 0], 5.84: [0, 0, 0, 1]}
+    )
+    expected = DataFrame({"categories": [1.0, 25.0, 2.5, 5.84]}, dtype="object")
+    result = from_dummies(dummies)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_from_dummies_no_prefix_mixed_cats_basic():
+    dummies = DataFrame(
+        {1.23: [1, 0, 0, 0], "c": [0, 1, 0, 0], 2: [0, 0, 1, 0], False: [0, 0, 0, 1]}
+    )
+    expected = DataFrame({"categories": [1.23, "c", 2, False]}, dtype="object")
+    result = from_dummies(dummies)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_from_dummies_no_prefix_string_cats_contains_get_dummies_NaN_column():
     dummies = DataFrame({"a": [1, 0, 0], "b": [0, 1, 0], "NaN": [0, 0, 1]})
     expected = DataFrame({"categories": ["a", "b", "NaN"]})
     result = from_dummies(dummies)
@@ -58,7 +85,7 @@ def test_from_dummies_no_prefix_contains_unassigned():
         from_dummies(dummies)
 
 
-def test_from_dummies_no_prefix_dropped_first():
+def test_from_dummies_no_prefix_string_cats_dropped_first():
     dummies = DataFrame({"a": [1, 0, 0], "b": [0, 1, 0]})
     expected = DataFrame({"categories": ["a", "b", "c"]})
     result = from_dummies(dummies, dropped_first="c")

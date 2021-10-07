@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import itertools
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Hashable,
+)
 
 import numpy as np
 
@@ -1091,7 +1094,7 @@ def _get_dummies_1d(
 
 def from_dummies(
     data: DataFrame,
-    subset: None | list[str] = None,
+    subset: None | list[Hashable] = None,
     sep: None | str | list[str] | dict[str, str] = None,
     dropped_first: None | str | list[str] | dict[str, str] = None,
 ) -> DataFrame:
@@ -1104,11 +1107,10 @@ def from_dummies(
     ----------
     data : `DataFrame`
         Data which contains dummy-coded variables.
-    subset : None, Index, or list of str, default 'None'
+    subset : None, Index, or list of Hashables, default 'None'
         The columns which to convert from dummy-encoding and return as categorical
-        `DataFrame`.
-        If `columns` is None then all dummy columns are converted and appended
-        to the non-dummy columns.
+        `DataFrame`. If `columns` is None then all dummy columns are converted and
+        appended to the non-dummy columns.
     sep : str, list of str, or dict of str, default '_'
         Separator used in the column names of the dummy categories they are
         character indicating the separation of the categorical names from the prefixes.
@@ -1276,7 +1278,9 @@ def from_dummies(
             data_slice = concat((data_to_decode[prefix_slice], assigned == 0), axis=1)
         else:
             data_slice = data_to_decode[prefix_slice]
-        cat_data[prefix] = data_slice.dot(np.array(cats))
+        cats = np.array(cats, dtype="object")
+        # get indices of True entries along axis=1
+        cat_data[prefix] = cats[data_slice.to_numpy().nonzero()[1]]
 
     return DataFrame(cat_data)
 
