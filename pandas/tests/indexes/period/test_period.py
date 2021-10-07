@@ -4,7 +4,6 @@ import pytest
 from pandas._libs.tslibs.period import IncompatibleFrequency
 
 from pandas import (
-    DatetimeIndex,
     Index,
     NaT,
     Period,
@@ -48,15 +47,6 @@ class TestPeriodIndex(DatetimeLike):
     def test_where(self):
         # This is handled in test_indexing
         pass
-
-    def test_no_millisecond_field(self):
-        msg = "type object 'DatetimeIndex' has no attribute 'millisecond'"
-        with pytest.raises(AttributeError, match=msg):
-            DatetimeIndex.millisecond
-
-        msg = "'DatetimeIndex' object has no attribute 'millisecond'"
-        with pytest.raises(AttributeError, match=msg):
-            DatetimeIndex([]).millisecond
 
     def test_make_time_series(self):
         index = period_range(freq="A", start="1/1/2001", end="12/1/2009")

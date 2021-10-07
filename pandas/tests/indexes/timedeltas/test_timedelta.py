@@ -7,10 +7,10 @@ import pandas as pd
 from pandas import (
     Index,
     Int64Index,
+    NaT,
     Series,
     Timedelta,
     TimedeltaIndex,
-    date_range,
     timedelta_range,
 )
 import pandas._testing as tm
@@ -41,26 +41,6 @@ class TestTimedeltaIndex(DatetimeLike):
 
     def test_shift(self):
         pass  # this is handled in test_arithmetic.py
-
-    def test_pickle_after_set_freq(self):
-        tdi = timedelta_range("1 day", periods=4, freq="s")
-        tdi = tdi._with_freq(None)
-
-        res = tm.round_trip_pickle(tdi)
-        tm.assert_index_equal(res, tdi)
-
-    def test_isin(self):
-
-        index = tm.makeTimedeltaIndex(4)
-        result = index.isin(index)
-        assert result.all()
-
-        result = index.isin(list(index))
-        assert result.all()
-
-        tm.assert_almost_equal(
-            index.isin([index[2], 5]), np.array([False, False, True, False])
-        )
 
     def test_misc_coverage(self):
 
@@ -140,11 +120,11 @@ class TestTimedeltaIndex(DatetimeLike):
         # doc example
 
         # series
-        td = Series(date_range("20130101", periods=4)) - Series(
-            date_range("20121201", periods=4)
+        scalar = Timedelta(days=31)
+        td = Series(
+            [scalar, scalar, scalar + timedelta(minutes=5, seconds=3), NaT],
+            dtype="m8[ns]",
         )
-        td[2] += timedelta(minutes=5, seconds=3)
-        td[3] = np.nan
 
         result = td / np.timedelta64(1, "D")
         expected = Series([31, 31, (31 * 86400 + 5 * 60 + 3) / 86400.0, np.nan])
