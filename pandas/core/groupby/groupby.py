@@ -3581,6 +3581,31 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         sampled_indices = np.concatenate(sampled_indices)
         return self._selected_obj.take(sampled_indices, axis=self.axis)
 
+    def value_counts(
+        self,
+        subset: Sequence[Hashable] | None = None,
+        normalize: bool = False,
+        sort: bool = True,
+        ascending: bool = False,
+        dropna: bool = True,
+    ):
+        with self._group_selection_context():
+            df = self.obj
+ #           keys = self.keys
+ #           print("!!!",type(keys), keys)
+            keys = ["country"]
+            remaining_columns = list(df.columns.difference(keys))
+            if subset is not None:
+                remaining_columns = list(set(subset) - set(remaining_columns))
+            if dropna:
+                df = df.dropna(subset=remaining_columns, axis='index', how='any')
+            result = df.groupby(keys + remaining_columns).size()
+            if normalize:
+                result /= df.groupby(keys).size()
+            if sort:
+                result = result.sort_values(ascending=ascending)
+            return result
+
 
 @doc(GroupBy)
 def get_groupby(
