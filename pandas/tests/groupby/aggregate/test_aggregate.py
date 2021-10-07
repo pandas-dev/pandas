@@ -1329,9 +1329,9 @@ def test_timeseries_groupby_agg():
 
 def test_groupby_aggregate_directory():
     # GH#32793
-    df = pd.DataFrame([[0, 1], [0, np.nan]]).convert_dtypes()
-    df_agg_last = df.groupby(0).agg('last')
-    df_agg_last_dir = df.groupby(0).agg({1: 'last'})
+    df = DataFrame([[0, 1], [0, np.nan]]).convert_dtypes()
+    df_agg_last = df.groupby(0).agg("last")
+    df_agg_last_dir = df.groupby(0).agg({1: "last"})
 
     tm.assert_frame_equal(df_agg_last, df_agg_last_dir)
     tm.assert_series_equal(df_agg_last.dtypes, df_agg_last_dir.dtypes)
