@@ -562,7 +562,7 @@ class RangeIndex(NumericIndex):
                 return_indexer=return_indexer,
                 ascending=ascending,
                 na_position=na_position,
-                key=key
+                key=key,
             )
         else:
             sorted_index = self
