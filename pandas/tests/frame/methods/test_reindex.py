@@ -1078,3 +1078,35 @@ class TestDataFrameSelectReindex:
         assert res.iloc[-1, 0] is fv
         assert res.iloc[-1, 1] is fv
         tm.assert_frame_equal(res, expected)
+
+    @pytest.mark.parametrize(
+        "index_df,index_res,index_exp",
+        [
+            (
+                CategoricalIndex([], categories=["A"]),
+                Index(["A"]),
+                Index(["A"]),
+            ),
+            (
+                CategoricalIndex([], categories=["A"]),
+                Index(["B"]),
+                Index(["B"]),
+            ),
+            (
+                CategoricalIndex([], categories=["A"]),
+                CategoricalIndex(["A"]),
+                CategoricalIndex(["A"]),
+            ),
+            (
+                CategoricalIndex([], categories=["A"]),
+                CategoricalIndex(["B"]),
+                CategoricalIndex(["B"]),
+            ),
+        ],
+    )
+    def test_reindex_not_category(self, index_df, index_res, index_exp):
+        # GH#28690
+        df = DataFrame(index=index_df)
+        result = df.reindex(index=index_res)
+        expected = DataFrame(index=index_exp)
+        tm.assert_frame_equal(result, expected)

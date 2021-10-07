@@ -3,6 +3,7 @@ import pytest
 
 from pandas import (
     DataFrame,
+    PeriodIndex,
     Series,
     date_range,
     period_range,
@@ -11,6 +12,31 @@ import pandas._testing as tm
 
 
 class TestPeriodIndex:
+    def test_getitem_periodindex_duplicates_string_slice(self):
+        # monotonic
+        idx = PeriodIndex([2000, 2007, 2007, 2009, 2009], freq="A-JUN")
+        ts = Series(np.random.randn(len(idx)), index=idx)
+
+        result = ts["2007"]
+        expected = ts[1:3]
+        tm.assert_series_equal(result, expected)
+        result[:] = 1
+        assert (ts[1:3] == 1).all()
+
+        # not monotonic
+        idx = PeriodIndex([2000, 2007, 2007, 2009, 2007], freq="A-JUN")
+        ts = Series(np.random.randn(len(idx)), index=idx)
+
+        result = ts["2007"]
+        expected = ts[idx == "2007"]
+        tm.assert_series_equal(result, expected)
+
+    def test_getitem_periodindex_quarter_string(self):
+        pi = PeriodIndex(["2Q05", "3Q05", "4Q05", "1Q06", "2Q06"], freq="Q")
+        ser = Series(np.random.rand(len(pi)), index=pi).cumsum()
+        # Todo: fix these accessors!
+        assert ser["05Q4"] == ser[2]
+
     def test_pindex_slice_index(self):
         pi = period_range(start="1/1/10", end="12/31/12", freq="M")
         s = Series(np.random.rand(len(pi)), index=pi)
