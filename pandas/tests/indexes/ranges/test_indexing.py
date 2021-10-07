@@ -77,3 +77,17 @@ class TestTake:
         msg = "index -5 is out of bounds for (axis 0 with )?size 3"
         with pytest.raises(IndexError, match=msg):
             idx.take(np.array([1, -5]))
+
+
+class TestWhere:
+    def test_where_putmask_range_cast(self):
+        # GH#43240
+        idx = RangeIndex(0, 5, name="test")
+
+        mask = np.array([True, True, False, False, False])
+        result = idx.putmask(mask, 10)
+        expected = Int64Index([10, 10, 2, 3, 4], name="test")
+        tm.assert_index_equal(result, expected)
+
+        result = idx.where(~mask, 10)
+        tm.assert_index_equal(result, expected)

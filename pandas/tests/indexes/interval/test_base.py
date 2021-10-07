@@ -4,7 +4,6 @@ import pytest
 from pandas import (
     IntervalIndex,
     Series,
-    date_range,
 )
 import pandas._testing as tm
 from pandas.tests.indexes.common import Base
@@ -66,29 +65,3 @@ class TestBase(Base):
         with pytest.raises(ValueError, match="multi-dimensional indexing not allowed"):
             with tm.assert_produces_warning(FutureWarning):
                 idx[:, None]
-
-
-class TestPutmask:
-    @pytest.mark.parametrize("tz", ["US/Pacific", None])
-    def test_putmask_dt64(self, tz):
-        # GH#37968
-        dti = date_range("2016-01-01", periods=9, tz=tz)
-        idx = IntervalIndex.from_breaks(dti)
-        mask = np.zeros(idx.shape, dtype=bool)
-        mask[0:3] = True
-
-        result = idx.putmask(mask, idx[-1])
-        expected = IntervalIndex([idx[-1]] * 3 + list(idx[3:]))
-        tm.assert_index_equal(result, expected)
-
-    def test_putmask_td64(self):
-        # GH#37968
-        dti = date_range("2016-01-01", periods=9)
-        tdi = dti - dti[0]
-        idx = IntervalIndex.from_breaks(tdi)
-        mask = np.zeros(idx.shape, dtype=bool)
-        mask[0:3] = True
-
-        result = idx.putmask(mask, idx[-1])
-        expected = IntervalIndex([idx[-1]] * 3 + list(idx[3:]))
-        tm.assert_index_equal(result, expected)
