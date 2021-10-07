@@ -156,6 +156,15 @@ class TestTimeSeries:
 
 
 class TestDatetime64:
+    def test_no_millisecond_field(self):
+        msg = "type object 'DatetimeIndex' has no attribute 'millisecond'"
+        with pytest.raises(AttributeError, match=msg):
+            DatetimeIndex.millisecond
+
+        msg = "'DatetimeIndex' object has no attribute 'millisecond'"
+        with pytest.raises(AttributeError, match=msg):
+            DatetimeIndex([]).millisecond
+
     def test_datetimeindex_accessors(self):
         dti_naive = date_range(freq="D", start=datetime(1998, 1, 1), periods=365)
         # GH#13303
