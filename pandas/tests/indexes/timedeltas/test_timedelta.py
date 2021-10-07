@@ -49,19 +49,6 @@ class TestTimedeltaIndex(DatetimeLike):
         res = tm.round_trip_pickle(tdi)
         tm.assert_index_equal(res, tdi)
 
-    def test_isin(self):
-
-        index = tm.makeTimedeltaIndex(4)
-        result = index.isin(index)
-        assert result.all()
-
-        result = index.isin(list(index))
-        assert result.all()
-
-        tm.assert_almost_equal(
-            index.isin([index[2], 5]), np.array([False, False, True, False])
-        )
-
     def test_misc_coverage(self):
 
         rng = timedelta_range("1 day", periods=5)
