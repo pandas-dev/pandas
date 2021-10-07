@@ -1263,7 +1263,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Perform groupby with a standard numerical aggregation function (e.g. mean)
         with Numba.
         """
-        with group_selection_context(self):
+        with self._group_selection_context():
             data = self._selected_obj
         df = data if data.ndim == 2 else data.to_frame()
         starts, ends, sorted_index, sorted_data = self._numba_prep(func, df)
