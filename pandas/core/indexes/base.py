@@ -846,7 +846,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return np.asarray(self._data, dtype=dtype)
 
-    def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
+    def __array_ufunc__(self, ufunc: np.ufunc, method: str_t, *inputs, **kwargs):
         if any(isinstance(other, (ABCSeries, ABCDataFrame)) for other in inputs):
             return NotImplemented
 
