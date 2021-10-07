@@ -142,4 +142,4 @@ class TestTimedeltaIndex(DatetimeLike):
         tm.assert_equal(result, expected)
 
         result = td.astype("timedelta64[s]")
-        tm.index_or_series(result, expected)
+        tm.assert_equal(result, expected)
