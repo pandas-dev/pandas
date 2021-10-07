@@ -2163,6 +2163,15 @@ class TestDatetimeIndexArithmetic:
         result -= tdi
         tm.assert_index_equal(result, expected)
 
+        # DTA.__isub__ GH#43904
+        dta = dti._data.copy()
+        dta -= tdi
+        tm.assert_datetime_array_equal(dta, expected._data)
+
+        out = dti._data.copy()
+        np.subtract(out, tdi, out=out)
+        tm.assert_datetime_array_equal(out, expected._data)
+
         msg = "cannot subtract .* from a TimedeltaArray"
         with pytest.raises(TypeError, match=msg):
             tdi -= dti
@@ -2172,9 +2181,13 @@ class TestDatetimeIndexArithmetic:
         result -= tdi.values
         tm.assert_index_equal(result, expected)
 
-        msg = "cannot subtract a datelike from a TimedeltaArray"
+        msg = "cannot subtract DatetimeArray from ndarray"
         with pytest.raises(TypeError, match=msg):
             tdi.values -= dti
+
+        msg = "cannot subtract a datelike from a TimedeltaArray"
+        with pytest.raises(TypeError, match=msg):
+            tdi._values -= dti
 
     # -------------------------------------------------------------
     # Binary Operations DatetimeIndex and datetime-like
