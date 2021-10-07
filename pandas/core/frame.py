@@ -2565,6 +2565,13 @@ class DataFrame(NDFrame, OpsMixin):
             `compression_level`, `chunksize` and `version` keywords.
 
             .. versionadded:: 1.1.0
+
+        Notes
+        -----
+        This function writes the dataframe as a `feather file
+        <https://arrow.apache.org/docs/python/feather.html>`_. Requires a default
+        index. For saving the DataFrame with your custom index use a method that
+        supports custom indices e.g. `to_parquet`.
         """
         from pandas.io.feather_format import to_feather
 
