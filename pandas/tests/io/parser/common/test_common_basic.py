@@ -13,7 +13,6 @@ import numpy as np
 import pytest
 
 from pandas.compat import PY310
-
 from pandas.errors import (
     EmptyDataError,
     ParserError,
