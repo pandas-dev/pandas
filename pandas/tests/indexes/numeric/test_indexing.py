@@ -406,7 +406,7 @@ class TestWhere:
         result = index.where(klass(cond))
         tm.assert_index_equal(result, expected)
 
-    def test_where_uin64(self):
+    def test_where_uint64(self):
         idx = UInt64Index([0, 6, 2])
         mask = np.array([False, True, False])
         other = np.array([1], dtype=np.int64)
