@@ -44,6 +44,7 @@ def get_allocated_khash_memory():
         (ht.UInt16HashTable, np.uint16),
         (ht.Int8HashTable, np.int8),
         (ht.UInt8HashTable, np.uint8),
+        (ht.IntpHashTable, np.intp),
     ],
 )
 class TestHashTable:
@@ -389,6 +390,7 @@ def get_ht_function(fun_name, type_suffix):
         (np.uint16, "uint16"),
         (np.int8, "int8"),
         (np.uint8, "uint8"),
+        (np.intp, "intp"),
     ],
 )
 class TestHelpFunctions:
@@ -469,6 +471,14 @@ def test_modes_with_nans():
     modes = ht.mode(values, False)
     assert modes.size == 1
     assert np.isnan(modes[0])
+
+
+def test_unique_label_indices_intp(writable):
+    keys = np.array([1, 2, 2, 2, 1, 3], dtype=np.intp)
+    keys.flags.writeable = writable
+    result = ht.unique_label_indices(keys)
+    expected = np.array([0, 1, 5], dtype=np.intp)
+    tm.assert_numpy_array_equal(result, expected)
 
 
 @pytest.mark.parametrize(
