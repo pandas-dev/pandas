@@ -422,9 +422,9 @@ cdef class IndexEngine:
             # found
             if (
                 val in d
-                or d_has_nan and util.is_nan(val)
-                or d_has_dt64nat and is_dt64nat(val)
-                or d_has_td64nat and is_td64nat(val)
+                or (d_has_nan and util.is_nan(val))
+                or (d_has_dt64nat and is_dt64nat(val))
+                or (d_has_td64nat and is_td64nat(val))
             ):
                 key = val
                 if d_has_nan and util.is_nan(key):
