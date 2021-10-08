@@ -362,6 +362,7 @@ zlib                                         Compression for HDF5
 fastparquet               0.4.0              Parquet reading / writing
 pyarrow                   0.17.0             Parquet, ORC, and feather reading / writing
 pyreadstat                                   SPSS files (.sav) reading
+Python with lzma module   None               Reading files with .lzma or .xz compression
 ========================= ================== =============================================================
 
 .. _install.warn_orc:

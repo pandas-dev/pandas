@@ -11,9 +11,7 @@ from typing import (
 import zipfile
 
 from pandas._typing import FilePathOrBuffer
-from pandas.compat import (
-    get_lzma_file,
-)
+from pandas.compat import get_lzma_file
 
 import pandas as pd
 from pandas._testing._random import rands
