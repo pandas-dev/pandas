@@ -240,7 +240,8 @@ def asarray_tuplesafe(values, dtype: NpDtype | None = None) -> np.ndarray:
     if issubclass(result.dtype.type, str):
         result = np.asarray(values, dtype=object)
 
-    if result.ndim == 2:
+    # For ndim > 2 distinguish between nested tuples and multidimensional arrays
+    if result.ndim == 2 or (result.ndim > 2 and isinstance(values[0][0], tuple)):
         # Avoid building an array of arrays:
         values = [tuple(x) for x in values]
         result = construct_1d_object_array_from_listlike(values)
