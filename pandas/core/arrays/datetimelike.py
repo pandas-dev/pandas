@@ -1228,7 +1228,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         )
         return result
 
-    def _time_shift(self, periods: int, freq=None):
+    def _time_shift(
+        self: DatetimeLikeArrayT, periods: int, freq=None
+    ) -> DatetimeLikeArrayT:
         """
         Shift each value by `periods`.
 
@@ -1412,7 +1414,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         if not is_period_dtype(self.dtype):
             # restore freq, which is invalidated by setitem
-            self._freq = result._freq
+            self._freq = result.freq
         return self
 
     def __isub__(self, other):
@@ -1421,7 +1423,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         if not is_period_dtype(self.dtype):
             # restore freq, which is invalidated by setitem
-            self._freq = result._freq
+            self._freq = result.freq
         return self
 
     # --------------------------------------------------------------
@@ -1821,39 +1823,6 @@ def validate_periods(periods):
         elif not lib.is_integer(periods):
             raise TypeError(f"periods must be a number, got {periods}")
     return periods
-
-
-def validate_endpoints(closed):
-    """
-    Check that the `closed` argument is among [None, "left", "right"]
-
-    Parameters
-    ----------
-    closed : {None, "left", "right"}
-
-    Returns
-    -------
-    left_closed : bool
-    right_closed : bool
-
-    Raises
-    ------
-    ValueError : if argument is not among valid values
-    """
-    left_closed = False
-    right_closed = False
-
-    if closed is None:
-        left_closed = True
-        right_closed = True
-    elif closed == "left":
-        left_closed = True
-    elif closed == "right":
-        right_closed = True
-    else:
-        raise ValueError("Closed has to be either 'left', 'right' or None")
-
-    return left_closed, right_closed
 
 
 def validate_inferred_freq(freq, inferred_freq, freq_infer):

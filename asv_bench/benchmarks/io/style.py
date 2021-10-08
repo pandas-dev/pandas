@@ -34,12 +34,28 @@ class Render:
         self._style_classes()
         self.st._render_html(True, True)
 
+    def time_tooltips_render(self, cols, rows):
+        self._style_tooltips()
+        self.st._render_html(True, True)
+
+    def peakmem_tooltips_render(self, cols, rows):
+        self._style_tooltips()
+        self.st._render_html(True, True)
+
     def time_format_render(self, cols, rows):
         self._style_format()
         self.st._render_html(True, True)
 
     def peakmem_format_render(self, cols, rows):
         self._style_format()
+        self.st._render_html(True, True)
+
+    def time_apply_format_hide_render(self, cols, rows):
+        self._style_apply_format_hide()
+        self.st._render_html(True, True)
+
+    def peakmem_apply_format_hide_render(self, cols, rows):
+        self._style_apply_format_hide()
         self.st._render_html(True, True)
 
     def _style_apply(self):
@@ -63,3 +79,15 @@ class Render:
         self.st = self.df.style.format(
             "{:,.3f}", subset=IndexSlice["row_1":f"row_{ir}", "float_1":f"float_{ic}"]
         )
+
+    def _style_apply_format_hide(self):
+        self.st = self.df.style.applymap(lambda v: "color: red;")
+        self.st.format("{:.3f}")
+        self.st.hide_index(self.st.index[1:])
+        self.st.hide_columns(self.st.columns[1:])
+
+    def _style_tooltips(self):
+        ttips = DataFrame("abc", index=self.df.index[::2], columns=self.df.columns[::2])
+        self.st = self.df.style.set_tooltips(ttips)
+        self.st.hide_index(self.st.index[12:])
+        self.st.hide_columns(self.st.columns[12:])

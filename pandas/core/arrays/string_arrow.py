@@ -5,7 +5,6 @@ import re
 from typing import (
     TYPE_CHECKING,
     Any,
-    Sequence,
     Union,
     cast,
     overload,
@@ -24,6 +23,8 @@ from pandas._typing import (
     Scalar,
     ScalarIndexer,
     SequenceIndexer,
+    TakeIndexer,
+    npt,
 )
 from pandas.compat import (
     pa_version_under1p0,
@@ -199,12 +200,9 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
         """Convert myself to a pyarrow Array or ChunkedArray."""
         return self._data
 
-    # error: Argument 1 of "to_numpy" is incompatible with supertype "ExtensionArray";
-    # supertype defines the argument type as "Union[ExtensionDtype, str, dtype[Any],
-    # Type[str], Type[float], Type[int], Type[complex], Type[bool], Type[object], None]"
-    def to_numpy(  # type: ignore[override]
+    def to_numpy(
         self,
-        dtype: NpDtype | None = None,
+        dtype: npt.DTypeLike | None = None,
         copy: bool = False,
         na_value=lib.no_default,
     ) -> np.ndarray:
@@ -309,9 +307,7 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
             if not len(item):
                 return type(self)(pa.chunked_array([], type=pa.string()))
             elif is_integer_dtype(item.dtype):
-                # error: Argument 1 to "take" of "ArrowStringArray" has incompatible
-                # type "ndarray"; expected "Sequence[int]"
-                return self.take(item)  # type: ignore[arg-type]
+                return self.take(item)
             elif is_bool_dtype(item.dtype):
                 return type(self)(self._data.filter(item))
             else:
@@ -515,14 +511,17 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
                 self[k] = v
 
     def take(
-        self, indices: Sequence[int], allow_fill: bool = False, fill_value: Any = None
+        self,
+        indices: TakeIndexer,
+        allow_fill: bool = False,
+        fill_value: Any = None,
     ):
         """
         Take elements from an array.
 
         Parameters
         ----------
-        indices : sequence of int
+        indices : sequence of int or one-dimensional np.ndarray of int
             Indices to be taken.
         allow_fill : bool, default False
             How to handle negative values in `indices`.

@@ -485,19 +485,23 @@ class TestGetLoc:
         with pytest.raises(InvalidIndexError, match=r"slice\(None, 2, None\)"):
             idx.get_loc(slice(2))
 
-        idx = pd.to_datetime(["2000-01-01", "2000-01-04"])
+        idx = DatetimeIndex(["2000-01-01", "2000-01-04"])
         assert idx.get_loc("2000-01-02", method="nearest") == 0
         assert idx.get_loc("2000-01-03", method="nearest") == 1
         assert idx.get_loc("2000-01", method="nearest") == slice(0, 2)
 
+    def test_get_loc_time_obj(self):
         # time indexing
         idx = date_range("2000-01-01", periods=24, freq="H")
-        tm.assert_numpy_array_equal(
-            idx.get_loc(time(12)), np.array([12]), check_dtype=False
-        )
-        tm.assert_numpy_array_equal(
-            idx.get_loc(time(12, 30)), np.array([]), check_dtype=False
-        )
+
+        result = idx.get_loc(time(12))
+        expected = np.array([12])
+        tm.assert_numpy_array_equal(result, expected, check_dtype=False)
+
+        result = idx.get_loc(time(12, 30))
+        expected = np.array([])
+        tm.assert_numpy_array_equal(result, expected, check_dtype=False)
+
         msg = "cannot yet lookup inexact labels when key is a time object"
         with pytest.raises(NotImplementedError, match=msg):
             with tm.assert_produces_warning(FutureWarning, match="deprecated"):

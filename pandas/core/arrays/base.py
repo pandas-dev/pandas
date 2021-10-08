@@ -33,6 +33,7 @@ from pandas._typing import (
     ScalarIndexer,
     SequenceIndexer,
     Shape,
+    TakeIndexer,
     npt,
 )
 from pandas.compat import set_function_name
@@ -64,6 +65,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import (
+    arraylike,
     missing,
     ops,
 )
@@ -449,7 +451,7 @@ class ExtensionArray:
 
     def to_numpy(
         self,
-        dtype: Dtype | None = None,
+        dtype: npt.DTypeLike | None = None,
         copy: bool = False,
         na_value=lib.no_default,
     ) -> np.ndarray:
@@ -478,12 +480,7 @@ class ExtensionArray:
         -------
         numpy.ndarray
         """
-        # error: Argument "dtype" to "asarray" has incompatible type
-        # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
-        # Type[complex], Type[bool], Type[object], None]"; expected "Union[dtype[Any],
-        # None, type, _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int,
-        # Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
-        result = np.asarray(self, dtype=dtype)  # type: ignore[arg-type]
+        result = np.asarray(self, dtype=dtype)
         if copy or na_value is not lib.no_default:
             result = result.copy()
         if na_value is not lib.no_default:
@@ -1081,7 +1078,7 @@ class ExtensionArray:
 
     def take(
         self: ExtensionArrayT,
-        indices: Sequence[int],
+        indices: TakeIndexer,
         *,
         allow_fill: bool = False,
         fill_value: Any = None,
@@ -1091,7 +1088,7 @@ class ExtensionArray:
 
         Parameters
         ----------
-        indices : sequence of int
+        indices : sequence of int or one-dimensional np.ndarray of int
             Indices to be taken.
         allow_fill : bool, default False
             How to handle negative values in `indices`.
@@ -1369,6 +1366,25 @@ class ExtensionArray:
                 f"Default 'empty' implementation is invalid for dtype='{dtype}'"
             )
         return result
+
+    def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
+        if any(
+            isinstance(other, (ABCSeries, ABCIndex, ABCDataFrame)) for other in inputs
+        ):
+            return NotImplemented
+
+        result = arraylike.maybe_dispatch_ufunc_to_dunder_op(
+            self, ufunc, method, *inputs, **kwargs
+        )
+        if result is not NotImplemented:
+            return result
+
+        if "out" in kwargs:
+            return arraylike.dispatch_ufunc_with_out(
+                self, ufunc, method, *inputs, **kwargs
+            )
+
+        return arraylike.default_array_ufunc(self, ufunc, method, *inputs, **kwargs)
 
 
 class ExtensionOpsMixin:

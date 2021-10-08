@@ -152,6 +152,25 @@ class TestGetLoc:
             with tm.assert_produces_warning(FutureWarning, match="deprecated"):
                 idx.get_loc(np.nan, method=method)
 
+    @pytest.mark.parametrize("dtype", ["f8", "i8", "u8"])
+    def test_get_loc_numericindex_none_raises(self, dtype):
+        # case that goes through searchsorted and key is non-comparable to values
+        arr = np.arange(10 ** 7, dtype=dtype)
+        idx = Index(arr)
+        with pytest.raises(KeyError, match="None"):
+            idx.get_loc(None)
+
+    def test_get_loc_overflows(self):
+        # unique but non-monotonic goes through IndexEngine.mapping.get_item
+        idx = Index([0, 2, 1])
+
+        val = np.iinfo(np.int64).max + 1
+
+        with pytest.raises(KeyError, match=str(val)):
+            idx.get_loc(val)
+        with pytest.raises(KeyError, match=str(val)):
+            idx._engine.get_loc(val)
+
 
 class TestGetIndexer:
     def test_get_indexer(self):
@@ -387,7 +406,7 @@ class TestWhere:
         result = index.where(klass(cond))
         tm.assert_index_equal(result, expected)
 
-    def test_where_uin64(self):
+    def test_where_uint64(self):
         idx = UInt64Index([0, 6, 2])
         mask = np.array([False, True, False])
         other = np.array([1], dtype=np.int64)

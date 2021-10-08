@@ -845,15 +845,17 @@ def format_is_iso(f: str) -> bint:
     Generally of form YYYY-MM-DDTHH:MM:SS - date separator can be different
     but must be consistent.  Leading 0s in dates and times are optional.
     """
-    iso_template = '%Y{date_sep}%m{date_sep}%d{time_sep}%H:%M:%S.%f'.format
+    iso_template = '%Y{date_sep}%m{date_sep}%d{time_sep}%H:%M:%S{micro_or_tz}'.format
     excluded_formats = ['%Y%m%d', '%Y%m', '%Y']
 
     for date_sep in [' ', '/', '\\', '-', '.', '']:
         for time_sep in [' ', 'T']:
-            if (iso_template(date_sep=date_sep,
-                             time_sep=time_sep
-                             ).startswith(f) and f not in excluded_formats):
-                return True
+            for micro_or_tz in ['', '%z', '%Z', '.%f', '.%f%z', '.%f%Z']:
+                if (iso_template(date_sep=date_sep,
+                                 time_sep=time_sep,
+                                 micro_or_tz=micro_or_tz,
+                                 ).startswith(f) and f not in excluded_formats):
+                    return True
     return False
 
 
@@ -907,6 +909,7 @@ def guess_datetime_format(
         (('second',), '%S', 2),
         (('microsecond',), '%f', 6),
         (('second', 'microsecond'), '%S.%f', 0),
+        (('tzinfo',), '%z', 0),
         (('tzinfo',), '%Z', 0),
     ]
 
@@ -926,6 +929,33 @@ def guess_datetime_format(
     # the default dt_str_split from dateutil will never raise here; we assume
     #  that any user-provided function will not either.
     tokens = dt_str_split(dt_str)
+
+    # Normalize offset part of tokens.
+    # There are multiple formats for the timezone offset.
+    # To pass the comparison condition between the output of `strftime` and
+    # joined tokens, which is carried out at the final step of the function,
+    # the offset part of the tokens must match the '%z' format like '+0900'
+    # instead of ‘+09:00’.
+    if parsed_datetime.tzinfo is not None:
+        offset_index = None
+        if len(tokens) > 0 and tokens[-1] == 'Z':
+            # the last 'Z' means zero offset
+            offset_index = -1
+        elif len(tokens) > 1 and tokens[-2] in ('+', '-'):
+            # ex. [..., '+', '0900']
+            offset_index = -2
+        elif len(tokens) > 3 and tokens[-4] in ('+', '-'):
+            # ex. [..., '+', '09', ':', '00']
+            offset_index = -4
+
+        if offset_index is not None:
+            # If the input string has a timezone offset like '+0900',
+            # the offset is separated into two tokens, ex. ['+', '0900’].
+            # This separation will prevent subsequent processing
+            # from correctly parsing the time zone format.
+            # So in addition to the format nomalization, we rejoin them here.
+            tokens[offset_index] = parsed_datetime.strftime("%z")
+            tokens = tokens[:offset_index + 1 or None]
 
     format_guess = [None] * len(tokens)
     found_attrs = set()
