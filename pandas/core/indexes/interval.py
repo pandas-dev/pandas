@@ -725,7 +725,12 @@ class IntervalIndex(ExtensionIndex):
                 if isinstance(locs, slice):
                     # Only needed for get_indexer_non_unique
                     locs = np.arange(locs.start, locs.stop, locs.step, dtype="intp")
-                locs = np.array(locs, ndmin=1)
+                elif lib.is_integer(locs):
+                    locs = np.array(locs, ndmin=1)
+                else:
+                    # FIXME: This is wrong; its boolean; not reached
+                    assert locs.dtype.kind == "i"
+
             except KeyError:
                 missing.append(i)
                 locs = np.array([-1])

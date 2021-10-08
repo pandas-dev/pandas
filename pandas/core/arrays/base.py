@@ -1348,6 +1348,25 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
     # Non-Optimized Default Methods
 
+    def putmask(self, mask: np.ndarray, value) -> None:
+        """
+        Analogue to np.putmask(self, mask, value)
+
+        Parameters
+        ----------
+        mask : np.ndarray[bool]
+        value : scalar or listlike
+
+        Raises
+        ------
+        TypeError
+            If value cannot be inserted into self.
+        """
+        if not is_list_like(value):
+            self[mask] = value
+        else:
+            self[mask] = value[mask]
+
     def delete(self: ExtensionArrayT, loc: PositionalIndexer) -> ExtensionArrayT:
         indexer = np.delete(np.arange(len(self)), loc)
         return self.take(indexer)

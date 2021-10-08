@@ -34,6 +34,7 @@ from pandas._libs import (
 )
 
 from pandas._libs.missing cimport (
+    C_NA as NA,
     checknull,
     is_matching_na,
 )
@@ -765,3 +766,475 @@ cdef class BaseMultiIndexCodesEngine:
 
 # Generated from template.
 include "index_class_helper.pxi"
+
+
+@cython.freelist(32)
+cdef class ExtensionEngine:
+    cdef readonly:
+        object values  # ExtensionArray
+        bint over_size_threshold
+
+    cdef:
+        bint unique, monotonic_inc, monotonic_dec
+        bint need_monotonic_check, need_unique_check
+
+    def __init__(self, values: "ExtensionArray"):
+        self.values = values
+
+        self.over_size_threshold = len(values) >= _SIZE_CUTOFF
+        self.need_unique_check = True
+        self.need_monotonic_check = True
+        self.need_unique_check = True
+
+    def clear_mapping(self):
+        # for compat with IndexEngine
+        pass
+
+    @property
+    def is_unique(self) -> bool:
+        if self.need_unique_check:
+            arr = self.values.unique()
+            self.unique = len(arr) == len(self.values)
+
+            self.need_unique_check = False
+        return self.unique
+
+    @property
+    def is_monotonic_increasing(self) -> bool:
+        if self.need_monotonic_check:
+            self._do_monotonic_check()
+
+        return self.monotonic_inc == 1
+
+    @property
+    def is_monotonic_decreasing(self) -> bool:
+        if self.need_monotonic_check:
+            self._do_monotonic_check()
+
+        return self.monotonic_dec == 1
+
+    cdef inline _do_monotonic_check(self):
+        cdef:
+            bint is_unique
+
+        # FIXME: shouldn't depend on non-required _values_for_argsort
+        try:
+            self.monotonic_inc, self.monotonic_dec, is_unique = \
+                self._call_monotonic(self.values._values_for_argsort())
+        except TypeError:
+            self.monotonic_inc = 0
+            self.monotonic_dec = 0
+            is_unique = 0
+
+        self.need_monotonic_check = 0
+
+        # we can only be sure of uniqueness if is_unique=1
+        if is_unique:
+            self.unique = 1
+            self.need_unique_check = 0
+
+    cdef _call_monotonic(self, values):
+        return algos.is_monotonic(values, timelike=False)
+
+    def __contains__(self, val: object) -> bool:
+        # We assume before we get here:
+        #  - val is hashable
+        try:
+            self.get_loc(val)
+            return True
+        except KeyError:
+            return False
+
+    cpdef get_loc(self, object val):
+        # -> Py_ssize_t | slice | ndarray[bool]
+        cdef:
+            Py_ssize_t loc
+
+        if is_definitely_invalid_key(val):
+            raise TypeError(f"'{val}' is an invalid key")
+
+        self._check_type(val)
+
+        if self.over_size_threshold and self.is_monotonic_increasing:
+            if not self.is_unique:
+                return self._get_loc_duplicates(val)
+
+            values = self.values
+
+            loc = self._searchsorted_left(val)
+            if loc >= len(values):
+                raise KeyError(val)
+            if values[loc] != val:
+                raise KeyError(val)
+            return loc
+
+        if not self.unique:
+            return self._get_loc_duplicates(val)
+
+        return self._get_loc_duplicates(val)
+
+    cdef Py_ssize_t _searchsorted_left(self, val) except? -1:
+        """
+        See ObjectEngine._searchsorted_left.__doc__.
+        """
+        try:
+            loc = self.values.searchsorted(val, side="left")
+        except TypeError as err:
+            # GH#35788 e.g. val=None with float64 values
+            raise KeyError(val)
+        return loc
+
+    cdef inline _get_loc_duplicates(self, object val):
+        # -> Py_ssize_t | slice | ndarray[bool]
+        cdef:
+            Py_ssize_t diff
+
+        if self.is_monotonic_increasing:
+            values = self.values
+            try:
+                left = values.searchsorted(val, side='left')
+                right = values.searchsorted(val, side='right')
+            except TypeError:
+                # e.g. GH#29189 get_loc(None) with a Float64Index
+                raise KeyError(val)
+
+            diff = right - left
+            if diff == 0:
+                raise KeyError(val)
+            elif diff == 1:
+                return left
+            else:
+                return slice(left, right)
+
+        return self._maybe_get_bool_indexer(val)
+
+    cdef _get_bool_indexer(self, val):
+        if checknull(val):
+            return self.values.isna()  # FIXME: need to check for *matching* NA
+
+        return self.values == val
+
+    cdef _maybe_get_bool_indexer(self, object val):
+        # Returns ndarray[bool] or int
+        cdef:
+            ndarray[uint8_t, ndim=1, cast=True] indexer
+
+        indexer = _get_bool_indexer(self.values, val)
+        return _unpack_bool_indexer(indexer, val)
+
+    def sizeof(self, deep: bool = False) -> int:
+        """ return the sizeof our mapping """
+        return 0
+
+    def __sizeof__(self) -> int:
+        return self.sizeof()
+
+    cdef _check_type(self, object val):
+        hash(val)
+
+    def get_indexer(self, values: "ExtensionArray") -> np.ndarray:
+        # Note: we only get here with self.is_unique
+        cdef:
+            Py_ssize_t i, N = len(values)
+
+        res = np.empty(N, dtype=np.intp)
+
+        for i in range(N):
+            val = values[i]
+            try:
+                loc = self.get_loc(val)
+                # Because we are unique, loc should always be an integer
+            except KeyError:
+                loc = -1
+            res[i] = loc
+
+        return res
+
+    def get_indexer_non_unique(self, targets: "ExtensionArray"):
+        """
+        Return an indexer suitable for taking from a non unique index
+        return the labels in the same order as the target
+        and a missing indexer into the targets (which correspond
+        to the -1 indices in the results
+
+        Returns
+        -------
+        indexer : np.ndarray[np.intp]
+        missing : np.ndarray[np.intp]
+        """
+        cdef:
+            Py_ssize_t i, N = len(targets)
+
+        indexer = []
+        missing = []
+
+        # See also IntervalIndex.get_indexer_pointwise
+        for i in range(N):
+            val = targets[i]
+
+            try:
+                locs = self.get_loc(val)
+            except KeyError:
+                locs = np.array([-1], dtype=np.intp)
+                missing.append(i)
+            else:
+                if isinstance(locs, slice):
+                    # Only needed for get_indexer_non_unique
+                    locs = np.arange(locs.start, locs.stop, locs.step, dtype=np.intp)
+                elif util.is_integer_object(locs):
+                    locs = np.array([locs], dtype=np.intp)
+                else:
+                    assert locs.dtype.kind == "b"
+                    locs = locs.nonzero()[0]
+
+            indexer.append(locs)
+
+        indexer = np.concatenate(indexer, dtype=np.intp)
+        missing = np.array(missing, dtype=np.intp)
+
+        return indexer, missing
+
+
+@cython.freelist(32)
+cdef class NullableEngine:
+
+    cdef readonly:
+        ndarray _values, _mask
+        bint over_size_threshold
+        bint has_missing
+        object values  # MaskedArray
+
+    cdef:
+        bint unique, monotonic_inc, monotonic_dec
+        bint need_monotonic_check, need_unique_check
+
+    def __init__(self, values: "MaskedArray"):
+        self.values = values
+
+        self._values = values._data
+        self._mask = values._mask
+
+        self.has_missing = values._mask.any()
+
+        self.over_size_threshold = len(values) >= _SIZE_CUTOFF
+        self.need_unique_check = True
+
+    def clear_mapping(self):
+        # for compat with IndexEngine
+        pass
+
+    @property
+    def is_unique(self) -> bool:
+        if self.need_unique_check:
+            arr = self.values.unique()
+            self.unique = len(arr) == len(self.values)
+
+            self.need_unique_check = False
+        return self.unique
+
+    @property
+    def is_monotonic_increasing(self) -> bool:
+        if self.need_monotonic_check:
+            self._do_monotonic_check()
+
+        return self.monotonic_inc == 1
+
+    @property
+    def is_monotonic_decreasing(self) -> bool:
+        if self.need_monotonic_check:
+            self._do_monotonic_check()
+
+        return self.monotonic_dec == 1
+
+    cdef inline _do_monotonic_check(self):
+        cdef:
+            bint is_unique
+
+        if self.has_missing:
+            self.monotonic_inc = 0
+            self.monotonic_dec = 0
+            self.need_monotonic_check = 0
+            return
+
+        # If there are no missing, then we can just look at self._values
+        try:
+            self.monotonic_inc, self.monotonic_dec, is_unique = \
+                self._call_monotonic(self._values)
+        except TypeError:
+            self.monotonic_inc = 0
+            self.monotonic_dec = 0
+            is_unique = 0
+
+        self.need_monotonic_check = 0
+
+        # we can only be sure of uniqueness if is_unique=1
+        if is_unique:
+            self.unique = 1
+            self.need_unique_check = 0
+
+    cdef _call_monotonic(self, values):
+        return algos.is_monotonic(values, timelike=False)
+
+    def __contains__(self, val: object) -> bool:
+        # We assume before we get here:
+        #  - val is hashable
+        try:
+            self.get_loc(val)
+            return True
+        except KeyError:
+            return False
+
+    cpdef get_loc(self, object val):
+        # -> Py_ssize_t | slice | ndarray[bool]
+        cdef:
+            Py_ssize_t loc
+
+        if is_definitely_invalid_key(val):
+            raise TypeError(f"'{val}' is an invalid key")
+
+        self._check_type(val)
+
+        if self.over_size_threshold and self.is_monotonic_increasing:
+            if not self.is_unique:
+                return self._get_loc_duplicates(val)
+
+            values = self.values
+
+            loc = self._searchsorted_left(val)
+            if loc >= len(values):
+                raise KeyError(val)
+            if values[loc] != val:
+                raise KeyError(val)
+            return loc
+
+        if not self.unique:
+            return self._get_loc_duplicates(val)
+
+        return self._get_loc_duplicates(val)
+
+    cdef Py_ssize_t _searchsorted_left(self, val) except? -1:
+        """
+        See ObjectEngine._searchsorted_left.__doc__.
+        """
+        try:
+            loc = self.values.searchsorted(val, side="left")
+        except TypeError as err:
+            # GH#35788 e.g. val=None with float64 values
+            raise KeyError(val)
+        return loc
+
+    cdef inline _get_loc_duplicates(self, object val):
+        # -> Py_ssize_t | slice | ndarray[bool]
+        cdef:
+            Py_ssize_t diff
+
+        if self.is_monotonic_increasing:
+            values = self.values
+            try:
+                left = values.searchsorted(val, side='left')
+                right = values.searchsorted(val, side='right')
+            except TypeError:
+                # e.g. GH#29189 get_loc(None) with a Float64Index
+                raise KeyError(val)
+
+            diff = right - left
+            if diff == 0:
+                raise KeyError(val)
+            elif diff == 1:
+                return left
+            else:
+                return slice(left, right)
+
+        return self._maybe_get_bool_indexer(val)
+
+    cdef _get_bool_indexer(self, val):
+        if val is NA:
+            return self._mask
+
+        if util.is_nan(val):
+            res = np.isnan(self._values)
+        else:
+            res = self._values == val
+
+        res[self._mask] = False
+        return res
+
+    cdef _maybe_get_bool_indexer(self, object val):
+        # Returns ndarray[bool] or int
+        cdef:
+            ndarray[uint8_t, ndim=1, cast=True] indexer
+
+        indexer = self._get_bool_indexer(val)
+        return _unpack_bool_indexer(indexer, val)
+
+    def sizeof(self, deep: bool = False) -> int:
+        """ return the sizeof our mapping """
+        return 0
+
+    def __sizeof__(self) -> int:
+        return self.sizeof()
+
+    cdef _check_type(self, object val):
+        hash(val)
+
+    def get_indexer(self, values: "MaskedArray") -> np.ndarray:
+        # Note: we only get here with self.is_unique
+        cdef:
+            Py_ssize_t i, N = len(values)
+
+        res = np.empty(N, dtype=np.intp)
+
+        for i in range(N):
+            val = values[i]
+            try:
+                loc = self.get_loc(val)
+                # Because we are unique, loc should always be an integer
+            except KeyError:
+                loc = -1
+            res[i] = loc
+
+        return res
+
+    def get_indexer_non_unique(self, targets: "MaskedArray"):
+        """
+        Return an indexer suitable for taking from a non unique index
+        return the labels in the same order as the target
+        and a missing indexer into the targets (which correspond
+        to the -1 indices in the results
+
+        Returns
+        -------
+        indexer : np.ndarray[np.intp]
+        missing : np.ndarray[np.intp]
+        """
+        cdef:
+            Py_ssize_t i, N = len(targets)
+
+        indexer = []
+        missing = []
+
+        # See also IntervalIndex.get_indexer_pointwise
+        for i in range(N):
+            val = targets[i]
+
+            try:
+                locs = self.get_loc(val)
+            except KeyError:
+                locs = np.array([-1], dtype=np.intp)
+                missing.append(i)
+            else:
+                if isinstance(locs, slice):
+                    # Only needed for get_indexer_non_unique
+                    locs = np.arange(locs.start, locs.stop, locs.step, dtype=np.intp)
+                elif util.is_integer_object(locs):
+                    locs = np.array([locs], dtype=np.intp)
+                else:
+                    assert locs.dtype.kind == "b"
+                    locs = locs.nonzero()[0]
+
+            indexer.append(locs)
+
+        indexer = np.concatenate(indexer, dtype=np.intp)
+        missing = np.array(missing, dtype=np.intp)
+
+        return indexer, missing

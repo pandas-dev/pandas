@@ -1401,9 +1401,9 @@ def test_integer_array_add_list_like(
     if Series == box_pandas_1d_array:
         expected = Series(expected_data, dtype="Int64")
     elif Series == box_1d_array:
-        expected = Series(expected_data, dtype="object")
+        expected = Series(expected_data, dtype="Int64")
     elif Index in (box_pandas_1d_array, box_1d_array):
-        expected = Int64Index(expected_data)
+        expected = Index(expected_data, dtype="Int64")
     else:
         expected = np.array(expected_data, dtype="object")
 

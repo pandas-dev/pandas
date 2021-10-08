@@ -427,9 +427,13 @@ class TestAstypeString:
             )
             request.node.add_marker(mark)
         # GH-40351
-        s = Series(data, dtype=dtype)
-        result = s.astype(nullable_string_dtype).astype(dtype)
-        tm.assert_series_equal(result, s)
+        ser = Series(data, dtype=dtype)
+
+        # Note: just passing .astype(dtype) fails for dtype="category"
+        #  with bc ser.dtype.categories will be object dtype whereas
+        #  result.dtype.categories will have string dtype
+        result = ser.astype(nullable_string_dtype).astype(ser.dtype)
+        tm.assert_series_equal(result, ser)
 
 
 class TestAstypeCategorical:

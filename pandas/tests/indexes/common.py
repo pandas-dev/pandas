@@ -525,6 +525,7 @@ class Base:
         assert empty_idx.format() == []
         assert empty_idx.format(name=True) == [""]
 
+    # TODO: doesn't belong in this class, gets re-run for every subclas
     def test_hasnans_isnans(self, index_flat):
         # GH 11343, added tests for hasnans / isnans
         index = index_flat
@@ -547,7 +548,7 @@ class Base:
         else:
             values[1] = np.nan
 
-        if isinstance(index, PeriodIndex):
+        if False:  # isinstance(index, PeriodIndex):
             idx = type(index)(values, freq=index.freq)
         else:
             idx = type(index)(values)

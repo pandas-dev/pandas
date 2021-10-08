@@ -35,10 +35,16 @@ def test_value_counts(index_or_series_obj):
     if isinstance(obj, pd.MultiIndex):
         expected.index = Index(expected.index)
 
+    if not isinstance(result.dtype, np.dtype):
+        # TODO: be more specific
+        # i.e IntegerDtype
+        expected = expected.astype(result.dtype)
+
     # TODO: Order of entries with the same count is inconsistent on CI (gh-32449)
     if obj.duplicated().any():
         result = result.sort_index()
         expected = expected.sort_index()
+
     tm.assert_series_equal(result, expected)
 
 
@@ -76,6 +82,11 @@ def test_value_counts_null(null_obj, index_or_series_obj):
         #  Order of entries with the same count is inconsistent on CI (gh-32449)
         expected = expected.sort_index()
         result = result.sort_index()
+
+    if not isinstance(result.dtype, np.dtype):
+        # TODO: be more specific
+        # i.e IntegerDtype
+        expected = expected.astype(result.dtype)
     tm.assert_series_equal(result, expected)
 
     # can't use expected[null_obj] = 3 as

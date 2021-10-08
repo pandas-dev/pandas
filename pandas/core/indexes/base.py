@@ -135,6 +135,7 @@ from pandas.core.arrays.datetimes import (
     tz_to_dtype,
     validate_tz_from_dtype,
 )
+from pandas.core.arrays.masked import BaseMaskedArray
 from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.base import (
     IndexOpsMixin,
@@ -410,8 +411,9 @@ class Index(IndexOpsMixin, PandasObject):
             validate_tz_from_dtype(dtype, tz)
             dtype = tz_to_dtype(tz)
 
-        if isinstance(data, PandasArray):
-            # ensure users don't accidentally put a PandasArray in an index.
+        if type(data) is PandasArray:
+            # ensure users don't accidentally put a PandasArray in an index,
+            #  but don't unpack StringArray
             data = data.to_numpy()
         if isinstance(dtype, PandasDtype):
             dtype = dtype.numpy_dtype
@@ -433,7 +435,6 @@ class Index(IndexOpsMixin, PandasObject):
 
             ea_cls = dtype.construct_array_type()
             data = ea_cls._from_sequence(data, dtype=dtype, copy=copy)
-            data = np.asarray(data, dtype=object)
             disallow_kwargs(kwargs)
             return Index._simple_new(data, name=name)
 
@@ -445,8 +446,8 @@ class Index(IndexOpsMixin, PandasObject):
                     return result.astype(dtype, copy=False)
                 return result
 
-            data = np.array(data, dtype=object, copy=copy)
             disallow_kwargs(kwargs)
+            data = extract_array(data, extract_numpy=True)
             return Index._simple_new(data, name=name)
 
         # index-like
@@ -640,7 +641,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Must be careful not to recurse.
         """
-        assert isinstance(values, np.ndarray), type(values)
+        assert isinstance(values, (np.ndarray, ExtensionArray))
 
         result = object.__new__(cls)
         result._data = values
@@ -656,6 +657,7 @@ class Index(IndexOpsMixin, PandasObject):
         Constructor that uses the 1.0.x behavior inferring numeric dtypes
         for ndarray[object] inputs.
         """
+
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", ".*the Index constructor", FutureWarning)
             result = cls(*args, **kwargs)
@@ -810,6 +812,14 @@ class Index(IndexOpsMixin, PandasObject):
     @cache_readonly
     def _engine(self) -> libindex.IndexEngine:
         # For base class (object dtype) we get ObjectEngine
+
+        if isinstance(self._values, BaseMaskedArray):
+            return libindex.NullableEngine(self._values)
+        elif (
+            isinstance(self._values, ExtensionArray)
+            and self._engine_type is libindex.ObjectEngine
+        ):
+            return libindex.ExtensionEngine(self._values)
 
         # to avoid a reference cycle, bind `target_values` to a local variable, so
         # `self` is not passed into the lambda.
@@ -1024,9 +1034,15 @@ class Index(IndexOpsMixin, PandasObject):
 
         # Note: we discard fill_value and use self._na_value, only relevant
         #  in the case where allow_fill is True and fill_value is not None
-        taken = algos.take(
-            self._values, indices, allow_fill=allow_fill, fill_value=self._na_value
-        )
+        values = self._values
+        if isinstance(values, np.ndarray):
+            taken = algos.take(
+                values, indices, allow_fill=allow_fill, fill_value=self._na_value
+            )
+        else:
+            taken = values.take(
+                indices, allow_fill=allow_fill, fill_value=self._na_value
+            )
         return type(self)._simple_new(taken, name=self.name)
 
     @final
@@ -5011,6 +5027,9 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(other, ABCMultiIndex):
             # d-level MultiIndex can equal d-tuple Index
             return other.equals(self)
+
+        if is_extension_array_dtype(self.dtype):
+            return self._values.equals(other._values)
 
         if is_extension_array_dtype(other.dtype):
             # All EA-backed Index subclasses override equals
