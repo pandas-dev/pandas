@@ -265,7 +265,7 @@ class DatetimeIndexIndexing:
 
     def time_loc_unsorted(self):
         self.df.loc['2011-6-11']
-    
+
     def time_loc_sorted(self):
         self.df_sorted.loc['2011-6-11']
 
