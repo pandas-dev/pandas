@@ -87,7 +87,7 @@ class TestConcatSort:
     def test_concat_frame_with_sort_false(self):
         # GH 43375
         result = pd.concat(
-            [pd.DataFrame({i: i}, index=[i]) for i in range(2, 0, -1)], sort=False
+            [DataFrame({i: i}, index=[i]) for i in range(2, 0, -1)], sort=False
         )
         expected = DataFrame([[2, np.nan], [np.nan, 1]], index=[2, 1], columns=[2, 1])
 
