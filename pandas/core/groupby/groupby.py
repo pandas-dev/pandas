@@ -2606,7 +2606,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 mutated=self.mutated,
             )
 
-        grb = dropped.groupby(grouper, as_index=self.as_index, sort=self.sort)
+        grb = dropped.groupby(grouper, as_index=self.as_index, sort=self.sort, axis=self.axis)
         sizes, result = grb.size(), grb.nth(n)
         mask = (sizes < max_len)._values
 
