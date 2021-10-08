@@ -2,15 +2,17 @@ import numpy as np
 import pytest
 
 from pandas import (
-    Float64Index,
     Index,
-    Int64Index,
     RangeIndex,
     Series,
     Timestamp,
-    UInt64Index,
 )
 import pandas._testing as tm
+from pandas.core.indexes.api import (
+    Float64Index,
+    Int64Index,
+    UInt64Index,
+)
 
 
 @pytest.fixture

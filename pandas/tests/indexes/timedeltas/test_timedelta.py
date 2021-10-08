@@ -6,7 +6,6 @@ import pytest
 import pandas as pd
 from pandas import (
     Index,
-    Int64Index,
     NaT,
     Series,
     Timedelta,
@@ -14,6 +13,7 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
+from pandas.core.indexes.api import Int64Index
 from pandas.tests.indexes.datetimelike import DatetimeLike
 
 randn = np.random.randn
