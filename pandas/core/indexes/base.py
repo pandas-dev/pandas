@@ -2493,6 +2493,7 @@ class Index(IndexOpsMixin, PandasObject):
         )
         return self._is_all_dates
 
+    @final
     @cache_readonly
     def _is_multi(self) -> bool:
         """
@@ -6297,7 +6298,12 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.delete([0, 2])
         Index(['b'], dtype='object')
         """
-        res_values = np.delete(self._data, loc)
+        values = self._values
+        if isinstance(values, np.ndarray):
+            # TODO(__array_function__): special casing will be unnecessary
+            res_values = np.delete(values, loc)
+        else:
+            res_values = values.delete(loc)
         return type(self)._simple_new(res_values, name=self.name)
 
     def insert(self, loc: int, item) -> Index:
