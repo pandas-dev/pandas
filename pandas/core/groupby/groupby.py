@@ -2545,18 +2545,25 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # Drop NA values in grouping
                 mask = mask & (ids != -1)
 
-                out = self._selected_obj[mask]
+                if self.axis == 0:
+                    out = self._selected_obj[mask]
+                else:
+                    out = self._selected_obj.iloc[:, mask]
+
                 if not self.as_index:
                     return out
 
                 result_index = self.grouper.result_index
-                out.index = result_index[ids[mask]]
+                if self.axis == 0:
+                    out.index = result_index[ids[mask]]
+                    if not self.observed and isinstance(result_index, CategoricalIndex):
+                        out = out.reindex(result_index)
 
-                if not self.observed and isinstance(result_index, CategoricalIndex):
-                    out = out.reindex(result_index)
+                    out = self._reindex_output(out)
+                else:
+                    out.columns = result_index[ids[mask]]
 
-                out = self._reindex_output(out)
-                return out.sort_index() if self.sort else out
+                return out.sort_index(axis=self.axis) if self.sort else out
 
         # dropna is truthy
         if isinstance(n, valid_containers):

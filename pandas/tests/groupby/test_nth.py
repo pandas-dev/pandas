@@ -706,3 +706,25 @@ def test_groupby_last_first_nth_with_none(method, nulls_fixture):
         result = getattr(data, method)()
 
     tm.assert_series_equal(result, expected)
+
+
+def test_groupby_nth_with_column_axis():
+    df = DataFrame(
+        [
+            [4, 5, 6],
+            [8, 8, 7],
+        ],
+        index=["z", "y"],
+        columns=["C", "B", "A"],
+    )
+    result = df.groupby(df.iloc[1], axis=1).nth(0)
+    expected = DataFrame(
+        [
+            [6, 4],
+            [7, 8],
+        ],
+        index=["z", "y"],
+        columns=[7, 8],
+    )
+    expected.columns.name = "y"
+    tm.assert_frame_equal(result, expected)
