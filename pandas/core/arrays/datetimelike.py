@@ -1414,7 +1414,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         if not is_period_dtype(self.dtype):
             # restore freq, which is invalidated by setitem
-            self._freq = result._freq
+            self._freq = result.freq
         return self
 
     def __isub__(self, other):
@@ -1423,7 +1423,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         if not is_period_dtype(self.dtype):
             # restore freq, which is invalidated by setitem
-            self._freq = result._freq
+            self._freq = result.freq
         return self
 
     # --------------------------------------------------------------

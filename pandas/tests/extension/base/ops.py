@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import numpy as np
 import pytest
 
 import pandas as pd
@@ -128,11 +129,13 @@ class BaseComparisonOpsTests(BaseOpsUtil):
     """Various Series and DataFrame comparison ops methods."""
 
     def _compare_other(self, s, data, op_name, other):
+
         op = self.get_op_from_name(op_name)
-        if op_name == "__eq__":
-            assert not op(s, other).all()
-        elif op_name == "__ne__":
-            assert op(s, other).all()
+        if op_name in ["__eq__", "__ne__"]:
+            # comparison should match point-wise comparisons
+            result = op(s, other)
+            expected = s.combine(other, op)
+            self.assert_series_equal(result, expected)
 
         else:
 
@@ -182,3 +185,24 @@ class BaseUnaryOpsTests(BaseOpsUtil):
         result = ~s
         expected = pd.Series(~data, name="name")
         self.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("ufunc", [np.positive, np.negative, np.abs])
+    def test_unary_ufunc_dunder_equivalence(self, data, ufunc):
+        # the dunder __pos__ works if and only if np.positive works,
+        #  same for __neg__/np.negative and __abs__/np.abs
+        attr = {np.positive: "__pos__", np.negative: "__neg__", np.abs: "__abs__"}[
+            ufunc
+        ]
+
+        exc = None
+        try:
+            result = getattr(data, attr)()
+        except Exception as err:
+            exc = err
+
+            # if __pos__ raised, then so should the ufunc
+            with pytest.raises((type(exc), TypeError)):
+                ufunc(data)
+        else:
+            alt = ufunc(data)
+            self.assert_extension_array_equal(result, alt)

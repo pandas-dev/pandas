@@ -378,8 +378,9 @@ class Base:
         with pytest.raises(ValueError, match=msg):
             np.repeat(idx, rep, axis=0)
 
-    @pytest.mark.parametrize("klass", [list, tuple, np.array, Series])
-    def test_where(self, klass, simple_index):
+    def test_where(self, listlike_box_with_tuple, simple_index):
+        klass = listlike_box_with_tuple
+
         idx = simple_index
         if isinstance(idx, (DatetimeIndex, TimedeltaIndex)):
             # where does not preserve freq
@@ -524,38 +525,6 @@ class Base:
         empty_idx = self._index_cls([])
         assert empty_idx.format() == []
         assert empty_idx.format(name=True) == [""]
-
-    def test_hasnans_isnans(self, index_flat):
-        # GH 11343, added tests for hasnans / isnans
-        index = index_flat
-
-        # cases in indices doesn't include NaN
-        idx = index.copy(deep=True)
-        expected = np.array([False] * len(idx), dtype=bool)
-        tm.assert_numpy_array_equal(idx._isnan, expected)
-        assert idx.hasnans is False
-
-        idx = index.copy(deep=True)
-        values = np.asarray(idx.values)
-
-        if len(index) == 0:
-            return
-        elif isinstance(index, NumericIndex) and is_integer_dtype(index.dtype):
-            return
-        elif isinstance(index, DatetimeIndexOpsMixin):
-            values[1] = iNaT
-        else:
-            values[1] = np.nan
-
-        if isinstance(index, PeriodIndex):
-            idx = type(index)(values, freq=index.freq)
-        else:
-            idx = type(index)(values)
-
-            expected = np.array([False] * len(idx), dtype=bool)
-            expected[1] = True
-            tm.assert_numpy_array_equal(idx._isnan, expected)
-            assert idx.hasnans is True
 
     def test_fillna(self, index):
         # GH 11343

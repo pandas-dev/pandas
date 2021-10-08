@@ -5,14 +5,16 @@ from pandas._libs.tslibs import Timestamp
 
 import pandas as pd
 from pandas import (
-    Float64Index,
     Index,
-    Int64Index,
     NumericIndex,
     Series,
-    UInt64Index,
 )
 import pandas._testing as tm
+from pandas.core.indexes.api import (
+    Float64Index,
+    Int64Index,
+    UInt64Index,
+)
 from pandas.tests.indexes.common import NumericBase
 
 
