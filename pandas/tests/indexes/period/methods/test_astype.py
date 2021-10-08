@@ -5,15 +5,17 @@ from pandas import (
     CategoricalIndex,
     DatetimeIndex,
     Index,
-    Int64Index,
     NaT,
     Period,
     PeriodIndex,
     Timedelta,
-    UInt64Index,
     period_range,
 )
 import pandas._testing as tm
+from pandas.core.indexes.api import (
+    Int64Index,
+    UInt64Index,
+)
 
 
 class TestPeriodIndexAsType:

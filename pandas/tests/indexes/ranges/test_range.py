@@ -4,13 +4,13 @@ import pytest
 from pandas.core.dtypes.common import ensure_platform_int
 
 import pandas as pd
-from pandas import (
+import pandas._testing as tm
+from pandas.core.indexes.api import (
     Float64Index,
     Index,
     Int64Index,
     RangeIndex,
 )
-import pandas._testing as tm
 from pandas.tests.indexes.common import NumericBase
 
 # aliases to make some tests easier to read

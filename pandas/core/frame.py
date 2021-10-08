@@ -9360,17 +9360,17 @@ NaN 12.3   33.0
         """
         from pandas.core.reshape.concat import concat
 
-        def _dict_round(df, decimals):
+        def _dict_round(df: DataFrame, decimals):
             for col, vals in df.items():
                 try:
                     yield _series_round(vals, decimals[col])
                 except KeyError:
                     yield vals
 
-        def _series_round(s, decimals):
-            if is_integer_dtype(s) or is_float_dtype(s):
-                return s.round(decimals)
-            return s
+        def _series_round(ser: Series, decimals: int):
+            if is_integer_dtype(ser.dtype) or is_float_dtype(ser.dtype):
+                return ser.round(decimals)
+            return ser
 
         nv.validate_round(args, kwargs)
 

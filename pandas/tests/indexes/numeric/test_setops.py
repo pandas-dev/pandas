@@ -6,14 +6,14 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas import (
+import pandas._testing as tm
+from pandas.core.indexes.api import (
     Float64Index,
     Index,
     Int64Index,
     RangeIndex,
     UInt64Index,
 )
-import pandas._testing as tm
 
 
 @pytest.fixture

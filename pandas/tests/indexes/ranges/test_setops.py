@@ -6,13 +6,13 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas import (
+import pandas._testing as tm
+from pandas.core.indexes.api import (
     Index,
     Int64Index,
     RangeIndex,
     UInt64Index,
 )
-import pandas._testing as tm
 
 
 class TestRangeIndexSetOps:

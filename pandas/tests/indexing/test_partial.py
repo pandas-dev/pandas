@@ -540,9 +540,9 @@ class TestPartialSetting:
                 date_range(start="2000", periods=20, freq="D"),
                 ["2000-01-04", "2000-01-08", "2000-01-12"],
                 [
-                    Timestamp("2000-01-04", freq="D"),
-                    Timestamp("2000-01-08", freq="D"),
-                    Timestamp("2000-01-12", freq="D"),
+                    Timestamp("2000-01-04"),
+                    Timestamp("2000-01-08"),
+                    Timestamp("2000-01-12"),
                 ],
             ),
             (

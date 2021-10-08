@@ -2,10 +2,10 @@ import numpy as np
 
 from pandas import (
     Index,
-    Int64Index,
     RangeIndex,
 )
 import pandas._testing as tm
+from pandas.core.indexes.api import Int64Index
 
 
 class TestJoin:
