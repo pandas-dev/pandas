@@ -116,12 +116,14 @@ cdef class IndexEngine:
     cdef:
         bint unique, monotonic_inc, monotonic_dec
         bint need_monotonic_check, need_unique_check
+        object _np_type
 
     def __init__(self, ndarray values):
         self.values = values
 
         self.over_size_threshold = len(values) >= _SIZE_CUTOFF
         self.clear_mapping()
+        self._np_type = values.dtype.type
 
     def __contains__(self, val: object) -> bool:
         # We assume before we get here:
@@ -168,13 +170,13 @@ cdef class IndexEngine:
         See ObjectEngine._searchsorted_left.__doc__.
         """
         # Caller is responsible for ensuring _check_type has already been called
-        loc = self.values.searchsorted(val, side="left")
+        loc = self.values.searchsorted(self._np_type(val), side="left")
         return loc
 
     cdef inline _get_loc_duplicates(self, object val):
         # -> Py_ssize_t | slice | ndarray[bool]
         cdef:
-            Py_ssize_t diff
+            Py_ssize_t diff, left, right
 
         if self.is_monotonic_increasing:
             values = self.values
@@ -318,8 +320,8 @@ cdef class IndexEngine:
             set stargets, remaining_stargets
             dict d = {}
             object val
-            int count = 0, count_missing = 0
-            Py_ssize_t i, j, n, n_t, n_alloc
+            Py_ssize_t count = 0, count_missing = 0
+            Py_ssize_t i, j, n, n_t, n_alloc, start, end
             bint d_has_nan = False, stargets_has_nan = False, need_nan_check = True
 
         values = self.values
@@ -481,7 +483,8 @@ cdef class DatetimeEngine(Int64Engine):
         #  with either a Timestamp or NaT (Timedelta or NaT for TimedeltaEngine)
 
         cdef:
-            int64_t loc
+            Py_ssize_t loc
+
         if is_definitely_invalid_key(val):
             raise TypeError(f"'{val}' is an invalid key")
 

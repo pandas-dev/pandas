@@ -2564,6 +2564,13 @@ class DataFrame(NDFrame, OpsMixin):
             `compression_level`, `chunksize` and `version` keywords.
 
             .. versionadded:: 1.1.0
+
+        Notes
+        -----
+        This function writes the dataframe as a `feather file
+        <https://arrow.apache.org/docs/python/feather.html>`_. Requires a default
+        index. For saving the DataFrame with your custom index use a method that
+        supports custom indices e.g. `to_parquet`.
         """
         from pandas.io.feather_format import to_feather
 
@@ -6954,7 +6961,7 @@ class DataFrame(NDFrame, OpsMixin):
             # i.e. scalar, faster than checking np.ndim(right) == 0
             with np.errstate(all="ignore"):
                 bm = self._mgr.apply(array_op, right=right)
-            return type(self)(bm)
+            return self._constructor(bm)
 
         elif isinstance(right, DataFrame):
             assert self.index.equals(right.index)
@@ -6975,7 +6982,7 @@ class DataFrame(NDFrame, OpsMixin):
                     right._mgr,  # type: ignore[arg-type]
                     array_op,
                 )
-            return type(self)(bm)
+            return self._constructor(bm)
 
         elif isinstance(right, Series) and axis == 1:
             # axis=1 means we want to operate row-by-row
@@ -8201,7 +8208,7 @@ NaN 12.3   33.0
 
     def explode(
         self,
-        column: Scalar | tuple | list[Scalar | tuple],
+        column: IndexLabel,
         ignore_index: bool = False,
     ) -> DataFrame:
         """
@@ -8211,7 +8218,7 @@ NaN 12.3   33.0
 
         Parameters
         ----------
-        column : Scalar or tuple or list thereof
+        column : IndexLabel
             Column(s) to explode.
             For multiple columns, specify a non-empty list with each element
             be str or tuple, and all specified columns their list-like data
@@ -8293,7 +8300,7 @@ NaN 12.3   33.0
         if not self.columns.is_unique:
             raise ValueError("columns must be unique")
 
-        columns: list[Scalar | tuple]
+        columns: list[Hashable]
         if is_scalar(column) or isinstance(column, tuple):
             columns = [column]
         elif isinstance(column, list) and all(
@@ -9353,17 +9360,17 @@ NaN 12.3   33.0
         """
         from pandas.core.reshape.concat import concat
 
-        def _dict_round(df, decimals):
+        def _dict_round(df: DataFrame, decimals):
             for col, vals in df.items():
                 try:
                     yield _series_round(vals, decimals[col])
                 except KeyError:
                     yield vals
 
-        def _series_round(s, decimals):
-            if is_integer_dtype(s) or is_float_dtype(s):
-                return s.round(decimals)
-            return s
+        def _series_round(ser: Series, decimals: int):
+            if is_integer_dtype(ser.dtype) or is_float_dtype(ser.dtype):
+                return ser.round(decimals)
+            return ser
 
         nv.validate_round(args, kwargs)
 
@@ -10562,13 +10569,13 @@ NaN 12.3   33.0
 
         When ``values`` is a Series or DataFrame the index and column must
         match. Note that 'falcon' does not match based on the number of legs
-        in df2.
+        in other.
 
-        >>> other = pd.DataFrame({'num_legs': [8, 2], 'num_wings': [0, 2]},
+        >>> other = pd.DataFrame({'num_legs': [8, 3], 'num_wings': [0, 2]},
         ...                      index=['spider', 'falcon'])
         >>> df.isin(other)
                 num_legs  num_wings
-        falcon      True       True
+        falcon     False       True
         dog        False      False
         """
         if isinstance(values, dict):
