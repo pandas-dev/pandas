@@ -520,7 +520,7 @@ class TestGetLoc:
         for n in ns:
             idx = date_range("2014-11-26", periods=n, freq="S")
             ts = pd.Series(np.random.randn(n), index=idx)
-            locs = np.arange(start, n, step)
+            locs = np.arange(start, n, step, dtype=np.intp)
 
             result = ts.index.get_loc(key)
             tm.assert_numpy_array_equal(result, locs)
