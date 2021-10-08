@@ -1210,6 +1210,22 @@ def test_rolling_decreasing_indices(method):
     assert np.abs(decreasing.values[::-1][:-4] - increasing.values[4:]).max() < 1e-12
 
 
+@pytest.mark.parametrize("window", ["0s", "2s", "3s"])
+def test_rolling_decreasing_indices_invariant(window, center, closed):
+    """
+    Ensure that a symmetrical inverted index return same result as non-inverted.
+    """
+
+    index = date_range("2020", periods=4, freq="1s")
+    df_inc = Series(range(4), index=index)
+    df_dec = Series(range(4), index=index[::-1])
+
+    result = df_dec.rolling(window, closed=closed, center=center).sum()
+    expected = df_inc.rolling(window, closed=closed, center=center).sum()
+
+    tm.assert_equal(result.values, expected.values)
+
+
 @pytest.mark.parametrize(
     "method,expected",
     [
