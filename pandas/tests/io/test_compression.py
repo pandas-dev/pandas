@@ -191,19 +191,6 @@ def test_with_missing_lzma():
     subprocess.check_output([sys.executable, "-c", code], stderr=subprocess.PIPE)
 
 
-def test_lzma_not_imported():
-    """Check that lzma is not imported by default"""
-    # https://github.com/pandas-dev/pandas/issues/43461
-    code = textwrap.dedent(
-        """\
-        import sys
-        import pandas
-        assert "lzma" not in sys.modules
-        """
-    )
-    subprocess.check_output([sys.executable, "-c", code], stderr=subprocess.PIPE)
-
-
 def test_with_missing_lzma_runtime():
     """Tests if RuntimeError is hit when calling lzma without
     having the module available.
