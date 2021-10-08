@@ -164,7 +164,7 @@ def _get_combined_index(
     return index
 
 
-def union_indexes(indexes, sort: Optional[bool] = True) -> Index:
+def union_indexes(indexes, sort: bool | None = True) -> Index:
     """
     Return the union of indexes.
 
