@@ -160,6 +160,15 @@ class TestGetitemListLike:
         expected = Series([5, 6], name="b", index=[1, 2])
         tm.assert_series_equal(result, expected)
 
+    def test_getitem_key_nested_tuple(self):
+        # GH 43780
+        df = DataFrame([[0, 0]], columns=Index([(("a",), (1,)), (("b",), (2,))]))
+        key_list = [df.columns[0]]
+        result = df[key_list]
+
+        expected = DataFrame([0], columns=Index(key_list))
+        tm.assert_frame_equal(result, expected)
+
 
 class TestGetitemCallable:
     def test_getitem_callable(self, float_frame):
