@@ -709,6 +709,7 @@ def test_groupby_last_first_nth_with_none(method, nulls_fixture):
 
 
 def test_groupby_nth_with_column_axis():
+    # GH43926
     df = DataFrame(
         [
             [4, 5, 6],
