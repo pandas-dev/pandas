@@ -6348,10 +6348,11 @@ class Index(IndexOpsMixin, PandasObject):
 
         arr = np.asarray(self)
 
-        # Use Index constructor to ensure we get tuples cast correctly.
-        item = Index([item], dtype=self.dtype)._values
+        # Use constructor to ensure we get tuples cast correctly.
+        # Use self._constructor instead of Index to retain NumericIndex GH#43921
+        item = self._constructor([item], dtype=self.dtype)._values
         idx = np.concatenate((arr[:loc], item, arr[loc:]))
-        return Index._with_infer(idx, name=self.name)
+        return self._constructor._with_infer(idx, name=self.name)
 
     def drop(self, labels, errors: str_t = "raise") -> Index:
         """
