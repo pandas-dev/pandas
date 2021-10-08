@@ -50,7 +50,6 @@ from pandas.tseries.offsets import (
     MonthEnd,
 )
 
-
 # TODO(ArrayManager) pickling
 pytestmark = [
     td.skip_array_manager_not_yet_implemented,
