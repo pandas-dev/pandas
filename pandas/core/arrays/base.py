@@ -1384,15 +1384,6 @@ class ExtensionArray:
                 self, ufunc, method, *inputs, **kwargs
             )
 
-        if (
-            ufunc in [np.isnan, np.isinf, np.isfinite]
-            and self.dtype.kind in ["m", "M"]
-            and len(inputs) == 1
-            and inputs[0] is self
-        ):
-            # numpy 1.18 changed isinf and isnan to not raise on dt64/td64
-            return getattr(ufunc, method)(self._data, **kwargs)
-
         return arraylike.default_array_ufunc(self, ufunc, method, *inputs, **kwargs)
 
 
