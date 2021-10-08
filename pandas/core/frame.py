@@ -133,7 +133,6 @@ from pandas.core.dtypes.missing import (
 from pandas.core import (
     algorithms,
     common as com,
-    generic,
     nanops,
     ops,
 )
@@ -155,10 +154,7 @@ from pandas.core.construction import (
     sanitize_array,
     sanitize_masked_array,
 )
-from pandas.core.generic import (
-    NDFrame,
-    _shared_docs,
-)
+from pandas.core.generic import NDFrame
 from pandas.core.indexers import check_key_length
 from pandas.core.indexes.api import (
     DatetimeIndex,
@@ -194,6 +190,7 @@ from pandas.core.internals.construction import (
 )
 from pandas.core.reshape.melt import melt
 from pandas.core.series import Series
+from pandas.core.shared_docs import _shared_docs
 from pandas.core.sorting import (
     get_group_index,
     lexsort_indexer,
@@ -2482,7 +2479,10 @@ class DataFrame(NDFrame, OpsMixin):
         )
         return cls(mgr)
 
-    @doc(storage_options=generic._shared_docs["storage_options"])
+    @doc(
+        storage_options=_shared_docs["storage_options"],
+        compression_options=_shared_docs["compression_options"] % "path",
+    )
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
     def to_stata(
         self,
@@ -2561,18 +2561,11 @@ class DataFrame(NDFrame, OpsMixin):
             format. Only available if version is 117.  Storing strings in the
             StrL format can produce smaller dta files if strings have more than
             8 characters and values are repeated.
-        compression : str or dict, default 'infer'
-            For on-the-fly compression of the output dta. If string, specifies
-            compression mode. If dict, value at key 'method' specifies
-            compression mode. Compression mode must be one of {{'infer', 'gzip',
-            'bz2', 'zip', 'xz', None}}. If compression mode is 'infer' and
-            `fname` is path-like, then detect compression from the following
-            extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise no
-            compression). If dict and compression mode is one of {{'zip',
-            'gzip', 'bz2'}}, or inferred as one of the above, other entries
-            passed as additional compression options.
+        {compression_options}
 
             .. versionadded:: 1.1.0
+
+            .. versionchanged:: 1.4.0 Zstandard support.
 
         {storage_options}
 
@@ -2734,7 +2727,7 @@ class DataFrame(NDFrame, OpsMixin):
             handles.handle.write(result)
         return None
 
-    @doc(storage_options=generic._shared_docs["storage_options"])
+    @doc(storage_options=_shared_docs["storage_options"])
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
     def to_parquet(
         self,
@@ -2939,7 +2932,10 @@ class DataFrame(NDFrame, OpsMixin):
             render_links=render_links,
         )
 
-    @doc(storage_options=generic._shared_docs["storage_options"])
+    @doc(
+        storage_options=_shared_docs["storage_options"],
+        compression_options=_shared_docs["compression_options"] % "path_or_buffer",
+    )
     def to_xml(
         self,
         path_or_buffer: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
@@ -3016,12 +3012,10 @@ class DataFrame(NDFrame, OpsMixin):
             layout of elements and attributes from original output. This
             argument requires ``lxml`` to be installed. Only XSLT 1.0
             scripts and not later versions is currently supported.
-        compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
-            For on-the-fly decompression of on-disk data. If 'infer', then use
-            gzip, bz2, zip or xz if path_or_buffer is a string ending in
-            '.gz', '.bz2', '.zip', or 'xz', respectively, and no decompression
-            otherwise. If using 'zip', the ZIP file must contain only one data
-            file to be read in. Set to None for no decompression.
+        {compression_options}
+
+            .. versionchanged:: 1.4.0 Zstandard support.
+
         {storage_options}
 
         Returns
