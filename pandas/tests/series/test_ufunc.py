@@ -252,16 +252,65 @@ def test_object_series_ok():
 @pytest.mark.parametrize(
     "values",
     [
-        pd.array([1, 3, 2], dtype="int64"),
-        pd.array([1, 10, 0], dtype="Sparse[int]"),
+        pd.array([1, 3, 2], dtype=np.int64),
+        pd.array([1, 3, 2], dtype="Int64"),
+        pd.array([1, 3, 2], dtype="Float32"),
+        pd.array([1, 10, 2], dtype="Sparse[int]"),
         pd.to_datetime(["2000", "2010", "2001"]),
         pd.to_datetime(["2000", "2010", "2001"]).tz_localize("CET"),
         pd.to_datetime(["2000", "2010", "2001"]).to_period(freq="D"),
+        pd.to_timedelta(["1 Day", "3 Days", "2 Days"]),
+        pd.IntervalIndex([pd.Interval(0, 1), pd.Interval(2, 3), pd.Interval(1, 2)]),
     ],
+    ids=lambda x: str(x.dtype),
 )
-def test_reduce(values):
-    a = pd.Series(values)
-    assert np.maximum.reduce(a) == values[1]
+@pytest.mark.parametrize("box", [pd.array, pd.Index, pd.Series, pd.DataFrame])
+def test_reduce(values, box, request):
+    # TODO: cases with NAs
+
+    same_type = True
+
+    if box is pd.Index:
+        if values.dtype.kind in ["i", "f"]:
+            # ATM Index casts to object, so we get python ints/floats
+            same_type = False
+        elif isinstance(values, pd.IntervalIndex):
+            mark = pytest.mark.xfail(reason="IntervalArray.min/max not implemented")
+            request.node.add_marker(mark)
+
+    elif box is pd.Series or box is pd.DataFrame:
+        if isinstance(values, pd.IntervalIndex):
+            mark = pytest.mark.xfail(reason="IntervalArray.min/max not implemented")
+            request.node.add_marker(mark)
+
+    if values.dtype == "i8" and box is pd.array:
+        # FIXME: pd.array casts to Int64
+        obj = values
+    else:
+        obj = box(values)
+
+    result = np.maximum.reduce(obj)
+    expected = values[1]
+    if box is pd.DataFrame:
+        # TODO: cases with axis kwarg
+        expected = obj.max(numeric_only=False)
+        tm.assert_series_equal(result, expected)
+    else:
+        assert result == expected
+        if same_type:
+            # check we have e.g. Timestamp instead of dt64
+            assert type(result) == type(expected)
+
+    result = np.minimum.reduce(obj)
+    expected = values[0]
+    if box is pd.DataFrame:
+        expected = obj.min(numeric_only=False)
+        tm.assert_series_equal(result, expected)
+    else:
+        assert result == expected
+        if same_type:
+            # check we have e.g. Timestamp instead of dt64
+            assert type(result) == type(expected)
 
 
 @pytest.mark.parametrize("type_", [list, deque, tuple])

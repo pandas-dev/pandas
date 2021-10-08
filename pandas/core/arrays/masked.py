@@ -51,6 +51,7 @@ from pandas.core.dtypes.missing import (
 )
 
 from pandas.core import (
+    arraylike,
     missing,
     nanops,
     ops,
@@ -370,7 +371,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # For MaskedArray inputs, we apply the ufunc to ._data
         # and mask the result.
-        if method == "reduce":
+        if method == "reduce" and ufunc not in [np.maximum, np.minimum]:
             # Not clear how to handle missing values in reductions. Raise.
             raise NotImplementedError("The 'reduce' method is not supported.")
 
@@ -386,6 +387,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         )
         if result is not NotImplemented:
             return result
+
+        if method == "reduce":
+            result = arraylike.dispatch_reduction_ufunc(
+                self, ufunc, method, *inputs, **kwargs
+            )
+            if result is not NotImplemented:
+                return result
 
         mask = np.zeros(len(self), dtype=bool)
         inputs2 = []

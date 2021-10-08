@@ -1384,6 +1384,13 @@ class ExtensionArray:
                 self, ufunc, method, *inputs, **kwargs
             )
 
+        if method == "reduce":
+            result = arraylike.dispatch_reduction_ufunc(
+                self, ufunc, method, *inputs, **kwargs
+            )
+            if result is not NotImplemented:
+                return result
+
         return arraylike.default_array_ufunc(self, ufunc, method, *inputs, **kwargs)
 
 
