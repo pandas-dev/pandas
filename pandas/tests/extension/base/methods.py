@@ -40,12 +40,16 @@ class BaseMethodsTests(BaseExtensionTests):
         # GH 33172
         data = data[:10].unique()
         values = np.array(data[~data.isna()])
+        ser = pd.Series(data, dtype=data.dtype)
 
-        result = (
-            pd.Series(data, dtype=data.dtype).value_counts(normalize=True).sort_index()
-        )
+        result = ser.value_counts(normalize=True).sort_index()
 
-        expected = pd.Series([1 / len(values)] * len(values), index=result.index)
+        if not isinstance(data, pd.Categorical):
+            expected = pd.Series([1 / len(values)] * len(values), index=result.index)
+        else:
+            expected = pd.Series(0.0, index=result.index)
+            expected[result > 0] = 1 / len(values)
+
         self.assert_series_equal(result, expected)
 
     def test_count(self, data_missing):
@@ -67,20 +71,19 @@ class BaseMethodsTests(BaseExtensionTests):
 
     def test_argsort(self, data_for_sorting):
         result = pd.Series(data_for_sorting).argsort()
-        expected = pd.Series(np.array([2, 0, 1], dtype=np.int64))
+        # argsort result gets passed to take, so should be np.intp
+        expected = pd.Series(np.array([2, 0, 1], dtype=np.intp))
         self.assert_series_equal(result, expected)
 
     def test_argsort_missing_array(self, data_missing_for_sorting):
         result = data_missing_for_sorting.argsort()
-        expected = np.array([2, 0, 1], dtype=np.dtype("int"))
-        # we don't care whether it's int32 or int64
-        result = result.astype("int64", casting="safe")
-        expected = expected.astype("int64", casting="safe")
+        # argsort result gets passed to take, so should be np.intp
+        expected = np.array([2, 0, 1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
     def test_argsort_missing(self, data_missing_for_sorting):
         result = pd.Series(data_missing_for_sorting).argsort()
-        expected = pd.Series(np.array([1, -1, 0], dtype=np.int64))
+        expected = pd.Series(np.array([1, -1, 0], dtype=np.intp))
         self.assert_series_equal(result, expected)
 
     def test_argmin_argmax(self, data_for_sorting, data_missing_for_sorting, na_value):

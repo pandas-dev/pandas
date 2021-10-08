@@ -30,11 +30,13 @@ from pandas.core.construction import (
 )
 
 
-def _cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
+def cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
     """
     Helper function for `arr.astype(common_dtype)` but handling all special
     cases.
     """
+    if is_dtype_equal(arr.dtype, dtype):
+        return arr
     if (
         is_categorical_dtype(arr.dtype)
         and isinstance(dtype, np.dtype)
@@ -51,8 +53,14 @@ def _cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
         # problem case: SparseArray.astype(dtype) doesn't follow the specified
         # dtype exactly, but converts this to Sparse[dtype] -> first manually
         # convert to dense array
+
+        # error: Argument 1 to "astype" of "_ArrayOrScalarCommon" has incompatible type
+        # "Union[dtype[Any], ExtensionDtype]"; expected "Union[dtype[Any], None, type, _
+        # SupportsDType[dtype[Any]], str, Union[Tuple[Any, int], Tuple[Any,
+        # Union[SupportsIndex, Sequence[SupportsIndex]]], List[Any], _DTypeDict,
+        # Tuple[Any, Any]]]"  [arg-type]
         arr = cast(SparseArray, arr)
-        return arr.to_dense().astype(dtype, copy=False)
+        return arr.to_dense().astype(dtype, copy=False)  # type: ignore[arg-type]
 
     if (
         isinstance(arr, np.ndarray)
@@ -111,26 +119,27 @@ def concat_compat(to_concat, axis: int = 0, ea_compat_axis: bool = False):
         to_concat = non_empties
 
     kinds = {obj.dtype.kind for obj in to_concat}
+    contains_datetime = any(kind in ["m", "M"] for kind in kinds)
 
     all_empty = not len(non_empties)
     single_dtype = len({x.dtype for x in to_concat}) == 1
     any_ea = any(isinstance(x.dtype, ExtensionDtype) for x in to_concat)
+
+    if contains_datetime:
+        return _concat_datetime(to_concat, axis=axis)
 
     if any_ea:
         # we ignore axis here, as internally concatting with EAs is always
         # for axis=0
         if not single_dtype:
             target_dtype = find_common_type([x.dtype for x in to_concat])
-            to_concat = [_cast_to_common_type(arr, target_dtype) for arr in to_concat]
+            to_concat = [cast_to_common_type(arr, target_dtype) for arr in to_concat]
 
         if isinstance(to_concat[0], ExtensionArray):
             cls = type(to_concat[0])
             return cls._concat_same_type(to_concat)
         else:
             return np.concatenate(to_concat)
-
-    elif any(kind in ["m", "M"] for kind in kinds):
-        return _concat_datetime(to_concat, axis=axis)
 
     elif all_empty:
         # we have all empties, but may need to coerce the result dtype to
@@ -347,14 +356,5 @@ def _concat_datetime(to_concat, axis=0):
         #  in Timestamp/Timedelta
         return _concatenate_2d([x.astype(object) for x in to_concat], axis=axis)
 
-    if axis == 1:
-        # TODO(EA2D): kludge not necessary with 2D EAs
-        to_concat = [x.reshape(1, -1) if x.ndim == 1 else x for x in to_concat]
-
     result = type(to_concat[0])._concat_same_type(to_concat, axis=axis)
-
-    if result.ndim == 2 and isinstance(result.dtype, ExtensionDtype):
-        # TODO(EA2D): kludge not necessary with 2D EAs
-        assert result.shape[0] == 1
-        result = result[0]
     return result

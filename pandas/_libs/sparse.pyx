@@ -72,7 +72,7 @@ cdef class IntIndex(SparseIndex):
     def nbytes(self) -> int:
         return self.indices.nbytes
 
-    def check_integrity(self):
+    cdef check_integrity(self):
         """
         Checks the following:
 
@@ -118,7 +118,7 @@ cdef class IntIndex(SparseIndex):
     def ngaps(self) -> int:
         return self.length - self.npoints
 
-    def to_int_index(self):
+    cpdef to_int_index(self):
         return self
 
     def to_block_index(self):
@@ -229,45 +229,6 @@ cdef class IntIndex(SparseIndex):
         results[mask] = res
         return results
 
-    cpdef ndarray reindex(self, ndarray[float64_t, ndim=1] values,
-                          float64_t fill_value, SparseIndex other_):
-        cdef:
-            Py_ssize_t i = 0, j = 0
-            IntIndex other
-            ndarray[float64_t, ndim=1] result
-            ndarray[int32_t, ndim=1] sinds, oinds
-
-        other = other_.to_int_index()
-
-        oinds = other.indices
-        sinds = self.indices
-
-        result = np.empty(other.npoints, dtype=np.float64)
-        result[:] = fill_value
-
-        for i in range(other.npoints):
-            while oinds[i] > sinds[j] and j < self.npoints:
-                j += 1
-
-            if j == self.npoints:
-                break
-
-            if oinds[i] < sinds[j]:
-                continue
-            elif oinds[i] == sinds[j]:
-                result[i] = values[j]
-                j += 1
-
-        return result
-
-    cpdef put(self, ndarray[float64_t, ndim=1] values,
-              ndarray[int32_t, ndim=1] indices, object to_put):
-        pass
-
-    cpdef take(self, ndarray[float64_t, ndim=1] values,
-               ndarray[int32_t, ndim=1] indices):
-        pass
-
 
 cpdef get_blocks(ndarray[int32_t, ndim=1] indices):
     cdef:
@@ -366,7 +327,7 @@ cdef class BlockIndex(SparseIndex):
     def ngaps(self) -> int:
         return self.length - self.npoints
 
-    cpdef check_integrity(self):
+    cdef check_integrity(self):
         """
         Check:
         - Locations are in ascending order
@@ -414,7 +375,7 @@ cdef class BlockIndex(SparseIndex):
     def to_block_index(self):
         return self
 
-    def to_int_index(self):
+    cpdef to_int_index(self):
         cdef:
             int32_t i = 0, j, b
             int32_t offset
@@ -430,6 +391,10 @@ cdef class BlockIndex(SparseIndex):
                 i += 1
 
         return IntIndex(self.length, indices)
+
+    @property
+    def indices(self):
+        return self.to_int_index().indices
 
     cpdef BlockIndex intersect(self, SparseIndex other):
         """
@@ -585,39 +550,8 @@ cdef class BlockIndex(SparseIndex):
                     cum_len += lens[j]
         return results
 
-    cpdef ndarray reindex(self, ndarray[float64_t, ndim=1] values,
-                          float64_t fill_value, SparseIndex other_):
-        cdef:
-            Py_ssize_t i = 0, j = 0, ocur, ocurlen
-            BlockIndex other
-            ndarray[float64_t, ndim=1] result
-            ndarray[int32_t, ndim=1] slocs, slens, olocs, olens
 
-        other = other_.to_block_index()
-
-        olocs = other.blocs
-        olens = other.blengths
-        slocs = self.blocs
-        slens = self.blengths
-
-        result = np.empty(other.npoints, dtype=np.float64)
-
-        for i in range(other.nblocks):
-            ocur = olocs[i]
-            ocurlen = olens[i]
-
-            while slocs[j] + slens[j] < ocur:
-                j += 1
-
-    cpdef put(self, ndarray[float64_t, ndim=1] values,
-              ndarray[int32_t, ndim=1] indices, object to_put):
-        pass
-
-    cpdef take(self, ndarray[float64_t, ndim=1] values,
-               ndarray[int32_t, ndim=1] indices):
-        pass
-
-
+@cython.internal
 cdef class BlockMerge:
     """
     Object-oriented approach makes sharing state between recursive functions a
@@ -661,6 +595,7 @@ cdef class BlockMerge:
             self.yi = xi
 
 
+@cython.internal
 cdef class BlockUnion(BlockMerge):
     """
     Object-oriented approach makes sharing state between recursive functions a

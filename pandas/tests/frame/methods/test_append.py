@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -12,9 +10,6 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-
-# TODO td.skip_array_manager_not_yet_implemented
-# appending with reindexing not yet working
 
 
 class TestDataFrameAppend:
@@ -43,7 +38,6 @@ class TestDataFrameAppend:
         tm.assert_frame_equal(result, expected)
         assert result is not df  # .append() should return a new object
 
-    @td.skip_array_manager_not_yet_implemented
     def test_append_series_dict(self):
         df = DataFrame(np.random.randn(5, 4), columns=["foo", "bar", "baz", "qux"])
 
@@ -84,7 +78,6 @@ class TestDataFrameAppend:
         expected = df.append(df[-1:], ignore_index=True)
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_not_yet_implemented
     def test_append_list_of_series_dicts(self):
         df = DataFrame(np.random.randn(5, 4), columns=["foo", "bar", "baz", "qux"])
 
@@ -103,7 +96,6 @@ class TestDataFrameAppend:
         expected = df.append(DataFrame(dicts), ignore_index=True, sort=True)
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_not_yet_implemented
     def test_append_missing_cols(self):
         # GH22252
         # exercise the conditional branch in append method where the data
@@ -148,7 +140,6 @@ class TestDataFrameAppend:
         expected = df1.copy()
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_not_yet_implemented
     def test_append_dtypes(self):
 
         # GH 5754
@@ -173,6 +164,7 @@ class TestDataFrameAppend:
         expected = DataFrame(
             {"bar": Series([Timestamp("20130101"), np.nan], dtype="M8[ns]")}
         )
+        expected = expected.astype(object)
         tm.assert_frame_equal(result, expected)
 
         df1 = DataFrame({"bar": Timestamp("20130101")}, index=range(1))
@@ -181,6 +173,7 @@ class TestDataFrameAppend:
         expected = DataFrame(
             {"bar": Series([Timestamp("20130101"), np.nan], dtype="M8[ns]")}
         )
+        expected = expected.astype(object)
         tm.assert_frame_equal(result, expected)
 
         df1 = DataFrame({"bar": np.nan}, index=range(1))
@@ -189,6 +182,7 @@ class TestDataFrameAppend:
         expected = DataFrame(
             {"bar": Series([np.nan, Timestamp("20130101")], dtype="M8[ns]")}
         )
+        expected = expected.astype(object)
         tm.assert_frame_equal(result, expected)
 
         df1 = DataFrame({"bar": Timestamp("20130101")}, index=range(1))
@@ -208,7 +202,6 @@ class TestDataFrameAppend:
         expected = Series(Timestamp(timestamp, tz=tz), name=0)
         tm.assert_series_equal(result, expected)
 
-    @td.skip_array_manager_not_yet_implemented
     @pytest.mark.parametrize(
         "data, dtype",
         [
@@ -238,3 +231,22 @@ class TestDataFrameAppend:
 
         result = df.append(other)
         assert (result["B"] == index).all()
+
+    @pytest.mark.filterwarnings("ignore:The values in the array:RuntimeWarning")
+    def test_multiindex_column_append_multiple(self):
+        # GH 29699
+        df = DataFrame(
+            [[1, 11], [2, 12], [3, 13]],
+            columns=pd.MultiIndex.from_tuples(
+                [("multi", "col1"), ("multi", "col2")], names=["level1", None]
+            ),
+        )
+        df2 = df.copy()
+        for i in range(1, 10):
+            df[i, "colA"] = 10
+            df = df.append(df2, ignore_index=True)
+            result = df["multi"]
+            expected = DataFrame(
+                {"col1": [1, 2, 3] * (i + 1), "col2": [11, 12, 13] * (i + 1)}
+            )
+            tm.assert_frame_equal(result, expected)

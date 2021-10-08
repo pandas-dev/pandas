@@ -67,7 +67,6 @@ class TestSorting:
             assert left[k] == v
         assert len(left) == len(right)
 
-    @pytest.mark.arm_slow
     def test_int64_overflow_moar(self):
 
         # GH9096

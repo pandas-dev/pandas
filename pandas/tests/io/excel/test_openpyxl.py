@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 import numpy as np
 import pytest
@@ -84,6 +85,30 @@ def test_write_cells_merge_styled(ext):
         assert xcell_a2.font == openpyxl_sty_merged
 
 
+@pytest.mark.parametrize("write_only", [True, False])
+def test_kwargs(ext, write_only):
+    # GH 42286
+    # openpyxl doesn't utilize kwargs, only test that supplying a kwarg works
+    kwargs = {"write_only": write_only}
+    with tm.ensure_clean(ext) as f:
+        msg = re.escape("Use of **kwargs is deprecated")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            with ExcelWriter(f, engine="openpyxl", **kwargs) as writer:
+                # ExcelWriter won't allow us to close without writing something
+                DataFrame().to_excel(writer)
+
+
+@pytest.mark.parametrize("write_only", [True, False])
+def test_engine_kwargs(ext, write_only):
+    # GH 42286
+    # openpyxl doesn't utilize kwargs, only test that supplying a engine_kwarg works
+    engine_kwargs = {"write_only": write_only}
+    with tm.ensure_clean(ext) as f:
+        with ExcelWriter(f, engine="openpyxl", engine_kwargs=engine_kwargs) as writer:
+            # ExcelWriter won't allow us to close without writing something
+            DataFrame().to_excel(writer)
+
+
 @pytest.mark.parametrize(
     "mode,expected", [("w", ["baz"]), ("a", ["foo", "bar", "baz"])]
 )
@@ -107,6 +132,66 @@ def test_write_append_mode(ext, mode, expected):
 
         for index, cell_value in enumerate(expected):
             assert wb2.worksheets[index]["A1"].value == cell_value
+
+
+@pytest.mark.parametrize(
+    "if_sheet_exists,num_sheets,expected",
+    [
+        ("new", 2, ["apple", "banana"]),
+        ("replace", 1, ["pear"]),
+    ],
+)
+def test_if_sheet_exists_append_modes(ext, if_sheet_exists, num_sheets, expected):
+    # GH 40230
+    df1 = DataFrame({"fruit": ["apple", "banana"]})
+    df2 = DataFrame({"fruit": ["pear"]})
+
+    with tm.ensure_clean(ext) as f:
+        df1.to_excel(f, engine="openpyxl", sheet_name="foo", index=False)
+        with ExcelWriter(
+            f, engine="openpyxl", mode="a", if_sheet_exists=if_sheet_exists
+        ) as writer:
+            df2.to_excel(writer, sheet_name="foo", index=False)
+
+        wb = openpyxl.load_workbook(f)
+        assert len(wb.sheetnames) == num_sheets
+        assert wb.sheetnames[0] == "foo"
+        result = pd.read_excel(wb, "foo", engine="openpyxl")
+        assert list(result["fruit"]) == expected
+        if len(wb.sheetnames) == 2:
+            result = pd.read_excel(wb, wb.sheetnames[1], engine="openpyxl")
+            tm.assert_frame_equal(result, df2)
+        wb.close()
+
+
+@pytest.mark.parametrize(
+    "if_sheet_exists,msg",
+    [
+        (
+            "invalid",
+            "'invalid' is not valid for if_sheet_exists. Valid options "
+            "are 'error', 'new' and 'replace'.",
+        ),
+        (
+            "error",
+            "Sheet 'foo' already exists and if_sheet_exists is set to 'error'.",
+        ),
+        (
+            None,
+            "Sheet 'foo' already exists and if_sheet_exists is set to 'error'.",
+        ),
+    ],
+)
+def test_if_sheet_exists_raises(ext, if_sheet_exists, msg):
+    # GH 40230
+    df = DataFrame({"fruit": ["pear"]})
+    with tm.ensure_clean(ext) as f:
+        with pytest.raises(ValueError, match=re.escape(msg)):
+            df.to_excel(f, "foo", engine="openpyxl")
+            with ExcelWriter(
+                f, engine="openpyxl", mode="a", if_sheet_exists=if_sheet_exists
+            ) as writer:
+                df.to_excel(writer, sheet_name="foo")
 
 
 def test_to_excel_with_openpyxl_engine(ext):
@@ -175,7 +260,9 @@ def test_append_mode_file(ext):
     with tm.ensure_clean(ext) as f:
         df.to_excel(f, engine="openpyxl")
 
-        with ExcelWriter(f, mode="a", engine="openpyxl") as writer:
+        with ExcelWriter(
+            f, mode="a", engine="openpyxl", if_sheet_exists="new"
+        ) as writer:
             df.to_excel(writer)
 
         # make sure that zip files are not concatenated by making sure that

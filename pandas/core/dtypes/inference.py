@@ -315,7 +315,7 @@ def is_named_tuple(obj) -> bool:
     >>> is_named_tuple((1, 2))
     False
     """
-    return isinstance(obj, tuple) and hasattr(obj, "_fields")
+    return isinstance(obj, abc.Sequence) and hasattr(obj, "_fields")
 
 
 def is_hashable(obj) -> bool:

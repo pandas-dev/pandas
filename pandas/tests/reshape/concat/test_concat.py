@@ -3,10 +3,15 @@ from collections import (
     deque,
 )
 from decimal import Decimal
-from warnings import catch_warnings
+from warnings import (
+    catch_warnings,
+    simplefilter,
+)
 
 import numpy as np
 import pytest
+
+from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import (
@@ -41,7 +46,7 @@ class TestConcatenate:
         assert isinstance(result.index, PeriodIndex)
         assert result.index[0] == s1.index[0]
 
-    def test_concat_copy(self):
+    def test_concat_copy(self, using_array_manager):
         df = DataFrame(np.random.randn(4, 3))
         df2 = DataFrame(np.random.randint(0, 10, size=4).reshape(4, 1))
         df3 = DataFrame({5: "foo"}, index=range(4))
@@ -49,35 +54,45 @@ class TestConcatenate:
         # These are actual copies.
         result = concat([df, df2, df3], axis=1, copy=True)
 
-        for b in result._mgr.blocks:
-            assert b.values.base is None
+        for arr in result._mgr.arrays:
+            assert arr.base is None
 
         # These are the same.
         result = concat([df, df2, df3], axis=1, copy=False)
 
-        for b in result._mgr.blocks:
-            if b.dtype.kind == "f":
-                assert b.values.base is df._mgr.blocks[0].values.base
-            elif b.dtype.kind in ["i", "u"]:
-                assert b.values.base is df2._mgr.blocks[0].values.base
-            elif b.is_object:
-                assert b.values.base is not None
+        for arr in result._mgr.arrays:
+            if arr.dtype.kind == "f":
+                assert arr.base is df._mgr.arrays[0].base
+            elif arr.dtype.kind in ["i", "u"]:
+                assert arr.base is df2._mgr.arrays[0].base
+            elif arr.dtype == object:
+                if using_array_manager:
+                    # we get the same array object, which has no base
+                    assert arr is df3._mgr.arrays[0]
+                else:
+                    assert arr.base is not None
 
         # Float block was consolidated.
         df4 = DataFrame(np.random.randn(4, 1))
         result = concat([df, df2, df3, df4], axis=1, copy=False)
-        for b in result._mgr.blocks:
-            if b.dtype.kind == "f":
-                assert b.values.base is None
-            elif b.dtype.kind in ["i", "u"]:
-                assert b.values.base is df2._mgr.blocks[0].values.base
-            elif b.is_object:
-                assert b.values.base is not None
+        for arr in result._mgr.arrays:
+            if arr.dtype.kind == "f":
+                if using_array_manager:
+                    # this is a view on some array in either df or df4
+                    assert any(
+                        np.shares_memory(arr, other)
+                        for other in df._mgr.arrays + df4._mgr.arrays
+                    )
+                else:
+                    # the block was consolidated, so we got a copy anyway
+                    assert arr.base is None
+            elif arr.dtype.kind in ["i", "u"]:
+                assert arr.base is df2._mgr.arrays[0].base
+            elif arr.dtype == object:
+                # this is a view on df3
+                assert any(np.shares_memory(arr, other) for other in df3._mgr.arrays)
 
     def test_concat_with_group_keys(self):
-        df = DataFrame(np.random.randn(4, 3))
-        df2 = DataFrame(np.random.randn(4, 4))
-
         # axis=0
         df = DataFrame(np.random.randn(3, 4))
         df2 = DataFrame(np.random.randn(4, 4))
@@ -550,6 +565,22 @@ def test_duplicate_keys(keys):
     tm.assert_frame_equal(result, expected)
 
 
+def test_duplicate_keys_same_frame():
+    # GH 43595
+    keys = ["e", "e"]
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    result = concat([df, df], axis=1, keys=keys)
+    expected_values = [[1, 4, 1, 4], [2, 5, 2, 5], [3, 6, 3, 6]]
+    expected_columns = MultiIndex.from_tuples(
+        [(keys[0], "a"), (keys[0], "b"), (keys[1], "a"), (keys[1], "b")]
+    )
+    expected = DataFrame(expected_values, columns=expected_columns)
+    with catch_warnings():
+        # result.columns not sorted, resulting in performance warning
+        simplefilter("ignore", PerformanceWarning)
+        tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "obj",
     [
@@ -588,6 +619,24 @@ def test_concat_preserves_extension_int64_dtype():
 
 
 @pytest.mark.parametrize(
+    "dtype1,dtype2,expected_dtype",
+    [
+        ("bool", "bool", "bool"),
+        ("boolean", "bool", "boolean"),
+        ("bool", "boolean", "boolean"),
+        ("boolean", "boolean", "boolean"),
+    ],
+)
+def test_concat_bool_types(dtype1, dtype2, expected_dtype):
+    # GH 42800
+    ser1 = Series([True, False], dtype=dtype1)
+    ser2 = Series([False, True], dtype=dtype2)
+    result = concat([ser1, ser2], ignore_index=True)
+    expected = Series([True, False, False, True], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
     ("keys", "integrity"),
     [
         (["red"] * 3, True),
@@ -603,3 +652,49 @@ def test_concat_repeated_keys(keys, integrity):
     tuples = list(zip(keys, ["a", "b", "c"]))
     expected = Series([1, 2, 3], index=MultiIndex.from_tuples(tuples))
     tm.assert_series_equal(result, expected)
+
+
+def test_concat_null_object_with_dti():
+    # GH#40841
+    dti = pd.DatetimeIndex(
+        ["2021-04-08 21:21:14+00:00"], dtype="datetime64[ns, UTC]", name="Time (UTC)"
+    )
+    right = DataFrame(data={"C": [0.5274]}, index=dti)
+
+    idx = Index([None], dtype="object", name="Maybe Time (UTC)")
+    left = DataFrame(data={"A": [None], "B": [np.nan]}, index=idx)
+
+    result = concat([left, right], axis="columns")
+
+    exp_index = Index([None, dti[0]], dtype=object)
+    expected = DataFrame(
+        {"A": [None, None], "B": [np.nan, np.nan], "C": [np.nan, 0.5274]},
+        index=exp_index,
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_concat_multiindex_with_empty_rangeindex():
+    # GH#41234
+    mi = MultiIndex.from_tuples([("B", 1), ("C", 1)])
+    df1 = DataFrame([[1, 2]], columns=mi)
+    df2 = DataFrame(index=[1], columns=pd.RangeIndex(0))
+
+    result = concat([df1, df2])
+    expected = DataFrame([[1, 2], [np.nan, np.nan]], columns=mi)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_concat_posargs_deprecation():
+    # https://github.com/pandas-dev/pandas/issues/41485
+    df = DataFrame([[1, 2, 3]], index=["a"])
+    df2 = DataFrame([[4, 5, 6]], index=["b"])
+
+    msg = (
+        "In a future version of pandas all arguments of concat "
+        "except for the argument 'objs' will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = concat([df, df2], 0)
+    expected = DataFrame([[1, 2, 3], [4, 5, 6]], index=["a", "b"])
+    tm.assert_frame_equal(result, expected)

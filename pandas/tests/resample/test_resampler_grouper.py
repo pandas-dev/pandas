@@ -9,11 +9,13 @@ from pandas.util._test_decorators import async_mark
 import pandas as pd
 from pandas import (
     DataFrame,
+    Index,
     Series,
     TimedeltaIndex,
     Timestamp,
 )
 import pandas._testing as tm
+from pandas.core.api import Int64Index
 from pandas.core.indexes.datetimes import date_range
 
 test_frame = DataFrame(
@@ -258,6 +260,8 @@ def test_apply():
         return x.resample("2s").apply(lambda y: y.sum())
 
     result = g.apply(f)
+    # y.sum() results in int64 instead of int32 on 32-bit architectures
+    expected = expected.astype("int64")
     tm.assert_frame_equal(result, expected)
 
 
@@ -289,7 +293,7 @@ def test_apply_columns_multilevel():
     agg_dict = {col: (np.sum if col[3] == "one" else np.mean) for col in df.columns}
     result = df.resample("H").apply(lambda x: agg_dict[x.name](x))
     expected = DataFrame(
-        np.array([0] * 4).reshape(2, 2),
+        2 * [[0, 0.0]],
         index=date_range(start="2017-01-01", freq="1H", periods=2),
         columns=pd.MultiIndex.from_tuples(
             [("A", "a", "", "one"), ("B", "b", "i", "two")]
@@ -322,7 +326,7 @@ def test_consistency_with_window():
 
     # consistent return values with window
     df = test_frame
-    expected = pd.Int64Index([1, 2, 3], name="A")
+    expected = Int64Index([1, 2, 3], name="A")
     result = df.groupby("A").resample("2s").mean()
     assert result.index.nlevels == 2
     tm.assert_index_equal(result.index.levels[0], expected)
@@ -354,11 +358,15 @@ def test_apply_to_one_column_of_df():
         {"col": range(10), "col1": range(10, 20)},
         index=date_range("2012-01-01", periods=10, freq="20min"),
     )
+
+    # access "col" via getattr -> make sure we handle AttributeError
     result = df.resample("H").apply(lambda group: group.col.sum())
     expected = Series(
         [3, 12, 21, 9], index=date_range("2012-01-01", periods=4, freq="H")
     )
     tm.assert_series_equal(result, expected)
+
+    # access "col" via _getitem__ -> make sure we handle KeyErrpr
     result = df.resample("H").apply(lambda group: group["col"].sum())
     tm.assert_series_equal(result, expected)
 
@@ -396,6 +404,20 @@ def test_resample_groupby_agg():
     expected = resampled.sum()
     result = resampled.agg({"num": "sum"})
 
+    tm.assert_frame_equal(result, expected)
+
+
+def test_resample_groupby_agg_listlike():
+    # GH 42905
+    ts = Timestamp("2021-02-28 00:00:00")
+    df = DataFrame({"class": ["beta"], "value": [69]}, index=Index([ts], name="date"))
+    resampled = df.groupby("class").resample("M")["value"]
+    result = resampled.agg(["sum", "size"])
+    expected = DataFrame(
+        [[69, 1]],
+        index=pd.MultiIndex.from_tuples([("beta", ts)], names=["class", "date"]),
+        columns=["sum", "size"],
+    )
     tm.assert_frame_equal(result, expected)
 
 

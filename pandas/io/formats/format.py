@@ -19,6 +19,7 @@ from typing import (
     IO,
     TYPE_CHECKING,
     Any,
+    AnyStr,
     Callable,
     Hashable,
     Iterable,
@@ -95,7 +96,10 @@ from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.reshape.concat import concat
 
-from pandas.io.common import stringify_path
+from pandas.io.common import (
+    check_parent_directory,
+    stringify_path,
+)
 from pandas.io.formats.printing import (
     adjoin,
     justify,
@@ -860,7 +864,7 @@ class DataFrameFormatter:
                 return y
 
             str_columns = list(
-                zip(*[[space_format(x, y) for y in x] for x in fmt_columns])
+                zip(*([space_format(x, y) for y in x] for x in fmt_columns))
             )
             if self.sparsify and len(str_columns):
                 str_columns = sparsify_labels(str_columns)
@@ -872,7 +876,7 @@ class DataFrameFormatter:
             need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
             str_columns = [
                 [" " + x if not self._get_formatter(i) and need_leadsp[x] else x]
-                for i, (col, x) in enumerate(zip(columns, fmt_columns))
+                for i, x in enumerate(fmt_columns)
             ]
         # self.str_columns = str_columns
         return str_columns
@@ -1054,7 +1058,7 @@ class DataFrameRenderer:
 
     def to_csv(
         self,
-        path_or_buf: FilePathOrBuffer[str] | None = None,
+        path_or_buf: FilePathOrBuffer[AnyStr] | None = None,
         encoding: str | None = None,
         sep: str = ",",
         columns: Sequence[Hashable] | None = None,
@@ -1146,6 +1150,7 @@ def get_buffer(buf: FilePathOrBuffer[str] | None, encoding: str | None = None):
     if hasattr(buf, "write"):
         yield buf
     elif isinstance(buf, str):
+        check_parent_directory(str(buf))
         with open(buf, "w", encoding=encoding, newline="") as f:
             # GH#30034 open instead of codecs.open prevents a file leak
             #  if we have an invalid encoding argument.
@@ -1318,7 +1323,6 @@ class GenericArrayFormatter:
                 "ExtensionArray formatting should use ExtensionArrayFormatter"
             )
         inferred = lib.map_infer(vals, is_float)
-        inferred = cast(np.ndarray, inferred)
         is_float_type = (
             inferred
             # vals may have 2 or more dimensions
@@ -1542,7 +1546,7 @@ class Datetime64Formatter(GenericArrayFormatter):
         self.date_format = date_format
 
     def _format_strings(self) -> list[str]:
-        """ we by definition have DO NOT have a TZ """
+        """we by definition have DO NOT have a TZ"""
         values = self.values
 
         if not isinstance(values, DatetimeIndex):
@@ -1635,24 +1639,10 @@ def format_percentiles(
 
     percentiles = 100 * percentiles
 
-    # error: Item "List[Union[int, float]]" of "Union[ndarray, List[Union[int, float]],
-    # List[float], List[Union[str, float]]]" has no attribute "astype"
-    # error: Item "List[float]" of "Union[ndarray, List[Union[int, float]], List[float],
-    # List[Union[str, float]]]" has no attribute "astype"
-    # error: Item "List[Union[str, float]]" of "Union[ndarray, List[Union[int, float]],
-    # List[float], List[Union[str, float]]]" has no attribute "astype"
-    int_idx = np.isclose(
-        percentiles.astype(int), percentiles  # type: ignore[union-attr]
-    )
+    int_idx = np.isclose(percentiles.astype(int), percentiles)
 
     if np.all(int_idx):
-        # error: Item "List[Union[int, float]]" of "Union[ndarray, List[Union[int,
-        # float]], List[float], List[Union[str, float]]]" has no attribute "astype"
-        # error: Item "List[float]" of "Union[ndarray, List[Union[int, float]],
-        # List[float], List[Union[str, float]]]" has no attribute "astype"
-        # error: Item "List[Union[str, float]]" of "Union[ndarray, List[Union[int,
-        # float]], List[float], List[Union[str, float]]]" has no attribute "astype"
-        out = percentiles.astype(int).astype(str)  # type: ignore[union-attr]
+        out = percentiles.astype(int).astype(str)
         return [i + "%" for i in out]
 
     unique_pcts = np.unique(percentiles)
@@ -1665,19 +1655,9 @@ def format_percentiles(
     ).astype(int)
     prec = max(1, prec)
     out = np.empty_like(percentiles, dtype=object)
-    # error: No overload variant of "__getitem__" of "list" matches argument type
-    # "Union[bool_, ndarray]"
-    out[int_idx] = (
-        percentiles[int_idx].astype(int).astype(str)  # type: ignore[call-overload]
-    )
+    out[int_idx] = percentiles[int_idx].astype(int).astype(str)
 
-    # error: Item "float" of "Union[Any, float, str]" has no attribute "round"
-    # error: Item "str" of "Union[Any, float, str]" has no attribute "round"
-    # error: Invalid index type "Union[bool_, Any]" for "Union[ndarray, List[Union[int,
-    # float]], List[float], List[Union[str, float]]]"; expected type "int"
-    out[~int_idx] = (
-        percentiles[~int_idx].round(prec).astype(str)  # type: ignore[union-attr,index]
-    )
+    out[~int_idx] = percentiles[~int_idx].round(prec).astype(str)
     return [i + "%" for i in out]
 
 
@@ -1740,7 +1720,7 @@ def get_format_datetime64(
 def get_format_datetime64_from_values(
     values: np.ndarray | DatetimeArray | DatetimeIndex, date_format: str | None
 ) -> str | None:
-    """ given values and a date_format, return a string format """
+    """given values and a date_format, return a string format"""
     if isinstance(values, np.ndarray) and values.ndim > 1:
         # We don't actually care about the order of values, and DatetimeIndex
         #  only accepts 1D values
@@ -1754,7 +1734,7 @@ def get_format_datetime64_from_values(
 
 class Datetime64TZFormatter(Datetime64Formatter):
     def _format_strings(self) -> list[str]:
-        """ we by definition have a TZ """
+        """we by definition have a TZ"""
         values = self.values.astype(object)
         ido = is_dates_only(values)
         formatter = self.formatter or get_format_datetime64(
@@ -1980,16 +1960,14 @@ class EngFormatter:
         """
         Formats a number in engineering notation, appending a letter
         representing the power of 1000 of the original number. Some examples:
-
-        >>> format_eng(0)       # for self.accuracy = 0
+        >>> format_eng = EngFormatter(accuracy=0, use_eng_prefix=True)
+        >>> format_eng(0)
         ' 0'
-
-        >>> format_eng(1000000) # for self.accuracy = 1,
-                                #     self.use_eng_prefix = True
+        >>> format_eng = EngFormatter(accuracy=1, use_eng_prefix=True)
+        >>> format_eng(1_000_000)
         ' 1.0M'
-
-        >>> format_eng("-1e-6") # for self.accuracy = 2
-                                #     self.use_eng_prefix = False
+        >>> format_eng = EngFormatter(accuracy=2, use_eng_prefix=False)
+        >>> format_eng("-1e-6")
         '-1.00E-06'
 
         @param num: the value to represent

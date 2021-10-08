@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import numpy as np
 import pytest
 
@@ -40,8 +42,22 @@ class TestSeriesClip:
             assert list(isna(s)) == list(isna(lower))
             assert list(isna(s)) == list(isna(upper))
 
+    def test_series_clipping_with_na_values(self, any_numeric_ea_dtype, nulls_fixture):
+        # Ensure that clipping method can handle NA values with out failing
+        # GH#40581
+
+        s = Series([nulls_fixture, 1.0, 3.0], dtype=any_numeric_ea_dtype)
+        s_clipped_upper = s.clip(upper=2.0)
+        s_clipped_lower = s.clip(lower=2.0)
+
+        expected_upper = Series([nulls_fixture, 1.0, 2.0], dtype=any_numeric_ea_dtype)
+        expected_lower = Series([nulls_fixture, 2.0, 3.0], dtype=any_numeric_ea_dtype)
+
+        tm.assert_series_equal(s_clipped_upper, expected_upper)
+        tm.assert_series_equal(s_clipped_lower, expected_lower)
+
     def test_clip_with_na_args(self):
-        """Should process np.nan argument as None """
+        """Should process np.nan argument as None"""
         # GH#17276
         s = Series([1, 2, 3])
 
@@ -49,8 +65,13 @@ class TestSeriesClip:
         tm.assert_series_equal(s.clip(upper=np.nan, lower=np.nan), Series([1, 2, 3]))
 
         # GH#19992
-        tm.assert_series_equal(s.clip(lower=[0, 4, np.nan]), Series([1, 4, np.nan]))
-        tm.assert_series_equal(s.clip(upper=[1, np.nan, 1]), Series([1, np.nan, 1]))
+        tm.assert_series_equal(s.clip(lower=[0, 4, np.nan]), Series([1, 4, 3]))
+        tm.assert_series_equal(s.clip(upper=[1, np.nan, 1]), Series([1, 2, 1]))
+
+        # GH#40420
+        s = Series([1, 2, 3])
+        result = s.clip(0, [np.nan, np.nan, np.nan])
+        tm.assert_series_equal(s, result)
 
     def test_clip_against_series(self):
         # GH#6966
@@ -101,4 +122,25 @@ class TestSeriesClip:
                 Timestamp("2015-12-01 09:30:30", tz="US/Eastern"),
             ]
         )
+        tm.assert_series_equal(result, expected)
+
+    def test_clip_with_timestamps_and_oob_datetimes(self):
+        # GH-42794
+        ser = Series([datetime(1, 1, 1), datetime(9999, 9, 9)])
+
+        result = ser.clip(lower=Timestamp.min, upper=Timestamp.max)
+        expected = Series([Timestamp.min, Timestamp.max], dtype="object")
+
+        tm.assert_series_equal(result, expected)
+
+    def test_clip_pos_args_deprecation(self):
+        # https://github.com/pandas-dev/pandas/issues/41485
+        ser = Series([1, 2, 3])
+        msg = (
+            r"In a future version of pandas all arguments of Series.clip except "
+            r"for the arguments 'lower' and 'upper' will be keyword-only"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = ser.clip(0, 1, 0)
+        expected = Series([1, 1, 1])
         tm.assert_series_equal(result, expected)

@@ -147,25 +147,25 @@ def test_getitem_setitem_datetimeindex():
     assert result == expected
 
     result = ts.copy()
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+    with tm.assert_produces_warning(FutureWarning):
         # GH#36148 will require tzawareness compat
         result[datetime(1990, 1, 1, 4)] = 0
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+    with tm.assert_produces_warning(FutureWarning):
         # GH#36148 will require tzawareness compat
         result[datetime(1990, 1, 1, 4)] = ts[4]
     tm.assert_series_equal(result, ts)
 
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+    with tm.assert_produces_warning(FutureWarning):
         # GH#36148 will require tzawareness compat
         result = ts[datetime(1990, 1, 1, 4) : datetime(1990, 1, 1, 7)]
     expected = ts[4:8]
     tm.assert_series_equal(result, expected)
 
     result = ts.copy()
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+    with tm.assert_produces_warning(FutureWarning):
         # GH#36148 will require tzawareness compat
         result[datetime(1990, 1, 1, 4) : datetime(1990, 1, 1, 7)] = 0
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+    with tm.assert_produces_warning(FutureWarning):
         # GH#36148 will require tzawareness compat
         result[datetime(1990, 1, 1, 4) : datetime(1990, 1, 1, 7)] = ts[4:8]
     tm.assert_series_equal(result, ts)

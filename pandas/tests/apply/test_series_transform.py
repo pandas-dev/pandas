@@ -8,24 +8,6 @@ from pandas import (
     concat,
 )
 import pandas._testing as tm
-from pandas.core.groupby.base import transformation_kernels
-
-# tshift only works on time index and is deprecated
-# There is no Series.cumcount
-series_kernels = [
-    x for x in sorted(transformation_kernels) if x not in ["tshift", "cumcount"]
-]
-
-
-@pytest.mark.parametrize("op", series_kernels)
-def test_transform_groupby_kernel(string_series, op):
-    # GH 35964
-
-    args = [0.0] if op == "fillna" else []
-    ones = np.ones(string_series.shape[0])
-    expected = string_series.groupby(ones).transform(op, *args)
-    result = string_series.transform(op, 0, *args)
-    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize(

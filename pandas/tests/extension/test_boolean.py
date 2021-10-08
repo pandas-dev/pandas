@@ -16,8 +16,6 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
-from pandas.compat import is_numpy_dev
-
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays.boolean import BooleanDtype
@@ -142,26 +140,6 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
             with pytest.raises(exc):
                 op(obj, other)
 
-    def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
-        if "floordiv" in all_arithmetic_operators and is_numpy_dev:
-            pytest.skip("NumpyDev behavior GH#40874")
-        super().test_arith_series_with_scalar(data, all_arithmetic_operators)
-
-    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
-        if "floordiv" in all_arithmetic_operators and is_numpy_dev:
-            pytest.skip("NumpyDev behavior GH#40874")
-        super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
-
-    def test_arith_series_with_array(self, data, all_arithmetic_operators):
-        if "floordiv" in all_arithmetic_operators and is_numpy_dev:
-            pytest.skip("NumpyDev behavior GH#40874")
-        super().test_arith_series_with_scalar(data, all_arithmetic_operators)
-
-    def test_divmod_series_array(self, data, data_for_twos):
-        if is_numpy_dev:
-            pytest.skip("NumpyDev behavior GH#40874")
-        super().test_divmod_series_array(data, data_for_twos)
-
     def _check_divmod_op(self, s, op, other, exc=None):
         # override to not raise an error
         super()._check_divmod_op(s, op, other, None)
@@ -284,21 +262,21 @@ class TestGroupby(base.BaseGroupbyTests):
         gr1 = df.groupby("A").grouper.groupings[0]
         gr2 = df.groupby("B").grouper.groupings[0]
 
-        tm.assert_numpy_array_equal(gr1.grouper, df.A.values)
-        tm.assert_extension_array_equal(gr2.grouper, data_for_grouping)
+        tm.assert_numpy_array_equal(gr1.grouping_vector, df.A.values)
+        tm.assert_extension_array_equal(gr2.grouping_vector, data_for_grouping)
 
     @pytest.mark.parametrize("as_index", [True, False])
     def test_groupby_extension_agg(self, as_index, data_for_grouping):
         df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1], "B": data_for_grouping})
         result = df.groupby("B", as_index=as_index).A.mean()
-        _, index = pd.factorize(data_for_grouping, sort=True)
+        _, uniques = pd.factorize(data_for_grouping, sort=True)
 
-        index = pd.Index(index, name="B")
-        expected = pd.Series([3, 1], index=index, name="A")
         if as_index:
+            index = pd.Index(uniques, name="B")
+            expected = pd.Series([3.0, 1.0], index=index, name="A")
             self.assert_series_equal(result, expected)
         else:
-            expected = expected.reset_index()
+            expected = pd.DataFrame({"B": uniques, "A": [3.0, 1.0]})
             self.assert_frame_equal(result, expected)
 
     def test_groupby_agg_extension(self, data_for_grouping):
@@ -323,7 +301,7 @@ class TestGroupby(base.BaseGroupbyTests):
         _, index = pd.factorize(data_for_grouping, sort=False)
 
         index = pd.Index(index, name="B")
-        expected = pd.Series([1, 3], index=index, name="A")
+        expected = pd.Series([1.0, 3.0], index=index, name="A")
         self.assert_series_equal(result, expected)
 
     def test_groupby_extension_transform(self, data_for_grouping):
@@ -403,6 +381,7 @@ class TestNumericReduce(base.BaseNumericReduceTests):
         tm.assert_almost_equal(result, expected)
 
 
+@pytest.mark.skip(reason="Tested in tests/reductions/test_reductions.py")
 class TestBooleanReduce(base.BaseBooleanReduceTests):
     pass
 

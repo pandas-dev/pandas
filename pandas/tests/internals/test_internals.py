@@ -234,9 +234,10 @@ def create_mgr(descr, item_shape=None):
         )
         num_offset += len(placement)
 
+    sblocks = sorted(blocks, key=lambda b: b.mgr_locs[0])
     return BlockManager(
-        sorted(blocks, key=lambda b: b.mgr_locs[0]),
-        [mgr_items] + [np.arange(n) for n in item_shape],
+        tuple(sblocks),
+        [mgr_items] + [Index(np.arange(n)) for n in item_shape],
     )
 
 
@@ -407,9 +408,11 @@ class TestBlockManager:
         cols = Index(list("abc"))
         values = np.random.rand(3, 3)
         block = new_block(
-            values=values.copy(), placement=np.arange(3), ndim=values.ndim
+            values=values.copy(),
+            placement=np.arange(3, dtype=np.intp),
+            ndim=values.ndim,
         )
-        mgr = BlockManager(blocks=[block], axes=[cols, np.arange(3)])
+        mgr = BlockManager(blocks=(block,), axes=[cols, Index(np.arange(3))])
 
         tm.assert_almost_equal(mgr.iget(0).internal_values(), values[0])
         tm.assert_almost_equal(mgr.iget(1).internal_values(), values[1])
@@ -460,6 +463,9 @@ class TestBlockManager:
                 # DatetimeTZBlock has DatetimeIndex values
                 assert cp_blk.values._data.base is blk.values._data.base
 
+        # copy(deep=True) consolidates, so the block-wise assertions will
+        #  fail is mgr is not consolidated
+        mgr._consolidate_inplace()
         cp = mgr.copy(deep=True)
         for blk, cp_blk in zip(mgr.blocks, cp.blocks):
 
@@ -560,7 +566,7 @@ class TestBlockManager:
 
     def test_convert(self):
         def _compare(old_mgr, new_mgr):
-            """ compare the blocks, numeric compare ==, object don't """
+            """compare the blocks, numeric compare ==, object don't"""
             old_blocks = set(old_mgr.blocks)
             new_blocks = set(new_mgr.blocks)
             assert len(old_blocks) == len(new_blocks)
@@ -617,10 +623,10 @@ class TestBlockManager:
         assert new_mgr.iget(8).dtype == np.float16
 
     def test_invalid_ea_block(self):
-        with pytest.raises(AssertionError, match="block.size != values.size"):
+        with pytest.raises(ValueError, match="need to split"):
             create_mgr("a: category; b: category")
 
-        with pytest.raises(AssertionError, match="block.size != values.size"):
+        with pytest.raises(ValueError, match="need to split"):
             create_mgr("a: category2; b: category2")
 
     def test_interleave(self):
@@ -816,13 +822,13 @@ class TestBlockManager:
         bm = create_mgr(mgr_string)
         block_perms = itertools.permutations(bm.blocks)
         for bm_perm in block_perms:
-            bm_this = BlockManager(bm_perm, bm.axes)
+            bm_this = BlockManager(tuple(bm_perm), bm.axes)
             assert bm.equals(bm_this)
             assert bm_this.equals(bm)
 
     def test_single_mgr_ctor(self):
         mgr = create_single_mgr("f8", num_rows=5)
-        assert mgr.as_array().tolist() == [0.0, 1.0, 2.0, 3.0, 4.0]
+        assert mgr.external_values().tolist() == [0.0, 1.0, 2.0, 3.0, 4.0]
 
     @pytest.mark.parametrize("value", [1, "True", [1, 2, 3], 5.0])
     def test_validate_bool_args(self, value):
@@ -834,6 +840,12 @@ class TestBlockManager:
         )
         with pytest.raises(ValueError, match=msg):
             bm1.replace_list([1], [2], inplace=value)
+
+
+def _as_array(mgr):
+    if mgr.ndim == 1:
+        return mgr.external_values()
+    return mgr.as_array()
 
 
 class TestIndexing:
@@ -858,7 +870,7 @@ class TestIndexing:
     @pytest.mark.parametrize("mgr", MANAGERS)
     def test_get_slice(self, mgr):
         def assert_slice_ok(mgr, axis, slobj):
-            mat = mgr.as_array()
+            mat = _as_array(mgr)
 
             # we maybe using an ndarray to test slicing and
             # might not be the full length of the axis
@@ -880,7 +892,7 @@ class TestIndexing:
 
             mat_slobj = (slice(None),) * axis + (slobj,)
             tm.assert_numpy_array_equal(
-                mat[mat_slobj], sliced.as_array(), check_dtype=False
+                mat[mat_slobj], _as_array(sliced), check_dtype=False
             )
             tm.assert_index_equal(mgr.axes[axis][slobj], sliced.axes[axis])
 
@@ -918,10 +930,10 @@ class TestIndexing:
     @pytest.mark.parametrize("mgr", MANAGERS)
     def test_take(self, mgr):
         def assert_take_ok(mgr, axis, indexer):
-            mat = mgr.as_array()
+            mat = _as_array(mgr)
             taken = mgr.take(indexer, axis)
             tm.assert_numpy_array_equal(
-                np.take(mat, indexer, axis), taken.as_array(), check_dtype=False
+                np.take(mat, indexer, axis), _as_array(taken), check_dtype=False
             )
             tm.assert_index_equal(mgr.axes[axis].take(indexer), taken.axes[axis])
 
@@ -939,13 +951,13 @@ class TestIndexing:
     @pytest.mark.parametrize("fill_value", [None, np.nan, 100.0])
     def test_reindex_axis(self, fill_value, mgr):
         def assert_reindex_axis_is_ok(mgr, axis, new_labels, fill_value):
-            mat = mgr.as_array()
+            mat = _as_array(mgr)
             indexer = mgr.axes[axis].get_indexer_for(new_labels)
 
             reindexed = mgr.reindex_axis(new_labels, axis, fill_value=fill_value)
             tm.assert_numpy_array_equal(
                 algos.take_nd(mat, indexer, axis, fill_value=fill_value),
-                reindexed.as_array(),
+                _as_array(reindexed),
                 check_dtype=False,
             )
             tm.assert_index_equal(reindexed.axes[axis], new_labels)
@@ -970,13 +982,13 @@ class TestIndexing:
     @pytest.mark.parametrize("fill_value", [None, np.nan, 100.0])
     def test_reindex_indexer(self, fill_value, mgr):
         def assert_reindex_indexer_is_ok(mgr, axis, new_labels, indexer, fill_value):
-            mat = mgr.as_array()
+            mat = _as_array(mgr)
             reindexed_mat = algos.take_nd(mat, indexer, axis, fill_value=fill_value)
             reindexed = mgr.reindex_indexer(
                 new_labels, indexer, axis, fill_value=fill_value
             )
             tm.assert_numpy_array_equal(
-                reindexed_mat, reindexed.as_array(), check_dtype=False
+                reindexed_mat, _as_array(reindexed), check_dtype=False
             )
             tm.assert_index_equal(reindexed.axes[axis], new_labels)
 
@@ -1366,9 +1378,11 @@ def test_make_block_no_pandas_array(block_maker):
     # PandasArray, no dtype
     result = block_maker(arr, slice(len(arr)), ndim=arr.ndim)
     assert result.dtype.kind in ["i", "u"]
-    assert result.is_extension is False
 
     if block_maker is make_block:
+        # new_block requires caller to unwrap PandasArray
+        assert result.is_extension is False
+
         # PandasArray, PandasDtype
         result = block_maker(arr, slice(len(arr)), dtype=arr.dtype, ndim=arr.ndim)
         assert result.dtype.kind in ["i", "u"]

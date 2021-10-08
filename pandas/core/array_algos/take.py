@@ -16,7 +16,10 @@ from pandas._libs import (
 from pandas._typing import ArrayLike
 
 from pandas.core.dtypes.cast import maybe_promote
-from pandas.core.dtypes.common import ensure_platform_int
+from pandas.core.dtypes.common import (
+    ensure_platform_int,
+    is_1d_only_ea_obj,
+)
 from pandas.core.dtypes.missing import na_value_for_dtype
 
 from pandas.core.construction import ensure_wrapped_if_datetimelike
@@ -91,23 +94,24 @@ def take_nd(
 
     if not isinstance(arr, np.ndarray):
         # i.e. ExtensionArray,
-        if arr.ndim == 2:
-            # e.g. DatetimeArray, TimedeltArray
+        # includes for EA to catch DatetimeArray, TimedeltaArray
+        if not is_1d_only_ea_obj(arr):
+            # i.e. DatetimeArray, TimedeltaArray
             arr = cast("NDArrayBackedExtensionArray", arr)
             return arr.take(
                 indexer, fill_value=fill_value, allow_fill=allow_fill, axis=axis
             )
+
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
 
     arr = np.asarray(arr)
-    return _take_nd_ndarray(arr, indexer, axis, None, fill_value, allow_fill)
+    return _take_nd_ndarray(arr, indexer, axis, fill_value, allow_fill)
 
 
 def _take_nd_ndarray(
     arr: np.ndarray,
     indexer,
     axis: int,
-    out: np.ndarray | None,
     fill_value,
     allow_fill: bool,
 ) -> np.ndarray:
@@ -119,7 +123,7 @@ def _take_nd_ndarray(
         indexer = ensure_platform_int(indexer)
 
     indexer, dtype, fill_value, mask_info = _take_preprocess_indexer_and_fill_value(
-        arr, indexer, out, fill_value, allow_fill
+        arr, indexer, fill_value, allow_fill
     )
 
     flip_order = False
@@ -129,23 +133,20 @@ def _take_nd_ndarray(
     if flip_order:
         arr = arr.T
         axis = arr.ndim - axis - 1
-        if out is not None:
-            out = out.T
 
     # at this point, it's guaranteed that dtype can hold both the arr values
     # and the fill_value
-    if out is None:
-        out_shape_ = list(arr.shape)
-        out_shape_[axis] = len(indexer)
-        out_shape = tuple(out_shape_)
-        if arr.flags.f_contiguous and axis == arr.ndim - 1:
-            # minor tweak that can make an order-of-magnitude difference
-            # for dataframes initialized directly from 2-d ndarrays
-            # (s.t. df.values is c-contiguous and df._mgr.blocks[0] is its
-            # f-contiguous transpose)
-            out = np.empty(out_shape, dtype=dtype, order="F")
-        else:
-            out = np.empty(out_shape, dtype=dtype)
+    out_shape_ = list(arr.shape)
+    out_shape_[axis] = len(indexer)
+    out_shape = tuple(out_shape_)
+    if arr.flags.f_contiguous and axis == arr.ndim - 1:
+        # minor tweak that can make an order-of-magnitude difference
+        # for dataframes initialized directly from 2-d ndarrays
+        # (s.t. df.values is c-contiguous and df._mgr.blocks[0] is its
+        # f-contiguous transpose)
+        out = np.empty(out_shape, dtype=dtype, order="F")
+    else:
+        out = np.empty(out_shape, dtype=dtype)
 
     func = _get_take_nd_function(
         arr.ndim, arr.dtype, out.dtype, axis=axis, mask_info=mask_info
@@ -177,20 +178,13 @@ def take_1d(
     """
     if not isinstance(arr, np.ndarray):
         # ExtensionArray -> dispatch to their method
-
-        # error: Argument 1 to "take" of "ExtensionArray" has incompatible type
-        # "ndarray"; expected "Sequence[int]"
-        return arr.take(
-            indexer,  # type: ignore[arg-type]
-            fill_value=fill_value,
-            allow_fill=allow_fill,
-        )
+        return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
 
     if not allow_fill:
         return arr.take(indexer)
 
     indexer, dtype, fill_value, mask_info = _take_preprocess_indexer_and_fill_value(
-        arr, indexer, None, fill_value, True
+        arr, indexer, fill_value, True
     )
 
     # at this point, it's guaranteed that dtype can hold both the arr values
@@ -516,7 +510,6 @@ def _take_2d_multi_object(
 def _take_preprocess_indexer_and_fill_value(
     arr: np.ndarray,
     indexer: np.ndarray,
-    out: np.ndarray | None,
     fill_value,
     allow_fill: bool,
 ):
@@ -534,10 +527,7 @@ def _take_preprocess_indexer_and_fill_value(
             mask = indexer == -1
             needs_masking = mask.any()
             mask_info = mask, needs_masking
-            if needs_masking:
-                if out is not None and out.dtype != dtype:
-                    raise TypeError("Incompatible type for fill_value")
-            else:
+            if not needs_masking:
                 # if not, then depromote, set fill_value to dummy
                 # (it won't be used but we don't want the cython code
                 # to crash when trying to cast it to dtype)

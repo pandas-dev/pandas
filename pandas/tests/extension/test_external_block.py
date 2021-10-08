@@ -14,9 +14,11 @@ pytestmark = td.skip_array_manager_invalid_test
 class CustomBlock(ExtensionBlock):
 
     _holder = np.ndarray
-    # error: Cannot override final attribute "_can_hold_na"
-    # (previously declared in base class "Block")
-    _can_hold_na = False  # type: ignore[misc]
+
+    # Cannot override final attribute "_can_hold_na"
+    @property  # type: ignore[misc]
+    def _can_hold_na(self) -> bool:
+        return False
 
 
 @pytest.fixture

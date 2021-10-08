@@ -8,6 +8,7 @@ from pandas._libs import hashtable as ht
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.core.algorithms import isin
 
 
 @contextmanager
@@ -43,6 +44,7 @@ def get_allocated_khash_memory():
         (ht.UInt16HashTable, np.uint16),
         (ht.Int8HashTable, np.int8),
         (ht.UInt8HashTable, np.uint8),
+        (ht.IntpHashTable, np.intp),
     ],
 )
 class TestHashTable:
@@ -178,14 +180,82 @@ class TestHashTable:
             assert n_buckets_start == clean_table.get_state()["n_buckets"]
 
 
+class TestPyObjectHashTableWithNans:
+    def test_nan_float(self):
+        nan1 = float("nan")
+        nan2 = float("nan")
+        assert nan1 is not nan2
+        table = ht.PyObjectHashTable()
+        table.set_item(nan1, 42)
+        assert table.get_item(nan2) == 42
+
+    def test_nan_complex_both(self):
+        nan1 = complex(float("nan"), float("nan"))
+        nan2 = complex(float("nan"), float("nan"))
+        assert nan1 is not nan2
+        table = ht.PyObjectHashTable()
+        table.set_item(nan1, 42)
+        assert table.get_item(nan2) == 42
+
+    def test_nan_complex_real(self):
+        nan1 = complex(float("nan"), 1)
+        nan2 = complex(float("nan"), 1)
+        other = complex(float("nan"), 2)
+        assert nan1 is not nan2
+        table = ht.PyObjectHashTable()
+        table.set_item(nan1, 42)
+        assert table.get_item(nan2) == 42
+        with pytest.raises(KeyError, match=None) as error:
+            table.get_item(other)
+        assert str(error.value) == str(other)
+
+    def test_nan_complex_imag(self):
+        nan1 = complex(1, float("nan"))
+        nan2 = complex(1, float("nan"))
+        other = complex(2, float("nan"))
+        assert nan1 is not nan2
+        table = ht.PyObjectHashTable()
+        table.set_item(nan1, 42)
+        assert table.get_item(nan2) == 42
+        with pytest.raises(KeyError, match=None) as error:
+            table.get_item(other)
+        assert str(error.value) == str(other)
+
+    def test_nan_in_tuple(self):
+        nan1 = (float("nan"),)
+        nan2 = (float("nan"),)
+        assert nan1[0] is not nan2[0]
+        table = ht.PyObjectHashTable()
+        table.set_item(nan1, 42)
+        assert table.get_item(nan2) == 42
+
+    def test_nan_in_nested_tuple(self):
+        nan1 = (1, (2, (float("nan"),)))
+        nan2 = (1, (2, (float("nan"),)))
+        other = (1, 2)
+        table = ht.PyObjectHashTable()
+        table.set_item(nan1, 42)
+        assert table.get_item(nan2) == 42
+        with pytest.raises(KeyError, match=None) as error:
+            table.get_item(other)
+        assert str(error.value) == str(other)
+
+
+def test_hash_equal_tuple_with_nans():
+    a = (float("nan"), (float("nan"), float("nan")))
+    b = (float("nan"), (float("nan"), float("nan")))
+    assert ht.object_hash(a) == ht.object_hash(b)
+    assert ht.objects_are_equal(a, b)
+
+
 def test_get_labels_groupby_for_Int64(writable):
     table = ht.Int64HashTable()
     vals = np.array([1, 2, -1, 2, 1, -1], dtype=np.int64)
     vals.flags.writeable = writable
     arr, unique = table.get_labels_groupby(vals)
-    expected_arr = np.array([0, 1, -1, 1, 0, -1], dtype=np.int64)
+    expected_arr = np.array([0, 1, -1, 1, 0, -1], dtype=np.intp)
     expected_unique = np.array([1, 2], dtype=np.int64)
-    tm.assert_numpy_array_equal(arr.astype(np.int64), expected_arr)
+    tm.assert_numpy_array_equal(arr, expected_arr)
     tm.assert_numpy_array_equal(unique, expected_unique)
 
 
@@ -277,8 +347,31 @@ class TestHashTableWithNans:
         assert np.all(np.isnan(unique)) and len(unique) == 1
 
 
+def test_unique_for_nan_objects_floats():
+    table = ht.PyObjectHashTable()
+    keys = np.array([float("nan") for i in range(50)], dtype=np.object_)
+    unique = table.unique(keys)
+    assert len(unique) == 1
+
+
+def test_unique_for_nan_objects_complex():
+    table = ht.PyObjectHashTable()
+    keys = np.array([complex(float("nan"), 1.0) for i in range(50)], dtype=np.object_)
+    unique = table.unique(keys)
+    assert len(unique) == 1
+
+
+def test_unique_for_nan_objects_tuple():
+    table = ht.PyObjectHashTable()
+    keys = np.array(
+        [1] + [(1.0, (float("nan"), 1.0)) for i in range(50)], dtype=np.object_
+    )
+    unique = table.unique(keys)
+    assert len(unique) == 2
+
+
 def get_ht_function(fun_name, type_suffix):
-    return getattr(ht, fun_name + "_" + type_suffix)
+    return getattr(ht, fun_name)
 
 
 @pytest.mark.parametrize(
@@ -297,6 +390,7 @@ def get_ht_function(fun_name, type_suffix):
         (np.uint16, "uint16"),
         (np.int8, "int8"),
         (np.uint8, "uint8"),
+        (np.intp, "intp"),
     ],
 )
 class TestHelpFunctions:
@@ -374,9 +468,17 @@ def test_modes_with_nans():
     values = np.array([True, pd.NA, np.nan], dtype=np.object_)
     # pd.Na and np.nan will have the same representative: np.nan
     # thus we have 2 nans and 1 True
-    modes = ht.mode_object(values, False)
+    modes = ht.mode(values, False)
     assert modes.size == 1
     assert np.isnan(modes[0])
+
+
+def test_unique_label_indices_intp(writable):
+    keys = np.array([1, 2, 2, 2, 1, 3], dtype=np.intp)
+    keys.flags.writeable = writable
+    result = ht.unique_label_indices(keys)
+    expected = np.array([0, 1, 5], dtype=np.intp)
+    tm.assert_numpy_array_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -426,3 +528,20 @@ class TestHelpFunctionsWithNans:
         values = np.array([42, np.nan, np.nan, np.nan], dtype=dtype)
         assert mode(values, True) == 42
         assert np.isnan(mode(values, False))
+
+
+def test_ismember_tuple_with_nans():
+    # GH-41836
+    values = [("a", float("nan")), ("b", 1)]
+    comps = [("a", float("nan"))]
+    result = isin(values, comps)
+    expected = np.array([True, False], dtype=np.bool_)
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_float_complex_int_are_equal_as_objects():
+    values = ["a", 5, 5.0, 5.0 + 0j]
+    comps = list(range(129))
+    result = isin(values, comps)
+    expected = np.array([False, True, True, True], dtype=np.bool_)
+    tm.assert_numpy_array_equal(result, expected)

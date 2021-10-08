@@ -146,6 +146,42 @@ class TestRolling:
         expected = g.apply(func)
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "func, expected_values",
+        [("cov", [[1.0, 1.0], [1.0, 4.0]]), ("corr", [[1.0, 0.5], [0.5, 1.0]])],
+    )
+    def test_rolling_corr_cov_unordered(self, func, expected_values):
+        # GH 43386
+        df = DataFrame(
+            {
+                "a": ["g1", "g2", "g1", "g1"],
+                "b": [0, 0, 1, 2],
+                "c": [2, 0, 6, 4],
+            }
+        )
+        rol = df.groupby("a").rolling(3)
+        result = getattr(rol, func)()
+        expected = DataFrame(
+            {
+                "b": 4 * [np.nan] + expected_values[0] + 2 * [np.nan],
+                "c": 4 * [np.nan] + expected_values[1] + 2 * [np.nan],
+            },
+            index=MultiIndex.from_tuples(
+                [
+                    ("g1", 0, "b"),
+                    ("g1", 0, "c"),
+                    ("g1", 2, "b"),
+                    ("g1", 2, "c"),
+                    ("g1", 3, "b"),
+                    ("g1", 3, "c"),
+                    ("g2", 1, "b"),
+                    ("g2", 1, "c"),
+                ],
+                names=["a", None, None],
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_rolling_apply(self, raw):
         g = self.frame.groupby("A")
         r = g.rolling(window=4)
@@ -696,6 +732,31 @@ class TestRolling:
         assert not g.grouper.mutated
 
     @pytest.mark.parametrize(
+        ("window", "min_periods", "closed", "expected"),
+        [
+            (2, 0, "left", [None, 0.0, 1.0, 1.0, None, 0.0, 1.0, 1.0]),
+            (2, 2, "left", [None, None, 1.0, 1.0, None, None, 1.0, 1.0]),
+            (4, 4, "left", [None, None, None, None, None, None, None, None]),
+            (4, 4, "right", [None, None, None, 5.0, None, None, None, 5.0]),
+        ],
+    )
+    def test_groupby_rolling_var(self, window, min_periods, closed, expected):
+        df = DataFrame([1, 2, 3, 4, 5, 6, 7, 8])
+        result = (
+            df.groupby([1, 2, 1, 2, 1, 2, 1, 2])
+            .rolling(window=window, min_periods=min_periods, closed=closed)
+            .var(0)
+        )
+        expected_result = DataFrame(
+            np.array(expected, dtype="float64"),
+            index=MultiIndex(
+                levels=[[1, 2], [0, 1, 2, 3, 4, 5, 6, 7]],
+                codes=[[0, 0, 0, 0, 1, 1, 1, 1], [0, 2, 4, 6, 1, 3, 5, 7]],
+            ),
+        )
+        tm.assert_frame_equal(result, expected_result)
+
+    @pytest.mark.parametrize(
         "columns", [MultiIndex.from_tuples([("A", ""), ("B", "C")]), ["A", "B"]]
     )
     def test_by_column_not_in_values(self, columns):
@@ -898,7 +959,12 @@ class TestEWM:
         )
         tm.assert_frame_equal(result, expected)
 
-        expected = df.groupby("A").apply(lambda x: getattr(x.ewm(com=1.0), method)())
+        with tm.assert_produces_warning(FutureWarning, match="nuisance"):
+            # GH#42738
+            expected = df.groupby("A").apply(
+                lambda x: getattr(x.ewm(com=1.0), method)()
+            )
+
         # There may be a bug in the above statement; not returning the correct index
         tm.assert_frame_equal(result.reset_index(drop=True), expected)
 
@@ -926,3 +992,105 @@ class TestEWM:
 
         expected = df.groupby("A").apply(lambda x: getattr(x.ewm(com=1.0), method)())
         tm.assert_frame_equal(result, expected)
+
+    def test_times(self, times_frame):
+        # GH 40951
+        halflife = "23 days"
+        with tm.assert_produces_warning(FutureWarning, match="nuisance"):
+            # GH#42738
+            result = times_frame.groupby("A").ewm(halflife=halflife, times="C").mean()
+        expected = DataFrame(
+            {
+                "B": [
+                    0.0,
+                    0.507534,
+                    1.020088,
+                    1.537661,
+                    0.0,
+                    0.567395,
+                    1.221209,
+                    0.0,
+                    0.653141,
+                    1.195003,
+                ]
+            },
+            index=MultiIndex.from_tuples(
+                [
+                    ("a", 0),
+                    ("a", 3),
+                    ("a", 6),
+                    ("a", 9),
+                    ("b", 1),
+                    ("b", 4),
+                    ("b", 7),
+                    ("c", 2),
+                    ("c", 5),
+                    ("c", 8),
+                ],
+                names=["A", None],
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_times_vs_apply(self, times_frame):
+        # GH 40951
+        halflife = "23 days"
+        with tm.assert_produces_warning(FutureWarning, match="nuisance"):
+            # GH#42738
+            result = times_frame.groupby("A").ewm(halflife=halflife, times="C").mean()
+            expected = (
+                times_frame.groupby("A")
+                .apply(lambda x: x.ewm(halflife=halflife, times="C").mean())
+                .iloc[[0, 3, 6, 9, 1, 4, 7, 2, 5, 8]]
+                .reset_index(drop=True)
+            )
+        tm.assert_frame_equal(result.reset_index(drop=True), expected)
+
+    def test_times_array(self, times_frame):
+        # GH 40951
+        halflife = "23 days"
+        gb = times_frame.groupby("A")
+        with tm.assert_produces_warning(FutureWarning, match="nuisance"):
+            # GH#42738
+            result = gb.ewm(halflife=halflife, times="C").mean()
+            expected = gb.ewm(halflife=halflife, times=times_frame["C"].values).mean()
+        tm.assert_frame_equal(result, expected)
+
+    def test_dont_mutate_obj_after_slicing(self):
+        # GH 43355
+        df = DataFrame(
+            {
+                "id": ["a", "a", "b", "b", "b"],
+                "timestamp": date_range("2021-9-1", periods=5, freq="H"),
+                "y": range(5),
+            }
+        )
+        grp = df.groupby("id").rolling("1H", on="timestamp")
+        result = grp.count()
+        expected_df = DataFrame(
+            {
+                "timestamp": date_range("2021-9-1", periods=5, freq="H"),
+                "y": [1.0] * 5,
+            },
+            index=MultiIndex.from_arrays(
+                [["a", "a", "b", "b", "b"], list(range(5))], names=["id", None]
+            ),
+        )
+        tm.assert_frame_equal(result, expected_df)
+
+        result = grp["y"].count()
+        expected_series = Series(
+            [1.0] * 5,
+            index=MultiIndex.from_arrays(
+                [
+                    ["a", "a", "b", "b", "b"],
+                    date_range("2021-9-1", periods=5, freq="H"),
+                ],
+                names=["id", "timestamp"],
+            ),
+            name="y",
+        )
+        tm.assert_series_equal(result, expected_series)
+        # This is the key test
+        result = grp.count()
+        tm.assert_frame_equal(result, expected_df)

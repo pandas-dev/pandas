@@ -119,7 +119,9 @@ class TestRangeIndexConstructors:
         expected = RangeIndex(1, 5, 2)
         tm.assert_index_equal(result, expected, exact=True)
 
-        msg = r"^from_range\(\) got an unexpected keyword argument"
+        msg = (
+            r"(RangeIndex.)?from_range\(\) got an unexpected keyword argument( 'copy')?"
+        )
         with pytest.raises(TypeError, match=msg):
             RangeIndex.from_range(range(10), copy=True)
 
@@ -146,7 +148,8 @@ class TestRangeIndexConstructors:
         arr = np.array([1, 2, 3, 4], dtype=object)
         index = RangeIndex(1, 5)
         assert index.values.dtype == np.int64
-        tm.assert_index_equal(index, Index(arr))
+        with tm.assert_produces_warning(FutureWarning, match="will not infer"):
+            tm.assert_index_equal(index, Index(arr).astype("int64"))
 
         # non-int raise Exception
         with pytest.raises(TypeError, match=r"Wrong type \<class 'str'\>"):

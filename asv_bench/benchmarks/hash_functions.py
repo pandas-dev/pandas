@@ -67,7 +67,6 @@ class NumericSeriesIndexingShuffled:
 
     def setup(self, index, N):
         vals = np.array(list(range(55)) + [54] + list(range(55, N - 1)))
-        np.random.seed(42)
         np.random.shuffle(vals)
         indices = index(vals)
         self.data = pd.Series(np.arange(N), index=indices)

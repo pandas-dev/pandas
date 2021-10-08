@@ -16,9 +16,9 @@ import pytz
 import pandas._libs.json as ujson
 from pandas.compat import (
     IS64,
+    PY310,
     is_platform_windows,
 )
-import pandas.util._test_decorators as td
 
 from pandas import (
     DataFrame,
@@ -31,8 +31,6 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-
-pytestmark = td.skip_array_manager_not_yet_implemented
 
 
 def _clean_dict(d):
@@ -251,7 +249,21 @@ class TestUltraJSONTests:
             assert rounded_input == json.loads(output)
             assert rounded_input == ujson.decode(output)
 
-    @pytest.mark.parametrize("invalid_val", [20, -1, "9", None])
+    @pytest.mark.parametrize(
+        "invalid_val",
+        [
+            20,
+            -1,
+            pytest.param(
+                "9",
+                marks=pytest.mark.xfail(PY310, reason="Failing on Python 3.10 GH41940"),
+            ),
+            pytest.param(
+                None,
+                marks=pytest.mark.xfail(PY310, reason="Failing on Python 3.10 GH41940"),
+            ),
+        ],
+    )
     def test_invalid_double_precision(self, invalid_val):
         double_input = 30.12345678901234567890
         expected_exception = ValueError if isinstance(invalid_val, int) else TypeError
@@ -708,6 +720,21 @@ class TestUltraJSONTests:
             ujson.encode(obj_list, default_handler=str)
         )
 
+    def test_encode_object(self):
+        class _TestObject:
+            def __init__(self, a, b, _c, d):
+                self.a = a
+                self.b = b
+                self._c = _c
+                self.d = d
+
+            def e(self):
+                return 5
+
+        # JSON keys should be all non-callable non-underscore attributes, see GH-42768
+        test_object = _TestObject(a=1, b=2, _c=3, d=4)
+        assert ujson.decode(ujson.encode(test_object)) == {"a": 1, "b": 2, "d": 4}
+
 
 class TestNumpyJSONTests:
     @pytest.mark.parametrize("bool_input", [True, False])
@@ -722,55 +749,55 @@ class TestNumpyJSONTests:
         output = np.array(ujson.decode(ujson.encode(bool_array)), dtype=bool)
         tm.assert_numpy_array_equal(bool_array, output)
 
-    def test_int(self, any_int_dtype):
-        klass = np.dtype(any_int_dtype).type
+    def test_int(self, any_int_numpy_dtype):
+        klass = np.dtype(any_int_numpy_dtype).type
         num = klass(1)
 
         assert klass(ujson.decode(ujson.encode(num))) == num
 
-    def test_int_array(self, any_int_dtype):
+    def test_int_array(self, any_int_numpy_dtype):
         arr = np.arange(100, dtype=int)
-        arr_input = arr.astype(any_int_dtype)
+        arr_input = arr.astype(any_int_numpy_dtype)
 
         arr_output = np.array(
-            ujson.decode(ujson.encode(arr_input)), dtype=any_int_dtype
+            ujson.decode(ujson.encode(arr_input)), dtype=any_int_numpy_dtype
         )
         tm.assert_numpy_array_equal(arr_input, arr_output)
 
-    def test_int_max(self, any_int_dtype):
-        if any_int_dtype in ("int64", "uint64") and not IS64:
+    def test_int_max(self, any_int_numpy_dtype):
+        if any_int_numpy_dtype in ("int64", "uint64") and not IS64:
             pytest.skip("Cannot test 64-bit integer on 32-bit platform")
 
-        klass = np.dtype(any_int_dtype).type
+        klass = np.dtype(any_int_numpy_dtype).type
 
         # uint64 max will always overflow,
         # as it's encoded to signed.
-        if any_int_dtype == "uint64":
+        if any_int_numpy_dtype == "uint64":
             num = np.iinfo("int64").max
         else:
-            num = np.iinfo(any_int_dtype).max
+            num = np.iinfo(any_int_numpy_dtype).max
 
         assert klass(ujson.decode(ujson.encode(num))) == num
 
-    def test_float(self, float_dtype):
-        klass = np.dtype(float_dtype).type
+    def test_float(self, float_numpy_dtype):
+        klass = np.dtype(float_numpy_dtype).type
         num = klass(256.2013)
 
         assert klass(ujson.decode(ujson.encode(num))) == num
 
-    def test_float_array(self, float_dtype):
+    def test_float_array(self, float_numpy_dtype):
         arr = np.arange(12.5, 185.72, 1.7322, dtype=float)
-        float_input = arr.astype(float_dtype)
+        float_input = arr.astype(float_numpy_dtype)
 
         float_output = np.array(
             ujson.decode(ujson.encode(float_input, double_precision=15)),
-            dtype=float_dtype,
+            dtype=float_numpy_dtype,
         )
         tm.assert_almost_equal(float_input, float_output)
 
-    def test_float_max(self, float_dtype):
-        klass = np.dtype(float_dtype).type
-        num = klass(np.finfo(float_dtype).max / 10)
+    def test_float_max(self, float_numpy_dtype):
+        klass = np.dtype(float_numpy_dtype).type
+        num = klass(np.finfo(float_numpy_dtype).max / 10)
 
         tm.assert_almost_equal(
             klass(ujson.decode(ujson.encode(num, double_precision=15))), num
@@ -831,65 +858,65 @@ class TestNumpyJSONTests:
             (
                 [{}, []],
                 ValueError,
-                "nesting not supported for object or variable length dtypes",
+                r"nesting not supported for object or variable length dtypes",
                 {},
             ),
             (
                 [42, None],
                 TypeError,
-                "int() argument must be a string, a bytes-like object or a number, "
-                "not 'NoneType'",
+                r"int\(\) argument must be a string, a bytes-like object or a( real)? "
+                r"number, not 'NoneType'",
                 {},
             ),
             (
                 [["a"], 42],
                 ValueError,
-                "Cannot decode multidimensional arrays with variable length elements "
-                "to numpy",
+                r"Cannot decode multidimensional arrays with variable length elements "
+                r"to numpy",
                 {},
             ),
             (
                 [42, {}, "a"],
                 TypeError,
-                "int() argument must be a string, a bytes-like object or a number, "
-                "not 'dict'",
+                r"int\(\) argument must be a string, a bytes-like object or a( real)? "
+                r"number, not 'dict'",
                 {},
             ),
             (
                 [42, ["a"], 42],
                 ValueError,
-                "invalid literal for int() with base 10: 'a'",
+                r"invalid literal for int\(\) with base 10: 'a'",
                 {},
             ),
             (
                 ["a", "b", [], "c"],
                 ValueError,
-                "nesting not supported for object or variable length dtypes",
+                r"nesting not supported for object or variable length dtypes",
                 {},
             ),
             (
                 [{"a": "b"}],
                 ValueError,
-                "Cannot decode multidimensional arrays with variable length elements "
-                "to numpy",
+                r"Cannot decode multidimensional arrays with variable length elements "
+                r"to numpy",
                 {"labelled": True},
             ),
             (
                 {"a": {"b": {"c": 42}}},
                 ValueError,
-                "labels only supported up to 2 dimensions",
+                r"labels only supported up to 2 dimensions",
                 {"labelled": True},
             ),
             (
                 [{"a": 42, "b": 23}, {"c": 17}],
                 ValueError,
-                "cannot reshape array of size 3 into shape (2,1)",
+                r"cannot reshape array of size 3 into shape \(2,1\)",
                 {"labelled": True},
             ),
         ],
     )
     def test_array_numpy_except(self, bad_input, exc_type, err_msg, kwargs):
-        with pytest.raises(exc_type, match=re.escape(err_msg)):
+        with pytest.raises(exc_type, match=err_msg):
             ujson.decode(ujson.dumps(bad_input), numpy=True, **kwargs)
 
     def test_array_numpy_labelled(self):

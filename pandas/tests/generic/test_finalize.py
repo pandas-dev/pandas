@@ -46,7 +46,6 @@ _all_methods = [
     pytest.param(
         (pd.Series, ([0],), operator.methodcaller("to_frame")), marks=pytest.mark.xfail
     ),
-    (pd.Series, (0, mi), operator.methodcaller("count", level="A")),
     (pd.Series, ([0, 0],), operator.methodcaller("drop_duplicates")),
     (pd.Series, ([0, 0],), operator.methodcaller("duplicated")),
     (pd.Series, ([0, 0],), operator.methodcaller("round")),
@@ -227,7 +226,10 @@ _all_methods = [
     ),
     pytest.param(
         (pd.DataFrame, frame_mi_data, operator.methodcaller("count", level="A")),
-        marks=not_implemented_mark,
+        marks=[
+            not_implemented_mark,
+            pytest.mark.filterwarnings("ignore:Using the level keyword:FutureWarning"),
+        ],
     ),
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("nunique")),

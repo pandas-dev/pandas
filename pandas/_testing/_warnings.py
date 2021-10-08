@@ -1,10 +1,10 @@
+from __future__ import annotations
+
 from contextlib import contextmanager
 import re
 from typing import (
-    Optional,
     Sequence,
     Type,
-    Union,
     cast,
 )
 import warnings
@@ -12,11 +12,11 @@ import warnings
 
 @contextmanager
 def assert_produces_warning(
-    expected_warning: Optional[Union[Type[Warning], bool]] = Warning,
+    expected_warning: type[Warning] | bool | None = Warning,
     filter_level="always",
     check_stacklevel: bool = True,
     raise_on_extra_warnings: bool = True,
-    match: Optional[str] = None,
+    match: str | None = None,
 ):
     """
     Context manager for running code expected to either raise a specific
@@ -99,13 +99,14 @@ def assert_produces_warning(
 def _assert_caught_expected_warning(
     *,
     caught_warnings: Sequence[warnings.WarningMessage],
-    expected_warning: Type[Warning],
-    match: Optional[str],
+    expected_warning: type[Warning],
+    match: str | None,
     check_stacklevel: bool,
 ) -> None:
     """Assert that there was the expected warning among the caught warnings."""
     saw_warning = False
     matched_message = False
+    unmatched_messages = []
 
     for actual_warning in caught_warnings:
         if issubclass(actual_warning.category, expected_warning):
@@ -116,8 +117,11 @@ def _assert_caught_expected_warning(
             ):
                 _assert_raised_with_correct_stacklevel(actual_warning)
 
-            if match is not None and re.search(match, str(actual_warning.message)):
-                matched_message = True
+            if match is not None:
+                if re.search(match, str(actual_warning.message)):
+                    matched_message = True
+                else:
+                    unmatched_messages.append(actual_warning.message)
 
     if not saw_warning:
         raise AssertionError(
@@ -128,20 +132,29 @@ def _assert_caught_expected_warning(
     if match and not matched_message:
         raise AssertionError(
             f"Did not see warning {repr(expected_warning.__name__)} "
-            f"matching {match}"
+            f"matching '{match}'. The emitted warning messages are "
+            f"{unmatched_messages}"
         )
 
 
 def _assert_caught_no_extra_warnings(
     *,
     caught_warnings: Sequence[warnings.WarningMessage],
-    expected_warning: Optional[Union[Type[Warning], bool]],
+    expected_warning: type[Warning] | bool | None,
 ) -> None:
     """Assert that no extra warnings apart from the expected ones are caught."""
     extra_warnings = []
 
     for actual_warning in caught_warnings:
         if _is_unexpected_warning(actual_warning, expected_warning):
+            unclosed = "unclosed transport <asyncio.sslproto._SSLProtocolTransport"
+            if actual_warning.category == ResourceWarning and unclosed in str(
+                actual_warning.message
+            ):
+                # FIXME: kludge because pytest.filterwarnings does not
+                #  suppress these, xref GH#38630
+                continue
+
             extra_warnings.append(
                 (
                     actual_warning.category.__name__,
@@ -157,7 +170,7 @@ def _assert_caught_no_extra_warnings(
 
 def _is_unexpected_warning(
     actual_warning: warnings.WarningMessage,
-    expected_warning: Optional[Union[Type[Warning], bool]],
+    expected_warning: type[Warning] | bool | None,
 ) -> bool:
     """Check if the actual warning issued is unexpected."""
     if actual_warning and not expected_warning:

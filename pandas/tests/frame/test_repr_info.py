@@ -322,3 +322,11 @@ class TestDataFrameReprInfoEtc:
 
         # it works!
         frame.to_string()
+
+    def test_datetime64tz_slice_non_truncate(self):
+        # GH 30263
+        df = DataFrame({"x": date_range("2019", periods=10, tz="UTC")})
+        expected = repr(df)
+        df = df.iloc[:, :5]
+        result = repr(df)
+        assert result == expected

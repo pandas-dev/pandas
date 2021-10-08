@@ -2,11 +2,15 @@ name: Database
 
 on:
   push:
-    branches: [master]
+    branches:
+      - master
+      - 1.3.x
   pull_request:
     branches:
       - master
-      - 1.2.x
+      - 1.3.x
+    paths-ignore:
+      - "doc/**"
 
 env:
   PYTEST_WORKERS: "auto"
@@ -15,7 +19,7 @@ env:
   COVERAGE: true
 
 jobs:
-  Linux_py37_IO:
+  Linux_py38_IO:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -23,8 +27,12 @@ jobs:
 
     strategy:
       matrix:
-        ENV_FILE: [ci/deps/actions-37-db-min.yaml, ci/deps/actions-37-db.yaml]
+        ENV_FILE: [ci/deps/actions-38-db-min.yaml, ci/deps/actions-38-db.yaml]
       fail-fast: false
+
+    concurrency:
+      group: ${{ github.ref }}-${{ matrix.ENV_FILE }}
+      cancel-in-progress: ${{github.event_name == 'pull_request'}}
 
     services:
       mysql:
@@ -56,10 +64,12 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
 
     - name: Cache conda
-      uses: actions/cache@v1
+      uses: actions/cache@v2
       env:
         CACHE_NUMBER: 0
       with:
@@ -78,7 +88,7 @@ jobs:
       uses: ./.github/actions/build_pandas
 
     - name: Test
-      run: pytest -m "${{ env.PATTERN }}" -n 2 --dist=loadfile -s --strict-markers --durations=30 --junitxml=test-data.xml -s --cov=pandas --cov-report=xml pandas/tests/io
+      run: pytest -m "${{ env.PATTERN }}" -n 2 --dist=loadfile --cov=pandas --cov-report=xml pandas/tests/io
       if: always()
 
     - name: Build Version
@@ -95,7 +105,7 @@ jobs:
       run: python ci/print_skipped.py
 
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v1
+      uses: codecov/codecov-action@v2
       with:
         flags: unittests
         name: codecov-pandas

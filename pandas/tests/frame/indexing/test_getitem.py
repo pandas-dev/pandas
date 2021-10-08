@@ -8,6 +8,7 @@ from pandas import (
     CategoricalDtype,
     CategoricalIndex,
     DataFrame,
+    DatetimeIndex,
     Index,
     MultiIndex,
     Series,
@@ -143,6 +144,21 @@ class TestGetitemListLike:
         idx = idx_type(keys + [missing])
         with pytest.raises(KeyError, match="not in index"):
             frame[idx]
+
+    def test_getitem_iloc_generator(self):
+        # GH#39614
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        indexer = (x for x in [1, 2])
+        result = df.iloc[indexer]
+        expected = DataFrame({"a": [2, 3], "b": [5, 6]}, index=[1, 2])
+        tm.assert_frame_equal(result, expected)
+
+    def test_getitem_iloc_two_dimensional_generator(self):
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        indexer = (x for x in [1, 2])
+        result = df.iloc[indexer, 1]
+        expected = Series([5, 6], name="b", index=[1, 2])
+        tm.assert_series_equal(result, expected)
 
 
 class TestGetitemCallable:
@@ -284,9 +300,10 @@ class TestGetitemBooleanMask:
 
         # boolean with the duplicate raises
         df = df_dup_cols
-        msg = "cannot reindex from a duplicate axis"
+        msg = "cannot reindex on an axis with duplicate labels"
         with pytest.raises(ValueError, match=msg):
-            df[df.A > 6]
+            with tm.assert_produces_warning(FutureWarning, match="non-unique"):
+                df[df.A > 6]
 
     def test_getitem_boolean_series_with_duplicate_columns(self, df_dup_cols):
         # boolean indexing
@@ -348,3 +365,26 @@ class TestGetitemSlice:
 
         result = obj.loc[start:end]
         tm.assert_equal(result, expected)
+
+    def test_getitem_datetime_slice(self):
+        # GH#43223
+        df = DataFrame(
+            {"a": 0},
+            index=DatetimeIndex(
+                [
+                    "11.01.2011 22:00",
+                    "11.01.2011 23:00",
+                    "12.01.2011 00:00",
+                    "2011-01-13 00:00",
+                ]
+            ),
+        )
+        with tm.assert_produces_warning(FutureWarning):
+            result = df["2011-01-01":"2011-11-01"]
+        expected = DataFrame(
+            {"a": 0},
+            index=DatetimeIndex(
+                ["11.01.2011 22:00", "11.01.2011 23:00", "2011-01-13 00:00"]
+            ),
+        )
+        tm.assert_frame_equal(result, expected)

@@ -10,8 +10,6 @@ from warnings import (
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -42,8 +40,7 @@ from pandas.io.pytables import (
     read_hdf,
 )
 
-# TODO(ArrayManager) HDFStore relies on accessing the blocks
-pytestmark = [pytest.mark.single, td.skip_array_manager_not_yet_implemented]
+pytestmark = pytest.mark.single
 
 
 def test_context(setup_path):
@@ -673,17 +670,20 @@ def test_coordinates(setup_path):
         tm.assert_frame_equal(result, expected)
 
         # invalid
-        msg = "cannot process expression"
-        with pytest.raises(ValueError, match=msg):
+        msg = (
+            "where must be passed as a string, PyTablesExpr, "
+            "or list-like of PyTablesExpr"
+        )
+        with pytest.raises(TypeError, match=msg):
             store.select("df", where=np.arange(len(df), dtype="float64"))
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             store.select("df", where=np.arange(len(df) + 1))
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             store.select("df", where=np.arange(len(df)), start=5)
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             store.select("df", where=np.arange(len(df)), start=5, stop=10)
 
         # selection with filter
@@ -911,7 +911,7 @@ def test_copy(setup_path):
                     os.close(fd)
                 except (OSError, ValueError):
                     pass
-                os.remove(new_f)
+                os.remove(new_f)  # noqa: PDF008
 
         # new table
         df = tm.makeDataFrame()

@@ -9,6 +9,7 @@ from pandas._libs import (
     lib,
     tslibs,
 )
+from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.tslibs import (
     BaseOffset,
     NaT,
@@ -35,6 +36,7 @@ from pandas._typing import (
     NpDtype,
 )
 from pandas.compat.numpy import function as nv
+from pandas.util._validators import validate_endpoints
 
 from pandas.core.dtypes.cast import astype_td64_unit_conversion
 from pandas.core.dtypes.common import (
@@ -69,6 +71,7 @@ from pandas.core.construction import extract_array
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
 if TYPE_CHECKING:
+    from pandas import DataFrame
     from pandas.core.arrays import (
         DatetimeArray,
         PeriodArray,
@@ -94,8 +97,6 @@ def _field_accessor(name: str, alias: str, docstring: str):
 class TimedeltaArray(dtl.TimelikeOps):
     """
     Pandas ExtensionArray for timedelta data.
-
-    .. versionadded:: 0.24.0
 
     .. warning::
 
@@ -134,10 +135,10 @@ class TimedeltaArray(dtl.TimelikeOps):
     # define my properties & methods for delegation
     _other_ops: list[str] = []
     _bool_ops: list[str] = []
-    _object_ops = ["freq"]
-    _field_ops = ["days", "seconds", "microseconds", "nanoseconds"]
-    _datetimelike_ops = _field_ops + _object_ops + _bool_ops
-    _datetimelike_methods = [
+    _object_ops: list[str] = ["freq"]
+    _field_ops: list[str] = ["days", "seconds", "microseconds", "nanoseconds"]
+    _datetimelike_ops: list[str] = _field_ops + _object_ops + _bool_ops
+    _datetimelike_methods: list[str] = [
         "to_pytimedelta",
         "total_seconds",
         "round",
@@ -227,25 +228,23 @@ class TimedeltaArray(dtl.TimelikeOps):
         if freq:
             freq = to_offset(freq)
 
-        self._ndarray = values
-        self._dtype = dtype
+        NDArrayBacked.__init__(self, values=values, dtype=dtype)
         self._freq = freq
 
         if inferred_freq is None and freq is not None:
             type(self)._validate_frequency(self, freq)
 
+    # error: Signature of "_simple_new" incompatible with supertype "NDArrayBacked"
     @classmethod
-    def _simple_new(
+    def _simple_new(  # type: ignore[override]
         cls, values: np.ndarray, freq: BaseOffset | None = None, dtype=TD64NS_DTYPE
     ) -> TimedeltaArray:
         assert dtype == TD64NS_DTYPE, dtype
         assert isinstance(values, np.ndarray), type(values)
         assert values.dtype == TD64NS_DTYPE
 
-        result = object.__new__(cls)
-        result._ndarray = values
+        result = super()._simple_new(values=values, dtype=TD64NS_DTYPE)
         result._freq = freq
-        result._dtype = TD64NS_DTYPE
         return result
 
     @classmethod
@@ -314,7 +313,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         if end is not None:
             end = Timedelta(end)
 
-        left_closed, right_closed = dtl.validate_endpoints(closed)
+        left_closed, right_closed = validate_endpoints(closed)
 
         if freq is not None:
             index = generate_regular_range(start, end, periods, freq)
@@ -883,14 +882,14 @@ class TimedeltaArray(dtl.TimelikeOps):
     )
 
     @property
-    def components(self):
+    def components(self) -> DataFrame:
         """
         Return a dataframe of the components (days, hours, minutes,
         seconds, milliseconds, microseconds, nanoseconds) of the Timedeltas.
 
         Returns
         -------
-        a DataFrame
+        DataFrame
         """
         from pandas import DataFrame
 

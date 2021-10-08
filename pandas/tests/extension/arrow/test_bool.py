@@ -54,7 +54,10 @@ class TestInterface(BaseArrowTests, base.BaseInterfaceTests):
         # __setitem__ does not work, so we only have a smoke-test
         data.view()
 
-    @pytest.mark.xfail(raises=AssertionError, reason="Not implemented yet")
+    @pytest.mark.xfail(
+        raises=AttributeError,
+        reason="__eq__ incorrectly returns bool instead of ndarray[bool]",
+    )
     def test_contains(self, data, data_missing):
         super().test_contains(data, data_missing)
 
@@ -81,6 +84,10 @@ class TestConstructors(BaseArrowTests, base.BaseConstructorsTests):
     @pytest.mark.xfail(reason="raises AssertionError")
     def test_construct_empty_dataframe(self, dtype):
         super().test_construct_empty_dataframe(dtype)
+
+    @pytest.mark.xfail(reason="_from_sequence ignores dtype keyword")
+    def test_empty(self, dtype):
+        super().test_empty(dtype)
 
 
 class TestReduce(base.BaseNoReduceTests):

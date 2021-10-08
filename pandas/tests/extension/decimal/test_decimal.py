@@ -261,18 +261,7 @@ def test_dataframe_constructor_with_dtype():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "frame",
-    [
-        pytest.param(
-            True,
-            marks=pytest.mark.xfail(
-                reason="pd.concat call inside NDFrame.astype reverts the dtype"
-            ),
-        ),
-        False,
-    ],
-)
+@pytest.mark.parametrize("frame", [True, False])
 def test_astype_dispatches(frame):
     # This is a dtype-specific test that ensures Series[decimal].astype
     # gets all the way through to ExtensionArray.astype
@@ -362,13 +351,18 @@ class DecimalArrayWithoutCoercion(DecimalArrayWithoutFromSequence):
 DecimalArrayWithoutCoercion._add_arithmetic_ops()
 
 
-def test_combine_from_sequence_raises():
+def test_combine_from_sequence_raises(monkeypatch):
     # https://github.com/pandas-dev/pandas/issues/22850
-    ser = pd.Series(
-        DecimalArrayWithoutFromSequence(
-            [decimal.Decimal("1.0"), decimal.Decimal("2.0")]
-        )
-    )
+    cls = DecimalArrayWithoutFromSequence
+
+    @classmethod
+    def construct_array_type(cls):
+        return DecimalArrayWithoutFromSequence
+
+    monkeypatch.setattr(DecimalDtype, "construct_array_type", construct_array_type)
+
+    arr = cls([decimal.Decimal("1.0"), decimal.Decimal("2.0")])
+    ser = pd.Series(arr)
     result = ser.combine(ser, operator.add)
 
     # note: object dtype
