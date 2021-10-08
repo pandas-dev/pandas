@@ -247,9 +247,9 @@ class DatetimeIndexIndexing:
     def setup(self):
         dti = date_range("2016-01-01", periods=10000, tz="US/Pacific")
         dti2 = dti.tz_convert("UTC")
-        dates = pd.date_range('2011-1-1', periods=500000, freq='min')
+        dates = date_range('2011-1-1', periods=500000, freq='min')
         index = np.random.choice(dates, 500000, replace=True)
-        df = pd.DataFrame(index=index, data={'a': 1})
+        df = DataFrame(index=index, data={'a': 1})
         df_sorted = df.sort_index()
         self.dti = dti
         self.dti2 = dti2
