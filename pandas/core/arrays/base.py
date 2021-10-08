@@ -130,6 +130,7 @@ class ExtensionArray:
     searchsorted
     shift
     take
+    tolist
     unique
     view
     _concat_same_type
