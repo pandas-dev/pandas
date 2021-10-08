@@ -329,7 +329,8 @@ cdef class IndexEngine:
             bint d_has_nan = False, stargets_has_nan = False, need_nan_check = True
             d_has_dt64nat = False, stargets_has_dt64nat = False,
             need_dt64nat_check = True, d_has_td64nat = False,
-            stargets_has_td64nat = False, need_td64nat_check = True
+            stargets_has_td64nat = False, need_td64nat_check = True,
+            need_np_nat_check = False
 
         values = self.values
         stargets = set(targets)
@@ -364,6 +365,11 @@ cdef class IndexEngine:
         if stargets:
             # otherwise, map by iterating through all items in the index
 
+            # determine if we need to check for numpy nats
+            # ie. np.datetime64("NaT") np.timedelta64("NaT")
+            if values.dtype == object:
+                need_np_nat_check = True
+
             for i in range(n):
                 val = values[i]
                 if val in stargets:
@@ -387,35 +393,36 @@ cdef class IndexEngine:
                             d_has_nan = True
                         d[np.nan].append(i)
 
-                elif is_dt64nat(val):
-                    if need_dt64nat_check:
-                        # Do this check only once
-                        stargets_has_dt64nat = any(
-                            is_dt64nat(starget) for starget in stargets
-                        )
-                        need_dt64nat_check = False
+                elif need_np_nat_check:
+                    if is_dt64nat(val):
+                        if need_dt64nat_check:
+                            # Do this check only once
+                            stargets_has_dt64nat = any(
+                                is_dt64nat(starget) for starget in stargets
+                            )
+                            need_dt64nat_check = False
 
-                    if stargets_has_dt64nat:
-                        if not d_has_dt64nat:
-                            dt64nat = np.datetime64("NaT")
-                            d[dt64nat] = []
-                            d_has_dt64nat = True
-                        d[dt64nat].append(i)
+                        if stargets_has_dt64nat:
+                            if not d_has_dt64nat:
+                                dt64nat = np.datetime64("NaT")
+                                d[dt64nat] = []
+                                d_has_dt64nat = True
+                            d[dt64nat].append(i)
 
-                elif is_td64nat(val):
-                    if need_td64nat_check:
-                        # Do this check only once
-                        stargets_has_td64nat = any(
-                            is_td64nat(starget) for starget in stargets
-                        )
-                        need_td64nat_check = False
+                    elif is_td64nat(val):
+                        if need_td64nat_check:
+                            # Do this check only once
+                            stargets_has_td64nat = any(
+                                is_td64nat(starget) for starget in stargets
+                            )
+                            need_td64nat_check = False
 
-                    if stargets_has_td64nat:
-                        if not d_has_td64nat:
-                            td64nat = np.timedelta64("NaT")
-                            d[td64nat] = []
-                            d_has_td64nat = True
-                        d[td64nat].append(i)
+                        if stargets_has_td64nat:
+                            if not d_has_td64nat:
+                                td64nat = np.timedelta64("NaT")
+                                d[td64nat] = []
+                                d_has_td64nat = True
+                            d[td64nat].append(i)
 
         for i in range(n_t):
             val = targets[i]
