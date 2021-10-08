@@ -157,6 +157,7 @@ ALL_NUMPY_DTYPES = (
 )
 
 NULL_OBJECTS = [None, np.nan, pd.NaT, float("nan"), pd.NA, Decimal("NaN")]
+NP_NAT_OBJECTS = [np.datetime64("NaT"), np.timedelta64("NaT")]
 
 EMPTY_STRING_PATTERN = re.compile("^$")
 
