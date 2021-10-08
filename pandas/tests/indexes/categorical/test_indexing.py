@@ -300,8 +300,9 @@ class TestGetIndexer:
 
 
 class TestWhere:
-    @pytest.mark.parametrize("klass", [list, tuple, np.array, pd.Series])
-    def test_where(self, klass):
+    def test_where(self, listlike_box_with_tuple):
+        klass = listlike_box_with_tuple
+
         i = CategoricalIndex(list("aabbca"), categories=list("cab"), ordered=False)
         cond = [True] * len(i)
         expected = i
