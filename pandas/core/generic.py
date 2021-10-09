@@ -5676,6 +5676,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Return a copy when ``copy=True`` (be very careful setting
             ``copy=False`` as changes to values then may propagate to other
             pandas objects).
+        inplace :
         errors : {'raise', 'ignore'}, default 'raise'
             Control raising of exceptions on invalid data for provided dtype.
 
