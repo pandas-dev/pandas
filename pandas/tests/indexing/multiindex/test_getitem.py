@@ -392,3 +392,17 @@ def test_loc_empty_multiindex():
     result = df
     expected = DataFrame([1, 2, 3, 4], index=index, columns=["value"])
     tm.assert_frame_equal(result, expected)
+
+def test_loc_nan_multiindex():
+    df = DataFrame(
+        {
+            "temp_playlist": [0, 0, 0, 0],
+            "objId": ["o1", np.nan, "o1", np.nan],
+            "x": [1, 2, 3, 4],
+        }
+    )
+
+    agg_df = df.groupby(by=['temp_playlist', 'objId'], dropna=False)["x"].agg(list)
+    result = agg_df.loc[agg_df.index[-1]]
+    expected = [2, 4]
+    assert result == expected
