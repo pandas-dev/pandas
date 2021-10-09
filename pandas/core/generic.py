@@ -5845,7 +5845,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         1   2020-01-02
         2   2020-01-03
         dtype: datetime64[ns]
+
+        Convert a DataFrame to float inplace:
+
+        >>> d = {'col1': [1, 2], 'col2': [3, 4]}
+        >>> df = pd.DataFrame(data=d)
+        >>> df.astype('float32', inplace=True)
+        >>> df
+        col1    float32
+        col2    float32
+        dtype: object
         """
+        inplace = validate_bool_kwarg(inplace, "inplace")
+
         if is_dict_like(dtype):
             if self.ndim == 1:  # i.e. Series
                 if len(dtype) > 1 or self.name not in dtype:
