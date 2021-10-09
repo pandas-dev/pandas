@@ -8,7 +8,10 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import PositionalIndexer
+from pandas._typing import (
+    NDFrameT,
+    PositionalIndexer,
+)
 from pandas.util._decorators import (
     cache_readonly,
     doc,
@@ -20,10 +23,6 @@ from pandas.core.dtypes.common import (
 )
 
 if TYPE_CHECKING:
-    from pandas import (
-        DataFrame,
-        Series,
-    )
     from pandas.core.groupby import groupby
 
 
@@ -223,17 +222,6 @@ class GroupByIndexingMixin:
 
         return mask
 
-    def _apply_positional_indexer_mask(self, mask: np.ndarray) -> DataFrame | Series:
-        if TYPE_CHECKING:
-            groupby_self = cast(groupby.GroupBy, self)
-        else:
-            groupby_self = self
-
-        if groupby_self.axis == 0:
-            return groupby_self._selected_obj[mask]
-        else:
-            return groupby_self._selected_obj.iloc[:, mask]
-
     @cache_readonly
     def _ascending_count(self) -> np.ndarray:
         if TYPE_CHECKING:
@@ -258,7 +246,7 @@ class GroupByPositionalSelector:
     def __init__(self, groupby_object: groupby.GroupBy):
         self.groupby_object = groupby_object
 
-    def __getitem__(self, arg: PositionalIndexer | tuple) -> DataFrame | Series:
+    def __getitem__(self, arg: PositionalIndexer | tuple) -> NDFrameT:
         """
         Select by positional index per group.
 
@@ -291,4 +279,4 @@ class GroupByPositionalSelector:
         """
         self.groupby_object._reset_group_selection()
         mask = self.groupby_object._make_mask_from_positional_indexer(arg)
-        return self.groupby_object._apply_positional_indexer_mask(mask)
+        return self.groupby_object._mask_selected_obj(mask)

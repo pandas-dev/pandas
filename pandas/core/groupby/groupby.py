@@ -2543,7 +2543,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # Drop NA values in grouping
                 mask = mask & (ids != -1)
 
-                out = self._selected_obj[mask]
+                out = self._mask_selected_obj(mask)
                 if not self.as_index:
                     return out
 
@@ -3320,7 +3320,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         self._reset_group_selection()
         mask = self._make_mask_from_positional_indexer(slice(None, n))
-        return self._apply_positional_indexer_mask(mask)
+        return self._mask_selected_obj(mask)
 
     @final
     @Substitution(name="groupby")
@@ -3364,7 +3364,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         else:
             mask = self._make_mask_from_positional_indexer([])
 
-        return self._apply_positional_indexer_mask(mask)
+        return self._mask_selected_obj(mask)
+
+    @final
+    def _mask_selected_obj(self, mask: np.ndarray) -> NDFrameT:
+        if self.axis == 0:
+            return self._selected_obj[mask]
+        else:
+            return self._selected_obj.iloc[:, mask]
 
     @final
     def _reindex_output(
