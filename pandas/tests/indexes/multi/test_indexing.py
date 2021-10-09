@@ -625,6 +625,7 @@ class TestGetLoc:
         # GH 19086 : int is casted to bool, but not vice-versa
         levels = [[False, True], np.arange(2, dtype="int64")]
         idx = MultiIndex.from_product(levels)
+        import pdb; pdb.set_trace()
 
         assert idx.get_loc((0, 1)) == 1
         assert idx.get_loc((1, 0)) == 2
