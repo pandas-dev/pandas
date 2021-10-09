@@ -8,10 +8,7 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import (
-    NDFrameT,
-    PositionalIndexer,
-)
+from pandas._typing import PositionalIndexer
 from pandas.util._decorators import (
     cache_readonly,
     doc,
@@ -23,6 +20,10 @@ from pandas.core.dtypes.common import (
 )
 
 if TYPE_CHECKING:
+    from pandas import (
+        DataFrame,
+        Series,
+    )
     from pandas.core.groupby import groupby
 
 
@@ -246,7 +247,7 @@ class GroupByPositionalSelector:
     def __init__(self, groupby_object: groupby.GroupBy):
         self.groupby_object = groupby_object
 
-    def __getitem__(self, arg: PositionalIndexer | tuple) -> NDFrameT:
+    def __getitem__(self, arg: PositionalIndexer | tuple) -> DataFrame | Series:
         """
         Select by positional index per group.
 
