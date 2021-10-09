@@ -2446,7 +2446,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @Substitution(see_also=_common_see_also)
     def nth(
         self, n: int | list[int], dropna: Literal["any", "all", None] = None
-    ) -> DataFrame:
+    ) -> DataFrame | Series:
         """
         Take the nth row from each group if n is an int, or a subset of rows
         if n is a list of ints.
@@ -2545,10 +2545,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # Drop NA values in grouping
                 mask = mask & (ids != -1)
 
-                if self.axis == 0:
-                    out = self._selected_obj[mask]
-                else:
-                    out = self._selected_obj.iloc[:, mask]
+                out = self._mask_selected_obj(mask)
 
                 if not self.as_index:
                     return out
@@ -3326,10 +3323,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         self._reset_group_selection()
         mask = self._cumcount_array() < n
-        if self.axis == 0:
-            return self._selected_obj[mask]
-        else:
-            return self._selected_obj.iloc[:, mask]
+        return self._mask_selected_obj(mask)
 
     @final
     @Substitution(name="groupby")
@@ -3364,6 +3358,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         self._reset_group_selection()
         mask = self._cumcount_array(ascending=False) < n
+        return self._mask_selected_obj(mask)
+
+    @final
+    def _mask_selected_obj(self, mask: np.ndarray) -> DataFrame | Series:
         if self.axis == 0:
             return self._selected_obj[mask]
         else:
