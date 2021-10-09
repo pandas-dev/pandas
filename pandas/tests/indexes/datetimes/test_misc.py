@@ -19,143 +19,16 @@ import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray
 
 
-class TestTimeSeries:
-    def test_range_edges(self):
-        # GH#13672
-        idx = date_range(
-            start=Timestamp("1970-01-01 00:00:00.000000001"),
-            end=Timestamp("1970-01-01 00:00:00.000000004"),
-            freq="N",
-        )
-        exp = DatetimeIndex(
-            [
-                "1970-01-01 00:00:00.000000001",
-                "1970-01-01 00:00:00.000000002",
-                "1970-01-01 00:00:00.000000003",
-                "1970-01-01 00:00:00.000000004",
-            ],
-            freq="N",
-        )
-        tm.assert_index_equal(idx, exp)
-
-    def test_range_edges2(self):
-
-        idx = date_range(
-            start=Timestamp("1970-01-01 00:00:00.000000004"),
-            end=Timestamp("1970-01-01 00:00:00.000000001"),
-            freq="N",
-        )
-        exp = DatetimeIndex([], freq="N")
-        tm.assert_index_equal(idx, exp)
-
-    def test_range_edges3(self):
-
-        idx = date_range(
-            start=Timestamp("1970-01-01 00:00:00.000000001"),
-            end=Timestamp("1970-01-01 00:00:00.000000001"),
-            freq="N",
-        )
-        exp = DatetimeIndex(["1970-01-01 00:00:00.000000001"], freq="N")
-        tm.assert_index_equal(idx, exp)
-
-    def test_range_edges4(self):
-
-        idx = date_range(
-            start=Timestamp("1970-01-01 00:00:00.000001"),
-            end=Timestamp("1970-01-01 00:00:00.000004"),
-            freq="U",
-        )
-        exp = DatetimeIndex(
-            [
-                "1970-01-01 00:00:00.000001",
-                "1970-01-01 00:00:00.000002",
-                "1970-01-01 00:00:00.000003",
-                "1970-01-01 00:00:00.000004",
-            ],
-            freq="U",
-        )
-        tm.assert_index_equal(idx, exp)
-
-    def test_range_edges5(self):
-
-        idx = date_range(
-            start=Timestamp("1970-01-01 00:00:00.001"),
-            end=Timestamp("1970-01-01 00:00:00.004"),
-            freq="L",
-        )
-        exp = DatetimeIndex(
-            [
-                "1970-01-01 00:00:00.001",
-                "1970-01-01 00:00:00.002",
-                "1970-01-01 00:00:00.003",
-                "1970-01-01 00:00:00.004",
-            ],
-            freq="L",
-        )
-        tm.assert_index_equal(idx, exp)
-
-    def test_range_edges6(self):
-        idx = date_range(
-            start=Timestamp("1970-01-01 00:00:01"),
-            end=Timestamp("1970-01-01 00:00:04"),
-            freq="S",
-        )
-        exp = DatetimeIndex(
-            [
-                "1970-01-01 00:00:01",
-                "1970-01-01 00:00:02",
-                "1970-01-01 00:00:03",
-                "1970-01-01 00:00:04",
-            ],
-            freq="S",
-        )
-        tm.assert_index_equal(idx, exp)
-
-    def test_range_edges7(self):
-        idx = date_range(
-            start=Timestamp("1970-01-01 00:01"),
-            end=Timestamp("1970-01-01 00:04"),
-            freq="T",
-        )
-        exp = DatetimeIndex(
-            [
-                "1970-01-01 00:01",
-                "1970-01-01 00:02",
-                "1970-01-01 00:03",
-                "1970-01-01 00:04",
-            ],
-            freq="T",
-        )
-        tm.assert_index_equal(idx, exp)
-
-    def test_range_edges8(self):
-        idx = date_range(
-            start=Timestamp("1970-01-01 01:00"),
-            end=Timestamp("1970-01-01 04:00"),
-            freq="H",
-        )
-        exp = DatetimeIndex(
-            [
-                "1970-01-01 01:00",
-                "1970-01-01 02:00",
-                "1970-01-01 03:00",
-                "1970-01-01 04:00",
-            ],
-            freq="H",
-        )
-        tm.assert_index_equal(idx, exp)
-
-    def test_range_edges9(self):
-        idx = date_range(
-            start=Timestamp("1970-01-01"), end=Timestamp("1970-01-04"), freq="D"
-        )
-        exp = DatetimeIndex(
-            ["1970-01-01", "1970-01-02", "1970-01-03", "1970-01-04"], freq="D"
-        )
-        tm.assert_index_equal(idx, exp)
-
-
 class TestDatetime64:
+    def test_no_millisecond_field(self):
+        msg = "type object 'DatetimeIndex' has no attribute 'millisecond'"
+        with pytest.raises(AttributeError, match=msg):
+            DatetimeIndex.millisecond
+
+        msg = "'DatetimeIndex' object has no attribute 'millisecond'"
+        with pytest.raises(AttributeError, match=msg):
+            DatetimeIndex([]).millisecond
+
     def test_datetimeindex_accessors(self):
         dti_naive = date_range(freq="D", start=datetime(1998, 1, 1), periods=365)
         # GH#13303
