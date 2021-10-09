@@ -127,7 +127,9 @@ Other enhancements
 - Attempting to write into a file in missing parent directory with :meth:`DataFrame.to_csv`, :meth:`DataFrame.to_html`, :meth:`DataFrame.to_excel`, :meth:`DataFrame.to_feather`, :meth:`DataFrame.to_parquet`, :meth:`DataFrame.to_stata`, :meth:`DataFrame.to_json`, :meth:`DataFrame.to_pickle`, and :meth:`DataFrame.to_xml` now explicitly mentions missing parent directory, the same is true for :class:`Series` counterparts (:issue:`24306`)
 - :meth:`IntegerArray.all` , :meth:`IntegerArray.any`, :meth:`FloatingArray.any`, and :meth:`FloatingArray.all` use Kleene logic (:issue:`41967`)
 - Added support for nullable boolean and integer types in :meth:`DataFrame.to_stata`, :class:`~pandas.io.stata.StataWriter`, :class:`~pandas.io.stata.StataWriter117`, and :class:`~pandas.io.stata.StataWriterUTF8` (:issue:`40855`)
--
+- :meth:`DataFrame.__pos__`, :meth:`DataFrame.__neg__` now retain ``ExtensionDtype`` dtypes (:issue:`43883`)
+- The error raised when an optional dependency can't be imported now includes the original exception, for easier investigation (:issue:`43882`)
+- Added :meth:`.ExponentialMovingWindow.sum` (:issue:`13297`)
 
 .. ---------------------------------------------------------------------------
 
@@ -337,6 +339,7 @@ Other Deprecations
 - Deprecated the 'include_start' and 'include_end' arguments in :meth:`DataFrame.between_time`; in a future version passing 'include_start' or 'include_end' will raise (:issue:`40245`)
 - Deprecated the ``squeeze`` argument to :meth:`read_csv`, :meth:`read_table`, and :meth:`read_excel`. Users should squeeze the DataFrame afterwards with ``.squeeze("columns")`` instead. (:issue:`43242`)
 - Deprecated the ``index`` argument to :class:`SparseArray` construction (:issue:`23089`)
+- Deprecated the ``closed`` argument in :meth:`date_range` and :meth:`bdate_range` in favor of ``inclusive`` argument; In a future version passing ``closed`` will raise (:issue:`40245`)
 - Deprecated :meth:`.Rolling.validate`, :meth:`.Expanding.validate`, and :meth:`.ExponentialMovingWindow.validate` (:issue:`43665`)
 - Deprecated silent dropping of columns that raised a ``TypeError`` in :class:`Series.transform` and :class:`DataFrame.transform` when used with a dictionary (:issue:`43740`)
 - Deprecated silent dropping of columns that raised a ``TypeError``, ``DataError``, and some cases of ``ValueError`` in :meth:`Series.aggregate`, :meth:`DataFrame.aggregate`, :meth:`Series.groupby.aggregate`, and :meth:`DataFrame.groupby.aggregate` when used with a list (:issue:`43740`)
@@ -363,6 +366,7 @@ Performance improvements
 - Indexing into a :class:`SparseArray` with a ``slice`` with ``step=1`` no longer requires converting to a dense array (:issue:`43777`)
 - Performance improvement in :meth:`SparseArray.take` with ``allow_fill=False`` (:issue:`43654`)
 - Performance improvement in :meth:`.Rolling.mean` and :meth:`.Expanding.mean` with ``engine="numba"`` (:issue:`43612`)
+- Improved performance of :meth:`pandas.read_csv` with ``memory_map=True`` when file encoding is UTF-8 (:issue:`43787`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -386,6 +390,8 @@ Datetimelike
 - Bug in :class:`DataFrame` constructor unnecessarily copying non-datetimelike 2D object arrays (:issue:`39272`)
 - Bug in :func:`to_datetime` with ``format`` and ``pandas.NA`` was raising ``ValueError`` (:issue:`42957`)
 - :func:`to_datetime` would silently swap ``MM/DD/YYYY`` and ``DD/MM/YYYY`` formats if the given ``dayfirst`` option could not be respected - now, a warning is raised in the case of delimited date strings (e.g. ``31-12-2012``) (:issue:`12585`)
+- Bug in :meth:`date_range` and :meth:`bdate_range` do not return right bound when ``start`` = ``end`` and set is closed on one side (:issue:`43394`)
+- Bug in inplace addition and subtraction of :class:`DatetimeIndex` or :class:`TimedeltaIndex` with :class:`DatetimeArray` or :class:`TimedeltaArray` (:issue:`43904`)
 -
 
 Timedelta
@@ -404,6 +410,8 @@ Numeric
 - Bug in :meth:`DataFrame.rank` raising ``ValueError`` with ``object`` columns and ``method="first"`` (:issue:`41931`)
 - Bug in :meth:`DataFrame.rank` treating missing values and extreme values as equal (for example ``np.nan`` and ``np.inf``), causing incorrect results when ``na_option="bottom"`` or ``na_option="top`` used (:issue:`41931`)
 - Bug in ``numexpr`` engine still being used when the option ``compute.use_numexpr`` is set to ``False`` (:issue:`32556`)
+- Bug in :class:`DataFrame` arithmetic ops with a subclass whose :meth:`_constructor` attribute is a callable other than the subclass itself (:issue:`43201`)
+-
 
 Conversion
 ^^^^^^^^^^
@@ -464,6 +472,7 @@ I/O
 - Bug in unpickling a :class:`Index` with object dtype incorrectly inferring numeric dtypes (:issue:`43188`)
 - Bug in :func:`read_csv` where reading multi-header input with unequal lengths incorrectly raising uncontrolled ``IndexError`` (:issue:`43102`)
 - Bug in :func:`read_csv`, changed exception class when expecting a file path name or file-like object from ``OSError`` to ``TypeError`` (:issue:`43366`)
+- Bug in :func:`read_json` not handling non-numpy dtypes correctly (especially ``category``) (:issue:`21892`, :issue:`33205`)
 - Bug in :func:`json_normalize` where multi-character ``sep`` parameter is incorrectly prefixed to every key (:issue:`43831`)
 - Bug in :func:`read_csv` with :code:`float_precision="round_trip"` which did not skip initial/trailing whitespace (:issue:`43713`)
 -
@@ -494,6 +503,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.groupby.rolling` when specifying ``on`` and calling ``__getitem__`` would subsequently return incorrect results (:issue:`43355`)
 - Bug in :meth:`GroupBy.apply` with time-based :class:`Grouper` objects incorrectly raising ``ValueError`` in corner cases where the grouping vector contains a ``NaT`` (:issue:`43500`, :issue:`43515`)
 - Bug in :meth:`GroupBy.mean` failing with ``complex`` dtype (:issue:`43701`)
+- Fixed bug in :meth:`Series.rolling` and :meth:`DataFrame.rolling` not calculating window bounds correctly for the first row when ``center=True`` and index is decreasing (:issue:`43927`)
 
 Reshaping
 ^^^^^^^^^
@@ -510,11 +520,12 @@ Sparse
 - Bug in :meth:`DataFrame.sparse.to_coo` raising ``AttributeError`` when column names are not unique (:issue:`29564`)
 - Bug in :meth:`SparseArray.max` and :meth:`SparseArray.min` raising ``ValueError`` for arrays with 0 non-null elements (:issue:`43527`)
 - Bug in :meth:`DataFrame.sparse.to_coo` silently converting non-zero fill values to zero (:issue:`24817`)
+- Bug in :class:`SparseArray` comparison methods with an array-like operand of mismatched length raising ``AssertionError`` or unclear ``ValueError`` depending on the input (:issue:`43863`)
 -
 
 ExtensionArray
 ^^^^^^^^^^^^^^
--
+- NumPy ufuncs ``np.abs``, ``np.positive``, ``np.negative`` now correctly preserve dtype when called on ExtensionArrays that implement ``__abs__, __pos__, __neg__``, respectively. In particular this is fixed for :class:`TimedeltaArray` (:issue:`43899`)
 -
 
 Styler

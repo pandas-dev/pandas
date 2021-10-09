@@ -261,8 +261,7 @@ def decons_obs_group_ids(
         out = decons_group_index(obs_ids, shape)
         return out if xnull or not lift.any() else [x - y for x, y in zip(out, lift)]
 
-    # TODO: unique_label_indices only used here, should take ndarray[np.intp]
-    indexer = unique_label_indices(ensure_int64(comp_ids))
+    indexer = unique_label_indices(comp_ids)
     return [lab[indexer].astype(np.intp, subok=False, copy=True) for lab in labels]
 
 

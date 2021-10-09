@@ -1203,7 +1203,7 @@ def assert_frame_equal(
     This example shows comparing two DataFrames that are equal
     but with columns of differing dtypes.
 
-    >>> from pandas._testing import assert_frame_equal
+    >>> from pandas.testing import assert_frame_equal
     >>> df1 = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
     >>> df2 = pd.DataFrame({'a': [1, 2], 'b': [3.0, 4.0]})
 

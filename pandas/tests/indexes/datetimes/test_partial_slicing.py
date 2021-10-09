@@ -19,6 +19,23 @@ import pandas._testing as tm
 
 
 class TestSlicing:
+    def test_string_index_series_name_converted(self):
+        # GH#1644
+        df = DataFrame(np.random.randn(10, 4), index=date_range("1/1/2000", periods=10))
+
+        result = df.loc["1/3/2000"]
+        assert result.name == df.index[2]
+
+        result = df.T["1/3/2000"]
+        assert result.name == df.index[2]
+
+    def test_stringified_slice_with_tz(self):
+        # GH#2658
+        start = "2013-01-07"
+        idx = date_range(start=start, freq="1d", periods=10, tz="US/Eastern")
+        df = DataFrame(np.arange(10), index=idx)
+        df["2013-01-14 23:44:34.437768-05:00":]  # no exception here
+
     def test_return_type_doesnt_depend_on_monotonicity(self):
         # GH#24892 we get Series back regardless of whether our DTI is monotonic
         dti = date_range(start="2015-5-13 23:59:00", freq="min", periods=3)
