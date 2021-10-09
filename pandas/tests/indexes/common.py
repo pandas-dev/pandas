@@ -793,6 +793,20 @@ class NumericBase(Base):
     def test_numeric_compat(self):
         pass  # override Base method
 
+    def test_insert_non_na(self, simple_index):
+        # GH#43921 inserting an element that we know we can hold should
+        #  not change dtype or type (except for RangeIndex)
+        index = simple_index
+
+        result = index.insert(0, index[0])
+
+        cls = type(index)
+        if cls is RangeIndex:
+            cls = Int64Index
+
+        expected = cls([index[0]] + list(index), dtype=index.dtype)
+        tm.assert_index_equal(result, expected)
+
     def test_insert_na(self, nulls_fixture, simple_index):
         # GH 18295 (test missing)
         index = simple_index
@@ -800,6 +814,11 @@ class NumericBase(Base):
 
         if na_val is pd.NaT:
             expected = Index([index[0], pd.NaT] + list(index[1:]), dtype=object)
+        elif type(index) is NumericIndex and index.dtype.kind == "f":
+            # GH#43921
+            expected = NumericIndex(
+                [index[0], np.nan] + list(index[1:]), dtype=index.dtype
+            )
         else:
             expected = Float64Index([index[0], np.nan] + list(index[1:]))
 
