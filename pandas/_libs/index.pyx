@@ -129,6 +129,7 @@ cdef class IndexEngine:
         # We assume before we get here:
         #  - val is hashable
         self._ensure_mapping_populated()
+        #print('THIS IS THE MAPPING ' + str(self.mapping))
         return val in self.mapping
 
     cpdef get_loc(self, object val):
@@ -158,6 +159,8 @@ cdef class IndexEngine:
             return self._get_loc_duplicates(val)
 
         try:
+            #print('THIS IS val: ' + str(val))
+            #print('THIS IS MAPPING: ' + str(self.mapping))
             return self.mapping.get_item(val)
         except OverflowError as err:
             # GH#41775 OverflowError e.g. if we are uint64 and val is -1
@@ -594,13 +597,16 @@ cdef class BaseMultiIndexCodesEngine:
 
         # Transform labels in a single array, and add 1 so that we are working
         # with positive integers (-1 for NaN becomes 0):
+        #print('\nTHIS ARE LABELS IN INITIALIZATION OF BASEMULTIINDEXCODESENGINE: ' + str(labels) + " THIS IS THE TYPE OF LABELS: " + str(type(labels)))
         codes = (np.array(labels, dtype='int64').T + 1).astype('uint64',
                                                                copy=False)
+        #print('\nTHIS ARE THE CODES: ' + str(codes) + " THIS IS THE TYPE OF CODES: " + str(type(codes)) + '\n')
 
         # Map each codes combination in the index to an integer unambiguously
         # (no collisions possible), based on the "offsets", which describe the
         # number of bits to switch labels for each level:
         lab_ints = self._codes_to_ints(codes)
+        #print('\nTHIS ARE THE LAB INTS: ' + str(lab_ints) + " THIS IS THE TYPE OF LAB INTS: " + str(type(codes)) + '\n')
 
         # Initialize underlying index (e.g. libindex.UInt64Engine) with
         # integers representing labels: we will use its get_loc and get_indexer
@@ -731,13 +737,23 @@ cdef class BaseMultiIndexCodesEngine:
         return sorted_indexer[np.argsort(target_order)]
 
     def get_loc(self, object key):
+        #print('get_loc, we want to get key' + str(key))
         if is_definitely_invalid_key(key):
             raise TypeError(f"'{key}' is an invalid key")
         if not isinstance(key, tuple):
             raise KeyError(key)
+        # print('LEVELS: ' + str(type(self.levels[0])) + 'KEYS: ' + str(key))
         try:
-            indices = [0 if checknull(v) else lev.get_loc(v) + 1
-                       for lev, v in zip(self.levels, key)]
+            # indices = [0 if checknull(v) else lev.get_loc(v) + 1
+            #            for lev, v in zip(self.levels, key)]
+            indices = []
+            for key, lev in zip(key, self.levels):
+                try:
+                    indices.append(lev.get_loc(key) + 1)
+                except KeyError:
+                    indices.append(0)
+            # indices = [lev.get_loc(v) + 1
+            #            for lev, v in zip(self.levels, key)]
         except KeyError:
             raise KeyError(key)
 

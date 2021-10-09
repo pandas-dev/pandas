@@ -3460,8 +3460,13 @@ class Index(IndexOpsMixin, PandasObject):
                     "tolerance argument only valid if using pad, "
                     "backfill or nearest lookups"
                 )
+            # print(f'key before casting {key}')
             casted_key = self._maybe_cast_indexer(key)
             try:
+                #import pdb; pdb.set_trace()
+                # print(f'casted key {casted_key}')
+                # import pdb; pdb.set_trace()
+                # import traceback as tb; tb.print_stack()
                 return self._engine.get_loc(casted_key)
             except KeyError as err:
                 raise KeyError(key) from err
