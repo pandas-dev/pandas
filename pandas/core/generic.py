@@ -5723,7 +5723,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return self._constructor_sliced(data, index=self._info_axis, dtype=np.object_)
 
     def astype(
-        self: NDFrameT, dtype, copy: bool_t = True, errors: str = "raise"
+        self: NDFrameT,
+        dtype,
+        copy: bool_t = True,
+        inplace: bool_t = False,
+        errors: str = "raise"
     ) -> NDFrameT:
         """
         Cast a pandas object to a specified dtype ``dtype``.
@@ -5739,6 +5743,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Return a copy when ``copy=True`` (be very careful setting
             ``copy=False`` as changes to values then may propagate to other
             pandas objects).
+        inplace : bool, default False
+            Whether to perform the operation in place on the data.
         errors : {'raise', 'ignore'}, default 'raise'
             Control raising of exceptions on invalid data for provided dtype.
 
@@ -5747,7 +5753,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        casted : same type as caller
+        casted : same type as caller if not inplace, otherwise it returns None.
 
         See Also
         --------
@@ -5889,17 +5895,27 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             # else, only a single dtype is given
             new_data = self._mgr.astype(dtype=dtype, copy=copy, errors=errors)
-            return self._constructor(new_data).__finalize__(self, method="astype")
+            result = self._constructor(new_data)
+            if inplace:
+                return self._update_inplace(result)
+            else:
+                return result.__finalize__(self, method="astype")
 
         # GH 33113: handle empty frame or series
         if not results:
-            return self.copy()
+            result = self if inplace else self.copy()
+            return result
 
         # GH 19920: retain column metadata after concat
         result = concat(results, axis=1, copy=False)
         result.columns = self.columns
         # https://github.com/python/mypy/issues/8354
-        return cast(NDFrameT, result)
+        result = cast(NDFrameT, result)
+
+        if inplace:
+            return self._update_inplace(result)
+        else:
+            return result.__finalize__(self, method="astype")
 
     @final
     def copy(self: NDFrameT, deep: bool_t = True) -> NDFrameT:
