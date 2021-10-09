@@ -90,6 +90,19 @@ class TestUnaryOps:
         result = abs(arr)
         tm.assert_timedelta_array_equal(result, expected)
 
+        result2 = np.abs(arr)
+        tm.assert_timedelta_array_equal(result2, expected)
+
+    def test_pos(self):
+        vals = np.array([-3600 * 10 ** 9, "NaT", 7200 * 10 ** 9], dtype="m8[ns]")
+        arr = TimedeltaArray(vals)
+
+        result = +arr
+        tm.assert_timedelta_array_equal(result, arr)
+
+        result2 = np.positive(arr)
+        tm.assert_timedelta_array_equal(result2, arr)
+
     def test_neg(self):
         vals = np.array([-3600 * 10 ** 9, "NaT", 7200 * 10 ** 9], dtype="m8[ns]")
         arr = TimedeltaArray(vals)
@@ -100,6 +113,9 @@ class TestUnaryOps:
         result = -arr
         tm.assert_timedelta_array_equal(result, expected)
 
+        result2 = np.negative(arr)
+        tm.assert_timedelta_array_equal(result2, expected)
+
     def test_neg_freq(self):
         tdi = pd.timedelta_range("2 Days", periods=4, freq="H")
         arr = TimedeltaArray(tdi, freq=tdi.freq)
@@ -108,3 +124,6 @@ class TestUnaryOps:
 
         result = -arr
         tm.assert_timedelta_array_equal(result, expected)
+
+        result2 = np.negative(arr)
+        tm.assert_timedelta_array_equal(result2, expected)

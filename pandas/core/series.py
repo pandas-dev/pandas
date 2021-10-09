@@ -3709,7 +3709,7 @@ Keep all original rows and also all original values
         n_na = na_mask.sum()
         if n_na == 0:  # number of NaN values is zero
             res = np.argsort(values, kind=kind)
-            res_ser = Series(res, index=self.index[res], dtype="int64", name=self.name)
+            res_ser = Series(res, index=self.index[res], dtype=np.intp, name=self.name)
             return res_ser.__finalize__(self, method="argsort")
         else:
             # GH 42090
@@ -3740,7 +3740,7 @@ Keep all original rows and also all original values
 
             # create and combine the Series:
             na_res_ser = Series(
-                na_argsort, index=self.index[na_mask], dtype="int64", name=self.name
+                na_argsort, index=self.index[na_mask], dtype=np.intp, name=self.name
             )
             notna_res_ser = Series(
                 notna_argsort,
