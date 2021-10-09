@@ -584,9 +584,11 @@ def test_frame_multi_key_function_list():
 
     grouped = data.groupby(["A", "B"])
     funcs = [np.mean, np.std]
-    with tm.assert_produces_warning(
-        FutureWarning, match=r"\['C'\] did not aggregate successfully"
-    ):
+    if get_option("future_udf_behavior"):
+        klass, msg = None, None
+    else:
+        klass, msg = FutureWarning, r"\['C'\] did not aggregate successfully"
+    with tm.assert_produces_warning(klass, match=msg):
         agged = grouped.agg(funcs)
     if get_option("future_udf_behavior"):
         expected = pd.concat(

@@ -49,7 +49,7 @@ def test_agg_api():
     if get_option("future_udf_behavior"):
         match = "Dropping invalid columns in DataFrameGroupBy.agg"
     else:
-        match = (r"\['key2'\] did not aggregate successfully",)
+        match = r"\['key2'\] did not aggregate successfully"
 
     with tm.assert_produces_warning(
         FutureWarning,
