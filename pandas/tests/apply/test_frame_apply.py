@@ -1133,8 +1133,6 @@ def test_agg_multiple_mixed_no_warning():
     else:
         expected = expected[["D", "C", "B", "A"]].reindex(["sum", "min"])
     tm.assert_frame_equal(result, expected)
-    if get_option("future_udf_behavior"):
-        assert False, "Yay!"
 
 
 def test_agg_reduce(axis, float_frame):
