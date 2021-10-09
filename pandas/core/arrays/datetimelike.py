@@ -1228,7 +1228,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         )
         return result
 
-    def _time_shift(self, periods: int, freq=None):
+    def _time_shift(
+        self: DatetimeLikeArrayT, periods: int, freq=None
+    ) -> DatetimeLikeArrayT:
         """
         Shift each value by `periods`.
 
@@ -1412,7 +1414,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         if not is_period_dtype(self.dtype):
             # restore freq, which is invalidated by setitem
-            self._freq = result._freq
+            self._freq = result.freq
         return self
 
     def __isub__(self, other):
@@ -1421,7 +1423,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         if not is_period_dtype(self.dtype):
             # restore freq, which is invalidated by setitem
-            self._freq = result._freq
+            self._freq = result.freq
         return self
 
     # --------------------------------------------------------------

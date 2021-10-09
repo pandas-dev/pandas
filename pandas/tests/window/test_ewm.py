@@ -241,3 +241,22 @@ def test_times_string_col_deprecated():
         result = df.ewm(halflife="1 day", min_periods=0, times="time_col").mean()
         expected = df.ewm(halflife=1.0, min_periods=0).mean()
     tm.assert_frame_equal(result, expected)
+
+
+def test_ewm_sum_adjust_false_notimplemented():
+    data = Series(range(1)).ewm(com=1, adjust=False)
+    with pytest.raises(NotImplementedError, match="sum is not"):
+        data.sum()
+
+
+@pytest.mark.parametrize(
+    "expected_data, ignore",
+    [[[10.0, 5.0, 2.5, 11.25], False], [[10.0, 5.0, 5.0, 12.5], True]],
+)
+def test_ewm_sum(expected_data, ignore):
+    # xref from Numbagg tests
+    # https://github.com/numbagg/numbagg/blob/v0.2.1/numbagg/test/test_moving.py#L50
+    data = Series([10, 0, np.nan, 10])
+    result = data.ewm(alpha=0.5, ignore_na=ignore).sum()
+    expected = Series(expected_data)
+    tm.assert_series_equal(result, expected)

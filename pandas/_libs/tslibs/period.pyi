@@ -58,16 +58,16 @@ class Period:
     # error: "__new__" must return a class instance (got "Union[Period, NaTType]")
     def __new__(  # type: ignore[misc]
         cls,
-        value=None,
-        freq=None,
-        ordinal=None,
-        year=None,
-        month=None,
-        quarter=None,
-        day=None,
-        hour=None,
-        minute=None,
-        second=None,
+        value=...,
+        freq=...,
+        ordinal=...,
+        year=...,
+        month=...,
+        quarter=...,
+        day=...,
+        hour=...,
+        minute=...,
+        second=...,
     ) -> Period | NaTType: ...
     @classmethod
     def _maybe_convert_freq(cls, freq) -> BaseOffset: ...

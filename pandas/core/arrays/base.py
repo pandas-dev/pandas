@@ -33,6 +33,7 @@ from pandas._typing import (
     ScalarIndexer,
     SequenceIndexer,
     Shape,
+    TakeIndexer,
     npt,
 )
 from pandas.compat import set_function_name
@@ -64,6 +65,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import (
+    arraylike,
     missing,
     ops,
 )
@@ -128,6 +130,7 @@ class ExtensionArray:
     searchsorted
     shift
     take
+    tolist
     unique
     view
     _concat_same_type
@@ -1076,7 +1079,7 @@ class ExtensionArray:
 
     def take(
         self: ExtensionArrayT,
-        indices: Sequence[int],
+        indices: TakeIndexer,
         *,
         allow_fill: bool = False,
         fill_value: Any = None,
@@ -1086,7 +1089,7 @@ class ExtensionArray:
 
         Parameters
         ----------
-        indices : sequence of int
+        indices : sequence of int or one-dimensional np.ndarray of int
             Indices to be taken.
         allow_fill : bool, default False
             How to handle negative values in `indices`.
@@ -1346,6 +1349,22 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
     # Non-Optimized Default Methods
 
+    def tolist(self) -> list:
+        """
+        Return a list of the values.
+
+        These are each a scalar type, which is a Python scalar
+        (for str, int, float) or a pandas scalar
+        (for Timestamp/Timedelta/Interval/Period)
+
+        Returns
+        -------
+        list
+        """
+        if self.ndim > 1:
+            return [x.tolist() for x in self]
+        return list(self)
+
     def delete(self: ExtensionArrayT, loc: PositionalIndexer) -> ExtensionArrayT:
         indexer = np.delete(np.arange(len(self)), loc)
         return self.take(indexer)
@@ -1364,6 +1383,25 @@ class ExtensionArray:
                 f"Default 'empty' implementation is invalid for dtype='{dtype}'"
             )
         return result
+
+    def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
+        if any(
+            isinstance(other, (ABCSeries, ABCIndex, ABCDataFrame)) for other in inputs
+        ):
+            return NotImplemented
+
+        result = arraylike.maybe_dispatch_ufunc_to_dunder_op(
+            self, ufunc, method, *inputs, **kwargs
+        )
+        if result is not NotImplemented:
+            return result
+
+        if "out" in kwargs:
+            return arraylike.dispatch_ufunc_with_out(
+                self, ufunc, method, *inputs, **kwargs
+            )
+
+        return arraylike.default_array_ufunc(self, ufunc, method, *inputs, **kwargs)
 
 
 class ExtensionOpsMixin:

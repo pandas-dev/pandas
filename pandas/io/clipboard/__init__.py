@@ -116,7 +116,7 @@ def init_osx_pbcopy_clipboard():
 
     def paste_osx_pbcopy():
         p = subprocess.Popen(["pbpaste", "r"], stdout=subprocess.PIPE, close_fds=True)
-        stdout, stderr = p.communicate()
+        stdout = p.communicate()[0]
         return stdout.decode(ENCODING)
 
     return copy_osx_pbcopy, paste_osx_pbcopy
@@ -194,7 +194,7 @@ def init_xclip_clipboard():
             stderr=subprocess.PIPE,
             close_fds=True,
         )
-        stdout, stderr = p.communicate()
+        stdout = p.communicate()[0]
         # Intentionally ignore extraneous output on stderr when clipboard is empty
         return stdout.decode(ENCODING)
 
@@ -222,7 +222,7 @@ def init_xsel_clipboard():
         p = subprocess.Popen(
             ["xsel", selection_flag, "-o"], stdout=subprocess.PIPE, close_fds=True
         )
-        stdout, stderr = p.communicate()
+        stdout = p.communicate()[0]
         return stdout.decode(ENCODING)
 
     return copy_xsel, paste_xsel
@@ -250,7 +250,7 @@ def init_klipper_clipboard():
             stdout=subprocess.PIPE,
             close_fds=True,
         )
-        stdout, stderr = p.communicate()
+        stdout = p.communicate()[0]
 
         # Workaround for https://bugs.kde.org/show_bug.cgi?id=342874
         # TODO: https://github.com/asweigart/pyperclip/issues/43
@@ -493,7 +493,7 @@ def init_wsl_clipboard():
             stderr=subprocess.PIPE,
             close_fds=True,
         )
-        stdout, stderr = p.communicate()
+        stdout = p.communicate()[0]
         # WSL appends "\r\n" to the contents.
         return stdout[:-2].decode(ENCODING)
 
