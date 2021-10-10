@@ -393,6 +393,7 @@ def test_loc_empty_multiindex():
     expected = DataFrame([1, 2, 3, 4], index=index, columns=["value"])
     tm.assert_frame_equal(result, expected)
 
+
 @pytest.mark.parametrize("dropna", [True, False])
 def test_loc_nan_multiindex(dropna):
     # GH 43943
