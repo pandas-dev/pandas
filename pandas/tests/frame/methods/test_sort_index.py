@@ -785,6 +785,22 @@ class TestDataFrameSortIndex:
             result = expected.sort_index()
         tm.assert_frame_equal(result, expected)
 
+    def test_sort_index_ascending_tuple(self):
+        df = DataFrame(
+            {
+                "animal": ["dog", "duck", "horse", "penguin", "kangaroo"],
+                "legs": [4, 2, 4, 2, 2],
+                "class": ["mammal", "bird", "mammal", "bird", "mammal"],
+            }
+        )
+
+        df.set_index(["class", "animal"], inplace=True)
+
+        sorted1 = df.sort_index(level=(0, 1), ascending=[True, False])
+        sorted2 = df.sort_index(level=(0, 1), ascending=(True, False))
+
+        tm.assert_frame_equal(sorted1, sorted2)
+
 
 class TestDataFrameSortIndexKey:
     def test_sort_multi_index_key(self):
