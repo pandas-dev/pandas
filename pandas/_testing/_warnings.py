@@ -106,6 +106,7 @@ def _assert_caught_expected_warning(
     """Assert that there was the expected warning among the caught warnings."""
     saw_warning = False
     matched_message = False
+    unmatched_messages = []
 
     for actual_warning in caught_warnings:
         if issubclass(actual_warning.category, expected_warning):
@@ -116,8 +117,11 @@ def _assert_caught_expected_warning(
             ):
                 _assert_raised_with_correct_stacklevel(actual_warning)
 
-            if match is not None and re.search(match, str(actual_warning.message)):
-                matched_message = True
+            if match is not None:
+                if re.search(match, str(actual_warning.message)):
+                    matched_message = True
+                else:
+                    unmatched_messages.append(actual_warning.message)
 
     if not saw_warning:
         raise AssertionError(
@@ -128,7 +132,8 @@ def _assert_caught_expected_warning(
     if match and not matched_message:
         raise AssertionError(
             f"Did not see warning {repr(expected_warning.__name__)} "
-            f"matching {match}"
+            f"matching '{match}'. The emitted warning messages are "
+            f"{unmatched_messages}"
         )
 
 
@@ -142,6 +147,14 @@ def _assert_caught_no_extra_warnings(
 
     for actual_warning in caught_warnings:
         if _is_unexpected_warning(actual_warning, expected_warning):
+            unclosed = "unclosed transport <asyncio.sslproto._SSLProtocolTransport"
+            if actual_warning.category == ResourceWarning and unclosed in str(
+                actual_warning.message
+            ):
+                # FIXME: kludge because pytest.filterwarnings does not
+                #  suppress these, xref GH#38630
+                continue
+
             extra_warnings.append(
                 (
                     actual_warning.category.__name__,

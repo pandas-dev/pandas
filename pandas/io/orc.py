@@ -1,10 +1,10 @@
 """ orc compat """
 from __future__ import annotations
 
-import distutils
 from typing import TYPE_CHECKING
 
 from pandas._typing import FilePathOrBuffer
+from pandas.compat._optional import import_optional_dependency
 
 from pandas.io.common import get_handle
 
@@ -42,13 +42,16 @@ def read_orc(
     Returns
     -------
     DataFrame
+
+    Notes
+    -------
+    Before using this function you should read the :ref:`user guide about ORC <io.orc>`
+    and :ref:`install optional dependencies <install.warn_orc>`.
     """
     # we require a newer version of pyarrow than we support for parquet
-    import pyarrow
 
-    if distutils.version.LooseVersion(pyarrow.__version__) < "0.13.0":
-        raise ImportError("pyarrow must be >= 0.13.0 for read_orc")
+    orc = import_optional_dependency("pyarrow.orc")
 
     with get_handle(path, "rb", is_text=False) as handles:
-        orc_file = pyarrow.orc.ORCFile(handles.handle)
+        orc_file = orc.ORCFile(handles.handle)
         return orc_file.read(columns=columns, **kwargs).to_pandas()

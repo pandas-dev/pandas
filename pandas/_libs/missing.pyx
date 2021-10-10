@@ -1,5 +1,6 @@
 from decimal import Decimal
 import numbers
+from sys import maxsize
 
 import cython
 from cython import Py_ssize_t
@@ -27,7 +28,6 @@ from pandas._libs.tslibs.np_datetime cimport (
 )
 
 from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op
-from pandas.compat import IS64
 
 cdef:
     float64_t INF = <float64_t>np.inf
@@ -35,7 +35,7 @@ cdef:
 
     int64_t NPY_NAT = util.get_nat()
 
-    bint is_32bit = not IS64
+    bint is_32bit = maxsize <= 2 ** 32
 
     type cDecimal = Decimal  # for faster isinstance checks
 

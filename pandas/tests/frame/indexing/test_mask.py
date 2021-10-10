@@ -9,6 +9,7 @@ from pandas import (
     DataFrame,
     Series,
     StringDtype,
+    Timedelta,
     isna,
 )
 import pandas._testing as tm
@@ -90,6 +91,19 @@ class TestDataFrameMask:
         result = bools.mask(mask)
         tm.assert_frame_equal(result, expected)
 
+    def test_mask_pos_args_deprecation(self):
+        # https://github.com/pandas-dev/pandas/issues/41485
+        df = DataFrame({"a": range(5)})
+        expected = DataFrame({"a": [-1, 1, -1, 3, -1]})
+        cond = df % 2 == 0
+        msg = (
+            r"In a future version of pandas all arguments of DataFrame.mask except for "
+            r"the arguments 'cond' and 'other' will be keyword-only"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.mask(cond, -1, False)
+        tm.assert_frame_equal(result, expected)
+
 
 def test_mask_try_cast_deprecated(frame_or_series):
 
@@ -123,3 +137,16 @@ def test_mask_stringdtype():
         dtype=StringDtype(),
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_mask_where_dtype_timedelta():
+    # https://github.com/pandas-dev/pandas/issues/39548
+    df = DataFrame([Timedelta(i, unit="d") for i in range(5)])
+
+    expected = DataFrame(np.full(5, np.nan, dtype="timedelta64[ns]"))
+    tm.assert_frame_equal(df.mask(df.notna()), expected)
+
+    expected = DataFrame(
+        [np.nan, np.nan, np.nan, Timedelta("3 day"), Timedelta("4 day")]
+    )
+    tm.assert_frame_equal(df.where(df > Timedelta(2, unit="d")), expected)

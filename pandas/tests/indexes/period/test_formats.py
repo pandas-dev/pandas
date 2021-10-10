@@ -62,40 +62,31 @@ class TestPeriodIndexRendering:
         idx9 = pd.period_range("2013Q1", periods=3, freq="Q")
         idx10 = PeriodIndex(["2011-01-01", "2011-02-01"], freq="3D")
 
-        exp1 = "PeriodIndex([], dtype='period[D]', freq='D')"
+        exp1 = "PeriodIndex([], dtype='period[D]')"
 
-        exp2 = "PeriodIndex(['2011-01-01'], dtype='period[D]', freq='D')"
+        exp2 = "PeriodIndex(['2011-01-01'], dtype='period[D]')"
 
-        exp3 = "PeriodIndex(['2011-01-01', '2011-01-02'], dtype='period[D]', freq='D')"
+        exp3 = "PeriodIndex(['2011-01-01', '2011-01-02'], dtype='period[D]')"
 
         exp4 = (
             "PeriodIndex(['2011-01-01', '2011-01-02', '2011-01-03'], "
-            "dtype='period[D]', freq='D')"
+            "dtype='period[D]')"
         )
 
-        exp5 = (
-            "PeriodIndex(['2011', '2012', '2013'], dtype='period[A-DEC]', "
-            "freq='A-DEC')"
-        )
+        exp5 = "PeriodIndex(['2011', '2012', '2013'], dtype='period[A-DEC]')"
 
         exp6 = (
             "PeriodIndex(['2011-01-01 09:00', '2012-02-01 10:00', 'NaT'], "
-            "dtype='period[H]', freq='H')"
+            "dtype='period[H]')"
         )
 
-        exp7 = "PeriodIndex(['2013Q1'], dtype='period[Q-DEC]', freq='Q-DEC')"
+        exp7 = "PeriodIndex(['2013Q1'], dtype='period[Q-DEC]')"
 
-        exp8 = "PeriodIndex(['2013Q1', '2013Q2'], dtype='period[Q-DEC]', freq='Q-DEC')"
+        exp8 = "PeriodIndex(['2013Q1', '2013Q2'], dtype='period[Q-DEC]')"
 
-        exp9 = (
-            "PeriodIndex(['2013Q1', '2013Q2', '2013Q3'], "
-            "dtype='period[Q-DEC]', freq='Q-DEC')"
-        )
+        exp9 = "PeriodIndex(['2013Q1', '2013Q2', '2013Q3'], dtype='period[Q-DEC]')"
 
-        exp10 = (
-            "PeriodIndex(['2011-01-01', '2011-02-01'], "
-            "dtype='period[3D]', freq='3D')"
-        )
+        exp10 = "PeriodIndex(['2011-01-01', '2011-02-01'], dtype='period[3D]')"
 
         for idx, expected in zip(
             [idx1, idx2, idx3, idx4, idx5, idx6, idx7, idx8, idx9, idx10],

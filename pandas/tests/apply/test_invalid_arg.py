@@ -335,13 +335,18 @@ def test_transform_wont_agg_series(string_series, func):
     # GH 35964
     # we are trying to transform with an aggregator
     msg = "Function did not transform"
+
+    warn = RuntimeWarning if func[0] == "sqrt" else None
+    warn_msg = "invalid value encountered in sqrt"
     with pytest.raises(ValueError, match=msg):
-        string_series.transform(func)
+        with tm.assert_produces_warning(warn, match=warn_msg):
+            string_series.transform(func)
 
 
 @pytest.mark.parametrize(
     "op_wrapper", [lambda x: x, lambda x: [x], lambda x: {"A": x}, lambda x: {"A": [x]}]
 )
+@pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
 def test_transform_reducer_raises(all_reductions, frame_or_series, op_wrapper):
     # GH 35964
     op = op_wrapper(all_reductions)

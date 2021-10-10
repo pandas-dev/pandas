@@ -93,8 +93,7 @@ void parser_set_default_options(parser_t *self) {
     self->allow_embedded_newline = 1;
 
     self->expected_fields = -1;
-    self->error_bad_lines = 0;
-    self->warn_bad_lines = 0;
+    self->on_bad_lines = ERROR;
 
     self->commentchar = '#';
     self->thousands = '\0';
@@ -457,7 +456,7 @@ static int end_line(parser_t *self) {
         self->line_fields[self->lines] = 0;
 
         // file_lines is now the actual file line number (starting at 1)
-        if (self->error_bad_lines) {
+        if (self->on_bad_lines == ERROR) {
             self->error_msg = malloc(bufsize);
             snprintf(self->error_msg, bufsize,
                     "Expected %d fields in line %" PRIu64 ", saw %" PRId64 "\n",
@@ -468,7 +467,7 @@ static int end_line(parser_t *self) {
             return -1;
         } else {
             // simply skip bad lines
-            if (self->warn_bad_lines) {
+            if (self->on_bad_lines == WARN) {
                 // pass up error message
                 msg = malloc(bufsize);
                 snprintf(msg, bufsize,
@@ -1785,6 +1784,8 @@ char* _str_copy_decimal_str_c(const char *s, char **endpos, char decimal,
     size_t length = strlen(s);
     char *s_copy = malloc(length + 1);
     char *dst = s_copy;
+    // Skip leading whitespace.
+    while (isspace_ascii(*p)) p++;
     // Copy Leading sign
     if (*p == '+' || *p == '-') {
         *dst++ = *p++;
@@ -1799,10 +1800,25 @@ char* _str_copy_decimal_str_c(const char *s, char **endpos, char decimal,
        *dst++ = '.';
        p++;
     }
-    // Copy the remainder of the string as is.
-    strncpy(dst, p, length + 1 - (p - s));
+    // Copy fractional part after decimal (if any)
+    while (isdigit_ascii(*p)) {
+       *dst++ = *p++;
+    }
+    // Copy exponent if any
+    if (toupper_ascii(*p) == toupper_ascii('E')) {
+       *dst++ = *p++;
+       // Copy leading exponent sign (if any)
+       if (*p == '+' || *p == '-') {
+           *dst++ = *p++;
+       }
+       // Copy exponent digits
+       while (isdigit_ascii(*p)) {
+           *dst++ = *p++;
+       }
+    }
+    *dst++ = '\0';  // terminate
     if (endpos != NULL)
-        *endpos = (char *)(s + length);
+        *endpos = (char *)p;
     return s_copy;
 }
 
@@ -1840,6 +1856,11 @@ double round_trip(const char *p, char **q, char decimal, char sci, char tsep,
 
     PyGILState_Release(gstate);
     free(pc);
+    if (skip_trailing && q != NULL && *q != p) {
+        while (isspace_ascii(**q)) {
+            (*q)++;
+        }
+    }
     return r;
 }
 

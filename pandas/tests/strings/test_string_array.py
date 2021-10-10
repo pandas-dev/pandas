@@ -1,11 +1,8 @@
-import operator
-
 import numpy as np
 import pytest
 
 from pandas._libs import lib
 
-import pandas as pd
 from pandas import (
     DataFrame,
     Series,
@@ -13,18 +10,10 @@ from pandas import (
 )
 
 
-def test_string_array(nullable_string_dtype, any_string_method, request):
+def test_string_array(nullable_string_dtype, any_string_method):
     method_name, args, kwargs = any_string_method
     if method_name == "decode":
         pytest.skip("decode requires bytes.")
-
-    if nullable_string_dtype == "arrow_string" and method_name in {
-        "extract",
-        "extractall",
-    }:
-        reason = "extract/extractall does not yet dispatch to array"
-        mark = pytest.mark.xfail(reason=reason)
-        request.node.add_marker(mark)
 
     data = ["a", "bb", np.nan, "ccc"]
     a = Series(data, dtype=object)
@@ -93,14 +82,9 @@ def test_string_array_boolean_array(nullable_string_dtype, method, expected):
     tm.assert_series_equal(result, expected)
 
 
-def test_string_array_extract(nullable_string_dtype, request):
+def test_string_array_extract(nullable_string_dtype):
     # https://github.com/pandas-dev/pandas/issues/30969
     # Only expand=False & multiple groups was failing
-
-    if nullable_string_dtype == "arrow_string":
-        reason = "extract does not yet dispatch to array"
-        mark = pytest.mark.xfail(reason=reason)
-        request.node.add_marker(mark)
 
     a = Series(["a1", "b2", "cc"], dtype=nullable_string_dtype)
     b = Series(["a1", "b2", "cc"], dtype="object")
@@ -112,27 +96,3 @@ def test_string_array_extract(nullable_string_dtype, request):
 
     result = result.astype(object)
     tm.assert_equal(result, expected)
-
-
-def test_str_get_stringarray_multiple_nans(nullable_string_dtype):
-    s = Series(pd.array(["a", "ab", pd.NA, "abc"], dtype=nullable_string_dtype))
-    result = s.str.get(2)
-    expected = Series(pd.array([pd.NA, pd.NA, pd.NA, "c"], dtype=nullable_string_dtype))
-    tm.assert_series_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "input, method",
-    [
-        (["a", "b", "c"], operator.methodcaller("capitalize")),
-        (["a b", "a bc. de"], operator.methodcaller("capitalize")),
-    ],
-)
-def test_capitalize(input, method, nullable_string_dtype):
-    a = Series(input, dtype=nullable_string_dtype)
-    b = Series(input, dtype="object")
-    result = method(a.str)
-    expected = method(b.str)
-
-    assert result.dtype.name == nullable_string_dtype
-    tm.assert_series_equal(result.astype(object), expected)

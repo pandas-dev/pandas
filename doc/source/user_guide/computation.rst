@@ -141,8 +141,6 @@ Like ``cov``, ``corr`` also supports the optional ``min_periods`` keyword:
    frame.corr(min_periods=12)
 
 
-.. versionadded:: 0.24.0
-
 The ``method`` argument can also be a callable for a generic correlation
 calculation. In this case, it should be a single function
 that produces a single value from two ndarray inputs. Suppose we wanted to

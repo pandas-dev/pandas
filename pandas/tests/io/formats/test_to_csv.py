@@ -274,7 +274,7 @@ $1$,$2$
         df_sec["B"] = 0
         df_sec["C"] = 1
 
-        expected_rows = ["A,B,C", "2013-01-01,0,1"]
+        expected_rows = ["A,B,C", "2013-01-01,0,1.0"]
         expected_ymd_sec = tm.convert_rows_list_to_csv_str(expected_rows)
 
         df_sec_grouped = df_sec.groupby([pd.Grouper(key="A", freq="1h"), "B"])

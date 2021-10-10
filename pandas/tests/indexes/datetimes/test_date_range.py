@@ -39,6 +39,34 @@ from pandas.core.arrays.datetimes import generate_range
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
 
+def _get_expected_range(
+    begin_to_match,
+    end_to_match,
+    both_range,
+    inclusive_endpoints,
+):
+    """Helper to get expected range from a both inclusive range"""
+    left_match = begin_to_match == both_range[0]
+    right_match = end_to_match == both_range[-1]
+
+    if inclusive_endpoints == "left" and right_match:
+        expected_range = both_range[:-1]
+    elif inclusive_endpoints == "right" and left_match:
+        expected_range = both_range[1:]
+    elif inclusive_endpoints == "neither" and left_match and right_match:
+        expected_range = both_range[1:-1]
+    elif inclusive_endpoints == "neither" and right_match:
+        expected_range = both_range[:-1]
+    elif inclusive_endpoints == "neither" and left_match:
+        expected_range = both_range[1:]
+    elif inclusive_endpoints == "both":
+        expected_range = both_range[:]
+    else:
+        expected_range = both_range[:]
+
+    return expected_range
+
+
 class TestTimestampEquivDateRange:
     # Older tests in TestTimeSeries constructed their `stamp` objects
     # using `date_range` instead of the `Timestamp` constructor.
@@ -49,21 +77,21 @@ class TestTimestampEquivDateRange:
         rng = date_range("20090415", "20090519", tz="US/Eastern")
         stamp = rng[0]
 
-        ts = Timestamp("20090415", tz="US/Eastern", freq="D")
+        ts = Timestamp("20090415", tz="US/Eastern")
         assert ts == stamp
 
     def test_date_range_timestamp_equiv_dateutil(self):
         rng = date_range("20090415", "20090519", tz="dateutil/US/Eastern")
         stamp = rng[0]
 
-        ts = Timestamp("20090415", tz="dateutil/US/Eastern", freq="D")
+        ts = Timestamp("20090415", tz="dateutil/US/Eastern")
         assert ts == stamp
 
     def test_date_range_timestamp_equiv_explicit_pytz(self):
         rng = date_range("20090415", "20090519", tz=pytz.timezone("US/Eastern"))
         stamp = rng[0]
 
-        ts = Timestamp("20090415", tz=pytz.timezone("US/Eastern"), freq="D")
+        ts = Timestamp("20090415", tz=pytz.timezone("US/Eastern"))
         assert ts == stamp
 
     @td.skip_if_windows_python_3
@@ -73,7 +101,7 @@ class TestTimestampEquivDateRange:
         rng = date_range("20090415", "20090519", tz=gettz("US/Eastern"))
         stamp = rng[0]
 
-        ts = Timestamp("20090415", tz=gettz("US/Eastern"), freq="D")
+        ts = Timestamp("20090415", tz=gettz("US/Eastern"))
         assert ts == stamp
 
     def test_date_range_timestamp_equiv_from_datetime_instance(self):
@@ -82,17 +110,52 @@ class TestTimestampEquivDateRange:
         # addition/subtraction of integers
         timestamp_instance = date_range(datetime_instance, periods=1, freq="D")[0]
 
-        ts = Timestamp(datetime_instance, freq="D")
+        ts = Timestamp(datetime_instance)
         assert ts == timestamp_instance
 
     def test_date_range_timestamp_equiv_preserve_frequency(self):
         timestamp_instance = date_range("2014-03-05", periods=1, freq="D")[0]
-        ts = Timestamp("2014-03-05", freq="D")
+        ts = Timestamp("2014-03-05")
 
         assert timestamp_instance == ts
 
 
 class TestDateRanges:
+    @pytest.mark.parametrize("freq", ["N", "U", "L", "T", "S", "H", "D"])
+    def test_date_range_edges(self, freq):
+        # GH#13672
+        td = Timedelta(f"1{freq}")
+        ts = Timestamp("1970-01-01")
+
+        idx = date_range(
+            start=ts + td,
+            end=ts + 4 * td,
+            freq=freq,
+        )
+        exp = DatetimeIndex(
+            [ts + n * td for n in range(1, 5)],
+            freq=freq,
+        )
+        tm.assert_index_equal(idx, exp)
+
+        # start after end
+        idx = date_range(
+            start=ts + 4 * td,
+            end=ts + td,
+            freq=freq,
+        )
+        exp = DatetimeIndex([], freq=freq)
+        tm.assert_index_equal(idx, exp)
+
+        # start matches end
+        idx = date_range(
+            start=ts + td,
+            end=ts + td,
+            freq=freq,
+        )
+        exp = DatetimeIndex([ts + td], freq=freq)
+        tm.assert_index_equal(idx, exp)
+
     def test_date_range_near_implementation_bound(self):
         # GH#???
         freq = Timedelta(1)
@@ -146,6 +209,7 @@ class TestDateRanges:
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             date_range(end="1969-11-14", periods=106752 * 24, freq="H")
 
+    @pytest.mark.slow
     def test_date_range_int64_overflow_stride_endpoint_different_signs(self):
         # cases where stride * periods overflow int64 and stride/endpoint
         #  have different signs
@@ -399,9 +463,7 @@ class TestDateRanges:
     def test_compat_replace(self):
         # https://github.com/statsmodels/statsmodels/issues/3349
         # replace should take ints/longs for compat
-        result = date_range(
-            Timestamp("1960-04-01 00:00:00", freq="QS-JAN"), periods=76, freq="QS-JAN"
-        )
+        result = date_range(Timestamp("1960-04-01 00:00:00"), periods=76, freq="QS-JAN")
         assert len(result) == 76
 
     def test_catch_infinite_loop(self):
@@ -545,89 +607,114 @@ class TestDateRanges:
         assert dr[2] == end
 
     @pytest.mark.parametrize("freq", ["1D", "3D", "2M", "7W", "3H", "A"])
-    def test_range_closed(self, freq):
+    def test_range_closed(self, freq, inclusive_endpoints_fixture):
         begin = datetime(2011, 1, 1)
         end = datetime(2014, 1, 1)
 
-        closed = date_range(begin, end, closed=None, freq=freq)
-        left = date_range(begin, end, closed="left", freq=freq)
-        right = date_range(begin, end, closed="right", freq=freq)
-        expected_left = left
-        expected_right = right
+        result_range = date_range(
+            begin, end, inclusive=inclusive_endpoints_fixture, freq=freq
+        )
+        both_range = date_range(begin, end, inclusive="both", freq=freq)
+        expected_range = _get_expected_range(
+            begin, end, both_range, inclusive_endpoints_fixture
+        )
 
-        if end == closed[-1]:
-            expected_left = closed[:-1]
-        if begin == closed[0]:
-            expected_right = closed[1:]
+        tm.assert_index_equal(expected_range, result_range)
 
-        tm.assert_index_equal(expected_left, left)
-        tm.assert_index_equal(expected_right, right)
-
-    def test_range_closed_with_tz_aware_start_end(self):
+    @pytest.mark.parametrize("freq", ["1D", "3D", "2M", "7W", "3H", "A"])
+    def test_range_closed_with_tz_aware_start_end(
+        self, freq, inclusive_endpoints_fixture
+    ):
         # GH12409, GH12684
         begin = Timestamp("2011/1/1", tz="US/Eastern")
         end = Timestamp("2014/1/1", tz="US/Eastern")
 
-        for freq in ["1D", "3D", "2M", "7W", "3H", "A"]:
-            closed = date_range(begin, end, closed=None, freq=freq)
-            left = date_range(begin, end, closed="left", freq=freq)
-            right = date_range(begin, end, closed="right", freq=freq)
-            expected_left = left
-            expected_right = right
+        result_range = date_range(
+            begin, end, inclusive=inclusive_endpoints_fixture, freq=freq
+        )
+        both_range = date_range(begin, end, inclusive="both", freq=freq)
+        expected_range = _get_expected_range(
+            begin,
+            end,
+            both_range,
+            inclusive_endpoints_fixture,
+        )
 
-            if end == closed[-1]:
-                expected_left = closed[:-1]
-            if begin == closed[0]:
-                expected_right = closed[1:]
+        tm.assert_index_equal(expected_range, result_range)
 
-            tm.assert_index_equal(expected_left, left)
-            tm.assert_index_equal(expected_right, right)
-
+    @pytest.mark.parametrize("freq", ["1D", "3D", "2M", "7W", "3H", "A"])
+    def test_range_with_tz_closed_with_tz_aware_start_end(
+        self, freq, inclusive_endpoints_fixture
+    ):
         begin = Timestamp("2011/1/1")
         end = Timestamp("2014/1/1")
         begintz = Timestamp("2011/1/1", tz="US/Eastern")
         endtz = Timestamp("2014/1/1", tz="US/Eastern")
 
-        for freq in ["1D", "3D", "2M", "7W", "3H", "A"]:
-            closed = date_range(begin, end, closed=None, freq=freq, tz="US/Eastern")
-            left = date_range(begin, end, closed="left", freq=freq, tz="US/Eastern")
-            right = date_range(begin, end, closed="right", freq=freq, tz="US/Eastern")
-            expected_left = left
-            expected_right = right
+        result_range = date_range(
+            begin,
+            end,
+            inclusive=inclusive_endpoints_fixture,
+            freq=freq,
+            tz="US/Eastern",
+        )
+        both_range = date_range(
+            begin, end, inclusive="both", freq=freq, tz="US/Eastern"
+        )
+        expected_range = _get_expected_range(
+            begintz,
+            endtz,
+            both_range,
+            inclusive_endpoints_fixture,
+        )
 
-            if endtz == closed[-1]:
-                expected_left = closed[:-1]
-            if begintz == closed[0]:
-                expected_right = closed[1:]
+        tm.assert_index_equal(expected_range, result_range)
 
-            tm.assert_index_equal(expected_left, left)
-            tm.assert_index_equal(expected_right, right)
-
-    @pytest.mark.parametrize("closed", ["right", "left", None])
-    def test_range_closed_boundary(self, closed):
+    def test_range_closed_boundary(self, inclusive_endpoints_fixture):
         # GH#11804
         right_boundary = date_range(
-            "2015-09-12", "2015-12-01", freq="QS-MAR", closed=closed
+            "2015-09-12",
+            "2015-12-01",
+            freq="QS-MAR",
+            inclusive=inclusive_endpoints_fixture,
         )
         left_boundary = date_range(
-            "2015-09-01", "2015-09-12", freq="QS-MAR", closed=closed
+            "2015-09-01",
+            "2015-09-12",
+            freq="QS-MAR",
+            inclusive=inclusive_endpoints_fixture,
         )
         both_boundary = date_range(
-            "2015-09-01", "2015-12-01", freq="QS-MAR", closed=closed
+            "2015-09-01",
+            "2015-12-01",
+            freq="QS-MAR",
+            inclusive=inclusive_endpoints_fixture,
         )
-        expected_right = expected_left = expected_both = both_boundary
+        neither_boundary = date_range(
+            "2015-09-11",
+            "2015-09-12",
+            freq="QS-MAR",
+            inclusive=inclusive_endpoints_fixture,
+        )
 
-        if closed == "right":
+        expected_right = both_boundary
+        expected_left = both_boundary
+        expected_both = both_boundary
+
+        if inclusive_endpoints_fixture == "right":
             expected_left = both_boundary[1:]
-        if closed == "left":
+        elif inclusive_endpoints_fixture == "left":
             expected_right = both_boundary[:-1]
-        if closed is None:
+        elif inclusive_endpoints_fixture == "both":
             expected_right = both_boundary[1:]
             expected_left = both_boundary[:-1]
+
+        expected_neither = both_boundary[1:-1]
 
         tm.assert_index_equal(right_boundary, expected_right)
         tm.assert_index_equal(left_boundary, expected_left)
         tm.assert_index_equal(both_boundary, expected_both)
+        tm.assert_index_equal(neither_boundary, expected_neither)
 
     def test_years_only(self):
         # GH 6961
@@ -665,7 +752,7 @@ class TestDateRanges:
         result = date_range(start, periods=2, tz="US/Eastern")
         assert len(result) == 2
 
-    def test_timezone_comparaison_assert(self):
+    def test_timezone_comparison_assert(self):
         start = Timestamp("20130220 10:00", tz="US/Eastern")
         msg = "Inferred time zone not equal to passed time zone"
         with pytest.raises(AssertionError, match=msg):
@@ -678,6 +765,22 @@ class TestDateRanges:
         expected = date_range(end="2011-06-01", start="2011-01-01", freq="1MS", tz=tz)[
             ::-1
         ]
+        tm.assert_index_equal(result, expected)
+
+    def test_range_where_start_equal_end(self, inclusive_endpoints_fixture):
+        # GH 43394
+        start = "2021-09-02"
+        end = "2021-09-02"
+        result = date_range(
+            start=start, end=end, freq="D", inclusive=inclusive_endpoints_fixture
+        )
+
+        both_range = date_range(start=start, end=end, freq="D", inclusive="both")
+        if inclusive_endpoints_fixture == "neither":
+            expected = both_range[1:-1]
+        elif inclusive_endpoints_fixture in ("left", "right", "both"):
+            expected = both_range[:]
+
         tm.assert_index_equal(result, expected)
 
 
@@ -868,12 +971,12 @@ class TestBusinessDateRange:
         result = rng1.union(rng2)
         assert isinstance(result, DatetimeIndex)
 
-    @pytest.mark.parametrize("closed", ["left", "right"])
-    def test_bdays_and_open_boundaries(self, closed):
+    @pytest.mark.parametrize("inclusive", ["left", "right", "neither", "both"])
+    def test_bdays_and_open_boundaries(self, inclusive):
         # GH 6673
         start = "2018-07-21"  # Saturday
         end = "2018-07-29"  # Sunday
-        result = date_range(start, end, freq="B", closed=closed)
+        result = date_range(start, end, freq="B", inclusive=inclusive)
 
         bday_start = "2018-07-23"  # Monday
         bday_end = "2018-07-27"  # Friday
@@ -1019,7 +1122,7 @@ class TestCustomDateRange:
     def test_range_with_millisecond_resolution(self, start_end):
         # https://github.com/pandas-dev/pandas/issues/24110
         start, end = start_end
-        result = date_range(start=start, end=end, periods=2, closed="left")
+        result = date_range(start=start, end=end, periods=2, inclusive="left")
         expected = DatetimeIndex([start])
         tm.assert_index_equal(result, expected)
 

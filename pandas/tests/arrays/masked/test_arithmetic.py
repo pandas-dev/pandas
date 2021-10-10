@@ -1,7 +1,6 @@
-from typing import (
-    Any,
-    List,
-)
+from __future__ import annotations
+
+from typing import Any
 
 import numpy as np
 import pytest
@@ -11,8 +10,8 @@ import pandas._testing as tm
 from pandas.core.arrays import ExtensionArray
 
 # integer dtypes
-arrays = [pd.array([1, 2, 3, None], dtype=dtype) for dtype in tm.ALL_EA_INT_DTYPES]
-scalars: List[Any] = [2] * len(arrays)
+arrays = [pd.array([1, 2, 3, None], dtype=dtype) for dtype in tm.ALL_INT_EA_DTYPES]
+scalars: list[Any] = [2] * len(arrays)
 # floating dtypes
 arrays += [pd.array([0.1, 0.2, 0.3, None], dtype=dtype) for dtype in tm.FLOAT_EA_DTYPES]
 scalars += [0.2, 0.2]
@@ -170,7 +169,9 @@ def test_unary_op_does_not_propagate_mask(data, op, request):
     data, _ = data
     if data.dtype in ["Float32", "Float64"] and op == "__invert__":
         request.node.add_marker(
-            pytest.mark.xfail(reason="invert is not implemented for float ea dtypes")
+            pytest.mark.xfail(
+                raises=TypeError, reason="invert is not implemented for float ea dtypes"
+            )
         )
     s = pd.Series(data)
     result = getattr(s, op)()

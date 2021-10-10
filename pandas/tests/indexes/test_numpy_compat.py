@@ -1,19 +1,15 @@
 import numpy as np
 import pytest
 
-from pandas.compat import np_version_under1p18
-
 from pandas import (
     DatetimeIndex,
-    Float64Index,
     Index,
-    Int64Index,
+    NumericIndex,
     PeriodIndex,
-    RangeIndex,
     TimedeltaIndex,
-    UInt64Index,
 )
 import pandas._testing as tm
+from pandas.core.api import Float64Index
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 
 
@@ -53,7 +49,7 @@ def test_numpy_ufuncs_basic(index, func):
         with tm.external_error_raised((TypeError, AttributeError)):
             with np.errstate(all="ignore"):
                 func(index)
-    elif isinstance(index, (Float64Index, Int64Index, UInt64Index, RangeIndex)):
+    elif isinstance(index, NumericIndex):
         # coerces to float (e.g. np.sin)
         with np.errstate(all="ignore"):
             result = func(index)
@@ -82,22 +78,12 @@ def test_numpy_ufuncs_other(index, func, request):
             isinstance(index, DatetimeIndex)
             and index.tz is not None
             and func in [np.isfinite, np.isnan, np.isinf]
-            and (
-                not np_version_under1p18
-                or (np_version_under1p18 and func is np.isfinite)
-            )
         ):
             mark = pytest.mark.xfail(reason="__array_ufunc__ is not defined")
             request.node.add_marker(mark)
 
-        if not np_version_under1p18 and func in [np.isfinite, np.isinf, np.isnan]:
-            # numpy 1.18(dev) changed isinf and isnan to not raise on dt64/tfd64
-            result = func(index)
-            assert isinstance(result, np.ndarray)
-
-        elif func is np.isfinite:
-            # ok under numpy >= 1.17
-            # Results in bool array
+        if func in (np.isfinite, np.isinf, np.isnan):
+            # numpy 1.18 changed isinf and isnan to not raise on dt64/td64
             result = func(index)
             assert isinstance(result, np.ndarray)
         else:
@@ -108,7 +94,7 @@ def test_numpy_ufuncs_other(index, func, request):
         with tm.external_error_raised(TypeError):
             func(index)
 
-    elif isinstance(index, (Float64Index, Int64Index, UInt64Index, RangeIndex)):
+    elif isinstance(index, NumericIndex):
         # Results in bool array
         result = func(index)
         assert isinstance(result, np.ndarray)

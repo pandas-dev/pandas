@@ -2,12 +2,9 @@ from collections import (
     Counter,
     defaultdict,
 )
-from itertools import chain
 
 import numpy as np
 import pytest
-
-from pandas.core.dtypes.common import is_number
 
 import pandas as pd
 from pandas import (
@@ -87,20 +84,27 @@ def test_apply_dont_convert_dtype():
     assert result.dtype == object
 
 
-def test_with_string_args(datetime_series):
-
-    for arg in ["sum", "mean", "min", "max", "std"]:
-        result = datetime_series.apply(arg)
-        expected = getattr(datetime_series, arg)()
-        assert result == expected
-
-
 def test_apply_args():
     s = Series(["foo,bar"])
 
     result = s.apply(str.split, args=(",",))
     assert result[0] == ["foo", "bar"]
     assert isinstance(result[0], list)
+
+
+@pytest.mark.parametrize(
+    "args, kwargs, increment",
+    [((), {}, 0), ((), {"a": 1}, 1), ((2, 3), {}, 32), ((1,), {"c": 2}, 201)],
+)
+def test_agg_args(args, kwargs, increment):
+    # GH 43357
+    def f(x, a=0, b=0, c=0):
+        return x + a + 10 * b + 100 * c
+
+    s = Series([1, 2])
+    result = s.agg(f, 0, *args, **kwargs)
+    expected = s + increment
+    tm.assert_series_equal(result, expected)
 
 
 def test_series_map_box_timestamps():
@@ -113,6 +117,20 @@ def test_series_map_box_timestamps():
     # it works!
     ser.map(func)
     ser.apply(func)
+
+
+def test_series_map_stringdtype(any_string_dtype):
+    # map test on StringDType, GH#40823
+    ser1 = Series(
+        data=["cat", "dog", "rabbit"],
+        index=["id1", "id2", "id3"],
+        dtype=any_string_dtype,
+    )
+    ser2 = Series(data=["id3", "id2", "id1", "id7000"], dtype=any_string_dtype)
+    result = ser2.map(ser1)
+    expected = Series(data=["rabbit", "dog", "cat", pd.NA], dtype=any_string_dtype)
+
+    tm.assert_series_equal(result, expected)
 
 
 def test_apply_box():
@@ -262,7 +280,9 @@ def test_transform_partial_failure(op, request):
     # GH 35964
     if op in ("ffill", "bfill", "pad", "backfill", "shift"):
         request.node.add_marker(
-            pytest.mark.xfail(reason=f"{op} is successful on any dtype")
+            pytest.mark.xfail(
+                raises=AssertionError, reason=f"{op} is successful on any dtype"
+            )
         )
     if op in ("rank", "fillna"):
         pytest.skip(f"{op} doesn't raise TypeError on object")
@@ -271,25 +291,35 @@ def test_transform_partial_failure(op, request):
     ser = Series(3 * [object])
 
     expected = ser.transform(["shift"])
-    result = ser.transform([op, "shift"])
+    match = rf"\['{op}'\] did not transform successfully"
+    with tm.assert_produces_warning(FutureWarning, match=match):
+        result = ser.transform([op, "shift"])
     tm.assert_equal(result, expected)
 
     expected = ser.transform({"B": "shift"})
-    result = ser.transform({"A": op, "B": "shift"})
+    match = r"\['A'\] did not transform successfully"
+    with tm.assert_produces_warning(FutureWarning, match=match):
+        result = ser.transform({"A": op, "B": "shift"})
     tm.assert_equal(result, expected)
 
     expected = ser.transform({"B": ["shift"]})
-    result = ser.transform({"A": [op], "B": ["shift"]})
+    match = r"\['A'\] did not transform successfully"
+    with tm.assert_produces_warning(FutureWarning, match=match):
+        result = ser.transform({"A": [op], "B": ["shift"]})
     tm.assert_equal(result, expected)
 
-    expected = ser.transform({"A": ["shift"], "B": [op]})
-    result = ser.transform({"A": [op, "shift"], "B": [op]})
+    match = r"\['B'\] did not transform successfully"
+    with tm.assert_produces_warning(FutureWarning, match=match):
+        expected = ser.transform({"A": ["shift"], "B": [op]})
+    match = rf"\['{op}'\] did not transform successfully"
+    with tm.assert_produces_warning(FutureWarning, match=match):
+        result = ser.transform({"A": [op, "shift"], "B": [op]})
     tm.assert_equal(result, expected)
 
 
 def test_transform_partial_failure_valueerror():
     # GH 40211
-    match = ".*did not transform successfully and did not raise a TypeError"
+    match = ".*did not transform successfully"
 
     def noop(x):
         return x
@@ -315,7 +345,7 @@ def test_transform_partial_failure_valueerror():
     tm.assert_equal(result, expected)
 
     expected = ser.transform({"A": [noop], "B": [noop]})
-    with tm.assert_produces_warning(FutureWarning, match=match, check_stacklevel=False):
+    with tm.assert_produces_warning(FutureWarning, match=match):
         result = ser.transform({"A": [noop, raising_op], "B": [noop]})
     tm.assert_equal(result, expected)
 
@@ -399,92 +429,6 @@ def test_non_callable_aggregates(how):
     # test when mixed w/ callable reducers
     result = getattr(s, how)(["size", "count", "mean"])
     expected = Series({"size": 3.0, "count": 2.0, "mean": 1.5})
-    tm.assert_series_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "series, func, expected",
-    chain(
-        tm.get_cython_table_params(
-            Series(dtype=np.float64),
-            [
-                ("sum", 0),
-                ("max", np.nan),
-                ("min", np.nan),
-                ("all", True),
-                ("any", False),
-                ("mean", np.nan),
-                ("prod", 1),
-                ("std", np.nan),
-                ("var", np.nan),
-                ("median", np.nan),
-            ],
-        ),
-        tm.get_cython_table_params(
-            Series([np.nan, 1, 2, 3]),
-            [
-                ("sum", 6),
-                ("max", 3),
-                ("min", 1),
-                ("all", True),
-                ("any", True),
-                ("mean", 2),
-                ("prod", 6),
-                ("std", 1),
-                ("var", 1),
-                ("median", 2),
-            ],
-        ),
-        tm.get_cython_table_params(
-            Series("a b c".split()),
-            [
-                ("sum", "abc"),
-                ("max", "c"),
-                ("min", "a"),
-                ("all", "c"),  # see GH12863
-                ("any", "a"),
-            ],
-        ),
-    ),
-)
-def test_agg_cython_table(series, func, expected):
-    # GH21224
-    # test reducing functions in
-    # pandas.core.base.SelectionMixin._cython_table
-    result = series.agg(func)
-    if is_number(expected):
-        assert np.isclose(result, expected, equal_nan=True)
-    else:
-        assert result == expected
-
-
-@pytest.mark.parametrize(
-    "series, func, expected",
-    chain(
-        tm.get_cython_table_params(
-            Series(dtype=np.float64),
-            [
-                ("cumprod", Series([], Index([]), dtype=np.float64)),
-                ("cumsum", Series([], Index([]), dtype=np.float64)),
-            ],
-        ),
-        tm.get_cython_table_params(
-            Series([np.nan, 1, 2, 3]),
-            [
-                ("cumprod", Series([np.nan, 1, 2, 6])),
-                ("cumsum", Series([np.nan, 1, 3, 6])),
-            ],
-        ),
-        tm.get_cython_table_params(
-            Series("a b c".split()), [("cumsum", Series(["a", "ab", "abc"]))]
-        ),
-    ),
-)
-def test_agg_cython_table_transform(series, func, expected):
-    # GH21224
-    # test transforming functions in
-    # pandas.core.base.SelectionMixin._cython_table (cumprod, cumsum)
-    result = series.agg(func)
     tm.assert_series_equal(result, expected)
 
 
@@ -857,7 +801,9 @@ def test_apply_to_timedelta():
     list_of_strings = ["00:00:01", np.nan, pd.NaT, pd.NaT]
 
     a = pd.to_timedelta(list_of_strings)  # noqa
-    b = Series(list_of_strings).apply(pd.to_timedelta)  # noqa
+    with tm.assert_produces_warning(FutureWarning, match="Inferring timedelta64"):
+        ser = Series(list_of_strings)
+    b = ser.apply(pd.to_timedelta)  # noqa
     # Can't compare until apply on a Series gives the correct dtype
     # assert_series_equal(a, b)
 

@@ -30,7 +30,7 @@ from pandas.util import _test_decorators as td
 _default_compressor = "blosc"
 
 
-pytestmark = [pytest.mark.single, td.skip_array_manager_not_yet_implemented]
+pytestmark = pytest.mark.single
 
 
 def test_conv_read_write(setup_path):

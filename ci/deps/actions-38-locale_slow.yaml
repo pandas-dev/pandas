@@ -1,0 +1,30 @@
+name: pandas-dev
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.8
+
+  # tools
+  - cython>=0.29.21
+  - pytest>=6.0
+  - pytest-cov
+  - pytest-xdist>=1.31
+  - hypothesis>=5.5.3
+
+  # pandas dependencies
+  - beautifulsoup4=4.8.2
+  - bottleneck=1.3.1
+  - lxml
+  - matplotlib=3.3.2
+  - numpy=1.18
+  - openpyxl=3.0.2
+  - python-dateutil
+  - python-blosc
+  - pytz=2020.1
+  - scipy
+  - sqlalchemy=1.3.11
+  - xlrd=2.0.1
+  - xlsxwriter=1.2.2
+  - xlwt=1.3.0
+  - html5lib=1.1

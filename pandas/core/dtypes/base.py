@@ -7,12 +7,17 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Any,
+    TypeVar,
+    cast,
+    overload,
 )
 
 import numpy as np
 
+from pandas._libs.hashtable import object_hash
 from pandas._typing import (
     DtypeObj,
+    npt,
     type_t,
 )
 from pandas.errors import AbstractMethodError
@@ -25,6 +30,9 @@ from pandas.core.dtypes.generic import (
 
 if TYPE_CHECKING:
     from pandas.core.arrays import ExtensionArray
+
+    # To parameterize on same ExtensionDtype
+    ExtensionDtypeT = TypeVar("ExtensionDtypeT", bound="ExtensionDtype")
 
 
 class ExtensionDtype:
@@ -44,6 +52,7 @@ class ExtensionDtype:
 
     * type
     * name
+    * construct_array_type
 
     The following attributes and methods influence the behavior of the dtype in
     pandas operations
@@ -51,12 +60,6 @@ class ExtensionDtype:
     * _is_numeric
     * _is_boolean
     * _get_common_dtype
-
-    Optionally one can override construct_array_type for construction
-    with the name of this dtype via the Registry. See
-    :meth:`extensions.register_extension_dtype`.
-
-    * construct_array_type
 
     The `na_value` class attribute can be used to set the default NA value
     for this type. :attr:`numpy.nan` is used by default.
@@ -75,11 +78,6 @@ class ExtensionDtype:
     the attributes in ``_metadata`` don't implement the standard
     ``__eq__`` or ``__hash__``, the default implementations here will not
     work.
-
-    .. versionchanged:: 0.24.0
-
-       Added ``_metadata``, ``__hash__``, and changed the default definition
-       of ``__eq__``.
 
     For interaction with Apache Arrow (pyarrow), a ``__from_arrow__`` method
     can be implemented: this method receives a pyarrow Array or ChunkedArray
@@ -134,7 +132,9 @@ class ExtensionDtype:
         return False
 
     def __hash__(self) -> int:
-        return hash(tuple(getattr(self, attr) for attr in self._metadata))
+        # for python>=3.10, different nan objects have different hashes
+        # we need  to avoid that und thus use hash function with old behavior
+        return object_hash(tuple(getattr(self, attr) for attr in self._metadata))
 
     def __ne__(self, other: Any) -> bool:
         return not self.__eq__(other)
@@ -151,7 +151,7 @@ class ExtensionDtype:
         return np.nan
 
     @property
-    def type(self) -> type[Any]:
+    def type(self) -> type_t[Any]:
         """
         The scalar type for the array, e.g. ``int``
 
@@ -206,10 +206,12 @@ class ExtensionDtype:
         -------
         type
         """
-        raise NotImplementedError
+        raise AbstractMethodError(cls)
 
     @classmethod
-    def construct_from_string(cls, string: str):
+    def construct_from_string(
+        cls: type_t[ExtensionDtypeT], string: str
+    ) -> ExtensionDtypeT:
         r"""
         Construct this type from a string.
 
@@ -363,12 +365,17 @@ class ExtensionDtype:
         else:
             return None
 
+    @property
+    def _can_hold_na(self) -> bool:
+        """
+        Can arrays of this dtype hold NA values?
+        """
+        return True
 
-def register_extension_dtype(cls: type[ExtensionDtype]) -> type[ExtensionDtype]:
+
+def register_extension_dtype(cls: type_t[ExtensionDtypeT]) -> type_t[ExtensionDtypeT]:
     """
     Register an ExtensionType with pandas as class decorator.
-
-    .. versionadded:: 0.24.0
 
     This enables operations like ``.astype(name)`` for the name
     of the ExtensionDtype.
@@ -380,8 +387,7 @@ def register_extension_dtype(cls: type[ExtensionDtype]) -> type[ExtensionDtype]:
 
     Examples
     --------
-    >>> from pandas.api.extensions import register_extension_dtype
-    >>> from pandas.api.extensions import ExtensionDtype
+    >>> from pandas.api.extensions import register_extension_dtype, ExtensionDtype
     >>> @register_extension_dtype
     ... class MyExtensionDtype(ExtensionDtype):
     ...     name = "myextension"
@@ -407,9 +413,9 @@ class Registry:
     """
 
     def __init__(self):
-        self.dtypes: list[type[ExtensionDtype]] = []
+        self.dtypes: list[type_t[ExtensionDtype]] = []
 
-    def register(self, dtype: type[ExtensionDtype]) -> None:
+    def register(self, dtype: type_t[ExtensionDtype]) -> None:
         """
         Parameters
         ----------
@@ -420,22 +426,46 @@ class Registry:
 
         self.dtypes.append(dtype)
 
-    def find(self, dtype: type[ExtensionDtype] | str) -> type[ExtensionDtype] | None:
+    @overload
+    def find(self, dtype: type_t[ExtensionDtypeT]) -> type_t[ExtensionDtypeT]:
+        ...
+
+    @overload
+    def find(self, dtype: ExtensionDtypeT) -> ExtensionDtypeT:
+        ...
+
+    @overload
+    def find(self, dtype: str) -> ExtensionDtype | None:
+        ...
+
+    @overload
+    def find(
+        self, dtype: npt.DTypeLike
+    ) -> type_t[ExtensionDtype] | ExtensionDtype | None:
+        ...
+
+    def find(
+        self, dtype: type_t[ExtensionDtype] | ExtensionDtype | npt.DTypeLike
+    ) -> type_t[ExtensionDtype] | ExtensionDtype | None:
         """
         Parameters
         ----------
-        dtype : Type[ExtensionDtype] or str
+        dtype : ExtensionDtype class or instance or str or numpy dtype or python type
 
         Returns
         -------
         return the first matching dtype, otherwise return None
         """
         if not isinstance(dtype, str):
-            dtype_type = dtype
+            dtype_type: type_t
             if not isinstance(dtype, type):
                 dtype_type = type(dtype)
+            else:
+                dtype_type = dtype
             if issubclass(dtype_type, ExtensionDtype):
-                return dtype
+                # cast needed here as mypy doesn't know we have figured
+                # out it is an ExtensionDtype or type_t[ExtensionDtype]
+                return cast("ExtensionDtype | type_t[ExtensionDtype]", dtype)
 
             return None
 

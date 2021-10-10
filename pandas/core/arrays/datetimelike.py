@@ -9,6 +9,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Literal,
     Sequence,
     TypeVar,
     Union,
@@ -23,7 +24,6 @@ from pandas._libs import (
     algos,
     lib,
 )
-from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.tslibs import (
     BaseOffset,
     IncompatibleFrequency,
@@ -49,6 +49,10 @@ from pandas._typing import (
     DtypeObj,
     NpDtype,
     PositionalIndexer2D,
+    PositionalIndexerTuple,
+    ScalarIndexer,
+    SequenceIndexer,
+    npt,
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
@@ -122,7 +126,6 @@ from pandas.core.ops.invalid import (
 from pandas.tseries import frequencies
 
 if TYPE_CHECKING:
-    from typing import Literal
 
     from pandas.core.arrays import (
         DatetimeArray,
@@ -142,7 +145,7 @@ class InvalidComparison(Exception):
     pass
 
 
-class DatetimeLikeArrayMixin(OpsMixin, NDArrayBacked, NDArrayBackedExtensionArray):
+class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     """
     Shared Base/Mixin class for DatetimeArray, TimedeltaArray, PeriodArray
 
@@ -159,6 +162,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBacked, NDArrayBackedExtensionArra
     _is_recognized_dtype: Callable[[DtypeObj], bool]
     _recognized_scalars: tuple[type, ...]
     _ndarray: np.ndarray
+
+    @cache_readonly
+    def _can_hold_na(self) -> bool:
+        return True
 
     def __init__(self, data, dtype: Dtype | None = None, freq=None, copy=False):
         raise AbstractMethodError(self)
@@ -262,9 +269,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBacked, NDArrayBackedExtensionArra
         """
         apply box func to passed values
         """
-        # error: Incompatible return value type (got
-        # "Union[ExtensionArray, ndarray]", expected "ndarray")
-        return lib.map_infer(values, self._box_func)  # type: ignore[return-value]
+        return lib.map_infer(values, self._box_func, convert=False)
 
     def __iter__(self):
         if self.ndim > 1:
@@ -273,7 +278,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBacked, NDArrayBackedExtensionArra
             return (self._box_func(v) for v in self.asi8)
 
     @property
-    def asi8(self) -> np.ndarray:
+    def asi8(self) -> npt.NDArray[np.int64]:
         """
         Integer representation of the values.
 
@@ -311,17 +316,33 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBacked, NDArrayBackedExtensionArra
             return np.array(list(self), dtype=object)
         return self._ndarray
 
+    @overload
+    def __getitem__(self, item: ScalarIndexer) -> DTScalarOrNaT:
+        ...
+
+    @overload
     def __getitem__(
-        self, key: PositionalIndexer2D
-    ) -> DatetimeLikeArrayMixin | DTScalarOrNaT:
+        self: DatetimeLikeArrayT,
+        item: SequenceIndexer | PositionalIndexerTuple,
+    ) -> DatetimeLikeArrayT:
+        ...
+
+    def __getitem__(
+        self: DatetimeLikeArrayT, key: PositionalIndexer2D
+    ) -> DatetimeLikeArrayT | DTScalarOrNaT:
         """
         This getitem defers to the underlying array, which by-definition can
         only handle list-likes, slices, and integer scalars
         """
-        result = super().__getitem__(key)
+        # Use cast as we know we will get back a DatetimeLikeArray or DTScalar
+        result = cast(
+            Union[DatetimeLikeArrayT, DTScalarOrNaT], super().__getitem__(key)
+        )
         if lib.is_scalar(result):
             return result
-
+        else:
+            # At this point we know the result is an array.
+            result = cast(DatetimeLikeArrayT, result)
         result._freq = self._get_getitem_freq(key)
         return result
 
@@ -560,32 +581,15 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBacked, NDArrayBackedExtensionArra
 
         return other
 
-    def _validate_fill_value(self, fill_value):
-        """
-        If a fill_value is passed to `take` convert it to an i8 representation,
-        raising TypeError if this is not possible.
-
-        Parameters
-        ----------
-        fill_value : object
-
-        Returns
-        -------
-        fill_value : np.int64, np.datetime64, or np.timedelta64
-
-        Raises
-        ------
-        TypeError
-        """
-        return self._validate_scalar(fill_value)
-
     def _validate_shift_value(self, fill_value):
-        # TODO(2.0): once this deprecation is enforced, use _validate_fill_value
+        # TODO(2.0): once this deprecation is enforced, use _validate_scalar
         if is_valid_na_for_dtype(fill_value, self.dtype):
             fill_value = NaT
         elif isinstance(fill_value, self._recognized_scalars):
             fill_value = self._scalar_type(fill_value)
         else:
+            new_fill: DatetimeLikeScalar
+
             # only warn if we're not going to raise
             if self._scalar_type is Period and lib.is_integer(fill_value):
                 # kludge for #31971 since Period(integer) tries to cast to str
@@ -600,7 +604,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBacked, NDArrayBackedExtensionArra
                 "will raise in a future version, pass "
                 f"{self._scalar_type.__name__} instead.",
                 FutureWarning,
-                stacklevel=8,
+                # There is no way to hard-code the level since this might be
+                #  reached directly or called from the Index or Block method
+                stacklevel=find_stack_level(),
             )
             fill_value = new_fill
 
@@ -788,7 +794,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBacked, NDArrayBackedExtensionArra
 
         return Index(self).map(mapper).array
 
-    def isin(self, values) -> np.ndarray:
+    def isin(self, values) -> npt.NDArray[np.bool_]:
         """
         Compute boolean array of whether each value is found in the
         passed set of values.
@@ -844,11 +850,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBacked, NDArrayBackedExtensionArra
     # ------------------------------------------------------------------
     # Null Handling
 
-    def isna(self) -> np.ndarray:
+    def isna(self) -> npt.NDArray[np.bool_]:
         return self._isnan
 
     @property  # NB: override with cache_readonly in immutable subclasses
-    def _isnan(self) -> np.ndarray:
+    def _isnan(self) -> npt.NDArray[np.bool_]:
         """
         return if each value is nan
         """
@@ -1110,7 +1116,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBacked, NDArrayBackedExtensionArra
             # adding a scalar preserves freq
             new_freq = self.freq
 
-        return type(self)._simple_new(new_values, dtype=self.dtype, freq=new_freq)
+        # error: Unexpected keyword argument "freq" for "_simple_new" of "NDArrayBacked"
+        return type(self)._simple_new(  # type: ignore[call-arg]
+            new_values, dtype=self.dtype, freq=new_freq
+        )
 
     def _add_timedelta_arraylike(self, other):
         """
@@ -1197,14 +1206,18 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBacked, NDArrayBackedExtensionArra
 
         warnings.warn(
             "Adding/subtracting object-dtype array to "
-            f"{type(self).__name__} not vectorized",
+            f"{type(self).__name__} not vectorized.",
             PerformanceWarning,
         )
 
         # Caller is responsible for broadcasting if necessary
         assert self.shape == other.shape, (self.shape, other.shape)
 
-        res_values = op(self.astype("O"), np.asarray(other))
+        with warnings.catch_warnings():
+            # filter out warnings about Timestamp.freq
+            warnings.filterwarnings("ignore", category=FutureWarning)
+            res_values = op(self.astype("O"), np.asarray(other))
+
         result = pd_array(res_values.ravel())
         # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no attribute
         # "reshape"
@@ -1215,7 +1228,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBacked, NDArrayBackedExtensionArra
         )
         return result
 
-    def _time_shift(self, periods: int, freq=None):
+    def _time_shift(
+        self: DatetimeLikeArrayT, periods: int, freq=None
+    ) -> DatetimeLikeArrayT:
         """
         Shift each value by `periods`.
 
@@ -1399,7 +1414,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBacked, NDArrayBackedExtensionArra
 
         if not is_period_dtype(self.dtype):
             # restore freq, which is invalidated by setitem
-            self._freq = result._freq
+            self._freq = result.freq
         return self
 
     def __isub__(self, other):
@@ -1408,7 +1423,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBacked, NDArrayBackedExtensionArra
 
         if not is_period_dtype(self.dtype):
             # restore freq, which is invalidated by setitem
-            self._freq = result._freq
+            self._freq = result.freq
         return self
 
     # --------------------------------------------------------------
@@ -1542,7 +1557,7 @@ class DatelikeOps(DatetimeLikeArrayMixin):
         URL="https://docs.python.org/3/library/datetime.html"
         "#strftime-and-strptime-behavior"
     )
-    def strftime(self, date_format: str) -> np.ndarray:
+    def strftime(self, date_format: str) -> npt.NDArray[np.object_]:
         """
         Convert to Index using specified date_format.
 
@@ -1558,7 +1573,7 @@ class DatelikeOps(DatetimeLikeArrayMixin):
 
         Returns
         -------
-        ndarray
+        ndarray[object]
             NumPy ndarray of formatted strings.
 
         See Also
@@ -1603,8 +1618,6 @@ _round_doc = """
         - 'raise' will raise an AmbiguousTimeError if there are ambiguous
           times.
 
-        .. versionadded:: 0.24.0
-
     nonexistent : 'shift_forward', 'shift_backward', 'NaT', timedelta, default 'raise'
         A nonexistent time does not exist in a particular timezone
         where clocks moved forward due to DST.
@@ -1617,8 +1630,6 @@ _round_doc = """
         - timedelta objects will shift nonexistent times by the timedelta
         - 'raise' will raise an NonExistentTimeError if there are
           nonexistent times.
-
-        .. versionadded:: 0.24.0
 
     Returns
     -------
@@ -1684,15 +1695,13 @@ _ceil_example = """>>> rng.ceil('H')
     """
 
 
+TimelikeOpsT = TypeVar("TimelikeOpsT", bound="TimelikeOps")
+
+
 class TimelikeOps(DatetimeLikeArrayMixin):
     """
     Common ops for TimedeltaIndex/DatetimeIndex, but not PeriodIndex.
     """
-
-    def copy(self: TimelikeOps) -> TimelikeOps:
-        result = NDArrayBacked.copy(self)
-        result._freq = self._freq
-        return result
 
     def _round(self, freq, mode, ambiguous, nonexistent):
         # round the local times
@@ -1780,11 +1789,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             uniques = self.copy()  # TODO: copy or view?
             if sort and self.freq.n < 0:
                 codes = codes[::-1]
-                # TODO: overload __getitem__, a slice indexer returns same type as self
-                # error: Incompatible types in assignment (expression has type
-                # "Union[DatetimeLikeArrayMixin, Union[Any, Any]]", variable
-                # has type "TimelikeOps")
-                uniques = uniques[::-1]  # type: ignore[assignment]
+                uniques = uniques[::-1]
             return codes, uniques
         # FIXME: shouldn't get here; we are ignoring sort
         return super().factorize(na_sentinel=na_sentinel)
@@ -1818,39 +1823,6 @@ def validate_periods(periods):
         elif not lib.is_integer(periods):
             raise TypeError(f"periods must be a number, got {periods}")
     return periods
-
-
-def validate_endpoints(closed):
-    """
-    Check that the `closed` argument is among [None, "left", "right"]
-
-    Parameters
-    ----------
-    closed : {None, "left", "right"}
-
-    Returns
-    -------
-    left_closed : bool
-    right_closed : bool
-
-    Raises
-    ------
-    ValueError : if argument is not among valid values
-    """
-    left_closed = False
-    right_closed = False
-
-    if closed is None:
-        left_closed = True
-        right_closed = True
-    elif closed == "left":
-        left_closed = True
-    elif closed == "right":
-        right_closed = True
-    else:
-        raise ValueError("Closed has to be either 'left', 'right' or None")
-
-    return left_closed, right_closed
 
 
 def validate_inferred_freq(freq, inferred_freq, freq_infer):

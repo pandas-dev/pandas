@@ -45,8 +45,6 @@ class SparseDtype(ExtensionDtype):
 
     This dtype implements the pandas ExtensionDtype interface.
 
-    .. versionadded:: 0.24.0
-
     Parameters
     ----------
     dtype : str, ExtensionDtype, numpy.dtype, type, default numpy.float64
@@ -151,7 +149,7 @@ class SparseDtype(ExtensionDtype):
         return self._fill_value
 
     @property
-    def _is_na_fill_value(self):
+    def _is_na_fill_value(self) -> bool:
         return isna(self.fill_value)
 
     @property

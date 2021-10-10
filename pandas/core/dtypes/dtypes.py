@@ -29,8 +29,8 @@ from pandas._libs.tslibs import (
 from pandas._typing import (
     Dtype,
     DtypeObj,
-    NpDtype,
     Ordered,
+    npt,
     type_t,
 )
 
@@ -48,9 +48,14 @@ from pandas.core.dtypes.inference import (
 )
 
 if TYPE_CHECKING:
+    from datetime import tzinfo
+
     import pyarrow
 
-    from pandas import Categorical
+    from pandas import (
+        Categorical,
+        Index,
+    )
     from pandas.core.arrays import (
         DatetimeArray,
         IntervalArray,
@@ -84,12 +89,6 @@ class PandasExtensionDtype(ExtensionDtype):
     isnative = 0
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
 
-    def __str__(self) -> str_type:
-        """
-        Return a string representation for a particular Object
-        """
-        return self.name
-
     def __repr__(self) -> str_type:
         """
         Return a string representation for a particular object.
@@ -105,7 +104,7 @@ class PandasExtensionDtype(ExtensionDtype):
 
     @classmethod
     def reset_cache(cls) -> None:
-        """ clear the cache """
+        """clear the cache"""
         cls._cache_dtypes = {}
 
 
@@ -445,8 +444,8 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             # assumes if any individual category is a tuple, then all our. ATM
             # I don't really want to support just some of the categories being
             # tuples.
-            categories = list(categories)  # breaks if a np.array of categories
-            cat_array = hash_tuples(categories)
+            cat_list = list(categories)  # breaks if a np.array of categories
+            cat_array = hash_tuples(cat_list)
         else:
             if categories.dtype == "O" and len({type(x) for x in categories}) != 1:
                 # TODO: hash_array doesn't handle mixed types. It casts
@@ -509,7 +508,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             raise TypeError("'ordered' must either be 'True' or 'False'")
 
     @staticmethod
-    def validate_categories(categories, fastpath: bool = False):
+    def validate_categories(categories, fastpath: bool = False) -> Index:
         """
         Validates that we have good categories
 
@@ -530,7 +529,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                 f"Parameter 'categories' must be list-like, was {repr(categories)}"
             )
         elif not isinstance(categories, ABCIndex):
-            categories = Index(categories, tupleize_cols=False)
+            categories = Index._with_infer(categories, tupleize_cols=False)
 
         if not fastpath:
 
@@ -579,7 +578,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         return CategoricalDtype(new_categories, new_ordered)
 
     @property
-    def categories(self):
+    def categories(self) -> Index:
         """
         An ``Index`` containing the unique categories allowed.
         """
@@ -717,7 +716,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
         return self._unit
 
     @property
-    def tz(self):
+    def tz(self) -> tzinfo:
         """
         The timezone.
         """
@@ -882,7 +881,7 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
         return self._freq
 
     @classmethod
-    def _parse_dtype_strict(cls, freq):
+    def _parse_dtype_strict(cls, freq: str_type) -> BaseOffset:
         if isinstance(freq, str):
             if freq.startswith("period[") or freq.startswith("Period["):
                 m = cls._match.search(freq)
@@ -937,7 +936,18 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
         if isinstance(other, str):
             return other in [self.name, self.name.title()]
 
-        return isinstance(other, PeriodDtype) and self.freq == other.freq
+        elif isinstance(other, PeriodDtype):
+
+            # For freqs that can be held by a PeriodDtype, this check is
+            # equivalent to (and much faster than) self.freq == other.freq
+            sfreq = self.freq
+            ofreq = other.freq
+            return (
+                sfreq.n == ofreq.n
+                and sfreq._period_dtype_code == ofreq._period_dtype_code
+            )
+
+        return False
 
     def __ne__(self, other: Any) -> bool:
         return not self.__eq__(other)
@@ -1005,6 +1015,8 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
             parr[~mask] = NaT
             results.append(parr)
 
+        if not results:
+            return PeriodArray(np.array([], dtype="int64"), freq=self.freq, copy=False)
         return PeriodArray._concat_same_type(results)
 
 
@@ -1136,7 +1148,7 @@ class IntervalDtype(PandasExtensionDtype):
         return IntervalArray
 
     @classmethod
-    def construct_from_string(cls, string):
+    def construct_from_string(cls, string: str_type) -> IntervalDtype:
         """
         attempt to construct this type from a string, raise a TypeError
         if its not possible
@@ -1238,6 +1250,12 @@ class IntervalDtype(PandasExtensionDtype):
             iarr = IntervalArray.from_arrays(left, right, closed=array.type.closed)
             results.append(iarr)
 
+        if not results:
+            return IntervalArray.from_arrays(
+                np.array([], dtype=self.subtype),
+                np.array([], dtype=self.subtype),
+                closed=array.type.closed,
+            )
         return IntervalArray._concat_same_type(results)
 
     def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
@@ -1261,8 +1279,6 @@ class PandasDtype(ExtensionDtype):
     """
     A Pandas ExtensionDtype for NumPy dtypes.
 
-    .. versionadded:: 0.24.0
-
     This is mostly for internal compatibility, and is not especially
     useful on its own.
 
@@ -1278,7 +1294,7 @@ class PandasDtype(ExtensionDtype):
 
     _metadata = ("_dtype",)
 
-    def __init__(self, dtype: NpDtype | PandasDtype | None):
+    def __init__(self, dtype: npt.DTypeLike | PandasDtype | None):
         if isinstance(dtype, PandasDtype):
             # make constructor univalent
             dtype = dtype.numpy_dtype

@@ -41,6 +41,23 @@ class TestTZLocalize:
         result = ser.dt.tz_localize("US/Central", ambiguous=[False])
         tm.assert_series_equal(result, expected1)
 
+    def test_series_tz_localize_matching_index(self):
+        # Matching the index of the result with that of the original series
+        # GH 43080
+        dt_series = Series(
+            date_range(start="2021-01-01T02:00:00", periods=5, freq="1D"),
+            index=[2, 6, 7, 8, 11],
+            dtype="category",
+        )
+        result = dt_series.dt.tz_localize("Europe/Berlin")
+        expected = Series(
+            date_range(
+                start="2021-01-01T02:00:00", periods=5, freq="1D", tz="Europe/Berlin"
+            ),
+            index=[2, 6, 7, 8, 11],
+        )
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize("tz", ["Europe/Warsaw", "dateutil/Europe/Warsaw"])
     @pytest.mark.parametrize(
         "method, exp",

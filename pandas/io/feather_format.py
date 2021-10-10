@@ -9,12 +9,12 @@ from pandas._typing import (
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 
-from pandas import (
+from pandas.core import generic
+from pandas.core.api import (
     DataFrame,
     Int64Index,
     RangeIndex,
 )
-from pandas.core import generic
 
 from pandas.io.common import get_handle
 
@@ -110,12 +110,8 @@ def read_feather(
         or ``StringIO``.
     columns : sequence, default None
         If not provided, all columns are read.
-
-        .. versionadded:: 0.24.0
     use_threads : bool, default True
         Whether to parallelize reading using multiple threads.
-
-       .. versionadded:: 0.24.0
     {storage_options}
 
         .. versionadded:: 1.2.0
