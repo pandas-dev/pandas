@@ -297,6 +297,7 @@ def array(
     from pandas.core.arrays import (
         BooleanArray,
         DatetimeArray,
+        ExtensionArray,
         FloatingArray,
         IntegerArray,
         IntervalArray,
@@ -310,7 +311,7 @@ def array(
         msg = f"Cannot pass scalar '{data}' to 'pandas.array'."
         raise ValueError(msg)
 
-    if dtype is None and isinstance(data, (ABCSeries, ABCIndex, ABCExtensionArray)):
+    if dtype is None and isinstance(data, (ABCSeries, ABCIndex, ExtensionArray)):
         # Note: we exclude np.ndarray here, will do type inference on it
         dtype = data.dtype
 

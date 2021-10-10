@@ -50,6 +50,13 @@ from pandas.tests.extension.decimal import (
         ),
         # String alias passes through to NumPy
         ([1, 2], "float32", PandasArray(np.array([1, 2], dtype="float32"))),
+        ([1, 2], "int64", PandasArray(np.array([1, 2], dtype=np.int64))),
+        # idempotency with e.g. pd.array(pd.array([1, 2], dtype="int64"))
+        (
+            PandasArray(np.array([1, 2], dtype=np.int32)),
+            None,
+            PandasArray(np.array([1, 2], dtype=np.int32)),
+        ),
         # Period alias
         (
             [pd.Period("2000", "D"), pd.Period("2001", "D")],
