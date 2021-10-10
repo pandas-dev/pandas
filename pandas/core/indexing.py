@@ -1110,7 +1110,6 @@ class _LocIndexer(_LocationIndexer):
 
     def _handle_lowerdim_multi_index_axis0(self, tup: tuple):
         # we have an axis0 multi-index, handle or raise
-        #import pdb; pdb.set_trace()
         axis = self.axis or 0
         try:
             # fast path for series or for tup devoid of slices
