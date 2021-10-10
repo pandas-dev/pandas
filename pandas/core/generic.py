@@ -5727,7 +5727,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtype,
         copy: bool_t = True,
         inplace: bool_t = False,
-        errors: str = "raise"
+        errors: str = "raise",
     ) -> NDFrameT:
         """
         Cast a pandas object to a specified dtype ``dtype``.
