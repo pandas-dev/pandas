@@ -4899,7 +4899,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         is_numeric = result.dtype.kind in ["i", "u", "f"]
         if self._is_backward_compat_public_numeric_index and is_numeric:
-            return type(self)(result, name=name)
+            return type(self)._simple_new(result, name=name)
 
         return Index._with_infer(result, name=name)
 
