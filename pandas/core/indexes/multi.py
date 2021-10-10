@@ -132,15 +132,7 @@ class MultiIndexUIntEngine(libindex.BaseMultiIndexCodesEngine, libindex.UInt64En
         """
         # Shift the representation of each level by the pre-calculated number
         # of bits:
-        #print(f'codes {codes}, self.offsets {self.offsets}')
-        #import pdb; pdb.set_trace()
         codes <<= self.offsets
-        #if len(codes.shape) == 1 and list(codes) == [4,0]:
-            # import traceback as tb; tb.print_stack()
-            #codes = np.array([4, 2])
-            #import pdb; pdb.set_trace()
-            #print('hi')
-        #print(f'codes after shifting {codes}')
 
         # Now sum and OR are in fact interchangeable. This is a simple
         # composition of the (disjunct) significant bits of each level (i.e.
@@ -3009,12 +3001,7 @@ class MultiIndex(Index):
                 if len(key) == self.nlevels and self.is_unique:
                     # Complete key in unique index -> standard get_loc
                     try:
-                        engine = self._engine
-                        #import pdb; pdb.set_trace()
-                        # print(f'key before handing it to engine {engine} is key: {key}')
-                        # import pdb; pdb.set_trace()
-                        loc_res = engine.get_loc(key)
-                        return (loc_res, None)
+                        return (self._engine.get_loc(key), None)
                     except KeyError as err:
                         raise KeyError(key) from err
                     except TypeError:

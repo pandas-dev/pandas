@@ -121,7 +121,6 @@ cdef class ObjectFactorizer(Factorizer):
             uniques = ObjectVector()
             uniques.extend(self.uniques.to_array())
             self.uniques = uniques
-        print('WE ARE IN FACTORIZE')
         labels = self.table.get_labels(values, self.uniques,
                                        self.count, na_sentinel, na_value)
         mask = (labels == na_sentinel)
