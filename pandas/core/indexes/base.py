@@ -1027,7 +1027,8 @@ class Index(IndexOpsMixin, PandasObject):
         taken = algos.take(
             self._values, indices, allow_fill=allow_fill, fill_value=self._na_value
         )
-        return type(self)._simple_new(taken, name=self.name)
+        # _constructor so RangeIndex->Int64Index
+        return self._constructor._simple_new(taken, name=self.name)
 
     @final
     def _maybe_disallow_fill(self, allow_fill: bool, fill_value, indices) -> bool:
@@ -1097,7 +1098,8 @@ class Index(IndexOpsMixin, PandasObject):
         nv.validate_repeat((), {"axis": axis})
         res_values = self._values.repeat(repeats)
 
-        return type(self)._simple_new(res_values, name=self.name)
+        # _constructor so RangeIndex->Int64Index
+        return self._constructor._simple_new(res_values, name=self.name)
 
     # --------------------------------------------------------------------
     # Copying Methods
@@ -6303,7 +6305,8 @@ class Index(IndexOpsMixin, PandasObject):
         Index(['b'], dtype='object')
         """
         res_values = np.delete(self._data, loc)
-        return type(self)._simple_new(res_values, name=self.name)
+        # _constructor so RangeIndex->Int64Index
+        return self._constructor._simple_new(res_values, name=self.name)
 
     def insert(self, loc: int, item) -> Index:
         """
