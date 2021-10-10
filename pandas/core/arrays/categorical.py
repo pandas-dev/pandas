@@ -40,7 +40,6 @@ from pandas._typing import (
     Ordered,
     PositionalIndexer2D,
     PositionalIndexerTuple,
-    Scalar,
     ScalarIndexer,
     SequenceIndexer,
     Shape,
@@ -566,17 +565,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         return self.categories.itemsize
 
-    def tolist(self) -> list[Scalar]:
+    def to_list(self):
         """
-        Return a list of the values.
-
-        These are each a scalar type, which is a Python scalar
-        (for str, int, float) or a pandas scalar
-        (for Timestamp/Timedelta/Interval/Period)
+        Alias for tolist.
         """
-        return list(self)
-
-    to_list = tolist
+        return self.tolist()
 
     @classmethod
     def _from_inferred_categories(
