@@ -396,7 +396,7 @@ def test_loc_empty_multiindex():
 
 @pytest.mark.parametrize("dropna", [True, False])
 def test_loc_nan_multiindex(dropna):
-    # GH 43943
+    # GH 43814
     df = DataFrame(
         {
             "temp_playlist": [0, 0, 0, 0],
