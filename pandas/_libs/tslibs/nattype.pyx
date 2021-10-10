@@ -1135,7 +1135,7 @@ cdef inline bint checknull_with_nat(object val):
 
 cdef inline bint is_dt64nat(object val):
     """
-    Utility to check if val is np.datetime64("NaT").
+    Is this a np.datetime64 object np.datetime64("NaT").
     """
     if util.is_datetime64_object(val):
         return get_datetime64_value(val) == NPY_NAT
@@ -1143,7 +1143,7 @@ cdef inline bint is_dt64nat(object val):
 
 cdef inline bint is_td64nat(object val):
     """
-    Utility to check if val is np.timedelta64("NaT").
+    Is this a np.timedelta64 object np.timedelta64("NaT").
     """
     if util.is_timedelta64_object(val):
         return get_timedelta64_value(val) == NPY_NAT
