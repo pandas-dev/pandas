@@ -393,7 +393,9 @@ def test_loc_empty_multiindex():
     expected = DataFrame([1, 2, 3, 4], index=index, columns=["value"])
     tm.assert_frame_equal(result, expected)
 
-def test_loc_nan_multiindex():
+@pytest.mark.parametrize("dropna", [True, False])
+def test_loc_nan_multiindex(dropna):
+    # GH 43943
     df = DataFrame(
         {
             "temp_playlist": [0, 0, 0, 0],
@@ -402,9 +404,14 @@ def test_loc_nan_multiindex():
         }
     )
 
-    agg_df = df.groupby(by=['temp_playlist', 'objId'], dropna=False)["x"].agg(list)
+    agg_df = df.groupby(by=['temp_playlist', 'objId'], dropna=dropna)["x"].agg(list)
     result = agg_df.loc[agg_df.index[-1]]
-    expected = [2, 4]
+    if dropna:
+        # nans are dropped, therefore only [1, 3] is left
+        expected = [1, 3]
+    else:
+        # last index is (0, np.nan) which corresponds to the list [2, 4]
+        expected = [2, 4]
     assert result == expected
 
 def test_loc_nan_multiindex2():
@@ -418,16 +425,3 @@ def test_loc_nan_multiindex2():
     tm.assert_frame_equal(result, expected, check_index_type=False)
 
 
-def test_loc_nan_multiindex():
-    df = DataFrame(
-        {
-            "temp_playlist": [0, 0, 0, 0],
-            "objId": ["o1", np.nan, "o1", np.nan],
-            "x": [1, 2, 3, 4],
-        }
-    )
-
-    agg_df = df.groupby(by=['temp_playlist', 'objId'], dropna=False)["x"].agg(list)
-    result = agg_df.loc[agg_df.index[-1]]
-    expected = [2, 4]
-    assert result == expected
