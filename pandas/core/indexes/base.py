@@ -6316,7 +6316,12 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.delete([0, 2])
         Index(['b'], dtype='object')
         """
-        res_values = np.delete(self._data, loc)
+        values = self._values
+        if isinstance(values, np.ndarray):
+            res_values = np.delete(values, loc)
+        else:
+            # TODO(__array_function__) special-casing unnecessary
+            res_values = values.delete(loc)
         return type(self)._simple_new(res_values, name=self.name)
 
     def insert(self, loc: int, item) -> Index:
@@ -6346,7 +6351,18 @@ class Index(IndexOpsMixin, PandasObject):
             dtype = self._find_common_type_compat(item)
             return self.astype(dtype).insert(loc, item)
 
-        arr = np.asarray(self)
+        arr = self._values
+        if isinstance(arr, ExtensionArray):
+            # TODO: need EA.insert
+            try:
+                arr2 = type(arr)._from_sequence([item], dtype=arr.dtype)
+            except TypeError:
+                # TODO: make this into _validate_fill_value
+                dtype = self._find_common_type_compat(item)
+                return self.astype(dtype).insert(loc, item)
+
+            res_values = arr._concat_same_type([arr[:loc], arr2, arr[loc:]])
+            return type(self)._simple_new(res_values, name=self.name)
 
         # Use constructor to ensure we get tuples cast correctly.
         # Use self._constructor instead of Index to retain NumericIndex GH#43921
