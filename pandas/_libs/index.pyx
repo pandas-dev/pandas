@@ -319,7 +319,7 @@ cdef class IndexEngine:
         missing : np.ndarray[np.intp]
         """
         cdef:
-            ndarray values
+            ndarray values, x
             ndarray[intp_t] result, missing
             set stargets, remaining_stargets
             dict d = {}
