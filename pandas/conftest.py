@@ -341,7 +341,7 @@ def np_nat_fixture(request):
     return request.param
 
 
-# Generate cartesian product of unique_nulls_fixture:
+# Generate cartesian product of np_nat_fixture:
 np_nat_fixture2 = np_nat_fixture
 
 
