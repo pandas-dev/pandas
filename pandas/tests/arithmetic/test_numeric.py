@@ -1311,18 +1311,22 @@ class TestNumericArithmeticUnsorted:
         # __pow__
         idx = RangeIndex(0, 1000, 2)
         result = idx ** 2
-        expected = idx._int64index ** 2
+        expected = Int64Index(idx._values) ** 2
         tm.assert_index_equal(Index(result.values), expected, exact=True)
 
         # __floordiv__
         cases_exact = [
             (RangeIndex(0, 1000, 2), 2, RangeIndex(0, 500, 1)),
             (RangeIndex(-99, -201, -3), -3, RangeIndex(33, 67, 1)),
-            (RangeIndex(0, 1000, 1), 2, RangeIndex(0, 1000, 1)._int64index // 2),
+            (
+                RangeIndex(0, 1000, 1),
+                2,
+                Int64Index(RangeIndex(0, 1000, 1)._values) // 2,
+            ),
             (
                 RangeIndex(0, 100, 1),
                 2.0,
-                RangeIndex(0, 100, 1)._int64index // 2.0,
+                Int64Index(RangeIndex(0, 100, 1)._values) // 2.0,
             ),
             (RangeIndex(0), 50, RangeIndex(0)),
             (RangeIndex(2, 4, 2), 3, RangeIndex(0, 1, 1)),

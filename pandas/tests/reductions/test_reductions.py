@@ -221,7 +221,7 @@ class TestIndexReductions:
     def test_max_min_range(self, start, stop, step):
         # GH#17607
         idx = RangeIndex(start, stop, step)
-        expected = idx._int64index.max()
+        expected = idx._values.max()
         result = idx.max()
         assert result == expected
 
@@ -229,7 +229,7 @@ class TestIndexReductions:
         result2 = idx.max(skipna=False)
         assert result2 == expected
 
-        expected = idx._int64index.min()
+        expected = idx._values.min()
         result = idx.min()
         assert result == expected
 
@@ -431,13 +431,11 @@ class TestIndexReductions:
         # GH#26125
         idx = RangeIndex(0, 10, 3)
 
-        expected = idx._int64index.max()
         result = np.max(idx)
-        assert result == expected
+        assert result == 9
 
-        expected = idx._int64index.min()
         result = np.min(idx)
-        assert result == expected
+        assert result == 0
 
         errmsg = "the 'out' parameter is not supported"
         with pytest.raises(ValueError, match=errmsg):

@@ -299,12 +299,12 @@ class TestRangeIndex(NumericBase):
     def test_nbytes(self):
 
         # memory savings vs int index
-        i = RangeIndex(0, 1000)
-        assert i.nbytes < i._int64index.nbytes / 10
+        idx = RangeIndex(0, 1000)
+        assert idx.nbytes < Int64Index(idx.values).nbytes / 10
 
         # constant memory usage
         i2 = RangeIndex(0, 10)
-        assert i.nbytes == i2.nbytes
+        assert idx.nbytes == i2.nbytes
 
     @pytest.mark.parametrize(
         "start,stop,step",
