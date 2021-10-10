@@ -5992,7 +5992,7 @@ class DataFrame(NDFrame, OpsMixin):
         if subset is not None:
             if not is_list_like(subset):
                 # subset needs to be list like
-                subset = (subset,)
+                subset = com.maybe_make_list(subset)
             ax = self._get_axis(agg_axis)
             indices = ax.get_indexer_for(subset)
             check = indices == -1
