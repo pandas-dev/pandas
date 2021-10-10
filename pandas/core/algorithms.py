@@ -4,12 +4,13 @@ intended for public consumption
 """
 from __future__ import annotations
 
-from collections import abc
 import operator
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
+    Hashable,
     Literal,
+    Sequence,
     Union,
     cast,
     final,
@@ -1345,7 +1346,7 @@ class SelectNFrame(SelectN):
         if not is_list_like(columns) or isinstance(columns, tuple):
             columns = [columns]
 
-        assert isinstance(columns, abc.Iterable)
+        columns = cast(Sequence[Hashable], columns)
         columns = list(columns)
         self.columns = columns
 
