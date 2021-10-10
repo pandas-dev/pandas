@@ -5991,7 +5991,8 @@ class DataFrame(NDFrame, OpsMixin):
         agg_obj = self
         if subset is not None:
             # subset needs to be list
-            subset = com.maybe_make_list(subset)
+            if not is_list_like(subset):
+                subset = (subset,)
             ax = self._get_axis(agg_axis)
             indices = ax.get_indexer_for(subset)
             check = indices == -1
