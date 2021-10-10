@@ -425,6 +425,20 @@ class RangeIndex(NumericIndex):
 
     # --------------------------------------------------------------------
 
+    def insert(self, loc, item):
+        if len(self) and (is_integer(item) or is_float(item)):
+            # We can retain RangeIndex is inserting at the beginning or end
+            rng = self._range
+            if loc == 0 and item == self[0] - self.step:
+                new_rng = range(rng.start - rng.step, rng.stop, rng.step)
+                return type(self)._simple_new(new_rng, name=self.name)
+
+            elif loc == len(self) and item == self[-1] + self.step:
+                new_rng = range(rng.start, rng.stop + rng.step, rng.step)
+                return type(self)._simple_new(new_rng, name=self.name)
+
+        return super().insert(loc, item)
+
     def repeat(self, repeats, axis=None) -> Int64Index:
         return self._int64index.repeat(repeats, axis=axis)
 
