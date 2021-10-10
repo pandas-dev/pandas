@@ -6327,13 +6327,23 @@ class Index(IndexOpsMixin, PandasObject):
             dtype = self._find_common_type_compat(item)
             return self.astype(dtype).insert(loc, item)
 
-        arr = np.asarray(self)
+        arr = self._values
 
-        # Use constructor to ensure we get tuples cast correctly.
+        if arr.dtype != object or not isinstance(
+            item, (tuple, np.datetime64, np.timedelta64)
+        ):
+            # with object-dtype we need to worry about numpy incorrectly casting
+            # dt64/td64 to integer, also about treating tuples as sequences
+            # special-casing dt64/td64 https://github.com/numpy/numpy/issues/12550
+            new_values = np.concatenate([arr[:loc], [item], arr[loc:]])
+
+        else:
+            new_values = np.concatenate([arr[:loc], [None], arr[loc:]])
+            new_values[loc] = item
+
         # Use self._constructor instead of Index to retain NumericIndex GH#43921
-        item = self._constructor([item], dtype=self.dtype)._values
-        idx = np.concatenate((arr[:loc], item, arr[loc:]))
-        return self._constructor._with_infer(idx, name=self.name)
+        # TODO(2.0) can use Index instead of self._constructor
+        return self._constructor._with_infer(new_values, name=self.name)
 
     def drop(self, labels, errors: str_t = "raise") -> Index:
         """
