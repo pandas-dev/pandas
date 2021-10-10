@@ -1170,6 +1170,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> c
         ['c', 'b', 'c']
         Categories (2, object): ['b', 'c']
+
         >>> c.add_categories(['d', 'a'])
         ['c', 'b', 'c']
         Categories (4, object): ['b', 'c', 'd', 'a']
@@ -1244,6 +1245,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> c
         ['a', 'c', 'b', 'c', 'd']
         Categories (4, object): ['a', 'b', 'c', 'd']
+
         >>> c.remove_categories(['d', 'a'])
         [NaN, 'c', 'b', 'c', NaN]
         Categories (2, object): ['b', 'c']
@@ -1313,11 +1315,13 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> c
         ['a', 'c', 'b', 'c', 'd']
         Categories (4, object): ['a', 'b', 'c', 'd']
+
         >>> c[2] = 'a'
         >>> c[4] = 'c'
         >>> c
         ['a', 'c', 'a', 'c', 'c']
         Categories (4, object): ['a', 'b', 'c', 'd']
+
         >>> c.remove_unused_categories()
         ['a', 'c', 'a', 'c', 'c']
         Categories (2, object): ['a', 'c']
