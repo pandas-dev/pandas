@@ -6335,7 +6335,7 @@ class Index(IndexOpsMixin, PandasObject):
             # with object-dtype we need to worry about numpy incorrectly casting
             # dt64/td64 to integer, also about treating tuples as sequences
             # special-casing dt64/td64 https://github.com/numpy/numpy/issues/12550
-            new_values = np.concatenate([arr[:loc], [item], arr[loc:]])
+            new_values = np.concatenate([arr[:loc], [item], arr[loc:]], dtype=arr.dtype)
 
         else:
             new_values = np.concatenate([arr[:loc], [None], arr[loc:]])
