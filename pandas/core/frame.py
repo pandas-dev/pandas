@@ -5997,7 +5997,7 @@ class DataFrame(NDFrame, OpsMixin):
             indices = ax.get_indexer_for(subset)
             check = indices == -1
             if check.any():
-                raise KeyError(list(np.compress(check, subset)))
+                raise KeyError(np.array(subset)[check].tolist())
             agg_obj = self.take(indices, axis=agg_axis)
 
         count = agg_obj.count(axis=agg_axis)
