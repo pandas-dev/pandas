@@ -134,7 +134,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         return self._str_map(f, na, dtype=np.dtype("bool"))
 
     def _str_startswith(self, pat, na=None):
-        if type(pat)==_Core.series.Series:
+        if type(pat) == _Core.series.Series:
             pat = tuple(i for i in pat.tolist() if i)
         f = lambda x: x.startswith(pat)
         return self._str_map(f, na_value=na, dtype=np.dtype(bool))
