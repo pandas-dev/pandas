@@ -278,7 +278,11 @@ def test_str_cat_align_mixed_inputs(join):
     expected_outer = Series(["aaA", "bbB", "c-C", "ddD", "-e-"])
     # joint index of rhs [t, u]; u will be forced have index of s
     rhs_idx = (
-        t.index.intersection(s.index) if join == "inner" else t.index.union(s.index)
+        t.index.intersection(s.index)
+        if join == "inner"
+        else t.index.union(s.index)
+        if join == "outer"
+        else t.index.append(s.index.difference(t.index))
     )
 
     expected = expected_outer.loc[s.index.join(rhs_idx, how=join)]

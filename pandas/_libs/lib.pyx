@@ -350,7 +350,7 @@ def fast_unique_multiple(list arrays, sort: bool = True):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_unique_multiple_list(lists: list, sort: bool = True) -> list:
+def fast_unique_multiple_list(lists: list, sort: bool | None = True) -> list:
     cdef:
         list buf
         Py_ssize_t k = len(lists)
