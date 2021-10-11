@@ -693,11 +693,10 @@ class TestMultiplicationDivision:
         tm.assert_series_equal(result, expected)
 
     def test_mul_index(self, numeric_idx):
-        # in general not true for RangeIndex
         idx = numeric_idx
-        if not isinstance(idx, RangeIndex):
-            result = idx * idx
-            tm.assert_index_equal(result, idx ** 2)
+
+        result = idx * idx
+        tm.assert_index_equal(result, idx ** 2)
 
     def test_mul_datelike_raises(self, numeric_idx):
         idx = numeric_idx
@@ -1090,11 +1089,11 @@ class TestUFuncCompat:
         box = Series if holder is Series else Index
 
         if holder is RangeIndex:
-            idx = RangeIndex(0, 5)
+            idx = RangeIndex(0, 5, name="foo")
         else:
-            idx = holder(np.arange(5, dtype="int64"))
+            idx = holder(np.arange(5, dtype="int64"), name="foo")
         result = np.sin(idx)
-        expected = box(np.sin(np.arange(5, dtype="int64")))
+        expected = box(np.sin(np.arange(5, dtype="int64")), name="foo")
         tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize("holder", [Int64Index, UInt64Index, Float64Index, Series])
@@ -1212,6 +1211,8 @@ class TestNumericArithmeticUnsorted:
     def check_binop(self, ops, scalars, idxs):
         for op in ops:
             for a, b in combinations(idxs, 2):
+                a = a._rename("foo")
+                b = b._rename("bar")
                 result = op(a, b)
                 expected = op(Int64Index(a), Int64Index(b))
                 tm.assert_index_equal(result, expected)
