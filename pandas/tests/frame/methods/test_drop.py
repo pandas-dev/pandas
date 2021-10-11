@@ -553,3 +553,10 @@ class TestDataFrameDrop:
         result = df.drop(columns=("A", "B"))
         expected = DataFrame({"C": [2, 6, 10], "D": [3, 7, 11]})
         tm.assert_frame_equal(result, expected)
+
+    def test_drop_columns_are_tuple(self):
+        # GH 43978
+        df = DataFrame(np.arange(6).reshape(3, 2), columns=[("A", "B"), ("C", "D")])
+        result = df.drop(columns=("A", "B"))
+        expected = DataFrame([1, 3, 5], columns=[("C", "D")])
+        tm.assert_frame_equal(result, expected)
