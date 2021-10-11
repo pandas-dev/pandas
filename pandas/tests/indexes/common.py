@@ -760,6 +760,19 @@ class Base:
         expected = {ex_keys[0]: idx[[0, 4]], ex_keys[1]: idx[[1, 3]]}
         tm.assert_dict_equal(idx.groupby(to_groupby), expected)
 
+    def test_append_preserves_dtype(self, simple_index):
+        # In particular NumericIndex with dtype float32
+        index = simple_index
+        N = len(index)
+
+        result = index.append(index)
+        assert result.dtype == index.dtype
+        tm.assert_index_equal(result[:N], index, check_exact=True)
+        tm.assert_index_equal(result[N:], index, check_exact=True)
+
+        alt = index.take(list(range(N)) * 2)
+        tm.assert_index_equal(result, alt, check_exact=True)
+
 
 class NumericBase(Base):
     """
