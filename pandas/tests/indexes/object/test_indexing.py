@@ -96,6 +96,9 @@ class TestGetIndexerNonUnique:
             tm.assert_numpy_array_equal(indexer, expected_indexer)
             tm.assert_numpy_array_equal(missing, expected_missing)
 
+    # TODO: distinguish between different date/time units
+    # for datetime64("NaT") and timedelta64("NaT"):
+    # ie. np.datetime64("NaT") vs np.datetime64("NaT", "ns"), np.datetime64("NaT", "ms")
     @pytest.mark.filterwarnings("ignore:elementwise comp:DeprecationWarning")
     def test_get_indexer_non_unique_np_nats(self, np_nat_fixture, np_nat_fixture2):
         expected_missing = np.array([], dtype=np.intp)
