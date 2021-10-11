@@ -1,9 +1,12 @@
 """
-Tests for Year, Quarter, and Month-based DateOffset subclasses
+Tests for offset behavior with indices.
 """
 import pytest
 
-import pandas as pd
+from pandas import (
+    Series,
+    date_range,
+)
 
 from pandas.tseries.offsets import (
     BMonthBegin,
@@ -41,8 +44,8 @@ from pandas.tseries.offsets import (
 )
 def test_apply_index(cls, n):
     offset = cls(n=n)
-    rng = pd.date_range(start="1/1/2000", periods=100000, freq="T")
-    ser = pd.Series(rng)
+    rng = date_range(start="1/1/2000", periods=100000, freq="T")
+    ser = Series(rng)
 
     res = rng + offset
     assert res.freq is None  # not retained

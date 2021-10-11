@@ -7,6 +7,8 @@ import numpy as np
 import pytest
 import pytz
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -21,6 +23,52 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.groupby.ops import BinGrouper
+
+
+@pytest.fixture
+def frame_for_truncated_bingrouper():
+    """
+    DataFrame used by groupby_with_truncated_bingrouper, made into
+    a separate fixture for easier re-use in
+    test_groupby_apply_timegrouper_with_nat_apply_squeeze
+    """
+    df = DataFrame(
+        {
+            "Quantity": [18, 3, 5, 1, 9, 3],
+            "Date": [
+                Timestamp(2013, 9, 1, 13, 0),
+                Timestamp(2013, 9, 1, 13, 5),
+                Timestamp(2013, 10, 1, 20, 0),
+                Timestamp(2013, 10, 3, 10, 0),
+                pd.NaT,
+                Timestamp(2013, 9, 2, 14, 0),
+            ],
+        }
+    )
+    return df
+
+
+@pytest.fixture
+def groupby_with_truncated_bingrouper(frame_for_truncated_bingrouper):
+    """
+    GroupBy object such that gb.grouper is a BinGrouper and
+    len(gb.grouper.result_index) < len(gb.grouper.group_keys_seq)
+
+    Aggregations on this groupby should have
+
+        dti = date_range("2013-09-01", "2013-10-01", freq="5D", name="Date")
+
+    As either the index or an index level.
+    """
+    df = frame_for_truncated_bingrouper
+
+    tdg = Grouper(key="Date", freq="5D")
+    gb = df.groupby(tdg)
+
+    # check we're testing the case we're interested in
+    assert len(gb.grouper.result_index) != len(gb.grouper.group_keys_seq)
+
+    return gb
 
 
 class TestGroupBy:
@@ -52,7 +100,7 @@ class TestGroupBy:
             expected = DataFrame(
                 {"Quantity": 0},
                 index=date_range(
-                    "20130901", "20131205", freq="5D", name="Date", closed="left"
+                    "20130901", "20131205", freq="5D", name="Date", inclusive="left"
                 ),
             )
             expected.iloc[[0, 6, 18], 0] = np.array([24, 6, 9], dtype="int64")
@@ -779,3 +827,84 @@ class TestGroupBy:
             range(0, periods), index=Index(range(1, periods + 1), name=index.name)
         )
         tm.assert_series_equal(result, expected)
+
+    def test_groupby_apply_timegrouper_with_nat_dict_returns(
+        self, groupby_with_truncated_bingrouper
+    ):
+        # GH#43500 case where gb.grouper.result_index and gb.grouper.group_keys_seq
+        #  have different lengths that goes through the `isinstance(values[0], dict)`
+        #  path
+        gb = groupby_with_truncated_bingrouper
+
+        res = gb["Quantity"].apply(lambda x: {"foo": len(x)})
+
+        dti = date_range("2013-09-01", "2013-10-01", freq="5D", name="Date")
+        mi = MultiIndex.from_arrays([dti, ["foo"] * len(dti)])
+        expected = Series([3, 0, 0, 0, 0, 0, 2], index=mi, name="Quantity")
+        tm.assert_series_equal(res, expected)
+
+    def test_groupby_apply_timegrouper_with_nat_scalar_returns(
+        self, groupby_with_truncated_bingrouper
+    ):
+        # GH#43500 Previously raised ValueError bc used index with incorrect
+        #  length in wrap_applied_result
+        gb = groupby_with_truncated_bingrouper
+
+        res = gb["Quantity"].apply(lambda x: x.iloc[0] if len(x) else np.nan)
+
+        dti = date_range("2013-09-01", "2013-10-01", freq="5D", name="Date")
+        expected = Series(
+            [18, np.nan, np.nan, np.nan, np.nan, np.nan, 5],
+            index=dti._with_freq(None),
+            name="Quantity",
+        )
+
+        tm.assert_series_equal(res, expected)
+
+    def test_groupby_apply_timegrouper_with_nat_apply_squeeze(
+        self, frame_for_truncated_bingrouper
+    ):
+        df = frame_for_truncated_bingrouper
+
+        # We need to create a GroupBy object with only one non-NaT group,
+        #  so use a huge freq so that all non-NaT dates will be grouped together
+        tdg = Grouper(key="Date", freq="100Y")
+
+        with tm.assert_produces_warning(FutureWarning, match="`squeeze` parameter"):
+            gb = df.groupby(tdg, squeeze=True)
+
+        # check that we will go through the singular_series path
+        #  in _wrap_applied_output_series
+        assert gb.ngroups == 1
+        assert gb._selected_obj._get_axis(gb.axis).nlevels == 1
+
+        # function that returns a Series
+        res = gb.apply(lambda x: x["Quantity"] * 2)
+
+        key = Timestamp("2013-12-31")
+        ordering = df["Date"].sort_values().dropna().index
+        mi = MultiIndex.from_product([[key], ordering], names=["Date", None])
+
+        ex_values = df["Quantity"].take(ordering).values * 2
+        expected = Series(ex_values, index=mi, name="Quantity")
+        tm.assert_series_equal(res, expected)
+
+    @td.skip_if_no("numba")
+    def test_groupby_agg_numba_timegrouper_with_nat(
+        self, groupby_with_truncated_bingrouper
+    ):
+        # See discussion in GH#43487
+        gb = groupby_with_truncated_bingrouper
+
+        result = gb["Quantity"].aggregate(
+            lambda values, index: np.nanmean(values), engine="numba"
+        )
+
+        expected = gb["Quantity"].aggregate(np.nanmean)
+        tm.assert_series_equal(result, expected)
+
+        result_df = gb[["Quantity"]].aggregate(
+            lambda values, index: np.nanmean(values), engine="numba"
+        )
+        expected_df = gb[["Quantity"]].aggregate(np.nanmean)
+        tm.assert_frame_equal(result_df, expected_df)

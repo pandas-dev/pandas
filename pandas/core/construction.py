@@ -49,7 +49,10 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_timedelta64_ns_dtype,
 )
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    PandasDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCExtensionArray,
     ABCIndex,
@@ -294,6 +297,7 @@ def array(
     from pandas.core.arrays import (
         BooleanArray,
         DatetimeArray,
+        ExtensionArray,
         FloatingArray,
         IntegerArray,
         IntervalArray,
@@ -307,7 +311,7 @@ def array(
         msg = f"Cannot pass scalar '{data}' to 'pandas.array'."
         raise ValueError(msg)
 
-    if dtype is None and isinstance(data, (ABCSeries, ABCIndex, ABCExtensionArray)):
+    if dtype is None and isinstance(data, (ABCSeries, ABCIndex, ExtensionArray)):
         # Note: we exclude np.ndarray here, will do type inference on it
         dtype = data.dtype
 
@@ -494,6 +498,10 @@ def sanitize_array(
     if isinstance(data, ma.MaskedArray):
         data = sanitize_masked_array(data)
 
+    if isinstance(dtype, PandasDtype):
+        # Avoid ending up with a PandasArray
+        dtype = dtype.numpy_dtype
+
     # extract ndarray or ExtensionArray, ensure we have no PandasArray
     data = extract_array(data, extract_numpy=True)
 
@@ -550,7 +558,6 @@ def sanitize_array(
             subarr = subarr.astype(dtype, copy=copy)
         elif copy:
             subarr = subarr.copy()
-        return subarr
 
     else:
         if isinstance(data, (set, frozenset)):
@@ -768,7 +775,7 @@ def _try_cast(
                 f"Could not cast to {dtype}, falling back to object. This "
                 "behavior is deprecated. In a future version, when a dtype is "
                 "passed to 'DataFrame', either all columns will be cast to that "
-                "dtype, or a TypeError will be raised",
+                "dtype, or a TypeError will be raised.",
                 FutureWarning,
                 stacklevel=7,
             )

@@ -9,7 +9,9 @@ import textwrap
 from typing import (
     Sequence,
     TypeVar,
+    Union,
     cast,
+    overload,
 )
 
 import numpy as np
@@ -31,6 +33,9 @@ from pandas._typing import (
     ArrayLike,
     Dtype,
     NpDtype,
+    PositionalIndexer,
+    ScalarIndexer,
+    SequenceIndexer,
 )
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender
@@ -89,6 +94,7 @@ from pandas.core.ops import (
 )
 
 IntervalArrayT = TypeVar("IntervalArrayT", bound="IntervalArray")
+IntervalOrNA = Union[Interval, float]
 
 _interval_shared_docs: dict[str, str] = {}
 
@@ -635,7 +641,17 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def __len__(self) -> int:
         return len(self._left)
 
-    def __getitem__(self, key):
+    @overload
+    def __getitem__(self, key: ScalarIndexer) -> IntervalOrNA:
+        ...
+
+    @overload
+    def __getitem__(self: IntervalArrayT, key: SequenceIndexer) -> IntervalArrayT:
+        ...
+
+    def __getitem__(
+        self: IntervalArrayT, key: PositionalIndexer
+    ) -> IntervalArrayT | IntervalOrNA:
         key = check_array_indexer(self, key)
         left = self._left[key]
         right = self._right[key]
@@ -918,9 +934,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def isna(self) -> np.ndarray:
         return isna(self._left)
 
-    def shift(
-        self: IntervalArrayT, periods: int = 1, fill_value: object = None
-    ) -> IntervalArray:
+    def shift(self, periods: int = 1, fill_value: object = None) -> IntervalArray:
         if not len(self) or periods == 0:
             return self.copy()
 
@@ -1633,10 +1647,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return self._shallow_copy(left=new_left, right=new_right)
 
     def unique(self) -> IntervalArray:
-        # Invalid index type "Tuple[slice, int]" for "Union[ExtensionArray,
-        # ndarray[Any, Any]]"; expected type "Union[int, integer[Any], slice,
-        # Sequence[int], ndarray[Any, Any]]"
-        nc = unique(self._combined.view("complex128")[:, 0])  # type: ignore[index]
+        # No overload variant of "__getitem__" of "ExtensionArray" matches argument
+        # type "Tuple[slice, int]"
+        nc = unique(
+            self._combined.view("complex128")[:, 0]  # type: ignore[call-overload]
+        )
         nc = nc[:, None]
         return self._from_combined(nc)
 

@@ -13,6 +13,7 @@ from pandas._libs import (
     iNaT,
     lib,
 )
+from pandas.compat.numpy import np_version_under1p19
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
@@ -41,6 +42,7 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
+from pandas.core.api import Int64Index
 from pandas.core.arrays import (
     IntervalArray,
     period_array,
@@ -660,7 +662,7 @@ class TestSeriesConstructors:
             timedelta_range("1 day", periods=3),
             period_range("2012Q1", periods=3, freq="Q"),
             Index(list("abc")),
-            pd.Int64Index([1, 2, 3]),
+            Int64Index([1, 2, 3]),
             RangeIndex(0, 3),
         ],
         ids=lambda x: type(x).__name__,
@@ -726,29 +728,29 @@ class TestSeriesConstructors:
         expected = Series([1, 200, 50], dtype="uint8")
         tm.assert_series_equal(ser, expected)
 
-    def test_constructor_unsigned_dtype_overflow(self, uint_dtype):
+    def test_constructor_unsigned_dtype_overflow(self, any_unsigned_int_numpy_dtype):
         # see gh-15832
         msg = "Trying to coerce negative values to unsigned integers"
         with pytest.raises(OverflowError, match=msg):
-            Series([-1], dtype=uint_dtype)
+            Series([-1], dtype=any_unsigned_int_numpy_dtype)
 
-    def test_constructor_coerce_float_fail(self, any_int_dtype):
+    def test_constructor_coerce_float_fail(self, any_int_numpy_dtype):
         # see gh-15832
         msg = "Trying to coerce float values to integers"
         with pytest.raises(ValueError, match=msg):
-            Series([1, 2, 3.5], dtype=any_int_dtype)
+            Series([1, 2, 3.5], dtype=any_int_numpy_dtype)
 
-    def test_constructor_coerce_float_valid(self, float_dtype):
-        s = Series([1, 2, 3.5], dtype=float_dtype)
-        expected = Series([1, 2, 3.5]).astype(float_dtype)
+    def test_constructor_coerce_float_valid(self, float_numpy_dtype):
+        s = Series([1, 2, 3.5], dtype=float_numpy_dtype)
+        expected = Series([1, 2, 3.5]).astype(float_numpy_dtype)
         tm.assert_series_equal(s, expected)
 
-    def test_constructor_invalid_coerce_ints_with_float_nan(self, any_int_dtype):
+    def test_constructor_invalid_coerce_ints_with_float_nan(self, any_int_numpy_dtype):
         # GH 22585
 
         msg = "cannot convert float NaN to integer"
         with pytest.raises(ValueError, match=msg):
-            Series([1, 2, np.nan], dtype=any_int_dtype)
+            Series([1, 2, np.nan], dtype=any_int_numpy_dtype)
 
     def test_constructor_dtype_no_cast(self):
         # see gh-1572
@@ -1776,6 +1778,18 @@ class TestSeriesConstructors:
         ser2 = Series(vals, dtype=dtype)
         tm.assert_series_equal(ser, ser2)
 
+    def test_constructor_int_dtype_missing_values(self):
+        # GH#43017
+        result = Series(index=[0], dtype="int64")
+        expected = Series(np.nan, index=[0], dtype="float64")
+        tm.assert_series_equal(result, expected)
+
+    def test_constructor_bool_dtype_missing_values(self):
+        # GH#43018
+        result = Series(index=[0], dtype="bool")
+        expected = Series(True, index=[0], dtype="bool")
+        tm.assert_series_equal(result, expected)
+
 
 class TestSeriesConstructorIndexCoercion:
     def test_series_constructor_datetimelike_index_coercion(self):
@@ -1827,3 +1841,25 @@ def test_constructor(rand_series_with_duplicate_datetimeindex):
     dups = rand_series_with_duplicate_datetimeindex
     assert isinstance(dups, Series)
     assert isinstance(dups.index, DatetimeIndex)
+
+
+@pytest.mark.parametrize(
+    "input_dict,expected",
+    [
+        ({0: 0}, np.array([[0]], dtype=np.int64)),
+        ({"a": "a"}, np.array([["a"]], dtype=object)),
+        ({1: 1}, np.array([[1]], dtype=np.int64)),
+    ],
+)
+@pytest.mark.skipif(np_version_under1p19, reason="fails on numpy below 1.19")
+def test_numpy_array(input_dict, expected):
+    result = np.array([Series(input_dict)])
+    tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.skipif(
+    not np_version_under1p19, reason="check failure on numpy below 1.19"
+)
+def test_numpy_array_np_v1p19():
+    with pytest.raises(KeyError, match="0"):
+        np.array([Series({1: 1})])

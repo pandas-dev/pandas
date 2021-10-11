@@ -20,6 +20,7 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
+from pandas.core.api import Float64Index
 import pandas.core.common as com
 
 
@@ -406,7 +407,7 @@ class TestIntervalIndex:
         index = IntervalIndex.from_breaks(breaks)
 
         to_convert = breaks._constructor([pd.NaT] * 3)
-        expected = pd.Float64Index([np.nan] * 3)
+        expected = Float64Index([np.nan] * 3)
         result = index._maybe_convert_i8(to_convert)
         tm.assert_index_equal(result, expected)
 
@@ -933,15 +934,14 @@ def test_dir():
     assert "str" not in result
 
 
-@pytest.mark.parametrize("klass", [list, np.array, pd.array, pd.Series])
-def test_searchsorted_different_argument_classes(klass):
+def test_searchsorted_different_argument_classes(listlike_box):
     # https://github.com/pandas-dev/pandas/issues/32762
     values = IntervalIndex([Interval(0, 1), Interval(1, 2)])
-    result = values.searchsorted(klass(values))
+    result = values.searchsorted(listlike_box(values))
     expected = np.array([0, 1], dtype=result.dtype)
     tm.assert_numpy_array_equal(result, expected)
 
-    result = values._data.searchsorted(klass(values))
+    result = values._data.searchsorted(listlike_box(values))
     tm.assert_numpy_array_equal(result, expected)
 
 

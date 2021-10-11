@@ -606,10 +606,6 @@ cdef class TextReader:
         cdef:
             void *ptr
 
-        if not hasattr(source, "read"):
-            raise IOError(f'Expected file path name or file-like object, '
-                          f'got {type(source)} type')
-
         ptr = new_rd_source(source)
         self.parser.source = ptr
         self.parser.cb_io = &buffer_rd_bytes
@@ -1000,7 +996,7 @@ cdef class TextReader:
                 if col_dtype is not None:
                     warnings.warn((f"Both a converter and dtype were specified "
                                    f"for column {name} - only the converter will "
-                                   f"be used"), ParserWarning,
+                                   f"be used."), ParserWarning,
                                   stacklevel=5)
                 results[i] = _apply_converter(conv, self.parser, i, start, end)
                 continue

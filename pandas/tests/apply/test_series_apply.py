@@ -92,6 +92,21 @@ def test_apply_args():
     assert isinstance(result[0], list)
 
 
+@pytest.mark.parametrize(
+    "args, kwargs, increment",
+    [((), {}, 0), ((), {"a": 1}, 1), ((2, 3), {}, 32), ((1,), {"c": 2}, 201)],
+)
+def test_agg_args(args, kwargs, increment):
+    # GH 43357
+    def f(x, a=0, b=0, c=0):
+        return x + a + 10 * b + 100 * c
+
+    s = Series([1, 2])
+    result = s.agg(f, 0, *args, **kwargs)
+    expected = s + increment
+    tm.assert_series_equal(result, expected)
+
+
 def test_series_map_box_timestamps():
     # GH#2689, GH#2627
     ser = Series(pd.date_range("1/1/2000", periods=10))
@@ -276,25 +291,35 @@ def test_transform_partial_failure(op, request):
     ser = Series(3 * [object])
 
     expected = ser.transform(["shift"])
-    result = ser.transform([op, "shift"])
+    match = rf"\['{op}'\] did not transform successfully"
+    with tm.assert_produces_warning(FutureWarning, match=match):
+        result = ser.transform([op, "shift"])
     tm.assert_equal(result, expected)
 
     expected = ser.transform({"B": "shift"})
-    result = ser.transform({"A": op, "B": "shift"})
+    match = r"\['A'\] did not transform successfully"
+    with tm.assert_produces_warning(FutureWarning, match=match):
+        result = ser.transform({"A": op, "B": "shift"})
     tm.assert_equal(result, expected)
 
     expected = ser.transform({"B": ["shift"]})
-    result = ser.transform({"A": [op], "B": ["shift"]})
+    match = r"\['A'\] did not transform successfully"
+    with tm.assert_produces_warning(FutureWarning, match=match):
+        result = ser.transform({"A": [op], "B": ["shift"]})
     tm.assert_equal(result, expected)
 
-    expected = ser.transform({"A": ["shift"], "B": [op]})
-    result = ser.transform({"A": [op, "shift"], "B": [op]})
+    match = r"\['B'\] did not transform successfully"
+    with tm.assert_produces_warning(FutureWarning, match=match):
+        expected = ser.transform({"A": ["shift"], "B": [op]})
+    match = rf"\['{op}'\] did not transform successfully"
+    with tm.assert_produces_warning(FutureWarning, match=match):
+        result = ser.transform({"A": [op, "shift"], "B": [op]})
     tm.assert_equal(result, expected)
 
 
 def test_transform_partial_failure_valueerror():
     # GH 40211
-    match = ".*did not transform successfully and did not raise a TypeError"
+    match = ".*did not transform successfully"
 
     def noop(x):
         return x
@@ -320,7 +345,7 @@ def test_transform_partial_failure_valueerror():
     tm.assert_equal(result, expected)
 
     expected = ser.transform({"A": [noop], "B": [noop]})
-    with tm.assert_produces_warning(FutureWarning, match=match, check_stacklevel=False):
+    with tm.assert_produces_warning(FutureWarning, match=match):
         result = ser.transform({"A": [noop, raising_op], "B": [noop]})
     tm.assert_equal(result, expected)
 

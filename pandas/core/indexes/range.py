@@ -26,7 +26,6 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
-from pandas.util._exceptions import rewrite_exception
 
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -189,24 +188,13 @@ class RangeIndex(NumericIndex):
         """
         return np.arange(self.start, self.stop, self.step, dtype=np.int64)
 
-    @cache_readonly
-    def _cached_int64index(self) -> Int64Index:
-        return Int64Index._simple_new(self._data, name=self.name)
-
-    @property
-    def _int64index(self) -> Int64Index:
-        # wrap _cached_int64index so we can be sure its name matches self.name
-        res = self._cached_int64index
-        res._name = self._name
-        return res
-
     def _get_data_as_items(self):
         """return a list of tuples of start, stop, step"""
         rng = self._range
         return [("start", rng.start), ("stop", rng.stop), ("step", rng.step)]
 
     def __reduce__(self):
-        d = self._get_attributes_dict()
+        d = {"name": self.name}
         d.update(dict(self._get_data_as_items()))
         return ibase._new_Index, (type(self), d), None
 
@@ -424,24 +412,6 @@ class RangeIndex(NumericIndex):
         return ensure_platform_int(locs)
 
     # --------------------------------------------------------------------
-
-    def repeat(self, repeats, axis=None) -> Int64Index:
-        return self._int64index.repeat(repeats, axis=axis)
-
-    def delete(self, loc) -> Int64Index:  # type: ignore[override]
-        return self._int64index.delete(loc)
-
-    def take(
-        self, indices, axis: int = 0, allow_fill: bool = True, fill_value=None, **kwargs
-    ) -> Int64Index:
-        with rewrite_exception("Int64Index", type(self).__name__):
-            return self._int64index.take(
-                indices,
-                axis=axis,
-                allow_fill=allow_fill,
-                fill_value=fill_value,
-                **kwargs,
-            )
 
     def tolist(self) -> list[int]:
         return list(self._range)
@@ -683,7 +653,8 @@ class RangeIndex(NumericIndex):
                     and (end_s - step_o <= end_o)
                 ):
                     return type(self)(start_r, end_r + step_o, step_o)
-        return self._int64index._union(other, sort=sort)
+
+        return super()._union(other, sort=sort)
 
     def _difference(self, other, sort=None):
         # optimized set operation if we have another RangeIndex
@@ -857,7 +828,8 @@ class RangeIndex(NumericIndex):
                 start = self.start // other
                 new_range = range(start, start + 1, 1)
                 return self._simple_new(new_range, name=self.name)
-        return self._int64index // other
+
+        return super().__floordiv__(other)
 
     # --------------------------------------------------------------------
     # Reductions
@@ -891,21 +863,22 @@ class RangeIndex(NumericIndex):
         elif isinstance(other, (timedelta, np.timedelta64)):
             # GH#19333 is_integer evaluated True on timedelta64,
             # so we need to catch these explicitly
-            return op(self._int64index, other)
+            return super()._arith_method(other, op)
         elif is_timedelta64_dtype(other):
             # Must be an np.ndarray; GH#22390
-            return op(self._int64index, other)
+            return super()._arith_method(other, op)
 
         if op in [
             operator.pow,
             ops.rpow,
             operator.mod,
             ops.rmod,
+            operator.floordiv,
             ops.rfloordiv,
             divmod,
             ops.rdivmod,
         ]:
-            return op(self._int64index, other)
+            return super()._arith_method(other, op)
 
         step: Callable | None = None
         if op in [operator.mul, ops.rmul, operator.truediv, ops.rtruediv]:
@@ -913,7 +886,6 @@ class RangeIndex(NumericIndex):
 
         # TODO: if other is a RangeIndex we may have more efficient options
         other = extract_array(other, extract_numpy=True, extract_range=True)
-        attrs = self._get_attributes_dict()
 
         left, right = self, other
 
@@ -935,7 +907,7 @@ class RangeIndex(NumericIndex):
                 rstart = op(left.start, right)
                 rstop = op(left.stop, right)
 
-            result = type(self)(rstart, rstop, rstep, **attrs)
+            result = type(self)(rstart, rstop, rstep, name=self.name)
 
             # for compat with numpy / Int64Index
             # even if we can represent as a RangeIndex, return
@@ -947,5 +919,5 @@ class RangeIndex(NumericIndex):
 
         except (ValueError, TypeError, ZeroDivisionError):
             # Defer to Int64Index implementation
-            return op(self._int64index, other)
-            # TODO: Do attrs get handled reliably?
+            # test_arithmetic_explicit_conversions
+            return super()._arith_method(other, op)

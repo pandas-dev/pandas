@@ -8,6 +8,7 @@ from typing import (
     TYPE_CHECKING,
     Hashable,
     Iterable,
+    Literal,
     Mapping,
     cast,
     overload,
@@ -15,6 +16,7 @@ from typing import (
 
 import numpy as np
 
+from pandas._typing import Axis
 from pandas.util._decorators import (
     cache_readonly,
     deprecate_nonkeyword_arguments,
@@ -36,11 +38,11 @@ from pandas.core.indexes.api import (
     Index,
     MultiIndex,
     all_indexes_same,
+    default_index,
     ensure_index,
     get_objs_combined_axis,
     get_unanimous_names,
 )
-import pandas.core.indexes.base as ibase
 from pandas.core.internals import concatenate_managers
 
 if TYPE_CHECKING:
@@ -57,15 +59,63 @@ if TYPE_CHECKING:
 @overload
 def concat(
     objs: Iterable[DataFrame] | Mapping[Hashable, DataFrame],
-    axis=0,
-    join: str = "outer",
-    ignore_index: bool = False,
-    keys=None,
-    levels=None,
-    names=None,
-    verify_integrity: bool = False,
-    sort: bool = False,
-    copy: bool = True,
+    axis: Literal[0, "index"] = ...,
+    join: str = ...,
+    ignore_index: bool = ...,
+    keys=...,
+    levels=...,
+    names=...,
+    verify_integrity: bool = ...,
+    sort: bool = ...,
+    copy: bool = ...,
+) -> DataFrame:
+    ...
+
+
+@overload
+def concat(
+    objs: Iterable[Series] | Mapping[Hashable, Series],
+    axis: Literal[0, "index"] = ...,
+    join: str = ...,
+    ignore_index: bool = ...,
+    keys=...,
+    levels=...,
+    names=...,
+    verify_integrity: bool = ...,
+    sort: bool = ...,
+    copy: bool = ...,
+) -> Series:
+    ...
+
+
+@overload
+def concat(
+    objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
+    axis: Literal[0, "index"] = ...,
+    join: str = ...,
+    ignore_index: bool = ...,
+    keys=...,
+    levels=...,
+    names=...,
+    verify_integrity: bool = ...,
+    sort: bool = ...,
+    copy: bool = ...,
+) -> DataFrame | Series:
+    ...
+
+
+@overload
+def concat(
+    objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
+    axis: Literal[1, "columns"],
+    join: str = ...,
+    ignore_index: bool = ...,
+    keys=...,
+    levels=...,
+    names=...,
+    verify_integrity: bool = ...,
+    sort: bool = ...,
+    copy: bool = ...,
 ) -> DataFrame:
     ...
 
@@ -73,9 +123,9 @@ def concat(
 @overload
 def concat(
     objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
-    axis=0,
-    join: str = "outer",
-    ignore_index: bool = False,
+    axis: Axis = ...,
+    join: str = ...,
+    ignore_index: bool = ...,
     keys=None,
     levels=None,
     names=None,
@@ -89,8 +139,8 @@ def concat(
 @deprecate_nonkeyword_arguments(version=None, allowed_args=["objs"])
 def concat(
     objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
-    axis=0,
-    join="outer",
+    axis: Axis = 0,
+    join: str = "outer",
     ignore_index: bool = False,
     keys=None,
     levels=None,
@@ -504,7 +554,7 @@ class _Concatenator:
                 cons = sample._constructor_expanddim
 
                 index, columns = self.new_axes
-                df = cons(data, index=index)
+                df = cons(data, index=index, copy=self.copy)
                 df.columns = columns
                 return df.__finalize__(self, method="concat")
 
@@ -569,7 +619,7 @@ class _Concatenator:
             if self.bm_axis == 0:
                 indexes = [x.index for x in self.objs]
             elif self.ignore_index:
-                idx = ibase.default_index(len(self.objs))
+                idx = default_index(len(self.objs))
                 return idx
             elif self.keys is None:
                 names: list[Hashable] = [None] * len(self.objs)
@@ -590,14 +640,14 @@ class _Concatenator:
                 if has_names:
                     return Index(names)
                 else:
-                    return ibase.default_index(len(self.objs))
+                    return default_index(len(self.objs))
             else:
                 return ensure_index(self.keys).set_names(self.names)
         else:
             indexes = [x.axes[self.axis] for x in self.objs]
 
         if self.ignore_index:
-            idx = ibase.default_index(sum(len(i) for i in indexes))
+            idx = default_index(sum(len(i) for i in indexes))
             return idx
 
         if self.keys is None:
@@ -645,7 +695,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
         else:
             levels = [ensure_index(x) for x in levels]
 
-    if not all_indexes_same(indexes):
+    if not all_indexes_same(indexes) or not all(level.is_unique for level in levels):
         codes_list = []
 
         # things are potentially different sizes, so compute the exact codes
