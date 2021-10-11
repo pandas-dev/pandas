@@ -59,6 +59,17 @@ jobs:
       run: |
         pip list
         python -m pip install dist/*.gz
+    
+    - name: Force oldest supported NumPy
+      run: |
+        case "${{matrix.python-version}}" in
+        3.8)
+          pip install numpy==1.17.3 ;;
+        3.9)
+          pip install numpy==1.19.3 ;;
+        3.10)
+          pip install numpy==1.21.2 ;;
+        esac
 
     - name: Import pandas
       run: |
