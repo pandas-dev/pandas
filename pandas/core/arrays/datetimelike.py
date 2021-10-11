@@ -718,8 +718,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                     msg = self._validation_error_message(value, True)
                     raise TypeError(msg)
 
-        # Do type inference if necessary up front
+        # Do type inference if necessary up front (after unpacking PandasArray)
         # e.g. we passed PeriodIndex.values and got an ndarray of Periods
+        value = extract_array(value, extract_numpy=True)
         value = pd_array(value)
         value = extract_array(value, extract_numpy=True)
 
@@ -1702,6 +1703,17 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     """
     Common ops for TimedeltaIndex/DatetimeIndex, but not PeriodIndex.
     """
+
+    def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
+        if (
+            ufunc in [np.isnan, np.isinf, np.isfinite]
+            and len(inputs) == 1
+            and inputs[0] is self
+        ):
+            # numpy 1.18 changed isinf and isnan to not raise on dt64/td64
+            return getattr(ufunc, method)(self._ndarray, **kwargs)
+
+        return super().__array_ufunc__(ufunc, method, *inputs, **kwargs)
 
     def _round(self, freq, mode, ambiguous, nonexistent):
         # round the local times

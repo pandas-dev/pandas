@@ -1027,7 +1027,8 @@ class Index(IndexOpsMixin, PandasObject):
         taken = algos.take(
             self._values, indices, allow_fill=allow_fill, fill_value=self._na_value
         )
-        return type(self)._simple_new(taken, name=self.name)
+        # _constructor so RangeIndex->Int64Index
+        return self._constructor._simple_new(taken, name=self.name)
 
     @final
     def _maybe_disallow_fill(self, allow_fill: bool, fill_value, indices) -> bool:
@@ -1097,7 +1098,8 @@ class Index(IndexOpsMixin, PandasObject):
         nv.validate_repeat((), {"axis": axis})
         res_values = self._values.repeat(repeats)
 
-        return type(self)._simple_new(res_values, name=self.name)
+        # _constructor so RangeIndex->Int64Index
+        return self._constructor._simple_new(res_values, name=self.name)
 
     # --------------------------------------------------------------------
     # Copying Methods
@@ -2493,6 +2495,7 @@ class Index(IndexOpsMixin, PandasObject):
         )
         return self._is_all_dates
 
+    @final
     @cache_readonly
     def _is_multi(self) -> bool:
         """
@@ -6297,8 +6300,15 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.delete([0, 2])
         Index(['b'], dtype='object')
         """
-        res_values = np.delete(self._data, loc)
-        return type(self)._simple_new(res_values, name=self.name)
+        values = self._values
+        if isinstance(values, np.ndarray):
+            # TODO(__array_function__): special casing will be unnecessary
+            res_values = np.delete(values, loc)
+        else:
+            res_values = values.delete(loc)
+
+        # _constructor so RangeIndex->Int64Index
+        return self._constructor._simple_new(res_values, name=self.name)
 
     def insert(self, loc: int, item) -> Index:
         """
@@ -6327,13 +6337,24 @@ class Index(IndexOpsMixin, PandasObject):
             dtype = self._find_common_type_compat(item)
             return self.astype(dtype).insert(loc, item)
 
-        arr = np.asarray(self)
+        arr = self._values
 
-        # Use constructor to ensure we get tuples cast correctly.
+        if arr.dtype != object or not isinstance(
+            item, (tuple, np.datetime64, np.timedelta64)
+        ):
+            # with object-dtype we need to worry about numpy incorrectly casting
+            # dt64/td64 to integer, also about treating tuples as sequences
+            # special-casing dt64/td64 https://github.com/numpy/numpy/issues/12550
+            casted = arr.dtype.type(item)
+            new_values = np.insert(arr, loc, casted)
+
+        else:
+            new_values = np.insert(arr, loc, None)
+            new_values[loc] = item
+
         # Use self._constructor instead of Index to retain NumericIndex GH#43921
-        item = self._constructor([item], dtype=self.dtype)._values
-        idx = np.concatenate((arr[:loc], item, arr[loc:]))
-        return self._constructor._with_infer(idx, name=self.name)
+        # TODO(2.0) can use Index instead of self._constructor
+        return self._constructor._with_infer(new_values, name=self.name)
 
     def drop(self, labels, errors: str_t = "raise") -> Index:
         """
