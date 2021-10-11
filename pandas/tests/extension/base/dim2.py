@@ -194,7 +194,10 @@ class Dim2CompatTests(BaseExtensionTests):
             if method in ["sum", "prod"] and data.dtype.kind in ["i", "u"]:
                 # FIXME: kludge
                 if data.dtype.kind == "i":
-                    dtype = pd.Int64Dtype()
+                    if np.dtype(int).itemsize == 4:
+                        dtype = pd.Int32Dtype()
+                    else:
+                        dtype = pd.Int64Dtype()
                 else:
                     dtype = pd.UInt64Dtype()
 
