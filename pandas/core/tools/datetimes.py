@@ -935,31 +935,31 @@ def to_datetime(
     Default (utc=False) and tz-naive returns tz-naive DatetimeIndex:
 
     >>> pd.to_datetime(['2018-10-26 12:00', '2018-10-26 13:00:15'])
-    DatetimeIndex(['2018-10-26 12:00:00', '2018-10-26 13:00:15'], \
-    dtype='datetime64[ns]', freq=None)
+    DatetimeIndex(['2018-10-26 12:00:00', '2018-10-26 13:00:15'],
+                  dtype='datetime64[ns]', freq=None)
 
     Default (utc=False) and tz-aware with constant offset returns tz-aware
     DatetimeIndex:
 
     >>> pd.to_datetime(['2018-10-26 12:00 -0500', '2018-10-26 13:00 -0500'])
-    DatetimeIndex(['2018-10-26 12:00:00-05:00', '2018-10-26 13:00:00-05:00'], \
-    dtype='datetime64[ns, pytz.FixedOffset(-300)]', freq=None)
+    DatetimeIndex(['2018-10-26 12:00:00-05:00', '2018-10-26 13:00:00-05:00'],
+                  dtype='datetime64[ns, pytz.FixedOffset(-300)]', freq=None)
 
     Default (utc=False) and tz-aware with mixed offsets (for example from a
     timezone with daylight savings) returns a simple Index containing
     datetime.datetime objects:
 
     >>> pd.to_datetime(['2020-10-25 02:00 +0200', '2020-10-25 04:00 +0100'])
-    Index([2020-10-25 02:00:00+02:00, 2020-10-25 04:00:00+01:00], \
-    dtype='object')
+    Index([2020-10-25 02:00:00+02:00, 2020-10-25 04:00:00+01:00],
+          dtype='object')
 
     Default (utc=False) and a mix of tz-aware and tz-naive returns a tz-aware
     DatetimeIndex if the tz-naive are datetime...
 
     >>> from datetime import datetime
     >>> pd.to_datetime(["2020-01-01 01:00 -01:00", datetime(2020, 1, 1, 3, 0)])
-    DatetimeIndex(['2020-01-01 01:00:00-01:00', '2020-01-01 02:00:00-01:00'], \
-    dtype='datetime64[ns, pytz.FixedOffset(-60)]', freq=None)
+    DatetimeIndex(['2020-01-01 01:00:00-01:00', '2020-01-01 02:00:00-01:00'],
+                  dtype='datetime64[ns, pytz.FixedOffset(-60)]', freq=None)
 
     ...but does not if the tz-naive are strings
 
@@ -972,13 +972,14 @@ def to_datetime(
     >>> from datetime import datetime, timezone, timedelta
     >>> d = datetime(2020, 1, 1, 18, tzinfo=timezone(-timedelta(hours=1)))
     >>> d
-    datetime.datetime(2020, 1, 1, 18, 0, \
-    tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=82800)))
+    datetime.datetime(2020, 1, 1, 18, 0,
+                      tzinfo=datetime.timezone(datetime.timedelta(days=-1,
+                                                               seconds=82800)))
     >>> pd.to_datetime(["2020-01-01 17:00 -0100", d])
     Traceback (most recent call last):
         ...
-    ValueError: Tz-aware datetime.datetime cannot be converted to datetime64 \
-    unless utc=True
+    ValueError: Tz-aware datetime.datetime cannot be converted to datetime64
+                unless utc=True
 
     Setting utc=True solves most of the above issues, as tz-naive elements
     will be localized to UTC, while tz-aware ones will simply be converted to
@@ -986,17 +987,17 @@ def to_datetime(
 
     >>> pd.to_datetime(['2018-10-26 12:00 -0530', '2018-10-26 12:00 -0500'],
     ...                utc=True)
-    DatetimeIndex(['2018-10-26 17:30:00+00:00', '2018-10-26 17:00:00+00:00'], \
-    dtype='datetime64[ns, UTC]', freq=None)
+    DatetimeIndex(['2018-10-26 17:30:00+00:00', '2018-10-26 17:00:00+00:00'],
+                  dtype='datetime64[ns, UTC]', freq=None)
 
     >>> pd.to_datetime(['2018-10-26 12:00', '2018-10-26 12:00 -0530',
     ...                datetime(2020, 1, 1, 18),
     ...                datetime(2020, 1, 1, 18,
     ...                tzinfo=timezone(-timedelta(hours=1)))],
     ...                utc=True)
-    DatetimeIndex(['2018-10-26 12:00:00+00:00', '2018-10-26 17:30:00+00:00', \
-    '2020-01-01 18:00:00+00:00', '2020-01-01 19:00:00+00:00'], \
-    dtype='datetime64[ns, UTC]', freq=None)
+    DatetimeIndex(['2018-10-26 12:00:00+00:00', '2018-10-26 17:30:00+00:00',
+                   '2020-01-01 18:00:00+00:00', '2020-01-01 19:00:00+00:00'],
+                  dtype='datetime64[ns, UTC]', freq=None)
     """
     if arg is None:
         return None
