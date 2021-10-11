@@ -767,8 +767,8 @@ def to_datetime(
         Control timezone-related parsing, localization and conversion.
 
         - if True, returns a timezone-aware UTC-localized Timestamp, Series or
-          DatetimeIndex. Any tz-naive element will be *localized* as UTC.
-          Any already tz-aware input element (e.g. timezone-aware
+          DatetimeIndex. Any timezone-naive element will be *localized* as UTC.
+          Any already timezone-aware input element (e.g. timezone-aware
           datetime.datetime object, or datetime string with explicit timezone
           offset) will be *converted* to UTC.
 
@@ -777,7 +777,7 @@ def to_datetime(
           it will be a timezone-naive Timestamp.
           For multiple inputs (list, series):
 
-           - Tz-aware datetime.datetime inputs are not supported (raise
+           - Timezone-aware datetime.datetime inputs are not supported (raise
              ValueError).
            - The result will be a timezone-aware Series or DatetimeIndex
              ONLY if all time offsets in string datetime inputs are
@@ -856,8 +856,8 @@ def to_datetime(
     ValueError
         When another datetime conversion error happens. For example when one
         of 'year', 'month', day' is missing in a :class:`DataFrame`, or when
-        a Tz-aware datetime.datetime is found in an array-like of mixed time
-        offsets, and utc=False.
+        a Timezone-aware datetime.datetime is found in an array-like of mixed
+        time offsets, and utc=False.
 
     See Also
     --------
@@ -928,46 +928,47 @@ def to_datetime(
                   dtype='datetime64[ns]', freq=None)
 
     .. warning:: By default (utc=False), all items in an input array must
-        either be all tz-naive, or all tz-aware with the same offset. Mixed
-        offsets result in datetime.datetime objects being returned instead,
-        see examples below.
+        either be all timezone-naive, or all timezone-aware with the same
+        offset. Mixed offsets result in datetime.datetime objects being
+        returned instead, see examples below.
 
-    Default (utc=False) and tz-naive returns tz-naive DatetimeIndex:
+    Default (utc=False) and timezone-naive returns timezone-naive
+    DatetimeIndex:
 
     >>> pd.to_datetime(['2018-10-26 12:00', '2018-10-26 13:00:15'])
     DatetimeIndex(['2018-10-26 12:00:00', '2018-10-26 13:00:15'],
                   dtype='datetime64[ns]', freq=None)
 
-    Default (utc=False) and tz-aware with constant offset returns tz-aware
-    DatetimeIndex:
+    Default (utc=False) and timezone-aware with constant offset returns
+    timezone-aware DatetimeIndex:
 
     >>> pd.to_datetime(['2018-10-26 12:00 -0500', '2018-10-26 13:00 -0500'])
     DatetimeIndex(['2018-10-26 12:00:00-05:00', '2018-10-26 13:00:00-05:00'],
                   dtype='datetime64[ns, pytz.FixedOffset(-300)]', freq=None)
 
-    Default (utc=False) and tz-aware with mixed offsets (for example from a
-    timezone with daylight savings) returns a simple Index containing
+    Default (utc=False) and timezone-aware with mixed offsets (for example from
+    a timezone with daylight savings) returns a simple Index containing
     datetime.datetime objects:
 
     >>> pd.to_datetime(['2020-10-25 02:00 +0200', '2020-10-25 04:00 +0100'])
     Index([2020-10-25 02:00:00+02:00, 2020-10-25 04:00:00+01:00],
           dtype='object')
 
-    Default (utc=False) and a mix of tz-aware and tz-naive returns a tz-aware
-    DatetimeIndex if the tz-naive are datetime...
+    Default (utc=False) and a mix of timezone-aware and timezone-naive returns
+    a timezone-aware DatetimeIndex if the timezone-naive are datetime...
 
     >>> from datetime import datetime
     >>> pd.to_datetime(["2020-01-01 01:00 -01:00", datetime(2020, 1, 1, 3, 0)])
     DatetimeIndex(['2020-01-01 01:00:00-01:00', '2020-01-01 02:00:00-01:00'],
                   dtype='datetime64[ns, pytz.FixedOffset(-60)]', freq=None)
 
-    ...but does not if the tz-naive are strings
+    ...but does not if the timezone-naive are strings
 
     >>> pd.to_datetime(["2020-01-01 01:00 -01:00", "2020-01-01 03:00"])
     Index([2020-01-01 01:00:00-01:00, 2020-01-01 03:00:00], dtype='object')
 
-    Special case: mixing tz-aware string and datetime fails when utc=False,
-    even if they have the same time offset.
+    Special case: mixing timezone-aware string and datetime fails when
+    utc=False, even if they have the same time offset.
 
     >>> from datetime import datetime, timezone, timedelta
     >>> d = datetime(2020, 1, 1, 18, tzinfo=timezone(-timedelta(hours=1)))
@@ -981,9 +982,9 @@ def to_datetime(
     ValueError: Tz-aware datetime.datetime cannot be converted to datetime64
                 unless utc=True
 
-    Setting utc=True solves most of the above issues, as tz-naive elements
-    will be localized to UTC, while tz-aware ones will simply be converted to
-    UTC (exact same datetime, but represented differently):
+    Setting utc=True solves most of the above issues, as timezone-naive
+    elements will be localized to UTC, while timezone-aware ones will simply be
+    converted to UTC (exact same datetime, but represented differently):
 
     >>> pd.to_datetime(['2018-10-26 12:00 -0530', '2018-10-26 12:00 -0500'],
     ...                utc=True)
