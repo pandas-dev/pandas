@@ -38,7 +38,7 @@ import pandas._testing as tm
 from pandas.api.types import is_scalar
 from pandas.core.api import Float64Index
 from pandas.tests.indexing.common import Base
-import unittest
+
 
 
 class TestLoc(Base):
