@@ -766,7 +766,7 @@ def to_datetime(
     utc : bool, default None
         Control timezone-related parsing, localization and conversion.
 
-        - if True, returns a timezone-aware UTC-localized Timestamp, Series or
+        - If True, returns a timezone-aware UTC-localized Timestamp, Series or
           DatetimeIndex. Any timezone-naive element will be *localized* as UTC.
           Any already timezone-aware input element (e.g. timezone-aware
           datetime.datetime object, or datetime string with explicit timezone
