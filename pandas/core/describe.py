@@ -179,9 +179,7 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
             sort=False,
         )
         d.columns = data.columns.copy()
-        # Incompatible return value type (got "Union[DataFrame, Series]",
-        # expected "DataFrame")
-        return d  # type: ignore[return-value]
+        return d
 
     def _select_data(self):
         """Select columns to be described."""
