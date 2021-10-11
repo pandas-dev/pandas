@@ -50,7 +50,7 @@ jobs:
     - task: Cache@2
         displayName: Use cached Anaconda environment
         inputs:
-          key: 'conda | "$(Agent.OS)" | "ci\\deps\\azure-windows-$(CONDA_PY).yaml"'
+          key: 'conda | "$(Agent.OS)" | "ci\deps\azure-windows-$(CONDA_PY).yaml"'
           restoreKeys: |
             python | "$(Agent.OS)"
             python
