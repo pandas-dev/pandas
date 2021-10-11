@@ -1046,7 +1046,7 @@ cdef class StringHashTable(HashTable):
             not None, then _additionally_ any value "val" satisfying
             val == na_value is considered missing.
         mask : ndarray[bool], optional
-            Not yet implementd for StringHashTable.
+            Not yet implemented for StringHashTable.
 
         Returns
         -------
