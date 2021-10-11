@@ -6708,17 +6708,19 @@ class Index(IndexOpsMixin, PandasObject):
             )
 
 
-def ensure_index_from_sequences(sequences, names=None) -> Index:
+def ensure_index_from_sequences(
+    sequences, names: Sequence[str] | None = None
+) -> Index | MultiIndex:
     """
     Construct an index from sequences of data.
 
-    A single sequence returns an Index. Many sequences returns a
+    A single sequence returns an Index. Multiple sequences returns a
     MultiIndex.
 
     Parameters
     ----------
     sequences : sequence of sequences
-    names : sequence of str
+    names : sequence of str, optional
 
     Returns
     -------
@@ -6748,7 +6750,9 @@ def ensure_index_from_sequences(sequences, names=None) -> Index:
         return MultiIndex.from_arrays(sequences, names=names)
 
 
-def ensure_index(index_like: AnyArrayLike | Sequence, copy: bool = False) -> Index:
+def ensure_index(
+    index_like: AnyArrayLike | Sequence, copy: bool = False
+) -> Index | MultiIndex:
     """
     Ensure that we have an index from some index-like object.
 
