@@ -402,6 +402,7 @@ cdef class IndexEngine:
 
                         if stargets_has_dt64nat:
                             if not d_has_dt64nat:
+                                # store to ensure future access to `d` uses same key
                                 dt64nat = np.datetime64("NaT")
                                 d[dt64nat] = []
                                 d_has_dt64nat = True
@@ -417,6 +418,7 @@ cdef class IndexEngine:
 
                         if stargets_has_td64nat:
                             if not d_has_td64nat:
+                                # store to ensure future access to `d` uses same key
                                 td64nat = np.timedelta64("NaT")
                                 d[td64nat] = []
                                 d_has_td64nat = True
@@ -425,6 +427,9 @@ cdef class IndexEngine:
         for i in range(n_t):
             val = targets[i]
             # found
+            # cannot search for nan/nat target using `in`,
+            # need to lookup key using d_has_...
+            # and confirm na type via util function
             if (
                 val in d
                 or (d_has_nan and util.is_nan(val))
