@@ -2834,7 +2834,7 @@ class TestLocSeries:
 
     @td.skip_array_manager_invalid_test
     def test_loc_setitem_dict_timedelta_multiple_set(self):
-        # GH 16309s
+        # GH 16309
         result = DataFrame(columns=["time", "value"])
         result.loc[1] = {"time": Timedelta(6, unit="s"), "value": "foo"}
         result.loc[1] = {"time": Timedelta(6, unit="s"), "value": "foo"}
@@ -2858,15 +2858,3 @@ class TestLocSeries:
         )
 
         tm.assert_frame_equal(df, expected)
-
-
-class TestLoc3(unittest.TestCase): #test case for issue #43599
-    def test_loc_multiindex(self):
-        df = pd.DataFrame(index=pd.MultiIndex.from_product([list('abc'), list('de'), list('f')]), columns=['Val'])
-        df1=df.loc[np.s_[:,'d',:]]
-        df2=pd.DataFrame(index=pd.MultiIndex.from_product([list('abc'), list('d'), list('f')]), columns=['Val'])
-
-        
-        tm.assert_frame_equal(df1,df2)
-
-
