@@ -2,12 +2,13 @@
 
 import numpy as np
 import pytest
+from matplotlib.text import Text
 
 import pandas.util._test_decorators as td
 
 from pandas import (
     DataFrame,
-    Series,
+    Series, Index,
 )
 import pandas._testing as tm
 from pandas.tests.plotting.common import (
@@ -449,6 +450,25 @@ class TestDataFramePlots(TestPlotBase):
         ax = df1.plot(kind="line", color=dic_color)
         colors = [rect.get_color() for rect in ax.get_lines()[0:2]]
         assert all(color == expected[index] for index, color in enumerate(colors))
+
+    def test_bar_plot(self):
+        # issue-38947
+        # Test bar plot with string index
+
+        expected = [Text(0, 0, '0'), Text(1, 0, 'Total')]
+
+        df = DataFrame(
+            {
+                'a': [1, 2],
+            },
+            index=Index([0, 'Total'])
+        )
+
+        try:
+            plot_bar = df.plot.bar()
+            assert all([a.__eq__(b) for a, b in zip(plot_bar.get_xticklabels(), expected)])
+        except TypeError as e:
+            assert False
 
     def test_has_externally_shared_axis_x_axis(self):
         # GH33819
