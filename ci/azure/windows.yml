@@ -2,6 +2,11 @@ parameters:
   name: ''
   vmImage: ''
 
+
+variables:
+  CONDA_CACHE_DIR: $(Pipeline.Workspace)/.condarc
+
+
 jobs:
 - job: ${{ parameters.name }}
   pool:
@@ -41,12 +46,25 @@ jobs:
         Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
         Write-Host "##vso[task.prependpath]$HOME/miniconda3/bin"
       displayName: 'Add conda to PATH'
+
+    - task: Cache@2
+        displayName: Use cached Anaconda environment
+        inputs:
+          key: 'conda | "$(Agent.OS)" | "ci\\deps\\azure-windows-$(CONDA_PY).yaml"'
+          restoreKeys: |
+            python | "$(Agent.OS)"
+            python
+          path: $(CONDA_CACHE_DIR)
+          cacheHitVar: CONDA_CACHE_RESTORED
+
     - script: conda update -q -n base conda
       displayName: 'Update conda'
 
     - bash: |
         conda env create -q --file ci\\deps\\azure-windows-$(CONDA_PY).yaml
       displayName: 'Create anaconda environment'
+      condition: eq(variables.CONDA_CACHE_RESTORED, 'false')
+
     - bash: |
         source activate pandas-dev
         conda list
