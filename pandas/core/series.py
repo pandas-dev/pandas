@@ -3692,11 +3692,11 @@ Keep all original rows and also all original values
             Series of `n` elements:
 
             - ``first`` : return the first `n` occurrences in order
-                of appearance.
+              of appearance.
             - ``last`` : return the last `n` occurrences in reverse
-                order of appearance.
+              order of appearance.
             - ``all`` : keep all occurrences. This can result in a Series of
-                size larger than `n`.
+              size larger than `n`.
 
         Returns
         -------
