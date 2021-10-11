@@ -129,7 +129,6 @@ _all_methods = [
             frame_data,
             operator.methodcaller("combine", pd.DataFrame(*frame_data), operator.add),
         ),
-        marks=not_implemented_mark,
     ),
     pytest.param(
         (
@@ -137,7 +136,6 @@ _all_methods = [
             frame_data,
             operator.methodcaller("combine_first", pd.DataFrame(*frame_data)),
         ),
-        marks=not_implemented_mark,
     ),
     pytest.param(
         (
@@ -159,10 +157,7 @@ _all_methods = [
         operator.methodcaller("pivot_table", columns="A", aggfunc=["mean", "sum"]),
     ),
     (pd.DataFrame, frame_data, operator.methodcaller("stack")),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("explode", "A")),
-        marks=not_implemented_mark,
-    ),
+    (pd.DataFrame, frame_data, operator.methodcaller("explode", "A")),
     (pd.DataFrame, frame_mi_data, operator.methodcaller("unstack")),
     pytest.param(
         (
@@ -170,7 +165,6 @@ _all_methods = [
             ({"A": ["a", "b", "c"], "B": [1, 3, 5], "C": [2, 4, 6]},),
             operator.methodcaller("melt", id_vars=["A"], value_vars=["B"]),
         ),
-        marks=not_implemented_mark,
     ),
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("applymap", lambda x: x))
@@ -195,7 +189,6 @@ _all_methods = [
             frame_data,
             operator.methodcaller("merge", pd.DataFrame({"A": [1]})),
         ),
-        marks=not_implemented_mark,
     ),
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("round", 2)),
@@ -243,22 +236,10 @@ _all_methods = [
         (pd.DataFrame, frame_data, operator.methodcaller("idxmax")),
         marks=not_implemented_mark,
     ),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("mode")),
-        marks=not_implemented_mark,
-    ),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("quantile")),
-        marks=not_implemented_mark,
-    ),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("quantile", q=[0.25, 0.75])),
-        marks=not_implemented_mark,
-    ),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("quantile")),
-        marks=not_implemented_mark,
-    ),
+    (pd.DataFrame, frame_data, operator.methodcaller("mode")),
+    (pd.DataFrame, frame_data, operator.methodcaller("quantile")),
+    (pd.DataFrame, frame_data, operator.methodcaller("quantile", q=[0.25, 0.75])),
+    (pd.DataFrame, frame_data, operator.methodcaller("quantile")),
     (
         pd.DataFrame,
         ({"A": [1]}, [pd.Period("2000", "D")]),
@@ -269,21 +250,16 @@ _all_methods = [
         ({"A": [1]}, [pd.Timestamp("2000")]),
         operator.methodcaller("to_period", freq="D"),
     ),
+    pytest.param((pd.DataFrame, frame_mi_data, operator.methodcaller("isin", [1]))),
     pytest.param(
-        (pd.DataFrame, frame_mi_data, operator.methodcaller("isin", [1])),
-        marks=not_implemented_mark,
-    ),
-    pytest.param(
-        (pd.DataFrame, frame_mi_data, operator.methodcaller("isin", pd.Series([1]))),
-        marks=not_implemented_mark,
+        (pd.DataFrame, frame_mi_data, operator.methodcaller("isin", pd.Series([1])))
     ),
     pytest.param(
         (
             pd.DataFrame,
             frame_mi_data,
             operator.methodcaller("isin", pd.DataFrame({"A": [1]})),
-        ),
-        marks=not_implemented_mark,
+        )
     ),
     (pd.DataFrame, frame_data, operator.methodcaller("swapaxes", 0, 1)),
     (pd.DataFrame, frame_mi_data, operator.methodcaller("droplevel", "A")),

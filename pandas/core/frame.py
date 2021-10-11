@@ -7355,7 +7355,9 @@ Keep all original rows and columns and also all original values
             result[col] = arr
 
         # convert_objects just in case
-        return self._constructor(result, index=new_index, columns=new_columns)
+        return self._constructor(
+            result, index=new_index, columns=new_columns
+        ).__finalize__(self, method="combine")
 
     def combine_first(self, other: DataFrame) -> DataFrame:
         """
@@ -8331,7 +8333,7 @@ NaN 12.3   33.0
             result.index = self.index.take(result.index)
         result = result.reindex(columns=self.columns, copy=False)
 
-        return result
+        return result.__finalize__(self, method="explode")
 
     def unstack(self, level: Level = -1, fill_value=None):
         """
@@ -8415,7 +8417,7 @@ NaN 12.3   33.0
             value_name=value_name,
             col_level=col_level,
             ignore_index=ignore_index,
-        )
+        ).__finalize__(self, method="melt")
 
     # ----------------------------------------------------------------------
     # Time series-related
@@ -9277,7 +9279,7 @@ NaN 12.3   33.0
             copy=copy,
             indicator=indicator,
             validate=validate,
-        )
+        ).__finalize__(self, method="merge")
 
     def round(
         self, decimals: int | dict[IndexLabel, int] | Series = 0, *args, **kwargs
@@ -10294,7 +10296,7 @@ NaN 12.3   33.0
         if data.empty:
             data.index = default_index(0)
 
-        return data
+        return data.__finalize__(self, method="mode")
 
     def quantile(
         self,
@@ -10375,7 +10377,7 @@ NaN 12.3   33.0
             res = self.quantile(
                 [q], axis=axis, numeric_only=numeric_only, interpolation=interpolation
             )
-            return res.iloc[0]
+            return res.iloc[0].__finalize__(self, method="quantile")
 
         q = Index(q, dtype=np.float64)
         data = self._get_numeric_data() if numeric_only else self
@@ -10394,7 +10396,7 @@ NaN 12.3   33.0
         res = data._mgr.quantile(qs=q, axis=1, interpolation=interpolation)
 
         result = self._constructor(res)
-        return result
+        return result.__finalize__(self, method="quantile")
 
     @doc(NDFrame.asfreq, **_shared_doc_kwargs)
     def asfreq(
@@ -10588,15 +10590,17 @@ NaN 12.3   33.0
                     for i, col in enumerate(self.columns)
                 ),
                 axis=1,
-            )
+            ).__finalize__(self, method="isin")
         elif isinstance(values, Series):
             if not values.index.is_unique:
                 raise ValueError("cannot compute isin with a duplicate axis.")
-            return self.eq(values.reindex_like(self), axis="index")
+            return self.eq(values.reindex_like(self), axis="index").__finalize__(
+                self, method="isin"
+            )
         elif isinstance(values, DataFrame):
             if not (values.columns.is_unique and values.index.is_unique):
                 raise ValueError("cannot compute isin with a duplicate axis.")
-            return self.eq(values.reindex_like(self))
+            return self.eq(values.reindex_like(self)).__finalize__(self, method="isin")
         else:
             if not is_list_like(values):
                 raise TypeError(
@@ -10608,7 +10612,7 @@ NaN 12.3   33.0
                 algorithms.isin(self.values.ravel(), values).reshape(self.shape),
                 self.index,
                 self.columns,
-            )
+            ).__finalize__(self, method="isin")
 
     # ----------------------------------------------------------------------
     # Add index and columns
