@@ -104,7 +104,6 @@ from pandas.core.arrays.sparse import SparseAccessor
 import pandas.core.common as com
 from pandas.core.construction import (
     create_series_with_explicit_dtype,
-    ensure_wrapped_if_datetimelike,
     extract_array,
     is_empty_data,
     sanitize_array,
@@ -123,6 +122,7 @@ from pandas.core.indexes.api import (
     MultiIndex,
     PeriodIndex,
     TimedeltaIndex,
+    default_index,
     ensure_index,
 )
 import pandas.core.indexes.base as ibase
@@ -143,6 +143,11 @@ import pandas.io.formats.format as fmt
 import pandas.plotting
 
 if TYPE_CHECKING:
+
+    from pandas._typing import (
+        NumpySorter,
+        NumpyValueArrayLike,
+    )
 
     from pandas.core.frame import DataFrame
     from pandas.core.groupby.generic import SeriesGroupBy
@@ -421,7 +426,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             if index is None:
                 if not is_list_like(data):
                     data = [data]
-                index = ibase.default_index(len(data))
+                index = default_index(len(data))
             elif is_list_like(data):
                 com.require_length_match(data, index)
 
@@ -444,7 +449,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         self.name = name
         self._set_axis(0, index, fastpath=True)
 
-    def _init_dict(self, data, index=None, dtype: Dtype | None = None):
+    def _init_dict(
+        self, data, index: Index | None = None, dtype: DtypeObj | None = None
+    ):
         """
         Derive the "_mgr" and "index" attributes of a new Series from a
         dictionary input.
@@ -453,9 +460,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         ----------
         data : dict or dict-like
             Data used to populate the new Series.
-        index : Index or index-like, default None
+        index : Index or None, default None
             Index for the new Series: if None, use dict keys.
-        dtype : dtype, default None
+        dtype : np.dtype, ExtensionDtype, or None, default None
             The dtype for the new Series: if None, infer from data.
 
         Returns
@@ -463,6 +470,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         _data : BlockManager for the new Series
         index : index for the new Series
         """
+        keys: Index | tuple
+
         # Looking for NaN in dict doesn't work ({np.nan : 1}[float('nan')]
         # raises KeyError), so we iterate the entire dict, and align
         if data:
@@ -475,7 +484,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         elif index is not None:
             # fastpath for Series(data=None). Just use broadcasting a scalar
             # instead of reindexing.
-            values = na_value_for_dtype(pandas_dtype(dtype))
+            values = na_value_for_dtype(pandas_dtype(dtype), compat=False)
             keys = index
         else:
             keys, values = (), []
@@ -519,8 +528,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _can_hold_na(self) -> bool:
         return self._mgr._can_hold_na
 
-    _index: Index | None = None
-
     def _set_axis(self, axis: int, labels, fastpath: bool = False) -> None:
         """
         Override generic, we want to set the _typ here.
@@ -549,7 +556,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     # or not be a DatetimeIndex
                     pass
 
-        object.__setattr__(self, "_index", labels)
         if not fastpath:
             # The ensure_index call above ensures we have an Index object
             self._mgr.set_axis(axis, labels)
@@ -1423,7 +1429,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if drop:
-            new_index = ibase.default_index(len(self))
+            new_index = default_index(len(self))
             if level is not None:
                 if not isinstance(level, (tuple, list)):
                     level = [level]
@@ -1739,12 +1745,19 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         1    b
         2    c
         """
+        columns: Index
         if name is None:
-            df = self._constructor_expanddim(self)
+            name = self.name
+            if name is None:
+                # default to [0], same as we would get with DataFrame(self)
+                columns = default_index(1)
+            else:
+                columns = Index([name])
         else:
-            df = self._constructor_expanddim({name: self})
+            columns = Index([name])
 
-        return df
+        mgr = self._mgr.to_2d_mgr(columns)
+        return self._constructor_expanddim(mgr)
 
     def _set_name(self, name, inplace=False) -> Series:
         """
@@ -2781,8 +2794,14 @@ Name: Max Speed, dtype: float64
         return self.dot(np.transpose(other))
 
     @doc(base.IndexOpsMixin.searchsorted, klass="Series")
-    def searchsorted(self, value, side="left", sorter=None) -> np.ndarray:
-        return algorithms.searchsorted(self._values, value, side=side, sorter=sorter)
+    # Signature of "searchsorted" incompatible with supertype "IndexOpsMixin"
+    def searchsorted(  # type: ignore[override]
+        self,
+        value: NumpyValueArrayLike | ExtensionArray,
+        side: Literal["left", "right"] = "left",
+        sorter: NumpySorter = None,
+    ) -> npt.NDArray[np.intp] | np.intp:
+        return base.IndexOpsMixin.searchsorted(self, value, side=side, sorter=sorter)
 
     # -------------------------------------------------------------------
     # Combination
@@ -3453,7 +3472,7 @@ Keep all original rows and also all original values
         )
 
         if ignore_index:
-            result.index = ibase.default_index(len(sorted_index))
+            result.index = default_index(len(sorted_index))
 
         if inplace:
             self._update_inplace(result)
@@ -3651,16 +3670,14 @@ Keep all original rows and also all original values
         mask = isna(values)
 
         if mask.any():
-            result = Series(-1, index=self.index, name=self.name, dtype="int64")
+            result = np.full(len(self), -1, dtype=np.intp)
             notmask = ~mask
             result[notmask] = np.argsort(values[notmask], kind=kind)
-            return self._constructor(result, index=self.index).__finalize__(
-                self, method="argsort"
-            )
         else:
-            return self._constructor(
-                np.argsort(values, kind=kind), index=self.index, dtype="int64"
-            ).__finalize__(self, method="argsort")
+            result = np.argsort(values, kind=kind)
+
+        res = self._constructor(result, index=self.index, name=self.name, dtype=np.intp)
+        return res.__finalize__(self, method="argsort")
 
     def nlargest(self, n=5, keep="first") -> Series:
         """
@@ -4026,7 +4043,7 @@ Keep all original rows and also all original values
         values, counts = reshape.explode(np.asarray(self._values))
 
         if ignore_index:
-            index = ibase.default_index(len(values))
+            index = default_index(len(values))
         else:
             index = self.index.repeat(counts)
 
@@ -5097,7 +5114,7 @@ Keep all original rows and also all original values
         """
         if inclusive is True or inclusive is False:
             warnings.warn(
-                "Boolean inputs to the `inclusive` argument are deprecated in"
+                "Boolean inputs to the `inclusive` argument are deprecated in "
                 "favour of `both` or `neither`.",
                 FutureWarning,
                 stacklevel=2,
@@ -5514,18 +5531,8 @@ Keep all original rows and also all original values
         return self._construct_result(res_values, name=res_name)
 
     def _arith_method(self, other, op):
-        res_name = ops.get_op_result_name(self, other)
         self, other = ops.align_method_SERIES(self, other)
-
-        lvalues = self._values
-        rvalues = extract_array(other, extract_numpy=True, extract_range=True)
-        rvalues = ops.maybe_prepare_scalar_for_op(rvalues, lvalues.shape)
-        rvalues = ensure_wrapped_if_datetimelike(rvalues)
-
-        with np.errstate(all="ignore"):
-            result = ops.arithmetic_op(lvalues, rvalues, op)
-
-        return self._construct_result(result, name=res_name)
+        return base.IndexOpsMixin._arith_method(self, other, op)
 
 
 Series._add_numeric_operations()

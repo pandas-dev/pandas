@@ -200,7 +200,7 @@ cdef inline int64_t get_datetime64_nanos(object val) except? -1:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def ensure_datetime64ns(arr: ndarray, copy: bool=True):
+def ensure_datetime64ns(arr: ndarray, copy: bool = True):
     """
     Ensure a np.datetime64 array has dtype specifically 'datetime64[ns]'
 
@@ -260,7 +260,7 @@ def ensure_datetime64ns(arr: ndarray, copy: bool=True):
     return result
 
 
-def ensure_timedelta64ns(arr: ndarray, copy: bool=True):
+def ensure_timedelta64ns(arr: ndarray, copy: bool = True):
     """
     Ensure a np.timedelta64 array has dtype specifically 'timedelta64[ns]'
 

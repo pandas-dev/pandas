@@ -3,13 +3,15 @@ import pytest
 
 from pandas import (
     DataFrame,
-    Float64Index,
     Index,
-    Int64Index,
     RangeIndex,
     Series,
 )
 import pandas._testing as tm
+from pandas.core.api import (
+    Float64Index,
+    Int64Index,
+)
 
 
 def gen_obj(klass, index):

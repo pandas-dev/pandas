@@ -194,8 +194,6 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
             np.int64: libindex.Int64Engine,
         }[self.codes.dtype.type]
 
-    _attributes = ["name"]
-
     # --------------------------------------------------------------------
     # Constructors
 
@@ -216,7 +214,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
             warnings.warn(
                 "Constructing a CategoricalIndex without passing data is "
                 "deprecated and will raise in a future version. "
-                "Use CategoricalIndex([], ...) instead",
+                "Use CategoricalIndex([], ...) instead.",
                 FutureWarning,
                 stacklevel=2,
             )
@@ -283,7 +281,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
 
     @doc(Index.astype)
     def astype(self, dtype: Dtype, copy: bool = True) -> Index:
-        from pandas.core.api import NumericIndex
+        from pandas import NumericIndex
 
         dtype = pandas_dtype(dtype)
 
@@ -426,6 +424,14 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
             missing = np.array([], dtype=np.intp)
         else:
             indexer, missing = self.get_indexer_non_unique(target)
+            if not self.is_unique:
+                # GH#42568
+                warnings.warn(
+                    "reindexing with a non-unique Index is deprecated and will "
+                    "raise in a future version.",
+                    FutureWarning,
+                    stacklevel=2,
+                )
 
         if len(self) and indexer is not None:
             new_target = self.take(indexer)
@@ -496,7 +502,8 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
     def take_nd(self, *args, **kwargs):
         """Alias for `take`"""
         warnings.warn(
-            "CategoricalIndex.take_nd is deprecated, use CategoricalIndex.take instead",
+            "CategoricalIndex.take_nd is deprecated, use CategoricalIndex.take "
+            "instead.",
             FutureWarning,
             stacklevel=2,
         )

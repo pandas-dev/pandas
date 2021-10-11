@@ -92,32 +92,44 @@ def pytest_addoption(parser):
     )
 
 
-def pytest_runtest_setup(item):
-    if "slow" in item.keywords and item.config.getoption("--skip-slow"):
-        pytest.skip("skipping due to --skip-slow")
+def pytest_collection_modifyitems(items, config):
+    skip_slow = config.getoption("--skip-slow")
+    only_slow = config.getoption("--only-slow")
+    skip_network = config.getoption("--skip-network")
+    skip_db = config.getoption("--skip-db")
+    run_high_memory = config.getoption("--run-high-memory")
 
-    if "slow" not in item.keywords and item.config.getoption("--only-slow"):
-        pytest.skip("skipping due to --only-slow")
+    marks = [
+        (pytest.mark.slow, "slow", skip_slow, "--skip-slow"),
+        (pytest.mark.network, "network", skip_network, "--network"),
+        (pytest.mark.db, "db", skip_db, "--skip-db"),
+    ]
 
-    if "network" in item.keywords and item.config.getoption("--skip-network"):
-        pytest.skip("skipping due to --skip-network")
-
-    if "db" in item.keywords and item.config.getoption("--skip-db"):
-        pytest.skip("skipping due to --skip-db")
-
-    if "high_memory" in item.keywords and not item.config.getoption(
-        "--run-high-memory"
-    ):
-        pytest.skip("skipping high memory test since --run-high-memory was not set")
-
-
-def pytest_collection_modifyitems(items):
     for item in items:
         # mark all tests in the pandas/tests/frame directory with "arraymanager"
         if "/frame/" in item.nodeid:
             item.add_marker(pytest.mark.arraymanager)
-
         item.add_marker(suppress_npdev_promotion_warning)
+
+        for (mark, kwd, skip_if_found, arg_name) in marks:
+            if kwd in item.keywords:
+                # If we're skipping, no need to actually add the marker or look for
+                # other markers
+                if skip_if_found:
+                    item.add_marker(pytest.mark.skip(f"skipping due to {arg_name}"))
+                    break
+
+                item.add_marker(mark)
+
+        if only_slow and "slow" not in item.keywords:
+            item.add_marker(pytest.mark.skip("skipping due to --only-slow"))
+
+        if "high_memory" in item.keywords and not run_high_memory:
+            item.add_marker(
+                pytest.mark.skip(
+                    "skipping high memory test since --run-high-memory was not set"
+                )
+            )
 
 
 # Hypothesis
@@ -226,6 +238,14 @@ def keep(request):
     """
     Valid values for the 'keep' parameter used in
     .duplicated or .drop_duplicates
+    """
+    return request.param
+
+
+@pytest.fixture(params=["both", "neither", "left", "right"])
+def inclusive_endpoints_fixture(request):
+    """
+    Fixture for trying all interval 'inclusive' parameters.
     """
     return request.param
 
@@ -1232,8 +1252,8 @@ def timedelta64_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.FLOAT_DTYPES)
-def float_dtype(request):
+@pytest.fixture(params=tm.FLOAT_NUMPY_DTYPES)
+def float_numpy_dtype(request):
     """
     Parameterized fixture for float dtypes.
 
@@ -1255,8 +1275,8 @@ def float_ea_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.FLOAT_DTYPES + tm.FLOAT_EA_DTYPES)
-def any_float_allowed_nullable_dtype(request):
+@pytest.fixture(params=tm.FLOAT_NUMPY_DTYPES + tm.FLOAT_EA_DTYPES)
+def any_float_dtype(request):
     """
     Parameterized fixture for float dtypes.
 
@@ -1281,8 +1301,8 @@ def complex_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.SIGNED_INT_DTYPES)
-def sint_dtype(request):
+@pytest.fixture(params=tm.SIGNED_INT_NUMPY_DTYPES)
+def any_signed_int_numpy_dtype(request):
     """
     Parameterized fixture for signed integer dtypes.
 
@@ -1295,8 +1315,8 @@ def sint_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.UNSIGNED_INT_DTYPES)
-def uint_dtype(request):
+@pytest.fixture(params=tm.UNSIGNED_INT_NUMPY_DTYPES)
+def any_unsigned_int_numpy_dtype(request):
     """
     Parameterized fixture for unsigned integer dtypes.
 
@@ -1308,8 +1328,8 @@ def uint_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.ALL_INT_DTYPES)
-def any_int_dtype(request):
+@pytest.fixture(params=tm.ALL_INT_NUMPY_DTYPES)
+def any_int_numpy_dtype(request):
     """
     Parameterized fixture for any integer dtype.
 
@@ -1326,8 +1346,8 @@ def any_int_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.ALL_EA_INT_DTYPES)
-def any_nullable_int_dtype(request):
+@pytest.fixture(params=tm.ALL_INT_EA_DTYPES)
+def any_int_ea_dtype(request):
     """
     Parameterized fixture for any nullable integer dtype.
 
@@ -1343,8 +1363,8 @@ def any_nullable_int_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.ALL_INT_DTYPES + tm.ALL_EA_INT_DTYPES)
-def any_int_or_nullable_int_dtype(request):
+@pytest.fixture(params=tm.ALL_INT_NUMPY_DTYPES + tm.ALL_INT_EA_DTYPES)
+def any_int_dtype(request):
     """
     Parameterized fixture for any nullable integer dtype.
 
@@ -1369,8 +1389,8 @@ def any_int_or_nullable_int_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.ALL_EA_INT_DTYPES + tm.FLOAT_EA_DTYPES)
-def any_nullable_numeric_dtype(request):
+@pytest.fixture(params=tm.ALL_INT_EA_DTYPES + tm.FLOAT_EA_DTYPES)
+def any_numeric_ea_dtype(request):
     """
     Parameterized fixture for any nullable integer dtype and
     any float ea dtypes.
@@ -1389,8 +1409,8 @@ def any_nullable_numeric_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.SIGNED_EA_INT_DTYPES)
-def any_signed_nullable_int_dtype(request):
+@pytest.fixture(params=tm.SIGNED_INT_EA_DTYPES)
+def any_signed_int_ea_dtype(request):
     """
     Parameterized fixture for any signed nullable integer dtype.
 
@@ -1402,8 +1422,8 @@ def any_signed_nullable_int_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.ALL_REAL_DTYPES)
-def any_real_dtype(request):
+@pytest.fixture(params=tm.ALL_REAL_NUMPY_DTYPES)
+def any_real_numpy_dtype(request):
     """
     Parameterized fixture for any (purely) real numeric dtype.
 

@@ -792,6 +792,15 @@ def test_iter_rolling_on_dataframe(expected, window):
         tm.assert_frame_equal(actual, expected)
 
 
+def test_iter_rolling_on_dataframe_unordered():
+    # GH 43386
+    df = DataFrame({"a": ["x", "y", "x"], "b": [0, 1, 2]})
+    results = list(df.groupby("a").rolling(2))
+    expecteds = [df.iloc[idx, [1]] for idx in [[0], [0, 2], [1]]]
+    for result, expected in zip(results, expecteds):
+        tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "ser,expected,window, min_periods",
     [
@@ -1202,6 +1211,39 @@ def test_rolling_decreasing_indices(method):
 
 
 @pytest.mark.parametrize(
+    "window,closed,expected",
+    [
+        ("2s", "right", [1.0, 3.0, 5.0, 3.0]),
+        ("2s", "left", [0.0, 1.0, 3.0, 5.0]),
+        ("2s", "both", [1.0, 3.0, 6.0, 5.0]),
+        ("2s", "neither", [0.0, 1.0, 2.0, 3.0]),
+        ("3s", "right", [1.0, 3.0, 6.0, 5.0]),
+        ("3s", "left", [1.0, 3.0, 6.0, 5.0]),
+        ("3s", "both", [1.0, 3.0, 6.0, 5.0]),
+        ("3s", "neither", [1.0, 3.0, 6.0, 5.0]),
+    ],
+)
+def test_rolling_decreasing_indices_centered(window, closed, expected, frame_or_series):
+    """
+    Ensure that a symmetrical inverted index return same result as non-inverted.
+    """
+    #  GH 43927
+
+    index = date_range("2020", periods=4, freq="1s")
+    df_inc = frame_or_series(range(4), index=index)
+    df_dec = frame_or_series(range(4), index=index[::-1])
+
+    expected_inc = frame_or_series(expected, index=index)
+    expected_dec = frame_or_series(expected, index=index[::-1])
+
+    result_inc = df_inc.rolling(window, closed=closed, center=True).sum()
+    result_dec = df_dec.rolling(window, closed=closed, center=True).sum()
+
+    tm.assert_equal(result_inc, expected_inc)
+    tm.assert_equal(result_dec, expected_dec)
+
+
+@pytest.mark.parametrize(
     "method,expected",
     [
         (
@@ -1456,10 +1498,13 @@ def test_rolling_zero_window():
     tm.assert_series_equal(result, expected)
 
 
-def test_rolling_float_dtype(float_dtype):
+def test_rolling_float_dtype(float_numpy_dtype):
     # GH#42452
-    df = DataFrame({"A": range(5), "B": range(10, 15)}, dtype=float_dtype)
-    expected = DataFrame({"A": [np.nan] * 5, "B": range(10, 20, 2)}, dtype=float_dtype)
+    df = DataFrame({"A": range(5), "B": range(10, 15)}, dtype=float_numpy_dtype)
+    expected = DataFrame(
+        {"A": [np.nan] * 5, "B": range(10, 20, 2)},
+        dtype=float_numpy_dtype,
+    )
     result = df.rolling(2, axis=1).sum()
     tm.assert_frame_equal(result, expected, check_dtype=False)
 
@@ -1497,3 +1542,27 @@ def test_rolling_numeric_dtypes():
         dtype="float64",
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("window", [1, 3, 10, 20])
+@pytest.mark.parametrize("method", ["min", "max", "average"])
+@pytest.mark.parametrize("pct", [True, False])
+@pytest.mark.parametrize("ascending", [True, False])
+@pytest.mark.parametrize("test_data", ["default", "duplicates", "nans"])
+def test_rank(window, method, pct, ascending, test_data):
+    length = 20
+    if test_data == "default":
+        ser = Series(data=np.random.rand(length))
+    elif test_data == "duplicates":
+        ser = Series(data=np.random.choice(3, length))
+    elif test_data == "nans":
+        ser = Series(
+            data=np.random.choice([1.0, 0.25, 0.75, np.nan, np.inf, -np.inf], length)
+        )
+
+    expected = ser.rolling(window).apply(
+        lambda x: x.rank(method=method, pct=pct, ascending=ascending).iloc[-1]
+    )
+    result = ser.rolling(window).rank(method=method, pct=pct, ascending=ascending)
+
+    tm.assert_series_equal(result, expected)

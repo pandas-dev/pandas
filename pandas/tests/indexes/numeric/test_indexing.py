@@ -2,15 +2,17 @@ import numpy as np
 import pytest
 
 from pandas import (
-    Float64Index,
     Index,
-    Int64Index,
     RangeIndex,
     Series,
     Timestamp,
-    UInt64Index,
 )
 import pandas._testing as tm
+from pandas.core.indexes.api import (
+    Float64Index,
+    Int64Index,
+    UInt64Index,
+)
 
 
 @pytest.fixture
@@ -151,6 +153,25 @@ class TestGetLoc:
         with pytest.raises(KeyError, match="nan"):
             with tm.assert_produces_warning(FutureWarning, match="deprecated"):
                 idx.get_loc(np.nan, method=method)
+
+    @pytest.mark.parametrize("dtype", ["f8", "i8", "u8"])
+    def test_get_loc_numericindex_none_raises(self, dtype):
+        # case that goes through searchsorted and key is non-comparable to values
+        arr = np.arange(10 ** 7, dtype=dtype)
+        idx = Index(arr)
+        with pytest.raises(KeyError, match="None"):
+            idx.get_loc(None)
+
+    def test_get_loc_overflows(self):
+        # unique but non-monotonic goes through IndexEngine.mapping.get_item
+        idx = Index([0, 2, 1])
+
+        val = np.iinfo(np.int64).max + 1
+
+        with pytest.raises(KeyError, match=str(val)):
+            idx.get_loc(val)
+        with pytest.raises(KeyError, match=str(val)):
+            idx._engine.get_loc(val)
 
 
 class TestGetIndexer:
@@ -376,18 +397,17 @@ class TestWhere:
             UInt64Index(np.arange(5, dtype="uint64")),
         ],
     )
-    @pytest.mark.parametrize("klass", [list, tuple, np.array, Series])
-    def test_where(self, klass, index):
+    def test_where(self, listlike_box_with_tuple, index):
         cond = [True] * len(index)
         expected = index
-        result = index.where(klass(cond))
+        result = index.where(listlike_box_with_tuple(cond))
 
         cond = [False] + [True] * (len(index) - 1)
         expected = Float64Index([index._na_value] + index[1:].tolist())
-        result = index.where(klass(cond))
+        result = index.where(listlike_box_with_tuple(cond))
         tm.assert_index_equal(result, expected)
 
-    def test_where_uin64(self):
+    def test_where_uint64(self):
         idx = UInt64Index([0, 6, 2])
         mask = np.array([False, True, False])
         other = np.array([1], dtype=np.int64)

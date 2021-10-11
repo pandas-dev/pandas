@@ -9,7 +9,7 @@ repos:
     -   id: absolufy-imports
         files: ^pandas/
 -   repo: https://github.com/python/black
-    rev: 21.6b0
+    rev: 21.9b0
     hooks:
     -   id: black
 -   repo: https://github.com/codespell-project/codespell
@@ -44,6 +44,7 @@ repos:
             - flake8-bugbear==21.3.2
             - pandas-dev-flaker==0.2.0
     -   id: flake8
+        alias: flake8-cython
         name: flake8 (cython)
         types: [cython]
         args: [--append-config=flake8/cython.cfg]
@@ -53,11 +54,11 @@ repos:
         types: [text]
         args: [--append-config=flake8/cython-template.cfg]
 -   repo: https://github.com/PyCQA/isort
-    rev: 5.9.2
+    rev: 5.9.3
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v2.21.0
+    rev: v2.29.0
     hooks:
     -   id: pyupgrade
         args: [--py38-plus]
@@ -80,6 +81,17 @@ repos:
             - flake8-comprehensions==3.1.0
             - flake8-bugbear==21.3.2
             - pandas-dev-flaker==0.2.0
+-   repo: local
+    hooks:
+    -   id: pyright
+        name: pyright
+        entry: pyright
+        language: node
+        pass_filenames: false
+        types: [python]
+        stages: [manual]
+        # note: keep version in sync with .github/workflows/ci.yml
+        additional_dependencies: ['pyright@1.1.171']
 -   repo: local
     hooks:
     -   id: flake8-rst
@@ -106,6 +118,11 @@ repos:
             # Check for deprecated messages without sphinx directive
             |(DEPRECATED|DEPRECATE|Deprecated)(:|,|\.)
         types_or: [python, cython, rst]
+    -   id: cython-casting
+        name: Check Cython casting is `<type>obj`, not `<type> obj`
+        language: pygrep
+        entry: '[a-zA-Z0-9*]> '
+        files: (\.pyx|\.pxi.in)$
     -   id: incorrect-backticks
         name: Check for backticks incorrectly rendering because of missing spaces
         language: pygrep
@@ -158,3 +175,8 @@ repos:
         entry: python scripts/no_bool_in_generic.py
         language: python
         files: ^pandas/core/generic\.py$
+    -   id: pandas-errors-documented
+        name: Ensure pandas errors are documented in doc/source/reference/general_utility_functions.rst
+        entry: python scripts/pandas_errors_documented.py
+        language: python
+        files: ^pandas/errors/__init__.py$

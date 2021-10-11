@@ -366,10 +366,19 @@ class InsertColumns:
     def setup(self):
         self.N = 10 ** 3
         self.df = DataFrame(index=range(self.N))
+        self.df2 = DataFrame(np.random.randn(self.N, 2))
 
     def time_insert(self):
         for i in range(100):
             self.df.insert(0, i, np.random.randn(self.N), allow_duplicates=True)
+
+    def time_insert_middle(self):
+        # same as time_insert but inserting to a middle column rather than
+        #  front or back (which have fast-paths)
+        for i in range(100):
+            self.df2.insert(
+                1, "colname", np.random.randn(self.N), allow_duplicates=True
+            )
 
     def time_assign_with_setitem(self):
         for i in range(100):
@@ -390,12 +399,14 @@ class ChainIndexing:
 
     def setup(self, mode):
         self.N = 1000000
+        self.df = DataFrame({"A": np.arange(self.N), "B": "foo"})
 
     def time_chained_indexing(self, mode):
+        df = self.df
+        N = self.N
         with warnings.catch_warnings(record=True):
             with option_context("mode.chained_assignment", mode):
-                df = DataFrame({"A": np.arange(self.N), "B": "foo"})
-                df2 = df[df.A > self.N // 2]
+                df2 = df[df.A > N // 2]
                 df2["C"] = 1.0
 
 

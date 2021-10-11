@@ -249,9 +249,9 @@ class TestFactorize:
         with pytest.raises(TypeError, match=msg):
             algos.factorize(x17[::-1], sort=True)
 
-    def test_numeric_dtype_factorize(self, any_real_dtype):
+    def test_numeric_dtype_factorize(self, any_real_numpy_dtype):
         # GH41132
-        dtype = any_real_dtype
+        dtype = any_real_numpy_dtype
         data = np.array([1, 2, 2, 1], dtype=dtype)
         expected_codes = np.array([0, 1, 1, 0], dtype=np.intp)
         expected_uniques = np.array([1, 2], dtype=dtype)
@@ -1513,6 +1513,21 @@ class TestDuplicated:
         result = pd.unique(arr)
         tm.assert_numpy_array_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "array,expected",
+        [
+            (
+                [1 + 1j, 0, 1, 1j, 1 + 2j, 1 + 2j],
+                # Should return a complex dtype in the future
+                np.array([(1 + 1j), 0j, (1 + 0j), 1j, (1 + 2j)], dtype=object),
+            )
+        ],
+    )
+    def test_unique_complex_numbers(self, array, expected):
+        # GH 17927
+        result = pd.unique(array)
+        tm.assert_numpy_array_equal(result, expected)
+
 
 class TestHashTable:
     def test_string_hashtable_set_item_signature(self):
@@ -1726,7 +1741,7 @@ def test_quantile():
 
 def test_unique_label_indices():
 
-    a = np.random.randint(1, 1 << 10, 1 << 15).astype("int64")
+    a = np.random.randint(1, 1 << 10, 1 << 15).astype(np.intp)
 
     left = ht.unique_label_indices(a)
     right = np.unique(a, return_index=True)[1]
@@ -1782,13 +1797,13 @@ class TestRank:
 
     @pytest.mark.single
     @pytest.mark.high_memory
-    @pytest.mark.parametrize(
-        "values",
-        [np.arange(2 ** 24 + 1), np.arange(2 ** 25 + 2).reshape(2 ** 24 + 1, 2)],
-        ids=["1d", "2d"],
-    )
-    def test_pct_max_many_rows(self, values):
+    def test_pct_max_many_rows(self):
         # GH 18271
+        values = np.arange(2 ** 24 + 1)
+        result = algos.rank(values, pct=True).max()
+        assert result == 1
+
+        values = np.arange(2 ** 25 + 2).reshape(2 ** 24 + 1, 2)
         result = algos.rank(values, pct=True).max()
         assert result == 1
 

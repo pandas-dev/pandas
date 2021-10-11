@@ -10,6 +10,7 @@ from __future__ import annotations
 import collections
 import functools
 from typing import (
+    Callable,
     Generic,
     Hashable,
     Iterator,
@@ -29,8 +30,7 @@ import pandas._libs.reduction as libreduction
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
-    F,
-    FrameOrSeries,
+    NDFrameT,
     Shape,
     npt,
 )
@@ -82,20 +82,16 @@ from pandas.core.arrays.masked import (
     BaseMaskedArray,
     BaseMaskedDtype,
 )
-import pandas.core.common as com
+from pandas.core.arrays.string_ import StringDtype
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.core.groupby import (
-    base,
-    grouper,
-)
+from pandas.core.groupby import grouper
 from pandas.core.indexes.api import (
     CategoricalIndex,
     Index,
     MultiIndex,
     ensure_index,
 )
-from pandas.core.internals import ArrayManager
 from pandas.core.series import Series
 from pandas.core.sorting import (
     compress_group_index,
@@ -142,7 +138,7 @@ class WrappedCythonOp:
         },
     }
 
-    _MASKED_CYTHON_FUNCTIONS = {"cummin", "cummax"}
+    _MASKED_CYTHON_FUNCTIONS = {"cummin", "cummax", "min", "max"}
 
     _cython_arity = {"ohlc": 4}  # OHLC
 
@@ -311,7 +307,7 @@ class WrappedCythonOp:
         elif how in ["mean", "median", "var"]:
             if isinstance(dtype, (BooleanDtype, _IntegerDtype)):
                 return Float64Dtype()
-            elif is_float_dtype(dtype):
+            elif is_float_dtype(dtype) or is_complex_dtype(dtype):
                 return dtype
             elif is_numeric_dtype(dtype):
                 return np.dtype(np.float64)
@@ -353,6 +349,9 @@ class WrappedCythonOp:
         elif isinstance(values.dtype, FloatingDtype):
             # FloatingArray
             npvalues = values.to_numpy(values.dtype.numpy_dtype, na_value=np.nan)
+        elif isinstance(values.dtype, StringDtype):
+            # StringArray
+            npvalues = values.to_numpy(object, na_value=np.nan)
         else:
             raise NotImplementedError(
                 f"function is not implemented for this dtype: {values.dtype}"
@@ -380,7 +379,9 @@ class WrappedCythonOp:
         """
         # TODO: allow EAs to override this logic
 
-        if isinstance(values.dtype, (BooleanDtype, _IntegerDtype, FloatingDtype)):
+        if isinstance(
+            values.dtype, (BooleanDtype, _IntegerDtype, FloatingDtype, StringDtype)
+        ):
             dtype = self._get_result_dtype(values.dtype)
             cls = dtype.construct_array_type()
             return cls._from_sequence(res_values, dtype=dtype)
@@ -408,6 +409,7 @@ class WrappedCythonOp:
 
         # Copy to ensure input and result masks don't end up shared
         mask = values._mask.copy()
+        result_mask = np.zeros(ngroups, dtype=bool)
         arr = values._data
 
         res_values = self._cython_op_ndim_compat(
@@ -416,13 +418,18 @@ class WrappedCythonOp:
             ngroups=ngroups,
             comp_ids=comp_ids,
             mask=mask,
+            result_mask=result_mask,
             **kwargs,
         )
+
         dtype = self._get_result_dtype(orig_values.dtype)
         assert isinstance(dtype, BaseMaskedDtype)
         cls = dtype.construct_array_type()
 
-        return cls(res_values.astype(dtype.type, copy=False), mask)
+        if self.kind != "aggregate":
+            return cls(res_values.astype(dtype.type, copy=False), mask)
+        else:
+            return cls(res_values.astype(dtype.type, copy=False), result_mask)
 
     @final
     def _cython_op_ndim_compat(
@@ -432,7 +439,8 @@ class WrappedCythonOp:
         min_count: int,
         ngroups: int,
         comp_ids: np.ndarray,
-        mask: np.ndarray | None,
+        mask: np.ndarray | None = None,
+        result_mask: np.ndarray | None = None,
         **kwargs,
     ) -> np.ndarray:
         if values.ndim == 1:
@@ -440,12 +448,15 @@ class WrappedCythonOp:
             values2d = values[None, :]
             if mask is not None:
                 mask = mask[None, :]
+            if result_mask is not None:
+                result_mask = result_mask[None, :]
             res = self._call_cython_op(
                 values2d,
                 min_count=min_count,
                 ngroups=ngroups,
                 comp_ids=comp_ids,
                 mask=mask,
+                result_mask=result_mask,
                 **kwargs,
             )
             if res.shape[0] == 1:
@@ -460,6 +471,7 @@ class WrappedCythonOp:
             ngroups=ngroups,
             comp_ids=comp_ids,
             mask=mask,
+            result_mask=result_mask,
             **kwargs,
         )
 
@@ -472,6 +484,7 @@ class WrappedCythonOp:
         ngroups: int,
         comp_ids: np.ndarray,
         mask: np.ndarray | None,
+        result_mask: np.ndarray | None,
         **kwargs,
     ) -> np.ndarray:  # np.ndarray[ndim=2]
         orig_values = values
@@ -497,6 +510,8 @@ class WrappedCythonOp:
         values = values.T
         if mask is not None:
             mask = mask.T
+            if result_mask is not None:
+                result_mask = result_mask.T
 
         out_shape = self._get_output_shape(ngroups, values)
         func, values = self.get_cython_func_and_vals(values, is_numeric)
@@ -505,13 +520,15 @@ class WrappedCythonOp:
         result = maybe_fill(np.empty(out_shape, dtype=out_dtype))
         if self.kind == "aggregate":
             counts = np.zeros(ngroups, dtype=np.int64)
-            if self.how in ["min", "max"]:
+            if self.how in ["min", "max", "mean"]:
                 func(
                     result,
                     counts,
                     values,
                     comp_ids,
                     min_count,
+                    mask=mask,
+                    result_mask=result_mask,
                     is_datetimelike=is_datetimelike,
                 )
             else:
@@ -667,8 +684,8 @@ class BaseGrouper:
         return len(self.groupings)
 
     def get_iterator(
-        self, data: FrameOrSeries, axis: int = 0
-    ) -> Iterator[tuple[Hashable, FrameOrSeries]]:
+        self, data: NDFrameT, axis: int = 0
+    ) -> Iterator[tuple[Hashable, NDFrameT]]:
         """
         Groupby iterator
 
@@ -678,12 +695,12 @@ class BaseGrouper:
         for each group
         """
         splitter = self._get_splitter(data, axis=axis)
-        keys = self._get_group_keys()
+        keys = self.group_keys_seq
         for key, group in zip(keys, splitter):
             yield key, group.__finalize__(data, method="groupby")
 
     @final
-    def _get_splitter(self, data: FrameOrSeries, axis: int = 0) -> DataSplitter:
+    def _get_splitter(self, data: NDFrame, axis: int = 0) -> DataSplitter:
         """
         Returns
         -------
@@ -704,7 +721,8 @@ class BaseGrouper:
         return self.groupings[0].grouping_vector
 
     @final
-    def _get_group_keys(self):
+    @cache_readonly
+    def group_keys_seq(self):
         if len(self.groupings) == 1:
             return self.levels[0]
         else:
@@ -714,64 +732,16 @@ class BaseGrouper:
             return get_flattened_list(ids, ngroups, self.levels, self.codes)
 
     @final
-    def apply(self, f: F, data: FrameOrSeries, axis: int = 0):
+    def apply(
+        self, f: Callable, data: DataFrame | Series, axis: int = 0
+    ) -> tuple[list, bool]:
         mutated = self.mutated
         splitter = self._get_splitter(data, axis=axis)
-        group_keys = self._get_group_keys()
-        result_values = None
-
-        if data.ndim == 2 and any(
-            isinstance(x, ExtensionArray) for x in data._iter_column_arrays()
-        ):
-            # calling splitter.fast_apply will raise TypeError via apply_frame_axis0
-            #  if we pass EA instead of ndarray
-            #  TODO: can we have a workaround for EAs backed by ndarray?
-            pass
-
-        elif isinstance(data._mgr, ArrayManager):
-            # TODO(ArrayManager) don't use fast_apply / libreduction.apply_frame_axis0
-            # for now -> relies on BlockManager internals
-            pass
-        elif (
-            com.get_callable_name(f) not in base.plotting_methods
-            and isinstance(splitter, FrameSplitter)
-            and axis == 0
-            # fast_apply/libreduction doesn't allow non-numpy backed indexes
-            and not data.index._has_complex_internals
-        ):
-            try:
-                sdata = splitter.sorted_data
-                result_values, mutated = splitter.fast_apply(f, sdata, group_keys)
-
-            except IndexError:
-                # This is a rare case in which re-running in python-space may
-                #  make a difference, see  test_apply_mutate.test_mutate_groups
-                pass
-
-            else:
-                # If the fast apply path could be used we can return here.
-                # Otherwise we need to fall back to the slow implementation.
-                if len(result_values) == len(group_keys):
-                    return group_keys, result_values, mutated
-
-        if result_values is None:
-            # result_values is None if fast apply path wasn't taken
-            # or fast apply aborted with an unexpected exception.
-            # In either case, initialize the result list and perform
-            # the slow iteration.
-            result_values = []
-            skip_first = False
-        else:
-            # If result_values is not None we're in the case that the
-            # fast apply loop was broken prematurely but we have
-            # already the result for the first group which we can reuse.
-            skip_first = True
+        group_keys = self.group_keys_seq
+        result_values = []
 
         # This calls DataSplitter.__iter__
         zipped = zip(group_keys, splitter)
-        if skip_first:
-            # pop the first item from the front of the iterator
-            next(zipped)
 
         for key, group in zipped:
             object.__setattr__(group, "name", key)
@@ -779,14 +749,14 @@ class BaseGrouper:
             # group might be modified
             group_axes = group.axes
             res = f(group)
-            if not _is_indexed_like(res, group_axes, axis):
+            if not mutated and not _is_indexed_like(res, group_axes, axis):
                 mutated = True
             result_values.append(res)
 
-        return group_keys, result_values, mutated
+        return result_values, mutated
 
     @cache_readonly
-    def indices(self):
+    def indices(self) -> dict[Hashable, npt.NDArray[np.intp]]:
         """dict {group name -> group indices}"""
         if len(self.groupings) == 1 and isinstance(self.result_index, CategoricalIndex):
             # This shows unused categories in indices GH#38642
@@ -795,6 +765,7 @@ class BaseGrouper:
         keys = [ping.group_index for ping in self.groupings]
         return get_indexer_dict(codes_list, keys)
 
+    @final
     @property
     def codes(self) -> list[np.ndarray]:
         return [ping.codes for ping in self.groupings]
@@ -836,7 +807,7 @@ class BaseGrouper:
         return Index(self.group_info[0]).is_monotonic
 
     @cache_readonly
-    def group_info(self):
+    def group_info(self) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
         comp_ids, obs_group_ids = self._get_compressed_codes()
 
         ngroups = len(obs_group_ids)
@@ -846,22 +817,26 @@ class BaseGrouper:
 
     @final
     @cache_readonly
-    def codes_info(self) -> np.ndarray:
+    def codes_info(self) -> npt.NDArray[np.intp]:
         # return the codes of items in original grouped axis
         ids, _, _ = self.group_info
         if self.indexer is not None:
             sorter = np.lexsort((ids, self.indexer))
             ids = ids[sorter]
+            ids = ensure_platform_int(ids)
+            # TODO: if numpy annotates np.lexsort, this ensure_platform_int
+            #  may become unnecessary
         return ids
 
     @final
-    def _get_compressed_codes(self) -> tuple[np.ndarray, np.ndarray]:
+    def _get_compressed_codes(self) -> tuple[np.ndarray, npt.NDArray[np.intp]]:
+        # The first returned ndarray may have any signed integer dtype
         if len(self.groupings) > 1:
             group_index = get_group_index(self.codes, self.shape, sort=True, xnull=True)
             return compress_group_index(group_index, sort=self._sort)
 
         ping = self.groupings[0]
-        return ping.codes, np.arange(len(ping.group_index))
+        return ping.codes, np.arange(len(ping.group_index), dtype=np.intp)
 
     @final
     @cache_readonly
@@ -874,6 +849,7 @@ class BaseGrouper:
         ids, obs_ids, _ = self.group_info
         return decons_obs_group_ids(ids, obs_ids, self.shape, codes, xnull=True)
 
+    @final
     @cache_readonly
     def result_arraylike(self) -> ArrayLike:
         """
@@ -948,7 +924,7 @@ class BaseGrouper:
 
     @final
     def agg_series(
-        self, obj: Series, func: F, preserve_dtype: bool = False
+        self, obj: Series, func: Callable, preserve_dtype: bool = False
     ) -> ArrayLike:
         """
         Parameters
@@ -970,10 +946,6 @@ class BaseGrouper:
             result = self._aggregate_series_pure_python(obj, func)
 
         elif not isinstance(obj._values, np.ndarray):
-            # _aggregate_series_fast would raise TypeError when
-            #  calling libreduction.Slider
-            # In the datetime64tz case it would incorrectly cast to tz-naive
-            # TODO: can we get a performant workaround for EAs backed by ndarray?
             result = self._aggregate_series_pure_python(obj, func)
 
             # we can preserve a little bit more aggressively with EA dtype
@@ -982,12 +954,8 @@ class BaseGrouper:
             #  is sufficiently strict that it casts appropriately.
             preserve_dtype = True
 
-        elif obj.index._has_complex_internals:
-            # Preempt TypeError in _aggregate_series_fast
-            result = self._aggregate_series_pure_python(obj, func)
-
         else:
-            result = self._aggregate_series_fast(obj, func)
+            result = self._aggregate_series_pure_python(obj, func)
 
         npvalues = lib.maybe_convert_objects(result, try_float=False)
         if preserve_dtype:
@@ -996,28 +964,10 @@ class BaseGrouper:
             out = npvalues
         return out
 
-    def _aggregate_series_fast(self, obj: Series, func: F) -> np.ndarray:
-        # -> np.ndarray[object]
-
-        # At this point we have already checked that
-        #  - obj.index is not a MultiIndex
-        #  - obj is backed by an ndarray, not ExtensionArray
-        #  - len(obj) > 0
-        func = com.is_builtin_func(func)
-
-        ids, _, ngroups = self.group_info
-
-        # avoids object / Series creation overhead
-        indexer = get_group_index_sorter(ids, ngroups)
-        obj = obj.take(indexer)
-        ids = ids.take(indexer)
-        sgrouper = libreduction.SeriesGrouper(obj, func, ids, ngroups)
-        result, _ = sgrouper.get_result()
-        return result
-
     @final
-    def _aggregate_series_pure_python(self, obj: Series, func: F) -> np.ndarray:
-        # -> np.ndarray[object]
+    def _aggregate_series_pure_python(
+        self, obj: Series, func: Callable
+    ) -> npt.NDArray[np.object_]:
         ids, _, ngroups = self.group_info
 
         counts = np.zeros(ngroups, dtype=int)
@@ -1028,9 +978,6 @@ class BaseGrouper:
         splitter = get_splitter(obj, ids, ngroups, axis=0)
 
         for i, group in enumerate(splitter):
-
-            # Each step of this loop corresponds to
-            #  libreduction._BaseGrouper._apply_to_group
             res = func(group)
             res = libreduction.extract_result(res)
 
@@ -1074,7 +1021,7 @@ class BinGrouper(BaseGrouper):
 
     """
 
-    bins: np.ndarray  # np.ndarray[np.int64]
+    bins: npt.NDArray[np.int64]
     binlabels: Index
     mutated: bool
 
@@ -1120,7 +1067,7 @@ class BinGrouper(BaseGrouper):
         """
         return self
 
-    def get_iterator(self, data: FrameOrSeries, axis: int = 0):
+    def get_iterator(self, data: NDFrame, axis: int = 0):
         """
         Groupby iterator
 
@@ -1158,9 +1105,9 @@ class BinGrouper(BaseGrouper):
         return indices
 
     @cache_readonly
-    def group_info(self):
+    def group_info(self) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
         ngroups = self.ngroups
-        obs_group_ids = np.arange(ngroups, dtype=np.int64)
+        obs_group_ids = np.arange(ngroups, dtype=np.intp)
         rep = np.diff(np.r_[0, self.bins])
 
         rep = ensure_platform_int(rep)
@@ -1201,17 +1148,11 @@ class BinGrouper(BaseGrouper):
         ping = grouper.Grouping(lev, lev, in_axis=False, level=None)
         return [ping]
 
-    def _aggregate_series_fast(self, obj: Series, func: F) -> np.ndarray:
+    def _aggregate_series_fast(self, obj: Series, func: Callable) -> np.ndarray:
         # -> np.ndarray[object]
-
-        # At this point we have already checked that
-        #  - obj.index is not a MultiIndex
-        #  - obj is backed by an ndarray, not ExtensionArray
-        #  - ngroups != 0
-        #  - len(self.bins) > 0
-        sbg = libreduction.SeriesBinGrouper(obj, func, self.bins)
-        result, _ = sbg.get_result()
-        return result
+        raise NotImplementedError(
+            "This should not be reached; use _aggregate_series_pure_python"
+        )
 
 
 def _is_indexed_like(obj, axes, axis: int) -> bool:
@@ -1229,10 +1170,10 @@ def _is_indexed_like(obj, axes, axis: int) -> bool:
 # Splitting / application
 
 
-class DataSplitter(Generic[FrameOrSeries]):
+class DataSplitter(Generic[NDFrameT]):
     def __init__(
         self,
-        data: FrameOrSeries,
+        data: NDFrameT,
         labels: npt.NDArray[np.intp],
         ngroups: int,
         axis: int = 0,
@@ -1245,12 +1186,12 @@ class DataSplitter(Generic[FrameOrSeries]):
         assert isinstance(axis, int), axis
 
     @cache_readonly
-    def slabels(self) -> np.ndarray:  # np.ndarray[np.intp]
+    def slabels(self) -> npt.NDArray[np.intp]:
         # Sorted labels
         return self.labels.take(self._sort_idx)
 
     @cache_readonly
-    def _sort_idx(self) -> np.ndarray:  # np.ndarray[np.intp]
+    def _sort_idx(self) -> npt.NDArray[np.intp]:
         # Counting sort indexer
         return get_group_index_sorter(self.labels, self.ngroups)
 
@@ -1268,7 +1209,7 @@ class DataSplitter(Generic[FrameOrSeries]):
             yield self._chop(sdata, slice(start, end))
 
     @cache_readonly
-    def sorted_data(self) -> FrameOrSeries:
+    def sorted_data(self) -> NDFrameT:
         return self.data.take(self._sort_idx, axis=self.axis)
 
     def _chop(self, sdata, slice_obj: slice) -> NDFrame:
@@ -1290,11 +1231,6 @@ class SeriesSplitter(DataSplitter):
 
 
 class FrameSplitter(DataSplitter):
-    def fast_apply(self, f: F, sdata: FrameOrSeries, names):
-        # must return keys::list, values::list, mutated::bool
-        starts, ends = lib.generate_slices(self.slabels, self.ngroups)
-        return libreduction.apply_frame_axis0(sdata, f, names, starts, ends)
-
     def _chop(self, sdata: DataFrame, slice_obj: slice) -> DataFrame:
         # Fastpath equivalent to:
         # if self.axis == 0:
@@ -1311,7 +1247,7 @@ class FrameSplitter(DataSplitter):
 
 
 def get_splitter(
-    data: FrameOrSeries, labels: np.ndarray, ngroups: int, axis: int = 0
+    data: NDFrame, labels: np.ndarray, ngroups: int, axis: int = 0
 ) -> DataSplitter:
     if isinstance(data, Series):
         klass: type[DataSplitter] = SeriesSplitter
