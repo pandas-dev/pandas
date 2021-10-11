@@ -818,7 +818,7 @@ class NumericBase(Base):
             cls = Int64Index
 
         expected = cls([index[0]] + list(index), dtype=index.dtype)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
     def test_insert_na(self, nulls_fixture, simple_index):
         # GH 18295 (test missing)
