@@ -1402,14 +1402,23 @@ def test_integer_array_add_list_like(
     left = container + box_1d_array(data)
     right = box_1d_array(data) + container
 
-    if Series == box_pandas_1d_array:
-        expected = Series(expected_data, dtype="Int64")
-    elif Series == box_1d_array:
-        expected = Series(expected_data, dtype="Int64")
-    elif Index in (box_pandas_1d_array, box_1d_array):
-        expected = Index(expected_data, dtype="Int64")
+    if Series in [box_1d_array, box_pandas_1d_array]:
+        cls = Series
+    elif Index in [box_1d_array, box_pandas_1d_array]:
+        cls = Index
     else:
-        expected = np.array(expected_data, dtype="object")
+        cls = np.array
+
+    if box_pandas_1d_array in [Index, Series]:
+        expected = cls(expected_data, dtype="Int64")
+
+    elif box_1d_array == Index:
+        # tm.to_array casts to object, Index constructor does inference
+        expected = cls(expected_data, dtype="int64")
+
+    else:
+        # tm.to_array casts to object, no inference
+        expected = cls(expected_data, dtype="object")
 
     tm.assert_equal(left, expected)
     tm.assert_equal(right, expected)
