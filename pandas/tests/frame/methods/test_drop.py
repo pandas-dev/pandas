@@ -546,3 +546,10 @@ class TestDataFrameDrop:
         df = DataFrame(index=MultiIndex.from_product([range(3), range(3)]))
         with pytest.raises(KeyError, match="labels \\[5\\] not found in level"):
             df.drop(5, level=0)
+
+    def test_drop_labels_is_tuple(self):
+        # GH 43978
+        df = DataFrame(np.arange(12).reshape(3, 4), columns=["A", "B", "C", "D"])
+        result = df.drop(columns=("A", "B"))
+        expected = DataFrame({"C": [2, 6, 10], "D": [3, 7, 11]})
+        tm.assert_frame_equal(result, expected)

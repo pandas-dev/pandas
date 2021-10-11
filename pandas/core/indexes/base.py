@@ -6384,7 +6384,7 @@ class Index(IndexOpsMixin, PandasObject):
         if not isinstance(labels, Index):
             # avoid materializing e.g. RangeIndex
             arr_dtype = "object" if self.dtype == "object" else None
-            labels = com.index_labels_to_array(labels, dtype=arr_dtype)
+            labels = com.index_labels_to_array(labels, dtype=arr_dtype, ndim=self.ndim)
 
         indexer = self.get_indexer_for(labels)
         mask = indexer == -1
