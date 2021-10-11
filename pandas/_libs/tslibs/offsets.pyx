@@ -83,6 +83,10 @@ from .timestamps import Timestamp
 # ---------------------------------------------------------------------
 # Misc Helpers
 
+cdef bint is_dateoffset_object(object obj):
+    return isinstance(obj, DateOffset)
+
+
 cdef bint is_offset_object(object obj):
     return isinstance(obj, BaseOffset)
 

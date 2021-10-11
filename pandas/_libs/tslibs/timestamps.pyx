@@ -83,6 +83,7 @@ from pandas._libs.tslibs.np_datetime cimport (
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
 from pandas._libs.tslibs.offsets cimport (
+    is_dateoffset_object,
     is_offset_object,
     to_offset,
 )
@@ -283,8 +284,11 @@ cdef class _Timestamp(ABCTimestamp):
         cdef:
             int64_t nanos = 0
 
+        if is_dateoffset_object(other):
+            nanos += other.nanoseconds
+            other = other._offset
         if is_any_td_scalar(other):
-            nanos = delta_to_nanoseconds(other)
+            nanos += delta_to_nanoseconds(other)
             result = type(self)(self.value + nanos, tz=self.tzinfo)
             if result is not NaT:
                 result._set_freq(self._freq)  # avoid warning in constructor
@@ -307,7 +311,6 @@ cdef class _Timestamp(ABCTimestamp):
         elif not isinstance(self, _Timestamp):
             # cython semantics, args have been switched and this is __radd__
             return other.__add__(self)
-
         return NotImplemented
 
     def __sub__(self, other):
