@@ -23,13 +23,18 @@
 {%- if label is not none %}
  \label{{label}}
 {%- endif %} \\
+{% else %}
+{%- set label = parse_table(table_styles, 'label') %}
+{%- if label is not none %}
+\label{{label}} \\
+{% endif %}
 {% endif %}
 {% set toprule = parse_table(table_styles, 'toprule') %}
 {% if toprule is not none %}
 \{{toprule}}
 {% endif %}
 {% for row in head %}
-{% for c in row %}{%- if not loop.first %} & {% endif %}{{parse_header(c, multirow_align, multicol_align, True)}}{% endfor %} \\
+{% for c in row %}{%- if not loop.first %} & {% endif %}{{parse_header(c, multirow_align, multicol_align, siunitx)}}{% endfor %} \\
 {% endfor %}
 {% set midrule = parse_table(table_styles, 'midrule') %}
 {% if midrule is not none %}
@@ -45,7 +50,7 @@
 \{{toprule}}
 {% endif %}
 {% for row in head %}
-{% for c in row %}{%- if not loop.first %} & {% endif %}{{parse_header(c, multirow_align, multicol_align, True)}}{% endfor %} \\
+{% for c in row %}{%- if not loop.first %} & {% endif %}{{parse_header(c, multirow_align, multicol_align, siunitx)}}{% endfor %} \\
 {% endfor %}
 {% if midrule is not none %}
 \{{midrule}}

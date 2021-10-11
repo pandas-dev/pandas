@@ -115,7 +115,7 @@ def import_optional_dependency(
         module = importlib.import_module(name)
     except ImportError:
         if errors == "raise":
-            raise ImportError(msg) from None
+            raise ImportError(msg)
         else:
             return None
 

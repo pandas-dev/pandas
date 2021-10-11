@@ -502,6 +502,7 @@ def read_json(
     --------
     DataFrame.to_json : Convert a DataFrame to a JSON string.
     Series.to_json : Convert a Series to a JSON string.
+    json_normalize : Normalize semi-structured JSON data into a flat table.
 
     Notes
     -----
@@ -875,11 +876,8 @@ class Parser:
 
     def parse(self):
 
-        # try numpy
-        numpy = self.numpy
-        if numpy:
+        if self.numpy:
             self._parse_numpy()
-
         else:
             self._parse_no_numpy()
 
@@ -940,10 +938,6 @@ class Parser:
                 )
                 if dtype is not None:
                     try:
-                        # error: Argument 1 to "dtype" has incompatible type
-                        # "Union[ExtensionDtype, str, dtype[Any], Type[object]]";
-                        # expected "Type[Any]"
-                        dtype = np.dtype(dtype)  # type: ignore[arg-type]
                         return data.astype(dtype), True
                     except (TypeError, ValueError):
                         return data, False

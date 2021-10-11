@@ -81,9 +81,11 @@ def calculate_variable_window_bounds(
     if center:
         end_bound = index[0] + index_growth_sign * window_size / 2
         for j in range(0, num_values):
-            if (index[j] < end_bound) or (index[j] == end_bound and right_closed):
+            if (index[j] - end_bound) * index_growth_sign < 0:
                 end[0] = j + 1
-            elif index[j] >= end_bound:
+            elif (index[j] - end_bound) * index_growth_sign == 0 and right_closed:
+                end[0] = j + 1
+            elif (index[j] - end_bound) * index_growth_sign >= 0:
                 end[0] = j
                 break
 

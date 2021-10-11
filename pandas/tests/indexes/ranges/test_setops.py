@@ -6,13 +6,13 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas import (
+import pandas._testing as tm
+from pandas.core.indexes.api import (
     Index,
     Int64Index,
     RangeIndex,
     UInt64Index,
 )
-import pandas._testing as tm
 
 
 class TestRangeIndexSetOps:
@@ -286,7 +286,7 @@ class TestRangeIndexSetOps:
         tm.assert_index_equal(res1, expected_notsorted, exact=True)
 
         res2 = idx2.union(idx1, sort=None)
-        res3 = idx1._int64index.union(idx2, sort=None)
+        res3 = Int64Index(idx1._values, name=idx1.name).union(idx2, sort=None)
         tm.assert_index_equal(res2, expected_sorted, exact=True)
         tm.assert_index_equal(res3, expected_sorted)
 
@@ -322,11 +322,11 @@ class TestRangeIndexSetOps:
         obj = RangeIndex.from_range(range(1, 10), name="foo")
 
         result = obj.difference(obj[::2])
-        expected = obj[1::2]._int64index
+        expected = Int64Index(obj[1::2]._values, name=obj.name)
         tm.assert_index_equal(result, expected, exact=True)
 
         result = obj.difference(obj[1::2])
-        expected = obj[::2]._int64index
+        expected = Int64Index(obj[::2]._values, name=obj.name)
         tm.assert_index_equal(result, expected, exact=True)
 
     def test_symmetric_difference(self):
