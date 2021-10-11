@@ -135,6 +135,12 @@ repos:
         entry: 'np\.random\.seed'
         files: ^asv_bench/benchmarks
         exclude: ^asv_bench/benchmarks/pandas_vb_common\.py
+    -   id: np-testing-array-equal
+        name: Check for usage of numpy testing or array_equal
+        language: pygrep
+        entry: '(numpy|np)(\.testing|\.array_equal)'
+        files: ^pandas/tests/
+        types: [python]
     -   id: invalid-ea-testing
         name: Check for invalid EA testing
         language: pygrep
