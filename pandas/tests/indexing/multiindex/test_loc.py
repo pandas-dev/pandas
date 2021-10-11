@@ -912,3 +912,13 @@ def test_loc_keyerror_rightmost_key_missing():
     df = df.set_index(["A", "B"])
     with pytest.raises(KeyError, match="^1$"):
         df.loc[(100, 1)]
+def test_loc_multiindex():
+    #43599
+    df = DataFrame(
+        index = MultiIndex.from_product([list("abc"), list("de"), list("f")]), columns = ["Val"]
+        )
+    result = df.loc[np.s_[:,"d",:]]
+    expected = DataFrame(
+        index = MultiIndex.from_product([list("abc"), list("d"), list("f")]), columns = ["Val"]
+        )
+    tm.assert_frame_equal(result, expected)
