@@ -59,12 +59,12 @@ jobs:
       run: |
         pip list
         python -m pip install dist/*.gz
-    
+
     - name: Force oldest supported NumPy
       run: |
         case "${{matrix.python-version}}" in
         3.8)
-          pip install numpy==1.17.3 ;;
+          pip install numpy==1.18.5 ;;
         3.9)
           pip install numpy==1.19.3 ;;
         3.10)
