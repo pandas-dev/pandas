@@ -296,6 +296,12 @@ class Base:
         elif isinstance(index, IntervalIndex):
             # checked in test_interval.py
             pass
+        elif type(index) is Index and not isinstance(index.dtype, np.dtype):
+            result = index_type(index.values, copy=False, **init_kwargs)
+            # FIXME: this is specific to MaskedArray
+            tm.assert_numpy_array_equal(index._values._data, result._values._data, check_same="same")
+            tm.assert_numpy_array_equal(index._values._mask, result._values._mask, check_same="same")
+
         else:
             result = index_type(index.values, copy=False, **init_kwargs)
             tm.assert_numpy_array_equal(index.values, result.values, check_same="same")
@@ -315,7 +321,8 @@ class Base:
 
         # RangeIndex, IntervalIndex
         # don't have engines
-        if not isinstance(index, (RangeIndex, IntervalIndex)):
+        # Index[EA] has engine but it does not have a Hashtable .mapping
+        if not isinstance(index, (RangeIndex, IntervalIndex)) and not (type(index) is Index and not isinstance(index.dtype, np.dtype)):
             assert result2 > result
 
         if index.inferred_type == "object":

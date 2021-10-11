@@ -97,26 +97,30 @@ def test_stat_method(pandasmethname, kwargs):
 def test_value_counts_na():
     arr = pd.array([0.1, 0.2, 0.1, pd.NA], dtype="Float64")
     result = arr.value_counts(dropna=False)
-    expected = pd.Series([2, 1, 1], index=[0.1, 0.2, pd.NA], dtype="Int64")
+    idx = pd.Index([0.1, 0.2, pd.NA], dtype=arr.dtype)
+    assert idx.dtype == arr.dtype
+    expected = pd.Series([2, 1, 1], index=idx, dtype="Int64")
     tm.assert_series_equal(result, expected)
 
     result = arr.value_counts(dropna=True)
-    expected = pd.Series([2, 1], index=[0.1, 0.2], dtype="Int64")
+    expected = pd.Series([2, 1], index=idx[:-1], dtype="Int64")
     tm.assert_series_equal(result, expected)
 
 
 def test_value_counts_empty():
-    s = pd.Series([], dtype="Float64")
-    result = s.value_counts()
-    idx = pd.Index([], dtype="object")
+    ser = pd.Series([], dtype="Float64")
+    result = ser.value_counts()
+    idx = pd.Index([], dtype="Float64")
+    assert idx.dtype == "Float64"
     expected = pd.Series([], index=idx, dtype="Int64")
     tm.assert_series_equal(result, expected)
 
 
 def test_value_counts_with_normalize():
-    s = pd.Series([0.1, 0.2, 0.1, pd.NA], dtype="Float64")
-    result = s.value_counts(normalize=True)
-    expected = pd.Series([2, 1], index=[0.1, 0.2], dtype="Float64") / 3
+    ser = pd.Series([0.1, 0.2, 0.1, pd.NA], dtype="Float64")
+    result = ser.value_counts(normalize=True)
+    expected = pd.Series([2, 1], index=ser[:2], dtype="Float64") / 3
+    assert expected.index.dtype == ser.dtype
     tm.assert_series_equal(result, expected)
 
 

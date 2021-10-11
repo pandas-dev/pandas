@@ -412,6 +412,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 m = mask.copy()
                 return IntegerArray(x, m)
             elif is_float_dtype(x.dtype):
+                if x.dtype.itemsize <= 2:
+                    # we don't support float16
+                    x = x.astype(np.float32)
                 m = mask.copy()
                 return FloatingArray(x, m)
             else:

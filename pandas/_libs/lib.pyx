@@ -3028,3 +3028,23 @@ def is_bool_list(obj: list) -> bool:
 
     # Note: we return True for empty list
     return True
+
+
+cpdef ndarray eq_NA_compat(ndarray[object] arr, object key):
+    cdef:
+        ndarray[uint8_t, cast=True] result = np.empty(len(arr), dtype=bool)
+        Py_ssize_t i
+        object item
+
+    if key is C_NA:
+        for i in range(len(arr)):
+            item = arr[i]
+            result[i] = item is C_NA
+    else:
+        for i in range(len(arr)):
+            item = arr[i]
+            if item is C_NA:
+                result[i] = False
+            else:
+                result[i] = item == key  # FIXME: compat for other NAs
+    return result

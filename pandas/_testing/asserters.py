@@ -400,8 +400,16 @@ def assert_index_equal(
     # skip exact index checking when `check_categorical` is False
     if check_exact and check_categorical:
         if not left.equals(right):
+            mismatch = left._values != right._values
+
+            if not isinstance(mismatch, np.ndarray):
+                # i.e. its a MaskedArray
+                mismatch = mismatch.to_numpy(dtype=int, na_value=0)
+                mismask = left._values._mask ^ right._values._mask
+                mismatch[mismask] = 1
+
             diff = (
-                np.sum((left._values != right._values).astype(int)) * 100.0 / len(left)
+                np.sum(mismatch.astype(int)) * 100.0 / len(left)
             )
             msg = f"{obj} values are different ({np.round(diff, 5)} %)"
             raise_assert_detail(obj, msg, left, right)

@@ -32,6 +32,7 @@ from pandas._libs import (
     algos,
     hashtable as _hash,
 )
+from pandas._libs.lib cimport eq_NA_compat
 
 from pandas._libs.missing cimport (
     C_NA as NA,
@@ -63,7 +64,7 @@ cdef ndarray _get_bool_indexer(ndarray values, object val):
     if values.descr.type_num == cnp.NPY_OBJECT:
         # i.e. values.dtype == object
         if not checknull(val):
-            indexer = values == val
+            indexer = eq_NA_compat(values, val)
 
         else:
             # We need to check for _matching_ NA values
@@ -910,7 +911,7 @@ cdef class ExtensionEngine:
 
     cdef _get_bool_indexer(self, val):
         if checknull(val):
-            return self.values.isna()  # FIXME: need to check for *matching* NA
+            return self.values.isna().view("uint8")
 
         return self.values == val
 
@@ -946,6 +947,8 @@ cdef class ExtensionEngine:
                 # Because we are unique, loc should always be an integer
             except KeyError:
                 loc = -1
+            else:
+                assert util.is_integer_object(loc), (loc, val)
             res[i] = loc
 
         return res
@@ -1092,6 +1095,13 @@ cdef class NullableEngine:
         if is_definitely_invalid_key(val):
             raise TypeError(f"'{val}' is an invalid key")
 
+        if val is NA:
+            # TODO: return copy? readonly view?
+            # TODO: do this later on to keep same pattern as IndexEngine?
+            if not self.has_missing:
+                raise KeyError(val)
+            return _unpack_bool_indexer(self._mask, val)
+
         self._check_type(val)
 
         if self.over_size_threshold and self.is_monotonic_increasing:
@@ -1149,7 +1159,10 @@ cdef class NullableEngine:
 
     cdef _get_bool_indexer(self, val):
         if val is NA:
-            return self._mask
+            #if not self.has_missing:
+            #    raise KeyError(val)
+            # TODO: readonly? copy?
+            return self._mask.view("uint8")
 
         if util.is_nan(val):
             res = np.isnan(self._values)
@@ -1175,7 +1188,21 @@ cdef class NullableEngine:
         return self.sizeof()
 
     cdef _check_type(self, object val):
-        hash(val)
+        kind = self._values.dtype.kind
+        if kind in ["i", "u"]:
+            if not util.is_integer_object(val):
+                raise KeyError(val)
+            if kind == "u":
+                if val < 0:
+                    # cannot have negative values with unsigned int dtype
+                    raise KeyError(val)
+        elif kind == "b":
+            if not util.is_bool_object(val):
+                raise KeyError(val)
+        else:
+            if not util.is_integer_object(val) and not util.is_float_object(val):
+                # in particular catch bool and avoid casting True -> 1.0
+                raise KeyError(val)
 
     def get_indexer(self, values: "MaskedArray") -> np.ndarray:
         # Note: we only get here with self.is_unique
@@ -1191,6 +1218,9 @@ cdef class NullableEngine:
                 # Because we are unique, loc should always be an integer
             except KeyError:
                 loc = -1
+            else:
+                assert util.is_integer_object(loc), (loc, val)
+
             res[i] = loc
 
         return res

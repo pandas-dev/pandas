@@ -26,6 +26,7 @@ from pandas._libs import (
     algos as libalgos,
     index as libindex,
     lib,
+    missing as libmissing,
 )
 import pandas._libs.join as libjoin
 from pandas._libs.lib import (
@@ -821,6 +822,7 @@ class Index(IndexOpsMixin, PandasObject):
         ):
             return libindex.ExtensionEngine(self._values)
 
+        assert self.dtype != "boolean"
         # to avoid a reference cycle, bind `target_values` to a local variable, so
         # `self` is not passed into the lambda.
         target_values = self._get_engine_target()
@@ -3587,6 +3589,7 @@ class Index(IndexOpsMixin, PandasObject):
 
             indexer = self._engine.get_indexer(target.codes)
             if self.hasnans and target.hasnans:
+                #loc = self.get_loc(libmissing.NA)
                 loc = self.get_loc(np.nan)
                 mask = target.isna()
                 indexer[mask] = loc
@@ -3605,6 +3608,7 @@ class Index(IndexOpsMixin, PandasObject):
                 # Exclude MultiIndex because hasnans raises NotImplementedError
                 # we should only get here if we are unique, so loc is an integer
                 # GH#41934
+                #loc = self.get_loc(libmissing.NA)
                 loc = self.get_loc(np.nan)
                 mask = target.isna()
                 indexer[mask] = loc

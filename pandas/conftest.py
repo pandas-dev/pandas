@@ -501,11 +501,11 @@ indices_dict = {
     "nullable_int": Index(np.arange(100), dtype="Int64"),
     "nullable_float": Index(np.arange(100), dtype="Float32"),
     "nullable_bool": Index(np.arange(100).astype(bool), dtype="boolean"),
-    "nullable_int-na": Index(np.arange(100), dtype="Int64").insert(1, pd.NA),
-    "nullable_float-na": Index(np.arange(100), dtype="Float32").insert(1, pd.NA),
-    "nullable_bool-na": Index(np.arange(100).astype(bool), dtype="boolean").insert(
-        1, pd.NA
-    ),
+    #"nullable_int-na": Index(np.arange(100), dtype="Int64").insert(1, pd.NA),
+    #"nullable_float-na": Index(np.arange(100), dtype="Float32").insert(1, pd.NA),
+    #"nullable_bool-na": Index(np.arange(100).astype(bool), dtype="boolean").insert(
+    #    1, pd.NA
+    #),
 }
 
 
