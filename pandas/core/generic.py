@@ -10965,6 +10965,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis = 0,
         closed: str | None = None,
         method: str = "single",
+        step: int | timedelta | BaseOffset | None = None,
     ):
         axis = self._get_axis_number(axis)
 
@@ -10991,6 +10992,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis=axis,
             closed=closed,
             method=method,
+            step=step,
         )
 
     @final

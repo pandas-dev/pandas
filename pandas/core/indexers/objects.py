@@ -70,6 +70,16 @@ class BaseIndexer:
 class FixedWindowIndexer(BaseIndexer):
     """Creates window boundaries that are of fixed length."""
 
+    def __init__(
+            self,
+            index_array: np.ndarray | None = None,
+            window_size: int = 0,
+            step: int = 1,
+            **kwargs
+    ):
+        super().__init__(index_array, window_size, **kwargs)
+        self.step = step
+
     @Appender(get_window_bounds_doc)
     def get_window_bounds(
         self,
@@ -94,11 +104,27 @@ class FixedWindowIndexer(BaseIndexer):
         end = np.clip(end, 0, num_values)
         start = np.clip(start, 0, num_values)
 
+        # apply step, the resulting window will have zero length
+        if self.step > 1:
+            mask = np.full_like(start, True, dtype=bool)
+            mask[::self.step] = False
+            start[mask] = end[mask]
+
         return start, end
 
 
 class VariableWindowIndexer(BaseIndexer):
     """Creates window boundaries that are of variable length, namely for time series."""
+
+    def __init__(
+            self,
+            index_array: np.ndarray | None = None,
+            window_size: int = 0,
+            step: int = 1,
+            **kwargs
+    ):
+        super().__init__(index_array, window_size, **kwargs)
+        self.step = step
 
     @Appender(get_window_bounds_doc)
     def get_window_bounds(
@@ -117,6 +143,7 @@ class VariableWindowIndexer(BaseIndexer):
             num_values,
             self.window_size,
             min_periods,
+            self.step,
             center,  # type: ignore[arg-type]
             closed,
             self.index_array,  # type: ignore[arg-type]

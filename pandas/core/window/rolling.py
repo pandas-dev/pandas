@@ -127,6 +127,7 @@ class BaseWindow(SelectionMixin):
         on: str | Index | None = None,
         closed: str | None = None,
         method: str = "single",
+        step=None,
         *,
         selection=None,
     ):
@@ -140,6 +141,7 @@ class BaseWindow(SelectionMixin):
         self._win_type = win_type
         self.axis = obj._get_axis_number(axis) if axis is not None else None
         self.method = method
+        self.step = step
         self._win_freq_i8 = None
         if self.on is None:
             if self.axis == 0:
@@ -398,8 +400,12 @@ class BaseWindow(SelectionMixin):
                 index_array=self._index_array,
                 window_size=self._win_freq_i8,
                 center=self.center,
+                step=self.step,
             )
-        return FixedWindowIndexer(window_size=self.window)
+        return FixedWindowIndexer(
+            window_size=self.window,
+            step=self.step,
+        )
 
     def _apply_series(
         self, homogeneous_func: Callable[..., ArrayLike], name: str | None = None
@@ -1578,6 +1584,17 @@ class Rolling(RollingAndExpandingMixin):
         "method",
     ]
 
+    def _validate_freq(self, attr_name):
+        # this will raise ValueError on non-fixed freqs
+        attr = getattr(self, attr_name)
+        try:
+            return to_offset(attr)
+        except (TypeError, ValueError) as err:
+            raise ValueError(
+                f"passed {attr_name} {attr} is not "
+                "compatible with a datetimelike index"
+            ) from err
+
     def _validate(self):
         super()._validate()
 
@@ -1588,15 +1605,8 @@ class Rolling(RollingAndExpandingMixin):
         ) and isinstance(self.window, (str, BaseOffset, timedelta)):
 
             self._validate_monotonic()
+            freq = self._validate_freq('window')
 
-            # this will raise ValueError on non-fixed freqs
-            try:
-                freq = to_offset(self.window)
-            except (TypeError, ValueError) as err:
-                raise ValueError(
-                    f"passed window {self.window} is not "
-                    "compatible with a datetimelike index"
-                ) from err
             if isinstance(self._on, PeriodIndex):
                 self._win_freq_i8 = freq.nanos / (self._on.freq.nanos / self._on.freq.n)
             else:
@@ -1607,10 +1617,24 @@ class Rolling(RollingAndExpandingMixin):
                 self.min_periods = 1
 
         elif isinstance(self.window, BaseIndexer):
-            # Passed BaseIndexer subclass should handle all other rolling kwargs
+            # Passed BaseIndexer subclass should handle all other rolling kwargs,
             return
         elif not is_integer(self.window) or self.window < 0:
             raise ValueError("window must be an integer 0 or greater")
+
+        if self.step is None:
+            self.step = 0
+
+        elif self._win_freq_i8 is not None:  # datetimelike index
+            step = self._validate_freq('step')
+
+            if isinstance(self._on, PeriodIndex):
+                self.step = step.nanos / (self._on.freq.nanos / self._on.freq.n)
+            else:
+                self.step = step.nanos
+
+        elif not is_integer(self.step) or self.step < 0:
+            raise ValueError("step must be an integer 0 or greater")
 
     def _validate_monotonic(self):
         """

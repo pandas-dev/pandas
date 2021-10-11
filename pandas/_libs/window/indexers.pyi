@@ -6,6 +6,7 @@ def calculate_variable_window_bounds(
     num_values: int,  # int64_t
     window_size: int,  # int64_t
     min_periods,
+    step_size: int,
     center: bool,
     closed: str | None,
     index: np.ndarray,  # const int64_t[:]
