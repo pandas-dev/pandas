@@ -2860,15 +2860,5 @@ class TestLocSeries:
         tm.assert_frame_equal(df, expected)
 
 
-def test_loc_multiindex():
-    df = DataFrame(
-        index=MultiIndex.from_product([list("abc"), list("de"), list("f")]), 
-        columns=["Val"],
-    )
-    result = df.loc[np.s_[:, "d", :]]
-    expected = DataFrame(
-        index=MultiIndex.from_product([list("abc"), list("d"), list("f")]), 
-        columns=["Val"],
-        )
-    tm.assert_frame_equal(result, expected)
+
 
