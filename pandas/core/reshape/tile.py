@@ -367,11 +367,12 @@ def qcut(
     x = _preprocess_for_cut(x)
     x, dtype = _coerce_to_type(x)
 
-    if is_integer(q):
-        quantiles = np.linspace(0, 1, q + 1)
-    else:
-        quantiles = q
-    bins = algos.quantile(x, quantiles)
+    quantiles = np.linspace(0, 1, q + 1) if is_integer(q) else q
+
+    x_np = np.asarray(x)
+    x_np = x_np[~np.isnan(x_np)]
+    bins = np.quantile(x_np, quantiles)
+
     fac, bins = _bins_to_cuts(
         x,
         bins,

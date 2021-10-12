@@ -1731,14 +1731,6 @@ class TestHashTable:
         tbl = hashtable(size_hint=size_hint)  # noqa
 
 
-def test_quantile():
-    s = Series(np.random.randn(100))
-
-    result = algos.quantile(s, [0, 0.25, 0.5, 0.75, 1.0])
-    expected = algos.quantile(s.values, [0, 0.25, 0.5, 0.75, 1.0])
-    tm.assert_almost_equal(result, expected)
-
-
 def test_unique_label_indices():
 
     a = np.random.randint(1, 1 << 10, 1 << 15).astype(np.intp)
