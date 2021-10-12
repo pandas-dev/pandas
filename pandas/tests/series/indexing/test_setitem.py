@@ -141,6 +141,24 @@ class TestSetitemDT64Values:
         indexer_sli(ser)[[1, 2]] = vals
         tm.assert_series_equal(ser, exp)
 
+    def test_object_series_setitem_dt64array_exact_match(self):
+        # make sure the dt64 isn't cast by numpy to integers
+        # https://github.com/numpy/numpy/issues/12550
+
+        ser = Series({"X": np.nan}, dtype=object)
+
+        indexer = [True]
+
+        # "exact_match" -> size of array being set matches size of ser
+        value = np.array([4], dtype="M8[ns]")
+
+        ser.iloc[indexer] = value
+
+        expected = Series([value[0]], index=["X"], dtype=object)
+        assert all(isinstance(x, np.datetime64) for x in expected.values)
+
+        tm.assert_series_equal(ser, expected)
+
 
 class TestSetitemScalarIndexer:
     def test_setitem_negative_out_of_bounds(self):
