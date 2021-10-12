@@ -1602,7 +1602,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     notnull = notna
 
-    def value_counts(self, dropna: bool = True):
+    def value_counts(self, dropna: bool = True, observed: bool = False):
         """
         Return a Series containing counts of each category.
 
@@ -1612,6 +1612,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         ----------
         dropna : bool, default True
             Don't include counts of NaN.
+        observed : bool, default False
+            If True, only include counts for observed categories.
+            If False, include counts for all categories.
 
         Returns
         -------
@@ -1640,7 +1643,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         ix = coerce_indexer_dtype(ix, self.dtype.categories)
         ix = self._from_backing_data(ix)
 
-        return Series(count, index=CategoricalIndex(ix), dtype="int64")
+        counts = Series(count, index=CategoricalIndex(ix), dtype="int64")
+        return counts[counts != 0] if observed else counts
 
     # error: Argument 2 of "_empty" is incompatible with supertype
     # "NDArrayBackedExtensionArray"; supertype defines the argument type as

@@ -163,6 +163,15 @@ class TestMethods(base.BaseMethodsTests):
     def test_value_counts(self, all_data, dropna):
         return super().test_value_counts(all_data, dropna)
 
+    def test_value_counts_observed(self, data):
+        data = data.add_categories(["#", "?"])  # Add some unobserved categories
+        series = pd.Series(data, dtype=data.categories.dtype)
+        result = data.value_counts(observed=True).sort_index()
+        expected = series.value_counts().sort_index()
+        self.assert_series_equal(
+            result, expected, check_index_type=False, check_categorical=False
+        )
+
     def test_combine_add(self, data_repeated):
         # GH 20825
         # When adding categoricals in combine, result is a string
