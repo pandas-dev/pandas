@@ -22,6 +22,7 @@ from pandas import (
     DataFrame,
     DatetimeIndex,
     IntervalIndex,
+    NumericIndex,
     PeriodIndex,
     RangeIndex,
     Series,
@@ -680,8 +681,8 @@ class TestIndex(Base):
 
     def test_map_tseries_indices_accsr_return_index(self):
         date_index = tm.makeDateIndex(24, freq="h", name="hourly")
-        expected = Index(range(24), name="hourly")
-        tm.assert_index_equal(expected, date_index.map(lambda x: x.hour))
+        expected = Int64Index(range(24), name="hourly")
+        tm.assert_index_equal(expected, date_index.map(lambda x: x.hour), exact=True)
 
     @pytest.mark.parametrize(
         "mapper",
@@ -1751,14 +1752,15 @@ def test_validate_1d_input():
         [Float64Index, {}],
         [DatetimeIndex, {}],
         [TimedeltaIndex, {}],
+        [NumericIndex, {}],
         [PeriodIndex, {"freq": "Y"}],
     ],
 )
 def test_construct_from_memoryview(klass, extra_kwargs):
     # GH 13120
     result = klass(memoryview(np.arange(2000, 2005)), **extra_kwargs)
-    expected = klass(range(2000, 2005), **extra_kwargs)
-    tm.assert_index_equal(result, expected)
+    expected = klass(list(range(2000, 2005)), **extra_kwargs)
+    tm.assert_index_equal(result, expected, exact=True)
 
 
 def test_index_set_names_pos_args_deprecation():
