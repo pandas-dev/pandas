@@ -164,6 +164,8 @@ class TestMethods(base.BaseMethodsTests):
         return super().test_value_counts(all_data, dropna)
 
     def test_value_counts_observed(self, data):
+        # GH 43498
+        # When observed=True is passed, unobserved categories should be omitted
         data = data.add_categories(["#", "?"])  # Add some unobserved categories
         series = pd.Series(data, dtype=data.categories.dtype)
         result = data.value_counts(observed=True).sort_index()
