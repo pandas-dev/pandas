@@ -885,9 +885,8 @@ class RangeIndex(NumericIndex):
             step = op
 
         # TODO: if other is a RangeIndex we may have more efficient options
-        other = extract_array(other, extract_numpy=True, extract_range=True)
-
-        left, right = self, other
+        right = extract_array(other, extract_numpy=True, extract_range=True)
+        left = self
 
         try:
             # apply if we have an override
@@ -907,7 +906,8 @@ class RangeIndex(NumericIndex):
                 rstart = op(left.start, right)
                 rstop = op(left.stop, right)
 
-            result = type(self)(rstart, rstop, rstep, name=self.name)
+            res_name = ops.get_op_result_name(self, other)
+            result = type(self)(rstart, rstop, rstep, name=res_name)
 
             # for compat with numpy / Int64Index
             # even if we can represent as a RangeIndex, return
