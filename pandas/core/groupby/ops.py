@@ -859,7 +859,22 @@ class BaseGrouper:
     def reconstructed_codes(self) -> list[np.ndarray]:
         codes = self.codes
         ids, obs_ids, _ = self.group_info
-        return decons_obs_group_ids(ids, obs_ids, self.shape, codes, xnull=True)
+        reconstructed_codes = decons_obs_group_ids(
+            ids, obs_ids, self.shape, codes, xnull=True
+        )
+
+        def transform_codes(code_level, grouping):
+            if grouping._na_placeholder is not None:
+                return np.where(code_level == max(code_level), -1, code_level)
+            else:
+                return code_level
+
+        # import pdb; pdb.set_trace()
+        transformed_rec_codes = [
+            transform_codes(code_level, grouping)
+            for code_level, grouping in zip(reconstructed_codes, self._groupings)
+        ]
+        return transformed_rec_codes
 
     @final
     @cache_readonly
