@@ -702,7 +702,7 @@ def test_concat_posargs_deprecation():
 
 def test_concat_retain_attrs_df():
     # GH#41828
-    d = {'col1': [1, 2], 'col2': [3, 4]}
+    d = {"col1": [1, 2], "col2": [3, 4]}
     df1 = pd.DataFrame(data=d)
     df1.attrs = {1: 1}
     df2 = pd.DataFrame(data=d)
@@ -724,7 +724,7 @@ def test_concat_retain_attrs_series():
 
 def test_concat_drop_attrs():
     # GH#41828
-    d = {'col1': [1, 2], 'col2': [3, 4]}
+    d = {"col1": [1, 2], "col2": [3, 4]}
     df1 = pd.DataFrame(data=d)
     df1.attrs = {1: 1}
     df2 = pd.DataFrame(data=d)
