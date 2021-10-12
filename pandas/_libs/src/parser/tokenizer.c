@@ -25,7 +25,8 @@ GitHub. See Python Software Foundation License and BSD licenses for these.
 
 #include "../headers/portable.h"
 
-void coliter_setup(coliter_t *self, parser_t *parser, int i, int start) {
+void coliter_setup(coliter_t *self, parser_t *parser, int64_t i,
+                   int64_t start) {
     // column i, starting at 0
     self->words = parser->words;
     self->col = i;
@@ -411,7 +412,7 @@ static void append_warning(parser_t *self, const char *msg) {
 static int end_line(parser_t *self) {
     char *msg;
     int64_t fields;
-    int ex_fields = self->expected_fields;
+    int64_t ex_fields = self->expected_fields;
     int64_t bufsize = 100;  // for error or warning messages
 
     fields = self->line_fields[self->lines];
@@ -459,8 +460,8 @@ static int end_line(parser_t *self) {
         if (self->on_bad_lines == ERROR) {
             self->error_msg = malloc(bufsize);
             snprintf(self->error_msg, bufsize,
-                    "Expected %d fields in line %" PRIu64 ", saw %" PRId64 "\n",
-                    ex_fields, self->file_lines, fields);
+                    "Expected %" PRId64 " fields in line %" PRIu64 ", saw %"
+                    PRId64 "\n", ex_fields, self->file_lines, fields);
 
             TRACE(("Error at line %d, %d fields\n", self->file_lines, fields));
 
@@ -471,8 +472,9 @@ static int end_line(parser_t *self) {
                 // pass up error message
                 msg = malloc(bufsize);
                 snprintf(msg, bufsize,
-                        "Skipping line %" PRIu64 ": expected %d fields, saw %"
-                        PRId64 "\n", self->file_lines, ex_fields, fields);
+                        "Skipping line %" PRIu64 ": expected %" PRId64
+                        " fields, saw %" PRId64 "\n",
+                        self->file_lines, ex_fields, fields);
                 append_warning(self, msg);
                 free(msg);
             }
