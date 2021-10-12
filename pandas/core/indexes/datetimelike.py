@@ -69,6 +69,7 @@ if TYPE_CHECKING:
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
 _T = TypeVar("_T", bound="DatetimeIndexOpsMixin")
+_TDT = TypeVar("_TDT", bound="DatetimeTimedeltaMixin")
 
 
 @inherit_names(
@@ -529,7 +530,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         # Only need to "adjoin", not overlap
         return (right_start == left_end + freq) or right_start in left
 
-    def _fast_union(self: _T, other: _T, sort=None) -> _T:
+    def _fast_union(self: _TDT, other: _TDT, sort=None) -> _TDT:
         # Caller is responsible for ensuring self and other are non-empty
 
         # to make our life easier, "sort" the two ranges
