@@ -703,31 +703,31 @@ def test_concat_posargs_deprecation():
 def test_concat_retain_attrs_df():
     # GH#41828
     d = {"col1": [1, 2], "col2": [3, 4]}
-    df1 = pd.DataFrame(data=d)
+    df1 = DataFrame(data=d)
     df1.attrs = {1: 1}
-    df2 = pd.DataFrame(data=d)
+    df2 = DataFrame(data=d)
     df2.attrs = {1: 1}
-    df = pd.concat([df1, df2])
+    df = concat([df1, df2])
     assert df.attrs[1] == 1
 
 
 def test_concat_retain_attrs_series():
     # GH#41828
     d = [1, 2]
-    df1 = pd.Series(data=d)
+    df1 = Series(data=d)
     df1.attrs = {1: 1}
-    df2 = pd.Series(data=d)
+    df2 = Series(data=d)
     df2.attrs = {1: 1}
-    df = pd.concat([df1, df2])
+    df = concat([df1, df2])
     assert df.attrs[1] == 1
 
 
 def test_concat_drop_attrs():
     # GH#41828
     d = {"col1": [1, 2], "col2": [3, 4]}
-    df1 = pd.DataFrame(data=d)
+    df1 = DataFrame(data=d)
     df1.attrs = {1: 1}
-    df2 = pd.DataFrame(data=d)
+    df2 = DataFrame(data=d)
     df2.attrs = {1: 2}
-    df = pd.concat([df1, df2])
+    df = concat([df1, df2])
     assert len(df.attrs) == 0
