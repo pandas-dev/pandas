@@ -785,21 +785,47 @@ class TestDataFrameSortIndex:
             result = expected.sort_index()
         tm.assert_frame_equal(result, expected)
 
-    def test_sort_index_ascending_tuple(self):
+    @pytest.mark.parametrize(
+        "ascending",
+        [(True, False)],
+    )
+    def test_sort_index_ascending_tuple(self, ascending):
         df = DataFrame(
             {
-                "animal": ["dog", "duck", "horse", "penguin", "kangaroo"],
                 "legs": [4, 2, 4, 2, 2],
-                "class": ["mammal", "bird", "mammal", "bird", "mammal"],
-            }
+            },
+            index=MultiIndex.from_tuples(
+                [
+                    ("mammal", "dog"),
+                    ("bird", "duck"),
+                    ("mammal", "horse"),
+                    ("bird", "penguin"),
+                    ("mammal", "kangaroo"),
+                ],
+                names=["class", "animal"],
+            ),
         )
 
-        df.set_index(["class", "animal"], inplace=True)
+        # parameter `ascending`` is a tuple
+        result = df.sort_index(level=(0, 1), ascending=ascending)
 
-        sorted1 = df.sort_index(level=(0, 1), ascending=[True, False])
-        sorted2 = df.sort_index(level=(0, 1), ascending=(True, False))
+        expected = DataFrame(
+            {
+                "legs": [2, 2, 2, 4, 4],
+            },
+            index=MultiIndex.from_tuples(
+                [
+                    ("bird", "penguin"),
+                    ("bird", "duck"),
+                    ("mammal", "kangaroo"),
+                    ("mammal", "horse"),
+                    ("mammal", "dog"),
+                ],
+                names=["class", "animal"],
+            ),
+        )
 
-        tm.assert_frame_equal(sorted1, sorted2)
+        tm.assert_frame_equal(result, expected)
 
 
 class TestDataFrameSortIndexKey:
