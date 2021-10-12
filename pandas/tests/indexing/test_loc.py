@@ -2865,7 +2865,10 @@ def test_loc_multiindex():
         index=MultiIndex.from_product([list("abc"), list("de"), list("f")]), 
         columns=["Val"],
     )
-    df1 = df.loc[np.s_[:, "d", :]]
-    df2 = df.loc[np.s_[:, "d", :]]
-    tm.assert_frame_equal(df1, df2)
+    result = df.loc[np.s_[:, "d", :]]
+    expected = DataFrame(
+        index=MultiIndex.from_product([list("abc"), list("d"), list("f")]), 
+        columns=["Val"],
+        )
+    tm.assert_frame_equal(result, expected)
 
