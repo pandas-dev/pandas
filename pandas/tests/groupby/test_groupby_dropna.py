@@ -370,3 +370,21 @@ def test_groupby_nan_included():
         tm.assert_numpy_array_equal(result_values, expected_values)
     assert np.isnan(list(result.keys())[2])
     assert list(result.keys())[0:2] == ["g1", "g2"]
+
+
+def test_groupby_codes_with_nan_in_multiindex():
+    # GH 43814
+    df = pd.DataFrame(
+        {
+            "temp_playlist": [0, 0, 0, 0],
+            "objId": ["o1", np.nan, "o1", np.nan],
+            "x": [1, 2, 3, 4],
+        }
+    )
+
+    grouped_df = df.groupby(by=["temp_playlist", "objId"], dropna=False)["x"].sum()
+    expected = pd.MultiIndex.from_arrays(
+        [[0, 0], ["o1", np.nan]], names=["temp_playlist", "objId"]
+    )
+    result = grouped_df.index
+    assert all((res == ex).all() for res, ex in zip(result.codes, expected.codes))

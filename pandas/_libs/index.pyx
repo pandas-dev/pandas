@@ -735,15 +735,11 @@ cdef class BaseMultiIndexCodesEngine:
             raise TypeError(f"'{key}' is an invalid key")
         if not isinstance(key, tuple):
             raise KeyError(key)
-        indices = []
-        for k, lev in zip(key, self.levels):
-            try:
-                indices.append(lev.get_loc(k) + 1)
-            except KeyError as err:
-                if checknull(k):
-                    indices.append(0)
-                else:
-                    raise KeyError(key) from err
+        try:
+            indices = [0 if checknull(v) else lev.get_loc(v) + 1
+                       for lev, v in zip(self.levels, key)]
+        except KeyError:
+            raise KeyError(key)
 
         # Transform indices into single integer:
         lab_int = self._codes_to_ints(np.array(indices, dtype='uint64'))

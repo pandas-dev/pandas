@@ -486,6 +486,7 @@ class Grouping:
         self._observed = observed
         self.in_axis = in_axis
         self._dropna = dropna
+        self._na_placeholder = None
 
         self._passed_categorical = False
 
@@ -690,6 +691,14 @@ class Grouping:
             codes, uniques = algorithms.factorize(
                 self.grouping_vector, sort=self._sort, na_sentinel=na_sentinel
             )
+            # GH43943, store placeholder for np.nan, will later be replaced by -1 in
+            # pandas/core/groupby:reconstructed_codes
+            if not self._dropna:
+                if any(
+                    isinstance(v, float) and np.isnan(v) for v in self.grouping_vector
+                ):
+                    self._na_placeholder = max(codes)
+
         return codes, uniques
 
     @cache_readonly
