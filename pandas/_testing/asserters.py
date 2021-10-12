@@ -553,6 +553,7 @@ def assert_categorical_equal(
     """
     _check_isinstance(left, right, Categorical)
 
+    exact: bool | str
     if isinstance(left.categories, RangeIndex) or isinstance(
         right.categories, RangeIndex
     ):
