@@ -6597,7 +6597,7 @@ class DataFrame(NDFrame, OpsMixin):
             - `first` : prioritize the first occurrence(s)
             - `last` : prioritize the last occurrence(s)
             - ``all`` : do not drop any duplicates, even it means
-                        selecting more than `n` items.
+              selecting more than `n` items.
 
         Returns
         -------
