@@ -857,7 +857,6 @@ class BaseGrouper:
             else:
                 return code_level
 
-        # import pdb; pdb.set_trace()
         transformed_rec_codes = [
             transform_codes(code_level, grouping)
             for code_level, grouping in zip(reconstructed_codes, self._groupings)
