@@ -5012,6 +5012,17 @@ Keep all original rows and also all original values
         5    False
         Name: animal, dtype: bool
 
+        To invert the boolean values, use the ``~`` operator:
+
+        >>> ~s.isin(['cow', 'lama'])
+        0    False
+        1    False
+        2    False
+        3     True
+        4    False
+        5     True
+        Name: animal, dtype: bool
+
         Passing a single string as ``s.isin('lama')`` will raise an error. Use
         a list of one element instead:
 
