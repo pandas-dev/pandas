@@ -1215,12 +1215,12 @@ class TestNumericArithmeticUnsorted:
                 b = b._rename("bar")
                 result = op(a, b)
                 expected = op(Int64Index(a), Int64Index(b))
-                tm.assert_index_equal(result, expected)
+                tm.assert_index_equal(result, expected, exact="equiv")
             for idx in idxs:
                 for scalar in scalars:
                     result = op(idx, scalar)
                     expected = op(Int64Index(idx), scalar)
-                    tm.assert_index_equal(result, expected)
+                    tm.assert_index_equal(result, expected, exact="equiv")
 
     def test_binops(self):
         ops = [

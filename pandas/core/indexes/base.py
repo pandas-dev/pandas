@@ -358,6 +358,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     _typ: str = "index"
     _data: ExtensionArray | np.ndarray
+    _data_cls: type[np.ndarray] | type[ExtensionArray] = np.ndarray
     _id: object | None = None
     _name: Hashable = None
     # MultiIndex.levels previously allowed setting the index name. We
@@ -642,7 +643,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Must be careful not to recurse.
         """
-        assert isinstance(values, (np.ndarray, ExtensionArray))
+        assert isinstance(values, cls._data_cls), type(values)
 
         result = object.__new__(cls)
         result._data = values
@@ -5040,8 +5041,13 @@ class Index(IndexOpsMixin, PandasObject):
             # d-level MultiIndex can equal d-tuple Index
             return other.equals(self)
 
-        if is_extension_array_dtype(self.dtype):
-            return self._values.equals(other._values)
+        if isinstance(self._values, ExtensionArray):
+            # Dispatch to the ExtensionArray's .equals method.
+            if not isinstance(other, type(self)):
+                return False
+
+            earr = cast(ExtensionArray, self._data)
+            return earr.equals(other._data)
 
         if is_extension_array_dtype(other.dtype):
             # All EA-backed Index subclasses override equals
