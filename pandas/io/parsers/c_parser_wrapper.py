@@ -403,7 +403,12 @@ def ensure_dtype_objs(dtype):
     dtype objects.
     """
     if isinstance(dtype, dict):
-        dtype = {k: pandas_dtype(dtype[k]) for k in dtype}
+        dtype = {
+            col: (pandas_dtype(col_dtype[0]), col_dtype[1])
+            if isinstance(col_dtype, tuple)
+            else pandas_dtype(col_dtype)
+            for col, col_dtype in dtype.items()
+        }
     elif dtype is not None:
         dtype = pandas_dtype(dtype)
     return dtype

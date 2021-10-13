@@ -142,9 +142,10 @@ mangle_dupe_cols : bool, default True
     Duplicate columns will be specified as 'X', 'X.1', ...'X.N', rather than
     'X'...'X'. Passing in False will cause data to be overwritten if there
     are duplicate names in the columns.
-dtype : Type name or dict of column -> type, optional
+dtype : Type name or dict of column -> type or column -> (type, 'coerce'), optional
     Data type for data or columns. E.g. {{'a': np.float64, 'b': np.int32,
-    'c': 'Int64'}}
+    'c': 'Int64'}}. Specify {{'a': (np.float64, 'coerce')}} to coerce values to NA that
+    cannot convert to float.
     Use `str` or `object` together with suitable `na_values` settings
     to preserve and not interpret dtype.
     If converters are specified, they will be applied INSTEAD

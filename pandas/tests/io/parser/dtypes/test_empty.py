@@ -180,3 +180,11 @@ def test_empty_dtype(all_parsers, dtype, expected):
 
     result = parser.read_csv(StringIO(data), header=0, dtype=dtype)
     tm.assert_frame_equal(result, expected)
+
+
+def test_dtype_coerce_empty(all_parsers):
+    parser = all_parsers
+    data = "a,b"
+    result = parser.read_csv(StringIO(data), dtype={"a": (float, "coerce"), "b": float})
+    expected = DataFrame([], columns=["a", "b"], dtype=float)
+    tm.assert_frame_equal(result, expected)

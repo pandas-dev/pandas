@@ -35,6 +35,7 @@ from pandas.errors import (
 
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
+    coerce_dtype,
     ensure_object,
     ensure_str,
     is_bool_dtype,
@@ -536,8 +537,10 @@ class ParserBase:
         result = {}
         for c, values in dct.items():
             conv_f = None if converters is None else converters.get(c, None)
+            coerce_float = False
             if isinstance(dtypes, dict):
                 cast_type = dtypes.get(c, None)
+                cast_type, coerce_float = coerce_dtype(cast_type)
             else:
                 # single dtype or None
                 cast_type = dtypes
@@ -583,7 +586,10 @@ class ParserBase:
 
                 # general type inference and conversion
                 cvals, na_count = self._infer_types(
-                    values, set(col_na_values) | col_na_fvalues, try_num_bool
+                    values,
+                    set(col_na_values) | col_na_fvalues,
+                    try_num_bool,
+                    coerce_float,
                 )
 
                 # type specified in dtype param or cast_type is an EA
@@ -677,7 +683,7 @@ class ParserBase:
 
         return noconvert_columns
 
-    def _infer_types(self, values, na_values, try_num_bool=True):
+    def _infer_types(self, values, na_values, try_num_bool=True, coerce_float=False):
         """
         Infer types of values, possibly casting
 
@@ -687,6 +693,8 @@ class ParserBase:
         na_values : set
         try_num_bool : bool, default try
            try to cast values to numeric (first preference) or boolean
+        coerce_float : bool, default False
+           coerce values that cannot be converted to NaN
 
         Returns
         -------
@@ -708,7 +716,9 @@ class ParserBase:
         if try_num_bool and is_object_dtype(values.dtype):
             # exclude e.g DatetimeIndex here
             try:
-                result, _ = lib.maybe_convert_numeric(values, na_values, False)
+                result, _ = lib.maybe_convert_numeric(
+                    values, na_values, False, coerce_float
+                )
             except (ValueError, TypeError):
                 # e.g. encountering datetime string gets ValueError
                 #  TypeError can be raised in floatify
@@ -991,7 +1001,14 @@ class ParserBase:
             dtype = cast(dict, dtype)
             dtype = defaultdict(
                 lambda: object,
-                {columns[k] if is_integer(k) else k: v for k, v in dtype.items()},
+                {
+                    columns[k]
+                    if is_integer(k)
+                    else k: v[0]
+                    if isinstance(v, tuple)
+                    else v
+                    for k, v in dtype.items()
+                },
             )
 
         # Even though we have no data, the "index" of the empty DataFrame
