@@ -15,8 +15,10 @@ from typing import (
     Callable,
     Hashable,
     Iterable,
+    List,
     Mapping,
     NamedTuple,
+    Sequence,
     TypeVar,
     Union,
     cast,
@@ -67,7 +69,10 @@ import pandas.core.common as com
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.core.groupby import base
+from pandas.core.groupby import (
+    base,
+    ops,
+)
 from pandas.core.groupby.groupby import (
     GroupBy,
     _agg_template,
@@ -1560,6 +1565,56 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         return self._python_apply_general(func, self._obj_with_exclusions)
 
     boxplot = boxplot_frame_groupby
+
+    def value_counts(
+        self,
+        subset: Sequence[Hashable] | None = None,
+        normalize: bool = False,
+        sort: bool = True,
+        ascending: bool = False,
+        dropna: bool = True,
+    ) -> DataFrame | Series:
+        with self._group_selection_context():
+            df = self.obj
+
+            if isinstance(self._selected_obj, Series):
+                keys = [grouping.name for grouping in self.grouper.groupings]
+                remaining_columns = [self._selected_obj.name]
+            else:
+                if isinstance(self.keys, ops.BaseGrouper):
+                    keys = [grouping.name for grouping in self.keys.groupings]
+                elif isinstance(self.keys, str):
+                    keys = [self.keys]
+                else:
+                    keys = cast(List[str], keys)
+
+                remaining_columns = [
+                    key for key in self._selected_obj.columns if key not in keys
+                ]
+            if subset is not None:
+                remaining_columns = [key for key in subset if key not in remaining_columns]
+
+            if dropna:
+                df = df.dropna(subset=remaining_columns, axis="index", how="any")
+
+            result = df.groupby(keys + remaining_columns, as_index=self.as_index).size()
+
+            if normalize:
+                print("!!!", type(result), result)
+                a = df.groupby(keys, as_index=self.as_index).size()
+                print("£££", type(a), a)
+                result /= df.groupby(keys, as_index=self.as_index).size()
+
+            if sort:
+                if isinstance(result, Series):
+                    result = result.sort_values(ascending=ascending).sort_index(
+                        level=keys, sort_remaining=False
+                    )
+                else:
+                    print("£££",result,"Should be Series")
+             ###       raise Exception("Should be Series")
+
+            return result
 
 
 def _wrap_transform_general_frame(
