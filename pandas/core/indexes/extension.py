@@ -3,7 +3,10 @@ Shared methods for Index subclasses backed by ExtensionArray.
 """
 from __future__ import annotations
 
-from typing import TypeVar
+from typing import (
+    Callable,
+    TypeVar,
+)
 
 import numpy as np
 
@@ -23,9 +26,12 @@ from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.indexes.base import Index
 
 _T = TypeVar("_T", bound="NDArrayBackedExtensionIndex")
+_ExtensionIndexT = TypeVar("_ExtensionIndexT", bound="ExtensionIndex")
 
 
-def _inherit_from_data(name: str, delegate, cache: bool = False, wrap: bool = False):
+def _inherit_from_data(
+    name: str, delegate: type, cache: bool = False, wrap: bool = False
+):
     """
     Make an alias for a method of the underlying ExtensionArray.
 
@@ -101,7 +107,9 @@ def _inherit_from_data(name: str, delegate, cache: bool = False, wrap: bool = Fa
     return method
 
 
-def inherit_names(names: list[str], delegate, cache: bool = False, wrap: bool = False):
+def inherit_names(
+    names: list[str], delegate: type, cache: bool = False, wrap: bool = False
+) -> Callable[[type[_ExtensionIndexT]], type[_ExtensionIndexT]]:
     """
     Class decorator to pin attributes from an ExtensionArray to a Index subclass.
 
@@ -114,7 +122,7 @@ def inherit_names(names: list[str], delegate, cache: bool = False, wrap: bool = 
         Whether to wrap the inherited result in an Index.
     """
 
-    def wrapper(cls):
+    def wrapper(cls: type[_ExtensionIndexT]) -> type[_ExtensionIndexT]:
         for name in names:
             meth = _inherit_from_data(name, delegate, cache=cache, wrap=wrap)
             setattr(cls, name, meth)
