@@ -122,7 +122,6 @@ def calculate_variable_window_bounds(
                     elif ((index[j] - end_bound) * index_growth_sign == 0 and
                           right_closed):
                         end[i] = j + 1
-                        break
                     elif (index[j] - end_bound) * index_growth_sign >= 0:
                         end[i] = j
                         break
