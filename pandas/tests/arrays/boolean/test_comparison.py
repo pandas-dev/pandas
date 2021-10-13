@@ -4,7 +4,7 @@ import pytest
 import pandas as pd
 import pandas._testing as tm
 from pandas.arrays import BooleanArray
-from pandas.tests.extension.base import BaseOpsUtil
+from pandas.tests.arrays.masked_shared import ComparisonOps
 
 
 @pytest.fixture
@@ -15,30 +15,12 @@ def data():
     )
 
 
-class TestComparisonOps(BaseOpsUtil):
-    def _compare_other(self, data, op_name, other):
-        op = self.get_op_from_name(op_name)
+@pytest.fixture
+def dtype():
+    return pd.BooleanDtype()
 
-        # array
-        result = pd.Series(op(data, other))
-        expected = pd.Series(op(data._data, other), dtype="boolean")
-        # propagate NAs
-        expected[data._mask] = pd.NA
 
-        tm.assert_series_equal(result, expected)
-
-        # series
-        s = pd.Series(data)
-        result = op(s, other)
-
-        expected = pd.Series(data._data)
-        expected = op(expected, other)
-        expected = expected.astype("boolean")
-        # propagate NAs
-        expected[data._mask] = pd.NA
-
-        tm.assert_series_equal(result, expected)
-
+class TestComparisonOps(ComparisonOps):
     def test_compare_scalar(self, data, all_compare_operators):
         op_name = all_compare_operators
         self._compare_other(data, op_name, True)
@@ -53,24 +35,8 @@ class TestComparisonOps(BaseOpsUtil):
         self._compare_other(data, op_name, other)
 
     @pytest.mark.parametrize("other", [True, False, pd.NA])
-    def test_scalar(self, other, all_compare_operators):
-        op = self.get_op_from_name(all_compare_operators)
-        a = pd.array([True, False, None], dtype="boolean")
-
-        result = op(a, other)
-
-        if other is pd.NA:
-            expected = pd.array([None, None, None], dtype="boolean")
-        else:
-            values = op(a._data, other)
-            expected = BooleanArray(values, a._mask, copy=True)
-        tm.assert_extension_array_equal(result, expected)
-
-        # ensure we haven't mutated anything inplace
-        result[0] = None
-        tm.assert_extension_array_equal(
-            a, pd.array([True, False, None], dtype="boolean")
-        )
+    def test_scalar(self, other, all_compare_operators, dtype):
+        ComparisonOps.test_scalar(self, other, all_compare_operators, dtype)
 
     def test_array(self, all_compare_operators):
         op = self.get_op_from_name(all_compare_operators)

@@ -314,12 +314,6 @@ class TestArithmeticOps(BaseDecimal, base.BaseArithmeticOpsTests):
 
 
 class TestComparisonOps(BaseDecimal, base.BaseComparisonOpsTests):
-    def check_opname(self, s, op_name, other, exc=None):
-        super().check_opname(s, op_name, other, exc=None)
-
-    def _compare_other(self, s, data, op_name, other):
-        self.check_opname(s, op_name, other)
-
     def test_compare_scalar(self, data, all_compare_operators):
         op_name = all_compare_operators
         s = pd.Series(data)
