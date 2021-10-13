@@ -4,9 +4,15 @@ import numpy as np
 import pytest
 
 import pandas._testing as tm
+
+from pandas import DataFrame
 from pandas.core.ops.array_ops import (
     comparison_op,
     na_logical_op,
+)
+from pandas.core.computation.expressions import (
+    _evaluate_numexpr,
+    _evaluate_standard,
 )
 
 
@@ -37,3 +43,13 @@ def test_object_comparison_2d():
     right.flags.writeable = False
     result = comparison_op(left, right, operator.ne)
     tm.assert_numpy_array_equal(result, ~expected)
+
+
+def test_str_comparison():
+    a = np.array(range(10 ** 5))
+    right = DataFrame(a, dtype=np.int64)
+    left = "    "
+    
+    result = right == left
+    expected = DataFrame(np.zeros(right.shape, dtype=bool))
+    tm.assert_frame_equal(result, expected)
