@@ -692,8 +692,8 @@ def to_datetime(
     Parameters
     ----------
     arg : int, float, str, datetime, list, tuple, 1-d array, Series, DataFrame/dict-like
-        The object to convert to a datetime. If the DataFrame is provided,
-        the method expects minimally the following columns: "year", "month", "day" 
+        The object to convert to a datetime. If the DataFrame is provided,the method
+        expects minimally the following columns: "year", "month", "day"
         in the DataFrame.
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.
