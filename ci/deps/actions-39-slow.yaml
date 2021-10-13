@@ -6,7 +6,7 @@ dependencies:
   - python=3.9
 
   # tools
-  - cython>=0.29.21
+  - cython>=0.29.24
   - pytest>=6.0
   - pytest-cov
   - pytest-xdist>=1.31

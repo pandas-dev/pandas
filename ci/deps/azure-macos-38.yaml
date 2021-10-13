@@ -32,6 +32,6 @@ dependencies:
   - xlwt
   - pip
   - pip:
-    - cython>=0.29.21
+    - cython>=0.29.24
     - pyreadstat
     - pyxlsb
