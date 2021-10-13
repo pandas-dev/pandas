@@ -60,6 +60,7 @@ objects.
       api.extensions.ExtensionArray.nbytes
       api.extensions.ExtensionArray.ndim
       api.extensions.ExtensionArray.shape
+      api.extensions.ExtensionArray.tolist
 
 Additionally, we have some utility methods for ensuring your object
 behaves correctly.
