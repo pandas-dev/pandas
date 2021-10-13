@@ -692,7 +692,8 @@ def to_datetime(
     Parameters
     ----------
     arg : int, float, str, datetime, list, tuple, 1-d array, Series, DataFrame/dict-like
-        The object to convert to a datetime.
+        The object to convert to a datetime. If the DataFrame is provided, the method expects
+        minimally the following columns ( "year", "month", "day") in the DataFrame.
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.
         - If 'coerce', then invalid parsing will be set as NaT.
@@ -775,6 +776,7 @@ def to_datetime(
             - DatetimeIndex, if timezone naive or aware with the same timezone
             - Index of object dtype, if timezone aware with mixed time offsets
         - Series: Series of datetime64 dtype
+        - DataFrame: Series of datetime64 dtype
         - scalar: Timestamp
 
         In case when it is not possible to return designated types (e.g. when
