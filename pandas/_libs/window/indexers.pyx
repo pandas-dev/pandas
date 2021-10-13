@@ -62,6 +62,7 @@ def calculate_variable_window_bounds(
     if closed in ['left', 'both']:
         left_closed = True
 
+    # GH 43997:
     # If the forward and the backward facing windows
     # would result in a fraction of 1/2 a nanosecond
     # we need to make both interval ends inclusive.
