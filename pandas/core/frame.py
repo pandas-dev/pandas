@@ -6597,7 +6597,7 @@ class DataFrame(NDFrame, OpsMixin):
             - `first` : prioritize the first occurrence(s)
             - `last` : prioritize the last occurrence(s)
             - ``all`` : do not drop any duplicates, even it means
-                        selecting more than `n` items.
+              selecting more than `n` items.
 
         Returns
         -------
@@ -10558,6 +10558,13 @@ NaN 12.3   33.0
                 num_legs  num_wings
         falcon      True       True
         dog        False       True
+
+        To check if ``values`` is *not* in the DataFrame, use the ``~`` operator:
+
+        >>> ~df.isin([0, 2])
+                num_legs  num_wings
+        falcon     False      False
+        dog         True      False
 
         When ``values`` is a dict, we can pass values to check for each
         column separately:
