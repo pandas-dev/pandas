@@ -639,7 +639,7 @@ class RangeIndex(NumericIndex):
                     and (abs(end_s - end_o) == step_s / 2)
                 ):
                     # e.g. range(0, 10, 2) and range(1, 11, 2)
-                    #  but not range(0, 20, 4) and range(1, 21, 4) GH#??
+                    #  but not range(0, 20, 4) and range(1, 21, 4) GH#44019
                     return type(self)(start_r, end_r + step_s / 2, step_s / 2)
 
             elif step_o % step_s == 0:
