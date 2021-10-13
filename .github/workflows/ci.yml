@@ -137,7 +137,7 @@ jobs:
       if: ${{github.event_name == 'push' && github.ref == 'refs/heads/master'}}
 
     - name: Upload web
-      run: rsync -az --delete --exclude='pandas-docs' --exclude='docs' --exclude='Pandas_Cheat_Sheet*' web/build/ docs@${{ secrets.server_ip }}:/usr/share/nginx/pandas
+      run: rsync -az --delete --exclude='pandas-docs' --exclude='docs' web/build/ docs@${{ secrets.server_ip }}:/usr/share/nginx/pandas
       if: ${{github.event_name == 'push' && github.ref == 'refs/heads/master'}}
 
     - name: Upload dev docs
@@ -146,6 +146,10 @@ jobs:
 
     - name: Move docs into site directory
       run: mv doc/build/html web/build/docs
+
+    - name: Copy cheatsheets into site directory
+      run: cp doc/cheatsheet/Pandas_Cheat_Sheet* web/build/docs/cheatsheet
+
     - name: Save website as an artifact
       uses: actions/upload-artifact@v2
       with:
