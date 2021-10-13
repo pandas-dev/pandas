@@ -544,7 +544,6 @@ class BaseWindow(SelectionMixin):
         y : type of input
         """
         window_indexer = self._get_window_indexer()
-
         min_periods = (
             self.min_periods
             if self.min_periods is not None
@@ -558,7 +557,6 @@ class BaseWindow(SelectionMixin):
                 return values.copy()
 
             def calc(x):
-
                 start, end = window_indexer.get_window_bounds(
                     num_values=len(x),
                     min_periods=min_periods,
@@ -2464,7 +2462,6 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
         rolling_indexer: type[BaseIndexer]
         indexer_kwargs: dict[str, Any] | None = None
         index_array = self._index_array
-
         if isinstance(self.window, BaseIndexer):
             rolling_indexer = type(self.window)
             indexer_kwargs = self.window.__dict__.copy()
@@ -2478,7 +2475,6 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
         else:
             rolling_indexer = FixedWindowIndexer
             window = self.window
-
         window_indexer = GroupbyIndexer(
             index_array=index_array,
             window_size=window,
@@ -2486,7 +2482,6 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
             window_indexer=rolling_indexer,
             indexer_kwargs=indexer_kwargs,
         )
-
         return window_indexer
 
     def _validate_monotonic(self):
