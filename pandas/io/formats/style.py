@@ -57,6 +57,7 @@ from pandas.io.formats.style_render import (
     non_reducing_slice,
     refactor_levels,
 )
+from style_render import format_table_styles
 
 try:
     import matplotlib as mpl
@@ -2047,7 +2048,7 @@ class Styler(StylerRenderer):
                 }
                 for key, styles in table_styles.items()
                 for idx in obj.get_indexer_for([key])
-                for s in styles
+                for s in format_table_styles(styles)
             ]
         else:
             table_styles = [

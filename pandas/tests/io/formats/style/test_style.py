@@ -828,6 +828,18 @@ class TestStyler:
             {"selector": "td", "props": [("color", "red")]},
             {"selector": "tr", "props": [("color", "green")]},
         ]
+    
+    def test_table_styles_multiple_borders(self):
+        # GH 4411
+        ctx = self.df.style.set_table_styles(
+            [{"selector": "th,td", "props": [('border-left', '2px solid black')]}]
+        )._translate(True, True)["tables_styles"]
+
+        assert ctx == [
+            {'selector': 'th', 'props': [('border-left', '2px solid black')]},
+            {'selector': 'td', 'props': [('border-left', '2px solid black')]}
+            ]
+
 
     def test_maybe_convert_css_to_tuples(self):
         expected = [("a", "b"), ("c", "d e")]
@@ -1519,4 +1531,3 @@ def test_get_level_lengths_mi_hidden():
         max_index=100,
         hidden_elements=[0, 1, 0, 1],  # hidden element can repeat if duplicated index
     )
-    tm.assert_dict_equal(result, expected)
