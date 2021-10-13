@@ -1333,15 +1333,19 @@ def test_groupby_aggregate_directory(reduction_func):
         obj = DataFrame([[0, 1], [0, np.nan]])
 
         obj.convert_dtypes()
-        df_agg_last = obj.groupby(0).agg(reduction_func)
-        df_agg_last_dir = obj.groupby(0).agg({1: reduction_func})
+        result_reduced_series = obj.groupby(0).agg(reduction_func)
+        result_reduced_frame = obj.groupby(0).agg({1: reduction_func})
 
         if reduction_func in ["size", "ngroup"]:
-            tm.assert_equal(df_agg_last.values, df_agg_last_dir[1].values)
-            assert df_agg_last.dtypes == df_agg_last_dir[1].dtypes
+            # names are different: None / 1
+            tm.assert_series_equal(
+                result_reduced_series, result_reduced_frame[1], check_names=False
+            )
         else:
-            tm.assert_frame_equal(df_agg_last, df_agg_last_dir)
-            tm.assert_series_equal(df_agg_last.dtypes, df_agg_last_dir.dtypes)
+            tm.assert_frame_equal(result_reduced_series, result_reduced_frame)
+            tm.assert_series_equal(
+                result_reduced_series.dtypes, result_reduced_frame.dtypes
+            )
 
 
 def test_group_mean_timedelta_nat():
