@@ -1429,3 +1429,14 @@ def test_sub_multiindex_swapped_levels():
     result = df - df2
     expected = pd.DataFrame([0.0] * 6, columns=["a"], index=df.index)
     tm.assert_frame_equal(result, expected)
+
+
+def test_empty_str_comparison():
+    # GH 37348
+    a = np.array(range(10 ** 5))
+    right = pd.DataFrame(a, dtype=np.int64)
+    left = "    "
+
+    result = right == left
+    expected = pd.DataFrame(np.zeros(right.shape, dtype=bool))
+    tm.assert_frame_equal(result, expected)
