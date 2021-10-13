@@ -54,7 +54,7 @@ class TestiLoc(Base):
 
 class TestiLocBaseIndependent:
     """Tests Independent Of Base Class"""
-    
+
     @pytest.mark.parametrize(
         "key",
         [
@@ -103,7 +103,6 @@ class TestiLocBaseIndependent:
 
         def check(frame, expected):
             df = frame.copy()
-            orig_vals = df.values
             indexer(df)[key, 0] = cat
             tm.assert_frame_equal(df, expected)
 
@@ -115,8 +114,8 @@ class TestiLocBaseIndependent:
         # Without a mixed dataframe, a the internal block is overwritten
         frame = DataFrame({0: np.array([0, 1, 2], dtype=object)})
         expected = DataFrame({0: cat})
-        check(frame, expected) 
-            
+        check(frame, expected)
+
     # TODO(ArrayManager) does not yet update parent
     @td.skip_array_manager_not_yet_implemented
     @pytest.mark.parametrize("box", [array, Series])
