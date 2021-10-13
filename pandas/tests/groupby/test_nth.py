@@ -745,5 +745,27 @@ def test_np_ints(slice_test_df, slice_test_grouped):
 
     result = slice_test_grouped.nth(np.array([0, 1]))
     expected = slice_test_df.iloc[[0, 1, 2, 3, 4]]
+    tm.assert_frame_equal(result, expected)
 
+
+def test_groupby_nth_with_column_axis():
+    # GH43926
+    df = DataFrame(
+        [
+            [4, 5, 6],
+            [8, 8, 7],
+        ],
+        index=["z", "y"],
+        columns=["C", "B", "A"],
+    )
+    result = df.groupby(df.iloc[1], axis=1).nth(0)
+    expected = DataFrame(
+        [
+            [6, 4],
+            [7, 8],
+        ],
+        index=["z", "y"],
+        columns=[7, 8],
+    )
+    expected.columns.name = "y"
     tm.assert_frame_equal(result, expected)

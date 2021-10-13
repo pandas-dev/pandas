@@ -2548,13 +2548,16 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     return out
 
                 result_index = self.grouper.result_index
-                out.index = result_index[ids[mask]]
+                if self.axis == 0:
+                    out.index = result_index[ids[mask]]
+                    if not self.observed and isinstance(result_index, CategoricalIndex):
+                        out = out.reindex(result_index)
 
-                if not self.observed and isinstance(result_index, CategoricalIndex):
-                    out = out.reindex(result_index)
+                    out = self._reindex_output(out)
+                else:
+                    out.columns = result_index[ids[mask]]
 
-                out = self._reindex_output(out)
-                return out.sort_index() if self.sort else out
+                return out.sort_index(axis=self.axis) if self.sort else out
 
         # dropna is truthy
         if not is_integer(n):
@@ -2598,7 +2601,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 mutated=self.mutated,
             )
 
-        grb = dropped.groupby(grouper, as_index=self.as_index, sort=self.sort)
+        grb = dropped.groupby(
+            grouper, as_index=self.as_index, sort=self.sort, axis=self.axis
+        )
         sizes, result = grb.size(), grb.nth(n)
         mask = (sizes < max_len)._values
 
@@ -3368,6 +3373,19 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     def _mask_selected_obj(self, mask: np.ndarray) -> NDFrameT:
+        """
+        Return _selected_obj with mask applied to the correct axis.
+
+        Parameters
+        ----------
+        mask : np.ndarray
+            Boolean mask to apply.
+
+        Returns
+        -------
+        Series or DataFrame
+            Filtered _selected_obj.
+        """
         if self.axis == 0:
             return self._selected_obj[mask]
         else:
