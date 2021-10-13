@@ -443,7 +443,9 @@ class Base:
 
         assert index.equals(index)
         assert index.equals(index.copy())
-        assert index.equals(index.astype(object))
+        if not (type(index) is Index and not isinstance(index.dtype, np.dtype)):
+            # doesn't hold for e.g. IntegerDtype
+            assert index.equals(index.astype(object))
 
         assert not index.equals(list(index))
         assert not index.equals(np.array(index))

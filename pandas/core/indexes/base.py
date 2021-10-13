@@ -358,7 +358,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     _typ: str = "index"
     _data: ExtensionArray | np.ndarray
-    _data_cls: type[np.ndarray] | type[ExtensionArray] = np.ndarray
+    _data_cls: type[np.ndarray] | type[ExtensionArray] = (np.ndarray, ExtensionArray)
     _id: object | None = None
     _name: Hashable = None
     # MultiIndex.levels previously allowed setting the index name. We
