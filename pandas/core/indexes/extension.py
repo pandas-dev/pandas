@@ -31,7 +31,7 @@ from pandas.core.indexes.base import Index
 _T = TypeVar("_T", bound="NDArrayBackedExtensionIndex")
 
 
-def inherit_from_data(name: str, delegate, cache: bool = False, wrap: bool = False):
+def _inherit_from_data(name: str, delegate, cache: bool = False, wrap: bool = False):
     """
     Make an alias for a method of the underlying ExtensionArray.
 
@@ -120,7 +120,7 @@ def inherit_names(names: list[str], delegate, cache: bool = False, wrap: bool = 
 
     def wrapper(cls):
         for name in names:
-            meth = inherit_from_data(name, delegate, cache=cache, wrap=wrap)
+            meth = _inherit_from_data(name, delegate, cache=cache, wrap=wrap)
             setattr(cls, name, meth)
 
         return cls
