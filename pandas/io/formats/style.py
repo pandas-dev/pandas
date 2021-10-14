@@ -53,11 +53,11 @@ from pandas.io.formats.style_render import (
     StylerRenderer,
     Subset,
     Tooltips,
+    format_table_styles,
     maybe_convert_css_to_tuples,
     non_reducing_slice,
     refactor_levels,
 )
-from style_render import format_table_styles
 
 try:
     import matplotlib as mpl

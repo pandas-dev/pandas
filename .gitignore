@@ -23,6 +23,7 @@
 .tags
 .cache/
 .vscode/
+*.venv*
 
 # Compiled source #
 ###################

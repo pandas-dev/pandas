@@ -382,7 +382,7 @@ Categorical
 - Bug in :meth:`Series.where` with ``CategoricalDtype`` when passing a dtype-incompatible value raising ``ValueError`` instead of ``TypeError`` (:issue:`41919`)
 - Bug in :meth:`Categorical.fillna` when passing a dtype-incompatible value raising ``ValueError`` instead of ``TypeError`` (:issue:`41919`)
 - Bug in :meth:`Categorical.fillna` with a tuple-like category raising ``ValueError`` instead of ``TypeError`` when filling with a non-category tuple (:issue:`41919`)
-- 
+-
 
 Datetimelike
 ^^^^^^^^^^^^
