@@ -3,10 +3,7 @@ Shared methods for Index subclasses backed by ExtensionArray.
 """
 from __future__ import annotations
 
-from typing import (
-    Hashable,
-    TypeVar,
-)
+from typing import TypeVar
 
 import numpy as np
 
@@ -14,7 +11,6 @@ from pandas._typing import (
     ArrayLike,
     npt,
 )
-from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     cache_readonly,
     doc,
@@ -27,13 +23,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import ABCDataFrame
 
-from pandas.core.arrays import (
-    Categorical,
-    DatetimeArray,
-    IntervalArray,
-    PeriodArray,
-    TimedeltaArray,
-)
+from pandas.core.arrays import IntervalArray
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.indexers import deprecate_ndim_indexing
 from pandas.core.indexes.base import Index
@@ -148,38 +138,6 @@ class ExtensionIndex(Index):
 
     _data: IntervalArray | NDArrayBackedExtensionArray
 
-    _data_cls: (
-        type[Categorical]
-        | type[DatetimeArray]
-        | type[TimedeltaArray]
-        | type[PeriodArray]
-        | type[IntervalArray]
-    )
-
-    @classmethod
-    def _simple_new(
-        cls,
-        array: IntervalArray | NDArrayBackedExtensionArray,
-        name: Hashable = None,
-    ):
-        """
-        Construct from an ExtensionArray of the appropriate type.
-
-        Parameters
-        ----------
-        array : ExtensionArray
-        name : Label, default None
-            Attached as result.name
-        """
-        assert isinstance(array, cls._data_cls), type(array)
-
-        result = object.__new__(cls)
-        result._data = array
-        result._name = name
-        result._cache = {}
-        result._reset_identity()
-        return result
-
     # ---------------------------------------------------------------------
     # NDarray-Like Methods
 
@@ -197,22 +155,6 @@ class ExtensionIndex(Index):
         return result
 
     # ---------------------------------------------------------------------
-
-    def delete(self, loc):
-        """
-        Make new Index with passed location(-s) deleted
-
-        Returns
-        -------
-        new_index : Index
-        """
-        arr = self._data.delete(loc)
-        return type(self)._simple_new(arr, name=self.name)
-
-    def repeat(self, repeats, axis=None):
-        nv.validate_repeat((), {"axis": axis})
-        result = self._data.repeat(repeats, axis=axis)
-        return type(self)._simple_new(result, name=self.name)
 
     def insert(self, loc: int, item) -> Index:
         """
@@ -294,17 +236,6 @@ class ExtensionIndex(Index):
         # error: Incompatible return value type (got "ExtensionArray", expected
         # "ndarray")
         return self._data.isna()  # type: ignore[return-value]
-
-    @doc(Index.equals)
-    def equals(self, other) -> bool:
-        # Dispatch to the ExtensionArray's .equals method.
-        if self.is_(other):
-            return True
-
-        if not isinstance(other, type(self)):
-            return False
-
-        return self._data.equals(other._data)
 
 
 class NDArrayBackedExtensionIndex(ExtensionIndex):

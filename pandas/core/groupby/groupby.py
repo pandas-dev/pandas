@@ -2446,7 +2446,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @Substitution(see_also=_common_see_also)
     def nth(
         self, n: int | list[int], dropna: Literal["any", "all", None] = None
-    ) -> DataFrame:
+    ) -> NDFrameT:
         """
         Take the nth row from each group if n is an int, or a subset of rows
         if n is a list of ints.
@@ -2545,18 +2545,22 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # Drop NA values in grouping
                 mask = mask & (ids != -1)
 
-                out = self._selected_obj[mask]
+                out = self._mask_selected_obj(mask)
+
                 if not self.as_index:
                     return out
 
                 result_index = self.grouper.result_index
-                out.index = result_index[ids[mask]]
+                if self.axis == 0:
+                    out.index = result_index[ids[mask]]
+                    if not self.observed and isinstance(result_index, CategoricalIndex):
+                        out = out.reindex(result_index)
 
-                if not self.observed and isinstance(result_index, CategoricalIndex):
-                    out = out.reindex(result_index)
+                    out = self._reindex_output(out)
+                else:
+                    out.columns = result_index[ids[mask]]
 
-                out = self._reindex_output(out)
-                return out.sort_index() if self.sort else out
+                return out.sort_index(axis=self.axis) if self.sort else out
 
         # dropna is truthy
         if isinstance(n, valid_containers):
@@ -2599,7 +2603,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 mutated=self.mutated,
             )
 
-        grb = dropped.groupby(grouper, as_index=self.as_index, sort=self.sort)
+        grb = dropped.groupby(
+            grouper, as_index=self.as_index, sort=self.sort, axis=self.axis
+        )
         sizes, result = grb.size(), grb.nth(n)
         mask = (sizes < max_len)._values
 
@@ -3317,10 +3323,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         self._reset_group_selection()
         mask = self._cumcount_array() < n
-        if self.axis == 0:
-            return self._selected_obj[mask]
-        else:
-            return self._selected_obj.iloc[:, mask]
+        return self._mask_selected_obj(mask)
 
     @final
     @Substitution(name="groupby")
@@ -3355,6 +3358,23 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         self._reset_group_selection()
         mask = self._cumcount_array(ascending=False) < n
+        return self._mask_selected_obj(mask)
+
+    @final
+    def _mask_selected_obj(self, mask: np.ndarray) -> NDFrameT:
+        """
+        Return _selected_obj with mask applied to the correct axis.
+
+        Parameters
+        ----------
+        mask : np.ndarray
+            Boolean mask to apply.
+
+        Returns
+        -------
+        Series or DataFrame
+            Filtered _selected_obj.
+        """
         if self.axis == 0:
             return self._selected_obj[mask]
         else:

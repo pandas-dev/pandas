@@ -874,7 +874,7 @@ class _MMapWrapper(abc.Iterator):
     def read(self, size: int = -1) -> str | bytes:
         # CSV c-engine uses read instead of iterating
         content: bytes = self.mmap.read(size)
-        if self.decode:
+        if self.decode and self.encoding != "utf-8":
             # memory mapping is applied before compression. Encoding should
             # be applied to the de-compressed data.
             final = size == -1 or len(content) < size

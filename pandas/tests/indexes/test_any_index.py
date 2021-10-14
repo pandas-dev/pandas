@@ -60,7 +60,7 @@ def test_map_identity_mapping(index):
             expected = index.astype(np.int64)
     else:
         expected = index
-    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(result, expected, exact="equiv")
 
 
 def test_wrong_number_names(index):
