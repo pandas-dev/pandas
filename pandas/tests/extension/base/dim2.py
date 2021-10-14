@@ -201,7 +201,7 @@ class Dim2CompatTests(BaseExtensionTests):
                 if data.dtype.kind == "i":
                     if is_platform_windows() or not IS64:
                         # FIXME: kludge for 32bit builds
-                        if result.dtype == "i4":
+                        if result.dtype.itemsize == 4:
                             dtype = pd.Int32Dtype()
                         else:
                             dtype = pd.Int64Dtype()
@@ -210,7 +210,7 @@ class Dim2CompatTests(BaseExtensionTests):
                 else:
                     if is_platform_windows() or not IS64:
                         # FIXME: kludge for 32bit builds
-                        if result.dtype == "u4":
+                        if result.dtype.itemsize == 4:
                             dtype = pd.UInt32Dtype()
                         else:
                             dtype = pd.UInt64Dtype()
