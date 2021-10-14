@@ -739,6 +739,12 @@ class Index(IndexOpsMixin, PandasObject):
         Temporarily added back for compatibility issue in dask, see
         https://github.com/pandas-dev/pandas/pull/43895
         """
+        warnings.warn(
+            "The Index._get_attributes_dict method is deprecated, and will be "
+            "removed in a future version",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return {k: getattr(self, k, None) for k in self._attributes}
 
     def _shallow_copy(self: _IndexT, values, name: Hashable = no_default) -> _IndexT:
