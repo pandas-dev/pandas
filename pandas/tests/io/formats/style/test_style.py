@@ -832,10 +832,8 @@ class TestStyler:
     def test_table_styles_dict_multiple_selectors(self):
         # GH 44011
         result = self.df.style.set_table_styles(
-            [
-                {"selector": "th,td", "props": [("border-left", "2px solid black")]}
-            ]
-        )._translate(True, True)['table_styles']
+            [{"selector": "th,td", "props": [("border-left", "2px solid black")]}]
+        )._translate(True, True)["table_styles"]
 
         expected = [
             {"selector": "th", "props": [("border-left", "2px solid black")]},
