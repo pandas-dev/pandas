@@ -831,11 +831,11 @@ class TestStyler:
     
     def test_table_styles_multiple_borders(self):
         # GH 4411
-        ctx = self.df.style.set_table_styles(
+        style_table_setting = self.df.style.set_table_styles(
             [{"selector": "th,td", "props": [('border-left', '2px solid black')]}]
         )._translate(True, True)["tables_styles"]
 
-        assert ctx == [
+        assert style_table_setting == [
             {'selector': 'th', 'props': [('border-left', '2px solid black')]},
             {'selector': 'td', 'props': [('border-left', '2px solid black')]}
             ]
