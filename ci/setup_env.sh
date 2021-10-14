@@ -26,8 +26,8 @@ elif [[ "$(uname)" == 'Linux' ]]; then
 elif [[ "$(uname)" == 'Darwin' ]]; then
     CONDA_URL="$DEFAULT_CONDA_URL-MacOSX-x86_64.sh"
 else
-  echo "OS $(uname) not supported"
-  exit 1
+    echo "OS $(uname) not supported"
+    exit 1
 fi
 echo "Downloading $CONDA_URL"
 wget -q $CONDA_URL -O miniconda.sh
