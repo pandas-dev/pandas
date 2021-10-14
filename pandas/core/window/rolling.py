@@ -142,6 +142,7 @@ class BaseWindow(SelectionMixin):
         self.axis = obj._get_axis_number(axis) if axis is not None else None
         self.method = method
         self.step = step
+        self._step_size = 0
         self._win_freq_i8 = None
         if self.on is None:
             if self.axis == 0:
@@ -400,11 +401,11 @@ class BaseWindow(SelectionMixin):
                 index_array=self._index_array,
                 window_size=self._win_freq_i8,
                 center=self.center,
-                step=self.step,
+                step=self._step_size,
             )
         return FixedWindowIndexer(
             window_size=self.window,
-            step=self.step,
+            step=self._step_size,
         )
 
     def _apply_series(
@@ -1582,6 +1583,7 @@ class Rolling(RollingAndExpandingMixin):
         "on",
         "closed",
         "method",
+        "step",
     ]
 
     def _validate(self):
@@ -1619,7 +1621,7 @@ class Rolling(RollingAndExpandingMixin):
             raise ValueError("window must be an integer 0 or greater")
 
         if self.step is None:
-            self.step = 0
+            self._step_size = 0
         elif self._win_freq_i8 is not None:
 
             try:
@@ -1630,9 +1632,9 @@ class Rolling(RollingAndExpandingMixin):
                     "compatible with a datetimelike window"
                 ) from err
             if isinstance(self._on, PeriodIndex):
-                self.step = step.nanos / (self._on.freq.nanos / self._on.freq.n)
+                self._step_size = step.nanos / (self._on.freq.nanos / self._on.freq.n)
             else:
-                self.step = step.nanos
+                self._step_size = step.nanos
 
         elif not is_integer(self.step) or self.step < 0:
             raise ValueError("step must be an integer 0 or greater")
@@ -2511,7 +2513,7 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
         GroupbyIndexer
         """
         rolling_indexer: type[BaseIndexer]
-        indexer_kwargs: dict[str, Any] | None = dict(step=self.step)
+        indexer_kwargs: dict[str, Any] | None = dict(step=self._step_size)
         index_array = self._index_array
         if isinstance(self.window, BaseIndexer):
             rolling_indexer = type(self.window)
