@@ -2513,7 +2513,7 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
         GroupbyIndexer
         """
         rolling_indexer: type[BaseIndexer]
-        indexer_kwargs: dict[str, Any] | None = None
+        indexer_kwargs: dict[str, Any] | None = dict(step=self.step)
         index_array = self._index_array
         if isinstance(self.window, BaseIndexer):
             rolling_indexer = type(self.window)
