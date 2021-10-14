@@ -787,7 +787,7 @@ class TestDataFrameSortIndex:
 
     @pytest.mark.parametrize(
         "ascending",
-        [(True, False)],
+        [(True, False), [True, False]],
     )
     def test_sort_index_ascending_tuple(self, ascending):
         df = DataFrame(
