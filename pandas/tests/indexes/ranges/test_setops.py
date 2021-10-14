@@ -75,17 +75,17 @@ class TestRangeIndexSetOps:
         other = RangeIndex(1, 6)
         result = index.intersection(other, sort=sort)
         expected = Index(np.sort(np.intersect1d(index.values, other.values)))
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact="equiv")
 
         # intersect with decreasing RangeIndex
         other = RangeIndex(5, 0, -1)
         result = index.intersection(other, sort=sort)
         expected = Index(np.sort(np.intersect1d(index.values, other.values)))
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact="equiv")
 
         # reversed (GH 17296)
         result = other.intersection(index, sort=sort)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact="equiv")
 
         # GH 17296: intersect two decreasing RangeIndexes
         first = RangeIndex(10, -2, -2)
@@ -286,9 +286,9 @@ class TestRangeIndexSetOps:
         tm.assert_index_equal(res1, expected_notsorted, exact=True)
 
         res2 = idx2.union(idx1, sort=None)
-        res3 = idx1._int64index.union(idx2, sort=None)
+        res3 = Int64Index(idx1._values, name=idx1.name).union(idx2, sort=None)
         tm.assert_index_equal(res2, expected_sorted, exact=True)
-        tm.assert_index_equal(res3, expected_sorted)
+        tm.assert_index_equal(res3, expected_sorted, exact="equiv")
 
     def test_difference(self):
         # GH#12034 Cases where we operate against another RangeIndex and may
@@ -322,11 +322,11 @@ class TestRangeIndexSetOps:
         obj = RangeIndex.from_range(range(1, 10), name="foo")
 
         result = obj.difference(obj[::2])
-        expected = obj[1::2]._int64index
+        expected = Int64Index(obj[1::2]._values, name=obj.name)
         tm.assert_index_equal(result, expected, exact=True)
 
         result = obj.difference(obj[1::2])
-        expected = obj[::2]._int64index
+        expected = Int64Index(obj[::2]._values, name=obj.name)
         tm.assert_index_equal(result, expected, exact=True)
 
     def test_symmetric_difference(self):

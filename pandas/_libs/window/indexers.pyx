@@ -106,7 +106,6 @@ def calculate_variable_window_bounds(
                 start[i] = end[i-1]
                 end[i] = end[i-1]
                 continue
-
             else:
                 step_bound = index[i] + step_size
 
@@ -121,16 +120,14 @@ def calculate_variable_window_bounds(
             if left_closed:
                 start_bound -= 1 * index_growth_sign
 
-            # advance the start bound until we are
-            # within the constraint
+            # advance the start bound until we are within the constraint
             start[i] = i
             for j in range(start[last_valid], i):
                 if (index[j] - start_bound) * index_growth_sign > 0:
                     start[i] = j
                     break
 
-            # for centered window advance the end bound until we are
-            # outside the constraint
+            # advance the end bound until we are outside the constraint
             end[i] = num_values
             for j in range(max(end[last_valid], i), num_values):
                 if (index[j] - end_bound) * index_growth_sign == 0 and right_closed:
