@@ -466,7 +466,7 @@ class TestDataFramePlots(TestPlotBase):
 
         try:
             plot_bar = df.plot.bar()
-            assert all([a.__eq__(b) for a, b in zip(plot_bar.get_xticklabels(), expected)])
+            assert all([(a.get_text() == b.get_text()) for a, b in zip(plot_bar.get_xticklabels(), expected)])
         except TypeError as e:
             assert False
 
