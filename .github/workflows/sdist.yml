@@ -64,7 +64,7 @@ jobs:
       run: |
         case "${{matrix.python-version}}" in
         3.7)
-          pip install numpy==1.17.3
+          pip install numpy==1.17.3 ;;
         3.8)
           pip install numpy==1.18.5 ;;
         3.9)
