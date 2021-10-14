@@ -544,7 +544,8 @@ Styler
 - Bug when rendering an empty DataFrame with a named index (:issue:`43305`).
 - Bug when rendering a single level MultiIndex (:issue:`43383`).
 - Bug when combining non-sparse rendering and :meth:`.Styler.hide_columns` or :meth:`.Styler.hide_index` (:issue:`43464`)
-- Bug in :class:`.Styler`  when setting a table style for a specified column using set_table_styles, the column was only applied to the final selector tag if they are named in a comma seperated list (:issue:`44011`)
+- Bug setting a table style when using multiple selectors in :class:`.Styler` (:issue:`44011`)
+-
 
 Other
 ^^^^^
