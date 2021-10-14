@@ -774,7 +774,7 @@ def test_apply_series_on_date_time_index_aware_series(dti, exp, aware):
     tm.assert_frame_equal(result, exp)
 
 
-def test_apply_scaler_on_date_time_index_aware_series():
+def test_apply_scalar_on_date_time_index_aware_series():
     # GH 25959
     # Calling apply on a localized time series should not cause an error
     series = tm.makeTimeSeries(nper=30).tz_localize("UTC")

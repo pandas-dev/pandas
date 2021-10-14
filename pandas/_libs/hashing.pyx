@@ -120,13 +120,6 @@ cdef inline uint64_t _rotl(uint64_t x, uint64_t b) nogil:
     return (x << b) | (x >> (64 - b))
 
 
-cdef inline void u32to8_le(uint8_t* p, uint32_t v) nogil:
-    p[0] = <uint8_t>(v)
-    p[1] = <uint8_t>(v >> 8)
-    p[2] = <uint8_t>(v >> 16)
-    p[3] = <uint8_t>(v >> 24)
-
-
 cdef inline uint64_t u8to64_le(uint8_t* p) nogil:
     return (<uint64_t>p[0] |
             <uint64_t>p[1] << 8 |
