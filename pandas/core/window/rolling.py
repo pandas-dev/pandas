@@ -2519,6 +2519,7 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
 
     _attributes = Rolling._attributes + BaseWindowGroupby._attributes
 
+    @property
     def _get_window_indexer(self) -> GroupbyIndexer:
         """
         Return an indexer class that will compute the window start and end bounds
@@ -2528,7 +2529,7 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
         GroupbyIndexer
         """
         rolling_indexer: type[BaseIndexer]
-        indexer_kwargs: dict[str, Any] | None = dict(step=self._step_size)
+        indexer_kwargs = {'step': self._step_size}
         index_array = self._index_array
         if isinstance(self.window, BaseIndexer):
             rolling_indexer = type(self.window)
