@@ -1589,8 +1589,8 @@ class Rolling(RollingAndExpandingMixin):
 
         # we allow rolling on a datetimelike index
         if (
-                self.obj.empty
-                or isinstance(self._on, (DatetimeIndex, TimedeltaIndex, PeriodIndex))
+            self.obj.empty
+            or isinstance(self._on, (DatetimeIndex, TimedeltaIndex, PeriodIndex))
         ) and isinstance(self.window, (str, BaseOffset, timedelta)):
 
             self._validate_monotonic()
@@ -1603,7 +1603,6 @@ class Rolling(RollingAndExpandingMixin):
                     f"passed window {self.window} is not "
                     "compatible with a datetimelike index"
                 ) from err
-
             if isinstance(self._on, PeriodIndex):
                 self._win_freq_i8 = freq.nanos / (self._on.freq.nanos / self._on.freq.n)
             else:
@@ -1630,7 +1629,6 @@ class Rolling(RollingAndExpandingMixin):
                     f"passed step {self.step} is not "
                     "compatible with a datetimelike window"
                 ) from err
-
             if isinstance(self._on, PeriodIndex):
                 self.step = step.nanos / (self._on.freq.nanos / self._on.freq.n)
             else:
