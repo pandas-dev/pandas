@@ -1930,7 +1930,7 @@ default 'raise'
 
         Parameters
         ----------
-        axis : optional, default None
+        axis : int optional, default None
             Axis for the function to be applied on.
         ddof : int, default 1
             Degrees of Freedom. The divisor used in calculations is N - ddof,
