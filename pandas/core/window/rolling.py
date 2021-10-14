@@ -884,6 +884,11 @@ class Window(BaseWindow):
 
         .. versionadded:: 1.3.0
 
+    step : int or offset, default None
+        Minimum step size the window is shifted and have a value
+        (otherwise result is NA). For a window that is specified by an offset,
+        `step` also needs to be an offset. Otherwise, `step` must be an integer.
+
     Returns
     -------
     a Window or Rolling sub-classed for the particular operation
