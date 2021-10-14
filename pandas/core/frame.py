@@ -994,24 +994,8 @@ class DataFrame(NDFrame, OpsMixin):
             self.info(buf=buf)
             return buf.getvalue()
 
-        max_rows = get_option("display.max_rows")
-        min_rows = get_option("display.min_rows")
-        max_cols = get_option("display.max_columns")
-        max_colwidth = get_option("display.max_colwidth")
-        show_dimensions = get_option("display.show_dimensions")
-        if get_option("display.expand_frame_repr"):
-            width, _ = console.get_console_size()
-        else:
-            width = None
-        self.to_string(
-            buf=buf,
-            max_rows=max_rows,
-            min_rows=min_rows,
-            max_cols=max_cols,
-            line_width=width,
-            max_colwidth=max_colwidth,
-            show_dimensions=show_dimensions,
-        )
+        repr_params = fmt.get_dataframe_repr_params()
+        self.to_string(buf=buf, **repr_params)
 
         return buf.getvalue()
 
