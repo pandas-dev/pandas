@@ -132,6 +132,11 @@ def calculate_variable_window_bounds(
             for j in range(max(end[last_valid], i), num_values):
                 if (index[j] - end_bound) * index_growth_sign == 0 and right_closed:
                     end[i] = j + 1
+                    # for duplicate indices on non-centered windows
+                    # we want the first of the identical indices
+                    # see Gh 43944 and GH 20712
+                    if not center:
+                        break
                 elif (index[j] - end_bound) * index_growth_sign >= 0:
                     end[i] = j
                     break
