@@ -10980,6 +10980,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 axis=axis,
                 closed=closed,
                 method=method,
+                step=step,
             )
 
         return Rolling(

@@ -1014,6 +1014,7 @@ class Window(BaseWindow):
         "on",
         "closed",
         "method",
+        "step",
     ]
 
     def _validate(self):
@@ -1037,6 +1038,10 @@ class Window(BaseWindow):
 
         if self.method != "single":
             raise NotImplementedError("'single' is the only supported method type.")
+
+        if self.step is not None and not is_integer(self.step):
+            raise ValueError("step must be an integer 0 or greater")
+        self._step_size = self.step or 0
 
     def _center_window(self, result: np.ndarray, offset: int) -> np.ndarray:
         """
@@ -1099,6 +1104,11 @@ class Window(BaseWindow):
 
             if self.center:
                 result = self._center_window(result, offset)
+
+            if self._step_size > 1:
+                mask = np.full_like(result, True, dtype=bool)
+                mask[:: self._step_size] = False
+                result[mask] = np.nan
 
             return result
 
