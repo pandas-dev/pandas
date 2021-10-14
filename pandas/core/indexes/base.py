@@ -731,6 +731,22 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Index Internals Methods
 
+    @final
+    def _get_attributes_dict(self) -> dict[str_t, Any]:
+        """
+        Return an attributes dict for my class.
+
+        Temporarily added back for compatibility issue in dask, see
+        https://github.com/pandas-dev/pandas/pull/43895
+        """
+        warnings.warn(
+            "The Index._get_attributes_dict method is deprecated, and will be "
+            "removed in a future version",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return {k: getattr(self, k, None) for k in self._attributes}
+
     def _shallow_copy(self: _IndexT, values, name: Hashable = no_default) -> _IndexT:
         """
         Create a new Index with the same class as the caller, don't copy the
