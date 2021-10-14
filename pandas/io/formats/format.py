@@ -495,7 +495,7 @@ def get_dataframe_repr_params() -> dict[str, Any]:
     >>>
     >>> df = pd.DataFrame([[1, 2], [3, 4]])
     >>> repr_params = pd.io.formats.format.get_dataframe_repr_params()
-    >>> assert repr(df) == df.to_string(**repr_params)
+    >>> repr(df) == df.to_string(**repr_params)
     True
     """
     from pandas.io.formats import console
