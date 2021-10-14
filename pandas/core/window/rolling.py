@@ -1584,28 +1584,25 @@ class Rolling(RollingAndExpandingMixin):
         "method",
     ]
 
-    def _validate_freq(self, attr_name):
-        # this will raise ValueError on non-fixed freqs
-        attr = getattr(self, attr_name)
-        try:
-            return to_offset(attr)
-        except (TypeError, ValueError) as err:
-            raise ValueError(
-                f"passed {attr_name} {attr} is not "
-                "compatible with a datetimelike index"
-            ) from err
-
     def _validate(self):
         super()._validate()
 
         # we allow rolling on a datetimelike index
         if (
-            self.obj.empty
-            or isinstance(self._on, (DatetimeIndex, TimedeltaIndex, PeriodIndex))
+                self.obj.empty
+                or isinstance(self._on, (DatetimeIndex, TimedeltaIndex, PeriodIndex))
         ) and isinstance(self.window, (str, BaseOffset, timedelta)):
 
             self._validate_monotonic()
-            freq = self._validate_freq('window')
+
+            # this will raise ValueError on non-fixed freqs
+            try:
+                freq = to_offset(self.window)
+            except (TypeError, ValueError) as err:
+                raise ValueError(
+                    f"passed window {self.window} is not "
+                    "compatible with a datetimelike index"
+                ) from err
 
             if isinstance(self._on, PeriodIndex):
                 self._win_freq_i8 = freq.nanos / (self._on.freq.nanos / self._on.freq.n)
@@ -1617,16 +1614,22 @@ class Rolling(RollingAndExpandingMixin):
                 self.min_periods = 1
 
         elif isinstance(self.window, BaseIndexer):
-            # Passed BaseIndexer subclass should handle all other rolling kwargs,
+            # Passed BaseIndexer subclass should handle all other rolling kwargs
             return
         elif not is_integer(self.window) or self.window < 0:
             raise ValueError("window must be an integer 0 or greater")
 
         if self.step is None:
             self.step = 0
+        elif self._win_freq_i8 is not None:
 
-        elif self._win_freq_i8 is not None:  # datetimelike index
-            step = self._validate_freq('step')
+            try:
+                step = to_offset(self.step)
+            except (TypeError, ValueError) as err:
+                raise ValueError(
+                    f"passed step {self.step} is not "
+                    "compatible with a datetimelike window"
+                ) from err
 
             if isinstance(self._on, PeriodIndex):
                 self.step = step.nanos / (self._on.freq.nanos / self._on.freq.n)
