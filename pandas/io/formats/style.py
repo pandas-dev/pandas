@@ -141,10 +141,6 @@ class Styler(StylerRenderer):
         uses ``pandas.options.styler.format.formatter``.
 
         .. versionadded:: 1.4.0
-    css_class_names : dict, optional
-        A dict of strings used to replace the default CSS class names described below.
-
-        .. versionadded:: 1.4.0
 
     Attributes
     ----------
@@ -191,7 +187,7 @@ class Styler(StylerRenderer):
     * Trimmed cells include ``col_trim`` or ``row_trim``.
 
     Any, or all, or these classes can be renamed by using the ``css_class_names``
-    argument, giving a value such as
+    argument in ``Styler.set_table_classes``, giving a value such as
     *{"row": "MY_ROW_CLASS", "col_trim": "", "row_trim": ""}*.
     """
 
