@@ -373,6 +373,9 @@ _take_1d_dict = {
     ("datetime64[ns]", "datetime64[ns]"): _view_wrapper(
         libalgos.take_1d_int64_int64, np.int64, np.int64, np.int64
     ),
+    ("timedelta64[ns]", "timedelta64[ns]"): _view_wrapper(
+        libalgos.take_1d_int64_int64, np.int64, np.int64, np.int64
+    ),
 }
 
 _take_2d_axis0_dict = {
@@ -400,6 +403,9 @@ _take_2d_axis0_dict = {
         libalgos.take_2d_axis0_bool_object, np.uint8, None
     ),
     ("datetime64[ns]", "datetime64[ns]"): _view_wrapper(
+        libalgos.take_2d_axis0_int64_int64, np.int64, np.int64, fill_wrap=np.int64
+    ),
+    ("timedelta64[ns]", "timedelta64[ns]"): _view_wrapper(
         libalgos.take_2d_axis0_int64_int64, np.int64, np.int64, fill_wrap=np.int64
     ),
 }
@@ -431,6 +437,9 @@ _take_2d_axis1_dict = {
     ("datetime64[ns]", "datetime64[ns]"): _view_wrapper(
         libalgos.take_2d_axis1_int64_int64, np.int64, np.int64, fill_wrap=np.int64
     ),
+    ("timedelta64[ns]", "timedelta64[ns]"): _view_wrapper(
+        libalgos.take_2d_axis1_int64_int64, np.int64, np.int64, fill_wrap=np.int64
+    ),
 }
 
 _take_2d_multi_dict = {
@@ -458,6 +467,9 @@ _take_2d_multi_dict = {
         libalgos.take_2d_multi_bool_object, np.uint8, None
     ),
     ("datetime64[ns]", "datetime64[ns]"): _view_wrapper(
+        libalgos.take_2d_multi_int64_int64, np.int64, np.int64, fill_wrap=np.int64
+    ),
+    ("timedelta64[ns]", "timedelta64[ns]"): _view_wrapper(
         libalgos.take_2d_multi_int64_int64, np.int64, np.int64, fill_wrap=np.int64
     ),
 }
