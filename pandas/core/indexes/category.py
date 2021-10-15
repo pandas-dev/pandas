@@ -194,8 +194,6 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
             np.int64: libindex.Int64Engine,
         }[self.codes.dtype.type]
 
-    _attributes = ["name"]
-
     # --------------------------------------------------------------------
     # Constructors
 

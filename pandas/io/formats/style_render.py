@@ -294,7 +294,7 @@ class StylerRenderer:
         d.update({"table_attributes": table_attr})
 
         if self.tooltips:
-            d = self.tooltips._translate(self.data, self.uuid, d)
+            d = self.tooltips._translate(self, d)
 
         return d
 
@@ -1508,7 +1508,7 @@ class Tooltips:
             },
         ]
 
-    def _translate(self, styler_data: DataFrame | Series, uuid: str, d: dict):
+    def _translate(self, styler: StylerRenderer, d: dict):
         """
         Mutate the render dictionary to allow for tooltips:
 
@@ -1529,21 +1529,23 @@ class Tooltips:
         -------
         render_dict : Dict
         """
-        self.tt_data = self.tt_data.reindex_like(styler_data)
-
+        self.tt_data = self.tt_data.reindex_like(styler.data)
         if self.tt_data.empty:
             return d
 
         name = self.class_name
-
         mask = (self.tt_data.isna()) | (self.tt_data.eq(""))  # empty string = no ttip
         self.table_styles = [
             style
             for sublist in [
-                self._pseudo_css(uuid, name, i, j, str(self.tt_data.iloc[i, j]))
+                self._pseudo_css(styler.uuid, name, i, j, str(self.tt_data.iloc[i, j]))
                 for i in range(len(self.tt_data.index))
                 for j in range(len(self.tt_data.columns))
-                if not mask.iloc[i, j]
+                if not (
+                    mask.iloc[i, j]
+                    or i in styler.hidden_rows
+                    or j in styler.hidden_columns
+                )
             ]
             for style in sublist
         ]

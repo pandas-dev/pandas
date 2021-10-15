@@ -172,10 +172,7 @@ class TestCasting(BaseDatetimeTests, base.BaseCastingTests):
 
 
 class TestComparisonOps(BaseDatetimeTests, base.BaseComparisonOpsTests):
-    def _compare_other(self, s, data, op_name, other):
-        # the base test is not appropriate for us. We raise on comparison
-        # with (some) integers, depending on the value.
-        pass
+    pass
 
 
 class TestMissing(BaseDatetimeTests, base.BaseMissingTests):
@@ -186,12 +183,6 @@ class TestReshaping(BaseDatetimeTests, base.BaseReshapingTests):
     @pytest.mark.skip(reason="We have DatetimeTZBlock")
     def test_concat(self, data, in_frame):
         pass
-
-    def test_concat_mixed_dtypes(self, data):
-        # concat(Series[datetimetz], Series[category]) uses a
-        # plain np.array(values) on the DatetimeArray, which
-        # drops the tz.
-        super().test_concat_mixed_dtypes(data)
 
 
 class TestSetitem(BaseDatetimeTests, base.BaseSetitemTests):
