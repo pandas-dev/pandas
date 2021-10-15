@@ -79,7 +79,6 @@ class StylerRenderer:
         caption: str | tuple | None = None,
         cell_ids: bool = True,
         precision: int | None = None,
-        css: dict | None = None,
     ):
 
         # validate ordered args
@@ -110,8 +109,6 @@ class StylerRenderer:
             "data": "data",
             "blank": "blank",
         }
-        if css is not None:
-            self.css = {**self.css, **css}  # overwrite default with optional changes
 
         # add rendering variables
         self.hide_index_names: bool = False

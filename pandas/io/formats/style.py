@@ -210,7 +210,6 @@ class Styler(StylerRenderer):
         thousands: str | None = None,
         escape: str | None = None,
         formatter: ExtFormatter | None = None,
-        css_class_names: dict[str, str] | None = None,
     ):
         super().__init__(
             data=data,
@@ -221,7 +220,6 @@ class Styler(StylerRenderer):
             caption=caption,
             cell_ids=cell_ids,
             precision=precision,
-            css=css_class_names,
         )
 
         # validate ordered args
