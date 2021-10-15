@@ -3941,7 +3941,7 @@ class Index(IndexOpsMixin, PandasObject):
     def reindex(
         self,
         target,
-        method: str | None = None,
+        method: str_t | None = None,
         level: int | None = None,
         limit: int | None = None,
         tolerance: int | float | None = None,
@@ -4001,7 +4001,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx
         Index(['car', 'bike', 'train', 'tractor'], dtype='object')
         >>> idx.reindex(['car', 'bike'])
-        (Index(['car', 'bike'], dtype='object'), array([0, 1], dtype=int64))
+        (Index(['car', 'bike'], dtype='object'), array([0, 1]))
         """
         # GH6552: preserve names when reindexing to non-named target
         # (i.e. neither Index nor Series).
