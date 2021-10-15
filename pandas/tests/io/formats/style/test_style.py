@@ -1521,10 +1521,3 @@ def test_get_level_lengths_mi_hidden():
         hidden_elements=[0, 1, 0, 1],  # hidden element can repeat if duplicated index
     )
     tm.assert_dict_equal(result, expected)
-
-
-def test_set_table_styles_ids_css(mi_styler):
-    assert mi_styler.cell_ids is True
-    mi_styler.set_table_styles(css_class_names={"row_heading": "FOO"}, cell_ids=False)
-    assert mi_styler.css["row_heading"] == "FOO"
-    assert mi_styler.cell_ids is False

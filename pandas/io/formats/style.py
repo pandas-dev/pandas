@@ -1967,7 +1967,6 @@ class Styler(StylerRenderer):
         axis: int = 0,
         overwrite: bool = True,
         css_class_names: dict[str, str] | None = None,
-        cell_ids: bool | None = None,
     ) -> Styler:
         """
         Set the table styles included within the ``<style>`` HTML element.
@@ -2009,11 +2008,6 @@ class Styler(StylerRenderer):
 
         css_class_names : dict, optional
             A dict of strings used to replace the default CSS classes described below.
-
-            .. versionadded:: 1.4.0
-
-        cell_ids : bool, optional
-            Whether to include ids on every element of the format *T_{uuid}_rowM_colN*.
 
             .. versionadded:: 1.4.0
 
@@ -2081,8 +2075,6 @@ class Styler(StylerRenderer):
         """
         if css_class_names is not None:
             self.css = {**self.css, **css_class_names}
-        if cell_ids is not None:
-            self.cell_ids = cell_ids
 
         if table_styles is None:
             return self
