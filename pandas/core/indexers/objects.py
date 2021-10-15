@@ -278,7 +278,7 @@ class GroupbyIndexer(BaseIndexer):
     def __init__(
         self,
         index_array: np.ndarray | None = None,
-        window_size: int | type[BaseIndexer] = 0,  # type: ignore[arg-type]
+        window_size: int | type[BaseIndexer] = 0,
         groupby_indices: dict | None = None,
         window_indexer: type[BaseIndexer] = BaseIndexer,
         indexer_kwargs: dict | None = None,
