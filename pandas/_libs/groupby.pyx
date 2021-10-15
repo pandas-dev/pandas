@@ -532,7 +532,7 @@ def group_add(add_t[:, ::1] out,
                     nobs[lab, j] += 1
 
                     if nobs[lab, j] == 1:
-                        # i.e. we havent added anything yet; avoid TypeError
+                        # i.e. we haven't added anything yet; avoid TypeError
                         #  if e.g. val is a str and sumx[lab, j] is 0
                         t = val
                     else:
@@ -1193,7 +1193,7 @@ def group_rank(float64_t[:, ::1] out,
             na_option=na_option
         )
         for i in range(len(result)):
-            # TODO: why cant we do out[:, k] = result?
+            # TODO: why can't we do out[:, k] = result?
             out[i, k] = result[i]
 
 
