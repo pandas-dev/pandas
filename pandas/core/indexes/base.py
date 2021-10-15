@@ -3939,12 +3939,7 @@ class Index(IndexOpsMixin, PandasObject):
             raise ValueError("cannot reindex on an axis with duplicate labels")
 
     def reindex(
-        self,
-        target,
-        method: str_t | None = None,
-        level: int | None = None,
-        limit: int | None = None,
-        tolerance: int | float | None = None,
+        self, target, method=None, level=None, limit=None, tolerance=None
     ) -> tuple[Index, npt.NDArray[np.intp] | None]:
         """
         Create index with target's values.
