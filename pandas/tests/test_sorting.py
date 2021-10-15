@@ -479,11 +479,12 @@ def test_mixed_str_nan():
     expected = np.array([np.nan, "a", "b", "b"], dtype=object)
     tm.assert_numpy_array_equal(result, expected)
 
+
 def test_respect_ignore_index():
     # GH 43591
-    df = DataFrame({'a': [1, 2, 3]})
+    df = DataFrame({"a": [1, 2, 3]})
     df.index = [4, 2, 0]
     result = df.sort_index(ascending=False, ignore_index=True)
-    expected = DataFrame({'a': [1, 2, 3]})
+    expected = DataFrame({"a": [1, 2, 3]})
     expected.index = [0, 1, 2]
     tm.assert_frame_equal(result, expected)
