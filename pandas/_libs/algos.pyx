@@ -1428,13 +1428,13 @@ def diff_2d(
     #  see https://github.com/cython/cython/issues/2646
     if (out_t is float32_t
             and not (diff_t is float32_t or diff_t is int8_t or diff_t is int16_t)):
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
     elif (out_t is float64_t
           and (diff_t is float32_t or diff_t is int8_t or diff_t is int16_t)):
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
     elif out_t is int64_t and diff_t is not int64_t:
         # We only have out_t of int64_t if we have datetimelike
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
     else:
         # We put this inside an indented else block to avoid cython build
         #  warnings about unreachable code

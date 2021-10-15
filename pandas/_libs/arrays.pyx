@@ -84,7 +84,7 @@ cdef class NDArrayBacked:
             elif "_ndarray" in state:
                 data = state.pop("_ndarray")
             else:
-                raise ValueError
+                raise ValueError  # pragma: no cover
             self._ndarray = data
             self._dtype = state.pop("_dtype")
 
@@ -95,7 +95,7 @@ cdef class NDArrayBacked:
                 if len(state) == 1 and isinstance(state[0], dict):
                     self.__setstate__(state[0])
                     return
-                raise NotImplementedError(state)
+                raise NotImplementedError(state)  # pragma: no cover
 
             data, dtype = state[:2]
             if isinstance(dtype, np.ndarray):
@@ -107,9 +107,9 @@ cdef class NDArrayBacked:
                 for key, val in state[2].items():
                     setattr(self, key, val)
             else:
-                raise NotImplementedError(state)
+                raise NotImplementedError(state)  # pragma: no cover
         else:
-            raise NotImplementedError(state)
+            raise NotImplementedError(state)  # pragma: no cover
 
     def __len__(self) -> int:
         return len(self._ndarray)

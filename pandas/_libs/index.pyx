@@ -264,7 +264,7 @@ cdef class IndexEngine:
         return algos.is_monotonic(values, timelike=False)
 
     cdef _make_hash_table(self, Py_ssize_t n):
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
     cdef _check_type(self, object val):
         hash(val)
@@ -607,7 +607,7 @@ cdef class BaseMultiIndexCodesEngine:
         self._base.__init__(self, lab_ints)
 
     def _codes_to_ints(self, ndarray[uint64_t] codes) -> np.ndarray:
-        raise NotImplementedError("Implemented by subclass")
+        raise NotImplementedError("Implemented by subclass")  # pragma: no cover
 
     def _extract_level_codes(self, target) -> np.ndarray:
         """
