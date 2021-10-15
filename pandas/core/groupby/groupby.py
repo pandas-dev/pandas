@@ -46,6 +46,7 @@ from pandas._typing import (
     ArrayLike,
     IndexLabel,
     NDFrameT,
+    PositionalIndexer,
     RandomState,
     Scalar,
     T,
@@ -65,6 +66,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_datetime64_dtype,
     is_float_dtype,
+    is_integer,
     is_integer_dtype,
     is_numeric_dtype,
     is_object_dtype,
@@ -97,6 +99,7 @@ from pandas.core.groupby import (
     numba_,
     ops,
 )
+from pandas.core.groupby.indexing import GroupByIndexingMixin
 from pandas.core.indexes.api import (
     CategoricalIndex,
     Index,
@@ -555,7 +558,7 @@ _KeysArgType = Union[
 ]
 
 
-class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT]):
+class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
     _group_selection: IndexLabel | None = None
     _apply_allowlist: frozenset[str] = frozenset()
     _hidden_attrs = PandasObject._hidden_attrs | {
@@ -2445,11 +2448,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @Substitution(name="groupby")
     @Substitution(see_also=_common_see_also)
     def nth(
-        self, n: int | list[int], dropna: Literal["any", "all", None] = None
+        self,
+        n: PositionalIndexer | tuple,
+        dropna: Literal["any", "all", None] = None,
     ) -> NDFrameT:
         """
-        Take the nth row from each group if n is an int, or a subset of rows
-        if n is a list of ints.
+        Take the nth row from each group if n is an int, otherwise a subset of rows.
 
         If dropna, will take the nth non-null row, dropna is either
         'all' or 'any'; this is equivalent to calling dropna(how=dropna)
@@ -2457,11 +2461,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Parameters
         ----------
-        n : int or list of ints
-            A single nth value for the row or a list of nth values.
+        n : int, slice or list of ints and slices
+            A single nth value for the row or a list of nth values or slices.
+
+            .. versionchanged:: 1.4.0
+                Added slice and lists containiing slices.
+
         dropna : {'any', 'all', None}, default None
             Apply the specified dropna operation before counting which row is
-            the nth row.
+            the nth row. Only supported if n is an int.
 
         Returns
         -------
@@ -2496,6 +2504,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         1  2.0
         2  3.0
         2  5.0
+        >>> g.nth(slice(None, -1))
+             B
+        A
+        1  NaN
+        1  2.0
+        2  3.0
 
         Specifying `dropna` allows count ignoring ``NaN``
 
@@ -2520,25 +2534,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         1  1  2.0
         4  2  5.0
         """
-        valid_containers = (set, list, tuple)
-        if not isinstance(n, (valid_containers, int)):
-            raise TypeError("n needs to be an int or a list/set/tuple of ints")
-
         if not dropna:
-
-            if isinstance(n, int):
-                nth_values = [n]
-            elif isinstance(n, valid_containers):
-                nth_values = list(set(n))
-
-            nth_array = np.array(nth_values, dtype=np.intp)
             with self._group_selection_context():
-
-                mask_left = np.in1d(self._cumcount_array(), nth_array)
-                mask_right = np.in1d(
-                    self._cumcount_array(ascending=False) + 1, -nth_array
-                )
-                mask = mask_left | mask_right
+                mask = self._make_mask_from_positional_indexer(n)
 
                 ids, _, _ = self.grouper.group_info
 
@@ -2546,7 +2544,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 mask = mask & (ids != -1)
 
                 out = self._mask_selected_obj(mask)
-
                 if not self.as_index:
                     return out
 
@@ -2563,19 +2560,20 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 return out.sort_index(axis=self.axis) if self.sort else out
 
         # dropna is truthy
-        if isinstance(n, valid_containers):
-            raise ValueError("dropna option with a list of nth values is not supported")
+        if not is_integer(n):
+            raise ValueError("dropna option only supported for an integer argument")
 
         if dropna not in ["any", "all"]:
             # Note: when agg-ing picker doesn't raise this, just returns NaN
             raise ValueError(
-                "For a DataFrame groupby, dropna must be "
+                "For a DataFrame or Series groupby.nth, dropna must be "
                 "either None, 'any' or 'all', "
                 f"(was passed {dropna})."
             )
 
         # old behaviour, but with all and any support for DataFrames.
         # modified in GH 7559 to have better perf
+        n = cast(int, n)
         max_len = n if n >= 0 else -1 - n
         dropped = self.obj.dropna(how=dropna, axis=self.axis)
 
@@ -3301,11 +3299,16 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         from the original DataFrame with original index and order preserved
         (``as_index`` flag is ignored).
 
-        Does not work for negative values of `n`.
+        Parameters
+        ----------
+        n : int
+            If positive: number of entries to include from start of each group.
+            If negative: number of entries to exclude from end of each group.
 
         Returns
         -------
         Series or DataFrame
+            Subset of original Series or DataFrame as determined by n.
         %(see_also)s
         Examples
         --------
@@ -3317,12 +3320,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         0  1  2
         2  5  6
         >>> df.groupby('A').head(-1)
-        Empty DataFrame
-        Columns: [A, B]
-        Index: []
+           A  B
+        0  1  2
         """
         self._reset_group_selection()
-        mask = self._cumcount_array() < n
+        mask = self._make_mask_from_positional_indexer(slice(None, n))
         return self._mask_selected_obj(mask)
 
     @final
@@ -3336,11 +3338,16 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         from the original DataFrame with original index and order preserved
         (``as_index`` flag is ignored).
 
-        Does not work for negative values of `n`.
+        Parameters
+        ----------
+        n : int
+            If positive: number of entries to include from end of each group.
+            If negative: number of entries to exclude from start of each group.
 
         Returns
         -------
         Series or DataFrame
+            Subset of original Series or DataFrame as determined by n.
         %(see_also)s
         Examples
         --------
@@ -3352,12 +3359,16 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         1  a  2
         3  b  2
         >>> df.groupby('A').tail(-1)
-        Empty DataFrame
-        Columns: [A, B]
-        Index: []
+           A  B
+        1  a  2
+        3  b  2
         """
         self._reset_group_selection()
-        mask = self._cumcount_array(ascending=False) < n
+        if n:
+            mask = self._make_mask_from_positional_indexer(slice(-n, None))
+        else:
+            mask = self._make_mask_from_positional_indexer([])
+
         return self._mask_selected_obj(mask)
 
     @final
