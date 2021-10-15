@@ -6584,8 +6584,8 @@ class DataFrame(NDFrame, OpsMixin):
         keep : {'first', 'last', 'all'}, default 'first'
             Where there are duplicate values:
 
-            - `first` : prioritize the first occurrence(s)
-            - `last` : prioritize the last occurrence(s)
+            - ``first`` : prioritize the first occurrence(s)
+            - ``last`` : prioritize the last occurrence(s)
             - ``all`` : do not drop any duplicates, even it means
               selecting more than `n` items.
 
