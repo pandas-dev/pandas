@@ -2528,7 +2528,7 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
         GroupbyIndexer
         """
         rolling_indexer: type[BaseIndexer]
-        indexer_kwargs = {'step': self._step_size}
+        indexer_kwargs = {"step": self._step_size}
         index_array = self._index_array
         if isinstance(self.window, BaseIndexer):
             rolling_indexer = type(self.window)
