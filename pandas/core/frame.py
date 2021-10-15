@@ -994,24 +994,8 @@ class DataFrame(NDFrame, OpsMixin):
             self.info(buf=buf)
             return buf.getvalue()
 
-        max_rows = get_option("display.max_rows")
-        min_rows = get_option("display.min_rows")
-        max_cols = get_option("display.max_columns")
-        max_colwidth = get_option("display.max_colwidth")
-        show_dimensions = get_option("display.show_dimensions")
-        if get_option("display.expand_frame_repr"):
-            width, _ = console.get_console_size()
-        else:
-            width = None
-        self.to_string(
-            buf=buf,
-            max_rows=max_rows,
-            min_rows=min_rows,
-            max_cols=max_cols,
-            line_width=width,
-            max_colwidth=max_colwidth,
-            show_dimensions=show_dimensions,
-        )
+        repr_params = fmt.get_dataframe_repr_params()
+        self.to_string(buf=buf, **repr_params)
 
         return buf.getvalue()
 
@@ -4672,17 +4656,23 @@ class DataFrame(NDFrame, OpsMixin):
             allow_dups=False,
         )
 
-    def _reindex_multi(self, axes, copy: bool, fill_value) -> DataFrame:
+    def _reindex_multi(
+        self, axes: dict[str, Index], copy: bool, fill_value
+    ) -> DataFrame:
         """
         We are guaranteed non-Nones in the axes.
         """
+
         new_index, row_indexer = self.index.reindex(axes["index"])
         new_columns, col_indexer = self.columns.reindex(axes["columns"])
 
         if row_indexer is not None and col_indexer is not None:
+            # Fastpath. By doing two 'take's at once we avoid making an
+            #  unnecessary copy.
+            # We only get here with `not self._is_mixed_type`, which (almost)
+            #  ensures that self.values is cheap. It may be worth making this
+            #  condition more specific.
             indexer = row_indexer, col_indexer
-            # error: Argument 2 to "take_2d_multi" has incompatible type "Tuple[Any,
-            # Any]"; expected "ndarray"
             new_values = take_2d_multi(self.values, indexer, fill_value=fill_value)
             return self._constructor(new_values, index=new_index, columns=new_columns)
         else:
@@ -6594,10 +6584,10 @@ class DataFrame(NDFrame, OpsMixin):
         keep : {'first', 'last', 'all'}, default 'first'
             Where there are duplicate values:
 
-            - `first` : prioritize the first occurrence(s)
-            - `last` : prioritize the last occurrence(s)
+            - ``first`` : prioritize the first occurrence(s)
+            - ``last`` : prioritize the last occurrence(s)
             - ``all`` : do not drop any duplicates, even it means
-                        selecting more than `n` items.
+              selecting more than `n` items.
 
         Returns
         -------
@@ -10503,6 +10493,28 @@ NaN 12.3   33.0
         Returns
         -------
         DataFrame with PeriodIndex
+
+        Examples
+        --------
+        >>> idx = pd.to_datetime(
+        ...     [
+        ...         "2001-03-31 00:00:00",
+        ...         "2002-05-31 00:00:00",
+        ...         "2003-08-31 00:00:00",
+        ...     ]
+        ... )
+
+        >>> idx
+        DatetimeIndex(['2001-03-31', '2002-05-31', '2003-08-31'],
+        dtype='datetime64[ns]', freq=None)
+
+        >>> idx.to_period("M")
+        PeriodIndex(['2001-03', '2002-05', '2003-08'], dtype='period[M]')
+
+        For the yearly frequency
+
+        >>> idx.to_period("Y")
+        PeriodIndex(['2001', '2002', '2003'], dtype='period[A-DEC]')
         """
         new_obj = self.copy(deep=copy)
 
@@ -10558,6 +10570,13 @@ NaN 12.3   33.0
                 num_legs  num_wings
         falcon      True       True
         dog        False       True
+
+        To check if ``values`` is *not* in the DataFrame, use the ``~`` operator:
+
+        >>> ~df.isin([0, 2])
+                num_legs  num_wings
+        falcon     False      False
+        dog         True      False
 
         When ``values`` is a dict, we can pass values to check for each
         column separately:

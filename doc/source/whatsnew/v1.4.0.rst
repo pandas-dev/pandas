@@ -111,6 +111,30 @@ Example:
 
     s.rolling(3).rank(method="max")
 
+.. _whatsnew_140.enhancements.groupby_indexing:
+
+Groupby positional indexing
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+It is now possible to specify positional ranges relative to the ends of each group.
+
+Negative arguments for :meth:`.GroupBy.head` and :meth:`.GroupBy.tail` now work correctly and result in ranges relative to the end and start of each group, respectively.
+Previously, negative arguments returned empty frames.
+
+.. ipython:: python
+
+    df = pd.DataFrame([["g", "g0"], ["g", "g1"], ["g", "g2"], ["g", "g3"],
+                       ["h", "h0"], ["h", "h1"]], columns=["A", "B"])
+    df.groupby("A").head(-1)
+
+
+:meth:`.GroupBy.nth` now accepts a slice or list of integers and slices.
+
+.. ipython:: python
+
+    df.groupby("A").nth(slice(1, -1))
+    df.groupby("A").nth([slice(None, 1), slice(-1, None)])
+
 .. _whatsnew_140.enhancements.other:
 
 Other enhancements
@@ -412,6 +436,7 @@ Numeric
 - Bug in :meth:`DataFrame.rank` treating missing values and extreme values as equal (for example ``np.nan`` and ``np.inf``), causing incorrect results when ``na_option="bottom"`` or ``na_option="top`` used (:issue:`41931`)
 - Bug in ``numexpr`` engine still being used when the option ``compute.use_numexpr`` is set to ``False`` (:issue:`32556`)
 - Bug in :class:`DataFrame` arithmetic ops with a subclass whose :meth:`_constructor` attribute is a callable other than the subclass itself (:issue:`43201`)
+- Bug in arithmetic operations involving :class:`RangeIndex` where the result would have the incorrect ``name`` (:issue:`43962`)
 -
 
 Conversion
@@ -446,6 +471,7 @@ Indexing
 - Bug in :meth:`DataFrame.query` where method calls in query strings led to errors when the ``numexpr`` package was installed. (:issue:`22435`)
 - Bug in :meth:`DataFrame.nlargest` and :meth:`Series.nlargest` where sorted result did not count indexes containing ``np.nan`` (:issue:`28984`)
 - Bug in indexing on a non-unique object-dtype :class:`Index` with an NA scalar (e.g. ``np.nan``) (:issue:`43711`)
+- Bug in :meth:`Series.__setitem__` with object dtype when setting an array with matching size and dtype='datetime64[ns]' or dtype='timedelta64[ns]' incorrectly converting the datetime/timedeltas to integers (:issue:`43868`)
 -
 
 Missing
@@ -505,6 +531,10 @@ Groupby/resample/rolling
 - Bug in :meth:`GroupBy.apply` with time-based :class:`Grouper` objects incorrectly raising ``ValueError`` in corner cases where the grouping vector contains a ``NaT`` (:issue:`43500`, :issue:`43515`)
 - Bug in :meth:`GroupBy.mean` failing with ``complex`` dtype (:issue:`43701`)
 - Fixed bug in :meth:`Series.rolling` and :meth:`DataFrame.rolling` not calculating window bounds correctly for the first row when ``center=True`` and index is decreasing (:issue:`43927`)
+- Fixed bug in :meth:`Series.rolling` and :meth:`DataFrame.rolling` for centered datetimelike windows with uneven nanosecond (:issue:`43997`)
+- Bug in :meth:`GroupBy.nth` failing on ``axis=1`` (:issue:`43926`)
+- Fixed bug in :meth:`Series.rolling` and :meth:`DataFrame.rolling` not respecting right bound on centered datetime-like windows, if the index contain duplicates (:issue:`#3944`)
+
 
 Reshaping
 ^^^^^^^^^

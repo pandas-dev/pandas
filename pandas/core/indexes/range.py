@@ -713,6 +713,20 @@ class RangeIndex(NumericIndex):
 
     # --------------------------------------------------------------------
 
+    def insert(self, loc: int, item) -> Index:
+        if len(self) and (is_integer(item) or is_float(item)):
+            # We can retain RangeIndex is inserting at the beginning or end
+            rng = self._range
+            if loc == 0 and item == self[0] - self.step:
+                new_rng = range(rng.start - rng.step, rng.stop, rng.step)
+                return type(self)._simple_new(new_rng, name=self.name)
+
+            elif loc == len(self) and item == self[-1] + self.step:
+                new_rng = range(rng.start, rng.stop + rng.step, rng.step)
+                return type(self)._simple_new(new_rng, name=self.name)
+
+        return super().insert(loc, item)
+
     def _concat(self, indexes: list[Index], name: Hashable) -> Index:
         """
         Overriding parent method for the case of all RangeIndex instances.
@@ -885,9 +899,8 @@ class RangeIndex(NumericIndex):
             step = op
 
         # TODO: if other is a RangeIndex we may have more efficient options
-        other = extract_array(other, extract_numpy=True, extract_range=True)
-
-        left, right = self, other
+        right = extract_array(other, extract_numpy=True, extract_range=True)
+        left = self
 
         try:
             # apply if we have an override
@@ -907,7 +920,8 @@ class RangeIndex(NumericIndex):
                 rstart = op(left.start, right)
                 rstop = op(left.stop, right)
 
-            result = type(self)(rstart, rstop, rstep, name=self.name)
+            res_name = ops.get_op_result_name(self, other)
+            result = type(self)(rstart, rstop, rstep, name=res_name)
 
             # for compat with numpy / Int64Index
             # even if we can represent as a RangeIndex, return
