@@ -110,6 +110,30 @@ Example:
 
     s.rolling(3).rank(method="max")
 
+.. _whatsnew_140.enhancements.groupby_indexing:
+
+Groupby positional indexing
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+It is now possible to specify positional ranges relative to the ends of each group.
+
+Negative arguments for :meth:`.GroupBy.head` and :meth:`.GroupBy.tail` now work correctly and result in ranges relative to the end and start of each group, respectively.
+Previously, negative arguments returned empty frames.
+
+.. ipython:: python
+
+    df = pd.DataFrame([["g", "g0"], ["g", "g1"], ["g", "g2"], ["g", "g3"],
+                       ["h", "h0"], ["h", "h1"]], columns=["A", "B"])
+    df.groupby("A").head(-1)
+
+
+:meth:`.GroupBy.nth` now accepts a slice or list of integers and slices.
+
+.. ipython:: python
+
+    df.groupby("A").nth(slice(1, -1))
+    df.groupby("A").nth([slice(None, 1), slice(-1, None)])
+
 .. _whatsnew_140.enhancements.other:
 
 Other enhancements
