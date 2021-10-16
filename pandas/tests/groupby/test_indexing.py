@@ -288,6 +288,8 @@ def test_column_axis(column_group_df):
 
 
 def test_if_is_multiindex():
+    # GH 32464
+    # Test if index after groupby with more then one column is always MultiIndex
     a = pd.DataFrame({"a": [], "b": [], "c": []})
 
     index_1 = a.groupby(["a", "b"]).sum().index
