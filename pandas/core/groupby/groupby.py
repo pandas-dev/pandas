@@ -173,6 +173,10 @@ _apply_docs = {
         The resulting dtype will reflect the return value of the passed ``func``,
         see the examples below.
 
+    Functions that mutate the passed object can produce unexpected
+    behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
+    for more details.
+
     Examples
     --------
     {examples}
