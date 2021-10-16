@@ -203,7 +203,7 @@ cdef extern from "parser/tokenizer.h":
 
         int usecols
 
-        int expected_fields
+        Py_ssize_t expected_fields
         BadLineHandleMethod on_bad_lines
 
         # floating point options
@@ -398,7 +398,7 @@ cdef class TextReader:
         else:
             if len(delimiter) > 1:
                 raise ValueError('only length-1 separators excluded right now')
-            self.parser.delimiter = ord(delimiter)
+            self.parser.delimiter = <char>ord(delimiter)
 
         # ----------------------------------------
         # parser options
@@ -410,21 +410,21 @@ cdef class TextReader:
         if lineterminator is not None:
             if len(lineterminator) != 1:
                 raise ValueError('Only length-1 line terminators supported')
-            self.parser.lineterminator = ord(lineterminator)
+            self.parser.lineterminator = <char>ord(lineterminator)
 
         if len(decimal) != 1:
             raise ValueError('Only length-1 decimal markers supported')
-        self.parser.decimal = ord(decimal)
+        self.parser.decimal = <char>ord(decimal)
 
         if thousands is not None:
             if len(thousands) != 1:
                 raise ValueError('Only length-1 thousands markers supported')
-            self.parser.thousands = ord(thousands)
+            self.parser.thousands = <char>ord(thousands)
 
         if escapechar is not None:
             if len(escapechar) != 1:
                 raise ValueError('Only length-1 escapes supported')
-            self.parser.escapechar = ord(escapechar)
+            self.parser.escapechar = <char>ord(escapechar)
 
         self._set_quoting(quotechar, quoting)
 
@@ -437,7 +437,7 @@ cdef class TextReader:
         if comment is not None:
             if len(comment) > 1:
                 raise ValueError('Only length-1 comment characters supported')
-            self.parser.commentchar = ord(comment)
+            self.parser.commentchar = <char>ord(comment)
 
         self.parser.on_bad_lines = on_bad_lines
 
@@ -591,7 +591,7 @@ cdef class TextReader:
             raise TypeError('"quotechar" must be a 1-character string')
         else:
             self.parser.quoting = quoting
-            self.parser.quotechar = ord(quote_char)
+            self.parser.quotechar = <char>ord(quote_char)
 
     cdef _make_skiprow_set(self):
         if util.is_integer_object(self.skiprows):
@@ -1045,8 +1045,8 @@ cdef class TextReader:
         return results
 
     # -> tuple["ArrayLike", int]:
-    cdef inline _convert_tokens(self, Py_ssize_t i, int start, int end,
-                                object name, bint na_filter,
+    cdef inline _convert_tokens(self, Py_ssize_t i, int64_t start,
+                                int64_t end, object name, bint na_filter,
                                 kh_str_starts_t *na_hashset,
                                 object na_flist, object col_dtype):
 
@@ -1537,7 +1537,7 @@ cdef inline int _try_double_nogil(parser_t *parser,
                                   float64_t (*double_converter)(
                                       const char *, char **, char,
                                       char, char, int, int *, int *) nogil,
-                                  int col, int line_start, int line_end,
+                                  int64_t col, int64_t line_start, int64_t line_end,
                                   bint na_filter, kh_str_starts_t *na_hashset,
                                   bint use_na_flist,
                                   const kh_float64_t *na_flist,
