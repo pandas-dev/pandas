@@ -530,12 +530,6 @@ def test_replaced_css_class_names(styler_mi):
           <th id="T__LEVEL1_ROW0" class="ROWHEAD LEVEL1 ROW0" >c</th>
           <td id="T__ROW0_col0" class="DATA ROW0 col0" >0</td>
         </tr>
-        <tr>
-        </tr>
-        <tr>
-        </tr>
-        <tr>
-        </tr>
       </tbody>
     </table>
     """
