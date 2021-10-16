@@ -1788,3 +1788,11 @@ def test_drop_duplicates_pos_args_deprecation():
         result = idx.drop_duplicates("last")
     expected = Index([2, 3, 1])
     tm.assert_index_equal(expected, result)
+
+
+def test_get_attributes_dict_deprecated():
+    # https://github.com/pandas-dev/pandas/pull/44028
+    idx = Index([1, 2, 3, 1])
+    with tm.assert_produces_warning(DeprecationWarning):
+        attrs = idx._get_attributes_dict()
+    assert attrs == {"name": None}
