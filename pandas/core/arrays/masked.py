@@ -22,6 +22,7 @@ from pandas._typing import (
     Scalar,
     ScalarIndexer,
     SequenceIndexer,
+    Shape,
     npt,
     type_t,
 )
@@ -34,10 +35,10 @@ from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
+    is_bool,
     is_bool_dtype,
     is_dtype_equal,
     is_float_dtype,
-    is_integer,
     is_integer_dtype,
     is_object_dtype,
     is_scalar,
@@ -120,6 +121,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     # The value used to fill '_data' to avoid upcasting
     _internal_fill_value: Scalar
+    # our underlying data and mask are each ndarrays
+    _data: np.ndarray
+    _mask: np.ndarray
+
     # Fill values used for any/all
     _truthy_value = Scalar  # bool(_truthy_value) = True
     _falsey_value = Scalar  # bool(_falsey_value) = False
@@ -131,12 +136,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 "mask should be boolean numpy array. Use "
                 "the 'pd.array' function instead"
             )
-        if values.ndim != 1:
-            raise ValueError("values must be a 1D array")
-        if mask.ndim != 1:
-            raise ValueError("mask must be a 1D array")
         if values.shape != mask.shape:
-            raise ValueError("values and mask must have same shape")
+            raise ValueError("values.shape must match mask.shape")
 
         if copy:
             values = values.copy()
@@ -160,14 +161,16 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def __getitem__(
         self: BaseMaskedArrayT, item: PositionalIndexer
     ) -> BaseMaskedArrayT | Any:
-        if is_integer(item):
-            if self._mask[item]:
+        item = check_array_indexer(self, item)
+
+        newmask = self._mask[item]
+        if is_bool(newmask):
+            # This is a scalar indexing
+            if newmask:
                 return self.dtype.na_value
             return self._data[item]
 
-        item = check_array_indexer(self, item)
-
-        return type(self)(self._data[item], self._mask[item])
+        return type(self)(self._data[item], newmask)
 
     @doc(ExtensionArray.fillna)
     def fillna(
@@ -187,13 +190,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         if mask.any():
             if method is not None:
-                func = missing.get_fill_func(method)
+                func = missing.get_fill_func(method, ndim=self.ndim)
                 new_values, new_mask = func(
-                    self._data.copy(),
+                    self._data.copy().T,
                     limit=limit,
-                    mask=mask.copy(),
+                    mask=mask.copy().T,
                 )
-                return type(self)(new_values, new_mask.view(np.bool_))
+                return type(self)(new_values.T, new_mask.view(np.bool_).T)
             else:
                 # fill with value
                 new_values = self.copy()
@@ -220,14 +223,51 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         self._mask[key] = mask
 
     def __iter__(self):
-        for i in range(len(self)):
-            if self._mask[i]:
-                yield self.dtype.na_value
-            else:
-                yield self._data[i]
+        if self.ndim == 1:
+            for i in range(len(self)):
+                if self._mask[i]:
+                    yield self.dtype.na_value
+                else:
+                    yield self._data[i]
+        else:
+            for i in range(len(self)):
+                yield self[i]
 
     def __len__(self) -> int:
         return len(self._data)
+
+    @property
+    def shape(self) -> Shape:
+        return self._data.shape
+
+    @property
+    def ndim(self) -> int:
+        return self._data.ndim
+
+    def swapaxes(self: BaseMaskedArrayT, axis1, axis2) -> BaseMaskedArrayT:
+        data = self._data.swapaxes(axis1, axis2)
+        mask = self._mask.swapaxes(axis1, axis2)
+        return type(self)(data, mask)
+
+    def delete(self: BaseMaskedArrayT, loc, axis: int = 0) -> BaseMaskedArrayT:
+        data = np.delete(self._data, loc, axis=axis)
+        mask = np.delete(self._mask, loc, axis=axis)
+        return type(self)(data, mask)
+
+    def reshape(self: BaseMaskedArrayT, *args, **kwargs) -> BaseMaskedArrayT:
+        data = self._data.reshape(*args, **kwargs)
+        mask = self._mask.reshape(*args, **kwargs)
+        return type(self)(data, mask)
+
+    def ravel(self: BaseMaskedArrayT, *args, **kwargs) -> BaseMaskedArrayT:
+        # TODO: need to make sure we have the same order for data/mask
+        data = self._data.ravel(*args, **kwargs)
+        mask = self._mask.ravel(*args, **kwargs)
+        return type(self)(data, mask)
+
+    @property
+    def T(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
+        return type(self)(self._data.T, self._mask.T)
 
     def __invert__(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
         return type(self)(~self._data, self._mask.copy())
@@ -454,10 +494,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     @classmethod
     def _concat_same_type(
-        cls: type[BaseMaskedArrayT], to_concat: Sequence[BaseMaskedArrayT]
+        cls: type[BaseMaskedArrayT],
+        to_concat: Sequence[BaseMaskedArrayT],
+        axis: int = 0,
     ) -> BaseMaskedArrayT:
-        data = np.concatenate([x._data for x in to_concat])
-        mask = np.concatenate([x._mask for x in to_concat])
+        data = np.concatenate([x._data for x in to_concat], axis=axis)
+        mask = np.concatenate([x._mask for x in to_concat], axis=axis)
         return cls(data, mask)
 
     def take(
@@ -466,15 +508,22 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         *,
         allow_fill: bool = False,
         fill_value: Scalar | None = None,
+        axis: int = 0,
     ) -> BaseMaskedArrayT:
         # we always fill with 1 internally
         # to avoid upcasting
         data_fill_value = self._internal_fill_value if isna(fill_value) else fill_value
         result = take(
-            self._data, indexer, fill_value=data_fill_value, allow_fill=allow_fill
+            self._data,
+            indexer,
+            fill_value=data_fill_value,
+            allow_fill=allow_fill,
+            axis=axis,
         )
 
-        mask = take(self._mask, indexer, fill_value=True, allow_fill=allow_fill)
+        mask = take(
+            self._mask, indexer, fill_value=True, allow_fill=allow_fill, axis=axis
+        )
 
         # if we are filling
         # we only fill where the indexer is null
@@ -593,7 +642,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         if name in {"sum", "prod", "min", "max", "mean"}:
             op = getattr(masked_reductions, name)
-            return op(data, mask, skipna=skipna, **kwargs)
+            result = op(data, mask, skipna=skipna, **kwargs)
+            return result
 
         # coerce to a nan-aware float if needed
         # (we explicitly use NaN within reductions)

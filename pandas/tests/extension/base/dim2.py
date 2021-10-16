@@ -4,6 +4,11 @@ Tests for 2D compatibility.
 import numpy as np
 import pytest
 
+from pandas.compat import (
+    IS64,
+    is_platform_windows,
+)
+
 import pandas as pd
 from pandas.tests.extension.base.base import BaseExtensionTests
 
@@ -194,9 +199,23 @@ class Dim2CompatTests(BaseExtensionTests):
             if method in ["sum", "prod"] and data.dtype.kind in ["i", "u"]:
                 # FIXME: kludge
                 if data.dtype.kind == "i":
-                    dtype = pd.Int64Dtype()
+                    if is_platform_windows() or not IS64:
+                        # FIXME: kludge for 32bit builds
+                        if result.dtype.itemsize == 4:
+                            dtype = pd.Int32Dtype()
+                        else:
+                            dtype = pd.Int64Dtype()
+                    else:
+                        dtype = pd.Int64Dtype()
                 else:
-                    dtype = pd.UInt64Dtype()
+                    if is_platform_windows() or not IS64:
+                        # FIXME: kludge for 32bit builds
+                        if result.dtype.itemsize == 4:
+                            dtype = pd.UInt32Dtype()
+                        else:
+                            dtype = pd.UInt64Dtype()
+                    else:
+                        dtype = pd.UInt64Dtype()
 
                 expected = data.astype(dtype)
                 assert type(expected) == type(data), type(expected)
