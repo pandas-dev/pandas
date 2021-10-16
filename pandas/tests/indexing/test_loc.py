@@ -37,6 +37,10 @@ from pandas import (
 import pandas._testing as tm
 from pandas.api.types import is_scalar
 from pandas.core.api import Float64Index
+from pandas.core.indexing import (
+    IndexingError,
+    _one_ellipsis_message,
+)
 from pandas.tests.indexing.common import Base
 
 
@@ -1522,6 +1526,66 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         assert df.dtypes.one == np.dtype(np.int8)
         df.one = np.int8(7)
         assert df.dtypes.one == np.dtype(np.int8)
+
+
+class TestLocWithEllipsis:
+    @pytest.fixture(params=[tm.loc, tm.iloc])
+    def indexer(self, request):
+        # Test iloc while we're here
+        return request.param
+
+    @pytest.fixture
+    def obj(self, series_with_simple_index, frame_or_series):
+        obj = series_with_simple_index
+        if frame_or_series is not Series:
+            obj = obj.to_frame()
+        return obj
+
+    def test_loc_iloc_getitem_ellipsis(self, obj, indexer):
+        result = indexer(obj)[...]
+        tm.assert_equal(result, obj)
+
+    def test_loc_iloc_getitem_leading_ellipses(self, series_with_simple_index, indexer):
+        obj = series_with_simple_index
+        key = 0 if (indexer is tm.iloc or len(obj) == 0) else obj.index[0]
+
+        if indexer is tm.loc and obj.index.is_boolean():
+            # passing [False] will get interpreted as a boolean mask
+            # TODO: should it?  unambiguous when lengths dont match?
+            return
+        if indexer is tm.loc and isinstance(obj.index, MultiIndex):
+            msg = "MultiIndex does not support indexing with Ellipsis"
+            with pytest.raises(NotImplementedError, match=msg):
+                result = indexer(obj)[..., [key]]
+
+        elif len(obj) != 0:
+            result = indexer(obj)[..., [key]]
+            expected = indexer(obj)[[key]]
+            tm.assert_series_equal(result, expected)
+
+        key2 = 0 if indexer is tm.iloc else obj.name
+        df = obj.to_frame()
+        result = indexer(df)[..., [key2]]
+        expected = indexer(df)[:, [key2]]
+        tm.assert_frame_equal(result, expected)
+
+    def test_loc_iloc_getitem_ellipses_only_one_ellipsis(self, obj, indexer):
+        # GH37750
+        key = 0 if (indexer is tm.iloc or len(obj) == 0) else obj.index[0]
+
+        with pytest.raises(IndexingError, match=_one_ellipsis_message):
+            indexer(obj)[..., ...]
+
+        with pytest.raises(IndexingError, match=_one_ellipsis_message):
+            indexer(obj)[..., [key], ...]
+
+        with pytest.raises(IndexingError, match=_one_ellipsis_message):
+            indexer(obj)[..., ..., key]
+
+        # one_ellipsis_message takes precedence over "Too many indexers"
+        #  only when the first key is Ellipsis
+        with pytest.raises(IndexingError, match="Too many indexers"):
+            indexer(obj)[key, ..., ...]
 
 
 class TestLocWithMultiIndex:

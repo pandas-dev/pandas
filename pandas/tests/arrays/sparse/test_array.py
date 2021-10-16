@@ -1256,7 +1256,7 @@ class TestAccessor:
             row_levels=(0, 1), column_levels=(2, 3), sort_labels=sort_labels
         )
         assert isinstance(A, scipy.sparse.coo.coo_matrix)
-        np.testing.assert_array_equal(A.toarray(), expected_A)
+        tm.assert_numpy_array_equal(A.toarray(), expected_A)
         assert rows == expected_rows
         assert cols == expected_cols
 

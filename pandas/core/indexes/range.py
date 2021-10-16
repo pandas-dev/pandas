@@ -635,10 +635,13 @@ class RangeIndex(NumericIndex):
                     return type(self)(start_r, end_r + step_s, step_s)
                 if (
                     (step_s % 2 == 0)
-                    and (abs(start_s - start_o) <= step_s / 2)
-                    and (abs(end_s - end_o) <= step_s / 2)
+                    and (abs(start_s - start_o) == step_s / 2)
+                    and (abs(end_s - end_o) == step_s / 2)
                 ):
+                    # e.g. range(0, 10, 2) and range(1, 11, 2)
+                    #  but not range(0, 20, 4) and range(1, 21, 4) GH#44019
                     return type(self)(start_r, end_r + step_s / 2, step_s / 2)
+
             elif step_o % step_s == 0:
                 if (
                     (start_o - start_s) % step_s == 0
@@ -712,6 +715,20 @@ class RangeIndex(NumericIndex):
         return result
 
     # --------------------------------------------------------------------
+
+    def insert(self, loc: int, item) -> Index:
+        if len(self) and (is_integer(item) or is_float(item)):
+            # We can retain RangeIndex is inserting at the beginning or end
+            rng = self._range
+            if loc == 0 and item == self[0] - self.step:
+                new_rng = range(rng.start - rng.step, rng.stop, rng.step)
+                return type(self)._simple_new(new_rng, name=self.name)
+
+            elif loc == len(self) and item == self[-1] + self.step:
+                new_rng = range(rng.start, rng.stop + rng.step, rng.step)
+                return type(self)._simple_new(new_rng, name=self.name)
+
+        return super().insert(loc, item)
 
     def _concat(self, indexes: list[Index], name: Hashable) -> Index:
         """
@@ -885,9 +902,8 @@ class RangeIndex(NumericIndex):
             step = op
 
         # TODO: if other is a RangeIndex we may have more efficient options
-        other = extract_array(other, extract_numpy=True, extract_range=True)
-
-        left, right = self, other
+        right = extract_array(other, extract_numpy=True, extract_range=True)
+        left = self
 
         try:
             # apply if we have an override
@@ -907,7 +923,8 @@ class RangeIndex(NumericIndex):
                 rstart = op(left.start, right)
                 rstop = op(left.stop, right)
 
-            result = type(self)(rstart, rstop, rstep, name=self.name)
+            res_name = ops.get_op_result_name(self, other)
+            result = type(self)(rstart, rstop, rstep, name=res_name)
 
             # for compat with numpy / Int64Index
             # even if we can represent as a RangeIndex, return
