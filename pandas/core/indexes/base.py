@@ -1006,24 +1006,22 @@ class Index(IndexOpsMixin, PandasObject):
             with rewrite_exception(type(values).__name__, type(self).__name__):
                 new_values = values.astype(dtype, copy=copy)
 
-            # pass copy=False because any copying will be done in the
-            #  _data.astype call above
-            return Index(new_values, dtype=new_values.dtype, name=self.name, copy=False)
-
         elif isinstance(dtype, ExtensionDtype):
             cls = dtype.construct_array_type()
             # Note: for RangeIndex and CategoricalDtype self vs self._values
             #  behaves differently here.
-            new_values = cls._from_sequence(self, dtype=dtype, copy=False)
-            return Index(new_values, dtype=dtype, copy=copy, name=self.name)
+            new_values = cls._from_sequence(self, dtype=dtype, copy=copy)
 
-        try:
-            casted = values.astype(dtype, copy=copy)
-        except (TypeError, ValueError) as err:
-            raise TypeError(
-                f"Cannot cast {type(self).__name__} to dtype {dtype}"
-            ) from err
-        return Index(casted, name=self.name, dtype=dtype)
+        else:
+            try:
+                new_values = values.astype(dtype, copy=copy)
+            except (TypeError, ValueError) as err:
+                raise TypeError(
+                    f"Cannot cast {type(self).__name__} to dtype {dtype}"
+                ) from err
+
+        # pass copy=False because any copying will be done in the astype above
+        return Index(new_values, name=self.name, dtype=new_values.dtype, copy=False)
 
     _index_shared_docs[
         "take"
