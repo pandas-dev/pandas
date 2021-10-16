@@ -285,3 +285,13 @@ def test_column_axis(column_group_df):
     expected = column_group_df.iloc[:, [1, 3]]
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_if_is_multiindex():
+    a = pd.DataFrame({"a": [], "b": [], "c": []})
+
+    index_1 = a.groupby(["a", "b"]).sum().index
+    index_2 = a.groupby(["a", "b", "c"]).sum().index
+
+    assert isinstance(index_2, pd.core.indexes.multi.MultiIndex)
+    assert type(index_1) == type(index_2)
