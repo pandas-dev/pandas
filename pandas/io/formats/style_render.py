@@ -226,7 +226,7 @@ class StylerRenderer:
         # construct render dict
         d = {
             "uuid": self.uuid,
-            "table_styles": _format_table_styles(self.table_styles or []),
+            "table_styles": format_table_styles(self.table_styles or []),
             "caption": self.caption,
         }
 
@@ -1173,7 +1173,7 @@ def _is_visible(idx_row, idx_col, lengths) -> bool:
     return (idx_col, idx_row) in lengths
 
 
-def _format_table_styles(styles: CSSStyles) -> CSSStyles:
+def format_table_styles(styles: CSSStyles) -> CSSStyles:
     """
     looks for multiple CSS selectors and separates them:
     [{'selector': 'td, th', 'props': 'a:v;'}]

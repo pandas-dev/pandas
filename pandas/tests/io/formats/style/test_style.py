@@ -829,6 +829,19 @@ class TestStyler:
             {"selector": "tr", "props": [("color", "green")]},
         ]
 
+    def test_table_styles_dict_multiple_selectors(self):
+        # GH 44011
+        result = self.df.style.set_table_styles(
+            [{"selector": "th,td", "props": [("border-left", "2px solid black")]}]
+        )._translate(True, True)["table_styles"]
+
+        expected = [
+            {"selector": "th", "props": [("border-left", "2px solid black")]},
+            {"selector": "td", "props": [("border-left", "2px solid black")]},
+        ]
+
+        assert result == expected
+
     def test_maybe_convert_css_to_tuples(self):
         expected = [("a", "b"), ("c", "d e")]
         assert maybe_convert_css_to_tuples("a:b;c:d e;") == expected
