@@ -574,7 +574,7 @@ cdef class BaseOffset:
             When the specific offset subclass does not have a vectorized
             implementation.
         """
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             f"DateOffset subclass {type(self).__name__} "
             "does not have a vectorized implementation"
         )

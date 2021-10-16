@@ -33,6 +33,7 @@ from pandas import (
     IntervalIndex,
     MultiIndex,
     PeriodIndex,
+    RangeIndex,
     Series,
     TimedeltaIndex,
 )
@@ -552,8 +553,19 @@ def assert_categorical_equal(
     """
     _check_isinstance(left, right, Categorical)
 
+    exact: bool | str
+    if isinstance(left.categories, RangeIndex) or isinstance(
+        right.categories, RangeIndex
+    ):
+        exact = "equiv"
+    else:
+        # We still want to require exact matches for NumericIndex
+        exact = True
+
     if check_category_order:
-        assert_index_equal(left.categories, right.categories, obj=f"{obj}.categories")
+        assert_index_equal(
+            left.categories, right.categories, obj=f"{obj}.categories", exact=exact
+        )
         assert_numpy_array_equal(
             left.codes, right.codes, check_dtype=check_dtype, obj=f"{obj}.codes"
         )
@@ -564,11 +576,12 @@ def assert_categorical_equal(
         except TypeError:
             # e.g. '<' not supported between instances of 'int' and 'str'
             lc, rc = left.categories, right.categories
-        assert_index_equal(lc, rc, obj=f"{obj}.categories")
+        assert_index_equal(lc, rc, obj=f"{obj}.categories", exact=exact)
         assert_index_equal(
             left.categories.take(left.codes),
             right.categories.take(right.codes),
             obj=f"{obj}.values",
+            exact=exact,
         )
 
     assert_attr_equal("ordered", left, right, obj=obj)

@@ -604,3 +604,6 @@ class BooleanArray(BaseMaskedArray):
         else:
             result[mask] = np.nan
             return result
+
+    def __abs__(self):
+        return self.copy()
