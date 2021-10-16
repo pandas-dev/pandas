@@ -53,6 +53,7 @@ from pandas.io.formats.style_render import (
     StylerRenderer,
     Subset,
     Tooltips,
+    format_table_styles,
     maybe_convert_css_to_tuples,
     non_reducing_slice,
     refactor_levels,
@@ -141,10 +142,6 @@ class Styler(StylerRenderer):
         uses ``pandas.options.styler.format.formatter``.
 
         .. versionadded:: 1.4.0
-    css_class_names : dict, optional
-        A dict of strings used to replace the default CSS class names described below.
-
-        .. versionadded:: 1.4.0
 
     Attributes
     ----------
@@ -191,7 +188,7 @@ class Styler(StylerRenderer):
     * Trimmed cells include ``col_trim`` or ``row_trim``.
 
     Any, or all, or these classes can be renamed by using the ``css_class_names``
-    argument, giving a value such as
+    argument in ``Styler.set_table_classes``, giving a value such as
     *{"row": "MY_ROW_CLASS", "col_trim": "", "row_trim": ""}*.
     """
 
@@ -210,7 +207,6 @@ class Styler(StylerRenderer):
         thousands: str | None = None,
         escape: str | None = None,
         formatter: ExtFormatter | None = None,
-        css_class_names: dict[str, str] | None = None,
     ):
         super().__init__(
             data=data,
@@ -221,7 +217,6 @@ class Styler(StylerRenderer):
             caption=caption,
             cell_ids=cell_ids,
             precision=precision,
-            css=css_class_names,
         )
 
         # validate ordered args
@@ -1967,7 +1962,6 @@ class Styler(StylerRenderer):
         axis: int = 0,
         overwrite: bool = True,
         css_class_names: dict[str, str] | None = None,
-        cell_ids: bool | None = None,
     ) -> Styler:
         """
         Set the table styles included within the ``<style>`` HTML element.
@@ -2009,11 +2003,6 @@ class Styler(StylerRenderer):
 
         css_class_names : dict, optional
             A dict of strings used to replace the default CSS classes described below.
-
-            .. versionadded:: 1.4.0
-
-        cell_ids : bool, optional
-            Whether to include ids on every element of the format *T_{uuid}_rowM_colN*.
 
             .. versionadded:: 1.4.0
 
@@ -2081,8 +2070,6 @@ class Styler(StylerRenderer):
         """
         if css_class_names is not None:
             self.css = {**self.css, **css_class_names}
-        if cell_ids is not None:
-            self.cell_ids = cell_ids
 
         if table_styles is None:
             return self
@@ -2098,7 +2085,7 @@ class Styler(StylerRenderer):
                 }
                 for key, styles in table_styles.items()
                 for idx in obj.get_indexer_for([key])
-                for s in styles
+                for s in format_table_styles(styles)
             ]
         else:
             table_styles = [
