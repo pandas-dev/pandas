@@ -693,7 +693,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
                     freq = self.freq
             else:
                 # Adding a single item to an empty index may preserve freq
-                if self.freq.is_on_offset(item):
+                if isinstance(self.freq, Tick):
+                    # all TimedeltaIndex cases go through here; is_on_offset
+                    #  would raise TypeError
+                    freq = self.freq
+                elif self.freq.is_on_offset(item):
                     freq = self.freq
         return freq
 
