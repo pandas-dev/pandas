@@ -84,7 +84,9 @@ from .timestamps import Timestamp
 # Misc Helpers
 
 cdef bint is_dateoffset_object(object obj):
-    return isinstance(obj, DateOffset)
+    # Note: This is to fix Timestamp __add__/__sub__ DateOffset with
+    # nanoseconds lost. See PR #43968
+    return type(obj) is DateOffset
 
 
 cdef bint is_offset_object(object obj):
