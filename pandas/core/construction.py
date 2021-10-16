@@ -49,7 +49,10 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_timedelta64_ns_dtype,
 )
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    PandasDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCExtensionArray,
     ABCIndex,
@@ -493,6 +496,10 @@ def sanitize_array(
     """
     if isinstance(data, ma.MaskedArray):
         data = sanitize_masked_array(data)
+
+    if isinstance(dtype, PandasDtype):
+        # Avoid ending up with a PandasArray
+        dtype = dtype.numpy_dtype
 
     # extract ndarray or ExtensionArray, ensure we have no PandasArray
     data = extract_array(data, extract_numpy=True)
