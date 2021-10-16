@@ -1431,11 +1431,13 @@ def test_sub_multiindex_swapped_levels():
     tm.assert_frame_equal(result, expected)
 
 
-def test_empty_str_comparison():
+@pytest.mark.parametrize("power", [1, 2, 5])
+@pytest.mark.parametrize("string_size", [0, 1, 2, 5])
+def test_empty_str_comparison(power, string_size):
     # GH 37348
-    a = np.array(range(10 ** 5))
+    a = np.array(range(10 ** power))
     right = pd.DataFrame(a, dtype=np.int64)
-    left = "    "
+    left = " " * string_size
 
     result = right == left
     expected = pd.DataFrame(np.zeros(right.shape, dtype=bool))
