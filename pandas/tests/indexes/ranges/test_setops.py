@@ -291,6 +291,7 @@ class TestRangeIndexSetOps:
         tm.assert_index_equal(res3, expected_sorted, exact="equiv")
 
     def test_union_same_step_misaligned(self):
+        # GH#44019
         left = RangeIndex(range(0, 20, 4))
         right = RangeIndex(range(1, 21, 4))
 

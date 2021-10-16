@@ -731,6 +731,22 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Index Internals Methods
 
+    @final
+    def _get_attributes_dict(self) -> dict[str_t, Any]:
+        """
+        Return an attributes dict for my class.
+
+        Temporarily added back for compatibility issue in dask, see
+        https://github.com/pandas-dev/pandas/pull/43895
+        """
+        warnings.warn(
+            "The Index._get_attributes_dict method is deprecated, and will be "
+            "removed in a future version",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return {k: getattr(self, k, None) for k in self._attributes}
+
     def _shallow_copy(self: _IndexT, values, name: Hashable = no_default) -> _IndexT:
         """
         Create a new Index with the same class as the caller, don't copy the
@@ -867,7 +883,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def __array_wrap__(self, result, context=None):
         """
-        Gets called after a ufunc and other functions.
+        Gets called after a ufunc and other functions e.g. np.split.
         """
         result = lib.item_from_zerodim(result)
         if is_bool_dtype(result) or lib.is_scalar(result) or np.ndim(result) > 1:
@@ -3947,6 +3963,27 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         target : an iterable
+        method : {None, 'pad'/'ffill', 'backfill'/'bfill', 'nearest'}, optional
+            * default: exact matches only.
+            * pad / ffill: find the PREVIOUS index value if no exact match.
+            * backfill / bfill: use NEXT index value if no exact match
+            * nearest: use the NEAREST index value if no exact match. Tied
+              distances are broken by preferring the larger index value.
+        level : int, optional
+            Level of multiindex.
+        limit : int, optional
+            Maximum number of consecutive labels in ``target`` to match for
+            inexact matches.
+        tolerance : int or float, optional
+            Maximum distance between original and new labels for inexact
+            matches. The values of the index at the matching locations must
+            satisfy the equation ``abs(index[indexer] - target) <= tolerance``.
+
+            Tolerance may be a scalar value, which applies the same tolerance
+            to all values, or list-like, which applies variable tolerance per
+            element. List-like includes list, tuple, array, Series, and must be
+            the same size as the index and its dtype must exactly match the
+            index's type.
 
         Returns
         -------
@@ -3954,6 +3991,28 @@ class Index(IndexOpsMixin, PandasObject):
             Resulting index.
         indexer : np.ndarray[np.intp] or None
             Indices of output values in original index.
+
+        Raises
+        ------
+        TypeError
+            If ``method`` passed along with ``level``.
+        ValueError
+            If non-unique multi-index
+        ValueError
+            If non-unique index and ``method`` or ``limit`` passed.
+
+        See Also
+        --------
+        Series.reindex
+        DataFrame.reindex
+
+        Examples
+        --------
+        >>> idx = pd.Index(['car', 'bike', 'train', 'tractor'])
+        >>> idx
+        Index(['car', 'bike', 'train', 'tractor'], dtype='object')
+        >>> idx.reindex(['car', 'bike'])
+        (Index(['car', 'bike'], dtype='object'), array([0, 1]))
         """
         # GH6552: preserve names when reindexing to non-named target
         # (i.e. neither Index nor Series).
@@ -6166,14 +6225,10 @@ class Index(IndexOpsMixin, PandasObject):
                 raise err
 
         if isinstance(slc, np.ndarray):
-            # get_loc may return a boolean array or an array of indices, which
+            # get_loc may return a boolean array, which
             # is OK as long as they are representable by a slice.
-            if is_bool_dtype(slc):
-                slc = lib.maybe_booleans_to_slice(slc.view("u1"))
-            else:
-                slc = lib.maybe_indices_to_slice(
-                    slc.astype(np.intp, copy=False), len(self)
-                )
+            assert is_bool_dtype(slc.dtype)
+            slc = lib.maybe_booleans_to_slice(slc.view("u1"))
             if isinstance(slc, np.ndarray):
                 raise KeyError(
                     f"Cannot get {side} slice bound for non-unique "
