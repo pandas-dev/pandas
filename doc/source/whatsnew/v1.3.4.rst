@@ -1,6 +1,6 @@
 .. _whatsnew_134:
 
-What's new in 1.3.4 (October ??, 2021)
+What's new in 1.3.4 (October 17, 2021)
 --------------------------------------
 
 These are the changes in pandas 1.3.4. See :ref:`release` for a full changelog
@@ -44,7 +44,6 @@ Bug fixes
 Other
 ~~~~~
 - The minimum version of Cython needed to compile pandas is now ``0.29.24`` (:issue:`43729`)
--
 
 .. ---------------------------------------------------------------------------
 
