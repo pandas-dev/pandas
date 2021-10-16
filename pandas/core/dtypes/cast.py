@@ -1423,7 +1423,7 @@ def convert_dtypes(
             if not convert_string:
                 return input_array.dtype
             elif inferred_dtype == "bytes":
-                return pandas_dtype("bytes")
+                return pandas_dtype("object")
             else:
                 return pandas_dtype("string")
 
