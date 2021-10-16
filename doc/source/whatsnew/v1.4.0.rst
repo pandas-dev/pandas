@@ -80,6 +80,7 @@ Styler
   - Global options have been extended to configure default ``Styler`` properties including formatting and encoding and mathjax options and LaTeX (:issue:`41395`)
   - Naive sparsification is now possible for LaTeX without the multirow package (:issue:`43369`)
   - :meth:`Styler.to_html` omits CSSStyle rules for hidden table elements (:issue:`43619`)
+  - Custom CSS classes can now be directly specified without string replacement (:issue:`43686`)
 
 Formerly Styler relied on ``display.html.use_mathjax``, which has now been replaced by ``styler.html.mathjax``.
 
