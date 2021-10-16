@@ -1280,10 +1280,12 @@ class _MergeOperation:
             # incompatible dtypes. See GH 16900.
             if name in self.left.columns:
                 typ = lk.categories.dtype if lk_is_cat else object
-                self.left = self.left.assign(**{name: self.left[name].astype(typ)})
+                self.left = self.left.copy()
+                self.left[name] = self.left[name].astype(typ)
             if name in self.right.columns:
                 typ = rk.categories.dtype if rk_is_cat else object
-                self.right = self.right.assign(**{name: self.right[name].astype(typ)})
+                self.right = self.right.copy()
+                self.right[name] = self.right[name].astype(typ)
 
     def _create_cross_configuration(
         self, left: DataFrame, right: DataFrame
