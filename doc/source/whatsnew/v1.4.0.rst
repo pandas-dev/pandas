@@ -134,6 +134,28 @@ Previously, negative arguments returned empty frames.
     df.groupby("A").nth(slice(1, -1))
     df.groupby("A").nth([slice(None, 1), slice(-1, None)])
 
+.. _whatsnew_140.dict_tight:
+
+DataFrame.from_dict and DataFrame.to_dict have new ``'tight'`` option
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A new ``'tight'`` dictionary format that preserves :class:`MultiIndex` entries and names
+is now available with the :meth:`DataFrame.from_dict` and :meth:`DataFrame.to_dict` methods
+and can be used with the standard ``json`` library to produce a tight
+representation of :class:`DataFrame` objects (:issue:`4889`).
+
+.. ipython:: python
+
+    df = pd.DataFrame.from_records(
+        [[1, 3], [2, 4]],
+        index=pd.MultiIndex.from_tuples([("a", "b"), ("a", "c")],
+                                        names=["n1", "n2"]),
+        columns=pd.MultiIndex.from_tuples([("x", 1), ("y", 2)],
+                                          names=["z1", "z2"]),
+    )
+    df
+    df.to_dict(orient='tight')
+
 .. _whatsnew_140.enhancements.other:
 
 Other enhancements
