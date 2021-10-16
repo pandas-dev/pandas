@@ -73,7 +73,7 @@ Styler
 :class:`.Styler` has been further developed in 1.4.0. The following enhancements have been made:
 
   - Styling and formatting of indexes has been added, with :meth:`.Styler.apply_index`, :meth:`.Styler.applymap_index` and :meth:`.Styler.format_index`. These mirror the signature of the methods already used to style and format data values, and work with both HTML and LaTeX format (:issue:`41893`, :issue:`43101`).
-  - :meth:`.Styler.bar` introduces additional arguments to control alignment and display (:issue:`26070`, :issue:`36419`), and it also validates the input arguments ``width`` and ``height`` (:issue:`42511`).
+  - :meth:`.Styler.bar` introduces additional arguments to control alignment, display and colors (:issue:`26070`, :issue:`36419`, :issue:`43662`), and it also validates the input arguments ``width`` and ``height`` (:issue:`42511`).
   - :meth:`.Styler.to_latex` introduces keyword argument ``environment``, which also allows a specific "longtable" entry through a separate jinja2 template (:issue:`41866`).
   - :meth:`.Styler.to_html` introduces keyword arguments ``sparse_index``, ``sparse_columns``, ``bold_headers``, ``caption``, ``max_rows`` and ``max_columns`` (:issue:`41946`, :issue:`43149`, :issue:`42972`).
   - Keyword arguments ``level`` and ``names`` added to :meth:`.Styler.hide_index` and :meth:`.Styler.hide_columns` for additional control of visibility of MultiIndexes and index names (:issue:`25475`, :issue:`43404`, :issue:`43346`)
@@ -109,6 +109,30 @@ Example:
     s.rolling(3).rank()
 
     s.rolling(3).rank(method="max")
+
+.. _whatsnew_140.enhancements.groupby_indexing:
+
+Groupby positional indexing
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+It is now possible to specify positional ranges relative to the ends of each group.
+
+Negative arguments for :meth:`.GroupBy.head` and :meth:`.GroupBy.tail` now work correctly and result in ranges relative to the end and start of each group, respectively.
+Previously, negative arguments returned empty frames.
+
+.. ipython:: python
+
+    df = pd.DataFrame([["g", "g0"], ["g", "g1"], ["g", "g2"], ["g", "g3"],
+                       ["h", "h0"], ["h", "h1"]], columns=["A", "B"])
+    df.groupby("A").head(-1)
+
+
+:meth:`.GroupBy.nth` now accepts a slice or list of integers and slices.
+
+.. ipython:: python
+
+    df.groupby("A").nth(slice(1, -1))
+    df.groupby("A").nth([slice(None, 1), slice(-1, None)])
 
 .. _whatsnew_140.enhancements.other:
 
@@ -392,6 +416,8 @@ Datetimelike
 - Bug in :func:`to_datetime` with ``format`` and ``pandas.NA`` was raising ``ValueError`` (:issue:`42957`)
 - :func:`to_datetime` would silently swap ``MM/DD/YYYY`` and ``DD/MM/YYYY`` formats if the given ``dayfirst`` option could not be respected - now, a warning is raised in the case of delimited date strings (e.g. ``31-12-2012``) (:issue:`12585`)
 - Bug in :meth:`date_range` and :meth:`bdate_range` do not return right bound when ``start`` = ``end`` and set is closed on one side (:issue:`43394`)
+- Bug in inplace addition and subtraction of :class:`DatetimeIndex` or :class:`TimedeltaIndex` with :class:`DatetimeArray` or :class:`TimedeltaArray` (:issue:`43904`)
+- Bug in in calling ``np.isnan``, ``np.isfinite``, or ``np.isinf`` on a timezone-aware :class:`DatetimeIndex` incorrectly raising ``TypeError`` (:issue:`43917`)
 -
 
 Timedelta
@@ -411,6 +437,7 @@ Numeric
 - Bug in :meth:`DataFrame.rank` treating missing values and extreme values as equal (for example ``np.nan`` and ``np.inf``), causing incorrect results when ``na_option="bottom"`` or ``na_option="top`` used (:issue:`41931`)
 - Bug in ``numexpr`` engine still being used when the option ``compute.use_numexpr`` is set to ``False`` (:issue:`32556`)
 - Bug in :class:`DataFrame` arithmetic ops with a subclass whose :meth:`_constructor` attribute is a callable other than the subclass itself (:issue:`43201`)
+- Bug in arithmetic operations involving :class:`RangeIndex` where the result would have the incorrect ``name`` (:issue:`43962`)
 -
 
 Conversion
@@ -445,6 +472,7 @@ Indexing
 - Bug in :meth:`DataFrame.query` where method calls in query strings led to errors when the ``numexpr`` package was installed. (:issue:`22435`)
 - Bug in :meth:`DataFrame.nlargest` and :meth:`Series.nlargest` where sorted result did not count indexes containing ``np.nan`` (:issue:`28984`)
 - Bug in indexing on a non-unique object-dtype :class:`Index` with an NA scalar (e.g. ``np.nan``) (:issue:`43711`)
+- Bug in :meth:`Series.__setitem__` with object dtype when setting an array with matching size and dtype='datetime64[ns]' or dtype='timedelta64[ns]' incorrectly converting the datetime/timedeltas to integers (:issue:`43868`)
 -
 
 Missing
@@ -503,6 +531,11 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.groupby.rolling` when specifying ``on`` and calling ``__getitem__`` would subsequently return incorrect results (:issue:`43355`)
 - Bug in :meth:`GroupBy.apply` with time-based :class:`Grouper` objects incorrectly raising ``ValueError`` in corner cases where the grouping vector contains a ``NaT`` (:issue:`43500`, :issue:`43515`)
 - Bug in :meth:`GroupBy.mean` failing with ``complex`` dtype (:issue:`43701`)
+- Fixed bug in :meth:`Series.rolling` and :meth:`DataFrame.rolling` not calculating window bounds correctly for the first row when ``center=True`` and index is decreasing (:issue:`43927`)
+- Fixed bug in :meth:`Series.rolling` and :meth:`DataFrame.rolling` for centered datetimelike windows with uneven nanosecond (:issue:`43997`)
+- Bug in :meth:`GroupBy.nth` failing on ``axis=1`` (:issue:`43926`)
+- Fixed bug in :meth:`Series.rolling` and :meth:`DataFrame.rolling` not respecting right bound on centered datetime-like windows, if the index contain duplicates (:issue:`#3944`)
+
 
 Reshaping
 ^^^^^^^^^
@@ -513,6 +546,7 @@ Reshaping
 - Bug in :func:`concat` of ``bool`` and ``boolean`` dtypes resulting in ``object`` dtype instead of ``boolean`` dtype (:issue:`42800`)
 - Bug in :func:`crosstab` when inputs are are categorical Series, there are categories that are not present in one or both of the Series, and ``margins=True``. Previously the margin value for missing categories was ``NaN``. It is now correctly reported as 0 (:issue:`43505`)
 - Bug in :func:`concat` would fail when the ``objs`` argument all had the same index and the ``keys`` argument contained duplicates (:issue:`43595`)
+- Bug in :func:`concat` which ignored the ``sort`` parameter (:issue:`43375`)
 
 Sparse
 ^^^^^^
@@ -524,7 +558,8 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
--
+- Bug in :func:`array` failing to preserve :class:`PandasArray` (:issue:`43887`)
+- NumPy ufuncs ``np.abs``, ``np.positive``, ``np.negative`` now correctly preserve dtype when called on ExtensionArrays that implement ``__abs__, __pos__, __neg__``, respectively. In particular this is fixed for :class:`TimedeltaArray` (:issue:`43899`)
 -
 
 Styler

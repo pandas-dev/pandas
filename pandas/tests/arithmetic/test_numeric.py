@@ -693,11 +693,10 @@ class TestMultiplicationDivision:
         tm.assert_series_equal(result, expected)
 
     def test_mul_index(self, numeric_idx):
-        # in general not true for RangeIndex
         idx = numeric_idx
-        if not isinstance(idx, RangeIndex):
-            result = idx * idx
-            tm.assert_index_equal(result, idx ** 2)
+
+        result = idx * idx
+        tm.assert_index_equal(result, idx ** 2)
 
     def test_mul_datelike_raises(self, numeric_idx):
         idx = numeric_idx
@@ -1090,11 +1089,11 @@ class TestUFuncCompat:
         box = Series if holder is Series else Index
 
         if holder is RangeIndex:
-            idx = RangeIndex(0, 5)
+            idx = RangeIndex(0, 5, name="foo")
         else:
-            idx = holder(np.arange(5, dtype="int64"))
+            idx = holder(np.arange(5, dtype="int64"), name="foo")
         result = np.sin(idx)
-        expected = box(np.sin(np.arange(5, dtype="int64")))
+        expected = box(np.sin(np.arange(5, dtype="int64")), name="foo")
         tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize("holder", [Int64Index, UInt64Index, Float64Index, Series])
@@ -1212,14 +1211,16 @@ class TestNumericArithmeticUnsorted:
     def check_binop(self, ops, scalars, idxs):
         for op in ops:
             for a, b in combinations(idxs, 2):
+                a = a._rename("foo")
+                b = b._rename("bar")
                 result = op(a, b)
                 expected = op(Int64Index(a), Int64Index(b))
-                tm.assert_index_equal(result, expected)
+                tm.assert_index_equal(result, expected, exact="equiv")
             for idx in idxs:
                 for scalar in scalars:
                     result = op(idx, scalar)
                     expected = op(Int64Index(idx), scalar)
-                    tm.assert_index_equal(result, expected)
+                    tm.assert_index_equal(result, expected, exact="equiv")
 
     def test_binops(self):
         ops = [
@@ -1311,18 +1312,22 @@ class TestNumericArithmeticUnsorted:
         # __pow__
         idx = RangeIndex(0, 1000, 2)
         result = idx ** 2
-        expected = idx._int64index ** 2
+        expected = Int64Index(idx._values) ** 2
         tm.assert_index_equal(Index(result.values), expected, exact=True)
 
         # __floordiv__
         cases_exact = [
             (RangeIndex(0, 1000, 2), 2, RangeIndex(0, 500, 1)),
             (RangeIndex(-99, -201, -3), -3, RangeIndex(33, 67, 1)),
-            (RangeIndex(0, 1000, 1), 2, RangeIndex(0, 1000, 1)._int64index // 2),
+            (
+                RangeIndex(0, 1000, 1),
+                2,
+                Int64Index(RangeIndex(0, 1000, 1)._values) // 2,
+            ),
             (
                 RangeIndex(0, 100, 1),
                 2.0,
-                RangeIndex(0, 100, 1)._int64index // 2.0,
+                Int64Index(RangeIndex(0, 100, 1)._values) // 2.0,
             ),
             (RangeIndex(0), 50, RangeIndex(0)),
             (RangeIndex(2, 4, 2), 3, RangeIndex(0, 1, 1)),
