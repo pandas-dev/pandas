@@ -3,7 +3,9 @@ import pytest
 
 from pandas import (
     DataFrame,
+    MultiIndex,
     Series,
+    concat,
     date_range,
 )
 import pandas._testing as tm
@@ -13,6 +15,7 @@ from pandas.api.indexers import (
 )
 from pandas.core.window.indexers import (
     ExpandingIndexer,
+    FixedWindowIndexer,
     VariableOffsetWindowIndexer,
 )
 
@@ -293,3 +296,159 @@ def test_indexer_quantile_sum(end_value, values, func, args):
     result = getattr(df.rolling(indexer), func)(*args)
     expected = DataFrame({"values": values})
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "indexer_class", [FixedWindowIndexer, FixedForwardWindowIndexer, ExpandingIndexer]
+)
+@pytest.mark.parametrize("window_size", [1, 2, 12])
+@pytest.mark.parametrize(
+    "df_data",
+    [
+        {"a": [1, 1], "b": [0, 1]},
+        {"a": [1, 2], "b": [0, 1]},
+        {"a": [1] * 16, "b": [np.nan, 1, 2, np.nan] + list(range(4, 16))},
+    ],
+)
+def test_indexers_are_reusable_after_groupby_rolling(
+    indexer_class, window_size, df_data
+):
+    # GH 43267
+    df = DataFrame(df_data)
+    num_trials = 3
+    indexer = indexer_class(window_size=window_size)
+    original_window_size = indexer.window_size
+    for i in range(num_trials):
+        df.groupby("a")["b"].rolling(window=indexer, min_periods=1).mean()
+        assert indexer.window_size == original_window_size
+
+
+@pytest.mark.parametrize(
+    "window_size, num_values, expected_start, expected_end",
+    [
+        (1, 1, [0], [1]),
+        (1, 2, [0, 1], [1, 2]),
+        (2, 1, [0], [1]),
+        (2, 2, [0, 1], [2, 2]),
+        (5, 12, range(12), list(range(5, 12)) + [12] * 5),
+        (12, 5, range(5), [5] * 5),
+        (0, 0, np.array([]), np.array([])),
+        (1, 0, np.array([]), np.array([])),
+        (0, 1, [0], [0]),
+    ],
+)
+def test_fixed_forward_indexer_bounds(
+    window_size, num_values, expected_start, expected_end
+):
+    # GH 43267
+    indexer = FixedForwardWindowIndexer(window_size=window_size)
+    start, end = indexer.get_window_bounds(num_values=num_values)
+
+    tm.assert_numpy_array_equal(start, np.array(expected_start), check_dtype=False)
+    tm.assert_numpy_array_equal(end, np.array(expected_end), check_dtype=False)
+    assert len(start) == len(end)
+
+
+@pytest.mark.parametrize(
+    "df, window_size, expected",
+    [
+        (
+            DataFrame({"b": [0, 1, 2], "a": [1, 2, 2]}),
+            2,
+            Series(
+                [0, 1.5, 2.0],
+                index=MultiIndex.from_arrays([[1, 2, 2], range(3)], names=["a", None]),
+                name="b",
+                dtype=np.float64,
+            ),
+        ),
+        (
+            DataFrame(
+                {
+                    "b": [np.nan, 1, 2, np.nan] + list(range(4, 18)),
+                    "a": [1] * 7 + [2] * 11,
+                    "c": range(18),
+                }
+            ),
+            12,
+            Series(
+                [
+                    3.6,
+                    3.6,
+                    4.25,
+                    5.0,
+                    5.0,
+                    5.5,
+                    6.0,
+                    12.0,
+                    12.5,
+                    13.0,
+                    13.5,
+                    14.0,
+                    14.5,
+                    15.0,
+                    15.5,
+                    16.0,
+                    16.5,
+                    17.0,
+                ],
+                index=MultiIndex.from_arrays(
+                    [[1] * 7 + [2] * 11, range(18)], names=["a", None]
+                ),
+                name="b",
+                dtype=np.float64,
+            ),
+        ),
+    ],
+)
+def test_rolling_groupby_with_fixed_forward_specific(df, window_size, expected):
+    # GH 43267
+    indexer = FixedForwardWindowIndexer(window_size=window_size)
+    result = df.groupby("a")["b"].rolling(window=indexer, min_periods=1).mean()
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "group_keys",
+    [
+        (1,),
+        (1, 2),
+        (2, 1),
+        (1, 1, 2),
+        (1, 2, 1),
+        (1, 1, 2, 2),
+        (1, 2, 3, 2, 3),
+        (1, 1, 2) * 4,
+        (1, 2, 3) * 5,
+    ],
+)
+@pytest.mark.parametrize("window_size", [1, 2, 3, 4, 5, 8, 20])
+def test_rolling_groupby_with_fixed_forward_many(group_keys, window_size):
+    # GH 43267
+    df = DataFrame(
+        {
+            "a": np.array(list(group_keys)),
+            "b": np.arange(len(group_keys), dtype=np.float64) + 17,
+            "c": np.arange(len(group_keys), dtype=np.int64),
+        }
+    )
+
+    indexer = FixedForwardWindowIndexer(window_size=window_size)
+    result = df.groupby("a")["b"].rolling(window=indexer, min_periods=1).sum()
+    result.index.names = ["a", "c"]
+
+    groups = df.groupby("a")[["a", "b"]]
+    manual = concat(
+        [
+            g.assign(
+                b=[
+                    g["b"].iloc[i : i + window_size].sum(min_count=1)
+                    for i in range(len(g))
+                ]
+            )
+            for _, g in groups
+        ]
+    )
+    manual = manual.set_index(["a", "c"])["b"]
+
+    tm.assert_series_equal(result, manual)

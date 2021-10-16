@@ -144,7 +144,7 @@ def test_min_count(func, min_count, value):
     tm.assert_frame_equal(result, expected)
 
 
-def test_indicies_with_missing():
+def test_indices_with_missing():
     # GH 9304
     df = DataFrame({"a": [1, 1, np.nan], "b": [2, 3, 4], "c": [5, 6, 7]})
     g = df.groupby(["a", "b"])
