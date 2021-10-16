@@ -2519,7 +2519,7 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
             window = self.window
         window_indexer = GroupbyIndexer(
             index_array=index_array,
-            window_size=window,  # type: ignore[arg-type]
+            window_size=window,
             groupby_indices=self._grouper.indices,
             window_indexer=rolling_indexer,
             indexer_kwargs=indexer_kwargs,

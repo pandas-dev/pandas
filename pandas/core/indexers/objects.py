@@ -267,7 +267,8 @@ class FixedForwardWindowIndexer(BaseIndexer):
 
         start = np.arange(num_values, dtype="int64")
         end = start + self.window_size
-        end[end > num_values] = num_values
+        if self.window_size:
+            end[-self.window_size :] = num_values
 
         return start, end
 
@@ -278,7 +279,7 @@ class GroupbyIndexer(BaseIndexer):
     def __init__(
         self,
         index_array: np.ndarray | None = None,
-        window_size: int | type[BaseIndexer] = 0,
+        window_size: int | BaseIndexer = 0,
         groupby_indices: dict | None = None,
         window_indexer: type[BaseIndexer] = BaseIndexer,
         indexer_kwargs: dict | None = None,
