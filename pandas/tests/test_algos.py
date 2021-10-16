@@ -1731,17 +1731,9 @@ class TestHashTable:
         tbl = hashtable(size_hint=size_hint)  # noqa
 
 
-def test_quantile():
-    s = Series(np.random.randn(100))
-
-    result = algos.quantile(s, [0, 0.25, 0.5, 0.75, 1.0])
-    expected = algos.quantile(s.values, [0, 0.25, 0.5, 0.75, 1.0])
-    tm.assert_almost_equal(result, expected)
-
-
 def test_unique_label_indices():
 
-    a = np.random.randint(1, 1 << 10, 1 << 15).astype("int64")
+    a = np.random.randint(1, 1 << 10, 1 << 15).astype(np.intp)
 
     left = ht.unique_label_indices(a)
     right = np.unique(a, return_index=True)[1]
@@ -1797,13 +1789,13 @@ class TestRank:
 
     @pytest.mark.single
     @pytest.mark.high_memory
-    @pytest.mark.parametrize(
-        "values",
-        [np.arange(2 ** 24 + 1), np.arange(2 ** 25 + 2).reshape(2 ** 24 + 1, 2)],
-        ids=["1d", "2d"],
-    )
-    def test_pct_max_many_rows(self, values):
+    def test_pct_max_many_rows(self):
         # GH 18271
+        values = np.arange(2 ** 24 + 1)
+        result = algos.rank(values, pct=True).max()
+        assert result == 1
+
+        values = np.arange(2 ** 25 + 2).reshape(2 ** 24 + 1, 2)
         result = algos.rank(values, pct=True).max()
         assert result == 1
 

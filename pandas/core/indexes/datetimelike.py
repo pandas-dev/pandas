@@ -69,6 +69,7 @@ if TYPE_CHECKING:
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
 _T = TypeVar("_T", bound="DatetimeIndexOpsMixin")
+_TDT = TypeVar("_TDT", bound="DatetimeTimedeltaMixin")
 
 
 @inherit_names(
@@ -529,7 +530,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         # Only need to "adjoin", not overlap
         return (right_start == left_end + freq) or right_start in left
 
-    def _fast_union(self: _T, other: _T, sort=None) -> _T:
+    def _fast_union(self: _TDT, other: _TDT, sort=None) -> _TDT:
         # Caller is responsible for ensuring self and other are non-empty
 
         # to make our life easier, "sort" the two ranges
@@ -671,15 +672,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
 
     # --------------------------------------------------------------------
     # NDArray-Like Methods
-
-    def __array_wrap__(self, result, context=None):
-        """
-        Gets called after a ufunc and other functions.
-        """
-        out = super().__array_wrap__(result, context=context)
-        if isinstance(out, DatetimeTimedeltaMixin) and self.freq is not None:
-            out = out._with_freq("infer")
-        return out
 
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):
