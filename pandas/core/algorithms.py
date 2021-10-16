@@ -28,6 +28,7 @@ from pandas._typing import (
     ArrayLike,
     DtypeObj,
     Scalar,
+    TakeIndexer,
     npt,
 )
 from pandas.util._decorators import doc
@@ -95,6 +96,7 @@ if TYPE_CHECKING:
     )
     from pandas.core.arrays import (
         DatetimeArray,
+        ExtensionArray,
         TimedeltaArray,
     )
 
@@ -422,7 +424,7 @@ def unique(values):
     """
     values = _ensure_arraylike(values)
 
-    if is_extension_array_dtype(values):
+    if is_extension_array_dtype(values.dtype):
         # Dispatch to extension dtype's unique.
         return values.unique()
 
@@ -1115,89 +1117,6 @@ def checked_add_with_arr(
     return arr + b
 
 
-def quantile(x, q, interpolation_method="fraction"):
-    """
-    Compute sample quantile or quantiles of the input array. For example, q=0.5
-    computes the median.
-
-    The `interpolation_method` parameter supports three values, namely
-    `fraction` (default), `lower` and `higher`. Interpolation is done only,
-    if the desired quantile lies between two data points `i` and `j`. For
-    `fraction`, the result is an interpolated value between `i` and `j`;
-    for `lower`, the result is `i`, for `higher` the result is `j`.
-
-    Parameters
-    ----------
-    x : ndarray
-        Values from which to extract score.
-    q : scalar or array
-        Percentile at which to extract score.
-    interpolation_method : {'fraction', 'lower', 'higher'}, optional
-        This optional parameter specifies the interpolation method to use,
-        when the desired quantile lies between two data points `i` and `j`:
-
-        - fraction: `i + (j - i)*fraction`, where `fraction` is the
-                    fractional part of the index surrounded by `i` and `j`.
-        -lower: `i`.
-        - higher: `j`.
-
-    Returns
-    -------
-    score : float
-        Score at percentile.
-
-    Examples
-    --------
-    >>> from scipy import stats
-    >>> a = np.arange(100)
-    >>> stats.scoreatpercentile(a, 50)
-    49.5
-
-    """
-    x = np.asarray(x)
-    mask = isna(x)
-
-    x = x[~mask]
-
-    values = np.sort(x)
-
-    def _interpolate(a, b, fraction):
-        """
-        Returns the point at the given fraction between a and b, where
-        'fraction' must be between 0 and 1.
-        """
-        return a + (b - a) * fraction
-
-    def _get_score(at):
-        if len(values) == 0:
-            return np.nan
-
-        idx = at * (len(values) - 1)
-        if idx % 1 == 0:
-            score = values[int(idx)]
-        else:
-            if interpolation_method == "fraction":
-                score = _interpolate(values[int(idx)], values[int(idx) + 1], idx % 1)
-            elif interpolation_method == "lower":
-                score = values[np.floor(idx)]
-            elif interpolation_method == "higher":
-                score = values[np.ceil(idx)]
-            else:
-                raise ValueError(
-                    "interpolation_method can only be 'fraction' "
-                    ", 'lower' or 'higher'"
-                )
-
-        return score
-
-    if is_scalar(q):
-        return _get_score(q)
-
-    q = np.asarray(q, np.float64)
-    result = [_get_score(x) for x in q]
-    return np.array(result, dtype=np.float64)
-
-
 # --------------- #
 # select n        #
 # --------------- #
@@ -1431,7 +1350,11 @@ class SelectNFrame(SelectN):
 
 
 def take(
-    arr, indices: np.ndarray, axis: int = 0, allow_fill: bool = False, fill_value=None
+    arr,
+    indices: TakeIndexer,
+    axis: int = 0,
+    allow_fill: bool = False,
+    fill_value=None,
 ):
     """
     Take elements from an array.
@@ -1441,7 +1364,7 @@ def take(
     arr : array-like or scalar value
         Non array-likes (sequences/scalars without a dtype) are coerced
         to an ndarray.
-    indices : sequence of integers
+    indices : sequence of int or one-dimensional np.ndarray of int
         Indices to be taken.
     axis : int, default 0
         The axis over which to select values.
@@ -1530,7 +1453,7 @@ def take(
 
 def searchsorted(
     arr: ArrayLike,
-    value: NumpyValueArrayLike,
+    value: NumpyValueArrayLike | ExtensionArray,
     side: Literal["left", "right"] = "left",
     sorter: NumpySorter = None,
 ) -> npt.NDArray[np.intp] | np.intp:
@@ -1604,14 +1527,14 @@ def searchsorted(
             value = cast(int, dtype.type(value))
         else:
             value = pd_array(cast(ArrayLike, value), dtype=dtype)
-    elif not (
-        is_object_dtype(arr) or is_numeric_dtype(arr) or is_categorical_dtype(arr)
-    ):
+    else:
         # E.g. if `arr` is an array with dtype='datetime64[ns]'
         # and `value` is a pd.Timestamp, we may need to convert value
         arr = ensure_wrapped_if_datetimelike(arr)
 
-    return arr.searchsorted(value, side=side, sorter=sorter)
+    # Argument 1 to "searchsorted" of "ndarray" has incompatible type
+    # "Union[NumpyValueArrayLike, ExtensionArray]"; expected "NumpyValueArrayLike"
+    return arr.searchsorted(value, side=side, sorter=sorter)  # type: ignore[arg-type]
 
 
 # ---- #

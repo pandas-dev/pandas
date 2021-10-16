@@ -221,7 +221,7 @@ class TestIndexReductions:
     def test_max_min_range(self, start, stop, step):
         # GH#17607
         idx = RangeIndex(start, stop, step)
-        expected = idx._int64index.max()
+        expected = idx._values.max()
         result = idx.max()
         assert result == expected
 
@@ -229,7 +229,7 @@ class TestIndexReductions:
         result2 = idx.max(skipna=False)
         assert result2 == expected
 
-        expected = idx._int64index.min()
+        expected = idx._values.min()
         result = idx.min()
         assert result == expected
 
@@ -431,13 +431,11 @@ class TestIndexReductions:
         # GH#26125
         idx = RangeIndex(0, 10, 3)
 
-        expected = idx._int64index.max()
         result = np.max(idx)
-        assert result == expected
+        assert result == 9
 
-        expected = idx._int64index.min()
         result = np.min(idx)
-        assert result == expected
+        assert result == 0
 
         errmsg = "the 'out' parameter is not supported"
         with pytest.raises(ValueError, match=errmsg):
@@ -964,6 +962,7 @@ class TestSeriesReductions:
         expected = bool_agg_func == "any" and None not in data
         assert result == expected
 
+    @pytest.mark.parametrize("dtype", ["boolean", "Int64", "UInt64", "Float64"])
     @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
     @pytest.mark.parametrize("skipna", [True, False])
     @pytest.mark.parametrize(
@@ -971,18 +970,19 @@ class TestSeriesReductions:
         #                           [skipna=True/any, skipna=True/all]]
         "data,expected_data",
         [
-            ([False, False, False], [[False, False], [False, False]]),
-            ([True, True, True], [[True, True], [True, True]]),
+            ([0, 0, 0], [[False, False], [False, False]]),
+            ([1, 1, 1], [[True, True], [True, True]]),
             ([pd.NA, pd.NA, pd.NA], [[pd.NA, pd.NA], [False, True]]),
-            ([False, pd.NA, False], [[pd.NA, False], [False, False]]),
-            ([True, pd.NA, True], [[True, pd.NA], [True, True]]),
-            ([True, pd.NA, False], [[True, False], [True, False]]),
+            ([0, pd.NA, 0], [[pd.NA, False], [False, False]]),
+            ([1, pd.NA, 1], [[True, pd.NA], [True, True]]),
+            ([1, pd.NA, 0], [[True, False], [True, False]]),
         ],
     )
-    def test_any_all_boolean_kleene_logic(
-        self, bool_agg_func, skipna, data, expected_data
+    def test_any_all_nullable_kleene_logic(
+        self, bool_agg_func, skipna, data, dtype, expected_data
     ):
-        ser = Series(data, dtype="boolean")
+        # GH-37506, GH-41967
+        ser = Series(data, dtype=dtype)
         expected = expected_data[skipna][bool_agg_func == "all"]
 
         result = getattr(ser, bool_agg_func)(skipna=skipna)
