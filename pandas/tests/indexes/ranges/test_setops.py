@@ -290,6 +290,15 @@ class TestRangeIndexSetOps:
         tm.assert_index_equal(res2, expected_sorted, exact=True)
         tm.assert_index_equal(res3, expected_sorted, exact="equiv")
 
+    def test_union_same_step_misaligned(self):
+        # GH#44019
+        left = RangeIndex(range(0, 20, 4))
+        right = RangeIndex(range(1, 21, 4))
+
+        result = left.union(right)
+        expected = Int64Index([0, 1, 4, 5, 8, 9, 12, 13, 16, 17])
+        tm.assert_index_equal(result, expected, exact=True)
+
     def test_difference(self):
         # GH#12034 Cases where we operate against another RangeIndex and may
         #  get back another RangeIndex
