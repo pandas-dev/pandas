@@ -662,7 +662,13 @@ class BaseWindowGroupby(BaseWindow):
         numba_args: tuple[Any, ...] = (),
         **kwargs,
     ) -> DataFrame | Series:
-        result = super()._apply(func, name, numba_cache_key, numba_args, **kwargs,)
+        result = super()._apply(
+            func,
+            name,
+            numba_cache_key,
+            numba_args,
+            **kwargs,
+        )
         # Reconstruct the resulting MultiIndex
         # 1st set of levels = group by labels
         # 2nd set of levels = original DataFrame/Series index
@@ -1257,7 +1263,9 @@ class RollingAndExpandingMixin(BaseWindow):
             raise ValueError("engine must be either 'numba' or 'cython'")
 
         return self._apply(
-            apply_func, numba_cache_key=numba_cache_key, numba_args=numba_args,
+            apply_func,
+            numba_cache_key=numba_cache_key,
+            numba_args=numba_args,
         )
 
     def _generate_cython_apply_func(
@@ -1299,7 +1307,10 @@ class RollingAndExpandingMixin(BaseWindow):
                 func = np.nansum
 
             return self.apply(
-                func, raw=True, engine=engine, engine_kwargs=engine_kwargs,
+                func,
+                raw=True,
+                engine=engine,
+                engine_kwargs=engine_kwargs,
             )
         window_func = window_aggregations.roll_sum
         return self._apply(window_func, name="sum", **kwargs)
@@ -1319,7 +1330,10 @@ class RollingAndExpandingMixin(BaseWindow):
                 func = np.nanmax
 
             return self.apply(
-                func, raw=True, engine=engine, engine_kwargs=engine_kwargs,
+                func,
+                raw=True,
+                engine=engine,
+                engine_kwargs=engine_kwargs,
             )
         window_func = window_aggregations.roll_max
         return self._apply(window_func, name="max", **kwargs)
@@ -1339,7 +1353,10 @@ class RollingAndExpandingMixin(BaseWindow):
                 func = np.nanmin
 
             return self.apply(
-                func, raw=True, engine=engine, engine_kwargs=engine_kwargs,
+                func,
+                raw=True,
+                engine=engine,
+                engine_kwargs=engine_kwargs,
             )
         window_func = window_aggregations.roll_min
         return self._apply(window_func, name="min", **kwargs)
@@ -1356,7 +1373,10 @@ class RollingAndExpandingMixin(BaseWindow):
             if self.method == "table":
                 func = generate_manual_numpy_nan_agg_with_axis(np.nanmean)
                 return self.apply(
-                    func, raw=True, engine=engine, engine_kwargs=engine_kwargs,
+                    func,
+                    raw=True,
+                    engine=engine,
+                    engine_kwargs=engine_kwargs,
                 )
             else:
                 from pandas.core._numba.kernels import sliding_mean
@@ -1378,7 +1398,10 @@ class RollingAndExpandingMixin(BaseWindow):
                 func = np.nanmedian
 
             return self.apply(
-                func, raw=True, engine=engine, engine_kwargs=engine_kwargs,
+                func,
+                raw=True,
+                engine=engine,
+                engine_kwargs=engine_kwargs,
             )
         window_func = window_aggregations.roll_median_c
         return self._apply(window_func, name="median", **kwargs)
@@ -1390,23 +1413,39 @@ class RollingAndExpandingMixin(BaseWindow):
         def zsqrt_func(values, begin, end, min_periods):
             return zsqrt(window_func(values, begin, end, min_periods, ddof=ddof))
 
-        return self._apply(zsqrt_func, name="std", **kwargs,)
+        return self._apply(
+            zsqrt_func,
+            name="std",
+            **kwargs,
+        )
 
     def var(self, ddof: int = 1, *args, **kwargs):
         nv.validate_window_func("var", args, kwargs)
         window_func = partial(window_aggregations.roll_var, ddof=ddof)
-        return self._apply(window_func, name="var", **kwargs,)
+        return self._apply(
+            window_func,
+            name="var",
+            **kwargs,
+        )
 
     def skew(self, **kwargs):
         window_func = window_aggregations.roll_skew
-        return self._apply(window_func, name="skew", **kwargs,)
+        return self._apply(
+            window_func,
+            name="skew",
+            **kwargs,
+        )
 
     def sem(self, ddof: int = 1, *args, **kwargs):
         return self.std(*args, **kwargs) / (self.count() - ddof).pow(0.5)
 
     def kurt(self, **kwargs):
         window_func = window_aggregations.roll_kurt
-        return self._apply(window_func, name="kurt", **kwargs,)
+        return self._apply(
+            window_func,
+            name="kurt",
+            **kwargs,
+        )
 
     def quantile(self, quantile: float, interpolation: str = "linear", **kwargs):
         if quantile == 1.0:
@@ -2184,7 +2223,9 @@ class Rolling(RollingAndExpandingMixin):
     )
     def quantile(self, quantile: float, interpolation: str = "linear", **kwargs):
         return super().quantile(
-            quantile=quantile, interpolation=interpolation, **kwargs,
+            quantile=quantile,
+            interpolation=interpolation,
+            **kwargs,
         )
 
     @doc(
@@ -2255,7 +2296,12 @@ class Rolling(RollingAndExpandingMixin):
         pct: bool = False,
         **kwargs,
     ):
-        return super().rank(method=method, ascending=ascending, pct=pct, **kwargs,)
+        return super().rank(
+            method=method,
+            ascending=ascending,
+            pct=pct,
+            **kwargs,
+        )
 
     @doc(
         template_header,
