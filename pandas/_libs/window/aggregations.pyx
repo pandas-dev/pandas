@@ -829,6 +829,7 @@ def roll_median_c(const float64_t[:] values, ndarray[int64_t] start,
 
             if not is_monotonic_increasing_bounds:
                 nobs = 0
+                skiplist_destroy(sl)
                 sl = skiplist_init(<int>win)
 
     skiplist_destroy(sl)
@@ -1064,6 +1065,7 @@ def roll_quantile(const float64_t[:] values, ndarray[int64_t] start,
             if i == 0 or not is_monotonic_increasing_bounds:
                 if not is_monotonic_increasing_bounds:
                     nobs = 0
+                    skiplist_destroy(skiplist)
                     skiplist = skiplist_init(<int>win)
 
                 # setup
