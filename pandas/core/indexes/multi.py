@@ -3254,6 +3254,11 @@ class MultiIndex(Index):
         #  entry in `seq`
         indexer = Index(np.arange(n))
 
+        if any(x is Ellipsis for x in seq):
+            raise NotImplementedError(
+                "MultiIndex does not support indexing with Ellipsis"
+            )
+
         def _convert_to_indexer(r) -> Int64Index:
             # return an indexer
             if isinstance(r, slice):
