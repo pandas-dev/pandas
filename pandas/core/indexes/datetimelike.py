@@ -28,6 +28,7 @@ from pandas._libs.tslibs import (
     Resolution,
     Tick,
     parsing,
+    to_offset,
 )
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
@@ -61,6 +62,7 @@ from pandas.core.indexes.extension import (
     NDArrayBackedExtensionIndex,
     inherit_names,
 )
+from pandas.core.indexes.range import RangeIndex
 from pandas.core.tools.timedeltas import to_timedelta
 
 if TYPE_CHECKING:
@@ -433,11 +435,60 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
     # --------------------------------------------------------------------
     # Set Operation Methods
 
+    @cache_readonly
+    def _as_range_index(self) -> RangeIndex:
+        # Convert our i8 representations to RangeIndex
+        # Caller is responsible for checking isinstance(self.freq, Tick)
+        freq = cast(Tick, self.freq)
+        tick = freq.delta.value
+        rng = range(self[0].value, self[-1].value + tick, tick)
+        return RangeIndex(rng)
+
+    def _can_range_setop(self, other):
+        return isinstance(self.freq, Tick) and isinstance(other.freq, Tick)
+
+    def _wrap_range_setop(self, other, res_i8):
+        new_freq = None
+        if not len(res_i8):
+            # RangeIndex defaults to step=1, which we don't want.
+            new_freq = self.freq
+        elif isinstance(res_i8, RangeIndex):
+            new_freq = to_offset(Timedelta(res_i8.step))
+            res_i8 = res_i8
+
+        # TODO: we cannot just do
+        #  type(self._data)(res_i8.values, dtype=self.dtype, freq=new_freq)
+        # because test_setops_preserve_freq fails with _validate_frequency raising.
+        # This raising is incorrect, as 'on_freq' is incorrect. This will
+        # be fixed by GH#41493
+        res_values = res_i8.values.view(self._data._ndarray.dtype)
+        result = type(self._data)._simple_new(
+            res_values, dtype=self.dtype, freq=new_freq
+        )
+        return self._wrap_setop_result(other, result)
+
+    def _range_intersect(self, other, sort):
+        # Dispatch to RangeIndex intersection logic.
+        left = self._as_range_index
+        right = other._as_range_index
+        res_i8 = left.intersection(right, sort=sort)
+        return self._wrap_range_setop(other, res_i8)
+
+    def _range_union(self, other, sort):
+        # Dispatch to RangeIndex union logic.
+        left = self._as_range_index
+        right = other._as_range_index
+        res_i8 = left.union(right, sort=sort)
+        return self._wrap_range_setop(other, res_i8)
+
     def _intersection(self, other: Index, sort=False) -> Index:
         """
         intersection specialized to the case with matching dtypes and both non-empty.
         """
         other = cast("DatetimeTimedeltaMixin", other)
+
+        if self._can_range_setop(other):
+            return self._range_intersect(other, sort=sort)
 
         if not self._can_fast_intersect(other):
             result = Index._intersection(self, other, sort=sort)
@@ -453,7 +504,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             return self._fast_intersect(other, sort)
 
     def _fast_intersect(self, other, sort):
-
         # to make our life easier, "sort" the two ranges
         if self[0] <= other[0]:
             left, right = self, other
@@ -485,19 +535,9 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             # Because freq is not None, we must then be monotonic decreasing
             return False
 
-        elif self.freq.is_anchored():
-            # this along with matching freqs ensure that we "line up",
-            #  so intersection will preserve freq
-            # GH#42104
-            return self.freq.n == 1
-
-        elif isinstance(self.freq, Tick):
-            # We "line up" if and only if the difference between two of our points
-            #  is a multiple of our freq
-            diff = self[0] - other[0]
-            remainder = diff % self.freq.delta
-            return remainder == Timedelta(0)
-
+        # this along with matching freqs ensure that we "line up",
+        #  so intersection will preserve freq
+        # Note we are assuming away Ticks, as those go through _range_intersect
         # GH#42104
         return self.freq.n == 1
 
@@ -516,6 +556,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             return False
 
         if len(self) == 0 or len(other) == 0:
+            # only reached via union_many
             return True
 
         # to make our life easier, "sort" the two ranges
@@ -544,10 +585,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             loc = right.searchsorted(left_start, side="left")
             right_chunk = right._values[:loc]
             dates = concat_compat((left._values, right_chunk))
-            # With sort being False, we can't infer that result.freq == self.freq
-            # TODO: no tests rely on the _with_freq("infer"); needed?
             result = type(self)._simple_new(dates, name=self.name)
-            result = result._with_freq("infer")
             return result
         else:
             left, right = other, self
@@ -572,6 +610,9 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         # We are called by `union`, which is responsible for this validation
         assert isinstance(other, type(self))
         assert self.dtype == other.dtype
+
+        if self._can_range_setop(other):
+            return self._range_union(other, sort=sort)
 
         if self._can_fast_union(other):
             result = self._fast_union(other, sort=sort)
