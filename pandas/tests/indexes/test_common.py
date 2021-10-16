@@ -12,6 +12,7 @@ from pandas._libs.tslibs import iNaT
 from pandas.compat import IS64
 
 from pandas.core.dtypes.common import (
+    is_integer_dtype,
     is_period_dtype,
     needs_i8_conversion,
 )
@@ -365,6 +366,38 @@ class TestCommon:
 
         with tm.assert_produces_warning(warn):
             index.asi8
+
+    def test_hasnans_isnans(self, index_flat):
+        # GH#11343, added tests for hasnans / isnans
+        index = index_flat
+
+        # cases in indices doesn't include NaN
+        idx = index.copy(deep=True)
+        expected = np.array([False] * len(idx), dtype=bool)
+        tm.assert_numpy_array_equal(idx._isnan, expected)
+        assert idx.hasnans is False
+
+        idx = index.copy(deep=True)
+        values = np.asarray(idx.values)
+
+        if len(index) == 0:
+            return
+        elif isinstance(index, NumericIndex) and is_integer_dtype(index.dtype):
+            return
+        elif needs_i8_conversion(index.dtype):
+            values[1] = iNaT
+        else:
+            values[1] = np.nan
+
+        if isinstance(index, PeriodIndex):
+            idx = type(index)(values, freq=index.freq)
+        else:
+            idx = type(index)(values)
+
+            expected = np.array([False] * len(idx), dtype=bool)
+            expected[1] = True
+            tm.assert_numpy_array_equal(idx._isnan, expected)
+            assert idx.hasnans is True
 
 
 @pytest.mark.parametrize("na_position", [None, "middle"])

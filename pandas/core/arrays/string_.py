@@ -335,7 +335,7 @@ class StringArray(BaseStringArray, PandasArray):
             )
         try:
             lib.ensure_string_array(
-                self._ndarray,
+                self._ndarray.ravel("K"),
                 na_value=StringDtype.na_value,
                 coerce="strict-null",
                 copy=False,
@@ -473,9 +473,11 @@ class StringArray(BaseStringArray, PandasArray):
 
         return super().astype(dtype, copy)
 
-    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
+    def _reduce(
+        self, name: str, *, skipna: bool = True, axis: int | None = 0, **kwargs
+    ):
         if name in ["min", "max"]:
-            return getattr(self, name)(skipna=skipna)
+            return getattr(self, name)(skipna=skipna, axis=axis)
 
         raise TypeError(f"Cannot perform reduction '{name}' with string dtype")
 
