@@ -577,7 +577,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             counts[:-1] = value_counts
             counts[-1] = self._mask.sum()
 
-            index = index.insert(-1, self.dtype.na_value)
+            index = index.insert(len(index), self.dtype.na_value)
             # index = Index(
             #    np.concatenate([index, np.array([self.dtype.na_value], dtype=object)]),
             #    dtype=object,

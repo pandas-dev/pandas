@@ -22,6 +22,7 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 
+# TODO: avoid these imports so we can import from this file in core.algorithms
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.sparse import SparseArray
 from pandas.core.construction import (

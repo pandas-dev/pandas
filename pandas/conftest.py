@@ -499,6 +499,7 @@ indices_dict = {
     "multi": _create_multiindex(),
     "repeats": Index([0, 0, 1, 1, 2, 2]),
     "nullable_int": Index(np.arange(100), dtype="Int64"),
+    "nullable_uint": Index(np.arange(100), dtype="UInt16"),
     "nullable_float": Index(np.arange(100), dtype="Float32"),
     "nullable_bool": Index(np.arange(100).astype(bool), dtype="boolean"),
     #"nullable_int-na": Index(np.arange(100), dtype="Int64").insert(1, pd.NA),

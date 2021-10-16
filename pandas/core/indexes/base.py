@@ -5889,7 +5889,20 @@ class Index(IndexOpsMixin, PandasObject):
                 new_values, dtype=dtype, copy=False, name=self.name
             )
 
-        return Index._with_infer(new_values, dtype=dtype, copy=False, name=self.name)
+        result = Index._with_infer(new_values, dtype=dtype, copy=False, name=self.name)
+
+        if type(self) is Index and not isinstance(self.dtype, np.dtype):
+            # TODO: what about "integer-na"
+            if self.dtype.kind in ["i", "u"] and result.inferred_type == "integer":
+                # TODO: worry about itemsize/overflows?
+                result = result.astype(self.dtype, copy=False)
+            elif self.dtype.kind == "f" and result.inferred_type == "floating":
+                # TODO: worry about itemsize/overflows?
+                result = result.astype(self.dtype, copy=False)
+            elif self.dtype == "boolean" and result.inferred_type == "boolean":
+                result = result.astype(self.dtype, copy=False)
+
+        return result
 
     # TODO: De-duplicate with map, xref GH#32349
     @final
