@@ -2161,7 +2161,7 @@ class MultiIndex(Index):
         return MultiIndex(
             levels=self.levels,
             codes=[
-                level_codes.view(np.ndarray).astype(np.intp).repeat(repeats)
+                level_codes.view(np.ndarray).astype(np.intp, copy=False).repeat(repeats)
                 for level_codes in self.codes
             ],
             names=self.names,
@@ -3253,6 +3253,11 @@ class MultiIndex(Index):
         #  start with it being everything and narrow it down as we look at each
         #  entry in `seq`
         indexer = Index(np.arange(n))
+
+        if any(x is Ellipsis for x in seq):
+            raise NotImplementedError(
+                "MultiIndex does not support indexing with Ellipsis"
+            )
 
         def _convert_to_indexer(r) -> Int64Index:
             # return an indexer

@@ -994,24 +994,8 @@ class DataFrame(NDFrame, OpsMixin):
             self.info(buf=buf)
             return buf.getvalue()
 
-        max_rows = get_option("display.max_rows")
-        min_rows = get_option("display.min_rows")
-        max_cols = get_option("display.max_columns")
-        max_colwidth = get_option("display.max_colwidth")
-        show_dimensions = get_option("display.show_dimensions")
-        if get_option("display.expand_frame_repr"):
-            width, _ = console.get_console_size()
-        else:
-            width = None
-        self.to_string(
-            buf=buf,
-            max_rows=max_rows,
-            min_rows=min_rows,
-            max_cols=max_cols,
-            line_width=width,
-            max_colwidth=max_colwidth,
-            show_dimensions=show_dimensions,
-        )
+        repr_params = fmt.get_dataframe_repr_params()
+        self.to_string(buf=buf, **repr_params)
 
         return buf.getvalue()
 
@@ -1536,15 +1520,21 @@ class DataFrame(NDFrame, OpsMixin):
         ----------
         data : dict
             Of the form {field : array-like} or {field : dict}.
-        orient : {'columns', 'index'}, default 'columns'
+        orient : {'columns', 'index', 'tight'}, default 'columns'
             The "orientation" of the data. If the keys of the passed dict
             should be the columns of the resulting DataFrame, pass 'columns'
             (default). Otherwise if the keys should be rows, pass 'index'.
+            If 'tight', assume a dict with keys ['index', 'columns', 'data',
+            'index_names', 'column_names'].
+
+            .. versionadded:: 1.4.0
+               'tight' as an allowed value for the ``orient`` argument
+
         dtype : dtype, default None
             Data type to force, otherwise infer.
         columns : list, default None
             Column labels to use when ``orient='index'``. Raises a ValueError
-            if used with ``orient='columns'``.
+            if used with ``orient='columns'`` or ``orient='tight'``.
 
         Returns
         -------
@@ -1555,6 +1545,7 @@ class DataFrame(NDFrame, OpsMixin):
         DataFrame.from_records : DataFrame from structured ndarray, sequence
             of tuples or dicts, or DataFrame.
         DataFrame : DataFrame object creation using constructor.
+        DataFrame.to_dict : Convert the DataFrame to a dictionary.
 
         Examples
         --------
@@ -1585,6 +1576,21 @@ class DataFrame(NDFrame, OpsMixin):
                A  B  C  D
         row_1  3  2  1  0
         row_2  a  b  c  d
+
+        Specify ``orient='tight'`` to create the DataFrame using a 'tight'
+        format:
+
+        >>> data = {'index': [('a', 'b'), ('a', 'c')],
+        ...         'columns': [('x', 1), ('y', 2)],
+        ...         'data': [[1, 3], [2, 4]],
+        ...         'index_names': ['n1', 'n2'],
+        ...         'column_names': ['z1', 'z2']}
+        >>> pd.DataFrame.from_dict(data, orient='tight')
+        z1     x  y
+        z2     1  2
+        n1 n2
+        a  b   1  3
+           c   2  4
         """
         index = None
         orient = orient.lower()
@@ -1595,13 +1601,28 @@ class DataFrame(NDFrame, OpsMixin):
                     data = _from_nested_dict(data)
                 else:
                     data, index = list(data.values()), list(data.keys())
-        elif orient == "columns":
+        elif orient == "columns" or orient == "tight":
             if columns is not None:
-                raise ValueError("cannot use columns parameter with orient='columns'")
+                raise ValueError(f"cannot use columns parameter with orient='{orient}'")
         else:  # pragma: no cover
             raise ValueError("only recognize index or columns for orient")
 
-        return cls(data, index=index, columns=columns, dtype=dtype)
+        if orient != "tight":
+            return cls(data, index=index, columns=columns, dtype=dtype)
+        else:
+            realdata = data["data"]
+
+            def create_index(indexlist, namelist):
+                index: Index
+                if len(namelist) > 1:
+                    index = MultiIndex.from_tuples(indexlist, names=namelist)
+                else:
+                    index = Index(indexlist, name=namelist[0])
+                return index
+
+            index = create_index(data["index"], data["index_names"])
+            columns = create_index(data["columns"], data["column_names"])
+            return cls(realdata, index=index, columns=columns, dtype=dtype)
 
     def to_numpy(
         self,
@@ -1691,12 +1712,18 @@ class DataFrame(NDFrame, OpsMixin):
             - 'series' : dict like {column -> Series(values)}
             - 'split' : dict like
               {'index' -> [index], 'columns' -> [columns], 'data' -> [values]}
+            - 'tight' : dict like
+              {'index' -> [index], 'columns' -> [columns], 'data' -> [values],
+              'index_names' -> [index.names], 'column_names' -> [column.names]}
             - 'records' : list like
               [{column -> value}, ... , {column -> value}]
             - 'index' : dict like {index -> {column -> value}}
 
             Abbreviations are allowed. `s` indicates `series` and `sp`
             indicates `split`.
+
+            .. versionadded:: 1.4.0
+                'tight' as an allowed value for the ``orient`` argument
 
         into : class, default dict
             The collections.abc.Mapping subclass used for all Mappings
@@ -1746,6 +1773,10 @@ class DataFrame(NDFrame, OpsMixin):
 
         >>> df.to_dict('index')
         {'row1': {'col1': 1, 'col2': 0.5}, 'row2': {'col1': 2, 'col2': 0.75}}
+
+        >>> df.to_dict('tight')
+        {'index': ['row1', 'row2'], 'columns': ['col1', 'col2'],
+         'data': [[1, 0.5], [2, 0.75]], 'index_names': [None], 'column_names': [None]}
 
         You can also specify the mapping type.
 
@@ -1820,6 +1851,23 @@ class DataFrame(NDFrame, OpsMixin):
                             for t in self.itertuples(index=False, name=None)
                         ],
                     ),
+                )
+            )
+
+        elif orient == "tight":
+            return into_c(
+                (
+                    ("index", self.index.tolist()),
+                    ("columns", self.columns.tolist()),
+                    (
+                        "data",
+                        [
+                            list(map(maybe_box_native, t))
+                            for t in self.itertuples(index=False, name=None)
+                        ],
+                    ),
+                    ("index_names", list(self.index.names)),
+                    ("column_names", list(self.columns.names)),
                 )
             )
 
@@ -4672,17 +4720,23 @@ class DataFrame(NDFrame, OpsMixin):
             allow_dups=False,
         )
 
-    def _reindex_multi(self, axes, copy: bool, fill_value) -> DataFrame:
+    def _reindex_multi(
+        self, axes: dict[str, Index], copy: bool, fill_value
+    ) -> DataFrame:
         """
         We are guaranteed non-Nones in the axes.
         """
+
         new_index, row_indexer = self.index.reindex(axes["index"])
         new_columns, col_indexer = self.columns.reindex(axes["columns"])
 
         if row_indexer is not None and col_indexer is not None:
+            # Fastpath. By doing two 'take's at once we avoid making an
+            #  unnecessary copy.
+            # We only get here with `not self._is_mixed_type`, which (almost)
+            #  ensures that self.values is cheap. It may be worth making this
+            #  condition more specific.
             indexer = row_indexer, col_indexer
-            # error: Argument 2 to "take_2d_multi" has incompatible type "Tuple[Any,
-            # Any]"; expected "ndarray"
             new_values = take_2d_multi(self.values, indexer, fill_value=fill_value)
             return self._constructor(new_values, index=new_index, columns=new_columns)
         else:
@@ -4917,6 +4971,10 @@ class DataFrame(NDFrame, OpsMixin):
         falcon  speed   320.0   250.0
                 weight  1.0     0.8
                 length  0.3     0.2
+
+        Drop a specific index combination from the MultiIndex
+        DataFrame, i.e., drop the combination ``'falcon'`` and
+        ``'weight'``, which deletes only the corresponding row
 
         >>> df.drop(index=('falcon', 'weight'))
                         big     small
@@ -6594,10 +6652,10 @@ class DataFrame(NDFrame, OpsMixin):
         keep : {'first', 'last', 'all'}, default 'first'
             Where there are duplicate values:
 
-            - `first` : prioritize the first occurrence(s)
-            - `last` : prioritize the last occurrence(s)
+            - ``first`` : prioritize the first occurrence(s)
+            - ``last`` : prioritize the last occurrence(s)
             - ``all`` : do not drop any duplicates, even it means
-                        selecting more than `n` items.
+              selecting more than `n` items.
 
         Returns
         -------
@@ -10503,6 +10561,28 @@ NaN 12.3   33.0
         Returns
         -------
         DataFrame with PeriodIndex
+
+        Examples
+        --------
+        >>> idx = pd.to_datetime(
+        ...     [
+        ...         "2001-03-31 00:00:00",
+        ...         "2002-05-31 00:00:00",
+        ...         "2003-08-31 00:00:00",
+        ...     ]
+        ... )
+
+        >>> idx
+        DatetimeIndex(['2001-03-31', '2002-05-31', '2003-08-31'],
+        dtype='datetime64[ns]', freq=None)
+
+        >>> idx.to_period("M")
+        PeriodIndex(['2001-03', '2002-05', '2003-08'], dtype='period[M]')
+
+        For the yearly frequency
+
+        >>> idx.to_period("Y")
+        PeriodIndex(['2001', '2002', '2003'], dtype='period[A-DEC]')
         """
         new_obj = self.copy(deep=copy)
 
@@ -10558,6 +10638,13 @@ NaN 12.3   33.0
                 num_legs  num_wings
         falcon      True       True
         dog        False       True
+
+        To check if ``values`` is *not* in the DataFrame, use the ``~`` operator:
+
+        >>> ~df.isin([0, 2])
+                num_legs  num_wings
+        falcon     False      False
+        dog         True      False
 
         When ``values`` is a dict, we can pass values to check for each
         column separately:
