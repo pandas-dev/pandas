@@ -59,7 +59,10 @@ from pandas.util._decorators import (
     deprecate_nonkeyword_arguments,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
+from pandas.util._exceptions import (
+    find_stack_level,
+    rewrite_exception,
+)
 
 from pandas.core.dtypes.cast import (
     can_hold_element,
@@ -985,20 +988,40 @@ class Index(IndexOpsMixin, PandasObject):
             dtype = pandas_dtype(dtype)
 
         if is_dtype_equal(self.dtype, dtype):
+            # Ensure that self.astype(self.dtype) is self
             return self.copy() if copy else self
+
+        if (
+            self.dtype == np.dtype("M8[ns]")
+            and isinstance(dtype, np.dtype)
+            and dtype.kind == "M"
+            and dtype != np.dtype("M8[ns]")
+        ):
+            # For now DatetimeArray supports this by unwrapping ndarray,
+            #  but DatetimeIndex doesn't
+            raise TypeError(f"Cannot cast {type(self).__name__} to dtype")
+
+        values = self._data
+        if isinstance(values, ExtensionArray):
+            with rewrite_exception(type(values).__name__, type(self).__name__):
+                new_values = values.astype(dtype, copy=copy)
 
         elif isinstance(dtype, ExtensionDtype):
             cls = dtype.construct_array_type()
-            new_values = cls._from_sequence(self, dtype=dtype, copy=False)
-            return Index(new_values, dtype=dtype, copy=copy, name=self.name)
+            # Note: for RangeIndex and CategoricalDtype self vs self._values
+            #  behaves differently here.
+            new_values = cls._from_sequence(self, dtype=dtype, copy=copy)
 
-        try:
-            casted = self._values.astype(dtype, copy=copy)
-        except (TypeError, ValueError) as err:
-            raise TypeError(
-                f"Cannot cast {type(self).__name__} to dtype {dtype}"
-            ) from err
-        return Index(casted, name=self.name, dtype=dtype)
+        else:
+            try:
+                new_values = values.astype(dtype, copy=copy)
+            except (TypeError, ValueError) as err:
+                raise TypeError(
+                    f"Cannot cast {type(self).__name__} to dtype {dtype}"
+                ) from err
+
+        # pass copy=False because any copying will be done in the astype above
+        return Index(new_values, name=self.name, dtype=new_values.dtype, copy=False)
 
     _index_shared_docs[
         "take"
@@ -4875,8 +4898,6 @@ class Index(IndexOpsMixin, PandasObject):
         corresponding `Index` subclass.
 
         """
-        # There's no custom logic to be implemented in __getslice__, so it's
-        # not overloaded intentionally.
         getitem = self._data.__getitem__
 
         if is_scalar(key):
@@ -4885,24 +4906,31 @@ class Index(IndexOpsMixin, PandasObject):
 
         if isinstance(key, slice):
             # This case is separated from the conditional above to avoid
-            # pessimization of basic indexing.
+            # pessimization com.is_bool_indexer and ndim checks.
             result = getitem(key)
             # Going through simple_new for performance.
             return type(self)._simple_new(result, name=self._name)
 
         if com.is_bool_indexer(key):
+            # if we have list[bools, length=1e5] then doing this check+convert
+            #  takes 166 µs + 2.1 ms and cuts the ndarray.__getitem__
+            #  time below from 3.8 ms to 496 µs
+            # if we already have ndarray[bool], the overhead is 1.4 µs or .25%
             key = np.asarray(key, dtype=bool)
 
         result = getitem(key)
-        if not is_scalar(result):
-            if np.ndim(result) > 1:
-                deprecate_ndim_indexing(result)
-                return result
-            # NB: Using _constructor._simple_new would break if MultiIndex
-            #  didn't override __getitem__
-            return self._constructor._simple_new(result, name=self._name)
-        else:
+        # Because we ruled out integer above, we always get an arraylike here
+        if result.ndim > 1:
+            deprecate_ndim_indexing(result)
+            if hasattr(result, "_ndarray"):
+                # i.e. NDArrayBackedExtensionArray
+                # Unpack to ndarray for MPL compat
+                return result._ndarray
             return result
+
+        # NB: Using _constructor._simple_new would break if MultiIndex
+        #  didn't override __getitem__
+        return self._constructor._simple_new(result, name=self._name)
 
     def _getitem_slice(self: _IndexT, slobj: slice) -> _IndexT:
         """
