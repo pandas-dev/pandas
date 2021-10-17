@@ -2650,3 +2650,15 @@ def test_to_datetime_monotonic_increasing_index(cache):
     result = to_datetime(times.iloc[:, 0], cache=cache)
     expected = times.iloc[:, 0]
     tm.assert_series_equal(result, expected)
+
+def test_xarray_DataArray():
+    import xarray as xr
+    arr = xr.DataArray([1, 2, 3])
+    #res = pd.to_datetime(arr, unit='ns')
+    res = pd.to_datetime(arr)
+    ex = DatetimeIndex(['1970-01-01 00:00:00.000000001',
+               '1970-01-01 00:00:00.000000002',
+               '1970-01-01 00:00:00.000000003'],
+              dtype='datetime64[ns]', freq=None)
+    tm.assert_index_equal(ex, res)
+

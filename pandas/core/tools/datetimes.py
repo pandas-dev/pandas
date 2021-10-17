@@ -525,7 +525,13 @@ def _to_datetime_with_unit(arg, unit, name, tz, errors: str) -> Index:
         arr = arg.astype(f"datetime64[{unit}]")
         tz_parsed = None
     else:
-        arr, tz_parsed = tslib.array_with_unit_to_datetime(arg, unit, errors=errors)
+        import xarray
+        if type(arg) is xarray.core.dataarray.DataArray:
+            val = arg.values
+            if type(val) == np.ndarray:
+                arr, tz_parsed = tslib.array_with_unit_to_datetime(val, unit, errors=errors)
+        else:
+            arr, tz_parsed = tslib.array_with_unit_to_datetime(arg, unit, errors=errors)
 
     if errors == "ignore":
         # Index constructor _may_ infer to DatetimeIndex
