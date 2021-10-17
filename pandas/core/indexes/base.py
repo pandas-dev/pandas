@@ -1247,11 +1247,11 @@ class Index(IndexOpsMixin, PandasObject):
             line_break_each_value=self._is_multi,
         )
 
-    def _format_attrs(self) -> list[tuple[str_t, str_t | int]]:
+    def _format_attrs(self) -> list[tuple[str_t, str_t | int | bool | None]]:
         """
         Return a list of tuples of the (attr,formatted_value).
         """
-        attrs: list[tuple[str_t, str_t | int]] = []
+        attrs: list[tuple[str_t, str_t | int | bool | None]] = []
 
         if not self._is_multi:
             attrs.append(("dtype", f"'{self.dtype}'"))
@@ -1295,9 +1295,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self._format_with_header(header, na_rep=na_rep)
 
-    def _format_with_header(
-        self, header: list[str_t], na_rep: str_t = "NaN"
-    ) -> list[str_t]:
+    def _format_with_header(self, header: list[str_t], na_rep: str_t) -> list[str_t]:
         from pandas.io.formats.format import format_array
 
         values = self._values
@@ -1387,9 +1385,16 @@ class Index(IndexOpsMixin, PandasObject):
             head = self[0]
             if hasattr(head, "format") and not isinstance(head, str):
                 head = head.format()
+            elif needs_i8_conversion(self.dtype):
+                # e.g. Timedelta, display as values, not quoted
+                head = self._formatter_func(head).replace("'", "")
             tail = self[-1]
             if hasattr(tail, "format") and not isinstance(tail, str):
                 tail = tail.format()
+            elif needs_i8_conversion(self.dtype):
+                # e.g. Timedelta, display as values, not quoted
+                tail = self._formatter_func(tail).replace("'", "")
+
             index_summary = f", {head} to {tail}"
         else:
             index_summary = ""
