@@ -472,7 +472,6 @@ _all_methods = [
     (pd.Series, ([1],), operator.methodcaller("apply", lambda x: x)),
     pytest.param(
         (pd.DataFrame, frame_mi_data, operator.methodcaller("apply", lambda x: x)),
-        marks=not_implemented_mark,
     ),
     # Cumulative reductions
     (pd.Series, ([1],), operator.methodcaller("cumsum")),

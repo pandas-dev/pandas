@@ -8866,7 +8866,7 @@ NaN 12.3   33.0
             args=args,
             kwargs=kwargs,
         )
-        return op.apply()
+        return op.apply().__finalize__(self, method="apply")
 
     def applymap(
         self, func: PythonFuncType, na_action: str | None = None, **kwargs
