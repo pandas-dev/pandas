@@ -282,11 +282,9 @@ cdef class _Timestamp(ABCTimestamp):
     def __add__(self, other):
         cdef:
             int64_t nanos = 0
-        if is_offset_object(other):
-            if hasattr(other, "nanoseconds"):
-                nanos += other.nanoseconds
-            if hasattr(other, "_offset"):
-                other = other._offset
+        if is_offset_object(other) and hasattr(other, "nanoseconds"):
+            nanos += other.nanoseconds
+            other = other._offset
 
         if is_any_td_scalar(other):
             nanos += delta_to_nanoseconds(other)
