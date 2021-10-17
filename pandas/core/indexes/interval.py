@@ -354,8 +354,12 @@ class IntervalIndex(ExtensionIndex):
         return MultiIndex.from_arrays([self.left, self.right], names=["left", "right"])
 
     def __reduce__(self):
-        d = {"left": self.left, "right": self.right, "closed": self.closed}
-        d.update(self._get_attributes_dict())
+        d = {
+            "left": self.left,
+            "right": self.right,
+            "closed": self.closed,
+            "name": self.name,
+        }
         return _new_IntervalIndex, (type(self), d), None
 
     @property
@@ -892,11 +896,14 @@ class IntervalIndex(ExtensionIndex):
         """
         return False
 
-    def _get_join_target(self) -> np.ndarray:
+    def _get_engine_target(self) -> np.ndarray:
         # Note: we _could_ use libjoin functions by either casting to object
         #  dtype or constructing tuples (faster than constructing Intervals)
         #  but the libjoin fastpaths are no longer fast in these cases.
-        raise NotImplementedError("IntervalIndex does not use libjoin fastpaths")
+        raise NotImplementedError(
+            "IntervalIndex does not use libjoin fastpaths or pass values to "
+            "IndexEngine objects"
+        )
 
     def _from_join_target(self, result):
         raise NotImplementedError("IntervalIndex does not use libjoin fastpaths")

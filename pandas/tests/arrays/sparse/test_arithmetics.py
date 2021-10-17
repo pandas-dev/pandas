@@ -529,3 +529,11 @@ def test_unary_op(op, fill_value):
     result = op(sparray)
     expected = SparseArray(op(arr), fill_value=op(fill_value))
     tm.assert_sp_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("cons", [list, np.array, SparseArray])
+def test_mismatched_length_cmp_op(cons):
+    left = SparseArray([True, True])
+    right = cons([True, True, True])
+    with pytest.raises(ValueError, match="operands have mismatched length"):
+        left & right

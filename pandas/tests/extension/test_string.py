@@ -19,6 +19,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
+from pandas.core.arrays import ArrowStringArray
 from pandas.core.arrays.string_ import StringDtype
 from pandas.tests.extension import base
 
@@ -186,3 +187,13 @@ class TestPrinting(base.BasePrintingTests):
 
 class TestGroupBy(base.BaseGroupbyTests):
     pass
+
+
+class Test2DCompat(base.Dim2CompatTests):
+    @pytest.fixture(autouse=True)
+    def arrow_not_supported(self, data, request):
+        if isinstance(data, ArrowStringArray):
+            mark = pytest.mark.xfail(
+                reason="2D support not implemented for ArrowStringArray"
+            )
+            request.node.add_marker(mark)
