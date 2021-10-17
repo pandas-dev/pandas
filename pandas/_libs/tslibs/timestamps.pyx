@@ -285,7 +285,8 @@ cdef class _Timestamp(ABCTimestamp):
         if is_offset_object(other):
             if hasattr(other, "nanoseconds"):
                 nanos += other.nanoseconds
-            other = other._offset
+            if hasattr(other, "_offset"):
+                other = other._offset
 
         if is_any_td_scalar(other):
             nanos += delta_to_nanoseconds(other)
