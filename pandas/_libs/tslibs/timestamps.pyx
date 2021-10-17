@@ -283,8 +283,12 @@ cdef class _Timestamp(ABCTimestamp):
         cdef:
             int64_t nanos = 0
         if is_offset_object(other) and hasattr(other, "nanoseconds"):
-            nanos += other.nanoseconds
-            other = other._offset
+            if other.n > 0:
+                nanos += other.nanoseconds
+                other = other._offset
+            else:
+                nanos -= other.nanoseconds
+                other = -other._offset
 
         if is_any_td_scalar(other):
             nanos += delta_to_nanoseconds(other)
@@ -314,7 +318,7 @@ cdef class _Timestamp(ABCTimestamp):
 
     def __sub__(self, other):
 
-        if is_any_td_scalar(other) or is_integer_object(other):
+        if is_any_td_scalar(other) or is_integer_object(other) or is_offset_object(other):
             neg_other = -other
             return self + neg_other
 
