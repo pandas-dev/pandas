@@ -9,6 +9,7 @@ from pandas import (
     Index,
     IntervalIndex,
     MultiIndex,
+    RangeIndex,
     Series,
     Timestamp,
 )
@@ -417,6 +418,13 @@ class TestDataFrameSortIndex:
 
         tm.assert_frame_equal(result_df, expected_df)
         tm.assert_frame_equal(df, DataFrame(original_dict, index=original_index))
+
+    def test_respect_ignore_index(self):
+        # GH 43591
+        df = DataFrame({"a": [1, 2, 3]}, index=RangeIndex(4, -1, -2))
+        result = df.sort_index(ascending=False, ignore_index=True)
+        expected = DataFrame({"a": [1, 2, 3]})
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("inplace", [True, False])
     @pytest.mark.parametrize(
