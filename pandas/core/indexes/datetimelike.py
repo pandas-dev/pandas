@@ -188,6 +188,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     def _format_with_header(
         self, header: list[str], na_rep: str = "NaT", date_format: str | None = None
     ) -> list[str]:
+        # matches base class except for whitespace padding and date_format
         return header + list(
             self._format_native_types(na_rep=na_rep, date_format=date_format)
         )
@@ -207,39 +208,15 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
                 freq = self.freqstr
                 if freq is not None:
                     freq = repr(freq)  # e.g. D -> 'D'
-                # Argument 1 to "append" of "list" has incompatible type
-                # "Tuple[str, Optional[str]]"; expected "Tuple[str, Union[str, int]]"
-                attrs.append(("freq", freq))  # type: ignore[arg-type]
+                attrs.append(("freq", freq))
         return attrs
 
+    @Appender(Index._summary.__doc__)
     def _summary(self, name=None) -> str:
-        """
-        Return a summarized representation.
-
-        Parameters
-        ----------
-        name : str
-            Name to use in the summary representation.
-
-        Returns
-        -------
-        str
-            Summarized representation of the index.
-        """
-        formatter = self._formatter_func
-        if len(self) > 0:
-            index_summary = f", {formatter(self[0])} to {formatter(self[-1])}"
-        else:
-            index_summary = ""
-
-        if name is None:
-            name = type(self).__name__
-        result = f"{name}: {len(self)} entries{index_summary}"
+        result = super()._summary(name=name)
         if self.freq:
             result += f"\nFreq: {self.freqstr}"
 
-        # display as values, not quoted
-        result = result.replace("'", "")
         return result
 
     # --------------------------------------------------------------------
