@@ -648,8 +648,7 @@ class TestRollingTS:
         # GH 15130
         # we don't need to validate monotonicity when grouping
 
-        #GH 43909 we should raise an error here to match behaviour of non-groupby rolling.
-
+        # GH 43909 we should raise an error here to match behaviour of non-groupby rolling.
 
         data = [
             ["David", "1/1/2015", 100],
@@ -667,17 +666,14 @@ class TestRollingTS:
         df = DataFrame(data=data, columns=["name", "date", "amount"])
         df["date"] = to_datetime(df["date"])
 
-        
-        with pytest.raises(ValueError,match=r".* must be monotonic"):
+        with pytest.raises(ValueError, match=r".* must be monotonic"):
             df.groupby("name").rolling("180D", on="date")
-            
 
     def test_non_monotonic_raises(self):
         # GH 13966 (similar to #15130, closed by #15175)
 
-        #superceded by 43909
+        # superceded by 43909
 
-        
         dates = date_range(start="2016-01-01 09:30:00", periods=20, freq="s")
         df = DataFrame(
             {
@@ -687,10 +683,8 @@ class TestRollingTS:
             }
         )
 
-        with pytest.raises(ValueError,match=r".* must be monotonic"):
+        with pytest.raises(ValueError, match=r".* must be monotonic"):
             df.groupby("A").rolling("4s", on="B").C.mean()
-        
-
 
     def test_rolling_cov_offset(self):
         # GH16058
