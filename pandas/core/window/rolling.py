@@ -2513,8 +2513,9 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
     def _validate_monotonic(self):
         """
         Validate that on is monotonic;
-        in this case we have to check only for nans, because
-        monotonicity was already validated at a higher level.
         """
-        if self._on.hasnans:
+        if (
+            not (self._on.is_monotonic_increasing or self._on.is_monotonic_decreasing)
+            or self._on.hasnans
+        ):
             self._raise_monotonic_error()
