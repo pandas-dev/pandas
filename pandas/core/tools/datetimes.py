@@ -529,7 +529,9 @@ def _to_datetime_with_unit(arg, unit, name, tz, errors: str) -> Index:
         if type(arg) is xarray.core.dataarray.DataArray:
             val = arg.values
             if type(val) == np.ndarray:
-                arr, tz_parsed = tslib.array_with_unit_to_datetime(val, unit, errors=errors)
+                arr, tz_parsed = tslib.array_with_unit_to_datetime(
+                    val, unit, errors=errors
+                )
         else:
             arr, tz_parsed = tslib.array_with_unit_to_datetime(arg, unit, errors=errors)
 
