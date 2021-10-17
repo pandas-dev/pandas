@@ -31,7 +31,7 @@ dependencies:
   - openpyxl
   - pandas-gbq
   - protobuf>=3.12.4
-  - pyarrow=0.17.1 # GH 38803
+  - pyarrow=1.0.0
   - pytables>=3.6.1
   - scipy
   - xarray=0.15.1
