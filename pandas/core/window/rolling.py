@@ -311,8 +311,10 @@ class BaseWindow(SelectionMixin):
             center=self.center,
             closed=self.closed,
         )
-        # From get_window_bounds, those two should be equal in length of array
-        assert len(start) == len(end)
+
+        assert len(start) == len(
+            end
+        ), "these should be equal in length from get_window_bounds"
 
         for s, e in zip(start, end):
             result = obj.iloc[slice(s, e)]
@@ -563,6 +565,10 @@ class BaseWindow(SelectionMixin):
                     center=self.center,
                     closed=self.closed,
                 )
+                assert len(start) == len(
+                    end
+                ), "these should be equal in length from get_window_bounds"
+
                 return func(x, start, end, min_periods, *numba_args)
 
             with np.errstate(all="ignore"):
@@ -1501,6 +1507,11 @@ class RollingAndExpandingMixin(BaseWindow):
                 center=self.center,
                 closed=self.closed,
             )
+
+            assert len(start) == len(
+                end
+            ), "these should be equal in length from get_window_bounds"
+
             with np.errstate(all="ignore"):
                 mean_x_y = window_aggregations.roll_mean(
                     x_array * y_array, start, end, min_periods
@@ -1540,6 +1551,11 @@ class RollingAndExpandingMixin(BaseWindow):
                 center=self.center,
                 closed=self.closed,
             )
+
+            assert len(start) == len(
+                end
+            ), "these should be equal in length from get_window_bounds"
+
             with np.errstate(all="ignore"):
                 mean_x_y = window_aggregations.roll_mean(
                     x_array * y_array, start, end, min_periods
@@ -2490,11 +2506,11 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
         index_array = self._index_array
         if isinstance(self.window, BaseIndexer):
             rolling_indexer = type(self.window)
-            indexer_kwargs = self.window.__dict__
+            indexer_kwargs = self.window.__dict__.copy()
             assert isinstance(indexer_kwargs, dict)  # for mypy
             # We'll be using the index of each group later
             indexer_kwargs.pop("index_array", None)
-            window = 0
+            window = self.window
         elif self._win_freq_i8 is not None:
             rolling_indexer = VariableWindowIndexer
             window = self._win_freq_i8
@@ -2504,7 +2520,7 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
         window_indexer = GroupbyIndexer(
             index_array=index_array,
             window_size=window,
-            groupby_indicies=self._grouper.indices,
+            groupby_indices=self._grouper.indices,
             window_indexer=rolling_indexer,
             indexer_kwargs=indexer_kwargs,
         )
