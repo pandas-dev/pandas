@@ -7,8 +7,6 @@ from io import StringIO
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -18,6 +16,7 @@ from pandas import (
     bdate_range,
 )
 import pandas._testing as tm
+from pandas.core.api import Int64Index
 
 
 def test_apply_issues():
@@ -84,40 +83,6 @@ def test_apply_trivial_fail():
     result = df.groupby([str(x) for x in df.dtypes], axis=1).apply(lambda x: df)
 
     tm.assert_frame_equal(result, expected)
-
-
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) fast_apply not used
-def test_fast_apply():
-    # make sure that fast apply is correctly called
-    # rather than raising any kind of error
-    # otherwise the python path will be callsed
-    # which slows things down
-    N = 1000
-    labels = np.random.randint(0, 2000, size=N)
-    labels2 = np.random.randint(0, 3, size=N)
-    df = DataFrame(
-        {
-            "key": labels,
-            "key2": labels2,
-            "value1": np.random.randn(N),
-            "value2": ["foo", "bar", "baz", "qux"] * (N // 4),
-        }
-    )
-
-    def f(g):
-        return 1
-
-    g = df.groupby(["key", "key2"])
-
-    grouper = g.grouper
-
-    splitter = grouper._get_splitter(g._selected_obj, axis=g.axis)
-    group_keys = grouper._get_group_keys()
-    sdata = splitter.sorted_data
-
-    values, mutated = splitter.fast_apply(f, sdata, group_keys)
-
-    assert not mutated
 
 
 @pytest.mark.parametrize(
@@ -216,8 +181,6 @@ def test_group_apply_once_per_group2(capsys):
     assert result == expected
 
 
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) fast_apply not used
-@pytest.mark.xfail(reason="GH-34998")
 def test_apply_fast_slow_identical():
     # GH 31613
 
@@ -237,16 +200,13 @@ def test_apply_fast_slow_identical():
     tm.assert_frame_equal(fast_df, slow_df)
 
 
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) fast_apply not used
 @pytest.mark.parametrize(
     "func",
     [
         lambda x: x,
-        pytest.param(lambda x: x[:], marks=pytest.mark.xfail(reason="GH-34998")),
+        lambda x: x[:],
         lambda x: x.copy(deep=False),
-        pytest.param(
-            lambda x: x.copy(deep=True), marks=pytest.mark.xfail(reason="GH-34998")
-        ),
+        lambda x: x.copy(deep=True),
     ],
 )
 def test_groupby_apply_identity_maybecopy_index_identical(func):
@@ -826,10 +786,10 @@ def test_apply_with_mixed_types():
 
 def test_func_returns_object():
     # GH 28652
-    df = DataFrame({"a": [1, 2]}, index=pd.Int64Index([1, 2]))
+    df = DataFrame({"a": [1, 2]}, index=Int64Index([1, 2]))
     result = df.groupby("a").apply(lambda g: g.index)
     expected = Series(
-        [pd.Int64Index([1]), pd.Int64Index([2])], index=pd.Int64Index([1, 2], name="a")
+        [Int64Index([1]), Int64Index([2])], index=Int64Index([1, 2], name="a")
     )
 
     tm.assert_series_equal(result, expected)
@@ -1102,9 +1062,10 @@ def test_apply_by_cols_equals_apply_by_rows_transposed():
     tm.assert_frame_equal(by_cols, df)
 
 
-def test_apply_dropna_with_indexed_same():
+@pytest.mark.parametrize("dropna", [True, False])
+def test_apply_dropna_with_indexed_same(dropna):
     # GH 38227
-
+    # GH#43205
     df = DataFrame(
         {
             "col": [1, 2, 3, 4, 5],
@@ -1112,15 +1073,8 @@ def test_apply_dropna_with_indexed_same():
         },
         index=list("xxyxz"),
     )
-    result = df.groupby("group").apply(lambda x: x)
-    expected = DataFrame(
-        {
-            "col": [1, 4, 5],
-            "group": ["a", "b", "b"],
-        },
-        index=list("xxz"),
-    )
-
+    result = df.groupby("group", dropna=dropna).apply(lambda x: x)
+    expected = df.dropna() if dropna else df.iloc[[0, 3, 1, 2, 4]]
     tm.assert_frame_equal(result, expected)
 
 
@@ -1190,4 +1144,16 @@ def test_doctest_example2():
     expected = DataFrame(
         {"B": [1.0, 0.0], "C": [2.0, 0.0]}, index=Index(["a", "b"], name="A")
     )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dropna", [True, False])
+def test_apply_na(dropna):
+    # GH#28984
+    df = DataFrame(
+        {"grp": [1, 1, 2, 2], "y": [1, 0, 2, 5], "z": [1, 2, np.nan, np.nan]}
+    )
+    dfgrp = df.groupby("grp", dropna=dropna)
+    result = dfgrp.apply(lambda grp_df: grp_df.nlargest(1, "z"))
+    expected = dfgrp.apply(lambda x: x.sort_values("z", ascending=False).head(1))
     tm.assert_frame_equal(result, expected)

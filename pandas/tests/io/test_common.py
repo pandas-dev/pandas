@@ -135,6 +135,48 @@ bar2,12,13,14,15
         assert not input_buffer.closed
         input_buffer.close()
 
+    # Test that BytesIOWrapper(get_handle) returns correct amount of bytes every time
+    def test_bytesiowrapper_returns_correct_bytes(self):
+        # Test latin1, ucs-2, and ucs-4 chars
+        data = """a,b,c
+1,2,3
+©,®,®
+Look,a snake,🐍"""
+        with icom.get_handle(StringIO(data), "rb", is_text=False) as handles:
+            result = b""
+            chunksize = 5
+            while True:
+                chunk = handles.handle.read(chunksize)
+                # Make sure each chunk is correct amount of bytes
+                assert len(chunk) <= chunksize
+                if len(chunk) < chunksize:
+                    # Can be less amount of bytes, but only at EOF
+                    # which happens when read returns empty
+                    assert len(handles.handle.read()) == 0
+                    result += chunk
+                    break
+                result += chunk
+            assert result == data.encode("utf-8")
+
+    # Test that pyarrow can handle a file opened with get_handle
+    @td.skip_if_no("pyarrow", min_version="0.15.0")
+    def test_get_handle_pyarrow_compat(self):
+        from pyarrow import csv
+
+        # Test latin1, ucs-2, and ucs-4 chars
+        data = """a,b,c
+1,2,3
+©,®,®
+Look,a snake,🐍"""
+        expected = pd.DataFrame(
+            {"a": ["1", "©", "Look"], "b": ["2", "®", "a snake"], "c": ["3", "®", "🐍"]}
+        )
+        s = StringIO(data)
+        with icom.get_handle(s, "rb", is_text=False) as handles:
+            df = csv.read_csv(handles.handle).to_pandas()
+            tm.assert_frame_equal(df, expected)
+            assert not s.closed
+
     def test_iterator(self):
         with pd.read_csv(StringIO(self.data1), chunksize=1) as reader:
             result = pd.concat(reader, ignore_index=True)
@@ -153,7 +195,7 @@ bar2,12,13,14,15
             (pd.read_csv, "os", FileNotFoundError, "csv"),
             (pd.read_fwf, "os", FileNotFoundError, "txt"),
             (pd.read_excel, "xlrd", FileNotFoundError, "xlsx"),
-            (pd.read_feather, "pyarrow", IOError, "feather"),
+            (pd.read_feather, "pyarrow", OSError, "feather"),
             (pd.read_hdf, "tables", FileNotFoundError, "h5"),
             (pd.read_stata, "os", FileNotFoundError, "dta"),
             (pd.read_sas, "os", FileNotFoundError, "sas7bdat"),
@@ -186,13 +228,40 @@ bar2,12,13,14,15
             reader(path)
 
     @pytest.mark.parametrize(
+        "method, module, error_class, fn_ext",
+        [
+            (pd.DataFrame.to_csv, "os", OSError, "csv"),
+            (pd.DataFrame.to_html, "os", OSError, "html"),
+            (pd.DataFrame.to_excel, "xlrd", OSError, "xlsx"),
+            (pd.DataFrame.to_feather, "pyarrow", OSError, "feather"),
+            (pd.DataFrame.to_parquet, "pyarrow", OSError, "parquet"),
+            (pd.DataFrame.to_stata, "os", OSError, "dta"),
+            (pd.DataFrame.to_json, "os", OSError, "json"),
+            (pd.DataFrame.to_pickle, "os", OSError, "pickle"),
+        ],
+    )
+    # NOTE: Missing parent directory for pd.DataFrame.to_hdf is handled by PyTables
+    def test_write_missing_parent_directory(self, method, module, error_class, fn_ext):
+        pytest.importorskip(module)
+
+        dummy_frame = pd.DataFrame({"a": [1, 2, 3], "b": [2, 3, 4], "c": [3, 4, 5]})
+
+        path = os.path.join(HERE, "data", "missing_folder", "does_not_exist." + fn_ext)
+
+        with pytest.raises(
+            error_class,
+            match=r"Cannot save file into a non-existent directory: .*missing_folder",
+        ):
+            method(dummy_frame, path)
+
+    @pytest.mark.parametrize(
         "reader, module, error_class, fn_ext",
         [
             (pd.read_csv, "os", FileNotFoundError, "csv"),
             (pd.read_table, "os", FileNotFoundError, "csv"),
             (pd.read_fwf, "os", FileNotFoundError, "txt"),
             (pd.read_excel, "xlrd", FileNotFoundError, "xlsx"),
-            (pd.read_feather, "pyarrow", IOError, "feather"),
+            (pd.read_feather, "pyarrow", OSError, "feather"),
             (pd.read_hdf, "tables", FileNotFoundError, "h5"),
             (pd.read_stata, "os", FileNotFoundError, "dta"),
             (pd.read_sas, "os", FileNotFoundError, "sas7bdat"),
@@ -524,7 +593,7 @@ def test_encoding_errors(encoding_errors, format):
 def test_bad_encdoing_errors():
     # GH 39777
     with tm.ensure_clean() as path:
-        with pytest.raises(ValueError, match="Invalid value for `encoding_errors`"):
+        with pytest.raises(LookupError, match="unknown error handler name"):
             icom.get_handle(path, "w", errors="bad")
 
 

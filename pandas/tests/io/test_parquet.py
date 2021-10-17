@@ -17,6 +17,7 @@ from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
     pa_version_under1p0,
     pa_version_under2p0,
+    pa_version_under5p0,
 )
 import pandas.util._test_decorators as td
 
@@ -220,6 +221,29 @@ def check_round_trip(
             compare(repeat)
     else:
         compare(repeat)
+
+
+def check_partition_names(path, expected):
+    """Check partitions of a parquet file are as expected.
+
+    Parameters
+    ----------
+    path: str
+        Path of the dataset.
+    expected: iterable of str
+        Expected partition names.
+    """
+    if pa_version_under5p0:
+        import pyarrow.parquet as pq
+
+        dataset = pq.ParquetDataset(path, validate_schema=False)
+        assert len(dataset.partitions.partition_names) == len(expected)
+        assert dataset.partitions.partition_names == set(expected)
+    else:
+        import pyarrow.dataset as ds
+
+        dataset = ds.dataset(path, partitioning="hive")
+        assert dataset.partitioning.schema.names == expected
 
 
 def test_invalid_engine(df_compat):
@@ -572,6 +596,70 @@ class TestBasic(Base):
         msg = r"parquet must have string column names"
         self.check_error_on_write(df, engine, ValueError, msg)
 
+    def test_use_nullable_dtypes(self, engine):
+        import pyarrow.parquet as pq
+
+        if engine == "fastparquet":
+            # We are manually disabling fastparquet's
+            # nullable dtype support pending discussion
+            pytest.skip("Fastparquet nullable dtype support is disabled")
+
+        table = pyarrow.table(
+            {
+                "a": pyarrow.array([1, 2, 3, None], "int64"),
+                "b": pyarrow.array([1, 2, 3, None], "uint8"),
+                "c": pyarrow.array(["a", "b", "c", None]),
+                "d": pyarrow.array([True, False, True, None]),
+                # Test that nullable dtypes used even in absence of nulls
+                "e": pyarrow.array([1, 2, 3, 4], "int64"),
+            }
+        )
+        with tm.ensure_clean() as path:
+            # write manually with pyarrow to write integers
+            pq.write_table(table, path)
+            result1 = read_parquet(path, engine=engine)
+            result2 = read_parquet(path, engine=engine, use_nullable_dtypes=True)
+
+        assert result1["a"].dtype == np.dtype("float64")
+        expected = pd.DataFrame(
+            {
+                "a": pd.array([1, 2, 3, None], dtype="Int64"),
+                "b": pd.array([1, 2, 3, None], dtype="UInt8"),
+                "c": pd.array(["a", "b", "c", None], dtype="string"),
+                "d": pd.array([True, False, True, None], dtype="boolean"),
+                "e": pd.array([1, 2, 3, 4], dtype="Int64"),
+            }
+        )
+        if engine == "fastparquet":
+            # Fastparquet doesn't support string columns yet
+            # Only int and boolean
+            result2 = result2.drop("c", axis=1)
+            expected = expected.drop("c", axis=1)
+        tm.assert_frame_equal(result2, expected)
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "Int64",
+            "UInt8",
+            "boolean",
+            "object",
+            "datetime64[ns, UTC]",
+            "float",
+            "period[D]",
+            "Float64",
+            "string",
+        ],
+    )
+    def test_read_empty_array(self, pa, dtype):
+        # GH #41241
+        df = pd.DataFrame(
+            {
+                "value": pd.array([], dtype=dtype),
+            }
+        )
+        check_round_trip(df, pa, read_kwargs={"use_nullable_dtypes": True})
+
 
 @pytest.mark.filterwarnings("ignore:CategoricalBlock is deprecated:DeprecationWarning")
 class TestParquetPyArrow(Base):
@@ -743,11 +831,7 @@ class TestParquetPyArrow(Base):
         df = df_full
         with tm.ensure_clean_dir() as path:
             df.to_parquet(path, partition_cols=partition_cols, compression=None)
-            import pyarrow.parquet as pq
-
-            dataset = pq.ParquetDataset(path, validate_schema=False)
-            assert len(dataset.partitions.partition_names) == 2
-            assert dataset.partitions.partition_names == set(partition_cols)
+            check_partition_names(path, partition_cols)
             assert read_parquet(path).shape == df.shape
 
     def test_partition_cols_string(self, pa, df_full):
@@ -757,11 +841,7 @@ class TestParquetPyArrow(Base):
         df = df_full
         with tm.ensure_clean_dir() as path:
             df.to_parquet(path, partition_cols=partition_cols, compression=None)
-            import pyarrow.parquet as pq
-
-            dataset = pq.ParquetDataset(path, validate_schema=False)
-            assert len(dataset.partitions.partition_names) == 1
-            assert dataset.partitions.partition_names == set(partition_cols_list)
+            check_partition_names(path, partition_cols_list)
             assert read_parquet(path).shape == df.shape
 
     @pytest.mark.parametrize("path_type", [str, pathlib.Path])
@@ -825,35 +905,6 @@ class TestParquetPyArrow(Base):
             }
         )
         check_round_trip(df, pa)
-
-    @td.skip_if_no("pyarrow")
-    def test_use_nullable_dtypes(self, pa):
-        import pyarrow.parquet as pq
-
-        table = pyarrow.table(
-            {
-                "a": pyarrow.array([1, 2, 3, None], "int64"),
-                "b": pyarrow.array([1, 2, 3, None], "uint8"),
-                "c": pyarrow.array(["a", "b", "c", None]),
-                "d": pyarrow.array([True, False, True, None]),
-            }
-        )
-        with tm.ensure_clean() as path:
-            # write manually with pyarrow to write integers
-            pq.write_table(table, path)
-            result1 = read_parquet(path)
-            result2 = read_parquet(path, use_nullable_dtypes=True)
-
-        assert result1["a"].dtype == np.dtype("float64")
-        expected = pd.DataFrame(
-            {
-                "a": pd.array([1, 2, 3, None], dtype="Int64"),
-                "b": pd.array([1, 2, 3, None], dtype="UInt8"),
-                "c": pd.array(["a", "b", "c", None], dtype="string"),
-                "d": pd.array([True, False, True, None], dtype="boolean"),
-            }
-        )
-        tm.assert_frame_equal(result2, expected)
 
     def test_timestamp_nanoseconds(self, pa):
         # with version 2.0, pyarrow defaults to writing the nanoseconds, so
@@ -925,7 +976,9 @@ class TestParquetFastParquet(Base):
     def test_bool_with_none(self, fp):
         df = pd.DataFrame({"a": [True, None, False]})
         expected = pd.DataFrame({"a": [1.0, np.nan, 0.0]}, dtype="float16")
-        check_round_trip(df, fp, expected=expected)
+        # Fastparquet bug in 0.7.1 makes it so that this dtype becomes
+        # float64
+        check_round_trip(df, fp, expected=expected, check_dtype=False)
 
     def test_unsupported(self, fp):
 
@@ -1046,7 +1099,7 @@ class TestParquetFastParquet(Base):
         expected.index.name = "index"
         check_round_trip(df, fp, expected=expected)
 
-    def test_use_nullable_dtypes_not_supported(self, fp):
+    def test_use_nullable_dtypes_not_supported(self, monkeypatch, fp):
         df = pd.DataFrame({"a": [1, 2]})
 
         with tm.ensure_clean() as path:

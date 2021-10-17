@@ -247,6 +247,17 @@ class TestFillNA:
         expected = DataFrame({"a": [1, 0]})
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("columns", [["A", "A", "B"], ["A", "A"]])
+    def test_fillna_dictlike_value_duplicate_colnames(self, columns):
+        # GH#43476
+        df = DataFrame(np.nan, index=[0, 1], columns=columns)
+        with tm.assert_produces_warning(None):
+            result = df.fillna({"A": 0})
+
+        expected = df.copy()
+        expected["A"] = 0.0
+        tm.assert_frame_equal(result, expected)
+
     @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) object upcasting
     def test_fillna_dtype_conversion(self):
         # make sure that fillna on an empty frame works
@@ -573,6 +584,60 @@ class TestFillNA:
             result = df.fillna(0, None, None)
         expected = DataFrame({"a": [1, 2, 3, 0]}, dtype=float)
         tm.assert_frame_equal(result, expected)
+
+    def test_fillna_with_columns_and_limit(self):
+        # GH40989
+        df = DataFrame(
+            [
+                [np.nan, 2, np.nan, 0],
+                [3, 4, np.nan, 1],
+                [np.nan, np.nan, np.nan, 5],
+                [np.nan, 3, np.nan, 4],
+            ],
+            columns=list("ABCD"),
+        )
+        result = df.fillna(axis=1, value=100, limit=1)
+        result2 = df.fillna(axis=1, value=100, limit=2)
+
+        expected = DataFrame(
+            {
+                "A": Series([100, 3, 100, 100], dtype="float64"),
+                "B": [2, 4, np.nan, 3],
+                "C": [np.nan, 100, np.nan, np.nan],
+                "D": Series([0, 1, 5, 4], dtype="float64"),
+            },
+            index=[0, 1, 2, 3],
+        )
+        expected2 = DataFrame(
+            {
+                "A": Series([100, 3, 100, 100], dtype="float64"),
+                "B": Series([2, 4, 100, 3], dtype="float64"),
+                "C": [100, 100, np.nan, 100],
+                "D": Series([0, 1, 5, 4], dtype="float64"),
+            },
+            index=[0, 1, 2, 3],
+        )
+
+        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result2, expected2)
+
+    def test_fillna_inplace_with_columns_limit_and_value(self):
+        # GH40989
+        df = DataFrame(
+            [
+                [np.nan, 2, np.nan, 0],
+                [3, 4, np.nan, 1],
+                [np.nan, np.nan, np.nan, 5],
+                [np.nan, 3, np.nan, 4],
+            ],
+            columns=list("ABCD"),
+        )
+
+        expected = df.fillna(axis=1, value=100, limit=1)
+        assert expected is not df
+
+        df.fillna(axis=1, value=100, limit=1, inplace=True)
+        tm.assert_frame_equal(df, expected)
 
 
 def test_fillna_nonconsolidated_frame():

@@ -789,7 +789,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         n = self._current_row_in_chunk_index
         m = self._current_row_in_file_index
         ix = range(m - n, m)
-        rslt = DataFrame(index=ix)
+        rslt = {}
 
         js, jb = 0, 0
         for j in range(self.column_count):
@@ -798,7 +798,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
 
             if self._column_types[j] == b"d":
                 rslt[name] = self._byte_chunk[jb, :].view(dtype=self.byte_order + "d")
-                rslt[name] = np.asarray(rslt[name], dtype=np.float64)
+                rslt[name] = pd.Series(rslt[name], dtype=np.float64, index=ix)
                 if self.convert_dates:
                     if self.column_formats[j] in const.sas_date_formats:
                         rslt[name] = _convert_datetimes(rslt[name], "d")
@@ -806,17 +806,18 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
                         rslt[name] = _convert_datetimes(rslt[name], "s")
                 jb += 1
             elif self._column_types[j] == b"s":
-                rslt[name] = self._string_chunk[js, :]
+                rslt[name] = pd.Series(self._string_chunk[js, :], index=ix)
                 if self.convert_text and (self.encoding is not None):
                     rslt[name] = rslt[name].str.decode(
                         self.encoding or self.default_encoding
                     )
                 if self.blank_missing:
                     ii = rslt[name].str.len() == 0
-                    rslt.loc[ii, name] = np.nan
+                    rslt[name][ii] = np.nan
                 js += 1
             else:
                 self.close()
                 raise ValueError(f"unknown column type {self._column_types[j]}")
 
-        return rslt
+        df = DataFrame(rslt, columns=self.column_names, index=ix, copy=False)
+        return df

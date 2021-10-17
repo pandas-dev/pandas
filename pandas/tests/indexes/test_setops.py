@@ -13,20 +13,22 @@ from pandas.core.dtypes.cast import find_common_type
 from pandas import (
     CategoricalIndex,
     DatetimeIndex,
-    Float64Index,
     Index,
-    Int64Index,
     MultiIndex,
     Series,
     TimedeltaIndex,
     Timestamp,
-    UInt64Index,
 )
 import pandas._testing as tm
 from pandas.api.types import (
     is_datetime64tz_dtype,
     is_signed_integer_dtype,
     pandas_dtype,
+)
+from pandas.core.api import (
+    Float64Index,
+    Int64Index,
+    UInt64Index,
 )
 
 COMPATIBLE_INCONSISTENT_PAIRS = [

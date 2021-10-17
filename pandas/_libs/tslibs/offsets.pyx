@@ -696,7 +696,7 @@ cdef class BaseOffset:
 
     def onOffset(self, dt) -> bool:
         warnings.warn(
-            "onOffset is a deprecated, use is_on_offset instead",
+            "onOffset is a deprecated, use is_on_offset instead.",
             FutureWarning,
             stacklevel=1,
         )
@@ -704,7 +704,7 @@ cdef class BaseOffset:
 
     def isAnchored(self) -> bool:
         warnings.warn(
-            "isAnchored is a deprecated, use is_anchored instead",
+            "isAnchored is a deprecated, use is_anchored instead.",
             FutureWarning,
             stacklevel=1,
         )
@@ -1454,7 +1454,7 @@ cdef class BusinessHour(BusinessMixin):
 
     def __init__(
             self, n=1, normalize=False, start="09:00", end="17:00", offset=timedelta(0)
-        ):
+    ):
         BusinessMixin.__init__(self, n, normalize, offset)
 
         # must be validated here to equality check
@@ -1929,7 +1929,7 @@ cdef class BYearEnd(YearOffset):
 
     Examples
     --------
-    >>> from pandas.tseries.offset import BYearEnd
+    >>> from pandas.tseries.offsets import BYearEnd
     >>> ts = pd.Timestamp('2020-05-24 05:01:15')
     >>> ts - BYearEnd()
     Timestamp('2019-12-31 05:01:15')
@@ -1955,7 +1955,7 @@ cdef class BYearBegin(YearOffset):
 
     Examples
     --------
-    >>> from pandas.tseries.offset import BYearBegin
+    >>> from pandas.tseries.offsets import BYearBegin
     >>> ts = pd.Timestamp('2020-05-24 05:01:15')
     >>> ts + BYearBegin()
     Timestamp('2021-01-01 05:01:15')
@@ -2090,7 +2090,7 @@ cdef class BQuarterEnd(QuarterOffset):
 
     Examples
     --------
-    >>> from pandas.tseries.offset import BQuarterEnd
+    >>> from pandas.tseries.offsets import BQuarterEnd
     >>> ts = pd.Timestamp('2020-05-24 05:01:15')
     >>> ts + BQuarterEnd()
     Timestamp('2020-06-30 05:01:15')
@@ -2118,7 +2118,7 @@ cdef class BQuarterBegin(QuarterOffset):
 
     Examples
     --------
-    >>> from pandas.tseries.offset import BQuarterBegin
+    >>> from pandas.tseries.offsets import BQuarterBegin
     >>> ts = pd.Timestamp('2020-05-24 05:01:15')
     >>> ts + BQuarterBegin()
     Timestamp('2020-06-01 05:01:15')
@@ -2228,7 +2228,7 @@ cdef class BusinessMonthEnd(MonthOffset):
 
     Examples
     --------
-    >>> from pandas.tseries.offset import BMonthEnd
+    >>> from pandas.tseries.offsets import BMonthEnd
     >>> ts = pd.Timestamp('2020-05-24 05:01:15')
     >>> ts + BMonthEnd()
     Timestamp('2020-05-29 05:01:15')
@@ -2247,7 +2247,7 @@ cdef class BusinessMonthBegin(MonthOffset):
 
     Examples
     --------
-    >>> from pandas.tseries.offset import BMonthBegin
+    >>> from pandas.tseries.offsets import BMonthBegin
     >>> ts=pd.Timestamp('2020-05-24 05:01:15')
     >>> ts + BMonthBegin()
     Timestamp('2020-06-01 05:01:15')
@@ -3897,7 +3897,7 @@ cdef ndarray[int64_t] _shift_bdays(const int64_t[:] i8other, int periods):
     return result.base
 
 
-def shift_month(stamp: datetime, months: int, day_opt: object=None) -> datetime:
+def shift_month(stamp: datetime, months: int, day_opt: object = None) -> datetime:
     """
     Given a datetime (or Timestamp) `stamp`, an integer `months` and an
     option `day_opt`, return a new datetimelike that many months later,

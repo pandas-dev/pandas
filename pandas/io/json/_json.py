@@ -502,6 +502,7 @@ def read_json(
     --------
     DataFrame.to_json : Convert a DataFrame to a JSON string.
     Series.to_json : Convert a Series to a JSON string.
+    json_normalize : Normalize semi-structured JSON data into a flat table.
 
     Notes
     -----
