@@ -1,6 +1,10 @@
 """ feather-format compat """
+from __future__ import annotations
 
-from typing import AnyStr
+from typing import (
+    Hashable,
+    Sequence,
+)
 
 from pandas._typing import (
     FilePathOrBuffer,
@@ -22,7 +26,7 @@ from pandas.io.common import get_handle
 @doc(storage_options=generic._shared_docs["storage_options"])
 def to_feather(
     df: DataFrame,
-    path: FilePathOrBuffer[AnyStr],
+    path: FilePathOrBuffer[bytes],
     storage_options: StorageOptions = None,
     **kwargs,
 ):
@@ -89,7 +93,10 @@ def to_feather(
 
 @doc(storage_options=generic._shared_docs["storage_options"])
 def read_feather(
-    path, columns=None, use_threads: bool = True, storage_options: StorageOptions = None
+    path: FilePathOrBuffer[bytes],
+    columns: Sequence[Hashable] | None = None,
+    use_threads: bool = True,
+    storage_options: StorageOptions = None,
 ):
     """
     Load a feather-format object from the file path.
