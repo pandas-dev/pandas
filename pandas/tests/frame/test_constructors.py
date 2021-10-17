@@ -2354,10 +2354,8 @@ class TestDataFrameConstructors:
         )
         result = DataFrame([s1, s2])
         expected = DataFrame(
-            np.array(
-                [[np.nan, 39.0, np.nan, 6.0, 4.0], [2.0, 152.0, 2.0, 242.0, 150.0]]
-            ),
-            columns=["f", "female", "m", "male", "unknown"],
+            np.array([[39, 6, 4, np.nan, np.nan], [152.0, 242.0, 150.0, 2.0, 2.0]]),
+            columns=["female", "male", "unknown", "f", "m"],
         )
         tm.assert_frame_equal(result, expected)
 
