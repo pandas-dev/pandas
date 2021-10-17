@@ -1155,3 +1155,24 @@ def test_groupby_sum_below_mincount_nullable_integer():
     result = grouped.sum(min_count=2)
     expected = DataFrame({"b": [pd.NA] * 3, "c": [pd.NA] * 3}, dtype="Int64", index=idx)
     tm.assert_frame_equal(result, expected)
+
+
+def test_if_is_multiindex():
+    # GH 32464
+    # Test if index after groupby with more then one column is always MultiIndex
+    a = DataFrame({"a": [], "b": [], "c": []})
+    result = a.groupby(["a", "b", "c"]).sum()
+
+    expected_index = MultiIndex.from_arrays([[], [], []], names=("a", "b", "c"))
+    expected = DataFrame(
+        np.ndarray((0, 0)), dtype="float64", index=expected_index, columns=Index([])
+    )
+
+    # Tests if groupby with all columns has a multiindex
+    tm.assert_frame_equal(result, expected)
+
+    agg_1 = a.groupby(["a", "b"]).sum().iloc[:, :0]
+    agg_2 = a.groupby(["a", "b", "c"]).sum().droplevel("c")
+
+    # Tests if both agreggations have multiindex
+    tm.assert_frame_equal(agg_1, agg_2)
