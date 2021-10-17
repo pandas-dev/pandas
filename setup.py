@@ -37,7 +37,7 @@ def is_platform_mac():
     return sys.platform == "darwin"
 
 
-min_cython_ver = "0.29.21"  # note: sync with pyproject.toml
+min_cython_ver = "0.29.24"  # note: sync with pyproject.toml
 
 try:
     from Cython import (

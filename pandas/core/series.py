@@ -3670,16 +3670,14 @@ Keep all original rows and also all original values
         mask = isna(values)
 
         if mask.any():
-            result = Series(-1, index=self.index, name=self.name, dtype="int64")
+            result = np.full(len(self), -1, dtype=np.intp)
             notmask = ~mask
             result[notmask] = np.argsort(values[notmask], kind=kind)
-            return self._constructor(result, index=self.index).__finalize__(
-                self, method="argsort"
-            )
         else:
-            return self._constructor(
-                np.argsort(values, kind=kind), index=self.index, dtype="int64"
-            ).__finalize__(self, method="argsort")
+            result = np.argsort(values, kind=kind)
+
+        res = self._constructor(result, index=self.index, name=self.name, dtype=np.intp)
+        return res.__finalize__(self, method="argsort")
 
     def nlargest(self, n=5, keep="first") -> Series:
         """
@@ -3694,11 +3692,11 @@ Keep all original rows and also all original values
             Series of `n` elements:
 
             - ``first`` : return the first `n` occurrences in order
-                of appearance.
+              of appearance.
             - ``last`` : return the last `n` occurrences in reverse
-                order of appearance.
+              order of appearance.
             - ``all`` : keep all occurrences. This can result in a Series of
-                size larger than `n`.
+              size larger than `n`.
 
         Returns
         -------
@@ -3792,11 +3790,11 @@ Keep all original rows and also all original values
             Series of `n` elements:
 
             - ``first`` : return the first `n` occurrences in order
-                of appearance.
+              of appearance.
             - ``last`` : return the last `n` occurrences in reverse
-                order of appearance.
+              order of appearance.
             - ``all`` : keep all occurrences. This can result in a Series of
-                size larger than `n`.
+              size larger than `n`.
 
         Returns
         -------
@@ -5012,6 +5010,17 @@ Keep all original rows and also all original values
         3    False
         4     True
         5    False
+        Name: animal, dtype: bool
+
+        To invert the boolean values, use the ``~`` operator:
+
+        >>> ~s.isin(['cow', 'lama'])
+        0    False
+        1    False
+        2    False
+        3     True
+        4    False
+        5     True
         Name: animal, dtype: bool
 
         Passing a single string as ``s.isin('lama')`` will raise an error. Use

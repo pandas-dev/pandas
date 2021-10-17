@@ -15,7 +15,7 @@ dependencies:
   - pytz
   - pip
   - pip:
-    - cython==0.29.21 # GH#34014
+    - cython==0.29.24 # GH#34014
     - "--extra-index-url https://pypi.anaconda.org/scipy-wheels-nightly/simple"
     - "--pre"
     - "numpy"
