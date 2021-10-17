@@ -130,6 +130,7 @@ class ExtensionArray:
     searchsorted
     shift
     take
+    tolist
     unique
     view
     _concat_same_type
@@ -1208,6 +1209,9 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
 
     def __repr__(self) -> str:
+        if self.ndim > 1:
+            return self._repr_2d()
+
         from pandas.io.formats.printing import format_object_summary
 
         # the short repr has no trailing newline, while the truncated
@@ -1218,6 +1222,22 @@ class ExtensionArray:
         ).rstrip(", \n")
         class_name = f"<{type(self).__name__}>\n"
         return f"{class_name}{data}\nLength: {len(self)}, dtype: {self.dtype}"
+
+    def _repr_2d(self) -> str:
+        from pandas.io.formats.printing import format_object_summary
+
+        # the short repr has no trailing newline, while the truncated
+        # repr does. So we include a newline in our template, and strip
+        # any trailing newlines from format_object_summary
+        lines = [
+            format_object_summary(x, self._formatter(), indent_for_name=False).rstrip(
+                ", \n"
+            )
+            for x in self
+        ]
+        data = ",\n".join(lines)
+        class_name = f"<{type(self).__name__}>"
+        return f"{class_name}\n[\n{data}\n]\nShape: {self.shape}, dtype: {self.dtype}"
 
     def _formatter(self, boxed: bool = False) -> Callable[[Any], str | None]:
         """
@@ -1348,6 +1368,22 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
     # Non-Optimized Default Methods
 
+    def tolist(self) -> list:
+        """
+        Return a list of the values.
+
+        These are each a scalar type, which is a Python scalar
+        (for str, int, float) or a pandas scalar
+        (for Timestamp/Timedelta/Interval/Period)
+
+        Returns
+        -------
+        list
+        """
+        if self.ndim > 1:
+            return [x.tolist() for x in self]
+        return list(self)
+
     def delete(self: ExtensionArrayT, loc: PositionalIndexer) -> ExtensionArrayT:
         indexer = np.delete(np.arange(len(self)), loc)
         return self.take(indexer)
@@ -1378,6 +1414,11 @@ class ExtensionArray:
         )
         if result is not NotImplemented:
             return result
+
+        if "out" in kwargs:
+            return arraylike.dispatch_ufunc_with_out(
+                self, ufunc, method, *inputs, **kwargs
+            )
 
         return arraylike.default_array_ufunc(self, ufunc, method, *inputs, **kwargs)
 

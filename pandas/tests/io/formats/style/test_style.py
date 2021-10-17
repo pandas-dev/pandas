@@ -42,6 +42,7 @@ def mi_styler(mi_df):
 @pytest.fixture
 def mi_styler_comp(mi_styler):
     # comprehensively add features to mi_styler
+    mi_styler.css = {**mi_styler.css, **{"row": "ROW", "col": "COL"}}
     mi_styler.uuid_len = 5
     mi_styler.uuid = "abcde"
     mi_styler.set_caption("capt")
@@ -828,6 +829,19 @@ class TestStyler:
             {"selector": "td", "props": [("color", "red")]},
             {"selector": "tr", "props": [("color", "green")]},
         ]
+
+    def test_table_styles_dict_multiple_selectors(self):
+        # GH 44011
+        result = self.df.style.set_table_styles(
+            [{"selector": "th,td", "props": [("border-left", "2px solid black")]}]
+        )._translate(True, True)["table_styles"]
+
+        expected = [
+            {"selector": "th", "props": [("border-left", "2px solid black")]},
+            {"selector": "td", "props": [("border-left", "2px solid black")]},
+        ]
+
+        assert result == expected
 
     def test_maybe_convert_css_to_tuples(self):
         expected = [("a", "b"), ("c", "d e")]
