@@ -591,7 +591,7 @@ Groupby/resample/rolling
 - Fixed bug in :meth:`Series.rolling` and :meth:`DataFrame.rolling` for centered datetimelike windows with uneven nanosecond (:issue:`43997`)
 - Bug in :meth:`GroupBy.nth` failing on ``axis=1`` (:issue:`43926`)
 - Fixed bug in :meth:`Series.rolling` and :meth:`DataFrame.rolling` not respecting right bound on centered datetime-like windows, if the index contain duplicates (:issue:`#3944`)
-- Bug in :meth:`DataFrame.groupby` when grouping on multiple columns where at least one includes ``np.nan`` which resulted in a `KeyError` when the ``np.nan`` containing index was selected with :meth:`Series.loc` (:issue:`43814`)
+- Bug in :meth:`DataFrame.groupby` when grouping on multiple columns where at least one includes ``np.nan`` which resulted in a ``KeyError`` when the ``np.nan`` containing index was selected with :meth:`Series.loc` (:issue:`43814`)
 
 Reshaping
 ^^^^^^^^^
