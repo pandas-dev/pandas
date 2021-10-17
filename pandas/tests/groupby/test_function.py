@@ -1162,8 +1162,14 @@ def test_if_is_multiindex():
     # Test if index after groupby with more then one column is always MultiIndex
     a = DataFrame({"a": [], "b": [], "c": []})
 
-    agg_1 = a.groupby(["a", "b"]).sum().iloc[:, :0]
-    agg_2 = a.groupby(["a", "b", "c"]).sum().droplevel("c")
+    agg_1 = a.groupby(["a", "b"]).sum()
+    agg_2 = a.groupby(["a", "b", "c"]).sum()
+
+    # Tests if group by with all columns has a MultiIndex
+    assert isinstance(agg_2.index, pd.core.indexes.multi.MultiIndex)
+
+    index_1 = agg_1.iloc[:, :0].index
+    index_2 = agg_2.droplevel("c").index
 
     # Tests if both agreggations have multiindex
-    tm.assert_frame_equal(agg_1, agg_2)
+    tm.assert_index_equal(index_1, index_2)
