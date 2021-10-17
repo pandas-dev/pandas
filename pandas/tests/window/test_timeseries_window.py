@@ -666,7 +666,7 @@ class TestRollingTS:
         df = DataFrame(data=data, columns=["name", "date", "amount"])
         df["date"] = to_datetime(df["date"])
 
-        with pytest.raises(ValueError,match=r".* must be monotonic"):
+        with pytest.raises(ValueError, match=r".* must be monotonic"):
             df.groupby("name").rolling("180D", on="date")
 
     def test_non_monotonic_raises(self):
