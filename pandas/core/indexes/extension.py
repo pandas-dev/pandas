@@ -19,12 +19,7 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
-from pandas.util._exceptions import rewrite_exception
 
-from pandas.core.dtypes.common import (
-    is_dtype_equal,
-    pandas_dtype,
-)
 from pandas.core.dtypes.generic import ABCDataFrame
 
 from pandas.core.arrays import (
@@ -35,13 +30,12 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
-from pandas.core.indexers import deprecate_ndim_indexing
 from pandas.core.indexes.base import Index
 
 _T = TypeVar("_T", bound="NDArrayBackedExtensionIndex")
 
 
-def inherit_from_data(name: str, delegate, cache: bool = False, wrap: bool = False):
+def _inherit_from_data(name: str, delegate, cache: bool = False, wrap: bool = False):
     """
     Make an alias for a method of the underlying ExtensionArray.
 
@@ -130,7 +124,7 @@ def inherit_names(names: list[str], delegate, cache: bool = False, wrap: bool = 
 
     def wrapper(cls):
         for name in names:
-            meth = inherit_from_data(name, delegate, cache=cache, wrap=wrap)
+            meth = _inherit_from_data(name, delegate, cache=cache, wrap=wrap)
             setattr(cls, name, meth)
 
         return cls
@@ -178,22 +172,6 @@ class ExtensionIndex(Index):
         result._name = name
         result._cache = {}
         result._reset_identity()
-        return result
-
-    # ---------------------------------------------------------------------
-    # NDarray-Like Methods
-
-    def __getitem__(self, key):
-        result = self._data[key]
-        if isinstance(result, type(self._data)):
-            if result.ndim == 1:
-                return type(self)(result, name=self._name)
-            # Unpack to ndarray for MPL compat
-
-            result = result._ndarray
-
-        # Includes cases where we get a 2D ndarray back for MPL compat
-        deprecate_ndim_indexing(result)
         return result
 
     # ---------------------------------------------------------------------
@@ -261,33 +239,6 @@ class ExtensionIndex(Index):
             return result
         except Exception:
             return self.astype(object).map(mapper)
-
-    @doc(Index.astype)
-    def astype(self, dtype, copy: bool = True) -> Index:
-        dtype = pandas_dtype(dtype)
-        if is_dtype_equal(self.dtype, dtype):
-            if not copy:
-                # Ensure that self.astype(self.dtype) is self
-                return self
-            return self.copy()
-
-        # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-        # operand type: "Literal['M8[ns]']")
-        if (
-            isinstance(self.dtype, np.dtype)
-            and isinstance(dtype, np.dtype)
-            and dtype.kind == "M"
-            and dtype != "M8[ns]"  # type: ignore[comparison-overlap]
-        ):
-            # For now Datetime supports this by unwrapping ndarray, but DTI doesn't
-            raise TypeError(f"Cannot cast {type(self).__name__} to dtype")
-
-        with rewrite_exception(type(self._data).__name__, type(self).__name__):
-            new_values = self._data.astype(dtype, copy=copy)
-
-        # pass copy=False because any copying will be done in the
-        #  _data.astype call above
-        return Index(new_values, dtype=new_values.dtype, name=self.name, copy=False)
 
     @cache_readonly
     def _isnan(self) -> npt.NDArray[np.bool_]:
