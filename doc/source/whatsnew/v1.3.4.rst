@@ -54,4 +54,4 @@ Other
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v1.3.3..v1.3.4|HEAD
+.. contributors:: v1.3.3..v1.3.4
