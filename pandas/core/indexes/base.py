@@ -59,7 +59,10 @@ from pandas.util._decorators import (
     deprecate_nonkeyword_arguments,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
+from pandas.util._exceptions import (
+    find_stack_level,
+    rewrite_exception,
+)
 
 from pandas.core.dtypes.cast import (
     can_hold_element,
@@ -985,20 +988,40 @@ class Index(IndexOpsMixin, PandasObject):
             dtype = pandas_dtype(dtype)
 
         if is_dtype_equal(self.dtype, dtype):
+            # Ensure that self.astype(self.dtype) is self
             return self.copy() if copy else self
+
+        if (
+            self.dtype == np.dtype("M8[ns]")
+            and isinstance(dtype, np.dtype)
+            and dtype.kind == "M"
+            and dtype != np.dtype("M8[ns]")
+        ):
+            # For now DatetimeArray supports this by unwrapping ndarray,
+            #  but DatetimeIndex doesn't
+            raise TypeError(f"Cannot cast {type(self).__name__} to dtype")
+
+        values = self._data
+        if isinstance(values, ExtensionArray):
+            with rewrite_exception(type(values).__name__, type(self).__name__):
+                new_values = values.astype(dtype, copy=copy)
 
         elif isinstance(dtype, ExtensionDtype):
             cls = dtype.construct_array_type()
-            new_values = cls._from_sequence(self, dtype=dtype, copy=False)
-            return Index(new_values, dtype=dtype, copy=copy, name=self.name)
+            # Note: for RangeIndex and CategoricalDtype self vs self._values
+            #  behaves differently here.
+            new_values = cls._from_sequence(self, dtype=dtype, copy=copy)
 
-        try:
-            casted = self._values.astype(dtype, copy=copy)
-        except (TypeError, ValueError) as err:
-            raise TypeError(
-                f"Cannot cast {type(self).__name__} to dtype {dtype}"
-            ) from err
-        return Index(casted, name=self.name, dtype=dtype)
+        else:
+            try:
+                new_values = values.astype(dtype, copy=copy)
+            except (TypeError, ValueError) as err:
+                raise TypeError(
+                    f"Cannot cast {type(self).__name__} to dtype {dtype}"
+                ) from err
+
+        # pass copy=False because any copying will be done in the astype above
+        return Index(new_values, name=self.name, dtype=new_values.dtype, copy=False)
 
     _index_shared_docs[
         "take"
@@ -1247,11 +1270,11 @@ class Index(IndexOpsMixin, PandasObject):
             line_break_each_value=self._is_multi,
         )
 
-    def _format_attrs(self) -> list[tuple[str_t, str_t | int]]:
+    def _format_attrs(self) -> list[tuple[str_t, str_t | int | bool | None]]:
         """
         Return a list of tuples of the (attr,formatted_value).
         """
-        attrs: list[tuple[str_t, str_t | int]] = []
+        attrs: list[tuple[str_t, str_t | int | bool | None]] = []
 
         if not self._is_multi:
             attrs.append(("dtype", f"'{self.dtype}'"))
@@ -1295,9 +1318,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self._format_with_header(header, na_rep=na_rep)
 
-    def _format_with_header(
-        self, header: list[str_t], na_rep: str_t = "NaN"
-    ) -> list[str_t]:
+    def _format_with_header(self, header: list[str_t], na_rep: str_t) -> list[str_t]:
         from pandas.io.formats.format import format_array
 
         values = self._values
@@ -1387,9 +1408,16 @@ class Index(IndexOpsMixin, PandasObject):
             head = self[0]
             if hasattr(head, "format") and not isinstance(head, str):
                 head = head.format()
+            elif needs_i8_conversion(self.dtype):
+                # e.g. Timedelta, display as values, not quoted
+                head = self._formatter_func(head).replace("'", "")
             tail = self[-1]
             if hasattr(tail, "format") and not isinstance(tail, str):
                 tail = tail.format()
+            elif needs_i8_conversion(self.dtype):
+                # e.g. Timedelta, display as values, not quoted
+                tail = self._formatter_func(tail).replace("'", "")
+
             index_summary = f", {head} to {tail}"
         else:
             index_summary = ""
@@ -3963,6 +3991,27 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         target : an iterable
+        method : {None, 'pad'/'ffill', 'backfill'/'bfill', 'nearest'}, optional
+            * default: exact matches only.
+            * pad / ffill: find the PREVIOUS index value if no exact match.
+            * backfill / bfill: use NEXT index value if no exact match
+            * nearest: use the NEAREST index value if no exact match. Tied
+              distances are broken by preferring the larger index value.
+        level : int, optional
+            Level of multiindex.
+        limit : int, optional
+            Maximum number of consecutive labels in ``target`` to match for
+            inexact matches.
+        tolerance : int or float, optional
+            Maximum distance between original and new labels for inexact
+            matches. The values of the index at the matching locations must
+            satisfy the equation ``abs(index[indexer] - target) <= tolerance``.
+
+            Tolerance may be a scalar value, which applies the same tolerance
+            to all values, or list-like, which applies variable tolerance per
+            element. List-like includes list, tuple, array, Series, and must be
+            the same size as the index and its dtype must exactly match the
+            index's type.
 
         Returns
         -------
@@ -3970,6 +4019,28 @@ class Index(IndexOpsMixin, PandasObject):
             Resulting index.
         indexer : np.ndarray[np.intp] or None
             Indices of output values in original index.
+
+        Raises
+        ------
+        TypeError
+            If ``method`` passed along with ``level``.
+        ValueError
+            If non-unique multi-index
+        ValueError
+            If non-unique index and ``method`` or ``limit`` passed.
+
+        See Also
+        --------
+        Series.reindex
+        DataFrame.reindex
+
+        Examples
+        --------
+        >>> idx = pd.Index(['car', 'bike', 'train', 'tractor'])
+        >>> idx
+        Index(['car', 'bike', 'train', 'tractor'], dtype='object')
+        >>> idx.reindex(['car', 'bike'])
+        (Index(['car', 'bike'], dtype='object'), array([0, 1]))
         """
         # GH6552: preserve names when reindexing to non-named target
         # (i.e. neither Index nor Series).
@@ -4827,8 +4898,6 @@ class Index(IndexOpsMixin, PandasObject):
         corresponding `Index` subclass.
 
         """
-        # There's no custom logic to be implemented in __getslice__, so it's
-        # not overloaded intentionally.
         getitem = self._data.__getitem__
 
         if is_scalar(key):
@@ -4837,24 +4906,31 @@ class Index(IndexOpsMixin, PandasObject):
 
         if isinstance(key, slice):
             # This case is separated from the conditional above to avoid
-            # pessimization of basic indexing.
+            # pessimization com.is_bool_indexer and ndim checks.
             result = getitem(key)
             # Going through simple_new for performance.
             return type(self)._simple_new(result, name=self._name)
 
         if com.is_bool_indexer(key):
+            # if we have list[bools, length=1e5] then doing this check+convert
+            #  takes 166 µs + 2.1 ms and cuts the ndarray.__getitem__
+            #  time below from 3.8 ms to 496 µs
+            # if we already have ndarray[bool], the overhead is 1.4 µs or .25%
             key = np.asarray(key, dtype=bool)
 
         result = getitem(key)
-        if not is_scalar(result):
-            if np.ndim(result) > 1:
-                deprecate_ndim_indexing(result)
-                return result
-            # NB: Using _constructor._simple_new would break if MultiIndex
-            #  didn't override __getitem__
-            return self._constructor._simple_new(result, name=self._name)
-        else:
+        # Because we ruled out integer above, we always get an arraylike here
+        if result.ndim > 1:
+            deprecate_ndim_indexing(result)
+            if hasattr(result, "_ndarray"):
+                # i.e. NDArrayBackedExtensionArray
+                # Unpack to ndarray for MPL compat
+                return result._ndarray
             return result
+
+        # NB: Using _constructor._simple_new would break if MultiIndex
+        #  didn't override __getitem__
+        return self._constructor._simple_new(result, name=self._name)
 
     def _getitem_slice(self: _IndexT, slobj: slice) -> _IndexT:
         """
