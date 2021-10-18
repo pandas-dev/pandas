@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import numpy as np
 import pytest
 
@@ -90,6 +92,14 @@ class TestGetIndexerNonUnique:
         # matching-but-not-identical nans
         if is_matching_na(nulls_fixture, float("NaN")):
             index = Index(["a", float("NaN"), "b", float("NaN")])
+            match_but_not_identical = True
+        elif is_matching_na(nulls_fixture, Decimal("NaN")):
+            index = Index(["a", Decimal("NaN"), "b", Decimal("NaN")])
+            match_but_not_identical = True
+        else:
+            match_but_not_identical = False
+
+        if match_but_not_identical:
             indexer, missing = index.get_indexer_non_unique([nulls_fixture])
 
             expected_indexer = np.array([1, 3], dtype=np.intp)
