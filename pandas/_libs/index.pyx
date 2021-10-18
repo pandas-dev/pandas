@@ -357,7 +357,7 @@ cdef class IndexEngine:
         if stargets:
             # otherwise, map by iterating through all items in the index
 
-            # short-circuting na check
+            # short-circuit na check
             if values.dtype == object:
                 check_na_values = True
                 # keep track of nas in values
@@ -401,8 +401,9 @@ cdef class IndexEngine:
             # ensure there are nas in values before looking for a matching null
             if check_na_values and checknull(val):
                 match = [na for na in found_nas if is_matching_na(val, na)]
-                assert len(match) == 1
-                val = match[0]
+                if len(match):
+                    assert len(match) == 1
+                    val = match[0]
 
             # found
             if val in d:
