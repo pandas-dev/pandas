@@ -786,11 +786,13 @@ def test_tick_normalize_raises(tick_classes):
         ("years", Timestamp("1971-01-01 00:00:00")),
     ],
 )
-def test_dateoffset_add(cases):
+def test_dateoffset_add_sub(cases):
     time_unit, expected = cases
     offset = DateOffset(**{time_unit: 1})
     ts = Timestamp(0) + offset
     assert ts == expected
+    ts -= offset
+    assert ts == Timestamp(0)
 
 
 @pytest.mark.parametrize(
