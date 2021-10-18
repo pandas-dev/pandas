@@ -5272,15 +5272,6 @@ Several caveats:
 See the `Full Documentation <https://github.com/wesm/feather>`__.
 
 .. ipython:: python
-   :suppress:
-
-   import warnings
-
-   # This can be removed once building with pyarrow >=0.15.0
-   warnings.filterwarnings("ignore", "The Sparse", FutureWarning)
-
-
-.. ipython:: python
 
    df = pd.DataFrame(
        {
