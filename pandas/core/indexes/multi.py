@@ -1676,7 +1676,7 @@ class MultiIndex(Index):
         import pandas as pd
         try:
             values = pd.to_datetime(values)
-        except:
+        except ValueError:
             pass
 
         return values
