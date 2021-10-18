@@ -683,6 +683,20 @@ class TestRollingTS:
             }
         )
 
+
+        result = df.sort_values("B").groupby("A").rolling("4s", on="B").C.mean()
+        expected = (
+            df.set_index("B").groupby("A").apply(lambda x: x.rolling("4s")["C"].mean())
+        )
+        tm.assert_series_equal(result, expected)
+
+        df2 = df.sort_values("B")
+        result = df2.groupby("A").rolling("4s", on="B").C.mean()
+        tm.assert_series_equal(result, expected)
+
+
+
+
         with pytest.raises(ValueError, match=r".* must be monotonic"):
             df.groupby("A").rolling("4s", on="B").C.mean()
 

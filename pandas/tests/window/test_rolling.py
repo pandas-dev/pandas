@@ -1420,7 +1420,7 @@ def test_groupby_rolling_nan_included():
 def test_groupby_rolling_non_monotonic():
     # GH 43909
     shuffled = [3, 0, 1, 2]
-    sec = 1_000_000_000
+    sec = 1_000
     df = DataFrame(
         [{"t": Timestamp(2 * x * sec), "x": x + 1, "c": 42} for x in shuffled]
     )
