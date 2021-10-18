@@ -680,7 +680,10 @@ class RangeIndex(NumericIndex):
             overlap = overlap[::-1]
 
         if len(overlap) == 0:
-            return self.rename(name=res_name)
+            result = self.rename(name=res_name)
+            if sort is None and self.step < 0:
+                result = result[::-1]
+            return result
         if len(overlap) == len(self):
             return self[:0].rename(res_name)
         if not isinstance(overlap, RangeIndex):
@@ -703,6 +706,9 @@ class RangeIndex(NumericIndex):
 
         new_index = type(self)._simple_new(new_rng, name=res_name)
         if first is not self._range:
+            new_index = new_index[::-1]
+
+        if sort is None and new_index.step < 0:
             new_index = new_index[::-1]
         return new_index
 
