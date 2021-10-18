@@ -23,11 +23,7 @@ cnp.import_array()
 
 from pandas._libs cimport util
 from pandas._libs.hashtable cimport HashTable
-from pandas._libs.tslibs.nattype cimport (
-    c_NaT as NaT,
-    is_dt64nat,
-    is_td64nat,
-)
+from pandas._libs.tslibs.nattype cimport c_NaT as NaT
 from pandas._libs.tslibs.period cimport is_period_object
 from pandas._libs.tslibs.timedeltas cimport _Timedelta
 from pandas._libs.tslibs.timestamps cimport _Timestamp
@@ -319,18 +315,14 @@ cdef class IndexEngine:
         missing : np.ndarray[np.intp]
         """
         cdef:
-            ndarray values, x
+            ndarray values
             ndarray[intp_t] result, missing
-            set stargets, remaining_stargets
+            set stargets, remaining_stargets, found_nas
             dict d = {}
-            object val, dt64nat, td64nat
+            object val
             Py_ssize_t count = 0, count_missing = 0
             Py_ssize_t i, j, n, n_t, n_alloc, start, end
-            bint d_has_nan = False, stargets_has_nan = False, need_nan_check = True
-            d_has_dt64nat = False, stargets_has_dt64nat = False,
-            need_dt64nat_check = True, d_has_td64nat = False,
-            stargets_has_td64nat = False, need_td64nat_check = True,
-            need_np_nat_check = False
+            bint check_na_values = False
 
         values = self.values
         stargets = set(targets)
@@ -365,84 +357,56 @@ cdef class IndexEngine:
         if stargets:
             # otherwise, map by iterating through all items in the index
 
-            # determine if we need to check for numpy nats
-            # ie. np.datetime64("NaT") np.timedelta64("NaT")
+            # short-circuting na check
             if values.dtype == object:
-                need_np_nat_check = True
+                check_na_values = True
+                # keep track of nas in values
+                found_nas = set()
 
             for i in range(n):
                 val = values[i]
+
+                # GH#43870
+                # handle lookup for nas
+                # (ie. np.nan, float("NaN"), Decimal("NaN"), dt64nat, td64nat)
+                if check_na_values and checknull(val):
+                    match = [na for na in found_nas if is_matching_na(val, na)]
+
+                    # matching na not found
+                    if not len(match):
+                        found_nas.add(val)
+
+                        # add na to stargets to utilize `in` for starget/d lookup
+                        match_stargets = [
+                            x for x in stargets if is_matching_na(val, x)
+                        ]
+
+                        if len(match_stargets):
+                            # add our 'standardized' na
+                            stargets.add(val)
+
+                    # matching na found
+                    else:
+                        assert len(match) == 1
+                        val = match[0]
+
                 if val in stargets:
                     if val not in d:
                         d[val] = []
                     d[val].append(i)
 
-                elif util.is_nan(val):
-                    # GH#35392
-                    if need_nan_check:
-                        # Do this check only once
-                        stargets_has_nan = any(util.is_nan(val) for x in stargets)
-                        need_nan_check = False
-
-                    if stargets_has_nan:
-                        if not d_has_nan:
-                            # use a canonical nan object
-                            d[np.nan] = []
-                            d_has_nan = True
-                        d[np.nan].append(i)
-
-                elif need_np_nat_check:
-                    if is_dt64nat(val):
-                        if need_dt64nat_check:
-                            # Do this check only once
-                            stargets_has_dt64nat = any(
-                                is_dt64nat(starget) for starget in stargets
-                            )
-                            need_dt64nat_check = False
-
-                        if stargets_has_dt64nat:
-                            if not d_has_dt64nat:
-                                # store to ensure future access to `d` uses same key
-                                dt64nat = np.datetime64("NaT")
-                                d[dt64nat] = []
-                                d_has_dt64nat = True
-                            d[dt64nat].append(i)
-
-                    elif is_td64nat(val):
-                        if need_td64nat_check:
-                            # Do this check only once
-                            stargets_has_td64nat = any(
-                                is_td64nat(starget) for starget in stargets
-                            )
-                            need_td64nat_check = False
-
-                        if stargets_has_td64nat:
-                            if not d_has_td64nat:
-                                # store to ensure future access to `d` uses same key
-                                td64nat = np.timedelta64("NaT")
-                                d[td64nat] = []
-                                d_has_td64nat = True
-                            d[td64nat].append(i)
-
         for i in range(n_t):
             val = targets[i]
+
+            # ensure there are nas in values before looking for a matching null
+            if check_na_values and checknull(val):
+                match = [na for na in found_nas if is_matching_na(val, na)]
+                assert len(match) == 1
+                val = match[0]
+
             # found
-            # cannot search for nan/nat target using `in`,
-            # need to lookup key using d_has_...
-            # and confirm na type via util function
-            if (
-                val in d
-                or (d_has_nan and util.is_nan(val))
-                or (d_has_dt64nat and is_dt64nat(val))
-                or (d_has_td64nat and is_td64nat(val))
-            ):
+            if val in d:
                 key = val
-                if d_has_nan and util.is_nan(key):
-                    key = np.nan
-                elif d_has_dt64nat and is_dt64nat(key):
-                    key = dt64nat
-                elif d_has_td64nat and is_td64nat(key):
-                    key = td64nat
 
                 for j in d[key]:
 
