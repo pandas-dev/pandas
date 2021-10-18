@@ -823,6 +823,11 @@ styler_multicol_align = r"""
     rules, e.g. "\|r" will draw a rule on the left side of right aligned merged cells.
 """
 
+styler_hrules = """
+: bool
+    Whether to add horizontal rules on top and bottom and below the headers.
+"""
+
 styler_environment = """
 : str
     The environment to replace ``\\begin{table}``. If "longtable" is used results
@@ -928,6 +933,8 @@ with cf.config_prefix("styler"):
         styler_multicol_align,
         validator=is_one_of_factory(val_mca),
     )
+
+    cf.register_option("latex.hrules", False, styler_hrules, validator=is_bool)
 
     cf.register_option(
         "latex.environment",

@@ -779,6 +779,15 @@ def test_repr_option(styler):
         assert styler._repr_html_() is None
 
 
+@pytest.mark.parametrize("option", ["hrules"])
+def test_bool_options(styler, option):
+    with option_context(f"styler.latex.{option}", False):
+        latex_false = styler.to_latex()
+    with option_context(f"styler.latex.{option}", True):
+        latex_true = styler.to_latex()
+    assert latex_false != latex_true  # options are reactive under to_latex(*no_args)
+
+
 def test_siunitx_basic_headers(styler):
     assert "{} & {A} & {B} & {C} \\\\" in styler.to_latex(siunitx=True)
     assert " & A & B & C \\\\" in styler.to_latex()  # default siunitx=False
