@@ -524,9 +524,9 @@ def _to_datetime_with_unit(arg, unit, name, tz, errors: str) -> Index:
         arr = arg.astype(f"datetime64[{unit}]")
         tz_parsed = None
     else:
-            arg = np.asarray(arg)
-            arr, tz_parsed = tslib.array_with_unit_to_datetime(arg, unit, errors=errors)
-            
+        arg = np.asarray(arg)
+        arr, tz_parsed = tslib.array_with_unit_to_datetime(arg, unit, errors=errors)
+
     if errors == "ignore":
         # Index constructor _may_ infer to DatetimeIndex
         result = Index._with_infer(arr, name=name)
