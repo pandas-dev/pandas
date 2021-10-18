@@ -6,7 +6,6 @@ import gc
 import numpy as np
 import pytest
 
-from pandas._libs import iNaT
 from pandas._libs.tslibs import Timestamp
 
 from pandas.core.dtypes.common import (
@@ -37,7 +36,6 @@ from pandas.core.api import (  # noqa:F401
     Int64Index,
     UInt64Index,
 )
-from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 
 
 class Base:
@@ -548,17 +546,11 @@ class Base:
                 idx.fillna([idx[0]])
 
             idx = index.copy(deep=True)
-            values = np.asarray(idx.values)
+            values = idx._values
 
-            if isinstance(index, DatetimeIndexOpsMixin):
-                values[1] = iNaT
-            else:
-                values[1] = np.nan
+            values[1] = np.nan
 
-            if isinstance(index, PeriodIndex):
-                idx = type(index)(values, freq=index.freq)
-            else:
-                idx = type(index)(values)
+            idx = type(index)(values)
 
             expected = np.array([False] * len(idx), dtype=bool)
             expected[1] = True
@@ -604,12 +596,15 @@ class Base:
             expected = idx.astype("int64")
         elif is_float_dtype(idx.dtype):
             expected = idx.astype("float64")
+            if idx._is_backward_compat_public_numeric_index:
+                # We get a NumericIndex back, not Float64Index
+                expected = type(idx)(expected)
         else:
             expected = idx
 
         result = idx.map(lambda x: x)
         # For RangeIndex we convert to Int64Index
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact="equiv")
 
     @pytest.mark.parametrize(
         "mapper",
@@ -634,7 +629,7 @@ class Base:
 
         result = idx.map(identity)
         # For RangeIndex we convert to Int64Index
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact="equiv")
 
         # empty mappable
         if idx._is_backward_compat_public_numeric_index:
@@ -760,6 +755,19 @@ class Base:
         expected = {ex_keys[0]: idx[[0, 4]], ex_keys[1]: idx[[1, 3]]}
         tm.assert_dict_equal(idx.groupby(to_groupby), expected)
 
+    def test_append_preserves_dtype(self, simple_index):
+        # In particular NumericIndex with dtype float32
+        index = simple_index
+        N = len(index)
+
+        result = index.append(index)
+        assert result.dtype == index.dtype
+        tm.assert_index_equal(result[:N], index, check_exact=True)
+        tm.assert_index_equal(result[N:], index, check_exact=True)
+
+        alt = index.take(list(range(N)) * 2)
+        tm.assert_index_equal(result, alt, check_exact=True)
+
 
 class NumericBase(Base):
     """
@@ -805,7 +813,7 @@ class NumericBase(Base):
             cls = Int64Index
 
         expected = cls([index[0]] + list(index), dtype=index.dtype)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
     def test_insert_na(self, nulls_fixture, simple_index):
         # GH 18295 (test missing)
@@ -814,16 +822,18 @@ class NumericBase(Base):
 
         if na_val is pd.NaT:
             expected = Index([index[0], pd.NaT] + list(index[1:]), dtype=object)
-        elif type(index) is NumericIndex and index.dtype.kind == "f":
-            # GH#43921
-            expected = NumericIndex(
-                [index[0], np.nan] + list(index[1:]), dtype=index.dtype
-            )
         else:
             expected = Float64Index([index[0], np.nan] + list(index[1:]))
 
+            if index._is_backward_compat_public_numeric_index:
+                # GH#43921 we preserve NumericIndex
+                if index.dtype.kind == "f":
+                    expected = NumericIndex(expected, dtype=index.dtype)
+                else:
+                    expected = NumericIndex(expected)
+
         result = index.insert(1, na_val)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
     def test_arithmetic_explicit_conversions(self):
         # GH 8608
