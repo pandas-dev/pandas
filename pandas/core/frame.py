@@ -22,7 +22,6 @@ from typing import (
     IO,
     TYPE_CHECKING,
     Any,
-    AnyStr,
     Callable,
     Hashable,
     Iterable,
@@ -1520,15 +1519,21 @@ class DataFrame(NDFrame, OpsMixin):
         ----------
         data : dict
             Of the form {field : array-like} or {field : dict}.
-        orient : {'columns', 'index'}, default 'columns'
+        orient : {'columns', 'index', 'tight'}, default 'columns'
             The "orientation" of the data. If the keys of the passed dict
             should be the columns of the resulting DataFrame, pass 'columns'
             (default). Otherwise if the keys should be rows, pass 'index'.
+            If 'tight', assume a dict with keys ['index', 'columns', 'data',
+            'index_names', 'column_names'].
+
+            .. versionadded:: 1.4.0
+               'tight' as an allowed value for the ``orient`` argument
+
         dtype : dtype, default None
             Data type to force, otherwise infer.
         columns : list, default None
             Column labels to use when ``orient='index'``. Raises a ValueError
-            if used with ``orient='columns'``.
+            if used with ``orient='columns'`` or ``orient='tight'``.
 
         Returns
         -------
@@ -1539,6 +1544,7 @@ class DataFrame(NDFrame, OpsMixin):
         DataFrame.from_records : DataFrame from structured ndarray, sequence
             of tuples or dicts, or DataFrame.
         DataFrame : DataFrame object creation using constructor.
+        DataFrame.to_dict : Convert the DataFrame to a dictionary.
 
         Examples
         --------
@@ -1569,6 +1575,21 @@ class DataFrame(NDFrame, OpsMixin):
                A  B  C  D
         row_1  3  2  1  0
         row_2  a  b  c  d
+
+        Specify ``orient='tight'`` to create the DataFrame using a 'tight'
+        format:
+
+        >>> data = {'index': [('a', 'b'), ('a', 'c')],
+        ...         'columns': [('x', 1), ('y', 2)],
+        ...         'data': [[1, 3], [2, 4]],
+        ...         'index_names': ['n1', 'n2'],
+        ...         'column_names': ['z1', 'z2']}
+        >>> pd.DataFrame.from_dict(data, orient='tight')
+        z1     x  y
+        z2     1  2
+        n1 n2
+        a  b   1  3
+           c   2  4
         """
         index = None
         orient = orient.lower()
@@ -1579,13 +1600,28 @@ class DataFrame(NDFrame, OpsMixin):
                     data = _from_nested_dict(data)
                 else:
                     data, index = list(data.values()), list(data.keys())
-        elif orient == "columns":
+        elif orient == "columns" or orient == "tight":
             if columns is not None:
-                raise ValueError("cannot use columns parameter with orient='columns'")
+                raise ValueError(f"cannot use columns parameter with orient='{orient}'")
         else:  # pragma: no cover
             raise ValueError("only recognize index or columns for orient")
 
-        return cls(data, index=index, columns=columns, dtype=dtype)
+        if orient != "tight":
+            return cls(data, index=index, columns=columns, dtype=dtype)
+        else:
+            realdata = data["data"]
+
+            def create_index(indexlist, namelist):
+                index: Index
+                if len(namelist) > 1:
+                    index = MultiIndex.from_tuples(indexlist, names=namelist)
+                else:
+                    index = Index(indexlist, name=namelist[0])
+                return index
+
+            index = create_index(data["index"], data["index_names"])
+            columns = create_index(data["columns"], data["column_names"])
+            return cls(realdata, index=index, columns=columns, dtype=dtype)
 
     def to_numpy(
         self,
@@ -1675,12 +1711,18 @@ class DataFrame(NDFrame, OpsMixin):
             - 'series' : dict like {column -> Series(values)}
             - 'split' : dict like
               {'index' -> [index], 'columns' -> [columns], 'data' -> [values]}
+            - 'tight' : dict like
+              {'index' -> [index], 'columns' -> [columns], 'data' -> [values],
+              'index_names' -> [index.names], 'column_names' -> [column.names]}
             - 'records' : list like
               [{column -> value}, ... , {column -> value}]
             - 'index' : dict like {index -> {column -> value}}
 
             Abbreviations are allowed. `s` indicates `series` and `sp`
             indicates `split`.
+
+            .. versionadded:: 1.4.0
+                'tight' as an allowed value for the ``orient`` argument
 
         into : class, default dict
             The collections.abc.Mapping subclass used for all Mappings
@@ -1730,6 +1772,10 @@ class DataFrame(NDFrame, OpsMixin):
 
         >>> df.to_dict('index')
         {'row1': {'col1': 1, 'col2': 0.5}, 'row2': {'col1': 2, 'col2': 0.75}}
+
+        >>> df.to_dict('tight')
+        {'index': ['row1', 'row2'], 'columns': ['col1', 'col2'],
+         'data': [[1, 0.5], [2, 0.75]], 'index_names': [None], 'column_names': [None]}
 
         You can also specify the mapping type.
 
@@ -1804,6 +1850,23 @@ class DataFrame(NDFrame, OpsMixin):
                             for t in self.itertuples(index=False, name=None)
                         ],
                     ),
+                )
+            )
+
+        elif orient == "tight":
+            return into_c(
+                (
+                    ("index", self.index.tolist()),
+                    ("columns", self.columns.tolist()),
+                    (
+                        "data",
+                        [
+                            list(map(maybe_box_native, t))
+                            for t in self.itertuples(index=False, name=None)
+                        ],
+                    ),
+                    ("index_names", list(self.index.names)),
+                    ("column_names", list(self.columns.names)),
                 )
             )
 
@@ -2534,7 +2597,7 @@ class DataFrame(NDFrame, OpsMixin):
         writer.write_file()
 
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
-    def to_feather(self, path: FilePathOrBuffer[AnyStr], **kwargs) -> None:
+    def to_feather(self, path: FilePathOrBuffer[bytes], **kwargs) -> None:
         """
         Write a DataFrame to the binary Feather format.
 
@@ -4910,6 +4973,10 @@ class DataFrame(NDFrame, OpsMixin):
                 weight  1.0     0.8
                 length  0.3     0.2
 
+        Drop a specific index combination from the MultiIndex
+        DataFrame, i.e., drop the combination ``'falcon'`` and
+        ``'weight'``, which deletes only the corresponding row
+
         >>> df.drop(index=('falcon', 'weight'))
                         big     small
         lama    speed   45.0    30.0
@@ -5866,7 +5933,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis = 0,
         how: str = "any",
         thresh=None,
-        subset=None,
+        subset: IndexLabel = None,
         inplace: bool = False,
     ):
         """
@@ -5898,7 +5965,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         thresh : int, optional
             Require that many non-NA values.
-        subset : array-like, optional
+        subset : column label or sequence of labels, optional
             Labels along other axis to consider, e.g. if you are dropping rows
             these would be a list of columns to include.
         inplace : bool, default False
@@ -5982,11 +6049,14 @@ class DataFrame(NDFrame, OpsMixin):
 
         agg_obj = self
         if subset is not None:
+            # subset needs to be list
+            if not is_list_like(subset):
+                subset = [subset]
             ax = self._get_axis(agg_axis)
             indices = ax.get_indexer_for(subset)
             check = indices == -1
             if check.any():
-                raise KeyError(list(np.compress(check, subset)))
+                raise KeyError(np.array(subset)[check].tolist())
             agg_obj = self.take(indices, axis=agg_axis)
 
         count = agg_obj.count(axis=agg_axis)

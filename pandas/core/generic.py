@@ -10348,15 +10348,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         name: str,
         func,
         axis=None,
-        skipna=None,
+        skipna=True,
         level=None,
         ddof=1,
         numeric_only=None,
         **kwargs,
     ):
         nv.validate_stat_ddof_func((), kwargs, fname=name)
-        if skipna is None:
-            skipna = True
         if axis is None:
             axis = self._stat_axis_number
         if level is not None:
@@ -10375,21 +10373,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
 
     def sem(
-        self, axis=None, skipna=None, level=None, ddof=1, numeric_only=None, **kwargs
+        self, axis=None, skipna=True, level=None, ddof=1, numeric_only=None, **kwargs
     ):
         return self._stat_function_ddof(
             "sem", nanops.nansem, axis, skipna, level, ddof, numeric_only, **kwargs
         )
 
     def var(
-        self, axis=None, skipna=None, level=None, ddof=1, numeric_only=None, **kwargs
+        self, axis=None, skipna=True, level=None, ddof=1, numeric_only=None, **kwargs
     ):
         return self._stat_function_ddof(
             "var", nanops.nanvar, axis, skipna, level, ddof, numeric_only, **kwargs
         )
 
     def std(
-        self, axis=None, skipna=None, level=None, ddof=1, numeric_only=None, **kwargs
+        self, axis=None, skipna=True, level=None, ddof=1, numeric_only=None, **kwargs
     ):
         return self._stat_function_ddof(
             "std", nanops.nanstd, axis, skipna, level, ddof, numeric_only, **kwargs
@@ -10401,7 +10399,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         name: str,
         func,
         axis=None,
-        skipna=None,
+        skipna=True,
         level=None,
         numeric_only=None,
         **kwargs,
@@ -10410,8 +10408,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             nv.validate_median((), kwargs)
         else:
             nv.validate_stat_func((), kwargs, fname=name)
-        if skipna is None:
-            skipna = True
         if axis is None:
             axis = self._stat_axis_number
         if level is not None:
@@ -10429,32 +10425,32 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             func, name=name, axis=axis, skipna=skipna, numeric_only=numeric_only
         )
 
-    def min(self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs):
+    def min(self, axis=None, skipna=True, level=None, numeric_only=None, **kwargs):
         return self._stat_function(
             "min", nanops.nanmin, axis, skipna, level, numeric_only, **kwargs
         )
 
-    def max(self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs):
+    def max(self, axis=None, skipna=True, level=None, numeric_only=None, **kwargs):
         return self._stat_function(
             "max", nanops.nanmax, axis, skipna, level, numeric_only, **kwargs
         )
 
-    def mean(self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs):
+    def mean(self, axis=None, skipna=True, level=None, numeric_only=None, **kwargs):
         return self._stat_function(
             "mean", nanops.nanmean, axis, skipna, level, numeric_only, **kwargs
         )
 
-    def median(self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs):
+    def median(self, axis=None, skipna=True, level=None, numeric_only=None, **kwargs):
         return self._stat_function(
             "median", nanops.nanmedian, axis, skipna, level, numeric_only, **kwargs
         )
 
-    def skew(self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs):
+    def skew(self, axis=None, skipna=True, level=None, numeric_only=None, **kwargs):
         return self._stat_function(
             "skew", nanops.nanskew, axis, skipna, level, numeric_only, **kwargs
         )
 
-    def kurt(self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs):
+    def kurt(self, axis=None, skipna=True, level=None, numeric_only=None, **kwargs):
         return self._stat_function(
             "kurt", nanops.nankurt, axis, skipna, level, numeric_only, **kwargs
         )
@@ -10467,7 +10463,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         name: str,
         func,
         axis=None,
-        skipna=None,
+        skipna=True,
         level=None,
         numeric_only=None,
         min_count=0,
@@ -10479,8 +10475,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             nv.validate_prod((), kwargs)
         else:
             nv.validate_stat_func((), kwargs, fname=name)
-        if skipna is None:
-            skipna = True
         if axis is None:
             axis = self._stat_axis_number
         if level is not None:
@@ -10511,7 +10505,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def sum(
         self,
         axis=None,
-        skipna=None,
+        skipna=True,
         level=None,
         numeric_only=None,
         min_count=0,
@@ -10524,7 +10518,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def prod(
         self,
         axis=None,
-        skipna=None,
+        skipna=True,
         level=None,
         numeric_only=None,
         min_count=0,
@@ -10651,7 +10645,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         def sem(
             self,
             axis=None,
-            skipna=None,
+            skipna=True,
             level=None,
             ddof=1,
             numeric_only=None,
@@ -10673,7 +10667,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         def var(
             self,
             axis=None,
-            skipna=None,
+            skipna=True,
             level=None,
             ddof=1,
             numeric_only=None,
@@ -10696,7 +10690,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         def std(
             self,
             axis=None,
-            skipna=None,
+            skipna=True,
             level=None,
             ddof=1,
             numeric_only=None,
@@ -10776,7 +10770,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         def sum(
             self,
             axis=None,
-            skipna=None,
+            skipna=True,
             level=None,
             numeric_only=None,
             min_count=0,
@@ -10801,7 +10795,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         def prod(
             self,
             axis=None,
-            skipna=None,
+            skipna=True,
             level=None,
             numeric_only=None,
             min_count=0,
@@ -10824,7 +10818,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             see_also="",
             examples="",
         )
-        def mean(self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs):
+        def mean(self, axis=None, skipna=True, level=None, numeric_only=None, **kwargs):
             return NDFrame.mean(self, axis, skipna, level, numeric_only, **kwargs)
 
         setattr(cls, "mean", mean)
@@ -10839,7 +10833,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             see_also="",
             examples="",
         )
-        def skew(self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs):
+        def skew(self, axis=None, skipna=True, level=None, numeric_only=None, **kwargs):
             return NDFrame.skew(self, axis, skipna, level, numeric_only, **kwargs)
 
         setattr(cls, "skew", skew)
@@ -10857,7 +10851,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             see_also="",
             examples="",
         )
-        def kurt(self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs):
+        def kurt(self, axis=None, skipna=True, level=None, numeric_only=None, **kwargs):
             return NDFrame.kurt(self, axis, skipna, level, numeric_only, **kwargs)
 
         setattr(cls, "kurt", kurt)
@@ -10874,7 +10868,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             examples="",
         )
         def median(
-            self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs
+            self, axis=None, skipna=True, level=None, numeric_only=None, **kwargs
         ):
             return NDFrame.median(self, axis, skipna, level, numeric_only, **kwargs)
 
@@ -10892,7 +10886,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             see_also=_stat_func_see_also,
             examples=_max_examples,
         )
-        def max(self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs):
+        def max(self, axis=None, skipna=True, level=None, numeric_only=None, **kwargs):
             return NDFrame.max(self, axis, skipna, level, numeric_only, **kwargs)
 
         setattr(cls, "max", max)
@@ -10909,7 +10903,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             see_also=_stat_func_see_also,
             examples=_min_examples,
         )
-        def min(self, axis=None, skipna=None, level=None, numeric_only=None, **kwargs):
+        def min(self, axis=None, skipna=True, level=None, numeric_only=None, **kwargs):
             return NDFrame.min(self, axis, skipna, level, numeric_only, **kwargs)
 
         setattr(cls, "min", min)
