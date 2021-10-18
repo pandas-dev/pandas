@@ -1,6 +1,4 @@
-from typing import (
-    Any
-)
+from typing import Any
 
 cache_readonly = property
 
