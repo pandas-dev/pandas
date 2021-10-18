@@ -376,7 +376,7 @@ cdef class IndexEngine:
                     if not len(match):
                         found_nas.add(val)
 
-                        # add na to stargets to utilize `in` for starget/d lookup
+                        # add na to stargets to utilize `in` for stargets/d lookup
                         match_stargets = [
                             x for x in stargets if is_matching_na(val, x)
                         ]
@@ -398,7 +398,7 @@ cdef class IndexEngine:
         for i in range(n_t):
             val = targets[i]
 
-            # ensure there are nas in values before looking for a matching null
+            # ensure there are nas in values before looking for a matching na
             if check_na_values and checknull(val):
                 match = [na for na in found_nas if is_matching_na(val, na)]
                 if len(match):
