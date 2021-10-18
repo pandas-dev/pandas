@@ -775,15 +775,15 @@ def test_tick_normalize_raises(tick_classes):
 @pytest.mark.parametrize(
     "cases",
     [
-        ("nanoseconds", Timestamp('1970-01-01 00:00:00.000000001')),
-        ("microseconds", Timestamp('1970-01-01 00:00:00.000001')),
-        ("seconds", Timestamp('1970-01-01 00:00:01')),
-        ("minutes", Timestamp('1970-01-01 00:01:00')),
-        ("hours", Timestamp('1970-01-01 01:00:00')),
-        ("days", Timestamp('1970-01-02 00:00:00')),
-        ("weeks", Timestamp('1970-01-08 00:00:00')),
-        ("months", Timestamp('1970-02-01 00:00:00')),
-        ("years", Timestamp('1971-01-01 00:00:00')),
+        ("nanoseconds", Timestamp("1970-01-01 00:00:00.000000001")),
+        ("microseconds", Timestamp("1970-01-01 00:00:00.000001")),
+        ("seconds", Timestamp("1970-01-01 00:00:01")),
+        ("minutes", Timestamp("1970-01-01 00:01:00")),
+        ("hours", Timestamp("1970-01-01 01:00:00")),
+        ("days", Timestamp("1970-01-02 00:00:00")),
+        ("weeks", Timestamp("1970-01-08 00:00:00")),
+        ("months", Timestamp("1970-02-01 00:00:00")),
+        ("years", Timestamp("1971-01-01 00:00:00")),
     ],
 )
 def test_dateoffset_add(cases):
