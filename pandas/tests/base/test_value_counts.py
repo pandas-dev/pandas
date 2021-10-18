@@ -5,10 +5,7 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas._libs import iNaT
 from pandas.compat import np_array_datetime64_compat
-
-from pandas.core.dtypes.common import needs_i8_conversion
 
 import pandas as pd
 from pandas import (
@@ -54,11 +51,8 @@ def test_value_counts_null(null_obj, index_or_series_obj):
     elif isinstance(orig, pd.MultiIndex):
         pytest.skip(f"MultiIndex can't hold '{null_obj}'")
 
-    values = obj.values
-    if needs_i8_conversion(obj.dtype):
-        values[0:2] = iNaT
-    else:
-        values[0:2] = null_obj
+    values = obj._values
+    values[0:2] = null_obj
 
     klass = type(obj)
     repeated_values = np.repeat(values, range(1, len(values) + 1))

@@ -6,7 +6,6 @@ import gc
 import numpy as np
 import pytest
 
-from pandas._libs import iNaT
 from pandas._libs.tslibs import Timestamp
 
 from pandas.core.dtypes.common import (
@@ -37,7 +36,6 @@ from pandas.core.api import (  # noqa:F401
     Int64Index,
     UInt64Index,
 )
-from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 
 
 class Base:
@@ -548,17 +546,11 @@ class Base:
                 idx.fillna([idx[0]])
 
             idx = index.copy(deep=True)
-            values = np.asarray(idx.values)
+            values = idx._values
 
-            if isinstance(index, DatetimeIndexOpsMixin):
-                values[1] = iNaT
-            else:
-                values[1] = np.nan
+            values[1] = np.nan
 
-            if isinstance(index, PeriodIndex):
-                idx = type(index)(values, freq=index.freq)
-            else:
-                idx = type(index)(values)
+            idx = type(index)(values)
 
             expected = np.array([False] * len(idx), dtype=bool)
             expected[1] = True
