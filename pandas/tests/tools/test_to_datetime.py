@@ -2660,7 +2660,7 @@ def test_xarray_coerce_unit():
 
 @pytest.mark.parametrize("cache", [True, False])
 def test_to_datetime_monotonic_increasing_index(cache):
-    # 44053
+    # GH28238
     cstart = start_caching_at
     times = date_range(Timestamp("1980"), periods=cstart, freq="YS")
     times = times.to_frame(index=False, name="DT").sample(n=cstart, random_state=1)
