@@ -317,15 +317,43 @@ class TestRangeIndexSetOps:
         result = obj.difference(obj[-3:])
         tm.assert_index_equal(result, obj[:-3], exact=True)
 
+        # Flipping the step of 'other' doesn't affect the result, but
+        #  flipping the stepof 'self' does when sort=None
         result = obj[::-1].difference(obj[-3:])
+        tm.assert_index_equal(result, obj[:-3], exact=True)
+
+        result = obj[::-1].difference(obj[-3:], sort=False)
         tm.assert_index_equal(result, obj[:-3][::-1], exact=True)
 
         result = obj[::-1].difference(obj[-3:][::-1])
+        tm.assert_index_equal(result, obj[:-3], exact=True)
+
+        result = obj[::-1].difference(obj[-3:][::-1], sort=False)
         tm.assert_index_equal(result, obj[:-3][::-1], exact=True)
 
         result = obj.difference(obj[2:6])
         expected = Int64Index([1, 2, 7, 8, 9], name="foo")
         tm.assert_index_equal(result, expected)
+
+    def test_difference_sort(self):
+        # ensure we respect the sort keyword
+
+        idx = Index(range(4))[::-1]
+        other = Index(range(3, 4))
+
+        result = idx.difference(other)
+        expected = Index(range(3))
+        tm.assert_index_equal(result, expected, exact=True)
+
+        result = idx.difference(other, sort=False)
+        expected = expected[::-1]
+        tm.assert_index_equal(result, expected, exact=True)
+
+        # case where the intersection is empty
+        other = range(10, 12)
+        result = idx.difference(other, sort=None)
+        expected = idx[::-1]
+        tm.assert_index_equal(result, expected, exact=True)
 
     def test_difference_mismatched_step(self):
         obj = RangeIndex.from_range(range(1, 10), name="foo")
