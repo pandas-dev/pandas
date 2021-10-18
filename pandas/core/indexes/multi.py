@@ -1673,9 +1673,9 @@ class MultiIndex(Index):
         """
         level = self._get_level_number(level)
         values = self._get_level_values(level)
-        import pandas as pd
+        from pandas import to_datetime
         try:
-            values = pd.to_datetime(values)
+            values = to_datetime(values)
         except ValueError:
             pass
 

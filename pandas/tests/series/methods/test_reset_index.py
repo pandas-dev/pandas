@@ -1,5 +1,5 @@
 from datetime import datetime
-
+import datetime as dt
 import numpy as np
 import pytest
 
@@ -182,7 +182,6 @@ def test_reset_index_dtypes_on_empty_series_with_multiindex(array, dtype):
 
 
 def test_set_index_MultiIndex():
-    import datetime as dt
     df = DataFrame(
         {'date': [
             dt.date(2021, 8, 1), dt.date(2021, 8, 2), dt.date(2021, 8, 3)
@@ -201,5 +200,4 @@ def test_set_index_MultiIndex():
         name='date',
         freq=None
     )
-    for i in range(len(ex)):
-        assert ex[i] == res[i]
+    tm.assert_index_equal(ex, res)
