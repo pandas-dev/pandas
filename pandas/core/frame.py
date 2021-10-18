@@ -22,7 +22,6 @@ from typing import (
     IO,
     TYPE_CHECKING,
     Any,
-    AnyStr,
     Callable,
     Hashable,
     Iterable,
@@ -2598,7 +2597,7 @@ class DataFrame(NDFrame, OpsMixin):
         writer.write_file()
 
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
-    def to_feather(self, path: FilePathOrBuffer[AnyStr], **kwargs) -> None:
+    def to_feather(self, path: FilePathOrBuffer[bytes], **kwargs) -> None:
         """
         Write a DataFrame to the binary Feather format.
 
@@ -4971,6 +4970,10 @@ class DataFrame(NDFrame, OpsMixin):
         falcon  speed   320.0   250.0
                 weight  1.0     0.8
                 length  0.3     0.2
+
+        Drop a specific index combination from the MultiIndex
+        DataFrame, i.e., drop the combination ``'falcon'`` and
+        ``'weight'``, which deletes only the corresponding row
 
         >>> df.drop(index=('falcon', 'weight'))
                         big     small

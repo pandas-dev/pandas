@@ -299,7 +299,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+---------+
 | openpyxl        | 3.0.2           |    X    |
 +-----------------+-----------------+---------+
-| pyarrow         | 0.17.0          |         |
+| pyarrow         | 1.0.1           |    X    |
 +-----------------+-----------------+---------+
 | pymysql         | 0.10.1          |    X    |
 +-----------------+-----------------+---------+
@@ -408,6 +408,7 @@ Performance improvements
 - Performance improvement in some :meth:`GroupBy.apply` operations (:issue:`42992`)
 - Performance improvement in :func:`read_stata` (:issue:`43059`)
 - Performance improvement in :meth:`to_datetime` with ``uint`` dtypes (:issue:`42606`)
+- Performance improvement in :meth:`to_datetime` with ``infer_datetime_format`` set to ``True`` (:issue:`43901`)
 - Performance improvement in :meth:`Series.sparse.to_coo` (:issue:`42880`)
 - Performance improvement in indexing with a :class:`MultiIndex` indexer on another :class:`MultiIndex` (:issue:43370`)
 - Performance improvement in :meth:`GroupBy.quantile` (:issue:`43469`)
