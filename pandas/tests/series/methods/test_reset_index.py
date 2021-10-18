@@ -179,3 +179,17 @@ def test_reset_index_dtypes_on_empty_series_with_multiindex(array, dtype):
         {"level_0": np.int64, "level_1": np.float64, "level_2": dtype, 0: object}
     )
     tm.assert_series_equal(result, expected)
+
+def test_set_index_MultiIndex():
+    import datetime as dt
+    df = DataFrame({'date': [dt.date(2021, 8, 1),
+                                dt.date(2021, 8, 2),
+                                dt.date(2021, 8, 3)],
+                    'ticker': ['aapl', 'goog', 'yhoo'],
+                    'value': [5.63269, 4.45609, 2.74843]})
+
+    df.set_index(['date', 'ticker'], inplace=True)
+    res = df.index.get_level_values(0)
+    ex = pd.DatetimeIndex(['2021-08-01', '2021-08-02', '2021-08-03'], dtype='datetime64[ns]', name='date', freq=None)
+    for i in range(len(ex)):
+        assert ex[i] == res[i]

@@ -1673,6 +1673,12 @@ class MultiIndex(Index):
         """
         level = self._get_level_number(level)
         values = self._get_level_values(level)
+        import pandas as pd
+        try:
+            values = pd.to_datetime(values)
+        except:
+            pass
+
         return values
 
     @doc(Index.unique)
