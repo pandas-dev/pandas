@@ -25,6 +25,7 @@ from pandas._libs.tslibs.nattype cimport (
     is_td64nat,
 )
 from pandas._libs.tslibs.np_datetime cimport (
+    get_datetime64_unit,
     get_datetime64_value,
     get_timedelta64_value,
 )
@@ -79,10 +80,20 @@ cpdef bint is_matching_na(object left, object right, bint nan_matches_none=False
             and util.is_complex_object(right)
             and util.is_nan(right)
         )
-    elif is_dt64nat(left):
-        return is_dt64nat(right)
-    elif is_td64nat(left):
-        return is_td64nat(right)
+    elif util.is_datetime64_object(left):
+        return (
+            get_datetime64_value(left) == NPY_NAT
+            and util.is_datetime64_object(right)
+            and get_datetime64_value(right) == NPY_NAT
+            and get_datetime64_unit(left) == get_datetime64_unit(right)
+        )
+    elif util.is_timedelta64_object(left):
+        return (
+            get_timedelta64_value(left) == NPY_NAT
+            and util.is_timedelta64_object(right)
+            and get_timedelta64_value(right) == NPY_NAT
+            and get_datetime64_unit(left) == get_datetime64_unit(right)
+        )
     elif is_decimal_na(left):
         return is_decimal_na(right)
     return False
