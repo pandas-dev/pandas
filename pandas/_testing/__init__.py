@@ -158,34 +158,23 @@ ALL_NUMPY_DTYPES = (
 
 NULL_OBJECTS = [None, np.nan, pd.NaT, float("nan"), pd.NA, Decimal("NaN")]
 NP_NAT_OBJECTS = [
-    np.datetime64("NaT"),
-    np.datetime64("NaT", "Y"),
-    np.datetime64("NaT", "M"),
-    np.datetime64("NaT", "W"),
-    np.datetime64("NaT", "D"),
-    np.datetime64("NaT", "h"),
-    np.datetime64("NaT", "m"),
-    np.datetime64("NaT", "s"),
-    np.datetime64("NaT", "ms"),
-    np.datetime64("NaT", "us"),
-    np.datetime64("NaT", "ns"),
-    np.datetime64("NaT", "ps"),
-    np.datetime64("NaT", "fs"),
-    np.datetime64("NaT", "as"),
-    np.timedelta64("NaT"),
-    np.timedelta64("NaT", "Y"),
-    np.timedelta64("NaT", "M"),
-    np.timedelta64("NaT", "W"),
-    np.timedelta64("NaT", "D"),
-    np.timedelta64("NaT", "h"),
-    np.timedelta64("NaT", "m"),
-    np.timedelta64("NaT", "s"),
-    np.timedelta64("NaT", "ms"),
-    np.timedelta64("NaT", "us"),
-    np.timedelta64("NaT", "ns"),
-    np.timedelta64("NaT", "ps"),
-    np.timedelta64("NaT", "fs"),
-    np.timedelta64("NaT", "as"),
+    cls("NaT", unit)
+    for cls in [np.datetime64, np.timedelta64]
+    for unit in [
+        "Y",
+        "M",
+        "W",
+        "D",
+        "h",
+        "m",
+        "s",
+        "ms",
+        "us",
+        "ns",
+        "ps",
+        "fs",
+        "as",
+    ]
 ]
 
 EMPTY_STRING_PATTERN = re.compile("^$")
