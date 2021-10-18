@@ -573,6 +573,7 @@ Reshaping
 - Bug in :func:`concat` would fail when the ``objs`` argument all had the same index and the ``keys`` argument contained duplicates (:issue:`43595`)
 - Bug in :func:`concat` which ignored the ``sort`` parameter (:issue:`43375`)
 - Fixed bug in :func:`merge` with :class:`MultiIndex` as column index for the ``on`` argument returning an error when assigning a column internally (:issue:`43734`)
+- Bug in :func:`crosstab` would fail when inputs are lists or tuples (:issue:`44076`)
 
 Sparse
 ^^^^^^
