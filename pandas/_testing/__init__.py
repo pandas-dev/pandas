@@ -157,6 +157,25 @@ ALL_NUMPY_DTYPES = (
 )
 
 NULL_OBJECTS = [None, np.nan, pd.NaT, float("nan"), pd.NA, Decimal("NaN")]
+NP_NAT_OBJECTS = [
+    cls("NaT", unit)
+    for cls in [np.datetime64, np.timedelta64]
+    for unit in [
+        "Y",
+        "M",
+        "W",
+        "D",
+        "h",
+        "m",
+        "s",
+        "ms",
+        "us",
+        "ns",
+        "ps",
+        "fs",
+        "as",
+    ]
+]
 
 EMPTY_STRING_PATTERN = re.compile("^$")
 
