@@ -1586,33 +1586,45 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 elif isinstance(self.keys, str):
                     keys = [self.keys]
                 else:
-                    keys = cast(List[str], keys)
+                    keys = cast(List[str], self.keys)
 
                 remaining_columns = [
                     key for key in self._selected_obj.columns if key not in keys
                 ]
             if subset is not None:
-                remaining_columns = [key for key in subset if key not in remaining_columns]
+                remaining_columns = [
+                    key for key in subset if key not in remaining_columns
+                ]
 
             if dropna:
                 df = df.dropna(subset=remaining_columns, axis="index", how="any")
 
-            result = df.groupby(keys + remaining_columns, as_index=self.as_index).size()
+            result = df.groupby(
+                keys + remaining_columns, as_index=self.as_index, sort=self.sort
+            ).size()
 
             if normalize:
-                print("!!!", type(result), result)
-                a = df.groupby(keys, as_index=self.as_index).size()
-                print("£££", type(a), a)
-                result /= df.groupby(keys, as_index=self.as_index).size()
+                group_size = self.size()
+                if self.as_index:
+                    result /= group_size
+                else:
+                    group_size.name = "group_size"
 
+                    merged = result.merge(
+                        group_size, how="left", left_on=keys, right_index=True
+                    )
+
+                    merged["size"] /= merged["group_size"]
+                    result = merged.drop(axis=1, columns="group_size")
             if sort:
-                if isinstance(result, Series):
+                if self.as_index:
                     result = result.sort_values(ascending=ascending).sort_index(
                         level=keys, sort_remaining=False
                     )
                 else:
-                    print("£££",result,"Should be Series")
-             ###       raise Exception("Should be Series")
+                    result = result.sort_values(
+                        by="size", ascending=ascending
+                    ).sort_values(by=keys, ascending=True)
 
             return result
 
