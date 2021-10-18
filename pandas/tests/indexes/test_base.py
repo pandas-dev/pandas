@@ -723,6 +723,9 @@ class TestIndex(Base):
             else:
                 exp_dtype = np.int64
             expected = index._constructor(np.arange(len(index), 0, -1), dtype=exp_dtype)
+        elif type(index) is Index and index.dtype != object:
+            # i.e. EA-backed, for now just Nullable
+            expected = Index(np.arange(len(index), 0, -1), dtype=index.dtype)
         else:
             expected = Index(np.arange(len(index), 0, -1))
 
