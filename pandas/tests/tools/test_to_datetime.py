@@ -2642,6 +2642,7 @@ def test_empty_string_datetime_coerce__unit():
 
 @td.skip_if_no("xarray")
 def test_xarray_coerce_unit():
+    # GH44053
     import xarray as xr
 
     arr = xr.DataArray([1, 2, 3])
