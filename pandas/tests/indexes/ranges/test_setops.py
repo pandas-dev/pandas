@@ -336,7 +336,7 @@ class TestRangeIndexSetOps:
         tm.assert_index_equal(result, expected)
 
     def test_difference_sort(self):
-        # ensure we respect the sort keyword
+        # GH#44085 ensure we respect the sort keyword
 
         idx = Index(range(4))[::-1]
         other = Index(range(3, 4))
