@@ -512,6 +512,7 @@ styler.latex.multicol_align             r            Alignment of headers in a m
 styler.latex.multirow_align             c            Alignment of index labels in a merged row due to sparsification. Can be in {"c", "t", "b"}.
 styler.latex.environment                None         If given will replace the default ``\\begin{table}`` environment. If "longtable" is specified
                                                      this will render with a specific "longtable" template with longtable features.
+styler.latex.hrules                     False        If set to True will render ``\\toprule``, ``\\midrule``, and ``\bottomrule`` by default.
 ======================================= ============ ==================================
 
 
