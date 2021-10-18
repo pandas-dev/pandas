@@ -737,7 +737,6 @@ class BaseGrouper:
     ) -> tuple[list, bool]:
         mutated = self.mutated
         splitter = self._get_splitter(data, axis=axis)
-
         group_keys = self.group_keys_seq
         result_values = []
 
@@ -754,16 +753,17 @@ class BaseGrouper:
                 mutated = True
             result_values.append(res)
 
-        if not isinstance(f, str):  # TODO: WTF?
-            if len(group_keys) == 0 and f.__name__ not in [
-                "idxmin",
-                "idxmax",
-                "nanargmin",
-                "nanargmax",
-            ]:
-                # there have been zero function calls, so we do one dummy call
-                #  so that we can raise TypeError where appropriate
-                f(data.iloc[:0])
+        # gettr pattern for __name__ is needed for functools.partial objects
+        if len(group_keys) == 0 and getattr(f, "__name__", None) not in [
+            "idxmin",
+            "idxmax",
+            "nanargmin",
+            "nanargmax",
+        ]:
+            # If group_keys is empty, then no function calls have been made,
+            #  so we will not have raised even if this is an invalid dtype.
+            #  So do one dummy call here to raise appropriate TypeError.
+            f(data.iloc[:0])
 
         return result_values, mutated
 

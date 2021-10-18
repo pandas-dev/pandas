@@ -24,6 +24,11 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
+from pandas.core.arrays import (
+    BooleanArray,
+    FloatingArray,
+    IntegerArray,
+)
 from pandas.core.base import SpecificationError
 import pandas.core.common as com
 
@@ -1829,7 +1834,7 @@ def test_empty_groupby(columns, keys, values, method, op, request):
     if (
         isinstance(values, Categorical)
         and not isinstance(columns, list)
-        and op in ["sum", "prod"]
+        and op in ["sum", "prod", "skew", "mad"]
     ):
         # handled below GH#41291
         pass
@@ -1851,11 +1856,7 @@ def test_empty_groupby(columns, keys, values, method, op, request):
             raises=TypeError, match="'Categorical' does not implement"
         )
         request.node.add_marker(mark)
-    elif (
-        isinstance(values, Categorical)
-        and len(keys) == 1
-        and op in ["mad", "min", "max", "sum", "prod", "skew"]
-    ):
+    elif isinstance(values, Categorical) and len(keys) == 1 and op in ["sum", "prod"]:
         mark = pytest.mark.xfail(
             raises=AssertionError, match="(DataFrame|Series) are different"
         )
@@ -1869,7 +1870,17 @@ def test_empty_groupby(columns, keys, values, method, op, request):
             raises=AssertionError, match="(DataFrame|Series) are different"
         )
         request.node.add_marker(mark)
-    elif isinstance(values, pd.core.arrays.BooleanArray) and op in ["sum", "prod"]:
+    elif (
+        isinstance(values, (IntegerArray, FloatingArray))
+        and op == "mad"
+        and isinstance(columns, list)
+    ):
+        mark = pytest.mark.xfail(
+            raises=TypeError, match="can only perform ops with numeric values"
+        )
+        request.node.add_marker(mark)
+
+    elif isinstance(values, BooleanArray) and op in ["sum", "prod"]:
         # We expect to get Int64 back for these
         override_dtype = "Int64"
 
@@ -1895,19 +1906,29 @@ def test_empty_groupby(columns, keys, values, method, op, request):
 
     if columns == "C":
         # i.e. SeriesGroupBy
-        if op in ["prod", "sum"]:
+        if op in ["prod", "sum", "skew"]:
             # ops that require more than just ordered-ness
             if df.dtypes[0].kind == "M":
                 # GH#41291
                 # datetime64 -> prod and sum are invalid
-                msg = "datetime64 type does not support"
+                if op == "skew":
+                    msg = "'DatetimeArray' does not implement reduction 'skew'"
+                else:
+                    msg = "datetime64 type does not support"
                 with pytest.raises(TypeError, match=msg):
                     get_result()
 
                 return
-            elif isinstance(values, Categorical):
+        if op in ["prod", "sum", "skew", "mad"]:
+            if isinstance(values, Categorical):
                 # GH#41291
-                msg = "category type does not support"
+                if op == "mad":
+                    # mad calls mean, which Categorical doesn't implement
+                    msg = "'Categorical' does not implement reduction 'mean'"
+                elif op == "skew":
+                    msg = f"'Categorical' does not implement reduction '{op}'"
+                else:
+                    msg = "category type does not support"
                 with pytest.raises(TypeError, match=msg):
                     get_result()
 
@@ -1954,29 +1975,33 @@ def test_empty_groupby(columns, keys, values, method, op, request):
                 tm.assert_equal(result, expected)
                 return
 
-            if op in ["mad", "min", "max", "skew"] and isinstance(values, Categorical):
-                # Categorical doesn't implement, so with numeric_only=True
-                #  these are dropped and we get an empty DataFrame back
-                result = get_result()
-                expected = df.set_index(keys)[[]]
+        if (
+            op in ["mad", "min", "max", "skew"]
+            and isinstance(values, Categorical)
+            and len(keys) == 1
+        ):
+            # Categorical doesn't implement, so with numeric_only=True
+            #  these are dropped and we get an empty DataFrame back
+            result = get_result()
+            expected = df.set_index(keys)[[]]
 
-                # with numeric_only=True, these are dropped, and we get
-                # an empty DataFrame back
-                if len(keys) != 1:
-                    # Categorical is special without 'observed=True'
-                    lev = Categorical([0], dtype=values.dtype)
-                    mi = MultiIndex.from_product([lev, lev], names=keys)
-                    expected = DataFrame([], columns=[], index=mi)
-                else:
-                    # all columns are dropped, but we end up with one row
-                    # Categorical is special without 'observed=True'
-                    lev = Categorical([0], dtype=values.dtype)
-                    ci = Index(lev, name=keys[0])
-                    expected = DataFrame([], columns=[], index=ci)
-                # expected = df.set_index(keys)[columns]
+            # with numeric_only=True, these are dropped, and we get
+            # an empty DataFrame back
+            if len(keys) != 1:
+                # Categorical is special without 'observed=True'
+                lev = Categorical([0], dtype=values.dtype)
+                mi = MultiIndex.from_product([lev, lev], names=keys)
+                expected = DataFrame([], columns=[], index=mi)
+            else:
+                # all columns are dropped, but we end up with one row
+                # Categorical is special without 'observed=True'
+                lev = Categorical([0], dtype=values.dtype)
+                ci = Index(lev, name=keys[0])
+                expected = DataFrame([], columns=[], index=ci)
+            # expected = df.set_index(keys)[columns]
 
-                tm.assert_equal(result, expected)
-                return
+            tm.assert_equal(result, expected)
+            return
 
     result = get_result()
     expected = df.set_index(keys)[columns]

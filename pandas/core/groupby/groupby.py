@@ -939,11 +939,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             if name in base.plotting_methods:
                 return self.apply(curried)
 
-            # if self.ndim == 1 and self._obj_with_exclusions.size == 0 and name not in ["idxmax", "idxmin"]:# and self._obj_with_exclusions.dtype != object:
-            #    # make sure the function is called at least once so we get
-            #    #  a TypeError if appropriate
-            #    curried(self._obj_with_exclusions.iloc[:0])
-
             return self._python_apply_general(curried, self._obj_with_exclusions)
 
         wrapper.__name__ = name
@@ -1368,14 +1363,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         # ignore SettingWithCopy here in case the user mutates
         with option_context("mode.chained_assignment", None):
-            if not callable(f):
-                if hasattr(self, f):
-                    res = getattr(self, f)
-                    if inspect.isfunction(res) or inspect.ismethod(res):
-                        return res()
-                    return res
-
-                raise TypeError(f"invalid func {f}")
             try:
                 result = self._python_apply_general(f, self._selected_obj)
             except TypeError:
@@ -1431,7 +1418,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def _python_agg_general(self, func, *args, **kwargs):
         func = com.is_builtin_func(func)
         f = lambda x: func(x, *args, **kwargs)
-        f.__name__ = func.__name__
 
         # iterate through "columns" ex exclusions to populate output dict
         output: dict[base.OutputKey, ArrayLike] = {}
