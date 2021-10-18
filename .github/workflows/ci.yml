@@ -148,9 +148,7 @@ jobs:
       run: mv doc/build/html web/build/docs
 
     - name: Copy cheatsheets into site directory
-      run: |
-        mkdir -p web/build/docs/cheatsheets
-        cp doc/cheatsheet/Pandas_Cheat_Sheet* web/build/docs/cheatsheets
+      run: cp doc/cheatsheet/Pandas_Cheat_Sheet* web/build/
 
     - name: Save website as an artifact
       uses: actions/upload-artifact@v2
