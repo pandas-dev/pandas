@@ -32,21 +32,21 @@ compared with just providing a single aggregation function.
 
 .. ipython:: python
 
-   df = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6], 'c': [7, 8, 9]})
+   df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
 
-   df.agg('sum')
-   df.agg(['sum'])
+   df.agg("sum")
+   df.agg(["sum"])
 
 This transpose no longer occurs, making the result more consistent.
 
 .. ipython:: python
 
-   with pd.option_context('future_udf_behavior', True):
-       result = df.agg(['sum'])
+   with pd.option_context("future_udf_behavior", True):
+       result = df.agg(["sum"])
    result
 
-   with pd.option_context('future_udf_behavior', True):
-       result = df.agg(['sum', 'mean'])
+   with pd.option_context("future_udf_behavior", True):
+       result = df.agg(["sum", "mean"])
    result
 
 ``DataFrame.groupby(...).agg`` with list-likes
@@ -59,13 +59,13 @@ for a single aggregator.
 
 .. ipython:: python
 
-   df.groupby("a").agg('sum')
+   df.groupby("a").agg("sum")
    df.groupby("a").agg(["sum", "min"])
 
 Now the levels are swapped, so that the columns for each aggregation are together.
 
 .. ipython:: python
 
-   with pd.option_context('future_udf_behavior', True):
+   with pd.option_context("future_udf_behavior", True):
        result = df.groupby("a").agg(["sum", "min"])
    result
