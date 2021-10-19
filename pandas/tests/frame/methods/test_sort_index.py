@@ -419,11 +419,22 @@ class TestDataFrameSortIndex:
         tm.assert_frame_equal(result_df, expected_df)
         tm.assert_frame_equal(df, DataFrame(original_dict, index=original_index))
 
-    def test_respect_ignore_index(self):
+    @pytest.mark.parametrize("inplace", [True, False])
+    @pytest.mark.parametrize("ignore_index", [True, False])
+    def test_respect_ignore_index(self, inplace, ignore_index):
         # GH 43591
         df = DataFrame({"a": [1, 2, 3]}, index=RangeIndex(4, -1, -2))
-        result = df.sort_index(ascending=False, ignore_index=True)
-        expected = DataFrame({"a": [1, 2, 3]})
+        result = df.sort_index(
+            ascending=False, ignore_index=ignore_index, inplace=inplace
+        )
+
+        if inplace:
+            result = df
+        if ignore_index:
+            expected = DataFrame({"a": [1, 2, 3]})
+        else:
+            expected = DataFrame({"a": [1, 2, 3]}, index=RangeIndex(4, -1, -2))
+
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("inplace", [True, False])
