@@ -10149,6 +10149,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         fill_method="pad",
         limit=None,
         freq=None,
+        non_zero_reference=False,
         **kwargs,
     ) -> NDFrameT:
         """
@@ -10274,8 +10275,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             data = _data
 
         shifted = data.shift(periods=periods, freq=freq, axis=axis, **kwargs)
-        # Unsupported left operand type for / ("NDFrameT")
-        rs = data / shifted - 1  # type: ignore[operator]
+        if non_zero_reference:
+            rs = (data - shifted) / shifted.abs()
+        else:
+            # Unsupported left operand type for / ("NDFrameT")
+            rs = data / shifted - 1  # type: ignore[operator]
+
         if freq is not None:
             # Shift method is implemented differently when freq is not None
             # We want to restore the original index
