@@ -198,11 +198,16 @@ def test_validate_reduction_keyword_args():
 # Ops
 
 
+@pytest.mark.parametrize("ufunc", [np.abs, np.negative, np.positive])
+def test_ufunc_unary(ufunc):
+    arr = PandasArray(np.array([-1.0, 0.0, 1.0]))
+    result = ufunc(arr)
+    expected = PandasArray(ufunc(arr._ndarray))
+    tm.assert_extension_array_equal(result, expected)
+
+
 def test_ufunc():
     arr = PandasArray(np.array([-1.0, 0.0, 1.0]))
-    result = np.abs(arr)
-    expected = PandasArray(np.abs(arr._ndarray))
-    tm.assert_extension_array_equal(result, expected)
 
     r1, r2 = np.divmod(arr, np.add(arr, 2))
     e1, e2 = np.divmod(arr._ndarray, np.add(arr._ndarray, 2))

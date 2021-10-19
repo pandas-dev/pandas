@@ -27,7 +27,7 @@ import pandas._libs.window.aggregations as window_aggregations
 from pandas._typing import (
     ArrayLike,
     Axis,
-    FrameOrSeries,
+    NDFrameT,
     WindowingRankType,
 )
 from pandas.compat._optional import import_optional_dependency
@@ -104,6 +104,7 @@ if TYPE_CHECKING:
         DataFrame,
         Series,
     )
+    from pandas.core.generic import NDFrame
     from pandas.core.groupby.ops import BaseGrouper
     from pandas.core.internals import Block  # noqa:F401
 
@@ -117,7 +118,7 @@ class BaseWindow(SelectionMixin):
 
     def __init__(
         self,
-        obj: FrameOrSeries,
+        obj: NDFrame,
         window=None,
         min_periods: int | None = None,
         center: bool = False,
@@ -226,7 +227,7 @@ class BaseWindow(SelectionMixin):
         if self.method not in ["table", "single"]:
             raise ValueError("method must be 'table' or 'single")
 
-    def _create_data(self, obj: FrameOrSeries) -> FrameOrSeries:
+    def _create_data(self, obj: NDFrameT) -> NDFrameT:
         """
         Split data into blocks & return conformed data.
         """
@@ -300,8 +301,8 @@ class BaseWindow(SelectionMixin):
         return f"{type(self).__name__} [{attrs}]"
 
     def __iter__(self):
-        obj = self._create_data(self._selected_obj)
-        obj = obj.set_axis(self._on)
+        obj = self._selected_obj.set_axis(self._on)
+        obj = self._create_data(obj)
         indexer = self._get_window_indexer()
 
         start, end = indexer.get_window_bounds(
@@ -310,8 +311,10 @@ class BaseWindow(SelectionMixin):
             center=self.center,
             closed=self.closed,
         )
-        # From get_window_bounds, those two should be equal in length of array
-        assert len(start) == len(end)
+
+        assert len(start) == len(
+            end
+        ), "these should be equal in length from get_window_bounds"
 
         for s, e in zip(start, end):
             result = obj.iloc[slice(s, e)]
@@ -562,6 +565,10 @@ class BaseWindow(SelectionMixin):
                     center=self.center,
                     closed=self.closed,
                 )
+                assert len(start) == len(
+                    end
+                ), "these should be equal in length from get_window_bounds"
+
                 return func(x, start, end, min_periods, *numba_args)
 
             with np.errstate(all="ignore"):
@@ -635,7 +642,7 @@ class BaseWindowGroupby(BaseWindow):
 
     def __init__(
         self,
-        obj: FrameOrSeries,
+        obj: DataFrame | Series,
         *args,
         _grouper: BaseGrouper,
         _as_index: bool = True,
@@ -660,7 +667,7 @@ class BaseWindowGroupby(BaseWindow):
         numba_cache_key: tuple[Callable, str] | None = None,
         numba_args: tuple[Any, ...] = (),
         **kwargs,
-    ) -> FrameOrSeries:
+    ) -> DataFrame | Series:
         result = super()._apply(
             func,
             name,
@@ -726,6 +733,7 @@ class BaseWindowGroupby(BaseWindow):
         """
         # Manually drop the grouping column first
         target = target.drop(columns=self._grouper.names, errors="ignore")
+        target = self._create_data(target)
         result = super()._apply_pairwise(target, other, pairwise, func)
         # 1) Determine the levels + codes of the groupby levels
         if other is not None:
@@ -795,7 +803,7 @@ class BaseWindowGroupby(BaseWindow):
         result.index = result_index
         return result
 
-    def _create_data(self, obj: FrameOrSeries) -> FrameOrSeries:
+    def _create_data(self, obj: NDFrameT) -> NDFrameT:
         """
         Split data into blocks & return conformed data.
         """
@@ -1499,6 +1507,11 @@ class RollingAndExpandingMixin(BaseWindow):
                 center=self.center,
                 closed=self.closed,
             )
+
+            assert len(start) == len(
+                end
+            ), "these should be equal in length from get_window_bounds"
+
             with np.errstate(all="ignore"):
                 mean_x_y = window_aggregations.roll_mean(
                     x_array * y_array, start, end, min_periods
@@ -1538,6 +1551,11 @@ class RollingAndExpandingMixin(BaseWindow):
                 center=self.center,
                 closed=self.closed,
             )
+
+            assert len(start) == len(
+                end
+            ), "these should be equal in length from get_window_bounds"
+
             with np.errstate(all="ignore"):
                 mean_x_y = window_aggregations.roll_mean(
                     x_array * y_array, start, end, min_periods
@@ -2488,11 +2506,11 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
         index_array = self._index_array
         if isinstance(self.window, BaseIndexer):
             rolling_indexer = type(self.window)
-            indexer_kwargs = self.window.__dict__
+            indexer_kwargs = self.window.__dict__.copy()
             assert isinstance(indexer_kwargs, dict)  # for mypy
             # We'll be using the index of each group later
             indexer_kwargs.pop("index_array", None)
-            window = 0
+            window = self.window
         elif self._win_freq_i8 is not None:
             rolling_indexer = VariableWindowIndexer
             window = self._win_freq_i8
@@ -2502,7 +2520,7 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
         window_indexer = GroupbyIndexer(
             index_array=index_array,
             window_size=window,
-            groupby_indicies=self._grouper.indices,
+            groupby_indices=self._grouper.indices,
             window_indexer=rolling_indexer,
             indexer_kwargs=indexer_kwargs,
         )

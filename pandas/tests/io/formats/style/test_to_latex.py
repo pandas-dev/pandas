@@ -1,5 +1,6 @@
 from textwrap import dedent
 
+import numpy as np
 import pytest
 
 from pandas import (
@@ -779,6 +780,15 @@ def test_repr_option(styler):
         assert styler._repr_html_() is None
 
 
+@pytest.mark.parametrize("option", ["hrules"])
+def test_bool_options(styler, option):
+    with option_context(f"styler.latex.{option}", False):
+        latex_false = styler.to_latex()
+    with option_context(f"styler.latex.{option}", True):
+        latex_true = styler.to_latex()
+    assert latex_false != latex_true  # options are reactive under to_latex(*no_args)
+
+
 def test_siunitx_basic_headers(styler):
     assert "{} & {A} & {B} & {C} \\\\" in styler.to_latex(siunitx=True)
     assert " & A & B & C \\\\" in styler.to_latex()  # default siunitx=False
@@ -789,3 +799,49 @@ def test_css_convert_apply_index(styler, axis):
     styler.applymap_index(lambda x: "font-weight: bold;", axis=axis)
     for label in getattr(styler, axis):
         assert f"\\bfseries {label}" in styler.to_latex(convert_css=True)
+
+
+def test_hide_index_latex(styler):
+    # GH 43637
+    styler.hide_index([0])
+    result = styler.to_latex()
+    expected = dedent(
+        """\
+    \\begin{tabular}{lrrl}
+     & A & B & C \\\\
+    1 & 1 & -1.22 & cd \\\\
+    \\end{tabular}
+    """
+    )
+    assert expected == result
+
+
+def test_latex_hiding_index_columns_multiindex_alignment():
+    # gh 43644
+    midx = MultiIndex.from_product(
+        [["i0", "j0"], ["i1"], ["i2", "j2"]], names=["i-0", "i-1", "i-2"]
+    )
+    cidx = MultiIndex.from_product(
+        [["c0"], ["c1", "d1"], ["c2", "d2"]], names=["c-0", "c-1", "c-2"]
+    )
+    df = DataFrame(np.arange(16).reshape(4, 4), index=midx, columns=cidx)
+    styler = Styler(df, uuid_len=0)
+    styler.hide_index(level=1).hide_columns(level=0)
+    styler.hide_index([("i0", "i1", "i2")])
+    styler.hide_columns([("c0", "c1", "c2")])
+    styler.applymap(lambda x: "color:{red};" if x == 5 else "")
+    styler.applymap_index(lambda x: "color:{blue};" if "j" in x else "")
+    result = styler.to_latex()
+    expected = dedent(
+        """\
+        \\begin{tabular}{llrrr}
+         & c-1 & c1 & \\multicolumn{2}{r}{d1} \\\\
+         & c-2 & d2 & c2 & d2 \\\\
+        i-0 & i-2 &  &  &  \\\\
+        i0 & \\color{blue} j2 & \\color{red} 5 & 6 & 7 \\\\
+        \\multirow[c]{2}{*}{\\color{blue} j0} & i2 & 9 & 10 & 11 \\\\
+         & \\color{blue} j2 & 13 & 14 & 15 \\\\
+        \\end{tabular}
+        """
+    )
+    assert result == expected

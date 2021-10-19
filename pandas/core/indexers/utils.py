@@ -174,7 +174,7 @@ def check_setitem_lengths(indexer, value, values) -> bool:
                 if not (
                     isinstance(indexer, np.ndarray)
                     and indexer.dtype == np.bool_
-                    and len(indexer[indexer]) == len(value)
+                    and indexer.sum() == len(value)
                 ):
                     raise ValueError(
                         "cannot set using a list-like indexer "
@@ -363,7 +363,7 @@ def length_of_indexer(indexer, target=None) -> int:
     raise AssertionError("cannot find the length of the indexer")
 
 
-def deprecate_ndim_indexing(result, stacklevel: int = 3):
+def deprecate_ndim_indexing(result, stacklevel: int = 3) -> None:
     """
     Helper function to raise the deprecation warning for multi-dimensional
     indexing on 1D Series/Index.
@@ -409,7 +409,7 @@ def unpack_1tuple(tup):
     return tup
 
 
-def check_key_length(columns: Index, key, value: DataFrame):
+def check_key_length(columns: Index, key, value: DataFrame) -> None:
     """
     Checks if a key used as indexer has the same length as the columns it is
     associated with.

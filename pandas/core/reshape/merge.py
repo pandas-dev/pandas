@@ -26,7 +26,6 @@ from pandas._libs import (
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
-    FrameOrSeries,
     IndexLabel,
     Suffixes,
     npt,
@@ -1281,10 +1280,12 @@ class _MergeOperation:
             # incompatible dtypes. See GH 16900.
             if name in self.left.columns:
                 typ = lk.categories.dtype if lk_is_cat else object
-                self.left = self.left.assign(**{name: self.left[name].astype(typ)})
+                self.left = self.left.copy()
+                self.left[name] = self.left[name].astype(typ)
             if name in self.right.columns:
                 typ = rk.categories.dtype if rk_is_cat else object
-                self.right = self.right.assign(**{name: self.right[name].astype(typ)})
+                self.right = self.right.copy()
+                self.right[name] = self.right[name].astype(typ)
 
     def _create_cross_configuration(
         self, left: DataFrame, right: DataFrame
@@ -2173,10 +2174,16 @@ def _factorize_keys(
 
     rizer = klass(max(len(lk), len(rk)))
 
-    llab = rizer.factorize(lk)
-    rlab = rizer.factorize(rk)
-    assert llab.dtype == np.intp, llab.dtype
-    assert rlab.dtype == np.intp, rlab.dtype
+    # Argument 1 to "factorize" of "ObjectFactorizer" has incompatible type
+    # "Union[ndarray[Any, dtype[signedinteger[_64Bit]]],
+    # ndarray[Any, dtype[object_]]]"; expected "ndarray[Any, dtype[object_]]"
+    llab = rizer.factorize(lk)  # type: ignore[arg-type]
+    # Argument 1 to "factorize" of "ObjectFactorizer" has incompatible type
+    # "Union[ndarray[Any, dtype[signedinteger[_64Bit]]],
+    # ndarray[Any, dtype[object_]]]"; expected "ndarray[Any, dtype[object_]]"
+    rlab = rizer.factorize(rk)  # type: ignore[arg-type]
+    assert llab.dtype == np.dtype(np.intp), llab.dtype
+    assert rlab.dtype == np.dtype(np.intp), rlab.dtype
 
     count = rizer.get_count()
 
@@ -2259,7 +2266,7 @@ def _any(x) -> bool:
     return x is not None and com.any_not_none(*x)
 
 
-def _validate_operand(obj: FrameOrSeries) -> DataFrame:
+def _validate_operand(obj: DataFrame | Series) -> DataFrame:
     if isinstance(obj, ABCDataFrame):
         return obj
     elif isinstance(obj, ABCSeries):
