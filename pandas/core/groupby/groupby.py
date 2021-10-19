@@ -3290,7 +3290,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     limit=limit,
                     freq=freq,
                     axis=axis,
-                    non_zero_reference=non_zero_reference
+                    negative_reference=negative_reference
                 )
             )
         if fill_method is None:  # GH30463
