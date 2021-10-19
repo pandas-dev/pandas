@@ -47,7 +47,6 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     is_1d_only_ea_dtype,
     is_1d_only_ea_obj,
-    is_categorical_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_list_like,
@@ -92,8 +91,6 @@ from pandas.core.arrays import (
     Categorical,
     DatetimeArray,
     ExtensionArray,
-    FloatingArray,
-    IntegerArray,
     IntervalArray,
     PandasArray,
     PeriodArray,
@@ -111,7 +108,6 @@ from pandas.core.construction import (
 from pandas.core.indexers import (
     check_setitem_lengths,
     is_empty_indexer,
-    is_exact_shape_match,
     is_scalar_indexer,
 )
 from pandas.core.indexing import mask_setitem_value
@@ -930,10 +926,8 @@ class Block(PandasObject):
         if is_extension_array_dtype(getattr(value, "dtype", None)):
             # We need to be careful not to allow through strings that
             #  can be parsed to EADtypes
-            is_ea_value = True
             arr_value = value
         else:
-            is_ea_value = False
             arr_value = np.asarray(value)
 
         if transpose:
@@ -943,7 +937,6 @@ class Block(PandasObject):
 
         # length checking
         check_setitem_lengths(indexer, value, values)
-        exact_match = is_exact_shape_match(values, arr_value)
 
         if is_empty_indexer(indexer, arr_value):
             # GH#8669 empty indexers
@@ -952,23 +945,6 @@ class Block(PandasObject):
         elif is_scalar_indexer(indexer, self.ndim):
             # setting a single element for each dim and with a rhs that could
             #  be e.g. a list; see GH#6043
-            values[indexer] = value
-
-        elif exact_match and is_categorical_dtype(arr_value.dtype):
-            values[indexer] = value
-
-        elif exact_match and is_ea_value:
-            if not self.is_object and isinstance(value, (IntegerArray, FloatingArray)):
-                # _can_hold_element will only allow us to get here if value
-                #  has no NA entries.
-                values[indexer] = value.to_numpy(value.dtype.numpy_dtype)
-            else:
-                values[indexer] = np.asarray(value)
-
-        elif exact_match:
-            values[indexer] = value
-
-        elif is_ea_value:
             values[indexer] = value
 
         else:

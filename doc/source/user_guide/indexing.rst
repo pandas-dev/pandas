@@ -997,6 +997,15 @@ a list of items you want to check for.
 
    df.isin(values)
 
+To return the DataFrame of booleans where the values are *not* in the original DataFrame,
+use the ``~`` operator:
+
+.. ipython:: python
+
+   values = {'ids': ['a', 'b'], 'vals': [1, 3]}
+
+   ~df.isin(values)
+
 Combine DataFrame's ``isin`` with the ``any()`` and ``all()`` methods to
 quickly select subsets of your data that meet a given criteria.
 To select a row where each column meets its own criterion:

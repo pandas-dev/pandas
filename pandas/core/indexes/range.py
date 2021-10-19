@@ -15,7 +15,10 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import index as libindex
+from pandas._libs import (
+    index as libindex,
+    lib,
+)
 from pandas._libs.lib import no_default
 from pandas._typing import (
     Dtype,
@@ -26,7 +29,6 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
-from pandas.util._exceptions import rewrite_exception
 
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -189,24 +191,13 @@ class RangeIndex(NumericIndex):
         """
         return np.arange(self.start, self.stop, self.step, dtype=np.int64)
 
-    @cache_readonly
-    def _cached_int64index(self) -> Int64Index:
-        return Int64Index._simple_new(self._data, name=self.name)
-
-    @property
-    def _int64index(self) -> Int64Index:
-        # wrap _cached_int64index so we can be sure its name matches self.name
-        res = self._cached_int64index
-        res._name = self._name
-        return res
-
     def _get_data_as_items(self):
         """return a list of tuples of start, stop, step"""
         rng = self._range
         return [("start", rng.start), ("stop", rng.stop), ("step", rng.step)]
 
     def __reduce__(self):
-        d = self._get_attributes_dict()
+        d = {"name": self.name}
         d.update(dict(self._get_data_as_items()))
         return ibase._new_Index, (type(self), d), None
 
@@ -226,7 +217,8 @@ class RangeIndex(NumericIndex):
         # we are formatting thru the attributes
         return None
 
-    def _format_with_header(self, header: list[str], na_rep: str = "NaN") -> list[str]:
+    def _format_with_header(self, header: list[str], na_rep: str) -> list[str]:
+        # Equivalent to Index implementation, but faster
         if not len(self._range):
             return header
         first_val_str = str(self._range[0])
@@ -425,24 +417,6 @@ class RangeIndex(NumericIndex):
 
     # --------------------------------------------------------------------
 
-    def repeat(self, repeats, axis=None) -> Int64Index:
-        return self._int64index.repeat(repeats, axis=axis)
-
-    def delete(self, loc) -> Int64Index:  # type: ignore[override]
-        return self._int64index.delete(loc)
-
-    def take(
-        self, indices, axis: int = 0, allow_fill: bool = True, fill_value=None, **kwargs
-    ) -> Int64Index:
-        with rewrite_exception("Int64Index", type(self).__name__):
-            return self._int64index.take(
-                indices,
-                axis=axis,
-                allow_fill=allow_fill,
-                fill_value=fill_value,
-                **kwargs,
-            )
-
     def tolist(self) -> list[int]:
         return list(self._range)
 
@@ -592,8 +566,11 @@ class RangeIndex(NumericIndex):
 
         if (self.step < 0 and other.step < 0) is not (new_index.step < 0):
             new_index = new_index[::-1]
+
         if sort is None:
-            new_index = new_index.sort_values()
+            # TODO: can revert to just `if sort is None` after GH#43666
+            if new_index.step < 0:
+                new_index = new_index[::-1]
 
         return new_index
 
@@ -665,10 +642,13 @@ class RangeIndex(NumericIndex):
                     return type(self)(start_r, end_r + step_s, step_s)
                 if (
                     (step_s % 2 == 0)
-                    and (abs(start_s - start_o) <= step_s / 2)
-                    and (abs(end_s - end_o) <= step_s / 2)
+                    and (abs(start_s - start_o) == step_s / 2)
+                    and (abs(end_s - end_o) == step_s / 2)
                 ):
+                    # e.g. range(0, 10, 2) and range(1, 11, 2)
+                    #  but not range(0, 20, 4) and range(1, 21, 4) GH#44019
                     return type(self)(start_r, end_r + step_s / 2, step_s / 2)
+
             elif step_o % step_s == 0:
                 if (
                     (start_o - start_s) % step_s == 0
@@ -683,7 +663,8 @@ class RangeIndex(NumericIndex):
                     and (end_s - step_o <= end_o)
                 ):
                     return type(self)(start_r, end_r + step_o, step_o)
-        return self._int64index._union(other, sort=sort)
+
+        return super()._union(other, sort=sort)
 
     def _difference(self, other, sort=None):
         # optimized set operation if we have another RangeIndex
@@ -702,7 +683,10 @@ class RangeIndex(NumericIndex):
             overlap = overlap[::-1]
 
         if len(overlap) == 0:
-            return self.rename(name=res_name)
+            result = self.rename(name=res_name)
+            if sort is None and self.step < 0:
+                result = result[::-1]
+            return result
         if len(overlap) == len(self):
             return self[:0].rename(res_name)
         if not isinstance(overlap, RangeIndex):
@@ -726,6 +710,9 @@ class RangeIndex(NumericIndex):
         new_index = type(self)._simple_new(new_rng, name=res_name)
         if first is not self._range:
             new_index = new_index[::-1]
+
+        if sort is None and new_index.step < 0:
+            new_index = new_index[::-1]
         return new_index
 
     def symmetric_difference(self, other, result_name: Hashable = None, sort=None):
@@ -741,6 +728,58 @@ class RangeIndex(NumericIndex):
         return result
 
     # --------------------------------------------------------------------
+
+    # error: Return type "Index" of "delete" incompatible with return type
+    #  "RangeIndex" in supertype "Index"
+    def delete(self, loc) -> Index:  # type: ignore[override]
+        # In some cases we can retain RangeIndex, see also
+        #  DatetimeTimedeltaMixin._get_delete_Freq
+        if is_integer(loc):
+            if loc == 0 or loc == -len(self):
+                return self[1:]
+            if loc == -1 or loc == len(self) - 1:
+                return self[:-1]
+
+        elif lib.is_list_like(loc):
+            slc = lib.maybe_indices_to_slice(np.asarray(loc, dtype=np.intp), len(self))
+            if isinstance(slc, slice) and slc.step is not None and slc.step < 0:
+                rng = range(len(self))[slc][::-1]
+                slc = slice(rng.start, rng.stop, rng.step)
+
+            if isinstance(slc, slice) and slc.step in [1, None]:
+                # Note: maybe_indices_to_slice will never return a slice
+                #  with 'slc.start is None'; may have slc.stop None in cases
+                #  with negative step
+                if slc.start == 0:
+                    return self[slc.stop :]
+                elif slc.stop in [len(self), None]:
+                    return self[: slc.start]
+
+                # TODO: more generally, self.difference(self[slc]),
+                #  once _difference is better about retaining RangeIndex
+
+        return super().delete(loc)
+
+    def insert(self, loc: int, item) -> Index:
+        if len(self) and (is_integer(item) or is_float(item)):
+            # We can retain RangeIndex is inserting at the beginning or end,
+            #  or right in the middle.
+            rng = self._range
+            if loc == 0 and item == self[0] - self.step:
+                new_rng = range(rng.start - rng.step, rng.stop, rng.step)
+                return type(self)._simple_new(new_rng, name=self.name)
+
+            elif loc == len(self) and item == self[-1] + self.step:
+                new_rng = range(rng.start, rng.stop + rng.step, rng.step)
+                return type(self)._simple_new(new_rng, name=self.name)
+
+            elif len(self) == 2 and item == self[0] + self.step / 2:
+                # e.g. inserting 1 into [0, 2]
+                step = int(self.step / 2)
+                new_rng = range(self.start, self.stop, step)
+                return type(self)._simple_new(new_rng, name=self.name)
+
+        return super().insert(loc, item)
 
     def _concat(self, indexes: list[Index], name: Hashable) -> Index:
         """
@@ -857,7 +896,8 @@ class RangeIndex(NumericIndex):
                 start = self.start // other
                 new_range = range(start, start + 1, 1)
                 return self._simple_new(new_range, name=self.name)
-        return self._int64index // other
+
+        return super().__floordiv__(other)
 
     # --------------------------------------------------------------------
     # Reductions
@@ -891,31 +931,30 @@ class RangeIndex(NumericIndex):
         elif isinstance(other, (timedelta, np.timedelta64)):
             # GH#19333 is_integer evaluated True on timedelta64,
             # so we need to catch these explicitly
-            return op(self._int64index, other)
+            return super()._arith_method(other, op)
         elif is_timedelta64_dtype(other):
             # Must be an np.ndarray; GH#22390
-            return op(self._int64index, other)
+            return super()._arith_method(other, op)
 
         if op in [
             operator.pow,
             ops.rpow,
             operator.mod,
             ops.rmod,
+            operator.floordiv,
             ops.rfloordiv,
             divmod,
             ops.rdivmod,
         ]:
-            return op(self._int64index, other)
+            return super()._arith_method(other, op)
 
         step: Callable | None = None
         if op in [operator.mul, ops.rmul, operator.truediv, ops.rtruediv]:
             step = op
 
         # TODO: if other is a RangeIndex we may have more efficient options
-        other = extract_array(other, extract_numpy=True, extract_range=True)
-        attrs = self._get_attributes_dict()
-
-        left, right = self, other
+        right = extract_array(other, extract_numpy=True, extract_range=True)
+        left = self
 
         try:
             # apply if we have an override
@@ -935,7 +974,8 @@ class RangeIndex(NumericIndex):
                 rstart = op(left.start, right)
                 rstop = op(left.stop, right)
 
-            result = type(self)(rstart, rstop, rstep, **attrs)
+            res_name = ops.get_op_result_name(self, other)
+            result = type(self)(rstart, rstop, rstep, name=res_name)
 
             # for compat with numpy / Int64Index
             # even if we can represent as a RangeIndex, return
@@ -947,5 +987,5 @@ class RangeIndex(NumericIndex):
 
         except (ValueError, TypeError, ZeroDivisionError):
             # Defer to Int64Index implementation
-            return op(self._int64index, other)
-            # TODO: Do attrs get handled reliably?
+            # test_arithmetic_explicit_conversions
+            return super()._arith_method(other, op)

@@ -357,7 +357,7 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
         return result
 
     if "out" in kwargs:
-        result = _dispatch_ufunc_with_out(self, ufunc, method, *inputs, **kwargs)
+        result = dispatch_ufunc_with_out(self, ufunc, method, *inputs, **kwargs)
         return reconstruct(result)
 
     # We still get here with kwargs `axis` for e.g. np.maximum.accumulate
@@ -371,6 +371,8 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
         # * len(inputs) > 1 is doable when we know that we have
         #   aligned blocks / dtypes.
         inputs = tuple(np.asarray(x) for x in inputs)
+        # Note: we can't use default_array_ufunc here bc reindexing means
+        #  that `self` may not be among `inputs`
         result = getattr(ufunc, method)(*inputs, **kwargs)
     elif self.ndim == 1:
         # ufunc(series, ...)
@@ -387,7 +389,7 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
         else:
             # otherwise specific ufunc methods (eg np.<ufunc>.accumulate(..))
             # Those can have an axis keyword and thus can't be called block-by-block
-            result = getattr(ufunc, method)(np.asarray(inputs[0]), **kwargs)
+            result = default_array_ufunc(inputs[0], ufunc, method, *inputs, **kwargs)
 
     result = reconstruct(result)
     return result
@@ -408,7 +410,7 @@ def _standardize_out_kwarg(**kwargs) -> dict:
     return kwargs
 
 
-def _dispatch_ufunc_with_out(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
+def dispatch_ufunc_with_out(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
     """
     If we have an `out` keyword, then call the ufunc without `out` and then
     set the result into the given `out`.
@@ -452,3 +454,19 @@ def _assign_where(out, result, where) -> None:
         out[:] = result
     else:
         np.putmask(out, where, result)
+
+
+def default_array_ufunc(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
+    """
+    Fallback to the behavior we would get if we did not define __array_ufunc__.
+
+    Notes
+    -----
+    We are assuming that `self` is among `inputs`.
+    """
+    if not any(x is self for x in inputs):
+        raise NotImplementedError
+
+    new_inputs = [x if x is not self else np.asarray(x) for x in inputs]
+
+    return getattr(ufunc, method)(*new_inputs, **kwargs)
