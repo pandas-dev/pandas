@@ -675,6 +675,9 @@ class RangeIndex(NumericIndex):
         if not isinstance(other, RangeIndex):
             return super()._difference(other, sort=sort)
 
+        if sort is None and self.step < 0:
+            return self[::-1]._difference(other)
+
         res_name = ops.get_op_result_name(self, other)
 
         first = self._range[::-1] if self.step < 0 else self._range
@@ -683,36 +686,60 @@ class RangeIndex(NumericIndex):
             overlap = overlap[::-1]
 
         if len(overlap) == 0:
-            result = self.rename(name=res_name)
-            if sort is None and self.step < 0:
-                result = result[::-1]
-            return result
+            return self.rename(name=res_name)
         if len(overlap) == len(self):
             return self[:0].rename(res_name)
-        if not isinstance(overlap, RangeIndex):
-            # We won't end up with RangeIndex, so fall back
-            return super()._difference(other, sort=sort)
-        if overlap.step != first.step:
-            # In some cases we might be able to get a RangeIndex back,
-            #  but not worth the effort.
-            return super()._difference(other, sort=sort)
 
-        if overlap[0] == first.start:
-            # The difference is everything after the intersection
-            new_rng = range(overlap[-1] + first.step, first.stop, first.step)
-        elif overlap[-1] == first[-1]:
-            # The difference is everything before the intersection
-            new_rng = range(first.start, overlap[0], first.step)
+        # overlap.step will always be a multiple of self.step (see _intersection)
+
+        if len(overlap) == 1:
+            if overlap[0] == self[0]:
+                return self[1:]
+
+            elif overlap[0] == self[-1]:
+                return self[:-1]
+
+            elif len(self) == 3 and overlap[0] == self[1]:
+                return self[::2]
+
+            else:
+                return super()._difference(other, sort=sort)
+
+        if overlap.step == first.step:
+            if overlap[0] == first.start:
+                # The difference is everything after the intersection
+                new_rng = range(overlap[-1] + first.step, first.stop, first.step)
+            elif overlap[-1] == first[-1]:
+                # The difference is everything before the intersection
+                new_rng = range(first.start, overlap[0], first.step)
+            else:
+                # The difference is not range-like
+                # e.g. range(1, 10, 1) and range(3, 7, 1)
+                return super()._difference(other, sort=sort)
+
         else:
-            # The difference is not range-like
+            # We must have len(self) > 1, bc we ruled out above
+            #  len(overlap) == 0 and len(overlap) == len(self)
+            assert len(self) > 1
+
+            if overlap.step == first.step * 2:
+                if overlap[0] == first[0] and overlap[-1] in (first[-1], first[-2]):
+                    # e.g. range(1, 10, 1) and range(1, 10, 2)
+                    return self[1::2]
+
+                elif overlap[0] == first[1] and overlap[-1] in (first[-1], first[-2]):
+                    # e.g. range(1, 10, 1) and range(2, 10, 2)
+                    return self[::2]
+
+                # We can get here with  e.g. range(20) and range(0, 10, 2)
+
+            # e.g. range(10) and range(0, 10, 3)
             return super()._difference(other, sort=sort)
 
         new_index = type(self)._simple_new(new_rng, name=res_name)
         if first is not self._range:
             new_index = new_index[::-1]
 
-        if sort is None and new_index.step < 0:
-            new_index = new_index[::-1]
         return new_index
 
     def symmetric_difference(self, other, result_name: Hashable = None, sort=None):
