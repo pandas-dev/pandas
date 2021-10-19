@@ -325,7 +325,6 @@ def _convert_listlike_datetimes(
     -------
     Index-like of parsed dates
     """
-
     if isinstance(arg, (list, tuple)):
         arg = np.array(arg, dtype="O")
 
@@ -525,6 +524,7 @@ def _to_datetime_with_unit(arg, unit, name, tz, errors: str) -> Index:
         arr = arg.astype(f"datetime64[{unit}]")
         tz_parsed = None
     else:
+        arg = np.asarray(arg)
         arr, tz_parsed = tslib.array_with_unit_to_datetime(arg, unit, errors=errors)
 
     if errors == "ignore":
