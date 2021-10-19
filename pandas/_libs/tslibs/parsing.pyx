@@ -422,7 +422,8 @@ cdef inline object _parse_dateabbr_string(object date_string, datetime default,
     cdef:
         object ret
         # year initialized to prevent compiler warnings
-        int year = -1, quarter = -1, month, mnum, date_len
+        int year = -1, quarter = -1, month, mnum
+        Py_ssize_t date_len
 
     # special handling for possibilities eg, 2Q2005, 2Q05, 2005Q1, 05Q1
     assert isinstance(date_string, str)
@@ -911,6 +912,9 @@ def guess_datetime_format(
         (('second', 'microsecond'), '%S.%f', 0),
         (('tzinfo',), '%z', 0),
         (('tzinfo',), '%Z', 0),
+        (('day_of_week',), '%a', 0),
+        (('day_of_week',), '%A', 0),
+        (('meridiem',), '%p', 0),
     ]
 
     if dayfirst:
@@ -967,15 +971,17 @@ def guess_datetime_format(
         if set(attrs) & found_attrs:
             continue
 
-        if all(getattr(parsed_datetime, attr) is not None for attr in attrs):
-            for i, token_format in enumerate(format_guess):
-                token_filled = tokens[i].zfill(padding)
-                if (token_format is None and
-                        token_filled == parsed_datetime.strftime(attr_format)):
-                    format_guess[i] = attr_format
-                    tokens[i] = token_filled
-                    found_attrs.update(attrs)
-                    break
+        if parsed_datetime.tzinfo is None and attr_format in ("%Z", "%z"):
+            continue
+
+        parsed_formatted = parsed_datetime.strftime(attr_format)
+        for i, token_format in enumerate(format_guess):
+            token_filled = tokens[i].zfill(padding)
+            if token_format is None and token_filled == parsed_formatted:
+                format_guess[i] = attr_format
+                tokens[i] = token_filled
+                found_attrs.update(attrs)
+                break
 
     # Only consider it a valid guess if we have a year, month and day
     if len({'year', 'month', 'day'} & found_attrs) != 3:
