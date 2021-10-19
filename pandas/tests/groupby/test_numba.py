@@ -39,3 +39,13 @@ class TestEngine:
         )
         expected = ser.groupby(level=0, sort=sort).mean()
         tm.assert_series_equal(result, expected)
+
+    def test_as_index_false_unsupported(self):
+        df = DataFrame({"a": [3, 2, 3, 2], "b": range(4), "c": range(1, 5)})
+        with pytest.raises(NotImplementedError, match="as_index=False"):
+            df.groupby("a", as_index=False).mean(engine="numba")
+
+    def test_axis_1_unsupported(self):
+        df = DataFrame({"a": [3, 2, 3, 2], "b": range(4), "c": range(1, 5)})
+        with pytest.raises(NotImplementedError, match="axis=1"):
+            df.groupby("a", axis=1).mean(engine="numba")

@@ -1270,6 +1270,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Perform groupby with a standard numerical aggregation function (e.g. mean)
         with Numba.
         """
+        if not self.as_index:
+            raise NotImplementedError(
+                "as_index=False is not supported. Use .reset_index() instead."
+            )
+        if self.axis == 1:
+            raise NotImplementedError("axis=1 is not supported.")
+
         with self._group_selection_context():
             data = self._selected_obj
         df = data if data.ndim == 2 else data.to_frame()
