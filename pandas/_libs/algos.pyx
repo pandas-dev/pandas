@@ -637,7 +637,7 @@ def pad_inplace(numeric_object_t[:] values, uint8_t[:] mask, limit=None):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def pad_2d_inplace(numeric_object_t[:, :] values, const uint8_t[:, :] mask, limit=None):
+def pad_2d_inplace(numeric_object_t[:, :] values, uint8_t[:, :] mask, limit=None):
     cdef:
         Py_ssize_t i, j, N, K
         numeric_object_t val
@@ -656,10 +656,11 @@ def pad_2d_inplace(numeric_object_t[:, :] values, const uint8_t[:, :] mask, limi
         val = values[j, 0]
         for i in range(N):
             if mask[j, i]:
-                if fill_count >= lim:
+                if fill_count >= lim or i == 0:
                     continue
                 fill_count += 1
                 values[j, i] = val
+                mask[j, i] = False
             else:
                 fill_count = 0
                 val = values[j, i]
@@ -759,7 +760,7 @@ def backfill_inplace(numeric_object_t[:] values, uint8_t[:] mask, limit=None):
 
 
 def backfill_2d_inplace(numeric_object_t[:, :] values,
-                        const uint8_t[:, :] mask,
+                        uint8_t[:, :] mask,
                         limit=None):
     pad_2d_inplace(values[:, ::-1], mask[:, ::-1], limit)
 
@@ -1428,13 +1429,13 @@ def diff_2d(
     #  see https://github.com/cython/cython/issues/2646
     if (out_t is float32_t
             and not (diff_t is float32_t or diff_t is int8_t or diff_t is int16_t)):
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
     elif (out_t is float64_t
           and (diff_t is float32_t or diff_t is int8_t or diff_t is int16_t)):
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
     elif out_t is int64_t and diff_t is not int64_t:
         # We only have out_t of int64_t if we have datetimelike
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
     else:
         # We put this inside an indented else block to avoid cython build
         #  warnings about unreachable code

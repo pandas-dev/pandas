@@ -42,6 +42,7 @@ def mi_styler(mi_df):
 @pytest.fixture
 def mi_styler_comp(mi_styler):
     # comprehensively add features to mi_styler
+    mi_styler.css = {**mi_styler.css, **{"row": "ROW", "col": "COL"}}
     mi_styler.uuid_len = 5
     mi_styler.uuid = "abcde"
     mi_styler.set_caption("capt")
@@ -829,6 +830,19 @@ class TestStyler:
             {"selector": "tr", "props": [("color", "green")]},
         ]
 
+    def test_table_styles_dict_multiple_selectors(self):
+        # GH 44011
+        result = self.df.style.set_table_styles(
+            [{"selector": "th,td", "props": [("border-left", "2px solid black")]}]
+        )._translate(True, True)["table_styles"]
+
+        expected = [
+            {"selector": "th", "props": [("border-left", "2px solid black")]},
+            {"selector": "td", "props": [("border-left", "2px solid black")]},
+        ]
+
+        assert result == expected
+
     def test_maybe_convert_css_to_tuples(self):
         expected = [("a", "b"), ("c", "d e")]
         assert maybe_convert_css_to_tuples("a:b;c:d e;") == expected
@@ -1212,17 +1226,15 @@ class TestStyler:
         assert ctx["body"][1][2]["is_visible"]
         assert ctx["body"][1][2]["display_value"] == "3"
 
-        # hide top row level, which hides both rows
+        # hide top row level, which hides both rows so body empty
         ctx = df.style.hide_index("a")._translate(True, True)
-        for i in [0, 1, 2, 3]:
-            assert not ctx["body"][0][i]["is_visible"]
-            assert not ctx["body"][1][i]["is_visible"]
+        assert ctx["body"] == []
 
         # hide first row only
         ctx = df.style.hide_index(("a", 0))._translate(True, True)
         for i in [0, 1, 2, 3]:
-            assert not ctx["body"][0][i]["is_visible"]
-            assert ctx["body"][1][i]["is_visible"]
+            assert "row1" in ctx["body"][0][i]["class"]  # row0 not included in body
+            assert ctx["body"][0][i]["is_visible"]
 
     def test_pipe(self):
         def set_caption_from_template(styler, a, b):
@@ -1479,25 +1491,27 @@ def test_caption_raises(mi_styler, caption):
         mi_styler.set_caption(caption)
 
 
-@pytest.mark.parametrize("axis", ["index", "columns"])
-def test_hiding_headers_over_axis_no_sparsify(axis):
+def test_hiding_headers_over_index_no_sparsify():
     # GH 43464
     midx = MultiIndex.from_product([[1, 2], ["a", "a", "b"]])
-    df = DataFrame(
-        9,
-        index=midx if axis == "index" else [0],
-        columns=midx if axis == "columns" else [0],
-    )
+    df = DataFrame(9, index=midx, columns=[0])
+    ctx = df.style._translate(False, False)
+    assert len(ctx["body"]) == 6
+    ctx = df.style.hide_index((1, "a"))._translate(False, False)
+    assert len(ctx["body"]) == 4
+    assert "row2" in ctx["body"][0][0]["class"]
 
-    styler = getattr(df.style, f"hide_{axis}")((1, "a"))
-    ctx = styler._translate(False, False)
 
-    if axis == "columns":  # test column headers
-        for ix in [(0, 1), (0, 2), (1, 1), (1, 2)]:
-            assert ctx["head"][ix[0]][ix[1]]["is_visible"] is False
-    if axis == "index":  # test row headers
-        for ix in [(0, 0), (0, 1), (1, 0), (1, 1)]:
-            assert ctx["body"][ix[0]][ix[1]]["is_visible"] is False
+def test_hiding_headers_over_columns_no_sparsify():
+    # GH 43464
+    midx = MultiIndex.from_product([[1, 2], ["a", "a", "b"]])
+    df = DataFrame(9, columns=midx, index=[0])
+    ctx = df.style._translate(False, False)
+    for ix in [(0, 1), (0, 2), (1, 1), (1, 2)]:
+        assert ctx["head"][ix[0]][ix[1]]["is_visible"] is True
+    ctx = df.style.hide_columns((1, "a"))._translate(False, False)
+    for ix in [(0, 1), (0, 2), (1, 1), (1, 2)]:
+        assert ctx["head"][ix[0]][ix[1]]["is_visible"] is False
 
 
 def test_get_level_lengths_mi_hidden():
@@ -1520,3 +1534,13 @@ def test_get_level_lengths_mi_hidden():
         hidden_elements=[0, 1, 0, 1],  # hidden element can repeat if duplicated index
     )
     tm.assert_dict_equal(result, expected)
+
+
+def test_row_trimming_hide_index():
+    # gh 43703
+    df = DataFrame([[1], [2], [3], [4], [5]])
+    with pd.option_context("styler.render.max_rows", 2):
+        ctx = df.style.hide_index([0, 1])._translate(True, True)
+    assert len(ctx["body"]) == 3
+    for r, val in enumerate(["3", "4", "..."]):
+        assert ctx["body"][r][1]["display_value"] == val
