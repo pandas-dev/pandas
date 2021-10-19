@@ -3270,7 +3270,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         fill_method="pad",
         limit=None,
         freq=None,
-        non_zero_reference=False,
+        negative_reference=False,
         axis=0
     ):
         """

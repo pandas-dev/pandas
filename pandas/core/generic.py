@@ -10114,7 +10114,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         fill_method="pad",
         limit=None,
         freq=None,
-        non_zero_reference=False,
+        negative_reference=False,
         **kwargs,
     ) -> NDFrameT:
         """
@@ -10134,7 +10134,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             The number of consecutive NAs to fill before stopping.
         freq : DateOffset, timedelta, or str, optional
             Increment to use from time series API (e.g. 'M' or BDay()).
-        non_zero_reference : bool, default False
+        negative_reference : bool, default False
             Divides the change by the absolute of the reference value.
             Use if there exists a mixture of positive and negative values.
         **kwargs
@@ -10182,7 +10182,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         4   -0.882353
         dtype: float64
 
-        >>> s.pct_change(non_zero_reference=True)
+        >>> s.pct_change(negative_reference=True)
         0         NaN
         1    0.011111
         2   -0.065934
@@ -10257,7 +10257,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             data = _data
 
         shifted = data.shift(periods=periods, freq=freq, axis=axis, **kwargs)
-        if non_zero_reference:
+        if negative_reference:
             rs = (data - shifted) / shifted.abs()
         else:
             # Unsupported left operand type for / ("NDFrameT")
