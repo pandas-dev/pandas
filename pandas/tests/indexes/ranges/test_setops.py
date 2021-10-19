@@ -431,7 +431,7 @@ class TestRangeIndexSetOps:
         tm.assert_index_equal(result, expected)
 
 
-def assert_range_or_not_is_rangelike(index) -> bool:
+def assert_range_or_not_is_rangelike(index):
     """
     Check that we either have a RangeIndex or that this index *cannot*
     be represented as a RangeIndex.
