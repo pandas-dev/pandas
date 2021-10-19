@@ -393,3 +393,7 @@ class TestUnaryOps(base.BaseUnaryOpsTests):
 
 class TestParsing(base.BaseParsingTests):
     pass
+
+
+class Test2DCompat(base.Dim2CompatTests):
+    pass

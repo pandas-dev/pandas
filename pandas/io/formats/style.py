@@ -53,6 +53,7 @@ from pandas.io.formats.style_render import (
     StylerRenderer,
     Subset,
     Tooltips,
+    format_table_styles,
     maybe_convert_css_to_tuples,
     non_reducing_slice,
     refactor_levels,
@@ -145,7 +146,10 @@ class Styler(StylerRenderer):
     Attributes
     ----------
     env : Jinja2 jinja2.Environment
-    template : Jinja2 Template
+    template_html : Jinja2 Template
+    template_html_table : Jinja2 Template
+    template_html_style : Jinja2 Template
+    template_latex : Jinja2 Template
     loader : Jinja2 Loader
 
     See Also
@@ -181,6 +185,11 @@ class Styler(StylerRenderer):
 
     * Blank cells include ``blank``
     * Data cells include ``data``
+    * Trimmed cells include ``col_trim`` or ``row_trim``.
+
+    Any, or all, or these classes can be renamed by using the ``css_class_names``
+    argument in ``Styler.set_table_classes``, giving a value such as
+    *{"row": "MY_ROW_CLASS", "col_trim": "", "row_trim": ""}*.
     """
 
     def __init__(
@@ -459,7 +468,7 @@ class Styler(StylerRenderer):
         column_format: str | None = None,
         position: str | None = None,
         position_float: str | None = None,
-        hrules: bool = False,
+        hrules: bool | None = None,
         label: str | None = None,
         caption: str | tuple | None = None,
         sparse_index: bool | None = None,
@@ -479,7 +488,7 @@ class Styler(StylerRenderer):
         Parameters
         ----------
         buf : str, Path, or StringIO-like, optional, default None
-            Buffer to write to. If ``None``, the output is returned as a string.
+            Buffer to write to. If `None`, the output is returned as a string.
         column_format : str, optional
             The LaTeX column specification placed in location:
 
@@ -500,9 +509,12 @@ class Styler(StylerRenderer):
             \\<position_float>
 
             Cannot be used if ``environment`` is "longtable".
-        hrules : bool, default False
+        hrules : bool
             Set to `True` to add \\toprule, \\midrule and \\bottomrule from the
             {booktabs} LaTeX package.
+            Defaults to ``pandas.options.styler.latex.hrules``, which is `False`.
+
+            .. versionchanged:: 1.4.0
         label : str, optional
             The LaTeX label included as: \\label{<label>}.
             This is used with \\ref{<label>} in the main .tex file.
@@ -513,16 +525,17 @@ class Styler(StylerRenderer):
         sparse_index : bool, optional
             Whether to sparsify the display of a hierarchical index. Setting to False
             will display each explicit level element in a hierarchical key for each row.
-            Defaults to ``pandas.options.styler.sparse.index`` value.
+            Defaults to ``pandas.options.styler.sparse.index``, which is `True`.
         sparse_columns : bool, optional
             Whether to sparsify the display of a hierarchical index. Setting to False
             will display each explicit level element in a hierarchical key for each
-            column. Defaults to ``pandas.options.styler.sparse.columns`` value.
+            column. Defaults to ``pandas.options.styler.sparse.columns``, which
+            is `True`.
         multirow_align : {"c", "t", "b", "naive"}, optional
             If sparsifying hierarchical MultiIndexes whether to align text centrally,
             at the top or bottom using the multirow package. If not given defaults to
-            ``pandas.options.styler.latex.multirow_align``. If "naive" is given renders
-            without multirow.
+            ``pandas.options.styler.latex.multirow_align``, which is `"c"`.
+            If "naive" is given renders without multirow.
 
             .. versionchanged:: 1.4.0
         multicol_align : {"r", "c", "l", "naive-l", "naive-r"}, optional
@@ -541,12 +554,12 @@ class Styler(StylerRenderer):
             If given, the environment that will replace 'table' in ``\\begin{table}``.
             If 'longtable' is specified then a more suitable template is
             rendered. If not given defaults to
-            ``pandas.options.styler.latex.environment``.
+            ``pandas.options.styler.latex.environment``, which is `None`.
 
             .. versionadded:: 1.4.0
         encoding : str, optional
             Character encoding setting. Defaults
-            to ``pandas.options.styler.render.encoding`` value of "utf-8".
+            to ``pandas.options.styler.render.encoding``, which is "utf-8".
         convert_css : bool, default False
             Convert simple cell-styles from CSS to LaTeX format. Any CSS not found in
             conversion table is dropped. A style can be forced by adding option
@@ -835,6 +848,7 @@ class Styler(StylerRenderer):
                 overwrite=False,
             )
 
+        hrules = get_option("styler.latex.hrules") if hrules is None else hrules
         if hrules:
             obj.set_table_styles(
                 [
@@ -1158,6 +1172,7 @@ class Styler(StylerRenderer):
           - caption
 
         Non-data dependent attributes [copied and exported]:
+          - css
           - hidden index state and hidden columns state (.hide_index_, .hide_columns_)
           - table_attributes
           - table_styles
@@ -1184,6 +1199,7 @@ class Styler(StylerRenderer):
             "template_html",
         ]
         deep = [  # nested lists or dicts
+            "css",
             "_display_funcs",
             "_display_funcs_index",
             "_display_funcs_columns",
@@ -1947,9 +1963,10 @@ class Styler(StylerRenderer):
 
     def set_table_styles(
         self,
-        table_styles: dict[Any, CSSStyles] | CSSStyles,
+        table_styles: dict[Any, CSSStyles] | CSSStyles | None = None,
         axis: int = 0,
         overwrite: bool = True,
+        css_class_names: dict[str, str] | None = None,
     ) -> Styler:
         """
         Set the table styles included within the ``<style>`` HTML element.
@@ -1989,6 +2006,11 @@ class Styler(StylerRenderer):
 
             .. versionadded:: 1.2.0
 
+        css_class_names : dict, optional
+            A dict of strings used to replace the default CSS classes described below.
+
+            .. versionadded:: 1.4.0
+
         Returns
         -------
         self : Styler
@@ -1999,6 +2021,22 @@ class Styler(StylerRenderer):
             attribute of ``<td>`` HTML elements.
         Styler.set_table_attributes: Set the table attributes added to the ``<table>``
             HTML element.
+
+        Notes
+        -----
+        The default CSS classes dict, whose values can be replaced is as follows:
+
+        .. code-block:: python
+
+            css_class_names = {"row_heading": "row_heading",
+                               "col_heading": "col_heading",
+                               "index_name": "index_name",
+                               "col": "col",
+                               "col_trim": "col_trim",
+                               "row_trim": "row_trim",
+                               "level": "level",
+                               "data": "data",
+                               "blank": "blank}
 
         Examples
         --------
@@ -2035,10 +2073,15 @@ class Styler(StylerRenderer):
         See `Table Visualization <../../user_guide/style.ipynb>`_ user guide for
         more details.
         """
-        if isinstance(table_styles, dict):
+        if css_class_names is not None:
+            self.css = {**self.css, **css_class_names}
+
+        if table_styles is None:
+            return self
+        elif isinstance(table_styles, dict):
             axis = self.data._get_axis_number(axis)
             obj = self.data.index if axis == 1 else self.data.columns
-            idf = ".row" if axis == 1 else ".col"
+            idf = f".{self.css['row']}" if axis == 1 else f".{self.css['col']}"
 
             table_styles = [
                 {
@@ -2047,7 +2090,7 @@ class Styler(StylerRenderer):
                 }
                 for key, styles in table_styles.items()
                 for idx in obj.get_indexer_for([key])
-                for s in styles
+                for s in format_table_styles(styles)
             ]
         else:
             table_styles = [
