@@ -3271,7 +3271,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         limit=None,
         freq=None,
         negative_reference=False,
-        axis=0
+        axis=0,
     ):
         """
         Calculate pct_change of each value to previous entry in group.
