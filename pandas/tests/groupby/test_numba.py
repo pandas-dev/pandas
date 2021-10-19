@@ -13,23 +13,29 @@ import pandas._testing as tm
 @pytest.mark.filterwarnings("ignore:\\nThe keyword argument")
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
 class TestEngine:
-    def test_cython_vs_numba_frame(self, nogil, parallel, nopython):
-        df = DataFrame({"a": [1, 2, 1, 2], "b": range(4), "c": range(1, 5)})
+    def test_cython_vs_numba_frame(self, sort, nogil, parallel, nopython):
+        df = DataFrame({"a": [3, 2, 3, 2], "b": range(4), "c": range(1, 5)})
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
-        result = df.groupby("a").mean(engine="numba", engine_kwargs=engine_kwargs)
-        expected = df.groupby("a").mean()
+        result = df.groupby("a", sort=sort).mean(
+            engine="numba", engine_kwargs=engine_kwargs
+        )
+        expected = df.groupby("a", sort=sort).mean()
         tm.assert_frame_equal(result, expected)
 
-    def test_cython_vs_numba_getitem(self, nogil, parallel, nopython):
-        df = DataFrame({"a": [1, 2, 1, 2], "b": range(4), "c": range(1, 5)})
+    def test_cython_vs_numba_getitem(self, sort, nogil, parallel, nopython):
+        df = DataFrame({"a": [3, 2, 3, 2], "b": range(4), "c": range(1, 5)})
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
-        result = df.groupby("a")["c"].mean(engine="numba", engine_kwargs=engine_kwargs)
-        expected = df.groupby("a")["c"].mean()
+        result = df.groupby("a", sort=sort)["c"].mean(
+            engine="numba", engine_kwargs=engine_kwargs
+        )
+        expected = df.groupby("a", sort=sort)["c"].mean()
         tm.assert_series_equal(result, expected)
 
-    def test_cython_vs_numba_series(self, nogil, parallel, nopython):
+    def test_cython_vs_numba_series(self, sort, nogil, parallel, nopython):
         ser = Series(range(3), index=[1, 2, 1], name="foo")
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
-        result = ser.groupby(level=0).mean(engine="numba", engine_kwargs=engine_kwargs)
-        expected = ser.groupby(level=0).mean()
+        result = ser.groupby(level=0, sort=sort).mean(
+            engine="numba", engine_kwargs=engine_kwargs
+        )
+        expected = ser.groupby(level=0, sort=sort).mean()
         tm.assert_series_equal(result, expected)
