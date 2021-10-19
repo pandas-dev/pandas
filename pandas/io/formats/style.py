@@ -1781,14 +1781,14 @@ class Styler(StylerRenderer):
           - Any CSS classes added using ``Styler.set_td_classes``
         """
         return {
-            "apply": self._todo,
+            "apply": copy.copy(self._todo),
             "table_attributes": self.table_attributes,
-            "table_styles": self.table_styles,
+            "table_styles": copy.copy(self.table_styles),
             "hide_index": self.hide_index_,
             "hide_columns": self.hide_columns_,
             "hide_index_names": self.hide_index_names,
             "hide_column_names": self.hide_column_names,
-            "css": self.css,
+            "css": copy.copy(self.css),
         }
 
     def use(self, styles: dict[str, Any]) -> Styler:
