@@ -32,6 +32,7 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
     is_object_dtype,
+    is_string_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.missing import isna
@@ -124,12 +125,10 @@ def safe_cast(values, dtype, copy: bool):
     Safely cast the values to the dtype if they
     are equivalent, meaning floats must be equivalent to the
     ints.
-
     """
     try:
         return values.astype(dtype, casting="safe", copy=copy)
     except TypeError as err:
-
         casted = values.astype(dtype, copy=copy)
         if (casted == values).all():
             return casted
@@ -143,7 +142,7 @@ def coerce_to_array(
     values, dtype, mask=None, copy: bool = False
 ) -> tuple[np.ndarray, np.ndarray]:
     """
-    Coerce the input values array to numpy arrays with a mask
+    Coerce the input values array to numpy arrays with a mask.
 
     Parameters
     ----------
@@ -187,7 +186,8 @@ def coerce_to_array(
         return values, mask
 
     values = np.array(values, copy=copy)
-    if is_object_dtype(values):
+    inferred_type = None
+    if is_object_dtype(values) or is_string_dtype(values):
         inferred_type = lib.infer_dtype(values, skipna=True)
         if inferred_type == "empty":
             values = np.empty(len(values))
@@ -198,6 +198,8 @@ def coerce_to_array(
             "mixed-integer",
             "integer-na",
             "mixed-integer-float",
+            "string",
+            "unicode",
         ]:
             raise TypeError(f"{values.dtype} cannot be converted to an IntegerDtype")
 
@@ -230,7 +232,10 @@ def coerce_to_array(
     if mask.any():
         values = values.copy()
         values[mask] = 1
-        values = safe_cast(values, dtype, copy=False)
+    if inferred_type in ("string", "unicode"):
+        # casts from str are always safe since they raise
+        # a ValueError if the str cannot be parsed into an int
+        values = values.astype(dtype, copy=copy)
     else:
         values = safe_cast(values, dtype, copy=False)
 
