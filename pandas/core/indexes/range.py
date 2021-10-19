@@ -15,7 +15,10 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import index as libindex
+from pandas._libs import (
+    index as libindex,
+    lib,
+)
 from pandas._libs.lib import no_default
 from pandas._typing import (
     Dtype,
@@ -214,7 +217,8 @@ class RangeIndex(NumericIndex):
         # we are formatting thru the attributes
         return None
 
-    def _format_with_header(self, header: list[str], na_rep: str = "NaN") -> list[str]:
+    def _format_with_header(self, header: list[str], na_rep: str) -> list[str]:
+        # Equivalent to Index implementation, but faster
         if not len(self._range):
             return header
         first_val_str = str(self._range[0])
@@ -562,8 +566,11 @@ class RangeIndex(NumericIndex):
 
         if (self.step < 0 and other.step < 0) is not (new_index.step < 0):
             new_index = new_index[::-1]
+
         if sort is None:
-            new_index = new_index.sort_values()
+            # TODO: can revert to just `if sort is None` after GH#43666
+            if new_index.step < 0:
+                new_index = new_index[::-1]
 
         return new_index
 
@@ -635,10 +642,13 @@ class RangeIndex(NumericIndex):
                     return type(self)(start_r, end_r + step_s, step_s)
                 if (
                     (step_s % 2 == 0)
-                    and (abs(start_s - start_o) <= step_s / 2)
-                    and (abs(end_s - end_o) <= step_s / 2)
+                    and (abs(start_s - start_o) == step_s / 2)
+                    and (abs(end_s - end_o) == step_s / 2)
                 ):
+                    # e.g. range(0, 10, 2) and range(1, 11, 2)
+                    #  but not range(0, 20, 4) and range(1, 21, 4) GH#44019
                     return type(self)(start_r, end_r + step_s / 2, step_s / 2)
+
             elif step_o % step_s == 0:
                 if (
                     (start_o - start_s) % step_s == 0
@@ -673,7 +683,10 @@ class RangeIndex(NumericIndex):
             overlap = overlap[::-1]
 
         if len(overlap) == 0:
-            return self.rename(name=res_name)
+            result = self.rename(name=res_name)
+            if sort is None and self.step < 0:
+                result = result[::-1]
+            return result
         if len(overlap) == len(self):
             return self[:0].rename(res_name)
         if not isinstance(overlap, RangeIndex):
@@ -697,6 +710,9 @@ class RangeIndex(NumericIndex):
         new_index = type(self)._simple_new(new_rng, name=res_name)
         if first is not self._range:
             new_index = new_index[::-1]
+
+        if sort is None and new_index.step < 0:
+            new_index = new_index[::-1]
         return new_index
 
     def symmetric_difference(self, other, result_name: Hashable = None, sort=None):
@@ -712,6 +728,58 @@ class RangeIndex(NumericIndex):
         return result
 
     # --------------------------------------------------------------------
+
+    # error: Return type "Index" of "delete" incompatible with return type
+    #  "RangeIndex" in supertype "Index"
+    def delete(self, loc) -> Index:  # type: ignore[override]
+        # In some cases we can retain RangeIndex, see also
+        #  DatetimeTimedeltaMixin._get_delete_Freq
+        if is_integer(loc):
+            if loc == 0 or loc == -len(self):
+                return self[1:]
+            if loc == -1 or loc == len(self) - 1:
+                return self[:-1]
+
+        elif lib.is_list_like(loc):
+            slc = lib.maybe_indices_to_slice(np.asarray(loc, dtype=np.intp), len(self))
+            if isinstance(slc, slice) and slc.step is not None and slc.step < 0:
+                rng = range(len(self))[slc][::-1]
+                slc = slice(rng.start, rng.stop, rng.step)
+
+            if isinstance(slc, slice) and slc.step in [1, None]:
+                # Note: maybe_indices_to_slice will never return a slice
+                #  with 'slc.start is None'; may have slc.stop None in cases
+                #  with negative step
+                if slc.start == 0:
+                    return self[slc.stop :]
+                elif slc.stop in [len(self), None]:
+                    return self[: slc.start]
+
+                # TODO: more generally, self.difference(self[slc]),
+                #  once _difference is better about retaining RangeIndex
+
+        return super().delete(loc)
+
+    def insert(self, loc: int, item) -> Index:
+        if len(self) and (is_integer(item) or is_float(item)):
+            # We can retain RangeIndex is inserting at the beginning or end,
+            #  or right in the middle.
+            rng = self._range
+            if loc == 0 and item == self[0] - self.step:
+                new_rng = range(rng.start - rng.step, rng.stop, rng.step)
+                return type(self)._simple_new(new_rng, name=self.name)
+
+            elif loc == len(self) and item == self[-1] + self.step:
+                new_rng = range(rng.start, rng.stop + rng.step, rng.step)
+                return type(self)._simple_new(new_rng, name=self.name)
+
+            elif len(self) == 2 and item == self[0] + self.step / 2:
+                # e.g. inserting 1 into [0, 2]
+                step = int(self.step / 2)
+                new_rng = range(self.start, self.stop, step)
+                return type(self)._simple_new(new_rng, name=self.name)
+
+        return super().insert(loc, item)
 
     def _concat(self, indexes: list[Index], name: Hashable) -> Index:
         """
@@ -885,9 +953,8 @@ class RangeIndex(NumericIndex):
             step = op
 
         # TODO: if other is a RangeIndex we may have more efficient options
-        other = extract_array(other, extract_numpy=True, extract_range=True)
-
-        left, right = self, other
+        right = extract_array(other, extract_numpy=True, extract_range=True)
+        left = self
 
         try:
             # apply if we have an override
@@ -907,7 +974,8 @@ class RangeIndex(NumericIndex):
                 rstart = op(left.start, right)
                 rstop = op(left.stop, right)
 
-            result = type(self)(rstart, rstop, rstep, name=self.name)
+            res_name = ops.get_op_result_name(self, other)
+            result = type(self)(rstart, rstop, rstep, name=res_name)
 
             # for compat with numpy / Int64Index
             # even if we can represent as a RangeIndex, return

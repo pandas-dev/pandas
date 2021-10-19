@@ -115,7 +115,7 @@ class TestRangeIndex(NumericBase):
         result = idx[1:4]
 
         # test 0th element
-        tm.assert_index_equal(idx[0:4], result.insert(0, idx[0]))
+        tm.assert_index_equal(idx[0:4], result.insert(0, idx[0]), exact="equiv")
 
         # GH 18295 (test missing)
         expected = Float64Index([0, np.nan, 1, 2, 3, 4])
@@ -127,23 +127,100 @@ class TestRangeIndex(NumericBase):
         expected = Index([0, pd.NaT, 1, 2, 3, 4], dtype=object)
         tm.assert_index_equal(result, expected)
 
+    def test_insert_edges_preserves_rangeindex(self):
+        idx = Index(range(4, 9, 2))
+
+        result = idx.insert(0, 2)
+        expected = Index(range(2, 9, 2))
+        tm.assert_index_equal(result, expected, exact=True)
+
+        result = idx.insert(3, 10)
+        expected = Index(range(4, 11, 2))
+        tm.assert_index_equal(result, expected, exact=True)
+
+    def test_insert_middle_preserves_rangeindex(self):
+        # insert in the middle
+        idx = Index(range(0, 3, 2))
+        result = idx.insert(1, 1)
+        expected = Index(range(3))
+        tm.assert_index_equal(result, expected, exact=True)
+
+        idx = idx * 2
+        result = idx.insert(1, 2)
+        expected = expected * 2
+        tm.assert_index_equal(result, expected, exact=True)
+
     def test_delete(self):
 
         idx = RangeIndex(5, name="Foo")
-        expected = idx[1:].astype(int)
+        expected = idx[1:]
         result = idx.delete(0)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
         assert result.name == expected.name
 
-        expected = idx[:-1].astype(int)
+        expected = idx[:-1]
         result = idx.delete(-1)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
         assert result.name == expected.name
 
         msg = "index 5 is out of bounds for axis 0 with size 5"
         with pytest.raises((IndexError, ValueError), match=msg):
             # either depending on numpy version
             result = idx.delete(len(idx))
+
+    def test_delete_preserves_rangeindex(self):
+        idx = Index(range(2), name="foo")
+
+        result = idx.delete([1])
+        expected = Index(range(1), name="foo")
+        tm.assert_index_equal(result, expected, exact=True)
+
+        result = idx.delete(1)
+        tm.assert_index_equal(result, expected, exact=True)
+
+    def test_delete_preserves_rangeindex_list_at_end(self):
+        idx = RangeIndex(0, 6, 1)
+
+        loc = [2, 3, 4, 5]
+        result = idx.delete(loc)
+        expected = idx[:2]
+        tm.assert_index_equal(result, expected, exact=True)
+
+        result = idx.delete(loc[::-1])
+        tm.assert_index_equal(result, expected, exact=True)
+
+    def test_delete_preserves_rangeindex_list_middle(self):
+        idx = RangeIndex(0, 6, 1)
+
+        loc = [1, 2, 3, 4]
+        result = idx.delete(loc)
+        expected = RangeIndex(0, 6, 5)
+        tm.assert_index_equal(result, expected, exact="equiv")  # TODO: retain!
+
+        result = idx.delete(loc[::-1])
+        tm.assert_index_equal(result, expected, exact="equiv")  # TODO: retain!
+
+    def test_delete_all_preserves_rangeindex(self):
+        idx = RangeIndex(0, 6, 1)
+
+        loc = [0, 1, 2, 3, 4, 5]
+        result = idx.delete(loc)
+        expected = idx[:0]
+        tm.assert_index_equal(result, expected, exact=True)
+
+        result = idx.delete(loc[::-1])
+        tm.assert_index_equal(result, expected, exact=True)
+
+    def test_delete_not_preserving_rangeindex(self):
+        idx = RangeIndex(0, 6, 1)
+
+        loc = [0, 3, 5]
+        result = idx.delete(loc)
+        expected = Int64Index([1, 2, 4])
+        tm.assert_index_equal(result, expected, exact=True)
+
+        result = idx.delete(loc[::-1])
+        tm.assert_index_equal(result, expected, exact=True)
 
     def test_view(self):
         i = RangeIndex(0, name="Foo")
@@ -300,7 +377,7 @@ class TestRangeIndex(NumericBase):
 
         # memory savings vs int index
         idx = RangeIndex(0, 1000)
-        assert idx.nbytes < Int64Index(idx.values).nbytes / 10
+        assert idx.nbytes < Int64Index(idx._values).nbytes / 10
 
         # constant memory usage
         i2 = RangeIndex(0, 10)
@@ -395,38 +472,38 @@ class TestRangeIndex(NumericBase):
         # positive slice values
         index_slice = index[7:10:2]
         expected = Index(np.array([14, 18]), name="foo")
-        tm.assert_index_equal(index_slice, expected)
+        tm.assert_index_equal(index_slice, expected, exact="equiv")
 
         # negative slice values
         index_slice = index[-1:-5:-2]
         expected = Index(np.array([18, 14]), name="foo")
-        tm.assert_index_equal(index_slice, expected)
+        tm.assert_index_equal(index_slice, expected, exact="equiv")
 
         # stop overshoot
         index_slice = index[2:100:4]
         expected = Index(np.array([4, 12]), name="foo")
-        tm.assert_index_equal(index_slice, expected)
+        tm.assert_index_equal(index_slice, expected, exact="equiv")
 
         # reverse
         index_slice = index[::-1]
         expected = Index(index.values[::-1], name="foo")
-        tm.assert_index_equal(index_slice, expected)
+        tm.assert_index_equal(index_slice, expected, exact="equiv")
 
         index_slice = index[-8::-1]
         expected = Index(np.array([4, 2, 0]), name="foo")
-        tm.assert_index_equal(index_slice, expected)
+        tm.assert_index_equal(index_slice, expected, exact="equiv")
 
         index_slice = index[-40::-1]
         expected = Index(np.array([], dtype=np.int64), name="foo")
-        tm.assert_index_equal(index_slice, expected)
+        tm.assert_index_equal(index_slice, expected, exact="equiv")
 
         index_slice = index[40::-1]
         expected = Index(index.values[40::-1], name="foo")
-        tm.assert_index_equal(index_slice, expected)
+        tm.assert_index_equal(index_slice, expected, exact="equiv")
 
         index_slice = index[10::-1]
         expected = Index(index.values[::-1], name="foo")
-        tm.assert_index_equal(index_slice, expected)
+        tm.assert_index_equal(index_slice, expected, exact="equiv")
 
     @pytest.mark.parametrize("step", set(range(-5, 6)) - {0})
     def test_len_specialised(self, step):
