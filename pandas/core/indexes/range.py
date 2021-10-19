@@ -556,7 +556,7 @@ class RangeIndex(NumericIndex):
         key: Callable | None = None,
     ):
         sorted_index = self
-        indexer = RangeIndex(range(len(self))
+        indexer = RangeIndex(range(len(self)))
         if key is not None:
             return super().sort_values(
                 return_indexer=return_indexer,
