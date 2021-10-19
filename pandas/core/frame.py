@@ -22,7 +22,6 @@ from typing import (
     IO,
     TYPE_CHECKING,
     Any,
-    AnyStr,
     Callable,
     Hashable,
     Iterable,
@@ -2598,7 +2597,7 @@ class DataFrame(NDFrame, OpsMixin):
         writer.write_file()
 
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
-    def to_feather(self, path: FilePathOrBuffer[AnyStr], **kwargs) -> None:
+    def to_feather(self, path: FilePathOrBuffer[bytes], **kwargs) -> None:
         """
         Write a DataFrame to the binary Feather format.
 
@@ -5932,7 +5931,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis = 0,
         how: str = "any",
         thresh=None,
-        subset=None,
+        subset: IndexLabel = None,
         inplace: bool = False,
     ):
         """
@@ -5964,7 +5963,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         thresh : int, optional
             Require that many non-NA values.
-        subset : array-like, optional
+        subset : column label or sequence of labels, optional
             Labels along other axis to consider, e.g. if you are dropping rows
             these would be a list of columns to include.
         inplace : bool, default False
@@ -6048,11 +6047,14 @@ class DataFrame(NDFrame, OpsMixin):
 
         agg_obj = self
         if subset is not None:
+            # subset needs to be list
+            if not is_list_like(subset):
+                subset = [subset]
             ax = self._get_axis(agg_axis)
             indices = ax.get_indexer_for(subset)
             check = indices == -1
             if check.any():
-                raise KeyError(list(np.compress(check, subset)))
+                raise KeyError(np.array(subset)[check].tolist())
             agg_obj = self.take(indices, axis=agg_axis)
 
         count = agg_obj.count(axis=agg_axis)

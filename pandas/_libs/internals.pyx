@@ -408,7 +408,7 @@ cdef slice indexer_as_slice(intp_t[:] vals):
         int64_t d
 
     if vals is None:
-        raise TypeError("vals must be ndarray")
+        raise TypeError("vals must be ndarray")  # pragma: no cover
 
     n = vals.shape[0]
 
@@ -772,7 +772,7 @@ cdef class BlockManager:
             self.blocks = blocks
             self.axes = axes
 
-        else:
+        else:  # pragma: no cover
             raise NotImplementedError("pre-0.14.1 pickles are no longer supported")
 
         self._post_setstate()
