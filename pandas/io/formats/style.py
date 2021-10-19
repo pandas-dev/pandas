@@ -1766,7 +1766,7 @@ class Styler(StylerRenderer):
         The following items are exported since they are not generally data dependent:
 
           - Styling functions added by the ``apply`` and ``applymap``
-          - Whether axes and names are hidden from the display
+          - Whether axes and names are hidden from the display, if unambiguous.
           - Table attributes
           - Table styles
 
@@ -1784,8 +1784,8 @@ class Styler(StylerRenderer):
             "apply": copy.copy(self._todo),
             "table_attributes": self.table_attributes,
             "table_styles": copy.copy(self.table_styles),
-            "hide_index": self.hide_index_,
-            "hide_columns": self.hide_columns_,
+            "hide_index": all(self.hide_index_),
+            "hide_columns": all(self.hide_columns_),
             "hide_index_names": self.hide_index_names,
             "hide_column_names": self.hide_column_names,
             "css": copy.copy(self.css),
@@ -1808,9 +1808,9 @@ class Styler(StylerRenderer):
               - "table_styles": CSS selectors and properties, typically added with
                 ``set_table_styles``.
               - "hide_index":  whether the index is hidden, typically added with
-                ``hide_index``.
+                ``hide_index``, or a boolean list for hidden levels.
               - "hide_columns": whether column headers are hidden, typically added with
-                ``hide_columns``.
+                ``hide_columns``, or a boolean list for hidden levels.
               - "hide_index_names": whether index names are hidden.
               - "hide_column_names": whether column header names are hidden.
               - "css": the css class names used.
@@ -1833,8 +1833,16 @@ class Styler(StylerRenderer):
         self.set_table_attributes((table_attributes + " " + obj_table_atts).strip())
         if styles.get("table_styles"):
             self.set_table_styles(styles.get("table_styles"), overwrite=False)
-        self.hide_index_ = styles.get("hide_index", False)
-        self.hide_columns_ = styles.get("hide_columns", False)
+
+        for obj in ["index", "columns"]:
+            hide_obj = styles.get("hide_" + obj)
+            if hide_obj is not None:
+                if isinstance(hide_obj, bool):
+                    n = getattr(self, obj).nlevels
+                    setattr(self, "hide_" + obj + "_", [hide_obj] * n)
+                else:
+                    setattr(self, "hide_" + obj + "_", hide_obj)
+
         self.hide_index_names = styles.get("hide_index_names", False)
         self.hide_column_names = styles.get("hide_column_names", False)
         if styles.get("css"):
