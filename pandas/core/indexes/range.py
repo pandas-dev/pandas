@@ -712,6 +712,10 @@ class RangeIndex(NumericIndex):
             elif overlap[-1] == first[-1]:
                 # The difference is everything before the intersection
                 new_rng = range(first.start, overlap[0], first.step)
+            elif overlap._range == first[1:-1]:
+                # e.g. range(4) and range(1, 3)
+                step = len(first) - 1
+                new_rng = first[::step]
             else:
                 # The difference is not range-like
                 # e.g. range(1, 10, 1) and range(3, 7, 1)
