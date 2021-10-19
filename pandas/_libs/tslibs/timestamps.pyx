@@ -282,6 +282,7 @@ cdef class _Timestamp(ABCTimestamp):
     def __add__(self, other):
         cdef:
             int64_t nanos = 0
+        # In order to correctly handle DateOffset object with nanoseconds.
         if is_offset_object(other) and hasattr(other, "nanoseconds"):
             if other.n > 0:
                 nanos += other.nanoseconds
