@@ -1788,6 +1788,7 @@ class Styler(StylerRenderer):
             "hide_columns": self.hide_columns_,
             "hide_index_names": self.hide_index_names,
             "hide_column_names": self.hide_column_names,
+            "css": self.css,
         }
 
     def use(self, styles: dict[str, Any]) -> Styler:
@@ -1804,14 +1805,15 @@ class Styler(StylerRenderer):
                 ``applymap``.
               - "table_attributes": HTML attributes, typically added with
                 ``set_table_attributes``.
-              - "table_styles": CSS seelctors and properties, typically added with
+              - "table_styles": CSS selectors and properties, typically added with
                 ``set_table_styles``.
               - "hide_index":  whether the index is hidden, typically added with
                 ``hide_index``.
               - "hide_columns": whether column headers are hidden, typically added with
                 ``hide_columns``.
               - "hide_index_names": whether index names are hidden.
-              - "hide_column_names" whether column header names are hidden.
+              - "hide_column_names": whether column header names are hidden.
+              - "css": the css class names used.
 
         Returns
         -------
@@ -1835,6 +1837,8 @@ class Styler(StylerRenderer):
         self.hide_columns_ = styles.get("hide_columns", False)
         self.hide_index_names = styles.get("hide_index_names", False)
         self.hide_column_names = styles.get("hide_column_names", False)
+        if styles.get("css"):
+            self.css = styles.get("css")
         return self
 
     def set_uuid(self, uuid: str) -> Styler:
