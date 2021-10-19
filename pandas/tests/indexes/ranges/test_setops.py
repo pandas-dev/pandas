@@ -6,13 +6,13 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas import (
+import pandas._testing as tm
+from pandas.core.indexes.api import (
     Index,
     Int64Index,
     RangeIndex,
     UInt64Index,
 )
-import pandas._testing as tm
 
 
 class TestRangeIndexSetOps:
@@ -75,17 +75,17 @@ class TestRangeIndexSetOps:
         other = RangeIndex(1, 6)
         result = index.intersection(other, sort=sort)
         expected = Index(np.sort(np.intersect1d(index.values, other.values)))
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact="equiv")
 
         # intersect with decreasing RangeIndex
         other = RangeIndex(5, 0, -1)
         result = index.intersection(other, sort=sort)
         expected = Index(np.sort(np.intersect1d(index.values, other.values)))
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact="equiv")
 
         # reversed (GH 17296)
         result = other.intersection(index, sort=sort)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact="equiv")
 
         # GH 17296: intersect two decreasing RangeIndexes
         first = RangeIndex(10, -2, -2)
@@ -286,9 +286,18 @@ class TestRangeIndexSetOps:
         tm.assert_index_equal(res1, expected_notsorted, exact=True)
 
         res2 = idx2.union(idx1, sort=None)
-        res3 = idx1._int64index.union(idx2, sort=None)
+        res3 = Int64Index(idx1._values, name=idx1.name).union(idx2, sort=None)
         tm.assert_index_equal(res2, expected_sorted, exact=True)
-        tm.assert_index_equal(res3, expected_sorted)
+        tm.assert_index_equal(res3, expected_sorted, exact="equiv")
+
+    def test_union_same_step_misaligned(self):
+        # GH#44019
+        left = RangeIndex(range(0, 20, 4))
+        right = RangeIndex(range(1, 21, 4))
+
+        result = left.union(right)
+        expected = Int64Index([0, 1, 4, 5, 8, 9, 12, 13, 16, 17])
+        tm.assert_index_equal(result, expected, exact=True)
 
     def test_difference(self):
         # GH#12034 Cases where we operate against another RangeIndex and may
@@ -308,25 +317,53 @@ class TestRangeIndexSetOps:
         result = obj.difference(obj[-3:])
         tm.assert_index_equal(result, obj[:-3], exact=True)
 
+        # Flipping the step of 'other' doesn't affect the result, but
+        #  flipping the stepof 'self' does when sort=None
         result = obj[::-1].difference(obj[-3:])
+        tm.assert_index_equal(result, obj[:-3], exact=True)
+
+        result = obj[::-1].difference(obj[-3:], sort=False)
         tm.assert_index_equal(result, obj[:-3][::-1], exact=True)
 
         result = obj[::-1].difference(obj[-3:][::-1])
+        tm.assert_index_equal(result, obj[:-3], exact=True)
+
+        result = obj[::-1].difference(obj[-3:][::-1], sort=False)
         tm.assert_index_equal(result, obj[:-3][::-1], exact=True)
 
         result = obj.difference(obj[2:6])
         expected = Int64Index([1, 2, 7, 8, 9], name="foo")
         tm.assert_index_equal(result, expected)
 
+    def test_difference_sort(self):
+        # GH#44085 ensure we respect the sort keyword
+
+        idx = Index(range(4))[::-1]
+        other = Index(range(3, 4))
+
+        result = idx.difference(other)
+        expected = Index(range(3))
+        tm.assert_index_equal(result, expected, exact=True)
+
+        result = idx.difference(other, sort=False)
+        expected = expected[::-1]
+        tm.assert_index_equal(result, expected, exact=True)
+
+        # case where the intersection is empty
+        other = range(10, 12)
+        result = idx.difference(other, sort=None)
+        expected = idx[::-1]
+        tm.assert_index_equal(result, expected, exact=True)
+
     def test_difference_mismatched_step(self):
         obj = RangeIndex.from_range(range(1, 10), name="foo")
 
         result = obj.difference(obj[::2])
-        expected = obj[1::2]._int64index
+        expected = Int64Index(obj[1::2]._values, name=obj.name)
         tm.assert_index_equal(result, expected, exact=True)
 
         result = obj.difference(obj[1::2])
-        expected = obj[::2]._int64index
+        expected = Int64Index(obj[::2]._values, name=obj.name)
         tm.assert_index_equal(result, expected, exact=True)
 
     def test_symmetric_difference(self):
@@ -353,18 +390,4 @@ class TestRangeIndexSetOps:
 
         result = left.symmetric_difference(right[1:])
         expected = Int64Index([1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14])
-        tm.assert_index_equal(result, expected)
-
-    def test_putmask_range_cast(self):
-        # GH#43240
-        idx = RangeIndex(0, 5, name="test")
-        result = idx.putmask(np.array([True, True, False, False, False]), 10)
-        expected = Index([10, 10, 2, 3, 4], name="test")
-        tm.assert_index_equal(result, expected)
-
-    def test_where_range_cast(self):
-        # GH#43240
-        idx = RangeIndex(0, 5, name="test")
-        result = idx.where(np.array([False, False, True, True, True]), 10)
-        expected = Index([10, 10, 2, 3, 4], name="test")
         tm.assert_index_equal(result, expected)

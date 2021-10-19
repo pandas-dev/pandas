@@ -13,7 +13,10 @@ from pandas._libs import (
     algos as libalgos,
     lib,
 )
-from pandas._typing import ArrayLike
+from pandas._typing import (
+    ArrayLike,
+    npt,
+)
 
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.common import (
@@ -110,7 +113,7 @@ def take_nd(
 
 def _take_nd_ndarray(
     arr: np.ndarray,
-    indexer,
+    indexer: npt.NDArray[np.intp] | None,
     axis: int,
     fill_value,
     allow_fill: bool,
@@ -122,7 +125,7 @@ def _take_nd_ndarray(
     else:
         indexer = ensure_platform_int(indexer)
 
-    indexer, dtype, fill_value, mask_info = _take_preprocess_indexer_and_fill_value(
+    dtype, fill_value, mask_info = _take_preprocess_indexer_and_fill_value(
         arr, indexer, fill_value, allow_fill
     )
 
@@ -160,7 +163,7 @@ def _take_nd_ndarray(
 
 def take_1d(
     arr: ArrayLike,
-    indexer: np.ndarray,
+    indexer: npt.NDArray[np.intp],
     fill_value=None,
     allow_fill: bool = True,
 ) -> ArrayLike:
@@ -168,7 +171,7 @@ def take_1d(
     Specialized version for 1D arrays. Differences compared to `take_nd`:
 
     - Assumes input array has already been converted to numpy array / EA
-    - Assumes indexer is already guaranteed to be int64 dtype ndarray
+    - Assumes indexer is already guaranteed to be intp dtype ndarray
     - Only works for 1D arrays
 
     To ensure the lowest possible overhead.
@@ -176,6 +179,8 @@ def take_1d(
     Note: similarly to `take_nd`, this function assumes that the indexer is
     a valid(ated) indexer with no out of bound indices.
     """
+    indexer = ensure_platform_int(indexer)
+
     if not isinstance(arr, np.ndarray):
         # ExtensionArray -> dispatch to their method
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
@@ -183,7 +188,7 @@ def take_1d(
     if not allow_fill:
         return arr.take(indexer)
 
-    indexer, dtype, fill_value, mask_info = _take_preprocess_indexer_and_fill_value(
+    dtype, fill_value, mask_info = _take_preprocess_indexer_and_fill_value(
         arr, indexer, fill_value, True
     )
 
@@ -200,7 +205,9 @@ def take_1d(
 
 
 def take_2d_multi(
-    arr: np.ndarray, indexer: tuple[np.ndarray, np.ndarray], fill_value=np.nan
+    arr: np.ndarray,
+    indexer: tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]],
+    fill_value=np.nan,
 ) -> np.ndarray:
     """
     Specialized Cython take which sets NaN values in one pass.
@@ -249,6 +256,7 @@ def take_2d_multi(
     if func is not None:
         func(arr, indexer, out=out, fill_value=fill_value)
     else:
+        # test_reindex_multi
         _take_2d_multi_object(
             arr, indexer, out, fill_value=fill_value, mask_info=mask_info
         )
@@ -365,6 +373,9 @@ _take_1d_dict = {
     ("datetime64[ns]", "datetime64[ns]"): _view_wrapper(
         libalgos.take_1d_int64_int64, np.int64, np.int64, np.int64
     ),
+    ("timedelta64[ns]", "timedelta64[ns]"): _view_wrapper(
+        libalgos.take_1d_int64_int64, np.int64, np.int64, np.int64
+    ),
 }
 
 _take_2d_axis0_dict = {
@@ -392,6 +403,9 @@ _take_2d_axis0_dict = {
         libalgos.take_2d_axis0_bool_object, np.uint8, None
     ),
     ("datetime64[ns]", "datetime64[ns]"): _view_wrapper(
+        libalgos.take_2d_axis0_int64_int64, np.int64, np.int64, fill_wrap=np.int64
+    ),
+    ("timedelta64[ns]", "timedelta64[ns]"): _view_wrapper(
         libalgos.take_2d_axis0_int64_int64, np.int64, np.int64, fill_wrap=np.int64
     ),
 }
@@ -423,6 +437,9 @@ _take_2d_axis1_dict = {
     ("datetime64[ns]", "datetime64[ns]"): _view_wrapper(
         libalgos.take_2d_axis1_int64_int64, np.int64, np.int64, fill_wrap=np.int64
     ),
+    ("timedelta64[ns]", "timedelta64[ns]"): _view_wrapper(
+        libalgos.take_2d_axis1_int64_int64, np.int64, np.int64, fill_wrap=np.int64
+    ),
 }
 
 _take_2d_multi_dict = {
@@ -452,12 +469,15 @@ _take_2d_multi_dict = {
     ("datetime64[ns]", "datetime64[ns]"): _view_wrapper(
         libalgos.take_2d_multi_int64_int64, np.int64, np.int64, fill_wrap=np.int64
     ),
+    ("timedelta64[ns]", "timedelta64[ns]"): _view_wrapper(
+        libalgos.take_2d_multi_int64_int64, np.int64, np.int64, fill_wrap=np.int64
+    ),
 }
 
 
 def _take_nd_object(
     arr: np.ndarray,
-    indexer: np.ndarray,  # np.ndarray[np.intp]
+    indexer: npt.NDArray[np.intp],
     out: np.ndarray,
     axis: int,
     fill_value,
@@ -480,7 +500,7 @@ def _take_nd_object(
 
 def _take_2d_multi_object(
     arr: np.ndarray,
-    indexer: tuple[np.ndarray, np.ndarray],
+    indexer: tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]],
     out: np.ndarray,
     fill_value,
     mask_info,
@@ -509,7 +529,7 @@ def _take_2d_multi_object(
 
 def _take_preprocess_indexer_and_fill_value(
     arr: np.ndarray,
-    indexer: np.ndarray,
+    indexer: npt.NDArray[np.intp],
     fill_value,
     allow_fill: bool,
 ):
@@ -533,5 +553,4 @@ def _take_preprocess_indexer_and_fill_value(
                 # to crash when trying to cast it to dtype)
                 dtype, fill_value = arr.dtype, arr.dtype.type()
 
-    indexer = ensure_platform_int(indexer)
-    return indexer, dtype, fill_value, mask_info
+    return dtype, fill_value, mask_info

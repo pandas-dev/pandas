@@ -242,6 +242,14 @@ def keep(request):
     return request.param
 
 
+@pytest.fixture(params=["both", "neither", "left", "right"])
+def inclusive_endpoints_fixture(request):
+    """
+    Fixture for trying all interval 'inclusive' parameters.
+    """
+    return request.param
+
+
 @pytest.fixture(params=["left", "right", "both", "neither"])
 def closed(request):
     """
@@ -323,6 +331,19 @@ def unique_nulls_fixture(request):
 
 # Generate cartesian product of unique_nulls_fixture:
 unique_nulls_fixture2 = unique_nulls_fixture
+
+
+@pytest.fixture(params=tm.NP_NAT_OBJECTS, ids=lambda x: type(x).__name__)
+def np_nat_fixture(request):
+    """
+    Fixture for each NaT type in numpy.
+    """
+    return request.param
+
+
+# Generate cartesian product of np_nat_fixture:
+np_nat_fixture2 = np_nat_fixture
+
 
 # ----------------------------------------------------------------
 # Classes
