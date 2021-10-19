@@ -15,7 +15,10 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import index as libindex
+from pandas._libs import (
+    index as libindex,
+    lib,
+)
 from pandas._libs.lib import no_default
 from pandas._typing import (
     Dtype,
@@ -680,7 +683,10 @@ class RangeIndex(NumericIndex):
             overlap = overlap[::-1]
 
         if len(overlap) == 0:
-            return self.rename(name=res_name)
+            result = self.rename(name=res_name)
+            if sort is None and self.step < 0:
+                result = result[::-1]
+            return result
         if len(overlap) == len(self):
             return self[:0].rename(res_name)
         if not isinstance(overlap, RangeIndex):
@@ -704,6 +710,9 @@ class RangeIndex(NumericIndex):
         new_index = type(self)._simple_new(new_rng, name=res_name)
         if first is not self._range:
             new_index = new_index[::-1]
+
+        if sort is None and new_index.step < 0:
+            new_index = new_index[::-1]
         return new_index
 
     def symmetric_difference(self, other, result_name: Hashable = None, sort=None):
@@ -720,9 +729,41 @@ class RangeIndex(NumericIndex):
 
     # --------------------------------------------------------------------
 
+    # error: Return type "Index" of "delete" incompatible with return type
+    #  "RangeIndex" in supertype "Index"
+    def delete(self, loc) -> Index:  # type: ignore[override]
+        # In some cases we can retain RangeIndex, see also
+        #  DatetimeTimedeltaMixin._get_delete_Freq
+        if is_integer(loc):
+            if loc == 0 or loc == -len(self):
+                return self[1:]
+            if loc == -1 or loc == len(self) - 1:
+                return self[:-1]
+
+        elif lib.is_list_like(loc):
+            slc = lib.maybe_indices_to_slice(np.asarray(loc, dtype=np.intp), len(self))
+            if isinstance(slc, slice) and slc.step is not None and slc.step < 0:
+                rng = range(len(self))[slc][::-1]
+                slc = slice(rng.start, rng.stop, rng.step)
+
+            if isinstance(slc, slice) and slc.step in [1, None]:
+                # Note: maybe_indices_to_slice will never return a slice
+                #  with 'slc.start is None'; may have slc.stop None in cases
+                #  with negative step
+                if slc.start == 0:
+                    return self[slc.stop :]
+                elif slc.stop in [len(self), None]:
+                    return self[: slc.start]
+
+                # TODO: more generally, self.difference(self[slc]),
+                #  once _difference is better about retaining RangeIndex
+
+        return super().delete(loc)
+
     def insert(self, loc: int, item) -> Index:
         if len(self) and (is_integer(item) or is_float(item)):
-            # We can retain RangeIndex is inserting at the beginning or end
+            # We can retain RangeIndex is inserting at the beginning or end,
+            #  or right in the middle.
             rng = self._range
             if loc == 0 and item == self[0] - self.step:
                 new_rng = range(rng.start - rng.step, rng.stop, rng.step)
@@ -730,6 +771,12 @@ class RangeIndex(NumericIndex):
 
             elif loc == len(self) and item == self[-1] + self.step:
                 new_rng = range(rng.start, rng.stop + rng.step, rng.step)
+                return type(self)._simple_new(new_rng, name=self.name)
+
+            elif len(self) == 2 and item == self[0] + self.step / 2:
+                # e.g. inserting 1 into [0, 2]
+                step = int(self.step / 2)
+                new_rng = range(self.start, self.stop, step)
                 return type(self)._simple_new(new_rng, name=self.name)
 
         return super().insert(loc, item)
