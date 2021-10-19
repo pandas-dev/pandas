@@ -264,7 +264,7 @@ cdef class IndexEngine:
         return algos.is_monotonic(values, timelike=False)
 
     cdef _make_hash_table(self, Py_ssize_t n):
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
     cdef _check_type(self, object val):
         hash(val)
@@ -315,14 +315,14 @@ cdef class IndexEngine:
         missing : np.ndarray[np.intp]
         """
         cdef:
-            ndarray values, x
+            ndarray values
             ndarray[intp_t] result, missing
-            set stargets, remaining_stargets
+            set stargets, remaining_stargets, found_nas
             dict d = {}
             object val
             Py_ssize_t count = 0, count_missing = 0
             Py_ssize_t i, j, n, n_t, n_alloc, start, end
-            bint d_has_nan = False, stargets_has_nan = False, need_nan_check = True
+            bint check_na_values = False
 
         values = self.values
         stargets = set(targets)
@@ -357,33 +357,58 @@ cdef class IndexEngine:
         if stargets:
             # otherwise, map by iterating through all items in the index
 
+            # short-circuit na check
+            if values.dtype == object:
+                check_na_values = True
+                # keep track of nas in values
+                found_nas = set()
+
             for i in range(n):
                 val = values[i]
+
+                # GH#43870
+                # handle lookup for nas
+                # (ie. np.nan, float("NaN"), Decimal("NaN"), dt64nat, td64nat)
+                if check_na_values and checknull(val):
+                    match = [na for na in found_nas if is_matching_na(val, na)]
+
+                    # matching na not found
+                    if not len(match):
+                        found_nas.add(val)
+
+                        # add na to stargets to utilize `in` for stargets/d lookup
+                        match_stargets = [
+                            x for x in stargets if is_matching_na(val, x)
+                        ]
+
+                        if len(match_stargets):
+                            # add our 'standardized' na
+                            stargets.add(val)
+
+                    # matching na found
+                    else:
+                        assert len(match) == 1
+                        val = match[0]
+
                 if val in stargets:
                     if val not in d:
                         d[val] = []
                     d[val].append(i)
 
-                elif util.is_nan(val):
-                    # GH#35392
-                    if need_nan_check:
-                        # Do this check only once
-                        stargets_has_nan = any(util.is_nan(val) for x in stargets)
-                        need_nan_check = False
-
-                    if stargets_has_nan:
-                        if not d_has_nan:
-                            # use a canonical nan object
-                            d[np.nan] = []
-                            d_has_nan = True
-                        d[np.nan].append(i)
-
         for i in range(n_t):
             val = targets[i]
 
+            # ensure there are nas in values before looking for a matching na
+            if check_na_values and checknull(val):
+                match = [na for na in found_nas if is_matching_na(val, na)]
+                if len(match):
+                    assert len(match) == 1
+                    val = match[0]
+
             # found
-            if val in d or (d_has_nan and util.is_nan(val)):
-                key = val if not util.is_nan(val) else np.nan
+            if val in d:
+                key = val
+
                 for j in d[key]:
 
                     # realloc if needed
@@ -607,7 +632,7 @@ cdef class BaseMultiIndexCodesEngine:
         self._base.__init__(self, lab_ints)
 
     def _codes_to_ints(self, ndarray[uint64_t] codes) -> np.ndarray:
-        raise NotImplementedError("Implemented by subclass")
+        raise NotImplementedError("Implemented by subclass")  # pragma: no cover
 
     def _extract_level_codes(self, target) -> np.ndarray:
         """

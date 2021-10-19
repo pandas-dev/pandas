@@ -79,7 +79,6 @@ class StylerRenderer:
         caption: str | tuple | None = None,
         cell_ids: bool = True,
         precision: int | None = None,
-        css: dict | None = None,
     ):
 
         # validate ordered args
@@ -113,8 +112,6 @@ class StylerRenderer:
             "descriptor_value": "descriptor_value",
             "descriptor_name": "descriptor_name",
         }
-        if css is not None:
-            self.css = {**self.css, **css}  # overwrite default with optional changes
 
         # add rendering variables
         self.hide_index_names: bool = False
@@ -237,7 +234,7 @@ class StylerRenderer:
         # construct render dict
         d = {
             "uuid": self.uuid,
-            "table_styles": _format_table_styles(self.table_styles or []),
+            "table_styles": format_table_styles(self.table_styles or []),
             "caption": self.caption,
         }
 
@@ -506,7 +503,7 @@ class StylerRenderer:
                 header_element_visible = True
                 try:
                     header_element_value = func(self.data[col])
-                except:
+                except Exception:
                     header_element_value = self.css["blank_value"]
             else:
                 header_element_visible = False
@@ -1369,7 +1366,7 @@ def _is_visible(idx_row, idx_col, lengths) -> bool:
     return (idx_col, idx_row) in lengths
 
 
-def _format_table_styles(styles: CSSStyles) -> CSSStyles:
+def format_table_styles(styles: CSSStyles) -> CSSStyles:
     """
     looks for multiple CSS selectors and separates them:
     [{'selector': 'td, th', 'props': 'a:v;'}]

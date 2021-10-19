@@ -338,7 +338,7 @@ cpdef Py_ssize_t slice_len(slice slc, Py_ssize_t objlen=PY_SSIZE_T_MAX) except -
         Py_ssize_t start, stop, step, length
 
     if slc is None:
-        raise TypeError("slc must be slice")
+        raise TypeError("slc must be slice")  # pragma: no cover
 
     PySlice_GetIndicesEx(slc, objlen, &start, &stop, &step, &length)
 
@@ -358,7 +358,7 @@ cdef (Py_ssize_t, Py_ssize_t, Py_ssize_t, Py_ssize_t) slice_get_indices_ex(
         Py_ssize_t start, stop, step, length
 
     if slc is None:
-        raise TypeError("slc should be a slice")
+        raise TypeError("slc should be a slice")  # pragma: no cover
 
     PySlice_GetIndicesEx(slc, objlen, &start, &stop, &step, &length)
 
@@ -408,7 +408,7 @@ cdef slice indexer_as_slice(intp_t[:] vals):
         int64_t d
 
     if vals is None:
-        raise TypeError("vals must be ndarray")
+        raise TypeError("vals must be ndarray")  # pragma: no cover
 
     n = vals.shape[0]
 
@@ -772,7 +772,7 @@ cdef class BlockManager:
             self.blocks = blocks
             self.axes = axes
 
-        else:
+        else:  # pragma: no cover
             raise NotImplementedError("pre-0.14.1 pickles are no longer supported")
 
         self._post_setstate()

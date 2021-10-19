@@ -486,8 +486,7 @@ def test_replaced_css_class_names(styler_mi):
     styler_mi = Styler(
         DataFrame(np.arange(16).reshape(4, 4), index=midx, columns=midx),
         uuid_len=0,
-        css_class_names=css,
-    )
+    ).set_table_styles(css_class_names=css)
     styler_mi.index.names = ["n1", "n2"]
     styler_mi.hide_index(styler_mi.index[1:])
     styler_mi.hide_columns(styler_mi.columns[1:])
