@@ -531,7 +531,7 @@ class TestRangeIndex(NumericBase):
         expected = np.array([True, False])
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_sort_value_key(self):
+    def test_sort_values_key(self):
         # GH#43666
         sort_order = {8: 2, 6: 0, 4: 8, 2: 10, 0: 12}
         values = RangeIndex(0, 10, 2)
