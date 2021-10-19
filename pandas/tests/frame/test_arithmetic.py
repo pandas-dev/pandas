@@ -1882,3 +1882,18 @@ def test_frame_op_subclass_nonclass_constructor():
 
     result = sdf + sdf
     tm.assert_frame_equal(result, expected)
+
+
+def test_broadcast_multiindex():
+    # GH34388
+    df1 = DataFrame({"A": [0, 1, 2], "B": [1, 2, 3]})
+    df1.columns.set_names("L1", inplace=True)
+
+    df2 = DataFrame({("A", "C"): [0, 0, 0], ("A", "D"): [0, 0, 0]})
+    df2.columns.set_names(["L1", "L2"], inplace=True)
+
+    result = df1.add(df2)
+    expected = DataFrame({("A", "C"): [0, 1, 2], ("A", "D"): [0, 1, 2]})
+    expected.columns.set_names(["L1", "L2"], inplace=True)
+
+    tm.assert_frame_equal(result, expected)
