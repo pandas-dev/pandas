@@ -1,6 +1,9 @@
 import pytest
 
-from pandas import Series
+from pandas import (
+    DataFrame,
+    Series,
+)
 
 pytest.importorskip("matplotlib")
 from pandas.plotting._matplotlib.style import get_standard_colors
@@ -157,3 +160,14 @@ class TestGetStandardColors:
     def test_bad_color_raises(self, color):
         with pytest.raises(ValueError, match="Invalid color"):
             get_standard_colors(color=color, num_colors=5)
+
+
+class TestDefaultMplStyleParams:
+    @pytest.mark.parametrize("rcGrid", [True, False])
+    def test_mplback_df_plot_by_default_use_axes_grid_from_rcparams(self, rcGrid):
+        import matplotlib as mpl
+
+        # GH 3188
+        mpl.rcParams["axes.grid"] = rcGrid
+        ax = DataFrame([1, 2, 3, 4, 5]).plot()
+        assert mpl.rcParams["axes.grid"] == ax._gridOn
