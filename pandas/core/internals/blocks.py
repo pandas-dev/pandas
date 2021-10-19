@@ -933,7 +933,7 @@ class Block(PandasObject):
         if transpose:
             values = values.T
 
-        indexer, value = mask_setitem_value(indexer, value, len(values))
+        indexer, value = mask_setitem_value(indexer, value, values.shape)
 
         # length checking
         check_setitem_lengths(indexer, value, values)
@@ -975,6 +975,9 @@ class Block(PandasObject):
 
         pi = indexer[0]
         values = self.values
+
+        indexer, value = mask_setitem_value(indexer, value, values.shape)
+
         if not isinstance(self, ExtensionBlock):
             # includes DatetimeArray, TimedeltaArray
             blkloc = indexer[1]

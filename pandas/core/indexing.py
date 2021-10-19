@@ -11,6 +11,7 @@ import numpy as np
 
 from pandas._libs.indexing import NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
+from pandas._typing import Shape
 from pandas.errors import (
     AbstractMethodError,
     InvalidIndexError,
@@ -56,7 +57,6 @@ from pandas.core.indexes.api import (
     Index,
     MultiIndex,
 )
-from pandas.core.internals import ArrayManager
 
 if TYPE_CHECKING:
     from pandas import (
@@ -1688,6 +1688,8 @@ class _iLocIndexer(_LocationIndexer):
             # FIXME: kludge
             return self._setitem_single_block(orig, value, name)
 
+        from pandas.core.internals import ArrayManager
+
         if (
             com.is_null_slice(info_idx)
             and is_scalar(value)
@@ -1844,7 +1846,13 @@ class _iLocIndexer(_LocationIndexer):
 
         else:
             # TODO: not totally clear why we are requiring this
+            # Need so that we raise in test_multiindex_setitem
             self._align_frame(indexer[0], value)
+
+            if com.is_bool_indexer(indexer[0]) and indexer[0].sum() == len(value):
+                # TODO: better place for this?
+                pi = indexer[0].nonzero()[0]
+                sub_indexer[0] = pi
 
             for loc in ilocs:
                 item = self.obj.columns[loc]
@@ -1869,7 +1877,7 @@ class _iLocIndexer(_LocationIndexer):
             The indexer we use for setitem along axis=0.
         """
         pi = plane_indexer
-        pi, value = mask_setitem_value(pi, value, len(self.obj))
+        pi, value = mask_setitem_value(pi, value, (len(self.obj),))
 
         ser = self.obj._ixs(loc, axis=1)
 
@@ -1901,6 +1909,8 @@ class _iLocIndexer(_LocationIndexer):
 
     def _setitem_iat_loc(self, loc: int, pi, value):
         # TODO: likely a BM method?
+        from pandas.core.internals import ArrayManager
+
         if isinstance(self.obj._mgr, ArrayManager):
             # TODO: implement this correctly for ArrayManager
             return self._setitem_single_column(loc, value, pi)
@@ -2494,13 +2504,13 @@ def need_slice(obj: slice) -> bool:
     )
 
 
-def mask_setitem_value(indexer, value, length: int):
+def mask_setitem_value(indexer, value, shape: Shape):
     """
     Convert a boolean indexer to a positional indexer, masking `value` if necessary.
     """
     if com.is_bool_indexer(indexer):
         indexer = np.asarray(indexer).nonzero()[0]
-        if is_list_like(value) and len(value) == length:
+        if is_list_like(value) and len(value) == shape[0]:
             if not is_array_like(value):
                 value = [value[n] for n in indexer]
             else:
@@ -2512,7 +2522,14 @@ def mask_setitem_value(indexer, value, length: int):
             if com.is_bool_indexer(key):
                 new_key = np.asarray(key).nonzero()[0]
                 indexer[i] = new_key
-                # TODO: sometimes need to do take on the value?
+
+                if is_list_like(value) and len(value) == shape[i]:
+                    # FIXME: assuming value.ndim == 1 here?
+                    # FIXME: assuming non-i tuple member is scalar?
+                    if not is_array_like(value):
+                        value = [value[n] for n in new_key]
+                    else:
+                        value = value[new_key]
 
         indexer = tuple(indexer)
     return indexer, value
