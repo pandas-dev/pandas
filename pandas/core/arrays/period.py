@@ -514,7 +514,12 @@ class PeriodArray(dtl.DatelikeOps):
             #  len(self) is too small for infer_freq to distinguish between them
             diffs = libalgos.unique_deltas(self.asi8)
             if len(diffs) == 1:
-                dta._freq = self.freq
+                diff = diffs[0]
+                if diff == self.freq.n:
+                    dta._freq = self.freq
+                elif diff == 1:
+                    dta._freq = self.freq.base
+                # TODO: other cases?
             return dta
         else:
             return dta._with_freq("infer")

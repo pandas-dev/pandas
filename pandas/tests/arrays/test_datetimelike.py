@@ -1120,6 +1120,11 @@ class TestPeriodArray(SharedTests):
         assert result2.freq == "2B"
         tm.assert_extension_array_equal(result2, dta2)
 
+        parr3 = dta.to_period("2B")
+        result3 = parr3.to_timestamp()
+        assert result3.freq == "B"
+        tm.assert_extension_array_equal(result3, dta)
+
     def test_to_timestamp_out_of_bounds(self):
         # GH#19643 previously overflowed silently
         pi = pd.period_range("1500", freq="Y", periods=3)
