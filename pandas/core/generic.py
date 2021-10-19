@@ -10169,6 +10169,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             The number of consecutive NAs to fill before stopping.
         freq : DateOffset, timedelta, or str, optional
             Increment to use from time series API (e.g. 'M' or BDay()).
+        non_zero_reference : bool, default False
+            Divides the change by the absolute of the reference value.
+            Use if there exists a mixture of positive and negative values.
         **kwargs
             Additional keyword arguments are passed into
             `DataFrame.shift` or `Series.shift`.
@@ -10189,23 +10192,37 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         --------
         **Series**
 
-        >>> s = pd.Series([90, 91, 85])
+        >>> s = pd.Series([90, 91, 85, -10, 10])
         >>> s
         0    90
         1    91
         2    85
+        3   -10
+        4    10
         dtype: int64
 
         >>> s.pct_change()
         0         NaN
         1    0.011111
         2   -0.065934
+        3   -1.117647
+        4   -2.000000
         dtype: float64
 
         >>> s.pct_change(periods=2)
         0         NaN
         1         NaN
         2   -0.055556
+        3   -1.109890
+        4   -0.882353
+        dtype: float64
+
+        >>> s.pct_change(non_zero_reference=True)
+        0         NaN
+        1    0.011111
+        2   -0.065934
+        3   -1.117647
+        4    2.000000
         dtype: float64
 
         See the percentage change in a Series where filling NAs with last
