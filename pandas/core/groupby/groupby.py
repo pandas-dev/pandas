@@ -3256,7 +3256,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def pct_change(self, periods=1, fill_method="pad", limit=None, freq=None, non_zero_reference=False, axis=0):
+    def pct_change(
+        self,
+        periods=1,
+        fill_method="pad",
+        limit=None,
+        freq=None,
+        non_zero_reference=False,
+        axis=0
+    ):
         """
         Calculate pct_change of each value to previous entry in group.
 
