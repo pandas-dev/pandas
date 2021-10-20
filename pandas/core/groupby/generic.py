@@ -1536,6 +1536,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             result = [index[i] if i >= 0 else np.nan for i in indices]
             return df._constructor_sliced(result, index=res.index)
 
+        func.__name__ = "idxmax"
         return self._python_apply_general(func, self._obj_with_exclusions)
 
     @Appender(DataFrame.idxmin.__doc__)
@@ -1557,6 +1558,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             result = [index[i] if i >= 0 else np.nan for i in indices]
             return df._constructor_sliced(result, index=res.index)
 
+        func.__name__ = "idxmin"
         return self._python_apply_general(func, self._obj_with_exclusions)
 
     boxplot = boxplot_frame_groupby
