@@ -121,7 +121,6 @@ dtypes = {
 @pytest.mark.parametrize("name1,dtype1", list(dtypes.items()), ids=lambda x: str(x))
 @pytest.mark.parametrize("name2,dtype2", list(dtypes.items()), ids=lambda x: str(x))
 def test_dtype_equal(name1, dtype1, name2, dtype2):
-
     # match equal to self, but not equal to other
     assert com.is_dtype_equal(dtype1, dtype1)
     if name1 != name2:
@@ -137,8 +136,8 @@ def test_dtype_equal(name1, dtype1, name2, dtype2):
         (np.float32, np.float64),
         (PeriodDtype("D"), PeriodDtype("2D")),  # PeriodType
         (
-            com.pandas_dtype("datetime64[ns, US/Eastern]"),
-            com.pandas_dtype("datetime64[ns, CET]"),
+                com.pandas_dtype("datetime64[ns, US/Eastern]"),
+                com.pandas_dtype("datetime64[ns, CET]"),
         ),  # Datetime
         (None, None),  # gh-15941: no exception should be raised.
     ],
@@ -416,6 +415,10 @@ def test_is_int64_dtype(dtype):
 )
 def test_is_not_int64_dtype(dtype):
     assert not com.is_int64_dtype(dtype)
+
+
+def test_is_not_int64_case():
+    assert not pd.api.types.pandas_dtype("int64") == "Int64"
 
 
 def test_is_datetime64_any_dtype():
