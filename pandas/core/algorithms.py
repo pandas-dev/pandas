@@ -8,7 +8,9 @@ import operator
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
+    Hashable,
     Literal,
+    Sequence,
     Union,
     cast,
     final,
@@ -27,6 +29,7 @@ from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
     DtypeObj,
+    IndexLabel,
     Scalar,
     TakeIndexer,
     npt,
@@ -1255,10 +1258,12 @@ class SelectNFrame(SelectN):
     nordered : DataFrame
     """
 
-    def __init__(self, obj, n: int, keep: str, columns):
+    def __init__(self, obj: DataFrame, n: int, keep: str, columns: IndexLabel):
         super().__init__(obj, n, keep)
         if not is_list_like(columns) or isinstance(columns, tuple):
             columns = [columns]
+
+        columns = cast(Sequence[Hashable], columns)
         columns = list(columns)
         self.columns = columns
 
