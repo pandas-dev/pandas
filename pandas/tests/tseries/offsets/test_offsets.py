@@ -552,8 +552,6 @@ class TestDateOffset(Base):
         assert DateOffset(2) == 2 * DateOffset(1)
         assert DateOffset(2) == DateOffset(1) * 2
 
-        assert DateOffset(milliseconds=3) * 2 == DateOffset(milliseconds=3, n=2)
-
     @pytest.mark.parametrize("offset_type", list(liboffsets._relativedelta_kwds))
     def test_constructor(self, offset_type):
         DateOffset(**{offset_type: 2})
