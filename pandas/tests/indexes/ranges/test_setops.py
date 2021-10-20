@@ -386,6 +386,15 @@ class TestRangeIndexSetOps:
         assert expected.tolist() == [0, 3]
         tm.assert_index_equal(result, expected, exact=True)
 
+    def test_difference_endpoints_overlap_interior_preserved(self):
+        left = RangeIndex(-8, 20, 7)
+        right = RangeIndex(13, -9, -3)
+
+        result = left.difference(right)
+        expected = RangeIndex(-1, 13, 7)
+        assert expected.tolist() == [-1, 6]
+        tm.assert_index_equal(result, expected, exact=True)
+
     def test_difference_interior_non_preserving(self):
         # case with intersection of length 1 but RangeIndex is not preserved
         idx = Index(range(10))
