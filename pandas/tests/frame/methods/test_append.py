@@ -97,9 +97,11 @@ class TestDataFrameAppend:
         tm.assert_frame_equal(result, expected)
 
     def test_append_list_retain_index_name(self):
-        df = pd.DataFrame([[1,2],[3,4]],index = pd.Index(['a','b'],name='keepthisname'))
+        df = DataFrame(
+            [[1, 2], [3, 4]], index=pd.Index(["a", "b"], name="keepthisname")
+        )
 
-        serc = pd.Series([5,6],name='c')
+        serc = Series([5, 6], name="c")
 
         result = df.append([serc])
         expected = df.append(serc)
