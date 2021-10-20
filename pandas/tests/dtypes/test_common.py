@@ -20,6 +20,7 @@ from pandas.core.dtypes.missing import isna
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.api import types
 from pandas.arrays import SparseArray
 
 
@@ -136,8 +137,8 @@ def test_dtype_equal(name1, dtype1, name2, dtype2):
         (np.float32, np.float64),
         (PeriodDtype("D"), PeriodDtype("2D")),  # PeriodType
         (
-                com.pandas_dtype("datetime64[ns, US/Eastern]"),
-                com.pandas_dtype("datetime64[ns, CET]"),
+            com.pandas_dtype("datetime64[ns, US/Eastern]"),
+            com.pandas_dtype("datetime64[ns, CET]"),
         ),  # Datetime
         (None, None),  # gh-15941: no exception should be raised.
     ],
@@ -418,7 +419,7 @@ def test_is_not_int64_dtype(dtype):
 
 
 def test_is_not_int64_case():
-    assert not pd.api.types.pandas_dtype("int64") == "Int64"
+    assert not types.pandas_dtype("int64") == "Int64"
 
 
 def test_is_datetime64_any_dtype():
