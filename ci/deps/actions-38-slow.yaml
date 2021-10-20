@@ -5,7 +5,7 @@ dependencies:
   - python=3.8
 
   # tools
-  - cython>=0.29.21
+  - cython>=0.29.24
   - pytest>=6.0
   - pytest-cov
   - pytest-xdist>=1.31
@@ -13,7 +13,7 @@ dependencies:
 
   # pandas dependencies
   - beautifulsoup4
-  - fsspec>=0.7.4, <2021.6.0
+  - fsspec>=0.7.4
   - html5lib
   - lxml
   - matplotlib

@@ -9,12 +9,12 @@ from typing import (
 
 from pandas._typing import (
     Axis,
-    FrameOrSeries,
     WindowingRankType,
 )
 
 if TYPE_CHECKING:
     from pandas import DataFrame, Series
+    from pandas.core.generic import NDFrame
 
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
@@ -101,7 +101,7 @@ class Expanding(RollingAndExpandingMixin):
 
     def __init__(
         self,
-        obj: FrameOrSeries,
+        obj: NDFrame,
         min_periods: int = 1,
         center=None,
         axis: Axis = 0,
@@ -760,7 +760,7 @@ class ExpandingGroupby(BaseWindowGroupby, Expanding):
         GroupbyIndexer
         """
         window_indexer = GroupbyIndexer(
-            groupby_indicies=self._grouper.indices,
+            groupby_indices=self._grouper.indices,
             window_indexer=ExpandingIndexer,
         )
         return window_indexer
