@@ -1289,7 +1289,8 @@ class Block(PandasObject):
         new_values = new_values.T[mask]
         new_placement = new_placement[mask]
 
-        blocks = [new_block(new_values, placement=new_placement, ndim=2)]
+        bp = BlockPlacement(new_placement)
+        blocks = [new_block_2d(new_values, placement=bp)]
         return blocks, mask
 
     @final
@@ -1318,7 +1319,7 @@ class Block(PandasObject):
         assert is_list_like(qs)  # caller is responsible for this
 
         result = quantile_compat(self.values, np.asarray(qs._values), interpolation)
-        return new_block(result, placement=self._mgr_locs, ndim=2)
+        return new_block_2d(result, placement=self._mgr_locs)
 
 
 class EABackedBlock(Block):
@@ -1939,6 +1940,17 @@ def get_block_type(dtype: DtypeObj):
     else:
         cls = ObjectBlock
     return cls
+
+
+def new_block_2d(values: ArrayLike, placement: BlockPlacement):
+    # new_block specialized to case with
+    #  ndim=2
+    #  isinstance(placement, BlockPlacement)
+    #  check_ndim/ensure_block_shape already checked
+    klass = get_block_type(values.dtype)
+
+    values = maybe_coerce_values(values)
+    return klass(values, ndim=2, placement=placement)
 
 
 def new_block(values, placement, *, ndim: int) -> Block:

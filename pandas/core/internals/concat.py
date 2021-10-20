@@ -48,7 +48,7 @@ from pandas.core.internals.array_manager import (
 )
 from pandas.core.internals.blocks import (
     ensure_block_shape,
-    new_block,
+    new_block_2d,
 )
 from pandas.core.internals.managers import BlockManager
 
@@ -224,11 +224,11 @@ def concatenate_managers(
                 # _is_uniform_join_units ensures a single dtype, so
                 #  we can use np.concatenate, which is more performant
                 #  than concat_compat
-                values = np.concatenate(vals, axis=blk.ndim - 1)
+                values = np.concatenate(vals, axis=1)
             else:
                 # TODO(EA2D): special-casing not needed with 2D EAs
                 values = concat_compat(vals, axis=1)
-                values = ensure_block_shape(values, blk.ndim)
+                values = ensure_block_shape(values, ndim=2)
 
             values = ensure_wrapped_if_datetimelike(values)
 
@@ -240,7 +240,7 @@ def concatenate_managers(
         if fastpath:
             b = blk.make_block_same_class(values, placement=placement)
         else:
-            b = new_block(values, placement=placement, ndim=len(axes))
+            b = new_block_2d(values, placement=placement)
 
         blocks.append(b)
 
