@@ -3,6 +3,11 @@ from datetime import (
     timedelta,
 )
 
+from hypothesis import (
+    assume,
+    given,
+    strategies as st,
+)
 import numpy as np
 import pytest
 
@@ -359,11 +364,44 @@ class TestRangeIndexSetOps:
         obj = RangeIndex.from_range(range(1, 10), name="foo")
 
         result = obj.difference(obj[::2])
-        expected = Int64Index(obj[1::2]._values, name=obj.name)
+        expected = obj[1::2]
         tm.assert_index_equal(result, expected, exact=True)
 
+        result = obj[::-1].difference(obj[::2], sort=False)
+        tm.assert_index_equal(result, expected[::-1], exact=True)
+
         result = obj.difference(obj[1::2])
-        expected = Int64Index(obj[::2]._values, name=obj.name)
+        expected = obj[::2]
+        tm.assert_index_equal(result, expected, exact=True)
+
+        result = obj[::-1].difference(obj[1::2], sort=False)
+        tm.assert_index_equal(result, expected[::-1], exact=True)
+
+    def test_difference_interior_non_preserving(self):
+        # case with intersection of length 1 but RangeIndex is not preserved
+        idx = Index(range(10))
+
+        other = idx[3:4]
+        result = idx.difference(other)
+        expected = Int64Index([0, 1, 2, 4, 5, 6, 7, 8, 9])
+        tm.assert_index_equal(result, expected, exact=True)
+
+        # case with other.step / self.step > 2
+        other = idx[::3]
+        result = idx.difference(other)
+        expected = Int64Index([1, 2, 4, 5, 7, 8])
+        tm.assert_index_equal(result, expected, exact=True)
+
+        # cases with only reaching one end of left
+        obj = Index(range(20))
+        other = obj[:10:2]
+        result = obj.difference(other)
+        expected = Int64Index([1, 3, 5, 7, 9] + list(range(10, 20)))
+        tm.assert_index_equal(result, expected, exact=True)
+
+        other = obj[1:11:2]
+        result = obj.difference(other)
+        expected = Int64Index([0, 2, 4, 6, 8, 10] + list(range(11, 20)))
         tm.assert_index_equal(result, expected, exact=True)
 
     def test_symmetric_difference(self):
@@ -391,3 +429,44 @@ class TestRangeIndexSetOps:
         result = left.symmetric_difference(right[1:])
         expected = Int64Index([1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14])
         tm.assert_index_equal(result, expected)
+
+
+def assert_range_or_not_is_rangelike(index):
+    """
+    Check that we either have a RangeIndex or that this index *cannot*
+    be represented as a RangeIndex.
+    """
+    if not isinstance(index, RangeIndex) and len(index) > 0:
+        diff = index[:-1] - index[1:]
+        assert not (diff == diff[0]).all()
+
+
+@given(
+    st.integers(-20, 20),
+    st.integers(-20, 20),
+    st.integers(-20, 20),
+    st.integers(-20, 20),
+    st.integers(-20, 20),
+    st.integers(-20, 20),
+)
+def test_range_difference(start1, stop1, step1, start2, stop2, step2):
+    # test that
+    #  a) we match Int64Index.difference and
+    #  b) we return RangeIndex whenever it is possible to do so.
+    assume(step1 != 0)
+    assume(step2 != 0)
+
+    left = RangeIndex(start1, stop1, step1)
+    right = RangeIndex(start2, stop2, step2)
+
+    result = left.difference(right, sort=None)
+    assert_range_or_not_is_rangelike(result)
+
+    alt = Int64Index(left).difference(Int64Index(right), sort=None)
+    tm.assert_index_equal(result, alt, exact="equiv")
+
+    result = left.difference(right, sort=False)
+    assert_range_or_not_is_rangelike(result)
+
+    alt = Int64Index(left).difference(Int64Index(right), sort=False)
+    tm.assert_index_equal(result, alt, exact="equiv")

@@ -143,14 +143,14 @@ def ensure_python_int(value: int | np.integer) -> int:
 
 
 def classes(*klasses) -> Callable:
-    """evaluate if the tipo is a subclass of the klasses"""
+    """Evaluate if the tipo is a subclass of the klasses."""
     return lambda tipo: issubclass(tipo, klasses)
 
 
 def classes_and_not_datetimelike(*klasses) -> Callable:
     """
-    evaluate if the tipo is a subclass of the klasses
-    and not a datetimelike
+    Evaluate if the tipo is a subclass of the klasses
+    and not a datetimelike.
     """
     return lambda tipo: (
         issubclass(tipo, klasses)
@@ -674,7 +674,7 @@ def is_integer_dtype(arr_or_dtype) -> bool:
     """
     Check whether the provided array or dtype is of an integer dtype.
 
-    Unlike in `in_any_int_dtype`, timedelta64 instances will return False.
+    Unlike in `is_any_int_dtype`, timedelta64 instances will return False.
 
     The nullable Integer dtypes (e.g. pandas.Int64Dtype) are also considered
     as integer by this function.
@@ -726,7 +726,7 @@ def is_signed_integer_dtype(arr_or_dtype) -> bool:
     """
     Check whether the provided array or dtype is of a signed integer dtype.
 
-    Unlike in `in_any_int_dtype`, timedelta64 instances will return False.
+    Unlike in `is_any_int_dtype`, timedelta64 instances will return False.
 
     The nullable Integer dtypes (e.g. pandas.Int64Dtype) are also considered
     as integer by this function.
@@ -1521,7 +1521,7 @@ def is_complex_dtype(arr_or_dtype) -> bool:
 
 def _is_dtype(arr_or_dtype, condition) -> bool:
     """
-    Return a boolean if the condition is satisfied for the arr_or_dtype.
+    Return true if the condition is satisfied for the arr_or_dtype.
 
     Parameters
     ----------
@@ -1580,7 +1580,7 @@ def get_dtype(arr_or_dtype) -> DtypeObj:
 
 def _is_dtype_type(arr_or_dtype, condition) -> bool:
     """
-    Return a boolean if the condition is satisfied for the arr_or_dtype.
+    Return true if the condition is satisfied for the arr_or_dtype.
 
     Parameters
     ----------
