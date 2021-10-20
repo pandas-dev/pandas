@@ -1824,11 +1824,11 @@ class Styler(StylerRenderer):
         Styler.export : Export the non data dependent attributes to the current Styler.
         """
         self._todo.extend(styles.get("apply", []))
-        table_attributes = self.table_attributes or ""
-        obj_table_atts = (
+        table_attributes: str = self.table_attributes or ""
+        obj_table_atts: str = (
             ""
             if styles.get("table_attributes") is None
-            else styles.get("table_attributes")
+            else str(styles.get("table_attributes"))
         )
         self.set_table_attributes((table_attributes + " " + obj_table_atts).strip())
         if styles.get("table_styles"):
@@ -1846,7 +1846,7 @@ class Styler(StylerRenderer):
         self.hide_index_names = styles.get("hide_index_names", False)
         self.hide_column_names = styles.get("hide_column_names", False)
         if styles.get("css"):
-            self.css = styles.get("css")
+            self.css = styles.get("css")  # type: ignore[assignment]
         return self
 
     def set_uuid(self, uuid: str) -> Styler:
