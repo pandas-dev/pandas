@@ -1827,7 +1827,7 @@ def test_pivot_table_values_key_error():
 )
 @pytest.mark.filterwarnings("ignore:Dropping invalid columns:FutureWarning")
 @pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
-def test_empty_groupby(columns, keys, values, method, op, request):
+def test_empty_groupby(columns, keys, values, method, op, request, using_array_manager):
     # GH8093 & GH26411
     override_dtype = None
 
@@ -1837,7 +1837,13 @@ def test_empty_groupby(columns, keys, values, method, op, request):
         and op in ["sum", "prod", "skew", "mad"]
     ):
         # handled below GH#41291
-        pass
+
+        if using_array_manager and op == "mad":
+            right_msg = "Cannot interpret 'CategoricalDtype.* as a data type"
+            msg = "Regex pattern \"'Categorical' does not implement.*" + right_msg
+            mark = pytest.mark.xfail(raises=AssertionError, match=msg)
+            request.node.add_marker(mark)
+
     elif (
         isinstance(values, Categorical)
         and len(keys) == 1
@@ -1877,6 +1883,19 @@ def test_empty_groupby(columns, keys, values, method, op, request):
     ):
         mark = pytest.mark.xfail(
             raises=TypeError, match="can only perform ops with numeric values"
+        )
+        request.node.add_marker(mark)
+
+    elif (
+        op == "mad"
+        and not isinstance(columns, list)
+        and isinstance(values, pd.DatetimeIndex)
+        and values.tz is not None
+        and using_array_manager
+    ):
+        mark = pytest.mark.xfail(
+            raises=TypeError,
+            match=r"Cannot interpret 'datetime64\[ns, US/Eastern\]' as a data type",
         )
         request.node.add_marker(mark)
 
