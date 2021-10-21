@@ -418,8 +418,29 @@ def test_is_not_int64_dtype(dtype):
     assert not com.is_int64_dtype(dtype)
 
 
-def test_is_not_int64_case():
-    assert not types.pandas_dtype("int64") == "Int64"
+@pytest.mark.parametrize(
+    "dtype, capitalized",
+    [
+        (types.pandas_dtype("int_"), "Int_"),
+        (types.pandas_dtype("int8"), "Int8"),
+        (types.pandas_dtype("int16"), "Int16"),
+        (types.pandas_dtype("int32"), "Int32"),
+        (types.pandas_dtype("int64"), "Int64"),
+        (types.pandas_dtype("uint8"), "Uint8"),
+        (types.pandas_dtype("uint16"), "Uint16"),
+        (types.pandas_dtype("uint32"), "Uint32"),
+        (types.pandas_dtype("uint64"), "Uint64"),
+        (types.pandas_dtype("float_"), "Float_"),
+        (types.pandas_dtype("float16"), "Float16"),
+        (types.pandas_dtype("float32"), "Float32"),
+        (types.pandas_dtype("float64"), "Float64"),
+    ],
+)
+def test_type_comparison_capitalized_passes(dtype, capitalized):
+    try:
+        dtype == capitalized
+    except TypeError:
+        pytest.fail("Comparison failed due to TypeError")
 
 
 def test_is_datetime64_any_dtype():
