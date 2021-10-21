@@ -668,8 +668,7 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
         # No missing values so we can adhere to the interface and return a numpy array.
         counts = np.array(counts)
 
-        # Index cannot hold ExtensionArrays yet
-        index = Index(type(self)(values)).astype(object)
+        index = Index(type(self)(values))
 
         return Series(counts, index=index).astype("Int64")
 

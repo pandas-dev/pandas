@@ -1843,11 +1843,7 @@ def union_with_duplicates(lvals: ArrayLike, rvals: ArrayLike) -> ArrayLike:
     l_count, r_count = l_count.align(r_count, fill_value=0)
     unique_array = unique(concat_compat([lvals, rvals]))
     unique_array = ensure_wrapped_if_datetimelike(unique_array)
-    if False:#not isinstance(lvals, np.ndarray):
-        # i.e. ExtensionArray
-        # Note: we only get here with lvals.dtype == rvals.dtype
-        # TODO: are there any cases where union won't be type/dtype preserving?
-        unique_array = type(lvals)._from_sequence(unique_array, dtype=lvals.dtype)
+
     for i, value in enumerate(unique_array):
         indexer += [i] * int(max(l_count[value], r_count[value]))
     return unique_array.take(indexer)

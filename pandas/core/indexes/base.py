@@ -69,6 +69,7 @@ from pandas.core.dtypes.cast import (
     can_hold_element,
     find_common_type,
     infer_dtype_from,
+    maybe_cast_pointwise_result,
     validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
@@ -1082,6 +1083,7 @@ class Index(IndexOpsMixin, PandasObject):
                 values, indices, allow_fill=allow_fill, fill_value=self._na_value
             )
         else:
+            # algos.take passes 'axis' keyword which not all EAs accept
             taken = values.take(
                 indices, allow_fill=allow_fill, fill_value=self._na_value
             )
@@ -2576,8 +2578,12 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Null Handling Methods
 
-    _na_value: float | NaTType = np.nan
-    """The expected NA value to use with this index."""
+    @cache_readonly
+    def _na_value(self):
+        """The expected NA value to use with this index."""
+        if isinstance(self.dtype, np.dtype):
+            return np.nan
+        return self.dtype.na_value
 
     @cache_readonly
     def _isnan(self) -> npt.NDArray[np.bool_]:
@@ -3634,7 +3640,7 @@ class Index(IndexOpsMixin, PandasObject):
 
             indexer = self._engine.get_indexer(target.codes)
             if self.hasnans and target.hasnans:
-                #loc = self.get_loc(libmissing.NA)
+                # loc = self.get_loc(libmissing.NA)
                 loc = self.get_loc(np.nan)
                 mask = target.isna()
                 indexer[mask] = loc
@@ -3653,7 +3659,7 @@ class Index(IndexOpsMixin, PandasObject):
                 # Exclude MultiIndex because hasnans raises NotImplementedError
                 # we should only get here if we are unique, so loc is an integer
                 # GH#41934
-                #loc = self.get_loc(libmissing.NA)
+                # loc = self.get_loc(libmissing.NA)
                 loc = self.get_loc(np.nan)
                 mask = target.isna()
                 indexer[mask] = loc
@@ -5981,9 +5987,12 @@ class Index(IndexOpsMixin, PandasObject):
                 new_values, dtype=dtype, copy=False, name=self.name
             )
 
-        result = Index._with_infer(new_values, dtype=dtype, copy=False, name=self.name)
+        res_values = maybe_cast_pointwise_result(
+            new_values, self.dtype, same_dtype=True
+        )
+        result = Index._with_infer(res_values, dtype=dtype, copy=False, name=self.name)
 
-        if type(self) is Index and not isinstance(self.dtype, np.dtype):
+        if False:  # type(self) is Index and not isinstance(self.dtype, np.dtype):
             # TODO: what about "integer-na"
             if self.dtype.kind in ["i", "u"] and result.inferred_type == "integer":
                 # TODO: worry about itemsize/overflows?

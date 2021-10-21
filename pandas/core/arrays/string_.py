@@ -474,7 +474,9 @@ class StringArray(BaseStringArray, PandasArray):
     def value_counts(self, dropna: bool = True):
         from pandas import value_counts
 
-        return value_counts(self._ndarray, dropna=dropna).astype("Int64")
+        result = value_counts(self._ndarray, dropna=dropna).astype("Int64")
+        result.index = result.index.astype(self.dtype)
+        return result
 
     def memory_usage(self, deep: bool = False) -> int:
         result = self._ndarray.nbytes

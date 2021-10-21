@@ -453,6 +453,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 return IntegerArray(x, m)
             elif is_float_dtype(x.dtype):
                 if x.dtype.itemsize <= 2:
+                    # reached in e.g. np.sqrt on BooleanArray
                     # we don't support float16
                     x = x.astype(np.float32)
                 m = mask.copy()

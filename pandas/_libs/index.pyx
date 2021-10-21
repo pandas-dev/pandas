@@ -32,8 +32,8 @@ from pandas._libs import (
     algos,
     hashtable as _hash,
 )
-from pandas._libs.lib cimport eq_NA_compat
 
+from pandas._libs.lib cimport eq_NA_compat
 from pandas._libs.missing cimport (
     C_NA as NA,
     checknull,
@@ -934,18 +934,22 @@ cdef class ExtensionEngine:
 
         return self._maybe_get_bool_indexer(val)
 
-    cdef _get_bool_indexer(self, val):
+    cdef ndarray _get_bool_indexer(self, val):
         if checknull(val):
             return self.values.isna().view("uint8")
 
-        return self.values == val
+        try:
+            return self.values == val
+        except TypeError:
+            # e.g. if __eq__ returns a BooleanArray instead of ndarry[bool]
+            return (self.values == val).to_numpy(dtype=bool, na_value=False)
 
     cdef _maybe_get_bool_indexer(self, object val):
         # Returns ndarray[bool] or int
         cdef:
             ndarray[uint8_t, ndim=1, cast=True] indexer
 
-        indexer = _get_bool_indexer(self.values, val)
+        indexer = self._get_bool_indexer(val)
         return _unpack_bool_indexer(indexer, val)
 
     def sizeof(self, deep: bool = False) -> int:
