@@ -61,6 +61,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     needs_i8_conversion,
 )
+from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import PandasDtype
 from pandas.core.dtypes.generic import (
     ABCDatetimeArray,
@@ -1834,6 +1835,10 @@ def union_with_duplicates(lvals: ArrayLike, rvals: ArrayLike) -> ArrayLike:
     -------
     np.ndarray or ExtensionArray
         Containing the unsorted union of both arrays.
+
+    Notes
+    -----
+    Caller is responsible for ensuring lvals.dtype == rvals.dtype.
     """
     from pandas.core.dtypes.concat import concat_compat
 
