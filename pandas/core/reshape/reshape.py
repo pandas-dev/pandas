@@ -1094,7 +1094,7 @@ def _get_dummies_1d(
 
 def from_dummies(
     data: DataFrame,
-    subset: None | list[Hashable] = None,
+    subset: None | Index | list[Hashable] = None,
     sep: None | str | list[str] | dict[str, str] = None,
     dropped_first: None | str | list[str] | dict[str, str] = None,
 ) -> DataFrame:
@@ -1180,13 +1180,13 @@ def from_dummies(
     from pandas.core.reshape.concat import concat
 
     if subset is None:
-        subset = data.columns.tolist()
+        subset = list(data.columns)
     elif isinstance(subset, Index):
-        subset = subset.tolist()
+        subset = list(subset)
     elif not isinstance(subset, list):
         raise TypeError(
             f"Expected 'subset' to be of type 'Index', or 'list'; "
-            f"Received 'subset' of type: {type(dropped_first).__name__}"
+            f"Received 'subset' of type: {type(subset).__name__}"
         )
 
     if data[subset].isna().any().any():
@@ -1278,9 +1278,9 @@ def from_dummies(
             data_slice = concat((data_to_decode[prefix_slice], assigned == 0), axis=1)
         else:
             data_slice = data_to_decode[prefix_slice]
-        cats = np.array(cats, dtype="object")
+        cats_array = np.array(cats, dtype="object")
         # get indices of True entries along axis=1
-        cat_data[prefix] = cats[data_slice.to_numpy().nonzero()[1]]
+        cat_data[prefix] = cats_array[data_slice.to_numpy().nonzero()[1]]
 
     return DataFrame(cat_data)
 

@@ -358,7 +358,7 @@ def test_from_dummies_with_prefix_wrong_subset_type(dummies_basic):
         TypeError,
         match=(
             r"Expected 'subset' to be of type 'Index', or 'list'; "
-            r"Received 'subset' of type: NoneType"
+            r"Received 'subset' of type: str"
         ),
     ):
         from_dummies(
