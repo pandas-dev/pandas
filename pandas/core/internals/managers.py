@@ -1174,7 +1174,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         self._known_consolidated = False
 
-        if len(self.blocks) > 100:
+        if sum(not block.is_extension for block in self.blocks) > 100:
             warnings.warn(
                 "DataFrame is highly fragmented.  This is usually the result "
                 "of calling `frame.insert` many times, which has poor performance.  "
