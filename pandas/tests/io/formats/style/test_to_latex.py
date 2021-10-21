@@ -753,7 +753,7 @@ def test_apply_map_header_render_mi(df_ext, index, columns, siunitx):
     expected_index = dedent(
         """\
     \\multirow[c]{2}{*}{\\bfseries{A}} & a & 0 & -0.610000 & ab \\\\
-     & b & 1 & -1.220000 & cd \\\\
+    \\bfseries{} & b & 1 & -1.220000 & cd \\\\
     B & \\bfseries{c} & 2 & -2.220000 & de \\\\
     """
     )
@@ -840,7 +840,7 @@ def test_latex_hiding_index_columns_multiindex_alignment():
         i-0 & i-2 &  &  &  \\\\
         i0 & \\color{blue} j2 & \\color{red} 5 & 6 & 7 \\\\
         \\multirow[c]{2}{*}{\\color{blue} j0} & i2 & 9 & 10 & 11 \\\\
-         & \\color{blue} j2 & 13 & 14 & 15 \\\\
+        \\color{blue}  & \\color{blue} j2 & 13 & 14 & 15 \\\\
         \\end{tabular}
         """
     )

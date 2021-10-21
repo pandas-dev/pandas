@@ -740,7 +740,7 @@ class StylerRenderer:
                         "display_value": col["display_value"]
                         if col["is_visible"]
                         else "",
-                        "cellstyle": self.ctx_index[r, c] if col["is_visible"] else [],
+                        "cellstyle": self.ctx_index[r, c],
                     }
                     for c, col in enumerate(row[:index_levels])
                     if (col["type"] == "th" and not self.hide_index_[c])
