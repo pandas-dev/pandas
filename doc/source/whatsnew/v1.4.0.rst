@@ -427,6 +427,7 @@ Performance improvements
 - Performance improvement in :meth:`SparseArray.take` with ``allow_fill=False`` (:issue:`43654`)
 - Performance improvement in :meth:`.Rolling.mean` and :meth:`.Expanding.mean` with ``engine="numba"`` (:issue:`43612`)
 - Improved performance of :meth:`pandas.read_csv` with ``memory_map=True`` when file encoding is UTF-8 (:issue:`43787`)
+- Performance improvement in :meth:`RangeIndex.sort_values` overriding :meth:`Index.sort_values` (:issue:`43666`)
 - Performance improvement in :meth:`RangeIndex.insert` (:issue:`43988`)
 - Performance improvement in :meth:`Index.insert` (:issue:`43953`)
 - Performance improvement in :meth:`DatetimeIndex.tolist` (:issue:`43823`)
@@ -617,6 +618,7 @@ ExtensionArray
 ^^^^^^^^^^^^^^
 - Bug in :func:`array` failing to preserve :class:`PandasArray` (:issue:`43887`)
 - NumPy ufuncs ``np.abs``, ``np.positive``, ``np.negative`` now correctly preserve dtype when called on ExtensionArrays that implement ``__abs__, __pos__, __neg__``, respectively. In particular this is fixed for :class:`TimedeltaArray` (:issue:`43899`)
+- Avoid raising ``PerformanceWarning`` about fragmented DataFrame when using many columns with an extension dtype (:issue:`44098`)
 -
 
 Styler
