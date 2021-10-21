@@ -30,9 +30,6 @@ jobs:
     name: actions-310-dev
     timeout-minutes: 60
 
-    env:
-      NUMPY_WHEELS_AVAILABLE: ${{ matrix.os == 'ubuntu-latest' }}
-
     concurrency:
       group: ${{ github.ref }}-${{ matrix.os }}-dev
       cancel-in-progress: ${{github.event_name == 'pull_request'}}
@@ -51,11 +48,7 @@ jobs:
       shell: bash
       run: |
         python -m pip install --upgrade pip setuptools wheel
-        if [[ "$NUMPY_WHEELS_AVAILABLE" == "true" ]]; then
-          pip install -i https://pypi.anaconda.org/scipy-wheels-nightly/simple numpy
-        else
-          pip install git+https://github.com/numpy/numpy.git
-        fi
+        pip install -i https://pypi.anaconda.org/scipy-wheels-nightly/simple numpy
         pip install git+https://github.com/nedbat/coveragepy.git
         pip install cython python-dateutil pytz hypothesis pytest>=6.2.5 pytest-xdist pytest-cov
         pip list
