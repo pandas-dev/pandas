@@ -287,7 +287,8 @@ class SeriesGroupBy(GroupBy[Series]):
                 #  see test_groupby.test_basic
                 result = self._aggregate_named(func, *args, **kwargs)
 
-                index = Index(sorted(result), name=self.grouper.names[0])
+                # result is a dict whose keys are the elements of result_index
+                index = self.grouper.result_index
                 return create_series_with_explicit_dtype(
                     result, index=index, dtype_if_empty=object
                 )
