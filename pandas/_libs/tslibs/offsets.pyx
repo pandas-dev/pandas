@@ -574,7 +574,7 @@ cdef class BaseOffset:
             When the specific offset subclass does not have a vectorized
             implementation.
         """
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             f"DateOffset subclass {type(self).__name__} "
             "does not have a vectorized implementation"
         )
@@ -808,9 +808,7 @@ cdef class Tick(SingleConstructorOffset):
     def nanos(self) -> int64_t:
         return self.n * self._nanos_inc
 
-    # FIXME: This should be typed as datetime, but we DatetimeLikeIndex.insert
-    #  checks self.freq.is_on_offset with a Timedelta sometimes.
-    def is_on_offset(self, dt) -> bool:
+    def is_on_offset(self, dt: datetime) -> bool:
         return True
 
     def is_anchored(self) -> bool:

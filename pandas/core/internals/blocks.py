@@ -46,7 +46,6 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     is_1d_only_ea_dtype,
     is_1d_only_ea_obj,
-    is_categorical_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_list_like,
@@ -91,8 +90,6 @@ from pandas.core.arrays import (
     Categorical,
     DatetimeArray,
     ExtensionArray,
-    FloatingArray,
-    IntegerArray,
     IntervalArray,
     PandasArray,
     PeriodArray,
@@ -110,7 +107,6 @@ from pandas.core.construction import (
 from pandas.core.indexers import (
     check_setitem_lengths,
     is_empty_indexer,
-    is_exact_shape_match,
     is_scalar_indexer,
 )
 import pandas.core.missing as missing
@@ -928,10 +924,8 @@ class Block(PandasObject):
         if is_extension_array_dtype(getattr(value, "dtype", None)):
             # We need to be careful not to allow through strings that
             #  can be parsed to EADtypes
-            is_ea_value = True
             arr_value = value
         else:
-            is_ea_value = False
             arr_value = np.asarray(value)
 
         if transpose:
@@ -939,7 +933,6 @@ class Block(PandasObject):
 
         # length checking
         check_setitem_lengths(indexer, value, values)
-        exact_match = is_exact_shape_match(values, arr_value)
 
         if is_empty_indexer(indexer, arr_value):
             # GH#8669 empty indexers
@@ -948,30 +941,6 @@ class Block(PandasObject):
         elif is_scalar_indexer(indexer, self.ndim):
             # setting a single element for each dim and with a rhs that could
             #  be e.g. a list; see GH#6043
-            values[indexer] = value
-
-        elif exact_match and is_categorical_dtype(arr_value.dtype):
-            # GH25495 - If the current dtype is not categorical,
-            # we need to create a new categorical block
-            values[indexer] = value
-
-        elif exact_match and is_ea_value:
-            # GH#32395 if we're going to replace the values entirely, just
-            #  substitute in the new array
-            if not self.is_object and isinstance(value, (IntegerArray, FloatingArray)):
-                # _can_hold_element will only allow us to get here if value
-                #  has no NA entries.
-                values[indexer] = value.to_numpy(value.dtype.numpy_dtype)
-            else:
-                values[indexer] = np.asarray(value)
-
-        # if we are an exact match (ex-broadcasting),
-        # then use the resultant dtype
-        elif exact_match:
-            # We are setting _all_ of the array's values, so can cast to new dtype
-            values[indexer] = value
-
-        elif is_ea_value:
             values[indexer] = value
 
         else:
@@ -1320,7 +1289,8 @@ class Block(PandasObject):
         new_values = new_values.T[mask]
         new_placement = new_placement[mask]
 
-        blocks = [new_block(new_values, placement=new_placement, ndim=2)]
+        bp = BlockPlacement(new_placement)
+        blocks = [new_block_2d(new_values, placement=bp)]
         return blocks, mask
 
     @final
@@ -1349,7 +1319,7 @@ class Block(PandasObject):
         assert is_list_like(qs)  # caller is responsible for this
 
         result = quantile_compat(self.values, np.asarray(qs._values), interpolation)
-        return new_block(result, placement=self._mgr_locs, ndim=2)
+        return new_block_2d(result, placement=self._mgr_locs)
 
 
 class EABackedBlock(Block):
@@ -1970,6 +1940,17 @@ def get_block_type(dtype: DtypeObj):
     else:
         cls = ObjectBlock
     return cls
+
+
+def new_block_2d(values: ArrayLike, placement: BlockPlacement):
+    # new_block specialized to case with
+    #  ndim=2
+    #  isinstance(placement, BlockPlacement)
+    #  check_ndim/ensure_block_shape already checked
+    klass = get_block_type(values.dtype)
+
+    values = maybe_coerce_values(values)
+    return klass(values, ndim=2, placement=placement)
 
 
 def new_block(values, placement, *, ndim: int) -> Block:
