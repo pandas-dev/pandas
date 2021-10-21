@@ -176,7 +176,6 @@ reportUnnecessaryComparison = false
 reportUnnecessaryIsInstance = false
 reportUnsupportedDunderAll = false
 reportUntypedBaseClass = false
-reportUntypedFunctionDecorator = false
 reportUnusedClass = false
 reportUnusedFunction = false
 reportUnusedImport = false
