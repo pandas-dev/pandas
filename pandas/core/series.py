@@ -5476,9 +5476,7 @@ Keep all original rows and also all original values
     _info_axis_number = 0
     _info_axis_name = "index"
 
-    # error: Incompatible types in assignment (expression has type "AxisProperty",
-    # variable has type "Index")
-    index: Index = properties.AxisProperty(  # type: ignore[assignment]
+    index: Index = properties.AxisProperty(
         axis=0, doc="The index (axis labels) of the Series."
     )
 
