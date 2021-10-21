@@ -222,12 +222,7 @@ class TestDataFrameConstructors:
         df["foo"] = np.ones((4, 2)).tolist()
 
         # this is not ok
-        msg = "|".join(
-            [
-                "Wrong number of items passed 2, placement implies 1",
-                "Expected a 1D array, got an array with shape \\(4, 2\\)",
-            ]
-        )
+        msg = "Expected a 1D array, got an array with shape \\(4, 2\\)"
         with pytest.raises(ValueError, match=msg):
             df["test"] = np.ones((4, 2))
 
