@@ -5266,7 +5266,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         return result
 
-    @final
     def sort_values(
         self,
         return_indexer: bool = False,
