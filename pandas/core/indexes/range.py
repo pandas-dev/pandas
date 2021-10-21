@@ -522,6 +522,38 @@ class RangeIndex(NumericIndex):
             return self._range == other._range
         return super().equals(other)
 
+    def sort_values(
+        self,
+        return_indexer: bool = False,
+        ascending: bool = True,
+        na_position: str = "last",
+        key: Callable | None = None,
+    ):
+        sorted_index = self
+        indexer = RangeIndex(range(len(self)))
+        if key is not None:
+            return super().sort_values(
+                return_indexer=return_indexer,
+                ascending=ascending,
+                na_position=na_position,
+                key=key,
+            )
+        else:
+            sorted_index = self
+            if ascending:
+                if self.step < 0:
+                    sorted_index = self[::-1]
+                    indexer = indexer[::-1]
+            else:
+                if self.step > 0:
+                    sorted_index = self[::-1]
+                    indexer = indexer = indexer[::-1]
+
+        if return_indexer:
+            return sorted_index, indexer
+        else:
+            return sorted_index
+
     # --------------------------------------------------------------------
     # Set Operations
 
@@ -705,6 +737,10 @@ class RangeIndex(NumericIndex):
             else:
                 return super()._difference(other, sort=sort)
 
+        elif len(overlap) == 2 and overlap[0] == first[0] and overlap[-1] == first[-1]:
+            # e.g. range(-8, 20, 7) and range(13, -9, -3)
+            return self[1:-1]
+
         if overlap.step == first.step:
             if overlap[0] == first.start:
                 # The difference is everything after the intersection
@@ -712,6 +748,10 @@ class RangeIndex(NumericIndex):
             elif overlap[-1] == first[-1]:
                 # The difference is everything before the intersection
                 new_rng = range(first.start, overlap[0], first.step)
+            elif overlap._range == first[1:-1]:
+                # e.g. range(4) and range(1, 3)
+                step = len(first) - 1
+                new_rng = first[::step]
             else:
                 # The difference is not range-like
                 # e.g. range(1, 10, 1) and range(3, 7, 1)
@@ -725,16 +765,19 @@ class RangeIndex(NumericIndex):
             if overlap.step == first.step * 2:
                 if overlap[0] == first[0] and overlap[-1] in (first[-1], first[-2]):
                     # e.g. range(1, 10, 1) and range(1, 10, 2)
-                    return self[1::2]
+                    new_rng = first[1::2]
 
                 elif overlap[0] == first[1] and overlap[-1] in (first[-1], first[-2]):
                     # e.g. range(1, 10, 1) and range(2, 10, 2)
-                    return self[::2]
+                    new_rng = first[::2]
 
-                # We can get here with  e.g. range(20) and range(0, 10, 2)
+                else:
+                    # We can get here with  e.g. range(20) and range(0, 10, 2)
+                    return super()._difference(other, sort=sort)
 
-            # e.g. range(10) and range(0, 10, 3)
-            return super()._difference(other, sort=sort)
+            else:
+                # e.g. range(10) and range(0, 10, 3)
+                return super()._difference(other, sort=sort)
 
         new_index = type(self)._simple_new(new_rng, name=res_name)
         if first is not self._range:
