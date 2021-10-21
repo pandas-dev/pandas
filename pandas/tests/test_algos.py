@@ -68,7 +68,7 @@ class TestFactorize:
         expected_codes = np.asarray(expected_codes, dtype=np.intp)
 
         tm.assert_numpy_array_equal(result_codes, expected_codes)
-        tm.assert_index_equal(result_uniques, expected_uniques)
+        tm.assert_index_equal(result_uniques, expected_uniques, exact=True)
 
     def test_series_factorize_na_sentinel_none(self):
         # GH#35667

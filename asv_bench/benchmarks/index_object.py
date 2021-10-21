@@ -86,6 +86,12 @@ class Range:
         for _ in self.idx_dec:
             pass
 
+    def time_sort_values_asc(self):
+        self.idx_inc.sort_values()
+
+    def time_sort_values_des(self):
+        self.idx_inc.sort_values(ascending=False)
+
 
 class IndexEquals:
     def setup(self):
