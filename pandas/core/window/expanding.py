@@ -44,16 +44,26 @@ from pandas.core.window.rolling import (
 
 class Expanding(RollingAndExpandingMixin):
     """
-    Provide expanding transformations.
+    Provide expanding window calculations.
 
     Parameters
     ----------
     min_periods : int, default 1
-        Minimum number of observations in window required to have a value
-        (otherwise result is NA).
+        Minimum number of observations in window required to have a value;
+        otherwise, result is ``np.nan``.
+
     center : bool, default False
-        Set the labels at the center of the window.
+        If False, set the window labels as the right edge of the window index.
+
+        If True, set the window labels as the center of the window index.
+
+        .. deprecated:: 1.1.0
+
     axis : int or str, default 0
+        If ``0`` or ``'index'``, roll across the rows.
+
+        If ``1`` or ``'columns'``, roll across the columns.
+
     method : str {'single', 'table'}, default 'single'
         Execute the rolling operation per single column or row (``'single'``)
         or over the entire object (``'table'``).
@@ -65,7 +75,7 @@ class Expanding(RollingAndExpandingMixin):
 
     Returns
     -------
-    a Window sub-classed for the particular operation
+    ``Expanding`` subclass
 
     See Also
     --------
@@ -74,8 +84,8 @@ class Expanding(RollingAndExpandingMixin):
 
     Notes
     -----
-    By default, the result is set to the right edge of the window. This can be
-    changed to the center of the window by setting ``center=True``.
+    See :ref:`Windowing Operations <window.expanding>` for further usage details
+    and examples.
 
     Examples
     --------
@@ -88,10 +98,21 @@ class Expanding(RollingAndExpandingMixin):
     3  NaN
     4  4.0
 
-    >>> df.expanding(2).sum()
+    **min_periods**
+
+    Expanding sum with 1 vs 3 observations needed to calculate a value.
+
+    >>> df.expanding(1).sum()
+         B
+    0  0.0
+    1  1.0
+    2  3.0
+    3  3.0
+    4  7.0
+    >>> df.expanding(3).sum()
          B
     0  NaN
-    1  1.0
+    1  NaN
     2  3.0
     3  3.0
     4  7.0
@@ -760,7 +781,7 @@ class ExpandingGroupby(BaseWindowGroupby, Expanding):
         GroupbyIndexer
         """
         window_indexer = GroupbyIndexer(
-            groupby_indicies=self._grouper.indices,
+            groupby_indices=self._grouper.indices,
             window_indexer=ExpandingIndexer,
         )
         return window_indexer
