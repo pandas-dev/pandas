@@ -840,52 +840,89 @@ class Window(BaseWindow):
     Parameters
     ----------
     window : int, offset, or BaseIndexer subclass
-        Size of the moving window. This is the number of observations used for
-        calculating the statistic. Each window will be a fixed size.
+        Size of the moving window.
 
-        If its an offset then this will be the time period of each window. Each
+        If an integer, the fixed number of observations used for
+        each window.
+
+        If an offset, the time period of each window. Each
         window will be a variable sized based on the observations included in
         the time-period. This is only valid for datetimelike indexes.
+        To learn more about the offsets & frequency strings, please see `this link
+        <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
 
-        If a BaseIndexer subclass is passed, calculates the window boundaries
+        If a BaseIndexer subclass, the window boundaries
         based on the defined ``get_window_bounds`` method. Additional rolling
-        keyword arguments, namely `min_periods`, `center`, and
-        `closed` will be passed to `get_window_bounds`.
+        keyword arguments, namely ``min_periods``, ``center``, and
+        ``closed`` will be passed to ``get_window_bounds``.
+
     min_periods : int, default None
-        Minimum number of observations in window required to have a value
-        (otherwise result is NA). For a window that is specified by an offset,
-        `min_periods` will default to 1. Otherwise, `min_periods` will default
+        Minimum number of observations in window required to have a value;
+        otherwise, result is ``np.nan``.
+
+        For a window that is specified by an offset, ``min_periods`` will default to 1.
+
+        For a window that is specified by an integer, ``min_periods`` will default
         to the size of the window.
+
     center : bool, default False
-        Set the labels at the center of the window.
+        If False, set the window labels as the right edge of the window index.
+
+        If True, set the window labels as the center of the window index.
+
     win_type : str, default None
-        Provide a window type. If ``None``, all points are evenly weighted.
-        See the notes below for further information.
+        If ``None``, all points are evenly weighted.
+
+        If a string, it must be a valid `scipy.signal window function
+        <https://docs.scipy.org/doc/scipy/reference/signal.windows.html#module-scipy.signal.windows>`__.
+
+        Certain Scipy window types require additional parameters to be passed
+        in the aggregation function. The additional parameters must match
+        the keywords specified in the Scipy window type method signature.
+
     on : str, optional
-        For a DataFrame, a datetime-like column or Index level on which
+        For a DataFrame, a column label or Index level on which
         to calculate the rolling window, rather than the DataFrame's index.
+
         Provided integer column is ignored and excluded from result since
         an integer index is not used to calculate the rolling window.
+
     axis : int or str, default 0
+        If ``0`` or ``'index'``, roll across the rows.
+
+        If ``1`` or ``'columns'``, roll across the columns.
+
     closed : str, default None
-        Make the interval closed on the 'right', 'left', 'both' or
-        'neither' endpoints. Defaults to 'right'.
+        If ``'right'``, the first point in the window is excluded from calculations.
+
+        If ``'left'``, the last point in the window is excluded from calculations.
+
+        If ``'both'``, the no points in the window are excluded from calculations.
+
+        If ``'neither'``, the first and last points in the window are excluded
+        from calculations.
+
+        Default ``None`` (``'right'``)
 
         .. versionchanged:: 1.2.0
 
             The closed parameter with fixed windows is now supported.
+
     method : str {'single', 'table'}, default 'single'
+
+        .. versionadded:: 1.3.0
+
         Execute the rolling operation per single column or row (``'single'``)
         or over the entire object (``'table'``).
 
         This argument is only implemented when specifying ``engine='numba'``
         in the method call.
 
-        .. versionadded:: 1.3.0
-
     Returns
     -------
-    a Window or Rolling sub-classed for the particular operation
+    ``Window`` subclass if a ``win_type`` is passed
+
+    ``Rolling`` subclass if ``win_type`` is not passed
 
     See Also
     --------
@@ -894,20 +931,8 @@ class Window(BaseWindow):
 
     Notes
     -----
-    By default, the result is set to the right edge of the window. This can be
-    changed to the center of the window by setting ``center=True``.
-
-    To learn more about the offsets & frequency strings, please see `this link
-    <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
-
-    If ``win_type=None``, all points are evenly weighted; otherwise, ``win_type``
-    can accept a string of any `scipy.signal window function
-    <https://docs.scipy.org/doc/scipy/reference/signal.windows.html#module-scipy.signal.windows>`__.
-
-    Certain Scipy window types require additional parameters to be passed
-    in the aggregation function. The additional parameters must match
-    the keywords specified in the Scipy window type method signature.
-    Please see the third example below on how to add the additional parameters.
+    See :ref:`Windowing Operations <window.generic>` for further usage details
+    and examples.
 
     Examples
     --------
@@ -920,30 +945,9 @@ class Window(BaseWindow):
     3  NaN
     4  4.0
 
-    Rolling sum with a window length of 2, using the 'triang'
-    window type.
+    **window**
 
-    >>> df.rolling(2, win_type='triang').sum()
-         B
-    0  NaN
-    1  0.5
-    2  1.5
-    3  NaN
-    4  NaN
-
-    Rolling sum with a window length of 2, using the 'gaussian'
-    window type (note how we need to specify std).
-
-    >>> df.rolling(2, win_type='gaussian').sum(std=3)
-              B
-    0       NaN
-    1  0.986207
-    2  2.958621
-    3       NaN
-    4       NaN
-
-    Rolling sum with a window length of 2, min_periods defaults
-    to the window length.
+    Rolling sum with a window length of 2 observations.
 
     >>> df.rolling(2).sum()
          B
@@ -953,17 +957,32 @@ class Window(BaseWindow):
     3  NaN
     4  NaN
 
-    Same as above, but explicitly set the min_periods
+    Rolling sum with a window span of 2 seconds.
 
-    >>> df.rolling(2, min_periods=1).sum()
-         B
-    0  0.0
-    1  1.0
-    2  3.0
-    3  2.0
-    4  4.0
+    >>> df_time = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]},
+    ...                        index = [pd.Timestamp('20130101 09:00:00'),
+    ...                                 pd.Timestamp('20130101 09:00:02'),
+    ...                                 pd.Timestamp('20130101 09:00:03'),
+    ...                                 pd.Timestamp('20130101 09:00:05'),
+    ...                                 pd.Timestamp('20130101 09:00:06')])
 
-    Same as above, but with forward-looking windows
+    >>> df_time
+                           B
+    2013-01-01 09:00:00  0.0
+    2013-01-01 09:00:02  1.0
+    2013-01-01 09:00:03  2.0
+    2013-01-01 09:00:05  NaN
+    2013-01-01 09:00:06  4.0
+
+    >>> df_time.rolling('2s').sum()
+                           B
+    2013-01-01 09:00:00  0.0
+    2013-01-01 09:00:02  1.0
+    2013-01-01 09:00:03  3.0
+    2013-01-01 09:00:05  NaN
+    2013-01-01 09:00:06  4.0
+
+    Rolling sum with forward looking windows with 2 observations.
 
     >>> indexer = pd.api.indexers.FixedForwardWindowIndexer(window_size=2)
     >>> df.rolling(window=indexer, min_periods=1).sum()
@@ -974,34 +993,51 @@ class Window(BaseWindow):
     3  4.0
     4  4.0
 
-    A ragged (meaning not-a-regular frequency), time-indexed DataFrame
+    **min_periods**
 
-    >>> df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]},
-    ...                   index = [pd.Timestamp('20130101 09:00:00'),
-    ...                            pd.Timestamp('20130101 09:00:02'),
-    ...                            pd.Timestamp('20130101 09:00:03'),
-    ...                            pd.Timestamp('20130101 09:00:05'),
-    ...                            pd.Timestamp('20130101 09:00:06')])
+    Rolling sum with a window length of 2 observations, but only needs a minimum of 1
+    observation to calculate a value.
 
-    >>> df
-                           B
-    2013-01-01 09:00:00  0.0
-    2013-01-01 09:00:02  1.0
-    2013-01-01 09:00:03  2.0
-    2013-01-01 09:00:05  NaN
-    2013-01-01 09:00:06  4.0
+    >>> df.rolling(2, min_periods=1).sum()
+         B
+    0  0.0
+    1  1.0
+    2  3.0
+    3  2.0
+    4  4.0
 
-    Contrasting to an integer rolling window, this will roll a variable
-    length window corresponding to the time period.
-    The default for min_periods is 1.
+    **center**
 
-    >>> df.rolling('2s').sum()
-                           B
-    2013-01-01 09:00:00  0.0
-    2013-01-01 09:00:02  1.0
-    2013-01-01 09:00:03  3.0
-    2013-01-01 09:00:05  NaN
-    2013-01-01 09:00:06  4.0
+    Rolling sum with the result assigned to the center of the window index.
+
+    >>> df.rolling(3, min_periods=1, center=True).sum()
+         B
+    0  1.0
+    1  3.0
+    2  3.0
+    3  6.0
+    4  4.0
+
+    >>> df.rolling(3, min_periods=1, center=False).sum()
+         B
+    0  0.0
+    1  1.0
+    2  3.0
+    3  3.0
+    4  6.0
+
+    **win_type**
+
+    Rolling sum with a window length of 2, using the Scipy ``'gaussian'``
+    window type. ``std`` is required in the aggregation function.
+
+    >>> df.rolling(2, win_type='gaussian').sum(std=3)
+              B
+    0       NaN
+    1  0.986207
+    2  2.958621
+    3       NaN
+    4       NaN
     """
 
     _attributes = [
