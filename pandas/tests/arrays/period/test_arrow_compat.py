@@ -9,7 +9,7 @@ from pandas.core.arrays import (
     period_array,
 )
 
-py = pytest.importorskip("pyarrow", minversion="1.0.1")
+pa = pytest.importorskip("pyarrow", minversion="1.0.1")
 
 
 def test_arrow_extension_type():
@@ -37,23 +37,23 @@ def test_arrow_array(data, freq):
     from pandas.core.arrays._arrow_utils import ArrowPeriodType
 
     periods = period_array(data, freq=freq)
-    result = py.array(periods)
+    result = pa.array(periods)
     assert isinstance(result.type, ArrowPeriodType)
     assert result.type.freq == freq
-    expected = py.array(periods.asi8, type="int64")
+    expected = pa.array(periods.asi8, type="int64")
     assert result.storage.equals(expected)
 
     # convert to its storage type
-    result = py.array(periods, type=py.int64())
+    result = pa.array(periods, type=pa.int64())
     assert result.equals(expected)
 
     # unsupported conversions
     msg = "Not supported to convert PeriodArray to 'double' type"
     with pytest.raises(TypeError, match=msg):
-        py.array(periods, type="float64")
+        pa.array(periods, type="float64")
 
     with pytest.raises(TypeError, match="different 'freq'"):
-        py.array(periods, type=ArrowPeriodType("T"))
+        pa.array(periods, type=ArrowPeriodType("T"))
 
 
 def test_arrow_array_missing():
@@ -62,10 +62,10 @@ def test_arrow_array_missing():
     arr = PeriodArray([1, 2, 3], freq="D")
     arr[1] = pd.NaT
 
-    result = py.array(arr)
+    result = pa.array(arr)
     assert isinstance(result.type, ArrowPeriodType)
     assert result.type.freq == "D"
-    expected = py.array([1, None, 3], type="int64")
+    expected = pa.array([1, None, 3], type="int64")
     assert result.storage.equals(expected)
 
 
@@ -76,13 +76,13 @@ def test_arrow_table_roundtrip():
     arr[1] = pd.NaT
     df = pd.DataFrame({"a": arr})
 
-    table = py.table(df)
+    table = pa.table(df)
     assert isinstance(table.field("a").type, ArrowPeriodType)
     result = table.to_pandas()
     assert isinstance(result["a"].dtype, PeriodDtype)
     tm.assert_frame_equal(result, df)
 
-    table2 = py.concat_tables([table, table])
+    table2 = pa.concat_tables([table, table])
     result = table2.to_pandas()
     expected = pd.concat([df, df], ignore_index=True)
     tm.assert_frame_equal(result, expected)
@@ -96,10 +96,10 @@ def test_arrow_load_from_zero_chunks():
     arr = PeriodArray([], freq="D")
     df = pd.DataFrame({"a": arr})
 
-    table = py.table(df)
+    table = pa.table(df)
     assert isinstance(table.field("a").type, ArrowPeriodType)
-    table = py.table(
-        [py.chunked_array([], type=table.column(0).type)], schema=table.schema
+    table = pa.table(
+        [pa.chunked_array([], type=table.column(0).type)], schema=table.schema
     )
     result = table.to_pandas()
     assert isinstance(result["a"].dtype, PeriodDtype)
@@ -111,7 +111,7 @@ def test_arrow_table_roundtrip_without_metadata():
     arr[1] = pd.NaT
     df = pd.DataFrame({"a": arr})
 
-    table = py.table(df)
+    table = pa.table(df)
     # remove the metadata
     table = table.replace_schema_metadata()
     assert table.schema.metadata is None
