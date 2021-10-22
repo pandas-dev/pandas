@@ -436,11 +436,8 @@ def test_is_not_int64_dtype(dtype):
         (types.pandas_dtype("float64"), "Float64"),
     ],
 )
-def test_type_comparison_capitalized_passes(dtype, capitalized):
-    try:
-        dtype == capitalized
-    except TypeError:
-        pytest.fail("Comparison failed due to TypeError")
+def test_type_comparison_capitalized(dtype, capitalized):
+    dtype == capitalized
 
 
 def test_is_datetime64_any_dtype():
