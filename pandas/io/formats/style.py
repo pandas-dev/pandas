@@ -1783,7 +1783,8 @@ class Styler(StylerRenderer):
         Examples
         --------
 
-        >>> styler, styler2 = DataFrame([[1, 2], [3, 4]]), DataFrame([[9, 9, 9]])
+        >>> styler = DataFrame([[1, 2], [3, 4]]).style
+        >>> styler2 = DataFrame([[9, 9, 9]]).style
         >>> styler.hide_index().highlight_max(axis=1)
         >>> export = styler.export()
         >>> styler2.use(export)
@@ -1834,7 +1835,8 @@ class Styler(StylerRenderer):
         Examples
         --------
 
-        >>> styler, styler2 = DataFrame([[1, 2], [3, 4]]), DataFrame([[9, 9, 9]])
+        >>> styler = DataFrame([[1, 2], [3, 4]]).style
+        >>> styler2 = DataFrame([[9, 9, 9]]).style
         >>> styler.hide_index().highlight_max(axis=1)
         >>> export = styler.export()
         >>> styler2.use(export)
