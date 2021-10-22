@@ -3,7 +3,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat.pyarrow import pa_version_under1p01
+from pandas.compat import pa_version_under1p01
 
 import pandas as pd
 import pandas._testing as tm
