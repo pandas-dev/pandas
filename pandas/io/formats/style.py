@@ -1750,7 +1750,7 @@ class Styler(StylerRenderer):
 
         Returns
         -------
-        styles : list
+        styles : dict
 
         See Also
         --------
@@ -1779,6 +1779,14 @@ class Styler(StylerRenderer):
           - Any hidden rows or columns identified by Index labels
           - Any formatting applied using ``Styler.format``
           - Any CSS classes added using ``Styler.set_td_classes``
+
+        Examples
+        --------
+
+        >>> styler, styler2 = DataFrame([[1, 2], [3, 4]]), DataFrame([[9, 9, 9]])
+        >>> styler.hide_index().highlight_max(axis=1)
+        >>> export = styler.export()
+        >>> styler2.use(export)
         """
         return {
             "apply": copy.copy(self._todo),
@@ -1822,6 +1830,14 @@ class Styler(StylerRenderer):
         See Also
         --------
         Styler.export : Export the non data dependent attributes to the current Styler.
+
+        Examples
+        --------
+
+        >>> styler, styler2 = DataFrame([[1, 2], [3, 4]]), DataFrame([[9, 9, 9]])
+        >>> styler.hide_index().highlight_max(axis=1)
+        >>> export = styler.export()
+        >>> styler2.use(export)
         """
         self._todo.extend(styles.get("apply", []))
         table_attributes: str = self.table_attributes or ""
