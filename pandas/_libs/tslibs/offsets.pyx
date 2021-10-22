@@ -1241,7 +1241,9 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     Timestamp('2017-04-01 09:10:11')
 
     >>> ts = pd.Timestamp('2017-01-01 09:10:11')
-    >>> DateOffset(day=31).apply(ts)
+    >>> ts + DateOffset(months=2)
+    Timestamp('2017-03-01 09:10:11')
+    >>> ts + DateOffset(day=31)
     Timestamp('2017-01-31 09:10:11')
     """
     def __setattr__(self, name, value):

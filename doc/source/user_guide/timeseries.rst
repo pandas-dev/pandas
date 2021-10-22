@@ -873,7 +873,7 @@ timestamp.
    friday + two_business_days
    (friday + two_business_days).day_name()
    # Replaces "hour" component on ts
-   pd.DateOffset(hour=8).apply(ts)
+   ts + pd.DateOffset(hour=8)
 
 Most ``DateOffsets`` have associated frequencies strings, or offset aliases, that can be passed
 into ``freq`` keyword arguments. The available date offsets and associated frequency strings can be found below:
