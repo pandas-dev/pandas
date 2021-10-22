@@ -63,9 +63,11 @@ def test_invalid_constructor(frame_or_series, w):
 
     c = frame_or_series(range(5)).rolling
 
-    msg = (
-        "window must be an integer|"
-        "passed window foo is not compatible with a datetimelike index"
+    msg = "|".join(
+        [
+            "window must be an integer",
+            "passed window foo is not compatible with a datetimelike index",
+        ]
     )
     with pytest.raises(ValueError, match=msg):
         c(window=w)
