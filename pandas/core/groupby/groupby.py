@@ -1217,7 +1217,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 else:
                     obj = self._obj_with_exclusions
                 check = obj._get_numeric_data()
-                if len(obj.columns) and not len(check.columns) and not obj.empty:
+                if len(obj.columns) > len(check.columns) and not obj.empty:
                     numeric_only = False
                     # TODO: v1.4+ Add FutureWarning
 
