@@ -9,6 +9,7 @@ from pandas import (
     Index,
     IntervalIndex,
     MultiIndex,
+    RangeIndex,
     Series,
     Timestamp,
 )
@@ -419,6 +420,24 @@ class TestDataFrameSortIndex:
         tm.assert_frame_equal(df, DataFrame(original_dict, index=original_index))
 
     @pytest.mark.parametrize("inplace", [True, False])
+    @pytest.mark.parametrize("ignore_index", [True, False])
+    def test_respect_ignore_index(self, inplace, ignore_index):
+        # GH 43591
+        df = DataFrame({"a": [1, 2, 3]}, index=RangeIndex(4, -1, -2))
+        result = df.sort_index(
+            ascending=False, ignore_index=ignore_index, inplace=inplace
+        )
+
+        if inplace:
+            result = df
+        if ignore_index:
+            expected = DataFrame({"a": [1, 2, 3]})
+        else:
+            expected = DataFrame({"a": [1, 2, 3]}, index=RangeIndex(4, -1, -2))
+
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("inplace", [True, False])
     @pytest.mark.parametrize(
         "original_dict, sorted_dict, ascending, ignore_index, output_index",
         [
@@ -783,6 +802,48 @@ class TestDataFrameSortIndex:
         )
         with pd.option_context("mode.use_inf_as_na", True):
             result = expected.sort_index()
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "ascending",
+        [(True, False), [True, False]],
+    )
+    def test_sort_index_ascending_tuple(self, ascending):
+        df = DataFrame(
+            {
+                "legs": [4, 2, 4, 2, 2],
+            },
+            index=MultiIndex.from_tuples(
+                [
+                    ("mammal", "dog"),
+                    ("bird", "duck"),
+                    ("mammal", "horse"),
+                    ("bird", "penguin"),
+                    ("mammal", "kangaroo"),
+                ],
+                names=["class", "animal"],
+            ),
+        )
+
+        # parameter `ascending`` is a tuple
+        result = df.sort_index(level=(0, 1), ascending=ascending)
+
+        expected = DataFrame(
+            {
+                "legs": [2, 2, 2, 4, 4],
+            },
+            index=MultiIndex.from_tuples(
+                [
+                    ("bird", "penguin"),
+                    ("bird", "duck"),
+                    ("mammal", "kangaroo"),
+                    ("mammal", "horse"),
+                    ("mammal", "dog"),
+                ],
+                names=["class", "animal"],
+            ),
+        )
+
         tm.assert_frame_equal(result, expected)
 
 
