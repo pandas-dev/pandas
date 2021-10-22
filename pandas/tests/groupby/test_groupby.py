@@ -896,7 +896,7 @@ def test_keep_nuisance_agg(df, agg_function):
 )
 def test_omit_nuisance_agg(df, agg_function):
     # GH 38774, GH 38815
-    grouped = df.groupby("A")
+    grouped = df.groupby("A")["C", "D"]
     result = getattr(grouped, agg_function)()
     expected = getattr(df.loc[:, ["A", "C", "D"]].groupby("A"), agg_function)()
     tm.assert_frame_equal(result, expected)

@@ -8072,7 +8072,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         5     18     100    2018-02-11
         6     17      40    2018-02-18
         7     19      50    2018-02-25
-        >>> df.resample('M', on='week_starting').mean()
+        >>> df.resample('M', on='week_starting')['price', 'volume'].mean()
                        price  volume
         week_starting
         2018-01-31     10.75    62.5
