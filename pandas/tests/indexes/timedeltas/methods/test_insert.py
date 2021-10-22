@@ -136,8 +136,8 @@ class TestTimedeltaIndexInsert:
         result = idx[:0].insert(0, td)
         assert result.freq == "D"
 
-        result = idx[:0].insert(1, td)
-        assert result.freq == "D"
+        with pytest.raises(IndexError, match="loc must be an integer between"):
+            result = idx[:0].insert(1, td)
 
-        result = idx[:0].insert(-1, td)
-        assert result.freq == "D"
+        with pytest.raises(IndexError, match="loc must be an integer between"):
+            result = idx[:0].insert(-1, td)

@@ -31,6 +31,7 @@ from pandas.util._decorators import doc
 from pandas.util._validators import (
     validate_bool_kwarg,
     validate_fillna_kwargs,
+    validate_insert_loc,
 )
 
 from pandas.core.dtypes.common import is_dtype_equal
@@ -359,6 +360,8 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         -------
         type(self)
         """
+        loc = validate_insert_loc(loc, len(self))
+
         code = self._validate_scalar(item)
 
         new_vals = np.concatenate(
