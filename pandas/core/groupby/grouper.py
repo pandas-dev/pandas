@@ -14,6 +14,7 @@ import warnings
 
 import numpy as np
 
+from pandas._libs.tslibs.nattype import NaTType
 from pandas._typing import (
     ArrayLike,
     NDFrameT,
@@ -50,8 +51,6 @@ from pandas.core.indexes.api import (
 from pandas.core.series import Series
 
 from pandas.io.formats.printing import pprint_thing
-
-from pandas._libs.tslibs.nattype import NaTType
 
 if TYPE_CHECKING:
     from pandas.core.generic import NDFrame
