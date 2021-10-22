@@ -1,7 +1,5 @@
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas.core.dtypes.dtypes import PeriodDtype
 
 import pandas as pd
