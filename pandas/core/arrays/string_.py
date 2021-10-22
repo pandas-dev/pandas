@@ -19,7 +19,6 @@ from pandas._typing import (
     Scalar,
     type_t,
 )
-from pandas.compat import pa_version_under1p0
 from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.base import (
@@ -104,11 +103,6 @@ class StringDtype(ExtensionDtype):
             raise ValueError(
                 f"Storage must be 'python' or 'pyarrow'. Got {storage} instead."
             )
-        if storage == "pyarrow" and pa_version_under1p0:
-            raise ImportError(
-                "pyarrow>=1.0.0 is required for PyArrow backed StringArray."
-            )
-
         self.storage = storage
 
     @property

@@ -20,7 +20,6 @@ from pandas.compat.numpy import (
     np_version_under1p20,
 )
 from pandas.compat.pyarrow import (
-    pa_version_under1p0,
     pa_version_under2p0,
     pa_version_under3p0,
     pa_version_under4p0,
@@ -151,7 +150,6 @@ __all__ = [
     "np_datetime64_compat",
     "np_version_under1p19",
     "np_version_under1p20",
-    "pa_version_under1p0",
     "pa_version_under2p0",
     "pa_version_under3p0",
     "pa_version_under4p0",

@@ -11,6 +11,8 @@ from typing import (
 )
 
 import numpy as np
+import pyarrow as pa
+import pyarrow.compute as pc
 
 from pandas._libs import (
     lib,
@@ -27,11 +29,11 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat import (
-    pa_version_under1p0,
     pa_version_under2p0,
     pa_version_under3p0,
     pa_version_under4p0,
 )
+from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
 
@@ -65,33 +67,20 @@ from pandas.core.indexers import (
 )
 from pandas.core.strings.object_array import ObjectStringArrayMixin
 
-# PyArrow backed StringArrays are available starting at 1.0.0, but this
-# file is imported from even if pyarrow is < 1.0.0, before pyarrow.compute
-# and its compute functions existed. GH38801
-if not pa_version_under1p0:
-    import pyarrow as pa
-    import pyarrow.compute as pc
-
-    ARROW_CMP_FUNCS = {
-        "eq": pc.equal,
-        "ne": pc.not_equal,
-        "lt": pc.less,
-        "gt": pc.greater,
-        "le": pc.less_equal,
-        "ge": pc.greater_equal,
-    }
+ARROW_CMP_FUNCS = {
+    "eq": pc.equal,
+    "ne": pc.not_equal,
+    "lt": pc.less,
+    "gt": pc.greater,
+    "le": pc.less_equal,
+    "ge": pc.greater_equal,
+}
 
 
 if TYPE_CHECKING:
     from pandas import Series
 
 ArrowStringScalarOrNAT = Union[str, libmissing.NAType]
-
-
-def _chk_pyarrow_available() -> None:
-    if pa_version_under1p0:
-        msg = "pyarrow>=1.0.0 is required for PyArrow backed StringArray."
-        raise ImportError(msg)
 
 
 # TODO: Inherit directly from BaseStringArrayMethods. Currently we inherit from
@@ -161,7 +150,8 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
     def _from_sequence(cls, scalars, dtype: Dtype | None = None, copy: bool = False):
         from pandas.core.arrays.masked import BaseMaskedArray
 
-        _chk_pyarrow_available()
+        msg = "pyarrow>=1.0.0 is required for PyArrow backed StringArray."
+        import_optional_dependency("pyarrow", msg)
 
         if dtype and not (isinstance(dtype, str) and dtype == "string"):
             dtype = pandas_dtype(dtype)

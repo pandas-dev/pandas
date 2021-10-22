@@ -3,7 +3,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import pa_version_under1p0
+from pandas.compat._optional import import_optional_dependency
 
 import pandas as pd
 import pandas._testing as tm
@@ -13,8 +13,9 @@ from pandas.core.arrays.string_ import (
 )
 from pandas.core.arrays.string_arrow import ArrowStringArray
 
+pyarrow = import_optional_dependency("pyarrow")
 skip_if_no_pyarrow = pytest.mark.skipif(
-    pa_version_under1p0,
+    pyarrow is None,
     reason="pyarrow>=1.0.0 is required for PyArrow backed StringArray",
 )
 
@@ -118,7 +119,7 @@ def test_from_sequence_wrong_dtype_raises():
 
 
 @pytest.mark.skipif(
-    not pa_version_under1p0,
+    pyarrow is not None,
     reason="pyarrow is installed",
 )
 def test_pyarrow_not_installed_raises():
