@@ -11,8 +11,6 @@ from typing import (
 )
 
 import numpy as np
-import pyarrow as pa
-import pyarrow.compute as pc
 
 from pandas._libs import (
     lib,
@@ -66,6 +64,14 @@ from pandas.core.indexers import (
     validate_indices,
 )
 from pandas.core.strings.object_array import ObjectStringArrayMixin
+
+
+msg = "pyarrow>=1.0.0 is required for PyArrow backed StringArray."
+pyarrow = import_optional_dependency("pyarrow", msg)
+if pyarrow is not None:
+    import pyarrow.compute as pc
+
+    pa = pyarrow
 
 ARROW_CMP_FUNCS = {
     "eq": pc.equal,
@@ -149,9 +155,6 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
     @classmethod
     def _from_sequence(cls, scalars, dtype: Dtype | None = None, copy: bool = False):
         from pandas.core.arrays.masked import BaseMaskedArray
-
-        msg = "pyarrow>=1.0.0 is required for PyArrow backed StringArray."
-        import_optional_dependency("pyarrow", msg)
 
         if dtype and not (isinstance(dtype, str) and dtype == "string"):
             dtype = pandas_dtype(dtype)
