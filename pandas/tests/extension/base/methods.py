@@ -511,6 +511,48 @@ class BaseMethodsTests(BaseExtensionTests):
         expected = data._concat_same_type([data[[0]], data[[2]], data[4:]])
         self.assert_extension_array_equal(result, expected)
 
+    def test_insert(self, data):
+        # insert at the beginning
+        result = data[1:].insert(0, data[0])
+        self.assert_extension_array_equal(result, data)
+
+        result = data[1:].insert(-len(data[1:]), data[0])
+        self.assert_extension_array_equal(result, data)
+
+        # insert at the middle
+        result = data[:-1].insert(4, data[-1])
+
+        taker = np.arange(len(data))
+        taker[5:] = taker[4:-1]
+        taker[4] = len(data) - 1
+        expected = data.take(taker)
+        self.assert_extension_array_equal(result, expected)
+
+    def test_insert_invalid(self, data, invalid_scalar):
+        item = invalid_scalar
+
+        with pytest.raises((TypeError, ValueError)):
+            data.insert(0, item)
+
+        with pytest.raises((TypeError, ValueError)):
+            data.insert(4, item)
+
+        with pytest.raises((TypeError, ValueError)):
+            data.insert(len(data) - 1, item)
+
+    def test_insert_invalid_loc(self, data):
+        ub = len(data)
+
+        with pytest.raises(IndexError):
+            data.insert(ub + 1, data[0])
+
+        with pytest.raises(IndexError):
+            data.insert(-ub - 1, data[0])
+
+        with pytest.raises(TypeError):
+            # we expect TypeError here instead of IndexError to match np.insert
+            data.insert(1.5, data[0])
+
     @pytest.mark.parametrize("box", [pd.array, pd.Series, pd.DataFrame])
     def test_equals(self, data, na_value, as_series, box):
         data2 = type(data)._from_sequence([data[0]] * len(data), dtype=data.dtype)
