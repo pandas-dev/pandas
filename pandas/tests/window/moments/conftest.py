@@ -1,34 +1,11 @@
-from datetime import datetime
-
 import numpy as np
 import pytest
 
 from pandas import (
     DataFrame,
     Series,
-    bdate_range,
     notna,
 )
-
-
-@pytest.fixture
-def series():
-    """Make mocked series as fixture."""
-    arr = np.random.randn(100)
-    locs = np.arange(20, 40)
-    arr[locs] = np.NaN
-    series = Series(arr, index=bdate_range(datetime(2009, 1, 1), periods=100))
-    return series
-
-
-@pytest.fixture
-def frame():
-    """Make mocked frame as fixture."""
-    return DataFrame(
-        np.random.randn(100, 10),
-        index=bdate_range(datetime(2009, 1, 1), periods=100),
-        columns=np.arange(10),
-    )
 
 
 # create the data only once as we are not setting it
