@@ -119,13 +119,11 @@ class TestDataFrame(Generic):
             df1.filename = "fname1.csv"
             df2.filename = "fname2.csv"
 
-            DataFrame.__finalize__ = finalize
             result = df1.merge(df2, left_on=["a"], right_on=["c"], how="inner")
             assert result.filename == "fname1.csv|fname2.csv"
 
             # concat
             # GH#6927
-            DataFrame._metadata = ["filename"]
             df1 = DataFrame(np.random.randint(0, 4, (3, 2)), columns=list("ab"))
             df1.filename = "foo"
 
