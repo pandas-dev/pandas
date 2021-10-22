@@ -27,11 +27,11 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat import (
+    pa_version_under1p01,
     pa_version_under2p0,
     pa_version_under3p0,
     pa_version_under4p0,
 )
-from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
 
@@ -65,21 +65,18 @@ from pandas.core.indexers import (
 )
 from pandas.core.strings.object_array import ObjectStringArrayMixin
 
-msg = "pyarrow>=1.0.0 is required for PyArrow backed StringArray."
-pyarrow = import_optional_dependency("pyarrow", msg)
-if pyarrow is not None:
+if not pa_version_under1p01:
+    import pyarrow as pa
     import pyarrow.compute as pc
 
-    pa = pyarrow
-
-ARROW_CMP_FUNCS = {
-    "eq": pc.equal,
-    "ne": pc.not_equal,
-    "lt": pc.less,
-    "gt": pc.greater,
-    "le": pc.less_equal,
-    "ge": pc.greater_equal,
-}
+    ARROW_CMP_FUNCS = {
+        "eq": pc.equal,
+        "ne": pc.not_equal,
+        "lt": pc.less,
+        "gt": pc.greater,
+        "le": pc.less_equal,
+        "ge": pc.greater_equal,
+    }
 
 
 if TYPE_CHECKING:
