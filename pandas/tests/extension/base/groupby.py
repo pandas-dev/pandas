@@ -96,7 +96,7 @@ class BaseGroupbyTests(BaseExtensionTests):
                 "C": [1, 1, 1, 1, 1, 1, 1, 1],
             }
         )
-        result = df.groupby("A").sum().columns
+        result = df.groupby("A").sum(numeric_only=True).columns
 
         if data_for_grouping.dtype._is_numeric:
             expected = pd.Index(["B", "C"])
