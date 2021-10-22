@@ -15,6 +15,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Sized,
+    TypeVar,
     cast,
     overload,
 )
@@ -105,6 +106,8 @@ _int8_max = np.iinfo(np.int8).max
 _int16_max = np.iinfo(np.int16).max
 _int32_max = np.iinfo(np.int32).max
 _int64_max = np.iinfo(np.int64).max
+
+NumpyArrayT = TypeVar("NumpyArrayT", bound=np.ndarray)
 
 
 def maybe_convert_platform(
@@ -883,10 +886,10 @@ def maybe_infer_dtype_type(element):
 
 
 def maybe_upcast(
-    values: np.ndarray,
+    values: NumpyArrayT,
     fill_value: Scalar = np.nan,
     copy: bool = False,
-) -> tuple[np.ndarray, Scalar]:
+) -> tuple[NumpyArrayT, Scalar]:
     """
     Provide explicit type promotion and coercion.
 
@@ -909,7 +912,7 @@ def maybe_upcast(
     # We get a copy in all cases _except_ (values.dtype == new_dtype and not copy)
     upcast_values = values.astype(new_dtype, copy=copy)
 
-    return upcast_values, fill_value
+    return upcast_values, fill_value  # type: ignore[return-value]
 
 
 def invalidate_string_dtypes(dtype_set: set[DtypeObj]):
