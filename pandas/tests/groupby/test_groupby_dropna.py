@@ -391,22 +391,3 @@ def test_groupby_codes_with_nan_in_multiindex(na):
     )
     result = grouped_df.index
     assert all((res == ex).all() for res, ex in zip(result.codes, expected.codes))
-
-
-def test_groupby_codes_with_pd_nat_in_multiindex():
-    # GH 43814
-    df = pd.DataFrame(
-        {
-            "temp_playlist": [0, 0, 0, 0],
-            "objId": ["o1", pd.NaT, "o1", pd.NaT],
-            "x": [1, 2, 3, 4],
-        }
-    )
-
-    grouped_df = df.groupby(by=["temp_playlist", "objId"], dropna=False)["x"].sum()
-    expected = pd.MultiIndex.from_arrays(
-        [[0, 0], ["o1", pd.NaT]], names=["temp_playlist", "objId"]
-    )
-    result = grouped_df.index
-    # import pdb; pdb.set_trace()
-    assert all((res == ex).all() for res, ex in zip(result.codes, expected.codes))

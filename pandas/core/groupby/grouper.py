@@ -694,9 +694,9 @@ class Grouping:
             codes, uniques = algorithms.factorize(
                 self.grouping_vector, sort=self._sort, na_sentinel=na_sentinel
             )
-            # GH43943, store placeholder for np.nan, will later be replaced by -1 in
+            # GH43943, store placeholder for (np.nan, pd.NaT, np.datetime64("NaT", "ns"),
+            # np.timedelta64("NaT", "ns")), will later be replaced by -1 in
             # pandas/core/groupby:reconstructed_codes
-            import pdb; pdb.set_trace()
             if not self._dropna:
                 if isna(self.grouping_vector).any():
                     self._na_placeholder = max(codes)
