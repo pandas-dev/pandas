@@ -863,9 +863,10 @@ class BaseGrouper:
             ids, obs_ids, self.shape, codes, xnull=True
         )
 
+        import pdb; pdb.set_trace()
         def transform_codes(code_level, grouping):
             if grouping._na_placeholder is not None:
-                return np.where(code_level == max(code_level), -1, code_level)
+                return np.where(code_level == grouping._na_placeholder, -1, code_level)
             else:
                 return code_level
 

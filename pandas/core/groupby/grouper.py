@@ -34,6 +34,7 @@ from pandas.core.arrays import (
     Categorical,
     ExtensionArray,
 )
+from pandas.core.base import isna
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.groupby import ops
@@ -49,6 +50,8 @@ from pandas.core.indexes.api import (
 from pandas.core.series import Series
 
 from pandas.io.formats.printing import pprint_thing
+
+from pandas._libs.tslibs.nattype import NaTType
 
 if TYPE_CHECKING:
     from pandas.core.generic import NDFrame
@@ -693,10 +696,9 @@ class Grouping:
             )
             # GH43943, store placeholder for np.nan, will later be replaced by -1 in
             # pandas/core/groupby:reconstructed_codes
+            import pdb; pdb.set_trace()
             if not self._dropna:
-                if any(
-                    isinstance(v, float) and np.isnan(v) for v in self.grouping_vector
-                ):
+                if isna(self.grouping_vector).any():
                     self._na_placeholder = max(codes)
 
         return codes, uniques
