@@ -57,8 +57,6 @@ class TestTimedeltaEngine:
     @pytest.mark.parametrize(
         "scalar",
         [
-            # error: Argument 1 to "Timestamp" has incompatible type "timedelta64";
-            # expected "Union[integer[Any], float, str, date, datetime64]"
             pd.Timestamp(pd.Timedelta(days=42).asm8.view("datetime64[ns]")),
             pd.Timedelta(days=42).value,
             pd.Timedelta(days=42).to_pytimedelta(),
