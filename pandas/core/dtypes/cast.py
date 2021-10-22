@@ -15,7 +15,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Sized,
-    TypeVar,
     cast,
     overload,
 )
@@ -106,8 +105,6 @@ _int8_max = np.iinfo(np.int8).max
 _int16_max = np.iinfo(np.int16).max
 _int32_max = np.iinfo(np.int32).max
 _int64_max = np.iinfo(np.int64).max
-
-NumpyArrayT = TypeVar("NumpyArrayT", bound=np.ndarray)
 
 
 def maybe_convert_platform(
@@ -886,10 +883,10 @@ def maybe_infer_dtype_type(element):
 
 
 def maybe_upcast(
-    values: NumpyArrayT,
+    values: np.ndarray,
     fill_value: Scalar = np.nan,
     copy: bool = False,
-) -> tuple[NumpyArrayT, Scalar]:
+) -> tuple[np.ndarray, Scalar]:
     """
     Provide explicit type promotion and coercion.
 
