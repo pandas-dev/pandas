@@ -374,10 +374,9 @@ class TestCasting(BaseSparseTests, base.BaseCastingTests):
         result = df.astype(object)
         assert is_object_dtype(result._mgr.arrays[0].dtype)
 
-        # FIXME: these currently fail; dont leave commented-out
         # check that we can compare the dtypes
-        # comp = result.dtypes.equals(df.dtypes)
-        # assert not comp.any()
+        comp = result.dtypes == df.dtypes
+        assert not comp.any()
 
     def test_astype_str(self, data):
         result = pd.Series(data[:5]).astype(str)

@@ -30,10 +30,9 @@ class BaseCastingTests(BaseExtensionTests):
         assert isinstance(result._mgr.arrays[0], np.ndarray)
         assert result._mgr.arrays[0].dtype == np.dtype(object)
 
-        # FIXME: these currently fail; dont leave commented-out
         # check that we can compare the dtypes
-        # cmp = result.dtypes.equals(df.dtypes)
-        # assert not cmp.any()
+        comp = result.dtypes == df.dtypes
+        assert not comp.any()
 
     def test_tolist(self, data):
         result = pd.Series(data).tolist()
