@@ -65,7 +65,6 @@ from pandas.core.indexers import (
 )
 from pandas.core.strings.object_array import ObjectStringArrayMixin
 
-
 msg = "pyarrow>=1.0.0 is required for PyArrow backed StringArray."
 pyarrow = import_optional_dependency("pyarrow", msg)
 if pyarrow is not None:
