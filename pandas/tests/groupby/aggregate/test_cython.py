@@ -92,7 +92,7 @@ def test_cython_agg_nothing_to_agg():
     with pytest.raises(NotImplementedError, match="does not implement"):
         frame.groupby("a")["b"].mean(numeric_only=True)
 
-    with pytest.raises(TypeError, match="Could not convert (foo|bar)*"):
+    with pytest.raises(TypeError, match="cannot find the mean of*"):
         frame.groupby("a")["b"].mean()
 
     frame = DataFrame({"a": np.random.randint(0, 5, 50), "b": ["foo", "bar"] * 25})

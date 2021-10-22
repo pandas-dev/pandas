@@ -257,7 +257,10 @@ def test_agg_cython_table_raises_frame(df, func, expected, axis):
 )
 def test_agg_cython_table_raises_series(series, func, expected):
     # GH21224
-    msg = r"[Cc]ould not convert|can't multiply sequence by non-int of type"
+    msg = (
+        r"[Cc]ould not convert|can't multiply sequence by non-int of type"
+        r"|cannot find the mean of type 'str'"
+    )
     with pytest.raises(expected, match=msg):
         # e.g. Series('a b'.split()).cumprod() will raise
         series.agg(func)
