@@ -372,19 +372,41 @@ def test_groupby_nan_included():
     assert list(result.keys())[0:2] == ["g1", "g2"]
 
 
-def test_groupby_codes_with_nan_in_multiindex():
+@pytest.mark.parametrize(
+    "na", [np.nan, pd.NaT, np.datetime64("NaT", "ns"), np.timedelta64("NaT", "ns")]
+)
+def test_groupby_codes_with_nan_in_multiindex(na):
     # GH 43814
     df = pd.DataFrame(
         {
             "temp_playlist": [0, 0, 0, 0],
-            "objId": ["o1", np.nan, "o1", np.nan],
+            "objId": ["o1", na, "o1", na],
             "x": [1, 2, 3, 4],
         }
     )
 
     grouped_df = df.groupby(by=["temp_playlist", "objId"], dropna=False)["x"].sum()
     expected = pd.MultiIndex.from_arrays(
-        [[0, 0], ["o1", np.nan]], names=["temp_playlist", "objId"]
+        [[0, 0], ["o1", na]], names=["temp_playlist", "objId"]
     )
     result = grouped_df.index
+    assert all((res == ex).all() for res, ex in zip(result.codes, expected.codes))
+
+
+def test_groupby_codes_with_pd_nat_in_multiindex():
+    # GH 43814
+    df = pd.DataFrame(
+        {
+            "temp_playlist": [0, 0, 0, 0],
+            "objId": ["o1", pd.NaT, "o1", pd.NaT],
+            "x": [1, 2, 3, 4],
+        }
+    )
+
+    grouped_df = df.groupby(by=["temp_playlist", "objId"], dropna=False)["x"].sum()
+    expected = pd.MultiIndex.from_arrays(
+        [[0, 0], ["o1", pd.NaT]], names=["temp_playlist", "objId"]
+    )
+    result = grouped_df.index
+    # import pdb; pdb.set_trace()
     assert all((res == ex).all() for res, ex in zip(result.codes, expected.codes))
