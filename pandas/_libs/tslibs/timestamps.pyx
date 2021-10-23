@@ -284,7 +284,7 @@ cdef class _Timestamp(ABCTimestamp):
             int64_t nanos = 0
 
         if is_any_td_scalar(other):
-            nanos += delta_to_nanoseconds(other)
+            nanos = delta_to_nanoseconds(other)
             result = type(self)(self.value + nanos, tz=self.tzinfo)
             if result is not NaT:
                 result._set_freq(self._freq)  # avoid warning in constructor
