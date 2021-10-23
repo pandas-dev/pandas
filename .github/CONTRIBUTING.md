@@ -16,8 +16,45 @@ If you notice a bug in the code or documentation, or have suggestions for how we
 
 ## Contributing to the Codebase
 
-The code is hosted on [GitHub](https://www.github.com/pandas-dev/pandas), so you will need to use [Git](https://git-scm.com/) to clone the project and make changes to the codebase. Once you have obtained a copy of the code, you should create a development environment that is separate from your existing Python environment so that you can make and test changes without compromising your own work environment. For more information, please refer to the "[Working with the code](https://github.com/pandas-dev/pandas/blob/master/doc/source/development/contributing.rst#working-with-the-code)" section.
+This is an intermediate guide for making contributions, which is meant to summarize key points in the [Contributing Guide](https://pandas.pydata.org/docs/dev/development/contributing.html).  References are provided, but it may be beneficial to read the whole guide.
 
-Before submitting your changes for review, make sure to check that your changes do not break any tests. You can find more information about our test suites in the "[Test-driven development/code writing](https://github.com/pandas-dev/pandas/blob/master/doc/source/development/contributing.rst#test-driven-development-code-writing)" section. We also have guidelines regarding coding style that will be enforced during testing, which can be found in the "[Code standards](https://github.com/pandas-dev/pandas/blob/master/doc/source/development/contributing.rst#code-standards)" section.
+###	Clone Pandas to Make Changes
 
-Once your changes are ready to be submitted, make sure to push your changes to GitHub before creating a pull request. Details about how to do that can be found in the "[Contributing your changes to pandas](https://github.com/pandas-dev/pandas/blob/master/doc/source/development/contributing.rst#contributing-your-changes-to-pandas)" section. We will review your changes, and you will most likely be asked to make additional changes before it is finally ready to merge. However, once it's ready, we will merge it, and you will have successfully contributed to the codebase!
+o	The code is hosted on GitHub, so you will need clone the repo to have a copy of the code
+o	To get started, you will need to create your own fork to work on the code.  This should be done in a separate development environment separate from your existing Python environment.
+
+Forking commands:
+git clone https://github.com/your-user-name/pandas.git pandas-yourname
+cd pandas-yourname
+git remote add upstream https://github.com/pandas-dev/pandas.git
+
+o	Please see the [Working with the code](https://pandas.pydata.org/docs/dev/development/contributing.html#working-with-the-code) section of the Contributing Guide for further information.
+
+### Follow the Code Standards and Style Guide
+
+o	Before submitting your changes, make sure the align to the pandas [Code Standards](https://pandas.pydata.org/docs/dev/development/contributing_codebase.html#code-standards)
+o	Also, see the [Pandas Code Style Guide](https://pandas.pydata.org/docs/dev/development/code_style.html)
+
+### Ensure your changes do not break any tests
+
+o	You can find the testing information [Running the Test Suite](https://pandas.pydata.org/docs/dev/development/contributing_codebase.html#running-the-test-suite) section of the guide.
+o	Tests can be run directly in your Git clone with the following command: 'pytest pandas'
+
+### Push your changes
+
+o	Once your changes are ready to be submitted, push your changes with the following command (replacing “shiny-new-feature” with "your branch name”: 'git push origin shiny-new-feature'
+o	More information can be found in [Contributing your changes to pandas](https://pandas.pydata.org/docs/dev/development/contributing.html#contributing-your-changes-to-pandas) section
+
+###	Create a pull request
+o	This is done on the GitHub repo via the “Pull Request button”
+o	If you have not done this before, please see the [Finally, make a pull request](https://pandas.pydata.org/docs/dev/development/contributing.html#finally-make-the-pull-request) section of the guide
+
+### Review changes
+
+o	We will review your changes, and you will most likely be asked to make additional changes before the final merge
+o	Make any necessary changes to your contribution
+
+###	Congratulations!
+
+o	After the final review, we will merge your changes
+o	You have now successfully contributed to the codebase
