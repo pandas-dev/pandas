@@ -105,14 +105,14 @@ class TestGroupBy:
             )
             expected.iloc[[0, 6, 18], 0] = np.array([24, 6, 9], dtype="int64")
 
-            result1 = df.resample("5D").sum()
+            result1 = df.resample("5D").sum()['Quantity'].to_frame()
             tm.assert_frame_equal(result1, expected)
 
             df_sorted = df.sort_index()
-            result2 = df_sorted.groupby(Grouper(freq="5D")).sum()
+            result2 = df_sorted.groupby(Grouper(freq="5D")).sum()['Quantity'].to_frame()
             tm.assert_frame_equal(result2, expected)
 
-            result3 = df.groupby(Grouper(freq="5D")).sum()
+            result3 = df.groupby(Grouper(freq="5D")).sum()['Quantity'].to_frame()
             tm.assert_frame_equal(result3, expected)
 
     @pytest.mark.parametrize("should_sort", [True, False])

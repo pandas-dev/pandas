@@ -125,14 +125,16 @@ class TestNumericOnly:
     @pytest.mark.parametrize("method", ["mean", "median"])
     def test_averages(self, df, method):
         # mean / median
-        expected_columns_numeric = Index([
+        expected_columns_numeric = Index(
+            [
                 "int",
                 "float",
                 "category_int",
                 "datetime",
                 "datetimetz",
                 "timedelta",
-            ])
+            ]
+        )
 
         gb = df.groupby("group")
         expected = DataFrame(
