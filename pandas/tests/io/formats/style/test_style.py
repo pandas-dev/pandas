@@ -73,7 +73,7 @@ def mi_styler_comp(mi_styler):
             columns=mi_styler.columns,
         )
     )
-    mi_styler.descriptors = ["mean"]
+    mi_styler.set_descriptors(["mean"])
     return mi_styler
 
 
