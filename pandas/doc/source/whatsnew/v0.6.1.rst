@@ -1,0 +1,58 @@
+
+.. _whatsnew_061:
+
+Version 0.6.1 (December 13, 2011)
+---------------------------------
+
+New features
+~~~~~~~~~~~~
+- Can :ref:`append single rows <merging.append.row>` (as Series) to a DataFrame
+- Add Spearman and Kendall rank :ref:`correlation <computation.correlation>`
+  options to Series.corr and DataFrame.corr (:issue:`428`)
+- :ref:`Added <indexing.basics.get_value>` ``get_value`` and ``set_value`` methods to
+  Series, DataFrame, and Panel for very low-overhead access (>2x faster in many
+  cases) to scalar elements (:issue:`437`, :issue:`438`). ``set_value`` is capable of
+  producing an enlarged object.
+- Add PyQt table widget to sandbox (:issue:`435`)
+- DataFrame.align can :ref:`accept Series arguments <basics.align.frame.series>`
+  and an :ref:`axis option <basics.df_join>` (:issue:`461`)
+- Implement new :ref:`SparseArray <sparse.array>` and ``SparseList``
+  data structures. SparseSeries now derives from SparseArray (:issue:`463`)
+- :ref:`Better console printing options <basics.console_output>` (:issue:`453`)
+- Implement fast :ref:`data ranking <computation.ranking>` for Series and
+  DataFrame, fast versions of scipy.stats.rankdata (:issue:`428`)
+- Implement ``DataFrame.from_items`` alternate
+  constructor (:issue:`444`)
+- DataFrame.convert_objects method for :ref:`inferring better dtypes <basics.cast>`
+  for object columns (:issue:`302`)
+- Add :ref:`rolling_corr_pairwise <window.corr_pairwise>` function for
+  computing Panel of correlation matrices (:issue:`189`)
+- Add :ref:`margins <reshaping.pivot.margins>` option to :ref:`pivot_table
+  <reshaping.pivot>` for computing subgroup aggregates (:issue:`114`)
+- Add ``Series.from_csv`` function (:issue:`482`)
+- :ref:`Can pass <window.cov_corr>` DataFrame/DataFrame and
+  DataFrame/Series to rolling_corr/rolling_cov (GH #462)
+- MultiIndex.get_level_values can :ref:`accept the level name <advanced.get_level_values>`
+
+Performance improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Improve memory usage of ``DataFrame.describe`` (do not copy data
+  unnecessarily) (PR #425)
+
+- Optimize scalar value lookups in the general case by 25% or more in Series
+  and DataFrame
+
+- Fix performance regression in cross-sectional count in DataFrame, affecting
+  DataFrame.dropna speed
+- Column deletion in DataFrame copies no data (computes views on blocks) (GH
+  #158)
+
+
+
+.. _whatsnew_0.6.1.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v0.6.0..v0.6.1

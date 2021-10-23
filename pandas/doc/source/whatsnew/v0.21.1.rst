@@ -1,0 +1,187 @@
+.. _whatsnew_0211:
+
+Version 0.21.1 (December 12, 2017)
+----------------------------------
+
+{{ header }}
+
+.. ipython:: python
+   :suppress:
+
+   from pandas import *  # noqa F401, F403
+
+
+This is a minor bug-fix release in the 0.21.x series and includes some small regression fixes,
+bug fixes and performance improvements.
+We recommend that all users upgrade to this version.
+
+Highlights include:
+
+- Temporarily restore matplotlib datetime plotting functionality. This should
+  resolve issues for users who implicitly relied on pandas to plot datetimes
+  with matplotlib. See :ref:`here <whatsnew_0211.converters>`.
+- Improvements to the Parquet IO functions introduced in 0.21.0. See
+  :ref:`here <whatsnew_0211.enhancements.parquet>`.
+
+
+.. contents:: What's new in v0.21.1
+    :local:
+    :backlinks: none
+
+
+.. _whatsnew_0211.converters:
+
+Restore Matplotlib datetime converter registration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+pandas implements some matplotlib converters for nicely formatting the axis
+labels on plots with ``datetime`` or ``Period`` values. Prior to pandas 0.21.0,
+these were implicitly registered with matplotlib, as a side effect of ``import
+pandas``.
+
+In pandas 0.21.0, we required users to explicitly register the
+converter. This caused problems for some users who relied on those converters
+being present for regular ``matplotlib.pyplot`` plotting methods, so we're
+temporarily reverting that change; pandas 0.21.1 again registers the converters on
+import, just like before 0.21.0.
+
+We've added a new option to control the converters:
+``pd.options.plotting.matplotlib.register_converters``. By default, they are
+registered. Toggling this to ``False`` removes pandas' formatters and restore
+any converters we overwrote when registering them (:issue:`18301`).
+
+We're working with the matplotlib developers to make this easier. We're trying
+to balance user convenience (automatically registering the converters) with
+import performance and best practices (importing pandas shouldn't have the side
+effect of overwriting any custom converters you've already set). In the future
+we hope to have most of the datetime formatting functionality in matplotlib,
+with just the pandas-specific converters in pandas. We'll then gracefully
+deprecate the automatic registration of converters in favor of users explicitly
+registering them when they want them.
+
+.. _whatsnew_0211.enhancements:
+
+New features
+~~~~~~~~~~~~
+
+.. _whatsnew_0211.enhancements.parquet:
+
+Improvements to the Parquet IO functionality
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- :func:`DataFrame.to_parquet` will now write non-default indexes when the
+  underlying engine supports it. The indexes will be preserved when reading
+  back in with :func:`read_parquet` (:issue:`18581`).
+- :func:`read_parquet` now allows to specify the columns to read from a parquet file (:issue:`18154`)
+- :func:`read_parquet` now allows to specify kwargs which are passed to the respective engine (:issue:`18216`)
+
+.. _whatsnew_0211.enhancements.other:
+
+Other enhancements
+^^^^^^^^^^^^^^^^^^
+
+- :meth:`Timestamp.timestamp` is now available in Python 2.7. (:issue:`17329`)
+- :class:`Grouper` and :class:`TimeGrouper` now have a friendly repr output (:issue:`18203`).
+
+.. _whatsnew_0211.deprecations:
+
+Deprecations
+~~~~~~~~~~~~
+
+- ``pandas.tseries.register`` has been renamed to
+  :func:`pandas.plotting.register_matplotlib_converters` (:issue:`18301`)
+
+.. _whatsnew_0211.performance:
+
+Performance improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Improved performance of plotting large series/dataframes (:issue:`18236`).
+
+.. _whatsnew_0211.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+Conversion
+^^^^^^^^^^
+
+- Bug in :class:`TimedeltaIndex` subtraction could incorrectly overflow when ``NaT`` is present (:issue:`17791`)
+- Bug in :class:`DatetimeIndex` subtracting datetimelike from DatetimeIndex could fail to overflow (:issue:`18020`)
+- Bug in :meth:`IntervalIndex.copy` when copying and ``IntervalIndex`` with non-default ``closed`` (:issue:`18339`)
+- Bug in :func:`DataFrame.to_dict` where columns of datetime that are tz-aware were not converted to required arrays when used with ``orient='records'``, raising ``TypeError`` (:issue:`18372`)
+- Bug in :class:`DateTimeIndex` and :meth:`date_range` where mismatching tz-aware ``start`` and ``end`` timezones would not raise an err if ``end.tzinfo`` is None (:issue:`18431`)
+- Bug in :meth:`Series.fillna` which raised when passed a long integer on Python 2 (:issue:`18159`).
+
+Indexing
+^^^^^^^^
+
+- Bug in a boolean comparison of a ``datetime.datetime`` and a ``datetime64[ns]`` dtype Series (:issue:`17965`)
+- Bug where a ``MultiIndex`` with more than a million records was not raising ``AttributeError`` when trying to access a missing attribute (:issue:`18165`)
+- Bug in :class:`IntervalIndex` constructor when a list of intervals is passed with non-default ``closed`` (:issue:`18334`)
+- Bug in ``Index.putmask`` when an invalid mask passed (:issue:`18368`)
+- Bug in masked assignment of a ``timedelta64[ns]`` dtype ``Series``, incorrectly coerced to float (:issue:`18493`)
+
+IO
+^^
+
+- Bug in class:`~pandas.io.stata.StataReader` not converting date/time columns with display formatting addressed (:issue:`17990`). Previously columns with display formatting were normally left as ordinal numbers and not converted to datetime objects.
+- Bug in :func:`read_csv` when reading a compressed UTF-16 encoded file (:issue:`18071`)
+- Bug in :func:`read_csv` for handling null values in index columns when specifying ``na_filter=False`` (:issue:`5239`)
+- Bug in :func:`read_csv` when reading numeric category fields with high cardinality (:issue:`18186`)
+- Bug in :meth:`DataFrame.to_csv` when the table had ``MultiIndex`` columns, and a list of strings was passed in for ``header`` (:issue:`5539`)
+- Bug in parsing integer datetime-like columns with specified format in ``read_sql`` (:issue:`17855`).
+- Bug in :meth:`DataFrame.to_msgpack` when serializing data of the ``numpy.bool_`` datatype (:issue:`18390`)
+- Bug in :func:`read_json` not decoding when reading line delimited JSON from S3 (:issue:`17200`)
+- Bug in :func:`pandas.io.json.json_normalize` to avoid modification of ``meta`` (:issue:`18610`)
+- Bug in :func:`to_latex` where repeated MultiIndex values were not printed even though a higher level index differed from the previous row (:issue:`14484`)
+- Bug when reading NaN-only categorical columns in :class:`HDFStore` (:issue:`18413`)
+- Bug in :meth:`DataFrame.to_latex` with ``longtable=True`` where a latex multicolumn always spanned over three columns (:issue:`17959`)
+
+Plotting
+^^^^^^^^
+
+- Bug in ``DataFrame.plot()`` and ``Series.plot()`` with :class:`DatetimeIndex` where a figure generated by them is not pickleable in Python 3 (:issue:`18439`)
+
+GroupBy/resample/rolling
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+- Bug in ``DataFrame.resample(...).apply(...)`` when there is a callable that returns different columns (:issue:`15169`)
+- Bug in ``DataFrame.resample(...)`` when there is a time change (DST) and resampling frequency is 12h or higher (:issue:`15549`)
+- Bug in ``pd.DataFrameGroupBy.count()`` when counting over a datetimelike column (:issue:`13393`)
+- Bug in ``rolling.var`` where calculation is inaccurate with a zero-valued array (:issue:`18430`)
+
+Reshaping
+^^^^^^^^^
+
+- Error message in ``pd.merge_asof()`` for key datatype mismatch now includes datatype of left and right key (:issue:`18068`)
+- Bug in ``pd.concat`` when empty and non-empty DataFrames or Series are concatenated (:issue:`18178` :issue:`18187`)
+- Bug in ``DataFrame.filter(...)`` when :class:`unicode` is passed as a condition in Python 2 (:issue:`13101`)
+- Bug when merging empty DataFrames when ``np.seterr(divide='raise')`` is set (:issue:`17776`)
+
+Numeric
+^^^^^^^
+
+- Bug in ``pd.Series.rolling.skew()`` and ``rolling.kurt()`` with all equal values has floating issue (:issue:`18044`)
+
+Categorical
+^^^^^^^^^^^
+
+- Bug in :meth:`DataFrame.astype` where casting to 'category' on an empty ``DataFrame`` causes a segmentation fault (:issue:`18004`)
+- Error messages in the testing module have been improved when items have different ``CategoricalDtype`` (:issue:`18069`)
+- ``CategoricalIndex`` can now correctly take a ``pd.api.types.CategoricalDtype`` as its dtype (:issue:`18116`)
+- Bug in ``Categorical.unique()`` returning read-only ``codes``  array when all categories were ``NaN`` (:issue:`18051`)
+- Bug in ``DataFrame.groupby(axis=1)`` with a ``CategoricalIndex`` (:issue:`18432`)
+
+String
+^^^^^^
+
+- :meth:`Series.str.split()` will now propagate ``NaN`` values across all expanded columns instead of ``None`` (:issue:`18450`)
+
+
+.. _whatsnew_0.21.1.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v0.21.0..v0.21.1

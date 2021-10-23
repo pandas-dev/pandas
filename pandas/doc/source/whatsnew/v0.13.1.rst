@@ -1,0 +1,482 @@
+.. _whatsnew_0131:
+
+Version 0.13.1 (February 3, 2014)
+---------------------------------
+
+{{ header }}
+
+
+
+This is a minor release from 0.13.0 and includes a small number of API changes, several new features,
+enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
+users upgrade to this version.
+
+Highlights include:
+
+- Added ``infer_datetime_format`` keyword to ``read_csv/to_datetime`` to allow speedups for homogeneously formatted datetimes.
+- Will intelligently limit display precision for datetime/timedelta formats.
+- Enhanced Panel :meth:`~pandas.Panel.apply` method.
+- Suggested tutorials in new :ref:`Tutorials<tutorials>` section.
+- Our pandas ecosystem is growing, We now feature related projects in a new :ref:`Pandas Ecosystem<ecosystem>` section.
+- Much work has been taking place on improving the docs, and a new :ref:`Contributing<contributing>` section has been added.
+- Even though it may only be of interest to devs, we <3 our new CI status page: `ScatterCI <http://scatterci.github.io/pydata/pandas>`__.
+
+.. warning::
+
+   0.13.1 fixes a bug that was caused by a combination of having numpy < 1.8, and doing
+   chained assignment on a string-like array. Please review :ref:`the docs<indexing.view_versus_copy>`,
+   chained indexing can have unexpected results and should generally be avoided.
+
+   This would previously segfault:
+
+   .. ipython:: python
+
+      df = pd.DataFrame({"A": np.array(["foo", "bar", "bah", "foo", "bar"])})
+      df["A"].iloc[0] = np.nan
+      df
+
+   The recommended way to do this type of assignment is:
+
+   .. ipython:: python
+
+      df = pd.DataFrame({"A": np.array(["foo", "bar", "bah", "foo", "bar"])})
+      df.loc[0, "A"] = np.nan
+      df
+
+Output formatting enhancements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- df.info() view now display dtype info per column (:issue:`5682`)
+
+- df.info() now honors the option ``max_info_rows``, to disable null counts for large frames (:issue:`5974`)
+
+  .. ipython:: python
+
+     max_info_rows = pd.get_option("max_info_rows")
+
+     df = pd.DataFrame(
+         {
+             "A": np.random.randn(10),
+             "B": np.random.randn(10),
+             "C": pd.date_range("20130101", periods=10),
+         }
+     )
+     df.iloc[3:6, [0, 2]] = np.nan
+
+  .. ipython:: python
+
+     # set to not display the null counts
+     pd.set_option("max_info_rows", 0)
+     df.info()
+
+  .. ipython:: python
+
+     # this is the default (same as in 0.13.0)
+     pd.set_option("max_info_rows", max_info_rows)
+     df.info()
+
+- Add ``show_dimensions`` display option for the new DataFrame repr to control whether the dimensions print.
+
+  .. ipython:: python
+
+      df = pd.DataFrame([[1, 2], [3, 4]])
+      pd.set_option("show_dimensions", False)
+      df
+
+      pd.set_option("show_dimensions", True)
+      df
+
+- The ``ArrayFormatter`` for ``datetime`` and ``timedelta64`` now intelligently
+  limit precision based on the values in the array (:issue:`3401`)
+
+  Previously output might look like:
+
+  ..   code-block:: text
+
+        age                 today               diff
+      0 2001-01-01 00:00:00 2013-04-19 00:00:00 4491 days, 00:00:00
+      1 2004-06-01 00:00:00 2013-04-19 00:00:00 3244 days, 00:00:00
+
+  Now the output looks like:
+
+  .. ipython:: python
+
+     df = pd.DataFrame(
+         [pd.Timestamp("20010101"), pd.Timestamp("20040601")], columns=["age"]
+     )
+     df["today"] = pd.Timestamp("20130419")
+     df["diff"] = df["today"] - df["age"]
+     df
+
+API changes
+~~~~~~~~~~~
+
+- Add ``-NaN`` and ``-nan`` to the default set of NA values (:issue:`5952`).
+  See :ref:`NA Values <io.na_values>`.
+
+- Added ``Series.str.get_dummies`` vectorized string method (:issue:`6021`), to extract
+  dummy/indicator variables for separated string columns:
+
+  .. ipython:: python
+
+      s = pd.Series(["a", "a|b", np.nan, "a|c"])
+      s.str.get_dummies(sep="|")
+
+- Added the ``NDFrame.equals()`` method to compare if two NDFrames are
+  equal have equal axes, dtypes, and values. Added the
+  ``array_equivalent`` function to compare if two ndarrays are
+  equal. NaNs in identical locations are treated as
+  equal. (:issue:`5283`) See also :ref:`the docs<basics.equals>` for a motivating example.
+
+  .. code-block:: python
+
+      df = pd.DataFrame({"col": ["foo", 0, np.nan]})
+      df2 = pd.DataFrame({"col": [np.nan, 0, "foo"]}, index=[2, 1, 0])
+      df.equals(df2)
+      df.equals(df2.sort_index())
+
+- ``DataFrame.apply`` will use the ``reduce`` argument to determine whether a
+  ``Series`` or a ``DataFrame`` should be returned when the ``DataFrame`` is
+  empty (:issue:`6007`).
+
+  Previously, calling ``DataFrame.apply`` an empty ``DataFrame`` would return
+  either a ``DataFrame`` if there were no columns, or the function being
+  applied would be called with an empty ``Series`` to guess whether a
+  ``Series`` or ``DataFrame`` should be returned:
+
+  .. code-block:: ipython
+
+    In [32]: def applied_func(col):
+      ....:    print("Apply function being called with: ", col)
+      ....:    return col.sum()
+      ....:
+
+    In [33]: empty = DataFrame(columns=['a', 'b'])
+
+    In [34]: empty.apply(applied_func)
+    Apply function being called with:  Series([], Length: 0, dtype: float64)
+    Out[34]:
+    a   NaN
+    b   NaN
+    Length: 2, dtype: float64
+
+  Now, when ``apply`` is called on an empty ``DataFrame``: if the ``reduce``
+  argument is ``True`` a ``Series`` will returned, if it is ``False`` a
+  ``DataFrame`` will be returned, and if it is ``None`` (the default) the
+  function being applied will be called with an empty series to try and guess
+  the return type.
+
+  .. code-block:: ipython
+
+    In [35]: empty.apply(applied_func, reduce=True)
+    Out[35]:
+    a   NaN
+    b   NaN
+    Length: 2, dtype: float64
+
+    In [36]: empty.apply(applied_func, reduce=False)
+    Out[36]:
+    Empty DataFrame
+    Columns: [a, b]
+    Index: []
+
+    [0 rows x 2 columns]
+
+
+Prior version deprecations/changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There are no announced changes in 0.13 or prior that are taking effect as of 0.13.1
+
+Deprecations
+~~~~~~~~~~~~
+
+There are no deprecations of prior behavior in 0.13.1
+
+Enhancements
+~~~~~~~~~~~~
+
+- ``pd.read_csv`` and ``pd.to_datetime`` learned a new ``infer_datetime_format`` keyword which greatly
+  improves parsing perf in many cases. Thanks to @lexual for suggesting and @danbirken
+  for rapidly implementing. (:issue:`5490`, :issue:`6021`)
+
+  If ``parse_dates`` is enabled and this flag is set, pandas will attempt to
+  infer the format of the datetime strings in the columns, and if it can
+  be inferred, switch to a faster method of parsing them.  In some cases
+  this can increase the parsing speed by ~5-10x.
+
+  .. code-block:: python
+
+      # Try to infer the format for the index column
+      df = pd.read_csv(
+          "foo.csv", index_col=0, parse_dates=True, infer_datetime_format=True
+      )
+
+- ``date_format`` and ``datetime_format`` keywords can now be specified when writing to ``excel``
+  files (:issue:`4133`)
+
+- ``MultiIndex.from_product`` convenience function for creating a MultiIndex from
+  the cartesian product of a set of iterables (:issue:`6055`):
+
+  .. ipython:: python
+
+      shades = ["light", "dark"]
+      colors = ["red", "green", "blue"]
+
+      pd.MultiIndex.from_product([shades, colors], names=["shade", "color"])
+
+- Panel :meth:`~pandas.Panel.apply` will work on non-ufuncs. See :ref:`the docs<basics.apply>`.
+
+  .. code-block:: ipython
+
+      In [28]: import pandas._testing as tm
+
+      In [29]: panel = tm.makePanel(5)
+
+      In [30]: panel
+      Out[30]:
+      <class 'pandas.core.panel.Panel'>
+      Dimensions: 3 (items) x 5 (major_axis) x 4 (minor_axis)
+      Items axis: ItemA to ItemC
+      Major_axis axis: 2000-01-03 00:00:00 to 2000-01-07 00:00:00
+      Minor_axis axis: A to D
+
+      In [31]: panel['ItemA']
+      Out[31]:
+                         A         B         C         D
+      2000-01-03 -0.673690  0.577046 -1.344312 -1.469388
+      2000-01-04  0.113648 -1.715002  0.844885  0.357021
+      2000-01-05 -1.478427 -1.039268  1.075770 -0.674600
+      2000-01-06  0.524988 -0.370647 -0.109050 -1.776904
+      2000-01-07  0.404705 -1.157892  1.643563 -0.968914
+
+      [5 rows x 4 columns]
+
+  Specifying an ``apply`` that operates on a Series (to return a single element)
+
+  .. code-block:: ipython
+
+      In [32]: panel.apply(lambda x: x.dtype, axis='items')
+      Out[32]:
+                        A        B        C        D
+      2000-01-03  float64  float64  float64  float64
+      2000-01-04  float64  float64  float64  float64
+      2000-01-05  float64  float64  float64  float64
+      2000-01-06  float64  float64  float64  float64
+      2000-01-07  float64  float64  float64  float64
+
+      [5 rows x 4 columns]
+
+  A similar reduction type operation
+
+  .. code-block:: ipython
+
+      In [33]: panel.apply(lambda x: x.sum(), axis='major_axis')
+      Out[33]:
+            ItemA     ItemB     ItemC
+      A -1.108775 -1.090118 -2.984435
+      B -3.705764  0.409204  1.866240
+      C  2.110856  2.960500 -0.974967
+      D -4.532785  0.303202 -3.685193
+
+      [4 rows x 3 columns]
+
+  This is equivalent to
+
+  .. code-block:: ipython
+
+      In [34]: panel.sum('major_axis')
+      Out[34]:
+            ItemA     ItemB     ItemC
+      A -1.108775 -1.090118 -2.984435
+      B -3.705764  0.409204  1.866240
+      C  2.110856  2.960500 -0.974967
+      D -4.532785  0.303202 -3.685193
+
+      [4 rows x 3 columns]
+
+  A transformation operation that returns a Panel, but is computing
+  the z-score across the major_axis
+
+  .. code-block:: ipython
+
+      In [35]: result = panel.apply(lambda x: (x - x.mean()) / x.std(),
+        ....:                      axis='major_axis')
+        ....:
+
+      In [36]: result
+      Out[36]:
+      <class 'pandas.core.panel.Panel'>
+      Dimensions: 3 (items) x 5 (major_axis) x 4 (minor_axis)
+      Items axis: ItemA to ItemC
+      Major_axis axis: 2000-01-03 00:00:00 to 2000-01-07 00:00:00
+      Minor_axis axis: A to D
+
+      In [37]: result['ItemA']                           # noqa E999
+      Out[37]:
+                        A         B         C         D
+      2000-01-03 -0.535778  1.500802 -1.506416 -0.681456
+      2000-01-04  0.397628 -1.108752  0.360481  1.529895
+      2000-01-05 -1.489811 -0.339412  0.557374  0.280845
+      2000-01-06  0.885279  0.421830 -0.453013 -1.053785
+      2000-01-07  0.742682 -0.474468  1.041575 -0.075499
+
+      [5 rows x 4 columns]
+
+- Panel :meth:`~pandas.Panel.apply` operating on cross-sectional slabs. (:issue:`1148`)
+
+  .. code-block:: ipython
+
+      In [38]: def f(x):
+         ....:     return ((x.T - x.mean(1)) / x.std(1)).T
+         ....:
+
+      In [39]: result = panel.apply(f, axis=['items', 'major_axis'])
+
+      In [40]: result
+      Out[40]:
+      <class 'pandas.core.panel.Panel'>
+      Dimensions: 4 (items) x 5 (major_axis) x 3 (minor_axis)
+      Items axis: A to D
+      Major_axis axis: 2000-01-03 00:00:00 to 2000-01-07 00:00:00
+      Minor_axis axis: ItemA to ItemC
+
+      In [41]: result.loc[:, :, 'ItemA']
+      Out[41]:
+                         A         B         C         D
+      2000-01-03  0.012922 -0.030874 -0.629546 -0.757034
+      2000-01-04  0.392053 -1.071665  0.163228  0.548188
+      2000-01-05 -1.093650 -0.640898  0.385734 -1.154310
+      2000-01-06  1.005446 -1.154593 -0.595615 -0.809185
+      2000-01-07  0.783051 -0.198053  0.919339 -1.052721
+
+      [5 rows x 4 columns]
+
+  This is equivalent to the following
+
+  .. code-block:: ipython
+
+      In [42]: result = pd.Panel({ax: f(panel.loc[:, :, ax]) for ax in panel.minor_axis})
+
+      In [43]: result
+      Out[43]:
+      <class 'pandas.core.panel.Panel'>
+      Dimensions: 4 (items) x 5 (major_axis) x 3 (minor_axis)
+      Items axis: A to D
+      Major_axis axis: 2000-01-03 00:00:00 to 2000-01-07 00:00:00
+      Minor_axis axis: ItemA to ItemC
+
+      In [44]: result.loc[:, :, 'ItemA']
+      Out[44]:
+                         A         B         C         D
+      2000-01-03  0.012922 -0.030874 -0.629546 -0.757034
+      2000-01-04  0.392053 -1.071665  0.163228  0.548188
+      2000-01-05 -1.093650 -0.640898  0.385734 -1.154310
+      2000-01-06  1.005446 -1.154593 -0.595615 -0.809185
+      2000-01-07  0.783051 -0.198053  0.919339 -1.052721
+
+      [5 rows x 4 columns]
+
+Performance
+~~~~~~~~~~~
+
+Performance improvements for 0.13.1
+
+- Series datetime/timedelta binary operations (:issue:`5801`)
+- DataFrame ``count/dropna`` for ``axis=1``
+- Series.str.contains now has a ``regex=False`` keyword which can be faster for plain (non-regex) string patterns. (:issue:`5879`)
+- Series.str.extract (:issue:`5944`)
+- ``dtypes/ftypes`` methods (:issue:`5968`)
+- indexing with object dtypes (:issue:`5968`)
+- ``DataFrame.apply`` (:issue:`6013`)
+- Regression in JSON IO (:issue:`5765`)
+- Index construction from Series (:issue:`6150`)
+
+Experimental
+~~~~~~~~~~~~
+
+There are no experimental changes in 0.13.1
+
+.. _release.bug_fixes-0.13.1:
+
+Bug fixes
+~~~~~~~~~
+
+- Bug in ``io.wb.get_countries`` not including all countries (:issue:`6008`)
+- Bug in Series replace with timestamp dict (:issue:`5797`)
+- read_csv/read_table now respects the ``prefix`` kwarg (:issue:`5732`).
+- Bug in selection with missing values via ``.ix`` from a duplicate indexed DataFrame failing (:issue:`5835`)
+- Fix issue of boolean comparison on empty DataFrames (:issue:`5808`)
+- Bug in isnull handling ``NaT`` in an object array (:issue:`5443`)
+- Bug in ``to_datetime`` when passed a ``np.nan`` or integer datelike and a format string (:issue:`5863`)
+- Bug in groupby dtype conversion with datetimelike (:issue:`5869`)
+- Regression in handling of empty Series as indexers to Series  (:issue:`5877`)
+- Bug in internal caching, related to (:issue:`5727`)
+- Testing bug in reading JSON/msgpack from a non-filepath on windows under py3 (:issue:`5874`)
+- Bug when assigning to .ix[tuple(...)] (:issue:`5896`)
+- Bug in fully reindexing a Panel (:issue:`5905`)
+- Bug in idxmin/max with object dtypes (:issue:`5914`)
+- Bug in ``BusinessDay`` when adding n days to a date not on offset when n>5 and n%5==0 (:issue:`5890`)
+- Bug in assigning to chained series with a series via ix (:issue:`5928`)
+- Bug in creating an empty DataFrame, copying, then assigning (:issue:`5932`)
+- Bug in DataFrame.tail with empty frame (:issue:`5846`)
+- Bug in propagating metadata on ``resample`` (:issue:`5862`)
+- Fixed string-representation of ``NaT`` to be "NaT" (:issue:`5708`)
+- Fixed string-representation for Timestamp to show nanoseconds if present (:issue:`5912`)
+- ``pd.match`` not returning passed sentinel
+- ``Panel.to_frame()`` no longer fails when ``major_axis`` is a
+  ``MultiIndex`` (:issue:`5402`).
+- Bug in ``pd.read_msgpack`` with inferring a ``DateTimeIndex`` frequency
+  incorrectly (:issue:`5947`)
+- Fixed ``to_datetime`` for array with both Tz-aware datetimes and ``NaT``'s  (:issue:`5961`)
+- Bug in rolling skew/kurtosis when passed a Series with bad data (:issue:`5749`)
+- Bug in scipy ``interpolate`` methods with a datetime index (:issue:`5975`)
+- Bug in NaT comparison if a mixed datetime/np.datetime64 with NaT were passed (:issue:`5968`)
+- Fixed bug with ``pd.concat`` losing dtype information if all inputs are empty (:issue:`5742`)
+- Recent changes in IPython cause warnings to be emitted when using previous versions
+  of pandas in QTConsole, now fixed. If you're using an older version and
+  need to suppress the warnings, see (:issue:`5922`).
+- Bug in merging ``timedelta`` dtypes (:issue:`5695`)
+- Bug in plotting.scatter_matrix function. Wrong alignment among diagonal
+  and off-diagonal plots, see (:issue:`5497`).
+- Regression in Series with a MultiIndex via ix (:issue:`6018`)
+- Bug in Series.xs with a MultiIndex (:issue:`6018`)
+- Bug in Series construction of mixed type with datelike and an integer (which should result in
+  object type and not automatic conversion) (:issue:`6028`)
+- Possible segfault when chained indexing with an object array under NumPy 1.7.1 (:issue:`6026`, :issue:`6056`)
+- Bug in setting using fancy indexing a single element with a non-scalar (e.g. a list),
+  (:issue:`6043`)
+- ``to_sql`` did not respect ``if_exists`` (:issue:`4110` :issue:`4304`)
+- Regression in ``.get(None)`` indexing from 0.12 (:issue:`5652`)
+- Subtle ``iloc`` indexing bug, surfaced in (:issue:`6059`)
+- Bug with insert of strings into DatetimeIndex (:issue:`5818`)
+- Fixed unicode bug in to_html/HTML repr (:issue:`6098`)
+- Fixed missing arg validation in get_options_data (:issue:`6105`)
+- Bug in assignment with duplicate columns in a frame where the locations
+  are a slice (e.g. next to each other) (:issue:`6120`)
+- Bug in propagating _ref_locs during construction of a DataFrame with dups
+  index/columns (:issue:`6121`)
+- Bug in ``DataFrame.apply`` when using mixed datelike reductions (:issue:`6125`)
+- Bug in ``DataFrame.append`` when appending a row with different columns (:issue:`6129`)
+- Bug in DataFrame construction with recarray and non-ns datetime dtype (:issue:`6140`)
+- Bug in ``.loc`` setitem indexing with a dataframe on rhs, multiple item setting, and
+  a datetimelike (:issue:`6152`)
+- Fixed a bug in ``query``/``eval`` during lexicographic string comparisons (:issue:`6155`).
+- Fixed a bug in ``query`` where the index of a single-element ``Series`` was
+  being thrown away (:issue:`6148`).
+- Bug in ``HDFStore`` on appending a dataframe with MultiIndexed columns to
+  an existing table (:issue:`6167`)
+- Consistency with dtypes in setting an empty DataFrame (:issue:`6171`)
+- Bug in selecting on a MultiIndex ``HDFStore`` even in the presence of under
+  specified column spec (:issue:`6169`)
+- Bug in ``nanops.var`` with ``ddof=1`` and 1 elements would sometimes return ``inf``
+  rather than ``nan`` on some platforms (:issue:`6136`)
+- Bug in Series and DataFrame bar plots ignoring the ``use_index`` keyword (:issue:`6209`)
+- Bug in groupby with mixed str/int under python3 fixed; ``argsort`` was failing (:issue:`6212`)
+
+.. _whatsnew_0.13.1.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v0.13.0..v0.13.1

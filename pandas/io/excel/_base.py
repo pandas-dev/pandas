@@ -1314,6 +1314,9 @@ class ExcelFile:
     def sheet_names(self):
         return self._reader.sheet_names
 
+    def sheets(self):
+        return {sheet: read_excel(self._io, sheet_name = sheet) for sheet in self._reader.sheet_names}
+
     def close(self):
         """close io if necessary"""
         self._reader.close()

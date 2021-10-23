@@ -1,0 +1,258 @@
+.. _whatsnew_0152:
+
+Version 0.15.2 (December 12, 2014)
+----------------------------------
+
+{{ header }}
+
+
+This is a minor release from 0.15.1 and includes a large number of bug fixes
+along with several new features, enhancements, and performance improvements.
+A small number of API changes were necessary to fix existing bugs.
+We recommend that all users upgrade to this version.
+
+- :ref:`Enhancements <whatsnew_0152.enhancements>`
+- :ref:`API Changes <whatsnew_0152.api>`
+- :ref:`Performance Improvements <whatsnew_0152.performance>`
+- :ref:`Bug Fixes <whatsnew_0152.bug_fixes>`
+
+.. _whatsnew_0152.api:
+
+API changes
+~~~~~~~~~~~
+
+- Indexing in ``MultiIndex`` beyond lex-sort depth is now supported, though
+  a lexically sorted index will have a better performance. (:issue:`2646`)
+
+  .. ipython:: python
+    :okwarning:
+
+    df = pd.DataFrame({'jim':[0, 0, 1, 1],
+                       'joe':['x', 'x', 'z', 'y'],
+                       'jolie':np.random.rand(4)}).set_index(['jim', 'joe'])
+    df
+    df.index.lexsort_depth
+
+    # in prior versions this would raise a KeyError
+    # will now show a PerformanceWarning
+    df.loc[(1, 'z')]
+
+    # lexically sorting
+    df2 = df.sort_index()
+    df2
+    df2.index.lexsort_depth
+    df2.loc[(1,'z')]
+
+- Bug in unique of Series with ``category`` dtype, which returned all categories regardless
+  whether they were "used" or not (see :issue:`8559` for the discussion).
+  Previous behaviour was to return all categories:
+
+  .. code-block:: ipython
+
+    In [3]: cat = pd.Categorical(['a', 'b', 'a'], categories=['a', 'b', 'c'])
+
+    In [4]: cat
+    Out[4]:
+    [a, b, a]
+    Categories (3, object): [a < b < c]
+
+    In [5]: cat.unique()
+    Out[5]: array(['a', 'b', 'c'], dtype=object)
+
+  Now, only the categories that do effectively occur in the array are returned:
+
+  .. ipython:: python
+
+    cat = pd.Categorical(['a', 'b', 'a'], categories=['a', 'b', 'c'])
+    cat.unique()
+
+- ``Series.all`` and ``Series.any`` now support the ``level`` and ``skipna`` parameters. ``Series.all``, ``Series.any``, ``Index.all``, and ``Index.any`` no longer support the ``out`` and ``keepdims`` parameters, which existed for compatibility with ndarray. Various index types no longer support the ``all`` and ``any`` aggregation functions and will now raise ``TypeError``. (:issue:`8302`).
+
+- Allow equality comparisons of Series with a categorical dtype and object dtype; previously these would raise ``TypeError`` (:issue:`8938`)
+
+- Bug in ``NDFrame``: conflicting attribute/column names now behave consistently between getting and setting. Previously, when both a column and attribute named ``y`` existed, ``data.y`` would return the attribute, while ``data.y = z`` would update the column (:issue:`8994`)
+
+  .. ipython:: python
+
+     data = pd.DataFrame({'x': [1, 2, 3]})
+     data.y = 2
+     data['y'] = [2, 4, 6]
+     data
+
+     # this assignment was inconsistent
+     data.y = 5
+
+  Old behavior:
+
+  .. code-block:: ipython
+
+     In [6]: data.y
+     Out[6]: 2
+
+     In [7]: data['y'].values
+     Out[7]: array([5, 5, 5])
+
+  New behavior:
+
+  .. ipython:: python
+
+     data.y
+     data['y'].values
+
+- ``Timestamp('now')`` is now equivalent to ``Timestamp.now()`` in that it returns the local time rather than UTC. Also, ``Timestamp('today')`` is now equivalent to ``Timestamp.today()`` and both have ``tz`` as a possible argument. (:issue:`9000`)
+
+- Fix negative step support for label-based slices (:issue:`8753`)
+
+  Old behavior:
+
+  .. code-block:: ipython
+
+     In [1]: s = pd.Series(np.arange(3), ['a', 'b', 'c'])
+     Out[1]:
+     a    0
+     b    1
+     c    2
+     dtype: int64
+
+     In [2]: s.loc['c':'a':-1]
+     Out[2]:
+     c    2
+     dtype: int64
+
+  New behavior:
+
+  .. ipython:: python
+
+     s = pd.Series(np.arange(3), ['a', 'b', 'c'])
+     s.loc['c':'a':-1]
+
+
+.. _whatsnew_0152.enhancements:
+
+Enhancements
+~~~~~~~~~~~~
+
+``Categorical`` enhancements:
+
+- Added ability to export Categorical data to Stata (:issue:`8633`).  See :ref:`here <io.stata-categorical>` for limitations of categorical variables exported to Stata data files.
+- Added flag ``order_categoricals`` to ``StataReader`` and ``read_stata`` to select whether to order imported categorical data (:issue:`8836`).  See :ref:`here <io.stata-categorical>` for more information on importing categorical variables from Stata data files.
+- Added ability to export Categorical data to/from HDF5 (:issue:`7621`). Queries work the same as if it was an object array. However, the ``category`` dtyped data is stored in a more efficient manner. See :ref:`here <io.hdf5-categorical>` for an example and caveats w.r.t. prior versions of pandas.
+- Added support for ``searchsorted()`` on ``Categorical`` class (:issue:`8420`).
+
+Other enhancements:
+
+- Added the ability to specify the SQL type of columns when writing a DataFrame
+  to a database (:issue:`8778`).
+  For example, specifying to use the sqlalchemy ``String`` type instead of the
+  default ``Text`` type for string columns:
+
+  .. code-block:: python
+
+     from sqlalchemy.types import String
+     data.to_sql('data_dtype', engine, dtype={'Col_1': String})  # noqa F821
+
+- ``Series.all`` and ``Series.any`` now support the ``level`` and ``skipna`` parameters (:issue:`8302`):
+
+  .. ipython:: python
+     :okwarning:
+
+     s = pd.Series([False, True, False], index=[0, 0, 1])
+     s.any(level=0)
+
+- ``Panel`` now supports the ``all`` and ``any`` aggregation functions. (:issue:`8302`):
+
+  .. code-block:: python
+
+     >>> p = pd.Panel(np.random.rand(2, 5, 4) > 0.1)
+     >>> p.all()
+            0      1      2     3
+     0   True   True   True  True
+     1   True  False   True  True
+     2   True   True   True  True
+     3  False   True  False  True
+     4   True   True   True  True
+
+- Added support for ``utcfromtimestamp()``, ``fromtimestamp()``, and ``combine()`` on ``Timestamp`` class (:issue:`5351`).
+- Added Google Analytics (`pandas.io.ga`) basic documentation (:issue:`8835`). See `here <https://pandas.pydata.org/pandas-docs/version/0.15.2/remote_data.html#remote-data-ga>`__.
+- ``Timedelta`` arithmetic returns ``NotImplemented`` in unknown cases, allowing extensions by custom classes (:issue:`8813`).
+- ``Timedelta`` now supports arithmetic with ``numpy.ndarray`` objects of the appropriate dtype (numpy 1.8 or newer only) (:issue:`8884`).
+- Added ``Timedelta.to_timedelta64()`` method to the public API (:issue:`8884`).
+- Added ``gbq.generate_bq_schema()`` function to the gbq module (:issue:`8325`).
+- ``Series`` now works with map objects the same way as generators (:issue:`8909`).
+- Added context manager to ``HDFStore`` for automatic closing (:issue:`8791`).
+- ``to_datetime`` gains an ``exact`` keyword to allow for a format to not require an exact match for a provided format string (if its ``False``). ``exact`` defaults to ``True`` (meaning that exact matching is still the default)  (:issue:`8904`)
+- Added ``axvlines`` boolean option to parallel_coordinates plot function, determines whether vertical lines will be printed, default is True
+- Added ability to read table footers to read_html (:issue:`8552`)
+- ``to_sql`` now infers data types of non-NA values for columns that contain NA values and have dtype ``object`` (:issue:`8778`).
+
+
+.. _whatsnew_0152.performance:
+
+Performance
+~~~~~~~~~~~
+
+- Reduce memory usage when skiprows is an integer in read_csv (:issue:`8681`)
+- Performance boost for ``to_datetime`` conversions with a passed ``format=``, and the ``exact=False`` (:issue:`8904`)
+
+
+.. _whatsnew_0152.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+- Bug in concat of Series with ``category`` dtype which were coercing to ``object``. (:issue:`8641`)
+- Bug in Timestamp-Timestamp not returning a Timedelta type and datelike-datelike ops with timezones (:issue:`8865`)
+- Made consistent a timezone mismatch exception (either tz operated with None or incompatible timezone), will now return ``TypeError`` rather than ``ValueError`` (a couple of edge cases only), (:issue:`8865`)
+- Bug in using a ``pd.Grouper(key=...)`` with no level/axis or level only (:issue:`8795`, :issue:`8866`)
+- Report a ``TypeError`` when invalid/no parameters are passed in a groupby (:issue:`8015`)
+- Bug in packaging pandas with ``py2app/cx_Freeze`` (:issue:`8602`, :issue:`8831`)
+- Bug in ``groupby`` signatures that didn't include \*args or \*\*kwargs (:issue:`8733`).
+- ``io.data.Options`` now raises ``RemoteDataError`` when no expiry dates are available from Yahoo and when it receives no data from Yahoo (:issue:`8761`), (:issue:`8783`).
+- Unclear error message in csv parsing when passing dtype and names and the parsed data is a different data type (:issue:`8833`)
+- Bug in slicing a MultiIndex with an empty list and at least one boolean indexer (:issue:`8781`)
+- ``io.data.Options`` now raises ``RemoteDataError`` when no expiry dates are available from Yahoo (:issue:`8761`).
+- ``Timedelta`` kwargs may now be numpy ints and floats (:issue:`8757`).
+- Fixed several outstanding bugs for ``Timedelta`` arithmetic and comparisons (:issue:`8813`, :issue:`5963`, :issue:`5436`).
+- ``sql_schema`` now generates dialect appropriate ``CREATE TABLE`` statements (:issue:`8697`)
+- ``slice`` string method now takes step into account (:issue:`8754`)
+- Bug in ``BlockManager`` where setting values with different type would break block integrity (:issue:`8850`)
+- Bug in ``DatetimeIndex`` when using ``time`` object as key (:issue:`8667`)
+- Bug in ``merge`` where ``how='left'`` and ``sort=False`` would not preserve left frame order (:issue:`7331`)
+- Bug in ``MultiIndex.reindex`` where reindexing at level would not reorder labels (:issue:`4088`)
+- Bug in certain operations with dateutil timezones, manifesting with dateutil 2.3 (:issue:`8639`)
+- Regression in DatetimeIndex iteration with a Fixed/Local offset timezone (:issue:`8890`)
+- Bug in ``to_datetime`` when parsing a nanoseconds using the ``%f`` format (:issue:`8989`)
+- ``io.data.Options`` now raises ``RemoteDataError`` when no expiry dates are available from Yahoo and when it receives no data from Yahoo (:issue:`8761`), (:issue:`8783`).
+- Fix: The font size was only set on x axis if vertical or the y axis if horizontal. (:issue:`8765`)
+- Fixed division by 0 when reading big csv files in python 3 (:issue:`8621`)
+- Bug in outputting a MultiIndex with ``to_html,index=False`` which would add an extra column (:issue:`8452`)
+- Imported categorical variables from Stata files retain the ordinal information in the underlying data (:issue:`8836`).
+- Defined ``.size`` attribute across ``NDFrame`` objects to provide compat with numpy >= 1.9.1; buggy with ``np.array_split`` (:issue:`8846`)
+- Skip testing of histogram plots for matplotlib <= 1.2 (:issue:`8648`).
+- Bug where ``get_data_google`` returned object dtypes (:issue:`3995`)
+- Bug in ``DataFrame.stack(..., dropna=False)`` when the DataFrame's ``columns`` is a ``MultiIndex``
+  whose ``labels`` do not reference all its ``levels``. (:issue:`8844`)
+- Bug in that Option context applied on ``__enter__`` (:issue:`8514`)
+- Bug in resample that causes a ValueError when resampling across multiple days
+  and the last offset is not calculated from the start of the range (:issue:`8683`)
+- Bug where ``DataFrame.plot(kind='scatter')`` fails when checking if an np.array is in the DataFrame (:issue:`8852`)
+- Bug in ``pd.infer_freq/DataFrame.inferred_freq`` that prevented proper sub-daily frequency inference when the index contained DST days (:issue:`8772`).
+- Bug where index name was still used when plotting a series with ``use_index=False`` (:issue:`8558`).
+- Bugs when trying to stack multiple columns, when some (or all) of the level names are numbers (:issue:`8584`).
+- Bug in ``MultiIndex`` where ``__contains__`` returns wrong result if index is not lexically sorted or unique (:issue:`7724`)
+- BUG CSV: fix problem with trailing white space in skipped rows, (:issue:`8679`), (:issue:`8661`), (:issue:`8983`)
+- Regression in ``Timestamp`` does not parse 'Z' zone designator for UTC (:issue:`8771`)
+- Bug in ``StataWriter`` the produces writes strings with 244 characters irrespective of actual size (:issue:`8969`)
+- Fixed ValueError raised by cummin/cummax when datetime64 Series contains NaT. (:issue:`8965`)
+- Bug in DataReader returns object dtype if there are missing values (:issue:`8980`)
+- Bug in plotting if sharex was enabled and index was a timeseries, would show labels on multiple axes (:issue:`3964`).
+- Bug where passing a unit to the TimedeltaIndex constructor applied the to nano-second conversion twice. (:issue:`9011`).
+- Bug in plotting of a period-like array (:issue:`9012`)
+
+
+.. _whatsnew_0.15.2.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v0.15.1..v0.15.2

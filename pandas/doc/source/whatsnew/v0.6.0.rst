@@ -1,0 +1,66 @@
+.. _whatsnew_060:
+
+Version 0.6.0 (November 25, 2011)
+---------------------------------
+
+{{ header }}
+
+New features
+~~~~~~~~~~~~
+- :ref:`Added <reshaping.melt>` ``melt`` function to ``pandas.core.reshape``
+- :ref:`Added <groupby.multiindex>` ``level`` parameter to group by level in Series and DataFrame descriptive statistics (:issue:`313`)
+- :ref:`Added <basics.head_tail>` ``head`` and ``tail`` methods to Series, analogous to DataFrame (:issue:`296`)
+- :ref:`Added <indexing.boolean>` ``Series.isin`` function which checks if each value is contained in a passed sequence (:issue:`289`)
+- :ref:`Added <io.formatting>` ``float_format`` option to ``Series.to_string``
+- :ref:`Added <io.parse_dates>` ``skip_footer`` (:issue:`291`) and ``converters`` (:issue:`343`) options to ``read_csv`` and ``read_table``
+- :ref:`Added <indexing.duplicate>` ``drop_duplicates`` and ``duplicated`` functions for removing duplicate DataFrame rows and checking for duplicate rows, respectively (:issue:`319`)
+- :ref:`Implemented <dsintro.boolean>` operators '&', '|', '^', '-' on DataFrame (:issue:`347`)
+- :ref:`Added <basics.stats>` ``Series.mad``, mean absolute deviation
+- :ref:`Added <timeseries.offsets>` ``QuarterEnd`` DateOffset (:issue:`321`)
+- :ref:`Added <dsintro.numpy_interop>` ``dot`` to DataFrame (:issue:`65`)
+- Added ``orient`` option to ``Panel.from_dict`` (:issue:`359`, :issue:`301`)
+- :ref:`Added <basics.dataframe.from_dict>` ``orient`` option to ``DataFrame.from_dict``
+- :ref:`Added <basics.dataframe.from_records>` passing list of tuples or list of lists to ``DataFrame.from_records`` (:issue:`357`)
+- :ref:`Added <groupby.multiindex>` multiple levels to groupby (:issue:`103`)
+- :ref:`Allow <basics.sorting>` multiple columns in ``by`` argument of ``DataFrame.sort_index`` (:issue:`92`, :issue:`362`)
+- :ref:`Added <indexing.basics.get_value>` fast ``get_value`` and ``put_value`` methods to DataFrame (:issue:`360`)
+- :ref:`Added <computation.covariance>` ``cov`` instance methods to Series and DataFrame (:issue:`194`, :issue:`362`)
+- :ref:`Added <visualization.barplot>` ``kind='bar'`` option to ``DataFrame.plot`` (:issue:`348`)
+- :ref:`Added <basics.idxmin>` ``idxmin`` and ``idxmax`` to Series and DataFrame (:issue:`286`)
+- :ref:`Added <io.clipboard>` ``read_clipboard`` function to parse DataFrame from clipboard (:issue:`300`)
+- :ref:`Added <basics.stats>` ``nunique`` function to Series for counting unique elements (:issue:`297`)
+- :ref:`Made <basics.dataframe>` DataFrame constructor use Series name if no columns passed (:issue:`373`)
+- :ref:`Support <io.parse_dates>` regular expressions in read_table/read_csv (:issue:`364`)
+- :ref:`Added <io.html>` ``DataFrame.to_html`` for writing DataFrame to HTML (:issue:`387`)
+- :ref:`Added <basics.dataframe>` support for MaskedArray data in DataFrame, masked values converted to NaN (:issue:`396`)
+- :ref:`Added <visualization.box>` ``DataFrame.boxplot`` function (:issue:`368`)
+- :ref:`Can <basics.apply>` pass extra args, kwds to DataFrame.apply (:issue:`376`)
+- :ref:`Implement <merging.multikey_join>` ``DataFrame.join`` with vector ``on`` argument (:issue:`312`)
+- :ref:`Added <visualization.basic>` ``legend`` boolean flag to ``DataFrame.plot`` (:issue:`324`)
+- :ref:`Can <reshaping.stacking>` pass multiple levels to ``stack`` and ``unstack`` (:issue:`370`)
+- :ref:`Can <reshaping.pivot>` pass multiple values columns to ``pivot_table`` (:issue:`381`)
+- :ref:`Use <groupby.multiindex>` Series name in GroupBy for result index (:issue:`363`)
+- :ref:`Added <basics.apply>` ``raw`` option to ``DataFrame.apply`` for performance if only need ndarray (:issue:`309`)
+- Added proper, tested weighted least squares to standard and panel OLS (:issue:`303`)
+
+Performance enhancements
+~~~~~~~~~~~~~~~~~~~~~~~~
+- VBENCH Cythonized ``cache_readonly``, resulting in substantial micro-performance enhancements throughout the code base (:issue:`361`)
+- VBENCH Special Cython matrix iterator for applying arbitrary reduction operations with 3-5x better performance than ``np.apply_along_axis`` (:issue:`309`)
+- VBENCH Improved performance of ``MultiIndex.from_tuples``
+- VBENCH Special Cython matrix iterator for applying arbitrary reduction operations
+- VBENCH + DOCUMENT Add ``raw`` option to ``DataFrame.apply`` for getting better performance when
+- VBENCH Faster cythonized count by level in Series and DataFrame (:issue:`341`)
+- VBENCH? Significant GroupBy performance enhancement with multiple keys with many "empty" combinations
+- VBENCH New Cython vectorized function ``map_infer`` speeds up ``Series.apply`` and ``Series.map`` significantly when passed elementwise Python function, motivated by (:issue:`355`)
+- VBENCH Significantly improved performance of ``Series.order``, which also makes np.unique called on a Series faster (:issue:`327`)
+- VBENCH Vastly improved performance of GroupBy on axes with a MultiIndex (:issue:`299`)
+
+
+
+.. _whatsnew_0.6.0.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v0.5.0..v0.6.0

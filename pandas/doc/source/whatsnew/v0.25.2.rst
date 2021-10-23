@@ -1,0 +1,49 @@
+.. _whatsnew_0252:
+
+What's new in 0.25.2 (October 15, 2019)
+---------------------------------------
+
+These are the changes in pandas 0.25.2. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+.. note::
+
+    pandas 0.25.2 adds compatibility for Python 3.8 (:issue:`28147`).
+
+.. _whatsnew_0252.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+Indexing
+^^^^^^^^
+
+- Fix regression in :meth:`DataFrame.reindex` not following the ``limit`` argument (:issue:`28631`).
+- Fix regression in :meth:`RangeIndex.get_indexer` for decreasing :class:`RangeIndex` where target values may be improperly identified as missing/present (:issue:`28678`)
+
+IO
+^^
+
+- Fix regression in notebook display where ``<th>`` tags were missing for :attr:`DataFrame.index` values (:issue:`28204`).
+- Regression in :meth:`~DataFrame.to_csv` where writing a :class:`Series` or :class:`DataFrame` indexed by an :class:`IntervalIndex` would incorrectly raise a ``TypeError`` (:issue:`28210`)
+- Fix :meth:`~DataFrame.to_csv` with ``ExtensionArray`` with list-like values (:issue:`28840`).
+
+GroupBy/resample/rolling
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+- Bug incorrectly raising an ``IndexError`` when passing a list of quantiles to :meth:`pandas.core.groupby.DataFrameGroupBy.quantile` (:issue:`28113`).
+- Bug in :meth:`pandas.core.groupby.GroupBy.shift`, :meth:`pandas.core.groupby.GroupBy.bfill` and :meth:`pandas.core.groupby.GroupBy.ffill` where timezone information would be dropped (:issue:`19995`, :issue:`27992`)
+
+Other
+^^^^^
+
+- Compatibility with Python 3.8 in :meth:`DataFrame.query` (:issue:`27261`)
+- Fix to ensure that tab-completion in an IPython console does not raise
+  warnings for deprecated attributes (:issue:`27900`).
+
+.. _whatsnew_0.252.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v0.25.1..v0.25.2

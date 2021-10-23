@@ -1,0 +1,98 @@
+.. _whatsnew_0192:
+
+Version 0.19.2 (December 24, 2016)
+----------------------------------
+
+{{ header }}
+
+.. ipython:: python
+   :suppress:
+
+   from pandas import *  # noqa F401, F403
+
+
+This is a minor bug-fix release in the 0.19.x series and includes some small regression fixes,
+bug fixes and performance improvements.
+We recommend that all users upgrade to this version.
+
+Highlights include:
+
+- Compatibility with Python 3.6
+- Added a `Pandas Cheat Sheet <https://github.com/pandas-dev/pandas/tree/master/doc/cheatsheet/Pandas_Cheat_Sheet.pdf>`__. (:issue:`13202`).
+
+
+.. contents:: What's new in v0.19.2
+    :local:
+    :backlinks: none
+
+
+.. _whatsnew_0192.enhancements:
+
+Enhancements
+~~~~~~~~~~~~
+
+The ``pd.merge_asof()``, added in 0.19.0, gained some improvements:
+
+- ``pd.merge_asof()`` gained ``left_index``/``right_index`` and ``left_by``/``right_by`` arguments (:issue:`14253`)
+- ``pd.merge_asof()`` can take multiple columns in ``by`` parameter and has specialized dtypes for better performance (:issue:`13936`)
+
+
+.. _whatsnew_0192.performance:
+
+Performance improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Performance regression with ``PeriodIndex`` (:issue:`14822`)
+- Performance regression in indexing with getitem (:issue:`14930`)
+- Improved performance of ``.replace()`` (:issue:`12745`)
+- Improved performance ``Series`` creation with a datetime index and dictionary data (:issue:`14894`)
+
+
+.. _whatsnew_0192.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+- Compat with python 3.6 for pickling of some offsets (:issue:`14685`)
+- Compat with python 3.6 for some indexing exception types (:issue:`14684`, :issue:`14689`)
+- Compat with python 3.6 for deprecation warnings in the test suite (:issue:`14681`)
+- Compat with python 3.6 for Timestamp pickles (:issue:`14689`)
+- Compat with ``dateutil==2.6.0``; segfault reported in the testing suite (:issue:`14621`)
+- Allow ``nanoseconds`` in ``Timestamp.replace`` as a kwarg (:issue:`14621`)
+- Bug in ``pd.read_csv`` in which aliasing was being done for ``na_values`` when passed in as a dictionary (:issue:`14203`)
+- Bug in ``pd.read_csv`` in which column indices for a dict-like ``na_values`` were not being respected (:issue:`14203`)
+- Bug in ``pd.read_csv`` where reading files fails, if the number of headers is equal to the number of lines in the file (:issue:`14515`)
+- Bug in ``pd.read_csv`` for the Python engine in which an unhelpful error message was being raised when multi-char delimiters were not being respected with quotes (:issue:`14582`)
+- Fix bugs (:issue:`14734`, :issue:`13654`) in ``pd.read_sas`` and ``pandas.io.sas.sas7bdat.SAS7BDATReader`` that caused problems when reading a SAS file incrementally.
+- Bug in ``pd.read_csv`` for the Python engine in which an unhelpful error message was being raised when ``skipfooter`` was not being respected by Python's CSV library (:issue:`13879`)
+- Bug in ``.fillna()`` in which timezone aware datetime64 values were incorrectly rounded (:issue:`14872`)
+- Bug in ``.groupby(..., sort=True)`` of a non-lexsorted MultiIndex when grouping with multiple levels (:issue:`14776`)
+- Bug in ``pd.cut`` with negative values and a single bin (:issue:`14652`)
+- Bug in ``pd.to_numeric`` where a 0 was not unsigned on a ``downcast='unsigned'`` argument (:issue:`14401`)
+- Bug in plotting regular and irregular timeseries using shared axes
+  (``sharex=True`` or ``ax.twinx()``) (:issue:`13341`, :issue:`14322`).
+- Bug in not propagating exceptions in parsing invalid datetimes, noted in python 3.6 (:issue:`14561`)
+- Bug in resampling a ``DatetimeIndex`` in local TZ, covering a DST change, which would raise ``AmbiguousTimeError`` (:issue:`14682`)
+- Bug in indexing that transformed ``RecursionError`` into ``KeyError`` or ``IndexingError`` (:issue:`14554`)
+- Bug in ``HDFStore`` when writing a ``MultiIndex`` when using ``data_columns=True`` (:issue:`14435`)
+- Bug in ``HDFStore.append()`` when writing a ``Series`` and passing a ``min_itemsize`` argument containing a value for the ``index`` (:issue:`11412`)
+- Bug when writing to a ``HDFStore`` in ``table`` format with a ``min_itemsize`` value for the ``index`` and without asking to append (:issue:`10381`)
+- Bug in ``Series.groupby.nunique()`` raising an ``IndexError`` for an empty ``Series`` (:issue:`12553`)
+- Bug in ``DataFrame.nlargest`` and ``DataFrame.nsmallest`` when the index had duplicate values (:issue:`13412`)
+- Bug in clipboard functions on linux with python2 with unicode and separators (:issue:`13747`)
+- Bug in clipboard functions on Windows 10 and python 3 (:issue:`14362`, :issue:`12807`)
+- Bug in ``.to_clipboard()`` and Excel compat (:issue:`12529`)
+- Bug in ``DataFrame.combine_first()`` for integer columns (:issue:`14687`).
+- Bug in ``pd.read_csv()`` in which the ``dtype`` parameter was not being respected for empty data (:issue:`14712`)
+- Bug in ``pd.read_csv()`` in which the ``nrows`` parameter was not being respected for large input when using the C engine for parsing (:issue:`7626`)
+- Bug in ``pd.merge_asof()`` could not handle timezone-aware DatetimeIndex when a tolerance was specified (:issue:`14844`)
+- Explicit check in ``to_stata`` and ``StataWriter`` for out-of-range values when writing doubles (:issue:`14618`)
+- Bug in ``.plot(kind='kde')`` which did not drop missing values to generate the KDE Plot, instead generating an empty plot. (:issue:`14821`)
+- Bug in ``unstack()`` if called with a list of column(s) as an argument, regardless of the dtypes of all columns, they get coerced to ``object`` (:issue:`11847`)
+
+
+.. _whatsnew_0.19.2.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v0.19.1..v0.19.2

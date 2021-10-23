@@ -1,0 +1,32 @@
+.. _whatsnew_123:
+
+What's new in 1.2.3 (March 02, 2021)
+------------------------------------
+
+These are the changes in pandas 1.2.3. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_123.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+
+- Fixed regression in :meth:`~DataFrame.to_excel` raising ``KeyError`` when giving duplicate columns with ``columns`` attribute (:issue:`39695`)
+- Fixed regression in nullable integer unary ops propagating mask on assignment (:issue:`39943`)
+- Fixed regression in :meth:`DataFrame.__setitem__` not aligning :class:`DataFrame` on right-hand side for boolean indexer (:issue:`39931`)
+- Fixed regression in :meth:`~DataFrame.to_json` failing to use ``compression`` with URL-like paths that are internally opened in binary mode or with user-provided file objects that are opened in binary mode (:issue:`39985`)
+- Fixed regression in :meth:`Series.sort_index` and :meth:`DataFrame.sort_index`, which exited with an ungraceful error when having kwarg ``ascending=None`` passed. Passing ``ascending=None`` is still considered invalid, and the improved error message suggests a proper usage (``ascending`` must be a boolean or a list-like of boolean) (:issue:`39434`)
+- Fixed regression in :meth:`DataFrame.transform` and :meth:`Series.transform` giving incorrect column labels when passed a dictionary with a mix of list and non-list values (:issue:`40018`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_123.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.2.2..v1.2.3

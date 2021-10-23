@@ -1,0 +1,535 @@
+.. _whatsnew_0120:
+
+Version 0.12.0 (July 24, 2013)
+------------------------------
+
+{{ header }}
+
+
+This is a major release from 0.11.0 and includes several new features and
+enhancements along with a large number of bug fixes.
+
+Highlights include a consistent I/O API naming scheme, routines to read html,
+write MultiIndexes to csv files, read & write STATA data files, read & write JSON format
+files, Python 3 support for ``HDFStore``, filtering of groupby expressions via ``filter``, and a
+revamped ``replace`` routine that accepts regular expressions.
+
+API changes
+~~~~~~~~~~~
+
+  - The I/O API is now much more consistent with a set of top level ``reader`` functions
+    accessed like ``pd.read_csv()`` that generally return a ``pandas`` object.
+
+    * ``read_csv``
+    * ``read_excel``
+    * ``read_hdf``
+    * ``read_sql``
+    * ``read_json``
+    * ``read_html``
+    * ``read_stata``
+    * ``read_clipboard``
+
+    The corresponding ``writer`` functions are object methods that are accessed like ``df.to_csv()``
+
+    * ``to_csv``
+    * ``to_excel``
+    * ``to_hdf``
+    * ``to_sql``
+    * ``to_json``
+    * ``to_html``
+    * ``to_stata``
+    * ``to_clipboard``
+
+
+  - Fix modulo and integer division on Series,DataFrames to act similarly to ``float`` dtypes to return
+    ``np.nan`` or ``np.inf`` as appropriate (:issue:`3590`). This correct a numpy bug that treats ``integer``
+    and ``float`` dtypes differently.
+
+    .. ipython:: python
+
+        p = pd.DataFrame({"first": [4, 5, 8], "second": [0, 0, 3]})
+        p % 0
+        p % p
+        p / p
+        p / 0
+
+  - Add ``squeeze`` keyword to ``groupby`` to allow reduction from
+    DataFrame -> Series if groups are unique. This is a Regression from 0.10.1.
+    We are reverting back to the prior behavior. This means groupby will return the
+    same shaped objects whether the groups are unique or not. Revert this issue (:issue:`2893`)
+    with (:issue:`3596`).
+
+    .. code-block:: ipython
+
+        In [2]: df2 = pd.DataFrame([{"val1": 1, "val2": 20},
+           ...:                     {"val1": 1, "val2": 19},
+           ...:                     {"val1": 1, "val2": 27},
+           ...:                     {"val1": 1, "val2": 12}])
+
+        In [3]: def func(dataf):
+           ...:     return dataf["val2"] - dataf["val2"].mean()
+           ...:
+
+        In [4]: # squeezing the result frame to a series (because we have unique groups)
+           ...: df2.groupby("val1", squeeze=True).apply(func)
+        Out[4]:
+        0    0.5
+        1   -0.5
+        2    7.5
+        3   -7.5
+        Name: 1, dtype: float64
+
+        In [5]: # no squeezing (the default, and behavior in 0.10.1)
+           ...: df2.groupby("val1").apply(func)
+        Out[5]:
+        val2    0    1    2    3
+        val1
+        1     0.5 -0.5  7.5 -7.5
+
+  - Raise on ``iloc`` when boolean indexing with a label based indexer mask
+    e.g. a boolean Series, even with integer labels, will raise. Since ``iloc``
+    is purely positional based, the labels on the Series are not alignable (:issue:`3631`)
+
+    This case is rarely used, and there are plenty of alternatives. This preserves the
+    ``iloc`` API to be *purely* positional based.
+
+    .. ipython:: python
+
+       df = pd.DataFrame(range(5), index=list("ABCDE"), columns=["a"])
+       mask = df.a % 2 == 0
+       mask
+
+       # this is what you should use
+       df.loc[mask]
+
+       # this will work as well
+       df.iloc[mask.values]
+
+    ``df.iloc[mask]`` will raise a ``ValueError``
+
+  - The ``raise_on_error`` argument to plotting functions is removed. Instead,
+    plotting functions raise a ``TypeError`` when the ``dtype`` of the object
+    is ``object`` to remind you to avoid ``object`` arrays whenever possible
+    and thus you should cast to an appropriate numeric dtype if you need to
+    plot something.
+
+  - Add ``colormap`` keyword to DataFrame plotting methods. Accepts either a
+    matplotlib colormap object (ie, matplotlib.cm.jet) or a string name of such
+    an object (ie, 'jet'). The colormap is sampled to select the color for each
+    column. Please see :ref:`visualization.colormaps` for more information.
+    (:issue:`3860`)
+
+  - ``DataFrame.interpolate()`` is now deprecated. Please use
+    ``DataFrame.fillna()`` and ``DataFrame.replace()`` instead. (:issue:`3582`,
+    :issue:`3675`, :issue:`3676`)
+
+  - the ``method`` and ``axis`` arguments of ``DataFrame.replace()`` are
+    deprecated
+
+  - ``DataFrame.replace`` 's ``infer_types`` parameter is removed and now
+    performs conversion by default. (:issue:`3907`)
+
+  - Add the keyword ``allow_duplicates`` to ``DataFrame.insert`` to allow a duplicate column
+    to be inserted if ``True``, default is ``False`` (same as prior to 0.12) (:issue:`3679`)
+  - Implement ``__nonzero__`` for ``NDFrame`` objects (:issue:`3691`, :issue:`3696`)
+
+  - IO api
+
+    - added top-level function ``read_excel`` to replace the following,
+      The original API is deprecated and will be removed in a future version
+
+      .. code-block:: python
+
+         from pandas.io.parsers import ExcelFile
+
+         xls = ExcelFile("path_to_file.xls")
+         xls.parse("Sheet1", index_col=None, na_values=["NA"])
+
+      With
+
+      .. code-block:: python
+
+         import pandas as pd
+
+         pd.read_excel("path_to_file.xls", "Sheet1", index_col=None, na_values=["NA"])
+
+    - added top-level function ``read_sql`` that is equivalent to the following
+
+      .. code-block:: python
+
+         from pandas.io.sql import read_frame
+
+         read_frame(...)
+
+  - ``DataFrame.to_html`` and ``DataFrame.to_latex`` now accept a path for
+    their first argument (:issue:`3702`)
+
+  - Do not allow astypes on ``datetime64[ns]`` except to ``object``, and
+    ``timedelta64[ns]`` to ``object/int`` (:issue:`3425`)
+
+  - The behavior of ``datetime64`` dtypes has changed with respect to certain
+    so-called reduction operations (:issue:`3726`). The following operations now
+    raise a ``TypeError`` when performed on a ``Series`` and return an *empty*
+    ``Series`` when performed on a ``DataFrame`` similar to performing these
+    operations on, for example, a ``DataFrame`` of ``slice`` objects:
+
+    - sum, prod, mean, std, var, skew, kurt, corr, and cov
+
+  - ``read_html`` now defaults to ``None`` when reading, and falls back on
+    ``bs4`` + ``html5lib`` when lxml fails to parse. a list of parsers to try
+    until success is also valid
+
+  - The internal ``pandas`` class hierarchy has changed (slightly). The
+    previous ``PandasObject`` now is called ``PandasContainer`` and a new
+    ``PandasObject`` has become the base class for ``PandasContainer`` as well
+    as ``Index``, ``Categorical``, ``GroupBy``, ``SparseList``, and
+    ``SparseArray`` (+ their base classes). Currently, ``PandasObject``
+    provides string methods (from ``StringMixin``). (:issue:`4090`, :issue:`4092`)
+
+  - New ``StringMixin`` that, given a ``__unicode__`` method, gets python 2 and
+    python 3 compatible string methods (``__str__``, ``__bytes__``, and
+    ``__repr__``). Plus string safety throughout. Now employed in many places
+    throughout the pandas library. (:issue:`4090`, :issue:`4092`)
+
+IO enhancements
+~~~~~~~~~~~~~~~
+
+  - ``pd.read_html()`` can now parse HTML strings, files or urls and return
+    DataFrames, courtesy of @cpcloud. (:issue:`3477`, :issue:`3605`, :issue:`3606`, :issue:`3616`).
+    It works with a *single* parser backend: BeautifulSoup4 + html5lib :ref:`See the docs<io.html>`
+
+    You can use ``pd.read_html()`` to read the output from ``DataFrame.to_html()`` like so
+
+    .. ipython:: python
+       :okwarning:
+
+        df = pd.DataFrame({"a": range(3), "b": list("abc")})
+        print(df)
+        html = df.to_html()
+        alist = pd.read_html(html, index_col=0)
+        print(df == alist[0])
+
+    Note that ``alist`` here is a Python ``list`` so ``pd.read_html()`` and
+    ``DataFrame.to_html()`` are not inverses.
+
+    - ``pd.read_html()`` no longer performs hard conversion of date strings
+      (:issue:`3656`).
+
+    .. warning::
+
+      You may have to install an older version of BeautifulSoup4,
+      :ref:`See the installation docs<install.optional_dependencies>`
+
+  - Added module for reading and writing Stata files: ``pandas.io.stata`` (:issue:`1512`)
+    accessible via ``read_stata`` top-level function for reading,
+    and ``to_stata`` DataFrame method for writing, :ref:`See the docs<io.stata>`
+
+  - Added module for reading and writing json format files: ``pandas.io.json``
+    accessible via ``read_json`` top-level function for reading,
+    and ``to_json`` DataFrame method for writing, :ref:`See the docs<io.json>`
+    various issues (:issue:`1226`, :issue:`3804`, :issue:`3876`, :issue:`3867`, :issue:`1305`)
+
+  - ``MultiIndex`` column support for reading and writing csv format files
+
+    - The ``header`` option in ``read_csv`` now accepts a
+      list of the rows from which to read the index.
+
+    - The option, ``tupleize_cols`` can now be specified in both ``to_csv`` and
+      ``read_csv``, to provide compatibility for the pre 0.12 behavior of
+      writing and reading ``MultIndex`` columns via a list of tuples. The default in
+      0.12 is to write lists of tuples and *not* interpret list of tuples as a
+      ``MultiIndex`` column.
+
+      Note: The default behavior in 0.12 remains unchanged from prior versions, but starting with 0.13,
+      the default *to* write and read ``MultiIndex`` columns will be in the new
+      format. (:issue:`3571`, :issue:`1651`, :issue:`3141`)
+
+    - If an ``index_col`` is not specified (e.g. you don't have an index, or wrote it
+      with ``df.to_csv(..., index=False``), then any ``names`` on the columns index will
+      be *lost*.
+
+      .. ipython:: python
+
+         from pandas._testing import makeCustomDataframe as mkdf
+
+         df = mkdf(5, 3, r_idx_nlevels=2, c_idx_nlevels=4)
+         df.to_csv("mi.csv")
+         print(open("mi.csv").read())
+         pd.read_csv("mi.csv", header=[0, 1, 2, 3], index_col=[0, 1])
+
+      .. ipython:: python
+         :suppress:
+
+         import os
+
+         os.remove("mi.csv")
+
+  - Support for ``HDFStore`` (via ``PyTables 3.0.0``) on Python3
+
+  - Iterator support via ``read_hdf`` that automatically opens and closes the
+    store when iteration is finished. This is only for *tables*
+
+    .. code-block:: ipython
+
+        In [25]: path = 'store_iterator.h5'
+
+        In [26]: pd.DataFrame(np.random.randn(10, 2)).to_hdf(path, 'df', table=True)
+
+        In [27]: for df in pd.read_hdf(path, 'df', chunksize=3):
+           ....:     print(df)
+           ....:
+                  0         1
+        0  0.713216 -0.778461
+        1 -0.661062  0.862877
+        2  0.344342  0.149565
+                  0         1
+        3 -0.626968 -0.875772
+        4 -0.930687 -0.218983
+        5  0.949965 -0.442354
+                  0         1
+        6 -0.402985  1.111358
+        7 -0.241527 -0.670477
+        8  0.049355  0.632633
+                  0         1
+        9 -1.502767 -1.225492
+
+
+
+  - ``read_csv`` will now throw a more informative error message when a file
+    contains no columns, e.g., all newline characters
+
+Other enhancements
+~~~~~~~~~~~~~~~~~~
+
+  - ``DataFrame.replace()`` now allows regular expressions on contained
+    ``Series`` with object dtype. See the examples section in the regular docs
+    :ref:`Replacing via String Expression <missing_data.replace_expression>`
+
+    For example you can do
+
+    .. ipython:: python
+
+        df = pd.DataFrame({"a": list("ab.."), "b": [1, 2, 3, 4]})
+        df.replace(regex=r"\s*\.\s*", value=np.nan)
+
+    to replace all occurrences of the string ``'.'`` with zero or more
+    instances of surrounding white space with ``NaN``.
+
+    Regular string replacement still works as expected. For example, you can do
+
+    .. ipython:: python
+
+        df.replace(".", np.nan)
+
+    to replace all occurrences of the string ``'.'`` with ``NaN``.
+
+  - ``pd.melt()`` now accepts the optional parameters ``var_name`` and ``value_name``
+    to specify custom column names of the returned DataFrame.
+
+  - ``pd.set_option()`` now allows N option, value pairs (:issue:`3667`).
+
+    Let's say that we had an option ``'a.b'`` and another option ``'b.c'``.
+    We can set them at the same time:
+
+    .. code-block:: ipython
+
+        In [31]: pd.get_option('a.b')
+        Out[31]: 2
+
+        In [32]: pd.get_option('b.c')
+        Out[32]: 3
+
+        In [33]: pd.set_option('a.b', 1, 'b.c', 4)
+
+        In [34]: pd.get_option('a.b')
+        Out[34]: 1
+
+        In [35]: pd.get_option('b.c')
+        Out[35]: 4
+
+  - The ``filter`` method for group objects returns a subset of the original
+    object. Suppose we want to take only elements that belong to groups with a
+    group sum greater than 2.
+
+    .. ipython:: python
+
+       sf = pd.Series([1, 1, 2, 3, 3, 3])
+       sf.groupby(sf).filter(lambda x: x.sum() > 2)
+
+    The argument of ``filter`` must a function that, applied to the group as a
+    whole, returns ``True`` or ``False``.
+
+    Another useful operation is filtering out elements that belong to groups
+    with only a couple members.
+
+    .. ipython:: python
+
+       dff = pd.DataFrame({"A": np.arange(8), "B": list("aabbbbcc")})
+       dff.groupby("B").filter(lambda x: len(x) > 2)
+
+    Alternatively, instead of dropping the offending groups, we can return a
+    like-indexed objects where the groups that do not pass the filter are
+    filled with NaNs.
+
+    .. ipython:: python
+
+       dff.groupby("B").filter(lambda x: len(x) > 2, dropna=False)
+
+  - Series and DataFrame hist methods now take a ``figsize`` argument (:issue:`3834`)
+
+  - DatetimeIndexes no longer try to convert mixed-integer indexes during join
+    operations (:issue:`3877`)
+
+  - Timestamp.min and Timestamp.max now represent valid Timestamp instances instead
+    of the default datetime.min and datetime.max (respectively), thanks @SleepingPills
+
+  - ``read_html`` now raises when no tables are found and BeautifulSoup==4.2.0
+    is detected (:issue:`4214`)
+
+
+Experimental features
+~~~~~~~~~~~~~~~~~~~~~
+
+  - Added experimental ``CustomBusinessDay`` class to support ``DateOffsets``
+    with custom holiday calendars and custom weekmasks. (:issue:`2301`)
+
+    .. note::
+
+       This uses the ``numpy.busdaycalendar`` API introduced in Numpy 1.7 and
+       therefore requires Numpy 1.7.0 or newer.
+
+    .. ipython:: python
+
+      from pandas.tseries.offsets import CustomBusinessDay
+      from datetime import datetime
+
+      # As an interesting example, let's look at Egypt where
+      # a Friday-Saturday weekend is observed.
+      weekmask_egypt = "Sun Mon Tue Wed Thu"
+      # They also observe International Workers' Day so let's
+      # add that for a couple of years
+      holidays = ["2012-05-01", datetime(2013, 5, 1), np.datetime64("2014-05-01")]
+      bday_egypt = CustomBusinessDay(holidays=holidays, weekmask=weekmask_egypt)
+      dt = datetime(2013, 4, 30)
+      print(dt + 2 * bday_egypt)
+      dts = pd.date_range(dt, periods=5, freq=bday_egypt)
+      print(pd.Series(dts.weekday, dts).map(pd.Series("Mon Tue Wed Thu Fri Sat Sun".split())))
+
+Bug fixes
+~~~~~~~~~
+
+  - Plotting functions now raise a ``TypeError`` before trying to plot anything
+    if the associated objects have a dtype of ``object`` (:issue:`1818`,
+    :issue:`3572`, :issue:`3911`, :issue:`3912`), but they will try to convert object arrays to
+    numeric arrays if possible so that you can still plot, for example, an
+    object array with floats. This happens before any drawing takes place which
+    eliminates any spurious plots from showing up.
+
+  - ``fillna`` methods now raise a ``TypeError`` if the ``value`` parameter is
+    a list or tuple.
+
+  - ``Series.str`` now supports iteration (:issue:`3638`). You can iterate over the
+    individual elements of each string in the ``Series``. Each iteration yields
+    a ``Series`` with either a single character at each index of the original
+    ``Series`` or ``NaN``. For example,
+
+    .. ipython:: python
+        :okwarning:
+
+        strs = "go", "bow", "joe", "slow"
+        ds = pd.Series(strs)
+
+        for s in ds.str:
+            print(s)
+
+        s
+        s.dropna().values.item() == "w"
+
+    The last element yielded by the iterator will be a ``Series`` containing
+    the last element of the longest string in the ``Series`` with all other
+    elements being ``NaN``. Here since ``'slow'`` is the longest string
+    and there are no other strings with the same length ``'w'`` is the only
+    non-null string in the yielded ``Series``.
+
+  - ``HDFStore``
+
+    - will retain index attributes (freq,tz,name) on recreation (:issue:`3499`)
+    - will warn with a ``AttributeConflictWarning`` if you are attempting to append
+      an index with a different frequency than the existing, or attempting
+      to append an index with a different name than the existing
+    - support datelike columns with a timezone as data_columns (:issue:`2852`)
+
+  - Non-unique index support clarified (:issue:`3468`).
+
+    - Fix assigning a new index to a duplicate index in a DataFrame would fail (:issue:`3468`)
+    - Fix construction of a DataFrame with a duplicate index
+    - ref_locs support to allow duplicative indices across dtypes,
+      allows iget support to always find the index (even across dtypes) (:issue:`2194`)
+    - applymap on a DataFrame with a non-unique index now works
+      (removed warning) (:issue:`2786`), and fix (:issue:`3230`)
+    - Fix to_csv to handle non-unique columns (:issue:`3495`)
+    - Duplicate indexes with getitem will return items in the correct order (:issue:`3455`, :issue:`3457`)
+      and handle missing elements like unique indices (:issue:`3561`)
+    - Duplicate indexes with and empty DataFrame.from_records will return a correct frame (:issue:`3562`)
+    - Concat to produce a non-unique columns when duplicates are across dtypes is fixed (:issue:`3602`)
+    - Allow insert/delete to non-unique columns (:issue:`3679`)
+    - Non-unique indexing with a slice via ``loc`` and friends fixed (:issue:`3659`)
+    - Allow insert/delete to non-unique columns (:issue:`3679`)
+    - Extend ``reindex`` to correctly deal with non-unique indices (:issue:`3679`)
+    - ``DataFrame.itertuples()`` now works with frames with duplicate column
+      names (:issue:`3873`)
+    - Bug in non-unique indexing via ``iloc`` (:issue:`4017`); added ``takeable`` argument to
+      ``reindex`` for location-based taking
+    - Allow non-unique indexing in series via ``.ix/.loc`` and ``__getitem__`` (:issue:`4246`)
+    - Fixed non-unique indexing memory allocation issue with ``.ix/.loc`` (:issue:`4280`)
+
+  - ``DataFrame.from_records`` did not accept empty recarrays (:issue:`3682`)
+  - ``read_html`` now correctly skips tests (:issue:`3741`)
+  - Fixed a bug where ``DataFrame.replace`` with a compiled regular expression
+    in the ``to_replace`` argument wasn't working (:issue:`3907`)
+  - Improved ``network`` test decorator to catch ``IOError`` (and therefore
+    ``URLError`` as well). Added ``with_connectivity_check`` decorator to allow
+    explicitly checking a website as a proxy for seeing if there is network
+    connectivity. Plus, new ``optional_args`` decorator factory for decorators.
+    (:issue:`3910`, :issue:`3914`)
+  - Fixed testing issue where too many sockets where open thus leading to a
+    connection reset issue (:issue:`3982`, :issue:`3985`, :issue:`4028`,
+    :issue:`4054`)
+  - Fixed failing tests in test_yahoo, test_google where symbols were not
+    retrieved but were being accessed (:issue:`3982`, :issue:`3985`,
+    :issue:`4028`, :issue:`4054`)
+  - ``Series.hist`` will now take the figure from the current environment if
+    one is not passed
+  - Fixed bug where a 1xN DataFrame would barf on a 1xN mask (:issue:`4071`)
+  - Fixed running of ``tox`` under python3 where the pickle import was getting
+    rewritten in an incompatible way (:issue:`4062`, :issue:`4063`)
+  - Fixed bug where sharex and sharey were not being passed to grouped_hist
+    (:issue:`4089`)
+  - Fixed bug in ``DataFrame.replace`` where a nested dict wasn't being
+    iterated over when regex=False (:issue:`4115`)
+  - Fixed bug in the parsing of microseconds when using the ``format``
+    argument in ``to_datetime`` (:issue:`4152`)
+  - Fixed bug in ``PandasAutoDateLocator`` where ``invert_xaxis`` triggered
+    incorrectly ``MilliSecondLocator``  (:issue:`3990`)
+  - Fixed bug in plotting that wasn't raising on invalid colormap for
+    matplotlib 1.1.1 (:issue:`4215`)
+  - Fixed the legend displaying in ``DataFrame.plot(kind='kde')`` (:issue:`4216`)
+  - Fixed bug where Index slices weren't carrying the name attribute
+    (:issue:`4226`)
+  - Fixed bug in initializing ``DatetimeIndex`` with an array of strings
+    in a certain time zone (:issue:`4229`)
+  - Fixed bug where html5lib wasn't being properly skipped (:issue:`4265`)
+  - Fixed bug where get_data_famafrench wasn't using the correct file edges
+    (:issue:`4281`)
+
+See the :ref:`full release notes
+<release>` or issue tracker
+on GitHub for a complete list.
+
+
+.. _whatsnew_0.12.0.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v0.11.0..v0.12.0

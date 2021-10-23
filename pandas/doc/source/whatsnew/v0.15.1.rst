@@ -1,0 +1,319 @@
+.. _whatsnew_0151:
+
+Version 0.15.1 (November 9, 2014)
+---------------------------------
+
+{{ header }}
+
+
+This is a minor bug-fix release from 0.15.0 and includes a small number of API changes, several new features,
+enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
+users upgrade to this version.
+
+- :ref:`Enhancements <whatsnew_0151.enhancements>`
+- :ref:`API Changes <whatsnew_0151.api>`
+- :ref:`Bug Fixes <whatsnew_0151.bug_fixes>`
+
+.. _whatsnew_0151.api:
+
+API changes
+~~~~~~~~~~~
+
+- ``s.dt.hour`` and other ``.dt`` accessors will now return ``np.nan`` for missing values (rather than previously -1), (:issue:`8689`)
+
+  .. ipython:: python
+
+     s = pd.Series(pd.date_range("20130101", periods=5, freq="D"))
+     s.iloc[2] = np.nan
+     s
+
+  previous behavior:
+
+  .. code-block:: ipython
+
+     In [6]: s.dt.hour
+     Out[6]:
+     0    0
+     1    0
+     2   -1
+     3    0
+     4    0
+     dtype: int64
+
+  current behavior:
+
+  .. ipython:: python
+
+     s.dt.hour
+
+- ``groupby`` with ``as_index=False`` will not add erroneous extra columns to
+  result (:issue:`8582`):
+
+  .. ipython:: python
+
+     np.random.seed(2718281)
+     df = pd.DataFrame(np.random.randint(0, 100, (10, 2)), columns=["jim", "joe"])
+     df.head()
+
+     ts = pd.Series(5 * np.random.randint(0, 3, 10))
+
+  previous behavior:
+
+  .. code-block:: ipython
+
+     In [4]: df.groupby(ts, as_index=False).max()
+     Out[4]:
+        NaN  jim  joe
+     0    0   72   83
+     1    5   77   84
+     2   10   96   65
+
+  current behavior:
+
+  .. ipython:: python
+
+    df.groupby(ts, as_index=False).max()
+
+- ``groupby`` will not erroneously exclude columns if the column name conflicts
+  with the grouper name (:issue:`8112`):
+
+  .. ipython:: python
+
+     df = pd.DataFrame({"jim": range(5), "joe": range(5, 10)})
+     df
+     gr = df.groupby(df["jim"] < 2)
+
+  previous behavior (excludes 1st column from output):
+
+  .. code-block:: ipython
+
+     In [4]: gr.apply(sum)
+     Out[4]:
+            joe
+     jim
+     False   24
+     True    11
+
+  current behavior:
+
+  .. ipython:: python
+
+     gr.apply(sum)
+
+- Support for slicing with monotonic decreasing indexes, even if ``start`` or ``stop`` is
+  not found in the index (:issue:`7860`):
+
+  .. ipython:: python
+
+    s = pd.Series(["a", "b", "c", "d"], [4, 3, 2, 1])
+    s
+
+  previous behavior:
+
+  .. code-block:: ipython
+
+     In [8]: s.loc[3.5:1.5]
+     KeyError: 3.5
+
+  current behavior:
+
+  .. ipython:: python
+
+     s.loc[3.5:1.5]
+
+- ``io.data.Options`` has been fixed for a change in the format of the Yahoo Options page (:issue:`8612`), (:issue:`8741`)
+
+  .. note::
+
+    As a result of a change in Yahoo's option page layout, when an expiry date is given,
+    ``Options`` methods now return data for a single expiry date.  Previously, methods returned all
+    data for the selected month.
+
+  The ``month`` and ``year`` parameters have been undeprecated and can be used to get all
+  options data for a given month.
+
+  If an expiry date that is not valid is given, data for the next expiry after the given
+  date is returned.
+
+  Option data frames are now saved on the instance as ``callsYYMMDD`` or ``putsYYMMDD``.  Previously
+  they were saved as ``callsMMYY`` and ``putsMMYY``.  The next expiry is saved as ``calls`` and ``puts``.
+
+  New features:
+
+  - The expiry parameter can now be a single date or a list-like object containing dates.
+
+  - A new property ``expiry_dates`` was added, which returns all available expiry dates.
+
+  Current behavior:
+
+  .. code-block:: ipython
+
+      In [17]: from pandas.io.data import Options
+
+      In [18]: aapl = Options('aapl', 'yahoo')
+
+      In [19]: aapl.get_call_data().iloc[0:5, 0:1]
+      Out[19]:
+                                                   Last
+      Strike Expiry     Type Symbol
+      80     2014-11-14 call AAPL141114C00080000  29.05
+      84     2014-11-14 call AAPL141114C00084000  24.80
+      85     2014-11-14 call AAPL141114C00085000  24.05
+      86     2014-11-14 call AAPL141114C00086000  22.76
+      87     2014-11-14 call AAPL141114C00087000  21.74
+
+      In [20]: aapl.expiry_dates
+      Out[20]:
+      [datetime.date(2014, 11, 14),
+       datetime.date(2014, 11, 22),
+       datetime.date(2014, 11, 28),
+       datetime.date(2014, 12, 5),
+       datetime.date(2014, 12, 12),
+       datetime.date(2014, 12, 20),
+       datetime.date(2015, 1, 17),
+       datetime.date(2015, 2, 20),
+       datetime.date(2015, 4, 17),
+       datetime.date(2015, 7, 17),
+       datetime.date(2016, 1, 15),
+       datetime.date(2017, 1, 20)]
+
+      In [21]: aapl.get_near_stock_price(expiry=aapl.expiry_dates[0:3]).iloc[0:5, 0:1]
+      Out[21]:
+                                                  Last
+      Strike Expiry     Type Symbol
+      109    2014-11-22 call AAPL141122C00109000  1.48
+             2014-11-28 call AAPL141128C00109000  1.79
+      110    2014-11-14 call AAPL141114C00110000  0.55
+             2014-11-22 call AAPL141122C00110000  1.02
+             2014-11-28 call AAPL141128C00110000  1.32
+
+.. _whatsnew_0151.datetime64_plotting:
+
+- pandas now also registers the ``datetime64`` dtype in matplotlib's units registry
+  to plot such values as datetimes. This is activated once pandas is imported. In
+  previous versions, plotting an array of ``datetime64`` values will have resulted
+  in plotted integer values. To keep the previous behaviour, you can do
+  ``del matplotlib.units.registry[np.datetime64]`` (:issue:`8614`).
+
+
+.. _whatsnew_0151.enhancements:
+
+Enhancements
+~~~~~~~~~~~~
+
+- ``concat`` permits a wider variety of iterables of pandas objects to be
+  passed as the first parameter (:issue:`8645`):
+
+  .. ipython:: python
+
+     from collections import deque
+
+     df1 = pd.DataFrame([1, 2, 3])
+     df2 = pd.DataFrame([4, 5, 6])
+
+  previous behavior:
+
+  .. code-block:: ipython
+
+     In [7]: pd.concat(deque((df1, df2)))
+     TypeError: first argument must be a list-like of pandas objects, you passed an object of type "deque"
+
+  current behavior:
+
+  .. ipython:: python
+
+     pd.concat(deque((df1, df2)))
+
+- Represent ``MultiIndex`` labels with a dtype that utilizes memory based on the level size. In prior versions, the memory usage was a constant 8 bytes per element in each level. In addition, in prior versions, the *reported* memory usage was incorrect as it didn't show the usage for the memory occupied by the underling data array. (:issue:`8456`)
+
+  .. ipython:: python
+
+     dfi = pd.DataFrame(
+         1, index=pd.MultiIndex.from_product([["a"], range(1000)]), columns=["A"]
+     )
+
+  previous behavior:
+
+  .. code-block:: ipython
+
+     # this was underreported in prior versions
+     In [1]: dfi.memory_usage(index=True)
+     Out[1]:
+     Index    8000 # took about 24008 bytes in < 0.15.1
+     A        8000
+     dtype: int64
+
+
+  current behavior:
+
+  .. ipython:: python
+
+     dfi.memory_usage(index=True)
+
+- Added Index properties ``is_monotonic_increasing`` and ``is_monotonic_decreasing`` (:issue:`8680`).
+
+- Added option to select columns when importing Stata files (:issue:`7935`)
+
+- Qualify memory usage in ``DataFrame.info()`` by adding ``+`` if it is a lower bound (:issue:`8578`)
+
+- Raise errors in certain aggregation cases where an argument such as ``numeric_only`` is not handled (:issue:`8592`).
+
+- Added support for 3-character ISO and non-standard country codes in :func:`io.wb.download()` (:issue:`8482`)
+
+- World Bank data requests now will warn/raise based
+  on an ``errors`` argument, as well as a list of hard-coded country codes and
+  the World Bank's JSON response.  In prior versions, the error messages
+  didn't look at the World Bank's JSON response.  Problem-inducing input were
+  simply dropped prior to the request. The issue was that many good countries
+  were cropped in the hard-coded approach.  All countries will work now, but
+  some bad countries will raise exceptions because some edge cases break the
+  entire response. (:issue:`8482`)
+
+- Added option to ``Series.str.split()`` to return a ``DataFrame`` rather than a ``Series`` (:issue:`8428`)
+
+- Added option to ``df.info(null_counts=None|True|False)`` to override the default display options and force showing of the null-counts (:issue:`8701`)
+
+
+.. _whatsnew_0151.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+- Bug in unpickling of a ``CustomBusinessDay`` object (:issue:`8591`)
+- Bug in coercing ``Categorical`` to a records array, e.g. ``df.to_records()`` (:issue:`8626`)
+- Bug in ``Categorical`` not created properly with ``Series.to_frame()`` (:issue:`8626`)
+- Bug in coercing in astype of a ``Categorical`` of a passed ``pd.Categorical`` (this now raises ``TypeError`` correctly), (:issue:`8626`)
+- Bug in ``cut``/``qcut`` when using ``Series`` and ``retbins=True`` (:issue:`8589`)
+- Bug in writing Categorical columns to an SQL database with ``to_sql`` (:issue:`8624`).
+- Bug in comparing ``Categorical`` of datetime raising when being compared to a scalar datetime (:issue:`8687`)
+- Bug in selecting from a ``Categorical`` with ``.iloc`` (:issue:`8623`)
+- Bug in groupby-transform with a Categorical (:issue:`8623`)
+- Bug in duplicated/drop_duplicates with a Categorical (:issue:`8623`)
+- Bug in ``Categorical`` reflected comparison operator raising if the first argument was a numpy array scalar (e.g. np.int64) (:issue:`8658`)
+- Bug in Panel indexing with a list-like (:issue:`8710`)
+- Compat issue is ``DataFrame.dtypes`` when ``options.mode.use_inf_as_null`` is True (:issue:`8722`)
+- Bug in ``read_csv``, ``dialect`` parameter would not take a string (:issue:`8703`)
+- Bug in slicing a MultiIndex level with an empty-list (:issue:`8737`)
+- Bug in numeric index operations of add/sub with Float/Index Index with numpy arrays (:issue:`8608`)
+- Bug in setitem with empty indexer and unwanted coercion of dtypes (:issue:`8669`)
+- Bug in ix/loc block splitting on setitem (manifests with integer-like dtypes, e.g. datetime64) (:issue:`8607`)
+- Bug when doing label based indexing with integers not found in the index for
+  non-unique but monotonic indexes (:issue:`8680`).
+- Bug when indexing a Float64Index with ``np.nan`` on numpy 1.7 (:issue:`8980`).
+- Fix ``shape`` attribute for ``MultiIndex`` (:issue:`8609`)
+- Bug in ``GroupBy`` where a name conflict between the grouper and columns
+  would break ``groupby`` operations (:issue:`7115`, :issue:`8112`)
+- Fixed a bug where plotting a column ``y`` and specifying a label would mutate the index name of the original DataFrame (:issue:`8494`)
+- Fix regression in plotting of a DatetimeIndex directly with matplotlib (:issue:`8614`).
+- Bug in ``date_range`` where partially-specified dates would incorporate current date (:issue:`6961`)
+- Bug in Setting by indexer to a scalar value with a mixed-dtype ``Panel4d`` was failing (:issue:`8702`)
+- Bug where ``DataReader``'s would fail if one of the symbols passed was invalid.  Now returns data for valid symbols and np.nan for invalid (:issue:`8494`)
+- Bug in ``get_quote_yahoo`` that wouldn't allow non-float return values (:issue:`5229`).
+
+
+.. _whatsnew_0.15.1.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v0.15.0..v0.15.1

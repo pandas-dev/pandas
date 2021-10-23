@@ -1,0 +1,384 @@
+.. _whatsnew_0700:
+
+Version 0.7.0 (February 9, 2012)
+--------------------------------
+
+{{ header }}
+
+
+New features
+~~~~~~~~~~~~
+
+- New unified :ref:`merge function <merging.join>` for efficiently performing
+  full gamut of database / relational-algebra operations. Refactored existing
+  join methods to use the new infrastructure, resulting in substantial
+  performance gains (:issue:`220`, :issue:`249`, :issue:`267`)
+
+- New :ref:`unified concatenation function <merging.concat>` for concatenating
+  Series, DataFrame or Panel objects along an axis. Can form union or
+  intersection of the other axes. Improves performance of ``Series.append`` and
+  ``DataFrame.append`` (:issue:`468`, :issue:`479`, :issue:`273`)
+
+- :ref:`Can <merging.concatenation>` pass multiple DataFrames to
+  ``DataFrame.append`` to concatenate (stack) and multiple Series to
+  ``Series.append`` too
+
+- :ref:`Can<basics.dataframe.from_list_of_dicts>` pass list of dicts (e.g., a
+  list of JSON objects) to DataFrame constructor (:issue:`526`)
+
+- You can now :ref:`set multiple columns <indexing.columns.multiple>` in a
+  DataFrame via ``__getitem__``, useful for transformation (:issue:`342`)
+
+- Handle differently-indexed output values in ``DataFrame.apply`` (:issue:`498`)
+
+.. code-block:: ipython
+
+   In [1]: df = pd.DataFrame(np.random.randn(10, 4))
+   In [2]: df.apply(lambda x: x.describe())
+   Out[2]:
+                  0          1          2          3
+   count  10.000000  10.000000  10.000000  10.000000
+   mean    0.190912  -0.395125  -0.731920  -0.403130
+   std     0.730951   0.813266   1.112016   0.961912
+   min    -0.861849  -2.104569  -1.776904  -1.469388
+   25%    -0.411391  -0.698728  -1.501401  -1.076610
+   50%     0.380863  -0.228039  -1.191943  -1.004091
+   75%     0.658444   0.057974  -0.034326   0.461706
+   max     1.212112   0.577046   1.643563   1.071804
+
+   [8 rows x 4 columns]
+
+- :ref:`Add<advanced.reorderlevels>` ``reorder_levels`` method to Series and
+  DataFrame (:issue:`534`)
+
+- :ref:`Add<indexing.dictionarylike>` dict-like ``get`` function to DataFrame
+  and Panel (:issue:`521`)
+
+- :ref:`Add<basics.iterrows>` ``DataFrame.iterrows`` method for efficiently
+  iterating through the rows of a DataFrame
+
+- Add ``DataFrame.to_panel`` with code adapted from
+  ``LongPanel.to_long``
+
+- :ref:`Add <basics.reindexing>` ``reindex_axis`` method added to DataFrame
+
+- :ref:`Add <basics.stats>` ``level`` option to binary arithmetic functions on
+  ``DataFrame`` and ``Series``
+
+- :ref:`Add <advanced.advanced_reindex>` ``level`` option to the ``reindex``
+  and ``align`` methods on Series and DataFrame for broadcasting values across
+  a level (:issue:`542`, :issue:`552`, others)
+
+- Add attribute-based item access to
+  ``Panel`` and add IPython completion (:issue:`563`)
+
+- :ref:`Add <visualization.basic>` ``logy`` option to ``Series.plot`` for
+  log-scaling on the Y axis
+
+- :ref:`Add <io.formatting>` ``index`` and ``header`` options to
+  ``DataFrame.to_string``
+
+- :ref:`Can <merging.multiple_join>` pass multiple DataFrames to
+  ``DataFrame.join`` to join on index (:issue:`115`)
+
+- :ref:`Can <merging.multiple_join>` pass multiple Panels to ``Panel.join``
+  (:issue:`115`)
+
+- :ref:`Added <io.formatting>` ``justify`` argument to ``DataFrame.to_string``
+  to allow different alignment of column headers
+
+- :ref:`Add <groupby.attributes>` ``sort`` option to GroupBy to allow disabling
+  sorting of the group keys for potential speedups (:issue:`595`)
+
+- :ref:`Can <basics.dataframe.from_series>` pass MaskedArray to Series
+  constructor (:issue:`563`)
+
+- Add Panel item access via attributes
+  and IPython completion (:issue:`554`)
+
+- Implement ``DataFrame.lookup``, fancy-indexing analogue for retrieving values
+  given a sequence of row and column labels (:issue:`338`)
+
+- Can pass a :ref:`list of functions <groupby.aggregate.multifunc>` to
+  aggregate with groupby on a DataFrame, yielding an aggregated result with
+  hierarchical columns (:issue:`166`)
+
+- Can call ``cummin`` and ``cummax`` on Series and DataFrame to get cumulative
+  minimum and maximum, respectively (:issue:`647`)
+
+- ``value_range`` added as utility function to get min and max of a dataframe
+  (:issue:`288`)
+
+- Added ``encoding`` argument to ``read_csv``, ``read_table``, ``to_csv`` and
+  ``from_csv`` for non-ascii text (:issue:`717`)
+
+- :ref:`Added <basics.stats>` ``abs`` method to pandas objects
+
+- :ref:`Added <reshaping.pivot>` ``crosstab`` function for easily computing frequency tables
+
+- :ref:`Added <indexing.set_ops>` ``isin`` method to index objects
+
+- :ref:`Added <advanced.xs>` ``level`` argument to ``xs`` method of DataFrame.
+
+
+API changes to integer indexing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+One of the potentially riskiest API changes in 0.7.0, but also one of the most
+important, was a complete review of how **integer indexes** are handled with
+regard to label-based indexing. Here is an example:
+
+.. code-block:: ipython
+
+    In [3]: s = pd.Series(np.random.randn(10), index=range(0, 20, 2))
+    In [4]: s
+    Out[4]:
+    0    -1.294524
+    2     0.413738
+    4     0.276662
+    6    -0.472035
+    8    -0.013960
+    10   -0.362543
+    12   -0.006154
+    14   -0.923061
+    16    0.895717
+    18    0.805244
+    Length: 10, dtype: float64
+
+    In [5]: s[0]
+    Out[5]: -1.2945235902555294
+
+    In [6]: s[2]
+    Out[6]: 0.41373810535784006
+
+    In [7]: s[4]
+    Out[7]: 0.2766617129497566
+
+This is all exactly identical to the behavior before. However, if you ask for a
+key **not** contained in the Series, in versions 0.6.1 and prior, Series would
+*fall back* on a location-based lookup. This now raises a ``KeyError``:
+
+.. code-block:: ipython
+
+   In [2]: s[1]
+   KeyError: 1
+
+This change also has the same impact on DataFrame:
+
+.. code-block:: ipython
+
+   In [3]: df = pd.DataFrame(np.random.randn(8, 4), index=range(0, 16, 2))
+
+   In [4]: df
+       0        1       2       3
+   0   0.88427  0.3363 -0.1787  0.03162
+   2   0.14451 -0.1415  0.2504  0.58374
+   4  -1.44779 -0.9186 -1.4996  0.27163
+   6  -0.26598 -2.4184 -0.2658  0.11503
+   8  -0.58776  0.3144 -0.8566  0.61941
+   10  0.10940 -0.7175 -1.0108  0.47990
+   12 -1.16919 -0.3087 -0.6049 -0.43544
+   14 -0.07337  0.3410  0.0424 -0.16037
+
+   In [5]: df.ix[3]
+   KeyError: 3
+
+In order to support purely integer-based indexing, the following methods have
+been added:
+
+.. csv-table::
+    :header: "Method","Description"
+    :widths: 40,60
+
+	``Series.iget_value(i)``, Retrieve value stored at location ``i``
+	``Series.iget(i)``, Alias for ``iget_value``
+	``DataFrame.irow(i)``, Retrieve the ``i``-th row
+	``DataFrame.icol(j)``, Retrieve the ``j``-th column
+	"``DataFrame.iget_value(i, j)``", Retrieve the value at row ``i`` and column ``j``
+
+API tweaks regarding label-based slicing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Label-based slicing using ``ix`` now requires that the index be sorted
+(monotonic) **unless** both the start and endpoint are contained in the index:
+
+.. code-block:: python
+
+   In [1]: s = pd.Series(np.random.randn(6), index=list('gmkaec'))
+
+   In [2]: s
+   Out[2]:
+   g   -1.182230
+   m   -0.276183
+   k   -0.243550
+   a    1.628992
+   e    0.073308
+   c   -0.539890
+   dtype: float64
+
+Then this is OK:
+
+.. code-block:: python
+
+   In [3]: s.ix['k':'e']
+   Out[3]:
+   k   -0.243550
+   a    1.628992
+   e    0.073308
+   dtype: float64
+
+But this is not:
+
+.. code-block:: ipython
+
+   In [12]: s.ix['b':'h']
+   KeyError 'b'
+
+If the index had been sorted, the "range selection" would have been possible:
+
+.. code-block:: python
+
+   In [4]: s2 = s.sort_index()
+
+   In [5]: s2
+   Out[5]:
+   a    1.628992
+   c   -0.539890
+   e    0.073308
+   g   -1.182230
+   k   -0.243550
+   m   -0.276183
+   dtype: float64
+
+   In [6]: s2.ix['b':'h']
+   Out[6]:
+   c   -0.539890
+   e    0.073308
+   g   -1.182230
+   dtype: float64
+
+Changes to Series ``[]`` operator
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As as notational convenience, you can pass a sequence of labels or a label
+slice to a Series when getting and setting values via ``[]`` (i.e. the
+``__getitem__`` and ``__setitem__`` methods). The behavior will be the same as
+passing similar input to ``ix`` **except in the case of integer indexing**:
+
+.. code-block:: ipython
+
+  In [8]: s = pd.Series(np.random.randn(6), index=list('acegkm'))
+
+  In [9]: s
+  Out[9]:
+  a   -1.206412
+  c    2.565646
+  e    1.431256
+  g    1.340309
+  k   -1.170299
+  m   -0.226169
+  Length: 6, dtype: float64
+
+  In [10]: s[['m', 'a', 'c', 'e']]
+  Out[10]:
+  m   -0.226169
+  a   -1.206412
+  c    2.565646
+  e    1.431256
+  Length: 4, dtype: float64
+
+  In [11]: s['b':'l']
+  Out[11]:
+  c    2.565646
+  e    1.431256
+  g    1.340309
+  k   -1.170299
+  Length: 4, dtype: float64
+
+  In [12]: s['c':'k']
+  Out[12]:
+  c    2.565646
+  e    1.431256
+  g    1.340309
+  k   -1.170299
+  Length: 4, dtype: float64
+
+In the case of integer indexes, the behavior will be exactly as before
+(shadowing ``ndarray``):
+
+.. code-block:: ipython
+
+  In [13]: s = pd.Series(np.random.randn(6), index=range(0, 12, 2))
+
+  In [14]: s[[4, 0, 2]]
+  Out[14]:
+  4    0.132003
+  0    0.410835
+  2    0.813850
+  Length: 3, dtype: float64
+
+  In [15]: s[1:5]
+  Out[15]:
+  2    0.813850
+  4    0.132003
+  6   -0.827317
+  8   -0.076467
+  Length: 4, dtype: float64
+
+If you wish to do indexing with sequences and slicing on an integer index with
+label semantics, use ``ix``.
+
+Other API changes
+~~~~~~~~~~~~~~~~~
+
+- The deprecated ``LongPanel`` class has been completely removed
+
+- If ``Series.sort`` is called on a column of a DataFrame, an exception will
+  now be raised. Before it was possible to accidentally mutate a DataFrame's
+  column by doing ``df[col].sort()`` instead of the side-effect free method
+  ``df[col].order()`` (:issue:`316`)
+
+- Miscellaneous renames and deprecations which will (harmlessly) raise
+  ``FutureWarning``
+
+- ``drop`` added as an optional parameter to ``DataFrame.reset_index`` (:issue:`699`)
+
+Performance improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+- :ref:`Cythonized GroupBy aggregations <groupby.aggregate.cython>` no longer
+  presort the data, thus achieving a significant speedup (:issue:`93`).  GroupBy
+  aggregations with Python functions significantly sped up by clever
+  manipulation of the ndarray data type in Cython (:issue:`496`).
+- Better error message in DataFrame constructor when passed column labels
+  don't match data (:issue:`497`)
+- Substantially improve performance of multi-GroupBy aggregation when a
+  Python function is passed, reuse ndarray object in Cython (:issue:`496`)
+- Can store objects indexed by tuples and floats in HDFStore (:issue:`492`)
+- Don't print length by default in Series.to_string, add ``length`` option (:issue:`489`)
+- Improve Cython code for multi-groupby to aggregate without having to sort
+  the data (:issue:`93`)
+- Improve MultiIndex reindexing speed by storing tuples in the MultiIndex,
+  test for backwards unpickling compatibility
+- Improve column reindexing performance by using specialized Cython take
+  function
+- Further performance tweaking of Series.__getitem__ for standard use cases
+- Avoid Index dict creation in some cases (i.e. when getting slices, etc.),
+  regression from prior versions
+- Friendlier error message in setup.py if NumPy not installed
+- Use common set of NA-handling operations (sum, mean, etc.) in Panel class
+  also (:issue:`536`)
+- Default name assignment when calling ``reset_index`` on DataFrame with a
+  regular (non-hierarchical) index (:issue:`476`)
+- Use Cythonized groupers when possible in Series/DataFrame stat ops with
+  ``level`` parameter passed (:issue:`545`)
+- Ported skiplist data structure to C to speed up ``rolling_median`` by about
+  5-10x in most typical use cases (:issue:`374`)
+
+
+.. _whatsnew_0.7.0.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v0.6.1..v0.7.0

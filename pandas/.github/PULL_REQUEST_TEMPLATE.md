@@ -1,0 +1,4 @@
+- [ ] closes #xxxx
+- [ ] tests added / passed
+- [ ] Ensure all linting tests pass, see [here](https://pandas.pydata.org/pandas-docs/dev/development/contributing_codebase.html#pre-commit) for how to run them
+- [ ] whatsnew entry

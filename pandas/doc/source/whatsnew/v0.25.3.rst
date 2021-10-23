@@ -1,0 +1,22 @@
+.. _whatsnew_0253:
+
+What's new in 0.25.3 (October 31, 2019)
+---------------------------------------
+
+These are the changes in pandas 0.25.3. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+.. _whatsnew_0253.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+GroupBy/resample/rolling
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+- Bug in :meth:`DataFrameGroupBy.quantile` where NA values in the grouping could cause segfaults or incorrect results (:issue:`28882`)
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v0.25.2..v0.25.3
