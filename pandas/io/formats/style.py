@@ -2227,9 +2227,12 @@ class Styler(StylerRenderer):
         --------
 
         >>> df = DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
-        >>> styler = df.style.set_descriptors(
-        ...     ["mean", Series.mean, ("my-text", Series.mean)]
-        ... )  # doctest: +SKIP
+        >>> styler = df.style.set_descriptors([
+        ...     "mean",
+        ...     Series.mean,
+        ...     ("my-text", Series.mean),
+        ...     ("my-func", lambda s: s.sum()/2),
+        ... ])  # doctest: +SKIP
 
         .. figure:: ../../_static/style/des_mean.png
 
