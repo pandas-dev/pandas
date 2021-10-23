@@ -166,6 +166,11 @@ def apply_wraps(func):
 
         tz = other.tzinfo
         nano = other.nanosecond
+        if hasattr(self, "nanoseconds"):
+            if self.n > 0:
+                nano += self.nanoseconds
+            else:
+                nano -= self.nanoseconds
 
         if self._adjust_dst:
             other = other.tz_localize(None)
