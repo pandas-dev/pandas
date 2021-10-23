@@ -4831,6 +4831,13 @@ class Index(IndexOpsMixin, PandasObject):
         TypeError
             If the value cannot be inserted into an array of this dtype.
         """
+        #if type(self) is Index and self.dtype != object:
+        #    # FIXME: kludge; work this into can_hold_element?
+        #    try:
+        #        type(self._values)._from_sequence([value], dtype=self.dtype)
+        #    except ValueError as err:
+        #        raise TypeError from err
+        #    return value
         if not can_hold_element(self._values, value):
             raise TypeError
         return value
@@ -5986,12 +5993,12 @@ class Index(IndexOpsMixin, PandasObject):
                 new_values, dtype=dtype, copy=False, name=self.name
             )
 
-        res_values = maybe_cast_pointwise_result(
-            new_values, self.dtype, same_dtype=True
-        )
-        result = Index._with_infer(res_values, dtype=dtype, copy=False, name=self.name)
+        #res_values = maybe_cast_pointwise_result(
+        #    new_values, self.dtype, same_dtype=True
+        #)
+        result = Index._with_infer(new_values, dtype=dtype, copy=False, name=self.name)
 
-        if False:  # type(self) is Index and not isinstance(self.dtype, np.dtype):
+        if type(self) is Index and not isinstance(self.dtype, np.dtype):
             # TODO: what about "integer-na"
             if self.dtype.kind in ["i", "u"] and result.inferred_type == "integer":
                 # TODO: worry about itemsize/overflows?
@@ -6474,25 +6481,20 @@ class Index(IndexOpsMixin, PandasObject):
         if is_valid_na_for_dtype(item, self.dtype) and self.dtype != object:
             item = self._na_value
 
-        try:
-            item = self._validate_fill_value(item)
-        except TypeError:
-            dtype = self._find_common_type_compat(item)
-            return self.astype(dtype).insert(loc, item)
-
         arr = self._values
 
-        if isinstance(arr, ExtensionArray):
-            # TODO: need EA.insert
-            try:
-                arr2 = type(arr)._from_sequence([item], dtype=arr.dtype)
-            except TypeError:
-                # TODO: make this into _validate_fill_value
-                dtype = self._find_common_type_compat(item)
-                return self.astype(dtype).insert(loc, item)
-
-            res_values = arr._concat_same_type([arr[:loc], arr2, arr[loc:]])
-            return type(self)._simple_new(res_values, name=self.name)
+        try:
+            if isinstance(arr, ExtensionArray):
+                res_values = arr.insert(loc, item)
+                return type(self)._simple_new(res_values, name=self.name)
+            else:
+                item = self._validate_fill_value(item)
+        except (TypeError, ValueError):
+            # e.g. trying to insert an integer into a DatetimeIndex
+            #  We cannot keep the same dtype, so cast to the (often object)
+            #  minimal shared dtype before doing the insert.
+            dtype = self._find_common_type_compat(item)
+            return self.astype(dtype).insert(loc, item)
 
         if arr.dtype != object or not isinstance(
             item, (tuple, np.datetime64, np.timedelta64)

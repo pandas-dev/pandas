@@ -11,6 +11,7 @@ from pandas.compat import (
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_object_dtype,
+    is_dtype_equal,
 )
 
 import pandas as pd
@@ -150,6 +151,8 @@ def test_access_by_position(index):
     assert index[-1] == index[size - 1]
 
     msg = f"index {size} is out of bounds for axis 0 with size {size}"
+    if is_dtype_equal(index.dtype, "string[pyarrow]"):
+        msg = "index out of bounds"
     with pytest.raises(IndexError, match=msg):
         index[size]
     msg = "single positional indexer is out-of-bounds"

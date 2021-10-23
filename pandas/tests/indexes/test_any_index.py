@@ -148,6 +148,8 @@ class TestIndexing:
                     "are valid indices"
                 ),
                 "index out of bounds",  # string[pyarrow]
+                "Only integers, slices and integer or "
+                "boolean arrays are valid indices.",  # string[pyarrow]
             ]
         )
         with pytest.raises(IndexError, match=msg):

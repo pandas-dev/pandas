@@ -1840,8 +1840,6 @@ def union_with_duplicates(lvals: ArrayLike, rvals: ArrayLike) -> ArrayLike:
     -----
     Caller is responsible for ensuring lvals.dtype == rvals.dtype.
     """
-    from pandas.core.dtypes.concat import concat_compat
-
     indexer = []
     l_count = value_counts(lvals, dropna=False)
     r_count = value_counts(rvals, dropna=False)

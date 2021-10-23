@@ -942,7 +942,14 @@ cdef class ExtensionEngine:
             return self.values == val
         except TypeError:
             # e.g. if __eq__ returns a BooleanArray instead of ndarry[bool]
-            return (self.values == val).to_numpy(dtype=bool, na_value=False)
+            try:
+                return (self.values == val).to_numpy(dtype=bool, na_value=False)
+            except (TypeError, AttributeError) as err:
+                # e.g. (self.values == val) returned a bool
+                #  see test_get_loc_generator[string[pyarrow]]
+                # e.g. self.value == val raises TypeError bc generator has no len
+                #  see test_get_loc_generator[string[python]]
+                raise KeyError from err
 
     cdef _maybe_get_bool_indexer(self, object val):
         # Returns ndarray[bool] or int

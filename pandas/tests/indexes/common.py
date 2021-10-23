@@ -296,10 +296,15 @@ class Base:
             pass
         elif type(index) is Index and not isinstance(index.dtype, np.dtype):
             result = index_type(index.values, copy=False, **init_kwargs)
-            # FIXME: this is specific to MaskedArray
-            tm.assert_numpy_array_equal(index._values._data, result._values._data, check_same="same")
-            tm.assert_numpy_array_equal(index._values._mask, result._values._mask, check_same="same")
+            tm.assert_index_equal(result, index)
 
+            if hasattr(index._values, "_mask"):
+                # FIXME: this is specific to MaskedArray
+                tm.assert_numpy_array_equal(index._values._data, result._values._data, check_same="same")
+                tm.assert_numpy_array_equal(index._values._mask, result._values._mask, check_same="same")
+            else:
+                # e.g. string[pyarrow]
+                raise NotImplementedError
         else:
             result = index_type(index.values, copy=False, **init_kwargs)
             tm.assert_numpy_array_equal(index.values, result.values, check_same="same")
@@ -409,6 +414,23 @@ class Base:
 
         # test 0th element
         assert index[0:4].equals(result.insert(0, index[0]))
+
+    def test_insert_out_of_bounds(self, index):
+        # TypeError/IndexError matches what np.insert raises in these cases
+
+        # TODO: specific exception messags?
+        if len(index) > 0:
+            err = TypeError
+        else:
+            err = IndexError
+        with pytest.raises(err):
+            index.insert(0.5, "foo")
+
+        with pytest.raises(IndexError):
+            index.insert(len(index) + 1, 1)
+
+        with pytest.raises(IndexError):
+            index.insert(-len(index) - 1, 1)
 
     def test_delete_base(self, index):
         if not len(index):

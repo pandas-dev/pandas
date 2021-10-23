@@ -324,6 +324,11 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
                     item = item[1]
                 elif item[1] is Ellipsis:
                     item = item[0]
+        elif not (is_integer(item) or isinstance(item, slice) or item is Ellipsis):
+            raise IndexError(
+                "Only integers, slices and integer or "
+                "boolean arrays are valid indices."
+            )
 
         # We are not an array indexer, so maybe e.g. a slice or integer
         # indexer. We dispatch to pyarrow.

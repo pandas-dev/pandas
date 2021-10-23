@@ -120,6 +120,15 @@ class BaseGetitemTests(BaseExtensionTests):
         result = pd.Series(data)[0]
         assert isinstance(result, data.dtype.type)
 
+    def test_getitem_invalid(self, data):
+        # TODO: specific exception message?
+
+        with pytest.raises(IndexError):
+            data["foo"]
+
+        with pytest.raises(IndexError):
+            data[2.5]
+
     def test_getitem_scalar_na(self, data_missing, na_cmp, na_value):
         result = data_missing[0]
         assert na_cmp(result, na_value)
