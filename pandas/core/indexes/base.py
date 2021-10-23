@@ -26,7 +26,6 @@ from pandas._libs import (
     algos as libalgos,
     index as libindex,
     lib,
-    missing as libmissing,
 )
 import pandas._libs.join as libjoin
 from pandas._libs.lib import (
@@ -35,7 +34,6 @@ from pandas._libs.lib import (
 )
 from pandas._libs.tslibs import (
     IncompatibleFrequency,
-    NaTType,
     OutOfBoundsDatetime,
     Timestamp,
     tz_compare,
@@ -69,7 +67,6 @@ from pandas.core.dtypes.cast import (
     can_hold_element,
     find_common_type,
     infer_dtype_from,
-    maybe_cast_pointwise_result,
     validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
@@ -3640,7 +3637,6 @@ class Index(IndexOpsMixin, PandasObject):
 
             indexer = self._engine.get_indexer(target.codes)
             if self.hasnans and target.hasnans:
-                # loc = self.get_loc(libmissing.NA)
                 loc = self.get_loc(np.nan)
                 mask = target.isna()
                 indexer[mask] = loc
@@ -3659,7 +3655,6 @@ class Index(IndexOpsMixin, PandasObject):
                 # Exclude MultiIndex because hasnans raises NotImplementedError
                 # we should only get here if we are unique, so loc is an integer
                 # GH#41934
-                # loc = self.get_loc(libmissing.NA)
                 loc = self.get_loc(np.nan)
                 mask = target.isna()
                 indexer[mask] = loc
@@ -4831,13 +4826,6 @@ class Index(IndexOpsMixin, PandasObject):
         TypeError
             If the value cannot be inserted into an array of this dtype.
         """
-        #if type(self) is Index and self.dtype != object:
-        #    # FIXME: kludge; work this into can_hold_element?
-        #    try:
-        #        type(self._values)._from_sequence([value], dtype=self.dtype)
-        #    except ValueError as err:
-        #        raise TypeError from err
-        #    return value
         if not can_hold_element(self._values, value):
             raise TypeError
         return value
@@ -5993,9 +5981,6 @@ class Index(IndexOpsMixin, PandasObject):
                 new_values, dtype=dtype, copy=False, name=self.name
             )
 
-        #res_values = maybe_cast_pointwise_result(
-        #    new_values, self.dtype, same_dtype=True
-        #)
         result = Index._with_infer(new_values, dtype=dtype, copy=False, name=self.name)
 
         if type(self) is Index and not isinstance(self.dtype, np.dtype):

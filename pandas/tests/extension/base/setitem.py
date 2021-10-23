@@ -367,3 +367,10 @@ class BaseSetitemTests(BaseExtensionTests):
         expected = ser[taker]
         del ser[1]
         self.assert_series_equal(ser, expected)
+
+    def test_setitem_invalid(self, data, invalid_scalar):
+        with pytest.raises((ValueError, TypeError)):
+            data[0] = invalid_scalar
+
+        with pytest.raises((ValueError, TypeError)):
+            data[:] = invalid_scalar

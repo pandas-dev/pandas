@@ -129,6 +129,12 @@ class BaseGetitemTests(BaseExtensionTests):
         with pytest.raises(IndexError):
             data[2.5]
 
+        ub = len(data)
+        with pytest.raises(IndexError):
+            data[ub + 1]
+        with pytest.raises(IndexError):
+            data[-ub - 1]
+
     def test_getitem_scalar_na(self, data_missing, na_cmp, na_value):
         result = data_missing[0]
         assert na_cmp(result, na_value)
