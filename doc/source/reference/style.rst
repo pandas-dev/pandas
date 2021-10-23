@@ -45,6 +45,7 @@ Style application
    Styler.set_td_classes
    Styler.set_table_styles
    Styler.set_table_attributes
+   Styler.set_descriptors
    Styler.set_tooltips
    Styler.set_caption
    Styler.set_sticky
