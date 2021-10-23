@@ -338,8 +338,8 @@ def _stata_elapsed_date_to_datetime_vec(dates, fmt) -> Series:
         deltas = to_timedelta(deltas, unit=unit)
         return base + deltas
 
-    # TODO: If/when pandas supports more than datetime64[ns], this should be
-    # improved to use correct range, e.g. datetime[Y] for yearly
+    # TODO(non-nano): If/when pandas supports more than datetime64[ns], this
+    #  should be improved to use correct range, e.g. datetime[Y] for yearly
     bad_locs = np.isnan(dates)
     has_bad_values = False
     if bad_locs.any():
