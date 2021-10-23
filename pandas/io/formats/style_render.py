@@ -484,12 +484,13 @@ class StylerRenderer:
         else:
             name, func = None, descriptor
 
+        base_css = f"{self.css['descriptor_name']} {self.css['descriptor']}{r}"
         descriptor_name = [
             _element(
                 "th",
-                f"{self.css['blank']}"
-                if name is None
-                else f"{self.css['descriptor_name']} {self.css['descriptor']}{r}",
+                base_css
+                if (name is not None and not self.hide_column_names)
+                else f"{self.css['blank']} {base_css}",
                 name
                 if (name is not None and not self.hide_column_names)
                 else self.css["blank_value"],

@@ -9,6 +9,7 @@ import pandas as pd
 from pandas import (
     DataFrame,
     MultiIndex,
+    Series,
 )
 import pandas._testing as tm
 
@@ -448,7 +449,7 @@ class TestStyler:
         self.g = lambda x: x
 
         def h(x, foo="bar"):
-            return pd.Series(f"color: {foo}", index=x.index, name=x.name)
+            return Series(f"color: {foo}", index=x.index, name=x.name)
 
         self.h = h
         self.styler = Styler(self.df)
@@ -467,7 +468,7 @@ class TestStyler:
             Styler([1, 2, 3])
 
     def test_init_series(self):
-        result = Styler(pd.Series([1, 2]))
+        result = Styler(Series([1, 2]))
         assert result.data.ndim == 2
 
     def test_repr_html_ok(self):
@@ -496,7 +497,7 @@ class TestStyler:
 
     def test_render(self):
         df = DataFrame({"A": [0, 1]})
-        style = lambda x: pd.Series(["color: red", "color: blue"], name=x.name)
+        style = lambda x: Series(["color: red", "color: blue"], name=x.name)
         s = Styler(df, uuid="AB").apply(style)
         s.to_html()
         # it worked?
@@ -522,7 +523,7 @@ class TestStyler:
 
     def test_render_double(self):
         df = DataFrame({"A": [0, 1]})
-        style = lambda x: pd.Series(
+        style = lambda x: Series(
             ["color: red; border: 1px", "color: blue; border: 2px"], name=x.name
         )
         s = Styler(df, uuid="AB").apply(style)
@@ -646,13 +647,13 @@ class TestStyler:
         df = DataFrame([[1, 2], [3, 4]], index=["X", "Y"], columns=["X", "Y"])
 
         # test Series return where len(Series) < df.index or df.columns but labels OK
-        func = lambda s: pd.Series(["color: red;"], index=["Y"])
+        func = lambda s: Series(["color: red;"], index=["Y"])
         result = df.style.apply(func, axis=axis)._compute().ctx
         assert result[(1, 1)] == [("color", "red")]
         assert result[(1 - axis, axis)] == [("color", "red")]
 
         # test Series return where labels align but different order
-        func = lambda s: pd.Series(["color: red;", "color: blue;"], index=["Y", "X"])
+        func = lambda s: Series(["color: red;", "color: blue;"], index=["Y", "X"])
         result = df.style.apply(func, axis=axis)._compute().ctx
         assert result[(0, 0)] == [("color", "blue")]
         assert result[(1, 1)] == [("color", "red")]
@@ -945,13 +946,13 @@ class TestStyler:
             df.style._apply(lambda x: ["", "", "", ""])
 
         with pytest.raises(ValueError, match=msg.format("index")):
-            df.style._apply(lambda x: pd.Series(["a:v;", ""], index=["A", "C"]), axis=0)
+            df.style._apply(lambda x: Series(["a:v;", ""], index=["A", "C"]), axis=0)
 
         with pytest.raises(ValueError, match=msg.format("columns")):
             df.style._apply(lambda x: ["", "", ""], axis=1)
 
         with pytest.raises(ValueError, match=msg.format("columns")):
-            df.style._apply(lambda x: pd.Series(["a:v;", ""], index=["X", "Z"]), axis=1)
+            df.style._apply(lambda x: Series(["a:v;", ""], index=["X", "Z"]), axis=1)
 
         msg = "returned ndarray with wrong shape"
         with pytest.raises(ValueError, match=msg):
@@ -1397,7 +1398,7 @@ class TestStyler:
             slice(None, None, None),
             [0, 1],
             np.array([0, 1]),
-            pd.Series([0, 1]),
+            Series([0, 1]),
         ],
     )
     def test_non_reducing_slice(self, slc):
@@ -1406,7 +1407,7 @@ class TestStyler:
         tslice_ = non_reducing_slice(slc)
         assert isinstance(df.loc[tslice_], DataFrame)
 
-    @pytest.mark.parametrize("box", [list, pd.Series, np.array])
+    @pytest.mark.parametrize("box", [list, Series, np.array])
     def test_list_slice(self, box):
         # like dataframe getitem
         subset = box(["A"])
@@ -1581,3 +1582,28 @@ def test_row_trimming_hide_index():
     assert len(ctx["body"]) == 3
     for r, val in enumerate(["3", "4", "..."]):
         assert ctx["body"][r][1]["display_value"] == val
+
+
+def test_descriptors(mi_styler):
+    mi_styler.set_descriptors(
+        [
+            "mean",
+            Series.mean,
+            ("my-text", Series.mean),
+            ("my-func", lambda s: s.sum() / len(s)),
+        ]
+    )
+    ctx = mi_styler._translate(True, True)
+    assert len(ctx["head"]) == 6  # 2 rows for MultiIndex columns and 4 descriptors
+
+    exp_labels = ["mean", "&nbsp;", "my-text", "my-func"]
+    for r, row in enumerate(ctx["head"][2:6]):  # iterate after col headers
+        for c, col in enumerate(row[2:]):  # iterate after row headers
+            result = {k: col[k] for k in ["type", "is_visible", "value"]}
+            assert (
+                result.items() <= ctx["head"][2][c + 2].items()
+            )  # check all calcs same
+            assert col["class"] == f"descriptor_value descriptor{r} col{c}"  # test css
+
+        assert row[1]["value"] == exp_labels[r]  # test label is printed
+        assert f"descriptor_name descriptor{r}" in row[1]["class"]  # test css

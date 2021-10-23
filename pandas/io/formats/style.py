@@ -2205,7 +2205,7 @@ class Styler(StylerRenderer):
         self, descriptors: list[str | Callable | tuple[str, Callable]] | None = None
     ) -> Styler:
         """
-        Add top-level calculations to the HTML dataframe describing the data.
+        Add top-level calculations to the HTML dataframe to describe the data.
 
         Parameters
         ----------
