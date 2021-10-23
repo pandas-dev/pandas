@@ -1785,7 +1785,7 @@ class Styler(StylerRenderer):
 
         >>> styler = DataFrame([[1, 2], [3, 4]]).style
         >>> styler2 = DataFrame([[9, 9, 9]]).style
-        >>> styler.hide_index().highlight_max(axis=1)
+        >>> styler.hide_index().highlight_max(axis=1)  # doctest: +SKIP
         >>> export = styler.export()
         >>> styler2.use(export)  # doctest: +SKIP
         """
@@ -1837,7 +1837,7 @@ class Styler(StylerRenderer):
 
         >>> styler = DataFrame([[1, 2], [3, 4]]).style
         >>> styler2 = DataFrame([[9, 9, 9]]).style
-        >>> styler.hide_index().highlight_max(axis=1)
+        >>> styler.hide_index().highlight_max(axis=1)  # doctest: +SKIP
         >>> export = styler.export()
         >>> styler2.use(export)  # doctest: +SKIP
         """
