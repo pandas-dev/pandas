@@ -1770,6 +1770,7 @@ class Styler(StylerRenderer):
           - Whether axes and names are hidden from the display, if unambiguous.
           - Table attributes
           - Table styles
+          - Descriptors
 
         The following attributes are considered data dependent and therefore not
         exported:
@@ -1799,6 +1800,7 @@ class Styler(StylerRenderer):
             "hide_index_names": self.hide_index_names,
             "hide_column_names": self.hide_column_names,
             "css": copy.copy(self.css),
+            "descriptors": copy.copy(self.descriptors),
         }
 
     def use(self, styles: dict[str, Any]) -> Styler:
@@ -1824,6 +1826,8 @@ class Styler(StylerRenderer):
               - "hide_index_names": whether index names are hidden.
               - "hide_column_names": whether column header names are hidden.
               - "css": the css class names used.
+              - "descriptos": list of descriptors, typically added with
+                ``set_descriptors``.
 
         Returns
         -------
@@ -1866,6 +1870,8 @@ class Styler(StylerRenderer):
         self.hide_column_names = styles.get("hide_column_names", False)
         if styles.get("css"):
             self.css = styles.get("css")  # type: ignore[assignment]
+        if styles.get("descriptors"):
+            self.set_descriptors(styles.get("descriptors"))
         return self
 
     def set_uuid(self, uuid: str) -> Styler:
