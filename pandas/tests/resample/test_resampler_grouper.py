@@ -401,7 +401,7 @@ def test_resample_groupby_agg():
     df["date"] = pd.to_datetime(df["date"])
 
     resampled = df.groupby("cat").resample("Y", on="date")
-    expected = resampled.sum()
+    expected = resampled.sum()["num"].to_frame()
     result = resampled.agg({"num": "sum"})
 
     tm.assert_frame_equal(result, expected)

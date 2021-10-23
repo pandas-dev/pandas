@@ -185,8 +185,7 @@ class TestGroupBy:
                     ],
                 }
             ).set_index(["Date", "Buyer"])
-
-            result = df.groupby([Grouper(freq="A"), "Buyer"]).sum()
+            result = df.groupby([Grouper(freq="A"), "Buyer"]).sum(numeric_only=True)
             tm.assert_frame_equal(result, expected)
 
             expected = DataFrame(
@@ -201,7 +200,7 @@ class TestGroupBy:
                     ],
                 }
             ).set_index(["Date", "Buyer"])
-            result = df.groupby([Grouper(freq="6MS"), "Buyer"]).sum()
+            result = df.groupby([Grouper(freq="6MS"), "Buyer"]).sum(numeric_only=True)
             tm.assert_frame_equal(result, expected)
 
         df_original = DataFrame(
@@ -239,10 +238,10 @@ class TestGroupBy:
                 }
             ).set_index(["Date", "Buyer"])
 
-            result = df.groupby([Grouper(freq="1D"), "Buyer"]).sum()
+            result = df.groupby([Grouper(freq="1D"), "Buyer"]).sum(numeric_only=True)
             tm.assert_frame_equal(result, expected)
 
-            result = df.groupby([Grouper(freq="1M"), "Buyer"]).sum()
+            result = df.groupby([Grouper(freq="1M"), "Buyer"]).sum(numeric_only=True)
             expected = DataFrame(
                 {
                     "Buyer": "Carl Joe Mark".split(),
@@ -258,7 +257,7 @@ class TestGroupBy:
 
             # passing the name
             df = df.reset_index()
-            result = df.groupby([Grouper(freq="1M", key="Date"), "Buyer"]).sum()
+            result = df.groupby([Grouper(freq="1M", key="Date"), "Buyer"]).sum(numeric_only=True)
             tm.assert_frame_equal(result, expected)
 
             with pytest.raises(KeyError, match="'The grouper name foo is not found'"):
@@ -266,9 +265,9 @@ class TestGroupBy:
 
             # passing the level
             df = df.set_index("Date")
-            result = df.groupby([Grouper(freq="1M", level="Date"), "Buyer"]).sum()
+            result = df.groupby([Grouper(freq="1M", level="Date"), "Buyer"]).sum(numeric_only=True)
             tm.assert_frame_equal(result, expected)
-            result = df.groupby([Grouper(freq="1M", level=0), "Buyer"]).sum()
+            result = df.groupby([Grouper(freq="1M", level=0), "Buyer"]).sum(numeric_only=True)
             tm.assert_frame_equal(result, expected)
 
             with pytest.raises(ValueError, match="The level foo is not valid"):
@@ -277,7 +276,7 @@ class TestGroupBy:
             # multi names
             df = df.copy()
             df["Date"] = df.index + offsets.MonthEnd(2)
-            result = df.groupby([Grouper(freq="1M", key="Date"), "Buyer"]).sum()
+            result = df.groupby([Grouper(freq="1M", key="Date"), "Buyer"]).sum(numeric_only=True)
             expected = DataFrame(
                 {
                     "Buyer": "Carl Joe Mark".split(),
@@ -306,18 +305,18 @@ class TestGroupBy:
                     [datetime(2013, 10, 31, 0, 0)], freq=offsets.MonthEnd(), name="Date"
                 ),
             )
-            result = df.groupby(Grouper(freq="1M")).sum()
+            result = df.groupby(Grouper(freq="1M")).sum(numeric_only=True)
             tm.assert_frame_equal(result, expected)
 
-            result = df.groupby([Grouper(freq="1M")]).sum()
+            result = df.groupby([Grouper(freq="1M")]).sum(numeric_only=True)
             tm.assert_frame_equal(result, expected)
 
             expected.index = expected.index.shift(1)
             assert expected.index.freq == offsets.MonthEnd()
-            result = df.groupby(Grouper(freq="1M", key="Date")).sum()
+            result = df.groupby(Grouper(freq="1M", key="Date")).sum(numeric_only=True)
             tm.assert_frame_equal(result, expected)
 
-            result = df.groupby([Grouper(freq="1M", key="Date")]).sum()
+            result = df.groupby([Grouper(freq="1M", key="Date")]).sum(numeric_only=True)
             tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("freq", ["D", "M", "A", "Q-APR"])

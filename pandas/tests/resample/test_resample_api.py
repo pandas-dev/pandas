@@ -90,7 +90,7 @@ def test_groupby_resample_on_api():
 
     expected = df.set_index("dates").groupby("key").resample("D").mean()
 
-    result = df.groupby("key").resample("D", on="dates").mean()
+    result = df.groupby("key").resample("D", on="dates").mean()["values"].to_frame()
     tm.assert_frame_equal(result, expected)
 
 
@@ -169,7 +169,7 @@ def tests_skip_nuisance(test_frame):
     tm.assert_frame_equal(result, expected)
 
     expected = r[["A", "B", "C"]].sum()
-    result = r.sum()
+    result = r.sum()[["A", "B", "C"]]
     tm.assert_frame_equal(result, expected)
 
 
