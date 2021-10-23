@@ -1787,7 +1787,7 @@ class Styler(StylerRenderer):
         >>> styler2 = DataFrame([[9, 9, 9]]).style
         >>> styler.hide_index().highlight_max(axis=1)
         >>> export = styler.export()
-        >>> styler2.use(export)
+        >>> styler2.use(export)  # doctest: +SKIP
         """
         return {
             "apply": copy.copy(self._todo),
@@ -1839,7 +1839,7 @@ class Styler(StylerRenderer):
         >>> styler2 = DataFrame([[9, 9, 9]]).style
         >>> styler.hide_index().highlight_max(axis=1)
         >>> export = styler.export()
-        >>> styler2.use(export)
+        >>> styler2.use(export)  # doctest: +SKIP
         """
         self._todo.extend(styles.get("apply", []))
         table_attributes: str = self.table_attributes or ""
