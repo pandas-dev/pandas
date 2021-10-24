@@ -1,11 +1,17 @@
-from datetime import timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 
+import numpy as np
 import pytest
 
 import pandas.util._test_decorators as td
 
 from pandas import (
     DataFrame,
+    Series,
+    bdate_range,
     to_datetime,
 )
 
@@ -234,4 +240,24 @@ def pairwise_other_frame():
     return DataFrame(
         [[None, 1, 1], [None, 1, 2], [None, 3, 2], [None, 8, 1]],
         columns=["Y", "Z", "X"],
+    )
+
+
+@pytest.fixture
+def series():
+    """Make mocked series as fixture."""
+    arr = np.random.randn(100)
+    locs = np.arange(20, 40)
+    arr[locs] = np.NaN
+    series = Series(arr, index=bdate_range(datetime(2009, 1, 1), periods=100))
+    return series
+
+
+@pytest.fixture
+def frame():
+    """Make mocked frame as fixture."""
+    return DataFrame(
+        np.random.randn(100, 10),
+        index=bdate_range(datetime(2009, 1, 1), periods=100),
+        columns=np.arange(10),
     )
