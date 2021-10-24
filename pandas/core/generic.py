@@ -11192,6 +11192,28 @@ Notes
 To have the same behaviour as `numpy.std`, use `ddof=0` (instead of the
 default `ddof=1`)"""
 
+_std_examples = """
+Examples
+--------
+>>> df = pd.DataFrame({'person_id':[0,1,2,3],
+...                   'age':[21,25,62,43],
+...                   'height':[1.61,1.87,1.49,2.01]}
+...                  ).set_index('person_id')
+>>> df
+           age  height
+person_id
+0           21    1.61
+1           25    1.87
+2           62    1.49
+3           43    2.01
+
+The standard deviation of the columns can be found as follows.
+
+>>> df.std()
+age       18.786076
+height     0.237417
+"""
+
 _bool_doc = """
 {desc}
 
@@ -11770,11 +11792,6 @@ _min_count_stub = """\
 min_count : int, default 0
     The required number of valid values to perform the operation. If fewer than
     ``min_count`` non-NA values are present the result will be NA.
-"""
-
-_std_examples = """
-Examples
---------
 """
 
 def _align_as_utc(
