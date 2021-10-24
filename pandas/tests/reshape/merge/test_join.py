@@ -559,7 +559,7 @@ class TestJoin:
         df.insert(5, "dt", "foo")
 
         grouped = df.groupby("id")
-        mn = grouped.mean()
+        mn = grouped.mean(numeric_only=True)
         cn = grouped.count()
 
         # it works!
