@@ -978,7 +978,7 @@ def astype_dt64_to_dt64tz(
             stacklevel=level,
         )
 
-        # FIXME: GH#33401 this doesn't match DatetimeArray.astype, which
+        # GH#33401 this doesn't match DatetimeArray.astype, which
         #  goes through the `not via_utc` path
         return values.tz_localize("UTC").tz_convert(dtype.tz)
 
