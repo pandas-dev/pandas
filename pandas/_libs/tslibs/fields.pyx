@@ -487,28 +487,6 @@ def get_timedelta_field(const int64_t[:] tdindex, str field):
                 out[i] = tds.days
         return out
 
-    elif field == 'h':
-        with nogil:
-            for i in range(count):
-                if tdindex[i] == NPY_NAT:
-                    out[i] = -1
-                    continue
-
-                td64_to_tdstruct(tdindex[i], &tds)
-                out[i] = tds.hrs
-        return out
-
-    elif field == 's':
-        with nogil:
-            for i in range(count):
-                if tdindex[i] == NPY_NAT:
-                    out[i] = -1
-                    continue
-
-                td64_to_tdstruct(tdindex[i], &tds)
-                out[i] = tds.sec
-        return out
-
     elif field == 'seconds':
         with nogil:
             for i in range(count):
@@ -520,17 +498,6 @@ def get_timedelta_field(const int64_t[:] tdindex, str field):
                 out[i] = tds.seconds
         return out
 
-    elif field == 'ms':
-        with nogil:
-            for i in range(count):
-                if tdindex[i] == NPY_NAT:
-                    out[i] = -1
-                    continue
-
-                td64_to_tdstruct(tdindex[i], &tds)
-                out[i] = tds.ms
-        return out
-
     elif field == 'microseconds':
         with nogil:
             for i in range(count):
@@ -540,28 +507,6 @@ def get_timedelta_field(const int64_t[:] tdindex, str field):
 
                 td64_to_tdstruct(tdindex[i], &tds)
                 out[i] = tds.microseconds
-        return out
-
-    elif field == 'us':
-        with nogil:
-            for i in range(count):
-                if tdindex[i] == NPY_NAT:
-                    out[i] = -1
-                    continue
-
-                td64_to_tdstruct(tdindex[i], &tds)
-                out[i] = tds.us
-        return out
-
-    elif field == 'ns':
-        with nogil:
-            for i in range(count):
-                if tdindex[i] == NPY_NAT:
-                    out[i] = -1
-                    continue
-
-                td64_to_tdstruct(tdindex[i], &tds)
-                out[i] = tds.ns
         return out
 
     elif field == 'nanoseconds':

@@ -408,7 +408,7 @@ cdef slice indexer_as_slice(intp_t[:] vals):
         int64_t d
 
     if vals is None:
-        raise TypeError("vals must be ndarray")
+        raise TypeError("vals must be ndarray")  # pragma: no cover
 
     n = vals.shape[0]
 
@@ -565,6 +565,14 @@ cpdef update_blklocs_and_blknos(
     return new_blklocs, new_blknos
 
 
+def _unpickle_block(values, placement, ndim):
+    # We have to do some gymnastics b/c "ndim" is keyword-only
+
+    from pandas.core.internals.blocks import new_block
+
+    return new_block(values, placement, ndim=ndim)
+
+
 @cython.freelist(64)
 cdef class SharedBlock:
     """
@@ -588,14 +596,8 @@ cdef class SharedBlock:
         self.ndim = ndim
 
     cpdef __reduce__(self):
-        # We have to do some gymnastics b/c "ndim" is keyword-only
-        from functools import partial
-
-        from pandas.core.internals.blocks import new_block
-
-        args = (self.values, self.mgr_locs.indexer)
-        func = partial(new_block, ndim=self.ndim)
-        return func, args
+        args = (self.values, self.mgr_locs.indexer, self.ndim)
+        return _unpickle_block, args
 
     cpdef __setstate__(self, state):
         from pandas.core.construction import extract_array
@@ -772,7 +774,7 @@ cdef class BlockManager:
             self.blocks = blocks
             self.axes = axes
 
-        else:
+        else:  # pragma: no cover
             raise NotImplementedError("pre-0.14.1 pickles are no longer supported")
 
         self._post_setstate()
