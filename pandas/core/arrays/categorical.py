@@ -110,7 +110,6 @@ from pandas.core.base import (
 )
 import pandas.core.common as com
 from pandas.core.construction import (
-    array as pd_array,
     extract_array,
     sanitize_array,
 )
@@ -527,7 +526,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         # TODO: consolidate with ndarray case?
         elif isinstance(dtype, ExtensionDtype):
-            result = pd_array(self, dtype=dtype, copy=copy)
+            return super().astype(dtype, copy=copy)
 
         elif is_integer_dtype(dtype) and self.isna().any():
             raise ValueError("Cannot convert float NaN to integer")

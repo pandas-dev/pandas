@@ -561,11 +561,9 @@ class ExtensionArray:
         Returns
         -------
         array : np.ndarray or ExtensionArray
-            An ExtensionArray if dtype is StringDtype,
-            or same as that of underlying array.
+            An ExtensionArray if dtype is ExtensionDtype,
             Otherwise a NumPy ndarray with 'dtype' for its dtype.
         """
-        from pandas.core.arrays.string_ import StringDtype
 
         dtype = pandas_dtype(dtype)
         if is_dtype_equal(dtype, self.dtype):
@@ -574,16 +572,11 @@ class ExtensionArray:
             else:
                 return self.copy()
 
-        # FIXME: Really hard-code here?
-        if isinstance(dtype, StringDtype):
-            # allow conversion to StringArrays
-            return dtype.construct_array_type()._from_sequence(self, copy=False)
+        if isinstance(dtype, ExtensionDtype):
+            cls = dtype.construct_array_type()
+            return cls._from_sequence(self, dtype=dtype, copy=copy)
 
-        # error: Argument "dtype" to "array" has incompatible type
-        # "Union[ExtensionDtype, dtype[Any]]"; expected "Union[dtype[Any], None, type,
-        # _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int,
-        # Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
-        return np.array(self, dtype=dtype, copy=copy)  # type: ignore[arg-type]
+        return np.array(self, dtype=dtype, copy=copy)
 
     def isna(self) -> np.ndarray | ExtensionArraySupportsAnyAll:
         """
