@@ -2338,16 +2338,6 @@ class Styler(StylerRenderer):
         """
         Hide the entire index / column headers, or specific rows / columns from display.
 
-        This method has multiple functionality (see examples):
-
-          - if ``subset`` is ``None`` then the entire index / columns headers (or
-            specified levels) are hidden whilst displaying all data-values, as well
-            as levels names.
-          - if ``subset`` is ``None``, but ``names`` is *True* then just the level names
-            for the given ``axis`` are hidden but the labels will remain.
-          - if a ``subset`` is given then those specific labels along the given
-            ``axis`` will be hidden whilst the index / column headers remain visible.
-
         .. versionadded:: 1.4.0
 
         Parameters
@@ -2368,6 +2358,56 @@ class Styler(StylerRenderer):
         Returns
         -------
         self : Styler
+
+        Notes
+        -----
+        This method has multiple functionality depending upon the combination
+        of the ``subset``, ``level`` and ``names`` arguments (see examples). The
+        ``axis`` argument is used only to control whether the method is applied to row
+        or column headers:
+
+        .. list-table:: Argument combinations
+           :widths: 10 20 10 60
+           :header-rows: 1
+
+           * - ``subset``
+             - ``level``
+             - ``names``
+             - Effect
+           * - None
+             - None
+             - False
+             - The axis-Index is hidden entirely.
+           * - None
+             - None
+             - True
+             - Only the axis-Index names are hidden.
+           * - None
+             - Int, Str, List
+             - False
+             - Specified axis-MultiIndex levels are hidden entirely.
+           * - None
+             - Int, Str, List
+             - True
+             - Specified axis-MultiIndex levels are hidden entirely and the names of
+               remaining axis-MultiIndex levels.
+           * - Subset
+             - None
+             - False
+             - The specified data rows/columns are hidden, but the axis-Index itself,
+               and names, remain unchanged.
+           * - Subset
+             - None
+             - True
+             - The specified data rows/columns and axis-Index names are hidden, but
+               the axis-Index itself remains unchanged.
+           * - Subset
+             - Int, Str, List
+             - Boolean
+             - ValueError: cannot supply ``subset`` and ``level`` simultaneously.
+
+        Note this method only hides the identifed elements so can be chained to hide
+        multiple elements in sequence.
 
         Examples
         --------
@@ -2392,7 +2432,7 @@ class Styler(StylerRenderer):
         -0.6    1.2    1.8    1.9    0.3    0.3
          0.8    0.5   -0.3    1.2    2.2   -0.8
 
-        Hide specific rows but retain the index:
+        Hide specific rows in a MultiIndex but retain the index:
 
         >>> df.style.format("{:.1f}").hide(subset=(slice(None), ["a", "c"]))
         ...   # doctest: +SKIP
@@ -2401,10 +2441,10 @@ class Styler(StylerRenderer):
         x   b    0.7    1.0    1.3    1.5   -0.0   -0.2
         y   b   -0.6    1.2    1.8    1.9    0.3    0.3
 
-        Hide specific rows and the index:
+        Hide specific rows and the index through chaining:
 
-        >>> df.style.format("{:.1f}").hide(
-        ...     subset=(slice(None), ["a", "c"])).hide()  # doctest: +SKIP
+        >>> df.style.format("{:.1f}").hide(subset=(slice(None), ["a", "c"])).hide()
+        ...   # doctest: +SKIP
                          x                    y
            a      b      c      a      b      c
          0.7    1.0    1.3    1.5   -0.0   -0.2
