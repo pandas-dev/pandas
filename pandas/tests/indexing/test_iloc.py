@@ -1140,8 +1140,6 @@ class TestiLocBaseIndependent:
         expected = DataFrame({"a": [5, 1, 10]})
         tm.assert_frame_equal(df, expected)
 
-    # def test_
-
 
 class TestILocErrors:
     # NB: this test should work for _any_ Series we can pass as
