@@ -152,7 +152,6 @@ sponsors:
     url: https://www.anaconda.com/
     logo: /static/img/partners/anaconda.svg
     kind: partner
-    description: "Tom Augspurger, Brock Mendel"
   - name: "RStudio"
     url: https://www.rstudio.com/
     logo: /static/img/partners/r_studio.svg
