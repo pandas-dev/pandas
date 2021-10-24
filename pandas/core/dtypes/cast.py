@@ -910,9 +910,9 @@ def maybe_upcast(
     """
     new_dtype, fill_value = maybe_promote(values.dtype, fill_value)
     # We get a copy in all cases _except_ (values.dtype == new_dtype and not copy)
-    values = values.astype(new_dtype, copy=copy)
+    upcast_values = values.astype(new_dtype, copy=copy)
 
-    return values, fill_value
+    return upcast_values, fill_value  # type: ignore[return-value]
 
 
 def invalidate_string_dtypes(dtype_set: set[DtypeObj]):
@@ -1424,7 +1424,7 @@ def convert_dtypes(
             inferred_dtype = input_array.dtype
 
         if is_string_dtype(inferred_dtype):
-            if not convert_string:
+            if not convert_string or inferred_dtype == "bytes":
                 return input_array.dtype
             else:
                 return pandas_dtype("string")

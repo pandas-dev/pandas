@@ -68,7 +68,7 @@ class TestFactorize:
         expected_codes = np.asarray(expected_codes, dtype=np.intp)
 
         tm.assert_numpy_array_equal(result_codes, expected_codes)
-        tm.assert_index_equal(result_uniques, expected_uniques)
+        tm.assert_index_equal(result_uniques, expected_uniques, exact=True)
 
     def test_series_factorize_na_sentinel_none(self):
         # GH#35667
@@ -1729,14 +1729,6 @@ class TestHashTable:
         # GH 22729
         size_hint = np.iinfo(np.uint32).max + 1
         tbl = hashtable(size_hint=size_hint)  # noqa
-
-
-def test_quantile():
-    s = Series(np.random.randn(100))
-
-    result = algos.quantile(s, [0, 0.25, 0.5, 0.75, 1.0])
-    expected = algos.quantile(s.values, [0, 0.25, 0.5, 0.75, 1.0])
-    tm.assert_almost_equal(result, expected)
 
 
 def test_unique_label_indices():

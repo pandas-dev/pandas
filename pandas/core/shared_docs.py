@@ -492,7 +492,7 @@ _shared_docs[
     ------
     AssertionError
         * If `regex` is not a ``bool`` and `to_replace` is not
-            ``None``.
+          ``None``.
 
     TypeError
         * If `to_replace` is not a scalar, array-like, ``dict``, or ``None``
