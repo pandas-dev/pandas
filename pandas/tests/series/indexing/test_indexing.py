@@ -377,3 +377,17 @@ def test_frozenset_index():
     assert s[idx1] == 2
     s[idx1] = 3
     assert s[idx1] == 3
+
+
+def test_boolean_index():
+    # GH18579
+    s1 = Series([1, 2, 3], index=[4, 5, 6])
+    s2 = Series([1, 3, 2], index=s1 == 2)
+    tm.assert_series_equal(Series([1, 3, 2], [False, True, False]), s2)
+
+
+def test_index_ndim_gt_1_raises():
+    # GH18579
+    df = DataFrame([[1, 2], [3, 4], [5, 6]], index=[3, 6, 9])
+    with pytest.raises(ValueError, match="Index data must be 1-dimensional"):
+        Series([1, 3, 2], index=df)
