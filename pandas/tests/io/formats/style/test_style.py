@@ -42,6 +42,7 @@ def mi_styler(mi_df):
 @pytest.fixture
 def mi_styler_comp(mi_styler):
     # comprehensively add features to mi_styler
+    mi_styler = mi_styler._copy(deepcopy=True)
     mi_styler.css = {**mi_styler.css, **{"row": "ROW", "col": "COL"}}
     mi_styler.uuid_len = 5
     mi_styler.uuid = "abcde"
@@ -257,6 +258,10 @@ def test_copy(comprehensive, render, deepcopy, mi_styler, mi_styler_comp):
         "cellstyle_map",  # render time vars..
         "cellstyle_map_columns",
         "cellstyle_map_index",
+        "template_latex",  # render templates are class level
+        "template_html",
+        "template_html_style",
+        "template_html_table",
     ]
     if not deepcopy:  # check memory locations are equal for all included attributes
         for attr in [a for a in styler.__dict__ if (not callable(a) and a not in excl)]:
@@ -311,6 +316,10 @@ def test_clear(mi_styler_comp):
         "cellstyle_map_index",  # execution time only
         "precision",  # deprecated
         "na_rep",  # deprecated
+        "template_latex",  # render templates are class level
+        "template_html",
+        "template_html_style",
+        "template_html_table",
     ]
     # tests vars are not same vals on obj and clean copy before clear (except for excl)
     for attr in [a for a in styler.__dict__ if not (callable(a) or a in excl)]:
@@ -322,6 +331,32 @@ def test_clear(mi_styler_comp):
     for attr in [a for a in styler.__dict__ if not (callable(a))]:
         res = getattr(styler, attr) == getattr(clean_copy, attr)
         assert all(res) if hasattr(res, "__iter__") else res
+
+
+def test_export(mi_styler_comp, mi_styler):
+    exp_attrs = [
+        "_todo",
+        "hide_index_",
+        "hide_index_names",
+        "hide_columns_",
+        "hide_column_names",
+        "table_attributes",
+        "table_styles",
+        "css",
+    ]
+    for attr in exp_attrs:
+        check = getattr(mi_styler, attr) == getattr(mi_styler_comp, attr)
+        assert not (
+            all(check) if (hasattr(check, "__iter__") and len(check) > 0) else check
+        )
+
+    export = mi_styler_comp.export()
+    used = mi_styler.use(export)
+    for attr in exp_attrs:
+        check = getattr(used, attr) == getattr(mi_styler_comp, attr)
+        assert all(check) if (hasattr(check, "__iter__") and len(check) > 0) else check
+
+    used.to_html()
 
 
 def test_hide_raises(mi_styler):
