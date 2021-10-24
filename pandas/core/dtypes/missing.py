@@ -37,6 +37,7 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
 )
 from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
     ExtensionDtype,
     IntervalDtype,
     PeriodDtype,
@@ -640,6 +641,9 @@ def is_valid_na_for_dtype(obj, dtype: DtypeObj) -> bool:
 
     elif isinstance(dtype, IntervalDtype):
         return lib.is_float(obj) or obj is None or obj is libmissing.NA
+
+    elif isinstance(dtype, CategoricalDtype):
+        return is_valid_na_for_dtype(obj, dtype.categories.dtype)
 
     # fallback, default to allowing NaN, None, NA, NaT
     return not isinstance(obj, (np.datetime64, np.timedelta64, Decimal))
