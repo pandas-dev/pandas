@@ -170,7 +170,12 @@ class BaseArrayManager(DataManager):
     def get_dtypes(self):
         return np.array([arr.dtype for arr in self.arrays], dtype="object")
 
-    # TODO setstate getstate
+    def __getstate__(self):
+        return self.arrays, self._axes
+
+    def __setstate__(self, state):
+        self.arrays = state[0]
+        self._axes = state[1]
 
     def __repr__(self) -> str:
         output = type(self).__name__
