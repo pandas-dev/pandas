@@ -1749,6 +1749,8 @@ class Styler(StylerRenderer):
 
         Can be applied to a second Styler with ``Styler.use``.
 
+        .. versionchanged:: 1.4.0
+
         Returns
         -------
         styles : dict
@@ -1808,6 +1810,8 @@ class Styler(StylerRenderer):
         Set the styles on the current Styler.
 
         Possibly uses styles from ``Styler.export``.
+
+        .. versionchanged:: 1.4.0
 
         Parameters
         ----------
@@ -2209,6 +2213,8 @@ class Styler(StylerRenderer):
     ) -> Styler:
         """
         Add header-level calculations to the output which describes the data.
+
+        .. versionadded:: 1.4.0
 
         Parameters
         ----------
