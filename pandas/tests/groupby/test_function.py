@@ -210,14 +210,11 @@ class TestNumericOnly:
 
     @pytest.mark.parametrize("method", ["sum", "cumsum"])
     def test_sum_cumsum(self, df, method):
-
-        expected_columns_numeric = Index(["int", "float", "category_int"])
         expected_columns = Index(
-            ["int", "float", "string", "category_int", "timedelta"]
+            ["int", "float", "category_int"]
         )
-        if method == "cumsum":
-            # cumsum loses string
-            expected_columns = Index(["int", "float", "category_int", "timedelta"])
+
+        expected_columns_numeric = expected_columns
 
         self._check(df, method, expected_columns, expected_columns_numeric)
 
@@ -236,7 +233,6 @@ class TestNumericOnly:
             ["int", "float", "category_int", "datetime", "datetimetz", "timedelta"]
         )
 
-        # GH#15561: numeric_only=False set by default like min/max
         expected_columns_numeric = expected_columns
 
         self._check(df, method, expected_columns, expected_columns_numeric)
@@ -253,16 +249,14 @@ class TestNumericOnly:
             # these have numeric_only kwarg, but default to False
             warn = FutureWarning
 
-        with tm.assert_produces_warning(warn, match="Dropping invalid columns"):
-            result = getattr(gb, method)()
+        result = getattr(gb, method)()
         tm.assert_index_equal(result.columns, expected_columns_numeric)
 
         # GH#41475 deprecated silently ignoring nuisance columns
         warn = None
         if len(expected_columns) < len(gb._obj_with_exclusions.columns):
             warn = FutureWarning
-        with tm.assert_produces_warning(warn, match="Dropping invalid columns"):
-            result = getattr(gb, method)(numeric_only=False)
+        result = getattr(gb, method)()
 
         tm.assert_index_equal(result.columns, expected_columns)
 
