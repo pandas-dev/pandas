@@ -2205,18 +2205,18 @@ class Styler(StylerRenderer):
         self, descriptors: list[str | Callable | tuple[str, Callable]] | None = None
     ) -> Styler:
         """
-        Add top-level calculations to the HTML dataframe to describe the data.
+        Add header-level calculations to the output which describes the data.
 
         Parameters
         ----------
-        descriptors: list of strings, callables or 2-tuples of string and callable
+        descriptors : list of strings, callables or 2-tuples of string and callable
             If a string is given must be a valid Series method, e.g. "mean" invokes
             Series.mean().
 
             If a callable is given must accept a Series and return a scalar. No name
-            header will be displayed for the row.
+            will be displayed for the row.
 
-            If a 2-tuple, must be a string used as the name header for the row and a
+            If a 2-tuple, must be a string used as the name of the row and a
             callable as above.
 
         Returns
@@ -2235,7 +2235,6 @@ class Styler(StylerRenderer):
         ... ])  # doctest: +SKIP
 
         .. figure:: ../../_static/style/des_mean.png
-
         """
         self.descriptors = descriptors if descriptors is not None else []
         return self
