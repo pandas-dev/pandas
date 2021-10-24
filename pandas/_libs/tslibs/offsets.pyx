@@ -166,11 +166,6 @@ def apply_wraps(func):
 
         tz = other.tzinfo
         nano = other.nanosecond
-        if hasattr(self, "nanoseconds"):
-            if self.n > 0:
-                nano += self.nanoseconds
-            else:
-                nano -= self.nanoseconds
 
         if self._adjust_dst:
             other = other.tz_localize(None)
@@ -185,7 +180,7 @@ def apply_wraps(func):
             result = result.normalize()
 
         # nanosecond may be deleted depending on offset process
-        if not self.normalize and nano != 0:
+        if not self.normalize and nano != 0 and not hasattr(self, "nanoseconds"):
             if result.nanosecond != nano:
                 if result.tz is not None:
                     # convert to UTC
@@ -1051,12 +1046,17 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 # perform calculation in UTC
                 other = other.replace(tzinfo=None)
 
+            if hasattr(self, "nanoseconds"):
+                td_nano = Timedelta(nanoseconds=self.nanoseconds)
+            else:
+                td_nano = Timedelta(0)
+
             if self.n > 0:
                 for i in range(self.n):
-                    other = other + self._offset
+                    other = other + self._offset + td_nano
             else:
                 for i in range(-self.n):
-                    other = other - self._offset
+                    other = other - self._offset - td_nano
 
             if tzinfo is not None and self._use_relativedelta:
                 # bring tz back from UTC calculation
