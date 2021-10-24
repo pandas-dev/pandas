@@ -63,7 +63,6 @@ class TestPreserves:
         assert df.loc[["a"]].flags.allows_duplicate_labels is False
         assert df.loc[:, ["A", "B"]].flags.allows_duplicate_labels is False
 
-    @not_implemented
     def test_to_frame(self):
         s = pd.Series(dtype=float).set_flags(allows_duplicate_labels=False)
         assert s.to_frame().flags.allows_duplicate_labels is False
@@ -85,7 +84,6 @@ class TestPreserves:
         assert df.flags.allows_duplicate_labels is False
         assert func(df).flags.allows_duplicate_labels is False
 
-    @not_implemented
     def test_preserve_getitem(self):
         df = pd.DataFrame({"A": [1, 2]}).set_flags(allows_duplicate_labels=False)
         assert df[["A"]].flags.allows_duplicate_labels is False
@@ -310,16 +308,16 @@ class TestRaises:
             # loc
             (operator.itemgetter(["a", "a"]), "loc"),
             pytest.param(
-                operator.itemgetter(("a", ["A", "A"])), "loc", marks=not_implemented
+                operator.itemgetter(("a", ["A", "A"])), "loc"
             ),
             (operator.itemgetter((["a", "a"], "A")), "loc"),
             # iloc
             (operator.itemgetter([0, 0]), "iloc"),
             pytest.param(
-                operator.itemgetter((0, [0, 0])), "iloc", marks=not_implemented
+                operator.itemgetter((0, [0, 0])), "iloc"
             ),
             pytest.param(
-                operator.itemgetter(([0, 0], 0)), "iloc", marks=not_implemented
+                operator.itemgetter(([0, 0], 0)), "iloc"
             ),
         ],
     )
