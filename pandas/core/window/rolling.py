@@ -136,7 +136,7 @@ class BaseWindow(SelectionMixin):
         self.window = window
         self.min_periods = min_periods
         self.center = center
-        # TODO: Change this back to self.win_type once deprecation is enforced
+        # TODO(2.0): Change this back to self.win_type once deprecation is enforced
         self._win_type = win_type
         self.axis = obj._get_axis_number(axis) if axis is not None else None
         self.method = method
@@ -262,7 +262,7 @@ class BaseWindow(SelectionMixin):
         # we need to make a shallow copy of ourselves
         # with the same groupby
         with warnings.catch_warnings():
-            # TODO: Remove once win_type deprecation is enforced
+            # TODO(2.0): Remove once win_type deprecation is enforced
             warnings.filterwarnings("ignore", "win_type", FutureWarning)
             kwargs = {attr: getattr(self, attr) for attr in self._attributes}
 

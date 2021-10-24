@@ -576,13 +576,11 @@ class TestDataFrameIndexing:
         xp = df.reindex([0])
         tm.assert_frame_equal(rs, xp)
 
-        # FIXME: dont leave commented-out
-        """ #1321
+        # GH#1321
         df = DataFrame(np.random.randn(3, 2))
-        rs = df.loc[df.index==0, df.columns==1]
-        xp = df.reindex([0], [1])
+        rs = df.loc[df.index == 0, df.columns == 1]
+        xp = df.reindex(index=[0], columns=[1])
         tm.assert_frame_equal(rs, xp)
-        """
 
     def test_getitem_fancy_scalar(self, float_frame):
         f = float_frame
