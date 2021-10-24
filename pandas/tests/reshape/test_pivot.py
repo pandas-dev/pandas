@@ -959,7 +959,11 @@ class TestPivotTable:
             }
         )
 
-        result = df.pivot_table(columns=columns, margins=True, aggfunc=aggfunc)
+        result = df[["A","B","D", "E"]].pivot_table(
+                                            columns=columns, 
+                                            margins=True, 
+                                            aggfunc=aggfunc
+                                        )
         expected = DataFrame(values, index=Index(["D", "E"]), columns=expected_columns)
 
         tm.assert_frame_equal(result, expected)
@@ -1984,8 +1988,16 @@ class TestPivotTable:
     def test_pivot_string_func_vs_func(self, f, f_numpy):
         # GH #18713
         # for consistency purposes
-        result = pivot_table(self.data, index="A", columns="B", aggfunc=f)
-        expected = pivot_table(self.data, index="A", columns="B", aggfunc=f_numpy)
+        result = pivot_table(self.data[["D","E","F"]], 
+                            index="D", 
+                            columns="E", 
+                            aggfunc=f
+                        )
+        expected = pivot_table(self.data[["D","E","F"]], 
+                            index="D", 
+                            columns="E", 
+                            aggfunc=f_numpy
+                        )
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.slow
