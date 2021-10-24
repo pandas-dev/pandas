@@ -10685,10 +10685,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             _num_ddof_doc,
             desc="Return sample standard deviation over requested axis."
             "\n\nNormalized by N-1 by default. This can be changed using the "
-            "ddof argument",
+            "ddof argument.",
             name1=name1,
             name2=name2,
             axis_descr=axis_descr,
+            examples=_std_examples,
             notes=_std_notes,
         )
         def std(
@@ -11771,6 +11772,10 @@ min_count : int, default 0
     ``min_count`` non-NA values are present the result will be NA.
 """
 
+_std_examples = """
+Examples
+--------
+"""
 
 def _align_as_utc(
     left: NDFrameT, right: NDFrameT, join_index: Index | None
