@@ -665,9 +665,18 @@ class TestRollingTS:
 
         df = DataFrame(data=data, columns=["name", "date", "amount"])
         df["date"] = to_datetime(df["date"])
+        df = df.sort_values("date")
 
-        with pytest.raises(ValueError, match=r".* must be monotonic"):
-            df.groupby("name").rolling("180D", on="date")
+        expected = (
+            df.set_index("date")
+            .groupby("name")
+            .apply(lambda x: x.rolling("180D")["amount"].sum())
+        )
+        result = df.groupby("name").rolling("180D", on="date")["amount"].sum()
+        tm.assert_series_equal(result, expected)
+
+        
+        
 
     def test_non_monotonic_raises(self):
         # GH 13966 (similar to #15130, closed by #15175)
@@ -682,20 +691,6 @@ class TestRollingTS:
                 "C": np.arange(40),
             }
         )
-
-
-        result = df.sort_values("B").groupby("A").rolling("4s", on="B").C.mean()
-        expected = (
-            df.set_index("B").groupby("A").apply(lambda x: x.rolling("4s")["C"].mean())
-        )
-        tm.assert_series_equal(result, expected)
-
-        df2 = df.sort_values("B")
-        result = df2.groupby("A").rolling("4s", on="B").C.mean()
-        tm.assert_series_equal(result, expected)
-
-
-
 
         with pytest.raises(ValueError, match=r".* must be monotonic"):
             df.groupby("A").rolling("4s", on="B").C.mean()
