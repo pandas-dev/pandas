@@ -1128,7 +1128,7 @@ class TestiLocBaseIndependent:
 
     @pytest.mark.parametrize("indexing_func", [list, np.array])
     @pytest.mark.parametrize("rhs_func", [list, np.array])
-    def test_loc_setitem_boolean_list(self, rhs_func, indexing_func):
+    def test_iloc_setitem_boolean_list(self, rhs_func, indexing_func):
         # GH#20438 testing specifically list key, not arraylike
         ser = Series([0, 1, 2])
         ser.iloc[indexing_func([True, False, True])] = rhs_func([5, 10])
@@ -1139,6 +1139,8 @@ class TestiLocBaseIndependent:
         df.iloc[indexing_func([True, False, True])] = rhs_func([[5], [10]])
         expected = DataFrame({"a": [5, 1, 10]})
         tm.assert_frame_equal(df, expected)
+
+    # def test_
 
 
 class TestILocErrors:
@@ -1235,33 +1237,45 @@ class TestILocSetItemDuplicateColumns:
 class TestILocCallable:
     def test_frame_iloc_getitem_callable(self):
         # GH#11485
+
+        expected_attrs = {"a": 1}  # GH#28283 Call __finalize__
+
         df = DataFrame({"X": [1, 2, 3, 4], "Y": list("aabb")}, index=list("ABCD"))
+        df.attrs.update(expected_attrs)
 
         # return location
         res = df.iloc[lambda x: [1, 3]]
         tm.assert_frame_equal(res, df.iloc[[1, 3]])
+        assert res.attrs == expected_attrs
 
         res = df.iloc[lambda x: [1, 3], :]
         tm.assert_frame_equal(res, df.iloc[[1, 3], :])
+        assert res.attrs == expected_attrs
 
         res = df.iloc[lambda x: [1, 3], lambda x: 0]
         tm.assert_series_equal(res, df.iloc[[1, 3], 0])
+        assert res.attrs == expected_attrs
 
         res = df.iloc[lambda x: [1, 3], lambda x: [0]]
         tm.assert_frame_equal(res, df.iloc[[1, 3], [0]])
+        assert res.attrs == expected_attrs
 
         # mixture
         res = df.iloc[[1, 3], lambda x: 0]
         tm.assert_series_equal(res, df.iloc[[1, 3], 0])
+        assert res.attrs == expected_attrs
 
         res = df.iloc[[1, 3], lambda x: [0]]
         tm.assert_frame_equal(res, df.iloc[[1, 3], [0]])
+        assert res.attrs == expected_attrs
 
         res = df.iloc[lambda x: [1, 3], 0]
         tm.assert_series_equal(res, df.iloc[[1, 3], 0])
+        assert res.attrs == expected_attrs
 
         res = df.iloc[lambda x: [1, 3], [0]]
         tm.assert_frame_equal(res, df.iloc[[1, 3], [0]])
+        assert res.attrs == expected_attrs
 
     def test_frame_iloc_setitem_callable(self):
         # GH#11485
@@ -1322,6 +1336,9 @@ class TestILocSeries:
     def test_iloc(self):
         ser = Series(np.random.randn(10), index=list(range(0, 20, 2)))
 
+        expected_attrs = {"a": 1}  # GH#28283 Call __finalize__
+        ser.attrs.update(expected_attrs)
+
         for i in range(len(ser)):
             result = ser.iloc[i]
             exp = ser[ser.index[i]]
@@ -1331,15 +1348,18 @@ class TestILocSeries:
         result = ser.iloc[slice(1, 3)]
         expected = ser.loc[2:4]
         tm.assert_series_equal(result, expected)
+        assert result.attrs == expected_attrs
 
         # test slice is a view
         result[:] = 0
         assert (ser[1:3] == 0).all()
+        assert result.attrs == expected_attrs
 
         # list of integers
         result = ser.iloc[[0, 2, 3, 4, 5]]
         expected = ser.reindex(ser.index[[0, 2, 3, 4, 5]])
         tm.assert_series_equal(result, expected)
+        assert result.attrs == expected_attrs
 
     def test_iloc_getitem_nonunique(self):
         ser = Series([0, 1, 2], index=[0, 1, 0])

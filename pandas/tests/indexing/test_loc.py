@@ -228,33 +228,47 @@ class TestLoc2:
     def test_loc_getitem_dups(self):
         # GH 5678
         # repeated getitems on a dup index returning a ndarray
+
+        expected_attrs = {"a": 1}  # GH#28283 Call __finalize__
+
         df = DataFrame(
             np.random.random_sample((20, 5)), index=["ABCDE"[x % 5] for x in range(20)]
         )
+        df.attrs.update(expected_attrs)
+
         expected = df.loc["A", 0]
         result = df.loc[:, 0].loc["A"]
+
         tm.assert_series_equal(result, expected)
+        assert expected.attrs == expected_attrs
+        assert result.attrs == expected_attrs
 
     def test_loc_getitem_dups2(self):
+        # GH4726 dup indexing with iloc/loc
 
-        # GH4726
-        # dup indexing with iloc/loc
+        expected_attrs = {"a": 1}  # GH#28283 Call __finalize__
+
         df = DataFrame(
             [[1, 2, "foo", "bar", Timestamp("20130101")]],
             columns=["a", "a", "a", "a", "a"],
             index=[1],
         )
+        df.attrs.update(expected_attrs)
+
         expected = Series(
             [1, 2, "foo", "bar", Timestamp("20130101")],
             index=["a", "a", "a", "a", "a"],
             name=1,
         )
+        expected.attrs.update(expected_attrs)
 
         result = df.iloc[0]
         tm.assert_series_equal(result, expected)
+        assert result.attrs == expected_attrs
 
         result = df.loc[1]
         tm.assert_series_equal(result, expected)
+        assert result.attrs == expected_attrs
 
     def test_loc_setitem_dups(self):
 
@@ -315,10 +329,11 @@ class TestLoc2:
 
     def test_loc_setitem_dtype(self):
         # GH31340
+
         df = DataFrame({"id": ["A"], "a": [1.2], "b": [0.0], "c": [-2.5]})
         cols = ["a", "b", "c"]
-        df.loc[:, cols] = df.loc[:, cols].astype("float32")
 
+        df.loc[:, cols] = df.loc[:, cols].astype("float32")
         expected = DataFrame(
             {
                 "id": ["A"],
@@ -444,41 +459,55 @@ class TestLoc2:
         # gh-17131
         # a boolean index should index like a boolean numpy array
 
+        expected_attrs = {"a": 1}  # GH#28283 Call __finalize__
+
         df = DataFrame(
             np.random.random(size=(5, 10)),
             index=["alpha_0", "alpha_1", "alpha_2", "beta_0", "beta_1"],
         )
+        df.attrs.update(expected_attrs)
 
         mask = df.index.map(lambda x: "alpha" in x)
         expected = df.loc[np.array(mask)]
 
         result = df.loc[mask]
         tm.assert_frame_equal(result, expected)
+        assert result.attrs == expected_attrs
 
         result = df.loc[mask.values]
         tm.assert_frame_equal(result, expected)
+        assert result.attrs == expected_attrs
 
         result = df.loc[pd.array(mask, dtype="boolean")]
         tm.assert_frame_equal(result, expected)
+        assert result.attrs == expected_attrs
 
     def test_loc_general(self):
+
+        expected_attrs = {"a": 1}  # GH#28283 Call __finalize__
 
         df = DataFrame(
             np.random.rand(4, 4),
             columns=["A", "B", "C", "D"],
             index=["A", "B", "C", "D"],
         )
+        df.attrs.update(expected_attrs)
 
         # want this to work
         result = df.loc[:, "A":"B"].iloc[0:2, :]
         assert (result.columns == ["A", "B"]).all()
         assert (result.index == ["A", "B"]).all()
+        assert result.attrs == expected_attrs
 
         # mixed type
-        result = DataFrame({"a": [Timestamp("20130101")], "b": [1]}).iloc[0]
+        df = DataFrame({"a": [Timestamp("20130101")], "b": [1]})
+        df.attrs.update(expected_attrs)
+
+        result = df.iloc[0]
         expected = Series([Timestamp("20130101"), 1], index=["a", "b"], name=0)
         tm.assert_series_equal(result, expected)
         assert result.dtype == object
+        assert result.attrs == expected_attrs
 
     @pytest.fixture
     def frame_for_consistency(self):
@@ -1258,18 +1287,28 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
     @pytest.mark.parametrize("key_type", [iter, np.array, Series, Index])
     def test_loc_getitem_iterable(self, float_frame, key_type):
+
+        expected_attrs = {"a": 1}  # GH#28283 Call __finalize__
+        float_frame.attrs.update(expected_attrs)
+
         idx = key_type(["A", "B", "C"])
         result = float_frame.loc[:, idx]
         expected = float_frame.loc[:, ["A", "B", "C"]]
         tm.assert_frame_equal(result, expected)
+        assert result.attrs == expected_attrs
 
     def test_loc_getitem_timedelta_0seconds(self):
         # GH#10583
+
         df = DataFrame(np.random.normal(size=(10, 4)))
         df.index = timedelta_range(start="0s", periods=10, freq="s")
         expected = df.loc[Timedelta("0s") :, :]
+        expected_attrs = {"a": 1}  # GH#28283 Call __finalize__
+        df.attrs.update(expected_attrs)
+
         result = df.loc["0s":, :]
         tm.assert_frame_equal(result, expected)
+        assert result.attrs == expected_attrs
 
     @pytest.mark.parametrize(
         "val,expected", [(2 ** 63 - 1, Series([1])), (2 ** 63, Series([2]))]
@@ -1277,10 +1316,14 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
     def test_loc_getitem_uint64_scalar(self, val, expected):
         # see GH#19399
         df = DataFrame([1, 2], index=[2 ** 63 - 1, 2 ** 63])
+        expected_attrs = {"a": 1}  # GH#28283 Call __finalize__
+        df.attrs.update(expected_attrs)
+
         result = df.loc[val]
 
         expected.name = val
         tm.assert_series_equal(result, expected)
+        assert result.attrs == expected_attrs
 
     def test_loc_setitem_int_label_with_float64index(self):
         # note labels are floats
@@ -1322,6 +1365,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         # Assigning a Category to parts of a int/... column uses the values of
         # the Categorical
         df = DataFrame({"a": [1, 1, 1, 1, 1], "b": list("aaaaa")})
+
         exp = DataFrame({"a": [1, "b", "b", 1, 1], "b": list("aabba")})
         df.loc[1:2, "a"] = Categorical(["b", "b"], categories=["a", "b"])
         df.loc[2:3, "b"] = Categorical(["b", "b"], categories=["a", "b"])

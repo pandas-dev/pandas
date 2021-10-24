@@ -41,3 +41,15 @@ class TestToFrame:
         assert isinstance(result, SubclassedFrame)
         expected = SubclassedFrame({"X": [1, 2, 3]})
         tm.assert_frame_equal(result, expected)
+
+    def test_to_frame_finalize(self, datetime_series):
+        # GH#28283 Call __finalize__
+        expected_attrs = {"a": 1}
+
+        datetime_series.attrs.update(expected_attrs)
+
+        df = datetime_series.to_frame()
+        assert df.attrs == expected_attrs
+
+        df = datetime_series.to_frame(name="X")
+        assert df.attrs == expected_attrs

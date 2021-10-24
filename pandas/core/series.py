@@ -1757,7 +1757,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             columns = Index([name])
 
         mgr = self._mgr.to_2d_mgr(columns)
-        return self._constructor_expanddim(mgr)
+        return self._constructor_expanddim(mgr).__finalize__(self, method="to_frame")
 
     def _set_name(self, name, inplace=False) -> Series:
         """
