@@ -947,14 +947,19 @@ class _LocationIndexer(NDFrameIndexerBase):
             key = tuple(list(x) if is_iterator(x) else x for x in key)
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
             if self._is_scalar_access(key):
-                return self.obj._get_value(*key, takeable=self._takeable)
-            return self._getitem_tuple(key)
+                ret_obj = self.obj._get_value(*key, takeable=self._takeable)
+            else:
+                ret_obj = self._getitem_tuple(key)
         else:
             # we by definition only have the 0th axis
             axis = self.axis or 0
 
             maybe_callable = com.apply_if_callable(key, self.obj)
-            return self._getitem_axis(maybe_callable, axis=axis)
+            ret_obj = self._getitem_axis(maybe_callable, axis=axis)
+
+        if hasattr(ret_obj, "__finalize__"):
+            return ret_obj.__finalize__(self.obj)
+        return ret_obj
 
     def _is_scalar_access(self, key: tuple):
         raise NotImplementedError()
