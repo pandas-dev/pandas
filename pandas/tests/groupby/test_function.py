@@ -125,18 +125,17 @@ class TestNumericOnly:
     @pytest.mark.parametrize("method", ["mean", "median"])
     def test_averages(self, df, method):
         # mean / median
-        expected_columns_numeric = Index(
-            [
-                "int",
-                "float",
-                "category_int",
-                "datetime",
-                "datetimetz",
-                "timedelta",
-            ]
-        )
+        expected_column_names = [
+            "int",
+            "float",
+            "category_int",
+            "datetime",
+            "datetimetz",
+            "timedelta",
+        ]
+        expected_columns_numeric = Index(expected_column_names)
 
-        gb = df.groupby("group")
+        gb = df[["group", *expected_column_names]].groupby("group")
         expected = DataFrame(
             {
                 "category_int": [7.5, 9],
@@ -163,10 +162,7 @@ class TestNumericOnly:
             ],
         )
 
-        with tm.assert_produces_warning(
-            FutureWarning, match="Dropping invalid", check_stacklevel=False
-        ):
-            result = getattr(gb, method)(numeric_only=False)
+        result = getattr(gb, method)()
         tm.assert_frame_equal(result.reindex_like(expected), expected)
 
         expected_columns = expected.columns
@@ -246,7 +242,7 @@ class TestNumericOnly:
         self._check(df, method, expected_columns, expected_columns_numeric)
 
     def _check(self, df, method, expected_columns, expected_columns_numeric):
-        gb = df.groupby("group")
+        gb = df[["group", *list(expected_columns_numeric)]].groupby("group")
 
         # cummin, cummax dont have numeric_only kwarg, always use False
         warn = None
@@ -259,7 +255,6 @@ class TestNumericOnly:
 
         with tm.assert_produces_warning(warn, match="Dropping invalid columns"):
             result = getattr(gb, method)()
-
         tm.assert_index_equal(result.columns, expected_columns_numeric)
 
         # GH#41475 deprecated silently ignoring nuisance columns
