@@ -6432,13 +6432,20 @@ class Index(IndexOpsMixin, PandasObject):
         if is_valid_na_for_dtype(item, self.dtype) and self.dtype != object:
             item = self._na_value
 
+        arr = self._values
+
         try:
-            item = self._validate_fill_value(item)
-        except TypeError:
+            if isinstance(arr, ExtensionArray):
+                res_values = arr.insert(loc, item)
+                return type(self)._simple_new(res_values, name=self.name)
+            else:
+                item = self._validate_fill_value(item)
+        except (TypeError, ValueError):
+            # e.g. trying to insert an integer into a DatetimeIndex
+            #  We cannot keep the same dtype, so cast to the (often object)
+            #  minimal shared dtype before doing the insert.
             dtype = self._find_common_type_compat(item)
             return self.astype(dtype).insert(loc, item)
-
-        arr = self._values
 
         if arr.dtype != object or not isinstance(
             item, (tuple, np.datetime64, np.timedelta64)
