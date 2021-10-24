@@ -960,8 +960,8 @@ class TestPivotTable:
         )
 
         result = df[["A", "B", "D", "E"]].pivot_table(
-                    columns=columns, 
-                    margins=True, 
+                    columns=columns,
+                    margins=True,
                     aggfunc=aggfunc)
         expected = DataFrame(values, index=Index(["D", "E"]), columns=expected_columns)
 

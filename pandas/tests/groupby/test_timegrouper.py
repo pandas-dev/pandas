@@ -105,14 +105,14 @@ class TestGroupBy:
             )
             expected.iloc[[0, 6, 18], 0] = np.array([24, 6, 9], dtype="int64")
 
-            result1 = df.resample("5D").sum()['Quantity'].to_frame()
+            result1 = df.resample("5D").sum()["Quantity"].to_frame()
             tm.assert_frame_equal(result1, expected)
 
             df_sorted = df.sort_index()
-            result2 = df_sorted.groupby(Grouper(freq="5D")).sum()['Quantity'].to_frame()
+            result2 = df_sorted.groupby(Grouper(freq="5D")).sum()["Quantity"].to_frame()
             tm.assert_frame_equal(result2, expected)
 
-            result3 = df.groupby(Grouper(freq="5D")).sum()['Quantity'].to_frame()
+            result3 = df.groupby(Grouper(freq="5D")).sum()["Quantity"].to_frame()
             tm.assert_frame_equal(result3, expected)
 
     @pytest.mark.parametrize("should_sort", [True, False])
@@ -267,13 +267,13 @@ class TestGroupBy:
 
             # passing the level
             df = df.set_index("Date")
-            result = df.groupby([
-                        Grouper(freq="1M", level="Date"), "Buyer"
-                    ]).sum(numeric_only=True)
+            result = df.groupby([Grouper(freq="1M", level="Date"), "Buyer"]).sum(
+                numeric_only=True
+            )
             tm.assert_frame_equal(result, expected)
-            result = df.groupby([
-                        Grouper(freq="1M", level=0), "Buyer"
-                    ]).sum(numeric_only=True)
+            result = df.groupby([Grouper(freq="1M", level=0), "Buyer"]).sum(
+                numeric_only=True
+            )
             tm.assert_frame_equal(result, expected)
 
             with pytest.raises(ValueError, match="The level foo is not valid"):
