@@ -166,7 +166,6 @@ cdef class _NaT(datetime):
 
         elif util.is_integer_object(other):
             # For Period compat
-            # TODO: the integer behavior is deprecated, remove it
             return c_NaT
 
         elif util.is_array(other):
@@ -201,7 +200,6 @@ cdef class _NaT(datetime):
 
         elif util.is_integer_object(other):
             # For Period compat
-            # TODO: the integer behavior is deprecated, remove it
             return c_NaT
 
         elif util.is_array(other):

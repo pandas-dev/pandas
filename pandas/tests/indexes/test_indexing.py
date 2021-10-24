@@ -172,7 +172,7 @@ class TestGetValue:
         "index", ["string", "int", "datetime", "timedelta"], indirect=True
     )
     def test_get_value(self, index):
-        # TODO: Remove function? GH#19728
+        # TODO(2.0): can remove once get_value deprecation is enforced GH#19728
         values = np.random.randn(100)
         value = index[67]
 

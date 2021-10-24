@@ -2528,7 +2528,7 @@ class TestDataFrameConstructors:
         else:
             # TODO: we can call check_views if we stop consolidating
             #  in setitem_with_indexer
-            # FIXME: enable after GH#35417
+            # FIXME(GH#35417): enable after GH#35417
             # assert b[0] == 0
             assert df.iloc[0, 2] == 0
 

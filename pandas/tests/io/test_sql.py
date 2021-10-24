@@ -2042,7 +2042,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             # GH 36465
             # The input {"foo": [-np.inf], "infe0": ["bar"]} does not raise any error
             # for pymysql version >= 0.10
-            # TODO: remove this version check after GH 36465 is fixed
+            # TODO(GH#36465): remove this version check after GH 36465 is fixed
             import pymysql
 
             if pymysql.VERSION[0:3] >= (0, 10, 0) and "infe0" in df.columns:
