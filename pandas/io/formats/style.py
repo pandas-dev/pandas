@@ -2130,7 +2130,10 @@ class Styler(StylerRenderer):
                                "row_trim": "row_trim",
                                "level": "level",
                                "data": "data",
-                               "blank": "blank}
+                               "blank": "blank",
+                               "descriptor": "descriptor",
+                               "descriptor_name": "descriptor_name",
+                               "descriptor_value": "descriptor_value"}
 
         Examples
         --------
