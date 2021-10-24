@@ -168,3 +168,57 @@ def test_center_reindex_frame(frame, roll_func):
     )
     frame_rs = getattr(frame.rolling(window=25, center=True), roll_func)()
     tm.assert_frame_equal(frame_xp, frame_rs)
+
+
+def test_rolling_skew_edge_cases():
+
+    all_nan = Series([np.NaN] * 5)
+
+    # yields all NaN (0 variance)
+    d = Series([1] * 5)
+    x = d.rolling(window=5).skew()
+    tm.assert_series_equal(all_nan, x)
+
+    # yields all NaN (window too small)
+    d = Series(np.random.randn(5))
+    x = d.rolling(window=2).skew()
+    tm.assert_series_equal(all_nan, x)
+
+    # yields [NaN, NaN, NaN, 0.177994, 1.548824]
+    d = Series([-1.50837035, -0.1297039, 0.19501095, 1.73508164, 0.41941401])
+    expected = Series([np.NaN, np.NaN, np.NaN, 0.177994, 1.548824])
+    x = d.rolling(window=4).skew()
+    tm.assert_series_equal(expected, x)
+
+
+def test_rolling_kurt_edge_cases():
+
+    all_nan = Series([np.NaN] * 5)
+
+    # yields all NaN (0 variance)
+    d = Series([1] * 5)
+    x = d.rolling(window=5).kurt()
+    tm.assert_series_equal(all_nan, x)
+
+    # yields all NaN (window too small)
+    d = Series(np.random.randn(5))
+    x = d.rolling(window=3).kurt()
+    tm.assert_series_equal(all_nan, x)
+
+    # yields [NaN, NaN, NaN, 1.224307, 2.671499]
+    d = Series([-1.50837035, -0.1297039, 0.19501095, 1.73508164, 0.41941401])
+    expected = Series([np.NaN, np.NaN, np.NaN, 1.224307, 2.671499])
+    x = d.rolling(window=4).kurt()
+    tm.assert_series_equal(expected, x)
+
+
+def test_rolling_skew_eq_value_fperr():
+    # #18804 all rolling skew for all equal values should return Nan
+    a = Series([1.1] * 15).rolling(window=10).skew()
+    assert np.isnan(a).all()
+
+
+def test_rolling_kurt_eq_value_fperr():
+    # #18804 all rolling kurt for all equal values should return Nan
+    a = Series([1.1] * 15).rolling(window=10).kurt()
+    assert np.isnan(a).all()
