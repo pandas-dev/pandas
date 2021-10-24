@@ -18,58 +18,6 @@ def test_ewm_pairwise_cov_corr(func, frame):
     tm.assert_series_equal(result, expected, check_names=False)
 
 
-@pytest.mark.parametrize("name", ["cov", "corr"])
-def test_ewm_corr_cov(name):
-    A = Series(np.random.randn(50), index=np.arange(50))
-    B = A[2:] + np.random.randn(48)
-
-    A[:10] = np.NaN
-    B[-10:] = np.NaN
-
-    result = getattr(A.ewm(com=20, min_periods=5), name)(B)
-    assert np.isnan(result.values[:14]).all()
-    assert not np.isnan(result.values[14:]).any()
-
-
-@pytest.mark.parametrize("min_periods", [0, 1, 2])
-@pytest.mark.parametrize("name", ["cov", "corr"])
-def test_ewm_corr_cov_min_periods(name, min_periods):
-    # GH 7898
-    A = Series(np.random.randn(50), index=np.arange(50))
-    B = A[2:] + np.random.randn(48)
-
-    A[:10] = np.NaN
-    B[-10:] = np.NaN
-
-    result = getattr(A.ewm(com=20, min_periods=min_periods), name)(B)
-    # binary functions (ewmcov, ewmcorr) with bias=False require at
-    # least two values
-    assert np.isnan(result.values[:11]).all()
-    assert not np.isnan(result.values[11:]).any()
-
-    # check series of length 0
-    empty = Series([], dtype=np.float64)
-    result = getattr(empty.ewm(com=50, min_periods=min_periods), name)(empty)
-    tm.assert_series_equal(result, empty)
-
-    # check series of length 1
-    result = getattr(Series([1.0]).ewm(com=50, min_periods=min_periods), name)(
-        Series([1.0])
-    )
-    tm.assert_series_equal(result, Series([np.NaN]))
-
-
-@pytest.mark.parametrize("name", ["cov", "corr"])
-def test_different_input_array_raise_exception(name):
-    A = Series(np.random.randn(50), index=np.arange(50))
-    A[:10] = np.NaN
-
-    msg = "other must be a DataFrame or Series"
-    # exception raised is Exception
-    with pytest.raises(ValueError, match=msg):
-        getattr(A.ewm(com=20, min_periods=5), name)(np.random.randn(50))
-
-
 def create_mock_weights(obj, com, adjust, ignore_na):
     if isinstance(obj, DataFrame):
         if not len(obj.columns):
