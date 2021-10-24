@@ -797,12 +797,14 @@ def test_tick_normalize_raises(tick_classes):
     ],
 )
 def test_dateoffset_add_sub(cases):
-    time_unit, num,  expected = cases
+    time_unit, num, expected = cases
     offset = DateOffset(**{time_unit: num})
     ts = Timestamp(0) + offset
     assert ts == expected
     ts -= offset
     assert ts == Timestamp(0)
+    ts = offset + Timestamp(0)
+    assert ts == expected
 
 
 @pytest.mark.parametrize(
