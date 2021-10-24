@@ -575,12 +575,14 @@ def test_resample_ohlc_dataframe():
             }
         )
     ).reindex(["VOLUME", "PRICE"], axis=1)
+    df.columns.name = "Cols"
     res = df.resample("H").ohlc()
     exp = pd.concat(
         [df["VOLUME"].resample("H").ohlc(), df["PRICE"].resample("H").ohlc()],
         axis=1,
-        keys=["VOLUME", "PRICE"],
+        keys=df.columns,
     )
+    assert exp.columns.names[0] == "Cols"
     tm.assert_frame_equal(exp, res)
 
     df.columns = [["a", "b"], ["c", "d"]]

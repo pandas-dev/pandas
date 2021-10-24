@@ -122,6 +122,7 @@ class TestPartialSetting:
         df.loc[:, "C"] = df.loc[:, "A"]
         tm.assert_frame_equal(df, expected)
 
+    def test_partial_setting2(self):
         # GH 8473
         dates = date_range("1/1/2000", periods=8)
         df_orig = DataFrame(

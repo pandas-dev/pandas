@@ -406,6 +406,7 @@ def test_groupby_selection_tshift_raises(df):
 def test_groupby_selection_other_methods(df):
     # some methods which require DatetimeIndex
     rng = date_range("2014", periods=len(df))
+    df.columns.name = "foo"
     df.index = rng
 
     g = df.groupby(["A"])[["C"]]

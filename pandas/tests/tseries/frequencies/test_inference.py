@@ -399,9 +399,11 @@ def test_non_datetime_index2():
     "idx", [tm.makeIntIndex(10), tm.makeFloatIndex(10), tm.makePeriodIndex(10)]
 )
 def test_invalid_index_types(idx):
-    msg = (
-        "(cannot infer freq from a non-convertible)|"
-        "(Check the `freq` attribute instead of using infer_freq)"
+    msg = "|".join(
+        [
+            "cannot infer freq from a non-convertible",
+            "Check the `freq` attribute instead of using infer_freq",
+        ]
     )
 
     with pytest.raises(TypeError, match=msg):
