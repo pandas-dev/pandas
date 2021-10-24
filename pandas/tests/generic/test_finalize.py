@@ -40,8 +40,7 @@ _all_methods = [
     (pd.Series, ([0],), operator.methodcaller("repeat", 2)),
     pytest.param((pd.Series, ([0],), operator.methodcaller("reset_index"))),
     (pd.Series, ([0],), operator.methodcaller("reset_index", drop=True)),
-    pytest.param(
-    (pd.Series, ([0],), operator.methodcaller("to_frame"))),
+    pytest.param((pd.Series, ([0],), operator.methodcaller("to_frame"))),
     (pd.Series, ([0, 0],), operator.methodcaller("drop_duplicates")),
     (pd.Series, ([0, 0],), operator.methodcaller("duplicated")),
     (pd.Series, ([0, 0],), operator.methodcaller("round")),
