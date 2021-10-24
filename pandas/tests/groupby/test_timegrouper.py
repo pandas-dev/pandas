@@ -258,8 +258,8 @@ class TestGroupBy:
             # passing the name
             df = df.reset_index()
             result = df.groupby([
-                            Grouper(freq="1M", key="Date"), "Buyer"
-                        ]).sum(numeric_only=True)
+                        Grouper(freq="1M", key="Date"), "Buyer"
+                    ]).sum(numeric_only=True)
             tm.assert_frame_equal(result, expected)
 
             with pytest.raises(KeyError, match="'The grouper name foo is not found'"):
@@ -268,12 +268,12 @@ class TestGroupBy:
             # passing the level
             df = df.set_index("Date")
             result = df.groupby([
-                            Grouper(freq="1M", level="Date"), "Buyer"
-                        ]).sum(numeric_only=True)
+                        Grouper(freq="1M", level="Date"), "Buyer"
+                    ]).sum(numeric_only=True)
             tm.assert_frame_equal(result, expected)
             result = df.groupby([
-                            Grouper(freq="1M", level=0), "Buyer"
-                        ]).sum(numeric_only=True)
+                        Grouper(freq="1M", level=0), "Buyer"
+                    ]).sum(numeric_only=True)
             tm.assert_frame_equal(result, expected)
 
             with pytest.raises(ValueError, match="The level foo is not valid"):
@@ -283,8 +283,8 @@ class TestGroupBy:
             df = df.copy()
             df["Date"] = df.index + offsets.MonthEnd(2)
             result = df.groupby([
-                            Grouper(freq="1M", key="Date"), "Buyer"
-                        ]).sum(numeric_only=True)
+                        Grouper(freq="1M", key="Date"), "Buyer"
+                    ]).sum(numeric_only=True)
             expected = DataFrame(
                 {
                     "Buyer": "Carl Joe Mark".split(),

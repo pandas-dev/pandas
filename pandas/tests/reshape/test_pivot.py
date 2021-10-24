@@ -959,7 +959,7 @@ class TestPivotTable:
             }
         )
 
-        result = df[["A","B","D", "E"]].pivot_table(
+        result = df[["A", "B", "D", "E"]].pivot_table(
                                             columns=columns, 
                                             margins=True, 
                                             aggfunc=aggfunc
@@ -1988,12 +1988,14 @@ class TestPivotTable:
     def test_pivot_string_func_vs_func(self, f, f_numpy):
         # GH #18713
         # for consistency purposes
-        result = pivot_table(self.data[["D","E","F"]], 
+        result = pivot_table(
+                            self.data[["D","E","F"]], 
                             index="D", 
                             columns="E", 
                             aggfunc=f
                         )
-        expected = pivot_table(self.data[["D","E","F"]], 
+        expected = pivot_table(
+                            self.data[["D","E","F"]], 
                             index="D", 
                             columns="E", 
                             aggfunc=f_numpy
