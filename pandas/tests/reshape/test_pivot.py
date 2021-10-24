@@ -1988,11 +1988,11 @@ class TestPivotTable:
         # GH #18713
         # for consistency purposes
         result = pivot_table(
-                        self.data[["D", "E", "F"]], index="D", columns="E", aggfunc=f
-                    )
+            self.data[["D", "E", "F"]], index="D", columns="E", aggfunc=f
+        )
         expected = pivot_table(
-                        self.data[["D", "E", "F"]], index="D", columns="E", aggfunc=f_numpy
-                    )
+            self.data[["D", "E", "F"]], index="D", columns="E", aggfunc=f_numpy
+        )
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.slow
