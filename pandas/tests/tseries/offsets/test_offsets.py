@@ -775,20 +775,30 @@ def test_tick_normalize_raises(tick_classes):
 @pytest.mark.parametrize(
     "cases",
     [
-        ("nanoseconds", Timestamp("1970-01-01 00:00:00.000000001")),
-        ("microseconds", Timestamp("1970-01-01 00:00:00.000001")),
-        ("seconds", Timestamp("1970-01-01 00:00:01")),
-        ("minutes", Timestamp("1970-01-01 00:01:00")),
-        ("hours", Timestamp("1970-01-01 01:00:00")),
-        ("days", Timestamp("1970-01-02 00:00:00")),
-        ("weeks", Timestamp("1970-01-08 00:00:00")),
-        ("months", Timestamp("1970-02-01 00:00:00")),
-        ("years", Timestamp("1971-01-01 00:00:00")),
+        ("nanoseconds", 1, Timestamp('1970-01-01 00:00:00.000000001')),
+        ("nanoseconds", 5, Timestamp('1970-01-01 00:00:00.000000005')),
+        ("nanoseconds", -1, Timestamp('1969-12-31 23:59:59.999999999')),
+        ("microseconds", 1, Timestamp('1970-01-01 00:00:00.000001')),
+        ("microseconds", -1, Timestamp('1969-12-31 23:59:59.999999')),
+        ("seconds", 1, Timestamp('1970-01-01 00:00:01')),
+        ("seconds", -1, Timestamp('1969-12-31 23:59:59')),
+        ("minutes", 1, Timestamp('1970-01-01 00:01:00')),
+        ("minutes", -1, Timestamp('1969-12-31 23:59:00')),
+        ("hours", 1, Timestamp('1970-01-01 01:00:00')),
+        ("hours", -1, Timestamp('1969-12-31 23:00:00')),
+        ("days", 1, Timestamp('1970-01-02 00:00:00')),
+        ("days", -1, Timestamp('1969-12-31 00:00:00')),
+        ("weeks", 1, Timestamp('1970-01-08 00:00:00')),
+        ("weeks", -1, Timestamp('1969-12-25 00:00:00')),
+        ("months", 1, Timestamp('1970-02-01 00:00:00')),
+        ("months", -1, Timestamp('1969-12-01 00:00:00')),
+        ("years", 1, Timestamp('1971-01-01 00:00:00')),
+        ("years", -1, Timestamp('1969-01-01 00:00:00')),
     ],
 )
 def test_dateoffset_add_sub(cases):
-    time_unit, expected = cases
-    offset = DateOffset(**{time_unit: 1})
+    time_unit, num,  expected = cases
+    offset = DateOffset(**{time_unit: num})
     ts = Timestamp(0) + offset
     assert ts == expected
     ts -= offset
