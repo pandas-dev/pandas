@@ -105,6 +105,7 @@ class TestDataFrameAppend:
 
         result = df.append([serc])
         expected = df.append(serc)
+        tm.assert_index_equal(result.index, expected.index)
         tm.assert_frame_equal(result, expected)
 
     def test_append_missing_cols(self):
