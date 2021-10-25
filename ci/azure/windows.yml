@@ -51,7 +51,7 @@ jobs:
         restoreKeys: |
           python | "$(Agent.OS)"
           python
-        path: $(HOME)/miniconda3
+        path: $CONDA_CACHE_DIR
         cacheHitVar: CONDA_CACHE_RESTORED
     - bash: |
         conda env create -q --file ci\\deps\\azure-windows-$(CONDA_PY).yaml
