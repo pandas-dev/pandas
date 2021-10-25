@@ -58,6 +58,7 @@ jobs:
       displayName: 'Create anaconda environment'
       condition: eq(variables.CONDA_CACHE_RESTORED, 'false')
     - bash: |
+        mkdir -p $CONDA_CACHE_DIR
         source activate pandas-dev
         conda list
         python setup.py build_ext -q -j 4
