@@ -38,8 +38,18 @@ jobs:
       displayName: 'Install Miniconda in CI env'
 
     - script: ci/setup_env.sh
-      displayName: 'Install conda dependencies and build pandas'
+      displayName: 'Install conda dependencies in env'
       condition: eq(variables.CONDA_CACHE_RESTORED, 'false')
+
+    - script: |
+        source activate pandas-dev
+        conda list pandas
+        python setup.py build_ext -q -j2
+        python -m pip install --no-deps -U pip wheel setuptools
+        python -m pip install --no-build-isolation -e .
+        echo "conda list"
+        conda list
+      displayName: 'Build extensions and install pandas'
 
     - script: |
         source activate pandas-dev
