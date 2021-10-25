@@ -41,7 +41,9 @@ jobs:
         Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
         Write-Host "##vso[task.prependpath]$HOME/miniconda3/bin"
       displayName: 'Add conda to PATH'
-    - script: conda update -q -n base conda
+    - script: |
+        conda update -q -n base conda
+        mkdir -p $(Pipeline.Workspace)/.condarc
       displayName: 'Update conda'
 
     - task: Cache@2
@@ -51,19 +53,18 @@ jobs:
         restoreKeys: |
           python | "$(Agent.OS)"
           python
-        path: $CONDA_CACHE_DIR
+        path: $(Pipeline.Workspace)/.condarc
         cacheHitVar: CONDA_CACHE_RESTORED
     - bash: |
         conda env create -q --file ci\\deps\\azure-windows-$(CONDA_PY).yaml
       displayName: 'Create anaconda environment'
       condition: eq(variables.CONDA_CACHE_RESTORED, 'false')
     - bash: |
-        mkdir -p $CONDA_CACHE_DIR
         source activate pandas-dev
         conda list
         python setup.py build_ext -q -j 4
         python -m pip install --no-build-isolation -e .
-      displayName: 'Build'
+      displayName: 'Build pandas'
     - bash: |
         source activate pandas-dev
         wmic.exe cpu get caption, deviceid, name, numberofcores, maxclockspeed
