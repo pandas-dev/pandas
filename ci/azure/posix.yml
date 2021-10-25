@@ -27,7 +27,7 @@ jobs:
     - task: Cache@2
       displayName: Use cached Anaconda environment
       inputs:
-        key: 'conda | "$(Agent.OS)" | "$(ENV_FILE)"'
+        key: 'conda | "$(Agent.OS)" | $(ENV_FILE)'
         path: $(HOME)/miniconda3
         restoreKeys: |
           python | "$(Agent.OS)"
