@@ -34,12 +34,8 @@ jobs:
           python
         cacheHitVar: CONDA_CACHE_RESTORED
 
-    - script: ci/setup_conda.sh
-      displayName: 'Install Miniconda in CI env'
-      condition: eq(variables.CONDA_CACHE_RESTORED, 'false')
-
     - script: ci/setup_env.sh
-      displayName: 'Install conda dependencies in env'
+      displayName: 'Setup environment'
       condition: eq(variables.CONDA_CACHE_RESTORED, 'false')
 
     - script: |
