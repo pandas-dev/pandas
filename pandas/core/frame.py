@@ -9086,7 +9086,7 @@ NaN 12.3   33.0
             elif not isinstance(other[0], DataFrame):
                 other = DataFrame(other)
                 if self.index.name is not None and not ignore_index:
-                    other = other.rename_axis(self.index.name, copy=False)
+                    other.index.name = self.index.name
 
         from pandas.core.reshape.concat import concat
 
