@@ -600,9 +600,7 @@ class RangeIndex(NumericIndex):
             new_index = new_index[::-1]
 
         if sort is None:
-            # TODO: can revert to just `if sort is None` after GH#43666
-            if new_index.step < 0:
-                new_index = new_index[::-1]
+            new_index = new_index.sort_values()
 
         return new_index
 

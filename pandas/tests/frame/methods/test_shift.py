@@ -211,7 +211,7 @@ class TestDataFrameShift:
 
     @pytest.mark.filterwarnings("ignore:tshift is deprecated:FutureWarning")
     def test_tshift(self, datetime_frame):
-        # TODO: remove this test when tshift deprecation is enforced
+        # TODO(2.0): remove this test when tshift deprecation is enforced
 
         # PeriodIndex
         ps = tm.makePeriodFrame()
