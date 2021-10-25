@@ -2509,9 +2509,7 @@ class Styler(StylerRenderer):
             subset = non_reducing_slice(subset_)
             hide = self.data.loc[subset]
             h_els = getattr(self, objs).get_indexer_for(getattr(hide, objs))
-            # error: Incompatible types in assignment (expression has type
-            # "ndarray", variable has type "Sequence[int]")
-            setattr(self, f"hidden_{alt}", h_els)  # type: ignore[assignment]
+            setattr(self, f"hidden_{alt}", h_els)
 
         if names:
             setattr(self, f"hide_{obj}_names", True)
