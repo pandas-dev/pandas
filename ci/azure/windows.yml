@@ -41,9 +41,9 @@ jobs:
         Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
         Write-Host "##vso[task.prependpath]$HOME/miniconda3/bin"
       displayName: 'Add conda to PATH'
-    - script: |
+    - bash: |
         conda update -q -n base conda
-        mkdir -p $(Pipeline.Workspace)/.condarc
+        mkdir -p $(CONDA_CACHE_DIR)
       displayName: 'Update conda'
 
     - task: Cache@2
@@ -53,7 +53,7 @@ jobs:
         restoreKeys: |
           python | "$(Agent.OS)"
           python
-        path: $(Pipeline.Workspace)/.condarc
+        path: $(CONDA_CACHE_DIR)
         cacheHitVar: CONDA_CACHE_RESTORED
     - bash: |
         conda env create -q --file ci\\deps\\azure-windows-$(CONDA_PY).yaml
