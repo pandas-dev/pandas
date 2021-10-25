@@ -34,6 +34,24 @@ def test_split(any_string_dtype):
     exp = Series([["a", "b", "c"], ["c", "d", "e"], np.nan, ["f", "g", "h"]])
     tm.assert_series_equal(result, exp)
 
+    # explicit regex = True split
+    values = Series('qweqwejpgqweqwe.jpg', dtype=any_string_dtype)
+    result = values.str.split('\.jpg', regex=True)
+    exp = Series([['qweqwejpgqweqwe.jpg']])
+    tm.assert_series_equal(result, exp)
+    # explicit regex = False split
+    result = values.str.split('\.jpg', regex=False)
+    exp = Series([['qweqwejpgqweqwe.jpg']])
+    tm.assert_series_equal(result, exp)
+    # non explicit regex split, pattern length == 1
+    result = values.str.split('.')
+    exp = Series([['qweqwejpgqweqwe','jpg']])
+    tm.assert_series_equal(result, exp)
+    # non explicit regex split, pattern length != 1
+    result = values.str.split('.jpg')
+    exp = Series([['qweqw','qweqwe', '']])
+    tm.assert_series_equal(result, exp)
+
 
 def test_split_object_mixed():
     mixed = Series(["a_b_c", np.nan, "d_e_f", True, datetime.today(), None, 1, 2.0])

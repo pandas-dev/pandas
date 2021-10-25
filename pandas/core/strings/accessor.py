@@ -657,7 +657,7 @@ class StringMethods(NoNewAttributesMixin):
 
     Parameters
     ----------
-    pat : str, optional
+    pat : str, or compiled regex optional
         String or regular expression to split on.
         If not specified, split on whitespace.
     n : int, default -1 (all)
@@ -668,7 +668,11 @@ class StringMethods(NoNewAttributesMixin):
 
         * If ``True``, return DataFrame/MultiIndex expanding dimensionality.
         * If ``False``, return Series/Index, containing lists of strings.
-
+    regex : bool, default None
+        * If ``True``, assumes the passed-in pattern is a regular expression 
+        * If ``False``, treats the pattern as a literal string
+        * If ``None`` and the pattern length is 1, treats the pattern as a literal string
+        * If ``None`` and the pattern length is not 1, treats the pattern as a regular expression
     Returns
     -------
     Series, Index, DataFrame or MultiIndex
@@ -784,8 +788,8 @@ class StringMethods(NoNewAttributesMixin):
 
     @Appender(_shared_docs["str_split"] % {"side": "beginning", "method": "split"})
     @forbid_nonstring_types(["bytes"])
-    def split(self, pat=None, n=-1, expand=False):
-        result = self._data.array._str_split(pat, n, expand)
+    def split(self, pat: str | re.Pattern = None, n=-1, expand=False, regex: bool | None = None):
+        result = self._data.array._str_split(pat, n, expand, regex)
         return self._wrap_result(result, returns_string=expand, expand=expand)
 
     @Appender(_shared_docs["str_split"] % {"side": "end", "method": "rsplit"})
