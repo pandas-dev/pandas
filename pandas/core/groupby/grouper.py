@@ -938,7 +938,7 @@ def _convert_grouper(axis: Index, grouper):
             return grouper.reindex(axis)._values
     elif isinstance(grouper, MultiIndex):
         return grouper._values
-    elif isinstance(grouper, (list, tuple, Series, Index, np.ndarray)):
+    elif isinstance(grouper, (list, tuple, Index, np.ndarray)):
         if len(grouper) != len(axis):
             raise ValueError("Grouper and axis must be same length")
 
