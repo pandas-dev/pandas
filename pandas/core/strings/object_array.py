@@ -314,9 +314,11 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
                 n = -1
             f = lambda x: x.split(pat, n)
         else:
-            if regex is not None:
+            if regex is True:
+                new_pat = re.compile(pat)
+            elif regex is False:
                 new_pat = pat
-            if regex is None:
+            else:
                 if len(pat) == 1:
                     new_pat = pat
                 else:

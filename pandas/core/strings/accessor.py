@@ -774,16 +774,31 @@ class StringMethods(NoNewAttributesMixin):
     1  https://docs.python.org/3/tutorial  index.html
     2                                 NaN         NaN
 
-    Remember to escape special characters when explicitly using regular
-    expressions.
+    When `pat` is a string and ``regex=None`` (the default), the given `pat` is compiled as a 
+    regex only if ``len(pat) != 1``. 
 
-    >>> s = pd.Series(["1+1=2"])
-    >>> s
-    0    1+1=2
-    dtype: object
-    >>> s.str.split(r"\+|=", expand=True)
-         0    1    2
-    0    1    1    2
+    >>> s = pd.Series(['foojpgbar.jpg'])
+    >>> s = s.str.split(".", expand=True)
+               0    1
+    0  foojpgbar  jpg
+    >>> s.str.split("\.jpg", expand=True)
+               0 1
+    0  foojpgbar  
+    >>> s.str.split(".jpg", expand=True)
+        0    1 2
+    0  fo  bar  
+
+    When ``regex=True``, `pat` is interpreted as a regex
+    
+    >>> s.str.split("\.jpg", regex=True, expand=True)
+               0 1
+    0  foojpgbar  
+    
+    When ``regex=False``, `pat` is interpreted as the string itself
+    
+    >>> s.str.split("\.jpg", regex=False, expand=True)
+                   0
+    0  foojpgbar.jpg
     """
 
     @Appender(_shared_docs["str_split"] % {"side": "beginning", "method": "split"})
