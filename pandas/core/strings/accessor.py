@@ -673,6 +673,7 @@ class StringMethods(NoNewAttributesMixin):
         * If ``False``, treats the pattern as a literal string
         * If ``None`` and the pattern length is 1, treats the pattern as a literal string
         * If ``None`` and the pattern length is not 1, treats the pattern as a regular expression
+    
     Returns
     -------
     Series, Index, DataFrame or MultiIndex
@@ -778,25 +779,25 @@ class StringMethods(NoNewAttributesMixin):
     regex only if ``len(pat) != 1``. 
 
     >>> s = pd.Series(['foojpgbar.jpg'])
-    >>> s = s.str.split(".", expand=True)
+    >>> s.str.split(r".", expand=True)
                0    1
     0  foojpgbar  jpg
-    >>> s.str.split("\.jpg", expand=True)
+    >>> s.str.split(r"\.jpg", expand=True)
                0 1
     0  foojpgbar  
-    >>> s.str.split(".jpg", expand=True)
+    >>> s.str.split(r".jpg", expand=True)
         0    1 2
     0  fo  bar  
 
     When ``regex=True``, `pat` is interpreted as a regex
     
-    >>> s.str.split("\.jpg", regex=True, expand=True)
+    >>> s.str.split(r"\.jpg", regex=True, expand=True)
                0 1
     0  foojpgbar  
     
     When ``regex=False``, `pat` is interpreted as the string itself
     
-    >>> s.str.split("\.jpg", regex=False, expand=True)
+    >>> s.str.split(r"\.jpg", regex=False, expand=True)
                    0
     0  foojpgbar.jpg
     """

@@ -39,14 +39,17 @@ def test_split(any_string_dtype):
     result = values.str.split(r'\.jpg', regex=True)
     exp = Series([['qweqwejpgqweqwe', '']])
     tm.assert_series_equal(result, exp)
+
     # explicit regex = False split
     result = values.str.split(r'\.jpg', regex=False)
     exp = Series([['qweqwejpgqweqwe.jpg']])
     tm.assert_series_equal(result, exp)
+
     # non explicit regex split, pattern length == 1
     result = values.str.split(r'.')
     exp = Series([['qweqwejpgqweqwe','jpg']])
     tm.assert_series_equal(result, exp)
+
     # non explicit regex split, pattern length != 1
     result = values.str.split(r'.jpg')
     exp = Series([['qweqw','qweqwe', '']])
