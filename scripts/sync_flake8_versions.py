@@ -113,7 +113,7 @@ def get_revisions(
     for dep in _process_dependencies(flake8_hook.get("additional_dependencies", [])):
         if dep.name == "pandas-dev-flaker":
             pandas_dev_flaker_revisions.pre_commit = dep
-        elif dep.name != "flake8":
+        else:
             flake8_additional_dependencies.append(dep)
 
     environment_dependencies = environment["dependencies"]
@@ -121,6 +121,7 @@ def get_revisions(
     for dep in _process_dependencies(environment_dependencies):
         if dep.name == "flake8":
             flake8_revisions.environment = dep
+            environment_additional_dependencies.append(dep)
         elif dep.name == "pandas-dev-flaker":
             pandas_dev_flaker_revisions.environment = dep
         else:
