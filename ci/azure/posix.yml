@@ -28,14 +28,18 @@ jobs:
       displayName: Use cached Anaconda environment
       inputs:
         key: 'conda | "$(Agent.OS)" | "$(ENV_FILE)"'
+        path: $(HOME)/miniconda3
         restoreKeys: |
           python | "$(Agent.OS)"
           python
-        path: $(CONDA_CACHE_DIR)
         cacheHitVar: CONDA_CACHE_RESTORED
 
+    - script: ci/setup_conda.sh
+      displayName: 'Install Miniconda in CI env'
+
     - script: ci/setup_env.sh
-      displayName: 'Setup environment and build pandas'
+      displayName: 'Install conda dependencies and build pandas'
+      condition: eq(variables.CONDA_CACHE_RESTORED, 'false')
 
     - script: |
         source activate pandas-dev
