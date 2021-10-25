@@ -82,7 +82,7 @@ def sliding_sum(
                 )
 
         if nobs == 0 == nobs:
-            result = 0
+            result = 0.0
         elif nobs >= min_periods:
             result = sum_x
         else:
