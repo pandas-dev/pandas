@@ -50,6 +50,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import (
     array_equivalent,
+    is_valid_na_for_dtype,
     isna,
     notna,
 )
@@ -82,7 +83,7 @@ BaseMaskedArrayT = TypeVar("BaseMaskedArrayT", bound="BaseMaskedArray")
 
 class BaseMaskedDtype(ExtensionDtype):
     """
-    Base class for dtypes for BasedMaskedArray subclasses.
+    Base class for dtypes for BaseMaskedArray subclasses.
     """
 
     name: str
@@ -213,19 +214,23 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def _coerce_to_array(self, values) -> tuple[np.ndarray, np.ndarray]:
         raise AbstractMethodError(self)
 
+    def _validate_setitem_value(self, value) -> bool:
+        raise AbstractMethodError(self)
+
     def __setitem__(self, key, value) -> None:
-        _is_scalar = is_scalar(value)
-        if _is_scalar:
-            value = [value]
-        value, mask = self._coerce_to_array(value)
-
-        if _is_scalar:
-            value = value[0]
-            mask = mask[0]
-
         key = check_array_indexer(self, key)
-        self._data[key] = value
-        self._mask[key] = mask
+        if is_scalar(value):
+            if self._validate_setitem_value(value):
+                self._data[key] = value
+                self._mask[key] = False
+            elif isna(value) and is_valid_na_for_dtype(value):
+                self._mask[key] = True
+            else:
+                raise TypeError(f"Invalid value '{value}' for dtype {self.dtype}")
+        else:
+            value, mask = self._coerce_to_array(value)
+            self._data[key] = value
+            self._mask[key] = mask
 
     def __iter__(self):
         if self.ndim == 1:

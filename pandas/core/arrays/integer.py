@@ -338,6 +338,9 @@ class IntegerArray(NumericArray):
     def _coerce_to_array(self, value) -> tuple[np.ndarray, np.ndarray]:
         return coerce_to_array(value, dtype=self.dtype)
 
+    def _validate_setitem_value(self, value):
+        return lib.is_integer(value)
+
     @overload
     def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
         ...

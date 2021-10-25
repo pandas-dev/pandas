@@ -85,7 +85,7 @@ def frame_apply(
     args=None,
     kwargs=None,
 ) -> FrameApply:
-    """construct and return a row or column based frame apply object"""
+    """Construct and return a row- or column-based frame apply object."""
     axis = obj._get_axis_number(axis)
     klass: type[FrameApply]
     if axis == 0:
@@ -693,7 +693,7 @@ class FrameApply(NDFrameApply):
         return self.obj.dtypes
 
     def apply(self) -> DataFrame | Series:
-        """compute the results"""
+        """Compute the results."""
         # dispatch to agg
         if is_list_like(self.f):
             return self.apply_multiple()
@@ -1011,7 +1011,7 @@ class FrameColumnApply(FrameApply):
     def wrap_results_for_axis(
         self, results: ResType, res_index: Index
     ) -> DataFrame | Series:
-        """return the results for the columns"""
+        """Return the results for the columns."""
         result: DataFrame | Series
 
         # we have requested to expand

@@ -365,6 +365,9 @@ class BooleanArray(BaseMaskedArray):
     def _coerce_to_array(self, value) -> tuple[np.ndarray, np.ndarray]:
         return coerce_to_array(value)
 
+    def _validate_setitem_value(self, value):
+        return lib.is_bool(value)
+
     @overload
     def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
         ...
