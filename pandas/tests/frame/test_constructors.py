@@ -222,12 +222,7 @@ class TestDataFrameConstructors:
         df["foo"] = np.ones((4, 2)).tolist()
 
         # this is not ok
-        msg = "|".join(
-            [
-                "Wrong number of items passed 2, placement implies 1",
-                "Expected a 1D array, got an array with shape \\(4, 2\\)",
-            ]
-        )
+        msg = "Expected a 1D array, got an array with shape \\(4, 2\\)"
         with pytest.raises(ValueError, match=msg):
             df["test"] = np.ones((4, 2))
 
@@ -2533,7 +2528,7 @@ class TestDataFrameConstructors:
         else:
             # TODO: we can call check_views if we stop consolidating
             #  in setitem_with_indexer
-            # FIXME: enable after GH#35417
+            # FIXME(GH#35417): enable after GH#35417
             # assert b[0] == 0
             assert df.iloc[0, 2] == 0
 

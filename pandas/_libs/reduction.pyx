@@ -30,8 +30,4 @@ cpdef inline extract_result(object res):
         if res.ndim == 1 and len(res) == 1:
             # see test_agg_lambda_with_timezone, test_resampler_grouper.py::test_apply
             res = res[0]
-    if is_array(res):
-        if res.ndim == 1 and len(res) == 1:
-            # see test_resampler_grouper.py::test_apply
-            res = res[0]
     return res

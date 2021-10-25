@@ -8,8 +8,6 @@ from string import ascii_lowercase
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas import (
     DataFrame,
     Index,
@@ -359,8 +357,7 @@ def test_groupby_function_rename(mframe):
         "cummax",
         "cummin",
         "cumprod",
-        # TODO(ArrayManager) quantile
-        pytest.param("describe", marks=td.skip_array_manager_not_yet_implemented),
+        "describe",
         "rank",
         "quantile",
         "diff",
@@ -406,6 +403,7 @@ def test_groupby_selection_tshift_raises(df):
 def test_groupby_selection_other_methods(df):
     # some methods which require DatetimeIndex
     rng = date_range("2014", periods=len(df))
+    df.columns.name = "foo"
     df.index = rng
 
     g = df.groupby(["A"])[["C"]]

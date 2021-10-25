@@ -15,17 +15,11 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
-from pandas.util._exceptions import rewrite_exception
 
-from pandas.core.dtypes.common import (
-    is_dtype_equal,
-    pandas_dtype,
-)
 from pandas.core.dtypes.generic import ABCDataFrame
 
 from pandas.core.arrays import IntervalArray
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
-from pandas.core.indexers import deprecate_ndim_indexing
 from pandas.core.indexes.base import Index
 
 _T = TypeVar("_T", bound="NDArrayBackedExtensionIndex")
@@ -139,47 +133,6 @@ class ExtensionIndex(Index):
     _data: IntervalArray | NDArrayBackedExtensionArray
 
     # ---------------------------------------------------------------------
-    # NDarray-Like Methods
-
-    def __getitem__(self, key):
-        result = self._data[key]
-        if isinstance(result, type(self._data)):
-            if result.ndim == 1:
-                return type(self)(result, name=self._name)
-            # Unpack to ndarray for MPL compat
-
-            result = result._ndarray
-
-        # Includes cases where we get a 2D ndarray back for MPL compat
-        deprecate_ndim_indexing(result)
-        return result
-
-    # ---------------------------------------------------------------------
-
-    def insert(self, loc: int, item) -> Index:
-        """
-        Make new Index inserting new item at location. Follows
-        Python list.append semantics for negative values.
-
-        Parameters
-        ----------
-        loc : int
-        item : object
-
-        Returns
-        -------
-        new_index : Index
-        """
-        try:
-            result = self._data.insert(loc, item)
-        except (ValueError, TypeError):
-            # e.g. trying to insert an integer into a DatetimeIndex
-            #  We cannot keep the same dtype, so cast to the (often object)
-            #  minimal shared dtype before doing the insert.
-            dtype = self._find_common_type_compat(item)
-            return self.astype(dtype).insert(loc, item)
-        else:
-            return type(self)._simple_new(result, name=self.name)
 
     def _validate_fill_value(self, value):
         """
@@ -203,33 +156,6 @@ class ExtensionIndex(Index):
             return result
         except Exception:
             return self.astype(object).map(mapper)
-
-    @doc(Index.astype)
-    def astype(self, dtype, copy: bool = True) -> Index:
-        dtype = pandas_dtype(dtype)
-        if is_dtype_equal(self.dtype, dtype):
-            if not copy:
-                # Ensure that self.astype(self.dtype) is self
-                return self
-            return self.copy()
-
-        # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-        # operand type: "Literal['M8[ns]']")
-        if (
-            isinstance(self.dtype, np.dtype)
-            and isinstance(dtype, np.dtype)
-            and dtype.kind == "M"
-            and dtype != "M8[ns]"  # type: ignore[comparison-overlap]
-        ):
-            # For now Datetime supports this by unwrapping ndarray, but DTI doesn't
-            raise TypeError(f"Cannot cast {type(self).__name__} to dtype")
-
-        with rewrite_exception(type(self._data).__name__, type(self).__name__):
-            new_values = self._data.astype(dtype, copy=copy)
-
-        # pass copy=False because any copying will be done in the
-        #  _data.astype call above
-        return Index(new_values, dtype=new_values.dtype, name=self.name, copy=False)
 
     @cache_readonly
     def _isnan(self) -> npt.NDArray[np.bool_]:

@@ -265,6 +265,18 @@ class TestMethods(BaseNumPyTests, base.BaseMethodsTests):
     def test_diff(self, data, periods):
         return super().test_diff(data, periods)
 
+    def test_insert(self, data, request):
+        if data.dtype.numpy_dtype == object:
+            mark = pytest.mark.xfail(reason="Dimension mismatch in np.concatenate")
+            request.node.add_marker(mark)
+
+        super().test_insert(data)
+
+    @skip_nested
+    def test_insert_invalid(self, data, invalid_scalar):
+        # PandasArray[object] can hold anything, so skip
+        super().test_insert_invalid(data, invalid_scalar)
+
 
 class TestArithmetics(BaseNumPyTests, base.BaseArithmeticOpsTests):
     divmod_exc = None
