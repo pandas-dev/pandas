@@ -1797,7 +1797,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         is_series = data.ndim == 1
 
         def hfunc(bvalues: ArrayLike) -> ArrayLike:
-            # TODO(2DEA): reshape would not be necessary with 2D EAs
+            # TODO(EA2D): reshape would not be necessary with 2D EAs
             if bvalues.ndim == 1:
                 # EA
                 masked = mask & ~isna(bvalues).reshape(1, -1)
