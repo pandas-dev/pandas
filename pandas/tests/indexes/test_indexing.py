@@ -172,7 +172,7 @@ class TestGetValue:
         "index", ["string", "int", "datetime", "timedelta"], indirect=True
     )
     def test_get_value(self, index):
-        # TODO: Remove function? GH#19728
+        # TODO(2.0): can remove once get_value deprecation is enforced GH#19728
         values = np.random.randn(100)
         value = index[67]
 
@@ -320,6 +320,11 @@ def test_maybe_cast_slice_bound_kind_deprecated(index):
             np.array([1, 2], dtype=np.intp),
         ),
         (["a", "b", "a", np.nan], [np.nan], np.array([3], dtype=np.intp)),
+        (
+            np.array(["b", np.nan, float("NaN"), "b"], dtype=object),
+            Index([np.nan], dtype=object),
+            np.array([1, 2], dtype=np.intp),
+        ),
     ],
 )
 def test_get_indexer_non_unique_multiple_nans(idx, target, expected):

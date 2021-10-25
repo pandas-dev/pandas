@@ -19,6 +19,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
+from pandas.core.arrays import ArrowStringArray
 from pandas.core.arrays.string_ import StringDtype
 from pandas.tests.extension import base
 
@@ -159,6 +160,13 @@ class TestMethods(base.BaseMethodsTests):
     def test_value_counts_with_normalize(self, data):
         pass
 
+    def test_insert_invalid(self, data, invalid_scalar, request):
+        if data.dtype.storage == "pyarrow":
+            mark = pytest.mark.xfail(reason="casts invalid_scalar to string")
+            request.node.add_marker(mark)
+
+        super().test_insert_invalid(data, invalid_scalar)
+
 
 class TestCasting(base.BaseCastingTests):
     pass
@@ -186,3 +194,13 @@ class TestPrinting(base.BasePrintingTests):
 
 class TestGroupBy(base.BaseGroupbyTests):
     pass
+
+
+class Test2DCompat(base.Dim2CompatTests):
+    @pytest.fixture(autouse=True)
+    def arrow_not_supported(self, data, request):
+        if isinstance(data, ArrowStringArray):
+            mark = pytest.mark.xfail(
+                reason="2D support not implemented for ArrowStringArray"
+            )
+            request.node.add_marker(mark)

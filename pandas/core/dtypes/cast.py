@@ -77,6 +77,7 @@ from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
     IntervalDtype,
+    PandasDtype,
     PeriodDtype,
 )
 from pandas.core.dtypes.generic import (
@@ -909,9 +910,9 @@ def maybe_upcast(
     """
     new_dtype, fill_value = maybe_promote(values.dtype, fill_value)
     # We get a copy in all cases _except_ (values.dtype == new_dtype and not copy)
-    values = values.astype(new_dtype, copy=copy)
+    upcast_values = values.astype(new_dtype, copy=copy)
 
-    return values, fill_value
+    return upcast_values, fill_value  # type: ignore[return-value]
 
 
 def invalidate_string_dtypes(dtype_set: set[DtypeObj]):
@@ -977,7 +978,7 @@ def astype_dt64_to_dt64tz(
             stacklevel=level,
         )
 
-        # FIXME: GH#33401 this doesn't match DatetimeArray.astype, which
+        # GH#33401 this doesn't match DatetimeArray.astype, which
         #  goes through the `not via_utc` path
         return values.tz_localize("UTC").tz_convert(dtype.tz)
 
@@ -1305,6 +1306,9 @@ def astype_array_safe(
         raise TypeError(msg)
 
     dtype = pandas_dtype(dtype)
+    if isinstance(dtype, PandasDtype):
+        # Ensure we don't end up with a PandasArray
+        dtype = dtype.numpy_dtype
 
     try:
         new_values = astype_array(values, dtype, copy=copy)
@@ -1420,7 +1424,7 @@ def convert_dtypes(
             inferred_dtype = input_array.dtype
 
         if is_string_dtype(inferred_dtype):
-            if not convert_string:
+            if not convert_string or inferred_dtype == "bytes":
                 return input_array.dtype
             else:
                 return pandas_dtype("string")

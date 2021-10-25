@@ -9,7 +9,7 @@ repos:
     -   id: absolufy-imports
         files: ^pandas/
 -   repo: https://github.com/python/black
-    rev: 21.7b0
+    rev: 21.9b0
     hooks:
     -   id: black
 -   repo: https://github.com/codespell-project/codespell
@@ -39,10 +39,11 @@ repos:
     rev: 3.9.2
     hooks:
     -   id: flake8
-        additional_dependencies:
-            - flake8-comprehensions==3.1.0
-            - flake8-bugbear==21.3.2
-            - pandas-dev-flaker==0.2.0
+        additional_dependencies: &flake8_dependencies
+        - flake8==3.9.2
+        - flake8-comprehensions==3.1.0
+        - flake8-bugbear==21.3.2
+        - pandas-dev-flaker==0.2.0
     -   id: flake8
         alias: flake8-cython
         name: flake8 (cython)
@@ -58,7 +59,7 @@ repos:
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v2.23.3
+    rev: v2.29.0
     hooks:
     -   id: pyupgrade
         args: [--py38-plus]
@@ -76,11 +77,18 @@ repos:
     rev: v1.2.3
     hooks:
     -   id: yesqa
-        additional_dependencies:
-            - flake8==3.9.2
-            - flake8-comprehensions==3.1.0
-            - flake8-bugbear==21.3.2
-            - pandas-dev-flaker==0.2.0
+        additional_dependencies: *flake8_dependencies
+-   repo: local
+    hooks:
+    -   id: pyright
+        name: pyright
+        entry: pyright
+        language: node
+        pass_filenames: false
+        types: [python]
+        stages: [manual]
+        # note: keep version in sync with .github/workflows/ci.yml
+        additional_dependencies: ['pyright@1.1.171']
 -   repo: local
     hooks:
     -   id: flake8-rst
@@ -124,6 +132,12 @@ repos:
         entry: 'np\.random\.seed'
         files: ^asv_bench/benchmarks
         exclude: ^asv_bench/benchmarks/pandas_vb_common\.py
+    -   id: np-testing-array-equal
+        name: Check for usage of numpy testing or array_equal
+        language: pygrep
+        entry: '(numpy|np)(\.testing|\.array_equal)'
+        files: ^pandas/tests/
+        types: [python]
     -   id: invalid-ea-testing
         name: Check for invalid EA testing
         language: pygrep

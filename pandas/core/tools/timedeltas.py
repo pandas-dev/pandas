@@ -1,6 +1,7 @@
 """
 timedelta support tools
 """
+from __future__ import annotations
 
 import numpy as np
 
@@ -144,7 +145,7 @@ def to_timedelta(arg, unit=None, errors="raise"):
 
 def _coerce_scalar_to_timedelta_type(r, unit="ns", errors="raise"):
     """Convert string 'r' to a timedelta object."""
-    result: Timedelta | NaTType  # TODO: alias?
+    result: Timedelta | NaTType
 
     try:
         result = Timedelta(r, unit)
