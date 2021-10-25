@@ -185,6 +185,10 @@ class TestPeriodIndexComparisons:
         exp = idx.values < idx.values[10]
         tm.assert_numpy_array_equal(result, exp)
 
+        # Tests Period.__richcmp__ against ndarray[object, ndim=2]
+        result = idx.values.reshape(10, 2) < idx[10]
+        tm.assert_numpy_array_equal(result, exp.reshape(10, 2))
+
     # TODO: moved from test_datetime64; de-duplicate with version below
     def test_parr_cmp_period_scalar2(self, box_with_array):
         xbox = (
