@@ -388,9 +388,6 @@ class BaseArrayManager(DataManager):
             "fillna", value=value, limit=limit, inplace=inplace, downcast=downcast
         )
 
-    def downcast(self: T) -> T:
-        return self.apply_with_block("downcast")
-
     def astype(self: T, dtype, copy: bool = False, errors: str = "raise") -> T:
         return self.apply(astype_array_safe, dtype=dtype, copy=copy, errors=errors)
 
