@@ -565,6 +565,14 @@ cpdef update_blklocs_and_blknos(
     return new_blklocs, new_blknos
 
 
+def _unpickle_block(values, placement, ndim):
+    # We have to do some gymnastics b/c "ndim" is keyword-only
+
+    from pandas.core.internals.blocks import new_block
+
+    return new_block(values, placement, ndim=ndim)
+
+
 @cython.freelist(64)
 cdef class SharedBlock:
     """
@@ -588,14 +596,8 @@ cdef class SharedBlock:
         self.ndim = ndim
 
     cpdef __reduce__(self):
-        # We have to do some gymnastics b/c "ndim" is keyword-only
-        from functools import partial
-
-        from pandas.core.internals.blocks import new_block
-
-        args = (self.values, self.mgr_locs.indexer)
-        func = partial(new_block, ndim=self.ndim)
-        return func, args
+        args = (self.values, self.mgr_locs.indexer, self.ndim)
+        return _unpickle_block, args
 
     cpdef __setstate__(self, state):
         from pandas.core.construction import extract_array
