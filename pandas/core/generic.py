@@ -9899,7 +9899,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
               from the result. To exclude numeric types submit
               ``numpy.number``. To exclude object columns submit the data
               type ``numpy.object``. Strings can also be used in the style of
-              ``select_dtypes`` (e.g. ``df.describe(include=['O'])``). To
+              ``select_dtypes`` (e.g. ``df.describe(exclude=['O'])``). To
               exclude pandas categorical columns, use ``'category'``
             - None (default) : The result will exclude nothing.
         datetime_is_numeric : bool, default False
