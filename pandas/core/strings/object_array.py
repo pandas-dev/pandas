@@ -309,7 +309,11 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         return self._str_map(f)
 
     def _str_split(
-        self, pat: str | re.Pattern | None = None, n=-1, expand=False, regex: bool | None = None
+        self,
+        pat: str | re.Pattern | None = None,
+        n=-1,
+        expand=False,
+        regex: bool | None = None,
     ):
         if pat is None:
             if n is None or n == 0:

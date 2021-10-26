@@ -670,11 +670,11 @@ class StringMethods(NoNewAttributesMixin):
         * If ``False``, return Series/Index, containing lists of strings.
     regex : bool, default None
         * If ``True``, assumes the passed-in pattern is a regular expression
-        * If ``False``, treats the pattern as a literal string
+        * If ``False``, treats the pattern as a literal string.
         * If ``None`` and the pattern length is 1, treats the pattern as a
-        literal string
+        literal string.
         * If ``None`` and the pattern length is not 1, treats the pattern as
-        a regular expression
+        a regular expression.
 
     Returns
     -------
@@ -776,33 +776,33 @@ class StringMethods(NoNewAttributesMixin):
     0          this is a regular sentence        None
     1  https://docs.python.org/3/tutorial  index.html
     2                                 NaN         NaN
-    
+
     Remember to escape special characters when explicitly using regular expressions.
     When `pat` is a string and ``regex=None`` (the default), the given `pat` is compiled
     as a regex only if ``len(pat) != 1``.
 
-    >>> s = pd.Series(['foojpgbar.jpg'])
+    >>> s = pd.Series(['fooojpgbar.jpg'])
     >>> s.str.split(r".", expand=True)
-               0    1
-    0  foojpgbar  jpg
+                0    1
+    0  fooojpgbar  jpg
     >>> s.str.split(r"\.jpg", expand=True)
-               0 1
-    0  foojpgbar
+                0 1
+    0  fooojpgbar
     >>> s.str.split(r".jpg", expand=True)
-        0    1 2
-    0  fo  bar
+         0    1 2
+    0  foo  bar
 
     When ``regex=True``, `pat` is interpreted as a regex
 
     >>> s.str.split(r"\.jpg", regex=True, expand=True)
-               0 1
-    0  foojpgbar
+                0 1
+    0  fooojpgbar
 
     When ``regex=False``, `pat` is interpreted as the string itself
 
     >>> s.str.split(r"\.jpg", regex=False, expand=True)
-                   0
-    0  foojpgbar.jpg
+                    0
+    0  fooojpgbar.jpg
     """
 
     @Appender(_shared_docs["str_split"] % {"side": "beginning", "method": "split"})
