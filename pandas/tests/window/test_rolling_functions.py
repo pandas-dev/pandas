@@ -1,8 +1,13 @@
+from datetime import datetime
+
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import (
     DataFrame,
+    DatetimeIndex,
     Series,
     concat,
     isna,
@@ -316,3 +321,207 @@ def test_center_reindex_frame(frame, roll_func, kwargs, minp, fill_value):
     if fill_value is not None:
         frame_xp = frame_xp.fillna(fill_value)
     tm.assert_frame_equal(frame_xp, frame_rs)
+
+
+@pytest.mark.parametrize(
+    "f",
+    [
+        lambda x: x.rolling(window=10, min_periods=5).cov(x, pairwise=False),
+        lambda x: x.rolling(window=10, min_periods=5).corr(x, pairwise=False),
+        lambda x: x.rolling(window=10, min_periods=5).max(),
+        lambda x: x.rolling(window=10, min_periods=5).min(),
+        lambda x: x.rolling(window=10, min_periods=5).sum(),
+        lambda x: x.rolling(window=10, min_periods=5).mean(),
+        lambda x: x.rolling(window=10, min_periods=5).std(),
+        lambda x: x.rolling(window=10, min_periods=5).var(),
+        lambda x: x.rolling(window=10, min_periods=5).skew(),
+        lambda x: x.rolling(window=10, min_periods=5).kurt(),
+        lambda x: x.rolling(window=10, min_periods=5).quantile(quantile=0.5),
+        lambda x: x.rolling(window=10, min_periods=5).median(),
+        lambda x: x.rolling(window=10, min_periods=5).apply(sum, raw=False),
+        lambda x: x.rolling(window=10, min_periods=5).apply(sum, raw=True),
+        pytest.param(
+            lambda x: x.rolling(win_type="boxcar", window=10, min_periods=5).mean(),
+            marks=td.skip_if_no_scipy,
+        ),
+    ],
+)
+def test_rolling_functions_window_non_shrinkage(f):
+    # GH 7764
+    s = Series(range(4))
+    s_expected = Series(np.nan, index=s.index)
+    df = DataFrame([[1, 5], [3, 2], [3, 9], [-1, 0]], columns=["A", "B"])
+    df_expected = DataFrame(np.nan, index=df.index, columns=df.columns)
+
+    s_result = f(s)
+    tm.assert_series_equal(s_result, s_expected)
+
+    df_result = f(df)
+    tm.assert_frame_equal(df_result, df_expected)
+
+
+def test_rolling_max_gh6297():
+    """Replicate result expected in GH #6297"""
+    indices = [datetime(1975, 1, i) for i in range(1, 6)]
+    # So that we can have 2 datapoints on one of the days
+    indices.append(datetime(1975, 1, 3, 6, 0))
+    series = Series(range(1, 7), index=indices)
+    # Use floats instead of ints as values
+    series = series.map(lambda x: float(x))
+    # Sort chronologically
+    series = series.sort_index()
+
+    expected = Series(
+        [1.0, 2.0, 6.0, 4.0, 5.0],
+        index=DatetimeIndex([datetime(1975, 1, i, 0) for i in range(1, 6)], freq="D"),
+    )
+    x = series.resample("D").max().rolling(window=1).max()
+    tm.assert_series_equal(expected, x)
+
+
+def test_rolling_max_resample():
+
+    indices = [datetime(1975, 1, i) for i in range(1, 6)]
+    # So that we can have 3 datapoints on last day (4, 10, and 20)
+    indices.append(datetime(1975, 1, 5, 1))
+    indices.append(datetime(1975, 1, 5, 2))
+    series = Series(list(range(0, 5)) + [10, 20], index=indices)
+    # Use floats instead of ints as values
+    series = series.map(lambda x: float(x))
+    # Sort chronologically
+    series = series.sort_index()
+
+    # Default how should be max
+    expected = Series(
+        [0.0, 1.0, 2.0, 3.0, 20.0],
+        index=DatetimeIndex([datetime(1975, 1, i, 0) for i in range(1, 6)], freq="D"),
+    )
+    x = series.resample("D").max().rolling(window=1).max()
+    tm.assert_series_equal(expected, x)
+
+    # Now specify median (10.0)
+    expected = Series(
+        [0.0, 1.0, 2.0, 3.0, 10.0],
+        index=DatetimeIndex([datetime(1975, 1, i, 0) for i in range(1, 6)], freq="D"),
+    )
+    x = series.resample("D").median().rolling(window=1).max()
+    tm.assert_series_equal(expected, x)
+
+    # Now specify mean (4+10+20)/3
+    v = (4.0 + 10.0 + 20.0) / 3.0
+    expected = Series(
+        [0.0, 1.0, 2.0, 3.0, v],
+        index=DatetimeIndex([datetime(1975, 1, i, 0) for i in range(1, 6)], freq="D"),
+    )
+    x = series.resample("D").mean().rolling(window=1).max()
+    tm.assert_series_equal(expected, x)
+
+
+def test_rolling_min_resample():
+
+    indices = [datetime(1975, 1, i) for i in range(1, 6)]
+    # So that we can have 3 datapoints on last day (4, 10, and 20)
+    indices.append(datetime(1975, 1, 5, 1))
+    indices.append(datetime(1975, 1, 5, 2))
+    series = Series(list(range(0, 5)) + [10, 20], index=indices)
+    # Use floats instead of ints as values
+    series = series.map(lambda x: float(x))
+    # Sort chronologically
+    series = series.sort_index()
+
+    # Default how should be min
+    expected = Series(
+        [0.0, 1.0, 2.0, 3.0, 4.0],
+        index=DatetimeIndex([datetime(1975, 1, i, 0) for i in range(1, 6)], freq="D"),
+    )
+    r = series.resample("D").min().rolling(window=1)
+    tm.assert_series_equal(expected, r.min())
+
+
+def test_rolling_median_resample():
+
+    indices = [datetime(1975, 1, i) for i in range(1, 6)]
+    # So that we can have 3 datapoints on last day (4, 10, and 20)
+    indices.append(datetime(1975, 1, 5, 1))
+    indices.append(datetime(1975, 1, 5, 2))
+    series = Series(list(range(0, 5)) + [10, 20], index=indices)
+    # Use floats instead of ints as values
+    series = series.map(lambda x: float(x))
+    # Sort chronologically
+    series = series.sort_index()
+
+    # Default how should be median
+    expected = Series(
+        [0.0, 1.0, 2.0, 3.0, 10],
+        index=DatetimeIndex([datetime(1975, 1, i, 0) for i in range(1, 6)], freq="D"),
+    )
+    x = series.resample("D").median().rolling(window=1).median()
+    tm.assert_series_equal(expected, x)
+
+
+def test_rolling_median_memory_error():
+    # GH11722
+    n = 20000
+    Series(np.random.randn(n)).rolling(window=2, center=False).median()
+    Series(np.random.randn(n)).rolling(window=2, center=False).median()
+
+
+@pytest.mark.parametrize(
+    "data_type",
+    [np.dtype(f"f{width}") for width in [4, 8]]
+    + [np.dtype(f"{sign}{width}") for width in [1, 2, 4, 8] for sign in "ui"],
+)
+def test_rolling_min_max_numeric_types(data_type):
+    # GH12373
+
+    # Just testing that these don't throw exceptions and that
+    # the return type is float64. Other tests will cover quantitative
+    # correctness
+    result = DataFrame(np.arange(20, dtype=data_type)).rolling(window=5).max()
+    assert result.dtypes[0] == np.dtype("f8")
+    result = DataFrame(np.arange(20, dtype=data_type)).rolling(window=5).min()
+    assert result.dtypes[0] == np.dtype("f8")
+
+
+@pytest.mark.parametrize(
+    "f",
+    [
+        lambda x: x.rolling(window=10, min_periods=0).count(),
+        lambda x: x.rolling(window=10, min_periods=5).cov(x, pairwise=False),
+        lambda x: x.rolling(window=10, min_periods=5).corr(x, pairwise=False),
+        lambda x: x.rolling(window=10, min_periods=5).max(),
+        lambda x: x.rolling(window=10, min_periods=5).min(),
+        lambda x: x.rolling(window=10, min_periods=5).sum(),
+        lambda x: x.rolling(window=10, min_periods=5).mean(),
+        lambda x: x.rolling(window=10, min_periods=5).std(),
+        lambda x: x.rolling(window=10, min_periods=5).var(),
+        lambda x: x.rolling(window=10, min_periods=5).skew(),
+        lambda x: x.rolling(window=10, min_periods=5).kurt(),
+        lambda x: x.rolling(window=10, min_periods=5).quantile(0.5),
+        lambda x: x.rolling(window=10, min_periods=5).median(),
+        lambda x: x.rolling(window=10, min_periods=5).apply(sum, raw=False),
+        lambda x: x.rolling(window=10, min_periods=5).apply(sum, raw=True),
+        pytest.param(
+            lambda x: x.rolling(win_type="boxcar", window=10, min_periods=5).mean(),
+            marks=td.skip_if_no_scipy,
+        ),
+    ],
+)
+def test_moment_functions_zero_length(f):
+    # GH 8056
+    s = Series(dtype=np.float64)
+    s_expected = s
+    df1 = DataFrame()
+    df1_expected = df1
+    df2 = DataFrame(columns=["a"])
+    df2["a"] = df2["a"].astype("float64")
+    df2_expected = df2
+
+    s_result = f(s)
+    tm.assert_series_equal(s_result, s_expected)
+
+    df1_result = f(df1)
+    tm.assert_frame_equal(df1_result, df1_expected)
+
+    df2_result = f(df2)
+    tm.assert_frame_equal(df2_result, df2_expected)
