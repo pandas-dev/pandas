@@ -125,3 +125,10 @@ def test_equals_none_vs_nan():
     assert ser.equals(ser2)
     assert Index(ser, dtype=ser.dtype).equals(Index(ser2, dtype=ser2.dtype))
     assert ser.array.equals(ser2.array)
+
+def test_equals_None_vs_float():
+    left = Series([-np.inf, np.nan, -1.0, 0.0, 1.0, 10 / 3, np.inf], dtype=object)
+    right = Series([None] * len(left))
+
+    assert not left.equals(right)
+    assert not right.equals(left)

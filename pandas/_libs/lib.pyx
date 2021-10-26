@@ -620,30 +620,39 @@ def array_equivalent_object(left: object[:], right: object[:]) -> bool:
         object x, y
 
     for i in range(n):
+        # print('in array_equivalent_object')
         x = left[i]
         y = right[i]
 
         # we are either not equal or both nan
         # I think None == None will be true here
         try:
+            # print('PyObject_RichCompareBool(x, y, Py_EQ): ' + str(PyObject_RichCompareBool(x, y, Py_EQ)))
+            # print('is_matching_na(x, y, nan_matches_none=True)' + str(is_matching_na(x, y, nan_matches_none=True)))
             if PyArray_Check(x) and PyArray_Check(y):
                 if not array_equivalent_object(x, y):
+                    # print('line 631, returning False, this is the index: ' + str(i))
                     return False
             elif (x is C_NA) ^ (y is C_NA):
+                # print('first elif')
                 return False
             elif not (
                 PyObject_RichCompareBool(x, y, Py_EQ)
                 or is_matching_na(x, y, nan_matches_none=True)
             ):
+                # print('second elif')
                 return False
         except ValueError:
+            # print('raise Value Error')
             # Avoid raising ValueError when comparing Numpy arrays to other types
             if cnp.PyArray_IsAnyScalar(x) != cnp.PyArray_IsAnyScalar(y):
                 # Only compare scalars to scalars and non-scalars to non-scalars
+                # print('cnp.PyArray_IsAnyScalar(x) != cnp.PyArray_IsAnyScalar(y)')
                 return False
             elif (not (cnp.PyArray_IsPythonScalar(x) or cnp.PyArray_IsPythonScalar(y))
                   and not (isinstance(x, type(y)) or isinstance(y, type(x)))):
                 # Check if non-scalars have the same type
+                # print('(not (cnp.PyArray_IsPythonScalar(x) or cnp.PyArray_IsPythonScalar(y)) and not (isinstance(x, type(y)) or isinstance(y, type(x)))):')
                 return False
             raise
     return True
