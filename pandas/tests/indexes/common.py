@@ -36,6 +36,7 @@ from pandas.core.api import (  # noqa:F401
     Int64Index,
     UInt64Index,
 )
+from pandas.core.arrays import BaseMaskedArray
 
 
 class Base:
@@ -298,13 +299,26 @@ class Base:
             result = index_type(index.values, copy=False, **init_kwargs)
             tm.assert_index_equal(result, index)
 
-            if hasattr(index._values, "_mask"):
-                # FIXME: this is specific to MaskedArray
-                tm.assert_numpy_array_equal(index._values._data, result._values._data, check_same="same")
-                tm.assert_numpy_array_equal(index._values._mask, result._values._mask, check_same="same")
+            if isinstance(index._values, BaseMaskedArray):
+                assert np.shares_memory(index._values._data, result._values._data)
+                tm.assert_numpy_array_equal(
+                    index._values._data, result._values._data, check_same="same"
+                )
+                assert np.shares_memory(index._values._mask, result._values._mask)
+                tm.assert_numpy_array_equal(
+                    index._values._mask, result._values._mask, check_same="same"
+                )
+            elif index.dtype == "string[python]":
+                assert np.shares_memory(index._values._ndarray, result._values._ndarray)
+                tm.assert_numpy_array_equal(
+                    index._values._ndarray, result._values._ndarray, check_same="same"
+                )
+            elif index.dtype == "string[pyarrow]":
+                raise NotImplementedError(
+                    "How do we check that we don't have a copy? xref #44152"
+                )
             else:
-                # e.g. string[pyarrow]
-                raise NotImplementedError
+                raise NotImplementedError(index.dtype)
         else:
             result = index_type(index.values, copy=False, **init_kwargs)
             tm.assert_numpy_array_equal(index.values, result.values, check_same="same")
@@ -325,7 +339,9 @@ class Base:
         # RangeIndex, IntervalIndex
         # don't have engines
         # Index[EA] has engine but it does not have a Hashtable .mapping
-        if not isinstance(index, (RangeIndex, IntervalIndex)) and not (type(index) is Index and not isinstance(index.dtype, np.dtype)):
+        if not isinstance(index, (RangeIndex, IntervalIndex)) and not (
+            type(index) is Index and not isinstance(index.dtype, np.dtype)
+        ):
             assert result2 > result
 
         if index.inferred_type == "object":

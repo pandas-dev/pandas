@@ -5993,6 +5993,8 @@ class Index(IndexOpsMixin, PandasObject):
                 result = result.astype(self.dtype, copy=False)
             elif self.dtype == "boolean" and result.inferred_type == "boolean":
                 result = result.astype(self.dtype, copy=False)
+            elif self.dtype == "string" and result.inferred_type == "string":
+                result = result.astype(self.dtype, copy=False)
 
         return result
 

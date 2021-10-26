@@ -446,6 +446,11 @@ class TestSetitem(BaseNumPyTests, base.BaseSetitemTests):
                 expected = pd.DataFrame({"data": data.to_numpy()})
         self.assert_frame_equal(result, expected)
 
+    @skip_nested
+    def test_setitem_invalid(self, data, invalid_scalar):
+        # _nothing_ is invalid for object dtype
+        super().test_setitem_invalid(data, invalid_scalar)
+
 
 @skip_nested
 class TestParsing(BaseNumPyTests, base.BaseParsingTests):
