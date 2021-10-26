@@ -669,11 +669,13 @@ class StringMethods(NoNewAttributesMixin):
         * If ``True``, return DataFrame/MultiIndex expanding dimensionality.
         * If ``False``, return Series/Index, containing lists of strings.
     regex : bool, default None
-        * If ``True``, assumes the passed-in pattern is a regular expression 
+        * If ``True``, assumes the passed-in pattern is a regular expression
         * If ``False``, treats the pattern as a literal string
-        * If ``None`` and the pattern length is 1, treats the pattern as a literal string
-        * If ``None`` and the pattern length is not 1, treats the pattern as a regular expression
-    
+        * If ``None`` and the pattern length is 1, treats the pattern as a
+        literal string
+        * If ``None`` and the pattern length is not 1, treats the pattern as
+        a regular expression
+
     Returns
     -------
     Series, Index, DataFrame or MultiIndex
@@ -774,9 +776,10 @@ class StringMethods(NoNewAttributesMixin):
     0          this is a regular sentence        None
     1  https://docs.python.org/3/tutorial  index.html
     2                                 NaN         NaN
-
-    When `pat` is a string and ``regex=None`` (the default), the given `pat` is compiled as a 
-    regex only if ``len(pat) != 1``. 
+    
+    Remember to escape special characters when explicitly using regular expressions.
+    When `pat` is a string and ``regex=None`` (the default), the given `pat` is compiled
+    as a regex only if ``len(pat) != 1``.
 
     >>> s = pd.Series(['foojpgbar.jpg'])
     >>> s.str.split(r".", expand=True)
@@ -784,19 +787,19 @@ class StringMethods(NoNewAttributesMixin):
     0  foojpgbar  jpg
     >>> s.str.split(r"\.jpg", expand=True)
                0 1
-    0  foojpgbar  
+    0  foojpgbar
     >>> s.str.split(r".jpg", expand=True)
         0    1 2
-    0  fo  bar  
+    0  fo  bar
 
     When ``regex=True``, `pat` is interpreted as a regex
-    
+
     >>> s.str.split(r"\.jpg", regex=True, expand=True)
                0 1
-    0  foojpgbar  
-    
+    0  foojpgbar
+
     When ``regex=False``, `pat` is interpreted as the string itself
-    
+
     >>> s.str.split(r"\.jpg", regex=False, expand=True)
                    0
     0  foojpgbar.jpg
@@ -804,7 +807,13 @@ class StringMethods(NoNewAttributesMixin):
 
     @Appender(_shared_docs["str_split"] % {"side": "beginning", "method": "split"})
     @forbid_nonstring_types(["bytes"])
-    def split(self, pat: str | re.Pattern = None, n=-1, expand=False, regex: bool | None = None):
+    def split(
+        self,
+        pat: str | re.Pattern | None = None,
+        n=-1,
+        expand=False,
+        regex: bool | None = None,
+    ):
         result = self._data.array._str_split(pat, n, expand, regex)
         return self._wrap_result(result, returns_string=expand, expand=expand)
 
