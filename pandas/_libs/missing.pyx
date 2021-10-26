@@ -59,23 +59,16 @@ cpdef bint is_matching_na(object left, object right, bint nan_matches_none=False
     bool
     """
     if left is None:
-        # print('is matching na left is None')
         if nan_matches_none and util.is_nan(right):
             return True
         return right is None
     elif left is C_NA:
-        # print('is matching na left is C_NA')
         return right is C_NA
     elif left is NaT:
-        # print('is matching na left is NaT')
         return right is NaT
     elif util.is_float_object(left):
-        # print('is matching na left is float object')
         if nan_matches_none and right is None and util.is_nan(left):
-            # print('is matching na left is float and right is None: actually right is ' + str(right))
             return True
-        # print('is matching na left is float and right is NOT None')
-        # print('str(util.is_nan(left)): ' + str(str(util.is_nan(left))) + ' util.is_float_object(right) ' + str(util.is_float_object(right)) + ' util.is_nan(right) ' + str(util.is_nan(right)))
         return (
             util.is_nan(left)
             and util.is_float_object(right)
