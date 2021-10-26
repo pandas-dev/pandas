@@ -49,7 +49,6 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_extension_array_dtype,
     is_list_like,
-    is_sparse,
     is_string_dtype,
 )
 from pandas.core.dtypes.dtypes import (
@@ -1618,34 +1617,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
             # for the type
             other = self.dtype.na_value
 
-        if is_sparse(self.values):
-            # TODO(SparseArray.__setitem__): remove this if condition
-            # We need to re-infer the type of the data after doing the
-            # where, for cases where the subtypes don't match
-            dtype = None
-        else:
-            dtype = self.dtype
-
-        result = self.values.copy()
-        icond = ~cond
-        if lib.is_scalar(other):
-            set_other = other
-        else:
-            set_other = other[icond]
-        try:
-            result[icond] = set_other
-        except (NotImplementedError, TypeError):
-            # NotImplementedError for class not implementing `__setitem__`
-            # TypeError for SparseArray, which implements just to raise
-            # a TypeError
-            if isinstance(result, Categorical):
-                # TODO: don't special-case
-                raise
-
-            result = type(self.values)._from_sequence(
-                np.where(cond, self.values, other), dtype=dtype
-            )
-
+        result = self.values._where(cond, other)
         return [self.make_block_same_class(result)]
 
     def _unstack(
@@ -1736,7 +1708,7 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
         cond = extract_bool_array(cond)
 
         try:
-            res_values = arr.T.where(cond, other).T
+            res_values = arr.T._where(cond, other).T
         except (ValueError, TypeError):
             return Block.where(self, other, cond, errors=errors)
 

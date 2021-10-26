@@ -508,7 +508,7 @@ def test_where_datetimelike_categorical(tz_naive_fixture):
     tm.assert_index_equal(res, dr)
 
     # DatetimeArray.where
-    res = lvals._data.where(mask, rvals)
+    res = lvals._data._where(mask, rvals)
     tm.assert_datetime_array_equal(res, dr._data)
 
     # Series.where
