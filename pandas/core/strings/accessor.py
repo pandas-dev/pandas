@@ -668,7 +668,12 @@ class StringMethods(NoNewAttributesMixin):
 
         * If ``True``, return DataFrame/MultiIndex expanding dimensionality.
         * If ``False``, return Series/Index, containing lists of strings.
+
     regex : bool, default None
+        Determines whether to handle the pattern as a regular expression.
+        If ``pat`` is a compiled regular expression, it is interpreted as a
+        regular expression regardless of ``regex``
+
         * If ``True``, assumes the passed-in pattern is a regular expression
         * If ``False``, treats the pattern as a literal string.
         * If ``None`` and the pattern length is 1, treats the pattern as a
