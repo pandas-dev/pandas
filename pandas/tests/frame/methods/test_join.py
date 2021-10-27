@@ -328,23 +328,14 @@ class TestDataFrameJoin:
         date = pd.Timestamp(2000, 1, 1).date()
 
         # creates dataframes
-        df1 = DataFrame({"index_0": 0, "date": date, "col1": [0]})
-        df2 = DataFrame({"index_0": 0, "date": date, "col2": [0]})
-        df1 = df1.groupby(by=["index_0", "date"]).first()
-        df2 = df2.groupby(by=["index_0", "date"]).first()
+        df1 = DataFrame({"index_0": int(0), "date": date, "col1": [2]})
+        df2 = DataFrame({"col2": [3]})
 
         multi_index = MultiIndex.from_tuples([(0, date)], names=["index_0", "date"])
-        df3 = DataFrame(index=multi_index, columns=["col3"], data=[0])
+        df3 = DataFrame(index=multi_index, columns=["col3"], data=[4])
 
-        expected = (
-            DataFrame(
-                {"index_0": 0, "date": date, "col1": [0], "col2": [0], "col3": [0]}
-            )
-            .groupby(by=["index_0", "date"])
-            .first()
-        )
-        result = df1.join([df2, df3])
-        tm.assert_equal(result, expected)
+        # if fails, raises error
+        df1.join([df2, df3])
 
     def test_merge_join_different_levels(self):
         # GH#9455
