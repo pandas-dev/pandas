@@ -1510,7 +1510,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         return Series(self._values.copy(), index=index, name=name)
 
-    def to_frame(self, index: bool = True, name: Hashable = None) -> DataFrame:
+    def to_frame(
+        self, index: bool = True, name: Hashable = lib.no_default
+    ) -> DataFrame:
         """
         Create a DataFrame with a column containing the Index.
 
@@ -1561,7 +1563,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         from pandas import DataFrame
 
-        if name is None:
+        if name is lib.no_default:
             name = self.name or 0
         result = DataFrame({name: self._values.copy()})
 
