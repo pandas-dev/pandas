@@ -48,6 +48,7 @@ from pandas.core.dtypes.common import (
     is_1d_only_ea_obj,
     is_dtype_equal,
     is_extension_array_dtype,
+    is_interval_dtype,
     is_list_like,
     is_sparse,
     is_string_dtype,
@@ -1440,7 +1441,21 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
             # TODO(EA2D): unnecessary with 2D EAs
             mask = mask.reshape(new_values.shape)
 
-        new_values[mask] = new
+        try:
+            new_values[mask] = new
+        except TypeError:
+            if not is_interval_dtype(self.dtype):
+                # Discussion about what we want to support in the general
+                #  case GH#39584
+                raise
+
+            blk = self.coerce_to_target_dtype(new)
+            if blk.dtype == _dtype_obj:
+                # For now at least, only support casting e.g.
+                #  Interval[int64]->Interval[float64],
+                raise
+            return blk.putmask(mask, new)
+
         nb = type(self)(new_values, placement=self._mgr_locs, ndim=self.ndim)
         return [nb]
 
@@ -1477,12 +1492,8 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         be a compatible shape.
         """
         if not self._can_hold_element(value):
-            # This is only relevant for DatetimeTZBlock, PeriodDtype, IntervalDtype,
-            #  which has a non-trivial `_can_hold_element`.
-            # https://github.com/pandas-dev/pandas/issues/24020
-            # Need a dedicated setitem until GH#24020 (type promotion in setitem
-            #  for extension arrays) is designed and implemented.
-            return self.astype(_dtype_obj).setitem(indexer, value)
+            # see TestSetitemFloatIntervalWithIntIntervalValues
+            return self.coerce_to_target_dtype(value).setitem(indexer, value)
 
         if isinstance(indexer, tuple):
             # TODO(EA2D): not needed with 2D EAs
@@ -1641,6 +1652,15 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
             if isinstance(result, Categorical):
                 # TODO: don't special-case
                 raise
+
+            if is_interval_dtype(self.dtype):
+                # TestSetitemFloatIntervalWithIntIntervalValues
+                blk = self.coerce_to_target_dtype(other)
+                if blk.dtype == _dtype_obj:
+                    # For now at least only support casting e.g.
+                    #  Interval[int64]->Interval[float64]
+                    raise
+                return blk.where(other, cond, errors)
 
             result = type(self.values)._from_sequence(
                 np.where(cond, self.values, other), dtype=dtype
