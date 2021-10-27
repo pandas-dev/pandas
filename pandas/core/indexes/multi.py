@@ -82,6 +82,7 @@ from pandas.core.indexes.base import (
     ensure_index,
     get_unanimous_names,
 )
+from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.frozen import FrozenList
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops.invalid import make_invalid_op
@@ -1637,6 +1638,8 @@ class MultiIndex(Index):
         if unique:
             level_codes = algos.unique(level_codes)
         filled = algos.take_nd(lev._values, level_codes, fill_value=lev._na_value)
+        if not type(filled) == type(lev) and type(filled) == DatetimeIndex:
+            return filled.rename(name=name)
         return lev._shallow_copy(filled, name=name)
 
     def get_level_values(self, level):
@@ -1673,13 +1676,6 @@ class MultiIndex(Index):
         """
         level = self._get_level_number(level)
         values = self._get_level_values(level)
-        from pandas import to_datetime
-
-        try:
-            values = to_datetime(values)
-        except ValueError:
-            pass
-
         return values
 
     @doc(Index.unique)

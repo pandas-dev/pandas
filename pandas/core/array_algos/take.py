@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date
 import functools
 from typing import (
     TYPE_CHECKING,
@@ -94,7 +95,10 @@ def take_nd(
     """
     if fill_value is lib.no_default:
         fill_value = na_value_for_dtype(arr.dtype, compat=False)
+    if all(isinstance(x, date) for x in arr):
+        from pandas import to_datetime
 
+        return to_datetime(arr)
     if not isinstance(arr, np.ndarray):
         # i.e. ExtensionArray,
         # includes for EA to catch DatetimeArray, TimedeltaArray
