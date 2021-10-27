@@ -6359,9 +6359,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     raise NotImplementedError()
                 result = self.T.fillna(method=method, limit=limit).T
 
-                # need to downcast here because of all of the transposes
-                result._mgr = result._mgr.downcast()
-
                 return result
 
             new_data = self._mgr.interpolate(
@@ -6414,9 +6411,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 if not self._mgr.is_single_block and axis == 1:
 
                     result = self.T.fillna(value=value, limit=limit).T
-
-                    # need to downcast here because of all of the transposes
-                    result._mgr = result._mgr.downcast()
 
                     new_data = result
                 else:
