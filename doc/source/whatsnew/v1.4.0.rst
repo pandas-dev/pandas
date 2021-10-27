@@ -95,7 +95,7 @@ Validation now for ``caption`` arg (:issue:`43368`)
 Multithreaded CSV reading with a new CSV Engine based on pyarrow
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:func:`pandas.read_csv` now accepts ``engine="pyarrow"`` (requires at least ``pyarrow`` 0.17.0) as an argument, allowing for faster csv parsing on multicore machines
+:func:`pandas.read_csv` now accepts ``engine="pyarrow"`` (requires at least ``pyarrow`` 1.0.1) as an argument, allowing for faster csv parsing on multicore machines
 with pyarrow installed. See the :doc:`I/O docs </user_guide/io>` for more info. (:issue:`23697`, :issue:`43706`)
 
 .. _whatsnew_140.enhancements.window_rank:
