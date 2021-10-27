@@ -206,9 +206,10 @@ class CParserWrapper(ParserBase):
         """
         assert self.orig_names is not None
         # error: Cannot determine type of 'names'
-        col_indices = [
-            self.orig_names.index(x) for x in self.names  # type: ignore[has-type]
-        ]
+
+        # much faster than using orig_names.index(x) xref GH#44106
+        names_dict = {x: i for i, x in enumerate(self.orig_names)}
+        col_indices = [names_dict[x] for x in self.names]  # type: ignore[has-type]
         # error: Cannot determine type of 'names'
         noconvert_columns = self._set_noconvert_dtype_columns(
             col_indices,
