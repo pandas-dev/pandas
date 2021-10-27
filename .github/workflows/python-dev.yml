@@ -25,17 +25,13 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macOS-latest, windows-latest]
-        include:
-          - name: tests_1
-            pytest_target: "pandas/tests/[a-h]*"
-          - name: tests_2
-            pytest_target: "pandas/tests/[i-z]*"  
+        pytest_target: ["pandas/tests/[a-h]*", "pandas/tests/[i-z]*"]
 
     name: actions-310-dev
     timeout-minutes: 80
 
     concurrency:
-      group: ${{ github.ref }}-${{ matrix.os }}-${{ matrix.name }}-dev
+      group: ${{ github.ref }}-${{ matrix.os }}-${{ matrix.pytest_target }}-dev
       cancel-in-progress: ${{github.event_name == 'pull_request'}}
 
     steps:
