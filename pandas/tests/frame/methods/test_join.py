@@ -323,6 +323,29 @@ class TestDataFrameJoin:
         tm.assert_frame_equal(df1.join(df2, how="right"), exp)
         tm.assert_frame_equal(df2.join(df1, how="left"), exp[["value2", "value1"]])
 
+    def test_join_multiindex_dates(self):
+        # GH 33692
+        date = pd.Timestamp(2000, 1, 1).date()
+
+        # creates dataframes
+        df1 = DataFrame({"index_0": 0, "date": date, "col1": [0]})
+        df2 = DataFrame({"index_0": 0, "date": date, "col2": [0]})
+        df1 = df1.groupby(by=["index_0", "date"]).first()
+        df2 = df2.groupby(by=["index_0", "date"]).first()
+
+        multi_index = MultiIndex.from_tuples([(0, date)], names=["index_0", "date"])
+        df3 = DataFrame(index=multi_index, columns=["col3"], data=[0])
+
+        expected = (
+            DataFrame(
+                {"index_0": 0, "date": date, "col1": [0], "col2": [0], "col3": [0]}
+            )
+            .groupby(by=["index_0", "date"])
+            .first()
+        )
+        result = df1.join([df2, df3])
+        tm.assert_equal(result, expected)
+
     def test_merge_join_different_levels(self):
         # GH#9455
 
