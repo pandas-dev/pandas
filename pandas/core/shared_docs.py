@@ -535,13 +535,13 @@ _shared_docs[
 
     **Scalar `to_replace` and `value`**
 
-    >>> s = pd.Series([0, 1, 2, 3, 4])
-    >>> s.replace(0, 5)
+    >>> s = pd.Series([1, 2, 3, 4, 5])
+    >>> s.replace(1, 5)
     0    5
-    1    1
-    2    2
-    3    3
-    4    4
+    1    2
+    2    3
+    3    4
+    4    5
     dtype: int64
 
     >>> df = pd.DataFrame({{'A': [0, 1, 2, 3, 4],
@@ -574,11 +574,11 @@ _shared_docs[
     4  4  9  e
 
     >>> s.replace([1, 2], method='bfill')
-    0    0
+    0    3
     1    3
     2    3
-    3    3
-    4    4
+    3    4
+    4    5
     dtype: int64
 
     **dict-like `to_replace`**
