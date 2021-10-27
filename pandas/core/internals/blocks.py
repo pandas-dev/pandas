@@ -509,54 +509,24 @@ class Block(PandasObject):
                 [blk.convert(datetime=True, numeric=False) for blk in blocks]
             )
 
-        # no need to downcast our float
-        # unless indicated
-        if downcast is None and self.dtype.kind in ["f", "c", "m", "M"]:
-            # passing "infer" to maybe_downcast_to_dtype (via self.downcast)
-            #  would be a no-op, so we can short-circuit
+        if downcast is None:
+            return blocks
+        if downcast is False:
+            # turn if off completely
+            # TODO: not reached, deprecate in favor of downcast=None
             return blocks
 
-        return extend_blocks([b.downcast(downcast) for b in blocks])
+        return extend_blocks([b._downcast_2d(downcast) for b in blocks])
 
     @final
-    def downcast(self, dtypes=None) -> list[Block]:
-        """try to downcast each item to the dict of dtypes if present"""
-        # turn it off completely
-        if dtypes is False:
-            return [self]
-
-        values = self.values
-
-        if self.ndim == 1:
-
-            # try to cast all non-floats here
-            if dtypes is None:
-                dtypes = "infer"
-
-            nv = maybe_downcast_to_dtype(values, dtypes)
-            return [self.make_block(nv)]
-
-        # ndim > 1
-        if dtypes is None:
-            return [self]
-
-        if not (dtypes == "infer" or isinstance(dtypes, dict)):
-            raise ValueError(
-                "downcast must have a dictionary or 'infer' as its argument"
-            )
-        elif dtypes != "infer":
-            raise AssertionError("dtypes as dict is not supported yet")
-
-        return self._downcast_2d()
-
     @maybe_split
-    def _downcast_2d(self) -> list[Block]:
+    def _downcast_2d(self, dtype) -> list[Block]:
         """
         downcast specialized to 2D case post-validation.
 
         Refactored to allow use of maybe_split.
         """
-        new_values = maybe_downcast_to_dtype(self.values, dtype="infer")
+        new_values = maybe_downcast_to_dtype(self.values, dtype=dtype)
         return [self.make_block(new_values)]
 
     @final
@@ -1101,8 +1071,8 @@ class Block(PandasObject):
             **kwargs,
         )
 
-        nbs = [self.make_block_same_class(interp_values)]
-        return self._maybe_downcast(nbs, downcast)
+        nb = self.make_block_same_class(interp_values)
+        return nb._maybe_downcast([nb], downcast)
 
     def take_nd(
         self,
