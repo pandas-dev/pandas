@@ -8,7 +8,7 @@ import pandas._testing as tm
 
 class TestToFrame:
     def test_to_frame_respects_name_none(self):
-        # if we explicitly pass name=None, then that should be respected,
+        # GH#44212 if we explicitly pass name=None, then that should be respected,
         #  not changed to 0
         ser = Series(range(3))
         result = ser.to_frame(None)
