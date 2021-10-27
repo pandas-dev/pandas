@@ -1,5 +1,4 @@
-import datetime as dt
-from datetime import datetime
+from datetime import datetime, date
 
 import numpy as np
 import pytest
@@ -185,7 +184,7 @@ def test_reset_index_dtypes_on_empty_series_with_multiindex(array, dtype):
 def test_set_index_MultiIndex():
     df = DataFrame(
         {
-            "date": [dt.date(2021, 8, 1), dt.date(2021, 8, 2), dt.date(2021, 8, 3)],
+            "date": [date(2021, 8, 1), date(2021, 8, 2), date(2021, 8, 3)],
             "ticker": ["aapl", "goog", "yhoo"],
             "value": [5.63269, 4.45609, 2.74843],
         }
