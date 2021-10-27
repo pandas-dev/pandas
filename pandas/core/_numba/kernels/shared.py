@@ -2,7 +2,7 @@ import numba
 import numpy as np
 
 
-@numba.jit(nopython=True, nogil=True, parallel=False)
+@numba.jit(numba.boolean(numba.int64[:]), nopython=True, nogil=True, parallel=False)
 def is_monotonic_increasing(bounds: np.ndarray) -> bool:
     """Check if int64 values are monotonically increasing."""
     n = len(bounds)
