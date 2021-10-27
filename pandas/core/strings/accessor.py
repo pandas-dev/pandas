@@ -657,7 +657,7 @@ class StringMethods(NoNewAttributesMixin):
 
     Parameters
     ----------
-    pat : str, or compiled regex optional
+    pat : str, or compiled regex, optional
         String or regular expression to split on.
         If not specified, split on whitespace.
     n : int, default -1 (all)
@@ -676,10 +676,8 @@ class StringMethods(NoNewAttributesMixin):
 
         * If ``True``, assumes the passed-in pattern is a regular expression
         * If ``False``, treats the pattern as a literal string.
-        * If ``None`` and the pattern length is 1, treats the pattern as a
-        literal string.
-        * If ``None`` and the pattern length is not 1, treats the pattern as
-        a regular expression.
+        * If ``None`` and `pat` length is 1, treats `pat` as a literal string.
+        * If ``None`` and `pat` length is not 1, treats `pat` as a regular expression.
 
     Returns
     -------
@@ -783,31 +781,36 @@ class StringMethods(NoNewAttributesMixin):
     2                                 NaN         NaN
 
     Remember to escape special characters when explicitly using regular expressions.
+
+    >>> s = pd.Series(["foo and bar plus baz"])
+    >>> s.str.split(r"and|plus", expand=True)
+        0   1   2
+    0 foo bar baz
+
+    Regular expressions can be used to handle urls or file names.
     When `pat` is a string and ``regex=None`` (the default), the given `pat` is compiled
     as a regex only if ``len(pat) != 1``.
 
-    >>> s = pd.Series(['fooojpgbar.jpg'])
+    >>> s = pd.Series(['foojpgbar.jpg'])
     >>> s.str.split(r".", expand=True)
-                0    1
-    0  fooojpgbar  jpg
+               0    1
+    0  foojpgbar  jpg
+
     >>> s.str.split(r"\.jpg", expand=True)
-                0 1
-    0  fooojpgbar
-    >>> s.str.split(r".jpg", expand=True)
-         0    1 2
-    0  foo  bar
+               0 1
+    0  foojpgbar
 
     When ``regex=True``, `pat` is interpreted as a regex
 
     >>> s.str.split(r"\.jpg", regex=True, expand=True)
-                0 1
-    0  fooojpgbar
+               0 1
+    0  foojpgbar
 
     When ``regex=False``, `pat` is interpreted as the string itself
 
     >>> s.str.split(r"\.jpg", regex=False, expand=True)
-                    0
-    0  fooojpgbar.jpg
+                   0
+    0  foojpgbar.jpg
     """
 
     @Appender(_shared_docs["str_split"] % {"side": "beginning", "method": "split"})
