@@ -574,9 +574,9 @@ _shared_docs[
     4  4  9  e
 
     >>> s.replace([1, 2], method='bfill')
-    0    1
-    1    4
-    2    4
+    0    3
+    1    3
+    2    3
     3    4
     4    5
     dtype: int64
