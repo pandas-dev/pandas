@@ -511,8 +511,9 @@ class Block(PandasObject):
 
         # no need to downcast our float
         # unless indicated
-        if downcast is None and self.dtype.kind in ["f", "m", "M"]:
-            # TODO: complex?  more generally, self._can_hold_na?
+        if downcast is None and self.dtype.kind in ["f", "c", "m", "M"]:
+            # passing "infer" to maybe_downcast_to_dtype (via self.downcast)
+            #  would be a no-op, so we can short-circuit
             return blocks
 
         return extend_blocks([b.downcast(downcast) for b in blocks])
