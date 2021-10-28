@@ -328,7 +328,6 @@ def _get_values(
         if mask.any():
             if dtype_ok or datetimelike:
                 values = values.copy()
-                # np.putmask(values, mask, NaT)
                 np.putmask(values, mask, fill_value)
             else:
                 # np.where will promote if needed
@@ -1062,8 +1061,6 @@ def _nanminmax(meth, fill_value_typ):
 
 nanmin = _nanminmax("min", fill_value_typ="+inf")
 nanmax = _nanminmax("max", fill_value_typ="-inf")
-nanmaxtz = _nanminmax("max", fill_value_typ=NaT)
-nanmintz = _nanminmax("min", fill_value_typ=NaT)
 
 
 @disallow("O")
