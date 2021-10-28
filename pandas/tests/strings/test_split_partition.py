@@ -38,24 +38,24 @@ def test_split(any_string_dtype):
 def test_split_regex(any_string_dtype):
     # GH 43563
     # explicit regex = True split
-    values = Series("qweqwejpgqweqwe.jpg", dtype=any_string_dtype)
+    values = Series("foo-jpg-bar.jpg", dtype=any_string_dtype)
     result = values.str.split(r"\.jpg", regex=True)
-    exp = Series([["qweqwejpgqweqwe", ""]])
+    exp = Series([["foo-jpg-bar", ""]])
     tm.assert_series_equal(result, exp)
 
     # explicit regex = False split
     result = values.str.split(r"\.jpg", regex=False)
-    exp = Series([["qweqwejpgqweqwe.jpg"]])
+    exp = Series([["foo-jpg-bar.jpg"]])
     tm.assert_series_equal(result, exp)
 
     # non explicit regex split, pattern length == 1
     result = values.str.split(r".")
-    exp = Series([["qweqwejpgqweqwe", "jpg"]])
+    exp = Series([["foo-jpg-bar", "jpg"]])
     tm.assert_series_equal(result, exp)
 
     # non explicit regex split, pattern length != 1
     result = values.str.split(r".jpg")
-    exp = Series([["qweqw", "qweqwe", ""]])
+    exp = Series([["foo", "-bar", ""]])
     tm.assert_series_equal(result, exp)
 
 
