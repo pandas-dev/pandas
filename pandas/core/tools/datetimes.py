@@ -692,44 +692,6 @@ def to_datetime(
     This function converts a scalar, array-like, :class:`Series` or
     :class:`DataFrame`/dict-like to a pandas datetime object.
 
-    - scalars can be int, float, str, datetime object (from stdlib datetime
-      module or numpy). They are converted to :class:`Timestamp` when possible,
-      otherwise they are converted to ``datetime.datetime``. None/NaN/null
-      scalars are converted to ``NaT``.
-
-    - array-like can contain int, float, str, datetime objects. They are
-      converted to :class:`DatetimeIndex` when possible, otherwise they are
-      converted to :class:`Index` with object dtype, containing
-      ``datetime.datetime``. None/NaN/null entries are converted to ``NaT`` in
-      both cases.
-
-    - :class:`Series` are converted to :class:`Series` with datetime64 dtype
-      when possible, otherwise they are converted to :class:`Series` with
-      object dtype, containing ``datetime.datetime``. None/NaN/null entries
-      are converted to ``NaT`` in both cases.
-
-    - :class:`DataFrame`/dict-like are converted to :class:`Series` with
-      datetime64 dtype. For each row a datetime is created from assembling
-      the various dataframe columns. Column keys can be common abbreviations
-      like [‘year’, ‘month’, ‘day’, ‘minute’, ‘second’, ‘ms’, ‘us’, ‘ns’]) or
-      plurals of the same.
-
-    The following causes are responsible for datetime.datetime objects being
-    returned (possibly inside an Index or a Series with object dtype) instead
-    of a proper pandas designated type (Timestamp, DatetimeIndex or Series
-    with datetime64 dtype):
-
-    - when any input element is before Timestamp.min or after Timestamp.max,
-      see `timestamp limitations
-      <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html
-      #timeseries-timestamp-limits>`_.
-
-    - when utc=False (default) and the input is an array-like or Series
-      containing mixed naive/aware datetime, or aware with mixed time offsets.
-      Note that this happens in the (quite frequent) situation when the
-      timezone has a daylight savings policy. In that case you may wish to
-      use utc=True.
-
     Parameters
     ----------
     arg : int, float, str, datetime, list, tuple, 1-d array, Series, DataFrame/dict-like
@@ -861,6 +823,49 @@ def to_datetime(
     DataFrame.astype : Cast argument to a specified dtype.
     to_timedelta : Convert argument to timedelta.
     convert_dtypes : Convert dtypes.
+
+    Notes
+    -----
+
+    Many input types are supported, and lead to different output types:
+
+    - scalars can be int, float, str, datetime object (from stdlib datetime
+      module or numpy). They are converted to :class:`Timestamp` when possible,
+      otherwise they are converted to ``datetime.datetime``. None/NaN/null
+      scalars are converted to ``NaT``.
+
+    - array-like can contain int, float, str, datetime objects. They are
+      converted to :class:`DatetimeIndex` when possible, otherwise they are
+      converted to :class:`Index` with object dtype, containing
+      ``datetime.datetime``. None/NaN/null entries are converted to ``NaT`` in
+      both cases.
+
+    - :class:`Series` are converted to :class:`Series` with datetime64 dtype
+      when possible, otherwise they are converted to :class:`Series` with
+      object dtype, containing ``datetime.datetime``. None/NaN/null entries
+      are converted to ``NaT`` in both cases.
+
+    - :class:`DataFrame`/dict-like are converted to :class:`Series` with
+      datetime64 dtype. For each row a datetime is created from assembling
+      the various dataframe columns. Column keys can be common abbreviations
+      like [‘year’, ‘month’, ‘day’, ‘minute’, ‘second’, ‘ms’, ‘us’, ‘ns’]) or
+      plurals of the same.
+
+    The following causes are responsible for datetime.datetime objects being
+    returned (possibly inside an Index or a Series with object dtype) instead
+    of a proper pandas designated type (Timestamp, DatetimeIndex or Series
+    with datetime64 dtype):
+
+    - when any input element is before Timestamp.min or after Timestamp.max,
+      see `timestamp limitations
+      <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html
+      #timeseries-timestamp-limits>`_.
+
+    - when utc=False (default) and the input is an array-like or Series
+      containing mixed naive/aware datetime, or aware with mixed time offsets.
+      Note that this happens in the (quite frequent) situation when the
+      timezone has a daylight savings policy. In that case you may wish to
+      use utc=True.
 
     Examples
     --------
