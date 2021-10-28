@@ -1638,8 +1638,6 @@ class MultiIndex(Index):
         if unique:
             level_codes = algos.unique(level_codes)
         filled = algos.take_nd(lev._values, level_codes, fill_value=lev._na_value)
-        if not type(filled) == type(lev) and type(filled) == DatetimeIndex:
-            return filled.rename(name=name)
         return lev._shallow_copy(filled, name=name)
 
     def get_level_values(self, level):
