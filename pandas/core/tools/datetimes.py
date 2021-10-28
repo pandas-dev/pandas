@@ -837,17 +837,14 @@ def to_datetime(
     -------
     datetime
         If parsing succeeded.
-        Return type depends on input:
+        Return type depends on input (types in parenthesis correspond to
+        timezone handling issues):
 
-        - scalar: Timestamp
-        - array-like: DatetimeIndex
-        - Series or DataFrame: Series of datetime64 dtype
-
-        Note: in some situations the return type can not be one of the above
-        and is rather datetime.datetime (scalar input) or Series with object
-        dtype containing datetime.datetime objects (array-like or Series
-        input). See above documentation for details, as well as examples
-        below.
+        - scalar: Timestamp (or datetime.datetime)
+        - array-like: DatetimeIndex (or Series with object dtype containing
+          datetime.datetime)
+        - Series or DataFrame: Series of datetime64 dtype (or Series or object
+          dtype containing datetime.datetime)
 
     Raises
     ------
