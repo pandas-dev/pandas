@@ -152,6 +152,7 @@ class bottleneck_switch:
                 else:
                     result = alt(values, axis=axis, skipna=skipna, **kwds)
             else:
+                import pdb; pdb.set_trace()
                 result = alt(values, axis=axis, skipna=skipna, **kwds)
 
             return result
@@ -328,6 +329,7 @@ def _get_values(
         if mask.any():
             if dtype_ok or datetimelike:
                 values = values.copy()
+                # np.putmask(values, mask, NaT)
                 np.putmask(values, mask, fill_value)
             else:
                 # np.where will promote if needed
@@ -404,9 +406,11 @@ def _datetimelike_compat(func: F) -> F:
         orig_values = values
 
         datetimelike = values.dtype.kind in ["m", "M"]
+        mask = isna(values)
         if datetimelike and mask is None:
             mask = isna(values)
 
+        import pdb; pdb.set_trace()
         result = func(values, axis=axis, skipna=skipna, mask=mask, **kwargs)
 
         if datetimelike:
@@ -1027,7 +1031,7 @@ def _nanminmax(meth, fill_value_typ):
         skipna: bool = True,
         mask: npt.NDArray[np.bool_] | None = None,
     ) -> Dtype:
-
+        import pdb; pdb.set_trace()
         values, mask, dtype, dtype_max, fill_value = _get_values(
             values, skipna, fill_value_typ=fill_value_typ, mask=mask
         )
@@ -1039,7 +1043,17 @@ def _nanminmax(meth, fill_value_typ):
             except (AttributeError, TypeError, ValueError):
                 result = np.nan
         else:
-            result = getattr(values, meth)(axis)
+            import pdb; pdb.set_trace()
+            try:
+                result = getattr(values, meth)(axis)
+            except TypeError:
+                from pandas.api.types import is_float
+                vfunc = np.vectorize(lambda x:  is_float(x))
+                new_vals = np.where(vfunc(values), NaT, values)
+                print('hi')
+
+
+
 
         result = _maybe_null_out(result, axis, mask, values.shape)
         return result
@@ -1049,6 +1063,8 @@ def _nanminmax(meth, fill_value_typ):
 
 nanmin = _nanminmax("min", fill_value_typ="+inf")
 nanmax = _nanminmax("max", fill_value_typ="-inf")
+nanmaxtz = _nanminmax("max", fill_value_typ=NaT)
+nanmintz = _nanminmax("min", fill_value_typ=NaT)
 
 
 @disallow("O")

@@ -9956,6 +9956,7 @@ NaN 12.3   33.0
 
         def func(values: np.ndarray):
             # We only use this in the case that operates on self.values
+            # import pdb; pdb.set_trace()
             return op(values, axis=axis, skipna=skipna, **kwds)
 
         def blk_func(values, axis=1):
@@ -10025,6 +10026,7 @@ NaN 12.3   33.0
         values = data.values
 
         try:
+            import pdb; pdb.set_trace()
             result = func(values)
 
         except TypeError:
@@ -10033,6 +10035,7 @@ NaN 12.3   33.0
             data = _get_data()
             labels = data._get_agg_axis(axis)
 
+            # do we need this line?
             values = data.values
             with np.errstate(all="ignore"):
                 result = func(values)
@@ -10060,6 +10063,7 @@ NaN 12.3   33.0
                     # try to coerce to the original dtypes item by item if we can
                     pass
 
+        import pdb; pdb.set_trace()
         result = self._constructor_sliced(result, index=labels)
         return result
 

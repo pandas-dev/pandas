@@ -10419,6 +10419,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             return self._agg_by_level(
                 name, axis=axis, level=level, skipna=skipna, numeric_only=numeric_only
             )
+        import pdb; pdb.set_trace()
         return self._reduce(
             func, name=name, axis=axis, skipna=skipna, numeric_only=numeric_only
         )
@@ -10885,6 +10886,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             examples=_max_examples,
         )
         def max(self, axis=None, skipna=True, level=None, numeric_only=None, **kwargs):
+            import pdb; pdb.set_trace()
             return NDFrame.max(self, axis, skipna, level, numeric_only, **kwargs)
 
         setattr(cls, "max", max)
