@@ -521,7 +521,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             self = self.copy() if copy else self
             result = self._set_dtype(dtype)
 
-        # TODO: consolidate with ndarray case?
         elif isinstance(dtype, ExtensionDtype):
             return super().astype(dtype, copy=copy)
 
