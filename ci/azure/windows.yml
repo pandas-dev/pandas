@@ -41,6 +41,7 @@ jobs:
         Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
         Write-Host "##vso[task.prependpath]$HOME/miniconda3/bin"
       displayName: 'Add conda to PATH'
+
     - bash: |
         conda update -q -n base conda
         mkdir -p $(CONDA_CACHE_DIR)
