@@ -800,7 +800,7 @@ def to_datetime(
     datetime
         If parsing succeeded.
         Return type depends on input (types in parenthesis correspond to
-        timezone handling issues):
+        timezone or out-of-range timestamp handling issues):
 
         - scalar: Timestamp (or datetime.datetime)
         - array-like: DatetimeIndex (or Series with object dtype containing
