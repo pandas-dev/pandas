@@ -18,7 +18,6 @@ pr:
 variables:
   PYTEST_WORKERS: auto
   PYTEST_TARGET:  pandas
-  CONDA_CACHE_DIR: $(Pipeline.Workspace)/Miniconda/
 
 jobs:
 # Mac and Linux use the same template
