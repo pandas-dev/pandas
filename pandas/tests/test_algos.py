@@ -241,11 +241,7 @@ class TestFactorize:
         # gh 12666 - check no segfault
         x17 = np.array([complex(i) for i in range(17)], dtype=object)
 
-        msg = (
-            "unorderable types: .* [<>] .*"
-            "|"  # the above case happens for numpy < 1.14
-            "'[<>]' not supported between instances of .*"
-        )
+        msg = "'[<>]' not supported between instances of .*"
         with pytest.raises(TypeError, match=msg):
             algos.factorize(x17[::-1], sort=True)
 

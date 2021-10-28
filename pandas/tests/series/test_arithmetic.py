@@ -251,6 +251,7 @@ class TestSeriesArithmetic:
         # deltas5 = deltas * 5
         # deltas = deltas + sub_deltas
 
+    def test_add_float_plus_int(self, datetime_series):
         # float + int
         int_ts = datetime_series.astype(int)[:-5]
         added = datetime_series + int_ts
