@@ -14,7 +14,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
--
+- Fixed performance regression in :func:`read_csv` (:issue:`44106`)
 -
 
 .. ---------------------------------------------------------------------------
