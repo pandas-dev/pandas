@@ -82,7 +82,6 @@ from pandas.core.indexes.base import (
     ensure_index,
     get_unanimous_names,
 )
-from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.frozen import FrozenList
 from pandas.core.indexes.numeric import Int64Index
 from pandas.core.ops.invalid import make_invalid_op

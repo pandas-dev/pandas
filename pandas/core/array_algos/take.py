@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import date
 import functools
 from typing import (
     TYPE_CHECKING,
