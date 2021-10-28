@@ -916,7 +916,7 @@ class Block(PandasObject):
                 value = np.nan
 
         # coerce if block dtype can store value
-        values = self.values
+        values = cast(np.ndarray, self.values)
         if not self._can_hold_element(value):
             # current dtype cannot store value, coerce to common dtype
             return self.coerce_to_target_dtype(value).setitem(indexer, value)
@@ -945,11 +945,7 @@ class Block(PandasObject):
             values[indexer] = value
 
         else:
-            # error: Argument 1 to "setitem_datetimelike_compat" has incompatible type
-            # "Union[ndarray, ExtensionArray]"; expected "ndarray"
-            value = setitem_datetimelike_compat(
-                values, len(values[indexer]), value  # type: ignore[arg-type]
-            )
+            value = setitem_datetimelike_compat(values, len(values[indexer]), value)
             values[indexer] = value
 
         if transpose:
@@ -1704,8 +1700,7 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
 
     def setitem(self, indexer, value):
         if not self._can_hold_element(value):
-            # TODO: general case needs casting logic.
-            return self.astype(_dtype_obj).setitem(indexer, value)
+            return self.coerce_to_target_dtype(value).setitem(indexer, value)
 
         values = self.values
         if self.ndim > 1:
@@ -1726,7 +1721,6 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
         return [self]
 
     def where(self, other, cond, errors="raise") -> list[Block]:
-        # TODO(EA2D): reshape unnecessary with 2D EAs
         arr = self.values
 
         cond = extract_bool_array(cond)
