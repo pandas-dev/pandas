@@ -672,10 +672,26 @@ def test_bins_unequal_len():
         series.groupby(bins).mean()
 
 
-def test_categorical_series_unequal_len():
-    # GH44179
-    groupby = Series(range(7)).groupby(Series(list("ABBA"), dtype="category"))
-    tm.assert_dict_equal(groupby.groups, {"A": [0, 3], "B": [1, 2]})
+@pytest.mark.parametrize(
+    ["series", "data"],
+    [
+        # Group a series with length and index equal to those of the grouper.
+        (Series(range(4)), {"A": [0, 3], "B": [1, 2]}),
+        # Group a series with length equal to that of the grouper and index unequal to
+        # that of the grouper.
+        (Series(range(4)).rename(lambda idx: idx + 1), {"A": [2], "B": [0, 1]}),
+        # GH44179: Group a series with length unequal to that of the grouper.
+        (Series(range(7)), {"A": [0, 3], "B": [1, 2]}),
+    ],
+)
+def test_categorical_series(series, data):
+    # Group the given series by a series with categorical data type such that group A
+    # takes indices 0 and 3 and group B indices 1 and 2, obtaining the values mapped in
+    # the given data.
+    groupby = series.groupby(Series(list("ABBA"), dtype="category"))
+    tm.assert_series_equal(
+        groupby.aggregate(list), Series(data, index=CategoricalIndex(data.keys()))
+    )
 
 
 def test_as_index():
