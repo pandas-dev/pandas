@@ -49,6 +49,7 @@ from pandas.core.dtypes.common import (
     is_1d_only_ea_obj,
     is_dtype_equal,
     is_extension_array_dtype,
+    is_interval_dtype,
     is_list_like,
     is_sparse,
     is_string_dtype,
@@ -523,8 +524,9 @@ class Block(PandasObject):
 
         # no need to downcast our float
         # unless indicated
-        if downcast is None and self.dtype.kind in ["f", "m", "M"]:
-            # TODO: complex?  more generally, self._can_hold_na?
+        if downcast is None and self.dtype.kind in ["f", "c", "m", "M"]:
+            # passing "infer" to maybe_downcast_to_dtype (via self.downcast)
+            #  would be a no-op, so we can short-circuit
             return blocks
 
         return extend_blocks([b.downcast(downcast) for b in blocks])
@@ -927,7 +929,7 @@ class Block(PandasObject):
                 value = np.nan
 
         # coerce if block dtype can store value
-        values = self.values
+        values = cast(np.ndarray, self.values)
         if not self._can_hold_element(value):
             # current dtype cannot store value, coerce to common dtype
             return self.coerce_to_target_dtype(value).setitem(indexer, value)
@@ -956,11 +958,7 @@ class Block(PandasObject):
             values[indexer] = value
 
         else:
-            # error: Argument 1 to "setitem_datetimelike_compat" has incompatible type
-            # "Union[ndarray, ExtensionArray]"; expected "ndarray"
-            value = setitem_datetimelike_compat(
-                values, len(values[indexer]), value  # type: ignore[arg-type]
-            )
+            value = setitem_datetimelike_compat(values, len(values[indexer]), value)
             values[indexer] = value
 
         if transpose:
@@ -1452,7 +1450,21 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
             # TODO(EA2D): unnecessary with 2D EAs
             mask = mask.reshape(new_values.shape)
 
-        new_values[mask] = new
+        try:
+            new_values[mask] = new
+        except TypeError:
+            if not is_interval_dtype(self.dtype):
+                # Discussion about what we want to support in the general
+                #  case GH#39584
+                raise
+
+            blk = self.coerce_to_target_dtype(new)
+            if blk.dtype == _dtype_obj:
+                # For now at least, only support casting e.g.
+                #  Interval[int64]->Interval[float64],
+                raise
+            return blk.putmask(mask, new)
+
         nb = type(self)(new_values, placement=self._mgr_locs, ndim=self.ndim)
         return [nb]
 
@@ -1489,12 +1501,8 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         be a compatible shape.
         """
         if not self._can_hold_element(value):
-            # This is only relevant for DatetimeTZBlock, PeriodDtype, IntervalDtype,
-            #  which has a non-trivial `_can_hold_element`.
-            # https://github.com/pandas-dev/pandas/issues/24020
-            # Need a dedicated setitem until GH#24020 (type promotion in setitem
-            #  for extension arrays) is designed and implemented.
-            return self.astype(_dtype_obj).setitem(indexer, value)
+            # see TestSetitemFloatIntervalWithIntIntervalValues
+            return self.coerce_to_target_dtype(value).setitem(indexer, value)
 
         if isinstance(indexer, tuple):
             # TODO(EA2D): not needed with 2D EAs
@@ -1654,6 +1662,15 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
                 # TODO: don't special-case
                 raise
 
+            if is_interval_dtype(self.dtype):
+                # TestSetitemFloatIntervalWithIntIntervalValues
+                blk = self.coerce_to_target_dtype(other)
+                if blk.dtype == _dtype_obj:
+                    # For now at least only support casting e.g.
+                    #  Interval[int64]->Interval[float64]
+                    raise
+                return blk.where(other, cond, errors)
+
             result = type(self.values)._from_sequence(
                 np.where(cond, self.values, other), dtype=dtype
             )
@@ -1720,8 +1737,7 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
 
     def setitem(self, indexer, value):
         if not self._can_hold_element(value):
-            # TODO: general case needs casting logic.
-            return self.astype(_dtype_obj).setitem(indexer, value)
+            return self.coerce_to_target_dtype(value).setitem(indexer, value)
 
         values = self.values
         if self.ndim > 1:
@@ -1742,7 +1758,6 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
         return [self]
 
     def where(self, other, cond, errors="raise") -> list[Block]:
-        # TODO(EA2D): reshape unnecessary with 2D EAs
         arr = self.values
 
         cond = extract_bool_array(cond)
