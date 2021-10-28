@@ -4974,7 +4974,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if indexer is not None:
                 indexer = ensure_platform_int(indexer)
 
-            # TODO: speed up on homogeneous DataFrame objects
+            # TODO: speed up on homogeneous DataFrame objects (see _reindex_multi)
             new_data = new_data.reindex_indexer(
                 index,
                 indexer,
@@ -6359,9 +6359,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     raise NotImplementedError()
                 result = self.T.fillna(method=method, limit=limit).T
 
-                # need to downcast here because of all of the transposes
-                result._mgr = result._mgr.downcast()
-
                 return result
 
             new_data = self._mgr.interpolate(
@@ -6415,9 +6412,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
                     result = self.T.fillna(value=value, limit=limit).T
 
-                    # need to downcast here because of all of the transposes
-                    result._mgr = result._mgr.downcast()
-
                     new_data = result
                 else:
 
@@ -6426,7 +6420,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     )
             elif isinstance(value, ABCDataFrame) and self.ndim == 2:
 
-                new_data = self.where(self.notna(), value)._data
+                new_data = self.where(self.notna(), value)._mgr
             else:
                 raise ValueError(f"invalid fill value with a {type(value)}")
 

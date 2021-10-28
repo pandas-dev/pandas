@@ -11,6 +11,7 @@ from pandas import (
     DataFrame,
     DatetimeIndex,
     Index,
+    Interval,
     IntervalIndex,
     MultiIndex,
     NaT,
@@ -926,6 +927,38 @@ class TestSeriesNoneCoercion(SetitemCastingEquivalents):
     def is_inplace(self, obj):
         # This is specific to the 4 cases currently implemented for this class.
         return obj.dtype.kind != "i"
+
+
+class TestSetitemFloatIntervalWithIntIntervalValues(SetitemCastingEquivalents):
+    # GH#44201 Cast to shared IntervalDtype rather than object
+
+    def test_setitem_example(self):
+        # Just a case here to make obvious what this test class is aimed at
+        idx = IntervalIndex.from_breaks(range(4))
+        obj = Series(idx)
+        val = Interval(0.5, 1.5)
+
+        obj[0] = val
+        assert obj.dtype == "Interval[float64, right]"
+
+    @pytest.fixture
+    def obj(self):
+        idx = IntervalIndex.from_breaks(range(4))
+        return Series(idx)
+
+    @pytest.fixture
+    def val(self):
+        return Interval(0.5, 1.5)
+
+    @pytest.fixture
+    def key(self):
+        return 0
+
+    @pytest.fixture
+    def expected(self, obj, val):
+        data = [val] + list(obj[1:])
+        idx = IntervalIndex(data, dtype="Interval[float64]")
+        return Series(idx)
 
 
 def test_setitem_int_as_positional_fallback_deprecation():
