@@ -1317,7 +1317,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         )
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "level"])
-    def reset_index(self, level=None, drop=False, name=None, inplace=False):
+    def reset_index(self, level=None, drop=False, name=lib.no_default, inplace=False):
         """
         Generate a new DataFrame or Series with the index reset.
 
@@ -1427,6 +1427,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if drop:
+            if name is lib.no_default:
+                name = self.name
+
             new_index = default_index(len(self))
             if level is not None:
                 if not isinstance(level, (tuple, list)):
@@ -1448,6 +1451,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 "Cannot reset_index inplace on a Series to create a DataFrame"
             )
         else:
+            if name is lib.no_default:
+                # For backwards compatibility, keep columns as [0] instead of
+                #  [None] when self.name is None
+                if self.name is None:
+                    name = 0
+                else:
+                    name = self.name
+
             df = self.to_frame(name)
             return df.reset_index(level=level, drop=drop)
 
