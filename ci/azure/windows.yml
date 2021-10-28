@@ -58,13 +58,14 @@ jobs:
     - bash: |
         conda env create -q --file ci\\deps\\azure-windows-$(CONDA_PY).yaml
       displayName: 'Create anaconda environment'
+      condition: eq(variables.CONDA_CACHE_RESTORED, 'false')
 
     - bash: |
         source activate pandas-dev
         conda list
         python setup.py build_ext -q -j 4
         python -m pip install --no-build-isolation -e .
-      displayName: 'Build'
+      displayName: 'Build and install pandas'
     - bash: |
         source activate pandas-dev
         wmic.exe cpu get caption, deviceid, name, numberofcores, maxclockspeed
