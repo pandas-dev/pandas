@@ -25,7 +25,10 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core import ops
 from pandas.core.arrays import TimedeltaArray
-from pandas.tests.arithmetic.common import assert_invalid_comparison
+from pandas.tests.arithmetic.common import (
+    assert_invalid_comparison,
+    get_expected_box,
+)
 
 # ------------------------------------------------------------------
 # Comparisons
@@ -38,9 +41,7 @@ class TestPeriodArrayLikeComparisons:
 
     def test_compare_zerodim(self, box_with_array):
         # GH#26689 make sure we unbox zero-dimensional arrays
-        xbox = (
-            box_with_array if box_with_array not in [pd.Index, pd.array] else np.ndarray
-        )
+        xbox = get_expected_box(box_with_array)
 
         pi = period_range("2000", periods=4)
         other = np.array(pi.to_numpy()[0])
@@ -77,10 +78,9 @@ class TestPeriodArrayLikeComparisons:
 
     @pytest.mark.parametrize("other_box", [list, np.array, lambda x: x.astype(object)])
     def test_compare_object_dtype(self, box_with_array, other_box):
+        xbox = get_expected_box(box_with_array)
         pi = period_range("2000", periods=5)
         parr = tm.box_expected(pi, box_with_array)
-
-        xbox = np.ndarray if box_with_array in [pd.Index, pd.array] else box_with_array
 
         other = other_box(pi)
 
@@ -191,9 +191,7 @@ class TestPeriodIndexComparisons:
 
     # TODO: moved from test_datetime64; de-duplicate with version below
     def test_parr_cmp_period_scalar2(self, box_with_array):
-        xbox = (
-            box_with_array if box_with_array not in [pd.Index, pd.array] else np.ndarray
-        )
+        xbox = get_expected_box(box_with_array)
 
         pi = period_range("2000-01-01", periods=10, freq="D")
 
@@ -214,7 +212,7 @@ class TestPeriodIndexComparisons:
     @pytest.mark.parametrize("freq", ["M", "2M", "3M"])
     def test_parr_cmp_period_scalar(self, freq, box_with_array):
         # GH#13200
-        xbox = np.ndarray if box_with_array in [pd.Index, pd.array] else box_with_array
+        xbox = get_expected_box(box_with_array)
 
         base = PeriodIndex(["2011-01", "2011-02", "2011-03", "2011-04"], freq=freq)
         base = tm.box_expected(base, box_with_array)
@@ -253,7 +251,7 @@ class TestPeriodIndexComparisons:
     @pytest.mark.parametrize("freq", ["M", "2M", "3M"])
     def test_parr_cmp_pi(self, freq, box_with_array):
         # GH#13200
-        xbox = np.ndarray if box_with_array in [pd.Index, pd.array] else box_with_array
+        xbox = get_expected_box(box_with_array)
 
         base = PeriodIndex(["2011-01", "2011-02", "2011-03", "2011-04"], freq=freq)
         base = tm.box_expected(base, box_with_array)
