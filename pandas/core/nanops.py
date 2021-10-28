@@ -152,7 +152,6 @@ class bottleneck_switch:
                 else:
                     result = alt(values, axis=axis, skipna=skipna, **kwds)
             else:
-                import pdb; pdb.set_trace()
                 result = alt(values, axis=axis, skipna=skipna, **kwds)
 
             return result
@@ -406,11 +405,9 @@ def _datetimelike_compat(func: F) -> F:
         orig_values = values
 
         datetimelike = values.dtype.kind in ["m", "M"]
-        mask = isna(values)
         if datetimelike and mask is None:
             mask = isna(values)
 
-        import pdb; pdb.set_trace()
         result = func(values, axis=axis, skipna=skipna, mask=mask, **kwargs)
 
         if datetimelike:
@@ -1031,7 +1028,6 @@ def _nanminmax(meth, fill_value_typ):
         skipna: bool = True,
         mask: npt.NDArray[np.bool_] | None = None,
     ) -> Dtype:
-        import pdb; pdb.set_trace()
         values, mask, dtype, dtype_max, fill_value = _get_values(
             values, skipna, fill_value_typ=fill_value_typ, mask=mask
         )
@@ -1043,17 +1039,20 @@ def _nanminmax(meth, fill_value_typ):
             except (AttributeError, TypeError, ValueError):
                 result = np.nan
         else:
-            import pdb; pdb.set_trace()
             try:
                 result = getattr(values, meth)(axis)
-            except TypeError:
-                from pandas.api.types import is_float
-                vfunc = np.vectorize(lambda x:  is_float(x))
-                new_vals = np.where(vfunc(values), NaT, values)
-                print('hi')
+            except TypeError as e:
+                # the only case when this can happein is for timezone aware
+                # Timestamps  where a NaT value is casted to # np.inf
+                from pandas.core.dtypes.common import is_float
 
-
-
+                vfunc = np.vectorize(lambda x: is_float(x))
+                mask = vfunc(values)
+                if mask.any():
+                    values = np.where(mask, NaT, values)
+                    result = getattr(values, meth)(axis)
+                else:
+                    raise e
 
         result = _maybe_null_out(result, axis, mask, values.shape)
         return result
