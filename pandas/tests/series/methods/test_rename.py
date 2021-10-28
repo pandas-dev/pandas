@@ -1,6 +1,7 @@
 from datetime import datetime
 
 import numpy as np
+import pytest
 
 from pandas import (
     Index,
@@ -65,10 +66,9 @@ class TestRename:
         ser = Series(range(5))
         ser.rename({}, axis=0)
         ser.rename({}, axis="index")
-        # FIXME: dont leave commented-out
-        # TODO: clean up shared index validation
-        # with pytest.raises(ValueError, match="No axis named 5"):
-        #     ser.rename({}, axis=5)
+
+        with pytest.raises(ValueError, match="No axis named 5"):
+            ser.rename({}, axis=5)
 
     def test_rename_inplace(self, datetime_series):
         renamer = lambda x: x.strftime("%Y%m%d")

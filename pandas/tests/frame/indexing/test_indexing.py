@@ -1165,12 +1165,10 @@ class TestDataFrameIndexing:
 
     def test_type_error_multiindex(self):
         # See gh-12218
-        df = DataFrame(
-            columns=["i", "c", "x", "y"],
-            data=[[0, 0, 1, 2], [1, 0, 3, 4], [0, 1, 1, 2], [1, 1, 3, 4]],
+        mi = MultiIndex.from_product([["x", "y"], [0, 1]], names=[None, "c"])
+        dg = DataFrame(
+            [[1, 1, 2, 2], [3, 3, 4, 4]], columns=mi, index=Index([0, 1], name="i")
         )
-        dg = df.pivot_table(index="i", columns="c", values=["x", "y"])
-        # TODO: Is this test for pivot_table?
         with pytest.raises(TypeError, match="unhashable type"):
             dg[:, 0]
 
