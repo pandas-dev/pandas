@@ -45,9 +45,20 @@ jobs:
     - script: conda update -q -n base conda
       displayName: 'Update conda'
 
+    - task: Cache@2
+      displayName: Use cached Anaconda environment
+      inputs:
+        key: 'conda | "$(Agent.OS)" | $(ENV_FILE)'
+        path: $(Pipeline.Workspace)/Miniconda/
+        restoreKeys: |
+          python | "$(Agent.OS)"
+          python
+        cacheHitVar: CONDA_CACHE_RESTORED
+
     - bash: |
         conda env create -q --file ci\\deps\\azure-windows-$(CONDA_PY).yaml
       displayName: 'Create anaconda environment'
+
     - bash: |
         source activate pandas-dev
         conda list
