@@ -567,7 +567,7 @@ I/O
 
 Period
 ^^^^^^
--
+- Bug in adding a :class:`Period` object to a ``np.timedelta64`` object incorrectly raising ``TypeError`` (:issue:`44182`)
 -
 
 Plotting
