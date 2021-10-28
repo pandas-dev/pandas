@@ -691,7 +691,6 @@ class TestTableOrientReader:
             },
         ],
     )
-    @pytest.mark.skipif(sys.version_info[:3] == (3, 7, 0), reason="GH-35309")
     def test_read_json_table_orient(self, index_nm, vals, recwarn):
         df = DataFrame(vals, index=pd.Index(range(4), name=index_nm))
         out = df.to_json(orient="table")
@@ -741,7 +740,6 @@ class TestTableOrientReader:
             },
         ],
     )
-    @pytest.mark.skipif(sys.version_info[:3] == (3, 7, 0), reason="GH-35309")
     def test_read_json_table_timezones_orient(self, idx, vals, recwarn):
         # GH 35973
         df = DataFrame(vals, index=idx)
