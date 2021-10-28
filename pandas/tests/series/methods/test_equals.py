@@ -138,6 +138,5 @@ def test_equals_None_vs_float():
     assert not right.equals(left)
     assert not left.to_frame().equals(right.to_frame())
     assert not right.to_frame().equals(left.to_frame())
-    assert not Index(left, dtype='object').equals(Index(right, dtype='object'))
-    assert not Index(right, dtype='object').equals(Index(left, dtype='object'))
-
+    assert not Index(left, dtype="object").equals(Index(right, dtype="object"))
+    assert not Index(right, dtype="object").equals(Index(left, dtype="object"))
