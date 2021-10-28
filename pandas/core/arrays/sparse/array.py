@@ -744,8 +744,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         elif method is not None:
             msg = "fillna with 'method' requires high memory usage."
             warnings.warn(msg, PerformanceWarning)
-            filled = interpolate_2d(np.asarray(self), method=method, limit=limit)
-            return type(self)(filled, fill_value=self.fill_value)
+            new_values = np.asarray(self)
+            # interpolate_2d modifies new_values inplace
+            interpolate_2d(new_values, method=method, limit=limit)
+            return type(self)(new_values, fill_value=self.fill_value)
 
         else:
             new_values = np.where(isna(self.sp_values), value, self.sp_values)
