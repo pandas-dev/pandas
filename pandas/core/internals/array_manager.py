@@ -170,7 +170,12 @@ class BaseArrayManager(DataManager):
     def get_dtypes(self):
         return np.array([arr.dtype for arr in self.arrays], dtype="object")
 
-    # TODO setstate getstate
+    def __getstate__(self):
+        return self.arrays, self._axes
+
+    def __setstate__(self, state):
+        self.arrays = state[0]
+        self._axes = state[1]
 
     def __repr__(self) -> str:
         output = type(self).__name__
@@ -382,9 +387,6 @@ class BaseArrayManager(DataManager):
         return self.apply_with_block(
             "fillna", value=value, limit=limit, inplace=inplace, downcast=downcast
         )
-
-    def downcast(self: T) -> T:
-        return self.apply_with_block("downcast")
 
     def astype(self: T, dtype, copy: bool = False, errors: str = "raise") -> T:
         return self.apply(astype_array_safe, dtype=dtype, copy=copy, errors=errors)

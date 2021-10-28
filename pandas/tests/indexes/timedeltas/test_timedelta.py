@@ -6,7 +6,6 @@ import pytest
 import pandas as pd
 from pandas import (
     Index,
-    Int64Index,
     NaT,
     Series,
     Timedelta,
@@ -14,6 +13,7 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
+from pandas.core.indexes.api import Int64Index
 from pandas.tests.indexes.datetimelike import DatetimeLike
 
 randn = np.random.randn
@@ -115,46 +115,31 @@ class TestTimedeltaIndex(DatetimeLike):
         res = tdi.to_series().astype("m8[s]")
         tm.assert_numpy_array_equal(res._values, expected._values)
 
-    def test_freq_conversion(self):
+    def test_freq_conversion(self, index_or_series):
 
         # doc example
 
-        # series
         scalar = Timedelta(days=31)
-        td = Series(
+        td = index_or_series(
             [scalar, scalar, scalar + timedelta(minutes=5, seconds=3), NaT],
             dtype="m8[ns]",
         )
 
         result = td / np.timedelta64(1, "D")
-        expected = Series([31, 31, (31 * 86400 + 5 * 60 + 3) / 86400.0, np.nan])
-        tm.assert_series_equal(result, expected)
+        expected = index_or_series(
+            [31, 31, (31 * 86400 + 5 * 60 + 3) / 86400.0, np.nan]
+        )
+        tm.assert_equal(result, expected)
 
         result = td.astype("timedelta64[D]")
-        expected = Series([31, 31, 31, np.nan])
-        tm.assert_series_equal(result, expected)
+        expected = index_or_series([31, 31, 31, np.nan])
+        tm.assert_equal(result, expected)
 
         result = td / np.timedelta64(1, "s")
-        expected = Series([31 * 86400, 31 * 86400, 31 * 86400 + 5 * 60 + 3, np.nan])
-        tm.assert_series_equal(result, expected)
+        expected = index_or_series(
+            [31 * 86400, 31 * 86400, 31 * 86400 + 5 * 60 + 3, np.nan]
+        )
+        tm.assert_equal(result, expected)
 
         result = td.astype("timedelta64[s]")
-        tm.assert_series_equal(result, expected)
-
-        # tdi
-        td = TimedeltaIndex(td)
-
-        result = td / np.timedelta64(1, "D")
-        expected = Index([31, 31, (31 * 86400 + 5 * 60 + 3) / 86400.0, np.nan])
-        tm.assert_index_equal(result, expected)
-
-        result = td.astype("timedelta64[D]")
-        expected = Index([31, 31, 31, np.nan])
-        tm.assert_index_equal(result, expected)
-
-        result = td / np.timedelta64(1, "s")
-        expected = Index([31 * 86400, 31 * 86400, 31 * 86400 + 5 * 60 + 3, np.nan])
-        tm.assert_index_equal(result, expected)
-
-        result = td.astype("timedelta64[s]")
-        tm.assert_index_equal(result, expected)
+        tm.assert_equal(result, expected)

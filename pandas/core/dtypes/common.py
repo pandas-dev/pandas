@@ -65,7 +65,6 @@ INT64_DTYPE = np.dtype(np.int64)
 _is_scipy_sparse = None
 
 ensure_float64 = algos.ensure_float64
-ensure_float32 = algos.ensure_float32
 
 
 def ensure_float(arr):
@@ -92,13 +91,10 @@ def ensure_float(arr):
     return arr
 
 
-ensure_uint64 = algos.ensure_uint64
 ensure_int64 = algos.ensure_int64
 ensure_int32 = algos.ensure_int32
 ensure_int16 = algos.ensure_int16
 ensure_int8 = algos.ensure_int8
-ensure_complex64 = algos.ensure_complex64
-ensure_complex128 = algos.ensure_complex128
 ensure_platform_int = algos.ensure_platform_int
 ensure_object = algos.ensure_object
 
@@ -143,14 +139,14 @@ def ensure_python_int(value: int | np.integer) -> int:
 
 
 def classes(*klasses) -> Callable:
-    """evaluate if the tipo is a subclass of the klasses"""
+    """Evaluate if the tipo is a subclass of the klasses."""
     return lambda tipo: issubclass(tipo, klasses)
 
 
 def classes_and_not_datetimelike(*klasses) -> Callable:
     """
-    evaluate if the tipo is a subclass of the klasses
-    and not a datetimelike
+    Evaluate if the tipo is a subclass of the klasses
+    and not a datetimelike.
     """
     return lambda tipo: (
         issubclass(tipo, klasses)
@@ -674,7 +670,7 @@ def is_integer_dtype(arr_or_dtype) -> bool:
     """
     Check whether the provided array or dtype is of an integer dtype.
 
-    Unlike in `in_any_int_dtype`, timedelta64 instances will return False.
+    Unlike in `is_any_int_dtype`, timedelta64 instances will return False.
 
     The nullable Integer dtypes (e.g. pandas.Int64Dtype) are also considered
     as integer by this function.
@@ -726,7 +722,7 @@ def is_signed_integer_dtype(arr_or_dtype) -> bool:
     """
     Check whether the provided array or dtype is of a signed integer dtype.
 
-    Unlike in `in_any_int_dtype`, timedelta64 instances will return False.
+    Unlike in `is_any_int_dtype`, timedelta64 instances will return False.
 
     The nullable Integer dtypes (e.g. pandas.Int64Dtype) are also considered
     as integer by this function.
@@ -1521,7 +1517,7 @@ def is_complex_dtype(arr_or_dtype) -> bool:
 
 def _is_dtype(arr_or_dtype, condition) -> bool:
     """
-    Return a boolean if the condition is satisfied for the arr_or_dtype.
+    Return true if the condition is satisfied for the arr_or_dtype.
 
     Parameters
     ----------
@@ -1580,7 +1576,7 @@ def get_dtype(arr_or_dtype) -> DtypeObj:
 
 def _is_dtype_type(arr_or_dtype, condition) -> bool:
     """
-    Return a boolean if the condition is satisfied for the arr_or_dtype.
+    Return true if the condition is satisfied for the arr_or_dtype.
 
     Parameters
     ----------
