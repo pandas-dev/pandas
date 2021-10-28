@@ -34,6 +34,9 @@ def test_split(any_string_dtype):
     exp = Series([["a", "b", "c"], ["c", "d", "e"], np.nan, ["f", "g", "h"]])
     tm.assert_series_equal(result, exp)
 
+
+def test_split_regex(any_string_dtype):
+    # GH 43563
     # explicit regex = True split
     values = Series("qweqwejpgqweqwe.jpg", dtype=any_string_dtype)
     result = values.str.split(r"\.jpg", regex=True)

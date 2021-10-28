@@ -653,7 +653,7 @@ class StringMethods(NoNewAttributesMixin):
     Split strings around given separator/delimiter.
 
     Splits the string in the Series/Index from the %(side)s,
-    at the specified delimiter string. Equivalent to :meth:`str.%(method)s`.
+    at the specified delimiter string.
 
     Parameters
     ----------
@@ -666,23 +666,29 @@ class StringMethods(NoNewAttributesMixin):
     expand : bool, default False
         Expand the split strings into separate columns.
 
-        * If ``True``, return DataFrame/MultiIndex expanding dimensionality.
-        * If ``False``, return Series/Index, containing lists of strings.
+        - If ``True``, return DataFrame/MultiIndex expanding dimensionality.
+        - If ``False``, return Series/Index, containing lists of strings.
 
     regex : bool, default None
-        Determines whether to handle the pattern as a regular expression.
-        If ``pat`` is a compiled regular expression, it is interpreted as a
-        regular expression regardless of ``regex``
+        Determines if the passed-in pattern is a regular expression:
 
-        * If ``True``, assumes the passed-in pattern is a regular expression
-        * If ``False``, treats the pattern as a literal string.
-        * If ``None`` and `pat` length is 1, treats `pat` as a literal string.
-        * If ``None`` and `pat` length is not 1, treats `pat` as a regular expression.
+        - If ``True``, assumes the passed-in pattern is a regular expression
+        - If ``False``, treats the pattern as a literal string.
+        - If ``None`` and `pat` length is 1, treats `pat` as a literal string.
+        - If ``None`` and `pat` length is not 1, treats `pat` as a regular expression.
+        - Cannot be set to False if `pat` is a compiled regex
+
+        .. versionadded:: 1.4.0
 
     Returns
     -------
     Series, Index, DataFrame or MultiIndex
         Type matches caller unless ``expand=True`` (see Notes).
+
+    Raises
+    ------
+    ValueError
+        * if `regex` is False and `pat` is a compiled regex
 
     See Also
     --------
@@ -705,6 +711,9 @@ class StringMethods(NoNewAttributesMixin):
 
     If using ``expand=True``, Series and Index callers return DataFrame and
     MultiIndex objects, respectively.
+
+    Use of `regex=False` with a `pat` as a compiled regex will raise
+    an error.
 
     Examples
     --------
@@ -822,6 +831,11 @@ class StringMethods(NoNewAttributesMixin):
         expand=False,
         regex: bool | None = None,
     ):
+        if not regex and is_re(pat):
+            raise ValueError(
+                "Cannot use a compiled regex as replacement pattern with regex=False"
+            )
+
         result = self._data.array._str_split(pat, n, expand, regex)
         return self._wrap_result(result, returns_string=expand, expand=expand)
 
