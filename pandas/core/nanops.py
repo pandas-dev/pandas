@@ -1027,6 +1027,7 @@ def _nanminmax(meth, fill_value_typ):
         skipna: bool = True,
         mask: npt.NDArray[np.bool_] | None = None,
     ) -> Dtype:
+
         values, mask, dtype, dtype_max, fill_value = _get_values(
             values, skipna, fill_value_typ=fill_value_typ, mask=mask
         )
