@@ -34,9 +34,18 @@ def assert_invalid_addsub_type(left, right, msg=None):
         right - left
 
 
+def get_expected_box(box):
+    """
+    Get the box to use for 'expected' in a comparison operation.
+    """
+    if box in [Index, array]:
+        return np.ndarray
+    return box
+
+
 def get_upcast_box(box, vector):
     """
-    Given two box-types, find the one that takes priority
+    Given two box-types, find the one that takes priority.
     """
     if box is DataFrame or isinstance(vector, DataFrame):
         return DataFrame

@@ -137,14 +137,14 @@ def test_getitem_setitem_datetimeindex():
     tm.assert_series_equal(result, expected)
 
     # But we do not give datetimes a pass on tzawareness compat
-    # TODO: do the same with Timestamps and dt64
     msg = "Cannot compare tz-naive and tz-aware datetime-like objects"
     naive = datetime(1990, 1, 1, 4)
-    with tm.assert_produces_warning(FutureWarning):
-        # GH#36148 will require tzawareness compat
-        result = ts[naive]
-    expected = ts[4]
-    assert result == expected
+    for key in [naive, Timestamp(naive), np.datetime64(naive, "ns")]:
+        with tm.assert_produces_warning(FutureWarning):
+            # GH#36148 will require tzawareness compat
+            result = ts[key]
+        expected = ts[4]
+        assert result == expected
 
     result = ts.copy()
     with tm.assert_produces_warning(FutureWarning):

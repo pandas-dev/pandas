@@ -239,7 +239,7 @@ class TestDataFrameFormatting:
             assert "..." not in repr(df)
 
     def test_repr_deprecation_negative_int(self):
-        # FIXME: remove in future version after deprecation cycle
+        # TODO(2.0): remove in future version after deprecation cycle
         # Non-regression test for:
         # https://github.com/pandas-dev/pandas/issues/31532
         width = get_option("display.max_colwidth")

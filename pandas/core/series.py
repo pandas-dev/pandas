@@ -4528,6 +4528,9 @@ Keep all original rows and also all original values
         5    3
         dtype: int64
         """
+        if axis is not None:
+            axis = self._get_axis_number(axis)
+
         if callable(index) or is_dict_like(index):
             return super().rename(
                 index, copy=copy, inplace=inplace, level=level, errors=errors
