@@ -5,7 +5,6 @@ from datetime import (
     timedelta,
     tzinfo as _tzinfo,
 )
-import sys
 from time import struct_time
 from typing import (
     ClassVar,

@@ -1,7 +1,6 @@
 """Tests for Table Schema integration."""
 from collections import OrderedDict
 import json
-import sys
 
 import numpy as np
 import pytest
