@@ -5356,7 +5356,6 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Dispatch to Series.replace column-wise.
 
-
         Parameters
         ----------
         mapping : dict
