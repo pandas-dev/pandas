@@ -743,8 +743,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         elif method is not None:
             msg = "fillna with 'method' requires high memory usage."
             warnings.warn(msg, PerformanceWarning)
-            filled = interpolate_2d(np.asarray(self), method=method, limit=limit)
-            return type(self)(filled, fill_value=self.fill_value)
+            new_values = np.asarray(self)
+            # interpolate_2d modifies new_values inplace
+            interpolate_2d(new_values, method=method, limit=limit)
+            return type(self)(new_values, fill_value=self.fill_value)
 
         else:
             new_values = np.where(isna(self.sp_values), value, self.sp_values)
@@ -1304,6 +1306,13 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return np.asarray(self, dtype=self.sp_values.dtype)
 
     _internal_get_values = to_dense
+
+    def _where(self, mask, value):
+        # NB: may not preserve dtype, e.g. result may be Sparse[float64]
+        #  while self is Sparse[int64]
+        naive_implementation = np.where(mask, self, value)
+        result = type(self)._from_sequence(naive_implementation)
+        return result
 
     # ------------------------------------------------------------------------
     # IO

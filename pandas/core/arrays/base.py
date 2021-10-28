@@ -1430,6 +1430,31 @@ class ExtensionArray:
 
         return type(self)._concat_same_type([self[:loc], item_arr, self[loc:]])
 
+    def _where(
+        self: ExtensionArrayT, mask: npt.NDArray[np.bool_], value
+    ) -> ExtensionArrayT:
+        """
+        Analogue to np.where(mask, self, value)
+
+        Parameters
+        ----------
+        mask : np.ndarray[bool]
+        value : scalar or listlike
+
+        Returns
+        -------
+        same type as self
+        """
+        result = self.copy()
+
+        if is_list_like(value):
+            val = value[~mask]
+        else:
+            val = value
+
+        result[~mask] = val
+        return result
+
     @classmethod
     def _empty(cls, shape: Shape, dtype: ExtensionDtype):
         """
