@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from datetime import datetime, date
+from datetime import (
+    date,
+    datetime,
+)
 import functools
 from itertools import zip_longest
 import operator
@@ -767,6 +770,7 @@ class Index(IndexOpsMixin, PandasObject):
         u = self._simple_new(values, name=name)
         if all(isinstance(x, date) for x in u):
             from pandas import to_datetime
+
             return to_datetime(u)
         return self._simple_new(values, name=name)
 
