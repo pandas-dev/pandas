@@ -46,7 +46,9 @@ def kleene_or(
 
     raise_for_nan(right, method="or")
 
-    if right is libmissing.NA:
+    # error: Non-overlapping identity check (left operand type:
+    # "Union[bool, ndarray[Any, Any]]", right operand type: "NAType")
+    if right is libmissing.NA:  # type: ignore[comparison-overlap]
         result = left.copy()
     else:
         result = left | right
@@ -63,7 +65,9 @@ def kleene_or(
     else:
         if right is True:
             mask = np.zeros_like(left_mask)
-        elif right is libmissing.NA:
+        # error: Non-overlapping identity check (left operand type:
+        # "Union[bool, ndarray[Any, Any]]", right operand type: "NAType")
+        elif right is libmissing.NA:  # type: ignore[comparison-overlap]
             mask = (~left & ~left_mask) | left_mask
         else:
             # False
@@ -103,7 +107,9 @@ def kleene_xor(
         return kleene_xor(right, left, right_mask, left_mask)
 
     raise_for_nan(right, method="xor")
-    if right is libmissing.NA:
+    # error: Non-overlapping identity check (left operand type:
+    # "Union[bool, ndarray[Any, Any]]", right operand type: "NAType")
+    if right is libmissing.NA:  # type: ignore[comparison-overlap]
         result = np.zeros_like(left)
     else:
         # error: Incompatible types in assignment (expression has type
@@ -111,7 +117,9 @@ def kleene_xor(
         result = left ^ right  # type: ignore[assignment]
 
     if right_mask is None:
-        if right is libmissing.NA:
+        # error: Non-overlapping identity check (left operand type:
+        # "Union[bool, ndarray[Any, Any]]", right operand type: "NAType")
+        if right is libmissing.NA:  # type: ignore[comparison-overlap]
             mask = np.ones_like(left_mask)
         else:
             mask = left_mask.copy()

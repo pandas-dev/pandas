@@ -512,7 +512,9 @@ class StringArray(BaseStringArray, PandasArray):
 
     # ------------------------------------------------------------------------
     # String methods interface
-    _str_na_value = StringDtype.na_value
+    # error: Incompatible types in assignment (expression has type "NAType",
+    # base class "PandasArray" defined the type as "float")
+    _str_na_value = StringDtype.na_value  # type: ignore[assignment]
 
     def _str_map(
         self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True

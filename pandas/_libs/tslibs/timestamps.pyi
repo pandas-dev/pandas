@@ -24,7 +24,7 @@ from pandas._libs.tslibs import (
 
 _S = TypeVar("_S")
 
-def integer_op_not_supported(obj) -> None: ...
+def integer_op_not_supported(obj) -> TypeError: ...
 
 class Timestamp(datetime):
     min: ClassVar[Timestamp]

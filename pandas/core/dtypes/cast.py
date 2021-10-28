@@ -912,7 +912,7 @@ def maybe_upcast(
     # We get a copy in all cases _except_ (values.dtype == new_dtype and not copy)
     upcast_values = values.astype(new_dtype, copy=copy)
 
-    return upcast_values, fill_value  # type: ignore[return-value]
+    return upcast_values, fill_value
 
 
 def invalidate_string_dtypes(dtype_set: set[DtypeObj]):

@@ -7,6 +7,8 @@ from datetime import datetime
 
 import pytest
 
+from pandas._libs.tslibs.offsets import QuarterOffset
+
 from pandas.tests.tseries.offsets.common import (
     Base,
     assert_is_on_offset,
@@ -43,7 +45,11 @@ def test_on_offset(offset):
         assert res == slow_version
 
 
-class TestBQuarterBegin(Base):
+class BaseQuarter(Base):
+    _offset: type[QuarterOffset] = BQuarterBegin
+
+
+class TestBQuarterBegin(BaseQuarter):
     _offset = BQuarterBegin
 
     def test_repr(self):
@@ -168,7 +174,7 @@ class TestBQuarterBegin(Base):
             assert_offset_equal(offset, base, expected)
 
 
-class TestBQuarterEnd(Base):
+class TestBQuarterEnd(BaseQuarter):
     _offset = BQuarterEnd
 
     def test_repr(self):

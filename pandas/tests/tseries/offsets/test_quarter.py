@@ -152,7 +152,7 @@ class TestQuarterBegin(Base):
 
 
 class TestQuarterEnd(Base):
-    _offset = QuarterEnd
+    _offset: type[QuarterEnd] = QuarterEnd
 
     def test_repr(self):
         expected = "<QuarterEnd: startingMonth=3>"

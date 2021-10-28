@@ -7,6 +7,8 @@ from datetime import datetime
 
 import pytest
 
+from pandas._libs.tslibs.offsets import MonthOffset
+
 import pandas as pd
 from pandas.tests.tseries.offsets.common import (
     Base,
@@ -43,7 +45,11 @@ def test_apply_index(cls, n):
     assert res2.iloc[-1] == ser.iloc[-1] + offset
 
 
-class TestBMonthBegin(Base):
+class BaseMonthOffset(Base):
+    _offset: type[MonthOffset] = BMonthBegin
+
+
+class TestBMonthBegin(BaseMonthOffset):
     _offset = BMonthBegin
 
     def test_offsets_compare_equal(self):
@@ -131,7 +137,7 @@ class TestBMonthBegin(Base):
         assert_is_on_offset(offset, dt, expected)
 
 
-class TestBMonthEnd(Base):
+class TestBMonthEnd(BaseMonthOffset):
     _offset = BMonthEnd
 
     def test_normalize(self):

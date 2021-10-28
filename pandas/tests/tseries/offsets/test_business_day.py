@@ -32,7 +32,7 @@ from pandas.tseries import offsets as offsets
 
 
 class TestBusinessDay(Base):
-    _offset = BDay
+    _offset: type[BDay] = BDay
 
     def setup_method(self, method):
         self.d = datetime(2008, 1, 1)

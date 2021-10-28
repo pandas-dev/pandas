@@ -17,6 +17,7 @@ from pandas._libs.tslibs.offsets import (
     LastWeekOfMonth,
     Week,
     WeekOfMonth,
+    WeekOfMonthMixin,
 )
 
 from pandas.tests.tseries.offsets.common import (
@@ -28,7 +29,7 @@ from pandas.tests.tseries.offsets.common import (
 
 
 class TestWeek(Base):
-    _offset = Week
+    _offset: type[Week] = Week
     d = Timestamp(datetime(2008, 1, 2))
     offset1 = _offset()
     offset2 = _offset(2)
@@ -150,7 +151,11 @@ class TestWeek(Base):
             offset + other
 
 
-class TestWeekOfMonth(Base):
+class BaseWeekOfMonthMixin(Base):
+    _offset: type[WeekOfMonthMixin] = WeekOfMonth
+
+
+class TestWeekOfMonth(BaseWeekOfMonthMixin):
     _offset = WeekOfMonth
     offset1 = _offset()
     offset2 = _offset(2)
@@ -266,7 +271,7 @@ class TestWeekOfMonth(Base):
         assert fast == slow
 
 
-class TestLastWeekOfMonth(Base):
+class TestLastWeekOfMonth(BaseWeekOfMonthMixin):
     _offset = LastWeekOfMonth
     offset1 = _offset()
     offset2 = _offset(2)

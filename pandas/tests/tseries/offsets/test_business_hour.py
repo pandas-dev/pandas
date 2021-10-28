@@ -30,7 +30,7 @@ from pandas.tests.tseries.offsets.common import (
 
 
 class TestBusinessHour(Base):
-    _offset = BusinessHour
+    _offset: type[BusinessHour] = BusinessHour
 
     def setup_method(self, method):
         self.d = datetime(2014, 7, 1, 10, 00)

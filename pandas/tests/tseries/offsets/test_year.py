@@ -7,6 +7,8 @@ from datetime import datetime
 
 import pytest
 
+from pandas._libs.tslibs.offsets import YearOffset
+
 from pandas.tests.tseries.offsets.common import (
     Base,
     assert_is_on_offset,
@@ -19,7 +21,11 @@ from pandas.tseries.offsets import (
 )
 
 
-class TestYearBegin(Base):
+class BaseYear(Base):
+    _offset: type[YearOffset] = YearBegin
+
+
+class TestYearBegin(BaseYear):
     _offset = YearBegin
 
     def test_misspecified(self):
@@ -173,7 +179,7 @@ class TestYearBegin(Base):
         assert_is_on_offset(offset, dt, expected)
 
 
-class TestYearEnd(Base):
+class TestYearEnd(BaseYear):
     _offset = YearEnd
 
     def test_misspecified(self):
