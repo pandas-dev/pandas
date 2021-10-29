@@ -261,7 +261,7 @@ should already exist.
    python -m pip install -e . --no-build-isolation --no-use-pep517
 
 
-VSCode Integration
+VSCode integration
 ------------------
 
 Since pandas is not a py.typed library, pyright ships with its own type annotations for pandas.
