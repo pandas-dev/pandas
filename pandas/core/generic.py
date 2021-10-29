@@ -11189,9 +11189,9 @@ default `ddof=1`)"""
 _std_examples = """
 Examples
 --------
->>> df = pd.DataFrame({'person_id':[0,1,2,3],
-...                   'age':[21,25,62,43],
-...                   'height':[1.61,1.87,1.49,2.01]}
+>>> df = pd.DataFrame({'person_id': [0, 1, 2, 3],
+...                   'age': [21, 25, 62, 43],
+...                   'height': [1.61, 1.87, 1.49, 2.01]}
 ...                  ).set_index('person_id')
 >>> df
            age  height
