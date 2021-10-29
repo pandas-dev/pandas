@@ -48,8 +48,8 @@ from pandas.core.dtypes.common import (
     is_1d_only_ea_obj,
     is_dtype_equal,
     is_extension_array_dtype,
+    is_interval_dtype,
     is_list_like,
-    is_sparse,
     is_string_dtype,
 )
 from pandas.core.dtypes.dtypes import (
@@ -509,53 +509,24 @@ class Block(PandasObject):
                 [blk.convert(datetime=True, numeric=False) for blk in blocks]
             )
 
-        # no need to downcast our float
-        # unless indicated
-        if downcast is None and self.dtype.kind in ["f", "m", "M"]:
-            # TODO: complex?  more generally, self._can_hold_na?
+        if downcast is None:
+            return blocks
+        if downcast is False:
+            # turn if off completely
+            # TODO: not reached, deprecate in favor of downcast=None
             return blocks
 
-        return extend_blocks([b.downcast(downcast) for b in blocks])
+        return extend_blocks([b._downcast_2d(downcast) for b in blocks])
 
     @final
-    def downcast(self, dtypes=None) -> list[Block]:
-        """try to downcast each item to the dict of dtypes if present"""
-        # turn it off completely
-        if dtypes is False:
-            return [self]
-
-        values = self.values
-
-        if self.ndim == 1:
-
-            # try to cast all non-floats here
-            if dtypes is None:
-                dtypes = "infer"
-
-            nv = maybe_downcast_to_dtype(values, dtypes)
-            return [self.make_block(nv)]
-
-        # ndim > 1
-        if dtypes is None:
-            return [self]
-
-        if not (dtypes == "infer" or isinstance(dtypes, dict)):
-            raise ValueError(
-                "downcast must have a dictionary or 'infer' as its argument"
-            )
-        elif dtypes != "infer":
-            raise AssertionError("dtypes as dict is not supported yet")
-
-        return self._downcast_2d()
-
     @maybe_split
-    def _downcast_2d(self) -> list[Block]:
+    def _downcast_2d(self, dtype) -> list[Block]:
         """
         downcast specialized to 2D case post-validation.
 
         Refactored to allow use of maybe_split.
         """
-        new_values = maybe_downcast_to_dtype(self.values, dtype="infer")
+        new_values = maybe_downcast_to_dtype(self.values, dtype=dtype)
         return [self.make_block(new_values)]
 
     @final
@@ -915,7 +886,7 @@ class Block(PandasObject):
                 value = np.nan
 
         # coerce if block dtype can store value
-        values = self.values
+        values = cast(np.ndarray, self.values)
         if not self._can_hold_element(value):
             # current dtype cannot store value, coerce to common dtype
             return self.coerce_to_target_dtype(value).setitem(indexer, value)
@@ -944,11 +915,7 @@ class Block(PandasObject):
             values[indexer] = value
 
         else:
-            # error: Argument 1 to "setitem_datetimelike_compat" has incompatible type
-            # "Union[ndarray, ExtensionArray]"; expected "ndarray"
-            value = setitem_datetimelike_compat(
-                values, len(values[indexer]), value  # type: ignore[arg-type]
-            )
+            value = setitem_datetimelike_compat(values, len(values[indexer]), value)
             values[indexer] = value
 
         if transpose:
@@ -1100,8 +1067,8 @@ class Block(PandasObject):
             **kwargs,
         )
 
-        nbs = [self.make_block_same_class(interp_values)]
-        return self._maybe_downcast(nbs, downcast)
+        nb = self.make_block_same_class(interp_values)
+        return nb._maybe_downcast([nb], downcast)
 
     def take_nd(
         self,
@@ -1440,7 +1407,21 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
             # TODO(EA2D): unnecessary with 2D EAs
             mask = mask.reshape(new_values.shape)
 
-        new_values[mask] = new
+        try:
+            new_values[mask] = new
+        except TypeError:
+            if not is_interval_dtype(self.dtype):
+                # Discussion about what we want to support in the general
+                #  case GH#39584
+                raise
+
+            blk = self.coerce_to_target_dtype(new)
+            if blk.dtype == _dtype_obj:
+                # For now at least, only support casting e.g.
+                #  Interval[int64]->Interval[float64],
+                raise
+            return blk.putmask(mask, new)
+
         nb = type(self)(new_values, placement=self._mgr_locs, ndim=self.ndim)
         return [nb]
 
@@ -1477,12 +1458,8 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         be a compatible shape.
         """
         if not self._can_hold_element(value):
-            # This is only relevant for DatetimeTZBlock, PeriodDtype, IntervalDtype,
-            #  which has a non-trivial `_can_hold_element`.
-            # https://github.com/pandas-dev/pandas/issues/24020
-            # Need a dedicated setitem until GH#24020 (type promotion in setitem
-            #  for extension arrays) is designed and implemented.
-            return self.astype(_dtype_obj).setitem(indexer, value)
+            # see TestSetitemFloatIntervalWithIntIntervalValues
+            return self.coerce_to_target_dtype(value).setitem(indexer, value)
 
         if isinstance(indexer, tuple):
             # TODO(EA2D): not needed with 2D EAs
@@ -1618,33 +1595,18 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
             # for the type
             other = self.dtype.na_value
 
-        if is_sparse(self.values):
-            # TODO(SparseArray.__setitem__): remove this if condition
-            # We need to re-infer the type of the data after doing the
-            # where, for cases where the subtypes don't match
-            dtype = None
-        else:
-            dtype = self.dtype
-
-        result = self.values.copy()
-        icond = ~cond
-        if lib.is_scalar(other):
-            set_other = other
-        else:
-            set_other = other[icond]
         try:
-            result[icond] = set_other
-        except (NotImplementedError, TypeError):
-            # NotImplementedError for class not implementing `__setitem__`
-            # TypeError for SparseArray, which implements just to raise
-            # a TypeError
-            if isinstance(result, Categorical):
-                # TODO: don't special-case
-                raise
-
-            result = type(self.values)._from_sequence(
-                np.where(cond, self.values, other), dtype=dtype
-            )
+            result = self.values._where(cond, other)
+        except TypeError:
+            if is_interval_dtype(self.dtype):
+                # TestSetitemFloatIntervalWithIntIntervalValues
+                blk = self.coerce_to_target_dtype(other)
+                if blk.dtype == _dtype_obj:
+                    # For now at least only support casting e.g.
+                    #  Interval[int64]->Interval[float64]
+                    raise
+                return blk.where(other, cond, errors)
+            raise
 
         return [self.make_block_same_class(result)]
 
@@ -1708,8 +1670,7 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
 
     def setitem(self, indexer, value):
         if not self._can_hold_element(value):
-            # TODO: general case needs casting logic.
-            return self.astype(_dtype_obj).setitem(indexer, value)
+            return self.coerce_to_target_dtype(value).setitem(indexer, value)
 
         values = self.values
         if self.ndim > 1:
@@ -1730,13 +1691,12 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
         return [self]
 
     def where(self, other, cond, errors="raise") -> list[Block]:
-        # TODO(EA2D): reshape unnecessary with 2D EAs
         arr = self.values
 
         cond = extract_bool_array(cond)
 
         try:
-            res_values = arr.T.where(cond, other).T
+            res_values = arr.T._where(cond, other).T
         except (ValueError, TypeError):
             return Block.where(self, other, cond, errors=errors)
 
