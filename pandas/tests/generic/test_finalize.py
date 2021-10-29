@@ -233,7 +233,6 @@ _all_methods = [
     ),
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("nunique")),
-        marks=not_implemented_mark,
     ),
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("idxmin")),
@@ -245,6 +244,9 @@ _all_methods = [
     ),
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("mode")),
+    ),
+    pytest.param(
+        (pd.Series, [0], operator.methodcaller("mode")),
         marks=not_implemented_mark,
     ),
     pytest.param(
@@ -467,12 +469,10 @@ _all_methods = [
             frame_mi_data,
             operator.methodcaller("transform", lambda x: x - x.min()),
         ),
-        marks=not_implemented_mark,
     ),
     (pd.Series, ([1],), operator.methodcaller("apply", lambda x: x)),
     pytest.param(
         (pd.DataFrame, frame_mi_data, operator.methodcaller("apply", lambda x: x)),
-        marks=not_implemented_mark,
     ),
     # Cumulative reductions
     (pd.Series, ([1],), operator.methodcaller("cumsum")),
