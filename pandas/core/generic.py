@@ -1,3 +1,4 @@
+# pyright: reportPropertyTypeMismatch=false
 from __future__ import annotations
 
 import collections
@@ -340,7 +341,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return self._attrs
 
     @attrs.setter
-    def attrs(self, value: dict[Hashable, Any]) -> None:
+    def attrs(self, value: Mapping[Hashable, Any]) -> None:
         self._attrs = dict(value)
 
     @final
