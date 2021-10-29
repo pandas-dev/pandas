@@ -35,6 +35,13 @@ class TestReshape:
         null_index = Index([])
         tm.assert_index_equal(Index(["a"]), null_index.insert(0, "a"))
 
+    def test_insert_missing(self, nulls_fixture):
+        # GH#22295
+        # test there is no mangling of NA values
+        expected = Index(["a", nulls_fixture, "b", "c"])
+        result = Index(list("abc")).insert(1, nulls_fixture)
+        tm.assert_index_equal(result, expected)
+
     @pytest.mark.parametrize(
         "pos,expected",
         [
@@ -47,6 +54,12 @@ class TestReshape:
         result = index.delete(pos)
         tm.assert_index_equal(result, expected)
         assert result.name == expected.name
+
+    def test_delete_raises(self):
+        index = Index(["a", "b", "c", "d"], name="index")
+        msg = "index 5 is out of bounds for axis 0 with size 4"
+        with pytest.raises(IndexError, match=msg):
+            index.delete(5)
 
     def test_append_multiple(self):
         index = Index(["a", "b", "c", "d", "e", "f"])
