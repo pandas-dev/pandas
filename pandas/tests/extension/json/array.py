@@ -39,7 +39,10 @@ from pandas.api.extensions import (
     ExtensionArray,
     ExtensionDtype,
 )
-from pandas.api.types import is_bool_dtype
+from pandas.api.types import (
+    is_bool_dtype,
+    is_list_like,
+)
 
 
 class JSONDtype(ExtensionDtype):
@@ -103,6 +106,11 @@ class JSONArray(ExtensionArray):
         elif isinstance(item, slice):
             # slice
             return type(self)(self.data[item])
+        elif not is_list_like(item):
+            raise IndexError(
+                "Only integers, slices and integer or "
+                "boolean arrays are valid indices."
+            )
         else:
             item = pd.api.indexers.check_array_indexer(self, item)
             if is_bool_dtype(item.dtype):

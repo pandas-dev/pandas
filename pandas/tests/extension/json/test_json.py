@@ -306,6 +306,20 @@ class TestGroupby(BaseJSON, base.BaseGroupbyTests):
         we'll be able to dispatch unique.
         """
 
+    @unhashable
+    def test_groupby_extension_agg(self):
+        """
+        This fails when we get to tm.assert_series_equal when left.index
+        contains dictionaries, which are not hashable.
+        """
+
+    @unhashable
+    def test_groupby_extension_no_sort(self):
+        """
+        This fails when we get to tm.assert_series_equal when left.index
+        contains dictionaries, which are not hashable.
+        """
+
     @pytest.mark.xfail(reason="GH#39098: Converts agg result to object")
     def test_groupby_agg_extension(self, data_for_grouping):
         super().test_groupby_agg_extension(data_for_grouping)

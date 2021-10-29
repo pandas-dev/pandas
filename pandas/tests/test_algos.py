@@ -2446,6 +2446,5 @@ def test_union_with_duplicates(op):
         result = algos.union_with_duplicates(lvals, rvals)
         tm.assert_numpy_array_equal(result, expected)
     else:
-        with tm.assert_produces_warning(RuntimeWarning):
-            result = algos.union_with_duplicates(lvals, rvals)
+        result = algos.union_with_duplicates(lvals, rvals)
         tm.assert_extension_array_equal(result, expected)

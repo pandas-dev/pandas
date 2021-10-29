@@ -67,6 +67,7 @@ from pandas.core.dtypes.cast import (
     can_hold_element,
     find_common_type,
     infer_dtype_from,
+    maybe_cast_pointwise_result,
     validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
@@ -5974,6 +5975,15 @@ class Index(IndexOpsMixin, PandasObject):
             # empty
             dtype = self.dtype
 
+        # e.g. if we are floating and new_values is all ints, then we
+        #  don't want to cast back to floating.  But if we are UInt64
+        #  and new_values is all ints, we want to try.
+        same_dtype = lib.infer_dtype(new_values, skipna=False) == self.inferred_type
+        if same_dtype:
+            new_values = maybe_cast_pointwise_result(
+                new_values, self.dtype, same_dtype=same_dtype
+            )
+
         if self._is_backward_compat_public_numeric_index and is_numeric_dtype(
             new_values.dtype
         ):
@@ -5982,20 +5992,6 @@ class Index(IndexOpsMixin, PandasObject):
             )
 
         result = Index._with_infer(new_values, dtype=dtype, copy=False, name=self.name)
-
-        if type(self) is Index and not isinstance(self.dtype, np.dtype):
-            # TODO: what about "integer-na"
-            if self.dtype.kind in ["i", "u"] and result.inferred_type == "integer":
-                # TODO: worry about itemsize/overflows?
-                result = result.astype(self.dtype, copy=False)
-            elif self.dtype.kind == "f" and result.inferred_type == "floating":
-                # TODO: worry about itemsize/overflows?
-                result = result.astype(self.dtype, copy=False)
-            elif self.dtype == "boolean" and result.inferred_type == "boolean":
-                result = result.astype(self.dtype, copy=False)
-            elif self.dtype == "string" and result.inferred_type == "string":
-                result = result.astype(self.dtype, copy=False)
-
         return result
 
     # TODO: De-duplicate with map, xref GH#32349

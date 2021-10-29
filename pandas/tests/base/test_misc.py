@@ -10,8 +10,8 @@ from pandas.compat import (
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
-    is_object_dtype,
     is_dtype_equal,
+    is_object_dtype,
 )
 
 import pandas as pd
@@ -77,11 +77,15 @@ def test_memory_usage(index_or_series_obj):
     res = obj.memory_usage()
     res_deep = obj.memory_usage(deep=True)
 
+    is_ser = isinstance(obj, Series)
     is_object = is_object_dtype(obj) or (
         isinstance(obj, Series) and is_object_dtype(obj.index)
     )
     is_categorical = is_categorical_dtype(obj.dtype) or (
         isinstance(obj, Series) and is_categorical_dtype(obj.index.dtype)
+    )
+    is_string = is_dtype_equal(obj, "string[python]") or (
+        is_ser and is_dtype_equal(obj.index.dtype, "string[python]")
     )
 
     if len(obj) == 0:
@@ -90,8 +94,9 @@ def test_memory_usage(index_or_series_obj):
         else:
             expected = 108 if IS64 else 64
         assert res_deep == res == expected
-    elif is_object or is_categorical:
+    elif is_object or is_categorical or is_string:
         # only deep will pick them up
+        assert res_deep > res
         assert res_deep > res
     else:
         assert res == res_deep
