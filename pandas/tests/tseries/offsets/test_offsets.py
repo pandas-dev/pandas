@@ -554,7 +554,9 @@ class TestDateOffset(Base):
 
     @pytest.mark.parametrize("relativedelta_kwd", list(liboffsets._relativedelta_kwds))
     def test_constructor(self, relativedelta_kwd):
-        DateOffset(**{relativedelta_kwd: 2})
+        offset = DateOffset(**{relativedelta_kwd: 2})
+        assert offset.kwds == {relativedelta_kwd: 2}
+        assert getattr(offset, relativedelta_kwd) == 2
 
     def test_default_constructor(self):
         assert (self.d + DateOffset(2)) == datetime(2008, 1, 4)
