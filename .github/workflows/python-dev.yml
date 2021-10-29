@@ -29,6 +29,7 @@ jobs:
         include:
           # No need to split tests on windows
           - os: windows-latest
+          - pytest_target: pandas
 
     name: actions-310-dev
     timeout-minutes: 80
