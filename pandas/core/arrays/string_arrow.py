@@ -33,9 +33,7 @@ from pandas.compat import (
     pa_version_under4p0,
 )
 from pandas.util._decorators import doc
-from pandas.util._validators import validate_fillna_kwargs
 
-from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
@@ -49,7 +47,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import missing
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.boolean import BooleanDtype
@@ -339,55 +336,6 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
             return self._dtype.na_value
         else:
             return scalar
-
-    def fillna(self, value=None, method=None, limit=None):
-        """
-        Fill NA/NaN values using the specified method.
-
-        Parameters
-        ----------
-        value : scalar, array-like
-            If a scalar value is passed it is used to fill all missing values.
-            Alternatively, an array-like 'value' can be given. It's expected
-            that the array-like have the same length as 'self'.
-        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
-            Method to use for filling holes in reindexed Series
-            pad / ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill gap.
-        limit : int, default None
-            If method is specified, this is the maximum number of consecutive
-            NaN values to forward/backward fill. In other words, if there is
-            a gap with more than this number of consecutive NaNs, it will only
-            be partially filled. If method is not specified, this is the
-            maximum number of entries along the entire axis where NaNs will be
-            filled.
-
-        Returns
-        -------
-        ExtensionArray
-            With NA/NaN filled.
-        """
-        value, method = validate_fillna_kwargs(value, method)
-
-        mask = self.isna()
-        value = missing.check_value_size(value, mask, len(self))
-
-        if mask.any():
-            if method is not None:
-                func = missing.get_fill_func(method)
-                new_values, _ = func(
-                    self.to_numpy("object"),
-                    limit=limit,
-                    mask=mask,
-                )
-                new_values = self._from_sequence(new_values)
-            else:
-                # fill with value
-                new_values = self.copy()
-                new_values[mask] = value
-        else:
-            new_values = self.copy()
-        return new_values
 
     def _reduce(self, name: str, skipna: bool = True, **kwargs):
         if name in ["min", "max"]:
@@ -685,11 +633,7 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
             data = self._data.cast(pa.from_numpy_dtype(dtype.numpy_dtype))
             return dtype.__from_arrow__(data)
 
-        elif isinstance(dtype, ExtensionDtype):
-            cls = dtype.construct_array_type()
-            return cls._from_sequence(self, dtype=dtype, copy=copy)
-
-        return super().astype(dtype, copy)
+        return super().astype(dtype, copy=copy)
 
     # ------------------------------------------------------------------------
     # String methods interface

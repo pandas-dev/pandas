@@ -368,6 +368,7 @@ class TestLoc2:
         with pytest.raises(KeyError, match=msg):
             df.loc[[1, 2], [1, 2]]
 
+    def test_loc_to_fail2(self):
         # GH  7496
         # loc should not fallback
 
@@ -406,6 +407,7 @@ class TestLoc2:
         with pytest.raises(KeyError, match=msg):
             s.loc[[-2]] = 0
 
+    def test_loc_to_fail3(self):
         # inconsistency between .loc[values] and .loc[values,:]
         # GH 7999
         df = DataFrame([["a"], ["b"]], index=[1, 2], columns=["value"])
@@ -838,7 +840,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
     def test_loc_coercion(self):
 
-        # 12411
+        # GH#12411
         df = DataFrame({"date": [Timestamp("20130101").tz_localize("UTC"), pd.NaT]})
         expected = df.dtypes
 
@@ -848,7 +850,8 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         result = df.iloc[[1]]
         tm.assert_series_equal(result.dtypes, expected)
 
-        # 12045
+    def test_loc_coercion2(self):
+        # GH#12045
         import datetime
 
         df = DataFrame(
@@ -862,7 +865,8 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         result = df.iloc[[1]]
         tm.assert_series_equal(result.dtypes, expected)
 
-        # 11594
+    def test_loc_coercion3(self):
+        # GH#11594
         df = DataFrame({"text": ["some words"] + [None] * 9})
         expected = df.dtypes
 

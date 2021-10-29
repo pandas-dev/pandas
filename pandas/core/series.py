@@ -3,8 +3,6 @@ Data structure for 1-dimensional cross-sectional and time series data
 """
 from __future__ import annotations
 
-from io import StringIO
-from shutil import get_terminal_size
 from textwrap import dedent
 from typing import (
     IO,
@@ -1460,29 +1458,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Return a string representation for a particular Series.
         """
-        buf = StringIO("")
-        width, height = get_terminal_size()
-        max_rows = (
-            height
-            if get_option("display.max_rows") == 0
-            else get_option("display.max_rows")
-        )
-        min_rows = (
-            height
-            if get_option("display.max_rows") == 0
-            else get_option("display.min_rows")
-        )
-        show_dimensions = get_option("display.show_dimensions")
-
-        self.to_string(
-            buf=buf,
-            name=self.name,
-            dtype=self.dtype,
-            min_rows=min_rows,
-            max_rows=max_rows,
-            length=show_dimensions,
-        )
-        return buf.getvalue()
+        repr_params = fmt.get_series_repr_params(self)
+        return self.to_string(**repr_params)
 
     def to_string(
         self,
@@ -4169,7 +4146,7 @@ Keep all original rows and also all original values
         3  I am a rabbit
         dtype: object
         """
-        new_values = super()._map_values(arg, na_action=na_action)
+        new_values = self._map_values(arg, na_action=na_action)
         return self._constructor(new_values, index=self.index).__finalize__(
             self, method="map"
         )
@@ -4396,8 +4373,11 @@ Keep all original rows and also all original values
         else:
             # dispatch to numpy arrays
             if numeric_only:
+                kwd_name = "numeric_only"
+                if name in ["any", "all"]:
+                    kwd_name = "bool_only"
                 raise NotImplementedError(
-                    f"Series.{name} does not implement numeric_only."
+                    f"Series.{name} does not implement {kwd_name}."
                 )
             with np.errstate(all="ignore"):
                 return op(delegate, skipna=skipna, **kwds)
@@ -4525,6 +4505,9 @@ Keep all original rows and also all original values
         5    3
         dtype: int64
         """
+        if axis is not None:
+            axis = self._get_axis_number(axis)
+
         if callable(index) or is_dict_like(index):
             return super().rename(
                 index, copy=copy, inplace=inplace, level=level, errors=errors
