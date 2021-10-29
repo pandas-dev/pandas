@@ -66,6 +66,14 @@ from pandas.core.indexes.api import (
     MultiIndex,
 )
 
+try:
+    import pyarrow as pa
+except ImportError:
+    has_pyarrow = False
+else:
+    del pa
+    has_pyarrow = True
+
 # Until https://github.com/numpy/numpy/issues/19078 is sorted out, just suppress
 suppress_npdev_promotion_warning = pytest.mark.filterwarnings(
     "ignore:Promotion of numbers and bools:FutureWarning"
@@ -518,8 +526,10 @@ indices_dict = {
     "nullable_float": Index(np.arange(100), dtype="Float32"),
     "nullable_bool": Index(np.arange(100).astype(bool), dtype="boolean"),
     "string-python": Index(pd.array(tm.makeStringIndex(100), dtype="string[python]")),
-    "string-pyarrow": Index(pd.array(tm.makeStringIndex(100), dtype="string[pyarrow]")),
 }
+if has_pyarrow:
+    idx = Index(pd.array(tm.makeStringIndex(100), dtype="string[pyarrow]"))
+    indices_dict["string-pyarrow"] = idx
 
 
 @pytest.fixture(params=indices_dict.keys())
