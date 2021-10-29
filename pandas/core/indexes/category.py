@@ -53,7 +53,6 @@ _index_doc_kwargs.update({"target_klass": "CategoricalIndex"})
 @inherit_names(
     [
         "argsort",
-        "_internal_get_values",
         "tolist",
         "codes",
         "categories",

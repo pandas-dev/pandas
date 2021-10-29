@@ -69,6 +69,7 @@ from pandas.core.arrays.datetimes import (
     objects_to_datetime64ns,
     tz_to_dtype,
 )
+from pandas.core.construction import extract_array
 from pandas.core.indexes.base import Index
 from pandas.core.indexes.datetimes import DatetimeIndex
 
@@ -516,7 +517,7 @@ def _to_datetime_with_unit(arg, unit, name, tz, errors: str) -> Index:
     """
     to_datetime specalized to the case where a 'unit' is passed.
     """
-    arg = getattr(arg, "_values", arg)  # TODO: extract_array
+    arg = extract_array(arg, extract_numpy=True)
 
     # GH#30050 pass an ndarray to tslib.array_with_unit_to_datetime
     # because it expects an ndarray argument
