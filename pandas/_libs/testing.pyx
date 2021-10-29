@@ -7,7 +7,6 @@ from numpy cimport import_array
 
 import_array()
 
-from pandas._libs.missing cimport is_matching_na
 from pandas._libs.util cimport (
     is_array,
     is_complex_object,
@@ -176,18 +175,10 @@ cpdef assert_almost_equal(a, b,
         assert_class_equal(a, b, obj=obj)
 
     if isna(a) and isna(b):
+        # TODO: Should require same-dtype NA?
+        # nan / None comparison
         return True
-        #if isna(b):
-        #    # TODO: Should require same-dtype NA?
-        #    # nan / None comparison
-        #    return True
-        #
-        #assert False, f"expected {a} but got {b}"
 
-    #elif isna(b):
-    #    assert False, f"expected {a} but got {b}"
-
-    # TODO: test for tm.assert_whatever with pd.NA that would raise here
     if a == b:
         # object comparison
         return True

@@ -63,3 +63,9 @@ class BaseMultiIndexCodesEngine:
         method: str,
         limit: int | None,
     ) -> npt.NDArray[np.intp]: ...
+
+class NullableEngine:
+    pass
+
+class ExtensionEngine:
+    pass
