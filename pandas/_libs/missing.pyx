@@ -64,7 +64,7 @@ cpdef bint is_matching_na(object left, object right, bint nan_matches_none=False
     elif left is NaT:
         return right is NaT
     elif util.is_float_object(left):
-        if nan_matches_none and right is None:
+        if nan_matches_none and right is None and util.is_nan(left):
             return True
         return (
             util.is_nan(left)
