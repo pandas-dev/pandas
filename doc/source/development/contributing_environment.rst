@@ -259,3 +259,16 @@ should already exist.
    # Build and install pandas
    python setup.py build_ext -j 4
    python -m pip install -e . --no-build-isolation --no-use-pep517
+
+
+VSCode Integration
+------------------
+
+Since pandas is not a py.typed library, pyright ships with its own type annotations for pandas.
+This break "Go to definition" in VSCode for the pandas code base. You can create an empty py.typed
+file to claim that pandas is a py.typed library to make type checkers (including pyright) prioritize
+pandas's own type annotations. This makes "Go to definition" work as expected in VSCode.
+
+.. code-block:: none
+
+   python -c "import pathlib; pathlib.Path('pandas/py.typed').touch()"
