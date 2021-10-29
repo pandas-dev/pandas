@@ -923,6 +923,23 @@ def all_binary_operators(request):
 
 @pytest.fixture(
     params=[
+        operator.eq,
+        operator.ne,
+        operator.gt,
+        operator.ge,
+        operator.lt,
+        operator.le,
+    ]
+)
+def comparison_op(request):
+    """
+    Fixture for operator module comparison functions.
+    """
+    return request.param
+
+
+@pytest.fixture(
+    params=[
         operator.add,
         ops.radd,
         operator.sub,
