@@ -410,7 +410,8 @@ Type annotations
 
     * Pandas is not yet a py.typed library (see `PEP 561 <https://www.python.org/dev/peps/pep-0561/>`)!
 
-To make type checkers aware of pandas's own type annotations, you can create an empty py.typed.
+To make type checkers aware of pandas's own type annotations, you can create an empty py.typed file.
+This signals to type checkers that pandas is a py.typed library.
 
 .. code-block:: none
 
