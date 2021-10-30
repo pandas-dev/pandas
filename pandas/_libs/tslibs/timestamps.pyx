@@ -311,8 +311,7 @@ cdef class _Timestamp(ABCTimestamp):
 
     def __sub__(self, other):
 
-        if (is_any_td_scalar(other) or is_integer_object(other) or
-                is_offset_object(other)):
+        if (is_any_td_scalar(other) or is_integer_object(other)):
             neg_other = -other
             return self + neg_other
 
