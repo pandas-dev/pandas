@@ -158,3 +158,9 @@ def _create_consistency_data():
 def consistency_data(request):
     """Create consistency data"""
     return request.param
+
+
+@pytest.fixture(params=[(1, 1), (2, 0), (10, 4), (20, 2)])
+def rolling_consistency_cases(request):
+    """window, min_periods"""
+    return request.param
