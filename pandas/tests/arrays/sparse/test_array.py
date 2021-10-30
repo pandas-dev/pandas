@@ -258,7 +258,7 @@ class TestSparseArray:
         assert self.zarr[2] == 1
         assert self.zarr[7] == 5
 
-        errmsg = re.compile("bounds")
+        errmsg = "must be an integer between -10 and 10"
 
         with pytest.raises(IndexError, match=errmsg):
             self.arr[11]
