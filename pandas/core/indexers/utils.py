@@ -100,10 +100,7 @@ def is_scalar_indexer(indexer, ndim: int) -> bool:
         # GH37748: allow indexer to be an integer for Series
         return True
     if isinstance(indexer, tuple) and len(indexer) == ndim:
-        return all(
-            is_integer(x) or (isinstance(x, np.ndarray) and x.ndim == len(x) == 1)
-            for x in indexer
-        )
+        return all(is_integer(x) for x in indexer)
     return False
 
 
