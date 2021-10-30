@@ -910,10 +910,10 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 if isinstance(block, DatetimeTZBlock) and block.values.ndim == 1:
                     # TODO(2.0): remove once fastparquet no longer needs this
                     warnings.warn(
-                        DeprecationWarning,
                         "In a future version, the BlockManager constructor "
                         "will assume that a DatetimeTZBlock with block.ndim==2 "
                         "has block.values.ndim == 2.",
+                        DeprecationWarning,
                         stacklevel=find_stack_level(),
                     )
 

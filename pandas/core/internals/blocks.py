@@ -274,11 +274,11 @@ class Block(PandasObject):
             if new_values is not values:
                 # TODO(2.0): remove once fastparquet has stopped relying on it
                 warnings.warn(
-                    DeprecationWarning,
                     "In a future version, Block.make_block_same_class will "
                     "assume that datetime64 and timedelta64 ndarrays have "
                     "already been cast to DatetimeArray and TimedeltaArray, "
                     "respectively.",
+                    DeprecationWarning,
                     stacklevel=find_stack_level(),
                 )
             values = new_values
