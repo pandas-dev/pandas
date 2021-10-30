@@ -45,14 +45,14 @@ jobs:
     - script: conda update -q -n base conda
       displayName: 'Update conda'
 
-    - script: conda info
+    - bash: echo "$(conda info)"
       displayName: 'Display conda info'
 
     - task: Cache@2
       displayName: Use cached Anaconda environment
       inputs:
         key: 'conda | "$(Agent.OS)" | $(ENV_FILE)'
-        path: C:\Miniconda
+        path: $(Pipeline.Workspace)/Miniconda
         restoreKeys: |
           python | "$(Agent.OS)"
           python

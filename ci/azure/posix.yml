@@ -39,6 +39,10 @@ jobs:
       condition: eq(variables.CONDA_CACHE_RESTORED, 'false')
 
     - script: |
+        conda update -q -y -n pandas-dev
+        disply
+
+    - script: |
         source activate pandas-dev
         conda list pandas
         python setup.py build_ext -q -j2
