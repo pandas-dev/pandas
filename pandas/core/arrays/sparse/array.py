@@ -57,6 +57,7 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_dtype_equal,
     is_integer,
+    is_list_like,
     is_object_dtype,
     is_scalar,
     is_string_dtype,
@@ -927,6 +928,14 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             else:
                 indices = np.arange(len(self), dtype=np.int32)[key]
                 return self.take(indices)
+
+        elif not is_list_like(key):
+            # e.g. "foo" or 2.5
+            # exception message copied from numpy
+            raise IndexError(
+                r"only integers, slices (`:`), ellipsis (`...`), numpy.newaxis "
+                r"(`None`) and integer or boolean arrays are valid indices"
+            )
 
         else:
             # TODO: I think we can avoid densifying when masking a
