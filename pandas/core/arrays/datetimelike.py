@@ -136,6 +136,19 @@ DTScalarOrNaT = Union[DatetimeLikeScalar, NaTType]
 DatetimeLikeArrayT = TypeVar("DatetimeLikeArrayT", bound="DatetimeLikeArrayMixin")
 
 
+def is_all_strings(value: ArrayLike) -> bool:
+    """
+    Check if this is an array of strings that we should try parsing.
+    """
+    dtype = value.dtype
+
+    if isinstance(dtype, np.dtype):
+        return dtype == object and lib.infer_dtype(value, skipna=False) == "string"
+    elif is_categorical_dtype(dtype):
+        return dtype.categories.inferred_type == "string"
+    return dtype == "string"
+
+
 class InvalidComparison(Exception):
     """
     Raised by _validate_comparison_value to indicate to caller it should
@@ -720,7 +733,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         value = pd_array(value)
         value = extract_array(value, extract_numpy=True)
 
-        if is_dtype_equal(value.dtype, "string"):
+        if is_all_strings(value):
             # We got a StringArray
             try:
                 # TODO: Could use from_sequence_of_strings if implemented
