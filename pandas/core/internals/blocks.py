@@ -1593,7 +1593,9 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
             # The default `other` for Series / Frame is np.nan
             # we want to replace that with the correct NA value
             # for the type
-            other = self.dtype.na_value
+            # error: Item "dtype[Any]" of "Union[dtype[Any], ExtensionDtype]" has no
+            # attribute "na_value"
+            other = self.dtype.na_value  # type: ignore[union-attr]
 
         try:
             result = self.values._where(cond, other)
