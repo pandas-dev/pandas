@@ -92,7 +92,8 @@ def generate_numba_agg_func(
     numba_func = jit_user_function(func, nopython, nogil, parallel)
     numba = import_optional_dependency("numba")
 
-    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+    # error: Untyped decorator makes function "group_agg" untyped
+    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)  # type: ignore[misc]
     def group_agg(
         values: np.ndarray,
         index: np.ndarray,
@@ -153,7 +154,8 @@ def generate_numba_transform_func(
     numba_func = jit_user_function(func, nopython, nogil, parallel)
     numba = import_optional_dependency("numba")
 
-    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+    # error: Untyped decorator makes function "group_transform" untyped
+    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)  # type: ignore[misc]
     def group_transform(
         values: np.ndarray,
         index: np.ndarray,

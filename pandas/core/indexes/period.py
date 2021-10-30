@@ -434,7 +434,9 @@ class PeriodIndex(DatetimeIndexOpsMixin):
                     # TODO: pass if method is not None, like DTI does?
                     raise KeyError(key) from err
 
-            if reso == self.dtype.resolution:
+            # error: Item "ExtensionDtype"/"dtype[Any]" of "Union[dtype[Any],
+            # ExtensionDtype]" has no attribute "resolution"
+            if reso == self.dtype.resolution:  # type: ignore[union-attr]
                 # the reso < self.dtype.resolution case goes through _get_string_slice
                 key = Period(parsed, freq=self.freq)
                 loc = self.get_loc(key, method=method, tolerance=tolerance)
@@ -487,7 +489,9 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     def _can_partial_date_slice(self, reso: Resolution) -> bool:
         assert isinstance(reso, Resolution), (type(reso), reso)
         # e.g. test_getitem_setitem_periodindex
-        return reso > self.dtype.resolution
+        # error: Item "ExtensionDtype"/"dtype[Any]" of "Union[dtype[Any],
+        # ExtensionDtype]" has no attribute "resolution"
+        return reso > self.dtype.resolution  # type: ignore[union-attr]
 
 
 def period_range(

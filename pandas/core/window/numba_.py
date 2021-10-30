@@ -1,3 +1,4 @@
+# pyright: reportUntypedFunctionDecorator = false
 from __future__ import annotations
 
 import functools
@@ -57,7 +58,8 @@ def generate_numba_apply_func(
     numba_func = jit_user_function(func, nopython, nogil, parallel)
     numba = import_optional_dependency("numba")
 
-    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+    # error: Untyped decorator makes function "roll_apply" untyped
+    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)  # type: ignore[misc]
     def roll_apply(
         values: np.ndarray,
         begin: np.ndarray,
@@ -115,7 +117,8 @@ def generate_numba_ewm_func(
 
     numba = import_optional_dependency("numba")
 
-    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+    # error: Untyped decorator makes function "ewma" untyped
+    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)  # type: ignore[misc]
     def ewm(
         values: np.ndarray,
         begin: np.ndarray,
@@ -216,7 +219,8 @@ def generate_numba_table_func(
     numba_func = jit_user_function(func, nopython, nogil, parallel)
     numba = import_optional_dependency("numba")
 
-    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+    # error: Untyped decorator makes function "roll_table" untyped
+    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)  # type: ignore[misc]
     def roll_table(
         values: np.ndarray,
         begin: np.ndarray,
@@ -294,7 +298,8 @@ def generate_numba_ewm_table_func(
 
     numba = import_optional_dependency("numba")
 
-    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+    # error: Untyped decorator makes function "ewm_table" untyped
+    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)  # type: ignore[misc]
     def ewm_table(
         values: np.ndarray,
         begin: np.ndarray,

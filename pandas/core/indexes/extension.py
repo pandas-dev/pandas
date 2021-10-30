@@ -3,7 +3,10 @@ Shared methods for Index subclasses backed by ExtensionArray.
 """
 from __future__ import annotations
 
-from typing import TypeVar
+from typing import (
+    Callable,
+    TypeVar,
+)
 
 import numpy as np
 
@@ -23,9 +26,12 @@ from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.indexes.base import Index
 
 _T = TypeVar("_T", bound="NDArrayBackedExtensionIndex")
+_ExtensionIndexT = TypeVar("_ExtensionIndexT", bound="ExtensionIndex")
 
 
-def _inherit_from_data(name: str, delegate, cache: bool = False, wrap: bool = False):
+def _inherit_from_data(
+    name: str, delegate: type, cache: bool = False, wrap: bool = False
+):
     """
     Make an alias for a method of the underlying ExtensionArray.
 
@@ -81,8 +87,9 @@ def _inherit_from_data(name: str, delegate, cache: bool = False, wrap: bool = Fa
         method = attr
 
     else:
-
-        def method(self, *args, **kwargs):
+        # error: Incompatible redefinition (redefinition with type "Callable[[Any,
+        # VarArg(Any), KwArg(Any)], Any]", original type "property")
+        def method(self, *args, **kwargs):  # type: ignore[misc]
             if "inplace" in kwargs:
                 raise ValueError(f"cannot use inplace with {type(self).__name__}")
             result = attr(self._data, *args, **kwargs)
@@ -94,12 +101,15 @@ def _inherit_from_data(name: str, delegate, cache: bool = False, wrap: bool = Fa
                 return Index(result, name=self.name)
             return result
 
-        method.__name__ = name
+        # error: "property" has no attribute "__name__"
+        method.__name__ = name  # type: ignore[attr-defined]
         method.__doc__ = attr.__doc__
     return method
 
 
-def inherit_names(names: list[str], delegate, cache: bool = False, wrap: bool = False):
+def inherit_names(
+    names: list[str], delegate: type, cache: bool = False, wrap: bool = False
+) -> Callable[[type[_ExtensionIndexT]], type[_ExtensionIndexT]]:
     """
     Class decorator to pin attributes from an ExtensionArray to a Index subclass.
 
@@ -112,7 +122,7 @@ def inherit_names(names: list[str], delegate, cache: bool = False, wrap: bool = 
         Whether to wrap the inherited result in an Index.
     """
 
-    def wrapper(cls):
+    def wrapper(cls: type[_ExtensionIndexT]) -> type[_ExtensionIndexT]:
         for name in names:
             meth = _inherit_from_data(name, delegate, cache=cache, wrap=wrap)
             setattr(cls, name, meth)
