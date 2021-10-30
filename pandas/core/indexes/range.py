@@ -807,24 +807,17 @@ class RangeIndex(NumericIndex):
                 return self[1:]
             if loc == -1 or loc == len(self) - 1:
                 return self[:-1]
+            if len(self) == 3 and (loc == 1 or loc == -2):
+                return self[::2]
 
         elif lib.is_list_like(loc):
             slc = lib.maybe_indices_to_slice(np.asarray(loc, dtype=np.intp), len(self))
-            if isinstance(slc, slice) and slc.step is not None and slc.step < 0:
-                rng = range(len(self))[slc][::-1]
-                slc = slice(rng.start, rng.stop, rng.step)
 
-            if isinstance(slc, slice) and slc.step in [1, None]:
-                # Note: maybe_indices_to_slice will never return a slice
-                #  with 'slc.start is None'; may have slc.stop None in cases
-                #  with negative step
-                if slc.start == 0:
-                    return self[slc.stop :]
-                elif slc.stop in [len(self), None]:
-                    return self[: slc.start]
-
-                # TODO: more generally, self.difference(self[slc]),
-                #  once _difference is better about retaining RangeIndex
+            if isinstance(slc, slice):
+                # defer to RangeIndex._difference, which is optimized to return
+                #  a RangeIndex whenever possible
+                other = self[slc]
+                return self.difference(other, sort=False)
 
         return super().delete(loc)
 
