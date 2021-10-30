@@ -13,6 +13,7 @@ import numpy as np
 
 from pandas.core._numba.kernels.shared import is_monotonic_increasing
 
+
 # error: Untyped decorator makes function "add_sum" untyped
 @numba.jit(nopython=True, nogil=True, parallel=False)  # type: ignore[misc]
 def add_sum(
