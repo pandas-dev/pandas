@@ -39,7 +39,7 @@ jobs:
       condition: eq(variables.CONDA_CACHE_RESTORED, 'false')
 
     - script: |
-        conda update -q -y -n pandas-dev
+        conda update -q -y --all -n pandas-dev
       displayName: 'Update packages in pandas-dev'
 
     - script: |
