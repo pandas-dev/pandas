@@ -13,8 +13,8 @@ import numpy as np
 
 from pandas.core._numba.kernels.shared import is_monotonic_increasing
 
-
-@numba.jit(nopython=True, nogil=True, parallel=False)
+# error: Untyped decorator makes function "add_sum" untyped
+@numba.jit(nopython=True, nogil=True, parallel=False)  # type: ignore[misc]
 def add_sum(
     val: float, nobs: int, sum_x: float, compensation: float
 ) -> tuple[int, float, float]:
@@ -27,7 +27,8 @@ def add_sum(
     return nobs, sum_x, compensation
 
 
-@numba.jit(nopython=True, nogil=True, parallel=False)
+# error: Untyped decorator makes function "remove_sum" untyped
+@numba.jit(nopython=True, nogil=True, parallel=False)  # type: ignore[misc]
 def remove_sum(
     val: float, nobs: int, sum_x: float, compensation: float
 ) -> tuple[int, float, float]:
@@ -40,7 +41,8 @@ def remove_sum(
     return nobs, sum_x, compensation
 
 
-@numba.jit(nopython=True, nogil=True, parallel=False)
+# error: Untyped decorator makes function "sliding_sum" untyped
+@numba.jit(nopython=True, nogil=True, parallel=False)  # type: ignore[misc]
 def sliding_sum(
     values: np.ndarray,
     start: np.ndarray,
