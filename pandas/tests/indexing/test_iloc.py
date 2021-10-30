@@ -270,17 +270,15 @@ class TestiLocBaseIndependent:
         with pytest.raises(IndexError, match=msg):
             df.iloc[index_vals, column_vals]
 
-    @pytest.mark.parametrize("dims", [1, 2])
-    def test_iloc_getitem_invalid_scalar(self, dims):
+    def test_iloc_getitem_invalid_scalar(self, frame_or_series):
         # GH 21982
 
-        if dims == 1:
-            s = Series(np.arange(10))
-        else:
-            s = DataFrame(np.arange(100).reshape(10, 10))
+        obj = DataFrame(np.arange(100).reshape(10, 10))
+        if frame_or_series is Series:
+            obj = obj[0]
 
         with pytest.raises(TypeError, match="Cannot index by location index"):
-            s.iloc["a"]
+            obj.iloc["a"]
 
     def test_iloc_array_not_mutating_negative_indices(self):
 
