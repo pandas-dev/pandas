@@ -2137,6 +2137,19 @@ class TestTimedeltaArraylikeMulDivOps:
         else:
             tm.assert_equal(result, expected)
 
+    def test_td64arr_all_nat_div_object_dtype_numeric(self, box_with_array):
+        # GH#39750 make sure we infer the result as td64
+        tdi = TimedeltaIndex([NaT, NaT])
+
+        left = tm.box_expected(tdi, box_with_array)
+        right = np.array([2, 2.0], dtype=object)
+
+        result = left / right
+        tm.assert_equal(result, left)
+
+        result = left // right
+        tm.assert_equal(result, left)
+
 
 class TestTimedelta64ArrayLikeArithmetic:
     # Arithmetic tests for timedelta64[ns] vectors fully parametrized over
