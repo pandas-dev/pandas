@@ -58,6 +58,7 @@ from pandas.core.arrays.string_ import (
 )
 from pandas.core.indexers import (
     check_array_indexer,
+    unpack_tuple_and_ellipses,
     validate_indices,
 )
 from pandas.core.strings.object_array import ObjectStringArrayMixin
@@ -313,14 +314,7 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
                     "boolean arrays are valid indices."
                 )
         elif isinstance(item, tuple):
-            # possibly unpack arr[..., n] to arr[n]
-            if len(item) == 1:
-                item = item[0]
-            elif len(item) == 2:
-                if item[0] is Ellipsis:
-                    item = item[1]
-                elif item[1] is Ellipsis:
-                    item = item[0]
+            item = unpack_tuple_and_ellipses(item)
 
         # We are not an array indexer, so maybe e.g. a slice or integer
         # indexer. We dispatch to pyarrow.
