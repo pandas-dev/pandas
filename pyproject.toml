@@ -61,6 +61,7 @@ markers = [
 [tool.mypy]
 # Import discovery
 mypy_path = "typings"
+files = ["pandas", "typings"]
 namespace_packages = false
 explicit_package_bases = false
 ignore_missing_imports = true
