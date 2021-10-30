@@ -164,3 +164,8 @@ def consistency_data(request):
 def rolling_consistency_cases(request):
     """window, min_periods"""
     return request.param
+
+
+@pytest.fixture(params=[0, 4])
+def min_periods(request):
+    return request.param
