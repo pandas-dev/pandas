@@ -40,7 +40,7 @@ jobs:
 
     - script: |
         conda update -q -y -n pandas-dev
-        disply
+      displayName: 'Update packages in pandas-dev'
 
     - script: |
         source activate pandas-dev

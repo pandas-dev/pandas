@@ -52,7 +52,7 @@ jobs:
       displayName: Use cached Anaconda environment
       inputs:
         key: 'conda | "$(Agent.OS)" | $(ENV_FILE)'
-        path: $(Pipeline.Workspace)/Miniconda
+        path: $(Pipeline.Workspace)\.condarc
         restoreKeys: |
           python | "$(Agent.OS)"
           python
