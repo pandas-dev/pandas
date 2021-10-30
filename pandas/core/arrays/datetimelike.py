@@ -85,6 +85,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
     PeriodDtype,
@@ -143,8 +144,11 @@ def is_all_strings(value: ArrayLike) -> bool:
     dtype = value.dtype
 
     if isinstance(dtype, np.dtype):
-        return dtype == object and lib.infer_dtype(value, skipna=False) == "string"
-    elif is_categorical_dtype(dtype):
+        return (
+            dtype == np.dtype("object")
+            and lib.infer_dtype(value, skipna=False) == "string"
+        )
+    elif isinstance(dtype, CategoricalDtype):
         return dtype.categories.inferred_type == "string"
     return dtype == "string"
 
