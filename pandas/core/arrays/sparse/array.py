@@ -42,6 +42,7 @@ from pandas._typing import (
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
+from pandas.util._validators import validate_insert_loc
 
 from pandas.core.dtypes.cast import (
     astype_nansafe,
@@ -81,7 +82,10 @@ from pandas.core.construction import (
     extract_array,
     sanitize_array,
 )
-from pandas.core.indexers import check_array_indexer
+from pandas.core.indexers import (
+    check_array_indexer,
+    unpack_tuple_and_ellipses,
+)
 from pandas.core.missing import interpolate_2d
 from pandas.core.nanops import check_below_min_count
 import pandas.core.ops as ops
@@ -878,16 +882,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     ) -> SparseArrayT | Any:
 
         if isinstance(key, tuple):
-            if len(key) > 1:
-                if key[0] is Ellipsis:
-                    key = key[1:]
-                elif key[-1] is Ellipsis:
-                    key = key[:-1]
-            if len(key) > 1:
-                raise IndexError("too many indices for array.")
-            if key[0] is Ellipsis:
+            key = unpack_tuple_and_ellipses(key)
+            if key is Ellipsis:
                 raise ValueError("Cannot slice with Ellipsis")
-            key = key[0]
 
         if is_integer(key):
             return self._get_val_at(key)
@@ -952,12 +949,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return type(self)(data_slice, kind=self.kind)
 
     def _get_val_at(self, loc):
-        n = len(self)
-        if loc < 0:
-            loc += n
-
-        if loc >= n or loc < 0:
-            raise IndexError("Out of bounds access")
+        loc = validate_insert_loc(loc, len(self))
 
         sp_loc = self.sp_index.lookup(loc)
         if sp_loc == -1:
