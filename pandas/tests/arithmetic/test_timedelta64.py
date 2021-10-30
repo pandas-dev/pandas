@@ -2022,7 +2022,7 @@ class TestTimedeltaArraylikeMulDivOps:
         ids=lambda x: type(x).__name__,
     )
     def test_td64arr_div_numeric_array(
-        self, box_with_array, vector, any_real_numpy_dtype, using_array_manager
+        self, box_with_array, vector, any_real_numpy_dtype
     ):
         # GH#4521
         # divide/multiply by integers
@@ -2061,14 +2061,6 @@ class TestTimedeltaArraylikeMulDivOps:
             expected = pd.Index(expected)  # do dtype inference
             expected = tm.box_expected(expected, xbox)
             assert tm.get_dtype(expected) == "m8[ns]"
-
-            if using_array_manager and box_with_array is DataFrame:
-                # TODO the behaviour is buggy here (third column with all-NaT
-                # as result doesn't get preserved as timedelta64 dtype).
-                # Reported at https://github.com/pandas-dev/pandas/issues/39750
-                # Changing the expected instead of xfailing to continue to test
-                # the correct behaviour for the other columns
-                expected[2] = Series([NaT, NaT], dtype=object)
 
             tm.assert_equal(result, expected)
 
