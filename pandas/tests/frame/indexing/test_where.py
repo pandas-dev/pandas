@@ -1,21 +1,14 @@
 from datetime import datetime
 
-import numpy as np
-import pytest
-
 from pandas.core.dtypes.common import is_scalar
 
+from hypothesis import (given, strategies as st)
+import numpy as np
 import pandas as pd
-from pandas import (
-    DataFrame,
-    DatetimeIndex,
-    Series,
-    StringDtype,
-    Timestamp,
-    date_range,
-    isna,
-)
+from pandas import (DataFrame, DatetimeIndex, Series, StringDtype, Timestamp,
+                    date_range, isna)
 import pandas._testing as tm
+import pytest
 
 
 @pytest.fixture(params=["default", "float_string", "mixed_float", "mixed_int"])
@@ -787,3 +780,20 @@ def test_where_columns_casting():
     result = df.where(pd.notnull(df), None)
     # make sure dtypes don't change
     tm.assert_frame_equal(expected, result)
+
+
+optional_ints = st.lists(st.one_of(st.integers(), st.none()), max_size=10, min_size=3)
+optional_floats = st.lists(st.one_of(st.floats(), st.none()), max_size=10, min_size=3)
+optional_text = st.lists(st.one_of(st.none(), st.text()), max_size=10, min_size=3)
+optional_dicts = st.lists(st.one_of(st.none(), st.dictionaries(st.text(), st.integers())), max_size=10, min_size=3)
+optional_lists = st.lists(st.one_of(st.none(), st.lists(st.text(), max_size=10, min_size=3)), max_size=10, min_size=3)
+possible_values = st.one_of(optional_ints, optional_floats, optional_text, optional_dicts, optional_lists)
+
+
+@given(data=possible_values)
+def test_where_inplace_casting(data):
+    # GH 22051
+    df = DataFrame({"a": data})
+    df_copy = df.where(pd.notnull(df), None).copy()
+    df.where(pd.notnull(df), None, inplace=True)
+    tm.assert_equal(df, df_copy)
