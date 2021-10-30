@@ -24,8 +24,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macOS-latest, windows-latest]
+        os: [ubuntu-latest, macOS-latest]
         pytest_target: ["pandas/tests/[a-h]*", "pandas/tests/[i-z]*"]
+        include:
+          # No need to split tests on windows
+          - os: windows-latest
+            pytest_target: pandas
 
     name: actions-310-dev
     timeout-minutes: 80
