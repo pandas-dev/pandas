@@ -2702,6 +2702,7 @@ def _get_codes_for_values(values, categories: Index) -> np.ndarray:
     if isinstance(categories.dtype, ExtensionDtype) and is_object_dtype(values):
         # Support inferring the correct extension dtype from an array of
         # scalar objects. e.g.
+        # Categorical(array[Period, Period], categories=PeriodIndex(...))
         cls = categories.dtype.construct_array_type()
         values = maybe_cast_to_extension_array(cls, values)
         if not isinstance(values, cls):

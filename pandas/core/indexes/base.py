@@ -4683,6 +4683,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._data
 
     # error: Decorated property not supported
+    # https://github.com/python/mypy/issues/1362
     @cache_readonly  # type: ignore[misc]
     @doc(IndexOpsMixin.array)
     def array(self) -> ExtensionArray:
