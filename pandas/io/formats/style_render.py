@@ -1235,7 +1235,7 @@ def _get_level_lengths(
             if visible_row_count > max_index:
                 break
             if not sparsify:
-                # then lengths will always since 1 since no aggregation.
+                # then lengths will always equal 1 since no aggregation.
                 if j not in hidden_elements:
                     lengths[(i, j)] = 1
                     visible_row_count += 1
