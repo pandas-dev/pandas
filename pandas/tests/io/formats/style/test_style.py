@@ -1577,3 +1577,14 @@ def test_row_trimming_hide_index():
     assert len(ctx["body"]) == 3
     for r, val in enumerate(["3", "4", "..."]):
         assert ctx["body"][r][1]["display_value"] == val
+
+
+def test_col_trimming_hide_columns():
+    df = DataFrame([[1, 2, 3, 4, 5]])
+    with pd.option_context("styler.render.max_columns", 2):
+        ctx = df.style.hide([0, 1], axis="columns")._translate(True, True)
+
+    assert len(ctx["head"][0]) == 6  # blank, [0, 1 (hidden)], [2 ,3 (visible)], + trim
+    for c, vals in enumerate([(1, False), (2, True), (3, True), ("...", True)]):
+        assert ctx["head"][0][c + 2]["value"] == vals[0]
+        assert ctx["head"][0][c + 2]["is_visible"] == vals[1]

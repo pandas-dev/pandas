@@ -316,7 +316,7 @@ class StylerRenderer:
             self.columns, sparsify_cols, max_cols, self.hidden_columns
         )
 
-        clabels = self.data.columns.tolist()[:max_cols]  # slice to allow trimming
+        clabels = self.data.columns.tolist()
         if self.data.columns.nlevels == 1:
             clabels = [[x] for x in clabels]
         clabels = list(zip(*clabels))
@@ -389,9 +389,28 @@ class StylerRenderer:
             )
         ]
 
-        column_headers = []
+        column_headers, col_count = [], 0
         for c, value in enumerate(clabels[r]):
             header_element_visible = _is_visible(c, r, col_lengths)
+
+            if header_element_visible:
+                col_count += 1
+            if col_count > max_cols:
+                # add an extra column with `...` value to indicate trimming
+                column_headers.append(
+                    _element(
+                        "th",
+                        (
+                            f"{self.css['col_heading']} {self.css['level']}{r} "
+                            f"{self.css['col_trim']}"
+                        ),
+                        "...",
+                        True,
+                        attributes="",
+                    )
+                )
+                break
+
             header_element = _element(
                 "th",
                 (
@@ -422,20 +441,6 @@ class StylerRenderer:
 
             column_headers.append(header_element)
 
-        if len(self.data.columns) > max_cols:
-            # add an extra column with `...` value to indicate trimming
-            column_headers.append(
-                _element(
-                    "th",
-                    (
-                        f"{self.css['col_heading']} {self.css['level']}{r} "
-                        f"{self.css['col_trim']}"
-                    ),
-                    "...",
-                    True,
-                    attributes="",
-                )
-            )
         return index_blanks + column_name + column_headers
 
     def _generate_index_names_row(self, iter: tuple, max_cols):
