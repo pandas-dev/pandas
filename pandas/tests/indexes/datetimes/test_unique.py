@@ -3,8 +3,6 @@ from datetime import (
     timedelta,
 )
 
-import pytest
-
 from pandas import (
     DatetimeIndex,
     NaT,
@@ -13,18 +11,12 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.mark.parametrize(
-    "arr, expected",
-    [
-        (DatetimeIndex(["2017", "2017"]), DatetimeIndex(["2017"])),
-        (
-            DatetimeIndex(["2017", "2017"], tz="US/Eastern"),
-            DatetimeIndex(["2017"], tz="US/Eastern"),
-        ),
-    ],
-)
-def test_unique(arr, expected):
-    result = arr.unique()
+def test_unique(tz_naive_fixture):
+
+    idx = DatetimeIndex(["2017"] * 2, tz=tz_naive_fixture)
+    expected = idx[:1]
+
+    result = idx.unique()
     tm.assert_index_equal(result, expected)
     # GH#21737
     # Ensure the underlying data is consistent
@@ -60,6 +52,8 @@ def test_index_unique(rand_series_with_duplicate_datetimeindex):
     assert result.name == "foo"
     tm.assert_index_equal(result, expected)
 
+
+def test_index_unique2():
     # NaT, note this is excluded
     arr = [1370745748 + t for t in range(20)] + [NaT.value]
     idx = DatetimeIndex(arr * 3)
@@ -67,6 +61,8 @@ def test_index_unique(rand_series_with_duplicate_datetimeindex):
     assert idx.nunique() == 20
     assert idx.nunique(dropna=False) == 21
 
+
+def test_index_unique3():
     arr = [
         Timestamp("2013-06-09 02:42:28") + timedelta(seconds=t) for t in range(20)
     ] + [NaT]
