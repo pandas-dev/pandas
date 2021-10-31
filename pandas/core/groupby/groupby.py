@@ -3449,7 +3449,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         levels_list = [ping.group_index for ping in groupings]
         names = self.grouper.names
         if qs is not None:
-            levels_list.append(qs)
+            # error: Argument 1 to "append" of "list" has incompatible type
+            # "ndarray[Any, dtype[floating[_64Bit]]]"; expected "Index"
+            levels_list.append(qs)  # type: ignore[arg-type]
             names = names + [None]
         index, _ = MultiIndex.from_product(levels_list, names=names).sortlevel()
 

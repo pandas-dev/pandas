@@ -3,8 +3,6 @@ Data structure for 1-dimensional cross-sectional and time series data
 """
 from __future__ import annotations
 
-from io import StringIO
-from shutil import get_terminal_size
 from textwrap import dedent
 from typing import (
     IO,
@@ -304,7 +302,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # error: Incompatible types in assignment (expression has type "property",
     # base class "IndexOpsMixin" defined the type as "Callable[[IndexOpsMixin], bool]")
     hasnans = property(  # type: ignore[assignment]
-        base.IndexOpsMixin.hasnans.func, doc=base.IndexOpsMixin.hasnans.__doc__
+        # error: "Callable[[IndexOpsMixin], bool]" has no attribute "fget"
+        base.IndexOpsMixin.hasnans.fget,  # type: ignore[attr-defined]
+        doc=base.IndexOpsMixin.hasnans.__doc__,
     )
     _mgr: SingleManager
     div: Callable[[Series, Any], Series]
@@ -1319,7 +1319,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         )
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "level"])
-    def reset_index(self, level=None, drop=False, name=None, inplace=False):
+    def reset_index(self, level=None, drop=False, name=lib.no_default, inplace=False):
         """
         Generate a new DataFrame or Series with the index reset.
 
@@ -1429,6 +1429,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if drop:
+            if name is lib.no_default:
+                name = self.name
+
             new_index = default_index(len(self))
             if level is not None:
                 if not isinstance(level, (tuple, list)):
@@ -1450,6 +1453,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 "Cannot reset_index inplace on a Series to create a DataFrame"
             )
         else:
+            if name is lib.no_default:
+                # For backwards compatibility, keep columns as [0] instead of
+                #  [None] when self.name is None
+                if self.name is None:
+                    name = 0
+                else:
+                    name = self.name
+
             df = self.to_frame(name)
             return df.reset_index(level=level, drop=drop)
 
@@ -1460,29 +1471,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Return a string representation for a particular Series.
         """
-        buf = StringIO("")
-        width, height = get_terminal_size()
-        max_rows = (
-            height
-            if get_option("display.max_rows") == 0
-            else get_option("display.max_rows")
-        )
-        min_rows = (
-            height
-            if get_option("display.max_rows") == 0
-            else get_option("display.min_rows")
-        )
-        show_dimensions = get_option("display.show_dimensions")
-
-        self.to_string(
-            buf=buf,
-            name=self.name,
-            dtype=self.dtype,
-            min_rows=min_rows,
-            max_rows=max_rows,
-            length=show_dimensions,
-        )
-        return buf.getvalue()
+        repr_params = fmt.get_series_repr_params()
+        return self.to_string(**repr_params)
 
     def to_string(
         self,
@@ -1720,7 +1710,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         into_c = com.standardize_mapping(into)
         return into_c((k, maybe_box_native(v)) for k, v in self.items())
 
-    def to_frame(self, name=None) -> DataFrame:
+    def to_frame(self, name: Hashable = lib.no_default) -> DataFrame:
         """
         Convert Series to DataFrame.
 
@@ -1746,7 +1736,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         2    c
         """
         columns: Index
-        if name is None:
+        if name is lib.no_default:
             name = self.name
             if name is None:
                 # default to [0], same as we would get with DataFrame(self)

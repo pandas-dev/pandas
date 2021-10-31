@@ -368,6 +368,7 @@ class TestLoc2:
         with pytest.raises(KeyError, match=msg):
             df.loc[[1, 2], [1, 2]]
 
+    def test_loc_to_fail2(self):
         # GH  7496
         # loc should not fallback
 
@@ -406,6 +407,7 @@ class TestLoc2:
         with pytest.raises(KeyError, match=msg):
             s.loc[[-2]] = 0
 
+    def test_loc_to_fail3(self):
         # inconsistency between .loc[values] and .loc[values,:]
         # GH 7999
         df = DataFrame([["a"], ["b"]], index=[1, 2], columns=["value"])
@@ -1888,7 +1890,8 @@ class TestLocSetitemWithExpansion:
         # trying to set a single element on a part of a different timezone
         # this converts to object
         df2 = df.copy()
-        df2.loc[df2.new_col == "new", "time"] = v
+        with tm.assert_produces_warning(FutureWarning, match="mismatched timezone"):
+            df2.loc[df2.new_col == "new", "time"] = v
 
         expected = Series([v[0], df.loc[1, "time"]], name="time")
         tm.assert_series_equal(df2.time, expected)
