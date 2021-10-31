@@ -199,8 +199,8 @@ def test_add_frame(dtype):
     tm.assert_frame_equal(result, expected)
 
 
-def test_comparison_methods_scalar(all_compare_operators, dtype):
-    op_name = all_compare_operators
+def test_comparison_methods_scalar(comparison_op, dtype):
+    op_name = f"__{comparison_op.__name__}__"
     a = pd.array(["a", None, "c"], dtype=dtype)
     other = "a"
     result = getattr(a, op_name)(other)
@@ -209,21 +209,21 @@ def test_comparison_methods_scalar(all_compare_operators, dtype):
     tm.assert_extension_array_equal(result, expected)
 
 
-def test_comparison_methods_scalar_pd_na(all_compare_operators, dtype):
-    op_name = all_compare_operators
+def test_comparison_methods_scalar_pd_na(comparison_op, dtype):
+    op_name = f"__{comparison_op.__name__}__"
     a = pd.array(["a", None, "c"], dtype=dtype)
     result = getattr(a, op_name)(pd.NA)
     expected = pd.array([None, None, None], dtype="boolean")
     tm.assert_extension_array_equal(result, expected)
 
 
-def test_comparison_methods_scalar_not_string(all_compare_operators, dtype, request):
-    if all_compare_operators not in ["__eq__", "__ne__"]:
+def test_comparison_methods_scalar_not_string(comparison_op, dtype, request):
+    op_name = f"__{comparison_op.__name__}__"
+    if op_name not in ["__eq__", "__ne__"]:
         reason = "comparison op not supported between instances of 'str' and 'int'"
         mark = pytest.mark.xfail(raises=TypeError, reason=reason)
         request.node.add_marker(mark)
 
-    op_name = all_compare_operators
     a = pd.array(["a", None, "c"], dtype=dtype)
     other = 42
     result = getattr(a, op_name)(other)
@@ -234,14 +234,14 @@ def test_comparison_methods_scalar_not_string(all_compare_operators, dtype, requ
     tm.assert_extension_array_equal(result, expected)
 
 
-def test_comparison_methods_array(all_compare_operators, dtype, request):
+def test_comparison_methods_array(comparison_op, dtype, request):
     if dtype.storage == "pyarrow":
         mark = pytest.mark.xfail(
             raises=AssertionError, reason="left is not an ExtensionArray"
         )
         request.node.add_marker(mark)
 
-    op_name = all_compare_operators
+    op_name = f"__{comparison_op.__name__}__"
 
     a = pd.array(["a", None, "c"], dtype=dtype)
     other = [None, None, "c"]

@@ -117,7 +117,7 @@ class TestConversion:
 class TestRoundTrips:
     def test_pickle_roundtrip(self, index):
         result = tm.round_trip_pickle(index)
-        tm.assert_index_equal(result, index)
+        tm.assert_index_equal(result, index, exact=True)
         if result.nlevels > 1:
             # GH#8367 round-trip with timezone
             assert index.equal_levels(result)
@@ -133,7 +133,7 @@ class TestIndexing:
     def test_slice_keeps_name(self, index):
         assert index.name == index[1:].name
 
-    @pytest.mark.parametrize("item", [101, "no_int"])
+    @pytest.mark.parametrize("item", [101, "no_int", 2.5])
     # FutureWarning from non-tuple sequence of nd indexing
     @pytest.mark.filterwarnings("ignore::FutureWarning")
     def test_getitem_error(self, index, item):

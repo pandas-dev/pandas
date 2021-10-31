@@ -181,48 +181,11 @@ class TestIndex(Base):
         freq = pd.infer_freq(df["date"])
         assert freq == "MS"
 
-    @pytest.mark.parametrize(
-        "array",
-        [
-            np.arange(5),
-            np.array(["a", "b", "c"]),
-            date_range("2000-01-01", periods=3).values,
-        ],
-    )
-    def test_constructor_ndarray_like(self, array):
-        # GH 5460#issuecomment-44474502
-        # it should be possible to convert any object that satisfies the numpy
-        # ndarray interface directly into an Index
-        class ArrayLike:
-            def __init__(self, array):
-                self.array = array
-
-            def __array__(self, dtype=None) -> np.ndarray:
-                return self.array
-
-        expected = Index(array)
-        result = Index(ArrayLike(array))
-        tm.assert_index_equal(result, expected)
-
     def test_constructor_int_dtype_nan(self):
         # see gh-15187
         data = [np.nan]
         expected = Float64Index(data)
         result = Index(data, dtype="float")
-        tm.assert_index_equal(result, expected)
-
-    @pytest.mark.parametrize("dtype", ["int64", "uint64"])
-    def test_constructor_int_dtype_nan_raises(self, dtype):
-        # see gh-15187
-        data = [np.nan]
-        msg = "cannot convert"
-        with pytest.raises(ValueError, match=msg):
-            Index(data, dtype=dtype)
-
-    def test_constructor_no_pandas_array(self):
-        ser = Series([1, 2, 3])
-        result = Index(ser.array)
-        expected = Index([1, 2, 3])
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -496,19 +459,6 @@ class TestIndex(Base):
     )
     def test_not_equals_object(self, comp):
         assert not Index(["a", "b", "c"]).equals(comp)
-
-    def test_insert_missing(self, nulls_fixture):
-        # GH 22295
-        # test there is no mangling of NA values
-        expected = Index(["a", nulls_fixture, "b", "c"])
-        result = Index(list("abc")).insert(1, nulls_fixture)
-        tm.assert_index_equal(result, expected)
-
-    def test_delete_raises(self):
-        index = Index(["a", "b", "c", "d"], name="index")
-        msg = "index 5 is out of bounds for axis 0 with size 4"
-        with pytest.raises(IndexError, match=msg):
-            index.delete(5)
 
     def test_identical(self):
 
@@ -1574,10 +1524,9 @@ class TestMixedIntIndex(Base):
         assert index._is_strictly_monotonic_increasing is False
         assert index._is_strictly_monotonic_decreasing is False
 
-    @pytest.mark.parametrize("klass", [Series, DataFrame])
-    def test_int_name_format(self, klass):
+    def test_int_name_format(self, frame_or_series):
         index = Index(["a", "b", "c"], name=0)
-        result = klass(list(range(3)), index=index)
+        result = frame_or_series(list(range(3)), index=index)
         assert "0" in repr(result)
 
     def test_str_to_bytes_raises(self):

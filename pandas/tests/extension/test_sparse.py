@@ -432,8 +432,8 @@ class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):
 
 
 class TestComparisonOps(BaseSparseTests, base.BaseComparisonOpsTests):
-    def _compare_other(self, s, data, op_name, other):
-        op = self.get_op_from_name(op_name)
+    def _compare_other(self, s, data, comparison_op, other):
+        op = comparison_op
 
         # array
         result = pd.Series(op(data, other))

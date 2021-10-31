@@ -270,8 +270,8 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
-    def _compare_other(self, s, data, op_name, other):
-        op = self.get_op_from_name(op_name)
+    def _compare_other(self, s, data, op, other):
+        op_name = f"__{op.__name__}__"
         if op_name == "__eq__":
             result = op(s, other)
             expected = s.combine(other, lambda x, y: x == y)

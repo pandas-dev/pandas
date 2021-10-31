@@ -49,8 +49,7 @@ class TestTimestampComparison:
         tm.assert_numpy_array_equal(result, np.array([[True, False]], dtype=bool))
 
     @pytest.mark.parametrize("reverse", [True, False])
-    def test_comparison_dt64_ndarray_tzaware(self, reverse, all_compare_operators):
-        op = getattr(operator, all_compare_operators.strip("__"))
+    def test_comparison_dt64_ndarray_tzaware(self, reverse, comparison_op):
 
         ts = Timestamp.now("UTC")
         arr = np.array([ts.asm8, ts.asm8], dtype="M8[ns]")
@@ -59,18 +58,18 @@ class TestTimestampComparison:
         if reverse:
             left, right = arr, ts
 
-        if op is operator.eq:
+        if comparison_op is operator.eq:
             expected = np.array([False, False], dtype=bool)
-            result = op(left, right)
+            result = comparison_op(left, right)
             tm.assert_numpy_array_equal(result, expected)
-        elif op is operator.ne:
+        elif comparison_op is operator.ne:
             expected = np.array([True, True], dtype=bool)
-            result = op(left, right)
+            result = comparison_op(left, right)
             tm.assert_numpy_array_equal(result, expected)
         else:
             msg = "Cannot compare tz-naive and tz-aware timestamps"
             with pytest.raises(TypeError, match=msg):
-                op(left, right)
+                comparison_op(left, right)
 
     def test_comparison_object_array(self):
         # GH#15183

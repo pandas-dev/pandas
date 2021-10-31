@@ -365,18 +365,14 @@ class TestDatetime64SeriesComparison:
 class TestDatetimeIndexComparisons:
 
     # TODO: moved from tests.indexes.test_base; parametrize and de-duplicate
-    @pytest.mark.parametrize(
-        "op",
-        [operator.eq, operator.ne, operator.gt, operator.lt, operator.ge, operator.le],
-    )
-    def test_comparators(self, op):
+    def test_comparators(self, comparison_op):
         index = tm.makeDateIndex(100)
         element = index[len(index) // 2]
         element = Timestamp(element).to_datetime64()
 
         arr = np.array(index)
-        arr_result = op(arr, element)
-        index_result = op(index, element)
+        arr_result = comparison_op(arr, element)
+        index_result = comparison_op(index, element)
 
         assert isinstance(index_result, np.ndarray)
         tm.assert_numpy_array_equal(arr_result, index_result)
@@ -554,12 +550,9 @@ class TestDatetimeIndexComparisons:
                 expected = np.array([True, True, False, True, True, True])
                 tm.assert_numpy_array_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "op",
-        [operator.eq, operator.ne, operator.gt, operator.ge, operator.lt, operator.le],
-    )
-    def test_comparison_tzawareness_compat(self, op, box_with_array):
+    def test_comparison_tzawareness_compat(self, comparison_op, box_with_array):
         # GH#18162
+        op = comparison_op
         box = box_with_array
 
         dr = date_range("2016-01-01", periods=6)
@@ -606,12 +599,10 @@ class TestDatetimeIndexComparisons:
         assert np.all(np.array(tolist(dz), dtype=object) == dz)
         assert np.all(dz == np.array(tolist(dz), dtype=object))
 
-    @pytest.mark.parametrize(
-        "op",
-        [operator.eq, operator.ne, operator.gt, operator.ge, operator.lt, operator.le],
-    )
-    def test_comparison_tzawareness_compat_scalars(self, op, box_with_array):
+    def test_comparison_tzawareness_compat_scalars(self, comparison_op, box_with_array):
         # GH#18162
+        op = comparison_op
+
         dr = date_range("2016-01-01", periods=6)
         dz = dr.tz_localize("US/Pacific")
 
@@ -639,10 +630,6 @@ class TestDatetimeIndexComparisons:
                 op(ts, dz)
 
     @pytest.mark.parametrize(
-        "op",
-        [operator.eq, operator.ne, operator.gt, operator.ge, operator.lt, operator.le],
-    )
-    @pytest.mark.parametrize(
         "other",
         [datetime(2016, 1, 1), Timestamp("2016-01-01"), np.datetime64("2016-01-01")],
     )
@@ -652,8 +639,9 @@ class TestDatetimeIndexComparisons:
     @pytest.mark.filterwarnings("ignore:elementwise comp:DeprecationWarning")
     @pytest.mark.filterwarnings("ignore:Converting timezone-aware:FutureWarning")
     def test_scalar_comparison_tzawareness(
-        self, op, other, tz_aware_fixture, box_with_array
+        self, comparison_op, other, tz_aware_fixture, box_with_array
     ):
+        op = comparison_op
         box = box_with_array
         tz = tz_aware_fixture
         dti = date_range("2016-01-01", periods=2, tz=tz)
@@ -680,13 +668,11 @@ class TestDatetimeIndexComparisons:
             with pytest.raises(TypeError, match=msg):
                 op(other, dtarr)
 
-    @pytest.mark.parametrize(
-        "op",
-        [operator.eq, operator.ne, operator.gt, operator.ge, operator.lt, operator.le],
-    )
-    def test_nat_comparison_tzawareness(self, op):
+    def test_nat_comparison_tzawareness(self, comparison_op):
         # GH#19276
         # tzaware DatetimeIndex should not raise when compared to NaT
+        op = comparison_op
+
         dti = DatetimeIndex(
             ["2014-01-01", NaT, "2014-03-01", NaT, "2014-05-01", "2014-07-01"]
         )

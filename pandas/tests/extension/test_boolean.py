@@ -151,11 +151,11 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
         super().check_opname(s, op_name, other, exc=None)
 
     @pytest.mark.skip(reason="Tested in tests/arrays/test_boolean.py")
-    def test_compare_scalar(self, data, all_compare_operators):
+    def test_compare_scalar(self, data, comparison_op):
         pass
 
     @pytest.mark.skip(reason="Tested in tests/arrays/test_boolean.py")
-    def test_compare_array(self, data, all_compare_operators):
+    def test_compare_array(self, data, comparison_op):
         pass
 
 
