@@ -1,14 +1,25 @@
 from datetime import datetime
 
+from hypothesis import (
+    given,
+    strategies as st,
+)
+import numpy as np
+import pytest
+
 from pandas.core.dtypes.common import is_scalar
 
-from hypothesis import (given, strategies as st)
-import numpy as np
 import pandas as pd
-from pandas import (DataFrame, DatetimeIndex, Series, StringDtype, Timestamp,
-                    date_range, isna)
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+    Series,
+    StringDtype,
+    Timestamp,
+    date_range,
+    isna,
+)
 import pandas._testing as tm
-import pytest
 
 
 @pytest.fixture(params=["default", "float_string", "mixed_float", "mixed_int"])
