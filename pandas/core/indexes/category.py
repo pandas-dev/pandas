@@ -44,6 +44,8 @@ from pandas.core.indexes.extension import (
     inherit_names,
 )
 
+from pandas.io.formats.printing import pprint_thing
+
 _index_doc_kwargs: dict[str, str] = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update({"target_klass": "CategoricalIndex"})
 
@@ -51,7 +53,6 @@ _index_doc_kwargs.update({"target_klass": "CategoricalIndex"})
 @inherit_names(
     [
         "argsort",
-        "_internal_get_values",
         "tolist",
         "codes",
         "categories",
@@ -180,6 +181,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
 
     codes: np.ndarray
     categories: Index
+    ordered: bool | None
     _data: Categorical
     _values: Categorical
 
@@ -193,8 +195,6 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
             np.int32: libindex.Int32Engine,
             np.int64: libindex.Int64Engine,
         }[self.codes.dtype.type]
-
-    _attributes = ["name"]
 
     # --------------------------------------------------------------------
     # Constructors
@@ -344,20 +344,18 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
             if get_option("display.max_categories") == 0
             else get_option("display.max_categories")
         )
+        attrs: list[tuple[str, str | int | bool | None]]
         attrs = [
             (
                 "categories",
                 ibase.default_pprint(self.categories, max_seq_items=max_categories),
             ),
-            # error: "CategoricalIndex" has no attribute "ordered"
-            ("ordered", self.ordered),  # type: ignore[attr-defined]
+            ("ordered", self.ordered),
         ]
         extra = super()._format_attrs()
         return attrs + extra
 
-    def _format_with_header(self, header: list[str], na_rep: str = "NaN") -> list[str]:
-        from pandas.io.formats.printing import pprint_thing
-
+    def _format_with_header(self, header: list[str], na_rep: str) -> list[str]:
         result = [
             pprint_thing(x, escape_chars=("\t", "\r", "\n")) if notna(x) else na_rep
             for x in self._values
@@ -385,7 +383,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
             cat = self._data.fillna(value)
         except (ValueError, TypeError):
             # invalid fill_value
-            if not self.isna().any():
+            if not self.hasnans:
                 # nothing to fill, we can get away without casting
                 return self.copy()
             return self.astype(object).fillna(value, downcast=downcast)

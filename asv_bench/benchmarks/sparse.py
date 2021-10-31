@@ -95,11 +95,11 @@ class ToCooFrame:
     def setup(self):
         N = 10000
         k = 10
-        arr = np.full((N, k), np.nan)
+        arr = np.zeros((N, k), dtype=float)
         arr[0, 0] = 3.0
         arr[12, 7] = -1.0
         arr[0, 9] = 11.2
-        self.df = pd.DataFrame(arr, dtype=pd.SparseDtype("float"))
+        self.df = pd.DataFrame(arr, dtype=pd.SparseDtype("float", fill_value=0.0))
 
     def time_to_coo(self):
         self.df.sparse.to_coo()
@@ -193,6 +193,19 @@ class Take:
 
     def time_take(self, indices, allow_fill):
         self.sp_arr.take(indices, allow_fill=allow_fill)
+
+
+class GetItem:
+    def setup(self):
+        N = 1_000_000
+        arr = make_array(N, 1e-5, np.nan, np.float64)
+        self.sp_arr = SparseArray(arr)
+
+    def time_integer_indexing(self):
+        self.sp_arr[78]
+
+    def time_slice(self):
+        self.sp_arr[1:]
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

@@ -270,17 +270,15 @@ class TestiLocBaseIndependent:
         with pytest.raises(IndexError, match=msg):
             df.iloc[index_vals, column_vals]
 
-    @pytest.mark.parametrize("dims", [1, 2])
-    def test_iloc_getitem_invalid_scalar(self, dims):
+    def test_iloc_getitem_invalid_scalar(self, frame_or_series):
         # GH 21982
 
-        if dims == 1:
-            s = Series(np.arange(10))
-        else:
-            s = DataFrame(np.arange(100).reshape(10, 10))
+        obj = DataFrame(np.arange(100).reshape(10, 10))
+        if frame_or_series is Series:
+            obj = obj[0]
 
         with pytest.raises(TypeError, match="Cannot index by location index"):
-            s.iloc["a"]
+            obj.iloc["a"]
 
     def test_iloc_array_not_mutating_negative_indices(self):
 
@@ -930,6 +928,17 @@ class TestiLocBaseIndependent:
         series.iloc[0] = value
         expected = Series([NaT, 1, 2], dtype="timedelta64[ns]")
         tm.assert_series_equal(series, expected)
+
+    @pytest.mark.parametrize("not_na", [Interval(0, 1), "a", 1.0])
+    def test_setitem_mix_of_nan_and_interval(self, not_na, nulls_fixture):
+        # GH#27937
+        dtype = CategoricalDtype(categories=[not_na])
+        ser = Series(
+            [nulls_fixture, nulls_fixture, nulls_fixture, nulls_fixture], dtype=dtype
+        )
+        ser.iloc[:3] = [nulls_fixture, not_na, nulls_fixture]
+        exp = Series([nulls_fixture, not_na, nulls_fixture, nulls_fixture], dtype=dtype)
+        tm.assert_series_equal(ser, exp)
 
     def test_iloc_setitem_empty_frame_raises_with_3d_ndarray(self):
         idx = Index([])

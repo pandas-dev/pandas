@@ -576,13 +576,11 @@ class TestDataFrameIndexing:
         xp = df.reindex([0])
         tm.assert_frame_equal(rs, xp)
 
-        # FIXME: dont leave commented-out
-        """ #1321
+        # GH#1321
         df = DataFrame(np.random.randn(3, 2))
-        rs = df.loc[df.index==0, df.columns==1]
-        xp = df.reindex([0], [1])
+        rs = df.loc[df.index == 0, df.columns == 1]
+        xp = df.reindex(index=[0], columns=[1])
         tm.assert_frame_equal(rs, xp)
-        """
 
     def test_getitem_fancy_scalar(self, float_frame):
         f = float_frame
@@ -1167,12 +1165,10 @@ class TestDataFrameIndexing:
 
     def test_type_error_multiindex(self):
         # See gh-12218
-        df = DataFrame(
-            columns=["i", "c", "x", "y"],
-            data=[[0, 0, 1, 2], [1, 0, 3, 4], [0, 1, 1, 2], [1, 1, 3, 4]],
+        mi = MultiIndex.from_product([["x", "y"], [0, 1]], names=[None, "c"])
+        dg = DataFrame(
+            [[1, 1, 2, 2], [3, 3, 4, 4]], columns=mi, index=Index([0, 1], name="i")
         )
-        dg = df.pivot_table(index="i", columns="c", values=["x", "y"])
-        # TODO: Is this test for pivot_table?
         with pytest.raises(TypeError, match="unhashable type"):
             dg[:, 0]
 

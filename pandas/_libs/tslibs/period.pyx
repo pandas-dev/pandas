@@ -4,6 +4,7 @@ cimport numpy as cnp
 from cpython.object cimport (
     Py_EQ,
     Py_NE,
+    PyObject_RichCompare,
     PyObject_RichCompareBool,
 )
 from numpy cimport (
@@ -1594,6 +1595,9 @@ cdef class _Period(PeriodMixin):
         PeriodDtypeBase _dtype
         BaseOffset freq
 
+    # higher than np.ndarray, np.matrix, np.timedelta64
+    __array_priority__ = 100
+
     dayofweek = _Period.day_of_week
     dayofyear = _Period.day_of_year
 
@@ -1652,7 +1656,10 @@ cdef class _Period(PeriodMixin):
             return PyObject_RichCompareBool(self.ordinal, other.ordinal, op)
         elif other is NaT:
             return _nat_scalar_rules[op]
-        return NotImplemented  # TODO: ndarray[object]?
+        elif util.is_array(other):
+            # in particular ndarray[object]; see test_pi_cmp_period
+            return np.array([PyObject_RichCompare(self, x, op) for x in other])
+        return NotImplemented
 
     def __hash__(self):
         return hash((self.ordinal, self.freqstr))
@@ -2375,7 +2382,7 @@ cdef class _Period(PeriodMixin):
         >>>
         >>> a = Period(freq='D', year=2001, month=1, day=1)
         >>> a.strftime('%d-%b-%Y')
-        '01-Jan-2006'
+        '01-Jan-2001'
         >>> a.strftime('%b. %d, %Y was a %A')
         'Jan. 01, 2001 was a Monday'
         """

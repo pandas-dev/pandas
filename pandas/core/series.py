@@ -3,8 +3,6 @@ Data structure for 1-dimensional cross-sectional and time series data
 """
 from __future__ import annotations
 
-from io import StringIO
-from shutil import get_terminal_size
 from textwrap import dedent
 from typing import (
     IO,
@@ -304,7 +302,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # error: Incompatible types in assignment (expression has type "property",
     # base class "IndexOpsMixin" defined the type as "Callable[[IndexOpsMixin], bool]")
     hasnans = property(  # type: ignore[assignment]
-        base.IndexOpsMixin.hasnans.func, doc=base.IndexOpsMixin.hasnans.__doc__
+        # error: "Callable[[IndexOpsMixin], bool]" has no attribute "fget"
+        base.IndexOpsMixin.hasnans.fget,  # type: ignore[attr-defined]
+        doc=base.IndexOpsMixin.hasnans.__doc__,
     )
     _mgr: SingleManager
     div: Callable[[Series, Any], Series]
@@ -449,7 +449,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         self.name = name
         self._set_axis(0, index, fastpath=True)
 
-    def _init_dict(self, data, index=None, dtype: Dtype | None = None):
+    def _init_dict(
+        self, data, index: Index | None = None, dtype: DtypeObj | None = None
+    ):
         """
         Derive the "_mgr" and "index" attributes of a new Series from a
         dictionary input.
@@ -458,9 +460,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         ----------
         data : dict or dict-like
             Data used to populate the new Series.
-        index : Index or index-like, default None
+        index : Index or None, default None
             Index for the new Series: if None, use dict keys.
-        dtype : dtype, default None
+        dtype : np.dtype, ExtensionDtype, or None, default None
             The dtype for the new Series: if None, infer from data.
 
         Returns
@@ -468,6 +470,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         _data : BlockManager for the new Series
         index : index for the new Series
         """
+        keys: Index | tuple
+
         # Looking for NaN in dict doesn't work ({np.nan : 1}[float('nan')]
         # raises KeyError), so we iterate the entire dict, and align
         if data:
@@ -1315,7 +1319,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         )
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "level"])
-    def reset_index(self, level=None, drop=False, name=None, inplace=False):
+    def reset_index(self, level=None, drop=False, name=lib.no_default, inplace=False):
         """
         Generate a new DataFrame or Series with the index reset.
 
@@ -1425,6 +1429,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if drop:
+            if name is lib.no_default:
+                name = self.name
+
             new_index = default_index(len(self))
             if level is not None:
                 if not isinstance(level, (tuple, list)):
@@ -1446,6 +1453,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 "Cannot reset_index inplace on a Series to create a DataFrame"
             )
         else:
+            if name is lib.no_default:
+                # For backwards compatibility, keep columns as [0] instead of
+                #  [None] when self.name is None
+                if self.name is None:
+                    name = 0
+                else:
+                    name = self.name
+
             df = self.to_frame(name)
             return df.reset_index(level=level, drop=drop)
 
@@ -1456,29 +1471,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Return a string representation for a particular Series.
         """
-        buf = StringIO("")
-        width, height = get_terminal_size()
-        max_rows = (
-            height
-            if get_option("display.max_rows") == 0
-            else get_option("display.max_rows")
-        )
-        min_rows = (
-            height
-            if get_option("display.max_rows") == 0
-            else get_option("display.min_rows")
-        )
-        show_dimensions = get_option("display.show_dimensions")
-
-        self.to_string(
-            buf=buf,
-            name=self.name,
-            dtype=self.dtype,
-            min_rows=min_rows,
-            max_rows=max_rows,
-            length=show_dimensions,
-        )
-        return buf.getvalue()
+        repr_params = fmt.get_series_repr_params()
+        return self.to_string(**repr_params)
 
     def to_string(
         self,
@@ -1716,7 +1710,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         into_c = com.standardize_mapping(into)
         return into_c((k, maybe_box_native(v)) for k, v in self.items())
 
-    def to_frame(self, name=None) -> DataFrame:
+    def to_frame(self, name: Hashable = lib.no_default) -> DataFrame:
         """
         Convert Series to DataFrame.
 
@@ -1742,7 +1736,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         2    c
         """
         columns: Index
-        if name is None:
+        if name is lib.no_default:
             name = self.name
             if name is None:
                 # default to [0], same as we would get with DataFrame(self)
@@ -2790,13 +2784,14 @@ Name: Max Speed, dtype: float64
         return self.dot(np.transpose(other))
 
     @doc(base.IndexOpsMixin.searchsorted, klass="Series")
-    def searchsorted(
+    # Signature of "searchsorted" incompatible with supertype "IndexOpsMixin"
+    def searchsorted(  # type: ignore[override]
         self,
-        value: NumpyValueArrayLike,
+        value: NumpyValueArrayLike | ExtensionArray,
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter = None,
     ) -> npt.NDArray[np.intp] | np.intp:
-        return algorithms.searchsorted(self._values, value, side=side, sorter=sorter)
+        return base.IndexOpsMixin.searchsorted(self, value, side=side, sorter=sorter)
 
     # -------------------------------------------------------------------
     # Combination
@@ -3665,16 +3660,14 @@ Keep all original rows and also all original values
         mask = isna(values)
 
         if mask.any():
-            result = Series(-1, index=self.index, name=self.name, dtype="int64")
+            result = np.full(len(self), -1, dtype=np.intp)
             notmask = ~mask
             result[notmask] = np.argsort(values[notmask], kind=kind)
-            return self._constructor(result, index=self.index).__finalize__(
-                self, method="argsort"
-            )
         else:
-            return self._constructor(
-                np.argsort(values, kind=kind), index=self.index, dtype="int64"
-            ).__finalize__(self, method="argsort")
+            result = np.argsort(values, kind=kind)
+
+        res = self._constructor(result, index=self.index, name=self.name, dtype=np.intp)
+        return res.__finalize__(self, method="argsort")
 
     def nlargest(self, n=5, keep="first") -> Series:
         """
@@ -3689,11 +3682,11 @@ Keep all original rows and also all original values
             Series of `n` elements:
 
             - ``first`` : return the first `n` occurrences in order
-                of appearance.
+              of appearance.
             - ``last`` : return the last `n` occurrences in reverse
-                order of appearance.
+              order of appearance.
             - ``all`` : keep all occurrences. This can result in a Series of
-                size larger than `n`.
+              size larger than `n`.
 
         Returns
         -------
@@ -3787,11 +3780,11 @@ Keep all original rows and also all original values
             Series of `n` elements:
 
             - ``first`` : return the first `n` occurrences in order
-                of appearance.
+              of appearance.
             - ``last`` : return the last `n` occurrences in reverse
-                order of appearance.
+              order of appearance.
             - ``all`` : keep all occurrences. This can result in a Series of
-                size larger than `n`.
+              size larger than `n`.
 
         Returns
         -------
@@ -4166,7 +4159,7 @@ Keep all original rows and also all original values
         3  I am a rabbit
         dtype: object
         """
-        new_values = super()._map_values(arg, na_action=na_action)
+        new_values = self._map_values(arg, na_action=na_action)
         return self._constructor(new_values, index=self.index).__finalize__(
             self, method="map"
         )
@@ -4393,8 +4386,11 @@ Keep all original rows and also all original values
         else:
             # dispatch to numpy arrays
             if numeric_only:
+                kwd_name = "numeric_only"
+                if name in ["any", "all"]:
+                    kwd_name = "bool_only"
                 raise NotImplementedError(
-                    f"Series.{name} does not implement numeric_only."
+                    f"Series.{name} does not implement {kwd_name}."
                 )
             with np.errstate(all="ignore"):
                 return op(delegate, skipna=skipna, **kwds)
@@ -4522,6 +4518,9 @@ Keep all original rows and also all original values
         5    3
         dtype: int64
         """
+        if axis is not None:
+            axis = self._get_axis_number(axis)
+
         if callable(index) or is_dict_like(index):
             return super().rename(
                 index, copy=copy, inplace=inplace, level=level, errors=errors
@@ -5007,6 +5006,17 @@ Keep all original rows and also all original values
         3    False
         4     True
         5    False
+        Name: animal, dtype: bool
+
+        To invert the boolean values, use the ``~`` operator:
+
+        >>> ~s.isin(['cow', 'lama'])
+        0    False
+        1    False
+        2    False
+        3     True
+        4    False
+        5     True
         Name: animal, dtype: bool
 
         Passing a single string as ``s.isin('lama')`` will raise an error. Use

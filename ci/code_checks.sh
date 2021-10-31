@@ -84,6 +84,10 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
       pandas/tseries/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Cython Doctests' ; echo $MSG
+    python -m pytest --doctest-cython pandas/_libs
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
 fi
 
 ### DOCSTRINGS ###
@@ -102,8 +106,15 @@ if [[ -z "$CHECK" || "$CHECK" == "typing" ]]; then
     mypy --version
 
     MSG='Performing static analysis using mypy' ; echo $MSG
-    mypy pandas
+    mypy
     RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    # run pyright, if it is installed
+    if command -v pyright &> /dev/null ; then
+        MSG='Performing static analysis using pyright' ; echo $MSG
+        pyright
+        RET=$(($RET + $?)) ; echo $MSG "DONE"
+    fi
 fi
 
 exit $RET

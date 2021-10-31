@@ -5,6 +5,8 @@ split-apply-combine paradigm.
 from __future__ import annotations
 
 from typing import (
+    TYPE_CHECKING,
+    Any,
     Hashable,
     final,
 )
@@ -14,7 +16,8 @@ import numpy as np
 
 from pandas._typing import (
     ArrayLike,
-    FrameOrSeries,
+    NDFrameT,
+    npt,
 )
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
@@ -46,6 +49,9 @@ from pandas.core.indexes.api import (
 from pandas.core.series import Series
 
 from pandas.io.formats.printing import pprint_thing
+
+if TYPE_CHECKING:
+    from pandas.core.generic import NDFrame
 
 
 class Grouper:
@@ -299,7 +305,9 @@ class Grouper:
             raise ValueError("_set_grouper must be called before ax is accessed")
         return index
 
-    def _get_grouper(self, obj: FrameOrSeries, validate: bool = True):
+    def _get_grouper(
+        self, obj: NDFrameT, validate: bool = True
+    ) -> tuple[Any, ops.BaseGrouper, NDFrameT]:
         """
         Parameters
         ----------
@@ -312,7 +320,7 @@ class Grouper:
         a tuple of binner, grouper, obj (possibly sorted)
         """
         self._set_grouper(obj)
-        # error: Value of type variable "FrameOrSeries" of "get_grouper" cannot be
+        # error: Value of type variable "NDFrameT" of "get_grouper" cannot be
         # "Optional[Any]"
         # error: Incompatible types in assignment (expression has type "BaseGrouper",
         # variable has type "None")
@@ -326,10 +334,12 @@ class Grouper:
             dropna=self.dropna,
         )
 
-        return self.binner, self.grouper, self.obj
+        # error: Incompatible return value type (got "Tuple[None, None, None]",
+        # expected "Tuple[Any, BaseGrouper, NDFrameT]")
+        return self.binner, self.grouper, self.obj  # type: ignore[return-value]
 
     @final
-    def _set_grouper(self, obj: FrameOrSeries, sort: bool = False):
+    def _set_grouper(self, obj: NDFrame, sort: bool = False):
         """
         given an object and the specifications, setup the internal grouper
         for this particular specification
@@ -400,7 +410,7 @@ class Grouper:
             obj = obj.take(indexer, axis=self.axis)
 
         # error: Incompatible types in assignment (expression has type
-        # "FrameOrSeries", variable has type "None")
+        # "NDFrameT", variable has type "None")
         self.obj = obj  # type: ignore[assignment]
         self._gpr_index = ax
         return self._gpr_index
@@ -459,7 +469,7 @@ class Grouping:
         self,
         index: Index,
         grouper=None,
-        obj: FrameOrSeries | None = None,
+        obj: NDFrame | None = None,
         level=None,
         sort: bool = True,
         observed: bool = False,
@@ -501,11 +511,9 @@ class Grouping:
             # what key/level refer to exactly, don't need to
             # check again as we have by this point converted these
             # to an actual value (rather than a pd.Grouper)
+            assert self.obj is not None  # for mypy
             _, newgrouper, newobj = self.grouping_vector._get_grouper(
-                # error: Value of type variable "FrameOrSeries" of "_get_grouper"
-                # of "Grouper" cannot be "Optional[FrameOrSeries]"
-                self.obj,  # type: ignore[type-var]
-                validate=False,
+                self.obj, validate=False
             )
             self.obj = newobj
 
@@ -597,7 +605,7 @@ class Grouping:
         return len(self.group_index)
 
     @cache_readonly
-    def indices(self):
+    def indices(self) -> dict[Hashable, npt.NDArray[np.intp]]:
         # we have a list of groupers
         if isinstance(self.grouping_vector, ops.BaseGrouper):
             return self.grouping_vector.indices
@@ -690,7 +698,7 @@ class Grouping:
 
 
 def get_grouper(
-    obj: FrameOrSeries,
+    obj: NDFrameT,
     key=None,
     axis: int = 0,
     level=None,
@@ -699,7 +707,7 @@ def get_grouper(
     mutated: bool = False,
     validate: bool = True,
     dropna: bool = True,
-) -> tuple[ops.BaseGrouper, frozenset[Hashable], FrameOrSeries]:
+) -> tuple[ops.BaseGrouper, frozenset[Hashable], NDFrameT]:
     """
     Create and return a BaseGrouper, which is an internal
     mapping of how to create the grouper indexers.
