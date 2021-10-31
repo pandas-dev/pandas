@@ -2,9 +2,12 @@ import numba
 import numpy as np
 
 
-# error: Untyped decorator makes function "is_monotonic_increasing" untyped
-@numba.jit(  # type: ignore[misc]
-    numba.boolean(numba.int64[:]), nopython=True, nogil=True, parallel=False
+@numba.jit(
+    # error: Any? not callable
+    numba.boolean(numba.int64[:]),  # type: ignore[misc]
+    nopython=True,
+    nogil=True,
+    parallel=False,
 )
 def is_monotonic_increasing(bounds: np.ndarray) -> bool:
     """Check if int64 values are monotonically increasing."""

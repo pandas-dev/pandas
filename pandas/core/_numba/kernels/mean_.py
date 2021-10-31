@@ -14,8 +14,7 @@ import numpy as np
 from pandas.core._numba.kernels.shared import is_monotonic_increasing
 
 
-# error: Untyped decorator makes function "add_mean" untyped
-@numba.jit(nopython=True, nogil=True, parallel=False)  # type: ignore[misc]
+@numba.jit(nopython=True, nogil=True, parallel=False)
 def add_mean(
     val: float, nobs: int, sum_x: float, neg_ct: int, compensation: float
 ) -> tuple[int, float, int, float]:
@@ -30,8 +29,7 @@ def add_mean(
     return nobs, sum_x, neg_ct, compensation
 
 
-# error: Untyped decorator makes function "remove_mean" untyped
-@numba.jit(nopython=True, nogil=True, parallel=False)  # type: ignore[misc]
+@numba.jit(nopython=True, nogil=True, parallel=False)
 def remove_mean(
     val: float, nobs: int, sum_x: float, neg_ct: int, compensation: float
 ) -> tuple[int, float, int, float]:
@@ -46,8 +44,7 @@ def remove_mean(
     return nobs, sum_x, neg_ct, compensation
 
 
-# error: Untyped decorator makes function "sliding_mean" untyped
-@numba.jit(nopython=True, nogil=True, parallel=False)  # type: ignore[misc]
+@numba.jit(nopython=True, nogil=True, parallel=False)
 def sliding_mean(
     values: np.ndarray,
     start: np.ndarray,
