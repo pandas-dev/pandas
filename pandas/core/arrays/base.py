@@ -47,6 +47,7 @@ from pandas.util._decorators import (
 from pandas.util._validators import (
     validate_bool_kwarg,
     validate_fillna_kwargs,
+    validate_insert_loc,
 )
 
 from pandas.core.dtypes.cast import maybe_cast_to_extension_array
@@ -123,6 +124,7 @@ class ExtensionArray:
     factorize
     fillna
     equals
+    insert
     isin
     isna
     ravel
@@ -561,11 +563,9 @@ class ExtensionArray:
         Returns
         -------
         array : np.ndarray or ExtensionArray
-            An ExtensionArray if dtype is StringDtype,
-            or same as that of underlying array.
+            An ExtensionArray if dtype is ExtensionDtype,
             Otherwise a NumPy ndarray with 'dtype' for its dtype.
         """
-        from pandas.core.arrays.string_ import StringDtype
 
         dtype = pandas_dtype(dtype)
         if is_dtype_equal(dtype, self.dtype):
@@ -574,16 +574,11 @@ class ExtensionArray:
             else:
                 return self.copy()
 
-        # FIXME: Really hard-code here?
-        if isinstance(dtype, StringDtype):
-            # allow conversion to StringArrays
-            return dtype.construct_array_type()._from_sequence(self, copy=False)
+        if isinstance(dtype, ExtensionDtype):
+            cls = dtype.construct_array_type()
+            return cls._from_sequence(self, dtype=dtype, copy=copy)
 
-        # error: Argument "dtype" to "array" has incompatible type
-        # "Union[ExtensionDtype, dtype[Any]]"; expected "Union[dtype[Any], None, type,
-        # _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int,
-        # Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
-        return np.array(self, dtype=dtype, copy=copy)  # type: ignore[arg-type]
+        return np.array(self, dtype=dtype, copy=copy)
 
     def isna(self) -> np.ndarray | ExtensionArraySupportsAnyAll:
         """
@@ -1387,6 +1382,59 @@ class ExtensionArray:
     def delete(self: ExtensionArrayT, loc: PositionalIndexer) -> ExtensionArrayT:
         indexer = np.delete(np.arange(len(self)), loc)
         return self.take(indexer)
+
+    def insert(self: ExtensionArrayT, loc: int, item) -> ExtensionArrayT:
+        """
+        Insert an item at the given position.
+
+        Parameters
+        ----------
+        loc : int
+        item : scalar-like
+
+        Returns
+        -------
+        same type as self
+
+        Notes
+        -----
+        This method should be both type and dtype-preserving.  If the item
+        cannot be held in an array of this type/dtype, either ValueError or
+        TypeError should be raised.
+
+        The default implementation relies on _from_sequence to raise on invalid
+        items.
+        """
+        loc = validate_insert_loc(loc, len(self))
+
+        item_arr = type(self)._from_sequence([item], dtype=self.dtype)
+
+        return type(self)._concat_same_type([self[:loc], item_arr, self[loc:]])
+
+    def _where(
+        self: ExtensionArrayT, mask: npt.NDArray[np.bool_], value
+    ) -> ExtensionArrayT:
+        """
+        Analogue to np.where(mask, self, value)
+
+        Parameters
+        ----------
+        mask : np.ndarray[bool]
+        value : scalar or listlike
+
+        Returns
+        -------
+        same type as self
+        """
+        result = self.copy()
+
+        if is_list_like(value):
+            val = value[~mask]
+        else:
+            val = value
+
+        result[~mask] = val
+        return result
 
     @classmethod
     def _empty(cls, shape: Shape, dtype: ExtensionDtype):

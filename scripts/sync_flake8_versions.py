@@ -68,16 +68,9 @@ def _conda_to_pip_compat(dep):
 
 def _validate_additional_dependencies(
     flake8_additional_dependencies,
-    yesqa_additional_dependencies,
     environment_additional_dependencies,
 ) -> None:
     for dep in flake8_additional_dependencies:
-        if dep not in yesqa_additional_dependencies:
-            sys.stdout.write(
-                f"Mismatch of '{dep.name}' version between 'flake8' "
-                "and 'yesqa' in '.pre-commit-config.yaml'\n"
-            )
-            sys.exit(1)
         if dep not in environment_additional_dependencies:
             sys.stdout.write(
                 f"Mismatch of '{dep.name}' version between 'enviroment.yml' "
@@ -91,13 +84,6 @@ def _validate_revisions(revisions):
         sys.stdout.write(
             f"{revisions.name} in 'environment.yml' does not "
             "match in 'flake8' from 'pre-commit'\n"
-        )
-        sys.exit(1)
-
-    if revisions.yesqa != revisions.pre_commit:
-        sys.stdout.write(
-            f"{revisions.name} in 'yesqa' does not match "
-            "in 'flake8' from 'pre-commit'\n"
         )
         sys.exit(1)
 
@@ -130,21 +116,12 @@ def get_revisions(
         else:
             flake8_additional_dependencies.append(dep)
 
-    _, yesqa_hook = _get_repo_hook(repos, "yesqa")
-    yesqa_additional_dependencies = []
-    for dep in _process_dependencies(yesqa_hook.get("additional_dependencies", [])):
-        if dep.name == "flake8":
-            flake8_revisions.yesqa = dep
-        elif dep.name == "pandas-dev-flaker":
-            pandas_dev_flaker_revisions.yesqa = dep
-        else:
-            yesqa_additional_dependencies.append(dep)
-
     environment_dependencies = environment["dependencies"]
     environment_additional_dependencies = []
     for dep in _process_dependencies(environment_dependencies):
         if dep.name == "flake8":
             flake8_revisions.environment = dep
+            environment_additional_dependencies.append(dep)
         elif dep.name == "pandas-dev-flaker":
             pandas_dev_flaker_revisions.environment = dep
         else:
@@ -152,7 +129,6 @@ def get_revisions(
 
     _validate_additional_dependencies(
         flake8_additional_dependencies,
-        yesqa_additional_dependencies,
         environment_additional_dependencies,
     )
 

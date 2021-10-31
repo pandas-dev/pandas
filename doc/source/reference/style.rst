@@ -40,8 +40,7 @@ Style application
    Styler.applymap_index
    Styler.format
    Styler.format_index
-   Styler.hide_index
-   Styler.hide_columns
+   Styler.hide
    Styler.set_td_classes
    Styler.set_table_styles
    Styler.set_table_attributes

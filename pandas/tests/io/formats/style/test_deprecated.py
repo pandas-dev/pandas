@@ -20,6 +20,12 @@ def df():
     return DataFrame({"A": [0, 1], "B": np.random.randn(2)})
 
 
+@pytest.mark.parametrize("axis", ["index", "columns"])
+def test_hide_index_columns(df, axis):
+    with tm.assert_produces_warning(FutureWarning):
+        getattr(df.style, "hide_" + axis)()
+
+
 def test_set_non_numeric_na():
     # GH 21527 28358
     df = DataFrame(
