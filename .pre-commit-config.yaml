@@ -39,10 +39,11 @@ repos:
     rev: 3.9.2
     hooks:
     -   id: flake8
-        additional_dependencies:
-            - flake8-comprehensions==3.1.0
-            - flake8-bugbear==21.3.2
-            - pandas-dev-flaker==0.2.0
+        additional_dependencies: &flake8_dependencies
+        - flake8==3.9.2
+        - flake8-comprehensions==3.1.0
+        - flake8-bugbear==21.3.2
+        - pandas-dev-flaker==0.2.0
     -   id: flake8
         alias: flake8-cython
         name: flake8 (cython)
@@ -76,11 +77,7 @@ repos:
     rev: v1.2.3
     hooks:
     -   id: yesqa
-        additional_dependencies:
-            - flake8==3.9.2
-            - flake8-comprehensions==3.1.0
-            - flake8-bugbear==21.3.2
-            - pandas-dev-flaker==0.2.0
+        additional_dependencies: *flake8_dependencies
 -   repo: local
     hooks:
     -   id: pyright

@@ -1357,7 +1357,7 @@ class DataFrame(NDFrame, OpsMixin):
     def dot(self, other: DataFrame | Index | ArrayLike) -> DataFrame:
         ...
 
-    def dot(self, other: AnyArrayLike | DataFrame | Series) -> DataFrame | Series:
+    def dot(self, other: AnyArrayLike | DataFrame) -> DataFrame | Series:
         """
         Compute the matrix multiplication between the DataFrame and other.
 
@@ -2202,7 +2202,6 @@ class DataFrame(NDFrame, OpsMixin):
             to_remove = [arr_columns.get_loc(col) for col in arr_exclude]
             arrays = [v for i, v in enumerate(arrays) if i not in to_remove]
 
-            arr_columns = arr_columns.drop(arr_exclude)
             columns = columns.drop(exclude)
 
         manager = get_option("mode.data_manager")
@@ -4430,7 +4429,13 @@ class DataFrame(NDFrame, OpsMixin):
         mgr = self._mgr._get_data_subset(predicate)
         return type(self)(mgr).__finalize__(self)
 
-    def insert(self, loc, column, value, allow_duplicates: bool = False) -> None:
+    def insert(
+        self,
+        loc: int,
+        column: Hashable,
+        value: Scalar | AnyArrayLike,
+        allow_duplicates: bool = False,
+    ) -> None:
         """
         Insert column into DataFrame at specified location.
 
@@ -4443,8 +4448,8 @@ class DataFrame(NDFrame, OpsMixin):
             Insertion index. Must verify 0 <= loc <= len(columns).
         column : str, number, or hashable object
             Label of the inserted column.
-        value : int, Series, or array-like
-        allow_duplicates : bool, optional
+        value : Scalar, Series, or array-like
+        allow_duplicates : bool, optional default False
 
         See Also
         --------
@@ -5343,7 +5348,6 @@ class DataFrame(NDFrame, OpsMixin):
     ):
         """
         Dispatch to Series.replace column-wise.
-
 
         Parameters
         ----------
@@ -6626,7 +6630,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         return counts
 
-    def nlargest(self, n, columns, keep: str = "first") -> DataFrame:
+    def nlargest(self, n: int, columns: IndexLabel, keep: str = "first") -> DataFrame:
         """
         Return the first `n` rows ordered by `columns` in descending order.
 
@@ -6733,7 +6737,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         return algorithms.SelectNFrame(self, n=n, keep=keep, columns=columns).nlargest()
 
-    def nsmallest(self, n, columns, keep: str = "first") -> DataFrame:
+    def nsmallest(self, n: int, columns: IndexLabel, keep: str = "first") -> DataFrame:
         """
         Return the first `n` rows ordered by `columns` in ascending order.
 
@@ -8861,7 +8865,7 @@ NaN 12.3   33.0
             args=args,
             kwargs=kwargs,
         )
-        return op.apply()
+        return op.apply().__finalize__(self, method="apply")
 
     def applymap(
         self, func: PythonFuncType, na_action: str | None = None, **kwargs

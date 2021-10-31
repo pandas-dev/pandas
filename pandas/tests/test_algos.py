@@ -68,7 +68,7 @@ class TestFactorize:
         expected_codes = np.asarray(expected_codes, dtype=np.intp)
 
         tm.assert_numpy_array_equal(result_codes, expected_codes)
-        tm.assert_index_equal(result_uniques, expected_uniques)
+        tm.assert_index_equal(result_uniques, expected_uniques, exact=True)
 
     def test_series_factorize_na_sentinel_none(self):
         # GH#35667
@@ -241,11 +241,7 @@ class TestFactorize:
         # gh 12666 - check no segfault
         x17 = np.array([complex(i) for i in range(17)], dtype=object)
 
-        msg = (
-            "unorderable types: .* [<>] .*"
-            "|"  # the above case happens for numpy < 1.14
-            "'[<>]' not supported between instances of .*"
-        )
+        msg = "'[<>]' not supported between instances of .*"
         with pytest.raises(TypeError, match=msg):
             algos.factorize(x17[::-1], sort=True)
 

@@ -670,7 +670,7 @@ def try_parse_date_and_time(
         object[:] result
 
     n = len(dates)
-    # TODO(cython 3.0): Use len instead of `shape[0]`
+    # TODO(cython3): Use len instead of `shape[0]`
     if times.shape[0] != n:
         raise ValueError('Length of dates and times must be equal')
     result = np.empty(n, dtype='O')
@@ -708,7 +708,7 @@ def try_parse_year_month_day(
         object[:] result
 
     n = len(years)
-    # TODO(cython 3.0): Use len instead of `shape[0]`
+    # TODO(cython3): Use len instead of `shape[0]`
     if months.shape[0] != n or days.shape[0] != n:
         raise ValueError('Length of years/months/days must all be equal')
     result = np.empty(n, dtype='O')
@@ -734,7 +734,7 @@ def try_parse_datetime_components(object[:] years,
         double micros
 
     n = len(years)
-    # TODO(cython 3.0): Use len instead of `shape[0]`
+    # TODO(cython3): Use len instead of `shape[0]`
     if (
         months.shape[0] != n
         or days.shape[0] != n
