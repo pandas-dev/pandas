@@ -12,16 +12,15 @@ from pandas import (
 )
 import pandas._testing as tm
 
+
 @pytest.fixture()
 def gpd_style_subclass_df():
-
     class SubclassedDataFrame(DataFrame):
-
         @property
         def _constructor(self):
             return SubclassedDataFrame
 
-    return SubclassedDataFrame({'a': [1, 2, 3]})
+    return SubclassedDataFrame({"a": [1, 2, 3]})
 
 
 class TestDataFrameSubclassing:
@@ -724,7 +723,6 @@ class TestDataFrameSubclassing:
         result = gpd_style_subclass_df.convert_dtypes()
         print(type(result), type(gpd_style_subclass_df))
         assert isinstance(result, type(gpd_style_subclass_df))
-
 
     def test_equals_subclass(self):
         # https://github.com/pandas-dev/pandas/pull/34402
