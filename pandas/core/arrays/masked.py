@@ -626,7 +626,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
             index = index.insert(len(index), self.dtype.na_value)
 
-        assert index.dtype == self.dtype
+        index = index.astype(self.dtype)
 
         mask = np.zeros(len(counts), dtype="bool")
         counts = IntegerArray(counts, mask)
