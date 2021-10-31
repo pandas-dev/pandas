@@ -688,17 +688,18 @@ class TestRollingTS:
                 "C": np.arange(40),
             }
         )
-        
+
         expected = (
             df.set_index("B").groupby("A").apply(lambda x: x.rolling("4s")["C"].mean())
         )
         with pytest.raises(ValueError, match=r".* must be monotonic"):
-            df.groupby("A").rolling("4s", on="B").C.mean() #should raise for non-monotonic t series
+            df.groupby("A").rolling(
+                "4s", on="B"
+            ).C.mean()  # should raise for non-monotonic t series
 
         df2 = df.sort_values("B")
         result = df2.groupby("A").rolling("4s", on="B").C.mean()
         tm.assert_series_equal(result, expected)
-
 
     def test_rolling_cov_offset(self):
         # GH16058
