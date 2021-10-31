@@ -675,9 +675,6 @@ class TestRollingTS:
         result = df.groupby("name").rolling("180D", on="date")["amount"].sum()
         tm.assert_series_equal(result, expected)
 
-        
-        
-
     def test_non_monotonic_raises(self):
         # GH 13966 (similar to #15130, closed by #15175)
 
