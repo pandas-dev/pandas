@@ -403,16 +403,20 @@ xclip                                        Clipboard I/O on linux
 xsel                                         Clipboard I/O on linux
 ========================= ================== =============================================================
 
-Type annotations
-----------------
+Experimenting with type annotations
+-----------------------------------
 
 .. warning::
 
-    * Pandas is not yet a py.typed library (see `PEP 561 <https://www.python.org/dev/peps/pep-0561/>`)!
+    * Pandas is not yet a `py.typed library <https://www.python.org/dev/peps/pep-0561/>`!
 
-To make type checkers aware of pandas's own type annotations, you can create an empty py.typed file.
-This signals to type checkers that pandas is a py.typed library.
+Until pandas becomes a py.typed library, it is possible to easily experiment with the type
+annotations shipped with pandas by creating an empty file named "py.typed" in the pandas
+installation folder:
 
 .. code-block:: none
 
    python -c "import pandas; import pathlib; (pathlib.Path(pandas.__path__[0]) / 'py.typed').touch()"
+
+The existance of the py.typed file signals to type checkers that pandas is already a py.typed
+library. This makes type checkers aware of the type annotations shipped with pandas.
