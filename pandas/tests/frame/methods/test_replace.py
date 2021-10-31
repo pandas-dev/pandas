@@ -1109,12 +1109,17 @@ class TestDataFrameReplace:
         # coerce to object
         result = df.copy()
         result.iloc[1, 0] = np.nan
-        result = result.replace({"A": pd.NaT}, Timestamp("20130104", tz="US/Pacific"))
+        with tm.assert_produces_warning(FutureWarning, match="mismatched timezone"):
+            result = result.replace(
+                {"A": pd.NaT}, Timestamp("20130104", tz="US/Pacific")
+            )
         expected = DataFrame(
             {
                 "A": [
                     Timestamp("20130101", tz="US/Eastern"),
                     Timestamp("20130104", tz="US/Pacific"),
+                    # once deprecation is enforced
+                    # Timestamp("20130104", tz="US/Pacific").tz_convert("US/Eastern"),
                     Timestamp("20130103", tz="US/Eastern"),
                 ],
                 "B": [0, np.nan, 2],

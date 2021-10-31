@@ -39,6 +39,7 @@ from pandas._libs.tslibs import (
 )
 from pandas._typing import npt
 from pandas.errors import PerformanceWarning
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_inclusive
 
 from pandas.core.dtypes.cast import astype_dt64_to_dt64tz
@@ -509,6 +510,19 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         if setitem:
             # Stricter check for setitem vs comparison methods
             if not timezones.tz_compare(self.tz, other.tz):
+                # TODO(2.0): remove this check. GH#37605
+                warnings.warn(
+                    "Setitem-like behavior with mismatched timezones is deprecated "
+                    "and will change in a future version. Instead of raising "
+                    "(or for Index, Series, and DataFrame methods, coercing to "
+                    "object dtype), the value being set (or passed as a "
+                    "fill_value, or inserted) will be cast to the existing "
+                    "DatetimeArray/DatetimeIndex/Series/DataFrame column's "
+                    "timezone. To retain the old behavior, explicitly cast to "
+                    "object dtype before the operation.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
                 raise ValueError(f"Timezones don't match. '{self.tz}' != '{other.tz}'")
 
     # -----------------------------------------------------------------

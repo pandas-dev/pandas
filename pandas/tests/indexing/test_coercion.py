@@ -237,11 +237,17 @@ class TestSetitemCoercion(CoercionBase):
             [
                 pd.Timestamp("2011-01-01", tz=tz),
                 val,
+                # once deprecation is enforced
+                # val if getattr(val, "tz", None) is None else val.tz_convert(tz),
                 pd.Timestamp("2011-01-03", tz=tz),
                 pd.Timestamp("2011-01-04", tz=tz),
             ]
         )
-        self._assert_setitem_series_conversion(obj, val, exp, exp_dtype)
+        warn = None
+        if getattr(val, "tz", None) is not None and val.tz != obj[0].tz:
+            warn = FutureWarning
+        with tm.assert_produces_warning(warn, match="mismatched timezones"):
+            self._assert_setitem_series_conversion(obj, val, exp, exp_dtype)
 
     @pytest.mark.parametrize(
         "val,exp_dtype",
@@ -467,9 +473,12 @@ class TestInsertIndexCoercion(CoercionBase):
 
             # mismatched tz --> cast to object (could reasonably cast to common tz)
             ts = pd.Timestamp("2012-01-01", tz="Asia/Tokyo")
-            result = obj.insert(1, ts)
+            with tm.assert_produces_warning(FutureWarning, match="mismatched timezone"):
+                result = obj.insert(1, ts)
+            # once deprecation is enforced:
+            # expected = obj.insert(1, ts.tz_convert(obj.dtype.tz))
+            # assert expected.dtype == obj.dtype
             expected = obj.astype(object).insert(1, ts)
-            assert expected.dtype == object
             tm.assert_index_equal(result, expected)
 
         else:
@@ -990,11 +999,18 @@ class TestFillnaSeriesCoercion(CoercionBase):
             [
                 pd.Timestamp("2011-01-01", tz=tz),
                 fill_val,
+                # Once deprecation is enforced, this becomes:
+                # fill_val.tz_convert(tz) if getattr(fill_val, "tz", None)
+                #  is not None else fill_val,
                 pd.Timestamp("2011-01-03", tz=tz),
                 pd.Timestamp("2011-01-04", tz=tz),
             ]
         )
-        self._assert_fillna_conversion(obj, fill_val, exp, fill_dtype)
+        warn = None
+        if getattr(fill_val, "tz", None) is not None and fill_val.tz != obj[0].tz:
+            warn = FutureWarning
+        with tm.assert_produces_warning(warn, match="mismatched timezone"):
+            self._assert_fillna_conversion(obj, fill_val, exp, fill_dtype)
 
     @pytest.mark.xfail(reason="Test not implemented")
     def test_fillna_series_int64(self):
