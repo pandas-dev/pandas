@@ -160,13 +160,6 @@ class TestMethods(base.BaseMethodsTests):
     def test_value_counts_with_normalize(self, data):
         pass
 
-    def test_insert_invalid(self, data, invalid_scalar, request):
-        if data.dtype.storage == "pyarrow":
-            mark = pytest.mark.xfail(reason="casts invalid_scalar to string")
-            request.node.add_marker(mark)
-
-        super().test_insert_invalid(data, invalid_scalar)
-
 
 class TestCasting(base.BaseCastingTests):
     pass
