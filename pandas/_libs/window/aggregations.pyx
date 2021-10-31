@@ -835,6 +835,7 @@ def roll_median_c(const float64_t[:] values, ndarray[int64_t] start,
 
             if not is_monotonic_increasing_bounds:
                 nobs = 0
+                skiplist_destroy(sl)
                 sl = skiplist_init(<int>win)
 
     skiplist_destroy(sl)
@@ -1070,6 +1071,7 @@ def roll_quantile(const float64_t[:] values, ndarray[int64_t] start,
             if i == 0 or not is_monotonic_increasing_bounds:
                 if not is_monotonic_increasing_bounds:
                     nobs = 0
+                    skiplist_destroy(skiplist)
                     skiplist = skiplist_init(<int>win)
 
                 # setup
@@ -1604,13 +1606,13 @@ def roll_weighted_var(const float64_t[:] values, const float64_t[:] weights,
 
 
 # ----------------------------------------------------------------------
-# Exponentially weighted moving average
+# Exponentially weighted moving
 
-def ewma(const float64_t[:] vals, const int64_t[:] start, const int64_t[:] end,
-         int minp, float64_t com, bint adjust, bint ignore_na,
-         const float64_t[:] deltas=None) -> np.ndarray:
+def ewm(const float64_t[:] vals, const int64_t[:] start, const int64_t[:] end,
+        int minp, float64_t com, bint adjust, bint ignore_na,
+        const float64_t[:] deltas=None, bint normalize=True) -> np.ndarray:
     """
-    Compute exponentially-weighted moving average using center-of-mass.
+    Compute exponentially-weighted moving average or sum using center-of-mass.
 
     Parameters
     ----------
@@ -1623,6 +1625,8 @@ def ewma(const float64_t[:] vals, const int64_t[:] start, const int64_t[:] end,
     ignore_na : bool
     deltas : ndarray (float64 type), optional. If None, implicitly assumes equally
              spaced points (used when `times` is not passed)
+    normalize : bool, optional.
+                If True, calculate the mean. If False, calculate the sum.
 
     Returns
     -------
@@ -1634,7 +1638,7 @@ def ewma(const float64_t[:] vals, const int64_t[:] start, const int64_t[:] end,
         const float64_t[:] sub_vals
         const float64_t[:] sub_deltas=None
         ndarray[float64_t] sub_output, output = np.empty(N, dtype=np.float64)
-        float64_t alpha, old_wt_factor, new_wt, weighted_avg, old_wt, cur
+        float64_t alpha, old_wt_factor, new_wt, weighted, old_wt, cur
         bint is_observation, use_deltas
 
     if N == 0:
@@ -1657,10 +1661,10 @@ def ewma(const float64_t[:] vals, const int64_t[:] start, const int64_t[:] end,
         win_size = len(sub_vals)
         sub_output = np.empty(win_size, dtype=np.float64)
 
-        weighted_avg = sub_vals[0]
-        is_observation = weighted_avg == weighted_avg
+        weighted = sub_vals[0]
+        is_observation = weighted == weighted
         nobs = int(is_observation)
-        sub_output[0] = weighted_avg if nobs >= minp else NaN
+        sub_output[0] = weighted if nobs >= minp else NaN
         old_wt = 1.
 
         with nogil:
@@ -1668,35 +1672,36 @@ def ewma(const float64_t[:] vals, const int64_t[:] start, const int64_t[:] end,
                 cur = sub_vals[i]
                 is_observation = cur == cur
                 nobs += is_observation
-                if weighted_avg == weighted_avg:
+                if weighted == weighted:
 
                     if is_observation or not ignore_na:
-                        if use_deltas:
-                            old_wt *= old_wt_factor ** sub_deltas[i - 1]
-                        else:
-                            old_wt *= old_wt_factor
-                        if is_observation:
-
-                            # avoid numerical errors on constant series
-                            if weighted_avg != cur:
-                                weighted_avg = ((old_wt * weighted_avg) +
-                                                (new_wt * cur)) / (old_wt + new_wt)
-                            if adjust:
-                                old_wt += new_wt
+                        if normalize:
+                            if use_deltas:
+                                old_wt *= old_wt_factor ** sub_deltas[i - 1]
                             else:
-                                old_wt = 1.
+                                old_wt *= old_wt_factor
+                        else:
+                            weighted = old_wt_factor * weighted
+                        if is_observation:
+                            if normalize:
+                                # avoid numerical errors on constant series
+                                if weighted != cur:
+                                    weighted = old_wt * weighted + new_wt * cur
+                                    weighted /= (old_wt + new_wt)
+                                if adjust:
+                                    old_wt += new_wt
+                                else:
+                                    old_wt = 1.
+                            else:
+                                weighted += cur
                 elif is_observation:
-                    weighted_avg = cur
+                    weighted = cur
 
-                sub_output[i] = weighted_avg if nobs >= minp else NaN
+                sub_output[i] = weighted if nobs >= minp else NaN
 
         output[s:e] = sub_output
 
     return output
-
-
-# ----------------------------------------------------------------------
-# Exponentially weighted moving covariance
 
 
 def ewmcov(const float64_t[:] input_x, const int64_t[:] start, const int64_t[:] end,

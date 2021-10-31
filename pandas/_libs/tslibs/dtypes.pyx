@@ -205,7 +205,7 @@ class Resolution(Enum):
         elif self == Resolution.RESO_YR:
             return FreqGroup.FR_ANN
         else:
-            raise ValueError(self)
+            raise ValueError(self)  # pragma: no cover
 
     @property
     def attrname(self) -> str:

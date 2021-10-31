@@ -952,12 +952,11 @@ def asof_join_nearest(numeric_t[:] left_values,
                       tolerance=None):
 
     cdef:
-        Py_ssize_t left_size, right_size, i
+        Py_ssize_t left_size, i
         ndarray[intp_t] left_indexer, right_indexer, bli, bri, fli, fri
         numeric_t bdiff, fdiff
 
     left_size = len(left_values)
-    right_size = len(right_values)
 
     left_indexer = np.empty(left_size, dtype=np.intp)
     right_indexer = np.empty(left_size, dtype=np.intp)

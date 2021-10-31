@@ -17,16 +17,25 @@ env:
   PANDAS_CI: 1
   PATTERN: "not slow and not network and not clipboard"
   COVERAGE: true
-  PYTEST_TARGET:  pandas
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macOS-latest]
+        pytest_target: ["pandas/tests/[a-h]*", "pandas/tests/[i-z]*"]
+        include:
+          # No need to split tests on windows
+          - os: windows-latest
+            pytest_target: pandas
+
     name: actions-310-dev
-    timeout-minutes: 60
+    timeout-minutes: 80
 
     concurrency:
-      group: ${{ github.ref }}-dev
+      group: ${{ github.ref }}-${{ matrix.os }}-${{ matrix.pytest_target }}-dev
       cancel-in-progress: ${{github.event_name == 'pull_request'}}
 
     steps:
@@ -40,12 +49,12 @@ jobs:
         python-version: '3.10-dev'
 
     - name: Install dependencies
+      shell: bash
       run: |
         python -m pip install --upgrade pip setuptools wheel
         pip install -i https://pypi.anaconda.org/scipy-wheels-nightly/simple numpy
-        pip install git+https://github.com/pytest-dev/pytest.git
         pip install git+https://github.com/nedbat/coveragepy.git
-        pip install cython python-dateutil pytz hypothesis pytest-xdist pytest-cov
+        pip install cython python-dateutil pytz hypothesis pytest>=6.2.5 pytest-xdist pytest-cov
         pip list
 
     - name: Build Pandas
@@ -58,10 +67,11 @@ jobs:
         python -c "import pandas; pandas.show_versions();"
 
     - name: Test with pytest
+      env:
+          PYTEST_TARGET: ${{ matrix.pytest_target }}
+      shell: bash
       run: |
         ci/run_tests.sh
-      # GH 41935
-      continue-on-error: true
 
     - name: Publish test results
       uses: actions/upload-artifact@master

@@ -532,7 +532,7 @@ def group_add(add_t[:, ::1] out,
                     nobs[lab, j] += 1
 
                     if nobs[lab, j] == 1:
-                        # i.e. we havent added anything yet; avoid TypeError
+                        # i.e. we haven't added anything yet; avoid TypeError
                         #  if e.g. val is a str and sumx[lab, j] is 0
                         t = val
                     else:
@@ -963,7 +963,7 @@ def group_last(iu_64_floating_obj_t[:, ::1] out,
         ndarray[int64_t, ndim=2] nobs
         bint runtime_error = False
 
-    # TODO(cython 3.0):
+    # TODO(cython3):
     # Instead of `labels.shape[0]` use `len(labels)`
     if not len(values) == labels.shape[0]:
         raise AssertionError("len(index) != len(labels)")
@@ -978,7 +978,7 @@ def group_last(iu_64_floating_obj_t[:, ::1] out,
     N, K = (<object>values).shape
 
     if iu_64_floating_obj_t is object:
-        # TODO: De-duplicate once conditional-nogil is available
+        # TODO(cython3): De-duplicate once conditional-nogil is available
         for i in range(N):
             lab = labels[i]
             if lab < 0:
@@ -1057,7 +1057,7 @@ def group_nth(iu_64_floating_obj_t[:, ::1] out,
         ndarray[int64_t, ndim=2] nobs
         bint runtime_error = False
 
-    # TODO(cython 3.0):
+    # TODO(cython3):
     # Instead of `labels.shape[0]` use `len(labels)`
     if not len(values) == labels.shape[0]:
         raise AssertionError("len(index) != len(labels)")
@@ -1072,7 +1072,7 @@ def group_nth(iu_64_floating_obj_t[:, ::1] out,
     N, K = (<object>values).shape
 
     if iu_64_floating_obj_t is object:
-        # TODO: De-duplicate once conditional-nogil is available
+        # TODO(cython3): De-duplicate once conditional-nogil is available
         for i in range(N):
             lab = labels[i]
             if lab < 0:
@@ -1193,7 +1193,7 @@ def group_rank(float64_t[:, ::1] out,
             na_option=na_option
         )
         for i in range(len(result)):
-            # TODO: why cant we do out[:, k] = result?
+            # TODO: why can't we do out[:, k] = result?
             out[i, k] = result[i]
 
 
@@ -1255,7 +1255,7 @@ cdef group_min_max(iu_64_floating_t[:, ::1] out,
         bint uses_mask = mask is not None
         bint isna_entry
 
-    # TODO(cython 3.0):
+    # TODO(cython3):
     # Instead of `labels.shape[0]` use `len(labels)`
     if not len(values) == labels.shape[0]:
         raise AssertionError("len(index) != len(labels)")

@@ -1,5 +1,5 @@
 """
-Numba 1D aggregation kernels that can be shared by
+Numba 1D mean kernels that can be shared by
 * Dataframe / Series
 * groupby
 * rolling / expanding
@@ -11,23 +11,11 @@ from __future__ import annotations
 import numba
 import numpy as np
 
-
-@numba.jit(nopython=True, nogil=True, parallel=False)
-def is_monotonic_increasing(bounds: np.ndarray) -> bool:
-    """Check if int64 values are monotonically increasing."""
-    n = len(bounds)
-    if n < 2:
-        return True
-    prev = bounds[0]
-    for i in range(1, n):
-        cur = bounds[i]
-        if cur < prev:
-            return False
-        prev = cur
-    return True
+from pandas.core._numba.kernels.shared import is_monotonic_increasing
 
 
-@numba.jit(nopython=True, nogil=True, parallel=False)
+# error: Untyped decorator makes function "add_mean" untyped
+@numba.jit(nopython=True, nogil=True, parallel=False)  # type: ignore[misc]
 def add_mean(
     val: float, nobs: int, sum_x: float, neg_ct: int, compensation: float
 ) -> tuple[int, float, int, float]:
@@ -42,7 +30,8 @@ def add_mean(
     return nobs, sum_x, neg_ct, compensation
 
 
-@numba.jit(nopython=True, nogil=True, parallel=False)
+# error: Untyped decorator makes function "remove_mean" untyped
+@numba.jit(nopython=True, nogil=True, parallel=False)  # type: ignore[misc]
 def remove_mean(
     val: float, nobs: int, sum_x: float, neg_ct: int, compensation: float
 ) -> tuple[int, float, int, float]:
@@ -57,7 +46,8 @@ def remove_mean(
     return nobs, sum_x, neg_ct, compensation
 
 
-@numba.jit(nopython=True, nogil=True, parallel=False)
+# error: Untyped decorator makes function "sliding_mean" untyped
+@numba.jit(nopython=True, nogil=True, parallel=False)  # type: ignore[misc]
 def sliding_mean(
     values: np.ndarray,
     start: np.ndarray,

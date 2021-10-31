@@ -606,7 +606,7 @@ def read_csv(
     # Error Handling
     error_bad_lines=None,
     warn_bad_lines=None,
-    # TODO (2.0): set on_bad_lines to "error".
+    # TODO(2.0): set on_bad_lines to "error".
     # See _refine_defaults_read comment for why we do this.
     on_bad_lines=None,
     # Internal
@@ -704,7 +704,7 @@ def read_table(
     # Error Handling
     error_bad_lines=None,
     warn_bad_lines=None,
-    # TODO (2.0): set on_bad_lines to "error".
+    # TODO(2.0): set on_bad_lines to "error".
     # See _refine_defaults_read comment for why we do this.
     on_bad_lines=None,
     # Internal
