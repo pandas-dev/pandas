@@ -339,7 +339,9 @@ class StylerRenderer:
             and not all(self.hide_index_)
             and not self.hide_index_names
         ):
-            index_names_row = self._generate_index_names_row(clabels, max_cols)
+            index_names_row = self._generate_index_names_row(
+                clabels, max_cols, col_lengths
+            )
             head.append(index_names_row)
 
         return head
@@ -443,7 +445,7 @@ class StylerRenderer:
 
         return index_blanks + column_name + column_headers
 
-    def _generate_index_names_row(self, iter: tuple, max_cols):
+    def _generate_index_names_row(self, iter: tuple, max_cols: int, col_lengths: dict):
         """
         Generate the row containing index names
 
@@ -475,22 +477,36 @@ class StylerRenderer:
             for c, name in enumerate(self.data.index.names)
         ]
 
-        if not clabels:
-            blank_len = 0
-        elif len(self.data.columns) <= max_cols:
-            blank_len = len(clabels[0])
-        else:
-            blank_len = len(clabels[0]) + 1  # to allow room for `...` trim col
+        column_blanks, col_count = [], 0
+        if clabels:
+            for c, value in enumerate(clabels[self.columns.nlevels - 1]):
+                header_element_visible = _is_visible(c, 0, col_lengths)
 
-        column_blanks = [
-            _element(
-                "th",
-                f"{self.css['blank']} {self.css['col']}{c}",
-                self.css["blank_value"],
-                c not in self.hidden_columns,
-            )
-            for c in range(blank_len)
-        ]
+                if header_element_visible:
+                    col_count += 1
+                if col_count > max_cols:
+                    column_blanks.append(
+                        _element(
+                            "th",
+                            (
+                                f"{self.css['blank']} {self.css['col']}{c} "
+                                f"{self.css['col_trim']}"
+                            ),
+                            self.css["blank_value"],
+                            True,
+                            attributes="",
+                        )
+                    )
+                    break
+                column_blanks.append(
+                    _element(
+                        "th",
+                        f"{self.css['blank']} {self.css['col']}{c}",
+                        self.css["blank_value"],
+                        c not in self.hidden_columns,
+                    )
+                )
+
         return index_names + column_blanks
 
     def _translate_body(self, sparsify_index: bool, max_rows: int, max_cols: int):
