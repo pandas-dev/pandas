@@ -1,4 +1,5 @@
 from datetime import datetime
+import re
 
 import numpy as np
 import pytest
@@ -57,6 +58,14 @@ def test_split_regex(any_string_dtype):
     result = values.str.split(r".jpg")
     exp = Series([["xx", "zzz", ""]])
     tm.assert_series_equal(result, exp)
+
+    # regex=False with pattern compiled regex raises error
+    with pytest.raises(
+        ValueError,
+        match="Cannot use a compiled regex as replacement pattern with regex=False",
+    ):
+        pat = re.compile("xxx")
+        values.str.split(pat, regex=False)
 
 
 def test_split_object_mixed():
