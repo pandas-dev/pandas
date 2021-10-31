@@ -684,11 +684,14 @@ class TimedeltaArray(dtl.TimelikeOps):
         elif is_object_dtype(other.dtype):
             # error: Incompatible types in assignment (expression has type
             # "List[Any]", variable has type "ndarray")
-            result = [  # type: ignore[assignment]
-                self[n] // other[n] for n in range(len(self))
-            ]
-            result = np.array(result)
-            inferred = lib.infer_dtype(result, skipna=False)
+            srav = self.ravel()
+            orav = other.ravel()
+            res_list = [srav[n] // orav[n] for n in range(len(srav))]
+            result_flat = np.asarray(res_list)
+            inferred = lib.infer_dtype(result_flat, skipna=False)
+
+            result = result_flat.reshape(self.shape)
+
             if inferred == "timedelta":
                 result, _ = sequence_to_td64ns(result)
                 return type(self)(result)
