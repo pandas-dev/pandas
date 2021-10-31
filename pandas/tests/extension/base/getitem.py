@@ -121,18 +121,31 @@ class BaseGetitemTests(BaseExtensionTests):
         assert isinstance(result, data.dtype.type)
 
     def test_getitem_invalid(self, data):
-        # TODO: specific exception message?
+        # TODO: box over scalar, [scalar], (scalar,)?
 
-        with pytest.raises(IndexError):
+        msg = (
+            r"only integers, slices \(`:`\), ellipsis \(`...`\), numpy.newaxis "
+            r"\(`None`\) and integer or boolean arrays are valid indices"
+        )
+        with pytest.raises(IndexError, match=msg):
             data["foo"]
-
-        with pytest.raises(IndexError):
+        with pytest.raises(IndexError, match=msg):
             data[2.5]
 
         ub = len(data)
-        with pytest.raises(IndexError):
+        msg = "|".join(
+            [
+                "list index out of range",  # json
+                "index out of bounds",  # pyarrow
+                "Out of bounds access",  # Sparse
+                f"loc must be an integer between -{ub} and {ub}",  # Sparse
+                f"index {ub+1} is out of bounds for axis 0 with size {ub}",
+                f"index -{ub+1} is out of bounds for axis 0 with size {ub}",
+            ]
+        )
+        with pytest.raises(IndexError, match=msg):
             data[ub + 1]
-        with pytest.raises(IndexError):
+        with pytest.raises(IndexError, match=msg):
             data[-ub - 1]
 
     def test_getitem_scalar_na(self, data_missing, na_cmp, na_value):

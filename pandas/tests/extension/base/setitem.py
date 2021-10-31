@@ -369,8 +369,9 @@ class BaseSetitemTests(BaseExtensionTests):
         self.assert_series_equal(ser, expected)
 
     def test_setitem_invalid(self, data, invalid_scalar):
-        with pytest.raises((ValueError, TypeError)):
+        msg = ""  # messages vary by subclass, so we do not test it
+        with pytest.raises((ValueError, TypeError), match=msg):
             data[0] = invalid_scalar
 
-        with pytest.raises((ValueError, TypeError)):
+        with pytest.raises((ValueError, TypeError), match=msg):
             data[:] = invalid_scalar

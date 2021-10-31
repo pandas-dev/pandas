@@ -31,6 +31,7 @@ from pandas._typing import (
     npt,
 )
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -268,8 +269,19 @@ class Block(PandasObject):
             placement = self._mgr_locs
 
         if values.dtype.kind in ["m", "M"]:
-            # TODO: remove this once fastparquet has stopped relying on it
-            values = ensure_wrapped_if_datetimelike(values)
+
+            new_values = ensure_wrapped_if_datetimelike(values)
+            if new_values is not values:
+                # TODO(2.0): remove once fastparquet has stopped relying on it
+                warnings.warn(
+                    "In a future version, Block.make_block_same_class will "
+                    "assume that datetime64 and timedelta64 ndarrays have "
+                    "already been cast to DatetimeArray and TimedeltaArray, "
+                    "respectively.",
+                    DeprecationWarning,
+                    stacklevel=find_stack_level(),
+                )
+            values = new_values
 
         # We assume maybe_coerce_values has already been called
         return type(self)(values, placement=placement, ndim=self.ndim)
@@ -1593,7 +1605,9 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
             # The default `other` for Series / Frame is np.nan
             # we want to replace that with the correct NA value
             # for the type
-            other = self.dtype.na_value
+            # error: Item "dtype[Any]" of "Union[dtype[Any], ExtensionDtype]" has no
+            # attribute "na_value"
+            other = self.dtype.na_value  # type: ignore[union-attr]
 
         try:
             result = self.values._where(cond, other)

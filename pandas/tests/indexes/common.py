@@ -362,6 +362,12 @@ class Base:
         expected = index.argsort()
         tm.assert_numpy_array_equal(result, expected)
 
+        if not isinstance(index, RangeIndex):
+            # TODO: add compatibility to RangeIndex?
+            result = np.argsort(index, kind="mergesort")
+            expected = index.argsort(kind="mergesort")
+            tm.assert_numpy_array_equal(result, expected)
+
         # these are the only two types that perform
         # pandas compatibility input validation - the
         # rest already perform separate (or no) such
@@ -369,15 +375,10 @@ class Base:
         # defined in pandas.core.indexes/base.py - they
         # cannot be changed at the moment due to
         # backwards compatibility concerns
-        if isinstance(type(index), (CategoricalIndex, RangeIndex)):
-            # TODO: why type(index)?
+        if isinstance(index, (CategoricalIndex, RangeIndex)):
             msg = "the 'axis' parameter is not supported"
             with pytest.raises(ValueError, match=msg):
                 np.argsort(index, axis=1)
-
-            msg = "the 'kind' parameter is not supported"
-            with pytest.raises(ValueError, match=msg):
-                np.argsort(index, kind="mergesort")
 
             msg = "the 'order' parameter is not supported"
             with pytest.raises(ValueError, match=msg):
@@ -435,18 +436,28 @@ class Base:
     def test_insert_out_of_bounds(self, index):
         # TypeError/IndexError matches what np.insert raises in these cases
 
-        # TODO: specific exception messages?
         if len(index) > 0:
             err = TypeError
         else:
             err = IndexError
-        with pytest.raises(err):
+        if len(index) == 0:
+            # 0 vs 0.5 in error message varies with numpy version
+            msg = "index (0|0.5) is out of bounds for axis 0 with size 0"
+        else:
+            msg = "slice indices must be integers or None or have an __index__ method"
+        with pytest.raises(err, match=msg):
             index.insert(0.5, "foo")
 
-        with pytest.raises(IndexError):
+        msg = "|".join(
+            [
+                r"index -?\d+ is out of bounds for axis 0 with size \d+",
+                "loc must be an integer between",
+            ]
+        )
+        with pytest.raises(IndexError, match=msg):
             index.insert(len(index) + 1, 1)
 
-        with pytest.raises(IndexError):
+        with pytest.raises(IndexError, match=msg):
             index.insert(-len(index) - 1, 1)
 
     def test_delete_base(self, index):
