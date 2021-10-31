@@ -27,6 +27,7 @@ from pandas._typing import (
 )
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import infer_dtype_from_scalar
@@ -72,6 +73,7 @@ from pandas.core.internals.blocks import (
     extend_blocks,
     get_block_type,
     new_block,
+    new_block_2d,
 )
 from pandas.core.internals.ops import (
     blockwise_all,
@@ -392,9 +394,6 @@ class BaseBlockManager(DataManager):
         return self.apply(
             "fillna", value=value, limit=limit, inplace=inplace, downcast=downcast
         )
-
-    def downcast(self: T) -> T:
-        return self.apply("downcast")
 
     def astype(self: T, dtype, copy: bool = False, errors: str = "raise") -> T:
         return self.apply("astype", dtype=dtype, copy=copy, errors=errors)
@@ -824,6 +823,7 @@ class BaseBlockManager(DataManager):
     def _make_na_block(
         self, placement: BlockPlacement, fill_value=None, use_na_proxy: bool = False
     ) -> Block:
+        # Note: we only get here with self.ndim == 2
 
         if use_na_proxy:
             assert fill_value is None
@@ -844,7 +844,7 @@ class BaseBlockManager(DataManager):
         # Tuple[Any, Any]]"
         block_values = np.empty(block_shape, dtype=dtype)  # type: ignore[arg-type]
         block_values.fill(fill_value)
-        return new_block(block_values, placement=placement, ndim=block_values.ndim)
+        return new_block_2d(block_values, placement=placement)
 
     def take(self: T, indexer, axis: int = 1, verify: bool = True) -> T:
         """
@@ -909,7 +909,15 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                         f"number of axes ({self.ndim})"
                     )
                 if isinstance(block, DatetimeTZBlock) and block.values.ndim == 1:
-                    # TODO: remove once fastparquet no longer needs this
+                    # TODO(2.0): remove once fastparquet no longer needs this
+                    warnings.warn(
+                        "In a future version, the BlockManager constructor "
+                        "will assume that a DatetimeTZBlock with block.ndim==2 "
+                        "has block.values.ndim == 2.",
+                        DeprecationWarning,
+                        stacklevel=find_stack_level(),
+                    )
+
                     # error: Incompatible types in assignment (expression has type
                     # "Union[ExtensionArray, ndarray]", variable has type
                     # "DatetimeArray")
@@ -1107,8 +1115,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             )
 
         if unfit_val_locs:
-            unfit_mgr_locs = np.concatenate(unfit_mgr_locs)
-            unfit_count = len(unfit_mgr_locs)
+            unfit_idxr = np.concatenate(unfit_mgr_locs)
+            unfit_count = len(unfit_idxr)
 
             new_blocks: list[Block] = []
             if value_is_extension_type:
@@ -1116,31 +1124,29 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 # one item.
                 # TODO(EA2D): special casing unnecessary with 2D EAs
                 new_blocks.extend(
-                    new_block(
+                    new_block_2d(
                         values=value,
-                        ndim=self.ndim,
-                        placement=slice(mgr_loc, mgr_loc + 1),
+                        placement=BlockPlacement(slice(mgr_loc, mgr_loc + 1)),
                     )
-                    for mgr_loc in unfit_mgr_locs
+                    for mgr_loc in unfit_idxr
                 )
 
-                self._blknos[unfit_mgr_locs] = np.arange(unfit_count) + len(self.blocks)
-                self._blklocs[unfit_mgr_locs] = 0
+                self._blknos[unfit_idxr] = np.arange(unfit_count) + len(self.blocks)
+                self._blklocs[unfit_idxr] = 0
 
             else:
                 # unfit_val_locs contains BlockPlacement objects
                 unfit_val_items = unfit_val_locs[0].append(unfit_val_locs[1:])
 
                 new_blocks.append(
-                    new_block(
+                    new_block_2d(
                         values=value_getitem(unfit_val_items),
-                        ndim=self.ndim,
-                        placement=unfit_mgr_locs,
+                        placement=BlockPlacement(unfit_idxr),
                     )
                 )
 
-                self._blknos[unfit_mgr_locs] = len(self.blocks)
-                self._blklocs[unfit_mgr_locs] = np.arange(unfit_count)
+                self._blknos[unfit_idxr] = len(self.blocks)
+                self._blklocs[unfit_idxr] = np.arange(unfit_count)
 
             self.blocks += tuple(new_blocks)
 
@@ -1162,10 +1168,15 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         if value.ndim == 2:
             value = value.T
+            if len(value) > 1:
+                raise ValueError(
+                    f"Expected a 1D array, got an array with shape {value.T.shape}"
+                )
         else:
             value = ensure_block_shape(value, ndim=self.ndim)
 
-        block = new_block(values=value, ndim=self.ndim, placement=slice(loc, loc + 1))
+        bp = BlockPlacement(slice(loc, loc + 1))
+        block = new_block_2d(values=value, placement=bp)
 
         self._insert_update_mgr_locs(loc)
         self._insert_update_blklocs_and_blknos(loc)
@@ -1175,7 +1186,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         self._known_consolidated = False
 
-        if len(self.blocks) > 100:
+        if sum(not block.is_extension for block in self.blocks) > 100:
             warnings.warn(
                 "DataFrame is highly fragmented.  This is usually the result "
                 "of calling `frame.insert` many times, which has poor performance.  "
@@ -1969,7 +1980,7 @@ def _form_blocks(arrays: list[ArrayLike], consolidate: bool) -> list[Block]:
 def _tuples_to_blocks_no_consolidate(tuples) -> list[Block]:
     # tuples produced within _form_blocks are of the form (placement, array)
     return [
-        new_block(ensure_block_shape(x[1], ndim=2), placement=x[0], ndim=2)
+        new_block_2d(ensure_block_shape(x[1], ndim=2), placement=BlockPlacement(x[0]))
         for x in tuples
     ]
 
@@ -2036,7 +2047,7 @@ def _merge_blocks(
         new_mgr_locs = new_mgr_locs[argsort]
 
         bp = BlockPlacement(new_mgr_locs)
-        return [new_block(new_values, placement=bp, ndim=2)]
+        return [new_block_2d(new_values, placement=bp)]
 
     # can't consolidate --> no merge
     return blocks

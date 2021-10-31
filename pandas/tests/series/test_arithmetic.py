@@ -251,6 +251,7 @@ class TestSeriesArithmetic:
         # deltas5 = deltas * 5
         # deltas = deltas + sub_deltas
 
+    def test_add_float_plus_int(self, datetime_series):
         # float + int
         int_ts = datetime_series.astype(int)[:-5]
         added = datetime_series + int_ts
@@ -712,6 +713,16 @@ class TestTimeSeriesArithmetic:
 
         assert result.index.tz == pytz.UTC
         tm.assert_series_equal(result, expected)
+
+    # TODO: redundant with test_series_add_tz_mismatch_converts_to_utc?
+    def test_series_arithmetic_mismatched_tzs_convert_to_utc(self):
+        base = pd.DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03"], tz="UTC")
+        idx1 = base.tz_convert("Asia/Tokyo")[:2]
+        idx2 = base.tz_convert("US/Eastern")[1:]
+
+        res = Series([1, 2], index=idx1) + Series([1, 1], index=idx2)
+        expected = Series([np.nan, 3, np.nan], index=base)
+        tm.assert_series_equal(res, expected)
 
     def test_series_add_aware_naive_raises(self):
         rng = date_range("1/1/2011", periods=10, freq="H")

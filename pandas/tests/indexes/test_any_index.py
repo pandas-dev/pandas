@@ -1,7 +1,5 @@
 """
 Tests that can be parametrized over _any_ Index object.
-
-TODO: consider using hypothesis for these.
 """
 import re
 
