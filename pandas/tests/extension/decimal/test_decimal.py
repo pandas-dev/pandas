@@ -266,19 +266,17 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
-    def test_compare_scalar(self, data, all_compare_operators):
-        op_name = all_compare_operators
+    def test_compare_scalar(self, data, comparison_op):
         s = pd.Series(data)
-        self._compare_other(s, data, op_name, 0.5)
+        self._compare_other(s, data, comparison_op, 0.5)
 
-    def test_compare_array(self, data, all_compare_operators):
-        op_name = all_compare_operators
+    def test_compare_array(self, data, comparison_op):
         s = pd.Series(data)
 
         alter = np.random.choice([-1, 0, 1], len(data))
         # Randomly double, halve or keep same value
         other = pd.Series(data) * [decimal.Decimal(pow(2.0, i)) for i in alter]
-        self._compare_other(s, data, op_name, other)
+        self._compare_other(s, data, comparison_op, other)
 
 
 class DecimalArrayWithoutFromSequence(DecimalArray):
