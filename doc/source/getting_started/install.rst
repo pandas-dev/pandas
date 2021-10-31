@@ -408,7 +408,7 @@ Experimenting with type annotations
 
 .. warning::
 
-    * Pandas is not yet a `py.typed library <https://www.python.org/dev/peps/pep-0561/>`!
+    * Pandas is not yet a `py.typed library <https://www.python.org/dev/peps/pep-0561/>`_!
 
 Until pandas becomes a py.typed library, it is possible to easily experiment with the type
 annotations shipped with pandas by creating an empty file named "py.typed" in the pandas
@@ -418,5 +418,5 @@ installation folder:
 
    python -c "import pandas; import pathlib; (pathlib.Path(pandas.__path__[0]) / 'py.typed').touch()"
 
-The existance of the py.typed file signals to type checkers that pandas is already a py.typed
+The existence of the py.typed file signals to type checkers that pandas is already a py.typed
 library. This makes type checkers aware of the type annotations shipped with pandas.
