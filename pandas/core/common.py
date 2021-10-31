@@ -31,9 +31,9 @@ from pandas._libs import lib
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
+    IndexLabel,
     NpDtype,
     RandomState,
-    IndexLabel,
     Scalar,
     T,
 )
