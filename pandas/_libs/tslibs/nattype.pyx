@@ -166,7 +166,6 @@ cdef class _NaT(datetime):
 
         elif util.is_integer_object(other):
             # For Period compat
-            # TODO: the integer behavior is deprecated, remove it
             return c_NaT
 
         elif util.is_array(other):
@@ -201,7 +200,6 @@ cdef class _NaT(datetime):
 
         elif util.is_integer_object(other):
             # For Period compat
-            # TODO: the integer behavior is deprecated, remove it
             return c_NaT
 
         elif util.is_array(other):
@@ -581,7 +579,7 @@ class NaTType(_NaT):
 
         Examples
         --------
-        >>> pd.Timestamp.utcnow()
+        >>> pd.Timestamp.utcnow()   # doctest: +SKIP
         Timestamp('2020-11-16 22:50:18.092888+0000', tz='UTC')
         """,
     )
@@ -705,7 +703,7 @@ class NaTType(_NaT):
 
         Examples
         --------
-        >>> pd.Timestamp.now()
+        >>> pd.Timestamp.now()  # doctest: +SKIP
         Timestamp('2020-11-16 22:06:16.378782')
 
         Analogous for ``pd.NaT``:
@@ -730,7 +728,7 @@ class NaTType(_NaT):
 
         Examples
         --------
-        >>> pd.Timestamp.today()
+        >>> pd.Timestamp.today()    # doctest: +SKIP
         Timestamp('2020-11-16 22:37:39.969883')
 
         Analogous for ``pd.NaT``:
@@ -1132,6 +1130,22 @@ cdef inline bint checknull_with_nat(object val):
     Utility to check if a value is a nat or not.
     """
     return val is None or util.is_nan(val) or val is c_NaT
+
+cdef inline bint is_dt64nat(object val):
+    """
+    Is this a np.datetime64 object np.datetime64("NaT").
+    """
+    if util.is_datetime64_object(val):
+        return get_datetime64_value(val) == NPY_NAT
+    return False
+
+cdef inline bint is_td64nat(object val):
+    """
+    Is this a np.timedelta64 object np.timedelta64("NaT").
+    """
+    if util.is_timedelta64_object(val):
+        return get_timedelta64_value(val) == NPY_NAT
+    return False
 
 
 cpdef bint is_null_datetimelike(object val, bint inat_is_null=True):

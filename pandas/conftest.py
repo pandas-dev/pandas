@@ -17,6 +17,7 @@ Instead of splitting it was decided to define sections here:
 - Dtypes
 - Misc
 """
+# pyright: reportUntypedFunctionDecorator = false
 
 from collections import abc
 from datetime import (
@@ -242,6 +243,14 @@ def keep(request):
     return request.param
 
 
+@pytest.fixture(params=["both", "neither", "left", "right"])
+def inclusive_endpoints_fixture(request):
+    """
+    Fixture for trying all interval 'inclusive' parameters.
+    """
+    return request.param
+
+
 @pytest.fixture(params=["left", "right", "both", "neither"])
 def closed(request):
     """
@@ -323,6 +332,19 @@ def unique_nulls_fixture(request):
 
 # Generate cartesian product of unique_nulls_fixture:
 unique_nulls_fixture2 = unique_nulls_fixture
+
+
+@pytest.fixture(params=tm.NP_NAT_OBJECTS, ids=lambda x: type(x).__name__)
+def np_nat_fixture(request):
+    """
+    Fixture for each NaT type in numpy.
+    """
+    return request.param
+
+
+# Generate cartesian product of np_nat_fixture:
+np_nat_fixture2 = np_nat_fixture
+
 
 # ----------------------------------------------------------------
 # Classes
@@ -973,17 +995,19 @@ def all_reductions(request):
     return request.param
 
 
-@pytest.fixture(params=["__eq__", "__ne__", "__le__", "__lt__", "__ge__", "__gt__"])
-def all_compare_operators(request):
+@pytest.fixture(
+    params=[
+        operator.eq,
+        operator.ne,
+        operator.gt,
+        operator.ge,
+        operator.lt,
+        operator.le,
+    ]
+)
+def comparison_op(request):
     """
-    Fixture for dunder names for common compare operations
-
-    * >=
-    * >
-    * ==
-    * !=
-    * <
-    * <=
+    Fixture for operator module comparison functions.
     """
     return request.param
 

@@ -258,7 +258,7 @@ class TestSparseArray:
         assert self.zarr[2] == 1
         assert self.zarr[7] == 5
 
-        errmsg = re.compile("bounds")
+        errmsg = "must be an integer between -10 and 10"
 
         with pytest.raises(IndexError, match=errmsg):
             self.arr[11]
@@ -679,23 +679,37 @@ class TestSparseArray:
         expected = SparseArray([0, 2])
         tm.assert_sp_array_equal(result, expected)
 
-    def test_getslice(self):
-        result = self.arr[:-3]
-        exp = SparseArray(self.arr.to_dense()[:-3])
-        tm.assert_sp_array_equal(result, exp)
+    @pytest.mark.parametrize(
+        "slc",
+        [
+            np.s_[:],
+            np.s_[1:10],
+            np.s_[1:100],
+            np.s_[10:1],
+            np.s_[:-3],
+            np.s_[-5:-4],
+            np.s_[:-12],
+            np.s_[-12:],
+            np.s_[2:],
+            np.s_[2::3],
+            np.s_[::2],
+            np.s_[::-1],
+            np.s_[::-2],
+            np.s_[1:6:2],
+            np.s_[:-6:-2],
+        ],
+    )
+    @pytest.mark.parametrize(
+        "as_dense", [[np.nan] * 10, [1] * 10, [np.nan] * 5 + [1] * 5, []]
+    )
+    def test_getslice(self, slc, as_dense):
+        as_dense = np.array(as_dense)
+        arr = SparseArray(as_dense)
 
-        result = self.arr[-4:]
-        exp = SparseArray(self.arr.to_dense()[-4:])
-        tm.assert_sp_array_equal(result, exp)
+        result = arr[slc]
+        expected = SparseArray(as_dense[slc])
 
-        # two corner cases from Series
-        result = self.arr[-12:]
-        exp = SparseArray(self.arr)
-        tm.assert_sp_array_equal(result, exp)
-
-        result = self.arr[:-12]
-        exp = SparseArray(self.arr.to_dense()[:0])
-        tm.assert_sp_array_equal(result, exp)
+        tm.assert_sp_array_equal(result, expected)
 
     def test_getslice_tuple(self):
         dense = np.array([np.nan, 0, 3, 4, 0, 5, np.nan, np.nan, 0])
@@ -1189,7 +1203,7 @@ class TestAccessor:
         row = [0, 3, 1, 0]
         col = [0, 3, 1, 2]
         data = [4, 5, 7, 9]
-        # TODO: Remove dtype when scipy is fixed
+        # TODO(scipy#13585): Remove dtype when scipy is fixed
         # https://github.com/scipy/scipy/issues/13585
         sp_array = scipy.sparse.coo_matrix((data, (row, col)), dtype="int")
         result = pd.Series.sparse.from_coo(sp_array)
@@ -1242,7 +1256,7 @@ class TestAccessor:
             row_levels=(0, 1), column_levels=(2, 3), sort_labels=sort_labels
         )
         assert isinstance(A, scipy.sparse.coo.coo_matrix)
-        np.testing.assert_array_equal(A.toarray(), expected_A)
+        tm.assert_numpy_array_equal(A.toarray(), expected_A)
         assert rows == expected_rows
         assert cols == expected_cols
 
