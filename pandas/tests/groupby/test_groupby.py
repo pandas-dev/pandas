@@ -2604,13 +2604,3 @@ def test_rolling_wrong_param_min_period():
     result_error_msg = r"__init__\(\) got an unexpected keyword argument 'min_period'"
     with pytest.raises(TypeError, match=result_error_msg):
         test_df.groupby("name")["val"].rolling(window=2, min_period=1).sum()
-
-
-def test_mean_on_timedelta():
-    # GH 17382
-    df = DataFrame({"time": pd.to_timedelta(range(10)), "cat": ["A", "B"] * 5})
-    result = df.groupby("cat")["time"].mean()
-    expected = Series(
-        pd.to_timedelta([4, 5]), name="time", index=Index(["A", "B"], name="cat")
-    )
-    tm.assert_series_equal(result, expected)
