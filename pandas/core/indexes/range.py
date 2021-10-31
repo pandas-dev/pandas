@@ -177,13 +177,16 @@ class RangeIndex(NumericIndex):
 
     # --------------------------------------------------------------------
 
+    # error: Return type "Type[Int64Index]" of "_constructor" incompatible with return
+    # type "Type[RangeIndex]" in supertype "Index"
     @cache_readonly
-    def _constructor(self) -> type[Int64Index]:
+    def _constructor(self) -> type[Int64Index]:  # type: ignore[override]
         """return the class to use for construction"""
         return Int64Index
 
+    # error: Signature of "_data" incompatible with supertype "Index"
     @cache_readonly
-    def _data(self) -> np.ndarray:
+    def _data(self) -> np.ndarray:  # type: ignore[override]
         """
         An int array that for performance reasons is created only when needed.
 
