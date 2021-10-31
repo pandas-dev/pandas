@@ -1,8 +1,6 @@
 """
 Tests for DatetimeArray
 """
-import operator
-
 import numpy as np
 import pytest
 
@@ -17,10 +15,9 @@ class TestDatetimeArrayComparisons:
     # TODO: merge this into tests/arithmetic/test_datetime64 once it is
     #  sufficiently robust
 
-    def test_cmp_dt64_arraylike_tznaive(self, all_compare_operators):
+    def test_cmp_dt64_arraylike_tznaive(self, comparison_op):
         # arbitrary tz-naive DatetimeIndex
-        opname = all_compare_operators.strip("_")
-        op = getattr(operator, opname)
+        op = comparison_op
 
         dti = pd.date_range("2016-01-1", freq="MS", periods=9, tz=None)
         arr = DatetimeArray(dti)
@@ -30,7 +27,7 @@ class TestDatetimeArrayComparisons:
         right = dti
 
         expected = np.ones(len(arr), dtype=bool)
-        if opname in ["ne", "gt", "lt"]:
+        if comparison_op.__name__ in ["ne", "gt", "lt"]:
             # for these the comparisons should be all-False
             expected = ~expected
 
