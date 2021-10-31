@@ -179,6 +179,7 @@ Other enhancements
 - The error raised when an optional dependency can't be imported now includes the original exception, for easier investigation (:issue:`43882`)
 - Added :meth:`.ExponentialMovingWindow.sum` (:issue:`13297`)
 - :meth:`DataFrame.dropna` now accepts a single label as ``subset`` along with array-like (:issue:`41021`)
+- Added :meth:`DataFrameGroupBy.value_counts` (:issue:`43564`)
 -
 
 .. ---------------------------------------------------------------------------
