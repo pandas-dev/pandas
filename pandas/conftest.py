@@ -923,23 +923,6 @@ def all_binary_operators(request):
 
 @pytest.fixture(
     params=[
-        operator.eq,
-        operator.ne,
-        operator.gt,
-        operator.ge,
-        operator.lt,
-        operator.le,
-    ]
-)
-def comparison_op(request):
-    """
-    Fixture for operator module comparison functions.
-    """
-    return request.param
-
-
-@pytest.fixture(
-    params=[
         operator.add,
         ops.radd,
         operator.sub,
@@ -1008,6 +991,23 @@ _all_reductions = _all_numeric_reductions + _all_boolean_reductions
 def all_reductions(request):
     """
     Fixture for all (boolean + numeric) reduction names.
+    """
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        operator.eq,
+        operator.ne,
+        operator.gt,
+        operator.ge,
+        operator.lt,
+        operator.le,
+    ]
+)
+def comparison_op(request):
+    """
+    Fixture for operator module comparison functions.
     """
     return request.param
 
