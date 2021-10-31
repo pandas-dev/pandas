@@ -796,9 +796,19 @@ def test_where_columns_casting():
 optional_ints = st.lists(st.one_of(st.integers(), st.none()), max_size=10, min_size=3)
 optional_floats = st.lists(st.one_of(st.floats(), st.none()), max_size=10, min_size=3)
 optional_text = st.lists(st.one_of(st.none(), st.text()), max_size=10, min_size=3)
-optional_dicts = st.lists(st.one_of(st.none(), st.dictionaries(st.text(), st.integers())), max_size=10, min_size=3)
-optional_lists = st.lists(st.one_of(st.none(), st.lists(st.text(), max_size=10, min_size=3)), max_size=10, min_size=3)
-possible_values = st.one_of(optional_ints, optional_floats, optional_text, optional_dicts, optional_lists)
+optional_dicts = st.lists(
+    st.one_of(st.none(), st.dictionaries(st.text(), st.integers())),
+    max_size=10,
+    min_size=3,
+)
+optional_lists = st.lists(
+    st.one_of(st.none(), st.lists(st.text(), max_size=10, min_size=3)),
+    max_size=10,
+    min_size=3,
+)
+possible_values = st.one_of(
+    optional_ints, optional_floats, optional_text, optional_dicts, optional_lists
+)
 
 
 @given(data=possible_values)
