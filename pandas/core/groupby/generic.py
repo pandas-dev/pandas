@@ -15,7 +15,6 @@ from typing import (
     Callable,
     Hashable,
     Iterable,
-    List,
     Mapping,
     NamedTuple,
     Sequence,
@@ -1664,7 +1663,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
             # Try to find column names
             if index_grouping:
-                keys = []
+                keys: Any = []
                 remaining_columns = self._selected_obj.columns
             elif isinstance(self._selected_obj, Series):
                 keys = [grouping.name for grouping in self.grouper.groupings]
@@ -1675,7 +1674,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 elif isinstance(self.keys, str):
                     keys = [self.keys]
                 else:
-                    keys = cast(List[str], self.keys)
+                    keys = self.keys
 
                 remaining_columns = [
                     key for key in self._selected_obj.columns if key not in keys
