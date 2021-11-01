@@ -11215,8 +11215,7 @@ Alternatively, `ddof=0` can be set to normalize by N instead of N-1:
 
 >>> df.std(ddof=0)
 age       16.269219
-height     0.205609
-"""
+height     0.205609"""
 
 _bool_doc = """
 {desc}
