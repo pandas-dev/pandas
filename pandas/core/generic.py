@@ -11205,7 +11205,7 @@ person_id
 2           62    1.49
 3           43    2.01
 
-The standard deviation of the columns can be found as follows.
+The standard deviation of the columns can be found as follows:
 
 >>> df.std()
 age       18.786076
