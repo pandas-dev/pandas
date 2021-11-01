@@ -6,9 +6,6 @@ test here to confirm these works as the same
 import numpy as np
 import pytest
 
-from pandas._libs import iNaT
-
-from pandas.core.dtypes.common import needs_i8_conversion
 from pandas.core.dtypes.generic import ABCMultiIndex
 
 from pandas import Index
@@ -47,24 +44,17 @@ def test_fillna_null(null_obj, index_or_series_obj):
     elif isinstance(obj, ABCMultiIndex):
         pytest.skip(f"MultiIndex can't hold '{null_obj}'")
 
-    values = obj.values
+    values = obj._values
     fill_value = values[0]
     expected = values.copy()
-    if needs_i8_conversion(obj.dtype):
-        values[0:2] = iNaT
-        expected[0:2] = fill_value
-    else:
-        values[0:2] = null_obj
-        expected[0:2] = fill_value
+    values[0:2] = null_obj
+    expected[0:2] = fill_value
 
     expected = klass(expected)
     obj = klass(values)
 
     result = obj.fillna(fill_value)
-    if isinstance(obj, Index):
-        tm.assert_index_equal(result, expected)
-    else:
-        tm.assert_series_equal(result, expected)
+    tm.assert_equal(result, expected)
 
     # check shallow_copied
     assert obj is not result
