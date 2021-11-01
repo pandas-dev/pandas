@@ -10639,6 +10639,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             name2=name2,
             axis_descr=axis_descr,
             notes="",
+            examples="",
         )
         def sem(
             self,
@@ -10661,6 +10662,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             name2=name2,
             axis_descr=axis_descr,
             notes="",
+            examples="",
         )
         def var(
             self,
@@ -10683,8 +10685,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             name1=name1,
             name2=name2,
             axis_descr=axis_descr,
-            examples=_std_examples,
             notes=_std_notes,
+            examples=_std_examples,
         )
         def std(
             self,
@@ -11177,6 +11179,8 @@ Returns
 -------
 {name1} or {name2} (if level specified) \
 {notes}
+
+{examples}
 """
 
 _std_notes = """
@@ -11186,7 +11190,7 @@ Notes
 To have the same behaviour as `numpy.std`, use `ddof=0` (instead of the
 default `ddof=1`)"""
 
-_std_examples = """
+_std_examples = """\
 Examples
 --------
 >>> df = pd.DataFrame({'person_id': [0, 1, 2, 3],
