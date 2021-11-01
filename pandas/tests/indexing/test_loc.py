@@ -1907,7 +1907,8 @@ class TestLocSetitemWithExpansion:
         # trying to set a single element on a part of a different timezone
         # this converts to object
         df2 = df.copy()
-        df2.loc[df2.new_col == "new", "time"] = v
+        with tm.assert_produces_warning(FutureWarning, match="mismatched timezone"):
+            df2.loc[df2.new_col == "new", "time"] = v
 
         expected = Series([v[0], df.loc[1, "time"]], name="time")
         tm.assert_series_equal(df2.time, expected)
