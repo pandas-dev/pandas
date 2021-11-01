@@ -871,7 +871,7 @@ class TestDatetimelikeCoercion:
         else:
             assert ser._values is values
 
-    @pytest.mark.parametrize("box", [list, np.array, pd.array])
+    @pytest.mark.parametrize("box", [list, np.array, pd.array, pd.Categorical, Index])
     @pytest.mark.parametrize(
         "key", [[0, 1], slice(0, 2), np.array([True, True, False])]
     )
@@ -911,7 +911,7 @@ class TestDatetimelikeCoercion:
         indexer_sli(ser)[0] = scalar
         assert ser._values._data is values._data
 
-    @pytest.mark.parametrize("box", [list, np.array, pd.array])
+    @pytest.mark.parametrize("box", [list, np.array, pd.array, pd.Categorical, Index])
     @pytest.mark.parametrize(
         "key", [[0, 1], slice(0, 2), np.array([True, True, False])]
     )
