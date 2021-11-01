@@ -27,6 +27,7 @@ from pandas._typing import (
 )
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import infer_dtype_from_scalar
@@ -907,7 +908,15 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                         f"number of axes ({self.ndim})"
                     )
                 if isinstance(block, DatetimeTZBlock) and block.values.ndim == 1:
-                    # TODO: remove once fastparquet no longer needs this
+                    # TODO(2.0): remove once fastparquet no longer needs this
+                    warnings.warn(
+                        "In a future version, the BlockManager constructor "
+                        "will assume that a DatetimeTZBlock with block.ndim==2 "
+                        "has block.values.ndim == 2.",
+                        DeprecationWarning,
+                        stacklevel=find_stack_level(),
+                    )
+
                     # error: Incompatible types in assignment (expression has type
                     # "Union[ExtensionArray, ndarray]", variable has type
                     # "DatetimeArray")
@@ -1023,7 +1032,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         # expected "List[ndarray[Any, Any]]")
         return result  # type: ignore[return-value]
 
-    def iset(self, loc: int | slice | np.ndarray, value: ArrayLike):
+    def iset(
+        self, loc: int | slice | np.ndarray, value: ArrayLike, inplace: bool = False
+    ):
         """
         Set new item in-place. Does not consolidate. Adds new Block if not
         contained in the current set of items
@@ -1078,7 +1089,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         for blkno, val_locs in libinternals.get_blkno_placements(blknos, group=True):
             blk = self.blocks[blkno]
             blk_locs = blklocs[val_locs.indexer]
-            if blk.should_store(value):
+            if inplace and blk.should_store(value):
                 blk.set_inplace(blk_locs, value_getitem(val_locs))
             else:
                 unfit_mgr_locs.append(blk.mgr_locs.as_array[blk_locs])

@@ -399,7 +399,7 @@ pandas uses `mypy <http://mypy-lang.org>`_ and `pyright <https://github.com/micr
 
 .. code-block:: shell
 
-   mypy pandas
+   mypy
 
    # let pre-commit setup and run pyright
    pre-commit run --hook-stage manual --all-files pyright

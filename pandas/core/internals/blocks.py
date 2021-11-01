@@ -31,6 +31,7 @@ from pandas._typing import (
     npt,
 )
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -268,8 +269,19 @@ class Block(PandasObject):
             placement = self._mgr_locs
 
         if values.dtype.kind in ["m", "M"]:
-            # TODO: remove this once fastparquet has stopped relying on it
-            values = ensure_wrapped_if_datetimelike(values)
+
+            new_values = ensure_wrapped_if_datetimelike(values)
+            if new_values is not values:
+                # TODO(2.0): remove once fastparquet has stopped relying on it
+                warnings.warn(
+                    "In a future version, Block.make_block_same_class will "
+                    "assume that datetime64 and timedelta64 ndarrays have "
+                    "already been cast to DatetimeArray and TimedeltaArray, "
+                    "respectively.",
+                    DeprecationWarning,
+                    stacklevel=find_stack_level(),
+                )
+            values = new_values
 
         # We assume maybe_coerce_values has already been called
         return type(self)(values, placement=placement, ndim=self.ndim)
@@ -906,7 +918,7 @@ class Block(PandasObject):
         check_setitem_lengths(indexer, value, values)
 
         if is_empty_indexer(indexer, arr_value):
-            # GH#8669 empty indexers
+            # GH#8669 empty indexers, test_loc_setitem_boolean_mask_allfalse
             pass
 
         elif is_scalar_indexer(indexer, self.ndim):
@@ -1593,7 +1605,9 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
             # The default `other` for Series / Frame is np.nan
             # we want to replace that with the correct NA value
             # for the type
-            other = self.dtype.na_value
+            # error: Item "dtype[Any]" of "Union[dtype[Any], ExtensionDtype]" has no
+            # attribute "na_value"
+            other = self.dtype.na_value  # type: ignore[union-attr]
 
         try:
             result = self.values._where(cond, other)
@@ -1684,7 +1698,7 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
         mask = extract_bool_array(mask)
 
         if not self._can_hold_element(new):
-            return self.astype(_dtype_obj).putmask(mask, new)
+            return self.coerce_to_target_dtype(new).putmask(mask, new)
 
         arr = self.values
         arr.T.putmask(mask, new)
@@ -1741,7 +1755,9 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
             # We support filling a DatetimeTZ with a `value` whose timezone
             #  is different by coercing to object.
             # TODO: don't special-case td64
-            return self.astype(_dtype_obj).fillna(value, limit, inplace, downcast)
+            return self.coerce_to_target_dtype(value).fillna(
+                value, limit, inplace, downcast
+            )
 
         values = self.values
         values = values if inplace else values.copy()

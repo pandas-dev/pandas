@@ -1510,7 +1510,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         return Series(self._values.copy(), index=index, name=name)
 
-    def to_frame(self, index: bool = True, name: Hashable = None) -> DataFrame:
+    def to_frame(
+        self, index: bool = True, name: Hashable = lib.no_default
+    ) -> DataFrame:
         """
         Create a DataFrame with a column containing the Index.
 
@@ -1561,7 +1563,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         from pandas import DataFrame
 
-        if name is None:
+        if name is lib.no_default:
             name = self.name or 0
         result = DataFrame({name: self._values.copy()})
 
@@ -3121,7 +3123,9 @@ class Index(IndexOpsMixin, PandasObject):
             and not (self.has_duplicates and other.has_duplicates)
             and self._can_use_libjoin
         ):
-            # Both are unique and monotonic, so can use outer join
+            # Both are monotonic and at least one is unique, so can use outer join
+            #  (actually don't need either unique, but without this restriction
+            #  test_union_same_value_duplicated_in_both fails)
             try:
                 return self._outer_indexer(other)[0]
             except (TypeError, IncompatibleFrequency):
@@ -3681,7 +3685,11 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             tgt_values = target._get_engine_target()
             if target._is_multi and self._is_multi:
-                tgt_values = self._engine._extract_level_codes(target)
+                engine = self._engine
+                # error: "IndexEngine" has no attribute "_extract_level_codes"
+                tgt_values = engine._extract_level_codes(  # type: ignore[attr-defined]
+                    target
+                )
 
             indexer = self._engine.get_indexer(tgt_values)
 
@@ -3758,7 +3766,8 @@ class Index(IndexOpsMixin, PandasObject):
         if self._is_multi:
             # TODO: get_indexer_with_fill docstring says values must be _sorted_
             #  but that doesn't appear to be enforced
-            return self._engine.get_indexer_with_fill(
+            # error: "IndexEngine" has no attribute "get_indexer_with_fill"
+            return self._engine.get_indexer_with_fill(  # type: ignore[attr-defined]
                 target=target._values, values=self._values, method=method, limit=limit
             )
 
@@ -4677,7 +4686,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self._data
 
-    @cache_readonly
+    # error: Decorated property not supported
+    # https://github.com/python/mypy/issues/1362
+    @cache_readonly  # type: ignore[misc]
     @doc(IndexOpsMixin.array)
     def array(self) -> ExtensionArray:
         array = self._data
@@ -5596,7 +5607,11 @@ class Index(IndexOpsMixin, PandasObject):
         #  self and non-Multi target
         tgt_values = target._get_engine_target()
         if self._is_multi and target._is_multi:
-            tgt_values = self._engine._extract_level_codes(target)
+            engine = self._engine
+            # error: "IndexEngine" has no attribute "_extract_level_codes"
+            tgt_values = engine._extract_level_codes(  # type: ignore[attr-defined]
+                target
+            )
 
         indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
         return ensure_platform_int(indexer), ensure_platform_int(missing)
@@ -7049,7 +7064,9 @@ def unpack_nested_dtype(other: _IndexT) -> _IndexT:
     if is_categorical_dtype(dtype):
         # If there is ever a SparseIndex, this could get dispatched
         #  here too.
-        return dtype.categories
+        # error: Item  "dtype[Any]"/"ExtensionDtype" of "Union[dtype[Any],
+        # ExtensionDtype]" has no attribute "categories"
+        return dtype.categories  # type: ignore[union-attr]
     return other
 
 

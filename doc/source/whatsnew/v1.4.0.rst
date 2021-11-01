@@ -79,10 +79,11 @@ Styler
   - Keyword arguments ``level`` and ``names`` added to :meth:`.Styler.hide_index` and :meth:`.Styler.hide_columns` for additional control of visibility of MultiIndexes and index names (:issue:`25475`, :issue:`43404`, :issue:`43346`)
   - Global options have been extended to configure default ``Styler`` properties including formatting and encoding and mathjax options and LaTeX (:issue:`41395`)
   - Naive sparsification is now possible for LaTeX without the multirow package (:issue:`43369`)
-  - :meth:`Styler.to_html` omits CSSStyle rules for hidden table elements (:issue:`43619`)
+  - :meth:`.Styler.to_html` omits CSSStyle rules for hidden table elements (:issue:`43619`)
   - Custom CSS classes can now be directly specified without string replacement (:issue:`43686`)
-  - Bug where row trimming failed to reflect hidden rows (:issue:`43703`)
+  - Bug where row trimming failed to reflect hidden rows (:issue:`43703`, :issue:`44247`)
   - Update and expand the export and use mechanics (:issue:`40675`)
+  - New method :meth:`.Styler.hide` added and deprecates :meth:`.Styler.hide_index` and :meth:`.Styler.hide_columns` (:issue:`43758`)
 
 Formerly Styler relied on ``display.html.use_mathjax``, which has now been replaced by ``styler.html.mathjax``.
 
@@ -394,6 +395,9 @@ Other Deprecations
 - Deprecated :meth:`.Rolling.validate`, :meth:`.Expanding.validate`, and :meth:`.ExponentialMovingWindow.validate` (:issue:`43665`)
 - Deprecated silent dropping of columns that raised a ``TypeError`` in :class:`Series.transform` and :class:`DataFrame.transform` when used with a dictionary (:issue:`43740`)
 - Deprecated silent dropping of columns that raised a ``TypeError``, ``DataError``, and some cases of ``ValueError`` in :meth:`Series.aggregate`, :meth:`DataFrame.aggregate`, :meth:`Series.groupby.aggregate`, and :meth:`DataFrame.groupby.aggregate` when used with a list (:issue:`43740`)
+- Deprecated casting behavior when setting timezone-aware value(s) into a timezone-aware :class:`Series` or :class:`DataFrame` column when the timezones do not match. Previously this cast to object dtype. In a future version, the values being inserted will be converted to the series or column's existing timezone (:issue:`37605`)
+- Deprecated casting behavior when passing an item with mismatched-timezone to :meth:`DatetimeIndex.insert`, :meth:`DatetimeIndex.putmask`, :meth:`DatetimeIndex.where` :meth:`DatetimeIndex.fillna`, :meth:`Series.mask`, :meth:`Series.where`, :meth:`Series.fillna`, :meth:`Series.shift`, :meth:`Series.replace`, :meth:`Series.reindex` (and :class:`DataFrame` column analogues). In the past this has cast to object dtype. In a future version, these will cast the passed item to the index or series's timezone (:issue:`37605`)
+-
 
 .. ---------------------------------------------------------------------------
 
@@ -527,11 +531,12 @@ Indexing
 - Bug in :meth:`DataFrame.query` where method calls in query strings led to errors when the ``numexpr`` package was installed. (:issue:`22435`)
 - Bug in :meth:`DataFrame.nlargest` and :meth:`Series.nlargest` where sorted result did not count indexes containing ``np.nan`` (:issue:`28984`)
 - Bug in indexing on a non-unique object-dtype :class:`Index` with an NA scalar (e.g. ``np.nan``) (:issue:`43711`)
+- Bug in :meth:`DataFrame.__setitem__` incorrectly writing into an existing column's array rather than setting a new array when the new dtype and the old dtype match (:issue:`43406`)
 - Bug in :meth:`Series.__setitem__` with object dtype when setting an array with matching size and dtype='datetime64[ns]' or dtype='timedelta64[ns]' incorrectly converting the datetime/timedeltas to integers (:issue:`43868`)
 - Bug in :meth:`DataFrame.sort_index` where ``ignore_index=True`` was not being respected when the index was already sorted (:issue:`43591`)
 - Bug in :meth:`Index.get_indexer_non_unique` when index contains multiple ``np.datetime64("NaT")`` and ``np.timedelta64("NaT")`` (:issue:`43869`)
 - Bug in setting a scalar :class:`Interval` value into a :class:`Series` with ``IntervalDtype`` when the scalar's sides are floats and the values' sides are integers (:issue:`44201`)
--
+- Bug when setting string-backed :class:`Categorical` values that can be parsed to datetimes into a :class:`DatetimeArray` or :class:`Series` or :class:`DataFrame` column backed by :class:`DatetimeArray` failing to parse these strings (:issue:`44236`)
 
 
 Missing
@@ -609,6 +614,7 @@ Reshaping
 - Bug in :func:`concat` which ignored the ``sort`` parameter (:issue:`43375`)
 - Fixed bug in :func:`merge` with :class:`MultiIndex` as column index for the ``on`` argument returning an error when assigning a column internally (:issue:`43734`)
 - Bug in :func:`crosstab` would fail when inputs are lists or tuples (:issue:`44076`)
+- Fixed metadata propagation in :meth:`Dataframe.apply` method, consequently fixing the same issue for :meth:`Dataframe.transform`, :meth:`Dataframe.nunique` and :meth:`Dataframe.mode` (:issue:`28283`)
 
 Sparse
 ^^^^^^
@@ -642,6 +648,7 @@ Other
 - Bug in :meth:`CustomBusinessMonthBegin.__add__` (:meth:`CustomBusinessMonthEnd.__add__`) not applying the extra ``offset`` parameter when beginning (end) of the target month is already a business day (:issue:`41356`)
 - Bug in :meth:`RangeIndex.union` with another ``RangeIndex`` with matching (even) ``step`` and starts differing by strictly less than ``step / 2`` (:issue:`44019`)
 - Bug in :meth:`RangeIndex.difference` with ``sort=None`` and ``step<0`` failing to sort (:issue:`44085`)
+- Bug in :meth:`Series.to_frame` and :meth:`Index.to_frame` ignoring the ``name`` argument when ``name=None`` is explicitly passed (:issue:`44212`)
 
 .. ***DO NOT USE THIS SECTION***
 
