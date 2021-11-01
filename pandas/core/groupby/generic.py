@@ -1586,7 +1586,71 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         ascending: bool = False,
         dropna: bool = True,
     ) -> DataFrame | Series:
+        """
+        Return a Series or DataFrame containing counts of unique rows.
 
+        .. versionadded:: 1.4.0
+
+        Parameters
+        ----------
+        subset : list-like, optional
+            Columns to use when counting unique combinations.
+        normalize : bool, default False
+            Return proportions rather than frequencies.
+        sort : bool, default True
+            Sort by frequencies.
+        ascending : bool, default False
+            Sort in ascending order.
+        dropna : bool, default True
+            Don’t include counts of rows that contain NA values.
+
+        Returns
+        -------
+        Series or DataFrame
+            Series if as_index is True, otherwise DataFrame.
+
+        See Also
+        --------
+        Series.value_counts: Equivalent method on Series.
+        DataFrame.value_counts: Equivalent method on DataFrame.
+        SeriesGroupBy.value_counts: Equivalent method on SeriesGroupBy.
+
+        Notes
+        -----
+        If the groupby as_index is True then the returned Series will have a
+        MultiIndex with one level per input column. 
+        If the groupby as_index is False then the returned DataFrame will have an
+        additional column with the value_counts. 
+        By default, rows that contain any NA values are omitted from
+        the result. By default, the result will be in descending order so that the
+        first element of each group is the most frequently-occurring row.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({
+        ...    'gender': ['male', 'male', 'female', 'male', 'female', 'male'], 
+        ...    'education': ['low', 'medium', 'high', 'low', 'high', 'low'],
+        ...    'country': ['US', 'FR', 'US', 'FR', 'FR', 'FR']
+        ... })
+
+        >>> df
+            gender 	education 	country
+        0 	male 	low 	    US
+        1 	male 	medium 	    FR
+        2 	female 	high 	    US
+        3 	male 	low 	    FR
+        4 	female 	high 	    FR
+        5 	male 	low 	    FR
+
+        >>> df.groupby("gender").value_counts(normalize=True)
+        gender  education  country
+        female  high       FR         0.50
+                           US         0.50
+        male    low        FR         0.50
+                           US         0.25
+                medium     FR         0.25
+        Name: size, dtype: float64
+        """
         if self.axis == 1:
             raise NotImplementedError(
                 "DataFrameGroupBy.value_counts only handles axis=0"
