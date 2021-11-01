@@ -4,6 +4,7 @@ from pandas.core.dtypes.cast import can_hold_element
 
 
 def test_can_hold_element_range(any_int_numpy_dtype):
+    # GH#44261
     dtype = np.dtype(any_int_numpy_dtype)
     arr = np.array([], dtype=dtype)
 
