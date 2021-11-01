@@ -15,8 +15,10 @@ from typing import (
     Callable,
     Hashable,
     Iterable,
+    List,
     Mapping,
     NamedTuple,
+    Sequence,
     TypeVar,
     Union,
     cast,
@@ -67,13 +69,21 @@ import pandas.core.common as com
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.core.groupby import base
+from pandas.core.groupby import (
+    base,
+    ops,
+)
 from pandas.core.groupby.groupby import (
     GroupBy,
     _agg_template,
     _apply_docs,
     _transform_template,
     warn_dropping_nuisance_columns_deprecated,
+)
+from pandas.core.groupby.grouper import (
+    Grouper,
+    Grouping,
+    get_grouper,
 )
 from pandas.core.indexes.api import (
     Index,
@@ -1567,6 +1577,130 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         return self._python_apply_general(func, self._obj_with_exclusions)
 
     boxplot = boxplot_frame_groupby
+
+    def value_counts(
+        self,
+        subset: Sequence[Hashable] | None = None,
+        normalize: bool = False,
+        sort: bool = True,
+        ascending: bool = False,
+        dropna: bool = True,
+    ) -> DataFrame | Series:
+        with self._group_selection_context():
+            df = self.obj
+
+            # Check for index rather than column grouping
+            index_grouping = self.grouper.groupings[0].name is None
+
+            # Try to find column names
+            if index_grouping:
+                keys = []
+                remaining_columns = self._selected_obj.columns
+            elif isinstance(self._selected_obj, Series):
+                keys = [grouping.name for grouping in self.grouper.groupings]
+                remaining_columns = [self._selected_obj.name]
+            else:
+                if isinstance(self.keys, ops.BaseGrouper):
+                    keys = [grouping.name for grouping in self.keys.groupings]
+                elif isinstance(self.keys, str):
+                    keys = [self.keys]
+                else:
+                    keys = cast(List[str], self.keys)
+
+                remaining_columns = [
+                    key for key in self._selected_obj.columns if key not in keys
+                ]
+
+            if subset is not None:
+                remaining_columns = [key for key in subset if key not in keys]
+
+            if dropna:
+                df = df.dropna(subset=remaining_columns, axis="index", how="any")
+
+            grouper, _, _ = get_grouper(
+                df,
+                key=self.keys,
+                axis=self.axis,
+                level=self.level,
+                sort=self.sort,
+                mutated=self.mutated,
+            )
+
+            groupings = grouper.groupings + [
+                cast(Grouping, Grouper(key)) for key in remaining_columns
+            ]
+
+            result = df.groupby(
+                groupings,
+                as_index=self.as_index,
+                sort=self.sort,
+                dropna=dropna,
+            ).size()
+            result.name = "size"
+
+            if normalize:
+                indexed_group_size = df.groupby(
+                    grouper, sort=self.sort, dropna=dropna
+                ).size()
+                if self.as_index:
+                    if index_grouping:
+                        # The common index needs a common name
+                        indexed_group_size.index.set_names("Group", inplace=True)
+                        result.index.set_names("Group", level=0, inplace=True)
+                    # Use indexed group size series
+                    result /= indexed_group_size
+                    if index_grouping:
+                        result.index.set_names(None, level=0, inplace=True)
+                else:
+                    # Make indexed key group size series
+                    indexed_group_size.name = "group_size"
+                    if index_grouping:
+                        # Get the column name of the added groupby index column
+                        index_column_name = result.columns[0]
+                        indexed_group_size.index.set_names(
+                            index_column_name, inplace=True
+                        )
+                        left_on = index_column_name
+                    else:
+                        left_on = keys
+                    if not index_grouping and len(keys) == 1:
+                        # Compose with single key group size series
+                        group_size = indexed_group_size[result[keys[0]]]
+                    else:
+                        # Merge multiple key group size series
+                        merged = result.merge(
+                            indexed_group_size,
+                            how="left",
+                            left_on=left_on,
+                            right_index=True,
+                        )
+                        group_size = merged["group_size"]
+
+                    result["size"] /= group_size.values
+
+            if sort:
+                if self.as_index:
+                    if index_grouping:
+                        level: Any = 0
+                    else:
+                        level = keys
+                    result = (
+                        cast(Series, result)
+                        .sort_values(ascending=ascending)
+                        .sort_index(level=level, sort_remaining=False)
+                    )
+                else:
+                    if index_grouping:
+                        by: Any = "level_0"
+                    else:
+                        by = keys
+                    result = (
+                        cast(DataFrame, result)
+                        .sort_values(by="size", ascending=ascending)
+                        .sort_values(by=by, ascending=True)
+                    )
+
+            return result
 
 
 def _wrap_transform_general_frame(
