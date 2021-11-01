@@ -1,19 +1,23 @@
 from __future__ import annotations
 
 import codecs
-from collections.abc import Callable  # noqa: PDF001
 from functools import wraps
 import re
 from typing import (
     TYPE_CHECKING,
+    Callable,
     Hashable,
+    cast,
 )
 import warnings
 
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas._typing import DtypeObj
+from pandas._typing import (
+    DtypeObj,
+    F,
+)
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
@@ -56,7 +60,9 @@ _cpython_optimized_encoders = (
 _cpython_optimized_decoders = _cpython_optimized_encoders + ("utf-16", "utf-32")
 
 
-def forbid_nonstring_types(forbidden, name=None):
+def forbid_nonstring_types(
+    forbidden: list[str] | None, name: str | None = None
+) -> Callable[[F], F]:
     """
     Decorator to forbid specific types for a method of StringMethods.
 
@@ -104,7 +110,7 @@ def forbid_nonstring_types(forbidden, name=None):
         forbidden
     )
 
-    def _forbid_nonstring_types(func):
+    def _forbid_nonstring_types(func: F) -> F:
         func_name = func.__name__ if name is None else name
 
         @wraps(func)
@@ -118,7 +124,7 @@ def forbid_nonstring_types(forbidden, name=None):
             return func(self, *args, **kwargs)
 
         wrapper.__name__ = func_name
-        return wrapper
+        return cast(F, wrapper)
 
     return _forbid_nonstring_types
 
