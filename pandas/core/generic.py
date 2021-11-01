@@ -6216,9 +6216,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 for col_name, col in self.items()
             ]
             if len(results) > 0:
-                result = self._constructor(
-                    concat(results, axis=1, copy=False)
-                ).__finalize__(self, method="convert_dtypes")
+                result = self._constructor(concat(results, axis=1, copy=False))
+                result = result.__finalize__(self, method="convert_dtypes")
                 # https://github.com/python/mypy/issues/8354
                 return cast(NDFrameT, result)
             else:
