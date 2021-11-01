@@ -1028,7 +1028,11 @@ cdef class ExtensionEngine:
 
             indexer.append(locs)
 
-        indexer = np.concatenate(indexer, dtype=np.intp)
+        try:
+            indexer = np.concatenate(indexer, dtype=np.intp)
+        except TypeError:
+            # numpy<1.20 doesn't accept dtype keyword
+            indexer = np.concatenate(indexer).astype(np.intp, copy=False)
         missing = np.array(missing, dtype=np.intp)
 
         return indexer, missing
@@ -1300,7 +1304,11 @@ cdef class NullableEngine:
 
             indexer.append(locs)
 
-        indexer = np.concatenate(indexer, dtype=np.intp)
+        try:
+            indexer = np.concatenate(indexer, dtype=np.intp)
+        except TypeError:
+            # numpy<1.20 doesn't accept dtype keyword
+            indexer = np.concatenate(indexer).astype(np.intp, copy=False)
         missing = np.array(missing, dtype=np.intp)
 
         return indexer, missing
