@@ -1028,12 +1028,6 @@ class TestDataFrameSetitemCopyViewSemantics:
     )
     def test_setitem_same_dtype_not_inplace(self, value, using_array_manager, request):
         # GH#39510
-        if not using_array_manager:
-            mark = pytest.mark.xfail(
-                reason="Setitem with same dtype still changing inplace"
-            )
-            request.node.add_marker(mark)
-
         cols = ["A", "B"]
         df = DataFrame(0, index=[0, 1], columns=cols)
         df_copy = df.copy()
@@ -1056,3 +1050,34 @@ class TestDataFrameSetitemCopyViewSemantics:
         expected = DataFrame([[0, 1.0], [0, 1.0]], columns=cols)
         tm.assert_frame_equal(df_view, df_copy)
         tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize(
+        "indexer",
+        [
+            "a",
+            ["a"],
+            pytest.param(
+                [True, False],
+                marks=pytest.mark.xfail(
+                    reason="Boolean indexer incorrectly setting inplace",
+                    strict=False,  # passing on some builds, no obvious pattern
+                ),
+            ),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "value, set_value",
+        [
+            (1, 5),
+            (1.0, 5.0),
+            (Timestamp("2020-12-31"), Timestamp("2021-12-31")),
+            ("a", "b"),
+        ],
+    )
+    def test_setitem_not_operating_inplace(self, value, set_value, indexer):
+        # GH#43406
+        df = DataFrame({"a": value}, index=[0, 1])
+        expected = df.copy()
+        view = df[:]
+        df[indexer] = set_value
+        tm.assert_frame_equal(view, expected)

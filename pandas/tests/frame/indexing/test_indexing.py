@@ -537,6 +537,7 @@ class TestDataFrameIndexing:
 
     @td.skip_array_manager_invalid_test  # already covered in test_iloc_col_slice_view
     def test_fancy_getitem_slice_mixed(self, float_frame, float_string_frame):
+
         sliced = float_string_frame.iloc[:, -3:]
         assert sliced["D"].dtype == np.float64
 
@@ -544,9 +545,11 @@ class TestDataFrameIndexing:
         # setting it triggers setting with copy
         sliced = float_frame.iloc[:, -3:]
 
+        assert np.shares_memory(sliced["C"]._values, float_frame["C"]._values)
+
         msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
         with pytest.raises(com.SettingWithCopyError, match=msg):
-            sliced["C"] = 4.0
+            sliced.loc[:, "C"] = 4.0
 
         assert (float_frame["C"] == 4).all()
 
@@ -1002,9 +1005,11 @@ class TestDataFrameIndexing:
         # setting it makes it raise/warn
         subset = df.iloc[slice(4, 8)]
 
+        assert np.shares_memory(df[2], subset[2])
+
         msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
         with pytest.raises(com.SettingWithCopyError, match=msg):
-            subset[2] = 0.0
+            subset.loc[:, 2] = 0.0
 
         exp_col = original[2].copy()
         # TODO(ArrayManager) verify it is expected that the original didn't change
@@ -1041,10 +1046,13 @@ class TestDataFrameIndexing:
 
         if not using_array_manager:
             # verify slice is view
+
+            assert np.shares_memory(df[8]._values, subset[8]._values)
+
             # and that we are setting a copy
             msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
             with pytest.raises(com.SettingWithCopyError, match=msg):
-                subset[8] = 0.0
+                subset.loc[:, 8] = 0.0
 
             assert (df[8] == 0).all()
         else:

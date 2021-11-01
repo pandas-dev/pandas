@@ -792,7 +792,9 @@ class ArrayManager(BaseArrayManager):
         """
         return self.arrays
 
-    def iset(self, loc: int | slice | np.ndarray, value: ArrayLike):
+    def iset(
+        self, loc: int | slice | np.ndarray, value: ArrayLike, inplace: bool = False
+    ):
         """
         Set new column(s).
 
@@ -804,6 +806,8 @@ class ArrayManager(BaseArrayManager):
         loc : integer, slice or boolean mask
             Positional location (already bounds checked)
         value : np.ndarray or ExtensionArray
+        inplace : bool, default False
+            Whether overwrite existing array as opposed to replacing it.
         """
         # single column -> single integer index
         if lib.is_integer(loc):
