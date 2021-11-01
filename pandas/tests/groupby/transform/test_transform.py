@@ -1289,3 +1289,11 @@ def test_transform_cumcount():
 
     result = grp.transform("cumcount")
     tm.assert_series_equal(result, expected)
+
+
+def test_null_group_lambda_self():
+    # GH 17093
+    df = DataFrame({"A": [1, np.nan], "B": [1, 1]})
+    result = df.groupby("A").transform(lambda x: x)
+    expected = DataFrame([1], columns=["B"])
+    tm.assert_frame_equal(result, expected)
