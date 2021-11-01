@@ -2075,7 +2075,7 @@ class TestTimedeltaArraylikeMulDivOps:
         with pytest.raises(TypeError, match=pattern):
             vector.astype(object) / tdser
 
-    def test_td64arr_mul_int_series(self, box_with_array, names, request):
+    def test_td64arr_mul_int_series(self, box_with_array, names):
         # GH#19042 test for correct name attachment
         box = box_with_array
         exname = get_expected_name(box, names)

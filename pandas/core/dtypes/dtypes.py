@@ -1259,7 +1259,6 @@ class IntervalDtype(PandasExtensionDtype):
         return IntervalArray._concat_same_type(results)
 
     def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
-        # NB: this doesn't handle checking for closed match
         if not all(isinstance(x, IntervalDtype) for x in dtypes):
             return None
 
