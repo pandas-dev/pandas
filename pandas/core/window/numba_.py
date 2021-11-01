@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import functools
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
 )
@@ -56,10 +57,12 @@ def generate_numba_apply_func(
         return NUMBA_FUNC_CACHE[cache_key]
 
     numba_func = jit_user_function(func, nopython, nogil, parallel)
-    numba = import_optional_dependency("numba")
+    if TYPE_CHECKING:
+        import numba
+    else:
+        numba = import_optional_dependency("numba")
 
-    # error: Untyped decorator makes function "roll_apply" untyped
-    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)  # type: ignore[misc]
+    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
     def roll_apply(
         values: np.ndarray,
         begin: np.ndarray,
@@ -115,10 +118,12 @@ def generate_numba_ewm_func(
     if cache_key in NUMBA_FUNC_CACHE:
         return NUMBA_FUNC_CACHE[cache_key]
 
-    numba = import_optional_dependency("numba")
+    if TYPE_CHECKING:
+        import numba
+    else:
+        numba = import_optional_dependency("numba")
 
-    # error: Untyped decorator makes function "ewma" untyped
-    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)  # type: ignore[misc]
+    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
     def ewm(
         values: np.ndarray,
         begin: np.ndarray,
@@ -217,10 +222,12 @@ def generate_numba_table_func(
         return NUMBA_FUNC_CACHE[cache_key]
 
     numba_func = jit_user_function(func, nopython, nogil, parallel)
-    numba = import_optional_dependency("numba")
+    if TYPE_CHECKING:
+        import numba
+    else:
+        numba = import_optional_dependency("numba")
 
-    # error: Untyped decorator makes function "roll_table" untyped
-    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)  # type: ignore[misc]
+    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
     def roll_table(
         values: np.ndarray,
         begin: np.ndarray,
@@ -296,10 +303,12 @@ def generate_numba_ewm_table_func(
     if cache_key in NUMBA_FUNC_CACHE:
         return NUMBA_FUNC_CACHE[cache_key]
 
-    numba = import_optional_dependency("numba")
+    if TYPE_CHECKING:
+        import numba
+    else:
+        numba = import_optional_dependency("numba")
 
-    # error: Untyped decorator makes function "ewm_table" untyped
-    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)  # type: ignore[misc]
+    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
     def ewm_table(
         values: np.ndarray,
         begin: np.ndarray,
