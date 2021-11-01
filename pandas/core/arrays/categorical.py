@@ -524,7 +524,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             self = self.copy() if copy else self
             result = self._set_dtype(dtype)
 
-        # TODO: consolidate with ndarray case?
         elif isinstance(dtype, ExtensionDtype):
             return super().astype(dtype, copy=copy)
 
@@ -2700,7 +2699,7 @@ def _get_codes_for_values(values, categories: Index) -> np.ndarray:
     """
     dtype_equal = is_dtype_equal(values.dtype, categories.dtype)
 
-    if is_extension_array_dtype(categories.dtype) and is_object_dtype(values):
+    if isinstance(categories.dtype, ExtensionDtype) and is_object_dtype(values):
         # Support inferring the correct extension dtype from an array of
         # scalar objects. e.g.
         # Categorical(array[Period, Period], categories=PeriodIndex(...))

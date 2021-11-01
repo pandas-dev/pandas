@@ -388,9 +388,6 @@ class BaseArrayManager(DataManager):
             "fillna", value=value, limit=limit, inplace=inplace, downcast=downcast
         )
 
-    def downcast(self: T) -> T:
-        return self.apply_with_block("downcast")
-
     def astype(self: T, dtype, copy: bool = False, errors: str = "raise") -> T:
         return self.apply(astype_array_safe, dtype=dtype, copy=copy, errors=errors)
 
@@ -795,7 +792,9 @@ class ArrayManager(BaseArrayManager):
         """
         return self.arrays
 
-    def iset(self, loc: int | slice | np.ndarray, value: ArrayLike):
+    def iset(
+        self, loc: int | slice | np.ndarray, value: ArrayLike, inplace: bool = False
+    ):
         """
         Set new column(s).
 
@@ -807,6 +806,8 @@ class ArrayManager(BaseArrayManager):
         loc : integer, slice or boolean mask
             Positional location (already bounds checked)
         value : np.ndarray or ExtensionArray
+        inplace : bool, default False
+            Whether overwrite existing array as opposed to replacing it.
         """
         # single column -> single integer index
         if lib.is_integer(loc):

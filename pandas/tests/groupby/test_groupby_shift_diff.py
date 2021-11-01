@@ -113,3 +113,21 @@ def test_group_diff_object_raises(object_dtype):
     )
     with pytest.raises(TypeError, match=r"unsupported operand type\(s\) for -"):
         df.groupby("a")["b"].diff()
+
+
+def test_empty_shift_with_fill():
+    # GH 41264, single-index check
+    df = DataFrame(columns=["a", "b", "c"])
+    shifted = df.groupby(["a"]).shift(1)
+    shifted_with_fill = df.groupby(["a"]).shift(1, fill_value=0)
+    tm.assert_frame_equal(shifted, shifted_with_fill)
+    tm.assert_index_equal(shifted.index, shifted_with_fill.index)
+
+
+def test_multindex_empty_shift_with_fill():
+    # GH 41264, multi-index check
+    df = DataFrame(columns=["a", "b", "c"])
+    shifted = df.groupby(["a", "b"]).shift(1)
+    shifted_with_fill = df.groupby(["a", "b"]).shift(1, fill_value=0)
+    tm.assert_frame_equal(shifted, shifted_with_fill)
+    tm.assert_index_equal(shifted.index, shifted_with_fill.index)
