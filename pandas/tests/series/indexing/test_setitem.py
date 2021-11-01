@@ -986,8 +986,8 @@ class TestSetitemFloatIntervalWithIntIntervalValues(SetitemCastingEquivalents):
 
 
 class TestSetitemRangeIntoIntegerSeries(SetitemCastingEquivalents):
-    # Setting a range with sufficiently-small integers into small-itemsize
-    #  integer dtypes should not need to upcast
+    # GH#44261 Setting a range with sufficiently-small integers into
+    #  small-itemsize integer dtypes should not need to upcast
 
     @pytest.fixture
     def obj(self, any_int_numpy_dtype):
