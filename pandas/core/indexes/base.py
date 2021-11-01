@@ -360,7 +360,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     _typ: str = "index"
     _data: ExtensionArray | np.ndarray
-    _data_cls: tuple[type[np.ndarray], type[ExtensionArray]] = (
+    _data_cls: type[ExtensionArray] | tuple[type[np.ndarray], type[ExtensionArray]] = (
         np.ndarray,
         ExtensionArray,
     )
@@ -381,7 +381,9 @@ class Index(IndexOpsMixin, PandasObject):
     # associated code in pandas 2.0.
     _is_backward_compat_public_numeric_index: bool = False
 
-    _engine_type: type[libindex.IndexEngine] = libindex.ObjectEngine
+    _engine_type: type[libindex.IndexEngine] | type[libindex.NullableEngine] | type[
+        libindex.ExtensionEngine
+    ] = libindex.ObjectEngine
     # whether we support partial string indexing. Overridden
     # in DatetimeIndex and PeriodIndex
     _supports_partial_string_indexing = False
@@ -833,7 +835,9 @@ class Index(IndexOpsMixin, PandasObject):
         self._engine.clear_mapping()
 
     @cache_readonly
-    def _engine(self) -> libindex.IndexEngine:
+    def _engine(
+        self,
+    ) -> libindex.IndexEngine | libindex.NullableEngine | libindex.ExtensionEngine:
         # For base class (object dtype) we get ObjectEngine
 
         if isinstance(self._values, BaseMaskedArray):
@@ -844,10 +848,11 @@ class Index(IndexOpsMixin, PandasObject):
         ):
             return libindex.ExtensionEngine(self._values)
 
+        engine_type = cast(type[libindex.IndexEngine], self._engine_type)
         # to avoid a reference cycle, bind `target_values` to a local variable, so
         # `self` is not passed into the lambda.
         target_values = self._get_engine_target()
-        return self._engine_type(target_values)
+        return engine_type(target_values)
 
     @final
     @cache_readonly
@@ -3711,7 +3716,7 @@ class Index(IndexOpsMixin, PandasObject):
             if target._is_multi and self._is_multi:
                 engine = self._engine
                 # error: "IndexEngine" has no attribute "_extract_level_codes"
-                tgt_values = engine._extract_level_codes(  # type: ignore[attr-defined]
+                tgt_values = engine._extract_level_codes(  # type: ignore[union-attr]
                     target
                 )
 
@@ -3791,7 +3796,7 @@ class Index(IndexOpsMixin, PandasObject):
             # TODO: get_indexer_with_fill docstring says values must be _sorted_
             #  but that doesn't appear to be enforced
             # error: "IndexEngine" has no attribute "get_indexer_with_fill"
-            return self._engine.get_indexer_with_fill(  # type: ignore[attr-defined]
+            return self._engine.get_indexer_with_fill(  # type: ignore[union-attr]
                 target=target._values, values=self._values, method=method, limit=limit
             )
 
@@ -5631,9 +5636,7 @@ class Index(IndexOpsMixin, PandasObject):
         if self._is_multi and target._is_multi:
             engine = self._engine
             # error: "IndexEngine" has no attribute "_extract_level_codes"
-            tgt_values = engine._extract_level_codes(  # type: ignore[attr-defined]
-                target
-            )
+            tgt_values = engine._extract_level_codes(target)  # type: ignore[union-attr]
 
         indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
         return ensure_platform_int(indexer), ensure_platform_int(missing)

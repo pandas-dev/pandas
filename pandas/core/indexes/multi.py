@@ -283,6 +283,13 @@ class MultiIndex(Index):
     of the mentioned helper methods.
     """
 
+    # error: Incompatible types in assignment (expression has type
+    # "Type[BaseMultiIndexCodesEngine]", base class "Index" defined the type as
+    # "Union[Type[IndexEngine], Type[NullableEngine], Type[ExtensionEngine]]")
+    _engine_type: type[
+        libindex.BaseMultiIndexCodesEngine
+    ] = libindex.BaseMultiIndexCodesEngine  # type: ignore[assignment]
+
     _hidden_attrs = Index._hidden_attrs | frozenset()
 
     # initialize to zero-length tuples to make everything work

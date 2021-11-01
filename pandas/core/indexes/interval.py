@@ -731,7 +731,9 @@ class IntervalIndex(ExtensionIndex):
                     locs = np.array(locs, ndmin=1)
                 else:
                     # FIXME: This is wrong; its boolean; not reached
-                    assert locs.dtype.kind == "i"
+                    # error: Item "int" of "Union[int, ndarray[Any, Any]]"
+                    #  has no attribute "dtype"
+                    assert locs.dtype.kind == "i"  # type: ignore[union-attr]
 
             except KeyError:
                 missing.append(i)
