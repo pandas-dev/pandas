@@ -338,6 +338,7 @@ def test_tab_completion(mframe):
         "pipe",
         "sample",
         "ewm",
+        "value_counts",
     }
     assert results == expected
 

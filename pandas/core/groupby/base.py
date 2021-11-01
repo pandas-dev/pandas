@@ -143,6 +143,7 @@ groupby_other_methods = frozenset(
         "take",
         "transform",
         "sample",
+        "value_counts",
     ]
 )
 # Valid values  of `name` for `groupby.transform(name)`
