@@ -535,7 +535,7 @@ Indexing
 - Bug in :meth:`DataFrame.sort_index` where ``ignore_index=True`` was not being respected when the index was already sorted (:issue:`43591`)
 - Bug in :meth:`Index.get_indexer_non_unique` when index contains multiple ``np.datetime64("NaT")`` and ``np.timedelta64("NaT")`` (:issue:`43869`)
 - Bug in setting a scalar :class:`Interval` value into a :class:`Series` with ``IntervalDtype`` when the scalar's sides are floats and the values' sides are integers (:issue:`44201`)
--
+- Bug when setting string-backed :class:`Categorical` values that can be parsed to datetimes into a :class:`DatetimeArray` or :class:`Series` or :class:`DataFrame` column backed by :class:`DatetimeArray` failing to parse these strings (:issue:`44236`)
 
 
 Missing
