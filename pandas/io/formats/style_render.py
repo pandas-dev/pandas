@@ -391,13 +391,12 @@ class StylerRenderer:
             )
         ]
 
-        column_headers, col_count = [], 0
+        column_headers, visible_col_count = [], 0
         for c, value in enumerate(clabels[r]):
             header_element_visible = _is_visible(c, r, col_lengths)
-
             if header_element_visible:
-                col_count += 1
-            if col_count > max_cols:
+                visible_col_count += col_lengths.get((r, c), 0)
+            if visible_col_count > max_cols:
                 # add an extra column with `...` value to indicate trimming
                 column_headers.append(
                     _element(
@@ -477,14 +476,14 @@ class StylerRenderer:
             for c, name in enumerate(self.data.index.names)
         ]
 
-        column_blanks, col_count = [], 0
+        column_blanks, visible_col_count = [], 0
         if clabels:
-            for c, value in enumerate(clabels[self.columns.nlevels - 1]):
-                header_element_visible = _is_visible(c, 0, col_lengths)
-
+            last_level = self.columns.nlevels - 1  # use last level since never sparsed
+            for c, value in enumerate(clabels[last_level]):
+                header_element_visible = _is_visible(c, last_level, col_lengths)
                 if header_element_visible:
-                    col_count += 1
-                if col_count > max_cols:
+                    visible_col_count += 1
+                if visible_col_count > max_cols:
                     column_blanks.append(
                         _element(
                             "th",
@@ -498,6 +497,7 @@ class StylerRenderer:
                         )
                     )
                     break
+
                 column_blanks.append(
                     _element(
                         "th",
@@ -582,31 +582,36 @@ class StylerRenderer:
             for c in range(self.data.index.nlevels)
         ]
 
-        data = [
-            _element(
-                "td",
-                f"{self.css['data']} {self.css['col']}{c} {self.css['row_trim']}",
-                "...",
-                (c not in self.hidden_columns),
-                attributes="",
-            )
-            for c in range(max_cols)
-        ]
+        data, visible_col_count = [], 0
+        for c, _ in enumerate(self.columns):
+            data_element_visible = c not in self.hidden_columns
+            if data_element_visible:
+                visible_col_count += 1
+            if visible_col_count > max_cols:
+                data.append(
+                    _element(
+                        "td",
+                        (
+                            f"{self.css['data']} {self.css['row_trim']} "
+                            f"{self.css['col_trim']}"
+                        ),
+                        "...",
+                        True,
+                        attributes="",
+                    )
+                )
+                break
 
-        if len(self.data.columns) > max_cols:
-            # columns are also trimmed so we add the final element
             data.append(
                 _element(
                     "td",
-                    (
-                        f"{self.css['data']} {self.css['row_trim']} "
-                        f"{self.css['col_trim']}"
-                    ),
+                    f"{self.css['data']} {self.css['col']}{c} {self.css['row_trim']}",
                     "...",
-                    True,
+                    data_element_visible,
                     attributes="",
                 )
             )
+
         return index_headers + data
 
     def _generate_body_row(
@@ -675,9 +680,14 @@ class StylerRenderer:
 
             index_headers.append(header_element)
 
-        data = []
+        data, visible_col_count = [], 0
         for c, value in enumerate(row_tup[1:]):
-            if c >= max_cols:
+            data_element_visible = (
+                c not in self.hidden_columns and r not in self.hidden_rows
+            )
+            if data_element_visible:
+                visible_col_count += 1
+            if visible_col_count > max_cols:
                 data.append(
                     _element(
                         "td",
@@ -697,9 +707,6 @@ class StylerRenderer:
             if (r, c) in self.cell_context:
                 cls = " " + self.cell_context[r, c]
 
-            data_element_visible = (
-                c not in self.hidden_columns and r not in self.hidden_rows
-            )
             data_element = _element(
                 "td",
                 (
