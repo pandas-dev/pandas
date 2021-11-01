@@ -1588,7 +1588,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     ) -> DataFrame | Series:
 
         if self.axis == 1:
-            raise NotImplementedError("DataFrameGroupBy.value_counts only handles axis=0")
+            raise NotImplementedError(
+                "DataFrameGroupBy.value_counts only handles axis=0"
+            )
 
         with self._group_selection_context():
             df = self.obj
