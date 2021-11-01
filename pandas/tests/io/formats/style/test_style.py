@@ -216,9 +216,6 @@ def test_render_trimming_mi():
     assert {"class": "data row_trim col_trim"}.items() <= ctx["body"][2][4].items()
     assert len(ctx["body"]) == 3  # 2 data rows + trimming row
 
-    assert len(ctx["head"][0]) == 5  # 2 indexes + 2 column headers + trimming col
-    assert {"attributes": 'colspan="2"'}.items() <= ctx["head"][0][2].items()
-
 
 def test_render_empty_mi():
     # GH 43305
@@ -1603,6 +1600,7 @@ def test_row_trimming_hide_index_mi():
 
 
 def test_col_trimming_hide_columns():
+
     df = DataFrame([[1, 2, 3, 4, 5]])
     with pd.option_context("styler.render.max_columns", 2):
         ctx = df.style.hide([0, 1], axis="columns")._translate(True, True)
