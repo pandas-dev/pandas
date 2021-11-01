@@ -61,7 +61,7 @@ def test_basic(
         if as_index:
             tm.assert_series_equal(result, expected)
         else:
-            assert np.array_equal(result["size"].values, expected.values)
+            tm.assert_numpy_array_equal(result["size"].values, expected.values)
     elif column or as_index:
         # (otherwise SeriesGroupby crashes)
         # compare against SeriesGroupBy value_counts
@@ -70,9 +70,9 @@ def test_basic(
             normalize=normalize, sort=sort, ascending=ascending
         )
         if as_index:
-            assert np.array_equal(result.values, expected.values)
+            tm.assert_numpy_array_equal(result.values, expected.values)
         else:
-            assert np.array_equal(result["size"].values, expected["size"].values)
+            tm.assert_numpy_array_equal(result["size"].values, expected["size"].values)
 
 
 @pytest.mark.parametrize("normalize", [True, False])
@@ -96,10 +96,12 @@ def test_compound(education_df, normalize, sort, ascending):
         expected = gp.apply(
             _frame_value_counts, "education", normalize, sort, ascending
         ).values
+    elif normalize:
+        expected = np.array([1.0, 1.0 / 3, 1.0, 2.0 / 3, 1.0])
     else:
-        expected = [1.0, 1.0 / 3, 1.0, 2.0 / 3, 1.0] if normalize else [1, 1, 1, 2, 1]
+        expected = np.array([1, 1, 1, 2, 1], dtype=np.int64)
 
-    assert np.array_equal(result["size"].values, expected)
+    tm.assert_numpy_array_equal(result["size"].values, expected)
 
 
 @pytest.fixture
