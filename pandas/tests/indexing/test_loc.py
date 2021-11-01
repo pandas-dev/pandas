@@ -657,8 +657,12 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         expected = DataFrame({"A": ser})
         tm.assert_frame_equal(df, expected)
 
-    def test_loc_setitem_frame_with_reindex_mixed(self):
+    def test_loc_setitem_frame_with_reindex_mixed(self, using_array_manager, request):
         # GH#40480
+        if using_array_manager:
+            mark = pytest.mark.xfail(reason="df.A stays int64")
+            request.node.add_marker(mark)
+
         df = DataFrame(index=[3, 5, 4], columns=["A", "B"], dtype=float)
         df["B"] = "string"
         df.loc[[4, 3, 5], "A"] = np.array([1, 2, 3], dtype="int64")
@@ -668,8 +672,11 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         expected["B"] = "string"
         tm.assert_frame_equal(df, expected)
 
-    def test_loc_setitem_frame_with_inverted_slice(self):
+    def test_loc_setitem_frame_with_inverted_slice(self, using_array_manager, request):
         # GH#40480
+        if using_array_manager:
+            mark = pytest.mark.xfail(reason="df.A stays int64")
+            request.node.add_marker(mark)
         df = DataFrame(index=[1, 2, 3], columns=["A", "B"], dtype=float)
         df["B"] = "string"
         df.loc[slice(3, 0, -1), "A"] = np.array([1, 2, 3], dtype="int64")

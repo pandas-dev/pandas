@@ -1222,9 +1222,13 @@ class TestILocSetItemDuplicateColumns:
         [("int64", "0", 0), ("float", "1.2", 1.2)],
     )
     def test_iloc_setitem_dtypes_duplicate_columns(
-        self, dtypes, init_value, expected_value
+        self, dtypes, init_value, expected_value, using_array_manager, request
     ):
         # GH#22035
+        if using_array_manager:
+            mark = pytest.mark.xfail(reason="incorrectly retains int64/float dtype")
+            request.node.add_marker(mark)
+
         df = DataFrame([[init_value, "str", "str2"]], columns=["a", "b", "b"])
         df.iloc[:, 0] = df.iloc[:, 0].astype(dtypes)
         expected_df = DataFrame(
