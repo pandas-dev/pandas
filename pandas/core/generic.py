@@ -1,3 +1,4 @@
+# pyright: reportPropertyTypeMismatch=false
 from __future__ import annotations
 
 import collections
@@ -3530,7 +3531,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         raise AbstractMethodError(self)
 
     def _maybe_update_cacher(
-        self, clear: bool_t = False, verify_is_copy: bool_t = True
+        self,
+        clear: bool_t = False,
+        verify_is_copy: bool_t = True,
+        inplace: bool_t = False,
     ) -> None:
         """
         See if we need to update our parent cacher if clear, then clear our
@@ -4634,9 +4638,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if indexer is None:
             if inplace:
+                result = self
+            else:
+                result = self.copy()
+
+            if ignore_index:
+                result.index = default_index(len(self))
+            if inplace:
                 return
             else:
-                return self.copy()
+                return result
 
         baxis = self._get_block_manager_axis(axis)
         new_data = self._mgr.take(indexer, axis=baxis, verify=False)
@@ -4967,7 +4978,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if indexer is not None:
                 indexer = ensure_platform_int(indexer)
 
-            # TODO: speed up on homogeneous DataFrame objects
+            # TODO: speed up on homogeneous DataFrame objects (see _reindex_multi)
             new_data = new_data.reindex_indexer(
                 index,
                 indexer,
@@ -6352,9 +6363,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     raise NotImplementedError()
                 result = self.T.fillna(method=method, limit=limit).T
 
-                # need to downcast here because of all of the transposes
-                result._mgr = result._mgr.downcast()
-
                 return result
 
             new_data = self._mgr.interpolate(
@@ -6408,9 +6416,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
                     result = self.T.fillna(value=value, limit=limit).T
 
-                    # need to downcast here because of all of the transposes
-                    result._mgr = result._mgr.downcast()
-
                     new_data = result
                 else:
 
@@ -6419,7 +6424,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     )
             elif isinstance(value, ABCDataFrame) and self.ndim == 2:
 
-                new_data = self.where(self.notna(), value)._data
+                new_data = self.where(self.notna(), value)._mgr
             else:
                 raise ValueError(f"invalid fill value with a {type(value)}")
 
@@ -9892,7 +9897,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
               from the result. To exclude numeric types submit
               ``numpy.number``. To exclude object columns submit the data
               type ``numpy.object``. Strings can also be used in the style of
-              ``select_dtypes`` (e.g. ``df.describe(include=['O'])``). To
+              ``select_dtypes`` (e.g. ``df.describe(exclude=['O'])``). To
               exclude pandas categorical columns, use ``'category'``
             - None (default) : The result will exclude nothing.
         datetime_is_numeric : bool, default False
@@ -10638,6 +10643,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             name2=name2,
             axis_descr=axis_descr,
             notes="",
+            examples="",
         )
         def sem(
             self,
@@ -10660,6 +10666,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             name2=name2,
             axis_descr=axis_descr,
             notes="",
+            examples="",
         )
         def var(
             self,
@@ -10678,11 +10685,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             _num_ddof_doc,
             desc="Return sample standard deviation over requested axis."
             "\n\nNormalized by N-1 by default. This can be changed using the "
-            "ddof argument",
+            "ddof argument.",
             name1=name1,
             name2=name2,
             axis_descr=axis_descr,
             notes=_std_notes,
+            examples=_std_examples,
         )
         def std(
             self,
@@ -11174,7 +11182,8 @@ numeric_only : bool, default None
 Returns
 -------
 {name1} or {name2} (if level specified) \
-{notes}
+{notes}\
+{examples}
 """
 
 _std_notes = """
@@ -11183,6 +11192,34 @@ Notes
 -----
 To have the same behaviour as `numpy.std`, use `ddof=0` (instead of the
 default `ddof=1`)"""
+
+_std_examples = """
+
+Examples
+--------
+>>> df = pd.DataFrame({'person_id': [0, 1, 2, 3],
+...                   'age': [21, 25, 62, 43],
+...                   'height': [1.61, 1.87, 1.49, 2.01]}
+...                  ).set_index('person_id')
+>>> df
+           age  height
+person_id
+0           21    1.61
+1           25    1.87
+2           62    1.49
+3           43    2.01
+
+The standard deviation of the columns can be found as follows:
+
+>>> df.std()
+age       18.786076
+height     0.237417
+
+Alternatively, `ddof=0` can be set to normalize by N instead of N-1:
+
+>>> df.std(ddof=0)
+age       16.269219
+height     0.205609"""
 
 _bool_doc = """
 {desc}

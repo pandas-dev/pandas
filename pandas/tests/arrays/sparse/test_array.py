@@ -258,7 +258,7 @@ class TestSparseArray:
         assert self.zarr[2] == 1
         assert self.zarr[7] == 5
 
-        errmsg = re.compile("bounds")
+        errmsg = "must be an integer between -10 and 10"
 
         with pytest.raises(IndexError, match=errmsg):
             self.arr[11]
@@ -1203,7 +1203,7 @@ class TestAccessor:
         row = [0, 3, 1, 0]
         col = [0, 3, 1, 2]
         data = [4, 5, 7, 9]
-        # TODO: Remove dtype when scipy is fixed
+        # TODO(scipy#13585): Remove dtype when scipy is fixed
         # https://github.com/scipy/scipy/issues/13585
         sp_array = scipy.sparse.coo_matrix((data, (row, col)), dtype="int")
         result = pd.Series.sparse.from_coo(sp_array)

@@ -173,6 +173,10 @@ _apply_docs = {
         The resulting dtype will reflect the return value of the passed ``func``,
         see the examples below.
 
+    Functions that mutate the passed object can produce unexpected
+    behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
+    for more details.
+
     Examples
     --------
     {examples}
@@ -1513,8 +1517,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if numeric_only:
             if is_ser and not is_numeric_dtype(self._selected_obj.dtype):
                 # GH#41291 match Series behavior
+                kwd_name = "numeric_only"
+                if how in ["any", "all"]:
+                    kwd_name = "bool_only"
                 raise NotImplementedError(
-                    f"{type(self).__name__}.{how} does not implement numeric_only."
+                    f"{type(self).__name__}.{how} does not implement {kwd_name}."
                 )
             elif not is_ser:
                 data = data.get_numeric_data(copy=False)
@@ -1790,7 +1797,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         is_series = data.ndim == 1
 
         def hfunc(bvalues: ArrayLike) -> ArrayLike:
-            # TODO(2DEA): reshape would not be necessary with 2D EAs
+            # TODO(EA2D): reshape would not be necessary with 2D EAs
             if bvalues.ndim == 1:
                 # EA
                 masked = mask & ~isna(bvalues).reshape(1, -1)
@@ -3442,7 +3449,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         levels_list = [ping.group_index for ping in groupings]
         names = self.grouper.names
         if qs is not None:
-            levels_list.append(qs)
+            # error: Argument 1 to "append" of "list" has incompatible type
+            # "ndarray[Any, dtype[floating[_64Bit]]]"; expected "Index"
+            levels_list.append(qs)  # type: ignore[arg-type]
             names = names + [None]
         index, _ = MultiIndex.from_product(levels_list, names=names).sortlevel()
 
