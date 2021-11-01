@@ -535,8 +535,8 @@ Indexing
 - Bug in :meth:`DataFrame.sort_index` where ``ignore_index=True`` was not being respected when the index was already sorted (:issue:`43591`)
 - Bug in :meth:`Index.get_indexer_non_unique` when index contains multiple ``np.datetime64("NaT")`` and ``np.timedelta64("NaT")`` (:issue:`43869`)
 - Bug in setting a scalar :class:`Interval` value into a :class:`Series` with ``IntervalDtype`` when the scalar's sides are floats and the values' sides are integers (:issue:`44201`)
+- Bug in :meth:`Series.__setitem__` with an integer dtype other than ``int64`` setting with a ``range`` object unnecessarily upcasting to ``int64`` (:issue:`??`)
 -
-
 
 Missing
 ^^^^^^^
