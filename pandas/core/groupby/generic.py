@@ -1618,9 +1618,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Notes
         -----
         If the groupby as_index is True then the returned Series will have a
-        MultiIndex with one level per input column. 
+        MultiIndex with one level per input column.
         If the groupby as_index is False then the returned DataFrame will have an
-        additional column with the value_counts. 
+        additional column with the value_counts.
         By default, rows that contain any NA values are omitted from
         the result. By default, the result will be in descending order so that the
         first element of each group is the most frequently-occurring row.
@@ -1628,7 +1628,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Examples
         --------
         >>> df = pd.DataFrame({
-        ...    'gender': ['male', 'male', 'female', 'male', 'female', 'male'], 
+        ...    'gender': ['male', 'male', 'female', 'male', 'female', 'male'],
         ...    'education': ['low', 'medium', 'high', 'low', 'high', 'low'],
         ...    'country': ['US', 'FR', 'US', 'FR', 'FR', 'FR']
         ... })
