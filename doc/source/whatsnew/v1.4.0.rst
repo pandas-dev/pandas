@@ -81,7 +81,7 @@ Styler
   - Naive sparsification is now possible for LaTeX without the multirow package (:issue:`43369`)
   - :meth:`.Styler.to_html` omits CSSStyle rules for hidden table elements (:issue:`43619`)
   - Custom CSS classes can now be directly specified without string replacement (:issue:`43686`)
-  - Bug where row trimming failed to reflect hidden rows (:issue:`43703`)
+  - Bug where row trimming failed to reflect hidden rows (:issue:`43703`, :issue:`44247`)
   - Update and expand the export and use mechanics (:issue:`40675`)
   - New method :meth:`.Styler.hide` added and deprecates :meth:`.Styler.hide_index` and :meth:`.Styler.hide_columns` (:issue:`43758`)
 
