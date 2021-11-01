@@ -179,7 +179,7 @@ cdef class BlockPlacement:
     cdef BlockPlacement iadd(self, other):
         cdef:
             slice s = self._ensure_has_slice()
-            Py_ssize_t other_int, start, stop, step, l
+            Py_ssize_t other_int, start, stop, step
 
         if is_integer_object(other) and s is not None:
             other_int = <Py_ssize_t>other
@@ -188,7 +188,7 @@ cdef class BlockPlacement:
                 # BlockPlacement is treated as immutable
                 return self
 
-            start, stop, step, l = slice_get_indices_ex(s)
+            start, stop, step, _ = slice_get_indices_ex(s)
             start += other_int
             stop += other_int
 
@@ -226,14 +226,14 @@ cdef class BlockPlacement:
         """
         cdef:
             slice nv, s = self._ensure_has_slice()
-            Py_ssize_t other_int, start, stop, step, l
+            Py_ssize_t other_int, start, stop, step
             ndarray[intp_t, ndim=1] newarr
 
         if s is not None:
             # see if we are either all-above or all-below, each of which
             #  have fastpaths available.
 
-            start, stop, step, l = slice_get_indices_ex(s)
+            start, stop, step, _ = slice_get_indices_ex(s)
 
             if start < loc and stop <= loc:
                 # We are entirely below, nothing to increment

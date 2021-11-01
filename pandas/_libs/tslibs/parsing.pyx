@@ -808,12 +808,12 @@ class _timelex:
         # TODO: Change \s --> \s+ (this doesn't match existing behavior)
         # TODO: change the punctuation block to punc+ (does not match existing)
         # TODO: can we merge the two digit patterns?
-        tokens = re.findall('\s|'
-                            '(?<![\.\d])\d+\.\d+(?![\.\d])'
-                            '|\d+'
-                            '|[a-zA-Z]+'
-                            '|[\./:]+'
-                            '|[^\da-zA-Z\./:\s]+', stream)
+        tokens = re.findall(r"\s|"
+                            r"(?<![\.\d])\d+\.\d+(?![\.\d])"
+                            r"|\d+"
+                            r"|[a-zA-Z]+"
+                            r"|[\./:]+"
+                            r"|[^\da-zA-Z\./:\s]+", stream)
 
         # Re-combine token tuples of the form ["59", ",", "456"] because
         # in this context the "," is treated as a decimal

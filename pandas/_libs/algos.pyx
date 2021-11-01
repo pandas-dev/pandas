@@ -259,15 +259,15 @@ cdef inline numeric_t kth_smallest_c(numeric_t* arr, Py_ssize_t k, Py_ssize_t n)
     in groupby.pyx
     """
     cdef:
-        Py_ssize_t i, j, l, m
+        Py_ssize_t i, j, left, m
         numeric_t x
 
-    l = 0
+    left = 0
     m = n - 1
 
-    while l < m:
+    while left < m:
         x = arr[k]
-        i = l
+        i = left
         j = m
 
         while 1:
@@ -284,7 +284,7 @@ cdef inline numeric_t kth_smallest_c(numeric_t* arr, Py_ssize_t k, Py_ssize_t n)
                 break
 
         if j < k:
-            l = i
+            left = i
         if k < i:
             m = j
     return arr[k]
