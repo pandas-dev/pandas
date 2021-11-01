@@ -6,6 +6,7 @@ import pytest
 from pandas.compat import (
     IS64,
     PYPY,
+    pa_version_under1p0,
 )
 
 from pandas.core.dtypes.common import (
@@ -156,7 +157,8 @@ def test_access_by_position(index):
     assert index[-1] == index[size - 1]
 
     msg = f"index {size} is out of bounds for axis 0 with size {size}"
-    if is_dtype_equal(index.dtype, "string[pyarrow]"):
+    if pa_version_under1p0 and is_dtype_equal(index.dtype, "string[pyarrow]"):
+        # TODO(GH#44276) pa_version_under1p0 check should be unnecessary
         msg = "index out of bounds"
     with pytest.raises(IndexError, match=msg):
         index[size]
