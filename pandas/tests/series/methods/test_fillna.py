@@ -523,7 +523,8 @@ class TestSeriesFillNA:
         tm.assert_series_equal(expected, result)
         tm.assert_series_equal(isna(ser), null_loc)
 
-        result = ser.fillna(Timestamp("20130101", tz="US/Pacific"))
+        with tm.assert_produces_warning(FutureWarning, match="mismatched timezone"):
+            result = ser.fillna(Timestamp("20130101", tz="US/Pacific"))
         expected = Series(
             [
                 Timestamp("2011-01-01 10:00", tz=tz),
@@ -766,8 +767,15 @@ class TestSeriesFillNA:
         # but we dont (yet) consider distinct tzinfos for non-UTC tz equivalent
         ts = Timestamp("2000-01-01", tz="US/Pacific")
         ser2 = Series(ser._values.tz_convert("dateutil/US/Pacific"))
-        result = ser2.fillna(ts)
+        assert ser2.dtype.kind == "M"
+        with tm.assert_produces_warning(FutureWarning, match="mismatched timezone"):
+            result = ser2.fillna(ts)
         expected = Series([ser[0], ts, ser[2]], dtype=object)
+        # once deprecation is enforced
+        # expected = Series(
+        #    [ser2[0], ts.tz_convert(ser2.dtype.tz), ser2[2]],
+        #    dtype=ser2.dtype,
+        # )
         tm.assert_series_equal(result, expected)
 
     def test_fillna_pos_args_deprecation(self):
