@@ -3576,11 +3576,10 @@ class Index(IndexOpsMixin, PandasObject):
             positions matches the corresponding target values. Missing values
             in the target are marked by -1.
         %(raises_section)s
-
         Notes
         -----
-        Returns -1 for unmatched values, for further explanation see the example
-        below.
+        Returns -1 for unmatched values, for further explanation see the
+        example below.
 
         Examples
         --------
