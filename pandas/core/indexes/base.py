@@ -3545,11 +3545,7 @@ class Index(IndexOpsMixin, PandasObject):
         Compute indexer and mask for new index given the current index. The
         indexer should be then used as an input to ndarray.take to align the
         current data to the new index.
-        
-        .. note::
-           Returns -1 for unmatched values, for further explanation see the example
-           below.
-        
+
         Parameters
         ----------
         target : %(target_klass)s
@@ -3580,6 +3576,12 @@ class Index(IndexOpsMixin, PandasObject):
             positions matches the corresponding target values. Missing values
             in the target are marked by -1.
         %(raises_section)s
+
+        Notes
+        -----
+        Returns -1 for unmatched values, for further explanation see the example
+        below.
+
         Examples
         --------
         >>> index = pd.Index(['c', 'a', 'b'])
