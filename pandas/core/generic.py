@@ -11178,8 +11178,7 @@ numeric_only : bool, default None
 Returns
 -------
 {name1} or {name2} (if level specified) \
-{notes}
-
+{notes}\
 {examples}
 """
 
@@ -11190,7 +11189,8 @@ Notes
 To have the same behaviour as `numpy.std`, use `ddof=0` (instead of the
 default `ddof=1`)"""
 
-_std_examples = """\
+_std_examples = """
+
 Examples
 --------
 >>> df = pd.DataFrame({'person_id': [0, 1, 2, 3],
