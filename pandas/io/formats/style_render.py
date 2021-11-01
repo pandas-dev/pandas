@@ -1280,15 +1280,15 @@ def _get_level_lengths(
             elif j not in hidden_elements:
                 # then element must be part of sparsified section and is visible
                 visible_row_count += 1
+                if visible_row_count > max_index:
+                    break  # do not add a length since the render trim limit reached
                 if lengths[(i, last_label)] == 0:
                     # if previous iteration was first-of-section but hidden then offset
                     last_label = j
                     lengths[(i, last_label)] = 1
                 else:
-                    # else add to previous iteration but do not extend more than max
-                    lengths[(i, last_label)] = min(
-                        max_index, 1 + lengths[(i, last_label)]
-                    )
+                    # else add to previous iteration
+                    lengths[(i, last_label)] += 1
 
     non_zero_lengths = {
         element: length for element, length in lengths.items() if length >= 1
