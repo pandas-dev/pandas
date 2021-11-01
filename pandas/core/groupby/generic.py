@@ -1703,13 +1703,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 groupings,
                 as_index=self.as_index,
                 sort=self.sort,
+                observed=self.observed,
                 dropna=dropna,
             ).size()
             result.name = "size"
 
             if normalize:
                 indexed_group_size = df.groupby(
-                    grouper, sort=self.sort, dropna=dropna
+                    grouper, sort=self.sort, observed=self.observed, dropna=dropna
                 ).size()
                 if self.as_index:
                     if index_grouping:
