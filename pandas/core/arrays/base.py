@@ -1437,7 +1437,7 @@ class ExtensionArray:
         return result
 
     def _pad_mask_inplace(
-        self, method: Literal["pad", "backfill"], limit, mask: npt.NDArray[np.bool_]
+        self, method: str, limit, mask: npt.NDArray[np.bool_]
     ) -> None:
         """
         Replace values in locations specified by 'mask' using pad or backfill.

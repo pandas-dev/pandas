@@ -247,7 +247,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         return result
 
     def _pad_mask_inplace(
-        self, method: Literal["pad", "backfill"], limit, mask: npt.NDArray[np.bool_]
+        self, method: str, limit, mask: npt.NDArray[np.bool_]
     ) -> None:
         # (for now) when self.ndim == 2, we assume axis=0
         func = missing.get_fill_func(method, ndim=self.ndim)
