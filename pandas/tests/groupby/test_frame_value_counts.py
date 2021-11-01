@@ -208,3 +208,9 @@ def test_data_frame_value_counts_dropna(
     result_frame_groupby.name = None
 
     tm.assert_series_equal(result_frame_groupby, expected)
+
+
+def test_axis(animals_df):
+    gp = animals_df.groupby([0, 0], axis=1)
+    with pytest.raises(NotImplementedError, match="axis"):
+        gp.value_counts()
