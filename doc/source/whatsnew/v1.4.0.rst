@@ -485,7 +485,7 @@ Period
 
 Plotting
 ^^^^^^^^
-- Fixed bug in :meth:`boxplot._grouped_plot_by_column` where trying to plot data of dtype ``object`` caused plotting to fail even if some data was numeric
+- When given non-numeric data, :meth:`DataFrame.boxplot` now raises a ``ValueError`` rather than a cryptic ``KeyError`` or ``ZeroDivsionError``, in line with other plotting functions like :meth:`DataFrame.hist`. (:issue:`43480`)
 -
 
 Groupby/resample/rolling

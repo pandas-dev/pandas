@@ -390,8 +390,12 @@ def boxplot(
             rc = {"figure.figsize": figsize} if figsize is not None else {}
             with plt.rc_context(rc):
                 ax = plt.gca()
-        data = data.apply(pd.to_numeric, errors="ignore")
         data = data._get_numeric_data()
+        naxes = len(data.columns)
+        if naxes == 0:
+            raise ValueError(
+                "boxplot method requires numerical columns, nothing to plot."
+            )
         if columns is None:
             columns = data.columns
         else:

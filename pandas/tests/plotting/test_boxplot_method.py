@@ -547,7 +547,9 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         # GH 43480
         df = self.hist_df.astype("object")
         grouped = df.groupby("gender")
-        _check_plot_works(grouped.boxplot, subplots=False)
+        msg = "boxplot method requires numerical columns, nothing to plot"
+        with pytest.raises(ValueError, match=msg):
+            _check_plot_works(grouped.boxplot, subplots=False)
 
     def test_boxplot_multiindex_column(self):
         # GH 16748
