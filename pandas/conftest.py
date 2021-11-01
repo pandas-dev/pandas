@@ -995,17 +995,19 @@ def all_reductions(request):
     return request.param
 
 
-@pytest.fixture(params=["__eq__", "__ne__", "__le__", "__lt__", "__ge__", "__gt__"])
-def all_compare_operators(request):
+@pytest.fixture(
+    params=[
+        operator.eq,
+        operator.ne,
+        operator.gt,
+        operator.ge,
+        operator.lt,
+        operator.le,
+    ]
+)
+def comparison_op(request):
     """
-    Fixture for dunder names for common compare operations
-
-    * >=
-    * >
-    * ==
-    * !=
-    * <
-    * <=
+    Fixture for operator module comparison functions.
     """
     return request.param
 
