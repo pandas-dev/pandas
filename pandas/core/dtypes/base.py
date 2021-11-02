@@ -462,7 +462,7 @@ class Registry:
                 dtype_type = type(dtype)
             else:
                 dtype_type = dtype
-            if issubclass(dtype_type, ExtensionDtype):
+            if dtype_type in self.dtypes:
                 # cast needed here as mypy doesn't know we have figured
                 # out it is an ExtensionDtype or type_t[ExtensionDtype]
                 return cast("ExtensionDtype | type_t[ExtensionDtype]", dtype)

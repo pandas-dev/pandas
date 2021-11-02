@@ -380,6 +380,7 @@ def registry_without_decimal():
 def test_array_not_registered(registry_without_decimal):
     # check we aren't on it
     assert registry.find("decimal") is None
+    assert registry.find(DecimalDtype) is None
     data = [decimal.Decimal("1"), decimal.Decimal("2")]
 
     result = pd.array(data, dtype=DecimalDtype)

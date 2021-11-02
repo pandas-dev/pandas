@@ -1467,6 +1467,8 @@ def is_extension_array_dtype(arr_or_dtype: object) -> bool:
         return True
     elif isinstance(dtype, np.dtype):
         return False
+    elif isinstance(dtype, type) and issubclass(dtype, ExtensionDtype):
+        return True
     elif not isinstance(dtype, str):
         return False
     else:
