@@ -10661,7 +10661,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         @doc(
             _num_ddof_doc,
             desc="Return unbiased variance over requested axis.\n\nNormalized by "
-            "N-1 by default. This can be changed using the ddof argument",
+            "N-1 by default. This can be changed using the ddof argument.",
             name1=name1,
             name2=name2,
             axis_descr=axis_descr,
