@@ -112,16 +112,19 @@ _shared_docs: dict[str, str] = {}
 # --------------- #
 def _ensure_data(values: ArrayLike) -> np.ndarray:
     """
-    routine to ensure that our data is of the correct
-    input dtype for lower-level routines
+    Ensure values is of the correct input dtype for lower-level routines.
 
     This will coerce:
     - ints -> int64
     - uint -> uint64
-    - bool -> uint64 (TODO this should be uint8)
+    - bool -> uint8
     - datetimelike -> i8
     - datetime64tz -> i8 (in local tz)
     - categorical -> codes
+    - categorical[bool] without nulls -> uint8
+    - categorical[bool] with nulls -> ValueError: cannot convert float NaN to integer
+    - boolean without nulls -> uint8
+    - boolean with nulls -> object
 
     Parameters
     ----------
