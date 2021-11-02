@@ -823,7 +823,8 @@ class StringMethods(NoNewAttributesMixin):
 
     A compiled regex can be passed as `pat`
 
-    >>> s.str.split(re.compile(r"\.jpg"))
+    >>> import re
+    >>> s.str.split(re.compile(r"\.jpg"), expand=True)
                0 1
     0  foojpgbar
 
