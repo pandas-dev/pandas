@@ -1148,6 +1148,15 @@ class TestPeriodComparisons:
             assert not left <= right
             assert not left >= right
 
+    def test_comparison_numpy_scalar(self):
+        p = Period("2000-01", "M")
+        zerodim = np.array(0)
+        scalar = np.int_(0)
+
+        for left, right in ((p, zerodim), (zerodim, p), (p, scalar), (scalar, p)):
+            assert not left == right
+            assert (left == right) is np.bool_(False)
+
 
 class TestArithmetic:
     def test_sub_delta(self):
