@@ -1658,10 +1658,10 @@ cdef class _Period(PeriodMixin):
             return _nat_scalar_rules[op]
         elif util.is_array(other):
             if np.ndim(other) > 0:
-              # in particular ndarray[object]; see test_pi_cmp_period
-              return np.array([PyObject_RichCompare(self, x, op) for x in other])
+                # in particular ndarray[object]; see test_pi_cmp_period
+                return np.array([PyObject_RichCompare(self, x, op) for x in other])
             else:
-              return PyObject_RichCompare(self, other.item(), op)
+                return PyObject_RichCompare(self, other.item(), op)
         return NotImplemented
 
     def __hash__(self):
