@@ -821,6 +821,12 @@ class StringMethods(NoNewAttributesMixin):
                0 1
     0  foojpgbar
 
+    A compiled regex can be passed as `pat`
+
+    >>> s.str.split(re.compile(r"\.jpg"))
+               0 1
+    0  foojpgbar
+
     When ``regex=False``, `pat` is interpreted as the string itself
 
     >>> s.str.split(r"\.jpg", regex=False, expand=True)
@@ -835,13 +841,15 @@ class StringMethods(NoNewAttributesMixin):
         pat: str | re.Pattern | None = None,
         n=-1,
         expand=False,
+        *,
         regex: bool | None = None,
     ):
-        if not regex and is_re(pat):
+        if regex is False and is_re(pat):
             raise ValueError(
                 "Cannot use a compiled regex as replacement pattern with regex=False"
             )
-
+        if is_re(pat):
+            regex = True
         result = self._data.array._str_split(pat, n, expand, regex)
         return self._wrap_result(result, returns_string=expand, expand=expand)
 

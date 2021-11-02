@@ -47,7 +47,7 @@ def test_split_regex(any_string_dtype):
     # explicit regex = True split with compiled regex
     regex_pat = re.compile(r".jpg")
     values = Series("xxxjpgzzz.jpg", dtype=any_string_dtype)
-    result = values.str.split(regex_pat, regex=True)
+    result = values.str.split(regex_pat)
     exp = Series([["xx", "zzz", ""]])
     tm.assert_series_equal(result, exp)
 
