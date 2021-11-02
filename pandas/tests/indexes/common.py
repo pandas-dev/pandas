@@ -362,11 +362,9 @@ class Base:
         expected = index.argsort()
         tm.assert_numpy_array_equal(result, expected)
 
-        if not isinstance(index, RangeIndex):
-            # TODO: add compatibility to RangeIndex?
-            result = np.argsort(index, kind="mergesort")
-            expected = index.argsort(kind="mergesort")
-            tm.assert_numpy_array_equal(result, expected)
+        result = np.argsort(index, kind="mergesort")
+        expected = index.argsort(kind="mergesort")
+        tm.assert_numpy_array_equal(result, expected)
 
         # these are the only two types that perform
         # pandas compatibility input validation - the
