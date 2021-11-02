@@ -663,7 +663,7 @@ class StringMethods(NoNewAttributesMixin):
 
     Parameters
     ----------
-    pat : str, or compiled regex, optional
+    pat : str or compiled regex, optional
         String or regular expression to split on.
         If not specified, split on whitespace.
     n : int, default -1 (all)
