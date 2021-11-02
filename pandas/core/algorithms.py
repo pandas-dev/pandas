@@ -62,7 +62,10 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
 )
 from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.dtypes import PandasDtype
+from pandas.core.dtypes.dtypes import (
+    ExtensionDtype,
+    PandasDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDatetimeArray,
     ABCExtensionArray,
@@ -493,7 +496,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
     elif needs_i8_conversion(values.dtype):
         return isin(comps, values.astype(object))
 
-    elif is_extension_array_dtype(values.dtype):
+    elif isinstance(values.dtype, ExtensionDtype):
         return isin(np.asarray(comps), np.asarray(values))
 
     # GH16012
@@ -512,19 +515,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
             f = np.in1d
 
     else:
-        # error: List item 0 has incompatible type "Union[Any, dtype[Any],
-        # ExtensionDtype]"; expected "Union[dtype[Any], None, type, _SupportsDType, str,
-        # Tuple[Any, Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any,
-        # Any]]"
-        # error: List item 1 has incompatible type "Union[Any, ExtensionDtype]";
-        # expected "Union[dtype[Any], None, type, _SupportsDType, str, Tuple[Any,
-        # Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]"
-        # error: List item 1 has incompatible type "Union[dtype[Any], ExtensionDtype]";
-        # expected "Union[dtype[Any], None, type, _SupportsDType, str, Tuple[Any,
-        # Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]"
-        common = np.find_common_type(
-            [values.dtype, comps.dtype], []  # type: ignore[list-item]
-        )
+        common = np.find_common_type([values.dtype, comps.dtype], [])
         values = values.astype(common, copy=False)
         comps = comps.astype(common, copy=False)
         f = htable.ismember

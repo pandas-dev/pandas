@@ -128,9 +128,17 @@ class Timestamp(datetime):
     def utcoffset(self) -> timedelta | None: ...
     def tzname(self) -> str | None: ...
     def dst(self) -> timedelta | None: ...
+    # error: Argument 1 of "__le__" is incompatible with supertype "date";
+    # supertype defines the argument type as "date"
     def __le__(self, other: datetime) -> bool: ...  # type: ignore
+    # error: Argument 1 of "__lt__" is incompatible with supertype "date";
+    # supertype defines the argument type as "date"
     def __lt__(self, other: datetime) -> bool: ...  # type: ignore
+    # error: Argument 1 of "__ge__" is incompatible with supertype "date";
+    # supertype defines the argument type as "date"
     def __ge__(self, other: datetime) -> bool: ...  # type: ignore
+    # error: Argument 1 of "__gt__" is incompatible with supertype "date";
+    # supertype defines the argument type as "date"
     def __gt__(self, other: datetime) -> bool: ...  # type: ignore
     def __add__(self: _S, other: timedelta) -> _S: ...
     def __radd__(self: _S, other: timedelta) -> _S: ...

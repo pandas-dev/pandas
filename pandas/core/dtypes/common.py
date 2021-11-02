@@ -1417,7 +1417,7 @@ def is_1d_only_ea_dtype(dtype: DtypeObj | None) -> bool:
     return isinstance(dtype, ExtensionDtype) and not isinstance(dtype, DatetimeTZDtype)
 
 
-def is_extension_array_dtype(arr_or_dtype) -> bool:
+def is_extension_array_dtype(arr_or_dtype: object) -> bool:
     """
     Check if an object is a pandas extension array type.
 
@@ -1466,6 +1466,8 @@ def is_extension_array_dtype(arr_or_dtype) -> bool:
     if isinstance(dtype, ExtensionDtype):
         return True
     elif isinstance(dtype, np.dtype):
+        return False
+    elif not isinstance(dtype, str):
         return False
     else:
         return registry.find(dtype) is not None
