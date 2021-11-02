@@ -1148,15 +1148,12 @@ class TestPeriodComparisons:
             assert not left <= right
             assert not left >= right
 
-    @pytest.mark.parametrize(
-        "scalar, expected", ((np.array(0), np.bool_(False)), (np.int_(0), False))
-    )
-    def test_comparison_numpy_scalar(self, scalar, expected):
+    @pytest.mark.parametrize("scalar", (np.array(0), np.int_(0)))
+    def test_comparison_numpy_scalar(self, scalar):
         p = Period("2000-01", "M")
 
         for left, right in ((p, scalar), (scalar, p)):
-            assert not left == right
-            assert (left == right) is expected
+            assert (left == right) is False
 
 
 class TestArithmetic:
