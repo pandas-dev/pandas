@@ -144,20 +144,6 @@ def test_where():
     tm.assert_series_equal(rs, expected)
 
 
-def test_where_non_keyword_deprecation():
-    # GH 41485
-    s = Series(range(5))
-    msg = (
-        "In a future version of pandas all arguments of "
-        "Series.where except for the arguments 'cond' "
-        "and 'other' will be keyword-only"
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = s.where(s > 1, 10, False)
-    expected = Series([10, 10, 2, 3, 4])
-    tm.assert_series_equal(expected, result)
-
-
 def test_where_error():
     s = Series(np.random.randn(5))
     cond = s > 0
@@ -397,70 +383,36 @@ def test_where_numeric_with_string():
     assert w.dtype == "object"
 
 
-def test_where_timedelta_coerce():
-    s = Series([1, 2], dtype="timedelta64[ns]")
+@pytest.mark.parametrize("dtype", ["timedelta64[ns]", "datetime64[ns]"])
+def test_where_datetimelike_coerce(dtype):
+    ser = Series([1, 2], dtype=dtype)
     expected = Series([10, 10])
     mask = np.array([False, False])
 
-    rs = s.where(mask, [10, 10])
+    rs = ser.where(mask, [10, 10])
     tm.assert_series_equal(rs, expected)
 
-    rs = s.where(mask, 10)
+    rs = ser.where(mask, 10)
     tm.assert_series_equal(rs, expected)
 
-    rs = s.where(mask, 10.0)
+    rs = ser.where(mask, 10.0)
     tm.assert_series_equal(rs, expected)
 
-    rs = s.where(mask, [10.0, 10.0])
+    rs = ser.where(mask, [10.0, 10.0])
     tm.assert_series_equal(rs, expected)
 
-    rs = s.where(mask, [10.0, np.nan])
+    rs = ser.where(mask, [10.0, np.nan])
     expected = Series([10, None], dtype="object")
     tm.assert_series_equal(rs, expected)
 
 
-def test_where_datetime_conversion():
-    s = Series(date_range("20130102", periods=2))
-    expected = Series([10, 10])
-    mask = np.array([False, False])
-
-    rs = s.where(mask, [10, 10])
-    tm.assert_series_equal(rs, expected)
-
-    rs = s.where(mask, 10)
-    tm.assert_series_equal(rs, expected)
-
-    rs = s.where(mask, 10.0)
-    tm.assert_series_equal(rs, expected)
-
-    rs = s.where(mask, [10.0, 10.0])
-    tm.assert_series_equal(rs, expected)
-
-    rs = s.where(mask, [10.0, np.nan])
-    expected = Series([10, None], dtype="object")
-    tm.assert_series_equal(rs, expected)
-
+def test_where_datetimetz():
     # GH 15701
     timestamps = ["2016-12-31 12:00:04+00:00", "2016-12-31 12:00:04.010000+00:00"]
-    s = Series([Timestamp(t) for t in timestamps])
-    rs = s.where(Series([False, True]))
-    expected = Series([pd.NaT, s[1]])
+    ser = Series([Timestamp(t) for t in timestamps], dtype="datetime64[ns, UTC]")
+    rs = ser.where(Series([False, True]))
+    expected = Series([pd.NaT, ser[1]], dtype="datetime64[ns, UTC]")
     tm.assert_series_equal(rs, expected)
-
-
-def test_where_dt_tz_values(tz_naive_fixture):
-    ser1 = Series(
-        pd.DatetimeIndex(["20150101", "20150102", "20150103"], tz=tz_naive_fixture)
-    )
-    ser2 = Series(
-        pd.DatetimeIndex(["20160514", "20160515", "20160516"], tz=tz_naive_fixture)
-    )
-    mask = Series([True, True, False])
-    result = ser1.where(mask, ser2)
-    exp = Series(
-        pd.DatetimeIndex(["20150101", "20150102", "20160516"], tz=tz_naive_fixture)
-    )
-    tm.assert_series_equal(exp, result)
 
 
 def test_where_sparse():
@@ -478,14 +430,13 @@ def test_where_empty_series_and_empty_cond_having_non_bool_dtypes():
     tm.assert_series_equal(result, ser)
 
 
-@pytest.mark.parametrize("klass", [Series, pd.DataFrame])
-def test_where_categorical(klass):
+def test_where_categorical(frame_or_series):
     # https://github.com/pandas-dev/pandas/issues/18888
-    exp = klass(
+    exp = frame_or_series(
         pd.Categorical(["A", "A", "B", "B", np.nan], categories=["A", "B", "C"]),
         dtype="category",
     )
-    df = klass(["A", "A", "B", "B", "C"], dtype="category")
+    df = frame_or_series(["A", "A", "B", "B", "C"], dtype="category")
     res = df.where(df != "C")
     tm.assert_equal(exp, res)
 
@@ -508,7 +459,7 @@ def test_where_datetimelike_categorical(tz_naive_fixture):
     tm.assert_index_equal(res, dr)
 
     # DatetimeArray.where
-    res = lvals._data.where(mask, rvals)
+    res = lvals._data._where(mask, rvals)
     tm.assert_datetime_array_equal(res, dr._data)
 
     # Series.where

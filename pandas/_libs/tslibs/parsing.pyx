@@ -671,7 +671,7 @@ def try_parse_date_and_time(
         object[:] result
 
     n = len(dates)
-    # TODO(cython 3.0): Use len instead of `shape[0]`
+    # TODO(cython3): Use len instead of `shape[0]`
     if times.shape[0] != n:
         raise ValueError('Length of dates and times must be equal')
     result = np.empty(n, dtype='O')
@@ -709,7 +709,7 @@ def try_parse_year_month_day(
         object[:] result
 
     n = len(years)
-    # TODO(cython 3.0): Use len instead of `shape[0]`
+    # TODO(cython3): Use len instead of `shape[0]`
     if months.shape[0] != n or days.shape[0] != n:
         raise ValueError('Length of years/months/days must all be equal')
     result = np.empty(n, dtype='O')
@@ -735,7 +735,7 @@ def try_parse_datetime_components(object[:] years,
         double micros
 
     n = len(years)
-    # TODO(cython 3.0): Use len instead of `shape[0]`
+    # TODO(cython3): Use len instead of `shape[0]`
     if (
         months.shape[0] != n
         or days.shape[0] != n
@@ -808,12 +808,12 @@ class _timelex:
         # TODO: Change \s --> \s+ (this doesn't match existing behavior)
         # TODO: change the punctuation block to punc+ (does not match existing)
         # TODO: can we merge the two digit patterns?
-        tokens = re.findall('\s|'
-                            '(?<![\.\d])\d+\.\d+(?![\.\d])'
-                            '|\d+'
-                            '|[a-zA-Z]+'
-                            '|[\./:]+'
-                            '|[^\da-zA-Z\./:\s]+', stream)
+        tokens = re.findall(r"\s|"
+                            r"(?<![\.\d])\d+\.\d+(?![\.\d])"
+                            r"|\d+"
+                            r"|[a-zA-Z]+"
+                            r"|[\./:]+"
+                            r"|[^\da-zA-Z\./:\s]+", stream)
 
         # Re-combine token tuples of the form ["59", ",", "456"] because
         # in this context the "," is treated as a decimal

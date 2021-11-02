@@ -50,18 +50,14 @@ def kth_smallest(
 # Pairwise correlation/covariance
 
 def nancorr(
-    mat: np.ndarray,  # const float64_t[:, :]
+    mat: npt.NDArray[np.float64],  # const float64_t[:, :]
     cov: bool = ...,
-    minp=...,
-) -> np.ndarray: ...  # ndarray[float64_t, ndim=2]
+    minp: int | None = ...,
+) -> npt.NDArray[np.float64]: ...  # ndarray[float64_t, ndim=2]
 def nancorr_spearman(
-    mat: np.ndarray,  # ndarray[float64_t, ndim=2]
+    mat: npt.NDArray[np.float64],  # ndarray[float64_t, ndim=2]
     minp: int = ...,
-) -> np.ndarray: ...  # ndarray[float64_t, ndim=2]
-def nancorr_kendall(
-    mat: np.ndarray,  # ndarray[float64_t, ndim=2]
-    minp: int = ...,
-) -> np.ndarray: ...  # ndarray[float64_t, ndim=2]
+) -> npt.NDArray[np.float64]: ...  # ndarray[float64_t, ndim=2]
 
 # ----------------------------------------------------------------------
 

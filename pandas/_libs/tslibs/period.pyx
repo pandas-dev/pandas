@@ -4,6 +4,7 @@ cimport numpy as cnp
 from cpython.object cimport (
     Py_EQ,
     Py_NE,
+    PyObject_RichCompare,
     PyObject_RichCompareBool,
 )
 from numpy cimport (
@@ -982,14 +983,14 @@ def periodarr_to_dt64arr(const int64_t[:] periodarr, int freq):
     """
     cdef:
         int64_t[:] out
-        Py_ssize_t i, l
+        Py_ssize_t i, N
 
     if freq < 6000:  # i.e. FR_DAY, hard-code to avoid need to cast
-        l = len(periodarr)
-        out = np.empty(l, dtype="i8")
+        N = len(periodarr)
+        out = np.empty(N, dtype="i8")
 
         # We get here with freqs that do not correspond to a datetime64 unit
-        for i in range(l):
+        for i in range(N):
             out[i] = period_ordinal_to_dt64(periodarr[i], freq)
 
         return out.base  # .base to access underlying np.ndarray
@@ -1594,6 +1595,9 @@ cdef class _Period(PeriodMixin):
         PeriodDtypeBase _dtype
         BaseOffset freq
 
+    # higher than np.ndarray, np.matrix, np.timedelta64
+    __array_priority__ = 100
+
     dayofweek = _Period.day_of_week
     dayofyear = _Period.day_of_year
 
@@ -1652,7 +1656,10 @@ cdef class _Period(PeriodMixin):
             return PyObject_RichCompareBool(self.ordinal, other.ordinal, op)
         elif other is NaT:
             return _nat_scalar_rules[op]
-        return NotImplemented  # TODO: ndarray[object]?
+        elif util.is_array(other):
+            # in particular ndarray[object]; see test_pi_cmp_period
+            return np.array([PyObject_RichCompare(self, x, op) for x in other])
+        return NotImplemented
 
     def __hash__(self):
         return hash((self.ordinal, self.freqstr))
@@ -2241,7 +2248,7 @@ cdef class _Period(PeriodMixin):
         return (Period, object_state)
 
     def strftime(self, fmt: str) -> str:
-        """
+        r"""
         Returns the string representation of the :class:`Period`, depending
         on the selected ``fmt``. ``fmt`` must be a string
         containing one or several directives.  The method recognizes the same

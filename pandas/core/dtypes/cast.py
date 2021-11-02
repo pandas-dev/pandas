@@ -978,7 +978,7 @@ def astype_dt64_to_dt64tz(
             stacklevel=level,
         )
 
-        # FIXME: GH#33401 this doesn't match DatetimeArray.astype, which
+        # GH#33401 this doesn't match DatetimeArray.astype, which
         #  goes through the `not via_utc` path
         return values.tz_localize("UTC").tz_convert(dtype.tz)
 
@@ -1590,7 +1590,7 @@ def maybe_infer_to_datetimelike(
         warnings.warn(
             f"Inferring {value.dtype} from data containing strings is deprecated "
             "and will be removed in a future version. To retain the old behavior "
-            "explicitly pass Series(data, dtype={value.dtype})",
+            f"explicitly pass Series(data, dtype={value.dtype})",
             FutureWarning,
             stacklevel=find_stack_level(),
         )
