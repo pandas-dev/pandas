@@ -1656,7 +1656,7 @@ cdef class _Period(PeriodMixin):
             return PyObject_RichCompareBool(self.ordinal, other.ordinal, op)
         elif other is NaT:
             return _nat_scalar_rules[op]
-        elif util.is_array(other) and not np.ndim(other) == 0:
+        elif util.is_array(other) and np.ndim(other) > 0:
             # in particular ndarray[object]; see test_pi_cmp_period
             return np.array([PyObject_RichCompare(self, x, op) for x in other])
         return NotImplemented
