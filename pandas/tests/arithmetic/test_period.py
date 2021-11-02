@@ -191,7 +191,7 @@ class TestPeriodIndexComparisons:
 
         # Tests Period.__richcmp__ against ndarray[object, ndim=0]
         result = idx < np.array(idx[10])
-        tm.assert_numpy_array_equal(result, exp.reshape(10, 2))
+        tm.assert_numpy_array_equal(result, exp)
 
     # TODO: moved from test_datetime64; de-duplicate with version below
     def test_parr_cmp_period_scalar2(self, box_with_array):
