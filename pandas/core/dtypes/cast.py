@@ -14,6 +14,7 @@ import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
+    Literal,
     Sized,
     TypeVar,
     cast,
@@ -793,6 +794,25 @@ def dict_compat(d: dict[Scalar, Scalar]) -> dict[Scalar, Scalar]:
     dict
     """
     return {maybe_box_datetimelike(key): value for key, value in d.items()}
+
+
+@overload
+def infer_dtype_from_array(
+    arr,
+) -> tuple[np.dtype, ArrayLike]:
+    ...
+
+
+@overload
+def infer_dtype_from_array(
+    arr, pandas_dtype: Literal[False] = ...
+) -> tuple[np.dtype, ArrayLike]:
+    ...
+
+
+@overload
+def infer_dtype_from_array(arr, pandas_dtype: bool = ...) -> tuple[DtypeObj, ArrayLike]:
+    ...
 
 
 def infer_dtype_from_array(
