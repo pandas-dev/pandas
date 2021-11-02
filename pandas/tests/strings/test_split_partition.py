@@ -44,6 +44,13 @@ def test_split_regex(any_string_dtype):
     exp = Series([["xxxjpgzzz", ""]])
     tm.assert_series_equal(result, exp)
 
+    # explicit regex = True split with compiled regex
+    regex_pat = re.compile(r".jpg")
+    values = Series("xxxjpgzzz.jpg", dtype=any_string_dtype)
+    result = values.str.split(regex_pat, regex=True)
+    exp = Series([["xx", "zzz", ""]])
+    tm.assert_series_equal(result, exp)
+
     # explicit regex = False split
     result = values.str.split(r"\.jpg", regex=False)
     exp = Series([["xxxjpgzzz.jpg"]])
@@ -64,8 +71,7 @@ def test_split_regex(any_string_dtype):
         ValueError,
         match="Cannot use a compiled regex as replacement pattern with regex=False",
     ):
-        pat = re.compile("xxx")
-        values.str.split(pat, regex=False)
+        values.str.split(regex_pat, regex=False)
 
 
 def test_split_object_mixed():
