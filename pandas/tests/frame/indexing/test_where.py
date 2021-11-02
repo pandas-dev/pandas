@@ -20,6 +20,13 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
+from pandas.tests.frame.common import (
+    OPTIONAL_DICTS,
+    OPTIONAL_FLOATS,
+    OPTIONAL_INTS,
+    OPTIONAL_LISTS,
+    OPTIONAL_TEXT,
+)
 
 
 @pytest.fixture(params=["default", "float_string", "mixed_float", "mixed_int"])
@@ -793,25 +800,11 @@ def test_where_columns_casting():
     tm.assert_frame_equal(expected, result)
 
 
-optional_ints = st.lists(st.one_of(st.integers(), st.none()), max_size=10, min_size=3)
-optional_floats = st.lists(st.one_of(st.floats(), st.none()), max_size=10, min_size=3)
-optional_text = st.lists(st.one_of(st.none(), st.text()), max_size=10, min_size=3)
-optional_dicts = st.lists(
-    st.one_of(st.none(), st.dictionaries(st.text(), st.integers())),
-    max_size=10,
-    min_size=3,
+@given(
+    data=st.one_of(
+        OPTIONAL_DICTS, OPTIONAL_FLOATS, OPTIONAL_INTS, OPTIONAL_LISTS, OPTIONAL_TEXT
+    )
 )
-optional_lists = st.lists(
-    st.one_of(st.none(), st.lists(st.text(), max_size=10, min_size=3)),
-    max_size=10,
-    min_size=3,
-)
-possible_values = st.one_of(
-    optional_ints, optional_floats, optional_text, optional_dicts, optional_lists
-)
-
-
-@given(data=possible_values)
 def test_where_inplace_casting(data):
     # GH 22051
     df = DataFrame({"a": data})

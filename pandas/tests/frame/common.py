@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from hypothesis import strategies as st
+
 from pandas import (
     DataFrame,
     concat,
@@ -56,3 +58,18 @@ def zip_frames(frames: list[DataFrame], axis: int = 1) -> DataFrame:
         index = frames[0].index
         zipped = [f.loc[i, :] for i in index for f in frames]
         return DataFrame(zipped)
+
+
+OPTIONAL_INTS = st.lists(st.one_of(st.integers(), st.none()), max_size=10, min_size=3)
+OPTIONAL_FLOATS = st.lists(st.one_of(st.floats(), st.none()), max_size=10, min_size=3)
+OPTIONAL_TEXT = st.lists(st.one_of(st.none(), st.text()), max_size=10, min_size=3)
+OPTIONAL_DICTS = st.lists(
+    st.one_of(st.none(), st.dictionaries(st.text(), st.integers())),
+    max_size=10,
+    min_size=3,
+)
+OPTIONAL_LISTS = st.lists(
+    st.one_of(st.none(), st.lists(st.text(), max_size=10, min_size=3)),
+    max_size=10,
+    min_size=3,
+)
