@@ -85,8 +85,8 @@ def test_value_counts_null(null_obj, index_or_series_obj):
 
     # can't use expected[null_obj] = 3 as
     # IntervalIndex doesn't allow assignment
-    #new_entry = Series({np.nan: 3}, dtype=np.int64)
-    #expected = expected.append(new_entry)  # TODO: test that both of these work with IntegerNAIndex
+    # TODO: test that both expected.append(Series({np.nan: 3}, dtype=np.int64))
+    #  and expected[null_obj] = 3 work with IntegerNAIndex
     expected[null_obj] = 3
 
     result = obj.value_counts(dropna=False)

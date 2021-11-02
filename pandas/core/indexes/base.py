@@ -848,7 +848,7 @@ class Index(IndexOpsMixin, PandasObject):
         ):
             return libindex.ExtensionEngine(self._values)
 
-        engine_type = cast(type[libindex.IndexEngine], self._engine_type)
+        engine_type = cast("type[libindex.IndexEngine]", self._engine_type)
         # to avoid a reference cycle, bind `target_values` to a local variable, so
         # `self` is not passed into the lambda.
         target_values = self._get_engine_target()
