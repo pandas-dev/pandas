@@ -1600,7 +1600,7 @@ def test_row_trimming_hide_index_mi():
 
 
 def test_col_trimming_hide_columns():
-
+    # gh 44272
     df = DataFrame([[1, 2, 3, 4, 5]])
     with pd.option_context("styler.render.max_columns", 2):
         ctx = df.style.hide([0, 1], axis="columns")._translate(True, True)
