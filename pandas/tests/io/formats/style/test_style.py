@@ -1609,3 +1609,5 @@ def test_col_trimming_hide_columns():
     for c, vals in enumerate([(1, False), (2, True), (3, True), ("...", True)]):
         assert ctx["head"][0][c + 2]["value"] == vals[0]
         assert ctx["head"][0][c + 2]["is_visible"] == vals[1]
+
+    assert len(ctx["body"][0]) == 6  # index + 2 hidden + 2 visible + trimming col
