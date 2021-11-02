@@ -414,51 +414,51 @@ _shared_docs[
         * numeric, str or regex:
 
             - numeric: numeric values equal to `to_replace` will be
-                replaced with `value`
+              replaced with `value`
             - str: string exactly matching `to_replace` will be replaced
-                with `value`
+              with `value`
             - regex: regexs matching `to_replace` will be replaced with
-                `value`
+              `value`
 
         * list of str, regex, or numeric:
 
             - First, if `to_replace` and `value` are both lists, they
-                **must** be the same length.
+              **must** be the same length.
             - Second, if ``regex=True`` then all of the strings in **both**
-                lists will be interpreted as regexs otherwise they will match
-                directly. This doesn't matter much for `value` since there
-                are only a few possible substitution regexes you can use.
+              lists will be interpreted as regexs otherwise they will match
+              directly. This doesn't matter much for `value` since there
+              are only a few possible substitution regexes you can use.
             - str, regex and numeric rules apply as above.
 
         * dict:
 
             - Dicts can be used to specify different replacement values
-                for different existing values. For example,
-                ``{{'a': 'b', 'y': 'z'}}`` replaces the value 'a' with 'b' and
-                'y' with 'z'. To use a dict in this way the `value`
-                parameter should be `None`.
+              for different existing values. For example,
+              ``{{'a': 'b', 'y': 'z'}}`` replaces the value 'a' with 'b' and
+              'y' with 'z'. To use a dict in this way the `value`
+              parameter should be `None`.
             - For a DataFrame a dict can specify that different values
-                should be replaced in different columns. For example,
-                ``{{'a': 1, 'b': 'z'}}`` looks for the value 1 in column 'a'
-                and the value 'z' in column 'b' and replaces these values
-                with whatever is specified in `value`. The `value` parameter
-                should not be ``None`` in this case. You can treat this as a
-                special case of passing two lists except that you are
-                specifying the column to search in.
+              should be replaced in different columns. For example,
+              ``{{'a': 1, 'b': 'z'}}`` looks for the value 1 in column 'a'
+              and the value 'z' in column 'b' and replaces these values
+              with whatever is specified in `value`. The `value` parameter
+              should not be ``None`` in this case. You can treat this as a
+              special case of passing two lists except that you are
+              specifying the column to search in.
             - For a DataFrame nested dictionaries, e.g.,
-                ``{{'a': {{'b': np.nan}}}}``, are read as follows: look in column
-                'a' for the value 'b' and replace it with NaN. The `value`
-                parameter should be ``None`` to use a nested dict in this
-                way. You can nest regular expressions as well. Note that
-                column names (the top-level dictionary keys in a nested
-                dictionary) **cannot** be regular expressions.
+              ``{{'a': {{'b': np.nan}}}}``, are read as follows: look in column
+              'a' for the value 'b' and replace it with NaN. The `value`
+              parameter should be ``None`` to use a nested dict in this
+              way. You can nest regular expressions as well. Note that
+              column names (the top-level dictionary keys in a nested
+              dictionary) **cannot** be regular expressions.
 
         * None:
 
             - This means that the `regex` argument must be a string,
-                compiled regular expression, or list, dict, ndarray or
-                Series of such elements. If `value` is also ``None`` then
-                this **must** be a nested dictionary or Series.
+              compiled regular expression, or list, dict, ndarray or
+              Series of such elements. If `value` is also ``None`` then
+              this **must** be a nested dictionary or Series.
 
         See the examples section for examples of each of these.
     value : scalar, dict, list, str, regex, default None
@@ -492,22 +492,22 @@ _shared_docs[
     ------
     AssertionError
         * If `regex` is not a ``bool`` and `to_replace` is not
-            ``None``.
+          ``None``.
 
     TypeError
         * If `to_replace` is not a scalar, array-like, ``dict``, or ``None``
         * If `to_replace` is a ``dict`` and `value` is not a ``list``,
-            ``dict``, ``ndarray``, or ``Series``
+          ``dict``, ``ndarray``, or ``Series``
         * If `to_replace` is ``None`` and `regex` is not compilable
-            into a regular expression or is a list, dict, ndarray, or
-            Series.
+          into a regular expression or is a list, dict, ndarray, or
+          Series.
         * When replacing multiple ``bool`` or ``datetime64`` objects and
-            the arguments to `to_replace` does not match the type of the
-            value being replaced
+          the arguments to `to_replace` does not match the type of the
+          value being replaced
 
     ValueError
         * If a ``list`` or an ``ndarray`` is passed to `to_replace` and
-            `value` but they are not the same length.
+          `value` but they are not the same length.
 
     See Also
     --------
@@ -518,30 +518,30 @@ _shared_docs[
     Notes
     -----
     * Regex substitution is performed under the hood with ``re.sub``. The
-        rules for substitution for ``re.sub`` are the same.
+      rules for substitution for ``re.sub`` are the same.
     * Regular expressions will only substitute on strings, meaning you
-        cannot provide, for example, a regular expression matching floating
-        point numbers and expect the columns in your frame that have a
-        numeric dtype to be matched. However, if those floating point
-        numbers *are* strings, then you can do this.
+      cannot provide, for example, a regular expression matching floating
+      point numbers and expect the columns in your frame that have a
+      numeric dtype to be matched. However, if those floating point
+      numbers *are* strings, then you can do this.
     * This method has *a lot* of options. You are encouraged to experiment
-        and play with this method to gain intuition about how it works.
+      and play with this method to gain intuition about how it works.
     * When dict is used as the `to_replace` value, it is like
-        key(s) in the dict are the to_replace part and
-        value(s) in the dict are the value parameter.
+      key(s) in the dict are the to_replace part and
+      value(s) in the dict are the value parameter.
 
     Examples
     --------
 
     **Scalar `to_replace` and `value`**
 
-    >>> s = pd.Series([0, 1, 2, 3, 4])
-    >>> s.replace(0, 5)
+    >>> s = pd.Series([1, 2, 3, 4, 5])
+    >>> s.replace(1, 5)
     0    5
-    1    1
-    2    2
-    3    3
-    4    4
+    1    2
+    2    3
+    3    4
+    4    5
     dtype: int64
 
     >>> df = pd.DataFrame({{'A': [0, 1, 2, 3, 4],
@@ -574,11 +574,11 @@ _shared_docs[
     4  4  9  e
 
     >>> s.replace([1, 2], method='bfill')
-    0    0
+    0    3
     1    3
     2    3
-    3    3
-    4    4
+    3    4
+    4    5
     dtype: int64
 
     **dict-like `to_replace`**

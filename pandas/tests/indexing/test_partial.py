@@ -122,6 +122,7 @@ class TestPartialSetting:
         df.loc[:, "C"] = df.loc[:, "A"]
         tm.assert_frame_equal(df, expected)
 
+    def test_partial_setting2(self):
         # GH 8473
         dates = date_range("1/1/2000", periods=8)
         df_orig = DataFrame(
@@ -540,9 +541,9 @@ class TestPartialSetting:
                 date_range(start="2000", periods=20, freq="D"),
                 ["2000-01-04", "2000-01-08", "2000-01-12"],
                 [
-                    Timestamp("2000-01-04", freq="D"),
-                    Timestamp("2000-01-08", freq="D"),
-                    Timestamp("2000-01-12", freq="D"),
+                    Timestamp("2000-01-04"),
+                    Timestamp("2000-01-08"),
+                    Timestamp("2000-01-12"),
                 ],
             ),
             (

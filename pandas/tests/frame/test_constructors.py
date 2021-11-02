@@ -222,12 +222,7 @@ class TestDataFrameConstructors:
         df["foo"] = np.ones((4, 2)).tolist()
 
         # this is not ok
-        msg = "|".join(
-            [
-                "Wrong number of items passed 2, placement implies 1",
-                "Expected a 1D array, got an array with shape \\(4, 2\\)",
-            ]
-        )
+        msg = "Expected a 1D array, got an array with shape \\(4, 2\\)"
         with pytest.raises(ValueError, match=msg):
             df["test"] = np.ones((4, 2))
 
@@ -2354,10 +2349,8 @@ class TestDataFrameConstructors:
         )
         result = DataFrame([s1, s2])
         expected = DataFrame(
-            np.array(
-                [[np.nan, 39.0, np.nan, 6.0, 4.0], [2.0, 152.0, 2.0, 242.0, 150.0]]
-            ),
-            columns=["f", "female", "m", "male", "unknown"],
+            np.array([[39, 6, 4, np.nan, np.nan], [152.0, 242.0, 150.0, 2.0, 2.0]]),
+            columns=["female", "male", "unknown", "f", "m"],
         )
         tm.assert_frame_equal(result, expected)
 
@@ -2515,7 +2508,7 @@ class TestDataFrameConstructors:
             # TODO: we can call check_views if we stop consolidating
             #  in setitem_with_indexer
 
-        # FIXME: until GH#35417, iloc.setitem into EA values does not preserve
+        # FIXME(GH#35417): until GH#35417, iloc.setitem into EA values does not preserve
         #  view, so we have to check in the other direction
         # df.iloc[0, 2] = 0
         # if not copy:
@@ -2529,13 +2522,13 @@ class TestDataFrameConstructors:
             else:
                 assert a[0] == a.dtype.type(1)
                 assert b[0] == b.dtype.type(3)
-            # FIXME: enable after GH#35417
+            # FIXME(GH#35417): enable after GH#35417
             # assert c[0] == 1
             assert df.iloc[0, 2] == 1
         else:
             # TODO: we can call check_views if we stop consolidating
             #  in setitem_with_indexer
-            # FIXME: enable after GH#35417
+            # FIXME(GH#35417): enable after GH#35417
             # assert b[0] == 0
             assert df.iloc[0, 2] == 0
 

@@ -467,3 +467,204 @@ def test_maximums(styler_mi, rows, cols):
     assert ">5</td>" in result  # [[0,1], [4,5]] always visible
     assert (">8</td>" in result) is not rows  # first trimmed vertical element
     assert (">2</td>" in result) is not cols  # first trimmed horizontal element
+
+
+def test_replaced_css_class_names(styler_mi):
+    css = {
+        "row_heading": "ROWHEAD",
+        # "col_heading": "COLHEAD",
+        "index_name": "IDXNAME",
+        # "col": "COL",
+        "row": "ROW",
+        # "col_trim": "COLTRIM",
+        "row_trim": "ROWTRIM",
+        "level": "LEVEL",
+        "data": "DATA",
+        "blank": "BLANK",
+    }
+    midx = MultiIndex.from_product([["a", "b"], ["c", "d"]])
+    styler_mi = Styler(
+        DataFrame(np.arange(16).reshape(4, 4), index=midx, columns=midx),
+        uuid_len=0,
+    ).set_table_styles(css_class_names=css)
+    styler_mi.index.names = ["n1", "n2"]
+    styler_mi.hide_index(styler_mi.index[1:])
+    styler_mi.hide_columns(styler_mi.columns[1:])
+    styler_mi.applymap_index(lambda v: "color: red;", axis=0)
+    styler_mi.applymap_index(lambda v: "color: green;", axis=1)
+    styler_mi.applymap(lambda v: "color: blue;")
+    expected = dedent(
+        """\
+    <style type="text/css">
+    #T__ROW0_col0 {
+      color: blue;
+    }
+    #T__LEVEL0_ROW0, #T__LEVEL1_ROW0 {
+      color: red;
+    }
+    #T__LEVEL0_col0, #T__LEVEL1_col0 {
+      color: green;
+    }
+    </style>
+    <table id="T_">
+      <thead>
+        <tr>
+          <th class="BLANK" >&nbsp;</th>
+          <th class="IDXNAME LEVEL0" >n1</th>
+          <th id="T__LEVEL0_col0" class="col_heading LEVEL0 col0" >a</th>
+        </tr>
+        <tr>
+          <th class="BLANK" >&nbsp;</th>
+          <th class="IDXNAME LEVEL1" >n2</th>
+          <th id="T__LEVEL1_col0" class="col_heading LEVEL1 col0" >c</th>
+        </tr>
+        <tr>
+          <th class="IDXNAME LEVEL0" >n1</th>
+          <th class="IDXNAME LEVEL1" >n2</th>
+          <th class="BLANK col0" >&nbsp;</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th id="T__LEVEL0_ROW0" class="ROWHEAD LEVEL0 ROW0" >a</th>
+          <th id="T__LEVEL1_ROW0" class="ROWHEAD LEVEL1 ROW0" >c</th>
+          <td id="T__ROW0_col0" class="DATA ROW0 col0" >0</td>
+        </tr>
+      </tbody>
+    </table>
+    """
+    )
+    result = styler_mi.to_html()
+    assert result == expected
+
+
+def test_include_css_style_rules_only_for_visible_cells(styler_mi):
+    # GH 43619
+    result = (
+        styler_mi.set_uuid("")
+        .applymap(lambda v: "color: blue;")
+        .hide(styler_mi.data.columns[1:], axis="columns")
+        .hide(styler_mi.data.index[1:], axis="index")
+        .to_html()
+    )
+    expected_styles = dedent(
+        """\
+        <style type="text/css">
+        #T__row0_col0 {
+          color: blue;
+        }
+        </style>
+        """
+    )
+    assert expected_styles in result
+
+
+def test_include_css_style_rules_only_for_visible_index_labels(styler_mi):
+    # GH 43619
+    result = (
+        styler_mi.set_uuid("")
+        .applymap_index(lambda v: "color: blue;", axis="index")
+        .hide(styler_mi.data.columns, axis="columns")
+        .hide(styler_mi.data.index[1:], axis="index")
+        .to_html()
+    )
+    expected_styles = dedent(
+        """\
+        <style type="text/css">
+        #T__level0_row0, #T__level1_row0 {
+          color: blue;
+        }
+        </style>
+        """
+    )
+    assert expected_styles in result
+
+
+def test_include_css_style_rules_only_for_visible_column_labels(styler_mi):
+    # GH 43619
+    result = (
+        styler_mi.set_uuid("")
+        .applymap_index(lambda v: "color: blue;", axis="columns")
+        .hide(styler_mi.data.columns[1:], axis="columns")
+        .hide(styler_mi.data.index, axis="index")
+        .to_html()
+    )
+    expected_styles = dedent(
+        """\
+        <style type="text/css">
+        #T__level0_col0, #T__level1_col0 {
+          color: blue;
+        }
+        </style>
+        """
+    )
+    assert expected_styles in result
+
+
+def test_hiding_index_columns_multiindex_alignment():
+    # gh 43644
+    midx = MultiIndex.from_product(
+        [["i0", "j0"], ["i1"], ["i2", "j2"]], names=["i-0", "i-1", "i-2"]
+    )
+    cidx = MultiIndex.from_product(
+        [["c0"], ["c1", "d1"], ["c2", "d2"]], names=["c-0", "c-1", "c-2"]
+    )
+    df = DataFrame(np.arange(16).reshape(4, 4), index=midx, columns=cidx)
+    styler = Styler(df, uuid_len=0)
+    styler.hide_index(level=1).hide_columns(level=0)
+    styler.hide_index([("j0", "i1", "j2")])
+    styler.hide_columns([("c0", "d1", "d2")])
+    result = styler.to_html()
+    expected = dedent(
+        """\
+    <style type="text/css">
+    </style>
+    <table id="T_">
+      <thead>
+        <tr>
+          <th class="blank" >&nbsp;</th>
+          <th class="index_name level1" >c-1</th>
+          <th id="T__level1_col0" class="col_heading level1 col0" colspan="2">c1</th>
+          <th id="T__level1_col2" class="col_heading level1 col2" >d1</th>
+        </tr>
+        <tr>
+          <th class="blank" >&nbsp;</th>
+          <th class="index_name level2" >c-2</th>
+          <th id="T__level2_col0" class="col_heading level2 col0" >c2</th>
+          <th id="T__level2_col1" class="col_heading level2 col1" >d2</th>
+          <th id="T__level2_col2" class="col_heading level2 col2" >c2</th>
+        </tr>
+        <tr>
+          <th class="index_name level0" >i-0</th>
+          <th class="index_name level2" >i-2</th>
+          <th class="blank col0" >&nbsp;</th>
+          <th class="blank col1" >&nbsp;</th>
+          <th class="blank col2" >&nbsp;</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th id="T__level0_row0" class="row_heading level0 row0" rowspan="2">i0</th>
+          <th id="T__level2_row0" class="row_heading level2 row0" >i2</th>
+          <td id="T__row0_col0" class="data row0 col0" >0</td>
+          <td id="T__row0_col1" class="data row0 col1" >1</td>
+          <td id="T__row0_col2" class="data row0 col2" >2</td>
+        </tr>
+        <tr>
+          <th id="T__level2_row1" class="row_heading level2 row1" >j2</th>
+          <td id="T__row1_col0" class="data row1 col0" >4</td>
+          <td id="T__row1_col1" class="data row1 col1" >5</td>
+          <td id="T__row1_col2" class="data row1 col2" >6</td>
+        </tr>
+        <tr>
+          <th id="T__level0_row2" class="row_heading level0 row2" >j0</th>
+          <th id="T__level2_row2" class="row_heading level2 row2" >i2</th>
+          <td id="T__row2_col0" class="data row2 col0" >8</td>
+          <td id="T__row2_col1" class="data row2 col1" >9</td>
+          <td id="T__row2_col2" class="data row2 col2" >10</td>
+        </tr>
+      </tbody>
+    </table>
+    """
+    )
+    assert result == expected

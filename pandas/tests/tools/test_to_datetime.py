@@ -177,6 +177,28 @@ class TestTimeConversionFormats:
         result = to_datetime(input_s, format="%Y%m%d", errors="coerce")
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "data, format, expected",
+        [
+            ([pd.NA], "%Y%m%d%H%M%S", DatetimeIndex(["NaT"])),
+            ([pd.NA], None, DatetimeIndex(["NaT"])),
+            (
+                [pd.NA, "20210202202020"],
+                "%Y%m%d%H%M%S",
+                DatetimeIndex(["NaT", "2021-02-02 20:20:20"]),
+            ),
+            (["201010", pd.NA], "%y%m%d", DatetimeIndex(["2020-10-10", "NaT"])),
+            (["201010", pd.NA], "%d%m%y", DatetimeIndex(["2010-10-20", "NaT"])),
+            (["201010", pd.NA], None, DatetimeIndex(["2010-10-20", "NaT"])),
+            ([None, np.nan, pd.NA], None, DatetimeIndex(["NaT", "NaT", "NaT"])),
+            ([None, np.nan, pd.NA], "%Y%m%d", DatetimeIndex(["NaT", "NaT", "NaT"])),
+        ],
+    )
+    def test_to_datetime_with_NA(self, data, format, expected):
+        # GH#42957
+        result = to_datetime(data, format=format)
+        tm.assert_index_equal(result, expected)
+
     @pytest.mark.parametrize("cache", [True, False])
     def test_to_datetime_format_integer(self, cache):
         # GH 10178
@@ -2616,6 +2638,25 @@ def test_empty_string_datetime_coerce__unit():
     # verify that no exception is raised even when errors='raise' is set
     result = to_datetime([1, ""], unit="s", errors="raise")
     tm.assert_index_equal(expected, result)
+
+
+@td.skip_if_no("xarray")
+def test_xarray_coerce_unit():
+    # GH44053
+    import xarray as xr
+
+    arr = xr.DataArray([1, 2, 3])
+    result = to_datetime(arr, unit="ns")
+    expected = DatetimeIndex(
+        [
+            "1970-01-01 00:00:00.000000001",
+            "1970-01-01 00:00:00.000000002",
+            "1970-01-01 00:00:00.000000003",
+        ],
+        dtype="datetime64[ns]",
+        freq=None,
+    )
+    tm.assert_index_equal(result, expected)
 
 
 @pytest.mark.parametrize("cache", [True, False])

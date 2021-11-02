@@ -693,11 +693,10 @@ class TestMultiplicationDivision:
         tm.assert_series_equal(result, expected)
 
     def test_mul_index(self, numeric_idx):
-        # in general not true for RangeIndex
         idx = numeric_idx
-        if not isinstance(idx, RangeIndex):
-            result = idx * idx
-            tm.assert_index_equal(result, idx ** 2)
+
+        result = idx * idx
+        tm.assert_index_equal(result, idx ** 2)
 
     def test_mul_datelike_raises(self, numeric_idx):
         idx = numeric_idx
@@ -1090,11 +1089,11 @@ class TestUFuncCompat:
         box = Series if holder is Series else Index
 
         if holder is RangeIndex:
-            idx = RangeIndex(0, 5)
+            idx = RangeIndex(0, 5, name="foo")
         else:
-            idx = holder(np.arange(5, dtype="int64"))
+            idx = holder(np.arange(5, dtype="int64"), name="foo")
         result = np.sin(idx)
-        expected = box(np.sin(np.arange(5, dtype="int64")))
+        expected = box(np.sin(np.arange(5, dtype="int64")), name="foo")
         tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize("holder", [Int64Index, UInt64Index, Float64Index, Series])
@@ -1212,14 +1211,16 @@ class TestNumericArithmeticUnsorted:
     def check_binop(self, ops, scalars, idxs):
         for op in ops:
             for a, b in combinations(idxs, 2):
+                a = a._rename("foo")
+                b = b._rename("bar")
                 result = op(a, b)
                 expected = op(Int64Index(a), Int64Index(b))
-                tm.assert_index_equal(result, expected)
+                tm.assert_index_equal(result, expected, exact="equiv")
             for idx in idxs:
                 for scalar in scalars:
                     result = op(idx, scalar)
                     expected = op(Int64Index(idx), scalar)
-                    tm.assert_index_equal(result, expected)
+                    tm.assert_index_equal(result, expected, exact="equiv")
 
     def test_binops(self):
         ops = [
@@ -1311,18 +1312,22 @@ class TestNumericArithmeticUnsorted:
         # __pow__
         idx = RangeIndex(0, 1000, 2)
         result = idx ** 2
-        expected = idx._int64index ** 2
+        expected = Int64Index(idx._values) ** 2
         tm.assert_index_equal(Index(result.values), expected, exact=True)
 
         # __floordiv__
         cases_exact = [
             (RangeIndex(0, 1000, 2), 2, RangeIndex(0, 500, 1)),
             (RangeIndex(-99, -201, -3), -3, RangeIndex(33, 67, 1)),
-            (RangeIndex(0, 1000, 1), 2, RangeIndex(0, 1000, 1)._int64index // 2),
+            (
+                RangeIndex(0, 1000, 1),
+                2,
+                Int64Index(RangeIndex(0, 1000, 1)._values) // 2,
+            ),
             (
                 RangeIndex(0, 100, 1),
                 2.0,
-                RangeIndex(0, 100, 1)._int64index // 2.0,
+                Int64Index(RangeIndex(0, 100, 1)._values) // 2.0,
             ),
             (RangeIndex(0), 50, RangeIndex(0)),
             (RangeIndex(2, 4, 2), 3, RangeIndex(0, 1, 1)),
@@ -1399,20 +1404,16 @@ def test_integer_array_add_list_like(
     right = box_1d_array(data) + container
 
     if Series == box_pandas_1d_array:
-        assert_function = tm.assert_series_equal
         expected = Series(expected_data, dtype="Int64")
     elif Series == box_1d_array:
-        assert_function = tm.assert_series_equal
         expected = Series(expected_data, dtype="object")
     elif Index in (box_pandas_1d_array, box_1d_array):
-        assert_function = tm.assert_index_equal
         expected = Int64Index(expected_data)
     else:
-        assert_function = tm.assert_numpy_array_equal
         expected = np.array(expected_data, dtype="object")
 
-    assert_function(left, expected)
-    assert_function(right, expected)
+    tm.assert_equal(left, expected)
+    tm.assert_equal(right, expected)
 
 
 def test_sub_multiindex_swapped_levels():
@@ -1427,4 +1428,17 @@ def test_sub_multiindex_swapped_levels():
     df2.index = df2.index.swaplevel(0, 1)
     result = df - df2
     expected = pd.DataFrame([0.0] * 6, columns=["a"], index=df.index)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("power", [1, 2, 5])
+@pytest.mark.parametrize("string_size", [0, 1, 2, 5])
+def test_empty_str_comparison(power, string_size):
+    # GH 37348
+    a = np.array(range(10 ** power))
+    right = pd.DataFrame(a, dtype=np.int64)
+    left = " " * string_size
+
+    result = right == left
+    expected = pd.DataFrame(np.zeros(right.shape, dtype=bool))
     tm.assert_frame_equal(result, expected)
