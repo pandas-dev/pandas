@@ -496,6 +496,7 @@ class RangeIndex(NumericIndex):
         numpy.ndarray.argsort
         """
         ascending = kwargs.pop("ascending", True)  # EA compat
+        kwargs.pop("kind", None)  # e.g. "mergesort" is irrelevant
         nv.validate_argsort(args, kwargs)
 
         if self._range.step > 0:
