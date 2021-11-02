@@ -1,3 +1,4 @@
+# pyright: reportIncompleteStub = false
 from typing import (
     Any,
     Callable,
