@@ -1,4 +1,3 @@
-# pyright: reportUntypedFunctionDecorator = false
 from __future__ import annotations
 
 import functools
@@ -257,7 +256,10 @@ def generate_numba_table_func(
 # https://github.com/numba/numba/issues/1269
 @functools.lru_cache(maxsize=None)
 def generate_manual_numpy_nan_agg_with_axis(nan_func):
-    numba = import_optional_dependency("numba")
+    if TYPE_CHECKING:
+        import numba
+    else:
+        numba = import_optional_dependency("numba")
 
     @numba.jit(nopython=True, nogil=True, parallel=True)
     def nan_agg_with_axis(table):
