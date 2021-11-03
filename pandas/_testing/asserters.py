@@ -984,6 +984,8 @@ def assert_series_equal(
     if check_flags:
         assert left.flags == right.flags, f"{repr(left.flags)} != {repr(right.flags)}"
 
+    assert left.attrs == right.attrs, f"{repr(left.attrs)} != {repr(right.attrs)}"
+
     if check_index:
         # GH #38183
         assert_index_equal(
@@ -1269,6 +1271,8 @@ def assert_frame_equal(
 
     if check_flags:
         assert left.flags == right.flags, f"{repr(left.flags)} != {repr(right.flags)}"
+
+    assert left.attrs == right.attrs, f"{repr(left.attrs)} != {repr(right.attrs)}"
 
     # index comparison
     assert_index_equal(
