@@ -4,6 +4,14 @@ import pytest
 import pandas as pd
 import pandas._testing as tm
 
+RESULT_NAME = "count"
+
+
+def test_axis(animals_df):
+    gp = animals_df.groupby([0, 0], axis=1)
+    with pytest.raises(NotImplementedError, match="axis"):
+        gp.value_counts()
+
 
 @pytest.fixture
 def education_df():
@@ -57,11 +65,12 @@ def test_basic(
         expected = gp.apply(
             _frame_value_counts, ["gender", "education"], normalize, sort, ascending
         )
-        expected.name = "size"
+
+        expected.name = RESULT_NAME
         if as_index:
             tm.assert_series_equal(result, expected)
         else:
-            tm.assert_numpy_array_equal(result["size"].values, expected.values)
+            tm.assert_numpy_array_equal(result[RESULT_NAME].values, expected.values)
     elif column or as_index:
         # (otherwise SeriesGroupby crashes)
         # compare against SeriesGroupBy value_counts
@@ -72,7 +81,9 @@ def test_basic(
         if as_index:
             tm.assert_numpy_array_equal(result.values, expected.values)
         else:
-            tm.assert_numpy_array_equal(result["size"].values, expected["size"].values)
+            tm.assert_numpy_array_equal(
+                result[RESULT_NAME].values, expected[RESULT_NAME].values
+            )
 
 
 @pytest.mark.parametrize("normalize", [True, False])
@@ -101,7 +112,7 @@ def test_compound(education_df, normalize, sort, ascending):
     else:
         expected = np.array([1, 1, 1, 2, 1], dtype=np.int64)
 
-    tm.assert_numpy_array_equal(result["size"].values, expected)
+    tm.assert_numpy_array_equal(result[RESULT_NAME].values, expected)
 
 
 @pytest.fixture
@@ -208,9 +219,3 @@ def test_data_frame_value_counts_dropna(
     result_frame_groupby.name = None
 
     tm.assert_series_equal(result_frame_groupby, expected)
-
-
-def test_axis(animals_df):
-    gp = animals_df.groupby([0, 0], axis=1)
-    with pytest.raises(NotImplementedError, match="axis"):
-        gp.value_counts()

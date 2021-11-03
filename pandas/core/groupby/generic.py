@@ -1648,8 +1648,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         male    low        FR         0.50
                            US         0.25
                 medium     FR         0.25
-        Name: size, dtype: float64
+        Name: count, dtype: float64
         """
+        RESULT_NAME = "count"
         if self.axis == 1:
             raise NotImplementedError(
                 "DataFrameGroupBy.value_counts only handles axis=0"
@@ -1686,7 +1687,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             if dropna:
                 df = df.dropna(subset=remaining_columns, axis="index", how="any")
 
-            grouper, _, _ = get_grouper(
+            # Add the remaining_column keys to the main grouper
+            main_grouper, _, _ = get_grouper(
                 df,
                 key=self.keys,
                 axis=self.axis,
@@ -1694,11 +1696,20 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 sort=self.sort,
                 mutated=self.mutated,
             )
+            groupings = list(main_grouper.groupings)
+            for key in remaining_columns:
+                grouper, _, _ = get_grouper(
+                    df,
+                    key=key,
+                    axis=self.axis,
+                    level=self.level,
+                    sort=self.sort,
+                    mutated=self.mutated,
+                    dropna=dropna,
+                )
+                groupings += list(grouper.groupings)
 
-            groupings = grouper.groupings + [
-                cast(Grouping, Grouper(key)) for key in remaining_columns
-            ]
-
+            # Take the size of the overall columns
             result = df.groupby(
                 groupings,
                 as_index=self.as_index,
@@ -1706,11 +1717,17 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 observed=self.observed,
                 dropna=dropna,
             ).size()
-            result.name = "size"
+
+            # Change the nameof the size result
+            if self.as_index:
+                result.name = RESULT_NAME
+            else:
+                result.rename({"size": RESULT_NAME}, axis=1, inplace=True)
 
             if normalize:
+                # Normalize the results be dividing by the original group sizes
                 indexed_group_size = df.groupby(
-                    grouper, sort=self.sort, observed=self.observed, dropna=dropna
+                    main_grouper, sort=self.sort, observed=self.observed, dropna=dropna
                 ).size()
                 if self.as_index:
                     if index_grouping:
@@ -1746,9 +1763,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                         )
                         group_size = merged["group_size"]
 
-                    result["size"] /= group_size.values
+                    result[RESULT_NAME] /= group_size.values
 
             if sort:
+                # Sort the values and then resort by the main grouping
                 if self.as_index:
                     if index_grouping:
                         level: Any = 0
@@ -1766,7 +1784,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                         by = keys
                     result = (
                         cast(DataFrame, result)
-                        .sort_values(by="size", ascending=ascending)
+                        .sort_values(by=RESULT_NAME, ascending=ascending)
                         .sort_values(by=by, ascending=True)
                     )
 
