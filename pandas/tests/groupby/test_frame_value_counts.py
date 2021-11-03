@@ -129,7 +129,6 @@ def animals_df():
         (False, None, False, [1, 2, 1], [(2, 4, 6), (2, 0, 0)]),
         (True, True, False, [1, 1, 2], [(2, 6, 4), (2, 0, 0)]),
         (True, False, False, [2, 1, 1], [(4, 2, 6), (0, 2, 0)]),
-        (True, False, False, [2, 1, 1], [(4, 2, 6), (0, 2, 0)]),
         (True, False, True, [0.5, 0.25, 0.25], [(4, 2, 6), (0, 2, 0)]),
     ],
 )
@@ -225,6 +224,7 @@ def test_data_frame_value_counts_dropna(
 @pytest.mark.parametrize("observed", [False, True])
 @pytest.mark.parametrize("normalize", [False, True])
 def test_categorical(education_df, as_index, observed, normalize):
+    # Test catagorical data whether or not observed
     gp = education_df.astype("category").groupby(
         "country", as_index=as_index, observed=observed
     )
