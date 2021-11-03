@@ -1199,8 +1199,7 @@ cdef class NullableEngine:
 
     cdef _get_bool_indexer(self, val):
         if val is NA:
-            #if not self.has_missing:
-            #    raise KeyError(val)
+            # TODO: KeyError(val) if not has_missing?
             # TODO: readonly? copy?
             return self._mask.view("uint8")
 

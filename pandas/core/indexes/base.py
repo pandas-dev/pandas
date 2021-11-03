@@ -3466,7 +3466,7 @@ class Index(IndexOpsMixin, PandasObject):
         res_values = concat_compat([left_diff, right_diff])
         res_values = _maybe_try_sort(res_values, sort)
 
-        result = Index(res_values, name=result_name)
+        result = Index(res_values, name=result_name, dtype=res_values.dtype)
 
         if self._is_multi:
             self = cast("MultiIndex", self)
@@ -3490,7 +3490,13 @@ class Index(IndexOpsMixin, PandasObject):
 
     def _convert_can_do_setop(self, other) -> tuple[Index, Hashable]:
         if not isinstance(other, Index):
-            other = Index(other, name=self.name)
+            # TODO(2.0): no need to special-case here once _with_infer
+            #  deprecation is enforced
+            if hasattr(other, "dtype"):
+                other = Index(other, name=self.name, dtype=other.dtype)
+            else:
+                # e.g. list
+                other = Index(other, name=self.name)
             result_name = self.name
         else:
             result_name = get_op_result_name(self, other)
