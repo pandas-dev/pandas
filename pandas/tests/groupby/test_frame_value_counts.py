@@ -225,7 +225,7 @@ def test_data_frame_value_counts_dropna(
 @pytest.mark.parametrize("observed", [False, True])
 @pytest.mark.parametrize("normalize", [False, True])
 def test_categorical(education_df, as_index, observed, normalize):
-    # Test catagorical data whether or not observed
+    # Test categorical data whether or not observed
     gp = education_df.astype("category").groupby(
         "country", as_index=as_index, observed=observed
     )
