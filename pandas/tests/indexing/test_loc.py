@@ -505,9 +505,10 @@ class TestLoc2:
 
         result = df.iloc[0]
         expected = Series([Timestamp("20130101"), 1], index=["a", "b"], name=0)
+        expected.attrs.update(expected_attrs)
+
         tm.assert_series_equal(result, expected)
         assert result.dtype == object
-        assert result.attrs == expected_attrs
 
     @pytest.fixture
     def frame_for_consistency(self):
@@ -1299,12 +1300,14 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
     def test_loc_getitem_timedelta_0seconds(self):
         # GH#10583
+        expected_attrs = {"a": 1}  # GH#28283 Call __finalize__
 
         df = DataFrame(np.random.normal(size=(10, 4)))
         df.index = timedelta_range(start="0s", periods=10, freq="s")
-        expected = df.loc[Timedelta("0s") :, :]
-        expected_attrs = {"a": 1}  # GH#28283 Call __finalize__
         df.attrs.update(expected_attrs)
+
+        expected = df.loc[Timedelta("0s") :, :]
+        expected.attrs.update(expected_attrs)
 
         result = df.loc["0s":, :]
         tm.assert_frame_equal(result, expected)
@@ -1322,8 +1325,9 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         result = df.loc[val]
 
         expected.name = val
+        expected.attrs.update(expected_attrs)
+
         tm.assert_series_equal(result, expected)
-        assert result.attrs == expected_attrs
 
     def test_loc_setitem_int_label_with_float64index(self):
         # note labels are floats

@@ -1239,41 +1239,32 @@ class TestILocCallable:
         expected_attrs = {"a": 1}  # GH#28283 Call __finalize__
 
         df = DataFrame({"X": [1, 2, 3, 4], "Y": list("aabb")}, index=list("ABCD"))
-        df.attrs.update(expected_attrs)
 
         # return location
         res = df.iloc[lambda x: [1, 3]]
         tm.assert_frame_equal(res, df.iloc[[1, 3]])
-        assert res.attrs == expected_attrs
 
         res = df.iloc[lambda x: [1, 3], :]
         tm.assert_frame_equal(res, df.iloc[[1, 3], :])
-        assert res.attrs == expected_attrs
 
         res = df.iloc[lambda x: [1, 3], lambda x: 0]
         tm.assert_series_equal(res, df.iloc[[1, 3], 0])
-        assert res.attrs == expected_attrs
 
         res = df.iloc[lambda x: [1, 3], lambda x: [0]]
         tm.assert_frame_equal(res, df.iloc[[1, 3], [0]])
-        assert res.attrs == expected_attrs
 
         # mixture
         res = df.iloc[[1, 3], lambda x: 0]
         tm.assert_series_equal(res, df.iloc[[1, 3], 0])
-        assert res.attrs == expected_attrs
 
         res = df.iloc[[1, 3], lambda x: [0]]
         tm.assert_frame_equal(res, df.iloc[[1, 3], [0]])
-        assert res.attrs == expected_attrs
 
         res = df.iloc[lambda x: [1, 3], 0]
         tm.assert_series_equal(res, df.iloc[[1, 3], 0])
-        assert res.attrs == expected_attrs
 
         res = df.iloc[lambda x: [1, 3], [0]]
         tm.assert_frame_equal(res, df.iloc[[1, 3], [0]])
-        assert res.attrs == expected_attrs
 
     def test_frame_iloc_setitem_callable(self):
         # GH#11485

@@ -32,7 +32,7 @@ Bug fixes
 
 Other
 ~~~~~
-- Fixed metadata propagation in ``.loc``, ``.iloc`` and ``Series.to_frame()`` (:issue:`28283`)
+-
 -
 
 .. ---------------------------------------------------------------------------
