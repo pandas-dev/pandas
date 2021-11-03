@@ -958,7 +958,7 @@ class _LocationIndexer(NDFrameIndexerBase):
             result = self._getitem_axis(maybe_callable, axis=axis)
 
         if hasattr(result, "__finalize__"):
-            return result.__finalize__(self.obj)
+            return result.__finalize__(self.obj, method='_LocationIndexer.__getitem__')
         return result
 
     def _is_scalar_access(self, key: tuple):

@@ -351,3 +351,21 @@ def test_assert_series_equal_identical_na(nulls_fixture):
     # while we're here do Index too
     idx = pd.Index(ser)
     tm.assert_index_equal(idx, idx.copy(deep=True))
+
+
+def test_assert_frame_equal_attrs():
+    # GH#28283
+
+    expected_attrs = {"a": 1}
+
+    left = Series([1])
+    left.attrs.update(expected_attrs)
+
+    right = Series([1])
+
+    msg = f"{expected_attrs} != {dict()}"
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_series_equal(left, right)
+
+    right.attrs.update(expected_attrs)
+    tm.assert_series_equal(left, right)
