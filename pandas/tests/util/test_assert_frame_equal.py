@@ -329,3 +329,21 @@ def test_assert_series_equal_check_like_different_indexes():
     df2 = DataFrame(index=pd.RangeIndex(start=0, stop=0, step=1))
     with pytest.raises(AssertionError, match="DataFrame.index are different"):
         tm.assert_frame_equal(df1, df2, check_like=True)
+
+
+def test_assert_frame_equal_attrs():
+    # GH#28283
+
+    expected_attrs = {"a": 1}
+
+    left = DataFrame({"a": [1, 2], "b": [3, 4]})
+    left.attrs.update(expected_attrs)
+
+    right = DataFrame({"a": [1, 2], "b": [3, 4]})
+
+    msg = f"{expected_attrs} != {dict()}"
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_frame_equal(left, right)
+
+    right.attrs.update(expected_attrs)
+    tm.assert_frame_equal(left, right)
