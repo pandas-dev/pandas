@@ -10368,7 +10368,7 @@ NaN 12.3   33.0
         interpolation: str = "linear",
     ):
         """
-        Return values at the given quantile over requested axis.
+        Return values at the given quantile over requested axis, per-column.
 
         Parameters
         ----------
@@ -10458,6 +10458,118 @@ NaN 12.3   33.0
         res = data._mgr.quantile(qs=q, axis=1, interpolation=interpolation)
 
         result = self._constructor(res)
+        return result
+
+    def quantiles(
+        self,
+        q=0.5,
+        axis: Axis = 0,
+        numeric_only: bool = True,
+        interpolation: str = "nearest",
+    ):
+        """
+        Return values at the given quantile over requested axis for all columns.
+
+        Parameters
+        ----------
+        q : float or array-like, default 0.5 (50% quantile)
+            Value between 0 <= q <= 1, the quantile(s) to compute.
+        axis : {0, 1, 'index', 'columns'}, default 0
+            Equals 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
+        numeric_only : bool, default True
+            If False, the quantile of datetime and timedelta data will be
+            computed as well.
+        interpolation : {'lower', 'higher', 'nearest'}, default 'nearest'
+            This optional parameter specifies the interpolation method to use,
+            when the desired quantile lies between two data points `i` and `j`:
+
+            * lower: `i`.
+            * higher: `j`.
+            * nearest: `i` or `j` whichever is nearest.
+
+        Returns
+        -------
+        Series or DataFrame
+
+            If ``q`` is an array, a DataFrame will be returned where the
+              index is ``q``, the columns are the columns of self, and the
+              values are the quantiles.
+            If ``q`` is a float, a Series will be returned where the
+              index is the columns of self and the values are the quantiles.
+
+        See Also
+        --------
+        core.window.Rolling.quantile: Rolling quantile.
+        numpy.percentile: Numpy function to compute the percentile.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(np.array([[1, 1], [2, 10], [3, 100], [4, 100]]),
+        ...                   columns=['a', 'b'])
+        >>> df.quantile(.1)
+        a    1.3
+        b    3.7
+        Name: 0.1, dtype: float64
+        >>> df.quantile([.1, .5])
+               a     b
+        0.1  1.3   3.7
+        0.5  2.5  55.0
+
+        Specifying `numeric_only=False` will also compute the quantile of
+        datetime and timedelta data.
+
+        >>> df = pd.DataFrame({'A': [1, 2],
+        ...                    'B': [pd.Timestamp('2010'),
+        ...                          pd.Timestamp('2011')],
+        ...                    'C': [pd.Timedelta('1 days'),
+        ...                          pd.Timedelta('2 days')]})
+        >>> df.quantile(0.5, numeric_only=False)
+        A                    1.5
+        B    2010-07-02 12:00:00
+        C        1 days 12:00:00
+        Name: 0.5, dtype: object
+        """
+        validate_percentile(q)
+
+        return_series = False
+        if not is_list_like(q):
+            return_series = True
+            q = [q]
+
+        q = Index(q, dtype=np.float64)
+        data = self._get_numeric_data() if numeric_only else self
+        axis = self._get_axis_number(axis)
+
+        if axis == 1:
+            data = data.T
+
+        if len(data.columns) == 0:
+            # GH#23925 _get_numeric_data may have dropped all columns
+            cols = Index([], name=self.columns.name)
+            if is_list_like(q):
+                return self._constructor([], index=q, columns=cols)
+            return self._constructor_sliced([], index=cols, name=q, dtype=np.float64)
+
+        q_idx = np.quantile(np.arange(len(data)), q, interpolation=interpolation)
+
+        by = data.columns.tolist()
+        if len(by) > 1:
+            keys = [data._get_label_or_level_values(x) for x in by]
+            indexer = lexsort_indexer(keys)
+        else:
+            by = by[0]
+            k = data._get_label_or_level_values(by)
+            indexer = nargsort(k)
+
+        res = data._mgr.take(indexer[q_idx], verify=False)
+
+        result = self._constructor(res)
+        if return_series:
+            result = result.T.iloc[:, 0]
+            result.name = q[0]
+        else:
+            result.index = q
+
         return result
 
     @doc(NDFrame.asfreq, **_shared_doc_kwargs)
