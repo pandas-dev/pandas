@@ -1101,7 +1101,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     is_list_like(value)
                     and len(value) != len(self)
                     and not isinstance(value, Series)
-                    and not is_object_dtype(self.dtype)
                 ):
                     # Series will be reindexed to have matching length inside
                     #  _where call below
