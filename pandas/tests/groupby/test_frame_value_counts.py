@@ -29,7 +29,6 @@ def _frame_value_counts(df, keys, normalize, sort, ascending):
 
 
 @pytest.mark.parametrize("groupby", ["column", "array", "function"])
-@pytest.mark.parametrize("column", [True, False])
 @pytest.mark.parametrize("normalize", [True, False])
 @pytest.mark.parametrize(
     "sort, ascending",
@@ -42,7 +41,7 @@ def _frame_value_counts(df, keys, normalize, sort, ascending):
 @pytest.mark.parametrize("as_index", [True, False])
 @pytest.mark.parametrize("frame", [True, False])
 def test_basic(
-    education_df, groupby, column, normalize, sort, ascending, as_index, frame
+    education_df, groupby, normalize, sort, ascending, as_index, frame
 ):
     # gh43564 with added:
     # - Use column, array or function as by= parameter
