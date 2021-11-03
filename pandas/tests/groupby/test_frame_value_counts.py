@@ -24,15 +24,11 @@ def education_df():
     )
 
 
-@pytest.fixture
-def country_index():
-    return ["U", "F", "U", "F", "F", "F"]
-
-
 def _frame_value_counts(df, keys, normalize, sort, ascending):
     return df[keys].value_counts(normalize=normalize, sort=sort, ascending=ascending)
 
 
+@pytest.mark.parametrize("groupby", ["column", "array", "function"])
 @pytest.mark.parametrize("column", [True, False])
 @pytest.mark.parametrize("normalize", [True, False])
 @pytest.mark.parametrize(
@@ -46,16 +42,22 @@ def _frame_value_counts(df, keys, normalize, sort, ascending):
 @pytest.mark.parametrize("as_index", [True, False])
 @pytest.mark.parametrize("frame", [True, False])
 def test_basic(
-    education_df, country_index, column, normalize, sort, ascending, as_index, frame
+    education_df, groupby, column, normalize, sort, ascending, as_index, frame
 ):
     # gh43564 with added:
-    # - Use column or index
+    # - Use column, array or function as by= parameter
     # - Whether or not to normalize
     # - Whether or not to sort and how
     # - Whether or not to use the groupby as an index
     # - 3-way compare against :meth:`~DataFrame.value_counts`
     #   and `~SeriesGroupBy.value_counts`
-    gp = education_df.groupby("country" if column else country_index, as_index=as_index)
+    by = {
+        "column": "country",
+        "array": education_df["country"].values,
+        "function": lambda x: education_df["country"][x] == "US",
+    }[groupby]
+
+    gp = education_df.groupby(by=by, as_index=as_index)
     result = gp[["gender", "education"]].value_counts(
         normalize=normalize, sort=sort, ascending=ascending
     )
@@ -71,7 +73,7 @@ def test_basic(
             tm.assert_series_equal(result, expected)
         else:
             tm.assert_numpy_array_equal(result[RESULT_NAME].values, expected.values)
-    elif column or as_index:
+    elif groupby == "column" or as_index:
         # (otherwise SeriesGroupby crashes)
         # compare against SeriesGroupBy value_counts
         education_df["both"] = education_df["gender"] + "-" + education_df["education"]
