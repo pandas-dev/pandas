@@ -10477,8 +10477,8 @@ NaN 12.3   33.0
         axis : {0, 1, 'index', 'columns'}, default 0
             Equals 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
         numeric_only : bool, default True
-            If False, the quantile of datetime and timedelta data will be
-            computed as well.
+            If False, datetime and timedelta data will be included in the
+            quantile computation.
         interpolation : {'lower', 'higher', 'nearest'}, default 'nearest'
             This optional parameter specifies the interpolation method to use,
             when the desired quantile lies between two data points `i` and `j`:
@@ -10504,16 +10504,16 @@ NaN 12.3   33.0
 
         Examples
         --------
-        >>> df = pd.DataFrame(np.array([[1, 1], [2, 10], [3, 100], [4, 100]]),
+        >>> df = pd.DataFrame(np.array([[1, 10], [1, 2], [2, 100], [2, 50]]),
         ...                   columns=['a', 'b'])
-        >>> df.quantile(.1)
-        a    1.3
-        b    3.7
-        Name: 0.1, dtype: float64
-        >>> df.quantile([.1, .5])
-               a     b
-        0.1  1.3   3.7
-        0.5  2.5  55.0
+        >>> df.quantiles(.1)
+        a    1
+        b    2
+        Name: 0.1, dtype: int64
+        >>> df.quantiles([.1, .5])
+             a   b
+        0.1  1   2
+        0.5  2  50
 
         Specifying `numeric_only=False` will also compute the quantile of
         datetime and timedelta data.
@@ -10523,10 +10523,10 @@ NaN 12.3   33.0
         ...                          pd.Timestamp('2011')],
         ...                    'C': [pd.Timedelta('1 days'),
         ...                          pd.Timedelta('2 days')]})
-        >>> df.quantile(0.5, numeric_only=False)
-        A                    1.5
-        B    2010-07-02 12:00:00
-        C        1 days 12:00:00
+        >>> df.quantiles(0.5, numeric_only=False)
+        A                      1
+        B    2010-01-01 00:00:00
+        C        1 days 00:00:00
         Name: 0.5, dtype: object
         """
         validate_percentile(q)
