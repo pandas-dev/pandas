@@ -616,13 +616,9 @@ def test_hiding_index_columns_multiindex_alignment():
     )
     df = DataFrame(np.arange(16).reshape(4, 4), index=midx, columns=cidx)
     styler = Styler(df, uuid_len=0)
-    msg = "this method is deprecated in favour of `Styler.hide"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        styler.hide_index(level=1).hide_columns(level=0)
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        styler.hide_index([("j0", "i1", "j2")])
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        styler.hide_columns([("c0", "d1", "d2")])
+    styler.hide(level=1, axis=0).hide(level=0, axis=1)
+    styler.hide([("j0", "i1", "j2")], axis=0)
+    styler.hide([("c0", "d1", "d2")], axis=1)
     result = styler.to_html()
     expected = dedent(
         """\
