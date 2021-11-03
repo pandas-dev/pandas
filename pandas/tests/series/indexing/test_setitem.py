@@ -898,6 +898,18 @@ class TestSetitemMismatchedTZCastsToObject(SetitemCastingEquivalents):
         )
         return expected
 
+    @pytest.fixture(autouse=True)
+    def assert_warns(self, request):
+        # check that we issue a FutureWarning about timezone-matching
+        if request.function.__name__ == "test_slice_key":
+            key = request.getfixturevalue("key")
+            if not isinstance(key, slice):
+                # The test is a no-op, so no warning will be issued
+                yield
+            return
+        with tm.assert_produces_warning(FutureWarning, match="mismatched timezone"):
+            yield
+
 
 @pytest.mark.parametrize(
     "obj,expected",
