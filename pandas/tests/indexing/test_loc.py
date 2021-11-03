@@ -259,8 +259,6 @@ class TestLoc2:
         result = df.loc[:, 0].loc["A"]
 
         tm.assert_series_equal(result, expected)
-        assert expected.attrs == expected_attrs
-        assert result.attrs == expected_attrs
 
     def test_loc_getitem_dups2(self):
         # GH4726 dup indexing with iloc/loc
@@ -283,11 +281,9 @@ class TestLoc2:
 
         result = df.iloc[0]
         tm.assert_series_equal(result, expected)
-        assert result.attrs == expected_attrs
 
         result = df.loc[1]
         tm.assert_series_equal(result, expected)
-        assert result.attrs == expected_attrs
 
     def test_loc_setitem_dups(self):
 
@@ -493,15 +489,12 @@ class TestLoc2:
 
         result = df.loc[mask]
         tm.assert_frame_equal(result, expected)
-        assert result.attrs == expected_attrs
 
         result = df.loc[mask.values]
         tm.assert_frame_equal(result, expected)
-        assert result.attrs == expected_attrs
 
         result = df.loc[pd.array(mask, dtype="boolean")]
         tm.assert_frame_equal(result, expected)
-        assert result.attrs == expected_attrs
 
     def test_loc_general(self):
 
@@ -1332,7 +1325,6 @@ class TestLoc2:
         result = float_frame.loc[:, idx]
         expected = float_frame.loc[:, ["A", "B", "C"]]
         tm.assert_frame_equal(result, expected)
-        assert result.attrs == expected_attrs
 
     def test_loc_getitem_timedelta_0seconds(self):
         # GH#10583
@@ -1347,7 +1339,6 @@ class TestLoc2:
 
         result = df.loc["0s":, :]
         tm.assert_frame_equal(result, expected)
-        assert result.attrs == expected_attrs
 
     @pytest.mark.parametrize(
         "val,expected", [(2 ** 63 - 1, Series([1])), (2 ** 63, Series([2]))]
