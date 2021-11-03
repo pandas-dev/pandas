@@ -79,11 +79,7 @@ from pandas.core.groupby.groupby import (
     _transform_template,
     warn_dropping_nuisance_columns_deprecated,
 )
-from pandas.core.groupby.grouper import (
-    Grouper,
-    Grouping,
-    get_grouper,
-)
+from pandas.core.groupby.grouper import get_grouper
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
@@ -1695,6 +1691,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 level=self.level,
                 sort=self.sort,
                 mutated=self.mutated,
+                dropna=dropna,
             )
             groupings = list(main_grouper.groupings)
             for key in remaining_columns:
