@@ -1590,7 +1590,7 @@ def maybe_infer_to_datetimelike(
         warnings.warn(
             f"Inferring {value.dtype} from data containing strings is deprecated "
             "and will be removed in a future version. To retain the old behavior "
-            "explicitly pass Series(data, dtype={value.dtype})",
+            f"explicitly pass Series(data, dtype={value.dtype})",
             FutureWarning,
             stacklevel=find_stack_level(),
         )
