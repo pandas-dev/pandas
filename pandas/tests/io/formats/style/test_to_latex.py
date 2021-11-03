@@ -804,9 +804,7 @@ def test_css_convert_apply_index(styler, axis):
 
 def test_hide_index_latex(styler):
     # GH 43637
-    msg = "this method is deprecated in favour of `Styler.hide"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        styler.hide_index([0])
+    styler.hide([0], axis=0)
     result = styler.to_latex()
     expected = dedent(
         """\
