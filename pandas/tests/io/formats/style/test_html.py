@@ -489,12 +489,8 @@ def test_replaced_css_class_names(styler_mi):
         uuid_len=0,
     ).set_table_styles(css_class_names=css)
     styler_mi.index.names = ["n1", "n2"]
-
-    msg = "this method is deprecated in favour of `Styler.hide"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        styler_mi.hide_index(styler_mi.index[1:])
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        styler_mi.hide_columns(styler_mi.columns[1:])
+    styler_mi.hide(styler_mi.index[1:], axis=0)
+    styler_mi.hide(styler_mi.columns[1:], axis=1)
     styler_mi.applymap_index(lambda v: "color: red;", axis=0)
     styler_mi.applymap_index(lambda v: "color: green;", axis=1)
     styler_mi.applymap(lambda v: "color: blue;")
