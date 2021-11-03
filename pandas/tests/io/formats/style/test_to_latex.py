@@ -8,6 +8,7 @@ from pandas import (
     MultiIndex,
     option_context,
 )
+import pandas._testing as tm
 
 pytest.importorskip("jinja2")
 from pandas.io.formats.style import Styler
@@ -803,7 +804,9 @@ def test_css_convert_apply_index(styler, axis):
 
 def test_hide_index_latex(styler):
     # GH 43637
-    styler.hide_index([0])
+    msg = "this method is deprecated in favour of `Styler.hide"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        styler.hide_index([0])
     result = styler.to_latex()
     expected = dedent(
         """\
@@ -826,9 +829,14 @@ def test_latex_hiding_index_columns_multiindex_alignment():
     )
     df = DataFrame(np.arange(16).reshape(4, 4), index=midx, columns=cidx)
     styler = Styler(df, uuid_len=0)
-    styler.hide_index(level=1).hide_columns(level=0)
-    styler.hide_index([("i0", "i1", "i2")])
-    styler.hide_columns([("c0", "c1", "c2")])
+
+    msg = "this method is deprecated in favour of `Styler.hide"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        styler.hide_index(level=1).hide_columns(level=0)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        styler.hide_index([("i0", "i1", "i2")])
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        styler.hide_columns([("c0", "c1", "c2")])
     styler.applymap(lambda x: "color:{red};" if x == 5 else "")
     styler.applymap_index(lambda x: "color:{blue};" if "j" in x else "")
     result = styler.to_latex()
