@@ -531,7 +531,9 @@ class IntervalIndex(ExtensionIndex):
                 key_i8 = key_i8.where(~key._isnan)
 
         # ensure consistency with IntervalIndex subtype
-        subtype = self.dtype.subtype
+        # error: Item "ExtensionDtype"/"dtype[Any]" of "Union[dtype[Any],
+        # ExtensionDtype]" has no attribute "subtype"
+        subtype = self.dtype.subtype  # type: ignore[union-attr]
 
         if not is_dtype_equal(subtype, key_dtype):
             raise ValueError(
@@ -766,7 +768,9 @@ class IntervalIndex(ExtensionIndex):
     def _should_fallback_to_positional(self) -> bool:
         # integer lookups in Series.__getitem__ are unambiguously
         #  positional in this case
-        return self.dtype.subtype.kind in ["m", "M"]
+        # error: Item "ExtensionDtype"/"dtype[Any]" of "Union[dtype[Any],
+        # ExtensionDtype]" has no attribute "subtype"
+        return self.dtype.subtype.kind in ["m", "M"]  # type: ignore[union-attr]
 
     def _maybe_cast_slice_bound(self, label, side: str, kind=lib.no_default):
         self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
