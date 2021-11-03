@@ -8,7 +8,6 @@ from pandas import (
     MultiIndex,
     option_context,
 )
-import pandas._testing as tm
 
 jinja2 = pytest.importorskip("jinja2")
 from pandas.io.formats.style import Styler
