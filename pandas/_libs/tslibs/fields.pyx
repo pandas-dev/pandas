@@ -198,7 +198,7 @@ cdef inline bint _is_on_month(int month, int compare_month, int modby) nogil:
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def get_start_end_field(const int64_t[:] dtindex, str field,
-                        object freqstr=None, int month_kw=12):
+                        str freqstr=None, int month_kw=12):
     """
     Given an int64-based datetime index return array of indicators
     of whether timestamps are at the start/end of the month/quarter/year
