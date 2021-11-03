@@ -4896,16 +4896,13 @@ Keep all original rows and also all original values
 
         if isinstance(values, ExtensionArray):
             # dispatch to the EA's _pad_mask_inplace method
-            values._pad_mask_inplace(method, limit, mask)
+            values._fill_mask_inplace(method, limit, mask)
         else:
             fill_f = missing.get_fill_func(method)
             values, _ = fill_f(values, limit=limit, mask=mask)
 
         if inplace:
             return
-
-        result = self._constructor(values, index=self.index, dtype=self.dtype)
-        result = result.__finalize__(self)
         return result
 
     # error: Cannot determine type of 'shift'

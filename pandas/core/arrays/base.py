@@ -1436,7 +1436,7 @@ class ExtensionArray:
         result[~mask] = val
         return result
 
-    def _pad_mask_inplace(
+    def _fill_mask_inplace(
         self, method: str, limit, mask: npt.NDArray[np.bool_]
     ) -> None:
         """
