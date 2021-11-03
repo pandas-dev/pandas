@@ -8915,8 +8915,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
-        else:
-            errors = "raise"
 
         if axis is not None:
             axis = self._get_axis_number(axis)
