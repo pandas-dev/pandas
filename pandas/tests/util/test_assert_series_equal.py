@@ -363,7 +363,7 @@ def test_assert_frame_equal_attrs():
 
     right = Series([1])
 
-    msg = f"{expected_attrs} != {dict()}"
+    msg = f"{expected_attrs} != {{}}"
     with pytest.raises(AssertionError, match=msg):
         tm.assert_series_equal(left, right)
 

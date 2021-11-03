@@ -1257,6 +1257,7 @@ class TestILocCallable:
         expected_attrs = {"a": 1}  # GH#28283 Call __finalize__
 
         df = DataFrame({"X": [1, 2, 3, 4], "Y": list("aabb")}, index=list("ABCD"))
+        df.attrs.update(expected_attrs)
 
         # return location
         res = df.iloc[lambda x: [1, 3]]
