@@ -1722,7 +1722,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 result.rename({"size": RESULT_NAME}, axis=1, inplace=True)
 
             if normalize:
-                # Normalize the results be dividing by the original group sizes
+                # Normalize the results by dividing by the original group sizes
                 indexed_group_size = df.groupby(
                     main_grouper, sort=self.sort, observed=self.observed, dropna=dropna
                 ).size()
