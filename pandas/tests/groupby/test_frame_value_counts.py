@@ -104,15 +104,15 @@ def test_compound(education_df, normalize, sort, ascending):
 
     if sort:
         # compare against apply with DataFrame value_counts
-        expected = gp.apply(
+        expected_values = gp.apply(
             _frame_value_counts, "education", normalize, sort, ascending
         ).values
     elif normalize:
-        expected = np.array([1.0, 1.0 / 3, 1.0, 2.0 / 3, 1.0])
+        expected_values = np.array([1.0, 1.0 / 3, 1.0, 2.0 / 3, 1.0])
     else:
-        expected = np.array([1, 1, 1, 2, 1], dtype=np.int64)
+        expected_values = np.array([1, 1, 1, 2, 1], dtype=np.int64)
 
-    tm.assert_numpy_array_equal(result[RESULT_NAME].values, expected)
+    tm.assert_numpy_array_equal(result[RESULT_NAME].values, expected_values)
 
 
 @pytest.fixture
@@ -219,3 +219,37 @@ def test_data_frame_value_counts_dropna(
     result_frame_groupby.name = None
 
     tm.assert_series_equal(result_frame_groupby, expected)
+
+
+@pytest.mark.parametrize("as_index", [False, True])
+@pytest.mark.parametrize("observed", [False, True])
+@pytest.mark.parametrize("normalize", [False, True])
+def test_categorical(education_df, as_index, observed, normalize):
+    gp = education_df.astype("category").groupby(
+        "country", as_index=as_index, observed=observed
+    )
+    result = gp.value_counts(normalize=normalize)
+
+    if observed:
+        gp = education_df.groupby("country", as_index=as_index)
+        expected = gp.value_counts(normalize=normalize)
+        if as_index:
+            tm.assert_numpy_array_equal(result.values, expected.values)
+        else:
+            tm.assert_numpy_array_equal(
+                result[RESULT_NAME].values, expected[RESULT_NAME].values
+            )
+    else:
+        if normalize:
+            expected_values = np.array(
+                [0.5, 0.25, 0.25, 0.0, 0.0, 0.0, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0]
+            )
+        else:
+            expected_values = np.array(
+                [2, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0], dtype=np.int64
+            )
+
+        if as_index:
+            tm.assert_numpy_array_equal(result.values, expected_values)
+        else:
+            tm.assert_numpy_array_equal(result[RESULT_NAME].values, expected_values)
