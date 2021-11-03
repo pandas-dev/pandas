@@ -279,6 +279,10 @@ class XportReader(ReaderBase, abc.Iterator):
         # read file header
         line1 = self._get_row()
         if line1 != _correct_line1:
+            if "**COMPRESSED**" in line1:
+                raise ValueError(
+                    "Header record indicates a CPORT file, which is not readable."
+                )
             raise ValueError("Header record is not an XPORT file.")
 
         line2 = self._get_row()
