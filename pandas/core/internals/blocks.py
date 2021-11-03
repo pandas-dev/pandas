@@ -918,7 +918,7 @@ class Block(PandasObject):
         check_setitem_lengths(indexer, value, values)
 
         if is_empty_indexer(indexer, arr_value):
-            # GH#8669 empty indexers
+            # GH#8669 empty indexers, test_loc_setitem_boolean_mask_allfalse
             pass
 
         elif is_scalar_indexer(indexer, self.ndim):
@@ -1698,7 +1698,7 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
         mask = extract_bool_array(mask)
 
         if not self._can_hold_element(new):
-            return self.astype(_dtype_obj).putmask(mask, new)
+            return self.coerce_to_target_dtype(new).putmask(mask, new)
 
         arr = self.values
         arr.T.putmask(mask, new)
@@ -1755,7 +1755,9 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
             # We support filling a DatetimeTZ with a `value` whose timezone
             #  is different by coercing to object.
             # TODO: don't special-case td64
-            return self.astype(_dtype_obj).fillna(value, limit, inplace, downcast)
+            return self.coerce_to_target_dtype(value).fillna(
+                value, limit, inplace, downcast
+            )
 
         values = self.values
         values = values if inplace else values.copy()
