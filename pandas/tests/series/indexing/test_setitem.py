@@ -620,22 +620,26 @@ class SetitemCastingEquivalents:
         mask[key] = True
 
         obj = obj.copy()
+
+        if is_list_like(val) and len(val) < mask.sum():
+            msg = "boolean index did not match indexed array along dimension"
+            with pytest.raises(IndexError, match=msg):
+                indexer_sli(obj)[mask] = val
+            return
+
         indexer_sli(obj)[mask] = val
         tm.assert_series_equal(obj, expected)
 
     def test_series_where(self, obj, key, expected, val, is_inplace):
-        if is_list_like(val) and len(val) < len(obj):
-            # Series.where is not valid here
-            if isinstance(val, range):
-                return
-
-            # FIXME: The remaining TestSetitemDT64IntoInt that go through here
-            #  are relying on technically-incorrect behavior because Block.where
-            #  uses np.putmask instead of expressions.where in those cases,
-            #  which has different length-checking semantics.
-
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
+
+        if is_list_like(val) and len(val) < len(obj):
+            # Series.where is not valid here
+            msg = "operands could not be broadcast together with shapes"
+            with pytest.raises(ValueError, match=msg):
+                obj.where(~mask, val)
+            return
 
         orig = obj
         obj = obj.copy()
@@ -1012,6 +1016,39 @@ class TestSetitemRangeIntoIntegerSeries(SetitemCastingEquivalents):
     @pytest.fixture
     def inplace(self):
         return True
+
+
+@pytest.mark.parametrize(
+    "val",
+    [
+        np.array([2.0, 3.0]),
+        np.array([2.5, 3.5]),
+        np.array([2 ** 65, 2 ** 65 + 1], dtype=np.float64),  # all ints, but can't cast
+    ],
+)
+class TestSetitemFloatNDarrayIntoIntegerSeries(SetitemCastingEquivalents):
+    @pytest.fixture
+    def obj(self):
+        return Series(range(5), dtype=np.int64)
+
+    @pytest.fixture
+    def key(self):
+        return slice(0, 2)
+
+    @pytest.fixture
+    def inplace(self, val):
+        # NB: this condition is based on currently-harcoded "val" cases
+        return val[0] == 2
+
+    @pytest.fixture
+    def expected(self, val, inplace):
+        if inplace:
+            dtype = np.int64
+        else:
+            dtype = np.float64
+        res_values = np.array(range(5), dtype=dtype)
+        res_values[:2] = val
+        return Series(res_values)
 
 
 def test_setitem_int_as_positional_fallback_deprecation():
