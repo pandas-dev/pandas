@@ -308,15 +308,6 @@ def test_broadcast(size, mask, item, box):
 
     s = Series(data)
 
-    if selection.sum() != 1:
-        msg = (
-            "cannot set using a list-like indexer with a different "
-            "length than the value"
-        )
-        with pytest.raises(ValueError, match=msg):
-            # GH#44265
-            s[selection] = box(item)
-
     s[selection] = item
     tm.assert_series_equal(s, expected)
 
