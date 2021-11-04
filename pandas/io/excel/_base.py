@@ -689,7 +689,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         * new: Create a new sheet, with a name determined by the engine.
         * replace: Delete the contents of the sheet before writing to it.
         * overlay: Write contents to the existing sheet without removing the old
-        contents.
+          contents.
 
         .. versionadded:: 1.3.0
     engine_kwargs : dict, optional
