@@ -119,9 +119,10 @@ def test_engine_kwargs_append(ext, engine_kwargs):
     # arguments are passed through to load_workbook()
     with tm.ensure_clean(ext) as f:
         DataFrame(["hello", "world"]).to_excel(f)
-        with ExcelWriter(f, engine="openpyxl", mode="a", engine_kwargs=engine_kwargs):
-            pass
-            # DataFrame(["goodbye", "world"]).to_excel(writer)
+        with ExcelWriter(
+            f, engine="openpyxl", mode="a", engine_kwargs=engine_kwargs
+        ) as writer:
+            DataFrame(["goodbye", "world"]).to_excel(writer, sheet_name="Sheet2")
 
 
 @pytest.mark.parametrize("data_only,B2", [(True, 0), (False, "=1+1")])
@@ -137,6 +138,8 @@ def test_engine_kwargs_append_keep_links(ext, data_only, B2):
             f, engine="openpyxl", mode="a", engine_kwargs={"data_only": data_only}
         ) as writer:
             assert writer.sheets["Sheet1"]["B2"].value == B2
+            # ExcelWriter needs us to writer something to close properly?
+            DataFrame().to_excel(writer, sheet_name="Sheet2")
 
 
 def test_engine_kwargs_append_invalid(ext):
@@ -152,10 +155,9 @@ def test_engine_kwargs_append_invalid(ext):
         ):
             with ExcelWriter(
                 f, engine="openpyxl", mode="a", engine_kwargs={"apple_banana": "fruit"}
-            ):
+            ) as writer:
                 # not sure if we have to do something here?
-                # DataFrame(["good"])
-                pass
+                DataFrame(["good"]).to_excel(writer, sheet_name="Sheet2")
 
 
 @pytest.mark.parametrize(
