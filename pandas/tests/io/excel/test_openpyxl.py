@@ -124,6 +124,21 @@ def test_engine_kwargs_append(ext, engine_kwargs):
             # DataFrame(["goodbye", "world"]).to_excel(writer)
 
 
+@pytest.mark.parametrize("data_only,B2", [(True, 0), (False, "=1+1")])
+def test_engine_kwargs_append_keep_links(ext, data_only, B2):
+    # GH 43445
+    # tests whether the keep_links engine_kwarg actually works well for
+    # openpyxl's load_workbook
+    # not sure if we have to test for this though, since it also relies a bit on
+    # functionality of openpyxl
+    with tm.ensure_clean(ext) as f:
+        DataFrame(["=1+1"]).to_excel(f)
+        with ExcelWriter(
+            f, engine="openpyxl", mode="a", engine_kwargs={"data_only": data_only}
+        ) as writer:
+            assert writer.sheets["Sheet1"]["B2"].value == B2
+
+
 def test_engine_kwargs_append_invalid(ext):
     # GH 43445
     # test whether an invalid engine kwargs actually raises
