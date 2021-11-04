@@ -3,6 +3,8 @@ Tests for the following offsets:
 - BQuarterBegin
 - BQuarterEnd
 """
+from __future__ import annotations
+
 from datetime import datetime
 
 import pytest
