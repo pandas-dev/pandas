@@ -1109,8 +1109,8 @@ class ArrayManager(BaseArrayManager):
         arr : ndarray
         """
         if len(self.arrays) == 0:
-            arr = np.empty(self.shape, dtype=float)
-            return arr.transpose() if transpose else arr
+            farr = np.empty(self.shape, dtype=float)
+            return farr.transpose() if transpose else farr
 
         # We want to copy when na_value is provided to avoid
         # mutating the original object
@@ -1130,9 +1130,7 @@ class ArrayManager(BaseArrayManager):
 
         result = np.empty(self.shape_proper, dtype=dtype)
 
-        # error: Incompatible types in assignment (expression has type "Union[ndarray,
-        # ExtensionArray]", variable has type "ndarray")
-        for i, arr in enumerate(self.arrays):  # type: ignore[assignment]
+        for i, arr in enumerate(self.arrays):
             arr = arr.astype(dtype, copy=copy)
             result[:, i] = arr
 
@@ -1140,6 +1138,7 @@ class ArrayManager(BaseArrayManager):
             result[isna(result)] = na_value
 
         return result
+        # FIXME: don't leave commented-out
         # return arr.transpose() if transpose else arr
 
 

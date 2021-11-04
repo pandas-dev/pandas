@@ -157,7 +157,7 @@ class SingleDataManager(DataManager):
 
     @final
     @property
-    def array(self):
+    def array(self) -> ArrayLike:
         """
         Quick access to the backing array of the Block or SingleArrayManager.
         """
