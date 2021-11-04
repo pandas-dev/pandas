@@ -6,6 +6,8 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.common import is_list_like
+
 from pandas import (
     Categorical,
     DataFrame,
@@ -622,6 +624,16 @@ class SetitemCastingEquivalents:
         tm.assert_series_equal(obj, expected)
 
     def test_series_where(self, obj, key, expected, val, is_inplace):
+        if is_list_like(val) and len(val) < len(obj):
+            # Series.where is not valid here
+            if isinstance(val, range):
+                return
+
+            # FIXME: The remaining TestSetitemDT64IntoInt that go through here
+            #  are relying on technically-incorrect behavior because Block.where
+            #  uses np.putmask instead of expressions.where in those cases,
+            #  which has different length-checking semantics.
+
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
 
@@ -898,6 +910,18 @@ class TestSetitemMismatchedTZCastsToObject(SetitemCastingEquivalents):
         )
         return expected
 
+    @pytest.fixture(autouse=True)
+    def assert_warns(self, request):
+        # check that we issue a FutureWarning about timezone-matching
+        if request.function.__name__ == "test_slice_key":
+            key = request.getfixturevalue("key")
+            if not isinstance(key, slice):
+                # The test is a no-op, so no warning will be issued
+                yield
+            return
+        with tm.assert_produces_warning(FutureWarning, match="mismatched timezone"):
+            yield
+
 
 @pytest.mark.parametrize(
     "obj,expected",
@@ -959,6 +983,35 @@ class TestSetitemFloatIntervalWithIntIntervalValues(SetitemCastingEquivalents):
         data = [val] + list(obj[1:])
         idx = IntervalIndex(data, dtype="Interval[float64]")
         return Series(idx)
+
+
+class TestSetitemRangeIntoIntegerSeries(SetitemCastingEquivalents):
+    # GH#44261 Setting a range with sufficiently-small integers into
+    #  small-itemsize integer dtypes should not need to upcast
+
+    @pytest.fixture
+    def obj(self, any_int_numpy_dtype):
+        dtype = np.dtype(any_int_numpy_dtype)
+        ser = Series(range(5), dtype=dtype)
+        return ser
+
+    @pytest.fixture
+    def val(self):
+        return range(2, 4)
+
+    @pytest.fixture
+    def key(self):
+        return slice(0, 2)
+
+    @pytest.fixture
+    def expected(self, any_int_numpy_dtype):
+        dtype = np.dtype(any_int_numpy_dtype)
+        exp = Series([2, 3, 2, 3, 4], dtype=dtype)
+        return exp
+
+    @pytest.fixture
+    def inplace(self):
+        return True
 
 
 def test_setitem_int_as_positional_fallback_deprecation():

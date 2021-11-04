@@ -160,28 +160,21 @@ class TestMethods(base.BaseMethodsTests):
     def test_value_counts_with_normalize(self, data):
         pass
 
-    def test_insert_invalid(self, data, invalid_scalar, request):
-        if data.dtype.storage == "pyarrow":
-            mark = pytest.mark.xfail(reason="casts invalid_scalar to string")
-            request.node.add_marker(mark)
-
-        super().test_insert_invalid(data, invalid_scalar)
-
 
 class TestCasting(base.BaseCastingTests):
     pass
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
-    def _compare_other(self, s, data, op_name, other):
+    def _compare_other(self, s, data, op, other):
+        op_name = f"__{op.__name__}__"
         result = getattr(s, op_name)(other)
         expected = getattr(s.astype(object), op_name)(other).astype("boolean")
         self.assert_series_equal(result, expected)
 
-    def test_compare_scalar(self, data, all_compare_operators):
-        op_name = all_compare_operators
+    def test_compare_scalar(self, data, comparison_op):
         s = pd.Series(data)
-        self._compare_other(s, data, op_name, "abc")
+        self._compare_other(s, data, comparison_op, "abc")
 
 
 class TestParsing(base.BaseParsingTests):

@@ -101,8 +101,9 @@ class NumericIndex(Index):
     _can_hold_strings = False
     _is_backward_compat_public_numeric_index: bool = True
 
+    # error: Signature of "_can_hold_na" incompatible with supertype "Index"
     @cache_readonly
-    def _can_hold_na(self) -> bool:
+    def _can_hold_na(self) -> bool:  # type: ignore[override]
         if is_float_dtype(self.dtype):
             return True
         else:
@@ -123,7 +124,9 @@ class NumericIndex(Index):
 
     @property
     def _engine_type(self):
-        return self._engine_types[self.dtype]
+        # error: Invalid index type "Union[dtype[Any], ExtensionDtype]" for
+        # "Dict[dtype[Any], Type[IndexEngine]]"; expected type "dtype[Any]"
+        return self._engine_types[self.dtype]  # type: ignore[index]
 
     @cache_readonly
     def inferred_type(self) -> str:
@@ -264,7 +267,8 @@ class NumericIndex(Index):
     # ----------------------------------------------------------------
     # Indexing Methods
 
-    @cache_readonly
+    # error: Decorated property not supported
+    @cache_readonly  # type: ignore[misc]
     @doc(Index._should_fallback_to_positional)
     def _should_fallback_to_positional(self) -> bool:
         return False

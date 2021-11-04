@@ -983,14 +983,14 @@ def periodarr_to_dt64arr(const int64_t[:] periodarr, int freq):
     """
     cdef:
         int64_t[:] out
-        Py_ssize_t i, l
+        Py_ssize_t i, N
 
     if freq < 6000:  # i.e. FR_DAY, hard-code to avoid need to cast
-        l = len(periodarr)
-        out = np.empty(l, dtype="i8")
+        N = len(periodarr)
+        out = np.empty(N, dtype="i8")
 
         # We get here with freqs that do not correspond to a datetime64 unit
-        for i in range(l):
+        for i in range(N):
             out[i] = period_ordinal_to_dt64(periodarr[i], freq)
 
         return out.base  # .base to access underlying np.ndarray
@@ -1657,8 +1657,12 @@ cdef class _Period(PeriodMixin):
         elif other is NaT:
             return _nat_scalar_rules[op]
         elif util.is_array(other):
-            # in particular ndarray[object]; see test_pi_cmp_period
-            return np.array([PyObject_RichCompare(self, x, op) for x in other])
+            # GH#44285
+            if cnp.PyArray_IsZeroDim(other):
+                return PyObject_RichCompare(self, other.item(), op)
+            else:
+                # in particular ndarray[object]; see test_pi_cmp_period
+                return np.array([PyObject_RichCompare(self, x, op) for x in other])
         return NotImplemented
 
     def __hash__(self):
@@ -2248,7 +2252,7 @@ cdef class _Period(PeriodMixin):
         return (Period, object_state)
 
     def strftime(self, fmt: str) -> str:
-        """
+        r"""
         Returns the string representation of the :class:`Period`, depending
         on the selected ``fmt``. ``fmt`` must be a string
         containing one or several directives.  The method recognizes the same

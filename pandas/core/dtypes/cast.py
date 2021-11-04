@@ -1526,7 +1526,7 @@ def maybe_infer_to_datetimelike(
         try:
             # GH#19671 we pass require_iso8601 to be relatively strict
             #  when parsing strings.
-            dta = sequence_to_datetimes(v, require_iso8601=True, allow_object=True)
+            dta = sequence_to_datetimes(v, require_iso8601=True, allow_object=False)
         except (ValueError, TypeError):
             # e.g. <class 'numpy.timedelta64'> is not convertible to datetime
             return v.reshape(shape)
@@ -1590,7 +1590,7 @@ def maybe_infer_to_datetimelike(
         warnings.warn(
             f"Inferring {value.dtype} from data containing strings is deprecated "
             "and will be removed in a future version. To retain the old behavior "
-            "explicitly pass Series(data, dtype={value.dtype})",
+            f"explicitly pass Series(data, dtype={value.dtype})",
             FutureWarning,
             stacklevel=find_stack_level(),
         )
@@ -2197,6 +2197,9 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
     tipo = maybe_infer_dtype_type(element)
 
     if dtype.kind in ["i", "u"]:
+        if isinstance(element, range):
+            return _dtype_can_hold_range(element, dtype)
+
         if tipo is not None:
             if tipo.kind not in ["i", "u"]:
                 if is_float(element) and element.is_integer():
@@ -2209,6 +2212,7 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
                 # i.e. nullable IntegerDtype; we can put this into an ndarray
                 #  losslessly iff it has no NAs
                 return not element._mask.any()
+
             return True
 
         # We have not inferred an integer from the dtype
@@ -2249,3 +2253,14 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
         return isinstance(element, bytes) and len(element) <= dtype.itemsize
 
     raise NotImplementedError(dtype)
+
+
+def _dtype_can_hold_range(rng: range, dtype: np.dtype) -> bool:
+    """
+    maybe_infer_dtype_type infers to int64 (and float64 for very large endpoints),
+    but in many cases a range can be held by a smaller integer dtype.
+    Check if this is one of those cases.
+    """
+    if not len(rng):
+        return True
+    return np.can_cast(rng[0], dtype) and np.can_cast(rng[-1], dtype)
