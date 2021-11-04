@@ -96,7 +96,10 @@ from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.reshape.concat import concat
 
-from pandas.io.common import stringify_path
+from pandas.io.common import (
+    check_parent_directory,
+    stringify_path,
+)
 from pandas.io.formats.printing import (
     adjoin,
     justify,
@@ -478,6 +481,77 @@ def get_adjustment() -> TextAdjustment:
         return EastAsianTextAdjustment()
     else:
         return TextAdjustment()
+
+
+def get_dataframe_repr_params() -> dict[str, Any]:
+    """Get the parameters used to repr(dataFrame) calls using DataFrame.to_string.
+
+    Supplying these parameters to DataFrame.to_string is equivalent to calling
+    ``repr(DataFrame)``. This is useful if you want to adjust the repr output.
+
+    .. versionadded:: 1.4.0
+
+    Example
+    -------
+    >>> import pandas as pd
+    >>>
+    >>> df = pd.DataFrame([[1, 2], [3, 4]])
+    >>> repr_params = pd.io.formats.format.get_dataframe_repr_params()
+    >>> repr(df) == df.to_string(**repr_params)
+    True
+    """
+    from pandas.io.formats import console
+
+    if get_option("display.expand_frame_repr"):
+        line_width, _ = console.get_console_size()
+    else:
+        line_width = None
+    return {
+        "max_rows": get_option("display.max_rows"),
+        "min_rows": get_option("display.min_rows"),
+        "max_cols": get_option("display.max_columns"),
+        "max_colwidth": get_option("display.max_colwidth"),
+        "show_dimensions": get_option("display.show_dimensions"),
+        "line_width": line_width,
+    }
+
+
+def get_series_repr_params() -> dict[str, Any]:
+    """Get the parameters used to repr(Series) calls using Series.to_string.
+
+    Supplying these parameters to Series.to_string is equivalent to calling
+    ``repr(series)``. This is useful if you want to adjust the series repr output.
+
+    .. versionadded:: 1.4.0
+
+    Example
+    -------
+    >>> import pandas as pd
+    >>>
+    >>> ser = pd.Series([1, 2, 3, 4])
+    >>> repr_params = pd.io.formats.format.get_series_repr_params()
+    >>> repr(ser) == ser.to_string(**repr_params)
+    True
+    """
+    width, height = get_terminal_size()
+    max_rows = (
+        height
+        if get_option("display.max_rows") == 0
+        else get_option("display.max_rows")
+    )
+    min_rows = (
+        height
+        if get_option("display.max_rows") == 0
+        else get_option("display.min_rows")
+    )
+
+    return {
+        "name": True,
+        "dtype": True,
+        "min_rows": min_rows,
+        "max_rows": max_rows,
+        "length": get_option("display.show_dimensions"),
+    }
 
 
 class DataFrameFormatter:
@@ -873,7 +947,7 @@ class DataFrameFormatter:
             need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
             str_columns = [
                 [" " + x if not self._get_formatter(i) and need_leadsp[x] else x]
-                for i, (col, x) in enumerate(zip(columns, fmt_columns))
+                for i, x in enumerate(fmt_columns)
             ]
         # self.str_columns = str_columns
         return str_columns
@@ -1147,6 +1221,7 @@ def get_buffer(buf: FilePathOrBuffer[str] | None, encoding: str | None = None):
     if hasattr(buf, "write"):
         yield buf
     elif isinstance(buf, str):
+        check_parent_directory(str(buf))
         with open(buf, "w", encoding=encoding, newline="") as f:
             # GH#30034 open instead of codecs.open prevents a file leak
             #  if we have an invalid encoding argument.

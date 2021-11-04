@@ -1,5 +1,6 @@
 from textwrap import dedent
 
+import numpy as np
 import pytest
 
 from pandas import (
@@ -302,6 +303,35 @@ def test_multiindex_row_and_col(df_ext):
     assert result == expected
 
 
+@pytest.mark.parametrize(
+    "multicol_align, siunitx, header",
+    [
+        ("naive-l", False, " & A & &"),
+        ("naive-r", False, " & & & A"),
+        ("naive-l", True, "{} & {A} & {} & {}"),
+        ("naive-r", True, "{} & {} & {} & {A}"),
+    ],
+)
+def test_multicol_naive(df, multicol_align, siunitx, header):
+    ridx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("A", "c")])
+    df.columns = ridx
+    level1 = " & a & b & c" if not siunitx else "{} & {a} & {b} & {c}"
+    col_format = "lrrl" if not siunitx else "lSSl"
+    expected = dedent(
+        f"""\
+        \\begin{{tabular}}{{{col_format}}}
+        {header} \\\\
+        {level1} \\\\
+        0 & 0 & -0.61 & ab \\\\
+        1 & 1 & -1.22 & cd \\\\
+        \\end{{tabular}}
+        """
+    )
+    styler = df.style.format(precision=2)
+    result = styler.to_latex(multicol_align=multicol_align, siunitx=siunitx)
+    assert expected == result
+
+
 def test_multi_options(df_ext):
     cidx = MultiIndex.from_tuples([("Z", "a"), ("Z", "b"), ("Y", "c")])
     ridx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
@@ -331,7 +361,7 @@ def test_multiindex_columns_hidden():
     s = df.style
     assert "{tabular}{lrrrr}" in s.to_latex()
     s.set_table_styles([])  # reset the position command
-    s.hide_columns([("A", 2)])
+    s.hide([("A", 2)], axis="columns")
     assert "{tabular}{lrrr}" in s.to_latex()
 
 
@@ -357,7 +387,7 @@ def test_sparse_options(df_ext, option, value):
 
 
 def test_hidden_index(styler):
-    styler.hide_index()
+    styler.hide(axis="index")
     expected = dedent(
         """\
         \\begin{tabular}{rrl}
@@ -723,7 +753,7 @@ def test_apply_map_header_render_mi(df_ext, index, columns, siunitx):
     expected_index = dedent(
         """\
     \\multirow[c]{2}{*}{\\bfseries{A}} & a & 0 & -0.610000 & ab \\\\
-     & b & 1 & -1.220000 & cd \\\\
+    \\bfseries{} & b & 1 & -1.220000 & cd \\\\
     B & \\bfseries{c} & 2 & -2.220000 & de \\\\
     """
     )
@@ -750,6 +780,68 @@ def test_repr_option(styler):
         assert styler._repr_html_() is None
 
 
+@pytest.mark.parametrize("option", ["hrules"])
+def test_bool_options(styler, option):
+    with option_context(f"styler.latex.{option}", False):
+        latex_false = styler.to_latex()
+    with option_context(f"styler.latex.{option}", True):
+        latex_true = styler.to_latex()
+    assert latex_false != latex_true  # options are reactive under to_latex(*no_args)
+
+
 def test_siunitx_basic_headers(styler):
     assert "{} & {A} & {B} & {C} \\\\" in styler.to_latex(siunitx=True)
     assert " & A & B & C \\\\" in styler.to_latex()  # default siunitx=False
+
+
+@pytest.mark.parametrize("axis", ["index", "columns"])
+def test_css_convert_apply_index(styler, axis):
+    styler.applymap_index(lambda x: "font-weight: bold;", axis=axis)
+    for label in getattr(styler, axis):
+        assert f"\\bfseries {label}" in styler.to_latex(convert_css=True)
+
+
+def test_hide_index_latex(styler):
+    # GH 43637
+    styler.hide_index([0])
+    result = styler.to_latex()
+    expected = dedent(
+        """\
+    \\begin{tabular}{lrrl}
+     & A & B & C \\\\
+    1 & 1 & -1.22 & cd \\\\
+    \\end{tabular}
+    """
+    )
+    assert expected == result
+
+
+def test_latex_hiding_index_columns_multiindex_alignment():
+    # gh 43644
+    midx = MultiIndex.from_product(
+        [["i0", "j0"], ["i1"], ["i2", "j2"]], names=["i-0", "i-1", "i-2"]
+    )
+    cidx = MultiIndex.from_product(
+        [["c0"], ["c1", "d1"], ["c2", "d2"]], names=["c-0", "c-1", "c-2"]
+    )
+    df = DataFrame(np.arange(16).reshape(4, 4), index=midx, columns=cidx)
+    styler = Styler(df, uuid_len=0)
+    styler.hide_index(level=1).hide_columns(level=0)
+    styler.hide_index([("i0", "i1", "i2")])
+    styler.hide_columns([("c0", "c1", "c2")])
+    styler.applymap(lambda x: "color:{red};" if x == 5 else "")
+    styler.applymap_index(lambda x: "color:{blue};" if "j" in x else "")
+    result = styler.to_latex()
+    expected = dedent(
+        """\
+        \\begin{tabular}{llrrr}
+         & c-1 & c1 & \\multicolumn{2}{r}{d1} \\\\
+         & c-2 & d2 & c2 & d2 \\\\
+        i-0 & i-2 &  &  &  \\\\
+        i0 & \\color{blue} j2 & \\color{red} 5 & 6 & 7 \\\\
+        \\multirow[c]{2}{*}{\\color{blue} j0} & i2 & 9 & 10 & 11 \\\\
+        \\color{blue}  & \\color{blue} j2 & 13 & 14 & 15 \\\\
+        \\end{tabular}
+        """
+    )
+    assert result == expected

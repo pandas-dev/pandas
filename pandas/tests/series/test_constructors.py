@@ -13,6 +13,7 @@ from pandas._libs import (
     iNaT,
     lib,
 )
+from pandas.compat.numpy import np_version_under1p19
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
@@ -1044,6 +1045,18 @@ class TestSeriesConstructors:
         expected = Series(DatetimeIndex(["NaT", "NaT"], tz="US/Eastern"))
         tm.assert_series_equal(s, expected)
 
+    def test_constructor_no_partial_datetime_casting(self):
+        # GH#40111
+        vals = [
+            "nan",
+            Timestamp("1990-01-01"),
+            "2015-03-14T16:15:14.123-08:00",
+            "2019-03-04T21:56:32.620-07:00",
+            None,
+        ]
+        ser = Series(vals)
+        assert all(ser[i] is vals[i] for i in range(len(vals)))
+
     @pytest.mark.parametrize("arr_dtype", [np.int64, np.float64])
     @pytest.mark.parametrize("dtype", ["M8", "m8"])
     @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s", "h", "m", "D"])
@@ -1840,3 +1853,25 @@ def test_constructor(rand_series_with_duplicate_datetimeindex):
     dups = rand_series_with_duplicate_datetimeindex
     assert isinstance(dups, Series)
     assert isinstance(dups.index, DatetimeIndex)
+
+
+@pytest.mark.parametrize(
+    "input_dict,expected",
+    [
+        ({0: 0}, np.array([[0]], dtype=np.int64)),
+        ({"a": "a"}, np.array([["a"]], dtype=object)),
+        ({1: 1}, np.array([[1]], dtype=np.int64)),
+    ],
+)
+@pytest.mark.skipif(np_version_under1p19, reason="fails on numpy below 1.19")
+def test_numpy_array(input_dict, expected):
+    result = np.array([Series(input_dict)])
+    tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.skipif(
+    not np_version_under1p19, reason="check failure on numpy below 1.19"
+)
+def test_numpy_array_np_v1p19():
+    with pytest.raises(KeyError, match="0"):
+        np.array([Series({1: 1})])

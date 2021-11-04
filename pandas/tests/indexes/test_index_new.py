@@ -224,6 +224,14 @@ class TestDtypeEnforced:
         expected = dti.to_period("D")
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.parametrize("dtype", ["int64", "uint64"])
+    def test_constructor_int_dtype_nan_raises(self, dtype):
+        # see GH#15187
+        data = [np.nan]
+        msg = "cannot convert"
+        with pytest.raises(ValueError, match=msg):
+            Index(data, dtype=dtype)
+
 
 class TestIndexConstructorUnwrapping:
     # Test passing different arraylike values to pd.Index
@@ -234,4 +242,33 @@ class TestIndexConstructorUnwrapping:
         expected = DatetimeIndex(stamps)
         ser = Series(stamps)
         result = klass(ser)
+        tm.assert_index_equal(result, expected)
+
+    def test_constructor_no_pandas_array(self):
+        ser = Series([1, 2, 3])
+        result = Index(ser.array)
+        expected = Index([1, 2, 3])
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "array",
+        [
+            np.arange(5),
+            np.array(["a", "b", "c"]),
+            date_range("2000-01-01", periods=3).values,
+        ],
+    )
+    def test_constructor_ndarray_like(self, array):
+        # GH#5460#issuecomment-44474502
+        # it should be possible to convert any object that satisfies the numpy
+        # ndarray interface directly into an Index
+        class ArrayLike:
+            def __init__(self, array):
+                self.array = array
+
+            def __array__(self, dtype=None) -> np.ndarray:
+                return self.array
+
+        expected = Index(array)
+        result = Index(ArrayLike(array))
         tm.assert_index_equal(result, expected)

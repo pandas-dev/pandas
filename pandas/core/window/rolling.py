@@ -27,7 +27,8 @@ import pandas._libs.window.aggregations as window_aggregations
 from pandas._typing import (
     ArrayLike,
     Axis,
-    FrameOrSeries,
+    NDFrameT,
+    WindowingRankType,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -48,6 +49,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import notna
 
+from pandas.core._numba import executor
 from pandas.core.algorithms import factorize
 from pandas.core.apply import ResamplerWindowApply
 from pandas.core.arrays import ExtensionArray
@@ -102,6 +104,7 @@ if TYPE_CHECKING:
         DataFrame,
         Series,
     )
+    from pandas.core.generic import NDFrame
     from pandas.core.groupby.ops import BaseGrouper
     from pandas.core.internals import Block  # noqa:F401
 
@@ -115,7 +118,7 @@ class BaseWindow(SelectionMixin):
 
     def __init__(
         self,
-        obj: FrameOrSeries,
+        obj: NDFrame,
         window=None,
         min_periods: int | None = None,
         center: bool = False,
@@ -133,7 +136,7 @@ class BaseWindow(SelectionMixin):
         self.window = window
         self.min_periods = min_periods
         self.center = center
-        # TODO: Change this back to self.win_type once deprecation is enforced
+        # TODO(2.0): Change this back to self.win_type once deprecation is enforced
         self._win_type = win_type
         self.axis = obj._get_axis_number(axis) if axis is not None else None
         self.method = method
@@ -155,7 +158,7 @@ class BaseWindow(SelectionMixin):
             )
 
         self._selection = selection
-        self.validate()
+        self._validate()
 
     @property
     def win_type(self):
@@ -179,6 +182,14 @@ class BaseWindow(SelectionMixin):
         return self._win_freq_i8 is not None
 
     def validate(self) -> None:
+        warnings.warn(
+            "validate is deprecated and will be removed in a future version.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self._validate()
+
+    def _validate(self) -> None:
         if self.center is not None and not is_bool(self.center):
             raise ValueError("center must be a boolean")
         if self.min_periods is not None:
@@ -216,7 +227,7 @@ class BaseWindow(SelectionMixin):
         if self.method not in ["table", "single"]:
             raise ValueError("method must be 'table' or 'single")
 
-    def _create_data(self, obj: FrameOrSeries) -> FrameOrSeries:
+    def _create_data(self, obj: NDFrameT) -> NDFrameT:
         """
         Split data into blocks & return conformed data.
         """
@@ -251,7 +262,7 @@ class BaseWindow(SelectionMixin):
         # we need to make a shallow copy of ourselves
         # with the same groupby
         with warnings.catch_warnings():
-            # TODO: Remove once win_type deprecation is enforced
+            # TODO(2.0): Remove once win_type deprecation is enforced
             warnings.filterwarnings("ignore", "win_type", FutureWarning)
             kwargs = {attr: getattr(self, attr) for attr in self._attributes}
 
@@ -290,8 +301,8 @@ class BaseWindow(SelectionMixin):
         return f"{type(self).__name__} [{attrs}]"
 
     def __iter__(self):
-        obj = self._create_data(self._selected_obj)
-        obj = obj.set_axis(self._on)
+        obj = self._selected_obj.set_axis(self._on)
+        obj = self._create_data(obj)
         indexer = self._get_window_indexer()
 
         start, end = indexer.get_window_bounds(
@@ -300,8 +311,10 @@ class BaseWindow(SelectionMixin):
             center=self.center,
             closed=self.closed,
         )
-        # From get_window_bounds, those two should be equal in length of array
-        assert len(start) == len(end)
+
+        assert len(start) == len(
+            end
+        ), "these should be equal in length from get_window_bounds"
 
         for s, e in zip(start, end):
             result = obj.iloc[slice(s, e)]
@@ -552,6 +565,10 @@ class BaseWindow(SelectionMixin):
                     center=self.center,
                     closed=self.closed,
                 )
+                assert len(start) == len(
+                    end
+                ), "these should be equal in length from get_window_bounds"
+
                 return func(x, start, end, min_periods, *numba_args)
 
             with np.errstate(all="ignore"):
@@ -566,6 +583,44 @@ class BaseWindow(SelectionMixin):
             return self._apply_blockwise(homogeneous_func, name)
         else:
             return self._apply_tablewise(homogeneous_func, name)
+
+    def _numba_apply(
+        self,
+        func: Callable[..., Any],
+        numba_cache_key_str: str,
+        engine_kwargs: dict[str, bool] | None = None,
+    ):
+        window_indexer = self._get_window_indexer()
+        min_periods = (
+            self.min_periods
+            if self.min_periods is not None
+            else window_indexer.window_size
+        )
+        obj = self._create_data(self._selected_obj)
+        if self.axis == 1:
+            obj = obj.T
+        values = self._prep_values(obj.to_numpy())
+        if values.ndim == 1:
+            values = values.reshape(-1, 1)
+        start, end = window_indexer.get_window_bounds(
+            num_values=len(values),
+            min_periods=min_periods,
+            center=self.center,
+            closed=self.closed,
+        )
+        aggregator = executor.generate_shared_aggregator(
+            func, engine_kwargs, numba_cache_key_str
+        )
+        result = aggregator(values, start, end, min_periods)
+        NUMBA_FUNC_CACHE[(func, numba_cache_key_str)] = aggregator
+        result = result.T if self.axis == 1 else result
+        if obj.ndim == 1:
+            result = result.squeeze()
+            out = obj._constructor(result, index=obj.index, name=obj.name)
+            return out
+        else:
+            out = obj._constructor(result, index=obj.index, columns=obj.columns)
+            return self._resolve_output(out, obj)
 
     def aggregate(self, func, *args, **kwargs):
         result = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
@@ -583,11 +638,11 @@ class BaseWindowGroupby(BaseWindow):
 
     _grouper: BaseGrouper
     _as_index: bool
-    _attributes = ["_grouper"]
+    _attributes: list[str] = ["_grouper"]
 
     def __init__(
         self,
-        obj: FrameOrSeries,
+        obj: DataFrame | Series,
         *args,
         _grouper: BaseGrouper,
         _as_index: bool = True,
@@ -612,7 +667,7 @@ class BaseWindowGroupby(BaseWindow):
         numba_cache_key: tuple[Callable, str] | None = None,
         numba_args: tuple[Any, ...] = (),
         **kwargs,
-    ) -> FrameOrSeries:
+    ) -> DataFrame | Series:
         result = super()._apply(
             func,
             name,
@@ -678,6 +733,7 @@ class BaseWindowGroupby(BaseWindow):
         """
         # Manually drop the grouping column first
         target = target.drop(columns=self._grouper.names, errors="ignore")
+        target = self._create_data(target)
         result = super()._apply_pairwise(target, other, pairwise, func)
         # 1) Determine the levels + codes of the groupby levels
         if other is not None:
@@ -747,7 +803,7 @@ class BaseWindowGroupby(BaseWindow):
         result.index = result_index
         return result
 
-    def _create_data(self, obj: FrameOrSeries) -> FrameOrSeries:
+    def _create_data(self, obj: NDFrameT) -> NDFrameT:
         """
         Split data into blocks & return conformed data.
         """
@@ -784,52 +840,89 @@ class Window(BaseWindow):
     Parameters
     ----------
     window : int, offset, or BaseIndexer subclass
-        Size of the moving window. This is the number of observations used for
-        calculating the statistic. Each window will be a fixed size.
+        Size of the moving window.
 
-        If its an offset then this will be the time period of each window. Each
+        If an integer, the fixed number of observations used for
+        each window.
+
+        If an offset, the time period of each window. Each
         window will be a variable sized based on the observations included in
         the time-period. This is only valid for datetimelike indexes.
+        To learn more about the offsets & frequency strings, please see `this link
+        <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
 
-        If a BaseIndexer subclass is passed, calculates the window boundaries
+        If a BaseIndexer subclass, the window boundaries
         based on the defined ``get_window_bounds`` method. Additional rolling
-        keyword arguments, namely `min_periods`, `center`, and
-        `closed` will be passed to `get_window_bounds`.
+        keyword arguments, namely ``min_periods``, ``center``, and
+        ``closed`` will be passed to ``get_window_bounds``.
+
     min_periods : int, default None
-        Minimum number of observations in window required to have a value
-        (otherwise result is NA). For a window that is specified by an offset,
-        `min_periods` will default to 1. Otherwise, `min_periods` will default
+        Minimum number of observations in window required to have a value;
+        otherwise, result is ``np.nan``.
+
+        For a window that is specified by an offset, ``min_periods`` will default to 1.
+
+        For a window that is specified by an integer, ``min_periods`` will default
         to the size of the window.
+
     center : bool, default False
-        Set the labels at the center of the window.
+        If False, set the window labels as the right edge of the window index.
+
+        If True, set the window labels as the center of the window index.
+
     win_type : str, default None
-        Provide a window type. If ``None``, all points are evenly weighted.
-        See the notes below for further information.
+        If ``None``, all points are evenly weighted.
+
+        If a string, it must be a valid `scipy.signal window function
+        <https://docs.scipy.org/doc/scipy/reference/signal.windows.html#module-scipy.signal.windows>`__.
+
+        Certain Scipy window types require additional parameters to be passed
+        in the aggregation function. The additional parameters must match
+        the keywords specified in the Scipy window type method signature.
+
     on : str, optional
-        For a DataFrame, a datetime-like column or Index level on which
+        For a DataFrame, a column label or Index level on which
         to calculate the rolling window, rather than the DataFrame's index.
+
         Provided integer column is ignored and excluded from result since
         an integer index is not used to calculate the rolling window.
+
     axis : int or str, default 0
+        If ``0`` or ``'index'``, roll across the rows.
+
+        If ``1`` or ``'columns'``, roll across the columns.
+
     closed : str, default None
-        Make the interval closed on the 'right', 'left', 'both' or
-        'neither' endpoints. Defaults to 'right'.
+        If ``'right'``, the first point in the window is excluded from calculations.
+
+        If ``'left'``, the last point in the window is excluded from calculations.
+
+        If ``'both'``, the no points in the window are excluded from calculations.
+
+        If ``'neither'``, the first and last points in the window are excluded
+        from calculations.
+
+        Default ``None`` (``'right'``)
 
         .. versionchanged:: 1.2.0
 
             The closed parameter with fixed windows is now supported.
+
     method : str {'single', 'table'}, default 'single'
+
+        .. versionadded:: 1.3.0
+
         Execute the rolling operation per single column or row (``'single'``)
         or over the entire object (``'table'``).
 
         This argument is only implemented when specifying ``engine='numba'``
         in the method call.
 
-        .. versionadded:: 1.3.0
-
     Returns
     -------
-    a Window or Rolling sub-classed for the particular operation
+    ``Window`` subclass if a ``win_type`` is passed
+
+    ``Rolling`` subclass if ``win_type`` is not passed
 
     See Also
     --------
@@ -838,20 +931,8 @@ class Window(BaseWindow):
 
     Notes
     -----
-    By default, the result is set to the right edge of the window. This can be
-    changed to the center of the window by setting ``center=True``.
-
-    To learn more about the offsets & frequency strings, please see `this link
-    <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
-
-    If ``win_type=None``, all points are evenly weighted; otherwise, ``win_type``
-    can accept a string of any `scipy.signal window function
-    <https://docs.scipy.org/doc/scipy/reference/signal.windows.html#module-scipy.signal.windows>`__.
-
-    Certain Scipy window types require additional parameters to be passed
-    in the aggregation function. The additional parameters must match
-    the keywords specified in the Scipy window type method signature.
-    Please see the third example below on how to add the additional parameters.
+    See :ref:`Windowing Operations <window.generic>` for further usage details
+    and examples.
 
     Examples
     --------
@@ -864,30 +945,9 @@ class Window(BaseWindow):
     3  NaN
     4  4.0
 
-    Rolling sum with a window length of 2, using the 'triang'
-    window type.
+    **window**
 
-    >>> df.rolling(2, win_type='triang').sum()
-         B
-    0  NaN
-    1  0.5
-    2  1.5
-    3  NaN
-    4  NaN
-
-    Rolling sum with a window length of 2, using the 'gaussian'
-    window type (note how we need to specify std).
-
-    >>> df.rolling(2, win_type='gaussian').sum(std=3)
-              B
-    0       NaN
-    1  0.986207
-    2  2.958621
-    3       NaN
-    4       NaN
-
-    Rolling sum with a window length of 2, min_periods defaults
-    to the window length.
+    Rolling sum with a window length of 2 observations.
 
     >>> df.rolling(2).sum()
          B
@@ -897,17 +957,32 @@ class Window(BaseWindow):
     3  NaN
     4  NaN
 
-    Same as above, but explicitly set the min_periods
+    Rolling sum with a window span of 2 seconds.
 
-    >>> df.rolling(2, min_periods=1).sum()
-         B
-    0  0.0
-    1  1.0
-    2  3.0
-    3  2.0
-    4  4.0
+    >>> df_time = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]},
+    ...                        index = [pd.Timestamp('20130101 09:00:00'),
+    ...                                 pd.Timestamp('20130101 09:00:02'),
+    ...                                 pd.Timestamp('20130101 09:00:03'),
+    ...                                 pd.Timestamp('20130101 09:00:05'),
+    ...                                 pd.Timestamp('20130101 09:00:06')])
 
-    Same as above, but with forward-looking windows
+    >>> df_time
+                           B
+    2013-01-01 09:00:00  0.0
+    2013-01-01 09:00:02  1.0
+    2013-01-01 09:00:03  2.0
+    2013-01-01 09:00:05  NaN
+    2013-01-01 09:00:06  4.0
+
+    >>> df_time.rolling('2s').sum()
+                           B
+    2013-01-01 09:00:00  0.0
+    2013-01-01 09:00:02  1.0
+    2013-01-01 09:00:03  3.0
+    2013-01-01 09:00:05  NaN
+    2013-01-01 09:00:06  4.0
+
+    Rolling sum with forward looking windows with 2 observations.
 
     >>> indexer = pd.api.indexers.FixedForwardWindowIndexer(window_size=2)
     >>> df.rolling(window=indexer, min_periods=1).sum()
@@ -918,34 +993,51 @@ class Window(BaseWindow):
     3  4.0
     4  4.0
 
-    A ragged (meaning not-a-regular frequency), time-indexed DataFrame
+    **min_periods**
 
-    >>> df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]},
-    ...                   index = [pd.Timestamp('20130101 09:00:00'),
-    ...                            pd.Timestamp('20130101 09:00:02'),
-    ...                            pd.Timestamp('20130101 09:00:03'),
-    ...                            pd.Timestamp('20130101 09:00:05'),
-    ...                            pd.Timestamp('20130101 09:00:06')])
+    Rolling sum with a window length of 2 observations, but only needs a minimum of 1
+    observation to calculate a value.
 
-    >>> df
-                           B
-    2013-01-01 09:00:00  0.0
-    2013-01-01 09:00:02  1.0
-    2013-01-01 09:00:03  2.0
-    2013-01-01 09:00:05  NaN
-    2013-01-01 09:00:06  4.0
+    >>> df.rolling(2, min_periods=1).sum()
+         B
+    0  0.0
+    1  1.0
+    2  3.0
+    3  2.0
+    4  4.0
 
-    Contrasting to an integer rolling window, this will roll a variable
-    length window corresponding to the time period.
-    The default for min_periods is 1.
+    **center**
 
-    >>> df.rolling('2s').sum()
-                           B
-    2013-01-01 09:00:00  0.0
-    2013-01-01 09:00:02  1.0
-    2013-01-01 09:00:03  3.0
-    2013-01-01 09:00:05  NaN
-    2013-01-01 09:00:06  4.0
+    Rolling sum with the result assigned to the center of the window index.
+
+    >>> df.rolling(3, min_periods=1, center=True).sum()
+         B
+    0  1.0
+    1  3.0
+    2  3.0
+    3  6.0
+    4  4.0
+
+    >>> df.rolling(3, min_periods=1, center=False).sum()
+         B
+    0  0.0
+    1  1.0
+    2  3.0
+    3  3.0
+    4  6.0
+
+    **win_type**
+
+    Rolling sum with a window length of 2, using the Scipy ``'gaussian'``
+    window type. ``std`` is required in the aggregation function.
+
+    >>> df.rolling(2, win_type='gaussian').sum(std=3)
+              B
+    0       NaN
+    1  0.986207
+    2  2.958621
+    3       NaN
+    4       NaN
     """
 
     _attributes = [
@@ -959,8 +1051,8 @@ class Window(BaseWindow):
         "method",
     ]
 
-    def validate(self):
-        super().validate()
+    def _validate(self):
+        super()._validate()
 
         if not isinstance(self.win_type, str):
             raise ValueError(f"Invalid win_type {self.win_type}")
@@ -1253,15 +1345,16 @@ class RollingAndExpandingMixin(BaseWindow):
         if maybe_use_numba(engine):
             if self.method == "table":
                 func = generate_manual_numpy_nan_agg_with_axis(np.nansum)
+                return self.apply(
+                    func,
+                    raw=True,
+                    engine=engine,
+                    engine_kwargs=engine_kwargs,
+                )
             else:
-                func = np.nansum
+                from pandas.core._numba.kernels import sliding_sum
 
-            return self.apply(
-                func,
-                raw=True,
-                engine=engine,
-                engine_kwargs=engine_kwargs,
-            )
+                return self._numba_apply(sliding_sum, "rolling_sum", engine_kwargs)
         window_func = window_aggregations.roll_sum
         return self._apply(window_func, name="sum", **kwargs)
 
@@ -1322,15 +1415,16 @@ class RollingAndExpandingMixin(BaseWindow):
         if maybe_use_numba(engine):
             if self.method == "table":
                 func = generate_manual_numpy_nan_agg_with_axis(np.nanmean)
+                return self.apply(
+                    func,
+                    raw=True,
+                    engine=engine,
+                    engine_kwargs=engine_kwargs,
+                )
             else:
-                func = np.nanmean
+                from pandas.core._numba.kernels import sliding_mean
 
-            return self.apply(
-                func,
-                raw=True,
-                engine=engine,
-                engine_kwargs=engine_kwargs,
-            )
+                return self._numba_apply(sliding_mean, "rolling_mean", engine_kwargs)
         window_func = window_aggregations.roll_mean
         return self._apply(window_func, name="mean", **kwargs)
 
@@ -1410,6 +1504,22 @@ class RollingAndExpandingMixin(BaseWindow):
 
         return self._apply(window_func, name="quantile", **kwargs)
 
+    def rank(
+        self,
+        method: WindowingRankType = "average",
+        ascending: bool = True,
+        pct: bool = False,
+        **kwargs,
+    ):
+        window_func = partial(
+            window_aggregations.roll_rank,
+            method=method,
+            ascending=ascending,
+            percentile=pct,
+        )
+
+        return self._apply(window_func, name="rank", **kwargs)
+
     def cov(
         self,
         other: DataFrame | Series | None = None,
@@ -1434,6 +1544,11 @@ class RollingAndExpandingMixin(BaseWindow):
                 center=self.center,
                 closed=self.closed,
             )
+
+            assert len(start) == len(
+                end
+            ), "these should be equal in length from get_window_bounds"
+
             with np.errstate(all="ignore"):
                 mean_x_y = window_aggregations.roll_mean(
                     x_array * y_array, start, end, min_periods
@@ -1473,6 +1588,11 @@ class RollingAndExpandingMixin(BaseWindow):
                 center=self.center,
                 closed=self.closed,
             )
+
+            assert len(start) == len(
+                end
+            ), "these should be equal in length from get_window_bounds"
+
             with np.errstate(all="ignore"):
                 mean_x_y = window_aggregations.roll_mean(
                     x_array * y_array, start, end, min_periods
@@ -1500,7 +1620,7 @@ class RollingAndExpandingMixin(BaseWindow):
 
 class Rolling(RollingAndExpandingMixin):
 
-    _attributes = [
+    _attributes: list[str] = [
         "window",
         "min_periods",
         "center",
@@ -1511,8 +1631,8 @@ class Rolling(RollingAndExpandingMixin):
         "method",
     ]
 
-    def validate(self):
-        super().validate()
+    def _validate(self):
+        super()._validate()
 
         # we allow rolling on a datetimelike index
         if (
@@ -2163,6 +2283,81 @@ class Rolling(RollingAndExpandingMixin):
 
     @doc(
         template_header,
+        ".. versionadded:: 1.4.0 \n\n",
+        create_section_header("Parameters"),
+        dedent(
+            """
+        method : {{'average', 'min', 'max'}}, default 'average'
+            How to rank the group of records that have the same value (i.e. ties):
+
+            * average: average rank of the group
+            * min: lowest rank in the group
+            * max: highest rank in the group
+
+        ascending : bool, default True
+            Whether or not the elements should be ranked in ascending order.
+        pct : bool, default False
+            Whether or not to display the returned rankings in percentile
+            form.
+        """
+        ).replace("\n", "", 1),
+        kwargs_compat,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        template_see_also,
+        create_section_header("Examples"),
+        dedent(
+            """
+        >>> s = pd.Series([1, 4, 2, 3, 5, 3])
+        >>> s.rolling(3).rank()
+        0    NaN
+        1    NaN
+        2    2.0
+        3    2.0
+        4    3.0
+        5    1.5
+        dtype: float64
+
+        >>> s.rolling(3).rank(method="max")
+        0    NaN
+        1    NaN
+        2    2.0
+        3    2.0
+        4    3.0
+        5    2.0
+        dtype: float64
+
+        >>> s.rolling(3).rank(method="min")
+        0    NaN
+        1    NaN
+        2    2.0
+        3    2.0
+        4    3.0
+        5    1.0
+        dtype: float64
+        """
+        ).replace("\n", "", 1),
+        window_method="rolling",
+        aggregation_description="rank",
+        agg_method="rank",
+    )
+    def rank(
+        self,
+        method: WindowingRankType = "average",
+        ascending: bool = True,
+        pct: bool = False,
+        **kwargs,
+    ):
+        return super().rank(
+            method=method,
+            ascending=ascending,
+            pct=pct,
+            **kwargs,
+        )
+
+    @doc(
+        template_header,
         create_section_header("Parameters"),
         dedent(
             """
@@ -2348,11 +2543,11 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
         index_array = self._index_array
         if isinstance(self.window, BaseIndexer):
             rolling_indexer = type(self.window)
-            indexer_kwargs = self.window.__dict__
+            indexer_kwargs = self.window.__dict__.copy()
             assert isinstance(indexer_kwargs, dict)  # for mypy
             # We'll be using the index of each group later
             indexer_kwargs.pop("index_array", None)
-            window = 0
+            window = self.window
         elif self._win_freq_i8 is not None:
             rolling_indexer = VariableWindowIndexer
             window = self._win_freq_i8
@@ -2362,7 +2557,7 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
         window_indexer = GroupbyIndexer(
             index_array=index_array,
             window_size=window,
-            groupby_indicies=self._grouper.indices,
+            groupby_indices=self._grouper.indices,
             window_indexer=rolling_indexer,
             indexer_kwargs=indexer_kwargs,
         )

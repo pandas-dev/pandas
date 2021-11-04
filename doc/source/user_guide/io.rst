@@ -1208,6 +1208,10 @@ Returning Series
 Using the ``squeeze`` keyword, the parser will return output with a single column
 as a ``Series``:
 
+.. deprecated:: 1.4.0
+   Users should append ``.squeeze("columns")`` to the DataFrame returned by
+   ``read_csv`` instead.
+
 .. ipython:: python
    :suppress:
 
@@ -1217,6 +1221,7 @@ as a ``Series``:
        fh.write(data)
 
 .. ipython:: python
+   :okwarning:
 
    print(open("tmp.csv").read())
 
@@ -5265,15 +5270,6 @@ Several caveats:
   raise a helpful error message on an attempt at serialization.
 
 See the `Full Documentation <https://github.com/wesm/feather>`__.
-
-.. ipython:: python
-   :suppress:
-
-   import warnings
-
-   # This can be removed once building with pyarrow >=0.15.0
-   warnings.filterwarnings("ignore", "The Sparse", FutureWarning)
-
 
 .. ipython:: python
 

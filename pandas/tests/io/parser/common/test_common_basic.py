@@ -12,6 +12,7 @@ import sys
 import numpy as np
 import pytest
 
+from pandas.compat import PY310
 from pandas.errors import (
     EmptyDataError,
     ParserError,
@@ -128,7 +129,8 @@ def test_1000_sep(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-def test_squeeze(all_parsers):
+@pytest.mark.parametrize("squeeze", [True, False])
+def test_squeeze(all_parsers, squeeze):
     data = """\
 a,1
 b,2
@@ -138,13 +140,25 @@ c,3
     index = Index(["a", "b", "c"], name=0)
     expected = Series([1, 2, 3], name=1, index=index)
 
-    result = parser.read_csv(StringIO(data), index_col=0, header=None, squeeze=True)
-    tm.assert_series_equal(result, expected)
+    result = parser.read_csv_check_warnings(
+        FutureWarning,
+        "The squeeze argument has been deprecated "
+        "and will be removed in a future version.\n\n",
+        StringIO(data),
+        index_col=0,
+        header=None,
+        squeeze=squeeze,
+    )
+    if not squeeze:
+        expected = DataFrame(expected)
+        tm.assert_frame_equal(result, expected)
+    else:
+        tm.assert_series_equal(result, expected)
 
-    # see gh-8217
-    #
-    # Series should not be a view.
-    assert not result._is_view
+        # see gh-8217
+        #
+        # Series should not be a view.
+        assert not result._is_view
 
 
 @xfail_pyarrow
@@ -493,6 +507,14 @@ def test_raise_on_sep_with_delim_whitespace(all_parsers):
         parser.read_csv(StringIO(data), sep=r"\s", delim_whitespace=True)
 
 
+def test_read_filepath_or_buffer(all_parsers):
+    # see gh-43366
+    parser = all_parsers
+
+    with pytest.raises(TypeError, match="Expected file path name or file-like"):
+        parser.read_csv(filepath_or_buffer=b"input")
+
+
 @xfail_pyarrow
 @pytest.mark.parametrize("delim_whitespace", [True, False])
 def test_single_char_leading_whitespace(all_parsers, delim_whitespace):
@@ -653,6 +675,11 @@ def test_read_table_equivalency_to_read_csv(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.skipif(
+    PY310,
+    reason="GH41935 This test is leaking only on Python 3.10,"
+    "causing other tests to fail with a cryptic error.",
+)
 @pytest.mark.parametrize("read_func", ["read_csv", "read_table"])
 def test_read_csv_and_table_sys_setprofile(all_parsers, read_func):
     # GH#41069
@@ -847,12 +874,13 @@ def test_deprecated_bad_lines_warns(all_parsers, csv1, on_bad_lines):
     # GH 15122
     parser = all_parsers
     kwds = {f"{on_bad_lines}_bad_lines": False}
-    with tm.assert_produces_warning(
+    parser.read_csv_check_warnings(
         FutureWarning,
-        match=f"The {on_bad_lines}_bad_lines argument has been deprecated "
+        f"The {on_bad_lines}_bad_lines argument has been deprecated "
         "and will be removed in a future version.\n\n",
-    ):
-        parser.read_csv(csv1, **kwds)
+        csv1,
+        **kwds,
+    )
 
 
 def test_malformed_second_line(all_parsers):

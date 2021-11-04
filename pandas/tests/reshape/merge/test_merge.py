@@ -308,21 +308,8 @@ class TestMerge:
 
         merged = merge(left, right, left_index=True, right_index=True, copy=False)
 
-        if using_array_manager:
-            # With ArrayManager, setting a column doesn't change the values inplace
-            # and thus does not propagate the changes to the original left/right
-            # dataframes -> need to check that no copy was made in a different way
-            # TODO(ArrayManager) we should be able to simplify this with a .loc
-            #  setitem test: merged.loc[0, "a"] = 10; assert left.loc[0, "a"] == 10
-            #  but this currently replaces the array (_setitem_with_indexer_split_path)
-            assert merged._mgr.arrays[0] is left._mgr.arrays[0]
-            assert merged._mgr.arrays[2] is right._mgr.arrays[0]
-        else:
-            merged["a"] = 6
-            assert (left["a"] == 6).all()
-
-            merged["d"] = "peekaboo"
-            assert (right["d"] == "peekaboo").all()
+        assert np.shares_memory(merged["a"]._values, left["a"]._values)
+        assert np.shares_memory(merged["d"]._values, right["d"]._values)
 
     def test_intelligently_handle_join_key(self):
         # #733, be a bit more 1337 about not returning unconsolidated DataFrame
@@ -695,7 +682,7 @@ class TestMerge:
 
         assert isinstance(result, NotADataFrame)
 
-    def test_join_append_timedeltas(self, using_array_manager):
+    def test_join_append_timedeltas(self):
         # timedelta64 issues with join/merge
         # GH 5695
 
@@ -707,11 +694,9 @@ class TestMerge:
             {
                 "d": [datetime(2013, 11, 5, 5, 56), datetime(2013, 11, 5, 5, 56)],
                 "t": [timedelta(0, 22500), timedelta(0, 22500)],
-            }
+            },
+            dtype=object,
         )
-        if using_array_manager:
-            # TODO(ArrayManager) decide on exact casting rules in concat
-            expected = expected.astype(object)
         tm.assert_frame_equal(result, expected)
 
     def test_join_append_timedeltas2(self):
@@ -1697,6 +1682,39 @@ class TestMergeDtypes:
         expected = DataFrame(expected_data, columns=["A", "B", "C"])
         tm.assert_frame_equal(result, expected)
 
+    def test_merge_ea_with_string(self, join_type, string_dtype):
+        # GH 43734 Avoid the use of `assign` with multi-index
+        df1 = DataFrame(
+            data={
+                ("lvl0", "lvl1-a"): ["1", "2", "3", "4", None],
+                ("lvl0", "lvl1-b"): ["4", "5", "6", "7", "8"],
+            },
+            dtype=pd.StringDtype(),
+        )
+        df1_copy = df1.copy()
+        df2 = DataFrame(
+            data={
+                ("lvl0", "lvl1-a"): ["1", "2", "3", pd.NA, "5"],
+                ("lvl0", "lvl1-c"): ["7", "8", "9", pd.NA, "11"],
+            },
+            dtype=string_dtype,
+        )
+        df2_copy = df2.copy()
+        merged = merge(left=df1, right=df2, on=[("lvl0", "lvl1-a")], how=join_type)
+
+        # No change in df1 and df2
+        tm.assert_frame_equal(df1, df1_copy)
+        tm.assert_frame_equal(df2, df2_copy)
+
+        # Check the expected types for the merged data frame
+        expected = Series(
+            [np.dtype("O"), pd.StringDtype(), np.dtype("O")],
+            index=MultiIndex.from_tuples(
+                [("lvl0", "lvl1-a"), ("lvl0", "lvl1-b"), ("lvl0", "lvl1-c")]
+            ),
+        )
+        tm.assert_series_equal(merged.dtypes, expected)
+
 
 @pytest.fixture
 def left():
@@ -1811,6 +1829,35 @@ class TestMergeCategorical:
                 "Right": ["A1", "B1", "C1"],
             }
         )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("ordered", [True, False])
+    def test_multiindex_merge_with_unordered_categoricalindex(self, ordered):
+        # GH 36973
+        pcat = CategoricalDtype(categories=["P2", "P1"], ordered=ordered)
+        df1 = DataFrame(
+            {
+                "id": ["C", "C", "D"],
+                "p": Categorical(["P2", "P1", "P2"], dtype=pcat),
+                "a": [0, 1, 2],
+            }
+        ).set_index(["id", "p"])
+        df2 = DataFrame(
+            {
+                "id": ["A", "C", "C"],
+                "p": Categorical(["P2", "P2", "P1"], dtype=pcat),
+                "d1": [10, 11, 12],
+            }
+        ).set_index(["id", "p"])
+        result = merge(df1, df2, how="left", left_index=True, right_index=True)
+        expected = DataFrame(
+            {
+                "id": ["C", "C", "D"],
+                "p": Categorical(["P2", "P1", "P2"], dtype=pcat),
+                "a": [0, 1, 2],
+                "d1": [11.0, 12.0, np.nan],
+            }
+        ).set_index(["id", "p"])
         tm.assert_frame_equal(result, expected)
 
     def test_other_columns(self, left, right):
@@ -2542,3 +2589,32 @@ def test_mergeerror_on_left_index_mismatched_dtypes():
     df_2 = DataFrame(data=["X"], columns=["C"], index=[999])
     with pytest.raises(MergeError, match="Can only pass argument"):
         merge(df_1, df_2, on=["C"], left_index=True)
+
+
+@pytest.mark.parametrize("dtype", [None, "Int64"])
+def test_merge_outer_with_NaN(dtype):
+    # GH#43550
+    left = DataFrame({"key": [1, 2], "col1": [1, 2]}, dtype=dtype)
+    right = DataFrame({"key": [np.nan, np.nan], "col2": [3, 4]}, dtype=dtype)
+    result = merge(left, right, on="key", how="outer")
+    expected = DataFrame(
+        {
+            "key": [1, 2, np.nan, np.nan],
+            "col1": [1, 2, np.nan, np.nan],
+            "col2": [np.nan, np.nan, 3, 4],
+        },
+        dtype=dtype,
+    )
+    tm.assert_frame_equal(result, expected)
+
+    # switch left and right
+    result = merge(right, left, on="key", how="outer")
+    expected = DataFrame(
+        {
+            "key": [np.nan, np.nan, 1, 2],
+            "col2": [3, 4, np.nan, np.nan],
+            "col1": [np.nan, np.nan, 1, 2],
+        },
+        dtype=dtype,
+    )
+    tm.assert_frame_equal(result, expected)

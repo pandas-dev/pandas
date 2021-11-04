@@ -122,6 +122,7 @@ class TestPartialSetting:
         df.loc[:, "C"] = df.loc[:, "A"]
         tm.assert_frame_equal(df, expected)
 
+    def test_partial_setting2(self):
         # GH 8473
         dates = date_range("1/1/2000", periods=8)
         df_orig = DataFrame(
@@ -168,7 +169,8 @@ class TestPartialSetting:
         # columns will align
         df = DataFrame(columns=["A", "B"])
         df.loc[0] = Series(1, index=range(4))
-        tm.assert_frame_equal(df, DataFrame(columns=["A", "B"], index=[0]))
+        expected = DataFrame(columns=["A", "B"], index=[0], dtype=np.float64)
+        tm.assert_frame_equal(df, expected)
 
         # columns will align
         # TODO: it isn't great that this behavior depends on consolidation
@@ -185,11 +187,10 @@ class TestPartialSetting:
         with pytest.raises(ValueError, match=msg):
             df.loc[0] = [1, 2, 3]
 
-        # TODO: #15657, these are left as object and not coerced
         df = DataFrame(columns=["A", "B"])
         df.loc[3] = [6, 7]
 
-        exp = DataFrame([[6, 7]], index=[3], columns=["A", "B"], dtype="object")
+        exp = DataFrame([[6, 7]], index=[3], columns=["A", "B"], dtype=np.int64)
         tm.assert_frame_equal(df, exp)
 
     def test_series_partial_set(self):
@@ -540,9 +541,9 @@ class TestPartialSetting:
                 date_range(start="2000", periods=20, freq="D"),
                 ["2000-01-04", "2000-01-08", "2000-01-12"],
                 [
-                    Timestamp("2000-01-04", freq="D"),
-                    Timestamp("2000-01-08", freq="D"),
-                    Timestamp("2000-01-12", freq="D"),
+                    Timestamp("2000-01-04"),
+                    Timestamp("2000-01-08"),
+                    Timestamp("2000-01-12"),
                 ],
             ),
             (
