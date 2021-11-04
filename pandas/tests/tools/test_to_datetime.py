@@ -1123,17 +1123,32 @@ class TestToDatetime:
 
     def test_mixed_offsets_with_native_datetime_raises(self):
         # GH 25978
-        ser = Series(
+
+        vals = [
+            "nan",
+            Timestamp("1990-01-01"),
+            "2015-03-14T16:15:14.123-08:00",
+            "2019-03-04T21:56:32.620-07:00",
+            None,
+        ]
+        ser = Series(vals)
+        assert all(ser[i] is vals[i] for i in range(len(vals)))  # GH#40111
+
+        mixed = to_datetime(ser)
+        expected = Series(
             [
-                "nan",
+                "NaT",
                 Timestamp("1990-01-01"),
-                "2015-03-14T16:15:14.123-08:00",
-                "2019-03-04T21:56:32.620-07:00",
+                Timestamp("2015-03-14T16:15:14.123-08:00").to_pydatetime(),
+                Timestamp("2019-03-04T21:56:32.620-07:00").to_pydatetime(),
                 None,
-            ]
+            ],
+            dtype=object,
         )
+        tm.assert_series_equal(mixed, expected)
+
         with pytest.raises(ValueError, match="Tz-aware datetime.datetime"):
-            to_datetime(ser)
+            to_datetime(mixed)
 
     def test_non_iso_strings_with_tz_offset(self):
         result = to_datetime(["March 1, 2018 12:00:00+0400"] * 2)
