@@ -1,4 +1,5 @@
 """Common utilities for Numba operations"""
+# pyright: reportUntypedFunctionDecorator = false
 from __future__ import annotations
 
 import types

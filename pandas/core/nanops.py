@@ -72,7 +72,7 @@ set_use_bottleneck(get_option("compute.use_bottleneck"))
 
 
 class disallow:
-    def __init__(self, *dtypes):
+    def __init__(self, *dtypes: Dtype):
         super().__init__()
         self.dtypes = tuple(pandas_dtype(dtype).type for dtype in dtypes)
 
@@ -178,6 +178,8 @@ def _bn_ok_dtype(dtype: DtypeObj, name: str) -> bool:
 def _has_infs(result) -> bool:
     if isinstance(result, np.ndarray):
         if result.dtype == "f8" or result.dtype == "f4":
+            # Note: outside of an nanops-specific test, we always have
+            #  result.ndim == 1, so there is no risk of this ravel making a copy.
             return lib.has_infs(result.ravel("K"))
     try:
         return np.isinf(result).any()
@@ -449,7 +451,7 @@ def _na_for_min_count(values: np.ndarray, axis: int | None) -> Scalar | np.ndarr
         return np.full(result_shape, fill_value, dtype=values.dtype)
 
 
-def maybe_operate_rowwise(func):
+def maybe_operate_rowwise(func: F) -> F:
     """
     NumPy operations on C-contiguous ndarrays with axis=1 can be
     very slow. Operate row-by-row and concatenate the results.
@@ -462,6 +464,7 @@ def maybe_operate_rowwise(func):
             and values.ndim == 2
             and values.flags["C_CONTIGUOUS"]
             and values.dtype != object
+            and values.dtype != bool
         ):
             arrs = list(values)
             if kwargs.get("mask") is not None:
@@ -475,7 +478,7 @@ def maybe_operate_rowwise(func):
 
         return func(values, axis=axis, **kwargs)
 
-    return newfunc
+    return cast(F, newfunc)
 
 
 def nanany(

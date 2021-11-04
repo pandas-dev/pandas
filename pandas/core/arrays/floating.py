@@ -245,6 +245,9 @@ class FloatingArray(NumericArray):
 
     # The value used to fill '_data' to avoid upcasting
     _internal_fill_value = 0.0
+    # Fill values used for any/all
+    _truthy_value = 1.0
+    _falsey_value = 0.0
 
     @cache_readonly
     def dtype(self) -> FloatingDtype:
@@ -382,21 +385,21 @@ class FloatingArray(NumericArray):
 
         return BooleanArray(result, mask)
 
-    def sum(self, *, skipna=True, min_count=0, **kwargs):
+    def sum(self, *, skipna=True, min_count=0, axis: int | None = 0, **kwargs):
         nv.validate_sum((), kwargs)
-        return super()._reduce("sum", skipna=skipna, min_count=min_count)
+        return super()._reduce("sum", skipna=skipna, min_count=min_count, axis=axis)
 
-    def prod(self, *, skipna=True, min_count=0, **kwargs):
+    def prod(self, *, skipna=True, min_count=0, axis: int | None = 0, **kwargs):
         nv.validate_prod((), kwargs)
-        return super()._reduce("prod", skipna=skipna, min_count=min_count)
+        return super()._reduce("prod", skipna=skipna, min_count=min_count, axis=axis)
 
-    def min(self, *, skipna=True, **kwargs):
+    def min(self, *, skipna=True, axis: int | None = 0, **kwargs):
         nv.validate_min((), kwargs)
-        return super()._reduce("min", skipna=skipna)
+        return super()._reduce("min", skipna=skipna, axis=axis)
 
-    def max(self, *, skipna=True, **kwargs):
+    def max(self, *, skipna=True, axis: int | None = 0, **kwargs):
         nv.validate_max((), kwargs)
-        return super()._reduce("max", skipna=skipna)
+        return super()._reduce("max", skipna=skipna, axis=axis)
 
     def _maybe_mask_result(self, result, mask, other, op_name: str):
         """

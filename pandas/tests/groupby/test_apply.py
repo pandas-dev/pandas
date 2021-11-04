@@ -1145,3 +1145,36 @@ def test_doctest_example2():
         {"B": [1.0, 0.0], "C": [2.0, 0.0]}, index=Index(["a", "b"], name="A")
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dropna", [True, False])
+def test_apply_na(dropna):
+    # GH#28984
+    df = DataFrame(
+        {"grp": [1, 1, 2, 2], "y": [1, 0, 2, 5], "z": [1, 2, np.nan, np.nan]}
+    )
+    dfgrp = df.groupby("grp", dropna=dropna)
+    result = dfgrp.apply(lambda grp_df: grp_df.nlargest(1, "z"))
+    expected = dfgrp.apply(lambda x: x.sort_values("z", ascending=False).head(1))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_apply_empty_string_nan_coerce_bug():
+    # GH#24903
+    result = (
+        DataFrame(
+            {
+                "a": [1, 1, 2, 2],
+                "b": ["", "", "", ""],
+                "c": pd.to_datetime([1, 2, 3, 4], unit="s"),
+            }
+        )
+        .groupby(["a", "b"])
+        .apply(lambda df: df.iloc[-1])
+    )
+    expected = DataFrame(
+        [[1, "", pd.to_datetime(2, unit="s")], [2, "", pd.to_datetime(4, unit="s")]],
+        columns=["a", "b", "c"],
+        index=MultiIndex.from_tuples([(1, ""), (2, "")], names=["a", "b"]),
+    )
+    tm.assert_frame_equal(result, expected)
