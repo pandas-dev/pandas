@@ -109,19 +109,38 @@ def test_engine_kwargs_write(ext, iso_dates):
             DataFrame().to_excel(writer)
 
 
-def test_engine_kwargs_append(ext):
+@pytest.mark.parametrize(
+    "engine_kwargs", [{"data_only": True}, {"keep_vba": True}, {"keep_links": False}]
+)
+def test_engine_kwargs_append(ext, engine_kwargs):
     # GH 43445
     # only read_only=True will give something easy that can be verified (maybe
     # keep_links or data_only could also work, but that'd be more complicated)
     # arguments are passed through to load_workbook()
-    engine_kwargs = {"read_only": True}
     with tm.ensure_clean(ext) as f:
         DataFrame(["hello", "world"]).to_excel(f)
-        with pytest.raises(TypeError, match=re.escape("Workbook is read-only")):
+        with ExcelWriter(f, engine="openpyxl", mode="a", engine_kwargs=engine_kwargs):
+            pass
+            # DataFrame(["goodbye", "world"]).to_excel(writer)
+
+
+def test_engine_kwargs_append_invalid(ext):
+    # GH 43445
+    # test whether an invalid engine kwargs actually raises
+    with tm.ensure_clean(ext) as f:
+        DataFrame(["hello", "world"]).to_excel(f)
+        with pytest.raises(
+            TypeError,
+            match=re.escape(
+                "load_workbook() got an unexpected keyword argument 'apple_banana'"
+            ),
+        ):
             with ExcelWriter(
-                f, engine="openpyxl", mode="a", engine_kwargs=engine_kwargs
-            ) as writer:
-                DataFrame(["goodbye", "world"]).to_excel(writer)
+                f, engine="openpyxl", mode="a", engine_kwargs={"apple_banana": "fruit"}
+            ):
+                # not sure if we have to do something here?
+                # DataFrame(["good"])
+                pass
 
 
 @pytest.mark.parametrize(
