@@ -1526,7 +1526,7 @@ def maybe_infer_to_datetimelike(
         try:
             # GH#19671 we pass require_iso8601 to be relatively strict
             #  when parsing strings.
-            dta = sequence_to_datetimes(v, require_iso8601=True, allow_object=True)
+            dta = sequence_to_datetimes(v, require_iso8601=True, allow_object=False)
         except (ValueError, TypeError):
             # e.g. <class 'numpy.timedelta64'> is not convertible to datetime
             return v.reshape(shape)
