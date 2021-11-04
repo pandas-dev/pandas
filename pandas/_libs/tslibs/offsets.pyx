@@ -1858,7 +1858,8 @@ cdef class YearOffset(SingleConstructorOffset):
     """
     _attributes = tuple(["n", "normalize", "month"])
 
-    # _default_month: int  # FIXME: python annotation here breaks things
+    # FIXME(cython#4446): python annotation here gives compile-time errors
+    # _default_month: int
 
     cdef readonly:
         int month
@@ -2009,7 +2010,7 @@ cdef class QuarterOffset(SingleConstructorOffset):
     #       point.  Also apply_index, is_on_offset, rule_code if
     #       startingMonth vs month attr names are resolved
 
-    # FIXME: python annotations here breaks things
+    # FIXME(cython#4446): python annotation here gives compile-time errors
     # _default_starting_month: int
     # _from_name_starting_month: int
 
