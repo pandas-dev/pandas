@@ -1991,14 +1991,13 @@ def sanitize_objects(ndarray[object] values, set na_values) -> int:
         object val, onan
         Py_ssize_t na_count = 0
         dict memo = {}
-        bint convert_empty = False
 
     n = len(values)
     onan = np.nan
 
     for i in range(n):
         val = values[i]
-        if (convert_empty and val == '') or (val in na_values):
+        if val in na_values:
             values[i] = onan
             na_count += 1
         elif val in memo:
