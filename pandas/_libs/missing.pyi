@@ -2,8 +2,7 @@ import numpy as np
 
 from pandas._typing import npt
 
-class C_NAType: ...
-class NAType(C_NAType): ...
+class NAType: ...
 
 NA: NAType
 
