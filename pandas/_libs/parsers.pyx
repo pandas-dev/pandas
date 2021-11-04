@@ -872,7 +872,7 @@ cdef class TextReader:
         self._end_clock('Tokenization')
 
         self._start_clock()
-        columns = self._convert_column_data(rows=rows)
+        columns = self._convert_column_data(rows)
         self._end_clock('Type conversion')
         self._start_clock()
         if len(columns) > 0:
