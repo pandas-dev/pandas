@@ -419,7 +419,9 @@ class StringMethods(NoNewAttributesMixin):
         )
 
     @forbid_nonstring_types(["bytes", "mixed", "mixed-integer"])
-    def cat(self, others=None, sep=None, na_rep=None, join="left"):
+    def cat(
+        self, others=None, sep=None, na_rep=None, join="left"
+    ) -> str | Series | Index:
         """
         Concatenate strings in the Series/Index with given separator.
 

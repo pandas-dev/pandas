@@ -1109,8 +1109,8 @@ class ArrayManager(BaseArrayManager):
         arr : ndarray
         """
         if len(self.arrays) == 0:
-            farr = np.empty(self.shape, dtype=float)
-            return farr.transpose() if transpose else farr
+            empty_arr = np.empty(self.shape, dtype=float)
+            return empty_arr.transpose() if transpose else empty_arr
 
         # We want to copy when na_value is provided to avoid
         # mutating the original object
