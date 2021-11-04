@@ -1657,8 +1657,12 @@ cdef class _Period(PeriodMixin):
         elif other is NaT:
             return _nat_scalar_rules[op]
         elif util.is_array(other):
-            # in particular ndarray[object]; see test_pi_cmp_period
-            return np.array([PyObject_RichCompare(self, x, op) for x in other])
+            # GH#44285
+            if cnp.PyArray_IsZeroDim(other):
+                return PyObject_RichCompare(self, other.item(), op)
+            else:
+                # in particular ndarray[object]; see test_pi_cmp_period
+                return np.array([PyObject_RichCompare(self, x, op) for x in other])
         return NotImplemented
 
     def __hash__(self):
