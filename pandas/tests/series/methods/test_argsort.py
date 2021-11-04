@@ -79,9 +79,9 @@ class TestSeriesArgsort:
     @pytest.mark.parametrize(
         "na_position, expected",
         [
-            (None, Series([2, 0, -1, -1], index=["c", "a", "b", "d"])),
-            ("first", Series([1, 3, 2, 0], index=["b", "d", "c", "a"])),
-            ("last", Series([2, 0, 1, 3], index=["c", "a", "b", "d"])),
+            (None, Series([2, 0, -1, -1], index=["c", "a", "b", "d"], dtype=np.intp)),
+            ("first", Series([1, 3, 2, 0], index=["b", "d", "c", "a"], dtype=np.intp)),
+            ("last", Series([2, 0, 1, 3], index=["c", "a", "b", "d"], dtype=np.intp)),
         ],
     )
     def test_na_position(self, na_position, expected):
