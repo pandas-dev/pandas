@@ -601,7 +601,7 @@ def is_dtype_equal(source, target) -> bool:
             #  is_dtype_equal(CDT, "category") and CDT == "category"
             try:
                 src = get_dtype(source)
-                if isinstance(src, ExtensionDtype):
+                if isinstance(src, ExtensionDtype) or isinstance(src, np.dtype):
                     return src == target
             except (TypeError, AttributeError):
                 return False
