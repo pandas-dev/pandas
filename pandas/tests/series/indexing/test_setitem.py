@@ -1101,3 +1101,43 @@ def test_setitem_with_bool_indexer():
     df.loc[[True, False, False], "a"] = 10
     expected = DataFrame({"a": [10, 2, 3]})
     tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize("size", range(2, 6))
+@pytest.mark.parametrize(
+    "mask", [[True, False, False, False, False], [True, False], [False]]
+)
+@pytest.mark.parametrize(
+    "item", [2.0, np.nan, np.finfo(float).max, np.finfo(float).min]
+)
+# Test numpy arrays, lists and tuples as the input to be
+# broadcast
+@pytest.mark.parametrize(
+    "box", [lambda x: np.array([x]), lambda x: [x], lambda x: (x,)]
+)
+def test_setitem_bool_indexer_dont_broadcast_length1_values(size, mask, item, box):
+    # GH#44265
+    # see also tests.series.indexing.test_where.test_broadcast
+
+    selection = np.resize(mask, size)
+
+    data = np.arange(size, dtype=float)
+
+    ser = Series(data)
+
+    if selection.sum() != 1:
+        msg = (
+            "cannot set using a list-like indexer with a different "
+            "length than the value"
+        )
+        with pytest.raises(ValueError, match=msg):
+            # GH#44265
+            ser[selection] = box(item)
+    else:
+        # In this corner case setting is equivalent to setting with the unboxed
+        #  item
+        ser[selection] = box(item)
+
+        expected = Series(np.arange(size, dtype=float))
+        expected[selection] = item
+        tm.assert_series_equal(ser, expected)

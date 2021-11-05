@@ -164,6 +164,7 @@ def test_where_error():
     msg = "cannot set using a list-like indexer with a different length than the value"
     with pytest.raises(ValueError, match=msg):
         s[[True, False]] = [0, 2, 3]
+
     with pytest.raises(ValueError, match=msg):
         s[[True, False]] = []
 
@@ -294,6 +295,7 @@ def test_where_setitem_invalid():
     "box", [lambda x: np.array([x]), lambda x: [x], lambda x: (x,)]
 )
 def test_broadcast(size, mask, item, box):
+    # GH#8801, GH#4195
     selection = np.resize(mask, size)
 
     data = np.arange(size, dtype=float)
@@ -305,6 +307,7 @@ def test_broadcast(size, mask, item, box):
     )
 
     s = Series(data)
+
     s[selection] = item
     tm.assert_series_equal(s, expected)
 
