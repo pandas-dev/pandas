@@ -1012,10 +1012,8 @@ class ExtensionArray:
             arr, na_sentinel=na_sentinel, na_value=na_value
         )
 
-        uniques = self._from_factorized(uniques, self)
-        # error: Incompatible return value type (got "Tuple[ndarray, ndarray]",
-        # expected "Tuple[ndarray, ExtensionArray]")
-        return codes, uniques  # type: ignore[return-value]
+        uniques_ea = self._from_factorized(uniques, self)
+        return codes, uniques_ea
 
     _extension_array_shared_docs[
         "repeat"
