@@ -462,7 +462,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         else:
             # e.g. test_reindex_with_categoricalindex, test_reindex_duplicate_target
             new_target = np.asarray(new_target)
-            new_target = Index(new_target, name=self.name)
+            new_target = Index._with_infer(new_target, name=self.name)
 
         return new_target, indexer
 
