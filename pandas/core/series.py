@@ -1226,7 +1226,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return super()._check_is_chained_assignment_possible()
 
     def _maybe_update_cacher(
-        self, clear: bool = False, verify_is_copy: bool = True
+        self, clear: bool = False, verify_is_copy: bool = True, inplace: bool = False
     ) -> None:
         """
         See NDFrame._maybe_update_cacher.__doc__
@@ -1244,13 +1244,15 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 # GH#42530 self.name must be in ref.columns
                 # to ensure column still in dataframe
                 # otherwise, either self or ref has swapped in new arrays
-                ref._maybe_cache_changed(cacher[0], self)
+                ref._maybe_cache_changed(cacher[0], self, inplace=inplace)
             else:
                 # GH#33675 we have swapped in a new array, so parent
                 #  reference to self is now invalid
                 ref._item_cache.pop(cacher[0], None)
 
-        super()._maybe_update_cacher(clear=clear, verify_is_copy=verify_is_copy)
+        super()._maybe_update_cacher(
+            clear=clear, verify_is_copy=verify_is_copy, inplace=inplace
+        )
 
     # ----------------------------------------------------------------------
     # Unsorted
@@ -5459,7 +5461,7 @@ Keep all original rows and also all original values
         inplace=False,
         axis=None,
         level=None,
-        errors="raise",
+        errors=lib.no_default,
         try_cast=lib.no_default,
     ):
         return super().where(cond, other, inplace, axis, level, errors, try_cast)
@@ -5474,7 +5476,7 @@ Keep all original rows and also all original values
         inplace=False,
         axis=None,
         level=None,
-        errors="raise",
+        errors=lib.no_default,
         try_cast=lib.no_default,
     ):
         return super().mask(cond, other, inplace, axis, level, errors, try_cast)

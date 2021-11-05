@@ -315,7 +315,7 @@ class BaseBlockManager(DataManager):
         out = type(self).from_blocks(result_blocks, self.axes)
         return out
 
-    def where(self: T, other, cond, align: bool, errors: str) -> T:
+    def where(self: T, other, cond, align: bool) -> T:
         if align:
             align_keys = ["other", "cond"]
         else:
@@ -327,7 +327,6 @@ class BaseBlockManager(DataManager):
             align_keys=align_keys,
             other=other,
             cond=cond,
-            errors=errors,
         )
 
     def setitem(self: T, indexer, value) -> T:
@@ -1032,7 +1031,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         # expected "List[ndarray[Any, Any]]")
         return result  # type: ignore[return-value]
 
-    def iset(self, loc: int | slice | np.ndarray, value: ArrayLike):
+    def iset(
+        self, loc: int | slice | np.ndarray, value: ArrayLike, inplace: bool = False
+    ):
         """
         Set new item in-place. Does not consolidate. Adds new Block if not
         contained in the current set of items
@@ -1087,7 +1088,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         for blkno, val_locs in libinternals.get_blkno_placements(blknos, group=True):
             blk = self.blocks[blkno]
             blk_locs = blklocs[val_locs.indexer]
-            if blk.should_store(value):
+            if inplace and blk.should_store(value):
                 blk.set_inplace(blk_locs, value_getitem(val_locs))
             else:
                 unfit_mgr_locs.append(blk.mgr_locs.as_array[blk_locs])

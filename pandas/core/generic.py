@@ -3531,7 +3531,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         raise AbstractMethodError(self)
 
     def _maybe_update_cacher(
-        self, clear: bool_t = False, verify_is_copy: bool_t = True
+        self,
+        clear: bool_t = False,
+        verify_is_copy: bool_t = True,
+        inplace: bool_t = False,
     ) -> None:
         """
         See if we need to update our parent cacher if clear, then clear our
@@ -8897,13 +8900,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace=False,
         axis=None,
         level=None,
-        errors="raise",
+        errors=lib.no_default,
     ):
         """
         Equivalent to public method `where`, except that `other` is not
         applied as a function even if callable. Used in __setitem__.
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
+
+        if errors is not lib.no_default:
+            warnings.warn(
+                f"The 'errors' keyword in {type(self).__name__}.where and mask is "
+                "deprecated and will be removed in a future version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
 
         if axis is not None:
             axis = self._get_axis_number(axis)
@@ -9022,7 +9033,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 other=other,
                 cond=cond,
                 align=align,
-                errors=errors,
             )
             result = self._constructor(new_data)
             return result.__finalize__(self)
@@ -9041,7 +9051,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace=False,
         axis=None,
         level=None,
-        errors="raise",
+        errors=lib.no_default,
         try_cast=lib.no_default,
     ):
         """
@@ -9073,6 +9083,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             - 'raise' : allow exceptions to be raised.
             - 'ignore' : suppress exceptions. On error return original object.
+
+            .. deprecated:: 1.4.0
+                Previously was silently ignored.
 
         try_cast : bool, default None
             Try to cast the result back to the input type (if possible).
@@ -9194,7 +9207,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace=False,
         axis=None,
         level=None,
-        errors="raise",
+        errors=lib.no_default,
         try_cast=lib.no_default,
     ):
 
@@ -10640,6 +10653,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             name2=name2,
             axis_descr=axis_descr,
             notes="",
+            examples="",
         )
         def sem(
             self,
@@ -10662,6 +10676,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             name2=name2,
             axis_descr=axis_descr,
             notes="",
+            examples="",
         )
         def var(
             self,
@@ -10680,11 +10695,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             _num_ddof_doc,
             desc="Return sample standard deviation over requested axis."
             "\n\nNormalized by N-1 by default. This can be changed using the "
-            "ddof argument",
+            "ddof argument.",
             name1=name1,
             name2=name2,
             axis_descr=axis_descr,
             notes=_std_notes,
+            examples=_std_examples,
         )
         def std(
             self,
@@ -11176,7 +11192,8 @@ numeric_only : bool, default None
 Returns
 -------
 {name1} or {name2} (if level specified) \
-{notes}
+{notes}\
+{examples}
 """
 
 _std_notes = """
@@ -11185,6 +11202,34 @@ Notes
 -----
 To have the same behaviour as `numpy.std`, use `ddof=0` (instead of the
 default `ddof=1`)"""
+
+_std_examples = """
+
+Examples
+--------
+>>> df = pd.DataFrame({'person_id': [0, 1, 2, 3],
+...                   'age': [21, 25, 62, 43],
+...                   'height': [1.61, 1.87, 1.49, 2.01]}
+...                  ).set_index('person_id')
+>>> df
+           age  height
+person_id
+0           21    1.61
+1           25    1.87
+2           62    1.49
+3           43    2.01
+
+The standard deviation of the columns can be found as follows:
+
+>>> df.std()
+age       18.786076
+height     0.237417
+
+Alternatively, `ddof=0` can be set to normalize by N instead of N-1:
+
+>>> df.std(ddof=0)
+age       16.269219
+height     0.205609"""
 
 _bool_doc = """
 {desc}

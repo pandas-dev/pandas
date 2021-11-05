@@ -68,6 +68,7 @@ from pandas.util._decorators import (
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
+    is_all_strings,
     is_categorical_dtype,
     is_datetime64_any_dtype,
     is_datetime64_dtype,
@@ -720,7 +721,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         value = pd_array(value)
         value = extract_array(value, extract_numpy=True)
 
-        if is_dtype_equal(value.dtype, "string"):
+        if is_all_strings(value):
             # We got a StringArray
             try:
                 # TODO: Could use from_sequence_of_strings if implemented

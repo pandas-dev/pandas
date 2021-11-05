@@ -824,20 +824,24 @@ class TestiLocBaseIndependent:
             df.iloc[[]], df.iloc[:0, :], check_index_type=True, check_column_type=True
         )
 
-    def test_identity_slice_returns_new_object(self, using_array_manager):
+    def test_identity_slice_returns_new_object(self, using_array_manager, request):
         # GH13873
+        if using_array_manager:
+            mark = pytest.mark.xfail(
+                reason="setting with .loc[:, 'a'] does not alter inplace"
+            )
+            request.node.add_marker(mark)
+
         original_df = DataFrame({"a": [1, 2, 3]})
         sliced_df = original_df.iloc[:]
         assert sliced_df is not original_df
 
         # should be a shallow copy
-        original_df["a"] = [4, 4, 4]
-        if using_array_manager:
-            # TODO(ArrayManager) verify it is expected that the original didn't change
-            # setitem is replacing full column, so doesn't update "viewing" dataframe
-            assert not (sliced_df["a"] == 4).all()
-        else:
-            assert (sliced_df["a"] == 4).all()
+        assert np.shares_memory(original_df["a"], sliced_df["a"])
+
+        # Setting using .loc[:, "a"] sets inplace so alters both sliced and orig
+        original_df.loc[:, "a"] = [4, 4, 4]
+        assert (sliced_df["a"] == 4).all()
 
         original_series = Series([1, 2, 3, 4, 5, 6])
         sliced_series = original_series.iloc[:]
