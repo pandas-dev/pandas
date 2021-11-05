@@ -617,7 +617,7 @@ def _extract_index(data) -> Index:
     index = None
     if len(data) == 0:
         index = Index([])
-    elif len(data) > 0:
+    else:
         raw_lengths = []
         indexes: list[list[Hashable] | Index] = []
 
@@ -641,7 +641,7 @@ def _extract_index(data) -> Index:
         if not indexes and not raw_lengths:
             raise ValueError("If using all scalar values, you must pass an index")
 
-        if have_series:
+        elif have_series:
             index = union_indexes(indexes)
         elif have_dicts:
             index = union_indexes(indexes, sort=False)

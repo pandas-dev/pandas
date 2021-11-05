@@ -157,10 +157,11 @@ class SingleDataManager(DataManager):
 
     @final
     @property
-    def array(self):
+    def array(self) -> ArrayLike:
         """
         Quick access to the backing array of the Block or SingleArrayManager.
         """
+        # error: "SingleDataManager" has no attribute "arrays"; maybe "array"
         return self.arrays[0]  # type: ignore[attr-defined]
 
     def setitem_inplace(self, indexer, value) -> None:

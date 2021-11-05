@@ -574,14 +574,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         # the hashtables don't handle all different types of bits
         uniques = uniques.astype(self.dtype.numpy_dtype, copy=False)
-        # error: Incompatible types in assignment (expression has type
-        # "BaseMaskedArray", variable has type "ndarray")
-        uniques = type(self)(  # type: ignore[assignment]
-            uniques, np.zeros(len(uniques), dtype=bool)
-        )
-        # error: Incompatible return value type (got "Tuple[ndarray, ndarray]",
-        # expected "Tuple[ndarray, ExtensionArray]")
-        return codes, uniques  # type: ignore[return-value]
+        uniques_ea = type(self)(uniques, np.zeros(len(uniques), dtype=bool))
+        return codes, uniques_ea
 
     def value_counts(self, dropna: bool = True) -> Series:
         """

@@ -1718,7 +1718,7 @@ def test_mad_nullable_integer_all_na(any_signed_int_ea_dtype):
     df2 = df.astype(any_signed_int_ea_dtype)
 
     # case with all-NA row/column
-    df2.iloc[:, 1] = pd.NA  # FIXME: this doesn't operate in-place
+    df2.iloc[:, 1] = pd.NA  # FIXME(GH#44199): this doesn't operate in-place
     df2.iloc[:, 1] = pd.array([pd.NA] * len(df2), dtype=any_signed_int_ea_dtype)
     result = df2.mad()
     expected = df.mad()
