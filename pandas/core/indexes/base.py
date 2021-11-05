@@ -5844,10 +5844,6 @@ class Index(IndexOpsMixin, PandasObject):
         elif self.inferred_type == "timedelta" and isinstance(other, ABCTimedeltaIndex):
             # TODO: we dont have tests that get here
             return type(other)(self), other
-        elif self.inferred_type == "boolean":
-            return self, other
-            if not is_object_dtype(self.dtype):
-                return self.astype("object"), other.astype("object")
 
         elif self.dtype.kind == "u" and other.dtype.kind == "i":
             # GH#41873
