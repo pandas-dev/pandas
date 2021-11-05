@@ -182,6 +182,7 @@ Other enhancements
 - Added :meth:`.ExponentialMovingWindow.sum` (:issue:`13297`)
 - :meth:`Series.str.split` now supports a ``regex`` argument that explicitly specifies whether the pattern is a regular expression. Default is ``None`` (:issue:`43563`, :issue:`32835`, :issue:`25549`)
 - :meth:`DataFrame.dropna` now accepts a single label as ``subset`` along with array-like (:issue:`41021`)
+- :meth:`read_excel` now accepts a ``decimal`` argument that allow the user to specify the decimal point when parsing string columns to numeric (:issue:`14403`)
 - :meth:`.GroupBy.mean` now supports `Numba <http://numba.pydata.org/>`_ execution with the ``engine`` keyword (:issue:`43731`)
 
 .. ---------------------------------------------------------------------------

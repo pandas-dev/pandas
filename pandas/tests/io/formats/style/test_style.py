@@ -216,9 +216,6 @@ def test_render_trimming_mi():
     assert {"class": "data row_trim col_trim"}.items() <= ctx["body"][2][4].items()
     assert len(ctx["body"]) == 3  # 2 data rows + trimming row
 
-    assert len(ctx["head"][0]) == 5  # 2 indexes + 2 column headers + trimming col
-    assert {"attributes": 'colspan="2"'}.items() <= ctx["head"][0][2].items()
-
 
 def test_render_empty_mi():
     # GH 43305
@@ -1530,7 +1527,7 @@ def test_hiding_headers_over_index_no_sparsify():
     df = DataFrame(9, index=midx, columns=[0])
     ctx = df.style._translate(False, False)
     assert len(ctx["body"]) == 6
-    ctx = df.style.hide_index((1, "a"))._translate(False, False)
+    ctx = df.style.hide((1, "a"), axis=0)._translate(False, False)
     assert len(ctx["body"]) == 4
     assert "row2" in ctx["body"][0][0]["class"]
 
@@ -1600,3 +1597,17 @@ def test_row_trimming_hide_index_mi():
         assert ctx["body"][r][1]["display_value"] == val  # level 1 index headers
     for r, val in enumerate(["3", "4", "..."]):
         assert ctx["body"][r][2]["display_value"] == val  # data values
+
+
+def test_col_trimming_hide_columns():
+    # gh 44272
+    df = DataFrame([[1, 2, 3, 4, 5]])
+    with pd.option_context("styler.render.max_columns", 2):
+        ctx = df.style.hide([0, 1], axis="columns")._translate(True, True)
+
+    assert len(ctx["head"][0]) == 6  # blank, [0, 1 (hidden)], [2 ,3 (visible)], + trim
+    for c, vals in enumerate([(1, False), (2, True), (3, True), ("...", True)]):
+        assert ctx["head"][0][c + 2]["value"] == vals[0]
+        assert ctx["head"][0][c + 2]["is_visible"] == vals[1]
+
+    assert len(ctx["body"][0]) == 6  # index + 2 hidden + 2 visible + trimming col
