@@ -488,8 +488,8 @@ def test_replaced_css_class_names(styler_mi):
         uuid_len=0,
     ).set_table_styles(css_class_names=css)
     styler_mi.index.names = ["n1", "n2"]
-    styler_mi.hide_index(styler_mi.index[1:])
-    styler_mi.hide_columns(styler_mi.columns[1:])
+    styler_mi.hide(styler_mi.index[1:], axis=0)
+    styler_mi.hide(styler_mi.columns[1:], axis=1)
     styler_mi.applymap_index(lambda v: "color: red;", axis=0)
     styler_mi.applymap_index(lambda v: "color: green;", axis=1)
     styler_mi.applymap(lambda v: "color: blue;")
@@ -611,9 +611,9 @@ def test_hiding_index_columns_multiindex_alignment():
     )
     df = DataFrame(np.arange(16).reshape(4, 4), index=midx, columns=cidx)
     styler = Styler(df, uuid_len=0)
-    styler.hide_index(level=1).hide_columns(level=0)
-    styler.hide_index([("j0", "i1", "j2")])
-    styler.hide_columns([("c0", "d1", "d2")])
+    styler.hide(level=1, axis=0).hide(level=0, axis=1)
+    styler.hide([("j0", "i1", "j2")], axis=0)
+    styler.hide([("c0", "d1", "d2")], axis=1)
     result = styler.to_html()
     expected = dedent(
         """\
