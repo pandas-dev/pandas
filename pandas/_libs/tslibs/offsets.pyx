@@ -777,7 +777,7 @@ cdef class Tick(SingleConstructorOffset):
                 "Tick offset with `normalize=True` are not allowed."
             )
 
-    # FIXME: Without making this cpdef, we get AttributeError when calling
+    # Note: Without making this cpdef, we get AttributeError when calling
     #  from __mul__
     cpdef Tick _next_higher_resolution(Tick self):
         if type(self) is Day:

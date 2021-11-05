@@ -43,8 +43,8 @@ class TestBase(Base):
         expected = IntervalIndex.from_arrays([0, 0, 1], [1, 1, 2], closed=closed)
         tm.assert_index_equal(result, expected)
 
-    def test_where(self, simple_index, listlike_box_with_tuple):
-        klass = listlike_box_with_tuple
+    def test_where(self, simple_index, listlike_box):
+        klass = listlike_box
 
         idx = simple_index
         cond = [True] * len(idx)

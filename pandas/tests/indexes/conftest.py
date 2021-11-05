@@ -33,18 +33,8 @@ def freq_sample(request):
     return request.param
 
 
-@pytest.fixture(params=[list, np.array, array, Series])
+@pytest.fixture(params=[list, tuple, np.array, array, Series])
 def listlike_box(request):
-    """
-    Types that may be passed as the indexer to searchsorted.
-    """
-    return request.param
-
-
-# TODO: not clear if this _needs_ to be different from listlike_box or
-#  if that is just a historical artifact
-@pytest.fixture(params=[list, tuple, np.array, Series])
-def listlike_box_with_tuple(request):
     """
     Types that may be passed as the indexer to searchsorted.
     """

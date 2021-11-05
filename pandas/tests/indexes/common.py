@@ -375,8 +375,8 @@ class Base:
         with pytest.raises(ValueError, match=msg):
             np.repeat(idx, rep, axis=0)
 
-    def test_where(self, listlike_box_with_tuple, simple_index):
-        klass = listlike_box_with_tuple
+    def test_where(self, listlike_box, simple_index):
+        klass = listlike_box
 
         idx = simple_index
         if isinstance(idx, (DatetimeIndex, TimedeltaIndex)):
