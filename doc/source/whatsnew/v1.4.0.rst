@@ -655,6 +655,8 @@ Other
 - Bug in :meth:`RangeIndex.union` with another ``RangeIndex`` with matching (even) ``step`` and starts differing by strictly less than ``step / 2`` (:issue:`44019`)
 - Bug in :meth:`RangeIndex.difference` with ``sort=None`` and ``step<0`` failing to sort (:issue:`44085`)
 - Bug in :meth:`Series.to_frame` and :meth:`Index.to_frame` ignoring the ``name`` argument when ``name=None`` is explicitly passed (:issue:`44212`)
+- Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` with ``value=None`` and ExtensionDtypes (:issue:`44270`)
+-
 
 .. ***DO NOT USE THIS SECTION***
 
