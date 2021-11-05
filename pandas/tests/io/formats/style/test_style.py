@@ -1530,9 +1530,7 @@ def test_hiding_headers_over_index_no_sparsify():
     df = DataFrame(9, index=midx, columns=[0])
     ctx = df.style._translate(False, False)
     assert len(ctx["body"]) == 6
-    msg = "this method is deprecated in favour of `Styler.hide"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        ctx = df.style.hide_index((1, "a"))._translate(False, False)
+    ctx = df.style.hide((1, "a"), axis=0)._translate(False, False)
     assert len(ctx["body"]) == 4
     assert "row2" in ctx["body"][0][0]["class"]
 
