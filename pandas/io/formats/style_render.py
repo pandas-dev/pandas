@@ -504,10 +504,11 @@ class StylerRenderer:
             )
         ]
 
-        descriptor_values = []
-        for c, col in enumerate(self.columns[:max_cols]):
+        descriptor_values, visible_col_count = [], 0
+        for c, col in enumerate(self.columns):
             if c not in self.hidden_columns:
                 header_element_visible = True
+                visible_col_count += 1
                 try:
                     header_element_value = func(self.data[col])
                 except Exception:
@@ -515,6 +516,24 @@ class StylerRenderer:
             else:
                 header_element_visible = False
                 header_element_value = None
+
+            if visible_col_count > max_cols:
+                # add an extra column with `...` value to indicate trimming
+                descriptor_values.append(
+                    _element(
+                        "th",
+                        (
+                            f"{self.css['descriptor_value']} "
+                            f"{self.css['descriptor']}{r} "
+                            f"{self.css['col_trim']}"
+                        ),
+                        "...",
+                        True,
+                        attributes="",
+                    )
+                )
+                break
+
             header_element = _element(
                 "th",
                 (
@@ -527,20 +546,6 @@ class StylerRenderer:
             )
             descriptor_values.append(header_element)
 
-        if len(self.data.columns) > max_cols:
-            # add an extra column with `...` value to indicate trimming
-            descriptor_values.append(
-                _element(
-                    "th",
-                    (
-                        f"{self.css['descriptor_value']} {self.css['descriptor']}{r} "
-                        f"{self.css['col_trim']}"
-                    ),
-                    "...",
-                    True,
-                    attributes="",
-                )
-            )
         return index_blanks + descriptor_name + descriptor_values
 
     def _generate_index_names_row(self, iter: tuple, max_cols: int, col_lengths: dict):
