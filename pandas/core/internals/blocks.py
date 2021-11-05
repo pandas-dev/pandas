@@ -77,7 +77,6 @@ from pandas.core.array_algos.putmask import (
     extract_bool_array,
     putmask_inplace,
     putmask_smart,
-    putmask_without_repeat,
     setitem_datetimelike_compat,
     validate_putmask,
 )
@@ -961,10 +960,7 @@ class Block(PandasObject):
             new = self.fill_value
 
         if self._can_hold_element(new):
-
-            # error: Argument 1 to "putmask_without_repeat" has incompatible type
-            # "Union[ndarray, ExtensionArray]"; expected "ndarray"
-            putmask_without_repeat(self.values.T, mask, new)  # type: ignore[arg-type]
+            np.putmask(self.values.T, mask, new)
             return [self]
 
         elif noop:
