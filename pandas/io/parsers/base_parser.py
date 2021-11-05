@@ -713,13 +713,13 @@ class ParserBase:
                 # e.g. encountering datetime string gets ValueError
                 #  TypeError can be raised in floatify
                 result = values
-                na_count = parsers.sanitize_objects(result, na_values, False)
+                na_count = parsers.sanitize_objects(result, na_values)
             else:
                 na_count = isna(result).sum()
         else:
             result = values
             if values.dtype == np.object_:
-                na_count = parsers.sanitize_objects(values, na_values, False)
+                na_count = parsers.sanitize_objects(values, na_values)
 
         if result.dtype == np.object_ and try_num_bool:
             result, _ = libops.maybe_convert_bool(

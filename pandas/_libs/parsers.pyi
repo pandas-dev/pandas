@@ -16,7 +16,6 @@ STR_NA_VALUES: set[str]
 def sanitize_objects(
     values: npt.NDArray[np.object_],
     na_values: set,
-    convert_empty: bool = ...,
 ) -> int: ...
 
 class TextReader:
