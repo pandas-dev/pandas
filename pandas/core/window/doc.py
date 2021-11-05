@@ -59,7 +59,7 @@ window_apply_parameters = dedent(
 
         .. versionchanged:: 1.0.0
 
-    raw : bool, default None
+    raw : bool, default False
         * ``False`` : passes each row or column as a Series to the
           function.
         * ``True`` : the passed function will receive ndarray
