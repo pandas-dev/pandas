@@ -689,7 +689,8 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         host, port, username, password, etc., if using a URL that will
         be parsed by ``fsspec``, e.g., starting "s3://", "gcs://".
 
-        .. versionchanged:: 1.4.0
+        .. versionadded:: 1.2.0
+
     if_sheet_exists : {'error', 'new', 'replace', 'overlay'}, default 'error'
         How to behave when trying to write to a sheet that already
         exists (append mode only).
@@ -701,6 +702,11 @@ class ExcelWriter(metaclass=abc.ABCMeta):
           contents.
 
         .. versionadded:: 1.3.0
+
+        .. versionchanged:: 1.4.0
+
+           Added ``overlay`` option
+
     engine_kwargs : dict, optional
         Keyword arguments to be passed into the engine.
 
@@ -973,7 +979,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
         self.mode = mode
 
-        if if_sheet_exists not in [None, "error", "new", "replace", "overlay"]:
+        if if_sheet_exists not in (None, "error", "new", "replace", "overlay"):
             raise ValueError(
                 f"'{if_sheet_exists}' is not valid for if_sheet_exists. "
                 "Valid options are 'error', 'new', 'replace' and 'overlay'."
