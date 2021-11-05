@@ -196,7 +196,7 @@ class TestMultiIndexSetItem:
         df.loc[4, "d"] = arr
         tm.assert_series_equal(df.loc[4, "d"], Series(arr, index=[8, 10], name="d"))
 
-    def test_multiindex_assignment_single_dtype(self):
+    def test_multiindex_assignment_single_dtype(self, using_array_manager):
         # GH3777 part 2b
         # single dtype
         arr = np.array([0.0, 1.0])
@@ -207,12 +207,18 @@ class TestMultiIndexSetItem:
             index=[[4, 4, 8], [8, 10, 12]],
             dtype=np.int64,
         )
+        view = df["c"].iloc[:2].values
 
         # arr can be losslessly cast to int, so this setitem is inplace
         df.loc[4, "c"] = arr
         exp = Series(arr, index=[8, 10], name="c", dtype="int64")
         result = df.loc[4, "c"]
         tm.assert_series_equal(result, exp)
+        if not using_array_manager:
+            # FIXME(ArrayManager): this correctly preserves dtype,
+            #  but incorrectly is not inplace.
+            # extra check for inplace-ness
+            tm.assert_numpy_array_equal(view, exp.values)
 
         # arr + 0.5 cannot be cast losslessly to int, so we upcast
         df.loc[4, "c"] = arr + 0.5
