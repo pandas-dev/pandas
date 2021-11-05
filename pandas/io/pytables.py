@@ -2071,7 +2071,7 @@ class IndexCol:
         if self.freq is not None:
             kwargs["freq"] = _ensure_decoded(self.freq)
 
-        factory: type[Index] | type[DatetimeIndex] = Index
+        factory: type[Index] | type[DatetimeIndex] | type[PeriodIndex] = Index
         if is_datetime64_dtype(values.dtype) or is_datetime64tz_dtype(values.dtype):
             factory = DatetimeIndex
         elif values.dtype == "i8" and "freq" in kwargs:
