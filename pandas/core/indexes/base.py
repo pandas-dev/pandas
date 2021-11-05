@@ -5845,6 +5845,7 @@ class Index(IndexOpsMixin, PandasObject):
             # TODO: we dont have tests that get here
             return type(other)(self), other
         elif self.inferred_type == "boolean":
+            return self, other
             if not is_object_dtype(self.dtype):
                 return self.astype("object"), other.astype("object")
 

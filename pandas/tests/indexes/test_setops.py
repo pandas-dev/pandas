@@ -208,7 +208,14 @@ class TestSetOps:
         first = index[3:]
         second = index[:5]
         everything = index
-        union = first.union(second)
+
+        warn = None
+        if is_dtype_equal(index.dtype, "boolean") and index.isna().any():
+            warn = RuntimeWarning
+
+        msg = "boolean value of NA is ambiguous"
+        with tm.assert_produces_warning(warn, match=msg):
+            union = first.union(second)
         assert tm.equalContents(union, everything)
 
         if is_datetime64tz_dtype(index.dtype):
