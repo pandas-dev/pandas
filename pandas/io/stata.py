@@ -934,25 +934,15 @@ class StataMissingValue:
 
     @classmethod
     def get_base_missing_value(cls, dtype: np.dtype) -> int | float:
-        # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-        # operand type: "Type[signedinteger[Any]]")
-        if dtype == np.int8:  # type: ignore[comparison-overlap]
+        if dtype.type is np.int8:
             value = cls.BASE_MISSING_VALUES["int8"]
-        # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-        # operand type: "Type[signedinteger[Any]]")
-        elif dtype == np.int16:  # type: ignore[comparison-overlap]
+        elif dtype.type is np.int16:
             value = cls.BASE_MISSING_VALUES["int16"]
-        # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-        # operand type: "Type[signedinteger[Any]]")
-        elif dtype == np.int32:  # type: ignore[comparison-overlap]
+        elif dtype.type is np.int32:
             value = cls.BASE_MISSING_VALUES["int32"]
-        # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-        # operand type: "Type[floating[Any]]")
-        elif dtype == np.float32:  # type: ignore[comparison-overlap]
+        elif dtype.type is np.float32:
             value = cls.BASE_MISSING_VALUES["float32"]
-        # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-        # operand type: "Type[floating[Any]]")
-        elif dtype == np.float64:  # type: ignore[comparison-overlap]
+        elif dtype.type is np.float64:
             value = cls.BASE_MISSING_VALUES["float64"]
         else:
             raise ValueError("Unsupported dtype")
@@ -2120,30 +2110,20 @@ def _dtype_to_stata_type(dtype: np.dtype, column: Series) -> int:
     type inserted.
     """
     # TODO: expand to handle datetime to integer conversion
-    if dtype.type == np.object_:  # try to coerce it to the biggest string
+    if dtype.type is np.object_:  # try to coerce it to the biggest string
         # not memory efficient, what else could we
         # do?
         itemsize = max_len_string_array(ensure_object(column._values))
         return max(itemsize, 1)
-    # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-    # operand type: "Type[floating[Any]]")
-    elif dtype == np.float64:  # type: ignore[comparison-overlap]
+    elif dtype.type is np.float64:
         return 255
-    # Non-overlapping equality check (left operand type: "dtype[Any]", right
-    # operand type: "Type[floating[Any]]")
-    elif dtype == np.float32:  # type: ignore[comparison-overlap]
+    elif dtype.type is np.float32:
         return 254
-    # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-    # operand type: "Type[signedinteger[Any]]")
-    elif dtype == np.int32:  # type: ignore[comparison-overlap]
+    elif dtype.type is np.int32:
         return 253
-    # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-    # operand type: "Type[signedinteger[Any]]")
-    elif dtype == np.int16:  # type: ignore[comparison-overlap]
+    elif dtype.type is np.int16:
         return 252
-    # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-    # operand type: "Type[signedinteger[Any]]")
-    elif dtype == np.int8:  # type: ignore[comparison-overlap]
+    elif dtype.type is np.int8:
         return 251
     else:  # pragma : no cover
         raise NotImplementedError(f"Data type {dtype} not supported.")
@@ -2174,7 +2154,7 @@ def _dtype_to_default_stata_fmt(
         max_str_len = 2045
         if force_strl:
             return "%9s"
-    if dtype.type == np.object_:
+    if dtype.type is np.object_:
         itemsize = max_len_string_array(ensure_object(column._values))
         if itemsize > max_str_len:
             if dta_version >= 117:
@@ -2400,11 +2380,11 @@ class StataWriter(StataParser):
                 # Upcast if needed so that correct missing values can be set
                 if values.max() >= get_base_missing_value(dtype):
                     if dtype == np.int8:
-                        dtype = np.int16
+                        dtype = np.dtype(np.int16)
                     elif dtype == np.int16:
-                        dtype = np.int32
+                        dtype = np.dtype(np.int32)
                     else:
-                        dtype = np.float64
+                        dtype = np.dtype(np.float64)
                     values = np.array(values, dtype=dtype)
 
                 # Replace missing values with Stata missing value for type
@@ -2624,7 +2604,7 @@ class StataWriter(StataParser):
                 continue
             column = self.data[col]
             dtype = column.dtype
-            if dtype.type == np.object_:
+            if dtype.type is np.object_:
                 inferred_dtype = infer_dtype(column, skipna=True)
                 if not ((inferred_dtype == "string") or len(column) == 0):
                     col = column.name
@@ -2912,7 +2892,7 @@ def _dtype_to_stata_type_117(dtype: np.dtype, column: Series, force_strl: bool) 
     # TODO: expand to handle datetime to integer conversion
     if force_strl:
         return 32768
-    if dtype.type == np.object_:  # try to coerce it to the biggest string
+    if dtype.type is np.object_:  # try to coerce it to the biggest string
         # not memory efficient, what else could we
         # do?
         itemsize = max_len_string_array(ensure_object(column._values))
@@ -2920,25 +2900,15 @@ def _dtype_to_stata_type_117(dtype: np.dtype, column: Series, force_strl: bool) 
         if itemsize <= 2045:
             return itemsize
         return 32768
-    # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-    # operand type: "Type[floating[Any]]")
-    elif dtype == np.float64:  # type: ignore[comparison-overlap]
+    elif dtype.type is np.float64:
         return 65526
-    # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-    # operand type: "Type[floating[Any]]")
-    elif dtype == np.float32:  # type: ignore[comparison-overlap]
+    elif dtype.type is np.float32:
         return 65527
-    # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-    # operand type: "Type[signedinteger[Any]]")  [comparison-overlap]
-    elif dtype == np.int32:  # type: ignore[comparison-overlap]
+    elif dtype.type is np.int32:
         return 65528
-    # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-    # operand type: "Type[signedinteger[Any]]")
-    elif dtype == np.int16:  # type: ignore[comparison-overlap]
+    elif dtype.type is np.int16:
         return 65529
-    # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-    # operand type: "Type[signedinteger[Any]]")
-    elif dtype == np.int8:  # type: ignore[comparison-overlap]
+    elif dtype.type is np.int8:
         return 65530
     else:  # pragma : no cover
         raise NotImplementedError(f"Data type {dtype} not supported.")
