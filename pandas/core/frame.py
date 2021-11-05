@@ -988,13 +988,15 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Return a string representation for a particular DataFrame.
         """
+        buf = StringIO("")
         if self._info_repr():
-            buf = StringIO("")
             self.info(buf=buf)
             return buf.getvalue()
 
         repr_params = fmt.get_dataframe_repr_params()
-        return self.to_string(**repr_params)
+        self.to_string(buf=buf, **repr_params)
+
+        return buf.getvalue()
 
     def _repr_html_(self) -> str | None:
         """
@@ -9084,6 +9086,8 @@ NaN 12.3   33.0
                 pass
             elif not isinstance(other[0], DataFrame):
                 other = DataFrame(other)
+                if self.index.name is not None and not ignore_index:
+                    other.index.name = self.index.name
 
         from pandas.core.reshape.concat import concat
 
@@ -10905,7 +10909,7 @@ NaN 12.3   33.0
         inplace=False,
         axis=None,
         level=None,
-        errors="raise",
+        errors=lib.no_default,
         try_cast=lib.no_default,
     ):
         return super().where(cond, other, inplace, axis, level, errors, try_cast)
@@ -10920,7 +10924,7 @@ NaN 12.3   33.0
         inplace=False,
         axis=None,
         level=None,
-        errors="raise",
+        errors=lib.no_default,
         try_cast=lib.no_default,
     ):
         return super().mask(cond, other, inplace, axis, level, errors, try_cast)
