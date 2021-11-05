@@ -10,8 +10,8 @@ from pandas.compat import (
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
+    is_dtype_equal,
     is_object_dtype,
-    is_dtype_equal
 )
 
 import pandas as pd
