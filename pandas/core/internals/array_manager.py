@@ -327,7 +327,7 @@ class BaseArrayManager(DataManager):
 
         return type(self)(result_arrays, self._axes)
 
-    def where(self: T, other, cond, align: bool, errors: str) -> T:
+    def where(self: T, other, cond, align: bool) -> T:
         if align:
             align_keys = ["other", "cond"]
         else:
@@ -339,7 +339,6 @@ class BaseArrayManager(DataManager):
             align_keys=align_keys,
             other=other,
             cond=cond,
-            errors=errors,
         )
 
     # TODO what is this used for?
