@@ -1765,20 +1765,19 @@ def test_prod_sum_min_count_mixed_object():
         df.sum(axis=0, min_count=1, numeric_only=False)
 
 
-
 def test_timezone_min_max_with_nat():
     # GH#27794
     df = pd.concat(
         [
             pd.date_range(start="2018-01-01", end="2018-01-03")
-                .to_series()
-                .dt.tz_localize("UTC"),
+            .to_series()
+            .dt.tz_localize("UTC"),
             pd.date_range(start="2018-01-01", end="2018-01-02")
-                .to_series()
-                .dt.tz_localize("UTC"),
+            .to_series()
+            .dt.tz_localize("UTC"),
         ],
         axis=1,
-                )
+    )
 
     expected = pd.Series(
         [
@@ -1814,15 +1813,17 @@ def test_min_max_timezone_nat():
     df_with_tz.iloc[2, 1] = pd.NaT
 
     result = df_with_tz.max(axis=1)
-    expected = pd.Series([
-        pd.Timestamp('2021-10-01T12:20:00+02:00'),
-        pd.Timestamp('2021-10-01T16:20:00+02:00'),
-        pd.Timestamp('2021-10-01T20:00:00+02:00'),
-        pd.Timestamp('2021-10-02T00:20:00+02:00'),
-        pd.Timestamp('2021-10-02T04:20:00+02:00'),
-        pd.Timestamp('2021-10-02T08:20:00+02:00'),
-        pd.Timestamp('2021-10-02T12:20:00+02:00'),
-    ])
+    expected = pd.Series(
+        [
+            pd.Timestamp("2021-10-01T12:20:00+02:00"),
+            pd.Timestamp("2021-10-01T16:20:00+02:00"),
+            pd.Timestamp("2021-10-01T20:00:00+02:00"),
+            pd.Timestamp("2021-10-02T00:20:00+02:00"),
+            pd.Timestamp("2021-10-02T04:20:00+02:00"),
+            pd.Timestamp("2021-10-02T08:20:00+02:00"),
+            pd.Timestamp("2021-10-02T12:20:00+02:00"),
+        ]
+    )
     tm.assert_series_equal(result, expected)
 
 

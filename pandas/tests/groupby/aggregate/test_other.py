@@ -674,5 +674,3 @@ def test_groupby_agg_err_catching(err_cls):
 
     result = df["decimals"].groupby(df["id1"]).agg(weird_func)
     tm.assert_series_equal(result, expected, check_names=False)
-
-
