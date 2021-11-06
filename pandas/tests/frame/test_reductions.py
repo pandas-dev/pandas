@@ -708,6 +708,7 @@ class TestDataFrameAnalytics:
 
         diffs = DataFrame({"A": df["A"] - df["C"], "B": df["A"] - df["B"]})
 
+        import pdb; pdb.set_trace()
         # min
         result = diffs.min()
         assert result[0] == diffs.loc[0, "A"]
@@ -1803,7 +1804,7 @@ def test_timezone_min_max_with_nat():
     tm.assert_series_equal(result, expected)
 
 
-def test_min_max_timezone_nat2():
+def test_min_max_timezone_nat():
     # GH#44196
     rng_with_tz = pd.date_range(
         start="2021-10-01T12:00:00+02:00", end="2021-10-02T12:00:00+02:00", freq="4H"
@@ -1823,4 +1824,24 @@ def test_min_max_timezone_nat2():
         pd.Timestamp('2021-10-02T08:20:00+02:00'),
         pd.Timestamp('2021-10-02T12:20:00+02:00'),
     ])
+    tm.assert_series_equal(result, expected)
+
+
+def test_timezone_min_max_both_axis():
+    rng_with_tz = pd.date_range(
+        start="2021-10-01T12:00:00+02:00", end="2021-10-02T12:00:00+02:00", freq="4H"
+    )
+    df_with_tz = pd.DataFrame(
+        data={"A": rng_with_tz, "B": rng_with_tz + pd.Timedelta(minutes=20)}
+    )
+    df_with_tz.iloc[2, 1] = pd.NaT
+
+    result = df_with_tz.max(axis=1)
+    expected = df_with_tz.T.max(axis=0)
+
+    tm.assert_series_equal(result, expected)
+
+    result = df_with_tz.min(axis=1)
+    expected = df_with_tz.T.min(axis=0)
+
     tm.assert_series_equal(result, expected)
