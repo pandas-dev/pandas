@@ -6518,10 +6518,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             if isinstance(to_replace, (tuple, list)):
                 if isinstance(self, ABCDataFrame):
-                    return self.apply(
+                    result = self.apply(
                         self._constructor_sliced._replace_single,
                         args=(to_replace, method, inplace, limit),
                     )
+                    if inplace:
+                        return
+                    return result
                 self = cast("Series", self)
                 return self._replace_single(to_replace, method, inplace, limit)
 
