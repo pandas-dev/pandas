@@ -51,6 +51,7 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_interval_dtype,
     is_list_like,
+    is_object_dtype,
     is_string_dtype,
 )
 from pandas.core.dtypes.dtypes import (
@@ -76,7 +77,6 @@ from pandas.core.array_algos.putmask import (
     extract_bool_array,
     putmask_inplace,
     putmask_smart,
-    putmask_without_repeat,
     setitem_datetimelike_compat,
     validate_putmask,
 )
@@ -960,10 +960,7 @@ class Block(PandasObject):
             new = self.fill_value
 
         if self._can_hold_element(new):
-
-            # error: Argument 1 to "putmask_without_repeat" has incompatible type
-            # "Union[ndarray, ExtensionArray]"; expected "ndarray"
-            putmask_without_repeat(self.values.T, mask, new)  # type: ignore[arg-type]
+            np.putmask(self.values.T, mask, new)
             return [self]
 
         elif noop:
@@ -1415,15 +1412,16 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
 
         new_values = self.values
 
-        if isinstance(new, (np.ndarray, ExtensionArray)) and len(new) == len(mask):
-            new = new[mask]
-
         if mask.ndim == new_values.ndim + 1:
             # TODO(EA2D): unnecessary with 2D EAs
             mask = mask.reshape(new_values.shape)
 
         try:
-            new_values[mask] = new
+            if isinstance(new, (np.ndarray, ExtensionArray)):
+                # Caller is responsible for ensuring matching lengths
+                new_values[mask] = new[mask]
+            else:
+                new_values[mask] = new
         except TypeError:
             if not is_interval_dtype(self.dtype):
                 # Discussion about what we want to support in the general
@@ -1481,7 +1479,14 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
             # we are always 1-D
             indexer = indexer[0]
 
-        check_setitem_lengths(indexer, value, self.values)
+        try:
+            check_setitem_lengths(indexer, value, self.values)
+        except ValueError:
+            # If we are object dtype (e.g. PandasDtype[object]) then
+            #  we can hold nested data, so can ignore this mismatch.
+            if not is_object_dtype(self.dtype):
+                raise
+
         self.values[indexer] = value
         return self
 
