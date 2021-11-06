@@ -6221,7 +6221,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             ]
             if len(results) > 0:
                 result = concat(results, axis=1, copy=False)
-                cons = cast(Type[DataFrame], self._constructor)
+                cons = cast(Type["DataFrame"], self._constructor)
                 result = cons(result)
                 result = result.__finalize__(self, method="convert_dtypes")
                 # https://github.com/python/mypy/issues/8354
