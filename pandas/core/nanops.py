@@ -1039,20 +1039,7 @@ def _nanminmax(meth, fill_value_typ):
             except (AttributeError, TypeError, ValueError):
                 result = np.nan
         else:
-            try:
-                result = getattr(values, meth)(axis)
-            except TypeError as e:
-                # the only case when this can happein is for timezone aware
-                # Timestamps  where a NaT value is casted to # np.inf
-                from pandas.core.dtypes.common import is_float
-
-                vfunc = np.vectorize(lambda x: is_float(x))
-                mask = vfunc(values)
-                if mask.any():
-                    values = np.where(mask, NaT, values)
-                    result = getattr(values, meth)(axis)
-                else:
-                    raise e
+            result = getattr(values, meth)(axis)
 
         result = _maybe_null_out(result, axis, mask, values.shape)
         return result
