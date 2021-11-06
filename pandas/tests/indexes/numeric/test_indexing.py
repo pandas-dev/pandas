@@ -397,14 +397,14 @@ class TestWhere:
             UInt64Index(np.arange(5, dtype="uint64")),
         ],
     )
-    def test_where(self, listlike_box_with_tuple, index):
+    def test_where(self, listlike_box, index):
         cond = [True] * len(index)
         expected = index
-        result = index.where(listlike_box_with_tuple(cond))
+        result = index.where(listlike_box(cond))
 
         cond = [False] + [True] * (len(index) - 1)
         expected = Float64Index([index._na_value] + index[1:].tolist())
-        result = index.where(listlike_box_with_tuple(cond))
+        result = index.where(listlike_box(cond))
         tm.assert_index_equal(result, expected)
 
     def test_where_uint64(self):
