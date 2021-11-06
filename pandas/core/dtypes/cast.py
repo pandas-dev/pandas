@@ -910,9 +910,9 @@ def maybe_upcast(
     """
     new_dtype, fill_value = maybe_promote(values.dtype, fill_value)
     # We get a copy in all cases _except_ (values.dtype == new_dtype and not copy)
-    values = values.astype(new_dtype, copy=copy)
+    upcast_values = values.astype(new_dtype, copy=copy)
 
-    return values, fill_value
+    return upcast_values, fill_value  # type: ignore[return-value]
 
 
 def invalidate_string_dtypes(dtype_set: set[DtypeObj]):
@@ -978,7 +978,7 @@ def astype_dt64_to_dt64tz(
             stacklevel=level,
         )
 
-        # FIXME: GH#33401 this doesn't match DatetimeArray.astype, which
+        # GH#33401 this doesn't match DatetimeArray.astype, which
         #  goes through the `not via_utc` path
         return values.tz_localize("UTC").tz_convert(dtype.tz)
 

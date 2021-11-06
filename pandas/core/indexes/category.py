@@ -384,7 +384,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
             cat = self._data.fillna(value)
         except (ValueError, TypeError):
             # invalid fill_value
-            if not self.isna().any():
+            if not self.hasnans:
                 # nothing to fill, we can get away without casting
                 return self.copy()
             return self.astype(object).fillna(value, downcast=downcast)
