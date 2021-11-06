@@ -2132,7 +2132,6 @@ class TestTimedeltaArraylikeMulDivOps:
 
         result = ser.__rtruediv__(tdi)
         if box is DataFrame:
-            # TODO: Should we skip this case sooner or test something else?
             assert result is NotImplemented
         else:
             tm.assert_equal(result, expected)

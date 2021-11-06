@@ -1792,6 +1792,7 @@ def ensure_nanosecond_dtype(dtype: DtypeObj) -> DtypeObj:
     return dtype
 
 
+# TODO: overload to clarify that if all types are np.dtype then result is np.dtype
 def find_common_type(types: list[DtypeObj]) -> DtypeObj:
     """
     Find a common data type among the given dtypes.
@@ -2204,6 +2205,14 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
             if tipo.kind not in ["i", "u"]:
                 if is_float(element) and element.is_integer():
                     return True
+
+                if isinstance(element, np.ndarray) and element.dtype.kind == "f":
+                    # If all can be losslessly cast to integers, then we can hold them
+                    #  We do something similar in putmask_smart
+                    casted = element.astype(dtype)
+                    comp = casted == element
+                    return comp.all()
+
                 # Anything other than integer we cannot hold
                 return False
             elif dtype.itemsize < tipo.itemsize:
