@@ -1082,7 +1082,6 @@ class ArrayManager(BaseArrayManager):
 
     def as_array(
         self,
-        transpose: bool = False,
         dtype=None,
         copy: bool = False,
         na_value=lib.no_default,
@@ -1092,8 +1091,6 @@ class ArrayManager(BaseArrayManager):
 
         Parameters
         ----------
-        transpose : bool, default False
-            If True, transpose the return array.
         dtype : object, default None
             Data type of the return array.
         copy : bool, default False
@@ -1109,7 +1106,7 @@ class ArrayManager(BaseArrayManager):
         """
         if len(self.arrays) == 0:
             empty_arr = np.empty(self.shape, dtype=float)
-            return empty_arr.transpose() if transpose else empty_arr
+            return empty_arr.transpose()
 
         # We want to copy when na_value is provided to avoid
         # mutating the original object
@@ -1137,8 +1134,6 @@ class ArrayManager(BaseArrayManager):
             result[isna(result)] = na_value
 
         return result
-        # FIXME: don't leave commented-out
-        # return arr.transpose() if transpose else arr
 
 
 class SingleArrayManager(BaseArrayManager, SingleDataManager):
