@@ -2074,6 +2074,14 @@ class IndexCol:
         factory: type[Index] | type[DatetimeIndex] = Index
         if is_datetime64_dtype(values.dtype) or is_datetime64tz_dtype(values.dtype):
             factory = DatetimeIndex
+        elif values.dtype == "i8" and "freq" in kwargs:
+            # PeriodIndex data is stored as i8
+            # error: Incompatible types in assignment (expression has type
+            # "Callable[[Any, KwArg(Any)], PeriodIndex]", variable has type
+            # "Union[Type[Index], Type[DatetimeIndex]]")
+            factory = lambda x, **kwds: PeriodIndex(  # type: ignore[assignment]
+                ordinal=x, **kwds
+            )
 
         # making an Index instance could throw a number of different errors
         try:
