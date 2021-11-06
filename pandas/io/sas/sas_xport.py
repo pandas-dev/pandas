@@ -279,6 +279,12 @@ class XportReader(ReaderBase, abc.Iterator):
         # read file header
         line1 = self._get_row()
         if line1 != _correct_line1:
+            if "**COMPRESSED**" in line1:
+                # this was created with the PROC CPORT method and can't be read
+                # https://documentation.sas.com/doc/en/pgmsascdc/9.4_3.5/movefile/p1bm6aqp3fw4uin1hucwh718f6kp.htm
+                raise ValueError(
+                    "Header record indicates a CPORT file, which is not readable."
+                )
             raise ValueError("Header record is not an XPORT file.")
 
         line2 = self._get_row()
