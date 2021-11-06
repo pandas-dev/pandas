@@ -52,8 +52,6 @@ from pandas.core.series import Series
 
 from pandas.io.formats.printing import pprint_thing
 
-from pandas._libs.tslibs.nattype import NaTType
-
 if TYPE_CHECKING:
     from pandas.core.generic import NDFrame
 
