@@ -1763,3 +1763,64 @@ def test_prod_sum_min_count_mixed_object():
     msg = re.escape("unsupported operand type(s) for +: 'int' and 'str'")
     with pytest.raises(TypeError, match=msg):
         df.sum(axis=0, min_count=1, numeric_only=False)
+
+
+
+def test_timezone_min_max_with_nat():
+    # GH#27794
+    df = pd.concat(
+        [
+            pd.date_range(start="2018-01-01", end="2018-01-03")
+                .to_series()
+                .dt.tz_localize("UTC"),
+            pd.date_range(start="2018-01-01", end="2018-01-02")
+                .to_series()
+                .dt.tz_localize("UTC"),
+        ],
+        axis=1,
+                )
+
+    expected = pd.Series(
+        [
+            pd.Timestamp("2018-01-01", tz="UTC"),
+            pd.Timestamp("2018-01-02", tz="UTC"),
+            pd.Timestamp("2018-01-03", tz="UTC"),
+        ],
+        index=pd.date_range(start="2018-01-01", end="2018-01-03"),
+    )
+    result = df.min(axis=1)
+    tm.assert_series_equal(result, expected)
+
+    expected = pd.Series(
+        [
+            pd.Timestamp("2018-01-01", tz="UTC"),
+            pd.Timestamp("2018-01-02", tz="UTC"),
+            pd.Timestamp("2018-01-03", tz="UTC"),
+        ],
+        index=pd.date_range(start="2018-01-01", end="2018-01-03"),
+    )
+    result = df.max(axis=1)
+    tm.assert_series_equal(result, expected)
+
+
+def test_min_max_timezone_nat2():
+    # GH#44196
+    rng_with_tz = pd.date_range(
+        start="2021-10-01T12:00:00+02:00", end="2021-10-02T12:00:00+02:00", freq="4H"
+    )
+    df_with_tz = pd.DataFrame(
+        data={"A": rng_with_tz, "B": rng_with_tz + pd.Timedelta(minutes=20)}
+    )
+    df_with_tz.iloc[2, 1] = pd.NaT
+
+    result = df_with_tz.max(axis=1)
+    expected = pd.Series([
+        pd.Timestamp('2021-10-01T12:20:00+02:00'),
+        pd.Timestamp('2021-10-01T16:20:00+02:00'),
+        pd.Timestamp('2021-10-01T20:20:00+02:00'),
+        pd.Timestamp('2021-10-02T00:20:00+02:00'),
+        pd.Timestamp('2021-10-02T04:20:00+02:00'),
+        pd.Timestamp('2021-10-02T08:20:00+02:00'),
+        pd.Timestamp('2021-10-02T12:20:00+02:00'),
+    ])
+    tm.assert_series_equal(result, expected)

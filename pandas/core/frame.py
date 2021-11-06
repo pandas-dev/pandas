@@ -9926,7 +9926,16 @@ NaN 12.3   33.0
         assert filter_type is None or filter_type == "bool", filter_type
         out_dtype = "bool" if filter_type == "bool" else None
 
+        def _maybe_swap_axis(df, axis):
+            if axis == 1:
+                df = df.T
+                axis = 0
+            return df, axis
+
+        # import pdb; pdb.set_trace()
         if numeric_only is None and name in ["mean", "median"]:
+            df = self
+            df, axis = _maybe_swap_axis(df, axis)
             own_dtypes = [arr.dtype for arr in self._mgr.arrays]
 
             dtype_is_dt = np.array(
@@ -9977,7 +9986,7 @@ NaN 12.3   33.0
                 data = self._get_bool_data()
             return data
 
-        if numeric_only is not None or axis == 0:
+        if numeric_only is not None or axis == 0:# or (name in ["max", "min"] and axis == 1):
             # For numeric_only non-None and axis non-None, we know
             #  which blocks to use and no try/except is needed.
             #  For numeric_only=None only the case with axis==0 and no object
@@ -9986,10 +9995,7 @@ NaN 12.3   33.0
             df = self
             if numeric_only is True:
                 df = _get_data()
-            if axis == 1:
-                df = df.T
-                axis = 0
-
+            df, axis = _maybe_swap_axis(df, axis)
             ignore_failures = numeric_only is None
 
             # After possibly _get_data and transposing, we are now in the
