@@ -708,7 +708,6 @@ class TestDataFrameAnalytics:
 
         diffs = DataFrame({"A": df["A"] - df["C"], "B": df["A"] - df["B"]})
 
-        import pdb; pdb.set_trace()
         # min
         result = diffs.min()
         assert result[0] == diffs.loc[0, "A"]
@@ -757,7 +756,7 @@ class TestDataFrameAnalytics:
         # excludes numeric
         with tm.assert_produces_warning(FutureWarning, match="Select only valid"):
             result = mixed.min(axis=1)
-        expected = Series([1, 1, 1.0], index=[0, 1, 2])
+        expected = Series([])
         tm.assert_series_equal(result, expected)
 
         # works when only those columns are selected
@@ -1818,7 +1817,7 @@ def test_min_max_timezone_nat():
     expected = pd.Series([
         pd.Timestamp('2021-10-01T12:20:00+02:00'),
         pd.Timestamp('2021-10-01T16:20:00+02:00'),
-        pd.Timestamp('2021-10-01T20:20:00+02:00'),
+        pd.Timestamp('2021-10-01T20:00:00+02:00'),
         pd.Timestamp('2021-10-02T00:20:00+02:00'),
         pd.Timestamp('2021-10-02T04:20:00+02:00'),
         pd.Timestamp('2021-10-02T08:20:00+02:00'),
