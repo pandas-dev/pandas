@@ -128,6 +128,7 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
+    # TODO: share with IntegerArray?
     def _check_op(self, s, op, other, op_name, exc=NotImplementedError):
         if exc is None:
             result = op(s, other)
@@ -141,7 +142,8 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
     def check_opname(self, s, op_name, other, exc=None):
         super().check_opname(s, op_name, other, exc=None)
 
-    def _compare_other(self, s, data, op_name, other):
+    def _compare_other(self, s, data, op, other):
+        op_name = f"__{op.__name__}__"
         self.check_opname(s, op_name, other)
 
 
@@ -221,4 +223,8 @@ class TestPrinting(base.BasePrintingTests):
 
 
 class TestParsing(base.BaseParsingTests):
+    pass
+
+
+class Test2DCompat(base.Dim2CompatTests):
     pass

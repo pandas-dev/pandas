@@ -2081,3 +2081,21 @@ Thu,Lunch,Yes,51.51,17"""
         )
         expected.columns = MultiIndex.from_tuples([("cat", 0), ("cat", 1)])
         tm.assert_frame_equal(result, expected)
+
+    def test_stack_unsorted(self):
+        # GH 16925
+        PAE = ["ITA", "FRA"]
+        VAR = ["A1", "A2"]
+        TYP = ["CRT", "DBT", "NET"]
+        MI = MultiIndex.from_product([PAE, VAR, TYP], names=["PAE", "VAR", "TYP"])
+
+        V = list(range(len(MI)))
+        DF = DataFrame(data=V, index=MI, columns=["VALUE"])
+
+        DF = DF.unstack(["VAR", "TYP"])
+        DF.columns = DF.columns.droplevel(0)
+        DF.loc[:, ("A0", "NET")] = 9999
+
+        result = DF.stack(["VAR", "TYP"]).sort_index()
+        expected = DF.sort_index(axis=1).stack(["VAR", "TYP"]).sort_index()
+        tm.assert_series_equal(result, expected)

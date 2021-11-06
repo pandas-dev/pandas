@@ -5,13 +5,14 @@ dependencies:
   - python=3.8
 
   # tools
-  - cython>=0.29.21
+  - cython>=0.29.24
   - pytest>=6.0
   - pytest-xdist>=1.31
   - hypothesis>=5.5.3
   - pytest-cov>=2.10.1  # this is only needed in the coverage build, ref: GH 35737
 
   # pandas dependencies
+  - aiobotocore<2.0.0
   - beautifulsoup4
   - botocore>=1.11
   - dask
@@ -30,7 +31,7 @@ dependencies:
   - openpyxl
   - pandas-gbq
   - psycopg2
-  - pyarrow>=0.17.0
+  - pyarrow>=1.0.1
   - pymysql
   - pytables
   - python-snappy

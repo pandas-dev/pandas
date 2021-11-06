@@ -720,13 +720,12 @@ class TestWhere:
         with pytest.raises(NotImplementedError, match=msg):
             i.where(True)
 
-    @pytest.mark.parametrize("klass", [list, tuple, np.array, pd.Series])
-    def test_where_array_like(self, klass):
-        i = MultiIndex.from_tuples([("A", 1), ("A", 2)])
+    def test_where_array_like(self, listlike_box):
+        mi = MultiIndex.from_tuples([("A", 1), ("A", 2)])
         cond = [False, True]
         msg = r"\.where is not supported for MultiIndex operations"
         with pytest.raises(NotImplementedError, match=msg):
-            i.where(klass(cond))
+            mi.where(listlike_box(cond))
 
 
 class TestContains:

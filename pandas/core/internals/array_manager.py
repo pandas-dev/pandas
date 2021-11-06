@@ -170,7 +170,12 @@ class BaseArrayManager(DataManager):
     def get_dtypes(self):
         return np.array([arr.dtype for arr in self.arrays], dtype="object")
 
-    # TODO setstate getstate
+    def __getstate__(self):
+        return self.arrays, self._axes
+
+    def __setstate__(self, state):
+        self.arrays = state[0]
+        self._axes = state[1]
 
     def __repr__(self) -> str:
         output = type(self).__name__
@@ -322,7 +327,7 @@ class BaseArrayManager(DataManager):
 
         return type(self)(result_arrays, self._axes)
 
-    def where(self: T, other, cond, align: bool, errors: str) -> T:
+    def where(self: T, other, cond, align: bool) -> T:
         if align:
             align_keys = ["other", "cond"]
         else:
@@ -334,7 +339,6 @@ class BaseArrayManager(DataManager):
             align_keys=align_keys,
             other=other,
             cond=cond,
-            errors=errors,
         )
 
     # TODO what is this used for?
@@ -382,9 +386,6 @@ class BaseArrayManager(DataManager):
         return self.apply_with_block(
             "fillna", value=value, limit=limit, inplace=inplace, downcast=downcast
         )
-
-    def downcast(self: T) -> T:
-        return self.apply_with_block("downcast")
 
     def astype(self: T, dtype, copy: bool = False, errors: str = "raise") -> T:
         return self.apply(astype_array_safe, dtype=dtype, copy=copy, errors=errors)
@@ -790,7 +791,9 @@ class ArrayManager(BaseArrayManager):
         """
         return self.arrays
 
-    def iset(self, loc: int | slice | np.ndarray, value: ArrayLike):
+    def iset(
+        self, loc: int | slice | np.ndarray, value: ArrayLike, inplace: bool = False
+    ):
         """
         Set new column(s).
 
@@ -802,6 +805,8 @@ class ArrayManager(BaseArrayManager):
         loc : integer, slice or boolean mask
             Positional location (already bounds checked)
         value : np.ndarray or ExtensionArray
+        inplace : bool, default False
+            Whether overwrite existing array as opposed to replacing it.
         """
         # single column -> single integer index
         if lib.is_integer(loc):
@@ -1103,8 +1108,8 @@ class ArrayManager(BaseArrayManager):
         arr : ndarray
         """
         if len(self.arrays) == 0:
-            arr = np.empty(self.shape, dtype=float)
-            return arr.transpose() if transpose else arr
+            empty_arr = np.empty(self.shape, dtype=float)
+            return empty_arr.transpose() if transpose else empty_arr
 
         # We want to copy when na_value is provided to avoid
         # mutating the original object
@@ -1124,9 +1129,7 @@ class ArrayManager(BaseArrayManager):
 
         result = np.empty(self.shape_proper, dtype=dtype)
 
-        # error: Incompatible types in assignment (expression has type "Union[ndarray,
-        # ExtensionArray]", variable has type "ndarray")
-        for i, arr in enumerate(self.arrays):  # type: ignore[assignment]
+        for i, arr in enumerate(self.arrays):
             arr = arr.astype(dtype, copy=copy)
             result[:, i] = arr
 
@@ -1134,6 +1137,7 @@ class ArrayManager(BaseArrayManager):
             result[isna(result)] = na_value
 
         return result
+        # FIXME: don't leave commented-out
         # return arr.transpose() if transpose else arr
 
 

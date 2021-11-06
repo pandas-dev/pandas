@@ -1,10 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    IntervalIndex,
-    Series,
-)
+from pandas import IntervalIndex
 import pandas._testing as tm
 from pandas.tests.indexes.common import Base
 
@@ -46,8 +43,9 @@ class TestBase(Base):
         expected = IntervalIndex.from_arrays([0, 0, 1], [1, 1, 2], closed=closed)
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize("klass", [list, tuple, np.array, Series])
-    def test_where(self, simple_index, klass):
+    def test_where(self, simple_index, listlike_box):
+        klass = listlike_box
+
         idx = simple_index
         cond = [True] * len(idx)
         expected = idx

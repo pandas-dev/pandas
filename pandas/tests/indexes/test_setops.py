@@ -15,6 +15,7 @@ from pandas import (
     DatetimeIndex,
     Index,
     MultiIndex,
+    RangeIndex,
     Series,
     TimedeltaIndex,
     Timestamp,
@@ -453,19 +454,20 @@ class TestSetOps:
     "method", ["intersection", "union", "difference", "symmetric_difference"]
 )
 def test_setop_with_categorical(index, sort, method):
-    if isinstance(index, MultiIndex):
+    if isinstance(index, MultiIndex):  # TODO: flat_index?
         # tested separately in tests.indexes.multi.test_setops
         return
 
     other = index.astype("category")
+    exact = "equiv" if isinstance(index, RangeIndex) else True
 
     result = getattr(index, method)(other, sort=sort)
     expected = getattr(index, method)(index, sort=sort)
-    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(result, expected, exact=exact)
 
     result = getattr(index, method)(other[:5], sort=sort)
     expected = getattr(index, method)(index[:5], sort=sort)
-    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(result, expected, exact=exact)
 
 
 def test_intersection_duplicates_all_indexes(index):

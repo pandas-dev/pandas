@@ -98,7 +98,9 @@ def is_platform_arm() -> bool:
     bool
         True if the running platform uses ARM architecture.
     """
-    return platform.machine() in ("arm64", "aarch64")
+    return platform.machine() in ("arm64", "aarch64") or platform.machine().startswith(
+        "armv"
+    )
 
 
 def get_lzma_file():
