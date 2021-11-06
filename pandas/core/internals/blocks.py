@@ -31,6 +31,7 @@ from pandas._typing import (
     npt,
 )
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -50,6 +51,7 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_interval_dtype,
     is_list_like,
+    is_object_dtype,
     is_string_dtype,
 )
 from pandas.core.dtypes.dtypes import (
@@ -75,7 +77,6 @@ from pandas.core.array_algos.putmask import (
     extract_bool_array,
     putmask_inplace,
     putmask_smart,
-    putmask_without_repeat,
     setitem_datetimelike_compat,
     validate_putmask,
 )
@@ -268,8 +269,19 @@ class Block(PandasObject):
             placement = self._mgr_locs
 
         if values.dtype.kind in ["m", "M"]:
-            # TODO: remove this once fastparquet has stopped relying on it
-            values = ensure_wrapped_if_datetimelike(values)
+
+            new_values = ensure_wrapped_if_datetimelike(values)
+            if new_values is not values:
+                # TODO(2.0): remove once fastparquet has stopped relying on it
+                warnings.warn(
+                    "In a future version, Block.make_block_same_class will "
+                    "assume that datetime64 and timedelta64 ndarrays have "
+                    "already been cast to DatetimeArray and TimedeltaArray, "
+                    "respectively.",
+                    DeprecationWarning,
+                    stacklevel=find_stack_level(),
+                )
+            values = new_values
 
         # We assume maybe_coerce_values has already been called
         return type(self)(values, placement=placement, ndim=self.ndim)
@@ -906,7 +918,7 @@ class Block(PandasObject):
         check_setitem_lengths(indexer, value, values)
 
         if is_empty_indexer(indexer, arr_value):
-            # GH#8669 empty indexers
+            # GH#8669 empty indexers, test_loc_setitem_boolean_mask_allfalse
             pass
 
         elif is_scalar_indexer(indexer, self.ndim):
@@ -948,10 +960,7 @@ class Block(PandasObject):
             new = self.fill_value
 
         if self._can_hold_element(new):
-
-            # error: Argument 1 to "putmask_without_repeat" has incompatible type
-            # "Union[ndarray, ExtensionArray]"; expected "ndarray"
-            putmask_without_repeat(self.values.T, mask, new)  # type: ignore[arg-type]
+            np.putmask(self.values.T, mask, new)
             return [self]
 
         elif noop:
@@ -1132,7 +1141,7 @@ class Block(PandasObject):
 
         return [self.make_block(new_values)]
 
-    def where(self, other, cond, errors="raise") -> list[Block]:
+    def where(self, other, cond) -> list[Block]:
         """
         evaluate the block; return result block(s) from the result
 
@@ -1140,9 +1149,6 @@ class Block(PandasObject):
         ----------
         other : a ndarray/object
         cond : np.ndarray[bool], SparseArray[bool], or BooleanArray
-        errors : str, {'raise', 'ignore'}, default 'raise'
-            - ``raise`` : allow exceptions to be raised
-            - ``ignore`` : suppress exceptions. On error return original object
 
         Returns
         -------
@@ -1151,7 +1157,6 @@ class Block(PandasObject):
         assert cond.ndim == self.ndim
         assert not isinstance(other, (ABCIndex, ABCSeries, ABCDataFrame))
 
-        assert errors in ["raise", "ignore"]
         transpose = self.ndim == 2
 
         values = self.values
@@ -1173,9 +1178,8 @@ class Block(PandasObject):
             # or if we are a single block (ndim == 1)
             if not self._can_hold_element(other):
                 # we cannot coerce, return a compat dtype
-                # we are explicitly ignoring errors
                 block = self.coerce_to_target_dtype(other)
-                blocks = block.where(orig_other, cond, errors=errors)
+                blocks = block.where(orig_other, cond)
                 return self._maybe_downcast(blocks, "infer")
 
             # error: Argument 1 to "setitem_datetimelike_compat" has incompatible type
@@ -1186,6 +1190,14 @@ class Block(PandasObject):
                 values, icond.sum(), other  # type: ignore[arg-type]
             )
             if alt is not other:
+                if is_list_like(other) and len(other) < len(values):
+                    # call np.where with other to get the appropriate ValueError
+                    np.where(~icond, values, other)
+                    raise NotImplementedError(
+                        "This should not be reached; call to np.where above is "
+                        "expected to raise ValueError. Please report a bug at "
+                        "github.com/pandas-dev/pandas"
+                    )
                 result = values.copy()
                 np.putmask(result, icond, alt)
             else:
@@ -1400,15 +1412,16 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
 
         new_values = self.values
 
-        if isinstance(new, (np.ndarray, ExtensionArray)) and len(new) == len(mask):
-            new = new[mask]
-
         if mask.ndim == new_values.ndim + 1:
             # TODO(EA2D): unnecessary with 2D EAs
             mask = mask.reshape(new_values.shape)
 
         try:
-            new_values[mask] = new
+            if isinstance(new, (np.ndarray, ExtensionArray)):
+                # Caller is responsible for ensuring matching lengths
+                new_values[mask] = new[mask]
+            else:
+                new_values[mask] = new
         except TypeError:
             if not is_interval_dtype(self.dtype):
                 # Discussion about what we want to support in the general
@@ -1466,7 +1479,14 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
             # we are always 1-D
             indexer = indexer[0]
 
-        check_setitem_lengths(indexer, value, self.values)
+        try:
+            check_setitem_lengths(indexer, value, self.values)
+        except ValueError:
+            # If we are object dtype (e.g. PandasDtype[object]) then
+            #  we can hold nested data, so can ignore this mismatch.
+            if not is_object_dtype(self.dtype):
+                raise
+
         self.values[indexer] = value
         return self
 
@@ -1574,7 +1594,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         new_values = self.values.shift(periods=periods, fill_value=fill_value)
         return [self.make_block_same_class(new_values)]
 
-    def where(self, other, cond, errors="raise") -> list[Block]:
+    def where(self, other, cond) -> list[Block]:
 
         cond = extract_bool_array(cond)
         assert not isinstance(other, (ABCIndex, ABCSeries, ABCDataFrame))
@@ -1593,7 +1613,9 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
             # The default `other` for Series / Frame is np.nan
             # we want to replace that with the correct NA value
             # for the type
-            other = self.dtype.na_value
+            # error: Item "dtype[Any]" of "Union[dtype[Any], ExtensionDtype]" has no
+            # attribute "na_value"
+            other = self.dtype.na_value  # type: ignore[union-attr]
 
         try:
             result = self.values._where(cond, other)
@@ -1605,7 +1627,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
                     # For now at least only support casting e.g.
                     #  Interval[int64]->Interval[float64]
                     raise
-                return blk.where(other, cond, errors)
+                return blk.where(other, cond)
             raise
 
         return [self.make_block_same_class(result)]
@@ -1684,13 +1706,13 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
         mask = extract_bool_array(mask)
 
         if not self._can_hold_element(new):
-            return self.astype(_dtype_obj).putmask(mask, new)
+            return self.coerce_to_target_dtype(new).putmask(mask, new)
 
         arr = self.values
         arr.T.putmask(mask, new)
         return [self]
 
-    def where(self, other, cond, errors="raise") -> list[Block]:
+    def where(self, other, cond) -> list[Block]:
         arr = self.values
 
         cond = extract_bool_array(cond)
@@ -1698,7 +1720,7 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
         try:
             res_values = arr.T._where(cond, other).T
         except (ValueError, TypeError):
-            return Block.where(self, other, cond, errors=errors)
+            return Block.where(self, other, cond)
 
         nb = self.make_block_same_class(res_values)
         return [nb]
@@ -1741,7 +1763,9 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
             # We support filling a DatetimeTZ with a `value` whose timezone
             #  is different by coercing to object.
             # TODO: don't special-case td64
-            return self.astype(_dtype_obj).fillna(value, limit, inplace, downcast)
+            return self.coerce_to_target_dtype(value).fillna(
+                value, limit, inplace, downcast
+            )
 
         values = self.values
         values = values if inplace else values.copy()

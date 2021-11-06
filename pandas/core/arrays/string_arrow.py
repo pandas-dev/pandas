@@ -58,6 +58,7 @@ from pandas.core.arrays.string_ import (
 )
 from pandas.core.indexers import (
     check_array_indexer,
+    unpack_tuple_and_ellipses,
     validate_indices,
 )
 from pandas.core.strings.object_array import ObjectStringArrayMixin
@@ -313,15 +314,15 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
                     "boolean arrays are valid indices."
                 )
         elif isinstance(item, tuple):
-            # possibly unpack arr[..., n] to arr[n]
-            if len(item) == 1:
-                item = item[0]
-            elif len(item) == 2:
-                if item[0] is Ellipsis:
-                    item = item[1]
-                elif item[1] is Ellipsis:
-                    item = item[0]
+            item = unpack_tuple_and_ellipses(item)
 
+        if is_scalar(item) and not is_integer(item):
+            # e.g. "foo" or 2.5
+            # exception message copied from numpy
+            raise IndexError(
+                r"only integers, slices (`:`), ellipsis (`...`), numpy.newaxis "
+                r"(`None`) and integer or boolean arrays are valid indices"
+            )
         # We are not an array indexer, so maybe e.g. a slice or integer
         # indexer. We dispatch to pyarrow.
         value = self._data[item]
@@ -391,6 +392,11 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
 
         # TODO(ARROW-9429): Add a .to_numpy() to ChunkedArray
         return BooleanArray._from_sequence(result.to_pandas().values)
+
+    def insert(self, loc: int, item):
+        if not isinstance(item, str) and item is not libmissing.NA:
+            raise TypeError("Scalar must be NA or str")
+        return super().insert(loc, item)
 
     def __setitem__(self, key: int | slice | np.ndarray, value: Any) -> None:
         """Set one or more values inplace.

@@ -302,7 +302,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # error: Incompatible types in assignment (expression has type "property",
     # base class "IndexOpsMixin" defined the type as "Callable[[IndexOpsMixin], bool]")
     hasnans = property(  # type: ignore[assignment]
-        base.IndexOpsMixin.hasnans.func, doc=base.IndexOpsMixin.hasnans.__doc__
+        # error: "Callable[[IndexOpsMixin], bool]" has no attribute "fget"
+        base.IndexOpsMixin.hasnans.fget,  # type: ignore[attr-defined]
+        doc=base.IndexOpsMixin.hasnans.__doc__,
     )
     _mgr: SingleManager
     div: Callable[[Series, Any], Series]
@@ -1094,9 +1096,25 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             if com.is_bool_indexer(key):
                 key = check_bool_indexer(self.index, key)
                 key = np.asarray(key, dtype=bool)
+
+                if (
+                    is_list_like(value)
+                    and len(value) != len(self)
+                    and not isinstance(value, Series)
+                ):
+                    # Series will be reindexed to have matching length inside
+                    #  _where call below
+                    # GH#44265
+                    indexer = key.nonzero()[0]
+                    self._set_values(indexer, value)
+                    return
+
+                # otherwise with listlike other we interpret series[mask] = other
+                #  as series[mask] = other[mask]
                 try:
                     self._where(~key, value, inplace=True)
                 except InvalidIndexError:
+                    # test_where_dups
                     self.iloc[key] = value
                 return
 
@@ -1224,7 +1242,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return super()._check_is_chained_assignment_possible()
 
     def _maybe_update_cacher(
-        self, clear: bool = False, verify_is_copy: bool = True
+        self, clear: bool = False, verify_is_copy: bool = True, inplace: bool = False
     ) -> None:
         """
         See NDFrame._maybe_update_cacher.__doc__
@@ -1242,13 +1260,15 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 # GH#42530 self.name must be in ref.columns
                 # to ensure column still in dataframe
                 # otherwise, either self or ref has swapped in new arrays
-                ref._maybe_cache_changed(cacher[0], self)
+                ref._maybe_cache_changed(cacher[0], self, inplace=inplace)
             else:
                 # GH#33675 we have swapped in a new array, so parent
                 #  reference to self is now invalid
                 ref._item_cache.pop(cacher[0], None)
 
-        super()._maybe_update_cacher(clear=clear, verify_is_copy=verify_is_copy)
+        super()._maybe_update_cacher(
+            clear=clear, verify_is_copy=verify_is_copy, inplace=inplace
+        )
 
     # ----------------------------------------------------------------------
     # Unsorted
@@ -1317,7 +1337,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         )
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "level"])
-    def reset_index(self, level=None, drop=False, name=None, inplace=False):
+    def reset_index(self, level=None, drop=False, name=lib.no_default, inplace=False):
         """
         Generate a new DataFrame or Series with the index reset.
 
@@ -1427,6 +1447,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if drop:
+            if name is lib.no_default:
+                name = self.name
+
             new_index = default_index(len(self))
             if level is not None:
                 if not isinstance(level, (tuple, list)):
@@ -1448,6 +1471,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 "Cannot reset_index inplace on a Series to create a DataFrame"
             )
         else:
+            if name is lib.no_default:
+                # For backwards compatibility, keep columns as [0] instead of
+                #  [None] when self.name is None
+                if self.name is None:
+                    name = 0
+                else:
+                    name = self.name
+
             df = self.to_frame(name)
             return df.reset_index(level=level, drop=drop)
 
@@ -1458,7 +1489,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Return a string representation for a particular Series.
         """
-        repr_params = fmt.get_series_repr_params(self)
+        repr_params = fmt.get_series_repr_params()
         return self.to_string(**repr_params)
 
     def to_string(
@@ -1697,7 +1728,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         into_c = com.standardize_mapping(into)
         return into_c((k, maybe_box_native(v)) for k, v in self.items())
 
-    def to_frame(self, name=None) -> DataFrame:
+    def to_frame(self, name: Hashable = lib.no_default) -> DataFrame:
         """
         Convert Series to DataFrame.
 
@@ -1723,7 +1754,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         2    c
         """
         columns: Index
-        if name is None:
+        if name is lib.no_default:
             name = self.name
             if name is None:
                 # default to [0], same as we would get with DataFrame(self)
@@ -4874,23 +4905,20 @@ Keep all original rows and also all original values
         replacement value is given in the replace method
         """
 
-        orig_dtype = self.dtype
         result = self if inplace else self.copy()
-        fill_f = missing.get_fill_func(method)
 
-        mask = missing.mask_missing(result.values, to_replace)
-        values, _ = fill_f(result.values, limit=limit, mask=mask)
+        values = result._values
+        mask = missing.mask_missing(values, to_replace)
 
-        if values.dtype == orig_dtype and inplace:
-            return
-
-        result = self._constructor(values, index=self.index, dtype=self.dtype)
-        result = result.__finalize__(self)
+        if isinstance(values, ExtensionArray):
+            # dispatch to the EA's _pad_mask_inplace method
+            values._fill_mask_inplace(method, limit, mask)
+        else:
+            fill_f = missing.get_fill_func(method)
+            values, _ = fill_f(values, limit=limit, mask=mask)
 
         if inplace:
-            self._update_inplace(result)
             return
-
         return result
 
     # error: Cannot determine type of 'shift'
@@ -5446,7 +5474,7 @@ Keep all original rows and also all original values
         inplace=False,
         axis=None,
         level=None,
-        errors="raise",
+        errors=lib.no_default,
         try_cast=lib.no_default,
     ):
         return super().where(cond, other, inplace, axis, level, errors, try_cast)
@@ -5461,7 +5489,7 @@ Keep all original rows and also all original values
         inplace=False,
         axis=None,
         level=None,
-        errors="raise",
+        errors=lib.no_default,
         try_cast=lib.no_default,
     ):
         return super().mask(cond, other, inplace, axis, level, errors, try_cast)
@@ -5469,7 +5497,6 @@ Keep all original rows and also all original values
     # ----------------------------------------------------------------------
     # Add index
     _AXIS_ORDERS = ["index"]
-    _AXIS_REVERSED = False
     _AXIS_LEN = len(_AXIS_ORDERS)
     _info_axis_number = 0
     _info_axis_name = "index"

@@ -364,6 +364,16 @@ class TestReshaping(BaseNumPyTests, base.BaseReshapingTests):
 
 class TestSetitem(BaseNumPyTests, base.BaseSetitemTests):
     @skip_nested
+    def test_setitem_sequence_mismatched_length_raises(self, data, as_array):
+        # doesn't raise bc object dtype holds nested data
+        super().test_setitem_sequence_mismatched_length_raises(data, as_array)
+
+    @skip_nested
+    def test_setitem_invalid(self, data, invalid_scalar):
+        # object dtype can hold anything, so doesn't raise
+        super().test_setitem_invalid(data, invalid_scalar)
+
+    @skip_nested
     def test_setitem_sequence_broadcasts(self, data, box_in_series):
         # ValueError: cannot set using a list-like indexer with a different
         # length than the value
