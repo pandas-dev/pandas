@@ -1045,8 +1045,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             self._rebuild_blknos_and_blklocs()
 
         # Note: we exclude DTA/TDA here
-        vdtype = getattr(value, "dtype", None)
-        value_is_extension_type = is_1d_only_ea_dtype(vdtype)
+        value_is_extension_type = is_1d_only_ea_dtype(value.dtype)
 
         # categorical/sparse/datetimetz
         if value_is_extension_type:
