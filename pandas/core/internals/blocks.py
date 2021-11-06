@@ -1144,7 +1144,7 @@ class Block(PandasObject):
 
         return [self.make_block(new_values)]
 
-    def where(self, other, cond, errors="raise") -> list[Block]:
+    def where(self, other, cond) -> list[Block]:
         """
         evaluate the block; return result block(s) from the result
 
@@ -1152,9 +1152,6 @@ class Block(PandasObject):
         ----------
         other : a ndarray/object
         cond : np.ndarray[bool], SparseArray[bool], or BooleanArray
-        errors : str, {'raise', 'ignore'}, default 'raise'
-            - ``raise`` : allow exceptions to be raised
-            - ``ignore`` : suppress exceptions. On error return original object
 
         Returns
         -------
@@ -1163,7 +1160,6 @@ class Block(PandasObject):
         assert cond.ndim == self.ndim
         assert not isinstance(other, (ABCIndex, ABCSeries, ABCDataFrame))
 
-        assert errors in ["raise", "ignore"]
         transpose = self.ndim == 2
 
         values = self.values
@@ -1185,9 +1181,8 @@ class Block(PandasObject):
             # or if we are a single block (ndim == 1)
             if not self._can_hold_element(other):
                 # we cannot coerce, return a compat dtype
-                # we are explicitly ignoring errors
                 block = self.coerce_to_target_dtype(other)
-                blocks = block.where(orig_other, cond, errors=errors)
+                blocks = block.where(orig_other, cond)
                 return self._maybe_downcast(blocks, "infer")
 
             # error: Argument 1 to "setitem_datetimelike_compat" has incompatible type
@@ -1198,6 +1193,14 @@ class Block(PandasObject):
                 values, icond.sum(), other  # type: ignore[arg-type]
             )
             if alt is not other:
+                if is_list_like(other) and len(other) < len(values):
+                    # call np.where with other to get the appropriate ValueError
+                    np.where(~icond, values, other)
+                    raise NotImplementedError(
+                        "This should not be reached; call to np.where above is "
+                        "expected to raise ValueError. Please report a bug at "
+                        "github.com/pandas-dev/pandas"
+                    )
                 result = values.copy()
                 np.putmask(result, icond, alt)
             else:
@@ -1586,7 +1589,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         new_values = self.values.shift(periods=periods, fill_value=fill_value)
         return [self.make_block_same_class(new_values)]
 
-    def where(self, other, cond, errors="raise") -> list[Block]:
+    def where(self, other, cond) -> list[Block]:
 
         cond = extract_bool_array(cond)
         assert not isinstance(other, (ABCIndex, ABCSeries, ABCDataFrame))
@@ -1619,7 +1622,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
                     # For now at least only support casting e.g.
                     #  Interval[int64]->Interval[float64]
                     raise
-                return blk.where(other, cond, errors)
+                return blk.where(other, cond)
             raise
 
         return [self.make_block_same_class(result)]
@@ -1704,7 +1707,7 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
         arr.T.putmask(mask, new)
         return [self]
 
-    def where(self, other, cond, errors="raise") -> list[Block]:
+    def where(self, other, cond) -> list[Block]:
         arr = self.values
 
         cond = extract_bool_array(cond)
@@ -1712,7 +1715,7 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
         try:
             res_values = arr.T._where(cond, other).T
         except (ValueError, TypeError):
-            return Block.where(self, other, cond, errors=errors)
+            return Block.where(self, other, cond)
 
         nb = self.make_block_same_class(res_values)
         return [nb]
