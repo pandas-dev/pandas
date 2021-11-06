@@ -17,6 +17,7 @@ env:
   PANDAS_CI: 1
   PATTERN: "not slow and not network and not clipboard"
   COVERAGE: true
+  PYTEST_TARGET: pandas
 
 jobs:
   build:
@@ -24,12 +25,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macOS-latest]
-        pytest_target: ["pandas/tests/[a-h]*", "pandas/tests/[i-z]*"]
-        include:
-          # No need to split tests on windows
-          - os: windows-latest
-            pytest_target: pandas
+        os: [ubuntu-latest, macOS-latest, windows-latest]
 
     name: actions-310-dev
     timeout-minutes: 80
@@ -67,8 +63,6 @@ jobs:
         python -c "import pandas; pandas.show_versions();"
 
     - name: Test with pytest
-      env:
-          PYTEST_TARGET: ${{ matrix.pytest_target }}
       shell: bash
       run: |
         ci/run_tests.sh
