@@ -10674,12 +10674,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         @doc(
             _num_ddof_doc,
             desc="Return unbiased variance over requested axis.\n\nNormalized by "
-            "N-1 by default. This can be changed using the ddof argument",
+            "N-1 by default. This can be changed using the ddof argument.",
             name1=name1,
             name2=name2,
             axis_descr=axis_descr,
             notes="",
-            examples="",
+            examples=_var_examples,
         )
         def var(
             self,
@@ -11233,6 +11233,32 @@ Alternatively, `ddof=0` can be set to normalize by N instead of N-1:
 >>> df.std(ddof=0)
 age       16.269219
 height     0.205609"""
+
+_var_examples = """
+
+Examples
+--------
+>>> df = pd.DataFrame({'person_id': [0, 1, 2, 3],
+...                   'age': [21, 25, 62, 43],
+...                   'height': [1.61, 1.87, 1.49, 2.01]}
+...                  ).set_index('person_id')
+>>> df
+           age  height
+person_id
+0           21    1.61
+1           25    1.87
+2           62    1.49
+3           43    2.01
+
+>>> df.var()
+age       352.916667
+height      0.056367
+
+Alternatively, ``ddof=0`` can be set to normalize by N instead of N-1:
+
+>>> df.var(ddof=0)
+age       264.687500
+height      0.042275"""
 
 _bool_doc = """
 {desc}
