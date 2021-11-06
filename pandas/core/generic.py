@@ -11237,13 +11237,11 @@ person_id
 2           62    1.49
 3           43    2.01
 
-The variance of the columns can be found as follows:
-
 >>> df.var()
 age       352.916667
 height      0.056367
 
-Alternatively, `ddof=0` can be set to normalize by N instead of N-1:
+Alternatively, ``ddof=0`` can be set to normalize by N instead of N-1:
 
 >>> df.var(ddof=0)
 age       264.687500
