@@ -1078,6 +1078,9 @@ class DataFrame(NDFrame, OpsMixin):
         %(shared_params)s
         line_width : int, optional
             Width to wrap a line in characters.
+        min_rows : int, optional
+            The number of rows to display in the console in a truncated repr
+            (when number of rows is above `max_rows`).
         max_colwidth : int, optional
             Max width to truncate each column in characters. By default, no limit.
 
