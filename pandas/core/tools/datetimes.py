@@ -888,11 +888,9 @@ def to_datetime(
         result = arg
         if tz is not None:
             if arg.tz is not None:
-                # error: Too many arguments for "tz_convert" of "NaTType"
-                result = result.tz_convert(tz)  # type: ignore[call-arg]
+                result = arg.tz_convert(tz)
             else:
-                # error: Too many arguments for "tz_localize" of "NaTType"
-                result = result.tz_localize(tz)  # type: ignore[call-arg]
+                result = arg.tz_localize(tz)
     elif isinstance(arg, ABCSeries):
         cache_array = _maybe_cache(arg, format, cache, convert_listlike)
         if not cache_array.empty:
