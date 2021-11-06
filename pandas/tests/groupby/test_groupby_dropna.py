@@ -373,7 +373,8 @@ def test_groupby_nan_included():
 
 
 @pytest.mark.parametrize(
-    "na", [np.nan, pd.NaT, np.datetime64("NaT", "ns"), np.timedelta64("NaT", "ns")]
+    "na",
+    [np.nan, pd.NaT, pd.NA, np.datetime64("NaT", "ns"), np.timedelta64("NaT", "ns")],
 )
 def test_groupby_codes_with_nan_in_multiindex(na):
     # GH 43814
@@ -391,3 +392,29 @@ def test_groupby_codes_with_nan_in_multiindex(na):
     )
     result = grouped_df.index
     assert all((res == ex).all() for res, ex in zip(result.codes, expected.codes))
+
+
+def test_groupby_multiindex_multiply_with_series():
+    # GH#36060
+    df = pd.DataFrame(
+        {
+            "animal": ["Falcon", "Falcon", "Parrot", "Parrot"],
+            "type": [np.nan, np.nan, np.nan, np.nan],
+            "speed": [380.0, 370.0, 24.0, 26.0],
+        }
+    )
+    speed = df.groupby(["animal", "type"], dropna=False)["speed"].first()
+    # Reconstruct same index to allow for multiplication.
+    ix_wing = pd.MultiIndex.from_tuples(
+        [("Falcon", np.nan), ("Parrot", np.nan)], names=["animal", "type"]
+    )
+    wing = pd.Series([42, 44], index=ix_wing)
+
+    result = wing * speed
+    expected = pd.Series(
+        [15960.0, 1056.0],
+        index=pd.MultiIndex.from_tuples(
+            [("Falcon", np.nan), ("Parrot", np.nan)], names=["animal", "type"]
+        ),
+    )
+    tm.assert_series_equal(result, expected)
