@@ -194,9 +194,8 @@ def test_append_overlay_startrow_startcol(ext, startrow, startcol, greeting, goo
             )
 
         result = pd.read_excel(f, sheet_name="poo", engine="openpyxl")
-        assert (
-            list(result["greeting"]) == greeting and list(result["goodbye"]) == goodbye
-        )
+        expected = DataFrame({"greeting": greeting, "goodbye": goodbye})
+        tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(
