@@ -1095,8 +1095,10 @@ class MultiIndex(Index):
             return MultiIndexPyIntEngine(self.levels, self.codes, offsets)
         return MultiIndexUIntEngine(self.levels, self.codes, offsets)
 
+    # Return type "Callable[..., MultiIndex]" of "_constructor" incompatible with return
+    # type "Type[MultiIndex]" in supertype "Index"
     @property
-    def _constructor(self) -> Callable[..., MultiIndex]:
+    def _constructor(self) -> Callable[..., MultiIndex]:  # type: ignore[override]
         return type(self).from_tuples
 
     @doc(Index._shallow_copy)
@@ -1684,7 +1686,7 @@ class MultiIndex(Index):
             level = self._get_level_number(level)
             return self._get_level_values(level=level, unique=True)
 
-    def to_frame(self, index: bool = True, name=None) -> DataFrame:
+    def to_frame(self, index: bool = True, name=lib.no_default) -> DataFrame:
         """
         Create a DataFrame with the levels of the MultiIndex as columns.
 
@@ -1736,7 +1738,7 @@ class MultiIndex(Index):
         """
         from pandas import DataFrame
 
-        if name is not None:
+        if name is not lib.no_default:
             if not is_list_like(name):
                 raise TypeError("'name' must be a list / sequence of column names.")
 
@@ -2161,7 +2163,7 @@ class MultiIndex(Index):
         return MultiIndex(
             levels=self.levels,
             codes=[
-                level_codes.view(np.ndarray).astype(np.intp).repeat(repeats)
+                level_codes.view(np.ndarray).astype(np.intp, copy=False).repeat(repeats)
                 for level_codes in self.codes
             ],
             names=self.names,
@@ -3253,6 +3255,11 @@ class MultiIndex(Index):
         #  start with it being everything and narrow it down as we look at each
         #  entry in `seq`
         indexer = Index(np.arange(n))
+
+        if any(x is Ellipsis for x in seq):
+            raise NotImplementedError(
+                "MultiIndex does not support indexing with Ellipsis"
+            )
 
         def _convert_to_indexer(r) -> Int64Index:
             # return an indexer

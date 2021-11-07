@@ -40,7 +40,6 @@ from pandas._typing import (
     Ordered,
     PositionalIndexer2D,
     PositionalIndexerTuple,
-    Scalar,
     ScalarIndexer,
     SequenceIndexer,
     Shape,
@@ -111,7 +110,6 @@ from pandas.core.base import (
 )
 import pandas.core.common as com
 from pandas.core.construction import (
-    array as pd_array,
     extract_array,
     sanitize_array,
 )
@@ -526,9 +524,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             self = self.copy() if copy else self
             result = self._set_dtype(dtype)
 
-        # TODO: consolidate with ndarray case?
         elif isinstance(dtype, ExtensionDtype):
-            result = pd_array(self, dtype=dtype, copy=copy)
+            return super().astype(dtype, copy=copy)
 
         elif is_integer_dtype(dtype) and self.isna().any():
             raise ValueError("Cannot convert float NaN to integer")
@@ -566,17 +563,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         return self.categories.itemsize
 
-    def tolist(self) -> list[Scalar]:
+    def to_list(self):
         """
-        Return a list of the values.
-
-        These are each a scalar type, which is a Python scalar
-        (for str, int, float) or a pandas scalar
-        (for Timestamp/Timedelta/Interval/Period)
+        Alias for tolist.
         """
-        return list(self)
-
-    to_list = tolist
+        return self.tolist()
 
     @classmethod
     def _from_inferred_categories(
@@ -1170,6 +1161,17 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         remove_categories : Remove the specified categories.
         remove_unused_categories : Remove categories which are not used.
         set_categories : Set the categories to the specified ones.
+
+        Examples
+        --------
+        >>> c = pd.Categorical(['c', 'b', 'c'])
+        >>> c
+        ['c', 'b', 'c']
+        Categories (2, object): ['b', 'c']
+
+        >>> c.add_categories(['d', 'a'])
+        ['c', 'b', 'c']
+        Categories (4, object): ['b', 'c', 'd', 'a']
         """
         if inplace is not no_default:
             warn(
@@ -1234,6 +1236,17 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         add_categories : Add new categories.
         remove_unused_categories : Remove categories which are not used.
         set_categories : Set the categories to the specified ones.
+
+        Examples
+        --------
+        >>> c = pd.Categorical(['a', 'c', 'b', 'c', 'd'])
+        >>> c
+        ['a', 'c', 'b', 'c', 'd']
+        Categories (4, object): ['a', 'b', 'c', 'd']
+
+        >>> c.remove_categories(['d', 'a'])
+        [NaN, 'c', 'b', 'c', NaN]
+        Categories (2, object): ['b', 'c']
         """
         if inplace is not no_default:
             warn(
@@ -1293,6 +1306,23 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         add_categories : Add new categories.
         remove_categories : Remove the specified categories.
         set_categories : Set the categories to the specified ones.
+
+        Examples
+        --------
+        >>> c = pd.Categorical(['a', 'c', 'b', 'c', 'd'])
+        >>> c
+        ['a', 'c', 'b', 'c', 'd']
+        Categories (4, object): ['a', 'b', 'c', 'd']
+
+        >>> c[2] = 'a'
+        >>> c[4] = 'c'
+        >>> c
+        ['a', 'c', 'a', 'c', 'c']
+        Categories (4, object): ['a', 'b', 'c', 'd']
+
+        >>> c.remove_unused_categories()
+        ['a', 'c', 'a', 'c', 'c']
+        Categories (2, object): ['a', 'c']
         """
         if inplace is not no_default:
             warn(
@@ -2669,7 +2699,7 @@ def _get_codes_for_values(values, categories: Index) -> np.ndarray:
     """
     dtype_equal = is_dtype_equal(values.dtype, categories.dtype)
 
-    if is_extension_array_dtype(categories.dtype) and is_object_dtype(values):
+    if isinstance(categories.dtype, ExtensionDtype) and is_object_dtype(values):
         # Support inferring the correct extension dtype from an array of
         # scalar objects. e.g.
         # Categorical(array[Period, Period], categories=PeriodIndex(...))

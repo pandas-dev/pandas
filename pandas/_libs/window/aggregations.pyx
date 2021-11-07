@@ -20,15 +20,14 @@ from numpy cimport (
 cnp.import_array()
 
 
-cdef extern from "src/headers/cmath" namespace "std":
+cdef extern from "../src/headers/cmath" namespace "std":
     bint isnan(float64_t) nogil
     bint notnan(float64_t) nogil
     int signbit(float64_t) nogil
     float64_t sqrt(float64_t x) nogil
 
 from pandas._libs.algos import is_monotonic
-
-from pandas._libs.util cimport numeric
+from pandas._libs.dtypes cimport numeric_t
 
 
 cdef extern from "../src/skiplist.h":
@@ -836,6 +835,7 @@ def roll_median_c(const float64_t[:] values, ndarray[int64_t] start,
 
             if not is_monotonic_increasing_bounds:
                 nobs = 0
+                skiplist_destroy(sl)
                 sl = skiplist_init(<int>win)
 
     skiplist_destroy(sl)
@@ -851,18 +851,18 @@ def roll_median_c(const float64_t[:] values, ndarray[int64_t] start,
 # https://github.com/pydata/bottleneck
 
 
-cdef inline numeric init_mm(numeric ai, Py_ssize_t *nobs, bint is_max) nogil:
+cdef inline numeric_t init_mm(numeric_t ai, Py_ssize_t *nobs, bint is_max) nogil:
 
-    if numeric in cython.floating:
+    if numeric_t in cython.floating:
         if ai == ai:
             nobs[0] = nobs[0] + 1
         elif is_max:
-            if numeric == cython.float:
+            if numeric_t == cython.float:
                 ai = MINfloat32
             else:
                 ai = MINfloat64
         else:
-            if numeric == cython.float:
+            if numeric_t == cython.float:
                 ai = MAXfloat32
             else:
                 ai = MAXfloat64
@@ -873,18 +873,18 @@ cdef inline numeric init_mm(numeric ai, Py_ssize_t *nobs, bint is_max) nogil:
     return ai
 
 
-cdef inline void remove_mm(numeric aold, Py_ssize_t *nobs) nogil:
+cdef inline void remove_mm(numeric_t aold, Py_ssize_t *nobs) nogil:
     """ remove a value from the mm calc """
-    if numeric in cython.floating and aold == aold:
+    if numeric_t in cython.floating and aold == aold:
         nobs[0] = nobs[0] - 1
 
 
-cdef inline numeric calc_mm(int64_t minp, Py_ssize_t nobs,
-                            numeric value) nogil:
+cdef inline numeric_t calc_mm(int64_t minp, Py_ssize_t nobs,
+                              numeric_t value) nogil:
     cdef:
-        numeric result
+        numeric_t result
 
-    if numeric in cython.floating:
+    if numeric_t in cython.floating:
         if nobs >= minp:
             result = value
         else:
@@ -940,13 +940,13 @@ def roll_min(ndarray[float64_t] values, ndarray[int64_t] start,
     return _roll_min_max(values, start, end, minp, is_max=0)
 
 
-cdef _roll_min_max(ndarray[numeric] values,
+cdef _roll_min_max(ndarray[numeric_t] values,
                    ndarray[int64_t] starti,
                    ndarray[int64_t] endi,
                    int64_t minp,
                    bint is_max):
     cdef:
-        numeric ai
+        numeric_t ai
         int64_t curr_win_size, start
         Py_ssize_t i, k, nobs = 0, N = len(values)
         deque Q[int64_t]  # min/max always the front
@@ -1071,6 +1071,7 @@ def roll_quantile(const float64_t[:] values, ndarray[int64_t] start,
             if i == 0 or not is_monotonic_increasing_bounds:
                 if not is_monotonic_increasing_bounds:
                     nobs = 0
+                    skiplist_destroy(skiplist)
                     skiplist = skiplist_init(<int>win)
 
                 # setup
@@ -1605,13 +1606,13 @@ def roll_weighted_var(const float64_t[:] values, const float64_t[:] weights,
 
 
 # ----------------------------------------------------------------------
-# Exponentially weighted moving average
+# Exponentially weighted moving
 
-def ewma(const float64_t[:] vals, const int64_t[:] start, const int64_t[:] end,
-         int minp, float64_t com, bint adjust, bint ignore_na,
-         const float64_t[:] deltas=None) -> np.ndarray:
+def ewm(const float64_t[:] vals, const int64_t[:] start, const int64_t[:] end,
+        int minp, float64_t com, bint adjust, bint ignore_na,
+        const float64_t[:] deltas=None, bint normalize=True) -> np.ndarray:
     """
-    Compute exponentially-weighted moving average using center-of-mass.
+    Compute exponentially-weighted moving average or sum using center-of-mass.
 
     Parameters
     ----------
@@ -1624,6 +1625,8 @@ def ewma(const float64_t[:] vals, const int64_t[:] start, const int64_t[:] end,
     ignore_na : bool
     deltas : ndarray (float64 type), optional. If None, implicitly assumes equally
              spaced points (used when `times` is not passed)
+    normalize : bool, optional.
+                If True, calculate the mean. If False, calculate the sum.
 
     Returns
     -------
@@ -1635,7 +1638,7 @@ def ewma(const float64_t[:] vals, const int64_t[:] start, const int64_t[:] end,
         const float64_t[:] sub_vals
         const float64_t[:] sub_deltas=None
         ndarray[float64_t] sub_output, output = np.empty(N, dtype=np.float64)
-        float64_t alpha, old_wt_factor, new_wt, weighted_avg, old_wt, cur
+        float64_t alpha, old_wt_factor, new_wt, weighted, old_wt, cur
         bint is_observation, use_deltas
 
     if N == 0:
@@ -1658,10 +1661,10 @@ def ewma(const float64_t[:] vals, const int64_t[:] start, const int64_t[:] end,
         win_size = len(sub_vals)
         sub_output = np.empty(win_size, dtype=np.float64)
 
-        weighted_avg = sub_vals[0]
-        is_observation = weighted_avg == weighted_avg
+        weighted = sub_vals[0]
+        is_observation = weighted == weighted
         nobs = int(is_observation)
-        sub_output[0] = weighted_avg if nobs >= minp else NaN
+        sub_output[0] = weighted if nobs >= minp else NaN
         old_wt = 1.
 
         with nogil:
@@ -1669,35 +1672,36 @@ def ewma(const float64_t[:] vals, const int64_t[:] start, const int64_t[:] end,
                 cur = sub_vals[i]
                 is_observation = cur == cur
                 nobs += is_observation
-                if weighted_avg == weighted_avg:
+                if weighted == weighted:
 
                     if is_observation or not ignore_na:
-                        if use_deltas:
-                            old_wt *= old_wt_factor ** sub_deltas[i - 1]
-                        else:
-                            old_wt *= old_wt_factor
-                        if is_observation:
-
-                            # avoid numerical errors on constant series
-                            if weighted_avg != cur:
-                                weighted_avg = ((old_wt * weighted_avg) +
-                                                (new_wt * cur)) / (old_wt + new_wt)
-                            if adjust:
-                                old_wt += new_wt
+                        if normalize:
+                            if use_deltas:
+                                old_wt *= old_wt_factor ** sub_deltas[i - 1]
                             else:
-                                old_wt = 1.
+                                old_wt *= old_wt_factor
+                        else:
+                            weighted = old_wt_factor * weighted
+                        if is_observation:
+                            if normalize:
+                                # avoid numerical errors on constant series
+                                if weighted != cur:
+                                    weighted = old_wt * weighted + new_wt * cur
+                                    weighted /= (old_wt + new_wt)
+                                if adjust:
+                                    old_wt += new_wt
+                                else:
+                                    old_wt = 1.
+                            else:
+                                weighted += cur
                 elif is_observation:
-                    weighted_avg = cur
+                    weighted = cur
 
-                sub_output[i] = weighted_avg if nobs >= minp else NaN
+                sub_output[i] = weighted if nobs >= minp else NaN
 
         output[s:e] = sub_output
 
     return output
-
-
-# ----------------------------------------------------------------------
-# Exponentially weighted moving covariance
 
 
 def ewmcov(const float64_t[:] input_x, const int64_t[:] start, const int64_t[:] end,

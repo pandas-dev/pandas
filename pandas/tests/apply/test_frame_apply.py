@@ -1492,7 +1492,10 @@ def test_aggregation_func_column_order():
         return s.sum() / 2
 
     aggs = ["sum", foo, "count", "min"]
-    result = df.agg(aggs)
+    with tm.assert_produces_warning(
+        FutureWarning, match=r"\['item'\] did not aggregate successfully"
+    ):
+        result = df.agg(aggs)
     if get_option("future_udf_behavior"):
         expected = DataFrame(
             {
@@ -1521,3 +1524,20 @@ def test_apply_getitem_axis_1():
     result = df[["a", "a"]].apply(lambda x: x[0] + x[1], axis=1)
     expected = Series([0, 2, 4])
     tm.assert_series_equal(result, expected)
+
+
+def test_nuisance_depr_passes_through_warnings():
+    # GH 43740
+    # DataFrame.agg with list-likes may emit warnings for both individual
+    # args and for entire columns, but we only want to emit once. We
+    # catch and suppress the warnings for individual args, but need to make
+    # sure if some other warnings were raised, they get passed through to
+    # the user.
+
+    def foo(x):
+        warnings.warn("Hello, World!")
+        return x.sum()
+
+    df = DataFrame({"a": [1, 2, 3]})
+    with tm.assert_produces_warning(UserWarning, match="Hello, World!"):
+        df.agg([foo])

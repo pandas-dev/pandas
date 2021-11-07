@@ -313,7 +313,12 @@ class _Unstacker:
 
             new_codes = [lab.take(propagator) for lab in value_columns.codes]
         else:
-            new_levels = [value_columns, self.removed_level_full]
+            # error: Incompatible types in assignment (expression has type "List[Any]",
+            # variable has type "FrozenList")
+            new_levels = [  # type: ignore[assignment]
+                value_columns,
+                self.removed_level_full,
+            ]
             new_names = [value_columns.name, self.removed_name]
             new_codes = [propagator]
 
@@ -995,7 +1000,7 @@ def _get_dummies_1d(
     codes, levels = factorize_from_iterable(Series(data))
 
     if dtype is None:
-        dtype = np.uint8
+        dtype = np.dtype(np.uint8)
     # error: Argument 1 to "dtype" has incompatible type "Union[ExtensionDtype, str,
     # dtype[Any], Type[object]]"; expected "Type[Any]"
     dtype = np.dtype(dtype)  # type: ignore[arg-type]
@@ -1041,9 +1046,7 @@ def _get_dummies_1d(
         fill_value: bool | float | int
         if is_integer_dtype(dtype):
             fill_value = 0
-        # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-        # operand type: "Type[bool]")
-        elif dtype == bool:  # type: ignore[comparison-overlap]
+        elif dtype == np.dtype(bool):
             fill_value = False
         else:
             fill_value = 0.0

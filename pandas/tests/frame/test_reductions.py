@@ -1366,11 +1366,9 @@ class TestDataFrameReductions:
         # GH#36907
         tz = tz_naive_fixture
         if isinstance(tz, tzlocal) and is_platform_windows():
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason="GH#37659 OSError raised within tzlocal bc Windows "
-                    "chokes in times before 1970-01-01"
-                )
+            pytest.skip(
+                "GH#37659 OSError raised within tzlocal bc Windows "
+                "chokes in times before 1970-01-01"
             )
 
         df = DataFrame(
@@ -1720,7 +1718,7 @@ def test_mad_nullable_integer_all_na(any_signed_int_ea_dtype):
     df2 = df.astype(any_signed_int_ea_dtype)
 
     # case with all-NA row/column
-    df2.iloc[:, 1] = pd.NA  # FIXME: this doesn't operate in-place
+    df2.iloc[:, 1] = pd.NA  # FIXME(GH#44199): this doesn't operate in-place
     df2.iloc[:, 1] = pd.array([pd.NA] * len(df2), dtype=any_signed_int_ea_dtype)
     result = df2.mad()
     expected = df.mad()

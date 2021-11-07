@@ -17,6 +17,7 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
+from pandas.compat import np_version_under1p20
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import is_object_dtype
@@ -374,10 +375,12 @@ class TestCasting(BaseSparseTests, base.BaseCastingTests):
         result = df.astype(object)
         assert is_object_dtype(result._mgr.arrays[0].dtype)
 
-        # FIXME: these currently fail; dont leave commented-out
-        # check that we can compare the dtypes
-        # comp = result.dtypes.equals(df.dtypes)
-        # assert not comp.any()
+        # earlier numpy raises TypeError on e.g. np.dtype(np.int64) == "Int64"
+        #  instead of returning False
+        if not np_version_under1p20:
+            # check that we can compare the dtypes
+            comp = result.dtypes == df.dtypes
+            assert not comp.any()
 
     def test_astype_str(self, data):
         result = pd.Series(data[:5]).astype(str)
@@ -429,8 +432,8 @@ class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):
 
 
 class TestComparisonOps(BaseSparseTests, base.BaseComparisonOpsTests):
-    def _compare_other(self, s, data, op_name, other):
-        op = self.get_op_from_name(op_name)
+    def _compare_other(self, s, data, comparison_op, other):
+        op = comparison_op
 
         # array
         result = pd.Series(op(data, other))

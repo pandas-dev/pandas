@@ -710,10 +710,10 @@ class TestMisc:
             assert_slices_equivalent(SLC[idx[13] : idx[9] : -1], SLC[13:8:-1])
             assert_slices_equivalent(SLC[idx[9] : idx[13] : -1], SLC[:0])
 
-    def test_slice_with_zero_step_raises(self, indexer_sl):
-        ser = Series(np.arange(20), index=_mklbl("A", 20))
+    def test_slice_with_zero_step_raises(self, indexer_sl, frame_or_series):
+        obj = frame_or_series(np.arange(20), index=_mklbl("A", 20))
         with pytest.raises(ValueError, match="slice step cannot be zero"):
-            indexer_sl(ser)[::0]
+            indexer_sl(obj)[::0]
 
     def test_loc_setitem_indexing_assignment_dict_already_exists(self):
         index = Index([-5, 0, 5], name="z")
@@ -871,7 +871,7 @@ class TestDatetimelikeCoercion:
         else:
             assert ser._values is values
 
-    @pytest.mark.parametrize("box", [list, np.array, pd.array])
+    @pytest.mark.parametrize("box", [list, np.array, pd.array, pd.Categorical, Index])
     @pytest.mark.parametrize(
         "key", [[0, 1], slice(0, 2), np.array([True, True, False])]
     )
@@ -911,7 +911,7 @@ class TestDatetimelikeCoercion:
         indexer_sli(ser)[0] = scalar
         assert ser._values._data is values._data
 
-    @pytest.mark.parametrize("box", [list, np.array, pd.array])
+    @pytest.mark.parametrize("box", [list, np.array, pd.array, pd.Categorical, Index])
     @pytest.mark.parametrize(
         "key", [[0, 1], slice(0, 2), np.array([True, True, False])]
     )
