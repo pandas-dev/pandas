@@ -253,12 +253,14 @@ def test_union(idx, sort):
     the_union = idx.union(idx[:0], sort=sort)
     tm.assert_index_equal(the_union, idx)
 
-    # FIXME: dont leave commented-out
-    # won't work in python 3
-    # tuples = _index.values
-    # result = _index[:4] | tuples[4:]
-    # assert result.equals(tuples)
+    tuples = idx.values
+    result = idx[:4].union(tuples[4:], sort=sort)
+    if sort is None:
+        tm.equalContents(result, idx)
+    else:
+        assert result.equals(idx)
 
+    # FIXME: don't leave commented-out
     # not valid for python 3
     # def test_union_with_regular_index(self):
     #     other = Index(['A', 'B', 'C'])
@@ -290,11 +292,9 @@ def test_intersection(idx, sort):
     expected = idx[:0]
     assert empty.equals(expected)
 
-    # FIXME: dont leave commented-out
-    # can't do in python 3
-    # tuples = _index.values
-    # result = _index & tuples
-    # assert result.equals(tuples)
+    tuples = idx.values
+    result = idx.intersection(tuples)
+    assert result.equals(idx)
 
 
 @pytest.mark.parametrize(
