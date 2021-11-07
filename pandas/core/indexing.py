@@ -1859,10 +1859,19 @@ class _iLocIndexer(_LocationIndexer):
                 # in case of slice
                 ser = value[pi]
         else:
-            # set the item, possibly having a dtype change
-            ser = ser.copy()
-            ser._mgr = ser._mgr.setitem(indexer=(pi,), value=value)
-            ser._maybe_update_cacher(clear=True, inplace=True)
+            # set the item, first attempting to operate inplace, then
+            #  falling back to casting if necessary; see
+            #  _whatsnew_130.notable_bug_fixes.setitem_column_try_inplace
+
+            orig_values = ser._values
+            ser._mgr = ser._mgr.setitem((pi,), value)
+
+            if ser._values is orig_values:
+                # The setitem happened inplace, so the DataFrame's values
+                #  were modified inplace.
+                return
+            self.obj._iset_item(loc, ser, inplace=True)
+            return
 
         # reset the sliced object if unique
         self.obj._iset_item(loc, ser, inplace=True)

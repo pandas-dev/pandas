@@ -995,21 +995,36 @@ class TestDataFrameSetitemCopyViewSemantics:
         float_frame["E"][5:10] = np.nan
         assert notna(s[5:10]).all()
 
-    def test_setitem_clear_caches(self):
-        # see GH#304
+    @pytest.mark.parametrize("consolidate", [True, False])
+    def test_setitem_partial_column_inplace(self, consolidate, using_array_manager):
+        # This setting should be in-place, regardless of whether frame is
+        #  single-block or multi-block
+        # GH#304 this used to be incorrectly not-inplace, in which case
+        #  we needed to ensure _item_cache was cleared.
+
         df = DataFrame(
             {"x": [1.1, 2.1, 3.1, 4.1], "y": [5.1, 6.1, 7.1, 8.1]}, index=[0, 1, 2, 3]
         )
         df.insert(2, "z", np.nan)
+        if not using_array_manager:
+            if consolidate:
+                df._consolidate_inplace()
+                assert len(df._mgr.blocks) == 1
+            else:
+                assert len(df._mgr.blocks) == 2
 
-        # cache it
-        foo = df["z"]
-        df.loc[df.index[2:], "z"] = 42
+        zvals = df["z"]._values
+
+        df.loc[2:, "z"] = 42
 
         expected = Series([np.nan, np.nan, 42, 42], index=df.index, name="z")
-
-        assert df["z"] is not foo
         tm.assert_series_equal(df["z"], expected)
+
+        # check setting occurred in-place
+        tm.assert_numpy_array_equal(zvals, expected.values)
+        assert np.shares_memory(zvals, df["z"]._values)
+        if not consolidate:
+            assert df["z"]._values is zvals
 
     def test_setitem_duplicate_columns_not_inplace(self):
         # GH#39510
