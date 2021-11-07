@@ -465,10 +465,9 @@ class Apply(metaclass=abc.ABCMeta):
                 raise ValueError("cannot combine transform and aggregation operations")
         except TypeError:
             pass
-        else:
-            # make sure we find a good name
-            if name is None:
-                name = com.get_callable_name(a) or a
+        # make sure we find a good name
+        if name is None:
+            name = com.get_callable_name(a) or a
         return result_dim, name, result
 
     def future_list_like(self, method: str) -> DataFrame | Series:
@@ -487,6 +486,7 @@ class Apply(metaclass=abc.ABCMeta):
         results = []
         keys = []
         result_dim = None
+        failed_names = []
 
         for a in arg:
             result_dim, name, new_res = self.future_list_single_arg(
@@ -495,10 +495,21 @@ class Apply(metaclass=abc.ABCMeta):
             if new_res is not None:
                 results.append(new_res)
                 keys.append(name)
+            else:
+                failed_names.append(a)
 
         # if we are empty
         if not len(results):
             raise ValueError("no results")
+
+        if len(failed_names) > 0:
+            warnings.warn(
+                f"{failed_names} did not aggregate successfully. If any error is "
+                "raised this will raise in a future version of pandas. "
+                "Drop these columns/ops to avoid this warning.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
 
         try:
             concatenated = concat(results, keys=keys, axis=1, sort=False)
