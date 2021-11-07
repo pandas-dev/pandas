@@ -386,12 +386,20 @@ def test_groupby_codes_with_nan_in_multiindex(na):
         }
     )
 
-    grouped_df = df.groupby(by=["temp_playlist", "objId"], dropna=False)["x"].sum()
+    result = df.groupby(by=["temp_playlist", "objId"], dropna=False)["x"].sum()
     expected = pd.MultiIndex.from_arrays(
         [[0, 0], ["o1", na]], names=["temp_playlist", "objId"]
     )
-    result = grouped_df.index
-    assert all((res == ex).all() for res, ex in zip(result.codes, expected.codes))
+    expected = pd.Series(
+        [4, 6],
+        index=pd.MultiIndex(
+            levels=[[0], ["o1", np.nan]],
+            codes=[[0, 0], [0, -1]],
+            names=["temp_playlist", "objId"],
+        ),
+        name="x",
+    )
+    tm.assert_series_equal(result, expected)
 
 
 def test_groupby_multiindex_multiply_with_series():
