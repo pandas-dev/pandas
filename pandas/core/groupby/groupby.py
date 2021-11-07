@@ -79,6 +79,7 @@ from pandas.core.dtypes.missing import (
 )
 
 from pandas.core import nanops
+from pandas.core._numba import executor
 import pandas.core.algorithms as algorithms
 from pandas.core.arrays import (
     BaseMaskedArray,
@@ -162,11 +163,6 @@ _apply_docs = {
 
     Notes
     -----
-    In the current implementation ``apply`` calls ``func`` twice on the
-    first group to decide whether it can take a fast or slow code
-    path. This can lead to unexpected behavior if ``func`` has
-    side-effects, as they will take effect twice for the first
-    group.
 
     .. versionchanged:: 1.3.0
 
@@ -1259,6 +1255,44 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             sorted_data,
         )
 
+    def _numba_agg_general(
+        self,
+        func: Callable,
+        engine_kwargs: dict[str, bool] | None,
+        numba_cache_key_str: str,
+    ):
+        """
+        Perform groupby with a standard numerical aggregation function (e.g. mean)
+        with Numba.
+        """
+        if not self.as_index:
+            raise NotImplementedError(
+                "as_index=False is not supported. Use .reset_index() instead."
+            )
+        if self.axis == 1:
+            raise NotImplementedError("axis=1 is not supported.")
+
+        with self._group_selection_context():
+            data = self._selected_obj
+        df = data if data.ndim == 2 else data.to_frame()
+        starts, ends, sorted_index, sorted_data = self._numba_prep(func, df)
+        aggregator = executor.generate_shared_aggregator(
+            func, engine_kwargs, numba_cache_key_str
+        )
+        result = aggregator(sorted_data, starts, ends, 0)
+
+        cache_key = (func, numba_cache_key_str)
+        if cache_key not in NUMBA_FUNC_CACHE:
+            NUMBA_FUNC_CACHE[cache_key] = aggregator
+
+        index = self.grouper.result_index
+        if data.ndim == 1:
+            result_kwargs = {"name": data.name}
+            result = result.ravel()
+        else:
+            result_kwargs = {"columns": data.columns}
+        return data._constructor(result, index=index, **result_kwargs)
+
     @final
     def _transform_with_numba(self, data, func, *args, engine_kwargs=None, **kwargs):
         """
@@ -1827,7 +1861,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Substitution(see_also=_common_see_also)
-    def mean(self, numeric_only: bool | lib.NoDefault = lib.no_default):
+    def mean(
+        self,
+        numeric_only: bool | lib.NoDefault = lib.no_default,
+        engine: str = "cython",
+        engine_kwargs: dict[str, bool] | None = None,
+    ):
         """
         Compute mean of groups, excluding missing values.
 
@@ -1836,6 +1875,23 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         numeric_only : bool, default True
             Include only float, int, boolean columns. If None, will attempt to use
             everything, then use only numeric data.
+
+        engine : str, default None
+            * ``'cython'`` : Runs the operation through C-extensions from cython.
+            * ``'numba'`` : Runs the operation through JIT compiled code from numba.
+            * ``None`` : Defaults to ``'cython'`` or globally setting
+              ``compute.use_numba``
+
+            .. versionadded:: 1.4.0
+
+        engine_kwargs : dict, default None
+            * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+              ``{{'nopython': True, 'nogil': False, 'parallel': False}}``
+
+            .. versionadded:: 1.4.0
 
         Returns
         -------
@@ -1877,12 +1933,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         numeric_only = self._resolve_numeric_only(numeric_only)
 
-        result = self._cython_agg_general(
-            "mean",
-            alt=lambda x: Series(x).mean(numeric_only=numeric_only),
-            numeric_only=numeric_only,
-        )
-        return result.__finalize__(self.obj, method="groupby")
+        if maybe_use_numba(engine):
+            from pandas.core._numba.kernels import sliding_mean
+
+            return self._numba_agg_general(sliding_mean, engine_kwargs, "groupby_mean")
+        else:
+            result = self._cython_agg_general(
+                "mean",
+                alt=lambda x: Series(x).mean(numeric_only=numeric_only),
+                numeric_only=numeric_only,
+            )
+            return result.__finalize__(self.obj, method="groupby")
 
     @final
     @Substitution(name="groupby")

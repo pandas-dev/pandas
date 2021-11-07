@@ -602,16 +602,16 @@ class TestGetIndexer:
 
 
 class TestWhere:
-    def test_where(self, listlike_box_with_tuple):
+    def test_where(self, listlike_box):
         i = period_range("20130101", periods=5, freq="D")
         cond = [True] * len(i)
         expected = i
-        result = i.where(listlike_box_with_tuple(cond))
+        result = i.where(listlike_box(cond))
         tm.assert_index_equal(result, expected)
 
         cond = [False] + [True] * (len(i) - 1)
         expected = PeriodIndex([NaT] + i[1:].tolist(), freq="D")
-        result = i.where(listlike_box_with_tuple(cond))
+        result = i.where(listlike_box(cond))
         tm.assert_index_equal(result, expected)
 
     def test_where_other(self):
