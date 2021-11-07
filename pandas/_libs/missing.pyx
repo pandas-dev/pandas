@@ -20,9 +20,12 @@ from pandas._libs cimport util
 from pandas._libs.tslibs.nattype cimport (
     c_NaT as NaT,
     checknull_with_nat,
+    is_dt64nat,
     is_null_datetimelike,
+    is_td64nat,
 )
 from pandas._libs.tslibs.np_datetime cimport (
+    get_datetime64_unit,
     get_datetime64_value,
     get_timedelta64_value,
 )
@@ -64,7 +67,7 @@ cpdef bint is_matching_na(object left, object right, bint nan_matches_none=False
     elif left is NaT:
         return right is NaT
     elif util.is_float_object(left):
-        if nan_matches_none and right is None:
+        if nan_matches_none and right is None and util.is_nan(left):
             return True
         return (
             util.is_nan(left)
@@ -82,12 +85,14 @@ cpdef bint is_matching_na(object left, object right, bint nan_matches_none=False
             get_datetime64_value(left) == NPY_NAT
             and util.is_datetime64_object(right)
             and get_datetime64_value(right) == NPY_NAT
+            and get_datetime64_unit(left) == get_datetime64_unit(right)
         )
     elif util.is_timedelta64_object(left):
         return (
             get_timedelta64_value(left) == NPY_NAT
             and util.is_timedelta64_object(right)
             and get_timedelta64_value(right) == NPY_NAT
+            and get_datetime64_unit(left) == get_datetime64_unit(right)
         )
     elif is_decimal_na(left):
         return is_decimal_na(right)
@@ -345,20 +350,16 @@ def isneginf_scalar(val: object) -> bool:
 cdef inline bint is_null_datetime64(v):
     # determine if we have a null for a datetime (or integer versions),
     # excluding np.timedelta64('nat')
-    if checknull_with_nat(v):
+    if checknull_with_nat(v) or is_dt64nat(v):
         return True
-    elif util.is_datetime64_object(v):
-        return get_datetime64_value(v) == NPY_NAT
     return False
 
 
 cdef inline bint is_null_timedelta64(v):
     # determine if we have a null for a timedelta (or integer versions),
     # excluding np.datetime64('nat')
-    if checknull_with_nat(v):
+    if checknull_with_nat(v) or is_td64nat(v):
         return True
-    elif util.is_timedelta64_object(v):
-        return get_timedelta64_value(v) == NPY_NAT
     return False
 
 

@@ -402,7 +402,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     }
 
 parse_timezone:
-    /* trim any whitepsace between time/timeezone */
+    /* trim any whitespace between time/timeezone */
     while (sublen > 0 && isspace(*substr)) {
         ++substr;
         --sublen;
