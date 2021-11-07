@@ -490,7 +490,7 @@ class Grouping:
         self._observed = observed
         self.in_axis = in_axis
         self._dropna = dropna
-        self._na_placeholder = None
+        self._has_na_placeholder = False
 
         self._passed_categorical = False
 
@@ -700,7 +700,7 @@ class Grouping:
             # pandas/core/groupby:reconstructed_codes
             if not self._dropna:
                 if isna(self.grouping_vector).any():
-                    self._na_placeholder = max(codes)
+                    self._has_na_placeholder = True
 
         return codes, uniques
 

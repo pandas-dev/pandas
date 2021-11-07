@@ -860,20 +860,9 @@ class BaseGrouper:
         codes = self.codes
         ids, obs_ids, _ = self.group_info
         reconstructed_codes = decons_obs_group_ids(
-            ids, obs_ids, self.shape, codes, xnull=True
+            ids, obs_ids, self.shape, codes, xnull=True, groupings=self._groupings
         )
-
-        def transform_codes(code_level, grouping):
-            if grouping._na_placeholder is not None:
-                return np.where(code_level == grouping._na_placeholder, -1, code_level)
-            else:
-                return code_level
-
-        transformed_rec_codes = [
-            transform_codes(code_level, grouping)
-            for code_level, grouping in zip(reconstructed_codes, self._groupings)
-        ]
-        return transformed_rec_codes
+        return reconstructed_codes
 
     @final
     @cache_readonly

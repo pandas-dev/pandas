@@ -41,6 +41,7 @@ from pandas.core.construction import extract_array
 if TYPE_CHECKING:
     from pandas import MultiIndex
     from pandas.core.indexes.base import Index
+    from pandas.core.groupby.grouper import Grouping
 
 
 def get_indexer_indexer(
@@ -243,7 +244,12 @@ def decons_group_index(comp_labels, shape):
 
 
 def decons_obs_group_ids(
-    comp_ids: npt.NDArray[np.intp], obs_ids, shape, labels, xnull: bool
+    comp_ids: npt.NDArray[np.intp],
+    obs_ids,
+    shape,
+    labels,
+    xnull: bool,
+    groupings: list[Grouping] = None,
 ):
     """
     Reconstruct labels from observed group ids.
@@ -254,6 +260,21 @@ def decons_obs_group_ids(
     xnull : bool
         If nulls are excluded; i.e. -1 labels are passed through.
     """
+
+    def transform_codes(code_level, grouping):
+        if grouping._has_na_placeholder:
+            return np.where(code_level == max(code_level), -1, code_level)
+        else:
+            return code_level
+
+    def reconstruct_na_in_codes(codes):
+        if groupings:
+            codes = [
+                transform_codes(code_level, grouping)
+                for code_level, grouping in zip(codes, groupings)
+            ]
+        return codes
+
     if not xnull:
         lift = np.fromiter(((a == -1).any() for a in labels), dtype="i8")
         shape = np.asarray(shape, dtype="i8") + lift
@@ -261,10 +282,12 @@ def decons_obs_group_ids(
     if not is_int64_overflow_possible(shape):
         # obs ids are deconstructable! take the fast route!
         out = decons_group_index(obs_ids, shape)
+        out = reconstruct_na_in_codes(out)
         return out if xnull or not lift.any() else [x - y for x, y in zip(out, lift)]
 
     indexer = unique_label_indices(comp_ids)
-    return [lab[indexer].astype(np.intp, subok=False, copy=True) for lab in labels]
+    out = [lab[indexer].astype(np.intp, subok=False, copy=True) for lab in labels]
+    return reconstruct_na_in_codes(out)
 
 
 def indexer_from_factorized(
