@@ -74,8 +74,8 @@ class TestScalar(Base):
             _check(f, "at")
 
 
-class TestScalar2:
-    # TODO: Better name, just separating things that dont need Base class
+class TestAtAndiAT:
+    # at and iat tests that don't need Base class
 
     def test_at_iat_coercion(self):
 
