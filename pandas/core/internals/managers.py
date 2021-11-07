@@ -1465,7 +1465,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
     def as_array(
         self,
-        transpose: bool = False,
         dtype: np.dtype | None = None,
         copy: bool = False,
         na_value=lib.no_default,
@@ -1475,8 +1474,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         Parameters
         ----------
-        transpose : bool, default False
-            If True, transpose the return array.
         dtype : np.dtype or None, default None
             Data type of the return array.
         copy : bool, default False
@@ -1492,7 +1489,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         """
         if len(self.blocks) == 0:
             arr = np.empty(self.shape, dtype=float)
-            return arr.transpose() if transpose else arr
+            return arr.transpose()
 
         # We want to copy when na_value is provided to avoid
         # mutating the original object
@@ -1524,7 +1521,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         if na_value is not lib.no_default:
             arr[isna(arr)] = na_value
 
-        return arr.transpose() if transpose else arr
+        return arr.transpose()
 
     def _interleave(
         self,
