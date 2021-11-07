@@ -95,7 +95,7 @@ class TestDataFrameMisc:
         values = [range(420), range(420)]
         df = DataFrame(values, columns=columns)
 
-        # The default value for diplay.max_dir_items is 100
+        # The default value for display.max_dir_items is 100
         assert "a99" in dir(df)
         assert "a100" not in dir(df)
 
