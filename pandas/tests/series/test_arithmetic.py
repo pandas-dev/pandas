@@ -322,22 +322,20 @@ class TestSeriesArithmetic:
 
 class TestSeriesFlexComparison:
     @pytest.mark.parametrize("axis", [0, None, "index"])
-    def test_comparison_flex_basic(self, axis, all_compare_operators):
-        op = all_compare_operators.strip("__")
+    def test_comparison_flex_basic(self, axis, comparison_op):
         left = Series(np.random.randn(10))
         right = Series(np.random.randn(10))
-        result = getattr(left, op)(right, axis=axis)
-        expected = getattr(operator, op)(left, right)
+        result = getattr(left, comparison_op.__name__)(right, axis=axis)
+        expected = comparison_op(left, right)
         tm.assert_series_equal(result, expected)
 
-    def test_comparison_bad_axis(self, all_compare_operators):
-        op = all_compare_operators.strip("__")
+    def test_comparison_bad_axis(self, comparison_op):
         left = Series(np.random.randn(10))
         right = Series(np.random.randn(10))
 
         msg = "No axis named 1 for object type"
         with pytest.raises(ValueError, match=msg):
-            getattr(left, op)(right, axis=1)
+            getattr(left, comparison_op.__name__)(right, axis=1)
 
     @pytest.mark.parametrize(
         "values, op",
@@ -598,20 +596,17 @@ class TestSeriesComparison:
         expected = Series([True, False])
         tm.assert_series_equal(result, expected)
 
-    def test_comparison_operators_with_nas(self, all_compare_operators):
-        op = all_compare_operators
+    def test_comparison_operators_with_nas(self, comparison_op):
         ser = Series(bdate_range("1/1/2000", periods=10), dtype=object)
         ser[::2] = np.nan
-
-        f = getattr(operator, op)
 
         # test that comparisons work
         val = ser[5]
 
-        result = f(ser, val)
-        expected = f(ser.dropna(), val).reindex(ser.index)
+        result = comparison_op(ser, val)
+        expected = comparison_op(ser.dropna(), val).reindex(ser.index)
 
-        if op == "__ne__":
+        if comparison_op is operator.ne:
             expected = expected.fillna(True).astype(bool)
         else:
             expected = expected.fillna(False).astype(bool)
@@ -619,8 +614,8 @@ class TestSeriesComparison:
         tm.assert_series_equal(result, expected)
 
         # FIXME: dont leave commented-out
-        # result = f(val, ser)
-        # expected = f(val, ser.dropna()).reindex(ser.index)
+        # result = comparison_op(val, ser)
+        # expected = comparison_op(val, ser.dropna()).reindex(ser.index)
         # tm.assert_series_equal(result, expected)
 
     def test_ne(self):
@@ -713,6 +708,16 @@ class TestTimeSeriesArithmetic:
 
         assert result.index.tz == pytz.UTC
         tm.assert_series_equal(result, expected)
+
+    # TODO: redundant with test_series_add_tz_mismatch_converts_to_utc?
+    def test_series_arithmetic_mismatched_tzs_convert_to_utc(self):
+        base = pd.DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03"], tz="UTC")
+        idx1 = base.tz_convert("Asia/Tokyo")[:2]
+        idx2 = base.tz_convert("US/Eastern")[1:]
+
+        res = Series([1, 2], index=idx1) + Series([1, 1], index=idx2)
+        expected = Series([np.nan, 3, np.nan], index=base)
+        tm.assert_series_equal(res, expected)
 
     def test_series_add_aware_naive_raises(self):
         rng = date_range("1/1/2011", periods=10, freq="H")

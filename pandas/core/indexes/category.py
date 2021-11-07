@@ -53,7 +53,6 @@ _index_doc_kwargs.update({"target_klass": "CategoricalIndex"})
 @inherit_names(
     [
         "argsort",
-        "_internal_get_values",
         "tolist",
         "codes",
         "categories",
@@ -391,6 +390,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
 
         return type(self)._simple_new(cat, name=self.name)
 
+    # TODO(2.0): remove reindex once non-unique deprecation is enforced
     def reindex(
         self, target, method=None, level=None, limit=None, tolerance=None
     ) -> tuple[Index, npt.NDArray[np.intp] | None]:

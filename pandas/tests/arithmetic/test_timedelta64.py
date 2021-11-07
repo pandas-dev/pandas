@@ -2022,7 +2022,7 @@ class TestTimedeltaArraylikeMulDivOps:
         ids=lambda x: type(x).__name__,
     )
     def test_td64arr_div_numeric_array(
-        self, box_with_array, vector, any_real_numpy_dtype, using_array_manager
+        self, box_with_array, vector, any_real_numpy_dtype
     ):
         # GH#4521
         # divide/multiply by integers
@@ -2062,20 +2062,12 @@ class TestTimedeltaArraylikeMulDivOps:
             expected = tm.box_expected(expected, xbox)
             assert tm.get_dtype(expected) == "m8[ns]"
 
-            if using_array_manager and box_with_array is DataFrame:
-                # TODO the behaviour is buggy here (third column with all-NaT
-                # as result doesn't get preserved as timedelta64 dtype).
-                # Reported at https://github.com/pandas-dev/pandas/issues/39750
-                # Changing the expected instead of xfailing to continue to test
-                # the correct behaviour for the other columns
-                expected[2] = Series([NaT, NaT], dtype=object)
-
             tm.assert_equal(result, expected)
 
         with pytest.raises(TypeError, match=pattern):
             vector.astype(object) / tdser
 
-    def test_td64arr_mul_int_series(self, box_with_array, names, request):
+    def test_td64arr_mul_int_series(self, box_with_array, names):
         # GH#19042 test for correct name attachment
         box = box_with_array
         exname = get_expected_name(box, names)
@@ -2132,10 +2124,22 @@ class TestTimedeltaArraylikeMulDivOps:
 
         result = ser.__rtruediv__(tdi)
         if box is DataFrame:
-            # TODO: Should we skip this case sooner or test something else?
             assert result is NotImplemented
         else:
             tm.assert_equal(result, expected)
+
+    def test_td64arr_all_nat_div_object_dtype_numeric(self, box_with_array):
+        # GH#39750 make sure we infer the result as td64
+        tdi = TimedeltaIndex([NaT, NaT])
+
+        left = tm.box_expected(tdi, box_with_array)
+        right = np.array([2, 2.0], dtype=object)
+
+        result = left / right
+        tm.assert_equal(result, left)
+
+        result = left // right
+        tm.assert_equal(result, left)
 
 
 class TestTimedelta64ArrayLikeArithmetic:
