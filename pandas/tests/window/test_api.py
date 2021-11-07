@@ -349,3 +349,42 @@ def test_dont_modify_attributes_after_methods(
     getattr(roll_obj, arithmetic_win_operators)()
     result = {attr: getattr(roll_obj, attr) for attr in roll_obj._attributes}
     assert result == expected
+
+
+def test_centered_axis_validation():
+
+    # ok
+    Series(np.ones(10)).rolling(window=3, center=True, axis=0).mean()
+
+    # bad axis
+    msg = "No axis named 1 for object type Series"
+    with pytest.raises(ValueError, match=msg):
+        Series(np.ones(10)).rolling(window=3, center=True, axis=1).mean()
+
+    # ok ok
+    DataFrame(np.ones((10, 10))).rolling(window=3, center=True, axis=0).mean()
+    DataFrame(np.ones((10, 10))).rolling(window=3, center=True, axis=1).mean()
+
+    # bad axis
+    msg = "No axis named 2 for object type DataFrame"
+    with pytest.raises(ValueError, match=msg):
+        (DataFrame(np.ones((10, 10))).rolling(window=3, center=True, axis=2).mean())
+
+
+def test_rolling_min_min_periods():
+    a = Series([1, 2, 3, 4, 5])
+    result = a.rolling(window=100, min_periods=1).min()
+    expected = Series(np.ones(len(a)))
+    tm.assert_series_equal(result, expected)
+    msg = "min_periods 5 must be <= window 3"
+    with pytest.raises(ValueError, match=msg):
+        Series([1, 2, 3]).rolling(window=3, min_periods=5).min()
+
+
+def test_rolling_max_min_periods():
+    a = Series([1, 2, 3, 4, 5], dtype=np.float64)
+    b = a.rolling(window=100, min_periods=1).max()
+    tm.assert_almost_equal(a, b)
+    msg = "min_periods 5 must be <= window 3"
+    with pytest.raises(ValueError, match=msg):
+        Series([1, 2, 3]).rolling(window=3, min_periods=5).max()

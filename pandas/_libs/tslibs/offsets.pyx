@@ -574,7 +574,7 @@ cdef class BaseOffset:
             When the specific offset subclass does not have a vectorized
             implementation.
         """
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             f"DateOffset subclass {type(self).__name__} "
             "does not have a vectorized implementation"
         )
@@ -777,7 +777,7 @@ cdef class Tick(SingleConstructorOffset):
                 "Tick offset with `normalize=True` are not allowed."
             )
 
-    # FIXME: Without making this cpdef, we get AttributeError when calling
+    # Note: Without making this cpdef, we get AttributeError when calling
     #  from __mul__
     cpdef Tick _next_higher_resolution(Tick self):
         if type(self) is Day:
@@ -808,9 +808,7 @@ cdef class Tick(SingleConstructorOffset):
     def nanos(self) -> int64_t:
         return self.n * self._nanos_inc
 
-    # FIXME: This should be typed as datetime, but we DatetimeLikeIndex.insert
-    #  checks self.freq.is_on_offset with a Timedelta sometimes.
-    def is_on_offset(self, dt) -> bool:
+    def is_on_offset(self, dt: datetime) -> bool:
         return True
 
     def is_anchored(self) -> bool:
@@ -1860,7 +1858,8 @@ cdef class YearOffset(SingleConstructorOffset):
     """
     _attributes = tuple(["n", "normalize", "month"])
 
-    # _default_month: int  # FIXME: python annotation here breaks things
+    # FIXME(cython#4446): python annotation here gives compile-time errors
+    # _default_month: int
 
     cdef readonly:
         int month
@@ -2011,7 +2010,7 @@ cdef class QuarterOffset(SingleConstructorOffset):
     #       point.  Also apply_index, is_on_offset, rule_code if
     #       startingMonth vs month attr names are resolved
 
-    # FIXME: python annotations here breaks things
+    # FIXME(cython#4446): python annotation here gives compile-time errors
     # _default_starting_month: int
     # _from_name_starting_month: int
 

@@ -8,12 +8,10 @@ import re
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import iNaT
 from pandas.compat import IS64
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
-    is_period_dtype,
     needs_i8_conversion,
 )
 
@@ -173,21 +171,10 @@ class TestCommon:
         if not index._can_hold_na:
             pytest.skip("Skip na-check if index cannot hold na")
 
-        if is_period_dtype(index.dtype):
-            vals = index[[0] * 5]._data
-            vals[0] = pd.NaT
-        elif needs_i8_conversion(index.dtype):
-            vals = index._data._ndarray[[0] * 5]
-            vals[0] = iNaT
-        else:
-            vals = index.values[[0] * 5]
-            vals[0] = np.nan
+        vals = index._values[[0] * 5]
+        vals[0] = np.nan
 
         vals_unique = vals[:2]
-        if index.dtype.kind in ["m", "M"]:
-            # i.e. needs_i8_conversion but not period_dtype, as above
-            vals = type(index._data)(vals, dtype=index.dtype)
-            vals_unique = type(index._data)._simple_new(vals_unique, dtype=index.dtype)
         idx_nan = index._shallow_copy(vals)
         idx_unique_nan = index._shallow_copy(vals_unique)
         assert idx_unique_nan.is_unique is True
@@ -378,26 +365,21 @@ class TestCommon:
         assert idx.hasnans is False
 
         idx = index.copy(deep=True)
-        values = np.asarray(idx.values)
+        values = idx._values
 
         if len(index) == 0:
             return
         elif isinstance(index, NumericIndex) and is_integer_dtype(index.dtype):
             return
-        elif needs_i8_conversion(index.dtype):
-            values[1] = iNaT
-        else:
-            values[1] = np.nan
 
-        if isinstance(index, PeriodIndex):
-            idx = type(index)(values, freq=index.freq)
-        else:
-            idx = type(index)(values)
+        values[1] = np.nan
 
-            expected = np.array([False] * len(idx), dtype=bool)
-            expected[1] = True
-            tm.assert_numpy_array_equal(idx._isnan, expected)
-            assert idx.hasnans is True
+        idx = type(index)(values)
+
+        expected = np.array([False] * len(idx), dtype=bool)
+        expected[1] = True
+        tm.assert_numpy_array_equal(idx._isnan, expected)
+        assert idx.hasnans is True
 
 
 @pytest.mark.parametrize("na_position", [None, "middle"])
