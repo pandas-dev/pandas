@@ -1767,13 +1767,16 @@ def test_prod_sum_min_count_mixed_object():
         df.sum(axis=0, min_count=1, numeric_only=False)
 
 
-
 def test_timezone_min_max_with_nat():
     # GH#27794
-    df = pd.DataFrame({
-        "A": pd.date_range(start="2018-01-01", end="2018-01-03", tz="UTC"),
-        "B": pd.date_range(start="2018-01-01", end="2018-01-02", tz="UTC").insert(2, pd.NaT)
-    })
+    df = pd.DataFrame(
+        {
+            "A": pd.date_range(start="2018-01-01", end="2018-01-03", tz="UTC"),
+            "B": pd.date_range(start="2018-01-01", end="2018-01-02", tz="UTC").insert(
+                2, pd.NaT
+            ),
+        }
+    )
 
     expected = pd.Series(
         [
@@ -1807,15 +1810,17 @@ def test_min_max_timestamp_timezone_nat():
     df_with_tz.iloc[2, 1] = pd.NaT
 
     result = df_with_tz.max(axis=1)
-    expected = pd.Series([
-        pd.Timestamp('2021-10-01T12:20:00+02:00'),
-        pd.Timestamp('2021-10-01T16:20:00+02:00'),
-        pd.Timestamp('2021-10-01T20:00:00+02:00'),
-        pd.Timestamp('2021-10-02T00:20:00+02:00'),
-        pd.Timestamp('2021-10-02T04:20:00+02:00'),
-        pd.Timestamp('2021-10-02T08:20:00+02:00'),
-        pd.Timestamp('2021-10-02T12:20:00+02:00'),
-    ])
+    expected = pd.Series(
+        [
+            pd.Timestamp("2021-10-01T12:20:00+02:00"),
+            pd.Timestamp("2021-10-01T16:20:00+02:00"),
+            pd.Timestamp("2021-10-01T20:00:00+02:00"),
+            pd.Timestamp("2021-10-02T00:20:00+02:00"),
+            pd.Timestamp("2021-10-02T04:20:00+02:00"),
+            pd.Timestamp("2021-10-02T08:20:00+02:00"),
+            pd.Timestamp("2021-10-02T12:20:00+02:00"),
+        ]
+    )
     tm.assert_series_equal(result, expected)
 
 
@@ -1840,9 +1845,15 @@ def test_timezone_min_max_both_axis():
 
 
 def test_min_max_timedelta64_nat():
-    df = DataFrame([[Timedelta(minutes=20), Timedelta(days=2), Timedelta(seconds=3)],
-                      [Timedelta(minutes=2, seconds=2), Timedelta(days=2, minutes=30), pd.NaT]])
-    expected = pd.Series([Timedelta(minutes=2, seconds=2), Timedelta(days=2), Timedelta(seconds=3)])
+    df = DataFrame(
+        [
+            [Timedelta(minutes=20), Timedelta(days=2), Timedelta(seconds=3)],
+            [Timedelta(minutes=2, seconds=2), Timedelta(days=2, minutes=30), pd.NaT],
+        ]
+    )
+    expected = pd.Series(
+        [Timedelta(minutes=2, seconds=2), Timedelta(days=2), Timedelta(seconds=3)]
+    )
     result = df.min(axis=0)
     tm.assert_series_equal(result, expected)
     tm.assert_series_equal(df.min(axis=0), df.T.min(axis=1))
@@ -1852,11 +1863,12 @@ def test_min_max_timedelta64_nat():
     tm.assert_series_equal(result, expected)
     tm.assert_series_equal(df.min(axis=1), df.T.min(axis=0))
 
-    expected = pd.Series([Timedelta(minutes=20), Timedelta(days=2, minutes=30), Timedelta(seconds=3)])
+    expected = pd.Series(
+        [Timedelta(minutes=20), Timedelta(days=2, minutes=30), Timedelta(seconds=3)]
+    )
     result = df.max(axis=0)
     tm.assert_series_equal(result, expected)
     tm.assert_series_equal(df.max(axis=0), df.T.max(axis=1))
-
 
     expected = pd.Series([Timedelta(days=2), Timedelta(days=2, minutes=30)])
     result = df.max(axis=1)
@@ -1865,8 +1877,12 @@ def test_min_max_timedelta64_nat():
 
 
 def test_min_max_perioddtype_nat():
-    df = DataFrame([[PeriodDtype(freq='20m'), PeriodDtype(freq='1h'), PeriodDtype(freq='1d')],
-                      [PeriodDtype(freq='25m'), PeriodDtype(freq='2h'), pd.NaT]])
+    df = DataFrame(
+        [
+            [PeriodDtype(freq="20m"), PeriodDtype(freq="1h"), PeriodDtype(freq="1d")],
+            [PeriodDtype(freq="25m"), PeriodDtype(freq="2h"), pd.NaT],
+        ]
+    )
 
     expected = Series([])
     result = df.min(axis=0)
@@ -1887,4 +1903,3 @@ def test_min_max_perioddtype_nat():
     result = df.max(axis=1)
     tm.assert_series_equal(result, expected)
     tm.assert_series_equal(df.max(axis=1), df.T.max(axis=0))
-
