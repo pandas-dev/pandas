@@ -721,7 +721,6 @@ class TestDataFrameSubclassing:
         assert isinstance(result, tm.SubclassedDataFrame)
 
         result = gpd_style_subclass_df.convert_dtypes()
-        print(type(result), type(gpd_style_subclass_df))
         assert isinstance(result, type(gpd_style_subclass_df))
 
     def test_equals_subclass(self):
