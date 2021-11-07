@@ -9928,13 +9928,6 @@ NaN 12.3   33.0
         assert filter_type is None or filter_type == "bool", filter_type
         out_dtype = "bool" if filter_type == "bool" else None
 
-        def _maybe_swap_axis(df, axis):
-            if axis == 1:
-                df = df.T
-                axis = 0
-            return df, axis
-
-        # import pdb; pdb.set_trace()
         if numeric_only is None and name in ["mean", "median"]:
             own_dtypes = [arr.dtype for arr in self._mgr.arrays]
 
@@ -9995,7 +9988,10 @@ NaN 12.3   33.0
             df = self
             if numeric_only is True:
                 df = _get_data()
-            df, axis = _maybe_swap_axis(df, axis)
+            if axis == 1:
+                df = df.T
+                axis = 0
+
             ignore_failures = numeric_only is None
 
             # After possibly _get_data and transposing, we are now in the
@@ -10039,7 +10035,6 @@ NaN 12.3   33.0
             data = _get_data()
             labels = data._get_agg_axis(axis)
 
-            # do we need this line?
             values = data.values
             with np.errstate(all="ignore"):
                 result = func(values)

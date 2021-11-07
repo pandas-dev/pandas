@@ -17,7 +17,9 @@ from pandas import (
     DataFrame,
     Index,
     MultiIndex,
+    PeriodDtype,
     Series,
+    Timedelta,
     Timestamp,
     date_range,
     isna,
@@ -1768,17 +1770,10 @@ def test_prod_sum_min_count_mixed_object():
 
 def test_timezone_min_max_with_nat():
     # GH#27794
-    df = pd.concat(
-        [
-            pd.date_range(start="2018-01-01", end="2018-01-03")
-                .to_series()
-                .dt.tz_localize("UTC"),
-            pd.date_range(start="2018-01-01", end="2018-01-02")
-                .to_series()
-                .dt.tz_localize("UTC"),
-        ],
-        axis=1,
-                )
+    df = pd.DataFrame({
+        "A": pd.date_range(start="2018-01-01", end="2018-01-03", tz="UTC"),
+        "B": pd.date_range(start="2018-01-01", end="2018-01-02", tz="UTC").insert(2, pd.NaT)
+    })
 
     expected = pd.Series(
         [
@@ -1786,7 +1781,6 @@ def test_timezone_min_max_with_nat():
             pd.Timestamp("2018-01-02", tz="UTC"),
             pd.Timestamp("2018-01-03", tz="UTC"),
         ],
-        index=pd.date_range(start="2018-01-01", end="2018-01-03"),
     )
     result = df.min(axis=1)
     tm.assert_series_equal(result, expected)
@@ -1797,18 +1791,17 @@ def test_timezone_min_max_with_nat():
             pd.Timestamp("2018-01-02", tz="UTC"),
             pd.Timestamp("2018-01-03", tz="UTC"),
         ],
-        index=pd.date_range(start="2018-01-01", end="2018-01-03"),
     )
     result = df.max(axis=1)
     tm.assert_series_equal(result, expected)
 
 
-def test_min_max_timezone_nat():
+def test_min_max_timestamp_timezone_nat():
     # GH#44196
     rng_with_tz = pd.date_range(
         start="2021-10-01T12:00:00+02:00", end="2021-10-02T12:00:00+02:00", freq="4H"
     )
-    df_with_tz = pd.DataFrame(
+    df_with_tz = DataFrame(
         data={"A": rng_with_tz, "B": rng_with_tz + pd.Timedelta(minutes=20)}
     )
     df_with_tz.iloc[2, 1] = pd.NaT
@@ -1830,7 +1823,7 @@ def test_timezone_min_max_both_axis():
     rng_with_tz = pd.date_range(
         start="2021-10-01T12:00:00+02:00", end="2021-10-02T12:00:00+02:00", freq="4H"
     )
-    df_with_tz = pd.DataFrame(
+    df_with_tz = DataFrame(
         data={"A": rng_with_tz, "B": rng_with_tz + pd.Timedelta(minutes=20)}
     )
     df_with_tz.iloc[2, 1] = pd.NaT
@@ -1844,3 +1837,54 @@ def test_timezone_min_max_both_axis():
     expected = df_with_tz.T.min(axis=0)
 
     tm.assert_series_equal(result, expected)
+
+
+def test_min_max_timedelta64_nat():
+    df = DataFrame([[Timedelta(minutes=20), Timedelta(days=2), Timedelta(seconds=3)],
+                      [Timedelta(minutes=2, seconds=2), Timedelta(days=2, minutes=30), pd.NaT]])
+    expected = pd.Series([Timedelta(minutes=2, seconds=2), Timedelta(days=2), Timedelta(seconds=3)])
+    result = df.min(axis=0)
+    tm.assert_series_equal(result, expected)
+    tm.assert_series_equal(df.min(axis=0), df.T.min(axis=1))
+
+    expected = pd.Series([Timedelta(seconds=3), Timedelta(minutes=2, seconds=2)])
+    result = df.min(axis=1)
+    tm.assert_series_equal(result, expected)
+    tm.assert_series_equal(df.min(axis=1), df.T.min(axis=0))
+
+    expected = pd.Series([Timedelta(minutes=20), Timedelta(days=2, minutes=30), Timedelta(seconds=3)])
+    result = df.max(axis=0)
+    tm.assert_series_equal(result, expected)
+    tm.assert_series_equal(df.max(axis=0), df.T.max(axis=1))
+
+
+    expected = pd.Series([Timedelta(days=2), Timedelta(days=2, minutes=30)])
+    result = df.max(axis=1)
+    tm.assert_series_equal(result, expected)
+    tm.assert_series_equal(df.max(axis=1), df.T.max(axis=0))
+
+
+def test_min_max_perioddtype_nat():
+    df = DataFrame([[PeriodDtype(freq='20m'), PeriodDtype(freq='1h'), PeriodDtype(freq='1d')],
+                      [PeriodDtype(freq='25m'), PeriodDtype(freq='2h'), pd.NaT]])
+
+    expected = Series([])
+    result = df.min(axis=0)
+    tm.assert_series_equal(result, expected)
+    tm.assert_series_equal(df.min(axis=0), df.T.min(axis=1))
+
+    expected = Series([])
+    result = df.min(axis=1)
+    tm.assert_series_equal(result, expected)
+    tm.assert_series_equal(df.min(axis=1), df.T.min(axis=0))
+
+    expected = Series([])
+    result = df.max(axis=0)
+    tm.assert_series_equal(result, expected)
+    tm.assert_series_equal(df.max(axis=0), df.T.max(axis=1))
+
+    expected = Series([])
+    result = df.max(axis=1)
+    tm.assert_series_equal(result, expected)
+    tm.assert_series_equal(df.max(axis=1), df.T.max(axis=0))
+
