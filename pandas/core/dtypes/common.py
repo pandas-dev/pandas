@@ -599,6 +599,8 @@ def is_dtype_equal(source, target) -> bool:
         if not isinstance(source, str):
             # GH#38516 ensure we get the same behavior from
             #  is_dtype_equal(CDT, "category") and CDT == "category"
+            # GH-44276 ensures behaviour is consistent
+            # is_dtype_equal (dtype, "string[pyarrow]")
             try:
                 src = get_dtype(source)
                 if isinstance(src, ExtensionDtype) or isinstance(src, np.dtype):
