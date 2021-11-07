@@ -46,16 +46,20 @@ def test_agg_api():
     def peak_to_peak(arr):
         return arr.max() - arr.min()
 
+    if get_option("future_udf_behavior"):
+        msg = "Dropping invalid columns"
+    else:
+        msg = r"\['key2'\] did not aggregate successfully"
     with tm.assert_produces_warning(
         FutureWarning,
-        match=r"\['key2'\] did not aggregate successfully",
+        match=msg,
     ):
         expected = grouped.agg([peak_to_peak])
     expected.columns = ["data1", "data2"]
 
     with tm.assert_produces_warning(
         FutureWarning,
-        match=r"\['key2'\] did not aggregate successfully",
+        match=msg,
     ):
         result = grouped.agg(peak_to_peak)
     tm.assert_frame_equal(result, expected)

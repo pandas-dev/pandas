@@ -390,12 +390,13 @@ def test_multiple_functions_tuples_and_non_tuples(df):
     expected = df.groupby("A")["C"].agg(ex_funcs)
     tm.assert_frame_equal(result, expected)
 
+    klass = None if get_option("future_udf_behavior") else FutureWarning
     with tm.assert_produces_warning(
-        FutureWarning, match=r"\['B'\] did not aggregate successfully"
+        klass, match=r"\['B'\] did not aggregate successfully"
     ):
         result = df.groupby("A").agg(funcs)
     with tm.assert_produces_warning(
-        FutureWarning, match=r"\['B'\] did not aggregate successfully"
+        klass, match=r"\['B'\] did not aggregate successfully"
     ):
         expected = df.groupby("A").agg(ex_funcs)
     tm.assert_frame_equal(result, expected)

@@ -589,8 +589,9 @@ def test_frame_multi_key_function_list():
 
     grouped = data.groupby(["A", "B"])
     funcs = [np.mean, np.std]
+    klass = None if get_option("future_udf_behavior") else FutureWarning
     with tm.assert_produces_warning(
-        FutureWarning, match=r"\['C'\] did not aggregate successfully"
+        klass, match=r"\['C'\] did not aggregate successfully"
     ):
         agged = grouped.agg(funcs)
     if get_option("future_udf_behavior"):

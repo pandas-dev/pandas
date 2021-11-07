@@ -355,7 +355,10 @@ def test_agg():
         expected = pd.concat([a_mean, a_std, b_mean, b_std], axis=1)
         expected.columns = pd.MultiIndex.from_product([["A", "B"], ["mean", "std"]])
     for t in cases:
-        warn = FutureWarning if t in cases[1:3] else None
+        if t in cases[1:3] and not get_option("future_udf_behavior"):
+            warn = FutureWarning
+        else:
+            warn = None
         with tm.assert_produces_warning(
             warn,
             match=r"\['date'\] did not aggregate successfully",

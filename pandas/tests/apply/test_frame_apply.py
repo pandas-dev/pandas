@@ -1112,21 +1112,23 @@ def test_agg_multiple_mixed_no_warning():
         },
         index=["min", "sum"],
     )
-    klass, match = None, None
     if get_option("future_udf_behavior"):
         expected = expected.T
-        klass, match = FutureWarning, "Dropping of nuisance columns"
+        match = "Dropping of nuisance columns"
+    else:
+        match = "did not aggregate successfully"
     # sorted index
-    with tm.assert_produces_warning(klass, match=match, check_stacklevel=False):
+    with tm.assert_produces_warning(FutureWarning, match=match):
         result = mdf.agg(["min", "sum"])
 
     tm.assert_frame_equal(result, expected)
 
-    klass, match = None, None
     if get_option("future_udf_behavior"):
-        klass, match = FutureWarning, "Dropping of nuisance columns"
+        match = "Dropping of nuisance columns"
+    else:
+        match = "did not aggregate successfully"
 
-    with tm.assert_produces_warning(klass, match=match, check_stacklevel=False):
+    with tm.assert_produces_warning(FutureWarning, match=match, check_stacklevel=False):
         result = mdf[["D", "C", "B", "A"]].agg(["sum", "min"])
 
     # GH40420: the result of .agg should have an index that is sorted
@@ -1242,10 +1244,11 @@ def test_nuiscance_columns():
     expected = Series([6, 6.0, "foobarbaz"], index=["A", "B", "C"])
     tm.assert_series_equal(result, expected)
 
-    warn = FutureWarning if get_option("future_udf_behavior") else None
-    with tm.assert_produces_warning(
-        warn, match="Select only valid", check_stacklevel=False
-    ):
+    if get_option("future_udf_behavior"):
+        match = "Select only valid"
+    else:
+        match = "did not aggregate successfully"
+    with tm.assert_produces_warning(FutureWarning, match=match):
         result = df.agg(["sum"])
     expected = DataFrame(
         [[6, 6.0, "foobarbaz"]], index=["sum"], columns=["A", "B", "C"]
@@ -1492,8 +1495,9 @@ def test_aggregation_func_column_order():
         return s.sum() / 2
 
     aggs = ["sum", foo, "count", "min"]
+    klass = None if get_option("future_udf_behavior") else FutureWarning
     with tm.assert_produces_warning(
-        FutureWarning, match=r"\['item'\] did not aggregate successfully"
+        klass, match=r"\['item'\] did not aggregate successfully"
     ):
         result = df.agg(aggs)
     if get_option("future_udf_behavior"):
