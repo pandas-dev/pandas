@@ -33,7 +33,6 @@ Bug fixes
 
 Other
 ~~~~~
-- Fixed metadata propagation in ``.loc`` and ``.iloc`` (:issue:`28283`)
 -
 -
 

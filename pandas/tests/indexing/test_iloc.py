@@ -1349,18 +1349,15 @@ class TestILocSeries:
         result = ser.iloc[slice(1, 3)]
         expected = ser.loc[2:4]
         tm.assert_series_equal(result, expected)
-        assert result.attrs == expected_attrs
 
         # test slice is a view
         result[:] = 0
         assert (ser[1:3] == 0).all()
-        assert result.attrs == expected_attrs
 
         # list of integers
         result = ser.iloc[[0, 2, 3, 4, 5]]
         expected = ser.reindex(ser.index[[0, 2, 3, 4, 5]])
         tm.assert_series_equal(result, expected)
-        assert result.attrs == expected_attrs
 
     def test_iloc_getitem_nonunique(self):
         ser = Series([0, 1, 2], index=[0, 1, 0])
