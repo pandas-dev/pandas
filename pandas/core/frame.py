@@ -5378,33 +5378,13 @@ class DataFrame(NDFrame, OpsMixin):
                 target, value = mapping[ax[i]]
                 newobj = ser.replace(target, value, regex=regex)
 
-                res._isetitem(i, newobj)
+                # If we had unique columns, we could just do
+                #  res[res.columns[i]] = newobj
+                res._iset_item_mgr(i, newobj._values)
 
         if inplace:
             return
         return res.__finalize__(self)
-
-    def _isetitem(self, loc: int, value):
-        """
-        Set a new array in our the given column position.
-
-        Notes
-        -----
-        Replaces the existing array, does not write into it.
-        """
-        cols = self.columns
-        if cols.is_unique:
-            col = cols[loc]
-            self[col] = value
-            return
-
-        # Otherwise we temporarily pin unique columns and call __setitem__
-        newcols = Index(range(len(cols)))
-        try:
-            self.columns = newcols
-            self[loc] = value
-        finally:
-            self.columns = cols
 
     @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])
     def shift(
