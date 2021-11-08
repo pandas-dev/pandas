@@ -118,6 +118,8 @@ class TestCategoricalDtype(Base):
     def test_pyarrow_string_import_error(self, dtype):
         # GH-44276
         assert not is_dtype_equal(dtype, "string[pyarrow]")
+        with pytest.raises(ImportError, match="pyarrow"):
+            yield
 
     def test_constructor_invalid(self):
         msg = "Parameter 'categories' must be list-like"

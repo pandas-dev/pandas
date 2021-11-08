@@ -150,7 +150,6 @@ def test_access_by_position(index):
     assert index[-1] == index[size - 1]
 
     msg = f"index {size} is out of bounds for axis 0 with size {size}"
-
     with pytest.raises(IndexError, match=msg):
         index[size]
     msg = "single positional indexer is out-of-bounds"

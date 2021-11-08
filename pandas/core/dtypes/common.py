@@ -603,7 +603,7 @@ def is_dtype_equal(source, target) -> bool:
             # is_dtype_equal (dtype, "string[pyarrow]")
             try:
                 src = get_dtype(source)
-                if isinstance(src, ExtensionDtype) or isinstance(src, np.dtype):
+                if isinstance(src, (ExtensionDtype, np.dtype)):
 
                     return src == target
             except (TypeError, AttributeError):
