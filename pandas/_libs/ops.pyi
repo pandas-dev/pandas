@@ -3,6 +3,7 @@ from typing import (
     Callable,
     Literal,
     overload,
+    Iterable,
 )
 
 import numpy as np
@@ -35,15 +36,15 @@ def vec_binop(
 @overload
 def maybe_convert_bool(
     arr: npt.NDArray[np.object_],
-    true_values=...,
-    false_values=...,
+    true_values: Iterable = ...,
+    false_values: Iterable = ...,
     convert_to_masked_nullable: Literal[False] = ...,
 ) -> tuple[np.ndarray, None]: ...
 @overload
 def maybe_convert_bool(
     arr: npt.NDArray[np.object_],
-    true_values=...,
-    false_values=...,
+    true_values: Iterable = ...,
+    false_values: Iterable = ...,
     *,
     convert_to_masked_nullable: Literal[True],
 ) -> tuple[np.ndarray, np.ndarray]: ...
