@@ -54,6 +54,7 @@ from pandas.util._decorators import (
     deprecate_nonkeyword_arguments,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     validate_ascending,
     validate_bool_kwarg,
@@ -360,7 +361,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     "of 'float64' in a future version. Specify a dtype explicitly "
                     "to silence this warning.",
                     FutureWarning,
-                    stacklevel=2,
+                    stacklevel=find_stack_level(),
                 )
                 # uncomment the line below when removing the FutureWarning
                 # dtype = np.dtype(object)
@@ -886,7 +887,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 "is_copy is deprecated and will be removed in a future version. "
                 "'take' always returns a copy, so there is no need to specify this.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
         nv.validate_take((), kwargs)
 
@@ -1078,7 +1079,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                         "Series. Use `series.iloc[an_int] = val` to treat the "
                         "key as positional.",
                         FutureWarning,
-                        stacklevel=2,
+                        stacklevel=find_stack_level(),
                     )
                 # this is equivalent to self._values[key] = value
                 self._mgr.setitem_inplace(key, value)
@@ -1887,7 +1888,7 @@ Name: Max Speed, dtype: float64
                     "will be removed in a future version."
                 ),
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
         else:
             squeeze = False
@@ -1949,7 +1950,7 @@ Name: Max Speed, dtype: float64
                 "deprecated and will be removed in a future version. Use groupby "
                 "instead. ser.count(level=1) should use ser.groupby(level=1).count().",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
             if not isinstance(self.index, MultiIndex):
                 raise ValueError("Series.count level is only valid with a MultiIndex")
@@ -5134,7 +5135,7 @@ Keep all original rows and also all original values
                 "Boolean inputs to the `inclusive` argument are deprecated in "
                 "favour of `both` or `neither`.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
             if inclusive:
                 inclusive = "both"

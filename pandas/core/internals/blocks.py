@@ -190,7 +190,7 @@ class Block(PandasObject):
             "future version.  Use isinstance(block.values, Categorical) "
             "instead. See https://github.com/pandas-dev/pandas/issues/40226",
             DeprecationWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return isinstance(self.values, Categorical)
 
@@ -1122,7 +1122,7 @@ class Block(PandasObject):
 
     def diff(self, n: int, axis: int = 1) -> list[Block]:
         """return block for the diff of the values"""
-        new_values = algos.diff(self.values, n, axis=axis, stacklevel=7)
+        new_values = algos.diff(self.values, n, axis=axis)
         return [self.make_block(values=new_values)]
 
     def shift(self, periods: int, axis: int = 0, fill_value: Any = None) -> list[Block]:

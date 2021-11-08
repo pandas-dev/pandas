@@ -25,6 +25,7 @@ from pandas._typing import (
     DtypeObj,
 )
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_datetime64_any_dtype,
@@ -346,7 +347,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
                 "will be removed in a future version. "
                 "Use index.to_timestamp(how=how) instead.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
         else:
             how = "start"
