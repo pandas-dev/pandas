@@ -24,7 +24,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
-- Fixed bug in :bug:`is_dtype_equal` raises if pyarrow not installed (:issue:`44327`)
+- Fixed bug in :bug:`is_dtype_equal` raising if pyarrow not installed (:issue:`44327`)
 -
 
 .. ---------------------------------------------------------------------------
