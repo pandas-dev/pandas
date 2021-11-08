@@ -668,7 +668,7 @@ def test_bins_unequal_len():
     bins = pd.cut(series.dropna().values, 4)
 
     # len(bins) != len(series) here
-    with pytest.raises(ValueError, match=r"Grouper and axis must be same length"):
+    with pytest.raises(ValueError, match="Grouper and axis must be same length"):
         series.groupby(bins).mean()
 
 
@@ -689,9 +689,9 @@ def test_categorical_series(series, data):
     # takes indices 0 and 3 and group B indices 1 and 2, obtaining the values mapped in
     # the given data.
     groupby = series.groupby(Series(list("ABBA"), dtype="category"))
-    tm.assert_series_equal(
-        groupby.aggregate(list), Series(data, index=CategoricalIndex(data.keys()))
-    )
+    result = groupby.aggregate(list)
+    expected = Series(data, index=CategoricalIndex(data.keys()))
+    tm.assert_series_equal(result, expected)
 
 
 def test_as_index():
