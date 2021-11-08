@@ -593,7 +593,7 @@ Groupby/resample/rolling
 - Fixed bug in :meth:`Series.rolling` and :meth:`DataFrame.rolling` for centered datetimelike windows with uneven nanosecond (:issue:`43997`)
 - Bug in :meth:`GroupBy.nth` failing on ``axis=1`` (:issue:`43926`)
 - Fixed bug in :meth:`Series.rolling` and :meth:`DataFrame.rolling` not respecting right bound on centered datetime-like windows, if the index contain duplicates (:issue:`#3944`)
-- Enabled grouping by a :class:`Series` that has a categorical data type and length unequal to the axis of grouping (:issue:`44179`); also, with this fix, the ``ValueError`` raised when grouping by a :class:`Categorical` with unequal length now has the same message as when grouping by other sequences
+- Fixed bug where grouping by a :class:`Series` that has a categorical data type and length unequal to the axis of grouping raised ``ValueError`` (:issue:`44179`)
 
 Reshaping
 ^^^^^^^^^
