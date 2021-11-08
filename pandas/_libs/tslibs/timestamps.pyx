@@ -1507,7 +1507,7 @@ timedelta}, default 'raise'
         Notes
         -----
         If the Timestamp has a timezone, flooring will take place relative to the
-        local ("wall") time and re-localized to the same timezone. When rounding
+        local ("wall") time and re-localized to the same timezone. When flooring
         near daylight savings time, use ``nonexistent`` and ``ambiguous`` to
         control the re-localization behavior.
 
@@ -1585,7 +1585,7 @@ timedelta}, default 'raise'
         Notes
         -----
         If the Timestamp has a timezone, ceiling will take place relative to the
-        local ("wall") time and re-localized to the same timezone. When rounding
+        local ("wall") time and re-localized to the same timezone. When ceiling
         near daylight savings time, use ``nonexistent`` and ``ambiguous`` to
         control the re-localization behavior.
 
