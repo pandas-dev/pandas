@@ -1,9 +1,9 @@
 from typing import (
     Any,
     Callable,
+    Iterable,
     Literal,
     overload,
-    Iterable,
 )
 
 import numpy as np
