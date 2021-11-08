@@ -30,7 +30,7 @@ def write_csv_rows(
 
     Parameters
     ----------
-    data : list
+    data : list[ArrayLike]
     data_index : ndarray
     nlevels : int
     cols : ndarray
@@ -125,15 +125,15 @@ def max_len_string_array(pandas_string[:] arr) -> Py_ssize_t:
     Return the maximum size of elements in a 1-dim string array.
     """
     cdef:
-        Py_ssize_t i, m = 0, l = 0, length = arr.shape[0]
+        Py_ssize_t i, m = 0, wlen = 0, length = arr.shape[0]
         pandas_string val
 
     for i in range(length):
         val = arr[i]
-        l = word_len(val)
+        wlen = word_len(val)
 
-        if l > m:
-            m = l
+        if wlen > m:
+            m = wlen
 
     return m
 
@@ -143,14 +143,14 @@ cpdef inline Py_ssize_t word_len(object val):
     Return the maximum length of a string or bytes value.
     """
     cdef:
-        Py_ssize_t l = 0
+        Py_ssize_t wlen = 0
 
     if isinstance(val, str):
-        l = PyUnicode_GET_LENGTH(val)
+        wlen = PyUnicode_GET_LENGTH(val)
     elif isinstance(val, bytes):
-        l = PyBytes_GET_SIZE(val)
+        wlen = PyBytes_GET_SIZE(val)
 
-    return l
+    return wlen
 
 # ------------------------------------------------------------------
 # PyTables Helpers

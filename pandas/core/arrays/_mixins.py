@@ -31,6 +31,7 @@ from pandas.util._decorators import doc
 from pandas.util._validators import (
     validate_bool_kwarg,
     validate_fillna_kwargs,
+    validate_insert_loc,
 )
 
 from pandas.core.dtypes.common import is_dtype_equal
@@ -196,8 +197,8 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         return self._from_backing_data(new_values)
 
     def _validate_shift_value(self, fill_value):
-        # TODO: after deprecation in datetimelikearraymixin is enforced,
-        #  we can remove this and ust validate_fill_value directly
+        # TODO(2.0): after deprecation in datetimelikearraymixin is enforced,
+        #  we can remove this and use validate_fill_value directly
         return self._validate_scalar(fill_value)
 
     def __setitem__(self, key, value):
@@ -244,6 +245,14 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
         result = self._from_backing_data(result)
         return result
+
+    def _fill_mask_inplace(
+        self, method: str, limit, mask: npt.NDArray[np.bool_]
+    ) -> None:
+        # (for now) when self.ndim == 2, we assume axis=0
+        func = missing.get_fill_func(method, ndim=self.ndim)
+        func(self._ndarray.T, limit=limit, mask=mask.T)
+        return
 
     @doc(ExtensionArray.fillna)
     def fillna(
@@ -319,7 +328,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
         np.putmask(self._ndarray, mask, value)
 
-    def where(
+    def _where(
         self: NDArrayBackedExtensionArrayT, mask: np.ndarray, value
     ) -> NDArrayBackedExtensionArrayT:
         """
@@ -359,6 +368,8 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         -------
         type(self)
         """
+        loc = validate_insert_loc(loc, len(self))
+
         code = self._validate_scalar(item)
 
         new_vals = np.concatenate(

@@ -136,7 +136,7 @@ class BaseWindow(SelectionMixin):
         self.window = window
         self.min_periods = min_periods
         self.center = center
-        # TODO: Change this back to self.win_type once deprecation is enforced
+        # TODO(2.0): Change this back to self.win_type once deprecation is enforced
         self._win_type = win_type
         self.axis = obj._get_axis_number(axis) if axis is not None else None
         self.method = method
@@ -262,7 +262,7 @@ class BaseWindow(SelectionMixin):
         # we need to make a shallow copy of ourselves
         # with the same groupby
         with warnings.catch_warnings():
-            # TODO: Remove once win_type deprecation is enforced
+            # TODO(2.0): Remove once win_type deprecation is enforced
             warnings.filterwarnings("ignore", "win_type", FutureWarning)
             kwargs = {attr: getattr(self, attr) for attr in self._attributes}
 
@@ -1345,15 +1345,16 @@ class RollingAndExpandingMixin(BaseWindow):
         if maybe_use_numba(engine):
             if self.method == "table":
                 func = generate_manual_numpy_nan_agg_with_axis(np.nansum)
+                return self.apply(
+                    func,
+                    raw=True,
+                    engine=engine,
+                    engine_kwargs=engine_kwargs,
+                )
             else:
-                func = np.nansum
+                from pandas.core._numba.kernels import sliding_sum
 
-            return self.apply(
-                func,
-                raw=True,
-                engine=engine,
-                engine_kwargs=engine_kwargs,
-            )
+                return self._numba_apply(sliding_sum, "rolling_sum", engine_kwargs)
         window_func = window_aggregations.roll_sum
         return self._apply(window_func, name="sum", **kwargs)
 

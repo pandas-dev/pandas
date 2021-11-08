@@ -1686,9 +1686,7 @@ class DataFrame(NDFrame, OpsMixin):
         self._consolidate_inplace()
         if dtype is not None:
             dtype = np.dtype(dtype)
-        result = self._mgr.as_array(
-            transpose=self._AXIS_REVERSED, dtype=dtype, copy=copy, na_value=na_value
-        )
+        result = self._mgr.as_array(dtype=dtype, copy=copy, na_value=na_value)
         if result.dtype is not dtype:
             result = np.array(result, dtype=dtype, copy=False)
 
@@ -3734,6 +3732,9 @@ class DataFrame(NDFrame, OpsMixin):
             self.iloc[indexer] = value
 
         else:
+            # Note: unlike self.iloc[:, indexer] = value, this will
+            #  never try to overwrite values inplace
+
             if isinstance(value, DataFrame):
                 check_key_length(self.columns, key, value)
                 for k1, k2 in zip(key, value.columns):
@@ -3840,9 +3841,11 @@ class DataFrame(NDFrame, OpsMixin):
         arraylike = _reindex_for_setitem(value, self.index)
         self._set_item_mgr(key, arraylike)
 
-    def _iset_item_mgr(self, loc: int | slice | np.ndarray, value) -> None:
+    def _iset_item_mgr(
+        self, loc: int | slice | np.ndarray, value, inplace: bool = False
+    ) -> None:
         # when called from _set_item_mgr loc can be anything returned from get_loc
-        self._mgr.iset(loc, value)
+        self._mgr.iset(loc, value, inplace=inplace)
         self._clear_item_cache()
 
     def _set_item_mgr(self, key, value: ArrayLike) -> None:
@@ -3860,9 +3863,9 @@ class DataFrame(NDFrame, OpsMixin):
         if len(self):
             self._check_setitem_copy()
 
-    def _iset_item(self, loc: int, value) -> None:
+    def _iset_item(self, loc: int, value, inplace: bool = False) -> None:
         arraylike = self._sanitize_column(value)
-        self._iset_item_mgr(loc, arraylike)
+        self._iset_item_mgr(loc, arraylike, inplace=inplace)
 
         # check if we are modifying a copy
         # try to set first as we want an invalid
@@ -3994,13 +3997,13 @@ class DataFrame(NDFrame, OpsMixin):
         # no-op for DataFrame
         pass
 
-    def _maybe_cache_changed(self, item, value: Series) -> None:
+    def _maybe_cache_changed(self, item, value: Series, inplace: bool) -> None:
         """
         The object has called back to us saying maybe it has changed.
         """
         loc = self._info_axis.get_loc(item)
         arraylike = value._values
-        self._mgr.iset(loc, arraylike)
+        self._mgr.iset(loc, arraylike, inplace=inplace)
 
     # ----------------------------------------------------------------------
     # Unsorted
@@ -5355,7 +5358,6 @@ class DataFrame(NDFrame, OpsMixin):
     ):
         """
         Dispatch to Series.replace column-wise.
-
 
         Parameters
         ----------
@@ -8873,7 +8875,7 @@ NaN 12.3   33.0
             args=args,
             kwargs=kwargs,
         )
-        return op.apply()
+        return op.apply().__finalize__(self, method="apply")
 
     def applymap(
         self, func: PythonFuncType, na_action: str | None = None, **kwargs
@@ -9085,6 +9087,8 @@ NaN 12.3   33.0
                 pass
             elif not isinstance(other[0], DataFrame):
                 other = DataFrame(other)
+                if self.index.name is not None and not ignore_index:
+                    other.index.name = self.index.name
 
         from pandas.core.reshape.concat import concat
 
@@ -10712,7 +10716,6 @@ NaN 12.3   33.0
         1: 1,
         "columns": 1,
     }
-    _AXIS_REVERSED = True
     _AXIS_LEN = len(_AXIS_ORDERS)
     _info_axis_number = 1
     _info_axis_name = "columns"
@@ -10837,7 +10840,7 @@ NaN 12.3   33.0
                ['monkey', nan, None]], dtype=object)
         """
         self._consolidate_inplace()
-        return self._mgr.as_array(transpose=True)
+        return self._mgr.as_array()
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def ffill(
@@ -10906,7 +10909,7 @@ NaN 12.3   33.0
         inplace=False,
         axis=None,
         level=None,
-        errors="raise",
+        errors=lib.no_default,
         try_cast=lib.no_default,
     ):
         return super().where(cond, other, inplace, axis, level, errors, try_cast)
@@ -10921,7 +10924,7 @@ NaN 12.3   33.0
         inplace=False,
         axis=None,
         level=None,
-        errors="raise",
+        errors=lib.no_default,
         try_cast=lib.no_default,
     ):
         return super().mask(cond, other, inplace, axis, level, errors, try_cast)

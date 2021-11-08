@@ -59,7 +59,7 @@ class TestEngine:
         expected = getattr(roll, method)(engine="cython")
 
         # Check the cache
-        if method != "mean":
+        if method not in ("mean", "sum"):
             assert (
                 getattr(np, f"nan{method}"),
                 "Rolling_apply_single",
@@ -67,7 +67,9 @@ class TestEngine:
 
         tm.assert_equal(result, expected)
 
-    @pytest.mark.parametrize("data", [DataFrame(np.eye(5)), Series(range(5))])
+    @pytest.mark.parametrize(
+        "data", [DataFrame(np.eye(5)), Series(range(5), name="foo")]
+    )
     def test_numba_vs_cython_expanding_methods(
         self, data, nogil, parallel, nopython, arithmetic_numba_supported_operators
     ):
@@ -82,7 +84,7 @@ class TestEngine:
         expected = getattr(expand, method)(engine="cython")
 
         # Check the cache
-        if method != "mean":
+        if method not in ("mean", "sum"):
             assert (
                 getattr(np, f"nan{method}"),
                 "Expanding_apply_single",

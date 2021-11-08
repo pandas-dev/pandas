@@ -1862,10 +1862,10 @@ class _iLocIndexer(_LocationIndexer):
             # set the item, possibly having a dtype change
             ser = ser.copy()
             ser._mgr = ser._mgr.setitem(indexer=(pi,), value=value)
-            ser._maybe_update_cacher(clear=True)
+            ser._maybe_update_cacher(clear=True, inplace=True)
 
         # reset the sliced object if unique
-        self.obj._iset_item(loc, ser)
+        self.obj._iset_item(loc, ser, inplace=True)
 
     def _setitem_single_block(self, indexer, value, name: str):
         """
@@ -1890,9 +1890,10 @@ class _iLocIndexer(_LocationIndexer):
                     if i != info_axis
                 )
             ):
-                selected_item_labels = item_labels[indexer[info_axis]]
-                if len(item_labels.get_indexer_for([selected_item_labels])) == 1:
-                    self.obj[selected_item_labels] = value
+                col = item_labels[indexer[info_axis]]
+                if len(item_labels.get_indexer_for([col])) == 1:
+                    loc = item_labels.get_loc(col)
+                    self.obj._iset_item(loc, value, inplace=True)
                     return
 
             indexer = maybe_convert_ix(*indexer)
@@ -1910,7 +1911,7 @@ class _iLocIndexer(_LocationIndexer):
 
         # actually do the set
         self.obj._mgr = self.obj._mgr.setitem(indexer=indexer, value=value)
-        self.obj._maybe_update_cacher(clear=True)
+        self.obj._maybe_update_cacher(clear=True, inplace=True)
 
     def _setitem_with_indexer_missing(self, indexer, value):
         """

@@ -15,6 +15,7 @@ from pandas._libs import (
     Interval,
     Period,
     algos,
+    lib,
 )
 from pandas._libs.tslibs import conversion
 from pandas._typing import (
@@ -65,7 +66,6 @@ INT64_DTYPE = np.dtype(np.int64)
 _is_scipy_sparse = None
 
 ensure_float64 = algos.ensure_float64
-ensure_float32 = algos.ensure_float32
 
 
 def ensure_float(arr):
@@ -92,13 +92,10 @@ def ensure_float(arr):
     return arr
 
 
-ensure_uint64 = algos.ensure_uint64
 ensure_int64 = algos.ensure_int64
 ensure_int32 = algos.ensure_int32
 ensure_int16 = algos.ensure_int16
 ensure_int8 = algos.ensure_int8
-ensure_complex64 = algos.ensure_complex64
-ensure_complex128 = algos.ensure_complex128
 ensure_platform_int = algos.ensure_platform_int
 ensure_object = algos.ensure_object
 
@@ -1792,3 +1789,23 @@ def pandas_dtype(dtype) -> DtypeObj:
         raise TypeError(f"dtype '{dtype}' not understood")
 
     return npdtype
+
+
+def is_all_strings(value: ArrayLike) -> bool:
+    """
+    Check if this is an array of strings that we should try parsing.
+
+    Includes object-dtype ndarray containing all-strings, StringArray,
+    and Categorical with all-string categories.
+    Does not include numpy string dtypes.
+    """
+    dtype = value.dtype
+
+    if isinstance(dtype, np.dtype):
+        return (
+            dtype == np.dtype("object")
+            and lib.infer_dtype(value, skipna=False) == "string"
+        )
+    elif isinstance(dtype, CategoricalDtype):
+        return dtype.categories.inferred_type == "string"
+    return dtype == "string"

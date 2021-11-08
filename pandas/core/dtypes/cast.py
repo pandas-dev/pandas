@@ -910,9 +910,9 @@ def maybe_upcast(
     """
     new_dtype, fill_value = maybe_promote(values.dtype, fill_value)
     # We get a copy in all cases _except_ (values.dtype == new_dtype and not copy)
-    values = values.astype(new_dtype, copy=copy)
+    upcast_values = values.astype(new_dtype, copy=copy)
 
-    return values, fill_value
+    return upcast_values, fill_value  # type: ignore[return-value]
 
 
 def invalidate_string_dtypes(dtype_set: set[DtypeObj]):
@@ -978,7 +978,7 @@ def astype_dt64_to_dt64tz(
             stacklevel=level,
         )
 
-        # FIXME: GH#33401 this doesn't match DatetimeArray.astype, which
+        # GH#33401 this doesn't match DatetimeArray.astype, which
         #  goes through the `not via_utc` path
         return values.tz_localize("UTC").tz_convert(dtype.tz)
 
@@ -1526,7 +1526,7 @@ def maybe_infer_to_datetimelike(
         try:
             # GH#19671 we pass require_iso8601 to be relatively strict
             #  when parsing strings.
-            dta = sequence_to_datetimes(v, require_iso8601=True, allow_object=True)
+            dta = sequence_to_datetimes(v, require_iso8601=True, allow_object=False)
         except (ValueError, TypeError):
             # e.g. <class 'numpy.timedelta64'> is not convertible to datetime
             return v.reshape(shape)
@@ -1590,7 +1590,7 @@ def maybe_infer_to_datetimelike(
         warnings.warn(
             f"Inferring {value.dtype} from data containing strings is deprecated "
             "and will be removed in a future version. To retain the old behavior "
-            "explicitly pass Series(data, dtype={value.dtype})",
+            f"explicitly pass Series(data, dtype={value.dtype})",
             FutureWarning,
             stacklevel=find_stack_level(),
         )
@@ -1792,6 +1792,7 @@ def ensure_nanosecond_dtype(dtype: DtypeObj) -> DtypeObj:
     return dtype
 
 
+# TODO: overload to clarify that if all types are np.dtype then result is np.dtype
 def find_common_type(types: list[DtypeObj]) -> DtypeObj:
     """
     Find a common data type among the given dtypes.
@@ -2197,10 +2198,21 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
     tipo = maybe_infer_dtype_type(element)
 
     if dtype.kind in ["i", "u"]:
+        if isinstance(element, range):
+            return _dtype_can_hold_range(element, dtype)
+
         if tipo is not None:
             if tipo.kind not in ["i", "u"]:
                 if is_float(element) and element.is_integer():
                     return True
+
+                if isinstance(element, np.ndarray) and element.dtype.kind == "f":
+                    # If all can be losslessly cast to integers, then we can hold them
+                    #  We do something similar in putmask_smart
+                    casted = element.astype(dtype)
+                    comp = casted == element
+                    return comp.all()
+
                 # Anything other than integer we cannot hold
                 return False
             elif dtype.itemsize < tipo.itemsize:
@@ -2209,6 +2221,7 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
                 # i.e. nullable IntegerDtype; we can put this into an ndarray
                 #  losslessly iff it has no NAs
                 return not element._mask.any()
+
             return True
 
         # We have not inferred an integer from the dtype
@@ -2249,3 +2262,14 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
         return isinstance(element, bytes) and len(element) <= dtype.itemsize
 
     raise NotImplementedError(dtype)
+
+
+def _dtype_can_hold_range(rng: range, dtype: np.dtype) -> bool:
+    """
+    maybe_infer_dtype_type infers to int64 (and float64 for very large endpoints),
+    but in many cases a range can be held by a smaller integer dtype.
+    Check if this is one of those cases.
+    """
+    if not len(rng):
+        return True
+    return np.can_cast(rng[0], dtype) and np.can_cast(rng[-1], dtype)

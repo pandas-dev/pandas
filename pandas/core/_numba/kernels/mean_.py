@@ -1,5 +1,5 @@
 """
-Numba 1D aggregation kernels that can be shared by
+Numba 1D mean kernels that can be shared by
 * Dataframe / Series
 * groupby
 * rolling / expanding
@@ -11,20 +11,7 @@ from __future__ import annotations
 import numba
 import numpy as np
 
-
-@numba.jit(nopython=True, nogil=True, parallel=False)
-def is_monotonic_increasing(bounds: np.ndarray) -> bool:
-    """Check if int64 values are monotonically increasing."""
-    n = len(bounds)
-    if n < 2:
-        return True
-    prev = bounds[0]
-    for i in range(1, n):
-        cur = bounds[i]
-        if cur < prev:
-            return False
-        prev = cur
-    return True
+from pandas.core._numba.kernels.shared import is_monotonic_increasing
 
 
 @numba.jit(nopython=True, nogil=True, parallel=False)
