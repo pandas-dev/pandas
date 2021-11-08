@@ -1101,6 +1101,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     is_list_like(value)
                     and len(value) != len(self)
                     and not isinstance(value, Series)
+                    and not is_object_dtype(self.dtype)
                 ):
                     # Series will be reindexed to have matching length inside
                     #  _where call below
@@ -4537,6 +4538,7 @@ Keep all original rows and also all original values
         dtype: int64
         """
         if axis is not None:
+            # Make sure we raise if an invalid 'axis' is passed.
             axis = self._get_axis_number(axis)
 
         if callable(index) or is_dict_like(index):
