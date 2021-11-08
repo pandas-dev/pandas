@@ -1639,6 +1639,13 @@ _round_doc = """
     ------
     ValueError if the `freq` cannot be converted.
 
+    Notes
+    -----
+    If the timestamps have a timezone, {op}ing will take place relative to the
+    local ("wall") time and re-localized to the same timezone. When {op}ing
+    near daylight savings time, use ``nonexistent`` and ``ambiguous`` to
+    control the re-localization behavior.
+
     Examples
     --------
     **DatetimeIndex**
