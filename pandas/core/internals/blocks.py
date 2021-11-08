@@ -1122,7 +1122,7 @@ class Block(PandasObject):
 
     def diff(self, n: int, axis: int = 1) -> list[Block]:
         """return block for the diff of the values"""
-        new_values = algos.diff(self.values, n, axis=axis)
+        new_values = algos.diff(self.values, n, axis=axis, stacklevel=7)
         return [self.make_block(values=new_values)]
 
     def shift(self, periods: int, axis: int = 0, fill_value: Any = None) -> list[Block]:
