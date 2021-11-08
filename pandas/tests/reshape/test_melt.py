@@ -671,13 +671,12 @@ class TestWideToLong:
         tm.assert_frame_equal(result, expected)
 
     def test_stubs(self):
-        # GH9204
+        # GH9204 wide_to_long call should not modify 'stubs' list
         df = DataFrame([[0, 1, 2, 3, 8], [4, 5, 6, 7, 9]])
         df.columns = ["id", "inc1", "inc2", "edu1", "edu2"]
         stubs = ["inc", "edu"]
 
-        # TODO: unused?
-        df_long = wide_to_long(df, stubs, i="id", j="age")  # noqa
+        wide_to_long(df, stubs, i="id", j="age")
 
         assert stubs == ["inc", "edu"]
 

@@ -203,7 +203,7 @@ def test_difference_sort_special():
 
 @pytest.mark.xfail(reason="Not implemented.")
 def test_difference_sort_special_true():
-    # TODO decide on True behaviour
+    # TODO(GH#25151): decide on True behaviour
     idx = MultiIndex.from_product([[1, 0], ["a", "b"]])
     result = idx.difference([], sort=True)
     expected = MultiIndex.from_product([[0, 1], ["a", "b"]])
@@ -340,7 +340,7 @@ def test_intersect_equal_sort():
 
 @pytest.mark.xfail(reason="Not implemented.")
 def test_intersect_equal_sort_true():
-    # TODO decide on True behaviour
+    # TODO(GH#25151): decide on True behaviour
     idx = MultiIndex.from_product([[1, 0], ["a", "b"]])
     sorted_ = MultiIndex.from_product([[0, 1], ["a", "b"]])
     tm.assert_index_equal(idx.intersection(idx, sort=True), sorted_)
@@ -363,7 +363,7 @@ def test_union_sort_other_empty(slice_):
 
 @pytest.mark.xfail(reason="Not implemented.")
 def test_union_sort_other_empty_sort(slice_):
-    # TODO decide on True behaviour
+    # TODO(GH#25151): decide on True behaviour
     # # sort=True
     idx = MultiIndex.from_product([[1, 0], ["a", "b"]])
     other = idx[:0]
@@ -388,7 +388,7 @@ def test_union_sort_other_incomparable():
 
 @pytest.mark.xfail(reason="Not implemented.")
 def test_union_sort_other_incomparable_sort():
-    # TODO decide on True behaviour
+    # TODO(GH#25151): decide on True behaviour
     # # sort=True
     idx = MultiIndex.from_product([[1, pd.Timestamp("2000")], ["a", "b"]])
     with pytest.raises(TypeError, match="Cannot compare"):

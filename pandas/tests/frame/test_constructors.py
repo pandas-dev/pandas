@@ -2585,6 +2585,19 @@ class TestDataFrameConstructors:
             DataFrame({"a": col_a, "b": col_b})
 
 
+class TestDataFrameConstructorIndexInference:
+    def test_frame_from_dict_of_series_overlapping_monthly_period_indexes(self):
+        rng1 = pd.period_range("1/1/1999", "1/1/2012", freq="M")
+        s1 = Series(np.random.randn(len(rng1)), rng1)
+
+        rng2 = pd.period_range("1/1/1980", "12/1/2001", freq="M")
+        s2 = Series(np.random.randn(len(rng2)), rng2)
+        df = DataFrame({"s1": s1, "s2": s2})
+
+        exp = pd.period_range("1/1/1980", "1/1/2012", freq="M")
+        tm.assert_index_equal(df.index, exp)
+
+
 class TestDataFrameConstructorWithDtypeCoercion:
     def test_floating_values_integer_dtype(self):
         # GH#40110 make DataFrame behavior with arraylike floating data and

@@ -773,7 +773,7 @@ class TestSetOpsUnsorted:
     @pytest.mark.xfail(reason="Not implemented")
     @pytest.mark.parametrize("opname", ["difference", "symmetric_difference"])
     def test_difference_incomparable_true(self, opname):
-        # TODO: decide on True behaviour
+        # TODO(GH#25151): decide on True behaviour
         # # sort=True, raises
         a = Index([3, Timestamp("2000"), 1])
         b = Index([2, Timestamp("1999"), 1])

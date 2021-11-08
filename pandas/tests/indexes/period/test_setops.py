@@ -153,18 +153,6 @@ class TestPeriodIndex:
         expected = index.astype(object).union(index2.astype(object), sort=sort)
         tm.assert_index_equal(result, expected)
 
-    # TODO: belongs elsewhere
-    def test_union_dataframe_index(self):
-        rng1 = period_range("1/1/1999", "1/1/2012", freq="M")
-        s1 = pd.Series(np.random.randn(len(rng1)), rng1)
-
-        rng2 = period_range("1/1/1980", "12/1/2001", freq="M")
-        s2 = pd.Series(np.random.randn(len(rng2)), rng2)
-        df = pd.DataFrame({"s1": s1, "s2": s2})
-
-        exp = period_range("1/1/1980", "1/1/2012", freq="M")
-        tm.assert_index_equal(df.index, exp)
-
     def test_intersection(self, sort):
         index = period_range("1/1/2000", "1/20/2000", freq="D")
 

@@ -746,7 +746,7 @@ class TestDateRanges:
         assert len(rng) == 50
         assert rng[0] == datetime(2010, 9, 1, 5)
 
-    def test_timezone_comparaison_bug(self):
+    def test_timezone_comparison_bug(self):
         # smoke test
         start = Timestamp("20130220 10:00", tz="US/Eastern")
         result = date_range(start, periods=2, tz="US/Eastern")
