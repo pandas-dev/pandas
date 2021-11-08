@@ -302,28 +302,63 @@ For more about ``boundscheck`` and ``wraparound``, see the Cython docs on
 
 .. _enhancingperf.numba:
 
-Using Numba
------------
+Numba (JIT compilation)
+-----------------------
 
-A recent alternative to statically compiling Cython code, is to use a *dynamic jit-compiler*, Numba.
+An alternative to statically compiling Cython code is to use a dynamic just-in-time (JIT) compiler with `Numba <https://numba.pydata.org/>`__.
 
-Numba gives you the power to speed up your applications with high performance functions written directly in Python. With a few annotations, array-oriented and math-heavy Python code can be just-in-time compiled to native machine instructions, similar in performance to C, C++ and Fortran, without having to switch languages or Python interpreters.
+Numba allows you to write a pure Python function which can be JIT compiled to native machine instructions, similar in performance to C, C++ and Fortran,
+by decorating your function with ``@jit``.
 
-Numba works by generating optimized machine code using the LLVM compiler infrastructure at import time, runtime, or statically (using the included pycc tool). Numba supports compilation of Python to run on either CPU or GPU hardware, and is designed to integrate with the Python scientific software stack.
-
-.. note::
-
-    You will need to install Numba. This is easy with ``conda``, by using: ``conda install numba``, see :ref:`installing using miniconda<install.miniconda>`.
+Numba works by generating optimized machine code using the LLVM compiler infrastructure at import time, runtime, or statically (using the included pycc tool).
+Numba supports compilation of Python to run on either CPU or GPU hardware and is designed to integrate with the Python scientific software stack.
 
 .. note::
 
-    As of Numba version 0.20, pandas objects cannot be passed directly to Numba-compiled functions. Instead, one must pass the NumPy array underlying the pandas object to the Numba-compiled function as demonstrated below.
+    The ``@jit`` compilation will add overhead to the runtime of the function, so performance benefits may not be realized especially when using small data sets.
+    Consider `caching <https://numba.readthedocs.io/en/stable/developer/caching.html>`__ your function to avoid compilation overhead each time your function is run.
 
-Jit
-~~~
+Numba can be used in 2 ways with pandas:
 
-We demonstrate how to use Numba to just-in-time compile our code. We simply
-take the plain Python code from above and annotate with the ``@jit`` decorator.
+#. Specify the ``engine="numba"`` keyword in select pandas methods
+#. Define your own Python function decorated with ``@jit`` and pass the underlying NumPy array of :class:`Series` or :class:`Dataframe` (using ``to_numpy()``) into the function
+
+pandas Numba Engine
+~~~~~~~~~~~~~~~~~~~
+
+If Numba is installed, one can specify ``engine="numba"`` in select pandas methods to execute the method using Numba.
+Methods that support ``engine="numba"`` will also have an ``engine_kwargs`` keyword that accepts a dictionary that allows one to specify
+``"nogil"``, ``"nopython"`` and ``"parallel"`` keys with boolean values to pass into the ``@jit`` decorator.
+If ``engine_kwargs`` is not specified, it defaults to ``{"nogil": False, "nopython": True, "parallel": False}`` unless otherwise specified.
+
+In terms of performance, **the first time a function is run using the Numba engine will be slow**
+as Numba will have some function compilation overhead. However, the JIT compiled functions are cached,
+and subsequent calls will be fast. In general, the Numba engine is performant with
+a larger amount of data points (e.g. 1+ million).
+
+.. code-block:: ipython
+
+   In [1]: data = pd.Series(range(1_000_000))  # noqa: E225
+
+   In [2]: roll = data.rolling(10)
+
+   In [3]: def f(x):
+      ...:     return np.sum(x) + 5
+   # Run the first time, compilation time will affect performance
+   In [4]: %timeit -r 1 -n 1 roll.apply(f, engine='numba', raw=True)
+   1.23 s ± 0 ns per loop (mean ± std. dev. of 1 run, 1 loop each)
+   # Function is cached and performance will improve
+   In [5]: %timeit roll.apply(f, engine='numba', raw=True)
+   188 ms ± 1.93 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
+
+   In [6]: %timeit roll.apply(f, engine='cython', raw=True)
+   3.92 s ± 59 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+
+Custom Function Examples
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+A custom Python function decorated with ``@jit`` can be used with pandas objects by passing their NumPy array
+representations with ``to_numpy()``.
 
 .. code-block:: python
 
@@ -360,8 +395,6 @@ take the plain Python code from above and annotate with the ``@jit`` decorator.
        )
        return pd.Series(result, index=df.index, name="result")
 
-Note that we directly pass NumPy arrays to the Numba function. ``compute_numba`` is just a wrapper that provides a
-nicer interface by passing/returning pandas objects.
 
 .. code-block:: ipython
 
@@ -370,19 +403,9 @@ nicer interface by passing/returning pandas objects.
 
 In this example, using Numba was faster than Cython.
 
-Numba as an argument
-~~~~~~~~~~~~~~~~~~~~
-
-Additionally, we can leverage the power of `Numba <https://numba.pydata.org/>`__
-by calling it as an argument in :meth:`~Rolling.apply`. See :ref:`Computation tools
-<window.numba_engine>` for an extensive example.
-
-Vectorize
-~~~~~~~~~
-
 Numba can also be used to write vectorized functions that do not require the user to explicitly
 loop over the observations of a vector; a vectorized function will be applied to each row automatically.
-Consider the following toy example of doubling each observation:
+Consider the following example of doubling each observation:
 
 .. code-block:: python
 
@@ -414,25 +437,23 @@ Consider the following toy example of doubling each observation:
 Caveats
 ~~~~~~~
 
-.. note::
-
-    Numba will execute on any function, but can only accelerate certain classes of functions.
-
 Numba is best at accelerating functions that apply numerical functions to NumPy
-arrays. When passed a function that only uses operations it knows how to
-accelerate, it will execute in ``nopython`` mode.
-
-If Numba is passed a function that includes something it doesn't know how to
-work with -- a category that currently includes sets, lists, dictionaries, or
-string functions -- it will revert to ``object mode``. In ``object mode``,
-Numba will execute but your code will not speed up significantly. If you would
+arrays. If you try to ``@jit`` a function that contains unsupported `Python <https://numba.readthedocs.io/en/stable/reference/pysupported.html>`__
+or `NumPy <https://numba.readthedocs.io/en/stable/reference/numpysupported.html>`__
+code, compilation will revert `object mode <https://numba.readthedocs.io/en/stable/glossary.html#term-object-mode>`__ which
+will mostly likely not speed up your function. If you would
 prefer that Numba throw an error if it cannot compile a function in a way that
 speeds up your code, pass Numba the argument
-``nopython=True`` (e.g.  ``@numba.jit(nopython=True)``). For more on
+``nopython=True`` (e.g.  ``@jit(nopython=True)``). For more on
 troubleshooting Numba modes, see the `Numba troubleshooting page
 <https://numba.pydata.org/numba-doc/latest/user/troubleshoot.html#the-compiled-code-is-too-slow>`__.
 
-Read more in the `Numba docs <https://numba.pydata.org/>`__.
+Using ``parallel=True`` (e.g. ``@jit(parallel=True)``) may result in a ``SIGABRT`` if the threading layer leads to unsafe
+behavior. You can first `specify a safe threading layer <https://numba.readthedocs.io/en/stable/user/threading-layer.html#selecting-a-threading-layer-for-safe-parallel-execution>`__
+before running a JIT function with ``parallel=True``.
+
+Generally if the you encounter a segfault (``SIGSEGV``) while using Numba, please report the issue
+to the `Numba issue tracker. <https://github.com/numba/numba/issues/new/choose>`__
 
 .. _enhancingperf.eval:
 

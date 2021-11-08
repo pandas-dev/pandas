@@ -1,11 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    NA,
-    Series,
-    StringDtype,
-)
+from pandas import Series
 import pandas._testing as tm
 
 
@@ -67,22 +63,3 @@ def test_mask_inplace():
     rs = s.copy()
     rs.mask(cond, -s, inplace=True)
     tm.assert_series_equal(rs, s.mask(cond, -s))
-
-
-def test_mask_stringdtype():
-    # GH 40824
-    ser = Series(
-        ["foo", "bar", "baz", NA],
-        index=["id1", "id2", "id3", "id4"],
-        dtype=StringDtype(),
-    )
-    filtered_ser = Series(["this", "that"], index=["id2", "id3"], dtype=StringDtype())
-    filter_ser = Series([False, True, True, False])
-    result = ser.mask(filter_ser, filtered_ser)
-
-    expected = Series(
-        [NA, "this", "that", NA],
-        index=["id1", "id2", "id3", "id4"],
-        dtype=StringDtype(),
-    )
-    tm.assert_series_equal(result, expected)

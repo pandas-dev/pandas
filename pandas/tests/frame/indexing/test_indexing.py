@@ -537,6 +537,7 @@ class TestDataFrameIndexing:
 
     @td.skip_array_manager_invalid_test  # already covered in test_iloc_col_slice_view
     def test_fancy_getitem_slice_mixed(self, float_frame, float_string_frame):
+
         sliced = float_string_frame.iloc[:, -3:]
         assert sliced["D"].dtype == np.float64
 
@@ -546,6 +547,8 @@ class TestDataFrameIndexing:
 
         # check that the setitem below is not a no-op
         assert not (float_frame["C"] == 4).all()
+
+        assert np.shares_memory(sliced["C"]._values, float_frame["C"]._values)
 
         msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
         with pytest.raises(com.SettingWithCopyError, match=msg):
@@ -585,13 +588,11 @@ class TestDataFrameIndexing:
         xp = df.reindex([0])
         tm.assert_frame_equal(rs, xp)
 
-        # FIXME: dont leave commented-out
-        """ #1321
+        # GH#1321
         df = DataFrame(np.random.randn(3, 2))
-        rs = df.loc[df.index==0, df.columns==1]
-        xp = df.reindex([0], [1])
+        rs = df.loc[df.index == 0, df.columns == 1]
+        xp = df.reindex(index=[0], columns=[1])
         tm.assert_frame_equal(rs, xp)
-        """
 
     def test_getitem_fancy_scalar(self, float_frame):
         f = float_frame
@@ -1013,6 +1014,8 @@ class TestDataFrameIndexing:
         # setting it makes it raise/warn
         subset = df.iloc[slice(4, 8)]
 
+        assert np.shares_memory(df[2], subset[2])
+
         msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
         with pytest.raises(com.SettingWithCopyError, match=msg):
             subset.loc[:, 2] = 0.0
@@ -1052,6 +1055,9 @@ class TestDataFrameIndexing:
 
         if not using_array_manager:
             # verify slice is view
+
+            assert np.shares_memory(df[8]._values, subset[8]._values)
+
             # and that we are setting a copy
             msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
             with pytest.raises(com.SettingWithCopyError, match=msg):
@@ -1176,12 +1182,10 @@ class TestDataFrameIndexing:
 
     def test_type_error_multiindex(self):
         # See gh-12218
-        df = DataFrame(
-            columns=["i", "c", "x", "y"],
-            data=[[0, 0, 1, 2], [1, 0, 3, 4], [0, 1, 1, 2], [1, 1, 3, 4]],
+        mi = MultiIndex.from_product([["x", "y"], [0, 1]], names=[None, "c"])
+        dg = DataFrame(
+            [[1, 1, 2, 2], [3, 3, 4, 4]], columns=mi, index=Index([0, 1], name="i")
         )
-        dg = df.pivot_table(index="i", columns="c", values=["x", "y"])
-        # TODO: Is this test for pivot_table?
         with pytest.raises(TypeError, match="unhashable type"):
             dg[:, 0]
 
@@ -1214,6 +1218,13 @@ class TestDataFrameIndexing:
 
         res = df.loc[:, 0.5]
         tm.assert_series_equal(res, expected)
+
+    def test_setitem_array_as_cell_value(self):
+        # GH#43422
+        df = DataFrame(columns=["a", "b"], dtype=object)
+        df.loc[0] = {"a": np.zeros((2,)), "b": np.zeros((2, 2))}
+        expected = DataFrame({"a": [np.zeros((2,))], "b": [np.zeros((2, 2))]})
+        tm.assert_frame_equal(df, expected)
 
 
 class TestDataFrameIndexingUInt64:
@@ -1292,7 +1303,7 @@ def test_object_casting_indexing_wraps_datetimelike(using_array_manager):
     assert isinstance(val, pd.Timedelta)
 
 
-msg1 = "Cannot setitem on a Categorical with a new category, set the categories first"
+msg1 = r"Cannot setitem on a Categorical with a new category( \(.*\))?, set the"
 msg2 = "Cannot set a Categorical with another, without identical categories"
 
 
@@ -1357,7 +1368,7 @@ class TestLocILocDataFrameCategorical:
         tm.assert_frame_equal(df, exp_multi_row)
 
         df = orig.copy()
-        with pytest.raises(ValueError, match=msg1):
+        with pytest.raises(TypeError, match=msg1):
             indexer(df)[key, :] = [["c", 2], ["c", 2]]
 
     @pytest.mark.parametrize("indexer", [tm.loc, tm.iloc, tm.at, tm.iat])
@@ -1376,7 +1387,7 @@ class TestLocILocDataFrameCategorical:
         tm.assert_frame_equal(df, exp_single_cats_value)
 
         # "c" is not among the categories for df["cat"]
-        with pytest.raises(ValueError, match=msg1):
+        with pytest.raises(TypeError, match=msg1):
             indexer(df)[key] = "c"
 
     @pytest.mark.parametrize("indexer", [tm.loc, tm.iloc])
@@ -1410,7 +1421,7 @@ class TestLocILocDataFrameCategorical:
         tm.assert_frame_equal(df, exp_single_row)
 
         # "c" is not among the categories for df["cat"]
-        with pytest.raises(ValueError, match=msg1):
+        with pytest.raises(TypeError, match=msg1):
             indexer(df)[key, :] = ["c", 2]
 
     @pytest.mark.parametrize("indexer", [tm.loc, tm.iloc])
@@ -1432,14 +1443,14 @@ class TestLocILocDataFrameCategorical:
 
         # categories do not match df["cat"]'s, but "b" is among them
         semi_compat = Categorical(list("bb"), categories=list("abc"))
-        with pytest.raises(ValueError, match=msg2):
+        with pytest.raises(TypeError, match=msg2):
             # different categories but holdable values
             #  -> not sure if this should fail or pass
             indexer(df)[key] = semi_compat
 
         # categories do not match df["cat"]'s, and "c" is not among them
         incompat = Categorical(list("cc"), categories=list("abc"))
-        with pytest.raises(ValueError, match=msg2):
+        with pytest.raises(TypeError, match=msg2):
             # different values
             indexer(df)[key] = incompat
 
@@ -1459,5 +1470,5 @@ class TestLocILocDataFrameCategorical:
         tm.assert_frame_equal(df, exp_parts_cats_col)
 
         # "c" not part of the categories
-        with pytest.raises(ValueError, match=msg1):
+        with pytest.raises(TypeError, match=msg1):
             indexer(df)[key] = ["c", "c"]

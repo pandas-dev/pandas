@@ -258,8 +258,11 @@ class TestDataFrameBlockInternals:
             f([("A", "datetime64[h]"), ("B", "str"), ("C", "int32")])
 
         # these work (though results may be unexpected)
-        f("int64")
-        f("float64")
+        depr_msg = "either all columns will be cast to that dtype, or a TypeError will"
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            f("int64")
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            f("float64")
 
         # 10822
         # invalid error message on dt inference

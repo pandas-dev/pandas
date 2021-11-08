@@ -3,7 +3,9 @@ import pytest
 
 import pandas as pd
 from pandas import (
+    CategoricalIndex,
     Index,
+    IntervalIndex,
     MultiIndex,
     Series,
 )
@@ -201,7 +203,7 @@ def test_difference_sort_special():
 
 @pytest.mark.xfail(reason="Not implemented.")
 def test_difference_sort_special_true():
-    # TODO decide on True behaviour
+    # TODO(GH#25151): decide on True behaviour
     idx = MultiIndex.from_product([[1, 0], ["a", "b"]])
     result = idx.difference([], sort=True)
     expected = MultiIndex.from_product([[0, 1], ["a", "b"]])
@@ -214,11 +216,10 @@ def test_difference_sort_incomparable():
 
     other = MultiIndex.from_product([[3, pd.Timestamp("2000"), 4], ["c", "d"]])
     # sort=None, the default
-    # MultiIndex.difference deviates here from other difference
-    # implementations in not catching the TypeError
-    msg = "'<' not supported between instances of 'Timestamp' and 'int'"
-    with pytest.raises(TypeError, match=msg):
+    msg = "sort order is undefined for incomparable objects"
+    with tm.assert_produces_warning(RuntimeWarning, match=msg):
         result = idx.difference(other)
+    tm.assert_index_equal(result, idx)
 
     # sort=False
     result = idx.difference(other, sort=False)
@@ -252,12 +253,14 @@ def test_union(idx, sort):
     the_union = idx.union(idx[:0], sort=sort)
     tm.assert_index_equal(the_union, idx)
 
-    # FIXME: dont leave commented-out
-    # won't work in python 3
-    # tuples = _index.values
-    # result = _index[:4] | tuples[4:]
-    # assert result.equals(tuples)
+    tuples = idx.values
+    result = idx[:4].union(tuples[4:], sort=sort)
+    if sort is None:
+        tm.equalContents(result, idx)
+    else:
+        assert result.equals(idx)
 
+    # FIXME: don't leave commented-out
     # not valid for python 3
     # def test_union_with_regular_index(self):
     #     other = Index(['A', 'B', 'C'])
@@ -289,11 +292,9 @@ def test_intersection(idx, sort):
     expected = idx[:0]
     assert empty.equals(expected)
 
-    # FIXME: dont leave commented-out
-    # can't do in python 3
-    # tuples = _index.values
-    # result = _index & tuples
-    # assert result.equals(tuples)
+    tuples = idx.values
+    result = idx.intersection(tuples)
+    assert result.equals(idx)
 
 
 @pytest.mark.parametrize(
@@ -339,7 +340,7 @@ def test_intersect_equal_sort():
 
 @pytest.mark.xfail(reason="Not implemented.")
 def test_intersect_equal_sort_true():
-    # TODO decide on True behaviour
+    # TODO(GH#25151): decide on True behaviour
     idx = MultiIndex.from_product([[1, 0], ["a", "b"]])
     sorted_ = MultiIndex.from_product([[0, 1], ["a", "b"]])
     tm.assert_index_equal(idx.intersection(idx, sort=True), sorted_)
@@ -362,7 +363,7 @@ def test_union_sort_other_empty(slice_):
 
 @pytest.mark.xfail(reason="Not implemented.")
 def test_union_sort_other_empty_sort(slice_):
-    # TODO decide on True behaviour
+    # TODO(GH#25151): decide on True behaviour
     # # sort=True
     idx = MultiIndex.from_product([[1, 0], ["a", "b"]])
     other = idx[:0]
@@ -387,7 +388,7 @@ def test_union_sort_other_incomparable():
 
 @pytest.mark.xfail(reason="Not implemented.")
 def test_union_sort_other_incomparable_sort():
-    # TODO decide on True behaviour
+    # TODO(GH#25151): decide on True behaviour
     # # sort=True
     idx = MultiIndex.from_product([[1, pd.Timestamp("2000")], ["a", "b"]])
     with pytest.raises(TypeError, match="Cannot compare"):
@@ -508,3 +509,26 @@ def test_intersection_with_missing_values_on_both_sides(nulls_fixture):
     result = mi1.intersection(mi2)
     expected = MultiIndex.from_arrays([[3.0, nulls_fixture], [1, 2]])
     tm.assert_index_equal(result, expected)
+
+
+def test_union_nan_got_duplicated():
+    # GH#38977
+    mi1 = MultiIndex.from_arrays([[1.0, np.nan], [2, 3]])
+    mi2 = MultiIndex.from_arrays([[1.0, np.nan, 3.0], [2, 3, 4]])
+    result = mi1.union(mi2)
+    tm.assert_index_equal(result, mi2)
+
+
+def test_union_duplicates(index):
+    # GH#38977
+    if index.empty or isinstance(index, (IntervalIndex, CategoricalIndex)):
+        # No duplicates in empty indexes
+        return
+    values = index.unique().values.tolist()
+    mi1 = MultiIndex.from_arrays([values, [1] * len(values)])
+    mi2 = MultiIndex.from_arrays([[values[0]] + values, [1] * (len(values) + 1)])
+    result = mi1.union(mi2)
+    tm.assert_index_equal(result, mi2.sort_values())
+
+    result = mi2.union(mi1)
+    tm.assert_index_equal(result, mi2.sort_values())

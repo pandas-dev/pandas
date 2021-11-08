@@ -53,7 +53,7 @@ class TestPeriodIndex:
         else:
             start = obj.index[0].to_timestamp(how="start")
             end = (obj.index[-1] + obj.index.freq).to_timestamp(how="start")
-            new_index = date_range(start=start, end=end, freq=freq, closed="left")
+            new_index = date_range(start=start, end=end, freq=freq, inclusive="left")
             expected = obj.to_timestamp().reindex(new_index).to_period(freq)
         result = obj.resample(freq, kind=kind).asfreq()
         tm.assert_almost_equal(result, expected)
@@ -269,7 +269,7 @@ class TestPeriodIndex:
         # Index is moved back a day with the timezone conversion from UTC to
         # Pacific
         expected_index = period_range(start=start, end=end, freq="D") - offsets.Day()
-        expected = Series(1, index=expected_index)
+        expected = Series(1.0, index=expected_index)
         tm.assert_series_equal(result, expected)
 
     def test_resample_with_pytz(self):
@@ -279,7 +279,7 @@ class TestPeriodIndex:
         )
         result = s.resample("D").mean()
         expected = Series(
-            2,
+            2.0,
             index=pd.DatetimeIndex(
                 ["2017-01-01", "2017-01-02"], tz="US/Eastern", freq="D"
             ),
@@ -312,7 +312,7 @@ class TestPeriodIndex:
         expected_index = (
             period_range(start=start, end=end, freq="D", name="idx") - offsets.Day()
         )
-        expected = Series(1, index=expected_index)
+        expected = Series(1.0, index=expected_index)
         tm.assert_series_equal(result, expected)
 
     def test_resample_nonexistent_time_bin_edge(self):
@@ -335,7 +335,7 @@ class TestPeriodIndex:
             freq="D",
             tz="America/Sao_Paulo",
             nonexistent="shift_forward",
-            closed="left",
+            inclusive="left",
         )
         tm.assert_index_equal(result.index, expected)
 
@@ -777,8 +777,8 @@ class TestPeriodIndex:
         "freq, expected_values",
         [
             ("1s", [3, np.NaN, 7, 11]),
-            ("2s", [3, int((7 + 11) / 2)]),
-            ("3s", [int((3 + 7) / 2), 11]),
+            ("2s", [3, (7 + 11) / 2]),
+            ("3s", [(3 + 7) / 2, 11]),
         ],
     )
     def test_resample_with_nat(self, periods, values, freq, expected_values):
@@ -798,7 +798,7 @@ class TestPeriodIndex:
         pi = PeriodIndex([pd.NaT] * 3, freq="S")
         frame = DataFrame([2, 3, 5], index=pi, columns=["a"])
         expected_index = PeriodIndex(data=[], freq=pi.freq)
-        expected = DataFrame(index=expected_index, columns=["a"], dtype="int64")
+        expected = DataFrame(index=expected_index, columns=["a"], dtype="float64")
         result = frame.resample("1s").mean()
         tm.assert_frame_equal(result, expected)
 

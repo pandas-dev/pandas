@@ -24,7 +24,7 @@ class Generic:
         return self._typ._AXIS_LEN
 
     def _axes(self):
-        """ return the axes for my object typ """
+        """return the axes for my object typ"""
         return self._typ._AXIS_ORDERS
 
     def _construct(self, shape, value=None, dtype=None, **kwargs):
@@ -163,19 +163,6 @@ class Generic:
             obj1 or obj2
         with pytest.raises(ValueError, match=msg):
             not obj1
-
-    def test_downcast(self):
-        # test close downcasting
-
-        o = self._construct(shape=4, value=9, dtype=np.int64)
-        result = o.copy()
-        result._mgr = o._mgr.downcast()
-        self._compare(result, o)
-
-        o = self._construct(shape=4, value=9.5)
-        result = o.copy()
-        result._mgr = o._mgr.downcast()
-        self._compare(result, o)
 
     def test_constructor_compound_dtypes(self):
         # see gh-5191
@@ -474,14 +461,16 @@ class TestNDFrame:
         # GH33637
         box = frame_or_series
         obj = box(dtype=object)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        msg = "_AXIS_NAMES has been deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             obj._AXIS_NAMES
 
     def test_axis_numbers_deprecated(self, frame_or_series):
         # GH33637
         box = frame_or_series
         obj = box(dtype=object)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        msg = "_AXIS_NUMBERS has been deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             obj._AXIS_NUMBERS
 
     def test_flags_identity(self, frame_or_series):

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import overload
 import warnings
 
 import numpy as np
@@ -10,7 +11,9 @@ from pandas._libs import (
 )
 from pandas._typing import (
     ArrayLike,
+    AstypeArg,
     DtypeObj,
+    npt,
 )
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly
@@ -31,6 +34,7 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.missing import isna
 
+from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.numeric import (
     NumericArray,
     NumericDtype,
@@ -241,6 +245,9 @@ class FloatingArray(NumericArray):
 
     # The value used to fill '_data' to avoid upcasting
     _internal_fill_value = 0.0
+    # Fill values used for any/all
+    _truthy_value = 1.0
+    _falsey_value = 0.0
 
     @cache_readonly
     def dtype(self) -> FloatingDtype:
@@ -271,7 +278,19 @@ class FloatingArray(NumericArray):
     def _coerce_to_array(self, value) -> tuple[np.ndarray, np.ndarray]:
         return coerce_to_array(value, dtype=self.dtype)
 
-    def astype(self, dtype, copy: bool = True) -> ArrayLike:
+    @overload
+    def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
+        ...
+
+    @overload
+    def astype(self, dtype: ExtensionDtype, copy: bool = ...) -> ExtensionArray:
+        ...
+
+    @overload
+    def astype(self, dtype: AstypeArg, copy: bool = ...) -> ArrayLike:
+        ...
+
+    def astype(self, dtype: AstypeArg, copy: bool = True) -> ArrayLike:
         """
         Cast to a NumPy array or ExtensionArray with 'dtype'.
 
@@ -366,21 +385,21 @@ class FloatingArray(NumericArray):
 
         return BooleanArray(result, mask)
 
-    def sum(self, *, skipna=True, min_count=0, **kwargs):
+    def sum(self, *, skipna=True, min_count=0, axis: int | None = 0, **kwargs):
         nv.validate_sum((), kwargs)
-        return super()._reduce("sum", skipna=skipna, min_count=min_count)
+        return super()._reduce("sum", skipna=skipna, min_count=min_count, axis=axis)
 
-    def prod(self, *, skipna=True, min_count=0, **kwargs):
+    def prod(self, *, skipna=True, min_count=0, axis: int | None = 0, **kwargs):
         nv.validate_prod((), kwargs)
-        return super()._reduce("prod", skipna=skipna, min_count=min_count)
+        return super()._reduce("prod", skipna=skipna, min_count=min_count, axis=axis)
 
-    def min(self, *, skipna=True, **kwargs):
+    def min(self, *, skipna=True, axis: int | None = 0, **kwargs):
         nv.validate_min((), kwargs)
-        return super()._reduce("min", skipna=skipna)
+        return super()._reduce("min", skipna=skipna, axis=axis)
 
-    def max(self, *, skipna=True, **kwargs):
+    def max(self, *, skipna=True, axis: int | None = 0, **kwargs):
         nv.validate_max((), kwargs)
-        return super()._reduce("max", skipna=skipna)
+        return super()._reduce("max", skipna=skipna, axis=axis)
 
     def _maybe_mask_result(self, result, mask, other, op_name: str):
         """

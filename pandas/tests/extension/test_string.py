@@ -18,16 +18,14 @@ import string
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
+from pandas.core.arrays import ArrowStringArray
 from pandas.core.arrays.string_ import StringDtype
-from pandas.core.arrays.string_arrow import ArrowStringDtype
 from pandas.tests.extension import base
 
 
 def split_array(arr):
-    if not isinstance(arr.dtype, ArrowStringDtype):
+    if arr.dtype.storage != "pyarrow":
         pytest.skip("chunked array n/a")
 
     def _split_array(arr):
@@ -49,16 +47,9 @@ def chunked(request):
     return request.param
 
 
-@pytest.fixture(
-    params=[
-        StringDtype,
-        pytest.param(
-            ArrowStringDtype, marks=td.skip_if_no("pyarrow", min_version="1.0.0")
-        ),
-    ]
-)
-def dtype(request):
-    return request.param()
+@pytest.fixture
+def dtype(string_storage):
+    return StringDtype(storage=string_storage)
 
 
 @pytest.fixture
@@ -104,24 +95,28 @@ def data_for_grouping(dtype, chunked):
 
 
 class TestDtype(base.BaseDtypeTests):
-    pass
+    def test_eq_with_str(self, dtype):
+        assert dtype == f"string[{dtype.storage}]"
+        super().test_eq_with_str(dtype)
 
 
 class TestInterface(base.BaseInterfaceTests):
     def test_view(self, data, request):
-        if isinstance(data.dtype, ArrowStringDtype):
+        if data.dtype.storage == "pyarrow":
             mark = pytest.mark.xfail(reason="not implemented")
             request.node.add_marker(mark)
         super().test_view(data)
 
 
 class TestConstructors(base.BaseConstructorsTests):
-    pass
+    def test_from_dtype(self, data):
+        # base test uses string representation of dtype
+        pass
 
 
 class TestReshaping(base.BaseReshapingTests):
-    def test_transpose(self, data, dtype, request):
-        if isinstance(dtype, ArrowStringDtype):
+    def test_transpose(self, data, request):
+        if data.dtype.storage == "pyarrow":
             mark = pytest.mark.xfail(reason="not implemented")
             request.node.add_marker(mark)
         super().test_transpose(data)
@@ -132,8 +127,8 @@ class TestGetitem(base.BaseGetitemTests):
 
 
 class TestSetitem(base.BaseSetitemTests):
-    def test_setitem_preserves_views(self, data, dtype, request):
-        if isinstance(dtype, ArrowStringDtype):
+    def test_setitem_preserves_views(self, data, request):
+        if data.dtype.storage == "pyarrow":
             mark = pytest.mark.xfail(reason="not implemented")
             request.node.add_marker(mark)
         super().test_setitem_preserves_views(data)
@@ -171,15 +166,15 @@ class TestCasting(base.BaseCastingTests):
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
-    def _compare_other(self, s, data, op_name, other):
+    def _compare_other(self, s, data, op, other):
+        op_name = f"__{op.__name__}__"
         result = getattr(s, op_name)(other)
         expected = getattr(s.astype(object), op_name)(other).astype("boolean")
         self.assert_series_equal(result, expected)
 
-    def test_compare_scalar(self, data, all_compare_operators):
-        op_name = all_compare_operators
+    def test_compare_scalar(self, data, comparison_op):
         s = pd.Series(data)
-        self._compare_other(s, data, op_name, "abc")
+        self._compare_other(s, data, comparison_op, "abc")
 
 
 class TestParsing(base.BaseParsingTests):
@@ -192,3 +187,13 @@ class TestPrinting(base.BasePrintingTests):
 
 class TestGroupBy(base.BaseGroupbyTests):
     pass
+
+
+class Test2DCompat(base.Dim2CompatTests):
+    @pytest.fixture(autouse=True)
+    def arrow_not_supported(self, data, request):
+        if isinstance(data, ArrowStringArray):
+            mark = pytest.mark.xfail(
+                reason="2D support not implemented for ArrowStringArray"
+            )
+            request.node.add_marker(mark)

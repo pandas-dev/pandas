@@ -1,4 +1,5 @@
 from datetime import timedelta
+import re
 
 import numpy as np
 import pytest
@@ -135,18 +136,31 @@ class TestSliceLocs:
         assert result == expected
 
 
-def test_putmask_with_wrong_mask(idx):
-    # GH18368
+class TestPutmask:
+    def test_putmask_with_wrong_mask(self, idx):
+        # GH18368
 
-    msg = "putmask: mask and data must be the same size"
-    with pytest.raises(ValueError, match=msg):
-        idx.putmask(np.ones(len(idx) + 1, np.bool_), 1)
+        msg = "putmask: mask and data must be the same size"
+        with pytest.raises(ValueError, match=msg):
+            idx.putmask(np.ones(len(idx) + 1, np.bool_), 1)
 
-    with pytest.raises(ValueError, match=msg):
-        idx.putmask(np.ones(len(idx) - 1, np.bool_), 1)
+        with pytest.raises(ValueError, match=msg):
+            idx.putmask(np.ones(len(idx) - 1, np.bool_), 1)
 
-    with pytest.raises(ValueError, match=msg):
-        idx.putmask("foo", 1)
+        with pytest.raises(ValueError, match=msg):
+            idx.putmask("foo", 1)
+
+    def test_putmask_multiindex_other(self):
+        # GH#43212 `value` is also a MultiIndex
+
+        left = MultiIndex.from_tuples([(np.nan, 6), (np.nan, 6), ("a", 4)])
+        right = MultiIndex.from_tuples([("a", 1), ("a", 1), ("d", 1)])
+        mask = np.array([True, True, False])
+
+        result = left.putmask(mask, right)
+
+        expected = MultiIndex.from_tuples([right[0], right[1], left[2]])
+        tm.assert_index_equal(result, expected)
 
 
 class TestGetIndexer:
@@ -445,6 +459,18 @@ class TestGetIndexer:
         expected = np.array([7, 15], dtype=pad_indexer.dtype)
         tm.assert_almost_equal(expected, pad_indexer)
 
+    def test_get_indexer_kwarg_validation(self):
+        # GH#41918
+        mi = MultiIndex.from_product([range(3), ["A", "B"]])
+
+        msg = "limit argument only valid if doing pad, backfill or nearest"
+        with pytest.raises(ValueError, match=msg):
+            mi.get_indexer(mi[:-1], limit=4)
+
+        msg = "tolerance argument only valid if doing pad, backfill or nearest"
+        with pytest.raises(ValueError, match=msg):
+            mi.get_indexer(mi[:-1], tolerance="piano")
+
 
 def test_getitem(idx):
     # scalar
@@ -677,6 +703,14 @@ class TestGetLoc:
         with pytest.raises(TypeError, match=msg):
             idx.get_loc([])
 
+    def test_get_loc_nested_tuple_raises_keyerror(self):
+        # raise KeyError, not TypeError
+        mi = MultiIndex.from_product([range(3), range(4), range(5), range(6)])
+        key = ((2, 3, 4), "foo")
+
+        with pytest.raises(KeyError, match=re.escape(str(key))):
+            mi.get_loc(key)
+
 
 class TestWhere:
     def test_where(self):
@@ -686,13 +720,12 @@ class TestWhere:
         with pytest.raises(NotImplementedError, match=msg):
             i.where(True)
 
-    @pytest.mark.parametrize("klass", [list, tuple, np.array, pd.Series])
-    def test_where_array_like(self, klass):
-        i = MultiIndex.from_tuples([("A", 1), ("A", 2)])
+    def test_where_array_like(self, listlike_box):
+        mi = MultiIndex.from_tuples([("A", 1), ("A", 2)])
         cond = [False, True]
         msg = r"\.where is not supported for MultiIndex operations"
         with pytest.raises(NotImplementedError, match=msg):
-            i.where(klass(cond))
+            mi.where(listlike_box(cond))
 
 
 class TestContains:
@@ -799,7 +832,8 @@ def test_timestamp_multiindex_indexer():
 def test_get_slice_bound_with_missing_value(index_arr, expected, target, algo):
     # issue 19132
     idx = MultiIndex.from_arrays(index_arr)
-    result = idx.get_slice_bound(target, side=algo, kind="loc")
+    with tm.assert_produces_warning(FutureWarning, match="'kind' argument"):
+        result = idx.get_slice_bound(target, side=algo, kind="loc")
     assert result == expected
 
 

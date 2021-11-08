@@ -30,9 +30,13 @@ from pandas._typing import Dtype
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_datetime64tz_dtype,
+    is_float_dtype,
+    is_integer_dtype,
     is_period_dtype,
     is_sequence,
     is_timedelta64_dtype,
+    is_unsigned_integer_dtype,
+    pandas_dtype,
 )
 
 import pandas as pd
@@ -44,6 +48,7 @@ from pandas import (
     Index,
     IntervalIndex,
     MultiIndex,
+    NumericIndex,
     RangeIndex,
     Series,
     bdate_range,
@@ -98,6 +103,11 @@ from pandas._testing.contexts import (  # noqa:F401
     use_numexpr,
     with_csv_dialect,
 )
+from pandas.core.api import (
+    Float64Index,
+    Int64Index,
+    UInt64Index,
+)
 from pandas.core.arrays import (
     DatetimeArray,
     PandasArray,
@@ -115,14 +125,14 @@ if TYPE_CHECKING:
 _N = 30
 _K = 4
 
-UNSIGNED_INT_DTYPES: list[Dtype] = ["uint8", "uint16", "uint32", "uint64"]
-UNSIGNED_EA_INT_DTYPES: list[Dtype] = ["UInt8", "UInt16", "UInt32", "UInt64"]
-SIGNED_INT_DTYPES: list[Dtype] = [int, "int8", "int16", "int32", "int64"]
-SIGNED_EA_INT_DTYPES: list[Dtype] = ["Int8", "Int16", "Int32", "Int64"]
-ALL_INT_DTYPES = UNSIGNED_INT_DTYPES + SIGNED_INT_DTYPES
-ALL_EA_INT_DTYPES = UNSIGNED_EA_INT_DTYPES + SIGNED_EA_INT_DTYPES
+UNSIGNED_INT_NUMPY_DTYPES: list[Dtype] = ["uint8", "uint16", "uint32", "uint64"]
+UNSIGNED_INT_EA_DTYPES: list[Dtype] = ["UInt8", "UInt16", "UInt32", "UInt64"]
+SIGNED_INT_NUMPY_DTYPES: list[Dtype] = [int, "int8", "int16", "int32", "int64"]
+SIGNED_INT_EA_DTYPES: list[Dtype] = ["Int8", "Int16", "Int32", "Int64"]
+ALL_INT_NUMPY_DTYPES = UNSIGNED_INT_NUMPY_DTYPES + SIGNED_INT_NUMPY_DTYPES
+ALL_INT_EA_DTYPES = UNSIGNED_INT_EA_DTYPES + SIGNED_INT_EA_DTYPES
 
-FLOAT_DTYPES: list[Dtype] = [float, "float32", "float64"]
+FLOAT_NUMPY_DTYPES: list[Dtype] = [float, "float32", "float64"]
 FLOAT_EA_DTYPES: list[Dtype] = ["Float32", "Float64"]
 COMPLEX_DTYPES: list[Dtype] = [complex, "complex64", "complex128"]
 STRING_DTYPES: list[Dtype] = [str, "str", "U"]
@@ -134,9 +144,9 @@ BOOL_DTYPES: list[Dtype] = [bool, "bool"]
 BYTES_DTYPES: list[Dtype] = [bytes, "bytes"]
 OBJECT_DTYPES: list[Dtype] = [object, "object"]
 
-ALL_REAL_DTYPES = FLOAT_DTYPES + ALL_INT_DTYPES
+ALL_REAL_NUMPY_DTYPES = FLOAT_NUMPY_DTYPES + ALL_INT_NUMPY_DTYPES
 ALL_NUMPY_DTYPES = (
-    ALL_REAL_DTYPES
+    ALL_REAL_NUMPY_DTYPES
     + COMPLEX_DTYPES
     + STRING_DTYPES
     + DATETIME64_DTYPES
@@ -147,6 +157,25 @@ ALL_NUMPY_DTYPES = (
 )
 
 NULL_OBJECTS = [None, np.nan, pd.NaT, float("nan"), pd.NA, Decimal("NaN")]
+NP_NAT_OBJECTS = [
+    cls("NaT", unit)
+    for cls in [np.datetime64, np.timedelta64]
+    for unit in [
+        "Y",
+        "M",
+        "W",
+        "D",
+        "h",
+        "m",
+        "s",
+        "ms",
+        "us",
+        "ns",
+        "ps",
+        "fs",
+        "as",
+    ]
+]
 
 EMPTY_STRING_PATTERN = re.compile("^$")
 
@@ -211,7 +240,7 @@ def box_expected(expected, box_cls, transpose=True):
         else:
             expected = pd.array(expected)
     elif box_cls is Index:
-        expected = Index(expected)
+        expected = Index._with_infer(expected)
     elif box_cls is Series:
         expected = Series(expected)
     elif box_cls is DataFrame:
@@ -271,7 +300,7 @@ def makeUnicodeIndex(k=10, name=None):
 
 
 def makeCategoricalIndex(k=10, n=3, name=None, **kwargs):
-    """ make a length k index or n categories """
+    """make a length k index or n categories"""
     x = rands_array(nchars=4, size=n)
     return CategoricalIndex(
         Categorical.from_codes(np.arange(k) % n, categories=x), name=name, **kwargs
@@ -279,7 +308,7 @@ def makeCategoricalIndex(k=10, n=3, name=None, **kwargs):
 
 
 def makeIntervalIndex(k=10, name=None, **kwargs):
-    """ make a length k IntervalIndex """
+    """make a length k IntervalIndex"""
     x = np.linspace(0, 100, num=(k + 1))
     return IntervalIndex.from_breaks(x, name=name, **kwargs)
 
@@ -292,12 +321,32 @@ def makeBoolIndex(k=10, name=None):
     return Index([False, True] + [False] * (k - 2), name=name)
 
 
+def makeNumericIndex(k=10, name=None, *, dtype):
+    dtype = pandas_dtype(dtype)
+    assert isinstance(dtype, np.dtype)
+
+    if is_integer_dtype(dtype):
+        values = np.arange(k, dtype=dtype)
+        if is_unsigned_integer_dtype(dtype):
+            values += 2 ** (dtype.itemsize * 8 - 1)
+    elif is_float_dtype(dtype):
+        values = np.random.random_sample(k) - np.random.random_sample(1)
+        values.sort()
+        values = values * (10 ** np.random.randint(0, 9))
+    else:
+        raise NotImplementedError(f"wrong dtype {dtype}")
+
+    return NumericIndex(values, dtype=dtype, name=name)
+
+
 def makeIntIndex(k=10, name=None):
-    return Index(list(range(k)), name=name)
+    base_idx = makeNumericIndex(k, name=name, dtype="int64")
+    return Int64Index(base_idx)
 
 
 def makeUIntIndex(k=10, name=None):
-    return Index([2 ** 63 + i for i in range(k)], name=name)
+    base_idx = makeNumericIndex(k, name=name, dtype="uint64")
+    return UInt64Index(base_idx)
 
 
 def makeRangeIndex(k=10, name=None, **kwargs):
@@ -305,8 +354,8 @@ def makeRangeIndex(k=10, name=None, **kwargs):
 
 
 def makeFloatIndex(k=10, name=None):
-    values = sorted(np.random.random_sample(k)) - np.random.random_sample(1)
-    return Index(values * (10 ** np.random.randint(0, 9)), name=name)
+    base_idx = makeNumericIndex(k, name=name, dtype="float64")
+    return Float64Index(base_idx)
 
 
 def makeDateIndex(k: int = 10, freq="B", name=None, **kwargs) -> DatetimeIndex:

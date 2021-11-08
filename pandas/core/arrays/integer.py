@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import overload
 import warnings
 
 import numpy as np
@@ -11,8 +12,10 @@ from pandas._libs import (
 )
 from pandas._typing import (
     ArrayLike,
+    AstypeArg,
     Dtype,
     DtypeObj,
+    npt,
 )
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly
@@ -29,10 +32,12 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
     is_object_dtype,
+    is_string_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.missing import isna
 
+from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.masked import (
     BaseMaskedArray,
     BaseMaskedDtype,
@@ -120,12 +125,10 @@ def safe_cast(values, dtype, copy: bool):
     Safely cast the values to the dtype if they
     are equivalent, meaning floats must be equivalent to the
     ints.
-
     """
     try:
         return values.astype(dtype, casting="safe", copy=copy)
     except TypeError as err:
-
         casted = values.astype(dtype, copy=copy)
         if (casted == values).all():
             return casted
@@ -139,7 +142,7 @@ def coerce_to_array(
     values, dtype, mask=None, copy: bool = False
 ) -> tuple[np.ndarray, np.ndarray]:
     """
-    Coerce the input values array to numpy arrays with a mask
+    Coerce the input values array to numpy arrays with a mask.
 
     Parameters
     ----------
@@ -183,7 +186,8 @@ def coerce_to_array(
         return values, mask
 
     values = np.array(values, copy=copy)
-    if is_object_dtype(values):
+    inferred_type = None
+    if is_object_dtype(values) or is_string_dtype(values):
         inferred_type = lib.infer_dtype(values, skipna=True)
         if inferred_type == "empty":
             values = np.empty(len(values))
@@ -194,6 +198,8 @@ def coerce_to_array(
             "mixed-integer",
             "integer-na",
             "mixed-integer-float",
+            "string",
+            "unicode",
         ]:
             raise TypeError(f"{values.dtype} cannot be converted to an IntegerDtype")
 
@@ -226,7 +232,10 @@ def coerce_to_array(
     if mask.any():
         values = values.copy()
         values[mask] = 1
-        values = safe_cast(values, dtype, copy=False)
+    if inferred_type in ("string", "unicode"):
+        # casts from str are always safe since they raise
+        # a ValueError if the str cannot be parsed into an int
+        values = values.astype(dtype, copy=copy)
     else:
         values = safe_cast(values, dtype, copy=False)
 
@@ -236,8 +245,6 @@ def coerce_to_array(
 class IntegerArray(NumericArray):
     """
     Array of integer (optional missing) values.
-
-    .. versionadded:: 0.24.0
 
     .. versionchanged:: 1.0.0
 
@@ -305,6 +312,9 @@ class IntegerArray(NumericArray):
 
     # The value used to fill '_data' to avoid upcasting
     _internal_fill_value = 1
+    # Fill values used for any/all
+    _truthy_value = 1
+    _falsey_value = 0
 
     @cache_readonly
     def dtype(self) -> _IntegerDtype:
@@ -335,7 +345,19 @@ class IntegerArray(NumericArray):
     def _coerce_to_array(self, value) -> tuple[np.ndarray, np.ndarray]:
         return coerce_to_array(value, dtype=self.dtype)
 
-    def astype(self, dtype, copy: bool = True) -> ArrayLike:
+    @overload
+    def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
+        ...
+
+    @overload
+    def astype(self, dtype: ExtensionDtype, copy: bool = ...) -> ExtensionArray:
+        ...
+
+    @overload
+    def astype(self, dtype: AstypeArg, copy: bool = ...) -> ArrayLike:
+        ...
+
+    def astype(self, dtype: AstypeArg, copy: bool = True) -> ArrayLike:
         """
         Cast to a NumPy array or ExtensionArray with 'dtype'.
 
@@ -441,21 +463,21 @@ class IntegerArray(NumericArray):
 
         return BooleanArray(result, mask)
 
-    def sum(self, *, skipna=True, min_count=0, **kwargs):
+    def sum(self, *, skipna=True, min_count=0, axis: int | None = 0, **kwargs):
         nv.validate_sum((), kwargs)
-        return super()._reduce("sum", skipna=skipna, min_count=min_count)
+        return super()._reduce("sum", skipna=skipna, min_count=min_count, axis=axis)
 
-    def prod(self, *, skipna=True, min_count=0, **kwargs):
+    def prod(self, *, skipna=True, min_count=0, axis: int | None = 0, **kwargs):
         nv.validate_prod((), kwargs)
-        return super()._reduce("prod", skipna=skipna, min_count=min_count)
+        return super()._reduce("prod", skipna=skipna, min_count=min_count, axis=axis)
 
-    def min(self, *, skipna=True, **kwargs):
+    def min(self, *, skipna=True, axis: int | None = 0, **kwargs):
         nv.validate_min((), kwargs)
-        return super()._reduce("min", skipna=skipna)
+        return super()._reduce("min", skipna=skipna, axis=axis)
 
-    def max(self, *, skipna=True, **kwargs):
+    def max(self, *, skipna=True, axis: int | None = 0, **kwargs):
         nv.validate_max((), kwargs)
-        return super()._reduce("max", skipna=skipna)
+        return super()._reduce("max", skipna=skipna, axis=axis)
 
     def _maybe_mask_result(self, result, mask, other, op_name: str):
         """

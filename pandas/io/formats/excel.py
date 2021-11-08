@@ -1,19 +1,18 @@
 """
 Utilities for conversion to writer-agnostic Excel representation.
 """
+from __future__ import annotations
 
 from functools import reduce
 import itertools
 import re
 from typing import (
+    Any,
     Callable,
-    Dict,
     Hashable,
     Iterable,
     Mapping,
-    Optional,
     Sequence,
-    Union,
     cast,
 )
 import warnings
@@ -61,8 +60,8 @@ class ExcelCell:
         col: int,
         val,
         style=None,
-        mergestart: Optional[int] = None,
-        mergeend: Optional[int] = None,
+        mergestart: int | None = None,
+        mergeend: int | None = None,
     ):
         self.row = row
         self.col = col
@@ -70,6 +69,26 @@ class ExcelCell:
         self.style = style
         self.mergestart = mergestart
         self.mergeend = mergeend
+
+
+class CssExcelCell(ExcelCell):
+    def __init__(
+        self,
+        row: int,
+        col: int,
+        val,
+        style: dict | None,
+        css_styles: dict[tuple[int, int], list[tuple[str, Any]]] | None,
+        css_row: int,
+        css_col: int,
+        css_converter: Callable | None,
+        **kwargs,
+    ):
+        if css_styles and css_converter:
+            css = ";".join(a + ":" + str(v) for (a, v) in css_styles[css_row, css_col])
+            style = css_converter(css)
+
+        return super().__init__(row=row, col=col, val=val, style=style, **kwargs)
 
 
 class CSSToExcelConverter:
@@ -135,9 +154,9 @@ class CSSToExcelConverter:
     #     and __call__ make use of instance attributes.  We leave them as
     #     instancemethods so that users can easily experiment with extensions
     #     without monkey-patching.
-    inherited: Optional[Dict[str, str]]
+    inherited: dict[str, str] | None
 
-    def __init__(self, inherited: Optional[str] = None):
+    def __init__(self, inherited: str | None = None):
         if inherited is not None:
             self.inherited = self.compute_css(inherited)
         else:
@@ -145,7 +164,7 @@ class CSSToExcelConverter:
 
     compute_css = CSSResolver()
 
-    def __call__(self, declarations_str: str) -> Dict[str, Dict[str, str]]:
+    def __call__(self, declarations_str: str) -> dict[str, dict[str, str]]:
         """
         Convert CSS declarations to ExcelWriter style.
 
@@ -165,7 +184,7 @@ class CSSToExcelConverter:
         properties = self.compute_css(declarations_str, self.inherited)
         return self.build_xlstyle(properties)
 
-    def build_xlstyle(self, props: Mapping[str, str]) -> Dict[str, Dict[str, str]]:
+    def build_xlstyle(self, props: Mapping[str, str]) -> dict[str, dict[str, str]]:
         out = {
             "alignment": self.build_alignment(props),
             "border": self.build_border(props),
@@ -176,7 +195,7 @@ class CSSToExcelConverter:
 
         # TODO: handle cell width and height: needs support in pandas.io.excel
 
-        def remove_none(d: Dict[str, str]) -> None:
+        def remove_none(d: dict[str, str]) -> None:
             """Remove key where value is None, through nested dicts"""
             for k, v in list(d.items()):
                 if v is None:
@@ -189,9 +208,7 @@ class CSSToExcelConverter:
         remove_none(out)
         return out
 
-    def build_alignment(
-        self, props: Mapping[str, str]
-    ) -> Dict[str, Optional[Union[bool, str]]]:
+    def build_alignment(self, props: Mapping[str, str]) -> dict[str, bool | str | None]:
         # TODO: text-indent, padding-left -> alignment.indent
         return {
             "horizontal": props.get("text-align"),
@@ -199,20 +216,20 @@ class CSSToExcelConverter:
             "wrap_text": self._get_is_wrap_text(props),
         }
 
-    def _get_vertical_alignment(self, props: Mapping[str, str]) -> Optional[str]:
+    def _get_vertical_alignment(self, props: Mapping[str, str]) -> str | None:
         vertical_align = props.get("vertical-align")
         if vertical_align:
             return self.VERTICAL_MAP.get(vertical_align)
         return None
 
-    def _get_is_wrap_text(self, props: Mapping[str, str]) -> Optional[bool]:
+    def _get_is_wrap_text(self, props: Mapping[str, str]) -> bool | None:
         if props.get("white-space") is None:
             return None
         return bool(props["white-space"] not in ("nowrap", "pre", "pre-line"))
 
     def build_border(
         self, props: Mapping[str, str]
-    ) -> Dict[str, Dict[str, Optional[str]]]:
+    ) -> dict[str, dict[str, str | None]]:
         return {
             side: {
                 "style": self._border_style(
@@ -224,7 +241,7 @@ class CSSToExcelConverter:
             for side in ["top", "right", "bottom", "left"]
         }
 
-    def _border_style(self, style: Optional[str], width: Optional[str]):
+    def _border_style(self, style: str | None, width: str | None):
         # convert styles and widths to openxml, one of:
         #       'dashDot'
         #       'dashDotDot'
@@ -263,7 +280,7 @@ class CSSToExcelConverter:
                 return "dashed"
             return "mediumDashed"
 
-    def _get_width_name(self, width_input: Optional[str]) -> Optional[str]:
+    def _get_width_name(self, width_input: str | None) -> str | None:
         width = self._width_to_float(width_input)
         if width < 1e-5:
             return None
@@ -273,7 +290,7 @@ class CSSToExcelConverter:
             return "medium"
         return "thick"
 
-    def _width_to_float(self, width: Optional[str]) -> float:
+    def _width_to_float(self, width: str | None) -> float:
         if width is None:
             width = "2pt"
         return self._pt_to_float(width)
@@ -289,12 +306,12 @@ class CSSToExcelConverter:
         if fill_color not in (None, "transparent", "none"):
             return {"fgColor": self.color_to_excel(fill_color), "patternType": "solid"}
 
-    def build_number_format(self, props: Mapping[str, str]) -> Dict[str, Optional[str]]:
+    def build_number_format(self, props: Mapping[str, str]) -> dict[str, str | None]:
         return {"format_code": props.get("number-format")}
 
     def build_font(
         self, props: Mapping[str, str]
-    ) -> Dict[str, Optional[Union[bool, int, float, str]]]:
+    ) -> dict[str, bool | int | float | str | None]:
         font_names = self._get_font_names(props)
         decoration = self._get_decoration(props)
         return {
@@ -316,13 +333,13 @@ class CSSToExcelConverter:
             # 'condense': ,
         }
 
-    def _get_is_bold(self, props: Mapping[str, str]) -> Optional[bool]:
+    def _get_is_bold(self, props: Mapping[str, str]) -> bool | None:
         weight = props.get("font-weight")
         if weight:
             return self.BOLD_MAP.get(weight)
         return None
 
-    def _get_is_italic(self, props: Mapping[str, str]) -> Optional[bool]:
+    def _get_is_italic(self, props: Mapping[str, str]) -> bool | None:
         font_style = props.get("font-style")
         if font_style:
             return self.ITALIC_MAP.get(font_style)
@@ -335,12 +352,12 @@ class CSSToExcelConverter:
         else:
             return ()
 
-    def _get_underline(self, decoration: Sequence[str]) -> Optional[str]:
+    def _get_underline(self, decoration: Sequence[str]) -> str | None:
         if "underline" in decoration:
             return "single"
         return None
 
-    def _get_shadow(self, props: Mapping[str, str]) -> Optional[bool]:
+    def _get_shadow(self, props: Mapping[str, str]) -> bool | None:
         if "text-shadow" in props:
             return bool(re.search("^[^#(]*[1-9]", props["text-shadow"]))
         return None
@@ -371,13 +388,13 @@ class CSSToExcelConverter:
                 font_names.append(name)
         return font_names
 
-    def _get_font_size(self, props: Mapping[str, str]) -> Optional[float]:
+    def _get_font_size(self, props: Mapping[str, str]) -> float | None:
         size = props.get("font-size")
         if size is None:
             return size
         return self._pt_to_float(size)
 
-    def _select_font_family(self, font_names) -> Optional[int]:
+    def _select_font_family(self, font_names) -> int | None:
         family = None
         for name in font_names:
             family = self.FAMILY_MAP.get(name)
@@ -386,7 +403,7 @@ class CSSToExcelConverter:
 
         return family
 
-    def color_to_excel(self, val: Optional[str]) -> Optional[str]:
+    def color_to_excel(self, val: str | None) -> str | None:
         if val is None:
             return None
 
@@ -463,25 +480,27 @@ class ExcelFormatter:
         self,
         df,
         na_rep: str = "",
-        float_format: Optional[str] = None,
-        cols: Optional[Sequence[Hashable]] = None,
-        header: Union[Sequence[Hashable], bool] = True,
+        float_format: str | None = None,
+        cols: Sequence[Hashable] | None = None,
+        header: Sequence[Hashable] | bool = True,
         index: bool = True,
-        index_label: Optional[IndexLabel] = None,
+        index_label: IndexLabel | None = None,
         merge_cells: bool = False,
         inf_rep: str = "inf",
-        style_converter: Optional[Callable] = None,
+        style_converter: Callable | None = None,
     ):
         self.rowcounter = 0
         self.na_rep = na_rep
         if not isinstance(df, DataFrame):
             self.styler = df
+            self.styler._compute()  # calculate applied styles
             df = df.data
             if style_converter is None:
                 style_converter = CSSToExcelConverter()
-            self.style_converter = style_converter
+            self.style_converter: Callable | None = style_converter
         else:
             self.styler = None
+            self.style_converter = None
         self.df = df
         if cols is not None:
 
@@ -571,22 +590,35 @@ class ExcelFormatter:
             ):
                 values = levels.take(level_codes)
                 for i, span_val in spans.items():
-                    spans_multiple_cells = span_val > 1
-                    yield ExcelCell(
+                    mergestart, mergeend = None, None
+                    if span_val > 1:
+                        mergestart, mergeend = lnum, coloffset + i + span_val
+                    yield CssExcelCell(
                         row=lnum,
                         col=coloffset + i + 1,
                         val=values[i],
                         style=self.header_style,
-                        mergestart=lnum if spans_multiple_cells else None,
-                        mergeend=(
-                            coloffset + i + span_val if spans_multiple_cells else None
-                        ),
+                        css_styles=getattr(self.styler, "ctx_columns", None),
+                        css_row=lnum,
+                        css_col=i,
+                        css_converter=self.style_converter,
+                        mergestart=mergestart,
+                        mergeend=mergeend,
                     )
         else:
             # Format in legacy format with dots to indicate levels.
             for i, values in enumerate(zip(*level_strs)):
                 v = ".".join(map(pprint_thing, values))
-                yield ExcelCell(lnum, coloffset + i + 1, v, self.header_style)
+                yield CssExcelCell(
+                    row=lnum,
+                    col=coloffset + i + 1,
+                    val=v,
+                    style=self.header_style,
+                    css_styles=getattr(self.styler, "ctx_columns", None),
+                    css_row=lnum,
+                    css_col=i,
+                    css_converter=self.style_converter,
+                )
 
         self.rowcounter = lnum
 
@@ -611,8 +643,15 @@ class ExcelFormatter:
                     colnames = self.header
 
             for colindex, colname in enumerate(colnames):
-                yield ExcelCell(
-                    self.rowcounter, colindex + coloffset, colname, self.header_style
+                yield CssExcelCell(
+                    row=self.rowcounter,
+                    col=colindex + coloffset,
+                    val=colname,
+                    style=self.header_style,
+                    css_styles=getattr(self.styler, "ctx_columns", None),
+                    css_row=0,
+                    css_col=colindex,
+                    css_converter=self.style_converter,
                 )
 
     def _format_header(self) -> Iterable[ExcelCell]:
@@ -672,8 +711,16 @@ class ExcelFormatter:
                 index_values = self.df.index.to_timestamp()
 
             for idx, idxval in enumerate(index_values):
-                yield ExcelCell(self.rowcounter + idx, 0, idxval, self.header_style)
-
+                yield CssExcelCell(
+                    row=self.rowcounter + idx,
+                    col=0,
+                    val=idxval,
+                    style=self.header_style,
+                    css_styles=getattr(self.styler, "ctx_index", None),
+                    css_row=idx,
+                    css_col=0,
+                    css_converter=self.style_converter,
+                )
             coloffset = 1
         else:
             coloffset = 0
@@ -725,18 +772,21 @@ class ExcelFormatter:
                     )
 
                     for i, span_val in spans.items():
-                        spans_multiple_cells = span_val > 1
-                        yield ExcelCell(
+                        mergestart, mergeend = None, None
+                        if span_val > 1:
+                            mergestart = self.rowcounter + i + span_val - 1
+                            mergeend = gcolidx
+                        yield CssExcelCell(
                             row=self.rowcounter + i,
                             col=gcolidx,
                             val=values[i],
                             style=self.header_style,
-                            mergestart=(
-                                self.rowcounter + i + span_val - 1
-                                if spans_multiple_cells
-                                else None
-                            ),
-                            mergeend=gcolidx if spans_multiple_cells else None,
+                            css_styles=getattr(self.styler, "ctx_index", None),
+                            css_row=i,
+                            css_col=gcolidx,
+                            css_converter=self.style_converter,
+                            mergestart=mergestart,
+                            mergeend=mergeend,
                         )
                     gcolidx += 1
 
@@ -744,11 +794,15 @@ class ExcelFormatter:
                 # Format hierarchical rows with non-merged values.
                 for indexcolvals in zip(*self.df.index):
                     for idx, indexcolval in enumerate(indexcolvals):
-                        yield ExcelCell(
+                        yield CssExcelCell(
                             row=self.rowcounter + idx,
                             col=gcolidx,
                             val=indexcolval,
                             style=self.header_style,
+                            css_styles=getattr(self.styler, "ctx_index", None),
+                            css_row=idx,
+                            css_col=gcolidx,
+                            css_converter=self.style_converter,
                         )
                     gcolidx += 1
 
@@ -760,22 +814,20 @@ class ExcelFormatter:
         return is_list_like(self.header)
 
     def _generate_body(self, coloffset: int) -> Iterable[ExcelCell]:
-        if self.styler is None:
-            styles = None
-        else:
-            styles = self.styler._compute().ctx
-            if not styles:
-                styles = None
-        xlstyle = None
-
         # Write the body of the frame data series by series.
         for colidx in range(len(self.columns)):
             series = self.df.iloc[:, colidx]
             for i, val in enumerate(series):
-                if styles is not None:
-                    css = ";".join([a + ":" + str(v) for (a, v) in styles[i, colidx]])
-                    xlstyle = self.style_converter(css)
-                yield ExcelCell(self.rowcounter + i, colidx + coloffset, val, xlstyle)
+                yield CssExcelCell(
+                    row=self.rowcounter + i,
+                    col=colidx + coloffset,
+                    val=val,
+                    style=None,
+                    css_styles=getattr(self.styler, "ctx", None),
+                    css_row=i,
+                    css_col=colidx,
+                    css_converter=self.style_converter,
+                )
 
     def get_formatted_cells(self) -> Iterable[ExcelCell]:
         for cell in itertools.chain(self._format_header(), self._format_body()):

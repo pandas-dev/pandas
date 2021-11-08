@@ -422,6 +422,7 @@ class TestTake:
 
 class TestGetLoc:
     @pytest.mark.parametrize("method", [None, "pad", "backfill", "nearest"])
+    @pytest.mark.filterwarnings("ignore:Passing method:FutureWarning")
     def test_get_loc_method_exact_match(self, method):
         idx = date_range("2000-01-01", periods=3)
         assert idx.get_loc(idx[1], method) == 1
@@ -431,6 +432,7 @@ class TestGetLoc:
         if method is not None:
             assert idx.get_loc(idx[1], method, tolerance=pd.Timedelta("0 days")) == 1
 
+    @pytest.mark.filterwarnings("ignore:Passing method:FutureWarning")
     def test_get_loc(self):
         idx = date_range("2000-01-01", periods=3)
 
@@ -483,22 +485,51 @@ class TestGetLoc:
         with pytest.raises(InvalidIndexError, match=r"slice\(None, 2, None\)"):
             idx.get_loc(slice(2))
 
-        idx = pd.to_datetime(["2000-01-01", "2000-01-04"])
+        idx = DatetimeIndex(["2000-01-01", "2000-01-04"])
         assert idx.get_loc("2000-01-02", method="nearest") == 0
         assert idx.get_loc("2000-01-03", method="nearest") == 1
         assert idx.get_loc("2000-01", method="nearest") == slice(0, 2)
 
+    def test_get_loc_time_obj(self):
         # time indexing
         idx = date_range("2000-01-01", periods=24, freq="H")
-        tm.assert_numpy_array_equal(
-            idx.get_loc(time(12)), np.array([12]), check_dtype=False
-        )
-        tm.assert_numpy_array_equal(
-            idx.get_loc(time(12, 30)), np.array([]), check_dtype=False
-        )
+
+        result = idx.get_loc(time(12))
+        expected = np.array([12])
+        tm.assert_numpy_array_equal(result, expected, check_dtype=False)
+
+        result = idx.get_loc(time(12, 30))
+        expected = np.array([])
+        tm.assert_numpy_array_equal(result, expected, check_dtype=False)
+
         msg = "cannot yet lookup inexact labels when key is a time object"
         with pytest.raises(NotImplementedError, match=msg):
-            idx.get_loc(time(12, 30), method="pad")
+            with tm.assert_produces_warning(FutureWarning, match="deprecated"):
+                idx.get_loc(time(12, 30), method="pad")
+
+    def test_get_loc_time_obj2(self):
+        # GH#8667
+
+        from pandas._libs.index import _SIZE_CUTOFF
+
+        ns = _SIZE_CUTOFF + np.array([-100, 100], dtype=np.int64)
+        key = time(15, 11, 30)
+        start = key.hour * 3600 + key.minute * 60 + key.second
+        step = 24 * 3600
+
+        for n in ns:
+            idx = date_range("2014-11-26", periods=n, freq="S")
+            ts = pd.Series(np.random.randn(n), index=idx)
+            locs = np.arange(start, n, step, dtype=np.intp)
+
+            result = ts.index.get_loc(key)
+            tm.assert_numpy_array_equal(result, locs)
+            tm.assert_series_equal(ts[key], ts.iloc[locs])
+
+            left, right = ts.copy(), ts.copy()
+            left[key] *= -10
+            right.iloc[locs] *= -10
+            tm.assert_series_equal(left, right)
 
     def test_get_loc_time_nat(self):
         # GH#35114
@@ -518,7 +549,10 @@ class TestGetLoc:
             freq="5s",
         )
         key = Timestamp("2019-12-12 10:19:25", tz="US/Eastern")
-        result = dti.get_loc(key, method="nearest")
+        with tm.assert_produces_warning(
+            FutureWarning, match="deprecated", check_stacklevel=False
+        ):
+            result = dti.get_loc(key, method="nearest")
         assert result == 7433
 
     def test_get_loc_nat(self):
@@ -695,7 +729,7 @@ class TestMaybeCastSliceBound:
         assert result == expected
 
 
-class TestDatetimeIndex:
+class TestGetValue:
     def test_get_value(self):
         # specifically make sure we have test for np.datetime64 key
         dti = date_range("2016-01-01", periods=3)
@@ -735,12 +769,12 @@ class TestGetSliceBounds:
         key = box(year=2000, month=1, day=7)
 
         warn = None if tz is None else FutureWarning
-        with tm.assert_produces_warning(warn, check_stacklevel=False):
+        with tm.assert_produces_warning(warn):
             # GH#36148 will require tzawareness-compat
             result = index.get_slice_bound(key, kind=kind, side=side)
         assert result == expected
 
-    @pytest.mark.parametrize("box", [date, datetime, Timestamp])
+    @pytest.mark.parametrize("box", [datetime, Timestamp])
     @pytest.mark.parametrize("kind", ["getitem", "loc", None])
     @pytest.mark.parametrize("side", ["left", "right"])
     @pytest.mark.parametrize("year, expected", [(1999, 0), (2020, 30)])
@@ -753,12 +787,12 @@ class TestGetSliceBounds:
         key = box(year=year, month=1, day=7)
 
         warn = None if tz is None else FutureWarning
-        with tm.assert_produces_warning(warn, check_stacklevel=False):
+        with tm.assert_produces_warning(warn):
             # GH#36148 will require tzawareness-compat
             result = index.get_slice_bound(key, kind=kind, side=side)
         assert result == expected
 
-    @pytest.mark.parametrize("box", [date, datetime, Timestamp])
+    @pytest.mark.parametrize("box", [datetime, Timestamp])
     @pytest.mark.parametrize("kind", ["getitem", "loc", None])
     def test_slice_datetime_locs(self, box, kind, tz_aware_fixture):
         # GH 34077
@@ -767,7 +801,7 @@ class TestGetSliceBounds:
         key = box(2010, 1, 1)
 
         warn = None if tz is None else FutureWarning
-        with tm.assert_produces_warning(warn, check_stacklevel=False):
+        with tm.assert_produces_warning(warn):
             # GH#36148 will require tzawareness-compat
             result = index.slice_locs(key, box(2010, 1, 2))
         expected = (0, 1)

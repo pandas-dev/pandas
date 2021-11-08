@@ -16,6 +16,7 @@ from pandas import (
     NA,
     Categorical,
     CategoricalDtype,
+    DatetimeTZDtype,
     Index,
     Interval,
     NaT,
@@ -92,7 +93,7 @@ class TestAstype:
             "m",  # Generic timestamps raise a ValueError. Already tested.
         ):
             init_empty = Series([], dtype=dtype)
-            with tm.assert_produces_warning(DeprecationWarning):
+            with tm.assert_produces_warning(FutureWarning):
                 as_type_empty = Series([]).astype(dtype)
             tm.assert_series_equal(init_empty, as_type_empty)
 
@@ -249,10 +250,10 @@ class TestAstype:
     @pytest.mark.parametrize(
         "data, dtype",
         [
-            (["x", "y", "z"], "string"),
+            (["x", "y", "z"], "string[python]"),
             pytest.param(
                 ["x", "y", "z"],
-                "arrow_string",
+                "string[pyarrow]",
                 marks=td.skip_if_no("pyarrow", min_version="1.0.0"),
             ),
             (["x", "y", "z"], "category"),
@@ -263,9 +264,6 @@ class TestAstype:
     @pytest.mark.parametrize("errors", ["raise", "ignore"])
     def test_astype_ignores_errors_for_extension_dtypes(self, data, dtype, errors):
         # https://github.com/pandas-dev/pandas/issues/35471
-
-        from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
-
         ser = Series(data, dtype=dtype)
         if errors == "ignore":
             expected = ser
@@ -359,6 +357,45 @@ class TestAstype:
         result = Series(["foo", "bar", "baz"]).astype(bytes)
         assert result.dtypes == np.dtype("S3")
 
+    def test_astype_nan_to_bool(self):
+        # GH#43018
+        ser = Series(np.nan, dtype="object")
+        result = ser.astype("bool")
+        expected = Series(True, dtype="bool")
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "dtype",
+        tm.ALL_INT_EA_DTYPES + tm.FLOAT_EA_DTYPES,
+    )
+    def test_astype_ea_to_datetimetzdtype(self, dtype):
+        # GH37553
+        result = Series([4, 0, 9], dtype=dtype).astype(DatetimeTZDtype(tz="US/Pacific"))
+        expected = Series(
+            {
+                0: Timestamp("1969-12-31 16:00:00.000000004-08:00", tz="US/Pacific"),
+                1: Timestamp("1969-12-31 16:00:00.000000000-08:00", tz="US/Pacific"),
+                2: Timestamp("1969-12-31 16:00:00.000000009-08:00", tz="US/Pacific"),
+            }
+        )
+
+        if dtype in tm.FLOAT_EA_DTYPES:
+            expected = Series(
+                {
+                    0: Timestamp(
+                        "1970-01-01 00:00:00.000000004-08:00", tz="US/Pacific"
+                    ),
+                    1: Timestamp(
+                        "1970-01-01 00:00:00.000000000-08:00", tz="US/Pacific"
+                    ),
+                    2: Timestamp(
+                        "1970-01-01 00:00:00.000000009-08:00", tz="US/Pacific"
+                    ),
+                }
+            )
+
+        tm.assert_series_equal(result, expected)
+
 
 class TestAstypeString:
     @pytest.mark.parametrize(
@@ -379,7 +416,9 @@ class TestAstypeString:
             # currently no way to parse IntervalArray from a list of strings
         ],
     )
-    def test_astype_string_to_extension_dtype_roundtrip(self, data, dtype, request):
+    def test_astype_string_to_extension_dtype_roundtrip(
+        self, data, dtype, request, nullable_string_dtype
+    ):
         if dtype == "boolean" or (
             dtype in ("period[M]", "datetime64[ns]", "timedelta64[ns]") and NaT in data
         ):
@@ -389,7 +428,8 @@ class TestAstypeString:
             request.node.add_marker(mark)
         # GH-40351
         s = Series(data, dtype=dtype)
-        tm.assert_series_equal(s, s.astype("string").astype(dtype))
+        result = s.astype(nullable_string_dtype).astype(dtype)
+        tm.assert_series_equal(result, s)
 
 
 class TestAstypeCategorical:

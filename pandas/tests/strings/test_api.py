@@ -6,6 +6,7 @@ from pandas import (
     MultiIndex,
     Series,
     _testing as tm,
+    get_option,
 )
 from pandas.core import strings as strings
 
@@ -70,7 +71,6 @@ def test_api_per_method(
     inferred_dtype, values = any_allowed_skipna_inferred_dtype
     method_name, args, kwargs = any_string_method
 
-    # TODO: get rid of these xfails
     reason = None
     if box is Index and values.size == 0:
         if method_name in ["partition", "rpartition"] and kwargs.get("expand", True):
@@ -128,7 +128,9 @@ def test_api_per_method(
 def test_api_for_categorical(any_string_method, any_string_dtype, request):
     # https://github.com/pandas-dev/pandas/issues/10661
 
-    if any_string_dtype == "arrow_string":
+    if any_string_dtype == "string[pyarrow]" or (
+        any_string_dtype == "string" and get_option("string_storage") == "pyarrow"
+    ):
         # unsupported operand type(s) for +: 'ArrowStringArray' and 'str'
         mark = pytest.mark.xfail(raises=TypeError, reason="Not Implemented")
         request.node.add_marker(mark)

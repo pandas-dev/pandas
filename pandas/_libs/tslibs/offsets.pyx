@@ -1,7 +1,6 @@
 import operator
 import re
 import time
-from typing import Any
 import warnings
 
 import cython
@@ -364,7 +363,7 @@ cdef class BaseOffset:
         self.normalize = normalize
         self._cache = {}
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other) -> bool:
         if isinstance(other, str):
             try:
                 # GH#23524 if to_offset fails, we are dealing with an
@@ -575,7 +574,7 @@ cdef class BaseOffset:
             When the specific offset subclass does not have a vectorized
             implementation.
         """
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             f"DateOffset subclass {type(self).__name__} "
             "does not have a vectorized implementation"
         )
@@ -697,7 +696,7 @@ cdef class BaseOffset:
 
     def onOffset(self, dt) -> bool:
         warnings.warn(
-            "onOffset is a deprecated, use is_on_offset instead",
+            "onOffset is a deprecated, use is_on_offset instead.",
             FutureWarning,
             stacklevel=1,
         )
@@ -705,7 +704,7 @@ cdef class BaseOffset:
 
     def isAnchored(self) -> bool:
         warnings.warn(
-            "isAnchored is a deprecated, use is_anchored instead",
+            "isAnchored is a deprecated, use is_anchored instead.",
             FutureWarning,
             stacklevel=1,
         )
@@ -715,6 +714,26 @@ cdef class BaseOffset:
         # TODO: Does this make sense for the general case?  It would help
         # if there were a canonical docstring for what is_anchored means.
         return self.n == 1
+
+    # ------------------------------------------------------------------
+
+    def is_month_start(self, _Timestamp ts):
+        return ts._get_start_end_field("is_month_start", self)
+
+    def is_month_end(self, _Timestamp ts):
+        return ts._get_start_end_field("is_month_end", self)
+
+    def is_quarter_start(self, _Timestamp ts):
+        return ts._get_start_end_field("is_quarter_start", self)
+
+    def is_quarter_end(self, _Timestamp ts):
+        return ts._get_start_end_field("is_quarter_end", self)
+
+    def is_year_start(self, _Timestamp ts):
+        return ts._get_start_end_field("is_year_start", self)
+
+    def is_year_end(self, _Timestamp ts):
+        return ts._get_start_end_field("is_year_end", self)
 
 
 cdef class SingleConstructorOffset(BaseOffset):
@@ -758,7 +777,7 @@ cdef class Tick(SingleConstructorOffset):
                 "Tick offset with `normalize=True` are not allowed."
             )
 
-    # FIXME: Without making this cpdef, we get AttributeError when calling
+    # Note: Without making this cpdef, we get AttributeError when calling
     #  from __mul__
     cpdef Tick _next_higher_resolution(Tick self):
         if type(self) is Day:
@@ -789,9 +808,7 @@ cdef class Tick(SingleConstructorOffset):
     def nanos(self) -> int64_t:
         return self.n * self._nanos_inc
 
-    # FIXME: This should be typed as datetime, but we DatetimeLikeIndex.insert
-    #  checks self.freq.is_on_offset with a Timedelta sometimes.
-    def is_on_offset(self, dt) -> bool:
+    def is_on_offset(self, dt: datetime) -> bool:
         return True
 
     def is_anchored(self) -> bool:
@@ -1133,12 +1150,13 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     """
     Standard kind of date increment used for a date range.
 
-    Works exactly like relativedelta in terms of the keyword args you
-    pass in, use of the keyword n is discouraged-- you would be better
+    Works exactly like the keyword argument form of relativedelta.
+    Note that the positional argument form of relativedelata is not
+    supported. Use of the keyword n is discouraged-- you would be better
     off specifying n in the keywords you use, but regardless it is
     there for you. n is needed for DateOffset subclasses.
 
-    DateOffset work as follows.  Each offset specify a set of dates
+    DateOffset works as follows.  Each offset specify a set of dates
     that conform to the DateOffset.  For example, Bday defines this
     set to be the set of dates that are weekdays (M-F).  To test if a
     date is in the set of a DateOffset dateOffset we can use the
@@ -1434,7 +1452,7 @@ cdef class BusinessHour(BusinessMixin):
 
     def __init__(
             self, n=1, normalize=False, start="09:00", end="17:00", offset=timedelta(0)
-        ):
+    ):
         BusinessMixin.__init__(self, n, normalize, offset)
 
         # must be validated here to equality check
@@ -1840,7 +1858,8 @@ cdef class YearOffset(SingleConstructorOffset):
     """
     _attributes = tuple(["n", "normalize", "month"])
 
-    # _default_month: int  # FIXME: python annotation here breaks things
+    # FIXME(cython#4446): python annotation here gives compile-time errors
+    # _default_month: int
 
     cdef readonly:
         int month
@@ -1909,7 +1928,7 @@ cdef class BYearEnd(YearOffset):
 
     Examples
     --------
-    >>> from pandas.tseries.offset import BYearEnd
+    >>> from pandas.tseries.offsets import BYearEnd
     >>> ts = pd.Timestamp('2020-05-24 05:01:15')
     >>> ts - BYearEnd()
     Timestamp('2019-12-31 05:01:15')
@@ -1935,7 +1954,7 @@ cdef class BYearBegin(YearOffset):
 
     Examples
     --------
-    >>> from pandas.tseries.offset import BYearBegin
+    >>> from pandas.tseries.offsets import BYearBegin
     >>> ts = pd.Timestamp('2020-05-24 05:01:15')
     >>> ts + BYearBegin()
     Timestamp('2021-01-01 05:01:15')
@@ -1991,7 +2010,7 @@ cdef class QuarterOffset(SingleConstructorOffset):
     #       point.  Also apply_index, is_on_offset, rule_code if
     #       startingMonth vs month attr names are resolved
 
-    # FIXME: python annotations here breaks things
+    # FIXME(cython#4446): python annotation here gives compile-time errors
     # _default_starting_month: int
     # _from_name_starting_month: int
 
@@ -2070,7 +2089,7 @@ cdef class BQuarterEnd(QuarterOffset):
 
     Examples
     --------
-    >>> from pandas.tseries.offset import BQuarterEnd
+    >>> from pandas.tseries.offsets import BQuarterEnd
     >>> ts = pd.Timestamp('2020-05-24 05:01:15')
     >>> ts + BQuarterEnd()
     Timestamp('2020-06-30 05:01:15')
@@ -2098,7 +2117,7 @@ cdef class BQuarterBegin(QuarterOffset):
 
     Examples
     --------
-    >>> from pandas.tseries.offset import BQuarterBegin
+    >>> from pandas.tseries.offsets import BQuarterBegin
     >>> ts = pd.Timestamp('2020-05-24 05:01:15')
     >>> ts + BQuarterBegin()
     Timestamp('2020-06-01 05:01:15')
@@ -2208,7 +2227,7 @@ cdef class BusinessMonthEnd(MonthOffset):
 
     Examples
     --------
-    >>> from pandas.tseries.offset import BMonthEnd
+    >>> from pandas.tseries.offsets import BMonthEnd
     >>> ts = pd.Timestamp('2020-05-24 05:01:15')
     >>> ts + BMonthEnd()
     Timestamp('2020-05-29 05:01:15')
@@ -2227,7 +2246,7 @@ cdef class BusinessMonthBegin(MonthOffset):
 
     Examples
     --------
-    >>> from pandas.tseries.offset import BMonthBegin
+    >>> from pandas.tseries.offsets import BMonthBegin
     >>> ts=pd.Timestamp('2020-05-24 05:01:15')
     >>> ts + BMonthBegin()
     Timestamp('2020-06-01 05:01:15')
@@ -3350,7 +3369,10 @@ cdef class _CustomBusinessMonth(BusinessMixin):
         """
         Define default roll function to be called in apply method.
         """
-        cbday = CustomBusinessDay(n=self.n, normalize=False, **self.kwds)
+        cbday_kwds = self.kwds.copy()
+        cbday_kwds['offset'] = timedelta(0)
+
+        cbday = CustomBusinessDay(n=1, normalize=False, **cbday_kwds)
 
         if self._prefix.endswith("S"):
             # MonthBegin
@@ -3394,6 +3416,9 @@ cdef class _CustomBusinessMonth(BusinessMixin):
 
         new = cur_month_offset_date + n * self.m_offset
         result = self.cbday_roll(new)
+
+        if self.offset:
+            result = result + self.offset
         return result
 
 
@@ -3871,7 +3896,7 @@ cdef ndarray[int64_t] _shift_bdays(const int64_t[:] i8other, int periods):
     return result.base
 
 
-def shift_month(stamp: datetime, months: int, day_opt: object=None) -> datetime:
+def shift_month(stamp: datetime, months: int, day_opt: object = None) -> datetime:
     """
     Given a datetime (or Timestamp) `stamp`, an integer `months` and an
     option `day_opt`, return a new datetimelike that many months later,

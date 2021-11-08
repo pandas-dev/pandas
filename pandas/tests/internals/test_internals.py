@@ -408,7 +408,9 @@ class TestBlockManager:
         cols = Index(list("abc"))
         values = np.random.rand(3, 3)
         block = new_block(
-            values=values.copy(), placement=np.arange(3), ndim=values.ndim
+            values=values.copy(),
+            placement=np.arange(3, dtype=np.intp),
+            ndim=values.ndim,
         )
         mgr = BlockManager(blocks=(block,), axes=[cols, Index(np.arange(3))])
 
@@ -461,6 +463,9 @@ class TestBlockManager:
                 # DatetimeTZBlock has DatetimeIndex values
                 assert cp_blk.values._data.base is blk.values._data.base
 
+        # copy(deep=True) consolidates, so the block-wise assertions will
+        #  fail is mgr is not consolidated
+        mgr._consolidate_inplace()
         cp = mgr.copy(deep=True)
         for blk, cp_blk in zip(mgr.blocks, cp.blocks):
 
@@ -545,7 +550,7 @@ class TestBlockManager:
         mgr = create_mgr("a,b: object; c: bool; d: datetime; e: f4; f: f2; g: f8")
 
         t = np.dtype(t)
-        with tm.assert_produces_warning(warn, check_stacklevel=False):
+        with tm.assert_produces_warning(warn):
             tmgr = mgr.astype(t, errors="ignore")
         assert tmgr.iget(2).dtype.type == t
         assert tmgr.iget(4).dtype.type == t
@@ -561,7 +566,7 @@ class TestBlockManager:
 
     def test_convert(self):
         def _compare(old_mgr, new_mgr):
-            """ compare the blocks, numeric compare ==, object don't """
+            """compare the blocks, numeric compare ==, object don't"""
             old_blocks = set(old_mgr.blocks)
             new_blocks = set(new_mgr.blocks)
             assert len(old_blocks) == len(new_blocks)
@@ -748,6 +753,12 @@ class TestBlockManager:
 
         # Check sharing
         numeric.iget(num_idx).internal_values()[:] = [100.0, 200.0, 300.0]
+        numeric.iset(
+            numeric.items.get_loc("float"),
+            np.array([100.0, 200.0, 300.0]),
+            inplace=True,
+        )
+
         tm.assert_almost_equal(
             mgr.iget(mgr_idx).internal_values(),
             np.array([100.0, 200.0, 300.0]),
@@ -767,6 +778,11 @@ class TestBlockManager:
         numeric2 = mgr.get_numeric_data(copy=True)
         tm.assert_index_equal(numeric.items, Index(["int", "float", "complex", "bool"]))
         numeric2.iget(num_idx).internal_values()[:] = [1000.0, 2000.0, 3000.0]
+        numeric2.iset(
+            numeric2.items.get_loc("float"),
+            np.array([1000.0, 2000.0, 3000.0]),
+            inplace=True,
+        )
         tm.assert_almost_equal(
             mgr.iget(mgr_idx).internal_values(),
             np.array([1.0, 1.0, 1.0]),
@@ -861,7 +877,7 @@ class TestBlockManager:
 def _as_array(mgr):
     if mgr.ndim == 1:
         return mgr.external_values()
-    return mgr.as_array()
+    return mgr.as_array().T
 
 
 class TestIndexing:
@@ -1377,9 +1393,11 @@ def test_make_block_no_pandas_array(block_maker):
     # PandasArray, no dtype
     result = block_maker(arr, slice(len(arr)), ndim=arr.ndim)
     assert result.dtype.kind in ["i", "u"]
-    assert result.is_extension is False
 
     if block_maker is make_block:
+        # new_block requires caller to unwrap PandasArray
+        assert result.is_extension is False
+
         # PandasArray, PandasDtype
         result = block_maker(arr, slice(len(arr)), dtype=arr.dtype, ndim=arr.ndim)
         assert result.dtype.kind in ["i", "u"]

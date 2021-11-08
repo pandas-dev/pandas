@@ -1,11 +1,17 @@
-from datetime import timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 
+import numpy as np
 import pytest
 
 import pandas.util._test_decorators as td
 
 from pandas import (
     DataFrame,
+    Series,
+    bdate_range,
     to_datetime,
 )
 
@@ -84,19 +90,29 @@ def min_periods(request):
     return request.param
 
 
+@pytest.fixture(params=["single", "table"])
+def method(request):
+    """method keyword in rolling/expanding/ewm constructor"""
+    return request.param
+
+
 @pytest.fixture(params=[True, False])
 def parallel(request):
     """parallel keyword argument for numba.jit"""
     return request.param
 
 
-@pytest.fixture(params=[True, False])
+# Can parameterize nogil & nopython over True | False, but limiting per
+# https://github.com/pandas-dev/pandas/pull/41971#issuecomment-860607472
+
+
+@pytest.fixture(params=[False])
 def nogil(request):
     """nogil keyword argument for numba.jit"""
     return request.param
 
 
-@pytest.fixture(params=[True, False])
+@pytest.fixture(params=[True])
 def nopython(request):
     """nopython keyword argument for numba.jit"""
     return request.param
@@ -114,9 +130,7 @@ def ignore_na(request):
     return request.param
 
 
-@pytest.fixture(
-    params=[pytest.param("numba", marks=td.skip_if_no("numba", "0.46.0")), "cython"]
-)
+@pytest.fixture(params=[pytest.param("numba", marks=td.skip_if_no("numba")), "cython"])
 def engine(request):
     """engine keyword argument for rolling.apply"""
     return request.param
@@ -124,7 +138,7 @@ def engine(request):
 
 @pytest.fixture(
     params=[
-        pytest.param(("numba", True), marks=td.skip_if_no("numba", "0.46.0")),
+        pytest.param(("numba", True), marks=td.skip_if_no("numba")),
         ("cython", True),
         ("cython", False),
     ]
@@ -226,4 +240,24 @@ def pairwise_other_frame():
     return DataFrame(
         [[None, 1, 1], [None, 1, 2], [None, 3, 2], [None, 8, 1]],
         columns=["Y", "Z", "X"],
+    )
+
+
+@pytest.fixture
+def series():
+    """Make mocked series as fixture."""
+    arr = np.random.randn(100)
+    locs = np.arange(20, 40)
+    arr[locs] = np.NaN
+    series = Series(arr, index=bdate_range(datetime(2009, 1, 1), periods=100))
+    return series
+
+
+@pytest.fixture
+def frame():
+    """Make mocked frame as fixture."""
+    return DataFrame(
+        np.random.randn(100, 10),
+        index=bdate_range(datetime(2009, 1, 1), periods=100),
+        columns=np.arange(10),
     )

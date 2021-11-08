@@ -1,11 +1,8 @@
+from __future__ import annotations
+
 from datetime import datetime
 from io import StringIO
 import re
-from typing import (
-    Dict,
-    List,
-    Union,
-)
 
 import numpy as np
 import pytest
@@ -24,12 +21,12 @@ import pandas._testing as tm
 
 
 @pytest.fixture
-def mix_ab() -> Dict[str, List[Union[int, str]]]:
+def mix_ab() -> dict[str, list[int | str]]:
     return {"a": list(range(4)), "b": list("ab..")}
 
 
 @pytest.fixture
-def mix_abc() -> Dict[str, List[Union[float, str]]]:
+def mix_abc() -> dict[str, list[float | str]]:
     return {"a": list(range(4)), "b": list("ab.."), "c": ["a", "b", np.nan, "d"]}
 
 
@@ -1021,11 +1018,9 @@ class TestDataFrameReplace:
             columns=["fname"],
         )
         assert set(df.fname.values) == set(d["fname"].keys())
-        # We don't support converting object -> specialized EA in
-        # replace yet.
-        expected = DataFrame(
-            {"fname": [d["fname"][k] for k in df.fname.values]}, dtype=object
-        )
+
+        expected = DataFrame({"fname": [d["fname"][k] for k in df.fname.values]})
+        assert expected.dtypes[0] == "Period[M]"
         result = df.replace(d)
         tm.assert_frame_equal(result, expected)
 
@@ -1114,12 +1109,17 @@ class TestDataFrameReplace:
         # coerce to object
         result = df.copy()
         result.iloc[1, 0] = np.nan
-        result = result.replace({"A": pd.NaT}, Timestamp("20130104", tz="US/Pacific"))
+        with tm.assert_produces_warning(FutureWarning, match="mismatched timezone"):
+            result = result.replace(
+                {"A": pd.NaT}, Timestamp("20130104", tz="US/Pacific")
+            )
         expected = DataFrame(
             {
                 "A": [
                     Timestamp("20130101", tz="US/Eastern"),
                     Timestamp("20130104", tz="US/Pacific"),
+                    # once deprecation is enforced
+                    # Timestamp("20130104", tz="US/Pacific").tz_convert("US/Eastern"),
                     Timestamp("20130103", tz="US/Eastern"),
                 ],
                 "B": [0, np.nan, 2],
@@ -1430,215 +1430,65 @@ class TestDataFrameReplace:
         obj = obj.replace({None: np.nan})
         tm.assert_equal(obj, expected)
 
+    @pytest.mark.parametrize(
+        "data, to_replace, value, expected",
+        [
+            ([1], [1.0], [0], [0]),
+            ([1], [1], [0], [0]),
+            ([1.0], [1.0], [0], [0.0]),
+            ([1.0], [1], [0], [0.0]),
+        ],
+    )
+    @pytest.mark.parametrize("box", [list, tuple, np.array])
+    def test_replace_list_with_mixed_type(
+        self, data, to_replace, value, expected, box, frame_or_series
+    ):
+        # GH#40371
+        obj = frame_or_series(data)
+        expected = frame_or_series(expected)
+        result = obj.replace(box(to_replace), value)
+        tm.assert_equal(result, expected)
+
 
 class TestDataFrameReplaceRegex:
-    def test_regex_replace_scalar(self, mix_ab):
-        obj = {"a": list("ab.."), "b": list("efgh")}
-        dfobj = DataFrame(obj)
-        dfmix = DataFrame(mix_ab)
+    @pytest.mark.parametrize(
+        "data",
+        [
+            {"a": list("ab.."), "b": list("efgh")},
+            {"a": list("ab.."), "b": list(range(4))},
+        ],
+    )
+    @pytest.mark.parametrize(
+        "to_replace,value", [(r"\s*\.\s*", np.nan), (r"\s*(\.)\s*", r"\1\1\1")]
+    )
+    @pytest.mark.parametrize("compile_regex", [True, False])
+    @pytest.mark.parametrize("regex_kwarg", [True, False])
+    @pytest.mark.parametrize("inplace", [True, False])
+    def test_regex_replace_scalar(
+        self, data, to_replace, value, compile_regex, regex_kwarg, inplace
+    ):
+        df = DataFrame(data)
+        expected = df.copy()
 
-        # simplest cases
-        # regex -> value
-        # obj frame
-        res = dfobj.replace(r"\s*\.\s*", np.nan, regex=True)
-        tm.assert_frame_equal(dfobj, res.fillna("."))
+        if compile_regex:
+            to_replace = re.compile(to_replace)
 
-        # mixed
-        res = dfmix.replace(r"\s*\.\s*", np.nan, regex=True)
-        tm.assert_frame_equal(dfmix, res.fillna("."))
+        if regex_kwarg:
+            regex = to_replace
+            to_replace = None
+        else:
+            regex = True
 
-        # regex -> regex
-        # obj frame
-        res = dfobj.replace(r"\s*(\.)\s*", r"\1\1\1", regex=True)
-        objc = obj.copy()
-        objc["a"] = ["a", "b", "...", "..."]
-        expec = DataFrame(objc)
-        tm.assert_frame_equal(res, expec)
+        result = df.replace(to_replace, value, inplace=inplace, regex=regex)
 
-        # with mixed
-        res = dfmix.replace(r"\s*(\.)\s*", r"\1\1\1", regex=True)
-        mixc = mix_ab.copy()
-        mixc["b"] = ["a", "b", "...", "..."]
-        expec = DataFrame(mixc)
-        tm.assert_frame_equal(res, expec)
+        if inplace:
+            assert result is None
+            result = df
 
-        # everything with compiled regexs as well
-        res = dfobj.replace(re.compile(r"\s*\.\s*"), np.nan, regex=True)
-        tm.assert_frame_equal(dfobj, res.fillna("."))
+        if value is np.nan:
+            expected_replace_val = np.nan
+        else:
+            expected_replace_val = "..."
 
-        # mixed
-        res = dfmix.replace(re.compile(r"\s*\.\s*"), np.nan, regex=True)
-        tm.assert_frame_equal(dfmix, res.fillna("."))
-
-        # regex -> regex
-        # obj frame
-        res = dfobj.replace(re.compile(r"\s*(\.)\s*"), r"\1\1\1")
-        objc = obj.copy()
-        objc["a"] = ["a", "b", "...", "..."]
-        expec = DataFrame(objc)
-        tm.assert_frame_equal(res, expec)
-
-        # with mixed
-        res = dfmix.replace(re.compile(r"\s*(\.)\s*"), r"\1\1\1")
-        mixc = mix_ab.copy()
-        mixc["b"] = ["a", "b", "...", "..."]
-        expec = DataFrame(mixc)
-        tm.assert_frame_equal(res, expec)
-
-        res = dfmix.replace(regex=re.compile(r"\s*(\.)\s*"), value=r"\1\1\1")
-        mixc = mix_ab.copy()
-        mixc["b"] = ["a", "b", "...", "..."]
-        expec = DataFrame(mixc)
-        tm.assert_frame_equal(res, expec)
-
-        res = dfmix.replace(regex=r"\s*(\.)\s*", value=r"\1\1\1")
-        mixc = mix_ab.copy()
-        mixc["b"] = ["a", "b", "...", "..."]
-        expec = DataFrame(mixc)
-        tm.assert_frame_equal(res, expec)
-
-    def test_regex_replace_scalar_inplace(self, mix_ab):
-        obj = {"a": list("ab.."), "b": list("efgh")}
-        dfobj = DataFrame(obj)
-        dfmix = DataFrame(mix_ab)
-
-        # simplest cases
-        # regex -> value
-        # obj frame
-        res = dfobj.copy()
-        return_value = res.replace(r"\s*\.\s*", np.nan, regex=True, inplace=True)
-        assert return_value is None
-        tm.assert_frame_equal(dfobj, res.fillna("."))
-
-        # mixed
-        res = dfmix.copy()
-        return_value = res.replace(r"\s*\.\s*", np.nan, regex=True, inplace=True)
-        assert return_value is None
-        tm.assert_frame_equal(dfmix, res.fillna("."))
-
-        # regex -> regex
-        # obj frame
-        res = dfobj.copy()
-        return_value = res.replace(r"\s*(\.)\s*", r"\1\1\1", regex=True, inplace=True)
-        assert return_value is None
-        objc = obj.copy()
-        objc["a"] = ["a", "b", "...", "..."]
-        expec = DataFrame(objc)
-        tm.assert_frame_equal(res, expec)
-
-        # with mixed
-        res = dfmix.copy()
-        return_value = res.replace(r"\s*(\.)\s*", r"\1\1\1", regex=True, inplace=True)
-        assert return_value is None
-        mixc = mix_ab.copy()
-        mixc["b"] = ["a", "b", "...", "..."]
-        expec = DataFrame(mixc)
-        tm.assert_frame_equal(res, expec)
-
-        # everything with compiled regexs as well
-        res = dfobj.copy()
-        return_value = res.replace(
-            re.compile(r"\s*\.\s*"), np.nan, regex=True, inplace=True
-        )
-        assert return_value is None
-        tm.assert_frame_equal(dfobj, res.fillna("."))
-
-        # mixed
-        res = dfmix.copy()
-        return_value = res.replace(
-            re.compile(r"\s*\.\s*"), np.nan, regex=True, inplace=True
-        )
-        assert return_value is None
-        tm.assert_frame_equal(dfmix, res.fillna("."))
-
-        # regex -> regex
-        # obj frame
-        res = dfobj.copy()
-        return_value = res.replace(
-            re.compile(r"\s*(\.)\s*"), r"\1\1\1", regex=True, inplace=True
-        )
-        assert return_value is None
-        objc = obj.copy()
-        objc["a"] = ["a", "b", "...", "..."]
-        expec = DataFrame(objc)
-        tm.assert_frame_equal(res, expec)
-
-        # with mixed
-        res = dfmix.copy()
-        return_value = res.replace(
-            re.compile(r"\s*(\.)\s*"), r"\1\1\1", regex=True, inplace=True
-        )
-        assert return_value is None
-        mixc = mix_ab.copy()
-        mixc["b"] = ["a", "b", "...", "..."]
-        expec = DataFrame(mixc)
-        tm.assert_frame_equal(res, expec)
-
-        res = dfobj.copy()
-        return_value = res.replace(regex=r"\s*\.\s*", value=np.nan, inplace=True)
-        assert return_value is None
-        tm.assert_frame_equal(dfobj, res.fillna("."))
-
-        # mixed
-        res = dfmix.copy()
-        return_value = res.replace(regex=r"\s*\.\s*", value=np.nan, inplace=True)
-        assert return_value is None
-        tm.assert_frame_equal(dfmix, res.fillna("."))
-
-        # regex -> regex
-        # obj frame
-        res = dfobj.copy()
-        return_value = res.replace(regex=r"\s*(\.)\s*", value=r"\1\1\1", inplace=True)
-        assert return_value is None
-        objc = obj.copy()
-        objc["a"] = ["a", "b", "...", "..."]
-        expec = DataFrame(objc)
-        tm.assert_frame_equal(res, expec)
-
-        # with mixed
-        res = dfmix.copy()
-        return_value = res.replace(regex=r"\s*(\.)\s*", value=r"\1\1\1", inplace=True)
-        assert return_value is None
-        mixc = mix_ab.copy()
-        mixc["b"] = ["a", "b", "...", "..."]
-        expec = DataFrame(mixc)
-        tm.assert_frame_equal(res, expec)
-
-        # everything with compiled regexs as well
-        res = dfobj.copy()
-        return_value = res.replace(
-            regex=re.compile(r"\s*\.\s*"), value=np.nan, inplace=True
-        )
-        assert return_value is None
-        tm.assert_frame_equal(dfobj, res.fillna("."))
-
-        # mixed
-        res = dfmix.copy()
-        return_value = res.replace(
-            regex=re.compile(r"\s*\.\s*"), value=np.nan, inplace=True
-        )
-        assert return_value is None
-        tm.assert_frame_equal(dfmix, res.fillna("."))
-
-        # regex -> regex
-        # obj frame
-        res = dfobj.copy()
-        return_value = res.replace(
-            regex=re.compile(r"\s*(\.)\s*"), value=r"\1\1\1", inplace=True
-        )
-        assert return_value is None
-        objc = obj.copy()
-        objc["a"] = ["a", "b", "...", "..."]
-        expec = DataFrame(objc)
-        tm.assert_frame_equal(res, expec)
-
-        # with mixed
-        res = dfmix.copy()
-        return_value = res.replace(
-            regex=re.compile(r"\s*(\.)\s*"), value=r"\1\1\1", inplace=True
-        )
-        assert return_value is None
-        mixc = mix_ab.copy()
-        mixc["b"] = ["a", "b", "...", "..."]
-        expec = DataFrame(mixc)
-        tm.assert_frame_equal(res, expec)
+        expected.loc[expected["a"] == ".", "a"] = expected_replace_val
+        tm.assert_frame_equal(result, expected)

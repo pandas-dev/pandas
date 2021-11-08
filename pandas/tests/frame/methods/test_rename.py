@@ -174,6 +174,10 @@ class TestRename:
     def test_rename_nocopy(self, float_frame):
         renamed = float_frame.rename(columns={"C": "foo"}, copy=False)
         renamed["foo"][:] = 1.0
+
+        assert np.shares_memory(renamed["foo"]._values, float_frame["C"]._values)
+
+        renamed.loc[:, "foo"] = 1.0
         assert (float_frame["C"] == 1.0).all()
 
     def test_rename_inplace(self, float_frame):

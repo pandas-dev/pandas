@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 from pandas.compat import is_platform_little_endian
-import pandas.util._test_decorators as td
 
 from pandas import (
     DataFrame,
@@ -27,7 +26,7 @@ from pandas.io.pytables import (
     Term,
 )
 
-pytestmark = [pytest.mark.single, td.skip_array_manager_not_yet_implemented]
+pytestmark = pytest.mark.single
 
 
 def test_mode(setup_path):
@@ -41,7 +40,7 @@ def test_mode(setup_path):
 
             # constructor
             if mode in ["r", "r+"]:
-                with pytest.raises(IOError, match=msg):
+                with pytest.raises(OSError, match=msg):
                     HDFStore(path, mode=mode)
 
             else:
@@ -53,7 +52,7 @@ def test_mode(setup_path):
 
             # context
             if mode in ["r", "r+"]:
-                with pytest.raises(IOError, match=msg):
+                with pytest.raises(OSError, match=msg):
                     with HDFStore(path, mode=mode) as store:
                         pass
             else:
@@ -64,7 +63,7 @@ def test_mode(setup_path):
 
             # conv write
             if mode in ["r", "r+"]:
-                with pytest.raises(IOError, match=msg):
+                with pytest.raises(OSError, match=msg):
                     df.to_hdf(path, "df", mode=mode)
                 df.to_hdf(path, "df", mode="w")
             else:

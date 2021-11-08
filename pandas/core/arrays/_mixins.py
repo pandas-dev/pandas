@@ -2,10 +2,13 @@ from __future__ import annotations
 
 from functools import wraps
 from typing import (
+    TYPE_CHECKING,
     Any,
+    Literal,
     Sequence,
     TypeVar,
     cast,
+    overload,
 )
 
 import numpy as np
@@ -15,7 +18,12 @@ from pandas._libs.arrays import NDArrayBacked
 from pandas._typing import (
     F,
     PositionalIndexer2D,
+    PositionalIndexerTuple,
+    ScalarIndexer,
+    SequenceIndexer,
     Shape,
+    TakeIndexer,
+    npt,
     type_t,
 )
 from pandas.errors import AbstractMethodError
@@ -23,6 +31,7 @@ from pandas.util._decorators import doc
 from pandas.util._validators import (
     validate_bool_kwarg,
     validate_fillna_kwargs,
+    validate_insert_loc,
 )
 
 from pandas.core.dtypes.common import is_dtype_equal
@@ -44,6 +53,13 @@ from pandas.core.sorting import nargminmax
 NDArrayBackedExtensionArrayT = TypeVar(
     "NDArrayBackedExtensionArrayT", bound="NDArrayBackedExtensionArray"
 )
+
+if TYPE_CHECKING:
+
+    from pandas._typing import (
+        NumpySorter,
+        NumpyValueArrayLike,
+    )
 
 
 def ravel_compat(meth: F) -> F:
@@ -87,44 +103,23 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
     def take(
         self: NDArrayBackedExtensionArrayT,
-        indices: Sequence[int],
+        indices: TakeIndexer,
         *,
         allow_fill: bool = False,
         fill_value: Any = None,
         axis: int = 0,
     ) -> NDArrayBackedExtensionArrayT:
         if allow_fill:
-            fill_value = self._validate_fill_value(fill_value)
+            fill_value = self._validate_scalar(fill_value)
 
         new_data = take(
             self._ndarray,
-            # error: Argument 2 to "take" has incompatible type "Sequence[int]";
-            # expected "ndarray"
-            indices,  # type: ignore[arg-type]
+            indices,
             allow_fill=allow_fill,
             fill_value=fill_value,
             axis=axis,
         )
         return self._from_backing_data(new_data)
-
-    def _validate_fill_value(self, fill_value):
-        """
-        If a fill_value is passed to `take` convert it to a representation
-        suitable for self._ndarray, raising TypeError if this is not possible.
-
-        Parameters
-        ----------
-        fill_value : object
-
-        Returns
-        -------
-        fill_value : native representation
-
-        Raises
-        ------
-        TypeError
-        """
-        raise AbstractMethodError(self)
 
     # ------------------------------------------------------------------------
 
@@ -176,12 +171,22 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         return to_concat[0]._from_backing_data(new_values)  # type: ignore[arg-type]
 
     @doc(ExtensionArray.searchsorted)
-    def searchsorted(self, value, side="left", sorter=None):
-        value = self._validate_searchsorted_value(value)
-        return self._ndarray.searchsorted(value, side=side, sorter=sorter)
+    def searchsorted(
+        self,
+        value: NumpyValueArrayLike | ExtensionArray,
+        side: Literal["left", "right"] = "left",
+        sorter: NumpySorter = None,
+    ) -> npt.NDArray[np.intp] | np.intp:
+        npvalue = self._validate_searchsorted_value(value)
+        return self._ndarray.searchsorted(npvalue, side=side, sorter=sorter)
 
-    def _validate_searchsorted_value(self, value):
-        return value
+    def _validate_searchsorted_value(
+        self, value: NumpyValueArrayLike | ExtensionArray
+    ) -> NumpyValueArrayLike:
+        if isinstance(value, ExtensionArray):
+            return value.to_numpy()
+        else:
+            return value
 
     @doc(ExtensionArray.shift)
     def shift(self, periods=1, fill_value=None, axis=0):
@@ -192,9 +197,9 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         return self._from_backing_data(new_values)
 
     def _validate_shift_value(self, fill_value):
-        # TODO: after deprecation in datetimelikearraymixin is enforced,
-        #  we can remove this and ust validate_fill_value directly
-        return self._validate_fill_value(fill_value)
+        # TODO(2.0): after deprecation in datetimelikearraymixin is enforced,
+        #  we can remove this and use validate_fill_value directly
+        return self._validate_scalar(fill_value)
 
     def __setitem__(self, key, value):
         key = check_array_indexer(self, key)
@@ -203,6 +208,17 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
     def _validate_setitem_value(self, value):
         return value
+
+    @overload
+    def __getitem__(self, key: ScalarIndexer) -> Any:
+        ...
+
+    @overload
+    def __getitem__(
+        self: NDArrayBackedExtensionArrayT,
+        key: SequenceIndexer | PositionalIndexerTuple,
+    ) -> NDArrayBackedExtensionArrayT:
+        ...
 
     def __getitem__(
         self: NDArrayBackedExtensionArrayT,
@@ -229,6 +245,14 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
         result = self._from_backing_data(result)
         return result
+
+    def _fill_mask_inplace(
+        self, method: str, limit, mask: npt.NDArray[np.bool_]
+    ) -> None:
+        # (for now) when self.ndim == 2, we assume axis=0
+        func = missing.get_fill_func(method, ndim=self.ndim)
+        func(self._ndarray.T, limit=limit, mask=mask.T)
+        return
 
     @doc(ExtensionArray.fillna)
     def fillna(
@@ -284,30 +308,9 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         return self._from_backing_data(result)
 
     # ------------------------------------------------------------------------
-
-    def __repr__(self) -> str:
-        if self.ndim == 1:
-            return super().__repr__()
-
-        from pandas.io.formats.printing import format_object_summary
-
-        # the short repr has no trailing newline, while the truncated
-        # repr does. So we include a newline in our template, and strip
-        # any trailing newlines from format_object_summary
-        lines = [
-            format_object_summary(x, self._formatter(), indent_for_name=False).rstrip(
-                ", \n"
-            )
-            for x in self
-        ]
-        data = ",\n".join(lines)
-        class_name = f"<{type(self).__name__}>"
-        return f"{class_name}\n[\n{data}\n]\nShape: {self.shape}, dtype: {self.dtype}"
-
-    # ------------------------------------------------------------------------
     # __array_function__ methods
 
-    def putmask(self: NDArrayBackedExtensionArrayT, mask: np.ndarray, value) -> None:
+    def putmask(self, mask: np.ndarray, value) -> None:
         """
         Analogue to np.putmask(self, mask, value)
 
@@ -325,7 +328,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
         np.putmask(self._ndarray, mask, value)
 
-    def where(
+    def _where(
         self: NDArrayBackedExtensionArrayT, mask: np.ndarray, value
     ) -> NDArrayBackedExtensionArrayT:
         """
@@ -345,6 +348,38 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
         res_values = np.where(mask, self._ndarray, value)
         return self._from_backing_data(res_values)
+
+    # ------------------------------------------------------------------------
+    # Index compat methods
+
+    def insert(
+        self: NDArrayBackedExtensionArrayT, loc: int, item
+    ) -> NDArrayBackedExtensionArrayT:
+        """
+        Make new ExtensionArray inserting new item at location. Follows
+        Python list.append semantics for negative values.
+
+        Parameters
+        ----------
+        loc : int
+        item : object
+
+        Returns
+        -------
+        type(self)
+        """
+        loc = validate_insert_loc(loc, len(self))
+
+        code = self._validate_scalar(item)
+
+        new_vals = np.concatenate(
+            (
+                self._ndarray[:loc],
+                np.asarray([code], dtype=self._ndarray.dtype),
+                self._ndarray[loc:],
+            )
+        )
+        return self._from_backing_data(new_vals)
 
     # ------------------------------------------------------------------------
     # Additional array methods

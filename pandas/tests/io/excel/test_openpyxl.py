@@ -85,6 +85,30 @@ def test_write_cells_merge_styled(ext):
         assert xcell_a2.font == openpyxl_sty_merged
 
 
+@pytest.mark.parametrize("write_only", [True, False])
+def test_kwargs(ext, write_only):
+    # GH 42286
+    # openpyxl doesn't utilize kwargs, only test that supplying a kwarg works
+    kwargs = {"write_only": write_only}
+    with tm.ensure_clean(ext) as f:
+        msg = re.escape("Use of **kwargs is deprecated")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            with ExcelWriter(f, engine="openpyxl", **kwargs) as writer:
+                # ExcelWriter won't allow us to close without writing something
+                DataFrame().to_excel(writer)
+
+
+@pytest.mark.parametrize("write_only", [True, False])
+def test_engine_kwargs(ext, write_only):
+    # GH 42286
+    # openpyxl doesn't utilize kwargs, only test that supplying a engine_kwarg works
+    engine_kwargs = {"write_only": write_only}
+    with tm.ensure_clean(ext) as f:
+        with ExcelWriter(f, engine="openpyxl", engine_kwargs=engine_kwargs) as writer:
+            # ExcelWriter won't allow us to close without writing something
+            DataFrame().to_excel(writer)
+
+
 @pytest.mark.parametrize(
     "mode,expected", [("w", ["baz"]), ("a", ["foo", "bar", "baz"])]
 )

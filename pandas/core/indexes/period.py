@@ -4,10 +4,7 @@ from datetime import (
     datetime,
     timedelta,
 )
-from typing import (
-    Any,
-    Hashable,
-)
+from typing import Hashable
 import warnings
 
 import numpy as np
@@ -18,30 +15,24 @@ from pandas._libs import (
 )
 from pandas._libs.tslibs import (
     BaseOffset,
+    NaT,
     Period,
     Resolution,
     Tick,
-)
-from pandas._libs.tslibs.parsing import (
-    DateParseError,
-    parse_time_string,
 )
 from pandas._typing import (
     Dtype,
     DtypeObj,
 )
-from pandas.errors import InvalidIndexError
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import (
-    is_bool_dtype,
     is_datetime64_any_dtype,
-    is_float,
     is_integer,
-    is_scalar,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import PeriodDtype
+from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
 from pandas.core.arrays.period import (
     PeriodArray,
@@ -153,17 +144,14 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     --------
     >>> idx = pd.PeriodIndex(year=[2000, 2002], quarter=[1, 3])
     >>> idx
-    PeriodIndex(['2000Q1', '2002Q3'], dtype='period[Q-DEC]', freq='Q-DEC')
+    PeriodIndex(['2000Q1', '2002Q3'], dtype='period[Q-DEC]')
     """
 
     _typ = "periodindex"
-    _attributes = ["name", "freq"]
-
-    # define my properties & methods for delegation
-    _is_numeric_dtype = False
 
     _data: PeriodArray
     freq: BaseOffset
+    dtype: PeriodDtype
 
     _data_cls = PeriodArray
     _engine_type = libindex.PeriodEngine
@@ -320,71 +308,19 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         """
         if not isinstance(dtype, PeriodDtype):
             return False
-        return dtype.freq == self.freq
-
-    # ------------------------------------------------------------------------
-    # Rendering Methods
-
-    def _mpl_repr(self) -> np.ndarray:
-        # how to represent ourselves to matplotlib
-        return self.astype(object)._values
-
-    # ------------------------------------------------------------------------
-    # Indexing
-
-    @doc(Index.__contains__)
-    def __contains__(self, key: Any) -> bool:
-        if isinstance(key, Period):
-            if key.freq != self.freq:
-                return False
-            else:
-                return key.ordinal in self._engine
-        else:
-            hash(key)
-            try:
-                self.get_loc(key)
-                return True
-            except KeyError:
-                return False
+        # For the subset of DateOffsets that can be a dtype.freq, it
+        #  suffices (and is much faster) to compare the dtype_code rather than
+        #  the freq itself.
+        # See also: PeriodDtype.__eq__
+        freq = dtype.freq
+        own_freq = self.freq
+        return (
+            freq._period_dtype_code == own_freq._period_dtype_code
+            and freq.n == own_freq.n
+        )
 
     # ------------------------------------------------------------------------
     # Index Methods
-
-    def __array_wrap__(self, result, context=None):
-        """
-        Gets called after a ufunc and other functions.
-
-        Needs additional handling as PeriodIndex stores internal data as int
-        dtype
-
-        Replace this to __numpy_ufunc__ in future version and implement
-        __array_function__ for Indexes
-        """
-        if isinstance(context, tuple) and len(context) > 0:
-            func = context[0]
-            if func is np.add:
-                pass
-            elif func is np.subtract:
-                name = self.name
-                left = context[1][0]
-                right = context[1][1]
-                if isinstance(left, PeriodIndex) and isinstance(right, PeriodIndex):
-                    name = left.name if left.name == right.name else None
-                    return Index(result, name=name)
-                elif isinstance(left, Period) or isinstance(right, Period):
-                    return Index(result, name=name)
-            elif isinstance(func, np.ufunc):
-                if "M->M" not in func.types:
-                    msg = f"ufunc '{func.__name__}' not supported for the PeriodIndex"
-                    # This should be TypeError, but TypeError cannot be raised
-                    # from here because numpy catches.
-                    raise ValueError(msg)
-
-        if is_bool_dtype(result):
-            return result
-        # the result is object dtype array of Period
-        # cannot pass _simple_new as it is
-        return type(self)(result, freq=self.freq, name=self.name)
 
     def asof_locs(self, where: Index, mask: np.ndarray) -> np.ndarray:
         """
@@ -408,7 +344,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             warnings.warn(
                 "The 'how' keyword in PeriodIndex.astype is deprecated and "
                 "will be removed in a future version. "
-                "Use index.to_timestamp(how=how) instead",
+                "Use index.to_timestamp(how=how) instead.",
                 FutureWarning,
                 stacklevel=2,
             )
@@ -479,120 +415,80 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         """
         orig_key = key
 
-        if not is_scalar(key):
-            raise InvalidIndexError(key)
+        self._check_indexing_error(key)
 
-        if isinstance(key, str):
+        if is_valid_na_for_dtype(key, self.dtype):
+            key = NaT
 
-            try:
-                loc = self._get_string_slice(key)
-                return loc
-            except (TypeError, ValueError):
-                pass
+        elif isinstance(key, str):
 
             try:
-                asdt, reso_str = parse_time_string(key, self.freq)
-            except (ValueError, DateParseError) as err:
+                parsed, reso = self._parse_with_reso(key)
+            except ValueError as err:
                 # A string with invalid format
                 raise KeyError(f"Cannot interpret '{key}' as period") from err
 
-            reso = Resolution.from_attrname(reso_str)
-            grp = reso.freq_group.value
-            freqn = self.dtype.freq_group_code
+            if self._can_partial_date_slice(reso):
+                try:
+                    return self._partial_date_slice(reso, parsed)
+                except KeyError as err:
+                    # TODO: pass if method is not None, like DTI does?
+                    raise KeyError(key) from err
 
-            # _get_string_slice will handle cases where grp < freqn
-            assert grp >= freqn
-
-            # BusinessDay is a bit strange. It has a *lower* code, but we never parse
-            # a string as "BusinessDay" resolution, just Day.
-            if grp == freqn or (
-                reso == Resolution.RESO_DAY and self.dtype.freq.name == "B"
-            ):
-                key = Period(asdt, freq=self.freq)
+            if reso == self.dtype.resolution:
+                # the reso < self.dtype.resolution case goes through _get_string_slice
+                key = Period(parsed, freq=self.freq)
                 loc = self.get_loc(key, method=method, tolerance=tolerance)
+                # Recursing instead of falling through matters for the exception
+                #  message in test_get_loc3 (though not clear if that really matters)
                 return loc
             elif method is None:
                 raise KeyError(key)
             else:
-                key = asdt
+                key = Period(parsed, freq=self.freq)
 
-        elif is_integer(key):
-            # Period constructor will cast to string, which we dont want
+        elif isinstance(key, Period):
+            sfreq = self.freq
+            kfreq = key.freq
+            if not (
+                sfreq.n == kfreq.n
+                and sfreq._period_dtype_code == kfreq._period_dtype_code
+            ):
+                # GH#42247 For the subset of DateOffsets that can be Period freqs,
+                #  checking these two attributes is sufficient to check equality,
+                #  and much more performant than `self.freq == key.freq`
+                raise KeyError(key)
+        elif isinstance(key, datetime):
+            try:
+                key = Period(key, freq=self.freq)
+            except ValueError as err:
+                # we cannot construct the Period
+                raise KeyError(orig_key) from err
+        else:
+            # in particular integer, which Period constructor would cast to string
             raise KeyError(key)
-
-        try:
-            key = Period(key, freq=self.freq)
-        except ValueError as err:
-            # we cannot construct the Period
-            raise KeyError(orig_key) from err
 
         try:
             return Index.get_loc(self, key, method, tolerance)
         except KeyError as err:
             raise KeyError(orig_key) from err
 
+    @doc(DatetimeIndexOpsMixin._maybe_cast_slice_bound)
     def _maybe_cast_slice_bound(self, label, side: str, kind=lib.no_default):
-        """
-        If label is a string or a datetime, cast it to Period.ordinal according
-        to resolution.
-
-        Parameters
-        ----------
-        label : object
-        side : {'left', 'right'}
-        kind : {'loc', 'getitem'}, or None
-
-        Returns
-        -------
-        bound : Period or object
-
-        Notes
-        -----
-        Value of `side` parameter should be validated in caller.
-
-        """
-        assert kind in ["loc", "getitem", None, lib.no_default]
-        self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
-
         if isinstance(label, datetime):
-            return Period(label, freq=self.freq)
-        elif isinstance(label, str):
-            try:
-                parsed, reso_str = parse_time_string(label, self.freq)
-                reso = Resolution.from_attrname(reso_str)
-                bounds = self._parsed_string_to_bounds(reso, parsed)
-                return bounds[0 if side == "left" else 1]
-            except ValueError as err:
-                # string cannot be parsed as datetime-like
-                raise self._invalid_indexer("slice", label) from err
-        elif is_integer(label) or is_float(label):
-            raise self._invalid_indexer("slice", label)
+            label = Period(label, freq=self.freq)
 
-        return label
+        return super()._maybe_cast_slice_bound(label, side, kind=kind)
 
     def _parsed_string_to_bounds(self, reso: Resolution, parsed: datetime):
         grp = reso.freq_group
         iv = Period(parsed, freq=grp.value)
         return (iv.asfreq(self.freq, how="start"), iv.asfreq(self.freq, how="end"))
 
-    def _validate_partial_date_slice(self, reso: Resolution):
+    def _can_partial_date_slice(self, reso: Resolution) -> bool:
         assert isinstance(reso, Resolution), (type(reso), reso)
-        grp = reso.freq_group
-        freqn = self.dtype.freq_group_code
-
-        if not grp.value < freqn:
-            # TODO: we used to also check for
-            #  reso in ["day", "hour", "minute", "second"]
-            #  why is that check not needed?
-            raise ValueError
-
-    def _get_string_slice(self, key: str):
-        parsed, reso_str = parse_time_string(key, self.freq)
-        reso = Resolution.from_attrname(reso_str)
-        try:
-            return self._partial_date_slice(reso, parsed)
-        except KeyError as err:
-            raise KeyError(key) from err
+        # e.g. test_getitem_setitem_periodindex
+        return reso > self.dtype.resolution
 
 
 def period_range(
@@ -636,7 +532,7 @@ def period_range(
     PeriodIndex(['2017-01', '2017-02', '2017-03', '2017-04', '2017-05', '2017-06',
              '2017-07', '2017-08', '2017-09', '2017-10', '2017-11', '2017-12',
              '2018-01'],
-            dtype='period[M]', freq='M')
+            dtype='period[M]')
 
     If ``start`` or ``end`` are ``Period`` objects, they will be used as anchor
     endpoints for a ``PeriodIndex`` with frequency matching that of the
@@ -645,7 +541,7 @@ def period_range(
     >>> pd.period_range(start=pd.Period('2017Q1', freq='Q'),
     ...                 end=pd.Period('2017Q2', freq='Q'), freq='M')
     PeriodIndex(['2017-03', '2017-04', '2017-05', '2017-06'],
-                dtype='period[M]', freq='M')
+                dtype='period[M]')
     """
     if com.count_not_none(start, end, periods) != 2:
         raise ValueError(

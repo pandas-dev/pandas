@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import Timestamp
-import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -28,7 +27,7 @@ from pandas.tests.io.pytables.common import (
 
 from pandas.io.pytables import Term
 
-pytestmark = [pytest.mark.single, td.skip_array_manager_not_yet_implemented]
+pytestmark = pytest.mark.single
 
 
 def test_select_columns_in_where(setup_path):

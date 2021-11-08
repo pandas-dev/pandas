@@ -47,8 +47,8 @@ def test_iter():
     assert s.dropna().values.item() == "l"
 
 
-def test_iter_empty():
-    ser = Series([], dtype=object)
+def test_iter_empty(any_string_dtype):
+    ser = Series([], dtype=any_string_dtype)
 
     i, s = 100, 1
 
@@ -62,8 +62,8 @@ def test_iter_empty():
     assert s == 1
 
 
-def test_iter_single_element():
-    ser = Series(["a"])
+def test_iter_single_element(any_string_dtype):
+    ser = Series(["a"], dtype=any_string_dtype)
 
     with tm.assert_produces_warning(FutureWarning):
         for i, s in enumerate(ser.str):
@@ -94,10 +94,11 @@ def test_iter_object_try_string():
 # test integer/float dtypes (inferred by constructor) and mixed
 
 
-def test_count():
-    ser = Series(["foo", "foofoo", np.nan, "foooofooofommmfoo"], dtype=np.object_)
+def test_count(any_string_dtype):
+    ser = Series(["foo", "foofoo", np.nan, "foooofooofommmfoo"], dtype=any_string_dtype)
     result = ser.str.count("f[o]+")
-    expected = Series([1, 2, np.nan, 4])
+    expected_dtype = np.float64 if any_string_dtype == "object" else "Int64"
+    expected = Series([1, 2, np.nan, 4], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
 
@@ -111,15 +112,19 @@ def test_count_mixed_object():
     tm.assert_series_equal(result, expected)
 
 
-def test_repeat():
-    ser = Series(["a", "b", np.nan, "c", np.nan, "d"])
+def test_repeat(any_string_dtype):
+    ser = Series(["a", "b", np.nan, "c", np.nan, "d"], dtype=any_string_dtype)
 
     result = ser.str.repeat(3)
-    expected = Series(["aaa", "bbb", np.nan, "ccc", np.nan, "ddd"])
+    expected = Series(
+        ["aaa", "bbb", np.nan, "ccc", np.nan, "ddd"], dtype=any_string_dtype
+    )
     tm.assert_series_equal(result, expected)
 
     result = ser.str.repeat([1, 2, 3, 4, 5, 6])
-    expected = Series(["a", "bb", np.nan, "cccc", np.nan, "dddddd"])
+    expected = Series(
+        ["a", "bb", np.nan, "cccc", np.nan, "dddddd"], dtype=any_string_dtype
+    )
     tm.assert_series_equal(result, expected)
 
 
@@ -132,16 +137,16 @@ def test_repeat_mixed_object():
     tm.assert_series_equal(result, expected)
 
 
-def test_repeat_with_null(nullable_string_dtype):
+def test_repeat_with_null(any_string_dtype):
     # GH: 31632
-    ser = Series(["a", None], dtype=nullable_string_dtype)
+    ser = Series(["a", None], dtype=any_string_dtype)
     result = ser.str.repeat([3, 4])
-    expected = Series(["aaa", None], dtype=nullable_string_dtype)
+    expected = Series(["aaa", np.nan], dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
 
-    ser = Series(["a", "b"], dtype=nullable_string_dtype)
+    ser = Series(["a", "b"], dtype=any_string_dtype)
     result = ser.str.repeat([3, None])
-    expected = Series(["aaa", None], dtype=nullable_string_dtype)
+    expected = Series(["aaa", np.nan], dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
 
 
@@ -155,6 +160,7 @@ def test_empty_str_methods(any_string_dtype):
         empty_bool = Series(dtype="boolean")
     empty_object = Series(dtype=object)
     empty_bytes = Series(dtype=object)
+    empty_df = DataFrame()
 
     # GH7241
     # (extract) on empty series
@@ -184,7 +190,7 @@ def test_empty_str_methods(any_string_dtype):
         DataFrame(columns=[0, 1], dtype=any_string_dtype),
         empty.str.extract("()()", expand=False),
     )
-    tm.assert_frame_equal(DataFrame(), empty.str.get_dummies())
+    tm.assert_frame_equal(empty_df, empty.str.get_dummies())
     tm.assert_series_equal(empty_str, empty_str.str.join(""))
     tm.assert_series_equal(empty_int, empty.str.len())
     tm.assert_series_equal(empty_object, empty_str.str.findall("a"))
@@ -195,7 +201,9 @@ def test_empty_str_methods(any_string_dtype):
     tm.assert_series_equal(empty_object, empty.str.split("a"))
     tm.assert_series_equal(empty_object, empty.str.rsplit("a"))
     tm.assert_series_equal(empty_object, empty.str.partition("a", expand=False))
+    tm.assert_frame_equal(empty_df, empty.str.partition("a"))
     tm.assert_series_equal(empty_object, empty.str.rpartition("a", expand=False))
+    tm.assert_frame_equal(empty_df, empty.str.rpartition("a"))
     tm.assert_series_equal(empty_str, empty.str.slice(stop=1))
     tm.assert_series_equal(empty_str, empty.str.slice(step=1))
     tm.assert_series_equal(empty_str, empty.str.strip())
@@ -221,17 +229,6 @@ def test_empty_str_methods(any_string_dtype):
 
     table = str.maketrans("a", "b")
     tm.assert_series_equal(empty_str, empty.str.translate(table))
-
-
-def test_empty_str_methods_to_frame():
-    ser = Series(dtype=str)
-    expected = DataFrame()
-
-    result = ser.str.partition("a")
-    tm.assert_frame_equal(result, expected)
-
-    result = ser.str.rpartition("a")
-    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -266,18 +263,17 @@ def test_empty_str_methods_to_frame():
     ],
 )
 def test_ismethods(method, expected, any_string_dtype):
-    values = ["A", "b", "Xy", "4", "3A", "", "TT", "55", "-", "  "]
-    ser = Series(values, dtype=any_string_dtype)
-
+    ser = Series(
+        ["A", "b", "Xy", "4", "3A", "", "TT", "55", "-", "  "], dtype=any_string_dtype
+    )
     expected_dtype = "bool" if any_string_dtype == "object" else "boolean"
     expected = Series(expected, dtype=expected_dtype)
     result = getattr(ser.str, method)()
     tm.assert_series_equal(result, expected)
 
     # compare with standard library
-    expected = [getattr(v, method)() for v in values]
-    result = result.tolist()
-    assert result == expected
+    expected = [getattr(item, method)() for item in ser]
+    assert list(result) == expected
 
 
 @pytest.mark.parametrize(
@@ -292,17 +288,15 @@ def test_isnumeric_unicode(method, expected, any_string_dtype):
     # 0x2605: ★ not number
     # 0x1378: ፸ ETHIOPIC NUMBER SEVENTY
     # 0xFF13: ３ Em 3
-    values = ["A", "3", "¼", "★", "፸", "３", "four"]
-    ser = Series(values, dtype=any_string_dtype)
+    ser = Series(["A", "3", "¼", "★", "፸", "３", "four"], dtype=any_string_dtype)
     expected_dtype = "bool" if any_string_dtype == "object" else "boolean"
     expected = Series(expected, dtype=expected_dtype)
     result = getattr(ser.str, method)()
     tm.assert_series_equal(result, expected)
 
     # compare with standard library
-    expected = [getattr(v, method)() for v in values]
-    result = result.tolist()
-    assert result == expected
+    expected = [getattr(item, method)() for item in ser]
+    assert list(result) == expected
 
 
 @pytest.mark.parametrize(
@@ -321,10 +315,11 @@ def test_isnumeric_unicode_missing(method, expected, any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
-def test_spilt_join_roundtrip():
-    ser = Series(["a_b_c", "c_d_e", np.nan, "f_g_h"])
+def test_spilt_join_roundtrip(any_string_dtype):
+    ser = Series(["a_b_c", "c_d_e", np.nan, "f_g_h"], dtype=any_string_dtype)
     result = ser.str.split("_").str.join("_")
-    tm.assert_series_equal(result, ser)
+    expected = ser.astype(object)
+    tm.assert_series_equal(result, expected)
 
 
 def test_spilt_join_roundtrip_mixed_object():
@@ -358,53 +353,49 @@ def test_len_mixed():
     tm.assert_series_equal(result, expected)
 
 
-def test_index(index_or_series):
+@pytest.mark.parametrize(
+    "method,sub,start,end,expected",
+    [
+        ("index", "EF", None, None, [4, 3, 1, 0]),
+        ("rindex", "EF", None, None, [4, 5, 7, 4]),
+        ("index", "EF", 3, None, [4, 3, 7, 4]),
+        ("rindex", "EF", 3, None, [4, 5, 7, 4]),
+        ("index", "E", 4, 8, [4, 5, 7, 4]),
+        ("rindex", "E", 0, 5, [4, 3, 1, 4]),
+    ],
+)
+def test_index(method, sub, start, end, index_or_series, any_string_dtype, expected):
+    if index_or_series is Index and not any_string_dtype == "object":
+        pytest.skip("Index cannot yet be backed by a StringArray/ArrowStringArray")
+
+    obj = index_or_series(
+        ["ABCDEFG", "BCDEFEF", "DEFGHIJEF", "EFGHEF"], dtype=any_string_dtype
+    )
+    expected_dtype = np.int64 if any_string_dtype == "object" else "Int64"
+    expected = index_or_series(expected, dtype=expected_dtype)
+
+    result = getattr(obj.str, method)(sub, start, end)
+
     if index_or_series is Series:
-        _check = tm.assert_series_equal
+        tm.assert_series_equal(result, expected)
     else:
-        _check = tm.assert_index_equal
+        tm.assert_index_equal(result, expected)
 
-    obj = index_or_series(["ABCDEFG", "BCDEFEF", "DEFGHIJEF", "EFGHEF"])
-
-    result = obj.str.index("EF")
-    _check(result, index_or_series([4, 3, 1, 0]))
-    expected = np.array([v.index("EF") for v in obj.values], dtype=np.int64)
-    tm.assert_numpy_array_equal(result.values, expected)
-
-    result = obj.str.rindex("EF")
-    _check(result, index_or_series([4, 5, 7, 4]))
-    expected = np.array([v.rindex("EF") for v in obj.values], dtype=np.int64)
-    tm.assert_numpy_array_equal(result.values, expected)
-
-    result = obj.str.index("EF", 3)
-    _check(result, index_or_series([4, 3, 7, 4]))
-    expected = np.array([v.index("EF", 3) for v in obj.values], dtype=np.int64)
-    tm.assert_numpy_array_equal(result.values, expected)
-
-    result = obj.str.rindex("EF", 3)
-    _check(result, index_or_series([4, 5, 7, 4]))
-    expected = np.array([v.rindex("EF", 3) for v in obj.values], dtype=np.int64)
-    tm.assert_numpy_array_equal(result.values, expected)
-
-    result = obj.str.index("E", 4, 8)
-    _check(result, index_or_series([4, 5, 7, 4]))
-    expected = np.array([v.index("E", 4, 8) for v in obj.values], dtype=np.int64)
-    tm.assert_numpy_array_equal(result.values, expected)
-
-    result = obj.str.rindex("E", 0, 5)
-    _check(result, index_or_series([4, 3, 1, 4]))
-    expected = np.array([v.rindex("E", 0, 5) for v in obj.values], dtype=np.int64)
-    tm.assert_numpy_array_equal(result.values, expected)
+    # compare with standard library
+    expected = [getattr(item, method)(sub, start, end) for item in obj]
+    assert list(result) == expected
 
 
-def test_index_not_found(index_or_series):
-    obj = index_or_series(["ABCDEFG", "BCDEFEF", "DEFGHIJEF", "EFGHEF"])
+def test_index_not_found_raises(index_or_series, any_string_dtype):
+    obj = index_or_series(
+        ["ABCDEFG", "BCDEFEF", "DEFGHIJEF", "EFGHEF"], dtype=any_string_dtype
+    )
     with pytest.raises(ValueError, match="substring not found"):
         obj.str.index("DE")
 
 
-def test_index_wrong_type_raises(index_or_series):
-    obj = index_or_series([], dtype=object)
+def test_index_wrong_type_raises(index_or_series, any_string_dtype):
+    obj = index_or_series([], dtype=any_string_dtype)
     msg = "expected a string object, not int"
 
     with pytest.raises(TypeError, match=msg):
@@ -414,28 +405,29 @@ def test_index_wrong_type_raises(index_or_series):
         obj.str.rindex(0)
 
 
-def test_index_missing():
-    ser = Series(["abcb", "ab", "bcbe", np.nan])
+def test_index_missing(any_string_dtype):
+    ser = Series(["abcb", "ab", "bcbe", np.nan], dtype=any_string_dtype)
+    expected_dtype = np.float64 if any_string_dtype == "object" else "Int64"
 
     result = ser.str.index("b")
-    expected = Series([1, 1, 0, np.nan])
+    expected = Series([1, 1, 0, np.nan], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
     result = ser.str.rindex("b")
-    expected = Series([3, 1, 2, np.nan])
+    expected = Series([3, 1, 2, np.nan], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
 
-def test_pipe_failures():
+def test_pipe_failures(any_string_dtype):
     # #2119
-    ser = Series(["A|B|C"])
+    ser = Series(["A|B|C"], dtype=any_string_dtype)
 
     result = ser.str.split("|")
-    expected = Series([["A", "B", "C"]])
+    expected = Series([["A", "B", "C"]], dtype=object)
     tm.assert_series_equal(result, expected)
 
     result = ser.str.replace("|", " ", regex=False)
-    expected = Series(["A B C"])
+    expected = Series(["A B C"], dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
 
 
@@ -449,10 +441,10 @@ def test_pipe_failures():
         (3, 0, -1, ["ofa", "aba", np.nan, "aba"]),
     ],
 )
-def test_slice(start, stop, step, expected):
-    ser = Series(["aafootwo", "aabartwo", np.nan, "aabazqux"])
+def test_slice(start, stop, step, expected, any_string_dtype):
+    ser = Series(["aafootwo", "aabartwo", np.nan, "aabazqux"], dtype=any_string_dtype)
     result = ser.str.slice(start, stop, step)
-    expected = Series(expected)
+    expected = Series(expected, dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
 
 
@@ -470,39 +462,26 @@ def test_slice_mixed_object(start, stop, step, expected):
     tm.assert_series_equal(result, expected)
 
 
-def test_slice_replace():
-    ser = Series(["short", "a bit longer", "evenlongerthanthat", "", np.nan])
-
-    expected = Series(["shrt", "a it longer", "evnlongerthanthat", "", np.nan])
-    result = ser.str.slice_replace(2, 3)
-    tm.assert_series_equal(result, expected)
-
-    expected = Series(["shzrt", "a zit longer", "evznlongerthanthat", "z", np.nan])
-    result = ser.str.slice_replace(2, 3, "z")
-    tm.assert_series_equal(result, expected)
-
-    expected = Series(["shzort", "a zbit longer", "evzenlongerthanthat", "z", np.nan])
-    result = ser.str.slice_replace(2, 2, "z")
-    tm.assert_series_equal(result, expected)
-
-    expected = Series(["shzort", "a zbit longer", "evzenlongerthanthat", "z", np.nan])
-    result = ser.str.slice_replace(2, 1, "z")
-    tm.assert_series_equal(result, expected)
-
-    expected = Series(["shorz", "a bit longez", "evenlongerthanthaz", "z", np.nan])
-    result = ser.str.slice_replace(-1, None, "z")
-    tm.assert_series_equal(result, expected)
-
-    expected = Series(["zrt", "zer", "zat", "z", np.nan])
-    result = ser.str.slice_replace(None, -2, "z")
-    tm.assert_series_equal(result, expected)
-
-    expected = Series(["shortz", "a bit znger", "evenlozerthanthat", "z", np.nan])
-    result = ser.str.slice_replace(6, 8, "z")
-    tm.assert_series_equal(result, expected)
-
-    expected = Series(["zrt", "a zit longer", "evenlongzerthanthat", "z", np.nan])
-    result = ser.str.slice_replace(-10, 3, "z")
+@pytest.mark.parametrize(
+    "start,stop,repl,expected",
+    [
+        (2, 3, None, ["shrt", "a it longer", "evnlongerthanthat", "", np.nan]),
+        (2, 3, "z", ["shzrt", "a zit longer", "evznlongerthanthat", "z", np.nan]),
+        (2, 2, "z", ["shzort", "a zbit longer", "evzenlongerthanthat", "z", np.nan]),
+        (2, 1, "z", ["shzort", "a zbit longer", "evzenlongerthanthat", "z", np.nan]),
+        (-1, None, "z", ["shorz", "a bit longez", "evenlongerthanthaz", "z", np.nan]),
+        (None, -2, "z", ["zrt", "zer", "zat", "z", np.nan]),
+        (6, 8, "z", ["shortz", "a bit znger", "evenlozerthanthat", "z", np.nan]),
+        (-10, 3, "z", ["zrt", "a zit longer", "evenlongzerthanthat", "z", np.nan]),
+    ],
+)
+def test_slice_replace(start, stop, repl, expected, any_string_dtype):
+    ser = Series(
+        ["short", "a bit longer", "evenlongerthanthat", "", np.nan],
+        dtype=any_string_dtype,
+    )
+    expected = Series(expected, dtype=any_string_dtype)
+    result = ser.str.slice_replace(start, stop, repl)
     tm.assert_series_equal(result, expected)
 
 
@@ -556,9 +535,30 @@ def test_strip_lstrip_rstrip_args(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
-def test_string_slice_get_syntax():
+@pytest.mark.parametrize(
+    "prefix, expected", [("a", ["b", " b c", "bc"]), ("ab", ["", "a b c", "bc"])]
+)
+def test_removeprefix(any_string_dtype, prefix, expected):
+    ser = Series(["ab", "a b c", "bc"], dtype=any_string_dtype)
+    result = ser.str.removeprefix(prefix)
+    ser_expected = Series(expected, dtype=any_string_dtype)
+    tm.assert_series_equal(result, ser_expected)
+
+
+@pytest.mark.parametrize(
+    "suffix, expected", [("c", ["ab", "a b ", "b"]), ("bc", ["ab", "a b c", ""])]
+)
+def test_removesuffix(any_string_dtype, suffix, expected):
+    ser = Series(["ab", "a b c", "bc"], dtype=any_string_dtype)
+    result = ser.str.removesuffix(suffix)
+    ser_expected = Series(expected, dtype=any_string_dtype)
+    tm.assert_series_equal(result, ser_expected)
+
+
+def test_string_slice_get_syntax(any_string_dtype):
     ser = Series(
-        ["YYY", "B", "C", "YYYYYYbYYY", "BYYYcYYY", np.nan, "CYYYBYYY", "dog", "cYYYt"]
+        ["YYY", "B", "C", "YYYYYYbYYY", "BYYYcYYY", np.nan, "CYYYBYYY", "dog", "cYYYt"],
+        dtype=any_string_dtype,
     )
 
     result = ser.str[0]
@@ -574,27 +574,29 @@ def test_string_slice_get_syntax():
     tm.assert_series_equal(result, expected)
 
 
-def test_string_slice_out_of_bounds():
+def test_string_slice_out_of_bounds_nested():
     ser = Series([(1, 2), (1,), (3, 4, 5)])
     result = ser.str[1]
     expected = Series([2, np.nan, 4])
     tm.assert_series_equal(result, expected)
 
-    ser = Series(["foo", "b", "ba"])
+
+def test_string_slice_out_of_bounds(any_string_dtype):
+    ser = Series(["foo", "b", "ba"], dtype=any_string_dtype)
     result = ser.str[1]
-    expected = Series(["o", np.nan, "a"])
+    expected = Series(["o", np.nan, "a"], dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
 
 
-def test_encode_decode():
-    ser = Series(["a", "b", "a\xe4"]).str.encode("utf-8")
+def test_encode_decode(any_string_dtype):
+    ser = Series(["a", "b", "a\xe4"], dtype=any_string_dtype).str.encode("utf-8")
     result = ser.str.decode("utf-8")
     expected = ser.map(lambda x: x.decode("utf-8"))
     tm.assert_series_equal(result, expected)
 
 
-def test_encode_errors_kwarg():
-    ser = Series(["a", "b", "a\x9d"])
+def test_encode_errors_kwarg(any_string_dtype):
+    ser = Series(["a", "b", "a\x9d"], dtype=any_string_dtype)
 
     msg = (
         r"'charmap' codec can't encode character '\\x9d' in position 1: "
@@ -630,15 +632,23 @@ def test_decode_errors_kwarg():
         ("NFC", ["ABC", "ＡＢＣ", "１２３", np.nan, "ｱｲｴ"]),
     ],
 )
-def test_normalize(form, expected):
-    ser = Series(["ABC", "ＡＢＣ", "１２３", np.nan, "ｱｲｴ"], index=["a", "b", "c", "d", "e"])
-    expected = Series(expected, index=["a", "b", "c", "d", "e"])
+def test_normalize(form, expected, any_string_dtype):
+    ser = Series(
+        ["ABC", "ＡＢＣ", "１２３", np.nan, "ｱｲｴ"],
+        index=["a", "b", "c", "d", "e"],
+        dtype=any_string_dtype,
+    )
+    expected = Series(expected, index=["a", "b", "c", "d", "e"], dtype=any_string_dtype)
     result = ser.str.normalize(form)
     tm.assert_series_equal(result, expected)
 
 
-def test_normalize_bad_arg_raises():
-    ser = Series(["ABC", "ＡＢＣ", "１２３", np.nan, "ｱｲｴ"], index=["a", "b", "c", "d", "e"])
+def test_normalize_bad_arg_raises(any_string_dtype):
+    ser = Series(
+        ["ABC", "ＡＢＣ", "１２３", np.nan, "ｱｲｴ"],
+        index=["a", "b", "c", "d", "e"],
+        dtype=any_string_dtype,
+    )
     with pytest.raises(ValueError, match="invalid normalization form"):
         ser.str.normalize("xxx")
 
@@ -700,9 +710,9 @@ def test_index_str_accessor_multiindex_raises():
         idx.str
 
 
-def test_str_accessor_no_new_attributes():
+def test_str_accessor_no_new_attributes(any_string_dtype):
     # https://github.com/pandas-dev/pandas/issues/10673
-    ser = Series(list("aabbcde"))
+    ser = Series(list("aabbcde"), dtype=any_string_dtype)
     with pytest.raises(AttributeError, match="You cannot add any new attribute"):
         ser.str.xlabel = "a"
 

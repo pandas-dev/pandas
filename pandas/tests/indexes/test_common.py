@@ -8,11 +8,10 @@ import re
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import iNaT
 from pandas.compat import IS64
 
 from pandas.core.dtypes.common import (
-    is_period_dtype,
+    is_integer_dtype,
     needs_i8_conversion,
 )
 
@@ -21,6 +20,7 @@ from pandas import (
     CategoricalIndex,
     DatetimeIndex,
     MultiIndex,
+    NumericIndex,
     PeriodIndex,
     RangeIndex,
     TimedeltaIndex,
@@ -126,7 +126,7 @@ class TestCommon:
         new_copy = index.copy(deep=True, name="banana")
         assert new_copy.name == "banana"
 
-    def test_unique(self, index_flat):
+    def test_unique_level(self, index_flat):
         # don't test a MultiIndex here (as its tested separated)
         index = index_flat
 
@@ -147,7 +147,7 @@ class TestCommon:
         with pytest.raises(KeyError, match=msg):
             index.unique(level="wrong")
 
-    def test_get_unique_index(self, index_flat):
+    def test_unique(self, index_flat):
         # MultiIndex tested separately
         index = index_flat
         if not len(index):
@@ -164,28 +164,17 @@ class TestCommon:
         except NotImplementedError:
             pass
 
-        result = idx._get_unique_index()
+        result = idx.unique()
         tm.assert_index_equal(result, idx_unique)
 
         # nans:
         if not index._can_hold_na:
             pytest.skip("Skip na-check if index cannot hold na")
 
-        if is_period_dtype(index.dtype):
-            vals = index[[0] * 5]._data
-            vals[0] = pd.NaT
-        elif needs_i8_conversion(index.dtype):
-            vals = index._data._ndarray[[0] * 5]
-            vals[0] = iNaT
-        else:
-            vals = index.values[[0] * 5]
-            vals[0] = np.nan
+        vals = index._values[[0] * 5]
+        vals[0] = np.nan
 
         vals_unique = vals[:2]
-        if index.dtype.kind in ["m", "M"]:
-            # i.e. needs_i8_conversion but not period_dtype, as above
-            vals = type(index._data)(vals, dtype=index.dtype)
-            vals_unique = type(index._data)._simple_new(vals_unique, dtype=index.dtype)
         idx_nan = index._shallow_copy(vals)
         idx_unique_nan = index._shallow_copy(vals_unique)
         assert idx_unique_nan.is_unique is True
@@ -195,7 +184,7 @@ class TestCommon:
 
         expected = idx_unique_nan
         for i in [idx_nan, idx_unique_nan]:
-            result = i._get_unique_index()
+            result = i.unique()
             tm.assert_index_equal(result, expected)
 
     def test_searchsorted_monotonic(self, index_flat):
@@ -261,7 +250,8 @@ class TestCommon:
         # make unique index
         holder = type(index)
         unique_values = list(set(index))
-        unique_idx = holder(unique_values)
+        dtype = index.dtype if isinstance(index, NumericIndex) else None
+        unique_idx = holder(unique_values, dtype=dtype)
 
         # make duplicated index
         n = len(unique_idx)
@@ -289,7 +279,8 @@ class TestCommon:
         else:
             holder = type(index)
             unique_values = list(set(index))
-            unique_idx = holder(unique_values)
+            dtype = index.dtype if isinstance(index, NumericIndex) else None
+            unique_idx = holder(unique_values, dtype=dtype)
 
         # check on unique index
         expected_duplicated = np.array([False] * len(unique_idx), dtype="bool")
@@ -343,7 +334,7 @@ class TestCommon:
             warn = FutureWarning
         try:
             # Some of these conversions cannot succeed so we use a try / except
-            with tm.assert_produces_warning(warn, check_stacklevel=False):
+            with tm.assert_produces_warning(warn):
                 result = index.astype(dtype)
         except (ValueError, TypeError, NotImplementedError, SystemError):
             return
@@ -362,6 +353,33 @@ class TestCommon:
 
         with tm.assert_produces_warning(warn):
             index.asi8
+
+    def test_hasnans_isnans(self, index_flat):
+        # GH#11343, added tests for hasnans / isnans
+        index = index_flat
+
+        # cases in indices doesn't include NaN
+        idx = index.copy(deep=True)
+        expected = np.array([False] * len(idx), dtype=bool)
+        tm.assert_numpy_array_equal(idx._isnan, expected)
+        assert idx.hasnans is False
+
+        idx = index.copy(deep=True)
+        values = idx._values
+
+        if len(index) == 0:
+            return
+        elif isinstance(index, NumericIndex) and is_integer_dtype(index.dtype):
+            return
+
+        values[1] = np.nan
+
+        idx = type(index)(values)
+
+        expected = np.array([False] * len(idx), dtype=bool)
+        expected[1] = True
+        tm.assert_numpy_array_equal(idx._isnan, expected)
+        assert idx.hasnans is True
 
 
 @pytest.mark.parametrize("na_position", [None, "middle"])

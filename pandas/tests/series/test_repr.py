@@ -169,7 +169,7 @@ class TestSeriesRepr:
 
     def test_repr_max_rows(self):
         # GH 6863
-        with option_context("max_rows", None):
+        with option_context("display.max_rows", None):
             str(Series(range(1001)))  # should not raise exception
 
     def test_unicode_string_with_unicode(self):
@@ -239,6 +239,13 @@ class TestSeriesRepr:
             "dtype: datetime64[ns]"
         )
         assert result == expected
+
+    def test_float_repr(self):
+        # GH#35603
+        # check float format when cast to object
+        ser = Series([1.0]).astype(object)
+        expected = "0    1.0\ndtype: object"
+        assert repr(ser) == expected
 
 
 class TestCategoricalRepr:

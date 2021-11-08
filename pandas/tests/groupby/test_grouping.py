@@ -14,6 +14,10 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
+from pandas.core.api import (
+    Float64Index,
+    Int64Index,
+)
 from pandas.core.groupby.grouper import Grouping
 
 # selection
@@ -396,6 +400,23 @@ class TestGrouping:
         tm.assert_series_equal(result, result2)
         tm.assert_series_equal(result, expected2)
 
+    @pytest.mark.parametrize(
+        "index",
+        [
+            [0, 1, 2, 3],
+            ["a", "b", "c", "d"],
+            [Timestamp(2021, 7, 28 + i) for i in range(4)],
+        ],
+    )
+    def test_groupby_series_named_with_tuple(self, frame_or_series, index):
+        # GH 42731
+        obj = frame_or_series([1, 2, 3, 4], index=index)
+        groups = Series([1, 0, 1, 0], index=index, name=("a", "a"))
+        result = obj.groupby(groups).last()
+        expected = frame_or_series([4, 3])
+        expected.index.name = ("a", "a")
+        tm.assert_equal(result, expected)
+
     def test_groupby_grouper_f_sanity_checked(self):
         dates = date_range("01-Jan-2013", periods=12, freq="MS")
         ts = Series(np.random.randn(12), index=dates)
@@ -634,11 +655,11 @@ class TestGrouping:
             ),
             (
                 "agg",
-                Series(name=2, dtype=np.float64, index=pd.Float64Index([], name=1)),
+                Series(name=2, dtype=np.float64, index=Float64Index([], name=1)),
             ),
             (
                 "apply",
-                Series(name=2, dtype=np.float64, index=pd.Float64Index([], name=1)),
+                Series(name=2, dtype=np.float64, index=Float64Index([], name=1)),
             ),
         ],
     )
@@ -667,7 +688,7 @@ class TestGrouping:
         )
 
         tm.assert_numpy_array_equal(
-            gr.grouper.group_info[1], np.array([], dtype=np.dtype("int"))
+            gr.grouper.group_info[1], np.array([], dtype=np.dtype(np.intp))
         )
 
         assert gr.grouper.group_info[2] == 0
@@ -702,7 +723,7 @@ class TestGrouping:
         empty = df[df.value < 0]
         result = empty.groupby("id").sum()
         expected = DataFrame(
-            dtype="float64", columns=["value"], index=pd.Int64Index([], name="id")
+            dtype="float64", columns=["value"], index=Int64Index([], name="id")
         )
         tm.assert_frame_equal(result, expected)
 

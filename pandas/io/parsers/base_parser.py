@@ -1,20 +1,18 @@
+from __future__ import annotations
+
 from collections import defaultdict
 import csv
 import datetime
+from enum import Enum
 import itertools
 from typing import (
     Any,
     Callable,
     DefaultDict,
-    Dict,
     Iterable,
-    List,
-    Optional,
     Sequence,
-    Set,
-    Tuple,
-    Union,
     cast,
+    final,
 )
 import warnings
 
@@ -26,9 +24,9 @@ import pandas._libs.parsers as parsers
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._libs.tslibs import parsing
 from pandas._typing import (
+    ArrayLike,
     DtypeArg,
     FilePathOrBuffer,
-    final,
 )
 from pandas.errors import (
     ParserError,
@@ -106,28 +104,36 @@ parser_defaults = {
     "chunksize": None,
     "verbose": False,
     "encoding": None,
-    "squeeze": False,
+    "squeeze": None,
     "compression": None,
     "mangle_dupe_cols": True,
     "infer_datetime_format": False,
     "skip_blank_lines": True,
     "encoding_errors": "strict",
+    "on_bad_lines": "error",
+    "error_bad_lines": None,
+    "warn_bad_lines": None,
 }
 
 
 class ParserBase:
+    class BadLineHandleMethod(Enum):
+        ERROR = 0
+        WARN = 1
+        SKIP = 2
+
     _implicit_index: bool = False
     _first_chunk: bool
 
     def __init__(self, kwds):
 
         self.names = kwds.get("names")
-        self.orig_names: Optional[List] = None
+        self.orig_names: list | None = None
         self.prefix = kwds.pop("prefix", None)
 
         self.index_col = kwds.get("index_col", None)
-        self.unnamed_cols: Set = set()
-        self.index_names: Optional[List] = None
+        self.unnamed_cols: set = set()
+        self.index_names: list | None = None
         self.col_names = None
 
         self.parse_dates = _validate_parse_dates_arg(kwds.pop("parse_dates", False))
@@ -205,11 +211,15 @@ class ParserBase:
 
         self.usecols, self.usecols_dtype = self._validate_usecols_arg(kwds["usecols"])
 
-        self.handles: Optional[IOHandles] = None
+        self.handles: IOHandles | None = None
 
-    def _open_handles(self, src: FilePathOrBuffer, kwds: Dict[str, Any]) -> None:
+        # Fallback to error to pass a sketchy test(test_override_set_noconvert_columns)
+        # Normally, this arg would get pre-processed earlier on
+        self.on_bad_lines = kwds.get("on_bad_lines", self.BadLineHandleMethod.ERROR)
+
+    def _open_handles(self, src: FilePathOrBuffer, kwds: dict[str, Any]) -> None:
         """
-        Let the readers open IOHanldes after they are done with their potential raises.
+        Let the readers open IOHandles after they are done with their potential raises.
         """
         self.handles = get_handle(
             src,
@@ -221,7 +231,7 @@ class ParserBase:
             errors=kwds.get("encoding_errors", "strict"),
         )
 
-    def _validate_parse_dates_presence(self, columns: List[str]) -> None:
+    def _validate_parse_dates_presence(self, columns: list[str]) -> None:
         """
         Check if parse_dates are in columns.
 
@@ -333,6 +343,10 @@ class ParserBase:
         # extract the columns
         field_count = len(header[0])
 
+        # check if header lengths are equal
+        if not all(len(header_iter) == field_count for header_iter in header[1:]):
+            raise ParserError("Header rows must have an equal number of columns.")
+
         def extract(r):
             return tuple(r[i] for i in range(field_count) if i not in sic)
 
@@ -343,7 +357,7 @@ class ParserBase:
         # level, then our header was too long.
         for n in range(len(columns[0])):
             if all(ensure_str(col[n]) in self.unnamed_cols for col in columns):
-                header = ",".join(str(x) for x in self.header)
+                header = ",".join([str(x) for x in self.header])
                 raise ParserError(
                     f"Passed header=[{header}] are too many rows "
                     "for this multi_index of columns"
@@ -371,7 +385,7 @@ class ParserBase:
         # would be nice!
         if self.mangle_dupe_cols:
             names = list(names)  # so we can index
-            counts: DefaultDict[Union[int, str, Tuple], int] = defaultdict(int)
+            counts: DefaultDict[int | str | tuple, int] = defaultdict(int)
             is_potential_mi = _is_potential_multi_index(names, self.index_col)
 
             for i, col in enumerate(names):
@@ -541,7 +555,7 @@ class ParserBase:
                     warnings.warn(
                         (
                             "Both a converter and dtype were specified "
-                            f"for column {c} - only the converter will be used"
+                            f"for column {c} - only the converter will be used."
                         ),
                         ParserWarning,
                         stacklevel=7,
@@ -596,8 +610,8 @@ class ParserBase:
 
     @final
     def _set_noconvert_dtype_columns(
-        self, col_indices: List[int], names: List[Union[int, str, Tuple]]
-    ) -> Set[int]:
+        self, col_indices: list[int], names: list[int | str | tuple]
+    ) -> set[int]:
         """
         Set the columns that should not undergo dtype conversions.
 
@@ -615,7 +629,7 @@ class ParserBase:
         -------
         A set of integers containing the positions of the columns not to convert.
         """
-        usecols: Optional[Union[List[int], List[str]]]
+        usecols: list[int] | list[str] | None
         noconvert_columns = set()
         if self.usecols_dtype == "integer":
             # A set of integers will be converted to a list in
@@ -684,9 +698,7 @@ class ParserBase:
             # error: Argument 2 to "isin" has incompatible type "List[Any]"; expected
             # "Union[Union[ExtensionArray, ndarray], Index, Series]"
             mask = algorithms.isin(values, list(na_values))  # type: ignore[arg-type]
-            # error: Incompatible types in assignment (expression has type
-            # "number[Any]", variable has type "int")
-            na_count = mask.sum()  # type: ignore[assignment]
+            na_count = mask.sum()
             if na_count > 0:
                 if is_integer_dtype(values):
                     values = values.astype(np.float64)
@@ -701,13 +713,13 @@ class ParserBase:
                 # e.g. encountering datetime string gets ValueError
                 #  TypeError can be raised in floatify
                 result = values
-                na_count = parsers.sanitize_objects(result, na_values, False)
+                na_count = parsers.sanitize_objects(result, na_values)
             else:
                 na_count = isna(result).sum()
         else:
             result = values
             if values.dtype == np.object_:
-                na_count = parsers.sanitize_objects(values, na_values, False)
+                na_count = parsers.sanitize_objects(values, na_values)
 
         if result.dtype == np.object_ and try_num_bool:
             result, _ = libops.maybe_convert_bool(
@@ -797,6 +809,29 @@ class ParserBase:
             )
 
         return names, data
+
+    def _check_data_length(self, columns: list[str], data: list[ArrayLike]) -> None:
+        """Checks if length of data is equal to length of column names.
+
+        One set of trailing commas is allowed. self.index_col not False
+        results in a ParserError previously when lengths do not match.
+
+        Parameters
+        ----------
+        columns: list of column names
+        data: list of array-likes containing the data column-wise.
+        """
+        if not self.index_col and len(columns) != len(data) and columns:
+            if len(columns) == len(data) - 1 and np.all(
+                (is_object_dtype(data[-1]) and data[-1] == "") | isna(data[-1])
+            ):
+                return
+            warnings.warn(
+                "Length of header or names does not match length of data. This leads "
+                "to a loss of data with index_col=False.",
+                ParserWarning,
+                stacklevel=6,
+            )
 
     def _evaluate_usecols(self, usecols, names):
         """
@@ -902,7 +937,7 @@ class ParserBase:
             return [None] * len(index_col), columns, index_col
 
         cp_cols = list(columns)
-        index_names: List[Optional[Union[int, str]]] = []
+        index_names: list[str | int | None] = []
 
         # don't mutate
         index_col = list(index_col)
@@ -928,7 +963,7 @@ class ParserBase:
         return index_names, columns, index_col
 
     def _get_empty_meta(
-        self, columns, index_col, index_names, dtype: Optional[DtypeArg] = None
+        self, columns, index_col, index_names, dtype: DtypeArg | None = None
     ):
         columns = list(columns)
 
@@ -1061,7 +1096,9 @@ def _process_date_conversion(
                     colspec = orig_names[colspec]
                 if _isindex(colspec):
                     continue
-                data_dict[colspec] = converter(data_dict[colspec])
+                # Pyarrow engine returns Series which we need to convert to
+                # numpy array before converter, its a no-op for other parsers
+                data_dict[colspec] = converter(np.asarray(data_dict[colspec]))
             else:
                 new_name, col, old_names = _try_convert_dates(
                     converter, colspec, data_dict, orig_names
@@ -1109,8 +1146,8 @@ def _try_convert_dates(parser: Callable, colspec, data_dict, columns):
         else:
             colnames.append(c)
 
-    new_name = "_".join(str(x) for x in colnames)
-    to_parse = [data_dict[c] for c in colnames if c in data_dict]
+    new_name = "_".join([str(x) for x in colnames])
+    to_parse = [np.asarray(data_dict[c]) for c in colnames if c in data_dict]
 
     new_col = parser(*to_parse)
     return new_name, new_col, colnames
@@ -1152,7 +1189,7 @@ def _get_na_values(col, na_values, na_fvalues, keep_default_na):
 
 
 def _is_potential_multi_index(
-    columns, index_col: Optional[Union[bool, Sequence[int]]] = None
+    columns, index_col: bool | Sequence[int] | None = None
 ) -> bool:
     """
     Check whether or not the `columns` parameter

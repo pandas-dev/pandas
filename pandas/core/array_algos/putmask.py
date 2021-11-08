@@ -1,16 +1,18 @@
 """
 EA-compatible analogue to to np.putmask
 """
-from typing import (
-    Any,
-    Tuple,
-)
+from __future__ import annotations
+
+from typing import Any
 import warnings
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import ArrayLike
+from pandas._typing import (
+    ArrayLike,
+    npt,
+)
 
 from pandas.core.dtypes.cast import (
     convert_scalar_for_putitemlike,
@@ -27,13 +29,14 @@ from pandas.core.dtypes.missing import isna_compat
 from pandas.core.arrays import ExtensionArray
 
 
-def putmask_inplace(values: ArrayLike, mask: np.ndarray, value: Any) -> None:
+def putmask_inplace(values: ArrayLike, mask: npt.NDArray[np.bool_], value: Any) -> None:
     """
     ExtensionArray-compatible implementation of np.putmask.  The main
     difference is we do not handle repeating or truncating like numpy.
 
     Parameters
     ----------
+    values: np.ndarray or ExtensionArray
     mask : np.ndarray[bool]
         We assume extract_bool_array has already been called.
     value : Any
@@ -42,10 +45,17 @@ def putmask_inplace(values: ArrayLike, mask: np.ndarray, value: Any) -> None:
     if lib.is_scalar(value) and isinstance(values, np.ndarray):
         value = convert_scalar_for_putitemlike(value, values.dtype)
 
-    if not isinstance(values, np.ndarray) or (
-        values.dtype == object and not lib.is_scalar(value)
+    if (
+        not isinstance(values, np.ndarray)
+        or (values.dtype == object and not lib.is_scalar(value))
+        # GH#43424: np.putmask raises TypeError if we cannot cast between types with
+        # rule = "safe", a stricter guarantee we may not have here
+        or (
+            isinstance(value, np.ndarray) and not np.can_cast(value.dtype, values.dtype)
+        )
     ):
         # GH#19266 using np.putmask gives unexpected results with listlike value
+        #  along with object dtype
         if is_list_like(value) and len(value) == len(values):
             values[mask] = value[mask]
         else:
@@ -55,7 +65,7 @@ def putmask_inplace(values: ArrayLike, mask: np.ndarray, value: Any) -> None:
         np.putmask(values, mask, value)
 
 
-def putmask_smart(values: np.ndarray, mask: np.ndarray, new) -> np.ndarray:
+def putmask_smart(values: np.ndarray, mask: npt.NDArray[np.bool_], new) -> np.ndarray:
     """
     Return a new ndarray, try to preserve dtype if possible.
 
@@ -74,12 +84,11 @@ def putmask_smart(values: np.ndarray, mask: np.ndarray, new) -> np.ndarray:
 
     See Also
     --------
-    ndarray.putmask
+    np.putmask
     """
     # we cannot use np.asarray() here as we cannot have conversions
     # that numpy does when numeric are mixed with strings
 
-    # n should be the length of the mask or a scalar here
     if not is_list_like(new):
         new = np.broadcast_to(new, mask.shape)
 
@@ -129,7 +138,7 @@ def putmask_smart(values: np.ndarray, mask: np.ndarray, new) -> np.ndarray:
     return _putmask_preserve(values, new, mask)
 
 
-def _putmask_preserve(new_values: np.ndarray, new, mask: np.ndarray):
+def _putmask_preserve(new_values: np.ndarray, new, mask: npt.NDArray[np.bool_]):
     try:
         new_values[mask] = new[mask]
     except (IndexError, ValueError):
@@ -137,7 +146,9 @@ def _putmask_preserve(new_values: np.ndarray, new, mask: np.ndarray):
     return new_values
 
 
-def putmask_without_repeat(values: np.ndarray, mask: np.ndarray, new: Any) -> None:
+def putmask_without_repeat(
+    values: np.ndarray, mask: npt.NDArray[np.bool_], new: Any
+) -> None:
     """
     np.putmask will truncate or repeat if `new` is a listlike with
     len(new) != len(values).  We require an exact match.
@@ -171,7 +182,9 @@ def putmask_without_repeat(values: np.ndarray, mask: np.ndarray, new: Any) -> No
         np.putmask(values, mask, new)
 
 
-def validate_putmask(values: ArrayLike, mask: np.ndarray) -> Tuple[np.ndarray, bool]:
+def validate_putmask(
+    values: ArrayLike, mask: np.ndarray
+) -> tuple[npt.NDArray[np.bool_], bool]:
     """
     Validate mask and check if this putmask operation is a no-op.
     """
@@ -183,7 +196,7 @@ def validate_putmask(values: ArrayLike, mask: np.ndarray) -> Tuple[np.ndarray, b
     return mask, noop
 
 
-def extract_bool_array(mask: ArrayLike) -> np.ndarray:
+def extract_bool_array(mask: ArrayLike) -> npt.NDArray[np.bool_]:
     """
     If we have a SparseArray or BooleanArray, convert it to ndarray[bool].
     """

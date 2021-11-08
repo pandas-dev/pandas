@@ -35,7 +35,7 @@ from pandas.io.common import (
 
 
 def get_engine(engine: str) -> BaseImpl:
-    """ return our implementation """
+    """return our implementation"""
     if engine == "auto":
         engine = get_option("io.parquet.engine")
 
@@ -210,27 +210,21 @@ class PyArrowImpl(BaseImpl):
 
         to_pandas_kwargs = {}
         if use_nullable_dtypes:
-            if Version(self.api.__version__) >= Version("0.16"):
-                import pandas as pd
+            import pandas as pd
 
-                mapping = {
-                    self.api.int8(): pd.Int8Dtype(),
-                    self.api.int16(): pd.Int16Dtype(),
-                    self.api.int32(): pd.Int32Dtype(),
-                    self.api.int64(): pd.Int64Dtype(),
-                    self.api.uint8(): pd.UInt8Dtype(),
-                    self.api.uint16(): pd.UInt16Dtype(),
-                    self.api.uint32(): pd.UInt32Dtype(),
-                    self.api.uint64(): pd.UInt64Dtype(),
-                    self.api.bool_(): pd.BooleanDtype(),
-                    self.api.string(): pd.StringDtype(),
-                }
-                to_pandas_kwargs["types_mapper"] = mapping.get
-            else:
-                raise ValueError(
-                    "'use_nullable_dtypes=True' is only supported for pyarrow >= 0.16 "
-                    f"({self.api.__version__} is installed"
-                )
+            mapping = {
+                self.api.int8(): pd.Int8Dtype(),
+                self.api.int16(): pd.Int16Dtype(),
+                self.api.int32(): pd.Int32Dtype(),
+                self.api.int64(): pd.Int64Dtype(),
+                self.api.uint8(): pd.UInt8Dtype(),
+                self.api.uint16(): pd.UInt16Dtype(),
+                self.api.uint32(): pd.UInt32Dtype(),
+                self.api.uint64(): pd.UInt64Dtype(),
+                self.api.bool_(): pd.BooleanDtype(),
+                self.api.string(): pd.StringDtype(),
+            }
+            to_pandas_kwargs["types_mapper"] = mapping.get
         manager = get_option("mode.data_manager")
         if manager == "array":
             to_pandas_kwargs["split_blocks"] = True  # type: ignore[assignment]
@@ -315,14 +309,17 @@ class FastParquetImpl(BaseImpl):
     def read(
         self, path, columns=None, storage_options: StorageOptions = None, **kwargs
     ):
+        parquet_kwargs: dict[str, Any] = {}
         use_nullable_dtypes = kwargs.pop("use_nullable_dtypes", False)
+        if Version(self.api.__version__) >= Version("0.7.1"):
+            # We are disabling nullable dtypes for fastparquet pending discussion
+            parquet_kwargs["pandas_nulls"] = False
         if use_nullable_dtypes:
             raise ValueError(
                 "The 'use_nullable_dtypes' argument is not supported for the "
                 "fastparquet engine"
             )
         path = stringify_path(path)
-        parquet_kwargs = {}
         handles = None
         if is_fsspec_url(path):
             fsspec = import_optional_dependency("fsspec")
@@ -343,6 +340,7 @@ class FastParquetImpl(BaseImpl):
                 path, "rb", is_text=False, storage_options=storage_options
             )
             path = handles.handle
+
         parquet_file = self.api.ParquetFile(path, **parquet_kwargs)
 
         result = parquet_file.to_pandas(columns=columns, **kwargs)
@@ -384,8 +382,12 @@ def to_parquet(
         ``io.parquet.engine`` is used. The default ``io.parquet.engine``
         behavior is to try 'pyarrow', falling back to 'fastparquet' if
         'pyarrow' is unavailable.
-    compression : {{'snappy', 'gzip', 'brotli', None}}, default 'snappy'
-        Name of the compression to use. Use ``None`` for no compression.
+    compression : {{'snappy', 'gzip', 'brotli', 'lz4', 'zstd', None}},
+        default 'snappy'. Name of the compression to use. Use ``None``
+        for no compression. The supported compression methods actually
+        depend on which engine is used. For 'pyarrow', 'snappy', 'gzip',
+        'brotli', 'lz4', 'zstd' are all supported. For 'fastparquet',
+        only 'gzip' and 'snappy' are supported.
     index : bool, default None
         If ``True``, include the dataframe's index(es) in the file output. If
         ``False``, they will not be written to the file.
@@ -394,16 +396,10 @@ def to_parquet(
         the RangeIndex will be stored as a range in the metadata so it
         doesn't require much space and is faster. Other indexes will
         be included as columns in the file output.
-
-        .. versionadded:: 0.24.0
-
     partition_cols : str or list, optional, default None
         Column names by which to partition the dataset.
         Columns are partitioned in the order they are given.
         Must be None if path is not a string.
-
-        .. versionadded:: 0.24.0
-
     {storage_options}
 
         .. versionadded:: 1.2.0
@@ -482,7 +478,8 @@ def read_parquet(
 
     use_nullable_dtypes : bool, default False
         If True, use dtypes that use ``pd.NA`` as missing value indicator
-        for the resulting DataFrame (only applicable for ``engine="pyarrow"``).
+        for the resulting DataFrame. (only applicable for the ``pyarrow``
+        engine)
         As new dtypes are added that support ``pd.NA`` in the future, the
         output with this option will change to use those dtypes.
         Note: this is an experimental option, and behaviour (e.g. additional

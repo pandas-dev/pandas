@@ -10,6 +10,8 @@ from pandas import (
 pytest.importorskip("matplotlib")
 pytest.importorskip("jinja2")
 
+import matplotlib as mpl
+
 from pandas.io.formats.style import Styler
 
 
@@ -33,17 +35,22 @@ def styler_blank(df_blank):
     return Styler(df_blank, uuid_len=0)
 
 
-def test_background_gradient(styler):
+@pytest.mark.parametrize("f", ["background_gradient", "text_gradient"])
+def test_function_gradient(styler, f):
     for c_map in [None, "YlOrRd"]:
-        result = styler.background_gradient(cmap=c_map)._compute().ctx
+        result = getattr(styler, f)(cmap=c_map)._compute().ctx
         assert all("#" in x[0][1] for x in result.values())
         assert result[(0, 0)] == result[(0, 1)]
         assert result[(1, 0)] == result[(1, 1)]
 
 
-def test_background_gradient_color(styler):
-    result = styler.background_gradient(subset=IndexSlice[1, "A"])._compute().ctx
-    assert result[(1, 0)] == [("background-color", "#fff7fb"), ("color", "#000000")]
+@pytest.mark.parametrize("f", ["background_gradient", "text_gradient"])
+def test_background_gradient_color(styler, f):
+    result = getattr(styler, f)(subset=IndexSlice[1, "A"])._compute().ctx
+    if f == "background_gradient":
+        assert result[(1, 0)] == [("background-color", "#fff7fb"), ("color", "#000000")]
+    elif f == "text_gradient":
+        assert result[(1, 0)] == [("color", "#fff7fb")]
 
 
 @pytest.mark.parametrize(
@@ -54,15 +61,23 @@ def test_background_gradient_color(styler):
         (None, ["low", "mid", "mid", "high"]),
     ],
 )
-def test_background_gradient_axis(styler, axis, expected):
-    bg_colors = {
-        "low": [("background-color", "#f7fbff"), ("color", "#000000")],
-        "mid": [("background-color", "#abd0e6"), ("color", "#000000")],
-        "high": [("background-color", "#08306b"), ("color", "#f1f1f1")],
-    }
-    result = styler.background_gradient(cmap="Blues", axis=axis)._compute().ctx
+@pytest.mark.parametrize("f", ["background_gradient", "text_gradient"])
+def test_background_gradient_axis(styler, axis, expected, f):
+    if f == "background_gradient":
+        colors = {
+            "low": [("background-color", "#f7fbff"), ("color", "#000000")],
+            "mid": [("background-color", "#abd0e6"), ("color", "#000000")],
+            "high": [("background-color", "#08306b"), ("color", "#f1f1f1")],
+        }
+    elif f == "text_gradient":
+        colors = {
+            "low": [("color", "#f7fbff")],
+            "mid": [("color", "#abd0e6")],
+            "high": [("color", "#08306b")],
+        }
+    result = getattr(styler, f)(cmap="Blues", axis=axis)._compute().ctx
     for i, cell in enumerate([(0, 0), (0, 1), (1, 0), (1, 1)]):
-        assert result[cell] == bg_colors[expected[i]]
+        assert result[cell] == colors[expected[i]]
 
 
 @pytest.mark.parametrize(
@@ -243,3 +258,29 @@ def test_background_gradient_gmap_wrong_series(styler_blank):
     gmap = Series([1, 2], index=["X", "Y"])
     with pytest.raises(ValueError, match=msg):
         styler_blank.background_gradient(gmap=gmap, axis=None)._compute()
+
+
+@pytest.mark.parametrize("cmap", ["PuBu", mpl.cm.get_cmap("PuBu")])
+def test_bar_colormap(cmap):
+    data = DataFrame([[1, 2], [3, 4]])
+    ctx = data.style.bar(cmap=cmap, axis=None)._compute().ctx
+    pubu_colors = {
+        (0, 0): "#d0d1e6",
+        (1, 0): "#056faf",
+        (0, 1): "#73a9cf",
+        (1, 1): "#023858",
+    }
+    for k, v in pubu_colors.items():
+        assert v in ctx[k][1][1]
+
+
+def test_bar_color_raises(df):
+    msg = "`color` must be string or list or tuple of 2 strings"
+    with pytest.raises(ValueError, match=msg):
+        df.style.bar(color={"a", "b"}).to_html()
+    with pytest.raises(ValueError, match=msg):
+        df.style.bar(color=["a", "b", "c"]).to_html()
+
+    msg = "`color` and `cmap` cannot both be given"
+    with pytest.raises(ValueError, match=msg):
+        df.style.bar(color="something", cmap="something else").to_html()

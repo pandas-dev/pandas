@@ -33,7 +33,6 @@ class CParserWrapper(ParserBase):
     def __init__(self, src: FilePathOrBuffer, **kwds):
         self.kwds = kwds
         kwds = kwds.copy()
-
         ParserBase.__init__(self, kwds)
 
         self.low_memory = kwds.pop("low_memory", False)
@@ -50,7 +49,18 @@ class CParserWrapper(ParserBase):
         # open handles
         self._open_handles(src, kwds)
         assert self.handles is not None
-        for key in ("storage_options", "encoding", "memory_map", "compression"):
+
+        # Have to pass int, would break tests using TextReader directly otherwise :(
+        kwds["on_bad_lines"] = self.on_bad_lines.value
+
+        for key in (
+            "storage_options",
+            "encoding",
+            "memory_map",
+            "compression",
+            "error_bad_lines",
+            "warn_bad_lines",
+        ):
             kwds.pop(key, None)
 
         kwds["dtype"] = ensure_dtype_objs(kwds.get("dtype", None))
@@ -195,9 +205,10 @@ class CParserWrapper(ParserBase):
         """
         assert self.orig_names is not None
         # error: Cannot determine type of 'names'
-        col_indices = [
-            self.orig_names.index(x) for x in self.names  # type: ignore[has-type]
-        ]
+
+        # much faster than using orig_names.index(x) xref GH#44106
+        names_dict = {x: i for i, x in enumerate(self.orig_names)}
+        col_indices = [names_dict[x] for x in self.names]  # type: ignore[has-type]
         # error: Cannot determine type of 'names'
         noconvert_columns = self._set_noconvert_dtype_columns(
             col_indices,
@@ -205,9 +216,6 @@ class CParserWrapper(ParserBase):
         )
         for col in noconvert_columns:
             self._reader.set_noconvert(col)
-
-    def set_error_bad_lines(self, status):
-        self._reader.set_error_bad_lines(int(status))
 
     def read(self, nrows=None):
         try:
@@ -292,6 +300,8 @@ class CParserWrapper(ParserBase):
 
             # columns as list
             alldata = [x[1] for x in data_tups]
+            if self.usecols is None:
+                self._check_data_length(names, alldata)
 
             data = {k: v for k, (i, v) in zip(names, data_tups)}
 
@@ -355,7 +365,9 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
                 numpy_dtypes,  # type: ignore[arg-type]
                 [],
             )
-            if common_type == object:
+            # error: Non-overlapping equality check (left operand type: "dtype[Any]",
+            # right operand type: "Type[object]")
+            if common_type == object:  # type: ignore[comparison-overlap]
                 warning_columns.append(str(name))
 
         dtype = dtypes.pop()
@@ -378,7 +390,7 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
         warning_names = ",".join(warning_columns)
         warning_message = " ".join(
             [
-                f"Columns ({warning_names}) have mixed types."
+                f"Columns ({warning_names}) have mixed types. "
                 f"Specify dtype option on import or set low_memory=False."
             ]
         )

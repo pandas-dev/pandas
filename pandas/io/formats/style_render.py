@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from functools import partial
+import re
 from typing import (
     Any,
     Callable,
@@ -11,6 +12,7 @@ from typing import (
     Optional,
     Sequence,
     Tuple,
+    TypedDict,
     Union,
 )
 from uuid import uuid4
@@ -20,10 +22,7 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import lib
-from pandas._typing import (
-    FrameOrSeriesUnion,
-    TypedDict,
-)
+from pandas._typing import Level
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.generic import ABCSeries
@@ -66,16 +65,20 @@ class StylerRenderer:
     loader = jinja2.PackageLoader("pandas", "io/formats/templates")
     env = jinja2.Environment(loader=loader, trim_blocks=True)
     template_html = env.get_template("html.tpl")
+    template_html_table = env.get_template("html_table.tpl")
+    template_html_style = env.get_template("html_style.tpl")
+    template_latex = env.get_template("latex.tpl")
 
     def __init__(
         self,
-        data: FrameOrSeriesUnion,
+        data: DataFrame | Series,
         uuid: str | None = None,
         uuid_len: int = 5,
         table_styles: CSSStyles | None = None,
         table_attributes: str | None = None,
-        caption: str | None = None,
+        caption: str | tuple | None = None,
         cell_ids: bool = True,
+        precision: int | None = None,
     ):
 
         # validate ordered args
@@ -88,35 +91,89 @@ class StylerRenderer:
         self.columns: Index = data.columns
         if not isinstance(uuid_len, int) or not uuid_len >= 0:
             raise TypeError("``uuid_len`` must be an integer in range [0, 32].")
-        self.uuid_len = min(32, uuid_len)
-        self.uuid = (uuid or uuid4().hex[: self.uuid_len]) + "_"
+        self.uuid = uuid or uuid4().hex[: min(32, uuid_len)]
+        self.uuid_len = len(self.uuid)
         self.table_styles = table_styles
         self.table_attributes = table_attributes
         self.caption = caption
         self.cell_ids = cell_ids
+        self.css = {
+            "row_heading": "row_heading",
+            "col_heading": "col_heading",
+            "index_name": "index_name",
+            "col": "col",
+            "row": "row",
+            "col_trim": "col_trim",
+            "row_trim": "row_trim",
+            "level": "level",
+            "data": "data",
+            "blank": "blank",
+        }
 
         # add rendering variables
-        self.hidden_index: bool = False
+        self.hide_index_names: bool = False
+        self.hide_column_names: bool = False
+        self.hide_index_: list = [False] * self.index.nlevels
+        self.hide_columns_: list = [False] * self.columns.nlevels
+        self.hidden_rows: Sequence[int] = []  # sequence for specific hidden rows/cols
         self.hidden_columns: Sequence[int] = []
         self.ctx: DefaultDict[tuple[int, int], CSSList] = defaultdict(list)
+        self.ctx_index: DefaultDict[tuple[int, int], CSSList] = defaultdict(list)
+        self.ctx_columns: DefaultDict[tuple[int, int], CSSList] = defaultdict(list)
         self.cell_context: DefaultDict[tuple[int, int], str] = defaultdict(str)
         self._todo: list[tuple[Callable, tuple, dict]] = []
         self.tooltips: Tooltips | None = None
-        def_precision = get_option("display.precision")
-        self._display_funcs: DefaultDict[  # maps (row, col) -> formatting function
+        precision = (
+            get_option("styler.format.precision") if precision is None else precision
+        )
+        self._display_funcs: DefaultDict[  # maps (row, col) -> format func
             tuple[int, int], Callable[[Any], str]
-        ] = defaultdict(lambda: partial(_default_formatter, precision=def_precision))
+        ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
+        self._display_funcs_index: DefaultDict[  # maps (row, level) -> format func
+            tuple[int, int], Callable[[Any], str]
+        ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
+        self._display_funcs_columns: DefaultDict[  # maps (level, col) -> format func
+            tuple[int, int], Callable[[Any], str]
+        ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
 
-    def _render_html(self, **kwargs) -> str:
+    def _render_html(
+        self,
+        sparse_index: bool,
+        sparse_columns: bool,
+        max_rows: int | None = None,
+        max_cols: int | None = None,
+        **kwargs,
+    ) -> str:
         """
         Renders the ``Styler`` including all applied styles to HTML.
         Generates a dict with necessary kwargs passed to jinja2 template.
         """
         self._compute()
         # TODO: namespace all the pandas keys
-        d = self._translate()
+        d = self._translate(sparse_index, sparse_columns, max_rows, max_cols)
         d.update(kwargs)
-        return self.template_html.render(**d)
+        return self.template_html.render(
+            **d,
+            html_table_tpl=self.template_html_table,
+            html_style_tpl=self.template_html_style,
+        )
+
+    def _render_latex(self, sparse_index: bool, sparse_columns: bool, **kwargs) -> str:
+        """
+        Render a Styler in latex format
+        """
+        self._compute()
+
+        d = self._translate(sparse_index, sparse_columns, blank="")
+        self._translate_latex(d)
+
+        self.template_latex.globals["parse_wrap"] = _parse_latex_table_wrapping
+        self.template_latex.globals["parse_table"] = _parse_latex_table_styles
+        self.template_latex.globals["parse_cell"] = _parse_latex_cell_styles
+        self.template_latex.globals["parse_header"] = _parse_latex_header_span
+
+        d.update(kwargs)
+        return self.template_latex.render(**d)
 
     def _compute(self):
         """
@@ -128,13 +185,20 @@ class StylerRenderer:
         (application method, *args, **kwargs)
         """
         self.ctx.clear()
+        self.ctx_index.clear()
+        self.ctx_columns.clear()
         r = self
         for func, args, kwargs in self._todo:
             r = func(self)(*args, **kwargs)
         return r
 
     def _translate(
-        self, sparsify_index: bool | None = None, sparsify_cols: bool | None = None
+        self,
+        sparse_index: bool,
+        sparse_cols: bool,
+        max_rows: int | None = None,
+        max_cols: int | None = None,
+        blank: str = "&nbsp;",
     ):
         """
         Process Styler data and settings into a dict for template rendering.
@@ -144,10 +208,16 @@ class StylerRenderer:
 
         Parameters
         ----------
-        sparsify_index : bool, optional
-            Whether to sparsify the index or print all hierarchical index elements
-        sparsify_cols : bool, optional
-            Whether to sparsify the columns or print all hierarchical column elements
+        sparse_index : bool
+            Whether to sparsify the index or print all hierarchical index elements.
+            Upstream defaults are typically to `pandas.options.styler.sparse.index`.
+        sparse_cols : bool
+            Whether to sparsify the columns or print all hierarchical column elements.
+            Upstream defaults are typically to `pandas.options.styler.sparse.columns`.
+        blank : str
+            Entry to top-left blank cells.
+        max_rows, max_cols : int, optional
+            Specific max rows and cols. max_elements always take precedence in render.
 
         Returns
         -------
@@ -155,46 +225,55 @@ class StylerRenderer:
             The following structure: {uuid, table_styles, caption, head, body,
             cellstyle, table_attributes}
         """
-        if sparsify_index is None:
-            sparsify_index = get_option("display.multi_sparse")
-        if sparsify_cols is None:
-            sparsify_cols = get_option("display.multi_sparse")
-
-        ROW_HEADING_CLASS = "row_heading"
-        COL_HEADING_CLASS = "col_heading"
-        INDEX_NAME_CLASS = "index_name"
-
-        DATA_CLASS = "data"
-        BLANK_CLASS = "blank"
-        BLANK_VALUE = "&nbsp;"
+        self.css["blank_value"] = blank
 
         # construct render dict
         d = {
             "uuid": self.uuid,
-            "table_styles": _format_table_styles(self.table_styles or []),
+            "table_styles": format_table_styles(self.table_styles or []),
             "caption": self.caption,
         }
 
-        head = self._translate_header(
-            BLANK_CLASS, BLANK_VALUE, INDEX_NAME_CLASS, COL_HEADING_CLASS, sparsify_cols
+        max_elements = get_option("styler.render.max_elements")
+        max_rows = max_rows if max_rows else get_option("styler.render.max_rows")
+        max_cols = max_cols if max_cols else get_option("styler.render.max_columns")
+        max_rows, max_cols = _get_trimming_maximums(
+            len(self.data.index),
+            len(self.data.columns),
+            max_elements,
+            max_rows,
+            max_cols,
         )
+
+        self.cellstyle_map_columns: DefaultDict[
+            tuple[CSSPair, ...], list[str]
+        ] = defaultdict(list)
+        head = self._translate_header(sparse_cols, max_cols)
         d.update({"head": head})
 
         self.cellstyle_map: DefaultDict[tuple[CSSPair, ...], list[str]] = defaultdict(
             list
         )
-        body = self._translate_body(DATA_CLASS, ROW_HEADING_CLASS, sparsify_index)
+        self.cellstyle_map_index: DefaultDict[
+            tuple[CSSPair, ...], list[str]
+        ] = defaultdict(list)
+        body = self._translate_body(sparse_index, max_rows, max_cols)
         d.update({"body": body})
 
-        cellstyle: list[dict[str, CSSList | list[str]]] = [
-            {"props": list(props), "selectors": selectors}
-            for props, selectors in self.cellstyle_map.items()
-        ]
-        d.update({"cellstyle": cellstyle})
+        ctx_maps = {
+            "cellstyle": "cellstyle_map",
+            "cellstyle_index": "cellstyle_map_index",
+            "cellstyle_columns": "cellstyle_map_columns",
+        }  # add the cell_ids styles map to the render dictionary in right format
+        for k, attr in ctx_maps.items():
+            map = [
+                {"props": list(props), "selectors": selectors}
+                for props, selectors in getattr(self, attr).items()
+            ]
+            d.update({k: map})
 
         table_attr = self.table_attributes
-        use_mathjax = get_option("display.html.use_mathjax")
-        if not use_mathjax:
+        if not get_option("styler.html.mathjax"):
             table_attr = table_attr or ""
             if 'class="' in table_attr:
                 table_attr = table_attr.replace('class="', 'class="tex2jax_ignore ')
@@ -203,18 +282,11 @@ class StylerRenderer:
         d.update({"table_attributes": table_attr})
 
         if self.tooltips:
-            d = self.tooltips._translate(self.data, self.uuid, d)
+            d = self.tooltips._translate(self, d)
 
         return d
 
-    def _translate_header(
-        self,
-        blank_class: str,
-        blank_value: str,
-        index_name_class: str,
-        col_heading_class: str,
-        sparsify_cols: bool,
-    ):
+    def _translate_header(self, sparsify_cols: bool, max_cols: int):
         """
         Build each <tr> within table <head> as a list
 
@@ -229,16 +301,10 @@ class StylerRenderer:
 
         Parameters
         ----------
-        blank_class : str
-            CSS class added to elements within blank sections of the structure.
-        blank_value : str
-            HTML display value given to elements within blank sections of the structure.
-        index_name_class : str
-            CSS class added to elements within the index_names section of the structure.
-        col_heading_class : str
-            CSS class added to elements within the column_names section of structure.
         sparsify_cols : bool
             Whether column_headers section will add colspan attributes (>1) to elements.
+        max_cols : int
+            Maximum number of columns to render. If exceeded will contain `...` filler.
 
         Returns
         -------
@@ -247,7 +313,7 @@ class StylerRenderer:
         """
         # for sparsifying a MultiIndex
         col_lengths = _get_level_lengths(
-            self.columns, sparsify_cols, self.hidden_columns
+            self.columns, sparsify_cols, max_cols, self.hidden_columns
         )
 
         clabels = self.data.columns.tolist()
@@ -257,76 +323,199 @@ class StylerRenderer:
 
         head = []
         # 1) column headers
-        for r in range(self.data.columns.nlevels):
-            index_blanks = [
-                _element("th", blank_class, blank_value, not self.hidden_index)
-            ] * (self.data.index.nlevels - 1)
-
-            name = self.data.columns.names[r]
-            column_name = [
-                _element(
-                    "th",
-                    f"{blank_class if name is None else index_name_class} level{r}",
-                    name if name is not None else blank_value,
-                    not self.hidden_index,
+        for r, hide in enumerate(self.hide_columns_):
+            if hide or not clabels:
+                continue
+            else:
+                header_row = self._generate_col_header_row(
+                    (r, clabels), max_cols, col_lengths
                 )
-            ]
-
-            if clabels:
-                column_headers = [
-                    _element(
-                        "th",
-                        f"{col_heading_class} level{r} col{c}",
-                        value,
-                        _is_visible(c, r, col_lengths),
-                        attributes=(
-                            f'colspan="{col_lengths.get((r, c), 0)}"'
-                            if col_lengths.get((r, c), 0) > 1
-                            else ""
-                        ),
-                    )
-                    for c, value in enumerate(clabels[r])
-                ]
-                head.append(index_blanks + column_name + column_headers)
+                head.append(header_row)
 
         # 2) index names
         if (
             self.data.index.names
             and com.any_not_none(*self.data.index.names)
-            and not self.hidden_index
+            and not all(self.hide_index_)
+            and not self.hide_index_names
         ):
-            index_names = [
-                _element(
-                    "th",
-                    f"{index_name_class} level{c}",
-                    blank_value if name is None else name,
-                    True,
-                )
-                for c, name in enumerate(self.data.index.names)
-            ]
-
-            column_blanks = [
-                _element(
-                    "th",
-                    f"{blank_class} col{c}",
-                    blank_value,
-                    c not in self.hidden_columns,
-                )
-                for c in range(len(clabels[0]))
-            ]
-            head.append(index_names + column_blanks)
+            index_names_row = self._generate_index_names_row(
+                clabels, max_cols, col_lengths
+            )
+            head.append(index_names_row)
 
         return head
 
-    def _translate_body(
-        self, data_class: str, row_heading_class: str, sparsify_index: bool
-    ):
+    def _generate_col_header_row(self, iter: tuple, max_cols: int, col_lengths: dict):
+        """
+        Generate the row containing column headers:
+
+         +----------------------------+---------------+---------------------------+
+         |  index_blanks ...          | column_name_i |  column_headers (level_i) |
+         +----------------------------+---------------+---------------------------+
+
+        Parameters
+        ----------
+        iter : tuple
+            Looping variables from outer scope
+        max_cols : int
+            Permissible number of columns
+        col_lenths :
+            c
+
+        Returns
+        -------
+        list of elements
+        """
+
+        r, clabels = iter
+
+        # number of index blanks is governed by number of hidden index levels
+        index_blanks = [
+            _element("th", self.css["blank"], self.css["blank_value"], True)
+        ] * (self.index.nlevels - sum(self.hide_index_) - 1)
+
+        name = self.data.columns.names[r]
+        column_name = [
+            _element(
+                "th",
+                (
+                    f"{self.css['blank']} {self.css['level']}{r}"
+                    if name is None
+                    else f"{self.css['index_name']} {self.css['level']}{r}"
+                ),
+                name
+                if (name is not None and not self.hide_column_names)
+                else self.css["blank_value"],
+                not all(self.hide_index_),
+            )
+        ]
+
+        column_headers, visible_col_count = [], 0
+        for c, value in enumerate(clabels[r]):
+            header_element_visible = _is_visible(c, r, col_lengths)
+            if header_element_visible:
+                visible_col_count += col_lengths.get((r, c), 0)
+            if visible_col_count > max_cols:
+                # add an extra column with `...` value to indicate trimming
+                column_headers.append(
+                    _element(
+                        "th",
+                        (
+                            f"{self.css['col_heading']} {self.css['level']}{r} "
+                            f"{self.css['col_trim']}"
+                        ),
+                        "...",
+                        True,
+                        attributes="",
+                    )
+                )
+                break
+
+            header_element = _element(
+                "th",
+                (
+                    f"{self.css['col_heading']} {self.css['level']}{r} "
+                    f"{self.css['col']}{c}"
+                ),
+                value,
+                header_element_visible,
+                display_value=self._display_funcs_columns[(r, c)](value),
+                attributes=(
+                    f'colspan="{col_lengths.get((r, c), 0)}"'
+                    if col_lengths.get((r, c), 0) > 1
+                    else ""
+                ),
+            )
+
+            if self.cell_ids:
+                header_element["id"] = f"{self.css['level']}{r}_{self.css['col']}{c}"
+            if (
+                header_element_visible
+                and (r, c) in self.ctx_columns
+                and self.ctx_columns[r, c]
+            ):
+                header_element["id"] = f"{self.css['level']}{r}_{self.css['col']}{c}"
+                self.cellstyle_map_columns[tuple(self.ctx_columns[r, c])].append(
+                    f"{self.css['level']}{r}_{self.css['col']}{c}"
+                )
+
+            column_headers.append(header_element)
+
+        return index_blanks + column_name + column_headers
+
+    def _generate_index_names_row(self, iter: tuple, max_cols: int, col_lengths: dict):
+        """
+        Generate the row containing index names
+
+         +----------------------------+---------------+---------------------------+
+         |  index_names (level_0 to level_n) ...      | column_blanks ...         |
+         +----------------------------+---------------+---------------------------+
+
+        Parameters
+        ----------
+        iter : tuple
+            Looping variables from outer scope
+        max_cols : int
+            Permissible number of columns
+
+        Returns
+        -------
+        list of elements
+        """
+
+        clabels = iter
+
+        index_names = [
+            _element(
+                "th",
+                f"{self.css['index_name']} {self.css['level']}{c}",
+                self.css["blank_value"] if name is None else name,
+                not self.hide_index_[c],
+            )
+            for c, name in enumerate(self.data.index.names)
+        ]
+
+        column_blanks, visible_col_count = [], 0
+        if clabels:
+            last_level = self.columns.nlevels - 1  # use last level since never sparsed
+            for c, value in enumerate(clabels[last_level]):
+                header_element_visible = _is_visible(c, last_level, col_lengths)
+                if header_element_visible:
+                    visible_col_count += 1
+                if visible_col_count > max_cols:
+                    column_blanks.append(
+                        _element(
+                            "th",
+                            (
+                                f"{self.css['blank']} {self.css['col']}{c} "
+                                f"{self.css['col_trim']}"
+                            ),
+                            self.css["blank_value"],
+                            True,
+                            attributes="",
+                        )
+                    )
+                    break
+
+                column_blanks.append(
+                    _element(
+                        "th",
+                        f"{self.css['blank']} {self.css['col']}{c}",
+                        self.css["blank_value"],
+                        c not in self.hidden_columns,
+                    )
+                )
+
+        return index_names + column_blanks
+
+    def _translate_body(self, sparsify_index: bool, max_rows: int, max_cols: int):
         """
         Build each <tr> within table <body> as a list
 
         Use the following structure:
           +--------------------------------------------+---------------------------+
-          |  index_header_0    ...    index_header_n   |  data_by_column           |
+          |  index_header_0    ...    index_header_n   |  data_by_column   ...     |
           +--------------------------------------------+---------------------------+
 
         Also add elements to the cellstyle_map for more efficient grouped elements in
@@ -334,10 +523,6 @@ class StylerRenderer:
 
         Parameters
         ----------
-        data_class : str
-            CSS class added to elements within data_by_column sections of the structure.
-        row_heading_class : str
-            CSS class added to elements within the index_header section of structure.
         sparsify_index : bool
             Whether index_headers section will add rowspan attributes (>1) to elements.
 
@@ -347,58 +532,256 @@ class StylerRenderer:
             The associated HTML elements needed for template rendering.
         """
         # for sparsifying a MultiIndex
-        idx_lengths = _get_level_lengths(self.index, sparsify_index)
+        idx_lengths = _get_level_lengths(
+            self.index, sparsify_index, max_rows, self.hidden_rows
+        )
 
         rlabels = self.data.index.tolist()
-        if self.data.index.nlevels == 1:
+        if not isinstance(self.data.index, MultiIndex):
             rlabels = [[x] for x in rlabels]
 
-        body = []
-        for r, row_tup in enumerate(self.data.itertuples()):
-            index_headers = [
-                _element(
-                    "th",
-                    f"{row_heading_class} level{c} row{r}",
-                    value,
-                    (_is_visible(r, c, idx_lengths) and not self.hidden_index),
-                    id=f"level{c}_row{r}",
-                    attributes=(
-                        f'rowspan="{idx_lengths.get((c, r), 0)}"'
-                        if idx_lengths.get((c, r), 0) > 1
-                        else ""
-                    ),
+        body, row_count = [], 0
+        for r, row_tup in [
+            z for z in enumerate(self.data.itertuples()) if z[0] not in self.hidden_rows
+        ]:
+            row_count += 1
+            if row_count > max_rows:  # used only to add a '...' trimmed row:
+                trimmed_row = self._generate_trimmed_row(max_cols)
+                body.append(trimmed_row)
+                break
+            body_row = self._generate_body_row(
+                (r, row_tup, rlabels), max_cols, idx_lengths
+            )
+            body.append(body_row)
+        return body
+
+    def _generate_trimmed_row(self, max_cols: int) -> list:
+        """
+        When a render has too many rows we generate a trimming row containing "..."
+
+        Parameters
+        ----------
+        max_cols : int
+            Number of permissible columns
+
+        Returns
+        -------
+        list of elements
+        """
+        index_headers = [
+            _element(
+                "th",
+                (
+                    f"{self.css['row_heading']} {self.css['level']}{c} "
+                    f"{self.css['row_trim']}"
+                ),
+                "...",
+                not self.hide_index_[c],
+                attributes="",
+            )
+            for c in range(self.data.index.nlevels)
+        ]
+
+        data, visible_col_count = [], 0
+        for c, _ in enumerate(self.columns):
+            data_element_visible = c not in self.hidden_columns
+            if data_element_visible:
+                visible_col_count += 1
+            if visible_col_count > max_cols:
+                data.append(
+                    _element(
+                        "td",
+                        (
+                            f"{self.css['data']} {self.css['row_trim']} "
+                            f"{self.css['col_trim']}"
+                        ),
+                        "...",
+                        True,
+                        attributes="",
+                    )
                 )
-                for c, value in enumerate(rlabels[r])
+                break
+
+            data.append(
+                _element(
+                    "td",
+                    f"{self.css['data']} {self.css['col']}{c} {self.css['row_trim']}",
+                    "...",
+                    data_element_visible,
+                    attributes="",
+                )
+            )
+
+        return index_headers + data
+
+    def _generate_body_row(
+        self,
+        iter: tuple,
+        max_cols: int,
+        idx_lengths: dict,
+    ):
+        """
+        Generate a regular row for the body section of appropriate format.
+
+          +--------------------------------------------+---------------------------+
+          |  index_header_0    ...    index_header_n   |  data_by_column   ...     |
+          +--------------------------------------------+---------------------------+
+
+        Parameters
+        ----------
+        iter : tuple
+            Iterable from outer scope: row number, row data tuple, row index labels.
+        max_cols : int
+            Number of permissible columns.
+        idx_lengths : dict
+            A map of the sparsification structure of the index
+
+        Returns
+        -------
+            list of elements
+        """
+        r, row_tup, rlabels = iter
+
+        index_headers = []
+        for c, value in enumerate(rlabels[r]):
+            header_element_visible = (
+                _is_visible(r, c, idx_lengths) and not self.hide_index_[c]
+            )
+            header_element = _element(
+                "th",
+                (
+                    f"{self.css['row_heading']} {self.css['level']}{c} "
+                    f"{self.css['row']}{r}"
+                ),
+                value,
+                header_element_visible,
+                display_value=self._display_funcs_index[(r, c)](value),
+                attributes=(
+                    f'rowspan="{idx_lengths.get((c, r), 0)}"'
+                    if idx_lengths.get((c, r), 0) > 1
+                    else ""
+                ),
+            )
+
+            if self.cell_ids:
+                header_element[
+                    "id"
+                ] = f"{self.css['level']}{c}_{self.css['row']}{r}"  # id is given
+            if (
+                header_element_visible
+                and (r, c) in self.ctx_index
+                and self.ctx_index[r, c]
+            ):
+                # always add id if a style is specified
+                header_element["id"] = f"{self.css['level']}{c}_{self.css['row']}{r}"
+                self.cellstyle_map_index[tuple(self.ctx_index[r, c])].append(
+                    f"{self.css['level']}{c}_{self.css['row']}{r}"
+                )
+
+            index_headers.append(header_element)
+
+        data, visible_col_count = [], 0
+        for c, value in enumerate(row_tup[1:]):
+            data_element_visible = (
+                c not in self.hidden_columns and r not in self.hidden_rows
+            )
+            if data_element_visible:
+                visible_col_count += 1
+            if visible_col_count > max_cols:
+                data.append(
+                    _element(
+                        "td",
+                        (
+                            f"{self.css['data']} {self.css['row']}{r} "
+                            f"{self.css['col_trim']}"
+                        ),
+                        "...",
+                        True,
+                        attributes="",
+                    )
+                )
+                break
+
+            # add custom classes from cell context
+            cls = ""
+            if (r, c) in self.cell_context:
+                cls = " " + self.cell_context[r, c]
+
+            data_element = _element(
+                "td",
+                (
+                    f"{self.css['data']} {self.css['row']}{r} "
+                    f"{self.css['col']}{c}{cls}"
+                ),
+                value,
+                data_element_visible,
+                attributes="",
+                display_value=self._display_funcs[(r, c)](value),
+            )
+
+            if self.cell_ids:
+                data_element["id"] = f"{self.css['row']}{r}_{self.css['col']}{c}"
+            if data_element_visible and (r, c) in self.ctx and self.ctx[r, c]:
+                # always add id if needed due to specified style
+                data_element["id"] = f"{self.css['row']}{r}_{self.css['col']}{c}"
+                self.cellstyle_map[tuple(self.ctx[r, c])].append(
+                    f"{self.css['row']}{r}_{self.css['col']}{c}"
+                )
+
+            data.append(data_element)
+
+        return index_headers + data
+
+    def _translate_latex(self, d: dict) -> None:
+        r"""
+        Post-process the default render dict for the LaTeX template format.
+
+        Processing items included are:
+          - Remove hidden columns from the non-headers part of the body.
+          - Place cellstyles directly in td cells rather than use cellstyle_map.
+          - Remove hidden indexes or reinsert missing th elements if part of multiindex
+            or multirow sparsification (so that \multirow and \multicol work correctly).
+        """
+        d["head"] = [
+            [
+                {**col, "cellstyle": self.ctx_columns[r, c - self.index.nlevels]}
+                for c, col in enumerate(row)
+                if col["is_visible"]
+            ]
+            for r, row in enumerate(d["head"])
+        ]
+        body = []
+        index_levels = self.data.index.nlevels
+        for r, row in zip(
+            [r for r in range(len(self.data.index)) if r not in self.hidden_rows],
+            d["body"],
+        ):
+            # note: cannot enumerate d["body"] because rows were dropped if hidden
+            # during _translate_body so must zip to acquire the true r-index associated
+            # with the ctx obj which contains the cell styles.
+            if all(self.hide_index_):
+                row_body_headers = []
+            else:
+                row_body_headers = [
+                    {
+                        **col,
+                        "display_value": col["display_value"]
+                        if col["is_visible"]
+                        else "",
+                        "cellstyle": self.ctx_index[r, c],
+                    }
+                    for c, col in enumerate(row[:index_levels])
+                    if (col["type"] == "th" and not self.hide_index_[c])
+                ]
+
+            row_body_cells = [
+                {**col, "cellstyle": self.ctx[r, c]}
+                for c, col in enumerate(row[index_levels:])
+                if (col["is_visible"] and col["type"] == "td")
             ]
 
-            data = []
-            for c, value in enumerate(row_tup[1:]):
-                # add custom classes from cell context
-                cls = ""
-                if (r, c) in self.cell_context:
-                    cls = " " + self.cell_context[r, c]
-
-                data_element = _element(
-                    "td",
-                    f"{data_class} row{r} col{c}{cls}",
-                    value,
-                    (c not in self.hidden_columns),
-                    attributes="",
-                    display_value=self._display_funcs[(r, c)](value),
-                )
-
-                # only add an id if the cell has a style
-                if self.cell_ids or (r, c) in self.ctx:
-                    data_element["id"] = f"row{r}_col{c}"
-                    if (r, c) in self.ctx and self.ctx[r, c]:  # only add  if non-empty
-                        self.cellstyle_map[tuple(self.ctx[r, c])].append(
-                            f"row{r}_col{c}"
-                        )
-
-                data.append(data_element)
-
-            body.append(index_headers + data)
-        return body
+            body.append(row_body_headers + row_body_cells)
+        d["body"] = body
 
     def format(
         self,
@@ -408,18 +791,19 @@ class StylerRenderer:
         precision: int | None = None,
         decimal: str = ".",
         thousands: str | None = None,
-        escape: bool = False,
+        escape: str | None = None,
     ) -> StylerRenderer:
-        """
+        r"""
         Format the text display value of cells.
 
         Parameters
         ----------
         formatter : str, callable, dict or None
             Object to define how values are displayed. See notes.
-        subset : IndexSlice
-            An argument to ``DataFrame.loc`` that restricts which elements
-            ``formatter`` is applied to.
+        subset : label, array-like, IndexSlice, optional
+            A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
+            or single key, to `DataFrame.loc[:, <subset>]` where the columns are
+            prioritised, to limit ``data`` to *before* applying the function.
         na_rep : str, optional
             Representation for missing values.
             If ``na_rep`` is None, no special formatting is applied.
@@ -442,9 +826,13 @@ class StylerRenderer:
 
             .. versionadded:: 1.3.0
 
-        escape : bool, default False
-            Replace the characters ``&``, ``<``, ``>``, ``'``, and ``"`` in cell display
-            string with HTML-safe sequences. Escaping is done before ``formatter``.
+        escape : str, optional
+            Use 'html' to replace the characters ``&``, ``<``, ``>``, ``'``, and ``"``
+            in cell display string with HTML-safe sequences.
+            Use 'latex' to replace the characters ``&``, ``%``, ``$``, ``#``, ``_``,
+            ``{``, ``}``, ``~``, ``^``, and ``\`` in the cell display string with
+            LaTeX-safe sequences.
+            Escaping is done before ``formatter``.
 
             .. versionadded:: 1.3.0
 
@@ -472,24 +860,34 @@ class StylerRenderer:
         to. If the ``formatter`` argument is given in dict form but does not include
         all columns within the subset then these columns will have the default formatter
         applied. Any columns in the formatter dict excluded from the subset will
-        raise a ``KeyError``.
+        be ignored.
 
         When using a ``formatter`` string the dtypes must be compatible, otherwise a
         `ValueError` will be raised.
+
+        When instantiating a Styler, default formatting can be applied be setting the
+        ``pandas.options``:
+
+          - ``styler.format.formatter``: default None.
+          - ``styler.format.na_rep``: default None.
+          - ``styler.format.precision``: default 6.
+          - ``styler.format.decimal``: default ".".
+          - ``styler.format.thousands``: default None.
+          - ``styler.format.escape``: default None.
 
         Examples
         --------
         Using ``na_rep`` and ``precision`` with the default ``formatter``
 
         >>> df = pd.DataFrame([[np.nan, 1.0, 'A'], [2.0, np.nan, 3.0]])
-        >>> df.style.format(na_rep='MISS', precision=3)
+        >>> df.style.format(na_rep='MISS', precision=3)  # doctest: +SKIP
                 0       1       2
         0    MISS   1.000       A
         1   2.000    MISS   3.000
 
         Using a ``formatter`` specification on consistent column dtypes
 
-        >>> df.style.format('{:.2f}', na_rep='MISS', subset=[0,1])
+        >>> df.style.format('{:.2f}', na_rep='MISS', subset=[0,1])  # doctest: +SKIP
                 0      1          2
         0    MISS   1.00          A
         1    2.00   MISS   3.000000
@@ -497,6 +895,7 @@ class StylerRenderer:
         Using the default ``formatter`` for unspecified columns
 
         >>> df.style.format({0: '{:.2f}', 1: '£ {:.1f}'}, na_rep='MISS', precision=1)
+        ...  # doctest: +SKIP
                  0      1     2
         0    MISS   £ 1.0     A
         1    2.00    MISS   3.0
@@ -505,7 +904,7 @@ class StylerRenderer:
         ``formatter``.
 
         >>> df.style.format(na_rep='MISS', precision=1, subset=[0])
-        ...     .format(na_rep='PASS', precision=2, subset=[1, 2])
+        ...     .format(na_rep='PASS', precision=2, subset=[1, 2])  # doctest: +SKIP
                 0      1      2
         0    MISS   1.00      A
         1     2.0   PASS   3.00
@@ -514,6 +913,7 @@ class StylerRenderer:
 
         >>> func = lambda s: 'STRING' if isinstance(s, str) else 'FLOAT'
         >>> df.style.format({0: '{:.1f}', 2: func}, precision=4, na_rep='MISS')
+        ...  # doctest: +SKIP
                 0        1        2
         0    MISS   1.0000   STRING
         1     2.0     MISS    FLOAT
@@ -521,13 +921,27 @@ class StylerRenderer:
         Using a ``formatter`` with HTML ``escape`` and ``na_rep``.
 
         >>> df = pd.DataFrame([['<div></div>', '"A&B"', None]])
-        >>> s = df.style.format('<a href="a.com/{0}">{0}</a>', escape=True, na_rep="NA")
-        >>> s.render()
+        >>> s = df.style.format(
+        ...     '<a href="a.com/{0}">{0}</a>', escape="html", na_rep="NA"
+        ...     )
+        >>> s.to_html()  # doctest: +SKIP
         ...
         <td .. ><a href="a.com/&lt;div&gt;&lt;/div&gt;">&lt;div&gt;&lt;/div&gt;</a></td>
         <td .. ><a href="a.com/&#34;A&amp;B&#34;">&#34;A&amp;B&#34;</a></td>
         <td .. >NA</td>
         ...
+
+        Using a ``formatter`` with LaTeX ``escape``.
+
+        >>> df = pd.DataFrame([["123"], ["~ ^"], ["$%#"]])
+        >>> df.style.format("\\textbf{{{}}}", escape="latex").to_latex()
+        ...  # doctest: +SKIP
+        \begin{tabular}{ll}
+        {} & {0} \\
+        0 & \textbf{123} \\
+        1 & \textbf{\textasciitilde \space \textasciicircum } \\
+        2 & \textbf{\$\%\#} \\
+        \end{tabular}
         """
         if all(
             (
@@ -537,7 +951,7 @@ class StylerRenderer:
                 decimal == ".",
                 thousands is None,
                 na_rep is None,
-                escape is False,
+                escape is None,
             )
         ):
             self._display_funcs.clear()
@@ -566,6 +980,175 @@ class StylerRenderer:
 
         return self
 
+    def format_index(
+        self,
+        formatter: ExtFormatter | None = None,
+        axis: int | str = 0,
+        level: Level | list[Level] | None = None,
+        na_rep: str | None = None,
+        precision: int | None = None,
+        decimal: str = ".",
+        thousands: str | None = None,
+        escape: str | None = None,
+    ) -> StylerRenderer:
+        r"""
+        Format the text display value of index labels or column headers.
+
+        .. versionadded:: 1.4.0
+
+        Parameters
+        ----------
+        formatter : str, callable, dict or None
+            Object to define how values are displayed. See notes.
+        axis : {0, "index", 1, "columns"}
+            Whether to apply the formatter to the index or column headers.
+        level : int, str, list
+            The level(s) over which to apply the generic formatter.
+        na_rep : str, optional
+            Representation for missing values.
+            If ``na_rep`` is None, no special formatting is applied.
+        precision : int, optional
+            Floating point precision to use for display purposes, if not determined by
+            the specified ``formatter``.
+        decimal : str, default "."
+            Character used as decimal separator for floats, complex and integers
+        thousands : str, optional, default None
+            Character used as thousands separator for floats, complex and integers
+        escape : str, optional
+            Use 'html' to replace the characters ``&``, ``<``, ``>``, ``'``, and ``"``
+            in cell display string with HTML-safe sequences.
+            Use 'latex' to replace the characters ``&``, ``%``, ``$``, ``#``, ``_``,
+            ``{``, ``}``, ``~``, ``^``, and ``\`` in the cell display string with
+            LaTeX-safe sequences.
+            Escaping is done before ``formatter``.
+
+        Returns
+        -------
+        self : Styler
+
+        Notes
+        -----
+        This method assigns a formatting function, ``formatter``, to each level label
+        in the DataFrame's index or column headers. If ``formatter`` is ``None``,
+        then the default formatter is used.
+        If a callable then that function should take a label value as input and return
+        a displayable representation, such as a string. If ``formatter`` is
+        given as a string this is assumed to be a valid Python format specification
+        and is wrapped to a callable as ``string.format(x)``. If a ``dict`` is given,
+        keys should correspond to MultiIndex level numbers or names, and values should
+        be string or callable, as above.
+
+        The default formatter currently expresses floats and complex numbers with the
+        pandas display precision unless using the ``precision`` argument here. The
+        default formatter does not adjust the representation of missing values unless
+        the ``na_rep`` argument is used.
+
+        The ``level`` argument defines which levels of a MultiIndex to apply the
+        method to. If the ``formatter`` argument is given in dict form but does
+        not include all levels within the level argument then these unspecified levels
+        will have the default formatter applied. Any levels in the formatter dict
+        specifically excluded from the level argument will be ignored.
+
+        When using a ``formatter`` string the dtypes must be compatible, otherwise a
+        `ValueError` will be raised.
+
+        Examples
+        --------
+        Using ``na_rep`` and ``precision`` with the default ``formatter``
+
+        >>> df = pd.DataFrame([[1, 2, 3]], columns=[2.0, np.nan, 4.0]])
+        >>> df.style.format_index(axis=1, na_rep='MISS', precision=3)  # doctest: +SKIP
+            2.000    MISS   4.000
+        0       1       2       3
+
+        Using a ``formatter`` specification on consistent dtypes in a level
+
+        >>> df.style.format_index('{:.2f}', axis=1, na_rep='MISS')  # doctest: +SKIP
+             2.00   MISS    4.00
+        0       1      2       3
+
+        Using the default ``formatter`` for unspecified levels
+
+        >>> df = pd.DataFrame([[1, 2, 3]],
+        ...     columns=pd.MultiIndex.from_arrays([["a", "a", "b"],[2, np.nan, 4]]))
+        >>> df.style.format_index({0: lambda v: upper(v)}, axis=1, precision=1)
+        ...  # doctest: +SKIP
+                       A       B
+              2.0    nan     4.0
+        0       1      2       3
+
+        Using a callable ``formatter`` function.
+
+        >>> func = lambda s: 'STRING' if isinstance(s, str) else 'FLOAT'
+        >>> df.style.format_index(func, axis=1, na_rep='MISS')
+        ...  # doctest: +SKIP
+                  STRING  STRING
+            FLOAT   MISS   FLOAT
+        0       1      2       3
+
+        Using a ``formatter`` with HTML ``escape`` and ``na_rep``.
+
+        >>> df = pd.DataFrame([[1, 2, 3]], columns=['"A"', 'A&B', None])
+        >>> s = df.style.format_index('$ {0}', axis=1, escape="html", na_rep="NA")
+        <th .. >$ &#34;A&#34;</th>
+        <th .. >$ A&amp;B</th>
+        <th .. >NA</td>
+        ...
+
+        Using a ``formatter`` with LaTeX ``escape``.
+
+        >>> df = pd.DataFrame([[1, 2, 3]], columns=["123", "~", "$%#"])
+        >>> df.style.format_index("\\textbf{{{}}}", escape="latex", axis=1).to_latex()
+        ...  # doctest: +SKIP
+        \begin{tabular}{lrrr}
+        {} & {\textbf{123}} & {\textbf{\textasciitilde }} & {\textbf{\$\%\#}} \\
+        0 & 1 & 2 & 3 \\
+        \end{tabular}
+        """
+        axis = self.data._get_axis_number(axis)
+        if axis == 0:
+            display_funcs_, obj = self._display_funcs_index, self.index
+        else:
+            display_funcs_, obj = self._display_funcs_columns, self.columns
+        levels_ = refactor_levels(level, obj)
+
+        if all(
+            (
+                formatter is None,
+                level is None,
+                precision is None,
+                decimal == ".",
+                thousands is None,
+                na_rep is None,
+                escape is None,
+            )
+        ):
+            display_funcs_.clear()
+            return self  # clear the formatter / revert to default and avoid looping
+
+        if not isinstance(formatter, dict):
+            formatter = {level: formatter for level in levels_}
+        else:
+            formatter = {
+                obj._get_level_number(level): formatter_
+                for level, formatter_ in formatter.items()
+            }
+
+        for lvl in levels_:
+            format_func = _maybe_wrap_formatter(
+                formatter.get(lvl),
+                na_rep=na_rep,
+                precision=precision,
+                decimal=decimal,
+                thousands=thousands,
+                escape=escape,
+            )
+
+            for idx in [(i, lvl) if axis == 0 else (lvl, i) for i in range(len(obj))]:
+                display_funcs_[idx] = format_func
+
+        return self
+
 
 def _element(
     html_element: str,
@@ -588,8 +1171,56 @@ def _element(
     }
 
 
+def _get_trimming_maximums(
+    rn,
+    cn,
+    max_elements,
+    max_rows=None,
+    max_cols=None,
+    scaling_factor=0.8,
+) -> tuple[int, int]:
+    """
+    Recursively reduce the number of rows and columns to satisfy max elements.
+
+    Parameters
+    ----------
+    rn, cn : int
+        The number of input rows / columns
+    max_elements : int
+        The number of allowable elements
+    max_rows, max_cols : int, optional
+        Directly specify an initial maximum rows or columns before compression.
+    scaling_factor : float
+        Factor at which to reduce the number of rows / columns to fit.
+
+    Returns
+    -------
+    rn, cn : tuple
+        New rn and cn values that satisfy the max_elements constraint
+    """
+
+    def scale_down(rn, cn):
+        if cn >= rn:
+            return rn, int(cn * scaling_factor)
+        else:
+            return int(rn * scaling_factor), cn
+
+    if max_rows:
+        rn = max_rows if rn > max_rows else rn
+    if max_cols:
+        cn = max_cols if cn > max_cols else cn
+
+    while rn * cn > max_elements:
+        rn, cn = scale_down(rn, cn)
+
+    return rn, cn
+
+
 def _get_level_lengths(
-    index: Index, sparsify: bool, hidden_elements: Sequence[int] | None = None
+    index: Index,
+    sparsify: bool,
+    max_index: int,
+    hidden_elements: Sequence[int] | None = None,
 ):
     """
     Given an index, find the level length for each element.
@@ -600,6 +1231,8 @@ def _get_level_lengths(
         Index or columns to determine lengths of each element
     sparsify : bool
         Whether to hide or show each distinct element in a MultiIndex
+    max_index : int
+        The maximum number of elements to analyse along the index due to trimming
     hidden_elements : sequence of int
         Index positions of elements hidden from display in the index affecting
         length
@@ -618,26 +1251,44 @@ def _get_level_lengths(
         hidden_elements = []
 
     lengths = {}
-    if index.nlevels == 1:
+    if not isinstance(index, MultiIndex):
         for i, value in enumerate(levels):
             if i not in hidden_elements:
                 lengths[(0, i)] = 1
         return lengths
 
     for i, lvl in enumerate(levels):
+        visible_row_count = 0  # used to break loop due to display trimming
         for j, row in enumerate(lvl):
+            if visible_row_count > max_index:
+                break
             if not sparsify:
-                lengths[(i, j)] = 1
+                # then lengths will always equal 1 since no aggregation.
+                if j not in hidden_elements:
+                    lengths[(i, j)] = 1
+                    visible_row_count += 1
             elif (row is not lib.no_default) and (j not in hidden_elements):
+                # this element has not been sparsified so must be the start of section
                 last_label = j
                 lengths[(i, last_label)] = 1
+                visible_row_count += 1
             elif row is not lib.no_default:
-                # even if its hidden, keep track of it in case
-                # length >1 and later elements are visible
+                # even if the above is hidden, keep track of it in case length > 1 and
+                # later elements are visible
                 last_label = j
                 lengths[(i, last_label)] = 0
             elif j not in hidden_elements:
-                lengths[(i, last_label)] += 1
+                # then element must be part of sparsified section and is visible
+                visible_row_count += 1
+                if visible_row_count > max_index:
+                    break  # do not add a length since the render trim limit reached
+                if lengths[(i, last_label)] == 0:
+                    # if previous iteration was first-of-section but hidden then offset
+                    last_label = j
+                    lengths[(i, last_label)] = 1
+                else:
+                    # else add to previous iteration
+                    lengths[(i, last_label)] += 1
 
     non_zero_lengths = {
         element: length for element, length in lengths.items() if length >= 1
@@ -653,7 +1304,7 @@ def _is_visible(idx_row, idx_col, lengths) -> bool:
     return (idx_col, idx_row) in lengths
 
 
-def _format_table_styles(styles: CSSStyles) -> CSSStyles:
+def format_table_styles(styles: CSSStyles) -> CSSStyles:
     """
     looks for multiple CSS selectors and separates them:
     [{'selector': 'td, th', 'props': 'a:v;'}]
@@ -686,11 +1337,9 @@ def _default_formatter(x: Any, precision: int, thousands: bool = False) -> Any:
         Matches input type, or string if input is float or complex or int with sep.
     """
     if isinstance(x, (float, complex)):
-        if thousands:
-            return f"{x:,.{precision}f}"
-        return f"{x:.{precision}f}"
-    elif isinstance(x, int) and thousands:
-        return f"{x:,.0f}"
+        return f"{x:,.{precision}f}" if thousands else f"{x:.{precision}f}"
+    elif isinstance(x, int):
+        return f"{x:,.0f}" if thousands else f"{x:.0f}"
     return x
 
 
@@ -721,10 +1370,17 @@ def _wrap_decimal_thousands(
     return wrapper
 
 
-def _str_escape_html(x):
-    """if escaping html: only use on str, else return input"""
+def _str_escape(x, escape):
+    """if escaping: only use on str, else return input"""
     if isinstance(x, str):
-        return escape_html(x)
+        if escape == "html":
+            return escape_html(x)
+        elif escape == "latex":
+            return _escape_latex(x)
+        else:
+            raise ValueError(
+                f"`escape` only permitted in {{'html', 'latex'}}, got {escape}"
+            )
     return x
 
 
@@ -734,7 +1390,7 @@ def _maybe_wrap_formatter(
     precision: int | None = None,
     decimal: str = ".",
     thousands: str | None = None,
-    escape: bool = False,
+    escape: str | None = None,
 ) -> Callable:
     """
     Allows formatters to be expressed as str, callable or None, where None returns
@@ -747,16 +1403,18 @@ def _maybe_wrap_formatter(
     elif callable(formatter):
         func_0 = formatter
     elif formatter is None:
-        precision = get_option("display.precision") if precision is None else precision
+        precision = (
+            get_option("styler.format.precision") if precision is None else precision
+        )
         func_0 = partial(
             _default_formatter, precision=precision, thousands=(thousands is not None)
         )
     else:
         raise TypeError(f"'formatter' expected str or callable, got {type(formatter)}")
 
-    # Replace HTML chars if escaping
-    if escape:
-        func_1 = lambda x: func_0(_str_escape_html(x))
+    # Replace chars if escaping
+    if escape is not None:
+        func_1 = lambda x: func_0(_str_escape(x, escape=escape))
     else:
         func_1 = func_0
 
@@ -836,6 +1494,40 @@ def maybe_convert_css_to_tuples(style: CSSProperties) -> CSSList:
                 f"for example 'attr: val;'. '{style}' was given."
             )
     return style
+
+
+def refactor_levels(
+    level: Level | list[Level] | None,
+    obj: Index,
+) -> list[int]:
+    """
+    Returns a consistent levels arg for use in ``hide_index`` or ``hide_columns``.
+
+    Parameters
+    ----------
+    level : int, str, list
+        Original ``level`` arg supplied to above methods.
+    obj:
+        Either ``self.index`` or ``self.columns``
+
+    Returns
+    -------
+    list : refactored arg with a list of levels to hide
+    """
+    if level is None:
+        levels_: list[int] = list(range(obj.nlevels))
+    elif isinstance(level, int):
+        levels_ = [level]
+    elif isinstance(level, str):
+        levels_ = [obj._get_level_number(level)]
+    elif isinstance(level, list):
+        levels_ = [
+            obj._get_level_number(lev) if not isinstance(lev, int) else lev
+            for lev in level
+        ]
+    else:
+        raise ValueError("`level` must be of type `int`, `str` or list of such")
+    return levels_
 
 
 class Tooltips:
@@ -935,7 +1627,7 @@ class Tooltips:
         -------
         pseudo_css : List
         """
-        selector_id = "#T_" + uuid + "row" + str(row) + "_col" + str(col)
+        selector_id = "#T_" + uuid + "_row" + str(row) + "_col" + str(col)
         return [
             {
                 "selector": selector_id + f":hover .{name}",
@@ -947,7 +1639,7 @@ class Tooltips:
             },
         ]
 
-    def _translate(self, styler_data: FrameOrSeriesUnion, uuid: str, d: dict):
+    def _translate(self, styler: StylerRenderer, d: dict):
         """
         Mutate the render dictionary to allow for tooltips:
 
@@ -968,21 +1660,23 @@ class Tooltips:
         -------
         render_dict : Dict
         """
-        self.tt_data = self.tt_data.reindex_like(styler_data)
-
+        self.tt_data = self.tt_data.reindex_like(styler.data)
         if self.tt_data.empty:
             return d
 
         name = self.class_name
-
         mask = (self.tt_data.isna()) | (self.tt_data.eq(""))  # empty string = no ttip
         self.table_styles = [
             style
             for sublist in [
-                self._pseudo_css(uuid, name, i, j, str(self.tt_data.iloc[i, j]))
+                self._pseudo_css(styler.uuid, name, i, j, str(self.tt_data.iloc[i, j]))
                 for i in range(len(self.tt_data.index))
                 for j in range(len(self.tt_data.columns))
-                if not mask.iloc[i, j]
+                if not (
+                    mask.iloc[i, j]
+                    or i in styler.hidden_rows
+                    or j in styler.hidden_columns
+                )
             ]
             for style in sublist
         ]
@@ -1000,3 +1694,266 @@ class Tooltips:
             d["table_styles"].extend(self.table_styles)
 
         return d
+
+
+def _parse_latex_table_wrapping(table_styles: CSSStyles, caption: str | None) -> bool:
+    """
+    Indicate whether LaTeX {tabular} should be wrapped with a {table} environment.
+
+    Parses the `table_styles` and detects any selectors which must be included outside
+    of {tabular}, i.e. indicating that wrapping must occur, and therefore return True,
+    or if a caption exists and requires similar.
+    """
+    IGNORED_WRAPPERS = ["toprule", "midrule", "bottomrule", "column_format"]
+    # ignored selectors are included with {tabular} so do not need wrapping
+    return (
+        table_styles is not None
+        and any(d["selector"] not in IGNORED_WRAPPERS for d in table_styles)
+    ) or caption is not None
+
+
+def _parse_latex_table_styles(table_styles: CSSStyles, selector: str) -> str | None:
+    """
+    Return the first 'props' 'value' from ``tables_styles`` identified by ``selector``.
+
+    Examples
+    --------
+    >>> table_styles = [{'selector': 'foo', 'props': [('attr','value')]},
+    ...                 {'selector': 'bar', 'props': [('attr', 'overwritten')]},
+    ...                 {'selector': 'bar', 'props': [('a1', 'baz'), ('a2', 'ignore')]}]
+    >>> _parse_latex_table_styles(table_styles, selector='bar')
+    'baz'
+
+    Notes
+    -----
+    The replacement of "§" with ":" is to avoid the CSS problem where ":" has structural
+    significance and cannot be used in LaTeX labels, but is often required by them.
+    """
+    for style in table_styles[::-1]:  # in reverse for most recently applied style
+        if style["selector"] == selector:
+            return str(style["props"][0][1]).replace("§", ":")
+    return None
+
+
+def _parse_latex_cell_styles(
+    latex_styles: CSSList, display_value: str, convert_css: bool = False
+) -> str:
+    r"""
+    Mutate the ``display_value`` string including LaTeX commands from ``latex_styles``.
+
+    This method builds a recursive latex chain of commands based on the
+    CSSList input, nested around ``display_value``.
+
+    If a CSS style is given as ('<command>', '<options>') this is translated to
+    '\<command><options>{display_value}', and this value is treated as the
+    display value for the next iteration.
+
+    The most recent style forms the inner component, for example for styles:
+    `[('c1', 'o1'), ('c2', 'o2')]` this returns: `\c1o1{\c2o2{display_value}}`
+
+    Sometimes latex commands have to be wrapped with curly braces in different ways:
+    We create some parsing flags to identify the different behaviours:
+
+     - `--rwrap`        : `\<command><options>{<display_value>}`
+     - `--wrap`         : `{\<command><options> <display_value>}`
+     - `--nowrap`       : `\<command><options> <display_value>`
+     - `--lwrap`        : `{\<command><options>} <display_value>`
+     - `--dwrap`        : `{\<command><options>}{<display_value>}`
+
+    For example for styles:
+    `[('c1', 'o1--wrap'), ('c2', 'o2')]` this returns: `{\c1o1 \c2o2{display_value}}
+    """
+    if convert_css:
+        latex_styles = _parse_latex_css_conversion(latex_styles)
+    for (command, options) in latex_styles[::-1]:  # in reverse for most recent style
+        formatter = {
+            "--wrap": f"{{\\{command}--to_parse {display_value}}}",
+            "--nowrap": f"\\{command}--to_parse {display_value}",
+            "--lwrap": f"{{\\{command}--to_parse}} {display_value}",
+            "--rwrap": f"\\{command}--to_parse{{{display_value}}}",
+            "--dwrap": f"{{\\{command}--to_parse}}{{{display_value}}}",
+        }
+        display_value = f"\\{command}{options} {display_value}"
+        for arg in ["--nowrap", "--wrap", "--lwrap", "--rwrap", "--dwrap"]:
+            if arg in str(options):
+                display_value = formatter[arg].replace(
+                    "--to_parse", _parse_latex_options_strip(value=options, arg=arg)
+                )
+                break  # only ever one purposeful entry
+    return display_value
+
+
+def _parse_latex_header_span(
+    cell: dict[str, Any],
+    multirow_align: str,
+    multicol_align: str,
+    wrap: bool = False,
+    convert_css: bool = False,
+) -> str:
+    r"""
+    Refactor the cell `display_value` if a 'colspan' or 'rowspan' attribute is present.
+
+    'rowspan' and 'colspan' do not occur simultaneouly. If they are detected then
+    the `display_value` is altered to a LaTeX `multirow` or `multicol` command
+    respectively, with the appropriate cell-span.
+
+    ``wrap`` is used to enclose the `display_value` in braces which is needed for
+    column headers using an siunitx package.
+
+    Requires the package {multirow}, whereas multicol support is usually built in
+    to the {tabular} environment.
+
+    Examples
+    --------
+    >>> cell = {'display_value':'text', 'attributes': 'colspan="3"'}
+    >>> _parse_latex_header_span(cell, 't', 'c')
+    '\\multicolumn{3}{c}{text}'
+    """
+    display_val = _parse_latex_cell_styles(
+        cell["cellstyle"], cell["display_value"], convert_css
+    )
+    if "attributes" in cell:
+        attrs = cell["attributes"]
+        if 'colspan="' in attrs:
+            colspan = attrs[attrs.find('colspan="') + 9 :]  # len('colspan="') = 9
+            colspan = int(colspan[: colspan.find('"')])
+            if "naive-l" == multicol_align:
+                out = f"{{{display_val}}}" if wrap else f"{display_val}"
+                blanks = " & {}" if wrap else " &"
+                return out + blanks * (colspan - 1)
+            elif "naive-r" == multicol_align:
+                out = f"{{{display_val}}}" if wrap else f"{display_val}"
+                blanks = "{} & " if wrap else "& "
+                return blanks * (colspan - 1) + out
+            return f"\\multicolumn{{{colspan}}}{{{multicol_align}}}{{{display_val}}}"
+        elif 'rowspan="' in attrs:
+            if multirow_align == "naive":
+                return display_val
+            rowspan = attrs[attrs.find('rowspan="') + 9 :]
+            rowspan = int(rowspan[: rowspan.find('"')])
+            return f"\\multirow[{multirow_align}]{{{rowspan}}}{{*}}{{{display_val}}}"
+    if wrap:
+        return f"{{{display_val}}}"
+    else:
+        return display_val
+
+
+def _parse_latex_options_strip(value: str | int | float, arg: str) -> str:
+    """
+    Strip a css_value which may have latex wrapping arguments, css comment identifiers,
+    and whitespaces, to a valid string for latex options parsing.
+
+    For example: 'red /* --wrap */  ' --> 'red'
+    """
+    return str(value).replace(arg, "").replace("/*", "").replace("*/", "").strip()
+
+
+def _parse_latex_css_conversion(styles: CSSList) -> CSSList:
+    """
+    Convert CSS (attribute,value) pairs to equivalent LaTeX (command,options) pairs.
+
+    Ignore conversion if tagged with `--latex` option, skipped if no conversion found.
+    """
+
+    def font_weight(value, arg):
+        if value == "bold" or value == "bolder":
+            return "bfseries", f"{arg}"
+        return None
+
+    def font_style(value, arg):
+        if value == "italic":
+            return "itshape", f"{arg}"
+        elif value == "oblique":
+            return "slshape", f"{arg}"
+        return None
+
+    def color(value, user_arg, command, comm_arg):
+        """
+        CSS colors have 5 formats to process:
+
+         - 6 digit hex code: "#ff23ee"     --> [HTML]{FF23EE}
+         - 3 digit hex code: "#f0e"        --> [HTML]{FF00EE}
+         - rgba: rgba(128, 255, 0, 0.5)    --> [rgb]{0.502, 1.000, 0.000}
+         - rgb: rgb(128, 255, 0,)          --> [rbg]{0.502, 1.000, 0.000}
+         - string: red                     --> {red}
+
+        Additionally rgb or rgba can be expressed in % which is also parsed.
+        """
+        arg = user_arg if user_arg != "" else comm_arg
+
+        if value[0] == "#" and len(value) == 7:  # color is hex code
+            return command, f"[HTML]{{{value[1:].upper()}}}{arg}"
+        if value[0] == "#" and len(value) == 4:  # color is short hex code
+            val = f"{value[1].upper()*2}{value[2].upper()*2}{value[3].upper()*2}"
+            return command, f"[HTML]{{{val}}}{arg}"
+        elif value[:3] == "rgb":  # color is rgb or rgba
+            r = re.findall("(?<=\\()[0-9\\s%]+(?=,)", value)[0].strip()
+            r = float(r[:-1]) / 100 if "%" in r else int(r) / 255
+            g = re.findall("(?<=,)[0-9\\s%]+(?=,)", value)[0].strip()
+            g = float(g[:-1]) / 100 if "%" in g else int(g) / 255
+            if value[3] == "a":  # color is rgba
+                b = re.findall("(?<=,)[0-9\\s%]+(?=,)", value)[1].strip()
+            else:  # color is rgb
+                b = re.findall("(?<=,)[0-9\\s%]+(?=\\))", value)[0].strip()
+            b = float(b[:-1]) / 100 if "%" in b else int(b) / 255
+            return command, f"[rgb]{{{r:.3f}, {g:.3f}, {b:.3f}}}{arg}"
+        else:
+            return command, f"{{{value}}}{arg}"  # color is likely string-named
+
+    CONVERTED_ATTRIBUTES: dict[str, Callable] = {
+        "font-weight": font_weight,
+        "background-color": partial(color, command="cellcolor", comm_arg="--lwrap"),
+        "color": partial(color, command="color", comm_arg=""),
+        "font-style": font_style,
+    }
+
+    latex_styles: CSSList = []
+    for (attribute, value) in styles:
+        if isinstance(value, str) and "--latex" in value:
+            # return the style without conversion but drop '--latex'
+            latex_styles.append((attribute, value.replace("--latex", "")))
+        if attribute in CONVERTED_ATTRIBUTES.keys():
+            arg = ""
+            for x in ["--wrap", "--nowrap", "--lwrap", "--dwrap", "--rwrap"]:
+                if x in str(value):
+                    arg, value = x, _parse_latex_options_strip(value, x)
+                    break
+            latex_style = CONVERTED_ATTRIBUTES[attribute](value, arg)
+            if latex_style is not None:
+                latex_styles.extend([latex_style])
+    return latex_styles
+
+
+def _escape_latex(s):
+    r"""
+    Replace the characters ``&``, ``%``, ``$``, ``#``, ``_``, ``{``, ``}``,
+    ``~``, ``^``, and ``\`` in the string with LaTeX-safe sequences.
+
+    Use this if you need to display text that might contain such characters in LaTeX.
+
+    Parameters
+    ----------
+    s : str
+        Input to be escaped
+
+    Return
+    ------
+    str :
+        Escaped string
+    """
+    return (
+        s.replace("\\", "ab2§=§8yz")  # rare string for final conversion: avoid \\ clash
+        .replace("ab2§=§8yz ", "ab2§=§8yz\\space ")  # since \backslash gobbles spaces
+        .replace("&", "\\&")
+        .replace("%", "\\%")
+        .replace("$", "\\$")
+        .replace("#", "\\#")
+        .replace("_", "\\_")
+        .replace("{", "\\{")
+        .replace("}", "\\}")
+        .replace("~ ", "~\\space ")  # since \textasciitilde gobbles spaces
+        .replace("~", "\\textasciitilde ")
+        .replace("^ ", "^\\space ")  # since \textasciicircum gobbles spaces
+        .replace("^", "\\textasciicircum ")
+        .replace("ab2§=§8yz", "\\textbackslash ")
+    )

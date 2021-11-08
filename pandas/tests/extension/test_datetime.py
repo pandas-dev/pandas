@@ -172,10 +172,7 @@ class TestCasting(BaseDatetimeTests, base.BaseCastingTests):
 
 
 class TestComparisonOps(BaseDatetimeTests, base.BaseComparisonOpsTests):
-    def _compare_other(self, s, data, op_name, other):
-        # the base test is not appropriate for us. We raise on comparison
-        # with (some) integers, depending on the value.
-        pass
+    pass
 
 
 class TestMissing(BaseDatetimeTests, base.BaseMissingTests):
@@ -186,46 +183,6 @@ class TestReshaping(BaseDatetimeTests, base.BaseReshapingTests):
     @pytest.mark.skip(reason="We have DatetimeTZBlock")
     def test_concat(self, data, in_frame):
         pass
-
-    def test_concat_mixed_dtypes(self, data):
-        # concat(Series[datetimetz], Series[category]) uses a
-        # plain np.array(values) on the DatetimeArray, which
-        # drops the tz.
-        super().test_concat_mixed_dtypes(data)
-
-    @pytest.mark.parametrize("obj", ["series", "frame"])
-    def test_unstack(self, obj):
-        # GH-13287: can't use base test, since building the expected fails.
-        dtype = DatetimeTZDtype(tz="US/Central")
-        data = DatetimeArray._from_sequence(
-            ["2000", "2001", "2002", "2003"],
-            dtype=dtype,
-        )
-        index = pd.MultiIndex.from_product(([["A", "B"], ["a", "b"]]), names=["a", "b"])
-
-        if obj == "series":
-            ser = pd.Series(data, index=index)
-            expected = pd.DataFrame(
-                {"A": data.take([0, 1]), "B": data.take([2, 3])},
-                index=pd.Index(["a", "b"], name="b"),
-            )
-            expected.columns.name = "a"
-
-        else:
-            ser = pd.DataFrame({"A": data, "B": data}, index=index)
-            expected = pd.DataFrame(
-                {
-                    ("A", "A"): data.take([0, 1]),
-                    ("A", "B"): data.take([2, 3]),
-                    ("B", "A"): data.take([0, 1]),
-                    ("B", "B"): data.take([2, 3]),
-                },
-                index=pd.Index(["a", "b"], name="b"),
-            )
-            expected.columns.names = [None, "a"]
-
-        result = ser.unstack(0)
-        self.assert_equal(result, expected)
 
 
 class TestSetitem(BaseDatetimeTests, base.BaseSetitemTests):

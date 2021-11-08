@@ -1,34 +1,41 @@
+from __future__ import annotations
+
 from datetime import datetime
 import gc
-from typing import Type
 
 import numpy as np
 import pytest
 
-from pandas._libs import iNaT
 from pandas._libs.tslibs import Timestamp
 
-from pandas.core.dtypes.common import is_datetime64tz_dtype
+from pandas.core.dtypes.common import (
+    is_datetime64tz_dtype,
+    is_float_dtype,
+    is_integer_dtype,
+    is_unsigned_integer_dtype,
+)
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
 from pandas import (
     CategoricalIndex,
     DatetimeIndex,
-    Float64Index,
     Index,
-    Int64Index,
     IntervalIndex,
     MultiIndex,
+    NumericIndex,
     PeriodIndex,
     RangeIndex,
     Series,
     TimedeltaIndex,
-    UInt64Index,
     isna,
 )
 import pandas._testing as tm
-from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
+from pandas.core.api import (  # noqa:F401
+    Float64Index,
+    Int64Index,
+    UInt64Index,
+)
 
 
 class Base:
@@ -36,7 +43,7 @@ class Base:
     Base class for index sub-class tests.
     """
 
-    _index_cls: Type[Index]
+    _index_cls: type[Index]
 
     @pytest.fixture
     def simple_index(self):
@@ -47,11 +54,17 @@ class Base:
 
     def test_pickle_compat_construction(self):
         # need an object to create with
-        msg = (
-            r"Index\(\.\.\.\) must be called with a collection of some "
-            r"kind, None was passed|"
-            r"__new__\(\) missing 1 required positional argument: 'data'|"
-            r"__new__\(\) takes at least 2 arguments \(1 given\)"
+        msg = "|".join(
+            [
+                r"Index\(\.\.\.\) must be called with a collection of some "
+                r"kind, None was passed",
+                r"DatetimeIndex\(\) must be called with a collection of some "
+                r"kind, None was passed",
+                r"TimedeltaIndex\(\) must be called with a collection of some "
+                r"kind, None was passed",
+                r"__new__\(\) missing 1 required positional argument: 'data'",
+                r"__new__\(\) takes at least 2 arguments \(1 given\)",
+            ]
         )
         with pytest.raises(TypeError, match=msg):
             self._index_cls()
@@ -159,11 +172,12 @@ class Base:
             return
 
         typ = type(idx._data).__name__
+        cls = type(idx).__name__
         lmsg = "|".join(
             [
                 rf"unsupported operand type\(s\) for \*: '{typ}' and 'int'",
                 "cannot perform (__mul__|__truediv__|__floordiv__) with "
-                f"this index type: {typ}",
+                f"this index type: ({cls}|{typ})",
             ]
         )
         with pytest.raises(TypeError, match=lmsg):
@@ -172,7 +186,7 @@ class Base:
             [
                 rf"unsupported operand type\(s\) for \*: 'int' and '{typ}'",
                 "cannot perform (__rmul__|__rtruediv__|__rfloordiv__) with "
-                f"this index type: {typ}",
+                f"this index type: ({cls}|{typ})",
             ]
         )
         with pytest.raises(TypeError, match=rmsg):
@@ -319,6 +333,10 @@ class Base:
         expected = index.argsort()
         tm.assert_numpy_array_equal(result, expected)
 
+        result = np.argsort(index, kind="mergesort")
+        expected = index.argsort(kind="mergesort")
+        tm.assert_numpy_array_equal(result, expected)
+
         # these are the only two types that perform
         # pandas compatibility input validation - the
         # rest already perform separate (or no) such
@@ -326,15 +344,10 @@ class Base:
         # defined in pandas.core.indexes/base.py - they
         # cannot be changed at the moment due to
         # backwards compatibility concerns
-        if isinstance(type(index), (CategoricalIndex, RangeIndex)):
-            # TODO: why type(index)?
+        if isinstance(index, (CategoricalIndex, RangeIndex)):
             msg = "the 'axis' parameter is not supported"
             with pytest.raises(ValueError, match=msg):
                 np.argsort(index, axis=1)
-
-            msg = "the 'kind' parameter is not supported"
-            with pytest.raises(ValueError, match=msg):
-                np.argsort(index, kind="mergesort")
 
             msg = "the 'order' parameter is not supported"
             with pytest.raises(ValueError, match=msg):
@@ -343,12 +356,13 @@ class Base:
     def test_repeat(self, simple_index):
         rep = 2
         idx = simple_index.copy()
-        expected = Index(idx.values.repeat(rep), name=idx.name)
+        new_index_cls = Int64Index if isinstance(idx, RangeIndex) else idx._constructor
+        expected = new_index_cls(idx.values.repeat(rep), name=idx.name)
         tm.assert_index_equal(idx.repeat(rep), expected)
 
         idx = simple_index
         rep = np.arange(len(idx))
-        expected = Index(idx.values.repeat(rep), name=idx.name)
+        expected = new_index_cls(idx.values.repeat(rep), name=idx.name)
         tm.assert_index_equal(idx.repeat(rep), expected)
 
     def test_numpy_repeat(self, simple_index):
@@ -361,8 +375,9 @@ class Base:
         with pytest.raises(ValueError, match=msg):
             np.repeat(idx, rep, axis=0)
 
-    @pytest.mark.parametrize("klass", [list, tuple, np.array, Series])
-    def test_where(self, klass, simple_index):
+    def test_where(self, listlike_box, simple_index):
+        klass = listlike_box
+
         idx = simple_index
         if isinstance(idx, (DatetimeIndex, TimedeltaIndex)):
             # where does not preserve freq
@@ -386,6 +401,33 @@ class Base:
 
         # test 0th element
         assert index[0:4].equals(result.insert(0, index[0]))
+
+    def test_insert_out_of_bounds(self, index):
+        # TypeError/IndexError matches what np.insert raises in these cases
+
+        if len(index) > 0:
+            err = TypeError
+        else:
+            err = IndexError
+        if len(index) == 0:
+            # 0 vs 0.5 in error message varies with numpy version
+            msg = "index (0|0.5) is out of bounds for axis 0 with size 0"
+        else:
+            msg = "slice indices must be integers or None or have an __index__ method"
+        with pytest.raises(err, match=msg):
+            index.insert(0.5, "foo")
+
+        msg = "|".join(
+            [
+                r"index -?\d+ is out of bounds for axis 0 with size \d+",
+                "loc must be an integer between",
+            ]
+        )
+        with pytest.raises(IndexError, match=msg):
+            index.insert(len(index) + 1, 1)
+
+        with pytest.raises(IndexError, match=msg):
+            index.insert(-len(index) - 1, 1)
 
     def test_delete_base(self, index):
         if not len(index):
@@ -508,42 +550,12 @@ class Base:
         assert empty_idx.format() == []
         assert empty_idx.format(name=True) == [""]
 
-    def test_hasnans_isnans(self, index_flat):
-        # GH 11343, added tests for hasnans / isnans
-        index = index_flat
-
-        # cases in indices doesn't include NaN
-        idx = index.copy(deep=True)
-        expected = np.array([False] * len(idx), dtype=bool)
-        tm.assert_numpy_array_equal(idx._isnan, expected)
-        assert idx.hasnans is False
-
-        idx = index.copy(deep=True)
-        values = np.asarray(idx.values)
-
-        if len(index) == 0:
-            return
-        elif isinstance(index, DatetimeIndexOpsMixin):
-            values[1] = iNaT
-        elif isinstance(index, (Int64Index, UInt64Index, RangeIndex)):
-            return
-        else:
-            values[1] = np.nan
-
-        if isinstance(index, PeriodIndex):
-            idx = type(index)(values, freq=index.freq)
-        else:
-            idx = type(index)(values)
-
-            expected = np.array([False] * len(idx), dtype=bool)
-            expected[1] = True
-            tm.assert_numpy_array_equal(idx._isnan, expected)
-            assert idx.hasnans is True
-
     def test_fillna(self, index):
         # GH 11343
         if len(index) == 0:
-            pass
+            return
+        elif isinstance(index, NumericIndex) and is_integer_dtype(index.dtype):
+            return
         elif isinstance(index, MultiIndex):
             idx = index.copy(deep=True)
             msg = "isna is not defined for MultiIndex"
@@ -560,19 +572,11 @@ class Base:
                 idx.fillna([idx[0]])
 
             idx = index.copy(deep=True)
-            values = np.asarray(idx.values)
+            values = idx._values
 
-            if isinstance(index, DatetimeIndexOpsMixin):
-                values[1] = iNaT
-            elif isinstance(index, (Int64Index, UInt64Index, RangeIndex)):
-                return
-            else:
-                values[1] = np.nan
+            values[1] = np.nan
 
-            if isinstance(index, PeriodIndex):
-                idx = type(index)(values, freq=index.freq)
-            else:
-                idx = type(index)(values)
+            idx = type(index)(values)
 
             expected = np.array([False] * len(idx), dtype=bool)
             expected[1] = True
@@ -614,14 +618,19 @@ class Base:
         idx = simple_index
 
         # we don't infer UInt64
-        if isinstance(idx, UInt64Index):
+        if is_integer_dtype(idx.dtype):
             expected = idx.astype("int64")
+        elif is_float_dtype(idx.dtype):
+            expected = idx.astype("float64")
+            if idx._is_backward_compat_public_numeric_index:
+                # We get a NumericIndex back, not Float64Index
+                expected = type(idx)(expected)
         else:
             expected = idx
 
         result = idx.map(lambda x: x)
         # For RangeIndex we convert to Int64Index
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact="equiv")
 
     @pytest.mark.parametrize(
         "mapper",
@@ -639,17 +648,22 @@ class Base:
         identity = mapper(idx.values, idx)
 
         # we don't infer to UInt64 for a dict
-        if isinstance(idx, UInt64Index) and isinstance(identity, dict):
+        if is_unsigned_integer_dtype(idx.dtype) and isinstance(identity, dict):
             expected = idx.astype("int64")
         else:
             expected = idx
 
         result = idx.map(identity)
         # For RangeIndex we convert to Int64Index
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact="equiv")
 
         # empty mappable
-        expected = Index([np.nan] * len(idx))
+        if idx._is_backward_compat_public_numeric_index:
+            new_index_cls = NumericIndex
+        else:
+            new_index_cls = Float64Index
+
+        expected = new_index_cls([np.nan] * len(idx))
         result = idx.map(mapper(expected, idx))
         tm.assert_index_equal(result, expected)
 
@@ -717,9 +731,10 @@ class Base:
         assert len(gc.get_referrers(index)) == nrefs_pre
 
     def test_getitem_2d_deprecated(self, simple_index):
-        # GH#30588
+        # GH#30588, GH#31479
         idx = simple_index
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        msg = "Support for multi-dimensional indexing"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             res = idx[:, None]
 
         assert isinstance(res, np.ndarray), type(res)
@@ -766,6 +781,19 @@ class Base:
         expected = {ex_keys[0]: idx[[0, 4]], ex_keys[1]: idx[[1, 3]]}
         tm.assert_dict_equal(idx.groupby(to_groupby), expected)
 
+    def test_append_preserves_dtype(self, simple_index):
+        # In particular NumericIndex with dtype float32
+        index = simple_index
+        N = len(index)
+
+        result = index.append(index)
+        assert result.dtype == index.dtype
+        tm.assert_index_equal(result[:N], index, check_exact=True)
+        tm.assert_index_equal(result[N:], index, check_exact=True)
+
+        alt = index.take(list(range(N)) * 2)
+        tm.assert_index_equal(result, alt, check_exact=True)
+
 
 class NumericBase(Base):
     """
@@ -773,9 +801,11 @@ class NumericBase(Base):
     """
 
     def test_constructor_unwraps_index(self, dtype):
+        index_cls = self._index_cls
+
         idx = Index([1, 2], dtype=dtype)
-        result = self._index_cls(idx)
-        expected = np.array([1, 2], dtype=dtype)
+        result = index_cls(idx)
+        expected = np.array([1, 2], dtype=idx.dtype)
         tm.assert_numpy_array_equal(result._data, expected)
 
     def test_where(self):
@@ -797,6 +827,20 @@ class NumericBase(Base):
     def test_numeric_compat(self):
         pass  # override Base method
 
+    def test_insert_non_na(self, simple_index):
+        # GH#43921 inserting an element that we know we can hold should
+        #  not change dtype or type (except for RangeIndex)
+        index = simple_index
+
+        result = index.insert(0, index[0])
+
+        cls = type(index)
+        if cls is RangeIndex:
+            cls = Int64Index
+
+        expected = cls([index[0]] + list(index), dtype=index.dtype)
+        tm.assert_index_equal(result, expected, exact=True)
+
     def test_insert_na(self, nulls_fixture, simple_index):
         # GH 18295 (test missing)
         index = simple_index
@@ -807,8 +851,15 @@ class NumericBase(Base):
         else:
             expected = Float64Index([index[0], np.nan] + list(index[1:]))
 
+            if index._is_backward_compat_public_numeric_index:
+                # GH#43921 we preserve NumericIndex
+                if index.dtype.kind == "f":
+                    expected = NumericIndex(expected, dtype=index.dtype)
+                else:
+                    expected = NumericIndex(expected)
+
         result = index.insert(1, na_val)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
     def test_arithmetic_explicit_conversions(self):
         # GH 8608

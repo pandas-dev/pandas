@@ -10,8 +10,6 @@ from warnings import (
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -42,8 +40,7 @@ from pandas.io.pytables import (
     read_hdf,
 )
 
-# TODO(ArrayManager) HDFStore relies on accessing the blocks
-pytestmark = [pytest.mark.single, td.skip_array_manager_not_yet_implemented]
+pytestmark = pytest.mark.single
 
 
 def test_context(setup_path):

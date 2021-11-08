@@ -32,7 +32,11 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.arrays import PeriodArray
+from pandas.core.arrays import (
+    DatetimeArray,
+    PeriodArray,
+    TimedeltaArray,
+)
 import pandas.core.common as com
 
 
@@ -44,7 +48,7 @@ class TestSeriesDatetimeValues:
 
         ok_for_period = PeriodArray._datetimelike_ops
         ok_for_period_methods = ["strftime", "to_timestamp", "asfreq"]
-        ok_for_dt = DatetimeIndex._datetimelike_ops
+        ok_for_dt = DatetimeArray._datetimelike_ops
         ok_for_dt_methods = [
             "to_period",
             "to_pydatetime",
@@ -59,7 +63,7 @@ class TestSeriesDatetimeValues:
             "month_name",
             "isocalendar",
         ]
-        ok_for_td = TimedeltaIndex._datetimelike_ops
+        ok_for_td = TimedeltaArray._datetimelike_ops
         ok_for_td_methods = [
             "components",
             "to_pytimedelta",
@@ -679,12 +683,26 @@ class TestSeriesDatetimeValues:
             [["2016-01-07", "2016-01-01"], [[2016, 1, 4], [2015, 53, 5]]],
         ],
     )
+    @pytest.mark.filterwarnings("ignore:Inferring datetime64:FutureWarning")
     def test_isocalendar(self, input_series, expected_output):
         result = pd.to_datetime(Series(input_series)).dt.isocalendar()
         expected_frame = DataFrame(
             expected_output, columns=["year", "week", "day"], dtype="UInt32"
         )
         tm.assert_frame_equal(result, expected_frame)
+
+    def test_hour_index(self):
+        dt_series = Series(
+            date_range(start="2021-01-01", periods=5, freq="h"),
+            index=[2, 6, 7, 8, 11],
+            dtype="category",
+        )
+        result = dt_series.dt.hour
+        expected = Series(
+            [0, 1, 2, 3, 4],
+            index=[2, 6, 7, 8, 11],
+        )
+        tm.assert_series_equal(result, expected)
 
 
 class TestSeriesPeriodValuesDtAccessor:
