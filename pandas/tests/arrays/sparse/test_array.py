@@ -1204,7 +1204,7 @@ class TestAccessor:
             dtype="Sparse[int]",
         )
         A, _, _ = ser.sparse.to_coo()
-        assert isinstance(A, scipy.sparse.coo.coo_matrix)
+        assert isinstance(A, scipy.sparse.coo_matrix)
 
     def test_non_sparse_raises(self):
         ser = pd.Series([1, 2, 3])
