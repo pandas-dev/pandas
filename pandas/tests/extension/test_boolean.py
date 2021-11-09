@@ -399,12 +399,12 @@ class Test2DCompat(base.Dim2CompatTests):
     pass
 
 
-def test_from_arrow():
+def test_from_arrow(dtype):
     pyarrow = pytest.importorskip("pyarrow")
 
     def types_mapper(arrow_type):
         if pyarrow.types.is_boolean(arrow_type):
-            return BooleanDtype
+            return dtype
 
     pyarrow_array = pyarrow.array([True, None, False], type=pyarrow.bool_())
     expected = pd.Series([True, None, False], dtype="boolean")
