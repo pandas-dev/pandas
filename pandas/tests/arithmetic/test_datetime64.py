@@ -361,6 +361,39 @@ class TestDatetime64SeriesComparison:
         expected = tm.box_expected([False, False, False], xbox)
         tm.assert_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "datetimelike",
+        [
+            Timestamp("20130101"),
+            datetime(2013, 1, 1),
+            np.datetime64("2013-01-01T00:00", "ns"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "op,expected",
+        [
+            (operator.lt, [True, False, False, False]),
+            (operator.le, [True, True, False, False]),
+            (operator.eq, [False, True, False, False]),
+            (operator.gt, [False, False, False, True]),
+        ],
+    )
+    def test_dt64_compare_datetime_scalar(self, datetimelike, op, expected):
+        # GH#17965, test for ability to compare datetime64[ns] columns
+        #  to datetimelike
+        ser = Series(
+            [
+                Timestamp("20120101"),
+                Timestamp("20130101"),
+                np.nan,
+                Timestamp("20130103"),
+            ],
+            name="A",
+        )
+        result = op(ser, datetimelike)
+        expected = Series(expected, name="A")
+        tm.assert_series_equal(result, expected)
+
 
 class TestDatetimeIndexComparisons:
 
