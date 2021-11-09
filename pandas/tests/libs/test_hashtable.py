@@ -454,9 +454,10 @@ class TestHelpFunctions:
 
 def test_modes_with_nans():
     # GH42688, nans aren't mangled
-    values = np.array([True, pd.NA, np.nan, pd.NA, np.nan], dtype=np.object_)
+    nulls = [pd.NA, np.nan, pd.NaT, None]
+    values = np.array([True] + nulls * 2, dtype=np.object_)
     modes = ht.mode(values, False)
-    assert modes.size == 2
+    assert modes.size == len(nulls)
 
 
 def test_unique_label_indices_intp(writable):
