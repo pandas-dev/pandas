@@ -113,8 +113,9 @@ class BooleanDtype(BaseMaskedDtype):
     def _is_numeric(self) -> bool:
         return True
 
-    @staticmethod
-    def __from_arrow__(array: pyarrow.Array | pyarrow.ChunkedArray) -> BooleanArray:
+    def __from_arrow__(
+        self, array: pyarrow.Array | pyarrow.ChunkedArray
+    ) -> BooleanArray:
         """
         Construct BooleanArray from pyarrow Array/ChunkedArray.
         """

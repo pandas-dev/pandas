@@ -24,7 +24,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
-- Fix :class:`BooleanDtype` when used with ``pyarrow`` ``types_mapper`` parameter (:issue:`44368`)
+-
 -
 
 .. ---------------------------------------------------------------------------
