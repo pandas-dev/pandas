@@ -13,6 +13,7 @@ dependencies:
   - pytest-azurepipelines
 
   # pandas dependencies
+  - aiobotocore<2.0.0
   - blosc
   - bottleneck
   - fastparquet>=0.4.0
