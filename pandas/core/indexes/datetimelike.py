@@ -95,8 +95,11 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     _field_ops: list[str] = []
 
     # error: "Callable[[Any], Any]" has no attribute "fget"
-    hasnans = cache_readonly(
-        DatetimeLikeArrayMixin._hasnans.fget  # type: ignore[attr-defined]
+    hasnans = cast(
+        bool,
+        cache_readonly(
+            DatetimeLikeArrayMixin._hasnans.fget  # type: ignore[attr-defined]
+        ),
     )
 
     @property

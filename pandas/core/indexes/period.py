@@ -151,6 +151,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
     _data: PeriodArray
     freq: BaseOffset
+    dtype: PeriodDtype
 
     _data_cls = PeriodArray
     _engine_type = libindex.PeriodEngine

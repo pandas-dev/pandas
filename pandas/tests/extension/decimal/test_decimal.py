@@ -174,11 +174,12 @@ class TestPrinting(base.BasePrintingTests):
         assert "Decimal: " in repr(ser)
 
 
-# TODO(extension)
 @pytest.mark.xfail(
     reason=(
-        "raising AssertionError as this is not implemented, though easy enough to do"
-    )
+        "DecimalArray constructor raises bc _from_sequence wants Decimals, not ints."
+        "Easy to fix, just need to do it."
+    ),
+    raises=TypeError,
 )
 def test_series_constructor_coerce_data_to_extension_dtype_raises():
     xpr = (
@@ -266,19 +267,17 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
-    def test_compare_scalar(self, data, all_compare_operators):
-        op_name = all_compare_operators
+    def test_compare_scalar(self, data, comparison_op):
         s = pd.Series(data)
-        self._compare_other(s, data, op_name, 0.5)
+        self._compare_other(s, data, comparison_op, 0.5)
 
-    def test_compare_array(self, data, all_compare_operators):
-        op_name = all_compare_operators
+    def test_compare_array(self, data, comparison_op):
         s = pd.Series(data)
 
         alter = np.random.choice([-1, 0, 1], len(data))
         # Randomly double, halve or keep same value
         other = pd.Series(data) * [decimal.Decimal(pow(2.0, i)) for i in alter]
-        self._compare_other(s, data, op_name, other)
+        self._compare_other(s, data, comparison_op, other)
 
 
 class DecimalArrayWithoutFromSequence(DecimalArray):
