@@ -53,6 +53,7 @@ from pandas._typing import (
     RandomState,
     Renamer,
     StorageOptions,
+    Suffixes,
     T,
     TimedeltaConvertibleTypes,
     TimestampConvertibleTypes,
@@ -8501,6 +8502,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         align_axis: Axis = 1,
         keep_shape: bool_t = False,
         keep_equal: bool_t = False,
+        suffixes: Suffixes = ("self", "other"),
     ):
         from pandas.core.reshape.concat import concat
 
@@ -8511,7 +8513,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             )
 
         mask = ~((self == other) | (self.isna() & other.isna()))
-        keys = ["self", "other"]
 
         if not keep_equal:
             self = self.where(mask)
@@ -8532,7 +8533,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             axis = self._get_axis_number(align_axis)
 
-        diff = concat([self, other], axis=axis, keys=keys)
+        diff = concat([self, other], axis=axis, keys=suffixes)
 
         if axis >= self.ndim:
             # No need to reorganize data if stacking on new axis

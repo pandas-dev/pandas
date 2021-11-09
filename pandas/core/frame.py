@@ -7246,12 +7246,14 @@ Keep all original rows and columns and also all original values
         align_axis: Axis = 1,
         keep_shape: bool = False,
         keep_equal: bool = False,
+        suffixes: Suffixes = ("self", "other"),
     ) -> DataFrame:
         return super().compare(
             other=other,
             align_axis=align_axis,
             keep_shape=keep_shape,
             keep_equal=keep_equal,
+            suffixes=suffixes,
         )
 
     def combine(
