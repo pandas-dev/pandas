@@ -6,7 +6,6 @@ from datetime import (
     time,
     timedelta,
 )
-from io import StringIO
 import re
 
 from dateutil.tz import gettz
@@ -558,15 +557,27 @@ class TestLoc2:
     def test_loc_setitem_consistency_slice_column_len(self):
         # .loc[:,column] setting with slice == len of the column
         # GH10408
-        data = """Level_0,,,Respondent,Respondent,Respondent,OtherCat,OtherCat
-Level_1,,,Something,StartDate,EndDate,Yes/No,SomethingElse
-Region,Site,RespondentID,,,,,
-Region_1,Site_1,3987227376,A,5/25/2015 10:59,5/25/2015 11:22,Yes,
-Region_1,Site_1,3980680971,A,5/21/2015 9:40,5/21/2015 9:52,Yes,Yes
-Region_1,Site_2,3977723249,A,5/20/2015 8:27,5/20/2015 8:41,Yes,
-Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
+        levels = [
+            ["Region_1"] * 4,
+            ["Site_1", "Site_1", "Site_2", "Site_2"],
+            [3987227376, 3980680971, 3977723249, 3977723089],
+        ]
+        mi = MultiIndex.from_arrays(levels, names=["Region", "Site", "RespondentID"])
 
-        df = pd.read_csv(StringIO(data), header=[0, 1], index_col=[0, 1, 2])
+        clevels = [
+            ["Respondent", "Respondent", "Respondent", "OtherCat", "OtherCat"],
+            ["Something", "StartDate", "EndDate", "Yes/No", "SomethingElse"],
+        ]
+        cols = MultiIndex.from_arrays(clevels, names=["Level_0", "Level_1"])
+
+        values = [
+            ["A", "5/25/2015 10:59", "5/25/2015 11:22", "Yes", np.nan],
+            ["A", "5/21/2015 9:40", "5/21/2015 9:52", "Yes", "Yes"],
+            ["A", "5/20/2015 8:27", "5/20/2015 8:41", "Yes", np.nan],
+            ["A", "5/20/2015 8:33", "5/20/2015 9:09", "Yes", "No"],
+        ]
+        df = DataFrame(values, index=mi, columns=cols)
+
         df.loc[:, ("Respondent", "StartDate")] = to_datetime(
             df.loc[:, ("Respondent", "StartDate")]
         )
@@ -1002,21 +1013,25 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
             df.loc[[]], df.iloc[:0, :], check_index_type=True, check_column_type=True
         )
 
-    def test_identity_slice_returns_new_object(self, using_array_manager):
+    def test_identity_slice_returns_new_object(self, using_array_manager, request):
         # GH13873
+        if using_array_manager:
+            mark = pytest.mark.xfail(
+                reason="setting with .loc[:, 'a'] does not alter inplace"
+            )
+            request.node.add_marker(mark)
+
         original_df = DataFrame({"a": [1, 2, 3]})
         sliced_df = original_df.loc[:]
         assert sliced_df is not original_df
         assert original_df[:] is not original_df
 
         # should be a shallow copy
-        original_df["a"] = [4, 4, 4]
-        if using_array_manager:
-            # TODO(ArrayManager) verify it is expected that the original didn't change
-            # setitem is replacing full column, so doesn't update "viewing" dataframe
-            assert not (sliced_df["a"] == 4).all()
-        else:
-            assert (sliced_df["a"] == 4).all()
+        assert np.shares_memory(original_df["a"]._values, sliced_df["a"]._values)
+
+        # Setting using .loc[:, "a"] sets inplace so alters both sliced and orig
+        original_df.loc[:, "a"] = [4, 4, 4]
+        assert (sliced_df["a"] == 4).all()
 
         # These should not return copies
         assert original_df is original_df.loc[:, :]

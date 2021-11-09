@@ -9,7 +9,7 @@ repos:
     -   id: absolufy-imports
         files: ^pandas/
 -   repo: https://github.com/python/black
-    rev: 21.9b0
+    rev: 21.10b0
     hooks:
     -   id: black
 -   repo: https://github.com/codespell-project/codespell
@@ -74,7 +74,7 @@ repos:
         types: [text]  # overwrite types: [rst]
         types_or: [python, rst]
 -   repo: https://github.com/asottile/yesqa
-    rev: v1.2.3
+    rev: v1.3.0
     hooks:
     -   id: yesqa
         additional_dependencies: *flake8_dependencies

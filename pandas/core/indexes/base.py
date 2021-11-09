@@ -3123,7 +3123,9 @@ class Index(IndexOpsMixin, PandasObject):
             and not (self.has_duplicates and other.has_duplicates)
             and self._can_use_libjoin
         ):
-            # Both are unique and monotonic, so can use outer join
+            # Both are monotonic and at least one is unique, so can use outer join
+            #  (actually don't need either unique, but without this restriction
+            #  test_union_same_value_duplicated_in_both fails)
             try:
                 return self._outer_indexer(other)[0]
             except (TypeError, IncompatibleFrequency):
@@ -3576,6 +3578,11 @@ class Index(IndexOpsMixin, PandasObject):
             positions matches the corresponding target values. Missing values
             in the target are marked by -1.
         %(raises_section)s
+        Notes
+        -----
+        Returns -1 for unmatched values, for further explanation see the
+        example below.
+
         Examples
         --------
         >>> index = pd.Index(['c', 'a', 'b'])

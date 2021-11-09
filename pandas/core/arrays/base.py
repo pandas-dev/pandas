@@ -1012,10 +1012,8 @@ class ExtensionArray:
             arr, na_sentinel=na_sentinel, na_value=na_value
         )
 
-        uniques = self._from_factorized(uniques, self)
-        # error: Incompatible return value type (got "Tuple[ndarray, ndarray]",
-        # expected "Tuple[ndarray, ExtensionArray]")
-        return codes, uniques  # type: ignore[return-value]
+        uniques_ea = self._from_factorized(uniques, self)
+        return codes, uniques_ea
 
     _extension_array_shared_docs[
         "repeat"
@@ -1435,6 +1433,24 @@ class ExtensionArray:
 
         result[~mask] = val
         return result
+
+    def _fill_mask_inplace(
+        self, method: str, limit, mask: npt.NDArray[np.bool_]
+    ) -> None:
+        """
+        Replace values in locations specified by 'mask' using pad or backfill.
+
+        See also
+        --------
+        ExtensionArray.fillna
+        """
+        func = missing.get_fill_func(method)
+        # NB: if we don't copy mask here, it may be altered inplace, which
+        #  would mess up the `self[mask] = ...` below.
+        new_values, _ = func(self.astype(object), limit=limit, mask=mask.copy())
+        new_values = self._from_sequence(new_values, dtype=self.dtype)
+        self[mask] = new_values[mask]
+        return
 
     @classmethod
     def _empty(cls, shape: Shape, dtype: ExtensionDtype):
