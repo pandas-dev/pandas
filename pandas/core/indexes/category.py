@@ -53,7 +53,6 @@ _index_doc_kwargs.update({"target_klass": "CategoricalIndex"})
 @inherit_names(
     [
         "argsort",
-        "_internal_get_values",
         "tolist",
         "codes",
         "categories",
@@ -384,13 +383,14 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
             cat = self._data.fillna(value)
         except (ValueError, TypeError):
             # invalid fill_value
-            if not self.isna().any():
+            if not self.hasnans:
                 # nothing to fill, we can get away without casting
                 return self.copy()
             return self.astype(object).fillna(value, downcast=downcast)
 
         return type(self)._simple_new(cat, name=self.name)
 
+    # TODO(2.0): remove reindex once non-unique deprecation is enforced
     def reindex(
         self, target, method=None, level=None, limit=None, tolerance=None
     ) -> tuple[Index, npt.NDArray[np.intp] | None]:

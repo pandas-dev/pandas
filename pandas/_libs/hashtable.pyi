@@ -194,21 +194,6 @@ class StringHashTable(HashTable): ...
 class PyObjectHashTable(HashTable): ...
 class IntpHashTable(HashTable): ...
 
-def duplicated_int64(
-    values: np.ndarray,  # const int64_t[:] values
-    keep: Literal["last", "first", False] = ...,
-) -> npt.NDArray[np.bool_]: ...
-
-# TODO: Is it actually bool or is it uint8?
-
-def mode_int64(
-    values: np.ndarray,  # const int64_t[:] values
-    dropna: bool,
-) -> npt.NDArray[np.int64]: ...
-def value_count_int64(
-    values: np.ndarray,  # const int64_t[:]
-    dropna: bool,
-) -> tuple[npt.NDArray[np.int64], npt.NDArray[np.int64]]: ...
 def duplicated(
     values: np.ndarray,
     keep: Literal["last", "first", False] = ...,

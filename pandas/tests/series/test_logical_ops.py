@@ -49,9 +49,6 @@ class TestSeriesLogicalOps:
     def test_logical_operators_int_dtype_with_int_dtype(self):
         # GH#9016: support bitwise op for integer types
 
-        # TODO: unused
-        # s_0101 = Series([0, 1, 0, 1])
-
         s_0123 = Series(range(4), dtype="int64")
         s_3333 = Series([3] * 4)
         s_4444 = Series([4] * 4)

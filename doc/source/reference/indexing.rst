@@ -407,6 +407,7 @@ Methods
     :toctree: api/
 
     DatetimeIndex.mean
+    DatetimeIndex.std
 
 TimedeltaIndex
 --------------

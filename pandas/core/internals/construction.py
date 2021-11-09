@@ -79,8 +79,9 @@ from pandas.core.internals.array_manager import (
     SingleArrayManager,
 )
 from pandas.core.internals.blocks import (
+    BlockPlacement,
     ensure_block_shape,
-    new_block,
+    new_block_2d,
 )
 from pandas.core.internals.managers import (
     BlockManager,
@@ -370,14 +371,16 @@ def ndarray_to_mgr(
         if any(x is not y for x, y in zip(obj_columns, maybe_datetime)):
             dvals_list = [ensure_block_shape(dval, 2) for dval in maybe_datetime]
             block_values = [
-                new_block(dvals_list[n], placement=n, ndim=2)
+                new_block_2d(dvals_list[n], placement=BlockPlacement(n))
                 for n in range(len(dvals_list))
             ]
         else:
-            nb = new_block(values, placement=slice(len(columns)), ndim=2)
+            bp = BlockPlacement(slice(len(columns)))
+            nb = new_block_2d(values, placement=bp)
             block_values = [nb]
     else:
-        nb = new_block(values, placement=slice(len(columns)), ndim=2)
+        bp = BlockPlacement(slice(len(columns)))
+        nb = new_block_2d(values, placement=bp)
         block_values = [nb]
 
     if len(columns) == 0:
@@ -614,7 +617,7 @@ def _extract_index(data) -> Index:
     index = None
     if len(data) == 0:
         index = Index([])
-    elif len(data) > 0:
+    else:
         raw_lengths = []
         indexes: list[list[Hashable] | Index] = []
 
@@ -638,7 +641,7 @@ def _extract_index(data) -> Index:
         if not indexes and not raw_lengths:
             raise ValueError("If using all scalar values, you must pass an index")
 
-        if have_series:
+        elif have_series:
             index = union_indexes(indexes)
         elif have_dicts:
             index = union_indexes(indexes, sort=False)
