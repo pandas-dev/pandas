@@ -114,9 +114,6 @@ def test_engine_kwargs_write(ext, iso_dates):
 )
 def test_engine_kwargs_append(ext, engine_kwargs):
     # GH 43445
-    # only read_only=True will give something easy that can be verified (maybe
-    # keep_links or data_only could also work, but that'd be more complicated)
-    # arguments are passed through to load_workbook()
     with tm.ensure_clean(ext) as f:
         DataFrame(["hello", "world"]).to_excel(f)
         with ExcelWriter(
@@ -125,19 +122,17 @@ def test_engine_kwargs_append(ext, engine_kwargs):
             DataFrame(["goodbye", "world"]).to_excel(writer, sheet_name="Sheet2")
 
 
-@pytest.mark.parametrize("data_only,B2", [(True, 0), (False, "=1+1")])
-def test_engine_kwargs_append_keep_links(ext, data_only, B2):
+@pytest.mark.parametrize("data_only, expected", [(True, 0), (False, "=1+1")])
+def test_engine_kwargs_append_keep_links(ext, data_only, expected):
     # GH 43445
     # tests whether the keep_links engine_kwarg actually works well for
     # openpyxl's load_workbook
-    # not sure if we have to test for this though, since it also relies a bit on
-    # functionality of openpyxl
     with tm.ensure_clean(ext) as f:
         DataFrame(["=1+1"]).to_excel(f)
         with ExcelWriter(
             f, engine="openpyxl", mode="a", engine_kwargs={"data_only": data_only}
         ) as writer:
-            assert writer.sheets["Sheet1"]["B2"].value == B2
+            assert writer.sheets["Sheet1"]["B2"].value == expected
             # ExcelWriter needs us to writer something to close properly?
             DataFrame().to_excel(writer, sheet_name="Sheet2")
 
