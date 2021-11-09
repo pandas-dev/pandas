@@ -898,13 +898,16 @@ class TestPivotTable:
 
         # to help with a buglet
         self.data.columns = [k * 2 for k in self.data.columns]
-        table = self.data[["AA", "DD", "EE", "FF"]].pivot_table(index=["AA"], margins=True, aggfunc=np.mean)
+        table = self.data[["AA", "DD", "EE", "FF"]].pivot_table(
+            index=["AA"], margins=True, aggfunc=np.mean
+        )
         for value_col in table.columns:
             totals = table.loc[("All"), value_col]
             assert totals == self.data[value_col].mean()
 
-#        table = self.data.pivot_table(index=["AA", "BB"], margins=True, aggfunc="mean")
-        table = self.data[["AA", "DD", "EE", "FF"]].pivot_table(index=["AA"], margins=True, aggfunc="mean")
+        table = self.data[["AA", "DD", "EE", "FF"]].pivot_table(
+            index=["AA"], margins=True, aggfunc="mean"
+        )
         for item in ["DD", "EE", "FF"]:
             totals = table.loc[("All"), item]
             assert totals == self.data[item].mean()

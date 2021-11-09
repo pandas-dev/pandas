@@ -210,9 +210,7 @@ class TestNumericOnly:
 
     @pytest.mark.parametrize("method", ["sum", "cumsum"])
     def test_sum_cumsum(self, df, method):
-        expected_columns = Index(
-            ["int", "float", "category_int"]
-        )
+        expected_columns = Index(["int", "float", "category_int"])
 
         expected_columns_numeric = expected_columns
 
