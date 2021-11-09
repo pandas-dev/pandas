@@ -42,6 +42,7 @@ class TestDataFrameBlockInternals:
         #  `freq` attribute on the underlying DatetimeIndex
 
         dti = date_range("20130101", periods=3, tz="US/Eastern")
+        orig_freq = dti.freq
         ts = dti[1]
 
         df = DataFrame({"B": dti})
@@ -51,7 +52,7 @@ class TestDataFrameBlockInternals:
         assert df["B"]._values.freq is None
 
         # check that the DatetimeIndex was not altered in place
-        assert dti.freq == "D"
+        assert dti.freq is orig_freq
         assert dti[1] == ts
 
     def test_cast_internals(self, float_frame):

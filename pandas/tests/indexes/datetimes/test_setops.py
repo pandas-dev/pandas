@@ -377,7 +377,10 @@ class TestDatetimeIndexSetOps:
 
         result = rng[:50].intersection(rng[25:75])
         assert result.name == rng.name
-        assert result.freqstr == "D"
+        if tz is None:
+            assert result.freqstr == "D"
+        else:
+            assert result.freqstr == "DayDST"
         assert result.tz == rng.tz
 
         nofreq = DatetimeIndex(list(rng[25:75]), name="other")

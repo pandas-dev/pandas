@@ -80,6 +80,7 @@ from pandas.tseries.frequencies import get_period_alias
 from pandas.tseries.offsets import (
     BDay,
     Day,
+    DayDST,
     Tick,
 )
 
@@ -366,7 +367,18 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             ambiguous=ambiguous,
         )
 
-        freq, freq_infer = dtl.validate_inferred_freq(freq, inferred_freq, freq_infer)
+        try:
+            freq, freq_infer = dtl.validate_inferred_freq(
+                freq, inferred_freq, freq_infer
+            )
+        except ValueError as err:
+            if isinstance(freq, Tick) and isinstance(inferred_freq, DayDST):
+                # It is possible that both could be valid, so we'll
+                #  go through _validate_frequency below
+                inferred_freq = None
+                freq_infer = False
+            else:
+                raise
         if explicit_none:
             freq = None
 
@@ -433,10 +445,13 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 end, end_tz, end, freq, tz, ambiguous, nonexistent
             )
         if freq is not None:
+            # FIXME: dont do this
             # We break Day arithmetic (fixed 24 hour) here and opt for
             # Day to mean calendar day (23/24/25 hour). Therefore, strip
             # tz info from start and day to avoid DST arithmetic
-            if isinstance(freq, Day):
+            if isinstance(freq, (Day, DayDST)):
+                if tz is not None:
+                    freq = DayDST(freq.n)
                 if start is not None:
                     start = start.tz_localize(None)
                 if end is not None:

@@ -874,7 +874,7 @@ def test_resample_origin_epoch_with_tz_day_vs_24h():
 
     result_1 = ts_1.resample("D", origin="epoch").mean()
     result_2 = ts_1.resample("24H", origin="epoch").mean()
-    tm.assert_series_equal(result_1, result_2)
+    tm.assert_series_equal(result_1, result_2, check_freq=False)
 
     # check that we have the same behavior with epoch even if we are not timezone aware
     ts_no_tz = ts_1.tz_localize(None)
@@ -897,7 +897,7 @@ def test_resample_origin_with_day_freq_on_dst():
     # GH 31809
     tz = "America/Chicago"
 
-    def _create_series(values, timestamps, freq="D"):
+    def _create_series(values, timestamps, freq="DayDST"):
         return Series(
             values,
             index=DatetimeIndex(
@@ -1484,7 +1484,7 @@ def test_resample_dst_anchor():
     dti = DatetimeIndex([datetime(2012, 11, 4, 23)], tz="US/Eastern")
     df = DataFrame([5], index=dti)
 
-    dti = DatetimeIndex(df.index.normalize(), freq="D")
+    dti = DatetimeIndex(df.index.normalize(), freq="DayDST")
     expected = DataFrame([5], index=dti)
     tm.assert_frame_equal(df.resample(rule="D").sum(), expected)
     df.resample(rule="MS").sum()
@@ -1621,7 +1621,7 @@ def test_downsample_dst_at_midnight():
     with pytest.raises(pytz.AmbiguousTimeError, match="Cannot infer dst"):
         # Check that we are requiring ambiguous be passed explicitly
         dti = DatetimeIndex(dti, freq="D")
-    dti = DatetimeIndex(dti, freq="D", ambiguous=True)
+    dti = DatetimeIndex(dti, freq="DayDST", ambiguous=True)
 
     expected = DataFrame([7.5, 28.0, 44.5], index=dti)
     tm.assert_frame_equal(result, expected)

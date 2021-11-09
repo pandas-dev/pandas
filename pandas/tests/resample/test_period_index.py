@@ -281,7 +281,7 @@ class TestPeriodIndex:
         expected = Series(
             2.0,
             index=pd.DatetimeIndex(
-                ["2017-01-01", "2017-01-02"], tz="US/Eastern", freq="D"
+                ["2017-01-01", "2017-01-02"], tz="US/Eastern", freq="DayDST"
             ),
         )
         tm.assert_series_equal(result, expected)

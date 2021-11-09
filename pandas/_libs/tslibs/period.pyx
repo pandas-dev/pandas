@@ -113,7 +113,11 @@ from pandas._libs.tslibs.offsets cimport (
     to_offset,
 )
 
-from pandas._libs.tslibs.offsets import INVALID_FREQ_ERR_MSG
+from pandas._libs.tslibs.offsets import (
+    INVALID_FREQ_ERR_MSG,
+    Day,
+    DayDST,
+)
 
 cdef:
     enum:
@@ -1626,6 +1630,8 @@ cdef class _Period(PeriodMixin):
             freq = dtype.date_offset
 
         freq = to_offset(freq)
+        if isinstance(freq, DayDST):
+            freq = Day(freq.n)
 
         if freq.n <= 0:
             raise ValueError("Frequency must be positive, because it "

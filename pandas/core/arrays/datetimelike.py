@@ -26,6 +26,7 @@ from pandas._libs import (
 )
 from pandas._libs.tslibs import (
     BaseOffset,
+    DayDST,
     IncompatibleFrequency,
     NaT,
     NaTType,
@@ -1110,8 +1111,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         new_values = new_values.view(self._ndarray.dtype)
 
         new_freq = None
-        if isinstance(self.freq, Tick) or is_period_dtype(self.dtype):
+        if isinstance(self.freq, (Tick, DayDST)) or is_period_dtype(self.dtype):
             # adding a scalar preserves freq
+            # TODO: sure this is accurate for DayDST
             new_freq = self.freq
 
         # error: Unexpected keyword argument "freq" for "_simple_new" of "NDArrayBacked"

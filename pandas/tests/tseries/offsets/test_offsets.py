@@ -50,6 +50,7 @@ from pandas.tseries.offsets import (
     CustomBusinessMonthBegin,
     CustomBusinessMonthEnd,
     DateOffset,
+    DayDST,
     Easter,
     FY5253Quarter,
     LastWeekOfMonth,
@@ -69,6 +70,7 @@ class TestCommon(Base):
     # used for .apply and .rollforward
     expecteds = {
         "Day": Timestamp("2011-01-02 09:00:00"),
+        "DayDST": Timestamp("2011-01-02 09:00:00"),
         "DateOffset": Timestamp("2011-01-02 09:00:00"),
         "BusinessDay": Timestamp("2011-01-03 09:00:00"),
         "CustomBusinessDay": Timestamp("2011-01-03 09:00:00"),
@@ -161,13 +163,13 @@ class TestCommon(Base):
         offset = self._get_offset(offset_types)
 
         freqstr = offset.freqstr
-        if freqstr not in ("<Easter>", "<DateOffset: days=1>", "LWOM-SAT"):
+        if freqstr not in ("DayDST", "<Easter>", "<DateOffset: days=1>", "LWOM-SAT"):
             code = _get_offset(freqstr)
             assert offset.rule_code == code
 
     def _check_offsetfunc_works(self, offset, funcname, dt, expected, normalize=False):
 
-        if normalize and issubclass(offset, Tick):
+        if normalize and issubclass(offset, (Tick, DayDST)):
             # normalize=True disallowed for Tick subclasses GH#21427
             return
 
@@ -258,6 +260,7 @@ class TestCommon(Base):
         # result will not be changed if the target is on the offset
         no_changes = [
             "Day",
+            "DayDST",
             "MonthBegin",
             "SemiMonthBegin",
             "YearBegin",
@@ -336,6 +339,7 @@ class TestCommon(Base):
         # result will not be changed if the target is on the offset
         for n in [
             "Day",
+            "DayDST",
             "MonthBegin",
             "SemiMonthBegin",
             "YearBegin",
@@ -357,6 +361,7 @@ class TestCommon(Base):
 
         normalized = {
             "Day": Timestamp("2010-12-31 00:00:00"),
+            "DayDST": Timestamp("2010-12-31 00:00:00"),
             "DateOffset": Timestamp("2010-12-31 00:00:00"),
             "MonthBegin": Timestamp("2010-12-01 00:00:00"),
             "SemiMonthBegin": Timestamp("2010-12-15 00:00:00"),
@@ -388,7 +393,7 @@ class TestCommon(Base):
         assert offset_s.is_on_offset(dt)
 
         # when normalize=True, is_on_offset checks time is 00:00:00
-        if issubclass(offset_types, Tick):
+        if issubclass(offset_types, (Tick, DayDST)):
             # normalize=True disallowed for Tick subclasses GH#21427
             return
         offset_n = self._get_offset(offset_types, normalize=True)
@@ -420,7 +425,7 @@ class TestCommon(Base):
         assert result == expected_localize
 
         # normalize=True, disallowed for Tick subclasses GH#21427
-        if issubclass(offset_types, Tick):
+        if issubclass(offset_types, (Tick, DayDST)):
             return
         offset_s = self._get_offset(offset_types, normalize=True)
         expected = Timestamp(expected.date())

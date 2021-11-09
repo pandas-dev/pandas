@@ -81,7 +81,7 @@ class TestGetItem:
             result = idx[4::-1]
             expected = DatetimeIndex(
                 ["2011-01-05", "2011-01-04", "2011-01-03", "2011-01-02", "2011-01-01"],
-                freq="-1D",
+                freq=-1 * idx.freq,
                 tz=idx.tz,
                 name="idx",
             )

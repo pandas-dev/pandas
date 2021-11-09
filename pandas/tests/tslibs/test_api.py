@@ -37,6 +37,7 @@ def test_namespace():
         "IncompatibleFrequency",
         "Resolution",
         "Tick",
+        "DayDST",
         "Timedelta",
         "dt64arr_to_periodarr",
         "Timestamp",

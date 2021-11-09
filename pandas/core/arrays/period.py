@@ -28,6 +28,8 @@ from pandas._libs.tslibs import (
 from pandas._libs.tslibs.dtypes import FreqGroup
 from pandas._libs.tslibs.fields import isleapyear_arr
 from pandas._libs.tslibs.offsets import (
+    Day,
+    DayDST,
     Tick,
     delta_to_tick,
 )
@@ -1092,6 +1094,8 @@ def dt64arr_to_periodarr(data, freq, tz=None):
     elif isinstance(data, (ABCIndex, ABCSeries)):
         data = data._values
 
+    if isinstance(freq, DayDST):
+        freq = Day(freq.n)
     freq = Period._maybe_convert_freq(freq)
     base = freq._period_dtype_code
     return c_dt64arr_to_periodarr(data.view("i8"), base, tz), freq

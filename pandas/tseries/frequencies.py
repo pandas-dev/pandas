@@ -23,6 +23,7 @@ from pandas._libs.tslibs.fields import (
 from pandas._libs.tslibs.offsets import (  # noqa:F401
     DateOffset,
     Day,
+    DayDST,
     _get_offset,
     to_offset,
 )
@@ -340,8 +341,24 @@ class _FrequencyInferer:
         if monthly_rule:
             return _maybe_add_count(monthly_rule, self.mdiffs[0])
 
+        if self.is_unique:
+            days = self.deltas[0] / _ONE_DAY
+            if days % 7 == 0:
+                # Weekly
+                wd = int_to_weekday[self.rep_stamp.weekday()]
+                alias = f"W-{wd}"
+                return _maybe_add_count(alias, days / 7)
+
+            if getattr(self.index, "tz", None) is not None:
+                return _maybe_add_count("DayDST", days)
+
+            if not self.is_unique_asi8:
+                # TODO: default to DayDST or Day?
+                return _maybe_add_count("DayDST", days)
+
         if self.is_unique_asi8:
-            return self._get_daily_rule()
+            days = self.deltas_asi8[0] / _ONE_DAY
+            return _maybe_add_count("D", days)
 
         if self._is_business_daily():
             return "B"

@@ -1346,7 +1346,7 @@ class Timedelta(_Timedelta):
             ndarray[int64_t] arr
 
         from pandas._libs.tslibs.offsets import to_offset
-        unit = to_offset(freq).nanos
+        unit = to_offset(freq, tzaware=False).nanos
 
         arr = np.array([self.value], dtype="i8")
         result = round_nsint64(arr, mode, unit)[0]

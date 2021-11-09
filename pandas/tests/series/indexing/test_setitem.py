@@ -323,11 +323,12 @@ class TestSetitemViewCopySemantics:
         #  `freq` attribute on the underlying DatetimeIndex
 
         dti = date_range("20130101", periods=3, tz="US/Eastern")
+        orig_freq = dti.freq
         ts = dti[1]
         ser = Series(dti)
         assert ser._values is not dti
         assert ser._values._data.base is not dti._data._data.base
-        assert dti.freq == "D"
+        assert dti.freq is orig_freq
         ser.iloc[1] = NaT
         assert ser._values.freq is None
 
@@ -335,7 +336,7 @@ class TestSetitemViewCopySemantics:
         assert ser._values is not dti
         assert ser._values._data.base is not dti._data._data.base
         assert dti[1] == ts
-        assert dti.freq == "D"
+        assert dti.freq is orig_freq
 
     def test_dt64tz_setitem_does_not_mutate_dti(self):
         # GH#21907, GH#24096

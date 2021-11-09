@@ -985,6 +985,41 @@ def delta_to_tick(delta: timedelta) -> Tick:
             return Nano(nanos)
 
 
+cdef class DayDST(SingleConstructorOffset):
+    _adjust_dst = True
+    _attributes = tuple(["n", "normalize"])
+    rule_code = "D"  # used by parse_time_string
+
+    def __init__(self, n=1, normalize=False):
+        BaseOffset.__init__(self, n)
+        if normalize:
+            # GH#21427
+            raise ValueError(
+                "Tick offset with `normalize=True` are not allowed."
+            )
+
+    def is_on_offset(self, dt) -> bool:
+        return True
+
+    @apply_wraps
+    def apply(self, other):
+        return other + Timedelta(days=self.n)
+
+    @apply_index_wraps
+    def apply_index(self, dti):
+        return self._apply_array(dti)
+
+    @apply_array_wraps
+    def _apply_array(self, dtarr):
+        return dtarr + Timedelta(days=self.n)
+
+    @cache_readonly
+    def freqstr(self) -> str:
+        if self.n != 1:
+            return str(self.n) + "DayDST"
+        return "DayDST"
+
+
 # --------------------------------------------------------------------
 
 cdef class RelativeDeltaOffset(BaseOffset):
@@ -3543,7 +3578,7 @@ def _get_offset(name: str) -> BaseOffset:
     return _offset_map[name]
 
 
-cpdef to_offset(freq):
+cpdef to_offset(freq, bint tzaware=False):
     """
     Return DateOffset object from string or tuple representation
     or datetime.timedelta object.
@@ -3551,6 +3586,8 @@ cpdef to_offset(freq):
     Parameters
     ----------
     freq : str, tuple, datetime.timedelta, DateOffset or None
+    tzaware : bool, default False
+        If we have a string "D", whether to interpret that as DayDST.
 
     Returns
     -------
@@ -3603,6 +3640,14 @@ cpdef to_offset(freq):
         delta = None
         stride_sign = None
 
+        if freq.endswith("DayDST"):
+            head = freq[:-6]
+            if len(head):
+                n = int(head)
+            else:
+                n = 1
+            return DayDST(n)
+
         try:
             split = opattern.split(freq)
             if split[-1] != "" and not split[-1].isspace():
@@ -3647,6 +3692,8 @@ cpdef to_offset(freq):
     if delta is None:
         raise ValueError(INVALID_FREQ_ERR_MSG.format(freq))
 
+    if type(delta) is Day and tzaware:
+        return DayDST(delta.n)
     return delta
 
 

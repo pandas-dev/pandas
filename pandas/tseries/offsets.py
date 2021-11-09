@@ -21,6 +21,7 @@ from pandas._libs.tslibs.offsets import (  # noqa:F401
     CustomBusinessMonthEnd,
     DateOffset,
     Day,
+    DayDST,
     Easter,
     FY5253Quarter,
     Hour,
@@ -45,6 +46,7 @@ from pandas._libs.tslibs.offsets import (  # noqa:F401
 
 __all__ = [
     "Day",
+    "DayDST",
     "BusinessDay",
     "BDay",
     "CustomBusinessDay",

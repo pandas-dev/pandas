@@ -24,6 +24,7 @@ __all__ = [
     "to_offset",
     "Tick",
     "BaseOffset",
+    "DayDST",
     "tz_compare",
 ]
 
@@ -43,6 +44,7 @@ from pandas._libs.tslibs.nattype import (
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 from pandas._libs.tslibs.offsets import (
     BaseOffset,
+    DayDST,
     Tick,
     to_offset,
 )

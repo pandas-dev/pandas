@@ -98,62 +98,68 @@ class TestSeriesDatetimeValues:
             Series(date_range("20130101", periods=5, freq="s"), name="xxx"),
             Series(date_range("20130101 00:00:00", periods=5, freq="ms"), name="xxx"),
         ]
-        for s in cases:
+        for ser in cases:
+            assert ser.dt.tz is None
+
             for prop in ok_for_dt:
                 # we test freq below
                 # we ignore week and weekofyear because they are deprecated
                 if prop not in ["freq", "week", "weekofyear"]:
-                    compare(s, prop)
+                    compare(ser, prop)
 
             for prop in ok_for_dt_methods:
-                getattr(s.dt, prop)
+                getattr(ser.dt, prop)
 
-            result = s.dt.to_pydatetime()
+            result = ser.dt.to_pydatetime()
             assert isinstance(result, np.ndarray)
             assert result.dtype == object
 
-            result = s.dt.tz_localize("US/Eastern")
-            exp_values = DatetimeIndex(s.values).tz_localize("US/Eastern")
-            expected = Series(exp_values, index=s.index, name="xxx")
+            result = ser.dt.tz_localize("US/Eastern")
+            exp_values = DatetimeIndex(ser.values).tz_localize("US/Eastern")
+            expected = Series(exp_values, index=ser.index, name="xxx")
             tm.assert_series_equal(result, expected)
 
+            assert ser.dt.tz is None
             tz_result = result.dt.tz
             assert str(tz_result) == "US/Eastern"
-            freq_result = s.dt.freq
-            assert freq_result == DatetimeIndex(s.values, freq="infer").freq
+            freq_result = ser.dt.freq
+            assert freq_result == DatetimeIndex(ser.values, freq="infer").freq
 
             # let's localize, then convert
-            result = s.dt.tz_localize("UTC").dt.tz_convert("US/Eastern")
+            result = ser.dt.tz_localize("UTC").dt.tz_convert("US/Eastern")
             exp_values = (
-                DatetimeIndex(s.values).tz_localize("UTC").tz_convert("US/Eastern")
+                DatetimeIndex(ser.values).tz_localize("UTC").tz_convert("US/Eastern")
             )
-            expected = Series(exp_values, index=s.index, name="xxx")
+            expected = Series(exp_values, index=ser.index, name="xxx")
             tm.assert_series_equal(result, expected)
 
         # datetimeindex with tz
-        s = Series(date_range("20130101", periods=5, tz="US/Eastern"), name="xxx")
+        ser = Series(date_range("20130101", periods=5, tz="US/Eastern"), name="xxx")
         for prop in ok_for_dt:
 
             # we test freq below
             # we ignore week and weekofyear because they are deprecated
             if prop not in ["freq", "week", "weekofyear"]:
-                compare(s, prop)
+                compare(ser, prop)
 
         for prop in ok_for_dt_methods:
-            getattr(s.dt, prop)
+            getattr(ser.dt, prop)
 
-        result = s.dt.to_pydatetime()
+        result = ser.dt.to_pydatetime()
         assert isinstance(result, np.ndarray)
         assert result.dtype == object
 
-        result = s.dt.tz_convert("CET")
-        expected = Series(s._values.tz_convert("CET"), index=s.index, name="xxx")
+        result = ser.dt.tz_convert("CET")
+        expected = Series(ser._values.tz_convert("CET"), index=ser.index, name="xxx")
         tm.assert_series_equal(result, expected)
 
         tz_result = result.dt.tz
         assert str(tz_result) == "CET"
-        freq_result = s.dt.freq
-        assert freq_result == DatetimeIndex(s.values, freq="infer").freq
+        freq_result = ser.dt.freq
+        assert (
+            freq_result
+            == DatetimeIndex(ser._values._with_freq(None), freq="infer").freq
+        )
 
         # timedelta index
         cases = [
@@ -166,83 +172,85 @@ class TestSeriesDatetimeValues:
                 name="xxx",
             ),
         ]
-        for s in cases:
+        for ser in cases:
             for prop in ok_for_td:
                 # we test freq below
                 if prop != "freq":
-                    compare(s, prop)
+                    compare(ser, prop)
 
             for prop in ok_for_td_methods:
-                getattr(s.dt, prop)
+                getattr(ser.dt, prop)
 
-            result = s.dt.components
+            result = ser.dt.components
             assert isinstance(result, DataFrame)
-            tm.assert_index_equal(result.index, s.index)
+            tm.assert_index_equal(result.index, ser.index)
 
-            result = s.dt.to_pytimedelta()
+            result = ser.dt.to_pytimedelta()
             assert isinstance(result, np.ndarray)
             assert result.dtype == object
 
-            result = s.dt.total_seconds()
+            result = ser.dt.total_seconds()
             assert isinstance(result, Series)
             assert result.dtype == "float64"
 
-            freq_result = s.dt.freq
-            assert freq_result == TimedeltaIndex(s.values, freq="infer").freq
+            freq_result = ser.dt.freq
+            assert freq_result == TimedeltaIndex(ser.values, freq="infer").freq
 
         # both
         index = date_range("20130101", periods=3, freq="D")
-        s = Series(date_range("20140204", periods=3, freq="s"), index=index, name="xxx")
+        ser = Series(
+            date_range("20140204", periods=3, freq="s"), index=index, name="xxx"
+        )
         exp = Series(
             np.array([2014, 2014, 2014], dtype="int64"), index=index, name="xxx"
         )
-        tm.assert_series_equal(s.dt.year, exp)
+        tm.assert_series_equal(ser.dt.year, exp)
 
         exp = Series(np.array([2, 2, 2], dtype="int64"), index=index, name="xxx")
-        tm.assert_series_equal(s.dt.month, exp)
+        tm.assert_series_equal(ser.dt.month, exp)
 
         exp = Series(np.array([0, 1, 2], dtype="int64"), index=index, name="xxx")
-        tm.assert_series_equal(s.dt.second, exp)
+        tm.assert_series_equal(ser.dt.second, exp)
 
-        exp = Series([s[0]] * 3, index=index, name="xxx")
-        tm.assert_series_equal(s.dt.normalize(), exp)
+        exp = Series([ser[0]] * 3, index=index, name="xxx")
+        tm.assert_series_equal(ser.dt.normalize(), exp)
 
         # periodindex
         cases = [Series(period_range("20130101", periods=5, freq="D"), name="xxx")]
-        for s in cases:
+        for ser in cases:
             for prop in ok_for_period:
                 # we test freq below
                 if prop != "freq":
-                    compare(s, prop)
+                    compare(ser, prop)
 
             for prop in ok_for_period_methods:
-                getattr(s.dt, prop)
+                getattr(ser.dt, prop)
 
-            freq_result = s.dt.freq
-            assert freq_result == PeriodIndex(s.values).freq
+            freq_result = ser.dt.freq
+            assert freq_result == PeriodIndex(ser.values).freq
 
         # test limited display api
         def get_dir(s):
-            results = [r for r in s.dt.__dir__() if not r.startswith("_")]
+            results = [r for r in ser.dt.__dir__() if not r.startswith("_")]
             return sorted(set(results))
 
-        s = Series(date_range("20130101", periods=5, freq="D"), name="xxx")
-        results = get_dir(s)
+        ser = Series(date_range("20130101", periods=5, freq="D"), name="xxx")
+        results = get_dir(ser)
         tm.assert_almost_equal(results, sorted(set(ok_for_dt + ok_for_dt_methods)))
 
-        s = Series(
+        ser = Series(
             period_range("20130101", periods=5, freq="D", name="xxx").astype(object)
         )
-        results = get_dir(s)
+        results = get_dir(ser)
         tm.assert_almost_equal(
             results, sorted(set(ok_for_period + ok_for_period_methods))
         )
 
         # 11295
         # ambiguous time error on the conversions
-        s = Series(date_range("2015-01-01", "2016-01-01", freq="T"), name="xxx")
-        s = s.dt.tz_localize("UTC").dt.tz_convert("America/Chicago")
-        results = get_dir(s)
+        ser = Series(date_range("2015-01-01", "2016-01-01", freq="T"), name="xxx")
+        ser = ser.dt.tz_localize("UTC").dt.tz_convert("America/Chicago")
+        results = get_dir(ser)
         tm.assert_almost_equal(results, sorted(set(ok_for_dt + ok_for_dt_methods)))
         exp_values = date_range(
             "2015-01-01", "2016-01-01", freq="T", tz="UTC"
@@ -250,18 +258,18 @@ class TestSeriesDatetimeValues:
         # freq not preserved by tz_localize above
         exp_values = exp_values._with_freq(None)
         expected = Series(exp_values, name="xxx")
-        tm.assert_series_equal(s, expected)
+        tm.assert_series_equal(ser, expected)
 
         # no setting allowed
-        s = Series(date_range("20130101", periods=5, freq="D"), name="xxx")
+        ser = Series(date_range("20130101", periods=5, freq="D"), name="xxx")
         with pytest.raises(ValueError, match="modifications"):
-            s.dt.hour = 5
+            ser.dt.hour = 5
 
         # trying to set a copy
         msg = "modifications to a property of a datetimelike.+not supported"
         with pd.option_context("chained_assignment", "raise"):
             with pytest.raises(com.SettingWithCopyError, match=msg):
-                s.dt.hour[0] = 5
+                ser.dt.hour[0] = 5
 
     @pytest.mark.parametrize(
         "method, dates",

@@ -267,6 +267,10 @@ def test_infer_freq_index(freq, expected):
 def test_infer_freq_tz(tz_naive_fixture, expected, dates):
     # see gh-7310
     tz = tz_naive_fixture
+
+    if expected == "D" and tz is not None:
+        expected = "DayDST"
+
     idx = DatetimeIndex(dates, tz=tz)
     assert idx.inferred_freq == expected
 
@@ -387,23 +391,15 @@ def test_infer_freq_across_dst_not_daily():
         end=Timestamp("2020-10-17 00:00:00-0400", tz="Canada/Eastern"),
         freq="D",
     )
+    assert dti.freq == "DayDST"
+
     diff = dti - dti.shift()
     assert not diff.is_unique
 
-    assert dti.inferred_freq is None
+    assert dti.inferred_freq == "DayDST"
 
     dti2 = DatetimeIndex(dti._with_freq(None), freq="infer")
-    assert dti2.freq is None
-
-    # Comment in DatetimeArray._generate_range says that we knowingly
-    # assign a maybe-incorrect freq in pd.date_range:
-    #
-    #   We break Day arithmetic (fixed 24 hour) here and opt for
-    #   Day to mean calendar day (23/24/25 hour). Therefore, strip
-    #   tz info from start and day to avoid DST arithmetic
-    #
-    # As long as that is used, the following assertion will fail
-    #  assert dti.freq is None
+    assert dti2.freq == "DayDST"
 
 
 def test_not_monotonic():
