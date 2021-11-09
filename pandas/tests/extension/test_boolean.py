@@ -407,7 +407,7 @@ def test_from_arrow(dtype):
             return dtype
 
     pyarrow_array = pyarrow.array([True, None, False], type=pyarrow.bool_())
-    expected = pd.Series([True, None, False], dtype="boolean")
+    expected = pd.Series([True, None, False], dtype=dtype.name)
 
     # Convert to RecordBatch because types_mapper argument is ignored when
     # using a pyarrow.Array. https://issues.apache.org/jira/browse/ARROW-9664
