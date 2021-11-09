@@ -68,7 +68,10 @@ def tests_skip_nuisance():
 def test_skip_sum_object_raises():
     df = DataFrame({"A": range(5), "B": range(5, 10), "C": "foo"})
     r = df.rolling(window=3)
-    result = r.sum()
+    msg = r"nuisance columns.*Dropped columns were Index\(\['C'\], dtype='object'\)"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        # GH#42738
+        result = r.sum()
     expected = DataFrame(
         {"A": [np.nan, np.nan, 3, 6, 9], "B": [np.nan, np.nan, 18, 21, 24]},
         columns=list("AB"),
@@ -328,6 +331,12 @@ def test_is_datetimelike_deprecated():
         assert not s.is_datetimelike
 
 
+def test_validate_deprecated():
+    s = Series(range(1)).rolling(1)
+    with tm.assert_produces_warning(FutureWarning):
+        assert s.validate() is None
+
+
 @pytest.mark.filterwarnings("ignore:min_periods:FutureWarning")
 def test_dont_modify_attributes_after_methods(
     arithmetic_win_operators, closed, center, min_periods
@@ -340,3 +349,42 @@ def test_dont_modify_attributes_after_methods(
     getattr(roll_obj, arithmetic_win_operators)()
     result = {attr: getattr(roll_obj, attr) for attr in roll_obj._attributes}
     assert result == expected
+
+
+def test_centered_axis_validation():
+
+    # ok
+    Series(np.ones(10)).rolling(window=3, center=True, axis=0).mean()
+
+    # bad axis
+    msg = "No axis named 1 for object type Series"
+    with pytest.raises(ValueError, match=msg):
+        Series(np.ones(10)).rolling(window=3, center=True, axis=1).mean()
+
+    # ok ok
+    DataFrame(np.ones((10, 10))).rolling(window=3, center=True, axis=0).mean()
+    DataFrame(np.ones((10, 10))).rolling(window=3, center=True, axis=1).mean()
+
+    # bad axis
+    msg = "No axis named 2 for object type DataFrame"
+    with pytest.raises(ValueError, match=msg):
+        (DataFrame(np.ones((10, 10))).rolling(window=3, center=True, axis=2).mean())
+
+
+def test_rolling_min_min_periods():
+    a = Series([1, 2, 3, 4, 5])
+    result = a.rolling(window=100, min_periods=1).min()
+    expected = Series(np.ones(len(a)))
+    tm.assert_series_equal(result, expected)
+    msg = "min_periods 5 must be <= window 3"
+    with pytest.raises(ValueError, match=msg):
+        Series([1, 2, 3]).rolling(window=3, min_periods=5).min()
+
+
+def test_rolling_max_min_periods():
+    a = Series([1, 2, 3, 4, 5], dtype=np.float64)
+    b = a.rolling(window=100, min_periods=1).max()
+    tm.assert_almost_equal(a, b)
+    msg = "min_periods 5 must be <= window 3"
+    with pytest.raises(ValueError, match=msg):
+        Series([1, 2, 3]).rolling(window=3, min_periods=5).max()

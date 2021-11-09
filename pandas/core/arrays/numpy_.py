@@ -10,6 +10,7 @@ from pandas._typing import (
     Dtype,
     NpDtype,
     Scalar,
+    npt,
 )
 from pandas.compat.numpy import function as nv
 
@@ -365,12 +366,9 @@ class PandasArray(
     # ------------------------------------------------------------------------
     # Additional Methods
 
-    # error: Argument 1 of "to_numpy" is incompatible with supertype "ExtensionArray";
-    # supertype defines the argument type as "Union[ExtensionDtype, str, dtype[Any],
-    # Type[str], Type[float], Type[int], Type[complex], Type[bool], Type[object], None]"
-    def to_numpy(  # type: ignore[override]
+    def to_numpy(
         self,
-        dtype: NpDtype | None = None,
+        dtype: npt.DTypeLike | None = None,
         copy: bool = False,
         na_value=lib.no_default,
     ) -> np.ndarray:
@@ -389,6 +387,15 @@ class PandasArray(
 
     def __invert__(self) -> PandasArray:
         return type(self)(~self._ndarray)
+
+    def __neg__(self) -> PandasArray:
+        return type(self)(-self._ndarray)
+
+    def __pos__(self) -> PandasArray:
+        return type(self)(+self._ndarray)
+
+    def __abs__(self) -> PandasArray:
+        return type(self)(abs(self._ndarray))
 
     def _cmp_method(self, other, op):
         if isinstance(other, PandasArray):

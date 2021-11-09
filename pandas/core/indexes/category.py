@@ -21,6 +21,7 @@ from pandas.util._decorators import doc
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_scalar,
+    pandas_dtype,
 )
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
@@ -43,6 +44,8 @@ from pandas.core.indexes.extension import (
     inherit_names,
 )
 
+from pandas.io.formats.printing import pprint_thing
+
 _index_doc_kwargs: dict[str, str] = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update({"target_klass": "CategoricalIndex"})
 
@@ -50,7 +53,6 @@ _index_doc_kwargs.update({"target_klass": "CategoricalIndex"})
 @inherit_names(
     [
         "argsort",
-        "_internal_get_values",
         "tolist",
         "codes",
         "categories",
@@ -179,6 +181,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
 
     codes: np.ndarray
     categories: Index
+    ordered: bool | None
     _data: Categorical
     _values: Categorical
 
@@ -192,8 +195,6 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
             np.int32: libindex.Int32Engine,
             np.int64: libindex.Int64Engine,
         }[self.codes.dtype.type]
-
-    _attributes = ["name"]
 
     # --------------------------------------------------------------------
     # Constructors
@@ -215,7 +216,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
             warnings.warn(
                 "Constructing a CategoricalIndex without passing data is "
                 "deprecated and will raise in a future version. "
-                "Use CategoricalIndex([], ...) instead",
+                "Use CategoricalIndex([], ...) instead.",
                 FutureWarning,
                 stacklevel=2,
             )
@@ -281,6 +282,30 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         # TODO: this is a lot like the non-coercing constructor
         return other.astype(self.dtype, copy=False)
 
+    @doc(Index.astype)
+    def astype(self, dtype: Dtype, copy: bool = True) -> Index:
+        from pandas import NumericIndex
+
+        dtype = pandas_dtype(dtype)
+
+        categories = self.categories
+        # the super method always returns Int64Index, UInt64Index and Float64Index
+        # but if the categories are a NumericIndex with dtype float32, we want to
+        # return an index with the same dtype as self.categories.
+        if categories._is_backward_compat_public_numeric_index:
+            assert isinstance(categories, NumericIndex)  # mypy complaint fix
+            try:
+                categories._validate_dtype(dtype)
+            except ValueError:
+                pass
+            else:
+                new_values = self._data.astype(dtype, copy=copy)
+                # pass copy=False because any copying has been done in the
+                #  _data.astype call above
+                return categories._constructor(new_values, name=self.name, copy=False)
+
+        return super().astype(dtype, copy=copy)
+
     def equals(self, other: object) -> bool:
         """
         Determine if two CategoricalIndex objects contain the same elements.
@@ -320,20 +345,18 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
             if get_option("display.max_categories") == 0
             else get_option("display.max_categories")
         )
+        attrs: list[tuple[str, str | int | bool | None]]
         attrs = [
             (
                 "categories",
                 ibase.default_pprint(self.categories, max_seq_items=max_categories),
             ),
-            # error: "CategoricalIndex" has no attribute "ordered"
-            ("ordered", self.ordered),  # type: ignore[attr-defined]
+            ("ordered", self.ordered),
         ]
         extra = super()._format_attrs()
         return attrs + extra
 
-    def _format_with_header(self, header: list[str], na_rep: str = "NaN") -> list[str]:
-        from pandas.io.formats.printing import pprint_thing
-
+    def _format_with_header(self, header: list[str], na_rep: str) -> list[str]:
         result = [
             pprint_thing(x, escape_chars=("\t", "\r", "\n")) if notna(x) else na_rep
             for x in self._values
@@ -361,13 +384,14 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
             cat = self._data.fillna(value)
         except (ValueError, TypeError):
             # invalid fill_value
-            if not self.isna().any():
+            if not self.hasnans:
                 # nothing to fill, we can get away without casting
                 return self.copy()
             return self.astype(object).fillna(value, downcast=downcast)
 
         return type(self)._simple_new(cat, name=self.name)
 
+    # TODO(2.0): remove reindex once non-unique deprecation is enforced
     def reindex(
         self, target, method=None, level=None, limit=None, tolerance=None
     ) -> tuple[Index, npt.NDArray[np.intp] | None]:
@@ -402,6 +426,14 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
             missing = np.array([], dtype=np.intp)
         else:
             indexer, missing = self.get_indexer_non_unique(target)
+            if not self.is_unique:
+                # GH#42568
+                warnings.warn(
+                    "reindexing with a non-unique Index is deprecated and will "
+                    "raise in a future version.",
+                    FutureWarning,
+                    stacklevel=2,
+                )
 
         if len(self) and indexer is not None:
             new_target = self.take(indexer)
@@ -472,7 +504,8 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
     def take_nd(self, *args, **kwargs):
         """Alias for `take`"""
         warnings.warn(
-            "CategoricalIndex.take_nd is deprecated, use CategoricalIndex.take instead",
+            "CategoricalIndex.take_nd is deprecated, use CategoricalIndex.take "
+            "instead.",
             FutureWarning,
             stacklevel=2,
         )

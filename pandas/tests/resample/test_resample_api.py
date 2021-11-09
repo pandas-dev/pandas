@@ -6,6 +6,7 @@ import pytest
 import pandas as pd
 from pandas import (
     DataFrame,
+    NamedAgg,
     Series,
 )
 import pandas._testing as tm
@@ -351,7 +352,8 @@ def test_agg():
     for t in cases:
         warn = FutureWarning if t in cases[1:3] else None
         with tm.assert_produces_warning(
-            warn, match="Dropping invalid columns", check_stacklevel=False
+            warn,
+            match=r"\['date'\] did not aggregate successfully",
         ):
             # .var on dt64 column raises and is dropped
             result = t.aggregate([np.mean, np.std])
@@ -360,6 +362,12 @@ def test_agg():
     expected = pd.concat([a_mean, b_std], axis=1)
     for t in cases:
         result = t.aggregate({"A": np.mean, "B": np.std})
+        tm.assert_frame_equal(result, expected, check_like=True)
+
+        result = t.aggregate(A=("A", np.mean), B=("B", np.std))
+        tm.assert_frame_equal(result, expected, check_like=True)
+
+        result = t.aggregate(A=NamedAgg("A", np.mean), B=NamedAgg("B", np.std))
         tm.assert_frame_equal(result, expected, check_like=True)
 
     expected = pd.concat([a_mean, a_std], axis=1)
@@ -372,7 +380,10 @@ def test_agg():
     expected.columns = ["mean", "sum"]
     for t in cases:
         result = t["A"].aggregate(["mean", "sum"])
-    tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
+
+        result = t["A"].aggregate(mean="mean", sum="sum")
+        tm.assert_frame_equal(result, expected)
 
     msg = "nested renamer is not supported"
     for t in cases:
@@ -439,6 +450,14 @@ def test_agg_misc():
         expected = pd.concat([r["A"].sum(), rcustom], axis=1)
         tm.assert_frame_equal(result, expected, check_like=True)
 
+        result = t.agg(A=("A", np.sum), B=("B", lambda x: np.std(x, ddof=1)))
+        tm.assert_frame_equal(result, expected, check_like=True)
+
+        result = t.agg(
+            A=NamedAgg("A", np.sum), B=NamedAgg("B", lambda x: np.std(x, ddof=1))
+        )
+        tm.assert_frame_equal(result, expected, check_like=True)
+
     # agg with renamers
     expected = pd.concat(
         [t["A"].sum(), t["B"].sum(), t["A"].mean(), t["B"].mean()], axis=1
@@ -451,6 +470,14 @@ def test_agg_misc():
     for t in cases:
         with pytest.raises(KeyError, match=msg):
             t[["A", "B"]].agg({"result1": np.sum, "result2": np.mean})
+
+        with pytest.raises(KeyError, match=msg):
+            t[["A", "B"]].agg(A=("result1", np.sum), B=("result2", np.mean))
+
+        with pytest.raises(KeyError, match=msg):
+            t[["A", "B"]].agg(
+                A=NamedAgg("result1", np.sum), B=NamedAgg("result2", np.mean)
+            )
 
     # agg with different hows
     expected = pd.concat(

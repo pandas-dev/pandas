@@ -1285,6 +1285,21 @@ def test_stack_positional_level_duplicate_column_names():
     tm.assert_frame_equal(result, expected)
 
 
+def test_unstack_non_slice_like_blocks(using_array_manager):
+    # Case where the mgr_locs of a DataFrame's underlying blocks are not slice-like
+
+    mi = MultiIndex.from_product([range(5), ["A", "B", "C"]])
+    df = DataFrame(np.random.randn(15, 4), index=mi)
+    df[1] = df[1].astype(np.int64)
+    if not using_array_manager:
+        assert any(not x.mgr_locs.is_slice_like for x in df._mgr.blocks)
+
+    res = df.unstack()
+
+    expected = pd.concat([df[n].unstack() for n in range(4)], keys=range(4), axis=1)
+    tm.assert_frame_equal(res, expected)
+
+
 class TestStackUnstackMultiLevel:
     def test_unstack(self, multiindex_year_month_day_dataframe_random_data):
         # just check that it works for now
@@ -2066,3 +2081,21 @@ Thu,Lunch,Yes,51.51,17"""
         )
         expected.columns = MultiIndex.from_tuples([("cat", 0), ("cat", 1)])
         tm.assert_frame_equal(result, expected)
+
+    def test_stack_unsorted(self):
+        # GH 16925
+        PAE = ["ITA", "FRA"]
+        VAR = ["A1", "A2"]
+        TYP = ["CRT", "DBT", "NET"]
+        MI = MultiIndex.from_product([PAE, VAR, TYP], names=["PAE", "VAR", "TYP"])
+
+        V = list(range(len(MI)))
+        DF = DataFrame(data=V, index=MI, columns=["VALUE"])
+
+        DF = DF.unstack(["VAR", "TYP"])
+        DF.columns = DF.columns.droplevel(0)
+        DF.loc[:, ("A0", "NET")] = 9999
+
+        result = DF.stack(["VAR", "TYP"]).sort_index()
+        expected = DF.sort_index(axis=1).stack(["VAR", "TYP"]).sort_index()
+        tm.assert_series_equal(result, expected)

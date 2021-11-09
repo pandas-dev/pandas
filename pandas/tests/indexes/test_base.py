@@ -21,20 +21,24 @@ from pandas import (
     CategoricalIndex,
     DataFrame,
     DatetimeIndex,
-    Float64Index,
-    Int64Index,
     IntervalIndex,
+    NumericIndex,
     PeriodIndex,
     RangeIndex,
     Series,
     TimedeltaIndex,
     Timestamp,
-    UInt64Index,
     date_range,
     isna,
     period_range,
 )
 import pandas._testing as tm
+from pandas.api.types import is_float_dtype
+from pandas.core.api import (
+    Float64Index,
+    Int64Index,
+    UInt64Index,
+)
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
@@ -177,48 +181,11 @@ class TestIndex(Base):
         freq = pd.infer_freq(df["date"])
         assert freq == "MS"
 
-    @pytest.mark.parametrize(
-        "array",
-        [
-            np.arange(5),
-            np.array(["a", "b", "c"]),
-            date_range("2000-01-01", periods=3).values,
-        ],
-    )
-    def test_constructor_ndarray_like(self, array):
-        # GH 5460#issuecomment-44474502
-        # it should be possible to convert any object that satisfies the numpy
-        # ndarray interface directly into an Index
-        class ArrayLike:
-            def __init__(self, array):
-                self.array = array
-
-            def __array__(self, dtype=None) -> np.ndarray:
-                return self.array
-
-        expected = Index(array)
-        result = Index(ArrayLike(array))
-        tm.assert_index_equal(result, expected)
-
     def test_constructor_int_dtype_nan(self):
         # see gh-15187
         data = [np.nan]
         expected = Float64Index(data)
         result = Index(data, dtype="float")
-        tm.assert_index_equal(result, expected)
-
-    @pytest.mark.parametrize("dtype", ["int64", "uint64"])
-    def test_constructor_int_dtype_nan_raises(self, dtype):
-        # see gh-15187
-        data = [np.nan]
-        msg = "cannot convert"
-        with pytest.raises(ValueError, match=msg):
-            Index(data, dtype=dtype)
-
-    def test_constructor_no_pandas_array(self):
-        ser = Series([1, 2, 3])
-        result = Index(ser.array)
-        expected = Index([1, 2, 3])
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -493,19 +460,6 @@ class TestIndex(Base):
     def test_not_equals_object(self, comp):
         assert not Index(["a", "b", "c"]).equals(comp)
 
-    def test_insert_missing(self, nulls_fixture):
-        # GH 22295
-        # test there is no mangling of NA values
-        expected = Index(["a", nulls_fixture, "b", "c"])
-        result = Index(list("abc")).insert(1, nulls_fixture)
-        tm.assert_index_equal(result, expected)
-
-    def test_delete_raises(self):
-        index = Index(["a", "b", "c", "d"], name="index")
-        msg = "index 5 is out of bounds for axis 0 with size 4"
-        with pytest.raises(IndexError, match=msg):
-            index.delete(5)
-
     def test_identical(self):
 
         # index
@@ -570,20 +524,6 @@ class TestIndex(Base):
 
         with pytest.raises(TypeError, match=msg):
             right.asof(left)
-
-    # TODO: this tests Series.asof
-    def test_asof_nanosecond_index_access(self):
-        s = Timestamp("20130101").value
-        r = DatetimeIndex([s + 50 + i for i in range(100)])
-        ser = Series(np.random.randn(100), index=r)
-
-        first_value = ser.asof(ser.index[0])
-
-        # this does not yet work, as parsing strings is done via dateutil
-        # assert first_value == x['2013-01-01 00:00:00.000000050+0000']
-
-        expected_ts = np_datetime64_compat("2013-01-01 00:00:00.000000050+0000", "ns")
-        assert first_value == ser[Timestamp(expected_ts)]
 
     @pytest.mark.parametrize("index", ["string"], indirect=True)
     def test_booleanindex(self, index):
@@ -677,8 +617,8 @@ class TestIndex(Base):
 
     def test_map_tseries_indices_accsr_return_index(self):
         date_index = tm.makeDateIndex(24, freq="h", name="hourly")
-        expected = Index(range(24), name="hourly")
-        tm.assert_index_equal(expected, date_index.map(lambda x: x.hour))
+        expected = Int64Index(range(24), name="hourly")
+        tm.assert_index_equal(expected, date_index.map(lambda x: x.hour), exact=True)
 
     @pytest.mark.parametrize(
         "mapper",
@@ -713,6 +653,12 @@ class TestIndex(Base):
         if index.empty:
             # to match proper result coercion for uints
             expected = Index([])
+        elif index._is_backward_compat_public_numeric_index:
+            if is_float_dtype(index.dtype):
+                exp_dtype = np.float64
+            else:
+                exp_dtype = np.int64
+            expected = index._constructor(np.arange(len(index), 0, -1), dtype=exp_dtype)
         else:
             expected = Index(np.arange(len(index), 0, -1))
 
@@ -1564,10 +1510,9 @@ class TestMixedIntIndex(Base):
         assert index._is_strictly_monotonic_increasing is False
         assert index._is_strictly_monotonic_decreasing is False
 
-    @pytest.mark.parametrize("klass", [Series, DataFrame])
-    def test_int_name_format(self, klass):
+    def test_int_name_format(self, frame_or_series):
         index = Index(["a", "b", "c"], name=0)
-        result = klass(list(range(3)), index=index)
+        result = frame_or_series(list(range(3)), index=index)
         assert "0" in repr(result)
 
     def test_str_to_bytes_raises(self):
@@ -1742,14 +1687,15 @@ def test_validate_1d_input():
         [Float64Index, {}],
         [DatetimeIndex, {}],
         [TimedeltaIndex, {}],
+        [NumericIndex, {}],
         [PeriodIndex, {"freq": "Y"}],
     ],
 )
 def test_construct_from_memoryview(klass, extra_kwargs):
     # GH 13120
     result = klass(memoryview(np.arange(2000, 2005)), **extra_kwargs)
-    expected = klass(range(2000, 2005), **extra_kwargs)
-    tm.assert_index_equal(result, expected)
+    expected = klass(list(range(2000, 2005)), **extra_kwargs)
+    tm.assert_index_equal(result, expected, exact=True)
 
 
 def test_index_set_names_pos_args_deprecation():
@@ -1777,3 +1723,11 @@ def test_drop_duplicates_pos_args_deprecation():
         result = idx.drop_duplicates("last")
     expected = Index([2, 3, 1])
     tm.assert_index_equal(expected, result)
+
+
+def test_get_attributes_dict_deprecated():
+    # https://github.com/pandas-dev/pandas/pull/44028
+    idx = Index([1, 2, 3, 1])
+    with tm.assert_produces_warning(DeprecationWarning):
+        attrs = idx._get_attributes_dict()
+    assert attrs == {"name": None}

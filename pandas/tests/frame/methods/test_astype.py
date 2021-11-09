@@ -17,12 +17,13 @@ from pandas import (
     Series,
     Timedelta,
     Timestamp,
-    UInt64Index,
     concat,
     date_range,
     option_context,
 )
 import pandas._testing as tm
+from pandas.core.api import UInt64Index
+from pandas.core.arrays.integer import coerce_to_array
 
 
 def _check_cast(df, v):
@@ -708,15 +709,13 @@ class TestAstypeCategorical:
         df["cats"] = df["cats"].astype("category")
         tm.assert_frame_equal(exp_df, df)
 
-    def test_categorical_astype_to_int(self, any_int_or_nullable_int_dtype):
+    def test_categorical_astype_to_int(self, any_int_dtype):
         # GH#39402
 
         df = DataFrame(data={"col1": pd.array([2.0, 1.0, 3.0])})
         df.col1 = df.col1.astype("category")
-        df.col1 = df.col1.astype(any_int_or_nullable_int_dtype)
-        expected = DataFrame(
-            {"col1": pd.array([2, 1, 3], dtype=any_int_or_nullable_int_dtype)}
-        )
+        df.col1 = df.col1.astype(any_int_dtype)
+        expected = DataFrame({"col1": pd.array([2, 1, 3], dtype=any_int_dtype)})
         tm.assert_frame_equal(df, expected)
 
     def test_astype_categorical_to_string_missing(self):
@@ -726,3 +725,32 @@ class TestAstypeCategorical:
         cat = df.astype("category")
         result = cat.astype(str)
         tm.assert_frame_equal(result, expected)
+
+
+class IntegerArrayNoCopy(pd.core.arrays.IntegerArray):
+    # GH 42501
+
+    @classmethod
+    def _from_sequence(cls, scalars, *, dtype=None, copy=False):
+        values, mask = coerce_to_array(scalars, dtype=dtype, copy=copy)
+        return IntegerArrayNoCopy(values, mask)
+
+    def copy(self):
+        assert False
+
+
+class Int16DtypeNoCopy(pd.Int16Dtype):
+    # GH 42501
+
+    @classmethod
+    def construct_array_type(cls):
+        return IntegerArrayNoCopy
+
+
+def test_frame_astype_no_copy():
+    # GH 42501
+    df = DataFrame({"a": [1, 4, None, 5], "b": [6, 7, 8, 9]}, dtype=object)
+    result = df.astype({"a": Int16DtypeNoCopy()}, copy=False)
+
+    assert result.a.dtype == pd.Int16Dtype()
+    assert np.shares_memory(df.b.values, result.b.values)

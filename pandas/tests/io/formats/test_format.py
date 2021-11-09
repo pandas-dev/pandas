@@ -239,7 +239,7 @@ class TestDataFrameFormatting:
             assert "..." not in repr(df)
 
     def test_repr_deprecation_negative_int(self):
-        # FIXME: remove in future version after deprecation cycle
+        # TODO(2.0): remove in future version after deprecation cycle
         # Non-regression test for:
         # https://github.com/pandas-dev/pandas/issues/31532
         width = get_option("display.max_colwidth")
@@ -542,26 +542,26 @@ class TestDataFrameFormatting:
         index = range(10)
         df = DataFrame(index=index, columns=cols)
         with option_context("mode.sim_interactive", True):
-            with option_context("max_rows", None):
-                with option_context("max_columns", None):
+            with option_context("display.max_rows", None):
+                with option_context("display.max_columns", None):
                     # Wrap around with None
                     assert has_expanded_repr(df)
-            with option_context("max_rows", 0):
-                with option_context("max_columns", 0):
+            with option_context("display.max_rows", 0):
+                with option_context("display.max_columns", 0):
                     # Truncate with auto detection.
                     assert has_horizontally_truncated_repr(df)
 
             index = range(int(term_height * fac))
             df = DataFrame(index=index, columns=cols)
-            with option_context("max_rows", 0):
-                with option_context("max_columns", None):
+            with option_context("display.max_rows", 0):
+                with option_context("display.max_columns", None):
                     # Wrap around with None
                     assert has_expanded_repr(df)
                     # Truncate vertically
                     assert has_vertically_truncated_repr(df)
 
-            with option_context("max_rows", None):
-                with option_context("max_columns", 0):
+            with option_context("display.max_rows", None):
+                with option_context("display.max_columns", 0):
                     assert has_horizontally_truncated_repr(df)
 
     def test_to_string_repr_unicode(self):

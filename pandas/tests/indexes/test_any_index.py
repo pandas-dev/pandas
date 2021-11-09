@@ -1,11 +1,12 @@
 """
 Tests that can be parametrized over _any_ Index object.
-
-TODO: consider using hypothesis for these.
 """
 import re
 
+import numpy as np
 import pytest
+
+from pandas.core.dtypes.common import is_float_dtype
 
 import pandas._testing as tm
 
@@ -47,7 +48,17 @@ def test_mutability(index):
 
 def test_map_identity_mapping(index):
     # GH#12766
-    tm.assert_index_equal(index, index.map(lambda x: x))
+    result = index.map(lambda x: x)
+    if index._is_backward_compat_public_numeric_index:
+        if is_float_dtype(index.dtype):
+            expected = index.astype(np.float64)
+        elif index.dtype == np.uint64:
+            expected = index.astype(np.uint64)
+        else:
+            expected = index.astype(np.int64)
+    else:
+        expected = index
+    tm.assert_index_equal(result, expected, exact="equiv")
 
 
 def test_wrong_number_names(index):
@@ -106,7 +117,7 @@ class TestConversion:
 class TestRoundTrips:
     def test_pickle_roundtrip(self, index):
         result = tm.round_trip_pickle(index)
-        tm.assert_index_equal(result, index)
+        tm.assert_index_equal(result, index, exact=True)
         if result.nlevels > 1:
             # GH#8367 round-trip with timezone
             assert index.equal_levels(result)
@@ -122,7 +133,7 @@ class TestIndexing:
     def test_slice_keeps_name(self, index):
         assert index.name == index[1:].name
 
-    @pytest.mark.parametrize("item", [101, "no_int"])
+    @pytest.mark.parametrize("item", [101, "no_int", 2.5])
     # FutureWarning from non-tuple sequence of nd indexing
     @pytest.mark.filterwarnings("ignore::FutureWarning")
     def test_getitem_error(self, index, item):

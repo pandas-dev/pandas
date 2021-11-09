@@ -15,6 +15,7 @@ from pandas._libs import (
     Interval,
     Period,
     algos,
+    lib,
 )
 from pandas._libs.tslibs import conversion
 from pandas._typing import (
@@ -65,7 +66,6 @@ INT64_DTYPE = np.dtype(np.int64)
 _is_scipy_sparse = None
 
 ensure_float64 = algos.ensure_float64
-ensure_float32 = algos.ensure_float32
 
 
 def ensure_float(arr):
@@ -92,7 +92,6 @@ def ensure_float(arr):
     return arr
 
 
-ensure_uint64 = algos.ensure_uint64
 ensure_int64 = algos.ensure_int64
 ensure_int32 = algos.ensure_int32
 ensure_int16 = algos.ensure_int16
@@ -141,14 +140,14 @@ def ensure_python_int(value: int | np.integer) -> int:
 
 
 def classes(*klasses) -> Callable:
-    """evaluate if the tipo is a subclass of the klasses"""
+    """Evaluate if the tipo is a subclass of the klasses."""
     return lambda tipo: issubclass(tipo, klasses)
 
 
 def classes_and_not_datetimelike(*klasses) -> Callable:
     """
-    evaluate if the tipo is a subclass of the klasses
-    and not a datetimelike
+    Evaluate if the tipo is a subclass of the klasses
+    and not a datetimelike.
     """
     return lambda tipo: (
         issubclass(tipo, klasses)
@@ -302,8 +301,8 @@ def is_categorical(arr) -> bool:
     True
     """
     warnings.warn(
-        "is_categorical is deprecated and will be removed in a future version.  "
-        "Use is_categorical_dtype instead",
+        "is_categorical is deprecated and will be removed in a future version. "
+        "Use is_categorical_dtype instead.",
         FutureWarning,
         stacklevel=2,
     )
@@ -564,8 +563,7 @@ def is_string_dtype(arr_or_dtype) -> bool:
         """
         These have kind = "O" but aren't string dtypes so need to be explicitly excluded
         """
-        is_excluded_checks = (is_period_dtype, is_interval_dtype, is_categorical_dtype)
-        return any(is_excluded(dtype) for is_excluded in is_excluded_checks)
+        return isinstance(dtype, (PeriodDtype, IntervalDtype, CategoricalDtype))
 
     return _is_dtype(arr_or_dtype, condition)
 
@@ -673,7 +671,7 @@ def is_integer_dtype(arr_or_dtype) -> bool:
     """
     Check whether the provided array or dtype is of an integer dtype.
 
-    Unlike in `in_any_int_dtype`, timedelta64 instances will return False.
+    Unlike in `is_any_int_dtype`, timedelta64 instances will return False.
 
     The nullable Integer dtypes (e.g. pandas.Int64Dtype) are also considered
     as integer by this function.
@@ -725,7 +723,7 @@ def is_signed_integer_dtype(arr_or_dtype) -> bool:
     """
     Check whether the provided array or dtype is of a signed integer dtype.
 
-    Unlike in `in_any_int_dtype`, timedelta64 instances will return False.
+    Unlike in `is_any_int_dtype`, timedelta64 instances will return False.
 
     The nullable Integer dtypes (e.g. pandas.Int64Dtype) are also considered
     as integer by this function.
@@ -1177,11 +1175,14 @@ def needs_i8_conversion(arr_or_dtype) -> bool:
         # fastpath
         dtype = arr_or_dtype
         return dtype.kind in ["m", "M"] or dtype.type is Period
-    return (
-        is_datetime_or_timedelta_dtype(arr_or_dtype)
-        or is_datetime64tz_dtype(arr_or_dtype)
-        or is_period_dtype(arr_or_dtype)
-    )
+
+    try:
+        dtype = get_dtype(arr_or_dtype)
+    except (TypeError, ValueError):
+        return False
+    if isinstance(dtype, np.dtype):
+        return dtype.kind in ["m", "M"]
+    return isinstance(dtype, (PeriodDtype, DatetimeTZDtype))
 
 
 def is_numeric_dtype(arr_or_dtype) -> bool:
@@ -1517,7 +1518,7 @@ def is_complex_dtype(arr_or_dtype) -> bool:
 
 def _is_dtype(arr_or_dtype, condition) -> bool:
     """
-    Return a boolean if the condition is satisfied for the arr_or_dtype.
+    Return true if the condition is satisfied for the arr_or_dtype.
 
     Parameters
     ----------
@@ -1576,7 +1577,7 @@ def get_dtype(arr_or_dtype) -> DtypeObj:
 
 def _is_dtype_type(arr_or_dtype, condition) -> bool:
     """
-    Return a boolean if the condition is satisfied for the arr_or_dtype.
+    Return true if the condition is satisfied for the arr_or_dtype.
 
     Parameters
     ----------
@@ -1788,3 +1789,23 @@ def pandas_dtype(dtype) -> DtypeObj:
         raise TypeError(f"dtype '{dtype}' not understood")
 
     return npdtype
+
+
+def is_all_strings(value: ArrayLike) -> bool:
+    """
+    Check if this is an array of strings that we should try parsing.
+
+    Includes object-dtype ndarray containing all-strings, StringArray,
+    and Categorical with all-string categories.
+    Does not include numpy string dtypes.
+    """
+    dtype = value.dtype
+
+    if isinstance(dtype, np.dtype):
+        return (
+            dtype == np.dtype("object")
+            and lib.infer_dtype(value, skipna=False) == "string"
+        )
+    elif isinstance(dtype, CategoricalDtype):
+        return dtype.categories.inferred_type == "string"
+    return dtype == "string"
