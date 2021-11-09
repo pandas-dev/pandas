@@ -83,6 +83,12 @@ if TYPE_CHECKING:
 ArrowStringScalarOrNAT = Union[str, libmissing.NAType]
 
 
+def _chk_pyarrow_available() -> None:
+    if pa_version_under1p01:
+        msg = "pyarrow>=1.0.0 is required for PyArrow backed StringArray."
+        raise ImportError(msg)
+
+
 # TODO: Inherit directly from BaseStringArrayMethods. Currently we inherit from
 # ObjectStringArrayMixin because we want to have the object-dtype based methods as
 # fallback for the ones that pyarrow doesn't yet support
@@ -149,6 +155,8 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
     @classmethod
     def _from_sequence(cls, scalars, dtype: Dtype | None = None, copy: bool = False):
         from pandas.core.arrays.masked import BaseMaskedArray
+
+        _chk_pyarrow_available()
 
         if dtype and not (isinstance(dtype, str) and dtype == "string"):
             dtype = pandas_dtype(dtype)
