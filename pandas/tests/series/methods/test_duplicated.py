@@ -39,7 +39,7 @@ def test_duplicated_nan_none(keep, expected):
     tm.assert_series_equal(result, expected)
 
 
-def test_duplicated_categorical_bool():
+def test_duplicated_categorical_bool_na():
     # GH#44351
     ser = Series(
         Categorical(
