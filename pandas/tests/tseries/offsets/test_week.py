@@ -4,8 +4,6 @@ Tests for the following offsets:
 - WeekOfMonth
 - LastWeekOfMonth
 """
-from __future__ import annotations
-
 from datetime import (
     datetime,
     timedelta,
@@ -19,7 +17,6 @@ from pandas._libs.tslibs.offsets import (
     LastWeekOfMonth,
     Week,
     WeekOfMonth,
-    WeekOfMonthMixin,
 )
 
 from pandas.tests.tseries.offsets.common import (
@@ -31,7 +28,7 @@ from pandas.tests.tseries.offsets.common import (
 
 
 class TestWeek(Base):
-    _offset: type[Week] = Week
+    _offset = Week
     d = Timestamp(datetime(2008, 1, 2))
     offset1 = _offset()
     offset2 = _offset(2)
@@ -153,11 +150,7 @@ class TestWeek(Base):
             offset + other
 
 
-class BaseWeekOfMonthMixin(Base):
-    _offset: type[WeekOfMonthMixin] = WeekOfMonth
-
-
-class TestWeekOfMonth(BaseWeekOfMonthMixin):
+class TestWeekOfMonth(Base):
     _offset = WeekOfMonth
     offset1 = _offset()
     offset2 = _offset(2)
@@ -273,7 +266,7 @@ class TestWeekOfMonth(BaseWeekOfMonthMixin):
         assert fast == slow
 
 
-class TestLastWeekOfMonth(BaseWeekOfMonthMixin):
+class TestLastWeekOfMonth(Base):
     _offset = LastWeekOfMonth
     offset1 = _offset()
     offset2 = _offset(2)

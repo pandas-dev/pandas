@@ -3,8 +3,6 @@ Tests for the following offsets:
 - QuarterBegin
 - QuarterEnd
 """
-from __future__ import annotations
-
 from datetime import datetime
 
 import pytest
@@ -154,7 +152,7 @@ class TestQuarterBegin(Base):
 
 
 class TestQuarterEnd(Base):
-    _offset: type[QuarterEnd] = QuarterEnd
+    _offset = QuarterEnd
 
     def test_repr(self):
         expected = "<QuarterEnd: startingMonth=3>"

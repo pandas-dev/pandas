@@ -3,13 +3,9 @@ Tests for the following offsets:
 - BMonthBegin
 - BMonthEnd
 """
-from __future__ import annotations
-
 from datetime import datetime
 
 import pytest
-
-from pandas._libs.tslibs.offsets import MonthOffset
 
 import pandas as pd
 from pandas.tests.tseries.offsets.common import (
@@ -47,11 +43,7 @@ def test_apply_index(cls, n):
     assert res2.iloc[-1] == ser.iloc[-1] + offset
 
 
-class BaseMonthOffset(Base):
-    _offset: type[MonthOffset] = BMonthBegin
-
-
-class TestBMonthBegin(BaseMonthOffset):
+class TestBMonthBegin(Base):
     _offset = BMonthBegin
 
     def test_offsets_compare_equal(self):
@@ -139,7 +131,7 @@ class TestBMonthBegin(BaseMonthOffset):
         assert_is_on_offset(offset, dt, expected)
 
 
-class TestBMonthEnd(BaseMonthOffset):
+class TestBMonthEnd(Base):
     _offset = BMonthEnd
 
     def test_normalize(self):

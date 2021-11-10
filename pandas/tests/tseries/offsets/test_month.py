@@ -5,8 +5,6 @@ Tests for the following offsets:
 - MonthBegin
 - MonthEnd
 """
-from __future__ import annotations
-
 from datetime import datetime
 
 import pytest
@@ -15,10 +13,8 @@ from pandas._libs.tslibs import Timestamp
 from pandas._libs.tslibs.offsets import (
     MonthBegin,
     MonthEnd,
-    MonthOffset,
     SemiMonthBegin,
     SemiMonthEnd,
-    SemiMonthOffset,
 )
 
 from pandas import (
@@ -34,11 +30,7 @@ from pandas.tests.tseries.offsets.common import (
 )
 
 
-class BaseSemiMonthOffset(Base):
-    _offset: type[SemiMonthOffset] = SemiMonthEnd
-
-
-class TestSemiMonthEnd(BaseSemiMonthOffset):
+class TestSemiMonthEnd(Base):
     _offset = SemiMonthEnd
     offset1 = _offset()
     offset2 = _offset(2)
@@ -302,7 +294,7 @@ class TestSemiMonthEnd(BaseSemiMonthOffset):
         tm.assert_equal(result2, exp)
 
 
-class TestSemiMonthBegin(BaseSemiMonthOffset):
+class TestSemiMonthBegin(Base):
     _offset = SemiMonthBegin
     offset1 = _offset()
     offset2 = _offset(2)
@@ -542,11 +534,7 @@ class TestSemiMonthBegin(BaseSemiMonthOffset):
         tm.assert_equal(result2, exp)
 
 
-class BaseMonthOffset(Base):
-    _offset: type[MonthOffset] = MonthBegin
-
-
-class TestMonthBegin(BaseMonthOffset):
+class TestMonthBegin(Base):
     _offset = MonthBegin
 
     offset_cases = []
@@ -611,7 +599,7 @@ class TestMonthBegin(BaseMonthOffset):
             assert_offset_equal(offset, base, expected)
 
 
-class TestMonthEnd(BaseMonthOffset):
+class TestMonthEnd(Base):
     _offset = MonthEnd
 
     def test_day_of_month(self):

@@ -4,8 +4,6 @@ Tests for the following offsets:
 - CustomBusinessMonthBegin
 - CustomBusinessMonthEnd
 """
-from __future__ import annotations
-
 from datetime import (
     date,
     datetime,
@@ -19,7 +17,6 @@ from pandas._libs.tslibs.offsets import (
     CBMonthBegin,
     CBMonthEnd,
     CDay,
-    _CustomBusinessMonth,
 )
 
 from pandas import (
@@ -68,11 +65,7 @@ class CustomBusinessMonthBase:
         assert off == off.copy()
 
 
-class BaseCustomBusinessMonth(CustomBusinessMonthBase, Base):
-    _offset: type[_CustomBusinessMonth] = CBMonthBegin
-
-
-class TestCustomBusinessMonthBegin(BaseCustomBusinessMonth):
+class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
     _offset = CBMonthBegin
 
     def test_different_normalize_equals(self):
@@ -262,7 +255,7 @@ class TestCustomBusinessMonthBegin(BaseCustomBusinessMonth):
             assert_offset_equal(offset, base, expected)
 
 
-class TestCustomBusinessMonthEnd(BaseCustomBusinessMonth):
+class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
     _offset = CBMonthEnd
 
     def test_different_normalize_equals(self):

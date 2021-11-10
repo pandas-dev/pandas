@@ -1,8 +1,6 @@
 """
 Tests for offsets.BDay
 """
-from __future__ import annotations
-
 from datetime import (
     date,
     datetime,
@@ -34,7 +32,7 @@ from pandas.tseries import offsets as offsets
 
 
 class TestBusinessDay(Base):
-    _offset: type[BDay] = BDay
+    _offset = BDay
 
     def setup_method(self, method):
         self.d = datetime(2008, 1, 1)

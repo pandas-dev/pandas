@@ -3,13 +3,9 @@ Tests for the following offsets:
 - BYearBegin
 - BYearEnd
 """
-from __future__ import annotations
-
 from datetime import datetime
 
 import pytest
-
-from pandas._libs.tslibs.offsets import YearOffset
 
 from pandas.tests.tseries.offsets.common import (
     Base,
@@ -23,11 +19,7 @@ from pandas.tseries.offsets import (
 )
 
 
-class BaseYear(Base):
-    _offset: type[YearOffset] = BYearBegin
-
-
-class TestBYearBegin(BaseYear):
+class TestBYearBegin(Base):
     _offset = BYearBegin
 
     def test_misspecified(self):
@@ -100,7 +92,7 @@ class TestBYearBegin(BaseYear):
             assert_offset_equal(offset, base, expected)
 
 
-class TestBYearEnd(BaseYear):
+class TestBYearEnd(Base):
     _offset = BYearEnd
 
     offset_cases = []
@@ -173,7 +165,7 @@ class TestBYearEnd(BaseYear):
         assert_is_on_offset(offset, dt, expected)
 
 
-class TestBYearEndLagged(BaseYear):
+class TestBYearEndLagged(Base):
     _offset = BYearEnd
 
     def test_bad_month_fail(self):
