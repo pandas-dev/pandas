@@ -70,9 +70,7 @@ def test_dataframe_from_arrow_type_mapper(int_dtype):
     record_batch = pyarrow.RecordBatch.from_arrays(
         [bools_array, ints_array], ["bools", "ints"]
     )
-    result = record_batch.to_pandas(date_as_object=False, types_mapper=types_mapper)
-    assert result["bools"].dtype == "boolean"
-    assert result["ints"].dtype == int_dtype
+    result = record_batch.to_pandas(types_mapper=types_mapper)
     bools = pd.Series([True, None, False], dtype="boolean")
     ints = pd.Series([1, None, 2], dtype=int_dtype.name)
     expected = pd.DataFrame({"bools": bools, "ints": ints})
