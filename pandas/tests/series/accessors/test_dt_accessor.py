@@ -39,121 +39,136 @@ from pandas.core.arrays import (
 )
 import pandas.core.common as com
 
+ok_for_period = PeriodArray._datetimelike_ops
+ok_for_period_methods = ["strftime", "to_timestamp", "asfreq"]
+ok_for_dt = DatetimeArray._datetimelike_ops
+ok_for_dt_methods = [
+    "to_period",
+    "to_pydatetime",
+    "tz_localize",
+    "tz_convert",
+    "normalize",
+    "strftime",
+    "round",
+    "floor",
+    "ceil",
+    "day_name",
+    "month_name",
+    "isocalendar",
+]
+ok_for_td = TimedeltaArray._datetimelike_ops
+ok_for_td_methods = [
+    "components",
+    "to_pytimedelta",
+    "total_seconds",
+    "round",
+    "floor",
+    "ceil",
+]
+
+
+def get_dir(ser):
+    # check limited display api
+    results = [r for r in ser.dt.__dir__() if not r.startswith("_")]
+    return sorted(set(results))
+
 
 class TestSeriesDatetimeValues:
-    def test_dt_namespace_accessor(self):
-
+    def _compare(self, ser, name):
         # GH 7207, 11128
         # test .dt namespace accessor
 
-        ok_for_period = PeriodArray._datetimelike_ops
-        ok_for_period_methods = ["strftime", "to_timestamp", "asfreq"]
-        ok_for_dt = DatetimeArray._datetimelike_ops
-        ok_for_dt_methods = [
-            "to_period",
-            "to_pydatetime",
-            "tz_localize",
-            "tz_convert",
-            "normalize",
-            "strftime",
-            "round",
-            "floor",
-            "ceil",
-            "day_name",
-            "month_name",
-            "isocalendar",
-        ]
-        ok_for_td = TimedeltaArray._datetimelike_ops
-        ok_for_td_methods = [
-            "components",
-            "to_pytimedelta",
-            "total_seconds",
-            "round",
-            "floor",
-            "ceil",
-        ]
-
-        def get_expected(s, name):
-            result = getattr(Index(s._values), prop)
+        def get_expected(ser, prop):
+            result = getattr(Index(ser._values), prop)
             if isinstance(result, np.ndarray):
                 if is_integer_dtype(result):
                     result = result.astype("int64")
             elif not is_list_like(result) or isinstance(result, DataFrame):
                 return result
-            return Series(result, index=s.index, name=s.name)
+            return Series(result, index=ser.index, name=ser.name)
 
-        def compare(s, name):
-            a = getattr(s.dt, prop)
-            b = get_expected(s, prop)
-            if not (is_list_like(a) and is_list_like(b)):
-                assert a == b
-            elif isinstance(a, DataFrame):
-                tm.assert_frame_equal(a, b)
-            else:
-                tm.assert_series_equal(a, b)
+        left = getattr(ser.dt, name)
+        right = get_expected(ser, name)
+        if not (is_list_like(left) and is_list_like(right)):
+            assert left == right
+        elif isinstance(left, DataFrame):
+            tm.assert_frame_equal(left, right)
+        else:
+            tm.assert_series_equal(left, right)
+
+    @pytest.mark.parametrize("freq", ["D", "s", "ms"])
+    def test_dt_namespace_accessor_datetime64(self, freq):
+        # GH#7207, GH#11128
+        # test .dt namespace accessor
 
         # datetimeindex
-        cases = [
-            Series(date_range("20130101", periods=5), name="xxx"),
-            Series(date_range("20130101", periods=5, freq="s"), name="xxx"),
-            Series(date_range("20130101 00:00:00", periods=5, freq="ms"), name="xxx"),
-        ]
-        for s in cases:
-            for prop in ok_for_dt:
-                # we test freq below
-                # we ignore week and weekofyear because they are deprecated
-                if prop not in ["freq", "week", "weekofyear"]:
-                    compare(s, prop)
+        dti = date_range("20130101", periods=5, freq=freq)
+        ser = Series(dti, name="xxx")
 
-            for prop in ok_for_dt_methods:
-                getattr(s.dt, prop)
+        for prop in ok_for_dt:
+            # we test freq below
+            # we ignore week and weekofyear because they are deprecated
+            if prop not in ["freq", "week", "weekofyear"]:
+                self._compare(ser, prop)
 
-            result = s.dt.to_pydatetime()
-            assert isinstance(result, np.ndarray)
-            assert result.dtype == object
+        for prop in ok_for_dt_methods:
+            getattr(ser.dt, prop)
 
-            result = s.dt.tz_localize("US/Eastern")
-            exp_values = DatetimeIndex(s.values).tz_localize("US/Eastern")
-            expected = Series(exp_values, index=s.index, name="xxx")
-            tm.assert_series_equal(result, expected)
+        result = ser.dt.to_pydatetime()
+        assert isinstance(result, np.ndarray)
+        assert result.dtype == object
 
-            tz_result = result.dt.tz
-            assert str(tz_result) == "US/Eastern"
-            freq_result = s.dt.freq
-            assert freq_result == DatetimeIndex(s.values, freq="infer").freq
+        result = ser.dt.tz_localize("US/Eastern")
+        exp_values = DatetimeIndex(ser.values).tz_localize("US/Eastern")
+        expected = Series(exp_values, index=ser.index, name="xxx")
+        tm.assert_series_equal(result, expected)
 
-            # let's localize, then convert
-            result = s.dt.tz_localize("UTC").dt.tz_convert("US/Eastern")
-            exp_values = (
-                DatetimeIndex(s.values).tz_localize("UTC").tz_convert("US/Eastern")
-            )
-            expected = Series(exp_values, index=s.index, name="xxx")
-            tm.assert_series_equal(result, expected)
+        tz_result = result.dt.tz
+        assert str(tz_result) == "US/Eastern"
+        freq_result = ser.dt.freq
+        assert freq_result == DatetimeIndex(ser.values, freq="infer").freq
+
+        # let's localize, then convert
+        result = ser.dt.tz_localize("UTC").dt.tz_convert("US/Eastern")
+        exp_values = (
+            DatetimeIndex(ser.values).tz_localize("UTC").tz_convert("US/Eastern")
+        )
+        expected = Series(exp_values, index=ser.index, name="xxx")
+        tm.assert_series_equal(result, expected)
+
+    def test_dt_namespace_accessor_datetime64tz(self):
+        # GH#7207, GH#11128
+        # test .dt namespace accessor
 
         # datetimeindex with tz
-        s = Series(date_range("20130101", periods=5, tz="US/Eastern"), name="xxx")
+        dti = date_range("20130101", periods=5, tz="US/Eastern")
+        ser = Series(dti, name="xxx")
         for prop in ok_for_dt:
 
             # we test freq below
             # we ignore week and weekofyear because they are deprecated
             if prop not in ["freq", "week", "weekofyear"]:
-                compare(s, prop)
+                self._compare(ser, prop)
 
         for prop in ok_for_dt_methods:
-            getattr(s.dt, prop)
+            getattr(ser.dt, prop)
 
-        result = s.dt.to_pydatetime()
+        result = ser.dt.to_pydatetime()
         assert isinstance(result, np.ndarray)
         assert result.dtype == object
 
-        result = s.dt.tz_convert("CET")
-        expected = Series(s._values.tz_convert("CET"), index=s.index, name="xxx")
+        result = ser.dt.tz_convert("CET")
+        expected = Series(ser._values.tz_convert("CET"), index=ser.index, name="xxx")
         tm.assert_series_equal(result, expected)
 
         tz_result = result.dt.tz
         assert str(tz_result) == "CET"
-        freq_result = s.dt.freq
-        assert freq_result == DatetimeIndex(s.values, freq="infer").freq
+        freq_result = ser.dt.freq
+        assert freq_result == DatetimeIndex(ser.values, freq="infer").freq
+
+    def test_dt_namespace_accessor_timedelta(self):
+        # GH#7207, GH#11128
+        # test .dt namespace accessor
 
         # timedelta index
         cases = [
@@ -166,102 +181,115 @@ class TestSeriesDatetimeValues:
                 name="xxx",
             ),
         ]
-        for s in cases:
+        for ser in cases:
             for prop in ok_for_td:
                 # we test freq below
                 if prop != "freq":
-                    compare(s, prop)
+                    self._compare(ser, prop)
 
             for prop in ok_for_td_methods:
-                getattr(s.dt, prop)
+                getattr(ser.dt, prop)
 
-            result = s.dt.components
+            result = ser.dt.components
             assert isinstance(result, DataFrame)
-            tm.assert_index_equal(result.index, s.index)
+            tm.assert_index_equal(result.index, ser.index)
 
-            result = s.dt.to_pytimedelta()
+            result = ser.dt.to_pytimedelta()
             assert isinstance(result, np.ndarray)
             assert result.dtype == object
 
-            result = s.dt.total_seconds()
+            result = ser.dt.total_seconds()
             assert isinstance(result, Series)
             assert result.dtype == "float64"
 
-            freq_result = s.dt.freq
-            assert freq_result == TimedeltaIndex(s.values, freq="infer").freq
+            freq_result = ser.dt.freq
+            assert freq_result == TimedeltaIndex(ser.values, freq="infer").freq
+
+    def test_dt_namespace_accessor_period(self):
+        # GH#7207, GH#11128
+        # test .dt namespace accessor
+
+        # periodindex
+        pi = period_range("20130101", periods=5, freq="D")
+        ser = Series(pi, name="xxx")
+
+        for prop in ok_for_period:
+            # we test freq below
+            if prop != "freq":
+                self._compare(ser, prop)
+
+        for prop in ok_for_period_methods:
+            getattr(ser.dt, prop)
+
+        freq_result = ser.dt.freq
+        assert freq_result == PeriodIndex(ser.values).freq
+
+    def test_dt_namespace_accessor_index_and_values(self):
 
         # both
         index = date_range("20130101", periods=3, freq="D")
-        s = Series(date_range("20140204", periods=3, freq="s"), index=index, name="xxx")
+        dti = date_range("20140204", periods=3, freq="s")
+        ser = Series(dti, index=index, name="xxx")
         exp = Series(
             np.array([2014, 2014, 2014], dtype="int64"), index=index, name="xxx"
         )
-        tm.assert_series_equal(s.dt.year, exp)
+        tm.assert_series_equal(ser.dt.year, exp)
 
         exp = Series(np.array([2, 2, 2], dtype="int64"), index=index, name="xxx")
-        tm.assert_series_equal(s.dt.month, exp)
+        tm.assert_series_equal(ser.dt.month, exp)
 
         exp = Series(np.array([0, 1, 2], dtype="int64"), index=index, name="xxx")
-        tm.assert_series_equal(s.dt.second, exp)
+        tm.assert_series_equal(ser.dt.second, exp)
 
-        exp = Series([s[0]] * 3, index=index, name="xxx")
-        tm.assert_series_equal(s.dt.normalize(), exp)
+        exp = Series([ser[0]] * 3, index=index, name="xxx")
+        tm.assert_series_equal(ser.dt.normalize(), exp)
 
-        # periodindex
-        cases = [Series(period_range("20130101", periods=5, freq="D"), name="xxx")]
-        for s in cases:
-            for prop in ok_for_period:
-                # we test freq below
-                if prop != "freq":
-                    compare(s, prop)
-
-            for prop in ok_for_period_methods:
-                getattr(s.dt, prop)
-
-            freq_result = s.dt.freq
-            assert freq_result == PeriodIndex(s.values).freq
-
-        # test limited display api
-        def get_dir(s):
-            results = [r for r in s.dt.__dir__() if not r.startswith("_")]
-            return sorted(set(results))
-
-        s = Series(date_range("20130101", periods=5, freq="D"), name="xxx")
-        results = get_dir(s)
+    def test_dt_accessor_limited_display_api(self):
+        # tznaive
+        ser = Series(date_range("20130101", periods=5, freq="D"), name="xxx")
+        results = get_dir(ser)
         tm.assert_almost_equal(results, sorted(set(ok_for_dt + ok_for_dt_methods)))
 
-        s = Series(
+        # tzaware
+        ser = Series(date_range("2015-01-01", "2016-01-01", freq="T"), name="xxx")
+        ser = ser.dt.tz_localize("UTC").dt.tz_convert("America/Chicago")
+        results = get_dir(ser)
+        tm.assert_almost_equal(results, sorted(set(ok_for_dt + ok_for_dt_methods)))
+
+        # Period
+        ser = Series(
             period_range("20130101", periods=5, freq="D", name="xxx").astype(object)
         )
-        results = get_dir(s)
+        results = get_dir(ser)
         tm.assert_almost_equal(
             results, sorted(set(ok_for_period + ok_for_period_methods))
         )
 
-        # 11295
+    def test_dt_accessor_ambiguous_freq_conversions(self):
+        # GH#11295
         # ambiguous time error on the conversions
-        s = Series(date_range("2015-01-01", "2016-01-01", freq="T"), name="xxx")
-        s = s.dt.tz_localize("UTC").dt.tz_convert("America/Chicago")
-        results = get_dir(s)
-        tm.assert_almost_equal(results, sorted(set(ok_for_dt + ok_for_dt_methods)))
+        ser = Series(date_range("2015-01-01", "2016-01-01", freq="T"), name="xxx")
+        ser = ser.dt.tz_localize("UTC").dt.tz_convert("America/Chicago")
+
         exp_values = date_range(
             "2015-01-01", "2016-01-01", freq="T", tz="UTC"
         ).tz_convert("America/Chicago")
         # freq not preserved by tz_localize above
         exp_values = exp_values._with_freq(None)
         expected = Series(exp_values, name="xxx")
-        tm.assert_series_equal(s, expected)
+        tm.assert_series_equal(ser, expected)
 
+    def test_dt_accessor_not_writeable(self):
         # no setting allowed
-        s = Series(date_range("20130101", periods=5, freq="D"), name="xxx")
+        ser = Series(date_range("20130101", periods=5, freq="D"), name="xxx")
         with pytest.raises(ValueError, match="modifications"):
-            s.dt.hour = 5
+            ser.dt.hour = 5
 
         # trying to set a copy
         msg = "modifications to a property of a datetimelike.+not supported"
         with pd.option_context("chained_assignment", "raise"):
             with pytest.raises(com.SettingWithCopyError, match=msg):
-                s.dt.hour[0] = 5
+                ser.dt.hour[0] = 5
 
     @pytest.mark.parametrize(
         "method, dates",
@@ -273,24 +301,24 @@ class TestSeriesDatetimeValues:
     )
     def test_dt_round(self, method, dates):
         # round
-        s = Series(
+        ser = Series(
             pd.to_datetime(
                 ["2012-01-01 13:00:00", "2012-01-01 12:01:00", "2012-01-01 08:00:00"]
             ),
             name="xxx",
         )
-        result = getattr(s.dt, method)("D")
+        result = getattr(ser.dt, method)("D")
         expected = Series(pd.to_datetime(dates), name="xxx")
         tm.assert_series_equal(result, expected)
 
     def test_dt_round_tz(self):
-        s = Series(
+        ser = Series(
             pd.to_datetime(
                 ["2012-01-01 13:00:00", "2012-01-01 12:01:00", "2012-01-01 08:00:00"]
             ),
             name="xxx",
         )
-        result = s.dt.tz_localize("UTC").dt.tz_convert("US/Eastern").dt.round("D")
+        result = ser.dt.tz_localize("UTC").dt.tz_convert("US/Eastern").dt.round("D")
 
         exp_values = pd.to_datetime(
             ["2012-01-01", "2012-01-01", "2012-01-01"]
@@ -339,23 +367,23 @@ class TestSeriesDatetimeValues:
     )
     def test_dt_round_tz_nonexistent(self, method, ts_str, freq):
         # GH 23324 round near "spring forward" DST
-        s = Series([pd.Timestamp(ts_str, tz="America/Chicago")])
-        result = getattr(s.dt, method)(freq, nonexistent="shift_forward")
+        ser = Series([pd.Timestamp(ts_str, tz="America/Chicago")])
+        result = getattr(ser.dt, method)(freq, nonexistent="shift_forward")
         expected = Series([pd.Timestamp("2018-03-11 03:00:00", tz="America/Chicago")])
         tm.assert_series_equal(result, expected)
 
-        result = getattr(s.dt, method)(freq, nonexistent="NaT")
+        result = getattr(ser.dt, method)(freq, nonexistent="NaT")
         expected = Series([pd.NaT]).dt.tz_localize(result.dt.tz)
         tm.assert_series_equal(result, expected)
 
         with pytest.raises(pytz.NonExistentTimeError, match="2018-03-11 02:00:00"):
-            getattr(s.dt, method)(freq, nonexistent="raise")
+            getattr(ser.dt, method)(freq, nonexistent="raise")
 
     def test_dt_namespace_accessor_categorical(self):
         # GH 19468
         dti = DatetimeIndex(["20171111", "20181212"]).repeat(2)
-        s = Series(pd.Categorical(dti), name="foo")
-        result = s.dt.year
+        ser = Series(pd.Categorical(dti), name="foo")
+        result = ser.dt.year
         expected = Series([2017, 2017, 2018, 2018], name="foo")
         tm.assert_series_equal(result, expected)
 
@@ -394,9 +422,9 @@ class TestSeriesDatetimeValues:
 
     def test_dt_accessor_no_new_attributes(self):
         # https://github.com/pandas-dev/pandas/issues/10673
-        s = Series(date_range("20130101", periods=5, freq="D"))
+        ser = Series(date_range("20130101", periods=5, freq="D"))
         with pytest.raises(AttributeError, match="You cannot add any new attribute"):
-            s.dt.xlabel = "a"
+            ser.dt.xlabel = "a"
 
     @pytest.mark.parametrize(
         "time_locale", [None] if tm.get_locales() is None else [None] + tm.get_locales()
@@ -434,7 +462,7 @@ class TestSeriesDatetimeValues:
                 expected_days = calendar.day_name[:]
                 expected_months = calendar.month_name[1:]
 
-        s = Series(date_range(freq="D", start=datetime(1998, 1, 1), periods=365))
+        ser = Series(date_range(freq="D", start=datetime(1998, 1, 1), periods=365))
         english_days = [
             "Monday",
             "Tuesday",
@@ -446,13 +474,13 @@ class TestSeriesDatetimeValues:
         ]
         for day, name, eng_name in zip(range(4, 11), expected_days, english_days):
             name = name.capitalize()
-            assert s.dt.day_name(locale=time_locale)[day] == name
-            assert s.dt.day_name(locale=None)[day] == eng_name
-        s = s.append(Series([pd.NaT]))
-        assert np.isnan(s.dt.day_name(locale=time_locale).iloc[-1])
+            assert ser.dt.day_name(locale=time_locale)[day] == name
+            assert ser.dt.day_name(locale=None)[day] == eng_name
+        ser = ser.append(Series([pd.NaT]))
+        assert np.isnan(ser.dt.day_name(locale=time_locale).iloc[-1])
 
-        s = Series(date_range(freq="M", start="2012", end="2013"))
-        result = s.dt.month_name(locale=time_locale)
+        ser = Series(date_range(freq="M", start="2012", end="2013"))
+        result = ser.dt.month_name(locale=time_locale)
         expected = Series([month.capitalize() for month in expected_months])
 
         # work around https://github.com/pandas-dev/pandas/issues/22342
@@ -461,7 +489,7 @@ class TestSeriesDatetimeValues:
 
         tm.assert_series_equal(result, expected)
 
-        for s_date, expected in zip(s, expected_months):
+        for s_date, expected in zip(ser, expected_months):
             result = s_date.month_name(locale=time_locale)
             expected = expected.capitalize()
 
@@ -470,20 +498,20 @@ class TestSeriesDatetimeValues:
 
             assert result == expected
 
-        s = s.append(Series([pd.NaT]))
-        assert np.isnan(s.dt.month_name(locale=time_locale).iloc[-1])
+        ser = ser.append(Series([pd.NaT]))
+        assert np.isnan(ser.dt.month_name(locale=time_locale).iloc[-1])
 
     def test_strftime(self):
         # GH 10086
-        s = Series(date_range("20130101", periods=5))
-        result = s.dt.strftime("%Y/%m/%d")
+        ser = Series(date_range("20130101", periods=5))
+        result = ser.dt.strftime("%Y/%m/%d")
         expected = Series(
             ["2013/01/01", "2013/01/02", "2013/01/03", "2013/01/04", "2013/01/05"]
         )
         tm.assert_series_equal(result, expected)
 
-        s = Series(date_range("2015-02-03 11:22:33.4567", periods=5))
-        result = s.dt.strftime("%Y/%m/%d %H-%M-%S")
+        ser = Series(date_range("2015-02-03 11:22:33.4567", periods=5))
+        result = ser.dt.strftime("%Y/%m/%d %H-%M-%S")
         expected = Series(
             [
                 "2015/02/03 11-22-33",
@@ -495,15 +523,15 @@ class TestSeriesDatetimeValues:
         )
         tm.assert_series_equal(result, expected)
 
-        s = Series(period_range("20130101", periods=5))
-        result = s.dt.strftime("%Y/%m/%d")
+        ser = Series(period_range("20130101", periods=5))
+        result = ser.dt.strftime("%Y/%m/%d")
         expected = Series(
             ["2013/01/01", "2013/01/02", "2013/01/03", "2013/01/04", "2013/01/05"]
         )
         tm.assert_series_equal(result, expected)
 
-        s = Series(period_range("2015-02-03 11:22:33.4567", periods=5, freq="s"))
-        result = s.dt.strftime("%Y/%m/%d %H-%M-%S")
+        ser = Series(period_range("2015-02-03 11:22:33.4567", periods=5, freq="s"))
+        result = ser.dt.strftime("%Y/%m/%d %H-%M-%S")
         expected = Series(
             [
                 "2015/02/03 11-22-33",
@@ -515,9 +543,10 @@ class TestSeriesDatetimeValues:
         )
         tm.assert_series_equal(result, expected)
 
-        s = Series(date_range("20130101", periods=5))
-        s.iloc[0] = pd.NaT
-        result = s.dt.strftime("%Y/%m/%d")
+    def test_strftime_dt64_days(self):
+        ser = Series(date_range("20130101", periods=5))
+        ser.iloc[0] = pd.NaT
+        result = ser.dt.strftime("%Y/%m/%d")
         expected = Series(
             [np.nan, "2013/01/02", "2013/01/03", "2013/01/04", "2013/01/05"]
         )
@@ -533,6 +562,7 @@ class TestSeriesDatetimeValues:
         # dtype may be S10 or U10 depending on python version
         tm.assert_index_equal(result, expected)
 
+    def test_strftime_period_days(self):
         period_index = period_range("20150301", periods=5)
         result = period_index.strftime("%Y/%m/%d")
         expected = Index(
@@ -541,13 +571,15 @@ class TestSeriesDatetimeValues:
         )
         tm.assert_index_equal(result, expected)
 
-        s = Series([datetime(2013, 1, 1, 2, 32, 59), datetime(2013, 1, 2, 14, 32, 1)])
-        result = s.dt.strftime("%Y-%m-%d %H:%M:%S")
+    def test_strftime_dt64_microsecond_resolution(self):
+        ser = Series([datetime(2013, 1, 1, 2, 32, 59), datetime(2013, 1, 2, 14, 32, 1)])
+        result = ser.dt.strftime("%Y-%m-%d %H:%M:%S")
         expected = Series(["2013-01-01 02:32:59", "2013-01-02 14:32:01"])
         tm.assert_series_equal(result, expected)
 
-        s = Series(period_range("20130101", periods=4, freq="H"))
-        result = s.dt.strftime("%Y/%m/%d %H:%M:%S")
+    def test_strftime_period_hours(self):
+        ser = Series(period_range("20130101", periods=4, freq="H"))
+        result = ser.dt.strftime("%Y/%m/%d %H:%M:%S")
         expected = Series(
             [
                 "2013/01/01 00:00:00",
@@ -556,9 +588,11 @@ class TestSeriesDatetimeValues:
                 "2013/01/01 03:00:00",
             ]
         )
+        tm.assert_series_equal(result, expected)
 
-        s = Series(period_range("20130101", periods=4, freq="L"))
-        result = s.dt.strftime("%Y/%m/%d %H:%M:%S.%l")
+    def test_strftime_period_minutes(self):
+        ser = Series(period_range("20130101", periods=4, freq="L"))
+        result = ser.dt.strftime("%Y/%m/%d %H:%M:%S.%l")
         expected = Series(
             [
                 "2013/01/01 00:00:00.000",
@@ -578,8 +612,8 @@ class TestSeriesDatetimeValues:
     )
     def test_strftime_nat(self, data):
         # GH 29578
-        s = Series(data)
-        result = s.dt.strftime("%Y-%m-%d")
+        ser = Series(data)
+        result = ser.dt.strftime("%Y-%m-%d")
         expected = Series(["2019-01-01", np.nan])
         tm.assert_series_equal(result, expected)
 
@@ -591,16 +625,16 @@ class TestSeriesDatetimeValues:
         )
 
         # GH 8689
-        s = Series(date_range("20130101", periods=5, freq="D"))
-        s.iloc[2] = pd.NaT
+        ser = Series(date_range("20130101", periods=5, freq="D"))
+        ser.iloc[2] = pd.NaT
 
         for attr in ["microsecond", "nanosecond", "second", "minute", "hour", "day"]:
-            expected = getattr(s.dt, attr).copy()
+            expected = getattr(ser.dt, attr).copy()
             expected.iloc[2] = np.nan
-            result = getattr(s.dt, attr)
+            result = getattr(ser.dt, attr)
             tm.assert_series_equal(result, expected)
 
-        result = s.dt.date
+        result = ser.dt.date
         expected = Series(
             [
                 date(2013, 1, 1),
@@ -613,7 +647,7 @@ class TestSeriesDatetimeValues:
         )
         tm.assert_series_equal(result, expected)
 
-        result = s.dt.time
+        result = ser.dt.time
         expected = Series([time(0), time(0), np.nan, time(0), time(0)], dtype="object")
         tm.assert_series_equal(result, expected)
 
@@ -626,8 +660,8 @@ class TestSeriesDatetimeValues:
 
         assert Series.dt is CombinedDatetimelikeProperties
 
-        s = Series(date_range("2000-01-01", periods=3))
-        assert isinstance(s.dt, DatetimeProperties)
+        ser = Series(date_range("2000-01-01", periods=3))
+        assert isinstance(ser.dt, DatetimeProperties)
 
     @pytest.mark.parametrize(
         "ser", [Series(np.arange(5)), Series(list("abcde")), Series(np.random.randn(5))]
@@ -639,11 +673,11 @@ class TestSeriesDatetimeValues:
         assert not hasattr(ser, "dt")
 
     def test_dt_accessor_updates_on_inplace(self):
-        s = Series(date_range("2018-01-01", periods=10))
-        s[2] = None
-        return_value = s.fillna(pd.Timestamp("2018-01-01"), inplace=True)
+        ser = Series(date_range("2018-01-01", periods=10))
+        ser[2] = None
+        return_value = ser.fillna(pd.Timestamp("2018-01-01"), inplace=True)
         assert return_value is None
-        result = s.dt.date
+        result = ser.dt.date
         assert result[0] == result[2]
 
     def test_date_tz(self):
@@ -652,10 +686,10 @@ class TestSeriesDatetimeValues:
             ["2014-04-04 23:56", "2014-07-18 21:24", "2015-11-22 22:14"],
             tz="US/Eastern",
         )
-        s = Series(rng)
+        ser = Series(rng)
         expected = Series([date(2014, 4, 4), date(2014, 7, 18), date(2015, 11, 22)])
-        tm.assert_series_equal(s.dt.date, expected)
-        tm.assert_series_equal(s.apply(lambda x: x.date()), expected)
+        tm.assert_series_equal(ser.dt.date, expected)
+        tm.assert_series_equal(ser.apply(lambda x: x.date()), expected)
 
     def test_dt_timetz_accessor(self, tz_naive_fixture):
         # GH21358
@@ -664,11 +698,11 @@ class TestSeriesDatetimeValues:
         dtindex = DatetimeIndex(
             ["2014-04-04 23:56", "2014-07-18 21:24", "2015-11-22 22:14"], tz=tz
         )
-        s = Series(dtindex)
+        ser = Series(dtindex)
         expected = Series(
             [time(23, 56, tzinfo=tz), time(21, 24, tzinfo=tz), time(22, 14, tzinfo=tz)]
         )
-        result = s.dt.timetz
+        result = ser.dt.timetz
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -731,9 +765,9 @@ class TestSeriesPeriodValuesDtAccessor:
         # when using the dt accessor on a Series
         input_vals = PeriodArray._from_sequence(np.asarray(input_vals))
 
-        s = Series(input_vals)
-        result = s.dt.end_time
-        expected = s.apply(lambda x: x.end_time)
+        ser = Series(input_vals)
+        result = ser.dt.end_time
+        expected = ser.apply(lambda x: x.end_time)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("input_vals", [("2001"), ("NaT")])
@@ -755,7 +789,7 @@ def test_week_and_weekofyear_are_deprecated():
 
 def test_normalize_pre_epoch_dates():
     # GH: 36294
-    s = pd.to_datetime(Series(["1969-01-01 09:00:00", "2016-01-01 09:00:00"]))
-    result = s.dt.normalize()
+    ser = pd.to_datetime(Series(["1969-01-01 09:00:00", "2016-01-01 09:00:00"]))
+    result = ser.dt.normalize()
     expected = pd.to_datetime(Series(["1969-01-01", "2016-01-01"]))
     tm.assert_series_equal(result, expected)
