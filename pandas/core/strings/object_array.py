@@ -12,10 +12,7 @@ import numpy.typing as npt
 import pandas._libs.lib as lib
 import pandas._libs.missing as libmissing
 import pandas._libs.ops as libops
-from pandas._typing import (
-    Dtype,
-    Scalar,
-)
+from pandas._typing import Scalar
 
 from pandas.core.dtypes.common import is_scalar
 from pandas.core.dtypes.missing import isna
