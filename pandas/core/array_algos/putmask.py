@@ -126,7 +126,8 @@ def putmask_smart(values: np.ndarray, mask: npt.NDArray[np.bool_], new) -> np.nd
 
     if values.dtype.kind == new.dtype.kind:
         # preserves dtype if possible
-        return _putmask_preserve(values, new, mask)
+        np.putmask(values, mask, new)
+        return values
 
     dtype = find_common_type([values.dtype, new.dtype])
     # error: Argument 1 to "astype" of "_ArrayOrScalarCommon" has incompatible type
@@ -135,15 +136,8 @@ def putmask_smart(values: np.ndarray, mask: npt.NDArray[np.bool_], new) -> np.nd
     # List[Any], _DTypeDict, Tuple[Any, Any]]]"
     values = values.astype(dtype)  # type: ignore[arg-type]
 
-    return _putmask_preserve(values, new, mask)
-
-
-def _putmask_preserve(new_values: np.ndarray, new, mask: npt.NDArray[np.bool_]):
-    try:
-        new_values[mask] = new[mask]
-    except (IndexError, ValueError):
-        new_values[mask] = new
-    return new_values
+    np.putmask(values, mask, new)
+    return values
 
 
 def putmask_without_repeat(
