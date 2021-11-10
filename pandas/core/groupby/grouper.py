@@ -712,6 +712,7 @@ class Grouping:
                 return True
         return False
 
+
 def get_grouper(
     obj: NDFrameT,
     key=None,
