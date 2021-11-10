@@ -236,25 +236,27 @@ class TestNumericOnly:
         self._check(df, method, expected_columns, expected_columns_numeric)
 
     def _check(self, df, method, expected_columns, expected_columns_numeric):
-        gb = df[["group", *list(expected_columns_numeric)]].groupby("group")
 
         # cummin, cummax dont have numeric_only kwarg, always use False
         warn = None
-        if method in ["cummin", "cummax"]:
+        if method in ["cummin", "cummax", "min", "max"]:
             # these dont have numeric_only kwarg, always use False
             warn = FutureWarning
-        elif method in ["min", "max"]:
-            # these have numeric_only kwarg, but default to False
-            warn = FutureWarning
+            df["object"] = [None,'y','z'] # add a column that is non numeric and will be dropped
+            gb = df[["group", "object", *list(expected_columns_numeric)]].groupby("group")
+        else:
+            gb = df[["group", *list(expected_columns_numeric)]].groupby("group")
 
-        result = getattr(gb, method)()
+        with tm.assert_produces_warning(warn, match="Dropping invalid columns"):
+            result = getattr(gb, method)()
         tm.assert_index_equal(result.columns, expected_columns_numeric)
 
         # GH#41475 deprecated silently ignoring nuisance columns
         warn = None
         if len(expected_columns) < len(gb._obj_with_exclusions.columns):
             warn = FutureWarning
-        result = getattr(gb, method)()
+        with tm.assert_produces_warning(warn, match="Dropping invalid columns"):
+            result = getattr(gb, method)()
 
         tm.assert_index_equal(result.columns, expected_columns)
 
