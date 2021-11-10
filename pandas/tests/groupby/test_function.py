@@ -242,8 +242,14 @@ class TestNumericOnly:
         if method in ["cummin", "cummax", "min", "max"]:
             # these dont have numeric_only kwarg, always use False
             warn = FutureWarning
-            df["object"] = [None,'y','z'] # add a column that is non numeric and will be dropped
-            gb = df[["group", "object", *list(expected_columns_numeric)]].groupby("group")
+            df["object"] = [
+                None,
+                "y",
+                "z",
+            ] # add a column that is non numeric and will be dropped
+            gb = df[["group", "object", *list(expected_columns_numeric)]].groupby(
+                "group"
+            )
         else:
             gb = df[["group", *list(expected_columns_numeric)]].groupby("group")
 
