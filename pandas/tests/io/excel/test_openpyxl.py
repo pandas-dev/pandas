@@ -109,15 +109,12 @@ def test_engine_kwargs_write(ext, iso_dates):
             DataFrame().to_excel(writer)
 
 
-@pytest.mark.parametrize(
-    "engine_kwargs", [{"data_only": True}, {"keep_vba": True}, {"keep_links": False}]
-)
-def test_engine_kwargs_append(ext, engine_kwargs):
+def test_engine_kwargs_append(ext):
     # GH 43445
     with tm.ensure_clean(ext) as f:
         DataFrame(["hello", "world"]).to_excel(f)
         with ExcelWriter(
-            f, engine="openpyxl", mode="a", engine_kwargs=engine_kwargs
+            f, engine="openpyxl", mode="a", engine_kwargs={"keep_vba": True}
         ) as writer:
             DataFrame(["goodbye", "world"]).to_excel(writer, sheet_name="Sheet2")
 
