@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 import unicodedata
 
 import numpy as np
+import numpy.typing as npt
 
 import pandas._libs.lib as lib
 import pandas._libs.missing as libmissing
@@ -37,7 +38,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         raise NotImplementedError
 
     def _str_map(
-        self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True
+        self, f, na_value=None, dtype: npt.DTypeLike | None = None, convert: bool = True
     ):
         """
         Map a callable over valid elements of the array.
@@ -62,9 +63,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             na_value = self._str_na_value
 
         if not len(self):
-            # error: Argument 1 to "ndarray" has incompatible type "int";
-            # expected "Sequence[int]"
-            return np.ndarray(0, dtype=dtype)  # type: ignore[arg-type]
+            return np.ndarray(0, dtype=dtype)
 
         arr = np.asarray(self, dtype=object)
         mask = isna(arr)
