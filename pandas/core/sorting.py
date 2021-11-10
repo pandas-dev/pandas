@@ -40,8 +40,8 @@ from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
     from pandas import MultiIndex
-    from pandas.core.indexes.base import Index
     from pandas.core.groupby.grouper import Grouping
+    from pandas.core.indexes.base import Index
 
 
 def get_indexer_indexer(
