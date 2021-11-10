@@ -19,11 +19,20 @@ import warnings
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas._typing import FilePathOrBuffer
+from pandas._typing import (
+    FilePathOrBuffer,
+    Scalar,
+)
 from pandas.errors import (
     EmptyDataError,
     ParserError,
 )
+
+# BOM character (byte order mark)
+# This exists at the beginning of a file to indicate endianness
+# of a file (stream). Unfortunately, this marker screws up parsing,
+# so we need to remove it if we see it.
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_integer
 from pandas.core.dtypes.inference import is_dict_like
@@ -33,10 +42,6 @@ from pandas.io.parsers.base_parser import (
     parser_defaults,
 )
 
-# BOM character (byte order mark)
-# This exists at the beginning of a file to indicate endianness
-# of a file (stream). Unfortunately, this marker screws up parsing,
-# so we need to remove it if we see it.
 _BOM = "\ufeff"
 
 
@@ -105,9 +110,10 @@ class PythonParser(ParserBase):
         # Get columns in two steps: infer from data, then
         # infer column indices from self.usecols if it is specified.
         self._col_indices: list[int] | None = None
+        columns: list[list[Scalar | None]]
         try:
             (
-                self.columns,
+                columns,
                 self.num_original_columns,
                 self.unnamed_cols,
             ) = self._infer_columns()
@@ -117,7 +123,8 @@ class PythonParser(ParserBase):
 
         # Now self.columns has the set of columns that we will process.
         # The original set is stored in self.original_columns.
-        if len(self.columns) > 1:
+        self.columns: list[Scalar | tuple]
+        if len(columns) > 1:
             # we are processing a multi index column
             # error: Cannot determine type of 'index_names'
             # error: Cannot determine type of 'col_names'
@@ -127,17 +134,17 @@ class PythonParser(ParserBase):
                 self.col_names,
                 _,
             ) = self._extract_multi_indexer_columns(
-                self.columns,
+                columns,
                 self.index_names,  # type: ignore[has-type]
                 self.col_names,  # type: ignore[has-type]
             )
             # Update list of original names to include all indices.
             self.num_original_columns = len(self.columns)
         else:
-            self.columns = self.columns[0]
+            self.columns = columns[0]
 
         # get popped off for index
-        self.orig_names: list[int | str | tuple] = list(self.columns)
+        self.orig_names: list[Scalar | tuple] = list(self.columns)
 
         # needs to be cleaned/refactored
         # multiple date column thing turning into a real spaghetti factory
@@ -352,11 +359,13 @@ class PythonParser(ParserBase):
             clean_dtypes,
         )
 
-    def _infer_columns(self):
+    def _infer_columns(
+        self,
+    ) -> tuple[list[list[Scalar | None]], int, set[Scalar | None]]:
         names = self.names
         num_original_columns = 0
         clear_buffer = True
-        unnamed_cols: set[str | int | None] = set()
+        unnamed_cols: set[Scalar | None] = set()
 
         if self.header is not None:
             header = self.header
@@ -370,7 +379,7 @@ class PythonParser(ParserBase):
                 have_mi_columns = False
                 header = [header]
 
-            columns: list[list[int | str | None]] = []
+            columns: list[list[Scalar | None]] = []
             for level, hr in enumerate(header):
                 try:
                     line = self._buffered_line()
@@ -399,7 +408,7 @@ class PythonParser(ParserBase):
 
                     line = self.names[:]
 
-                this_columns: list[int | str | None] = []
+                this_columns: list[Scalar | None] = []
                 this_unnamed_cols = []
 
                 for i, c in enumerate(line):
@@ -527,10 +536,10 @@ class PythonParser(ParserBase):
 
     def _handle_usecols(
         self,
-        columns: list[list[str | int | None]],
-        usecols_key: list[str | int | None],
+        columns: list[list[Scalar | None]],
+        usecols_key: list[Scalar | None],
         num_original_columns: int,
-    ):
+    ) -> list[list[Scalar | None]]:
         """
         Sets self._col_indices
 
@@ -563,7 +572,7 @@ class PythonParser(ParserBase):
                         "Defining usecols with out of bounds indices is deprecated "
                         "and will raise a ParserError in a future version.",
                         FutureWarning,
-                        stacklevel=8,
+                        stacklevel=find_stack_level(),
                     )
                 col_indices = self.usecols
 
@@ -583,7 +592,7 @@ class PythonParser(ParserBase):
         else:
             return self._next_line()
 
-    def _check_for_bom(self, first_row):
+    def _check_for_bom(self, first_row: list[Scalar]) -> list[Scalar]:
         """
         Checks whether the file begins with the BOM character.
         If it does, remove it. In addition, if there is quoting
@@ -614,6 +623,7 @@ class PythonParser(ParserBase):
             return first_row
 
         first_row_bom = first_row[0]
+        new_row: str
 
         if len(first_row_bom) > 1 and first_row_bom[1] == self.quotechar:
             start = 2
@@ -632,9 +642,11 @@ class PythonParser(ParserBase):
 
             # No quotation so just remove BOM from first element
             new_row = first_row_bom[1:]
-        return [new_row] + first_row[1:]
 
-    def _is_line_empty(self, line):
+        new_row_list: list[Scalar] = [new_row]
+        return new_row_list + first_row[1:]
+
+    def _is_line_empty(self, line: list[Scalar]) -> bool:
         """
         Check if a line is empty or not.
 
@@ -649,7 +661,7 @@ class PythonParser(ParserBase):
         """
         return not line or all(not x for x in line)
 
-    def _next_line(self):
+    def _next_line(self) -> list[Scalar]:
         if isinstance(self.data, list):
             while self.skipfunc(self.pos):
                 self.pos += 1
@@ -703,7 +715,7 @@ class PythonParser(ParserBase):
         self.buf.append(line)
         return line
 
-    def _alert_malformed(self, msg, row_num):
+    def _alert_malformed(self, msg: str, row_num: int) -> None:
         """
         Alert a user about a malformed row, depending on value of
         `self.on_bad_lines` enum.
@@ -713,10 +725,12 @@ class PythonParser(ParserBase):
 
         Parameters
         ----------
-        msg : The error message to display.
-        row_num : The row number where the parsing error occurred.
-                  Because this row number is displayed, we 1-index,
-                  even though we 0-index internally.
+        msg: str
+            The error message to display.
+        row_num: int
+            The row number where the parsing error occurred.
+            Because this row number is displayed, we 1-index,
+            even though we 0-index internally.
         """
         if self.on_bad_lines == self.BadLineHandleMethod.ERROR:
             raise ParserError(msg)
@@ -724,7 +738,7 @@ class PythonParser(ParserBase):
             base = f"Skipping line {row_num}: "
             sys.stderr.write(base + msg + "\n")
 
-    def _next_iter_line(self, row_num):
+    def _next_iter_line(self, row_num: int) -> list[Scalar] | None:
         """
         Wrapper around iterating through `self.data` (CSV source).
 
@@ -734,12 +748,15 @@ class PythonParser(ParserBase):
 
         Parameters
         ----------
-        row_num : The row number of the line being parsed.
+        row_num: int
+            The row number of the line being parsed.
         """
         try:
             # assert for mypy, data is Iterator[str] or None, would error in next
             assert self.data is not None
-            return next(self.data)
+            line = next(self.data)
+            assert isinstance(line, list)
+            return line
         except csv.Error as e:
             if (
                 self.on_bad_lines == self.BadLineHandleMethod.ERROR
@@ -768,7 +785,7 @@ class PythonParser(ParserBase):
                 self._alert_malformed(msg, row_num)
             return None
 
-    def _check_comments(self, lines):
+    def _check_comments(self, lines: list[list[Scalar]]) -> list[list[Scalar]]:
         if self.comment is None:
             return lines
         ret = []
@@ -789,19 +806,19 @@ class PythonParser(ParserBase):
             ret.append(rl)
         return ret
 
-    def _remove_empty_lines(self, lines):
+    def _remove_empty_lines(self, lines: list[list[Scalar]]) -> list[list[Scalar]]:
         """
         Iterate through the lines and remove any that are
         either empty or contain only one whitespace value
 
         Parameters
         ----------
-        lines : array-like
+        lines : list of list of Scalars
             The array of lines that we are to filter.
 
         Returns
         -------
-        filtered_lines : array-like
+        filtered_lines : list of list of Scalars
             The same array of lines with the "empty" ones removed.
         """
         ret = []
@@ -815,7 +832,7 @@ class PythonParser(ParserBase):
                 ret.append(line)
         return ret
 
-    def _check_thousands(self, lines):
+    def _check_thousands(self, lines: list[list[Scalar]]) -> list[list[Scalar]]:
         if self.thousands is None:
             return lines
 
@@ -823,7 +840,9 @@ class PythonParser(ParserBase):
             lines=lines, search=self.thousands, replace=""
         )
 
-    def _search_replace_num_columns(self, lines, search, replace):
+    def _search_replace_num_columns(
+        self, lines: list[list[Scalar]], search: str, replace: str
+    ) -> list[list[Scalar]]:
         ret = []
         for line in lines:
             rl = []
@@ -840,7 +859,7 @@ class PythonParser(ParserBase):
             ret.append(rl)
         return ret
 
-    def _check_decimal(self, lines):
+    def _check_decimal(self, lines: list[list[Scalar]]) -> list[list[Scalar]]:
         if self.decimal == parser_defaults["decimal"]:
             return lines
 
@@ -848,12 +867,12 @@ class PythonParser(ParserBase):
             lines=lines, search=self.decimal, replace="."
         )
 
-    def _clear_buffer(self):
+    def _clear_buffer(self) -> None:
         self.buf = []
 
     _implicit_index = False
 
-    def _get_index_name(self, columns):
+    def _get_index_name(self, columns: list[Scalar | tuple]):
         """
         Try several cases to get lines:
 
@@ -868,11 +887,13 @@ class PythonParser(ParserBase):
         orig_names = list(columns)
         columns = list(columns)
 
+        line: list[Scalar] | None
         try:
             line = self._next_line()
         except StopIteration:
             line = None
 
+        next_line: list[Scalar] | None
         try:
             next_line = self._next_line()
         except StopIteration:

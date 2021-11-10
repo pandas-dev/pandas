@@ -27,6 +27,7 @@ from pandas._typing import (
     ArrayLike,
     DtypeArg,
     FilePathOrBuffer,
+    Scalar,
 )
 from pandas.errors import (
     ParserError,
@@ -231,7 +232,7 @@ class ParserBase:
             errors=kwds.get("encoding_errors", "strict"),
         )
 
-    def _validate_parse_dates_presence(self, columns: list[str]) -> None:
+    def _validate_parse_dates_presence(self, columns: list[Scalar]) -> None:
         """
         Check if parse_dates are in columns.
 
@@ -314,12 +315,17 @@ class ParserBase:
 
     @final
     def _extract_multi_indexer_columns(
-        self, header, index_names, col_names, passed_names: bool = False
+        self,
+        header: list[list[Scalar | None]],
+        index_names: list | None,
+        col_names: None,
+        passed_names: bool = False,
     ):
         """
         extract and return the names, index_names, col_names
         header is a list-of-lists returned from the parsers
         """
+        assert col_names is None
         if len(header) < 2:
             return header[0], index_names, col_names, passed_names
 
@@ -610,7 +616,7 @@ class ParserBase:
 
     @final
     def _set_noconvert_dtype_columns(
-        self, col_indices: list[int], names: list[int | str | tuple]
+        self, col_indices: list[int], names: list[Scalar | tuple]
     ) -> set[int]:
         """
         Set the columns that should not undergo dtype conversions.
