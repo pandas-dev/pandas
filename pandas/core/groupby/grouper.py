@@ -14,7 +14,6 @@ import warnings
 
 import numpy as np
 
-from pandas._libs.tslibs.nattype import NaTType
 from pandas._typing import (
     ArrayLike,
     NDFrameT,
