@@ -488,7 +488,6 @@ class Grouping:
         self._observed = observed
         self.in_axis = in_axis
         self._dropna = dropna
-        self._has_na_placeholder = False
 
         self._passed_categorical = False
 
@@ -603,6 +602,9 @@ class Grouping:
             return index.names.index(level)
         return level
 
+    # @cache_readonly
+    # def _has
+
     @property
     def ngroups(self) -> int:
         return len(self.group_index)
@@ -693,12 +695,6 @@ class Grouping:
             codes, uniques = algorithms.factorize(
                 self.grouping_vector, sort=self._sort, na_sentinel=na_sentinel
             )
-            # GH43943, store placeholder for (np.nan, pd.NaT, np.datetime64("NaT", "ns"),
-            # np.timedelta64("NaT", "ns")), will later be replaced by -1 in
-            # pandas/core/groupby:reconstructed_codes
-            if not self._dropna:
-                if isna(self.grouping_vector).any():
-                    self._has_na_placeholder = True
 
         return codes, uniques
 
@@ -706,6 +702,15 @@ class Grouping:
     def groups(self) -> dict[Hashable, np.ndarray]:
         return self._index.groupby(Categorical.from_codes(self.codes, self.group_index))
 
+    @cache_readonly
+    def _has_na_placeholder(self) -> bool:
+        # GH43943, store placeholder for (np.nan, pd.NaT, np.datetime64("NaT", "ns"),
+        # np.timedelta64("NaT", "ns")), is used to replaced codes correctly to -1
+        # pandas/core/groupby:reconstructed_codes
+        if not self._dropna:
+            if isna(self.grouping_vector).any():
+                return True
+        return False
 
 def get_grouper(
     obj: NDFrameT,
