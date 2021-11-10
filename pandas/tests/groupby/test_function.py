@@ -246,7 +246,7 @@ class TestNumericOnly:
                 None,
                 "y",
                 "z",
-            ] # add a column that is non numeric and will be dropped
+            ]  # add a column that is non numeric and will be dropped
             gb = df[["group", "object", *list(expected_columns_numeric)]].groupby(
                 "group"
             )
