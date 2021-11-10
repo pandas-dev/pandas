@@ -42,6 +42,8 @@ def kleene_or(
     if left_mask is None:
         return kleene_or(right, left, right_mask, left_mask)
 
+    if not isinstance(left, np.ndarray):
+        raise TypeError("Either `left` or `right` need to be a np.ndarray.")
     assert isinstance(left, np.ndarray)
 
     raise_for_nan(right, method="or")
@@ -105,7 +107,10 @@ def kleene_xor(
     if left_mask is None:
         return kleene_xor(right, left, right_mask, left_mask)
 
+    if not isinstance(left, np.ndarray):
+        raise TypeError("Either `left` or `right` need to be a np.ndarray.")
     assert isinstance(left, np.ndarray)
+
     raise_for_nan(right, method="xor")
     if right is libmissing.NA:
         result = np.zeros_like(left)
@@ -153,6 +158,8 @@ def kleene_and(
     if left_mask is None:
         return kleene_and(right, left, right_mask, left_mask)
 
+    if not isinstance(left, np.ndarray):
+        raise TypeError("Either `left` or `right` need to be a np.ndarray.")
     assert isinstance(left, np.ndarray)
     raise_for_nan(right, method="and")
 
