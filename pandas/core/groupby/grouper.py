@@ -602,9 +602,6 @@ class Grouping:
             return index.names.index(level)
         return level
 
-    # @cache_readonly
-    # def _has
-
     @property
     def ngroups(self) -> int:
         return len(self.group_index)
