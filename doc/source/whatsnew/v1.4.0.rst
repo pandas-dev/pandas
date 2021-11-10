@@ -579,6 +579,7 @@ I/O
 Period
 ^^^^^^
 - Bug in adding a :class:`Period` object to a ``np.timedelta64`` object incorrectly raising ``TypeError`` (:issue:`44182`)
+- Bug in :meth:`PeriodIndex.to_timestamp` when the index has ``freq="B"`` inferring ``freq="D"`` for its result instead of ``freq="B"`` (:issue:`44105`)
 -
 
 Plotting
