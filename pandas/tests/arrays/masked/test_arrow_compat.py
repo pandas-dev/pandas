@@ -20,6 +20,22 @@ def data(request):
     return request.param
 
 
+@pytest.fixture(
+    params=[
+        pd.Int8Dtype,
+        pd.Int16Dtype,
+        pd.Int32Dtype,
+        pd.Int64Dtype,
+        pd.UInt8Dtype,
+        pd.UInt16Dtype,
+        pd.UInt32Dtype,
+        pd.UInt64Dtype,
+    ]
+)
+def int_dtype(request):
+    return request.param()
+
+
 def test_arrow_array(data):
     arr = pa.array(data)
     expected = pa.array(
@@ -37,6 +53,30 @@ def test_arrow_roundtrip(data):
     result = table.to_pandas()
     assert result["a"].dtype == data.dtype
     tm.assert_frame_equal(result, df)
+
+
+@td.skip_if_no("pyarrow")
+def test_dataframe_from_arrow_type_mapper(int_dtype):
+    pyarrow = pytest.importorskip("pyarrow", minversion="3.0.0")
+
+    def types_mapper(arrow_type):
+        if pyarrow.types.is_boolean(arrow_type):
+            return pd.BooleanDtype()
+        elif pyarrow.types.is_integer(arrow_type):
+            return int_dtype
+
+    bools_array = pyarrow.array([True, None, False], type=pyarrow.bool_())
+    ints_array = pyarrow.array([1, None, 2], type=pyarrow.int64())
+    record_batch = pyarrow.RecordBatch.from_arrays(
+        [bools_array, ints_array], ["bools", "ints"]
+    )
+    result = record_batch.to_pandas(date_as_object=False, types_mapper=types_mapper)
+    assert result["bools"].dtype == "boolean"
+    assert result["ints"].dtype == int_dtype
+    bools = pd.Series([True, None, False], dtype="boolean")
+    ints = pd.Series([1, None, 2], dtype=int_dtype.name)
+    expected = pd.DataFrame({"bools": bools, "ints": ints})
+    tm.assert_frame_equal(result, expected)
 
 
 @td.skip_if_no("pyarrow")

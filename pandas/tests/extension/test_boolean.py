@@ -397,21 +397,3 @@ class TestParsing(base.BaseParsingTests):
 
 class Test2DCompat(base.Dim2CompatTests):
     pass
-
-
-def test_from_arrow(dtype):
-    pyarrow = pytest.importorskip("pyarrow")
-
-    def types_mapper(arrow_type):
-        if pyarrow.types.is_boolean(arrow_type):
-            return dtype
-
-    pyarrow_array = pyarrow.array([True, None, False], type=pyarrow.bool_())
-    expected = pd.Series([True, None, False], dtype=dtype.name)
-
-    # Convert to RecordBatch because types_mapper argument is ignored when
-    # using a pyarrow.Array. https://issues.apache.org/jira/browse/ARROW-9664
-    record_batch = pyarrow.RecordBatch.from_arrays([pyarrow_array], ["test_col"])
-    dataframe = record_batch.to_pandas(date_as_object=False, types_mapper=types_mapper)
-    series = dataframe["test_col"]
-    tm.assert_series_equal(series, expected, check_names=False)
