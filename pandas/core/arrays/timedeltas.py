@@ -573,12 +573,17 @@ class TimedeltaArray(dtl.TimelikeOps):
 
             # We need to do dtype inference in order to keep DataFrame ops
             #  behavior consistent with Series behavior
-            inferred = lib.infer_dtype(result)
+            inferred = lib.infer_dtype(result, skipna=False)
             if inferred == "timedelta":
                 flat = result.ravel()
                 result = type(self)._from_sequence(flat).reshape(result.shape)
             elif inferred == "floating":
                 result = result.astype(float)
+            elif inferred == "datetime":
+                # GH#39750 this occurs when result is all-NaT, in which case
+                #  we want to interpret these NaTs as td64.
+                #  We construct an all-td64NaT result.
+                result = self * np.nan
 
             return result
 
@@ -679,13 +684,22 @@ class TimedeltaArray(dtl.TimelikeOps):
         elif is_object_dtype(other.dtype):
             # error: Incompatible types in assignment (expression has type
             # "List[Any]", variable has type "ndarray")
-            result = [  # type: ignore[assignment]
-                self[n] // other[n] for n in range(len(self))
-            ]
-            result = np.array(result)
-            if lib.infer_dtype(result, skipna=False) == "timedelta":
+            srav = self.ravel()
+            orav = other.ravel()
+            res_list = [srav[n] // orav[n] for n in range(len(srav))]
+            result_flat = np.asarray(res_list)
+            inferred = lib.infer_dtype(result_flat, skipna=False)
+
+            result = result_flat.reshape(self.shape)
+
+            if inferred == "timedelta":
                 result, _ = sequence_to_td64ns(result)
                 return type(self)(result)
+            if inferred == "datetime":
+                # GH#39750 occurs when result is all-NaT, which in this
+                #  case should be interpreted as td64nat. This can only
+                #  occur when self is all-td64nat
+                return self * np.nan
             return result
 
         elif is_integer_dtype(other.dtype) or is_float_dtype(other.dtype):

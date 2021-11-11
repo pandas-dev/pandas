@@ -59,7 +59,10 @@ from pandas.util._decorators import (
     deprecate_nonkeyword_arguments,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
+from pandas.util._exceptions import (
+    find_stack_level,
+    rewrite_exception,
+)
 
 from pandas.core.dtypes.cast import (
     can_hold_element,
@@ -356,6 +359,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     _typ: str = "index"
     _data: ExtensionArray | np.ndarray
+    _data_cls: type[np.ndarray] | type[ExtensionArray] = np.ndarray
     _id: object | None = None
     _name: Hashable = None
     # MultiIndex.levels previously allowed setting the index name. We
@@ -640,7 +644,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Must be careful not to recurse.
         """
-        assert isinstance(values, np.ndarray), type(values)
+        assert isinstance(values, cls._data_cls), type(values)
 
         result = object.__new__(cls)
         result._data = values
@@ -729,6 +733,22 @@ class Index(IndexOpsMixin, PandasObject):
 
     # --------------------------------------------------------------------
     # Index Internals Methods
+
+    @final
+    def _get_attributes_dict(self) -> dict[str_t, Any]:
+        """
+        Return an attributes dict for my class.
+
+        Temporarily added back for compatibility issue in dask, see
+        https://github.com/pandas-dev/pandas/pull/43895
+        """
+        warnings.warn(
+            "The Index._get_attributes_dict method is deprecated, and will be "
+            "removed in a future version",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return {k: getattr(self, k, None) for k in self._attributes}
 
     def _shallow_copy(self: _IndexT, values, name: Hashable = no_default) -> _IndexT:
         """
@@ -866,7 +886,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def __array_wrap__(self, result, context=None):
         """
-        Gets called after a ufunc and other functions.
+        Gets called after a ufunc and other functions e.g. np.split.
         """
         result = lib.item_from_zerodim(result)
         if is_bool_dtype(result) or lib.is_scalar(result) or np.ndim(result) > 1:
@@ -968,20 +988,40 @@ class Index(IndexOpsMixin, PandasObject):
             dtype = pandas_dtype(dtype)
 
         if is_dtype_equal(self.dtype, dtype):
+            # Ensure that self.astype(self.dtype) is self
             return self.copy() if copy else self
+
+        if (
+            self.dtype == np.dtype("M8[ns]")
+            and isinstance(dtype, np.dtype)
+            and dtype.kind == "M"
+            and dtype != np.dtype("M8[ns]")
+        ):
+            # For now DatetimeArray supports this by unwrapping ndarray,
+            #  but DatetimeIndex doesn't
+            raise TypeError(f"Cannot cast {type(self).__name__} to dtype")
+
+        values = self._data
+        if isinstance(values, ExtensionArray):
+            with rewrite_exception(type(values).__name__, type(self).__name__):
+                new_values = values.astype(dtype, copy=copy)
 
         elif isinstance(dtype, ExtensionDtype):
             cls = dtype.construct_array_type()
-            new_values = cls._from_sequence(self, dtype=dtype, copy=False)
-            return Index(new_values, dtype=dtype, copy=copy, name=self.name)
+            # Note: for RangeIndex and CategoricalDtype self vs self._values
+            #  behaves differently here.
+            new_values = cls._from_sequence(self, dtype=dtype, copy=copy)
 
-        try:
-            casted = self._values.astype(dtype, copy=copy)
-        except (TypeError, ValueError) as err:
-            raise TypeError(
-                f"Cannot cast {type(self).__name__} to dtype {dtype}"
-            ) from err
-        return Index(casted, name=self.name, dtype=dtype)
+        else:
+            try:
+                new_values = values.astype(dtype, copy=copy)
+            except (TypeError, ValueError) as err:
+                raise TypeError(
+                    f"Cannot cast {type(self).__name__} to dtype {dtype}"
+                ) from err
+
+        # pass copy=False because any copying will be done in the astype above
+        return Index(new_values, name=self.name, dtype=new_values.dtype, copy=False)
 
     _index_shared_docs[
         "take"
@@ -1230,11 +1270,11 @@ class Index(IndexOpsMixin, PandasObject):
             line_break_each_value=self._is_multi,
         )
 
-    def _format_attrs(self) -> list[tuple[str_t, str_t | int]]:
+    def _format_attrs(self) -> list[tuple[str_t, str_t | int | bool | None]]:
         """
         Return a list of tuples of the (attr,formatted_value).
         """
-        attrs: list[tuple[str_t, str_t | int]] = []
+        attrs: list[tuple[str_t, str_t | int | bool | None]] = []
 
         if not self._is_multi:
             attrs.append(("dtype", f"'{self.dtype}'"))
@@ -1278,9 +1318,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self._format_with_header(header, na_rep=na_rep)
 
-    def _format_with_header(
-        self, header: list[str_t], na_rep: str_t = "NaN"
-    ) -> list[str_t]:
+    def _format_with_header(self, header: list[str_t], na_rep: str_t) -> list[str_t]:
         from pandas.io.formats.format import format_array
 
         values = self._values
@@ -1370,9 +1408,16 @@ class Index(IndexOpsMixin, PandasObject):
             head = self[0]
             if hasattr(head, "format") and not isinstance(head, str):
                 head = head.format()
+            elif needs_i8_conversion(self.dtype):
+                # e.g. Timedelta, display as values, not quoted
+                head = self._formatter_func(head).replace("'", "")
             tail = self[-1]
             if hasattr(tail, "format") and not isinstance(tail, str):
                 tail = tail.format()
+            elif needs_i8_conversion(self.dtype):
+                # e.g. Timedelta, display as values, not quoted
+                tail = self._formatter_func(tail).replace("'", "")
+
             index_summary = f", {head} to {tail}"
         else:
             index_summary = ""
@@ -1465,7 +1510,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         return Series(self._values.copy(), index=index, name=name)
 
-    def to_frame(self, index: bool = True, name: Hashable = None) -> DataFrame:
+    def to_frame(
+        self, index: bool = True, name: Hashable = lib.no_default
+    ) -> DataFrame:
         """
         Create a DataFrame with a column containing the Index.
 
@@ -1516,7 +1563,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         from pandas import DataFrame
 
-        if name is None:
+        if name is lib.no_default:
             name = self.name or 0
         result = DataFrame({name: self._values.copy()})
 
@@ -3076,7 +3123,9 @@ class Index(IndexOpsMixin, PandasObject):
             and not (self.has_duplicates and other.has_duplicates)
             and self._can_use_libjoin
         ):
-            # Both are unique and monotonic, so can use outer join
+            # Both are monotonic and at least one is unique, so can use outer join
+            #  (actually don't need either unique, but without this restriction
+            #  test_union_same_value_duplicated_in_both fails)
             try:
                 return self._outer_indexer(other)[0]
             except (TypeError, IncompatibleFrequency):
@@ -3529,6 +3578,11 @@ class Index(IndexOpsMixin, PandasObject):
             positions matches the corresponding target values. Missing values
             in the target are marked by -1.
         %(raises_section)s
+        Notes
+        -----
+        Returns -1 for unmatched values, for further explanation see the
+        example below.
+
         Examples
         --------
         >>> index = pd.Index(['c', 'a', 'b'])
@@ -3636,7 +3690,11 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             tgt_values = target._get_engine_target()
             if target._is_multi and self._is_multi:
-                tgt_values = self._engine._extract_level_codes(target)
+                engine = self._engine
+                # error: "IndexEngine" has no attribute "_extract_level_codes"
+                tgt_values = engine._extract_level_codes(  # type: ignore[attr-defined]
+                    target
+                )
 
             indexer = self._engine.get_indexer(tgt_values)
 
@@ -3713,7 +3771,8 @@ class Index(IndexOpsMixin, PandasObject):
         if self._is_multi:
             # TODO: get_indexer_with_fill docstring says values must be _sorted_
             #  but that doesn't appear to be enforced
-            return self._engine.get_indexer_with_fill(
+            # error: "IndexEngine" has no attribute "get_indexer_with_fill"
+            return self._engine.get_indexer_with_fill(  # type: ignore[attr-defined]
                 target=target._values, values=self._values, method=method, limit=limit
             )
 
@@ -3946,6 +4005,27 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         target : an iterable
+        method : {None, 'pad'/'ffill', 'backfill'/'bfill', 'nearest'}, optional
+            * default: exact matches only.
+            * pad / ffill: find the PREVIOUS index value if no exact match.
+            * backfill / bfill: use NEXT index value if no exact match
+            * nearest: use the NEAREST index value if no exact match. Tied
+              distances are broken by preferring the larger index value.
+        level : int, optional
+            Level of multiindex.
+        limit : int, optional
+            Maximum number of consecutive labels in ``target`` to match for
+            inexact matches.
+        tolerance : int or float, optional
+            Maximum distance between original and new labels for inexact
+            matches. The values of the index at the matching locations must
+            satisfy the equation ``abs(index[indexer] - target) <= tolerance``.
+
+            Tolerance may be a scalar value, which applies the same tolerance
+            to all values, or list-like, which applies variable tolerance per
+            element. List-like includes list, tuple, array, Series, and must be
+            the same size as the index and its dtype must exactly match the
+            index's type.
 
         Returns
         -------
@@ -3953,6 +4033,28 @@ class Index(IndexOpsMixin, PandasObject):
             Resulting index.
         indexer : np.ndarray[np.intp] or None
             Indices of output values in original index.
+
+        Raises
+        ------
+        TypeError
+            If ``method`` passed along with ``level``.
+        ValueError
+            If non-unique multi-index
+        ValueError
+            If non-unique index and ``method`` or ``limit`` passed.
+
+        See Also
+        --------
+        Series.reindex
+        DataFrame.reindex
+
+        Examples
+        --------
+        >>> idx = pd.Index(['car', 'bike', 'train', 'tractor'])
+        >>> idx
+        Index(['car', 'bike', 'train', 'tractor'], dtype='object')
+        >>> idx.reindex(['car', 'bike'])
+        (Index(['car', 'bike'], dtype='object'), array([0, 1]))
         """
         # GH6552: preserve names when reindexing to non-named target
         # (i.e. neither Index nor Series).
@@ -4589,7 +4691,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self._data
 
-    @cache_readonly
+    # error: Decorated property not supported
+    # https://github.com/python/mypy/issues/1362
+    @cache_readonly  # type: ignore[misc]
     @doc(IndexOpsMixin.array)
     def array(self) -> ExtensionArray:
         array = self._data
@@ -4810,8 +4914,6 @@ class Index(IndexOpsMixin, PandasObject):
         corresponding `Index` subclass.
 
         """
-        # There's no custom logic to be implemented in __getslice__, so it's
-        # not overloaded intentionally.
         getitem = self._data.__getitem__
 
         if is_scalar(key):
@@ -4820,24 +4922,31 @@ class Index(IndexOpsMixin, PandasObject):
 
         if isinstance(key, slice):
             # This case is separated from the conditional above to avoid
-            # pessimization of basic indexing.
+            # pessimization com.is_bool_indexer and ndim checks.
             result = getitem(key)
             # Going through simple_new for performance.
             return type(self)._simple_new(result, name=self._name)
 
         if com.is_bool_indexer(key):
+            # if we have list[bools, length=1e5] then doing this check+convert
+            #  takes 166 µs + 2.1 ms and cuts the ndarray.__getitem__
+            #  time below from 3.8 ms to 496 µs
+            # if we already have ndarray[bool], the overhead is 1.4 µs or .25%
             key = np.asarray(key, dtype=bool)
 
         result = getitem(key)
-        if not is_scalar(result):
-            if np.ndim(result) > 1:
-                deprecate_ndim_indexing(result)
-                return result
-            # NB: Using _constructor._simple_new would break if MultiIndex
-            #  didn't override __getitem__
-            return self._constructor._simple_new(result, name=self._name)
-        else:
+        # Because we ruled out integer above, we always get an arraylike here
+        if result.ndim > 1:
+            deprecate_ndim_indexing(result)
+            if hasattr(result, "_ndarray"):
+                # i.e. NDArrayBackedExtensionArray
+                # Unpack to ndarray for MPL compat
+                return result._ndarray
             return result
+
+        # NB: Using _constructor._simple_new would break if MultiIndex
+        #  didn't override __getitem__
+        return self._constructor._simple_new(result, name=self._name)
 
     def _getitem_slice(self: _IndexT, slobj: slice) -> _IndexT:
         """
@@ -5020,6 +5129,14 @@ class Index(IndexOpsMixin, PandasObject):
             # d-level MultiIndex can equal d-tuple Index
             return other.equals(self)
 
+        if isinstance(self._values, ExtensionArray):
+            # Dispatch to the ExtensionArray's .equals method.
+            if not isinstance(other, type(self)):
+                return False
+
+            earr = cast(ExtensionArray, self._data)
+            return earr.equals(other._data)
+
         if is_extension_array_dtype(other.dtype):
             # All EA-backed Index subclasses override equals
             return other.equals(self)
@@ -5165,7 +5282,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         return result
 
-    @final
     def sort_values(
         self,
         return_indexer: bool = False,
@@ -5496,7 +5612,11 @@ class Index(IndexOpsMixin, PandasObject):
         #  self and non-Multi target
         tgt_values = target._get_engine_target()
         if self._is_multi and target._is_multi:
-            tgt_values = self._engine._extract_level_codes(target)
+            engine = self._engine
+            # error: "IndexEngine" has no attribute "_extract_level_codes"
+            tgt_values = engine._extract_level_codes(  # type: ignore[attr-defined]
+                target
+            )
 
         indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
         return ensure_platform_int(indexer), ensure_platform_int(missing)
@@ -6157,14 +6277,10 @@ class Index(IndexOpsMixin, PandasObject):
                 raise err
 
         if isinstance(slc, np.ndarray):
-            # get_loc may return a boolean array or an array of indices, which
+            # get_loc may return a boolean array, which
             # is OK as long as they are representable by a slice.
-            if is_bool_dtype(slc):
-                slc = lib.maybe_booleans_to_slice(slc.view("u1"))
-            else:
-                slc = lib.maybe_indices_to_slice(
-                    slc.astype(np.intp, copy=False), len(self)
-                )
+            assert is_bool_dtype(slc.dtype)
+            slc = lib.maybe_booleans_to_slice(slc.view("u1"))
             if isinstance(slc, np.ndarray):
                 raise KeyError(
                     f"Cannot get {side} slice bound for non-unique "
@@ -6336,13 +6452,20 @@ class Index(IndexOpsMixin, PandasObject):
         if is_valid_na_for_dtype(item, self.dtype) and self.dtype != object:
             item = self._na_value
 
+        arr = self._values
+
         try:
-            item = self._validate_fill_value(item)
-        except TypeError:
+            if isinstance(arr, ExtensionArray):
+                res_values = arr.insert(loc, item)
+                return type(self)._simple_new(res_values, name=self.name)
+            else:
+                item = self._validate_fill_value(item)
+        except (TypeError, ValueError):
+            # e.g. trying to insert an integer into a DatetimeIndex
+            #  We cannot keep the same dtype, so cast to the (often object)
+            #  minimal shared dtype before doing the insert.
             dtype = self._find_common_type_compat(item)
             return self.astype(dtype).insert(loc, item)
-
-        arr = self._values
 
         if arr.dtype != object or not isinstance(
             item, (tuple, np.datetime64, np.timedelta64)
@@ -6946,7 +7069,9 @@ def unpack_nested_dtype(other: _IndexT) -> _IndexT:
     if is_categorical_dtype(dtype):
         # If there is ever a SparseIndex, this could get dispatched
         #  here too.
-        return dtype.categories
+        # error: Item  "dtype[Any]"/"ExtensionDtype" of "Union[dtype[Any],
+        # ExtensionDtype]" has no attribute "categories"
+        return dtype.categories  # type: ignore[union-attr]
     return other
 
 

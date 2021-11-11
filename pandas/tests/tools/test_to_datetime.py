@@ -1123,17 +1123,32 @@ class TestToDatetime:
 
     def test_mixed_offsets_with_native_datetime_raises(self):
         # GH 25978
-        ser = Series(
+
+        vals = [
+            "nan",
+            Timestamp("1990-01-01"),
+            "2015-03-14T16:15:14.123-08:00",
+            "2019-03-04T21:56:32.620-07:00",
+            None,
+        ]
+        ser = Series(vals)
+        assert all(ser[i] is vals[i] for i in range(len(vals)))  # GH#40111
+
+        mixed = to_datetime(ser)
+        expected = Series(
             [
-                "nan",
+                "NaT",
                 Timestamp("1990-01-01"),
-                "2015-03-14T16:15:14.123-08:00",
-                "2019-03-04T21:56:32.620-07:00",
+                Timestamp("2015-03-14T16:15:14.123-08:00").to_pydatetime(),
+                Timestamp("2019-03-04T21:56:32.620-07:00").to_pydatetime(),
                 None,
-            ]
+            ],
+            dtype=object,
         )
+        tm.assert_series_equal(mixed, expected)
+
         with pytest.raises(ValueError, match="Tz-aware datetime.datetime"):
-            to_datetime(ser)
+            to_datetime(mixed)
 
     def test_non_iso_strings_with_tz_offset(self):
         result = to_datetime(["March 1, 2018 12:00:00+0400"] * 2)
@@ -2638,6 +2653,25 @@ def test_empty_string_datetime_coerce__unit():
     # verify that no exception is raised even when errors='raise' is set
     result = to_datetime([1, ""], unit="s", errors="raise")
     tm.assert_index_equal(expected, result)
+
+
+@td.skip_if_no("xarray")
+def test_xarray_coerce_unit():
+    # GH44053
+    import xarray as xr
+
+    arr = xr.DataArray([1, 2, 3])
+    result = to_datetime(arr, unit="ns")
+    expected = DatetimeIndex(
+        [
+            "1970-01-01 00:00:00.000000001",
+            "1970-01-01 00:00:00.000000002",
+            "1970-01-01 00:00:00.000000003",
+        ],
+        dtype="datetime64[ns]",
+        freq=None,
+    )
+    tm.assert_index_equal(result, expected)
 
 
 @pytest.mark.parametrize("cache", [True, False])

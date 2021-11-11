@@ -59,14 +59,12 @@ class TestDatetime64ArrayLikeComparisons:
         # Test comparison with zero-dimensional array is unboxed
         tz = tz_naive_fixture
         box = box_with_array
-        xbox = (
-            box_with_array if box_with_array not in [pd.Index, pd.array] else np.ndarray
-        )
         dti = date_range("20130101", periods=3, tz=tz)
 
         other = np.array(dti.to_numpy()[0])
 
         dtarr = tm.box_expected(dti, box)
+        xbox = get_upcast_box(dtarr, other, True)
         result = dtarr <= other
         expected = np.array([True, False, False])
         expected = tm.box_expected(expected, xbox)
@@ -148,12 +146,12 @@ class TestDatetime64ArrayLikeComparisons:
         # GH#22242, GH#22163 DataFrame considered NaT == ts incorrectly
         tz = tz_naive_fixture
         box = box_with_array
-        xbox = box if box not in [pd.Index, pd.array] else np.ndarray
 
         ts = Timestamp.now(tz)
         ser = Series([ts, NaT])
 
         obj = tm.box_expected(ser, box)
+        xbox = get_upcast_box(obj, ts, True)
 
         expected = Series([True, False], dtype=np.bool_)
         expected = tm.box_expected(expected, xbox)
@@ -245,10 +243,9 @@ class TestDatetime64SeriesComparison:
             #  on older numpys (since they check object identity)
             return
 
-        xbox = box if box not in [pd.Index, pd.array] else np.ndarray
-
         left = Series(data, dtype=dtype)
         left = tm.box_expected(left, box)
+        xbox = get_upcast_box(left, NaT, True)
 
         expected = [False, False, False]
         expected = tm.box_expected(expected, xbox)
@@ -324,12 +321,10 @@ class TestDatetime64SeriesComparison:
 
     def test_dt64arr_timestamp_equality(self, box_with_array):
         # GH#11034
-        xbox = (
-            box_with_array if box_with_array not in [pd.Index, pd.array] else np.ndarray
-        )
 
         ser = Series([Timestamp("2000-01-29 01:59:00"), Timestamp("2000-01-30"), NaT])
         ser = tm.box_expected(ser, box_with_array)
+        xbox = get_upcast_box(ser, ser, True)
 
         result = ser != ser
         expected = tm.box_expected([False, False, True], xbox)
@@ -368,18 +363,14 @@ class TestDatetime64SeriesComparison:
 class TestDatetimeIndexComparisons:
 
     # TODO: moved from tests.indexes.test_base; parametrize and de-duplicate
-    @pytest.mark.parametrize(
-        "op",
-        [operator.eq, operator.ne, operator.gt, operator.lt, operator.ge, operator.le],
-    )
-    def test_comparators(self, op):
+    def test_comparators(self, comparison_op):
         index = tm.makeDateIndex(100)
         element = index[len(index) // 2]
         element = Timestamp(element).to_datetime64()
 
         arr = np.array(index)
-        arr_result = op(arr, element)
-        index_result = op(index, element)
+        arr_result = comparison_op(arr, element)
+        index_result = comparison_op(index, element)
 
         assert isinstance(index_result, np.ndarray)
         tm.assert_numpy_array_equal(arr_result, index_result)
@@ -424,15 +415,12 @@ class TestDatetimeIndexComparisons:
             #  on older numpys (since they check object identity)
             return
 
-        xbox = (
-            box_with_array if box_with_array not in [pd.Index, pd.array] else np.ndarray
-        )
-
         left = DatetimeIndex([Timestamp("2011-01-01"), NaT, Timestamp("2011-01-03")])
         right = DatetimeIndex([NaT, NaT, Timestamp("2011-01-03")])
 
         left = tm.box_expected(left, box_with_array)
         right = tm.box_expected(right, box_with_array)
+        xbox = get_upcast_box(left, right, True)
 
         lhs, rhs = left, right
         if dtype is object:
@@ -559,12 +547,9 @@ class TestDatetimeIndexComparisons:
                 expected = np.array([True, True, False, True, True, True])
                 tm.assert_numpy_array_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "op",
-        [operator.eq, operator.ne, operator.gt, operator.ge, operator.lt, operator.le],
-    )
-    def test_comparison_tzawareness_compat(self, op, box_with_array):
+    def test_comparison_tzawareness_compat(self, comparison_op, box_with_array):
         # GH#18162
+        op = comparison_op
         box = box_with_array
 
         dr = date_range("2016-01-01", periods=6)
@@ -611,12 +596,10 @@ class TestDatetimeIndexComparisons:
         assert np.all(np.array(tolist(dz), dtype=object) == dz)
         assert np.all(dz == np.array(tolist(dz), dtype=object))
 
-    @pytest.mark.parametrize(
-        "op",
-        [operator.eq, operator.ne, operator.gt, operator.ge, operator.lt, operator.le],
-    )
-    def test_comparison_tzawareness_compat_scalars(self, op, box_with_array):
+    def test_comparison_tzawareness_compat_scalars(self, comparison_op, box_with_array):
         # GH#18162
+        op = comparison_op
+
         dr = date_range("2016-01-01", periods=6)
         dz = dr.tz_localize("US/Pacific")
 
@@ -644,10 +627,6 @@ class TestDatetimeIndexComparisons:
                 op(ts, dz)
 
     @pytest.mark.parametrize(
-        "op",
-        [operator.eq, operator.ne, operator.gt, operator.ge, operator.lt, operator.le],
-    )
-    @pytest.mark.parametrize(
         "other",
         [datetime(2016, 1, 1), Timestamp("2016-01-01"), np.datetime64("2016-01-01")],
     )
@@ -657,14 +636,14 @@ class TestDatetimeIndexComparisons:
     @pytest.mark.filterwarnings("ignore:elementwise comp:DeprecationWarning")
     @pytest.mark.filterwarnings("ignore:Converting timezone-aware:FutureWarning")
     def test_scalar_comparison_tzawareness(
-        self, op, other, tz_aware_fixture, box_with_array
+        self, comparison_op, other, tz_aware_fixture, box_with_array
     ):
-        box = box_with_array
+        op = comparison_op
         tz = tz_aware_fixture
         dti = date_range("2016-01-01", periods=2, tz=tz)
-        xbox = box if box not in [pd.Index, pd.array] else np.ndarray
 
         dtarr = tm.box_expected(dti, box_with_array)
+        xbox = get_upcast_box(dtarr, other, True)
         if op in [operator.eq, operator.ne]:
             exbool = op is operator.ne
             expected = np.array([exbool, exbool], dtype=bool)
@@ -685,13 +664,11 @@ class TestDatetimeIndexComparisons:
             with pytest.raises(TypeError, match=msg):
                 op(other, dtarr)
 
-    @pytest.mark.parametrize(
-        "op",
-        [operator.eq, operator.ne, operator.gt, operator.ge, operator.lt, operator.le],
-    )
-    def test_nat_comparison_tzawareness(self, op):
+    def test_nat_comparison_tzawareness(self, comparison_op):
         # GH#19276
         # tzaware DatetimeIndex should not raise when compared to NaT
+        op = comparison_op
+
         dti = DatetimeIndex(
             ["2014-01-01", NaT, "2014-03-01", NaT, "2014-05-01", "2014-07-01"]
         )
@@ -2283,7 +2260,7 @@ class TestDatetimeIndexArithmetic:
     # cleanup, box-parametrization, and de-duplication
 
     @pytest.mark.parametrize("op", [operator.add, operator.sub])
-    def test_timedelta64_equal_timedelta_supported_ops(self, op):
+    def test_timedelta64_equal_timedelta_supported_ops(self, op, box_with_array):
         ser = Series(
             [
                 Timestamp("20130301"),
@@ -2292,6 +2269,7 @@ class TestDatetimeIndexArithmetic:
                 Timestamp("20130228 21:00:00"),
             ]
         )
+        obj = box_with_array(ser)
 
         intervals = ["D", "h", "m", "s", "us"]
 
@@ -2302,10 +2280,10 @@ class TestDatetimeIndexArithmetic:
         for d, h, m, s, us in product(*([range(2)] * 5)):
             nptd = timedelta64(d, h, m, s, us)
             pytd = timedelta(days=d, hours=h, minutes=m, seconds=s, microseconds=us)
-            lhs = op(ser, nptd)
-            rhs = op(ser, pytd)
+            lhs = op(obj, nptd)
+            rhs = op(obj, pytd)
 
-            tm.assert_series_equal(lhs, rhs)
+            tm.assert_equal(lhs, rhs)
 
     def test_ops_nat_mixed_datetime64_timedelta64(self):
         # GH#11349
@@ -2439,14 +2417,13 @@ class TestDatetimeIndexArithmetic:
         self, tz_naive_fixture, names, op, index_or_series
     ):
         # GH#18849, GH#19744
-        box = pd.Index
         other_box = index_or_series
 
         tz = tz_naive_fixture
         dti = date_range("2017-01-01", periods=2, tz=tz, name=names[0])
         other = other_box([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)], name=names[1])
 
-        xbox = get_upcast_box(box, other)
+        xbox = get_upcast_box(dti, other)
 
         with tm.assert_produces_warning(PerformanceWarning):
             res = op(dti, other)
@@ -2466,7 +2443,7 @@ class TestDatetimeIndexArithmetic:
         dti = date_range("2017-01-01", periods=2, tz=tz)
         dtarr = tm.box_expected(dti, box_with_array)
         other = other_box([pd.offsets.MonthEnd(), Timedelta(days=4)])
-        xbox = get_upcast_box(box_with_array, other)
+        xbox = get_upcast_box(dtarr, other)
 
         expected = DatetimeIndex(["2017-01-31", "2017-01-06"], tz=tz_naive_fixture)
         expected = tm.box_expected(expected, xbox)
