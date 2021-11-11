@@ -1840,7 +1840,8 @@ class _iLocIndexer(_LocationIndexer):
         pi = plane_indexer
 
         if not hasattr(self.obj._mgr, "blocks"):
-            # ArrayManager
+            # ArrayManager: in this case we cannot rely on getting the column
+            # as a Series to mutate, but need to operated on the mgr directly
             if com.is_null_slice(pi) or com.is_full_slice(pi, len(self.obj)):
                 arr = self.obj._sanitize_column(value)
                 self.obj._mgr.iset(loc, arr)

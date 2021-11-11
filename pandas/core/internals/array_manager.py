@@ -376,33 +376,6 @@ class BaseArrayManager(DataManager):
     #     return self.apply_with_block("setitem", indexer=indexer, value=value)
 
     def putmask(self, mask, new, align: bool = True):
-        # TODO(CoW) check references to copy if needed
-        if align:
-            align_keys = ["new", "mask"]
-        else:
-            align_keys = ["mask"]
-            new = extract_array(new, extract_numpy=True)
-        # if self._has_no_reference(loc):
-        # breakpoint()
-        
-        mask = np.asarray(mask)
-        for i in range(len(self.arrays)):
-            if not self._has_no_reference(i):
-                # if being referenced -> perform Copy-on-Write and clear the reference
-                self.arrays[i] = self.arrays[i].copy()
-                self._clear_reference(i)
-            self.arrays[i][mask[:, i]] = new
-
-        return self
-
-        # if align:
-        #     align_keys = ["new", "mask"]
-        # else:
-        #     align_keys = ["mask"]
-        #     new = extract_array(new, extract_numpy=True)
-
-
-    def putmask(self, mask, new, align: bool = True):
         if align:
             align_keys = ["new", "mask"]
         else:
@@ -413,7 +386,7 @@ class BaseArrayManager(DataManager):
         aligned_kwargs = {k: kwargs[k] for k in align_keys}
 
         for i in range(len(self.arrays)):
-            
+
             if not self._has_no_reference(i):
                 # if being referenced -> perform Copy-on-Write and clear the reference
                 self.arrays[i] = self.arrays[i].copy()

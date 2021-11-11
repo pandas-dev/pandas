@@ -285,6 +285,35 @@ def test_subset_set_with_row_indexer(indexer_si, indexer, using_array_manager):
         tm.assert_frame_equal(df, df_orig)
 
 
+def test_subset_set_with_mask(using_array_manager):
+    # Case: setting values with a mask on a viewing subset: subset[mask] = value
+    df = pd.DataFrame({"a": [1, 2, 3, 4], "b": [4, 5, 6, 7], "c": [0.1, 0.2, 0.3, 0.4]})
+    df_orig = df.copy()
+    subset = df[1:4]
+
+    mask = subset > 3
+
+    if using_array_manager:
+        subset[mask] = 0
+    else:
+        with pd.option_context("chained_assignment", "warn"):
+            with tm.assert_produces_warning(com.SettingWithCopyWarning):
+                subset[mask] = 0
+
+    expected = pd.DataFrame(
+        {"a": [2, 3, 0], "b": [0, 0, 0], "c": [0.20, 0.3, 0.4]}, index=range(1, 4)
+    )
+    tm.assert_frame_equal(subset, expected)
+    if using_array_manager:
+        # original parent dataframe is not modified (CoW)
+        tm.assert_frame_equal(df, df_orig)
+    else:
+        # original parent dataframe is actually updated
+        df_orig.loc[3, "a"] = 0
+        df_orig.loc[1:3, "b"] = 0
+        tm.assert_frame_equal(df, df_orig)
+
+
 def test_subset_set_column(using_array_manager):
     # Case: setting a single column on a viewing subset -> subset[col] = value
     df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
@@ -419,6 +448,38 @@ def test_series_getitem_slice(using_array_manager):
     else:
         # original parent series is actually updated
         assert s.iloc[0] == 0
+
+
+@pytest.mark.parametrize(
+    "indexer",
+    [slice(0, 2), np.array([True, True, False]), np.array([0, 1])],
+    ids=["slice", "mask", "array"],
+)
+def test_series_subset_set_with_indexer(indexer_si, indexer, using_array_manager):
+    # Case: setting values in a viewing Series with an indexer
+    s = pd.Series([1, 2, 3], index=["a", "b", "c"])
+    s_orig = s.copy()
+    subset = s[:]
+
+    # if (
+    #     indexer_si is tm.setitem
+    #     and isinstance(indexer, np.ndarray)
+    #     and indexer.dtype == "int"
+    # ):
+    #     pytest.skip("setitem with labels selects on columns")
+
+    expected = pd.Series([0, 0, 3], index=["a", "b", "c"])
+    indexer_si(subset)[indexer] = 0
+    tm.assert_series_equal(subset, expected)
+
+    if using_array_manager:
+        tm.assert_series_equal(s, s_orig)
+    else:
+        tm.assert_series_equal(s, expected)
+
+    expected = pd.DataFrame(
+        {"a": [0, 0, 4], "b": [0, 0, 7], "c": [0.0, 0.0, 0.4]}, index=range(1, 4)
+    )
 
 
 # -----------------------------------------------------------------------------
