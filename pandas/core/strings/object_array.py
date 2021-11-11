@@ -7,12 +7,14 @@ from typing import TYPE_CHECKING
 import unicodedata
 
 import numpy as np
-import numpy.typing as npt
 
 import pandas._libs.lib as lib
 import pandas._libs.missing as libmissing
 import pandas._libs.ops as libops
-from pandas._typing import Scalar
+from pandas._typing import (
+    NpDtype,
+    Scalar,
+)
 
 from pandas.core.dtypes.common import is_scalar
 from pandas.core.dtypes.missing import isna
@@ -35,7 +37,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         raise NotImplementedError
 
     def _str_map(
-        self, f, na_value=None, dtype: npt.DTypeLike | None = None, convert: bool = True
+        self, f, na_value=None, dtype: NpDtype | None = None, convert: bool = True
     ):
         """
         Map a callable over valid elements of the array.
