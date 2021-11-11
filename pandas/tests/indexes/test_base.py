@@ -29,7 +29,6 @@ from pandas import (
     TimedeltaIndex,
     Timestamp,
     date_range,
-    isna,
     period_range,
 )
 import pandas._testing as tm
@@ -395,15 +394,6 @@ class TestIndex(Base):
         assert isinstance(empty, klass)
         assert not len(empty)
 
-    def test_constructor_overflow_int64(self):
-        # see gh-15832
-        msg = (
-            "The elements provided in the data cannot "
-            "all be casted to the dtype int64"
-        )
-        with pytest.raises(OverflowError, match=msg):
-            Index([np.iinfo(np.uint64).max - 1], dtype="int64")
-
     @pytest.mark.parametrize(
         "index",
         [
@@ -501,18 +491,6 @@ class TestIndex(Base):
         ind1 = Index(arr, copy=False)
         ind2 = Index(arr, copy=False)
         assert not ind1.is_(ind2)
-
-    @pytest.mark.parametrize("index", ["datetime"], indirect=True)
-    def test_asof(self, index):
-        d = index[0]
-        assert index.asof(d) == d
-        assert isna(index.asof(d - timedelta(1)))
-
-        d = index[-1]
-        assert index.asof(d + timedelta(1)) == d
-
-        d = index[0].to_pydatetime()
-        assert isinstance(index.asof(d), Timestamp)
 
     def test_asof_numeric_vs_bool_raises(self):
         left = Index([1, 2, 3])
@@ -698,12 +676,6 @@ class TestIndex(Base):
 
         result = left.append(right)
         assert result.name == expected
-
-    def test_is_mixed_deprecated(self, simple_index):
-        # GH#32922
-        index = simple_index
-        with tm.assert_produces_warning(FutureWarning):
-            index.is_mixed()
 
     @pytest.mark.parametrize(
         "index, expected",

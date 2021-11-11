@@ -191,3 +191,20 @@ class TestSeriesMisc:
         msg = "'Series' object has no attribute 'foo'"
         with pytest.raises(AttributeError, match=msg):
             ser.foo
+
+    def test_datetime_series_no_datelike_attrs(self, datetime_series):
+        # GH#7206
+        for op in ["year", "day", "second", "weekday"]:
+            msg = f"'Series' object has no attribute '{op}'"
+            with pytest.raises(AttributeError, match=msg):
+                getattr(datetime_series, op)
+
+    def test_series_datetimelike_attribute_access(self):
+        # attribute access should still work!
+        ser = Series({"year": 2000, "month": 1, "day": 10})
+        assert ser.year == 2000
+        assert ser.month == 1
+        assert ser.day == 10
+        msg = "'Series' object has no attribute 'weekday'"
+        with pytest.raises(AttributeError, match=msg):
+            ser.weekday

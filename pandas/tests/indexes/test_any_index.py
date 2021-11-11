@@ -84,6 +84,13 @@ def test_is_type_compatible_deprecation(index):
         index.is_type_compatible(index.inferred_type)
 
 
+def test_is_mixed_deprecated(index):
+    # GH#32922
+    msg = "Index.is_mixed is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        index.is_mixed()
+
+
 class TestConversion:
     def test_to_series(self, index):
         # assert that we are creating a copy of the index
