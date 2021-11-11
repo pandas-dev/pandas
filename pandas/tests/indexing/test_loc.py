@@ -1013,13 +1013,8 @@ class TestLoc2:
             df.loc[[]], df.iloc[:0, :], check_index_type=True, check_column_type=True
         )
 
-    def test_identity_slice_returns_new_object(self, using_array_manager, request):
+    def test_identity_slice_returns_new_object(self, request):
         # GH13873
-        if using_array_manager:
-            mark = pytest.mark.xfail(
-                reason="setting with .loc[:, 'a'] does not alter inplace"
-            )
-            request.node.add_marker(mark)
 
         original_df = DataFrame({"a": [1, 2, 3]})
         sliced_df = original_df.loc[:]
