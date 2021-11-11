@@ -1407,15 +1407,13 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
 
         new_values = self.values
 
-        if isinstance(new, (np.ndarray, ExtensionArray)) and len(new) == len(mask):
-            new = new[mask]
-
         if mask.ndim == new_values.ndim + 1:
             # TODO(EA2D): unnecessary with 2D EAs
             mask = mask.reshape(new_values.shape)
 
         try:
-            new_values[mask] = new
+            # Caller is responsible for ensuring matching lengths
+            new_values._putmask(mask, new)
         except TypeError:
             if not is_interval_dtype(self.dtype):
                 # Discussion about what we want to support in the general
@@ -1696,7 +1694,7 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
             return self.coerce_to_target_dtype(new).putmask(mask, new)
 
         arr = self.values
-        arr.T.putmask(mask, new)
+        arr.T._putmask(mask, new)
         return [self]
 
     def where(self, other, cond) -> list[Block]:
