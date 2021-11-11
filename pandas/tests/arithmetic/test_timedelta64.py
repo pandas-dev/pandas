@@ -84,11 +84,6 @@ class TestTimedelta64ArrayLikeComparisons:
         expected = tm.box_expected(expected, xbox)
         tm.assert_equal(res, expected)
 
-        msg = "Invalid comparison between dtype"
-        with pytest.raises(TypeError, match=msg):
-            # zero-dim of wrong dtype should still raise
-            tdi >= np.array(4)
-
     @pytest.mark.parametrize(
         "td_scalar",
         [
@@ -120,6 +115,7 @@ class TestTimedelta64ArrayLikeComparisons:
             Timestamp.now().to_datetime64(),
             Timestamp.now().to_pydatetime(),
             Timestamp.now().date(),
+            np.array(4),  # zero-dim mismatched dtype
         ],
     )
     def test_td64_comparisons_invalid(self, box_with_array, invalid):
@@ -146,17 +142,18 @@ class TestTimedelta64ArrayLikeComparisons:
             pd.period_range("1971-01-01", freq="D", periods=10).astype(object),
         ],
     )
-    def test_td64arr_cmp_arraylike_invalid(self, other):
+    def test_td64arr_cmp_arraylike_invalid(self, other, box_with_array):
         # We don't parametrize this over box_with_array because listlike
         #  other plays poorly with assert_invalid_comparison reversed checks
 
         rng = timedelta_range("1 days", periods=10)._data
-        assert_invalid_comparison(rng, other, tm.to_array)
+        rng = tm.box_expected(rng, box_with_array)
+        assert_invalid_comparison(rng, other, box_with_array)
 
     def test_td64arr_cmp_mixed_invalid(self):
         rng = timedelta_range("1 days", periods=5)._data
-
         other = np.array([0, 1, 2, rng[3], Timestamp.now()])
+
         result = rng == other
         expected = np.array([False, False, False, True, False])
         tm.assert_numpy_array_equal(result, expected)
@@ -1623,10 +1620,7 @@ class TestTimedeltaArraylikeMulDivOps:
         box = box_with_array
         xbox = np.ndarray if box is pd.array else box
 
-        startdate = Series(pd.date_range("2013-01-01", "2013-01-03"))
-        enddate = Series(pd.date_range("2013-03-01", "2013-03-03"))
-
-        ser = enddate - startdate
+        ser = Series([Timedelta(days=59)] * 3)
         ser[2] = np.nan
         flat = ser
         ser = tm.box_expected(ser, box)
