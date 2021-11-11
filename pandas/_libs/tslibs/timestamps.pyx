@@ -756,7 +756,7 @@ cdef class _Timestamp(ABCTimestamp):
         timespec : str, default 'auto'
             Specifies the number of additional terms of the time to include.
             The valid values are 'auto', 'hours', 'minutes', 'seconds',
-	    'milliseconds', 'microseconds', and 'nanoseconds'.
+            'milliseconds', 'microseconds', and 'nanoseconds'.
 
         Returns
         -------
