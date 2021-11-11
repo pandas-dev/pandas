@@ -331,11 +331,7 @@ def test_subset_set_column(using_array_manager):
         {"a": [10, 11], "b": [5, 6], "c": [0.2, 0.3]}, index=range(1, 3)
     )
     tm.assert_frame_equal(subset, expected)
-    if using_array_manager:
-        tm.assert_frame_equal(df, df_orig)
-    else:
-        df_orig.loc[1:2, "a"] = np.array([10, 11])
-        tm.assert_frame_equal(df, df_orig)
+    tm.assert_frame_equal(df, df_orig)
 
 
 def test_subset_set_columns_single_block(using_array_manager):
@@ -354,11 +350,7 @@ def test_subset_set_columns_single_block(using_array_manager):
 
     expected = pd.DataFrame({"a": [0, 0], "b": [5, 6], "c": [0, 0]}, index=range(1, 3))
     tm.assert_frame_equal(subset, expected)
-    if using_array_manager:
-        tm.assert_frame_equal(df, df_orig)
-    else:
-        df_orig.loc[1:2, ["a", "c"]] = 0
-        tm.assert_frame_equal(df, df_orig)
+    tm.assert_frame_equal(df, df_orig)
 
 
 def test_subset_set_columns_mixed_block(using_array_manager):
@@ -377,13 +369,7 @@ def test_subset_set_columns_mixed_block(using_array_manager):
 
     expected = pd.DataFrame({"a": [0, 0], "b": [5, 6], "c": [0, 0]}, index=range(1, 3))
     tm.assert_frame_equal(subset, expected)
-    if using_array_manager:
-        tm.assert_frame_equal(df, df_orig)
-    else:
-        # In the mixed case with BlockManager, only one of the two columns is
-        # mutated in the parent frame ..
-        df_orig.loc[1:2, ["a"]] = 0
-        tm.assert_frame_equal(df, df_orig)
+    tm.assert_frame_equal(df, df_orig)
 
 
 @pytest.mark.parametrize(
