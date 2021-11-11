@@ -1,8 +1,6 @@
-import numpy as np
 import pytest
 
 from pandas import (
-    Series,
     TimedeltaIndex,
     timedelta_range,
 )
@@ -29,15 +27,6 @@ class TestTimedeltaIndexOps:
             ),
         ):
             assert idx[0] in idx
-
-    def test_unknown_attribute(self):
-        # see gh-9680
-        tdi = timedelta_range(start=0, periods=10, freq="1s")
-        ts = Series(np.random.normal(size=10), index=tdi)
-        assert "foo" not in ts.__dict__.keys()
-        msg = "'Series' object has no attribute 'foo'"
-        with pytest.raises(AttributeError, match=msg):
-            ts.foo
 
     def test_infer_freq(self, freq_sample):
         # GH#11018
