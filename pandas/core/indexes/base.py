@@ -4444,8 +4444,7 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(join_array, np.ndarray):
             np.putmask(join_array, mask, right)
         else:
-            # error: "ExtensionArray" has no attribute "putmask"
-            join_array.putmask(mask, right)  # type: ignore[attr-defined]
+            join_array._putmask(mask, right)
 
         join_index = self._wrap_joined_index(join_array, other)
 
@@ -5051,8 +5050,7 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             # Note: we use the original value here, not converted, as
             #  _validate_fill_value is not idempotent
-            # error: "ExtensionArray" has no attribute "putmask"
-            values.putmask(mask, value)  # type: ignore[attr-defined]
+            values._putmask(mask, value)
 
         return self._shallow_copy(values)
 
