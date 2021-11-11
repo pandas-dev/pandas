@@ -316,18 +316,16 @@ class ParserBase:
     @final
     def _extract_multi_indexer_columns(
         self,
-        header: list[list[Scalar | None]],
+        header,
         index_names: list | None,
-        col_names: None,
         passed_names: bool = False,
     ):
         """
         extract and return the names, index_names, col_names
         header is a list-of-lists returned from the parsers
         """
-        assert col_names is None
         if len(header) < 2:
-            return header[0], index_names, col_names, passed_names
+            return header[0], index_names, None, passed_names
 
         # the names are the tuples of the header that are not the index cols
         # 0 is the name of the index, assuming index_col is a list of column

@@ -136,7 +136,6 @@ class PythonParser(ParserBase):
             ) = self._extract_multi_indexer_columns(
                 columns,
                 self.index_names,  # type: ignore[has-type]
-                self.col_names,  # type: ignore[has-type]
             )
             # Update list of original names to include all indices.
             self.num_original_columns = len(self.columns)

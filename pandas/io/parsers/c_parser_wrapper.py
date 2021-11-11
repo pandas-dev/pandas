@@ -91,7 +91,6 @@ class CParserWrapper(ParserBase):
                 ) = self._extract_multi_indexer_columns(
                     self._reader.header,
                     self.index_names,  # type: ignore[has-type]
-                    self.col_names,  # type: ignore[has-type]
                     passed_names,
                 )
             else:
