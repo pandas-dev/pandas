@@ -3613,6 +3613,11 @@ class Index(IndexOpsMixin, PandasObject):
             positions matches the corresponding target values. Missing values
             in the target are marked by -1.
         %(raises_section)s
+        Notes
+        -----
+        Returns -1 for unmatched values, for further explanation see the
+        example below.
+
         Examples
         --------
         >>> index = pd.Index(['c', 'a', 'b'])
@@ -4474,7 +4479,7 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(join_array, np.ndarray):
             np.putmask(join_array, mask, right)
         else:
-            join_array.putmask(mask, right)
+            join_array._putmask(mask, right)
 
         join_index = self._wrap_joined_index(join_array, other)
 
@@ -5080,7 +5085,7 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             # Note: we use the original value here, not converted, as
             #  _validate_fill_value is not idempotent
-            values.putmask(mask, value)
+            values._putmask(mask, value)
 
         return self._shallow_copy(values)
 

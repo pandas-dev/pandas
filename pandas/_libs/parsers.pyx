@@ -454,7 +454,7 @@ cdef class TextReader:
             # usecols into TextReader.
             self.usecols = usecols
 
-        # XXX
+        # TODO: XXX?
         if skipfooter > 0:
             self.parser.on_bad_lines = SKIP
 
@@ -842,7 +842,7 @@ cdef class TextReader:
     cdef _read_rows(self, rows, bint trim):
         cdef:
             int64_t buffered_lines
-            int64_t irows, footer = 0
+            int64_t irows
 
         self._start_clock()
 
@@ -866,16 +866,13 @@ cdef class TextReader:
 
             if status < 0:
                 raise_parser_error('Error tokenizing data', self.parser)
-            footer = self.skipfooter
 
         if self.parser_start >= self.parser.lines:
             raise StopIteration
         self._end_clock('Tokenization')
 
         self._start_clock()
-        columns = self._convert_column_data(rows=rows,
-                                            footer=footer,
-                                            upcast_na=True)
+        columns = self._convert_column_data(rows)
         self._end_clock('Type conversion')
         self._start_clock()
         if len(columns) > 0:
@@ -904,10 +901,7 @@ cdef class TextReader:
     def remove_noconvert(self, i: int) -> None:
         self.noconvert.remove(i)
 
-    # TODO: upcast_na only ever False, footer never passed
-    def _convert_column_data(
-        self, rows: int | None = None, upcast_na: bool = False, footer: int = 0
-    ) -> dict[int, "ArrayLike"]:
+    def _convert_column_data(self, rows: int | None) -> dict[int, "ArrayLike"]:
         cdef:
             int64_t i
             int nused
@@ -924,11 +918,6 @@ cdef class TextReader:
             end = self.parser.lines
         else:
             end = min(start + rows, self.parser.lines)
-
-        # FIXME: dont leave commented-out
-        # # skip footer
-        # if footer > 0:
-        #     end -= footer
 
         num_cols = -1
         # Py_ssize_t cast prevents build warning
@@ -1031,8 +1020,7 @@ cdef class TextReader:
                     self._free_na_set(na_hashset)
 
             # don't try to upcast EAs
-            try_upcast = upcast_na and na_count > 0
-            if try_upcast and not is_extension_array_dtype(col_dtype):
+            if na_count > 0 and not is_extension_array_dtype(col_dtype):
                 col_res = _maybe_upcast(col_res)
 
             if col_res is None:
@@ -1985,18 +1973,14 @@ cdef list _maybe_encode(list values):
     return [x.encode('utf-8') if isinstance(x, str) else x for x in values]
 
 
-# TODO: only ever called with convert_empty=False
-def sanitize_objects(ndarray[object] values, set na_values,
-                     bint convert_empty=True) -> int:
+def sanitize_objects(ndarray[object] values, set na_values) -> int:
     """
-    Convert specified values, including the given set na_values and empty
-    strings if convert_empty is True, to np.nan.
+    Convert specified values, including the given set na_values to np.nan.
 
     Parameters
     ----------
     values : ndarray[object]
     na_values : set
-    convert_empty : bool, default True
 
     Returns
     -------
@@ -2013,7 +1997,7 @@ def sanitize_objects(ndarray[object] values, set na_values,
 
     for i in range(n):
         val = values[i]
-        if (convert_empty and val == '') or (val in na_values):
+        if val in na_values:
             values[i] = onan
             na_count += 1
         elif val in memo:

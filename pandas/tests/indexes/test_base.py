@@ -525,20 +525,6 @@ class TestIndex(Base):
         with pytest.raises(TypeError, match=msg):
             right.asof(left)
 
-    # TODO: this tests Series.asof
-    def test_asof_nanosecond_index_access(self):
-        s = Timestamp("20130101").value
-        r = DatetimeIndex([s + 50 + i for i in range(100)])
-        ser = Series(np.random.randn(100), index=r)
-
-        first_value = ser.asof(ser.index[0])
-
-        # this does not yet work, as parsing strings is done via dateutil
-        # assert first_value == x['2013-01-01 00:00:00.000000050+0000']
-
-        expected_ts = np_datetime64_compat("2013-01-01 00:00:00.000000050+0000", "ns")
-        assert first_value == ser[Timestamp(expected_ts)]
-
     @pytest.mark.parametrize("index", ["string"], indirect=True)
     def test_booleanindex(self, index):
         bool_index = np.ones(len(index), dtype=bool)

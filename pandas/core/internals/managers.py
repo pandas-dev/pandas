@@ -315,7 +315,7 @@ class BaseBlockManager(DataManager):
         out = type(self).from_blocks(result_blocks, self.axes)
         return out
 
-    def where(self: T, other, cond, align: bool, errors: str) -> T:
+    def where(self: T, other, cond, align: bool) -> T:
         if align:
             align_keys = ["other", "cond"]
         else:
@@ -327,7 +327,6 @@ class BaseBlockManager(DataManager):
             align_keys=align_keys,
             other=other,
             cond=cond,
-            errors=errors,
         )
 
     def setitem(self: T, indexer, value) -> T:
@@ -1046,8 +1045,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             self._rebuild_blknos_and_blklocs()
 
         # Note: we exclude DTA/TDA here
-        vdtype = getattr(value, "dtype", None)
-        value_is_extension_type = is_1d_only_ea_dtype(vdtype)
+        value_is_extension_type = is_1d_only_ea_dtype(value.dtype)
 
         # categorical/sparse/datetimetz
         if value_is_extension_type:
@@ -1466,7 +1464,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
     def as_array(
         self,
-        transpose: bool = False,
         dtype: np.dtype | None = None,
         copy: bool = False,
         na_value=lib.no_default,
@@ -1476,8 +1473,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         Parameters
         ----------
-        transpose : bool, default False
-            If True, transpose the return array.
         dtype : np.dtype or None, default None
             Data type of the return array.
         copy : bool, default False
@@ -1493,7 +1488,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         """
         if len(self.blocks) == 0:
             arr = np.empty(self.shape, dtype=float)
-            return arr.transpose() if transpose else arr
+            return arr.transpose()
 
         # We want to copy when na_value is provided to avoid
         # mutating the original object
@@ -1525,7 +1520,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         if na_value is not lib.no_default:
             arr[isna(arr)] = na_value
 
-        return arr.transpose() if transpose else arr
+        return arr.transpose()
 
     def _interleave(
         self,

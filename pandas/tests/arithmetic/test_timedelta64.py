@@ -84,11 +84,6 @@ class TestTimedelta64ArrayLikeComparisons:
         expected = tm.box_expected(expected, xbox)
         tm.assert_equal(res, expected)
 
-        msg = "Invalid comparison between dtype"
-        with pytest.raises(TypeError, match=msg):
-            # zero-dim of wrong dtype should still raise
-            tdi >= np.array(4)
-
     @pytest.mark.parametrize(
         "td_scalar",
         [
@@ -120,6 +115,7 @@ class TestTimedelta64ArrayLikeComparisons:
             Timestamp.now().to_datetime64(),
             Timestamp.now().to_pydatetime(),
             Timestamp.now().date(),
+            np.array(4),  # zero-dim mismatched dtype
         ],
     )
     def test_td64_comparisons_invalid(self, box_with_array, invalid):
@@ -146,17 +142,18 @@ class TestTimedelta64ArrayLikeComparisons:
             pd.period_range("1971-01-01", freq="D", periods=10).astype(object),
         ],
     )
-    def test_td64arr_cmp_arraylike_invalid(self, other):
+    def test_td64arr_cmp_arraylike_invalid(self, other, box_with_array):
         # We don't parametrize this over box_with_array because listlike
         #  other plays poorly with assert_invalid_comparison reversed checks
 
         rng = timedelta_range("1 days", periods=10)._data
-        assert_invalid_comparison(rng, other, tm.to_array)
+        rng = tm.box_expected(rng, box_with_array)
+        assert_invalid_comparison(rng, other, box_with_array)
 
     def test_td64arr_cmp_mixed_invalid(self):
         rng = timedelta_range("1 days", periods=5)._data
-
         other = np.array([0, 1, 2, rng[3], Timestamp.now()])
+
         result = rng == other
         expected = np.array([False, False, False, True, False])
         tm.assert_numpy_array_equal(result, expected)
@@ -1542,13 +1539,13 @@ class TestTimedeltaArraylikeMulDivOps:
     )
     def test_tdi_rmul_arraylike(self, other, box_with_array):
         box = box_with_array
-        xbox = get_upcast_box(box, other)
 
         tdi = TimedeltaIndex(["1 Day"] * 10)
-        expected = timedelta_range("1 days", "10 days")
-        expected._data.freq = None
+        expected = timedelta_range("1 days", "10 days")._with_freq(None)
 
         tdi = tm.box_expected(tdi, box)
+        xbox = get_upcast_box(tdi, other)
+
         expected = tm.box_expected(expected, xbox)
 
         result = other * tdi
@@ -1623,10 +1620,7 @@ class TestTimedeltaArraylikeMulDivOps:
         box = box_with_array
         xbox = np.ndarray if box is pd.array else box
 
-        startdate = Series(pd.date_range("2013-01-01", "2013-01-03"))
-        enddate = Series(pd.date_range("2013-03-01", "2013-03-03"))
-
-        ser = enddate - startdate
+        ser = Series([Timedelta(days=59)] * 3)
         ser[2] = np.nan
         flat = ser
         ser = tm.box_expected(ser, box)
@@ -2000,7 +1994,6 @@ class TestTimedeltaArraylikeMulDivOps:
     ):
         # GH#4521
         # divide/multiply by integers
-        xbox = get_upcast_box(box_with_array, vector)
 
         tdser = Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
         vector = vector.astype(any_real_numpy_dtype)
@@ -2008,6 +2001,8 @@ class TestTimedeltaArraylikeMulDivOps:
         expected = Series(["1180 Days", "1770 Days", "NaT"], dtype="timedelta64[ns]")
 
         tdser = tm.box_expected(tdser, box_with_array)
+        xbox = get_upcast_box(tdser, vector)
+
         expected = tm.box_expected(expected, xbox)
 
         result = tdser * vector
@@ -2022,11 +2017,10 @@ class TestTimedeltaArraylikeMulDivOps:
         ids=lambda x: type(x).__name__,
     )
     def test_td64arr_div_numeric_array(
-        self, box_with_array, vector, any_real_numpy_dtype, using_array_manager
+        self, box_with_array, vector, any_real_numpy_dtype
     ):
         # GH#4521
         # divide/multiply by integers
-        xbox = get_upcast_box(box_with_array, vector)
 
         tdser = Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
         vector = vector.astype(any_real_numpy_dtype)
@@ -2034,6 +2028,7 @@ class TestTimedeltaArraylikeMulDivOps:
         expected = Series(["2.95D", "1D 23H 12m", "NaT"], dtype="timedelta64[ns]")
 
         tdser = tm.box_expected(tdser, box_with_array)
+        xbox = get_upcast_box(tdser, vector)
         expected = tm.box_expected(expected, xbox)
 
         result = tdser / vector
@@ -2062,14 +2057,6 @@ class TestTimedeltaArraylikeMulDivOps:
             expected = tm.box_expected(expected, xbox)
             assert tm.get_dtype(expected) == "m8[ns]"
 
-            if using_array_manager and box_with_array is DataFrame:
-                # TODO the behaviour is buggy here (third column with all-NaT
-                # as result doesn't get preserved as timedelta64 dtype).
-                # Reported at https://github.com/pandas-dev/pandas/issues/39750
-                # Changing the expected instead of xfailing to continue to test
-                # the correct behaviour for the other columns
-                expected[2] = Series([NaT, NaT], dtype=object)
-
             tm.assert_equal(result, expected)
 
         with pytest.raises(TypeError, match=pattern):
@@ -2093,7 +2080,7 @@ class TestTimedeltaArraylikeMulDivOps:
         )
 
         tdi = tm.box_expected(tdi, box)
-        xbox = get_upcast_box(box, ser)
+        xbox = get_upcast_box(tdi, ser)
 
         expected = tm.box_expected(expected, xbox)
 
@@ -2125,17 +2112,28 @@ class TestTimedeltaArraylikeMulDivOps:
             name=xname,
         )
 
-        xbox = get_upcast_box(box, ser)
-
         tdi = tm.box_expected(tdi, box)
+        xbox = get_upcast_box(tdi, ser)
         expected = tm.box_expected(expected, xbox)
 
         result = ser.__rtruediv__(tdi)
         if box is DataFrame:
-            # TODO: Should we skip this case sooner or test something else?
             assert result is NotImplemented
         else:
             tm.assert_equal(result, expected)
+
+    def test_td64arr_all_nat_div_object_dtype_numeric(self, box_with_array):
+        # GH#39750 make sure we infer the result as td64
+        tdi = TimedeltaIndex([NaT, NaT])
+
+        left = tm.box_expected(tdi, box_with_array)
+        right = np.array([2, 2.0], dtype=object)
+
+        result = left / right
+        tm.assert_equal(result, left)
+
+        result = left // right
+        tm.assert_equal(result, left)
 
 
 class TestTimedelta64ArrayLikeArithmetic:

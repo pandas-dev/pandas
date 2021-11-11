@@ -327,7 +327,7 @@ class BaseArrayManager(DataManager):
 
         return type(self)(result_arrays, self._axes)
 
-    def where(self: T, other, cond, align: bool, errors: str) -> T:
+    def where(self: T, other, cond, align: bool) -> T:
         if align:
             align_keys = ["other", "cond"]
         else:
@@ -339,7 +339,6 @@ class BaseArrayManager(DataManager):
             align_keys=align_keys,
             other=other,
             cond=cond,
-            errors=errors,
         )
 
     # TODO what is this used for?
@@ -1083,7 +1082,6 @@ class ArrayManager(BaseArrayManager):
 
     def as_array(
         self,
-        transpose: bool = False,
         dtype=None,
         copy: bool = False,
         na_value=lib.no_default,
@@ -1093,8 +1091,6 @@ class ArrayManager(BaseArrayManager):
 
         Parameters
         ----------
-        transpose : bool, default False
-            If True, transpose the return array.
         dtype : object, default None
             Data type of the return array.
         copy : bool, default False
@@ -1109,8 +1105,8 @@ class ArrayManager(BaseArrayManager):
         arr : ndarray
         """
         if len(self.arrays) == 0:
-            arr = np.empty(self.shape, dtype=float)
-            return arr.transpose() if transpose else arr
+            empty_arr = np.empty(self.shape, dtype=float)
+            return empty_arr.transpose()
 
         # We want to copy when na_value is provided to avoid
         # mutating the original object
@@ -1130,9 +1126,7 @@ class ArrayManager(BaseArrayManager):
 
         result = np.empty(self.shape_proper, dtype=dtype)
 
-        # error: Incompatible types in assignment (expression has type "Union[ndarray,
-        # ExtensionArray]", variable has type "ndarray")
-        for i, arr in enumerate(self.arrays):  # type: ignore[assignment]
+        for i, arr in enumerate(self.arrays):
             arr = arr.astype(dtype, copy=copy)
             result[:, i] = arr
 
@@ -1140,7 +1134,6 @@ class ArrayManager(BaseArrayManager):
             result[isna(result)] = na_value
 
         return result
-        # return arr.transpose() if transpose else arr
 
 
 class SingleArrayManager(BaseArrayManager, SingleDataManager):

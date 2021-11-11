@@ -390,6 +390,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
 
         return type(self)._simple_new(cat, name=self.name)
 
+    # TODO(2.0): remove reindex once non-unique deprecation is enforced
     def reindex(
         self, target, method=None, level=None, limit=None, tolerance=None
     ) -> tuple[Index, npt.NDArray[np.intp] | None]:
