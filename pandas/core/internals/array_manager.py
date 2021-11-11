@@ -54,6 +54,10 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algos
+from pandas.core.array_algos.putmask import (
+    putmask_flexible_ea,
+    putmask_flexible_ndarray,
+)
 from pandas.core.array_algos.quantile import quantile_compat
 from pandas.core.array_algos.take import take_1d
 from pandas.core.arrays import (
@@ -352,12 +356,31 @@ class BaseArrayManager(DataManager):
             align_keys = ["mask"]
             new = extract_array(new, extract_numpy=True)
 
-        return self.apply_with_block(
-            "putmask",
-            align_keys=align_keys,
-            mask=mask,
-            new=new,
-        )
+        kwargs = {"mask": mask, "new": new}
+        aligned_kwargs = {k: kwargs[k] for k in align_keys}
+
+        for i, arr in enumerate(self.arrays):
+
+            for k, obj in aligned_kwargs.items():
+                if isinstance(obj, (ABCSeries, ABCDataFrame)):
+                    # The caller is responsible for ensuring that
+                    #  obj.axes[-1].equals(self.items)
+                    if obj.ndim == 1:
+                        kwargs[k] = obj._values
+                    else:
+                        kwargs[k] = obj.iloc[:, i]._values
+                else:
+                    # otherwise we have an ndarray
+                    if self.ndim == 2:
+                        kwargs[k] = obj[i]
+
+            if isinstance(arr, np.ndarray):
+                new = putmask_flexible_ndarray(arr, **kwargs)
+            else:
+                new = putmask_flexible_ea(arr, **kwargs)
+            self.arrays[i] = new
+
+        return self
 
     def diff(self: T, n: int, axis: int) -> T:
         if axis == 1:
