@@ -354,6 +354,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
         if is_datetime64_any_dtype(dtype):
             # 'how' is index-specific, isn't part of the EA interface.
+            # GH#44398 deprecate astype(dt64), matching Series behavior
             warnings.warn(
                 f"Converting {type(self).__name__} to DatetimeIndex with "
                 "'astype' is deprecated and will raise in a future version. "
