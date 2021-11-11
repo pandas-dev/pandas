@@ -4539,6 +4539,7 @@ Keep all original rows and also all original values
         dtype: int64
         """
         if axis is not None:
+            # Make sure we raise if an invalid 'axis' is passed.
             axis = self._get_axis_number(axis)
 
         if callable(index) or is_dict_like(index):
