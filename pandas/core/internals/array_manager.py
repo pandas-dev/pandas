@@ -55,6 +55,10 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algos
+from pandas.core.array_algos.putmask import (
+    putmask_flexible_ea,
+    putmask_flexible_ndarray,
+)
 from pandas.core.array_algos.quantile import quantile_compat
 from pandas.core.array_algos.take import take_1d
 from pandas.core.arrays import (
@@ -378,13 +382,64 @@ class BaseArrayManager(DataManager):
         else:
             align_keys = ["mask"]
             new = extract_array(new, extract_numpy=True)
+        # if self._has_no_reference(loc):
+        # breakpoint()
+        
+        mask = np.asarray(mask)
+        for i in range(len(self.arrays)):
+            if not self._has_no_reference(i):
+                # if being referenced -> perform Copy-on-Write and clear the reference
+                self.arrays[i] = self.arrays[i].copy()
+                self._clear_reference(i)
+            self.arrays[i][mask[:, i]] = new
 
-        return self.apply_with_block(
-            "putmask",
-            align_keys=align_keys,
-            mask=mask,
-            new=new,
-        )
+        return self
+
+        # if align:
+        #     align_keys = ["new", "mask"]
+        # else:
+        #     align_keys = ["mask"]
+        #     new = extract_array(new, extract_numpy=True)
+
+
+    def putmask(self, mask, new, align: bool = True):
+        if align:
+            align_keys = ["new", "mask"]
+        else:
+            align_keys = ["mask"]
+            new = extract_array(new, extract_numpy=True)
+
+        kwargs = {"mask": mask, "new": new}
+        aligned_kwargs = {k: kwargs[k] for k in align_keys}
+
+        for i in range(len(self.arrays)):
+            
+            if not self._has_no_reference(i):
+                # if being referenced -> perform Copy-on-Write and clear the reference
+                self.arrays[i] = self.arrays[i].copy()
+                self._clear_reference(i)
+
+            for k, obj in aligned_kwargs.items():
+                if isinstance(obj, (ABCSeries, ABCDataFrame)):
+                    # The caller is responsible for ensuring that
+                    #  obj.axes[-1].equals(self.items)
+                    if obj.ndim == 1:
+                        kwargs[k] = obj._values
+                    else:
+                        kwargs[k] = obj.iloc[:, i]._values
+                else:
+                    # otherwise we have an ndarray
+                    if self.ndim == 2:
+                        kwargs[k] = obj[i]
+
+            arr = self.arrays[i]
+            if isinstance(arr, np.ndarray):
+                new = putmask_flexible_ndarray(arr, **kwargs)
+            else:
+                new = putmask_flexible_ea(arr, **kwargs)
+            self.arrays[i] = new
+
+        return self
 
     def diff(self: T, n: int, axis: int) -> T:
         if axis == 1:

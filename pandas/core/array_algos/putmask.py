@@ -15,6 +15,7 @@ from pandas._typing import (
 )
 
 from pandas.core.dtypes.cast import (
+    can_hold_element,
     convert_scalar_for_putitemlike,
     find_common_type,
     infer_dtype_from,
@@ -22,11 +23,22 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer_dtype,
+    is_interval_dtype,
     is_list_like,
 )
-from pandas.core.dtypes.missing import isna_compat
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCIndex,
+    ABCSeries,
+)
+from pandas.core.dtypes.missing import (
+    is_valid_na_for_dtype,
+    isna_compat,
+    na_value_for_dtype,
+)
 
 from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 
 
 def putmask_inplace(values: ArrayLike, mask: npt.NDArray[np.bool_], value: Any) -> None:
@@ -122,7 +134,7 @@ def putmask_smart(values: np.ndarray, mask: npt.NDArray[np.bool_], new) -> np.nd
                 nv[mask] = nn_at
                 return nv
 
-    new = np.asarray(new)
+    # new = np.asarray(new)
 
     if values.dtype.kind == new.dtype.kind:
         # preserves dtype if possible
@@ -225,3 +237,84 @@ def setitem_datetimelike_compat(values: np.ndarray, num_set: int, other):
                 other = list(other)
 
     return other
+
+
+def putmask_flexible_ndarray(array: np.ndarray, mask, new):
+    """
+    Putmask implementation for ArrayManager putmask for ndarray.
+
+    Flexible version that will upcast if needed.
+    """
+    mask, noop = validate_putmask(array, mask)
+    assert not isinstance(new, (ABCIndex, ABCSeries, ABCDataFrame))
+
+    # if we are passed a scalar None, convert it here
+    if not array.dtype == "object" and is_valid_na_for_dtype(new, array.dtype):
+        new = na_value_for_dtype(array.dtype, compat=False)
+
+    if can_hold_element(array, new):
+        # error: Argument 1 to "putmask_without_repeat" has incompatible type
+        # "Union[ndarray, ExtensionArray]"; expected "ndarray"
+        putmask_without_repeat(array, mask, new)  # type: ignore[arg-type]
+        return array
+
+    elif noop:
+        return array
+
+    dtype, _ = infer_dtype_from(new)
+    if dtype.kind in ["m", "M"]:
+        array = array.astype(object)
+        # convert to list to avoid numpy coercing datetimelikes to integers
+        new = setitem_datetimelike_compat(
+            array, mask.sum(), new  # type: ignore[arg-type]
+        )
+        # putmask_smart below converts it back to array
+        np.putmask(array, mask, new)
+        return array
+
+    new_values = putmask_smart(array, mask, new)
+    return new_values
+
+
+def _coerce_to_target_dtype(array, new):
+    dtype, _ = infer_dtype_from(new, pandas_dtype=True)
+    new_dtype = find_common_type([array.dtype, dtype])
+    return array.astype(new_dtype, copy=False)
+
+
+def putmask_flexible_ea(array: ExtensionArray, mask, new):
+    """
+    Putmask implementation for ArrayManager putmask for EA.
+
+    Flexible version that will upcast if needed.
+    """
+    mask = extract_bool_array(mask)
+
+    if isinstance(array, NDArrayBackedExtensionArray):
+
+        if not can_hold_element(array, new):
+            array = _coerce_to_target_dtype(array, new)
+            return putmask_flexible_ndarray(array, mask, new)
+
+        array.putmask(mask, new)
+        return array
+
+    if isinstance(new, (np.ndarray, ExtensionArray)) and len(new) == len(mask):
+        new = new[mask]
+
+    try:
+        array[mask] = new
+    except TypeError:
+        if not is_interval_dtype(array.dtype):
+            # Discussion about what we want to support in the general
+            #  case GH#39584
+            raise
+
+        array = _coerce_to_target_dtype(array, new)
+        if array.dtype == np.dtype("object"):
+            # For now at least, only support casting e.g.
+            #  Interval[int64]->Interval[float64],
+            raise
+        return putmask_flexible_ea(array, mask, new)
+
+    return array
