@@ -2943,3 +2943,9 @@ class TestLocSeries:
         )
 
         tm.assert_frame_equal(df, expected)
+
+    def test_getitem_loc_str_periodindex(self):
+        # GH#33964
+        index = pd.period_range(start="2000", periods=20, freq="B")
+        series = Series(range(20), index=index)
+        assert series.loc["2000-01-14"] == 9
