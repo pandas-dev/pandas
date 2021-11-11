@@ -34,26 +34,29 @@ def assert_invalid_addsub_type(left, right, msg=None):
         right - left
 
 
-def get_expected_box(box):
+def get_upcast_box(left, right, is_cmp: bool = False):
     """
-    Get the box to use for 'expected' in a comparison operation.
-    """
-    if box in [Index, array]:
-        return np.ndarray
-    return box
+    Get the box to use for 'expected' in an arithmetic or comparison operation.
 
+    Parameters
+    left : Any
+    right : Any
+    is_cmp : bool, default False
+        Whether the operation is a comparison method.
+    """
 
-def get_upcast_box(box, vector):
-    """
-    Given two box-types, find the one that takes priority.
-    """
-    if box is DataFrame or isinstance(vector, DataFrame):
+    if isinstance(left, DataFrame) or isinstance(right, DataFrame):
         return DataFrame
-    if box is Series or isinstance(vector, Series):
+    if isinstance(left, Series) or isinstance(right, Series):
+        if is_cmp and isinstance(left, Index):
+            # Index does not defer for comparisons
+            return np.array
         return Series
-    if box is Index or isinstance(vector, Index):
+    if isinstance(left, Index) or isinstance(right, Index):
+        if is_cmp:
+            return np.array
         return Index
-    return box
+    return tm.to_array
 
 
 def assert_invalid_comparison(left, right, box):
