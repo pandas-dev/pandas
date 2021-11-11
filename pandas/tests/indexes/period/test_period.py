@@ -211,7 +211,7 @@ class TestPeriodIndex(DatetimeLike):
         ]
 
         periods = list(periodindex)
-        s = Series(periodindex)
+        ser = Series(periodindex)
 
         for field in fields:
             field_idx = getattr(periodindex, field)
@@ -219,10 +219,10 @@ class TestPeriodIndex(DatetimeLike):
             for x, val in zip(periods, field_idx):
                 assert getattr(x, field) == val
 
-            if len(s) == 0:
+            if len(ser) == 0:
                 continue
 
-            field_s = getattr(s.dt, field)
+            field_s = getattr(ser.dt, field)
             assert len(periodindex) == len(field_s)
             for x, val in zip(periods, field_s):
                 assert getattr(x, field) == val
