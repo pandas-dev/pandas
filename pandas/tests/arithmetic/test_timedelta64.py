@@ -1542,13 +1542,13 @@ class TestTimedeltaArraylikeMulDivOps:
     )
     def test_tdi_rmul_arraylike(self, other, box_with_array):
         box = box_with_array
-        xbox = get_upcast_box(box, other)
 
         tdi = TimedeltaIndex(["1 Day"] * 10)
-        expected = timedelta_range("1 days", "10 days")
-        expected._data.freq = None
+        expected = timedelta_range("1 days", "10 days")._with_freq(None)
 
         tdi = tm.box_expected(tdi, box)
+        xbox = get_upcast_box(tdi, other)
+
         expected = tm.box_expected(expected, xbox)
 
         result = other * tdi
@@ -2000,7 +2000,6 @@ class TestTimedeltaArraylikeMulDivOps:
     ):
         # GH#4521
         # divide/multiply by integers
-        xbox = get_upcast_box(box_with_array, vector)
 
         tdser = Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
         vector = vector.astype(any_real_numpy_dtype)
@@ -2008,6 +2007,8 @@ class TestTimedeltaArraylikeMulDivOps:
         expected = Series(["1180 Days", "1770 Days", "NaT"], dtype="timedelta64[ns]")
 
         tdser = tm.box_expected(tdser, box_with_array)
+        xbox = get_upcast_box(tdser, vector)
+
         expected = tm.box_expected(expected, xbox)
 
         result = tdser * vector
@@ -2026,7 +2027,6 @@ class TestTimedeltaArraylikeMulDivOps:
     ):
         # GH#4521
         # divide/multiply by integers
-        xbox = get_upcast_box(box_with_array, vector)
 
         tdser = Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
         vector = vector.astype(any_real_numpy_dtype)
@@ -2034,6 +2034,7 @@ class TestTimedeltaArraylikeMulDivOps:
         expected = Series(["2.95D", "1D 23H 12m", "NaT"], dtype="timedelta64[ns]")
 
         tdser = tm.box_expected(tdser, box_with_array)
+        xbox = get_upcast_box(tdser, vector)
         expected = tm.box_expected(expected, xbox)
 
         result = tdser / vector
@@ -2085,7 +2086,7 @@ class TestTimedeltaArraylikeMulDivOps:
         )
 
         tdi = tm.box_expected(tdi, box)
-        xbox = get_upcast_box(box, ser)
+        xbox = get_upcast_box(tdi, ser)
 
         expected = tm.box_expected(expected, xbox)
 
@@ -2117,9 +2118,8 @@ class TestTimedeltaArraylikeMulDivOps:
             name=xname,
         )
 
-        xbox = get_upcast_box(box, ser)
-
         tdi = tm.box_expected(tdi, box)
+        xbox = get_upcast_box(tdi, ser)
         expected = tm.box_expected(expected, xbox)
 
         result = ser.__rtruediv__(tdi)
