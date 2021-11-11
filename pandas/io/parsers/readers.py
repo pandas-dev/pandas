@@ -86,7 +86,7 @@ sep : str, default {_default_sep}
     delimiters are prone to ignoring quoted data. Regex example: ``'\r\t'``.
 delimiter : str, default ``None``
     Alias for sep.
-header : int, list of int, default 'infer'
+header : int, list of int, None, default 'infer'
     Row number(s) to use as the column names, and the start of the
     data.  Default behavior is to infer the column names: if no names
     are passed the behavior is identical to ``header=0`` and column
