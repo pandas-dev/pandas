@@ -289,19 +289,12 @@ def putmask_flexible_ea(array: ExtensionArray, mask, new):
     mask = extract_bool_array(mask)
 
     if isinstance(array, NDArrayBackedExtensionArray):
-
         if not can_hold_element(array, new):
             array = _coerce_to_target_dtype(array, new)
             return putmask_flexible_ndarray(array, mask, new)
 
-        array.putmask(mask, new)
-        return array
-
-    if isinstance(new, (np.ndarray, ExtensionArray)) and len(new) == len(mask):
-        new = new[mask]
-
     try:
-        array[mask] = new
+        array._putmask(mask, new)
     except TypeError:
         if not is_interval_dtype(array.dtype):
             # Discussion about what we want to support in the general
