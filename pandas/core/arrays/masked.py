@@ -627,6 +627,21 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         return Series(counts, index=index)
 
+    @doc(ExtensionArray.equals)
+    def equals(self, other) -> bool:
+        if type(self) != type(other):
+            return False
+        if other.dtype != self.dtype:
+            return False
+
+        # GH#44382 if e.g. self[1] is np.nan and other[1] is pd.NA, we are NOT
+        #  equal.
+        return np.array_equal(self._mask, other._mask) and np.array_equal(
+            self._data[~self._mask],
+            other._data[~other._mask],
+            equal_nan=True,
+        )
+
     def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         if name in {"any", "all"}:
             return getattr(self, name)(skipna=skipna, **kwargs)
