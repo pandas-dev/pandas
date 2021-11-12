@@ -373,6 +373,16 @@ class TestGetIndexer:
         expected = np.array([0, 1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_get_index_non_unique_non_monotonic(self):
+        # GH#44084
+        index = IntervalIndex.from_tuples(
+            [(0.0, 1.0), (1.0, 2.0), (0.0, 1.0), (1.0, 2.0)]
+        )
+
+        result, _ = index.get_indexer_non_unique([Interval(1.0, 2.0)])
+        expected = np.array([1, 3])
+        tm.assert_numpy_array_equal(result, expected)
+
 
 class TestSliceLocs:
     def test_slice_locs_with_interval(self):
