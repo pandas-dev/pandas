@@ -11,7 +11,10 @@ import re
 import sys
 from typing import (
     DefaultDict,
+    Dict,
     Iterator,
+    Tuple,
+    Union,
     cast,
 )
 import warnings
@@ -20,6 +23,7 @@ import numpy as np
 
 import pandas._libs.lib as lib
 from pandas._typing import (
+    ArrayLike,
     FilePathOrBuffer,
     Scalar,
 )
@@ -173,7 +177,7 @@ class PythonParser(ParserBase):
             )
         self.num = re.compile(regex)
 
-    def _make_reader(self, f):
+    def _make_reader(self, f) -> None:
         sep = self.delimiter
 
         if sep is None or len(sep) == 1:
@@ -239,7 +243,7 @@ class PythonParser(ParserBase):
         # TextIOWrapper, mmap, None]")
         self.data = reader  # type: ignore[assignment]
 
-    def read(self, rows=None):
+    def read(self, rows: int | None = None):
         try:
             content = self._get_lines(rows)
         except StopIteration:
@@ -276,14 +280,18 @@ class PythonParser(ParserBase):
         alldata = self._rows_to_cols(content)
         data, columns = self._exclude_implicit_index(alldata)
 
-        columns, data = self._do_date_conversions(columns, data)
+        columns, date_data = self._do_date_conversions(columns, data)
+        data = cast(Dict[Union[Scalar, Tuple], np.ndarray], date_data)
 
-        data = self._convert_data(data)
-        index, columns = self._make_index(data, alldata, columns, indexnamerow)
+        conv_data = self._convert_data(data)
+        index, columns = self._make_index(conv_data, alldata, columns, indexnamerow)
 
-        return index, columns, data
+        return index, columns, conv_data
 
-    def _exclude_implicit_index(self, alldata):
+    def _exclude_implicit_index(
+        self,
+        alldata: list[np.ndarray],
+    ) -> tuple[dict[Scalar | tuple, np.ndarray], list[Scalar | tuple]]:
         names = self._maybe_dedup_names(self.orig_names)
 
         offset = 0
@@ -305,7 +313,9 @@ class PythonParser(ParserBase):
             size = self.chunksize  # type: ignore[attr-defined]
         return self.read(rows=size)
 
-    def _convert_data(self, data):
+    def _convert_data(
+        self, data: dict[Scalar | tuple, np.ndarray]
+    ) -> dict[Scalar | tuple, ArrayLike]:
         # apply converters
         def _clean_mapping(mapping):
             """converts col numbers to names"""
@@ -931,7 +941,7 @@ class PythonParser(ParserBase):
 
         return index_name, orig_names, columns
 
-    def _rows_to_cols(self, content):
+    def _rows_to_cols(self, content: list[list[Scalar]]) -> list[np.ndarray]:
         col_len = self.num_original_columns
 
         if self._implicit_index:
@@ -1014,7 +1024,7 @@ class PythonParser(ParserBase):
                 ]
         return zipped_content
 
-    def _get_lines(self, rows=None):
+    def _get_lines(self, rows: int | None = None):
         lines = self.buf
         new_rows = None
 

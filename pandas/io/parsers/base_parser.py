@@ -13,6 +13,7 @@ from typing import (
     Sequence,
     cast,
     final,
+    overload,
 )
 import warnings
 
@@ -33,6 +34,7 @@ from pandas.errors import (
     ParserError,
     ParserWarning,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
@@ -54,6 +56,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import isna
 
+from pandas import DataFrame
 from pandas.core import algorithms
 from pandas.core.arrays import Categorical
 from pandas.core.indexes.api import (
@@ -381,7 +384,7 @@ class ParserBase:
         return names, index_names, col_names, passed_names
 
     @final
-    def _maybe_dedup_names(self, names):
+    def _maybe_dedup_names(self, names: list[Scalar | tuple]) -> list[Scalar | tuple]:
         # see gh-7160 and gh-9424: this helps to provide
         # immediate alleviation of the duplicate names
         # issue and appears to be satisfactory to users,
@@ -389,7 +392,7 @@ class ParserBase:
         # would be nice!
         if self.mangle_dupe_cols:
             names = list(names)  # so we can index
-            counts: DefaultDict[int | str | tuple, int] = defaultdict(int)
+            counts: DefaultDict[Scalar | tuple, int] = defaultdict(int)
             is_potential_mi = _is_potential_multi_index(names, self.index_col)
 
             for i, col in enumerate(names):
@@ -399,6 +402,7 @@ class ParserBase:
                     counts[col] = cur_count + 1
 
                     if is_potential_mi:
+                        assert isinstance(col, tuple)
                         col = col[:-1] + (f"{col[-1]}.{cur_count}",)
                     else:
                         col = f"{col}.{cur_count}"
@@ -798,7 +802,35 @@ class ParserBase:
                 ) from err
         return values
 
-    def _do_date_conversions(self, names, data):
+    @overload
+    def _do_date_conversions(
+        self,
+        names: Index,
+        data: DataFrame,
+    ) -> tuple[list[Scalar] | Index, DataFrame]:
+        ...
+
+    @overload
+    def _do_date_conversions(
+        self,
+        names: list[Scalar | tuple],
+        data: dict[Scalar | tuple, ArrayLike] | dict[Scalar | tuple, np.ndarray],
+    ) -> tuple[
+        list[Scalar | tuple],
+        dict[Scalar | tuple, ArrayLike] | dict[Scalar | tuple, np.ndarray],
+    ]:
+        ...
+
+    def _do_date_conversions(
+        self,
+        names: list[Scalar | tuple] | Index,
+        data: dict[Scalar | tuple, ArrayLike]
+        | dict[Scalar | tuple, np.ndarray]
+        | DataFrame,
+    ) -> tuple[
+        list[Scalar | tuple] | Index,
+        dict[Scalar | tuple, ArrayLike] | dict[Scalar | tuple, np.ndarray] | DataFrame,
+    ]:
         # returns data, columns
 
         if self.parse_dates is not None:
@@ -814,7 +846,11 @@ class ParserBase:
 
         return names, data
 
-    def _check_data_length(self, columns: list[str], data: list[ArrayLike]) -> None:
+    def _check_data_length(
+        self,
+        columns: list[Scalar | tuple],
+        data: list[ArrayLike] | list[np.ndarray],
+    ) -> None:
         """Checks if length of data is equal to length of column names.
 
         One set of trailing commas is allowed. self.index_col not False
@@ -834,7 +870,7 @@ class ParserBase:
                 "Length of header or names does not match length of data. This leads "
                 "to a loss of data with index_col=False.",
                 ParserWarning,
-                stacklevel=6,
+                stacklevel=find_stack_level(),
             )
 
     def _evaluate_usecols(self, usecols, names):
