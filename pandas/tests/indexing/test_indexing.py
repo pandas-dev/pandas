@@ -323,9 +323,9 @@ class TestFancy:
 
     def test_duplicate_int_indexing(self, indexer_sl):
         # GH 17347
-        s = Series(range(3), index=[1, 1, 3])
-        expected = s[1]
-        result = indexer_sl(s)[[1]]
+        ser = Series(range(3), index=[1, 1, 3])
+        expected = Series(range(2), index=[1, 1])
+        result = indexer_sl(ser)[[1]]
         tm.assert_series_equal(result, expected)
 
     def test_indexing_mixed_frame_bug(self):
@@ -653,13 +653,6 @@ class TestMisc:
         df.loc[df.index] = df.loc[df.index]
         tm.assert_frame_equal(df, df2)
 
-    def test_float_index_at_iat(self):
-        s = Series([1, 2, 3], index=[0.1, 0.2, 0.3])
-        for el, item in s.items():
-            assert s.at[el] == item
-        for i in range(len(s)):
-            assert s.iat[i] == i + 1
-
     def test_rhs_alignment(self):
         # GH8258, tests that both rows & columns are aligned to what is
         # assigned to. covers both uniform data-type & multi-type cases
@@ -709,21 +702,21 @@ class TestMisc:
     def test_str_label_slicing_with_negative_step(self):
         SLC = pd.IndexSlice
 
-        def assert_slices_equivalent(l_slc, i_slc):
-            tm.assert_series_equal(s.loc[l_slc], s.iloc[i_slc])
+        def assert_slices_equivalent(ser, l_slc, i_slc):
+            tm.assert_series_equal(ser.loc[l_slc], ser.iloc[i_slc])
 
-            if not idx.is_integer:
+            if not idx.is_integer():
                 # For integer indices, .loc and plain getitem are position-based.
-                tm.assert_series_equal(s[l_slc], s.iloc[i_slc])
-                tm.assert_series_equal(s.loc[l_slc], s.iloc[i_slc])
+                tm.assert_series_equal(ser[l_slc], ser.iloc[i_slc])
+                tm.assert_series_equal(ser.loc[l_slc], ser.iloc[i_slc])
 
         for idx in [_mklbl("A", 20), np.arange(20) + 100, np.linspace(100, 150, 20)]:
             idx = Index(idx)
-            s = Series(np.arange(20), index=idx)
-            assert_slices_equivalent(SLC[idx[9] :: -1], SLC[9::-1])
-            assert_slices_equivalent(SLC[: idx[9] : -1], SLC[:8:-1])
-            assert_slices_equivalent(SLC[idx[13] : idx[9] : -1], SLC[13:8:-1])
-            assert_slices_equivalent(SLC[idx[9] : idx[13] : -1], SLC[:0])
+            ser = Series(np.arange(20), index=idx)
+            assert_slices_equivalent(ser, SLC[idx[9] :: -1], SLC[9::-1])
+            assert_slices_equivalent(ser, SLC[: idx[9] : -1], SLC[:8:-1])
+            assert_slices_equivalent(ser, SLC[idx[13] : idx[9] : -1], SLC[13:8:-1])
+            assert_slices_equivalent(ser, SLC[idx[9] : idx[13] : -1], SLC[:0])
 
     def test_slice_with_zero_step_raises(self, indexer_sl, frame_or_series):
         obj = frame_or_series(np.arange(20), index=_mklbl("A", 20))
@@ -967,7 +960,11 @@ def test_extension_array_cross_section():
 def test_extension_array_cross_section_converts():
     # all numeric columns -> numeric series
     df = DataFrame(
-        {"A": pd.array([1, 2], dtype="Int64"), "B": np.array([1, 2])}, index=["a", "b"]
+        {
+            "A": pd.array([1, 2], dtype="Int64"),
+            "B": np.array([1, 2], dtype="int64"),
+        },
+        index=["a", "b"],
     )
     result = df.loc["a"]
     expected = Series([1, 1], dtype="Int64", index=["A", "B"], name="a")
@@ -987,10 +984,3 @@ def test_extension_array_cross_section_converts():
 
     result = df.iloc[0]
     tm.assert_series_equal(result, expected)
-
-
-def test_getitem_object_index_float_string():
-    # GH 17286
-    s = Series([1] * 4, index=Index(["a", "b", "c", 1.0]))
-    assert s["a"] == 1
-    assert s[1.0] == 1
