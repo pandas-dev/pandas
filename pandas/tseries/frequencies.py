@@ -29,6 +29,7 @@ from pandas._libs.tslibs.offsets import (  # noqa:F401
 from pandas._libs.tslibs.parsing import get_rule_month
 from pandas._typing import npt
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
@@ -116,7 +117,7 @@ def get_offset(name: str) -> DateOffset:
         "get_offset is deprecated and will be removed in a future version, "
         "use to_offset instead.",
         FutureWarning,
-        stacklevel=2,
+        stacklevel=find_stack_level(),
     )
     return _get_offset(name)
 
