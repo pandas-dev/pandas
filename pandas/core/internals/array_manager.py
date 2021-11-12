@@ -191,13 +191,7 @@ class BaseArrayManager(DataManager):
             output += f"\n{arr.dtype}"
         return output
 
-    def apply(
-        self: T,
-        f,
-        align_keys: list[str] | None = None,
-        ignore_failures: bool = False,
-        **kwargs,
-    ) -> T:
+    def apply(self: T, f, ignore_failures: bool = False, **kwargs) -> T:
         """
         Iterate over the arrays, collect and create a new ArrayManager.
 
@@ -216,32 +210,14 @@ class BaseArrayManager(DataManager):
         """
         assert "filter" not in kwargs
 
-        align_keys = align_keys or []
         result_arrays: list[np.ndarray] = []
         result_indices: list[int] = []
         # fillna: Series/DataFrame is responsible for making sure value is aligned
-
-        aligned_args = {k: kwargs[k] for k in align_keys}
 
         if f == "apply":
             f = kwargs.pop("func")
 
         for i, arr in enumerate(self.arrays):
-
-            if aligned_args:
-
-                for k, obj in aligned_args.items():
-                    if isinstance(obj, (ABCSeries, ABCDataFrame)):
-                        # The caller is responsible for ensuring that
-                        #  obj.axes[-1].equals(self.items)
-                        if obj.ndim == 1:
-                            kwargs[k] = obj.iloc[i]
-                        else:
-                            kwargs[k] = obj.iloc[:, i]._values
-                    else:
-                        # otherwise we have an array-like
-                        kwargs[k] = obj[i]
-
             try:
                 if callable(f):
                     applied = f(arr, **kwargs)
