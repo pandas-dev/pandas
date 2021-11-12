@@ -310,7 +310,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     # ------------------------------------------------------------------------
     # __array_function__ methods
 
-    def putmask(self, mask: np.ndarray, value) -> None:
+    def _putmask(self, mask: npt.NDArray[np.bool_], value) -> None:
         """
         Analogue to np.putmask(self, mask, value)
 
