@@ -1669,6 +1669,19 @@ _round_example = """>>> rng.round('H')
     1   2018-01-01 12:00:00
     2   2018-01-01 12:00:00
     dtype: datetime64[ns]
+
+    When rounding near a daylight savings time transition, use ``ambiguous`` or
+    ``nonexistent`` to control how the timestamp should be re-localized.
+
+    >>> rng_tz = pd.DatetimeIndex(["2021-10-31 01:30:00"], tz="Europe/Amsterdam")
+
+    >>> rng_tz.floor("H", ambiguous=False)
+    DatetimeIndex(['2021-10-31 02:00:00+01:00'],
+                  dtype='datetime64[ns, Europe/Amsterdam]', freq=None)
+
+    >>> rng_tz.floor("H", ambiguous=True)
+    DatetimeIndex(['2021-10-31 02:00:00+02:00'],
+                  dtype='datetime64[ns, Europe/Amsterdam]', freq=None)
     """
 
 _floor_example = """>>> rng.floor('H')
@@ -1683,6 +1696,19 @@ _floor_example = """>>> rng.floor('H')
     1   2018-01-01 12:00:00
     2   2018-01-01 12:00:00
     dtype: datetime64[ns]
+
+    When rounding near a daylight savings time transition, use ``ambiguous`` or
+    ``nonexistent`` to control how the timestamp should be re-localized.
+
+    >>> rng_tz = pd.DatetimeIndex(["2021-10-31 03:30:00"], tz="Europe/Amsterdam")
+
+    >>> rng_tz.floor("2H", ambiguous=False)
+    DatetimeIndex(['2021-10-31 02:00:00+01:00'],
+                 dtype='datetime64[ns, Europe/Amsterdam]', freq=None)
+
+    >>> rng_tz.floor("2H", ambiguous=True)
+    DatetimeIndex(['2021-10-31 02:00:00+02:00'],
+                  dtype='datetime64[ns, Europe/Amsterdam]', freq=None)
     """
 
 _ceil_example = """>>> rng.ceil('H')
@@ -1697,6 +1723,19 @@ _ceil_example = """>>> rng.ceil('H')
     1   2018-01-01 12:00:00
     2   2018-01-01 13:00:00
     dtype: datetime64[ns]
+
+    When rounding near a daylight savings time transition, use ``ambiguous`` or
+    ``nonexistent`` to control how the timestamp should be re-localized.
+
+    >>> rng_tz = pd.DatetimeIndex(["2021-10-31 01:30:00"], tz="Europe/Amsterdam")
+
+    >>> rng_tz.ceil("H", ambiguous=False)
+    DatetimeIndex(['2021-10-31 02:00:00+01:00'],
+                  dtype='datetime64[ns, Europe/Amsterdam]', freq=None)
+
+    >>> rng_tz.ceil("H", ambiguous=True)
+    DatetimeIndex(['2021-10-31 02:00:00+02:00'],
+                  dtype='datetime64[ns, Europe/Amsterdam]', freq=None)
     """
 
 

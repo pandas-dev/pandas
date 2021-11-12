@@ -1465,6 +1465,17 @@ timedelta}, default 'raise'
 
         >>> pd.NaT.round()
         NaT
+
+        When rounding near a daylight savings time transition, use ``ambiguous`` or
+        ``nonexistent`` to control how the timestamp should be re-localized.
+
+        >>> ts_tz = pd.Timestamp("2021-10-31 01:30:00").tz_localize("Europe/Amsterdam")
+
+        >>> ts_tz.round("H", ambiguous=False)
+        Timestamp('2021-10-31 02:00:00+0100', tz='Europe/Amsterdam')
+
+        >>> ts_tz.round("H", ambiguous=True)
+        Timestamp('2021-10-31 02:00:00+0200', tz='Europe/Amsterdam')
         """
         return self._round(
             freq, RoundTo.NEAREST_HALF_EVEN, ambiguous, nonexistent
@@ -1545,6 +1556,17 @@ timedelta}, default 'raise'
 
         >>> pd.NaT.floor()
         NaT
+
+        When rounding near a daylight savings time transition, use ``ambiguous`` or
+        ``nonexistent`` to control how the timestamp should be re-localized.
+
+        >>> ts_tz = pd.Timestamp("2021-10-31 03:30:00").tz_localize("Europe/Amsterdam")
+
+        >>> ts_tz.floor("2H", ambiguous=False)
+        Timestamp('2021-10-31 02:00:00+0100', tz='Europe/Amsterdam')
+
+        >>> ts_tz.floor("2H", ambiguous=True)
+        Timestamp('2021-10-31 02:00:00+0200', tz='Europe/Amsterdam')
         """
         return self._round(freq, RoundTo.MINUS_INFTY, ambiguous, nonexistent)
 
@@ -1623,6 +1645,17 @@ timedelta}, default 'raise'
 
         >>> pd.NaT.ceil()
         NaT
+
+        When rounding near a daylight savings time transition, use ``ambiguous`` or
+        ``nonexistent`` to control how the timestamp should be re-localized.
+
+        >>> ts_tz = pd.Timestamp("2021-10-31 01:30:00").tz_localize("Europe/Amsterdam")
+
+        >>> ts_tz.ceil("H", ambiguous=False)
+        Timestamp('2021-10-31 02:00:00+0100', tz='Europe/Amsterdam')
+
+        >>> ts_tz.ceil("H", ambiguous=True)
+        Timestamp('2021-10-31 02:00:00+0200', tz='Europe/Amsterdam')
         """
         return self._round(freq, RoundTo.PLUS_INFTY, ambiguous, nonexistent)
 
