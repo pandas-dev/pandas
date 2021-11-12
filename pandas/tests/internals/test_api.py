@@ -19,6 +19,7 @@ def test_namespace():
         "blocks",
         "concat",
         "managers",
+        "methods",
         "construction",
         "array_manager",
         "base",
