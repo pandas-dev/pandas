@@ -182,6 +182,7 @@ def test_nat_methods_nat(method):
 def test_nat_iso_format(get_nat):
     # see gh-12300
     assert get_nat("NaT").isoformat() == "NaT"
+    assert get_nat("NaT").isoformat(timespec="nanoseconds") == "NaT"
 
 
 @pytest.mark.parametrize(
@@ -324,6 +325,10 @@ def test_nat_doc_strings(compare):
     # The docstrings for overlapping methods should match.
     klass, method = compare
     klass_doc = getattr(klass, method).__doc__
+
+    # Ignore differences with Timestamp.isoformat() as they're intentional
+    if klass == Timestamp and method == 'isoformat':
+        return
 
     nat_doc = getattr(NaT, method).__doc__
     assert klass_doc == nat_doc
