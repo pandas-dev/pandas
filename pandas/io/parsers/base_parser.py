@@ -10,7 +10,9 @@ from typing import (
     Callable,
     DefaultDict,
     Iterable,
+    List,
     Sequence,
+    Tuple,
     cast,
     final,
     overload,
@@ -409,11 +411,15 @@ class ParserBase:
 
     @final
     def _maybe_make_multi_index_columns(
-        self, columns: list[Scalar | tuple], col_names=None
-    ):
+        self,
+        columns: list[Scalar] | list[tuple],
+        col_names: list[Scalar | None] | list[tuple] | None = None,
+    ) -> list[Scalar] | MultiIndex:
         # possibly create a column mi here
         if _is_potential_multi_index(columns):
-            columns = MultiIndex.from_tuples(columns, names=col_names)
+            columns = cast(List[Tuple], columns)
+            return MultiIndex.from_tuples(columns, names=col_names)
+        columns = cast(List[Scalar], columns)
         return columns
 
     @final
@@ -440,7 +446,7 @@ class ParserBase:
             index = index.set_names(indexnamerow[:coffset])
 
         # maybe create a mi on the columns
-        columns = self._maybe_make_multi_index_columns(columns, self.col_names)
+        columns = self._maybe_make_multi_index_columns(columns)
 
         return index, columns
 
@@ -842,18 +848,18 @@ class ParserBase:
         ...
 
     @overload
-    def _evaluate_usecols(
-        self,
-        usecols: set[str | int],
-        names: list[Scalar],
-    ) -> set[str | int]:
+    def _evaluate_usecols(self, usecols: set[int], names: list[Scalar]) -> set[int]:
+        ...
+
+    @overload
+    def _evaluate_usecols(self, usecols: set[str], names: list[Scalar]) -> set[str]:
         ...
 
     def _evaluate_usecols(
         self,
-        usecols: Callable | set[str | int],
+        usecols: Callable | set[str] | set[int],
         names: list[Scalar],
-    ) -> set[str | int]:
+    ) -> set[str] | set[int]:
         """
         Check whether or not the 'usecols' parameter
         is a callable.  If so, enumerates the 'names'

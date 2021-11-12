@@ -528,6 +528,7 @@ class PythonParser(ParserBase):
 
         usecols_key is used if there are string usecols.
         """
+        col_indices: set[int] | list[int]
         if self.usecols is not None:
             if callable(self.usecols):
                 col_indices = self._evaluate_usecols(self.usecols, usecols_key)
