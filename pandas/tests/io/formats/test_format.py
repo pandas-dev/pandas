@@ -1307,7 +1307,7 @@ class TestDataFrameFormatting:
 
         # all-nan in mi
         df2 = df.copy()
-        df2.loc[:, "id2"] = np.nan
+        df2["id2"] = np.nan
         y = df2.set_index("id2")
         result = y.to_string()
         expected = (
