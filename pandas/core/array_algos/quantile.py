@@ -1,21 +1,15 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 import numpy as np
 
 from pandas._typing import ArrayLike
 
-from pandas.core.dtypes.common import is_sparse
 from pandas.core.dtypes.missing import (
     isna,
     na_value_for_dtype,
 )
 
 from pandas.core.nanops import nanpercentile
-
-if TYPE_CHECKING:
-    from pandas.core.arrays import ExtensionArray
 
 
 def quantile_compat(values: ArrayLike, qs: np.ndarray, interpolation: str) -> ArrayLike:
@@ -37,18 +31,7 @@ def quantile_compat(values: ArrayLike, qs: np.ndarray, interpolation: str) -> Ar
         mask = isna(values)
         return quantile_with_mask(values, mask, fill_value, qs, interpolation)
     else:
-        # In general we don't want to import from arrays here;
-        #  this is temporary pending discussion in GH#41428
-        from pandas.core.arrays import BaseMaskedArray
-
-        if isinstance(values, BaseMaskedArray):
-            # e.g. IntegerArray, does not implement _from_factorized
-            return values._quantile(qs, interpolation)
-
-        else:
-            out = _quantile_ea_compat(values, qs, interpolation)
-
-        return out
+        return values._quantile(qs, interpolation)
 
 
 def quantile_with_mask(
@@ -109,49 +92,3 @@ def quantile_with_mask(
         result = result.T
 
     return result
-
-
-def _quantile_ea_compat(
-    values: ExtensionArray, qs: np.ndarray, interpolation: str
-) -> ExtensionArray:
-    """
-    ExtensionArray compatibility layer for quantile_with_mask.
-
-    We pretend that an ExtensionArray with shape (N,) is actually (1, N,)
-    for compatibility with non-EA code.
-
-    Parameters
-    ----------
-    values : ExtensionArray
-    qs : np.ndarray[float64]
-    interpolation: str
-
-    Returns
-    -------
-    ExtensionArray
-    """
-    # TODO(EA2D): make-believe not needed with 2D EAs
-    orig = values
-
-    # asarray needed for Sparse, see GH#24600
-    mask = np.asarray(values.isna())
-    mask = np.atleast_2d(mask)
-
-    arr, fill_value = values._values_for_factorize()
-    arr = np.atleast_2d(arr)
-
-    result = quantile_with_mask(arr, mask, fill_value, qs, interpolation)
-
-    if not is_sparse(orig.dtype):
-        # shape[0] should be 1 as long as EAs are 1D
-
-        if orig.ndim == 2:
-            # i.e. DatetimeArray
-            result = type(orig)._from_factorized(result, orig)
-
-        else:
-            assert result.shape == (1, len(qs)), result.shape
-            result = type(orig)._from_factorized(result[0], orig)
-
-    # error: Incompatible return value type (got "ndarray", expected "ExtensionArray")
-    return result  # type: ignore[return-value]
