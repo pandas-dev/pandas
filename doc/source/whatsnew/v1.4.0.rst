@@ -574,6 +574,7 @@ I/O
 - Bug in :func:`json_normalize` where multi-character ``sep`` parameter is incorrectly prefixed to every key (:issue:`43831`)
 - Bug in :func:`read_csv` with :code:`float_precision="round_trip"` which did not skip initial/trailing whitespace (:issue:`43713`)
 - Bug in dumping/loading a :class:`DataFrame` with ``yaml.dump(frame)`` (:issue:`42748`)
+- Bug in :func:`read_csv` raising ``ValueError`` when ``parse_dates`` was used with ``MultiIndex`` columns (:issue:`8991`)
 -
 
 Period
