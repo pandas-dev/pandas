@@ -20,7 +20,7 @@ Enhancements
 Improved warning messages
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Previously, warning messages may have pointed to lines with the pandas library. Running the script ``setting_with_copy_warning.py``
+Previously, warning messages may have pointed to lines within the pandas library. Running the script ``setting_with_copy_warning.py``
 
 .. code-block:: python
 
