@@ -3319,7 +3319,8 @@ def test_filepath_or_buffer_arg(
         ):
             getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
     elif encoding == "foo":
-        with tm.assert_produces_warning(None):
+        expected_warning = FutureWarning if method == "to_latex" else None
+        with tm.assert_produces_warning(expected_warning):
             with pytest.raises(LookupError, match="unknown encoding"):
                 getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
     else:
