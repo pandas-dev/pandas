@@ -154,6 +154,12 @@ class TestSeriesConstructors:
         with pytest.raises(NotImplementedError, match=msg):
             Series(m)
 
+    def test_constructor_index_ndim_gt_1_raises(self):
+        # GH#18579
+        df = DataFrame([[1, 2], [3, 4], [5, 6]], index=[3, 6, 9])
+        with pytest.raises(ValueError, match="Index data must be 1-dimensional"):
+            Series([1, 3, 2], index=df)
+
     @pytest.mark.parametrize("input_class", [list, dict, OrderedDict])
     def test_constructor_empty(self, input_class):
         with tm.assert_produces_warning(FutureWarning):
@@ -275,6 +281,15 @@ class TestSeriesConstructors:
         for obj in [[1, 2, 3], (1, 2, 3), np.array([1, 2, 3], dtype="int64")]:
             result = Series(obj, index=[0, 1, 2])
             tm.assert_series_equal(result, expected)
+
+    def test_constructor_boolean_index(self):
+        # GH#18579
+        s1 = Series([1, 2, 3], index=[4, 5, 6])
+
+        index = s1 == 2
+        result = Series([1, 3, 2], index=index)
+        expected = Series([1, 3, 2], index=[False, True, False])
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", ["bool", "int32", "int64", "float64"])
     def test_constructor_index_dtype(self, dtype):

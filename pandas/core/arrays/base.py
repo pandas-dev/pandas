@@ -1409,6 +1409,33 @@ class ExtensionArray:
 
         return type(self)._concat_same_type([self[:loc], item_arr, self[loc:]])
 
+    def _putmask(self, mask: npt.NDArray[np.bool_], value) -> None:
+        """
+        Analogue to np.putmask(self, mask, value)
+
+        Parameters
+        ----------
+        mask : np.ndarray[bool]
+        value : scalar or listlike
+            If listlike, must be arraylike with same length as self.
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        Unlike np.putmask, we do not repeat listlike values with mismatched length.
+        'value' should either be a scalar or an arraylike with the same length
+        as self.
+        """
+        if is_list_like(value):
+            val = value[mask]
+        else:
+            val = value
+
+        self[mask] = val
+
     def _where(
         self: ExtensionArrayT, mask: npt.NDArray[np.bool_], value
     ) -> ExtensionArrayT:
@@ -1433,6 +1460,24 @@ class ExtensionArray:
 
         result[~mask] = val
         return result
+
+    def _fill_mask_inplace(
+        self, method: str, limit, mask: npt.NDArray[np.bool_]
+    ) -> None:
+        """
+        Replace values in locations specified by 'mask' using pad or backfill.
+
+        See also
+        --------
+        ExtensionArray.fillna
+        """
+        func = missing.get_fill_func(method)
+        # NB: if we don't copy mask here, it may be altered inplace, which
+        #  would mess up the `self[mask] = ...` below.
+        new_values, _ = func(self.astype(object), limit=limit, mask=mask.copy())
+        new_values = self._from_sequence(new_values, dtype=self.dtype)
+        self[mask] = new_values[mask]
+        return
 
     @classmethod
     def _empty(cls, shape: Shape, dtype: ExtensionDtype):
