@@ -1147,6 +1147,7 @@ def _try_convert_dates(parser: Callable, colspec, data_dict, columns):
         else:
             colnames.append(c)
 
+    new_name: tuple | str
     if all(isinstance(x, tuple) for x in colnames):
         new_name = tuple(map("_".join, zip(*colnames)))
     else:
