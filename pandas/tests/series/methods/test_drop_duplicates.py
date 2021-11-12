@@ -224,6 +224,22 @@ class TestSeriesDropDuplicates:
         assert return_value is None
         tm.assert_series_equal(sc, tc[~expected])
 
+    def test_drop_duplicates_categorical_bool_na(self, nulls_fixture):
+        # GH#44351
+        ser = Series(
+            Categorical(
+                [True, False, True, False, nulls_fixture],
+                categories=[True, False],
+                ordered=True,
+            )
+        )
+        result = ser.drop_duplicates()
+        expected = Series(
+            Categorical([True, False, np.nan], categories=[True, False], ordered=True),
+            index=[0, 1, 4],
+        )
+        tm.assert_series_equal(result, expected)
+
 
 def test_drop_duplicates_pos_args_deprecation():
     # GH#41485
