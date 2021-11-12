@@ -139,7 +139,7 @@ def _ensure_data(values: ArrayLike) -> tuple[np.ndarray, DtypeObj]:
             # i.e. all-bool Categorical, BooleanArray
             try:
                 return np.asarray(values).astype("uint8", copy=False), values.dtype
-            except TypeError:
+            except (TypeError, ValueError):
                 # GH#42107 we have pd.NAs present
                 return np.asarray(values), values.dtype
 
