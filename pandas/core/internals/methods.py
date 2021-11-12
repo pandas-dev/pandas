@@ -34,7 +34,7 @@ from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 
 def putmask_flexible(array: np.ndarray | ExtensionArray, mask, new):
     """
-    Putmask implementation for ArrayManager putmask for ndarray.
+    Putmask implementation for ArrayManager.putmask.
 
     Flexible version that will upcast if needed.
     """
