@@ -54,10 +54,6 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algos
-from pandas.core.array_algos.putmask import (
-    putmask_flexible_ea,
-    putmask_flexible_ndarray,
-)
 from pandas.core.array_algos.quantile import quantile_compat
 from pandas.core.array_algos.take import take_1d
 from pandas.core.arrays import (
@@ -93,6 +89,7 @@ from pandas.core.internals.blocks import (
     new_block,
     to_native_types,
 )
+from pandas.core.internals.methods import putmask_flexible
 
 if TYPE_CHECKING:
     from pandas import Float64Index
@@ -350,10 +347,7 @@ class BaseArrayManager(DataManager):
                     if self.ndim == 2:
                         kwargs[k] = obj[i]
 
-            if isinstance(arr, np.ndarray):
-                new = putmask_flexible_ndarray(arr, **kwargs)
-            else:
-                new = putmask_flexible_ea(arr, **kwargs)
+            new = putmask_flexible(arr, **kwargs)
             self.arrays[i] = new
 
         return self
