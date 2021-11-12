@@ -327,7 +327,7 @@ def test_nat_doc_strings(compare):
     klass_doc = getattr(klass, method).__doc__
 
     # Ignore differences with Timestamp.isoformat() as they're intentional
-    if klass == Timestamp and method == 'isoformat':
+    if klass == Timestamp and method == "isoformat":
         return
 
     nat_doc = getattr(NaT, method).__doc__
