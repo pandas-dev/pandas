@@ -745,13 +745,15 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
             if frame._is_homogeneous_type and is_extension_array_dtype(
                 frame.dtypes.iloc[0]
             ):
+                # TODO(EA2D): won't need special case, can go through .values
+                #  paths below (might change to ._values)
                 dtype = this[this.columns[loc]].dtypes.iloc[0]
                 subset = this[this.columns[loc]]
 
                 value_slice = dtype.construct_array_type()._concat_same_type(
                     [x._values for _, x in subset.items()]
                 )
-                N, K = this.shape
+                N, K = subset.shape
                 idx = np.arange(N * K).reshape(K, N).T.ravel()
                 value_slice = value_slice.take(idx)
 
