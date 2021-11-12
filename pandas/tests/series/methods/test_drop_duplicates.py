@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from pandas import (
+    NA,
     Categorical,
     Series,
 )
@@ -223,6 +224,20 @@ class TestSeriesDropDuplicates:
         return_value = sc.drop_duplicates(keep=False, inplace=True)
         assert return_value is None
         tm.assert_series_equal(sc, tc[~expected])
+
+    def test_drop_duplicates_categorical_bool_na(self):
+        # GH#44351
+        ser = Series(
+            Categorical(
+                [True, False, True, False, NA], categories=[True, False], ordered=True
+            )
+        )
+        result = ser.drop_duplicates()
+        expected = Series(
+            Categorical([True, False, np.nan], categories=[True, False], ordered=True),
+            index=[0, 1, 4],
+        )
+        tm.assert_series_equal(result, expected)
 
 
 def test_drop_duplicates_pos_args_deprecation():
