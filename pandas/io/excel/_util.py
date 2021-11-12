@@ -2,9 +2,13 @@ from __future__ import annotations
 
 from typing import (
     Any,
+    Callable,
+    Iterable,
     MutableMapping,
+    overload,
 )
 
+from pandas._typing import Scalar
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.common import (
@@ -31,7 +35,7 @@ def register_writer(klass):
     _writers[engine_name] = klass
 
 
-def get_default_engine(ext, mode="reader"):
+def get_default_engine(ext: str, mode: str = "reader") -> str:
     """
     Return the default reader/writer for the given extension.
 
@@ -73,7 +77,7 @@ def get_default_engine(ext, mode="reader"):
         return _default_readers[ext]
 
 
-def get_writer(engine_name):
+def get_writer(engine_name: str):
     try:
         return _writers[engine_name]
     except KeyError as err:
@@ -145,7 +149,29 @@ def _range2cols(areas: str) -> list[int]:
     return cols
 
 
-def maybe_convert_usecols(usecols):
+@overload
+def maybe_convert_usecols(usecols: str | list[int]) -> list[int]:
+    ...
+
+
+@overload
+def maybe_convert_usecols(usecols: list[str]) -> list[str]:
+    ...
+
+
+@overload
+def maybe_convert_usecols(usecols: Callable) -> Callable:
+    ...
+
+
+@overload
+def maybe_convert_usecols(usecols: None) -> None:
+    ...
+
+
+def maybe_convert_usecols(
+    usecols: str | list[int] | list[str] | Callable | None,
+) -> None | list[int] | list[str] | Callable:
     """
     Convert `usecols` into a compatible format for parsing in `parsers.py`.
 
@@ -191,7 +217,9 @@ def validate_freeze_panes(freeze_panes):
     return False
 
 
-def fill_mi_header(row, control_row):
+def fill_mi_header(
+    row: list[Scalar], control_row: list[bool]
+) -> tuple[list[Scalar], list[bool]]:
     """
     Forward fill blank entries in row but only inside the same parent index.
 
@@ -224,7 +252,9 @@ def fill_mi_header(row, control_row):
     return row, control_row
 
 
-def pop_header_name(row, index_col):
+def pop_header_name(
+    row: list[Scalar], index_col: int | list[int]
+) -> tuple[Scalar | None, list[Scalar]]:
     """
     Pop the header name for MultiIndex parsing.
 
@@ -243,7 +273,12 @@ def pop_header_name(row, index_col):
         The original data row with the header name removed.
     """
     # Pop out header name and fill w/blank.
-    i = index_col if not is_list_like(index_col) else max(index_col)
+    if is_list_like(index_col):
+        assert isinstance(index_col, Iterable)
+        i = max(index_col)
+    else:
+        assert not isinstance(index_col, Iterable)
+        i = index_col
 
     header_name = row[i]
     header_name = None if header_name == "" else header_name
