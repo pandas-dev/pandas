@@ -8,8 +8,10 @@ from pandas.errors import InvalidIndexError
 from pandas import (
     NA,
     CategoricalIndex,
+    Index,
     Interval,
     IntervalIndex,
+    MultiIndex,
     NaT,
     Timedelta,
     date_range,
@@ -374,7 +376,7 @@ class TestGetIndexer:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_get_index_non_unique_non_monotonic(self):
-        # GH#44084
+        # GH#44084 (root cause)
         index = IntervalIndex.from_tuples(
             [(0.0, 1.0), (1.0, 2.0), (0.0, 1.0), (1.0, 2.0)]
         )
@@ -382,6 +384,20 @@ class TestGetIndexer:
         result, _ = index.get_indexer_non_unique([Interval(1.0, 2.0)])
         expected = np.array([1, 3])
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_get_indexer_multiindex_with_intervals(self):
+        # GH#44084 (MultiIndex case as reported)
+        interval_index = IntervalIndex.from_tuples(
+            [(2.0, 3.0), (0.0, 1.0), (1.0, 2.0)], name="interval"
+        )
+        foo_index = Index([1, 2, 3], name="foo")
+
+        multi_index = MultiIndex.from_product([foo_index, interval_index])
+
+        chosen_interval_indexer = multi_index.get_level_values(
+            "interval"
+        ).get_indexer_for([Interval(0.0, 1.0)])
+        tm.assert_numpy_array_equal(chosen_interval_indexer, np.array([1, 4, 7]))
 
 
 class TestSliceLocs:
