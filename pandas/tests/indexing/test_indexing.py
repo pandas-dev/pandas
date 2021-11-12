@@ -129,6 +129,21 @@ class TestFancy:
         with pytest.raises(err, match=msg):
             idxr[nd3] = 0
 
+    def test_getitem_ndarray_0d(self):
+        # GH#24924
+        key = np.array(0)
+
+        # dataframe __getitem__
+        df = DataFrame([[1, 2], [3, 4]])
+        result = df[key]
+        expected = Series([1, 3], name=0)
+        tm.assert_series_equal(result, expected)
+
+        # series __getitem__
+        ser = Series([1, 2])
+        result = ser[key]
+        assert result == 1
+
     def test_inf_upcast(self):
         # GH 16957
         # We should be able to use np.inf as a key
@@ -771,12 +786,12 @@ class TestMisc:
         del df
         assert wr() is None
 
-    def test_label_indexing_on_nan(self):
+    def test_label_indexing_on_nan(self, nulls_fixture):
         # GH 32431
-        df = Series([1, "{1,2}", 1, None])
+        df = Series([1, "{1,2}", 1, nulls_fixture])
         vc = df.value_counts(dropna=False)
-        result1 = vc.loc[np.nan]
-        result2 = vc[np.nan]
+        result1 = vc.loc[nulls_fixture]
+        result2 = vc[nulls_fixture]
 
         expected = 1
         assert result1 == expected

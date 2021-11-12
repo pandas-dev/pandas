@@ -83,6 +83,7 @@ from pandas.util._decorators import (
     doc,
     rewrite_axis_style_signature,
 )
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     validate_ascending,
     validate_axis_style_args,
@@ -643,7 +644,7 @@ class DataFrame(NDFrame, OpsMixin):
                     "removed in a future version.  Pass "
                     "{name: data[name] for name in data.dtype.names} instead.",
                     FutureWarning,
-                    stacklevel=2,
+                    stacklevel=find_stack_level(),
                 )
 
             # a masked array
@@ -1686,9 +1687,7 @@ class DataFrame(NDFrame, OpsMixin):
         self._consolidate_inplace()
         if dtype is not None:
             dtype = np.dtype(dtype)
-        result = self._mgr.as_array(
-            transpose=self._AXIS_REVERSED, dtype=dtype, copy=copy, na_value=na_value
-        )
+        result = self._mgr.as_array(dtype=dtype, copy=copy, na_value=na_value)
         if result.dtype is not dtype:
             result = np.array(result, dtype=dtype, copy=False)
 
@@ -1795,7 +1794,7 @@ class DataFrame(NDFrame, OpsMixin):
             warnings.warn(
                 "DataFrame columns are not unique, some columns will be omitted.",
                 UserWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
         # GH16122
         into_c = com.standardize_mapping(into)
@@ -1816,7 +1815,7 @@ class DataFrame(NDFrame, OpsMixin):
                 "will be used in a future version. Use one of the above "
                 "to silence this warning.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
 
             if orient.startswith("d"):
@@ -2661,7 +2660,7 @@ class DataFrame(NDFrame, OpsMixin):
                 "'showindex' is deprecated. Only 'index' will be used "
                 "in a future version. Use 'index' to silence this warning.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
 
         kwargs.setdefault("headers", "keys")
@@ -3220,7 +3219,7 @@ class DataFrame(NDFrame, OpsMixin):
             warnings.warn(
                 "null_counts is deprecated. Use show_counts instead",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
             show_counts = null_counts
         info = DataFrameInfo(
@@ -3593,7 +3592,7 @@ class DataFrame(NDFrame, OpsMixin):
             warnings.warn(
                 "Boolean Series key will be reindexed to match DataFrame index.",
                 UserWarning,
-                stacklevel=3,
+                stacklevel=find_stack_level(),
             )
         elif len(key) != len(self.index):
             raise ValueError(
@@ -3734,6 +3733,9 @@ class DataFrame(NDFrame, OpsMixin):
             self.iloc[indexer] = value
 
         else:
+            # Note: unlike self.iloc[:, indexer] = value, this will
+            #  never try to overwrite values inplace
+
             if isinstance(value, DataFrame):
                 check_key_length(self.columns, key, value)
                 for k1, k2 in zip(key, value.columns):
@@ -4636,7 +4638,7 @@ class DataFrame(NDFrame, OpsMixin):
             "You can use DataFrame.melt and DataFrame.loc "
             "as a substitute."
         )
-        warnings.warn(msg, FutureWarning, stacklevel=2)
+        warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
 
         n = len(row_labels)
         if n != len(col_labels):
@@ -7753,7 +7755,7 @@ NaN 12.3   33.0
                     "will be removed in a future version."
                 ),
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
         else:
             squeeze = False
@@ -9843,7 +9845,7 @@ NaN 12.3   33.0
                 "deprecated and will be removed in a future version. Use groupby "
                 "instead. df.count(level=1) should use df.groupby(level=1).count().",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
             return self._count_level(level, axis=axis, numeric_only=numeric_only)
 
@@ -9943,7 +9945,7 @@ NaN 12.3   33.0
                     "will include datetime64 and datetime64tz columns in a "
                     "future version.",
                     FutureWarning,
-                    stacklevel=5,
+                    stacklevel=find_stack_level(),
                 )
                 # Non-copy equivalent to
                 #  dt64_cols = self.dtypes.apply(is_datetime64_any_dtype)
@@ -10018,7 +10020,7 @@ NaN 12.3   33.0
                     "version this will raise TypeError.  Select only valid "
                     "columns before calling the reduction.",
                     FutureWarning,
-                    stacklevel=5,
+                    stacklevel=find_stack_level(),
                 )
 
             return out
@@ -10051,7 +10053,7 @@ NaN 12.3   33.0
                 "version this will raise TypeError.  Select only valid "
                 "columns before calling the reduction.",
                 FutureWarning,
-                stacklevel=5,
+                stacklevel=find_stack_level(),
             )
 
         if hasattr(result, "dtype"):
@@ -10715,7 +10717,6 @@ NaN 12.3   33.0
         1: 1,
         "columns": 1,
     }
-    _AXIS_REVERSED = True
     _AXIS_LEN = len(_AXIS_ORDERS)
     _info_axis_number = 1
     _info_axis_name = "columns"
@@ -10840,7 +10841,7 @@ NaN 12.3   33.0
                ['monkey', nan, None]], dtype=object)
         """
         self._consolidate_inplace()
-        return self._mgr.as_array(transpose=True)
+        return self._mgr.as_array()
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def ffill(
