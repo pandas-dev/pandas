@@ -2031,6 +2031,16 @@ def test_empty_groupby(columns, keys, values, method, op, request, using_array_m
     tm.assert_equal(result, expected)
 
 
+def test_empty_groupby_apply_nonunique_columns():
+    # GH#?
+    df = DataFrame(np.random.randn(0, 4))
+    df[3] = df[3].astype(np.int64)
+    df.columns = [0, 1, 2, 0]
+    gb = df.groupby(df[1])
+    res = gb.apply(lambda x: x)
+    assert (res.dtypes == df.dtypes).all()
+
+
 def test_tuple_as_grouping():
     # https://github.com/pandas-dev/pandas/issues/18314
     df = DataFrame(

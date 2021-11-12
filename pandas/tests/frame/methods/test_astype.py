@@ -261,6 +261,25 @@ class TestAstype:
         expected = concat([a1_str, b, a2_str], axis=1)
         tm.assert_frame_equal(result, expected)
 
+    def test_astype_duplicate_col_series_arg(self):
+        vals = np.random.randn(3, 4)
+        df = DataFrame(vals, columns=["A", "B", "C", "A"])
+        dtypes = df.dtypes
+        dtypes.iloc[0] = str
+        dtypes.iloc[2] = "Float64"
+
+        result = df.astype(dtypes)
+        expected = DataFrame(
+            {
+                0: vals[:, 0].astype(str),
+                1: vals[:, 1],
+                2: pd.array(vals[:, 2], dtype="Float64"),
+                3: vals[:, 3],
+            }
+        )
+        expected.columns = df.columns
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize(
         "dtype",
         [
