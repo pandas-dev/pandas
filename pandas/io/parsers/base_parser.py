@@ -235,7 +235,9 @@ class ParserBase:
             errors=kwds.get("encoding_errors", "strict"),
         )
 
-    def _validate_parse_dates_presence(self, columns: list[Scalar]) -> None:
+    def _validate_parse_dates_presence(
+        self, columns: list[Scalar] | list[tuple]
+    ) -> None:
         """
         Check if parse_dates are in columns.
 
@@ -816,7 +818,10 @@ class ParserBase:
     def _do_date_conversions(
         self,
         names: list[Scalar] | list[tuple],
-        data: dict[Scalar | tuple, ArrayLike] | dict[Scalar | tuple, np.ndarray],
+        data: dict[Scalar, ArrayLike]
+        | dict[tuple, ArrayLike]
+        | dict[Scalar, np.ndarray]
+        | dict[tuple, np.ndarray],
     ) -> tuple[
         list[Scalar] | list[tuple],
         dict[Scalar, ArrayLike]
