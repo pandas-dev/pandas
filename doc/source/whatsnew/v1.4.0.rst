@@ -15,6 +15,31 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
+Improved warning messages
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. _whatsnew_140.enhancements.warning_lineno:
+
+Previously, warning messages may have pointed to lines with the pandas library. Running the script ``setting_with_copy_warning.py``
+
+.. code-block:: python
+
+    import pandas as pd
+
+    df = pd.DataFrame({'a': [1, 2, 3]})
+    df[:2].loc[:, 'a'] = 5
+
+with pandas 1.3 resulted in::
+
+    .../site-packages/pandas/core/indexing.py:1951: SettingWithCopyWarning:
+    A value is trying to be set on a copy of a slice from a DataFrame.
+
+This made it difficult to determine where the warning was being generated from. Now pandas will inspect the call stack, reporting the first line outside of the pandas library that gave rise to the warning. The output of the above script is now::
+
+    setting_with_copy_warning.py:4: SettingWithCopyWarning:
+    A value is trying to be set on a copy of a slice from a DataFrame.
+
+
 .. _whatsnew_140.enhancements.numeric_index:
 
 More flexible numeric dtypes for indexes
