@@ -524,6 +524,33 @@ class TestDataFrameAnalytics:
         expected = Series([2.7, 681.6], index=["A", "C"])
         tm.assert_series_equal(result, expected)
 
+    def test_mean_string(self):
+        # https://github.com/pandas-dev/pandas/issues/44008
+        # https://github.com/pandas-dev/pandas/issues/34671
+        # https://github.com/pandas-dev/pandas/issues/22642
+        # https://github.com/pandas-dev/pandas/issues/26927
+        # https://github.com/pandas-dev/pandas/issues/13916
+        # https://github.com/pandas-dev/pandas/issues/36703
+
+        df = DataFrame(
+            {
+                "A": ["1", "2", "3"],
+                "B": ["a", "b", "c"],
+                "C": [1, 2, 3],
+                "D": ["0", "1", "J"],
+            }
+        )
+        with tm.assert_produces_warning(FutureWarning, match="Dropping of nuisance"):
+            result = df.mean()
+        expected = Series([2.0], index=["C"])
+        tm.assert_series_equal(result, expected)
+        msg = "cannot find the mean of type 'str'"
+        with pytest.raises(TypeError, match=msg):
+            df.mean(numeric_only=False)
+        result = df.sum()
+        expected = Series(["123", "abc", 6, "01J"], index=["A", "B", "C", "D"])
+        tm.assert_series_equal(result, expected)
+
     def test_var_std(self, datetime_frame):
         result = datetime_frame.std(ddof=4)
         expected = datetime_frame.apply(lambda x: x.std(ddof=4))
