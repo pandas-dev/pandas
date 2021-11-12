@@ -78,24 +78,18 @@ class CParserWrapper(ParserBase):
         if self._reader.header is None:
             self.names = None
         else:
-            if len(self._reader.header) > 1:
-                # we have a multi index in the columns
-                # error: Cannot determine type of 'names'
-                # error: Cannot determine type of 'index_names'
-                # error: Cannot determine type of 'col_names'
-                (
-                    self.names,  # type: ignore[has-type]
-                    self.index_names,
-                    self.col_names,
-                    passed_names,
-                ) = self._extract_multi_indexer_columns(
-                    self._reader.header,
-                    self.index_names,  # type: ignore[has-type]
-                    passed_names,
-                )
-            else:
-                # error: Cannot determine type of 'names'
-                self.names = list(self._reader.header[0])  # type: ignore[has-type]
+            # error: Cannot determine type of 'names'
+            # error: Cannot determine type of 'index_names'
+            (
+                self.names,  # type: ignore[has-type]
+                self.index_names,
+                self.col_names,
+                passed_names,
+            ) = self._extract_multi_indexer_columns(
+                self._reader.header,
+                self.index_names,  # type: ignore[has-type]
+                passed_names,
+            )
 
         # error: Cannot determine type of 'names'
         if self.names is None:  # type: ignore[has-type]

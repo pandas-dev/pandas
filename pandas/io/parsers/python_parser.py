@@ -123,24 +123,17 @@ class PythonParser(ParserBase):
 
         # Now self.columns has the set of columns that we will process.
         # The original set is stored in self.original_columns.
+        # error: Cannot determine type of 'index_names'
         self.columns: list[Scalar | tuple]
-        if len(columns) > 1:
-            # we are processing a multi index column
-            # error: Cannot determine type of 'index_names'
-            # error: Cannot determine type of 'col_names'
-            (
-                self.columns,
-                self.index_names,
-                self.col_names,
-                _,
-            ) = self._extract_multi_indexer_columns(
-                columns,
-                self.index_names,  # type: ignore[has-type]
-            )
-            # Update list of original names to include all indices.
-            self.num_original_columns = len(self.columns)
-        else:
-            self.columns = columns[0]
+        (
+            self.columns,
+            self.index_names,
+            self.col_names,
+            _,
+        ) = self._extract_multi_indexer_columns(
+            columns,
+            self.index_names,  # type: ignore[has-type]
+        )
 
         # get popped off for index
         self.orig_names: list[Scalar | tuple] = list(self.columns)
