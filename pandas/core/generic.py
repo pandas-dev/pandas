@@ -5826,7 +5826,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         "key in a dtype mappings argument."
                     )
 
-            # cast to Series so we can use .iat below, which will be
+            # GH#44417 cast to Series so we can use .iat below, which will be
             #  robust in case we
             from pandas import Series
 

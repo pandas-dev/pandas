@@ -262,6 +262,7 @@ class TestAstype:
         tm.assert_frame_equal(result, expected)
 
     def test_astype_duplicate_col_series_arg(self):
+        # GH#44417
         vals = np.random.randn(3, 4)
         df = DataFrame(vals, columns=["A", "B", "C", "A"])
         dtypes = df.dtypes

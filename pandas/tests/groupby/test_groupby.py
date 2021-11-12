@@ -2032,7 +2032,7 @@ def test_empty_groupby(columns, keys, values, method, op, request, using_array_m
 
 
 def test_empty_groupby_apply_nonunique_columns():
-    # GH#?
+    # GH#44417
     df = DataFrame(np.random.randn(0, 4))
     df[3] = df[3].astype(np.int64)
     df.columns = [0, 1, 2, 0]
