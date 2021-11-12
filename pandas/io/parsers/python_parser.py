@@ -27,11 +27,6 @@ from pandas.errors import (
     EmptyDataError,
     ParserError,
 )
-
-# BOM character (byte order mark)
-# This exists at the beginning of a file to indicate endianness
-# of a file (stream). Unfortunately, this marker screws up parsing,
-# so we need to remove it if we see it.
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_integer
@@ -42,6 +37,10 @@ from pandas.io.parsers.base_parser import (
     parser_defaults,
 )
 
+# BOM character (byte order mark)
+# This exists at the beginning of a file to indicate endianness
+# of a file (stream). Unfortunately, this marker screws up parsing,
+# so we need to remove it if we see it.
 _BOM = "\ufeff"
 
 
