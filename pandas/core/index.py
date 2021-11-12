@@ -1,5 +1,7 @@
 import warnings
 
+from pandas.util._exceptions import find_stack_level
+
 from pandas.core.indexes.api import (  # noqa:F401
     CategoricalIndex,
     DatetimeIndex,
@@ -26,5 +28,5 @@ warnings.warn(
     "pandas.core.index is deprecated and will be removed in a future version. "
     "The public classes are available in the top-level namespace.",
     FutureWarning,
-    stacklevel=2,
+    stacklevel=find_stack_level(),
 )

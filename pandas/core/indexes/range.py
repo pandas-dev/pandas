@@ -29,6 +29,7 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -256,7 +257,7 @@ class RangeIndex(NumericIndex):
         warnings.warn(
             self._deprecation_message.format("_start", "start"),
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self.start
 
@@ -279,7 +280,7 @@ class RangeIndex(NumericIndex):
         warnings.warn(
             self._deprecation_message.format("_stop", "stop"),
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self.stop
 
@@ -303,7 +304,7 @@ class RangeIndex(NumericIndex):
         warnings.warn(
             self._deprecation_message.format("_step", "step"),
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self.step
 
@@ -456,7 +457,7 @@ class RangeIndex(NumericIndex):
                 "parameter dtype is deprecated and will be removed in a future "
                 "version. Use the astype method instead.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
             new_index = new_index.astype(dtype)
         return new_index

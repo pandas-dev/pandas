@@ -9,6 +9,7 @@ from __future__ import annotations
 import warnings
 
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
 
 
 class DirNamesMixin:
@@ -267,7 +268,7 @@ def _register_accessor(name, cls):
                 f"{repr(name)} for type {repr(cls)} is overriding a preexisting "
                 f"attribute with the same name.",
                 UserWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
         setattr(cls, name, CachedAccessor(name, accessor))
         cls._accessors.add(name)

@@ -39,6 +39,7 @@ from pandas._typing import (
     ArrayLike,
     Timezone,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -1109,7 +1110,7 @@ def to_time(arg, format=None, infer_time_format=False, errors="raise"):
         "`to_time` has been moved, should be imported from pandas.core.tools.times. "
         "This alias will be removed in a future version.",
         FutureWarning,
-        stacklevel=2,
+        stacklevel=find_stack_level(),
     )
     from pandas.core.tools.times import to_time
 
