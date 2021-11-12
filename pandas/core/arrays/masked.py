@@ -629,7 +629,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return Series(counts, index=index)
 
     def _quantile(
-        values: BaseMaskedArrayT, qs: npt.NDArray[np.float64], interpolation: str
+        self: BaseMaskedArrayT, qs: npt.NDArray[np.float64], interpolation: str
     ) -> BaseMaskedArrayT:
         """
         Dispatch to quantile_with_mask, needed because we do not have
@@ -639,13 +639,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         -----
         We assume that all impacted cases are 1D-only.
         """
-        mask = np.atleast_2d(np.asarray(values.isna()))
-        npvalues = np.atleast_2d(np.asarray(values))
+        mask = np.atleast_2d(np.asarray(self.isna()))
+        npvalues = np.atleast_2d(np.asarray(self))
 
         res = quantile_with_mask(
             npvalues,
             mask=mask,
-            fill_value=values.dtype.na_value,
+            fill_value=self.dtype.na_value,
             qs=qs,
             interpolation=interpolation,
         )
@@ -653,7 +653,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         assert res.shape[0] == 1
         res = res[0]
         try:
-            out = type(values)._from_sequence(res, dtype=values.dtype)
+            out = type(self)._from_sequence(res, dtype=self.dtype)
         except TypeError:
             # GH#42626: not able to safely cast Int64
             # for floating point output
