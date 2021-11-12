@@ -25,6 +25,8 @@ from pandas._config.config import (
     is_text,
 )
 
+from pandas.util._exceptions import find_stack_level
+
 # compute
 
 use_bottleneck_doc = """
@@ -383,7 +385,7 @@ with cf.config_prefix("display"):
                 "will not be supported in future version. Instead, use None "
                 "to not limit the column width.",
                 FutureWarning,
-                stacklevel=4,
+                stacklevel=find_stack_level(),
             )
 
     cf.register_option(

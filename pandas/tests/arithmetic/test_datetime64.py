@@ -41,6 +41,7 @@ from pandas.core.arrays import (
 )
 from pandas.core.ops import roperator
 from pandas.tests.arithmetic.common import (
+    assert_cannot_add,
     assert_invalid_addsub_type,
     assert_invalid_comparison,
     get_upcast_box,
@@ -99,6 +100,7 @@ class TestDatetime64ArrayLikeComparisons:
     @pytest.mark.parametrize(
         "other",
         [
+            # GH#4968 invalid date/int comparisons
             list(range(10)),
             np.arange(10),
             np.arange(10).astype(np.float32),
@@ -111,13 +113,14 @@ class TestDatetime64ArrayLikeComparisons:
             pd.period_range("1971-01-01", freq="D", periods=10).astype(object),
         ],
     )
-    def test_dt64arr_cmp_arraylike_invalid(self, other, tz_naive_fixture):
-        # We don't parametrize this over box_with_array because listlike
-        #  other plays poorly with assert_invalid_comparison reversed checks
+    def test_dt64arr_cmp_arraylike_invalid(
+        self, other, tz_naive_fixture, box_with_array
+    ):
         tz = tz_naive_fixture
 
         dta = date_range("1970-01-01", freq="ns", periods=10, tz=tz)._data
-        assert_invalid_comparison(dta, other, tm.to_array)
+        obj = tm.box_expected(dta, box_with_array)
+        assert_invalid_comparison(obj, other, box_with_array)
 
     def test_dt64arr_cmp_mixed_invalid(self, tz_naive_fixture):
         tz = tz_naive_fixture
@@ -215,18 +218,6 @@ class TestDatetime64SeriesComparison:
 
         tm.assert_series_equal(result, expected)
 
-    def test_comparison_invalid(self, tz_naive_fixture, box_with_array):
-        # GH#4968
-        # invalid date/int comparisons
-        tz = tz_naive_fixture
-        ser = Series(range(5))
-        ser2 = Series(date_range("20010101", periods=5, tz=tz))
-
-        ser = tm.box_expected(ser, box_with_array)
-        ser2 = tm.box_expected(ser2, box_with_array)
-
-        assert_invalid_comparison(ser, ser2, box_with_array)
-
     @pytest.mark.parametrize(
         "data",
         [
@@ -315,8 +306,8 @@ class TestDatetime64SeriesComparison:
         tm.assert_series_equal(result, expected)
 
         # Compare to NaT with series containing NaT
-        expected = left_f(s_nat, Timestamp("nat"))
-        result = right_f(Timestamp("nat"), s_nat)
+        expected = left_f(s_nat, NaT)
+        result = right_f(NaT, s_nat)
         tm.assert_series_equal(result, expected)
 
     def test_dt64arr_timestamp_equality(self, box_with_array):
@@ -832,17 +823,6 @@ class TestDatetime64Arithmetic:
         result = rng + two_hours
         tm.assert_equal(result, expected)
 
-    def test_dt64arr_iadd_timedeltalike_scalar(
-        self, tz_naive_fixture, two_hours, box_with_array
-    ):
-        tz = tz_naive_fixture
-
-        rng = date_range("2000-01-01", "2000-02-01", tz=tz)
-        expected = date_range("2000-01-01 02:00", "2000-02-01 02:00", tz=tz)
-
-        rng = tm.box_expected(rng, box_with_array)
-        expected = tm.box_expected(expected, box_with_array)
-
         rng += two_hours
         tm.assert_equal(rng, expected)
 
@@ -859,17 +839,6 @@ class TestDatetime64Arithmetic:
 
         result = rng - two_hours
         tm.assert_equal(result, expected)
-
-    def test_dt64arr_isub_timedeltalike_scalar(
-        self, tz_naive_fixture, two_hours, box_with_array
-    ):
-        tz = tz_naive_fixture
-
-        rng = date_range("2000-01-01", "2000-02-01", tz=tz)
-        expected = date_range("1999-12-31 22:00", "2000-01-31 22:00", tz=tz)
-
-        rng = tm.box_expected(rng, box_with_array)
-        expected = tm.box_expected(expected, box_with_array)
 
         rng -= two_hours
         tm.assert_equal(rng, expected)
@@ -1071,21 +1040,14 @@ class TestDatetime64Arithmetic:
         dt64vals = dti.values
 
         dtarr = tm.box_expected(dti, box_with_array)
-        msg = "cannot add"
-        with pytest.raises(TypeError, match=msg):
-            dtarr + dt64vals
-        with pytest.raises(TypeError, match=msg):
-            dt64vals + dtarr
+        assert_cannot_add(dtarr, dt64vals)
 
     def test_dt64arr_add_timestamp_raises(self, box_with_array):
         # GH#22163 ensure DataFrame doesn't cast Timestamp to i8
         idx = DatetimeIndex(["2011-01-01", "2011-01-02"])
+        ts = idx[0]
         idx = tm.box_expected(idx, box_with_array)
-        msg = "cannot add"
-        with pytest.raises(TypeError, match=msg):
-            idx + Timestamp("2011-01-01")
-        with pytest.raises(TypeError, match=msg):
-            Timestamp("2011-01-01") + idx
+        assert_cannot_add(idx, ts)
 
     # -------------------------------------------------------------
     # Other Invalid Addition/Subtraction
@@ -1267,13 +1229,12 @@ class TestDatetime64DateOffsetArithmetic:
         dates = tm.box_expected(dates, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
 
-        # TODO: parametrize over the scalar being added?  radd?  sub?
-        offset = dates + pd.offsets.Hour(5)
-        tm.assert_equal(offset, expected)
-        offset = dates + np.timedelta64(5, "h")
-        tm.assert_equal(offset, expected)
-        offset = dates + timedelta(hours=5)
-        tm.assert_equal(offset, expected)
+        # TODO: sub?
+        for scalar in [pd.offsets.Hour(5), np.timedelta64(5, "h"), timedelta(hours=5)]:
+            offset = dates + scalar
+            tm.assert_equal(offset, expected)
+            offset = scalar + dates
+            tm.assert_equal(offset, expected)
 
     # -------------------------------------------------------------
     # RelativeDelta DateOffsets
@@ -1941,8 +1902,7 @@ class TestTimestampSeriesArithmetic:
             one / dt64_series
 
     # TODO: parametrize over box
-    @pytest.mark.parametrize("op", ["__add__", "__radd__", "__sub__", "__rsub__"])
-    def test_dt64_series_add_intlike(self, tz_naive_fixture, op):
+    def test_dt64_series_add_intlike(self, tz_naive_fixture):
         # GH#19123
         tz = tz_naive_fixture
         dti = DatetimeIndex(["2016-01-02", "2016-02-03", "NaT"], tz=tz)
@@ -1950,21 +1910,16 @@ class TestTimestampSeriesArithmetic:
 
         other = Series([20, 30, 40], dtype="uint8")
 
-        method = getattr(ser, op)
         msg = "|".join(
             [
                 "Addition/subtraction of integers and integer-arrays",
                 "cannot subtract .* from ndarray",
             ]
         )
-        with pytest.raises(TypeError, match=msg):
-            method(1)
-        with pytest.raises(TypeError, match=msg):
-            method(other)
-        with pytest.raises(TypeError, match=msg):
-            method(np.array(other))
-        with pytest.raises(TypeError, match=msg):
-            method(pd.Index(other))
+        assert_invalid_addsub_type(ser, 1, msg)
+        assert_invalid_addsub_type(ser, other, msg)
+        assert_invalid_addsub_type(ser, np.array(other), msg)
+        assert_invalid_addsub_type(ser, pd.Index(other), msg)
 
     # -------------------------------------------------------------
     # Timezone-Centric Tests
@@ -2062,7 +2017,9 @@ class TestDatetimeIndexArithmetic:
         dti = date_range("2016-01-01", periods=2, freq=freq)
         other = int_holder([4, -1])
 
-        msg = "Addition/subtraction of integers|cannot subtract DatetimeArray from"
+        msg = "|".join(
+            ["Addition/subtraction of integers", "cannot subtract DatetimeArray from"]
+        )
         assert_invalid_addsub_type(dti, other, msg)
 
     @pytest.mark.parametrize("freq", ["W", "M", "MS", "Q"])
@@ -2072,7 +2029,9 @@ class TestDatetimeIndexArithmetic:
         dti = date_range("2016-01-01", periods=2, freq=freq)
         other = int_holder([4, -1])
 
-        msg = "Addition/subtraction of integers|cannot subtract DatetimeArray from"
+        msg = "|".join(
+            ["Addition/subtraction of integers", "cannot subtract DatetimeArray from"]
+        )
         assert_invalid_addsub_type(dti, other, msg)
 
     @pytest.mark.parametrize("int_holder", [np.array, pd.Index])
@@ -2222,10 +2181,7 @@ class TestDatetimeIndexArithmetic:
         dtarr = tm.box_expected(dti, box_with_array)
         msg = "cannot add DatetimeArray and"
 
-        with pytest.raises(TypeError, match=msg):
-            dtarr + addend
-        with pytest.raises(TypeError, match=msg):
-            addend + dtarr
+        assert_cannot_add(dtarr, addend, msg)
 
     # -------------------------------------------------------------
 

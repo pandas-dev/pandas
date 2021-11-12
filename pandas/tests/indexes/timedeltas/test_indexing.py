@@ -340,3 +340,17 @@ class TestMaybeCastSliceBound:
             indexer_sl(obj)[:"foo"]
         with pytest.raises(TypeError, match=msg):
             indexer_sl(obj)[tdi[0] : "foo"]
+
+
+class TestContains:
+    def test_contains_nonunique(self):
+        # GH#9512
+        for vals in (
+            [0, 1, 0],
+            [0, 0, -1],
+            [0, -1, -1],
+            ["00:01:00", "00:01:00", "00:02:00"],
+            ["00:01:00", "00:01:00", "00:00:01"],
+        ):
+            idx = TimedeltaIndex(vals)
+            assert idx[0] in idx
