@@ -13,6 +13,7 @@ from typing import (
     Sequence,
     cast,
     final,
+    overload,
 )
 import warnings
 
@@ -27,6 +28,7 @@ from pandas._typing import (
     ArrayLike,
     DtypeArg,
     FilePathOrBuffer,
+    Scalar,
 )
 from pandas.errors import (
     ParserError,
@@ -406,7 +408,9 @@ class ParserBase:
         return names
 
     @final
-    def _maybe_make_multi_index_columns(self, columns, col_names=None):
+    def _maybe_make_multi_index_columns(
+        self, columns: list[Scalar | tuple], col_names=None
+    ):
         # possibly create a column mi here
         if _is_potential_multi_index(columns):
             columns = MultiIndex.from_tuples(columns, names=col_names)
@@ -833,7 +837,23 @@ class ParserBase:
                 stacklevel=6,
             )
 
-    def _evaluate_usecols(self, usecols, names):
+    @overload
+    def _evaluate_usecols(self, usecols: Callable, names: list[Scalar]) -> set[int]:
+        ...
+
+    @overload
+    def _evaluate_usecols(
+        self,
+        usecols: set[str | int],
+        names: list[Scalar],
+    ) -> set[str | int]:
+        ...
+
+    def _evaluate_usecols(
+        self,
+        usecols: Callable | set[str | int],
+        names: list[Scalar],
+    ) -> set[str | int]:
         """
         Check whether or not the 'usecols' parameter
         is a callable.  If so, enumerates the 'names'
@@ -1189,7 +1209,8 @@ def _get_na_values(col, na_values, na_fvalues, keep_default_na):
 
 
 def _is_potential_multi_index(
-    columns, index_col: bool | Sequence[int] | None = None
+    columns: list[Scalar] | list[tuple] | MultiIndex,
+    index_col: bool | Sequence[int] | None = None,
 ) -> bool:
     """
     Check whether or not the `columns` parameter

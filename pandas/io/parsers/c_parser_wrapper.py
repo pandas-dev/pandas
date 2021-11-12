@@ -7,7 +7,10 @@ import numpy as np
 import pandas._libs.parsers as parsers
 from pandas._typing import (
     ArrayLike,
+    DtypeArg,
+    DtypeObj,
     FilePathOrBuffer,
+    Scalar,
 )
 from pandas.errors import DtypeWarning
 
@@ -18,6 +21,10 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.concat import union_categoricals
 from pandas.core.dtypes.dtypes import ExtensionDtype
 
+from pandas import (
+    Index,
+    MultiIndex,
+)
 from pandas.core.indexes.api import ensure_index_from_sequences
 
 from pandas.io.parsers.base_parser import (
@@ -30,7 +37,7 @@ class CParserWrapper(ParserBase):
     low_memory: bool
     _reader: parsers.TextReader
 
-    def __init__(self, src: FilePathOrBuffer, **kwds):
+    def __init__(self, src: FilePathOrBuffer, **kwds) -> None:
         self.kwds = kwds
         kwds = kwds.copy()
         ParserBase.__init__(self, kwds)
@@ -189,7 +196,7 @@ class CParserWrapper(ParserBase):
         except ValueError:
             pass
 
-    def _set_noconvert_columns(self):
+    def _set_noconvert_columns(self) -> None:
         """
         Set the columns that should not undergo dtype conversions.
 
@@ -210,7 +217,14 @@ class CParserWrapper(ParserBase):
         for col in noconvert_columns:
             self._reader.set_noconvert(col)
 
-    def read(self, nrows=None):
+    def read(
+        self,
+        nrows: int | None = None,
+    ) -> tuple[
+        Index | MultiIndex | None,
+        list[Scalar] | MultiIndex,
+        dict[Scalar | tuple, ArrayLike],
+    ]:
         try:
             if self.low_memory:
                 chunks = self._reader.read_low_memory(nrows)
@@ -306,7 +320,7 @@ class CParserWrapper(ParserBase):
 
         return index, names, data
 
-    def _filter_usecols(self, names):
+    def _filter_usecols(self, names: list[Scalar]) -> list[Scalar]:
         # hackish
         usecols = self._evaluate_usecols(self.usecols, names)
         if usecols is not None and len(names) != len(usecols):
@@ -391,7 +405,9 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
     return result
 
 
-def ensure_dtype_objs(dtype):
+def ensure_dtype_objs(
+    dtype: DtypeArg | dict[Scalar, DtypeArg] | None
+) -> DtypeObj | dict[Scalar, DtypeObj] | None:
     """
     Ensure we have either None, a dtype object, or a dictionary mapping to
     dtype objects.
