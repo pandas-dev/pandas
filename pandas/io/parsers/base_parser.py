@@ -314,14 +314,14 @@ class ParserBase:
 
     @final
     def _extract_multi_indexer_columns(
-        self, header, index_names, col_names, passed_names: bool = False
+        self, header, index_names, passed_names: bool = False
     ):
         """
         extract and return the names, index_names, col_names
         header is a list-of-lists returned from the parsers
         """
         if len(header) < 2:
-            return header[0], index_names, col_names, passed_names
+            return header[0], index_names, None, passed_names
 
         # the names are the tuples of the header that are not the index cols
         # 0 is the name of the index, assuming index_col is a list of column
