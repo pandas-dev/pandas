@@ -382,7 +382,7 @@ class TestGetIndexer:
         )
 
         result, _ = index.get_indexer_non_unique([Interval(1.0, 2.0)])
-        expected = np.array([1, 3])
+        expected = np.array([1, 3], dtype=np.int64)
         tm.assert_numpy_array_equal(result, expected)
 
     def test_get_indexer_multiindex_with_intervals(self):
@@ -394,10 +394,11 @@ class TestGetIndexer:
 
         multi_index = MultiIndex.from_product([foo_index, interval_index])
 
-        chosen_interval_indexer = multi_index.get_level_values(
-            "interval"
-        ).get_indexer_for([Interval(0.0, 1.0)])
-        tm.assert_numpy_array_equal(chosen_interval_indexer, np.array([1, 4, 7]))
+        result = multi_index.get_level_values("interval").get_indexer_for(
+            [Interval(0.0, 1.0)]
+        )
+        expected = np.array([1, 4, 7], dtype=np.int64)
+        tm.assert_numpy_array_equal(result, expected)
 
 
 class TestSliceLocs:
