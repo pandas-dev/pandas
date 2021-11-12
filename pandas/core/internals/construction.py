@@ -23,6 +23,7 @@ from pandas._typing import (
     DtypeObj,
     Manager,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
@@ -830,7 +831,7 @@ def to_arrays(
             "To retain the old behavior, pass as a dictionary "
             "DataFrame({col: categorical, ..})",
             FutureWarning,
-            stacklevel=4,
+            stacklevel=find_stack_level(),
         )
         if columns is None:
             columns = default_index(len(data))
