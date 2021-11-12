@@ -127,7 +127,7 @@ class PythonParser(ParserBase):
         # Now self.columns has the set of columns that we will process.
         # The original set is stored in self.original_columns.
         # error: Cannot determine type of 'index_names'
-        self.columns: list[Scalar | tuple]
+        self.columns: list[Scalar] | list[tuple]
         (
             self.columns,
             self.index_names,
@@ -139,7 +139,7 @@ class PythonParser(ParserBase):
         )
 
         # get popped off for index
-        self.orig_names: list[Scalar | tuple] = list(self.columns)
+        self.orig_names: list[Scalar] | list[tuple] = list(self.columns)
 
         # needs to be cleaned/refactored
         # multiple date column thing turning into a real spaghetti factory
@@ -291,7 +291,9 @@ class PythonParser(ParserBase):
     def _exclude_implicit_index(
         self,
         alldata: list[np.ndarray],
-    ) -> tuple[dict[Scalar | tuple, np.ndarray], list[Scalar | tuple]]:
+    ) -> tuple[
+        dict[Scalar, np.ndarray] | dict[tuple, np.ndarray], list[Scalar] | list[tuple]
+    ]:
         names = self._maybe_dedup_names(self.orig_names)
 
         offset = 0
@@ -873,7 +875,7 @@ class PythonParser(ParserBase):
 
     _implicit_index = False
 
-    def _get_index_name(self, columns: list[Scalar | tuple]):
+    def _get_index_name(self, columns: list[Scalar] | list[tuple]):
         """
         Try several cases to get lines:
 

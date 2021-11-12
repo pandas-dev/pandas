@@ -384,7 +384,9 @@ class ParserBase:
         return names, index_names, col_names, passed_names
 
     @final
-    def _maybe_dedup_names(self, names: list[Scalar | tuple]) -> list[Scalar | tuple]:
+    def _maybe_dedup_names(
+        self, names: list[Scalar] | list[tuple]
+    ) -> list[Scalar] | list[tuple]:
         # see gh-7160 and gh-9424: this helps to provide
         # immediate alleviation of the duplicate names
         # issue and appears to be satisfactory to users,
@@ -618,7 +620,7 @@ class ParserBase:
 
     @final
     def _set_noconvert_dtype_columns(
-        self, col_indices: list[int], names: list[Scalar | tuple]
+        self, col_indices: list[int], names: list[Scalar] | list[tuple]
     ) -> set[int]:
         """
         Set the columns that should not undergo dtype conversions.
@@ -813,23 +815,32 @@ class ParserBase:
     @overload
     def _do_date_conversions(
         self,
-        names: list[Scalar | tuple],
+        names: list[Scalar] | list[tuple],
         data: dict[Scalar | tuple, ArrayLike] | dict[Scalar | tuple, np.ndarray],
     ) -> tuple[
-        list[Scalar | tuple],
-        dict[Scalar | tuple, ArrayLike] | dict[Scalar | tuple, np.ndarray],
+        list[Scalar] | list[tuple],
+        dict[Scalar, ArrayLike]
+        | dict[tuple, ArrayLike]
+        | dict[Scalar, np.ndarray]
+        | dict[tuple, np.ndarray],
     ]:
         ...
 
     def _do_date_conversions(
         self,
-        names: list[Scalar | tuple] | Index,
-        data: dict[Scalar | tuple, ArrayLike]
-        | dict[Scalar | tuple, np.ndarray]
+        names: list[Scalar] | list[tuple] | Index,
+        data: dict[Scalar, ArrayLike]
+        | dict[tuple, ArrayLike]
+        | dict[Scalar, np.ndarray]
+        | dict[tuple, np.ndarray]
         | DataFrame,
     ) -> tuple[
-        list[Scalar | tuple] | Index,
-        dict[Scalar | tuple, ArrayLike] | dict[Scalar | tuple, np.ndarray] | DataFrame,
+        list[Scalar] | list[tuple] | Index,
+        dict[Scalar, ArrayLike]
+        | dict[tuple, ArrayLike]
+        | dict[Scalar, np.ndarray]
+        | dict[tuple, np.ndarray]
+        | DataFrame,
     ]:
         # returns data, columns
 
@@ -848,7 +859,7 @@ class ParserBase:
 
     def _check_data_length(
         self,
-        columns: list[Scalar | tuple],
+        columns: list[Scalar] | list[tuple],
         data: list[ArrayLike] | list[np.ndarray],
     ) -> None:
         """Checks if length of data is equal to length of column names.
