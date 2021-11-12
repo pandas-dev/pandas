@@ -120,7 +120,7 @@ def test_engine_kwargs_append(ext):
 
 
 @pytest.mark.parametrize("data_only, expected", [(True, 0), (False, "=1+1")])
-def test_engine_kwargs_append_keep_links(ext, data_only, expected):
+def test_engine_kwargs_append_data_only(ext, data_only, expected):
     # GH 43445
     # tests whether the keep_links engine_kwarg actually works well for
     # openpyxl's load_workbook
