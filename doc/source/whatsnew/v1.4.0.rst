@@ -515,7 +515,7 @@ Strings
 
 Interval
 ^^^^^^^^
--
+- Bug in :meth:`IntervalIndex.get_indexer_non_unique` returning boolean mask instead of array of integers for a non unique and non monotonic index (:issue:`44084`)
 -
 
 Indexing
