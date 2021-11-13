@@ -13,7 +13,6 @@ import pytest
 
 from pandas._config import get_option
 
-from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
     pa_version_under1p0,
     pa_version_under2p0,
@@ -735,11 +734,6 @@ class TestParquetPyArrow(Base):
 
         check_round_trip(df, pa)
 
-    @pytest.mark.xfail(
-        is_platform_windows(),
-        reason="localhost connection rejected",
-        strict=False,
-    )
     def test_s3_roundtrip_explicit_fs(self, df_compat, s3_resource, pa, s3so):
         s3fs = pytest.importorskip("s3fs")
         s3 = s3fs.S3FileSystem(**s3so)

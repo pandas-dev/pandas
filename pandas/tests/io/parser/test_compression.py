@@ -89,7 +89,7 @@ def test_zip_error_invalid_zip(parser_and_data):
 
 @skip_pyarrow
 @pytest.mark.parametrize("filename", [None, "test.{ext}"])
-def test_compression(parser_and_data, compression_only, buffer, filename):
+def test_compression(parser_and_data, compression_only, buffer, filename, request):
     parser, data, expected = parser_and_data
     compress_type = compression_only
 
@@ -104,7 +104,10 @@ def test_compression(parser_and_data, compression_only, buffer, filename):
         compression = "infer" if filename else compress_type
 
         if ext == "bz2":
-            pytest.xfail("pyarrow wheels don't have bz2 codec support")
+            mark = pytest.mark.xfail(
+                reason="pyarrow wheels don't have bz2 codec support"
+            )
+            request.node.add_marker(mark)
         if buffer:
             with open(path, "rb") as f:
                 result = parser.read_csv(f, compression=compression)

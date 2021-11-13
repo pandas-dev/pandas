@@ -1076,13 +1076,7 @@ class TestDataFrameSetitemCopyViewSemantics:
         [
             "a",
             ["a"],
-            pytest.param(
-                [True, False],
-                marks=pytest.mark.xfail(
-                    reason="Boolean indexer incorrectly setting inplace",
-                    strict=False,  # passing on some builds, no obvious pattern
-                ),
-            ),
+            [True, False],
         ],
     )
     @pytest.mark.parametrize(

@@ -14,7 +14,6 @@ from hypothesis import (
     given,
     strategies as st,
 )
-from hypothesis.errors import Flaky
 from hypothesis.extra.dateutil import timezones as dateutil_timezones
 from hypothesis.extra.pytz import timezones as pytz_timezones
 import pytest
@@ -111,7 +110,6 @@ def test_on_offset_implementations(dt, offset):
     assert offset.is_on_offset(dt) == (compare == dt)
 
 
-@pytest.mark.xfail(strict=False, raises=Flaky, reason="unreliable test timings")
 @given(gen_yqm_offset)
 def test_shift_across_dst(offset):
     # GH#18319 check that 1) timezone is correctly normalized and
