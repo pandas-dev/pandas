@@ -1445,3 +1445,17 @@ def is_extension_array_dtype_and_needs_i8_conversion(left_dtype, right_dtype) ->
     Related to issue #37609
     """
     return is_extension_array_dtype(left_dtype) and needs_i8_conversion(right_dtype)
+
+
+def assert_indexing_slices_equivalent(ser: Series, l_slc: slice, i_slc: slice):
+    """
+    Check that ser.iloc[i_slc] matches ser.loc[l_slc] and, if applicable,
+    ser[l_slc].
+    """
+    expected = ser.iloc[i_slc]
+
+    assert_series_equal(ser.loc[l_slc], expected)
+
+    if not ser.index.is_integer():
+        # For integer indices, .loc and plain getitem are position-based.
+        assert_series_equal(ser[l_slc], expected)
