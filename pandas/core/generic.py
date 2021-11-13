@@ -18,6 +18,7 @@ from typing import (
     Literal,
     Mapping,
     Sequence,
+    Type,
     cast,
     final,
     overload,
@@ -6227,8 +6228,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 for col_name, col in self.items()
             ]
             if len(results) > 0:
+                result = concat(results, axis=1, copy=False)
+                cons = cast(Type["DataFrame"], self._constructor)
+                result = cons(result)
+                result = result.__finalize__(self, method="convert_dtypes")
                 # https://github.com/python/mypy/issues/8354
-                return cast(NDFrameT, concat(results, axis=1, copy=False))
+                return cast(NDFrameT, result)
             else:
                 return self.copy()
 
