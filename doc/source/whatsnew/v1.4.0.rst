@@ -244,6 +244,38 @@ Now the float-dtype is respected. Since the common dtype for these DataFrames is
 
     res
 
+.. _whatsnew_140.notable_bug_fixes.value_counts_and_mode_do_not_coerse_to_nan:
+
+Null-values are no longer coerced to NaN-value in value_counts and mode
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`Series.value_counts` and :meth:`Series.mode` no longer coerce ``None``, ``NaT`` and other null-values to a NaN-value for ``np.object``-dtype. This behavior is now consistent with ``unique``, ``isin`` and others (:issue:`42688`).
+
+.. ipython:: python
+
+    s = pd.Series([True, None, pd.NaT, None, pd.NaT, None])
+    res = s.value_counts(dropna=False)
+
+Previously, all null-values were replaced by a NaN-value.
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+    In [3]: res
+    Out[3]:
+    NaN     5
+    True    1
+    dtype: int64
+
+Now null-values are no longer mangled.
+
+*New behavior*:
+
+.. ipython:: python
+
+    res
+
 .. _whatsnew_140.notable_bug_fixes.notable_bug_fix3:
 
 notable_bug_fix3
@@ -543,6 +575,7 @@ Indexing
 - Bug when setting string-backed :class:`Categorical` values that can be parsed to datetimes into a :class:`DatetimeArray` or :class:`Series` or :class:`DataFrame` column backed by :class:`DatetimeArray` failing to parse these strings (:issue:`44236`)
 - Bug in :meth:`Series.__setitem__` with an integer dtype other than ``int64`` setting with a ``range`` object unnecessarily upcasting to ``int64`` (:issue:`44261`)
 - Bug in :meth:`Series.__setitem__` with a boolean mask indexer setting a listlike value of length 1 incorrectly broadcasting that value (:issue:`44265`)
+- Bug in :meth:`DataFrame.loc.__setitem__` and :meth:`DataFrame.iloc.__setitem__` with mixed dtypes sometimes failing to operate in-place (:issue:`44345`)
 -
 
 Missing
@@ -579,6 +612,7 @@ I/O
 Period
 ^^^^^^
 - Bug in adding a :class:`Period` object to a ``np.timedelta64`` object incorrectly raising ``TypeError`` (:issue:`44182`)
+- Bug in :meth:`PeriodIndex.to_timestamp` when the index has ``freq="B"`` inferring ``freq="D"`` for its result instead of ``freq="B"`` (:issue:`44105`)
 -
 
 Plotting
@@ -623,6 +657,8 @@ Reshaping
 - Bug in :meth:`DataFrame.append` failing to retain ``index.name`` when appending a list of :class:`Series` objects (:issue:`44109`)
 - Fixed metadata propagation in ``.loc``, ``.iloc`` and ``Series.to_frame()`` (:issue:`28283`)
 - Fixed metadata propagation in :meth:`Dataframe.apply` method, consequently fixing the same issue for :meth:`Dataframe.transform`, :meth:`Dataframe.nunique` and :meth:`Dataframe.mode` (:issue:`28283`)
+- Bug in :meth:`DataFrame.stack` with ``ExtensionDtype`` columns incorrectly raising (:issue:`43561`)
+-
 
 Sparse
 ^^^^^^
