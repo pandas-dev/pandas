@@ -121,7 +121,7 @@ usecols : list-like or callable, default ``None``
   be positional (i.e. integer indices into the document columns) or strings
   that correspond to column names provided either by the user in ``names`` or
   inferred from the document header row(s). If ``names`` are given, the document
-    header row(s) are not taken into account. For example, a valid list-like
+  header row(s) are not taken into account. For example, a valid list-like
   ``usecols`` parameter would be ``[0, 1, 2]`` or ``['foo', 'bar', 'baz']``.
 
   Element order is ignored, so ``usecols=[0, 1]`` is the same as ``[1, 0]``. To
