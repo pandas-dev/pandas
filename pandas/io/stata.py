@@ -600,6 +600,8 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
         # Cast from unsupported types to supported types
         is_nullable_int = isinstance(data[col].dtype, (_IntegerDtype, BooleanDtype))
         orig = data[col]
+        # We need to find orig_missing before altering data below
+        orig_missing = orig.isna()
         if is_nullable_int:
             missing_loc = data[col].isna()
             if missing_loc.any():
@@ -650,11 +652,10 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
                         f"supported by Stata ({float64_max})"
                     )
         if is_nullable_int:
-            missing = orig.isna()
-            if missing.any():
+            if orig_missing.any():
                 # Replace missing by Stata sentinel value
                 sentinel = StataMissingValue.BASE_MISSING_VALUES[data[col].dtype.name]
-                data.loc[missing, col] = sentinel
+                data.loc[orig_missing, col] = sentinel
     if ws:
         warnings.warn(ws, PossiblePrecisionLoss)
 
