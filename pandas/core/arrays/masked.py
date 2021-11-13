@@ -47,6 +47,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import (
+    array_equivalent,
     isna,
     notna,
 )
@@ -636,11 +637,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         # GH#44382 if e.g. self[1] is np.nan and other[1] is pd.NA, we are NOT
         #  equal.
-        return np.array_equal(self._mask, other._mask) and np.array_equal(
-            self._data[~self._mask],
-            other._data[~other._mask],
-            equal_nan=True,
-        )
+        if not np.array_equal(self._mask, other._mask):
+            return False
+
+        left = self._data[~self._mask]
+        right = other._data[~other._mask]
+        return array_equivalent(left, right)
 
     def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         if name in {"any", "all"}:
