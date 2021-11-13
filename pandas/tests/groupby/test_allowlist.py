@@ -8,7 +8,13 @@ from string import ascii_lowercase
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, MultiIndex, Series, date_range
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
 from pandas.core.groupby.base import (
     groupby_other_methods,
@@ -200,14 +206,16 @@ def test_regression_allowlist_methods(raw_frame, op, level, axis, skipna, sort):
     if op in AGG_FUNCTIONS_WITH_SKIPNA:
         grouped = frame.groupby(level=level, axis=axis, sort=sort)
         result = getattr(grouped, op)(skipna=skipna)
-        expected = getattr(frame, op)(level=level, axis=axis, skipna=skipna)
+        with tm.assert_produces_warning(FutureWarning):
+            expected = getattr(frame, op)(level=level, axis=axis, skipna=skipna)
         if sort:
             expected = expected.sort_index(axis=axis, level=level)
         tm.assert_frame_equal(result, expected)
     else:
         grouped = frame.groupby(level=level, axis=axis, sort=sort)
         result = getattr(grouped, op)()
-        expected = getattr(frame, op)(level=level, axis=axis)
+        with tm.assert_produces_warning(FutureWarning):
+            expected = getattr(frame, op)(level=level, axis=axis)
         if sort:
             expected = expected.sort_index(axis=axis, level=level)
         tm.assert_frame_equal(result, expected)
@@ -395,6 +403,7 @@ def test_groupby_selection_tshift_raises(df):
 def test_groupby_selection_other_methods(df):
     # some methods which require DatetimeIndex
     rng = date_range("2014", periods=len(df))
+    df.columns.name = "foo"
     df.index = rng
 
     g = df.groupby(["A"])[["C"]]

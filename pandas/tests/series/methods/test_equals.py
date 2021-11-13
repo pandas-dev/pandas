@@ -1,9 +1,18 @@
 from contextlib import nullcontext
+import copy
 
 import numpy as np
 import pytest
 
-from pandas import MultiIndex, Series
+from pandas._libs.missing import is_matching_na
+
+from pandas.core.dtypes.common import is_float
+
+from pandas import (
+    Index,
+    MultiIndex,
+    Series,
+)
 import pandas._testing as tm
 
 
@@ -65,3 +74,69 @@ def test_equals_false_negative():
     assert s1.equals(s4)
     assert s1.equals(s5)
     assert s5.equals(s6)
+
+
+def test_equals_matching_nas():
+    # matching but not identical NAs
+    left = Series([np.datetime64("NaT")], dtype=object)
+    right = Series([np.datetime64("NaT")], dtype=object)
+    assert left.equals(right)
+    assert Index(left).equals(Index(right))
+    assert left.array.equals(right.array)
+
+    left = Series([np.timedelta64("NaT")], dtype=object)
+    right = Series([np.timedelta64("NaT")], dtype=object)
+    assert left.equals(right)
+    assert Index(left).equals(Index(right))
+    assert left.array.equals(right.array)
+
+    left = Series([np.float64("NaN")], dtype=object)
+    right = Series([np.float64("NaN")], dtype=object)
+    assert left.equals(right)
+    assert Index(left, dtype=left.dtype).equals(Index(right, dtype=right.dtype))
+    assert left.array.equals(right.array)
+
+
+def test_equals_mismatched_nas(nulls_fixture, nulls_fixture2):
+    # GH#39650
+    left = nulls_fixture
+    right = nulls_fixture2
+    if hasattr(right, "copy"):
+        right = right.copy()
+    else:
+        right = copy.copy(right)
+
+    ser = Series([left], dtype=object)
+    ser2 = Series([right], dtype=object)
+
+    if is_matching_na(left, right):
+        assert ser.equals(ser2)
+    elif (left is None and is_float(right)) or (right is None and is_float(left)):
+        assert ser.equals(ser2)
+    else:
+        assert not ser.equals(ser2)
+
+
+def test_equals_none_vs_nan():
+    # GH#39650
+    ser = Series([1, None], dtype=object)
+    ser2 = Series([1, np.nan], dtype=object)
+
+    assert ser.equals(ser2)
+    assert Index(ser, dtype=ser.dtype).equals(Index(ser2, dtype=ser2.dtype))
+    assert ser.array.equals(ser2.array)
+
+
+def test_equals_None_vs_float():
+    # GH#44190
+    left = Series([-np.inf, np.nan, -1.0, 0.0, 1.0, 10 / 3, np.inf], dtype=object)
+    right = Series([None] * len(left))
+
+    # these series were found to be equal due to a bug, check that they are correctly
+    # found to not equal
+    assert not left.equals(right)
+    assert not right.equals(left)
+    assert not left.to_frame().equals(right.to_frame())
+    assert not right.to_frame().equals(left.to_frame())
+    assert not Index(left, dtype="object").equals(Index(right, dtype="object"))
+    assert not Index(right, dtype="object").equals(Index(left, dtype="object"))

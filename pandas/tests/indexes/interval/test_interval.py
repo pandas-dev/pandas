@@ -20,6 +20,7 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
+from pandas.core.api import Float64Index
 import pandas.core.common as com
 
 
@@ -194,17 +195,24 @@ class TestIntervalIndex:
         tm.assert_index_equal(result, expected)
 
         # invalid type
+        res = data.insert(1, "foo")
+        expected = data.astype(object).insert(1, "foo")
+        tm.assert_index_equal(res, expected)
+
         msg = "can only insert Interval objects and NA into an IntervalArray"
         with pytest.raises(TypeError, match=msg):
-            data.insert(1, "foo")
+            data._data.insert(1, "foo")
 
         # invalid closed
         msg = "'value.closed' is 'left', expected 'right'."
         for closed in {"left", "right", "both", "neither"} - {item.closed}:
             msg = f"'value.closed' is '{closed}', expected '{item.closed}'."
+            bad_item = Interval(item.left, item.right, closed=closed)
+            res = data.insert(1, bad_item)
+            expected = data.astype(object).insert(1, bad_item)
+            tm.assert_index_equal(res, expected)
             with pytest.raises(ValueError, match=msg):
-                bad_item = Interval(item.left, item.right, closed=closed)
-                data.insert(1, bad_item)
+                data._data.insert(1, bad_item)
 
         # GH 18295 (test missing)
         na_idx = IntervalIndex([np.nan], closed=data.closed)
@@ -214,13 +222,15 @@ class TestIntervalIndex:
             tm.assert_index_equal(result, expected)
 
         if data.left.dtype.kind not in ["m", "M"]:
-            # trying to insert pd.NaT into a numeric-dtyped Index should cast/raise
+            # trying to insert pd.NaT into a numeric-dtyped Index should cast
+            expected = data.astype(object).insert(1, pd.NaT)
+
             msg = "can only insert Interval objects and NA into an IntervalArray"
             with pytest.raises(TypeError, match=msg):
-                result = data.insert(1, pd.NaT)
-        else:
-            result = data.insert(1, pd.NaT)
-            tm.assert_index_equal(result, expected)
+                data._data.insert(1, pd.NaT)
+
+        result = data.insert(1, pd.NaT)
+        tm.assert_index_equal(result, expected)
 
     def test_is_unique_interval(self, closed):
         """
@@ -237,6 +247,16 @@ class TestIntervalIndex:
         # unique nested
         idx = IntervalIndex.from_tuples([(-1, 1), (-2, 2)], closed=closed)
         assert idx.is_unique is True
+
+        # unique NaN
+        idx = IntervalIndex.from_tuples([(np.NaN, np.NaN)], closed=closed)
+        assert idx.is_unique is True
+
+        # non-unique NaN
+        idx = IntervalIndex.from_tuples(
+            [(np.NaN, np.NaN), (np.NaN, np.NaN)], closed=closed
+        )
+        assert idx.is_unique is False
 
     def test_monotonic(self, closed):
         # increasing non-overlapping
@@ -309,6 +329,16 @@ class TestIntervalIndex:
         assert idx.is_monotonic_decreasing is True
         assert idx._is_strictly_monotonic_decreasing is True
 
+    def test_is_monotonic_with_nans(self):
+        # GH#41831
+        index = IntervalIndex([np.nan, np.nan])
+
+        assert not index.is_monotonic
+        assert not index._is_strictly_monotonic_increasing
+        assert not index.is_monotonic_increasing
+        assert not index._is_strictly_monotonic_decreasing
+        assert not index.is_monotonic_decreasing
+
     def test_get_item(self, closed):
         i = IntervalIndex.from_arrays((0, 1, np.nan), (1, 2, np.nan), closed=closed)
         assert i[0] == Interval(0.0, 1.0, closed=closed)
@@ -377,7 +407,7 @@ class TestIntervalIndex:
         index = IntervalIndex.from_breaks(breaks)
 
         to_convert = breaks._constructor([pd.NaT] * 3)
-        expected = pd.Float64Index([np.nan] * 3)
+        expected = Float64Index([np.nan] * 3)
         result = index._maybe_convert_i8(to_convert)
         tm.assert_index_equal(result, expected)
 
@@ -904,15 +934,14 @@ def test_dir():
     assert "str" not in result
 
 
-@pytest.mark.parametrize("klass", [list, np.array, pd.array, pd.Series])
-def test_searchsorted_different_argument_classes(klass):
+def test_searchsorted_different_argument_classes(listlike_box):
     # https://github.com/pandas-dev/pandas/issues/32762
     values = IntervalIndex([Interval(0, 1), Interval(1, 2)])
-    result = values.searchsorted(klass(values))
+    result = values.searchsorted(listlike_box(values))
     expected = np.array([0, 1], dtype=result.dtype)
     tm.assert_numpy_array_equal(result, expected)
 
-    result = values._data.searchsorted(klass(values))
+    result = values._data.searchsorted(listlike_box(values))
     tm.assert_numpy_array_equal(result, expected)
 
 

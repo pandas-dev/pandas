@@ -4,7 +4,10 @@ import pytest
 from pandas.core.dtypes.dtypes import ExtensionDtype
 
 import pandas as pd
-from pandas import DataFrame, Timestamp
+from pandas import (
+    DataFrame,
+    Timestamp,
+)
 import pandas._testing as tm
 from pandas.core.arrays import ExtensionArray
 
@@ -110,7 +113,7 @@ class TestSelectDtypes:
             {
                 "a": list("abc"),
                 "b": list(range(1, 4)),
-                "c": np.arange(3, 6).astype("u1"),
+                "c": np.arange(3, 6, dtype="u1"),
                 "d": np.arange(4.0, 7.0, dtype="float64"),
                 "e": [True, False, True],
                 "f": pd.date_range("now", periods=3).values,
@@ -127,6 +130,26 @@ class TestSelectDtypes:
         r = df.select_dtypes(include=include, exclude=exclude)
         e = df[["b", "e"]]
         tm.assert_frame_equal(r, e)
+
+    @pytest.mark.parametrize(
+        "include", [(np.bool_, "int"), (np.bool_, "integer"), ("bool", int)]
+    )
+    def test_select_dtypes_exclude_include_int(self, include):
+        # Fix select_dtypes(include='int') for Windows, FYI #36596
+        df = DataFrame(
+            {
+                "a": list("abc"),
+                "b": list(range(1, 4)),
+                "c": np.arange(3, 6, dtype="int32"),
+                "d": np.arange(4.0, 7.0, dtype="float64"),
+                "e": [True, False, True],
+                "f": pd.date_range("now", periods=3).values,
+            }
+        )
+        exclude = (np.datetime64,)
+        result = df.select_dtypes(include=include, exclude=exclude)
+        expected = df[["b", "c", "e"]]
+        tm.assert_frame_equal(result, expected)
 
     def test_select_dtypes_include_using_scalars(self):
         df = DataFrame(
@@ -368,7 +391,6 @@ class TestSelectDtypes:
         (
             (np.array([1, 2], dtype=np.int32), True),
             (pd.array([1, 2], dtype="Int32"), True),
-            (pd.array(["a", "b"], dtype="string"), False),
             (DummyArray([1, 2], dtype=DummyDtype(numeric=True)), True),
             (DummyArray([1, 2], dtype=DummyDtype(numeric=False)), False),
         ),
@@ -379,3 +401,43 @@ class TestSelectDtypes:
         df = DataFrame(arr)
         is_selected = df.select_dtypes(np.number).shape == df.shape
         assert is_selected == expected
+
+    def test_select_dtypes_numeric_nullable_string(self, nullable_string_dtype):
+        arr = pd.array(["a", "b"], dtype=nullable_string_dtype)
+        df = DataFrame(arr)
+        is_selected = df.select_dtypes(np.number).shape == df.shape
+        assert not is_selected
+
+    @pytest.mark.parametrize(
+        "expected, float_dtypes",
+        [
+            [
+                DataFrame(
+                    {"A": range(3), "B": range(5, 8), "C": range(10, 7, -1)}
+                ).astype(dtype={"A": float, "B": np.float64, "C": np.float32}),
+                float,
+            ],
+            [
+                DataFrame(
+                    {"A": range(3), "B": range(5, 8), "C": range(10, 7, -1)}
+                ).astype(dtype={"A": float, "B": np.float64, "C": np.float32}),
+                "float",
+            ],
+            [DataFrame({"C": range(10, 7, -1)}, dtype=np.float32), np.float32],
+            [
+                DataFrame({"A": range(3), "B": range(5, 8)}).astype(
+                    dtype={"A": float, "B": np.float64}
+                ),
+                np.float64,
+            ],
+        ],
+    )
+    def test_select_dtypes_float_dtype(self, expected, float_dtypes):
+        # GH#42452
+        dtype_dict = {"A": float, "B": np.float64, "C": np.float32}
+        df = DataFrame(
+            {"A": range(3), "B": range(5, 8), "C": range(10, 7, -1)},
+        )
+        df = df.astype(dtype_dict)
+        result = df.select_dtypes(include=float_dtypes)
+        tm.assert_frame_equal(result, expected)

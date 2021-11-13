@@ -2,8 +2,7 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-
-from .base import BaseExtensionTests
+from pandas.tests.extension.base.base import BaseExtensionTests
 
 
 class BaseGroupbyTests(BaseExtensionTests):
@@ -16,21 +15,21 @@ class BaseGroupbyTests(BaseExtensionTests):
         gr1 = df.groupby("A").grouper.groupings[0]
         gr2 = df.groupby("B").grouper.groupings[0]
 
-        tm.assert_numpy_array_equal(gr1.grouper, df.A.values)
-        tm.assert_extension_array_equal(gr2.grouper, data_for_grouping)
+        tm.assert_numpy_array_equal(gr1.grouping_vector, df.A.values)
+        tm.assert_extension_array_equal(gr2.grouping_vector, data_for_grouping)
 
     @pytest.mark.parametrize("as_index", [True, False])
     def test_groupby_extension_agg(self, as_index, data_for_grouping):
         df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1, 4], "B": data_for_grouping})
         result = df.groupby("B", as_index=as_index).A.mean()
-        _, index = pd.factorize(data_for_grouping, sort=True)
+        _, uniques = pd.factorize(data_for_grouping, sort=True)
 
-        index = pd.Index(index, name="B")
-        expected = pd.Series([3, 1, 4], index=index, name="A")
         if as_index:
+            index = pd.Index._with_infer(uniques, name="B")
+            expected = pd.Series([3.0, 1.0, 4.0], index=index, name="A")
             self.assert_series_equal(result, expected)
         else:
-            expected = expected.reset_index()
+            expected = pd.DataFrame({"B": uniques, "A": [3.0, 1.0, 4.0]})
             self.assert_frame_equal(result, expected)
 
     def test_groupby_agg_extension(self, data_for_grouping):
@@ -54,8 +53,8 @@ class BaseGroupbyTests(BaseExtensionTests):
         result = df.groupby("B", sort=False).A.mean()
         _, index = pd.factorize(data_for_grouping, sort=False)
 
-        index = pd.Index(index, name="B")
-        expected = pd.Series([1, 3, 4], index=index, name="A")
+        index = pd.Index._with_infer(index, name="B")
+        expected = pd.Series([1.0, 3.0, 4.0], index=index, name="A")
         self.assert_series_equal(result, expected)
 
     def test_groupby_extension_transform(self, data_for_grouping):

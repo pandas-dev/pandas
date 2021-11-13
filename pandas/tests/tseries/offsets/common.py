@@ -1,13 +1,17 @@
 """
 Assertion helpers and base class for offsets tests
 """
+from __future__ import annotations
+
 from datetime import datetime
-from typing import Optional, Type
 
 from dateutil.tz.tz import tzlocal
 import pytest
 
-from pandas._libs.tslibs import OutOfBoundsDatetime, Timestamp
+from pandas._libs.tslibs import (
+    OutOfBoundsDatetime,
+    Timestamp,
+)
 from pandas._libs.tslibs.offsets import (
     FY5253,
     BusinessHour,
@@ -55,7 +59,7 @@ class WeekDay:
 
 
 class Base:
-    _offset: Optional[Type[DateOffset]] = None
+    _offset: type[DateOffset] | None = None
     d = Timestamp(datetime(2008, 1, 2))
 
     timezones = [

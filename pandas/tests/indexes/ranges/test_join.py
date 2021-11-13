@@ -1,7 +1,11 @@
 import numpy as np
 
-from pandas import Index, Int64Index, RangeIndex
+from pandas import (
+    Index,
+    RangeIndex,
+)
 import pandas._testing as tm
+from pandas.core.indexes.api import Int64Index
 
 
 class TestJoin:
@@ -73,7 +77,7 @@ class TestJoin:
         res, lidx, ridx = index.join(other, how="inner", return_indexers=True)
 
         assert isinstance(res, RangeIndex)
-        tm.assert_index_equal(res, eres)
+        tm.assert_index_equal(res, eres, exact="equiv")
         tm.assert_numpy_array_equal(lidx, elidx)
         tm.assert_numpy_array_equal(ridx, eridx)
 

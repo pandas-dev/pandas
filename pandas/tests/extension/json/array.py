@@ -13,21 +13,37 @@ hack around pandas by using UserDicts.
 """
 from __future__ import annotations
 
-from collections import UserDict, abc
+from collections import (
+    UserDict,
+    abc,
+)
 import itertools
 import numbers
 import random
 import string
 import sys
-from typing import Any, Mapping, Type
+from typing import (
+    Any,
+    Mapping,
+)
 
 import numpy as np
 
-from pandas.core.dtypes.common import pandas_dtype
+from pandas._typing import type_t
+
+from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
+from pandas.core.dtypes.common import (
+    is_list_like,
+    pandas_dtype,
+)
 
 import pandas as pd
-from pandas.api.extensions import ExtensionArray, ExtensionDtype
+from pandas.api.extensions import (
+    ExtensionArray,
+    ExtensionDtype,
+)
 from pandas.api.types import is_bool_dtype
+from pandas.core.indexers import unpack_tuple_and_ellipses
 
 
 class JSONDtype(ExtensionDtype):
@@ -36,7 +52,7 @@ class JSONDtype(ExtensionDtype):
     na_value: Mapping[str, Any] = UserDict()
 
     @classmethod
-    def construct_array_type(cls) -> Type[JSONArray]:
+    def construct_array_type(cls) -> type_t[JSONArray]:
         """
         Return the array type associated with this dtype.
 
@@ -73,6 +89,9 @@ class JSONArray(ExtensionArray):
         return cls([UserDict(x) for x in values if x != ()])
 
     def __getitem__(self, item):
+        if isinstance(item, tuple):
+            item = unpack_tuple_and_ellipses(item)
+
         if isinstance(item, numbers.Integral):
             return self.data[item]
         elif isinstance(item, slice) and item == slice(None):
@@ -81,6 +100,13 @@ class JSONArray(ExtensionArray):
         elif isinstance(item, slice):
             # slice
             return type(self)(self.data[item])
+        elif not is_list_like(item):
+            # e.g. "foo" or 2.5
+            # exception message copied from numpy
+            raise IndexError(
+                r"only integers, slices (`:`), ellipsis (`...`), numpy.newaxis "
+                r"(`None`) and integer or boolean arrays are valid indices"
+            )
         else:
             item = pd.api.indexers.check_array_indexer(self, item)
             if is_bool_dtype(item.dtype):
@@ -197,11 +223,9 @@ class JSONArray(ExtensionArray):
         return frozen, ()
 
     def _values_for_argsort(self):
-        # Disable NumPy's shape inference by including an empty tuple...
-        # If all the elements of self are the same size P, NumPy will
-        # cast them to an (N, P) array, instead of an (N,) array of tuples.
-        frozen = [()] + [tuple(x.items()) for x in self]
-        return np.array(frozen, dtype=object)[1:]
+        # Bypass NumPy's shape inference to get a (N,) array of tuples.
+        frozen = [tuple(x.items()) for x in self]
+        return construct_1d_object_array_from_listlike(frozen)
 
 
 def make_data():

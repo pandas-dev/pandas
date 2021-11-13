@@ -1,11 +1,20 @@
-from datetime import date, datetime
+from datetime import (
+    date,
+    datetime,
+)
 
 import numpy as np
 import pytest
 
-from pandas.compat import IS64, is_platform_windows
+from pandas.compat import (
+    IS64,
+    is_platform_windows,
+)
 
-from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
+from pandas.core.dtypes.common import (
+    is_float_dtype,
+    is_integer_dtype,
+)
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
@@ -25,6 +34,7 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
+from pandas.core.api import Int64Index
 
 
 class TestCategoricalConstructors:
@@ -32,6 +42,12 @@ class TestCategoricalConstructors:
         # GH#38433
         with tm.assert_produces_warning(FutureWarning):
             Categorical("A", categories=["A", "B"])
+
+    def test_categorical_1d_only(self):
+        # ndim > 1
+        msg = "> 1 ndim Categorical are not supported at this time"
+        with pytest.raises(NotImplementedError, match=msg):
+            Categorical(np.array([list("abcd")]))
 
     def test_validate_ordered(self):
         # see gh-14058
@@ -56,7 +72,7 @@ class TestCategoricalConstructors:
         tm.assert_index_equal(c.categories, expected)
 
         c = Categorical([], categories=[1, 2, 3])
-        expected = pd.Int64Index([1, 2, 3])
+        expected = Int64Index([1, 2, 3])
         tm.assert_index_equal(c.categories, expected)
 
     def test_constructor_empty_boolean(self):

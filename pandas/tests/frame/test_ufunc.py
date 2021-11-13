@@ -1,3 +1,5 @@
+from functools import partial
+
 import numpy as np
 import pytest
 
@@ -57,6 +59,42 @@ def test_binary_input_dispatch_binop(dtype):
     expected = pd.DataFrame(
         np.add(values, values), index=df.index, columns=df.columns
     ).astype(dtype)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "func,arg,expected",
+    [
+        (np.add, 1, [2, 3, 4, 5]),
+        (
+            partial(np.add, where=[[False, True], [True, False]]),
+            np.array([[1, 1], [1, 1]]),
+            [0, 3, 4, 0],
+        ),
+        (np.power, np.array([[1, 1], [2, 2]]), [1, 2, 9, 16]),
+        (np.subtract, 2, [-1, 0, 1, 2]),
+        (
+            partial(np.negative, where=np.array([[False, True], [True, False]])),
+            None,
+            [0, -2, -3, 0],
+        ),
+    ],
+)
+def test_ufunc_passes_args(func, arg, expected, request):
+    # GH#40662
+    arr = np.array([[1, 2], [3, 4]])
+    df = pd.DataFrame(arr)
+    result_inplace = np.zeros_like(arr)
+    # 1-argument ufunc
+    if arg is None:
+        result = func(df, out=result_inplace)
+    else:
+        result = func(df, arg, out=result_inplace)
+
+    expected = np.array(expected).reshape(2, 2)
+    tm.assert_numpy_array_equal(result_inplace, expected)
+
+    expected = pd.DataFrame(expected)
     tm.assert_frame_equal(result, expected)
 
 
@@ -213,12 +251,15 @@ def test_alignment_deprecation():
     tm.assert_frame_equal(result, expected)
 
 
-@td.skip_if_no("numba", "0.46.0")
+@td.skip_if_no("numba")
 def test_alignment_deprecation_many_inputs():
     # https://github.com/pandas-dev/pandas/issues/39184
     # test that the deprecation also works with > 2 inputs -> using a numba
     # written ufunc for this because numpy itself doesn't have such ufuncs
-    from numba import float64, vectorize
+    from numba import (
+        float64,
+        vectorize,
+    )
 
     @vectorize([float64(float64, float64, float64)])
     def my_ufunc(x, y, z):

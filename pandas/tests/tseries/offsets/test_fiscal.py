@@ -18,7 +18,10 @@ from pandas.tests.tseries.offsets.common import (
 )
 
 from pandas.tseries.frequencies import get_offset
-from pandas.tseries.offsets import FY5253, FY5253Quarter
+from pandas.tseries.offsets import (
+    FY5253,
+    FY5253Quarter,
+)
 
 
 def makeFY5253LastOfMonthQuarter(*args, **kwds):

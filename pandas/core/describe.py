@@ -5,14 +5,25 @@ Method NDFrame.describe() delegates actual execution to function describe_ndfram
 """
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Callable, List, Optional, Sequence, Union, cast
+from abc import (
+    ABC,
+    abstractmethod,
+)
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Hashable,
+    Sequence,
+    cast,
+)
 import warnings
 
 import numpy as np
 
 from pandas._libs.tslibs import Timestamp
-from pandas._typing import FrameOrSeries, FrameOrSeriesUnion, Hashable
+from pandas._typing import NDFrameT
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_percentile
 
 from pandas.core.dtypes.common import (
@@ -27,17 +38,20 @@ from pandas.core.reshape.concat import concat
 from pandas.io.formats.format import format_percentiles
 
 if TYPE_CHECKING:
-    from pandas import DataFrame, Series
+    from pandas import (
+        DataFrame,
+        Series,
+    )
 
 
 def describe_ndframe(
     *,
-    obj: FrameOrSeries,
-    include: Optional[Union[str, Sequence[str]]],
-    exclude: Optional[Union[str, Sequence[str]]],
+    obj: NDFrameT,
+    include: str | Sequence[str] | None,
+    exclude: str | Sequence[str] | None,
     datetime_is_numeric: bool,
-    percentiles: Optional[Sequence[float]],
-) -> FrameOrSeries:
+    percentiles: Sequence[float] | np.ndarray | None,
+) -> NDFrameT:
     """Describe series or dataframe.
 
     Called from pandas.core.generic.NDFrame.describe()
@@ -78,7 +92,7 @@ def describe_ndframe(
         )
 
     result = describer.describe(percentiles=percentiles)
-    return cast(FrameOrSeries, result)
+    return cast(NDFrameT, result)
 
 
 class NDFrameDescriberAbstract(ABC):
@@ -92,12 +106,12 @@ class NDFrameDescriberAbstract(ABC):
         Whether to treat datetime dtypes as numeric.
     """
 
-    def __init__(self, obj: FrameOrSeriesUnion, datetime_is_numeric: bool):
+    def __init__(self, obj: DataFrame | Series, datetime_is_numeric: bool):
         self.obj = obj
         self.datetime_is_numeric = datetime_is_numeric
 
     @abstractmethod
-    def describe(self, percentiles: Sequence[float]) -> FrameOrSeriesUnion:
+    def describe(self, percentiles: Sequence[float] | np.ndarray) -> DataFrame | Series:
         """Do describe either series or dataframe.
 
         Parameters
@@ -112,7 +126,7 @@ class SeriesDescriber(NDFrameDescriberAbstract):
 
     obj: Series
 
-    def describe(self, percentiles: Sequence[float]) -> Series:
+    def describe(self, percentiles: Sequence[float] | np.ndarray) -> Series:
         describe_func = select_describe_func(
             self.obj,
             self.datetime_is_numeric,
@@ -139,8 +153,8 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
         self,
         obj: DataFrame,
         *,
-        include: Optional[Union[str, Sequence[str]]],
-        exclude: Optional[Union[str, Sequence[str]]],
+        include: str | Sequence[str] | None,
+        exclude: str | Sequence[str] | None,
         datetime_is_numeric: bool,
     ):
         self.include = include
@@ -151,10 +165,10 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
 
         super().__init__(obj, datetime_is_numeric=datetime_is_numeric)
 
-    def describe(self, percentiles: Sequence[float]) -> DataFrame:
+    def describe(self, percentiles: Sequence[float] | np.ndarray) -> DataFrame:
         data = self._select_data()
 
-        ldesc: List[Series] = []
+        ldesc: list[Series] = []
         for _, series in data.items():
             describe_func = select_describe_func(series, self.datetime_is_numeric)
             ldesc.append(describe_func(series, percentiles))
@@ -174,7 +188,9 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
             # when some numerics are found, keep only numerics
             default_include = [np.number]
             if self.datetime_is_numeric:
-                default_include.append("datetime")
+                # error: Argument 1 to "append" of "list" has incompatible type "str";
+                # expected "Type[number[Any]]"
+                default_include.append("datetime")  # type: ignore[arg-type]
             data = self.obj.select_dtypes(include=default_include)
             if len(data.columns) == 0:
                 data = self.obj
@@ -191,9 +207,9 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
         return data
 
 
-def reorder_columns(ldesc: Sequence[Series]) -> List[Hashable]:
+def reorder_columns(ldesc: Sequence[Series]) -> list[Hashable]:
     """Set a convenient order for rows for display."""
-    names: List[Hashable] = []
+    names: list[Hashable] = []
     ldesc_indexes = sorted((x.index for x in ldesc), key=len)
     for idxnames in ldesc_indexes:
         for name in idxnames:
@@ -214,7 +230,10 @@ def describe_numeric_1d(series: Series, percentiles: Sequence[float]) -> Series:
     """
     from pandas import Series
 
-    formatted_percentiles = format_percentiles(percentiles)
+    # error: Argument 1 to "format_percentiles" has incompatible type "Sequence[float]";
+    # expected "Union[ndarray, List[Union[int, float]], List[float], List[Union[str,
+    # float]]]"
+    formatted_percentiles = format_percentiles(percentiles)  # type: ignore[arg-type]
 
     stat_index = ["count", "mean", "std", "min"] + formatted_percentiles + ["max"]
     d = (
@@ -318,7 +337,10 @@ def describe_timestamp_1d(data: Series, percentiles: Sequence[float]) -> Series:
     # GH-30164
     from pandas import Series
 
-    formatted_percentiles = format_percentiles(percentiles)
+    # error: Argument 1 to "format_percentiles" has incompatible type "Sequence[float]";
+    # expected "Union[ndarray, List[Union[int, float]], List[float], List[Union[str,
+    # float]]]"
+    formatted_percentiles = format_percentiles(percentiles)  # type: ignore[arg-type]
 
     stat_index = ["count", "mean", "min"] + formatted_percentiles + ["max"]
     d = (
@@ -356,7 +378,7 @@ def select_describe_func(
                 "version of pandas. Specify `datetime_is_numeric=True` to "
                 "silence this warning and adopt the future behavior now.",
                 FutureWarning,
-                stacklevel=5,
+                stacklevel=find_stack_level(),
             )
             return describe_timestamp_as_categorical_1d
     elif is_timedelta64_dtype(data.dtype):
@@ -365,8 +387,11 @@ def select_describe_func(
         return describe_categorical_1d
 
 
-def refine_percentiles(percentiles: Optional[Sequence[float]]) -> Sequence[float]:
-    """Ensure that percentiles are unique and sorted.
+def refine_percentiles(
+    percentiles: Sequence[float] | np.ndarray | None,
+) -> np.ndarray[Any, np.dtype[np.float64]]:
+    """
+    Ensure that percentiles are unique and sorted.
 
     Parameters
     ----------

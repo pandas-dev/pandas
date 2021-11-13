@@ -21,7 +21,10 @@ from pandas.core.dtypes.common import is_extension_array_dtype
 import pandas as pd
 import pandas._testing as tm
 from pandas.api.types import is_float_dtype
-from pandas.core.arrays.floating import Float32Dtype, Float64Dtype
+from pandas.core.arrays.floating import (
+    Float32Dtype,
+    Float64Dtype,
+)
 from pandas.tests.extension import base
 
 
@@ -125,6 +128,7 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
+    # TODO: share with IntegerArray?
     def _check_op(self, s, op, other, op_name, exc=NotImplementedError):
         if exc is None:
             result = op(s, other)
@@ -138,7 +142,8 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
     def check_opname(self, s, op_name, other, exc=None):
         super().check_opname(s, op_name, other, exc=None)
 
-    def _compare_other(self, s, data, op_name, other):
+    def _compare_other(self, s, data, op, other):
+        op_name = f"__{op.__name__}__"
         self.check_opname(s, op_name, other)
 
 
@@ -208,6 +213,7 @@ class TestNumericReduce(base.BaseNumericReduceTests):
         tm.assert_almost_equal(result, expected)
 
 
+@pytest.mark.skip(reason="Tested in tests/reductions/test_reductions.py")
 class TestBooleanReduce(base.BaseBooleanReduceTests):
     pass
 
@@ -217,4 +223,8 @@ class TestPrinting(base.BasePrintingTests):
 
 
 class TestParsing(base.BaseParsingTests):
+    pass
+
+
+class Test2DCompat(base.Dim2CompatTests):
     pass

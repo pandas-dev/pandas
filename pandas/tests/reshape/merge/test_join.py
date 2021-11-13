@@ -13,7 +13,11 @@ from pandas import (
     merge,
 )
 import pandas._testing as tm
-from pandas.tests.reshape.merge.test_merge import NGROUPS, N, get_test_data
+from pandas.tests.reshape.merge.test_merge import (
+    NGROUPS,
+    N,
+    get_test_data,
+)
 
 a_ = np.array
 
@@ -413,7 +417,8 @@ class TestJoin:
         other_df = DataFrame([(1, 2, 3), (7, 10, 6)], columns=["a", "b", "d"])
         other_df.set_index("a", inplace=True)
         # GH 9455, 12219
-        with tm.assert_produces_warning(UserWarning):
+        msg = "merging between different levels is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             result = merge(new_df, other_df, left_index=True, right_index=True)
         assert ("b", "mean") in result
         assert "b" in result
@@ -625,7 +630,8 @@ class TestJoin:
         dta = x.merge(y, left_index=True, right_index=True).merge(
             z, left_index=True, right_index=True, how="outer"
         )
-        dta = dta.merge(w, left_index=True, right_index=True)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            dta = dta.merge(w, left_index=True, right_index=True)
         expected = concat([x, y, z, w], axis=1)
         expected.columns = ["x_x", "y_x", "x_y", "y_y", "x_x", "y_x", "x_y", "y_y"]
         tm.assert_frame_equal(dta, expected)
@@ -829,15 +835,13 @@ def test_join_cross(input_col, output_cols):
 def test_join_multiindex_one_level(join_type):
     # GH#36909
     left = DataFrame(
-        data={"c": 3}, index=pd.MultiIndex.from_tuples([(1, 2)], names=("a", "b"))
+        data={"c": 3}, index=MultiIndex.from_tuples([(1, 2)], names=("a", "b"))
     )
-    right = DataFrame(
-        data={"d": 4}, index=pd.MultiIndex.from_tuples([(2,)], names=("b",))
-    )
+    right = DataFrame(data={"d": 4}, index=MultiIndex.from_tuples([(2,)], names=("b",)))
     result = left.join(right, how=join_type)
     expected = DataFrame(
         {"c": [3], "d": [4]},
-        index=pd.MultiIndex.from_tuples([(2, 1)], names=["b", "a"]),
+        index=MultiIndex.from_tuples([(2, 1)], names=["b", "a"]),
     )
     tm.assert_frame_equal(result, expected)
 

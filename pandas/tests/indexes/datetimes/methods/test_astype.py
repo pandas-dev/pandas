@@ -9,13 +9,16 @@ import pandas as pd
 from pandas import (
     DatetimeIndex,
     Index,
-    Int64Index,
     NaT,
     PeriodIndex,
     Timestamp,
     date_range,
 )
 import pandas._testing as tm
+from pandas.core.api import (
+    Int64Index,
+    UInt64Index,
+)
 
 
 class TestDatetimeIndex:
@@ -29,7 +32,7 @@ class TestDatetimeIndex:
         )
         tm.assert_index_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             result = idx.astype(int)
         expected = Int64Index(
             [1463356800000000000] + [-9223372036854775808] * 3,
@@ -39,18 +42,18 @@ class TestDatetimeIndex:
         tm.assert_index_equal(result, expected)
 
         rng = date_range("1/1/2000", periods=10, name="idx")
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             result = rng.astype("i8")
         tm.assert_index_equal(result, Index(rng.asi8, name="idx"))
         tm.assert_numpy_array_equal(result.values, rng.asi8)
 
     def test_astype_uint(self):
         arr = date_range("2000", periods=2, name="idx")
-        expected = pd.UInt64Index(
+        expected = UInt64Index(
             np.array([946684800000000000, 946771200000000000], dtype="uint64"),
             name="idx",
         )
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             tm.assert_index_equal(arr.astype("uint64"), expected)
             tm.assert_index_equal(arr.astype("uint32"), expected)
 
@@ -202,13 +205,13 @@ class TestDatetimeIndex:
 
     def test_astype_object_with_nat(self):
         idx = DatetimeIndex(
-            [datetime(2013, 1, 1), datetime(2013, 1, 2), pd.NaT, datetime(2013, 1, 4)],
+            [datetime(2013, 1, 1), datetime(2013, 1, 2), NaT, datetime(2013, 1, 4)],
             name="idx",
         )
         expected_list = [
             Timestamp("2013-01-01"),
             Timestamp("2013-01-02"),
-            pd.NaT,
+            NaT,
             Timestamp("2013-01-04"),
         ]
         expected = Index(expected_list, dtype=object, name="idx")
@@ -223,7 +226,7 @@ class TestDatetimeIndex:
     def test_astype_raises(self, dtype):
         # GH 13149, GH 13209
         idx = DatetimeIndex(["2016-05-16", "NaT", NaT, np.NaN])
-        msg = "Cannot cast DatetimeArray to dtype"
+        msg = "Cannot cast DatetimeIndex to dtype"
         with pytest.raises(TypeError, match=msg):
             idx.astype(dtype)
 

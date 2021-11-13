@@ -7,7 +7,14 @@ import pytz
 
 from pandas.compat import is_platform_little_endian
 
-from pandas import CategoricalIndex, DataFrame, Index, Interval, RangeIndex, Series
+from pandas import (
+    CategoricalIndex,
+    DataFrame,
+    Index,
+    Interval,
+    RangeIndex,
+    Series,
+)
 import pandas._testing as tm
 
 
@@ -109,8 +116,9 @@ class TestFromRecords:
         result = DataFrame.from_records(tuples, exclude=exclude)
         result.columns = [columns[i] for i in sorted(columns_to_test)]
         tm.assert_series_equal(result["C"], df["C"])
-        tm.assert_series_equal(result["E1"], df["E1"].astype("float64"))
+        tm.assert_series_equal(result["E1"], df["E1"])
 
+    def test_from_records_sequencelike_empty(self):
         # empty case
         result = DataFrame.from_records([], columns=["foo", "bar", "baz"])
         assert len(result) == 0
@@ -140,7 +148,7 @@ class TestFromRecords:
         # from the dict
         blocks = df._to_dict_of_blocks()
         columns = []
-        for dtype, b in blocks.items():
+        for b in blocks.values():
             columns.extend(b.columns)
 
         asdict = {x: y for x, y in df.items()}
@@ -177,7 +185,11 @@ class TestFromRecords:
         tm.assert_index_equal(df1.index, Index(df.C))
 
         # should fail
-        msg = r"Shape of passed values is \(10, 3\), indices imply \(1, 3\)"
+        msg = "|".join(
+            [
+                r"Length of values \(10\) does not match length of index \(1\)",
+            ]
+        )
         with pytest.raises(ValueError, match=msg):
             DataFrame.from_records(df, index=[2])
         with pytest.raises(KeyError, match=r"^2$"):
@@ -252,7 +264,11 @@ class TestFromRecords:
         tm.assert_frame_equal(DataFrame.from_records(arr2), DataFrame(arr2))
 
         # wrong length
-        msg = r"Shape of passed values is \(2, 3\), indices imply \(1, 3\)"
+        msg = "|".join(
+            [
+                r"Length of values \(2\) does not match length of index \(1\)",
+            ]
+        )
         with pytest.raises(ValueError, match=msg):
             DataFrame.from_records(arr, index=index[:-1])
 
@@ -430,11 +446,24 @@ class TestFromRecords:
     def test_from_records_empty_with_nonempty_fields_gh3682(self):
         a = np.array([(1, 2)], dtype=[("id", np.int64), ("value", np.int64)])
         df = DataFrame.from_records(a, index="id")
-        tm.assert_index_equal(df.index, Index([1], name="id"))
-        assert df.index.name == "id"
-        tm.assert_index_equal(df.columns, Index(["value"]))
 
-        b = np.array([], dtype=[("id", np.int64), ("value", np.int64)])
-        df = DataFrame.from_records(b, index="id")
-        tm.assert_index_equal(df.index, Index([], name="id"))
-        assert df.index.name == "id"
+        ex_index = Index([1], name="id")
+        expected = DataFrame({"value": [2]}, index=ex_index, columns=["value"])
+        tm.assert_frame_equal(df, expected)
+
+        b = a[:0]
+        df2 = DataFrame.from_records(b, index="id")
+        tm.assert_frame_equal(df2, df.iloc[:0])
+
+    def test_from_records_empty2(self):
+        # GH#42456
+        dtype = [("prop", int)]
+        shape = (0, len(dtype))
+        arr = np.empty(shape, dtype=dtype)
+
+        result = DataFrame.from_records(arr)
+        expected = DataFrame({"prop": np.array([], dtype=int)})
+        tm.assert_frame_equal(result, expected)
+
+        alt = DataFrame(arr)
+        tm.assert_frame_equal(alt, expected)

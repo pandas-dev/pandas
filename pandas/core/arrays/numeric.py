@@ -2,11 +2,18 @@ from __future__ import annotations
 
 import datetime
 import numbers
-from typing import TYPE_CHECKING, Any, List, Union
+from typing import (
+    TYPE_CHECKING,
+    TypeVar,
+)
 
 import numpy as np
 
-from pandas._libs import Timedelta, missing as libmissing
+from pandas._libs import (
+    Timedelta,
+    missing as libmissing,
+)
+from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import (
@@ -17,17 +24,20 @@ from pandas.core.dtypes.common import (
     is_list_like,
 )
 
-from pandas.core import ops
-
-from .masked import BaseMaskedArray, BaseMaskedDtype
+from pandas.core.arrays.masked import (
+    BaseMaskedArray,
+    BaseMaskedDtype,
+)
 
 if TYPE_CHECKING:
     import pyarrow
 
+T = TypeVar("T", bound="NumericArray")
+
 
 class NumericDtype(BaseMaskedDtype):
     def __from_arrow__(
-        self, array: Union[pyarrow.Array, pyarrow.ChunkedArray]
+        self, array: pyarrow.Array | pyarrow.ChunkedArray
     ) -> BaseMaskedArray:
         """
         Construct IntegerArray/FloatingArray from pyarrow Array/ChunkedArray.
@@ -54,7 +64,11 @@ class NumericDtype(BaseMaskedDtype):
             num_arr = array_class(data.copy(), ~mask, copy=False)
             results.append(num_arr)
 
-        if len(results) == 1:
+        if not results:
+            return array_class(
+                np.array([], dtype=self.numpy_dtype), np.array([], dtype=np.bool_)
+            )
+        elif len(results) == 1:
             # avoid additional copy in _concat_same_type
             return results[0]
         else:
@@ -138,54 +152,51 @@ class NumericArray(BaseMaskedArray):
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
 
-    def __array_ufunc__(self, ufunc, method: str, *inputs, **kwargs):
-        # For NumericArray inputs, we apply the ufunc to ._data
-        # and mask the result.
-        if method == "reduce":
-            # Not clear how to handle missing values in reductions. Raise.
-            raise NotImplementedError("The 'reduce' method is not supported.")
-        out = kwargs.get("out", ())
-
-        for x in inputs + out:
-            if not isinstance(x, self._HANDLED_TYPES + (NumericArray,)):
-                return NotImplemented
-
-        # for binary ops, use our custom dunder methods
-        result = ops.maybe_dispatch_ufunc_to_dunder_op(
-            self, ufunc, method, *inputs, **kwargs
-        )
-        if result is not NotImplemented:
-            return result
-
-        mask = np.zeros(len(self), dtype=bool)
-        inputs2: List[Any] = []
-        for x in inputs:
-            if isinstance(x, NumericArray):
-                mask |= x._mask
-                inputs2.append(x._data)
+    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
+        result = super()._reduce(name, skipna=skipna, **kwargs)
+        if isinstance(result, np.ndarray):
+            axis = kwargs["axis"]
+            if skipna:
+                # we only retain mask for all-NA rows/columns
+                mask = self._mask.all(axis=axis)
             else:
-                inputs2.append(x)
+                mask = self._mask.any(axis=axis)
+            return type(self)(result, mask=mask)
+        return result
 
-        def reconstruct(x):
-            # we don't worry about scalar `x` here, since we
-            # raise for reduce up above.
+    def __neg__(self):
+        return type(self)(-self._data, self._mask.copy())
 
-            if is_integer_dtype(x.dtype):
-                from pandas.core.arrays import IntegerArray
+    def __pos__(self):
+        return self
 
-                m = mask.copy()
-                return IntegerArray(x, m)
-            elif is_float_dtype(x.dtype):
-                from pandas.core.arrays import FloatingArray
+    def __abs__(self):
+        return type(self)(abs(self._data), self._mask.copy())
 
-                m = mask.copy()
-                return FloatingArray(x, m)
-            else:
-                x[mask] = np.nan
-            return x
+    def round(self: T, decimals: int = 0, *args, **kwargs) -> T:
+        """
+        Round each value in the array a to the given number of decimals.
 
-        result = getattr(ufunc, method)(*inputs2, **kwargs)
-        if isinstance(result, tuple):
-            return tuple(reconstruct(x) for x in result)
-        else:
-            return reconstruct(result)
+        Parameters
+        ----------
+        decimals : int, default 0
+            Number of decimal places to round to. If decimals is negative,
+            it specifies the number of positions to the left of the decimal point.
+        *args, **kwargs
+            Additional arguments and keywords have no effect but might be
+            accepted for compatibility with NumPy.
+
+        Returns
+        -------
+        NumericArray
+            Rounded values of the NumericArray.
+
+        See Also
+        --------
+        numpy.around : Round values of an np.array.
+        DataFrame.round : Round values of a DataFrame.
+        Series.round : Round values of a Series.
+        """
+        nv.validate_round(args, kwargs)
+        values = np.round(self._data, decimals=decimals, **kwargs)
+        return type(self)(values, self._mask.copy())

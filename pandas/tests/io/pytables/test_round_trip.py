@@ -1,6 +1,9 @@
 import datetime
 import re
-from warnings import catch_warnings, simplefilter
+from warnings import (
+    catch_warnings,
+    simplefilter,
+)
 
 import numpy as np
 import pytest
@@ -347,7 +350,7 @@ def test_timeseries_preepoch(setup_path):
     try:
         _check_roundtrip(ts, tm.assert_series_equal, path=setup_path)
     except OverflowError:
-        pytest.skip("known failer on some windows platforms")
+        pytest.skip("known failure on some windows platforms")
 
 
 @pytest.mark.parametrize(

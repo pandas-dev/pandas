@@ -6,47 +6,52 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     DefaultDict,
-    Dict,
+    Hashable,
     Iterable,
-    List,
-    Optional,
-    Tuple,
-    Union,
+    Sequence,
 )
 
 import numpy as np
 
-from pandas._libs import algos, hashtable, lib
+from pandas._libs import (
+    algos,
+    hashtable,
+    lib,
+)
 from pandas._libs.hashtable import unique_label_indices
-from pandas._typing import IndexKeyFunc
+from pandas._typing import (
+    IndexKeyFunc,
+    Shape,
+    npt,
+)
 
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
     is_extension_array_dtype,
 )
-from pandas.core.dtypes.generic import ABCMultiIndex
+from pandas.core.dtypes.generic import (
+    ABCMultiIndex,
+    ABCRangeIndex,
+)
 from pandas.core.dtypes.missing import isna
 
-import pandas.core.algorithms as algorithms
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
     from pandas import MultiIndex
     from pandas.core.indexes.base import Index
 
-_INT64_MAX = np.iinfo(np.int64).max
-
 
 def get_indexer_indexer(
     target: Index,
-    level: Union[str, int, List[str], List[int]],
-    ascending: bool,
+    level: str | int | list[str] | list[int],
+    ascending: Sequence[bool | int] | bool | int,
     kind: str,
     na_position: str,
     sort_remaining: bool,
     key: IndexKeyFunc,
-) -> Optional[np.array]:
+) -> np.ndarray | None:
     """
     Helper method that return the indexer according to input parameters for
     the sort_index method of DataFrame and Series.
@@ -91,7 +96,9 @@ def get_indexer_indexer(
     return indexer
 
 
-def get_group_index(labels, shape, sort: bool, xnull: bool):
+def get_group_index(
+    labels, shape: Shape, sort: bool, xnull: bool
+) -> npt.NDArray[np.int64]:
     """
     For the particular label_list, gets the offsets into the hypothetical list
     representing the totally ordered cartesian product of all possible label
@@ -106,7 +113,7 @@ def get_group_index(labels, shape, sort: bool, xnull: bool):
     ----------
     labels : sequence of arrays
         Integers identifying levels at each location
-    shape : sequence of ints
+    shape : tuple[int, ...]
         Number of unique levels at each location
     sort : bool
         If the ranks of returned ids should match lexical ranks of labels
@@ -128,37 +135,40 @@ def get_group_index(labels, shape, sort: bool, xnull: bool):
         acc = 1
         for i, mul in enumerate(shape):
             acc *= int(mul)
-            if not acc < _INT64_MAX:
+            if not acc < lib.i8max:
                 return i
         return len(shape)
 
-    def maybe_lift(lab, size):
+    def maybe_lift(lab, size) -> tuple[np.ndarray, int]:
         # promote nan values (assigned -1 label in lab array)
         # so that all output values are non-negative
         return (lab + 1, size + 1) if (lab == -1).any() else (lab, size)
 
-    labels = map(ensure_int64, labels)
+    labels = [ensure_int64(x) for x in labels]
+    lshape = list(shape)
     if not xnull:
-        labels, shape = map(list, zip(*map(maybe_lift, labels, shape)))
+        for i, (lab, size) in enumerate(zip(labels, shape)):
+            lab, size = maybe_lift(lab, size)
+            labels[i] = lab
+            lshape[i] = size
 
     labels = list(labels)
-    shape = list(shape)
 
     # Iteratively process all the labels in chunks sized so less
-    # than _INT64_MAX unique int ids will be required for each chunk
+    # than lib.i8max unique int ids will be required for each chunk
     while True:
         # how many levels can be done without overflow:
-        nlev = _int64_cut_off(shape)
+        nlev = _int64_cut_off(lshape)
 
         # compute flat ids for the first `nlev` levels
-        stride = np.prod(shape[1:nlev], dtype="i8")
+        stride = np.prod(lshape[1:nlev], dtype="i8")
         out = stride * labels[0].astype("i8", subok=False, copy=False)
 
         for i in range(1, nlev):
-            if shape[i] == 0:
-                stride = 0
+            if lshape[i] == 0:
+                stride = np.int64(0)
             else:
-                stride //= shape[i]
+                stride //= lshape[i]
             out += labels[i] * stride
 
         if xnull:  # exclude nulls
@@ -167,7 +177,7 @@ def get_group_index(labels, shape, sort: bool, xnull: bool):
                 mask |= lab == -1
             out[mask] = -1
 
-        if nlev == len(shape):  # all levels done!
+        if nlev == len(lshape):  # all levels done!
             break
 
         # compress what has been done so far in order to avoid overflow
@@ -175,12 +185,14 @@ def get_group_index(labels, shape, sort: bool, xnull: bool):
         comp_ids, obs_ids = compress_group_index(out, sort=sort)
 
         labels = [comp_ids] + labels[nlev:]
-        shape = [len(obs_ids)] + shape[nlev:]
+        lshape = [len(obs_ids)] + lshape[nlev:]
 
     return out
 
 
-def get_compressed_ids(labels, sizes):
+def get_compressed_ids(
+    labels, sizes: Shape
+) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.int64]]:
     """
     Group_index is offsets into cartesian product of all possible labels. This
     space can be huge, so this function compresses it, by computing offsets
@@ -189,11 +201,14 @@ def get_compressed_ids(labels, sizes):
     Parameters
     ----------
     labels : list of label arrays
-    sizes : list of size of the levels
+    sizes : tuple[int] of size of the levels
 
     Returns
     -------
-    tuple of (comp_ids, obs_group_ids)
+    np.ndarray[np.intp]
+        comp_ids
+    np.ndarray[np.int64]
+        obs_group_ids
     """
     ids = get_group_index(labels, sizes, sort=True, xnull=False)
     return compress_group_index(ids, sort=True)
@@ -204,7 +219,7 @@ def is_int64_overflow_possible(shape) -> bool:
     for x in shape:
         the_prod *= int(x)
 
-    return the_prod >= _INT64_MAX
+    return the_prod >= lib.i8max
 
 
 def decons_group_index(comp_labels, shape):
@@ -227,12 +242,15 @@ def decons_group_index(comp_labels, shape):
     return label_list[::-1]
 
 
-def decons_obs_group_ids(comp_ids, obs_ids, shape, labels, xnull: bool):
+def decons_obs_group_ids(
+    comp_ids: npt.NDArray[np.intp], obs_ids, shape, labels, xnull: bool
+):
     """
     Reconstruct labels from observed group ids.
 
     Parameters
     ----------
+    comp_ids : np.ndarray[np.intp]
     xnull : bool
         If nulls are excluded; i.e. -1 labels are passed through.
     """
@@ -245,12 +263,13 @@ def decons_obs_group_ids(comp_ids, obs_ids, shape, labels, xnull: bool):
         out = decons_group_index(obs_ids, shape)
         return out if xnull or not lift.any() else [x - y for x, y in zip(out, lift)]
 
-    i = unique_label_indices(comp_ids)
-    i8copy = lambda a: a.astype("i8", subok=False, copy=True)
-    return [i8copy(lab[i]) for lab in labels]
+    indexer = unique_label_indices(comp_ids)
+    return [lab[indexer].astype(np.intp, subok=False, copy=True) for lab in labels]
 
 
-def indexer_from_factorized(labels, shape, compress: bool = True):
+def indexer_from_factorized(
+    labels, shape: Shape, compress: bool = True
+) -> npt.NDArray[np.intp]:
     ids = get_group_index(labels, shape, sort=True, xnull=False)
 
     if not compress:
@@ -263,8 +282,8 @@ def indexer_from_factorized(labels, shape, compress: bool = True):
 
 
 def lexsort_indexer(
-    keys, orders=None, na_position: str = "last", key: Optional[Callable] = None
-):
+    keys, orders=None, na_position: str = "last", key: Callable | None = None
+) -> npt.NDArray[np.intp]:
     """
     Performs lexical sorting on a set of keys
 
@@ -272,7 +291,7 @@ def lexsort_indexer(
     ----------
     keys : sequence of arrays
         Sequence of ndarrays to be sorted by the indexer
-    orders : boolean or list of booleans, optional
+    orders : bool or list of booleans, optional
         Determines the sorting order for each element in keys. If a list,
         it must be the same length as keys. This determines whether the
         corresponding element in keys should be sorted in ascending
@@ -284,6 +303,10 @@ def lexsort_indexer(
         Callable key function applied to every element in keys before sorting
 
         .. versionadded:: 1.0.0
+
+    Returns
+    -------
+    np.ndarray[np.intp]
     """
     from pandas.core.arrays import Categorical
 
@@ -322,7 +345,7 @@ def lexsort_indexer(
         shape.append(n)
         labels.append(codes)
 
-    return indexer_from_factorized(labels, shape)
+    return indexer_from_factorized(labels, tuple(shape))
 
 
 def nargsort(
@@ -330,9 +353,9 @@ def nargsort(
     kind: str = "quicksort",
     ascending: bool = True,
     na_position: str = "last",
-    key: Optional[Callable] = None,
-    mask: Optional[np.ndarray] = None,
-):
+    key: Callable | None = None,
+    mask: np.ndarray | None = None,
+) -> npt.NDArray[np.intp]:
     """
     Intended to be a drop-in replacement for np.argsort which handles NaNs.
 
@@ -348,6 +371,10 @@ def nargsort(
     key : Optional[Callable], default None
     mask : Optional[np.ndarray], default None
         Passed when called by ExtensionArray.argsort.
+
+    Returns
+    -------
+    np.ndarray[np.intp]
     """
 
     if key is not None:
@@ -361,9 +388,12 @@ def nargsort(
             mask=mask,
         )
 
-    items = extract_array(items)
+    if isinstance(items, ABCRangeIndex):
+        return items.argsort(ascending=ascending)  # TODO: test coverage with key?
+    elif not isinstance(items, ABCMultiIndex):
+        items = extract_array(items)
     if mask is None:
-        mask = np.asarray(isna(items))
+        mask = np.asarray(isna(items))  # TODO: does this exclude MultiIndex too?
 
     if is_extension_array_dtype(items):
         return items.argsort(ascending=ascending, kind=kind, na_position=na_position)
@@ -389,10 +419,10 @@ def nargsort(
         indexer = np.concatenate([nan_idx, indexer])
     else:
         raise ValueError(f"invalid na_position: {na_position}")
-    return indexer
+    return ensure_platform_int(indexer)
 
 
-def nargminmax(values, method: str):
+def nargminmax(values, method: str, axis: int = 0):
     """
     Implementation of np.argmin/argmax but for ExtensionArray and which
     handles missing values.
@@ -401,6 +431,7 @@ def nargminmax(values, method: str):
     ----------
     values : ExtensionArray
     method : {"argmax", "argmin"}
+    axis : int, default 0
 
     Returns
     -------
@@ -412,7 +443,23 @@ def nargminmax(values, method: str):
     mask = np.asarray(isna(values))
     values = values._values_for_argsort()
 
-    idx = np.arange(len(values))
+    if values.ndim > 1:
+        if mask.any():
+            if axis == 1:
+                zipped = zip(values, mask)
+            else:
+                zipped = zip(values.T, mask.T)
+            return np.array([_nanargminmax(v, m, func) for v, m in zipped])
+        return func(values, axis=axis)
+
+    return _nanargminmax(values, mask, func)
+
+
+def _nanargminmax(values, mask, func) -> int:
+    """
+    See nanargminmax.__doc__.
+    """
+    idx = np.arange(values.shape[0])
     non_nans = values[~mask]
     non_nan_idx = idx[~mask]
 
@@ -468,7 +515,7 @@ def _ensure_key_mapped_multiindex(
     return type(index).from_arrays(mapped)
 
 
-def ensure_key_mapped(values, key: Optional[Callable], levels=None):
+def ensure_key_mapped(values, key: Callable | None, levels=None):
     """
     Applies a callable key function to the values function and checks
     that the resulting value has the same shape. Can be called on Index
@@ -513,14 +560,14 @@ def ensure_key_mapped(values, key: Optional[Callable], levels=None):
 
 
 def get_flattened_list(
-    comp_ids: np.ndarray,
+    comp_ids: npt.NDArray[np.intp],
     ngroups: int,
     levels: Iterable[Index],
     labels: Iterable[np.ndarray],
-) -> List[Tuple]:
+) -> list[tuple]:
     """Map compressed group id -> key tuple."""
     comp_ids = comp_ids.astype(np.int64, copy=False)
-    arrays: DefaultDict[int, List[int]] = defaultdict(list)
+    arrays: DefaultDict[int, list[int]] = defaultdict(list)
     for labs, level in zip(labels, levels):
         table = hashtable.Int64HashTable(ngroups)
         table.map(comp_ids, labs.astype(np.int64, copy=False))
@@ -530,8 +577,8 @@ def get_flattened_list(
 
 
 def get_indexer_dict(
-    label_list: List[np.ndarray], keys: List[Index]
-) -> Dict[Union[str, Tuple], np.ndarray]:
+    label_list: list[np.ndarray], keys: list[Index]
+) -> dict[Hashable, npt.NDArray[np.intp]]:
     """
     Returns
     -------
@@ -540,7 +587,7 @@ def get_indexer_dict(
     """
     shape = [len(x) for x in keys]
 
-    group_index = get_group_index(label_list, shape, sort=True, xnull=True)
+    group_index = get_group_index(label_list, tuple(shape), sort=True, xnull=True)
     if np.all(group_index == -1):
         # Short-circuit, lib.indices_fast will return the same
         return {}
@@ -562,7 +609,9 @@ def get_indexer_dict(
 # sorting levels...cleverly?
 
 
-def get_group_index_sorter(group_index, ngroups: int):
+def get_group_index_sorter(
+    group_index: npt.NDArray[np.intp], ngroups: int | None = None
+) -> npt.NDArray[np.intp]:
     """
     algos.groupsort_indexer implements `counting sort` and it is at least
     O(ngroups), where
@@ -575,25 +624,43 @@ def get_group_index_sorter(group_index, ngroups: int):
     Both algorithms are `stable` sort and that is necessary for correctness of
     groupby operations. e.g. consider:
         df.groupby(key)[col].transform('first')
+
+    Parameters
+    ----------
+    group_index : np.ndarray[np.intp]
+        signed integer dtype
+    ngroups : int or None, default None
+
+    Returns
+    -------
+    np.ndarray[np.intp]
     """
+    if ngroups is None:
+        ngroups = 1 + group_index.max()
     count = len(group_index)
     alpha = 0.0  # taking complexities literally; there may be
     beta = 1.0  # some room for fine-tuning these parameters
     do_groupsort = count > 0 and ((alpha + beta * ngroups) < (count * np.log(count)))
     if do_groupsort:
-        sorter, _ = algos.groupsort_indexer(ensure_int64(group_index), ngroups)
-        return ensure_platform_int(sorter)
+        sorter, _ = algos.groupsort_indexer(
+            ensure_platform_int(group_index),
+            ngroups,
+        )
+        # sorter _should_ already be intp, but mypy is not yet able to verify
     else:
-        return group_index.argsort(kind="mergesort")
+        sorter = group_index.argsort(kind="mergesort")
+    return ensure_platform_int(sorter)
 
 
-def compress_group_index(group_index, sort: bool = True):
+def compress_group_index(
+    group_index: npt.NDArray[np.int64], sort: bool = True
+) -> tuple[npt.NDArray[np.int64], npt.NDArray[np.int64]]:
     """
     Group_index is offsets into cartesian product of all possible labels. This
     space can be huge, so this function compresses it, by computing offsets
     (comp_ids) into the list of unique labels (obs_group_ids).
     """
-    size_hint = min(len(group_index), hashtable.SIZE_HINT_LIMIT)
+    size_hint = len(group_index)
     table = hashtable.Int64HashTable(size_hint)
 
     group_index = ensure_int64(group_index)
@@ -607,21 +674,34 @@ def compress_group_index(group_index, sort: bool = True):
     return ensure_int64(comp_ids), ensure_int64(obs_group_ids)
 
 
-def _reorder_by_uniques(uniques, labels):
+def _reorder_by_uniques(
+    uniques: npt.NDArray[np.int64], labels: npt.NDArray[np.intp]
+) -> tuple[npt.NDArray[np.int64], npt.NDArray[np.intp]]:
+    """
+    Parameters
+    ----------
+    uniques : np.ndarray[np.int64]
+    labels : np.ndarray[np.intp]
+
+    Returns
+    -------
+    np.ndarray[np.int64]
+    np.ndarray[np.intp]
+    """
     # sorter is index where elements ought to go
     sorter = uniques.argsort()
 
     # reverse_indexer is where elements came from
-    reverse_indexer = np.empty(len(sorter), dtype=np.int64)
+    reverse_indexer = np.empty(len(sorter), dtype=np.intp)
     reverse_indexer.put(sorter, np.arange(len(sorter)))
 
     mask = labels < 0
 
     # move labels to right locations (ie, unsort ascending labels)
-    labels = algorithms.take_nd(reverse_indexer, labels, allow_fill=False)
+    labels = reverse_indexer.take(labels)
     np.putmask(labels, mask, -1)
 
     # sort observed ids
-    uniques = algorithms.take_nd(uniques, sorter, allow_fill=False)
+    uniques = uniques.take(sorter)
 
     return uniques, labels

@@ -8,6 +8,7 @@ from typing import Pattern
 import numpy as np
 
 from pandas._libs import lib
+from pandas._typing import ArrayLike
 
 is_bool = lib.is_bool
 
@@ -314,7 +315,7 @@ def is_named_tuple(obj) -> bool:
     >>> is_named_tuple((1, 2))
     False
     """
-    return isinstance(obj, tuple) and hasattr(obj, "_fields")
+    return isinstance(obj, abc.Sequence) and hasattr(obj, "_fields")
 
 
 def is_hashable(obj) -> bool:
@@ -420,3 +421,31 @@ def is_dataclass(item):
         return is_dataclass(item) and not isinstance(item, type)
     except ImportError:
         return False
+
+
+def is_inferred_bool_dtype(arr: ArrayLike) -> bool:
+    """
+    Check if this is a ndarray[bool] or an ndarray[object] of bool objects.
+
+    Parameters
+    ----------
+    arr : np.ndarray or ExtensionArray
+
+    Returns
+    -------
+    bool
+
+    Notes
+    -----
+    This does not include the special treatment is_bool_dtype uses for
+    Categorical.
+    """
+    if not isinstance(arr, np.ndarray):
+        return False
+
+    dtype = arr.dtype
+    if dtype == np.dtype(bool):
+        return True
+    elif dtype == np.dtype("object"):
+        return lib.is_bool_array(arr.ravel("K"))
+    return False

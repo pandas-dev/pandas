@@ -4,7 +4,11 @@ from pandas._libs.tslibs.dtypes import _period_code_map
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 from pandas.errors import OutOfBoundsDatetime
 
-from pandas import Period, Timestamp, offsets
+from pandas import (
+    Period,
+    Timestamp,
+    offsets,
+)
 
 
 class TestFreqConversion:
@@ -423,9 +427,6 @@ class TestFreqConversion:
         ival_D_friday = Period(freq="D", year=2007, month=1, day=5)
         ival_D_saturday = Period(freq="D", year=2007, month=1, day=6)
         ival_D_sunday = Period(freq="D", year=2007, month=1, day=7)
-
-        # TODO: unused?
-        # ival_D_monday = Period(freq='D', year=2007, month=1, day=8)
 
         ival_B_friday = Period(freq="B", year=2007, month=1, day=5)
         ival_B_monday = Period(freq="B", year=2007, month=1, day=8)

@@ -8,7 +8,10 @@ from pandas.compat import np_version_under1p20
 import pandas as pd
 import pandas._testing as tm
 from pandas.core import ops
-from pandas.core.arrays.sparse import SparseArray, SparseDtype
+from pandas.core.arrays.sparse import (
+    SparseArray,
+    SparseDtype,
+)
 
 
 @pytest.fixture(params=["integer", "block"])
@@ -124,8 +127,13 @@ class TestSparseArrayArithmetics:
 
         if not np_version_under1p20:
             if op in [operator.floordiv, ops.rfloordiv]:
-                mark = pytest.mark.xfail(strict=False, reason="GH#38172")
-                request.node.add_marker(mark)
+                if op is operator.floordiv and scalar != 0:
+                    pass
+                elif op is ops.rfloordiv and scalar == 0:
+                    pass
+                else:
+                    mark = pytest.mark.xfail(raises=AssertionError, reason="GH#38172")
+                    request.node.add_marker(mark)
 
         values = self._base([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
 
@@ -169,10 +177,13 @@ class TestSparseArrayArithmetics:
         # when sp_index are the same
         op = all_arithmetic_functions
 
-        if not np_version_under1p20:
-            if op in [operator.floordiv, ops.rfloordiv]:
-                mark = pytest.mark.xfail(strict=False, reason="GH#38172")
-                request.node.add_marker(mark)
+        if (
+            not np_version_under1p20
+            and op is ops.rfloordiv
+            and not (mix and kind == "block")
+        ):
+            mark = pytest.mark.xfail(raises=AssertionError, reason="GH#38172")
+            request.node.add_marker(mark)
 
         values = self._base([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
         rvalues = self._base([np.nan, 2, 3, 4, np.nan, 0, 1, 3, 2, np.nan])
@@ -349,10 +360,13 @@ class TestSparseArrayArithmetics:
     def test_mixed_array_float_int(self, kind, mix, all_arithmetic_functions, request):
         op = all_arithmetic_functions
 
-        if not np_version_under1p20:
-            if op in [operator.floordiv, ops.rfloordiv] and mix:
-                mark = pytest.mark.xfail(strict=True, reason="GH#38172")
-                request.node.add_marker(mark)
+        if (
+            not np_version_under1p20
+            and op in [operator.floordiv, ops.rfloordiv]
+            and mix
+        ):
+            mark = pytest.mark.xfail(raises=AssertionError, reason="GH#38172")
+            request.node.add_marker(mark)
 
         rdtype = "int64"
 
@@ -515,3 +529,11 @@ def test_unary_op(op, fill_value):
     result = op(sparray)
     expected = SparseArray(op(arr), fill_value=op(fill_value))
     tm.assert_sp_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("cons", [list, np.array, SparseArray])
+def test_mismatched_length_cmp_op(cons):
+    left = SparseArray([True, True])
+    right = cons([True, True, True])
+    with pytest.raises(ValueError, match="operands have mismatched length"):
+        left & right

@@ -9,9 +9,16 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
-from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
+from pandas.core.arrays import (
+    DatetimeArray,
+    PeriodArray,
+    TimedeltaArray,
+)
 
 
 class TestDatetimeLikeStatReductions:
@@ -256,7 +263,8 @@ class TestSeriesStatReductions:
             codes=[[0, 0, 0, 0, 0, 0], [0, 1, 2, 0, 1, 2], [0, 1, 0, 1, 0, 1]],
         )
         s = Series(np.random.randn(6), index=index)
-        tm.assert_almost_equal(s.kurt(), s.kurt(level=0)["bar"])
+        with tm.assert_produces_warning(FutureWarning):
+            tm.assert_almost_equal(s.kurt(), s.kurt(level=0)["bar"])
 
         # test corner cases, kurt() returns NaN unless there's at least 4
         # values

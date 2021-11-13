@@ -5,8 +5,18 @@ import itertools
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Period, Series, Timedelta, date_range
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Period,
+    Series,
+    Timedelta,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -52,12 +62,13 @@ class TestDataFrameReshape:
         expected = expected[["a", "b"]]
         tm.assert_frame_equal(result, expected)
 
-    def test_unstack_not_consolidated(self):
+    def test_unstack_not_consolidated(self, using_array_manager):
         # Gh#34708
         df = DataFrame({"x": [1, 2, np.NaN], "y": [3.0, 4, np.NaN]})
         df2 = df[["x"]]
         df2["y"] = df["y"]
-        assert len(df2._mgr.blocks) == 2
+        if not using_array_manager:
+            assert len(df2._mgr.blocks) == 2
 
         res = df2.unstack()
         expected = df.unstack()
@@ -150,7 +161,7 @@ class TestDataFrameReshape:
     def test_unstack_fill_frame_datetime(self):
 
         # Test unstacking with date times
-        dv = pd.date_range("2012-01-01", periods=4).values
+        dv = date_range("2012-01-01", periods=4).values
         data = Series(dv)
         data.index = MultiIndex.from_tuples(
             [("x", "a"), ("x", "b"), ("y", "b"), ("z", "a")]
@@ -244,7 +255,7 @@ class TestDataFrameReshape:
         tm.assert_frame_equal(result, expected)
 
         # Fill with non-category results in a ValueError
-        msg = r"'fill_value=d' is not present in"
+        msg = r"Cannot setitem on a Categorical with a new category \(d\)"
         with pytest.raises(TypeError, match=msg):
             data.unstack(fill_value="d")
 
@@ -347,7 +358,7 @@ class TestDataFrameReshape:
                 "E": Series([1.0, 50.0, 100.0]).astype("float32"),
                 "F": Series([3.0, 4.0, 5.0]).astype("float64"),
                 "G": False,
-                "H": Series([1, 200, 923442], dtype="int8"),
+                "H": Series([1, 200, 923442]).astype("int8"),
             }
         )
 
@@ -600,7 +611,7 @@ class TestDataFrameReshape:
                     "A": ["a"] * 5,
                     "C": c,
                     "D": d,
-                    "B": pd.date_range("2012-01-01", periods=5),
+                    "B": date_range("2012-01-01", periods=5),
                 }
             )
 
@@ -739,7 +750,8 @@ class TestDataFrameReshape:
         expected = df.unstack(["i3"]).unstack(["i2"])
         tm.assert_frame_equal(result, expected)
 
-    def test_unstack_nan_index(self):  # GH7466
+    def test_unstack_nan_index1(self):
+        # GH7466
         def cast(val):
             val_str = "" if val != val else val
             return f"{val_str:1}"
@@ -825,6 +837,7 @@ class TestDataFrameReshape:
                 for col in ["4th", "5th"]:
                     verify(udf[col])
 
+    def test_unstack_nan_index2(self):
         # GH7403
         df = DataFrame({"A": list("aaaabbbb"), "B": range(8), "C": range(8)})
         df.iloc[3, 1] = np.NaN
@@ -867,6 +880,7 @@ class TestDataFrameReshape:
         right = DataFrame(vals, columns=cols, index=idx)
         tm.assert_frame_equal(left, right)
 
+    def test_unstack_nan_index3(self, using_array_manager):
         # GH7401
         df = DataFrame(
             {
@@ -888,8 +902,13 @@ class TestDataFrameReshape:
         )
 
         right = DataFrame(vals, columns=cols, index=idx)
+        if using_array_manager:
+            # INFO(ArrayManager) with ArrayManager preserve dtype where possible
+            cols = right.columns[[1, 2, 3, 5]]
+            right[cols] = right[cols].astype(df["C"].dtype)
         tm.assert_frame_equal(left, right)
 
+    def test_unstack_nan_index4(self):
         # GH4862
         vals = [
             ["Hg", np.nan, np.nan, 680585148],
@@ -930,11 +949,13 @@ class TestDataFrameReshape:
         left = df.loc[17264:].copy().set_index(["s_id", "dosage", "agent"])
         tm.assert_frame_equal(left.unstack(), right)
 
+    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) MultiIndex bug
+    def test_unstack_nan_index5(self):
         # GH9497 - multiple unstack with nulls
         df = DataFrame(
             {
                 "1st": [1, 2, 1, 2, 1, 2],
-                "2nd": pd.date_range("2014-02-01", periods=6, freq="D"),
+                "2nd": date_range("2014-02-01", periods=6, freq="D"),
                 "jim": 100 + np.arange(6),
                 "joe": (np.random.randn(6) * 10).round(2),
             }
@@ -1041,6 +1062,27 @@ class TestDataFrameReshape:
         # it's tested elsewhere.
         midx = MultiIndex.from_product([df.index, cidx])
         expected = Series([10, 11, 12], index=midx)
+
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("ordered", [False, True])
+    @pytest.mark.parametrize(
+        "labels,data",
+        [
+            (list("xyz"), [10, 11, 12, 13, 14, 15]),
+            (list("zyx"), [14, 15, 12, 13, 10, 11]),
+        ],
+    )
+    def test_stack_multi_preserve_categorical_dtype(self, ordered, labels, data):
+        # GH-36991
+        cidx = pd.CategoricalIndex(labels, categories=sorted(labels), ordered=ordered)
+        cidx2 = pd.CategoricalIndex(["u", "v"], ordered=ordered)
+        midx = MultiIndex.from_product([cidx, cidx2])
+        df = DataFrame([sorted(data)], columns=midx)
+        result = df.stack([0, 1])
+
+        s_cidx = pd.CategoricalIndex(sorted(labels), ordered=ordered)
+        expected = Series(data, index=MultiIndex.from_product([[0], s_cidx, cidx2]))
 
         tm.assert_series_equal(result, expected)
 
@@ -1163,9 +1205,7 @@ def test_unstack_timezone_aware_values():
 
 def test_stack_timezone_aware_values():
     # GH 19420
-    ts = pd.date_range(
-        freq="D", start="20180101", end="20180103", tz="America/New_York"
-    )
+    ts = date_range(freq="D", start="20180101", end="20180103", tz="America/New_York")
     df = DataFrame({"A": ts}, index=["a", "b", "c"])
     result = df.stack()
     expected = Series(
@@ -1243,6 +1283,21 @@ def test_stack_positional_level_duplicate_column_names():
     expected = DataFrame([[1, 1], [1, 1]], index=new_index, columns=new_columns)
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_unstack_non_slice_like_blocks(using_array_manager):
+    # Case where the mgr_locs of a DataFrame's underlying blocks are not slice-like
+
+    mi = MultiIndex.from_product([range(5), ["A", "B", "C"]])
+    df = DataFrame(np.random.randn(15, 4), index=mi)
+    df[1] = df[1].astype(np.int64)
+    if not using_array_manager:
+        assert any(not x.mgr_locs.is_slice_like for x in df._mgr.blocks)
+
+    res = df.unstack()
+
+    expected = pd.concat([df[n].unstack() for n in range(4)], keys=range(4), axis=1)
+    tm.assert_frame_equal(res, expected)
 
 
 class TestStackUnstackMultiLevel:
@@ -1422,9 +1477,9 @@ Sat,Dinner,No,139.63,45
 Sat,Dinner,Yes,120.77,42
 Sun,Dinner,No,180.57,57
 Sun,Dinner,Yes,66.82,19
-Thur,Dinner,No,3.0,1
-Thur,Lunch,No,117.32,44
-Thur,Lunch,Yes,51.51,17"""
+Thu,Dinner,No,3.0,1
+Thu,Lunch,No,117.32,44
+Thu,Lunch,Yes,51.51,17"""
 
         df = pd.read_csv(StringIO(data)).set_index(["day", "time", "smoker"])
 
@@ -1450,7 +1505,7 @@ Thur,Lunch,Yes,51.51,17"""
     def test_unstack_bug(self):
         df = DataFrame(
             {
-                "state": ["naive", "naive", "naive", "activ", "activ", "activ"],
+                "state": ["naive", "naive", "naive", "active", "active", "active"],
                 "exp": ["a", "b", "b", "b", "a", "a"],
                 "barcode": [1, 2, 3, 4, 1, 3],
                 "v": ["hi", "hi", "bye", "bye", "bye", "peace"],
@@ -1881,7 +1936,7 @@ Thur,Lunch,Yes,51.51,17"""
         result = s.unstack(4)
         assert result.shape == (500, 2)
 
-    def test_unstack_with_missing_int_cast_to_float(self):
+    def test_unstack_with_missing_int_cast_to_float(self, using_array_manager):
         # https://github.com/pandas-dev/pandas/issues/37115
         df = DataFrame(
             {
@@ -1893,7 +1948,8 @@ Thur,Lunch,Yes,51.51,17"""
 
         # add another int column to get 2 blocks
         df["is_"] = 1
-        assert len(df._mgr.blocks) == 2
+        if not using_array_manager:
+            assert len(df._mgr.blocks) == 2
 
         result = df.unstack("b")
         result[("is_", "ca")] = result[("is_", "ca")].fillna(0)
@@ -1906,6 +1962,10 @@ Thur,Lunch,Yes,51.51,17"""
                 names=[None, "b"],
             ),
         )
+        if using_array_manager:
+            # INFO(ArrayManager) with ArrayManager preserve dtype where possible
+            expected[("v", "cb")] = expected[("v", "cb")].astype("int64")
+            expected[("is_", "cb")] = expected[("is_", "cb")].astype("int64")
         tm.assert_frame_equal(result, expected)
 
     def test_unstack_with_level_has_nan(self):
@@ -1931,3 +1991,135 @@ Thur,Lunch,Yes,51.51,17"""
         )
 
         tm.assert_index_equal(result, expected)
+
+    def test_stack_nan_in_multiindex_columns(self):
+        # GH#39481
+        df = DataFrame(
+            np.zeros([1, 5]),
+            columns=MultiIndex.from_tuples(
+                [
+                    (0, None, None),
+                    (0, 2, 0),
+                    (0, 2, 1),
+                    (0, 3, 0),
+                    (0, 3, 1),
+                ],
+            ),
+        )
+        result = df.stack(2)
+        expected = DataFrame(
+            [[0.0, np.nan, np.nan], [np.nan, 0.0, 0.0], [np.nan, 0.0, 0.0]],
+            index=Index([(0, None), (0, 0), (0, 1)]),
+            columns=Index([(0, None), (0, 2), (0, 3)]),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_multi_level_stack_categorical(self):
+        # GH 15239
+        midx = MultiIndex.from_arrays(
+            [
+                ["A"] * 2 + ["B"] * 2,
+                pd.Categorical(list("abab")),
+                pd.Categorical(list("ccdd")),
+            ]
+        )
+        df = DataFrame(np.arange(8).reshape(2, 4), columns=midx)
+        result = df.stack([1, 2])
+        expected = DataFrame(
+            [
+                [0, np.nan],
+                [np.nan, 2],
+                [1, np.nan],
+                [np.nan, 3],
+                [4, np.nan],
+                [np.nan, 6],
+                [5, np.nan],
+                [np.nan, 7],
+            ],
+            columns=["A", "B"],
+            index=MultiIndex.from_arrays(
+                [
+                    [0] * 4 + [1] * 4,
+                    pd.Categorical(list("aabbaabb")),
+                    pd.Categorical(list("cdcdcdcd")),
+                ]
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_stack_nan_level(self):
+        # GH 9406
+        df_nan = DataFrame(
+            np.arange(4).reshape(2, 2),
+            columns=MultiIndex.from_tuples(
+                [("A", np.nan), ("B", "b")], names=["Upper", "Lower"]
+            ),
+            index=Index([0, 1], name="Num"),
+            dtype=np.float64,
+        )
+        result = df_nan.stack()
+        expected = DataFrame(
+            [[0.0, np.nan], [np.nan, 1], [2.0, np.nan], [np.nan, 3.0]],
+            columns=Index(["A", "B"], name="Upper"),
+            index=MultiIndex.from_tuples(
+                [(0, np.nan), (0, "b"), (1, np.nan), (1, "b")], names=["Num", "Lower"]
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_unstack_categorical_columns(self):
+        # GH 14018
+        idx = MultiIndex.from_product([["A"], [0, 1]])
+        df = DataFrame({"cat": pd.Categorical(["a", "b"])}, index=idx)
+        result = df.unstack()
+        expected = DataFrame(
+            {
+                0: pd.Categorical(["a"], categories=["a", "b"]),
+                1: pd.Categorical(["b"], categories=["a", "b"]),
+            },
+            index=["A"],
+        )
+        expected.columns = MultiIndex.from_tuples([("cat", 0), ("cat", 1)])
+        tm.assert_frame_equal(result, expected)
+
+    def test_stack_unsorted(self):
+        # GH 16925
+        PAE = ["ITA", "FRA"]
+        VAR = ["A1", "A2"]
+        TYP = ["CRT", "DBT", "NET"]
+        MI = MultiIndex.from_product([PAE, VAR, TYP], names=["PAE", "VAR", "TYP"])
+
+        V = list(range(len(MI)))
+        DF = DataFrame(data=V, index=MI, columns=["VALUE"])
+
+        DF = DF.unstack(["VAR", "TYP"])
+        DF.columns = DF.columns.droplevel(0)
+        DF.loc[:, ("A0", "NET")] = 9999
+
+        result = DF.stack(["VAR", "TYP"]).sort_index()
+        expected = DF.sort_index(axis=1).stack(["VAR", "TYP"]).sort_index()
+        tm.assert_series_equal(result, expected)
+
+    def test_stack_nullable_dtype(self):
+        # GH#43561
+        columns = MultiIndex.from_product(
+            [["54511", "54515"], ["r", "t_mean"]], names=["station", "element"]
+        )
+        index = Index([1, 2, 3], name="time")
+
+        arr = np.array([[50, 226, 10, 215], [10, 215, 9, 220], [305, 232, 111, 220]])
+        df = DataFrame(arr, columns=columns, index=index, dtype=pd.Int64Dtype())
+
+        result = df.stack("station")
+
+        expected = df.astype(np.int64).stack("station").astype(pd.Int64Dtype())
+        tm.assert_frame_equal(result, expected)
+
+        # non-homogeneous case
+        df[df.columns[0]] = df[df.columns[0]].astype(pd.Float64Dtype())
+        result = df.stack("station")
+
+        # TODO(EA2D): we get object dtype because DataFrame.values can't
+        #  be an EA
+        expected = df.astype(object).stack("station")
+        tm.assert_frame_equal(result, expected)

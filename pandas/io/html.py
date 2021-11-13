@@ -4,15 +4,22 @@ HTML IO.
 
 """
 
+from __future__ import annotations
+
 from collections import abc
 import numbers
-import os
 import re
-from typing import Dict, List, Optional, Pattern, Sequence, Tuple, Union
+from typing import (
+    Pattern,
+    Sequence,
+)
 
 from pandas._typing import FilePathOrBuffer
 from pandas.compat._optional import import_optional_dependency
-from pandas.errors import AbstractMethodError, EmptyDataError
+from pandas.errors import (
+    AbstractMethodError,
+    EmptyDataError,
+)
 from pandas.util._decorators import deprecate_nonkeyword_arguments
 
 from pandas.core.dtypes.common import is_list_like
@@ -20,7 +27,14 @@ from pandas.core.dtypes.common import is_list_like
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.frame import DataFrame
 
-from pandas.io.common import is_url, stringify_path, urlopen, validate_header_arg
+from pandas.io.common import (
+    file_exists,
+    get_handle,
+    is_url,
+    stringify_path,
+    urlopen,
+    validate_header_arg,
+)
 from pandas.io.formats.printing import pprint_thing
 from pandas.io.parsers import TextParser
 
@@ -57,7 +71,7 @@ def _importers():
 _RE_WHITESPACE = re.compile(r"[\r\n]+|\s{2,}")
 
 
-def _remove_whitespace(s: str, regex=_RE_WHITESPACE) -> str:
+def _remove_whitespace(s: str, regex: Pattern = _RE_WHITESPACE) -> str:
     """
     Replace extra whitespace inside of a string with a single space.
 
@@ -76,7 +90,7 @@ def _remove_whitespace(s: str, regex=_RE_WHITESPACE) -> str:
     return regex.sub(" ", s.strip())
 
 
-def _get_skiprows(skiprows):
+def _get_skiprows(skiprows: int | Sequence[int] | slice | None):
     """
     Get an iterator given an integer, slice or container.
 
@@ -105,7 +119,7 @@ def _get_skiprows(skiprows):
     raise TypeError(f"{type(skiprows).__name__} is not a valid type for skipping rows")
 
 
-def _read(obj):
+def _read(obj: bytes | FilePathOrBuffer, encoding: str | None) -> str | bytes:
     """
     Try to read from a url, file or string.
 
@@ -117,22 +131,26 @@ def _read(obj):
     -------
     raw_text : str
     """
-    if is_url(obj):
-        with urlopen(obj) as url:
-            text = url.read()
-    elif hasattr(obj, "read"):
-        text = obj.read()
+    if (
+        is_url(obj)
+        or hasattr(obj, "read")
+        or (isinstance(obj, str) and file_exists(obj))
+    ):
+        # error: Argument 1 to "get_handle" has incompatible type "Union[str, bytes,
+        # Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper, mmap]]";
+        # expected "Union[PathLike[str], Union[str, Union[IO[Any], RawIOBase,
+        # BufferedIOBase, TextIOBase, TextIOWrapper, mmap]]]"
+        with get_handle(
+            obj, "r", encoding=encoding  # type: ignore[arg-type]
+        ) as handles:
+            text = handles.handle.read()
     elif isinstance(obj, (str, bytes)):
         text = obj
-        try:
-            if os.path.isfile(text):
-                with open(text, "rb") as f:
-                    return f.read()
-        except (TypeError, ValueError):
-            pass
     else:
         raise TypeError(f"Cannot read object of type '{type(obj).__name__}'")
-    return text
+    # error: Incompatible return value type (got "Union[Any, bytes, None, str]",
+    # expected "Union[str, bytes]")
+    return text  # type: ignore[return-value]
 
 
 class _HtmlFrameParser:
@@ -191,7 +209,14 @@ class _HtmlFrameParser:
     functionality.
     """
 
-    def __init__(self, io, match, attrs, encoding, displayed_only):
+    def __init__(
+        self,
+        io: FilePathOrBuffer,
+        match: str | Pattern,
+        attrs: dict[str, str] | None,
+        encoding: str,
+        displayed_only: bool,
+    ):
         self.io = io
         self.match = match
         self.attrs = attrs
@@ -431,7 +456,7 @@ class _HtmlFrameParser:
         to subsequent cells.
         """
         all_texts = []  # list of rows, each a list of str
-        remainder: List[Tuple[int, str, int]] = []  # list of (index, text, nrows)
+        remainder: list[tuple[int, str, int]] = []  # list of (index, text, nrows)
 
         for tr in rows:
             texts = []  # the output for this row
@@ -577,7 +602,7 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
         return table.select("tfoot tr")
 
     def _setup_build_doc(self):
-        raw_text = _read(self.io)
+        raw_text = _read(self.io, self.encoding)
         if not raw_text:
             raise ValueError(f"No text parsed from document: {self.io}")
         return raw_text
@@ -619,7 +644,6 @@ def _build_xpath_expr(attrs) -> str:
 
 
 _re_namespace = {"re": "http://exslt.org/regular-expressions"}
-_valid_schemes = "http", "file", "ftp"
 
 
 class _LxmlFrameParser(_HtmlFrameParser):
@@ -640,9 +664,6 @@ class _LxmlFrameParser(_HtmlFrameParser):
     Documentation strings for this class are in the base class
     :class:`_HtmlFrameParser`.
     """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
 
     def _text_getter(self, obj):
         return obj.text_content()
@@ -700,7 +721,11 @@ class _LxmlFrameParser(_HtmlFrameParser):
         pandas.io.html._HtmlFrameParser._build_doc
         """
         from lxml.etree import XMLSyntaxError
-        from lxml.html import HTMLParser, fromstring, parse
+        from lxml.html import (
+            HTMLParser,
+            fromstring,
+            parse,
+        )
 
         parser = HTMLParser(recover=True, encoding=self.encoding)
 
@@ -802,7 +827,7 @@ _valid_parsers = {
 }
 
 
-def _parser_dispatch(flavor):
+def _parser_dispatch(flavor: str | None) -> type[_HtmlFrameParser]:
     """
     Choose the parser based on the input flavor.
 
@@ -844,7 +869,7 @@ def _parser_dispatch(flavor):
 
 
 def _print_as_set(s) -> str:
-    arg = ", ".join(pprint_thing(el) for el in s)
+    arg = ", ".join([pprint_thing(el) for el in s])
     return f"{{{arg}}}"
 
 
@@ -920,21 +945,21 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, **kwargs):
 @deprecate_nonkeyword_arguments(version="2.0")
 def read_html(
     io: FilePathOrBuffer,
-    match: Union[str, Pattern] = ".+",
-    flavor: Optional[str] = None,
-    header: Optional[Union[int, Sequence[int]]] = None,
-    index_col: Optional[Union[int, Sequence[int]]] = None,
-    skiprows: Optional[Union[int, Sequence[int], slice]] = None,
-    attrs: Optional[Dict[str, str]] = None,
+    match: str | Pattern = ".+",
+    flavor: str | None = None,
+    header: int | Sequence[int] | None = None,
+    index_col: int | Sequence[int] | None = None,
+    skiprows: int | Sequence[int] | slice | None = None,
+    attrs: dict[str, str] | None = None,
     parse_dates: bool = False,
-    thousands: Optional[str] = ",",
-    encoding: Optional[str] = None,
+    thousands: str | None = ",",
+    encoding: str | None = None,
     decimal: str = ".",
-    converters: Optional[Dict] = None,
+    converters: dict | None = None,
     na_values=None,
     keep_default_na: bool = True,
     displayed_only: bool = True,
-) -> List[DataFrame]:
+) -> list[DataFrame]:
     r"""
     Read HTML tables into a ``list`` of ``DataFrame`` objects.
 

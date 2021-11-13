@@ -5,8 +5,12 @@ import pytest
 
 from pandas.core.dtypes.common import pandas_dtype
 
-from pandas import Float64Index, Index, Int64Index
+from pandas import Index
 import pandas._testing as tm
+from pandas.core.indexes.api import (
+    Float64Index,
+    Int64Index,
+)
 
 
 class TestAstype:

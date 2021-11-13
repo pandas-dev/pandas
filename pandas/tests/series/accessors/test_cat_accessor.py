@@ -6,17 +6,19 @@ import pytest
 from pandas import (
     Categorical,
     DataFrame,
-    DatetimeIndex,
     Index,
     Series,
-    TimedeltaIndex,
     Timestamp,
     date_range,
     period_range,
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.arrays import PeriodArray
+from pandas.core.arrays import (
+    DatetimeArray,
+    PeriodArray,
+    TimedeltaArray,
+)
 from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.indexes.accessors import Properties
 
@@ -48,7 +50,11 @@ class TestCatAccessor:
         assert not ser.cat.ordered, False
 
         exp = Categorical(["a", "b", np.nan, "a"], categories=["b", "a"])
-        return_value = ser.cat.set_categories(["b", "a"], inplace=True)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # issue #37643 inplace kwarg deprecated
+            return_value = ser.cat.set_categories(["b", "a"], inplace=True)
+
         assert return_value is None
         tm.assert_categorical_equal(ser.values, exp)
 
@@ -174,9 +180,9 @@ class TestCatAccessor:
         get_ops = lambda x: x._datetimelike_ops
 
         test_data = [
-            ("Datetime", get_ops(DatetimeIndex), s_dr, c_dr),
+            ("Datetime", get_ops(DatetimeArray), s_dr, c_dr),
             ("Period", get_ops(PeriodArray), s_pr, c_pr),
-            ("Timedelta", get_ops(TimedeltaIndex), s_tdr, c_tdr),
+            ("Timedelta", get_ops(TimedeltaArray), s_tdr, c_tdr),
         ]
 
         assert isinstance(c_dr.dt, Properties)
@@ -243,3 +249,43 @@ class TestCatAccessor:
         with pytest.raises(AttributeError, match=msg):
             invalid.dt
         assert not hasattr(invalid, "str")
+
+    def test_reorder_categories_updates_dtype(self):
+        # GH#43232
+        ser = Series(["a", "b", "c"], dtype="category")
+        orig_dtype = ser.dtype
+
+        # Need to construct this before calling reorder_categories inplace
+        expected = ser.cat.reorder_categories(["c", "b", "a"])
+
+        with tm.assert_produces_warning(FutureWarning, match="`inplace` parameter"):
+            ser.cat.reorder_categories(["c", "b", "a"], inplace=True)
+
+        assert not orig_dtype.categories.equals(ser.dtype.categories)
+        assert not orig_dtype.categories.equals(expected.dtype.categories)
+        assert ser.dtype == expected.dtype
+        assert ser.dtype.categories.equals(expected.dtype.categories)
+
+        tm.assert_series_equal(ser, expected)
+
+    def test_set_categories_setitem(self):
+        # GH#43334
+
+        df = DataFrame({"Survived": [1, 0, 1], "Sex": [0, 1, 1]}, dtype="category")
+
+        # change the dtype in-place
+        df["Survived"].cat.categories = ["No", "Yes"]
+        df["Sex"].cat.categories = ["female", "male"]
+
+        # values should not be coerced to NaN
+        assert list(df["Sex"]) == ["female", "male", "male"]
+        assert list(df["Survived"]) == ["Yes", "No", "Yes"]
+
+        df["Sex"] = Categorical(df["Sex"], categories=["female", "male"], ordered=False)
+        df["Survived"] = Categorical(
+            df["Survived"], categories=["No", "Yes"], ordered=False
+        )
+
+        # values should not be coerced to NaN
+        assert list(df["Sex"]) == ["female", "male", "male"]
+        assert list(df["Survived"]) == ["Yes", "No", "Yes"]

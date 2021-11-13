@@ -65,6 +65,7 @@ extensions = [
     "sphinx.ext.ifconfig",
     "sphinx.ext.linkcode",
     "nbsphinx",
+    "sphinx_panels",
     "contributors",  # custom pandas extension
 ]
 
@@ -91,8 +92,8 @@ else:
 # (e.g. '10min.rst' or 'pandas.DataFrame.head')
 source_path = os.path.dirname(os.path.abspath(__file__))
 pattern = os.environ.get("SPHINX_PATTERN")
-single_doc = pattern is not None and pattern != "-api"
-include_api = pattern != "-api"
+single_doc = pattern is not None and pattern not in ("-api", "whatsnew")
+include_api = pattern is None or pattern == "whatsnew"
 if pattern:
     for dirname, dirs, fnames in os.walk(source_path):
         reldir = os.path.relpath(dirname, source_path)
@@ -104,7 +105,13 @@ if pattern:
                     continue
                 elif pattern == "-api" and reldir.startswith("reference"):
                     exclude_patterns.append(fname)
-                elif pattern != "-api" and fname != pattern:
+                elif (
+                    pattern == "whatsnew"
+                    and not reldir.startswith("reference")
+                    and reldir != "whatsnew"
+                ):
+                    exclude_patterns.append(fname)
+                elif single_doc and fname != pattern:
                     exclude_patterns.append(fname)
 
 with open(os.path.join(source_path, "index.rst.template")) as f:
@@ -132,6 +139,10 @@ import pandas as pd"""
 
 # nbsphinx do not use requirejs (breaks bootstrap)
 nbsphinx_requirejs_path = ""
+
+# sphinx-panels shouldn't add bootstrap css since the pydata-sphinx-theme
+# already loads it
+panels_add_bootstrap_css = False
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["../_templates"]
@@ -417,7 +428,7 @@ latex_documents = [
 if include_api:
     intersphinx_mapping = {
         "dateutil": ("https://dateutil.readthedocs.io/en/latest/", None),
-        "matplotlib": ("https://matplotlib.org/", None),
+        "matplotlib": ("https://matplotlib.org/stable/", None),
         "numpy": ("https://numpy.org/doc/stable/", None),
         "pandas-gbq": ("https://pandas-gbq.readthedocs.io/en/latest/", None),
         "py": ("https://pylib.readthedocs.io/en/latest/", None),
@@ -450,7 +461,6 @@ ipython_execlines = [
 # eg pandas.Series.str and pandas.Series.dt (see GH9322)
 
 import sphinx  # isort:skip
-from sphinx.util import rpartition  # isort:skip
 from sphinx.ext.autodoc import (  # isort:skip
     AttributeDocumenter,
     Documenter,
@@ -510,8 +520,8 @@ class AccessorLevelDocumenter(Documenter):
             # HACK: this is added in comparison to ClassLevelDocumenter
             # mod_cls still exists of class.accessor, so an extra
             # rpartition is needed
-            modname, accessor = rpartition(mod_cls, ".")
-            modname, cls = rpartition(modname, ".")
+            modname, _, accessor = mod_cls.rpartition(".")
+            modname, _, cls = modname.rpartition(".")
             parents = [cls, accessor]
             # if the module name is still missing, get it like above
             if not modname:

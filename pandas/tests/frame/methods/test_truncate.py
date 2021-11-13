@@ -2,8 +2,14 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series, date_range
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
+from pandas.core.api import Int64Index
 
 
 class TestDataFrameTruncate:
@@ -112,13 +118,13 @@ class TestDataFrameTruncate:
         "before, after, indices",
         [(1, 2, [2, 1]), (None, 2, [2, 1, 0]), (1, None, [3, 2, 1])],
     )
-    @pytest.mark.parametrize("klass", [pd.Int64Index, pd.DatetimeIndex])
+    @pytest.mark.parametrize("klass", [Int64Index, DatetimeIndex])
     def test_truncate_decreasing_index(
         self, before, after, indices, klass, frame_or_series
     ):
         # https://github.com/pandas-dev/pandas/issues/33756
         idx = klass([3, 2, 1, 0])
-        if klass is pd.DatetimeIndex:
+        if klass is DatetimeIndex:
             before = pd.Timestamp(before) if before is not None else None
             after = pd.Timestamp(after) if after is not None else None
             indices = [pd.Timestamp(i) for i in indices]
@@ -144,3 +150,13 @@ class TestDataFrameTruncate:
             expected = expected["col"]
 
         tm.assert_equal(result, expected)
+
+    def test_truncate_index_only_one_unique_value(self, frame_or_series):
+        # GH 42365
+        obj = Series(0, index=date_range("2021-06-30", "2021-06-30")).repeat(5)
+        if frame_or_series is DataFrame:
+            obj = obj.to_frame(name="a")
+
+        truncated = obj.truncate("2021-06-28", "2021-07-01")
+
+        tm.assert_equal(truncated, obj)

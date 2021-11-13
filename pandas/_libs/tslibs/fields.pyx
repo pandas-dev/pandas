@@ -9,13 +9,22 @@ from cython import Py_ssize_t
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport int8_t, int32_t, int64_t, ndarray, uint32_t
+from numpy cimport (
+    int8_t,
+    int32_t,
+    int64_t,
+    ndarray,
+    uint32_t,
+)
 
 cnp.import_array()
 
 from pandas._config.localization import set_locale
 
-from pandas._libs.tslibs.ccalendar import DAYS_FULL, MONTHS_FULL
+from pandas._libs.tslibs.ccalendar import (
+    DAYS_FULL,
+    MONTHS_FULL,
+)
 
 from pandas._libs.tslibs.ccalendar cimport (
     dayofweek,
@@ -84,7 +93,7 @@ def build_field_sarray(const int64_t[:] dtindex):
     return out
 
 
-def month_position_check(fields, weekdays):
+def month_position_check(fields, weekdays) -> str | None:
     cdef:
         int32_t daysinmonth, y, m, d
         bint calendar_end = True
@@ -189,7 +198,7 @@ cdef inline bint _is_on_month(int month, int compare_month, int modby) nogil:
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def get_start_end_field(const int64_t[:] dtindex, str field,
-                        object freqstr=None, int month_kw=12):
+                        str freqstr=None, int month_kw=12):
     """
     Given an int64-based datetime index return array of indicators
     of whether timestamps are at the start/end of the month/quarter/year
@@ -478,28 +487,6 @@ def get_timedelta_field(const int64_t[:] tdindex, str field):
                 out[i] = tds.days
         return out
 
-    elif field == 'h':
-        with nogil:
-            for i in range(count):
-                if tdindex[i] == NPY_NAT:
-                    out[i] = -1
-                    continue
-
-                td64_to_tdstruct(tdindex[i], &tds)
-                out[i] = tds.hrs
-        return out
-
-    elif field == 's':
-        with nogil:
-            for i in range(count):
-                if tdindex[i] == NPY_NAT:
-                    out[i] = -1
-                    continue
-
-                td64_to_tdstruct(tdindex[i], &tds)
-                out[i] = tds.sec
-        return out
-
     elif field == 'seconds':
         with nogil:
             for i in range(count):
@@ -511,17 +498,6 @@ def get_timedelta_field(const int64_t[:] tdindex, str field):
                 out[i] = tds.seconds
         return out
 
-    elif field == 'ms':
-        with nogil:
-            for i in range(count):
-                if tdindex[i] == NPY_NAT:
-                    out[i] = -1
-                    continue
-
-                td64_to_tdstruct(tdindex[i], &tds)
-                out[i] = tds.ms
-        return out
-
     elif field == 'microseconds':
         with nogil:
             for i in range(count):
@@ -531,28 +507,6 @@ def get_timedelta_field(const int64_t[:] tdindex, str field):
 
                 td64_to_tdstruct(tdindex[i], &tds)
                 out[i] = tds.microseconds
-        return out
-
-    elif field == 'us':
-        with nogil:
-            for i in range(count):
-                if tdindex[i] == NPY_NAT:
-                    out[i] = -1
-                    continue
-
-                td64_to_tdstruct(tdindex[i], &tds)
-                out[i] = tds.us
-        return out
-
-    elif field == 'ns':
-        with nogil:
-            for i in range(count):
-                if tdindex[i] == NPY_NAT:
-                    out[i] = -1
-                    continue
-
-                td64_to_tdstruct(tdindex[i], &tds)
-                out[i] = tds.ns
         return out
 
     elif field == 'nanoseconds':
@@ -626,9 +580,9 @@ def get_locale_names(name_type: str, locale: object = None):
 
     Parameters
     ----------
-    name_type : string, attribute of LocaleTime() in which to return localized
-        names
-    locale : string
+    name_type : str
+        Attribute of LocaleTime() in which to return localized names.
+    locale : str
 
     Returns
     -------
@@ -636,3 +590,154 @@ def get_locale_names(name_type: str, locale: object = None):
     """
     with set_locale(locale, LC_TIME):
         return getattr(LocaleTime(), name_type)
+
+
+# ---------------------------------------------------------------------
+# Rounding
+
+
+class RoundTo:
+    """
+    enumeration defining the available rounding modes
+
+    Attributes
+    ----------
+    MINUS_INFTY
+        round towards -∞, or floor [2]_
+    PLUS_INFTY
+        round towards +∞, or ceil [3]_
+    NEAREST_HALF_EVEN
+        round to nearest, tie-break half to even [6]_
+    NEAREST_HALF_MINUS_INFTY
+        round to nearest, tie-break half to -∞ [5]_
+    NEAREST_HALF_PLUS_INFTY
+        round to nearest, tie-break half to +∞ [4]_
+
+
+    References
+    ----------
+    .. [1] "Rounding - Wikipedia"
+           https://en.wikipedia.org/wiki/Rounding
+    .. [2] "Rounding down"
+           https://en.wikipedia.org/wiki/Rounding#Rounding_down
+    .. [3] "Rounding up"
+           https://en.wikipedia.org/wiki/Rounding#Rounding_up
+    .. [4] "Round half up"
+           https://en.wikipedia.org/wiki/Rounding#Round_half_up
+    .. [5] "Round half down"
+           https://en.wikipedia.org/wiki/Rounding#Round_half_down
+    .. [6] "Round half to even"
+           https://en.wikipedia.org/wiki/Rounding#Round_half_to_even
+    """
+    @property
+    def MINUS_INFTY(self) -> int:
+        return 0
+
+    @property
+    def PLUS_INFTY(self) -> int:
+        return 1
+
+    @property
+    def NEAREST_HALF_EVEN(self) -> int:
+        return 2
+
+    @property
+    def NEAREST_HALF_PLUS_INFTY(self) -> int:
+        return 3
+
+    @property
+    def NEAREST_HALF_MINUS_INFTY(self) -> int:
+        return 4
+
+
+cdef inline ndarray[int64_t] _floor_int64(int64_t[:] values, int64_t unit):
+    cdef:
+        Py_ssize_t i, n = len(values)
+        ndarray[int64_t] result = np.empty(n, dtype="i8")
+        int64_t res, value
+
+    with cython.overflowcheck(True):
+        for i in range(n):
+            value = values[i]
+            if value == NPY_NAT:
+                res = NPY_NAT
+            else:
+                res = value - value % unit
+            result[i] = res
+
+    return result
+
+
+cdef inline ndarray[int64_t] _ceil_int64(int64_t[:] values, int64_t unit):
+    cdef:
+        Py_ssize_t i, n = len(values)
+        ndarray[int64_t] result = np.empty(n, dtype="i8")
+        int64_t res, value
+
+    with cython.overflowcheck(True):
+        for i in range(n):
+            value = values[i]
+
+            if value == NPY_NAT:
+                res = NPY_NAT
+            else:
+                remainder = value % unit
+                if remainder == 0:
+                    res = value
+                else:
+                    res = value + (unit - remainder)
+
+            result[i] = res
+
+    return result
+
+
+cdef inline ndarray[int64_t] _rounddown_int64(values, int64_t unit):
+    return _ceil_int64(values - unit // 2, unit)
+
+
+cdef inline ndarray[int64_t] _roundup_int64(values, int64_t unit):
+    return _floor_int64(values + unit // 2, unit)
+
+
+def round_nsint64(values: np.ndarray, mode: RoundTo, nanos: int) -> np.ndarray:
+    """
+    Applies rounding mode at given frequency
+
+    Parameters
+    ----------
+    values : np.ndarray[int64_t]`
+    mode : instance of `RoundTo` enumeration
+    nanos : np.int64
+        Freq to round to, expressed in nanoseconds
+
+    Returns
+    -------
+    np.ndarray[int64_t]
+    """
+    cdef:
+        int64_t unit = nanos
+
+    if mode == RoundTo.MINUS_INFTY:
+        return _floor_int64(values, unit)
+    elif mode == RoundTo.PLUS_INFTY:
+        return _ceil_int64(values, unit)
+    elif mode == RoundTo.NEAREST_HALF_MINUS_INFTY:
+        return _rounddown_int64(values, unit)
+    elif mode == RoundTo.NEAREST_HALF_PLUS_INFTY:
+        return _roundup_int64(values, unit)
+    elif mode == RoundTo.NEAREST_HALF_EVEN:
+        # for odd unit there is no need of a tie break
+        if unit % 2:
+            return _rounddown_int64(values, unit)
+        quotient, remainder = np.divmod(values, unit)
+        mask = np.logical_or(
+            remainder > (unit // 2),
+            np.logical_and(remainder == (unit // 2), quotient % 2)
+        )
+        quotient[mask] += 1
+        return quotient * unit
+
+    # if/elif above should catch all rounding modes defined in enum 'RoundTo':
+    # if flow of control arrives here, it is a bug
+    raise ValueError("round_nsint64 called with an unrecognized rounding mode")

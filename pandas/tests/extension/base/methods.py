@@ -1,3 +1,4 @@
+import inspect
 import operator
 
 import numpy as np
@@ -8,12 +9,19 @@ from pandas.core.dtypes.common import is_bool_dtype
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.sorting import nargsort
-
-from .base import BaseExtensionTests
+from pandas.tests.extension.base.base import BaseExtensionTests
 
 
 class BaseMethodsTests(BaseExtensionTests):
     """Various Series and DataFrame methods."""
+
+    def test_value_counts_default_dropna(self, data):
+        # make sure we have consistent default dropna kwarg
+        if not hasattr(data, "value_counts"):
+            pytest.skip("value_counts is not implemented")
+        sig = inspect.signature(data.value_counts)
+        kwarg = sig.parameters["dropna"]
+        assert kwarg.default is True
 
     @pytest.mark.parametrize("dropna", [True, False])
     def test_value_counts(self, all_data, dropna):
@@ -32,12 +40,16 @@ class BaseMethodsTests(BaseExtensionTests):
         # GH 33172
         data = data[:10].unique()
         values = np.array(data[~data.isna()])
+        ser = pd.Series(data, dtype=data.dtype)
 
-        result = (
-            pd.Series(data, dtype=data.dtype).value_counts(normalize=True).sort_index()
-        )
+        result = ser.value_counts(normalize=True).sort_index()
 
-        expected = pd.Series([1 / len(values)] * len(values), index=result.index)
+        if not isinstance(data, pd.Categorical):
+            expected = pd.Series([1 / len(values)] * len(values), index=result.index)
+        else:
+            expected = pd.Series(0.0, index=result.index)
+            expected[result > 0] = 1 / len(values)
+
         self.assert_series_equal(result, expected)
 
     def test_count(self, data_missing):
@@ -59,20 +71,19 @@ class BaseMethodsTests(BaseExtensionTests):
 
     def test_argsort(self, data_for_sorting):
         result = pd.Series(data_for_sorting).argsort()
-        expected = pd.Series(np.array([2, 0, 1], dtype=np.int64))
+        # argsort result gets passed to take, so should be np.intp
+        expected = pd.Series(np.array([2, 0, 1], dtype=np.intp))
         self.assert_series_equal(result, expected)
 
     def test_argsort_missing_array(self, data_missing_for_sorting):
         result = data_missing_for_sorting.argsort()
-        expected = np.array([2, 0, 1], dtype=np.dtype("int"))
-        # we don't care whether it's int32 or int64
-        result = result.astype("int64", casting="safe")
-        expected = expected.astype("int64", casting="safe")
+        # argsort result gets passed to take, so should be np.intp
+        expected = np.array([2, 0, 1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
     def test_argsort_missing(self, data_missing_for_sorting):
         result = pd.Series(data_missing_for_sorting).argsort()
-        expected = pd.Series(np.array([1, -1, 0], dtype=np.int64))
+        expected = pd.Series(np.array([1, -1, 0], dtype=np.intp))
         self.assert_series_equal(result, expected)
 
     def test_argmin_argmax(self, data_for_sorting, data_missing_for_sorting, na_value):
@@ -82,7 +93,7 @@ class BaseMethodsTests(BaseExtensionTests):
         assert data_for_sorting.argmax() == 1
         assert data_for_sorting.argmin() == 2
 
-        # with repeated values -> first occurence
+        # with repeated values -> first occurrence
         data = data_for_sorting.take([2, 0, 0, 1, 1, 2])
         assert data.argmax() == 3
         assert data.argmin() == 0
@@ -101,7 +112,7 @@ class BaseMethodsTests(BaseExtensionTests):
 
     @pytest.mark.parametrize("method", ["argmax", "argmin"])
     def test_argmin_argmax_all_na(self, method, data, na_value):
-        # all missing with skipna=True is the same as emtpy
+        # all missing with skipna=True is the same as empty
         err_msg = "attempt to get"
         data_na = type(data)._from_sequence([na_value, na_value], dtype=data.dtype)
         with pytest.raises(ValueError, match=err_msg):
@@ -500,6 +511,48 @@ class BaseMethodsTests(BaseExtensionTests):
         expected = data._concat_same_type([data[[0]], data[[2]], data[4:]])
         self.assert_extension_array_equal(result, expected)
 
+    def test_insert(self, data):
+        # insert at the beginning
+        result = data[1:].insert(0, data[0])
+        self.assert_extension_array_equal(result, data)
+
+        result = data[1:].insert(-len(data[1:]), data[0])
+        self.assert_extension_array_equal(result, data)
+
+        # insert at the middle
+        result = data[:-1].insert(4, data[-1])
+
+        taker = np.arange(len(data))
+        taker[5:] = taker[4:-1]
+        taker[4] = len(data) - 1
+        expected = data.take(taker)
+        self.assert_extension_array_equal(result, expected)
+
+    def test_insert_invalid(self, data, invalid_scalar):
+        item = invalid_scalar
+
+        with pytest.raises((TypeError, ValueError)):
+            data.insert(0, item)
+
+        with pytest.raises((TypeError, ValueError)):
+            data.insert(4, item)
+
+        with pytest.raises((TypeError, ValueError)):
+            data.insert(len(data) - 1, item)
+
+    def test_insert_invalid_loc(self, data):
+        ub = len(data)
+
+        with pytest.raises(IndexError):
+            data.insert(ub + 1, data[0])
+
+        with pytest.raises(IndexError):
+            data.insert(-ub - 1, data[0])
+
+        with pytest.raises(TypeError):
+            # we expect TypeError here instead of IndexError to match np.insert
+            data.insert(1.5, data[0])
+
     @pytest.mark.parametrize("box", [pd.array, pd.Series, pd.DataFrame])
     def test_equals(self, data, na_value, as_series, box):
         data2 = type(data)._from_sequence([data[0]] * len(data), dtype=data.dtype)
@@ -522,7 +575,7 @@ class BaseMethodsTests(BaseExtensionTests):
         # different length
         assert data[:2].equals(data[:3]) is False
 
-        # emtpy are equal
+        # empty are equal
         assert data[:0].equals(data[:0]) is True
 
         # other types

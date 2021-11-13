@@ -4,7 +4,11 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    NamedAgg,
+    Series,
+)
 import pandas._testing as tm
 from pandas.core.indexes.datetimes import date_range
 
@@ -54,7 +58,7 @@ def test_groupby_resample_api():
     # when appropriate
     df = DataFrame(
         {
-            "date": pd.date_range(start="2016-01-01", periods=4, freq="W"),
+            "date": date_range(start="2016-01-01", periods=4, freq="W"),
             "group": [1, 1, 2, 2],
             "val": [5, 6, 7, 8],
         }
@@ -62,8 +66,8 @@ def test_groupby_resample_api():
 
     # replication step
     i = (
-        pd.date_range("2016-01-03", periods=8).tolist()
-        + pd.date_range("2016-01-17", periods=8).tolist()
+        date_range("2016-01-03", periods=8).tolist()
+        + date_range("2016-01-17", periods=8).tolist()
     )
     index = pd.MultiIndex.from_arrays([[1] * 8 + [2] * 8, i], names=["group", "date"])
     expected = DataFrame({"val": [5] * 7 + [6] + [7] * 7 + [8]}, index=index)
@@ -79,7 +83,7 @@ def test_groupby_resample_on_api():
     df = DataFrame(
         {
             "key": ["A", "B"] * 5,
-            "dates": pd.date_range("2016-01-01", periods=10),
+            "dates": date_range("2016-01-01", periods=10),
             "values": np.random.randn(10),
         }
     )
@@ -91,7 +95,7 @@ def test_groupby_resample_on_api():
 
 
 def test_resample_group_keys():
-    df = DataFrame({"A": 1, "B": 2}, index=pd.date_range("2000", periods=10))
+    df = DataFrame({"A": 1, "B": 2}, index=date_range("2000", periods=10))
     g = df.resample("5D")
     expected = df.copy()
     with tm.assert_produces_warning(FutureWarning, match="Not prepending group keys"):
@@ -168,7 +172,7 @@ def test_api_compat_before_use():
     # make sure that we are setting the binner
     # on these attributes
     for attr in ["groups", "ngroups", "indices"]:
-        rng = pd.date_range("1/1/2012", periods=100, freq="S")
+        rng = date_range("1/1/2012", periods=100, freq="S")
         ts = Series(np.arange(len(rng)), index=rng)
         rs = ts.resample("30s")
 
@@ -197,12 +201,12 @@ def tests_skip_nuisance(test_frame):
 def test_downsample_but_actually_upsampling():
 
     # this is reindex / asfreq
-    rng = pd.date_range("1/1/2012", periods=100, freq="S")
+    rng = date_range("1/1/2012", periods=100, freq="S")
     ts = Series(np.arange(len(rng), dtype="int64"), index=rng)
     result = ts.resample("20s").asfreq()
     expected = Series(
         [0, 20, 40, 60, 80],
-        index=pd.date_range("2012-01-01 00:00:00", freq="20s", periods=5),
+        index=date_range("2012-01-01 00:00:00", freq="20s", periods=5),
     )
     tm.assert_series_equal(result, expected)
 
@@ -213,7 +217,7 @@ def test_combined_up_downsampling_of_irregular():
     # ts2.resample('2s').mean().ffill()
     # preserve these semantics
 
-    rng = pd.date_range("1/1/2012", periods=100, freq="S")
+    rng = date_range("1/1/2012", periods=100, freq="S")
     ts = Series(np.arange(len(rng)), index=rng)
     ts2 = ts.iloc[[0, 1, 2, 3, 5, 7, 11, 15, 16, 25, 30]]
 
@@ -274,7 +278,7 @@ def test_transform():
 def test_fillna():
 
     # need to upsample here
-    rng = pd.date_range("1/1/2012", periods=10, freq="2S")
+    rng = date_range("1/1/2012", periods=10, freq="2S")
     ts = Series(np.arange(len(rng), dtype="int64"), index=rng)
     r = ts.resample("s")
 
@@ -315,14 +319,14 @@ def test_agg_consistency():
     # similar aggregations with and w/o selection list
     df = DataFrame(
         np.random.randn(1000, 3),
-        index=pd.date_range("1/1/2012", freq="S", periods=1000),
+        index=date_range("1/1/2012", freq="S", periods=1000),
         columns=["A", "B", "C"],
     )
 
     r = df.resample("3T")
 
     msg = r"Column\(s\) \['r1', 'r2'\] do not exist"
-    with pytest.raises(pd.core.base.SpecificationError, match=msg):
+    with pytest.raises(KeyError, match=msg):
         r.agg({"r1": "mean", "r2": "sum"})
 
 
@@ -330,14 +334,14 @@ def test_agg_consistency_int_str_column_mix():
     # GH#39025
     df = DataFrame(
         np.random.randn(1000, 2),
-        index=pd.date_range("1/1/2012", freq="S", periods=1000),
+        index=date_range("1/1/2012", freq="S", periods=1000),
         columns=[1, "a"],
     )
 
     r = df.resample("3T")
 
     msg = r"Column\(s\) \[2, 'b'\] do not exist"
-    with pytest.raises(pd.core.base.SpecificationError, match=msg):
+    with pytest.raises(KeyError, match=msg):
         r.agg({2: "mean", "b": "sum"})
 
 
@@ -375,12 +379,24 @@ def test_agg():
     expected = pd.concat([a_mean, a_std, b_mean, b_std], axis=1)
     expected.columns = pd.MultiIndex.from_product([["A", "B"], ["mean", "std"]])
     for t in cases:
-        result = t.aggregate([np.mean, np.std])
+        warn = FutureWarning if t in cases[1:3] else None
+        with tm.assert_produces_warning(
+            warn,
+            match=r"\['date'\] did not aggregate successfully",
+        ):
+            # .var on dt64 column raises and is dropped
+            result = t.aggregate([np.mean, np.std])
         tm.assert_frame_equal(result, expected)
 
     expected = pd.concat([a_mean, b_std], axis=1)
     for t in cases:
         result = t.aggregate({"A": np.mean, "B": np.std})
+        tm.assert_frame_equal(result, expected, check_like=True)
+
+        result = t.aggregate(A=("A", np.mean), B=("B", np.std))
+        tm.assert_frame_equal(result, expected, check_like=True)
+
+        result = t.aggregate(A=NamedAgg("A", np.mean), B=NamedAgg("B", np.std))
         tm.assert_frame_equal(result, expected, check_like=True)
 
     expected = pd.concat([a_mean, a_std], axis=1)
@@ -393,7 +409,10 @@ def test_agg():
     expected.columns = ["mean", "sum"]
     for t in cases:
         result = t["A"].aggregate(["mean", "sum"])
-    tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
+
+        result = t["A"].aggregate(mean="mean", sum="sum")
+        tm.assert_frame_equal(result, expected)
 
     msg = "nested renamer is not supported"
     for t in cases:
@@ -460,6 +479,14 @@ def test_agg_misc():
         expected = pd.concat([r["A"].sum(), rcustom], axis=1)
         tm.assert_frame_equal(result, expected, check_like=True)
 
+        result = t.agg(A=("A", np.sum), B=("B", lambda x: np.std(x, ddof=1)))
+        tm.assert_frame_equal(result, expected, check_like=True)
+
+        result = t.agg(
+            A=NamedAgg("A", np.sum), B=NamedAgg("B", lambda x: np.std(x, ddof=1))
+        )
+        tm.assert_frame_equal(result, expected, check_like=True)
+
     # agg with renamers
     expected = pd.concat(
         [t["A"].sum(), t["B"].sum(), t["A"].mean(), t["B"].mean()], axis=1
@@ -470,8 +497,16 @@ def test_agg_misc():
 
     msg = r"Column\(s\) \['result1', 'result2'\] do not exist"
     for t in cases:
-        with pytest.raises(pd.core.base.SpecificationError, match=msg):
+        with pytest.raises(KeyError, match=msg):
             t[["A", "B"]].agg({"result1": np.sum, "result2": np.mean})
+
+        with pytest.raises(KeyError, match=msg):
+            t[["A", "B"]].agg(A=("result1", np.sum), B=("result2", np.mean))
+
+        with pytest.raises(KeyError, match=msg):
+            t[["A", "B"]].agg(
+                A=NamedAgg("result1", np.sum), B=NamedAgg("result2", np.mean)
+            )
 
     # agg with different hows
     expected = pd.concat(
@@ -501,7 +536,7 @@ def test_agg_misc():
 
     # errors
     # invalid names in the agg specification
-    msg = "\"Column 'B' does not exist!\""
+    msg = r"Column\(s\) \['B'\] do not exist"
     for t in cases:
         with pytest.raises(KeyError, match=msg):
             t[["A"]].agg({"A": ["sum", "std"], "B": ["mean", "std"]})
@@ -552,7 +587,7 @@ def test_try_aggregate_non_existing_column():
     df = DataFrame(data).set_index("dt")
 
     # Error as we don't have 'z' column
-    msg = "\"Column 'z' does not exist!\""
+    msg = r"Column\(s\) \['z'\] do not exist"
     with pytest.raises(KeyError, match=msg):
         df.resample("30T").agg({"x": ["mean"], "y": ["median"], "z": ["sum"]})
 
@@ -617,7 +652,7 @@ def test_agg_with_datetime_index_list_agg_func(col_name):
     # We catch these errors and move on to the correct branch.
     df = DataFrame(
         list(range(200)),
-        index=pd.date_range(
+        index=date_range(
             start="2017-01-01", freq="15min", periods=200, tz="Europe/Berlin"
         ),
         columns=[col_name],
@@ -625,9 +660,7 @@ def test_agg_with_datetime_index_list_agg_func(col_name):
     result = df.resample("1d").aggregate(["mean"])
     expected = DataFrame(
         [47.5, 143.5, 195.5],
-        index=pd.date_range(
-            start="2017-01-01", freq="D", periods=3, tz="Europe/Berlin"
-        ),
+        index=date_range(start="2017-01-01", freq="D", periods=3, tz="Europe/Berlin"),
         columns=pd.MultiIndex(levels=[[col_name], ["mean"]], codes=[[0], [0]]),
     )
     tm.assert_frame_equal(result, expected)
@@ -635,7 +668,7 @@ def test_agg_with_datetime_index_list_agg_func(col_name):
 
 def test_resample_agg_readonly():
     # GH#31710 cython needs to allow readonly data
-    index = pd.date_range("2020-01-01", "2020-01-02", freq="1h")
+    index = date_range("2020-01-01", "2020-01-02", freq="1h")
     arr = np.zeros_like(index)
     arr.setflags(write=False)
 

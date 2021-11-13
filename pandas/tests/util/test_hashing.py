@@ -2,10 +2,18 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+)
 import pandas._testing as tm
 from pandas.core.util.hashing import hash_tuples
-from pandas.util import hash_array, hash_pandas_object
+from pandas.util import (
+    hash_array,
+    hash_pandas_object,
+)
 
 
 @pytest.fixture(
@@ -82,7 +90,7 @@ def test_hash_array(series):
 
 
 @pytest.mark.parametrize(
-    "arr2", [np.array([3, 4, "All"]), np.array([3, 4, "All"], dtype=object)]
+    "arr2", [np.array([3, 4, "All"], dtype="U"), np.array([3, 4, "All"], dtype=object)]
 )
 def test_hash_array_mixed(arr2):
     result1 = hash_array(np.array(["3", "4", "All"]))
@@ -105,8 +113,10 @@ def test_hash_tuples():
     expected = hash_pandas_object(MultiIndex.from_tuples(tuples)).values
     tm.assert_numpy_array_equal(result, expected)
 
-    result = hash_tuples(tuples[0])
-    assert result == expected[0]
+    # We only need to support MultiIndex and list-of-tuples
+    msg = "|".join(["object is not iterable", "zip argument #1 must support iteration"])
+    with pytest.raises(TypeError, match=msg):
+        hash_tuples(tuples[0])
 
 
 @pytest.mark.parametrize("val", [5, "foo", pd.Timestamp("20130101")])
@@ -243,6 +253,32 @@ def test_hash_keys():
     b = hash_pandas_object(obj, hash_key="9876543210123465")
 
     assert (a != b).all()
+
+
+def test_df_hash_keys():
+    # DataFrame version of the test_hash_keys.
+    # https://github.com/pandas-dev/pandas/issues/41404
+    obj = DataFrame({"x": np.arange(3), "y": list("abc")})
+
+    a = hash_pandas_object(obj, hash_key="9876543210123456")
+    b = hash_pandas_object(obj, hash_key="9876543210123465")
+
+    assert (a != b).all()
+
+
+def test_df_encoding():
+    # Check that DataFrame recognizes optional encoding.
+    # https://github.com/pandas-dev/pandas/issues/41404
+    # https://github.com/pandas-dev/pandas/pull/42049
+    obj = DataFrame({"x": np.arange(3), "y": list("a+c")})
+
+    a = hash_pandas_object(obj, encoding="utf8")
+    b = hash_pandas_object(obj, encoding="utf7")
+
+    # Note that the "+" is encoded as "+-" in utf-7.
+    assert a[0] == b[0]
+    assert a[1] != b[1]
+    assert a[2] == b[2]
 
 
 def test_invalid_key():

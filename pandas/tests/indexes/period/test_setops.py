@@ -1,7 +1,11 @@
 import numpy as np
 
 import pandas as pd
-from pandas import PeriodIndex, date_range, period_range
+from pandas import (
+    PeriodIndex,
+    date_range,
+    period_range,
+)
 import pandas._testing as tm
 
 
@@ -148,18 +152,6 @@ class TestPeriodIndex:
         result = index.union(index2, sort=sort)
         expected = index.astype(object).union(index2.astype(object), sort=sort)
         tm.assert_index_equal(result, expected)
-
-    # TODO: belongs elsewhere
-    def test_union_dataframe_index(self):
-        rng1 = period_range("1/1/1999", "1/1/2012", freq="M")
-        s1 = pd.Series(np.random.randn(len(rng1)), rng1)
-
-        rng2 = period_range("1/1/1980", "12/1/2001", freq="M")
-        s2 = pd.Series(np.random.randn(len(rng2)), rng2)
-        df = pd.DataFrame({"s1": s1, "s2": s2})
-
-        exp = period_range("1/1/1980", "1/1/2012", freq="M")
-        tm.assert_index_equal(df.index, exp)
 
     def test_intersection(self, sort):
         index = period_range("1/1/2000", "1/20/2000", freq="D")
@@ -340,7 +332,29 @@ class TestPeriodIndex:
 
     def test_intersection_equal_duplicates(self):
         # GH#38302
-        idx = pd.period_range("2011-01-01", periods=2)
+        idx = period_range("2011-01-01", periods=2)
         idx_dup = idx.append(idx)
         result = idx_dup.intersection(idx_dup)
         tm.assert_index_equal(result, idx)
+
+    def test_union_duplicates(self):
+        # GH#36289
+        idx = period_range("2011-01-01", periods=2)
+        idx_dup = idx.append(idx)
+
+        idx2 = period_range("2011-01-02", periods=2)
+        idx2_dup = idx2.append(idx2)
+        result = idx_dup.union(idx2_dup)
+
+        expected = PeriodIndex(
+            [
+                "2011-01-01",
+                "2011-01-01",
+                "2011-01-02",
+                "2011-01-02",
+                "2011-01-03",
+                "2011-01-03",
+            ],
+            freq="D",
+        )
+        tm.assert_index_equal(result, expected)

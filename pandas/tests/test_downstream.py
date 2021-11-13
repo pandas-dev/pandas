@@ -29,6 +29,10 @@ def df():
     return DataFrame({"A": [1, 2, 3]})
 
 
+# TODO(ArrayManager) dask is still accessing the blocks
+# https://github.com/dask/dask/pull/7318
+@td.skip_array_manager_not_yet_implemented
+@pytest.mark.filterwarnings("ignore:.*64Index is deprecated:FutureWarning")
 def test_dask(df):
 
     toolz = import_module("toolz")  # noqa
@@ -56,7 +60,11 @@ def test_xarray_cftimeindex_nearest():
     import xarray
 
     times = xarray.cftime_range("0001", periods=2)
-    result = times.get_loc(cftime.DatetimeGregorian(2000, 1, 1), method="nearest")
+    key = cftime.DatetimeGregorian(2000, 1, 1)
+    with tm.assert_produces_warning(
+        FutureWarning, match="deprecated", check_stacklevel=False
+    ):
+        result = times.get_loc(key, method="nearest")
     expected = 1
     assert result == expected
 
@@ -66,10 +74,26 @@ def test_oo_optimizable():
     subprocess.check_call([sys.executable, "-OO", "-c", "import pandas"])
 
 
+def test_oo_optimized_datetime_index_unpickle():
+    # GH 42866
+    subprocess.check_call(
+        [
+            sys.executable,
+            "-OO",
+            "-c",
+            (
+                "import pandas as pd, pickle; "
+                "pickle.loads(pickle.dumps(pd.date_range('2021-01-01', periods=1)))"
+            ),
+        ]
+    )
+
+
 @tm.network
 # Cython import warning
 @pytest.mark.filterwarnings("ignore:pandas.util.testing is deprecated")
 @pytest.mark.filterwarnings("ignore:can't:ImportWarning")
+@pytest.mark.filterwarnings("ignore:.*64Index is deprecated:FutureWarning")
 @pytest.mark.filterwarnings(
     # patsy needs to update their imports
     "ignore:Using or importing the ABCs from 'collections:DeprecationWarning"
@@ -89,7 +113,10 @@ def test_statsmodels():
 def test_scikit_learn(df):
 
     sklearn = import_module("sklearn")  # noqa
-    from sklearn import datasets, svm
+    from sklearn import (
+        datasets,
+        svm,
+    )
 
     digits = datasets.load_digits()
     clf = svm.SVC(gamma=0.001, C=100.0)
@@ -138,6 +165,19 @@ def test_pyarrow(df):
     table = pyarrow.Table.from_pandas(df)
     result = table.to_pandas()
     tm.assert_frame_equal(result, df)
+
+
+def test_yaml_dump(df):
+    # GH#42748
+    yaml = import_module("yaml")
+
+    dumped = yaml.dump(df)
+
+    loaded = yaml.load(dumped, Loader=yaml.Loader)
+    tm.assert_frame_equal(df, loaded)
+
+    loaded2 = yaml.load(dumped, Loader=yaml.UnsafeLoader)
+    tm.assert_frame_equal(df, loaded2)
 
 
 def test_missing_required_dependency():

@@ -7,7 +7,13 @@ import pytest
 
 from pandas._libs.tslibs.offsets import INVALID_FREQ_ERR_MSG
 
-from pandas import Index, Series, Timedelta, TimedeltaIndex, timedelta_range
+from pandas import (
+    Index,
+    Series,
+    Timedelta,
+    TimedeltaIndex,
+    timedelta_range,
+)
 import pandas._testing as tm
 
 

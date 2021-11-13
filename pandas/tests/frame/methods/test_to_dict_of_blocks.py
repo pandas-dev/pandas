@@ -2,7 +2,10 @@ import numpy as np
 
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, MultiIndex
+from pandas import (
+    DataFrame,
+    MultiIndex,
+)
 import pandas._testing as tm
 from pandas.core.arrays import PandasArray
 
@@ -17,7 +20,7 @@ class TestToDictOfBlocks:
 
         # use the default copy=True, change a column
         blocks = df._to_dict_of_blocks(copy=True)
-        for dtype, _df in blocks.items():
+        for _df in blocks.values():
             if column in _df:
                 _df.loc[:, column] = _df[column] + 1
 
@@ -31,7 +34,7 @@ class TestToDictOfBlocks:
 
         # use the copy=False, change a column
         blocks = df._to_dict_of_blocks(copy=False)
-        for dtype, _df in blocks.items():
+        for _df in blocks.values():
             if column in _df:
                 _df.loc[:, column] = _df[column] + 1
 
@@ -50,7 +53,7 @@ def test_to_dict_of_blocks_item_cache():
 
     df._to_dict_of_blocks()
 
-    # Check that the to_dict_of_blocks didnt break link between ser and df
+    # Check that the to_dict_of_blocks didn't break link between ser and df
     ser.values[0] = "foo"
     assert df.loc[0, "b"] == "foo"
 

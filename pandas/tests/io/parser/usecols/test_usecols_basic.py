@@ -7,7 +7,10 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index
+from pandas import (
+    DataFrame,
+    Index,
+)
 import pandas._testing as tm
 
 _msg_validate_usecols_arg = (
@@ -18,6 +21,9 @@ _msg_validate_usecols_arg = (
 _msg_validate_usecols_names = (
     "Usecols do not match columns, columns expected but not found: {0}"
 )
+
+# TODO(1.4): Change to xfails at release time
+pytestmark = pytest.mark.usefixtures("pyarrow_skip")
 
 
 def test_raise_on_mixed_dtype_usecols(all_parsers):
@@ -369,4 +375,22 @@ def test_usecols_subset_names_mismatch_orig_columns(all_parsers, usecols):
 
     result = parser.read_csv(StringIO(data), header=0, names=names, usecols=usecols)
     expected = DataFrame({"A": [1, 5], "C": [3, 7]})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("names", [None, ["a", "b"]])
+def test_usecols_indices_out_of_bounds(all_parsers, names):
+    # GH#25623
+    parser = all_parsers
+    data = """
+a,b
+1,2
+    """
+    with tm.assert_produces_warning(
+        FutureWarning, check_stacklevel=False, raise_on_extra_warnings=False
+    ):
+        result = parser.read_csv(StringIO(data), usecols=[0, 2], names=names, header=0)
+    expected = DataFrame({"a": [1], "b": [None]})
+    if names is None and parser.engine == "python":
+        expected = DataFrame({"a": [1]})
     tm.assert_frame_equal(result, expected)

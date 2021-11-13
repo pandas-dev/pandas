@@ -106,16 +106,16 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
         # overwriting to indicate ops don't raise an error
         super().check_opname(s, op_name, other, exc=None)
 
-    def _check_op(self, s, op, other, op_name, exc=NotImplementedError):
+    def _check_op(self, obj, op, other, op_name, exc=NotImplementedError):
         if exc is None:
             if op_name in self.implements:
                 msg = r"numpy boolean subtract"
                 with pytest.raises(TypeError, match=msg):
-                    op(s, other)
+                    op(obj, other)
                 return
 
-            result = op(s, other)
-            expected = s.combine(other, op)
+            result = op(obj, other)
+            expected = self._combine(obj, other, op)
 
             if op_name in (
                 "__floordiv__",
@@ -130,26 +130,19 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
             elif op_name in ("__truediv__", "__rtruediv__"):
                 # combine with bools does not generate the correct result
                 #  (numpy behaviour for div is to regard the bools as numeric)
-                expected = s.astype(float).combine(other, op).astype("Float64")
+                expected = self._combine(obj.astype(float), other, op)
+                expected = expected.astype("Float64")
             if op_name == "__rpow__":
                 # for rpow, combine does not propagate NaN
                 expected[result.isna()] = np.nan
-            self.assert_series_equal(result, expected)
+            self.assert_equal(result, expected)
         else:
             with pytest.raises(exc):
-                op(s, other)
+                op(obj, other)
 
     def _check_divmod_op(self, s, op, other, exc=None):
         # override to not raise an error
         super()._check_divmod_op(s, op, other, None)
-
-    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators, request):
-        # frame & scalar
-        op_name = all_arithmetic_operators
-        if op_name not in self.implements:
-            mark = pytest.mark.xfail(reason="_reduce needs implementation")
-            request.node.add_marker(mark)
-        super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
@@ -157,15 +150,12 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
         # overwriting to indicate ops don't raise an error
         super().check_opname(s, op_name, other, exc=None)
 
-    def _compare_other(self, s, data, op_name, other):
-        self.check_opname(s, op_name, other)
-
     @pytest.mark.skip(reason="Tested in tests/arrays/test_boolean.py")
-    def test_compare_scalar(self, data, all_compare_operators):
+    def test_compare_scalar(self, data, comparison_op):
         pass
 
     @pytest.mark.skip(reason="Tested in tests/arrays/test_boolean.py")
-    def test_compare_array(self, data, all_compare_operators):
+    def test_compare_array(self, data, comparison_op):
         pass
 
 
@@ -241,7 +231,7 @@ class TestMethods(base.BaseMethodsTests):
         assert data_for_sorting.argmax() == 0
         assert data_for_sorting.argmin() == 2
 
-        # with repeated values -> first occurence
+        # with repeated values -> first occurrence
         data = data_for_sorting.take([2, 0, 0, 1, 1, 2])
         assert data.argmax() == 1
         assert data.argmin() == 0
@@ -269,21 +259,21 @@ class TestGroupby(base.BaseGroupbyTests):
         gr1 = df.groupby("A").grouper.groupings[0]
         gr2 = df.groupby("B").grouper.groupings[0]
 
-        tm.assert_numpy_array_equal(gr1.grouper, df.A.values)
-        tm.assert_extension_array_equal(gr2.grouper, data_for_grouping)
+        tm.assert_numpy_array_equal(gr1.grouping_vector, df.A.values)
+        tm.assert_extension_array_equal(gr2.grouping_vector, data_for_grouping)
 
     @pytest.mark.parametrize("as_index", [True, False])
     def test_groupby_extension_agg(self, as_index, data_for_grouping):
         df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1], "B": data_for_grouping})
         result = df.groupby("B", as_index=as_index).A.mean()
-        _, index = pd.factorize(data_for_grouping, sort=True)
+        _, uniques = pd.factorize(data_for_grouping, sort=True)
 
-        index = pd.Index(index, name="B")
-        expected = pd.Series([3, 1], index=index, name="A")
         if as_index:
+            index = pd.Index(uniques, name="B")
+            expected = pd.Series([3.0, 1.0], index=index, name="A")
             self.assert_series_equal(result, expected)
         else:
-            expected = expected.reset_index()
+            expected = pd.DataFrame({"B": uniques, "A": [3.0, 1.0]})
             self.assert_frame_equal(result, expected)
 
     def test_groupby_agg_extension(self, data_for_grouping):
@@ -308,7 +298,7 @@ class TestGroupby(base.BaseGroupbyTests):
         _, index = pd.factorize(data_for_grouping, sort=False)
 
         index = pd.Index(index, name="B")
-        expected = pd.Series([1, 3], index=index, name="A")
+        expected = pd.Series([1.0, 3.0], index=index, name="A")
         self.assert_series_equal(result, expected)
 
     def test_groupby_extension_transform(self, data_for_grouping):
@@ -388,6 +378,7 @@ class TestNumericReduce(base.BaseNumericReduceTests):
         tm.assert_almost_equal(result, expected)
 
 
+@pytest.mark.skip(reason="Tested in tests/reductions/test_reductions.py")
 class TestBooleanReduce(base.BaseBooleanReduceTests):
     pass
 
@@ -401,4 +392,8 @@ class TestUnaryOps(base.BaseUnaryOpsTests):
 
 
 class TestParsing(base.BaseParsingTests):
+    pass
+
+
+class Test2DCompat(base.Dim2CompatTests):
     pass

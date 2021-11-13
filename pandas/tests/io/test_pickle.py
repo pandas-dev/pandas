@@ -13,6 +13,7 @@ $ python generate_legacy_storage_files.py <output_dir> pickle
 import bz2
 import datetime
 import functools
+from functools import partial
 import glob
 import gzip
 import io
@@ -20,22 +21,44 @@ import os
 from pathlib import Path
 import pickle
 import shutil
-from warnings import catch_warnings, simplefilter
+from warnings import (
+    catch_warnings,
+    filterwarnings,
+    simplefilter,
+)
 import zipfile
 
 import numpy as np
 import pytest
 
-from pandas.compat import PY38, get_lzma_file, import_lzma, is_platform_little_endian
+from pandas.compat import (
+    get_lzma_file,
+    import_lzma,
+    is_platform_little_endian,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import Index, Series, period_range
+from pandas import (
+    Index,
+    Series,
+    period_range,
+)
 import pandas._testing as tm
 
-from pandas.tseries.offsets import Day, MonthEnd
+from pandas.tseries.offsets import (
+    Day,
+    MonthEnd,
+)
 
 lzma = import_lzma()
+
+
+# TODO(ArrayManager) pickling
+pytestmark = [
+    td.skip_array_manager_not_yet_implemented,
+    pytest.mark.filterwarnings("ignore:Timestamp.freq is deprecated:FutureWarning"),
+]
 
 
 @pytest.fixture(scope="module")
@@ -43,7 +66,12 @@ def current_pickle_data():
     # our current version pickle data
     from pandas.tests.io.generate_legacy_storage_files import create_pickle_data
 
-    return create_pickle_data()
+    with catch_warnings():
+        filterwarnings(
+            "ignore", "The 'freq' argument in Timestamp", category=FutureWarning
+        )
+
+        return create_pickle_data()
 
 
 # ---------------------
@@ -134,9 +162,9 @@ def compare_index_period(result, expected, typ, version):
     tm.assert_index_equal(result.shift(2), expected.shift(2))
 
 
-files = glob.glob(
-    os.path.join(os.path.dirname(__file__), "data", "legacy_pickle", "*", "*.pickle")
-)
+here = os.path.dirname(__file__)
+legacy_dirname = os.path.join(here, "data", "legacy_pickle")
+files = glob.glob(os.path.join(legacy_dirname, "*", "*.pickle"))
 
 
 @pytest.fixture(params=files)
@@ -181,10 +209,10 @@ def python_unpickler(path):
         pytest.param(
             functools.partial(pd.to_pickle, protocol=5),
             id="pandas_proto_5",
-            marks=pytest.mark.skipif(not PY38, reason="protocol 5 not supported"),
         ),
     ],
 )
+@pytest.mark.filterwarnings("ignore:The 'freq' argument in Timestamp:FutureWarning")
 def test_round_trip_current(current_pickle_data, pickle_writer):
     data = current_pickle_data
     for typ, dv in data.items():
@@ -412,7 +440,7 @@ class TestProtocol:
 @pytest.mark.parametrize(
     ["pickle_file", "excols"],
     [
-        ("test_py27.pkl", pd.Index(["a", "b", "c"])),
+        ("test_py27.pkl", Index(["a", "b", "c"])),
         (
             "test_mi_py27.pkl",
             pd.MultiIndex.from_arrays([["a", "b", "c"], ["A", "B", "C"]]),
@@ -594,3 +622,24 @@ def test_pickle_preserves_block_ndim():
 
     # GH#37631 OP issue was about indexing, underlying problem was pickle
     tm.assert_series_equal(res[[True]], ser)
+
+
+@pytest.mark.parametrize("protocol", [pickle.DEFAULT_PROTOCOL, pickle.HIGHEST_PROTOCOL])
+def test_pickle_big_dataframe_compression(protocol, compression):
+    # GH#39002
+    df = pd.DataFrame(range(100000))
+    result = tm.round_trip_pathlib(
+        partial(df.to_pickle, protocol=protocol, compression=compression),
+        partial(pd.read_pickle, compression=compression),
+    )
+    tm.assert_frame_equal(df, result)
+
+
+def test_pickle_frame_v124_unpickle_130():
+    # GH#42345 DataFrame created in 1.2.x, unpickle in 1.3.x
+    path = os.path.join(legacy_dirname, "1.2.4", "empty_frame_v1_2_4-GH#42345.pkl")
+    with open(path, "rb") as fd:
+        df = pickle.load(fd)
+
+    expected = pd.DataFrame()
+    tm.assert_frame_equal(df, expected)

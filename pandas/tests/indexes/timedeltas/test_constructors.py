@@ -4,12 +4,36 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Timedelta, TimedeltaIndex, timedelta_range, to_timedelta
+from pandas import (
+    Timedelta,
+    TimedeltaIndex,
+    timedelta_range,
+    to_timedelta,
+)
 import pandas._testing as tm
-from pandas.core.arrays import TimedeltaArray
+from pandas.core.arrays.timedeltas import (
+    TimedeltaArray,
+    sequence_to_td64ns,
+)
 
 
 class TestTimedeltaIndex:
+    def test_array_of_dt64_nat_raises(self):
+        # GH#39462
+        nat = np.datetime64("NaT", "ns")
+        arr = np.array([nat], dtype=object)
+
+        # TODO: should be TypeError?
+        msg = "Invalid type for timedelta scalar"
+        with pytest.raises(ValueError, match=msg):
+            TimedeltaIndex(arr)
+
+        with pytest.raises(ValueError, match=msg):
+            TimedeltaArray._from_sequence(arr)
+
+        with pytest.raises(ValueError, match=msg):
+            sequence_to_td64ns(arr)
+
     @pytest.mark.parametrize("unit", ["Y", "y", "M"])
     def test_unit_m_y_raises(self, unit):
         msg = "Units 'M', 'Y', and 'y' are no longer supported"
@@ -169,7 +193,7 @@ class TestTimedeltaIndex:
             timedelta_range(start="1 days", periods="foo", freq="D")
 
         msg = (
-            r"TimedeltaIndex\(\) must be called with a collection of some kind, "
+            r"TimedeltaIndex\(\.\.\.\) must be called with a collection of some kind, "
             "'1 days' was passed"
         )
         with pytest.raises(TypeError, match=msg):

@@ -4,6 +4,7 @@ import pytest
 from pandas import (
     Categorical,
     Index,
+    MultiIndex,
     NaT,
     Period,
     PeriodIndex,
@@ -237,6 +238,17 @@ def test_reindex_categorical():
     tm.assert_series_equal(result, expected)
 
 
+def test_reindex_astype_order_consistency():
+    # GH#17444
+    ser = Series([1, 2, 3], index=[2, 0, 1])
+    new_index = [0, 1, 2]
+    temp_dtype = "category"
+    new_dtype = str
+    result = ser.reindex(new_index).astype(temp_dtype).astype(new_dtype)
+    expected = ser.astype(temp_dtype).reindex(new_index).astype(new_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 def test_reindex_fill_value():
     # -----------------------------------------------------------
     # floats
@@ -334,3 +346,24 @@ def test_reindex_periodindex_with_object(p_values, o_values, values, expected_va
     result = ser.reindex(object_index)
     expected = Series(expected_values, index=object_index)
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("values", [[["a"], ["x"]], [[], []]])
+def test_reindex_empty_with_level(values):
+    # GH41170
+    ser = Series(
+        range(len(values[0])), index=MultiIndex.from_arrays(values), dtype="object"
+    )
+    result = ser.reindex(np.array(["b"]), level=0)
+    expected = Series(
+        index=MultiIndex(levels=[["b"], values[1]], codes=[[], []]), dtype="object"
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_reindex_missing_category():
+    # GH#18185
+    ser = Series([1, 2, 3, 1], dtype="category")
+    msg = r"Cannot setitem on a Categorical with a new category \(-1\)"
+    with pytest.raises(TypeError, match=msg):
+        ser.reindex([1, 2, 3, 4, 5], fill_value=-1)

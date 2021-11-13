@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import Timestamp
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -281,7 +282,7 @@ def test_append_frame_column_oriented(setup_path):
 
         # column oriented
         df = tm.makeTimeDataFrame()
-        df.index = df.index._with_freq(None)  # freq doesnt round-trip
+        df.index = df.index._with_freq(None)  # freq doesn't round-trip
 
         _maybe_remove(store, "df1")
         store.append("df1", df.iloc[:, :2], axes=["columns"])
@@ -331,7 +332,7 @@ def test_append_with_different_block_ordering(setup_path):
             store.append("df", df)
 
     # test a different ordering but with more fields (like invalid
-    # combinate)
+    # combinations)
     with ensure_clean_store(setup_path) as store:
 
         df = DataFrame(np.random.randn(10, 2), columns=list("AB"), dtype="float64")
@@ -415,12 +416,12 @@ def test_append_with_strings(setup_path):
             # just make sure there is a longer string:
             df2 = df.copy().reset_index().assign(C="longer").set_index("C")
             store.append("ss3", df2)
-            tm.assert_frame_equal(store.select("ss3"), pd.concat([df, df2]))
+            tm.assert_frame_equal(store.select("ss3"), concat([df, df2]))
 
             # same as above, with a Series
             store.put("ss4", df["B"], format="table", min_itemsize={"index": 6})
             store.append("ss4", df2["B"])
-            tm.assert_series_equal(store.select("ss4"), pd.concat([df["B"], df2["B"]]))
+            tm.assert_series_equal(store.select("ss4"), concat([df["B"], df2["B"]]))
 
             # with nans
             _maybe_remove(store, "df")
@@ -713,6 +714,10 @@ def test_append_misc(setup_path):
         tm.assert_frame_equal(store.select("df2"), df)
 
 
+# TODO(ArrayManager) currently we rely on falling back to BlockManager, but
+# the conversion from AM->BM converts the invalid object dtype column into
+# a datetime64 column no longer raising an error
+@td.skip_array_manager_not_yet_implemented
 def test_append_raise(setup_path):
 
     with ensure_clean_store(setup_path) as store:
@@ -769,6 +774,22 @@ because its data contents are not [string] but [mixed] object dtype"""
             "invalid combination of [non_index_axes] on appending data "
             "[(1, ['A', 'B', 'C', 'D', 'foo'])] vs current table "
             "[(1, ['A', 'B', 'C', 'D'])]"
+        )
+        with pytest.raises(ValueError, match=msg):
+            store.append("df", df)
+
+        # incompatible type (GH 41897)
+        _maybe_remove(store, "df")
+        df["foo"] = Timestamp("20130101")
+        store.append("df", df)
+        df["foo"] = "bar"
+        msg = re.escape(
+            "invalid combination of [values_axes] on appending data "
+            "[name->values_block_1,cname->values_block_1,"
+            "dtype->bytes24,kind->string,shape->(1, 30)] "
+            "vs current table "
+            "[name->values_block_1,cname->values_block_1,"
+            "dtype->datetime64,kind->datetime64,shape->None]"
         )
         with pytest.raises(ValueError, match=msg):
             store.append("df", df)

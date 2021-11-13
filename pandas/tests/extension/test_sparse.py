@@ -13,10 +13,11 @@ classes (if they are relevant for the extension interface for all dtypes), or
 be added to the array-specific tests in `pandas/tests/arrays/`.
 
 """
+
 import numpy as np
 import pytest
 
-from pandas.compat import IS64, is_platform_windows
+from pandas.compat import np_version_under1p20
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import is_object_dtype
@@ -218,6 +219,14 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
         with tm.assert_produces_warning(PerformanceWarning):
             super().test_fillna_limit_backfill(data_missing)
 
+    def test_fillna_no_op_returns_copy(self, data, request):
+        if np.isnan(data.fill_value):
+            request.node.add_marker(
+                pytest.mark.xfail(reason="returns array with different fill value")
+            )
+        with tm.assert_produces_warning(PerformanceWarning):
+            super().test_fillna_no_op_returns_copy(data)
+
     def test_fillna_series_method(self, data_missing):
         with tm.assert_produces_warning(PerformanceWarning):
             super().test_fillna_limit_backfill(data_missing)
@@ -274,12 +283,13 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
 
     def test_fillna_copy_frame(self, data_missing):
         arr = data_missing.take([1, 1])
-        df = pd.DataFrame({"A": arr})
+        df = pd.DataFrame({"A": arr}, copy=False)
 
         filled_val = df.iloc[0, 0]
         result = df.fillna(filled_val)
 
-        assert df.values.base is not result.values.base
+        if hasattr(df._mgr, "blocks"):
+            assert df.values.base is not result.values.base
         assert df.A._values.to_dense() is arr.to_dense()
 
     def test_fillna_copy_series(self, data_missing):
@@ -351,23 +361,26 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
 class TestCasting(BaseSparseTests, base.BaseCastingTests):
     def test_astype_object_series(self, all_data):
         # Unlike the base class, we do not expect the resulting Block
-        #  to be ObjectBlock
+        #  to be ObjectBlock / resulting array to be np.dtype("object")
         ser = pd.Series(all_data, name="A")
         result = ser.astype(object)
-        assert is_object_dtype(result._data.blocks[0].dtype)
+        assert is_object_dtype(result.dtype)
+        assert is_object_dtype(result._mgr.array.dtype)
 
     def test_astype_object_frame(self, all_data):
         # Unlike the base class, we do not expect the resulting Block
-        #  to be ObjectBlock
+        #  to be ObjectBlock / resulting array to be np.dtype("object")
         df = pd.DataFrame({"A": all_data})
 
         result = df.astype(object)
-        assert is_object_dtype(result._data.blocks[0].dtype)
+        assert is_object_dtype(result._mgr.arrays[0].dtype)
 
-        # FIXME: these currently fail; dont leave commented-out
-        # check that we can compare the dtypes
-        # comp = result.dtypes.equals(df.dtypes)
-        # assert not comp.any()
+        # earlier numpy raises TypeError on e.g. np.dtype(np.int64) == "Int64"
+        #  instead of returning False
+        if not np_version_under1p20:
+            # check that we can compare the dtypes
+            comp = result.dtypes == df.dtypes
+            assert not comp.any()
 
     def test_astype_str(self, data):
         result = pd.Series(data[:5]).astype(str)
@@ -415,15 +428,12 @@ class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):
         ]:
             mark = pytest.mark.xfail(reason="result dtype.fill_value mismatch")
             request.node.add_marker(mark)
-        elif is_platform_windows() or not IS64:
-            mark = pytest.mark.xfail(reason="results are int32, expected int64")
-            request.node.add_marker(mark)
         super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
 
 
 class TestComparisonOps(BaseSparseTests, base.BaseComparisonOpsTests):
-    def _compare_other(self, s, data, op_name, other):
-        op = self.get_op_from_name(op_name)
+    def _compare_other(self, s, data, comparison_op, other):
+        op = comparison_op
 
         # array
         result = pd.Series(op(data, other))
@@ -450,7 +460,7 @@ class TestComparisonOps(BaseSparseTests, base.BaseComparisonOpsTests):
 
 
 class TestPrinting(BaseSparseTests, base.BasePrintingTests):
-    @pytest.mark.xfail(reason="Different repr", strict=True)
+    @pytest.mark.xfail(reason="Different repr")
     def test_array_repr(self, data, size):
         super().test_array_repr(data, size)
 

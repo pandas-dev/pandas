@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import numpy as np
 
 from pandas._libs import lib
@@ -13,7 +15,10 @@ from pandas.core.dtypes.common import (
     is_scalar,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.generic import ABCIndex, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCIndex,
+    ABCSeries,
+)
 
 import pandas as pd
 from pandas.core.arrays.numeric import NumericArray
@@ -161,11 +166,10 @@ def to_numeric(arg, errors="raise", downcast=None):
 
     # GH33013: for IntegerArray & FloatingArray extract non-null values for casting
     # save mask to reconstruct the full array after casting
+    mask: np.ndarray | None = None
     if isinstance(values, NumericArray):
         mask = values._mask
         values = values._data[~mask]
-    else:
-        mask = None
 
     values_dtype = getattr(values, "dtype", None)
     if is_numeric_dtype(values_dtype):
@@ -176,7 +180,7 @@ def to_numeric(arg, errors="raise", downcast=None):
         values = ensure_object(values)
         coerce_numeric = errors not in ("ignore", "raise")
         try:
-            values = lib.maybe_convert_numeric(
+            values, _ = lib.maybe_convert_numeric(
                 values, set(), coerce_numeric=coerce_numeric
             )
         except (ValueError, TypeError):
@@ -186,7 +190,7 @@ def to_numeric(arg, errors="raise", downcast=None):
     # attempt downcast only if the data has been successfully converted
     # to a numerical dtype and if a downcast method has been specified
     if downcast is not None and is_numeric_dtype(values.dtype):
-        typecodes = None
+        typecodes: str | None = None
 
         if downcast in ("integer", "signed"):
             typecodes = np.typecodes["Integer"]
@@ -204,8 +208,8 @@ def to_numeric(arg, errors="raise", downcast=None):
 
         if typecodes is not None:
             # from smallest to largest
-            for dtype in typecodes:
-                dtype = np.dtype(dtype)
+            for typecode in typecodes:
+                dtype = np.dtype(typecode)
                 if dtype.itemsize <= values.dtype.itemsize:
                     values = maybe_downcast_numeric(values, dtype)
 
@@ -218,7 +222,10 @@ def to_numeric(arg, errors="raise", downcast=None):
         data = np.zeros(mask.shape, dtype=values.dtype)
         data[~mask] = values
 
-        from pandas.core.arrays import FloatingArray, IntegerArray
+        from pandas.core.arrays import (
+            FloatingArray,
+            IntegerArray,
+        )
 
         klass = IntegerArray if is_integer_dtype(data.dtype) else FloatingArray
         values = klass(data, mask.copy())

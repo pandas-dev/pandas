@@ -6,9 +6,17 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Index, Series, to_datetime
+from pandas import (
+    DataFrame,
+    Index,
+    Series,
+    to_datetime,
+)
 import pandas._testing as tm
-from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
+from pandas.tests.plotting.common import (
+    TestPlotBase,
+    _check_plot_works,
+)
 
 pytestmark = pytest.mark.slow
 
@@ -103,7 +111,10 @@ class TestSeriesPlots(TestPlotBase):
         self._check_axes_shape(axes, axes_num=4, layout=(4, 2), figsize=(12, 7))
 
     def test_hist_no_overlap(self):
-        from matplotlib.pyplot import gcf, subplot
+        from matplotlib.pyplot import (
+            gcf,
+            subplot,
+        )
 
         x = Series(np.random.randn(2))
         y = Series(np.random.randn(2))
@@ -522,7 +533,7 @@ class TestDataFramePlots(TestPlotBase):
         _, ax = self.plt.subplots()
         ax = df["a"].plot.hist(legend=True, ax=ax)
         df["b"].plot.hist(ax=ax, legend=True, secondary_y=True)
-        # both legends are dran on left ax
+        # both legends are drawn on left ax
         # left and right axis must be visible
         self._check_legend_labels(ax, labels=["a", "b (right)"])
         assert ax.get_yaxis().get_visible()

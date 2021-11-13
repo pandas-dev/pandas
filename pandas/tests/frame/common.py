@@ -1,6 +1,9 @@
-from typing import List
+from __future__ import annotations
 
-from pandas import DataFrame, concat
+from pandas import (
+    DataFrame,
+    concat,
+)
 
 
 def _check_mixed_float(df, dtype=None):
@@ -36,7 +39,7 @@ def _check_mixed_int(df, dtype=None):
         assert df.dtypes["D"] == dtypes["D"]
 
 
-def zip_frames(frames: List[DataFrame], axis: int = 1) -> DataFrame:
+def zip_frames(frames: list[DataFrame], axis: int = 1) -> DataFrame:
     """
     take a list of frames, zip them together under the
     assumption that these all have the first frames' index/columns.

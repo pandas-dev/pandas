@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas import Categorical, Series
+from pandas import (
+    Categorical,
+    Series,
+)
 import pandas._testing as tm
 
 
@@ -220,3 +223,32 @@ class TestSeriesDropDuplicates:
         return_value = sc.drop_duplicates(keep=False, inplace=True)
         assert return_value is None
         tm.assert_series_equal(sc, tc[~expected])
+
+    def test_drop_duplicates_categorical_bool_na(self, nulls_fixture):
+        # GH#44351
+        ser = Series(
+            Categorical(
+                [True, False, True, False, nulls_fixture],
+                categories=[True, False],
+                ordered=True,
+            )
+        )
+        result = ser.drop_duplicates()
+        expected = Series(
+            Categorical([True, False, np.nan], categories=[True, False], ordered=True),
+            index=[0, 1, 4],
+        )
+        tm.assert_series_equal(result, expected)
+
+
+def test_drop_duplicates_pos_args_deprecation():
+    # GH#41485
+    s = Series(["a", "b", "c", "b"])
+    msg = (
+        "In a future version of pandas all arguments of "
+        "Series.drop_duplicates will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = s.drop_duplicates("last")
+    expected = Series(["a", "c", "b"], index=[0, 2, 3])
+    tm.assert_series_equal(expected, result)

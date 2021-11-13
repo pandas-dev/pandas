@@ -1,7 +1,10 @@
 from datetime import datetime
 
 import pandas as pd
-from pandas import Series, date_range
+from pandas import (
+    Series,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -10,7 +13,7 @@ class TestTruncate:
         # GH 9243
         idx = date_range("4/1/2005", "4/30/2005", freq="D", tz="US/Pacific")
         s = Series(range(len(idx)), index=idx)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             # GH#36148 in the future will require tzawareness compat
             s.truncate(datetime(2005, 4, 2), datetime(2005, 4, 4))
 
@@ -52,3 +55,11 @@ class TestTruncate:
 
         # the input Series and the expected Series are the same
         tm.assert_series_equal(result, series)
+
+    def test_truncate_index_only_one_unique_value(self):
+        # GH 42365
+        obj = Series(0, index=date_range("2021-06-30", "2021-06-30")).repeat(5)
+
+        truncated = obj.truncate("2021-06-28", "2021-07-01")
+
+        tm.assert_series_equal(truncated, obj)

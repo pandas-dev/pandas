@@ -5,15 +5,17 @@ from pandas import (
     CategoricalIndex,
     DatetimeIndex,
     Index,
-    Int64Index,
     NaT,
     Period,
     PeriodIndex,
     Timedelta,
-    UInt64Index,
     period_range,
 )
 import pandas._testing as tm
+from pandas.core.indexes.api import (
+    Int64Index,
+    UInt64Index,
+)
 
 
 class TestPeriodIndexAsType:
@@ -21,7 +23,7 @@ class TestPeriodIndexAsType:
     def test_astype_raises(self, dtype):
         # GH#13149, GH#13209
         idx = PeriodIndex(["2016-05-16", "NaT", NaT, np.NaN], freq="D")
-        msg = "Cannot cast PeriodArray to dtype"
+        msg = "Cannot cast PeriodIndex to dtype"
         with pytest.raises(TypeError, match=msg):
             idx.astype(dtype)
 
@@ -37,7 +39,7 @@ class TestPeriodIndexAsType:
         )
         tm.assert_index_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             result = idx.astype(np.int64)
         expected = Int64Index(
             [16937] + [-9223372036854775808] * 3, dtype=np.int64, name="idx"
@@ -49,7 +51,7 @@ class TestPeriodIndexAsType:
         tm.assert_index_equal(result, expected)
 
         idx = period_range("1990", "2009", freq="A", name="idx")
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             result = idx.astype("i8")
         tm.assert_index_equal(result, Index(idx.asi8, name="idx"))
         tm.assert_numpy_array_equal(result.values, idx.asi8)
@@ -57,7 +59,7 @@ class TestPeriodIndexAsType:
     def test_astype_uint(self):
         arr = period_range("2000", periods=2, name="idx")
         expected = UInt64Index(np.array([10957, 10958], dtype="uint64"), name="idx")
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             tm.assert_index_equal(arr.astype("uint64"), expected)
             tm.assert_index_equal(arr.astype("uint32"), expected)
 

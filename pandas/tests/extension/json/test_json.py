@@ -6,8 +6,11 @@ import pytest
 import pandas as pd
 import pandas._testing as tm
 from pandas.tests.extension import base
-
-from .array import JSONArray, JSONDtype, make_data
+from pandas.tests.extension.json.array import (
+    JSONArray,
+    JSONDtype,
+    make_data,
+)
 
 
 @pytest.fixture
@@ -224,12 +227,6 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
         # TODO (EA.factorize): see if _values_for_factorize allows this.
         pass
 
-    def test_argsort(self, data_for_sorting):
-        super().test_argsort(data_for_sorting)
-
-    def test_argsort_missing(self, data_missing_for_sorting):
-        super().test_argsort_missing(data_missing_for_sorting)
-
     @pytest.mark.parametrize("ascending", [True, False])
     def test_sort_values(self, data_for_sorting, ascending, sort_by_key):
         super().test_sort_values(data_for_sorting, ascending, sort_by_key)
@@ -308,10 +305,6 @@ class TestGroupby(BaseJSON, base.BaseGroupbyTests):
         I suspect that once we support Index[ExtensionArray],
         we'll be able to dispatch unique.
         """
-
-    @pytest.mark.parametrize("as_index", [True, False])
-    def test_groupby_extension_agg(self, as_index, data_for_grouping):
-        super().test_groupby_extension_agg(as_index, data_for_grouping)
 
     @pytest.mark.xfail(reason="GH#39098: Converts agg result to object")
     def test_groupby_agg_extension(self, data_for_grouping):

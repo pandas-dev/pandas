@@ -6,7 +6,15 @@ import pytest
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
-from pandas import DataFrame, DatetimeIndex, Series, Timestamp, date_range, isna
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+    Series,
+    StringDtype,
+    Timestamp,
+    date_range,
+    isna,
+)
 import pandas._testing as tm
 
 
@@ -308,11 +316,11 @@ class TestDataFrameIndexingWhere:
         assert return_value is None
         tm.assert_frame_equal(result, expected)
 
-    def test_where_bug_mixed(self, sint_dtype):
+    def test_where_bug_mixed(self, any_signed_int_numpy_dtype):
         # see gh-2793
         df = DataFrame(
             {
-                "a": np.array([1, 2, 3, 4], dtype=sint_dtype),
+                "a": np.array([1, 2, 3, 4], dtype=any_signed_int_numpy_dtype),
                 "b": np.array([4.0, 3.0, 2.0, 1.0], dtype="float64"),
             }
         )
@@ -499,6 +507,7 @@ class TestDataFrameIndexingWhere:
         assert return_value is None
         tm.assert_frame_equal(result, expected)
 
+    def test_where_axis_multiple_dtypes(self):
         # Multiple dtypes (=> multiple Blocks)
         df = pd.concat(
             [
@@ -589,12 +598,12 @@ class TestDataFrameIndexingWhere:
         tm.assert_frame_equal(result, exp)
         tm.assert_frame_equal(result, (df + 2).where((df + 2) > 8, (df + 2) + 10))
 
-    def test_where_tz_values(self, tz_naive_fixture):
-        df1 = DataFrame(
+    def test_where_tz_values(self, tz_naive_fixture, frame_or_series):
+        obj1 = DataFrame(
             DatetimeIndex(["20150101", "20150102", "20150103"], tz=tz_naive_fixture),
             columns=["date"],
         )
-        df2 = DataFrame(
+        obj2 = DataFrame(
             DatetimeIndex(["20150103", "20150104", "20150105"], tz=tz_naive_fixture),
             columns=["date"],
         )
@@ -603,8 +612,14 @@ class TestDataFrameIndexingWhere:
             DatetimeIndex(["20150101", "20150102", "20150105"], tz=tz_naive_fixture),
             columns=["date"],
         )
-        result = df1.where(mask, df2)
-        tm.assert_frame_equal(exp, result)
+        if frame_or_series is Series:
+            obj1 = obj1["date"]
+            obj2 = obj2["date"]
+            mask = mask["date"]
+            exp = exp["date"]
+
+        result = obj1.where(mask, obj2)
+        tm.assert_equal(exp, result)
 
     def test_df_where_change_dtype(self):
         # GH#16979
@@ -684,3 +699,91 @@ def test_where_try_cast_deprecated(frame_or_series):
     with tm.assert_produces_warning(FutureWarning):
         # try_cast keyword deprecated
         obj.where(mask, -1, try_cast=False)
+
+
+def test_where_copies_with_noop(frame_or_series):
+    # GH-39595
+    result = frame_or_series([1, 2, 3, 4])
+    expected = result.copy()
+    col = result[0] if frame_or_series is DataFrame else result
+
+    where_res = result.where(col < 5)
+    where_res *= 2
+
+    tm.assert_equal(result, expected)
+
+    where_res = result.where(col > 5, [1, 2, 3, 4])
+    where_res *= 2
+
+    tm.assert_equal(result, expected)
+
+
+def test_where_string_dtype(frame_or_series):
+    # GH40824
+    obj = frame_or_series(
+        ["a", "b", "c", "d"], index=["id1", "id2", "id3", "id4"], dtype=StringDtype()
+    )
+    filtered_obj = frame_or_series(
+        ["b", "c"], index=["id2", "id3"], dtype=StringDtype()
+    )
+    filter_ser = Series([False, True, True, False])
+
+    result = obj.where(filter_ser, filtered_obj)
+    expected = frame_or_series(
+        [pd.NA, "b", "c", pd.NA],
+        index=["id1", "id2", "id3", "id4"],
+        dtype=StringDtype(),
+    )
+    tm.assert_equal(result, expected)
+
+
+def test_where_bool_comparison():
+    # GH 10336
+    df_mask = DataFrame(
+        {"AAA": [True] * 4, "BBB": [False] * 4, "CCC": [True, False, True, False]}
+    )
+    result = df_mask.where(df_mask == False)  # noqa:E712
+    expected = DataFrame(
+        {
+            "AAA": np.array([np.nan] * 4, dtype=object),
+            "BBB": [False] * 4,
+            "CCC": [np.nan, False, np.nan, False],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_where_none_nan_coerce():
+    # GH 15613
+    expected = DataFrame(
+        {
+            "A": [Timestamp("20130101"), pd.NaT, Timestamp("20130103")],
+            "B": [1, 2, np.nan],
+        }
+    )
+    result = expected.where(expected.notnull(), None)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_where_non_keyword_deprecation(frame_or_series):
+    # GH 41485
+    obj = frame_or_series(range(5))
+    msg = (
+        "In a future version of pandas all arguments of "
+        f"{frame_or_series.__name__}.where except for the arguments 'cond' "
+        "and 'other' will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = obj.where(obj > 1, 10, False)
+    expected = frame_or_series([10, 10, 2, 3, 4])
+    tm.assert_equal(expected, result)
+
+
+def test_where_columns_casting():
+    # GH 42295
+
+    df = DataFrame({"a": [1.0, 2.0], "b": [3, np.nan]})
+    expected = df.copy()
+    result = df.where(pd.notnull(df), None)
+    # make sure dtypes don't change
+    tm.assert_frame_equal(expected, result)

@@ -1,38 +1,61 @@
 """
 EA-compatible analogue to to np.putmask
 """
+from __future__ import annotations
+
 from typing import Any
 import warnings
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import ArrayLike
+from pandas._typing import (
+    ArrayLike,
+    npt,
+)
 
-from pandas.core.dtypes.cast import convert_scalar_for_putitemlike, maybe_promote
-from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype, is_list_like
+from pandas.core.dtypes.cast import (
+    convert_scalar_for_putitemlike,
+    find_common_type,
+    infer_dtype_from,
+)
+from pandas.core.dtypes.common import (
+    is_float_dtype,
+    is_integer_dtype,
+    is_list_like,
+)
 from pandas.core.dtypes.missing import isna_compat
 
+from pandas.core.arrays import ExtensionArray
 
-def putmask_inplace(values: ArrayLike, mask: np.ndarray, value: Any) -> None:
+
+def putmask_inplace(values: ArrayLike, mask: npt.NDArray[np.bool_], value: Any) -> None:
     """
     ExtensionArray-compatible implementation of np.putmask.  The main
     difference is we do not handle repeating or truncating like numpy.
 
     Parameters
     ----------
+    values: np.ndarray or ExtensionArray
     mask : np.ndarray[bool]
-        We assume _extract_bool_array has already been called.
+        We assume extract_bool_array has already been called.
     value : Any
     """
 
     if lib.is_scalar(value) and isinstance(values, np.ndarray):
         value = convert_scalar_for_putitemlike(value, values.dtype)
 
-    if not isinstance(values, np.ndarray) or (
-        values.dtype == object and not lib.is_scalar(value)
+    if (
+        not isinstance(values, np.ndarray)
+        or (values.dtype == object and not lib.is_scalar(value))
+        # GH#43424: np.putmask raises TypeError if we cannot cast between types with
+        # rule = "safe", a stricter guarantee we may not have here
+        or (
+            isinstance(value, np.ndarray) and not np.can_cast(value.dtype, values.dtype)
+        )
     ):
         # GH#19266 using np.putmask gives unexpected results with listlike value
+        #  along with object dtype
         if is_list_like(value) and len(value) == len(values):
             values[mask] = value[mask]
         else:
@@ -42,7 +65,7 @@ def putmask_inplace(values: ArrayLike, mask: np.ndarray, value: Any) -> None:
         np.putmask(values, mask, value)
 
 
-def putmask_smart(values: np.ndarray, mask: np.ndarray, new) -> np.ndarray:
+def putmask_smart(values: np.ndarray, mask: npt.NDArray[np.bool_], new) -> np.ndarray:
     """
     Return a new ndarray, try to preserve dtype if possible.
 
@@ -61,14 +84,13 @@ def putmask_smart(values: np.ndarray, mask: np.ndarray, new) -> np.ndarray:
 
     See Also
     --------
-    ndarray.putmask
+    np.putmask
     """
     # we cannot use np.asarray() here as we cannot have conversions
     # that numpy does when numeric are mixed with strings
 
-    # n should be the length of the mask or a scalar here
     if not is_list_like(new):
-        new = np.repeat(new, len(mask))
+        new = np.broadcast_to(new, mask.shape)
 
     # see if we are only masking values that if putted
     # will work in the current dtype
@@ -104,25 +126,23 @@ def putmask_smart(values: np.ndarray, mask: np.ndarray, new) -> np.ndarray:
 
     if values.dtype.kind == new.dtype.kind:
         # preserves dtype if possible
-        return _putmask_preserve(values, new, mask)
+        np.putmask(values, mask, new)
+        return values
 
-    # change the dtype if needed
-    dtype, _ = maybe_promote(new.dtype)
+    dtype = find_common_type([values.dtype, new.dtype])
+    # error: Argument 1 to "astype" of "_ArrayOrScalarCommon" has incompatible type
+    # "Union[dtype[Any], ExtensionDtype]"; expected "Union[dtype[Any], None, type,
+    # _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]],
+    # List[Any], _DTypeDict, Tuple[Any, Any]]]"
+    values = values.astype(dtype)  # type: ignore[arg-type]
 
-    values = values.astype(dtype)
-
-    return _putmask_preserve(values, new, mask)
-
-
-def _putmask_preserve(new_values: np.ndarray, new, mask: np.ndarray):
-    try:
-        new_values[mask] = new[mask]
-    except (IndexError, ValueError):
-        new_values[mask] = new
-    return new_values
+    np.putmask(values, mask, new)
+    return values
 
 
-def putmask_without_repeat(values: np.ndarray, mask: np.ndarray, new: Any) -> None:
+def putmask_without_repeat(
+    values: np.ndarray, mask: npt.NDArray[np.bool_], new: Any
+) -> None:
     """
     np.putmask will truncate or repeat if `new` is a listlike with
     len(new) != len(values).  We require an exact match.
@@ -154,3 +174,54 @@ def putmask_without_repeat(values: np.ndarray, mask: np.ndarray, new: Any) -> No
             raise ValueError("cannot assign mismatch length to masked array")
     else:
         np.putmask(values, mask, new)
+
+
+def validate_putmask(
+    values: ArrayLike, mask: np.ndarray
+) -> tuple[npt.NDArray[np.bool_], bool]:
+    """
+    Validate mask and check if this putmask operation is a no-op.
+    """
+    mask = extract_bool_array(mask)
+    if mask.shape != values.shape:
+        raise ValueError("putmask: mask and data must be the same size")
+
+    noop = not mask.any()
+    return mask, noop
+
+
+def extract_bool_array(mask: ArrayLike) -> npt.NDArray[np.bool_]:
+    """
+    If we have a SparseArray or BooleanArray, convert it to ndarray[bool].
+    """
+    if isinstance(mask, ExtensionArray):
+        # We could have BooleanArray, Sparse[bool], ...
+        #  Except for BooleanArray, this is equivalent to just
+        #  np.asarray(mask, dtype=bool)
+        mask = mask.to_numpy(dtype=bool, na_value=False)
+
+    mask = np.asarray(mask, dtype=bool)
+    return mask
+
+
+def setitem_datetimelike_compat(values: np.ndarray, num_set: int, other):
+    """
+    Parameters
+    ----------
+    values : np.ndarray
+    num_set : int
+        For putmask, this is mask.sum()
+    other : Any
+    """
+    if values.dtype == object:
+        dtype, _ = infer_dtype_from(other, pandas_dtype=True)
+
+        if isinstance(dtype, np.dtype) and dtype.kind in ["m", "M"]:
+            # https://github.com/numpy/numpy/issues/12550
+            #  timedelta64 will incorrectly cast to int
+            if not is_list_like(other):
+                other = [other] * num_set
+            else:
+                other = list(other)
+
+    return other

@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 
 import pandas as pd
@@ -44,29 +46,56 @@ class Apply:
         self.roll.apply(function, raw=raw)
 
 
-class Engine:
+class NumbaEngine:
     params = (
         ["DataFrame", "Series"],
         ["int", "float"],
         [np.sum, lambda x: np.sum(x) + 5],
-        ["cython", "numba"],
         ["sum", "max", "min", "median", "mean"],
+        [True, False],
+        [None, 100],
     )
-    param_names = ["constructor", "dtype", "function", "engine", "method"]
+    param_names = ["constructor", "dtype", "function", "method", "parallel", "cols"]
 
-    def setup(self, constructor, dtype, function, engine, method):
+    def setup(self, constructor, dtype, function, method, parallel, cols):
         N = 10 ** 3
-        arr = (100 * np.random.random(N)).astype(dtype)
-        self.data = getattr(pd, constructor)(arr)
+        shape = (N, cols) if cols is not None and constructor != "Series" else N
+        arr = (100 * np.random.random(shape)).astype(dtype)
+        data = getattr(pd, constructor)(arr)
 
-    def time_rolling_apply(self, constructor, dtype, function, engine, method):
-        self.data.rolling(10).apply(function, raw=True, engine=engine)
+        # Warm the cache
+        with warnings.catch_warnings(record=True):
+            # Catch parallel=True not being applicable e.g. 1D data
+            self.roll = data.rolling(10)
+            self.roll.apply(
+                function, raw=True, engine="numba", engine_kwargs={"parallel": parallel}
+            )
+            getattr(self.roll, method)(
+                engine="numba", engine_kwargs={"parallel": parallel}
+            )
 
-    def time_expanding_apply(self, constructor, dtype, function, engine, method):
-        self.data.expanding().apply(function, raw=True, engine=engine)
+            self.expand = data.expanding()
+            self.expand.apply(
+                function, raw=True, engine="numba", engine_kwargs={"parallel": parallel}
+            )
 
-    def time_rolling_methods(self, constructor, dtype, function, engine, method):
-        getattr(self.data.rolling(10), method)(engine=engine)
+    def time_rolling_apply(self, constructor, dtype, function, method, parallel, col):
+        with warnings.catch_warnings(record=True):
+            self.roll.apply(
+                function, raw=True, engine="numba", engine_kwargs={"parallel": parallel}
+            )
+
+    def time_expanding_apply(self, constructor, dtype, function, method, parallel, col):
+        with warnings.catch_warnings(record=True):
+            self.expand.apply(
+                function, raw=True, engine="numba", engine_kwargs={"parallel": parallel}
+            )
+
+    def time_rolling_methods(self, constructor, dtype, function, method, parallel, col):
+        with warnings.catch_warnings(record=True):
+            getattr(self.roll, method)(
+                engine="numba", engine_kwargs={"parallel": parallel}
+            )
 
 
 class ExpandingMethods:
@@ -114,7 +143,7 @@ class EWMMethods:
         getattr(self.ewm, method)()
 
     def time_ewm_times(self, constructor, window, dtype, method):
-        self.ewm.mean()
+        self.ewm_times.mean()
 
 
 class VariableWindowMethods(Methods):
@@ -140,14 +169,24 @@ class Pairwise:
 
     def setup(self, window, method, pairwise):
         N = 10 ** 4
+        n_groups = 20
+        groups = [i for _ in range(N // n_groups) for i in range(n_groups)]
         arr = np.random.random(N)
         self.df = pd.DataFrame(arr)
+        self.df_group = pd.DataFrame({"A": groups, "B": arr}).groupby("A")
 
     def time_pairwise(self, window, method, pairwise):
         if window is None:
             r = self.df.expanding()
         else:
             r = self.df.rolling(window=window)
+        getattr(r, method)(self.df, pairwise=pairwise)
+
+    def time_groupby(self, window, method, pairwise):
+        if window is None:
+            r = self.df_group.expanding()
+        else:
+            r = self.df_group.rolling(window=window)
         getattr(r, method)(self.df, pairwise=pairwise)
 
 
@@ -168,6 +207,33 @@ class Quantile:
 
     def time_quantile(self, constructor, window, dtype, percentile, interpolation):
         self.roll.quantile(percentile, interpolation=interpolation)
+
+
+class Rank:
+    params = (
+        ["DataFrame", "Series"],
+        [10, 1000],
+        ["int", "float"],
+        [True, False],
+        [True, False],
+        ["min", "max", "average"],
+    )
+    param_names = [
+        "constructor",
+        "window",
+        "dtype",
+        "percentile",
+        "ascending",
+        "method",
+    ]
+
+    def setup(self, constructor, window, dtype, percentile, ascending, method):
+        N = 10 ** 5
+        arr = np.random.random(N).astype(dtype)
+        self.roll = getattr(pd, constructor)(arr).rolling(window)
+
+    def time_rank(self, constructor, window, dtype, percentile, ascending, method):
+        self.roll.rank(pct=percentile, ascending=ascending, method=method)
 
 
 class PeakMemFixedWindowMinMax:
@@ -245,6 +311,19 @@ class GroupbyLargeGroups:
 
 class GroupbyEWM:
 
+    params = ["var", "std", "cov", "corr"]
+    param_names = ["method"]
+
+    def setup(self, method):
+        df = pd.DataFrame({"A": range(50), "B": range(50)})
+        self.gb_ewm = df.groupby("A").ewm(com=1.0)
+
+    def time_groupby_method(self, method):
+        getattr(self.gb_ewm, method)()
+
+
+class GroupbyEWMEngine:
+
     params = ["cython", "numba"]
     param_names = ["engine"]
 
@@ -272,6 +351,9 @@ class TableMethod:
         self.df.rolling(2, method=method).apply(
             table_method_func, raw=True, engine="numba"
         )
+
+    def time_ewm_mean(self, method):
+        self.df.ewm(1, method=method).mean(engine="numba")
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

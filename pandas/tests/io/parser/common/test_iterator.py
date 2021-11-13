@@ -6,8 +6,13 @@ from io import StringIO
 
 import pytest
 
-from pandas import DataFrame, Series, concat
+from pandas import (
+    DataFrame,
+    concat,
+)
 import pandas._testing as tm
+
+pytestmark = pytest.mark.usefixtures("pyarrow_skip")
 
 
 def test_iterator(all_parsers):
@@ -88,7 +93,7 @@ def test_iterator_skipfooter_errors(all_parsers, kwargs):
 
 def test_iteration_open_handle(all_parsers):
     parser = all_parsers
-    kwargs = {"squeeze": True, "header": None}
+    kwargs = {"header": None}
 
     with tm.ensure_clean() as path:
         with open(path, "w") as f:
@@ -100,5 +105,5 @@ def test_iteration_open_handle(all_parsers):
                     break
 
             result = parser.read_csv(f, **kwargs)
-            expected = Series(["DDD", "EEE", "FFF", "GGG"], name=0)
-            tm.assert_series_equal(result, expected)
+            expected = DataFrame({0: ["DDD", "EEE", "FFF", "GGG"]})
+            tm.assert_frame_equal(result, expected)

@@ -1,14 +1,15 @@
 """Tests for Table Schema integration."""
 from collections import OrderedDict
 import json
-import sys
 
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
-from pandas.core.dtypes.dtypes import CategoricalDtype, DatetimeTZDtype, PeriodDtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    DatetimeTZDtype,
+    PeriodDtype,
+)
 
 import pandas as pd
 from pandas import DataFrame
@@ -21,8 +22,6 @@ from pandas.io.json._table_schema import (
     convert_pandas_type_to_json_field,
     set_default_names,
 )
-
-pytestmark = td.skip_array_manager_not_yet_implemented
 
 
 class TestBuildSchema:
@@ -691,7 +690,6 @@ class TestTableOrientReader:
             },
         ],
     )
-    @pytest.mark.skipif(sys.version_info[:3] == (3, 7, 0), reason="GH-35309")
     def test_read_json_table_orient(self, index_nm, vals, recwarn):
         df = DataFrame(vals, index=pd.Index(range(4), name=index_nm))
         out = df.to_json(orient="table")
@@ -741,7 +739,6 @@ class TestTableOrientReader:
             },
         ],
     )
-    @pytest.mark.skipif(sys.version_info[:3] == (3, 7, 0), reason="GH-35309")
     def test_read_json_table_timezones_orient(self, idx, vals, recwarn):
         # GH 35973
         df = DataFrame(vals, index=idx)
@@ -749,6 +746,9 @@ class TestTableOrientReader:
         result = pd.read_json(out, orient="table")
         tm.assert_frame_equal(df, result)
 
+    @pytest.mark.filterwarnings(
+        "ignore:an integer is required (got type float)*:DeprecationWarning"
+    )
     def test_comprehensive(self):
         df = DataFrame(
             {
@@ -759,8 +759,7 @@ class TestTableOrientReader:
                 "E": pd.Series(pd.Categorical(["a", "b", "c", "c"])),
                 "F": pd.Series(pd.Categorical(["a", "b", "c", "c"], ordered=True)),
                 "G": [1.1, 2.2, 3.3, 4.4],
-                # 'H': pd.date_range('2016-01-01', freq='d', periods=4,
-                #                   tz='US/Central'),
+                "H": pd.date_range("2016-01-01", freq="d", periods=4, tz="US/Central"),
                 "I": [True, False, False, True],
             },
             index=pd.Index(range(4), name="idx"),

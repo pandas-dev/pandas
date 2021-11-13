@@ -2,10 +2,16 @@
 Tests for the pandas.io.common functionalities
 """
 import codecs
-from io import StringIO
+import errno
+from functools import partial
+from io import (
+    BytesIO,
+    StringIO,
+)
 import mmap
 import os
 from pathlib import Path
+import tempfile
 
 import pytest
 
@@ -116,10 +122,11 @@ bar2,12,13,14,15
     @pytest.mark.parametrize("path_type", [str, CustomFSPath, Path])
     def test_get_handle_with_path(self, path_type):
         # ignore LocalPath: it creates strange paths: /absolute/~/sometest
-        filename = path_type("~/sometest")
-        with icom.get_handle(filename, "w") as handles:
-            assert os.path.isabs(handles.handle.name)
-            assert os.path.expanduser(filename) == handles.handle.name
+        with tempfile.TemporaryDirectory(dir=Path.home()) as tmp:
+            filename = path_type("~/" + Path(tmp).name + "/sometest")
+            with icom.get_handle(filename, "w") as handles:
+                assert Path(handles.handle.name).is_absolute()
+                assert os.path.expanduser(filename) == handles.handle.name
 
     def test_get_handle_with_buffer(self):
         input_buffer = StringIO()
@@ -127,6 +134,48 @@ bar2,12,13,14,15
             assert handles.handle == input_buffer
         assert not input_buffer.closed
         input_buffer.close()
+
+    # Test that BytesIOWrapper(get_handle) returns correct amount of bytes every time
+    def test_bytesiowrapper_returns_correct_bytes(self):
+        # Test latin1, ucs-2, and ucs-4 chars
+        data = """a,b,c
+1,2,3
+©,®,®
+Look,a snake,🐍"""
+        with icom.get_handle(StringIO(data), "rb", is_text=False) as handles:
+            result = b""
+            chunksize = 5
+            while True:
+                chunk = handles.handle.read(chunksize)
+                # Make sure each chunk is correct amount of bytes
+                assert len(chunk) <= chunksize
+                if len(chunk) < chunksize:
+                    # Can be less amount of bytes, but only at EOF
+                    # which happens when read returns empty
+                    assert len(handles.handle.read()) == 0
+                    result += chunk
+                    break
+                result += chunk
+            assert result == data.encode("utf-8")
+
+    # Test that pyarrow can handle a file opened with get_handle
+    @td.skip_if_no("pyarrow", min_version="0.15.0")
+    def test_get_handle_pyarrow_compat(self):
+        from pyarrow import csv
+
+        # Test latin1, ucs-2, and ucs-4 chars
+        data = """a,b,c
+1,2,3
+©,®,®
+Look,a snake,🐍"""
+        expected = pd.DataFrame(
+            {"a": ["1", "©", "Look"], "b": ["2", "®", "a snake"], "c": ["3", "®", "🐍"]}
+        )
+        s = StringIO(data)
+        with icom.get_handle(s, "rb", is_text=False) as handles:
+            df = csv.read_csv(handles.handle).to_pandas()
+            tm.assert_frame_equal(df, expected)
+            assert not s.closed
 
     def test_iterator(self):
         with pd.read_csv(StringIO(self.data1), chunksize=1) as reader:
@@ -146,7 +195,7 @@ bar2,12,13,14,15
             (pd.read_csv, "os", FileNotFoundError, "csv"),
             (pd.read_fwf, "os", FileNotFoundError, "txt"),
             (pd.read_excel, "xlrd", FileNotFoundError, "xlsx"),
-            (pd.read_feather, "pyarrow", IOError, "feather"),
+            (pd.read_feather, "pyarrow", OSError, "feather"),
             (pd.read_hdf, "tables", FileNotFoundError, "h5"),
             (pd.read_stata, "os", FileNotFoundError, "dta"),
             (pd.read_sas, "os", FileNotFoundError, "sas7bdat"),
@@ -179,13 +228,40 @@ bar2,12,13,14,15
             reader(path)
 
     @pytest.mark.parametrize(
+        "method, module, error_class, fn_ext",
+        [
+            (pd.DataFrame.to_csv, "os", OSError, "csv"),
+            (pd.DataFrame.to_html, "os", OSError, "html"),
+            (pd.DataFrame.to_excel, "xlrd", OSError, "xlsx"),
+            (pd.DataFrame.to_feather, "pyarrow", OSError, "feather"),
+            (pd.DataFrame.to_parquet, "pyarrow", OSError, "parquet"),
+            (pd.DataFrame.to_stata, "os", OSError, "dta"),
+            (pd.DataFrame.to_json, "os", OSError, "json"),
+            (pd.DataFrame.to_pickle, "os", OSError, "pickle"),
+        ],
+    )
+    # NOTE: Missing parent directory for pd.DataFrame.to_hdf is handled by PyTables
+    def test_write_missing_parent_directory(self, method, module, error_class, fn_ext):
+        pytest.importorskip(module)
+
+        dummy_frame = pd.DataFrame({"a": [1, 2, 3], "b": [2, 3, 4], "c": [3, 4, 5]})
+
+        path = os.path.join(HERE, "data", "missing_folder", "does_not_exist." + fn_ext)
+
+        with pytest.raises(
+            error_class,
+            match=r"Cannot save file into a non-existent directory: .*missing_folder",
+        ):
+            method(dummy_frame, path)
+
+    @pytest.mark.parametrize(
         "reader, module, error_class, fn_ext",
         [
             (pd.read_csv, "os", FileNotFoundError, "csv"),
             (pd.read_table, "os", FileNotFoundError, "csv"),
             (pd.read_fwf, "os", FileNotFoundError, "txt"),
             (pd.read_excel, "xlrd", FileNotFoundError, "xlsx"),
-            (pd.read_feather, "pyarrow", IOError, "feather"),
+            (pd.read_feather, "pyarrow", OSError, "feather"),
             (pd.read_hdf, "tables", FileNotFoundError, "h5"),
             (pd.read_stata, "os", FileNotFoundError, "dta"),
             (pd.read_sas, "os", FileNotFoundError, "sas7bdat"),
@@ -252,6 +328,12 @@ bar2,12,13,14,15
             ),
         ],
     )
+    @pytest.mark.filterwarnings(
+        "ignore:CategoricalBlock is deprecated:DeprecationWarning"
+    )
+    @pytest.mark.filterwarnings(  # pytables np.object usage
+        "ignore:`np.object` is a deprecated alias:DeprecationWarning"
+    )
     def test_read_fspath_all(self, reader, module, path, datapath):
         pytest.importorskip(module)
         path = datapath(*path)
@@ -273,9 +355,7 @@ bar2,12,13,14,15
             ("to_excel", {"engine": "xlwt"}, "xlwt"),
             ("to_feather", {}, "pyarrow"),
             ("to_html", {}, "os"),
-            pytest.param(
-                "to_json", {}, "os", marks=td.skip_array_manager_not_yet_implemented
-            ),
+            ("to_json", {}, "os"),
             ("to_latex", {}, "os"),
             ("to_pickle", {}, "os"),
             ("to_stata", {"time_stamp": pd.to_datetime("2019-01-01 00:00")}, "os"),
@@ -301,6 +381,10 @@ bar2,12,13,14,15
 
             assert result == expected
 
+    @pytest.mark.filterwarnings(  # pytables np.object usage
+        "ignore:`np.object` is a deprecated alias:DeprecationWarning"
+    )
+    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) IO HDF5
     def test_write_fspath_hdf5(self):
         # Same test as write_fspath_all, except HDF5 files aren't
         # necessarily byte-for-byte identical for a given dataframe, so we'll
@@ -424,14 +508,6 @@ def test_is_fsspec_url():
     assert not icom.is_fsspec_url("relative/local/path")
 
 
-def test_default_errors():
-    # GH 38989
-    with tm.ensure_clean() as path:
-        file = Path(path)
-        file.write_bytes(b"\xe4\na\n1")
-        tm.assert_frame_equal(pd.read_csv(file, skiprows=[0]), pd.DataFrame({"a": [1]}))
-
-
 @pytest.mark.parametrize("encoding", [None, "utf-8"])
 @pytest.mark.parametrize("format", ["csv", "json"])
 def test_codecs_encoding(encoding, format):
@@ -446,3 +522,83 @@ def test_codecs_encoding(encoding, format):
             else:
                 df = pd.read_json(handle)
     tm.assert_frame_equal(expected, df)
+
+
+def test_codecs_get_writer_reader():
+    # GH39247
+    expected = tm.makeDataFrame()
+    with tm.ensure_clean() as path:
+        with open(path, "wb") as handle:
+            with codecs.getwriter("utf-8")(handle) as encoded:
+                expected.to_csv(encoded)
+        with open(path, "rb") as handle:
+            with codecs.getreader("utf-8")(handle) as encoded:
+                df = pd.read_csv(encoded, index_col=0)
+    tm.assert_frame_equal(expected, df)
+
+
+@pytest.mark.parametrize(
+    "io_class,mode,msg",
+    [
+        (BytesIO, "t", "a bytes-like object is required, not 'str'"),
+        (StringIO, "b", "string argument expected, got 'bytes'"),
+    ],
+)
+def test_explicit_encoding(io_class, mode, msg):
+    # GH39247; this test makes sure that if a user provides mode="*t" or "*b",
+    # it is used. In the case of this test it leads to an error as intentionally the
+    # wrong mode is requested
+    expected = tm.makeDataFrame()
+    with io_class() as buffer:
+        with pytest.raises(TypeError, match=msg):
+            expected.to_csv(buffer, mode=f"w{mode}")
+
+
+@pytest.mark.parametrize("encoding_errors", [None, "strict", "replace"])
+@pytest.mark.parametrize("format", ["csv", "json"])
+def test_encoding_errors(encoding_errors, format):
+    # GH39450
+    msg = "'utf-8' codec can't decode byte"
+    bad_encoding = b"\xe4"
+
+    if format == "csv":
+        return
+        content = bad_encoding + b"\n" + bad_encoding
+        reader = pd.read_csv
+    else:
+        content = (
+            b'{"'
+            + bad_encoding * 2
+            + b'": {"'
+            + bad_encoding
+            + b'":"'
+            + bad_encoding
+            + b'"}}'
+        )
+        reader = partial(pd.read_json, orient="index")
+    with tm.ensure_clean() as path:
+        file = Path(path)
+        file.write_bytes(content)
+
+        if encoding_errors != "replace":
+            with pytest.raises(UnicodeDecodeError, match=msg):
+                reader(path, encoding_errors=encoding_errors)
+        else:
+            df = reader(path, encoding_errors=encoding_errors)
+            decoded = bad_encoding.decode(errors=encoding_errors)
+            expected = pd.DataFrame({decoded: [decoded]}, index=[decoded * 2])
+            tm.assert_frame_equal(df, expected)
+
+
+def test_bad_encdoing_errors():
+    # GH 39777
+    with tm.ensure_clean() as path:
+        with pytest.raises(LookupError, match="unknown error handler name"):
+            icom.get_handle(path, "w", errors="bad")
+
+
+def test_errno_attribute():
+    # GH 13872
+    with pytest.raises(FileNotFoundError, match="\\[Errno 2\\]") as err:
+        pd.read_csv("doesnt_exist")
+        assert err.errno == errno.ENOENT

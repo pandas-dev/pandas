@@ -12,13 +12,15 @@ cross platform distribution for data analysis and scientific computing.
 This is the recommended installation method for most users.
 
 Instructions for installing from source,
-`PyPI <https://pypi.org/project/pandas>`__, `ActivePython <https://www.activestate.com/activepython/downloads>`__, various Linux distributions, or a
+`PyPI <https://pypi.org/project/pandas>`__, `ActivePython <https://www.activestate.com/products/python/downloads/>`__, various Linux distributions, or a
 `development version <https://github.com/pandas-dev/pandas>`__ are also provided.
+
+.. _install.version:
 
 Python version support
 ----------------------
 
-Officially Python 3.7.1 and above, 3.8, and 3.9.
+Officially Python 3.8, and 3.9.
 
 Installing pandas
 -----------------
@@ -45,7 +47,7 @@ rest of the `SciPy <https://scipy.org/>`__ stack without needing to install
 anything else, and without needing to wait for any software to be compiled.
 
 Installation instructions for `Anaconda <https://docs.continuum.io/anaconda/>`__
-`can be found here <https://docs.continuum.io/anaconda/install.html>`__.
+`can be found here <https://docs.continuum.io/anaconda/install/>`__.
 
 A full list of the packages available as part of the
 `Anaconda <https://docs.continuum.io/anaconda/>`__ distribution
@@ -130,6 +132,9 @@ Installing from PyPI
 pandas can be installed via pip from
 `PyPI <https://pypi.org/project/pandas>`__.
 
+.. note::
+    You must have ``pip>=19.3`` to install from PyPI.
+
 ::
 
     pip install pandas
@@ -184,7 +189,7 @@ You can find simple installation instructions for pandas in this document: ``ins
 Installing from source
 ~~~~~~~~~~~~~~~~~~~~~~
 
-See the :ref:`contributing guide <contributing>` for complete instructions on building from the git source tree. Further, see :ref:`creating a development environment <contributing.dev_env>` if you wish to create a pandas development environment.
+See the :ref:`contributing guide <contributing>` for complete instructions on building from the git source tree. Further, see :ref:`creating a development environment <contributing_environment>` if you wish to create a pandas development environment.
 
 Running the test suite
 ----------------------
@@ -193,7 +198,7 @@ pandas is equipped with an exhaustive set of unit tests, covering about 97% of
 the code base as of this writing. To run it on your machine to verify that
 everything is working (and that you have all of the dependencies, soft and hard,
 installed), make sure you have `pytest
-<https://docs.pytest.org/en/latest/>`__ >= 5.0.1 and `Hypothesis
+<https://docs.pytest.org/en/latest/>`__ >= 6.0 and `Hypothesis
 <https://hypothesis.readthedocs.io/>`__ >= 3.58, then run:
 
 ::
@@ -219,10 +224,9 @@ Dependencies
 ================================================================ ==========================
 Package                                                          Minimum supported version
 ================================================================ ==========================
-`setuptools <https://setuptools.readthedocs.io/en/latest/>`__    24.2.0
-`NumPy <https://numpy.org>`__                                    1.16.5
-`python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.7.3
-`pytz <https://pypi.org/project/pytz/>`__                        2017.3
+`NumPy <https://numpy.org>`__                                    1.18.5
+`python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.8.1
+`pytz <https://pypi.org/project/pytz/>`__                        2020.1
 ================================================================ ==========================
 
 .. _install.recommended_dependencies:
@@ -232,11 +236,11 @@ Recommended dependencies
 
 * `numexpr <https://github.com/pydata/numexpr>`__: for accelerating certain numerical operations.
   ``numexpr`` uses multiple cores as well as smart chunking and caching to achieve large speedups.
-  If installed, must be Version 2.6.8 or higher.
+  If installed, must be Version 2.7.1 or higher.
 
 * `bottleneck <https://github.com/pydata/bottleneck>`__: for accelerating certain types of ``nan``
   evaluations. ``bottleneck`` uses specialized cython routines to achieve large speedups. If installed,
-  must be Version 1.2.1 or higher.
+  must be Version 1.3.1 or higher.
 
 .. note::
 
@@ -255,47 +259,52 @@ For example, :func:`pandas.read_hdf` requires the ``pytables`` package, while
 optional dependency is not installed, pandas will raise an ``ImportError`` when
 the method requiring that dependency is called.
 
+Visualization
+^^^^^^^^^^^^^
+
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
-BeautifulSoup4            4.6.0              HTML parser for read_html (see :ref:`note <optional_html>`)
-Jinja2                    2.10               Conditional formatting with DataFrame.style
-PyQt4                                        Clipboard I/O
-PyQt5                                        Clipboard I/O
-PyTables                  3.5.1              HDF5-based reading / writing
-SQLAlchemy                1.3.0              SQL support for databases other than sqlite
-SciPy                     1.12.0             Miscellaneous statistical functions
-xlsxwriter                1.0.2              Excel writing
-blosc                     1.17.0             Compression for HDF5
-fsspec                    0.7.4              Handling files aside from local and HTTP
-fastparquet               0.4.0              Parquet reading / writing
-gcsfs                     0.6.0              Google Cloud Storage access
-html5lib                  1.0.1              HTML parser for read_html (see :ref:`note <optional_html>`)
-lxml                      4.3.0              HTML parser for read_html (see :ref:`note <optional_html>`)
-matplotlib                2.2.3              Visualization
-numba                     0.46.0             Alternative execution engine for rolling operations
-openpyxl                  2.6.0              Reading / writing for xlsx files
-pandas-gbq                0.12.0             Google Big Query access
-psycopg2                  2.7                PostgreSQL engine for sqlalchemy
-pyarrow                   0.15.0             Parquet, ORC, and feather reading / writing
-pymysql                   0.8.1              MySQL engine for sqlalchemy
-pyreadstat                                   SPSS files (.sav) reading
-pyxlsb                    1.0.6              Reading for xlsb files
-qtpy                                         Clipboard I/O
-s3fs                      0.4.0              Amazon S3 access
+matplotlib                3.3.2              Plotting library
+Jinja2                    2.11               Conditional formatting with DataFrame.style
 tabulate                  0.8.7              Printing in Markdown-friendly format (see `tabulate`_)
-xarray                    0.12.3             pandas-like API for N-dimensional data
-xclip                                        Clipboard I/O on linux
-xlrd                      1.2.0              Excel reading
-xlwt                      1.3.0              Excel writing
-xsel                                         Clipboard I/O on linux
-zlib                                         Compression for HDF5
 ========================= ================== =============================================================
 
-.. _optional_html:
+Computation
+^^^^^^^^^^^
 
-Optional dependencies for parsing HTML
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+========================= ================== =============================================================
+Dependency                Minimum Version    Notes
+========================= ================== =============================================================
+SciPy                     1.14.1             Miscellaneous statistical functions
+numba                     0.50.1             Alternative execution engine for rolling operations
+                                             (see :ref:`Enhancing Performance <enhancingperf.numba>`)
+xarray                    0.15.1             pandas-like API for N-dimensional data
+========================= ================== =============================================================
+
+Excel files
+^^^^^^^^^^^
+
+========================= ================== =============================================================
+Dependency                Minimum Version    Notes
+========================= ================== =============================================================
+xlrd                      2.0.1              Reading Excel
+xlwt                      1.3.0              Writing Excel
+xlsxwriter                1.2.2              Writing Excel
+openpyxl                  3.0.2              Reading / writing for xlsx files
+pyxlsb                    1.0.6              Reading for xlsb files
+========================= ================== =============================================================
+
+HTML
+^^^^
+
+========================= ================== =============================================================
+Dependency                Minimum Version    Notes
+========================= ================== =============================================================
+BeautifulSoup4            4.8.2              HTML parser for read_html
+html5lib                  1.1                HTML parser for read_html
+lxml                      4.5.0              HTML parser for read_html
+========================= ================== =============================================================
 
 One of the following combinations of libraries is needed to use the
 top-level :func:`~pandas.read_html` function:
@@ -320,3 +329,76 @@ top-level :func:`~pandas.read_html` function:
 .. _BeautifulSoup4: https://www.crummy.com/software/BeautifulSoup
 .. _lxml: https://lxml.de
 .. _tabulate: https://github.com/astanin/python-tabulate
+
+XML
+^^^
+
+========================= ================== =============================================================
+Dependency                Minimum Version    Notes
+========================= ================== =============================================================
+lxml                      4.5.0              XML parser for read_xml and tree builder for to_xml
+========================= ================== =============================================================
+
+SQL databases
+^^^^^^^^^^^^^
+
+========================= ================== =============================================================
+Dependency                Minimum Version    Notes
+========================= ================== =============================================================
+SQLAlchemy                1.3.11              SQL support for databases other than sqlite
+psycopg2                  2.8.4               PostgreSQL engine for sqlalchemy
+pymysql                   0.10.1              MySQL engine for sqlalchemy
+========================= ================== =============================================================
+
+Other data sources
+^^^^^^^^^^^^^^^^^^
+
+========================= ================== =============================================================
+Dependency                Minimum Version    Notes
+========================= ================== =============================================================
+PyTables                  3.6.1              HDF5-based reading / writing
+blosc                     1.20.1             Compression for HDF5
+zlib                                         Compression for HDF5
+fastparquet               0.4.0              Parquet reading / writing
+pyarrow                   1.0.1              Parquet, ORC, and feather reading / writing
+pyreadstat                                   SPSS files (.sav) reading
+========================= ================== =============================================================
+
+.. _install.warn_orc:
+
+.. warning::
+
+    * If you want to use :func:`~pandas.read_orc`, it is highly recommended to install pyarrow using conda.
+      The following is a summary of the environment in which :func:`~pandas.read_orc` can work.
+
+      ========================= ================== =============================================================
+      System                    Conda              PyPI
+      ========================= ================== =============================================================
+      Linux                     Successful         Failed(pyarrow==3.0 Successful)
+      macOS                     Successful         Failed
+      Windows                   Failed             Failed
+      ========================= ================== =============================================================
+
+Access data in the cloud
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+========================= ================== =============================================================
+Dependency                Minimum Version    Notes
+========================= ================== =============================================================
+fsspec                    0.7.4              Handling files aside from simple local and HTTP
+gcsfs                     0.6.0              Google Cloud Storage access
+pandas-gbq                0.14.0             Google Big Query access
+s3fs                      0.4.0              Amazon S3 access
+========================= ================== =============================================================
+
+Clipboard
+^^^^^^^^^
+
+========================= ================== =============================================================
+Dependency                Minimum Version    Notes
+========================= ================== =============================================================
+PyQt4/PyQt5                                  Clipboard I/O
+qtpy                                         Clipboard I/O
+xclip                                        Clipboard I/O on linux
+xsel                                         Clipboard I/O on linux
+========================= ================== =============================================================

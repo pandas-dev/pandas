@@ -6,7 +6,9 @@ import pytest
 
 from pandas._libs import hashtable as ht
 
+import pandas as pd
 import pandas._testing as tm
+from pandas.core.algorithms import isin
 
 
 @contextmanager
@@ -42,6 +44,7 @@ def get_allocated_khash_memory():
         (ht.UInt16HashTable, np.uint16),
         (ht.Int8HashTable, np.int8),
         (ht.UInt8HashTable, np.uint8),
+        (ht.IntpHashTable, np.intp),
     ],
 )
 class TestHashTable:
@@ -154,15 +157,105 @@ class TestHashTable:
             del table
             assert get_allocated_khash_memory() == 0
 
+    def test_get_state(self, table_type, dtype):
+        table = table_type(1000)
+        state = table.get_state()
+        assert state["size"] == 0
+        assert state["n_occupied"] == 0
+        assert "n_buckets" in state
+        assert "upper_bound" in state
+
+    def test_no_reallocation(self, table_type, dtype):
+        for N in range(1, 110):
+            keys = np.arange(N).astype(dtype)
+            preallocated_table = table_type(N)
+            n_buckets_start = preallocated_table.get_state()["n_buckets"]
+            preallocated_table.map_locations(keys)
+            n_buckets_end = preallocated_table.get_state()["n_buckets"]
+            # original number of buckets was enough:
+            assert n_buckets_start == n_buckets_end
+            # check with clean table (not too much preallocated)
+            clean_table = table_type()
+            clean_table.map_locations(keys)
+            assert n_buckets_start == clean_table.get_state()["n_buckets"]
+
+
+class TestPyObjectHashTableWithNans:
+    def test_nan_float(self):
+        nan1 = float("nan")
+        nan2 = float("nan")
+        assert nan1 is not nan2
+        table = ht.PyObjectHashTable()
+        table.set_item(nan1, 42)
+        assert table.get_item(nan2) == 42
+
+    def test_nan_complex_both(self):
+        nan1 = complex(float("nan"), float("nan"))
+        nan2 = complex(float("nan"), float("nan"))
+        assert nan1 is not nan2
+        table = ht.PyObjectHashTable()
+        table.set_item(nan1, 42)
+        assert table.get_item(nan2) == 42
+
+    def test_nan_complex_real(self):
+        nan1 = complex(float("nan"), 1)
+        nan2 = complex(float("nan"), 1)
+        other = complex(float("nan"), 2)
+        assert nan1 is not nan2
+        table = ht.PyObjectHashTable()
+        table.set_item(nan1, 42)
+        assert table.get_item(nan2) == 42
+        with pytest.raises(KeyError, match=None) as error:
+            table.get_item(other)
+        assert str(error.value) == str(other)
+
+    def test_nan_complex_imag(self):
+        nan1 = complex(1, float("nan"))
+        nan2 = complex(1, float("nan"))
+        other = complex(2, float("nan"))
+        assert nan1 is not nan2
+        table = ht.PyObjectHashTable()
+        table.set_item(nan1, 42)
+        assert table.get_item(nan2) == 42
+        with pytest.raises(KeyError, match=None) as error:
+            table.get_item(other)
+        assert str(error.value) == str(other)
+
+    def test_nan_in_tuple(self):
+        nan1 = (float("nan"),)
+        nan2 = (float("nan"),)
+        assert nan1[0] is not nan2[0]
+        table = ht.PyObjectHashTable()
+        table.set_item(nan1, 42)
+        assert table.get_item(nan2) == 42
+
+    def test_nan_in_nested_tuple(self):
+        nan1 = (1, (2, (float("nan"),)))
+        nan2 = (1, (2, (float("nan"),)))
+        other = (1, 2)
+        table = ht.PyObjectHashTable()
+        table.set_item(nan1, 42)
+        assert table.get_item(nan2) == 42
+        with pytest.raises(KeyError, match=None) as error:
+            table.get_item(other)
+        assert str(error.value) == str(other)
+
+
+def test_hash_equal_tuple_with_nans():
+    a = (float("nan"), (float("nan"), float("nan")))
+    b = (float("nan"), (float("nan"), float("nan")))
+    assert ht.object_hash(a) == ht.object_hash(b)
+    assert ht.objects_are_equal(a, b)
+
 
 def test_get_labels_groupby_for_Int64(writable):
     table = ht.Int64HashTable()
     vals = np.array([1, 2, -1, 2, 1, -1], dtype=np.int64)
     vals.flags.writeable = writable
     arr, unique = table.get_labels_groupby(vals)
-    expected_arr = np.array([0, 1, -1, 1, 0, -1], dtype=np.int64)
+    expected_arr = np.array([0, 1, -1, 1, 0, -1], dtype=np.intp)
     expected_unique = np.array([1, 2], dtype=np.int64)
-    tm.assert_numpy_array_equal(arr.astype(np.int64), expected_arr)
+    tm.assert_numpy_array_equal(arr, expected_arr)
     tm.assert_numpy_array_equal(unique, expected_unique)
 
 
@@ -187,6 +280,21 @@ def test_tracemalloc_for_empty_StringHashTable():
         assert used == my_size
         del table
         assert get_allocated_khash_memory() == 0
+
+
+def test_no_reallocation_StringHashTable():
+    for N in range(1, 110):
+        keys = np.arange(N).astype(np.compat.unicode).astype(np.object_)
+        preallocated_table = ht.StringHashTable(N)
+        n_buckets_start = preallocated_table.get_state()["n_buckets"]
+        preallocated_table.map_locations(keys)
+        n_buckets_end = preallocated_table.get_state()["n_buckets"]
+        # original number of buckets was enough:
+        assert n_buckets_start == n_buckets_end
+        # check with clean table (not too much preallocated)
+        clean_table = ht.StringHashTable()
+        clean_table.map_locations(keys)
+        assert n_buckets_start == clean_table.get_state()["n_buckets"]
 
 
 @pytest.mark.parametrize(
@@ -239,135 +347,183 @@ class TestHashTableWithNans:
         assert np.all(np.isnan(unique)) and len(unique) == 1
 
 
-def get_ht_function(fun_name, type_suffix):
-    return getattr(ht, fun_name + "_" + type_suffix)
+def test_unique_for_nan_objects_floats():
+    table = ht.PyObjectHashTable()
+    keys = np.array([float("nan") for i in range(50)], dtype=np.object_)
+    unique = table.unique(keys)
+    assert len(unique) == 1
+
+
+def test_unique_for_nan_objects_complex():
+    table = ht.PyObjectHashTable()
+    keys = np.array([complex(float("nan"), 1.0) for i in range(50)], dtype=np.object_)
+    unique = table.unique(keys)
+    assert len(unique) == 1
+
+
+def test_unique_for_nan_objects_tuple():
+    table = ht.PyObjectHashTable()
+    keys = np.array(
+        [1] + [(1.0, (float("nan"), 1.0)) for i in range(50)], dtype=np.object_
+    )
+    unique = table.unique(keys)
+    assert len(unique) == 2
 
 
 @pytest.mark.parametrize(
-    "dtype, type_suffix",
+    "dtype",
     [
-        (np.object_, "object"),
-        (np.complex128, "complex128"),
-        (np.int64, "int64"),
-        (np.uint64, "uint64"),
-        (np.float64, "float64"),
-        (np.complex64, "complex64"),
-        (np.int32, "int32"),
-        (np.uint32, "uint32"),
-        (np.float32, "float32"),
-        (np.int16, "int16"),
-        (np.uint16, "uint16"),
-        (np.int8, "int8"),
-        (np.uint8, "uint8"),
+        np.object_,
+        np.complex128,
+        np.int64,
+        np.uint64,
+        np.float64,
+        np.complex64,
+        np.int32,
+        np.uint32,
+        np.float32,
+        np.int16,
+        np.uint16,
+        np.int8,
+        np.uint8,
+        np.intp,
     ],
 )
 class TestHelpFunctions:
-    def test_value_count(self, dtype, type_suffix, writable):
+    def test_value_count(self, dtype, writable):
         N = 43
-        value_count = get_ht_function("value_count", type_suffix)
         expected = (np.arange(N) + N).astype(dtype)
         values = np.repeat(expected, 5)
         values.flags.writeable = writable
-        keys, counts = value_count(values, False)
+        keys, counts = ht.value_count(values, False)
         tm.assert_numpy_array_equal(np.sort(keys), expected)
         assert np.all(counts == 5)
 
-    def test_value_count_stable(self, dtype, type_suffix, writable):
+    def test_value_count_stable(self, dtype, writable):
         # GH12679
-        value_count = get_ht_function("value_count", type_suffix)
         values = np.array([2, 1, 5, 22, 3, -1, 8]).astype(dtype)
         values.flags.writeable = writable
-        keys, counts = value_count(values, False)
+        keys, counts = ht.value_count(values, False)
         tm.assert_numpy_array_equal(keys, values)
         assert np.all(counts == 1)
 
-    def test_duplicated_first(self, dtype, type_suffix, writable):
+    def test_duplicated_first(self, dtype, writable):
         N = 100
-        duplicated = get_ht_function("duplicated", type_suffix)
         values = np.repeat(np.arange(N).astype(dtype), 5)
         values.flags.writeable = writable
-        result = duplicated(values)
+        result = ht.duplicated(values)
         expected = np.ones_like(values, dtype=np.bool_)
         expected[::5] = False
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_ismember_yes(self, dtype, type_suffix, writable):
+    def test_ismember_yes(self, dtype, writable):
         N = 127
-        ismember = get_ht_function("ismember", type_suffix)
         arr = np.arange(N).astype(dtype)
         values = np.arange(N).astype(dtype)
         arr.flags.writeable = writable
         values.flags.writeable = writable
-        result = ismember(arr, values)
+        result = ht.ismember(arr, values)
         expected = np.ones_like(values, dtype=np.bool_)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_ismember_no(self, dtype, type_suffix):
+    def test_ismember_no(self, dtype):
         N = 17
-        ismember = get_ht_function("ismember", type_suffix)
         arr = np.arange(N).astype(dtype)
         values = (np.arange(N) + N).astype(dtype)
-        result = ismember(arr, values)
+        result = ht.ismember(arr, values)
         expected = np.zeros_like(values, dtype=np.bool_)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_mode(self, dtype, type_suffix, writable):
+    def test_mode(self, dtype, writable):
         if dtype in (np.int8, np.uint8):
             N = 53
         else:
             N = 11111
-        mode = get_ht_function("mode", type_suffix)
         values = np.repeat(np.arange(N).astype(dtype), 5)
         values[0] = 42
         values.flags.writeable = writable
-        result = mode(values, False)
+        result = ht.mode(values, False)
         assert result == 42
+
+    def test_mode_stable(self, dtype, writable):
+        values = np.array([2, 1, 5, 22, 3, -1, 8]).astype(dtype)
+        values.flags.writeable = writable
+        keys = ht.mode(values, False)
+        tm.assert_numpy_array_equal(keys, values)
+
+
+def test_modes_with_nans():
+    # GH42688, nans aren't mangled
+    nulls = [pd.NA, np.nan, pd.NaT, None]
+    values = np.array([True] + nulls * 2, dtype=np.object_)
+    modes = ht.mode(values, False)
+    assert modes.size == len(nulls)
+
+
+def test_unique_label_indices_intp(writable):
+    keys = np.array([1, 2, 2, 2, 1, 3], dtype=np.intp)
+    keys.flags.writeable = writable
+    result = ht.unique_label_indices(keys)
+    expected = np.array([0, 1, 5], dtype=np.intp)
+    tm.assert_numpy_array_equal(result, expected)
 
 
 @pytest.mark.parametrize(
-    "dtype, type_suffix",
+    "dtype",
     [
-        (np.float64, "float64"),
-        (np.float32, "float32"),
-        (np.complex128, "complex128"),
-        (np.complex64, "complex64"),
+        np.float64,
+        np.float32,
+        np.complex128,
+        np.complex64,
     ],
 )
 class TestHelpFunctionsWithNans:
-    def test_value_count(self, dtype, type_suffix):
-        value_count = get_ht_function("value_count", type_suffix)
+    def test_value_count(self, dtype):
         values = np.array([np.nan, np.nan, np.nan], dtype=dtype)
-        keys, counts = value_count(values, True)
+        keys, counts = ht.value_count(values, True)
         assert len(keys) == 0
-        keys, counts = value_count(values, False)
+        keys, counts = ht.value_count(values, False)
         assert len(keys) == 1 and np.all(np.isnan(keys))
         assert counts[0] == 3
 
-    def test_duplicated_first(self, dtype, type_suffix):
-        duplicated = get_ht_function("duplicated", type_suffix)
+    def test_duplicated_first(self, dtype):
         values = np.array([np.nan, np.nan, np.nan], dtype=dtype)
-        result = duplicated(values)
+        result = ht.duplicated(values)
         expected = np.array([False, True, True])
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_ismember_yes(self, dtype, type_suffix):
-        ismember = get_ht_function("ismember", type_suffix)
+    def test_ismember_yes(self, dtype):
         arr = np.array([np.nan, np.nan, np.nan], dtype=dtype)
         values = np.array([np.nan, np.nan], dtype=dtype)
-        result = ismember(arr, values)
+        result = ht.ismember(arr, values)
         expected = np.array([True, True, True], dtype=np.bool_)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_ismember_no(self, dtype, type_suffix):
-        ismember = get_ht_function("ismember", type_suffix)
+    def test_ismember_no(self, dtype):
         arr = np.array([np.nan, np.nan, np.nan], dtype=dtype)
         values = np.array([1], dtype=dtype)
-        result = ismember(arr, values)
+        result = ht.ismember(arr, values)
         expected = np.array([False, False, False], dtype=np.bool_)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_mode(self, dtype, type_suffix):
-        mode = get_ht_function("mode", type_suffix)
+    def test_mode(self, dtype):
         values = np.array([42, np.nan, np.nan, np.nan], dtype=dtype)
-        assert mode(values, True) == 42
-        assert np.isnan(mode(values, False))
+        assert ht.mode(values, True) == 42
+        assert np.isnan(ht.mode(values, False))
+
+
+def test_ismember_tuple_with_nans():
+    # GH-41836
+    values = [("a", float("nan")), ("b", 1)]
+    comps = [("a", float("nan"))]
+    result = isin(values, comps)
+    expected = np.array([True, False], dtype=np.bool_)
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_float_complex_int_are_equal_as_objects():
+    values = ["a", 5, 5.0, 5.0 + 0j]
+    comps = list(range(129))
+    result = isin(values, comps)
+    expected = np.array([False, True, True, True], dtype=np.bool_)
+    tm.assert_numpy_array_equal(result, expected)

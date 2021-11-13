@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from __future__ import annotations
 
 import numpy as np
 
@@ -21,14 +21,14 @@ class TablePlotter:
         self.cell_height = cell_height
         self.font_size = font_size
 
-    def _shape(self, df: pd.DataFrame) -> Tuple[int, int]:
+    def _shape(self, df: pd.DataFrame) -> tuple[int, int]:
         """
         Calculate table shape considering index levels.
         """
         row, col = df.shape
         return row + df.columns.nlevels, col + df.index.nlevels
 
-    def _get_cells(self, left, right, vertical) -> Tuple[int, int]:
+    def _get_cells(self, left, right, vertical) -> tuple[int, int]:
         """
         Calculate appropriate figure size based on left and right data.
         """
@@ -134,7 +134,7 @@ class TablePlotter:
             data.columns = col
         return data
 
-    def _make_table(self, ax, df, title: str, height: Optional[float] = None):
+    def _make_table(self, ax, df, title: str, height: float | None = None):
         if df is None:
             ax.set_visible(False)
             return

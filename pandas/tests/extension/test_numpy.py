@@ -16,13 +16,42 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.dtypes import ExtensionDtype, PandasDtype
+from pandas.core.dtypes.cast import can_hold_element
+from pandas.core.dtypes.dtypes import (
+    ExtensionDtype,
+    PandasDtype,
+)
 
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays.numpy_ import PandasArray
+from pandas.core.internals import blocks
+from pandas.tests.extension import base
 
-from . import base
+
+def _can_hold_element_patched(obj, element) -> bool:
+    if isinstance(element, PandasArray):
+        element = element.to_numpy()
+    return can_hold_element(obj, element)
+
+
+orig_assert_attr_equal = tm.assert_attr_equal
+
+
+def _assert_attr_equal(attr: str, left, right, obj: str = "Attributes"):
+    """
+    patch tm.assert_attr_equal so PandasDtype("object") is closed enough to
+    np.dtype("object")
+    """
+    if attr == "dtype":
+        lattr = getattr(left, "dtype", None)
+        rattr = getattr(right, "dtype", None)
+        if isinstance(lattr, PandasDtype) and not isinstance(rattr, PandasDtype):
+            left = left.astype(lattr.numpy_dtype)
+        elif isinstance(rattr, PandasDtype) and not isinstance(lattr, PandasDtype):
+            right = right.astype(rattr.numpy_dtype)
+
+    orig_assert_attr_equal(attr, left, right, obj)
 
 
 @pytest.fixture(params=["float", "object"])
@@ -49,6 +78,8 @@ def allow_in_pandas(monkeypatch):
     """
     with monkeypatch.context() as m:
         m.setattr(PandasArray, "_typ", "extension")
+        m.setattr(blocks, "can_hold_element", _can_hold_element_patched)
+        m.setattr(tm.asserters, "assert_attr_equal", _assert_attr_equal)
         yield
 
 
@@ -187,11 +218,6 @@ class TestGetitem(BaseNumPyTests, base.BaseGetitemTests):
         # AssertionError
         super().test_getitem_scalar(data)
 
-    @skip_nested
-    def test_take_series(self, data):
-        # ValueError: PandasArray must be 1-dimensional.
-        super().test_take_series(data)
-
 
 class TestGroupby(BaseNumPyTests, base.BaseGroupbyTests):
     pass
@@ -211,13 +237,6 @@ class TestMethods(BaseNumPyTests, base.BaseMethodsTests):
         super().test_shift_fill_value(data)
 
     @skip_nested
-    @pytest.mark.parametrize("box", [pd.Series, lambda x: x])
-    @pytest.mark.parametrize("method", [lambda x: x.unique(), pd.unique])
-    def test_unique(self, data, box, method):
-        # Fails creating expected
-        super().test_unique(data, box, method)
-
-    @skip_nested
     def test_fillna_copy_frame(self, data_missing):
         # The "scalar" for this array isn't a scalar.
         super().test_fillna_copy_frame(data_missing)
@@ -232,30 +251,21 @@ class TestMethods(BaseNumPyTests, base.BaseMethodsTests):
         # Test setup fails.
         super().test_searchsorted(data_for_sorting, as_series)
 
-    @skip_nested
-    def test_where_series(self, data, na_value, as_frame):
-        # Test setup fails.
-        super().test_where_series(data, na_value, as_frame)
-
-    @pytest.mark.parametrize("repeats", [0, 1, 2, [1, 2, 3]])
-    def test_repeat(self, data, repeats, as_series, use_numpy, request):
-        if data.dtype.numpy_dtype == object and repeats != 0:
-            mark = pytest.mark.xfail(reason="mask shapes mismatch")
-            request.node.add_marker(mark)
-        super().test_repeat(data, repeats, as_series, use_numpy)
-
     @pytest.mark.xfail(reason="PandasArray.diff may fail on dtype")
     def test_diff(self, data, periods):
         return super().test_diff(data, periods)
 
-    @pytest.mark.parametrize("box", [pd.array, pd.Series, pd.DataFrame])
-    def test_equals(self, data, na_value, as_series, box, request):
-        # Fails creating with _from_sequence
-        if box is pd.DataFrame and data.dtype.numpy_dtype == object:
-            mark = pytest.mark.xfail(reason="AssertionError in _get_same_shape_values")
+    def test_insert(self, data, request):
+        if data.dtype.numpy_dtype == object:
+            mark = pytest.mark.xfail(reason="Dimension mismatch in np.concatenate")
             request.node.add_marker(mark)
 
-        super().test_equals(data, na_value, as_series, box)
+        super().test_insert(data)
+
+    @skip_nested
+    def test_insert_invalid(self, data, invalid_scalar):
+        # PandasArray[object] can hold anything, so skip
+        super().test_insert_invalid(data, invalid_scalar)
 
 
 class TestArithmetics(BaseNumPyTests, base.BaseArithmeticOpsTests):
@@ -277,8 +287,11 @@ class TestArithmetics(BaseNumPyTests, base.BaseArithmeticOpsTests):
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
         super().test_arith_series_with_scalar(data, all_arithmetic_operators)
 
-    @skip_nested
-    def test_arith_series_with_array(self, data, all_arithmetic_operators):
+    def test_arith_series_with_array(self, data, all_arithmetic_operators, request):
+        opname = all_arithmetic_operators
+        if data.dtype.numpy_dtype == object and opname not in ["__add__", "__radd__"]:
+            mark = pytest.mark.xfail(reason="Fails for object dtype")
+            request.node.add_marker(mark)
         super().test_arith_series_with_array(data, all_arithmetic_operators)
 
     @skip_nested
@@ -309,16 +322,6 @@ class TestBooleanReduce(BaseNumPyTests, base.BaseBooleanReduceTests):
 
 class TestMissing(BaseNumPyTests, base.BaseMissingTests):
     @skip_nested
-    def test_fillna_scalar(self, data_missing):
-        # Non-scalar "scalar" values.
-        super().test_fillna_scalar(data_missing)
-
-    @skip_nested
-    def test_fillna_series_method(self, data_missing, fillna_method):
-        # Non-scalar "scalar" values.
-        super().test_fillna_series_method(data_missing, fillna_method)
-
-    @skip_nested
     def test_fillna_series(self, data_missing):
         # Non-scalar "scalar" values.
         super().test_fillna_series(data_missing)
@@ -328,65 +331,38 @@ class TestMissing(BaseNumPyTests, base.BaseMissingTests):
         # Non-scalar "scalar" values.
         super().test_fillna_frame(data_missing)
 
-    def test_fillna_fill_other(self, data_missing):
-        # Same as the parent class test, but with PandasDtype for expected["B"]
-        #  instead of equivalent numpy dtype
-        data = data_missing
-        result = pd.DataFrame({"A": data, "B": [np.nan] * len(data)}).fillna({"B": 0.0})
-
-        expected = pd.DataFrame({"A": data, "B": [0.0] * len(result)})
-        expected["B"] = expected["B"].astype(PandasDtype(expected["B"].dtype))
-
-        self.assert_frame_equal(result, expected)
-
 
 class TestReshaping(BaseNumPyTests, base.BaseReshapingTests):
-    @skip_nested
+    @pytest.mark.skip(reason="Incorrect expected.")
     def test_merge(self, data, na_value):
-        # Fails creating expected
+        # Fails creating expected (key column becomes a PandasDtype because)
         super().test_merge(data, na_value)
 
-    @skip_nested
-    def test_merge_on_extension_array(self, data):
-        # Fails creating expected
-        super().test_merge_on_extension_array(data)
-
-    @skip_nested
-    def test_merge_on_extension_array_duplicates(self, data):
-        # Fails creating expected
-        super().test_merge_on_extension_array_duplicates(data)
-
-    @skip_nested
-    def test_transpose_frame(self, data):
-        super().test_transpose_frame(data)
+    @pytest.mark.parametrize(
+        "in_frame",
+        [
+            True,
+            pytest.param(
+                False,
+                marks=pytest.mark.xfail(reason="PandasArray inconsistently extracted"),
+            ),
+        ],
+    )
+    def test_concat(self, data, in_frame):
+        super().test_concat(data, in_frame)
 
 
 class TestSetitem(BaseNumPyTests, base.BaseSetitemTests):
+    @skip_nested
+    def test_setitem_invalid(self, data, invalid_scalar):
+        # object dtype can hold anything, so doesn't raise
+        super().test_setitem_invalid(data, invalid_scalar)
+
     @skip_nested
     def test_setitem_sequence_broadcasts(self, data, box_in_series):
         # ValueError: cannot set using a list-like indexer with a different
         # length than the value
         super().test_setitem_sequence_broadcasts(data, box_in_series)
-
-    @skip_nested
-    def test_setitem_loc_scalar_mixed(self, data):
-        # AssertionError
-        super().test_setitem_loc_scalar_mixed(data)
-
-    @skip_nested
-    def test_setitem_loc_scalar_multiple_homogoneous(self, data):
-        # AssertionError
-        super().test_setitem_loc_scalar_multiple_homogoneous(data)
-
-    @skip_nested
-    def test_setitem_iloc_scalar_mixed(self, data):
-        # AssertionError
-        super().test_setitem_iloc_scalar_mixed(data)
-
-    @skip_nested
-    def test_setitem_iloc_scalar_multiple_homogoneous(self, data):
-        # AssertionError
-        super().test_setitem_iloc_scalar_multiple_homogoneous(data)
 
     @skip_nested
     @pytest.mark.parametrize("setter", ["loc", None])
@@ -448,7 +424,28 @@ class TestSetitem(BaseNumPyTests, base.BaseSetitemTests):
     def test_setitem_loc_iloc_slice(self, data):
         super().test_setitem_loc_iloc_slice(data)
 
+    def test_setitem_with_expansion_dataframe_column(self, data, full_indexer):
+        # https://github.com/pandas-dev/pandas/issues/32395
+        df = expected = pd.DataFrame({"data": pd.Series(data)})
+        result = pd.DataFrame(index=df.index)
+
+        # because result has object dtype, the attempt to do setting inplace
+        #  is successful, and object dtype is retained
+        key = full_indexer(df)
+        result.loc[key, "data"] = df["data"]
+
+        # base class method has expected = df; PandasArray behaves oddly because
+        #  we patch _typ for these tests.
+        if data.dtype.numpy_dtype != object:
+            if not isinstance(key, slice) or key != slice(None):
+                expected = pd.DataFrame({"data": data.to_numpy()})
+        self.assert_frame_equal(result, expected)
+
 
 @skip_nested
 class TestParsing(BaseNumPyTests, base.BaseParsingTests):
+    pass
+
+
+class Test2DCompat(BaseNumPyTests, base.Dim2CompatTests):
     pass

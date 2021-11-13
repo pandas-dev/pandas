@@ -1,13 +1,24 @@
 """ feather-format compat """
+from __future__ import annotations
 
-from typing import AnyStr
+from typing import (
+    Hashable,
+    Sequence,
+)
 
-from pandas._typing import FilePathOrBuffer, StorageOptions
+from pandas._typing import (
+    FilePathOrBuffer,
+    StorageOptions,
+)
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 
-from pandas import DataFrame, Int64Index, RangeIndex
 from pandas.core import generic
+from pandas.core.api import (
+    DataFrame,
+    Int64Index,
+    RangeIndex,
+)
 
 from pandas.io.common import get_handle
 
@@ -15,7 +26,7 @@ from pandas.io.common import get_handle
 @doc(storage_options=generic._shared_docs["storage_options"])
 def to_feather(
     df: DataFrame,
-    path: FilePathOrBuffer[AnyStr],
+    path: FilePathOrBuffer[bytes],
     storage_options: StorageOptions = None,
     **kwargs,
 ):
@@ -49,7 +60,7 @@ def to_feather(
     # validate that we have only a default index
     # raise on anything else as we don't serialize the index
 
-    if not isinstance(df.index, Int64Index):
+    if not isinstance(df.index, (Int64Index, RangeIndex)):
         typ = type(df.index)
         raise ValueError(
             f"feather does not support serializing {typ} "
@@ -82,7 +93,10 @@ def to_feather(
 
 @doc(storage_options=generic._shared_docs["storage_options"])
 def read_feather(
-    path, columns=None, use_threads: bool = True, storage_options: StorageOptions = None
+    path: FilePathOrBuffer[bytes],
+    columns: Sequence[Hashable] | None = None,
+    use_threads: bool = True,
+    storage_options: StorageOptions = None,
 ):
     """
     Load a feather-format object from the file path.
@@ -103,12 +117,8 @@ def read_feather(
         or ``StringIO``.
     columns : sequence, default None
         If not provided, all columns are read.
-
-        .. versionadded:: 0.24.0
     use_threads : bool, default True
         Whether to parallelize reading using multiple threads.
-
-       .. versionadded:: 0.24.0
     {storage_options}
 
         .. versionadded:: 1.2.0

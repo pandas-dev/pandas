@@ -7,10 +7,19 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import Timestamp
-from pandas._libs.tslibs.offsets import BusinessHour, CustomBusinessHour, Nano
+from pandas._libs.tslibs.offsets import (
+    BusinessHour,
+    CustomBusinessHour,
+    Nano,
+)
 
 import pandas._testing as tm
-from pandas.tests.tseries.offsets.common import Base, assert_offset_equal
+from pandas.tests.tseries.offsets.common import (
+    Base,
+    assert_offset_equal,
+)
+
+from pandas.tseries.holiday import USFederalHolidayCalendar
 
 
 class TestCustomBusinessHour(Base):
@@ -291,3 +300,29 @@ class TestCustomBusinessHour(Base):
         offset, cases = nano_case
         for base, expected in cases.items():
             assert_offset_equal(offset, base, expected)
+
+    def test_us_federal_holiday_with_datetime(self):
+        # GH 16867
+        bhour_us = CustomBusinessHour(calendar=USFederalHolidayCalendar())
+        t0 = datetime(2014, 1, 17, 15)
+        result = t0 + bhour_us * 8
+        expected = Timestamp("2014-01-21 15:00:00")
+        assert result == expected
+
+
+@pytest.mark.parametrize(
+    "weekmask, expected_time, mult",
+    [
+        ["Mon Tue Wed Thu Fri Sat", "2018-11-10 09:00:00", 10],
+        ["Tue Wed Thu Fri Sat", "2018-11-13 08:00:00", 18],
+    ],
+)
+def test_custom_businesshour_weekmask_and_holidays(weekmask, expected_time, mult):
+    # GH 23542
+    holidays = ["2018-11-09"]
+    bh = CustomBusinessHour(
+        start="08:00", end="17:00", weekmask=weekmask, holidays=holidays
+    )
+    result = Timestamp("2018-11-08 08:00") + mult * bh
+    expected = Timestamp(expected_time)
+    assert result == expected

@@ -7,8 +7,18 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas import Categorical, DataFrame, Index, MultiIndex, Series, concat
+from pandas import (
+    Categorical,
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    concat,
+)
 import pandas._testing as tm
+
+# TODO(1.4): Change me into individual xfails at release time
+pytestmark = pytest.mark.usefixtures("pyarrow_skip")
 
 
 def test_dtype_all_columns_empty(all_parsers):

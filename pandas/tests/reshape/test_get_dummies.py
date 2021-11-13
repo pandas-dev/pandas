@@ -6,9 +6,18 @@ import pytest
 from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
-from pandas import Categorical, CategoricalIndex, DataFrame, Series, get_dummies
+from pandas import (
+    Categorical,
+    CategoricalIndex,
+    DataFrame,
+    Series,
+    get_dummies,
+)
 import pandas._testing as tm
-from pandas.core.arrays.sparse import SparseArray, SparseDtype
+from pandas.core.arrays.sparse import (
+    SparseArray,
+    SparseDtype,
+)
 
 
 class TestGetDummies:
@@ -263,8 +272,9 @@ class TestGetDummies:
                 "from_A_a": [1, 0, 1],
                 "from_A_b": [0, 1, 0],
             },
-            dtype=np.uint8,
         )
+        cols = expected.columns
+        expected[cols[1:]] = expected[cols[1:]].astype(np.uint8)
         expected[["C"]] = df[["C"]]
         if sparse:
             cols = ["from_A_a", "from_A_b"]

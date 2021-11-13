@@ -1,11 +1,18 @@
-from datetime import datetime, time
-from typing import List, Optional
+from __future__ import annotations
+
+from datetime import (
+    datetime,
+    time,
+)
 
 import numpy as np
 
 from pandas._libs.lib import is_list_like
 
-from pandas.core.dtypes.generic import ABCIndex, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCIndex,
+    ABCSeries,
+)
 from pandas.core.dtypes.missing import notna
 
 
@@ -52,7 +59,7 @@ def to_time(arg, format=None, infer_time_format=False, errors="raise"):
         if infer_time_format and format is None:
             format = _guess_time_format_for_array(arg)
 
-        times: List[Optional[time]] = []
+        times: list[time | None] = []
         if format is not None:
             for element in arg:
                 try:

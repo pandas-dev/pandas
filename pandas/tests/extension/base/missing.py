@@ -1,9 +1,10 @@
 import numpy as np
+import pytest
 
 import pandas as pd
 import pandas._testing as tm
-
-from .base import BaseExtensionTests
+from pandas.api.types import is_sparse
+from pandas.tests.extension.base.base import BaseExtensionTests
 
 
 class BaseMissingTests(BaseExtensionTests):
@@ -20,6 +21,17 @@ class BaseMissingTests(BaseExtensionTests):
         # GH 21189
         result = pd.Series(data_missing).drop([0, 1]).isna()
         expected = pd.Series([], dtype=bool)
+        self.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("na_func", ["isna", "notna"])
+    def test_isna_returns_copy(self, data_missing, na_func):
+        result = pd.Series(data_missing)
+        expected = result.copy()
+        mask = getattr(result, na_func)()
+        if is_sparse(mask):
+            mask = np.array(mask)
+
+        mask[:] = True
         self.assert_series_equal(result, expected)
 
     def test_dropna_array(self, data_missing):
@@ -69,6 +81,18 @@ class BaseMissingTests(BaseExtensionTests):
         result = pd.Series(arr).fillna(method="backfill", limit=2)
         expected = pd.Series(data_missing.take([1, 0, 1, 1, 1]))
         self.assert_series_equal(result, expected)
+
+    def test_fillna_no_op_returns_copy(self, data):
+        data = data[~data.isna()]
+
+        valid = data[0]
+        result = data.fillna(valid)
+        assert result is not data
+        self.assert_extension_array_equal(result, data)
+
+        result = data.fillna(method="backfill")
+        assert result is not data
+        self.assert_extension_array_equal(result, data)
 
     def test_fillna_series(self, data_missing):
         fill_value = data_missing[1]

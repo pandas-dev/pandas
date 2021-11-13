@@ -4,7 +4,13 @@ import pytest
 
 from pandas._libs.tslibs import Timestamp
 
-from pandas import DataFrame, Series, _testing as tm, date_range, read_hdf
+from pandas import (
+    DataFrame,
+    Series,
+    _testing as tm,
+    date_range,
+    read_hdf,
+)
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
     ensure_clean_path,

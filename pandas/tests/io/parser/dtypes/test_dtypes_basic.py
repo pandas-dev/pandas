@@ -10,8 +10,15 @@ import pytest
 from pandas.errors import ParserWarning
 
 import pandas as pd
-from pandas import DataFrame, Timestamp
+from pandas import (
+    DataFrame,
+    Timestamp,
+)
 import pandas._testing as tm
+
+# TODO(1.4): Change me into xfail at release time
+# and xfail individual tests
+pytestmark = pytest.mark.usefixtures("pyarrow_skip")
 
 
 @pytest.mark.parametrize("dtype", [str, object])
@@ -197,6 +204,11 @@ def test_1000_sep_decimal_float_precision(
     # test decimal and thousand sep handling in across 'float_precision'
     # parsers
     decimal_number_check(c_parser_only, numeric_decimal, thousands, float_precision)
+    text, value = numeric_decimal
+    text = " " + text + " "
+    if isinstance(value, str):  # the negative cases (parse as text)
+        value = " " + value + " "
+    decimal_number_check(c_parser_only, (text, value), thousands, float_precision)
 
 
 def decimal_number_check(parser, numeric_decimal, thousands, float_precision):
@@ -213,6 +225,24 @@ def decimal_number_check(parser, numeric_decimal, thousands, float_precision):
     )
     val = df.iloc[0, 0]
     assert val == numeric_decimal[1]
+
+
+@pytest.mark.parametrize("float_precision", [None, "legacy", "high", "round_trip"])
+def test_skip_whitespace(c_parser_only, float_precision):
+    DATA = """id\tnum\t
+1\t1.2 \t
+1\t 2.1\t
+2\t 1\t
+2\t 1.2 \t
+"""
+    df = c_parser_only.read_csv(
+        StringIO(DATA),
+        float_precision=float_precision,
+        sep="\t",
+        header=0,
+        dtype={1: np.float64},
+    )
+    tm.assert_series_equal(df.iloc[:, 1], pd.Series([1.2, 2.1, 1.0, 1.2], name="num"))
 
 
 def test_true_values_cast_to_bool(all_parsers):
@@ -235,3 +265,72 @@ no,yyy
     )
     expected["a"] = expected["a"].astype("boolean")
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtypes, exp_value", [({}, "1"), ({"a.1": "int64"}, 1)])
+def test_dtype_mangle_dup_cols(all_parsers, dtypes, exp_value):
+    # GH#35211
+    parser = all_parsers
+    data = """a,a\n1,1"""
+    dtype_dict = {"a": str, **dtypes}
+    # GH#42462
+    dtype_dict_copy = dtype_dict.copy()
+    result = parser.read_csv(StringIO(data), dtype=dtype_dict)
+    expected = DataFrame({"a": ["1"], "a.1": [exp_value]})
+    assert dtype_dict == dtype_dict_copy, "dtype dict changed"
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dtype_mangle_dup_cols_single_dtype(all_parsers):
+    # GH#42022
+    parser = all_parsers
+    data = """a,a\n1,1"""
+    result = parser.read_csv(StringIO(data), dtype=str)
+    expected = DataFrame({"a": ["1"], "a.1": ["1"]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dtype_multi_index(all_parsers):
+    # GH 42446
+    parser = all_parsers
+    data = "A,B,B\nX,Y,Z\n1,2,3"
+
+    result = parser.read_csv(
+        StringIO(data),
+        header=list(range(2)),
+        dtype={
+            ("A", "X"): np.int32,
+            ("B", "Y"): np.int32,
+            ("B", "Z"): np.float32,
+        },
+    )
+
+    expected = DataFrame(
+        {
+            ("A", "X"): np.int32([1]),
+            ("B", "Y"): np.int32([2]),
+            ("B", "Z"): np.float32([3]),
+        }
+    )
+
+    tm.assert_frame_equal(result, expected)
+
+
+def test_nullable_int_dtype(all_parsers, any_int_ea_dtype):
+    # GH 25472
+    parser = all_parsers
+    dtype = any_int_ea_dtype
+
+    data = """a,b,c
+,3,5
+1,,6
+2,4,"""
+    expected = DataFrame(
+        {
+            "a": pd.array([pd.NA, 1, 2], dtype=dtype),
+            "b": pd.array([3, pd.NA, 4], dtype=dtype),
+            "c": pd.array([5, 6, pd.NA], dtype=dtype),
+        }
+    )
+    actual = parser.read_csv(StringIO(data), dtype=dtype)
+    tm.assert_frame_equal(actual, expected)

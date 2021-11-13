@@ -1,8 +1,16 @@
-from collections import OrderedDict, abc
-from datetime import date, datetime, timedelta
+from collections import (
+    OrderedDict,
+    abc,
+)
+from datetime import (
+    date,
+    datetime,
+    timedelta,
+)
 import functools
 import itertools
 import re
+import warnings
 
 import numpy as np
 import numpy.ma as ma
@@ -11,15 +19,22 @@ import pytest
 import pytz
 
 from pandas.compat import np_version_under1p19
+import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer_dtype
-from pandas.core.dtypes.dtypes import DatetimeTZDtype, IntervalDtype, PeriodDtype
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    IntervalDtype,
+    PandasDtype,
+    PeriodDtype,
+)
 
 import pandas as pd
 from pandas import (
     Categorical,
     CategoricalIndex,
     DataFrame,
+    DatetimeIndex,
     Index,
     Interval,
     MultiIndex,
@@ -28,11 +43,18 @@ from pandas import (
     Series,
     Timedelta,
     Timestamp,
+    cut,
     date_range,
     isna,
 )
 import pandas._testing as tm
-from pandas.arrays import IntervalArray, PeriodArray, SparseArray
+from pandas.arrays import (
+    DatetimeArray,
+    IntervalArray,
+    PeriodArray,
+    SparseArray,
+)
+from pandas.core.api import Int64Index
 
 MIXED_FLOAT_DTYPES = ["float16", "float32", "float64"]
 MIXED_INT_DTYPES = [
@@ -48,6 +70,85 @@ MIXED_INT_DTYPES = [
 
 
 class TestDataFrameConstructors:
+    def test_construct_ndarray_with_nas_and_int_dtype(self):
+        # GH#26919 match Series by not casting np.nan to meaningless int
+        arr = np.array([[1, np.nan], [2, 3]])
+        df = DataFrame(arr, dtype="i8")
+        assert df.values.dtype == arr.dtype
+        assert isna(df.iloc[0, 1])
+
+        # check this matches Series behavior
+        ser = Series(arr[0], dtype="i8", name=0)
+        expected = df.iloc[0]
+        tm.assert_series_equal(ser, expected)
+
+    def test_construct_from_list_of_datetimes(self):
+        df = DataFrame([datetime.now(), datetime.now()])
+        assert df[0].dtype == np.dtype("M8[ns]")
+
+    def test_constructor_from_tzaware_datetimeindex(self):
+        # don't cast a DatetimeIndex WITH a tz, leave as object
+        # GH#6032
+        naive = DatetimeIndex(["2013-1-1 13:00", "2013-1-2 14:00"], name="B")
+        idx = naive.tz_localize("US/Pacific")
+
+        expected = Series(np.array(idx.tolist(), dtype="object"), name="B")
+        assert expected.dtype == idx.dtype
+
+        # convert index to series
+        result = Series(idx)
+        tm.assert_series_equal(result, expected)
+
+    def test_array_of_dt64_nat_with_td64dtype_raises(self, frame_or_series):
+        # GH#39462
+        nat = np.datetime64("NaT", "ns")
+        arr = np.array([nat], dtype=object)
+        if frame_or_series is DataFrame:
+            arr = arr.reshape(1, 1)
+
+        msg = "|".join(
+            [
+                "Could not convert object to NumPy timedelta",
+                "Invalid type for timedelta scalar: <class 'numpy.datetime64'>",
+            ]
+        )
+        with pytest.raises(ValueError, match=msg):
+            frame_or_series(arr, dtype="m8[ns]")
+
+    @pytest.mark.parametrize("kind", ["m", "M"])
+    def test_datetimelike_values_with_object_dtype(self, kind, frame_or_series):
+        # with dtype=object, we should cast dt64 values to Timestamps, not pydatetimes
+        if kind == "M":
+            dtype = "M8[ns]"
+            scalar_type = Timestamp
+        else:
+            dtype = "m8[ns]"
+            scalar_type = Timedelta
+
+        arr = np.arange(6, dtype="i8").view(dtype).reshape(3, 2)
+        if frame_or_series is Series:
+            arr = arr[:, 0]
+
+        obj = frame_or_series(arr, dtype=object)
+        assert obj._mgr.arrays[0].dtype == object
+        assert isinstance(obj._mgr.arrays[0].ravel()[0], scalar_type)
+
+        # go through a different path in internals.construction
+        obj = frame_or_series(frame_or_series(arr), dtype=object)
+        assert obj._mgr.arrays[0].dtype == object
+        assert isinstance(obj._mgr.arrays[0].ravel()[0], scalar_type)
+
+        obj = frame_or_series(frame_or_series(arr), dtype=PandasDtype(object))
+        assert obj._mgr.arrays[0].dtype == object
+        assert isinstance(obj._mgr.arrays[0].ravel()[0], scalar_type)
+
+        if frame_or_series is DataFrame:
+            # other paths through internals.construction
+            sers = [Series(x) for x in arr]
+            obj = frame_or_series(sers, dtype=object)
+            assert obj._mgr.arrays[0].dtype == object
+            assert isinstance(obj._mgr.arrays[0].ravel()[0], scalar_type)
+
     def test_series_with_name_not_matching_column(self):
         # GH#9232
         x = Series(range(5), name=1)
@@ -109,7 +210,9 @@ class TestDataFrameConstructors:
         assert float_string_frame["foo"].dtype == np.object_
 
     def test_constructor_cast_failure(self):
-        foo = DataFrame({"a": ["a", "b", "c"]}, dtype=np.float64)
+        msg = "either all columns will be cast to that dtype, or a TypeError will"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            foo = DataFrame({"a": ["a", "b", "c"]}, dtype=np.float64)
         assert foo["a"].dtype == object
 
         # GH 3010, constructing with odd arrays
@@ -119,7 +222,7 @@ class TestDataFrameConstructors:
         df["foo"] = np.ones((4, 2)).tolist()
 
         # this is not ok
-        msg = "Wrong number of items passed 2, placement implies 1"
+        msg = "Expected a 1D array, got an array with shape \\(4, 2\\)"
         with pytest.raises(ValueError, match=msg):
             df["test"] = np.ones((4, 2))
 
@@ -134,15 +237,32 @@ class TestDataFrameConstructors:
         new_df["col1"] = 200.0
         assert orig_df["col1"][0] == 1.0
 
-    def test_constructor_dtype_nocast_view(self):
+    def test_constructor_dtype_nocast_view_dataframe(self):
         df = DataFrame([[1, 2]])
         should_be_view = DataFrame(df, dtype=df[0].dtype)
         should_be_view[0][0] = 99
         assert df.values[0, 0] == 99
 
+    @td.skip_array_manager_invalid_test  # TODO(ArrayManager) keep view on 2D array?
+    def test_constructor_dtype_nocast_view_2d_array(self):
+        df = DataFrame([[1, 2]])
         should_be_view = DataFrame(df.values, dtype=df[0].dtype)
         should_be_view[0][0] = 97
         assert df.values[0, 0] == 97
+
+    @td.skip_array_manager_invalid_test
+    def test_1d_object_array_does_not_copy(self):
+        # https://github.com/pandas-dev/pandas/issues/39272
+        arr = np.array(["a", "b"], dtype="object")
+        df = DataFrame(arr)
+        assert np.shares_memory(df.values, arr)
+
+    @td.skip_array_manager_invalid_test
+    def test_2d_object_array_does_not_copy(self):
+        # https://github.com/pandas-dev/pandas/issues/39272
+        arr = np.array([["a", "b"], ["c", "d"]], dtype="object")
+        df = DataFrame(arr)
+        assert np.shares_memory(df.values, arr)
 
     def test_constructor_dtype_list_data(self):
         df = DataFrame([[1, "2"], [None, "a"]], dtype=object)
@@ -235,6 +355,7 @@ class TestDataFrameConstructors:
         tm.assert_index_equal(df2.columns, Index(rec.dtype.names))
         tm.assert_index_equal(df2.index, index)
 
+        # case with columns != the ones we would infer from the data
         rng = np.arange(len(rec))[::-1]
         df3 = DataFrame(rec, index=rng, columns=["C", "B"])
         expected = DataFrame(rec, index=rng).reindex(columns=["C", "B"])
@@ -332,15 +453,18 @@ class TestDataFrameConstructors:
         with pytest.raises(ValueError, match=msg):
             DataFrame({"A": {"a": "a", "b": "b"}, "B": ["a", "b", "c"]})
 
+    def test_constructor_dict_length1(self):
         # Length-one dict micro-optimization
         frame = DataFrame({"A": {"1": 1, "2": 2}})
         tm.assert_index_equal(frame.index, Index(["1", "2"]))
 
+    def test_constructor_dict_with_index(self):
         # empty dict plus index
         idx = Index([0, 1, 2])
         frame = DataFrame({}, index=idx)
         assert frame.index is idx
 
+    def test_constructor_dict_with_index_and_columns(self):
         # empty dict with index and columns
         idx = Index([0, 1, 2])
         frame = DataFrame({}, index=idx, columns=idx)
@@ -348,10 +472,12 @@ class TestDataFrameConstructors:
         assert frame.columns is idx
         assert len(frame._series) == 3
 
+    def test_constructor_dict_of_empty_lists(self):
         # with dict of empty list and Series
         frame = DataFrame({"A": [], "B": []}, columns=["A", "B"])
         tm.assert_index_equal(frame.index, RangeIndex(0), exact=True)
 
+    def test_constructor_dict_with_none(self):
         # GH 14381
         # Dict with None value
         frame_none = DataFrame({"a": None}, index=[0])
@@ -360,6 +486,7 @@ class TestDataFrameConstructors:
         assert frame_none_list._get_value(0, "a") is None
         tm.assert_frame_equal(frame_none, frame_none_list)
 
+    def test_constructor_dict_errors(self):
         # GH10856
         # dict with scalar values should raise error, even if columns passed
         msg = "If using all scalar values, you must pass an index"
@@ -450,7 +577,7 @@ class TestDataFrameConstructors:
         df = DataFrame([[1]], columns=[[1]], index=[1, 2])
         expected = DataFrame(
             [1, 1],
-            index=pd.Int64Index([1, 2], dtype="int64"),
+            index=Int64Index([1, 2], dtype="int64"),
             columns=MultiIndex(levels=[[1]], codes=[[0]]),
         )
         tm.assert_frame_equal(df, expected)
@@ -515,7 +642,7 @@ class TestDataFrameConstructors:
         with pytest.raises(ValueError, match=msg):
             DataFrame({"a": False, "b": True})
 
-    def test_constructor_subclass_dict(self, float_frame, dict_subclass):
+    def test_constructor_subclass_dict(self, dict_subclass):
         # Test for passing dict subclass to constructor
         data = {
             "col1": dict_subclass((x, 10.0 * x) for x in range(10)),
@@ -529,6 +656,7 @@ class TestDataFrameConstructors:
         df = DataFrame(data)
         tm.assert_frame_equal(refdf, df)
 
+    def test_constructor_defaultdict(self, float_frame):
         # try with defaultdict
         from collections import defaultdict
 
@@ -563,12 +691,16 @@ class TestDataFrameConstructors:
         assert frame["B"].dtype == np.object_
         assert frame["A"].dtype == np.float64
 
+    def test_constructor_dict_cast2(self):
         # can't cast to float
         test_data = {
             "A": dict(zip(range(20), tm.makeStringIndex(20))),
             "B": dict(zip(range(15), np.random.randn(15))),
         }
-        frame = DataFrame(test_data, dtype=float)
+        msg = "either all columns will be cast to that dtype, or a TypeError will"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            frame = DataFrame(test_data, dtype=float)
+
         assert len(frame) == 20
         assert frame["A"].dtype == np.object_
         assert frame["B"].dtype == np.float64
@@ -578,6 +710,7 @@ class TestDataFrameConstructors:
         df = DataFrame(d)
         assert isinstance(df["Col1"]["Row2"], float)
 
+    def test_constructor_dict_dont_upcast2(self):
         dm = DataFrame([[1, 2], ["a", "b"]], index=[1, 2], columns=[1, 2])
         assert isinstance(dm[1][1], int)
 
@@ -782,9 +915,17 @@ class TestDataFrameConstructors:
         assert len(frame.index) == 3
         assert len(frame.columns) == 1
 
-        # cast type
         frame = DataFrame(mat, columns=["A", "B", "C"], index=[1, 2], dtype=np.int64)
-        assert frame.values.dtype == np.int64
+        if empty is np.ones:
+            # passing dtype casts
+            assert frame.values.dtype == np.int64
+        else:
+            # i.e. ma.masked_all
+            # Since we have NaNs, refuse to cast to int dtype, which would take NaN
+            #  to meaningless integers.  This matches Series behavior.  GH#26919
+            assert frame.isna().all().all()
+            assert frame.values.dtype == np.float64
+            assert isna(frame.values).all()
 
         # wrong size axis labels
         msg = r"Shape of passed values is \(2, 3\), indices imply \(1, 3\)"
@@ -870,7 +1011,17 @@ class TestDataFrameConstructors:
         assert isna(frame).values.all()
 
         # cast type
-        frame = DataFrame(mat, columns=["A", "B", "C"], index=[1, 2], dtype=np.int64)
+        msg = r"datetime64\[ns\] values and dtype=int64"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    category=DeprecationWarning,
+                    message="elementwise comparison failed",
+                )
+                frame = DataFrame(
+                    mat, columns=["A", "B", "C"], index=[1, 2], dtype=np.int64
+                )
         assert frame.values.dtype == np.int64
 
         # Check non-masked values
@@ -930,10 +1081,20 @@ class TestDataFrameConstructors:
             np.ma.zeros(5, dtype=[("date", "<f8"), ("price", "<f8")]), mask=[False] * 5
         )
         data = data.view(mrecords.mrecarray)
-        result = DataFrame(data, dtype=int)
+
+        with tm.assert_produces_warning(FutureWarning):
+            # Support for MaskedRecords deprecated
+            result = DataFrame(data, dtype=int)
+
         expected = DataFrame(np.zeros((5, 2), dtype=int), columns=["date", "price"])
         tm.assert_frame_equal(result, expected)
 
+        # GH#40363 check that the alternative suggested in the deprecation
+        #  warning behaves as expected
+        alt = DataFrame({name: data[name] for name in data.dtype.names}, dtype=int)
+        tm.assert_frame_equal(result, alt)
+
+    @pytest.mark.slow
     def test_constructor_mrecarray(self):
         # Ensure mrecarray produces frame identical to dict of masked arrays
         # from GH3479
@@ -961,18 +1122,24 @@ class TestDataFrameConstructors:
             # fill the comb
             comb = {k: (v.filled() if hasattr(v, "filled") else v) for k, v in comb}
 
+            with tm.assert_produces_warning(FutureWarning):
+                # Support for MaskedRecords deprecated
+                result = DataFrame(mrecs)
             expected = DataFrame(comb, columns=names)
-            result = DataFrame(mrecs)
             assert_fr_equal(result, expected)
 
             # specify columns
+            with tm.assert_produces_warning(FutureWarning):
+                # Support for MaskedRecords deprecated
+                result = DataFrame(mrecs, columns=names[::-1])
             expected = DataFrame(comb, columns=names[::-1])
-            result = DataFrame(mrecs, columns=names[::-1])
             assert_fr_equal(result, expected)
 
             # specify index
+            with tm.assert_produces_warning(FutureWarning):
+                # Support for MaskedRecords deprecated
+                result = DataFrame(mrecs, index=[1, 2])
             expected = DataFrame(comb, columns=names, index=[1, 2])
-            result = DataFrame(mrecs, index=[1, 2])
             assert_fr_equal(result, expected)
 
     def test_constructor_corner_shape(self):
@@ -1033,6 +1200,12 @@ class TestDataFrameConstructors:
         df_casted = DataFrame(float_frame, dtype=np.int64)
         assert df_casted.values.dtype == np.int64
 
+    def test_constructor_empty_dataframe(self):
+        # GH 20624
+        actual = DataFrame(DataFrame(), dtype="object")
+        expected = DataFrame([], dtype="object")
+        tm.assert_frame_equal(actual, expected)
+
     def test_constructor_more(self, float_frame):
         # used to be in test_matrix.py
         arr = np.random.randn(10)
@@ -1056,7 +1229,8 @@ class TestDataFrameConstructors:
 
         # can't cast
         mat = np.array(["foo", "bar"], dtype=object).reshape(2, 1)
-        with pytest.raises(ValueError, match="cast"):
+        msg = "could not convert string to float: 'foo'"
+        with pytest.raises(ValueError, match=msg):
             DataFrame(mat, index=[0, 1], columns=[0], dtype=float)
 
         dm = DataFrame(DataFrame(float_frame._series))
@@ -1124,13 +1298,29 @@ class TestDataFrameConstructors:
         # GH 32173
         arrays = [list("abcd"), list("cde")]
 
-        msg = "Length of columns passed for MultiIndex columns is different"
+        # exception raised inside MultiIndex constructor
+        msg = "all arrays must be same length"
         with pytest.raises(ValueError, match=msg):
             DataFrame([[1, 2, 3, 4], [4, 5, 6, 7]], columns=arrays)
 
+    @pytest.mark.parametrize(
+        "data",
+        [
+            [[Timestamp("2021-01-01")]],
+            [{"x": Timestamp("2021-01-01")}],
+            {"x": [Timestamp("2021-01-01")]},
+            {"x": Timestamp("2021-01-01")},
+        ],
+    )
+    def test_constructor_one_element_data_list(self, data):
+        # GH#42810
+        result = DataFrame(data, index=[0, 1, 2], columns=["x"])
+        expected = DataFrame({"x": [Timestamp("2021-01-01")] * 3})
+        tm.assert_frame_equal(result, expected)
+
     def test_constructor_sequence_like(self):
         # GH 3783
-        # collections.Squence like
+        # collections.Sequence like
 
         class DummyContainer(abc.Sequence):
             def __init__(self, lst):
@@ -1148,6 +1338,7 @@ class TestDataFrameConstructors:
         expected = DataFrame([[1, "a"], [2, "b"]], columns=columns)
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
+    def test_constructor_stdlib_array(self):
         # GH 4297
         # support Array
         import array
@@ -1360,9 +1551,9 @@ class TestDataFrameConstructors:
 
         Point = make_dataclass("Point", [("x", int), ("y", int)])
 
-        datas = [Point(0, 3), Point(1, 3)]
+        data = [Point(0, 3), Point(1, 3)]
         expected = DataFrame({"x": [0, 1], "y": [3, 3]})
-        result = DataFrame(datas)
+        result = DataFrame(data)
         tm.assert_frame_equal(result, expected)
 
     def test_constructor_list_of_dataclasses_with_varying_types(self):
@@ -1373,12 +1564,12 @@ class TestDataFrameConstructors:
         Point = make_dataclass("Point", [("x", int), ("y", int)])
         HLine = make_dataclass("HLine", [("x0", int), ("x1", int), ("y", int)])
 
-        datas = [Point(0, 3), HLine(1, 3, 3)]
+        data = [Point(0, 3), HLine(1, 3, 3)]
 
         expected = DataFrame(
             {"x": [0, np.nan], "y": [3, 3], "x0": [np.nan, 1], "x1": [np.nan, 3]}
         )
-        result = DataFrame(datas)
+        result = DataFrame(data)
         tm.assert_frame_equal(result, expected)
 
     def test_constructor_list_of_dataclasses_error_thrown(self):
@@ -1568,10 +1759,10 @@ class TestDataFrameConstructors:
         df = DataFrame(index=[0, 1], columns=[0, 1], dtype="U5")
         tm.assert_frame_equal(df, expected)
 
-    def test_constructor_empty_with_string_extension(self):
+    def test_constructor_empty_with_string_extension(self, nullable_string_dtype):
         # GH 34915
-        expected = DataFrame(index=[], columns=["c1"], dtype="string")
-        df = DataFrame(columns=["c1"], dtype="string")
+        expected = DataFrame(index=[], columns=["c1"], dtype=nullable_string_dtype)
+        df = DataFrame(columns=["c1"], dtype=nullable_string_dtype)
         tm.assert_frame_equal(df, expected)
 
     def test_constructor_single_value(self):
@@ -1677,12 +1868,15 @@ class TestDataFrameConstructors:
         )
         tm.assert_series_equal(result, expected)
 
+    def test_constructor_with_datetimes1(self):
+
         # GH 2809
         ind = date_range(start="2000-01-01", freq="D", periods=10)
         datetimes = [ts.to_pydatetime() for ts in ind]
         datetime_s = Series(datetimes)
         assert datetime_s.dtype == "M8[ns]"
 
+    def test_constructor_with_datetimes2(self):
         # GH 2810
         ind = date_range(start="2000-01-01", freq="D", periods=10)
         datetimes = [ts.to_pydatetime() for ts in ind]
@@ -1696,6 +1890,7 @@ class TestDataFrameConstructors:
         )
         tm.assert_series_equal(result, expected)
 
+    def test_constructor_with_datetimes3(self):
         # GH 7594
         # don't coerce tz-aware
         tz = pytz.timezone("US/Eastern")
@@ -1713,6 +1908,7 @@ class TestDataFrameConstructors:
             df.dtypes, Series({"End Date": "datetime64[ns, US/Eastern]"})
         )
 
+    def test_constructor_with_datetimes4(self):
         # tz-aware (UTC and other tz's)
         # GH 8411
         dr = date_range("20130101", periods=3)
@@ -1725,6 +1921,7 @@ class TestDataFrameConstructors:
         df = DataFrame({"value": dr})
         assert str(df.iat[0, 0].tz) == "US/Eastern"
 
+    def test_constructor_with_datetimes5(self):
         # GH 7822
         # preserver an index with a tz on dict construction
         i = date_range("1/1/2011", periods=5, freq="10s", tz="US/Eastern")
@@ -1737,7 +1934,9 @@ class TestDataFrameConstructors:
         df = DataFrame({"a": i})
         tm.assert_frame_equal(df, expected)
 
+    def test_constructor_with_datetimes6(self):
         # multiples
+        i = date_range("1/1/2011", periods=5, freq="10s", tz="US/Eastern")
         i_no_tz = date_range("1/1/2011", periods=5, freq="10s")
         df = DataFrame({"a": i, "b": i_no_tz})
         expected = DataFrame({"a": i.to_series().reset_index(drop=True), "b": i_no_tz})
@@ -1762,19 +1961,83 @@ class TestDataFrameConstructors:
         expected = Series([np.dtype("datetime64[ns]")])
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("order", ["K", "A", "C", "F"])
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "datetime64[M]",
+            "datetime64[D]",
+            "datetime64[h]",
+            "datetime64[m]",
+            "datetime64[s]",
+            "datetime64[ms]",
+            "datetime64[us]",
+            "datetime64[ns]",
+        ],
+    )
+    def test_constructor_datetimes_non_ns(self, order, dtype):
+        na = np.array(
+            [
+                ["2015-01-01", "2015-01-02", "2015-01-03"],
+                ["2017-01-01", "2017-01-02", "2017-02-03"],
+            ],
+            dtype=dtype,
+            order=order,
+        )
+        df = DataFrame(na)
+        expected = DataFrame(
+            [
+                ["2015-01-01", "2015-01-02", "2015-01-03"],
+                ["2017-01-01", "2017-01-02", "2017-02-03"],
+            ]
+        )
+        expected = expected.astype(dtype=dtype)
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("order", ["K", "A", "C", "F"])
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "timedelta64[D]",
+            "timedelta64[h]",
+            "timedelta64[m]",
+            "timedelta64[s]",
+            "timedelta64[ms]",
+            "timedelta64[us]",
+            "timedelta64[ns]",
+        ],
+    )
+    def test_constructor_timedelta_non_ns(self, order, dtype):
+        na = np.array(
+            [
+                [np.timedelta64(1, "D"), np.timedelta64(2, "D")],
+                [np.timedelta64(4, "D"), np.timedelta64(5, "D")],
+            ],
+            dtype=dtype,
+            order=order,
+        )
+        df = DataFrame(na).astype("timedelta64[ns]")
+        expected = DataFrame(
+            [
+                [Timedelta(1, "D"), Timedelta(2, "D")],
+                [Timedelta(4, "D"), Timedelta(5, "D")],
+            ],
+        )
+        tm.assert_frame_equal(df, expected)
+
     def test_constructor_for_list_with_dtypes(self):
         # test list of lists/ndarrays
         df = DataFrame([np.arange(5) for x in range(5)])
         result = df.dtypes
-        expected = Series([np.dtype("int64")] * 5)
+        expected = Series([np.dtype("int")] * 5)
         tm.assert_series_equal(result, expected)
 
         df = DataFrame([np.array(np.arange(5), dtype="int32") for x in range(5)])
         result = df.dtypes
-        expected = Series([np.dtype("int64")] * 5)
+        expected = Series([np.dtype("int32")] * 5)
         tm.assert_series_equal(result, expected)
 
-        # overflow issue? (we always expecte int64 upcasting here)
+        # overflow issue? (we always expected int64 upcasting here)
         df = DataFrame({"a": [2 ** 31, 2 ** 31 + 1]})
         assert df.dtypes.iloc[0] == np.dtype("int64")
 
@@ -1827,6 +2090,8 @@ class TestDataFrameConstructors:
         assert (cop["A"] == 5).all()
         assert not (float_frame["A"] == 5).all()
 
+    # TODO(ArrayManager) keep view on 2D array?
+    @td.skip_array_manager_not_yet_implemented
     def test_constructor_ndarray_copy(self, float_frame):
         df = DataFrame(float_frame.values)
 
@@ -1837,10 +2102,12 @@ class TestDataFrameConstructors:
         float_frame.values[6] = 6
         assert not (df.values[6] == 6).all()
 
+    # TODO(ArrayManager) keep view on Series?
+    @td.skip_array_manager_not_yet_implemented
     def test_constructor_series_copy(self, float_frame):
         series = float_frame._series
 
-        df = DataFrame({"A": series["A"]})
+        df = DataFrame({"A": series["A"]}, copy=True)
         df["A"][:] = 5
 
         assert not (series["A"] == 5).all()
@@ -1925,12 +2192,16 @@ class TestDataFrameConstructors:
 
     def test_construct_from_1item_list_of_categorical(self):
         # ndim != 1
-        df = DataFrame([Categorical(list("abc"))])
+        msg = "will be changed to match the behavior"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df = DataFrame([Categorical(list("abc"))])
         expected = DataFrame({0: Series(list("abc"), dtype="category")})
         tm.assert_frame_equal(df, expected)
 
     def test_construct_from_list_of_categoricals(self):
-        df = DataFrame([Categorical(list("abc")), Categorical(list("abd"))])
+        msg = "will be changed to match the behavior"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df = DataFrame([Categorical(list("abc")), Categorical(list("abd"))])
         expected = DataFrame(
             {
                 0: Series(list("abc"), dtype="category"),
@@ -1942,7 +2213,9 @@ class TestDataFrameConstructors:
 
     def test_from_nested_listlike_mixed_types(self):
         # mixed
-        df = DataFrame([Categorical(list("abc")), list("def")])
+        msg = "will be changed to match the behavior"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df = DataFrame([Categorical(list("abc")), list("def")])
         expected = DataFrame(
             {0: Series(list("abc"), dtype="category"), 1: list("def")}, columns=[0, 1]
         )
@@ -1950,16 +2223,15 @@ class TestDataFrameConstructors:
 
     def test_construct_from_listlikes_mismatched_lengths(self):
         # invalid (shape)
-        msg = r"Shape of passed values is \(6, 2\), indices imply \(3, 2\)"
+        msg = "|".join(
+            [
+                r"Length of values \(6\) does not match length of index \(3\)",
+            ]
+        )
+        msg2 = "will be changed to match the behavior"
         with pytest.raises(ValueError, match=msg):
-            DataFrame([Categorical(list("abc")), Categorical(list("abdefg"))])
-
-    def test_categorical_1d_only(self):
-        # TODO: belongs in Categorical tests
-        # ndim > 1
-        msg = "> 1 ndim Categorical are not supported at this time"
-        with pytest.raises(NotImplementedError, match=msg):
-            Categorical(np.array([list("abcd")]))
+            with tm.assert_produces_warning(FutureWarning, match=msg2):
+                DataFrame([Categorical(list("abc")), Categorical(list("abdefg"))])
 
     def test_constructor_categorical_series(self):
 
@@ -1987,9 +2259,9 @@ class TestDataFrameConstructors:
 
     @pytest.mark.parametrize(
         "dtype",
-        tm.ALL_INT_DTYPES
-        + tm.ALL_EA_INT_DTYPES
-        + tm.FLOAT_DTYPES
+        tm.ALL_INT_NUMPY_DTYPES
+        + tm.ALL_INT_EA_DTYPES
+        + tm.FLOAT_NUMPY_DTYPES
         + tm.COMPLEX_DTYPES
         + tm.DATETIME64_DTYPES
         + tm.TIMEDELTA64_DTYPES
@@ -2002,6 +2274,8 @@ class TestDataFrameConstructors:
 
         assert data.b.dtype == dtype
 
+    # TODO(ArrayManager) astype to bytes dtypes does not yet give object dtype
+    @td.skip_array_manager_not_yet_implemented
     @pytest.mark.parametrize(
         "dtype", tm.STRING_DTYPES + tm.BYTES_DTYPES + tm.OBJECT_DTYPES
     )
@@ -2075,12 +2349,36 @@ class TestDataFrameConstructors:
         )
         result = DataFrame([s1, s2])
         expected = DataFrame(
-            np.array(
-                [[np.nan, 39.0, np.nan, 6.0, 4.0], [2.0, 152.0, 2.0, 242.0, 150.0]]
-            ),
-            columns=["f", "female", "m", "male", "unknown"],
+            np.array([[39, 6, 4, np.nan, np.nan], [152.0, 242.0, 150.0, 2.0, 2.0]]),
+            columns=["female", "male", "unknown", "f", "m"],
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_constructor_series_nonexact_categoricalindex(self):
+        # GH 42424
+        ser = Series(range(0, 100))
+        ser1 = cut(ser, 10).value_counts().head(5)
+        ser2 = cut(ser, 10).value_counts().tail(5)
+        result = DataFrame({"1": ser1, "2": ser2})
+        index = CategoricalIndex(
+            [
+                Interval(-0.099, 9.9, closed="right"),
+                Interval(9.9, 19.8, closed="right"),
+                Interval(19.8, 29.7, closed="right"),
+                Interval(29.7, 39.6, closed="right"),
+                Interval(39.6, 49.5, closed="right"),
+                Interval(49.5, 59.4, closed="right"),
+                Interval(59.4, 69.3, closed="right"),
+                Interval(69.3, 79.2, closed="right"),
+                Interval(79.2, 89.1, closed="right"),
+                Interval(89.1, 99, closed="right"),
+            ],
+            ordered=True,
+        )
+        expected = DataFrame(
+            {"1": [10] * 5 + [np.nan] * 5, "2": [np.nan] * 5 + [10] * 5}, index=index
+        )
+        tm.assert_frame_equal(expected, result)
 
     def test_from_M8_structured(self):
         dates = [(datetime(2012, 9, 9, 0, 0), datetime(2012, 9, 8, 15, 10))]
@@ -2104,8 +2402,9 @@ class TestDataFrameConstructors:
 
     def test_with_mismatched_index_length_raises(self):
         # GH#33437
-        dti = pd.date_range("2016-01-01", periods=3, tz="US/Pacific")
-        with pytest.raises(ValueError, match="Shape of passed values"):
+        dti = date_range("2016-01-01", periods=3, tz="US/Pacific")
+        msg = "Shape of passed values|Passed arrays should have the same length"
+        with pytest.raises(ValueError, match=msg):
             DataFrame(dti, index=range(4))
 
     def test_frame_ctor_datetime64_column(self):
@@ -2153,6 +2452,172 @@ class TestDataFrameConstructors:
         expected = DataFrame({"A": ["1.0", "2.0", None]}, dtype=object)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("copy", [False, True])
+    @td.skip_array_manager_not_yet_implemented
+    def test_dict_nocopy(self, copy, any_numeric_ea_dtype, any_numpy_dtype):
+        a = np.array([1, 2], dtype=any_numpy_dtype)
+        b = np.array([3, 4], dtype=any_numpy_dtype)
+        if b.dtype.kind in ["S", "U"]:
+            # These get cast, making the checks below more cumbersome
+            return
+
+        c = pd.array([1, 2], dtype=any_numeric_ea_dtype)
+        df = DataFrame({"a": a, "b": b, "c": c}, copy=copy)
+
+        def get_base(obj):
+            if isinstance(obj, np.ndarray):
+                return obj.base
+            elif isinstance(obj.dtype, np.dtype):
+                # i.e. DatetimeArray, TimedeltaArray
+                return obj._ndarray.base
+            else:
+                raise TypeError
+
+        def check_views():
+            # written to work for either BlockManager or ArrayManager
+            assert sum(x is c for x in df._mgr.arrays) == 1
+            assert (
+                sum(
+                    get_base(x) is a
+                    for x in df._mgr.arrays
+                    if isinstance(x.dtype, np.dtype)
+                )
+                == 1
+            )
+            assert (
+                sum(
+                    get_base(x) is b
+                    for x in df._mgr.arrays
+                    if isinstance(x.dtype, np.dtype)
+                )
+                == 1
+            )
+
+        if not copy:
+            # constructor preserves views
+            check_views()
+
+        df.iloc[0, 0] = 0
+        df.iloc[0, 1] = 0
+        if not copy:
+            # Check that the underlying data behind df["c"] is still `c`
+            #  after setting with iloc.  Since we don't know which entry in
+            #  df._mgr.arrays corresponds to df["c"], we just check that exactly
+            #  one of these arrays is `c`.  GH#38939
+            assert sum(x is c for x in df._mgr.arrays) == 1
+            # TODO: we can call check_views if we stop consolidating
+            #  in setitem_with_indexer
+
+        # FIXME(GH#35417): until GH#35417, iloc.setitem into EA values does not preserve
+        #  view, so we have to check in the other direction
+        # df.iloc[0, 2] = 0
+        # if not copy:
+        #     check_views()
+        c[0] = 0
+
+        if copy:
+            if a.dtype.kind == "M":
+                assert a[0] == a.dtype.type(1, "ns")
+                assert b[0] == b.dtype.type(3, "ns")
+            else:
+                assert a[0] == a.dtype.type(1)
+                assert b[0] == b.dtype.type(3)
+            # FIXME(GH#35417): enable after GH#35417
+            # assert c[0] == 1
+            assert df.iloc[0, 2] == 1
+        else:
+            # TODO: we can call check_views if we stop consolidating
+            #  in setitem_with_indexer
+            # FIXME(GH#35417): enable after GH#35417
+            # assert b[0] == 0
+            assert df.iloc[0, 2] == 0
+
+    def test_from_series_with_name_with_columns(self):
+        # GH 7893
+        result = DataFrame(Series(1, name="foo"), columns=["bar"])
+        expected = DataFrame(columns=["bar"])
+        tm.assert_frame_equal(result, expected)
+
+    def test_nested_list_columns(self):
+        # GH 14467
+        result = DataFrame(
+            [[1, 2, 3], [4, 5, 6]], columns=[["A", "A", "A"], ["a", "b", "c"]]
+        )
+        expected = DataFrame(
+            [[1, 2, 3], [4, 5, 6]],
+            columns=MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("A", "c")]),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_from_2d_object_array_of_periods_or_intervals(self):
+        # Period analogue to GH#26825
+        pi = pd.period_range("2016-04-05", periods=3)
+        data = pi._data.astype(object).reshape(1, -1)
+        df = DataFrame(data)
+        assert df.shape == (1, 3)
+        assert (df.dtypes == pi.dtype).all()
+        assert (df == pi).all().all()
+
+        ii = pd.IntervalIndex.from_breaks([3, 4, 5, 6])
+        data2 = ii._data.astype(object).reshape(1, -1)
+        df2 = DataFrame(data2)
+        assert df2.shape == (1, 3)
+        assert (df2.dtypes == ii.dtype).all()
+        assert (df2 == ii).all().all()
+
+        # mixed
+        data3 = np.r_[data, data2, data, data2].T
+        df3 = DataFrame(data3)
+        expected = DataFrame({0: pi, 1: ii, 2: pi, 3: ii})
+        tm.assert_frame_equal(df3, expected)
+
+    @pytest.mark.parametrize(
+        "col_a, col_b",
+        [
+            ([[1], [2]], np.array([[1], [2]])),
+            (np.array([[1], [2]]), [[1], [2]]),
+            (np.array([[1], [2]]), np.array([[1], [2]])),
+        ],
+    )
+    def test_error_from_2darray(self, col_a, col_b):
+        msg = "Per-column arrays must each be 1-dimensional"
+        with pytest.raises(ValueError, match=msg):
+            DataFrame({"a": col_a, "b": col_b})
+
+
+class TestDataFrameConstructorIndexInference:
+    def test_frame_from_dict_of_series_overlapping_monthly_period_indexes(self):
+        rng1 = pd.period_range("1/1/1999", "1/1/2012", freq="M")
+        s1 = Series(np.random.randn(len(rng1)), rng1)
+
+        rng2 = pd.period_range("1/1/1980", "12/1/2001", freq="M")
+        s2 = Series(np.random.randn(len(rng2)), rng2)
+        df = DataFrame({"s1": s1, "s2": s2})
+
+        exp = pd.period_range("1/1/1980", "1/1/2012", freq="M")
+        tm.assert_index_equal(df.index, exp)
+
+
+class TestDataFrameConstructorWithDtypeCoercion:
+    def test_floating_values_integer_dtype(self):
+        # GH#40110 make DataFrame behavior with arraylike floating data and
+        #  inty dtype match Series behavior
+
+        arr = np.random.randn(10, 5)
+
+        msg = "if they cannot be cast losslessly"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            DataFrame(arr, dtype="i8")
+
+        with tm.assert_produces_warning(None):
+            # if they can be cast losslessly, no warning
+            DataFrame(arr.round(), dtype="i8")
+
+        # with NaNs, we already have the correct behavior, so no warning
+        arr[0, 0] = np.nan
+        with tm.assert_produces_warning(None):
+            DataFrame(arr, dtype="i8")
+
 
 class TestDataFrameConstructorWithDatetimeTZ:
     @pytest.mark.parametrize("tz", ["US/Eastern", "dateutil/US/Eastern"])
@@ -2184,12 +2649,44 @@ class TestDataFrameConstructorWithDatetimeTZ:
         )
         tm.assert_series_equal(result, expected)
 
-    def test_constructor_data_aware_dtype_naive(self, tz_aware_fixture):
-        # GH#25843
+    @pytest.mark.parametrize("pydt", [True, False])
+    def test_constructor_data_aware_dtype_naive(self, tz_aware_fixture, pydt):
+        # GH#25843, GH#41555, GH#33401
         tz = tz_aware_fixture
-        result = DataFrame({"d": [Timestamp("2019", tz=tz)]}, dtype="datetime64[ns]")
-        expected = DataFrame({"d": [Timestamp("2019")]})
+        ts = Timestamp("2019", tz=tz)
+        if pydt:
+            ts = ts.to_pydatetime()
+        ts_naive = Timestamp("2019")
+
+        with tm.assert_produces_warning(FutureWarning):
+            result = DataFrame({0: [ts]}, dtype="datetime64[ns]")
+
+        expected = DataFrame({0: [ts_naive]})
         tm.assert_frame_equal(result, expected)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = DataFrame({0: ts}, index=[0], dtype="datetime64[ns]")
+        tm.assert_frame_equal(result, expected)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = DataFrame([ts], dtype="datetime64[ns]")
+        tm.assert_frame_equal(result, expected)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = DataFrame(np.array([ts], dtype=object), dtype="datetime64[ns]")
+        tm.assert_frame_equal(result, expected)
+
+        with tm.assert_produces_warning(FutureWarning):
+            result = DataFrame(ts, index=[0], columns=[0], dtype="datetime64[ns]")
+        tm.assert_frame_equal(result, expected)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            df = DataFrame([Series([ts])], dtype="datetime64[ns]")
+        tm.assert_frame_equal(result, expected)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            df = DataFrame([[ts]], columns=[0], dtype="datetime64[ns]")
+        tm.assert_equal(df, expected)
 
     def test_from_dict(self):
 
@@ -2315,11 +2812,34 @@ class TestDataFrameConstructorWithDatetimeTZ:
         expected = DataFrame(array_dim2).astype("datetime64[ns, UTC]")
         tm.assert_frame_equal(df, expected)
 
-    def test_construction_from_set_raises(self):
+    @pytest.mark.parametrize("typ", [set, frozenset])
+    def test_construction_from_set_raises(self, typ):
         # https://github.com/pandas-dev/pandas/issues/32582
-        msg = "Set type is unordered"
+        values = typ({1, 2, 3})
+        msg = f"'{typ.__name__}' type is unordered"
         with pytest.raises(TypeError, match=msg):
-            DataFrame({"a": {1, 2, 3}})
+            DataFrame({"a": values})
+
+        with pytest.raises(TypeError, match=msg):
+            Series(values)
+
+    def test_construction_from_ndarray_datetimelike(self):
+        # ensure the underlying arrays are properly wrapped as EA when
+        # constructed from 2D ndarray
+        arr = np.arange(0, 12, dtype="datetime64[ns]").reshape(4, 3)
+        df = DataFrame(arr)
+        assert all(isinstance(arr, DatetimeArray) for arr in df._mgr.arrays)
+
+    def test_construction_from_ndarray_with_eadtype_mismatched_columns(self):
+        arr = np.random.randn(10, 2)
+        dtype = pd.array([2.0]).dtype
+        msg = r"len\(arrays\) must match len\(columns\)"
+        with pytest.raises(ValueError, match=msg):
+            DataFrame(arr, columns=["foo"], dtype=dtype)
+
+        arr2 = pd.array([2.0, 3.0, 4.0])
+        with pytest.raises(ValueError, match=msg):
+            DataFrame(arr2, columns=["foo", "bar"])
 
 
 def get1(obj):
@@ -2394,11 +2914,20 @@ class TestFromScalar:
         scalar = cls("NaT", "ns")
         dtype = {np.datetime64: "m8[ns]", np.timedelta64: "M8[ns]"}[cls]
 
-        with pytest.raises(TypeError, match="Cannot cast"):
+        msg = "Cannot cast"
+        if cls is np.datetime64:
+            msg = "|".join(
+                [
+                    r"dtype datetime64\[ns\] cannot be converted to timedelta64\[ns\]",
+                    "Cannot cast",
+                ]
+            )
+
+        with pytest.raises(TypeError, match=msg):
             constructor(scalar, dtype=dtype)
 
         scalar = cls(4, "ns")
-        with pytest.raises(TypeError, match="Cannot cast"):
+        with pytest.raises(TypeError, match=msg):
             constructor(scalar, dtype=dtype)
 
     @pytest.mark.parametrize("cls", [datetime, np.datetime64])
@@ -2418,3 +2947,16 @@ class TestFromScalar:
         result = constructor(scalar)
 
         assert type(get1(result)) is cls
+
+    def test_tzaware_data_tznaive_dtype(self, constructor):
+        tz = "US/Eastern"
+        ts = Timestamp("2019", tz=tz)
+        ts_naive = Timestamp("2019")
+
+        with tm.assert_produces_warning(
+            FutureWarning, match="Data is timezone-aware", check_stacklevel=False
+        ):
+            result = constructor(ts, dtype="M8[ns]")
+
+        assert np.all(result.dtypes == "M8[ns]")
+        assert np.all(result == ts_naive)
