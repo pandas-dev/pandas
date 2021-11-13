@@ -1,3 +1,5 @@
+import pytest
+
 from pandas import (
     DataFrame,
     Index,
@@ -55,14 +57,12 @@ class TestToFrame:
         expected = SubclassedFrame({"X": [1, 2, 3]})
         tm.assert_frame_equal(result, expected)
 
-    def test_to_frame_finalize(self, datetime_series):
+    @pytest.mark.parametrize("name", [None, "x"])
+    def test_to_frame_finalize(self, datetime_series, name):
         # GH#28283 Call __finalize__
         expected_attrs = {"a": 1}
 
         datetime_series.attrs.update(expected_attrs)
 
-        df = datetime_series.to_frame()
-        assert df.attrs == expected_attrs
-
-        df = datetime_series.to_frame(name="X")
+        df = datetime_series.to_frame(name=name)
         assert df.attrs == expected_attrs
