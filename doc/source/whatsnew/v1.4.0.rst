@@ -538,6 +538,7 @@ Conversion
 - Bug in :class:`Series` constructor returning 0 for missing values with dtype ``int64`` and ``False`` for dtype ``bool`` (:issue:`43017`, :issue:`43018`)
 - Bug in :class:`IntegerDtype` not allowing coercion from string dtype (:issue:`25472`)
 - Bug in :func:`to_datetime` with ``arg:xr.DataArray`` and ``unit="ns"`` specified raises TypeError (:issue:`44053`)
+- Bug in :meth:`DataFrame.convert_dtypes` not returning the correct type when a subclass does not overload :meth:`_constructor_sliced` (:issue:`43201`)
 -
 
 Strings
@@ -575,6 +576,7 @@ Indexing
 - Bug when setting string-backed :class:`Categorical` values that can be parsed to datetimes into a :class:`DatetimeArray` or :class:`Series` or :class:`DataFrame` column backed by :class:`DatetimeArray` failing to parse these strings (:issue:`44236`)
 - Bug in :meth:`Series.__setitem__` with an integer dtype other than ``int64`` setting with a ``range`` object unnecessarily upcasting to ``int64`` (:issue:`44261`)
 - Bug in :meth:`Series.__setitem__` with a boolean mask indexer setting a listlike value of length 1 incorrectly broadcasting that value (:issue:`44265`)
+- Bug in :meth:`DataFrame.loc.__setitem__` and :meth:`DataFrame.iloc.__setitem__` with mixed dtypes sometimes failing to operate in-place (:issue:`44345`)
 -
 
 Missing
