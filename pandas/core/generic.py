@@ -3259,6 +3259,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         {returns}
         See Also
         --------
+        Styler.to_latex : Render a DataFrame to LaTeX with conditional formatting.
         DataFrame.to_string : Render a DataFrame to a console-friendly
             tabular output.
         DataFrame.to_html : Render a DataFrame as an HTML table.
@@ -3268,7 +3269,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df = pd.DataFrame(dict(name=['Raphael', 'Donatello'],
         ...                   mask=['red', 'purple'],
         ...                   weapon=['sai', 'bo staff']))
-        >>> print(df.to_latex(index=False))  # doctest: +NORMALIZE_WHITESPACE
+        >>> print(df.to_latex(index=False))  # doctest: +SKIP
         \begin{{tabular}}{{lll}}
          \toprule
                name &    mask &    weapon \\
