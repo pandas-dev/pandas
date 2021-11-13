@@ -19,6 +19,8 @@ from pandas.io.formats.latex import (
     RowStringConverter,
 )
 
+pytestmark = pytest.mark.filterwarnings("ignore::FutureWarning")
+
 
 def _dedent(string):
     """Dedent without new line in the beginning.

@@ -3298,6 +3298,7 @@ def test_repr_html_ipython_config(ip):
     assert not result.error_in_exec
 
 
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 @pytest.mark.parametrize("method", ["to_string", "to_html", "to_latex"])
 @pytest.mark.parametrize(
     "encoding, data",
@@ -3329,6 +3330,7 @@ def test_filepath_or_buffer_arg(
         assert_filepath_or_buffer_equals(expected)
 
 
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 @pytest.mark.parametrize("method", ["to_string", "to_html", "to_latex"])
 def test_filepath_or_buffer_bad_arg_raises(float_frame, method):
     msg = "buf is not a file name and it has no write method"
