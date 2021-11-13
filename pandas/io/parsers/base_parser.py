@@ -32,6 +32,7 @@ from pandas.errors import (
     ParserError,
     ParserWarning,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
@@ -558,7 +559,7 @@ class ParserBase:
                             f"for column {c} - only the converter will be used."
                         ),
                         ParserWarning,
-                        stacklevel=7,
+                        stacklevel=find_stack_level(),
                     )
 
                 try:
@@ -830,7 +831,7 @@ class ParserBase:
                 "Length of header or names does not match length of data. This leads "
                 "to a loss of data with index_col=False.",
                 ParserWarning,
-                stacklevel=6,
+                stacklevel=find_stack_level(),
             )
 
     def _evaluate_usecols(self, usecols, names):

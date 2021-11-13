@@ -1041,7 +1041,7 @@ class TextFileReader(abc.Iterator):
                     "engine='python'."
                 ),
                 ParserWarning,
-                stacklevel=5,
+                stacklevel=find_stack_level(),
             )
 
         index_col = options["index_col"]
@@ -1573,7 +1573,9 @@ def _merge_with_dialect_properties(
                 conflict_msgs.append(msg)
 
         if conflict_msgs:
-            warnings.warn("\n\n".join(conflict_msgs), ParserWarning, stacklevel=2)
+            warnings.warn(
+                "\n\n".join(conflict_msgs), ParserWarning, stacklevel=find_stack_level()
+            )
         kwds[param] = dialect_val
     return kwds
 

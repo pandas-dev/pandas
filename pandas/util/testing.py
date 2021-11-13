@@ -1,5 +1,7 @@
 import warnings
 
+from pandas.util._exceptions import find_stack_level
+
 from pandas._testing import *  # noqa
 
 warnings.warn(
@@ -8,5 +10,5 @@ warnings.warn(
         "public API at pandas.testing instead."
     ),
     FutureWarning,
-    stacklevel=2,
+    stacklevel=find_stack_level(),
 )

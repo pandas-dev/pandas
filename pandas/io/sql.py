@@ -28,6 +28,7 @@ import pandas._libs.lib as lib
 from pandas._typing import DtypeArg
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
@@ -1159,7 +1160,7 @@ class SQLTable(PandasObject):
                 "the 'timedelta' type is not supported, and will be "
                 "written as integer values (ns frequency) to the database.",
                 UserWarning,
-                stacklevel=8,
+                stacklevel=find_stack_level(),
             )
             return BigInteger
         elif col_type == "floating":
@@ -1886,7 +1887,7 @@ class SQLiteTable(SQLTable):
         pat = re.compile(r"\s+")
         column_names = [col_name for col_name, _, _ in column_names_and_types]
         if any(map(pat.search, column_names)):
-            warnings.warn(_SAFE_NAMES_WARNING, stacklevel=6)
+            warnings.warn(_SAFE_NAMES_WARNING, stacklevel=find_stack_level())
 
         escape = _get_valid_sqlite_name
 
@@ -1948,7 +1949,7 @@ class SQLiteTable(SQLTable):
                 "the 'timedelta' type is not supported, and will be "
                 "written as integer values (ns frequency) to the database.",
                 UserWarning,
-                stacklevel=8,
+                stacklevel=find_stack_level(),
             )
             col_type = "integer"
 
