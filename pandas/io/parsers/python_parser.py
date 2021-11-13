@@ -127,7 +127,7 @@ class PythonParser(ParserBase):
         # Now self.columns has the set of columns that we will process.
         # The original set is stored in self.original_columns.
         # error: Cannot determine type of 'index_names'
-        self.columns: list[Scalar] | list[tuple]
+        self.columns: list[Scalar] | list[tuple[Scalar, ...]]
         (
             self.columns,
             self.index_names,
@@ -139,7 +139,7 @@ class PythonParser(ParserBase):
         )
 
         # get popped off for index
-        self.orig_names: list[Scalar] | list[tuple] = list(self.columns)
+        self.orig_names: list[Scalar] | list[tuple[Scalar, ...]] = list(self.columns)
 
         # needs to be cleaned/refactored
         # multiple date column thing turning into a real spaghetti factory
@@ -256,7 +256,7 @@ class PythonParser(ParserBase):
         # done with first read, next time raise StopIteration
         self._first_chunk = False
 
-        columns: list[Scalar] | list[tuple] = list(self.orig_names)
+        columns: list[Scalar] | list[tuple[Scalar, ...]] = list(self.orig_names)
         if not len(content):  # pragma: no cover
             # DataFrame with the right metadata, even though it's length 0
             names = self._maybe_dedup_names(self.orig_names)
@@ -281,7 +281,10 @@ class PythonParser(ParserBase):
         data, columns = self._exclude_implicit_index(alldata)
 
         columns, date_data = self._do_date_conversions(columns, data)
-        data = cast(Dict[Union[Scalar, Tuple], np.ndarray], date_data)
+        data = cast(
+            Union[Dict[Scalar, np.ndarray], Dict[Tuple[Scalar, ...], np.ndarray]],
+            date_data,
+        )
 
         conv_data = self._convert_data(data)
         index, columns = self._make_index(conv_data, alldata, columns, indexnamerow)
@@ -292,7 +295,8 @@ class PythonParser(ParserBase):
         self,
         alldata: list[np.ndarray],
     ) -> tuple[
-        dict[Scalar, np.ndarray] | dict[tuple, np.ndarray], list[Scalar] | list[tuple]
+        dict[Scalar, np.ndarray] | dict[tuple[Scalar, ...], np.ndarray],
+        list[Scalar] | list[tuple[Scalar, ...]],
     ]:
         names = self._maybe_dedup_names(self.orig_names)
 
@@ -316,8 +320,8 @@ class PythonParser(ParserBase):
         return self.read(rows=size)
 
     def _convert_data(
-        self, data: dict[Scalar | tuple, np.ndarray]
-    ) -> dict[Scalar | tuple, ArrayLike]:
+        self, data: dict[Scalar, np.ndarray] | dict[tuple[Scalar, ...], np.ndarray]
+    ) -> dict[Scalar, ArrayLike] | dict[tuple[Scalar, ...], ArrayLike]:
         # apply converters
         def _clean_mapping(mapping):
             """converts col numbers to names"""
@@ -875,7 +879,7 @@ class PythonParser(ParserBase):
 
     _implicit_index = False
 
-    def _get_index_name(self, columns: list[Scalar] | list[tuple]):
+    def _get_index_name(self, columns: list[Scalar] | list[tuple[Scalar, ...]]):
         """
         Try several cases to get lines:
 

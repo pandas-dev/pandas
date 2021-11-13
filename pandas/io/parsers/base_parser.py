@@ -236,7 +236,7 @@ class ParserBase:
         )
 
     def _validate_parse_dates_presence(
-        self, columns: list[Scalar] | list[tuple]
+        self, columns: list[Scalar] | list[tuple[Scalar, ...]]
     ) -> None:
         """
         Check if parse_dates are in columns.
@@ -387,8 +387,8 @@ class ParserBase:
 
     @final
     def _maybe_dedup_names(
-        self, names: list[Scalar] | list[tuple]
-    ) -> list[Scalar] | list[tuple]:
+        self, names: list[Scalar] | list[tuple[Scalar, ...]]
+    ) -> list[Scalar] | list[tuple[Scalar, ...]]:
         # see gh-7160 and gh-9424: this helps to provide
         # immediate alleviation of the duplicate names
         # issue and appears to be satisfactory to users,
@@ -396,7 +396,7 @@ class ParserBase:
         # would be nice!
         if self.mangle_dupe_cols:
             names = list(names)  # so we can index
-            counts: DefaultDict[Scalar | tuple, int] = defaultdict(int)
+            counts: DefaultDict[Scalar | tuple[Scalar, ...], int] = defaultdict(int)
             is_potential_mi = _is_potential_multi_index(names, self.index_col)
 
             for i, col in enumerate(names):
@@ -622,7 +622,7 @@ class ParserBase:
 
     @final
     def _set_noconvert_dtype_columns(
-        self, col_indices: list[int], names: list[Scalar] | list[tuple]
+        self, col_indices: list[int], names: list[Scalar] | list[tuple[Scalar, ...]]
     ) -> set[int]:
         """
         Set the columns that should not undergo dtype conversions.
@@ -817,34 +817,34 @@ class ParserBase:
     @overload
     def _do_date_conversions(
         self,
-        names: list[Scalar] | list[tuple],
+        names: list[Scalar] | list[tuple[Scalar, ...]],
         data: dict[Scalar, ArrayLike]
-        | dict[tuple, ArrayLike]
+        | dict[tuple[Scalar, ...], ArrayLike]
         | dict[Scalar, np.ndarray]
-        | dict[tuple, np.ndarray],
+        | dict[tuple[Scalar, ...], np.ndarray],
     ) -> tuple[
-        list[Scalar] | list[tuple],
+        list[Scalar] | list[tuple[Scalar, ...]],
         dict[Scalar, ArrayLike]
-        | dict[tuple, ArrayLike]
+        | dict[tuple[Scalar, ...], ArrayLike]
         | dict[Scalar, np.ndarray]
-        | dict[tuple, np.ndarray],
+        | dict[tuple[Scalar, ...], np.ndarray],
     ]:
         ...
 
     def _do_date_conversions(
         self,
-        names: list[Scalar] | list[tuple] | Index,
+        names: list[Scalar] | list[tuple[Scalar, ...]] | Index,
         data: dict[Scalar, ArrayLike]
-        | dict[tuple, ArrayLike]
+        | dict[tuple[Scalar, ...], ArrayLike]
         | dict[Scalar, np.ndarray]
-        | dict[tuple, np.ndarray]
+        | dict[tuple[Scalar, ...], np.ndarray]
         | DataFrame,
     ) -> tuple[
-        list[Scalar] | list[tuple] | Index,
+        list[Scalar] | list[tuple[Scalar, ...]] | Index,
         dict[Scalar, ArrayLike]
-        | dict[tuple, ArrayLike]
+        | dict[tuple[Scalar, ...], ArrayLike]
         | dict[Scalar, np.ndarray]
-        | dict[tuple, np.ndarray]
+        | dict[tuple[Scalar, ...], np.ndarray]
         | DataFrame,
     ]:
         # returns data, columns
@@ -864,7 +864,7 @@ class ParserBase:
 
     def _check_data_length(
         self,
-        columns: list[Scalar] | list[tuple],
+        columns: list[Scalar] | list[tuple[Scalar, ...]],
         data: list[ArrayLike] | list[np.ndarray],
     ) -> None:
         """Checks if length of data is equal to length of column names.
