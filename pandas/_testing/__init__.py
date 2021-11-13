@@ -82,6 +82,7 @@ from pandas._testing.asserters import (  # noqa:F401
     assert_extension_array_equal,
     assert_frame_equal,
     assert_index_equal,
+    assert_indexing_slices_equivalent,
     assert_interval_array_equal,
     assert_is_sorted,
     assert_is_valid_plot_return_object,
