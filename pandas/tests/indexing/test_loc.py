@@ -178,6 +178,13 @@ class TestLoc(Base):
         )
         tm.assert_frame_equal(df, expected)
 
+    def test_loc_getitem_column_boolean_arg(self):
+        # GH 44322
+        df = DataFrame([[1]], columns=Index([False]))
+        res = df.loc[:, False]
+        exp = Series([1], name=False)
+        tm.assert_series_equal(res, exp)
+
 
 class TestLoc2:
     # TODO: better name, just separating out things that rely on base class
