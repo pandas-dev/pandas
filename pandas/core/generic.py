@@ -2001,15 +2001,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @property
     def empty(self) -> bool_t:
         """
-        Indicator whether DataFrame is empty.
+        Indicator whether Series/DataFrame is empty.
 
-        True if DataFrame is entirely empty (no items), meaning any of the
+        True if Series/DataFrame is entirely empty (no items), meaning any of the
         axes are of length 0.
 
         Returns
         -------
         bool
-            If DataFrame is empty, return True, if not return False.
+            If Series/DataFrame is empty, return True, if not return False.
 
         See Also
         --------
@@ -2019,7 +2019,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Notes
         -----
-        If DataFrame contains only NaNs, it is still not considered empty. See
+        If Series/DataFrame contains only NaNs, it is still not considered empty. See
         the example below.
 
         Examples
@@ -2044,6 +2044,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df.empty
         False
         >>> df.dropna().empty
+        True
+
+        >>> ser_empty = pd.Series({'A' : []})
+        >>> ser_empty
+        A    []
+        dtype: object
+        >>> ser_empty.empty
+        False
+        >>> ser_empty = pd.Series()
+        >>> ser_empty.empty
         True
         """
         return any(len(self._get_axis(a)) == 0 for a in self._AXIS_ORDERS)
