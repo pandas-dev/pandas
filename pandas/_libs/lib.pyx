@@ -14,6 +14,7 @@ from cpython.datetime cimport (
     PyTime_Check,
 )
 from cpython.iterator cimport PyIter_Check
+from cpython.memoryview cimport PyMemoryView_Check
 from cpython.number cimport PyNumber_Check
 from cpython.object cimport (
     Py_EQ,
@@ -1107,7 +1108,7 @@ cdef inline bint c_is_list_like(object obj, bint allow_sets) except -1:
         and not cnp.PyArray_IsZeroDim(obj)
         # exclude sets if allow_sets is False
         and not (allow_sets is False and isinstance(obj, abc.Set))
-    )
+    ) or (PyMemoryView_Check(obj) and obj.ndim != 0)
 
 
 _TYPE_MAP = {

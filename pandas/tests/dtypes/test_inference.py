@@ -118,6 +118,8 @@ ll_params = [
     (object(), False, "object"),
     (np.nan, False, "NaN"),
     (None, False, "None"),
+    (memoryview(np.array([1, 2])), True, "memoryview-1d"),
+    (memoryview(np.array(3.0)), False, "memoryview-0d"),
 ]
 objs, expected, ids = zip(*ll_params)
 
