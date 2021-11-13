@@ -110,6 +110,7 @@ from pandas.core.indexers import (
     is_empty_indexer,
     is_scalar_indexer,
 )
+from pandas.core.internals.methods import putmask_flexible_ea
 import pandas.core.missing as missing
 
 if TYPE_CHECKING:
@@ -1411,30 +1412,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         """
         See Block.putmask.__doc__
         """
-        mask = extract_bool_array(mask)
-
-        new_values = self.values
-
-        if mask.ndim == new_values.ndim + 1:
-            # TODO(EA2D): unnecessary with 2D EAs
-            mask = mask.reshape(new_values.shape)
-
-        try:
-            # Caller is responsible for ensuring matching lengths
-            new_values._putmask(mask, new)
-        except TypeError:
-            if not is_interval_dtype(self.dtype):
-                # Discussion about what we want to support in the general
-                #  case GH#39584
-                raise
-
-            blk = self.coerce_to_target_dtype(new)
-            if blk.dtype == _dtype_obj:
-                # For now at least, only support casting e.g.
-                #  Interval[int64]->Interval[float64],
-                raise
-            return blk.putmask(mask, new)
-
+        new_values = putmask_flexible_ea(self.values, mask, new)
         nb = type(self)(new_values, placement=self._mgr_locs, ndim=self.ndim)
         return [nb]
 

@@ -91,6 +91,10 @@ def putmask_flexible_ea(array: ExtensionArray, mask, new):
     """
     mask = extract_bool_array(mask)
 
+    if mask.ndim == array.ndim + 1:
+        # TODO(EA2D): unnecessary with 2D EAs
+        mask = mask.reshape(array.shape)
+
     if isinstance(array, NDArrayBackedExtensionArray):
         if not can_hold_element(array, new):
             array = _coerce_to_target_dtype(array, new)
@@ -109,6 +113,6 @@ def putmask_flexible_ea(array: ExtensionArray, mask, new):
             # For now at least, only support casting e.g.
             #  Interval[int64]->Interval[float64],
             raise
-        return putmask_flexible(array, mask, new)
+        return putmask_flexible_ea(array, mask, new)
 
     return array
