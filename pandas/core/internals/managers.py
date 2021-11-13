@@ -1045,8 +1045,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             self._rebuild_blknos_and_blklocs()
 
         # Note: we exclude DTA/TDA here
-        vdtype = getattr(value, "dtype", None)
-        value_is_extension_type = is_1d_only_ea_dtype(vdtype)
+        value_is_extension_type = is_1d_only_ea_dtype(value.dtype)
 
         # categorical/sparse/datetimetz
         if value_is_extension_type:
@@ -1193,7 +1192,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 "Consider joining all columns at once using pd.concat(axis=1) "
                 "instead. To get a de-fragmented frame, use `newframe = frame.copy()`",
                 PerformanceWarning,
-                stacklevel=5,
+                stacklevel=find_stack_level(),
             )
 
     def _insert_update_mgr_locs(self, loc) -> None:
@@ -1638,7 +1637,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
                 "The `fastpath` keyword is deprecated and will be removed "
                 "in a future version.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
 
         self.axes = [axis]

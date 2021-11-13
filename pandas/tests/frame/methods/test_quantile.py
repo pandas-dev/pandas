@@ -617,7 +617,7 @@ class TestQuantileExtensionDtype:
         expected = type(obj)(expected)
         tm.assert_equal(result, expected)
 
-    # TODO: filtering can be removed after GH#39763 is fixed
+    # TODO(GH#39763): filtering can be removed after GH#39763 is fixed
     @pytest.mark.filterwarnings("ignore:Using .astype to convert:FutureWarning")
     def test_quantile_ea_all_na(self, obj, index, frame_or_series):
 

@@ -3648,7 +3648,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "is_copy is deprecated and will be removed in a future version. "
                 "'take' always returns a copy, so there is no need to specify this.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
 
         nv.validate_take((), kwargs)
@@ -3782,7 +3782,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "Passing lists as key for xs is deprecated and will be removed in a "
                 "future version. Pass key as a tuple instead.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
 
         if level is not None:
@@ -5557,7 +5557,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         "created via a new attribute name - see "
                         "https://pandas.pydata.org/pandas-docs/"
                         "stable/indexing.html#attribute-access",
-                        stacklevel=2,
+                        stacklevel=find_stack_level(),
                     )
                 object.__setattr__(self, name, value)
 
@@ -7779,7 +7779,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "`include_start` and `include_end` are deprecated in "
                 "favour of `inclusive`.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
             left = True if isinstance(include_start, lib.NoDefault) else include_start
             right = True if isinstance(include_end, lib.NoDefault) else include_end
@@ -9195,7 +9195,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "try_cast keyword is deprecated and will be removed in a "
                 "future version.",
                 FutureWarning,
-                stacklevel=4,
+                stacklevel=find_stack_level(),
             )
 
         return self._where(cond, other, inplace, axis, level, errors=errors)
@@ -9227,7 +9227,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "try_cast keyword is deprecated and will be removed in a "
                 "future version.",
                 FutureWarning,
-                stacklevel=4,
+                stacklevel=find_stack_level(),
             )
 
         # see gh-21891
@@ -9420,7 +9420,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             "and will be removed in a future version. "
             "You can use DataFrame/Series.shift instead."
         )
-        warnings.warn(msg, FutureWarning, stacklevel=2)
+        warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
 
         if periods == 0:
             return self
@@ -9472,7 +9472,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "Please use shift instead."
             ),
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
 
         if freq is None:
@@ -10287,7 +10287,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "deprecated and will be removed in a future version. Use groupby "
                 "instead. df.any(level=1) should use df.groupby(level=1).any()",
                 FutureWarning,
-                stacklevel=4,
+                stacklevel=find_stack_level(),
             )
             if bool_only is not None:
                 raise NotImplementedError(
@@ -10383,7 +10383,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "deprecated and will be removed in a future version. Use groupby "
                 "instead. df.var(level=1) should use df.groupby(level=1).var().",
                 FutureWarning,
-                stacklevel=4,
+                stacklevel=find_stack_level(),
             )
             return self._agg_by_level(
                 name, axis=axis, level=level, skipna=skipna, ddof=ddof
@@ -10436,7 +10436,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "deprecated and will be removed in a future version. Use groupby "
                 "instead. df.median(level=1) should use df.groupby(level=1).median().",
                 FutureWarning,
-                stacklevel=4,
+                stacklevel=find_stack_level(),
             )
             return self._agg_by_level(
                 name, axis=axis, level=level, skipna=skipna, numeric_only=numeric_only
@@ -10503,7 +10503,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "deprecated and will be removed in a future version. Use groupby "
                 "instead. df.sum(level=1) should use df.groupby(level=1).sum().",
                 FutureWarning,
-                stacklevel=4,
+                stacklevel=find_stack_level(),
             )
             return self._agg_by_level(
                 name,
@@ -10587,7 +10587,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "deprecated and will be removed in a future version. Use groupby "
                 "instead. df.mad(level=1) should use df.groupby(level=1).mad()",
                 FutureWarning,
-                stacklevel=3,
+                stacklevel=find_stack_level(),
             )
             return self._agg_by_level("mad", axis=axis, level=level, skipna=skipna)
 
@@ -10985,7 +10985,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             warnings.warn(
                 "The `center` argument on `expanding` will be removed in the future.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
         else:
             center = False
