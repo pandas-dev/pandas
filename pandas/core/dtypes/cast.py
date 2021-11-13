@@ -985,13 +985,12 @@ def astype_dt64_to_dt64tz(
         # DatetimeArray/DatetimeIndex.astype behavior
         if values.tz is None and aware:
             dtype = cast(DatetimeTZDtype, dtype)
-            level = find_stack_level()
             warnings.warn(
                 "Using .astype to convert from timezone-naive dtype to "
                 "timezone-aware dtype is deprecated and will raise in a "
                 "future version.  Use obj.tz_localize instead.",
                 FutureWarning,
-                stacklevel=level,
+                stacklevel=find_stack_level(),
             )
 
             return values.tz_localize(dtype.tz)
