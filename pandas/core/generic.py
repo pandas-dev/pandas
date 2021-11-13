@@ -3286,7 +3286,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             "use `DataFrame.style.to_latex` which also contains additional "
             "functionality."
         )
-        warnings.warn(msg, FutureWarning, stacklevel=2)
+        warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
 
         # Get defaults from the pandas config
         if self.ndim == 1:
