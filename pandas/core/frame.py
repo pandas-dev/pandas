@@ -9155,6 +9155,11 @@ NaN 12.3   33.0
             * inner: form intersection of calling frame's index (or column if
               on is specified) with `other`'s index, preserving the order
               of the calling's one.
+            * cross: creates the cartesian product from both frames, preserves the order
+              of the left keys.
+
+              .. versionadded:: 1.2.0
+
         lsuffix : str, default ''
             Suffix to use from left frame's overlapping columns.
         rsuffix : str, default ''
