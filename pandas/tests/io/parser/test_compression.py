@@ -103,8 +103,6 @@ def test_compression(parser_and_data, compression_only, buffer, filename):
         tm.write_to_compressed(compress_type, path, data)
         compression = "infer" if filename else compress_type
 
-        if ext == "bz2":
-            pytest.xfail("pyarrow wheels don't have bz2 codec support")
         if buffer:
             with open(path, "rb") as f:
                 result = parser.read_csv(f, compression=compression)
