@@ -5831,12 +5831,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             #  robust in case we
             from pandas import Series
 
-            dtype = Series(dtype, dtype=object)
-            dtype = dtype.reindex(self.columns, fill_value=None, copy=False)
+            dtype_ser = Series(dtype, dtype=object)
+            dtype_ser = dtype.reindex(self.columns, fill_value=None, copy=False)
 
             results = []
             for i, (col_name, col) in enumerate(self.items()):
-                cdt = dtype.iat[i]
+                cdt = dtype_ser.iat[i]
                 if isna(cdt):
                     res_col = col.copy() if copy else col
                 else:
