@@ -5832,7 +5832,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             from pandas import Series
 
             dtype_ser = Series(dtype, dtype=object)
-            dtype_ser = dtype.reindex(self.columns, fill_value=None, copy=False)
+            dtype_ser = dtype_ser.reindex(self.columns, fill_value=None, copy=False)
 
             results = []
             for i, (col_name, col) in enumerate(self.items()):
