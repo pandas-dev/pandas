@@ -969,13 +969,12 @@ def astype_dt64_to_dt64tz(
             # this should be the only copy
             values = values.copy()
 
-        level = find_stack_level()
         warnings.warn(
             "Using .astype to convert from timezone-naive dtype to "
             "timezone-aware dtype is deprecated and will raise in a "
             "future version.  Use ser.dt.tz_localize instead.",
             FutureWarning,
-            stacklevel=level,
+            stacklevel=find_stack_level(),
         )
 
         # GH#33401 this doesn't match DatetimeArray.astype, which
@@ -1006,14 +1005,13 @@ def astype_dt64_to_dt64tz(
             return result
 
         elif values.tz is not None:
-            level = find_stack_level()
             warnings.warn(
                 "Using .astype to convert from timezone-aware dtype to "
                 "timezone-naive dtype is deprecated and will raise in a "
                 "future version.  Use obj.tz_localize(None) or "
                 "obj.tz_convert('UTC').tz_localize(None) instead",
                 FutureWarning,
-                stacklevel=level,
+                stacklevel=find_stack_level(),
             )
 
             result = values.tz_convert("UTC").tz_localize(None)

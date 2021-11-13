@@ -486,9 +486,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @property
     def _AXIS_NUMBERS(self) -> dict[str, int]:
         """.. deprecated:: 1.1.0"""
-        level = self.ndim + 1
         warnings.warn(
-            "_AXIS_NUMBERS has been deprecated.", FutureWarning, stacklevel=level
+            "_AXIS_NUMBERS has been deprecated.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
         )
         return {"index": 0}
 
