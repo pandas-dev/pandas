@@ -1673,13 +1673,13 @@ _round_example = """>>> rng.round('H')
     When rounding near a daylight savings time transition, use ``ambiguous`` or
     ``nonexistent`` to control how the timestamp should be re-localized.
 
-    >>> rng_tz = pd.DatetimeIndex(["2021-10-31 01:30:00"], tz="Europe/Amsterdam")
+    >>> rng_tz = pd.DatetimeIndex(["2021-10-31 03:30:00"], tz="Europe/Amsterdam")
 
-    >>> rng_tz.floor("H", ambiguous=False)
+    >>> rng_tz.floor("2H", ambiguous=False)
     DatetimeIndex(['2021-10-31 02:00:00+01:00'],
                   dtype='datetime64[ns, Europe/Amsterdam]', freq=None)
 
-    >>> rng_tz.floor("H", ambiguous=True)
+    >>> rng_tz.floor("2H", ambiguous=True)
     DatetimeIndex(['2021-10-31 02:00:00+02:00'],
                   dtype='datetime64[ns, Europe/Amsterdam]', freq=None)
     """
