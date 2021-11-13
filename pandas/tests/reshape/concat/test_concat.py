@@ -3,10 +3,15 @@ from collections import (
     deque,
 )
 from decimal import Decimal
-from warnings import catch_warnings
+from warnings import (
+    catch_warnings,
+    simplefilter,
+)
 
 import numpy as np
 import pytest
+
+from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import (
@@ -560,6 +565,22 @@ def test_duplicate_keys(keys):
     tm.assert_frame_equal(result, expected)
 
 
+def test_duplicate_keys_same_frame():
+    # GH 43595
+    keys = ["e", "e"]
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    result = concat([df, df], axis=1, keys=keys)
+    expected_values = [[1, 4, 1, 4], [2, 5, 2, 5], [3, 6, 3, 6]]
+    expected_columns = MultiIndex.from_tuples(
+        [(keys[0], "a"), (keys[0], "b"), (keys[1], "a"), (keys[1], "b")]
+    )
+    expected = DataFrame(expected_values, columns=expected_columns)
+    with catch_warnings():
+        # result.columns not sorted, resulting in performance warning
+        simplefilter("ignore", PerformanceWarning)
+        tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "obj",
     [
@@ -595,6 +616,24 @@ def test_concat_preserves_extension_int64_dtype():
     result = concat([df_a, df_b], ignore_index=True)
     expected = DataFrame({"a": [-1, None], "b": [None, 1]}, dtype="Int64")
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype1,dtype2,expected_dtype",
+    [
+        ("bool", "bool", "bool"),
+        ("boolean", "bool", "boolean"),
+        ("bool", "boolean", "boolean"),
+        ("boolean", "boolean", "boolean"),
+    ],
+)
+def test_concat_bool_types(dtype1, dtype2, expected_dtype):
+    # GH 42800
+    ser1 = Series([True, False], dtype=dtype1)
+    ser2 = Series([False, True], dtype=dtype2)
+    result = concat([ser1, ser2], ignore_index=True)
+    expected = Series([True, False, False, True], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize(

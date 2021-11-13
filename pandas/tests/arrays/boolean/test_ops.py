@@ -18,3 +18,10 @@ class TestUnaryOps:
             {"A": expected, "B": [False, True, True]}, index=["a", "b", "c"]
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_abs(self):
+        # matching numpy behavior, abs is the identity function
+        arr = pd.array([True, False, None], dtype="boolean")
+        result = abs(arr)
+
+        tm.assert_extension_array_equal(result, arr)

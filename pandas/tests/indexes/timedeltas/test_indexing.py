@@ -248,8 +248,7 @@ class TestTake:
         with pytest.raises(ValueError, match=msg):
             idx.take(indices, mode="clip")
 
-    # TODO: This method came from test_timedelta; de-dup with version above
-    def test_take2(self):
+    def test_take_equiv_getitem(self):
         tds = ["1day 02:00:00", "1 day 04:00:00", "1 day 10:00:00"]
         idx = timedelta_range(start="1d", end="2d", freq="H", name="idx")
         expected = TimedeltaIndex(tds, freq=None, name="idx")
@@ -341,3 +340,17 @@ class TestMaybeCastSliceBound:
             indexer_sl(obj)[:"foo"]
         with pytest.raises(TypeError, match=msg):
             indexer_sl(obj)[tdi[0] : "foo"]
+
+
+class TestContains:
+    def test_contains_nonunique(self):
+        # GH#9512
+        for vals in (
+            [0, 1, 0],
+            [0, 0, -1],
+            [0, -1, -1],
+            ["00:01:00", "00:01:00", "00:02:00"],
+            ["00:01:00", "00:01:00", "00:00:01"],
+        ):
+            idx = TimedeltaIndex(vals)
+            assert idx[0] in idx

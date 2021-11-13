@@ -10,7 +10,7 @@ import pandas._testing as tm
 from pandas.core.arrays import ExtensionArray
 
 # integer dtypes
-arrays = [pd.array([1, 2, 3, None], dtype=dtype) for dtype in tm.ALL_EA_INT_DTYPES]
+arrays = [pd.array([1, 2, 3, None], dtype=dtype) for dtype in tm.ALL_INT_EA_DTYPES]
 scalars: list[Any] = [2] * len(arrays)
 # floating dtypes
 arrays += [pd.array([0.1, 0.2, 0.3, None], dtype=dtype) for dtype in tm.FLOAT_EA_DTYPES]

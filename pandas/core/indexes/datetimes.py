@@ -11,6 +11,7 @@ import operator
 from typing import (
     TYPE_CHECKING,
     Hashable,
+    Literal,
 )
 import warnings
 
@@ -356,12 +357,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         return self.tz is None and is_dates_only(self._values)  # type: ignore[arg-type]
 
     def __reduce__(self):
-
-        # we use a special reduce here because we need
-        # to simply set the .tz (and not reinterpret it)
-
-        d = {"data": self._data}
-        d.update(self._get_attributes_dict())
+        d = {"data": self._data, "name": self.name}
         return _new_DatetimeIndex, (type(self), d), None
 
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
@@ -496,10 +492,10 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             if keep_tz:
                 warnings.warn(
                     "The 'keep_tz' keyword in DatetimeIndex.to_series "
-                    "is deprecated and will be removed in a future version.  "
+                    "is deprecated and will be removed in a future version. "
                     "You can stop passing 'keep_tz' to silence this warning.",
                     FutureWarning,
-                    stacklevel=2,
+                    stacklevel=find_stack_level(),
                 )
             else:
                 warnings.warn(
@@ -509,7 +505,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                     "can do 'idx.tz_convert(None)' before calling "
                     "'to_series'.",
                     FutureWarning,
-                    stacklevel=2,
+                    stacklevel=find_stack_level(),
                 )
         else:
             keep_tz = True
@@ -611,7 +607,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 msg = (
                     "Indexing a timezone-aware DatetimeIndex with a "
                     "timezone-naive datetime is deprecated and will "
-                    "raise KeyError in a future version.  "
+                    "raise KeyError in a future version. "
                     "Use a timezone-aware object instead."
                 )
             warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
@@ -756,7 +752,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 "with non-existing keys is deprecated and will raise a "
                 "KeyError in a future Version.",
                 FutureWarning,
-                stacklevel=5,
+                stacklevel=find_stack_level(),
             )
         indexer = mask.nonzero()[0][::step]
         if len(indexer) == len(self):
@@ -765,7 +761,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             return indexer
 
     @doc(Index.get_slice_bound)
-    def get_slice_bound(self, label, side: str, kind=lib.no_default) -> int:
+    def get_slice_bound(
+        self, label, side: Literal["left", "right"], kind=lib.no_default
+    ) -> int:
         # GH#42855 handle date here instead of _maybe_cast_slice_bound
         if isinstance(label, date) and not isinstance(label, datetime):
             label = Timestamp(label).to_pydatetime()
@@ -878,7 +876,8 @@ def date_range(
     tz=None,
     normalize: bool = False,
     name: Hashable = None,
-    closed=None,
+    closed: str | None | lib.NoDefault = lib.no_default,
+    inclusive: str | None = None,
     **kwargs,
 ) -> DatetimeIndex:
     """
@@ -916,6 +915,14 @@ def date_range(
     closed : {None, 'left', 'right'}, optional
         Make the interval closed with respect to the given frequency to
         the 'left', 'right', or both sides (None, the default).
+
+        .. deprecated:: 1.4.0
+           Argument `closed` has been deprecated to standardize boundary inputs.
+           Use `inclusive` instead, to set each bound as closed or open.
+    inclusive : {"both", "neither", "left", "right"}, default "both"
+        Include boundaries; Whether to set each bound as closed or open.
+
+        .. versionadded:: 1.4.0
     **kwargs
         For compatibility. Has no effect on the result.
 
@@ -1026,6 +1033,28 @@ def date_range(
     DatetimeIndex(['2017-01-02', '2017-01-03', '2017-01-04'],
                   dtype='datetime64[ns]', freq='D')
     """
+    if inclusive is not None and not isinstance(closed, lib.NoDefault):
+        raise ValueError(
+            "Deprecated argument `closed` cannot be passed"
+            "if argument `inclusive` is not None"
+        )
+    elif not isinstance(closed, lib.NoDefault):
+        warnings.warn(
+            "Argument `closed` is deprecated in favor of `inclusive`.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        if closed is None:
+            inclusive = "both"
+        elif closed in ("left", "right"):
+            inclusive = closed
+        else:
+            raise ValueError(
+                "Argument `closed` has to be either 'left', 'right' or None"
+            )
+    elif inclusive is None:
+        inclusive = "both"
+
     if freq is None and com.any_none(periods, start, end):
         freq = "D"
 
@@ -1036,7 +1065,7 @@ def date_range(
         freq=freq,
         tz=tz,
         normalize=normalize,
-        closed=closed,
+        inclusive=inclusive,
         **kwargs,
     )
     return DatetimeIndex._simple_new(dtarr, name=name)
@@ -1052,7 +1081,8 @@ def bdate_range(
     name: Hashable = None,
     weekmask=None,
     holidays=None,
-    closed=None,
+    closed: lib.NoDefault = lib.no_default,
+    inclusive: str | None = None,
     **kwargs,
 ) -> DatetimeIndex:
     """
@@ -1087,6 +1117,14 @@ def bdate_range(
     closed : str, default None
         Make the interval closed with respect to the given frequency to
         the 'left', 'right', or both sides (None).
+
+        .. deprecated:: 1.4.0
+           Argument `closed` has been deprecated to standardize boundary inputs.
+           Use `inclusive` instead, to set each bound as closed or open.
+    inclusive : {"both", "neither", "left", "right"}, default "both"
+        Include boundaries; Whether to set each bound as closed or open.
+
+        .. versionadded:: 1.4.0
     **kwargs
         For compatibility. Has no effect on the result.
 
@@ -1140,6 +1178,7 @@ def bdate_range(
         normalize=normalize,
         name=name,
         closed=closed,
+        inclusive=inclusive,
         **kwargs,
     )
 

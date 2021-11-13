@@ -15,11 +15,13 @@ from pandas._libs import (
 from pandas._typing import (
     Dtype,
     DtypeObj,
+    npt,
 )
 from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
@@ -42,20 +44,19 @@ from pandas.core.indexes.base import (
     maybe_extract_name,
 )
 
-_num_index_shared_docs = {}
 
-
-_num_index_shared_docs[
-    "class_descr"
-] = """
+class NumericIndex(Index):
+    """
     Immutable sequence used for indexing and alignment. The basic object
-    storing axis labels for all pandas objects. %(klass)s is a special case
-    of `Index` with purely %(ltype)s labels. %(extra)s.
+    storing axis labels for all pandas objects. NumericIndex is a special case
+    of `Index` with purely numpy int/uint/float labels.
+
+    .. versionadded:: 1.4.0
 
     Parameters
     ----------
     data : array-like (1-dimensional)
-    dtype : NumPy dtype (default: %(dtype)s)
+    dtype : NumPy dtype (default: None)
     copy : bool
         Make a copy of input ndarray.
     name : object
@@ -66,27 +67,29 @@ _num_index_shared_docs[
     None
 
     Methods
-    -------
+    ----------
     None
 
     See Also
     --------
     Index : The base pandas Index type.
+    Int64Index : Index of purely int64 labels (deprecated).
+    UInt64Index : Index of purely uint64 labels (deprecated).
+    Float64Index : Index of  purely float64 labels (deprecated).
 
     Notes
     -----
-    An Index instance can **only** contain hashable objects.
-"""
+    An NumericIndex instance can **only** contain numpy int64/32/16/8, uint64/32/16/8 or
+    float64/32/16 dtype. In particular, ``NumericIndex`` *can not* hold Pandas numeric
+    dtypes (:class:`Int64Dtype`, :class:`Int32Dtype` etc.).
 
-
-class NumericIndex(Index):
-    _index_descr_args = {
-        "klass": "NumericIndex",
-        "ltype": "integer or float",
-        "dtype": "inferred",
-        "extra": "",
-    }
-    __doc__ = _num_index_shared_docs["class_descr"] % _index_descr_args
+    Examples
+    --------
+    >>> pd.NumericIndex([1, 2, 3], dtype="int8")
+    NumericIndex([1, 2, 3], dtype='int8')
+    >>> pd.NumericIndex([1, 2, 3], dtype="float32")
+    NumericIndex([1.0, 2.0, 3.0], dtype='float32')
+    """
 
     _typ = "numericindex"
     _values: np.ndarray
@@ -99,8 +102,9 @@ class NumericIndex(Index):
     _can_hold_strings = False
     _is_backward_compat_public_numeric_index: bool = True
 
+    # error: Signature of "_can_hold_na" incompatible with supertype "Index"
     @cache_readonly
-    def _can_hold_na(self) -> bool:
+    def _can_hold_na(self) -> bool:  # type: ignore[override]
         if is_float_dtype(self.dtype):
             return True
         else:
@@ -121,7 +125,9 @@ class NumericIndex(Index):
 
     @property
     def _engine_type(self):
-        return self._engine_types[self.dtype]
+        # error: Invalid index type "Union[dtype[Any], ExtensionDtype]" for
+        # "Dict[dtype[Any], Type[IndexEngine]]"; expected type "dtype[Any]"
+        return self._engine_types[self.dtype]  # type: ignore[index]
 
     @cache_readonly
     def inferred_type(self) -> str:
@@ -262,7 +268,8 @@ class NumericIndex(Index):
     # ----------------------------------------------------------------
     # Indexing Methods
 
-    @cache_readonly
+    # error: Decorated property not supported
+    @cache_readonly  # type: ignore[misc]
     @doc(Index._should_fallback_to_positional)
     def _should_fallback_to_positional(self) -> bool:
         return False
@@ -360,6 +367,48 @@ class NumericIndex(Index):
         )
 
 
+_num_index_shared_docs = {}
+
+
+_num_index_shared_docs[
+    "class_descr"
+] = """
+    Immutable sequence used for indexing and alignment. The basic object
+    storing axis labels for all pandas objects. %(klass)s is a special case
+    of `Index` with purely %(ltype)s labels. %(extra)s.
+
+    .. deprecated:: 1.4.0
+        In pandas v2.0 %(klass)s will be removed and :class:`NumericIndex` used instead.
+        %(klass)s will remain fully functional for the duration of pandas 1.x.
+
+    Parameters
+    ----------
+    data : array-like (1-dimensional)
+    dtype : NumPy dtype (default: %(dtype)s)
+    copy : bool
+        Make a copy of input ndarray.
+    name : object
+        Name to be stored in the index.
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    ----------
+    None
+
+    See Also
+    --------
+    Index : The base pandas Index type.
+    NumericIndex : Index of numpy int/uint/float data.
+
+    Notes
+    -----
+    An Index instance can **only** contain hashable objects.
+"""
+
+
 class IntegerIndex(NumericIndex):
     """
     This is an abstract class for Int64Index, UInt64Index.
@@ -368,14 +417,26 @@ class IntegerIndex(NumericIndex):
     _is_backward_compat_public_numeric_index: bool = False
 
     @property
-    def asi8(self) -> np.ndarray:
+    def asi8(self) -> npt.NDArray[np.int64]:
         # do not cache or you'll create a memory leak
         warnings.warn(
-            "Index.asi8 is deprecated and will be removed in a future version",
+            "Index.asi8 is deprecated and will be removed in a future version.",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self._values.view(self._default_dtype)
+
+    def _validate_fill_value(self, value):
+        # e.g. np.array([1.0]) we want np.array([1], dtype=self.dtype)
+        #  see TestSetitemFloatNDarrayIntoIntegerSeries
+        super()._validate_fill_value(value)
+        if hasattr(value, "dtype") and is_float_dtype(value.dtype):
+            converted = value.astype(self.dtype)
+            if (converted == value).all():
+                # See also: can_hold_element
+                return converted
+            raise TypeError
+        return value
 
 
 class Int64Index(IntegerIndex):

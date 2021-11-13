@@ -5,7 +5,7 @@ import pytest
 from pandas._config import detect_console_encoding
 
 
-class MockEncoding:  # TODO(py27): replace with mock
+class MockEncoding:
     """
     Used to add a side effect when accessing the 'encoding' property. If the
     side effect is a str in nature, the value will be returned. Otherwise, the
@@ -39,7 +39,7 @@ def test_detect_console_encoding_from_stdout_stdin(monkeypatch, empty, filled):
         assert detect_console_encoding() == filled
 
 
-@pytest.mark.parametrize("encoding", [AttributeError, IOError, "ascii"])
+@pytest.mark.parametrize("encoding", [AttributeError, OSError, "ascii"])
 def test_detect_console_encoding_fallback_to_locale(monkeypatch, encoding):
     # GH 21552
     with monkeypatch.context() as context:
@@ -55,8 +55,8 @@ def test_detect_console_encoding_fallback_to_locale(monkeypatch, encoding):
         ["ascii", locale.Error],
         [AttributeError, "ascii"],
         [AttributeError, locale.Error],
-        [IOError, "ascii"],
-        [IOError, locale.Error],
+        [OSError, "ascii"],
+        [OSError, locale.Error],
     ],
 )
 def test_detect_console_encoding_fallback_to_default(monkeypatch, std, locale):

@@ -25,6 +25,7 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
+from pandas.core.api import Float64Index
 from pandas.tests.indexing.common import _mklbl
 from pandas.tests.indexing.test_floats import gen_obj
 
@@ -128,6 +129,21 @@ class TestFancy:
         with pytest.raises(err, match=msg):
             idxr[nd3] = 0
 
+    def test_getitem_ndarray_0d(self):
+        # GH#24924
+        key = np.array(0)
+
+        # dataframe __getitem__
+        df = DataFrame([[1, 2], [3, 4]])
+        result = df[key]
+        expected = Series([1, 3], name=0)
+        tm.assert_series_equal(result, expected)
+
+        # series __getitem__
+        ser = Series([1, 2])
+        result = ser[key]
+        assert result == 1
+
     def test_inf_upcast(self):
         # GH 16957
         # We should be able to use np.inf as a key
@@ -143,7 +159,7 @@ class TestFancy:
         assert df.loc[np.inf, 0] == 3
 
         result = df.index
-        expected = pd.Float64Index([1, 2, np.inf])
+        expected = Float64Index([1, 2, np.inf])
         tm.assert_index_equal(result, expected)
 
     def test_setitem_dtype_upcast(self):
@@ -709,10 +725,10 @@ class TestMisc:
             assert_slices_equivalent(SLC[idx[13] : idx[9] : -1], SLC[13:8:-1])
             assert_slices_equivalent(SLC[idx[9] : idx[13] : -1], SLC[:0])
 
-    def test_slice_with_zero_step_raises(self, indexer_sl):
-        ser = Series(np.arange(20), index=_mklbl("A", 20))
+    def test_slice_with_zero_step_raises(self, indexer_sl, frame_or_series):
+        obj = frame_or_series(np.arange(20), index=_mklbl("A", 20))
         with pytest.raises(ValueError, match="slice step cannot be zero"):
-            indexer_sl(ser)[::0]
+            indexer_sl(obj)[::0]
 
     def test_loc_setitem_indexing_assignment_dict_already_exists(self):
         index = Index([-5, 0, 5], name="z")
@@ -770,12 +786,12 @@ class TestMisc:
         del df
         assert wr() is None
 
-    def test_label_indexing_on_nan(self):
+    def test_label_indexing_on_nan(self, nulls_fixture):
         # GH 32431
-        df = Series([1, "{1,2}", 1, None])
+        df = Series([1, "{1,2}", 1, nulls_fixture])
         vc = df.value_counts(dropna=False)
-        result1 = vc.loc[np.nan]
-        result2 = vc[np.nan]
+        result1 = vc.loc[nulls_fixture]
+        result2 = vc[nulls_fixture]
 
         expected = 1
         assert result1 == expected
@@ -870,7 +886,7 @@ class TestDatetimelikeCoercion:
         else:
             assert ser._values is values
 
-    @pytest.mark.parametrize("box", [list, np.array, pd.array])
+    @pytest.mark.parametrize("box", [list, np.array, pd.array, pd.Categorical, Index])
     @pytest.mark.parametrize(
         "key", [[0, 1], slice(0, 2), np.array([True, True, False])]
     )
@@ -910,7 +926,7 @@ class TestDatetimelikeCoercion:
         indexer_sli(ser)[0] = scalar
         assert ser._values._data is values._data
 
-    @pytest.mark.parametrize("box", [list, np.array, pd.array])
+    @pytest.mark.parametrize("box", [list, np.array, pd.array, pd.Categorical, Index])
     @pytest.mark.parametrize(
         "key", [[0, 1], slice(0, 2), np.array([True, True, False])]
     )

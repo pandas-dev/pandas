@@ -273,9 +273,14 @@ class TestTimedeltaAdditionSubtraction:
         msg = r"unsupported operand type\(s\) for \+: 'Timedelta' and 'int'"
         with pytest.raises(TypeError, match=msg):
             td + np.array([1])
-        msg = (
-            r"unsupported operand type\(s\) for \+: 'numpy.ndarray' and 'Timedelta'|"
-            "Concatenation operation is not implemented for NumPy arrays"
+        msg = "|".join(
+            [
+                (
+                    r"unsupported operand type\(s\) for \+: 'numpy.ndarray' "
+                    "and 'Timedelta'"
+                ),
+                "Concatenation operation is not implemented for NumPy arrays",
+            ]
         )
         with pytest.raises(TypeError, match=msg):
             np.array([1]) + td
