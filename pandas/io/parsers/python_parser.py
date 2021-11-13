@@ -1077,7 +1077,7 @@ class PythonParser(ParserBase):
         lines = self._check_thousands(lines)
         return self._check_decimal(lines)
 
-    def _remove_skipped_rows(self, new_rows: list[Scalar]) -> list[Scalar]:
+    def _remove_skipped_rows(self, new_rows: list[list[Scalar]]) -> list[list[Scalar]]:
         if self.skiprows:
             return [
                 row for i, row in enumerate(new_rows) if not self.skipfunc(i + self.pos)
