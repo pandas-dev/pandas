@@ -519,11 +519,10 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         if convert_float is None:
             convert_float = True
         else:
-            stacklevel = find_stack_level()
             warnings.warn(
                 "convert_float is deprecated and will be removed in a future version.",
                 FutureWarning,
-                stacklevel=stacklevel,
+                stacklevel=find_stack_level(),
             )
 
         validate_header_arg(header)
@@ -833,7 +832,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             warnings.warn(
                 "Use of **kwargs is deprecated, use engine_kwargs instead.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
 
         # only switch class if generic(ExcelWriter)
@@ -868,7 +867,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
                         "deprecated and will also raise a warning, it can "
                         "be globally set and the warning suppressed.",
                         FutureWarning,
-                        stacklevel=4,
+                        stacklevel=find_stack_level(),
                     )
 
             cls = get_writer(engine)
