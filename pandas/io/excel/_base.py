@@ -941,7 +941,9 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         mode = mode.replace("a", "r+")
 
         # cast ExcelWriter to avoid adding 'if self.handles is not None'
-        self.handles = IOHandles(cast(Buffer, path), compression={"copression": None})
+        self.handles = IOHandles(
+            cast(Buffer[bytes], path), compression={"copression": None}
+        )
         if not isinstance(path, ExcelWriter):
             self.handles = get_handle(
                 path, mode, storage_options=storage_options, is_text=False
