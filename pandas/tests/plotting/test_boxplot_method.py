@@ -543,6 +543,14 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         result_xticklabel = [x.get_text() for x in axes.get_xticklabels()]
         assert expected_xticklabel == result_xticklabel
 
+    def test_groupby_boxplot_object(self):
+        # GH 43480
+        df = self.hist_df.astype("object")
+        grouped = df.groupby("gender")
+        msg = "boxplot method requires numerical columns, nothing to plot"
+        with pytest.raises(ValueError, match=msg):
+            _check_plot_works(grouped.boxplot, subplots=False)
+
     def test_boxplot_multiindex_column(self):
         # GH 16748
         arrays = [
