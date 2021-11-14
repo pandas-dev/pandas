@@ -608,6 +608,7 @@ Missing
 ^^^^^^^
 - Bug in :meth:`DataFrame.fillna` with limit and no method ignores axis='columns' or ``axis = 1`` (:issue:`40989`)
 - Bug in :meth:`DataFrame.fillna` not replacing missing values when using a dict-like ``value`` and duplicate column names (:issue:`43476`)
+- Bug in constructing a :class:`DataFrame` with a dictionary ``np.datetime64`` as a value and ``dtype='timedelta64[ns]'``, or vice-versa, incorrectly casting instead of raising (:issue:`??`)
 -
 
 MultiIndex
