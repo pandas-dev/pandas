@@ -168,7 +168,7 @@ class SharedTests:
 
         tm.assert_index_equal(self.index_cls(result), expected)
 
-    @pytest.mark.parametrize("fill_value", [2, 2.0, pd.Timestamp(2021, 1, 1, 12).time])
+    @pytest.mark.parametrize("fill_value", [2, 2.0, Timestamp(2021, 1, 1, 12).time])
     def test_take_fill_raises(self, fill_value):
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
 
@@ -842,7 +842,7 @@ class TestDatetimeArray(SharedTests):
     def test_take_fill_valid(self, arr1d):
         arr = arr1d
         dti = self.index_cls(arr1d)
-        dt_ind = pd.Timestamp(2021, 1, 1, 12)
+        dt_ind = Timestamp(2021, 1, 1, 12)
         dt_ind_tz = dt_ind.tz_localize(dti.tz)
 
         result = arr.take([-1, 1], allow_fill=True, fill_value=dt_ind_tz)
@@ -1040,7 +1040,7 @@ class TestTimedeltaArray(SharedTests):
         result = arr.take([-1, 1], allow_fill=True, fill_value=td1)
         assert result[0] == td1
 
-        dt_ind = pd.Timestamp(2021, 1, 1, 12)
+        dt_ind = Timestamp(2021, 1, 1, 12)
         value = dt_ind
         msg = f"value should be a '{arr._scalar_type.__name__}' or 'NaT'. Got"
         with pytest.raises(TypeError, match=msg):
