@@ -1,11 +1,8 @@
 """
 missing types & inference
 """
-from __future__ import annotations
-
 from decimal import Decimal
 from functools import partial
-from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -53,9 +50,6 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 from pandas.core.dtypes.inference import is_list_like
-
-if TYPE_CHECKING:
-    from pandas.core.arrays.base import ExtensionArraySupportsAnyAll
 
 isposinf_scalar = libmissing.isposinf_scalar
 isneginf_scalar = libmissing.isneginf_scalar
@@ -241,7 +235,6 @@ def _isna_array(values: ArrayLike, inf_as_na: bool = False):
         Array of boolean values denoting the NA status of each element.
     """
     dtype = values.dtype
-    result: np.ndarray | ExtensionArraySupportsAnyAll
 
     if not isinstance(values, np.ndarray):
         # i.e. ExtensionArray

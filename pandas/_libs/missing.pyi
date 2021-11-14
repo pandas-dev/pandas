@@ -1,6 +1,5 @@
 import numpy as np
-
-from pandas._typing import npt
+from numpy import typing as npt
 
 class NAType: ...
 

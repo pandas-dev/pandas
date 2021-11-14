@@ -44,7 +44,6 @@ def kleene_or(
 
     if not isinstance(left, np.ndarray):
         raise TypeError("Either `left` or `right` need to be a np.ndarray.")
-    assert isinstance(left, np.ndarray)
 
     raise_for_nan(right, method="or")
 
@@ -109,7 +108,6 @@ def kleene_xor(
 
     if not isinstance(left, np.ndarray):
         raise TypeError("Either `left` or `right` need to be a np.ndarray.")
-    assert isinstance(left, np.ndarray)
 
     raise_for_nan(right, method="xor")
     if right is libmissing.NA:
@@ -160,7 +158,6 @@ def kleene_and(
 
     if not isinstance(left, np.ndarray):
         raise TypeError("Either `left` or `right` need to be a np.ndarray.")
-    assert isinstance(left, np.ndarray)
     raise_for_nan(right, method="and")
 
     if right is libmissing.NA:
