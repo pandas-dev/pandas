@@ -669,7 +669,7 @@ class TestGrouping:
         # (not testing other agg fns, because they return
         # different index objects.
         df = DataFrame({1: [], 2: []})
-        g = df.groupby(1, group_keys=False)
+        g = df.groupby(1)
         result = getattr(g[2], func)(lambda x: x)
         tm.assert_series_equal(result, expected)
 

@@ -248,7 +248,7 @@ def test_transform_groupby_kernel_series(string_series, op):
 
     args = [0.0] if op == "fillna" else []
     ones = np.ones(string_series.shape[0])
-    expected = string_series.groupby(ones, group_keys=False).transform(op, *args)
+    expected = string_series.groupby(ones).transform(op, *args)
     result = string_series.transform(op, 0, *args)
     tm.assert_series_equal(result, expected)
 
@@ -271,9 +271,7 @@ def test_transform_groupby_kernel_frame(
         ones = np.ones(float_frame.shape[0])
     else:
         ones = np.ones(float_frame.shape[1])
-    expected = float_frame.groupby(ones, axis=axis, group_keys=False).transform(
-        op, *args
-    )
+    expected = float_frame.groupby(ones, axis=axis).transform(op, *args)
     result = float_frame.transform(op, axis, *args)
     tm.assert_frame_equal(result, expected)
 
@@ -286,9 +284,7 @@ def test_transform_groupby_kernel_frame(
         ones = np.ones(float_frame.shape[0])
     else:
         ones = np.ones(float_frame.shape[1])
-    expected2 = float_frame.groupby(ones, axis=axis, group_keys=False).transform(
-        op, *args
-    )
+    expected2 = float_frame.groupby(ones, axis=axis).transform(op, *args)
     result2 = float_frame.transform(op, axis, *args)
     tm.assert_frame_equal(result2, expected2)
 

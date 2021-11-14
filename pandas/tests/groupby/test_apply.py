@@ -337,17 +337,6 @@ def test_apply_series_to_frame():
     tm.assert_index_equal(result.index, ts.index)
 
 
-def test_apply_series_to_frame_new_index():
-    # GH 34988
-    df = DataFrame({"A": list("xy"), "B": [1, 2]})
-
-    mi = MultiIndex.from_arrays([list("xy"), [0, 0]], names=("A", None))
-    expected = DataFrame({"index": [0, 1]}, index=mi)
-
-    result = df.groupby("A")["B"].apply(lambda x: x.reset_index(drop=False)[["index"]])
-    tm.assert_frame_equal(result, expected)
-
-
 def test_apply_series_yield_constant(df):
     result = df.groupby(["A", "B"])["C"].apply(len)
     assert result.index.names[:2] == ("A", "B")
@@ -1030,18 +1019,6 @@ def test_groupby_apply_group_keys_warns():
         result = df["B"].groupby(df["A"]).apply(lambda x: x)
 
     tm.assert_series_equal(result, df["B"])
-
-
-@pytest.mark.xfail(
-    reason="BinGrouper and Grouper aren't consistent with NA key handling"
-)
-def test_resample_with_only_nat(self):
-    # https://github.com/pandas-dev/pandas/issues/35251
-    pi = pd.PeriodIndex([pd.NaT] * 3, freq="S")
-    frame = DataFrame([2, 3, 5], index=pi)
-
-    with tm.assert_produces_warning(None):
-        frame.resample("1s").mean()
 
 
 def test_apply_with_timezones_aware():

@@ -767,7 +767,7 @@ def test_cummin(dtypes_for_minmax):
 def test_cummin_max_all_nan_column(method, dtype):
     base_df = DataFrame({"A": [1, 1, 1, 1, 2, 2, 2, 2], "B": [np.nan] * 8})
     base_df["B"] = base_df["B"].astype(dtype)
-    grouped = base_df.groupby("A", group_keys=False)
+    grouped = base_df.groupby("A")
 
     expected = DataFrame({"B": [np.nan] * 8}, dtype=dtype)
     result = getattr(grouped, method)()

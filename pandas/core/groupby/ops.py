@@ -749,7 +749,7 @@ class BaseGrouper:
             # group might be modified
             group_axes = group.axes
             res = f(group)
-            if not mutated and not _is_indexed_like(res, group_axes):
+            if not mutated and not _is_indexed_like(res, group_axes, axis):
                 mutated = True
             result_values.append(res)
 
@@ -1167,20 +1167,13 @@ class BinGrouper(BaseGrouper):
         )
 
 
-def _is_indexed_like(obj, axes) -> bool:
-    """Returns True when all axes of obj equal that of axes."""
+def _is_indexed_like(obj, axes, axis: int) -> bool:
     if isinstance(obj, Series):
         if len(axes) > 1:
             return False
-        return obj.index.equals(axes[0])
-
-    is_frame = isinstance(obj, DataFrame)
-    if is_frame and len(axes) == 1:
-        # The UDF was DataFrame -> Series
-        return False
-    elif is_frame:
-        # The UDF was DataFrame -> DataFrame
-        return obj.index.equals(axes[0]) and obj.columns.equals(axes[1])
+        return obj.axes[axis].equals(axes[axis])
+    elif isinstance(obj, DataFrame):
+        return obj.axes[axis].equals(axes[axis])
 
     return False
 

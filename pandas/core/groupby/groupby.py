@@ -2272,7 +2272,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @doc(DataFrame.describe)
     def describe(self, **kwargs):
         with self._group_selection_context():
-            result = self.apply(lambda x: x.describe(**kwargs))
+            result = self._python_apply_general(
+                lambda x: x.describe(**kwargs),
+                self._selected_obj,
+                not_indexed_same=True,
+            )
             if self.axis == 1:
                 return result.T
             return result.unstack()

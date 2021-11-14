@@ -220,7 +220,8 @@ class TestGetitem(BaseNumPyTests, base.BaseGetitemTests):
 
 
 class TestGroupby(BaseNumPyTests, base.BaseGroupbyTests):
-    pass
+    def test_groupby_extension_apply(self, data_for_grouping, groupby_apply_op):
+        super().test_groupby_extension_apply(data_for_grouping, groupby_apply_op)
 
 
 class TestInterface(BaseNumPyTests, base.BaseInterfaceTests):
