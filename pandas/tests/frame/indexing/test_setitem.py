@@ -949,7 +949,9 @@ class TestDataFrameSetItemBooleanMask:
         df = DataFrame({"cats": catsf, "values": valuesf}, index=idxf)
 
         exp_fancy = exp_multi_row.copy()
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(
+            FutureWarning,
+        ):
             # issue #37643 inplace kwarg deprecated
             return_value = exp_fancy["cats"].cat.set_categories(
                 ["a", "b", "c"], inplace=True

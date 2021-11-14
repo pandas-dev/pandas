@@ -749,7 +749,10 @@ class TestStyler:
         col = MultiIndex.from_product([["x", "y"], ["A", "B"]])
         df = DataFrame(np.random.rand(4, 4), columns=col, index=idx)
 
-        with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
+        with tm.assert_produces_warning(
+            warn,
+            match=msg,
+        ):
             df.style.applymap(lambda x: "color: red;", subset=slice_).to_html()
 
     def test_applymap_subset_multiindex_code(self):

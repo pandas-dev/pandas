@@ -143,7 +143,8 @@ class TestDatetime64:
 
     def test_datetimeindex_accessors5(self):
         with tm.assert_produces_warning(
-            FutureWarning, match="The 'freq' argument", check_stacklevel=False
+            FutureWarning,
+            match="The 'freq' argument",
         ):
             tests = [
                 (Timestamp("2013-06-01", freq="M").is_month_start, 1),

@@ -2664,15 +2664,21 @@ class TestDataFrameConstructorWithDatetimeTZ:
         expected = DataFrame({0: [ts_naive]})
         tm.assert_frame_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(
+            FutureWarning,
+        ):
             result = DataFrame({0: ts}, index=[0], dtype="datetime64[ns]")
         tm.assert_frame_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(
+            FutureWarning,
+        ):
             result = DataFrame([ts], dtype="datetime64[ns]")
         tm.assert_frame_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(
+            FutureWarning,
+        ):
             result = DataFrame(np.array([ts], dtype=object), dtype="datetime64[ns]")
         tm.assert_frame_equal(result, expected)
 
@@ -2680,11 +2686,15 @@ class TestDataFrameConstructorWithDatetimeTZ:
             result = DataFrame(ts, index=[0], columns=[0], dtype="datetime64[ns]")
         tm.assert_frame_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(
+            FutureWarning,
+        ):
             df = DataFrame([Series([ts])], dtype="datetime64[ns]")
         tm.assert_frame_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(
+            FutureWarning,
+        ):
             df = DataFrame([[ts]], columns=[0], dtype="datetime64[ns]")
         tm.assert_equal(df, expected)
 
@@ -2947,7 +2957,8 @@ class TestFromScalar:
         ts_naive = Timestamp("2019")
 
         with tm.assert_produces_warning(
-            FutureWarning, match="Data is timezone-aware", check_stacklevel=False
+            FutureWarning,
+            match="Data is timezone-aware",
         ):
             result = constructor(ts, dtype="M8[ns]")
 
