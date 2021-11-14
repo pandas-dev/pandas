@@ -1,7 +1,9 @@
+import numpy as np
 import pytest
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.core.arrays import FloatingArray
 from pandas.tests.arrays.masked_shared import (
     ComparisonOps,
     NumericOps,
@@ -34,3 +36,30 @@ def test_equals():
     a1 = pd.array([1, 2, None], dtype="Float64")
     a2 = pd.array([1, 2, None], dtype="Float32")
     assert a1.equals(a2) is False
+
+
+def test_equals_nan_vs_na():
+    # GH#44382
+
+    mask = np.zeros(3, dtype=bool)
+    data = np.array([1.0, np.nan, 3.0], dtype=np.float64)
+
+    left = FloatingArray(data, mask)
+    assert left.equals(left)
+    tm.assert_extension_array_equal(left, left)
+
+    assert left.equals(left.copy())
+    assert left.equals(FloatingArray(data.copy(), mask.copy()))
+
+    mask2 = np.array([False, True, False], dtype=bool)
+    data2 = np.array([1.0, 2.0, 3.0], dtype=np.float64)
+    right = FloatingArray(data2, mask2)
+    assert right.equals(right)
+    tm.assert_extension_array_equal(right, right)
+
+    assert not left.equals(right)
+
+    # with mask[1] = True, the only difference is data[1], which should
+    #  not matter for equals
+    mask[1] = True
+    assert left.equals(right)

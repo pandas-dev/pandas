@@ -35,6 +35,7 @@ from pandas.util._decorators import (
     Appender,
     Substitution,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import (
@@ -676,7 +677,7 @@ class _MergeOperation:
             )
             # stacklevel chosen to be correct when this is reached via pd.merge
             # (and not DataFrame.join)
-            warnings.warn(msg, FutureWarning, stacklevel=3)
+            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
 
         self._validate_specification()
 
@@ -2297,7 +2298,7 @@ def _items_overlap_with_suffix(
             "unexpected results. Provide 'suffixes' as a tuple instead. In the "
             "future a 'TypeError' will be raised.",
             FutureWarning,
-            stacklevel=4,
+            stacklevel=find_stack_level(),
         )
 
     to_rename = left.intersection(right)
@@ -2347,7 +2348,7 @@ def _items_overlap_with_suffix(
             f"Passing 'suffixes' which cause duplicate columns {set(dups)} in the "
             f"result is deprecated and will raise a MergeError in a future version.",
             FutureWarning,
-            stacklevel=4,
+            stacklevel=find_stack_level(),
         )
 
     return llabels, rlabels

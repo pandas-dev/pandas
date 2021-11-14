@@ -1,7 +1,7 @@
 """
 Collection of tests asserting things that should be true for
-any index subclass. Makes use of the `indices` fixture defined
-in pandas/tests/indexes/conftest.py.
+any index subclass except for MultiIndex. Makes use of the `index_flat`
+fixture defined in pandas/conftest.py.
 """
 import re
 
@@ -29,6 +29,26 @@ import pandas._testing as tm
 
 
 class TestCommon:
+    @pytest.mark.parametrize("name", [None, "new_name"])
+    def test_to_frame(self, name, index_flat):
+        # see GH#15230, GH#22580
+        idx = index_flat
+
+        if name:
+            idx_name = name
+        else:
+            idx_name = idx.name or 0
+
+        df = idx.to_frame(name=idx_name)
+
+        assert df.index is idx
+        assert len(df.columns) == 1
+        assert df.columns[0] == idx_name
+        assert df[idx_name].values is not idx.values
+
+        df = idx.to_frame(index=False, name=idx_name)
+        assert df.index is not idx
+
     def test_droplevel(self, index):
         # GH 21115
         if isinstance(index, MultiIndex):
@@ -125,6 +145,46 @@ class TestCommon:
 
         new_copy = index.copy(deep=True, name="banana")
         assert new_copy.name == "banana"
+
+    def test_copy_name(self, index_flat):
+        # GH#12309: Check that the "name" argument
+        # passed at initialization is honored.
+        index = index_flat
+
+        first = type(index)(index, copy=True, name="mario")
+        second = type(first)(first, copy=False)
+
+        # Even though "copy=False", we want a new object.
+        assert first is not second
+        tm.assert_index_equal(first, second)
+
+        # Not using tm.assert_index_equal() since names differ.
+        assert index.equals(first)
+
+        assert first.name == "mario"
+        assert second.name == "mario"
+
+        # TODO: belongs in series arithmetic tests?
+        s1 = pd.Series(2, index=first)
+        s2 = pd.Series(3, index=second[:-1])
+        # See GH#13365
+        s3 = s1 * s2
+        assert s3.index.name == "mario"
+
+    def test_copy_name2(self, index_flat):
+        # GH#35592
+        index = index_flat
+        if isinstance(index, MultiIndex):
+            return
+
+        assert index.copy(name="mario").name == "mario"
+
+        with pytest.raises(ValueError, match="Length of new names must be 1, got 2"):
+            index.copy(name=["mario", "luigi"])
+
+        msg = f"{type(index).__name__}.name must be a hashable type"
+        with pytest.raises(TypeError, match=msg):
+            index.copy(name=[["mario"]])
 
     def test_unique_level(self, index_flat):
         # don't test a MultiIndex here (as its tested separated)
