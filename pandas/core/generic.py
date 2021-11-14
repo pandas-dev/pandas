@@ -18,6 +18,7 @@ from typing import (
     Literal,
     Mapping,
     Sequence,
+    Type,
     cast,
     final,
     overload,
@@ -486,9 +487,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @property
     def _AXIS_NUMBERS(self) -> dict[str, int]:
         """.. deprecated:: 1.1.0"""
-        level = self.ndim + 1
         warnings.warn(
-            "_AXIS_NUMBERS has been deprecated.", FutureWarning, stacklevel=level
+            "_AXIS_NUMBERS has been deprecated.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
         )
         return {"index": 0}
 
@@ -2001,15 +2003,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @property
     def empty(self) -> bool_t:
         """
-        Indicator whether DataFrame is empty.
+        Indicator whether Series/DataFrame is empty.
 
-        True if DataFrame is entirely empty (no items), meaning any of the
+        True if Series/DataFrame is entirely empty (no items), meaning any of the
         axes are of length 0.
 
         Returns
         -------
         bool
-            If DataFrame is empty, return True, if not return False.
+            If Series/DataFrame is empty, return True, if not return False.
 
         See Also
         --------
@@ -2019,7 +2021,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Notes
         -----
-        If DataFrame contains only NaNs, it is still not considered empty. See
+        If Series/DataFrame contains only NaNs, it is still not considered empty. See
         the example below.
 
         Examples
@@ -2044,6 +2046,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df.empty
         False
         >>> df.dropna().empty
+        True
+
+        >>> ser_empty = pd.Series({'A' : []})
+        >>> ser_empty
+        A    []
+        dtype: object
+        >>> ser_empty.empty
+        False
+        >>> ser_empty = pd.Series()
+        >>> ser_empty.empty
         True
         """
         return any(len(self._get_axis(a)) == 0 for a in self._AXIS_ORDERS)
@@ -5825,14 +5837,22 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         "Only a column name can be used for the "
                         "key in a dtype mappings argument."
                     )
+
+            # GH#44417 cast to Series so we can use .iat below, which will be
+            #  robust in case we
+            from pandas import Series
+
+            dtype_ser = Series(dtype, dtype=object)
+            dtype_ser = dtype_ser.reindex(self.columns, fill_value=None, copy=False)
+
             results = []
-            for col_name, col in self.items():
-                if col_name in dtype:
-                    results.append(
-                        col.astype(dtype=dtype[col_name], copy=copy, errors=errors)
-                    )
+            for i, (col_name, col) in enumerate(self.items()):
+                cdt = dtype_ser.iat[i]
+                if isna(cdt):
+                    res_col = col.copy() if copy else col
                 else:
-                    results.append(col.copy() if copy else col)
+                    res_col = col.astype(dtype=cdt, copy=copy, errors=errors)
+                results.append(res_col)
 
         elif is_extension_array_dtype(dtype) and self.ndim > 1:
             # GH 18099/22869: columnwise conversion to extension dtype
@@ -6219,8 +6239,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 for col_name, col in self.items()
             ]
             if len(results) > 0:
+                result = concat(results, axis=1, copy=False)
+                cons = cast(Type["DataFrame"], self._constructor)
+                result = cons(result)
+                result = result.__finalize__(self, method="convert_dtypes")
                 # https://github.com/python/mypy/issues/8354
-                return cast(NDFrameT, concat(results, axis=1, copy=False))
+                return cast(NDFrameT, result)
             else:
                 return self.copy()
 
