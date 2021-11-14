@@ -443,15 +443,18 @@ def dict_to_mgr(
         if missing.any() and not is_integer_dtype(dtype):
             nan_dtype: DtypeObj
 
-            if dtype is None or (
-                isinstance(dtype, np.dtype) and np.issubdtype(dtype, np.flexible)
-            ):
+            if dtype is not None:
+                # calling sanitize_array ensures we don't mix-and-match
+                #  NA dtypes
+                midxs = missing.values.nonzero()[0]
+                for i in midxs:
+                    arr = sanitize_array(arrays.iat[i], index, dtype=dtype)
+                    arrays.iat[i] = arr
+            else:
                 # GH#1783
                 nan_dtype = np.dtype("object")
-            else:
-                nan_dtype = dtype
-            val = construct_1d_arraylike_from_scalar(np.nan, len(index), nan_dtype)
-            arrays.loc[missing] = [val] * missing.sum()
+                val = construct_1d_arraylike_from_scalar(np.nan, len(index), nan_dtype)
+                arrays.loc[missing] = [val] * missing.sum()
 
         arrays = list(arrays)
         columns = ensure_index(columns)
