@@ -8,7 +8,7 @@ RESULT_NAME = "count"
 
 
 def test_axis(animals_df):
-    gp = animals_df.groupby([0, 0], axis=1)
+    gp = animals_df.groupby([0, 0, 0], axis=1)
     with pytest.raises(NotImplementedError, match="axis"):
         gp.value_counts()
 
@@ -23,6 +23,25 @@ def education_df():
         }
     )
 
+
+def test_basic(education_df):
+    # gh43564
+    result = education_df.groupby('country')[['gender', 'education']].value_counts(normalize=True)
+    expected = pd.Series(
+        name="count",
+        data=[0.5, 0.25, 0.25, 0.5, 0.5],
+        index=pd.MultiIndex.from_tuples(
+            [
+                ("FR", "male", "low"),
+                ("FR", "female", "high"),
+                ("FR", "male", "medium"),
+                ("US", "female", "high"),
+                ("US", "male", "low"),
+            ],
+            names=["country", "gender", "education"],
+        ),
+    )
+    tm.assert_series_equal(result, expected)
 
 def _frame_value_counts(df, keys, normalize, sort, ascending):
     return df[keys].value_counts(normalize=normalize, sort=sort, ascending=ascending)
@@ -40,14 +59,17 @@ def _frame_value_counts(df, keys, normalize, sort, ascending):
 )
 @pytest.mark.parametrize("as_index", [True, False])
 @pytest.mark.parametrize("frame", [True, False])
-def test_basic(education_df, groupby, normalize, sort, ascending, as_index, frame):
-    # gh43564 with added:
+def test_against_frame_and_seriesgroupby(
+    education_df, groupby, normalize, sort, ascending, as_index, frame
+):
+    # test all parameters:
     # - Use column, array or function as by= parameter
     # - Whether or not to normalize
     # - Whether or not to sort and how
     # - Whether or not to use the groupby as an index
-    # - 3-way compare against :meth:`~DataFrame.value_counts`
-    #   and `~SeriesGroupBy.value_counts`
+    # - 3-way compare against:
+    #   - apply with :meth:`~DataFrame.value_counts`
+    #   - `~SeriesGroupBy.value_counts` (apart from certain cases where it crashes)
     by = {
         "column": "country",
         "array": education_df["country"].values,
@@ -58,7 +80,6 @@ def test_basic(education_df, groupby, normalize, sort, ascending, as_index, fram
     result = gp[["gender", "education"]].value_counts(
         normalize=normalize, sort=sort, ascending=ascending
     )
-
     if frame:
         # compare against apply with DataFrame value_counts
         expected = gp.apply(
@@ -69,7 +90,15 @@ def test_basic(education_df, groupby, normalize, sort, ascending, as_index, fram
         if as_index:
             tm.assert_series_equal(result, expected)
         else:
-            tm.assert_numpy_array_equal(result[RESULT_NAME].values, expected.values)
+            expected = expected.reset_index().rename({0: "count"}, axis=1)
+            if groupby == "column":
+                expected = expected.rename({"level_0": "country"}, axis=1)
+                expected["country"] = np.where(expected["country"], "US", "FR")
+            elif groupby == "function":
+                expected["level_0"] = expected["level_0"] == 1
+            else:
+                expected["level_0"] = np.where(expected["level_0"], "US", "FR")
+            tm.assert_frame_equal(result, expected)
     elif groupby == "column" or as_index:
         # (otherwise SeriesGroupby crashes)
         # compare against SeriesGroupBy value_counts
@@ -78,46 +107,57 @@ def test_basic(education_df, groupby, normalize, sort, ascending, as_index, fram
             normalize=normalize, sort=sort, ascending=ascending
         )
         if as_index:
-            tm.assert_numpy_array_equal(result.values, expected.values)
+            index_frame = expected.index.to_frame(index=False)
+            index_frame["gender"] = index_frame["both"].str.split("-").str.get(0)
+            index_frame["education"] = index_frame["both"].str.split("-").str.get(1)
+            del index_frame["both"]
+            index_frame = index_frame.rename({0: None}, axis=1)
+            expected.index = pd.MultiIndex.from_frame(index_frame)
+            expected.name = RESULT_NAME
+            tm.assert_series_equal(result, expected)
         else:
-            tm.assert_numpy_array_equal(
-                result[RESULT_NAME].values, expected[RESULT_NAME].values
-            )
+            expected.insert(1, "gender", expected["both"].str.split("-").str.get(0))
+            expected.insert(2, "education", expected["both"].str.split("-").str.get(1))
+            del expected["both"]
+            tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("normalize", [True, False])
 @pytest.mark.parametrize(
-    "sort, ascending",
+    "sort, ascending, expected_rows, expected_count, expected_group_size",
     [
-        (False, None),
-        (True, True),
-        (True, False),
+        (False, None, [0, 1, 2, 3, 4], [1, 1, 1, 2, 1], [1, 3, 1, 3, 1]),
+        (True, False, [4, 3, 1, 2, 0], [1, 2, 1, 1, 1], [1, 3, 3, 1, 1]),
+        (True, True, [4, 1, 3, 2, 0], [1, 1, 2, 1, 1], [1, 3, 3, 1, 1]),
     ],
 )
-def test_compound(education_df, normalize, sort, ascending):
+def test_compound(
+    education_df,
+    normalize,
+    sort,
+    ascending,
+    expected_rows,
+    expected_count,
+    expected_group_size,
+):
     # Multiple groupby keys and as_index=False
     gp = education_df.groupby(["country", "gender"], as_index=False, sort=False)
     result = gp["education"].value_counts(
         normalize=normalize, sort=sort, ascending=ascending
     )
-
-    if sort:
-        # compare against apply with DataFrame value_counts
-        expected_values = gp.apply(
-            _frame_value_counts, "education", normalize, sort, ascending
-        ).values
-    elif normalize:
-        expected_values = np.array([1.0, 1.0 / 3, 1.0, 2.0 / 3, 1.0])
-    else:
-        expected_values = np.array([1, 1, 1, 2, 1], dtype=np.int64)
-
-    tm.assert_numpy_array_equal(result[RESULT_NAME].values, expected_values)
+    expected = pd.DataFrame()
+    for column in ["country", "gender", "education"]:
+        expected[column] = [education_df[column][row] for row in expected_rows]
+    expected["count"] = expected_count
+    if normalize:
+        expected["count"] /= expected_group_size
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.fixture
 def animals_df():
     return pd.DataFrame(
-        {"num_legs": [2, 4, 4, 6], "num_wings": [2, 0, 0, 0]},
+        {"key": [1, 1, 1, 1], "num_legs": [2, 4, 4, 6], "num_wings": [2, 0, 0, 0]},
         index=["falcon", "dog", "cat", "ant"],
     )
 
@@ -125,10 +165,10 @@ def animals_df():
 @pytest.mark.parametrize(
     "sort, ascending, normalize, expected_data, expected_index",
     [
-        (False, None, False, [1, 2, 1], [(2, 4, 6), (2, 0, 0)]),
-        (True, True, False, [1, 1, 2], [(2, 6, 4), (2, 0, 0)]),
-        (True, False, False, [2, 1, 1], [(4, 2, 6), (0, 2, 0)]),
-        (True, False, True, [0.5, 0.25, 0.25], [(4, 2, 6), (0, 2, 0)]),
+        (False, None, False, [1, 2, 1], [(1, 1, 1), (2, 4, 6), (2, 0, 0)]),
+        (True, True, False, [1, 1, 2], [(1, 1, 1), (2, 6, 4), (2, 0, 0)]),
+        (True, False, False, [2, 1, 1], [(1, 1, 1), (4, 2, 6), (0, 2, 0)]),
+        (True, False, True, [0.5, 0.25, 0.25], [(1, 1, 1), (4, 2, 6), (0, 2, 0)]),
     ],
 )
 def test_data_frame_value_counts(
@@ -142,18 +182,16 @@ def test_data_frame_value_counts(
     expected = pd.Series(
         data=expected_data,
         index=pd.MultiIndex.from_arrays(
-            expected_index, names=["num_legs", "num_wings"]
+            expected_index, names=["key", "num_legs", "num_wings"]
         ),
     )
     tm.assert_series_equal(result_frame, expected)
 
-    animals_df["key"] = 1
-
+    expected.name = RESULT_NAME
     result_frame_groupby = animals_df.groupby("key").value_counts(
         sort=sort, ascending=ascending, normalize=normalize
     )
-    result_frame_groupby.reset_index(drop=True, level="key", inplace=True)
-    result_frame_groupby.name = None
+
     tm.assert_series_equal(result_frame_groupby, expected)
 
 
@@ -161,6 +199,7 @@ def test_data_frame_value_counts(
 def names_with_nulls_df(nulls_fixture):
     return pd.DataFrame(
         {
+            "key": [1, 1, 1, 1],
             "first_name": ["John", "Anne", "John", "Beth"],
             "middle_name": ["Smith", nulls_fixture, nulls_fixture, "Louise"],
         },
@@ -174,8 +213,8 @@ def names_with_nulls_df(nulls_fixture):
             True,
             [1, 1],
             pd.MultiIndex.from_arrays(
-                [("Beth", "John"), ("Louise", "Smith")],
-                names=["first_name", "middle_name"],
+                [(1, 1), ("Beth", "John"), ("Louise", "Smith")],
+                names=["key", "first_name", "middle_name"],
             ),
         ),
         (
@@ -183,11 +222,12 @@ def names_with_nulls_df(nulls_fixture):
             [1, 1, 1, 1],
             pd.MultiIndex(
                 levels=[
+                    pd.Index([1]),
                     pd.Index(["Anne", "Beth", "John"]),
                     pd.Index(["Louise", "Smith", np.nan]),
                 ],
-                codes=[[0, 1, 2, 2], [2, 0, 1, 2]],
-                names=["first_name", "middle_name"],
+                codes=[[0, 0, 0, 0], [0, 1, 2, 2], [2, 0, 1, 2]],
+                names=["key", "first_name", "middle_name"],
             ),
         ),
     ],
@@ -209,12 +249,10 @@ def test_data_frame_value_counts_dropna(
 
     tm.assert_series_equal(result_frame, expected)
 
-    names_with_nulls_df["key"] = 1
+    expected.name = RESULT_NAME
     result_frame_groupby = names_with_nulls_df.groupby("key").value_counts(
         dropna=dropna, normalize=normalize
     )
-    result_frame_groupby.reset_index(drop=True, level="key", inplace=True)
-    result_frame_groupby.name = None
 
     tm.assert_series_equal(result_frame_groupby, expected)
 
