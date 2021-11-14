@@ -1005,7 +1005,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     # Dispatch/Wrapping
 
     @final
-    def _concat_objects(self, values, not_indexed_same: bool = False):
+    def _concat_objects(
+        self,
+        values,
+        not_indexed_same: bool = False,
+        override_group_keys: bool = False,
+    ):
         from pandas.core.reshape.concat import concat
 
         def reset_identity(values):
@@ -1016,28 +1021,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 ax._reset_identity()
             return values
 
-        if not not_indexed_same:
-            result = concat(values, axis=self.axis)
-
-            ax = self._selected_obj._get_axis(self.axis)
-            if self.dropna:
-                labels = self.grouper.group_info[0]
-                mask = labels != -1
-                ax = ax[mask]
-
-            # this is a very unfortunate situation
-            # we can't use reindex to restore the original order
-            # when the ax has duplicates
-            # so we resort to this
-            # GH 14776, 30667
-            if ax.has_duplicates and not result.axes[self.axis].equals(ax):
-                indexer, _ = result.index.get_indexer_non_unique(ax._values)
-                indexer = algorithms.unique1d(indexer)
-                result = result.take(indexer, axis=self.axis)
-            else:
-                result = result.reindex(ax, axis=self.axis, copy=False)
-
-        elif self.group_keys:
+        if self.group_keys and not override_group_keys:
 
             values = reset_identity(values)
             if self.as_index:
@@ -1061,6 +1045,28 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # range index
                 keys = list(range(len(values)))
                 result = concat(values, axis=self.axis, keys=keys)
+
+        elif not not_indexed_same:
+            result = concat(values, axis=self.axis)
+
+            ax = self._selected_obj._get_axis(self.axis)
+            if self.dropna:
+                labels = self.grouper.group_info[0]
+                mask = labels != -1
+                ax = ax[mask]
+
+            # this is a very unfortunate situation
+            # we can't use reindex to restore the original order
+            # when the ax has duplicates
+            # so we resort to this
+            # GH 14776, 30667
+            if ax.has_duplicates and not result.axes[self.axis].equals(ax):
+                indexer, _ = result.index.get_indexer_non_unique(ax._values)
+                indexer = algorithms.unique1d(indexer)
+                result = result.take(indexer, axis=self.axis)
+            else:
+                result = result.reindex(ax, axis=self.axis, copy=False)
+
         else:
             values = reset_identity(values)
             result = concat(values, axis=self.axis)
@@ -1193,7 +1199,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         result.index = self.obj.index
         return result
 
-    def _wrap_applied_output(self, data, values: list, not_indexed_same: bool = False):
+    def _wrap_applied_output(
+        self,
+        data,
+        values: list,
+        not_indexed_same: bool = False,
+        override_group_keys: bool = False,
+    ):
         raise AbstractMethodError(self)
 
     def _resolve_numeric_only(self, numeric_only: bool | lib.NoDefault) -> bool:
@@ -1454,8 +1466,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
             data after applying f
         """
-        keys, values, mutated = self.grouper.apply(f, data, self.axis)
-        not_indexed_same = mutated or self.mutated
+        values, mutated = self.grouper.apply(f, data, self.axis)
+        if not_indexed_same is None:
+            not_indexed_same = mutated or self.mutated
         override_group_keys = False
 
         if (not not_indexed_same and self.group_keys is lib.no_default) and not (
@@ -1490,11 +1503,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # may be removed.
             override_group_keys = True
 
-        if not_indexed_same is None:
-            not_indexed_same = mutated or self.mutated
-
         return self._wrap_applied_output(
-            data, values, not_indexed_same, override_group_keys
+            data,
+            values,
+            not_indexed_same,
+            override_group_keys=is_transform or override_group_keys,
         )
 
     @final

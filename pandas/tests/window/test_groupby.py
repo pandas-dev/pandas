@@ -1039,9 +1039,10 @@ class TestEWM:
             # GH#42738
             result = times_frame.groupby("A").ewm(halflife=halflife, times="C").mean()
             expected = (
-                times_frame.groupby("A")
-                .apply(lambda x: x.ewm(halflife=halflife, times="C").mean())
-                .iloc[[0, 3, 6, 9, 1, 4, 7, 2, 5, 8]]
+                times_frame.groupby("A", group_keys=False).apply(
+                    lambda x: x.ewm(halflife=halflife, times="C").mean()
+                )
+                # .iloc[[0, 3, 6, 9, 1, 4, 7, 2, 5, 8]]
                 .reset_index(drop=True)
             )
         tm.assert_frame_equal(result.reset_index(drop=True), expected)
