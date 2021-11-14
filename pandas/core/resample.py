@@ -147,7 +147,7 @@ class Resampler(BaseGroupBy, PandasObject):
         axis: int = 0,
         kind=None,
         *,
-        group_keys=lib.no_default,
+        group_keys: bool | lib.NoDefault = lib.no_default,
         selection=None,
         **kwargs,
     ):
@@ -1461,7 +1461,7 @@ class TimeGrouper(Grouper):
         base: int | None = None,
         origin: str | TimestampConvertibleTypes = "start_day",
         offset: TimedeltaConvertibleTypes | None = None,
-        group_keys: bool | None = True,
+        group_keys: bool | lib.NoDefault = True,
         **kwargs,
     ):
         # Check for correctness of the keyword arguments which would
