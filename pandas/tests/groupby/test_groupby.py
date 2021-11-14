@@ -904,10 +904,7 @@ def test_omit_nuisance_agg(df, agg_function):
 
 def test_omit_nuisance_warnings(df):
     # GH 38815
-    with tm.assert_produces_warning(
-        FutureWarning,
-        filter_level="always",
-    ):
+    with tm.assert_produces_warning(FutureWarning, filter_level="always"):
         grouped = df.groupby("A")
         result = grouped.skew()
         expected = df.loc[:, ["A", "C", "D"]].groupby("A").skew()
