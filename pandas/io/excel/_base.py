@@ -519,11 +519,10 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         if convert_float is None:
             convert_float = True
         else:
-            stacklevel = find_stack_level()
             warnings.warn(
                 "convert_float is deprecated and will be removed in a future version.",
                 FutureWarning,
-                stacklevel=stacklevel,
+                stacklevel=find_stack_level(),
             )
 
         validate_header_arg(header)
@@ -942,7 +941,9 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         mode = mode.replace("a", "r+")
 
         # cast ExcelWriter to avoid adding 'if self.handles is not None'
-        self.handles = IOHandles(cast(Buffer, path), compression={"copression": None})
+        self.handles = IOHandles(
+            cast(Buffer[bytes], path), compression={"copression": None}
+        )
         if not isinstance(path, ExcelWriter):
             self.handles = get_handle(
                 path, mode, storage_options=storage_options, is_text=False
