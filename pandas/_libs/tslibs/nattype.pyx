@@ -295,7 +295,7 @@ cdef class _NaT(datetime):
     def __str__(self) -> str:
         return "NaT"
 
-    def isoformat(self, sep="T") -> str:
+    def isoformat(self, sep: str = "T", timespec: str = "auto") -> str:
         # This allows Timestamp(ts.isoformat()) to always correctly roundtrip.
         return "NaT"
 
