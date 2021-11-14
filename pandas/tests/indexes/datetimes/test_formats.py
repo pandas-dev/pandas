@@ -254,3 +254,20 @@ class TestDatetimeIndexRendering:
         pd.bdate_range(
             "1/1/2005", "1/1/2009", freq="C", tz=dateutil.tz.tzutc()
         )._summary()
+
+
+class TestFormat:
+    def test_format_with_name_time_info(self):
+        # bug I fixed 12/20/2011
+        dates = pd.date_range("2011-01-01 04:00:00", periods=10, name="something")
+
+        formatted = dates.format(name=True)
+        assert formatted[0] == "something"
+
+    def test_format_datetime_with_time(self):
+        dti = DatetimeIndex([datetime(2012, 2, 7), datetime(2012, 2, 7, 23)])
+
+        result = dti.format()
+        expected = ["2012-02-07 00:00:00", "2012-02-07 23:00:00"]
+        assert len(result) == 2
+        assert result == expected
