@@ -805,9 +805,12 @@ class _BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore[misc]
         # _PathLike[str]], IO[bytes]]"
         super().__init__(file, mode, **kwargs_zip)  # type: ignore[arg-type]
 
-    # GH39465
-    # If an explicit archive_name is not given, we still want the file _inside_ the zip
-    # file _not_ to be named something.zip, because that causes massive confusion.
+    """
+    GH39465
+    If an explicit archive_name is not given, we still want the file _inside_ the zip
+    file _not_ to be named something.zip, because that causes massive confusion.
+    """
+
     def infer_filename(self):
         if isinstance(self.filename, (os.PathLike, str)):
             filename = Path(self.filename)
