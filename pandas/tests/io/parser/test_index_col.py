@@ -89,13 +89,6 @@ baz,7,8,9
         columns=["A", "B", "C"],
     )
     tm.assert_frame_equal(result, expected)
-    expected.index = expected.index.astype("object")
-    expected.index = expected.index.astype("object")
-    expected.index = expected.index.astype("object")
-    expected.index = expected.index.astype("object")
-    expected.index = expected.index.astype("object")
-    expected.index = expected.index.astype("object")
-    expected.index = expected.index.astype("object")
 
 
 @skip_pyarrow
