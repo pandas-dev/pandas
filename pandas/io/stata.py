@@ -2294,7 +2294,7 @@ class StataWriter(StataParser):
         self._value_labels: list[StataValueLabel] = []
         self._has_value_labels = np.array([], dtype=bool)
         self._compression = compression
-        self._output_file: Buffer | None = None
+        self._output_file: Buffer[bytes] | None = None
         self._converted_names: dict[Hashable, str] = {}
         # attach nobs, nvars, data, varlist, typlist
         self._prepare_pandas(data)

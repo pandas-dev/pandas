@@ -7,7 +7,6 @@ from io import (
     BufferedIOBase,
     RawIOBase,
     TextIOBase,
-    TextIOWrapper,
 )
 from mmap import mmap
 from os import PathLike
@@ -170,7 +169,7 @@ AggObjType = Union[
 PythonFuncType = Callable[[Any], Any]
 
 # filenames and file-like-objects
-Buffer = Union[IO[AnyStr], RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper, mmap]
+Buffer = Union[IO[AnyStr], RawIOBase, BufferedIOBase, TextIOBase, mmap]
 FileOrBuffer = Union[str, Buffer[AnyStr]]
 FilePathOrBuffer = Union["PathLike[str]", FileOrBuffer[AnyStr]]
 
