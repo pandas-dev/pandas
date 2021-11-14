@@ -15,6 +15,31 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
+.. _whatsnew_140.enhancements.warning_lineno:
+
+Improved warning messages
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Previously, warning messages may have pointed to lines within the pandas library. Running the script ``setting_with_copy_warning.py``
+
+.. code-block:: python
+
+    import pandas as pd
+
+    df = pd.DataFrame({'a': [1, 2, 3]})
+    df[:2].loc[:, 'a'] = 5
+
+with pandas 1.3 resulted in::
+
+    .../site-packages/pandas/core/indexing.py:1951: SettingWithCopyWarning:
+    A value is trying to be set on a copy of a slice from a DataFrame.
+
+This made it difficult to determine where the warning was being generated from. Now pandas will inspect the call stack, reporting the first line outside of the pandas library that gave rise to the warning. The output of the above script is now::
+
+    setting_with_copy_warning.py:4: SettingWithCopyWarning:
+    A value is trying to be set on a copy of a slice from a DataFrame.
+
+
 .. _whatsnew_140.enhancements.numeric_index:
 
 More flexible numeric dtypes for indexes
@@ -538,6 +563,7 @@ Conversion
 - Bug in :class:`Series` constructor returning 0 for missing values with dtype ``int64`` and ``False`` for dtype ``bool`` (:issue:`43017`, :issue:`43018`)
 - Bug in :class:`IntegerDtype` not allowing coercion from string dtype (:issue:`25472`)
 - Bug in :func:`to_datetime` with ``arg:xr.DataArray`` and ``unit="ns"`` specified raises TypeError (:issue:`44053`)
+- Bug in :meth:`DataFrame.convert_dtypes` not returning the correct type when a subclass does not overload :meth:`_constructor_sliced` (:issue:`43201`)
 -
 
 Strings
@@ -575,6 +601,7 @@ Indexing
 - Bug when setting string-backed :class:`Categorical` values that can be parsed to datetimes into a :class:`DatetimeArray` or :class:`Series` or :class:`DataFrame` column backed by :class:`DatetimeArray` failing to parse these strings (:issue:`44236`)
 - Bug in :meth:`Series.__setitem__` with an integer dtype other than ``int64`` setting with a ``range`` object unnecessarily upcasting to ``int64`` (:issue:`44261`)
 - Bug in :meth:`Series.__setitem__` with a boolean mask indexer setting a listlike value of length 1 incorrectly broadcasting that value (:issue:`44265`)
+- Bug in :meth:`DataFrame.loc.__setitem__` and :meth:`DataFrame.iloc.__setitem__` with mixed dtypes sometimes failing to operate in-place (:issue:`44345`)
 -
 
 Missing
@@ -692,6 +719,7 @@ Other
 - Bug in :meth:`RangeIndex.difference` with ``sort=None`` and ``step<0`` failing to sort (:issue:`44085`)
 - Bug in :meth:`Series.to_frame` and :meth:`Index.to_frame` ignoring the ``name`` argument when ``name=None`` is explicitly passed (:issue:`44212`)
 - Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` with ``value=None`` and ExtensionDtypes (:issue:`44270`)
+- Bug in :meth:`FloatingArray.equals` failing to consider two arrays equal if they contain ``np.nan`` values (:issue:`44382`)
 -
 
 .. ***DO NOT USE THIS SECTION***

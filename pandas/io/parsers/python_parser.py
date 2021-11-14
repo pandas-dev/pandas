@@ -24,6 +24,7 @@ from pandas.errors import (
     EmptyDataError,
     ParserError,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_integer
 from pandas.core.dtypes.inference import is_dict_like
@@ -555,7 +556,7 @@ class PythonParser(ParserBase):
                         "Defining usecols with out of bounds indices is deprecated "
                         "and will raise a ParserError in a future version.",
                         FutureWarning,
-                        stacklevel=8,
+                        stacklevel=find_stack_level(),
                     )
                 col_indices = self.usecols
 

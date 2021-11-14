@@ -600,7 +600,7 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
         # Cast from unsupported types to supported types
         is_nullable_int = isinstance(data[col].dtype, (_IntegerDtype, BooleanDtype))
         orig = data[col]
-        # need to do this before altering data[col] below
+        # We need to find orig_missing before altering data below
         orig_missing = orig.isna()
         if is_nullable_int:
             missing_loc = data[col].isna()
