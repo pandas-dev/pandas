@@ -8,8 +8,10 @@ from pandas.errors import InvalidIndexError
 from pandas import (
     NA,
     CategoricalIndex,
+    Index,
     Interval,
     IntervalIndex,
+    MultiIndex,
     NaT,
     Series,
     Timedelta,
@@ -372,6 +374,31 @@ class TestGetIndexer:
 
         result = index.get_indexer_for(other)
         expected = np.array([0, 1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_get_index_non_unique_non_monotonic(self):
+        # GH#44084 (root cause)
+        index = IntervalIndex.from_tuples(
+            [(0.0, 1.0), (1.0, 2.0), (0.0, 1.0), (1.0, 2.0)]
+        )
+
+        result, _ = index.get_indexer_non_unique([Interval(1.0, 2.0)])
+        expected = np.array([1, 3], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_get_indexer_multiindex_with_intervals(self):
+        # GH#44084 (MultiIndex case as reported)
+        interval_index = IntervalIndex.from_tuples(
+            [(2.0, 3.0), (0.0, 1.0), (1.0, 2.0)], name="interval"
+        )
+        foo_index = Index([1, 2, 3], name="foo")
+
+        multi_index = MultiIndex.from_product([foo_index, interval_index])
+
+        result = multi_index.get_level_values("interval").get_indexer_for(
+            [Interval(0.0, 1.0)]
+        )
+        expected = np.array([1, 4, 7], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
 
