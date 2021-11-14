@@ -1784,6 +1784,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                         cast(DataFrame, result)
                         .sort_values(by=RESULT_NAME, ascending=ascending)
                         .sort_values(by=by, ascending=True)
+                        .reset_index(drop=True)
                     )
 
             return result
