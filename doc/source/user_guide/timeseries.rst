@@ -2074,7 +2074,7 @@ The ``period`` dtype can be used in ``.astype(...)``. It allows one to change th
    pi.astype("period[D]")
 
    # convert to DatetimeIndex
-   pi.astype("datetime64[ns]")
+   pi.to_timestamp()
 
    # convert to PeriodIndex
    dti = pd.date_range("2011-01-01", freq="M", periods=3)
