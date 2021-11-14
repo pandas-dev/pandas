@@ -11,6 +11,7 @@ from pandas import (
     Interval,
     IntervalIndex,
     NaT,
+    Series,
     Timedelta,
     date_range,
     timedelta_range,
@@ -523,3 +524,37 @@ class TestPutmask:
         result = idx.putmask(mask, idx[-1])
         expected = IntervalIndex([idx[-1]] * 3 + list(idx[3:]))
         tm.assert_index_equal(result, expected)
+
+
+class TestGetValue:
+    @pytest.mark.parametrize("key", [[5], (2, 3)])
+    def test_get_value_non_scalar_errors(self, key):
+        # GH#31117
+        idx = IntervalIndex.from_tuples([(1, 3), (2, 4), (3, 5), (7, 10), (3, 10)])
+        ser = Series(range(len(idx)), index=idx)
+
+        msg = str(key)
+        with pytest.raises(InvalidIndexError, match=msg):
+            with tm.assert_produces_warning(FutureWarning):
+                idx.get_value(ser, key)
+
+
+class TestContains:
+    # .__contains__, not .contains
+
+    def test_contains_dunder(self):
+
+        index = IntervalIndex.from_arrays([0, 1], [1, 2], closed="right")
+
+        # __contains__ requires perfect matches to intervals.
+        assert 0 not in index
+        assert 1 not in index
+        assert 2 not in index
+
+        assert Interval(0, 1, closed="right") in index
+        assert Interval(0, 2, closed="right") not in index
+        assert Interval(0, 0.5, closed="right") not in index
+        assert Interval(3, 5, closed="right") not in index
+        assert Interval(-1, 0, closed="left") not in index
+        assert Interval(0, 1, closed="left") not in index
+        assert Interval(0, 1, closed="both") not in index
