@@ -1818,12 +1818,6 @@ def _get_valid_sqlite_name(name):
     return '"' + uname.replace('"', '""') + '"'
 
 
-_SAFE_NAMES_WARNING = (
-    "The spaces in these column names will not be changed. "
-    "In pandas versions < 0.14, spaces were converted to underscores."
-)
-
-
 class SQLiteTable(SQLTable):
     """
     Patch the SQLTable for fallback support.
@@ -1883,12 +1877,6 @@ class SQLiteTable(SQLTable):
         statement while the rest will be CREATE INDEX statements.
         """
         column_names_and_types = self._get_column_names_and_types(self._sql_type_name)
-
-        pat = re.compile(r"\s+")
-        column_names = [col_name for col_name, _, _ in column_names_and_types]
-        if any(map(pat.search, column_names)):
-            warnings.warn(_SAFE_NAMES_WARNING, stacklevel=find_stack_level())
-
         escape = _get_valid_sqlite_name
 
         create_tbl_stmts = [
