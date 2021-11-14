@@ -392,6 +392,9 @@ class TestCommon:
         ):
             # This astype is deprecated in favor of tz_localize
             warn = FutureWarning
+        elif isinstance(index, PeriodIndex) and dtype == "datetime64[ns]":
+            # Deprecated in favor of to_timestamp GH#44398
+            warn = FutureWarning
         try:
             # Some of these conversions cannot succeed so we use a try / except
             with tm.assert_produces_warning(warn):
