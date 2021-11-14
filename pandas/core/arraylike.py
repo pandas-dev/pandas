@@ -337,7 +337,9 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
                         "Consider explicitly converting the DataFrame "
                         "to an array with '.to_numpy()' first."
                     )
-                    warnings.warn(msg.format(ufunc), FutureWarning, stacklevel=4)
+                    warnings.warn(
+                        msg.format(ufunc), FutureWarning, stacklevel=find_stack_level()
+                    )
                     return result
                 raise NotImplementedError
             return result
