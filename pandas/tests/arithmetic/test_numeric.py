@@ -29,6 +29,7 @@ from pandas.core.api import (
     UInt64Index,
 )
 from pandas.core.computation import expressions as expr
+from pandas.tests.arithmetic.common import assert_invalid_comparison
 
 
 @pytest.fixture(params=[Index, Series, tm.to_array])
@@ -84,25 +85,13 @@ class TestNumericComparisons:
         expected = 0.0 > Series([1, 2, 3])
         tm.assert_series_equal(result, expected)
 
-    def test_df_numeric_cmp_dt64_raises(self):
+    def test_df_numeric_cmp_dt64_raises(self, box_with_array):
         # GH#8932, GH#22163
         ts = pd.Timestamp.now()
-        df = pd.DataFrame({"x": range(5)})
+        obj = np.array(range(5))
+        obj = tm.box_expected(obj, box_with_array)
 
-        msg = (
-            "'[<>]' not supported between instances of 'numpy.ndarray' and 'Timestamp'"
-        )
-        with pytest.raises(TypeError, match=msg):
-            df > ts
-        with pytest.raises(TypeError, match=msg):
-            df < ts
-        with pytest.raises(TypeError, match=msg):
-            ts < df
-        with pytest.raises(TypeError, match=msg):
-            ts > df
-
-        assert not (df == ts).any().any()
-        assert (df != ts).all().all()
+        assert_invalid_comparison(obj, ts, box_with_array)
 
     def test_compare_invalid(self):
         # GH#8058

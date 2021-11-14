@@ -49,6 +49,7 @@ from pandas.compat import (
     import_lzma,
 )
 from pandas.compat._optional import import_optional_dependency
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_file_like
 
@@ -270,7 +271,7 @@ def _get_filepath_or_buffer(
         warnings.warn(
             "compression has no effect when passing a non-binary object as input.",
             RuntimeWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         compression_method = None
 

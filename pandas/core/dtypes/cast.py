@@ -563,7 +563,7 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
                     "dtype is deprecated. In a future version, this will be cast "
                     "to object dtype. Pass `fill_value=Timestamp(date_obj)` instead.",
                     FutureWarning,
-                    stacklevel=8,
+                    stacklevel=find_stack_level(),
                 )
                 return dtype, fv
         elif isinstance(fill_value, str):
@@ -969,13 +969,12 @@ def astype_dt64_to_dt64tz(
             # this should be the only copy
             values = values.copy()
 
-        level = find_stack_level()
         warnings.warn(
             "Using .astype to convert from timezone-naive dtype to "
             "timezone-aware dtype is deprecated and will raise in a "
             "future version.  Use ser.dt.tz_localize instead.",
             FutureWarning,
-            stacklevel=level,
+            stacklevel=find_stack_level(),
         )
 
         # GH#33401 this doesn't match DatetimeArray.astype, which
@@ -986,13 +985,12 @@ def astype_dt64_to_dt64tz(
         # DatetimeArray/DatetimeIndex.astype behavior
         if values.tz is None and aware:
             dtype = cast(DatetimeTZDtype, dtype)
-            level = find_stack_level()
             warnings.warn(
                 "Using .astype to convert from timezone-naive dtype to "
                 "timezone-aware dtype is deprecated and will raise in a "
                 "future version.  Use obj.tz_localize instead.",
                 FutureWarning,
-                stacklevel=level,
+                stacklevel=find_stack_level(),
             )
 
             return values.tz_localize(dtype.tz)
@@ -1006,14 +1004,13 @@ def astype_dt64_to_dt64tz(
             return result
 
         elif values.tz is not None:
-            level = find_stack_level()
             warnings.warn(
                 "Using .astype to convert from timezone-aware dtype to "
                 "timezone-naive dtype is deprecated and will raise in a "
                 "future version.  Use obj.tz_localize(None) or "
                 "obj.tz_convert('UTC').tz_localize(None) instead",
                 FutureWarning,
-                stacklevel=level,
+                stacklevel=find_stack_level(),
             )
 
             result = values.tz_convert("UTC").tz_localize(None)
@@ -1133,7 +1130,7 @@ def astype_nansafe(
                 "Use .view(...) instead.",
                 FutureWarning,
                 # stacklevel chosen to be correct when reached via Series.astype
-                stacklevel=7,
+                stacklevel=find_stack_level(),
             )
             if isna(arr).any():
                 raise ValueError("Cannot convert NaT values to integer")
@@ -1155,7 +1152,7 @@ def astype_nansafe(
                 "Use .view(...) instead.",
                 FutureWarning,
                 # stacklevel chosen to be correct when reached via Series.astype
-                stacklevel=7,
+                stacklevel=find_stack_level(),
             )
             if isna(arr).any():
                 raise ValueError("Cannot convert NaT values to integer")
@@ -1651,7 +1648,7 @@ def maybe_cast_to_datetime(
                                 "`pd.Series(values).dt.tz_localize(None)` "
                                 "instead.",
                                 FutureWarning,
-                                stacklevel=8,
+                                stacklevel=find_stack_level(),
                             )
                             # equiv: dta.view(dtype)
                             # Note: NOT equivalent to dta.astype(dtype)
@@ -1691,7 +1688,7 @@ def maybe_cast_to_datetime(
                                     ".tz_localize('UTC').tz_convert(dtype.tz) "
                                     "or pd.Series(data.view('int64'), dtype=dtype)",
                                     FutureWarning,
-                                    stacklevel=5,
+                                    stacklevel=find_stack_level(),
                                 )
 
                             value = dta.tz_localize("UTC").tz_convert(dtype.tz)
@@ -1859,7 +1856,7 @@ def construct_2d_arraylike_from_scalar(
     shape = (length, width)
 
     if dtype.kind in ["m", "M"]:
-        value = maybe_unbox_datetimelike_tz_deprecation(value, dtype, stacklevel=4)
+        value = maybe_unbox_datetimelike_tz_deprecation(value, dtype)
     # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
     # operand type: "Type[object]")
     elif dtype == object:  # type: ignore[comparison-overlap]
@@ -1932,9 +1929,7 @@ def construct_1d_arraylike_from_scalar(
     return subarr
 
 
-def maybe_unbox_datetimelike_tz_deprecation(
-    value: Scalar, dtype: DtypeObj, stacklevel: int = 5
-):
+def maybe_unbox_datetimelike_tz_deprecation(value: Scalar, dtype: DtypeObj):
     """
     Wrap maybe_unbox_datetimelike with a check for a timezone-aware Timestamp
     along with a timezone-naive datetime64 dtype, which is deprecated.
@@ -1963,7 +1958,7 @@ def maybe_unbox_datetimelike_tz_deprecation(
                 "`pd.Series(values).dt.tz_localize(None)` "
                 "instead.",
                 FutureWarning,
-                stacklevel=stacklevel,
+                stacklevel=find_stack_level(),
             )
             new_value = value.tz_localize(None)
             return maybe_unbox_datetimelike(new_value, dtype)
