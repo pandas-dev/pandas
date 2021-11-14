@@ -847,7 +847,7 @@ class TestDatetimeArray(SharedTests):
         dt_ind = pd.Timestamp(2021, 1, 1, 12)
         dt_ind_tz = dt_ind.tz_localize(dti.tz)
 
-        result = arr.take([-1, 1], allow_fill=True,fill_value=dt_ind_tz)
+        result = arr.take([-1, 1], allow_fill=True, fill_value=dt_ind_tz)
         assert result[0] == dt_ind_tz
 
         msg = f"value should be a '{arr1d._scalar_type.__name__}' or 'NaT'. Got"
