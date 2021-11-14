@@ -776,6 +776,13 @@ timedelta}, default 'raise'
         ------
         ValueError if the freq cannot be converted
 
+        Notes
+        -----
+        If the Timestamp has a timezone, rounding will take place relative to the
+        local ("wall") time and re-localized to the same timezone. When rounding
+        near daylight savings time, use ``nonexistent`` and ``ambiguous`` to
+        control the re-localization behavior.
+
         Examples
         --------
         Create a timestamp object:
@@ -858,6 +865,13 @@ timedelta}, default 'raise'
         ------
         ValueError if the freq cannot be converted.
 
+        Notes
+        -----
+        If the Timestamp has a timezone, flooring will take place relative to the
+        local ("wall") time and re-localized to the same timezone. When flooring
+        near daylight savings time, use ``nonexistent`` and ``ambiguous`` to
+        control the re-localization behavior.
+
         Examples
         --------
         Create a timestamp object:
@@ -939,6 +953,13 @@ timedelta}, default 'raise'
         Raises
         ------
         ValueError if the freq cannot be converted.
+
+        Notes
+        -----
+        If the Timestamp has a timezone, ceiling will take place relative to the
+        local ("wall") time and re-localized to the same timezone. When ceiling
+        near daylight savings time, use ``nonexistent`` and ``ambiguous`` to
+        control the re-localization behavior.
 
         Examples
         --------
