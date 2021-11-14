@@ -556,13 +556,22 @@ z
                 archived_file = zp.filelist[0].filename
                 assert archived_file == archive_name
 
-    @pytest.mark.parametrize("compression", ["zip", "infer"])
-    def test_to_csv_zip_infer_name(self, compression):
+    @pytest.mark.parametrize(
+        "filename,expected_arcname",
+        [
+            ("archive.csv", "archive.csv"),
+            ("archive.tsv", "archive.tsv"),
+            ("archive.csv.zip", "archive.csv"),
+            ("archive.tsv.zip", "archive.tsv"),
+            ("archive.zip", "archive"),
+        ],
+    )
+    def test_to_csv_zip_infer_name(self, filename, expected_arcname):
         # GH 39465
         df = DataFrame({"ABC": [1]})
-        with tm.ensure_clean("archive.csv.zip") as path:
-            df.to_csv(path, compression=compression)
-            expected_arcname = Path(path).with_suffix("").name
+        with tm.ensure_clean_dir() as dir:
+            path = Path(dir, filename)
+            df.to_csv(path, compression="zip")
             with ZipFile(path) as zp:
                 assert len(zp.filelist) == 1
                 archived_file = zp.filelist[0].filename
