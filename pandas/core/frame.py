@@ -1044,12 +1044,14 @@ class DataFrame(NDFrame, OpsMixin):
             return None
 
     @Substitution(
-        header_type="bool or sequence",
+        header_type="bool or sequence of strings",
         header="Write out the column names. If a list of strings "
         "is given, it is assumed to be aliases for the "
         "column names",
         col_space_type="int, list or dict of int",
-        col_space="The minimum width of each column",
+        col_space="The minimum width of each column. If a list of ints is given "
+        "every integers corresponds with one column. If a dict is given, the key "
+        "references the column, while the value defines the space to use.",
     )
     @Substitution(shared_params=fmt.common_docstring, returns=fmt.return_docstring)
     def to_string(
