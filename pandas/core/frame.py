@@ -2853,6 +2853,7 @@ class DataFrame(NDFrame, OpsMixin):
         %(returns)s
         See Also
         --------
+        Styler.to_html : Render a DataFrame to HTML with conditional formatting.
         to_string : Convert DataFrame to a string.
         """
         msg = (
