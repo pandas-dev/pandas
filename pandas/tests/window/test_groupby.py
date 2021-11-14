@@ -1038,14 +1038,10 @@ class TestEWM:
         with tm.assert_produces_warning(FutureWarning, match="nuisance"):
             # GH#42738
             result = times_frame.groupby("A").ewm(halflife=halflife, times="C").mean()
-            expected = (
-                times_frame.groupby("A", group_keys=False).apply(
-                    lambda x: x.ewm(halflife=halflife, times="C").mean()
-                )
-                # .iloc[[0, 3, 6, 9, 1, 4, 7, 2, 5, 8]]
-                .reset_index(drop=True)
+            expected = times_frame.groupby("A", group_keys=True).apply(
+                lambda x: x.ewm(halflife=halflife, times="C").mean()
             )
-        tm.assert_frame_equal(result.reset_index(drop=True), expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_times_array(self, times_frame):
         # GH 40951
