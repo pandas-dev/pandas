@@ -247,14 +247,11 @@ class DatetimeIndexIndexing:
     def setup(self):
         dti = date_range("2016-01-01", periods=10000, tz="US/Pacific")
         dti2 = dti.tz_convert("UTC")
-        dates = date_range("2011-1-1", periods=500000, freq="min")
-        index = np.random.choice(dates, 500000, replace=True)
-        df = DataFrame(index=index, data={"a": 1})
-        df_sorted = df.sort_index()
+        index = np.random.choice(dti, 10000, replace=True)
+        dti_sorted = DataFrame(index=index, data={"a": 1}).sort_index()
         self.dti = dti
         self.dti2 = dti2
-        self.df = df
-        self.df_sorted = df_sorted
+        self.dti_sorted = dti_sorted
 
     def time_get_indexer_mismatched_tz(self):
         # reached via e.g.
@@ -263,10 +260,10 @@ class DatetimeIndexIndexing:
         self.dti.get_indexer(self.dti2)
 
     def time_loc_unsorted(self):
-        self.df.loc["2011-6-11"]
+        self.dti.loc["2016-6-11"]
 
     def time_loc_sorted(self):
-        self.df_sorted.loc["2011-6-11"]
+        self.dti_sorted.loc["2016-6-11"]
 
 
 class CategoricalIndexIndexing:
