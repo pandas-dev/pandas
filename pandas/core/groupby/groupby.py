@@ -15,7 +15,6 @@ from functools import (
     wraps,
 )
 import inspect
-import os
 from textwrap import dedent
 import types
 from typing import (
@@ -1476,15 +1475,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ):
             # We've detected value-dependent behavior: the result's index depends on
             # whether the user's function `f` returned the same index or not.
-            caller = inspect.stack()[2]
-            if caller.filename.endswith(os.path.join("pandas", "core", "resample.py")):
-                stacklevel = 5
-            elif self.ndim == 1:
-                stacklevel = 4
-            elif self._selection is None:
-                stacklevel = 3
-            else:
-                stacklevel = 4
             msg = (
                 "Not prepending group keys to the result index of "
                 "transform-like apply. In the future, the group keys "
@@ -1495,7 +1485,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 "To adopt the future behavior and silence this warning, use "
                 "\n\n\t>>> .groupby(..., group_keys=True)"
             )
-            warnings.warn(msg, FutureWarning, stacklevel=stacklevel)
+            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
             # We want to behave as if `self.group_keys=False` when reconstructing
             # the object. However, we don't want to mutate the stateful GroupBy
             # object, so we just override it.

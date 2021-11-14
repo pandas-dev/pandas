@@ -116,7 +116,7 @@ group_keys : bool, optional
     By default group keys are not included when the result's index
     (and column) labels match the inputs, and are included otherwise.
 
-    .. versionchanged:: 1.3.0
+    .. versionchanged:: 1.4.0
 
        Warns that `group_keys` will no longer be ignored when the
        result from ``apply`` is a like-indexed Series or DataFrame.
@@ -132,8 +132,6 @@ observed : bool, default False
     This only applies if any of the groupers are Categoricals.
     If True: only show observed values for categorical groupers.
     If False: show all values for categorical groupers.
-
-    .. versionadded:: 0.23.0
 dropna : bool, default True
     If True, and if group keys contain NA values, NA values together
     with row/column will be dropped.

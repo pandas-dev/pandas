@@ -1105,7 +1105,7 @@ Control grouped column(s) placement with ``group_keys``
    not be added for like-indexed outputs. In the future this behavior
    will change to always respect ``group_keys``, which defaults to ``True``.
 
-   .. versionchanged:: 1.3.0
+   .. versionchanged:: 1.4.0
 
 To control whether the grouped column(s) are included in the indices, you can use
 the argument ``group_keys``. Compare

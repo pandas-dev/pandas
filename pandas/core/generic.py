@@ -7899,11 +7899,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             ``.apply()`` on the resampled object. Not specifying ``group_keys``
             will retain values-dependent behavior from pandas 1.2
             and earlier (see
-            :ref:`pandas 1.3.0 Release notes<whatsnew_130.resample_group_keys>`
+            :ref:`pandas 1.4.0 Release notes<whatsnew_140.resample_group_keys>`
             for examples). In a future version of pandas, the behavior will
             default to the same as specifying ``group_keys=False``.
 
-            .. versionadded:: 1.3.0
+            .. versionadded:: 1.4.0
 
         Returns
         -------
