@@ -805,6 +805,19 @@ class _BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore[misc]
         # _PathLike[str]], IO[bytes]]"
         super().__init__(file, mode, **kwargs_zip)  # type: ignore[arg-type]
 
+    # GH39465
+    # If an explicit archive_name is not given, we still want the file _inside_ the zip
+    # file _not_ to be named something.zip, because that causes massive confusion.
+    def infer_filename(self):
+        if isinstance(self.filename, (os.PathLike, str)):
+            filename = Path(self.filename)
+            if filename.suffix == ".zip":
+                return filename.with_suffix("").name
+            else:
+                return filename.name
+        else:
+            return None
+
     def write(self, data):
         # buffer multiple write calls, write on flush
         if self.multiple_write_buffer is None:
@@ -819,7 +832,7 @@ class _BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore[misc]
             return
 
         # ZipFile needs a non-empty string
-        archive_name = self.archive_name or self.filename or "zip"
+        archive_name = self.archive_name or self.infer_filename() or "zip"
         with self.multiple_write_buffer:
             super().writestr(archive_name, self.multiple_write_buffer.getvalue())
 
