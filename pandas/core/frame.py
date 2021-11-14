@@ -2855,6 +2855,15 @@ class DataFrame(NDFrame, OpsMixin):
         --------
         to_string : Convert DataFrame to a string.
         """
+        msg = (
+            "In future versions `DataFrame.to_html` is expected to utilise the base "
+            "implementation of `Styler.to_html` for formatting and rendering. "
+            "The arguments signature may therefore change. It is recommended instead "
+            "to use `DataFrame.style.to_html` which also contains additional "
+            "functionality."
+        )
+        warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+
         if justify is not None and justify not in fmt._VALID_JUSTIFY_PARAMETERS:
             raise ValueError("Invalid value for justify parameter")
 
