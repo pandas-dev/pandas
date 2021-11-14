@@ -338,26 +338,19 @@ def test_slice_with_zero_step_raises(index, frame_or_series, indexer_sli):
     ],
 )
 def test_slice_with_negative_step(index):
-    def assert_slices_equivalent(l_slc, i_slc):
-        expected = ts.iloc[i_slc]
-
-        tm.assert_series_equal(ts[l_slc], expected)
-        tm.assert_series_equal(ts.loc[l_slc], expected)
-
     keystr1 = str(index[9])
     keystr2 = str(index[13])
-    box = type(index[0])
 
-    ts = Series(np.arange(20), index)
+    ser = Series(np.arange(20), index)
     SLC = IndexSlice
 
-    for key in [keystr1, box(keystr1)]:
-        assert_slices_equivalent(SLC[key::-1], SLC[9::-1])
-        assert_slices_equivalent(SLC[:key:-1], SLC[:8:-1])
+    for key in [keystr1, index[9]]:
+        tm.assert_indexing_slices_equivalent(ser, SLC[key::-1], SLC[9::-1])
+        tm.assert_indexing_slices_equivalent(ser, SLC[:key:-1], SLC[:8:-1])
 
-        for key2 in [keystr2, box(keystr2)]:
-            assert_slices_equivalent(SLC[key2:key:-1], SLC[13:8:-1])
-            assert_slices_equivalent(SLC[key:key2:-1], SLC[0:0:-1])
+        for key2 in [keystr2, index[13]]:
+            tm.assert_indexing_slices_equivalent(ser, SLC[key2:key:-1], SLC[13:8:-1])
+            tm.assert_indexing_slices_equivalent(ser, SLC[key:key2:-1], SLC[0:0:-1])
 
 
 def test_tuple_index():
