@@ -1198,9 +1198,7 @@ def test_nuiscance_columns():
     )
     tm.assert_frame_equal(result, expected)
 
-    with tm.assert_produces_warning(
-        FutureWarning, match="Select only valid", check_stacklevel=False
-    ):
+    with tm.assert_produces_warning(FutureWarning, match="Select only valid"):
         result = df.agg("sum")
     expected = Series([6, 6.0, "foobarbaz"], index=["A", "B", "C"])
     tm.assert_series_equal(result, expected)

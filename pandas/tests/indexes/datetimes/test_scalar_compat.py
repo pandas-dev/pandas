@@ -65,9 +65,7 @@ class TestDatetimeIndexOps:
         expected = getattr(idx, field)[-1]
 
         warn = FutureWarning if field.startswith("is_") else None
-        with tm.assert_produces_warning(
-            warn, match="Timestamp.freq is deprecated", check_stacklevel=False
-        ):
+        with tm.assert_produces_warning(warn, match="Timestamp.freq is deprecated"):
             result = getattr(Timestamp(idx[-1]), field)
         assert result == expected
 
