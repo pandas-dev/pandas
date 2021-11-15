@@ -1004,13 +1004,18 @@ def coerce_to_target_dtype(values, other):
 
 
 def fillna_ea_array(values, value, limit=None, inplace: bool = False, downcast=None):
+    """
+    Fillna logic for ExtensionArrays.
 
+    Dispatches to the EA.fillna method (in which case downcast is currently
+    ignored), except for datetime64 in which case fallback to object dtype
+    is currently allowed.
+    """
     if not _can_hold_element(values, value) and values.dtype.kind == "M":
         # We support filling a DatetimeTZ with a `value` whose timezone
         #  is different by coercing to object.
         # TODO: don't special-case td64
         values = values.astype(object)
-        # breakpoint()
         return fillna_array(values, value, limit=limit, inplace=True, downcast=downcast)
 
     values = values if inplace else values.copy()
@@ -1018,6 +1023,11 @@ def fillna_ea_array(values, value, limit=None, inplace: bool = False, downcast=N
 
 
 def fillna_array(values, value, limit=None, inplace: bool = False, downcast=None):
+    """
+    Fillna logic for np.ndarray/ExtensionArray.
+
+    This includes the logic for downcasting if needed.
+    """
     from pandas.core.array_algos.putmask import (
         putmask_inplace,
         validate_putmask,
