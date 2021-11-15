@@ -6681,8 +6681,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        **all**
-
         True, because nonzero integers are considered True.
 
         >>> pd.Index([1, 2, 3]).all()
@@ -6691,18 +6689,6 @@ class Index(IndexOpsMixin, PandasObject):
         False, because ``0`` is considered False.
 
         >>> pd.Index([0, 1, 2]).all()
-        False
-
-        **any**
-
-        True, because ``1`` is considered True.
-
-        >>> pd.Index([0, 0, 1]).any()
-        True
-
-        False, because ``0`` is considered False.
-
-        >>> pd.Index([0, 0, 0]).any()
         False
         """
         nv.validate_all(args, kwargs)
