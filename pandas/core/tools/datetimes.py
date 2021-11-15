@@ -39,6 +39,7 @@ from pandas._typing import (
     ArrayLike,
     Timezone,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -888,11 +889,9 @@ def to_datetime(
         result = arg
         if tz is not None:
             if arg.tz is not None:
-                # error: Too many arguments for "tz_convert" of "NaTType"
-                result = result.tz_convert(tz)  # type: ignore[call-arg]
+                result = arg.tz_convert(tz)
             else:
-                # error: Too many arguments for "tz_localize" of "NaTType"
-                result = result.tz_localize(tz)  # type: ignore[call-arg]
+                result = arg.tz_localize(tz)
     elif isinstance(arg, ABCSeries):
         cache_array = _maybe_cache(arg, format, cache, convert_listlike)
         if not cache_array.empty:
@@ -1111,7 +1110,7 @@ def to_time(arg, format=None, infer_time_format=False, errors="raise"):
         "`to_time` has been moved, should be imported from pandas.core.tools.times. "
         "This alias will be removed in a future version.",
         FutureWarning,
-        stacklevel=2,
+        stacklevel=find_stack_level(),
     )
     from pandas.core.tools.times import to_time
 

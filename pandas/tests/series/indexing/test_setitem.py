@@ -620,22 +620,26 @@ class SetitemCastingEquivalents:
         mask[key] = True
 
         obj = obj.copy()
+
+        if is_list_like(val) and len(val) < mask.sum():
+            msg = "boolean index did not match indexed array along dimension"
+            with pytest.raises(IndexError, match=msg):
+                indexer_sli(obj)[mask] = val
+            return
+
         indexer_sli(obj)[mask] = val
         tm.assert_series_equal(obj, expected)
 
     def test_series_where(self, obj, key, expected, val, is_inplace):
-        if is_list_like(val) and len(val) < len(obj):
-            # Series.where is not valid here
-            if isinstance(val, range):
-                return
-
-            # FIXME: The remaining TestSetitemDT64IntoInt that go through here
-            #  are relying on technically-incorrect behavior because Block.where
-            #  uses np.putmask instead of expressions.where in those cases,
-            #  which has different length-checking semantics.
-
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
+
+        if is_list_like(val) and len(val) < len(obj):
+            # Series.where is not valid here
+            msg = "operands could not be broadcast together with shapes"
+            with pytest.raises(ValueError, match=msg):
+                obj.where(~mask, val)
+            return
 
         orig = obj
         obj = obj.copy()
@@ -1014,6 +1018,39 @@ class TestSetitemRangeIntoIntegerSeries(SetitemCastingEquivalents):
         return True
 
 
+@pytest.mark.parametrize(
+    "val",
+    [
+        np.array([2.0, 3.0]),
+        np.array([2.5, 3.5]),
+        np.array([2 ** 65, 2 ** 65 + 1], dtype=np.float64),  # all ints, but can't cast
+    ],
+)
+class TestSetitemFloatNDarrayIntoIntegerSeries(SetitemCastingEquivalents):
+    @pytest.fixture
+    def obj(self):
+        return Series(range(5), dtype=np.int64)
+
+    @pytest.fixture
+    def key(self):
+        return slice(0, 2)
+
+    @pytest.fixture
+    def inplace(self, val):
+        # NB: this condition is based on currently-harcoded "val" cases
+        return val[0] == 2
+
+    @pytest.fixture
+    def expected(self, val, inplace):
+        if inplace:
+            dtype = np.int64
+        else:
+            dtype = np.float64
+        res_values = np.array(range(5), dtype=dtype)
+        res_values[:2] = val
+        return Series(res_values)
+
+
 def test_setitem_int_as_positional_fallback_deprecation():
     # GH#42215 deprecated falling back to positional on __setitem__ with an
     #  int not contained in the index
@@ -1064,3 +1101,43 @@ def test_setitem_with_bool_indexer():
     df.loc[[True, False, False], "a"] = 10
     expected = DataFrame({"a": [10, 2, 3]})
     tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize("size", range(2, 6))
+@pytest.mark.parametrize(
+    "mask", [[True, False, False, False, False], [True, False], [False]]
+)
+@pytest.mark.parametrize(
+    "item", [2.0, np.nan, np.finfo(float).max, np.finfo(float).min]
+)
+# Test numpy arrays, lists and tuples as the input to be
+# broadcast
+@pytest.mark.parametrize(
+    "box", [lambda x: np.array([x]), lambda x: [x], lambda x: (x,)]
+)
+def test_setitem_bool_indexer_dont_broadcast_length1_values(size, mask, item, box):
+    # GH#44265
+    # see also tests.series.indexing.test_where.test_broadcast
+
+    selection = np.resize(mask, size)
+
+    data = np.arange(size, dtype=float)
+
+    ser = Series(data)
+
+    if selection.sum() != 1:
+        msg = (
+            "cannot set using a list-like indexer with a different "
+            "length than the value"
+        )
+        with pytest.raises(ValueError, match=msg):
+            # GH#44265
+            ser[selection] = box(item)
+    else:
+        # In this corner case setting is equivalent to setting with the unboxed
+        #  item
+        ser[selection] = box(item)
+
+        expected = Series(np.arange(size, dtype=float))
+        expected[selection] = item
+        tm.assert_series_equal(ser, expected)
