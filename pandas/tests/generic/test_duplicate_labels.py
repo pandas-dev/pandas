@@ -94,6 +94,7 @@ class TestPreserves:
         assert df.loc[[0]].flags.allows_duplicate_labels is False
         assert df.loc[0, ["A"]].flags.allows_duplicate_labels is False
 
+    @pytest.mark.xfail(reason="Unclear behavior.")
     def test_ndframe_getitem_caching_issue(self):
         # NDFrame.__getitem__ will cache the first df['A']. May need to
         # invalidate that cache? Update the cached entries?
