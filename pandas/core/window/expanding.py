@@ -360,8 +360,8 @@ class Expanding(RollingAndExpandingMixin):
             is ``N - ddof``, where ``N`` represents the number of elements.\n
         """
         ).replace("\n", "", 1),
-        window_agg_numba_parameters("1.4"),
         args_compat,
+        window_agg_numba_parameters("1.4"),
         kwargs_compat,
         create_section_header("Returns"),
         template_returns,
@@ -420,8 +420,8 @@ class Expanding(RollingAndExpandingMixin):
             is ``N - ddof``, where ``N`` represents the number of elements.\n
         """
         ).replace("\n", "", 1),
-        window_agg_numba_parameters("1.4"),
         args_compat,
+        window_agg_numba_parameters("1.4"),
         kwargs_compat,
         create_section_header("Returns"),
         template_returns,
