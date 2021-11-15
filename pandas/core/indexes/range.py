@@ -29,6 +29,7 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -177,13 +178,16 @@ class RangeIndex(NumericIndex):
 
     # --------------------------------------------------------------------
 
+    # error: Return type "Type[Int64Index]" of "_constructor" incompatible with return
+    # type "Type[RangeIndex]" in supertype "Index"
     @cache_readonly
-    def _constructor(self) -> type[Int64Index]:
+    def _constructor(self) -> type[Int64Index]:  # type: ignore[override]
         """return the class to use for construction"""
         return Int64Index
 
+    # error: Signature of "_data" incompatible with supertype "Index"
     @cache_readonly
-    def _data(self) -> np.ndarray:
+    def _data(self) -> np.ndarray:  # type: ignore[override]
         """
         An int array that for performance reasons is created only when needed.
 
@@ -253,7 +257,7 @@ class RangeIndex(NumericIndex):
         warnings.warn(
             self._deprecation_message.format("_start", "start"),
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self.start
 
@@ -276,7 +280,7 @@ class RangeIndex(NumericIndex):
         warnings.warn(
             self._deprecation_message.format("_stop", "stop"),
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self.stop
 
@@ -300,7 +304,7 @@ class RangeIndex(NumericIndex):
         warnings.warn(
             self._deprecation_message.format("_step", "step"),
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self.step
 
@@ -453,7 +457,7 @@ class RangeIndex(NumericIndex):
                 "parameter dtype is deprecated and will be removed in a future "
                 "version. Use the astype method instead.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
             new_index = new_index.astype(dtype)
         return new_index
@@ -493,6 +497,7 @@ class RangeIndex(NumericIndex):
         numpy.ndarray.argsort
         """
         ascending = kwargs.pop("ascending", True)  # EA compat
+        kwargs.pop("kind", None)  # e.g. "mergesort" is irrelevant
         nv.validate_argsort(args, kwargs)
 
         if self._range.step > 0:
@@ -600,9 +605,7 @@ class RangeIndex(NumericIndex):
             new_index = new_index[::-1]
 
         if sort is None:
-            # TODO: can revert to just `if sort is None` after GH#43666
-            if new_index.step < 0:
-                new_index = new_index[::-1]
+            new_index = new_index.sort_values()
 
         return new_index
 
@@ -809,24 +812,17 @@ class RangeIndex(NumericIndex):
                 return self[1:]
             if loc == -1 or loc == len(self) - 1:
                 return self[:-1]
+            if len(self) == 3 and (loc == 1 or loc == -2):
+                return self[::2]
 
         elif lib.is_list_like(loc):
             slc = lib.maybe_indices_to_slice(np.asarray(loc, dtype=np.intp), len(self))
-            if isinstance(slc, slice) and slc.step is not None and slc.step < 0:
-                rng = range(len(self))[slc][::-1]
-                slc = slice(rng.start, rng.stop, rng.step)
 
-            if isinstance(slc, slice) and slc.step in [1, None]:
-                # Note: maybe_indices_to_slice will never return a slice
-                #  with 'slc.start is None'; may have slc.stop None in cases
-                #  with negative step
-                if slc.start == 0:
-                    return self[slc.stop :]
-                elif slc.stop in [len(self), None]:
-                    return self[: slc.start]
-
-                # TODO: more generally, self.difference(self[slc]),
-                #  once _difference is better about retaining RangeIndex
+            if isinstance(slc, slice):
+                # defer to RangeIndex._difference, which is optimized to return
+                #  a RangeIndex whenever possible
+                other = self[slc]
+                return self.difference(other, sort=False)
 
         return super().delete(loc)
 

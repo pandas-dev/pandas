@@ -197,8 +197,8 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         return self._from_backing_data(new_values)
 
     def _validate_shift_value(self, fill_value):
-        # TODO: after deprecation in datetimelikearraymixin is enforced,
-        #  we can remove this and ust validate_fill_value directly
+        # TODO(2.0): after deprecation in datetimelikearraymixin is enforced,
+        #  we can remove this and use validate_fill_value directly
         return self._validate_scalar(fill_value)
 
     def __setitem__(self, key, value):
@@ -245,6 +245,14 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
         result = self._from_backing_data(result)
         return result
+
+    def _fill_mask_inplace(
+        self, method: str, limit, mask: npt.NDArray[np.bool_]
+    ) -> None:
+        # (for now) when self.ndim == 2, we assume axis=0
+        func = missing.get_fill_func(method, ndim=self.ndim)
+        func(self._ndarray.T, limit=limit, mask=mask.T)
+        return
 
     @doc(ExtensionArray.fillna)
     def fillna(
@@ -302,7 +310,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     # ------------------------------------------------------------------------
     # __array_function__ methods
 
-    def putmask(self, mask: np.ndarray, value) -> None:
+    def _putmask(self, mask: npt.NDArray[np.bool_], value) -> None:
         """
         Analogue to np.putmask(self, mask, value)
 
@@ -320,7 +328,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
         np.putmask(self._ndarray, mask, value)
 
-    def where(
+    def _where(
         self: NDArrayBackedExtensionArrayT, mask: np.ndarray, value
     ) -> NDArrayBackedExtensionArrayT:
         """

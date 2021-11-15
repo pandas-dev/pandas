@@ -169,13 +169,17 @@ def _isna(obj, inf_as_na: bool = False):
         return False
     elif isinstance(obj, (np.ndarray, ABCExtensionArray)):
         return _isna_array(obj, inf_as_na=inf_as_na)
-    elif isinstance(obj, (ABCSeries, ABCIndex)):
+    elif isinstance(obj, ABCIndex):
+        # Try to use cached isna, which also short-circuits for integer dtypes
+        #  and avoids materializing RangeIndex._values
+        if not obj._can_hold_na:
+            return obj.isna()
+        return _isna_array(obj._values, inf_as_na=inf_as_na)
+
+    elif isinstance(obj, ABCSeries):
         result = _isna_array(obj._values, inf_as_na=inf_as_na)
         # box
-        if isinstance(obj, ABCSeries):
-            result = obj._constructor(
-                result, index=obj.index, name=obj.name, copy=False
-            )
+        result = obj._constructor(result, index=obj.index, name=obj.name, copy=False)
         return result
     elif isinstance(obj, ABCDataFrame):
         return obj.isna()
@@ -471,8 +475,8 @@ def array_equivalent(
     return np.array_equal(left, right)
 
 
-def _array_equivalent_float(left, right):
-    return ((left == right) | (np.isnan(left) & np.isnan(right))).all()
+def _array_equivalent_float(left, right) -> bool:
+    return bool(((left == right) | (np.isnan(left) & np.isnan(right))).all())
 
 
 def _array_equivalent_datetimelike(left, right):

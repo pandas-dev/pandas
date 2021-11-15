@@ -68,6 +68,7 @@ from pandas.util._decorators import (
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
+    is_all_strings,
     is_categorical_dtype,
     is_datetime64_any_dtype,
     is_datetime64_dtype,
@@ -415,13 +416,12 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         elif is_integer_dtype(dtype):
             # we deliberately ignore int32 vs. int64 here.
             # See https://github.com/pandas-dev/pandas/issues/24381 for more.
-            level = find_stack_level()
             warnings.warn(
                 f"casting {self.dtype} values to int64 with .astype(...) is "
                 "deprecated and will raise in a future version. "
                 "Use .view(...) instead.",
                 FutureWarning,
-                stacklevel=level,
+                stacklevel=find_stack_level(),
             )
 
             values = self.asi8
@@ -720,7 +720,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         value = pd_array(value)
         value = extract_array(value, extract_numpy=True)
 
-        if is_dtype_equal(value.dtype, "string"):
+        if is_all_strings(value):
             # We got a StringArray
             try:
                 # TODO: Could use from_sequence_of_strings if implemented
