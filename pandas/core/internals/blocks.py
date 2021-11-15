@@ -969,13 +969,6 @@ class Block(PandasObject):
         elif noop:
             return [self]
 
-        dtype, _ = infer_dtype_from(new)
-        if dtype.kind in ["m", "M"]:
-            # using putmask with object dtype will incorrectly cast to object
-            # Having excluded self._can_hold_element, we know we cannot operate
-            #  in-place, so we are safe using `where`
-            return self.where(new, ~mask)
-
         elif self.ndim == 1 or self.shape[0] == 1:
             # no need to split columns
 
