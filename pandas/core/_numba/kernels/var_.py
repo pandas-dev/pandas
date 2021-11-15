@@ -16,8 +16,8 @@ from pandas.core._numba.kernels.shared import is_monotonic_increasing
 
 @numba.jit(nopython=True, nogil=True, parallel=False)
 def add_var(
-    val: float, nobs: int, mean_x: float, ssqdm_x: int, compensation: float
-) -> tuple[int, float, int, float]:
+    val: float, nobs: int, mean_x: float, ssqdm_x: float, compensation: float
+) -> tuple[int, float, float, float]:
     if not np.isnan(val):
         nobs += 1
         prev_mean = mean_x - compensation
@@ -35,8 +35,8 @@ def add_var(
 
 @numba.jit(nopython=True, nogil=True, parallel=False)
 def remove_var(
-    val: float, nobs: int, mean_x: float, ssqdm_x: int, compensation: float
-) -> tuple[int, float, int, float]:
+    val: float, nobs: int, mean_x: float, ssqdm_x: float, compensation: float
+) -> tuple[int, float, float, float]:
     if not np.isnan(val):
         nobs -= 1
         if nobs:
@@ -99,7 +99,7 @@ def sliding_var(
 
         if nobs >= min_periods and nobs > ddof:
             if nobs == 1:
-                result = 0
+                result = 0.0
             else:
                 result = ssqdm_x / (nobs - ddof)
         else:
