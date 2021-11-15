@@ -7,12 +7,6 @@ import pandas._testing as tm
 RESULT_NAME = "count"
 
 
-def test_axis(animals_df):
-    gp = animals_df.groupby([0, 0, 0], axis=1)
-    with pytest.raises(NotImplementedError, match="axis"):
-        gp.value_counts()
-
-
 @pytest.fixture
 def education_df():
     return pd.DataFrame(
@@ -22,6 +16,18 @@ def education_df():
             "country": ["US", "FR", "US", "FR", "FR", "FR"],
         }
     )
+
+
+def test_axis(education_df):
+    gp = education_df.groupby("country", axis=1)
+    with pytest.raises(NotImplementedError, match="axis"):
+        gp.value_counts()
+
+
+def test_bad_subset(education_df):
+    gp = education_df.groupby("country")
+    with pytest.raises(ValueError, match="subset"):
+        gp.value_counts(subset=["country"])
 
 
 def test_basic(education_df):

@@ -1679,7 +1679,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 ]
 
             if subset is not None:
-                remaining_columns = [key for key in subset if key not in keys]
+                for key in subset:
+                    if key in keys:
+                        raise ValueError(
+                            f"Key {key} in subset cannot be one of the groupby column keys"
+                        )
+                remaining_columns = subset
 
             if dropna:
                 df = df.dropna(subset=remaining_columns, axis="index", how="any")
