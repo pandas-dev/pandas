@@ -545,7 +545,7 @@ Datetimelike
 Timedelta
 ^^^^^^^^^
 - Bug in division of all-``NaT`` :class:`TimeDeltaIndex`, :class:`Series` or :class:`DataFrame` column with object-dtype arraylike of numbers failing to infer the result as timedelta64-dtype (:issue:`39750`)
--
+- Bug in floor division of ``timedelta64[ns]`` data with a scalar returning garbage values (:issue:`44466`)
 
 Timezones
 ^^^^^^^^^
