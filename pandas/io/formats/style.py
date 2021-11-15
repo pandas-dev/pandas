@@ -90,6 +90,13 @@ subset = """
             or single key, to `DataFrame.loc[:, <subset>]` where the columns are
             prioritised, to limit ``data`` to *before* applying the function.
 """
+
+props = """
+        props : str, default None
+            CSS properties to use for highlighting. If ``props`` is given, ``color``
+            is not used.
+"""
+
 #
 ###
 
@@ -2881,7 +2888,7 @@ class Styler(StylerRenderer):
 
         return self
 
-    @Substitution(subset=subset)
+    @Substitution(subset=subset, props=props)
     def highlight_null(
         self,
         null_color: str = "red",
@@ -2897,10 +2904,7 @@ class Styler(StylerRenderer):
         %(subset)s
             .. versionadded:: 1.1.0
 
-        props : str, default None
-            CSS properties to use for highlighting. If ``props`` is given, ``color``
-            is not used.
-
+        %(props)s
             .. versionadded:: 1.3.0
 
         Returns
@@ -2922,7 +2926,7 @@ class Styler(StylerRenderer):
             props = f"background-color: {null_color};"
         return self.apply(f, axis=None, subset=subset, props=props)
 
-    @Substitution(subset=subset)
+    @Substitution(subset=subset, props=props)
     def highlight_max(
         self,
         subset: Subset | None = None,
@@ -2942,10 +2946,7 @@ class Styler(StylerRenderer):
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
-        props : str, default None
-            CSS properties to use for highlighting. If ``props`` is given, ``color``
-            is not used.
-
+        %(props)s
             .. versionadded:: 1.3.0
 
         Returns
@@ -2969,7 +2970,7 @@ class Styler(StylerRenderer):
             props=props,
         )
 
-    @Substitution(subset=subset)
+    @Substitution(subset=subset, props=props)
     def highlight_min(
         self,
         subset: Subset | None = None,
@@ -2989,10 +2990,7 @@ class Styler(StylerRenderer):
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
-        props : str, default None
-            CSS properties to use for highlighting. If ``props`` is given, ``color``
-            is not used.
-
+        %(props)s
             .. versionadded:: 1.3.0
 
         Returns
@@ -3016,7 +3014,7 @@ class Styler(StylerRenderer):
             props=props,
         )
 
-    @Substitution(subset=subset)
+    @Substitution(subset=subset, props=props)
     def highlight_between(
         self,
         subset: Subset | None = None,
@@ -3046,9 +3044,7 @@ class Styler(StylerRenderer):
             Right bound for defining the range.
         inclusive : {'both', 'neither', 'left', 'right'}
             Identify whether bounds are closed or open.
-        props : str, default None
-            CSS properties to use for highlighting. If ``props`` is given, ``color``
-            is not used.
+        %(props)s
 
         Returns
         -------
@@ -3123,7 +3119,7 @@ class Styler(StylerRenderer):
             inclusive=inclusive,
         )
 
-    @Substitution(subset=subset)
+    @Substitution(subset=subset, props=props)
     def highlight_quantile(
         self,
         subset: Subset | None = None,
@@ -3157,9 +3153,7 @@ class Styler(StylerRenderer):
             quantile estimation.
         inclusive : {'both', 'neither', 'left', 'right'}
             Identify whether quantile bounds are closed or open.
-        props : str, default None
-            CSS properties to use for highlighting. If ``props`` is given, ``color``
-            is not used.
+        %(props)s
 
         Returns
         -------
