@@ -143,15 +143,14 @@ def test_join_index_more(float_frame):
 
 def test_join_index_series(float_frame):
     df = float_frame.copy()
-    s = df.pop(float_frame.columns[-1])
-    joined = df.join(s)
+    ser = df.pop(float_frame.columns[-1])
+    joined = df.join(ser)
 
-    # TODO should this check_names ?
-    tm.assert_frame_equal(joined, float_frame, check_names=False)
+    tm.assert_frame_equal(joined, float_frame)
 
-    s.name = None
+    ser.name = None
     with pytest.raises(ValueError, match="must have a name"):
-        df.join(s)
+        df.join(ser)
 
 
 def test_join_overlap(float_frame):
@@ -241,8 +240,7 @@ class TestDataFrameJoin:
 
         assert not np.isnan(joined.values).all()
 
-        # TODO what should join do with names ?
-        tm.assert_frame_equal(joined, expected, check_names=False)
+        tm.assert_frame_equal(joined, expected)
 
     def test_join_segfault(self):
         # GH#1532
@@ -338,14 +336,16 @@ class TestDataFrameJoin:
         # merge
         columns = ["a", "b", ("c", "c1")]
         expected = DataFrame(columns=columns, data=[[1, 11, 33], [0, 22, 44]])
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(FutureWarning):
             result = pd.merge(df1, df2, on="a")
         tm.assert_frame_equal(result, expected)
 
         # join, see discussion in GH#12219
         columns = ["a", "b", ("a", ""), ("c", "c1")]
         expected = DataFrame(columns=columns, data=[[1, 11, 0, 44], [0, 22, 1, 33]])
-        with tm.assert_produces_warning(UserWarning):
+        msg = "merging between different levels is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            # stacklevel is chosen to be correct for pd.merge, not DataFrame.join
             result = df1.join(df2, on="a")
         tm.assert_frame_equal(result, expected)
 

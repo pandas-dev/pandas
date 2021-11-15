@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas.core.dtypes.common import is_categorical_dtype
 
 from pandas import (
@@ -86,10 +84,12 @@ class TestCrosstab:
         expected = expected.unstack("A").fillna(0).astype(np.int64)
         tm.assert_frame_equal(result, expected)
 
-    def test_crosstab_ndarray(self):
-        a = np.random.randint(0, 5, size=100)
-        b = np.random.randint(0, 3, size=100)
-        c = np.random.randint(0, 10, size=100)
+    @pytest.mark.parametrize("box", [np.array, list, tuple])
+    def test_crosstab_ndarray(self, box):
+        # GH 44076
+        a = box(np.random.randint(0, 5, size=100))
+        b = box(np.random.randint(0, 3, size=100))
+        c = box(np.random.randint(0, 10, size=100))
 
         df = DataFrame({"a": a, "b": b, "c": c})
 
@@ -102,9 +102,11 @@ class TestCrosstab:
         tm.assert_frame_equal(result, expected)
 
         # assign arbitrary names
-        result = crosstab(self.df["A"].values, self.df["C"].values)
-        assert result.index.name == "row_0"
-        assert result.columns.name == "col_0"
+        result = crosstab(a, c)
+        expected = crosstab(df["a"], df["c"])
+        expected.index.names = ["row_0"]
+        expected.columns.names = ["col_0"]
+        tm.assert_frame_equal(result, expected)
 
     def test_crosstab_non_aligned(self):
         # GH 17005
@@ -440,8 +442,7 @@ class TestCrosstab:
         )
         tm.assert_frame_equal(test_case, norm_sum)
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) concat axis=0
-    def test_crosstab_with_empties(self):
+    def test_crosstab_with_empties(self, using_array_manager):
         # Check handling of empties
         df = DataFrame(
             {
@@ -466,6 +467,9 @@ class TestCrosstab:
             index=Index([1, 2], name="a", dtype="int64"),
             columns=Index([3, 4], name="b"),
         )
+        if using_array_manager:
+            # INFO(ArrayManager) column without NaNs can preserve int dtype
+            nans[3] = nans[3].astype("int64")
 
         calculated = crosstab(df.a, df.b, values=df.c, aggfunc="count", normalize=False)
         tm.assert_frame_equal(nans, calculated)
@@ -559,6 +563,8 @@ class TestCrosstab:
         expected = DataFrame(
             expected_data, index=expected_index, columns=expected_column
         )
+        # aggfunc is np.size, resulting in integers
+        expected["All"] = expected["All"].astype("int64")
         tm.assert_frame_equal(result, expected)
 
     def test_crosstab_duplicate_names(self):
@@ -809,7 +815,7 @@ def test_categoricals(a_dtype, b_dtype):
     a_is_cat = is_categorical_dtype(a.dtype)
     assert not a_is_cat or a.value_counts().loc[1] == 0
     result = crosstab(a, b, margins=True, dropna=False)
-    values = [[18, 16, 34], [0, 0, np.nan], [34, 32, 66], [52, 48, 100]]
+    values = [[18, 16, 34], [0, 0, 0], [34, 32, 66], [52, 48, 100]]
     expected = DataFrame(values, index, columns)
     if not a_is_cat:
         expected = expected.loc[[0, 2, "All"]]

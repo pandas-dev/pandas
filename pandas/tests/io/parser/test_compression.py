@@ -12,6 +12,8 @@ import pytest
 from pandas import DataFrame
 import pandas._testing as tm
 
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
+
 
 @pytest.fixture(params=[True, False])
 def buffer(request):
@@ -29,6 +31,7 @@ def parser_and_data(all_parsers, csv1):
     return parser, data, expected
 
 
+@skip_pyarrow
 @pytest.mark.parametrize("compression", ["zip", "infer", "zip2"])
 def test_zip(parser_and_data, compression):
     parser, data, expected = parser_and_data
@@ -46,6 +49,7 @@ def test_zip(parser_and_data, compression):
         tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 @pytest.mark.parametrize("compression", ["zip", "infer"])
 def test_zip_error_multiple_files(parser_and_data, compression):
     parser, data, expected = parser_and_data
@@ -61,6 +65,7 @@ def test_zip_error_multiple_files(parser_and_data, compression):
             parser.read_csv(path, compression=compression)
 
 
+@skip_pyarrow
 def test_zip_error_no_files(parser_and_data):
     parser, _, _ = parser_and_data
 
@@ -72,6 +77,7 @@ def test_zip_error_no_files(parser_and_data):
             parser.read_csv(path, compression="zip")
 
 
+@skip_pyarrow
 def test_zip_error_invalid_zip(parser_and_data):
     parser, _, _ = parser_and_data
 
@@ -81,6 +87,7 @@ def test_zip_error_invalid_zip(parser_and_data):
                 parser.read_csv(f, compression="zip")
 
 
+@skip_pyarrow
 @pytest.mark.parametrize("filename", [None, "test.{ext}"])
 def test_compression(parser_and_data, compression_only, buffer, filename):
     parser, data, expected = parser_and_data
@@ -105,6 +112,7 @@ def test_compression(parser_and_data, compression_only, buffer, filename):
         tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 @pytest.mark.parametrize("ext", [None, "gz", "bz2"])
 def test_infer_compression(all_parsers, csv1, buffer, ext):
     # see gh-9770
@@ -124,6 +132,7 @@ def test_infer_compression(all_parsers, csv1, buffer, ext):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 def test_compression_utf_encoding(all_parsers, csv_dir_path, utf_value, encoding_fmt):
     # see gh-18071, gh-24130
     parser = all_parsers
@@ -141,6 +150,7 @@ def test_compression_utf_encoding(all_parsers, csv_dir_path, utf_value, encoding
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 @pytest.mark.parametrize("invalid_compression", ["sfark", "bz3", "zipper"])
 def test_invalid_compression(all_parsers, invalid_compression):
     parser = all_parsers

@@ -8,33 +8,34 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_dtype_equal
+from pandas.core.dtypes.cast import find_common_type
 
 from pandas import (
     CategoricalIndex,
     DatetimeIndex,
-    Float64Index,
     Index,
-    Int64Index,
     MultiIndex,
     RangeIndex,
     Series,
     TimedeltaIndex,
     Timestamp,
-    UInt64Index,
 )
 import pandas._testing as tm
 from pandas.api.types import (
     is_datetime64tz_dtype,
+    is_signed_integer_dtype,
     pandas_dtype,
 )
+from pandas.core.api import (
+    Float64Index,
+    Int64Index,
+    UInt64Index,
+)
 
-COMPATIBLE_INCONSISTENT_PAIRS = {
-    (Int64Index, RangeIndex): (tm.makeIntIndex, tm.makeRangeIndex),
-    (Float64Index, Int64Index): (tm.makeFloatIndex, tm.makeIntIndex),
-    (Float64Index, RangeIndex): (tm.makeFloatIndex, tm.makeIntIndex),
-    (Float64Index, UInt64Index): (tm.makeFloatIndex, tm.makeUIntIndex),
-}
+COMPATIBLE_INCONSISTENT_PAIRS = [
+    (np.float64, np.int64),
+    (np.float64, np.uint64),
+]
 
 
 def test_union_same_types(index):
@@ -51,7 +52,11 @@ def test_union_different_types(index_flat, index_flat2):
     idx1 = index_flat
     idx2 = index_flat2
 
-    type_pair = tuple(sorted([type(idx1), type(idx2)], key=lambda x: str(x)))
+    common_dtype = find_common_type([idx1.dtype, idx2.dtype])
+
+    any_uint64 = idx1.dtype == np.uint64 or idx2.dtype == np.uint64
+    idx1_signed = is_signed_integer_dtype(idx1.dtype)
+    idx2_signed = is_signed_integer_dtype(idx2.dtype)
 
     # Union with a non-unique, non-monotonic index raises error
     # This applies to the boolean index
@@ -61,26 +66,23 @@ def test_union_different_types(index_flat, index_flat2):
     res1 = idx1.union(idx2)
     res2 = idx2.union(idx1)
 
-    if is_dtype_equal(idx1.dtype, idx2.dtype):
-        assert res1.dtype == idx1.dtype
-        assert res2.dtype == idx1.dtype
-
-    elif type_pair not in COMPATIBLE_INCONSISTENT_PAIRS:
-        # A union with a CategoricalIndex (even as dtype('O')) and a
-        # non-CategoricalIndex can only be made if both indices are monotonic.
-        # This is true before this PR as well.
+    if any_uint64 and (idx1_signed or idx2_signed):
         assert res1.dtype == np.dtype("O")
         assert res2.dtype == np.dtype("O")
-
-    elif idx1.dtype.kind in ["f", "i", "u"] and idx2.dtype.kind in ["f", "i", "u"]:
-        assert res1.dtype == np.dtype("f8")
-        assert res2.dtype == np.dtype("f8")
-
     else:
-        raise NotImplementedError
+        assert res1.dtype == common_dtype
+        assert res2.dtype == common_dtype
 
 
-@pytest.mark.parametrize("idx_fact1,idx_fact2", COMPATIBLE_INCONSISTENT_PAIRS.values())
+@pytest.mark.parametrize(
+    "idx_fact1,idx_fact2",
+    [
+        (tm.makeIntIndex, tm.makeRangeIndex),
+        (tm.makeFloatIndex, tm.makeIntIndex),
+        (tm.makeFloatIndex, tm.makeRangeIndex),
+        (tm.makeFloatIndex, tm.makeUIntIndex),
+    ],
+)
 def test_compatible_inconsistent_pairs(idx_fact1, idx_fact2):
     # GH 23525
     idx1 = idx_fact1(10)
@@ -179,7 +181,7 @@ class TestSetOps:
             return
 
         # GH#10149
-        cases = [klass(second.values) for klass in [np.array, Series, list]]
+        cases = [second.to_numpy(), second.to_series(), second.to_list()]
         for case in cases:
             result = first.intersection(case)
             assert tm.equalContents(result, second)
@@ -202,15 +204,10 @@ class TestSetOps:
             return
 
         # GH#10149
-        cases = [klass(second.values) for klass in [np.array, Series, list]]
+        cases = [second.to_numpy(), second.to_series(), second.to_list()]
         for case in cases:
-            if not isinstance(index, CategoricalIndex):
-                result = first.union(case)
-                assert tm.equalContents(result, everything), (
-                    result,
-                    everything,
-                    type(case),
-                )
+            result = first.union(case)
+            assert tm.equalContents(result, everything)
 
         if isinstance(index, MultiIndex):
             msg = "other must be a MultiIndex or a list of tuples"
@@ -228,16 +225,10 @@ class TestSetOps:
         assert tm.equalContents(result, answer)
 
         # GH#10149
-        cases = [klass(second.values) for klass in [np.array, Series, list]]
+        cases = [second.to_numpy(), second.to_series(), second.to_list()]
         for case in cases:
-            if isinstance(index, (DatetimeIndex, TimedeltaIndex)):
-                assert type(result) == type(answer)
-                tm.assert_numpy_array_equal(
-                    result.sort_values().asi8, answer.sort_values().asi8
-                )
-            else:
-                result = first.difference(case, sort)
-                assert tm.equalContents(result, answer)
+            result = first.difference(case, sort)
+            assert tm.equalContents(result, answer)
 
         if isinstance(index, MultiIndex):
             msg = "other must be a MultiIndex or a list of tuples"
@@ -261,16 +252,9 @@ class TestSetOps:
         assert tm.equalContents(result, answer)
 
         # GH#10149
-        cases = [klass(second.values) for klass in [np.array, Series, list]]
+        cases = [second.to_numpy(), second.to_series(), second.to_list()]
         for case in cases:
             result = first.symmetric_difference(case)
-
-            if is_datetime64tz_dtype(first):
-                # second.values casts to tznaive
-                expected = first.union(case)
-                tm.assert_index_equal(result, expected)
-                continue
-
             assert tm.equalContents(result, answer)
 
         if isinstance(index, MultiIndex):
@@ -470,19 +454,20 @@ class TestSetOps:
     "method", ["intersection", "union", "difference", "symmetric_difference"]
 )
 def test_setop_with_categorical(index, sort, method):
-    if isinstance(index, MultiIndex):
+    if isinstance(index, MultiIndex):  # TODO: flat_index?
         # tested separately in tests.indexes.multi.test_setops
         return
 
     other = index.astype("category")
+    exact = "equiv" if isinstance(index, RangeIndex) else True
 
     result = getattr(index, method)(other, sort=sort)
     expected = getattr(index, method)(index, sort=sort)
-    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(result, expected, exact=exact)
 
     result = getattr(index, method)(other[:5], sort=sort)
     expected = getattr(index, method)(index[:5], sort=sort)
-    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(result, expected, exact=exact)
 
 
 def test_intersection_duplicates_all_indexes(index):
@@ -547,7 +532,7 @@ def test_union_with_duplicate_index_and_non_monotonic(cls):
     result = a.union(b)
     tm.assert_index_equal(result, expected)
 
-    result = a.union(b)
+    result = b.union(a)
     tm.assert_index_equal(result, expected)
 
 
@@ -576,6 +561,29 @@ def test_union_nan_in_both(dup):
     b = Index([np.nan, dup, 1, 2])
     result = a.union(b, sort=False)
     expected = Index([np.nan, dup, 1.0, 2.0, 2.0])
+    tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "cls",
+    [
+        Int64Index,
+        Float64Index,
+        DatetimeIndex,
+        TimedeltaIndex,
+        lambda x: Index(x, dtype=object),
+    ],
+)
+def test_union_with_duplicate_index_not_subset_and_non_monotonic(cls):
+    # GH#36289
+    a = cls([1, 0, 2])
+    b = cls([0, 0, 1])
+    expected = cls([0, 0, 1, 2])
+
+    result = a.union(b)
+    tm.assert_index_equal(result, expected)
+
+    result = b.union(a)
     tm.assert_index_equal(result, expected)
 
 
@@ -765,7 +773,7 @@ class TestSetOpsUnsorted:
     @pytest.mark.xfail(reason="Not implemented")
     @pytest.mark.parametrize("opname", ["difference", "symmetric_difference"])
     def test_difference_incomparable_true(self, opname):
-        # TODO: decide on True behaviour
+        # TODO(GH#25151): decide on True behaviour
         # # sort=True, raises
         a = Index([3, Timestamp("2000"), 1])
         b = Index([2, Timestamp("1999"), 1])

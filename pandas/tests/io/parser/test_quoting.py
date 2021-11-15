@@ -13,6 +13,8 @@ from pandas.errors import ParserError
 from pandas import DataFrame
 import pandas._testing as tm
 
+pytestmark = pytest.mark.usefixtures("pyarrow_skip")
+
 
 @pytest.mark.parametrize(
     "kwargs,msg",
@@ -22,7 +24,7 @@ import pandas._testing as tm
             {"quotechar": None, "quoting": csv.QUOTE_MINIMAL},
             "quotechar must be set if quoting enabled",
         ),
-        ({"quotechar": 2}, '"quotechar" must be string, not int'),
+        ({"quotechar": 2}, '"quotechar" must be string( or None)?, not int'),
     ],
 )
 def test_bad_quote_char(all_parsers, kwargs, msg):

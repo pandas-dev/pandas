@@ -28,16 +28,16 @@ from pandas.core.arrays import IntervalArray
         (Index([0, 2, 4, 4]), Index([1, 3, 5, 8])),
         (Index([0.0, 1.0, 2.0, np.nan]), Index([1.0, 2.0, 3.0, np.nan])),
         (
-            timedelta_range("0 days", periods=3).insert(4, pd.NaT),
-            timedelta_range("1 day", periods=3).insert(4, pd.NaT),
+            timedelta_range("0 days", periods=3).insert(3, pd.NaT),
+            timedelta_range("1 day", periods=3).insert(3, pd.NaT),
         ),
         (
-            date_range("20170101", periods=3).insert(4, pd.NaT),
-            date_range("20170102", periods=3).insert(4, pd.NaT),
+            date_range("20170101", periods=3).insert(3, pd.NaT),
+            date_range("20170102", periods=3).insert(3, pd.NaT),
         ),
         (
-            date_range("20170101", periods=3, tz="US/Eastern").insert(4, pd.NaT),
-            date_range("20170102", periods=3, tz="US/Eastern").insert(4, pd.NaT),
+            date_range("20170101", periods=3, tz="US/Eastern").insert(3, pd.NaT),
+            date_range("20170102", periods=3, tz="US/Eastern").insert(3, pd.NaT),
         ),
     ],
     ids=lambda x: str(x[0].dtype),
@@ -135,7 +135,8 @@ class TestComparison:
 
         if nulls_fixture is pd.NA and interval_array.dtype.subtype != "int64":
             mark = pytest.mark.xfail(
-                reason="broken for non-integer IntervalArray; see GH 31882"
+                raises=AssertionError,
+                reason="broken for non-integer IntervalArray; see GH 31882",
             )
             request.node.add_marker(mark)
 
@@ -220,7 +221,7 @@ class TestComparison:
 
         if nulls_fixture is pd.NA and interval_array.dtype.subtype != "i8":
             reason = "broken for non-integer IntervalArray; see GH 31882"
-            mark = pytest.mark.xfail(reason=reason)
+            mark = pytest.mark.xfail(raises=AssertionError, reason=reason)
             request.node.add_marker(mark)
 
         tm.assert_numpy_array_equal(result, expected)
@@ -237,7 +238,7 @@ class TestComparison:
             Categorical(list("abab")),
             Categorical(date_range("2017-01-01", periods=4)),
             pd.array(list("abcd")),
-            pd.array(["foo", 3.14, None, object()]),
+            pd.array(["foo", 3.14, None, object()], dtype=object),
         ],
         ids=lambda x: str(x.dtype),
     )

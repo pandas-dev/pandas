@@ -13,6 +13,7 @@ import pandas._testing as tm
 # for most cases), and the specific cases where the result deviates from
 # this default. Those overrides are defined as a dict with (keyword, val) as
 # dictionary key. In case of multiple items, the last override takes precedence.
+
 test_cases = [
     (
         # data
@@ -212,11 +213,11 @@ class TestSeriesConvertDtypes:
         # Make sure original not changed
         tm.assert_series_equal(series, copy)
 
-    def test_convert_string_dtype(self):
+    def test_convert_string_dtype(self, nullable_string_dtype):
         # https://github.com/pandas-dev/pandas/issues/31731 -> converting columns
         # that are already string dtype
         df = pd.DataFrame(
-            {"A": ["a", "b", pd.NA], "B": ["ä", "ö", "ü"]}, dtype="string"
+            {"A": ["a", "b", pd.NA], "B": ["ä", "ö", "ü"]}, dtype=nullable_string_dtype
         )
         result = df.convert_dtypes()
         tm.assert_frame_equal(df, result)
@@ -225,3 +226,12 @@ class TestSeriesConvertDtypes:
         # GH32287
         df = pd.DataFrame({"A": pd.array([True])})
         tm.assert_frame_equal(df, df.convert_dtypes())
+
+    def test_convert_byte_string_dtype(self):
+        # GH-43183
+        byte_str = b"binary-string"
+
+        df = pd.DataFrame(data={"A": byte_str}, index=[0])
+        result = df.convert_dtypes()
+        expected = df
+        tm.assert_frame_equal(result, expected)

@@ -25,6 +25,7 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
+from pandas.core.api import Float64Index
 from pandas.tests.indexing.common import _mklbl
 from pandas.tests.indexing.test_floats import gen_obj
 
@@ -33,7 +34,7 @@ from pandas.tests.indexing.test_floats import gen_obj
 
 
 class TestFancy:
-    """ pure get/set item & fancy indexing """
+    """pure get/set item & fancy indexing"""
 
     def test_setitem_ndarray_1d(self):
         # GH5508
@@ -94,6 +95,8 @@ class TestFancy:
             msgs.append("Index data must be 1-dimensional")
         if isinstance(index, pd.IntervalIndex) and indexer_sli is tm.iloc:
             msgs.append("Index data must be 1-dimensional")
+        if isinstance(index, (pd.TimedeltaIndex, pd.DatetimeIndex, pd.PeriodIndex)):
+            msgs.append("Data must be 1-dimensional")
         if len(index) == 0 or isinstance(index, pd.MultiIndex):
             msgs.append("positional indexers are out-of-bounds")
         msg = "|".join(msgs)
@@ -111,15 +114,6 @@ class TestFancy:
         if indexer_sli is tm.iloc:
             err = ValueError
             msg = f"Cannot set values with ndim > {obj.ndim}"
-        elif (
-            isinstance(index, pd.IntervalIndex)
-            and indexer_sli is tm.setitem
-            and obj.ndim == 1
-        ):
-            err = AttributeError
-            msg = (
-                "'pandas._libs.interval.IntervalTree' object has no attribute 'get_loc'"
-            )
         else:
             err = ValueError
             msg = "|".join(
@@ -127,12 +121,28 @@ class TestFancy:
                     r"Buffer has wrong number of dimensions \(expected 1, got 3\)",
                     "Cannot set values with ndim > 1",
                     "Index data must be 1-dimensional",
+                    "Data must be 1-dimensional",
                     "Array conditional must be same shape as self",
                 ]
             )
 
         with pytest.raises(err, match=msg):
             idxr[nd3] = 0
+
+    def test_getitem_ndarray_0d(self):
+        # GH#24924
+        key = np.array(0)
+
+        # dataframe __getitem__
+        df = DataFrame([[1, 2], [3, 4]])
+        result = df[key]
+        expected = Series([1, 3], name=0)
+        tm.assert_series_equal(result, expected)
+
+        # series __getitem__
+        ser = Series([1, 2])
+        result = ser[key]
+        assert result == 1
 
     def test_inf_upcast(self):
         # GH 16957
@@ -149,7 +159,7 @@ class TestFancy:
         assert df.loc[np.inf, 0] == 3
 
         result = df.index
-        expected = pd.Float64Index([1, 2, np.inf])
+        expected = Float64Index([1, 2, np.inf])
         tm.assert_index_equal(result, expected)
 
     def test_setitem_dtype_upcast(self):
@@ -247,12 +257,12 @@ class TestFancy:
         tm.assert_frame_equal(result, expected)
 
         rows = ["C", "B", "E"]
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match="not in index"):
             df.loc[rows]
 
         # see GH5553, make sure we use the right indexer
         rows = ["F", "G", "H", "C", "B", "E"]
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match="not in index"):
             df.loc[rows]
 
     def test_dups_fancy_indexing_only_missing_label(self):
@@ -274,14 +284,14 @@ class TestFancy:
 
         # GH 4619; duplicate indexer with missing label
         df = DataFrame({"A": vals})
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match="not in index"):
             df.loc[[0, 8, 0]]
 
     def test_dups_fancy_indexing_non_unique(self):
 
         # non unique with non unique selector
         df = DataFrame({"test": [5, 7, 9, 11]}, index=["A", "A", "B", "C"])
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match="not in index"):
             df.loc[["A", "A", "E"]]
 
     def test_dups_fancy_indexing2(self):
@@ -289,7 +299,7 @@ class TestFancy:
         # dups on index and missing values
         df = DataFrame(np.random.randn(5, 5), columns=["A", "B", "B", "B", "A"])
 
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match="not in index"):
             df.loc[:, ["A", "B", "C"]]
 
     def test_dups_fancy_indexing3(self):
@@ -313,9 +323,9 @@ class TestFancy:
 
     def test_duplicate_int_indexing(self, indexer_sl):
         # GH 17347
-        s = Series(range(3), index=[1, 1, 3])
-        expected = s[1]
-        result = indexer_sl(s)[[1]]
+        ser = Series(range(3), index=[1, 1, 3])
+        expected = Series(range(2), index=[1, 1])
+        result = indexer_sl(ser)[[1]]
         tm.assert_series_equal(result, expected)
 
     def test_indexing_mixed_frame_bug(self):
@@ -338,7 +348,7 @@ class TestFancy:
         # GH 10610
         df = DataFrame(np.random.random((10, 5)), columns=["a"] + [20, 21, 22, 23])
 
-        with pytest.raises(KeyError, match=re.escape("'[-8, 26] not in index'")):
+        with pytest.raises(KeyError, match=re.escape("'[26, -8] not in index'")):
             df[[22, 26, -8]]
         assert df[21].shape[0] == df.shape[0]
 
@@ -524,7 +534,7 @@ class TestFancy:
         with pytest.raises(KeyError, match="'2011'"):
             df["2011"]
 
-        with pytest.raises(KeyError, match="'2011'"):
+        with pytest.raises(KeyError, match="^0$"):
             df.loc["2011", 0]
 
     def test_astype_assignment(self):
@@ -643,13 +653,6 @@ class TestMisc:
         df.loc[df.index] = df.loc[df.index]
         tm.assert_frame_equal(df, df2)
 
-    def test_float_index_at_iat(self):
-        s = Series([1, 2, 3], index=[0.1, 0.2, 0.3])
-        for el, item in s.items():
-            assert s.at[el] == item
-        for i in range(len(s)):
-            assert s.iat[i] == i + 1
-
     def test_rhs_alignment(self):
         # GH8258, tests that both rows & columns are aligned to what is
         # assigned to. covers both uniform data-type & multi-type cases
@@ -699,26 +702,22 @@ class TestMisc:
     def test_str_label_slicing_with_negative_step(self):
         SLC = pd.IndexSlice
 
-        def assert_slices_equivalent(l_slc, i_slc):
-            tm.assert_series_equal(s.loc[l_slc], s.iloc[i_slc])
-
-            if not idx.is_integer:
-                # For integer indices, .loc and plain getitem are position-based.
-                tm.assert_series_equal(s[l_slc], s.iloc[i_slc])
-                tm.assert_series_equal(s.loc[l_slc], s.iloc[i_slc])
-
         for idx in [_mklbl("A", 20), np.arange(20) + 100, np.linspace(100, 150, 20)]:
             idx = Index(idx)
-            s = Series(np.arange(20), index=idx)
-            assert_slices_equivalent(SLC[idx[9] :: -1], SLC[9::-1])
-            assert_slices_equivalent(SLC[: idx[9] : -1], SLC[:8:-1])
-            assert_slices_equivalent(SLC[idx[13] : idx[9] : -1], SLC[13:8:-1])
-            assert_slices_equivalent(SLC[idx[9] : idx[13] : -1], SLC[:0])
+            ser = Series(np.arange(20), index=idx)
+            tm.assert_indexing_slices_equivalent(ser, SLC[idx[9] :: -1], SLC[9::-1])
+            tm.assert_indexing_slices_equivalent(ser, SLC[: idx[9] : -1], SLC[:8:-1])
+            tm.assert_indexing_slices_equivalent(
+                ser, SLC[idx[13] : idx[9] : -1], SLC[13:8:-1]
+            )
+            tm.assert_indexing_slices_equivalent(
+                ser, SLC[idx[9] : idx[13] : -1], SLC[:0]
+            )
 
-    def test_slice_with_zero_step_raises(self, indexer_sl):
-        ser = Series(np.arange(20), index=_mklbl("A", 20))
+    def test_slice_with_zero_step_raises(self, indexer_sl, frame_or_series):
+        obj = frame_or_series(np.arange(20), index=_mklbl("A", 20))
         with pytest.raises(ValueError, match="slice step cannot be zero"):
-            indexer_sl(ser)[::0]
+            indexer_sl(obj)[::0]
 
     def test_loc_setitem_indexing_assignment_dict_already_exists(self):
         index = Index([-5, 0, 5], name="z")
@@ -776,12 +775,12 @@ class TestMisc:
         del df
         assert wr() is None
 
-    def test_label_indexing_on_nan(self):
+    def test_label_indexing_on_nan(self, nulls_fixture):
         # GH 32431
-        df = Series([1, "{1,2}", 1, None])
+        df = Series([1, "{1,2}", 1, nulls_fixture])
         vc = df.value_counts(dropna=False)
-        result1 = vc.loc[np.nan]
-        result2 = vc[np.nan]
+        result1 = vc.loc[nulls_fixture]
+        result2 = vc[nulls_fixture]
 
         expected = 1
         assert result1 == expected
@@ -876,7 +875,7 @@ class TestDatetimelikeCoercion:
         else:
             assert ser._values is values
 
-    @pytest.mark.parametrize("box", [list, np.array, pd.array])
+    @pytest.mark.parametrize("box", [list, np.array, pd.array, pd.Categorical, Index])
     @pytest.mark.parametrize(
         "key", [[0, 1], slice(0, 2), np.array([True, True, False])]
     )
@@ -916,7 +915,7 @@ class TestDatetimelikeCoercion:
         indexer_sli(ser)[0] = scalar
         assert ser._values._data is values._data
 
-    @pytest.mark.parametrize("box", [list, np.array, pd.array])
+    @pytest.mark.parametrize("box", [list, np.array, pd.array, pd.Categorical, Index])
     @pytest.mark.parametrize(
         "key", [[0, 1], slice(0, 2), np.array([True, True, False])]
     )
@@ -957,7 +956,11 @@ def test_extension_array_cross_section():
 def test_extension_array_cross_section_converts():
     # all numeric columns -> numeric series
     df = DataFrame(
-        {"A": pd.array([1, 2], dtype="Int64"), "B": np.array([1, 2])}, index=["a", "b"]
+        {
+            "A": pd.array([1, 2], dtype="Int64"),
+            "B": np.array([1, 2], dtype="int64"),
+        },
+        index=["a", "b"],
     )
     result = df.loc["a"]
     expected = Series([1, 1], dtype="Int64", index=["A", "B"], name="a")

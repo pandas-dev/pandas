@@ -58,16 +58,18 @@ def test_custom_grouper(index):
     g = s.groupby(b)
 
     # check all cython functions work
-    funcs = ["add", "mean", "prod", "ohlc", "min", "max", "var"]
+    g.ohlc()  # doesn't use _cython_agg_general
+    funcs = ["add", "mean", "prod", "min", "max", "var"]
     for f in funcs:
-        g._cython_agg_general(f)
+        g._cython_agg_general(f, alt=None, numeric_only=True)
 
     b = Grouper(freq=Minute(5), closed="right", label="right")
     g = s.groupby(b)
     # check all cython functions work
-    funcs = ["add", "mean", "prod", "ohlc", "min", "max", "var"]
+    g.ohlc()  # doesn't use _cython_agg_general
+    funcs = ["add", "mean", "prod", "min", "max", "var"]
     for f in funcs:
-        g._cython_agg_general(f)
+        g._cython_agg_general(f, alt=None, numeric_only=True)
 
     assert g.ngroups == 2593
     assert notna(g.mean()).all()
@@ -79,7 +81,7 @@ def test_custom_grouper(index):
     idx = DatetimeIndex(idx, freq="5T")
     expect = Series(arr, index=idx)
 
-    # GH2763 - return in put dtype if we can
+    # GH2763 - return input dtype if we can
     result = g.agg(np.sum)
     tm.assert_series_equal(result, expect)
 
@@ -415,7 +417,7 @@ def test_resample_frame_basic():
     # check all cython functions work
     funcs = ["add", "mean", "prod", "min", "max", "var"]
     for f in funcs:
-        g._cython_agg_general(f)
+        g._cython_agg_general(f, alt=None, numeric_only=True)
 
     result = df.resample("A").mean()
     tm.assert_series_equal(result["A"], df["A"].resample("A").mean())
@@ -573,12 +575,14 @@ def test_resample_ohlc_dataframe():
             }
         )
     ).reindex(["VOLUME", "PRICE"], axis=1)
+    df.columns.name = "Cols"
     res = df.resample("H").ohlc()
     exp = pd.concat(
         [df["VOLUME"].resample("H").ohlc(), df["PRICE"].resample("H").ohlc()],
         axis=1,
-        keys=["VOLUME", "PRICE"],
+        keys=df.columns,
     )
+    assert exp.columns.names[0] == "Cols"
     tm.assert_frame_equal(exp, res)
 
     df.columns = [["a", "b"], ["c", "d"]]
@@ -690,9 +694,10 @@ def test_asfreq_non_unique():
     rng2 = rng.repeat(2).values
     ts = Series(np.random.randn(len(rng2)), index=rng2)
 
-    msg = "cannot reindex from a duplicate axis"
+    msg = "cannot reindex on an axis with duplicate labels"
     with pytest.raises(ValueError, match=msg):
-        ts.asfreq("B")
+        with tm.assert_produces_warning(FutureWarning, match="non-unique"):
+            ts.asfreq("B")
 
 
 def test_resample_axis1():
@@ -1062,7 +1067,7 @@ def test_nanosecond_resample_error():
     result = r.agg("mean")
 
     exp_indx = date_range(start=pd.to_datetime(exp_start), periods=10, freq="100n")
-    exp = Series(range(len(exp_indx)), index=exp_indx)
+    exp = Series(range(len(exp_indx)), index=exp_indx, dtype=float)
 
     tm.assert_series_equal(result, exp)
 
@@ -1204,6 +1209,9 @@ def test_resample_median_bug_1688():
 
         result = df.resample("T").apply(lambda x: x.mean())
         exp = df.asfreq("T")
+        if dtype == "float32":
+            # TODO: Empty groups cause x.mean() to return float64
+            exp = exp.astype("float64")
         tm.assert_frame_equal(result, exp)
 
         result = df.resample("T").median()
@@ -1342,7 +1350,7 @@ def test_resample_nunique():
     assert expected.name == "ID"
 
     for t in [r, g]:
-        result = r.ID.nunique()
+        result = t.ID.nunique()
         tm.assert_series_equal(result, expected)
 
     result = df.ID.resample("D").nunique()
@@ -1631,15 +1639,15 @@ def test_resample_with_nat():
     index_1s = DatetimeIndex(
         ["1970-01-01 00:00:00", "1970-01-01 00:00:01", "1970-01-01 00:00:02"]
     )
-    frame_1s = DataFrame([3, 7, 11], index=index_1s)
+    frame_1s = DataFrame([3.0, 7.0, 11.0], index=index_1s)
     tm.assert_frame_equal(frame.resample("1s").mean(), frame_1s)
 
     index_2s = DatetimeIndex(["1970-01-01 00:00:00", "1970-01-01 00:00:02"])
-    frame_2s = DataFrame([5, 11], index=index_2s)
+    frame_2s = DataFrame([5.0, 11.0], index=index_2s)
     tm.assert_frame_equal(frame.resample("2s").mean(), frame_2s)
 
     index_3s = DatetimeIndex(["1970-01-01 00:00:00"])
-    frame_3s = DataFrame([7], index=index_3s)
+    frame_3s = DataFrame([7.0], index=index_3s)
     tm.assert_frame_equal(frame.resample("3s").mean(), frame_3s)
 
     tm.assert_frame_equal(frame.resample("60s").mean(), frame_3s)
@@ -1682,7 +1690,7 @@ def test_resample_apply_with_additional_args(series):
 
     # Testing dataframe
     df = DataFrame({"A": 1, "B": 2}, index=date_range("2017", periods=10))
-    result = df.groupby("A").resample("D").agg(f, multiplier)
+    result = df.groupby("A").resample("D").agg(f, multiplier).astype(float)
     expected = df.groupby("A").resample("D").mean().multiply(multiplier)
     tm.assert_frame_equal(result, expected)
 
@@ -1732,8 +1740,8 @@ def test_get_timestamp_range_edges(first, last, freq, exp_first, exp_last):
     last = Period(last)
     last = last.to_timestamp(last.freq)
 
-    exp_first = Timestamp(exp_first, freq=freq)
-    exp_last = Timestamp(exp_last, freq=freq)
+    exp_first = Timestamp(exp_first)
+    exp_last = Timestamp(exp_last)
 
     freq = pd.tseries.frequencies.to_offset(freq)
     result = _get_timestamp_range_edges(first, last, freq)
@@ -1741,19 +1749,23 @@ def test_get_timestamp_range_edges(first, last, freq, exp_first, exp_last):
     assert result == expected
 
 
-def test_resample_apply_product():
+@pytest.mark.parametrize("duplicates", [True, False])
+def test_resample_apply_product(duplicates):
     # GH 5586
     index = date_range(start="2012-01-31", freq="M", periods=12)
 
     ts = Series(range(12), index=index)
     df = DataFrame({"A": ts, "B": ts + 2})
+    if duplicates:
+        df.columns = ["A", "A"]
+
     result = df.resample("Q").apply(np.product)
     expected = DataFrame(
         np.array([[0, 24], [60, 210], [336, 720], [990, 1716]], dtype=np.int64),
         index=DatetimeIndex(
             ["2012-03-31", "2012-06-30", "2012-09-30", "2012-12-31"], freq="Q-DEC"
         ),
-        columns=["A", "B"],
+        columns=df.columns,
     )
     tm.assert_frame_equal(result, expected)
 

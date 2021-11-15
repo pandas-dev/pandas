@@ -55,7 +55,7 @@ def test_group_shift_with_fill_value():
         columns=["Z"],
         index=None,
     )
-    result = g.shift(-1, fill_value=0)[["Z"]]
+    result = g.shift(-1, fill_value=0)
 
     tm.assert_frame_equal(result, expected)
 
@@ -69,11 +69,14 @@ def test_group_shift_lose_timezone():
     tm.assert_series_equal(result, expected)
 
 
-def test_group_diff_real(any_real_dtype):
-    df = DataFrame({"a": [1, 2, 3, 3, 2], "b": [1, 2, 3, 4, 5]}, dtype=any_real_dtype)
+def test_group_diff_real(any_real_numpy_dtype):
+    df = DataFrame(
+        {"a": [1, 2, 3, 3, 2], "b": [1, 2, 3, 4, 5]},
+        dtype=any_real_numpy_dtype,
+    )
     result = df.groupby("a")["b"].diff()
     exp_dtype = "float"
-    if any_real_dtype in ["int8", "int16", "float32"]:
+    if any_real_numpy_dtype in ["int8", "int16", "float32"]:
         exp_dtype = "float32"
     expected = Series([np.nan, np.nan, np.nan, 1.0, 3.0], dtype=exp_dtype, name="b")
     tm.assert_series_equal(result, expected)
@@ -110,3 +113,21 @@ def test_group_diff_object_raises(object_dtype):
     )
     with pytest.raises(TypeError, match=r"unsupported operand type\(s\) for -"):
         df.groupby("a")["b"].diff()
+
+
+def test_empty_shift_with_fill():
+    # GH 41264, single-index check
+    df = DataFrame(columns=["a", "b", "c"])
+    shifted = df.groupby(["a"]).shift(1)
+    shifted_with_fill = df.groupby(["a"]).shift(1, fill_value=0)
+    tm.assert_frame_equal(shifted, shifted_with_fill)
+    tm.assert_index_equal(shifted.index, shifted_with_fill.index)
+
+
+def test_multindex_empty_shift_with_fill():
+    # GH 41264, multi-index check
+    df = DataFrame(columns=["a", "b", "c"])
+    shifted = df.groupby(["a", "b"]).shift(1)
+    shifted_with_fill = df.groupby(["a", "b"]).shift(1, fill_value=0)
+    tm.assert_frame_equal(shifted, shifted_with_fill)
+    tm.assert_index_equal(shifted.index, shifted_with_fill.index)

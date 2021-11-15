@@ -1,11 +1,6 @@
 from __future__ import annotations
 
-from typing import (
-    List,
-    Optional,
-    Tuple,
-    Type,
-)
+from typing import overload
 import warnings
 
 import numpy as np
@@ -16,7 +11,9 @@ from pandas._libs import (
 )
 from pandas._typing import (
     ArrayLike,
+    AstypeArg,
     DtypeObj,
+    npt,
 )
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly
@@ -37,6 +34,7 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.missing import isna
 
+from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.numeric import (
     NumericArray,
     NumericDtype,
@@ -63,7 +61,7 @@ class FloatingDtype(NumericDtype):
         return True
 
     @classmethod
-    def construct_array_type(cls) -> Type[FloatingArray]:
+    def construct_array_type(cls) -> type[FloatingArray]:
         """
         Return the array type associated with this dtype.
 
@@ -73,7 +71,7 @@ class FloatingDtype(NumericDtype):
         """
         return FloatingArray
 
-    def _get_common_dtype(self, dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
+    def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
         # for now only handle other floating types
         if not all(isinstance(t, FloatingDtype) for t in dtypes):
             return None
@@ -90,7 +88,7 @@ class FloatingDtype(NumericDtype):
 
 def coerce_to_array(
     values, dtype=None, mask=None, copy: bool = False
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Coerce the input values array to numpy arrays with a mask.
 
@@ -247,6 +245,9 @@ class FloatingArray(NumericArray):
 
     # The value used to fill '_data' to avoid upcasting
     _internal_fill_value = 0.0
+    # Fill values used for any/all
+    _truthy_value = 1.0
+    _falsey_value = 0.0
 
     @cache_readonly
     def dtype(self) -> FloatingDtype:
@@ -274,10 +275,22 @@ class FloatingArray(NumericArray):
         scalars = to_numeric(strings, errors="raise")
         return cls._from_sequence(scalars, dtype=dtype, copy=copy)
 
-    def _coerce_to_array(self, value) -> Tuple[np.ndarray, np.ndarray]:
+    def _coerce_to_array(self, value) -> tuple[np.ndarray, np.ndarray]:
         return coerce_to_array(value, dtype=self.dtype)
 
-    def astype(self, dtype, copy: bool = True) -> ArrayLike:
+    @overload
+    def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
+        ...
+
+    @overload
+    def astype(self, dtype: ExtensionDtype, copy: bool = ...) -> ExtensionArray:
+        ...
+
+    @overload
+    def astype(self, dtype: AstypeArg, copy: bool = ...) -> ArrayLike:
+        ...
+
+    def astype(self, dtype: AstypeArg, copy: bool = True) -> ArrayLike:
         """
         Cast to a NumPy array or ExtensionArray with 'dtype'.
 
@@ -372,21 +385,21 @@ class FloatingArray(NumericArray):
 
         return BooleanArray(result, mask)
 
-    def sum(self, *, skipna=True, min_count=0, **kwargs):
+    def sum(self, *, skipna=True, min_count=0, axis: int | None = 0, **kwargs):
         nv.validate_sum((), kwargs)
-        return super()._reduce("sum", skipna=skipna, min_count=min_count)
+        return super()._reduce("sum", skipna=skipna, min_count=min_count, axis=axis)
 
-    def prod(self, *, skipna=True, min_count=0, **kwargs):
+    def prod(self, *, skipna=True, min_count=0, axis: int | None = 0, **kwargs):
         nv.validate_prod((), kwargs)
-        return super()._reduce("prod", skipna=skipna, min_count=min_count)
+        return super()._reduce("prod", skipna=skipna, min_count=min_count, axis=axis)
 
-    def min(self, *, skipna=True, **kwargs):
+    def min(self, *, skipna=True, axis: int | None = 0, **kwargs):
         nv.validate_min((), kwargs)
-        return super()._reduce("min", skipna=skipna)
+        return super()._reduce("min", skipna=skipna, axis=axis)
 
-    def max(self, *, skipna=True, **kwargs):
+    def max(self, *, skipna=True, axis: int | None = 0, **kwargs):
         nv.validate_max((), kwargs)
-        return super()._reduce("max", skipna=skipna)
+        return super()._reduce("max", skipna=skipna, axis=axis)
 
     def _maybe_mask_result(self, result, mask, other, op_name: str):
         """

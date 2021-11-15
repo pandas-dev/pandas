@@ -8,19 +8,19 @@ from typing import (
     TYPE_CHECKING,
     Hashable,
     Iterable,
-    List,
+    Literal,
     Mapping,
-    Optional,
-    Type,
-    Union,
     cast,
     overload,
 )
 
 import numpy as np
 
-from pandas._typing import FrameOrSeriesUnion
-from pandas.util._decorators import cache_readonly
+from pandas._typing import Axis
+from pandas.util._decorators import (
+    cache_readonly,
+    deprecate_nonkeyword_arguments,
+)
 
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
@@ -38,11 +38,11 @@ from pandas.core.indexes.api import (
     Index,
     MultiIndex,
     all_indexes_same,
+    default_index,
     ensure_index,
     get_objs_combined_axis,
     get_unanimous_names,
 )
-import pandas.core.indexes.base as ibase
 from pandas.core.internals import concatenate_managers
 
 if TYPE_CHECKING:
@@ -58,24 +58,88 @@ if TYPE_CHECKING:
 
 @overload
 def concat(
-    objs: Union[Iterable[DataFrame], Mapping[Hashable, DataFrame]],
-    axis=0,
-    join: str = "outer",
-    ignore_index: bool = False,
-    keys=None,
-    levels=None,
-    names=None,
-    verify_integrity: bool = False,
-    sort: bool = False,
-    copy: bool = True,
+    objs: Iterable[DataFrame] | Mapping[Hashable, DataFrame],
+    axis: Literal[0, "index"] = ...,
+    join: str = ...,
+    ignore_index: bool = ...,
+    keys=...,
+    levels=...,
+    names=...,
+    verify_integrity: bool = ...,
+    sort: bool = ...,
+    copy: bool = ...,
 ) -> DataFrame:
     ...
 
 
 @overload
 def concat(
-    objs: Union[Iterable[NDFrame], Mapping[Hashable, NDFrame]],
-    axis=0,
+    objs: Iterable[Series] | Mapping[Hashable, Series],
+    axis: Literal[0, "index"] = ...,
+    join: str = ...,
+    ignore_index: bool = ...,
+    keys=...,
+    levels=...,
+    names=...,
+    verify_integrity: bool = ...,
+    sort: bool = ...,
+    copy: bool = ...,
+) -> Series:
+    ...
+
+
+@overload
+def concat(
+    objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
+    axis: Literal[0, "index"] = ...,
+    join: str = ...,
+    ignore_index: bool = ...,
+    keys=...,
+    levels=...,
+    names=...,
+    verify_integrity: bool = ...,
+    sort: bool = ...,
+    copy: bool = ...,
+) -> DataFrame | Series:
+    ...
+
+
+@overload
+def concat(
+    objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
+    axis: Literal[1, "columns"],
+    join: str = ...,
+    ignore_index: bool = ...,
+    keys=...,
+    levels=...,
+    names=...,
+    verify_integrity: bool = ...,
+    sort: bool = ...,
+    copy: bool = ...,
+) -> DataFrame:
+    ...
+
+
+@overload
+def concat(
+    objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
+    axis: Axis = ...,
+    join: str = ...,
+    ignore_index: bool = ...,
+    keys=None,
+    levels=None,
+    names=None,
+    verify_integrity: bool = False,
+    sort: bool = False,
+    copy: bool = True,
+) -> DataFrame | Series:
+    ...
+
+
+@deprecate_nonkeyword_arguments(version=None, allowed_args=["objs"])
+def concat(
+    objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
+    axis: Axis = 0,
     join: str = "outer",
     ignore_index: bool = False,
     keys=None,
@@ -84,22 +148,7 @@ def concat(
     verify_integrity: bool = False,
     sort: bool = False,
     copy: bool = True,
-) -> FrameOrSeriesUnion:
-    ...
-
-
-def concat(
-    objs: Union[Iterable[NDFrame], Mapping[Hashable, NDFrame]],
-    axis=0,
-    join="outer",
-    ignore_index: bool = False,
-    keys=None,
-    levels=None,
-    names=None,
-    verify_integrity: bool = False,
-    sort: bool = False,
-    copy: bool = True,
-) -> FrameOrSeriesUnion:
+) -> DataFrame | Series:
     """
     Concatenate pandas objects along a particular axis with optional set logic
     along the other axes.
@@ -314,7 +363,7 @@ class _Concatenator:
 
     def __init__(
         self,
-        objs: Union[Iterable[NDFrame], Mapping[Hashable, NDFrame]],
+        objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
         axis=0,
         join: str = "outer",
         keys=None,
@@ -362,8 +411,13 @@ class _Concatenator:
                 clean_keys.append(k)
                 clean_objs.append(v)
             objs = clean_objs
-            name = getattr(keys, "name", None)
-            keys = Index(clean_keys, name=name)
+
+            if isinstance(keys, MultiIndex):
+                # TODO: retain levels?
+                keys = type(keys).from_tuples(clean_keys, names=keys.names)
+            else:
+                name = getattr(keys, "name", None)
+                keys = Index(clean_keys, name=name)
 
         if len(objs) == 0:
             raise ValueError("All objects passed were None")
@@ -383,7 +437,7 @@ class _Concatenator:
         # get the sample
         # want the highest ndim that we have, and must be non-empty
         # unless all objs are empty
-        sample: Optional[NDFrame] = None
+        sample: NDFrame | None = None
         if len(ndims) > 1:
             max_ndim = max(ndims)
             for obj in objs:
@@ -454,7 +508,7 @@ class _Concatenator:
                     if self._is_frame and axis == 1:
                         name = 0
                     # mypy needs to know sample is not an NDFrame
-                    sample = cast("FrameOrSeriesUnion", sample)
+                    sample = cast("DataFrame | Series", sample)
                     obj = sample._constructor({name: obj})
 
                 self.objs.append(obj)
@@ -474,8 +528,8 @@ class _Concatenator:
         self.new_axes = self._get_new_axes()
 
     def get_result(self):
-        cons: Type[FrameOrSeriesUnion]
-        sample: FrameOrSeriesUnion
+        cons: type[DataFrame | Series]
+        sample: DataFrame | Series
 
         # series only
         if self._is_series:
@@ -500,7 +554,7 @@ class _Concatenator:
                 cons = sample._constructor_expanddim
 
                 index, columns = self.new_axes
-                df = cons(data, index=index)
+                df = cons(data, index=index, copy=self.copy)
                 df.columns = columns
                 return df.__finalize__(self, method="concat")
 
@@ -539,7 +593,7 @@ class _Concatenator:
         else:
             return self.objs[0].ndim
 
-    def _get_new_axes(self) -> List[Index]:
+    def _get_new_axes(self) -> list[Index]:
         ndim = self._get_result_dim()
         return [
             self._get_concat_axis if i == self.bm_axis else self._get_comb_axis(i)
@@ -565,10 +619,10 @@ class _Concatenator:
             if self.bm_axis == 0:
                 indexes = [x.index for x in self.objs]
             elif self.ignore_index:
-                idx = ibase.default_index(len(self.objs))
+                idx = default_index(len(self.objs))
                 return idx
             elif self.keys is None:
-                names: List[Hashable] = [None] * len(self.objs)
+                names: list[Hashable] = [None] * len(self.objs)
                 num = 0
                 has_names = False
                 for i, x in enumerate(self.objs):
@@ -586,14 +640,14 @@ class _Concatenator:
                 if has_names:
                     return Index(names)
                 else:
-                    return ibase.default_index(len(self.objs))
+                    return default_index(len(self.objs))
             else:
                 return ensure_index(self.keys).set_names(self.names)
         else:
             indexes = [x.axes[self.axis] for x in self.objs]
 
         if self.ignore_index:
-            idx = ibase.default_index(sum(len(i) for i in indexes))
+            idx = default_index(sum(len(i) for i in indexes))
             return idx
 
         if self.keys is None:
@@ -641,7 +695,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
         else:
             levels = [ensure_index(x) for x in levels]
 
-    if not all_indexes_same(indexes):
+    if not all_indexes_same(indexes) or not all(level.is_unique for level in levels):
         codes_list = []
 
         # things are potentially different sizes, so compute the exact codes
@@ -713,8 +767,9 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
         new_levels.extend(new_index.levels)
         new_codes.extend([np.tile(lab, kpieces) for lab in new_index.codes])
     else:
-        new_levels.append(new_index)
-        new_codes.append(np.tile(np.arange(n), kpieces))
+        new_levels.append(new_index.unique())
+        single_codes = new_index.unique().get_indexer(new_index)
+        new_codes.append(np.tile(single_codes, kpieces))
 
     if len(new_names) < len(new_levels):
         new_names.extend(new_index.names)

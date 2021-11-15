@@ -34,6 +34,8 @@ from pandas._libs.khash cimport (
     are_equivalent_khcomplex64_t,
     are_equivalent_khcomplex128_t,
     kh_needed_n_buckets,
+    kh_python_hash_equal,
+    kh_python_hash_func,
     kh_str_t,
     khcomplex64_t,
     khcomplex128_t,
@@ -46,6 +48,14 @@ def get_hashtable_trace_domain():
     return KHASH_TRACE_DOMAIN
 
 
+def object_hash(obj):
+    return kh_python_hash_func(obj)
+
+
+def objects_are_equal(a, b):
+    return kh_python_hash_equal(a, b)
+
+
 cdef int64_t NPY_NAT = util.get_nat()
 SIZE_HINT_LIMIT = (1 << 20) + 7
 
@@ -55,19 +65,37 @@ cdef Py_ssize_t _INIT_VEC_CAP = 128
 include "hashtable_class_helper.pxi"
 include "hashtable_func_helper.pxi"
 
+
+# map derived hash-map types onto basic hash-map types:
+if np.dtype(np.intp) == np.dtype(np.int64):
+    IntpHashTable = Int64HashTable
+    unique_label_indices = _unique_label_indices_int64
+elif np.dtype(np.intp) == np.dtype(np.int32):
+    IntpHashTable = Int32HashTable
+    unique_label_indices = _unique_label_indices_int32
+else:
+    raise ValueError(np.dtype(np.intp))
+
+
 cdef class Factorizer:
-    cdef public:
-        PyObjectHashTable table
-        ObjectVector uniques
+    cdef readonly:
         Py_ssize_t count
 
-    def __init__(self, size_hint):
-        self.table = PyObjectHashTable(size_hint)
-        self.uniques = ObjectVector()
+    def __cinit__(self, size_hint: int):
         self.count = 0
 
     def get_count(self) -> int:
         return self.count
+
+
+cdef class ObjectFactorizer(Factorizer):
+    cdef public:
+        PyObjectHashTable table
+        ObjectVector uniques
+
+    def __cinit__(self, size_hint: int):
+        self.table = PyObjectHashTable(size_hint)
+        self.uniques = ObjectVector()
 
     def factorize(
         self, ndarray[object] values, sort=False, na_sentinel=-1, na_value=None
@@ -82,7 +110,8 @@ cdef class Factorizer:
         --------
         Factorize values with nans replaced by na_sentinel
 
-        >>> factorize(np.array([1,2,np.nan], dtype='O'), na_sentinel=20)
+        >>> fac = ObjectFactorizer(3)
+        >>> fac.factorize(np.array([1,2,np.nan], dtype='O'), na_sentinel=20)
         array([ 0,  1, 20])
         """
         cdef:
@@ -105,24 +134,15 @@ cdef class Factorizer:
         self.count = len(self.uniques)
         return labels
 
-    def unique(self, ndarray[object] values):
-        # just for fun
-        return self.table.unique(values)
 
-
-cdef class Int64Factorizer:
+cdef class Int64Factorizer(Factorizer):
     cdef public:
         Int64HashTable table
         Int64Vector uniques
-        Py_ssize_t count
 
-    def __init__(self, size_hint):
+    def __cinit__(self, size_hint: int):
         self.table = Int64HashTable(size_hint)
         self.uniques = Int64Vector()
-        self.count = 0
-
-    def get_count(self):
-        return self.count
 
     def factorize(self, const int64_t[:] values, sort=False,
                   na_sentinel=-1, na_value=None) -> np.ndarray:
@@ -135,8 +155,9 @@ cdef class Int64Factorizer:
         --------
         Factorize values with nans replaced by na_sentinel
 
-        >>> factorize(np.array([1,2,np.nan], dtype='O'), na_sentinel=20)
-        array([ 0,  1, 20])
+        >>> fac = Int64Factorizer(3)
+        >>> fac.factorize(np.array([1,2,3]), na_sentinel=20)
+        array([0, 1, 2])
         """
         cdef:
             ndarray[intp_t] labels
@@ -159,38 +180,3 @@ cdef class Int64Factorizer:
 
         self.count = len(self.uniques)
         return labels
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def unique_label_indices(const int64_t[:] labels):
-    """
-    Indices of the first occurrences of the unique labels
-    *excluding* -1. equivalent to:
-        np.unique(labels, return_index=True)[1]
-    """
-    cdef:
-        int ret = 0
-        Py_ssize_t i, n = len(labels)
-        kh_int64_t *table = kh_init_int64()
-        Int64Vector idx = Int64Vector()
-        ndarray[int64_t, ndim=1] arr
-        Int64VectorData *ud = idx.data
-
-    kh_resize_int64(table, min(kh_needed_n_buckets(n), SIZE_HINT_LIMIT))
-
-    with nogil:
-        for i in range(n):
-            kh_put_int64(table, labels[i], &ret)
-            if ret != 0:
-                if needs_resize(ud):
-                    with gil:
-                        idx.resize()
-                append_data_int64(ud, i)
-
-    kh_destroy_int64(table)
-
-    arr = idx.to_array()
-    arr = arr[np.asarray(labels)[arr].argsort()]
-
-    return arr[1:] if arr.size != 0 and labels[arr[0]] == -1 else arr

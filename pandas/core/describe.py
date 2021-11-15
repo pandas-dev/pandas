@@ -11,11 +11,10 @@ from abc import (
 )
 from typing import (
     TYPE_CHECKING,
+    Any,
     Callable,
-    List,
-    Optional,
+    Hashable,
     Sequence,
-    Union,
     cast,
 )
 import warnings
@@ -23,11 +22,8 @@ import warnings
 import numpy as np
 
 from pandas._libs.tslibs import Timestamp
-from pandas._typing import (
-    FrameOrSeries,
-    FrameOrSeriesUnion,
-    Hashable,
-)
+from pandas._typing import NDFrameT
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_percentile
 
 from pandas.core.dtypes.common import (
@@ -50,12 +46,12 @@ if TYPE_CHECKING:
 
 def describe_ndframe(
     *,
-    obj: FrameOrSeries,
-    include: Optional[Union[str, Sequence[str]]],
-    exclude: Optional[Union[str, Sequence[str]]],
+    obj: NDFrameT,
+    include: str | Sequence[str] | None,
+    exclude: str | Sequence[str] | None,
     datetime_is_numeric: bool,
-    percentiles: Optional[Sequence[float]],
-) -> FrameOrSeries:
+    percentiles: Sequence[float] | np.ndarray | None,
+) -> NDFrameT:
     """Describe series or dataframe.
 
     Called from pandas.core.generic.NDFrame.describe()
@@ -96,7 +92,7 @@ def describe_ndframe(
         )
 
     result = describer.describe(percentiles=percentiles)
-    return cast(FrameOrSeries, result)
+    return cast(NDFrameT, result)
 
 
 class NDFrameDescriberAbstract(ABC):
@@ -110,12 +106,12 @@ class NDFrameDescriberAbstract(ABC):
         Whether to treat datetime dtypes as numeric.
     """
 
-    def __init__(self, obj: FrameOrSeriesUnion, datetime_is_numeric: bool):
+    def __init__(self, obj: DataFrame | Series, datetime_is_numeric: bool):
         self.obj = obj
         self.datetime_is_numeric = datetime_is_numeric
 
     @abstractmethod
-    def describe(self, percentiles: Sequence[float]) -> FrameOrSeriesUnion:
+    def describe(self, percentiles: Sequence[float] | np.ndarray) -> DataFrame | Series:
         """Do describe either series or dataframe.
 
         Parameters
@@ -130,7 +126,7 @@ class SeriesDescriber(NDFrameDescriberAbstract):
 
     obj: Series
 
-    def describe(self, percentiles: Sequence[float]) -> Series:
+    def describe(self, percentiles: Sequence[float] | np.ndarray) -> Series:
         describe_func = select_describe_func(
             self.obj,
             self.datetime_is_numeric,
@@ -157,8 +153,8 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
         self,
         obj: DataFrame,
         *,
-        include: Optional[Union[str, Sequence[str]]],
-        exclude: Optional[Union[str, Sequence[str]]],
+        include: str | Sequence[str] | None,
+        exclude: str | Sequence[str] | None,
         datetime_is_numeric: bool,
     ):
         self.include = include
@@ -169,10 +165,10 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
 
         super().__init__(obj, datetime_is_numeric=datetime_is_numeric)
 
-    def describe(self, percentiles: Sequence[float]) -> DataFrame:
+    def describe(self, percentiles: Sequence[float] | np.ndarray) -> DataFrame:
         data = self._select_data()
 
-        ldesc: List[Series] = []
+        ldesc: list[Series] = []
         for _, series in data.items():
             describe_func = select_describe_func(series, self.datetime_is_numeric)
             ldesc.append(describe_func(series, percentiles))
@@ -211,9 +207,9 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
         return data
 
 
-def reorder_columns(ldesc: Sequence[Series]) -> List[Hashable]:
+def reorder_columns(ldesc: Sequence[Series]) -> list[Hashable]:
     """Set a convenient order for rows for display."""
-    names: List[Hashable] = []
+    names: list[Hashable] = []
     ldesc_indexes = sorted((x.index for x in ldesc), key=len)
     for idxnames in ldesc_indexes:
         for name in idxnames:
@@ -382,7 +378,7 @@ def select_describe_func(
                 "version of pandas. Specify `datetime_is_numeric=True` to "
                 "silence this warning and adopt the future behavior now.",
                 FutureWarning,
-                stacklevel=5,
+                stacklevel=find_stack_level(),
             )
             return describe_timestamp_as_categorical_1d
     elif is_timedelta64_dtype(data.dtype):
@@ -391,8 +387,11 @@ def select_describe_func(
         return describe_categorical_1d
 
 
-def refine_percentiles(percentiles: Optional[Sequence[float]]) -> Sequence[float]:
-    """Ensure that percentiles are unique and sorted.
+def refine_percentiles(
+    percentiles: Sequence[float] | np.ndarray | None,
+) -> np.ndarray[Any, np.dtype[np.float64]]:
+    """
+    Ensure that percentiles are unique and sorted.
 
     Parameters
     ----------
@@ -400,9 +399,7 @@ def refine_percentiles(percentiles: Optional[Sequence[float]]) -> Sequence[float
         The percentiles to include in the output.
     """
     if percentiles is None:
-        # error: Incompatible return value type (got "ndarray", expected
-        # "Sequence[float]")
-        return np.array([0.25, 0.5, 0.75])  # type: ignore[return-value]
+        return np.array([0.25, 0.5, 0.75])
 
     # explicit conversion of `percentiles` to list
     percentiles = list(percentiles)
@@ -414,9 +411,7 @@ def refine_percentiles(percentiles: Optional[Sequence[float]]) -> Sequence[float
     if 0.5 not in percentiles:
         percentiles.append(0.5)
 
-    # error: Incompatible types in assignment (expression has type "ndarray", variable
-    # has type "Optional[Sequence[float]]")
-    percentiles = np.asarray(percentiles)  # type: ignore[assignment]
+    percentiles = np.asarray(percentiles)
 
     # sort and check for duplicates
     unique_pcts = np.unique(percentiles)

@@ -138,7 +138,7 @@ A DataFrame.
 
 
 def _parse_date(datestr: str) -> datetime:
-    """ Given a date in xport format, return Python date. """
+    """Given a date in xport format, return Python date."""
     try:
         # e.g. "16FEB11:10:07:55"
         return datetime.strptime(datestr, "%d%b%y:%H:%M:%S")
@@ -279,6 +279,12 @@ class XportReader(ReaderBase, abc.Iterator):
         # read file header
         line1 = self._get_row()
         if line1 != _correct_line1:
+            if "**COMPRESSED**" in line1:
+                # this was created with the PROC CPORT method and can't be read
+                # https://documentation.sas.com/doc/en/pgmsascdc/9.4_3.5/movefile/p1bm6aqp3fw4uin1hucwh718f6kp.htm
+                raise ValueError(
+                    "Header record indicates a CPORT file, which is not readable."
+                )
             raise ValueError("Header record is not an XPORT file.")
 
         line2 = self._get_row()
@@ -393,7 +399,7 @@ class XportReader(ReaderBase, abc.Iterator):
         total_records_length = self.filepath_or_buffer.tell() - self.record_start
 
         if total_records_length % 80 != 0:
-            warnings.warn("xport file may be corrupted")
+            warnings.warn("xport file may be corrupted.")
 
         if self.record_length > 80:
             self.filepath_or_buffer.seek(self.record_start)

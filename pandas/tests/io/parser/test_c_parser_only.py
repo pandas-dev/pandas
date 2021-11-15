@@ -159,6 +159,7 @@ def test_unsupported_dtype(c_parser_only, match, kwargs):
 
 
 @td.skip_if_32bit
+@pytest.mark.slow
 def test_precise_conversion(c_parser_only):
     from decimal import Decimal
 
@@ -300,6 +301,7 @@ def test_tokenize_CR_with_quoting(c_parser_only):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.slow
 def test_grow_boundary_at_cap(c_parser_only):
     # See gh-12494
     #
@@ -496,7 +498,7 @@ def test_comment_whitespace_delimited(c_parser_only, capsys):
         header=None,
         delimiter="\\s+",
         skiprows=0,
-        error_bad_lines=False,
+        on_bad_lines="warn",
     )
     captured = capsys.readouterr()
     # skipped lines 2, 3, 4, 9

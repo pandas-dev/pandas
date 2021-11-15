@@ -8,18 +8,16 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 # ensure_dtype
 # ----------------------------------------------------------------------
 
-cdef int PLATFORM_INT = (<ndarray>np.arange(0, dtype=np.intp)).descr.type_num
-
 
 def ensure_platform_int(object arr):
     # GH3033, GH1392
     # platform int is the size of the int pointer, e.g. np.intp
     if util.is_array(arr):
-        if (<ndarray>arr).descr.type_num == PLATFORM_INT:
+        if (<ndarray>arr).descr.type_num == cnp.NPY_INTP:
             return arr
         else:
             # equiv: arr.astype(np.intp)
-            return cnp.PyArray_Cast(<ndarray>arr, PLATFORM_INT)
+            return cnp.PyArray_Cast(<ndarray>arr, cnp.NPY_INTP)
     else:
         return np.array(arr, dtype=np.intp)
 
@@ -38,17 +36,19 @@ def ensure_object(object arr):
 
 # name, c_type, dtype
 dtypes = [('float64', 'FLOAT64', 'float64'),
-          ('float32', 'FLOAT32', 'float32'),
+          # ('float32', 'FLOAT32', 'float32'),  # disabling bc unused
           ('int8', 'INT8', 'int8'),
           ('int16', 'INT16', 'int16'),
           ('int32', 'INT32', 'int32'),
           ('int64', 'INT64', 'int64'),
-          ('uint8', 'UINT8', 'uint8'),
-          ('uint16', 'UINT16', 'uint16'),
-          ('uint32', 'UINT32', 'uint32'),
-          ('uint64', 'UINT64', 'uint64'),
-          # ('platform_int', 'INT', 'int_'),
-          # ('object', 'OBJECT', 'object_'),
+          # Disabling uint and complex dtypes because we do not use them
+          #  (and compiling them increases wheel size)
+          # ('uint8', 'UINT8', 'uint8'),
+          # ('uint16', 'UINT16', 'uint16'),
+          # ('uint32', 'UINT32', 'uint32'),
+          # ('uint64', 'UINT64', 'uint64'),
+          # ('complex64', 'COMPLEX64', 'complex64'),
+          # ('complex128', 'COMPLEX128', 'complex128')
 ]
 
 def get_dispatch(dtypes):

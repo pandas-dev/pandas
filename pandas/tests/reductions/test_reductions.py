@@ -221,7 +221,7 @@ class TestIndexReductions:
     def test_max_min_range(self, start, stop, step):
         # GH#17607
         idx = RangeIndex(start, stop, step)
-        expected = idx._int64index.max()
+        expected = idx._values.max()
         result = idx.max()
         assert result == expected
 
@@ -229,7 +229,7 @@ class TestIndexReductions:
         result2 = idx.max(skipna=False)
         assert result2 == expected
 
-        expected = idx._int64index.min()
+        expected = idx._values.min()
         result = idx.min()
         assert result == expected
 
@@ -431,13 +431,11 @@ class TestIndexReductions:
         # GH#26125
         idx = RangeIndex(0, 10, 3)
 
-        expected = idx._int64index.max()
         result = np.max(idx)
-        assert result == expected
+        assert result == 9
 
-        expected = idx._int64index.min()
         result = np.min(idx)
-        assert result == expected
+        assert result == 0
 
         errmsg = "the 'out' parameter is not supported"
         with pytest.raises(ValueError, match=errmsg):
@@ -451,8 +449,8 @@ class TestIndexReductions:
     def test_numpy_minmax_datetime64(self):
         dr = date_range(start="2016-01-15", end="2016-01-20")
 
-        assert np.min(dr) == Timestamp("2016-01-15 00:00:00", freq="D")
-        assert np.max(dr) == Timestamp("2016-01-20 00:00:00", freq="D")
+        assert np.min(dr) == Timestamp("2016-01-15 00:00:00")
+        assert np.max(dr) == Timestamp("2016-01-20 00:00:00")
 
         errmsg = "the 'out' parameter is not supported"
         with pytest.raises(ValueError, match=errmsg):
@@ -677,17 +675,20 @@ class TestSeriesReductions:
             index=pd.MultiIndex.from_product([("a", "b"), (0, 1)]),
         )
         # 1 / 0 by default
-        result = getattr(s, method)(level=0)
+        with tm.assert_produces_warning(FutureWarning):
+            result = getattr(s, method)(level=0)
         expected = Series([1, unit], index=["a", "b"])
         tm.assert_series_equal(result, expected)
 
         # min_count=0
-        result = getattr(s, method)(level=0, min_count=0)
+        with tm.assert_produces_warning(FutureWarning):
+            result = getattr(s, method)(level=0, min_count=0)
         expected = Series([1, unit], index=["a", "b"])
         tm.assert_series_equal(result, expected)
 
         # min_count=1
-        result = getattr(s, method)(level=0, min_count=1)
+        with tm.assert_produces_warning(FutureWarning):
+            result = getattr(s, method)(level=0, min_count=1)
         expected = Series([1, np.nan], index=["a", "b"])
         tm.assert_series_equal(result, expected)
 
@@ -893,7 +894,7 @@ class TestSeriesReductions:
 
         # Alternative types, with implicit 'object' dtype.
         s = Series(["abc", True])
-        assert "abc" == s.any()  # 'abc' || True => 'abc'
+        assert s.any()
 
     @pytest.mark.parametrize("klass", [Index, Series])
     def test_numpy_all_any(self, klass):
@@ -910,53 +911,96 @@ class TestSeriesReductions:
         s2 = Series([np.nan, False])
         assert s1.all(skipna=False)  # nan && True => True
         assert s1.all(skipna=True)
-        assert np.isnan(s2.any(skipna=False))  # nan || False => nan
+        assert s2.any(skipna=False)
         assert not s2.any(skipna=True)
 
         # Check level.
         s = Series([False, False, True, True, False, True], index=[0, 0, 1, 1, 2, 2])
-        tm.assert_series_equal(s.all(level=0), Series([False, True, False]))
-        tm.assert_series_equal(s.any(level=0), Series([False, True, True]))
+        with tm.assert_produces_warning(FutureWarning):
+            tm.assert_series_equal(s.all(level=0), Series([False, True, False]))
+        with tm.assert_produces_warning(FutureWarning):
+            tm.assert_series_equal(s.any(level=0), Series([False, True, True]))
 
         msg = "Option bool_only is not implemented with option level"
         with pytest.raises(NotImplementedError, match=msg):
-            s.any(bool_only=True, level=0)
+            with tm.assert_produces_warning(FutureWarning):
+                s.any(bool_only=True, level=0)
         with pytest.raises(NotImplementedError, match=msg):
-            s.all(bool_only=True, level=0)
+            with tm.assert_produces_warning(FutureWarning):
+                s.all(bool_only=True, level=0)
 
-        # bool_only is not implemented alone.
-        # TODO GH38810 change this error message to:
-        # "Series.any does not implement bool_only"
-        msg = "Series.any does not implement numeric_only"
+        # GH#38810 bool_only is not implemented alone.
+        msg = "Series.any does not implement bool_only"
         with pytest.raises(NotImplementedError, match=msg):
             s.any(bool_only=True)
-        msg = "Series.all does not implement numeric_only."
+        msg = "Series.all does not implement bool_only."
         with pytest.raises(NotImplementedError, match=msg):
             s.all(bool_only=True)
 
-    def test_all_any_boolean(self):
-        # Check skipna, with boolean type
-        s1 = Series([pd.NA, True], dtype="boolean")
-        s2 = Series([pd.NA, False], dtype="boolean")
-        assert s1.all(skipna=False) is pd.NA  # NA && True => NA
-        assert s1.all(skipna=True)
-        assert s2.any(skipna=False) is pd.NA  # NA || False => NA
-        assert not s2.any(skipna=True)
+    @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_any_all_object_dtype(self, bool_agg_func, skipna):
+        # GH#12863
+        ser = Series(["a", "b", "c", "d", "e"], dtype=object)
+        result = getattr(ser, bool_agg_func)(skipna=skipna)
+        expected = True
 
-        # GH-33253: all True / all False values buggy with skipna=False
-        s3 = Series([True, True], dtype="boolean")
-        s4 = Series([False, False], dtype="boolean")
-        assert s3.all(skipna=False)
-        assert not s4.any(skipna=False)
+        assert result == expected
 
-        # Check level TODO(GH-33449) result should also be boolean
-        s = Series(
+    @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
+    @pytest.mark.parametrize(
+        "data", [[False, None], [None, False], [False, np.nan], [np.nan, False]]
+    )
+    def test_any_all_object_dtype_missing(self, data, bool_agg_func):
+        # GH#27709
+        ser = Series(data)
+        result = getattr(ser, bool_agg_func)(skipna=False)
+
+        # None is treated is False, but np.nan is treated as True
+        expected = bool_agg_func == "any" and None not in data
+        assert result == expected
+
+    @pytest.mark.parametrize("dtype", ["boolean", "Int64", "UInt64", "Float64"])
+    @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
+    @pytest.mark.parametrize("skipna", [True, False])
+    @pytest.mark.parametrize(
+        # expected_data indexed as [[skipna=False/any, skipna=False/all],
+        #                           [skipna=True/any, skipna=True/all]]
+        "data,expected_data",
+        [
+            ([0, 0, 0], [[False, False], [False, False]]),
+            ([1, 1, 1], [[True, True], [True, True]]),
+            ([pd.NA, pd.NA, pd.NA], [[pd.NA, pd.NA], [False, True]]),
+            ([0, pd.NA, 0], [[pd.NA, False], [False, False]]),
+            ([1, pd.NA, 1], [[True, pd.NA], [True, True]]),
+            ([1, pd.NA, 0], [[True, False], [True, False]]),
+        ],
+    )
+    def test_any_all_nullable_kleene_logic(
+        self, bool_agg_func, skipna, data, dtype, expected_data
+    ):
+        # GH-37506, GH-41967
+        ser = Series(data, dtype=dtype)
+        expected = expected_data[skipna][bool_agg_func == "all"]
+
+        result = getattr(ser, bool_agg_func)(skipna=skipna)
+        assert (result is pd.NA and expected is pd.NA) or result == expected
+
+    @pytest.mark.parametrize(
+        "bool_agg_func,expected",
+        [("all", [False, True, False]), ("any", [False, True, True])],
+    )
+    def test_any_all_boolean_level(self, bool_agg_func, expected):
+        # GH#33449
+        ser = Series(
             [False, False, True, True, False, True],
             index=[0, 0, 1, 1, 2, 2],
             dtype="boolean",
         )
-        tm.assert_series_equal(s.all(level=0), Series([False, True, False]))
-        tm.assert_series_equal(s.any(level=0), Series([False, True, True]))
+        with tm.assert_produces_warning(FutureWarning):
+            result = getattr(ser, bool_agg_func)(level=0)
+        expected = Series(expected, dtype="boolean")
+        tm.assert_series_equal(result, expected)
 
     def test_any_axis1_bool_only(self):
         # GH#32432
@@ -1433,4 +1477,58 @@ class TestSeriesMode:
             result = s.mode(dropna=False)
             result = result.sort_values().reset_index(drop=True)
 
+        tm.assert_series_equal(result, expected)
+
+    def test_mode_boolean_with_na(self):
+        # GH#42107
+        ser = Series([True, False, True, pd.NA], dtype="boolean")
+        result = ser.mode()
+        expected = Series({0: True}, dtype="boolean")
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "array,expected,dtype",
+        [
+            (
+                [0, 1j, 1, 1, 1 + 1j, 1 + 2j],
+                Series([1], dtype=np.complex128),
+                np.complex128,
+            ),
+            (
+                [0, 1j, 1, 1, 1 + 1j, 1 + 2j],
+                Series([1], dtype=np.complex64),
+                np.complex64,
+            ),
+            (
+                [1 + 1j, 2j, 1 + 1j],
+                Series([1 + 1j], dtype=np.complex128),
+                np.complex128,
+            ),
+        ],
+    )
+    def test_single_mode_value_complex(self, array, expected, dtype):
+        result = Series(array, dtype=dtype).mode()
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "array,expected,dtype",
+        [
+            (
+                # no modes
+                [0, 1j, 1, 1 + 1j, 1 + 2j],
+                Series([0j, 1j, 1 + 0j, 1 + 1j, 1 + 2j], dtype=np.complex128),
+                np.complex128,
+            ),
+            (
+                [1 + 1j, 2j, 1 + 1j, 2j, 3],
+                Series([2j, 1 + 1j], dtype=np.complex64),
+                np.complex64,
+            ),
+        ],
+    )
+    def test_multimode_complex(self, array, expected, dtype):
+        # GH 17927
+        # mode tries to sort multimodal series.
+        # Complex numbers are sorted by their magnitude
+        result = Series(array, dtype=dtype).mode()
         tm.assert_series_equal(result, expected)

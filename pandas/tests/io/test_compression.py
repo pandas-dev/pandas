@@ -8,14 +8,10 @@ import time
 
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 import pandas._testing as tm
 
 import pandas.io.common as icom
-
-pytestmark = td.skip_array_manager_not_yet_implemented
 
 
 @pytest.mark.parametrize(
@@ -99,7 +95,14 @@ def test_series_compression_defaults_to_infer(
     extension = icom._compression_to_extension[compression_only]
     with tm.ensure_clean("compressed" + extension) as path:
         getattr(input, write_method)(path, **write_kwargs)
-        output = read_method(path, compression=compression_only, **read_kwargs)
+        if "squeeze" in read_kwargs:
+            kwargs = read_kwargs.copy()
+            del kwargs["squeeze"]
+            output = read_method(path, compression=compression_only, **kwargs).squeeze(
+                "columns"
+            )
+        else:
+            output = read_method(path, compression=compression_only, **read_kwargs)
     tm.assert_series_equal(output, input, check_names=False)
 
 

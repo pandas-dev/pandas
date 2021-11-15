@@ -10,6 +10,8 @@ import pytz
 
 from pandas import (
     DataFrame,
+    Index,
+    MultiIndex,
     Series,
     Timestamp,
 )
@@ -81,7 +83,8 @@ class TestDataFrameToDict:
     def test_to_dict_short_orient_warns(self, orient):
         # GH#32515
         df = DataFrame({"A": [0, 1]})
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        msg = "Using short name for 'orient' is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             df.to_dict(orient=orient)
 
     @pytest.mark.parametrize("mapping", [dict, defaultdict(list), OrderedDict])
@@ -304,3 +307,40 @@ class TestDataFrameToDict:
         d = df.to_dict(orient="records")
         result = type(d[0]["a"])
         assert result is expected_dtype
+
+    def test_to_dict_mixed_numeric_frame(self):
+        # GH 12859
+        df = DataFrame({"a": [1.0], "b": [9.0]})
+        result = df.reset_index().to_dict("records")
+        expected = [{"index": 0, "a": 1.0, "b": 9.0}]
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "index",
+        [
+            None,
+            Index(["aa", "bb"]),
+            Index(["aa", "bb"], name="cc"),
+            MultiIndex.from_tuples([("a", "b"), ("a", "c")]),
+            MultiIndex.from_tuples([("a", "b"), ("a", "c")], names=["n1", "n2"]),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "columns",
+        [
+            ["x", "y"],
+            Index(["x", "y"]),
+            Index(["x", "y"], name="z"),
+            MultiIndex.from_tuples([("x", 1), ("y", 2)]),
+            MultiIndex.from_tuples([("x", 1), ("y", 2)], names=["z1", "z2"]),
+        ],
+    )
+    def test_to_dict_orient_tight(self, index, columns):
+        df = DataFrame.from_records(
+            [[1, 3], [2, 4]],
+            columns=columns,
+            index=index,
+        )
+        roundtrip = DataFrame.from_dict(df.to_dict(orient="tight"), orient="tight")
+
+        tm.assert_frame_equal(df, roundtrip)

@@ -114,8 +114,6 @@ in many places
 Sparse accessor
 ---------------
 
-.. versionadded:: 0.24.0
-
 pandas provides a ``.sparse`` accessor, similar to ``.str`` for string data, ``.cat``
 for categorical data, and ``.dt`` for datetime-like data. This namespace provides
 attributes and methods that are specific to sparse data.
@@ -296,7 +294,7 @@ To convert back to sparse SciPy matrix in COO format, you can use the :meth:`Dat
 
    sdf.sparse.to_coo()
 
-meth:`Series.sparse.to_coo` is implemented for transforming a ``Series`` with sparse values indexed by a :class:`MultiIndex` to a :class:`scipy.sparse.coo_matrix`.
+:meth:`Series.sparse.to_coo` is implemented for transforming a ``Series`` with sparse values indexed by a :class:`MultiIndex` to a :class:`scipy.sparse.coo_matrix`.
 
 The method requires a ``MultiIndex`` with two or more levels.
 
@@ -324,7 +322,6 @@ In the example below, we transform the ``Series`` to a sparse representation of 
    A, rows, columns = ss.sparse.to_coo(
        row_levels=["A", "B"], column_levels=["C", "D"], sort_labels=True
    )
-
 
    A
    A.todense()

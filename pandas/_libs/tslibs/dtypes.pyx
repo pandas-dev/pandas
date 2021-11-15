@@ -28,6 +28,11 @@ cdef class PeriodDtypeBase:
         return (self._dtype_code // 1000) * 1000
 
     @property
+    def resolution(self) -> "Resolution":
+        fgc = self.freq_group_code
+        return Resolution.from_freq_group(FreqGroup(fgc))
+
+    @property
     def date_offset(self):
         """
         Corresponding DateOffset object.
@@ -200,7 +205,7 @@ class Resolution(Enum):
         elif self == Resolution.RESO_YR:
             return FreqGroup.FR_ANN
         else:
-            raise ValueError(self)
+            raise ValueError(self)  # pragma: no cover
 
     @property
     def attrname(self) -> str:
@@ -222,7 +227,7 @@ class Resolution(Enum):
         Examples
         --------
         >>> Resolution.from_attrname('second')
-        2
+        <Resolution.RESO_SEC: 3>
 
         >>> Resolution.from_attrname('second') == Resolution.RESO_SEC
         True
@@ -239,7 +244,7 @@ class Resolution(Enum):
         Examples
         --------
         >>> Resolution.get_reso_from_freq('H')
-        4
+        <Resolution.RESO_HR: 5>
 
         >>> Resolution.get_reso_from_freq('H') == Resolution.RESO_HR
         True
@@ -258,6 +263,14 @@ class Resolution(Enum):
             attr_name = _abbrev_to_attrnames[split_freq[0]]
 
         return cls.from_attrname(attr_name)
+
+    @classmethod
+    def from_freq_group(cls, freq_group: FreqGroup) -> "Resolution":
+        abbrev = _reverse_period_code_map[freq_group.value].split("-")[0]
+        if abbrev == "B":
+            return cls.RESO_DAY
+        attrname = _abbrev_to_attrnames[abbrev]
+        return cls.from_attrname(attrname)
 
 
 cdef dict _reso_str_map = {

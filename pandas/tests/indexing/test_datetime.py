@@ -130,7 +130,7 @@ class TestDatetimeIndex:
         expected = DataFrame(-1, index=index, columns=["a"])
         tm.assert_frame_equal(result, expected)
 
-    def test_getitem_millisecond_resolution(self, frame_or_series):
+    def test_getitem_str_slice_millisecond_resolution(self, frame_or_series):
         # GH#33589
 
         keys = [

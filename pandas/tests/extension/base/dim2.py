@@ -4,24 +4,13 @@ Tests for 2D compatibility.
 import numpy as np
 import pytest
 
-from pandas.compat import np_version_under1p17
+from pandas.compat import (
+    IS64,
+    is_platform_windows,
+)
 
 import pandas as pd
-from pandas.core.arrays import (
-    FloatingArray,
-    IntegerArray,
-)
 from pandas.tests.extension.base.base import BaseExtensionTests
-
-
-def maybe_xfail_masked_reductions(arr, request):
-    if (
-        isinstance(arr, (FloatingArray, IntegerArray))
-        and np_version_under1p17
-        and arr.ndim == 2
-    ):
-        mark = pytest.mark.xfail(reason="masked_reductions does not implement")
-        request.node.add_marker(mark)
 
 
 class Dim2CompatTests(BaseExtensionTests):
@@ -113,6 +102,17 @@ class Dim2CompatTests(BaseExtensionTests):
             assert obj.ndim == 1
             assert len(obj) == arr2d.shape[1]
 
+    def test_tolist_2d(self, data):
+        arr2d = data.reshape(1, -1)
+
+        result = arr2d.tolist()
+        expected = [data.tolist()]
+
+        assert isinstance(result, list)
+        assert all(isinstance(x, list) for x in result)
+
+        assert result == expected
+
     def test_concat_2d(self, data):
         left = data.reshape(-1, 1)
         right = left.copy()
@@ -148,7 +148,6 @@ class Dim2CompatTests(BaseExtensionTests):
             pytest.skip("test is not applicable for this type/dtype")
 
         arr2d = data.reshape(1, -1)
-        maybe_xfail_masked_reductions(arr2d, request)
 
         err_expected = None
         err_result = None
@@ -177,7 +176,6 @@ class Dim2CompatTests(BaseExtensionTests):
             pytest.skip("test is not applicable for this type/dtype")
 
         arr2d = data.reshape(1, -1)
-        maybe_xfail_masked_reductions(arr2d, request)
 
         kwargs = {}
         if method == "std":
@@ -201,16 +199,25 @@ class Dim2CompatTests(BaseExtensionTests):
             if method in ["sum", "prod"] and data.dtype.kind in ["i", "u"]:
                 # FIXME: kludge
                 if data.dtype.kind == "i":
-                    dtype = pd.Int64Dtype
+                    if is_platform_windows() or not IS64:
+                        # FIXME: kludge for 32bit builds
+                        if result.dtype.itemsize == 4:
+                            dtype = pd.Int32Dtype()
+                        else:
+                            dtype = pd.Int64Dtype()
+                    else:
+                        dtype = pd.Int64Dtype()
                 else:
-                    dtype = pd.UInt64Dtype
+                    if is_platform_windows() or not IS64:
+                        # FIXME: kludge for 32bit builds
+                        if result.dtype.itemsize == 4:
+                            dtype = pd.UInt32Dtype()
+                        else:
+                            dtype = pd.UInt64Dtype()
+                    else:
+                        dtype = pd.UInt64Dtype()
 
                 expected = data.astype(dtype)
-                if type(expected) != type(data):
-                    mark = pytest.mark.xfail(
-                        reason="IntegerArray.astype is broken GH#38983"
-                    )
-                    request.node.add_marker(mark)
                 assert type(expected) == type(data), type(expected)
                 assert dtype == expected.dtype
 
@@ -225,7 +232,6 @@ class Dim2CompatTests(BaseExtensionTests):
             pytest.skip("test is not applicable for this type/dtype")
 
         arr2d = data.reshape(1, -1)
-        maybe_xfail_masked_reductions(arr2d, request)
 
         try:
             result = getattr(arr2d, method)(axis=1)

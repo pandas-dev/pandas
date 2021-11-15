@@ -1,11 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import (
-    TYPE_CHECKING,
-    List,
-    cast,
-)
+from typing import TYPE_CHECKING
 import warnings
 
 import numpy as np
@@ -14,6 +10,7 @@ from pandas.util._decorators import (
     Appender,
     deprecate_kwarg,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_extension_array_dtype,
@@ -22,6 +19,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.missing import notna
 
+import pandas.core.algorithms as algos
 from pandas.core.arrays import Categorical
 import pandas.core.common as com
 from pandas.core.indexes.api import (
@@ -34,10 +32,7 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.core.tools.numeric import to_numeric
 
 if TYPE_CHECKING:
-    from pandas import (
-        DataFrame,
-        Series,
-    )
+    from pandas import DataFrame
 
 
 @Appender(_shared_docs["melt"] % {"caller": "pd.melt(df, ", "other": "DataFrame.melt"})
@@ -64,7 +59,7 @@ def melt(
             "In the future this will raise an error, please set the 'value_name' "
             "parameter of DataFrame.melt to a unique name.",
             FutureWarning,
-            stacklevel=3,
+            stacklevel=find_stack_level(),
         )
 
     if id_vars is not None:
@@ -107,7 +102,7 @@ def melt(
                 id_vars + value_vars
             )
         else:
-            idx = frame.columns.get_indexer(id_vars + value_vars)
+            idx = algos.unique(frame.columns.get_indexer_for(id_vars + value_vars))
         frame = frame.iloc[:, idx]
     else:
         frame = frame.copy()
@@ -136,7 +131,7 @@ def melt(
     for col in id_vars:
         id_data = frame.pop(col)
         if is_extension_array_dtype(id_data):
-            id_data = cast("Series", concat([id_data] * K, ignore_index=True))
+            id_data = concat([id_data] * K, ignore_index=True)
         else:
             id_data = np.tile(id_data._values, K)
         mdata[col] = id_data
@@ -227,7 +222,7 @@ def lreshape(data: DataFrame, groups, dropna: bool = True, label=None) -> DataFr
     else:
         keys, values = zip(*groups)
 
-    all_cols = list(set.union(*[set(x) for x in values]))
+    all_cols = list(set.union(*(set(x) for x in values)))
     id_cols = list(data.columns.difference(all_cols))
 
     K = len(values[0])
@@ -494,7 +489,7 @@ def wide_to_long(
                 two  2.9
     """
 
-    def get_var_names(df, stub: str, sep: str, suffix: str) -> List[str]:
+    def get_var_names(df, stub: str, sep: str, suffix: str) -> list[str]:
         regex = fr"^{re.escape(stub)}{re.escape(sep)}{suffix}$"
         pattern = re.compile(regex)
         return [col for col in df.columns if pattern.match(col)]

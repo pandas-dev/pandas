@@ -6,11 +6,7 @@ This is not a public API.
 from __future__ import annotations
 
 import operator
-from typing import (
-    TYPE_CHECKING,
-    Optional,
-    Set,
-)
+from typing import TYPE_CHECKING
 import warnings
 
 import numpy as np
@@ -18,6 +14,7 @@ import numpy as np
 from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op  # noqa:F401
 from pandas._typing import Level
 from pandas.util._decorators import Appender
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_array_like,
@@ -39,6 +36,7 @@ from pandas.core.ops.array_ops import (  # noqa:F401
     comparison_op,
     get_array_op,
     logical_op,
+    maybe_prepare_scalar_for_op,
 )
 from pandas.core.ops.common import (  # noqa:F401
     get_op_result_name,
@@ -79,7 +77,7 @@ if TYPE_CHECKING:
 
 # -----------------------------------------------------------------------------
 # constants
-ARITHMETIC_BINOPS: Set[str] = {
+ARITHMETIC_BINOPS: set[str] = {
     "add",
     "sub",
     "mul",
@@ -99,7 +97,7 @@ ARITHMETIC_BINOPS: Set[str] = {
 }
 
 
-COMPARISON_BINOPS: Set[str] = {"eq", "ne", "lt", "gt", "le", "ge"}
+COMPARISON_BINOPS: set[str] = {"eq", "ne", "lt", "gt", "le", "ge"}
 
 
 # -----------------------------------------------------------------------------
@@ -152,7 +150,7 @@ def fill_binop(left, right, fill_value):
 
 
 def align_method_SERIES(left: Series, right, align_asobject: bool = False):
-    """ align lhs and rhs Series """
+    """align lhs and rhs Series"""
     # ToDo: Different from align_method_FRAME, list, tuple and ndarray
     # are not coerced here
     # because Series has inconsistencies described in #13637
@@ -207,7 +205,7 @@ def flex_method_SERIES(op):
 
 
 def align_method_FRAME(
-    left, right, axis, flex: Optional[bool] = False, level: Level = None
+    left, right, axis, flex: bool | None = False, level: Level = None
 ):
     """
     Convert rhs to meet lhs dims if input is list, tuple or np.ndarray.
@@ -216,8 +214,8 @@ def align_method_FRAME(
     ----------
     left : DataFrame
     right : Any
-    axis: int, str, or None
-    flex: bool or None, default False
+    axis : int, str, or None
+    flex : bool or None, default False
         Whether this is a flex op, in which case we reindex.
         None indicates not to check for alignment.
     level : int or level name, default None
@@ -299,11 +297,11 @@ def align_method_FRAME(
             if not left.axes[axis].equals(right.index):
                 warnings.warn(
                     "Automatic reindexing on DataFrame vs Series comparisons "
-                    "is deprecated and will raise ValueError in a future version.  "
+                    "is deprecated and will raise ValueError in a future version. "
                     "Do `left, right = left.align(right, axis=1, copy=False)` "
                     "before e.g. `left == right`",
                     FutureWarning,
-                    stacklevel=5,
+                    stacklevel=find_stack_level(),
                 )
 
         left, right = left.align(
@@ -435,6 +433,7 @@ def flex_arith_method_FRAME(op):
 
         axis = self._get_axis_number(axis) if axis is not None else 1
 
+        other = maybe_prepare_scalar_for_op(other, self.shape)
         self, other = align_method_FRAME(self, other, axis, flex=True, level=level)
 
         if isinstance(other, ABCDataFrame):

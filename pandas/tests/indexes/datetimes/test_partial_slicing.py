@@ -1,7 +1,6 @@
 """ test partial slicing on Series/Frame """
 
 from datetime import datetime
-import operator
 
 import numpy as np
 import pytest
@@ -16,10 +15,75 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.indexing import IndexingError
 
 
 class TestSlicing:
+    def test_string_index_series_name_converted(self):
+        # GH#1644
+        df = DataFrame(np.random.randn(10, 4), index=date_range("1/1/2000", periods=10))
+
+        result = df.loc["1/3/2000"]
+        assert result.name == df.index[2]
+
+        result = df.T["1/3/2000"]
+        assert result.name == df.index[2]
+
+    def test_stringified_slice_with_tz(self):
+        # GH#2658
+        start = "2013-01-07"
+        idx = date_range(start=start, freq="1d", periods=10, tz="US/Eastern")
+        df = DataFrame(np.arange(10), index=idx)
+        df["2013-01-14 23:44:34.437768-05:00":]  # no exception here
+
+    def test_return_type_doesnt_depend_on_monotonicity(self):
+        # GH#24892 we get Series back regardless of whether our DTI is monotonic
+        dti = date_range(start="2015-5-13 23:59:00", freq="min", periods=3)
+        ser = Series(range(3), index=dti)
+
+        # non-monotonic index
+        ser2 = Series(range(3), index=[dti[1], dti[0], dti[2]])
+
+        # key with resolution strictly lower than "min"
+        key = "2015-5-14 00"
+
+        # monotonic increasing index
+        result = ser.loc[key]
+        expected = ser.iloc[1:]
+        tm.assert_series_equal(result, expected)
+
+        # monotonic decreasing index
+        result = ser.iloc[::-1].loc[key]
+        expected = ser.iloc[::-1][:-1]
+        tm.assert_series_equal(result, expected)
+
+        # non-monotonic index
+        result2 = ser2.loc[key]
+        expected2 = ser2.iloc[::2]
+        tm.assert_series_equal(result2, expected2)
+
+    def test_return_type_doesnt_depend_on_monotonicity_higher_reso(self):
+        # GH#24892 we get Series back regardless of whether our DTI is monotonic
+        dti = date_range(start="2015-5-13 23:59:00", freq="min", periods=3)
+        ser = Series(range(3), index=dti)
+
+        # non-monotonic index
+        ser2 = Series(range(3), index=[dti[1], dti[0], dti[2]])
+
+        # key with resolution strictly *higher) than "min"
+        key = "2015-5-14 00:00:00"
+
+        # monotonic increasing index
+        result = ser.loc[key]
+        assert result == 1
+
+        # monotonic decreasing index
+        result = ser.iloc[::-1].loc[key]
+        assert result == 1
+
+        # non-monotonic index
+        result2 = ser2.loc[key]
+        assert result2 == 0
+
     def test_monotone_DTI_indexing_bug(self):
         # GH 19362
         # Testing accessing the first element in a monotonic descending
@@ -38,9 +102,19 @@ class TestSlicing:
         expected = DataFrame({0: list(range(5)), "date": date_index})
         tm.assert_frame_equal(df, expected)
 
-        df = DataFrame({"A": [1, 2, 3]}, index=date_range("20170101", periods=3)[::-1])
-        expected = DataFrame({"A": 1}, index=date_range("20170103", periods=1)[::-1])
-        tm.assert_frame_equal(df.loc["2017-01-03"], expected)
+        # We get a slice because df.index's resolution is hourly and we
+        #  are slicing with a daily-resolution string.  If both were daily,
+        #  we would get a single item back
+        dti = date_range("20170101 01:00:00", periods=3)
+        df = DataFrame({"A": [1, 2, 3]}, index=dti[::-1])
+
+        expected = DataFrame({"A": 1}, index=dti[-1:][::-1])
+        result = df.loc["2017-01-03"]
+        tm.assert_frame_equal(result, expected)
+
+        result2 = df.iloc[::-1].loc["2017-01-03"]
+        expected2 = expected.iloc[::-1]
+        tm.assert_frame_equal(result2, expected2)
 
     def test_slice_year(self):
         dti = date_range(freq="B", start=datetime(2005, 1, 1), periods=500)
@@ -278,28 +352,28 @@ class TestSlicing:
         result = df_multi.loc[("2013-06-19 09:30:00", "ACCT1", "ABC")]
         tm.assert_series_equal(result, expected)
 
-        # this is an IndexingError as we don't do partial string selection on
-        # multi-levels.
-        msg = "Too many indexers"
-        with pytest.raises(IndexingError, match=msg):
-            df_multi.loc[("2013-06-19", "ACCT1", "ABC")]
+        # partial string indexing on first level, scalar indexing on the other two
+        result = df_multi.loc[("2013-06-19", "ACCT1", "ABC")]
+        expected = df_multi.iloc[:1].droplevel([1, 2])
+        tm.assert_frame_equal(result, expected)
 
+    def test_partial_slicing_with_multiindex_series(self):
         # GH 4294
         # partial slice on a series mi
-        s = DataFrame(
+        ser = DataFrame(
             np.random.rand(1000, 1000), index=date_range("2000-1-1", periods=1000)
         ).stack()
 
-        s2 = s[:-1].copy()
+        s2 = ser[:-1].copy()
         expected = s2["2000-1-4"]
         result = s2[Timestamp("2000-1-4")]
         tm.assert_series_equal(result, expected)
 
-        result = s[Timestamp("2000-1-4")]
-        expected = s["2000-1-4"]
+        result = ser[Timestamp("2000-1-4")]
+        expected = ser["2000-1-4"]
         tm.assert_series_equal(result, expected)
 
-        df2 = DataFrame(s)
+        df2 = DataFrame(ser)
         expected = df2.xs("2000-1-4")
         result = df2.loc[Timestamp("2000-1-4")]
         tm.assert_frame_equal(result, expected)
@@ -336,40 +410,6 @@ class TestSlicing:
 
         result = df.loc["2016-10-01T00:00:00":]
         tm.assert_frame_equal(result, df)
-
-    @pytest.mark.parametrize(
-        "datetimelike",
-        [
-            Timestamp("20130101"),
-            datetime(2013, 1, 1),
-            np.datetime64("2013-01-01T00:00", "ns"),
-        ],
-    )
-    @pytest.mark.parametrize(
-        "op,expected",
-        [
-            (operator.lt, [True, False, False, False]),
-            (operator.le, [True, True, False, False]),
-            (operator.eq, [False, True, False, False]),
-            (operator.gt, [False, False, False, True]),
-        ],
-    )
-    def test_selection_by_datetimelike(self, datetimelike, op, expected):
-        # GH issue #17965, test for ability to compare datetime64[ns] columns
-        # to datetimelike
-        df = DataFrame(
-            {
-                "A": [
-                    Timestamp("20120101"),
-                    Timestamp("20130101"),
-                    np.nan,
-                    Timestamp("20130103"),
-                ]
-            }
-        )
-        result = op(df.A, datetimelike)
-        expected = Series(expected, name="A")
-        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
         "start",

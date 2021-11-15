@@ -243,6 +243,54 @@ class TestClipboard:
 
         tm.assert_frame_equal(res, exp)
 
+    def test_infer_excel_with_nulls(self, request, mock_clipboard):
+        # GH41108
+        text = "col1\tcol2\n1\tred\n\tblue\n2\tgreen"
+
+        mock_clipboard[request.node.name] = text
+        df = read_clipboard()
+        df_expected = DataFrame(
+            data={"col1": [1, None, 2], "col2": ["red", "blue", "green"]}
+        )
+
+        # excel data is parsed correctly
+        tm.assert_frame_equal(df, df_expected)
+
+    @pytest.mark.parametrize(
+        "multiindex",
+        [
+            (  # Can't use `dedent` here as it will remove the leading `\t`
+                "\n".join(
+                    [
+                        "\t\t\tcol1\tcol2",
+                        "A\t0\tTrue\t1\tred",
+                        "A\t1\tTrue\t\tblue",
+                        "B\t0\tFalse\t2\tgreen",
+                    ]
+                ),
+                [["A", "A", "B"], [0, 1, 0], [True, True, False]],
+            ),
+            (
+                "\n".join(
+                    ["\t\tcol1\tcol2", "A\t0\t1\tred", "A\t1\t\tblue", "B\t0\t2\tgreen"]
+                ),
+                [["A", "A", "B"], [0, 1, 0]],
+            ),
+        ],
+    )
+    def test_infer_excel_with_multiindex(self, request, mock_clipboard, multiindex):
+        # GH41108
+
+        mock_clipboard[request.node.name] = multiindex[0]
+        df = read_clipboard()
+        df_expected = DataFrame(
+            data={"col1": [1, None, 2], "col2": ["red", "blue", "green"]},
+            index=multiindex[1],
+        )
+
+        # excel data is parsed correctly
+        tm.assert_frame_equal(df, df_expected)
+
     def test_invalid_encoding(self, df):
         msg = "clipboard only supports utf-8 encoding"
         # test case for testing invalid encoding

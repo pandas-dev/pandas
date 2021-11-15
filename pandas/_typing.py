@@ -7,7 +7,6 @@ from io import (
     BufferedIOBase,
     RawIOBase,
     TextIOBase,
-    TextIOWrapper,
 )
 from mmap import mmap
 from os import PathLike
@@ -21,11 +20,12 @@ from typing import (
     Dict,
     Hashable,
     List,
+    Literal,
     Mapping,
     Optional,
     Sequence,
     Tuple,
-    Type,
+    Type as type_t,
     TypeVar,
     Union,
 )
@@ -36,7 +36,7 @@ import numpy as np
 # and use a string literal forward reference to it in subsequent types
 # https://mypy.readthedocs.io/en/latest/common_issues.html#import-cycles
 if TYPE_CHECKING:
-    from typing import final
+    import numpy.typing as npt
 
     from pandas._libs import (
         Period,
@@ -52,6 +52,7 @@ if TYPE_CHECKING:
     from pandas.core.generic import NDFrame
     from pandas.core.groupby.generic import (
         DataFrameGroupBy,
+        GroupBy,
         SeriesGroupBy,
     )
     from pandas.core.indexes.base import Index
@@ -67,9 +68,13 @@ if TYPE_CHECKING:
 
     from pandas.io.formats.format import EngFormatter
     from pandas.tseries.offsets import DateOffset
+
+    # numpy compatible types
+    NumpyValueArrayLike = Union[npt._ScalarLike_co, npt.ArrayLike]
+    NumpySorter = Optional[npt._ArrayLikeInt_co]
+
 else:
-    # typing.final does not exist until py38
-    final = lambda x: x
+    npt: Any = None
 
 
 # array-like
@@ -84,6 +89,7 @@ DatetimeLikeScalar = Union["Period", "Timestamp", "Timedelta"]
 PandasScalar = Union["Period", "Timestamp", "Timedelta", "Interval"]
 Scalar = Union[PythonScalar, PandasScalar]
 
+
 # timestamp and timedelta convertible types
 
 TimestampConvertibleTypes = Union[
@@ -94,33 +100,34 @@ TimedeltaConvertibleTypes = Union[
 ]
 Timezone = Union[str, tzinfo]
 
-# FrameOrSeriesUnion  means either a DataFrame or a Series. E.g.
-# `def func(a: FrameOrSeriesUnion) -> FrameOrSeriesUnion: ...` means that if a Series
-# is passed in, either a Series or DataFrame is returned, and if a DataFrame is passed
-# in, either a DataFrame or a Series is returned.
-FrameOrSeriesUnion = Union["DataFrame", "Series"]
-
-# FrameOrSeries is stricter and ensures that the same subclass of NDFrame always is
-# used. E.g. `def func(a: FrameOrSeries) -> FrameOrSeries: ...` means that if a
+# NDFrameT is stricter and ensures that the same subclass of NDFrame always is
+# used. E.g. `def func(a: NDFrameT) -> NDFrameT: ...` means that if a
 # Series is passed into a function, a Series is always returned and if a DataFrame is
 # passed in, a DataFrame is always returned.
-FrameOrSeries = TypeVar("FrameOrSeries", bound="NDFrame")
+NDFrameT = TypeVar("NDFrameT", bound="NDFrame")
 
 Axis = Union[str, int]
 IndexLabel = Union[Hashable, Sequence[Hashable]]
 Level = Union[Hashable, int]
 Shape = Tuple[int, ...]
-Suffixes = Tuple[str, str]
+Suffixes = Tuple[Optional[str], Optional[str]]
 Ordered = Optional[bool]
 JSONSerializable = Optional[Union[PythonScalar, List, Dict]]
 Frequency = Union[str, "DateOffset"]
 Axes = Collection[Any]
 
-# dtypes
-NpDtype = Union[str, np.dtype]
-Dtype = Union[
-    "ExtensionDtype", NpDtype, Type[Union[str, float, int, complex, bool, object]]
+RandomState = Union[
+    int,
+    ArrayLike,
+    np.random.Generator,
+    np.random.BitGenerator,
+    np.random.RandomState,
 ]
+
+# dtypes
+NpDtype = Union[str, np.dtype, type_t[Union[str, float, int, complex, bool, object]]]
+Dtype = Union["ExtensionDtype", NpDtype]
+AstypeArg = Union["ExtensionDtype", "npt.DTypeLike"]
 # DtypeArg specifies all allowable dtypes in a functions its dtype argument
 DtypeArg = Union[Dtype, Dict[Hashable, Dtype]]
 DtypeObj = Union[np.dtype, "ExtensionDtype"]
@@ -152,6 +159,7 @@ AggFuncType = Union[
 AggObjType = Union[
     "Series",
     "DataFrame",
+    "GroupBy",
     "SeriesGroupBy",
     "DataFrameGroupBy",
     "BaseWindow",
@@ -161,9 +169,9 @@ AggObjType = Union[
 PythonFuncType = Callable[[Any], Any]
 
 # filenames and file-like-objects
-Buffer = Union[IO[AnyStr], RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper, mmap]
-FileOrBuffer = Union[str, Buffer[T]]
-FilePathOrBuffer = Union["PathLike[str]", FileOrBuffer[T]]
+Buffer = Union[IO[AnyStr], RawIOBase, BufferedIOBase, TextIOBase, mmap]
+FileOrBuffer = Union[str, Buffer[AnyStr]]
+FilePathOrBuffer = Union["PathLike[str]", FileOrBuffer[AnyStr]]
 
 # for arbitrary kwargs passed during reading/writing files
 StorageOptions = Optional[Dict[str, Any]]
@@ -184,6 +192,36 @@ ColspaceArgType = Union[
     str, int, Sequence[Union[str, int]], Mapping[Hashable, Union[str, int]]
 ]
 
+# Arguments for fillna()
+FillnaOptions = Literal["backfill", "bfill", "ffill", "pad"]
+
 # internals
-Manager = Union["ArrayManager", "BlockManager"]
+Manager = Union[
+    "ArrayManager", "SingleArrayManager", "BlockManager", "SingleBlockManager"
+]
 SingleManager = Union["SingleArrayManager", "SingleBlockManager"]
+Manager2D = Union["ArrayManager", "BlockManager"]
+
+# indexing
+# PositionalIndexer -> valid 1D positional indexer, e.g. can pass
+# to ndarray.__getitem__
+# ScalarIndexer is for a single value as the index
+# SequenceIndexer is for list like or slices (but not tuples)
+# PositionalIndexerTuple is extends the PositionalIndexer for 2D arrays
+# These are used in various __getitem__ overloads
+# TODO: add Ellipsis, see
+# https://github.com/python/typing/issues/684#issuecomment-548203158
+# https://bugs.python.org/issue41810
+# Using List[int] here rather than Sequence[int] to disallow tuples.
+ScalarIndexer = Union[int, np.integer]
+SequenceIndexer = Union[slice, List[int], np.ndarray]
+PositionalIndexer = Union[ScalarIndexer, SequenceIndexer]
+PositionalIndexerTuple = Tuple[PositionalIndexer, PositionalIndexer]
+PositionalIndexer2D = Union[PositionalIndexer, PositionalIndexerTuple]
+if TYPE_CHECKING:
+    TakeIndexer = Union[Sequence[int], Sequence[np.integer], npt.NDArray[np.integer]]
+else:
+    TakeIndexer = Any
+
+# Windowing rank methods
+WindowingRankType = Literal["average", "min", "max"]

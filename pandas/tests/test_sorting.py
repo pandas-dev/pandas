@@ -67,7 +67,6 @@ class TestSorting:
             assert left[k] == v
         assert len(left) == len(right)
 
-    @pytest.mark.arm_slow
     def test_int64_overflow_moar(self):
 
         # GH9096
@@ -435,11 +434,7 @@ class TestSafeSort:
     def test_unsortable(self):
         # GH 13714
         arr = np.array([1, 2, datetime.now(), 0, 3], dtype=object)
-        msg = (
-            "unorderable types: .* [<>] .*"
-            "|"  # the above case happens for numpy < 1.14
-            "'[<>]' not supported between instances of .*"
-        )
+        msg = "'[<>]' not supported between instances of .*"
         with pytest.raises(TypeError, match=msg):
             safe_sort(arr)
 

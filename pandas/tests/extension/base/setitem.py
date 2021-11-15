@@ -356,3 +356,22 @@ class BaseSetitemTests(BaseExtensionTests):
             data.astype(object), index=ser.index, name="data", dtype=object
         )
         self.assert_series_equal(result, expected)
+
+    def test_delitem_series(self, data):
+        # GH#40763
+        ser = pd.Series(data, name="data")
+
+        taker = np.arange(len(ser))
+        taker = np.delete(taker, 1)
+
+        expected = ser[taker]
+        del ser[1]
+        self.assert_series_equal(ser, expected)
+
+    def test_setitem_invalid(self, data, invalid_scalar):
+        msg = ""  # messages vary by subclass, so we do not test it
+        with pytest.raises((ValueError, TypeError), match=msg):
+            data[0] = invalid_scalar
+
+        with pytest.raises((ValueError, TypeError), match=msg):
+            data[:] = invalid_scalar

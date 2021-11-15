@@ -1,5 +1,6 @@
 import operator
 import re
+import warnings
 
 import numpy as np
 import pytest
@@ -167,8 +168,12 @@ class TestExpressions:
 
             op = getattr(operator, opname)
 
-            result = expr.evaluate(op, left, left, use_numexpr=True)
-            expected = expr.evaluate(op, left, left, use_numexpr=False)
+            with warnings.catch_warnings():
+                # array has 0s
+                msg = "invalid value encountered in true_divide"
+                warnings.filterwarnings("ignore", msg, RuntimeWarning)
+                result = expr.evaluate(op, left, left, use_numexpr=True)
+                expected = expr.evaluate(op, left, left, use_numexpr=False)
             tm.assert_numpy_array_equal(result, expected)
 
             result = expr._can_use_numexpr(op, op_str, right, right, "evaluate")
@@ -242,7 +247,7 @@ class TestExpressions:
     def test_bool_ops_raise_on_arithmetic(self, op_str, opname):
         df = DataFrame({"a": np.random.rand(10) > 0.5, "b": np.random.rand(10) > 0.5})
 
-        msg = f"operator {repr(op_str)} not implemented for bool dtypes"
+        msg = f"operator '{opname}' not implemented for bool dtypes"
         f = getattr(operator, opname)
         err_msg = re.escape(msg)
 
@@ -282,32 +287,32 @@ class TestExpressions:
             return
 
         with tm.use_numexpr(True, min_elements=5):
-            with tm.assert_produces_warning(check_stacklevel=False):
+            with tm.assert_produces_warning():
                 r = f(df, df)
                 e = fe(df, df)
                 tm.assert_frame_equal(r, e)
 
-            with tm.assert_produces_warning(check_stacklevel=False):
+            with tm.assert_produces_warning():
                 r = f(df.a, df.b)
                 e = fe(df.a, df.b)
                 tm.assert_series_equal(r, e)
 
-            with tm.assert_produces_warning(check_stacklevel=False):
+            with tm.assert_produces_warning():
                 r = f(df.a, True)
                 e = fe(df.a, True)
                 tm.assert_series_equal(r, e)
 
-            with tm.assert_produces_warning(check_stacklevel=False):
+            with tm.assert_produces_warning():
                 r = f(False, df.a)
                 e = fe(False, df.a)
                 tm.assert_series_equal(r, e)
 
-            with tm.assert_produces_warning(check_stacklevel=False):
+            with tm.assert_produces_warning():
                 r = f(False, df)
                 e = fe(False, df)
                 tm.assert_frame_equal(r, e)
 
-            with tm.assert_produces_warning(check_stacklevel=False):
+            with tm.assert_produces_warning():
                 r = f(df, True)
                 e = fe(df, True)
                 tm.assert_frame_equal(r, e)

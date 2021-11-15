@@ -142,8 +142,6 @@ class TestDataFrameToCSV:
 
             result = read_csv(path, index_col="dt_index")
             result.index = pd.to_timedelta(result.index)
-            # TODO: remove renaming when GH 10875 is solved
-            result.index = result.index.rename("dt_index")
             result["dt_data"] = pd.to_timedelta(result["dt_data"])
 
             tm.assert_frame_equal(df, result, check_index_type=True)
@@ -479,11 +477,8 @@ class TestDataFrameToCSV:
             float_frame.to_csv(path)
             recons = self.read_csv(path)
 
-            # TODO to_csv drops column name
-            tm.assert_frame_equal(float_frame, recons, check_names=False)
-            tm.assert_frame_equal(
-                np.isinf(float_frame), np.isinf(recons), check_names=False
-            )
+            tm.assert_frame_equal(float_frame, recons)
+            tm.assert_frame_equal(np.isinf(float_frame), np.isinf(recons))
 
     def test_to_csv_from_csv_w_all_infs(self, float_frame):
 
@@ -495,11 +490,8 @@ class TestDataFrameToCSV:
             float_frame.to_csv(path)
             recons = self.read_csv(path)
 
-            # TODO to_csv drops column name
-            tm.assert_frame_equal(float_frame, recons, check_names=False)
-            tm.assert_frame_equal(
-                np.isinf(float_frame), np.isinf(recons), check_names=False
-            )
+            tm.assert_frame_equal(float_frame, recons)
+            tm.assert_frame_equal(np.isinf(float_frame), np.isinf(recons))
 
     def test_to_csv_no_index(self):
         # GH 3624, after appending columns, to_csv fails
@@ -714,7 +706,9 @@ class TestDataFrameToCSV:
             np.random.randn(100, 5), dtype="float64", columns=create_cols("float")
         )
         df_int = DataFrame(
-            np.random.randn(100, 5), dtype="int64", columns=create_cols("int")
+            np.random.randn(100, 5).astype("int64"),
+            dtype="int64",
+            columns=create_cols("int"),
         )
         df_bool = DataFrame(True, index=df_float.index, columns=create_cols("bool"))
         df_object = DataFrame(
@@ -765,7 +759,7 @@ class TestDataFrameToCSV:
             tm.assert_frame_equal(result, df)
 
         df_float = DataFrame(np.random.randn(1000, 3), dtype="float64")
-        df_int = DataFrame(np.random.randn(1000, 3), dtype="int64")
+        df_int = DataFrame(np.random.randn(1000, 3)).astype("int64")
         df_bool = DataFrame(True, index=df_float.index, columns=range(3))
         df_object = DataFrame("foo", index=df_float.index, columns=range(3))
         df_dt = DataFrame(Timestamp("20010101"), index=df_float.index, columns=range(3))
@@ -773,10 +767,7 @@ class TestDataFrameToCSV:
             [df_float, df_int, df_bool, df_object, df_dt], axis=1, ignore_index=True
         )
 
-        cols = []
-        for i in range(5):
-            cols.extend([0, 1, 2])
-        df.columns = cols
+        df.columns = [0, 1, 2] * 5
 
         with tm.ensure_clean() as filename:
             df.to_csv(filename)
@@ -869,8 +860,7 @@ class TestDataFrameToCSV:
         float_frame.to_csv(buf)
         buf.seek(0)
         recons = read_csv(buf, index_col=0)
-        # TODO to_csv drops column name
-        tm.assert_frame_equal(recons, float_frame, check_names=False)
+        tm.assert_frame_equal(recons, float_frame)
 
     def test_to_csv_float_format(self):
 
@@ -1040,8 +1030,7 @@ class TestDataFrameToCSV:
                 compression=compression,
                 encoding=encoding,
                 index_col=0,
-                squeeze=True,
-            )
+            ).squeeze("columns")
             tm.assert_frame_equal(df, result)
 
             # explicitly make sure file is compressed
@@ -1333,3 +1322,14 @@ class TestDataFrameToCSV:
 
         result = buf.getvalue()
         assert "2000-01-01" in result
+
+    def test_to_csv_na_quoting(self):
+        # GH 15891
+        # Normalize carriage return for Windows OS
+        result = (
+            DataFrame([None, None])
+            .to_csv(None, header=False, index=False, na_rep="")
+            .replace("\r\n", "\n")
+        )
+        expected = '""\n""\n'
+        assert result == expected

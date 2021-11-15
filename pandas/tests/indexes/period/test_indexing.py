@@ -23,6 +23,10 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
+from pandas.core.api import (
+    Float64Index,
+    Int64Index,
+)
 
 dti4 = date_range("2016-01-01", periods=4)
 dti = dti4[:-1]
@@ -48,14 +52,6 @@ def non_comparable_idx(request):
 
 
 class TestGetItem:
-    def test_ellipsis(self):
-        # GH#21282
-        idx = period_range("2011-01-01", "2011-01-31", freq="D", name="idx")
-
-        result = idx[...]
-        assert result.equals(idx)
-        assert result is not idx
-
     def test_getitem_slice_keeps_name(self):
         idx = period_range("20010101", periods=10, freq="D", name="bob")
         assert idx.name == idx[1:].name
@@ -201,6 +197,7 @@ class TestGetItem:
                 # GH7116
                 # these show deprecations as we are trying
                 # to slice with non-integer indexers
+                # FIXME: don't leave commented-out
                 # with pytest.raises(IndexError):
                 #    idx[v]
                 continue
@@ -338,15 +335,23 @@ class TestGetLoc:
             pi2.get_loc(46)
 
     # TODO: This method came from test_period; de-dup with version above
-    def test_get_loc2(self):
+    @pytest.mark.parametrize("method", [None, "pad", "backfill", "nearest"])
+    @pytest.mark.filterwarnings("ignore:Passing method:FutureWarning")
+    def test_get_loc_method(self, method):
         idx = period_range("2000-01-01", periods=3)
 
-        for method in [None, "pad", "backfill", "nearest"]:
-            assert idx.get_loc(idx[1], method) == 1
-            assert idx.get_loc(idx[1].asfreq("H", how="start"), method) == 1
-            assert idx.get_loc(idx[1].to_timestamp(), method) == 1
-            assert idx.get_loc(idx[1].to_timestamp().to_pydatetime(), method) == 1
-            assert idx.get_loc(str(idx[1]), method) == 1
+        assert idx.get_loc(idx[1], method) == 1
+        assert idx.get_loc(idx[1].to_timestamp(), method) == 1
+        assert idx.get_loc(idx[1].to_timestamp().to_pydatetime(), method) == 1
+        assert idx.get_loc(str(idx[1]), method) == 1
+
+        key = idx[1].asfreq("H", how="start")
+        with pytest.raises(KeyError, match=str(key)):
+            idx.get_loc(key, method=method)
+
+    # TODO: This method came from test_period; de-dup with version above
+    @pytest.mark.filterwarnings("ignore:Passing method:FutureWarning")
+    def test_get_loc3(self):
 
         idx = period_range("2000-01-01", periods=5)[::2]
         assert idx.get_loc("2000-01-02T12", method="nearest", tolerance="1 day") == 1
@@ -400,6 +405,21 @@ class TestGetLoc:
 
         assert "A" not in ser
         assert "A" not in pi
+
+    def test_get_loc_mismatched_freq(self):
+        # see also test_get_indexer_mismatched_dtype testing we get analogous
+        # behavior for get_loc
+        dti = date_range("2016-01-01", periods=3)
+        pi = dti.to_period("D")
+        pi2 = dti.to_period("W")
+        pi3 = pi.view(pi2.dtype)  # i.e. matching i8 representations
+
+        with pytest.raises(KeyError, match="W-SUN"):
+            pi.get_loc(pi2[0])
+
+        with pytest.raises(KeyError, match="W-SUN"):
+            # even though we have matching i8 values
+            pi.get_loc(pi3[0])
 
 
 class TestGetIndexer:
@@ -492,11 +512,13 @@ class TestGetIndexer:
                 continue
             # Two different error message patterns depending on dtypes
             msg = "|".join(
-                re.escape(msg)
-                for msg in (
-                    f"Cannot compare dtypes {pi.dtype} and {other.dtype}",
-                    " not supported between instances of ",
-                )
+                [
+                    re.escape(msg)
+                    for msg in (
+                        f"Cannot compare dtypes {pi.dtype} and {other.dtype}",
+                        " not supported between instances of ",
+                    )
+                ]
             )
             with pytest.raises(TypeError, match=msg):
                 pi.get_indexer(other2, method=method)
@@ -573,23 +595,22 @@ class TestGetIndexer:
 
 
 class TestWhere:
-    @pytest.mark.parametrize("klass", [list, tuple, np.array, Series])
-    def test_where(self, klass):
+    def test_where(self, listlike_box):
         i = period_range("20130101", periods=5, freq="D")
         cond = [True] * len(i)
         expected = i
-        result = i.where(klass(cond))
+        result = i.where(listlike_box(cond))
         tm.assert_index_equal(result, expected)
 
         cond = [False] + [True] * (len(i) - 1)
         expected = PeriodIndex([NaT] + i[1:].tolist(), freq="D")
-        result = i.where(klass(cond))
+        result = i.where(listlike_box(cond))
         tm.assert_index_equal(result, expected)
 
     def test_where_other(self):
         i = period_range("20130101", periods=5, freq="D")
         for arr in [np.nan, NaT]:
-            result = i.where(notna(i), other=np.nan)
+            result = i.where(notna(i), other=arr)
             expected = i
             tm.assert_index_equal(result, expected)
 
@@ -786,12 +807,6 @@ class TestGetValue:
             result2 = idx2.get_value(input2, p1)
         tm.assert_series_equal(result2, expected2)
 
-    def test_loc_str(self):
-        # https://github.com/pandas-dev/pandas/issues/33964
-        index = period_range(start="2000", periods=20, freq="B")
-        series = Series(range(20), index=index)
-        assert series.loc["2000-01-14"] == 9
-
     @pytest.mark.parametrize("freq", ["H", "D"])
     def test_get_value_datetime_hourly(self, freq):
         # get_loc and get_value should treat datetime objects symmetrically
@@ -904,10 +919,10 @@ class TestAsOfLocs:
 
         msg = "must be DatetimeIndex or PeriodIndex"
         with pytest.raises(TypeError, match=msg):
-            pi.asof_locs(pd.Int64Index(pi.asi8), mask)
+            pi.asof_locs(Int64Index(pi.asi8), mask)
 
         with pytest.raises(TypeError, match=msg):
-            pi.asof_locs(pd.Float64Index(pi.asi8), mask)
+            pi.asof_locs(Float64Index(pi.asi8), mask)
 
         with pytest.raises(TypeError, match=msg):
             # TimedeltaIndex

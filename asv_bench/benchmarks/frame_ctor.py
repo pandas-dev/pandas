@@ -2,6 +2,7 @@ import numpy as np
 
 import pandas as pd
 from pandas import (
+    Categorical,
     DataFrame,
     MultiIndex,
     Series,
@@ -31,6 +32,9 @@ class FromDicts:
         self.dict_list = frame.to_dict(orient="records")
         self.data2 = {i: {j: float(j) for j in range(100)} for i in range(2000)}
 
+        # arrays which we wont consolidate
+        self.dict_of_categoricals = {i: Categorical(np.arange(N)) for i in range(K)}
+
     def time_list_of_dict(self):
         DataFrame(self.dict_list)
 
@@ -50,6 +54,10 @@ class FromDicts:
         # nested dict, integer indexes, regression described in #621
         DataFrame(self.data2)
 
+    def time_dict_of_categoricals(self):
+        # dict of arrays that we wont consolidate
+        DataFrame(self.dict_of_categoricals)
+
 
 class FromSeries:
     def setup(self):
@@ -67,7 +75,6 @@ class FromDictwithTimestamp:
 
     def setup(self, offset):
         N = 10 ** 3
-        np.random.seed(1234)
         idx = date_range(Timestamp("1/1/1900"), freq=offset, periods=N)
         df = DataFrame(np.random.randn(N, 10), index=idx)
         self.d = df.to_dict()

@@ -1,32 +1,35 @@
 # Arithmetic tests for DataFrame/Series/Index/Array classes that should
 # behave identically.
 # Specifically for numeric dtypes
+from __future__ import annotations
+
 from collections import abc
 from decimal import Decimal
 from itertools import combinations
 import operator
-from typing import (
-    Any,
-    List,
-)
+from typing import Any
 
 import numpy as np
 import pytest
 
 import pandas as pd
 from pandas import (
-    Float64Index,
     Index,
-    Int64Index,
     RangeIndex,
     Series,
     Timedelta,
     TimedeltaIndex,
-    UInt64Index,
     array,
 )
 import pandas._testing as tm
 from pandas.core import ops
+from pandas.core.api import (
+    Float64Index,
+    Int64Index,
+    UInt64Index,
+)
+from pandas.core.computation import expressions as expr
+from pandas.tests.arithmetic.common import assert_invalid_comparison
 
 
 @pytest.fixture(params=[Index, Series, tm.to_array])
@@ -55,8 +58,8 @@ def adjust_negative_zero(zero, expected):
 # TODO: remove this kludge once mypy stops giving false positives here
 # List comprehension has incompatible type List[PandasObject]; expected List[RangeIndex]
 #  See GH#29725
-ser_or_index: List[Any] = [Series, Index]
-lefts: List[Any] = [RangeIndex(10, 40, 10)]
+ser_or_index: list[Any] = [Series, Index]
+lefts: list[Any] = [RangeIndex(10, 40, 10)]
 lefts.extend(
     [
         cls([10, 20, 30], dtype=dtype)
@@ -82,25 +85,13 @@ class TestNumericComparisons:
         expected = 0.0 > Series([1, 2, 3])
         tm.assert_series_equal(result, expected)
 
-    def test_df_numeric_cmp_dt64_raises(self):
+    def test_df_numeric_cmp_dt64_raises(self, box_with_array):
         # GH#8932, GH#22163
         ts = pd.Timestamp.now()
-        df = pd.DataFrame({"x": range(5)})
+        obj = np.array(range(5))
+        obj = tm.box_expected(obj, box_with_array)
 
-        msg = (
-            "'[<>]' not supported between instances of 'numpy.ndarray' and 'Timestamp'"
-        )
-        with pytest.raises(TypeError, match=msg):
-            df > ts
-        with pytest.raises(TypeError, match=msg):
-            df < ts
-        with pytest.raises(TypeError, match=msg):
-            ts < df
-        with pytest.raises(TypeError, match=msg):
-            ts > df
-
-        assert not (df == ts).any().any()
-        assert (df != ts).all().all()
+        assert_invalid_comparison(obj, ts, box_with_array)
 
     def test_compare_invalid(self):
         # GH#8058
@@ -311,6 +302,7 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
                 "Concatenation operation is not implemented for NumPy arrays",
                 # pd.array vs np.datetime64 case
                 r"operand type\(s\) all returned NotImplemented from __array_ufunc__",
+                "can only perform ops with numeric values",
             ]
         )
         with pytest.raises(TypeError, match=msg):
@@ -390,9 +382,14 @@ class TestDivisionByZero:
     # ------------------------------------------------------------------
 
     @pytest.mark.parametrize("dtype1", [np.int64, np.float64, np.uint64])
-    def test_ser_div_ser(self, dtype1, any_real_dtype):
+    def test_ser_div_ser(
+        self,
+        switch_numexpr_min_elements,
+        dtype1,
+        any_real_numpy_dtype,
+    ):
         # no longer do integer div for any ops, but deal with the 0's
-        dtype2 = any_real_dtype
+        dtype2 = any_real_numpy_dtype
 
         first = Series([3, 4, 5, 8], name="first").astype(dtype1)
         second = Series([0, 0, 0, 3], name="second").astype(dtype2)
@@ -404,15 +401,20 @@ class TestDivisionByZero:
                 name=None,
             )
         expected.iloc[0:3] = np.inf
+        if first.dtype == "int64" and second.dtype == "float32":
+            # when using numexpr, the casting rules are slightly different
+            # and int64/float32 combo results in float32 instead of float64
+            if expr.USE_NUMEXPR and switch_numexpr_min_elements == 0:
+                expected = expected.astype("float32")
 
         result = first / second
         tm.assert_series_equal(result, expected)
         assert not result.equals(second / first)
 
     @pytest.mark.parametrize("dtype1", [np.int64, np.float64, np.uint64])
-    def test_ser_divmod_zero(self, dtype1, any_real_dtype):
+    def test_ser_divmod_zero(self, dtype1, any_real_numpy_dtype):
         # GH#26987
-        dtype2 = any_real_dtype
+        dtype2 = any_real_numpy_dtype
         left = Series([1, 1]).astype(dtype1)
         right = Series([0, 2]).astype(dtype2)
 
@@ -680,11 +682,10 @@ class TestMultiplicationDivision:
         tm.assert_series_equal(result, expected)
 
     def test_mul_index(self, numeric_idx):
-        # in general not true for RangeIndex
         idx = numeric_idx
-        if not isinstance(idx, RangeIndex):
-            result = idx * idx
-            tm.assert_index_equal(result, idx ** 2)
+
+        result = idx * idx
+        tm.assert_index_equal(result, idx ** 2)
 
     def test_mul_datelike_raises(self, numeric_idx):
         idx = numeric_idx
@@ -889,7 +890,13 @@ class TestAdditionSubtraction:
 
         # really raise this time
         now = pd.Timestamp.now().to_pydatetime()
-        msg = "unsupported operand type"
+        msg = "|".join(
+            [
+                "unsupported operand type",
+                # wrong error message, see https://github.com/numpy/numpy/issues/18832
+                "Concatenation operation",
+            ]
+        )
         with pytest.raises(TypeError, match=msg):
             now + ts
 
@@ -1071,11 +1078,11 @@ class TestUFuncCompat:
         box = Series if holder is Series else Index
 
         if holder is RangeIndex:
-            idx = RangeIndex(0, 5)
+            idx = RangeIndex(0, 5, name="foo")
         else:
-            idx = holder(np.arange(5, dtype="int64"))
+            idx = holder(np.arange(5, dtype="int64"), name="foo")
         result = np.sin(idx)
-        expected = box(np.sin(np.arange(5, dtype="int64")))
+        expected = box(np.sin(np.arange(5, dtype="int64")), name="foo")
         tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize("holder", [Int64Index, UInt64Index, Float64Index, Series])
@@ -1193,14 +1200,16 @@ class TestNumericArithmeticUnsorted:
     def check_binop(self, ops, scalars, idxs):
         for op in ops:
             for a, b in combinations(idxs, 2):
+                a = a._rename("foo")
+                b = b._rename("bar")
                 result = op(a, b)
                 expected = op(Int64Index(a), Int64Index(b))
-                tm.assert_index_equal(result, expected)
+                tm.assert_index_equal(result, expected, exact="equiv")
             for idx in idxs:
                 for scalar in scalars:
                     result = op(idx, scalar)
                     expected = op(Int64Index(idx), scalar)
-                    tm.assert_index_equal(result, expected)
+                    tm.assert_index_equal(result, expected, exact="equiv")
 
     def test_binops(self):
         ops = [
@@ -1292,18 +1301,22 @@ class TestNumericArithmeticUnsorted:
         # __pow__
         idx = RangeIndex(0, 1000, 2)
         result = idx ** 2
-        expected = idx._int64index ** 2
+        expected = Int64Index(idx._values) ** 2
         tm.assert_index_equal(Index(result.values), expected, exact=True)
 
         # __floordiv__
         cases_exact = [
             (RangeIndex(0, 1000, 2), 2, RangeIndex(0, 500, 1)),
             (RangeIndex(-99, -201, -3), -3, RangeIndex(33, 67, 1)),
-            (RangeIndex(0, 1000, 1), 2, RangeIndex(0, 1000, 1)._int64index // 2),
+            (
+                RangeIndex(0, 1000, 1),
+                2,
+                Int64Index(RangeIndex(0, 1000, 1)._values) // 2,
+            ),
             (
                 RangeIndex(0, 100, 1),
                 2.0,
-                RangeIndex(0, 100, 1)._int64index // 2.0,
+                Int64Index(RangeIndex(0, 100, 1)._values) // 2.0,
             ),
             (RangeIndex(0), 50, RangeIndex(0)),
             (RangeIndex(2, 4, 2), 3, RangeIndex(0, 1, 1)),
@@ -1380,17 +1393,41 @@ def test_integer_array_add_list_like(
     right = box_1d_array(data) + container
 
     if Series == box_pandas_1d_array:
-        assert_function = tm.assert_series_equal
         expected = Series(expected_data, dtype="Int64")
     elif Series == box_1d_array:
-        assert_function = tm.assert_series_equal
         expected = Series(expected_data, dtype="object")
     elif Index in (box_pandas_1d_array, box_1d_array):
-        assert_function = tm.assert_index_equal
         expected = Int64Index(expected_data)
     else:
-        assert_function = tm.assert_numpy_array_equal
         expected = np.array(expected_data, dtype="object")
 
-    assert_function(left, expected)
-    assert_function(right, expected)
+    tm.assert_equal(left, expected)
+    tm.assert_equal(right, expected)
+
+
+def test_sub_multiindex_swapped_levels():
+    # GH 9952
+    df = pd.DataFrame(
+        {"a": np.random.randn(6)},
+        index=pd.MultiIndex.from_product(
+            [["a", "b"], [0, 1, 2]], names=["levA", "levB"]
+        ),
+    )
+    df2 = df.copy()
+    df2.index = df2.index.swaplevel(0, 1)
+    result = df - df2
+    expected = pd.DataFrame([0.0] * 6, columns=["a"], index=df.index)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("power", [1, 2, 5])
+@pytest.mark.parametrize("string_size", [0, 1, 2, 5])
+def test_empty_str_comparison(power, string_size):
+    # GH 37348
+    a = np.array(range(10 ** power))
+    right = pd.DataFrame(a, dtype=np.int64)
+    left = " " * string_size
+
+    result = right == left
+    expected = pd.DataFrame(np.zeros(right.shape, dtype=bool))
+    tm.assert_frame_equal(result, expected)

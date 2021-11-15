@@ -9,19 +9,14 @@ from typing import (
     Hashable,
     Iterable,
     Iterator,
-    Optional,
-    Tuple,
-    Union,
     cast,
 )
 
 import numpy as np
 
+from pandas._libs import lib
 from pandas._libs.hashing import hash_object_array
-from pandas._typing import (
-    ArrayLike,
-    FrameOrSeriesUnion,
-)
+from pandas._typing import ArrayLike
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -37,6 +32,7 @@ from pandas.core.dtypes.generic import (
 if TYPE_CHECKING:
     from pandas import (
         Categorical,
+        DataFrame,
         Index,
         MultiIndex,
         Series,
@@ -80,10 +76,10 @@ def combine_hash_arrays(arrays: Iterator[np.ndarray], num_items: int) -> np.ndar
 
 
 def hash_pandas_object(
-    obj: Union[Index, FrameOrSeriesUnion],
+    obj: Index | DataFrame | Series,
     index: bool = True,
     encoding: str = "utf8",
-    hash_key: Optional[str] = _default_hash_key,
+    hash_key: str | None = _default_hash_key,
     categorize: bool = True,
 ) -> Series:
     """
@@ -141,7 +137,10 @@ def hash_pandas_object(
         ser = Series(h, index=obj.index, dtype="uint64", copy=False)
 
     elif isinstance(obj, ABCDataFrame):
-        hashes = (hash_array(series._values) for _, series in obj.items())
+        hashes = (
+            hash_array(series._values, encoding, hash_key, categorize)
+            for _, series in obj.items()
+        )
         num_items = len(obj.columns)
         if index:
             index_hash_generator = (
@@ -169,7 +168,7 @@ def hash_pandas_object(
 
 
 def hash_tuples(
-    vals: Union[MultiIndex, Iterable[Tuple[Hashable, ...]]],
+    vals: MultiIndex | Iterable[tuple[Hashable, ...]],
     encoding: str = "utf8",
     hash_key: str = _default_hash_key,
 ) -> np.ndarray:
@@ -247,7 +246,7 @@ def _hash_categorical(cat: Categorical, encoding: str, hash_key: str) -> np.ndar
         result = np.zeros(len(mask), dtype="uint64")
 
     if mask.any():
-        result[mask] = np.iinfo(np.uint64).max
+        result[mask] = lib.u8max
 
     return result
 
@@ -330,7 +329,9 @@ def _hash_ndarray(
             )
 
             codes, categories = factorize(vals, sort=False)
-            cat = Categorical(codes, Index(categories), ordered=False, fastpath=True)
+            cat = Categorical(
+                codes, Index._with_infer(categories), ordered=False, fastpath=True
+            )
             return _hash_categorical(cat, encoding, hash_key)
 
         try:

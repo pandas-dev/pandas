@@ -3,11 +3,7 @@ from __future__ import annotations
 import numbers
 from typing import (
     TYPE_CHECKING,
-    List,
-    Optional,
-    Tuple,
-    Type,
-    Union,
+    overload,
 )
 import warnings
 
@@ -19,7 +15,11 @@ from pandas._libs import (
 )
 from pandas._typing import (
     ArrayLike,
+    AstypeArg,
     Dtype,
+    DtypeObj,
+    npt,
+    type_t,
 )
 from pandas.compat.numpy import function as nv
 
@@ -39,6 +39,7 @@ from pandas.core.dtypes.dtypes import (
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
+from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.masked import (
     BaseMaskedArray,
     BaseMaskedDtype,
@@ -79,7 +80,7 @@ class BooleanDtype(BaseMaskedDtype):
     # https://github.com/python/mypy/issues/4125
     # error: Signature of "type" incompatible with supertype "BaseMaskedDtype"
     @property
-    def type(self) -> Type:  # type: ignore[override]
+    def type(self) -> type:  # type: ignore[override]
         return np.bool_
 
     @property
@@ -91,7 +92,7 @@ class BooleanDtype(BaseMaskedDtype):
         return np.dtype("bool")
 
     @classmethod
-    def construct_array_type(cls) -> Type[BooleanArray]:
+    def construct_array_type(cls) -> type_t[BooleanArray]:
         """
         Return the array type associated with this dtype.
 
@@ -113,12 +114,15 @@ class BooleanDtype(BaseMaskedDtype):
         return True
 
     def __from_arrow__(
-        self, array: Union[pyarrow.Array, pyarrow.ChunkedArray]
+        self, array: pyarrow.Array | pyarrow.ChunkedArray
     ) -> BooleanArray:
         """
         Construct BooleanArray from pyarrow Array/ChunkedArray.
         """
         import pyarrow
+
+        if array.type != pyarrow.bool_():
+            raise TypeError(f"Expected array of boolean type, got {array.type} instead")
 
         if isinstance(array, pyarrow.Array):
             chunks = [array]
@@ -128,16 +132,44 @@ class BooleanDtype(BaseMaskedDtype):
 
         results = []
         for arr in chunks:
-            # TODO should optimize this without going through object array
-            bool_arr = BooleanArray._from_sequence(np.array(arr))
+            buflist = arr.buffers()
+            data = pyarrow.BooleanArray.from_buffers(
+                arr.type, len(arr), [None, buflist[1]], offset=arr.offset
+            ).to_numpy(zero_copy_only=False)
+            if arr.null_count != 0:
+                mask = pyarrow.BooleanArray.from_buffers(
+                    arr.type, len(arr), [None, buflist[0]], offset=arr.offset
+                ).to_numpy(zero_copy_only=False)
+                mask = ~mask
+            else:
+                mask = np.zeros(len(arr), dtype=bool)
+
+            bool_arr = BooleanArray(data, mask)
             results.append(bool_arr)
 
-        return BooleanArray._concat_same_type(results)
+        if not results:
+            return BooleanArray(
+                np.array([], dtype=np.bool_), np.array([], dtype=np.bool_)
+            )
+        else:
+            return BooleanArray._concat_same_type(results)
+
+    def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
+        # Handle only boolean + np.bool_ -> boolean, since other cases like
+        # Int64 + boolean -> Int64 will be handled by the other type
+        if all(
+            isinstance(t, BooleanDtype)
+            or (isinstance(t, np.dtype) and (np.issubdtype(t, np.bool_)))
+            for t in dtypes
+        ):
+            return BooleanDtype()
+        else:
+            return None
 
 
 def coerce_to_array(
     values, mask=None, copy: bool = False
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Coerce the input values array to numpy arrays with a mask.
 
@@ -214,10 +246,8 @@ def coerce_to_array(
             if mask_values is not None:
                 mask = mask | mask_values
 
-    if values.ndim != 1:
-        raise ValueError("values must be a 1D list-like")
-    if mask.ndim != 1:
-        raise ValueError("mask must be a 1D list-like")
+    if values.shape != mask.shape:
+        raise ValueError("values.shape and mask.shape must match")
 
     return values, mask
 
@@ -278,6 +308,9 @@ class BooleanArray(BaseMaskedArray):
 
     # The value used to fill '_data' to avoid upcasting
     _internal_fill_value = False
+    # Fill values used for any/all
+    _truthy_value = True
+    _falsey_value = False
     _TRUE_VALUES = {"True", "TRUE", "true", "1", "1.0"}
     _FALSE_VALUES = {"False", "FALSE", "false", "0", "0.0"}
 
@@ -296,7 +329,7 @@ class BooleanArray(BaseMaskedArray):
 
     @classmethod
     def _from_sequence(
-        cls, scalars, *, dtype: Optional[Dtype] = None, copy: bool = False
+        cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
     ) -> BooleanArray:
         if dtype:
             assert dtype == "boolean"
@@ -306,12 +339,12 @@ class BooleanArray(BaseMaskedArray):
     @classmethod
     def _from_sequence_of_strings(
         cls,
-        strings: List[str],
+        strings: list[str],
         *,
-        dtype: Optional[Dtype] = None,
+        dtype: Dtype | None = None,
         copy: bool = False,
-        true_values: Optional[List[str]] = None,
-        false_values: Optional[List[str]] = None,
+        true_values: list[str] | None = None,
+        false_values: list[str] | None = None,
     ) -> BooleanArray:
         true_values_union = cls._TRUE_VALUES.union(true_values or [])
         false_values_union = cls._FALSE_VALUES.union(false_values or [])
@@ -331,55 +364,23 @@ class BooleanArray(BaseMaskedArray):
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number, bool, np.bool_)
 
-    def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
-        # For BooleanArray inputs, we apply the ufunc to ._data
-        # and mask the result.
-        if method == "reduce":
-            # Not clear how to handle missing values in reductions. Raise.
-            raise NotImplementedError("The 'reduce' method is not supported.")
-        out = kwargs.get("out", ())
-
-        for x in inputs + out:
-            if not isinstance(x, self._HANDLED_TYPES + (BooleanArray,)):
-                return NotImplemented
-
-        # for binary ops, use our custom dunder methods
-        result = ops.maybe_dispatch_ufunc_to_dunder_op(
-            self, ufunc, method, *inputs, **kwargs
-        )
-        if result is not NotImplemented:
-            return result
-
-        mask = np.zeros(len(self), dtype=bool)
-        inputs2 = []
-        for x in inputs:
-            if isinstance(x, BooleanArray):
-                mask |= x._mask
-                inputs2.append(x._data)
-            else:
-                inputs2.append(x)
-
-        def reconstruct(x):
-            # we don't worry about scalar `x` here, since we
-            # raise for reduce up above.
-
-            if is_bool_dtype(x.dtype):
-                m = mask.copy()
-                return BooleanArray(x, m)
-            else:
-                x[mask] = np.nan
-            return x
-
-        result = getattr(ufunc, method)(*inputs2, **kwargs)
-        if isinstance(result, tuple):
-            tuple(reconstruct(x) for x in result)
-        else:
-            return reconstruct(result)
-
-    def _coerce_to_array(self, value) -> Tuple[np.ndarray, np.ndarray]:
+    def _coerce_to_array(self, value) -> tuple[np.ndarray, np.ndarray]:
         return coerce_to_array(value)
 
-    def astype(self, dtype, copy: bool = True) -> ArrayLike:
+    @overload
+    def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
+        ...
+
+    @overload
+    def astype(self, dtype: ExtensionDtype, copy: bool = ...) -> ExtensionArray:
+        ...
+
+    @overload
+    def astype(self, dtype: AstypeArg, copy: bool = ...) -> ArrayLike:
+        ...
+
+    def astype(self, dtype: AstypeArg, copy: bool = True) -> ArrayLike:
+
         """
         Cast to a NumPy array or ExtensionArray with 'dtype'.
 
@@ -445,7 +446,7 @@ class BooleanArray(BaseMaskedArray):
         data[self._mask] = -1
         return data
 
-    def any(self, *, skipna: bool = True, **kwargs):
+    def any(self, *, skipna: bool = True, axis: int | None = 0, **kwargs):
         """
         Return whether any element is True.
 
@@ -462,6 +463,7 @@ class BooleanArray(BaseMaskedArray):
             If `skipna` is False, the result will still be True if there is
             at least one element that is True, otherwise NA will be returned
             if there are NA's present.
+        axis : int or None, default 0
         **kwargs : any, default None
             Additional keywords have no effect but might be accepted for
             compatibility with NumPy.
@@ -504,16 +506,17 @@ class BooleanArray(BaseMaskedArray):
 
         values = self._data.copy()
         np.putmask(values, self._mask, False)
-        result = values.any()
+        result = values.any(axis=axis)
+
         if skipna:
             return result
         else:
-            if result or len(self) == 0 or not self._mask.any():
+            if result or self.size == 0 or not self._mask.any():
                 return result
             else:
                 return self.dtype.na_value
 
-    def all(self, *, skipna: bool = True, **kwargs):
+    def all(self, *, skipna: bool = True, axis: int | None = 0, **kwargs):
         """
         Return whether all elements are True.
 
@@ -530,6 +533,7 @@ class BooleanArray(BaseMaskedArray):
             If `skipna` is False, the result will still be False if there is
             at least one element that is False, otherwise NA will be returned
             if there are NA's present.
+        axis : int or None, default 0
         **kwargs : any, default None
             Additional keywords have no effect but might be accepted for
             compatibility with NumPy.
@@ -570,12 +574,12 @@ class BooleanArray(BaseMaskedArray):
 
         values = self._data.copy()
         np.putmask(values, self._mask, True)
-        result = values.all()
+        result = values.all(axis=axis)
 
         if skipna:
             return result
         else:
-            if not result or len(self) == 0 or not self._mask.any():
+            if not result or self.size == 0 or not self._mask.any():
                 return result
             else:
                 return self.dtype.na_value
@@ -708,13 +712,6 @@ class BooleanArray(BaseMaskedArray):
 
         return self._maybe_mask_result(result, mask, other, op_name)
 
-    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
-
-        if name in {"any", "all"}:
-            return getattr(self, name)(skipna=skipna, **kwargs)
-
-        return super()._reduce(name, skipna=skipna, **kwargs)
-
     def _maybe_mask_result(self, result, mask, other, op_name: str):
         """
         Parameters
@@ -744,3 +741,6 @@ class BooleanArray(BaseMaskedArray):
         else:
             result[mask] = np.nan
             return result
+
+    def __abs__(self):
+        return self.copy()

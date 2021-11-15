@@ -5,15 +5,17 @@ from pandas import (
     CategoricalIndex,
     DatetimeIndex,
     Index,
-    Int64Index,
     NaT,
     Period,
     PeriodIndex,
     Timedelta,
-    UInt64Index,
     period_range,
 )
 import pandas._testing as tm
+from pandas.core.indexes.api import (
+    Int64Index,
+    UInt64Index,
+)
 
 
 class TestPeriodIndexAsType:
@@ -21,7 +23,7 @@ class TestPeriodIndexAsType:
     def test_astype_raises(self, dtype):
         # GH#13149, GH#13209
         idx = PeriodIndex(["2016-05-16", "NaT", NaT, np.NaN], freq="D")
-        msg = "Cannot cast PeriodArray to dtype"
+        msg = "Cannot cast PeriodIndex to dtype"
         with pytest.raises(TypeError, match=msg):
             idx.astype(dtype)
 
@@ -162,7 +164,10 @@ class TestPeriodIndexAsType:
         assert res.freq == exp.freq
 
         exp = DatetimeIndex(["2011-01-01", "2011-02-01", "2011-03-01"], tz="US/Eastern")
-        res = pi.astype("datetime64[ns, US/Eastern]")
+        msg = "Use `obj.to_timestamp"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            # GH#44398
+            res = pi.astype("datetime64[ns, US/Eastern]")
         tm.assert_index_equal(res, exp)
         assert res.freq == exp.freq
 

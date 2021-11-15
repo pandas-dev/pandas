@@ -1,5 +1,4 @@
 import datetime as dt
-from datetime import datetime
 from itertools import combinations
 
 import dateutil
@@ -182,15 +181,12 @@ class TestAppend:
                 dt.datetime(2013, 1, 3, 7, 12),
             ]
         ),
+        pd.MultiIndex.from_arrays(["A B C".split(), "D E F".split()]),
     ]
 
-    indexes_cannot_append_with_other = [
-        pd.MultiIndex.from_arrays(["A B C".split(), "D E F".split()])
-    ]
-
-    all_indexes = indexes_can_append + indexes_cannot_append_with_other
-
-    @pytest.mark.parametrize("index", all_indexes, ids=lambda x: type(x).__name__)
+    @pytest.mark.parametrize(
+        "index", indexes_can_append, ids=lambda x: type(x).__name__
+    )
     def test_append_same_columns_type(self, index):
         # GH18359
 
@@ -200,8 +196,12 @@ class TestAppend:
         ser = Series([7, 8], index=ser_index, name=2)
         result = df.append(ser)
         expected = DataFrame(
-            [[1.0, 2.0, 3.0], [4, 5, 6], [7, 8, np.nan]], index=[0, 1, 2], columns=index
+            [[1, 2, 3.0], [4, 5, 6], [7, 8, np.nan]], index=[0, 1, 2], columns=index
         )
+        # integer dtype is preserved for columns present in ser.index
+        assert expected.dtypes.iloc[0].kind == "i"
+        assert expected.dtypes.iloc[1].kind == "i"
+
         tm.assert_frame_equal(result, expected)
 
         # ser wider than df
@@ -243,41 +243,6 @@ class TestAppend:
             columns=combined_columns,
         )
         tm.assert_frame_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "index_can_append", indexes_can_append, ids=lambda x: type(x).__name__
-    )
-    @pytest.mark.parametrize(
-        "index_cannot_append_with_other",
-        indexes_cannot_append_with_other,
-        ids=lambda x: type(x).__name__,
-    )
-    def test_append_different_columns_types_raises(
-        self, index_can_append, index_cannot_append_with_other
-    ):
-        # GH18359
-        # Dataframe.append will raise if MultiIndex appends
-        # or is appended to a different index type
-        #
-        # See also test 'test_append_different_columns_types' above for
-        # appending without raising.
-
-        df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=index_can_append)
-        ser = Series([7, 8, 9], index=index_cannot_append_with_other, name=2)
-        msg = (
-            r"Expected tuple, got (int|long|float|str|"
-            r"pandas._libs.interval.Interval)|"
-            r"object of type '(int|float|Timestamp|"
-            r"pandas._libs.interval.Interval)' has no len\(\)|"
-        )
-        with pytest.raises(TypeError, match=msg):
-            df.append(ser)
-
-        df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=index_cannot_append_with_other)
-        ser = Series([7, 8, 9], index=index_can_append, name=2)
-
-        with pytest.raises(TypeError, match=msg):
-            df.append(ser)
 
     def test_append_dtype_coerce(self, sort):
 
@@ -341,7 +306,7 @@ class TestAppend:
     def test_append_empty_frame_to_series_with_dateutil_tz(self):
         # GH 23682
         date = Timestamp("2018-10-24 07:30:00", tz=dateutil.tz.tzutc())
-        ser = Series({"date": date, "a": 1.0, "b": 2.0})
+        ser = Series({"a": 1.0, "b": 2.0, "date": date})
         df = DataFrame(columns=["c", "d"])
         result_a = df.append(ser, ignore_index=True)
         expected = DataFrame(
@@ -360,8 +325,6 @@ class TestAppend:
         result_b = result_a.append(ser, ignore_index=True)
         tm.assert_frame_equal(result_b, expected)
 
-        # column order is different
-        expected = expected[["c", "d", "date", "a", "b"]]
         result = df.append([ser, ser], ignore_index=True)
         tm.assert_frame_equal(result, expected)
 
@@ -377,6 +340,12 @@ class TestAppend:
         # also test with typed value to append
         df = DataFrame(columns=["a"]).astype("datetime64[ns, UTC]")
         other = Series({"a": pd.NaT}, dtype="datetime64[ns]")
+        result = df.append(other, ignore_index=True)
+        expected = DataFrame({"a": [pd.NaT]}).astype(object)
+        tm.assert_frame_equal(result, expected)
+
+        # mismatched tz
+        other = Series({"a": pd.NaT}, dtype="datetime64[ns, US/Pacific]")
         result = df.append(other, ignore_index=True)
         expected = DataFrame({"a": [pd.NaT]}).astype(object)
         tm.assert_frame_equal(result, expected)

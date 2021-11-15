@@ -65,6 +65,7 @@ extensions = [
     "sphinx.ext.ifconfig",
     "sphinx.ext.linkcode",
     "nbsphinx",
+    "sphinx_panels",
     "contributors",  # custom pandas extension
 ]
 
@@ -138,6 +139,10 @@ import pandas as pd"""
 
 # nbsphinx do not use requirejs (breaks bootstrap)
 nbsphinx_requirejs_path = ""
+
+# sphinx-panels shouldn't add bootstrap css since the pydata-sphinx-theme
+# already loads it
+panels_add_bootstrap_css = False
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["../_templates"]
@@ -456,7 +461,6 @@ ipython_execlines = [
 # eg pandas.Series.str and pandas.Series.dt (see GH9322)
 
 import sphinx  # isort:skip
-from sphinx.util import rpartition  # isort:skip
 from sphinx.ext.autodoc import (  # isort:skip
     AttributeDocumenter,
     Documenter,
@@ -516,8 +520,8 @@ class AccessorLevelDocumenter(Documenter):
             # HACK: this is added in comparison to ClassLevelDocumenter
             # mod_cls still exists of class.accessor, so an extra
             # rpartition is needed
-            modname, accessor = rpartition(mod_cls, ".")
-            modname, cls = rpartition(modname, ".")
+            modname, _, accessor = mod_cls.rpartition(".")
+            modname, _, cls = modname.rpartition(".")
             parents = [cls, accessor]
             # if the module name is still missing, get it like above
             if not modname:

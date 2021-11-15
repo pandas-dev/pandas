@@ -15,23 +15,26 @@ from pandas import (
 import pandas._testing as tm
 
 
-def test_where_unsafe_int(sint_dtype):
-    s = Series(np.arange(10), dtype=sint_dtype)
+def test_where_unsafe_int(any_signed_int_numpy_dtype):
+    s = Series(np.arange(10), dtype=any_signed_int_numpy_dtype)
     mask = s < 5
 
     s[mask] = range(2, 7)
-    expected = Series(list(range(2, 7)) + list(range(5, 10)), dtype=sint_dtype)
+    expected = Series(
+        list(range(2, 7)) + list(range(5, 10)),
+        dtype=any_signed_int_numpy_dtype,
+    )
 
     tm.assert_series_equal(s, expected)
 
 
-def test_where_unsafe_float(float_dtype):
-    s = Series(np.arange(10), dtype=float_dtype)
+def test_where_unsafe_float(float_numpy_dtype):
+    s = Series(np.arange(10), dtype=float_numpy_dtype)
     mask = s < 5
 
     s[mask] = range(2, 7)
     data = list(range(2, 7)) + list(range(5, 10))
-    expected = Series(data, dtype=float_dtype)
+    expected = Series(data, dtype=float_numpy_dtype)
 
     tm.assert_series_equal(s, expected)
 
@@ -85,7 +88,7 @@ def test_where_unsafe():
     s = Series(np.arange(10))
     mask = s > 5
 
-    msg = "cannot assign mismatch length to masked array"
+    msg = "cannot set using a list-like indexer with a different length than the value"
     with pytest.raises(ValueError, match=msg):
         s[mask] = [5, 4, 3, 2, 1]
 
@@ -158,13 +161,10 @@ def test_where_error():
     tm.assert_series_equal(s, expected)
 
     # failures
-    msg = "cannot assign mismatch length to masked array"
+    msg = "cannot set using a list-like indexer with a different length than the value"
     with pytest.raises(ValueError, match=msg):
         s[[True, False]] = [0, 2, 3]
-    msg = (
-        "NumPy boolean array indexing assignment cannot assign 0 input "
-        "values to the 1 output values where the mask is true"
-    )
+
     with pytest.raises(ValueError, match=msg):
         s[[True, False]] = []
 
@@ -295,6 +295,7 @@ def test_where_setitem_invalid():
     "box", [lambda x: np.array([x]), lambda x: [x], lambda x: (x,)]
 )
 def test_broadcast(size, mask, item, box):
+    # GH#8801, GH#4195
     selection = np.resize(mask, size)
 
     data = np.arange(size, dtype=float)
@@ -306,7 +307,8 @@ def test_broadcast(size, mask, item, box):
     )
 
     s = Series(data)
-    s[selection] = box(item)
+
+    s[selection] = item
     tm.assert_series_equal(s, expected)
 
     s = Series(data)
@@ -380,70 +382,36 @@ def test_where_numeric_with_string():
     assert w.dtype == "object"
 
 
-def test_where_timedelta_coerce():
-    s = Series([1, 2], dtype="timedelta64[ns]")
+@pytest.mark.parametrize("dtype", ["timedelta64[ns]", "datetime64[ns]"])
+def test_where_datetimelike_coerce(dtype):
+    ser = Series([1, 2], dtype=dtype)
     expected = Series([10, 10])
     mask = np.array([False, False])
 
-    rs = s.where(mask, [10, 10])
+    rs = ser.where(mask, [10, 10])
     tm.assert_series_equal(rs, expected)
 
-    rs = s.where(mask, 10)
+    rs = ser.where(mask, 10)
     tm.assert_series_equal(rs, expected)
 
-    rs = s.where(mask, 10.0)
+    rs = ser.where(mask, 10.0)
     tm.assert_series_equal(rs, expected)
 
-    rs = s.where(mask, [10.0, 10.0])
+    rs = ser.where(mask, [10.0, 10.0])
     tm.assert_series_equal(rs, expected)
 
-    rs = s.where(mask, [10.0, np.nan])
+    rs = ser.where(mask, [10.0, np.nan])
     expected = Series([10, None], dtype="object")
     tm.assert_series_equal(rs, expected)
 
 
-def test_where_datetime_conversion():
-    s = Series(date_range("20130102", periods=2))
-    expected = Series([10, 10])
-    mask = np.array([False, False])
-
-    rs = s.where(mask, [10, 10])
-    tm.assert_series_equal(rs, expected)
-
-    rs = s.where(mask, 10)
-    tm.assert_series_equal(rs, expected)
-
-    rs = s.where(mask, 10.0)
-    tm.assert_series_equal(rs, expected)
-
-    rs = s.where(mask, [10.0, 10.0])
-    tm.assert_series_equal(rs, expected)
-
-    rs = s.where(mask, [10.0, np.nan])
-    expected = Series([10, None], dtype="object")
-    tm.assert_series_equal(rs, expected)
-
+def test_where_datetimetz():
     # GH 15701
     timestamps = ["2016-12-31 12:00:04+00:00", "2016-12-31 12:00:04.010000+00:00"]
-    s = Series([Timestamp(t) for t in timestamps])
-    rs = s.where(Series([False, True]))
-    expected = Series([pd.NaT, s[1]])
+    ser = Series([Timestamp(t) for t in timestamps], dtype="datetime64[ns, UTC]")
+    rs = ser.where(Series([False, True]))
+    expected = Series([pd.NaT, ser[1]], dtype="datetime64[ns, UTC]")
     tm.assert_series_equal(rs, expected)
-
-
-def test_where_dt_tz_values(tz_naive_fixture):
-    ser1 = Series(
-        pd.DatetimeIndex(["20150101", "20150102", "20150103"], tz=tz_naive_fixture)
-    )
-    ser2 = Series(
-        pd.DatetimeIndex(["20160514", "20160515", "20160516"], tz=tz_naive_fixture)
-    )
-    mask = Series([True, True, False])
-    result = ser1.where(mask, ser2)
-    exp = Series(
-        pd.DatetimeIndex(["20150101", "20150102", "20160516"], tz=tz_naive_fixture)
-    )
-    tm.assert_series_equal(exp, result)
 
 
 def test_where_sparse():
@@ -461,14 +429,13 @@ def test_where_empty_series_and_empty_cond_having_non_bool_dtypes():
     tm.assert_series_equal(result, ser)
 
 
-@pytest.mark.parametrize("klass", [Series, pd.DataFrame])
-def test_where_categorical(klass):
+def test_where_categorical(frame_or_series):
     # https://github.com/pandas-dev/pandas/issues/18888
-    exp = klass(
+    exp = frame_or_series(
         pd.Categorical(["A", "A", "B", "B", np.nan], categories=["A", "B", "C"]),
         dtype="category",
     )
-    df = klass(["A", "A", "B", "B", "C"], dtype="category")
+    df = frame_or_series(["A", "A", "B", "B", "C"], dtype="category")
     res = df.where(df != "C")
     tm.assert_equal(exp, res)
 
@@ -491,7 +458,7 @@ def test_where_datetimelike_categorical(tz_naive_fixture):
     tm.assert_index_equal(res, dr)
 
     # DatetimeArray.where
-    res = lvals._data.where(mask, rvals)
+    res = lvals._data._where(mask, rvals)
     tm.assert_datetime_array_equal(res, dr._data)
 
     # Series.where

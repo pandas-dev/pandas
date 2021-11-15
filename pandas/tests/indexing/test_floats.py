@@ -3,13 +3,15 @@ import pytest
 
 from pandas import (
     DataFrame,
-    Float64Index,
     Index,
-    Int64Index,
     RangeIndex,
     Series,
 )
 import pandas._testing as tm
+from pandas.core.api import (
+    Float64Index,
+    Int64Index,
+)
 
 
 def gen_obj(klass, index):
@@ -478,7 +480,6 @@ class TestFloatIndexers:
         s = Series(range(5), index=index)
         assert s[3] == 2
         assert s.loc[3] == 2
-        assert s.loc[3] == 2
         assert s.iloc[3] == 3
 
     def test_floating_misc(self, indexer_sl):
@@ -512,8 +513,8 @@ class TestFloatIndexers:
         for fancy_idx in [[5.0, 0.0], np.array([5.0, 0.0])]:  # float
             tm.assert_series_equal(indexer_sl(s)[fancy_idx], expected)
 
-        expected = Series([2, 0], index=Index([5, 0], dtype="int64"))
-        for fancy_idx in [[5, 0], np.array([5, 0])]:  # int
+        expected = Series([2, 0], index=Index([5, 0], dtype="float64"))
+        for fancy_idx in [[5, 0], np.array([5, 0])]:
             tm.assert_series_equal(indexer_sl(s)[fancy_idx], expected)
 
         # all should return the same as we are slicing 'the same'
@@ -535,10 +536,10 @@ class TestFloatIndexers:
         result2 = s.iloc[[0, 2, 4]]
         tm.assert_series_equal(result1, result2)
 
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match="not in index"):
             indexer_sl(s)[[1.6, 5, 10]]
 
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match="not in index"):
             indexer_sl(s)[[0, 1, 2]]
 
         result = indexer_sl(s)[[2.5, 5]]

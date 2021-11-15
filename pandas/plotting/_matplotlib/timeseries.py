@@ -5,7 +5,6 @@ from __future__ import annotations
 import functools
 from typing import (
     TYPE_CHECKING,
-    Optional,
     cast,
 )
 
@@ -17,7 +16,6 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._libs.tslibs.dtypes import FreqGroup
-from pandas._typing import FrameOrSeriesUnion
 
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
@@ -41,6 +39,7 @@ if TYPE_CHECKING:
     from matplotlib.axes import Axes
 
     from pandas import (
+        DataFrame,
         DatetimeIndex,
         Index,
         Series,
@@ -186,7 +185,7 @@ def _get_ax_freq(ax: Axes):
     return ax_freq
 
 
-def _get_period_alias(freq) -> Optional[str]:
+def _get_period_alias(freq) -> str | None:
     freqstr = to_offset(freq).rule_code
 
     freq = get_period_alias(freqstr)
@@ -211,7 +210,7 @@ def _get_freq(ax: Axes, series: Series):
     return freq, ax_freq
 
 
-def use_dynamic_x(ax: Axes, data: FrameOrSeriesUnion) -> bool:
+def use_dynamic_x(ax: Axes, data: DataFrame | Series) -> bool:
     freq = _get_index_freq(data.index)
     ax_freq = _get_ax_freq(ax)
 
@@ -239,7 +238,7 @@ def use_dynamic_x(ax: Axes, data: FrameOrSeriesUnion) -> bool:
     return True
 
 
-def _get_index_freq(index: Index) -> Optional[BaseOffset]:
+def _get_index_freq(index: Index) -> BaseOffset | None:
     freq = getattr(index, "freq", None)
     if freq is None:
         freq = getattr(index, "inferred_freq", None)

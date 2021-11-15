@@ -1,5 +1,7 @@
 minimum_pre_commit_version: 2.9.2
 exclude: ^LICENSES/|\.(html|csv|svg)$
+ci:
+    autofix_prs: false
 repos:
 -   repo: https://github.com/MarcoGorelli/absolufy-imports
     rev: v0.3.0
@@ -7,23 +9,24 @@ repos:
     -   id: absolufy-imports
         files: ^pandas/
 -   repo: https://github.com/python/black
-    rev: 20.8b1
+    rev: 21.10b0
     hooks:
     -   id: black
 -   repo: https://github.com/codespell-project/codespell
-    rev: v2.0.0
+    rev: v2.1.0
     hooks:
     -   id: codespell
         types_or: [python, rst, markdown]
         files: ^(pandas|doc)/
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v3.4.0
+    rev: v4.0.1
     hooks:
+    -   id: debug-statements
     -   id: end-of-file-fixer
         exclude: \.txt$
     -   id: trailing-whitespace
 -   repo: https://github.com/cpplint/cpplint
-    rev: f7061b1 # the latest tag does not have the hook
+    rev: 1.5.5
     hooks:
     -   id: cpplint
         # We don't lint all C files because we don't want to lint any that are built
@@ -33,11 +36,16 @@ repos:
         exclude: ^pandas/_libs/src/(klib|headers)/
         args: [--quiet, '--extensions=c,h', '--headers=h', --recursive, '--filter=-readability/casting,-runtime/int,-build/include_subdir']
 -   repo: https://gitlab.com/pycqa/flake8
-    rev: 3.9.0
+    rev: 3.9.2
     hooks:
     -   id: flake8
-        additional_dependencies: [flake8-comprehensions>=3.1.0]
+        additional_dependencies: &flake8_dependencies
+        - flake8==3.9.2
+        - flake8-comprehensions==3.1.0
+        - flake8-bugbear==21.3.2
+        - pandas-dev-flaker==0.2.0
     -   id: flake8
+        alias: flake8-cython
         name: flake8 (cython)
         types: [cython]
         args: [--append-config=flake8/cython.cfg]
@@ -47,16 +55,16 @@ repos:
         types: [text]
         args: [--append-config=flake8/cython-template.cfg]
 -   repo: https://github.com/PyCQA/isort
-    rev: 5.8.0
+    rev: 5.9.3
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v2.11.0
+    rev: v2.29.0
     hooks:
     -   id: pyupgrade
-        args: [--py37-plus, --keep-runtime-typing]
+        args: [--py38-plus]
 -   repo: https://github.com/pre-commit/pygrep-hooks
-    rev: v1.8.0
+    rev: v1.9.0
     hooks:
       - id: rst-backticks
       - id: rst-directive-colons
@@ -66,9 +74,21 @@ repos:
         types: [text]  # overwrite types: [rst]
         types_or: [python, rst]
 -   repo: https://github.com/asottile/yesqa
-    rev: v1.2.2
+    rev: v1.3.0
     hooks:
     -   id: yesqa
+        additional_dependencies: *flake8_dependencies
+-   repo: local
+    hooks:
+    -   id: pyright
+        name: pyright
+        entry: pyright
+        language: node
+        pass_filenames: false
+        types: [python]
+        stages: [manual]
+        # note: keep version in sync with .github/workflows/ci.yml
+        additional_dependencies: ['pyright@1.1.171']
 -   repo: local
     hooks:
     -   id: flake8-rst
@@ -79,84 +99,65 @@ repos:
         types: [rst]
         args: [--filename=*.rst]
         additional_dependencies: [flake8-rst==0.7.0, flake8==3.7.9]
-    -   id: frame-or-series-union
-        name: Check for use of Union[Series, DataFrame] instead of FrameOrSeriesUnion alias
-        entry: Union\[.*(Series,.*DataFrame|DataFrame,.*Series).*\]
+    -   id: unwanted-patterns
+        name: Unwanted patterns
         language: pygrep
-        types: [python]
-        exclude: ^pandas/_typing\.py$
-    -   id: inconsistent-namespace-usage
-        name: 'Check for inconsistent use of pandas namespace in tests'
-        entry: python scripts/check_for_inconsistent_pandas_namespace.py
-        language: python
-        types: [python]
-        files: ^pandas/tests/
-    -   id: incorrect-code-directives
-        name: Check for incorrect code block or IPython directives
-        language: pygrep
-        entry: (\.\. code-block ::|\.\. ipython ::)
+        entry: |
+            (?x)
+            # outdated annotation syntax, missing error codes
+            \#\ type:\ (?!ignore)
+            |\#\ type:\s?ignore(?!\[)
+
+            # Incorrect code-block / IPython directives
+            |\.\.\ code-block\ ::
+            |\.\.\ ipython\ ::
+
+            # Check for deprecated messages without sphinx directive
+            |(DEPRECATED|DEPRECATE|Deprecated)(:|,|\.)
         types_or: [python, cython, rst]
-    -   id: no-os-remove
-        name: Check code for instances of os.remove
-        entry: os\.remove
+    -   id: cython-casting
+        name: Check Cython casting is `<type>obj`, not `<type> obj`
         language: pygrep
-        types: [python]
+        entry: '[a-zA-Z0-9*]> '
+        files: (\.pyx|\.pxi.in)$
+    -   id: incorrect-backticks
+        name: Check for backticks incorrectly rendering because of missing spaces
+        language: pygrep
+        entry: '[a-zA-Z0-9]\`\`?[a-zA-Z0-9]'
+        types: [rst]
+        files: ^doc/source/
+    -   id: seed-check-asv
+        name: Check for unnecessary random seeds in asv benchmarks
+        language: pygrep
+        entry: 'np\.random\.seed'
+        files: ^asv_bench/benchmarks
+        exclude: ^asv_bench/benchmarks/pandas_vb_common\.py
+    -   id: np-testing-array-equal
+        name: Check for usage of numpy testing or array_equal
+        language: pygrep
+        entry: '(numpy|np)(\.testing|\.array_equal)'
         files: ^pandas/tests/
-        exclude: |
-            (?x)^
-            pandas/tests/io/excel/test_writers\.py
-            |pandas/tests/io/pytables/common\.py
-            |pandas/tests/io/pytables/test_store\.py$
-    -   id: non-standard-imports
-        name: Check for non-standard imports
-        language: pygrep
-        entry: |
-            (?x)
-            # Check for imports from pandas.core.common instead of `import pandas.core.common as com`
-            from\ pandas\.core\.common\ import
-            |from\ pandas\.core\ import\ common
-
-            # Check for imports from collections.abc instead of `from collections import abc`
-            |from\ collections\.abc\ import
-
-            # Numpy
-            |from\ numpy\ import\ random
-            |from\ numpy\.random\ import
         types: [python]
-    -   id: non-standard-imports-in-tests
-        name: Check for non-standard imports in test suite
+    -   id: invalid-ea-testing
+        name: Check for invalid EA testing
         language: pygrep
-        entry: |
-            (?x)
-            # Check for imports from pandas._testing instead of `import pandas._testing as tm`
-            from\ pandas\._testing\ import
-            |from\ pandas\ import\ _testing\ as\ tm
-
-            # No direct imports from conftest
-            |conftest\ import
-            |import\ conftest
-
-            # Check for use of pandas.testing instead of tm
-            |pd\.testing\.
-
-            # Check for pd.api.types instead of from pandas.api.types import ...
-            |(pd|pandas)\.api\.types\.
+        entry: 'tm\.assert_(series|frame)_equal'
+        files: ^pandas/tests/extension/base
         types: [python]
-        files: ^pandas/tests/
-    -   id: np-bool-and-np-object
-        name: Check for use of np.bool/np.object instead of np.bool_/np.object_
-        entry: |
-            (?x)
-            np\.bool[^_8]
-            |np\.object[^_8]
-        language: pygrep
-        types_or: [python, cython, rst]
+        exclude: ^pandas/tests/extension/base/base\.py
     -   id: pip-to-conda
         name: Generate pip dependency from conda
         description: This hook checks if the conda environment.yml and requirements-dev.txt are equal
         language: python
         entry: python scripts/generate_pip_deps_from_conda.py
         files: ^(environment.yml|requirements-dev.txt)$
+        pass_filenames: false
+        additional_dependencies: [pyyaml, toml]
+    -   id: sync-flake8-versions
+        name: Check flake8 version is synced across flake8, yesqa, and environment.yml
+        language: python
+        entry: python scripts/sync_flake8_versions.py
+        files: ^(\.pre-commit-config\.yaml|environment\.yml)$
         pass_filenames: false
         additional_dependencies: [pyyaml]
     -   id: title-capitalization
@@ -165,51 +166,20 @@ repos:
         language: python
         types: [rst]
         files: ^doc/source/(development|reference)/
-    -   id: type-not-class
-        name: Check for use of foo.__class__ instead of type(foo)
-        entry: \.__class__
-        language: pygrep
-        types_or: [python, cython]
-    -   id: unwanted-patterns-bare-pytest-raises
-        name: Check for use of bare pytest raises
+    -   id: use-pd_array-in-core
+        name: Import pandas.array as pd_array in core
         language: python
-        entry: python scripts/validate_unwanted_patterns.py --validation-type="bare_pytest_raises"
+        entry: python scripts/use_pd_array_in_core.py
+        files: ^pandas/core/
+        exclude: ^pandas/core/api\.py$
         types: [python]
-        files: ^pandas/tests/
-        exclude: ^pandas/tests/extension/
-    -   id: unwanted-patterns-private-function-across-module
-        name: Check for use of private functions across modules
+    -   id: no-bool-in-core-generic
+        name: Use bool_t instead of bool in pandas/core/generic.py
+        entry: python scripts/no_bool_in_generic.py
         language: python
-        entry: python scripts/validate_unwanted_patterns.py --validation-type="private_function_across_module"
-        types: [python]
-        exclude: ^(asv_bench|pandas/tests|doc)/
-    -   id: unwanted-patterns-private-import-across-module
-        name: Check for import of private attributes across modules
+        files: ^pandas/core/generic\.py$
+    -   id: pandas-errors-documented
+        name: Ensure pandas errors are documented in doc/source/reference/general_utility_functions.rst
+        entry: python scripts/pandas_errors_documented.py
         language: python
-        entry: python scripts/validate_unwanted_patterns.py --validation-type="private_import_across_module"
-        types: [python]
-        exclude: ^(asv_bench|pandas/tests|doc)/
-    -   id: unwanted-patterns-pytest-xfail
-        name: Check for use of pytest.xfail
-        entry: pytest\.xfail
-        language: pygrep
-        types: [python]
-        files: ^pandas/tests/
-    -   id: unwanted-patterns-strings-to-concatenate
-        name: Check for use of not concatenated strings
-        language: python
-        entry: python scripts/validate_unwanted_patterns.py --validation-type="strings_to_concatenate"
-        types_or: [python, cython]
-    -   id: unwanted-patterns-strings-with-wrong-placed-whitespace
-        name: Check for strings with wrong placed spaces
-        language: python
-        entry: python scripts/validate_unwanted_patterns.py --validation-type="strings_with_wrong_placed_whitespace"
-        types_or: [python, cython]
-    -   id: unwanted-typing
-        name: Check for outdated annotation syntax and missing error codes
-        entry: |
-            (?x)
-            \#\ type:\ (?!ignore)
-            |\#\ type:\s?ignore(?!\[)
-        language: pygrep
-        types: [python]
+        files: ^pandas/errors/__init__.py$

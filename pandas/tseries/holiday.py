@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 from datetime import (
     datetime,
     timedelta,
 )
-from typing import List
 import warnings
 
 from dateutil.relativedelta import (  # noqa
@@ -196,7 +197,8 @@ class Holiday:
         Holiday: July 3rd (month=7, day=3, )
 
         >>> NewYears = Holiday(
-        ...     "New Years Day", month=1,  day=1, observance=nearest_workday
+        ...     "New Years Day", month=1,  day=1,
+        ...      observance=nearest_workday
         ... )
         >>> NewYears  # doctest: +SKIP
         Holiday: New Years Day (
@@ -384,7 +386,7 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
     Abstract interface to create holidays following certain rules.
     """
 
-    rules: List[Holiday] = []
+    rules: list[Holiday] = []
     start_date = Timestamp(datetime(1970, 1, 1))
     end_date = Timestamp(datetime(2200, 12, 31))
     _cache = None

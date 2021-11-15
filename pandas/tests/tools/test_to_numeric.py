@@ -4,6 +4,8 @@ import numpy as np
 from numpy import iinfo
 import pytest
 
+from pandas.compat import is_platform_arm
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -232,9 +234,7 @@ def test_type_check(errors):
     # see gh-11776
     df = DataFrame({"a": [1, -3.14, 7], "b": ["4", "5", "6"]})
     kwargs = {"errors": errors} if errors is not None else {}
-    error_ctx = pytest.raises(TypeError, match="1-d array")
-
-    with error_ctx:
+    with pytest.raises(TypeError, match="1-d array"):
         to_numeric(df, **kwargs)
 
 
@@ -725,9 +725,9 @@ def test_precision_float_conversion(strrep):
         (["1", "2", "3.5"], Series([1, 2, 3.5])),
     ],
 )
-def test_to_numeric_from_nullable_string(values, expected):
+def test_to_numeric_from_nullable_string(values, nullable_string_dtype, expected):
     # https://github.com/pandas-dev/pandas/issues/37262
-    s = Series(values, dtype="string")
+    s = Series(values, dtype=nullable_string_dtype)
     result = to_numeric(s)
     tm.assert_series_equal(result, expected)
 
@@ -752,7 +752,7 @@ def test_to_numeric_from_nullable_string(values, expected):
             "UInt64",
             "signed",
             "UInt64",
-            marks=pytest.mark.xfail(reason="GH38798"),
+            marks=pytest.mark.xfail(not is_platform_arm(), reason="GH38798"),
         ),
         ([1, 1], "Int64", "unsigned", "UInt8"),
         ([1.0, 1.0], "Float32", "unsigned", "UInt8"),
@@ -782,3 +782,10 @@ def test_downcast_nullable_mask_is_copied():
 
     arr[1] = pd.NA  # should not modify result
     tm.assert_extension_array_equal(result, expected)
+
+
+def test_to_numeric_scientific_notation():
+    # GH 15898
+    result = to_numeric("1.7e+308")
+    expected = np.float64(1.7e308)
+    assert result == expected

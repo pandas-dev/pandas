@@ -5,12 +5,9 @@ Expressions
 Offer fast expression evaluation through numexpr
 
 """
+from __future__ import annotations
+
 import operator
-from typing import (
-    List,
-    Optional,
-    Set,
-)
 import warnings
 
 import numpy as np
@@ -25,11 +22,11 @@ from pandas.core.ops import roperator
 if NUMEXPR_INSTALLED:
     import numexpr as ne
 
-_TEST_MODE: Optional[bool] = None
-_TEST_RESULT: List[bool] = []
+_TEST_MODE: bool | None = None
+_TEST_RESULT: list[bool] = []
 USE_NUMEXPR = NUMEXPR_INSTALLED
-_evaluate: Optional[FuncType] = None
-_where: Optional[FuncType] = None
+_evaluate: FuncType | None = None
+_where: FuncType | None = None
 
 # the set of dtypes that we will allow pass to numexpr
 _ALLOWED_DTYPES = {
@@ -73,13 +70,13 @@ def _evaluate_standard(op, op_str, a, b):
 
 
 def _can_use_numexpr(op, op_str, a, b, dtype_check):
-    """ return a boolean if we WILL be using numexpr """
+    """return a boolean if we WILL be using numexpr"""
     if op_str is not None:
 
         # required min elements (otherwise we are adding overhead)
         if a.size > _MIN_ELEMENTS:
             # check for dtype compatibility
-            dtypes: Set[str] = set()
+            dtypes: set[str] = set()
             for o in [a, b]:
                 # ndarray and Series Case
                 if hasattr(o, "dtype"):
@@ -104,11 +101,25 @@ def _evaluate_numexpr(op, op_str, a, b):
         a_value = a
         b_value = b
 
-        result = ne.evaluate(
-            f"a_value {op_str} b_value",
-            local_dict={"a_value": a_value, "b_value": b_value},
-            casting="safe",
-        )
+        try:
+            result = ne.evaluate(
+                f"a_value {op_str} b_value",
+                local_dict={"a_value": a_value, "b_value": b_value},
+                casting="safe",
+            )
+        except TypeError:
+            # numexpr raises eg for array ** array with integers
+            # (https://github.com/pydata/numexpr/issues/379)
+            pass
+        except NotImplementedError:
+            if _bool_arith_fallback(op_str, a, b):
+                pass
+            else:
+                raise
+
+        if is_reversed:
+            # reverse order to original for fallback
+            a, b = b, a
 
     if _TEST_MODE:
         _store_test_result(result is not None)
@@ -128,8 +139,9 @@ _op_str_mapping = {
     roperator.rsub: "-",
     operator.truediv: "/",
     roperator.rtruediv: "/",
-    operator.floordiv: "//",
-    roperator.rfloordiv: "//",
+    # floordiv not supported by numexpr 2.x
+    operator.floordiv: None,
+    roperator.rfloordiv: None,
     # we require Python semantics for mod of negative for backwards compatibility
     # see https://github.com/pydata/numexpr/issues/365
     # so sticking with unaccelerated for now
@@ -188,26 +200,24 @@ def _has_bool_dtype(x):
         return isinstance(x, (bool, np.bool_))
 
 
-def _bool_arith_check(
-    op_str, a, b, not_allowed=frozenset(("/", "//", "**")), unsupported=None
-):
-    if unsupported is None:
-        unsupported = {"+": "|", "*": "&", "-": "^"}
+_BOOL_OP_UNSUPPORTED = {"+": "|", "*": "&", "-": "^"}
 
+
+def _bool_arith_fallback(op_str, a, b):
+    """
+    Check if we should fallback to the python `_evaluate_standard` in case
+    of an unsupported operation by numexpr, which is the case for some
+    boolean ops.
+    """
     if _has_bool_dtype(a) and _has_bool_dtype(b):
-        if op_str in unsupported:
+        if op_str in _BOOL_OP_UNSUPPORTED:
             warnings.warn(
                 f"evaluating in Python space because the {repr(op_str)} "
-                "operator is not supported by numexpr for "
-                f"the bool dtype, use {repr(unsupported[op_str])} instead"
+                "operator is not supported by numexpr for the bool dtype, "
+                f"use {repr(_BOOL_OP_UNSUPPORTED[op_str])} instead."
             )
-            return False
-
-        if op_str in not_allowed:
-            raise NotImplementedError(
-                f"operator {repr(op_str)} not implemented for bool dtypes"
-            )
-    return True
+            return True
+    return False
 
 
 def evaluate(op, a, b, use_numexpr: bool = True):
@@ -224,7 +234,6 @@ def evaluate(op, a, b, use_numexpr: bool = True):
     """
     op_str = _op_str_mapping[op]
     if op_str is not None:
-        use_numexpr = use_numexpr and _bool_arith_check(op_str, a, b)
         if use_numexpr:
             # error: "None" not callable
             return _evaluate(op, op_str, a, b)  # type: ignore[misc]
@@ -265,7 +274,7 @@ def _store_test_result(used_numexpr: bool) -> None:
         _TEST_RESULT.append(used_numexpr)
 
 
-def get_test_result() -> List[bool]:
+def get_test_result() -> list[bool]:
     """
     Get test result and reset test_results.
     """

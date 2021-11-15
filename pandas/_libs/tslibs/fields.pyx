@@ -93,7 +93,7 @@ def build_field_sarray(const int64_t[:] dtindex):
     return out
 
 
-def month_position_check(fields, weekdays):
+def month_position_check(fields, weekdays) -> str | None:
     cdef:
         int32_t daysinmonth, y, m, d
         bint calendar_end = True
@@ -198,7 +198,7 @@ cdef inline bint _is_on_month(int month, int compare_month, int modby) nogil:
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def get_start_end_field(const int64_t[:] dtindex, str field,
-                        object freqstr=None, int month_kw=12):
+                        str freqstr=None, int month_kw=12):
     """
     Given an int64-based datetime index return array of indicators
     of whether timestamps are at the start/end of the month/quarter/year
@@ -487,28 +487,6 @@ def get_timedelta_field(const int64_t[:] tdindex, str field):
                 out[i] = tds.days
         return out
 
-    elif field == 'h':
-        with nogil:
-            for i in range(count):
-                if tdindex[i] == NPY_NAT:
-                    out[i] = -1
-                    continue
-
-                td64_to_tdstruct(tdindex[i], &tds)
-                out[i] = tds.hrs
-        return out
-
-    elif field == 's':
-        with nogil:
-            for i in range(count):
-                if tdindex[i] == NPY_NAT:
-                    out[i] = -1
-                    continue
-
-                td64_to_tdstruct(tdindex[i], &tds)
-                out[i] = tds.sec
-        return out
-
     elif field == 'seconds':
         with nogil:
             for i in range(count):
@@ -520,17 +498,6 @@ def get_timedelta_field(const int64_t[:] tdindex, str field):
                 out[i] = tds.seconds
         return out
 
-    elif field == 'ms':
-        with nogil:
-            for i in range(count):
-                if tdindex[i] == NPY_NAT:
-                    out[i] = -1
-                    continue
-
-                td64_to_tdstruct(tdindex[i], &tds)
-                out[i] = tds.ms
-        return out
-
     elif field == 'microseconds':
         with nogil:
             for i in range(count):
@@ -540,28 +507,6 @@ def get_timedelta_field(const int64_t[:] tdindex, str field):
 
                 td64_to_tdstruct(tdindex[i], &tds)
                 out[i] = tds.microseconds
-        return out
-
-    elif field == 'us':
-        with nogil:
-            for i in range(count):
-                if tdindex[i] == NPY_NAT:
-                    out[i] = -1
-                    continue
-
-                td64_to_tdstruct(tdindex[i], &tds)
-                out[i] = tds.us
-        return out
-
-    elif field == 'ns':
-        with nogil:
-            for i in range(count):
-                if tdindex[i] == NPY_NAT:
-                    out[i] = -1
-                    continue
-
-                td64_to_tdstruct(tdindex[i], &tds)
-                out[i] = tds.ns
         return out
 
     elif field == 'nanoseconds':
@@ -755,7 +700,7 @@ cdef inline ndarray[int64_t] _roundup_int64(values, int64_t unit):
     return _floor_int64(values + unit // 2, unit)
 
 
-def round_nsint64(values: np.ndarray, mode: RoundTo, nanos) -> np.ndarray:
+def round_nsint64(values: np.ndarray, mode: RoundTo, nanos: int) -> np.ndarray:
     """
     Applies rounding mode at given frequency
 
