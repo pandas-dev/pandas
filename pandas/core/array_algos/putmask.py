@@ -4,7 +4,6 @@ EA-compatible analogue to to np.putmask
 from __future__ import annotations
 
 from typing import Any
-import warnings
 
 import numpy as np
 
@@ -15,16 +14,12 @@ from pandas._typing import (
 )
 
 from pandas.core.dtypes.cast import (
+    can_hold_element,
     convert_scalar_for_putitemlike,
     find_common_type,
     infer_dtype_from,
 )
-from pandas.core.dtypes.common import (
-    is_float_dtype,
-    is_integer_dtype,
-    is_list_like,
-)
-from pandas.core.dtypes.missing import isna_compat
+from pandas.core.dtypes.common import is_list_like
 
 from pandas.core.arrays import ExtensionArray
 
@@ -75,7 +70,7 @@ def putmask_smart(values: np.ndarray, mask: npt.NDArray[np.bool_], new) -> np.nd
         `values`, updated in-place.
     mask : np.ndarray[bool]
         Applies to both sides (array like).
-    new : `new values` either scalar or an array like aligned with `values`
+    new : listlike `new values` aligned with `values`
 
     Returns
     -------
@@ -89,9 +84,6 @@ def putmask_smart(values: np.ndarray, mask: npt.NDArray[np.bool_], new) -> np.nd
     # we cannot use np.asarray() here as we cannot have conversions
     # that numpy does when numeric are mixed with strings
 
-    if not is_list_like(new):
-        new = np.broadcast_to(new, mask.shape)
-
     # see if we are only masking values that if putted
     # will work in the current dtype
     try:
@@ -100,27 +92,12 @@ def putmask_smart(values: np.ndarray, mask: npt.NDArray[np.bool_], new) -> np.nd
         # TypeError: only integer scalar arrays can be converted to a scalar index
         pass
     else:
-        # make sure that we have a nullable type if we have nulls
-        if not isna_compat(values, nn[0]):
-            pass
-        elif not (is_float_dtype(nn.dtype) or is_integer_dtype(nn.dtype)):
-            # only compare integers/floats
-            pass
-        elif not (is_float_dtype(values.dtype) or is_integer_dtype(values.dtype)):
-            # only compare integers/floats
-            pass
-        else:
-
-            # we ignore ComplexWarning here
-            with warnings.catch_warnings(record=True):
-                warnings.simplefilter("ignore", np.ComplexWarning)
-                nn_at = nn.astype(values.dtype)
-
-            comp = nn == nn_at
-            if is_list_like(comp) and comp.all():
-                nv = values.copy()
-                nv[mask] = nn_at
-                return nv
+        # We only get to putmask_smart when we cannot hold 'new' in values.
+        #  The "smart" part of putmask_smart is checking if we can hold new[mask]
+        #  in values, in which case we can still avoid the need to cast.
+        if can_hold_element(values, nn):
+            values[mask] = nn
+            return values
 
     new = np.asarray(new)
 
