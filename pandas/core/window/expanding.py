@@ -227,7 +227,7 @@ class Expanding(RollingAndExpandingMixin):
         template_header,
         create_section_header("Parameters"),
         args_compat,
-        window_agg_numba_parameters,
+        window_agg_numba_parameters(),
         kwargs_compat,
         create_section_header("Returns"),
         template_returns,
@@ -253,7 +253,7 @@ class Expanding(RollingAndExpandingMixin):
         template_header,
         create_section_header("Parameters"),
         args_compat,
-        window_agg_numba_parameters,
+        window_agg_numba_parameters(),
         kwargs_compat,
         create_section_header("Returns"),
         template_returns,
@@ -279,7 +279,7 @@ class Expanding(RollingAndExpandingMixin):
         template_header,
         create_section_header("Parameters"),
         args_compat,
-        window_agg_numba_parameters,
+        window_agg_numba_parameters(),
         kwargs_compat,
         create_section_header("Returns"),
         template_returns,
@@ -305,7 +305,7 @@ class Expanding(RollingAndExpandingMixin):
         template_header,
         create_section_header("Parameters"),
         args_compat,
-        window_agg_numba_parameters,
+        window_agg_numba_parameters(),
         kwargs_compat,
         create_section_header("Returns"),
         template_returns,
@@ -330,7 +330,7 @@ class Expanding(RollingAndExpandingMixin):
     @doc(
         template_header,
         create_section_header("Parameters"),
-        window_agg_numba_parameters,
+        window_agg_numba_parameters(),
         kwargs_compat,
         create_section_header("Returns"),
         template_returns,
@@ -360,6 +360,7 @@ class Expanding(RollingAndExpandingMixin):
             is ``N - ddof``, where ``N`` represents the number of elements.\n
         """
         ).replace("\n", "", 1),
+        window_agg_numba_parameters("1.4"),
         args_compat,
         kwargs_compat,
         create_section_header("Returns"),
@@ -396,7 +397,14 @@ class Expanding(RollingAndExpandingMixin):
         aggregation_description="standard deviation",
         agg_method="std",
     )
-    def std(self, ddof: int = 1, *args, **kwargs):
+    def std(
+        self,
+        ddof: int = 1,
+        engine: str | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
+        *args,
+        **kwargs,
+    ):
         nv.validate_expanding_func("std", args, kwargs)
         return super().std(ddof=ddof, **kwargs)
 
@@ -410,6 +418,7 @@ class Expanding(RollingAndExpandingMixin):
             is ``N - ddof``, where ``N`` represents the number of elements.\n
         """
         ).replace("\n", "", 1),
+        window_agg_numba_parameters("1.4"),
         args_compat,
         kwargs_compat,
         create_section_header("Returns"),

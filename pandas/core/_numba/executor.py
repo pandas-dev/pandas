@@ -45,7 +45,7 @@ def generate_shared_aggregator(
     numba = import_optional_dependency("numba")
 
     # Avoiding **kwargs usage: https://github.com/numba/numba/issues/2916
-    if "var" in cache_key_str:
+    if any(func in cache_key_str for func in ("var", "std")):
         # error: Untyped decorator makes function "column_looper" untyped
         @numba.jit(
             nopython=nopython, nogil=nogil, parallel=parallel

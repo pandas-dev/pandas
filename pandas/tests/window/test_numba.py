@@ -59,7 +59,7 @@ class TestEngine:
         expected = getattr(roll, method)(engine="cython")
 
         # Check the cache
-        if method not in ("mean", "sum", "var"):
+        if method not in ("mean", "sum", "var", "std"):
             assert (
                 getattr(np, f"nan{method}"),
                 "Rolling_apply_single",
@@ -84,7 +84,7 @@ class TestEngine:
         expected = getattr(expand, method)(engine="cython")
 
         # Check the cache
-        if method not in ("mean", "sum", "var"):
+        if method not in ("mean", "sum", "var", "std"):
             assert (
                 getattr(np, f"nan{method}"),
                 "Expanding_apply_single",
