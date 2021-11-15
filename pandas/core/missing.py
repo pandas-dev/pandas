@@ -28,9 +28,8 @@ from pandas._typing import (
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.cast import (
-    astype_array_safe,
     can_hold_element,
-    find_common_type,
+    coerce_to_target_dtype,
     infer_dtype_from,
     maybe_downcast_to_dtype,
     soft_convert_objects,
@@ -990,17 +989,6 @@ def _can_hold_element(values, element: Any) -> bool:
     """
     element = extract_array(element, extract_numpy=True)
     return can_hold_element(values, element)
-
-
-def coerce_to_target_dtype(values, other):
-    """
-    Coerce the values to a dtype compat for other. This will always
-    return values, possibly object dtype, and not raise.
-    """
-    dtype, _ = infer_dtype_from(other, pandas_dtype=True)
-    new_dtype = find_common_type([values.dtype, dtype])
-
-    return astype_array_safe(values, new_dtype, copy=False)
 
 
 def fillna_ea_array(values, value, limit=None, inplace: bool = False, downcast=None):

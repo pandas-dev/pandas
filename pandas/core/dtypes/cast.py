@@ -1849,6 +1849,17 @@ def find_common_type(types: list[DtypeObj]) -> DtypeObj:
     return np.find_common_type(types, [])  # type: ignore[arg-type]
 
 
+def coerce_to_target_dtype(values, other):
+    """
+    Coerce the values to a dtype compat for other. This will always
+    return values, possibly object dtype, and not raise.
+    """
+    dtype, _ = infer_dtype_from(other, pandas_dtype=True)
+    new_dtype = find_common_type([values.dtype, dtype])
+
+    return astype_array_safe(values, new_dtype, copy=False)
+
+
 def construct_2d_arraylike_from_scalar(
     value: Scalar, length: int, width: int, dtype: np.dtype, copy: bool
 ) -> np.ndarray:
