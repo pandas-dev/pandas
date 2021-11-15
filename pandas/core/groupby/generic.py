@@ -1703,6 +1703,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     level=self.level,
                     sort=self.sort,
                     mutated=self.mutated,
+                    # nulls have already been dropped from remaining_columns
                     dropna=False,
                 )
                 groupings += list(grouper.groupings)
@@ -1713,7 +1714,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 as_index=self.as_index,
                 sort=self.sort,
                 observed=self.observed,
-                dropna=False,
+                dropna=self.dropna,
             ).size()
 
             # Change the nameof the size result
