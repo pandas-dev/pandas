@@ -59,7 +59,7 @@ class TestEngine:
         expected = getattr(roll, method)(engine="cython")
 
         # Check the cache
-        if method not in ("mean", "sum"):
+        if method not in ("mean", "sum", "var"):
             assert (
                 getattr(np, f"nan{method}"),
                 "Rolling_apply_single",
@@ -84,7 +84,7 @@ class TestEngine:
         expected = getattr(expand, method)(engine="cython")
 
         # Check the cache
-        if method not in ("mean", "sum"):
+        if method not in ("mean", "sum", "var"):
             assert (
                 getattr(np, f"nan{method}"),
                 "Expanding_apply_single",
@@ -287,14 +287,19 @@ class TestTableMethod:
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
 
         df = DataFrame(np.eye(3))
-
-        result = getattr(
-            df.rolling(2, method="table", axis=axis, min_periods=0), method
-        )(engine_kwargs=engine_kwargs, engine="numba")
-        expected = getattr(
-            df.rolling(2, method="single", axis=axis, min_periods=0), method
-        )(engine_kwargs=engine_kwargs, engine="numba")
-        tm.assert_frame_equal(result, expected)
+        if method == "var":
+            with pytest.raises(NotImplementedError, match=f"{method} not supported"):
+                getattr(
+                    df.rolling(2, method="table", axis=axis, min_periods=0), method
+                )(engine_kwargs=engine_kwargs, engine="numba")
+        else:
+            result = getattr(
+                df.rolling(2, method="table", axis=axis, min_periods=0), method
+            )(engine_kwargs=engine_kwargs, engine="numba")
+            expected = getattr(
+                df.rolling(2, method="single", axis=axis, min_periods=0), method
+            )(engine_kwargs=engine_kwargs, engine="numba")
+            tm.assert_frame_equal(result, expected)
 
     def test_table_method_rolling_apply(self, axis, nogil, parallel, nopython):
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
@@ -355,13 +360,19 @@ class TestTableMethod:
 
         df = DataFrame(np.eye(3))
 
-        result = getattr(df.expanding(method="table", axis=axis), method)(
-            engine_kwargs=engine_kwargs, engine="numba"
-        )
-        expected = getattr(df.expanding(method="single", axis=axis), method)(
-            engine_kwargs=engine_kwargs, engine="numba"
-        )
-        tm.assert_frame_equal(result, expected)
+        if method == "var":
+            with pytest.raises(NotImplementedError, match=f"{method} not supported"):
+                getattr(df.expanding(method="table", axis=axis), method)(
+                    engine_kwargs=engine_kwargs, engine="numba"
+                )
+        else:
+            result = getattr(df.expanding(method="table", axis=axis), method)(
+                engine_kwargs=engine_kwargs, engine="numba"
+            )
+            expected = getattr(df.expanding(method="single", axis=axis), method)(
+                engine_kwargs=engine_kwargs, engine="numba"
+            )
+            tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("data", [np.eye(3), np.ones((2, 3)), np.ones((3, 2))])
     @pytest.mark.parametrize("method", ["mean", "sum"])

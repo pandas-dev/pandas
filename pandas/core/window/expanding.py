@@ -446,9 +446,18 @@ class Expanding(RollingAndExpandingMixin):
         aggregation_description="variance",
         agg_method="var",
     )
-    def var(self, ddof: int = 1, *args, **kwargs):
+    def var(
+        self,
+        ddof: int = 1,
+        engine: str | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
+        *args,
+        **kwargs,
+    ):
         nv.validate_expanding_func("var", args, kwargs)
-        return super().var(ddof=ddof, **kwargs)
+        return super().var(
+            ddof=ddof, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+        )
 
     @doc(
         template_header,

@@ -589,6 +589,7 @@ class BaseWindow(SelectionMixin):
         func: Callable[..., Any],
         numba_cache_key_str: str,
         engine_kwargs: dict[str, bool] | None = None,
+        **func_kwargs,
     ):
         window_indexer = self._get_window_indexer()
         min_periods = (
@@ -611,7 +612,7 @@ class BaseWindow(SelectionMixin):
         aggregator = executor.generate_shared_aggregator(
             func, engine_kwargs, numba_cache_key_str
         )
-        result = aggregator(values, start, end, min_periods)
+        result = aggregator(values, start, end, min_periods, **func_kwargs)
         NUMBA_FUNC_CACHE[(func, numba_cache_key_str)] = aggregator
         result = result.T if self.axis == 1 else result
         if obj.ndim == 1:
@@ -1462,7 +1463,23 @@ class RollingAndExpandingMixin(BaseWindow):
             **kwargs,
         )
 
-    def var(self, ddof: int = 1, *args, **kwargs):
+    def var(
+        self,
+        ddof: int = 1,
+        engine: str | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
+        *args,
+        **kwargs,
+    ):
+        if maybe_use_numba(engine):
+            if self.method == "table":
+                raise NotImplementedError("var not supported with method='table'")
+            else:
+                from pandas.core._numba.kernels import sliding_var
+
+                return self._numba_apply(
+                    sliding_var, "rolling_var", engine_kwargs, ddof=ddof
+                )
         nv.validate_window_func("var", args, kwargs)
         window_func = partial(window_aggregations.roll_var, ddof=ddof)
         return self._apply(

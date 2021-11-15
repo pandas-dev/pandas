@@ -69,6 +69,7 @@ def arithmetic_win_operators(request):
         "median",
         "max",
         "min",
+        "var",
     ]
 )
 def arithmetic_numba_supported_operators(request):
