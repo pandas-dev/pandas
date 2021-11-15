@@ -904,9 +904,7 @@ def test_omit_nuisance_agg(df, agg_function):
 
 def test_omit_nuisance_warnings(df):
     # GH 38815
-    with tm.assert_produces_warning(
-        FutureWarning, filter_level="always", check_stacklevel=False
-    ):
+    with tm.assert_produces_warning(FutureWarning, filter_level="always"):
         grouped = df.groupby("A")
         result = grouped.skew()
         expected = df.loc[:, ["A", "C", "D"]].groupby("A").skew()
@@ -2029,6 +2027,16 @@ def test_empty_groupby(columns, keys, values, method, op, request, using_array_m
     if len(keys) == 1:
         expected.index.name = keys[0]
     tm.assert_equal(result, expected)
+
+
+def test_empty_groupby_apply_nonunique_columns():
+    # GH#44417
+    df = DataFrame(np.random.randn(0, 4))
+    df[3] = df[3].astype(np.int64)
+    df.columns = [0, 1, 2, 0]
+    gb = df.groupby(df[1])
+    res = gb.apply(lambda x: x)
+    assert (res.dtypes == df.dtypes).all()
 
 
 def test_tuple_as_grouping():
