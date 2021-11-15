@@ -84,7 +84,7 @@ jobs:
         git remote add upstream https://github.com/pandas-dev/pandas.git
         git fetch upstream
         asv machine --yes
-        asv dev | sed "/failed$/ s/^/##[error]/" | tee benchmarks.log
+        asv run --quick --show-stderr --python=same --set-commit-hash HEAD | sed "/failed$/ s/^/##[error]/" | tee benchmarks.log
         if grep "failed" benchmarks.log > /dev/null ; then
             exit 1
         fi
@@ -96,7 +96,7 @@ jobs:
         name: Benchmarks log
         path: |
           asv_bench/benchmarks.log
-          asv_bench/results/benchmarks.json
+          asv_bench/results/*/HEAD_*.json
 
   web_and_docs:
     name: Web and docs
