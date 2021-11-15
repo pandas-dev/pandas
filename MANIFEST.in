@@ -33,6 +33,7 @@ global-exclude *.xlsb
 global-exclude *.xlsm
 global-exclude *.xlsx
 global-exclude *.xpt
+global-exclude *.cpt
 global-exclude *.xz
 global-exclude *.zip
 global-exclude *~

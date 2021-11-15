@@ -104,7 +104,7 @@ names : array-like, optional
     List of column names to use. If the file contains a header row,
     then you should explicitly pass ``header=0`` to override the column names.
     Duplicates in this list are not allowed.
-index_col : int, str, sequence of int / str, or False, default ``None``
+index_col : int, str, sequence of int / str, or False, optional, default ``None``
   Column(s) to use as the row labels of the ``DataFrame``, either given as
   string name or column index. If a sequence of int / str is given, a
   MultiIndex is used.
@@ -116,7 +116,8 @@ usecols : list-like or callable, optional
     Return a subset of the columns. If list-like, all elements must either
     be positional (i.e. integer indices into the document columns) or strings
     that correspond to column names provided either by the user in `names` or
-    inferred from the document header row(s). For example, a valid list-like
+    inferred from the document header row(s). If ``names`` are given, the document
+    header row(s) are not taken into account. For example, a valid list-like
     `usecols` parameter would be ``[0, 1, 2]`` or ``['foo', 'bar', 'baz']``.
     Element order is ignored, so ``usecols=[0, 1]`` is the same as ``[1, 0]``.
     To instantiate a DataFrame from ``data`` with element order preserved use
@@ -331,7 +332,7 @@ dialect : str or csv.Dialect, optional
     `skipinitialspace`, `quotechar`, and `quoting`. If it is necessary to
     override values, a ParserWarning will be issued. See csv.Dialect
     documentation for more details.
-error_bad_lines : bool, default ``None``
+error_bad_lines : bool, optional, default ``None``
     Lines with too many fields (e.g. a csv line with too many commas) will by
     default cause an exception to be raised, and no DataFrame will be returned.
     If False, then these "bad lines" will be dropped from the DataFrame that is
@@ -340,7 +341,7 @@ error_bad_lines : bool, default ``None``
     .. deprecated:: 1.3.0
        The ``on_bad_lines`` parameter should be used instead to specify behavior upon
        encountering a bad line instead.
-warn_bad_lines : bool, default ``None``
+warn_bad_lines : bool, optional, default ``None``
     If error_bad_lines is False, and warn_bad_lines is True, a warning for each
     "bad line" will be output.
 
@@ -1041,7 +1042,7 @@ class TextFileReader(abc.Iterator):
                     "engine='python'."
                 ),
                 ParserWarning,
-                stacklevel=5,
+                stacklevel=find_stack_level(),
             )
 
         index_col = options["index_col"]
@@ -1573,7 +1574,9 @@ def _merge_with_dialect_properties(
                 conflict_msgs.append(msg)
 
         if conflict_msgs:
-            warnings.warn("\n\n".join(conflict_msgs), ParserWarning, stacklevel=2)
+            warnings.warn(
+                "\n\n".join(conflict_msgs), ParserWarning, stacklevel=find_stack_level()
+            )
         kwds[param] = dialect_val
     return kwds
 

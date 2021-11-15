@@ -997,7 +997,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             result = self.obj._constructor(
                 index=self.grouper.result_index, columns=data.columns
             )
-            result = result.astype(data.dtypes.to_dict(), copy=False)
+            result = result.astype(data.dtypes, copy=False)
             return result
 
         # GH12824
