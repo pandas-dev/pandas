@@ -51,7 +51,7 @@ class NumbaEngine:
         ["DataFrame", "Series"],
         ["int", "float"],
         [np.sum, lambda x: np.sum(x) + 5],
-        ["sum", "max", "min", "median", "mean"],
+        ["sum", "max", "min", "median", "mean", "var", "std"],
         [True, False],
         [None, 100],
     )
