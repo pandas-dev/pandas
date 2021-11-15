@@ -516,9 +516,7 @@ class TestGetLoc:
             freq="5s",
         )
         key = Timestamp("2019-12-12 10:19:25", tz="US/Eastern")
-        with tm.assert_produces_warning(
-            FutureWarning, match="deprecated", check_stacklevel=False
-        ):
+        with tm.assert_produces_warning(FutureWarning, match="deprecated"):
             result = dti.get_loc(key, method="nearest")
         assert result == 7433
 
