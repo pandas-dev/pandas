@@ -1656,11 +1656,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         with self._group_selection_context():
             df = self.obj
 
-            # Check for index rather than column grouping
-            index_grouping = self.grouper.groupings[0].name is None
+            # Check for mapping, array or function rather than column grouping
+            non_column_grouping = not self.grouper.groupings[0].in_axis
 
             # Try to find column names
-            if index_grouping:
+            if non_column_grouping:
                 keys: Any = []
                 remaining_columns = self._selected_obj.columns
             elif isinstance(self._selected_obj, Series):
@@ -1728,18 +1728,18 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     main_grouper, sort=self.sort, observed=self.observed, dropna=dropna
                 ).size()
                 if self.as_index:
-                    if index_grouping:
+                    if non_column_grouping:
                         # The common index needs a common name
                         indexed_group_size.index.set_names("Group", inplace=True)
                         result.index.set_names("Group", level=0, inplace=True)
                     # Use indexed group size series
                     result /= indexed_group_size
-                    if index_grouping:
+                    if non_column_grouping:
                         result.index.set_names(None, level=0, inplace=True)
                 else:
                     # Make indexed key group size series
                     indexed_group_size.name = "group_size"
-                    if index_grouping:
+                    if non_column_grouping:
                         # Get the column name of the added groupby index column
                         index_column_name = result.columns[0]
                         indexed_group_size.index.set_names(
@@ -1748,7 +1748,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                         left_on = index_column_name
                     else:
                         left_on = keys
-                    if not index_grouping and len(keys) == 1:
+                    if not non_column_grouping and len(keys) == 1:
                         # Compose with single key group size series
                         group_size = indexed_group_size[result[keys[0]]]
                     else:
@@ -1766,7 +1766,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             if sort:
                 # Sort the values and then resort by the main grouping
                 if self.as_index:
-                    if index_grouping:
+                    if non_column_grouping:
                         level: Any = 0
                     else:
                         level = keys
@@ -1776,7 +1776,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                         .sort_index(level=level, sort_remaining=False)
                     )
                 else:
-                    if index_grouping:
+                    if non_column_grouping:
                         by: Any = "level_0"
                     else:
                         by = keys
