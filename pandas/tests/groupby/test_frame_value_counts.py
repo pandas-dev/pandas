@@ -261,35 +261,72 @@ def test_data_frame_value_counts_dropna(
 
 
 @pytest.mark.parametrize("as_index", [False, True])
-@pytest.mark.parametrize("observed", [False, True])
-@pytest.mark.parametrize("normalize", [False, True])
-def test_categorical(education_df, as_index, observed, normalize):
+@pytest.mark.parametrize(
+    "observed, expected_index",
+    [
+        (
+            False,
+            [
+                ("FR", "male", "low"),
+                ("FR", "female", "high"),
+                ("FR", "male", "medium"),
+                ("FR", "female", "low"),
+                ("FR", "female", "medium"),
+                ("FR", "male", "high"),
+                ("US", "female", "high"),
+                ("US", "male", "low"),
+                ("US", "female", "low"),
+                ("US", "female", "medium"),
+                ("US", "male", "high"),
+                ("US", "male", "medium"),
+            ],
+        ),
+        (
+            True,
+            [
+                ("FR", "male", "low"),
+                ("FR", "female", "high"),
+                ("FR", "male", "medium"),
+                ("US", "female", "high"),
+                ("US", "male", "low"),
+            ],
+        ),
+    ],
+)
+@pytest.mark.parametrize(
+    "normalize, expected_data",
+    [
+        (False, np.array([2, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0], dtype=np.int64)),
+        (
+            True,
+            np.array([0.5, 0.25, 0.25, 0.0, 0.0, 0.0, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0]),
+        ),
+    ],
+)
+def test_categorical(
+    education_df, as_index, observed, expected_index, normalize, expected_data
+):
     # Test categorical data whether or not observed
     gp = education_df.astype("category").groupby(
         "country", as_index=as_index, observed=observed
     )
     result = gp.value_counts(normalize=normalize)
 
-    if observed:
-        gp = education_df.groupby("country", as_index=as_index)
-        expected = gp.value_counts(normalize=normalize)
-        if as_index:
-            tm.assert_numpy_array_equal(result.values, expected.values)
-        else:
-            tm.assert_numpy_array_equal(
-                result[RESULT_NAME].values, expected[RESULT_NAME].values
-            )
-    else:
-        if normalize:
-            expected_values = np.array(
-                [0.5, 0.25, 0.25, 0.0, 0.0, 0.0, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0]
-            )
-        else:
-            expected_values = np.array(
-                [2, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0], dtype=np.int64
-            )
+    expected_series = pd.Series(
+        name="count",
+        data=expected_data[expected_data > 0.0] if observed else expected_data,
+        index=pd.MultiIndex.from_tuples(
+            expected_index,
+            names=["country", "gender", "education"],
+        ),
+    )
+    for i in range(3):
+        expected_series.index = expected_series.index.set_levels(
+            pd.CategoricalIndex(expected_series.index.levels[i]), level=i
+        )
 
-        if as_index:
-            tm.assert_numpy_array_equal(result.values, expected_values)
-        else:
-            tm.assert_numpy_array_equal(result[RESULT_NAME].values, expected_values)
+    if as_index:
+        tm.assert_series_equal(result, expected_series)
+    else:
+        expected = expected_series.to_frame().reset_index()
+        tm.assert_frame_equal(result, expected)
