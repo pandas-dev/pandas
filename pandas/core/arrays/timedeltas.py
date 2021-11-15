@@ -635,7 +635,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     @unpack_zerodim_and_defer("__floordiv__")
     def __floordiv__(self, other):
-        # breakpoint()
+
         if is_scalar(other):
             if isinstance(other, self._recognized_scalars):
                 other = Timedelta(other)
