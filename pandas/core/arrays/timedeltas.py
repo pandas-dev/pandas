@@ -635,7 +635,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     @unpack_zerodim_and_defer("__floordiv__")
     def __floordiv__(self, other):
-
+        # breakpoint()
         if is_scalar(other):
             if isinstance(other, self._recognized_scalars):
                 other = Timedelta(other)
@@ -651,8 +651,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
             # at this point we should only have numeric scalars; anything
             #  else will raise
-            result = self.asi8 // other
-            np.putmask(result, self._isnan, iNaT)
+            result = self._ndarray / other
             freq = None
             if self.freq is not None:
                 # Note: freq gets division, not floor-division
@@ -661,7 +660,7 @@ class TimedeltaArray(dtl.TimelikeOps):
                     # e.g. if self.freq is Nano(1) then dividing by 2
                     #  rounds down to zero
                     freq = None
-            return type(self)(result.view("m8[ns]"), freq=freq)
+            return type(self)(result, freq=freq)
 
         if not hasattr(other, "dtype"):
             # list, tuple
