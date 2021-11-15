@@ -26,7 +26,9 @@ def education_df():
 
 def test_basic(education_df):
     # gh43564
-    result = education_df.groupby('country')[['gender', 'education']].value_counts(normalize=True)
+    result = education_df.groupby("country")[["gender", "education"]].value_counts(
+        normalize=True
+    )
     expected = pd.Series(
         name="count",
         data=[0.5, 0.25, 0.25, 0.5, 0.5],
@@ -42,6 +44,7 @@ def test_basic(education_df):
         ),
     )
     tm.assert_series_equal(result, expected)
+
 
 def _frame_value_counts(df, keys, normalize, sort, ascending):
     return df[keys].value_counts(normalize=normalize, sort=sort, ascending=ascending)
