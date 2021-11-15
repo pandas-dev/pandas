@@ -32,6 +32,7 @@ from pandas.errors import (
     ParserError,
     ParserWarning,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
@@ -211,7 +212,7 @@ class ParserBase:
 
         self.usecols, self.usecols_dtype = self._validate_usecols_arg(kwds["usecols"])
 
-        self.handles: IOHandles | None = None
+        self.handles: IOHandles[str] | None = None
 
         # Fallback to error to pass a sketchy test(test_override_set_noconvert_columns)
         # Normally, this arg would get pre-processed earlier on
@@ -259,7 +260,8 @@ class ParserBase:
             # ParseDates = Union[DateGroups, List[DateGroups],
             #     Dict[ColReference, DateGroups]]
             cols_needed = itertools.chain.from_iterable(
-                col if is_list_like(col) else [col] for col in self.parse_dates
+                col if is_list_like(col) and not isinstance(col, tuple) else [col]
+                for col in self.parse_dates
             )
         else:
             cols_needed = []
@@ -558,7 +560,7 @@ class ParserBase:
                             f"for column {c} - only the converter will be used."
                         ),
                         ParserWarning,
-                        stacklevel=7,
+                        stacklevel=find_stack_level(),
                     )
 
                 try:
@@ -830,7 +832,7 @@ class ParserBase:
                 "Length of header or names does not match length of data. This leads "
                 "to a loss of data with index_col=False.",
                 ParserWarning,
-                stacklevel=6,
+                stacklevel=find_stack_level(),
             )
 
     def _evaluate_usecols(self, usecols, names):
@@ -1091,7 +1093,7 @@ def _process_date_conversion(
     if isinstance(parse_spec, list):
         # list of column lists
         for colspec in parse_spec:
-            if is_scalar(colspec):
+            if is_scalar(colspec) or isinstance(colspec, tuple):
                 if isinstance(colspec, int) and colspec not in data_dict:
                     colspec = orig_names[colspec]
                 if _isindex(colspec):
@@ -1146,7 +1148,11 @@ def _try_convert_dates(parser: Callable, colspec, data_dict, columns):
         else:
             colnames.append(c)
 
-    new_name = "_".join([str(x) for x in colnames])
+    new_name: tuple | str
+    if all(isinstance(x, tuple) for x in colnames):
+        new_name = tuple(map("_".join, zip(*colnames)))
+    else:
+        new_name = "_".join([str(x) for x in colnames])
     to_parse = [np.asarray(data_dict[c]) for c in colnames if c in data_dict]
 
     new_col = parser(*to_parse)

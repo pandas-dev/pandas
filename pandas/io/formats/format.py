@@ -164,9 +164,6 @@ common_docstring = """
             * unset.
         max_rows : int, optional
             Maximum number of rows to display in the console.
-        min_rows : int, optional
-            The number of rows to display in the console in a truncated repr
-            (when number of rows is above `max_rows`).
         max_cols : int, optional
             Maximum number of columns to display in the console.
         show_dimensions : bool, default False
