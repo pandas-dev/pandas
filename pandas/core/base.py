@@ -1239,8 +1239,8 @@ class IndexOpsMixin(OpsMixin):
     def searchsorted(  # type: ignore[misc]
         self,
         value: npt._ScalarLike_co,
-        side: Literal["left", "right"] = "left",
-        sorter: NumpySorter = None,
+        side: Literal["left", "right"] = ...,
+        sorter: NumpySorter = ...,
     ) -> np.intp:
         ...
 
@@ -1248,8 +1248,8 @@ class IndexOpsMixin(OpsMixin):
     def searchsorted(
         self,
         value: npt.ArrayLike | ExtensionArray,
-        side: Literal["left", "right"] = "left",
-        sorter: NumpySorter = None,
+        side: Literal["left", "right"] = ...,
+        sorter: NumpySorter = ...,
     ) -> npt.NDArray[np.intp]:
         ...
 

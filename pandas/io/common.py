@@ -559,7 +559,7 @@ def get_handle(
     encoding: str | None = ...,
     compression: CompressionOptions = ...,
     memory_map: bool = ...,
-    is_text: Literal[True] = True,
+    is_text: Literal[True] = ...,
     errors: str | None = ...,
     storage_options: StorageOptions = ...,
 ) -> IOHandles[str]:

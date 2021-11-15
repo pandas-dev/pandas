@@ -191,12 +191,12 @@ def execute(sql, con, params=None):
 def read_sql_table(
     table_name,
     con,
-    schema=None,
-    index_col=None,
-    coerce_float=True,
-    parse_dates=None,
-    columns=None,
-    chunksize: None = None,
+    schema=...,
+    index_col=...,
+    coerce_float=...,
+    parse_dates=...,
+    columns=...,
+    chunksize: None = ...,
 ) -> DataFrame:
     ...
 
@@ -205,12 +205,12 @@ def read_sql_table(
 def read_sql_table(
     table_name,
     con,
-    schema=None,
-    index_col=None,
-    coerce_float=True,
-    parse_dates=None,
-    columns=None,
-    chunksize: int = 1,
+    schema=...,
+    index_col=...,
+    coerce_float=...,
+    parse_dates=...,
+    columns=...,
+    chunksize: int = ...,
 ) -> Iterator[DataFrame]:
     ...
 
@@ -303,12 +303,12 @@ def read_sql_table(
 def read_sql_query(
     sql,
     con,
-    index_col=None,
-    coerce_float=True,
-    params=None,
-    parse_dates=None,
-    chunksize: None = None,
-    dtype: DtypeArg | None = None,
+    index_col=...,
+    coerce_float=...,
+    params=...,
+    parse_dates=...,
+    chunksize: None = ...,
+    dtype: DtypeArg | None = ...,
 ) -> DataFrame:
     ...
 
@@ -317,12 +317,12 @@ def read_sql_query(
 def read_sql_query(
     sql,
     con,
-    index_col=None,
-    coerce_float=True,
-    params=None,
-    parse_dates=None,
-    chunksize: int = 1,
-    dtype: DtypeArg | None = None,
+    index_col=...,
+    coerce_float=...,
+    params=...,
+    parse_dates=...,
+    chunksize: int = ...,
+    dtype: DtypeArg | None = ...,
 ) -> Iterator[DataFrame]:
     ...
 
@@ -410,12 +410,12 @@ def read_sql_query(
 def read_sql(
     sql,
     con,
-    index_col=None,
-    coerce_float=True,
-    params=None,
-    parse_dates=None,
-    columns=None,
-    chunksize: None = None,
+    index_col=...,
+    coerce_float=...,
+    params=...,
+    parse_dates=...,
+    columns=...,
+    chunksize: None = ...,
 ) -> DataFrame:
     ...
 
@@ -424,12 +424,12 @@ def read_sql(
 def read_sql(
     sql,
     con,
-    index_col=None,
-    coerce_float=True,
-    params=None,
-    parse_dates=None,
-    columns=None,
-    chunksize: int = 1,
+    index_col=...,
+    coerce_float=...,
+    params=...,
+    parse_dates=...,
+    columns=...,
+    chunksize: int = ...,
 ) -> Iterator[DataFrame]:
     ...
 
