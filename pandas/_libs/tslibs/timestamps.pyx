@@ -934,6 +934,10 @@ cdef class _Timestamp(ABCTimestamp):
         >>> pd.NaT.to_numpy()
         numpy.datetime64('NaT')
         """
+        if dtype is not None or copy is not False:
+            raise ValueError(
+                "Timestamp.to_numpy dtype and copy arguments are ignored."
+            )
         return self.to_datetime64()
 
     def to_period(self, freq=None):

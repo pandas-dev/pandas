@@ -619,6 +619,13 @@ class TestTimestampConversion:
         ts = Timestamp(datetime.now())
         assert ts.to_datetime64() == ts.to_numpy()
 
+        # GH#44460
+        msg = "dtype and copy arguments are ignored"
+        with pytest.raises(ValueError, match=msg):
+            ts.to_numpy("M8[s]")
+        with pytest.raises(ValueError, match=msg):
+            ts.to_numpy(copy=True)
+
 
 class SubDatetime(datetime):
     pass
