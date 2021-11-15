@@ -12,6 +12,7 @@ import sys
 import numpy as np
 import pytest
 
+from pandas.compat import PY310
 from pandas.errors import (
     EmptyDataError,
     ParserError,
@@ -29,6 +30,9 @@ import pandas._testing as tm
 
 from pandas.io.parsers import TextFileReader
 from pandas.io.parsers.c_parser_wrapper import CParserWrapper
+
+xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
 def test_override_set_noconvert_columns():
@@ -112,6 +116,7 @@ def test_read_csv_local(all_parsers, csv1):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_1000_sep(all_parsers):
     parser = all_parsers
     data = """A|B|C
@@ -124,7 +129,8 @@ def test_1000_sep(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-def test_squeeze(all_parsers):
+@pytest.mark.parametrize("squeeze", [True, False])
+def test_squeeze(all_parsers, squeeze):
     data = """\
 a,1
 b,2
@@ -134,15 +140,28 @@ c,3
     index = Index(["a", "b", "c"], name=0)
     expected = Series([1, 2, 3], name=1, index=index)
 
-    result = parser.read_csv(StringIO(data), index_col=0, header=None, squeeze=True)
-    tm.assert_series_equal(result, expected)
+    result = parser.read_csv_check_warnings(
+        FutureWarning,
+        "The squeeze argument has been deprecated "
+        "and will be removed in a future version.\n\n",
+        StringIO(data),
+        index_col=0,
+        header=None,
+        squeeze=squeeze,
+    )
+    if not squeeze:
+        expected = DataFrame(expected)
+        tm.assert_frame_equal(result, expected)
+    else:
+        tm.assert_series_equal(result, expected)
 
-    # see gh-8217
-    #
-    # Series should not be a view.
-    assert not result._is_view
+        # see gh-8217
+        #
+        # Series should not be a view.
+        assert not result._is_view
 
 
+@xfail_pyarrow
 def test_unnamed_columns(all_parsers):
     data = """A,B,C,,
 1,2,3,4,5
@@ -171,6 +190,7 @@ c,4,5
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_read_csv_low_memory_no_rows_with_index(all_parsers):
     # see gh-21141
     parser = all_parsers
@@ -219,6 +239,7 @@ def test_read_csv_dataframe(all_parsers, csv1):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize("nrows", [3, 3.0])
 def test_read_nrows(all_parsers, nrows):
     # see gh-10476
@@ -240,6 +261,7 @@ bar2,12,13,14,15
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize("nrows", [1.2, "foo", -1])
 def test_read_nrows_bad(all_parsers, nrows):
     data = """index,A,B,C,D
@@ -266,6 +288,7 @@ def test_nrows_skipfooter_errors(all_parsers):
         parser.read_csv(StringIO(data), skipfooter=1, nrows=5)
 
 
+@xfail_pyarrow
 def test_missing_trailing_delimiters(all_parsers):
     parser = all_parsers
     data = """A,B,C,D
@@ -281,6 +304,7 @@ def test_missing_trailing_delimiters(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_skip_initial_space(all_parsers):
     data = (
         '"09-Apr-2012", "01:10:18.300", 2456026.548822908, 12849, '
@@ -341,6 +365,7 @@ def test_skip_initial_space(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_trailing_delimiters(all_parsers):
     # see gh-2442
     data = """A,B,C
@@ -372,6 +397,7 @@ def test_escapechar(all_parsers):
     tm.assert_index_equal(result.columns, Index(["SEARCH_TERM", "ACTUAL_URL"]))
 
 
+@xfail_pyarrow
 def test_ignore_leading_whitespace(all_parsers):
     # see gh-3374, gh-6607
     parser = all_parsers
@@ -382,6 +408,7 @@ def test_ignore_leading_whitespace(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize("usecols", [None, [0, 1], ["a", "b"]])
 def test_uneven_lines_with_usecols(all_parsers, usecols):
     # see gh-12203
@@ -404,6 +431,7 @@ def test_uneven_lines_with_usecols(all_parsers, usecols):
         tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize(
     "data,kwargs,expected",
     [
@@ -436,6 +464,7 @@ def test_read_empty_with_usecols(all_parsers, data, kwargs, expected):
         tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize(
     "kwargs,expected",
     [
@@ -478,6 +507,15 @@ def test_raise_on_sep_with_delim_whitespace(all_parsers):
         parser.read_csv(StringIO(data), sep=r"\s", delim_whitespace=True)
 
 
+def test_read_filepath_or_buffer(all_parsers):
+    # see gh-43366
+    parser = all_parsers
+
+    with pytest.raises(TypeError, match="Expected file path name or file-like"):
+        parser.read_csv(filepath_or_buffer=b"input")
+
+
+@xfail_pyarrow
 @pytest.mark.parametrize("delim_whitespace", [True, False])
 def test_single_char_leading_whitespace(all_parsers, delim_whitespace):
     # see gh-9710
@@ -496,6 +534,8 @@ b\n"""
     tm.assert_frame_equal(result, expected)
 
 
+# Skip for now, actually only one test fails though, but its tricky to xfail
+@skip_pyarrow
 @pytest.mark.parametrize(
     "sep,skip_blank_lines,exp_data",
     [
@@ -535,6 +575,7 @@ A,B,C
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_whitespace_lines(all_parsers):
     parser = all_parsers
     data = """
@@ -550,6 +591,7 @@ A,B,C
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize(
     "data,expected",
     [
@@ -633,6 +675,11 @@ def test_read_table_equivalency_to_read_csv(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.skipif(
+    PY310,
+    reason="GH41935 This test is leaking only on Python 3.10,"
+    "causing other tests to fail with a cryptic error.",
+)
 @pytest.mark.parametrize("read_func", ["read_csv", "read_table"])
 def test_read_csv_and_table_sys_setprofile(all_parsers, read_func):
     # GH#41069
@@ -647,6 +694,7 @@ def test_read_csv_and_table_sys_setprofile(all_parsers, read_func):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_first_row_bom(all_parsers):
     # see gh-26545
     parser = all_parsers
@@ -657,6 +705,7 @@ def test_first_row_bom(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_first_row_bom_unquoted(all_parsers):
     # see gh-36343
     parser = all_parsers
@@ -667,6 +716,7 @@ def test_first_row_bom_unquoted(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize("nrows", range(1, 6))
 def test_blank_lines_between_header_and_data_rows(all_parsers, nrows):
     # GH 28071
@@ -680,6 +730,7 @@ def test_blank_lines_between_header_and_data_rows(all_parsers, nrows):
     tm.assert_frame_equal(df, ref[:nrows])
 
 
+@xfail_pyarrow
 def test_no_header_two_extra_columns(all_parsers):
     # GH 26218
     column_names = ["one", "two", "three"]
@@ -701,6 +752,7 @@ def test_read_csv_names_not_accepting_sets(all_parsers):
         parser.read_csv(StringIO(data), names=set("QAZ"))
 
 
+@xfail_pyarrow
 def test_read_table_delim_whitespace_default_sep(all_parsers):
     # GH: 35958
     f = StringIO("a  b  c\n1 -2 -3\n4  5   6")
@@ -764,17 +816,27 @@ def test_read_table_delim_whitespace_non_default_sep(all_parsers, delimiter):
 
 
 @pytest.mark.parametrize("func", ["read_csv", "read_table"])
-@pytest.mark.parametrize("prefix", [None, "x"])
-@pytest.mark.parametrize("names", [None, ["a"]])
-def test_names_and_prefix_not_lib_no_default(all_parsers, names, prefix, func):
+def test_names_and_prefix_not_None_raises(all_parsers, func):
     # GH#39123
     f = StringIO("a,b\n1,2")
     parser = all_parsers
     msg = "Specified named and prefix; you can only specify one."
     with pytest.raises(ValueError, match=msg):
-        getattr(parser, func)(f, names=names, prefix=prefix)
+        getattr(parser, func)(f, names=["a", "b"], prefix="x")
 
 
+@pytest.mark.parametrize("func", ["read_csv", "read_table"])
+@pytest.mark.parametrize("prefix, names", [(None, ["x0", "x1"]), ("x", None)])
+def test_names_and_prefix_explicit_None(all_parsers, names, prefix, func):
+    # GH42387
+    f = StringIO("a,b\n1,2")
+    expected = DataFrame({"x0": ["a", "1"], "x1": ["b", "2"]})
+    parser = all_parsers
+    result = getattr(parser, func)(f, names=names, sep=",", prefix=prefix, header=None)
+    tm.assert_frame_equal(result, expected)
+
+
+@xfail_pyarrow
 def test_dict_keys_as_names(all_parsers):
     # GH: 36928
     data = "1,2"
@@ -787,6 +849,7 @@ def test_dict_keys_as_names(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_encoding_surrogatepass(all_parsers):
     # GH39017
     parser = all_parsers
@@ -805,17 +868,19 @@ def test_encoding_surrogatepass(all_parsers):
             parser.read_csv(path)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize("on_bad_lines", ["error", "warn"])
 def test_deprecated_bad_lines_warns(all_parsers, csv1, on_bad_lines):
     # GH 15122
     parser = all_parsers
     kwds = {f"{on_bad_lines}_bad_lines": False}
-    with tm.assert_produces_warning(
+    parser.read_csv_check_warnings(
         FutureWarning,
-        match=f"The {on_bad_lines}_bad_lines argument has been deprecated "
+        f"The {on_bad_lines}_bad_lines argument has been deprecated "
         "and will be removed in a future version.\n\n",
-    ):
-        parser.read_csv(csv1, **kwds)
+        csv1,
+        **kwds,
+    )
 
 
 def test_malformed_second_line(all_parsers):

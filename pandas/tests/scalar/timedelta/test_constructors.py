@@ -204,15 +204,26 @@ def test_overflow_on_construction():
         Timedelta(timedelta(days=13 * 19999))
 
 
-def test_construction_out_of_bounds_td64():
+@pytest.mark.parametrize(
+    "val, unit, name",
+    [
+        (3508, "M", " months"),
+        (15251, "W", " weeks"),  # 1
+        (106752, "D", " days"),  # change from previous:
+        (2562048, "h", " hours"),  # 0 hours
+        (153722868, "m", " minutes"),  # 13 minutes
+        (9223372037, "s", " seconds"),  # 44 seconds
+    ],
+)
+def test_construction_out_of_bounds_td64(val, unit, name):
     # TODO: parametrize over units just above/below the implementation bounds
     #  once GH#38964 is resolved
 
     # Timedelta.max is just under 106752 days
-    td64 = np.timedelta64(106752, "D")
+    td64 = np.timedelta64(val, unit)
     assert td64.astype("m8[ns]").view("i8") < 0  # i.e. naive astype will be wrong
 
-    msg = "106752 days"
+    msg = str(val) + name
     with pytest.raises(OutOfBoundsTimedelta, match=msg):
         Timedelta(td64)
 
@@ -222,7 +233,7 @@ def test_construction_out_of_bounds_td64():
     td64 *= -1
     assert td64.astype("m8[ns]").view("i8") > 0  # i.e. naive astype will be wrong
 
-    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+    with pytest.raises(OutOfBoundsTimedelta, match="-" + msg):
         Timedelta(td64)
 
     # But just back in bounds and we are OK

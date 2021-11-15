@@ -4,19 +4,25 @@ inherit from this class.
 """
 from __future__ import annotations
 
-from typing import TypeVar
+from typing import (
+    TypeVar,
+    final,
+)
 
 from pandas._typing import (
+    ArrayLike,
     DtypeObj,
     Shape,
-    final,
 )
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.cast import find_common_type
 
 from pandas.core.base import PandasObject
-from pandas.core.indexes.api import Index
+from pandas.core.indexes.api import (
+    Index,
+    default_index,
+)
 
 T = TypeVar("T", bound="DataManager")
 
@@ -31,6 +37,7 @@ class DataManager(PandasObject):
     def items(self) -> Index:
         raise AbstractMethodError(self)
 
+    @final
     def __len__(self) -> int:
         return len(self.items)
 
@@ -103,6 +110,7 @@ class DataManager(PandasObject):
         """
         raise AbstractMethodError(self)
 
+    @final
     def equals(self, other: object) -> bool:
         """
         Implementation for DataFrame.equals
@@ -127,19 +135,63 @@ class DataManager(PandasObject):
     ) -> T:
         raise AbstractMethodError(self)
 
+    @final
     def isna(self: T, func) -> T:
         return self.apply("apply", func=func)
+
+    # --------------------------------------------------------------------
+    # Consolidation: No-ops for all but BlockManager
+
+    def is_consolidated(self) -> bool:
+        return True
+
+    def consolidate(self: T) -> T:
+        return self
+
+    def _consolidate_inplace(self) -> None:
+        return
 
 
 class SingleDataManager(DataManager):
     ndim = 1
 
+    @final
     @property
-    def array(self):
+    def array(self) -> ArrayLike:
         """
         Quick access to the backing array of the Block or SingleArrayManager.
         """
+        # error: "SingleDataManager" has no attribute "arrays"; maybe "array"
         return self.arrays[0]  # type: ignore[attr-defined]
+
+    def setitem_inplace(self, indexer, value) -> None:
+        """
+        Set values with indexer.
+
+        For Single[Block/Array]Manager, this backs s[indexer] = value
+
+        This is an inplace version of `setitem()`, mutating the manager/values
+        in place, not returning a new Manager (and Block), and thus never changing
+        the dtype.
+        """
+        self.array[indexer] = value
+
+    def grouped_reduce(self, func, ignore_failures: bool = False):
+        """
+        ignore_failures : bool, default False
+            Not used; for compatibility with ArrayManager/BlockManager.
+        """
+
+        arr = self.array
+        res = func(arr)
+        index = default_index(len(res))
+
+        mgr = type(self).from_array(res, index)
+        return mgr
+
+    @classmethod
+    def from_array(cls, arr: ArrayLike, index: Index):
+        raise AbstractMethodError(cls)
 
 
 def interleaved_dtype(dtypes: list[DtypeObj]) -> DtypeObj | None:

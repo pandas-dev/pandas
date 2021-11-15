@@ -50,7 +50,7 @@ decorate a class, providing the name of attribute to add. The class's
 
 Now users can access your methods using the ``geo`` namespace:
 
-      >>> ds = pd.Dataframe(
+      >>> ds = pd.DataFrame(
       ...     {"longitude": np.linspace(0, 10), "latitude": np.linspace(0, 20)}
       ... )
       >>> ds.geo.center
@@ -106,7 +106,7 @@ extension array for IP Address data, this might be ``ipaddress.IPv4Address``.
 
 See the `extension dtype source`_ for interface definition.
 
-:class:`pandas.api.extension.ExtensionDtype` can be registered to pandas to allow creation via a string dtype name.
+:class:`pandas.api.extensions.ExtensionDtype` can be registered to pandas to allow creation via a string dtype name.
 This allows one to instantiate ``Series`` and ``.astype()`` with a registered string name, for
 example ``'category'`` is a registered string accessor for the ``CategoricalDtype``.
 
@@ -125,7 +125,7 @@ data. We do require that your array be convertible to a NumPy array, even if
 this is relatively expensive (as it is for ``Categorical``).
 
 They may be backed by none, one, or many NumPy arrays. For example,
-``pandas.Categorical`` is an extension array backed by two arrays,
+:class:`pandas.Categorical` is an extension array backed by two arrays,
 one for codes and one for categories. An array of IPv6 addresses may
 be backed by a NumPy structured array with two fields, one for the
 lower 64 bits and one for the upper 64 bits. Or they may be backed

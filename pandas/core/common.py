@@ -36,6 +36,7 @@ from pandas._typing import (
     Scalar,
     T,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
@@ -145,7 +146,11 @@ def is_bool_indexer(key: Any) -> bool:
             return True
     elif isinstance(key, list):
         # check if np.array(key).dtype would be bool
-        return len(key) > 0 and lib.is_bool_list(key)
+        if len(key) > 0:
+            if type(key) is not list:
+                # GH#42461 cython will raise TypeError if we pass a subclass
+                key = list(key)
+            return lib.is_bool_list(key)
 
     return False
 
@@ -171,7 +176,7 @@ def cast_scalar_indexer(val, warn_float: bool = False):
                 "Indexing with a float is deprecated, and will raise an IndexError "
                 "in pandas 2.0. You can manually convert to an integer key instead.",
                 FutureWarning,
-                stacklevel=3,
+                stacklevel=find_stack_level(),
             )
         return int(val)
     return val
@@ -228,12 +233,7 @@ def asarray_tuplesafe(values, dtype: NpDtype | None = None) -> np.ndarray:
         # expected "ndarray")
         return values._values  # type: ignore[return-value]
 
-    # error: Non-overlapping container check (element type: "Union[str, dtype[Any],
-    # None]", container item type: "type")
-    if isinstance(values, list) and dtype in [  # type: ignore[comparison-overlap]
-        np.object_,
-        object,
-    ]:
+    if isinstance(values, list) and dtype in [np.object_, object]:
         return construct_1d_object_array_from_listlike(values)
 
     result = np.asarray(values, dtype=dtype)

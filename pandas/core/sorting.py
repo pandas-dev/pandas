@@ -6,6 +6,7 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     DefaultDict,
+    Hashable,
     Iterable,
     Sequence,
 )
@@ -21,6 +22,7 @@ from pandas._libs.hashtable import unique_label_indices
 from pandas._typing import (
     IndexKeyFunc,
     Shape,
+    npt,
 )
 
 from pandas.core.dtypes.common import (
@@ -94,7 +96,9 @@ def get_indexer_indexer(
     return indexer
 
 
-def get_group_index(labels, shape: Shape, sort: bool, xnull: bool):
+def get_group_index(
+    labels, shape: Shape, sort: bool, xnull: bool
+) -> npt.NDArray[np.int64]:
     """
     For the particular label_list, gets the offsets into the hypothetical list
     representing the totally ordered cartesian product of all possible label
@@ -186,7 +190,9 @@ def get_group_index(labels, shape: Shape, sort: bool, xnull: bool):
     return out
 
 
-def get_compressed_ids(labels, sizes: Shape) -> tuple[np.ndarray, np.ndarray]:
+def get_compressed_ids(
+    labels, sizes: Shape
+) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.int64]]:
     """
     Group_index is offsets into cartesian product of all possible labels. This
     space can be huge, so this function compresses it, by computing offsets
@@ -236,7 +242,9 @@ def decons_group_index(comp_labels, shape):
     return label_list[::-1]
 
 
-def decons_obs_group_ids(comp_ids: np.ndarray, obs_ids, shape, labels, xnull: bool):
+def decons_obs_group_ids(
+    comp_ids: npt.NDArray[np.intp], obs_ids, shape, labels, xnull: bool
+):
     """
     Reconstruct labels from observed group ids.
 
@@ -255,13 +263,13 @@ def decons_obs_group_ids(comp_ids: np.ndarray, obs_ids, shape, labels, xnull: bo
         out = decons_group_index(obs_ids, shape)
         return out if xnull or not lift.any() else [x - y for x, y in zip(out, lift)]
 
-    # TODO: unique_label_indices only used here, should take ndarray[np.intp]
-    indexer = unique_label_indices(ensure_int64(comp_ids))
+    indexer = unique_label_indices(comp_ids)
     return [lab[indexer].astype(np.intp, subok=False, copy=True) for lab in labels]
 
 
-def indexer_from_factorized(labels, shape: Shape, compress: bool = True) -> np.ndarray:
-    # returned ndarray is np.intp
+def indexer_from_factorized(
+    labels, shape: Shape, compress: bool = True
+) -> npt.NDArray[np.intp]:
     ids = get_group_index(labels, shape, sort=True, xnull=False)
 
     if not compress:
@@ -275,7 +283,7 @@ def indexer_from_factorized(labels, shape: Shape, compress: bool = True) -> np.n
 
 def lexsort_indexer(
     keys, orders=None, na_position: str = "last", key: Callable | None = None
-) -> np.ndarray:
+) -> npt.NDArray[np.intp]:
     """
     Performs lexical sorting on a set of keys
 
@@ -347,7 +355,7 @@ def nargsort(
     na_position: str = "last",
     key: Callable | None = None,
     mask: np.ndarray | None = None,
-):
+) -> npt.NDArray[np.intp]:
     """
     Intended to be a drop-in replacement for np.argsort which handles NaNs.
 
@@ -552,7 +560,7 @@ def ensure_key_mapped(values, key: Callable | None, levels=None):
 
 
 def get_flattened_list(
-    comp_ids: np.ndarray,  # np.ndarray[np.intp]
+    comp_ids: npt.NDArray[np.intp],
     ngroups: int,
     levels: Iterable[Index],
     labels: Iterable[np.ndarray],
@@ -570,7 +578,7 @@ def get_flattened_list(
 
 def get_indexer_dict(
     label_list: list[np.ndarray], keys: list[Index]
-) -> dict[str | tuple, np.ndarray]:
+) -> dict[Hashable, npt.NDArray[np.intp]]:
     """
     Returns
     -------
@@ -602,8 +610,8 @@ def get_indexer_dict(
 
 
 def get_group_index_sorter(
-    group_index: np.ndarray, ngroups: int | None = None
-) -> np.ndarray:
+    group_index: npt.NDArray[np.intp], ngroups: int | None = None
+) -> npt.NDArray[np.intp]:
     """
     algos.groupsort_indexer implements `counting sort` and it is at least
     O(ngroups), where
@@ -645,8 +653,8 @@ def get_group_index_sorter(
 
 
 def compress_group_index(
-    group_index: np.ndarray, sort: bool = True
-) -> tuple[np.ndarray, np.ndarray]:
+    group_index: npt.NDArray[np.int64], sort: bool = True
+) -> tuple[npt.NDArray[np.int64], npt.NDArray[np.int64]]:
     """
     Group_index is offsets into cartesian product of all possible labels. This
     space can be huge, so this function compresses it, by computing offsets
@@ -667,8 +675,8 @@ def compress_group_index(
 
 
 def _reorder_by_uniques(
-    uniques: np.ndarray, labels: np.ndarray
-) -> tuple[np.ndarray, np.ndarray]:
+    uniques: npt.NDArray[np.int64], labels: npt.NDArray[np.intp]
+) -> tuple[npt.NDArray[np.int64], npt.NDArray[np.intp]]:
     """
     Parameters
     ----------

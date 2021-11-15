@@ -5,7 +5,7 @@ dependencies:
   - python=3.8
 
   # tools
-  - cython>=0.29.21
+  - cython>=0.29.24
   - pytest>=6.0
   - pytest-cov
   - pytest-xdist>=1.31
@@ -18,7 +18,7 @@ dependencies:
   - html5lib
   - ipython
   - jinja2
-  - jedi<0.18.0
+  - jedi
   - lxml
   - matplotlib<3.3.0
   - moto

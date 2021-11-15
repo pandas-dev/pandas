@@ -28,6 +28,7 @@ import pandas._libs.lib as lib
 from pandas._typing import DtypeArg
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
@@ -47,36 +48,12 @@ from pandas.core.tools.datetimes import to_datetime
 from pandas.util.version import Version
 
 
-class SQLAlchemyRequired(ImportError):
-    pass
-
-
-class DatabaseError(IOError):
+class DatabaseError(OSError):
     pass
 
 
 # -----------------------------------------------------------------------------
 # -- Helper functions
-
-_SQLALCHEMY_INSTALLED: bool | None = None
-
-
-def _is_sqlalchemy_connectable(con):
-    global _SQLALCHEMY_INSTALLED
-    if _SQLALCHEMY_INSTALLED is None:
-        try:
-            import sqlalchemy
-
-            _SQLALCHEMY_INSTALLED = True
-        except ImportError:
-            _SQLALCHEMY_INSTALLED = False
-
-    if _SQLALCHEMY_INSTALLED:
-        import sqlalchemy  # noqa: F811
-
-        return isinstance(con, sqlalchemy.engine.Connectable)
-    else:
-        return False
 
 
 def _gt14() -> bool:
@@ -182,7 +159,7 @@ def _wrap_result(
     return frame
 
 
-def execute(sql, con, cur=None, params=None):
+def execute(sql, con, params=None):
     """
     Execute the given SQL query using the provided connection object.
 
@@ -194,7 +171,6 @@ def execute(sql, con, cur=None, params=None):
         Using SQLAlchemy makes it possible to use any DB supported by the
         library.
         If a DBAPI2 object, only sqlite3 is supported.
-    cur : deprecated, cursor is obtained from connection, default: None
     params : list or tuple, optional, default: None
         List of parameters to pass to execute method.
 
@@ -202,10 +178,7 @@ def execute(sql, con, cur=None, params=None):
     -------
     Results Iterable
     """
-    if cur is None:
-        pandas_sql = pandasSQL_builder(con)
-    else:
-        pandas_sql = pandasSQL_builder(cur, is_cursor=True)
+    pandas_sql = pandasSQL_builder(con)
     args = _convert_params(sql, params)
     return pandas_sql.execute(*args)
 
@@ -307,21 +280,10 @@ def read_sql_table(
     --------
     >>> pd.read_sql_table('table_name', 'postgres:///db_name')  # doctest:+SKIP
     """
-    con = _engine_builder(con)
-    if not _is_sqlalchemy_connectable(con):
-        raise NotImplementedError(
-            "read_sql_table only supported for SQLAlchemy connectable."
-        )
-    import sqlalchemy
-    from sqlalchemy.schema import MetaData
+    pandas_sql = pandasSQL_builder(con, schema=schema)
+    if not pandas_sql.has_table(table_name):
+        raise ValueError(f"Table {table_name} not found")
 
-    meta = MetaData(con, schema=schema)
-    try:
-        meta.reflect(only=[table_name], views=True)
-    except sqlalchemy.exc.InvalidRequestError as err:
-        raise ValueError(f"Table {table_name} not found") from err
-
-    pandas_sql = SQLDatabase(con, meta=meta)
     table = pandas_sql.read_table(
         table_name,
         index_col=index_col,
@@ -615,7 +577,7 @@ def read_sql(
         _is_table_name = False
 
     if _is_table_name:
-        pandas_sql.meta.reflect(only=[sql])
+        pandas_sql.meta.reflect(bind=pandas_sql.connectable, only=[sql])
         return pandas_sql.read_table(
             sql,
             index_col=index_col,
@@ -756,40 +718,28 @@ def has_table(table_name: str, con, schema: str | None = None):
 table_exists = has_table
 
 
-def _engine_builder(con):
-    """
-    Returns a SQLAlchemy engine from a URI (if con is a string)
-    else it just return con without modifying it.
-    """
-    global _SQLALCHEMY_INSTALLED
-    if isinstance(con, str):
-        try:
-            import sqlalchemy
-        except ImportError:
-            _SQLALCHEMY_INSTALLED = False
-        else:
-            con = sqlalchemy.create_engine(con)
-            return con
-
-    return con
-
-
-def pandasSQL_builder(
-    con, schema: str | None = None, meta=None, is_cursor: bool = False
-):
+def pandasSQL_builder(con, schema: str | None = None):
     """
     Convenience function to return the correct PandasSQL subclass based on the
     provided parameters.
     """
-    # When support for DBAPI connections is removed,
-    # is_cursor should not be necessary.
-    con = _engine_builder(con)
-    if _is_sqlalchemy_connectable(con):
-        return SQLDatabase(con, schema=schema, meta=meta)
-    elif isinstance(con, str):
-        raise ImportError("Using URI string without sqlalchemy installed.")
-    else:
-        return SQLiteDatabase(con, is_cursor=is_cursor)
+    import sqlite3
+
+    if isinstance(con, sqlite3.Connection) or con is None:
+        return SQLiteDatabase(con)
+
+    sqlalchemy = import_optional_dependency("sqlalchemy")
+
+    if isinstance(con, str):
+        con = sqlalchemy.create_engine(con)
+
+    if isinstance(con, sqlalchemy.engine.Connectable):
+        return SQLDatabase(con, schema=schema)
+
+    raise ValueError(
+        "pandas only support SQLAlchemy connectable(engine/connection) or"
+        "database string URI or sqlite3 DBAPI2 connection"
+    )
 
 
 class SQLTable(PandasObject):
@@ -850,7 +800,7 @@ class SQLTable(PandasObject):
             self.table = self.table.to_metadata(self.pd_sql.meta)
         else:
             self.table = self.table.tometadata(self.pd_sql.meta)
-        self.table.create()
+        self.table.create(bind=self.pd_sql.connectable)
 
     def create(self):
         if self.exists():
@@ -889,8 +839,12 @@ class SQLTable(PandasObject):
         and tables containing a few columns
         but performance degrades quickly with increase of columns.
         """
+
+        from sqlalchemy import insert
+
         data = [dict(zip(keys, row)) for row in data_iter]
-        conn.execute(self.table.insert(data))
+        stmt = insert(self.table).values(data)
+        conn.execute(stmt)
 
     def insert_data(self):
         if self.index is not None:
@@ -998,17 +952,16 @@ class SQLTable(PandasObject):
                 yield self.frame
 
     def read(self, coerce_float=True, parse_dates=None, columns=None, chunksize=None):
+        from sqlalchemy import select
 
         if columns is not None and len(columns) > 0:
-            from sqlalchemy import select
-
             cols = [self.table.c[n] for n in columns]
             if self.index is not None:
                 for idx in self.index[::-1]:
                     cols.insert(0, self.table.c[idx])
-            sql_select = select(cols)
+            sql_select = select(*cols) if _gt14() else select(cols)
         else:
-            sql_select = self.table.select()
+            sql_select = select(self.table) if _gt14() else self.table.select()
 
         result = self.pd_sql.execute(sql_select)
         column_names = result.keys()
@@ -1090,6 +1043,7 @@ class SQLTable(PandasObject):
             PrimaryKeyConstraint,
             Table,
         )
+        from sqlalchemy.schema import MetaData
 
         column_names_and_types = self._get_column_names_and_types(self._sqlalchemy_type)
 
@@ -1110,10 +1064,7 @@ class SQLTable(PandasObject):
 
         # At this point, attach to new metadata, only attach to self.meta
         # once table is created.
-        from sqlalchemy.schema import MetaData
-
-        meta = MetaData(self.pd_sql, schema=schema)
-
+        meta = MetaData()
         return Table(self.name, meta, *columns, schema=schema)
 
     def _harmonize_columns(self, parse_dates=None):
@@ -1209,7 +1160,7 @@ class SQLTable(PandasObject):
                 "the 'timedelta' type is not supported, and will be "
                 "written as integer values (ns frequency) to the database.",
                 UserWarning,
-                stacklevel=8,
+                stacklevel=find_stack_level(),
             )
             return BigInteger
         elif col_type == "floating":
@@ -1395,29 +1346,26 @@ class SQLDatabase(PandasSQL):
     schema : string, default None
         Name of SQL schema in database to write to (if database flavor
         supports this). If None, use default schema (default).
-    meta : SQLAlchemy MetaData object, default None
-        If provided, this MetaData object is used instead of a newly
-        created. This allows to specify database flavor specific
-        arguments in the MetaData object.
 
     """
 
-    def __init__(self, engine, schema: str | None = None, meta=None):
+    def __init__(self, engine, schema: str | None = None):
+        from sqlalchemy.schema import MetaData
+
         self.connectable = engine
-        if not meta:
-            from sqlalchemy.schema import MetaData
-
-            meta = MetaData(self.connectable, schema=schema)
-
-        self.meta = meta
+        self.meta = MetaData(schema=schema)
+        self.meta.reflect(bind=engine)
 
     @contextmanager
     def run_transaction(self):
-        with self.connectable.begin() as tx:
-            if hasattr(tx, "execute"):
-                yield tx
-            else:
-                yield self.connectable
+        from sqlalchemy.engine import Engine
+
+        if isinstance(self.connectable, Engine):
+            with self.connectable.connect() as conn:
+                with conn.begin():
+                    yield conn
+        else:
+            yield self.connectable
 
     def execute(self, *args, **kwargs):
         """Simple passthrough to SQLAlchemy connectable"""
@@ -1778,9 +1726,9 @@ class SQLDatabase(PandasSQL):
 
     def has_table(self, name: str, schema: str | None = None):
         if _gt14():
-            import sqlalchemy as sa
+            from sqlalchemy import inspect
 
-            insp = sa.inspect(self.connectable)
+            insp = inspect(self.connectable)
             return insp.has_table(name, schema or self.meta.schema)
         else:
             return self.connectable.run_callable(
@@ -1806,8 +1754,8 @@ class SQLDatabase(PandasSQL):
     def drop_table(self, table_name: str, schema: str | None = None):
         schema = schema or self.meta.schema
         if self.has_table(table_name, schema):
-            self.meta.reflect(only=[table_name], schema=schema)
-            self.get_table(table_name, schema).drop()
+            self.meta.reflect(bind=self.connectable, only=[table_name], schema=schema)
+            self.get_table(table_name, schema).drop(bind=self.connectable)
             self.meta.clear()
 
     def _create_sql_schema(
@@ -1870,12 +1818,6 @@ def _get_valid_sqlite_name(name):
     return '"' + uname.replace('"', '""') + '"'
 
 
-_SAFE_NAMES_WARNING = (
-    "The spaces in these column names will not be changed. "
-    "In pandas versions < 0.14, spaces were converted to underscores."
-)
-
-
 class SQLiteTable(SQLTable):
     """
     Patch the SQLTable for fallback support.
@@ -1913,7 +1855,7 @@ class SQLiteTable(SQLTable):
         col_names = ",".join(bracketed_names)
 
         row_wildcards = ",".join([wld] * len(names))
-        wildcards = ",".join(f"({row_wildcards})" for _ in range(num_rows))
+        wildcards = ",".join([f"({row_wildcards})" for _ in range(num_rows)])
         insert_statement = (
             f"INSERT INTO {escape(self.name)} ({col_names}) VALUES {wildcards}"
         )
@@ -1935,12 +1877,6 @@ class SQLiteTable(SQLTable):
         statement while the rest will be CREATE INDEX statements.
         """
         column_names_and_types = self._get_column_names_and_types(self._sql_type_name)
-
-        pat = re.compile(r"\s+")
-        column_names = [col_name for col_name, _, _ in column_names_and_types]
-        if any(map(pat.search, column_names)):
-            warnings.warn(_SAFE_NAMES_WARNING, stacklevel=6)
-
         escape = _get_valid_sqlite_name
 
         create_tbl_stmts = [
@@ -1952,7 +1888,7 @@ class SQLiteTable(SQLTable):
                 keys = [self.keys]
             else:
                 keys = self.keys
-            cnames_br = ", ".join(escape(c) for c in keys)
+            cnames_br = ", ".join([escape(c) for c in keys])
             create_tbl_stmts.append(
                 f"CONSTRAINT {self.name}_pk PRIMARY KEY ({cnames_br})"
             )
@@ -1972,7 +1908,7 @@ class SQLiteTable(SQLTable):
         ix_cols = [cname for cname, _, is_index in column_names_and_types if is_index]
         if len(ix_cols):
             cnames = "_".join(ix_cols)
-            cnames_br = ",".join(escape(c) for c in ix_cols)
+            cnames_br = ",".join([escape(c) for c in ix_cols])
             create_stmts.append(
                 "CREATE INDEX "
                 + escape("ix_" + self.name + "_" + cnames)
@@ -2001,7 +1937,7 @@ class SQLiteTable(SQLTable):
                 "the 'timedelta' type is not supported, and will be "
                 "written as integer values (ns frequency) to the database.",
                 UserWarning,
-                stacklevel=8,
+                stacklevel=find_stack_level(),
             )
             col_type = "integer"
 
@@ -2031,8 +1967,7 @@ class SQLiteDatabase(PandasSQL):
 
     """
 
-    def __init__(self, con, is_cursor: bool = False):
-        self.is_cursor = is_cursor
+    def __init__(self, con):
         self.con = con
 
     @contextmanager
@@ -2048,10 +1983,7 @@ class SQLiteDatabase(PandasSQL):
             cur.close()
 
     def execute(self, *args, **kwargs):
-        if self.is_cursor:
-            cur = self.con
-        else:
-            cur = self.con.cursor()
+        cur = self.con.cursor()
         try:
             cur.execute(*args, **kwargs)
             return cur

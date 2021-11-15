@@ -12,7 +12,6 @@ from pandas._libs import lib
 import pandas._libs.missing as libmissing
 from pandas._libs.tslibs import (
     NaT,
-    Period,
     iNaT,
 )
 from pandas._typing import (
@@ -38,6 +37,7 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
 )
 from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
     ExtensionDtype,
     IntervalDtype,
     PeriodDtype,
@@ -169,13 +169,17 @@ def _isna(obj, inf_as_na: bool = False):
         return False
     elif isinstance(obj, (np.ndarray, ABCExtensionArray)):
         return _isna_array(obj, inf_as_na=inf_as_na)
-    elif isinstance(obj, (ABCSeries, ABCIndex)):
+    elif isinstance(obj, ABCIndex):
+        # Try to use cached isna, which also short-circuits for integer dtypes
+        #  and avoids materializing RangeIndex._values
+        if not obj._can_hold_na:
+            return obj.isna()
+        return _isna_array(obj._values, inf_as_na=inf_as_na)
+
+    elif isinstance(obj, ABCSeries):
         result = _isna_array(obj._values, inf_as_na=inf_as_na)
         # box
-        if isinstance(obj, ABCSeries):
-            result = obj._constructor(
-                result, index=obj.index, name=obj.name, copy=False
-            )
+        result = obj._constructor(result, index=obj.index, name=obj.name, copy=False)
         return result
     elif isinstance(obj, ABCDataFrame):
         return obj.isna()
@@ -439,7 +443,9 @@ def array_equivalent(
     # Slow path when we allow comparing different dtypes.
     # Object arrays can contain None, NaN and NaT.
     # string dtypes must be come to this path for NumPy 1.7.1 compat
-    if is_string_dtype(left.dtype) or is_string_dtype(right.dtype):
+    if left.dtype.kind in "OSU" or right.dtype.kind in "OSU":
+        # Note: `in "OSU"` is non-trivially faster than `in ["O", "S", "U"]`
+        #  or `in ("O", "S", "U")`
         return _array_equivalent_object(left, right, strict_nan)
 
     # NaNs can occur in float and complex arrays.
@@ -469,8 +475,8 @@ def array_equivalent(
     return np.array_equal(left, right)
 
 
-def _array_equivalent_float(left, right):
-    return ((left == right) | (np.isnan(left) & np.isnan(right))).all()
+def _array_equivalent_float(left, right) -> bool:
+    return bool(((left == right) | (np.isnan(left) & np.isnan(right))).all())
 
 
 def _array_equivalent_datetimelike(left, right):
@@ -640,42 +646,8 @@ def is_valid_na_for_dtype(obj, dtype: DtypeObj) -> bool:
     elif isinstance(dtype, IntervalDtype):
         return lib.is_float(obj) or obj is None or obj is libmissing.NA
 
+    elif isinstance(dtype, CategoricalDtype):
+        return is_valid_na_for_dtype(obj, dtype.categories.dtype)
+
     # fallback, default to allowing NaN, None, NA, NaT
     return not isinstance(obj, (np.datetime64, np.timedelta64, Decimal))
-
-
-def isna_all(arr: ArrayLike) -> bool:
-    """
-    Optimized equivalent to isna(arr).all()
-    """
-    total_len = len(arr)
-
-    # Usually it's enough to check but a small fraction of values to see if
-    #  a block is NOT null, chunks should help in such cases.
-    #  parameters 1000 and 40 were chosen arbitrarily
-    chunk_len = max(total_len // 40, 1000)
-
-    dtype = arr.dtype
-    if dtype.kind == "f":
-        checker = nan_checker
-
-    elif dtype.kind in ["m", "M"] or dtype.type is Period:
-        # error: Incompatible types in assignment (expression has type
-        # "Callable[[Any], Any]", variable has type "ufunc")
-        checker = lambda x: np.asarray(x.view("i8")) == iNaT  # type: ignore[assignment]
-
-    else:
-        # error: Incompatible types in assignment (expression has type "Callable[[Any],
-        # Any]", variable has type "ufunc")
-        checker = lambda x: _isna_array(  # type: ignore[assignment]
-            x, inf_as_na=INF_AS_NA
-        )
-
-    return all(
-        # error: Argument 1 to "__call__" of "ufunc" has incompatible type
-        # "Union[ExtensionArray, Any]"; expected "Union[Union[int, float, complex, str,
-        # bytes, generic], Sequence[Union[int, float, complex, str, bytes, generic]],
-        # Sequence[Sequence[Any]], _SupportsArray]"
-        checker(arr[i : i + chunk_len]).all()  # type: ignore[arg-type]
-        for i in range(0, total_len, chunk_len)
-    )

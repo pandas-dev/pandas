@@ -10,7 +10,6 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.compat import is_numpy_dev
 from pandas.errors import OutOfBoundsTimedelta
 
 import pandas as pd
@@ -274,9 +273,14 @@ class TestTimedeltaAdditionSubtraction:
         msg = r"unsupported operand type\(s\) for \+: 'Timedelta' and 'int'"
         with pytest.raises(TypeError, match=msg):
             td + np.array([1])
-        msg = (
-            r"unsupported operand type\(s\) for \+: 'numpy.ndarray' and 'Timedelta'|"
-            "Concatenation operation is not implemented for NumPy arrays"
+        msg = "|".join(
+            [
+                (
+                    r"unsupported operand type\(s\) for \+: 'numpy.ndarray' "
+                    "and 'Timedelta'"
+                ),
+                "Concatenation operation is not implemented for NumPy arrays",
+            ]
         )
         with pytest.raises(TypeError, match=msg):
             np.array([1]) + td
@@ -433,15 +437,7 @@ class TestTimedeltaMultiplicationDivision:
         "nan",
         [
             np.nan,
-            pytest.param(
-                np.float64("NaN"),
-                marks=pytest.mark.xfail(
-                    # Works on numpy dev only in python 3.9
-                    is_numpy_dev,
-                    raises=RuntimeWarning,
-                    reason="https://github.com/pandas-dev/pandas/issues/31992",
-                ),
-            ),
+            np.float64("NaN"),
             float("nan"),
         ],
     )

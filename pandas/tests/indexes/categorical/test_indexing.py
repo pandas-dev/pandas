@@ -300,8 +300,9 @@ class TestGetIndexer:
 
 
 class TestWhere:
-    @pytest.mark.parametrize("klass", [list, tuple, np.array, pd.Series])
-    def test_where(self, klass):
+    def test_where(self, listlike_box):
+        klass = listlike_box
+
         i = CategoricalIndex(list("aabbca"), categories=list("cab"), ordered=False)
         cond = [True] * len(i)
         expected = i
@@ -322,9 +323,9 @@ class TestWhere:
         tm.assert_index_equal(result, expected)
 
         msg = "Cannot setitem on a Categorical with a new category"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             # Test the Categorical method directly
-            ci._data.where(mask, 2)
+            ci._data._where(mask, 2)
 
 
 class TestContains:

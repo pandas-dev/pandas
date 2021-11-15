@@ -240,9 +240,9 @@ def test_maybe_promote_int_with_int(dtype, fill_value, expected_dtype):
     _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
 
 
-def test_maybe_promote_int_with_float(any_int_dtype, float_dtype):
-    dtype = np.dtype(any_int_dtype)
-    fill_dtype = np.dtype(float_dtype)
+def test_maybe_promote_int_with_float(any_int_numpy_dtype, float_numpy_dtype):
+    dtype = np.dtype(any_int_numpy_dtype)
+    fill_dtype = np.dtype(float_numpy_dtype)
 
     # create array of given dtype; casts "1" to correct dtype
     fill_value = np.array([1], dtype=fill_dtype)[0]
@@ -255,10 +255,10 @@ def test_maybe_promote_int_with_float(any_int_dtype, float_dtype):
     _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
 
 
-def test_maybe_promote_float_with_int(float_dtype, any_int_dtype):
+def test_maybe_promote_float_with_int(float_numpy_dtype, any_int_numpy_dtype):
 
-    dtype = np.dtype(float_dtype)
-    fill_dtype = np.dtype(any_int_dtype)
+    dtype = np.dtype(float_numpy_dtype)
+    fill_dtype = np.dtype(any_int_numpy_dtype)
 
     # create array of given dtype; casts "1" to correct dtype
     fill_value = np.array([1], dtype=fill_dtype)[0]
@@ -411,7 +411,7 @@ def test_maybe_promote_any_with_datetime64(
         # Casting date to dt64 is deprecated
         warn = FutureWarning
 
-    with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
+    with tm.assert_produces_warning(warn, match=msg):
         # stacklevel is chosen to make sense when called from higher-level functions
         _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
 

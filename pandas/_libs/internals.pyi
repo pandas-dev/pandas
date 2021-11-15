@@ -1,6 +1,7 @@
 from typing import (
     Iterator,
     Sequence,
+    final,
     overload,
 )
 
@@ -9,6 +10,7 @@ import numpy as np
 from pandas._typing import (
     ArrayLike,
     T,
+    npt,
 )
 
 from pandas import Index
@@ -24,6 +26,12 @@ def get_blkno_placements(
     blknos: np.ndarray,
     group: bool = ...,
 ) -> Iterator[tuple[int, BlockPlacement]]: ...
+def update_blklocs_and_blknos(
+    blklocs: npt.NDArray[np.intp],
+    blknos: npt.NDArray[np.intp],
+    loc: int,
+    nblocks: int,
+) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]: ...
 
 class BlockPlacement:
     def __init__(self, val: int | slice | np.ndarray): ...
@@ -31,6 +39,8 @@ class BlockPlacement:
     def indexer(self) -> np.ndarray | slice: ...
     @property
     def as_array(self) -> np.ndarray: ...
+    @property
+    def as_slice(self) -> slice: ...
     @property
     def is_slice_like(self) -> bool: ...
     @overload
@@ -41,6 +51,7 @@ class BlockPlacement:
     def __len__(self) -> int: ...
     def delete(self, loc) -> BlockPlacement: ...
     def append(self, others: list[BlockPlacement]) -> BlockPlacement: ...
+    def tile_for_unstack(self, factor: int) -> npt.NDArray[np.intp]: ...
 
 class SharedBlock:
     _mgr_locs: BlockPlacement
@@ -50,10 +61,12 @@ class SharedBlock:
 
 class NumpyBlock(SharedBlock):
     values: np.ndarray
+    @final
     def getitem_block_index(self: T, slicer: slice) -> T: ...
 
 class NDArrayBackedBlock(SharedBlock):
     values: NDArrayBackedExtensionArray
+    @final
     def getitem_block_index(self: T, slicer: slice) -> T: ...
 
 class Block(SharedBlock): ...
@@ -66,6 +79,7 @@ class BlockManager:
     _blknos: np.ndarray
     _blklocs: np.ndarray
     def __init__(
-        self, blocks: tuple[B, ...], axes: list[Index], verify_integrity=True
+        self, blocks: tuple[B, ...], axes: list[Index], verify_integrity=...
     ): ...
     def get_slice(self: T, slobj: slice, axis: int = ...) -> T: ...
+    def _rebuild_blknos_and_blklocs(self) -> None: ...

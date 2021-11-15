@@ -7,6 +7,7 @@ import tokenize
 import warnings
 
 from pandas._libs.lib import no_default
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.computation.engines import ENGINES
@@ -43,9 +44,10 @@ def _check_engine(engine: str | None) -> str:
         Engine name.
     """
     from pandas.core.computation.check import NUMEXPR_INSTALLED
+    from pandas.core.computation.expressions import USE_NUMEXPR
 
     if engine is None:
-        engine = "numexpr" if NUMEXPR_INSTALLED else "python"
+        engine = "numexpr" if USE_NUMEXPR else "python"
 
     if engine not in ENGINES:
         valid_engines = list(ENGINES.keys())
@@ -307,7 +309,7 @@ def eval(
                 "will be removed in a future version."
             ),
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
 
     exprs: list[str | BinOp]

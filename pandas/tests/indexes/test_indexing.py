@@ -7,6 +7,7 @@ test_indexing tests the following Index methods:
     take
     where
     get_indexer
+    get_indexer_for
     slice_locs
     asof_locs
 
@@ -20,18 +21,21 @@ from pandas.errors import InvalidIndexError
 
 from pandas import (
     DatetimeIndex,
-    Float64Index,
     Index,
-    Int64Index,
     IntervalIndex,
     MultiIndex,
+    NaT,
     PeriodIndex,
     RangeIndex,
     Series,
     TimedeltaIndex,
-    UInt64Index,
 )
 import pandas._testing as tm
+from pandas.core.api import (
+    Float64Index,
+    Int64Index,
+    UInt64Index,
+)
 
 
 class TestTake:
@@ -168,7 +172,7 @@ class TestGetValue:
         "index", ["string", "int", "datetime", "timedelta"], indirect=True
     )
     def test_get_value(self, index):
-        # TODO: Remove function? GH#19728
+        # TODO(2.0): can remove once get_value deprecation is enforced GH#19728
         values = np.random.randn(100)
         value = index[67]
 
@@ -294,3 +298,37 @@ def test_maybe_cast_slice_bound_kind_deprecated(index):
     with tm.assert_produces_warning(FutureWarning):
         # pass as positional
         index._maybe_cast_slice_bound(index[0], "left", "loc")
+
+
+@pytest.mark.parametrize(
+    "idx,target,expected",
+    [
+        ([np.nan, "var1", np.nan], [np.nan], np.array([0, 2], dtype=np.intp)),
+        (
+            [np.nan, "var1", np.nan],
+            [np.nan, "var1"],
+            np.array([0, 2, 1], dtype=np.intp),
+        ),
+        (
+            np.array([np.nan, "var1", np.nan], dtype=object),
+            [np.nan],
+            np.array([0, 2], dtype=np.intp),
+        ),
+        (
+            DatetimeIndex(["2020-08-05", NaT, NaT]),
+            [NaT],
+            np.array([1, 2], dtype=np.intp),
+        ),
+        (["a", "b", "a", np.nan], [np.nan], np.array([3], dtype=np.intp)),
+        (
+            np.array(["b", np.nan, float("NaN"), "b"], dtype=object),
+            Index([np.nan], dtype=object),
+            np.array([1, 2], dtype=np.intp),
+        ),
+    ],
+)
+def test_get_indexer_non_unique_multiple_nans(idx, target, expected):
+    # GH 35392
+    axis = Index(idx)
+    actual = axis.get_indexer_for(target)
+    tm.assert_numpy_array_equal(actual, expected)

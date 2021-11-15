@@ -1,7 +1,9 @@
 from __future__ import annotations
 
-from collections import namedtuple
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    NamedTuple,
+)
 import warnings
 
 from matplotlib.artist import setp
@@ -18,6 +20,7 @@ from pandas.plotting._matplotlib.core import (
     LinePlot,
     MPLPlot,
 )
+from pandas.plotting._matplotlib.groupby import create_iter_data_given_by
 from pandas.plotting._matplotlib.style import get_standard_colors
 from pandas.plotting._matplotlib.tools import (
     create_subplots,
@@ -27,6 +30,7 @@ from pandas.plotting._matplotlib.tools import (
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
+    from matplotlib.lines import Line2D
 
 
 class BoxPlot(LinePlot):
@@ -34,8 +38,11 @@ class BoxPlot(LinePlot):
     _layout_type = "horizontal"
 
     _valid_return_types = (None, "axes", "dict", "both")
-    # namedtuple to hold results
-    BP = namedtuple("BP", ["ax", "lines"])
+
+    class BP(NamedTuple):
+        # namedtuple to hold results
+        ax: Axes
+        lines: dict[str, list[Line2D]]
 
     def __init__(self, data, return_type="axes", **kwargs):
         # Do not call LinePlot.__init__ which may fill nan
@@ -135,18 +142,37 @@ class BoxPlot(LinePlot):
         if self.subplots:
             self._return_obj = pd.Series(dtype=object)
 
-            for i, (label, y) in enumerate(self._iter_data()):
+            # Re-create iterated data if `by` is assigned by users
+            data = (
+                create_iter_data_given_by(self.data, self._kind)
+                if self.by is not None
+                else self.data
+            )
+
+            for i, (label, y) in enumerate(self._iter_data(data=data)):
                 ax = self._get_ax(i)
                 kwds = self.kwds.copy()
+
+                # When by is applied, show title for subplots to know which group it is
+                # just like df.boxplot, and need to apply T on y to provide right input
+                if self.by is not None:
+                    y = y.T
+                    ax.set_title(pprint_thing(label))
+
+                    # When `by` is assigned, the ticklabels will become unique grouped
+                    # values, instead of label which is used as subtitle in this case.
+                    ticklabels = [
+                        pprint_thing(col) for col in self.data.columns.levels[0]
+                    ]
+                else:
+                    ticklabels = [pprint_thing(label)]
 
                 ret, bp = self._plot(
                     ax, y, column_num=i, return_type=self.return_type, **kwds
                 )
                 self.maybe_color_bp(bp)
                 self._return_obj[label] = ret
-
-                label = [pprint_thing(label)]
-                self._set_ticklabels(ax, label)
+                self._set_ticklabels(ax, ticklabels)
         else:
             y = self.data.values.T
             ax = self._get_ax(0)
@@ -365,6 +391,11 @@ def boxplot(
             with plt.rc_context(rc):
                 ax = plt.gca()
         data = data._get_numeric_data()
+        naxes = len(data.columns)
+        if naxes == 0:
+            raise ValueError(
+                "boxplot method requires numerical columns, nothing to plot."
+            )
         if columns is None:
             columns = data.columns
         else:

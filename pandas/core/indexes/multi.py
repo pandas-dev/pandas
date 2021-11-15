@@ -29,8 +29,10 @@ from pandas._libs.hashtable import duplicated
 from pandas._typing import (
     AnyArrayLike,
     DtypeObj,
+    F,
     Scalar,
     Shape,
+    npt,
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
@@ -44,6 +46,7 @@ from pandas.util._decorators import (
     deprecate_nonkeyword_arguments,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import coerce_indexer_dtype
 from pandas.core.dtypes.common import (
@@ -73,7 +76,6 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import Categorical
 from pandas.core.arrays.categorical import factorize_from_iterables
 import pandas.core.common as com
-from pandas.core.indexers import is_empty_indexer
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index,
@@ -185,7 +187,7 @@ class MultiIndexPyIntEngine(libindex.BaseMultiIndexCodesEngine, libindex.ObjectE
         return np.bitwise_or.reduce(codes, axis=1)
 
 
-def names_compat(meth):
+def names_compat(meth: F) -> F:
     """
     A decorator to allow either `name` or `names` keyword but not both.
 
@@ -201,7 +203,7 @@ def names_compat(meth):
 
         return meth(self_or_cls, *args, **kwargs)
 
-    return new_meth
+    return cast(F, new_meth)
 
 
 class MultiIndex(Index):
@@ -892,7 +894,7 @@ class MultiIndex(Index):
             warnings.warn(
                 "inplace is deprecated and will be removed in a future version.",
                 FutureWarning,
-                stacklevel=3,
+                stacklevel=find_stack_level(),
             )
         else:
             inplace = False
@@ -1053,7 +1055,7 @@ class MultiIndex(Index):
             warnings.warn(
                 "inplace is deprecated and will be removed in a future version.",
                 FutureWarning,
-                stacklevel=3,
+                stacklevel=find_stack_level(),
             )
         else:
             inplace = False
@@ -1094,8 +1096,10 @@ class MultiIndex(Index):
             return MultiIndexPyIntEngine(self.levels, self.codes, offsets)
         return MultiIndexUIntEngine(self.levels, self.codes, offsets)
 
+    # Return type "Callable[..., MultiIndex]" of "_constructor" incompatible with return
+    # type "Type[MultiIndex]" in supertype "Index"
     @property
-    def _constructor(self) -> Callable[..., MultiIndex]:
+    def _constructor(self) -> Callable[..., MultiIndex]:  # type: ignore[override]
         return type(self).from_tuples
 
     @doc(Index._shallow_copy)
@@ -1163,14 +1167,14 @@ class MultiIndex(Index):
                 "parameter levels is deprecated and will be removed in a future "
                 "version. Use the set_levels method instead.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
         if codes is not None:
             warnings.warn(
                 "parameter codes is deprecated and will be removed in a future "
                 "version. Use the set_codes method instead.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
 
         if deep:
@@ -1199,7 +1203,7 @@ class MultiIndex(Index):
                 "parameter dtype is deprecated and will be removed in a future "
                 "version. Use the astype method instead.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
             new_index = new_index.astype(dtype)
         return new_index
@@ -1542,11 +1546,6 @@ class MultiIndex(Index):
                 ) from err
         return level
 
-    @property
-    def _has_complex_internals(self) -> bool:
-        # used to avoid libreduction code paths, which raise or require conversion
-        return True
-
     @cache_readonly
     def is_monotonic_increasing(self) -> bool:
         """
@@ -1589,7 +1588,7 @@ class MultiIndex(Index):
         return [i.inferred_type for i in self.levels]
 
     @doc(Index.duplicated)
-    def duplicated(self, keep="first") -> np.ndarray:
+    def duplicated(self, keep="first") -> npt.NDArray[np.bool_]:
         shape = tuple(len(lev) for lev in self.levels)
         ids = get_group_index(self.codes, shape, sort=False, xnull=False)
 
@@ -1688,7 +1687,7 @@ class MultiIndex(Index):
             level = self._get_level_number(level)
             return self._get_level_values(level=level, unique=True)
 
-    def to_frame(self, index: bool = True, name=None) -> DataFrame:
+    def to_frame(self, index: bool = True, name=lib.no_default) -> DataFrame:
         """
         Create a DataFrame with the levels of the MultiIndex as columns.
 
@@ -1740,7 +1739,7 @@ class MultiIndex(Index):
         """
         from pandas import DataFrame
 
-        if name is not None:
+        if name is not lib.no_default:
             if not is_list_like(name):
                 raise TypeError("'name' must be a list / sequence of column names.")
 
@@ -1804,7 +1803,7 @@ class MultiIndex(Index):
             "MultiIndex.is_lexsorted is deprecated as a public function, "
             "users should use MultiIndex.is_monotonic_increasing instead.",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self._is_lexsorted()
 
@@ -1843,12 +1842,12 @@ class MultiIndex(Index):
         return self._lexsort_depth == self.nlevels
 
     @property
-    def lexsort_depth(self):
+    def lexsort_depth(self) -> int:
         warnings.warn(
             "MultiIndex.is_lexsorted is deprecated as a public function, "
             "users should use MultiIndex.is_monotonic_increasing instead.",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self._lexsort_depth
 
@@ -2151,9 +2150,9 @@ class MultiIndex(Index):
         try:
             return MultiIndex.from_tuples(new_tuples, names=self.names)
         except (TypeError, IndexError):
-            return Index(new_tuples)
+            return Index._with_infer(new_tuples)
 
-    def argsort(self, *args, **kwargs) -> np.ndarray:
+    def argsort(self, *args, **kwargs) -> npt.NDArray[np.intp]:
         return self._values.argsort(*args, **kwargs)
 
     @Appender(_index_shared_docs["repeat"] % _index_doc_kwargs)
@@ -2165,7 +2164,7 @@ class MultiIndex(Index):
         return MultiIndex(
             levels=self.levels,
             codes=[
-                level_codes.view(np.ndarray).astype(np.intp).repeat(repeats)
+                level_codes.view(np.ndarray).astype(np.intp, copy=False).repeat(repeats)
                 for level_codes in self.codes
             ],
             names=self.names,
@@ -2214,7 +2213,7 @@ class MultiIndex(Index):
                             "dropping on a non-lexsorted multi-index "
                             "without a level parameter may impact performance.",
                             PerformanceWarning,
-                            stacklevel=3,
+                            stacklevel=find_stack_level(),
                         )
                     loc = loc.nonzero()[0]
                     inds.extend(loc)
@@ -2372,7 +2371,7 @@ class MultiIndex(Index):
 
     def sortlevel(
         self, level=0, ascending: bool = True, sort_remaining: bool = True
-    ) -> tuple[MultiIndex, np.ndarray]:
+    ) -> tuple[MultiIndex, npt.NDArray[np.intp]]:
         """
         Sort MultiIndex at the requested level.
 
@@ -2393,7 +2392,7 @@ class MultiIndex(Index):
         -------
         sorted_index : pd.MultiIndex
             Resulting index.
-        indexer : np.ndarray
+        indexer : np.ndarray[np.intp]
             Indices of output values in original index.
 
         Examples
@@ -2494,7 +2493,7 @@ class MultiIndex(Index):
         target = self._maybe_preserve_names(target, preserve_names)
         return target
 
-    def _maybe_preserve_names(self, target: Index, preserve_names: bool):
+    def _maybe_preserve_names(self, target: Index, preserve_names: bool) -> Index:
         if (
             preserve_names
             and target.nlevels == self.nlevels
@@ -2507,7 +2506,7 @@ class MultiIndex(Index):
     # --------------------------------------------------------------------
     # Indexing Methods
 
-    def _check_indexing_error(self, key):
+    def _check_indexing_error(self, key) -> None:
         if not is_hashable(key) or is_iterator(key):
             # We allow tuples if they are hashable, whereas other Index
             #  subclasses require scalar.
@@ -2542,72 +2541,54 @@ class MultiIndex(Index):
         new_ser = series._constructor(new_values, index=new_index, name=series.name)
         return new_ser.__finalize__(series)
 
-    def _convert_listlike_indexer(self, keyarr) -> np.ndarray | None:
-        """
-        Analogous to get_indexer when we are partial-indexing on our first level.
+    def _get_indexer_strict(
+        self, key, axis_name: str
+    ) -> tuple[Index, npt.NDArray[np.intp]]:
 
-        Parameters
-        ----------
-        keyarr : Index, np.ndarray, or ExtensionArray
-            Indexer to convert.
+        keyarr = key
+        if not isinstance(keyarr, Index):
+            keyarr = com.asarray_tuplesafe(keyarr)
 
-        Returns
-        -------
-        np.ndarray[intp] or None
-        """
-        indexer = None
-
-        # are we indexing a specific level
         if len(keyarr) and not isinstance(keyarr[0], tuple):
-            _, indexer = self.reindex(keyarr, level=0)
+            indexer = self._get_indexer_level_0(keyarr)
 
-            # take all
-            if indexer is None:
-                indexer = np.arange(len(self), dtype=np.intp)
-                return indexer
+            self._raise_if_missing(key, indexer, axis_name)
+            return self[indexer], indexer
 
-            check = self.levels[0].get_indexer(keyarr)
-            mask = check == -1
+        return super()._get_indexer_strict(key, axis_name)
+
+    def _raise_if_missing(self, key, indexer, axis_name: str) -> None:
+        keyarr = key
+        if not isinstance(key, Index):
+            keyarr = com.asarray_tuplesafe(key)
+
+        if len(keyarr) and not isinstance(keyarr[0], tuple):
+            # i.e. same condition for special case in MultiIndex._get_indexer_strict
+
+            mask = indexer == -1
             if mask.any():
-                raise KeyError(f"{keyarr[mask]} not in index")
-            elif is_empty_indexer(indexer, keyarr):
+                check = self.levels[0].get_indexer(keyarr)
+                cmask = check == -1
+                if cmask.any():
+                    raise KeyError(f"{keyarr[cmask]} not in index")
                 # We get here when levels still contain values which are not
                 # actually in Index anymore
                 raise KeyError(f"{keyarr} not in index")
+        else:
+            return super()._raise_if_missing(key, indexer, axis_name)
 
-        return indexer
-
-    def _get_partial_string_timestamp_match_key(self, key):
+    def _get_indexer_level_0(self, target) -> npt.NDArray[np.intp]:
         """
-        Translate any partial string timestamp matches in key, returning the
-        new key.
-
-        Only relevant for MultiIndex.
+        Optimized equivalent to `self.get_level_values(0).get_indexer_for(target)`.
         """
-        # GH#10331
-        if isinstance(key, str) and self.levels[0]._supports_partial_string_indexing:
-            # Convert key '2016-01-01' to
-            # ('2016-01-01'[, slice(None, None, None)]+)
-            key = (key,) + (slice(None),) * (len(self.levels) - 1)
-
-        if isinstance(key, tuple):
-            # Convert (..., '2016-01-01', ...) in tuple to
-            # (..., slice('2016-01-01', '2016-01-01', None), ...)
-            new_key = []
-            for i, component in enumerate(key):
-                if (
-                    isinstance(component, str)
-                    and self.levels[i]._supports_partial_string_indexing
-                ):
-                    new_key.append(slice(component, component, None))
-                else:
-                    new_key.append(component)
-            key = tuple(new_key)
-
-        return key
+        lev = self.levels[0]
+        codes = self._codes[0]
+        cat = Categorical.from_codes(codes=codes, categories=lev)
+        ci = Index(cat)
+        return ci.get_indexer_for(target)
 
     def get_slice_bound(
-        self, label: Hashable | Sequence[Hashable], side: str, kind: str | None = None
+        self, label: Hashable | Sequence[Hashable], side: str, kind=lib.no_default
     ) -> int:
         """
         For an ordered MultiIndex, compute slice bound
@@ -2621,6 +2602,8 @@ class MultiIndex(Index):
         label : object or tuple of objects
         side : {'left', 'right'}
         kind : {'loc', 'getitem', None}
+
+            .. deprecated:: 1.4.0
 
         Returns
         -------
@@ -2653,11 +2636,15 @@ class MultiIndex(Index):
         MultiIndex.get_locs : Get location for a label/slice/list/mask or a
                               sequence of such.
         """
+        self._deprecated_arg(kind, "kind", "get_slice_bound")
+
         if not isinstance(label, tuple):
             label = (label,)
         return self._partial_tup_index(label, side=side)
 
-    def slice_locs(self, start=None, end=None, step=None, kind=None):
+    def slice_locs(
+        self, start=None, end=None, step=None, kind=lib.no_default
+    ) -> tuple[int, int]:
         """
         For an ordered MultiIndex, compute the slice locations for input
         labels.
@@ -2675,6 +2662,8 @@ class MultiIndex(Index):
         step : int or None
             Slice step
         kind : string, optional, defaults None
+
+            .. deprecated:: 1.4.0
 
         Returns
         -------
@@ -2709,6 +2698,7 @@ class MultiIndex(Index):
         MultiIndex.get_locs : Get location for a label/slice/list/mask or a
                               sequence of such.
         """
+        self._deprecated_arg(kind, "kind", "slice_locs")
         # This function adds nothing to its parent implementation (the magic
         # happens in get_slice_bound method), but it adds meaningful doc.
         return super().slice_locs(start, end, step)
@@ -2854,7 +2844,12 @@ class MultiIndex(Index):
             )
 
         if keylen == self.nlevels and self.is_unique:
-            return self._engine.get_loc(key)
+            try:
+                return self._engine.get_loc(key)
+            except TypeError:
+                # e.g. test_partial_slicing_with_multiindex partial string slicing
+                loc, _ = self.get_loc_level(key, list(range(self.nlevels)))
+                return loc
 
         # -- partial selection or non-unique index
         # break the key into 2 parts based on the lexsort_depth of the index;
@@ -2862,9 +2857,17 @@ class MultiIndex(Index):
         # needs linear search within the slice
         i = self._lexsort_depth
         lead_key, follow_key = key[:i], key[i:]
-        start, stop = (
-            self.slice_locs(lead_key, lead_key) if lead_key else (0, len(self))
-        )
+
+        if not lead_key:
+            start = 0
+            stop = len(self)
+        else:
+            try:
+                start, stop = self.slice_locs(lead_key, lead_key)
+            except TypeError as err:
+                # e.g. test_groupby_example key = ((0, 0, 1, 2), "new_col")
+                #  when self has 5 integer levels
+                raise KeyError(key) from err
 
         if start == stop:
             raise KeyError(key)
@@ -2875,7 +2878,7 @@ class MultiIndex(Index):
         warnings.warn(
             "indexing past lexsort depth may impact performance.",
             PerformanceWarning,
-            stacklevel=10,
+            stacklevel=find_stack_level(),
         )
 
         loc = np.arange(start, stop, dtype=np.intp)
@@ -3004,6 +3007,10 @@ class MultiIndex(Index):
                         return (self._engine.get_loc(key), None)
                     except KeyError as err:
                         raise KeyError(key) from err
+                    except TypeError:
+                        # e.g. partial string indexing
+                        #  test_partial_string_timestamp_multiindex
+                        pass
 
                 # partial selection
                 indexer = self.get_loc(key)
@@ -3015,7 +3022,19 @@ class MultiIndex(Index):
 
                     # TODO: in some cases we still need to drop some levels,
                     #  e.g. test_multiindex_perf_warn
-                    ilevels = []
+                    # test_partial_string_timestamp_multiindex
+                    ilevels = [
+                        i
+                        for i in range(len(key))
+                        if (
+                            not isinstance(key[i], str)
+                            or not self.levels[i]._supports_partial_string_indexing
+                        )
+                        and key[i] != slice(None, None)
+                    ]
+                    if len(ilevels) == self.nlevels:
+                        # TODO: why?
+                        ilevels = []
                 return indexer, maybe_mi_droplevels(indexer, ilevels)
 
             else:
@@ -3030,16 +3049,20 @@ class MultiIndex(Index):
                                 # everything
                                 continue
                             else:
-                                raise TypeError(
-                                    f"Expected label or tuple of labels, got {key}"
-                                )
+                                # e.g. test_xs_IndexSlice_argument_not_implemented
+                                k_index = np.zeros(len(self), dtype=bool)
+                                k_index[loc_level] = True
+
                         else:
                             k_index = loc_level
 
                     elif com.is_null_slice(k):
                         # taking everything, does not affect `indexer` below
                         continue
+
                     else:
+                        # FIXME: this message can be inaccurate, e.g.
+                        #  test_series_varied_multiindex_alignment
                         raise TypeError(f"Expected label or tuple of labels, got {key}")
 
                     if indexer is None:
@@ -3052,6 +3075,16 @@ class MultiIndex(Index):
                 return indexer, maybe_mi_droplevels(indexer, ilevels)
         else:
             indexer = self._get_level_indexer(key, level=level)
+            if (
+                isinstance(key, str)
+                and self.levels[level]._supports_partial_string_indexing
+            ):
+                # check to see if we did an exact lookup vs sliced
+                check = self.levels[level].get_loc(key)
+                if not is_integer(check):
+                    # e.g. test_partial_string_timestamp_multiindex
+                    return indexer, self[indexer]
+
             return indexer, maybe_mi_droplevels(indexer, [level])
 
     def _get_level_indexer(
@@ -3149,15 +3182,23 @@ class MultiIndex(Index):
 
             if level > 0 or self._lexsort_depth == 0:
                 # Desired level is not sorted
+                if isinstance(idx, slice):
+                    # test_get_loc_partial_timestamp_multiindex
+                    locs = (level_codes >= idx.start) & (level_codes < idx.stop)
+                    return locs
+
                 locs = np.array(level_codes == idx, dtype=bool, copy=False)
+
                 if not locs.any():
                     # The label is present in self.levels[level] but unused:
                     raise KeyError(key)
                 return locs
 
             if isinstance(idx, slice):
-                start = idx.start
-                end = idx.stop
+                # e.g. test_partial_string_timestamp_multiindex
+                start = level_codes.searchsorted(idx.start, side="left")
+                # NB: "left" here bc of slice semantics
+                end = level_codes.searchsorted(idx.stop, side="left")
             else:
                 start = level_codes.searchsorted(idx, side="left")
                 end = level_codes.searchsorted(idx, side="right")
@@ -3216,6 +3257,11 @@ class MultiIndex(Index):
         #  entry in `seq`
         indexer = Index(np.arange(n))
 
+        if any(x is Ellipsis for x in seq):
+            raise NotImplementedError(
+                "MultiIndex does not support indexing with Ellipsis"
+            )
+
         def _convert_to_indexer(r) -> Int64Index:
             # return an indexer
             if isinstance(r, slice):
@@ -3251,23 +3297,62 @@ class MultiIndex(Index):
                 # are or'd)
 
                 indexers: Int64Index | None = None
-                for x in k:
-                    try:
-                        # Argument "indexer" to "_get_level_indexer" of "MultiIndex"
-                        # has incompatible type "Index"; expected "Optional[Int64Index]"
-                        item_lvl_indexer = self._get_level_indexer(
-                            x, level=i, indexer=indexer  # type: ignore[arg-type]
-                        )
-                    except KeyError:
-                        # ignore not founds; see discussion in GH#39424
-                        continue
-                    else:
-                        idxrs = _convert_to_indexer(item_lvl_indexer)
 
-                        if indexers is None:
-                            indexers = idxrs
+                # GH#27591 check if this is a single tuple key in the level
+                try:
+                    # Argument "indexer" to "_get_level_indexer" of "MultiIndex"
+                    # has incompatible type "Index"; expected "Optional[Int64Index]"
+                    lev_loc = self._get_level_indexer(
+                        k, level=i, indexer=indexer  # type: ignore[arg-type]
+                    )
+                except (InvalidIndexError, TypeError, KeyError) as err:
+                    # InvalidIndexError e.g. non-hashable, fall back to treating
+                    #  this as a sequence of labels
+                    # KeyError it can be ambiguous if this is a label or sequence
+                    #  of labels
+                    #  github.com/pandas-dev/pandas/issues/39424#issuecomment-871626708
+                    for x in k:
+                        if not is_hashable(x):
+                            # e.g. slice
+                            raise err
+                        try:
+                            # Argument "indexer" to "_get_level_indexer" of "MultiIndex"
+                            # has incompatible type "Index"; expected
+                            # "Optional[Int64Index]"
+                            item_lvl_indexer = self._get_level_indexer(
+                                x, level=i, indexer=indexer  # type: ignore[arg-type]
+                            )
+                        except KeyError:
+                            # ignore not founds; see discussion in GH#39424
+                            warnings.warn(
+                                "The behavior of indexing on a MultiIndex with a "
+                                "nested sequence of labels is deprecated and will "
+                                "change in a future version. "
+                                "`series.loc[label, sequence]` will raise if any "
+                                "members of 'sequence' or not present in "
+                                "the index's second level. To retain the old "
+                                "behavior, use `series.index.isin(sequence, level=1)`",
+                                # TODO: how to opt in to the future behavior?
+                                # TODO: how to handle IntervalIndex level?
+                                #  (no test cases)
+                                FutureWarning,
+                                stacklevel=find_stack_level(),
+                            )
+                            continue
                         else:
-                            indexers = indexers.union(idxrs, sort=False)
+                            idxrs = _convert_to_indexer(item_lvl_indexer)
+
+                            if indexers is None:
+                                indexers = idxrs
+                            else:
+                                indexers = indexers.union(idxrs, sort=False)
+
+                else:
+                    idxrs = _convert_to_indexer(lev_loc)
+                    if indexers is None:
+                        indexers = idxrs
+                    else:
+                        indexers = indexers.union(idxrs, sort=False)
 
                 if indexers is not None:
                     indexer = _update_indexer(indexers, indexer=indexer)
@@ -3467,8 +3552,13 @@ class MultiIndex(Index):
             if len(self_values) == 0 and len(other_values) == 0:
                 continue
 
-            if not array_equivalent(self_values, other_values):
-                return False
+            if not isinstance(self_values, np.ndarray):
+                # i.e. ExtensionArray
+                if not self_values.equals(other_values):
+                    return False
+            else:
+                if not array_equivalent(self_values, other_values):
+                    return False
 
         return True
 
@@ -3492,7 +3582,7 @@ class MultiIndex(Index):
         other, result_names = self._convert_can_do_setop(other)
         if (
             any(-1 in code for code in self.codes)
-            and any(-1 in code for code in self.codes)
+            and any(-1 in code for code in other.codes)
             or self.has_duplicates
             or other.has_duplicates
         ):
@@ -3538,7 +3628,7 @@ class MultiIndex(Index):
                 names.append(None)
         return names
 
-    def _wrap_intersection_result(self, other, result):
+    def _wrap_intersection_result(self, other, result) -> MultiIndex:
         _, result_names = self._convert_can_do_setop(other)
 
         if len(result) == 0:
@@ -3551,7 +3641,7 @@ class MultiIndex(Index):
         else:
             return MultiIndex.from_arrays(zip(*result), sortorder=0, names=result_names)
 
-    def _wrap_difference_result(self, other, result):
+    def _wrap_difference_result(self, other, result) -> MultiIndex:
         _, result_names = self._convert_can_do_setop(other)
 
         if len(result) == 0:
@@ -3602,7 +3692,12 @@ class MultiIndex(Index):
         return self
 
     def _validate_fill_value(self, item):
-        if not isinstance(item, tuple):
+        if isinstance(item, MultiIndex):
+            # GH#43212
+            if item.nlevels != self.nlevels:
+                raise ValueError("Item must have length equal to number of levels.")
+            return item._values
+        elif not isinstance(item, tuple):
             # Pad the key with empty strings if lower levels of the key
             # aren't specified:
             item = (item,) + ("",) * (self.nlevels - 1)
@@ -3662,7 +3757,7 @@ class MultiIndex(Index):
         )
 
     @doc(Index.isin)
-    def isin(self, values, level=None) -> np.ndarray:
+    def isin(self, values, level=None) -> npt.NDArray[np.bool_]:
         if level is None:
             values = MultiIndex.from_tuples(values, names=self.names)._values
             return algos.isin(self._values, values)

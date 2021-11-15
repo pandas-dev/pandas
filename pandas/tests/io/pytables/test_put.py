@@ -15,13 +15,13 @@ from pandas import (
     DataFrame,
     HDFStore,
     Index,
-    Int64Index,
     MultiIndex,
     RangeIndex,
     Series,
     _testing as tm,
     concat,
 )
+from pandas.core.api import Int64Index
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
     ensure_clean_path,
@@ -243,10 +243,8 @@ def test_store_index_types(setup_path):
             check("table", index)
             check("fixed", index)
 
-        # period index currently broken for table
-        # seee GH7796 FIXME
         check("fixed", tm.makePeriodIndex)
-        # check('table',tm.makePeriodIndex)
+        check("table", tm.makePeriodIndex)  # GH#7796
 
         # unicode
         index = tm.makeUnicodeIndex

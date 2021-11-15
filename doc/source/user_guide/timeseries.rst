@@ -204,6 +204,7 @@ If you use dates which start with the day first (i.e. European style),
 you can pass the ``dayfirst`` flag:
 
 .. ipython:: python
+   :okwarning:
 
     pd.to_datetime(["04-01-2012 10:00"], dayfirst=True)
 
@@ -211,9 +212,10 @@ you can pass the ``dayfirst`` flag:
 
 .. warning::
 
-   You see in the above example that ``dayfirst`` isn't strict, so if a date
+   You see in the above example that ``dayfirst`` isn't strict. If a date
    can't be parsed with the day being first it will be parsed as if
-   ``dayfirst`` were False.
+   ``dayfirst`` were False, and in the case of parsing delimited date strings
+   (e.g. ``31-12-2012``) then a warning will also be raised.
 
 If you pass a single string to ``to_datetime``, it returns a single ``Timestamp``.
 ``Timestamp`` can also accept string input, but it doesn't accept string parsing
@@ -2071,14 +2073,18 @@ The ``period`` dtype can be used in ``.astype(...)``. It allows one to change th
    # change monthly freq to daily freq
    pi.astype("period[D]")
 
-   # convert to DatetimeIndex
-   pi.astype("datetime64[ns]")
-
    # convert to PeriodIndex
    dti = pd.date_range("2011-01-01", freq="M", periods=3)
    dti
    dti.astype("period[M]")
 
+.. deprecated:: 1.4.0
+    Converting PeriodIndex to DatetimeIndex with ``.astype(...)`` is deprecated and will raise in a future version. Use ``obj.to_timestamp(how).tz_localize(dtype.tz)`` instead.
+
+.. ipython:: python
+
+    # convert to DatetimeIndex
+    pi.to_timestamp(how="start")
 
 PeriodIndex partial string indexing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

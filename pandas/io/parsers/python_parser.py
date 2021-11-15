@@ -4,6 +4,7 @@ from collections import (
     abc,
     defaultdict,
 )
+from copy import copy
 import csv
 from io import StringIO
 import re
@@ -23,6 +24,7 @@ from pandas.errors import (
     EmptyDataError,
     ParserError,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_integer
 from pandas.core.dtypes.inference import is_dict_like
@@ -81,7 +83,7 @@ class PythonParser(ParserBase):
         self.verbose = kwds["verbose"]
         self.converters = kwds["converters"]
 
-        self.dtype = kwds["dtype"]
+        self.dtype = copy(kwds["dtype"])
         self.thousands = kwds["thousands"]
         self.decimal = kwds["decimal"]
 
@@ -116,24 +118,16 @@ class PythonParser(ParserBase):
 
         # Now self.columns has the set of columns that we will process.
         # The original set is stored in self.original_columns.
-        if len(self.columns) > 1:
-            # we are processing a multi index column
-            # error: Cannot determine type of 'index_names'
-            # error: Cannot determine type of 'col_names'
-            (
-                self.columns,
-                self.index_names,
-                self.col_names,
-                _,
-            ) = self._extract_multi_indexer_columns(
-                self.columns,
-                self.index_names,  # type: ignore[has-type]
-                self.col_names,  # type: ignore[has-type]
-            )
-            # Update list of original names to include all indices.
-            self.num_original_columns = len(self.columns)
-        else:
-            self.columns = self.columns[0]
+        # error: Cannot determine type of 'index_names'
+        (
+            self.columns,
+            self.index_names,
+            self.col_names,
+            _,
+        ) = self._extract_multi_indexer_columns(
+            self.columns,
+            self.index_names,  # type: ignore[has-type]
+        )
 
         # get popped off for index
         self.orig_names: list[int | str | tuple] = list(self.columns)
@@ -432,7 +426,6 @@ class PythonParser(ParserBase):
                                 and self.dtype.get(col) is None
                             ):
                                 self.dtype.update({col: self.dtype.get(old_col)})
-
                         this_columns[i] = col
                         counts[col] = cur_count + 1
                 elif have_mi_columns:
@@ -563,7 +556,7 @@ class PythonParser(ParserBase):
                         "Defining usecols with out of bounds indices is deprecated "
                         "and will raise a ParserError in a future version.",
                         FutureWarning,
-                        stacklevel=8,
+                        stacklevel=find_stack_level(),
                     )
                 col_indices = self.usecols
 
@@ -1159,7 +1152,7 @@ class FixedWidthReader(abc.Iterator):
 
     def detect_colspecs(self, infer_nrows=100, skiprows=None):
         # Regex escape the delimiters
-        delimiters = "".join(fr"\{x}" for x in self.delimiter)
+        delimiters = "".join([fr"\{x}" for x in self.delimiter])
         pattern = re.compile(f"([^{delimiters}]+)")
         rows = self.get_rows(infer_nrows, skiprows)
         if not rows:

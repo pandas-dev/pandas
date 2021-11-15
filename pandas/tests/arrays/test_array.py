@@ -50,6 +50,13 @@ from pandas.tests.extension.decimal import (
         ),
         # String alias passes through to NumPy
         ([1, 2], "float32", PandasArray(np.array([1, 2], dtype="float32"))),
+        ([1, 2], "int64", PandasArray(np.array([1, 2], dtype=np.int64))),
+        # idempotency with e.g. pd.array(pd.array([1, 2], dtype="int64"))
+        (
+            PandasArray(np.array([1, 2], dtype=np.int32)),
+            None,
+            PandasArray(np.array([1, 2], dtype=np.int32)),
+        ),
         # Period alias
         (
             [pd.Period("2000", "D"), pd.Period("2001", "D")],
@@ -392,8 +399,8 @@ class TestArrayAnalytics:
         assert is_scalar(result)
         assert result == 1
 
-    def test_searchsorted_numeric_dtypes_scalar(self, any_real_dtype):
-        arr = pd.array([1, 3, 90], dtype=any_real_dtype)
+    def test_searchsorted_numeric_dtypes_scalar(self, any_real_numpy_dtype):
+        arr = pd.array([1, 3, 90], dtype=any_real_numpy_dtype)
         result = arr.searchsorted(30)
         assert is_scalar(result)
         assert result == 2
@@ -402,8 +409,8 @@ class TestArrayAnalytics:
         expected = np.array([2], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_searchsorted_numeric_dtypes_vector(self, any_real_dtype):
-        arr = pd.array([1, 3, 90], dtype=any_real_dtype)
+    def test_searchsorted_numeric_dtypes_vector(self, any_real_numpy_dtype):
+        arr = pd.array([1, 3, 90], dtype=any_real_numpy_dtype)
         result = arr.searchsorted([2, 30])
         expected = np.array([1, 2], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
@@ -431,8 +438,8 @@ class TestArrayAnalytics:
         assert is_scalar(result)
         assert result == 1
 
-    def test_searchsorted_sorter(self, any_real_dtype):
-        arr = pd.array([3, 1, 2], dtype=any_real_dtype)
+    def test_searchsorted_sorter(self, any_real_numpy_dtype):
+        arr = pd.array([3, 1, 2], dtype=any_real_numpy_dtype)
         result = arr.searchsorted([0, 3], sorter=np.argsort(arr))
         expected = np.array([0, 2], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
