@@ -400,9 +400,9 @@ class Expanding(RollingAndExpandingMixin):
     def std(
         self,
         ddof: int = 1,
+        *args,
         engine: str | None = None,
         engine_kwargs: dict[str, bool] | None = None,
-        *args,
         **kwargs,
     ):
         nv.validate_expanding_func("std", args, kwargs)
@@ -460,9 +460,9 @@ class Expanding(RollingAndExpandingMixin):
     def var(
         self,
         ddof: int = 1,
+        *args,
         engine: str | None = None,
         engine_kwargs: dict[str, bool] | None = None,
-        *args,
         **kwargs,
     ):
         nv.validate_expanding_func("var", args, kwargs)

@@ -1453,11 +1453,12 @@ class RollingAndExpandingMixin(BaseWindow):
     def std(
         self,
         ddof: int = 1,
+        *args,
         engine: str | None = None,
         engine_kwargs: dict[str, bool] | None = None,
-        *args,
         **kwargs,
     ):
+        nv.validate_window_func("std", args, kwargs)
         if maybe_use_numba(engine):
             if self.method == "table":
                 raise NotImplementedError("std not supported with method='table'")
@@ -1467,7 +1468,6 @@ class RollingAndExpandingMixin(BaseWindow):
                 return zsqrt(
                     self._numba_apply(sliding_var, "rolling_std", engine_kwargs, ddof)
                 )
-        nv.validate_window_func("std", args, kwargs)
         window_func = window_aggregations.roll_var
 
         def zsqrt_func(values, begin, end, min_periods):
@@ -1482,11 +1482,12 @@ class RollingAndExpandingMixin(BaseWindow):
     def var(
         self,
         ddof: int = 1,
+        *args,
         engine: str | None = None,
         engine_kwargs: dict[str, bool] | None = None,
-        *args,
         **kwargs,
     ):
+        nv.validate_window_func("var", args, kwargs)
         if maybe_use_numba(engine):
             if self.method == "table":
                 raise NotImplementedError("var not supported with method='table'")
@@ -1496,7 +1497,6 @@ class RollingAndExpandingMixin(BaseWindow):
                 return self._numba_apply(
                     sliding_var, "rolling_var", engine_kwargs, ddof
                 )
-        nv.validate_window_func("var", args, kwargs)
         window_func = partial(window_aggregations.roll_var, ddof=ddof)
         return self._apply(
             window_func,
@@ -2114,9 +2114,9 @@ class Rolling(RollingAndExpandingMixin):
     def std(
         self,
         ddof: int = 1,
+        *args,
         engine: str | None = None,
         engine_kwargs: dict[str, bool] | None = None,
-        *args,
         **kwargs,
     ):
         nv.validate_rolling_func("std", args, kwargs)
@@ -2176,9 +2176,9 @@ class Rolling(RollingAndExpandingMixin):
     def var(
         self,
         ddof: int = 1,
+        *args,
         engine: str | None = None,
         engine_kwargs: dict[str, bool] | None = None,
-        *args,
         **kwargs,
     ):
         nv.validate_rolling_func("var", args, kwargs)
