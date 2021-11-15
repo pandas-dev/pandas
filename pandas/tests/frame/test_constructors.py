@@ -2664,15 +2664,15 @@ class TestDataFrameConstructorWithDatetimeTZ:
         expected = DataFrame({0: [ts_naive]})
         tm.assert_frame_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             result = DataFrame({0: ts}, index=[0], dtype="datetime64[ns]")
         tm.assert_frame_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             result = DataFrame([ts], dtype="datetime64[ns]")
         tm.assert_frame_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             result = DataFrame(np.array([ts], dtype=object), dtype="datetime64[ns]")
         tm.assert_frame_equal(result, expected)
 
@@ -2680,11 +2680,11 @@ class TestDataFrameConstructorWithDatetimeTZ:
             result = DataFrame(ts, index=[0], columns=[0], dtype="datetime64[ns]")
         tm.assert_frame_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             df = DataFrame([Series([ts])], dtype="datetime64[ns]")
         tm.assert_frame_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             df = DataFrame([[ts]], columns=[0], dtype="datetime64[ns]")
         tm.assert_equal(df, expected)
 
@@ -2903,14 +2903,7 @@ class TestFromScalar:
         assert isinstance(get1(obj), np.timedelta64)
 
     @pytest.mark.parametrize("cls", [np.datetime64, np.timedelta64])
-    def test_from_scalar_datetimelike_mismatched(self, constructor, cls, request):
-        node = request.node
-        params = node.callspec.params
-        if params["frame_or_series"] is DataFrame and params["constructor"] is dict:
-            mark = pytest.mark.xfail(
-                reason="DataFrame incorrectly allows mismatched datetimelike"
-            )
-            node.add_marker(mark)
+    def test_from_scalar_datetimelike_mismatched(self, constructor, cls):
         scalar = cls("NaT", "ns")
         dtype = {np.datetime64: "m8[ns]", np.timedelta64: "M8[ns]"}[cls]
 
@@ -2953,9 +2946,7 @@ class TestFromScalar:
         ts = Timestamp("2019", tz=tz)
         ts_naive = Timestamp("2019")
 
-        with tm.assert_produces_warning(
-            FutureWarning, match="Data is timezone-aware", check_stacklevel=False
-        ):
+        with tm.assert_produces_warning(FutureWarning, match="Data is timezone-aware"):
             result = constructor(ts, dtype="M8[ns]")
 
         assert np.all(result.dtypes == "M8[ns]")
