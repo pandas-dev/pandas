@@ -291,18 +291,20 @@ class TestTableMethod:
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
 
         df = DataFrame(np.eye(3))
+        roll_table = df.rolling(2, method="table", axis=axis, min_periods=0)
         if method in ("var", "std"):
             with pytest.raises(NotImplementedError, match=f"{method} not supported"):
-                getattr(
-                    df.rolling(2, method="table", axis=axis, min_periods=0), method
-                )(engine_kwargs=engine_kwargs, engine="numba", **kwargs)
+                getattr(roll_table, method)(
+                    engine_kwargs=engine_kwargs, engine="numba", **kwargs
+                )
         else:
-            result = getattr(
-                df.rolling(2, method="table", axis=axis, min_periods=0), method
-            )(engine_kwargs=engine_kwargs, engine="numba", **kwargs)
-            expected = getattr(
-                df.rolling(2, method="single", axis=axis, min_periods=0), method
-            )(engine_kwargs=engine_kwargs, engine="numba", **kwargs)
+            roll_single = df.rolling(2, method="single", axis=axis, min_periods=0)
+            result = getattr(roll_table, method)(
+                engine_kwargs=engine_kwargs, engine="numba", **kwargs
+            )
+            expected = getattr(roll_single, method)(
+                engine_kwargs=engine_kwargs, engine="numba", **kwargs
+            )
             tm.assert_frame_equal(result, expected)
 
     def test_table_method_rolling_apply(self, axis, nogil, parallel, nopython):
@@ -363,17 +365,18 @@ class TestTableMethod:
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
 
         df = DataFrame(np.eye(3))
-
+        expand_table = df.expanding(method="table", axis=axis)
         if method in ("var", "std"):
             with pytest.raises(NotImplementedError, match=f"{method} not supported"):
-                getattr(df.expanding(method="table", axis=axis), method)(
+                getattr(expand_table, method)(
                     engine_kwargs=engine_kwargs, engine="numba", **kwargs
                 )
         else:
-            result = getattr(df.expanding(method="table", axis=axis), method)(
+            expand_single = df.expanding(method="single", axis=axis)
+            result = getattr(expand_table, method)(
                 engine_kwargs=engine_kwargs, engine="numba", **kwargs
             )
-            expected = getattr(df.expanding(method="single", axis=axis), method)(
+            expected = getattr(expand_single, method)(
                 engine_kwargs=engine_kwargs, engine="numba", **kwargs
             )
             tm.assert_frame_equal(result, expected)
