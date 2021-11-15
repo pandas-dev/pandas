@@ -1682,7 +1682,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 for key in subset:
                     if key in keys:
                         raise ValueError(
-                            f"Key {key} in subset cannot be one of the groupby column keys"
+                            f"Key {key} in subset cannot be one of "
+                            "the groupby column keys"
                         )
                 remaining_columns = subset
 
