@@ -211,6 +211,7 @@ Other enhancements
 - :meth:`.GroupBy.mean` now supports `Numba <http://numba.pydata.org/>`_ execution with the ``engine`` keyword (:issue:`43731`)
 - :meth:`Timestamp.isoformat`, now handles the ``timespec`` argument from the base :class:``datetime`` class (:issue:`26131`)
 - :meth:`NaT.to_numpy` ``dtype`` argument is now respected, so ``np.timedelta64`` can be returned (:issue:`44460`)
+- :meth:`DataFrame.compare` now accepts a ``suffixes`` to allow the user to specify the suffixes of both left and right DataFrame which are being compared. This is by default ``self`` and ``other`` (:issue:`44354`)
 -
 
 .. ---------------------------------------------------------------------------
