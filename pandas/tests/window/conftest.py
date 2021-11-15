@@ -64,12 +64,15 @@ def arithmetic_win_operators(request):
 
 @pytest.fixture(
     params=[
-        "sum",
-        "mean",
-        "median",
-        "max",
-        "min",
-        "var",
+        ["sum", {}],
+        ["mean", {}],
+        ["median", {}],
+        ["max", {}],
+        ["min", {}],
+        ["var", {}],
+        ["var", {"ddof": 0}],
+        ["std", {}],
+        ["std", {"ddof": 0}],
     ]
 )
 def arithmetic_numba_supported_operators(request):

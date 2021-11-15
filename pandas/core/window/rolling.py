@@ -589,7 +589,7 @@ class BaseWindow(SelectionMixin):
         func: Callable[..., Any],
         numba_cache_key_str: str,
         engine_kwargs: dict[str, bool] | None = None,
-        **func_kwargs,
+        *func_args,
     ):
         window_indexer = self._get_window_indexer()
         min_periods = (
@@ -612,7 +612,7 @@ class BaseWindow(SelectionMixin):
         aggregator = executor.generate_shared_aggregator(
             func, engine_kwargs, numba_cache_key_str
         )
-        result = aggregator(values, start, end, min_periods, **func_kwargs)
+        result = aggregator(values, start, end, min_periods, *func_args)
         NUMBA_FUNC_CACHE[(func, numba_cache_key_str)] = aggregator
         result = result.T if self.axis == 1 else result
         if obj.ndim == 1:
@@ -1465,9 +1465,7 @@ class RollingAndExpandingMixin(BaseWindow):
                 from pandas.core._numba.kernels import sliding_var
 
                 return zsqrt(
-                    self._numba_apply(
-                        sliding_var, "rolling_std", engine_kwargs, ddof=ddof
-                    )
+                    self._numba_apply(sliding_var, "rolling_std", engine_kwargs, ddof)
                 )
         nv.validate_window_func("std", args, kwargs)
         window_func = window_aggregations.roll_var
@@ -1496,7 +1494,7 @@ class RollingAndExpandingMixin(BaseWindow):
                 from pandas.core._numba.kernels import sliding_var
 
                 return self._numba_apply(
-                    sliding_var, "rolling_var", engine_kwargs, ddof=ddof
+                    sliding_var, "rolling_var", engine_kwargs, ddof
                 )
         nv.validate_window_func("var", args, kwargs)
         window_func = partial(window_aggregations.roll_var, ddof=ddof)
@@ -2113,9 +2111,18 @@ class Rolling(RollingAndExpandingMixin):
         aggregation_description="standard deviation",
         agg_method="std",
     )
-    def std(self, ddof: int = 1, *args, **kwargs):
+    def std(
+        self,
+        ddof: int = 1,
+        engine: str | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
+        *args,
+        **kwargs,
+    ):
         nv.validate_rolling_func("std", args, kwargs)
-        return super().std(ddof=ddof, **kwargs)
+        return super().std(
+            ddof=ddof, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+        )
 
     @doc(
         template_header,
@@ -2175,7 +2182,9 @@ class Rolling(RollingAndExpandingMixin):
         **kwargs,
     ):
         nv.validate_rolling_func("var", args, kwargs)
-        return super().var(ddof=ddof, **kwargs)
+        return super().var(
+            ddof=ddof, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+        )
 
     @doc(
         template_header,

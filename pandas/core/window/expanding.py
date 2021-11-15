@@ -406,7 +406,9 @@ class Expanding(RollingAndExpandingMixin):
         **kwargs,
     ):
         nv.validate_expanding_func("std", args, kwargs)
-        return super().std(ddof=ddof, **kwargs)
+        return super().std(
+            ddof=ddof, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+        )
 
     @doc(
         template_header,
