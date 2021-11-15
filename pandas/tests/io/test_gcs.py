@@ -88,7 +88,7 @@ def test_to_read_gcs(gcs_buffer, format):
     tm.assert_frame_equal(df1, df2)
 
 
-def assert_equal_zip_safe(result: bytes, expected: bytes):
+def assert_equal_zip_safe(result: bytes, expected: bytes, offset: int = 0):
     """
     We would like to assert these are equal, but the 10th and 11th bytes are a
     last-modified timestamp, which in some builds is off-by-one, so we check around
@@ -96,6 +96,13 @@ def assert_equal_zip_safe(result: bytes, expected: bytes):
 
     See https://en.wikipedia.org/wiki/ZIP_(file_format)#File_headers
     """
+    if offset != 0:
+        # If multiple writes have been made to a zip archive, the 10/11 byte
+        #  timestamp may be in more than one place.
+        assert_equal_zip_safe(result[:offset], expected[:offset])
+        assert_equal_zip_safe(result[offset:], expected[offset:])
+        return
+
     assert result[:9] == expected[:9]
     assert result[11:] == expected[11:]
 
@@ -140,9 +147,10 @@ def test_to_csv_compression_encoding_gcs(gcs_buffer, compression_only, encoding)
     path_gcs += f".{compression_only}"
     df.to_csv(path_gcs, compression=compression, encoding=encoding)
 
+    old_len = len(res)
     res = gcs_buffer.getvalue()
     expected = buffer.getvalue()
-    assert_equal_zip_safe(res, expected)
+    assert_equal_zip_safe(res, expected, offset=old_len)
 
     read_df = read_csv(path_gcs, index_col=0, compression="infer", encoding=encoding)
     tm.assert_frame_equal(df, read_df)
