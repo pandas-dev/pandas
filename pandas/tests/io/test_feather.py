@@ -2,14 +2,12 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 import pandas._testing as tm
 
 from pandas.io.feather_format import read_feather, to_feather  # isort:skip
 
-pyarrow = pytest.importorskip("pyarrow")
+pyarrow = pytest.importorskip("pyarrow", minversion="1.0.1")
 
 
 filter_sparse = pytest.mark.filterwarnings("ignore:The Sparse")
@@ -120,7 +118,6 @@ class TestFeather:
         columns = ["col1", "col3"]
         self.check_round_trip(df, expected=df[columns], columns=columns)
 
-    @td.skip_if_no("pyarrow", min_version="0.17.1")
     def read_columns_different_order(self):
         # GH 33878
         df = pd.DataFrame({"A": [1, 2], "B": ["x", "y"], "C": [True, False]})
@@ -180,12 +177,10 @@ class TestFeather:
         result = tm.round_trip_localpath(df.to_feather, read_feather)
         tm.assert_frame_equal(df, result)
 
-    @td.skip_if_no("pyarrow", min_version="0.17.0")
     def test_passthrough_keywords(self):
         df = tm.makeDataFrame().reset_index()
         self.check_round_trip(df, write_kwargs={"version": 1})
 
-    @td.skip_if_no("pyarrow")
     @tm.network
     def test_http_path(self, feather_file):
         # GH 29055
