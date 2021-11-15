@@ -9,6 +9,7 @@ from io import StringIO
 import pytest
 
 from pandas.errors import ParserWarning
+import pandas.util._test_decorators as td
 
 from pandas import DataFrame
 import pandas._testing as tm
@@ -84,6 +85,7 @@ def test_invalid_dialect(all_parsers):
     [None, "doublequote", "escapechar", "skipinitialspace", "quotechar", "quoting"],
 )
 @pytest.mark.parametrize("value", ["dialect", "default", "other"])
+@td.check_file_leaks
 def test_dialect_conflict_except_delimiter(all_parsers, custom_dialect, arg, value):
     # see gh-23761.
     dialect_name, dialect_kwargs = custom_dialect

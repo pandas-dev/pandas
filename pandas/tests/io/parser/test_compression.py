@@ -89,7 +89,7 @@ def test_zip_error_invalid_zip(parser_and_data):
 
 @skip_pyarrow
 @pytest.mark.parametrize("filename", [None, "test.{ext}"])
-def test_compression(parser_and_data, compression_only, buffer, filename, request):
+def test_compression(parser_and_data, compression_only, buffer, filename):
     parser, data, expected = parser_and_data
     compress_type = compression_only
 
