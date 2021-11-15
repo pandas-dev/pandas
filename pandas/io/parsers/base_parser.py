@@ -212,7 +212,7 @@ class ParserBase:
 
         self.usecols, self.usecols_dtype = self._validate_usecols_arg(kwds["usecols"])
 
-        self.handles: IOHandles | None = None
+        self.handles: IOHandles[str] | None = None
 
         # Fallback to error to pass a sketchy test(test_override_set_noconvert_columns)
         # Normally, this arg would get pre-processed earlier on
@@ -700,7 +700,7 @@ class ParserBase:
             # error: Argument 2 to "isin" has incompatible type "List[Any]"; expected
             # "Union[Union[ExtensionArray, ndarray], Index, Series]"
             mask = algorithms.isin(values, list(na_values))  # type: ignore[arg-type]
-            na_count = mask.astype("uint8").sum()
+            na_count = mask.astype("uint8", copy=False).sum()
             if na_count > 0:
                 if is_integer_dtype(values):
                     values = values.astype(np.float64)
