@@ -989,10 +989,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     ):
 
         if len(values) == 0:
-            result = self.obj._constructor(
-                index=self.grouper.result_index, columns=data.columns
-            )
-            result = result.astype(data.dtypes, copy=False)
+            result = self.obj._constructor(index=self.grouper.result_index, columns=[])
             return result
 
         # GH12824

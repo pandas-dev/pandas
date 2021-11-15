@@ -12,6 +12,7 @@ from pandas import (
     DataFrame,
     Index,
     MultiIndex,
+    RangeIndex,
     Series,
     bdate_range,
 )
@@ -1178,3 +1179,22 @@ def test_apply_empty_string_nan_coerce_bug():
         index=MultiIndex.from_tuples([(1, ""), (2, "")], names=["a", "b"]),
     )
     tm.assert_frame_equal(result, expected)
+
+
+class Test:
+    @pytest.mark.parametrize(
+        "obj, exp",
+        [
+            (
+                DataFrame(data={"f1": [1, 2], "f2": [3, 4], "f3": [5, 6]}),
+                DataFrame(data={"f1": [1, 2], 0: [1, 1]}),
+            ),
+            (
+                DataFrame(columns=["f1", "f2", "f3"]),
+                DataFrame(index=RangeIndex(start=0, stop=0, step=1), columns=["f1"]),
+            ),
+        ],
+    )
+    def test_apply_empty_frame(self, obj, exp):
+        res = obj.groupby("f1").apply(lambda x: x.loc[:, "f2"].nunique()).reset_index()
+        tm.assert_frame_equal(exp, res)
