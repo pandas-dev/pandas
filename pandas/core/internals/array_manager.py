@@ -188,7 +188,13 @@ class BaseArrayManager(DataManager):
             output += f"\n{arr.dtype}"
         return output
 
-    def apply(self: T, f, ignore_failures: bool = False, **kwargs) -> T:
+    def apply(
+        self: T,
+        f,
+        align_keys: list[str] | None = None,  # not used for ArrayManager
+        ignore_failures: bool = False,
+        **kwargs,
+    ) -> T:
         """
         Iterate over the arrays, collect and create a new ArrayManager.
 
@@ -196,7 +202,6 @@ class BaseArrayManager(DataManager):
         ----------
         f : str or callable
             Name of the Array method to apply.
-        align_keys: List[str] or None, default None
         ignore_failures: bool, default False
         **kwargs
             Keywords to pass to `f`
