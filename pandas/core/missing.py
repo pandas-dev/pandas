@@ -37,7 +37,6 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     is_array_like,
-    is_categorical_dtype,
     is_numeric_v_string_like,
     needs_i8_conversion,
 )
@@ -1004,6 +1003,20 @@ def coerce_to_target_dtype(values, other):
     return astype_array_safe(values, new_dtype, copy=False)
 
 
+def fillna_ea_array(values, value, limit=None, inplace: bool = False, downcast=None):
+
+    if not _can_hold_element(values, value) and values.dtype.kind == "M":
+        # We support filling a DatetimeTZ with a `value` whose timezone
+        #  is different by coercing to object.
+        # TODO: don't special-case td64
+        values = values.astype(object)
+        # breakpoint()
+        return fillna_array(values, value, limit=limit, inplace=True, downcast=downcast)
+
+    values = values if inplace else values.copy()
+    return values.fillna(value, limit=limit)
+
+
 def fillna_array(values, value, limit=None, inplace: bool = False, downcast=None):
     from pandas.core.array_algos.putmask import (
         putmask_inplace,
@@ -1014,21 +1027,9 @@ def fillna_array(values, value, limit=None, inplace: bool = False, downcast=None
     # inplace = validate_bool_kwarg(inplace, "inplace")
 
     if isinstance(values, ExtensionArray):
-        if (
-            not _can_hold_element(values, value)
-            and values.dtype.kind != "m"
-            and not is_categorical_dtype(values.dtype)
-        ):
-            # We support filling a DatetimeTZ with a `value` whose timezone
-            #  is different by coercing to object.
-            # TODO: don't special-case td64
-            values = values.astype(object)
-            return fillna_array(
-                values, value, limit=limit, inplace=True, downcast=downcast
-            )
-
-        values = values if inplace else values.copy()
-        return values.fillna(value, limit=limit)
+        return fillna_ea_array(
+            values, value, limit=limit, inplace=inplace, downcast=downcast
+        )
 
     mask = isna(values)
     mask, noop = validate_putmask(values, mask)

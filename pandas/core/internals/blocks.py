@@ -1358,6 +1358,19 @@ class EABackedBlock(Block):
             new_values = values.fillna(value=fill_value, method=method, limit=limit)
         return self.make_block_same_class(new_values)
 
+    def fillna(
+        self, value, limit=None, inplace: bool = False, downcast=None
+    ) -> list[Block]:
+
+        res_values = missing.fillna_ea_array(
+            self.values.ravel(), value, limit=limit, inplace=inplace, downcast=downcast
+        )
+        res_values = ensure_block_shape(res_values, self.ndim)
+
+        if res_values.dtype == object:
+            return [self.make_block(values=res_values)]
+        return [self.make_block_same_class(values=res_values)]
+
 
 class ExtensionBlock(libinternals.Block, EABackedBlock):
     """
@@ -1564,12 +1577,6 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         new_values = self.values[slicer]
         return type(self)(new_values, self._mgr_locs, ndim=self.ndim)
 
-    def fillna(
-        self, value, limit=None, inplace: bool = False, downcast=None
-    ) -> list[Block]:
-        values = self.values.fillna(value=value, limit=limit)
-        return [self.make_block_same_class(values=values)]
-
     def diff(self, n: int, axis: int = 1) -> list[Block]:
         if axis == 0 and n != 0:
             # n==0 case will be a no-op so let is fall through
@@ -1753,23 +1760,6 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
         values = self.values
         new_values = values.shift(periods, fill_value=fill_value, axis=axis)
         return [self.make_block_same_class(new_values)]
-
-    def fillna(
-        self, value, limit=None, inplace: bool = False, downcast=None
-    ) -> list[Block]:
-
-        if not self._can_hold_element(value) and self.dtype.kind != "m":
-            # We support filling a DatetimeTZ with a `value` whose timezone
-            #  is different by coercing to object.
-            # TODO: don't special-case td64
-            return self.coerce_to_target_dtype(value).fillna(
-                value, limit, inplace, downcast
-            )
-
-        values = self.values
-        values = values if inplace else values.copy()
-        new_values = values.fillna(value=value, limit=limit)
-        return [self.make_block_same_class(values=new_values)]
 
 
 class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
