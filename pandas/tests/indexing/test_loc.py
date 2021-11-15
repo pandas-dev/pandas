@@ -178,12 +178,25 @@ class TestLoc(Base):
         )
         tm.assert_frame_equal(df, expected)
 
-    def test_loc_getitem_column_boolean_arg(self):
+    @pytest.mark.parametrize(
+        "obj, key, exp",
+        [
+            (
+                DataFrame([[1]], columns=Index([False])),
+                IndexSlice[:, False],
+                Series([1], name=False),
+            ),
+            (Series([1], index=Index([False])), False, [1]),
+            (DataFrame([[1]], index=Index([False])), False, Series([1], name=False)),
+        ],
+    )
+    def test_loc_getitem_single_boolean_arg(self, obj, key, exp):
         # GH 44322
-        df = DataFrame([[1]], columns=Index([False]))
-        res = df.loc[:, False]
-        exp = Series([1], name=False)
-        tm.assert_series_equal(res, exp)
+        res = obj.loc[key]
+        if isinstance(exp, (DataFrame, Series)):
+            tm.assert_equal(res, exp)
+        else:
+            assert res == exp
 
 
 class TestLoc2:
