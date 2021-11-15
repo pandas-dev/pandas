@@ -95,7 +95,6 @@ jobs:
       with:
         name: Benchmarks log
         path: asv_bench/benchmarks.log
-      if: failure()
 
   web_and_docs:
     name: Web and docs
