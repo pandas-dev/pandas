@@ -258,19 +258,20 @@ cdef class _NaT(datetime):
         """
         return np.datetime64('NaT', "ns")
 
-    def to_numpy(self, dtype=None, copy=False) -> np.datetime64:
+    def to_numpy(self, dtype=None, copy=False) -> np.datetime64 | np.timedelta64:
         """
-        Convert the Timestamp to a NumPy datetime64.
+        Convert the Timestamp to a NumPy datetime64 or timedelta64.
 
         .. versionadded:: 0.25.0
 
-        This is an alias method for `Timestamp.to_datetime64()`. The dtype and
-        copy parameters are available here only for compatibility. Their values
+        With the default 'dtype', this is an alias method for `NaT.to_datetime64()`.
+
+        The copy parameter is available here only for compatibility. Its value
         will not affect the return value.
 
         Returns
         -------
-        numpy.datetime64
+        numpy.datetime64 or numpy.timedelta64
 
         See Also
         --------
@@ -286,7 +287,21 @@ cdef class _NaT(datetime):
 
         >>> pd.NaT.to_numpy()
         numpy.datetime64('NaT')
+
+        >>> pd.NaT.to_numpy("m8[ns]")
+        numpy.timedelta64('NaT','ns')
         """
+        if dtype is not None:
+            dtype = np.dtype(dtype)
+            if dtype.kind == "M":
+                return np.datetime64("NaT").astype(dtype)
+            elif dtype.kind == "m":
+                return np.timedelta64("NaT").astype(dtype)
+            else:
+                raise ValueError(
+                    "NaT.to_numpy dtype must be a datetime64 dtype, timedelta64 "
+                    "dtype, or None."
+                )
         return self.to_datetime64()
 
     def __repr__(self) -> str:
