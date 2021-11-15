@@ -292,6 +292,7 @@ cdef class _NaT(datetime):
         numpy.timedelta64('NaT','ns')
         """
         if dtype is not None:
+            # GH#44460
             dtype = np.dtype(dtype)
             if dtype.kind == "M":
                 return np.datetime64("NaT").astype(dtype)

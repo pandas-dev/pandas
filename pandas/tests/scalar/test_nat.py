@@ -331,8 +331,8 @@ def test_nat_doc_strings(compare):
         return
 
     if method == "to_numpy":
-        # can return either dt64 or td64 depending on dtype, different docstring
-        #  is intentional
+        # GH#44460 can return either dt64 or td64 depending on dtype,
+        #  different docstring is intentional
         return
 
     nat_doc = getattr(NaT, method).__doc__
@@ -516,6 +516,7 @@ def test_to_numpy_alias():
 
     assert isna(expected) and isna(result)
 
+    # GH#44460
     result = NaT.to_numpy("M8[s]")
     assert isinstance(result, np.datetime64)
     assert result.dtype == "M8[s]"
