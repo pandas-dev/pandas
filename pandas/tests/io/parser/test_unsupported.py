@@ -120,7 +120,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
                 return self.data
 
         data = "a\n1"
-        msg = "'NoNextBuffer' object is not iterable"
+        msg = "'NoNextBuffer' object is not iterable|argument 1 must be an iterator"
 
         with pytest.raises(TypeError, match=msg):
             read_csv(NoNextBuffer(data), engine=python_engine)
