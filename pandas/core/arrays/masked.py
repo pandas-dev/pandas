@@ -47,6 +47,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import (
+    array_equivalent,
     isna,
     notna,
 )
@@ -574,14 +575,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         # the hashtables don't handle all different types of bits
         uniques = uniques.astype(self.dtype.numpy_dtype, copy=False)
-        # error: Incompatible types in assignment (expression has type
-        # "BaseMaskedArray", variable has type "ndarray")
-        uniques = type(self)(  # type: ignore[assignment]
-            uniques, np.zeros(len(uniques), dtype=bool)
-        )
-        # error: Incompatible return value type (got "Tuple[ndarray, ndarray]",
-        # expected "Tuple[ndarray, ExtensionArray]")
-        return codes, uniques  # type: ignore[return-value]
+        uniques_ea = type(self)(uniques, np.zeros(len(uniques), dtype=bool))
+        return codes, uniques_ea
 
     def value_counts(self, dropna: bool = True) -> Series:
         """
@@ -632,6 +627,22 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         counts = IntegerArray(counts, mask)
 
         return Series(counts, index=index)
+
+    @doc(ExtensionArray.equals)
+    def equals(self, other) -> bool:
+        if type(self) != type(other):
+            return False
+        if other.dtype != self.dtype:
+            return False
+
+        # GH#44382 if e.g. self[1] is np.nan and other[1] is pd.NA, we are NOT
+        #  equal.
+        if not np.array_equal(self._mask, other._mask):
+            return False
+
+        left = self._data[~self._mask]
+        right = other._data[~other._mask]
+        return array_equivalent(left, right, dtype_equal=True)
 
     def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         if name in {"any", "all"}:

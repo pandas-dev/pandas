@@ -222,12 +222,7 @@ class TestDataFrameConstructors:
         df["foo"] = np.ones((4, 2)).tolist()
 
         # this is not ok
-        msg = "|".join(
-            [
-                "Wrong number of items passed 2, placement implies 1",
-                "Expected a 1D array, got an array with shape \\(4, 2\\)",
-            ]
-        )
+        msg = "Expected a 1D array, got an array with shape \\(4, 2\\)"
         with pytest.raises(ValueError, match=msg):
             df["test"] = np.ones((4, 2))
 
@@ -2513,7 +2508,7 @@ class TestDataFrameConstructors:
             # TODO: we can call check_views if we stop consolidating
             #  in setitem_with_indexer
 
-        # FIXME: until GH#35417, iloc.setitem into EA values does not preserve
+        # FIXME(GH#35417): until GH#35417, iloc.setitem into EA values does not preserve
         #  view, so we have to check in the other direction
         # df.iloc[0, 2] = 0
         # if not copy:
@@ -2527,13 +2522,13 @@ class TestDataFrameConstructors:
             else:
                 assert a[0] == a.dtype.type(1)
                 assert b[0] == b.dtype.type(3)
-            # FIXME: enable after GH#35417
+            # FIXME(GH#35417): enable after GH#35417
             # assert c[0] == 1
             assert df.iloc[0, 2] == 1
         else:
             # TODO: we can call check_views if we stop consolidating
             #  in setitem_with_indexer
-            # FIXME: enable after GH#35417
+            # FIXME(GH#35417): enable after GH#35417
             # assert b[0] == 0
             assert df.iloc[0, 2] == 0
 
@@ -2588,6 +2583,19 @@ class TestDataFrameConstructors:
         msg = "Per-column arrays must each be 1-dimensional"
         with pytest.raises(ValueError, match=msg):
             DataFrame({"a": col_a, "b": col_b})
+
+
+class TestDataFrameConstructorIndexInference:
+    def test_frame_from_dict_of_series_overlapping_monthly_period_indexes(self):
+        rng1 = pd.period_range("1/1/1999", "1/1/2012", freq="M")
+        s1 = Series(np.random.randn(len(rng1)), rng1)
+
+        rng2 = pd.period_range("1/1/1980", "12/1/2001", freq="M")
+        s2 = Series(np.random.randn(len(rng2)), rng2)
+        df = DataFrame({"s1": s1, "s2": s2})
+
+        exp = pd.period_range("1/1/1980", "1/1/2012", freq="M")
+        tm.assert_index_equal(df.index, exp)
 
 
 class TestDataFrameConstructorWithDtypeCoercion:
@@ -2656,15 +2664,15 @@ class TestDataFrameConstructorWithDatetimeTZ:
         expected = DataFrame({0: [ts_naive]})
         tm.assert_frame_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             result = DataFrame({0: ts}, index=[0], dtype="datetime64[ns]")
         tm.assert_frame_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             result = DataFrame([ts], dtype="datetime64[ns]")
         tm.assert_frame_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             result = DataFrame(np.array([ts], dtype=object), dtype="datetime64[ns]")
         tm.assert_frame_equal(result, expected)
 
@@ -2672,11 +2680,11 @@ class TestDataFrameConstructorWithDatetimeTZ:
             result = DataFrame(ts, index=[0], columns=[0], dtype="datetime64[ns]")
         tm.assert_frame_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             df = DataFrame([Series([ts])], dtype="datetime64[ns]")
         tm.assert_frame_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             df = DataFrame([[ts]], columns=[0], dtype="datetime64[ns]")
         tm.assert_equal(df, expected)
 
@@ -2895,14 +2903,7 @@ class TestFromScalar:
         assert isinstance(get1(obj), np.timedelta64)
 
     @pytest.mark.parametrize("cls", [np.datetime64, np.timedelta64])
-    def test_from_scalar_datetimelike_mismatched(self, constructor, cls, request):
-        node = request.node
-        params = node.callspec.params
-        if params["frame_or_series"] is DataFrame and params["constructor"] is dict:
-            mark = pytest.mark.xfail(
-                reason="DataFrame incorrectly allows mismatched datetimelike"
-            )
-            node.add_marker(mark)
+    def test_from_scalar_datetimelike_mismatched(self, constructor, cls):
         scalar = cls("NaT", "ns")
         dtype = {np.datetime64: "m8[ns]", np.timedelta64: "M8[ns]"}[cls]
 
@@ -2945,9 +2946,7 @@ class TestFromScalar:
         ts = Timestamp("2019", tz=tz)
         ts_naive = Timestamp("2019")
 
-        with tm.assert_produces_warning(
-            FutureWarning, match="Data is timezone-aware", check_stacklevel=False
-        ):
+        with tm.assert_produces_warning(FutureWarning, match="Data is timezone-aware"):
             result = constructor(ts, dtype="M8[ns]")
 
         assert np.all(result.dtypes == "M8[ns]")

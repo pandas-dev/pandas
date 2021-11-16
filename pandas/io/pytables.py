@@ -45,6 +45,7 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.compat.pickle_compat import patch_pickle
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -2074,6 +2075,14 @@ class IndexCol:
         factory: type[Index] | type[DatetimeIndex] = Index
         if is_datetime64_dtype(values.dtype) or is_datetime64tz_dtype(values.dtype):
             factory = DatetimeIndex
+        elif values.dtype == "i8" and "freq" in kwargs:
+            # PeriodIndex data is stored as i8
+            # error: Incompatible types in assignment (expression has type
+            # "Callable[[Any, KwArg(Any)], PeriodIndex]", variable has type
+            # "Union[Type[Index], Type[DatetimeIndex]]")
+            factory = lambda x, **kwds: PeriodIndex(  # type: ignore[assignment]
+                ordinal=x, **kwds
+            )
 
         # making an Index instance could throw a number of different errors
         try:
@@ -2182,7 +2191,9 @@ class IndexCol:
                 # frequency/name just warn
                 if key in ["freq", "index_name"]:
                     ws = attribute_conflict_doc % (key, existing_value, value)
-                    warnings.warn(ws, AttributeConflictWarning, stacklevel=6)
+                    warnings.warn(
+                        ws, AttributeConflictWarning, stacklevel=find_stack_level()
+                    )
 
                     # reset
                     idx[key] = None
@@ -3072,7 +3083,7 @@ class GenericFixed(Fixed):
                 pass
             else:
                 ws = performance_doc % (inferred_type, key, items)
-                warnings.warn(ws, PerformanceWarning, stacklevel=7)
+                warnings.warn(ws, PerformanceWarning, stacklevel=find_stack_level())
 
             vlarr = self._handle.create_vlarray(self.group, key, _tables().ObjectAtom())
             vlarr.append(value)

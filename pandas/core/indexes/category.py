@@ -17,6 +17,7 @@ from pandas._typing import (
     npt,
 )
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -53,7 +54,6 @@ _index_doc_kwargs.update({"target_klass": "CategoricalIndex"})
 @inherit_names(
     [
         "argsort",
-        "_internal_get_values",
         "tolist",
         "codes",
         "categories",
@@ -219,7 +219,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
                 "deprecated and will raise in a future version. "
                 "Use CategoricalIndex([], ...) instead.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
             data = []
 
@@ -384,13 +384,14 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
             cat = self._data.fillna(value)
         except (ValueError, TypeError):
             # invalid fill_value
-            if not self.isna().any():
+            if not self.hasnans:
                 # nothing to fill, we can get away without casting
                 return self.copy()
             return self.astype(object).fillna(value, downcast=downcast)
 
         return type(self)._simple_new(cat, name=self.name)
 
+    # TODO(2.0): remove reindex once non-unique deprecation is enforced
     def reindex(
         self, target, method=None, level=None, limit=None, tolerance=None
     ) -> tuple[Index, npt.NDArray[np.intp] | None]:
@@ -431,7 +432,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
                     "reindexing with a non-unique Index is deprecated and will "
                     "raise in a future version.",
                     FutureWarning,
-                    stacklevel=2,
+                    stacklevel=find_stack_level(),
                 )
 
         if len(self) and indexer is not None:
@@ -506,7 +507,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
             "CategoricalIndex.take_nd is deprecated, use CategoricalIndex.take "
             "instead.",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self.take(*args, **kwargs)
 

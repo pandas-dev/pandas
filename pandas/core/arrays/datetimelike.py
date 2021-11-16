@@ -68,13 +68,13 @@ from pandas.util._decorators import (
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
+    is_all_strings,
     is_categorical_dtype,
     is_datetime64_any_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
     is_datetime_or_timedelta_dtype,
     is_dtype_equal,
-    is_extension_array_dtype,
     is_float_dtype,
     is_integer_dtype,
     is_list_like,
@@ -87,6 +87,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
+    ExtensionDtype,
     PeriodDtype,
 )
 from pandas.core.dtypes.missing import (
@@ -407,22 +408,20 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         if is_object_dtype(dtype):
             return self._box_values(self.asi8.ravel()).reshape(self.shape)
-        elif is_string_dtype(dtype) and not is_categorical_dtype(dtype):
-            if is_extension_array_dtype(dtype):
-                arr_cls = dtype.construct_array_type()
-                return arr_cls._from_sequence(self, dtype=dtype, copy=copy)
-            else:
-                return self._format_native_types()
+
+        elif isinstance(dtype, ExtensionDtype):
+            return super().astype(dtype, copy=copy)
+        elif is_string_dtype(dtype):
+            return self._format_native_types()
         elif is_integer_dtype(dtype):
             # we deliberately ignore int32 vs. int64 here.
             # See https://github.com/pandas-dev/pandas/issues/24381 for more.
-            level = find_stack_level()
             warnings.warn(
                 f"casting {self.dtype} values to int64 with .astype(...) is "
                 "deprecated and will raise in a future version. "
                 "Use .view(...) instead.",
                 FutureWarning,
-                stacklevel=level,
+                stacklevel=find_stack_level(),
             )
 
             values = self.asi8
@@ -442,9 +441,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             # and conversions for any datetimelike to float
             msg = f"Cannot cast {type(self).__name__} to dtype {dtype}"
             raise TypeError(msg)
-        elif is_categorical_dtype(dtype):
-            arr_cls = dtype.construct_array_type()
-            return arr_cls(self, dtype=dtype)
         else:
             return np.asarray(self, dtype=dtype)
 
@@ -724,7 +720,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         value = pd_array(value)
         value = extract_array(value, extract_numpy=True)
 
-        if is_dtype_equal(value.dtype, "string"):
+        if is_all_strings(value):
             # We got a StringArray
             try:
                 # TODO: Could use from_sequence_of_strings if implemented

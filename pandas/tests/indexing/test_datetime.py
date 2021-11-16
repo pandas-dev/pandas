@@ -10,21 +10,6 @@ import pandas._testing as tm
 
 
 class TestDatetimeIndex:
-    def test_datetimeindex_transpose_empty_df(self):
-        """
-        Regression test for:
-        https://github.com/pandas-dev/pandas/issues/41382
-        """
-        df = DataFrame(index=pd.DatetimeIndex([]))
-
-        expected = pd.DatetimeIndex([], dtype="datetime64[ns]", freq=None)
-
-        result1 = df.T.sum().index
-        result2 = df.sum(axis=1).index
-
-        tm.assert_index_equal(result1, expected)
-        tm.assert_index_equal(result2, expected)
-
     def test_indexing_with_datetime_tz(self):
 
         # GH#8260
@@ -145,7 +130,7 @@ class TestDatetimeIndex:
         expected = DataFrame(-1, index=index, columns=["a"])
         tm.assert_frame_equal(result, expected)
 
-    def test_getitem_millisecond_resolution(self, frame_or_series):
+    def test_getitem_str_slice_millisecond_resolution(self, frame_or_series):
         # GH#33589
 
         keys = [
@@ -167,16 +152,3 @@ class TestDatetimeIndex:
             ],
         )
         tm.assert_equal(result, expected)
-
-    def test_str_subclass(self):
-        # GH 37366
-        class mystring(str):
-            pass
-
-        data = ["2020-10-22 01:21:00+00:00"]
-        index = pd.DatetimeIndex(data)
-        df = DataFrame({"a": [1]}, index=index)
-        df["b"] = 2
-        df[mystring("c")] = 3
-        expected = DataFrame({"a": [1], "b": [2], mystring("c"): [3]}, index=index)
-        tm.assert_equal(df, expected)

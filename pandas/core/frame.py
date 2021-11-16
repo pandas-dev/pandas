@@ -83,6 +83,7 @@ from pandas.util._decorators import (
     doc,
     rewrite_axis_style_signature,
 )
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     validate_ascending,
     validate_axis_style_args,
@@ -643,7 +644,7 @@ class DataFrame(NDFrame, OpsMixin):
                     "removed in a future version.  Pass "
                     "{name: data[name] for name in data.dtype.names} instead.",
                     FutureWarning,
-                    stacklevel=2,
+                    stacklevel=find_stack_level(),
                 )
 
             # a masked array
@@ -1043,12 +1044,14 @@ class DataFrame(NDFrame, OpsMixin):
             return None
 
     @Substitution(
-        header_type="bool or sequence",
+        header_type="bool or sequence of strings",
         header="Write out the column names. If a list of strings "
         "is given, it is assumed to be aliases for the "
         "column names",
         col_space_type="int, list or dict of int",
-        col_space="The minimum width of each column",
+        col_space="The minimum width of each column. If a list of ints is given "
+        "every integers corresponds with one column. If a dict is given, the key "
+        "references the column, while the value defines the space to use.",
     )
     @Substitution(shared_params=fmt.common_docstring, returns=fmt.return_docstring)
     def to_string(
@@ -1065,11 +1068,11 @@ class DataFrame(NDFrame, OpsMixin):
         index_names: bool = True,
         justify: str | None = None,
         max_rows: int | None = None,
-        min_rows: int | None = None,
         max_cols: int | None = None,
         show_dimensions: bool = False,
         decimal: str = ".",
         line_width: int | None = None,
+        min_rows: int | None = None,
         max_colwidth: int | None = None,
         encoding: str | None = None,
     ) -> str | None:
@@ -1078,6 +1081,9 @@ class DataFrame(NDFrame, OpsMixin):
         %(shared_params)s
         line_width : int, optional
             Width to wrap a line in characters.
+        min_rows : int, optional
+            The number of rows to display in the console in a truncated repr
+            (when number of rows is above `max_rows`).
         max_colwidth : int, optional
             Max width to truncate each column in characters. By default, no limit.
 
@@ -1357,7 +1363,7 @@ class DataFrame(NDFrame, OpsMixin):
     def dot(self, other: DataFrame | Index | ArrayLike) -> DataFrame:
         ...
 
-    def dot(self, other: AnyArrayLike | DataFrame | Series) -> DataFrame | Series:
+    def dot(self, other: AnyArrayLike | DataFrame) -> DataFrame | Series:
         """
         Compute the matrix multiplication between the DataFrame and other.
 
@@ -1686,9 +1692,7 @@ class DataFrame(NDFrame, OpsMixin):
         self._consolidate_inplace()
         if dtype is not None:
             dtype = np.dtype(dtype)
-        result = self._mgr.as_array(
-            transpose=self._AXIS_REVERSED, dtype=dtype, copy=copy, na_value=na_value
-        )
+        result = self._mgr.as_array(dtype=dtype, copy=copy, na_value=na_value)
         if result.dtype is not dtype:
             result = np.array(result, dtype=dtype, copy=False)
 
@@ -1795,7 +1799,7 @@ class DataFrame(NDFrame, OpsMixin):
             warnings.warn(
                 "DataFrame columns are not unique, some columns will be omitted.",
                 UserWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
         # GH16122
         into_c = com.standardize_mapping(into)
@@ -1816,7 +1820,7 @@ class DataFrame(NDFrame, OpsMixin):
                 "will be used in a future version. Use one of the above "
                 "to silence this warning.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
 
             if orient.startswith("d"):
@@ -2202,7 +2206,6 @@ class DataFrame(NDFrame, OpsMixin):
             to_remove = [arr_columns.get_loc(col) for col in arr_exclude]
             arrays = [v for i, v in enumerate(arrays) if i not in to_remove]
 
-            arr_columns = arr_columns.drop(arr_exclude)
             columns = columns.drop(exclude)
 
         manager = get_option("mode.data_manager")
@@ -2662,7 +2665,7 @@ class DataFrame(NDFrame, OpsMixin):
                 "'showindex' is deprecated. Only 'index' will be used "
                 "in a future version. Use 'index' to silence this warning.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
 
         kwargs.setdefault("headers", "keys")
@@ -2839,15 +2842,14 @@ class DataFrame(NDFrame, OpsMixin):
         border : int
             A ``border=border`` attribute is included in the opening
             `<table>` tag. Default ``pd.options.display.html.border``.
-        encoding : str, default "utf-8"
-            Set character encoding.
-
-            .. versionadded:: 1.0
-
         table_id : str, optional
             A css id is included in the opening `<table>` tag if specified.
         render_links : bool, default False
             Convert URLs to HTML links.
+        encoding : str, default "utf-8"
+            Set character encoding.
+
+            .. versionadded:: 1.0
         %(returns)s
         See Also
         --------
@@ -3221,7 +3223,7 @@ class DataFrame(NDFrame, OpsMixin):
             warnings.warn(
                 "null_counts is deprecated. Use show_counts instead",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
             show_counts = null_counts
         info = DataFrameInfo(
@@ -3594,7 +3596,7 @@ class DataFrame(NDFrame, OpsMixin):
             warnings.warn(
                 "Boolean Series key will be reindexed to match DataFrame index.",
                 UserWarning,
-                stacklevel=3,
+                stacklevel=find_stack_level(),
             )
         elif len(key) != len(self.index):
             raise ValueError(
@@ -3735,6 +3737,9 @@ class DataFrame(NDFrame, OpsMixin):
             self.iloc[indexer] = value
 
         else:
+            # Note: unlike self.iloc[:, indexer] = value, this will
+            #  never try to overwrite values inplace
+
             if isinstance(value, DataFrame):
                 check_key_length(self.columns, key, value)
                 for k1, k2 in zip(key, value.columns):
@@ -3841,9 +3846,11 @@ class DataFrame(NDFrame, OpsMixin):
         arraylike = _reindex_for_setitem(value, self.index)
         self._set_item_mgr(key, arraylike)
 
-    def _iset_item_mgr(self, loc: int | slice | np.ndarray, value) -> None:
+    def _iset_item_mgr(
+        self, loc: int | slice | np.ndarray, value, inplace: bool = False
+    ) -> None:
         # when called from _set_item_mgr loc can be anything returned from get_loc
-        self._mgr.iset(loc, value)
+        self._mgr.iset(loc, value, inplace=inplace)
         self._clear_item_cache()
 
     def _set_item_mgr(self, key, value: ArrayLike) -> None:
@@ -3861,9 +3868,9 @@ class DataFrame(NDFrame, OpsMixin):
         if len(self):
             self._check_setitem_copy()
 
-    def _iset_item(self, loc: int, value) -> None:
+    def _iset_item(self, loc: int, value, inplace: bool = False) -> None:
         arraylike = self._sanitize_column(value)
-        self._iset_item_mgr(loc, arraylike)
+        self._iset_item_mgr(loc, arraylike, inplace=inplace)
 
         # check if we are modifying a copy
         # try to set first as we want an invalid
@@ -3995,13 +4002,13 @@ class DataFrame(NDFrame, OpsMixin):
         # no-op for DataFrame
         pass
 
-    def _maybe_cache_changed(self, item, value: Series) -> None:
+    def _maybe_cache_changed(self, item, value: Series, inplace: bool) -> None:
         """
         The object has called back to us saying maybe it has changed.
         """
         loc = self._info_axis.get_loc(item)
         arraylike = value._values
-        self._mgr.iset(loc, arraylike)
+        self._mgr.iset(loc, arraylike, inplace=inplace)
 
     # ----------------------------------------------------------------------
     # Unsorted
@@ -4437,7 +4444,13 @@ class DataFrame(NDFrame, OpsMixin):
         mgr = self._mgr._get_data_subset(predicate)
         return type(self)(mgr).__finalize__(self)
 
-    def insert(self, loc, column, value, allow_duplicates: bool = False) -> None:
+    def insert(
+        self,
+        loc: int,
+        column: Hashable,
+        value: Scalar | AnyArrayLike,
+        allow_duplicates: bool = False,
+    ) -> None:
         """
         Insert column into DataFrame at specified location.
 
@@ -4450,8 +4463,8 @@ class DataFrame(NDFrame, OpsMixin):
             Insertion index. Must verify 0 <= loc <= len(columns).
         column : str, number, or hashable object
             Label of the inserted column.
-        value : int, Series, or array-like
-        allow_duplicates : bool, optional
+        value : Scalar, Series, or array-like
+        allow_duplicates : bool, optional default False
 
         See Also
         --------
@@ -4629,7 +4642,7 @@ class DataFrame(NDFrame, OpsMixin):
             "You can use DataFrame.melt and DataFrame.loc "
             "as a substitute."
         )
-        warnings.warn(msg, FutureWarning, stacklevel=2)
+        warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
 
         n = len(row_labels)
         if n != len(col_labels):
@@ -5350,7 +5363,6 @@ class DataFrame(NDFrame, OpsMixin):
     ):
         """
         Dispatch to Series.replace column-wise.
-
 
         Parameters
         ----------
@@ -6633,7 +6645,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         return counts
 
-    def nlargest(self, n, columns, keep: str = "first") -> DataFrame:
+    def nlargest(self, n: int, columns: IndexLabel, keep: str = "first") -> DataFrame:
         """
         Return the first `n` rows ordered by `columns` in descending order.
 
@@ -6740,7 +6752,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         return algorithms.SelectNFrame(self, n=n, keep=keep, columns=columns).nlargest()
 
-    def nsmallest(self, n, columns, keep: str = "first") -> DataFrame:
+    def nsmallest(self, n: int, columns: IndexLabel, keep: str = "first") -> DataFrame:
         """
         Return the first `n` rows ordered by `columns` in ascending order.
 
@@ -7747,7 +7759,7 @@ NaN 12.3   33.0
                     "will be removed in a future version."
                 ),
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
         else:
             squeeze = False
@@ -8868,7 +8880,7 @@ NaN 12.3   33.0
             args=args,
             kwargs=kwargs,
         )
-        return op.apply()
+        return op.apply().__finalize__(self, method="apply")
 
     def applymap(
         self, func: PythonFuncType, na_action: str | None = None, **kwargs
@@ -9080,6 +9092,8 @@ NaN 12.3   33.0
                 pass
             elif not isinstance(other[0], DataFrame):
                 other = DataFrame(other)
+                if self.index.name is not None and not ignore_index:
+                    other.index.name = self.index.name
 
         from pandas.core.reshape.concat import concat
 
@@ -9145,6 +9159,11 @@ NaN 12.3   33.0
             * inner: form intersection of calling frame's index (or column if
               on is specified) with `other`'s index, preserving the order
               of the calling's one.
+            * cross: creates the cartesian product from both frames, preserves the order
+              of the left keys.
+
+              .. versionadded:: 1.2.0
+
         lsuffix : str, default ''
             Suffix to use from left frame's overlapping columns.
         rsuffix : str, default ''
@@ -9835,7 +9854,7 @@ NaN 12.3   33.0
                 "deprecated and will be removed in a future version. Use groupby "
                 "instead. df.count(level=1) should use df.groupby(level=1).count().",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
             return self._count_level(level, axis=axis, numeric_only=numeric_only)
 
@@ -9935,7 +9954,7 @@ NaN 12.3   33.0
                     "will include datetime64 and datetime64tz columns in a "
                     "future version.",
                     FutureWarning,
-                    stacklevel=5,
+                    stacklevel=find_stack_level(),
                 )
                 # Non-copy equivalent to
                 #  dt64_cols = self.dtypes.apply(is_datetime64_any_dtype)
@@ -10010,7 +10029,7 @@ NaN 12.3   33.0
                     "version this will raise TypeError.  Select only valid "
                     "columns before calling the reduction.",
                     FutureWarning,
-                    stacklevel=5,
+                    stacklevel=find_stack_level(),
                 )
 
             return out
@@ -10043,7 +10062,7 @@ NaN 12.3   33.0
                 "version this will raise TypeError.  Select only valid "
                 "columns before calling the reduction.",
                 FutureWarning,
-                stacklevel=5,
+                stacklevel=find_stack_level(),
             )
 
         if hasattr(result, "dtype"):
@@ -10707,7 +10726,6 @@ NaN 12.3   33.0
         1: 1,
         "columns": 1,
     }
-    _AXIS_REVERSED = True
     _AXIS_LEN = len(_AXIS_ORDERS)
     _info_axis_number = 1
     _info_axis_name = "columns"
@@ -10832,7 +10850,7 @@ NaN 12.3   33.0
                ['monkey', nan, None]], dtype=object)
         """
         self._consolidate_inplace()
-        return self._mgr.as_array(transpose=True)
+        return self._mgr.as_array()
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def ffill(
@@ -10901,7 +10919,7 @@ NaN 12.3   33.0
         inplace=False,
         axis=None,
         level=None,
-        errors="raise",
+        errors=lib.no_default,
         try_cast=lib.no_default,
     ):
         return super().where(cond, other, inplace, axis, level, errors, try_cast)
@@ -10916,7 +10934,7 @@ NaN 12.3   33.0
         inplace=False,
         axis=None,
         level=None,
-        errors="raise",
+        errors=lib.no_default,
         try_cast=lib.no_default,
     ):
         return super().mask(cond, other, inplace, axis, level, errors, try_cast)

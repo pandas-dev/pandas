@@ -178,6 +178,15 @@ class TestRangeIndex(NumericBase):
         result = idx.delete(1)
         tm.assert_index_equal(result, expected, exact=True)
 
+    def test_delete_preserves_rangeindex_middle(self):
+        idx = Index(range(3), name="foo")
+        result = idx.delete(1)
+        expected = idx[::2]
+        tm.assert_index_equal(result, expected, exact=True)
+
+        result = idx.delete(-2)
+        tm.assert_index_equal(result, expected, exact=True)
+
     def test_delete_preserves_rangeindex_list_at_end(self):
         idx = RangeIndex(0, 6, 1)
 
@@ -195,10 +204,10 @@ class TestRangeIndex(NumericBase):
         loc = [1, 2, 3, 4]
         result = idx.delete(loc)
         expected = RangeIndex(0, 6, 5)
-        tm.assert_index_equal(result, expected, exact="equiv")  # TODO: retain!
+        tm.assert_index_equal(result, expected, exact=True)
 
         result = idx.delete(loc[::-1])
-        tm.assert_index_equal(result, expected, exact="equiv")  # TODO: retain!
+        tm.assert_index_equal(result, expected, exact=True)
 
     def test_delete_all_preserves_rangeindex(self):
         idx = RangeIndex(0, 6, 1)
@@ -607,3 +616,11 @@ class TestRangeIndex(NumericBase):
         result = base.isin(values)
         expected = np.array([True, False])
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_sort_values_key(self):
+        # GH#43666
+        sort_order = {8: 2, 6: 0, 4: 8, 2: 10, 0: 12}
+        values = RangeIndex(0, 10, 2)
+        result = values.sort_values(key=lambda x: x.map(sort_order))
+        expected = Index([4, 8, 6, 0, 2], dtype="int64")
+        tm.assert_index_equal(result, expected, check_exact=True)
