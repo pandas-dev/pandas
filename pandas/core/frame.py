@@ -1106,7 +1106,7 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         buf: FilePathOrBuffer[str] | None = None,
         columns: Sequence[str] | None = None,
-        col_space: int | None = None,
+        col_space: int | list[int] | dict[Hashable, int] | None = None,
         header: bool | Sequence[str] = True,
         index: bool = True,
         na_rep: str = "NaN",
