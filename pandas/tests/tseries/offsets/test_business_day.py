@@ -15,6 +15,7 @@ from pandas._libs.tslibs.offsets import (
     BDay,
     BMonthEnd,
 )
+from pandas.compat import np_datetime64_compat
 
 from pandas import (
     DatetimeIndex,
@@ -36,6 +37,7 @@ class TestBusinessDay(Base):
 
     def setup_method(self, method):
         self.d = datetime(2008, 1, 1)
+        self.nd = np_datetime64_compat("2008-01-01 00:00:00Z")
 
         self.offset = BDay()
         self.offset1 = self.offset
@@ -98,21 +100,24 @@ class TestBusinessDay(Base):
         with tm.assert_produces_warning(FutureWarning):
             # GH#34171 DateOffset.__call__ is deprecated
             assert self.offset2(self.d) == datetime(2008, 1, 3)
+            assert self.offset2(self.nd) == datetime(2008, 1, 3)
 
     def testRollback1(self):
-        assert BDay(10).rollback(self.d) == self.d
+        assert self._offset(10).rollback(self.d) == self.d
 
     def testRollback2(self):
-        assert BDay(10).rollback(datetime(2008, 1, 5)) == datetime(2008, 1, 4)
+        assert self._offset(10).rollback(datetime(2008, 1, 5)) == datetime(2008, 1, 4)
 
     def testRollforward1(self):
-        assert BDay(10).rollforward(self.d) == self.d
+        assert self._offset(10).rollforward(self.d) == self.d
 
     def testRollforward2(self):
-        assert BDay(10).rollforward(datetime(2008, 1, 5)) == datetime(2008, 1, 7)
+        assert self._offset(10).rollforward(datetime(2008, 1, 5)) == datetime(
+            2008, 1, 7
+        )
 
     def test_roll_date_object(self):
-        offset = BDay()
+        offset = self._offset()
 
         dt = date(2012, 9, 15)
 
@@ -131,8 +136,8 @@ class TestBusinessDay(Base):
 
     def test_is_on_offset(self):
         tests = [
-            (BDay(), datetime(2008, 1, 1), True),
-            (BDay(), datetime(2008, 1, 5), False),
+            (self._offset(), datetime(2008, 1, 1), True),
+            (self._offset(), datetime(2008, 1, 5), False),
         ]
 
         for offset, d, expected in tests:
@@ -140,7 +145,7 @@ class TestBusinessDay(Base):
 
     apply_cases: _ApplyCases = [
         (
-            BDay(),
+            1,
             {
                 datetime(2008, 1, 1): datetime(2008, 1, 2),
                 datetime(2008, 1, 4): datetime(2008, 1, 7),
@@ -150,7 +155,7 @@ class TestBusinessDay(Base):
             },
         ),
         (
-            2 * BDay(),
+            2,
             {
                 datetime(2008, 1, 1): datetime(2008, 1, 3),
                 datetime(2008, 1, 4): datetime(2008, 1, 8),
@@ -160,7 +165,7 @@ class TestBusinessDay(Base):
             },
         ),
         (
-            -BDay(),
+            -1,
             {
                 datetime(2008, 1, 1): datetime(2007, 12, 31),
                 datetime(2008, 1, 4): datetime(2008, 1, 3),
@@ -171,7 +176,7 @@ class TestBusinessDay(Base):
             },
         ),
         (
-            -2 * BDay(),
+            -2,
             {
                 datetime(2008, 1, 1): datetime(2007, 12, 28),
                 datetime(2008, 1, 4): datetime(2008, 1, 2),
@@ -183,7 +188,7 @@ class TestBusinessDay(Base):
             },
         ),
         (
-            BDay(0),
+            0,
             {
                 datetime(2008, 1, 1): datetime(2008, 1, 1),
                 datetime(2008, 1, 4): datetime(2008, 1, 4),
@@ -196,20 +201,21 @@ class TestBusinessDay(Base):
 
     @pytest.mark.parametrize("case", apply_cases)
     def test_apply(self, case):
-        offset, cases = case
+        n, cases = case
+        offset = self._offset(n)
         for base, expected in cases.items():
             assert_offset_equal(offset, base, expected)
 
     def test_apply_large_n(self):
         dt = datetime(2012, 10, 23)
 
-        result = dt + BDay(10)
+        result = dt + self._offset(10)
         assert result == datetime(2012, 11, 6)
 
-        result = dt + BDay(100) - BDay(100)
+        result = dt + self._offset(100) - self._offset(100)
         assert result == dt
 
-        off = BDay() * 6
+        off = self._offset() * 6
         rs = datetime(2012, 1, 1) - off
         xp = datetime(2011, 12, 23)
         assert rs == xp
@@ -219,12 +225,18 @@ class TestBusinessDay(Base):
         xp = datetime(2011, 12, 26)
         assert rs == xp
 
-        off = BDay() * 10
+        off = self._offset() * 10
         rs = datetime(2014, 1, 5) + off  # see #5890
         xp = datetime(2014, 1, 17)
         assert rs == xp
 
     def test_apply_corner(self):
-        msg = "Only know how to combine business day with datetime or timedelta"
+        if self._offset is BDay:
+            msg = "Only know how to combine business day with datetime or timedelta"
+        else:
+            msg = (
+                "Only know how to combine trading day "
+                "with datetime, datetime64 or timedelta"
+            )
         with pytest.raises(ApplyTypeError, match=msg):
-            BDay().apply(BMonthEnd())
+            self._offset().apply(BMonthEnd())
