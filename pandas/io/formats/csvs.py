@@ -58,7 +58,7 @@ class CSVFormatter:
         errors: str = "strict",
         compression: CompressionOptions = "infer",
         quoting: int | None = None,
-        line_terminator="\n",
+        line_terminator: str | None = "\n",
         chunksize: int | None = None,
         quotechar: str | None = '"',
         date_format: str | None = None,

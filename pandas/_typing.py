@@ -170,9 +170,9 @@ AnyStr_con = TypeVar("AnyStr_con", str, bytes, contravariant=True)
 
 
 class BaseBuffer(Protocol):
-    # for _get_filepath_or_buffer
     @property
     def mode(self) -> str:
+        # for _get_filepath_or_buffer
         ...
 
     def fileno(self) -> int:

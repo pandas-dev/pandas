@@ -35,8 +35,9 @@ def to_pickle(
     ----------
     obj : any object
         Any python object.
-    filepath_or_buffer : str, path object or file-like object
-        File path, URL, or buffer where the pickled object will be stored.
+    filepath_or_buffer : str, path object, or file-like object
+        String, path object (implementing ``os.PathLike[str]``), or file-like
+        object implementing a binary ``write()`` function.
 
         .. versionchanged:: 1.0.0
            Accept URL. URL has to be of S3 or GCS.
@@ -129,8 +130,9 @@ def read_pickle(
 
     Parameters
     ----------
-    filepath_or_buffer : str, path object or file-like object
-        File path, URL, or buffer where the pickled object will be loaded from.
+    filepath_or_buffer : str, path object, or file-like object
+        String, path object (implementing ``os.PathLike[str]``), or file-like
+        object implementing a binary ``readlines()`` function.
 
         .. versionchanged:: 1.0.0
            Accept URL. URL is not limited to S3 and GCS.

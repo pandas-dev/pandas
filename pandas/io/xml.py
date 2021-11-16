@@ -749,8 +749,10 @@ def read_xml(
     Parameters
     ----------
     path_or_buffer : str, path object, or file-like object
-        Any valid XML string or path is acceptable. The string could be a URL.
-        Valid URL schemes include http, ftp, s3, and file.
+        String, path object (implementing ``os.PathLike[str]``), or file-like
+        object implementing a ``read()`` function. The string can be any valid XML
+        string or a path. The string can further be a URL. Valid URL schemes
+        include http, ftp, s3, and file.
 
     xpath : str, optional, default './\*'
         The XPath to parse required set of nodes for migration to DataFrame.

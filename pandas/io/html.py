@@ -130,7 +130,7 @@ def _read(
 
     Parameters
     ----------
-    obj : str, unicode, or file-like
+    obj : str, unicode, path object, or file-like object
 
     Returns
     -------
@@ -969,8 +969,10 @@ def read_html(
 
     Parameters
     ----------
-    io : str, path object or file-like object
-        A URL, a file-like object, or a raw string containing HTML. Note that
+    io : str, path object, or file-like object
+        String, path object (implementing ``os.PathLike[str]``), or file-like
+        object implementing a string ``read()`` function.
+        The string can represent a URL or the HTML itself. Note that
         lxml only accepts the http, ftp and file url protocols. If you have a
         URL that starts with ``'https'`` you might try removing the ``'s'``.
 
