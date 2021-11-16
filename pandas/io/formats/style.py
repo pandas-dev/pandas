@@ -3045,7 +3045,6 @@ class Styler(StylerRenderer):
         inclusive : {'both', 'neither', 'left', 'right'}
             Identify whether bounds are closed or open.
         %(props)s
-
         Returns
         -------
         self : Styler
@@ -3154,7 +3153,6 @@ class Styler(StylerRenderer):
         inclusive : {'both', 'neither', 'left', 'right'}
             Identify whether quantile bounds are closed or open.
         %(props)s
-
         Returns
         -------
         self : Styler
