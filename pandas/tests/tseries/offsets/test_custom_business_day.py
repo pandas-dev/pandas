@@ -10,7 +10,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.offsets import CDay
-from pandas.compat import np_datetime64_compat
 
 from pandas import (
     _testing as tm,
@@ -24,14 +23,6 @@ from pandas.tseries.holiday import USFederalHolidayCalendar
 
 class TestCustomBusinessDay(TestBusinessDay):
     _offset = CDay
-
-    def setup_method(self, method):
-        self.d = datetime(2008, 1, 1)
-        self.nd = np_datetime64_compat("2008-01-01 00:00:00Z")
-
-        self.offset = CDay()
-        self.offset1 = self.offset
-        self.offset2 = CDay(2)
 
     def test_repr(self):
         assert repr(self.offset) == "<CustomBusinessDay>"

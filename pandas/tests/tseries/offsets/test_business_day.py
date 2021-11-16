@@ -39,9 +39,9 @@ class TestBusinessDay(Base):
         self.d = datetime(2008, 1, 1)
         self.nd = np_datetime64_compat("2008-01-01 00:00:00Z")
 
-        self.offset = BDay()
+        self.offset = self._offset()
         self.offset1 = self.offset
-        self.offset2 = BDay(2)
+        self.offset2 = self._offset(2)
 
     def test_different_normalize_equals(self):
         # GH#21404 changed __eq__ to return False when `normalize` does not match
