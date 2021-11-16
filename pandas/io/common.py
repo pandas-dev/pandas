@@ -23,8 +23,11 @@ from typing import (
     IO,
     Any,
     AnyStr,
+    Generic,
+    Literal,
     Mapping,
     cast,
+    overload,
 )
 from urllib.parse import (
     urljoin,
@@ -49,6 +52,7 @@ from pandas.compat import (
     import_lzma,
 )
 from pandas.compat._optional import import_optional_dependency
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_file_like
 
@@ -77,7 +81,7 @@ class IOArgs:
 
 
 @dataclasses.dataclass
-class IOHandles:
+class IOHandles(Generic[AnyStr]):
     """
     Return value of io/common.py:get_handle
 
@@ -91,7 +95,7 @@ class IOHandles:
     is_wrapped: Whether a TextIOWrapper needs to be detached.
     """
 
-    handle: Buffer
+    handle: Buffer[AnyStr]
     compression: CompressionDict
     created_handles: list[Buffer] = dataclasses.field(default_factory=list)
     is_wrapped: bool = False
@@ -117,7 +121,7 @@ class IOHandles:
         self.created_handles = []
         self.is_wrapped = False
 
-    def __enter__(self) -> IOHandles:
+    def __enter__(self) -> IOHandles[AnyStr]:
         return self
 
     def __exit__(self, *args: Any) -> None:
@@ -270,7 +274,7 @@ def _get_filepath_or_buffer(
         warnings.warn(
             "compression has no effect when passing a non-binary object as input.",
             RuntimeWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         compression_method = None
 
@@ -532,16 +536,47 @@ def check_parent_directory(path: Path | str) -> None:
         raise OSError(fr"Cannot save file into a non-existent directory: '{parent}'")
 
 
+@overload
 def get_handle(
     path_or_buf: FilePathOrBuffer,
     mode: str,
+    *,
+    encoding: str | None = ...,
+    compression: CompressionOptions = ...,
+    memory_map: bool = ...,
+    is_text: Literal[False],
+    errors: str | None = ...,
+    storage_options: StorageOptions = ...,
+) -> IOHandles[bytes]:
+    ...
+
+
+@overload
+def get_handle(
+    path_or_buf: FilePathOrBuffer,
+    mode: str,
+    *,
+    encoding: str | None = ...,
+    compression: CompressionOptions = ...,
+    memory_map: bool = ...,
+    is_text: Literal[True] = ...,
+    errors: str | None = ...,
+    storage_options: StorageOptions = ...,
+) -> IOHandles[str]:
+    ...
+
+
+def get_handle(
+    path_or_buf: FilePathOrBuffer,
+    mode: str,
+    *,
     encoding: str | None = None,
     compression: CompressionOptions = None,
     memory_map: bool = False,
     is_text: bool = True,
     errors: str | None = None,
     storage_options: StorageOptions = None,
-) -> IOHandles:
+) -> IOHandles[str] | IOHandles[bytes]:
     """
     Get file handle for given path/buffer and mode.
 
