@@ -730,11 +730,8 @@ class IntervalIndex(ExtensionIndex):
                 elif lib.is_integer(locs):
                     locs = np.array(locs, ndmin=1)
                 else:
-                    # FIXME: This is wrong; its boolean; not reached
-                    # error: Item "int" of "Union[int, ndarray[Any, Any]]"
-                    #  has no attribute "dtype"
-                    assert locs.dtype.kind == "i"  # type: ignore[union-attr]
-
+                    # otherwise we have ndarray[bool]
+                    locs = np.where(locs)[0]
             except KeyError:
                 missing.append(i)
                 locs = np.array([-1])

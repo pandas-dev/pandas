@@ -293,5 +293,5 @@ def test_value_counts_with_nan(dropna, index_or_series):
     if dropna is True:
         expected = Series([1], index=[True])
     else:
-        expected = Series([2, 1], index=[pd.NA, True])
+        expected = Series([1, 1, 1], index=[True, pd.NA, np.nan])
     tm.assert_series_equal(res, expected)

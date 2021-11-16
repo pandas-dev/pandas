@@ -520,8 +520,6 @@ indices_dict = {
     "mi-with-dt64tz-level": _create_mi_with_dt64tz_level(),
     "multi": _create_multiindex(),
     "repeats": Index([0, 0, 1, 1, 2, 2]),
-    # TODO: make sure we have cases that also have NA values
-    #  (not allowed in this fixture)
     "nullable_int": Index(np.arange(100), dtype="Int64"),
     "nullable_uint": Index(np.arange(100), dtype="UInt16"),
     "nullable_float": Index(np.arange(100), dtype="Float32"),
