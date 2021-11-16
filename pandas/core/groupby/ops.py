@@ -859,8 +859,14 @@ class BaseGrouper:
     def reconstructed_codes(self) -> list[np.ndarray]:
         codes = self.codes
         ids, obs_ids, _ = self.group_info
+        # get the levels in which to reconstruct codes for na
+        levels_with_na = [
+            idx
+            for idx, grouping in enumerate(self.groupings)
+            if grouping._has_na_placeholder
+        ]
         reconstructed_codes = decons_obs_group_ids(
-            ids, obs_ids, self.shape, codes, xnull=True, groupings=self._groupings
+            ids, obs_ids, self.shape, codes, xnull=True, levels_with_na=levels_with_na
         )
         return reconstructed_codes
 

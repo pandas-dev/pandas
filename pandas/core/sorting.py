@@ -249,7 +249,7 @@ def decons_obs_group_ids(
     shape,
     labels,
     xnull: bool,
-    groupings: list[Grouping] = None,
+    levels_with_na: list[int] = None,
 ):
     """
     Reconstruct labels from observed group ids.
@@ -261,19 +261,19 @@ def decons_obs_group_ids(
         If nulls are excluded; i.e. -1 labels are passed through.
     """
 
-    def transform_codes(code_level, grouping):
-        if grouping._has_na_placeholder:
-            return np.where(code_level == max(code_level), -1, code_level)
-        else:
-            return code_level
-
     def reconstruct_na_in_codes(codes):
-        if groupings:
-            codes = [
-                transform_codes(code_level, grouping)
-                for code_level, grouping in zip(codes, groupings)
-            ]
-        return codes
+        new_codes = []
+        if levels_with_na:
+            for idx, code_level in enumerate(codes):
+                if idx in levels_with_na:
+                    new_codes.append(
+                        np.where(code_level == max(code_level), -1, code_level)
+                    )
+                else:
+                    new_codes.append(code_level)
+        else:
+            new_codes = codes
+        return new_codes
 
     if not xnull:
         lift = np.fromiter(((a == -1).any() for a in labels), dtype="i8")
