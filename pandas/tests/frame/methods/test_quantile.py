@@ -566,7 +566,7 @@ class TestDataFrameMultiQuantile:
     def test_quantile_sparse(self, df, expected):
         # GH#17198
         # GH#24600
-        result = df.quantiles()
+        result = df.quantile(interpolation="nearest", method="table")
 
         tm.assert_series_equal(result, expected)
 
@@ -574,14 +574,14 @@ class TestDataFrameMultiQuantile:
         from numpy import percentile
 
         df = datetime_frame
-        q = df.quantiles(0.1, axis=0)
+        q = df.quantile(0.1, axis=0, interpolation="nearest", method="table")
         assert (
             q["A"]
             == percentile(df.to_records(index=False), 10, interpolation="nearest")[0]
         )
         tm.assert_index_equal(q.index, df.columns)
 
-        q = df.quantiles(0.9, axis=1)
+        q = df.quantile(0.9, axis=1, interpolation="nearest", method="table")
         assert (
             q["2000-01-03"]
             == percentile(df.T.to_records(index=False), 90, interpolation="nearest")[0]
@@ -589,12 +589,14 @@ class TestDataFrameMultiQuantile:
         tm.assert_index_equal(q.index, df.index)
 
         # test degenerate case
-        q = DataFrame({"x": [], "y": []}).quantiles(0.1, axis=0)
+        q = DataFrame({"x": [], "y": []}).quantile(
+            0.1, axis=0, interpolation="nearest", method="table"
+        )
         assert np.isnan(q["x"]) and np.isnan(q["y"])
 
         # non-numeric exclusion
         df = DataFrame({"col1": ["A", "A", "B", "B"], "col2": [1, 2, 3, 4]})
-        rs = df.quantiles(0.5, interpolation="lower")
+        rs = df.quantile(0.5, interpolation="lower", method="table")
         with tm.assert_produces_warning(FutureWarning, match="Select only valid"):
             xp = df.median().astype(int).rename(0.5)
         tm.assert_series_equal(rs, xp)
@@ -603,11 +605,13 @@ class TestDataFrameMultiQuantile:
         df = DataFrame(
             {"A": [1, 2, 3], "B": [2, 3, 4], "C": [4, 5, 6]}, index=[1, 2, 3]
         )
-        result = df.quantiles(0.5, axis=1)
+        result = df.quantile(0.5, axis=1, interpolation="nearest", method="table")
         expected = Series([2, 3, 4], index=[1, 2, 3], name=0.5)
         tm.assert_series_equal(result, expected)
 
-        result = df.quantiles([0.5, 0.75], axis=1)
+        result = df.quantile(
+            [0.5, 0.75], axis=1, interpolation="nearest", method="table"
+        )
         expected = DataFrame({1: [2, 4], 2: [3, 5], 3: [4, 6]}, index=[0.5, 0.75])
         tm.assert_frame_equal(result, expected, check_index_type=True)
 
@@ -615,7 +619,7 @@ class TestDataFrameMultiQuantile:
         # so that we exclude non-numeric along the same axis
         # See GH #7312
         df = DataFrame([[1, 2, 3], ["a", "b", 4]])
-        result = df.quantiles(0.5, axis=1)
+        result = df.quantile(0.5, axis=1, interpolation="nearest", method="table")
         expected = Series([3, 4], index=[0, 1], name=0.5)
         tm.assert_series_equal(result, expected)
 
@@ -626,7 +630,9 @@ class TestDataFrameMultiQuantile:
         ser = Series(dti)
         df = DataFrame(ser)
 
-        result = df.quantiles(numeric_only=False)
+        result = df.quantile(
+            numeric_only=False, interpolation="nearest", method="table"
+        )
         expected = Series(["2016-01-02"], name=0.5, dtype="datetime64[ns, US/Pacific]")
 
         tm.assert_series_equal(result, expected)
@@ -642,49 +648,55 @@ class TestDataFrameMultiQuantile:
                 "D": ["foo", "bar", "baz"],
             }
         )
-        result = df.quantiles(0.5, axis=1)
+        result = df.quantile(0.5, axis=1, interpolation="nearest", method="table")
         expected = Series([1.0, 2.0, 3.0], name=0.5)
         tm.assert_series_equal(result, expected)
 
         # must raise
         msg = "'values' is not ordered"
         with pytest.raises(TypeError, match=msg):
-            df.quantiles(0.5, axis=1, numeric_only=False)
+            df.quantile(
+                0.5, axis=1, numeric_only=False, interpolation="nearest", method="table"
+            )
 
     def test_quantile_axis_parameter(self):
         # GH 9543/9544
 
         df = DataFrame({"A": [1, 2, 3], "B": [2, 3, 4]}, index=[1, 2, 3])
 
-        result = df.quantiles(0.5, axis=0)
+        result = df.quantile(0.5, axis=0, interpolation="nearest", method="table")
 
         expected = Series([2, 3], index=["A", "B"], name=0.5)
         tm.assert_series_equal(result, expected)
 
-        expected = df.quantiles(0.5, axis="index")
+        expected = df.quantile(
+            0.5, axis="index", interpolation="nearest", method="table"
+        )
         tm.assert_series_equal(result, expected)
 
-        result = df.quantiles(0.5, axis=1)
+        result = df.quantile(0.5, axis=1, interpolation="nearest", method="table")
 
         expected = Series([1, 2, 3], index=[1, 2, 3], name=0.5)
         tm.assert_series_equal(result, expected)
 
-        result = df.quantiles(0.5, axis="columns")
+        result = df.quantile(
+            0.5, axis="columns", interpolation="nearest", method="table"
+        )
         tm.assert_series_equal(result, expected)
 
         msg = "No axis named -1 for object type DataFrame"
         with pytest.raises(ValueError, match=msg):
-            df.quantiles(0.1, axis=-1)
+            df.quantile(0.1, axis=-1, interpolation="nearest", method="table")
         msg = "No axis named column for object type DataFrame"
         with pytest.raises(ValueError, match=msg):
-            df.quantiles(0.1, axis="column")
+            df.quantile(0.1, axis="column", interpolation="nearest", method="table")
 
     def test_quantile_interpolation(self):
         # see gh-10174
 
         # interpolation method other than default nearest
         df = DataFrame({"A": [1, 2, 3], "B": [2, 3, 4]}, index=[1, 2, 3])
-        result = df.quantiles(0.5, axis=1, interpolation="higher")
+        result = df.quantile(0.5, axis=1, interpolation="higher", method="table")
         expected = Series([2, 3, 4], index=[1, 2, 3], name=0.5)
         tm.assert_series_equal(result, expected)
 
@@ -697,7 +709,7 @@ class TestDataFrameMultiQuantile:
 
         # float
         df = DataFrame({"A": [1.0, 2.0, 3.0], "B": [2.0, 3.0, 4.0]}, index=[1, 2, 3])
-        result = df.quantiles(0.5, axis=1, interpolation="higher")
+        result = df.quantile(0.5, axis=1, interpolation="higher", method="table")
         expected = Series([2.0, 3.0, 4.0], index=[1, 2, 3], name=0.5)
         tm.assert_series_equal(result, expected)
         exp = np.percentile(
@@ -710,7 +722,7 @@ class TestDataFrameMultiQuantile:
         tm.assert_series_equal(result, expected)
 
         # axis
-        result = df.quantiles([0.5, 0.75], axis=1, interpolation="lower")
+        result = df.quantile([0.5, 0.75], axis=1, interpolation="lower", method="table")
         expected = DataFrame(
             {1: [1.0, 1.0], 2: [2.0, 2.0], 3: [3.0, 3.0]}, index=[0.5, 0.75]
         )
@@ -718,12 +730,12 @@ class TestDataFrameMultiQuantile:
 
         # test degenerate case
         df = DataFrame({"x": [], "y": []})
-        q = df.quantiles(0.1, axis=0, interpolation="higher")
+        q = df.quantile(0.1, axis=0, interpolation="higher", method="table")
         assert np.isnan(q["x"]) and np.isnan(q["y"])
 
         # multi
         df = DataFrame([[1, 1, 1], [2, 2, 2], [3, 3, 3]], columns=["a", "b", "c"])
-        result = df.quantiles([0.25, 0.5], interpolation="lower")
+        result = df.quantile([0.25, 0.5], interpolation="lower", method="table")
 
         # https://github.com/numpy/numpy/issues/7163
         expected = DataFrame(
@@ -738,7 +750,7 @@ class TestDataFrameMultiQuantile:
 
         # interpolation = nearest (default case)
         df = datetime_frame
-        q = df.quantiles(0.1, axis=0)
+        q = df.quantile(0.1, axis=0, interpolation="nearest", method="table")
         assert (
             q["A"]
             == np.percentile(df.to_records(index=False), 10, interpolation="nearest")[0]
@@ -749,14 +761,14 @@ class TestDataFrameMultiQuantile:
 
         df = int_frame
         # interpolation = nearest (default case)
-        q = df.quantiles(0.1)
+        q = df.quantile(0.1, interpolation="nearest", method="table")
         assert (
             q["A"]
             == np.percentile(df.to_records(index=False), 10, interpolation="nearest")[0]
         )
 
         # test with and without interpolation keyword
-        q1 = df.quantiles(0.1, axis=0, interpolation="nearest")
+        q1 = df.quantile(0.1, axis=0, interpolation="nearest", method="table")
         assert (
             q1["A"]
             == np.percentile(df.to_records(index=False), 10, interpolation="nearest")[0]
@@ -765,7 +777,7 @@ class TestDataFrameMultiQuantile:
 
     def test_quantile_multi(self):
         df = DataFrame([[1, 1, 1], [2, 2, 2], [3, 3, 3]], columns=["a", "b", "c"])
-        result = df.quantiles([0.25, 0.5])
+        result = df.quantile([0.25, 0.5], interpolation="nearest", method="table")
         expected = DataFrame(
             [[1, 1, 1], [2, 2, 2]],
             index=[0.25, 0.5],
@@ -774,14 +786,18 @@ class TestDataFrameMultiQuantile:
         tm.assert_frame_equal(result, expected)
 
         # axis = 1
-        result = df.quantiles([0.25, 0.5], axis=1)
+        result = df.quantile(
+            [0.25, 0.5], axis=1, interpolation="nearest", method="table"
+        )
         expected = DataFrame(
             [[1, 2, 3], [1, 2, 3]], index=[0.25, 0.5], columns=[0, 1, 2]
         )
         tm.assert_frame_equal(result, expected)
 
         # empty
-        result = DataFrame({"x": [], "y": []}).quantiles([0.1, 0.9], axis=0)
+        result = DataFrame({"x": [], "y": []}).quantile(
+            [0.1, 0.9], axis=0, interpolation="nearest", method="table"
+        )
         expected = DataFrame(
             {"x": [np.nan, np.nan], "y": [np.nan, np.nan]}, index=[0.1, 0.9]
         )
@@ -791,17 +807,21 @@ class TestDataFrameMultiQuantile:
         df = DataFrame({"a": pd.to_datetime(["2010", "2011"]), "b": [0, 5]})
 
         # exclude datetime
-        result = df.quantiles(0.5)
+        result = df.quantile(0.5, interpolation="nearest", method="table")
         expected = Series([0], index=["b"], name=0.5)
         tm.assert_series_equal(result, expected)
 
         # datetime
-        result = df.quantiles(0.5, numeric_only=False)
+        result = df.quantile(
+            0.5, numeric_only=False, interpolation="nearest", method="table"
+        )
         expected = Series([Timestamp("2010-01-01"), 0], index=["a", "b"], name=0.5)
         tm.assert_series_equal(result, expected)
 
         # datetime w/ multi
-        result = df.quantiles([0.5], numeric_only=False)
+        result = df.quantile(
+            [0.5], numeric_only=False, interpolation="nearest", method="table"
+        )
         expected = DataFrame(
             [[Timestamp("2010-01-01"), 0]], index=[0.5], columns=["a", "b"]
         )
@@ -809,7 +829,9 @@ class TestDataFrameMultiQuantile:
 
         # axis = 1
         df["c"] = pd.to_datetime(["2011", "2012"])
-        result = df[["a", "c"]].quantiles(0.5, axis=1, numeric_only=False)
+        result = df[["a", "c"]].quantile(
+            0.5, axis=1, numeric_only=False, interpolation="nearest", method="table"
+        )
         expected = Series(
             [Timestamp("2010-01-01"), Timestamp("2011-01-01")],
             index=[0, 1],
@@ -817,7 +839,9 @@ class TestDataFrameMultiQuantile:
         )
         tm.assert_series_equal(result, expected)
 
-        result = df[["a", "c"]].quantiles([0.5], axis=1, numeric_only=False)
+        result = df[["a", "c"]].quantile(
+            [0.5], axis=1, numeric_only=False, interpolation="nearest", method="table"
+        )
         expected = DataFrame(
             [[Timestamp("2010-01-01"), Timestamp("2011-01-01")]],
             index=[0.5],
@@ -826,11 +850,11 @@ class TestDataFrameMultiQuantile:
         tm.assert_frame_equal(result, expected)
 
         # empty when numeric_only=True
-        result = df[["a", "c"]].quantiles(0.5)
+        result = df[["a", "c"]].quantile(0.5, interpolation="nearest", method="table")
         expected = Series([], index=[], name=0.5)
         tm.assert_series_equal(result, expected)
 
-        result = df[["a", "c"]].quantiles([0.5])
+        result = df[["a", "c"]].quantile([0.5], interpolation="nearest", method="table")
         expected = DataFrame([], index=[0.5])
         tm.assert_frame_equal(result, expected)
 
@@ -838,7 +862,9 @@ class TestDataFrameMultiQuantile:
         msg = "percentiles should all be in the interval \\[0, 1\\]"
         for invalid in [-1, 2, [0.5, -1], [0.5, 2]]:
             with pytest.raises(ValueError, match=msg):
-                datetime_frame.quantiles(invalid)
+                datetime_frame.quantile(
+                    invalid, interpolation="nearest", method="table"
+                )
 
     def test_quantile_box(self):
         df = DataFrame(
@@ -861,7 +887,9 @@ class TestDataFrameMultiQuantile:
             }
         )
 
-        res = df.quantiles(0.5, numeric_only=False)
+        res = df.quantile(
+            0.5, numeric_only=False, interpolation="nearest", method="table"
+        )
 
         exp = Series(
             [
@@ -874,7 +902,9 @@ class TestDataFrameMultiQuantile:
         )
         tm.assert_series_equal(res, exp)
 
-        res = df.quantiles([0.5], numeric_only=False)
+        res = df.quantile(
+            [0.5], numeric_only=False, interpolation="nearest", method="table"
+        )
         exp = DataFrame(
             [
                 [
@@ -931,7 +961,9 @@ class TestDataFrameMultiQuantile:
             columns=list("AaBbCc"),
         )
 
-        res = df.quantiles(0.5, numeric_only=False)
+        res = df.quantile(
+            0.5, numeric_only=False, interpolation="nearest", method="table"
+        )
         exp = Series(
             [
                 Timestamp("2011-01-03"),
@@ -946,7 +978,9 @@ class TestDataFrameMultiQuantile:
         )
         tm.assert_series_equal(res, exp)
 
-        res = df.quantiles([0.5], numeric_only=False)
+        res = df.quantile(
+            [0.5], numeric_only=False, interpolation="nearest", method="table"
+        )
         exp = DataFrame(
             [
                 [
@@ -969,19 +1003,19 @@ class TestDataFrameMultiQuantile:
         df = DataFrame({"a": np.arange(1, 6.0), "b": np.arange(1, 6.0)})
         df.iloc[-1, 1] = np.nan
 
-        res = df.quantiles(0.5)
+        res = df.quantile(0.5, interpolation="nearest", method="table")
         exp = Series([3.0, 3.0], index=["a", "b"], name=0.5)
         tm.assert_series_equal(res, exp)
 
-        res = df.quantiles([0.5, 0.75])
+        res = df.quantile([0.5, 0.75], interpolation="nearest", method="table")
         exp = DataFrame({"a": [3.0, 4.0], "b": [3.0, 4.0]}, index=[0.5, 0.75])
         tm.assert_frame_equal(res, exp)
 
-        res = df.quantiles(0.5, axis=1)
+        res = df.quantile(0.5, axis=1, interpolation="nearest", method="table")
         exp = Series(np.arange(1.0, 6.0), name=0.5)
         tm.assert_series_equal(res, exp)
 
-        res = df.quantiles([0.5, 0.75], axis=1)
+        res = df.quantile([0.5, 0.75], axis=1, interpolation="nearest", method="table")
         exp = DataFrame([np.arange(1.0, 6.0)] * 2, index=[0.5, 0.75])
         exp.iloc[1, -1] = np.nan
         tm.assert_frame_equal(res, exp)
@@ -989,11 +1023,11 @@ class TestDataFrameMultiQuantile:
         # full-nan column
         df["b"] = np.nan
 
-        res = df.quantiles(0.5)
+        res = df.quantile(0.5, interpolation="nearest", method="table")
         exp = Series([3.0, np.nan], index=["a", "b"], name=0.5)
         tm.assert_series_equal(res, exp)
 
-        res = df.quantiles([0.5, 0.75])
+        res = df.quantile([0.5, 0.75], interpolation="nearest", method="table")
         exp = DataFrame({"a": [3.0, 4.0], "b": [np.nan, np.nan]}, index=[0.5, 0.75])
         tm.assert_frame_equal(res, exp)
 
@@ -1002,11 +1036,15 @@ class TestDataFrameMultiQuantile:
         # full NaT column
         df = DataFrame({"a": [pd.NaT, pd.NaT, pd.NaT]})
 
-        res = df.quantiles(0.5, numeric_only=False)
+        res = df.quantile(
+            0.5, numeric_only=False, interpolation="nearest", method="table"
+        )
         exp = Series([pd.NaT], index=["a"], name=0.5)
         tm.assert_series_equal(res, exp)
 
-        res = df.quantiles([0.5], numeric_only=False)
+        res = df.quantile(
+            [0.5], numeric_only=False, interpolation="nearest", method="table"
+        )
         exp = DataFrame({"a": [pd.NaT]}, index=[0.5])
         tm.assert_frame_equal(res, exp)
 
@@ -1022,11 +1060,15 @@ class TestDataFrameMultiQuantile:
             }
         )
 
-        res = df.quantiles(0.5, numeric_only=False)
+        res = df.quantile(
+            0.5, numeric_only=False, interpolation="nearest", method="table"
+        )
         exp = Series([Timestamp("2012-01-02"), pd.NaT], index=["a", "b"], name=0.5)
         tm.assert_series_equal(res, exp)
 
-        res = df.quantiles([0.5], numeric_only=False)
+        res = df.quantile(
+            [0.5], numeric_only=False, interpolation="nearest", method="table"
+        )
         exp = DataFrame(
             [[Timestamp("2012-01-02"), pd.NaT]], index=[0.5], columns=["a", "b"]
         )
@@ -1037,40 +1079,42 @@ class TestDataFrameMultiQuantile:
         # floats
         df = DataFrame(columns=["a", "b"], dtype="float64")
 
-        res = df.quantiles(0.5)
+        res = df.quantile(0.5, interpolation="nearest", method="table")
         exp = Series([np.nan, np.nan], index=["a", "b"], name=0.5)
         tm.assert_series_equal(res, exp)
 
-        res = df.quantiles([0.5])
+        res = df.quantile([0.5], interpolation="nearest", method="table")
         exp = DataFrame([[np.nan, np.nan]], columns=["a", "b"], index=[0.5])
         tm.assert_frame_equal(res, exp)
 
         # FIXME (gives empty frame in 0.18.1, broken in 0.19.0)
-        # res = df.quantiles(0.5, axis=1)
-        # res = df.quantiles([0.5], axis=1)
+        # res = df.quantile(0.5, axis=1, interpolation="nearest", method="table")
+        # res = df.quantile([0.5], axis=1, interpolation="nearest", method="table")
 
         # ints
         df = DataFrame(columns=["a", "b"], dtype="int64")
 
         # FIXME (gives empty frame in 0.18.1, broken in 0.19.0)
-        # res = df.quantiles(0.5)
+        # res = df.quantile(0.5, interpolation="nearest", method="table")
 
         # datetimes
         df = DataFrame(columns=["a", "b"], dtype="datetime64[ns]")
 
         # FIXME (gives NaNs instead of NaT in 0.18.1 or 0.19.0)
-        # res = df.quantiles(0.5, numeric_only=False)
+        # res = df.quantile(
+        #     0.5, numeric_only=False, interpolation="nearest", method="table"
+        # )
 
     def test_quantile_empty_no_columns(self):
         # GH#23925 _get_numeric_data may drop all columns
         df = DataFrame(pd.date_range("1/1/18", periods=5))
         df.columns.name = "captain tightpants"
-        result = df.quantiles(0.5)
+        result = df.quantile(0.5, interpolation="nearest", method="table")
         expected = Series([], index=[], name=0.5, dtype=np.float64)
         expected.index.name = "captain tightpants"
         tm.assert_series_equal(result, expected)
 
-        result = df.quantiles([0.5])
+        result = df.quantile([0.5], interpolation="nearest", method="table")
         expected = DataFrame([], index=[0.5], columns=[])
         expected.columns.name = "captain tightpants"
         tm.assert_frame_equal(result, expected)
@@ -1083,7 +1127,7 @@ class TestDataFrameMultiQuantile:
         if not using_array_manager:
             assert len(df._mgr.blocks) == 2
 
-        df.quantiles(numeric_only=False)
+        df.quantile(numeric_only=False, interpolation="nearest", method="table")
         ser.values[0] = 99
 
         assert df.iloc[0, 0] == df["A"][0]
