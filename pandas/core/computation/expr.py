@@ -253,7 +253,6 @@ _msg = f"cannot both support and not support {intersection}"
 assert not intersection, _msg
 
 
-# TODO: Python 3.6.2: replace Callable[..., None] with Callable[..., NoReturn]
 def _node_not_implemented(node_name: str) -> Callable[..., None]:
     """
     Return a function that raises a NotImplementedError with a passed node name.
@@ -265,7 +264,10 @@ def _node_not_implemented(node_name: str) -> Callable[..., None]:
     return f
 
 
-_T = TypeVar("_T", bound="BaseExprVisitor")
+# should be bound by BaseExprVisitor but that creates a circular dependency:
+# _T is used in disallow, but disallow is used to define BaseExprVisitor
+# https://github.com/microsoft/pyright/issues/2315
+_T = TypeVar("_T")
 
 
 def disallow(nodes: set[str]) -> Callable[[type[_T]], type[_T]]:
@@ -279,11 +281,13 @@ def disallow(nodes: set[str]) -> Callable[[type[_T]], type[_T]]:
     """
 
     def disallowed(cls: type[_T]) -> type[_T]:
-        cls.unsupported_nodes = ()
+        # error: "Type[_T]" has no attribute "unsupported_nodes"
+        cls.unsupported_nodes = ()  # type: ignore[attr-defined]
         for node in nodes:
             new_method = _node_not_implemented(node)
             name = f"visit_{node}"
-            cls.unsupported_nodes += (name,)
+            # error: "Type[_T]" has no attribute "unsupported_nodes"
+            cls.unsupported_nodes += (name,)  # type: ignore[attr-defined]
             setattr(cls, name, new_method)
         return cls
 
@@ -702,7 +706,8 @@ class BaseExprVisitor(ast.NodeVisitor):
                 if key.arg:
                     kwargs[key.arg] = self.visit(key.value).value
 
-            return self.const_type(res(*new_args, **kwargs), self.env)
+            name = self.env.add_tmp(res(*new_args, **kwargs))
+            return self.term_type(name=name, env=self.env)
 
     def translate_In(self, op):
         return op

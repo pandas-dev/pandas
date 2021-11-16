@@ -7,7 +7,6 @@ from io import (
     BufferedIOBase,
     RawIOBase,
     TextIOBase,
-    TextIOWrapper,
 )
 from mmap import mmap
 from os import PathLike
@@ -101,17 +100,17 @@ TimedeltaConvertibleTypes = Union[
 ]
 Timezone = Union[str, tzinfo]
 
-# FrameOrSeries is stricter and ensures that the same subclass of NDFrame always is
-# used. E.g. `def func(a: FrameOrSeries) -> FrameOrSeries: ...` means that if a
+# NDFrameT is stricter and ensures that the same subclass of NDFrame always is
+# used. E.g. `def func(a: NDFrameT) -> NDFrameT: ...` means that if a
 # Series is passed into a function, a Series is always returned and if a DataFrame is
 # passed in, a DataFrame is always returned.
-FrameOrSeries = TypeVar("FrameOrSeries", bound="NDFrame")
+NDFrameT = TypeVar("NDFrameT", bound="NDFrame")
 
 Axis = Union[str, int]
 IndexLabel = Union[Hashable, Sequence[Hashable]]
 Level = Union[Hashable, int]
 Shape = Tuple[int, ...]
-Suffixes = Tuple[str, str]
+Suffixes = Tuple[Optional[str], Optional[str]]
 Ordered = Optional[bool]
 JSONSerializable = Optional[Union[PythonScalar, List, Dict]]
 Frequency = Union[str, "DateOffset"]
@@ -170,7 +169,7 @@ AggObjType = Union[
 PythonFuncType = Callable[[Any], Any]
 
 # filenames and file-like-objects
-Buffer = Union[IO[AnyStr], RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper, mmap]
+Buffer = Union[IO[AnyStr], RawIOBase, BufferedIOBase, TextIOBase, mmap]
 FileOrBuffer = Union[str, Buffer[AnyStr]]
 FilePathOrBuffer = Union["PathLike[str]", FileOrBuffer[AnyStr]]
 
@@ -219,6 +218,10 @@ SequenceIndexer = Union[slice, List[int], np.ndarray]
 PositionalIndexer = Union[ScalarIndexer, SequenceIndexer]
 PositionalIndexerTuple = Tuple[PositionalIndexer, PositionalIndexer]
 PositionalIndexer2D = Union[PositionalIndexer, PositionalIndexerTuple]
+if TYPE_CHECKING:
+    TakeIndexer = Union[Sequence[int], Sequence[np.integer], npt.NDArray[np.integer]]
+else:
+    TakeIndexer = Any
 
 # Windowing rank methods
 WindowingRankType = Literal["average", "min", "max"]

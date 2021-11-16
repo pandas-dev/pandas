@@ -789,6 +789,10 @@ class TestDataFrameAnalytics:
         # GH#37392
         tdi = pd.timedelta_range("1 Day", periods=10)
         df = DataFrame({"A": tdi, "B": tdi})
+        # Copy is needed for ArrayManager case, otherwise setting df.iloc
+        #  below edits tdi, alterting both df['A'] and df['B']
+        #  FIXME: passing copy=True to constructor does not fix this
+        df = df.copy()
         df.iloc[-2, -1] = pd.NaT
 
         result = df.std(skipna=False)
@@ -1017,7 +1021,9 @@ class TestDataFrameAnalytics:
         # don't cast to object, which would raise in nanops
         dti = date_range("2016-01-01", periods=3)
 
-        df = DataFrame({1: [0, 2, 1], 2: range(3)[::-1], 3: dti})
+        # Copying dti is needed for ArrayManager otherwise when we set
+        #  df.loc[0, 3] = pd.NaT below it edits dti
+        df = DataFrame({1: [0, 2, 1], 2: range(3)[::-1], 3: dti.copy(deep=True)})
 
         result = df.idxmax()
         expected = Series([1, 0, 2], index=[1, 2, 3])
@@ -1074,6 +1080,10 @@ class TestDataFrameAnalytics:
     def test_idxmax_dt64_multicolumn_axis1(self):
         dti = date_range("2016-01-01", periods=3)
         df = DataFrame({3: dti, 4: dti[::-1]})
+        # FIXME: copy needed for ArrayManager, otherwise setting with iloc
+        #  below also sets df.iloc[-1, 1]; passing copy=True to DataFrame
+        #  does not solve this.
+        df = df.copy()
         df.iloc[0, 0] = pd.NaT
 
         df._consolidate_inplace()
@@ -1366,11 +1376,9 @@ class TestDataFrameReductions:
         # GH#36907
         tz = tz_naive_fixture
         if isinstance(tz, tzlocal) and is_platform_windows():
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason="GH#37659 OSError raised within tzlocal bc Windows "
-                    "chokes in times before 1970-01-01"
-                )
+            pytest.skip(
+                "GH#37659 OSError raised within tzlocal bc Windows "
+                "chokes in times before 1970-01-01"
             )
 
         df = DataFrame(
@@ -1720,7 +1728,7 @@ def test_mad_nullable_integer_all_na(any_signed_int_ea_dtype):
     df2 = df.astype(any_signed_int_ea_dtype)
 
     # case with all-NA row/column
-    df2.iloc[:, 1] = pd.NA  # FIXME: this doesn't operate in-place
+    df2.iloc[:, 1] = pd.NA  # FIXME(GH#44199): this doesn't operate in-place
     df2.iloc[:, 1] = pd.array([pd.NA] * len(df2), dtype=any_signed_int_ea_dtype)
     result = df2.mad()
     expected = df.mad()

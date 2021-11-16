@@ -25,6 +25,7 @@ from pandas._typing import (
     DtypeObj,
 )
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_datetime64_any_dtype,
@@ -148,10 +149,10 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     """
 
     _typ = "periodindex"
-    _attributes = ["name"]
 
     _data: PeriodArray
     freq: BaseOffset
+    dtype: PeriodDtype
 
     _data_cls = PeriodArray
     _engine_type = libindex.PeriodEngine
@@ -308,7 +309,16 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         """
         if not isinstance(dtype, PeriodDtype):
             return False
-        return dtype.freq == self.freq
+        # For the subset of DateOffsets that can be a dtype.freq, it
+        #  suffices (and is much faster) to compare the dtype_code rather than
+        #  the freq itself.
+        # See also: PeriodDtype.__eq__
+        freq = dtype.freq
+        own_freq = self.freq
+        return (
+            freq._period_dtype_code == own_freq._period_dtype_code
+            and freq.n == own_freq.n
+        )
 
     # ------------------------------------------------------------------------
     # Index Methods
@@ -337,13 +347,21 @@ class PeriodIndex(DatetimeIndexOpsMixin):
                 "will be removed in a future version. "
                 "Use index.to_timestamp(how=how) instead.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
         else:
             how = "start"
 
         if is_datetime64_any_dtype(dtype):
             # 'how' is index-specific, isn't part of the EA interface.
+            # GH#44398 deprecate astype(dt64), matching Series behavior
+            warnings.warn(
+                f"Converting {type(self).__name__} to DatetimeIndex with "
+                "'astype' is deprecated and will raise in a future version. "
+                "Use `obj.to_timestamp(how).tz_localize(dtype.tz)` instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
             tz = getattr(dtype, "tz", None)
             return self.to_timestamp(how=how).tz_localize(tz)
 

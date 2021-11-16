@@ -2081,3 +2081,45 @@ Thu,Lunch,Yes,51.51,17"""
         )
         expected.columns = MultiIndex.from_tuples([("cat", 0), ("cat", 1)])
         tm.assert_frame_equal(result, expected)
+
+    def test_stack_unsorted(self):
+        # GH 16925
+        PAE = ["ITA", "FRA"]
+        VAR = ["A1", "A2"]
+        TYP = ["CRT", "DBT", "NET"]
+        MI = MultiIndex.from_product([PAE, VAR, TYP], names=["PAE", "VAR", "TYP"])
+
+        V = list(range(len(MI)))
+        DF = DataFrame(data=V, index=MI, columns=["VALUE"])
+
+        DF = DF.unstack(["VAR", "TYP"])
+        DF.columns = DF.columns.droplevel(0)
+        DF.loc[:, ("A0", "NET")] = 9999
+
+        result = DF.stack(["VAR", "TYP"]).sort_index()
+        expected = DF.sort_index(axis=1).stack(["VAR", "TYP"]).sort_index()
+        tm.assert_series_equal(result, expected)
+
+    def test_stack_nullable_dtype(self):
+        # GH#43561
+        columns = MultiIndex.from_product(
+            [["54511", "54515"], ["r", "t_mean"]], names=["station", "element"]
+        )
+        index = Index([1, 2, 3], name="time")
+
+        arr = np.array([[50, 226, 10, 215], [10, 215, 9, 220], [305, 232, 111, 220]])
+        df = DataFrame(arr, columns=columns, index=index, dtype=pd.Int64Dtype())
+
+        result = df.stack("station")
+
+        expected = df.astype(np.int64).stack("station").astype(pd.Int64Dtype())
+        tm.assert_frame_equal(result, expected)
+
+        # non-homogeneous case
+        df[df.columns[0]] = df[df.columns[0]].astype(pd.Float64Dtype())
+        result = df.stack("station")
+
+        # TODO(EA2D): we get object dtype because DataFrame.values can't
+        #  be an EA
+        expected = df.astype(object).stack("station")
+        tm.assert_frame_equal(result, expected)

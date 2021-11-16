@@ -25,6 +25,8 @@ from pandas._config.config import (
     is_text,
 )
 
+from pandas.util._exceptions import find_stack_level
+
 # compute
 
 use_bottleneck_doc = """
@@ -373,7 +375,7 @@ with cf.config_prefix("display"):
                 "will not be supported in future version. Instead, use None "
                 "to not limit the column width.",
                 FutureWarning,
-                stacklevel=4,
+                stacklevel=find_stack_level(),
             )
 
     cf.register_option(
@@ -816,9 +818,16 @@ styler_multirow_align = """
     The specifier for vertical alignment of sparsified LaTeX multirows.
 """
 
-styler_multicol_align = """
-: {"r", "c", "l"}
-    The specifier for horizontal alignment of sparsified LaTeX multicolumns.
+styler_multicol_align = r"""
+: {"r", "c", "l", "naive-l", "naive-r"}
+    The specifier for horizontal alignment of sparsified LaTeX multicolumns. Pipe
+    decorators can also be added to non-naive values to draw vertical
+    rules, e.g. "\|r" will draw a rule on the left side of right aligned merged cells.
+"""
+
+styler_hrules = """
+: bool
+    Whether to add horizontal rules on top and bottom and below the headers.
 """
 
 styler_environment = """
@@ -918,12 +927,16 @@ with cf.config_prefix("styler"):
         validator=is_one_of_factory(["c", "t", "b", "naive"]),
     )
 
+    val_mca = ["r", "|r|", "|r", "r|", "c", "|c|", "|c", "c|", "l", "|l|", "|l", "l|"]
+    val_mca += ["naive-l", "naive-r"]
     cf.register_option(
         "latex.multicol_align",
         "r",
         styler_multicol_align,
-        validator=is_one_of_factory(["r", "c", "l", "naive-l", "naive-r"]),
+        validator=is_one_of_factory(val_mca),
     )
+
+    cf.register_option("latex.hrules", False, styler_hrules, validator=is_bool)
 
     cf.register_option(
         "latex.environment",

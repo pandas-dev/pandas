@@ -1287,7 +1287,8 @@ def test_compression_output(parser, comp):
 
     output = equalize_decl(output)
 
-    assert geom_xml == output.strip()
+    # error: Item "None" of "Union[str, bytes, None]" has no attribute "strip"
+    assert geom_xml == output.strip()  # type: ignore[union-attr]
 
 
 @pytest.mark.parametrize("comp", ["bz2", "gzip", "xz", "zip"])
@@ -1305,7 +1306,8 @@ def test_filename_and_suffix_comp(parser, comp, compfile):
 
     output = equalize_decl(output)
 
-    assert geom_xml == output.strip()
+    # error: Item "None" of "Union[str, bytes, None]" has no attribute "strip"
+    assert geom_xml == output.strip()  # type: ignore[union-attr]
 
 
 def test_unsuported_compression(datapath, parser):
