@@ -97,6 +97,7 @@ Styler
 
 :class:`.Styler` has been further developed in 1.4.0. The following enhancements have been made:
 
+  - Added a new method :meth:`.Styler.set_descriptors` which allows adding customised header rows to explore and make calculations on the data, e.g. totals and counts etc. (:issue:`43875`).
   - Styling and formatting of indexes has been added, with :meth:`.Styler.apply_index`, :meth:`.Styler.applymap_index` and :meth:`.Styler.format_index`. These mirror the signature of the methods already used to style and format data values, and work with both HTML, LaTeX and Excel format (:issue:`41893`, :issue:`43101`, :issue:`41993`, :issue:`41995`).
   - :meth:`.Styler.bar` introduces additional arguments to control alignment and display (:issue:`26070`, :issue:`36419`), and it also validates the input arguments ``width`` and ``height`` (:issue:`42511`).
   - :meth:`.Styler.to_latex` introduces keyword argument ``environment``, which also allows a specific "longtable" entry through a separate jinja2 template (:issue:`41866`).
