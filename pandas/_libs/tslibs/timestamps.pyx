@@ -737,9 +737,42 @@ cdef class _Timestamp(ABCTimestamp):
     # -----------------------------------------------------------------
     # Rendering Methods
 
-    def isoformat(self, sep: str = "T") -> str:
-        base = super(_Timestamp, self).isoformat(sep=sep)
-        if self.nanosecond == 0:
+    def isoformat(self, sep: str = "T", timespec: str = "auto") -> str:
+        """
+        Return the time formatted according to ISO.
+
+        The full format looks like 'YYYY-MM-DD HH:MM:SS.mmmmmmnnn'.
+        By default, the fractional part is omitted if self.microsecond == 0
+        and self.nanosecond == 0.
+
+        If self.tzinfo is not None, the UTC offset is also attached, giving
+        giving a full format of 'YYYY-MM-DD HH:MM:SS.mmmmmmnnn+HH:MM'.
+
+        Parameters
+        ----------
+        sep : str, default 'T'
+            String used as the separator between the date and time.
+
+        timespec : str, default 'auto'
+            Specifies the number of additional terms of the time to include.
+            The valid values are 'auto', 'hours', 'minutes', 'seconds',
+            'milliseconds', 'microseconds', and 'nanoseconds'.
+
+        Returns
+        -------
+        str
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
+        >>> ts.isoformat()
+        '2020-03-14T15:32:52.192548651'
+        >>> ts.isoformat(timespec='microseconds')
+        '2020-03-14T15:32:52.192548'
+        """
+        base_ts = "microseconds" if timespec == "nanoseconds" else timespec
+        base = super(_Timestamp, self).isoformat(sep=sep, timespec=base_ts)
+        if self.nanosecond == 0 and timespec != "nanoseconds":
             return base
 
         if self.tzinfo is not None:
@@ -747,10 +780,11 @@ cdef class _Timestamp(ABCTimestamp):
         else:
             base1, base2 = base, ""
 
-        if self.microsecond != 0:
-            base1 += f"{self.nanosecond:03d}"
-        else:
-            base1 += f".{self.nanosecond:09d}"
+        if timespec == "nanoseconds" or (timespec == "auto" and self.nanosecond):
+            if self.microsecond:
+                base1 += f"{self.nanosecond:03d}"
+            else:
+                base1 += f".{self.nanosecond:09d}"
 
         return base1 + base2
 
@@ -900,6 +934,10 @@ cdef class _Timestamp(ABCTimestamp):
         >>> pd.NaT.to_numpy()
         numpy.datetime64('NaT')
         """
+        if dtype is not None or copy is not False:
+            raise ValueError(
+                "Timestamp.to_numpy dtype and copy arguments are ignored."
+            )
         return self.to_datetime64()
 
     def to_period(self, freq=None):
@@ -909,16 +947,20 @@ cdef class _Timestamp(ABCTimestamp):
         Examples
         --------
         >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
-        >>> ts.to_period(freq='Y) # Year end frequency
-        numpy.datetime64('2020-03-14T15:32:52.192548651')
+        >>> # Year end frequency
+        >>> ts.to_period(freq='Y')
+        Period('2020', 'A-DEC')
 
-        >>> ts.to_period(freq='M') # Month end frequency
+        >>> # Month end frequency
+        >>> ts.to_period(freq='M')
         Period('2020-03', 'M')
 
-        >>> ts.to_period(freq='W') # Weekly frequency
+        >>> # Weekly frequency
+        >>> ts.to_period(freq='W')
         Period('2020-03-09/2020-03-15', 'W-SUN')
 
-        >>> ts.to_period(freq='Q') # Quarter end frequency
+        >>> # Quarter end frequency
+        >>> ts.to_period(freq='Q')
         Period('2020Q1', 'Q-DEC')
         """
         from pandas import Period
@@ -1059,7 +1101,7 @@ class Timestamp(_Timestamp):
 
         Examples
         --------
-        >>> pd.Timestamp.now()
+        >>> pd.Timestamp.now()  # doctest: +SKIP
         Timestamp('2020-11-16 22:06:16.378782')
 
         Analogous for ``pd.NaT``:
@@ -1087,7 +1129,7 @@ class Timestamp(_Timestamp):
 
         Examples
         --------
-        >>> pd.Timestamp.today()
+        >>> pd.Timestamp.today()    # doctest: +SKIP
         Timestamp('2020-11-16 22:37:39.969883')
 
         Analogous for ``pd.NaT``:
@@ -1106,7 +1148,7 @@ class Timestamp(_Timestamp):
 
         Examples
         --------
-        >>> pd.Timestamp.utcnow()
+        >>> pd.Timestamp.utcnow()   # doctest: +SKIP
         Timestamp('2020-11-16 22:50:18.092888+0000', tz='UTC')
         """
         return cls.now(UTC)

@@ -1651,7 +1651,7 @@ remedy this, ``DataFrame`` plotting supports the use of the ``colormap`` argumen
 which accepts either a Matplotlib `colormap <https://matplotlib.org/api/cm_api.html>`__
 or a string that is a name of a colormap registered with Matplotlib. A
 visualization of the default matplotlib colormaps is available `here
-<https://matplotlib.org/examples/color/colormaps_reference.html>`__.
+<https://matplotlib.org/stable/gallery/color/colormap_reference.html>`__.
 
 As matplotlib does not directly support colormaps for line-based plots, the
 colors are selected based on an even spacing determined by the number of columns

@@ -1,4 +1,3 @@
-import operator
 import warnings
 
 import numpy as np
@@ -145,9 +144,9 @@ class TestCategoricalOps:
         expected = DataFrame([[False, True, True, False]])
         tm.assert_frame_equal(result, expected)
 
-    def test_compare_frame_raises(self, all_compare_operators):
+    def test_compare_frame_raises(self, comparison_op):
         # alignment raises unless we transpose
-        op = getattr(operator, all_compare_operators)
+        op = comparison_op
         cat = Categorical(["a", "b", 2, "a"])
         df = DataFrame(cat)
         msg = "Unable to coerce to Series, length must be 1: given 4"

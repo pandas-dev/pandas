@@ -15,7 +15,6 @@ from pandas._config import get_option
 
 from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
-    pa_version_under1p0,
     pa_version_under2p0,
     pa_version_under5p0,
 )
@@ -637,6 +636,29 @@ class TestBasic(Base):
             expected = expected.drop("c", axis=1)
         tm.assert_frame_equal(result2, expected)
 
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "Int64",
+            "UInt8",
+            "boolean",
+            "object",
+            "datetime64[ns, UTC]",
+            "float",
+            "period[D]",
+            "Float64",
+            "string",
+        ],
+    )
+    def test_read_empty_array(self, pa, dtype):
+        # GH #41241
+        df = pd.DataFrame(
+            {
+                "value": pd.array([], dtype=dtype),
+            }
+        )
+        check_round_trip(df, pa, read_kwargs={"use_nullable_dtypes": True})
+
 
 @pytest.mark.filterwarnings("ignore:CategoricalBlock is deprecated:DeprecationWarning")
 class TestParquetPyArrow(Base):
@@ -761,11 +783,7 @@ class TestParquetPyArrow(Base):
         # only used if partition field is string, but this changed again to use
         # category dtype for all types (not only strings) in pyarrow 2.0.0
         if partition_col:
-            partition_col_type = (
-                "int32"
-                if (not pa_version_under1p0) and pa_version_under2p0
-                else "category"
-            )
+            partition_col_type = "int32" if pa_version_under2p0 else "category"
 
             expected_df[partition_col] = expected_df[partition_col].astype(
                 partition_col_type

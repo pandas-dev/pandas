@@ -33,7 +33,8 @@ def generate_online_numba_ewma_func(engine_kwargs: Optional[Dict[str, bool]]):
 
     numba = import_optional_dependency("numba")
 
-    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+    # error: Untyped decorator makes function "online_ewma" untyped
+    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)  # type: ignore[misc]
     def online_ewma(
         values: np.ndarray,
         deltas: np.ndarray,

@@ -6,7 +6,6 @@ from datetime import (
     time,
     timedelta,
 )
-from io import StringIO
 import re
 
 from dateutil.tz import gettz
@@ -37,6 +36,10 @@ from pandas import (
 import pandas._testing as tm
 from pandas.api.types import is_scalar
 from pandas.core.api import Float64Index
+from pandas.core.indexing import (
+    IndexingError,
+    _one_ellipsis_message,
+)
 from pandas.tests.indexing.common import Base
 
 
@@ -174,6 +177,26 @@ class TestLoc(Base):
             }
         )
         tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize(
+        "obj, key, exp",
+        [
+            (
+                DataFrame([[1]], columns=Index([False])),
+                IndexSlice[:, False],
+                Series([1], name=False),
+            ),
+            (Series([1], index=Index([False])), False, [1]),
+            (DataFrame([[1]], index=Index([False])), False, Series([1], name=False)),
+        ],
+    )
+    def test_loc_getitem_single_boolean_arg(self, obj, key, exp):
+        # GH 44322
+        res = obj.loc[key]
+        if isinstance(exp, (DataFrame, Series)):
+            tm.assert_equal(res, exp)
+        else:
+            assert res == exp
 
 
 class TestLoc2:
@@ -364,6 +387,7 @@ class TestLoc2:
         with pytest.raises(KeyError, match=msg):
             df.loc[[1, 2], [1, 2]]
 
+    def test_loc_to_fail2(self):
         # GH  7496
         # loc should not fallback
 
@@ -402,6 +426,7 @@ class TestLoc2:
         with pytest.raises(KeyError, match=msg):
             s.loc[[-2]] = 0
 
+    def test_loc_to_fail3(self):
         # inconsistency between .loc[values] and .loc[values,:]
         # GH 7999
         df = DataFrame([["a"], ["b"]], index=[1, 2], columns=["value"])
@@ -552,15 +577,27 @@ class TestLoc2:
     def test_loc_setitem_consistency_slice_column_len(self):
         # .loc[:,column] setting with slice == len of the column
         # GH10408
-        data = """Level_0,,,Respondent,Respondent,Respondent,OtherCat,OtherCat
-Level_1,,,Something,StartDate,EndDate,Yes/No,SomethingElse
-Region,Site,RespondentID,,,,,
-Region_1,Site_1,3987227376,A,5/25/2015 10:59,5/25/2015 11:22,Yes,
-Region_1,Site_1,3980680971,A,5/21/2015 9:40,5/21/2015 9:52,Yes,Yes
-Region_1,Site_2,3977723249,A,5/20/2015 8:27,5/20/2015 8:41,Yes,
-Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
+        levels = [
+            ["Region_1"] * 4,
+            ["Site_1", "Site_1", "Site_2", "Site_2"],
+            [3987227376, 3980680971, 3977723249, 3977723089],
+        ]
+        mi = MultiIndex.from_arrays(levels, names=["Region", "Site", "RespondentID"])
 
-        df = pd.read_csv(StringIO(data), header=[0, 1], index_col=[0, 1, 2])
+        clevels = [
+            ["Respondent", "Respondent", "Respondent", "OtherCat", "OtherCat"],
+            ["Something", "StartDate", "EndDate", "Yes/No", "SomethingElse"],
+        ]
+        cols = MultiIndex.from_arrays(clevels, names=["Level_0", "Level_1"])
+
+        values = [
+            ["A", "5/25/2015 10:59", "5/25/2015 11:22", "Yes", np.nan],
+            ["A", "5/21/2015 9:40", "5/21/2015 9:52", "Yes", "Yes"],
+            ["A", "5/20/2015 8:27", "5/20/2015 8:41", "Yes", np.nan],
+            ["A", "5/20/2015 8:33", "5/20/2015 9:09", "Yes", "No"],
+        ]
+        df = DataFrame(values, index=mi, columns=cols)
+
         df.loc[:, ("Respondent", "StartDate")] = to_datetime(
             df.loc[:, ("Respondent", "StartDate")]
         )
@@ -834,7 +871,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
     def test_loc_coercion(self):
 
-        # 12411
+        # GH#12411
         df = DataFrame({"date": [Timestamp("20130101").tz_localize("UTC"), pd.NaT]})
         expected = df.dtypes
 
@@ -844,7 +881,8 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         result = df.iloc[[1]]
         tm.assert_series_equal(result.dtypes, expected)
 
-        # 12045
+    def test_loc_coercion2(self):
+        # GH#12045
         import datetime
 
         df = DataFrame(
@@ -858,7 +896,8 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         result = df.iloc[[1]]
         tm.assert_series_equal(result.dtypes, expected)
 
-        # 11594
+    def test_loc_coercion3(self):
+        # GH#11594
         df = DataFrame({"text": ["some words"] + [None] * 9})
         expected = df.dtypes
 
@@ -994,21 +1033,25 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
             df.loc[[]], df.iloc[:0, :], check_index_type=True, check_column_type=True
         )
 
-    def test_identity_slice_returns_new_object(self, using_array_manager):
+    def test_identity_slice_returns_new_object(self, using_array_manager, request):
         # GH13873
+        if using_array_manager:
+            mark = pytest.mark.xfail(
+                reason="setting with .loc[:, 'a'] does not alter inplace"
+            )
+            request.node.add_marker(mark)
+
         original_df = DataFrame({"a": [1, 2, 3]})
         sliced_df = original_df.loc[:]
         assert sliced_df is not original_df
         assert original_df[:] is not original_df
 
         # should be a shallow copy
-        original_df["a"] = [4, 4, 4]
-        if using_array_manager:
-            # TODO(ArrayManager) verify it is expected that the original didn't change
-            # setitem is replacing full column, so doesn't update "viewing" dataframe
-            assert not (sliced_df["a"] == 4).all()
-        else:
-            assert (sliced_df["a"] == 4).all()
+        assert np.shares_memory(original_df["a"]._values, sliced_df["a"]._values)
+
+        # Setting using .loc[:, "a"] sets inplace so alters both sliced and orig
+        original_df.loc[:, "a"] = [4, 4, 4]
+        assert (sliced_df["a"] == 4).all()
 
         # These should not return copies
         assert original_df is original_df.loc[:, :]
@@ -1351,7 +1394,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         tz = tz_naive_fixture
         idx = date_range(start="2015-07-12", periods=3, freq="H", tz=tz)
         expected = DataFrame(1.2, index=idx, columns=["var"])
-        # if result started off with object dtype, tehn the .loc.__setitem__
+        # if result started off with object dtype, then the .loc.__setitem__
         #  below would retain object dtype
         result = DataFrame(index=idx, columns=["var"], dtype=np.float64)
         result.loc[:, idxer] = expected
@@ -1522,6 +1565,66 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         assert df.dtypes.one == np.dtype(np.int8)
         df.one = np.int8(7)
         assert df.dtypes.one == np.dtype(np.int8)
+
+
+class TestLocWithEllipsis:
+    @pytest.fixture(params=[tm.loc, tm.iloc])
+    def indexer(self, request):
+        # Test iloc while we're here
+        return request.param
+
+    @pytest.fixture
+    def obj(self, series_with_simple_index, frame_or_series):
+        obj = series_with_simple_index
+        if frame_or_series is not Series:
+            obj = obj.to_frame()
+        return obj
+
+    def test_loc_iloc_getitem_ellipsis(self, obj, indexer):
+        result = indexer(obj)[...]
+        tm.assert_equal(result, obj)
+
+    def test_loc_iloc_getitem_leading_ellipses(self, series_with_simple_index, indexer):
+        obj = series_with_simple_index
+        key = 0 if (indexer is tm.iloc or len(obj) == 0) else obj.index[0]
+
+        if indexer is tm.loc and obj.index.is_boolean():
+            # passing [False] will get interpreted as a boolean mask
+            # TODO: should it?  unambiguous when lengths dont match?
+            return
+        if indexer is tm.loc and isinstance(obj.index, MultiIndex):
+            msg = "MultiIndex does not support indexing with Ellipsis"
+            with pytest.raises(NotImplementedError, match=msg):
+                result = indexer(obj)[..., [key]]
+
+        elif len(obj) != 0:
+            result = indexer(obj)[..., [key]]
+            expected = indexer(obj)[[key]]
+            tm.assert_series_equal(result, expected)
+
+        key2 = 0 if indexer is tm.iloc else obj.name
+        df = obj.to_frame()
+        result = indexer(df)[..., [key2]]
+        expected = indexer(df)[:, [key2]]
+        tm.assert_frame_equal(result, expected)
+
+    def test_loc_iloc_getitem_ellipses_only_one_ellipsis(self, obj, indexer):
+        # GH37750
+        key = 0 if (indexer is tm.iloc or len(obj) == 0) else obj.index[0]
+
+        with pytest.raises(IndexingError, match=_one_ellipsis_message):
+            indexer(obj)[..., ...]
+
+        with pytest.raises(IndexingError, match=_one_ellipsis_message):
+            indexer(obj)[..., [key], ...]
+
+        with pytest.raises(IndexingError, match=_one_ellipsis_message):
+            indexer(obj)[..., ..., key]
+
+        # one_ellipsis_message takes precedence over "Too many indexers"
+        #  only when the first key is Ellipsis
+        with pytest.raises(IndexingError, match="Too many indexers"):
+            indexer(obj)[key, ..., ...]
 
 
 class TestLocWithMultiIndex:
@@ -1796,7 +1899,7 @@ class TestLocSetitemWithExpansion:
         start = Timestamp("2017-10-29 00:00:00+0200", tz="Europe/Madrid")
         end = Timestamp("2017-10-29 03:00:00+0100", tz="Europe/Madrid")
         ts = Timestamp("2016-10-10 03:00:00", tz="Europe/Madrid")
-        idx = date_range(start, end, closed="left", freq="H")
+        idx = date_range(start, end, inclusive="left", freq="H")
         assert ts not in idx  # i.e. result.loc setitem is with-expansion
 
         result = DataFrame(index=idx, columns=["value"])
@@ -1822,7 +1925,8 @@ class TestLocSetitemWithExpansion:
         # trying to set a single element on a part of a different timezone
         # this converts to object
         df2 = df.copy()
-        df2.loc[df2.new_col == "new", "time"] = v
+        with tm.assert_produces_warning(FutureWarning, match="mismatched timezone"):
+            df2.loc[df2.new_col == "new", "time"] = v
 
         expected = Series([v[0], df.loc[1, "time"]], name="time")
         tm.assert_series_equal(df2.time, expected)
@@ -2546,7 +2650,7 @@ def test_loc_slice_disallows_positional():
     with pytest.raises(TypeError, match=msg):
         df.loc[1:3, 1]
 
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+    with tm.assert_produces_warning(FutureWarning):
         # GH#31840 deprecated incorrect behavior
         df.loc[1:3, 1] = 2
 
@@ -2857,3 +2961,9 @@ class TestLocSeries:
         )
 
         tm.assert_frame_equal(df, expected)
+
+    def test_getitem_loc_str_periodindex(self):
+        # GH#33964
+        index = pd.period_range(start="2000", periods=20, freq="B")
+        series = Series(range(20), index=index)
+        assert series.loc["2000-01-14"] == 9
