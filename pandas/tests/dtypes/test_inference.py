@@ -307,6 +307,10 @@ def test_is_file_like():
     m = MockFile()
     assert not is_file(m)
 
+    # gh-16530: Valid iterator just means we have the
+    # __iter__ attribute for our purposes.
+    MockFile.__iter__ = lambda self: self
+
     # Valid write-only file
     m = MockFile()
     assert is_file(m)

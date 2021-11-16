@@ -415,7 +415,11 @@ def _get_filepath_or_buffer(
             mode=mode,
         )
 
-    if not is_file_like(filepath_or_buffer):
+    # is_file_like requires (read | write) & __iter__ but __iter__ is only
+    # needed for read_csv(engine=python)
+    if not (
+        hasattr(filepath_or_buffer, "read") or hasattr(filepath_or_buffer, "write")
+    ):
         msg = f"Invalid file path or buffer object type: {type(filepath_or_buffer)}"
         raise ValueError(msg)
 
