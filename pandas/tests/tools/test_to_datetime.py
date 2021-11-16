@@ -263,6 +263,8 @@ class TestTimeConversionFormats:
                 "%m/%d/%Y %H:%M:%S",
                 Timestamp("2010-01-10 13:56:01"),
             ],
+        ]
+        locale_specific = [
             ["01/10/2010 08:14 PM", "%m/%d/%Y %I:%M %p", Timestamp("2010-01-10 20:14")],
             ["01/10/2010 07:40 AM", "%m/%d/%Y %I:%M %p", Timestamp("2010-01-10 07:40")],
             [
@@ -271,6 +273,11 @@ class TestTimeConversionFormats:
                 Timestamp("2010-01-10 09:12:56"),
             ],
         ]
+        if locale.getlocale()[0] == "en_US":
+            # this fail on a CI build with LC_ALL=zh_CN.utf8, so en_US
+            #  may be more specific than necessary.
+            data.extend(locale_specific)
+
         for value, format, dt in data:
             assert to_datetime(value, format=format, cache=cache) == dt
 
