@@ -122,7 +122,7 @@ def _skip_if_no_scipy() -> bool:
     )
 
 
-# TODO: return type, _pytest.mark.structures.MarkDecorator is not public
+# TODO(pytest#7469): return type, _pytest.mark.structures.MarkDecorator is not public
 # https://github.com/pytest-dev/pytest/issues/7469
 def skip_if_installed(package: str):
     """
@@ -138,7 +138,7 @@ def skip_if_installed(package: str):
     )
 
 
-# TODO: return type, _pytest.mark.structures.MarkDecorator is not public
+# TODO(pytest#7469): return type, _pytest.mark.structures.MarkDecorator is not public
 # https://github.com/pytest-dev/pytest/issues/7469
 def skip_if_no(package: str, min_version: str | None = None):
     """
@@ -202,7 +202,7 @@ skip_if_no_ne = pytest.mark.skipif(
 )
 
 
-# TODO: return type, _pytest.mark.structures.MarkDecorator is not public
+# TODO(pytest#7469): return type, _pytest.mark.structures.MarkDecorator is not public
 # https://github.com/pytest-dev/pytest/issues/7469
 def skip_if_np_lt(ver_str: str, *args, reason: str | None = None):
     if reason is None:

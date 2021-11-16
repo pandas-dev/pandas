@@ -6,7 +6,6 @@ from datetime import (
     time,
     timedelta,
 )
-from io import StringIO
 import re
 
 from dateutil.tz import gettz
@@ -178,6 +177,26 @@ class TestLoc(Base):
             }
         )
         tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize(
+        "obj, key, exp",
+        [
+            (
+                DataFrame([[1]], columns=Index([False])),
+                IndexSlice[:, False],
+                Series([1], name=False),
+            ),
+            (Series([1], index=Index([False])), False, [1]),
+            (DataFrame([[1]], index=Index([False])), False, Series([1], name=False)),
+        ],
+    )
+    def test_loc_getitem_single_boolean_arg(self, obj, key, exp):
+        # GH 44322
+        res = obj.loc[key]
+        if isinstance(exp, (DataFrame, Series)):
+            tm.assert_equal(res, exp)
+        else:
+            assert res == exp
 
 
 class TestLoc2:
@@ -558,15 +577,27 @@ class TestLoc2:
     def test_loc_setitem_consistency_slice_column_len(self):
         # .loc[:,column] setting with slice == len of the column
         # GH10408
-        data = """Level_0,,,Respondent,Respondent,Respondent,OtherCat,OtherCat
-Level_1,,,Something,StartDate,EndDate,Yes/No,SomethingElse
-Region,Site,RespondentID,,,,,
-Region_1,Site_1,3987227376,A,5/25/2015 10:59,5/25/2015 11:22,Yes,
-Region_1,Site_1,3980680971,A,5/21/2015 9:40,5/21/2015 9:52,Yes,Yes
-Region_1,Site_2,3977723249,A,5/20/2015 8:27,5/20/2015 8:41,Yes,
-Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
+        levels = [
+            ["Region_1"] * 4,
+            ["Site_1", "Site_1", "Site_2", "Site_2"],
+            [3987227376, 3980680971, 3977723249, 3977723089],
+        ]
+        mi = MultiIndex.from_arrays(levels, names=["Region", "Site", "RespondentID"])
 
-        df = pd.read_csv(StringIO(data), header=[0, 1], index_col=[0, 1, 2])
+        clevels = [
+            ["Respondent", "Respondent", "Respondent", "OtherCat", "OtherCat"],
+            ["Something", "StartDate", "EndDate", "Yes/No", "SomethingElse"],
+        ]
+        cols = MultiIndex.from_arrays(clevels, names=["Level_0", "Level_1"])
+
+        values = [
+            ["A", "5/25/2015 10:59", "5/25/2015 11:22", "Yes", np.nan],
+            ["A", "5/21/2015 9:40", "5/21/2015 9:52", "Yes", "Yes"],
+            ["A", "5/20/2015 8:27", "5/20/2015 8:41", "Yes", np.nan],
+            ["A", "5/20/2015 8:33", "5/20/2015 9:09", "Yes", "No"],
+        ]
+        df = DataFrame(values, index=mi, columns=cols)
+
         df.loc[:, ("Respondent", "StartDate")] = to_datetime(
             df.loc[:, ("Respondent", "StartDate")]
         )
@@ -1363,7 +1394,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         tz = tz_naive_fixture
         idx = date_range(start="2015-07-12", periods=3, freq="H", tz=tz)
         expected = DataFrame(1.2, index=idx, columns=["var"])
-        # if result started off with object dtype, tehn the .loc.__setitem__
+        # if result started off with object dtype, then the .loc.__setitem__
         #  below would retain object dtype
         result = DataFrame(index=idx, columns=["var"], dtype=np.float64)
         result.loc[:, idxer] = expected
@@ -2619,7 +2650,7 @@ def test_loc_slice_disallows_positional():
     with pytest.raises(TypeError, match=msg):
         df.loc[1:3, 1]
 
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+    with tm.assert_produces_warning(FutureWarning):
         # GH#31840 deprecated incorrect behavior
         df.loc[1:3, 1] = 2
 
@@ -2930,3 +2961,9 @@ class TestLocSeries:
         )
 
         tm.assert_frame_equal(df, expected)
+
+    def test_getitem_loc_str_periodindex(self):
+        # GH#33964
+        index = pd.period_range(start="2000", periods=20, freq="B")
+        series = Series(range(20), index=index)
+        assert series.loc["2000-01-14"] == 9

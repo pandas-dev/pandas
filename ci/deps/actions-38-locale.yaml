@@ -35,7 +35,7 @@ dependencies:
   - xlsxwriter
   - xlwt
   - moto
-  - pyarrow=1.0.0
+  - pyarrow=1.0.1
   - pip
   - pip:
     - pyxlsb
