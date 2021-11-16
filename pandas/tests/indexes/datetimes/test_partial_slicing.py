@@ -1,7 +1,6 @@
 """ test partial slicing on Series/Frame """
 
 from datetime import datetime
-import operator
 
 import numpy as np
 import pytest
@@ -19,6 +18,23 @@ import pandas._testing as tm
 
 
 class TestSlicing:
+    def test_string_index_series_name_converted(self):
+        # GH#1644
+        df = DataFrame(np.random.randn(10, 4), index=date_range("1/1/2000", periods=10))
+
+        result = df.loc["1/3/2000"]
+        assert result.name == df.index[2]
+
+        result = df.T["1/3/2000"]
+        assert result.name == df.index[2]
+
+    def test_stringified_slice_with_tz(self):
+        # GH#2658
+        start = "2013-01-07"
+        idx = date_range(start=start, freq="1d", periods=10, tz="US/Eastern")
+        df = DataFrame(np.arange(10), index=idx)
+        df["2013-01-14 23:44:34.437768-05:00":]  # no exception here
+
     def test_return_type_doesnt_depend_on_monotonicity(self):
         # GH#24892 we get Series back regardless of whether our DTI is monotonic
         dti = date_range(start="2015-5-13 23:59:00", freq="min", periods=3)
@@ -394,40 +410,6 @@ class TestSlicing:
 
         result = df.loc["2016-10-01T00:00:00":]
         tm.assert_frame_equal(result, df)
-
-    @pytest.mark.parametrize(
-        "datetimelike",
-        [
-            Timestamp("20130101"),
-            datetime(2013, 1, 1),
-            np.datetime64("2013-01-01T00:00", "ns"),
-        ],
-    )
-    @pytest.mark.parametrize(
-        "op,expected",
-        [
-            (operator.lt, [True, False, False, False]),
-            (operator.le, [True, True, False, False]),
-            (operator.eq, [False, True, False, False]),
-            (operator.gt, [False, False, False, True]),
-        ],
-    )
-    def test_selection_by_datetimelike(self, datetimelike, op, expected):
-        # GH issue #17965, test for ability to compare datetime64[ns] columns
-        # to datetimelike
-        df = DataFrame(
-            {
-                "A": [
-                    Timestamp("20120101"),
-                    Timestamp("20130101"),
-                    np.nan,
-                    Timestamp("20130103"),
-                ]
-            }
-        )
-        result = op(df.A, datetimelike)
-        expected = Series(expected, name="A")
-        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
         "start",

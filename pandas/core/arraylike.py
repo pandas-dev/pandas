@@ -11,6 +11,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.construction import extract_array
 from pandas.core.ops import (
@@ -210,7 +211,7 @@ def _maybe_fallback(ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any):
                 "or align manually (eg 'df1, df2 = df1.align(df2)') before passing to "
                 "the ufunc to obtain the future behaviour and silence this warning.",
                 FutureWarning,
-                stacklevel=4,
+                stacklevel=find_stack_level(),
             )
 
             # keep the first dataframe of the inputs, other DataFrame/Series is
@@ -336,7 +337,9 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
                         "Consider explicitly converting the DataFrame "
                         "to an array with '.to_numpy()' first."
                     )
-                    warnings.warn(msg.format(ufunc), FutureWarning, stacklevel=4)
+                    warnings.warn(
+                        msg.format(ufunc), FutureWarning, stacklevel=find_stack_level()
+                    )
                     return result
                 raise NotImplementedError
             return result
@@ -357,7 +360,7 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
         return result
 
     if "out" in kwargs:
-        result = _dispatch_ufunc_with_out(self, ufunc, method, *inputs, **kwargs)
+        result = dispatch_ufunc_with_out(self, ufunc, method, *inputs, **kwargs)
         return reconstruct(result)
 
     # We still get here with kwargs `axis` for e.g. np.maximum.accumulate
@@ -410,7 +413,7 @@ def _standardize_out_kwarg(**kwargs) -> dict:
     return kwargs
 
 
-def _dispatch_ufunc_with_out(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
+def dispatch_ufunc_with_out(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
     """
     If we have an `out` keyword, then call the ufunc without `out` and then
     set the result into the given `out`.

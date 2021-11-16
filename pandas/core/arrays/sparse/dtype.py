@@ -16,6 +16,7 @@ from pandas._typing import (
     type_t,
 )
 from pandas.errors import PerformanceWarning
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import (
     ExtensionDtype,
@@ -371,7 +372,7 @@ class SparseDtype(ExtensionDtype):
 
     def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
         # TODO for now only handle SparseDtypes and numpy dtypes => extend
-        # with other compatibtle extension dtypes
+        # with other compatible extension dtypes
         if any(
             isinstance(x, ExtensionDtype) and not isinstance(x, SparseDtype)
             for x in dtypes
@@ -389,7 +390,7 @@ class SparseDtype(ExtensionDtype):
                 f"values: '{fill_values}'. Picking the first and "
                 "converting the rest.",
                 PerformanceWarning,
-                stacklevel=6,
+                stacklevel=find_stack_level(),
             )
 
         np_dtypes = [x.subtype if isinstance(x, SparseDtype) else x for x in dtypes]

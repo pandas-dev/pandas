@@ -28,6 +28,7 @@ from pandas._libs.tslibs import (
     Resolution,
     Tick,
     parsing,
+    to_offset,
 )
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
@@ -35,6 +36,7 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -61,6 +63,7 @@ from pandas.core.indexes.extension import (
     NDArrayBackedExtensionIndex,
     inherit_names,
 )
+from pandas.core.indexes.range import RangeIndex
 from pandas.core.tools.timedeltas import to_timedelta
 
 if TYPE_CHECKING:
@@ -69,6 +72,7 @@ if TYPE_CHECKING:
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
 _T = TypeVar("_T", bound="DatetimeIndexOpsMixin")
+_TDT = TypeVar("_TDT", bound="DatetimeTimedeltaMixin")
 
 
 @inherit_names(
@@ -92,8 +96,11 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     _field_ops: list[str] = []
 
     # error: "Callable[[Any], Any]" has no attribute "fget"
-    hasnans = cache_readonly(
-        DatetimeLikeArrayMixin._hasnans.fget  # type: ignore[attr-defined]
+    hasnans = cast(
+        bool,
+        cache_readonly(
+            DatetimeLikeArrayMixin._hasnans.fget  # type: ignore[attr-defined]
+        ),
     )
 
     @property
@@ -185,6 +192,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     def _format_with_header(
         self, header: list[str], na_rep: str = "NaT", date_format: str | None = None
     ) -> list[str]:
+        # matches base class except for whitespace padding and date_format
         return header + list(
             self._format_native_types(na_rep=na_rep, date_format=date_format)
         )
@@ -204,39 +212,15 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
                 freq = self.freqstr
                 if freq is not None:
                     freq = repr(freq)  # e.g. D -> 'D'
-                # Argument 1 to "append" of "list" has incompatible type
-                # "Tuple[str, Optional[str]]"; expected "Tuple[str, Union[str, int]]"
-                attrs.append(("freq", freq))  # type: ignore[arg-type]
+                attrs.append(("freq", freq))
         return attrs
 
+    @Appender(Index._summary.__doc__)
     def _summary(self, name=None) -> str:
-        """
-        Return a summarized representation.
-
-        Parameters
-        ----------
-        name : str
-            Name to use in the summary representation.
-
-        Returns
-        -------
-        str
-            Summarized representation of the index.
-        """
-        formatter = self._formatter_func
-        if len(self) > 0:
-            index_summary = f", {formatter(self[0])} to {formatter(self[-1])}"
-        else:
-            index_summary = ""
-
-        if name is None:
-            name = type(self).__name__
-        result = f"{name}: {len(self)} entries{index_summary}"
+        result = super()._summary(name=name)
         if self.freq:
             result += f"\nFreq: {self.freqstr}"
 
-        # display as values, not quoted
-        result = result.replace("'", "")
         return result
 
     # --------------------------------------------------------------------
@@ -420,7 +404,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             f"{type(self).__name__}.is_type_compatible is deprecated and will be "
             "removed in a future version.",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return kind in self._data._infer_matches
 
@@ -432,11 +416,60 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
     # --------------------------------------------------------------------
     # Set Operation Methods
 
+    @cache_readonly
+    def _as_range_index(self) -> RangeIndex:
+        # Convert our i8 representations to RangeIndex
+        # Caller is responsible for checking isinstance(self.freq, Tick)
+        freq = cast(Tick, self.freq)
+        tick = freq.delta.value
+        rng = range(self[0].value, self[-1].value + tick, tick)
+        return RangeIndex(rng)
+
+    def _can_range_setop(self, other):
+        return isinstance(self.freq, Tick) and isinstance(other.freq, Tick)
+
+    def _wrap_range_setop(self, other, res_i8):
+        new_freq = None
+        if not len(res_i8):
+            # RangeIndex defaults to step=1, which we don't want.
+            new_freq = self.freq
+        elif isinstance(res_i8, RangeIndex):
+            new_freq = to_offset(Timedelta(res_i8.step))
+            res_i8 = res_i8
+
+        # TODO: we cannot just do
+        #  type(self._data)(res_i8.values, dtype=self.dtype, freq=new_freq)
+        # because test_setops_preserve_freq fails with _validate_frequency raising.
+        # This raising is incorrect, as 'on_freq' is incorrect. This will
+        # be fixed by GH#41493
+        res_values = res_i8.values.view(self._data._ndarray.dtype)
+        result = type(self._data)._simple_new(
+            res_values, dtype=self.dtype, freq=new_freq
+        )
+        return self._wrap_setop_result(other, result)
+
+    def _range_intersect(self, other, sort):
+        # Dispatch to RangeIndex intersection logic.
+        left = self._as_range_index
+        right = other._as_range_index
+        res_i8 = left.intersection(right, sort=sort)
+        return self._wrap_range_setop(other, res_i8)
+
+    def _range_union(self, other, sort):
+        # Dispatch to RangeIndex union logic.
+        left = self._as_range_index
+        right = other._as_range_index
+        res_i8 = left.union(right, sort=sort)
+        return self._wrap_range_setop(other, res_i8)
+
     def _intersection(self, other: Index, sort=False) -> Index:
         """
         intersection specialized to the case with matching dtypes and both non-empty.
         """
         other = cast("DatetimeTimedeltaMixin", other)
+
+        if self._can_range_setop(other):
+            return self._range_intersect(other, sort=sort)
 
         if not self._can_fast_intersect(other):
             result = Index._intersection(self, other, sort=sort)
@@ -452,7 +485,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             return self._fast_intersect(other, sort)
 
     def _fast_intersect(self, other, sort):
-
         # to make our life easier, "sort" the two ranges
         if self[0] <= other[0]:
             left, right = self, other
@@ -484,19 +516,9 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             # Because freq is not None, we must then be monotonic decreasing
             return False
 
-        elif self.freq.is_anchored():
-            # this along with matching freqs ensure that we "line up",
-            #  so intersection will preserve freq
-            # GH#42104
-            return self.freq.n == 1
-
-        elif isinstance(self.freq, Tick):
-            # We "line up" if and only if the difference between two of our points
-            #  is a multiple of our freq
-            diff = self[0] - other[0]
-            remainder = diff % self.freq.delta
-            return remainder == Timedelta(0)
-
+        # this along with matching freqs ensure that we "line up",
+        #  so intersection will preserve freq
+        # Note we are assuming away Ticks, as those go through _range_intersect
         # GH#42104
         return self.freq.n == 1
 
@@ -515,6 +537,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             return False
 
         if len(self) == 0 or len(other) == 0:
+            # only reached via union_many
             return True
 
         # to make our life easier, "sort" the two ranges
@@ -529,7 +552,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         # Only need to "adjoin", not overlap
         return (right_start == left_end + freq) or right_start in left
 
-    def _fast_union(self: _T, other: _T, sort=None) -> _T:
+    def _fast_union(self: _TDT, other: _TDT, sort=None) -> _TDT:
         # Caller is responsible for ensuring self and other are non-empty
 
         # to make our life easier, "sort" the two ranges
@@ -543,10 +566,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             loc = right.searchsorted(left_start, side="left")
             right_chunk = right._values[:loc]
             dates = concat_compat((left._values, right_chunk))
-            # With sort being False, we can't infer that result.freq == self.freq
-            # TODO: no tests rely on the _with_freq("infer"); needed?
             result = type(self)._simple_new(dates, name=self.name)
-            result = result._with_freq("infer")
             return result
         else:
             left, right = other, self
@@ -571,6 +591,9 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         # We are called by `union`, which is responsible for this validation
         assert isinstance(other, type(self))
         assert self.dtype == other.dtype
+
+        if self._can_range_setop(other):
+            return self._range_union(other, sort=sort)
 
         if self._can_fast_union(other):
             result = self._fast_union(other, sort=sort)
@@ -651,7 +674,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
                     freq = self.freq
             else:
                 # Adding a single item to an empty index may preserve freq
-                if self.freq.is_on_offset(item):
+                if isinstance(self.freq, Tick):
+                    # all TimedeltaIndex cases go through here; is_on_offset
+                    #  would raise TypeError
+                    freq = self.freq
+                elif self.freq.is_on_offset(item):
                     freq = self.freq
         return freq
 
@@ -671,15 +698,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
 
     # --------------------------------------------------------------------
     # NDArray-Like Methods
-
-    def __array_wrap__(self, result, context=None):
-        """
-        Gets called after a ufunc and other functions.
-        """
-        out = super().__array_wrap__(result, context=context)
-        if isinstance(out, DatetimeTimedeltaMixin) and self.freq is not None:
-            out = out._with_freq("infer")
-        return out
 
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True, fill_value=None, **kwargs):

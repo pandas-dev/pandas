@@ -774,7 +774,7 @@ def test_apply_series_on_date_time_index_aware_series(dti, exp, aware):
     tm.assert_frame_equal(result, exp)
 
 
-def test_apply_scaler_on_date_time_index_aware_series():
+def test_apply_scalar_on_date_time_index_aware_series():
     # GH 25959
     # Calling apply on a localized time series should not cause an error
     series = tm.makeTimeSeries(nper=30).tz_localize("UTC")
@@ -878,3 +878,15 @@ def test_apply_dictlike_transformer(string_series, ops):
         expected.name = string_series.name
         result = string_series.apply(ops)
         tm.assert_series_equal(result, expected)
+
+
+def test_apply_retains_column_name():
+    # GH 16380
+    df = DataFrame({"x": range(3)}, Index(range(3), name="x"))
+    result = df.x.apply(lambda x: Series(range(x + 1), Index(range(x + 1), name="y")))
+    expected = DataFrame(
+        [[0.0, np.nan, np.nan], [0.0, 1.0, np.nan], [0.0, 1.0, 2.0]],
+        columns=Index(range(3), name="y"),
+        index=Index(range(3), name="x"),
+    )
+    tm.assert_frame_equal(result, expected)

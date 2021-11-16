@@ -74,8 +74,15 @@ class TestScalar(Base):
             _check(f, "at")
 
 
-class TestScalar2:
-    # TODO: Better name, just separating things that dont need Base class
+class TestAtAndiAT:
+    # at and iat tests that don't need Base class
+
+    def test_float_index_at_iat(self):
+        ser = Series([1, 2, 3], index=[0.1, 0.2, 0.3])
+        for el, item in ser.items():
+            assert ser.at[el] == item
+        for i in range(len(ser)):
+            assert ser.iat[i] == i + 1
 
     def test_at_iat_coercion(self):
 
@@ -213,19 +220,6 @@ class TestScalar2:
         result.iat[0, 0] = None
         expected = DataFrame({"a": [None, 1], "b": [4, 5]})
         tm.assert_frame_equal(result, expected)
-
-    def test_getitem_zerodim_np_array(self):
-        # GH24924
-        # dataframe __getitem__
-        df = DataFrame([[1, 2], [3, 4]])
-        result = df[np.array(0)]
-        expected = Series([1, 3], name=0)
-        tm.assert_series_equal(result, expected)
-
-        # series __getitem__
-        s = Series([1, 2])
-        result = s[np.array(0)]
-        assert result == 1
 
 
 def test_iat_dont_wrap_object_datetimelike():

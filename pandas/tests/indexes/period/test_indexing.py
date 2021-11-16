@@ -52,14 +52,6 @@ def non_comparable_idx(request):
 
 
 class TestGetItem:
-    def test_ellipsis(self):
-        # GH#21282
-        idx = period_range("2011-01-01", "2011-01-31", freq="D", name="idx")
-
-        result = idx[...]
-        assert result.equals(idx)
-        assert result is not idx
-
     def test_getitem_slice_keeps_name(self):
         idx = period_range("20010101", periods=10, freq="D", name="bob")
         assert idx.name == idx[1:].name
@@ -205,6 +197,7 @@ class TestGetItem:
                 # GH7116
                 # these show deprecations as we are trying
                 # to slice with non-integer indexers
+                # FIXME: don't leave commented-out
                 # with pytest.raises(IndexError):
                 #    idx[v]
                 continue
@@ -602,17 +595,16 @@ class TestGetIndexer:
 
 
 class TestWhere:
-    @pytest.mark.parametrize("klass", [list, tuple, np.array, Series])
-    def test_where(self, klass):
+    def test_where(self, listlike_box):
         i = period_range("20130101", periods=5, freq="D")
         cond = [True] * len(i)
         expected = i
-        result = i.where(klass(cond))
+        result = i.where(listlike_box(cond))
         tm.assert_index_equal(result, expected)
 
         cond = [False] + [True] * (len(i) - 1)
         expected = PeriodIndex([NaT] + i[1:].tolist(), freq="D")
-        result = i.where(klass(cond))
+        result = i.where(listlike_box(cond))
         tm.assert_index_equal(result, expected)
 
     def test_where_other(self):
@@ -814,12 +806,6 @@ class TestGetValue:
         with tm.assert_produces_warning(FutureWarning):
             result2 = idx2.get_value(input2, p1)
         tm.assert_series_equal(result2, expected2)
-
-    def test_loc_str(self):
-        # https://github.com/pandas-dev/pandas/issues/33964
-        index = period_range(start="2000", periods=20, freq="B")
-        series = Series(range(20), index=index)
-        assert series.loc["2000-01-14"] == 9
 
     @pytest.mark.parametrize("freq", ["H", "D"])
     def test_get_value_datetime_hourly(self, freq):

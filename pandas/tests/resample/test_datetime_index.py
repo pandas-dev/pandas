@@ -575,12 +575,14 @@ def test_resample_ohlc_dataframe():
             }
         )
     ).reindex(["VOLUME", "PRICE"], axis=1)
+    df.columns.name = "Cols"
     res = df.resample("H").ohlc()
     exp = pd.concat(
         [df["VOLUME"].resample("H").ohlc(), df["PRICE"].resample("H").ohlc()],
         axis=1,
-        keys=["VOLUME", "PRICE"],
+        keys=df.columns,
     )
+    assert exp.columns.names[0] == "Cols"
     tm.assert_frame_equal(exp, res)
 
     df.columns = [["a", "b"], ["c", "d"]]
@@ -1690,8 +1692,6 @@ def test_resample_apply_with_additional_args(series):
     df = DataFrame({"A": 1, "B": 2}, index=date_range("2017", periods=10))
     result = df.groupby("A").resample("D").agg(f, multiplier).astype(float)
     expected = df.groupby("A").resample("D").mean().multiply(multiplier)
-    # TODO: GH 41137
-    expected = expected.astype("float64")
     tm.assert_frame_equal(result, expected)
 
 
