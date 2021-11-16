@@ -154,9 +154,7 @@ class TestNumericOnly:
             ],
         )
 
-        with tm.assert_produces_warning(
-            FutureWarning, match="Dropping invalid", check_stacklevel=False
-        ):
+        with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
             result = getattr(gb, method)(numeric_only=False)
         tm.assert_frame_equal(result.reindex_like(expected), expected)
 
@@ -394,8 +392,7 @@ def test_median_empty_bins(observed):
 
     result = df.groupby(bins, observed=observed).median()
     expected = df.groupby(bins, observed=observed).agg(lambda x: x.median())
-    # TODO: GH 41137
-    tm.assert_frame_equal(result, expected, check_dtype=False)
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(

@@ -12,7 +12,7 @@ from pandas.api.extensions import (
     register_extension_dtype,
 )
 
-pytest.importorskip("pyarrow", minversion="0.13.0")
+pytest.importorskip("pyarrow", minversion="1.0.1")
 
 import pyarrow as pa  # isort:skip
 

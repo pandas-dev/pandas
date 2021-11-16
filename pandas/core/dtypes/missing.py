@@ -475,8 +475,8 @@ def array_equivalent(
     return np.array_equal(left, right)
 
 
-def _array_equivalent_float(left, right):
-    return ((left == right) | (np.isnan(left) & np.isnan(right))).all()
+def _array_equivalent_float(left, right) -> bool:
+    return bool(((left == right) | (np.isnan(left) & np.isnan(right))).all())
 
 
 def _array_equivalent_datetimelike(left, right):

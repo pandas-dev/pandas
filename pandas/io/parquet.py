@@ -74,7 +74,7 @@ def _get_path_or_handle(
     storage_options: StorageOptions = None,
     mode: str = "rb",
     is_dir: bool = False,
-) -> tuple[FilePathOrBuffer, IOHandles | None, Any]:
+) -> tuple[FilePathOrBuffer, IOHandles[bytes] | None, Any]:
     """File handling for PyArrow."""
     path_or_handle = stringify_path(path)
     if is_fsspec_url(path_or_handle) and fs is None:
