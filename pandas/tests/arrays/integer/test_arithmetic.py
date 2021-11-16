@@ -179,17 +179,16 @@ def test_error_invalid_values(data, all_arithmetic_operators):
     with pytest.raises(TypeError, match=msg):
         ops(pd.Series("foo", index=s.index))
 
-    if op != "__rpow__":
-        # TODO(extension)
-        # rpow with a datetimelike coerces the integer array incorrectly
-        msg = (
-            "can only perform ops with numeric values|"
-            "cannot perform .* with this index type: DatetimeArray|"
+    msg = "|".join(
+        [
+            "can only perform ops with numeric values",
+            "cannot perform .* with this index type: DatetimeArray",
             "Addition/subtraction of integers and integer-arrays "
-            "with DatetimeArray is no longer supported. *"
-        )
-        with pytest.raises(TypeError, match=msg):
-            ops(pd.Series(pd.date_range("20180101", periods=len(s))))
+            "with DatetimeArray is no longer supported. *",
+        ]
+    )
+    with pytest.raises(TypeError, match=msg):
+        ops(pd.Series(pd.date_range("20180101", periods=len(s))))
 
 
 # Various
