@@ -2903,7 +2903,6 @@ class Styler(StylerRenderer):
         null_color : str, default 'red'
         %(subset)s
             .. versionadded:: 1.1.0
-
         %(props)s
             .. versionadded:: 1.3.0
 
