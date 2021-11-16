@@ -210,6 +210,8 @@ Other enhancements
 - :meth:`read_excel` now accepts a ``decimal`` argument that allow the user to specify the decimal point when parsing string columns to numeric (:issue:`14403`)
 - :meth:`.GroupBy.mean` now supports `Numba <http://numba.pydata.org/>`_ execution with the ``engine`` keyword (:issue:`43731`)
 - :meth:`Timestamp.isoformat`, now handles the ``timespec`` argument from the base :class:``datetime`` class (:issue:`26131`)
+- :meth:`NaT.to_numpy` ``dtype`` argument is now respected, so ``np.timedelta64`` can be returned (:issue:`44460`)
+-
 
 .. ---------------------------------------------------------------------------
 
@@ -538,12 +540,12 @@ Datetimelike
 - Bug in inplace addition and subtraction of :class:`DatetimeIndex` or :class:`TimedeltaIndex` with :class:`DatetimeArray` or :class:`TimedeltaArray` (:issue:`43904`)
 - Bug in in calling ``np.isnan``, ``np.isfinite``, or ``np.isinf`` on a timezone-aware :class:`DatetimeIndex` incorrectly raising ``TypeError`` (:issue:`43917`)
 - Bug in constructing a :class:`Series` from datetime-like strings with mixed timezones incorrectly partially-inferring datetime values (:issue:`40111`)
--
+- Bug in addition with a :class:`Tick` object and a ``np.timedelta64`` object incorrectly raising instead of returning :class:`Timedelta` (:issue:`44474`)
 
 Timedelta
 ^^^^^^^^^
 - Bug in division of all-``NaT`` :class:`TimeDeltaIndex`, :class:`Series` or :class:`DataFrame` column with object-dtype arraylike of numbers failing to infer the result as timedelta64-dtype (:issue:`39750`)
--
+- Bug in floor division of ``timedelta64[ns]`` data with a scalar returning garbage values (:issue:`44466`)
 
 Timezones
 ^^^^^^^^^
@@ -605,7 +607,7 @@ Indexing
 - Bug in :meth:`Series.__setitem__` with an integer dtype other than ``int64`` setting with a ``range`` object unnecessarily upcasting to ``int64`` (:issue:`44261`)
 - Bug in :meth:`Series.__setitem__` with a boolean mask indexer setting a listlike value of length 1 incorrectly broadcasting that value (:issue:`44265`)
 - Bug in :meth:`DataFrame.loc.__setitem__` and :meth:`DataFrame.iloc.__setitem__` with mixed dtypes sometimes failing to operate in-place (:issue:`44345`)
--
+- Bug in :meth:`DataFrame.loc.__getitem__` incorrectly raising ``KeyError`` when selecting a single column with a boolean key (:issue:`44322`).
 
 Missing
 ^^^^^^^

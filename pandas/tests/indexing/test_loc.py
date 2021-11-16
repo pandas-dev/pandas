@@ -178,6 +178,26 @@ class TestLoc(Base):
         )
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.parametrize(
+        "obj, key, exp",
+        [
+            (
+                DataFrame([[1]], columns=Index([False])),
+                IndexSlice[:, False],
+                Series([1], name=False),
+            ),
+            (Series([1], index=Index([False])), False, [1]),
+            (DataFrame([[1]], index=Index([False])), False, Series([1], name=False)),
+        ],
+    )
+    def test_loc_getitem_single_boolean_arg(self, obj, key, exp):
+        # GH 44322
+        res = obj.loc[key]
+        if isinstance(exp, (DataFrame, Series)):
+            tm.assert_equal(res, exp)
+        else:
+            assert res == exp
+
 
 class TestLoc2:
     # TODO: better name, just separating out things that rely on base class
@@ -1374,7 +1394,7 @@ class TestLoc2:
         tz = tz_naive_fixture
         idx = date_range(start="2015-07-12", periods=3, freq="H", tz=tz)
         expected = DataFrame(1.2, index=idx, columns=["var"])
-        # if result started off with object dtype, tehn the .loc.__setitem__
+        # if result started off with object dtype, then the .loc.__setitem__
         #  below would retain object dtype
         result = DataFrame(index=idx, columns=["var"], dtype=np.float64)
         result.loc[:, idxer] = expected
@@ -2630,7 +2650,7 @@ def test_loc_slice_disallows_positional():
     with pytest.raises(TypeError, match=msg):
         df.loc[1:3, 1]
 
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+    with tm.assert_produces_warning(FutureWarning):
         # GH#31840 deprecated incorrect behavior
         df.loc[1:3, 1] = 2
 
