@@ -40,7 +40,6 @@ from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
     from pandas import MultiIndex
-    from pandas.core.groupby.grouper import Grouping
     from pandas.core.indexes.base import Index
 
 
@@ -249,7 +248,7 @@ def decons_obs_group_ids(
     shape,
     labels,
     xnull: bool,
-    levels_with_na: list[int] = None,
+    levels_with_na: list[int] | None = None,
 ):
     """
     Reconstruct labels from observed group ids.
