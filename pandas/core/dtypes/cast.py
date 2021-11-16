@@ -1584,6 +1584,7 @@ def maybe_infer_to_datetimelike(
                 value = try_datetime(v)  # type: ignore[assignment]
 
     if value.dtype.kind in ["m", "M"] and seen_str:
+        # TODO(2.0): enforcing this deprecation should close GH#40111
         warnings.warn(
             f"Inferring {value.dtype} from data containing strings is deprecated "
             "and will be removed in a future version. To retain the old behavior "

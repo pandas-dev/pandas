@@ -994,7 +994,7 @@ class _LocIndexer(_LocationIndexer):
         # slice of labels (where start-end in labels)
         # slice of integers (only if in the labels)
         # boolean not in slice and with boolean index
-        if isinstance(key, bool) and not is_bool_dtype(self.obj.index):
+        if isinstance(key, bool) and not is_bool_dtype(self.obj._get_axis(axis)):
             raise KeyError(
                 f"{key}: boolean label can not be used without a boolean index"
             )
@@ -1902,11 +1902,13 @@ class _iLocIndexer(_LocationIndexer):
             ):
                 col = item_labels[indexer[info_axis]]
                 if len(item_labels.get_indexer_for([col])) == 1:
+                    # e.g. test_loc_setitem_empty_append_expands_rows
                     loc = item_labels.get_loc(col)
                     self.obj._iset_item(loc, value, inplace=True)
                     return
 
-            indexer = maybe_convert_ix(*indexer)
+            indexer = maybe_convert_ix(*indexer)  # e.g. test_setitem_frame_align
+
         if (isinstance(value, ABCSeries) and name != "iloc") or isinstance(value, dict):
             # TODO(EA): ExtensionBlock.setitem this causes issues with
             # setting for extensionarrays that store dicts. Need to decide
