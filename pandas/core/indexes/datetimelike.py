@@ -30,6 +30,7 @@ from pandas._libs.tslibs import (
     parsing,
     to_offset,
 )
+from pandas._typing import FloatFormatType
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender,
@@ -188,6 +189,30 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
             return header + list(self.map(formatter))
 
         return self._format_with_header(header, na_rep=na_rep, date_format=date_format)
+
+    def _format_array(
+        self,
+        formatter: Callable | None,
+        float_format: FloatFormatType = None,
+        na_rep: str = "NaN",
+        digits: int = None,
+        space: str | int = None,
+        justify: str = "right",
+        decimal: str = ".",
+        leading_space: bool | None = True,
+        quoting: int | None = None,
+    ):
+        return self.array._format_array(
+            formatter=formatter,
+            float_format=float_format,
+            na_rep=na_rep,
+            digits=digits,
+            space=space,
+            justify=justify,
+            decimal=decimal,
+            leading_space=leading_space,
+            quoting=quoting,
+        )
 
     def _format_with_header(
         self, header: list[str], na_rep: str = "NaT", date_format: str | None = None

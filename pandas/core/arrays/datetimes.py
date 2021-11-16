@@ -8,6 +8,7 @@ from datetime import (
 )
 from typing import (
     TYPE_CHECKING,
+    Callable,
     Literal,
     overload,
 )
@@ -37,7 +38,10 @@ from pandas._libs.tslibs import (
     to_offset,
     tzconversion,
 )
-from pandas._typing import npt
+from pandas._typing import (
+    FloatFormatType,
+    npt,
+)
 from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_inclusive
@@ -680,6 +684,43 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         return tslib.format_array_from_datetime(
             self.asi8, tz=self.tz, format=fmt, na_rep=na_rep
         )
+
+    def _format_array(
+        self,
+        formatter: Callable | None,
+        float_format: FloatFormatType = None,
+        na_rep: str = "NaN",
+        digits: int = None,
+        space: str | int = None,
+        justify: str = "right",
+        decimal: str = ".",
+        leading_space: bool | None = True,
+        quoting: int | None = None,
+    ) -> list[str]:
+        from pandas.io.formats.format import (
+            Datetime64Formatter,
+            Datetime64TZFormatter,
+        )
+
+        if is_datetime64tz_dtype(self.dtype):
+            fmt_klass = Datetime64TZFormatter
+        else:
+            fmt_klass = Datetime64Formatter
+
+        fmt_obj = fmt_klass(
+            self,
+            digits=digits,
+            na_rep=na_rep,
+            float_format=float_format,
+            formatter=formatter,
+            space=space,
+            justify=justify,
+            decimal=decimal,
+            leading_space=leading_space,
+            quoting=quoting,
+        )
+
+        return fmt_obj.get_result()
 
     # -----------------------------------------------------------------
     # Comparison Methods

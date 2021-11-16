@@ -29,6 +29,7 @@ from pandas._typing import (
     AstypeArg,
     Dtype,
     FillnaOptions,
+    FloatFormatType,
     PositionalIndexer,
     ScalarIndexer,
     SequenceIndexer,
@@ -137,6 +138,7 @@ class ExtensionArray:
     view
     _concat_same_type
     _formatter
+    _format_array
     _from_factorized
     _from_sequence
     _from_sequence_of_strings
@@ -167,6 +169,8 @@ class ExtensionArray:
 
     * __repr__ : A default repr for the ExtensionArray.
     * _formatter : Print scalars inside a Series or DataFrame.
+    * _format_array: Full control over formatting an ExtensionArray
+      to be included in a Series or DataFrame.
 
     Some methods require casting the ExtensionArray to an ndarray of Python
     objects with ``self.astype(object)``, which may be expensive. When
@@ -1231,6 +1235,76 @@ class ExtensionArray:
         data = ",\n".join(lines)
         class_name = f"<{type(self).__name__}>"
         return f"{class_name}\n[\n{data}\n]\nShape: {self.shape}, dtype: {self.dtype}"
+
+    def _format_array(
+        self,
+        formatter: Callable | None,
+        float_format: FloatFormatType = None,
+        na_rep: str = "NaN",
+        digits: int = None,
+        space: str | int = None,
+        justify: str = "right",
+        decimal: str = ".",
+        leading_space: bool | None = True,
+        quoting: int | None = None,
+    ) -> list[str]:
+        """
+        Format an array of of values.
+
+        Parameters
+        ----------
+        formatter : Callable, optional
+            The function to apply to each element of the array to convert it
+            to a string. By default, `self._formatter` is used.
+        float_format
+        na_rep
+        digits
+        space
+        justify
+        decimal
+        leading_space : bool, optional, default True
+            Whether the array should be formatted with a leading space.
+            When an array as a column of a Series or DataFrame, we do want
+            the leading space to pad between columns.
+
+            When formatting an Index subclass
+            (e.g. IntervalIndex._format_native_types), we don't want the
+            leading space since it should be left-aligned.
+
+
+        """
+        from pandas import Categorical
+        from pandas.core.construction import extract_array
+
+        from pandas.io.formats.format import format_array
+
+        # values = self
+        values = extract_array(self, extract_numpy=True)
+
+        if formatter is None:
+            # error: Item "ndarray" of "Union[Any, Union[ExtensionArray, ndarray]]" has
+            # no attribute "_formatter"
+            formatter = values._formatter(boxed=True)  # type: ignore[union-attr]
+
+        if isinstance(values, Categorical):
+            # Categorical is special for now, so that we can preserve tzinfo
+            array = values._internal_get_values()
+        else:
+            array = np.asarray(values)
+
+        fmt_values = format_array(
+            array,
+            formatter,
+            float_format=float_format,
+            na_rep=na_rep,
+            digits=digits,
+            space=space,
+            justify=justify,
+            decimal=decimal,
+            leading_space=leading_space,
+            quoting=quoting,
+        )
+        return fmt_values
 
     def _formatter(self, boxed: bool = False) -> Callable[[Any], str | None]:
         """

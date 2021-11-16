@@ -1276,20 +1276,6 @@ def format_array(
     List[str]
     """
     fmt_klass: type[GenericArrayFormatter]
-    if is_datetime64_dtype(values.dtype):
-        fmt_klass = Datetime64Formatter
-    elif is_datetime64tz_dtype(values.dtype):
-        fmt_klass = Datetime64TZFormatter
-    elif is_timedelta64_dtype(values.dtype):
-        fmt_klass = Timedelta64Formatter
-    elif is_extension_array_dtype(values.dtype):
-        fmt_klass = ExtensionArrayFormatter
-    elif is_float_dtype(values.dtype) or is_complex_dtype(values.dtype):
-        fmt_klass = FloatArrayFormatter
-    elif is_integer_dtype(values.dtype):
-        fmt_klass = IntArrayFormatter
-    else:
-        fmt_klass = GenericArrayFormatter
 
     if space is None:
         space = get_option("display.column_space")
@@ -1299,6 +1285,31 @@ def format_array(
 
     if digits is None:
         digits = get_option("display.precision")
+
+    if is_extension_array_dtype(values):
+        return values._format_array(
+            formatter,
+            float_format,
+            na_rep,
+            digits,
+            space,
+            justify,
+            decimal,
+            leading_space,
+            quoting,
+        )
+    elif is_datetime64_dtype(values.dtype):
+        fmt_klass = Datetime64Formatter
+    elif is_datetime64tz_dtype(values.dtype):
+        fmt_klass = Datetime64TZFormatter
+    elif is_timedelta64_dtype(values.dtype):
+        fmt_klass = Timedelta64Formatter
+    elif is_float_dtype(values.dtype) or is_complex_dtype(values.dtype):
+        fmt_klass = FloatArrayFormatter
+    elif is_integer_dtype(values.dtype):
+        fmt_klass = IntArrayFormatter
+    else:
+        fmt_klass = GenericArrayFormatter
 
     fmt_obj = fmt_klass(
         values,
@@ -1631,37 +1642,6 @@ class Datetime64Formatter(GenericArrayFormatter):
             na_rep=self.nat_rep, date_format=self.date_format
         )
         return fmt_values.tolist()
-
-
-class ExtensionArrayFormatter(GenericArrayFormatter):
-    def _format_strings(self) -> list[str]:
-        values = extract_array(self.values, extract_numpy=True)
-
-        formatter = self.formatter
-        if formatter is None:
-            # error: Item "ndarray" of "Union[Any, Union[ExtensionArray, ndarray]]" has
-            # no attribute "_formatter"
-            formatter = values._formatter(boxed=True)  # type: ignore[union-attr]
-
-        if isinstance(values, Categorical):
-            # Categorical is special for now, so that we can preserve tzinfo
-            array = values._internal_get_values()
-        else:
-            array = np.asarray(values)
-
-        fmt_values = format_array(
-            array,
-            formatter,
-            float_format=self.float_format,
-            na_rep=self.na_rep,
-            digits=self.digits,
-            space=self.space,
-            justify=self.justify,
-            decimal=self.decimal,
-            leading_space=self.leading_space,
-            quoting=self.quoting,
-        )
-        return fmt_values
 
 
 def format_percentiles(
