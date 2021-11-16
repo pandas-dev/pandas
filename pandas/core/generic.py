@@ -22,7 +22,8 @@ from typing import (
     cast,
     final,
     overload,
-), Union
+    Union,
+)
 import warnings
 import weakref
 
