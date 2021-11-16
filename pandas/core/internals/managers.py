@@ -861,9 +861,9 @@ class BaseBlockManager(DataManager):
         """
         # We have 6 tests that get here with a slice
         indexer = (
-            np.arange(indexer.start, indexer.stop, indexer.step, dtype="int64")
+            np.arange(indexer.start, indexer.stop, indexer.step, dtype=np.intp)
             if isinstance(indexer, slice)
-            else np.asanyarray(indexer, dtype="int64")
+            else np.asanyarray(indexer, dtype=np.intp)
         )
 
         n = self.shape[axis]

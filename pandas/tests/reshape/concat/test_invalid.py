@@ -34,9 +34,11 @@ class TestInvalidConcat:
         with pytest.raises(TypeError, match=msg):
             concat(df1)
 
+    def test_concat_generator_obj(self):
         # generator ok though
         concat(DataFrame(np.random.rand(5, 5)) for _ in range(3))
 
+    def test_concat_textreader_obj(self):
         # text reader ok
         # GH6583
         data = """index,A,B,C,D

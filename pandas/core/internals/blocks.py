@@ -930,10 +930,7 @@ class Block(PandasObject):
             value = setitem_datetimelike_compat(values, len(values[indexer]), value)
             values[indexer] = value
 
-        if transpose:
-            values = values.T
-        block = type(self)(values, placement=self._mgr_locs, ndim=self.ndim)
-        return block
+        return self
 
     def putmask(self, mask, new) -> list[Block]:
         """
@@ -961,9 +958,7 @@ class Block(PandasObject):
             new = self.fill_value
 
         if self._can_hold_element(new):
-            # error: Argument 1 to "putmask_without_repeat" has incompatible type
-            # "Union[ndarray, ExtensionArray]"; expected "ndarray"
-            putmask_without_repeat(self.values.T, mask, new)  # type: ignore[arg-type]
+            putmask_without_repeat(values.T, mask, new)
             return [self]
 
         elif noop:
