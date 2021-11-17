@@ -109,6 +109,7 @@ Styler
   - Bug where row trimming failed to reflect hidden rows (:issue:`43703`, :issue:`44247`)
   - Update and expand the export and use mechanics (:issue:`40675`)
   - New method :meth:`.Styler.hide` added and deprecates :meth:`.Styler.hide_index` and :meth:`.Styler.hide_columns` (:issue:`43758`)
+  - New method :meth:`.Styler.to_string` for alternative customisable output methods (:issue:`44502`)
 
 Formerly Styler relied on ``display.html.use_mathjax``, which has now been replaced by ``styler.html.mathjax``.
 
