@@ -605,7 +605,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         data = self._data[~self._mask]
         value_counts = Index(data).value_counts()
 
-        # TODO(extension)
+        # TODO(ExtensionIndex)
         # if we have allow Index to hold an ExtensionArray
         # this is easier
         index = value_counts.index._values.astype(object)

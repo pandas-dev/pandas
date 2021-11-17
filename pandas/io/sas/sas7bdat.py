@@ -103,13 +103,14 @@ class _Column:
     col_id: int
     name: str | bytes
     label: str | bytes
-    format: str | bytes  # TODO: i think allowing bytes is from py2 days
+    format: str | bytes
     ctype: bytes
     length: int
 
     def __init__(
         self,
         col_id: int,
+        # These can be bytes when convert_header_text is False
         name: str | bytes,
         label: str | bytes,
         format: str | bytes,
