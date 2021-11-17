@@ -2158,9 +2158,6 @@ class SQLiteDatabase(PandasSQL):
         table.insert(chunksize, method)
 
     def has_table(self, name: str, schema: str | None = None):
-        # TODO(wesm): unused?
-        # escape = _get_valid_sqlite_name
-        # esc_name = escape(name)
 
         wld = "?"
         query = f"SELECT name FROM sqlite_master WHERE type='table' AND name={wld};"
