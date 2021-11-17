@@ -236,7 +236,6 @@ class TestInsert:
         result = dti.insert(1, item)
 
         if isinstance(item, np.ndarray):
-            # FIXME: without doing .item() here this segfaults
             assert item.item() == 0
             expected = Index([dti[0], 0] + list(dti[1:]), dtype=object, name=9)
         else:
