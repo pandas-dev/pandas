@@ -8,7 +8,9 @@ import operator
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
+    Hashable,
     Literal,
+    Sequence,
     Union,
     cast,
     final,
@@ -27,11 +29,13 @@ from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
     DtypeObj,
+    IndexLabel,
     Scalar,
     TakeIndexer,
     npt,
 )
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
@@ -58,6 +62,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     needs_i8_conversion,
 )
+from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import PandasDtype
 from pandas.core.dtypes.generic import (
     ABCDatetimeArray,
@@ -144,7 +149,7 @@ def _ensure_data(values: ArrayLike) -> np.ndarray:
             # i.e. all-bool Categorical, BooleanArray
             try:
                 return np.asarray(values).astype("uint8", copy=False)
-            except TypeError:
+            except (TypeError, ValueError):
                 # GH#42107 we have pd.NAs present
                 return np.asarray(values)
 
@@ -1255,10 +1260,12 @@ class SelectNFrame(SelectN):
     nordered : DataFrame
     """
 
-    def __init__(self, obj, n: int, keep: str, columns):
+    def __init__(self, obj: DataFrame, n: int, keep: str, columns: IndexLabel):
         super().__init__(obj, n, keep)
         if not is_list_like(columns) or isinstance(columns, tuple):
             columns = [columns]
+
+        columns = cast(Sequence[Hashable], columns)
         columns = list(columns)
         self.columns = columns
 
@@ -1544,7 +1551,7 @@ def searchsorted(
 _diff_special = {"float64", "float32", "int64", "int32", "int16", "int8"}
 
 
-def diff(arr, n: int, axis: int = 0, stacklevel: int = 3):
+def diff(arr, n: int, axis: int = 0):
     """
     difference of n between self,
     analogous to s-s.shift(n)
@@ -1590,7 +1597,7 @@ def diff(arr, n: int, axis: int = 0, stacklevel: int = 3):
                 "dtype lost in 'diff()'. In the future this will raise a "
                 "TypeError. Convert to a suitable dtype prior to calling 'diff'.",
                 FutureWarning,
-                stacklevel=stacklevel,
+                stacklevel=find_stack_level(),
             )
             arr = np.asarray(arr)
             dtype = arr.dtype
@@ -1829,17 +1836,18 @@ def union_with_duplicates(lvals: ArrayLike, rvals: ArrayLike) -> ArrayLike:
     -------
     np.ndarray or ExtensionArray
         Containing the unsorted union of both arrays.
+
+    Notes
+    -----
+    Caller is responsible for ensuring lvals.dtype == rvals.dtype.
     """
     indexer = []
     l_count = value_counts(lvals, dropna=False)
     r_count = value_counts(rvals, dropna=False)
     l_count, r_count = l_count.align(r_count, fill_value=0)
-    unique_array = unique(np.append(lvals, rvals))
-    if not isinstance(lvals, np.ndarray):
-        # i.e. ExtensionArray
-        # Note: we only get here with lvals.dtype == rvals.dtype
-        # TODO: are there any cases where union won't be type/dtype preserving?
-        unique_array = type(lvals)._from_sequence(unique_array, dtype=lvals.dtype)
+    unique_array = unique(concat_compat([lvals, rvals]))
+    unique_array = ensure_wrapped_if_datetimelike(unique_array)
+
     for i, value in enumerate(unique_array):
         indexer += [i] * int(max(l_count[value], r_count[value]))
     return unique_array.take(indexer)

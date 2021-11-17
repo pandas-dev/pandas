@@ -234,6 +234,14 @@ thousands : str, default None
     this parameter is only necessary for columns stored as TEXT in Excel,
     any numeric columns will automatically be parsed, regardless of display
     format.
+decimal : str, default '.'
+    Character to recognize as decimal point for parsing string columns to numeric.
+    Note that this parameter is only necessary for columns stored as TEXT in Excel,
+    any numeric columns will automatically be parsed, regardless of display
+    format.(e.g. use ',' for European data).
+
+    .. versionadded:: 1.4.0
+
 comment : str, default None
     Comments out remainder of line. Pass a character or characters to this
     argument to indicate comments in the input file. Any data between the
@@ -356,6 +364,7 @@ def read_excel(
     parse_dates=False,
     date_parser=None,
     thousands=None,
+    decimal=".",
     comment=None,
     skipfooter=0,
     convert_float=None,
@@ -394,6 +403,7 @@ def read_excel(
             parse_dates=parse_dates,
             date_parser=date_parser,
             thousands=thousands,
+            decimal=decimal,
             comment=comment,
             skipfooter=skipfooter,
             convert_float=convert_float,
@@ -498,6 +508,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         parse_dates=False,
         date_parser=None,
         thousands=None,
+        decimal=".",
         comment=None,
         skipfooter=0,
         convert_float=None,
@@ -508,11 +519,10 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         if convert_float is None:
             convert_float = True
         else:
-            stacklevel = find_stack_level()
             warnings.warn(
                 "convert_float is deprecated and will be removed in a future version.",
                 FutureWarning,
-                stacklevel=stacklevel,
+                stacklevel=find_stack_level(),
             )
 
         validate_header_arg(header)
@@ -624,6 +634,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                     parse_dates=parse_dates,
                     date_parser=date_parser,
                     thousands=thousands,
+                    decimal=decimal,
                     comment=comment,
                     skipfooter=skipfooter,
                     usecols=usecols,
@@ -821,7 +832,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             warnings.warn(
                 "Use of **kwargs is deprecated, use engine_kwargs instead.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
 
         # only switch class if generic(ExcelWriter)
@@ -856,7 +867,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
                         "deprecated and will also raise a warning, it can "
                         "be globally set and the warning suppressed.",
                         FutureWarning,
-                        stacklevel=4,
+                        stacklevel=find_stack_level(),
                     )
 
             cls = get_writer(engine)
@@ -930,7 +941,9 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         mode = mode.replace("a", "r+")
 
         # cast ExcelWriter to avoid adding 'if self.handles is not None'
-        self.handles = IOHandles(cast(Buffer, path), compression={"copression": None})
+        self.handles = IOHandles(
+            cast(Buffer[bytes], path), compression={"copression": None}
+        )
         if not isinstance(path, ExcelWriter):
             self.handles = get_handle(
                 path, mode, storage_options=storage_options, is_text=False

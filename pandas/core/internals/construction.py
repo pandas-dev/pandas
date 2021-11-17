@@ -23,6 +23,7 @@ from pandas._typing import (
     DtypeObj,
     Manager,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
@@ -79,8 +80,9 @@ from pandas.core.internals.array_manager import (
     SingleArrayManager,
 )
 from pandas.core.internals.blocks import (
+    BlockPlacement,
     ensure_block_shape,
-    new_block,
+    new_block_2d,
 )
 from pandas.core.internals.managers import (
     BlockManager,
@@ -155,9 +157,6 @@ def arrays_to_mgr(
             arrays, axes, consolidate=consolidate
         )
     elif typ == "array":
-        if len(columns) != len(arrays):
-            assert len(arrays) == 0
-            arrays = [np.array([], dtype=object) for _ in range(len(columns))]
         return ArrayManager(arrays, [index, columns])
     else:
         raise ValueError(f"'typ' needs to be one of {{'block', 'array'}}, got '{typ}'")
@@ -373,14 +372,16 @@ def ndarray_to_mgr(
         if any(x is not y for x, y in zip(obj_columns, maybe_datetime)):
             dvals_list = [ensure_block_shape(dval, 2) for dval in maybe_datetime]
             block_values = [
-                new_block(dvals_list[n], placement=n, ndim=2)
+                new_block_2d(dvals_list[n], placement=BlockPlacement(n))
                 for n in range(len(dvals_list))
             ]
         else:
-            nb = new_block(values, placement=slice(len(columns)), ndim=2)
+            bp = BlockPlacement(slice(len(columns)))
+            nb = new_block_2d(values, placement=bp)
             block_values = [nb]
     else:
-        nb = new_block(values, placement=slice(len(columns)), ndim=2)
+        bp = BlockPlacement(slice(len(columns)))
+        nb = new_block_2d(values, placement=bp)
         block_values = [nb]
 
     if len(columns) == 0:
@@ -442,15 +443,18 @@ def dict_to_mgr(
         if missing.any() and not is_integer_dtype(dtype):
             nan_dtype: DtypeObj
 
-            if dtype is None or (
-                isinstance(dtype, np.dtype) and np.issubdtype(dtype, np.flexible)
-            ):
+            if dtype is not None:
+                # calling sanitize_array ensures we don't mix-and-match
+                #  NA dtypes
+                midxs = missing.values.nonzero()[0]
+                for i in midxs:
+                    arr = sanitize_array(arrays.iat[i], index, dtype=dtype)
+                    arrays.iat[i] = arr
+            else:
                 # GH#1783
                 nan_dtype = np.dtype("object")
-            else:
-                nan_dtype = dtype
-            val = construct_1d_arraylike_from_scalar(np.nan, len(index), nan_dtype)
-            arrays.loc[missing] = [val] * missing.sum()
+                val = construct_1d_arraylike_from_scalar(np.nan, len(index), nan_dtype)
+                arrays.loc[missing] = [val] * missing.sum()
 
         arrays = list(arrays)
         columns = ensure_index(columns)
@@ -617,7 +621,7 @@ def _extract_index(data) -> Index:
     index = None
     if len(data) == 0:
         index = Index([])
-    elif len(data) > 0:
+    else:
         raw_lengths = []
         indexes: list[list[Hashable] | Index] = []
 
@@ -641,7 +645,7 @@ def _extract_index(data) -> Index:
         if not indexes and not raw_lengths:
             raise ValueError("If using all scalar values, you must pass an index")
 
-        if have_series:
+        elif have_series:
             index = union_indexes(indexes)
         elif have_dicts:
             index = union_indexes(indexes, sort=False)
@@ -830,7 +834,7 @@ def to_arrays(
             "To retain the old behavior, pass as a dictionary "
             "DataFrame({col: categorical, ..})",
             FutureWarning,
-            stacklevel=4,
+            stacklevel=find_stack_level(),
         )
         if columns is None:
             columns = default_index(len(data))

@@ -179,7 +179,7 @@ cdef class BlockPlacement:
     cdef BlockPlacement iadd(self, other):
         cdef:
             slice s = self._ensure_has_slice()
-            Py_ssize_t other_int, start, stop, step, l
+            Py_ssize_t other_int, start, stop, step
 
         if is_integer_object(other) and s is not None:
             other_int = <Py_ssize_t>other
@@ -188,7 +188,7 @@ cdef class BlockPlacement:
                 # BlockPlacement is treated as immutable
                 return self
 
-            start, stop, step, l = slice_get_indices_ex(s)
+            start, stop, step, _ = slice_get_indices_ex(s)
             start += other_int
             stop += other_int
 
@@ -226,14 +226,14 @@ cdef class BlockPlacement:
         """
         cdef:
             slice nv, s = self._ensure_has_slice()
-            Py_ssize_t other_int, start, stop, step, l
+            Py_ssize_t other_int, start, stop, step
             ndarray[intp_t, ndim=1] newarr
 
         if s is not None:
             # see if we are either all-above or all-below, each of which
             #  have fastpaths available.
 
-            start, stop, step, l = slice_get_indices_ex(s)
+            start, stop, step, _ = slice_get_indices_ex(s)
 
             if start < loc and stop <= loc:
                 # We are entirely below, nothing to increment
@@ -408,7 +408,7 @@ cdef slice indexer_as_slice(intp_t[:] vals):
         int64_t d
 
     if vals is None:
-        raise TypeError("vals must be ndarray")
+        raise TypeError("vals must be ndarray")  # pragma: no cover
 
     n = vals.shape[0]
 
@@ -565,6 +565,14 @@ cpdef update_blklocs_and_blknos(
     return new_blklocs, new_blknos
 
 
+def _unpickle_block(values, placement, ndim):
+    # We have to do some gymnastics b/c "ndim" is keyword-only
+
+    from pandas.core.internals.blocks import new_block
+
+    return new_block(values, placement, ndim=ndim)
+
+
 @cython.freelist(64)
 cdef class SharedBlock:
     """
@@ -588,14 +596,8 @@ cdef class SharedBlock:
         self.ndim = ndim
 
     cpdef __reduce__(self):
-        # We have to do some gymnastics b/c "ndim" is keyword-only
-        from functools import partial
-
-        from pandas.core.internals.blocks import new_block
-
-        args = (self.values, self.mgr_locs.indexer)
-        func = partial(new_block, ndim=self.ndim)
-        return func, args
+        args = (self.values, self.mgr_locs.indexer, self.ndim)
+        return _unpickle_block, args
 
     cpdef __setstate__(self, state):
         from pandas.core.construction import extract_array
@@ -772,7 +774,7 @@ cdef class BlockManager:
             self.blocks = blocks
             self.axes = axes
 
-        else:
+        else:  # pragma: no cover
             raise NotImplementedError("pre-0.14.1 pickles are no longer supported")
 
         self._post_setstate()

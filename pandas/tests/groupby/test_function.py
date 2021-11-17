@@ -154,9 +154,7 @@ class TestNumericOnly:
             ],
         )
 
-        with tm.assert_produces_warning(
-            FutureWarning, match="Dropping invalid", check_stacklevel=False
-        ):
+        with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
             result = getattr(gb, method)(numeric_only=False)
         tm.assert_frame_equal(result.reindex_like(expected), expected)
 
@@ -394,8 +392,7 @@ def test_median_empty_bins(observed):
 
     result = df.groupby(bins, observed=observed).median()
     expected = df.groupby(bins, observed=observed).agg(lambda x: x.median())
-    # TODO: GH 41137
-    tm.assert_frame_equal(result, expected, check_dtype=False)
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -1173,3 +1170,13 @@ def test_if_is_multiindex():
 
     # Tests if both agreggations have multiindex
     tm.assert_index_equal(index_1, index_2)
+
+
+def test_mean_on_timedelta():
+    # GH 17382
+    df = DataFrame({"time": pd.to_timedelta(range(10)), "cat": ["A", "B"] * 5})
+    result = df.groupby("cat")["time"].mean()
+    expected = Series(
+        pd.to_timedelta([4, 5]), name="time", index=Index(["A", "B"], name="cat")
+    )
+    tm.assert_series_equal(result, expected)

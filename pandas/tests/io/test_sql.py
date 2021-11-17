@@ -1366,13 +1366,6 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
         with pytest.raises(sql.DatabaseError, match=msg):
             sql.read_sql("iris", self.conn)
 
-    def test_safe_names_warning(self):
-        # GH 6798
-        df = DataFrame([[1, 2], [3, 4]], columns=["a", "b "])  # has a space
-        # warns on create table with spaces in names
-        with tm.assert_produces_warning(UserWarning):
-            sql.to_sql(df, "test_frame3_legacy", self.conn, index=False)
-
     def test_get_schema2(self, test_frame1):
         # without providing a connection object (available for backwards comp)
         create_sql = sql.get_schema(test_frame1, "test")
@@ -2042,7 +2035,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             # GH 36465
             # The input {"foo": [-np.inf], "infe0": ["bar"]} does not raise any error
             # for pymysql version >= 0.10
-            # TODO: remove this version check after GH 36465 is fixed
+            # TODO(GH#36465): remove this version check after GH 36465 is fixed
             import pymysql
 
             if pymysql.VERSION[0:3] >= (0, 10, 0) and "infe0" in df.columns:
