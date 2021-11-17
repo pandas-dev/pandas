@@ -7,7 +7,6 @@ from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas import (
     Categorical,
     Timedelta,
-    Timestamp,
 )
 import pandas._testing as tm
 
