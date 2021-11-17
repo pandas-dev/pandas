@@ -170,9 +170,9 @@ class TestTimestampArithmetic:
     @pytest.mark.parametrize(
         "td", [Timedelta(hours=3), np.timedelta64(3, "h"), timedelta(hours=3)]
     )
-    def test_radd_tdscalar(self, td):
+    def test_radd_tdscalar(self, td, fixed_now_ts):
         # GH#24775 timedelta64+Timestamp should not raise
-        ts = Timestamp("2021-01-01")
+        ts = fixed_now_ts
         assert td + ts == ts + td
 
     @pytest.mark.parametrize(

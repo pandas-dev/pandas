@@ -85,9 +85,9 @@ class TestNumericComparisons:
         expected = 0.0 > Series([1, 2, 3])
         tm.assert_series_equal(result, expected)
 
-    def test_df_numeric_cmp_dt64_raises(self, box_with_array):
+    def test_df_numeric_cmp_dt64_raises(self, box_with_array, fixed_now_ts):
         # GH#8932, GH#22163
-        ts = pd.Timestamp("2021-01-01")
+        ts = fixed_now_ts
         obj = np.array(range(5))
         obj = tm.box_expected(obj, box_with_array)
 
@@ -873,7 +873,7 @@ class TestAdditionSubtraction:
         tm.assert_frame_equal(second + first, expected)
 
     # TODO: This came from series.test.test_operators, needs cleanup
-    def test_series_frame_radd_bug(self):
+    def test_series_frame_radd_bug(self, fixed_now_ts):
         # GH#353
         vals = Series(tm.rands_array(5, 10))
         result = "foo_" + vals
@@ -889,7 +889,7 @@ class TestAdditionSubtraction:
         ts.name = "ts"
 
         # really raise this time
-        fix_now = pd.Timestamp("2021-01-01").to_pydatetime()
+        fix_now = fixed_now_ts.to_pydatetime()
         msg = "|".join(
             [
                 "unsupported operand type",

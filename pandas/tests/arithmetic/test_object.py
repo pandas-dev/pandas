@@ -315,7 +315,7 @@ class TestArithmetic:
         with pytest.raises(TypeError, match=msg):
             index - np.array([2, "foo"], dtype=object)
 
-    def test_rsub_object(self):
+    def test_rsub_object(self, fixed_now_ts):
         # GH#19369
         index = pd.Index([Decimal(1), Decimal(2)])
         expected = pd.Index([Decimal(1), Decimal(0)])
@@ -331,7 +331,7 @@ class TestArithmetic:
             "foo" - index
 
         with pytest.raises(TypeError, match=msg):
-            np.array([True, Timestamp("2021-01-01")]) - index
+            np.array([True, fixed_now_ts]) - index
 
 
 class MyIndex(pd.Index):

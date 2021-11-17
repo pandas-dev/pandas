@@ -11,10 +11,9 @@ from pandas import Timestamp
 import pandas._testing as tm
 
 
-
 class TestTimestampComparison:
     def test_comparison_dt64_ndarray(self, fixed_now_ts):
-        ts = fixed_now_ts
+        ts = Timestamp("2021-01-01")
         ts2 = Timestamp("2019-04-05")
         arr = np.array([[ts.asm8, ts2.asm8]], dtype="M8[ns]")
 

@@ -539,7 +539,7 @@ def test_to_numpy_na_value(dtype, nulls_fixture):
     tm.assert_numpy_array_equal(result, expected)
 
 
-def test_isin(dtype, request):
+def test_isin(dtype, request, fixed_now_ts):
     s = pd.Series(["a", "b", None], dtype=dtype)
 
     result = s.isin(["a", "c"])
@@ -554,6 +554,6 @@ def test_isin(dtype, request):
     expected = pd.Series([False, False, False])
     tm.assert_series_equal(result, expected)
 
-    result = s.isin(["a", pd.Timestamp("2021-01-01")])
+    result = s.isin(["a", fixed_now_ts])
     expected = pd.Series([True, False, False])
     tm.assert_series_equal(result, expected)
