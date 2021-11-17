@@ -10478,6 +10478,12 @@ NaN 12.3   33.0
         if method == "single":
             res = data._mgr.quantile(qs=q, axis=1, interpolation=interpolation)
         elif method == "table":
+            # handle degenerate case
+            if len(data) == 0:
+                return self._constructor(
+                    [], index=q, columns=data.columns, dtype=np.float64
+                )
+
             q_idx = np.quantile(np.arange(len(data)), q, interpolation=interpolation)
 
             by = data.columns.tolist()
