@@ -1268,6 +1268,15 @@ def timedelta64_dtype(request):
     return request.param
 
 
+@pytest.fixture
+def fixed_now_ts():
+    """
+    Fixture emits fixed Timestamp.now()
+    """
+    return Timestamp(year=2021, month=1, day=1, hour=12,
+                     minute=0, second=0, microsecond=0)
+
+
 @pytest.fixture(params=tm.FLOAT_NUMPY_DTYPES)
 def float_numpy_dtype(request):
     """

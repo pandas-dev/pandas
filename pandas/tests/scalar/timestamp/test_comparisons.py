@@ -11,13 +11,6 @@ from pandas import Timestamp
 import pandas._testing as tm
 
 
-@pytest.fixture
-def fixed_now_ts():
-    """
-    Fixture emits fixed Timestamp.now ()
-    """
-    return Timestamp("2021-01-01 00:00:00.00000")
-
 
 class TestTimestampComparison:
     def test_comparison_dt64_ndarray(self, fixed_now_ts):

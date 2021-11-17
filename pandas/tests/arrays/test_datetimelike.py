@@ -76,14 +76,6 @@ def timedelta_index():
     return TimedeltaIndex(["1 Day", "3 Hours", "NaT"])
 
 
-@pytest.fixture
-def fixed_now_ts():
-    """
-    Fixture emits fixed Timestamp.now ()
-    """
-    return Timestamp(year=2021, month=1, day=1, hour=12)
-
-
 class SharedTests:
     index_cls: type[DatetimeIndex | PeriodIndex | TimedeltaIndex]
 
