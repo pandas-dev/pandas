@@ -300,4 +300,6 @@ def test_unary_int_operators(any_signed_int_ea_dtype, source, neg_target, abs_ta
 
     tm.assert_extension_array_equal(neg_result, neg_target)
     tm.assert_extension_array_equal(pos_result, arr)
+    assert not np.shares_memory(pos_result._data, arr._data)
+    assert not np.shares_memory(pos_result._mask, arr._mask)
     tm.assert_extension_array_equal(abs_result, abs_target)
