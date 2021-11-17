@@ -269,7 +269,7 @@ class TestTimedeltas:
 
     def test_to_timedelta_zerodim(self):
         # ndarray.item() incorrectly returns int for dt64[ns] and td64[ns]
-        dt64 = pd.Timestamp.now().to_datetime64()
+        dt64 = pd.Timestamp("2021-01-01").to_datetime64()
         arg = np.array(dt64)
 
         msg = (

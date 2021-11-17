@@ -75,6 +75,13 @@ def timedelta_index():
     # TODO: flesh this out
     return TimedeltaIndex(["1 Day", "3 Hours", "NaT"])
 
+@pytest.fixture
+def fixed_now_ts():
+    """
+    Fixture emits fixed Timestamp.now ()
+    """
+    return Timestamp(year=2021, month=1, day=1, hour=12)
+
 
 class SharedTests:
     index_cls: type[DatetimeIndex | PeriodIndex | TimedeltaIndex]
@@ -839,30 +846,29 @@ class TestDatetimeArray(SharedTests):
 
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_take_fill_valid(self, arr1d):
+    def test_take_fill_valid(self, arr1d, fixed_now_ts):
         arr = arr1d
         dti = self.index_cls(arr1d)
-        dt_ind = Timestamp(2021, 1, 1, 12)
-        dt_ind_tz = dt_ind.tz_localize(dti.tz)
 
-        result = arr.take([-1, 1], allow_fill=True, fill_value=dt_ind_tz)
-        assert result[0] == dt_ind_tz
+        now = fixed_now_ts.tz_localize(dti.tz)
+        result = arr.take([-1, 1], allow_fill=True, fill_value=now)
+        assert result[0] == now
 
         msg = f"value should be a '{arr1d._scalar_type.__name__}' or 'NaT'. Got"
         with pytest.raises(TypeError, match=msg):
             # fill_value Timedelta invalid
-            arr.take([-1, 1], allow_fill=True, fill_value=dt_ind_tz - dt_ind_tz)
+            arr.take([-1, 1], allow_fill=True, fill_value=now - now)
 
         with pytest.raises(TypeError, match=msg):
             # fill_value Period invalid
             arr.take([-1, 1], allow_fill=True, fill_value=Period("2014Q1"))
 
         tz = None if dti.tz is not None else "US/Eastern"
-        dt_ind_tz = dt_ind.tz_localize(tz)
+        now = fixed_now_ts.tz_localize(tz)
         msg = "Cannot compare tz-naive and tz-aware datetime-like objects"
         with pytest.raises(TypeError, match=msg):
             # Timestamp with mismatched tz-awareness
-            arr.take([-1, 1], allow_fill=True, fill_value=dt_ind_tz)
+            arr.take([-1, 1], allow_fill=True, fill_value=now)
 
         value = NaT.value
         msg = f"value should be a '{arr1d._scalar_type.__name__}' or 'NaT'. Got"
@@ -878,7 +884,7 @@ class TestDatetimeArray(SharedTests):
         if arr.tz is not None:
             # GH#37356
             # Assuming here that arr1d fixture does not include Australia/Melbourne
-            value = dt_ind.tz_localize("Australia/Melbourne")
+            value = fixed_now_ts.tz_localize("Australia/Melbourne")
             msg = "Timezones don't match. .* != 'Australia/Melbourne'"
             with pytest.raises(ValueError, match=msg):
                 # require tz match, not just tzawareness match
@@ -1032,7 +1038,7 @@ class TestTimedeltaArray(SharedTests):
             expected = np.asarray(arr).astype(dtype)
             tm.assert_numpy_array_equal(result, expected)
 
-    def test_take_fill_valid(self, timedelta_index):
+    def test_take_fill_valid(self, timedelta_index, fixed_now_ts):
         tdi = timedelta_index
         arr = TimedeltaArray(tdi)
 
@@ -1040,14 +1046,13 @@ class TestTimedeltaArray(SharedTests):
         result = arr.take([-1, 1], allow_fill=True, fill_value=td1)
         assert result[0] == td1
 
-        dt_ind = Timestamp(2021, 1, 1, 12)
-        value = dt_ind
+        value = fixed_now_ts
         msg = f"value should be a '{arr._scalar_type.__name__}' or 'NaT'. Got"
         with pytest.raises(TypeError, match=msg):
             # fill_value Timestamp invalid
             arr.take([0, 1], allow_fill=True, fill_value=value)
 
-        value = dt_ind.to_period("D")
+        value = fixed_now_ts.to_period("D")
         with pytest.raises(TypeError, match=msg):
             # fill_value Period invalid
             arr.take([0, 1], allow_fill=True, fill_value=value)

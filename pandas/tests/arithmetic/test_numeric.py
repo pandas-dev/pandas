@@ -87,7 +87,7 @@ class TestNumericComparisons:
 
     def test_df_numeric_cmp_dt64_raises(self, box_with_array):
         # GH#8932, GH#22163
-        ts = pd.Timestamp.now()
+        ts = pd.Timestamp("2021-01-01")
         obj = np.array(range(5))
         obj = tm.box_expected(obj, box_with_array)
 
@@ -281,9 +281,9 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
     @pytest.mark.parametrize(
         "other",
         [
-            pd.Timestamp.now().to_pydatetime(),
-            pd.Timestamp.now(tz="UTC").to_pydatetime(),
-            pd.Timestamp.now().to_datetime64(),
+            pd.Timestamp("2021-01-01").to_pydatetime(),
+            pd.Timestamp("2021-01-01", tz="UTC").to_pydatetime(),
+            pd.Timestamp("2021-01-01").to_datetime64(),
             pd.NaT,
         ],
     )
@@ -889,7 +889,7 @@ class TestAdditionSubtraction:
         ts.name = "ts"
 
         # really raise this time
-        now = pd.Timestamp.now().to_pydatetime()
+        fix_now = pd.Timestamp("2021-01-01").to_pydatetime()
         msg = "|".join(
             [
                 "unsupported operand type",
@@ -898,10 +898,10 @@ class TestAdditionSubtraction:
             ]
         )
         with pytest.raises(TypeError, match=msg):
-            now + ts
+            fix_now + ts
 
         with pytest.raises(TypeError, match=msg):
-            ts + now
+            ts + fix_now
 
     # TODO: This came from series.test.test_operators, needs cleanup
     def test_datetime64_with_index(self):

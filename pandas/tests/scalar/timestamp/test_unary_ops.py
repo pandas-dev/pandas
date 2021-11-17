@@ -493,7 +493,7 @@ class TestTimestampUnaryOps:
     def test_timestamp(self):
         # GH#17329
         # tz-naive --> treat it as if it were UTC for purposes of timestamp()
-        ts = Timestamp.now()
+        ts = Timestamp("2021-01-01")
         uts = ts.replace(tzinfo=utc)
         assert ts.timestamp() == uts.timestamp()
 

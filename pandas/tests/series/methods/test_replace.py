@@ -422,7 +422,7 @@ class TestSeriesReplace:
     def test_replace_only_one_dictlike_arg(self):
         # GH#33340
 
-        ser = pd.Series([1, 2, "A", pd.Timestamp.now(), True])
+        ser = pd.Series([1, 2, "A", pd.Timestamp("2021-01-01"), True])
         to_replace = {0: 1, 2: "A"}
         value = "foo"
         msg = "Series.replace cannot use dict-like to_replace and non-None value"

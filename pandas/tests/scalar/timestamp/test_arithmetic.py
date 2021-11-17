@@ -91,7 +91,7 @@ class TestTimestampArithmetic:
     def test_rsub_dtscalars(self, tz_naive_fixture):
         # In particular, check that datetime64 - Timestamp works GH#28286
         td = Timedelta(1235345642000)
-        ts = Timestamp.now(tz_naive_fixture)
+        ts = Timestamp("2021-01-01", tz=tz_naive_fixture)
         other = ts + td
 
         assert other - ts == td
@@ -172,7 +172,7 @@ class TestTimestampArithmetic:
     )
     def test_radd_tdscalar(self, td):
         # GH#24775 timedelta64+Timestamp should not raise
-        ts = Timestamp.now()
+        ts = Timestamp("2021-01-01")
         assert td + ts == ts + td
 
     @pytest.mark.parametrize(

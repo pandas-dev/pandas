@@ -2889,7 +2889,7 @@ class TestFromScalar:
         assert get1(obj) == td
 
     def test_from_timestamp_scalar_preserves_nanos(self, constructor):
-        ts = Timestamp.now() + Timedelta(1)
+        ts = Timestamp("2021-01-01") + Timedelta(1)
 
         obj = constructor(ts, dtype="M8[ns]")
         assert get1(obj) == ts

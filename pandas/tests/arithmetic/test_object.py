@@ -331,7 +331,7 @@ class TestArithmetic:
             "foo" - index
 
         with pytest.raises(TypeError, match=msg):
-            np.array([True, Timestamp.now()]) - index
+            np.array([True, Timestamp("2021-01-01")]) - index
 
 
 class MyIndex(pd.Index):

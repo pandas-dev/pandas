@@ -554,6 +554,6 @@ def test_isin(dtype, request):
     expected = pd.Series([False, False, False])
     tm.assert_series_equal(result, expected)
 
-    result = s.isin(["a", pd.Timestamp.now()])
+    result = s.isin(["a", pd.Timestamp("2021-01-01")])
     expected = pd.Series([True, False, False])
     tm.assert_series_equal(result, expected)

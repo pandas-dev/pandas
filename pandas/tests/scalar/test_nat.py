@@ -649,7 +649,7 @@ def test_compare_date():
     # GH#39151 comparing NaT with date object is deprecated
     # See also: tests.scalar.timestamps.test_comparisons::test_compare_date
 
-    dt = Timestamp.now().to_pydatetime().date()
+    dt = Timestamp("2021-01-01").to_pydatetime().date()
 
     for left, right in [(NaT, dt), (dt, NaT)]:
         assert not left == right

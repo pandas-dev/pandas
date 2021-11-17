@@ -502,7 +502,7 @@ class TestCommon(Base):
         # GH#30340 use idiomatic naming
         off = self._get_offset(offset_types)
 
-        ts = Timestamp.now()
+        ts = Timestamp("2021-01-01")
         with tm.assert_produces_warning(FutureWarning):
             result = off.onOffset(ts)
 
