@@ -2096,7 +2096,7 @@ class IndexCol:
 
         # error: Incompatible types in assignment (expression has type
         # "Union[ndarray, DatetimeIndex]", variable has type "Index")
-        final_pd_index = _set_tz(new_pd_index, self.tz)  
+        final_pd_index = _set_tz(new_pd_index, self.tz)
         return final_pd_index, final_pd_index
 
     def take_data(self):
