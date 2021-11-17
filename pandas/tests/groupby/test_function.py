@@ -1157,13 +1157,27 @@ def test_groupby_sum_below_mincount_nullable_integer():
 def test_if_is_multiindex():
     # GH 32464
     # Test if index after groupby with more then one column is always MultiIndex
-    a = DataFrame({"a": [], "b": [], "c": []})
+    a = DataFrame({"a": [1, 2], "b": [5, 6], "c": [8, 9]})
 
     agg_1 = a.groupby(["a", "b"]).sum()
     agg_2 = a.groupby(["a", "b", "c"]).sum()
 
+    expected = MultiIndex(
+        levels=[[1, 2], [5, 6]], codes=[[0, 1], [0, 1]], names=["a", "b"]
+    )
+    result = agg_1.index
+
+    tm.assert_index_equal(expected, result)
+
+    expected = MultiIndex(
+        levels=[[1, 2], [5, 6], [8, 9]],
+        codes=[[0, 1], [0, 1], [0, 1]],
+        names=["a", "b", "c"],
+    )
+    result = agg_2.index
+
     # Tests if group by with all columns has a MultiIndex
-    assert isinstance(agg_2.index, pd.core.indexes.multi.MultiIndex)
+    tm.assert_index_equal(expected, result)
 
     index_1 = agg_1.iloc[:, :0].index
     index_2 = agg_2.droplevel("c").index
