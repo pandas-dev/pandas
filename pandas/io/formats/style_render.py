@@ -180,22 +180,18 @@ class StylerRenderer:
         self,
         sparse_index: bool,
         sparse_columns: bool,
-        align: str,
-        max_colwidth: int,
         max_rows: int | None = None,
         max_cols: int | None = None,
         **kwargs,
     ) -> str:
+        """
+        Render a Styler in string format
+        """
         self._compute()
 
         d = self._translate(sparse_index, sparse_columns, max_rows, max_cols, blank="")
 
-        precision = (get_option("styler.format.precision"),)
-        self._translate_string(d, max_colwidth, precision, align)
-
-        self.template_string.globals["parse_row"] = _parse_string_row
-
-        d.update({**kwargs, "max_colwidth": max_colwidth})
+        d.update(kwargs)
         return self.template_string.render(**d)
 
     def _compute(self):
@@ -805,65 +801,6 @@ class StylerRenderer:
 
             body.append(row_body_headers + row_body_cells)
         d["body"] = body
-
-    def _translate_string(
-        self,
-        d: dict,
-        max_colwidth: int,
-        precision: int,
-        align: str,
-    ) -> None:
-        r"""
-        Post-process the default render dict for the String template format.
-
-        Processing items included are:
-          - Measuring total column character length and justifying or trimming.
-          - Remove hidden indexes or reinsert missing th elements if part of multiindex
-            or multirow sparsification (so that \multirow and \multicol work correctly).
-        """
-        # self._translate_latex(d)  # post process for hidden elements akin to latex
-
-        # find the maximum length of items in each column
-        d["col_max_char"] = [0] * len(d["body"][0])
-        for row in d["head"] + d["body"]:
-            for cn, col in enumerate(row):
-                chars = len(col["display_value"])
-                if chars > d["col_max_char"][cn]:
-                    d["col_max_char"][cn] = chars
-        d["line_max_char"] = sum(
-            (chars if chars < max_colwidth else max_colwidth)
-            for chars in d["col_max_char"]
-        )
-
-        def char_refactor(value, display, max_cw, precision, align):
-            align_options = {
-                "r": "rjust",
-                "c": "center",
-                "l": "ljust",
-                "none": "__str__",
-            }
-            args = (max_cw,) if align != "none" else ()
-            func = align_options[align]
-            if len(display) <= max_cw:
-                return getattr(display, func)(*args)
-            elif len(display) > max_cw:
-                if isinstance(value, (float, complex)):
-                    return getattr(f"{{:.{precision}E}}".format(value), func)(*args)
-                elif isinstance(value, int):
-                    return getattr(f"{value:.0E}", func)(*args)
-                else:
-                    return display[: max_cw - 3] + "..."
-
-        # refactor display values to satisfy consistent column width
-        for row in d["head"] + d["body"]:
-            for cn, col in enumerate(row):
-                col["display_value"] = char_refactor(
-                    col["value"],
-                    col["display_value"],
-                    min(max_colwidth, d["col_max_char"][cn]),
-                    precision,
-                    align,
-                )
 
     def format(
         self,
@@ -2039,18 +1976,3 @@ def _escape_latex(s):
         .replace("^", "\\textasciicircum ")
         .replace("ab2§=§8yz", "\\textbackslash ")
     )
-
-
-def _parse_string_row(row: list, spacer: str, max_line: int) -> str:
-    """
-    Parse a row for jinja2 string template
-    """
-    res = ""
-    len_res = 0
-    for c in row:
-        if (len_res + len(c["display_value"])) > max_line:
-            res += "\n"
-            len_res = 0
-        res += c["display_value"] + spacer
-        len_res += len(c["display_value"] + spacer)
-    return res + "\n"

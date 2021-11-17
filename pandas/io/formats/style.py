@@ -1030,14 +1030,10 @@ class Styler(StylerRenderer):
         buf=None,
         *,
         encoding=None,
-        hrules: bool = False,
         sparse_index: bool | None = None,
         sparse_columns: bool | None = None,
         max_rows: int | None = None,
         max_columns: int | None = None,
-        max_colwidth: int | None = None,
-        line_width: int | None = None,
-        align: str | None = None,
         delimiter: str = " ",
     ):
         """
@@ -1052,8 +1048,6 @@ class Styler(StylerRenderer):
         encoding : str, optional
             Character encoding setting for file output.
             Defaults to ``pandas.options.styler.render.encoding`` value of "utf-8".
-        hrules : bool
-            Whether to create a horizontal divide between headers and values.
         sparse_index : bool, optional
             Whether to sparsify the display of a hierarchical index. Setting to False
             will display each explicit level element in a hierarchical key for each row.
@@ -1072,13 +1066,6 @@ class Styler(StylerRenderer):
             Rows and columns may be reduced if the number of total elements is
             large. This value is set to ``pandas.options.styler.render.max_elements``,
             which is 262144 (18 bit browser rendering).
-        max_colwidth : int, optional
-            The maximum number of characters in any column, data will be trimmed if
-            necessary.
-        line_width : int, optional
-            The maximum number of characters permitted on any line.
-        align: str, optional
-            The justification of values in columns.
         delimiter: string, default single space
             The separator between data elements.
 
@@ -1098,20 +1085,12 @@ class Styler(StylerRenderer):
         if sparse_columns is None:
             sparse_columns = get_option("styler.sparse.columns")
 
-        max_colwidth = 1e9 if max_colwidth is None else max_colwidth
-        line_width = 1e9 if line_width is None else line_width
-        align = "none" if align is None else align
-
         text = obj._render_string(
             sparse_columns=sparse_columns,
             sparse_index=sparse_index,
             max_rows=max_rows,
             max_cols=max_columns,
-            align=align,
-            max_colwidth=max_colwidth,
-            line_width=line_width,
             delimiter=delimiter,
-            hrules=hrules,
         )
         return save_to_buffer(
             text, buf=buf, encoding=(encoding if buf is not None else None)
