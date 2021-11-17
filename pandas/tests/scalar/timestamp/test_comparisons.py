@@ -18,6 +18,7 @@ def fixed_now_ts():
     """
     return Timestamp("2021-01-01 00:00:00.00000")
 
+
 class TestTimestampComparison:
     def test_comparison_dt64_ndarray(self, fixed_now_ts):
         ts = fixed_now_ts
