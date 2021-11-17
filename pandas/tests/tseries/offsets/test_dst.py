@@ -185,7 +185,11 @@ class TestDST:
             Timestamp("1905-07-01"),
             MonthBegin(66),
             "Africa/Kinshasa",
-            marks=pytest.mark.xfail(pytz.__version__ == "2017.3", reason="GH#41906"),
+            marks=pytest.mark.xfail(
+                # error: Module has no attribute "__version__"
+                float(pytz.__version__) <= 2020.1,  # type: ignore[attr-defined]
+                reason="GH#41906",
+            ),
         ),
         (
             Timestamp("2021-10-01 01:15"),
