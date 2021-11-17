@@ -10,6 +10,7 @@ import pytest
 from pandas import Timestamp
 import pandas._testing as tm
 
+
 @pytest.fixture
 def fixed_now_ts():
     """
@@ -57,7 +58,7 @@ class TestTimestampComparison:
     @pytest.mark.parametrize("reverse", [True, False])
     def test_comparison_dt64_ndarray_tzaware(self, reverse, comparison_op):
 
-        ts = Timestamp("2021-01-01 00:00:00.00000", tz = "UTC")
+        ts = Timestamp("2021-01-01 00:00:00.00000", tz="UTC")
         arr = np.array([ts.asm8, ts.asm8], dtype="M8[ns]")
 
         left, right = ts, arr
@@ -153,7 +154,7 @@ class TestTimestampComparison:
     @pytest.mark.parametrize("tz", [None, "US/Pacific"])
     def test_compare_date(self, tz):
         # GH#36131 comparing Timestamp with date object is deprecated
-        ts = Timestamp("2021-01-01 00:00:00.00000", tz = tz)
+        ts = Timestamp("2021-01-01 00:00:00.00000", tz=tz)
         dt = ts.to_pydatetime().date()
         # These are incorrectly considered as equal because they
         #  dispatch to the date comparisons which truncates ts

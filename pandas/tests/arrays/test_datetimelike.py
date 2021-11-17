@@ -75,6 +75,7 @@ def timedelta_index():
     # TODO: flesh this out
     return TimedeltaIndex(["1 Day", "3 Hours", "NaT"])
 
+
 @pytest.fixture
 def fixed_now_ts():
     """
