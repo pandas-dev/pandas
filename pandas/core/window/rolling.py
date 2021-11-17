@@ -63,6 +63,7 @@ from pandas.core.indexers.objects import (
     FixedWindowIndexer,
     GroupbyIndexer,
     VariableWindowIndexer,
+    check_window_bounds,
 )
 from pandas.core.indexes.api import (
     DatetimeIndex,
@@ -311,10 +312,7 @@ class BaseWindow(SelectionMixin):
             center=self.center,
             closed=self.closed,
         )
-
-        assert len(start) == len(
-            end
-        ), "these should be equal in length from get_window_bounds"
+        check_window_bounds(start, end, len(obj))
 
         for s, e in zip(start, end):
             result = obj.iloc[slice(s, e)]
@@ -565,9 +563,7 @@ class BaseWindow(SelectionMixin):
                     center=self.center,
                     closed=self.closed,
                 )
-                assert len(start) == len(
-                    end
-                ), "these should be equal in length from get_window_bounds"
+                check_window_bounds(start, end, len(x))
 
                 return func(x, start, end, min_periods, *numba_args)
 
@@ -608,6 +604,7 @@ class BaseWindow(SelectionMixin):
             center=self.center,
             closed=self.closed,
         )
+        check_window_bounds(start, end, len(values))
         aggregator = executor.generate_shared_aggregator(
             func, engine_kwargs, numba_cache_key_str
         )
@@ -1544,10 +1541,7 @@ class RollingAndExpandingMixin(BaseWindow):
                 center=self.center,
                 closed=self.closed,
             )
-
-            assert len(start) == len(
-                end
-            ), "these should be equal in length from get_window_bounds"
+            check_window_bounds(start, end, len(x_array))
 
             with np.errstate(all="ignore"):
                 mean_x_y = window_aggregations.roll_mean(
@@ -1588,10 +1582,7 @@ class RollingAndExpandingMixin(BaseWindow):
                 center=self.center,
                 closed=self.closed,
             )
-
-            assert len(start) == len(
-                end
-            ), "these should be equal in length from get_window_bounds"
+            check_window_bounds(start, end, len(x_array))
 
             with np.errstate(all="ignore"):
                 mean_x_y = window_aggregations.roll_mean(
