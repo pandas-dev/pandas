@@ -317,4 +317,7 @@ def test_infer_types_boolean_sum(all_parsers):
             "b": [1],
         }
     ).set_index("a")
+    # Not checking index type now, because the C parser will return a
+    # index column of dtype 'object', and the Python parser will return a
+    # index column of dtype 'int64'.
     tm.assert_frame_equal(result, expected, check_index_type=False)
