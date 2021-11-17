@@ -1884,16 +1884,17 @@ def test_frame_op_subclass_nonclass_constructor():
     tm.assert_frame_equal(result, expected)
 
 
-def test_broadcast_multiindex():
+@pytest.mark.parametrize("level", [0, None])
+def test_broadcast_multiindex(level):
     # GH34388
     df1 = DataFrame({"A": [0, 1, 2], "B": [1, 2, 3]})
-    df1.columns.set_names("L1", inplace=True)
+    df1.columns = df1.columns.set_names("L1")
 
     df2 = DataFrame({("A", "C"): [0, 0, 0], ("A", "D"): [0, 0, 0]})
-    df2.columns.set_names(["L1", "L2"], inplace=True)
+    df2.columns = df2.columns.set_names(["L1", "L2"])
 
-    result = df1.add(df2)
+    result = df1.add(df2, level=level)
     expected = DataFrame({("A", "C"): [0, 1, 2], ("A", "D"): [0, 1, 2]})
-    expected.columns.set_names(["L1", "L2"], inplace=True)
+    expected.columns = expected.columns.set_names(["L1", "L2"])
 
     tm.assert_frame_equal(result, expected)
