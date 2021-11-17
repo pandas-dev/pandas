@@ -80,8 +80,6 @@ from pandas.core.internals.ops import (
     operate_blockwise,
 )
 
-# TODO: flexible with index=None and/or items=None
-
 T = TypeVar("T", bound="BaseBlockManager")
 
 

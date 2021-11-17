@@ -3337,7 +3337,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
             Percentage changes within each group.
         """
-        # TODO: Remove this conditional for SeriesGroupBy when GH#23918 is fixed
+        # TODO(GH#23918): Remove this conditional for SeriesGroupBy when
+        #  GH#23918 is fixed
         if freq is not None or axis != 0:
             return self.apply(
                 lambda x: x.pct_change(

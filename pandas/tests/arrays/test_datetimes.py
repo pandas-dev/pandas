@@ -33,9 +33,13 @@ class TestDatetimeArrayComparisons:
 
         result = op(arr, arr)
         tm.assert_numpy_array_equal(result, expected)
-        for other in [right, np.array(right)]:
-            # TODO: add list and tuple, and object-dtype once those
-            #  are fixed in the constructor
+        for other in [
+            right,
+            np.array(right),
+            list(right),
+            tuple(right),
+            right.astype(object),
+        ]:
             result = op(arr, other)
             tm.assert_numpy_array_equal(result, expected)
 

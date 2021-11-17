@@ -794,18 +794,15 @@ def test_apply_to_timedelta():
     list_of_valid_strings = ["00:00:01", "00:00:02"]
     a = pd.to_timedelta(list_of_valid_strings)
     b = Series(list_of_valid_strings).apply(pd.to_timedelta)
-    # FIXME: dont leave commented-out
-    # Can't compare until apply on a Series gives the correct dtype
-    # assert_series_equal(a, b)
+    tm.assert_series_equal(Series(a), b)
 
     list_of_strings = ["00:00:01", np.nan, pd.NaT, pd.NaT]
 
-    a = pd.to_timedelta(list_of_strings)  # noqa
+    a = pd.to_timedelta(list_of_strings)
     with tm.assert_produces_warning(FutureWarning, match="Inferring timedelta64"):
         ser = Series(list_of_strings)
-    b = ser.apply(pd.to_timedelta)  # noqa
-    # Can't compare until apply on a Series gives the correct dtype
-    # assert_series_equal(a, b)
+    b = ser.apply(pd.to_timedelta)
+    tm.assert_series_equal(Series(a), b)
 
 
 @pytest.mark.parametrize(
