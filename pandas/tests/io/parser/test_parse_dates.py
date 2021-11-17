@@ -1733,6 +1733,39 @@ def test_date_parser_and_names(all_parsers):
 
 
 @skip_pyarrow
+def test_date_parser_multiindex_columns(all_parsers):
+    parser = all_parsers
+    data = """a,b
+1,2
+2019-12-31,6"""
+    result = parser.read_csv(StringIO(data), parse_dates=[("a", "1")], header=[0, 1])
+    expected = DataFrame({("a", "1"): Timestamp("2019-12-31"), ("b", "2"): [6]})
+    tm.assert_frame_equal(result, expected)
+
+
+@skip_pyarrow
+@pytest.mark.parametrize(
+    "parse_spec, col_name",
+    [
+        ([[("a", "1"), ("b", "2")]], ("a_b", "1_2")),
+        ({("foo", "1"): [("a", "1"), ("b", "2")]}, ("foo", "1")),
+    ],
+)
+def test_date_parser_multiindex_columns_combine_cols(all_parsers, parse_spec, col_name):
+    parser = all_parsers
+    data = """a,b,c
+1,2,3
+2019-12,-31,6"""
+    result = parser.read_csv(
+        StringIO(data),
+        parse_dates=parse_spec,
+        header=[0, 1],
+    )
+    expected = DataFrame({col_name: Timestamp("2019-12-31"), ("c", "3"): [6]})
+    tm.assert_frame_equal(result, expected)
+
+
+@skip_pyarrow
 def test_date_parser_usecols_thousands(all_parsers):
     # GH#39365
     data = """A,B,C

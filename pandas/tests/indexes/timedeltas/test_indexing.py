@@ -21,14 +21,6 @@ import pandas._testing as tm
 
 
 class TestGetItem:
-    def test_ellipsis(self):
-        # GH#21282
-        idx = timedelta_range("1 day", "31 day", freq="D", name="idx")
-
-        result = idx[...]
-        assert result.equals(idx)
-        assert result is not idx
-
     def test_getitem_slice_keeps_name(self):
         # GH#4226
         tdi = timedelta_range("1d", "5d", freq="H", name="timebucket")
@@ -340,3 +332,17 @@ class TestMaybeCastSliceBound:
             indexer_sl(obj)[:"foo"]
         with pytest.raises(TypeError, match=msg):
             indexer_sl(obj)[tdi[0] : "foo"]
+
+
+class TestContains:
+    def test_contains_nonunique(self):
+        # GH#9512
+        for vals in (
+            [0, 1, 0],
+            [0, 0, -1],
+            [0, -1, -1],
+            ["00:01:00", "00:01:00", "00:02:00"],
+            ["00:01:00", "00:01:00", "00:00:01"],
+        ):
+            idx = TimedeltaIndex(vals)
+            assert idx[0] in idx

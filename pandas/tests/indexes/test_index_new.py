@@ -1,10 +1,16 @@
 """
 Tests for the Index constructor conducting inference.
 """
+from datetime import (
+    datetime,
+    timedelta,
+)
 from decimal import Decimal
 
 import numpy as np
 import pytest
+
+from pandas.compat import np_datetime64_compat
 
 from pandas.core.dtypes.common import is_unsigned_integer_dtype
 
@@ -27,6 +33,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.api import (
+    Float64Index,
     Int64Index,
     UInt64Index,
 )
@@ -232,6 +239,91 @@ class TestDtypeEnforced:
         with pytest.raises(ValueError, match=msg):
             Index(data, dtype=dtype)
 
+    @pytest.mark.parametrize(
+        "vals",
+        [
+            [1, 2, 3],
+            np.array([1, 2, 3]),
+            np.array([1, 2, 3], dtype=int),
+            # below should coerce
+            [1.0, 2.0, 3.0],
+            np.array([1.0, 2.0, 3.0], dtype=float),
+        ],
+    )
+    def test_constructor_dtypes_to_int64(self, vals):
+        index = Index(vals, dtype=int)
+        assert isinstance(index, Int64Index)
+
+    @pytest.mark.parametrize(
+        "vals",
+        [
+            [1, 2, 3],
+            [1.0, 2.0, 3.0],
+            np.array([1.0, 2.0, 3.0]),
+            np.array([1, 2, 3], dtype=int),
+            np.array([1.0, 2.0, 3.0], dtype=float),
+        ],
+    )
+    def test_constructor_dtypes_to_float64(self, vals):
+        index = Index(vals, dtype=float)
+        assert isinstance(index, Float64Index)
+
+    @pytest.mark.parametrize(
+        "vals",
+        [
+            [1, 2, 3],
+            np.array([1, 2, 3], dtype=int),
+            np.array(
+                [np_datetime64_compat("2011-01-01"), np_datetime64_compat("2011-01-02")]
+            ),
+            [datetime(2011, 1, 1), datetime(2011, 1, 2)],
+        ],
+    )
+    def test_constructor_dtypes_to_categorical(self, vals):
+        index = Index(vals, dtype="category")
+        assert isinstance(index, CategoricalIndex)
+
+    @pytest.mark.parametrize("cast_index", [True, False])
+    @pytest.mark.parametrize(
+        "vals",
+        [
+            Index(
+                np.array(
+                    [
+                        np_datetime64_compat("2011-01-01"),
+                        np_datetime64_compat("2011-01-02"),
+                    ]
+                )
+            ),
+            Index([datetime(2011, 1, 1), datetime(2011, 1, 2)]),
+        ],
+    )
+    def test_constructor_dtypes_to_datetime(self, cast_index, vals):
+        if cast_index:
+            index = Index(vals, dtype=object)
+            assert isinstance(index, Index)
+            assert index.dtype == object
+        else:
+            index = Index(vals)
+            assert isinstance(index, DatetimeIndex)
+
+    @pytest.mark.parametrize("cast_index", [True, False])
+    @pytest.mark.parametrize(
+        "vals",
+        [
+            np.array([np.timedelta64(1, "D"), np.timedelta64(1, "D")]),
+            [timedelta(1), timedelta(1)],
+        ],
+    )
+    def test_constructor_dtypes_to_timedelta(self, cast_index, vals):
+        if cast_index:
+            index = Index(vals, dtype=object)
+            assert isinstance(index, Index)
+            assert index.dtype == object
+        else:
+            index = Index(vals)
+            assert isinstance(index, TimedeltaIndex)
+
 
 class TestIndexConstructorUnwrapping:
     # Test passing different arraylike values to pd.Index
@@ -272,3 +364,14 @@ class TestIndexConstructorUnwrapping:
         expected = Index(array)
         result = Index(ArrayLike(array))
         tm.assert_index_equal(result, expected)
+
+
+class TestIndexConstructionErrors:
+    def test_constructor_overflow_int64(self):
+        # see GH#15832
+        msg = (
+            "The elements provided in the data cannot "
+            "all be casted to the dtype int64"
+        )
+        with pytest.raises(OverflowError, match=msg):
+            Index([np.iinfo(np.uint64).max - 1], dtype="int64")
