@@ -1466,8 +1466,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         Index.max : Return the maximum value in an Index.
         Series.max : Return the maximum value in a Series.
         """
-        # TODO: skipna is broken with max.
-        # See https://github.com/pandas-dev/pandas/issues/24265
         nv.validate_max((), kwargs)
         nv.validate_minmax_axis(axis, self.ndim)
 

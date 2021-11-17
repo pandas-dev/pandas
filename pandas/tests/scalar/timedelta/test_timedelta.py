@@ -317,6 +317,13 @@ class TestTimedeltas:
         td = Timedelta("10m7s")
         assert td.to_timedelta64() == td.to_numpy()
 
+        # GH#44460
+        msg = "dtype and copy arguments are ignored"
+        with pytest.raises(ValueError, match=msg):
+            td.to_numpy("m8[s]")
+        with pytest.raises(ValueError, match=msg):
+            td.to_numpy(copy=True)
+
     @pytest.mark.parametrize(
         "freq,s1,s2",
         [
