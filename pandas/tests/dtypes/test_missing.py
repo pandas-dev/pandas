@@ -44,8 +44,8 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core.api import Float64Index
 
-fix_now = Timestamp("2021-01-01")
-fix_utcnow = Timestamp("2021-01-01", tz="UTC")
+fix_now = pd.Timestamp("2021-01-01")
+fix_utcnow = pd.Timestamp("2021-01-01", tz="UTC")
 
 
 @pytest.mark.parametrize("notna_f", [notna, notnull])
