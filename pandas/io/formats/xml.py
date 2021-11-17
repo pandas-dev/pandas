@@ -9,8 +9,10 @@ from typing import Any
 
 from pandas._typing import (
     CompressionOptions,
-    FilePathOrBuffer,
+    FilePath,
+    ReadBuffer,
     StorageOptions,
+    WriteBuffer,
 )
 from pandas.errors import AbstractMethodError
 
@@ -90,7 +92,7 @@ class BaseXMLFormatter:
     def __init__(
         self,
         frame: DataFrame,
-        path_or_buffer: FilePathOrBuffer | None = None,
+        path_or_buffer: FilePath | WriteBuffer[bytes] | None = None,
         index: bool | None = True,
         root_name: str | None = "data",
         row_name: str | None = "row",
@@ -102,7 +104,7 @@ class BaseXMLFormatter:
         encoding: str = "utf-8",
         xml_declaration: bool | None = True,
         pretty_print: bool | None = True,
-        stylesheet: FilePathOrBuffer | None = None,
+        stylesheet: FilePath | ReadBuffer[str] | None = None,
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
     ) -> None:
@@ -272,7 +274,7 @@ class BaseXMLFormatter:
                 storage_options=self.storage_options,
                 is_text=False,
             ) as handles:
-                handles.handle.write(xml_doc)  # type: ignore[arg-type]
+                handles.handle.write(xml_doc)
             return None
 
         else:
@@ -582,7 +584,6 @@ class LxmlXMLFormatter(BaseXMLFormatter):
         conditionally by its specific object type, then transforms
         original tree with XSLT script.
         """
-
         from lxml.etree import (
             XSLT,
             XMLParser,
@@ -591,6 +592,7 @@ class LxmlXMLFormatter(BaseXMLFormatter):
         )
 
         style_doc = self.stylesheet
+        assert style_doc is not None  # is ensured by caller
 
         handle_data = get_data_from_filepath(
             filepath_or_buffer=style_doc,

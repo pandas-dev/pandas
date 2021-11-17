@@ -7,7 +7,8 @@ import numpy as np
 import pandas._libs.parsers as parsers
 from pandas._typing import (
     ArrayLike,
-    FilePathOrBuffer,
+    FilePath,
+    ReadCsvBuffer,
 )
 from pandas.errors import DtypeWarning
 from pandas.util._exceptions import find_stack_level
@@ -31,7 +32,9 @@ class CParserWrapper(ParserBase):
     low_memory: bool
     _reader: parsers.TextReader
 
-    def __init__(self, src: FilePathOrBuffer, **kwds):
+    def __init__(
+        self, src: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str], **kwds
+    ):
         self.kwds = kwds
         kwds = kwds.copy()
         ParserBase.__init__(self, kwds)

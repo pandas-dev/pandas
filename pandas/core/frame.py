@@ -16,7 +16,6 @@ import datetime
 import functools
 from io import StringIO
 import itertools
-import mmap
 from textwrap import dedent
 from typing import (
     IO,
@@ -55,7 +54,7 @@ from pandas._typing import (
     CompressionOptions,
     Dtype,
     DtypeObj,
-    FilePathOrBuffer,
+    FilePath,
     FillnaOptions,
     FloatFormatType,
     FormattersType,
@@ -71,6 +70,7 @@ from pandas._typing import (
     TimedeltaConvertibleTypes,
     TimestampConvertibleTypes,
     ValueKeyFunc,
+    WriteBuffer,
     npt,
 )
 from pandas.compat._optional import import_optional_dependency
@@ -1056,7 +1056,7 @@ class DataFrame(NDFrame, OpsMixin):
     @Substitution(shared_params=fmt.common_docstring, returns=fmt.return_docstring)
     def to_string(
         self,
-        buf: FilePathOrBuffer[str] | None = None,
+        buf: FilePath | WriteBuffer[str] | None = None,
         columns: Sequence[str] | None = None,
         col_space: int | None = None,
         header: bool | Sequence[str] = True,
@@ -2432,7 +2432,7 @@ class DataFrame(NDFrame, OpsMixin):
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
     def to_stata(
         self,
-        path: FilePathOrBuffer,
+        path: FilePath | WriteBuffer[bytes],
         convert_dates: dict[Hashable, str] | None = None,
         write_index: bool = True,
         byteorder: str | None = None,
@@ -2454,11 +2454,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        path : str, buffer or path object
-            String, path object (pathlib.Path or py._path.local.LocalPath) or
-            object implementing a binary write() function. If using a buffer
-            then the buffer will not be automatically closed after the file
-            data has been written.
+        path : str, path object, or buffer
+            String, path object (implementing ``os.PathLike[str]``), or file-like
+            object implementing a binary ``write()`` function.
 
             .. versionchanged:: 1.0.0
 
@@ -2600,14 +2598,16 @@ class DataFrame(NDFrame, OpsMixin):
         writer.write_file()
 
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
-    def to_feather(self, path: FilePathOrBuffer[bytes], **kwargs) -> None:
+    def to_feather(self, path: FilePath | WriteBuffer[bytes], **kwargs) -> None:
         """
         Write a DataFrame to the binary Feather format.
 
         Parameters
         ----------
-        path : str or file-like object
-            If a string, it will be used as Root Directory path.
+        path : str, path object, file-like object
+            String, path object (implementing ``os.PathLike[str]``), or file-like
+            object implementing a binary ``write()`` function. If a string or a path,
+            it will be used as Root Directory path when writing a partitioned dataset.
         **kwargs :
             Additional keywords passed to :func:`pyarrow.feather.write_feather`.
             Starting with pyarrow 0.17, this includes the `compression`,
@@ -2677,15 +2677,14 @@ class DataFrame(NDFrame, OpsMixin):
             return result
 
         with get_handle(buf, mode, storage_options=storage_options) as handles:
-            assert not isinstance(handles.handle, (str, mmap.mmap))
-            handles.handle.writelines(result)
+            handles.handle.write(result)
         return None
 
     @doc(storage_options=generic._shared_docs["storage_options"])
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
     def to_parquet(
         self,
-        path: FilePathOrBuffer | None = None,
+        path: FilePath | WriteBuffer[bytes] | None = None,
         engine: str = "auto",
         compression: str | None = "snappy",
         index: bool | None = None,
@@ -2703,13 +2702,11 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        path : str or file-like object, default None
-            If a string, it will be used as Root Directory path
-            when writing a partitioned dataset. By file-like object,
-            we refer to objects with a write() method, such as a file handle
-            (e.g. via builtin open function) or io.BytesIO. The engine
-            fastparquet does not accept file-like objects. If path is None,
-            a bytes object is returned.
+        path : str, path object, file-like object, or None, default None
+            String, path object (implementing ``os.PathLike[str]``), or file-like
+            object implementing a binary ``write()`` function. If None, the result is
+            returned as bytes. If a string or path, it will be used as Root Directory
+            path when writing a partitioned dataset.
 
             .. versionchanged:: 1.2.0
 
@@ -2804,7 +2801,7 @@ class DataFrame(NDFrame, OpsMixin):
     @Substitution(shared_params=fmt.common_docstring, returns=fmt.return_docstring)
     def to_html(
         self,
-        buf: FilePathOrBuffer[str] | None = None,
+        buf: FilePath | WriteBuffer[str] | None = None,
         columns: Sequence[str] | None = None,
         col_space: ColspaceArgType | None = None,
         header: bool | Sequence[str] = True,
@@ -2891,7 +2888,7 @@ class DataFrame(NDFrame, OpsMixin):
     @doc(storage_options=generic._shared_docs["storage_options"])
     def to_xml(
         self,
-        path_or_buffer: FilePathOrBuffer | None = None,
+        path_or_buffer: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
         index: bool = True,
         root_name: str | None = "data",
         row_name: str | None = "row",
@@ -2904,7 +2901,7 @@ class DataFrame(NDFrame, OpsMixin):
         xml_declaration: bool | None = True,
         pretty_print: bool | None = True,
         parser: str | None = "lxml",
-        stylesheet: FilePathOrBuffer | None = None,
+        stylesheet: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
     ) -> str | None:
@@ -2915,9 +2912,10 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        path_or_buffer : str, path object or file-like object, optional
-            File to write output to. If None, the output is returned as a
-            string.
+        path_or_buffer : str, path object, file-like object, or None, default None
+            String, path object (implementing ``os.PathLike[str]``), or file-like
+            object implementing a ``write()`` function. If None, the result is returned
+            as a string.
         index : bool, default True
             Whether to include index in XML document.
         root_name : str, default 'data'
@@ -3211,7 +3209,7 @@ class DataFrame(NDFrame, OpsMixin):
     def info(
         self,
         verbose: bool | None = None,
-        buf: IO[str] | None = None,
+        buf: WriteBuffer[str] | None = None,
         max_cols: int | None = None,
         memory_usage: bool | str | None = None,
         show_counts: bool | None = None,

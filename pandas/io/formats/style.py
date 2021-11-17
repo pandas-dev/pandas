@@ -21,10 +21,11 @@ from pandas._config import get_option
 
 from pandas._typing import (
     Axis,
-    FilePathOrBuffer,
+    FilePath,
     IndexLabel,
     Level,
     Scalar,
+    WriteBuffer,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
@@ -464,7 +465,7 @@ class Styler(StylerRenderer):
 
     def to_latex(
         self,
-        buf: FilePathOrBuffer[str] | None = None,
+        buf: FilePath | WriteBuffer[str] | None = None,
         *,
         column_format: str | None = None,
         position: str | None = None,
@@ -488,8 +489,10 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        buf : str, Path, or StringIO-like, optional, default None
-            Buffer to write to. If `None`, the output is returned as a string.
+        buf : str, path object, file-like object, or None, default None
+            String, path object (implementing ``os.PathLike[str]``), or file-like
+            object implementing a string ``write()`` function. If None, the result is
+            returned as a string.
         column_format : str, optional
             The LaTeX column specification placed in location:
 
@@ -893,7 +896,7 @@ class Styler(StylerRenderer):
 
     def to_html(
         self,
-        buf: FilePathOrBuffer[str] | None = None,
+        buf: FilePath | WriteBuffer[str] | None = None,
         *,
         table_uuid: str | None = None,
         table_attributes: str | None = None,
@@ -915,8 +918,10 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        buf : str, Path, or StringIO-like, optional, default None
-            Buffer to write to. If ``None``, the output is returned as a string.
+        buf : str, path object, file-like object, or None, default None
+            String, path object (implementing ``os.PathLike[str]``), or file-like
+            object implementing a string ``write()`` function. If None, the result is
+            returned as a string.
         table_uuid : str, optional
             Id attribute assigned to the <table> HTML element in the format:
 

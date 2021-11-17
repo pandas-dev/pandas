@@ -3,7 +3,8 @@ from __future__ import annotations
 import numpy as np
 
 from pandas._typing import (
-    FilePathOrBuffer,
+    FilePath,
+    ReadBuffer,
     Scalar,
     StorageOptions,
 )
@@ -28,7 +29,7 @@ class ODFReader(BaseExcelReader):
 
     def __init__(
         self,
-        filepath_or_buffer: FilePathOrBuffer,
+        filepath_or_buffer: FilePath | ReadBuffer[bytes],
         storage_options: StorageOptions = None,
     ):
         import_optional_dependency("odf")
@@ -40,7 +41,7 @@ class ODFReader(BaseExcelReader):
 
         return OpenDocument
 
-    def load_workbook(self, filepath_or_buffer: FilePathOrBuffer):
+    def load_workbook(self, filepath_or_buffer: FilePath | ReadBuffer[bytes]):
         from odf.opendocument import load
 
         return load(filepath_or_buffer)

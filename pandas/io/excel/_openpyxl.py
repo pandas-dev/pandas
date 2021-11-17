@@ -9,7 +9,8 @@ from typing import (
 import numpy as np
 
 from pandas._typing import (
-    FilePathOrBuffer,
+    FilePath,
+    ReadBuffer,
     Scalar,
     StorageOptions,
 )
@@ -507,7 +508,7 @@ class OpenpyxlWriter(ExcelWriter):
 class OpenpyxlReader(BaseExcelReader):
     def __init__(
         self,
-        filepath_or_buffer: FilePathOrBuffer,
+        filepath_or_buffer: FilePath | ReadBuffer[bytes],
         storage_options: StorageOptions = None,
     ) -> None:
         """
@@ -529,7 +530,7 @@ class OpenpyxlReader(BaseExcelReader):
 
         return Workbook
 
-    def load_workbook(self, filepath_or_buffer: FilePathOrBuffer):
+    def load_workbook(self, filepath_or_buffer: FilePath | ReadBuffer[bytes]):
         from openpyxl import load_workbook
 
         return load_workbook(
