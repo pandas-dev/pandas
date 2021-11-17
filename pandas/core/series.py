@@ -54,6 +54,7 @@ from pandas.util._decorators import (
     deprecate_nonkeyword_arguments,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     validate_ascending,
     validate_bool_kwarg,
@@ -360,7 +361,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     "of 'float64' in a future version. Specify a dtype explicitly "
                     "to silence this warning.",
                     FutureWarning,
-                    stacklevel=2,
+                    stacklevel=find_stack_level(),
                 )
                 # uncomment the line below when removing the FutureWarning
                 # dtype = np.dtype(object)
@@ -886,7 +887,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 "is_copy is deprecated and will be removed in a future version. "
                 "'take' always returns a copy, so there is no need to specify this.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
         nv.validate_take((), kwargs)
 
@@ -1011,7 +1012,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # mpl hackaround
         if com.any_none(*key):
             result = self._get_values(key)
-            deprecate_ndim_indexing(result, stacklevel=5)
+            deprecate_ndim_indexing(result, stacklevel=find_stack_level())
             return result
 
         if not isinstance(self.index, MultiIndex):
@@ -1078,7 +1079,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                         "Series. Use `series.iloc[an_int] = val` to treat the "
                         "key as positional.",
                         FutureWarning,
-                        stacklevel=2,
+                        stacklevel=find_stack_level(),
                     )
                 # this is equivalent to self._values[key] = value
                 self._mgr.setitem_inplace(key, value)
@@ -1096,9 +1097,26 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             if com.is_bool_indexer(key):
                 key = check_bool_indexer(self.index, key)
                 key = np.asarray(key, dtype=bool)
+
+                if (
+                    is_list_like(value)
+                    and len(value) != len(self)
+                    and not isinstance(value, Series)
+                    and not is_object_dtype(self.dtype)
+                ):
+                    # Series will be reindexed to have matching length inside
+                    #  _where call below
+                    # GH#44265
+                    indexer = key.nonzero()[0]
+                    self._set_values(indexer, value)
+                    return
+
+                # otherwise with listlike other we interpret series[mask] = other
+                #  as series[mask] = other[mask]
                 try:
                     self._where(~key, value, inplace=True)
                 except InvalidIndexError:
+                    # test_where_dups
                     self.iloc[key] = value
                 return
 
@@ -1870,7 +1888,7 @@ Name: Max Speed, dtype: float64
                     "will be removed in a future version."
                 ),
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
         else:
             squeeze = False
@@ -1932,7 +1950,7 @@ Name: Max Speed, dtype: float64
                 "deprecated and will be removed in a future version. Use groupby "
                 "instead. ser.count(level=1) should use ser.groupby(level=1).count().",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
             if not isinstance(self.index, MultiIndex):
                 raise ValueError("Series.count level is only valid with a MultiIndex")
@@ -4521,6 +4539,7 @@ Keep all original rows and also all original values
         dtype: int64
         """
         if axis is not None:
+            # Make sure we raise if an invalid 'axis' is passed.
             axis = self._get_axis_number(axis)
 
         if callable(index) or is_dict_like(index):
@@ -4889,23 +4908,20 @@ Keep all original rows and also all original values
         replacement value is given in the replace method
         """
 
-        orig_dtype = self.dtype
         result = self if inplace else self.copy()
-        fill_f = missing.get_fill_func(method)
 
-        mask = missing.mask_missing(result.values, to_replace)
-        values, _ = fill_f(result.values, limit=limit, mask=mask)
+        values = result._values
+        mask = missing.mask_missing(values, to_replace)
 
-        if values.dtype == orig_dtype and inplace:
-            return
-
-        result = self._constructor(values, index=self.index, dtype=self.dtype)
-        result = result.__finalize__(self)
+        if isinstance(values, ExtensionArray):
+            # dispatch to the EA's _pad_mask_inplace method
+            values._fill_mask_inplace(method, limit, mask)
+        else:
+            fill_f = missing.get_fill_func(method)
+            values, _ = fill_f(values, limit=limit, mask=mask)
 
         if inplace:
-            self._update_inplace(result)
             return
-
         return result
 
     # error: Cannot determine type of 'shift'
@@ -5120,7 +5136,7 @@ Keep all original rows and also all original values
                 "Boolean inputs to the `inclusive` argument are deprecated in "
                 "favour of `both` or `neither`.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
             if inclusive:
                 inclusive = "both"
@@ -5461,7 +5477,7 @@ Keep all original rows and also all original values
         inplace=False,
         axis=None,
         level=None,
-        errors="raise",
+        errors=lib.no_default,
         try_cast=lib.no_default,
     ):
         return super().where(cond, other, inplace, axis, level, errors, try_cast)
@@ -5476,7 +5492,7 @@ Keep all original rows and also all original values
         inplace=False,
         axis=None,
         level=None,
-        errors="raise",
+        errors=lib.no_default,
         try_cast=lib.no_default,
     ):
         return super().mask(cond, other, inplace, axis, level, errors, try_cast)
@@ -5484,7 +5500,6 @@ Keep all original rows and also all original values
     # ----------------------------------------------------------------------
     # Add index
     _AXIS_ORDERS = ["index"]
-    _AXIS_REVERSED = False
     _AXIS_LEN = len(_AXIS_ORDERS)
     _info_axis_number = 0
     _info_axis_name = "index"

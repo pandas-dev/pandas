@@ -72,7 +72,10 @@ from pandas._libs.tslibs.np_datetime cimport (
 from pandas._libs.tslibs.tzconversion cimport tz_convert_from_utc_single
 
 from .dtypes cimport PeriodDtypeCode
-from .timedeltas cimport delta_to_nanoseconds
+from .timedeltas cimport (
+    delta_to_nanoseconds,
+    is_any_td_scalar,
+)
 
 from .timedeltas import Timedelta
 
@@ -154,7 +157,11 @@ def apply_wraps(func):
 
         if other is NaT:
             return NaT
-        elif isinstance(other, BaseOffset) or PyDelta_Check(other):
+        elif (
+            isinstance(other, BaseOffset)
+            or PyDelta_Check(other)
+            or util.is_timedelta64_object(other)
+        ):
             # timedelta path
             return func(self, other)
         elif is_datetime64_object(other) or PyDate_Check(other):
@@ -777,7 +784,7 @@ cdef class Tick(SingleConstructorOffset):
                 "Tick offset with `normalize=True` are not allowed."
             )
 
-    # FIXME: Without making this cpdef, we get AttributeError when calling
+    # Note: Without making this cpdef, we get AttributeError when calling
     #  from __mul__
     cpdef Tick _next_higher_resolution(Tick self):
         if type(self) is Day:
@@ -902,7 +909,7 @@ cdef class Tick(SingleConstructorOffset):
             # PyDate_Check includes date, datetime
             return Timestamp(other) + self
 
-        if PyDelta_Check(other):
+        if util.is_timedelta64_object(other) or PyDelta_Check(other):
             return other + self.delta
         elif isinstance(other, type(self)):
             # TODO: this is reached in tests that specifically call apply,
@@ -1396,9 +1403,10 @@ cdef class BusinessDay(BusinessMixin):
                 result = result + self.offset
             return result
 
-        elif PyDelta_Check(other) or isinstance(other, Tick):
+        elif is_any_td_scalar(other):
+            td = Timedelta(self.offset) + other
             return BusinessDay(
-                self.n, offset=self.offset + other, normalize=self.normalize
+                self.n, offset=td.to_pytimedelta(), normalize=self.normalize
             )
         else:
             raise ApplyTypeError(
@@ -1858,7 +1866,8 @@ cdef class YearOffset(SingleConstructorOffset):
     """
     _attributes = tuple(["n", "normalize", "month"])
 
-    # _default_month: int  # FIXME: python annotation here breaks things
+    # FIXME(cython#4446): python annotation here gives compile-time errors
+    # _default_month: int
 
     cdef readonly:
         int month
@@ -2009,7 +2018,7 @@ cdef class QuarterOffset(SingleConstructorOffset):
     #       point.  Also apply_index, is_on_offset, rule_code if
     #       startingMonth vs month attr names are resolved
 
-    # FIXME: python annotations here breaks things
+    # FIXME(cython#4446): python annotation here gives compile-time errors
     # _default_starting_month: int
     # _from_name_starting_month: int
 
@@ -3264,8 +3273,9 @@ cdef class CustomBusinessDay(BusinessDay):
                 result = result + self.offset
             return result
 
-        elif PyDelta_Check(other) or isinstance(other, Tick):
-            return BDay(self.n, offset=self.offset + other, normalize=self.normalize)
+        elif is_any_td_scalar(other):
+            td = Timedelta(self.offset) + other
+            return BDay(self.n, offset=td.to_pytimedelta(), normalize=self.normalize)
         else:
             raise ApplyTypeError(
                 "Only know how to combine trading day with "
