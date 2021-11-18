@@ -1069,7 +1069,7 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def to_string(
         self,
-        buf: FilePathOrBuffer[str],
+        buf: FilePath | WriteBuffer[str],
         columns: Sequence[str] | None = ...,
         col_space: int | list[int] | dict[Hashable, int] | None = ...,
         header: bool | Sequence[str] = ...,
