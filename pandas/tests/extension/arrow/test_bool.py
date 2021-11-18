@@ -6,7 +6,7 @@ import pandas._testing as tm
 from pandas.api.types import is_bool_dtype
 from pandas.tests.extension import base
 
-pytest.importorskip("pyarrow", minversion="0.13.0")
+pytest.importorskip("pyarrow", minversion="1.0.1")
 
 from pandas.tests.extension.arrow.arrays import (  # isort:skip
     ArrowBoolArray,

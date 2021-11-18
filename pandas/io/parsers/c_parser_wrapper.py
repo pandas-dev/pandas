@@ -7,9 +7,11 @@ import numpy as np
 import pandas._libs.parsers as parsers
 from pandas._typing import (
     ArrayLike,
-    FilePathOrBuffer,
+    FilePath,
+    ReadCsvBuffer,
 )
 from pandas.errors import DtypeWarning
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -30,7 +32,9 @@ class CParserWrapper(ParserBase):
     low_memory: bool
     _reader: parsers.TextReader
 
-    def __init__(self, src: FilePathOrBuffer, **kwds):
+    def __init__(
+        self, src: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str], **kwds
+    ):
         self.kwds = kwds
         kwds = kwds.copy()
         ParserBase.__init__(self, kwds)
@@ -387,7 +391,7 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
                 f"Specify dtype option on import or set low_memory=False."
             ]
         )
-        warnings.warn(warning_message, DtypeWarning, stacklevel=8)
+        warnings.warn(warning_message, DtypeWarning, stacklevel=find_stack_level())
     return result
 
 

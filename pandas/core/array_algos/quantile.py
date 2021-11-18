@@ -4,7 +4,10 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from pandas._typing import ArrayLike
+from pandas._typing import (
+    ArrayLike,
+    npt,
+)
 
 from pandas.core.dtypes.common import is_sparse
 from pandas.core.dtypes.missing import (
@@ -18,7 +21,9 @@ if TYPE_CHECKING:
     from pandas.core.arrays import ExtensionArray
 
 
-def quantile_compat(values: ArrayLike, qs: np.ndarray, interpolation: str) -> ArrayLike:
+def quantile_compat(
+    values: ArrayLike, qs: npt.NDArray[np.float64], interpolation: str
+) -> ArrayLike:
     """
     Compute the quantiles of the given values for each quantile in `qs`.
 
@@ -55,7 +60,7 @@ def _quantile_with_mask(
     values: np.ndarray,
     mask: np.ndarray,
     fill_value,
-    qs: np.ndarray,
+    qs: npt.NDArray[np.float64],
     interpolation: str,
 ) -> np.ndarray:
     """
@@ -112,7 +117,7 @@ def _quantile_with_mask(
 
 
 def _quantile_ea_compat(
-    values: ExtensionArray, qs: np.ndarray, interpolation: str
+    values: ExtensionArray, qs: npt.NDArray[np.float64], interpolation: str
 ) -> ExtensionArray:
     """
     ExtensionArray compatibility layer for _quantile_with_mask.
@@ -158,7 +163,7 @@ def _quantile_ea_compat(
 
 
 def _quantile_ea_fallback(
-    values: ExtensionArray, qs: np.ndarray, interpolation: str
+    values: ExtensionArray, qs: npt.NDArray[np.float64], interpolation: str
 ) -> ExtensionArray:
     """
     quantile compatibility for ExtensionArray subclasses that do not

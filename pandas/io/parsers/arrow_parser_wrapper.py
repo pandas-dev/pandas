@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from pandas._typing import FilePathOrBuffer
+from pandas._typing import (
+    FilePath,
+    ReadBuffer,
+)
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.inference import is_integer
@@ -16,7 +19,7 @@ class ArrowParserWrapper(ParserBase):
     Wrapper for the pyarrow engine for read_csv()
     """
 
-    def __init__(self, src: FilePathOrBuffer, **kwds):
+    def __init__(self, src: FilePath | ReadBuffer[bytes], **kwds):
         self.kwds = kwds
         self.src = src
 
