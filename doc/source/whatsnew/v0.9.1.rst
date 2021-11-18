@@ -59,7 +59,7 @@ New features
 
         .. ipython:: python
 
-    	    df = DataFrame(np.random.randn(5, 3), columns = ['A','B','C'])
+    	    df = pd.DataFrame(np.random.randn(5, 3), columns = ['A','B','C'])
 
 	    df
 
