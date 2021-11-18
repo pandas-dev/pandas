@@ -1009,7 +1009,7 @@ class TestDataFrameMultiQuantile:
                     Timestamp("2011-01-03"),
                     Timestamp("2011-01-03", tz="US/Eastern"),
                     Timestamp("2011-01-03", tz="US/Eastern"),
-                    pd.NaT,
+                    np.timedelta64("NaT", "ns"),
                     pd.Timedelta("3 days"),
                 ]
             ],
