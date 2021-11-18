@@ -1483,7 +1483,9 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         # TODO(EA2D): not needed with 2D EAS
         if isinstance(value, (np.ndarray, ExtensionArray)) and value.ndim == 2:
             assert value.shape[1] == 1
-            value = value[:, 0]
+            # error: No overload variant of "__getitem__" of "ExtensionArray"
+            # matches argument type "Tuple[slice, int]"
+            value = value[:, 0]  # type: ignore[call-overload]
         elif isinstance(value, ABCDataFrame):
             # TODO: should we avoid getting here with DataFrame?
             assert value.shape[1] == 1
