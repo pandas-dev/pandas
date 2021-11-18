@@ -2158,8 +2158,6 @@ class MultiIndex(Index):
     @Appender(_index_shared_docs["repeat"] % _index_doc_kwargs)
     def repeat(self, repeats: int, axis=None) -> MultiIndex:
         nv.validate_repeat((), {"axis": axis})
-        # error: Incompatible types in assignment (expression has type "ndarray",
-        # variable has type "int")
         ensured_repeats = ensure_platform_int(repeats)
         return MultiIndex(
             levels=self.levels,
