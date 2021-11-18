@@ -139,7 +139,6 @@ cpdef bint checknull_old(object val):
     return checknull(val, inf_as_na=True)
 
 
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cpdef ndarray[uint8_t] isnaobj(ndarray arr, bint inf_as_na=False):

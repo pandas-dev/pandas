@@ -1225,7 +1225,9 @@ cdef:
     cnp.float64_t NEGINF = -INF
 
 
-cpdef bint is_null_datetimelike(object val, bint inat_is_null=True, bint inf_as_na=False):
+cpdef bint is_null_datetimelike(
+    object val, bint inat_is_null=True, bint inf_as_na=False
+):
     """
     Determine if we have a null for a timedelta/datetime (or integer versions).
 
