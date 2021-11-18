@@ -26,7 +26,8 @@ from pandas._libs.tslibs import parsing
 from pandas._typing import (
     ArrayLike,
     DtypeArg,
-    FilePathOrBuffer,
+    FilePath,
+    ReadCsvBuffer,
 )
 from pandas.errors import (
     ParserError,
@@ -218,7 +219,11 @@ class ParserBase:
         # Normally, this arg would get pre-processed earlier on
         self.on_bad_lines = kwds.get("on_bad_lines", self.BadLineHandleMethod.ERROR)
 
-    def _open_handles(self, src: FilePathOrBuffer, kwds: dict[str, Any]) -> None:
+    def _open_handles(
+        self,
+        src: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
+        kwds: dict[str, Any],
+    ) -> None:
         """
         Let the readers open IOHandles after they are done with their potential raises.
         """
