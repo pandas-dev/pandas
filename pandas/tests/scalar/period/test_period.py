@@ -41,6 +41,7 @@ import pandas._testing as tm
 
 class TestPeriodConstruction:
     def test_from_td64nat_raises(self):
+        # GH#44507
         td = NaT.to_numpy("m8[ns]")
 
         msg = "Value must be Period, string, integer, or datetime"

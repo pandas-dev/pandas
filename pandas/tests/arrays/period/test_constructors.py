@@ -99,6 +99,7 @@ def test_from_sequence_disallows_i8():
 
 
 def test_from_td64nat_sequence_raises():
+    # GH#44507
     td = pd.NaT.to_numpy("m8[ns]")
 
     dtype = pd.period_range("2005-01-01", periods=3, freq="D").dtype
