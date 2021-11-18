@@ -2160,11 +2160,13 @@ class MultiIndex(Index):
         nv.validate_repeat((), {"axis": axis})
         # error: Incompatible types in assignment (expression has type "ndarray",
         # variable has type "int")
-        repeats = ensure_platform_int(repeats)  # type: ignore[assignment]
+        ensured_repeats = ensure_platform_int(repeats)
         return MultiIndex(
             levels=self.levels,
             codes=[
-                level_codes.view(np.ndarray).astype(np.intp, copy=False).repeat(repeats)
+                level_codes.view(np.ndarray)
+                .astype(np.intp, copy=False)
+                .repeat(ensured_repeats)
                 for level_codes in self.codes
             ],
             names=self.names,
