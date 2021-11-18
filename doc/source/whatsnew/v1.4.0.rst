@@ -212,7 +212,6 @@ Other enhancements
 - :meth:`.GroupBy.mean` now supports `Numba <http://numba.pydata.org/>`_ execution with the ``engine`` keyword (:issue:`43731`)
 - :meth:`Timestamp.isoformat`, now handles the ``timespec`` argument from the base :class:``datetime`` class (:issue:`26131`)
 - :meth:`NaT.to_numpy` ``dtype`` argument is now respected, so ``np.timedelta64`` can be returned (:issue:`44460`)
-- Change in the order of the arguments in :meth:`DataFrame.to_string` due to change in the docstring (:issue:`44304`)
 -
 
 
@@ -399,6 +398,7 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 Other API changes
 ^^^^^^^^^^^^^^^^^
 - :meth:`Index.get_indexer_for` no longer accepts keyword arguments (other than 'target'); in the past these would be silently ignored if the index was not unique (:issue:`42310`)
+- Change in the position of the `min_rows` in :meth:`DataFrame.to_string` due to change in the docstring (:issue:`44304`)
 -
 
 .. ---------------------------------------------------------------------------
