@@ -3118,15 +3118,11 @@ class MultiIndex(Index):
                 mapper = Series(indexer)
                 indexer = codes.take(ensure_platform_int(indexer))
                 result = Series(Index(indexer).isin(r).nonzero()[0])
-                m = result.map(mapper)
-                # error: Incompatible types in assignment (expression has type
-                # "ndarray", variable has type "Series")
-                m = np.asarray(m)  # type: ignore[assignment]
+                mapped_result = result.map(mapper)
+                m = np.asarray(mapped_result)
 
             else:
-                # error: Incompatible types in assignment (expression has type
-                # "ndarray", variable has type "Series")
-                m = np.zeros(len(codes), dtype=bool)  # type: ignore[assignment]
+                m = np.zeros(len(codes), dtype=bool)
                 m[np.in1d(codes, r, assume_unique=Index(codes).is_unique)] = True
 
             return m
