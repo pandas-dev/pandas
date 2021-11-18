@@ -230,7 +230,7 @@ class TestDataFrameQuantile:
         # axis = 1
         result = df.quantile([0.25, 0.5], axis=1)
         expected = DataFrame(
-            [[1.5, 1.5, 1.5], [2.0, 2.0, 2.0]], index=[0.25, 0.5], columns=[0, 1, 2]
+            [[1.0, 2.0, 3.0]] * 2, index=[0.25, 0.5], columns=[0, 1, 2]
         )
         tm.assert_frame_equal(result, expected)
 
