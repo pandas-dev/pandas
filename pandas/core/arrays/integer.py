@@ -35,7 +35,6 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.masked import (
@@ -190,8 +189,7 @@ def coerce_to_array(
     if is_object_dtype(values) or is_string_dtype(values):
         inferred_type = lib.infer_dtype(values, skipna=True)
         if inferred_type == "empty":
-            values = np.empty(len(values))
-            values.fill(np.nan)
+            pass
         elif inferred_type not in [
             "floating",
             "integer",
@@ -209,13 +207,14 @@ def coerce_to_array(
     elif not (is_integer_dtype(values) or is_float_dtype(values)):
         raise TypeError(f"{values.dtype} cannot be converted to an IntegerDtype")
 
+    if values.ndim != 1:
+        raise TypeError("values must be a 1D list-like")
+
     if mask is None:
-        mask = isna(values)
+        mask = libmissing.is_numeric_na(values)
     else:
         assert len(mask) == len(values)
 
-    if not values.ndim == 1:
-        raise TypeError("values must be a 1D list-like")
     if not mask.ndim == 1:
         raise TypeError("mask must be a 1D list-like")
 

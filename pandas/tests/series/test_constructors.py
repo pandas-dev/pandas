@@ -1817,6 +1817,24 @@ class TestSeriesConstructors:
         expected = Series(True, index=[0], dtype="bool")
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("func", [Series, DataFrame, Index, pd.array])
+    def test_constructor_mismatched_null_nullable_dtype(
+        self, func, any_numeric_ea_dtype
+    ):
+        msg = "|".join(
+            [
+                "cannot safely cast non-equivalent object",
+                r"int\(\) argument must be a string, a bytes-like object or a number",
+                r"Cannot cast array data from dtype\('O'\) to dtype\('float64'\) "
+                "according to the rule 'safe'",
+                "object cannot be converted to a FloatingDtype",
+            ]
+        )
+
+        for null in tm.NP_NAT_OBJECTS + [NaT]:
+            with pytest.raises(TypeError, match=msg):
+                func([null, 1.0, 3.0], dtype=any_numeric_ea_dtype)
+
 
 class TestSeriesConstructorIndexCoercion:
     def test_series_constructor_datetimelike_index_coercion(self):

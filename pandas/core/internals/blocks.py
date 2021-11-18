@@ -1480,6 +1480,15 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
             # we are always 1-D
             indexer = indexer[0]
 
+        # TODO(EA2D): not needed with 2D EAS
+        if isinstance(value, (np.ndarray, ExtensionArray)) and value.ndim == 2:
+            assert value.shape[1] == 1
+            value = value[:, 0]
+        elif isinstance(value, ABCDataFrame):
+            # TODO: should we avoid getting here with DataFrame?
+            assert value.shape[1] == 1
+            value = value._ixs(0, axis=1)._values
+
         check_setitem_lengths(indexer, value, self.values)
         self.values[indexer] = value
         return self
