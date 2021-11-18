@@ -97,7 +97,7 @@ def test_to_array_mixed_integer_float():
         np.array(["foo"]),
         [[1, 2], [3, 4]],
         [np.nan, {"a": 1}],
-        # all-NA case used to get quietly swapped out before checking ndim
+        # GH#44514 all-NA case used to get quietly swapped out before checking ndim
         np.array([pd.NA] * 6, dtype=object).reshape(3, 2),
     ],
 )
