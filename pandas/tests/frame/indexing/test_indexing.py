@@ -1237,7 +1237,7 @@ class TestDataFrameIndexing:
     def test_setting_mismatched_na_into_nullable_fails(
         self, null, any_numeric_ea_dtype
     ):
-        # don't cast mismatched nulls to pd.NA
+        # GH#44514 don't cast mismatched nulls to pd.NA
         df = DataFrame({"A": [1, 2, 3]}, dtype=any_numeric_ea_dtype)
         ser = df["A"]
         arr = ser._values
