@@ -702,10 +702,8 @@ class MultiIndex(Index):
                 vals, (ABCDatetimeIndex, ABCTimedeltaIndex)
             ):
                 vals = vals.astype(object)
-            # error: Incompatible types in assignment (expression has type "ndarray",
-            # variable has type "Index")
-            vals = np.array(vals, copy=False)  # type: ignore[assignment]
-            values.append(vals)
+            array_vals = np.array(vals, copy=False)
+            values.append(array_vals)
 
         arr = lib.fast_zip(values)
         return arr
