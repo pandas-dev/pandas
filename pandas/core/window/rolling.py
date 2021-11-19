@@ -902,7 +902,7 @@ class Window(BaseWindow):
         If ``'neither'``, the first and last points in the window are excluded
         from calculations.
 
-        Default ``None`` (``'right'``)
+        Default ``None`` (``'right'``).
 
         .. versionchanged:: 1.2.0
 
