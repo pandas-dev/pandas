@@ -108,15 +108,15 @@ class TestConvert:
         result = ser._convert(datetime=True)
         tm.assert_series_equal(result, expected)
 
-        # preserver if non-object
+        # preserve if non-object
         ser = Series([1], dtype="float32")
         result = ser._convert(datetime=True)
         tm.assert_series_equal(result, ser)
 
         # FIXME: dont leave commented-out
         # res = ser.copy()
-        # r[0] = np.nan
-        # result = res._convert(convert_dates=True,convert_numeric=False)
+        # res[0] = np.nan
+        # result = res._convert(datetime=True, numeric=False)
         # assert result.dtype == 'M8[ns]'
 
     def test_convert_no_arg_error(self):

@@ -20,7 +20,8 @@ import numpy as np
 
 import pandas._libs.lib as lib
 from pandas._typing import (
-    FilePathOrBuffer,
+    FilePath,
+    ReadCsvBuffer,
     Scalar,
 )
 from pandas.errors import (
@@ -45,7 +46,9 @@ _BOM = "\ufeff"
 
 
 class PythonParser(ParserBase):
-    def __init__(self, f: FilePathOrBuffer | list, **kwds):
+    def __init__(
+        self, f: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str] | list, **kwds
+    ):
         """
         Workhorse function for processing nested list into DataFrame
         """
