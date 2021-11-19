@@ -6,6 +6,7 @@ import operator
 from shutil import get_terminal_size
 from typing import (
     TYPE_CHECKING,
+    Callable,
     Hashable,
     Sequence,
     TypeVar,
@@ -35,6 +36,7 @@ from pandas._typing import (
     ArrayLike,
     AstypeArg,
     Dtype,
+    FloatFormatType,
     NpDtype,
     Ordered,
     Shape,
@@ -1949,6 +1951,35 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     # ------------------------------------------------------------------
     # Rendering Methods
+
+    def _format_array(
+        self,
+        formatter: Callable | None,
+        float_format: FloatFormatType = None,
+        na_rep: str = "NaN",
+        digits: int = None,
+        space: str | int = None,
+        justify: str = "right",
+        decimal: str = ".",
+        leading_space: bool | None = True,
+        quoting: int | None = None,
+    ) -> list[str]:
+        from pandas.io.formats.format import format_array
+
+        array = self._internal_get_values()
+        fmt_values = format_array(
+            array,
+            formatter,
+            float_format=float_format,
+            na_rep=na_rep,
+            digits=digits,
+            space=space,
+            justify=justify,
+            decimal=decimal,
+            leading_space=leading_space,
+            quoting=quoting,
+        )
+        return fmt_values
 
     def _formatter(self, boxed: bool = False):
         # Defer to CategoricalFormatter's formatter.

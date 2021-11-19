@@ -1286,6 +1286,8 @@ def format_array(
     if digits is None:
         digits = get_option("display.precision")
 
+    values = extract_array(values, extract_numpy=True)
+
     if is_extension_array_dtype(values):
         return values._format_array(
             formatter,

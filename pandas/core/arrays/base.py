@@ -1251,6 +1251,10 @@ class ExtensionArray:
         """
         Format an array of of values.
 
+        This is called from both the Series and DataFrame reprs. By default,
+        the ExtensionArray is converted to a NumPy array and formatted using
+        pandas' normal formatting methods.
+
         Parameters
         ----------
         formatter : Callable, optional
@@ -1271,14 +1275,15 @@ class ExtensionArray:
             (e.g. IntervalIndex._format_native_types), we don't want the
             leading space since it should be left-aligned.
 
-
+        Returns
+        -------
+        list[str]
+            The list of formatted values for the array.
         """
-        from pandas import Categorical
         from pandas.core.construction import extract_array
 
         from pandas.io.formats.format import format_array
 
-        # values = self
         values = extract_array(self, extract_numpy=True)
 
         if formatter is None:
@@ -1286,12 +1291,7 @@ class ExtensionArray:
             # no attribute "_formatter"
             formatter = values._formatter(boxed=True)  # type: ignore[union-attr]
 
-        if isinstance(values, Categorical):
-            # Categorical is special for now, so that we can preserve tzinfo
-            array = values._internal_get_values()
-        else:
-            array = np.asarray(values)
-
+        array = np.asarray(values)
         fmt_values = format_array(
             array,
             formatter,
