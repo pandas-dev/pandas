@@ -165,7 +165,7 @@ We'll now kick off a three-step process:
 
 At this point you should be able to import pandas from your locally built version::
 
-   $ python  # start an interpreter
+   $ python
    >>> import pandas
    >>> print(pandas.__version__)
    0.22.0.dev0+29.g4ad6d4d74
