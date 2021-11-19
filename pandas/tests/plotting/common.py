@@ -29,8 +29,6 @@ from pandas import (
 )
 import pandas._testing as tm
 
-from pandas.plotting._matplotlib import compat
-
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
 
@@ -46,6 +44,8 @@ class TestPlotBase:
         import matplotlib as mpl
 
         from pandas.plotting._matplotlib import compat
+
+        self.compat = compat
 
         mpl.rcdefaults()
 
@@ -571,6 +571,12 @@ class TestPlotBase:
         """
         return [v[field] for v in rcParams["axes.prop_cycle"]]
 
+    def get_x_axis(self, ax):
+        return ax._shared_axes["x"] if self.compat.mpl_ge_3_5_0() else ax._shared_x_axes
+
+    def get_y_axis(self, ax):
+        return ax._shared_axes["y"] if self.compat.mpl_ge_3_5_0() else ax._shared_y_axes
+
 
 def _check_plot_works(f, filterwarnings="always", default_axes=False, **kwargs):
     """
@@ -655,11 +661,3 @@ def _gen_two_subplots(f, fig, **kwargs):
 def curpath():
     pth, _ = os.path.split(os.path.abspath(__file__))
     return pth
-
-
-get_x_axis = (
-    lambda ax: ax._shared_axes["x"] if compat.mpl_ge_3_5_0() else ax._shared_x_axes
-)
-get_y_axis = (
-    lambda ax: ax._shared_axes["y"] if compat.mpl_ge_3_5_0() else ax._shared_y_axes
-)
