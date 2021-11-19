@@ -9368,7 +9368,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2020-01-07    30    33    37
         2020-01-08    45    48    52
         """
-        if periods == 0:
+
+        # --- [chein] #44424 temp edit --- #
+
+        # Check if int
+        if type(periods) != int:
+            # check if instance of iter
+            if not isinstance(periods, iter):
+                try:
+                    periods_iter = iter(periods)
+                except TypeError as te:
+                    raise te
+        # when no col shift, return self   
+        elif periods == 0:
             return self.copy()
 
         if freq is None:
