@@ -429,9 +429,6 @@ class FloatingArray(NumericArray):
 
         return type(self)(result, mask, copy=False)
 
-    def isna(self):
-        return self._mask | np.isnan(self._data)
-
 
 _dtype_docstring = """
 An ExtensionDtype for {dtype} data.

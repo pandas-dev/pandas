@@ -954,10 +954,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 # mypy doesn't know we have an array here
                 key = cast(np.ndarray, key)
                 return self.take(np.arange(len(key), dtype=np.int32)[key])
-            elif lib.is_list_like(key):
+            elif hasattr(key, "__len__"):
                 return self.take(key)
             else:
-                raise IndexError(f"Cannot slice with '{key}'")
+                raise ValueError(f"Cannot slice with '{key}'")
 
         return type(self)(data_slice, kind=self.kind)
 
