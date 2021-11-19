@@ -940,8 +940,8 @@ class TestFrameArithmetic:
             (operator.mul, "bool"),
         }
 
-        e = DummyElement(value, dtype)
-        s = DataFrame({"A": [e.value, e.value]}, dtype=e.dtype)
+        elem = DummyElement(value, dtype)
+        df = DataFrame({"A": [elem.value, elem.value]}, dtype=elem.dtype)
 
         invalid = {
             (operator.pow, "<M8[ns]"),
@@ -975,7 +975,7 @@ class TestFrameArithmetic:
 
             with pytest.raises(TypeError, match=msg):
                 with tm.assert_produces_warning(warn):
-                    op(s, e.value)
+                    op(df, elem.value)
 
         elif (op, dtype) in skip:
 
@@ -986,19 +986,17 @@ class TestFrameArithmetic:
                 else:
                     warn = None
                 with tm.assert_produces_warning(warn):
-                    op(s, e.value)
+                    op(df, elem.value)
 
             else:
                 msg = "operator '.*' not implemented for .* dtypes"
                 with pytest.raises(NotImplementedError, match=msg):
-                    op(s, e.value)
+                    op(df, elem.value)
 
         else:
-            # FIXME: Since dispatching to Series, this test no longer
-            # asserts anything meaningful
             with tm.assert_produces_warning(None):
-                result = op(s, e.value).dtypes
-                expected = op(s, value).dtypes
+                result = op(df, elem.value).dtypes
+                expected = op(df, value).dtypes
             tm.assert_series_equal(result, expected)
 
 
@@ -1255,9 +1253,7 @@ class TestFrameArithmeticUnsorted:
         added = float_frame + mixed_int_frame
         _check_mixed_float(added, dtype="float64")
 
-    def test_combine_series(
-        self, float_frame, mixed_float_frame, mixed_int_frame, datetime_frame
-    ):
+    def test_combine_series(self, float_frame, mixed_float_frame, mixed_int_frame):
 
         # Series
         series = float_frame.xs(float_frame.index[0])
@@ -1287,17 +1283,18 @@ class TestFrameArithmeticUnsorted:
         added = mixed_float_frame + series.astype("float16")
         _check_mixed_float(added, dtype={"C": None})
 
-        # FIXME: don't leave commented-out
-        # these raise with numexpr.....as we are adding an int64 to an
-        # uint64....weird vs int
+        # these used to raise with numexpr as we are adding an int64 to an
+        #  uint64....weird vs int
+        added = mixed_int_frame + (100 * series).astype("int64")
+        _check_mixed_int(
+            added, dtype={"A": "int64", "B": "float64", "C": "int64", "D": "int64"}
+        )
+        added = mixed_int_frame + (100 * series).astype("int32")
+        _check_mixed_int(
+            added, dtype={"A": "int32", "B": "float64", "C": "int32", "D": "int64"}
+        )
 
-        # added = mixed_int_frame + (100*series).astype('int64')
-        # _check_mixed_int(added, dtype = {"A": 'int64', "B": 'float64', "C":
-        # 'int64', "D": 'int64'})
-        # added = mixed_int_frame + (100*series).astype('int32')
-        # _check_mixed_int(added, dtype = {"A": 'int32', "B": 'float64', "C":
-        # 'int32', "D": 'int64'})
-
+    def test_combine_timeseries(self, datetime_frame):
         # TimeSeries
         ts = datetime_frame["A"]
 
