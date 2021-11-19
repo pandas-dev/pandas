@@ -651,7 +651,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
             # at this point we should only have numeric scalars; anything
             #  else will raise
-            result = self._ndarray / other
+            result = self._ndarray // other
             freq = None
             if self.freq is not None:
                 # Note: freq gets division, not floor-division
@@ -800,7 +800,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         return type(self)(-self._ndarray)
 
     def __pos__(self) -> TimedeltaArray:
-        return type(self)(self._ndarray, freq=self.freq)
+        return type(self)(self._ndarray.copy(), freq=self.freq)
 
     def __abs__(self) -> TimedeltaArray:
         # Note: freq is not preserved
