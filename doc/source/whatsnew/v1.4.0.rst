@@ -572,6 +572,7 @@ Conversion
 - Bug in :class:`IntegerDtype` not allowing coercion from string dtype (:issue:`25472`)
 - Bug in :func:`to_datetime` with ``arg:xr.DataArray`` and ``unit="ns"`` specified raises TypeError (:issue:`44053`)
 - Bug in :meth:`DataFrame.convert_dtypes` not returning the correct type when a subclass does not overload :meth:`_constructor_sliced` (:issue:`43201`)
+- Bug in :func:`to_datetime` and :func:`to_timedelta` when passed a ``memoryview`` object (:issue:`44431`)
 -
 
 Strings

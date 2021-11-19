@@ -118,8 +118,12 @@ ll_params = [
     (object(), False, "object"),
     (np.nan, False, "NaN"),
     (None, False, "None"),
-    (memoryview(np.array([1, 2])), True, "memoryview-1d"),
-    (memoryview(np.array(3.0)), False, "memoryview-0d"),
+    # error: Argument 1 to "memoryview" has incompatible type "ndarray[Any, Any]";
+    # expected "Union[bytes, bytearray, memoryview, array[Any], mmap]"
+    (memoryview(np.array([1, 2])), True, "memoryview-1d"),  # type: ignore[arg-type]
+    # error: Argument 1 to "memoryview" has incompatible type "ndarray[Any, Any]";
+    # expected "Union[bytes, bytearray, memoryview, array[Any], mmap]"
+    (memoryview(np.array(3.0)), False, "memoryview-0d"),  # type: ignore[arg-type]
 ]
 objs, expected, ids = zip(*ll_params)
 
