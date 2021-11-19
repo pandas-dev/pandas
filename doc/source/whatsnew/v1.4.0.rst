@@ -203,6 +203,7 @@ Other enhancements
 - :meth:`IntegerArray.all` , :meth:`IntegerArray.any`, :meth:`FloatingArray.any`, and :meth:`FloatingArray.all` use Kleene logic (:issue:`41967`)
 - Added support for nullable boolean and integer types in :meth:`DataFrame.to_stata`, :class:`~pandas.io.stata.StataWriter`, :class:`~pandas.io.stata.StataWriter117`, and :class:`~pandas.io.stata.StataWriterUTF8` (:issue:`40855`)
 - :meth:`DataFrame.__pos__`, :meth:`DataFrame.__neg__` now retain ``ExtensionDtype`` dtypes (:issue:`43883`)
+- Added :meth:`api.extension.ExtensionArray._format_array` for extension arrays to control how they are formatted in ``Series`` and ``DataFrame`` (:issue:`26837`)
 - The error raised when an optional dependency can't be imported now includes the original exception, for easier investigation (:issue:`43882`)
 - Added :meth:`.ExponentialMovingWindow.sum` (:issue:`13297`)
 - :meth:`Series.str.split` now supports a ``regex`` argument that explicitly specifies whether the pattern is a regular expression. Default is ``None`` (:issue:`43563`, :issue:`32835`, :issue:`25549`)
