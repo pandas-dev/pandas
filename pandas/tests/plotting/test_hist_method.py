@@ -16,6 +16,8 @@ import pandas._testing as tm
 from pandas.tests.plotting.common import (
     TestPlotBase,
     _check_plot_works,
+    get_x_axis,
+    get_y_axis,
 )
 
 pytestmark = pytest.mark.slow
@@ -728,35 +730,35 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         ax1, ax2 = df.hist(column="height", by=df.gender, sharex=True)
 
         # share x
-        assert ax1._shared_x_axes.joined(ax1, ax2)
-        assert ax2._shared_x_axes.joined(ax1, ax2)
+        assert get_x_axis(ax1).joined(ax1, ax2)
+        assert get_x_axis(ax2).joined(ax1, ax2)
 
         # don't share y
-        assert not ax1._shared_y_axes.joined(ax1, ax2)
-        assert not ax2._shared_y_axes.joined(ax1, ax2)
+        assert not get_y_axis(ax1).joined(ax1, ax2)
+        assert not get_y_axis(ax2).joined(ax1, ax2)
 
     def test_axis_share_y(self):
         df = self.hist_df
         ax1, ax2 = df.hist(column="height", by=df.gender, sharey=True)
 
         # share y
-        assert ax1._shared_y_axes.joined(ax1, ax2)
-        assert ax2._shared_y_axes.joined(ax1, ax2)
+        assert get_y_axis(ax1).joined(ax1, ax2)
+        assert get_y_axis(ax2).joined(ax1, ax2)
 
         # don't share x
-        assert not ax1._shared_x_axes.joined(ax1, ax2)
-        assert not ax2._shared_x_axes.joined(ax1, ax2)
+        assert not get_x_axis(ax1).joined(ax1, ax2)
+        assert not get_x_axis(ax2).joined(ax1, ax2)
 
     def test_axis_share_xy(self):
         df = self.hist_df
         ax1, ax2 = df.hist(column="height", by=df.gender, sharex=True, sharey=True)
 
         # share both x and y
-        assert ax1._shared_x_axes.joined(ax1, ax2)
-        assert ax2._shared_x_axes.joined(ax1, ax2)
+        assert get_x_axis(ax1).joined(ax1, ax2)
+        assert get_x_axis(ax2).joined(ax1, ax2)
 
-        assert ax1._shared_y_axes.joined(ax1, ax2)
-        assert ax2._shared_y_axes.joined(ax1, ax2)
+        assert get_y_axis(ax1).joined(ax1, ax2)
+        assert get_y_axis(ax2).joined(ax1, ax2)
 
     @pytest.mark.parametrize(
         "histtype, expected",

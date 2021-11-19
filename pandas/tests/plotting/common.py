@@ -29,6 +29,8 @@ from pandas import (
 )
 import pandas._testing as tm
 
+from pandas.plotting._matplotlib import compat
+
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
 
@@ -653,3 +655,11 @@ def _gen_two_subplots(f, fig, **kwargs):
 def curpath():
     pth, _ = os.path.split(os.path.abspath(__file__))
     return pth
+
+
+get_x_axis = (
+    lambda ax: ax._shared_axes["x"] if compat.mpl_ge_3_5_0() else ax._shared_x_axes
+)
+get_y_axis = (
+    lambda ax: ax._shared_axes["y"] if compat.mpl_ge_3_5_0() else ax._shared_y_axes
+)
