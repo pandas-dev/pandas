@@ -99,9 +99,11 @@ class TestUnaryOps:
 
         result = +arr
         tm.assert_timedelta_array_equal(result, arr)
+        assert not np.shares_memory(result._ndarray, arr._ndarray)
 
         result2 = np.positive(arr)
         tm.assert_timedelta_array_equal(result2, arr)
+        assert not np.shares_memory(result2._ndarray, arr._ndarray)
 
     def test_neg(self):
         vals = np.array([-3600 * 10 ** 9, "NaT", 7200 * 10 ** 9], dtype="m8[ns]")

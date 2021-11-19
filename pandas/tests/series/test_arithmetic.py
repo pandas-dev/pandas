@@ -244,13 +244,6 @@ class TestSeriesArithmetic:
         result = empty + empty.copy()
         assert len(result) == 0
 
-        # FIXME: dont leave commented-out
-        # TODO: this returned NotImplemented earlier, what to do?
-        # deltas = Series([timedelta(1)] * 5, index=np.arange(5))
-        # sub_deltas = deltas[::2]
-        # deltas5 = deltas * 5
-        # deltas = deltas + sub_deltas
-
     def test_add_float_plus_int(self, datetime_series):
         # float + int
         int_ts = datetime_series.astype(int)[:-5]
@@ -613,11 +606,6 @@ class TestSeriesComparison:
 
         tm.assert_series_equal(result, expected)
 
-        # FIXME: dont leave commented-out
-        # result = comparison_op(val, ser)
-        # expected = comparison_op(val, ser.dropna()).reindex(ser.index)
-        # tm.assert_series_equal(result, expected)
-
     def test_ne(self):
         ts = Series([3, 4, 5, 6, 7], [3, 4, 5, 6, 7], dtype=float)
         expected = [True, True, False, True, True]
@@ -790,7 +778,7 @@ class TestNamePreservation:
             # GH#37374 logical ops behaving as set ops deprecated
             warn = FutureWarning if is_rlogical and box is Index else None
             msg = "operating as a set operation is deprecated"
-            with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
+            with tm.assert_produces_warning(warn, match=msg):
                 # stacklevel is correct for Index op, not reversed op
                 result = op(left, right)
 
