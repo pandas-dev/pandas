@@ -26,6 +26,7 @@ from pandas.compat import (
     is_platform_windows,
     np_array_datetime64_compat,
 )
+from pandas.compat.pyarrow import pa_version_under6p0
 
 import pandas as pd
 from pandas import (
@@ -42,6 +43,12 @@ from pandas.core.indexes.datetimes import date_range
 import pandas.io.date_converters as conv
 from pandas.io.parsers import read_csv
 
+xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
+
+# GH#43650: Some expected failures with the pyarrow engine can occasionally
+# cause a deadlock instead, so we skip these instead of xfailing
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
+
 # constant
 _DEFAULT_DATETIME = datetime(1, 1, 1)
 
@@ -52,6 +59,7 @@ else:
     date_strategy = st.datetimes()
 
 
+@xfail_pyarrow
 def test_read_csv_with_custom_date_parser(all_parsers):
     # GH36111
     def __custom_date_parser(time):
@@ -89,6 +97,7 @@ def test_read_csv_with_custom_date_parser(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_separator_date_conflict(all_parsers):
     # Regression test for gh-4678
     #
@@ -110,6 +119,7 @@ def test_separator_date_conflict(all_parsers):
     tm.assert_frame_equal(df, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize("keep_date_col", [True, False])
 def test_multiple_date_col_custom(all_parsers, keep_date_col):
     data = """\
@@ -265,6 +275,7 @@ def test_concat_date_col_fail(container, dim):
         parsing.concat_date_cols(date_cols)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize("keep_date_col", [True, False])
 def test_multiple_date_col(all_parsers, keep_date_col):
     data = """\
@@ -421,9 +432,15 @@ KORD,19990127 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
         columns=["X0", "X2", "X3", "X4", "X5", "X6", "X7"],
         index=index,
     )
+    if parser.engine == "pyarrow" and not pa_version_under6p0:
+        # https://github.com/pandas-dev/pandas/issues/44231
+        # pyarrow 6.0 starts to infer time type
+        expected["X2"] = pd.to_datetime("1970-01-01" + expected["X2"]).dt.time
+
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize(
     "date_parser, warning",
     ([conv.parse_date_time, FutureWarning], [pd.to_datetime, None]),
@@ -488,6 +505,7 @@ def test_multiple_date_cols_int_cast(all_parsers, date_parser, warning):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_multiple_date_col_timestamp_parse(all_parsers):
     parser = all_parsers
     data = """05/31/2012,15:30:00.029,1306.25,1,E,0,,1306.25
@@ -522,6 +540,7 @@ def test_multiple_date_col_timestamp_parse(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_multiple_date_cols_with_header(all_parsers):
     parser = all_parsers
     data = """\
@@ -691,6 +710,7 @@ def test_date_parser_int_bug(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_nat_parse(all_parsers):
     # see gh-3062
     parser = all_parsers
@@ -706,6 +726,7 @@ def test_nat_parse(all_parsers):
         tm.assert_frame_equal(result, df)
 
 
+@xfail_pyarrow
 def test_csv_custom_parser(all_parsers):
     data = """A,B,C
 20090101,a,1,2
@@ -720,6 +741,7 @@ def test_csv_custom_parser(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_parse_dates_implicit_first_col(all_parsers):
     data = """A,B,C
 20090101,a,1,2
@@ -733,6 +755,7 @@ def test_parse_dates_implicit_first_col(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_parse_dates_string(all_parsers):
     data = """date,A,B,C
 20090101,a,1,2
@@ -777,6 +800,7 @@ def test_yy_format_with_year_first(all_parsers, parse_dates):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize("parse_dates", [[0, 2], ["a", "c"]])
 def test_parse_dates_column_list(all_parsers, parse_dates):
     data = "a,b,c\n01/01/2010,1,15/02/2010"
@@ -793,6 +817,7 @@ def test_parse_dates_column_list(all_parsers, parse_dates):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize("index_col", [[0, 1], [1, 0]])
 def test_multi_index_parse_dates(all_parsers, index_col):
     data = """index1,index2,A,B,C
@@ -838,6 +863,7 @@ def test_multi_index_parse_dates(all_parsers, index_col):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize("kwargs", [{"dayfirst": True}, {"day_first": True}])
 def test_parse_dates_custom_euro_format(all_parsers, kwargs):
     parser = all_parsers
@@ -882,6 +908,7 @@ def test_parse_dates_custom_euro_format(all_parsers, kwargs):
             )
 
 
+@xfail_pyarrow
 def test_parse_tz_aware(all_parsers):
     # See gh-1693
     parser = all_parsers
@@ -895,6 +922,7 @@ def test_parse_tz_aware(all_parsers):
     assert result.index.tz is pytz.utc
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize(
     "parse_dates,index_col",
     [({"nominal": [1, 2]}, "nominal"), ({"nominal": [1, 2]}, 0), ([[1, 2]], 0)],
@@ -995,6 +1023,7 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_multiple_date_cols_chunked(all_parsers):
     parser = all_parsers
     data = """\
@@ -1087,6 +1116,7 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
     tm.assert_frame_equal(chunks[2], expected[4:])
 
 
+@xfail_pyarrow
 def test_multiple_date_col_named_index_compat(all_parsers):
     parser = all_parsers
     data = """\
@@ -1110,6 +1140,7 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
     tm.assert_frame_equal(with_indices, with_names)
 
 
+@xfail_pyarrow
 def test_multiple_date_col_multiple_index_compat(all_parsers):
     parser = all_parsers
     data = """\
@@ -1177,6 +1208,7 @@ def test_bad_date_parse(all_parsers, cache_dates, value):
     )
 
 
+@xfail_pyarrow
 def test_parse_dates_empty_string(all_parsers):
     # see gh-2263
     parser = all_parsers
@@ -1189,6 +1221,7 @@ def test_parse_dates_empty_string(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize(
     "data,kwargs,expected",
     [
@@ -1228,6 +1261,7 @@ def test_parse_dates_no_convert_thousands(all_parsers, data, kwargs, expected):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize(
     "date_parser, warning",
     ([conv.parse_date_time, FutureWarning], [pd.to_datetime, None]),
@@ -1256,6 +1290,7 @@ date, time,a,b
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize(
     "date_parser, warning",
     ([conv.parse_date_time, FutureWarning], [pd.to_datetime, None]),
@@ -1344,6 +1379,7 @@ def test_parse_date_time(all_parsers, data, kwargs, expected, date_parser, warni
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize(
     "date_parser, warning",
     ([conv.parse_date_fields, FutureWarning], [pd.to_datetime, None]),
@@ -1366,6 +1402,7 @@ def test_parse_date_fields(all_parsers, date_parser, warning):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize(
     "date_parser, warning",
     (
@@ -1397,6 +1434,7 @@ year,month,day,hour,minute,second,a,b
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize(
     "date_parser, warning",
     (
@@ -1428,6 +1466,7 @@ year,month,day,hour,minute,second,a,b
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_generic(all_parsers):
     parser = all_parsers
     data = "year,month,day,a\n2001,01,10,10.\n2001,02,1,11."
@@ -1446,6 +1485,7 @@ def test_generic(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_date_parser_resolution_if_not_ns(all_parsers):
     # see gh-10245
     parser = all_parsers
@@ -1543,6 +1583,7 @@ def test_parse_timezone(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 @pytest.mark.parametrize(
     "date_string",
     ["32/32/2019", "02/30/2019", "13/13/2019", "13/2019", "a3/11/2018", "10/11/2o17"],
@@ -1554,6 +1595,7 @@ def test_invalid_parse_delimited_date(all_parsers, date_string):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 @pytest.mark.parametrize(
     "date_string,dayfirst,expected",
     [
@@ -1576,6 +1618,7 @@ def test_parse_delimited_date_swap_no_warning(
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 @pytest.mark.parametrize(
     "date_string,dayfirst,expected",
     [
@@ -1610,6 +1653,7 @@ def _helper_hypothesis_delimited_date(call, date_string, **kwargs):
     return msg, result
 
 
+@skip_pyarrow
 @given(date_strategy)
 @settings(deadline=None)
 @pytest.mark.parametrize("delimiter", list(" -./"))
@@ -1645,6 +1689,7 @@ def test_hypothesis_delimited_date(date_format, dayfirst, delimiter, test_dateti
     assert result == expected
 
 
+@skip_pyarrow
 @pytest.mark.parametrize(
     "names, usecols, parse_dates, missing_cols",
     [
@@ -1677,6 +1722,7 @@ def test_missing_parse_dates_column_raises(
         )
 
 
+@skip_pyarrow
 def test_date_parser_and_names(all_parsers):
     # GH#33699
     parser = all_parsers
@@ -1686,6 +1732,40 @@ def test_date_parser_and_names(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
+def test_date_parser_multiindex_columns(all_parsers):
+    parser = all_parsers
+    data = """a,b
+1,2
+2019-12-31,6"""
+    result = parser.read_csv(StringIO(data), parse_dates=[("a", "1")], header=[0, 1])
+    expected = DataFrame({("a", "1"): Timestamp("2019-12-31"), ("b", "2"): [6]})
+    tm.assert_frame_equal(result, expected)
+
+
+@skip_pyarrow
+@pytest.mark.parametrize(
+    "parse_spec, col_name",
+    [
+        ([[("a", "1"), ("b", "2")]], ("a_b", "1_2")),
+        ({("foo", "1"): [("a", "1"), ("b", "2")]}, ("foo", "1")),
+    ],
+)
+def test_date_parser_multiindex_columns_combine_cols(all_parsers, parse_spec, col_name):
+    parser = all_parsers
+    data = """a,b,c
+1,2,3
+2019-12,-31,6"""
+    result = parser.read_csv(
+        StringIO(data),
+        parse_dates=parse_spec,
+        header=[0, 1],
+    )
+    expected = DataFrame({col_name: Timestamp("2019-12-31"), ("c", "3"): [6]})
+    tm.assert_frame_equal(result, expected)
+
+
+@skip_pyarrow
 def test_date_parser_usecols_thousands(all_parsers):
     # GH#39365
     data = """A,B,C

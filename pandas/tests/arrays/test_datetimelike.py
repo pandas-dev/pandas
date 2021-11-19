@@ -168,7 +168,7 @@ class SharedTests:
 
         tm.assert_index_equal(self.index_cls(result), expected)
 
-    @pytest.mark.parametrize("fill_value", [2, 2.0, Timestamp.now().time])
+    @pytest.mark.parametrize("fill_value", [2, 2.0, Timestamp(2021, 1, 1, 12).time])
     def test_take_fill_raises(self, fill_value):
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
 
@@ -783,9 +783,7 @@ class TestDatetimeArray(SharedTests):
         with tm.assert_produces_warning(FutureWarning, match=msg):
             # Deprecation GH#34853
             expected = dti.to_perioddelta(freq=freqstr)
-        with tm.assert_produces_warning(
-            FutureWarning, match=msg, check_stacklevel=False
-        ):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             # stacklevel is chosen to be "correct" for DatetimeIndex, not
             #  DatetimeArray
             result = arr.to_perioddelta(freq=freqstr)
@@ -844,26 +842,27 @@ class TestDatetimeArray(SharedTests):
     def test_take_fill_valid(self, arr1d):
         arr = arr1d
         dti = self.index_cls(arr1d)
+        dt_ind = Timestamp(2021, 1, 1, 12)
+        dt_ind_tz = dt_ind.tz_localize(dti.tz)
 
-        now = Timestamp.now().tz_localize(dti.tz)
-        result = arr.take([-1, 1], allow_fill=True, fill_value=now)
-        assert result[0] == now
+        result = arr.take([-1, 1], allow_fill=True, fill_value=dt_ind_tz)
+        assert result[0] == dt_ind_tz
 
         msg = f"value should be a '{arr1d._scalar_type.__name__}' or 'NaT'. Got"
         with pytest.raises(TypeError, match=msg):
             # fill_value Timedelta invalid
-            arr.take([-1, 1], allow_fill=True, fill_value=now - now)
+            arr.take([-1, 1], allow_fill=True, fill_value=dt_ind_tz - dt_ind_tz)
 
         with pytest.raises(TypeError, match=msg):
             # fill_value Period invalid
             arr.take([-1, 1], allow_fill=True, fill_value=Period("2014Q1"))
 
         tz = None if dti.tz is not None else "US/Eastern"
-        now = Timestamp.now().tz_localize(tz)
+        dt_ind_tz = dt_ind.tz_localize(tz)
         msg = "Cannot compare tz-naive and tz-aware datetime-like objects"
         with pytest.raises(TypeError, match=msg):
             # Timestamp with mismatched tz-awareness
-            arr.take([-1, 1], allow_fill=True, fill_value=now)
+            arr.take([-1, 1], allow_fill=True, fill_value=dt_ind_tz)
 
         value = NaT.value
         msg = f"value should be a '{arr1d._scalar_type.__name__}' or 'NaT'. Got"
@@ -879,11 +878,19 @@ class TestDatetimeArray(SharedTests):
         if arr.tz is not None:
             # GH#37356
             # Assuming here that arr1d fixture does not include Australia/Melbourne
-            value = Timestamp.now().tz_localize("Australia/Melbourne")
+            value = dt_ind.tz_localize("Australia/Melbourne")
             msg = "Timezones don't match. .* != 'Australia/Melbourne'"
             with pytest.raises(ValueError, match=msg):
                 # require tz match, not just tzawareness match
-                arr.take([-1, 1], allow_fill=True, fill_value=value)
+                with tm.assert_produces_warning(
+                    FutureWarning, match="mismatched timezone"
+                ):
+                    result = arr.take([-1, 1], allow_fill=True, fill_value=value)
+
+            # once deprecation is enforced
+            # expected = arr.take([-1, 1], allow_fill=True,
+            #  fill_value=value.tz_convert(arr.dtype.tz))
+            # tm.assert_equal(result, expected)
 
     def test_concat_same_type_invalid(self, arr1d):
         # different timezones
@@ -1033,14 +1040,14 @@ class TestTimedeltaArray(SharedTests):
         result = arr.take([-1, 1], allow_fill=True, fill_value=td1)
         assert result[0] == td1
 
-        now = Timestamp.now()
-        value = now
+        dt_ind = Timestamp(2021, 1, 1, 12)
+        value = dt_ind
         msg = f"value should be a '{arr._scalar_type.__name__}' or 'NaT'. Got"
         with pytest.raises(TypeError, match=msg):
             # fill_value Timestamp invalid
             arr.take([0, 1], allow_fill=True, fill_value=value)
 
-        value = now.to_period("D")
+        value = dt_ind.to_period("D")
         with pytest.raises(TypeError, match=msg):
             # fill_value Period invalid
             arr.take([0, 1], allow_fill=True, fill_value=value)
@@ -1105,6 +1112,25 @@ class TestPeriodArray(SharedTests):
         # placeholder until these become actual EA subclasses and we can use
         #  an EA-specific tm.assert_ function
         tm.assert_index_equal(pd.Index(result), pd.Index(expected))
+
+    def test_to_timestamp_roundtrip_bday(self):
+        # Case where infer_freq inside would choose "D" instead of "B"
+        dta = pd.date_range("2021-10-18", periods=3, freq="B")._data
+        parr = dta.to_period()
+        result = parr.to_timestamp()
+        assert result.freq == "B"
+        tm.assert_extension_array_equal(result, dta)
+
+        dta2 = dta[::2]
+        parr2 = dta2.to_period()
+        result2 = parr2.to_timestamp()
+        assert result2.freq == "2B"
+        tm.assert_extension_array_equal(result2, dta2)
+
+        parr3 = dta.to_period("2B")
+        result3 = parr3.to_timestamp()
+        assert result3.freq == "B"
+        tm.assert_extension_array_equal(result3, dta)
 
     def test_to_timestamp_out_of_bounds(self):
         # GH#19643 previously overflowed silently

@@ -39,13 +39,13 @@ from pandas._libs.tslibs import timezones
 from pandas._typing import (
     ArrayLike,
     DtypeArg,
-    FrameOrSeries,
     Shape,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.pickle_compat import patch_pickle
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -65,7 +65,6 @@ from pandas import (
     DataFrame,
     DatetimeIndex,
     Index,
-    Int64Index,
     MultiIndex,
     PeriodIndex,
     Series,
@@ -73,6 +72,7 @@ from pandas import (
     concat,
     isna,
 )
+from pandas.core.api import Int64Index
 from pandas.core.arrays import (
     Categorical,
     DatetimeArray,
@@ -262,7 +262,7 @@ def _tables():
 def to_hdf(
     path_or_buf,
     key: str,
-    value: FrameOrSeries,
+    value: DataFrame | Series,
     mode: str = "a",
     complevel: int | None = None,
     complib: str | None = None,
@@ -275,7 +275,7 @@ def to_hdf(
     data_columns: bool | list[str] | None = None,
     errors: str = "strict",
     encoding: str = "UTF-8",
-):
+) -> None:
     """store this object, close it if we opened it"""
     if append:
         f = lambda store: store.append(
@@ -1070,7 +1070,7 @@ class HDFStore:
     def put(
         self,
         key: str,
-        value: FrameOrSeries,
+        value: DataFrame | Series,
         format=None,
         index=True,
         append=False,
@@ -1195,7 +1195,7 @@ class HDFStore:
     def append(
         self,
         key: str,
-        value: FrameOrSeries,
+        value: DataFrame | Series,
         format=None,
         axes=None,
         index=True,
@@ -1637,7 +1637,7 @@ class HDFStore:
         self,
         group,
         format=None,
-        value: FrameOrSeries | None = None,
+        value: DataFrame | Series | None = None,
         encoding: str = "UTF-8",
         errors: str = "strict",
     ) -> GenericFixed | Table:
@@ -1728,7 +1728,7 @@ class HDFStore:
     def _write_to_group(
         self,
         key: str,
-        value: FrameOrSeries,
+        value: DataFrame | Series,
         format,
         axes=None,
         index=True,
@@ -1745,7 +1745,7 @@ class HDFStore:
         encoding=None,
         errors: str = "strict",
         track_times: bool = True,
-    ):
+    ) -> None:
         # we don't want to store a table node at all if our object is 0-len
         # as there are not dtypes
         if getattr(value, "empty", None) and (format == "table" or append):
@@ -2075,6 +2075,14 @@ class IndexCol:
         factory: type[Index] | type[DatetimeIndex] = Index
         if is_datetime64_dtype(values.dtype) or is_datetime64tz_dtype(values.dtype):
             factory = DatetimeIndex
+        elif values.dtype == "i8" and "freq" in kwargs:
+            # PeriodIndex data is stored as i8
+            # error: Incompatible types in assignment (expression has type
+            # "Callable[[Any, KwArg(Any)], PeriodIndex]", variable has type
+            # "Union[Type[Index], Type[DatetimeIndex]]")
+            factory = lambda x, **kwds: PeriodIndex(  # type: ignore[assignment]
+                ordinal=x, **kwds
+            )
 
         # making an Index instance could throw a number of different errors
         try:
@@ -2183,7 +2191,9 @@ class IndexCol:
                 # frequency/name just warn
                 if key in ["freq", "index_name"]:
                     ws = attribute_conflict_doc % (key, existing_value, value)
-                    warnings.warn(ws, AttributeConflictWarning, stacklevel=6)
+                    warnings.warn(
+                        ws, AttributeConflictWarning, stacklevel=find_stack_level()
+                    )
 
                     # reset
                     idx[key] = None
@@ -3016,7 +3026,9 @@ class GenericFixed(Fixed):
         node._v_attrs.value_type = str(value.dtype)
         node._v_attrs.shape = value.shape
 
-    def write_array(self, key: str, obj: FrameOrSeries, items: Index | None = None):
+    def write_array(
+        self, key: str, obj: DataFrame | Series, items: Index | None = None
+    ) -> None:
         # TODO: we only have a few tests that get here, the only EA
         #  that gets passed is DatetimeArray, and we never have
         #  both self._filters and EA
@@ -3071,7 +3083,7 @@ class GenericFixed(Fixed):
                 pass
             else:
                 ws = performance_doc % (inferred_type, key, items)
-                warnings.warn(ws, PerformanceWarning, stacklevel=7)
+                warnings.warn(ws, PerformanceWarning, stacklevel=find_stack_level())
 
             vlarr = self._handle.create_vlarray(self.group, key, _tables().ObjectAtom())
             vlarr.append(value)
@@ -3469,14 +3481,9 @@ class Table(Fixed):
         key : str
         values : ndarray
         """
-        # error: Incompatible types in assignment (expression has type
-        # "Series", variable has type "ndarray")
-        values = Series(values)  # type: ignore[assignment]
-        # error: Value of type variable "FrameOrSeries" of "put" of "HDFStore"
-        # cannot be "ndarray"
-        self.parent.put(  # type: ignore[type-var]
+        self.parent.put(
             self._get_metadata_path(key),
-            values,
+            Series(values),
             format="table",
             encoding=self.encoding,
             errors=self.errors,
@@ -4549,10 +4556,10 @@ class AppendableFrameTable(AppendableTable):
 
             # we could have a multi-index constructor here
             # ensure_index doesn't recognized our list-of-tuples here
-            if info.get("type") == "MultiIndex":
-                cols = MultiIndex.from_tuples(index_vals)
-            else:
+            if info.get("type") != "MultiIndex":
                 cols = Index(index_vals)
+            else:
+                cols = MultiIndex.from_tuples(index_vals)
 
             names = info.get("names")
             if names is not None:

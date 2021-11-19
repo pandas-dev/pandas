@@ -1366,13 +1366,6 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
         with pytest.raises(sql.DatabaseError, match=msg):
             sql.read_sql("iris", self.conn)
 
-    def test_safe_names_warning(self):
-        # GH 6798
-        df = DataFrame([[1, 2], [3, 4]], columns=["a", "b "])  # has a space
-        # warns on create table with spaces in names
-        with tm.assert_produces_warning(UserWarning):
-            sql.to_sql(df, "test_frame3_legacy", self.conn, index=False)
-
     def test_get_schema2(self, test_frame1):
         # without providing a connection object (available for backwards comp)
         create_sql = sql.get_schema(test_frame1, "test")
@@ -2042,7 +2035,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             # GH 36465
             # The input {"foo": [-np.inf], "infe0": ["bar"]} does not raise any error
             # for pymysql version >= 0.10
-            # TODO: remove this version check after GH 36465 is fixed
+            # TODO(GH#36465): remove this version check after GH 36465 is fixed
             import pymysql
 
             if pymysql.VERSION[0:3] >= (0, 10, 0) and "infe0" in df.columns:
@@ -2188,6 +2181,44 @@ class _TestSQLiteAlchemy:
 
         with tm.assert_produces_warning(None):
             sql.read_sql_table("test_bigintwarning", self.conn)
+
+    def test_row_object_is_named_tuple(self):
+        # GH 40682
+        # Test for the is_named_tuple() function
+        # Placed here due to its usage of sqlalchemy
+
+        from sqlalchemy import (
+            Column,
+            Integer,
+            String,
+        )
+        from sqlalchemy.orm import sessionmaker
+
+        if _gt14():
+            from sqlalchemy.orm import declarative_base
+        else:
+            from sqlalchemy.ext.declarative import declarative_base
+
+        BaseModel = declarative_base()
+
+        class Test(BaseModel):
+            __tablename__ = "test_frame"
+            id = Column(Integer, primary_key=True)
+            foo = Column(String(50))
+
+        BaseModel.metadata.create_all(self.conn)
+        Session = sessionmaker(bind=self.conn)
+        session = Session()
+
+        df = DataFrame({"id": [0, 1], "foo": ["hello", "world"]})
+        df.to_sql("test_frame", con=self.conn, index=False, if_exists="replace")
+
+        session.commit()
+        foo = session.query(Test.id, Test.foo)
+        df = DataFrame(foo)
+        session.close()
+
+        assert list(df.columns) == ["id", "foo"]
 
 
 class _TestMySQLAlchemy:

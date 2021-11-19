@@ -316,7 +316,7 @@ def test_agg_consistency_int_str_column_mix():
         r.agg({2: "mean", "b": "sum"})
 
 
-# TODO: once GH 14008 is fixed, move these tests into
+# TODO(GH#14008): once GH 14008 is fixed, move these tests into
 # `Base` test class
 
 
@@ -352,7 +352,8 @@ def test_agg():
     for t in cases:
         warn = FutureWarning if t in cases[1:3] else None
         with tm.assert_produces_warning(
-            warn, match="Dropping invalid columns", check_stacklevel=False
+            warn,
+            match=r"\['date'\] did not aggregate successfully",
         ):
             # .var on dt64 column raises and is dropped
             result = t.aggregate([np.mean, np.std])

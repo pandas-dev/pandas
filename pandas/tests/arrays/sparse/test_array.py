@@ -11,6 +11,7 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import isna
 import pandas._testing as tm
+from pandas.core.api import Int64Index
 from pandas.core.arrays.sparse import (
     SparseArray,
     SparseDtype,
@@ -236,7 +237,10 @@ class TestSparseArray:
     )
     def test_scalar_with_index_infer_dtype(self, scalar, dtype):
         # GH 19163
-        arr = SparseArray(scalar, index=[1, 2, 3], fill_value=scalar)
+        with tm.assert_produces_warning(
+            FutureWarning, match="The index argument has been deprecated"
+        ):
+            arr = SparseArray(scalar, index=[1, 2, 3], fill_value=scalar)
         exp = SparseArray([scalar, scalar, scalar], fill_value=scalar)
 
         tm.assert_sp_array_equal(arr, exp)
@@ -254,7 +258,7 @@ class TestSparseArray:
         assert self.zarr[2] == 1
         assert self.zarr[7] == 5
 
-        errmsg = re.compile("bounds")
+        errmsg = "must be an integer between -10 and 10"
 
         with pytest.raises(IndexError, match=errmsg):
             self.arr[11]
@@ -378,15 +382,15 @@ class TestSparseArray:
         with pytest.raises(IndexError, match=msg):
             sparse.take(np.array([1, 5]), fill_value=True)
 
-    def test_take_filling_all_nan(self):
-        sparse = SparseArray([np.nan, np.nan, np.nan, np.nan, np.nan])
-        # XXX: did the default kind from take change?
+    @pytest.mark.parametrize("kind", ["block", "integer"])
+    def test_take_filling_all_nan(self, kind):
+        sparse = SparseArray([np.nan, np.nan, np.nan, np.nan, np.nan], kind=kind)
         result = sparse.take(np.array([1, 0, -1]))
-        expected = SparseArray([np.nan, np.nan, np.nan], kind="block")
+        expected = SparseArray([np.nan, np.nan, np.nan], kind=kind)
         tm.assert_sp_array_equal(result, expected)
 
         result = sparse.take(np.array([1, 0, -1]), fill_value=True)
-        expected = SparseArray([np.nan, np.nan, np.nan], kind="block")
+        expected = SparseArray([np.nan, np.nan, np.nan], kind=kind)
         tm.assert_sp_array_equal(result, expected)
 
         msg = "out of bounds value in 'indices'"
@@ -675,23 +679,37 @@ class TestSparseArray:
         expected = SparseArray([0, 2])
         tm.assert_sp_array_equal(result, expected)
 
-    def test_getslice(self):
-        result = self.arr[:-3]
-        exp = SparseArray(self.arr.to_dense()[:-3])
-        tm.assert_sp_array_equal(result, exp)
+    @pytest.mark.parametrize(
+        "slc",
+        [
+            np.s_[:],
+            np.s_[1:10],
+            np.s_[1:100],
+            np.s_[10:1],
+            np.s_[:-3],
+            np.s_[-5:-4],
+            np.s_[:-12],
+            np.s_[-12:],
+            np.s_[2:],
+            np.s_[2::3],
+            np.s_[::2],
+            np.s_[::-1],
+            np.s_[::-2],
+            np.s_[1:6:2],
+            np.s_[:-6:-2],
+        ],
+    )
+    @pytest.mark.parametrize(
+        "as_dense", [[np.nan] * 10, [1] * 10, [np.nan] * 5 + [1] * 5, []]
+    )
+    def test_getslice(self, slc, as_dense):
+        as_dense = np.array(as_dense)
+        arr = SparseArray(as_dense)
 
-        result = self.arr[-4:]
-        exp = SparseArray(self.arr.to_dense()[-4:])
-        tm.assert_sp_array_equal(result, exp)
+        result = arr[slc]
+        expected = SparseArray(as_dense[slc])
 
-        # two corner cases from Series
-        result = self.arr[-12:]
-        exp = SparseArray(self.arr)
-        tm.assert_sp_array_equal(result, exp)
-
-        result = self.arr[:-12]
-        exp = SparseArray(self.arr.to_dense()[:0])
-        tm.assert_sp_array_equal(result, exp)
+        tm.assert_sp_array_equal(result, expected)
 
     def test_getslice_tuple(self):
         dense = np.array([np.nan, 0, 3, 4, 0, 5, np.nan, np.nan, 0])
@@ -1185,7 +1203,7 @@ class TestAccessor:
         row = [0, 3, 1, 0]
         col = [0, 3, 1, 2]
         data = [4, 5, 7, 9]
-        # TODO: Remove dtype when scipy is fixed
+        # TODO(scipy#13585): Remove dtype when scipy is fixed
         # https://github.com/scipy/scipy/issues/13585
         sp_array = scipy.sparse.coo_matrix((data, (row, col)), dtype="int")
         result = pd.Series.sparse.from_coo(sp_array)
@@ -1195,16 +1213,52 @@ class TestAccessor:
         tm.assert_series_equal(result, expected)
 
     @td.skip_if_no_scipy
-    def test_to_coo(self):
+    @pytest.mark.parametrize(
+        "sort_labels, expected_rows, expected_cols, expected_values_pos",
+        [
+            (
+                False,
+                [("b", 2), ("a", 2), ("b", 1), ("a", 1)],
+                [("z", 1), ("z", 2), ("x", 2), ("z", 0)],
+                {1: (1, 0), 3: (3, 3)},
+            ),
+            (
+                True,
+                [("a", 1), ("a", 2), ("b", 1), ("b", 2)],
+                [("x", 2), ("z", 0), ("z", 1), ("z", 2)],
+                {1: (1, 2), 3: (0, 1)},
+            ),
+        ],
+    )
+    def test_to_coo(
+        self, sort_labels, expected_rows, expected_cols, expected_values_pos
+    ):
         import scipy.sparse
 
-        ser = pd.Series(
-            [1, 2, 3],
-            index=pd.MultiIndex.from_product([[0], [1, 2, 3]], names=["a", "b"]),
-            dtype="Sparse[int]",
+        values = SparseArray([0, np.nan, 1, 0, None, 3], fill_value=0)
+        index = pd.MultiIndex.from_tuples(
+            [
+                ("b", 2, "z", 1),
+                ("a", 2, "z", 2),
+                ("a", 2, "z", 1),
+                ("a", 2, "x", 2),
+                ("b", 1, "z", 1),
+                ("a", 1, "z", 0),
+            ]
         )
-        A, _, _ = ser.sparse.to_coo()
-        assert isinstance(A, scipy.sparse.coo.coo_matrix)
+        ss = pd.Series(values, index=index)
+
+        expected_A = np.zeros((4, 4))
+        for value, (row, col) in expected_values_pos.items():
+            expected_A[row, col] = value
+
+        A, rows, cols = ss.sparse.to_coo(
+            row_levels=(0, 1), column_levels=(2, 3), sort_labels=sort_labels
+        )
+        assert isinstance(A, scipy.sparse.coo_matrix)
+        tm.assert_numpy_array_equal(A.toarray(), expected_A)
+        assert rows == expected_rows
+        assert cols == expected_cols
 
     def test_non_sparse_raises(self):
         ser = pd.Series([1, 2, 3])
@@ -1309,7 +1363,7 @@ def test_dropna(fill_value):
     tm.assert_sp_array_equal(arr.dropna(), exp)
 
     df = pd.DataFrame({"a": [0, 1], "b": arr})
-    expected_df = pd.DataFrame({"a": [1], "b": exp}, index=pd.Int64Index([1]))
+    expected_df = pd.DataFrame({"a": [1], "b": exp}, index=Int64Index([1]))
     tm.assert_equal(df.dropna(), expected_df)
 
 
@@ -1322,26 +1376,54 @@ def test_drop_duplicates_fill_value():
 
 
 class TestMinMax:
-    plain_data = np.arange(5).astype(float)
-    data_neg = plain_data * (-1)
-    data_NaN = SparseArray(np.array([0, 1, 2, np.nan, 4]))
-    data_all_NaN = SparseArray(np.array([np.nan, np.nan, np.nan, np.nan, np.nan]))
-    data_NA_filled = SparseArray(
-        np.array([np.nan, np.nan, np.nan, np.nan, np.nan]), fill_value=5
-    )
-
     @pytest.mark.parametrize(
         "raw_data,max_expected,min_expected",
         [
-            (plain_data, [4], [0]),
-            (data_neg, [0], [-4]),
-            (data_NaN, [4], [0]),
-            (data_all_NaN, [np.nan], [np.nan]),
-            (data_NA_filled, [5], [5]),
+            (np.arange(5.0), [4], [0]),
+            (-np.arange(5.0), [0], [-4]),
+            (np.array([0, 1, 2, np.nan, 4]), [4], [0]),
+            (np.array([np.nan] * 5), [np.nan], [np.nan]),
+            (np.array([]), [np.nan], [np.nan]),
         ],
     )
-    def test_maxmin(self, raw_data, max_expected, min_expected):
+    def test_nan_fill_value(self, raw_data, max_expected, min_expected):
         max_result = SparseArray(raw_data).max()
         min_result = SparseArray(raw_data).min()
         assert max_result in max_expected
         assert min_result in min_expected
+
+    @pytest.mark.parametrize(
+        "fill_value,max_expected,min_expected",
+        [
+            (100, 100, 0),
+            (-100, 1, -100),
+        ],
+    )
+    def test_fill_value(self, fill_value, max_expected, min_expected):
+        arr = SparseArray(
+            np.array([fill_value, 0, 1]), dtype=SparseDtype("int", fill_value)
+        )
+        max_result = arr.max()
+        assert max_result == max_expected
+
+        min_result = arr.min()
+        assert min_result == min_expected
+
+    @pytest.mark.parametrize("func", ["min", "max"])
+    @pytest.mark.parametrize("data", [np.array([]), np.array([np.nan, np.nan])])
+    @pytest.mark.parametrize(
+        "dtype,expected",
+        [
+            (SparseDtype(np.float64, np.nan), np.nan),
+            (SparseDtype(np.float64, 5.0), np.nan),
+            (SparseDtype("datetime64[ns]", pd.NaT), pd.NaT),
+            (SparseDtype("datetime64[ns]", pd.to_datetime("2018-05-05")), pd.NaT),
+        ],
+    )
+    def test_na_value_if_no_valid_values(self, func, data, dtype, expected):
+        arr = SparseArray(data, dtype=dtype)
+        result = getattr(arr, func)()
+        if expected == pd.NaT:
+            assert result == pd.NaT
+        else:
+            assert np.isnan(result)

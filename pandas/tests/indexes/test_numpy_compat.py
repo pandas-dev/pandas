@@ -3,13 +3,13 @@ import pytest
 
 from pandas import (
     DatetimeIndex,
-    Float64Index,
     Index,
     NumericIndex,
     PeriodIndex,
     TimedeltaIndex,
 )
 import pandas._testing as tm
+from pandas.core.api import Float64Index
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 
 
@@ -74,16 +74,9 @@ def test_numpy_ufuncs_other(index, func, request):
     # test ufuncs of numpy, see:
     # https://numpy.org/doc/stable/reference/ufuncs.html
     if isinstance(index, (DatetimeIndex, TimedeltaIndex)):
-        if (
-            isinstance(index, DatetimeIndex)
-            and index.tz is not None
-            and func in [np.isfinite, np.isnan, np.isinf]
-        ):
-            mark = pytest.mark.xfail(reason="__array_ufunc__ is not defined")
-            request.node.add_marker(mark)
 
         if func in (np.isfinite, np.isinf, np.isnan):
-            # numpy 1.18 changed isinf and isnan to not raise on dt64/tfd64
+            # numpy 1.18 changed isinf and isnan to not raise on dt64/td64
             result = func(index)
             assert isinstance(result, np.ndarray)
         else:

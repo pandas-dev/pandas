@@ -11,6 +11,7 @@ from pandas._libs.lib import (
 )
 from pandas._libs.missing import is_matching_na
 import pandas._libs.testing as _testing
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -33,6 +34,7 @@ from pandas import (
     IntervalIndex,
     MultiIndex,
     PeriodIndex,
+    RangeIndex,
     Series,
     TimedeltaIndex,
 )
@@ -105,7 +107,7 @@ def assert_almost_equal(
             "is deprecated and will be removed in a future version. "
             "You can stop passing 'check_less_precise' to silence this warning.",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         # https://github.com/python/mypy/issues/7642
         # error: Argument 1 to "_get_tol_from_less_precise" has incompatible
@@ -339,7 +341,7 @@ def assert_index_equal(
             "is deprecated and will be removed in a future version. "
             "You can stop passing 'check_less_precise' to silence this warning.",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         # https://github.com/python/mypy/issues/7642
         # error: Argument 1 to "_get_tol_from_less_precise" has incompatible
@@ -540,7 +542,7 @@ def assert_categorical_equal(
     left : Categorical
     right : Categorical
     check_dtype : bool, default True
-        Check that integer dtype of the codes are the same
+        Check that integer dtype of the codes are the same.
     check_category_order : bool, default True
         Whether the order of the categories should be compared, which
         implies identical integer codes.  If False, only the resulting
@@ -548,12 +550,23 @@ def assert_categorical_equal(
         checked regardless.
     obj : str, default 'Categorical'
         Specify object name being compared, internally used to show appropriate
-        assertion message
+        assertion message.
     """
     _check_isinstance(left, right, Categorical)
 
+    exact: bool | str
+    if isinstance(left.categories, RangeIndex) or isinstance(
+        right.categories, RangeIndex
+    ):
+        exact = "equiv"
+    else:
+        # We still want to require exact matches for NumericIndex
+        exact = True
+
     if check_category_order:
-        assert_index_equal(left.categories, right.categories, obj=f"{obj}.categories")
+        assert_index_equal(
+            left.categories, right.categories, obj=f"{obj}.categories", exact=exact
+        )
         assert_numpy_array_equal(
             left.codes, right.codes, check_dtype=check_dtype, obj=f"{obj}.codes"
         )
@@ -564,11 +577,12 @@ def assert_categorical_equal(
         except TypeError:
             # e.g. '<' not supported between instances of 'int' and 'str'
             lc, rc = left.categories, right.categories
-        assert_index_equal(lc, rc, obj=f"{obj}.categories")
+        assert_index_equal(lc, rc, obj=f"{obj}.categories", exact=exact)
         assert_index_equal(
             left.categories.take(left.codes),
             right.categories.take(right.codes),
             obj=f"{obj}.values",
+            exact=exact,
         )
 
     assert_attr_equal("ordered", left, right, obj=obj)
@@ -805,7 +819,7 @@ def assert_extension_array_equal(
             "is deprecated and will be removed in a future version. "
             "You can stop passing 'check_less_precise' to silence this warning.",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         rtol = atol = _get_tol_from_less_precise(check_less_precise)
 
@@ -951,7 +965,7 @@ def assert_series_equal(
             "is deprecated and will be removed in a future version. "
             "You can stop passing 'check_less_precise' to silence this warning.",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         rtol = atol = _get_tol_from_less_precise(check_less_precise)
 
@@ -1203,7 +1217,7 @@ def assert_frame_equal(
     This example shows comparing two DataFrames that are equal
     but with columns of differing dtypes.
 
-    >>> from pandas._testing import assert_frame_equal
+    >>> from pandas.testing import assert_frame_equal
     >>> df1 = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
     >>> df2 = pd.DataFrame({'a': [1, 2], 'b': [3.0, 4.0]})
 
@@ -1234,7 +1248,7 @@ def assert_frame_equal(
             "is deprecated and will be removed in a future version. "
             "You can stop passing 'check_less_precise' to silence this warning.",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         rtol = atol = _get_tol_from_less_precise(check_less_precise)
 
@@ -1431,3 +1445,17 @@ def is_extension_array_dtype_and_needs_i8_conversion(left_dtype, right_dtype) ->
     Related to issue #37609
     """
     return is_extension_array_dtype(left_dtype) and needs_i8_conversion(right_dtype)
+
+
+def assert_indexing_slices_equivalent(ser: Series, l_slc: slice, i_slc: slice):
+    """
+    Check that ser.iloc[i_slc] matches ser.loc[l_slc] and, if applicable,
+    ser[l_slc].
+    """
+    expected = ser.iloc[i_slc]
+
+    assert_series_equal(ser.loc[l_slc], expected)
+
+    if not ser.index.is_integer():
+        # For integer indices, .loc and plain getitem are position-based.
+        assert_series_equal(ser[l_slc], expected)

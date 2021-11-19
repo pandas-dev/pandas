@@ -1,7 +1,9 @@
+# pyright: reportMissingImports=false
 from __future__ import annotations
 
 from pandas._typing import (
-    FilePathOrBuffer,
+    FilePath,
+    ReadBuffer,
     Scalar,
     StorageOptions,
 )
@@ -13,7 +15,7 @@ from pandas.io.excel._base import BaseExcelReader
 class PyxlsbReader(BaseExcelReader):
     def __init__(
         self,
-        filepath_or_buffer: FilePathOrBuffer,
+        filepath_or_buffer: FilePath | ReadBuffer[bytes],
         storage_options: StorageOptions = None,
     ):
         """
@@ -37,7 +39,7 @@ class PyxlsbReader(BaseExcelReader):
 
         return Workbook
 
-    def load_workbook(self, filepath_or_buffer: FilePathOrBuffer):
+    def load_workbook(self, filepath_or_buffer: FilePath | ReadBuffer[bytes]):
         from pyxlsb import open_workbook
 
         # TODO: hack in buffer capability

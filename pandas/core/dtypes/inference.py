@@ -315,7 +315,7 @@ def is_named_tuple(obj) -> bool:
     >>> is_named_tuple((1, 2))
     False
     """
-    return isinstance(obj, tuple) and hasattr(obj, "_fields")
+    return isinstance(obj, abc.Sequence) and hasattr(obj, "_fields")
 
 
 def is_hashable(obj) -> bool:
@@ -447,5 +447,5 @@ def is_inferred_bool_dtype(arr: ArrayLike) -> bool:
     if dtype == np.dtype(bool):
         return True
     elif dtype == np.dtype("object"):
-        return lib.is_bool_array(arr.ravel("K"))
+        return lib.is_bool_array(arr)
     return False

@@ -68,7 +68,7 @@ class TestFactorize:
         expected_codes = np.asarray(expected_codes, dtype=np.intp)
 
         tm.assert_numpy_array_equal(result_codes, expected_codes)
-        tm.assert_index_equal(result_uniques, expected_uniques)
+        tm.assert_index_equal(result_uniques, expected_uniques, exact=True)
 
     def test_series_factorize_na_sentinel_none(self):
         # GH#35667
@@ -241,11 +241,7 @@ class TestFactorize:
         # gh 12666 - check no segfault
         x17 = np.array([complex(i) for i in range(17)], dtype=object)
 
-        msg = (
-            "unorderable types: .* [<>] .*"
-            "|"  # the above case happens for numpy < 1.14
-            "'[<>]' not supported between instances of .*"
-        )
+        msg = "'[<>]' not supported between instances of .*"
         with pytest.raises(TypeError, match=msg):
             algos.factorize(x17[::-1], sort=True)
 
@@ -1513,6 +1509,21 @@ class TestDuplicated:
         result = pd.unique(arr)
         tm.assert_numpy_array_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "array,expected",
+        [
+            (
+                [1 + 1j, 0, 1, 1j, 1 + 2j, 1 + 2j],
+                # Should return a complex dtype in the future
+                np.array([(1 + 1j), 0j, (1 + 0j), 1j, (1 + 2j)], dtype=object),
+            )
+        ],
+    )
+    def test_unique_complex_numbers(self, array, expected):
+        # GH 17927
+        result = pd.unique(array)
+        tm.assert_numpy_array_equal(result, expected)
+
 
 class TestHashTable:
     def test_string_hashtable_set_item_signature(self):
@@ -1716,17 +1727,9 @@ class TestHashTable:
         tbl = hashtable(size_hint=size_hint)  # noqa
 
 
-def test_quantile():
-    s = Series(np.random.randn(100))
-
-    result = algos.quantile(s, [0, 0.25, 0.5, 0.75, 1.0])
-    expected = algos.quantile(s.values, [0, 0.25, 0.5, 0.75, 1.0])
-    tm.assert_almost_equal(result, expected)
-
-
 def test_unique_label_indices():
 
-    a = np.random.randint(1, 1 << 10, 1 << 15).astype("int64")
+    a = np.random.randint(1, 1 << 10, 1 << 15).astype(np.intp)
 
     left = ht.unique_label_indices(a)
     right = np.unique(a, return_index=True)[1]
@@ -1782,13 +1785,13 @@ class TestRank:
 
     @pytest.mark.single
     @pytest.mark.high_memory
-    @pytest.mark.parametrize(
-        "values",
-        [np.arange(2 ** 24 + 1), np.arange(2 ** 25 + 2).reshape(2 ** 24 + 1, 2)],
-        ids=["1d", "2d"],
-    )
-    def test_pct_max_many_rows(self, values):
+    def test_pct_max_many_rows(self):
         # GH 18271
+        values = np.arange(2 ** 24 + 1)
+        result = algos.rank(values, pct=True).max()
+        assert result == 1
+
+        values = np.arange(2 ** 25 + 2).reshape(2 ** 24 + 1, 2)
         result = algos.rank(values, pct=True).max()
         assert result == 1
 

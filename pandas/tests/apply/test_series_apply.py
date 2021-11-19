@@ -92,6 +92,21 @@ def test_apply_args():
     assert isinstance(result[0], list)
 
 
+@pytest.mark.parametrize(
+    "args, kwargs, increment",
+    [((), {}, 0), ((), {"a": 1}, 1), ((2, 3), {}, 32), ((1,), {"c": 2}, 201)],
+)
+def test_agg_args(args, kwargs, increment):
+    # GH 43357
+    def f(x, a=0, b=0, c=0):
+        return x + a + 10 * b + 100 * c
+
+    s = Series([1, 2])
+    result = s.agg(f, 0, *args, **kwargs)
+    expected = s + increment
+    tm.assert_series_equal(result, expected)
+
+
 def test_series_map_box_timestamps():
     # GH#2689, GH#2627
     ser = Series(pd.date_range("1/1/2000", periods=10))
@@ -276,25 +291,35 @@ def test_transform_partial_failure(op, request):
     ser = Series(3 * [object])
 
     expected = ser.transform(["shift"])
-    result = ser.transform([op, "shift"])
+    match = rf"\['{op}'\] did not transform successfully"
+    with tm.assert_produces_warning(FutureWarning, match=match):
+        result = ser.transform([op, "shift"])
     tm.assert_equal(result, expected)
 
     expected = ser.transform({"B": "shift"})
-    result = ser.transform({"A": op, "B": "shift"})
+    match = r"\['A'\] did not transform successfully"
+    with tm.assert_produces_warning(FutureWarning, match=match):
+        result = ser.transform({"A": op, "B": "shift"})
     tm.assert_equal(result, expected)
 
     expected = ser.transform({"B": ["shift"]})
-    result = ser.transform({"A": [op], "B": ["shift"]})
+    match = r"\['A'\] did not transform successfully"
+    with tm.assert_produces_warning(FutureWarning, match=match):
+        result = ser.transform({"A": [op], "B": ["shift"]})
     tm.assert_equal(result, expected)
 
-    expected = ser.transform({"A": ["shift"], "B": [op]})
-    result = ser.transform({"A": [op, "shift"], "B": [op]})
+    match = r"\['B'\] did not transform successfully"
+    with tm.assert_produces_warning(FutureWarning, match=match):
+        expected = ser.transform({"A": ["shift"], "B": [op]})
+    match = rf"\['{op}'\] did not transform successfully"
+    with tm.assert_produces_warning(FutureWarning, match=match):
+        result = ser.transform({"A": [op, "shift"], "B": [op]})
     tm.assert_equal(result, expected)
 
 
 def test_transform_partial_failure_valueerror():
     # GH 40211
-    match = ".*did not transform successfully and did not raise a TypeError"
+    match = ".*did not transform successfully"
 
     def noop(x):
         return x
@@ -320,7 +345,7 @@ def test_transform_partial_failure_valueerror():
     tm.assert_equal(result, expected)
 
     expected = ser.transform({"A": [noop], "B": [noop]})
-    with tm.assert_produces_warning(FutureWarning, match=match, check_stacklevel=False):
+    with tm.assert_produces_warning(FutureWarning, match=match):
         result = ser.transform({"A": [noop, raising_op], "B": [noop]})
     tm.assert_equal(result, expected)
 
@@ -749,7 +774,7 @@ def test_apply_series_on_date_time_index_aware_series(dti, exp, aware):
     tm.assert_frame_equal(result, exp)
 
 
-def test_apply_scaler_on_date_time_index_aware_series():
+def test_apply_scalar_on_date_time_index_aware_series():
     # GH 25959
     # Calling apply on a localized time series should not cause an error
     series = tm.makeTimeSeries(nper=30).tz_localize("UTC")
@@ -769,18 +794,15 @@ def test_apply_to_timedelta():
     list_of_valid_strings = ["00:00:01", "00:00:02"]
     a = pd.to_timedelta(list_of_valid_strings)
     b = Series(list_of_valid_strings).apply(pd.to_timedelta)
-    # FIXME: dont leave commented-out
-    # Can't compare until apply on a Series gives the correct dtype
-    # assert_series_equal(a, b)
+    tm.assert_series_equal(Series(a), b)
 
     list_of_strings = ["00:00:01", np.nan, pd.NaT, pd.NaT]
 
-    a = pd.to_timedelta(list_of_strings)  # noqa
+    a = pd.to_timedelta(list_of_strings)
     with tm.assert_produces_warning(FutureWarning, match="Inferring timedelta64"):
         ser = Series(list_of_strings)
-    b = ser.apply(pd.to_timedelta)  # noqa
-    # Can't compare until apply on a Series gives the correct dtype
-    # assert_series_equal(a, b)
+    b = ser.apply(pd.to_timedelta)
+    tm.assert_series_equal(Series(a), b)
 
 
 @pytest.mark.parametrize(
@@ -853,3 +875,15 @@ def test_apply_dictlike_transformer(string_series, ops):
         expected.name = string_series.name
         result = string_series.apply(ops)
         tm.assert_series_equal(result, expected)
+
+
+def test_apply_retains_column_name():
+    # GH 16380
+    df = DataFrame({"x": range(3)}, Index(range(3), name="x"))
+    result = df.x.apply(lambda x: Series(range(x + 1), Index(range(x + 1), name="y")))
+    expected = DataFrame(
+        [[0.0, np.nan, np.nan], [0.0, 1.0, np.nan], [0.0, 1.0, 2.0]],
+        columns=Index(range(3), name="y"),
+        index=Index(range(3), name="x"),
+    )
+    tm.assert_frame_equal(result, expected)

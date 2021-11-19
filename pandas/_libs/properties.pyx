@@ -10,12 +10,12 @@ from cpython.dict cimport (
 cdef class CachedProperty:
 
     cdef readonly:
-        object func, name, __doc__
+        object fget, name, __doc__
 
-    def __init__(self, func):
-        self.func = func
-        self.name = func.__name__
-        self.__doc__ = getattr(func, '__doc__', None)
+    def __init__(self, fget):
+        self.fget = fget
+        self.name = fget.__name__
+        self.__doc__ = getattr(fget, '__doc__', None)
 
     def __get__(self, obj, typ):
         if obj is None:
@@ -34,7 +34,7 @@ cdef class CachedProperty:
             # not necessary to Py_INCREF
             val = <object>PyDict_GetItem(cache, self.name)
         else:
-            val = self.func(obj)
+            val = self.fget(obj)
             PyDict_SetItem(cache, self.name, val)
         return val
 

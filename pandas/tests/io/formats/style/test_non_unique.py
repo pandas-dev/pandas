@@ -110,7 +110,7 @@ def test_set_td_classes_non_unique_raises(styler):
 
 
 def test_hide_columns_non_unique(styler):
-    ctx = styler.hide_columns(["d"])._translate(True, True)
+    ctx = styler.hide(["d"], axis="columns")._translate(True, True)
 
     assert ctx["head"][0][1]["display_value"] == "c"
     assert ctx["head"][0][1]["is_visible"] is True
@@ -131,7 +131,7 @@ def test_latex_non_unique(styler):
     assert result == dedent(
         """\
         \\begin{tabular}{lrrr}
-        {} & {c} & {d} & {d} \\\\
+         & c & d & d \\\\
         i & 1.000000 & 2.000000 & 3.000000 \\\\
         j & 4.000000 & 5.000000 & 6.000000 \\\\
         j & 7.000000 & 8.000000 & 9.000000 \\\\

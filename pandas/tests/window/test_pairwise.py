@@ -5,12 +5,179 @@ import pytest
 
 from pandas import (
     DataFrame,
+    Index,
     MultiIndex,
     Series,
     date_range,
 )
 import pandas._testing as tm
 from pandas.core.algorithms import safe_sort
+
+
+def test_rolling_cov(series):
+    A = series
+    B = A + np.random.randn(len(A))
+
+    result = A.rolling(window=50, min_periods=25).cov(B)
+    tm.assert_almost_equal(result[-1], np.cov(A[-50:], B[-50:])[0, 1])
+
+
+def test_rolling_corr(series):
+    A = series
+    B = A + np.random.randn(len(A))
+
+    result = A.rolling(window=50, min_periods=25).corr(B)
+    tm.assert_almost_equal(result[-1], np.corrcoef(A[-50:], B[-50:])[0, 1])
+
+    # test for correct bias correction
+    a = tm.makeTimeSeries()
+    b = tm.makeTimeSeries()
+    a[:5] = np.nan
+    b[:10] = np.nan
+
+    result = a.rolling(window=len(a), min_periods=1).corr(b)
+    tm.assert_almost_equal(result[-1], a.corr(b))
+
+
+@pytest.mark.parametrize("func", ["cov", "corr"])
+def test_rolling_pairwise_cov_corr(func, frame):
+    result = getattr(frame.rolling(window=10, min_periods=5), func)()
+    result = result.loc[(slice(None), 1), 5]
+    result.index = result.index.droplevel(1)
+    expected = getattr(frame[1].rolling(window=10, min_periods=5), func)(frame[5])
+    tm.assert_series_equal(result, expected, check_names=False)
+
+
+@pytest.mark.parametrize("method", ["corr", "cov"])
+def test_flex_binary_frame(method, frame):
+    series = frame[1]
+
+    res = getattr(series.rolling(window=10), method)(frame)
+    res2 = getattr(frame.rolling(window=10), method)(series)
+    exp = frame.apply(lambda x: getattr(series.rolling(window=10), method)(x))
+
+    tm.assert_frame_equal(res, exp)
+    tm.assert_frame_equal(res2, exp)
+
+    frame2 = frame.copy()
+    frame2.values[:] = np.random.randn(*frame2.shape)
+
+    res3 = getattr(frame.rolling(window=10), method)(frame2)
+    exp = DataFrame(
+        {k: getattr(frame[k].rolling(window=10), method)(frame2[k]) for k in frame}
+    )
+    tm.assert_frame_equal(res3, exp)
+
+
+@pytest.mark.parametrize("window", range(7))
+def test_rolling_corr_with_zero_variance(window):
+    # GH 18430
+    s = Series(np.zeros(20))
+    other = Series(np.arange(20))
+
+    assert s.rolling(window=window).corr(other=other).isna().all()
+
+
+def test_corr_sanity():
+    # GH 3155
+    df = DataFrame(
+        np.array(
+            [
+                [0.87024726, 0.18505595],
+                [0.64355431, 0.3091617],
+                [0.92372966, 0.50552513],
+                [0.00203756, 0.04520709],
+                [0.84780328, 0.33394331],
+                [0.78369152, 0.63919667],
+            ]
+        )
+    )
+
+    res = df[0].rolling(5, center=True).corr(df[1])
+    assert all(np.abs(np.nan_to_num(x)) <= 1 for x in res)
+
+    df = DataFrame(np.random.rand(30, 2))
+    res = df[0].rolling(5, center=True).corr(df[1])
+    assert all(np.abs(np.nan_to_num(x)) <= 1 for x in res)
+
+
+def test_rolling_cov_diff_length():
+    # GH 7512
+    s1 = Series([1, 2, 3], index=[0, 1, 2])
+    s2 = Series([1, 3], index=[0, 2])
+    result = s1.rolling(window=3, min_periods=2).cov(s2)
+    expected = Series([None, None, 2.0])
+    tm.assert_series_equal(result, expected)
+
+    s2a = Series([1, None, 3], index=[0, 1, 2])
+    result = s1.rolling(window=3, min_periods=2).cov(s2a)
+    tm.assert_series_equal(result, expected)
+
+
+def test_rolling_corr_diff_length():
+    # GH 7512
+    s1 = Series([1, 2, 3], index=[0, 1, 2])
+    s2 = Series([1, 3], index=[0, 2])
+    result = s1.rolling(window=3, min_periods=2).corr(s2)
+    expected = Series([None, None, 1.0])
+    tm.assert_series_equal(result, expected)
+
+    s2a = Series([1, None, 3], index=[0, 1, 2])
+    result = s1.rolling(window=3, min_periods=2).corr(s2a)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "f",
+    [
+        lambda x: (x.rolling(window=10, min_periods=5).cov(x, pairwise=True)),
+        lambda x: (x.rolling(window=10, min_periods=5).corr(x, pairwise=True)),
+    ],
+)
+def test_rolling_functions_window_non_shrinkage_binary(f):
+
+    # corr/cov return a MI DataFrame
+    df = DataFrame(
+        [[1, 5], [3, 2], [3, 9], [-1, 0]],
+        columns=Index(["A", "B"], name="foo"),
+        index=Index(range(4), name="bar"),
+    )
+    df_expected = DataFrame(
+        columns=Index(["A", "B"], name="foo"),
+        index=MultiIndex.from_product([df.index, df.columns], names=["bar", "foo"]),
+        dtype="float64",
+    )
+    df_result = f(df)
+    tm.assert_frame_equal(df_result, df_expected)
+
+
+@pytest.mark.parametrize(
+    "f",
+    [
+        lambda x: (x.rolling(window=10, min_periods=5).cov(x, pairwise=True)),
+        lambda x: (x.rolling(window=10, min_periods=5).corr(x, pairwise=True)),
+    ],
+)
+def test_moment_functions_zero_length_pairwise(f):
+
+    df1 = DataFrame()
+    df2 = DataFrame(columns=Index(["a"], name="foo"), index=Index([], name="bar"))
+    df2["a"] = df2["a"].astype("float64")
+
+    df1_expected = DataFrame(
+        index=MultiIndex.from_product([df1.index, df1.columns]), columns=Index([])
+    )
+    df2_expected = DataFrame(
+        index=MultiIndex.from_product([df2.index, df2.columns], names=["bar", "foo"]),
+        columns=Index(["a"], name="foo"),
+        dtype="float64",
+    )
+
+    df1_result = f(df1)
+    tm.assert_frame_equal(df1_result, df1_expected)
+
+    df2_result = f(df2)
+    tm.assert_frame_equal(df2_result, df2_expected)
 
 
 class TestPairwise:
@@ -221,4 +388,19 @@ class TestPairwise:
             columns=columns,
         )
 
+        tm.assert_frame_equal(result, expected)
+
+    def test_multindex_columns_pairwise_func(self):
+        # GH 21157
+        columns = MultiIndex.from_arrays([["M", "N"], ["P", "Q"]], names=["a", "b"])
+        df = DataFrame(np.ones((5, 2)), columns=columns)
+        result = df.rolling(3).corr()
+        expected = DataFrame(
+            np.nan,
+            index=MultiIndex.from_arrays(
+                [np.repeat(np.arange(5), 2), ["M", "N"] * 5, ["P", "Q"] * 5],
+                names=[None, "a", "b"],
+            ),
+            columns=columns,
+        )
         tm.assert_frame_equal(result, expected)

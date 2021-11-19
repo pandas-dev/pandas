@@ -1,0 +1,57 @@
+.. _whatsnew_134:
+
+What's new in 1.3.4 (October 17, 2021)
+--------------------------------------
+
+These are the changes in pandas 1.3.4. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_134.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Fixed regression in :meth:`DataFrame.convert_dtypes` incorrectly converts byte strings to strings (:issue:`43183`)
+- Fixed regression in :meth:`.GroupBy.agg` where it was failing silently with mixed data types along ``axis=1`` and :class:`MultiIndex` (:issue:`43209`)
+- Fixed regression in :func:`merge` with integer and ``NaN`` keys failing with ``outer`` merge (:issue:`43550`)
+- Fixed regression in :meth:`DataFrame.corr` raising ``ValueError`` with ``method="spearman"`` on 32-bit platforms (:issue:`43588`)
+- Fixed performance regression in :meth:`MultiIndex.equals` (:issue:`43549`)
+- Fixed performance regression in :meth:`.GroupBy.first` and :meth:`.GroupBy.last` with :class:`StringDtype` (:issue:`41596`)
+- Fixed regression in :meth:`Series.cat.reorder_categories` failing to update the categories on the ``Series`` (:issue:`43232`)
+- Fixed regression in :meth:`Series.cat.categories` setter failing to update the categories on the ``Series`` (:issue:`43334`)
+- Fixed regression in :func:`read_csv` raising ``UnicodeDecodeError`` exception when ``memory_map=True`` (:issue:`43540`)
+- Fixed regression in :meth:`DataFrame.explode` raising ``AssertionError`` when ``column`` is any scalar which is not a string (:issue:`43314`)
+- Fixed regression in :meth:`Series.aggregate` attempting to pass ``args`` and ``kwargs`` multiple times to the user supplied ``func`` in certain cases (:issue:`43357`)
+- Fixed regression when iterating over a :class:`DataFrame.groupby.rolling` object causing the resulting DataFrames to have an incorrect index if the input groupings were not sorted (:issue:`43386`)
+- Fixed regression in :meth:`DataFrame.groupby.rolling.cov` and :meth:`DataFrame.groupby.rolling.corr` computing incorrect results if the input groupings were not sorted (:issue:`43386`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_134.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+- Fixed bug in :meth:`pandas.DataFrame.groupby.rolling` and :class:`pandas.api.indexers.FixedForwardWindowIndexer` leading to segfaults and window endpoints being mixed across groups (:issue:`43267`)
+- Fixed bug in :meth:`.GroupBy.mean` with datetimelike values including ``NaT`` values returning incorrect results (:issue:`43132`)
+- Fixed bug in :meth:`Series.aggregate` not passing the first ``args`` to the user supplied ``func`` in certain cases (:issue:`43357`)
+- Fixed memory leaks in :meth:`Series.rolling.quantile` and :meth:`Series.rolling.median` (:issue:`43339`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_134.other:
+
+Other
+~~~~~
+- The minimum version of Cython needed to compile pandas is now ``0.29.24`` (:issue:`43729`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_134.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.3.3..v1.3.4
