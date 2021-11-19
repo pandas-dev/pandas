@@ -63,7 +63,6 @@ from pandas.core.indexers.objects import (
     FixedWindowIndexer,
     GroupbyIndexer,
     VariableWindowIndexer,
-    check_window_bounds,
 )
 from pandas.core.indexes.api import (
     DatetimeIndex,
@@ -228,6 +227,20 @@ class BaseWindow(SelectionMixin):
         if self.method not in ["table", "single"]:
             raise ValueError("method must be 'table' or 'single")
 
+    def _check_window_bounds(
+        self, start: np.ndarray, end: np.ndarray, num_vals: int
+    ) -> None:
+        if len(start) != len(end):
+            raise ValueError(
+                f"start ({len(start)}) and end ({len(end)}) bounds must be the "
+                f"same length"
+            )
+        elif len(start) != num_vals:
+            raise ValueError(
+                f"start and end bounds ({len(start)}) must be the same length "
+                f"as the object ({num_vals})"
+            )
+
     def _create_data(self, obj: NDFrameT) -> NDFrameT:
         """
         Split data into blocks & return conformed data.
@@ -312,7 +325,7 @@ class BaseWindow(SelectionMixin):
             center=self.center,
             closed=self.closed,
         )
-        check_window_bounds(start, end, len(obj))
+        self._check_window_bounds(start, end, len(obj))
 
         for s, e in zip(start, end):
             result = obj.iloc[slice(s, e)]
@@ -563,7 +576,7 @@ class BaseWindow(SelectionMixin):
                     center=self.center,
                     closed=self.closed,
                 )
-                check_window_bounds(start, end, len(x))
+                self._check_window_bounds(start, end, len(x))
 
                 return func(x, start, end, min_periods, *numba_args)
 
@@ -604,7 +617,7 @@ class BaseWindow(SelectionMixin):
             center=self.center,
             closed=self.closed,
         )
-        check_window_bounds(start, end, len(values))
+        self._check_window_bounds(start, end, len(values))
         aggregator = executor.generate_shared_aggregator(
             func, engine_kwargs, numba_cache_key_str
         )
@@ -1541,7 +1554,7 @@ class RollingAndExpandingMixin(BaseWindow):
                 center=self.center,
                 closed=self.closed,
             )
-            check_window_bounds(start, end, len(x_array))
+            self._check_window_bounds(start, end, len(x_array))
 
             with np.errstate(all="ignore"):
                 mean_x_y = window_aggregations.roll_mean(
@@ -1582,7 +1595,7 @@ class RollingAndExpandingMixin(BaseWindow):
                 center=self.center,
                 closed=self.closed,
             )
-            check_window_bounds(start, end, len(x_array))
+            self._check_window_bounds(start, end, len(x_array))
 
             with np.errstate(all="ignore"):
                 mean_x_y = window_aggregations.roll_mean(
