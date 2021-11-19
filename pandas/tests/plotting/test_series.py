@@ -720,7 +720,7 @@ class TestSeriesPlots(TestPlotBase):
 
         _check_plot_works(s.plot)
 
-    @pytest.mark.xfail
+    @pytest.mark.xfail(reason="TODO: reason?")
     def test_plot_accessor_updates_on_inplace(self):
         s = Series([1, 2, 3, 4])
         _, ax = self.plt.subplots()
