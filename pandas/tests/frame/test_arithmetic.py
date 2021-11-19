@@ -669,7 +669,7 @@ class TestFrameFlexArithmetic:
         result.dtypes
 
     @pytest.mark.parametrize("level", [0, None])
-    def test_broadcast_multiindex(level):
+    def test_broadcast_multiindex(self, level):
         # GH34388
         df1 = DataFrame({"A": [0, 1, 2], "B": [1, 2, 3]})
         df1.columns = df1.columns.set_names("L1")
