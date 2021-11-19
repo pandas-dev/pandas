@@ -461,6 +461,7 @@ cdef class BaseOffset:
         return self._apply(other)
 
     def apply(self, other):
+        # GH#44522
         warnings.warn(
             f"{type(self).__name__}.apply is deprecated and will be removed "
             "in a future version. Use `offset + other` instead",

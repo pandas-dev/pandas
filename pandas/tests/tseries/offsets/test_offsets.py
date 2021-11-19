@@ -198,6 +198,7 @@ class TestCommon(Base):
             result = func(ts)
 
         if exp_warning is None and funcname == "_apply":
+            # GH#44522
             # Check in this particular case to avoid headaches with
             #  testing for multiple warnings produced by the same call.
             with tm.assert_produces_warning(FutureWarning, match="apply is deprecated"):
