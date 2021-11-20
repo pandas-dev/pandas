@@ -309,7 +309,7 @@ class Block(PandasObject):
         return self.values[slicer]
 
     @final
-    def getitem_block(self, slicer) -> Block:
+    def getitem_block(self, slicer: slice | npt.NDArray[np.intp]) -> Block:
         """
         Perform __getitem__-like, return result as block.
 
@@ -326,7 +326,9 @@ class Block(PandasObject):
         return type(self)(new_values, new_mgr_locs, self.ndim)
 
     @final
-    def getitem_block_columns(self, slicer, new_mgr_locs: BlockPlacement) -> Block:
+    def getitem_block_columns(
+        self, slicer: slice, new_mgr_locs: BlockPlacement
+    ) -> Block:
         """
         Perform __getitem__-like, return result as block.
 
