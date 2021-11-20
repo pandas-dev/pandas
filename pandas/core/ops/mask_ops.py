@@ -9,14 +9,15 @@ from pandas._libs import (
     lib,
     missing as libmissing,
 )
+from pandas._typing import npt
 
 
 def kleene_or(
     left: bool | np.ndarray,
     right: bool | np.ndarray,
-    left_mask: np.ndarray | None,
-    right_mask: np.ndarray | None,
-):
+    left_mask: npt.NDArray[np.bool_] | None,
+    right_mask: npt.NDArray[np.bool_] | None,
+) -> tuple[npt.NDArray[np.bool_], npt.NDArray[np.bool_]]:
     """
     Boolean ``or`` using Kleene logic.
 
@@ -75,9 +76,9 @@ def kleene_or(
 def kleene_xor(
     left: bool | np.ndarray,
     right: bool | np.ndarray,
-    left_mask: np.ndarray | None,
-    right_mask: np.ndarray | None,
-):
+    left_mask: npt.NDArray[np.bool_] | None,
+    right_mask: npt.NDArray[np.bool_] | None,
+) -> tuple[npt.NDArray[np.bool_], npt.NDArray[np.bool_]]:
     """
     Boolean ``xor`` using Kleene logic.
 
@@ -124,9 +125,9 @@ def kleene_xor(
 def kleene_and(
     left: bool | libmissing.NAType | np.ndarray,
     right: bool | libmissing.NAType | np.ndarray,
-    left_mask: np.ndarray | None,
-    right_mask: np.ndarray | None,
-):
+    left_mask: npt.NDArray[np.bool_] | None,
+    right_mask: npt.NDArray[np.bool_] | None,
+) -> tuple[npt.NDArray[np.bool_], npt.NDArray[np.bool_]]:
     """
     Boolean ``and`` using Kleene logic.
 

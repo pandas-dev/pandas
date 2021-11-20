@@ -251,7 +251,9 @@ class FloatingArray(NumericArray):
     def dtype(self) -> FloatingDtype:
         return FLOAT_STR_TO_DTYPE[str(self._data.dtype)]
 
-    def __init__(self, values: np.ndarray, mask: np.ndarray, copy: bool = False):
+    def __init__(
+        self, values: np.ndarray, mask: npt.NDArray[np.bool_], copy: bool = False
+    ):
         if not (isinstance(values, np.ndarray) and values.dtype.kind == "f"):
             raise TypeError(
                 "values should be floating numpy array. Use "

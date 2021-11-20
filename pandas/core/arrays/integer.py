@@ -320,7 +320,9 @@ class IntegerArray(NumericArray):
     def dtype(self) -> _IntegerDtype:
         return INT_STR_TO_DTYPE[str(self._data.dtype)]
 
-    def __init__(self, values: np.ndarray, mask: np.ndarray, copy: bool = False):
+    def __init__(
+        self, values: np.ndarray, mask: npt.NDArray[np.bool_], copy: bool = False
+    ):
         if not (isinstance(values, np.ndarray) and values.dtype.kind in ["i", "u"]):
             raise TypeError(
                 "values should be integer numpy array. Use "

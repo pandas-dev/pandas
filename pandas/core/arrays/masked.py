@@ -124,15 +124,17 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     _internal_fill_value: Scalar
     # our underlying data and mask are each ndarrays
     _data: np.ndarray
-    _mask: np.ndarray
+    _mask: npt.NDArray[np.bool_]
 
     # Fill values used for any/all
-    _truthy_value = Scalar  # bool(_truthy_value) = True
-    _falsey_value = Scalar  # bool(_falsey_value) = False
+    _truthy_value: Scalar  # bool(_truthy_value) = True
+    _falsey_value: Scalar  # bool(_falsey_value) = False
 
-    def __init__(self, values: np.ndarray, mask: np.ndarray, copy: bool = False):
+    def __init__(
+        self, values: np.ndarray, mask: npt.NDArray[np.bool_], copy: bool = False
+    ):
         # values is supposed to already be validated in the subclass
-        if not (isinstance(mask, np.ndarray) and mask.dtype == np.bool_):
+        if not (isinstance(mask, np.ndarray) and mask.dtype == np.dtype(np.bool_)):
             raise TypeError(
                 "mask should be boolean numpy array. Use "
                 "the 'pd.array' function instead"

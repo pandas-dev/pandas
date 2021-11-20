@@ -315,8 +315,13 @@ class BooleanArray(BaseMaskedArray):
     _TRUE_VALUES = {"True", "TRUE", "true", "1", "1.0"}
     _FALSE_VALUES = {"False", "FALSE", "false", "0", "0.0"}
 
-    def __init__(self, values: np.ndarray, mask: np.ndarray, copy: bool = False):
-        if not (isinstance(values, np.ndarray) and values.dtype == np.bool_):
+    def __init__(
+        self,
+        values: npt.NDArray[np.bool_],
+        mask: npt.NDArray[np.bool_],
+        copy: bool = False,
+    ):
+        if not (isinstance(values, np.ndarray) and values.dtype == np.dtype(np.bool_)):
             raise TypeError(
                 "values should be boolean numpy array. Use "
                 "the 'pd.array' function instead"
@@ -585,7 +590,7 @@ class BooleanArray(BaseMaskedArray):
             else:
                 return self.dtype.na_value
 
-    def _logical_method(self, other, op):
+    def _logical_method(self, other, op) -> BooleanArray:
 
         assert op.__name__ in {"or_", "ror_", "and_", "rand_", "xor", "rxor"}
         other_is_booleanarray = isinstance(other, BooleanArray)
@@ -615,12 +620,12 @@ class BooleanArray(BaseMaskedArray):
             result, mask = ops.kleene_or(self._data, other, self._mask, mask)
         elif op.__name__ in {"and_", "rand_"}:
             result, mask = ops.kleene_and(self._data, other, self._mask, mask)
-        elif op.__name__ in {"xor", "rxor"}:
+
+        # op.__name__ in {"xor", "rxor"} guaranteed by the assert above
+        else:
             result, mask = ops.kleene_xor(self._data, other, self._mask, mask)
 
-        # error: Argument 2 to "BooleanArray" has incompatible type "Optional[Any]";
-        # expected "ndarray"
-        return BooleanArray(result, mask)  # type: ignore[arg-type]
+        return BooleanArray(result, mask)
 
     def _cmp_method(self, other, op):
         from pandas.arrays import (
