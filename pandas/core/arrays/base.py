@@ -1255,17 +1255,45 @@ class ExtensionArray:
         the ExtensionArray is converted to a NumPy array and formatted using
         pandas' normal formatting methods.
 
+        .. versionadded:: 1.4.0
+
         Parameters
         ----------
         formatter : Callable, optional
             The function to apply to each element of the array to convert it
             to a string. By default, `self._formatter` is used.
-        float_format
-        na_rep
-        digits
-        space
-        justify
-        decimal
+        float_format : one-parameter function, optional, default None
+            Formatter function to apply to columns' elements if they are
+            floats. This function must return a unicode string and will be
+            applied only to the non-``NaN`` elements, with ``NaN`` being
+            handled by ``na_rep``.
+        na_rep : str, optional, default 'NaN'
+            String representation of ``NaN`` to use.
+        digits: int, optional
+            Display precision in terms of decimal places. Defaults to
+            ``pandas.options.display.precision``.
+        space: int, optional
+            Defaults to ``pandas.options.display.column_space``.
+        justify : str, default None
+            How to justify the column labels. If None uses the option from
+            the print configuration (controlled by set_option), 'right' out
+            of the box. Valid values are
+
+            * left
+            * right
+            * center
+            * justify
+            * justify-all
+            * start
+            * end
+            * inherit
+            * match-parent
+            * initial
+            * unset.
+
+        decimal : str, default '.'
+            Character recognized as decimal separator, e.g. ',' in Europe.
+
         leading_space : bool, optional, default True
             Whether the array should be formatted with a leading space.
             When an array as a column of a Series or DataFrame, we do want
