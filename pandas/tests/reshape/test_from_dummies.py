@@ -160,44 +160,10 @@ def test_from_dummies_with_prefix_prefix_multiple_seperators():
         ValueError,
         match=(
             r"Separator not specified for all columns; "
-            r"First instance column: 'col2-a'"
+            r"First instance column: col2-a"
         ),
     ):
         from_dummies(dummies, sep="_")
-
-
-def test_from_dummies_with_prefix_prefix_sep_list():
-    dummies = DataFrame(
-        {
-            "col1_a": [1, 0, 1],
-            "col1_b": [0, 1, 0],
-            "col2-a": [0, 1, 0],
-            "col2-b": [1, 0, 0],
-            "col2-c": [0, 0, 1],
-        },
-    )
-    expected = DataFrame({"col1": ["a", "b", "a"], "col2": ["b", "a", "c"]})
-    result = from_dummies(dummies, sep=["_", "-"])
-    tm.assert_frame_equal(result, expected)
-
-
-def test_from_dummies_with_prefix_prefix_sep_list_incomplete():
-    dummies = DataFrame(
-        {
-            "col1_a": [1, 0, 1],
-            "col1_b": [0, 1, 0],
-            "col2-a": [0, 1, 0],
-            "col2-b": [1, 0, 1],
-        },
-    )
-    with pytest.raises(
-        ValueError,
-        match=(
-            r"Separator not specified for all columns; "
-            r"First instance column: 'col2-a'"
-        ),
-    ):
-        from_dummies(dummies, sep=["_"])
 
 
 def test_from_dummies_with_prefix_prefix_sep_dict():
@@ -221,26 +187,6 @@ def test_from_dummies_with_prefix_prefix_sep_dict():
     tm.assert_frame_equal(result, expected)
 
 
-def test_from_dummies_with_prefix_prefix_separators_too_complex_for_sep_list():
-    dummies = DataFrame(
-        {
-            "col1_a-a": [1, 0, 1],
-            "col1_b-b": [0, 1, 0],
-            "col2-a_a": [0, 1, 0],
-            "col2-b_b": [1, 0, 0],
-            "col2-c_c": [0, 0, 1],
-        },
-    )
-    with pytest.raises(
-        ValueError,
-        match=(
-            r"Dummy DataFrame contains unassigned value\(s\); "
-            r"First instance in row: 0"
-        ),
-    ):
-        from_dummies(dummies, sep=["_", "-"])
-
-
 def test_from_dummies_with_prefix_prefix_partial_sep_dict():
     dummies = DataFrame(
         {
@@ -250,9 +196,26 @@ def test_from_dummies_with_prefix_prefix_partial_sep_dict():
             "col2-b_b": [1, 0, 1],
         },
     )
-    expected = DataFrame({"col1": ["a-a", "b-b", "a-a"]})
-    result = from_dummies(dummies, sep={"col1": "_"})
-    tm.assert_frame_equal(result, expected)
+    with pytest.raises(
+        ValueError,
+        match=(
+            r"Separator not specified for all columns; "
+            r"First instance column: col2-a_a"
+        ),
+    ):
+        from_dummies(dummies, sep={"col1": "_"})
+
+
+def test_from_dummies_with_prefix_sep_wrong_type(dummies_basic):
+
+    with pytest.raises(
+        TypeError,
+        match=(
+            r"Expected 'sep' to be of type 'str' or 'dict'; "
+            r"Received 'sep' of type: list"
+        ),
+    ):
+        from_dummies(dummies_basic, sep=["_"])
 
 
 def test_from_dummies_with_prefix_contains_get_dummies_NaN_column():

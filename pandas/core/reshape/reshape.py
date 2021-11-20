@@ -1100,7 +1100,7 @@ def _get_dummies_1d(
 def from_dummies(
     data: DataFrame,
     subset: None | Index | list[Hashable] = None,
-    sep: None | str | list[str] | dict[str, str] = None,
+    sep: None | str | dict[str, str] = None,
     dropped_first: None | str | dict[str, str] = None,
 ) -> DataFrame:
     """
@@ -1116,16 +1116,13 @@ def from_dummies(
         The columns which to convert from dummy-encoding and return as categorical
         `DataFrame`. If `columns` is None then all dummy columns are converted and
         appended to the non-dummy columns.
-    sep : str, list of str, or dict of str, default '_'
+    sep : str or dict of str, default '_'
         Separator used in the column names of the dummy categories they are
         character indicating the separation of the categorical names from the prefixes.
         For example, if your column names are 'prefix_A' and 'prefix_B',
         you can strip the underscore by specifying sep='_'.
-        Pass a list if multiple prefix separators are used in the columns names.
-        Will separate the prefix based on the first encountered separator following
-        the order of the list. Alternatively, pass a dictionary to map prefix
-        separators to prefixes if multiple and/or mixed separators are used in the
-        column names.
+        Alternatively, pass a dictionary to map prefix separators to prefixes if 
+        multiple and/or mixed separators are used in the column names.
     dropped_fist : None, str or dict of str, default None
         The implied value the dummy takes when all values are zero.
         Can be a a single value for all variables or a dict directly mapping the 
@@ -1207,31 +1204,39 @@ def from_dummies(
 
     # get separator for each prefix and lists to slice data for each prefix
     if sep is None:
-        variables_slice = {"categories": subset}
+        variables_slice = {"": subset}
     elif isinstance(sep, dict):
         variables_slice = {prefix: [] for prefix in sep}
         for col in data_to_decode.columns:
+            sep_available = False
             for prefix in sep:
                 if prefix in col:
+                    sep_available = True
                     variables_slice[prefix].append(col)
-    else:
-        sep_for_prefix = {}
-        variables_slice = {}
-        for col in data_to_decode.columns:
-            ps = [ps for ps in sep if ps in col]
-            if len(ps) == 0:
+                    break
+            if not sep_available:
                 raise ValueError(
                     f"Separator not specified for all columns; "
-                    f"First instance column: '{col}'"
+                    f"First instance column: {col}"
                 )
-            prefix = col.split(ps[0])[0]
-            if prefix not in sep_for_prefix:
-                sep_for_prefix[prefix] = ps[0]
+    elif isinstance(sep, str):
+        variables_slice: dict[str, list] = {}
+        for col in data_to_decode.columns:
+            prefix = col.split(sep)[0]
+            if len(prefix) == len(col):
+                raise ValueError(
+                    f"Separator not specified for all columns; "
+                    f"First instance column: {col}"
+                )
             if prefix not in variables_slice:
                 variables_slice[prefix] = [col]
             else:
                 variables_slice[prefix].append(col)
-        sep = sep_for_prefix
+    else:
+        raise TypeError(
+            f"Expected 'sep' to be of type 'str' or 'dict'; "
+            f"Received 'sep' of type: {type(sep).__name__}"
+        )
 
     # validate number of dropped_first
     def check_len(item, name) -> None:
@@ -1260,8 +1265,10 @@ def from_dummies(
     for prefix, prefix_slice in variables_slice.items():
         if sep is None:
             cats = subset.copy()
-        else:
-            cats = [col[len(prefix + sep[prefix]) :] for col in prefix_slice]
+        elif isinstance(sep, str):
+            cats = [col[len(prefix + sep):] for col in prefix_slice]
+        elif isinstance(sep, dict):
+            cats = [col[len(prefix + sep[prefix]):] for col in prefix_slice]
         assigned = data_to_decode[prefix_slice].sum(axis=1)
         if any(assigned > 1):
             raise ValueError(
