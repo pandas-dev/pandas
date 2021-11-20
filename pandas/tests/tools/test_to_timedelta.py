@@ -267,9 +267,9 @@ class TestTimedeltas:
         result = func(input)
         assert result == expected
 
-    def test_to_timedelta_zerodim(self):
+    def test_to_timedelta_zerodim(self, fixed_now_ts):
         # ndarray.item() incorrectly returns int for dt64[ns] and td64[ns]
-        dt64 = pd.Timestamp.now().to_datetime64()
+        dt64 = fixed_now_ts.to_datetime64()
         arg = np.array(dt64)
 
         msg = (

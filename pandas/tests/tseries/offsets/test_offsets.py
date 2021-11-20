@@ -498,11 +498,11 @@ class TestCommon(Base):
         base_dt = datetime(2020, 1, 1)
         assert base_dt + off == base_dt + res
 
-    def test_onOffset_deprecated(self, offset_types):
+    def test_onOffset_deprecated(self, offset_types, fixed_now_ts):
         # GH#30340 use idiomatic naming
         off = self._get_offset(offset_types)
 
-        ts = Timestamp.now()
+        ts = fixed_now_ts
         with tm.assert_produces_warning(FutureWarning):
             result = off.onOffset(ts)
 

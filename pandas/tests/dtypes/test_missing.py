@@ -44,8 +44,8 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core.api import Float64Index
 
-now = pd.Timestamp.now()
-utcnow = pd.Timestamp.now("UTC")
+fix_now = pd.Timestamp("2021-01-01")
+fix_utcnow = pd.Timestamp("2021-01-01", tz="UTC")
 
 
 @pytest.mark.parametrize("notna_f", [notna, notnull])
@@ -467,12 +467,12 @@ def test_array_equivalent_different_dtype_but_equal():
         # There are 3 variants for each of lvalue and rvalue. We include all
         #  three for the tz-naive `now` and exclude the datetim64 variant
         #  for utcnow because it drops tzinfo.
-        (now, utcnow),
-        (now.to_datetime64(), utcnow),
-        (now.to_pydatetime(), utcnow),
-        (now, utcnow),
-        (now.to_datetime64(), utcnow.to_pydatetime()),
-        (now.to_pydatetime(), utcnow.to_pydatetime()),
+        (fix_now, fix_utcnow),
+        (fix_now.to_datetime64(), fix_utcnow),
+        (fix_now.to_pydatetime(), fix_utcnow),
+        (fix_now, fix_utcnow),
+        (fix_now.to_datetime64(), fix_utcnow.to_pydatetime()),
+        (fix_now.to_pydatetime(), fix_utcnow.to_pydatetime()),
     ],
 )
 def test_array_equivalent_tzawareness(lvalue, rvalue):

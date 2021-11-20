@@ -146,9 +146,9 @@ class TestDatetimeArray:
     @pytest.mark.parametrize(
         "obj",
         [
-            pd.Timestamp.now(),
-            pd.Timestamp.now().to_datetime64(),
-            pd.Timestamp.now().to_pydatetime(),
+            pd.Timestamp("2021-01-01"),
+            pd.Timestamp("2021-01-01").to_datetime64(),
+            pd.Timestamp("2021-01-01").to_pydatetime(),
         ],
     )
     def test_setitem_objects(self, obj):
@@ -329,7 +329,7 @@ class TestDatetimeArray:
             "invalid",
             np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9,
             np.arange(10).view("timedelta64[ns]") * 24 * 3600 * 10 ** 9,
-            pd.Timestamp.now().to_period("D"),
+            pd.Timestamp("2021-01-01").to_period("D"),
         ],
     )
     @pytest.mark.parametrize("index", [True, False])

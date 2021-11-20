@@ -150,7 +150,7 @@ class TestDatetime64ArrayLikeComparisons:
         tz = tz_naive_fixture
         box = box_with_array
 
-        ts = Timestamp.now(tz)
+        ts = Timestamp("2021-01-01", tz=tz)
         ser = Series([ts, NaT])
 
         obj = tm.box_expected(ser, box)
