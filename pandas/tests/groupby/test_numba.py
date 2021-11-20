@@ -10,7 +10,7 @@ import pandas._testing as tm
 
 
 @td.skip_if_no("numba")
-@pytest.mark.filterwarnings("ignore:\\nThe keyword argument")
+@pytest.mark.filterwarnings("ignore:\n")
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
 class TestEngine:
     def test_cython_vs_numba_frame(self, sort, nogil, parallel, nopython):
