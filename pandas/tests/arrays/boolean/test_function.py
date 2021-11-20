@@ -59,8 +59,8 @@ def test_ufuncs_unary(ufunc):
     expected[a._mask] = np.nan
     tm.assert_extension_array_equal(result, expected)
 
-    s = pd.Series(a)
-    result = ufunc(s)
+    ser = pd.Series(a)
+    result = ufunc(ser)
     expected = pd.Series(ufunc(a._data), dtype="boolean")
     expected[a._mask] = np.nan
     tm.assert_series_equal(result, expected)
@@ -86,8 +86,8 @@ def test_value_counts_na():
 
 
 def test_value_counts_with_normalize():
-    s = pd.Series([True, False, pd.NA], dtype="boolean")
-    result = s.value_counts(normalize=True)
+    ser = pd.Series([True, False, pd.NA], dtype="boolean")
+    result = ser.value_counts(normalize=True)
     expected = pd.Series([1, 1], index=[True, False], dtype="Float64") / 2
     tm.assert_series_equal(result, expected)
 
@@ -102,7 +102,7 @@ def test_diff():
     )
     tm.assert_extension_array_equal(result, expected)
 
-    s = pd.Series(a)
-    result = s.diff()
+    ser = pd.Series(a)
+    result = ser.diff()
     expected = pd.Series(expected)
     tm.assert_series_equal(result, expected)

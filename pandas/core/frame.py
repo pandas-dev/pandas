@@ -989,15 +989,13 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Return a string representation for a particular DataFrame.
         """
-        buf = StringIO("")
         if self._info_repr():
+            buf = StringIO()
             self.info(buf=buf)
             return buf.getvalue()
 
         repr_params = fmt.get_dataframe_repr_params()
-        self.to_string(buf=buf, **repr_params)
-
-        return buf.getvalue()
+        return self.to_string(**repr_params)
 
     def _repr_html_(self) -> str | None:
         """
@@ -1006,7 +1004,7 @@ class DataFrame(NDFrame, OpsMixin):
         Mainly for IPython notebook.
         """
         if self._info_repr():
-            buf = StringIO("")
+            buf = StringIO()
             self.info(buf=buf)
             # need to escape the <class>, should be the first line.
             val = buf.getvalue().replace("<", r"&lt;", 1)
@@ -1043,6 +1041,56 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             return None
 
+    @overload
+    def to_string(
+        self,
+        buf: None = ...,
+        columns: Sequence[str] | None = ...,
+        col_space: int | list[int] | dict[Hashable, int] | None = ...,
+        header: bool | Sequence[str] = ...,
+        index: bool = ...,
+        na_rep: str = ...,
+        formatters: fmt.FormattersType | None = ...,
+        float_format: fmt.FloatFormatType | None = ...,
+        sparsify: bool | None = ...,
+        index_names: bool = ...,
+        justify: str | None = ...,
+        max_rows: int | None = ...,
+        max_cols: int | None = ...,
+        show_dimensions: bool = ...,
+        decimal: str = ...,
+        line_width: int | None = ...,
+        min_rows: int | None = ...,
+        max_colwidth: int | None = ...,
+        encoding: str | None = ...,
+    ) -> str:
+        ...
+
+    @overload
+    def to_string(
+        self,
+        buf: FilePath | WriteBuffer[str],
+        columns: Sequence[str] | None = ...,
+        col_space: int | list[int] | dict[Hashable, int] | None = ...,
+        header: bool | Sequence[str] = ...,
+        index: bool = ...,
+        na_rep: str = ...,
+        formatters: fmt.FormattersType | None = ...,
+        float_format: fmt.FloatFormatType | None = ...,
+        sparsify: bool | None = ...,
+        index_names: bool = ...,
+        justify: str | None = ...,
+        max_rows: int | None = ...,
+        max_cols: int | None = ...,
+        show_dimensions: bool = ...,
+        decimal: str = ...,
+        line_width: int | None = ...,
+        min_rows: int | None = ...,
+        max_colwidth: int | None = ...,
+        encoding: str | None = ...,
+    ) -> None:
+        ...
+
     @Substitution(
         header_type="bool or sequence of strings",
         header="Write out the column names. If a list of strings "
@@ -1058,7 +1106,7 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
         columns: Sequence[str] | None = None,
-        col_space: int | None = None,
+        col_space: int | list[int] | dict[Hashable, int] | None = None,
         header: bool | Sequence[str] = True,
         index: bool = True,
         na_rep: str = "NaN",
