@@ -13,7 +13,7 @@ def test(extra_args=None):
     except ImportError as err:
         raise ImportError("Need pytest>=5.0.1 to run tests") from err
     try:
-        import hypothesis  # noqa
+        import hypothesis  # noqa:F401
     except ImportError as err:
         raise ImportError("Need hypothesis>=3.58 to run tests") from err
     cmd = ["--skip-slow", "--skip-network", "--skip-db"]
