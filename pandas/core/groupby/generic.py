@@ -1747,8 +1747,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                         result /= indexed_group_size
                     else:
                         # Unfortunately, nans in multiindex seem to break Pandas alignment
-                        values = result.values / indexed_group_size.align(result, join="left")[0].values
-                        result = Series(data=values, index = result.index, name=RESULT_NAME)
+                        values = (
+                            result.values
+                            / indexed_group_size.align(result, join="left")[0].values
+                        )
+                        result = Series(
+                            data=values, index=result.index, name=RESULT_NAME
+                        )
                     if non_column_grouping:
                         result.index.set_names(None, level=0, inplace=True)
                 else:

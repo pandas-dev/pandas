@@ -207,23 +207,33 @@ def test_data_frame_value_counts(
 @pytest.fixture
 def nulls_df():
     n = np.nan
-    return pd.DataFrame({
-        "A": [1, 1, n, 4, n, 6, 6, 6, 6],
-        "B": [1, 1, 3, n, n, 6, 6, 6, 6],
-        "C": [1, 2, 3, 4, 5, 6, n, 8, n],
-        "D": [1, 2, 3, 4, 5, 6, 7, n, n],
-    })
+    return pd.DataFrame(
+        {
+            "A": [1, 1, n, 4, n, 6, 6, 6, 6],
+            "B": [1, 1, 3, n, n, 6, 6, 6, 6],
+            "C": [1, 2, 3, 4, 5, 6, n, 8, n],
+            "D": [1, 2, 3, 4, 5, 6, 7, n, n],
+        }
+    )
 
 
 @pytest.mark.parametrize(
-    "group_dropna, count_dropna, expected_rows, expected_values", [
-        (False, False, [0, 1, 3, 5, 7, 6, 8, 2, 4], [0.5, 0.5, 1.0, 0.25, 0.25, 0.25, 0.25, 1.0, 1.0]),
+    "group_dropna, count_dropna, expected_rows, expected_values",
+    [
+        (
+            False,
+            False,
+            [0, 1, 3, 5, 7, 6, 8, 2, 4],
+            [0.5, 0.5, 1.0, 0.25, 0.25, 0.25, 0.25, 1.0, 1.0],
+        ),
         (False, True, [0, 1, 3, 5, 2, 4], [0.5, 0.5, 1.0, 1.0, 1.0, 1.0]),
         (True, False, [0, 1, 5, 7, 6, 8], [0.5, 0.5, 0.25, 0.25, 0.25, 0.25]),
         (True, True, [0, 1, 5], [0.5, 0.5, 1.0]),
-    ]
+    ],
 )
-def test_dropna_combinations(nulls_df, group_dropna, count_dropna, expected_rows, expected_values):
+def test_dropna_combinations(
+    nulls_df, group_dropna, count_dropna, expected_rows, expected_values
+):
     gp = nulls_df.groupby(["A", "B"], dropna=group_dropna)
     result = gp.value_counts(normalize=True, sort=True, dropna=count_dropna)
     columns = pd.DataFrame()
