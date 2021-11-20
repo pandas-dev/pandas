@@ -3023,6 +3023,7 @@ Read in the content of the "books.xml" as instance of ``StringIO`` or
 Even read XML from AWS S3 buckets such as Python Software Foundation's IRS 990 Form:
 
 .. ipython:: python
+   :okwarning:
 
    df = pd.read_xml(
        "s3://irs-form-990/201923199349319487_public.xml",

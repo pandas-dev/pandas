@@ -131,12 +131,12 @@ def s3_resource(s3_base, tips_file, jsonl_file, feather_file):
 
     try:
         cli.create_bucket(Bucket=bucket)
-    except:  # noqa
+    except Exception:
         # OK is bucket already exists
         pass
     try:
         cli.create_bucket(Bucket="cant_get_it", ACL="private")
-    except:  # noqa
+    except Exception:
         # OK is bucket already exists
         pass
     timeout = 2
@@ -153,11 +153,11 @@ def s3_resource(s3_base, tips_file, jsonl_file, feather_file):
 
     try:
         s3.rm(bucket, recursive=True)
-    except:  # noqa
+    except Exception:
         pass
     try:
         s3.rm("cant_get_it", recursive=True)
-    except:  # noqa
+    except Exception:
         pass
     timeout = 2
     while cli.list_buckets()["Buckets"] and timeout > 0:

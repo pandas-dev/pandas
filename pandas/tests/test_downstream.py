@@ -5,7 +5,7 @@ import importlib
 import subprocess
 import sys
 
-import numpy as np  # noqa
+import numpy as np  # noqa:F401 needed in namespace for statsmodels
 import pytest
 
 import pandas.util._test_decorators as td
@@ -100,7 +100,7 @@ def test_oo_optimized_datetime_index_unpickle():
 )
 def test_statsmodels():
 
-    statsmodels = import_module("statsmodels")  # noqa
+    statsmodels = import_module("statsmodels")  # noqa:F841
     import statsmodels.api as sm
     import statsmodels.formula.api as smf
 
