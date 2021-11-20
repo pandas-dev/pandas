@@ -13,15 +13,14 @@ from pandas import (
 import pandas._testing as tm
 
 
+@pytest.mark.filterwarnings("ignore:.*append method is deprecated.*:FutureWarning")
 class TestSeriesAppend:
     def test_append_preserve_name(self, datetime_series):
-        with tm.assert_produces_warning(FutureWarning):
-            result = datetime_series[:5].append(datetime_series[5:])
+        result = datetime_series[:5].append(datetime_series[5:])
         assert result.name == datetime_series.name
 
     def test_append(self, datetime_series, string_series, object_series):
-        with tm.assert_produces_warning(FutureWarning):
-            appended_series = string_series.append(object_series)
+        appended_series = string_series.append(object_series)
         for idx, value in appended_series.items():
             if idx in string_series.index:
                 assert value == string_series[idx]
@@ -31,16 +30,13 @@ class TestSeriesAppend:
                 raise AssertionError("orphaned index!")
 
         msg = "Indexes have overlapping values:"
-        with pytest.raises(ValueError, match=msg), tm.assert_produces_warning(
-            FutureWarning
-        ):
+        with pytest.raises(ValueError, match=msg):
             datetime_series.append(datetime_series, verify_integrity=True)
 
     def test_append_many(self, datetime_series):
         pieces = [datetime_series[:5], datetime_series[5:10], datetime_series[10:]]
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = pieces[0].append(pieces[1:])
+        result = pieces[0].append(pieces[1:])
         tm.assert_series_equal(result, datetime_series)
 
     def test_append_duplicates(self):
@@ -48,24 +44,20 @@ class TestSeriesAppend:
         s1 = Series([1, 2, 3])
         s2 = Series([4, 5, 6])
         exp = Series([1, 2, 3, 4, 5, 6], index=[0, 1, 2, 0, 1, 2])
-        with tm.assert_produces_warning(FutureWarning):
-            tm.assert_series_equal(s1.append(s2), exp)
+        tm.assert_series_equal(s1.append(s2), exp)
         tm.assert_series_equal(pd.concat([s1, s2]), exp)
 
         # the result must have RangeIndex
         exp = Series([1, 2, 3, 4, 5, 6])
-        with tm.assert_produces_warning(FutureWarning):
-            tm.assert_series_equal(
-                s1.append(s2, ignore_index=True), exp, check_index_type=True
-            )
+        tm.assert_series_equal(
+            s1.append(s2, ignore_index=True), exp, check_index_type=True
+        )
         tm.assert_series_equal(
             pd.concat([s1, s2], ignore_index=True), exp, check_index_type=True
         )
 
         msg = "Indexes have overlapping values:"
-        with pytest.raises(ValueError, match=msg), tm.assert_produces_warning(
-            FutureWarning
-        ):
+        with pytest.raises(ValueError, match=msg):
             s1.append(s2, verify_integrity=True)
         with pytest.raises(ValueError, match=msg):
             pd.concat([s1, s2], verify_integrity=True)
@@ -76,9 +68,8 @@ class TestSeriesAppend:
         list_input = [s, s]
         tuple_input = (s, s)
 
-        with tm.assert_produces_warning(FutureWarning):
-            expected = s.append(list_input)
-            result = s.append(tuple_input)
+        expected = s.append(list_input)
+        result = s.append(tuple_input)
 
         tm.assert_series_equal(expected, result)
 
@@ -87,25 +78,25 @@ class TestSeriesAppend:
         df = DataFrame({"A": [1, 2], "B": [3, 4]})
 
         msg = "to_append should be a Series or list/tuple of Series, got DataFrame"
-        with pytest.raises(TypeError, match=msg), tm.assert_produces_warning(
-            FutureWarning
-        ):
+        with pytest.raises(TypeError, match=msg):
             df.A.append(df)
-        with pytest.raises(TypeError, match=msg), tm.assert_produces_warning(
-            FutureWarning
-        ):
+        with pytest.raises(TypeError, match=msg):
             df.A.append([df])
 
+    def test_append_raises_future_warning(self):
+        with tm.assert_produces_warning(FutureWarning):
+            Series([1, 2]).append(Series([3, 4]))
 
+
+@pytest.mark.filterwarnings("ignore:.*append method is deprecated.*:FutureWarning")
 class TestSeriesAppendWithDatetimeIndex:
     def test_append(self):
         rng = date_range("5/8/2012 1:45", periods=10, freq="5T")
         ts = Series(np.random.randn(len(rng)), rng)
         df = DataFrame(np.random.randn(len(rng), 4), index=rng)
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = ts.append(ts)
-            result_df = df.append(df)
+        result = ts.append(ts)
+        result_df = df.append(df)
         ex_index = DatetimeIndex(np.tile(rng.values, 2))
         tm.assert_index_equal(result.index, ex_index)
         tm.assert_index_equal(result_df.index, ex_index)
@@ -136,9 +127,8 @@ class TestSeriesAppendWithDatetimeIndex:
         ts2 = Series(np.random.randn(len(rng2)), rng2)
         df2 = DataFrame(np.random.randn(len(rng2), 4), index=rng2)
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = ts.append(ts2)
-            result_df = df.append(df2)
+        result = ts.append(ts2)
+        result_df = df.append(df2)
         tm.assert_index_equal(result.index, rng3)
         tm.assert_index_equal(result_df.index, rng3)
 
@@ -163,9 +153,8 @@ class TestSeriesAppendWithDatetimeIndex:
         ts2 = Series(np.random.randn(len(rng2)), rng2)
         df2 = DataFrame(np.random.randn(len(rng2), 4), index=rng2)
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = ts.append(ts2)
-            result_df = df.append(df2)
+        result = ts.append(ts2)
+        result_df = df.append(df2)
         tm.assert_index_equal(result.index, rng3)
         tm.assert_index_equal(result_df.index, rng3)
 
@@ -188,9 +177,8 @@ class TestSeriesAppendWithDatetimeIndex:
         ts2 = Series(np.random.randn(len(rng2)), rng2)
         df2 = DataFrame(np.random.randn(len(rng2), 4), index=rng2)
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = ts.append(ts2)
-            result_df = df.append(df2)
+        result = ts.append(ts2)
+        result_df = df.append(df2)
         tm.assert_index_equal(result.index, rng3)
         tm.assert_index_equal(result_df.index, rng3)
 
@@ -202,8 +190,7 @@ class TestSeriesAppendWithDatetimeIndex:
         rng2 = date_range("1/1/2011 02:00", periods=1, freq="H", tz="US/Eastern")
         ser1 = Series([1], index=rng1)
         ser2 = Series([2], index=rng2)
-        with tm.assert_produces_warning(FutureWarning):
-            ts_result = ser1.append(ser2)
+        ts_result = ser1.append(ser2)
 
         exp_index = DatetimeIndex(
             ["2011-01-01 01:00", "2011-01-01 02:00"], tz="US/Eastern", freq="H"
@@ -216,8 +203,7 @@ class TestSeriesAppendWithDatetimeIndex:
         rng2 = date_range("1/1/2011 02:00", periods=1, freq="H", tz="UTC")
         ser1 = Series([1], index=rng1)
         ser2 = Series([2], index=rng2)
-        with tm.assert_produces_warning(FutureWarning):
-            ts_result = ser1.append(ser2)
+        ts_result = ser1.append(ser2)
 
         exp_index = DatetimeIndex(
             ["2011-01-01 01:00", "2011-01-01 02:00"], tz="UTC", freq="H"
@@ -233,8 +219,7 @@ class TestSeriesAppendWithDatetimeIndex:
         rng2 = date_range("1/1/2011 02:00", periods=1, freq="H", tz="US/Central")
         ser1 = Series([1], index=rng1)
         ser2 = Series([2], index=rng2)
-        with tm.assert_produces_warning(FutureWarning):
-            ts_result = ser1.append(ser2)
+        ts_result = ser1.append(ser2)
         exp_index = Index(
             [
                 Timestamp("1/1/2011 01:00", tz="US/Eastern"),
@@ -249,10 +234,9 @@ class TestSeriesAppendWithDatetimeIndex:
         rng2 = date_range("1/1/2011 02:00", periods=1, freq="H", tz="US/Eastern")
         ser1 = Series(np.random.randn(len(rng1)), index=rng1)
         ser2 = Series(np.random.randn(len(rng2)), index=rng2)
-        with tm.assert_produces_warning(FutureWarning):
-            ts_result = ser1.append(ser2)
+        ts_result = ser1.append(ser2)
 
-            expected = ser1.index.astype(object).append(ser2.index.astype(object))
+        expected = ser1.index.astype(object).append(ser2.index.astype(object))
         assert ts_result.index.equals(expected)
 
         # mixed
@@ -260,10 +244,9 @@ class TestSeriesAppendWithDatetimeIndex:
         rng2 = range(100)
         ser1 = Series(np.random.randn(len(rng1)), index=rng1)
         ser2 = Series(np.random.randn(len(rng2)), index=rng2)
-        with tm.assert_produces_warning(FutureWarning):
-            ts_result = ser1.append(ser2)
+        ts_result = ser1.append(ser2)
 
-            expected = ser1.index.astype(object).append(ser2.index)
+        expected = ser1.index.astype(object).append(ser2.index)
         assert ts_result.index.equals(expected)
 
     def test_series_append_dst(self):
@@ -271,8 +254,7 @@ class TestSeriesAppendWithDatetimeIndex:
         rng2 = date_range("8/1/2016 01:00", periods=3, freq="H", tz="US/Eastern")
         ser1 = Series([1, 2, 3], index=rng1)
         ser2 = Series([10, 11, 12], index=rng2)
-        with tm.assert_produces_warning(FutureWarning):
-            ts_result = ser1.append(ser2)
+        ts_result = ser1.append(ser2)
 
         exp_index = DatetimeIndex(
             [

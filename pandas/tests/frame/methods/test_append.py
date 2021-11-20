@@ -12,6 +12,7 @@ from pandas import (
 import pandas._testing as tm
 
 
+@pytest.mark.filterwarnings("ignore:.*append method is deprecated.*:FutureWarning")
 class TestDataFrameAppend:
     def test_append_multiindex(self, multiindex_dataframe_random_data, frame_or_series):
         obj = multiindex_dataframe_random_data
@@ -21,22 +22,19 @@ class TestDataFrameAppend:
         a = obj[:5]
         b = obj[5:]
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = a.append(b)
+        result = a.append(b)
         tm.assert_equal(result, obj)
 
     def test_append_empty_list(self):
         # GH 28769
         df = DataFrame()
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.append([])
+        result = df.append([])
         expected = df
         tm.assert_frame_equal(result, expected)
         assert result is not df
 
         df = DataFrame(np.random.randn(5, 4), columns=["foo", "bar", "baz", "qux"])
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.append([])
+        result = df.append([])
         expected = df
         tm.assert_frame_equal(result, expected)
         assert result is not df  # .append() should return a new object
@@ -46,49 +44,39 @@ class TestDataFrameAppend:
 
         series = df.loc[4]
         msg = "Indexes have overlapping values"
-        with pytest.raises(ValueError, match=msg), tm.assert_produces_warning(
-            FutureWarning
-        ):
+        with pytest.raises(ValueError, match=msg):
             df.append(series, verify_integrity=True)
 
         series.name = None
         msg = "Can only append a Series if ignore_index=True"
-        with pytest.raises(TypeError, match=msg), tm.assert_produces_warning(
-            FutureWarning
-        ):
+        with pytest.raises(TypeError, match=msg):
             df.append(series, verify_integrity=True)
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.append(series[::-1], ignore_index=True)
-            expected = df.append(
-                DataFrame({0: series[::-1]}, index=df.columns).T, ignore_index=True
-            )
+        result = df.append(series[::-1], ignore_index=True)
+        expected = df.append(
+            DataFrame({0: series[::-1]}, index=df.columns).T, ignore_index=True
+        )
         tm.assert_frame_equal(result, expected)
 
         # dict
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.append(series.to_dict(), ignore_index=True)
+        result = df.append(series.to_dict(), ignore_index=True)
         tm.assert_frame_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.append(series[::-1][:3], ignore_index=True)
-            expected = df.append(
-                DataFrame({0: series[::-1][:3]}).T, ignore_index=True, sort=True
-            )
+        result = df.append(series[::-1][:3], ignore_index=True)
+        expected = df.append(
+            DataFrame({0: series[::-1][:3]}).T, ignore_index=True, sort=True
+        )
         tm.assert_frame_equal(result, expected.loc[:, result.columns])
 
         msg = "Can only append a dict if ignore_index=True"
-        with pytest.raises(TypeError, match=msg), tm.assert_produces_warning(
-            FutureWarning
-        ):
+        with pytest.raises(TypeError, match=msg):
             df.append(series.to_dict())
 
         # can append when name set
         row = df.loc[4]
         row.name = 5
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.append(row)
-            expected = df.append(df[-1:], ignore_index=True)
+        result = df.append(row)
+        expected = df.append(df[-1:], ignore_index=True)
         tm.assert_frame_equal(result, expected)
 
     def test_append_list_of_series_dicts(self):
@@ -96,9 +84,8 @@ class TestDataFrameAppend:
 
         dicts = [x.to_dict() for idx, x in df.iterrows()]
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.append(dicts, ignore_index=True)
-            expected = df.append(df, ignore_index=True)
+        result = df.append(dicts, ignore_index=True)
+        expected = df.append(df, ignore_index=True)
         tm.assert_frame_equal(result, expected)
 
         # different columns
@@ -106,9 +93,8 @@ class TestDataFrameAppend:
             {"foo": 1, "bar": 2, "baz": 3, "peekaboo": 4},
             {"foo": 5, "bar": 6, "baz": 7, "peekaboo": 8},
         ]
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.append(dicts, ignore_index=True, sort=True)
-            expected = df.append(DataFrame(dicts), ignore_index=True, sort=True)
+        result = df.append(dicts, ignore_index=True, sort=True)
+        expected = df.append(DataFrame(dicts), ignore_index=True, sort=True)
         tm.assert_frame_equal(result, expected)
 
     def test_append_list_retain_index_name(self):
@@ -124,13 +110,11 @@ class TestDataFrameAppend:
         )
 
         # append series
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.append(serc)
+        result = df.append(serc)
         tm.assert_frame_equal(result, expected)
 
         # append list of series
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.append([serc])
+        result = df.append([serc])
         tm.assert_frame_equal(result, expected)
 
     def test_append_missing_cols(self):
@@ -141,10 +125,9 @@ class TestDataFrameAppend:
         df = DataFrame(np.random.randn(5, 4), columns=["foo", "bar", "baz", "qux"])
 
         dicts = [{"foo": 9}, {"bar": 10}]
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.append(dicts, ignore_index=True, sort=True)
+        result = df.append(dicts, ignore_index=True, sort=True)
 
-            expected = df.append(DataFrame(dicts), ignore_index=True, sort=True)
+        expected = df.append(DataFrame(dicts), ignore_index=True, sort=True)
         tm.assert_frame_equal(result, expected)
 
     def test_append_empty_dataframe(self):
@@ -152,32 +135,28 @@ class TestDataFrameAppend:
         # Empty df append empty df
         df1 = DataFrame()
         df2 = DataFrame()
-        with tm.assert_produces_warning(FutureWarning):
-            result = df1.append(df2)
+        result = df1.append(df2)
         expected = df1.copy()
         tm.assert_frame_equal(result, expected)
 
         # Non-empty df append empty df
         df1 = DataFrame(np.random.randn(5, 2))
         df2 = DataFrame()
-        with tm.assert_produces_warning(FutureWarning):
-            result = df1.append(df2)
+        result = df1.append(df2)
         expected = df1.copy()
         tm.assert_frame_equal(result, expected)
 
         # Empty df with columns append empty df
         df1 = DataFrame(columns=["bar", "foo"])
         df2 = DataFrame()
-        with tm.assert_produces_warning(FutureWarning):
-            result = df1.append(df2)
+        result = df1.append(df2)
         expected = df1.copy()
         tm.assert_frame_equal(result, expected)
 
         # Non-Empty df with columns append empty df
         df1 = DataFrame(np.random.randn(5, 2), columns=["bar", "foo"])
         df2 = DataFrame()
-        with tm.assert_produces_warning(FutureWarning):
-            result = df1.append(df2)
+        result = df1.append(df2)
         expected = df1.copy()
         tm.assert_frame_equal(result, expected)
 
@@ -189,22 +168,19 @@ class TestDataFrameAppend:
 
         df1 = DataFrame({"bar": Timestamp("20130101")}, index=range(5))
         df2 = DataFrame()
-        with tm.assert_produces_warning(FutureWarning):
-            result = df1.append(df2)
+        result = df1.append(df2)
         expected = df1.copy()
         tm.assert_frame_equal(result, expected)
 
         df1 = DataFrame({"bar": Timestamp("20130101")}, index=range(1))
         df2 = DataFrame({"bar": "foo"}, index=range(1, 2))
-        with tm.assert_produces_warning(FutureWarning):
-            result = df1.append(df2)
+        result = df1.append(df2)
         expected = DataFrame({"bar": [Timestamp("20130101"), "foo"]})
         tm.assert_frame_equal(result, expected)
 
         df1 = DataFrame({"bar": Timestamp("20130101")}, index=range(1))
         df2 = DataFrame({"bar": np.nan}, index=range(1, 2))
-        with tm.assert_produces_warning(FutureWarning):
-            result = df1.append(df2)
+        result = df1.append(df2)
         expected = DataFrame(
             {"bar": Series([Timestamp("20130101"), np.nan], dtype="M8[ns]")}
         )
@@ -213,8 +189,7 @@ class TestDataFrameAppend:
 
         df1 = DataFrame({"bar": Timestamp("20130101")}, index=range(1))
         df2 = DataFrame({"bar": np.nan}, index=range(1, 2), dtype=object)
-        with tm.assert_produces_warning(FutureWarning):
-            result = df1.append(df2)
+        result = df1.append(df2)
         expected = DataFrame(
             {"bar": Series([Timestamp("20130101"), np.nan], dtype="M8[ns]")}
         )
@@ -223,8 +198,7 @@ class TestDataFrameAppend:
 
         df1 = DataFrame({"bar": np.nan}, index=range(1))
         df2 = DataFrame({"bar": Timestamp("20130101")}, index=range(1, 2))
-        with tm.assert_produces_warning(FutureWarning):
-            result = df1.append(df2)
+        result = df1.append(df2)
         expected = DataFrame(
             {"bar": Series([np.nan, Timestamp("20130101")], dtype="M8[ns]")}
         )
@@ -233,8 +207,7 @@ class TestDataFrameAppend:
 
         df1 = DataFrame({"bar": Timestamp("20130101")}, index=range(1))
         df2 = DataFrame({"bar": 1}, index=range(1, 2), dtype=object)
-        with tm.assert_produces_warning(FutureWarning):
-            result = df1.append(df2)
+        result = df1.append(df2)
         expected = DataFrame({"bar": Series([Timestamp("20130101"), 1])})
         tm.assert_frame_equal(result, expected)
 
@@ -245,8 +218,7 @@ class TestDataFrameAppend:
         # GH 30238
         tz = tz_naive_fixture
         df = DataFrame([Timestamp(timestamp, tz=tz)])
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.append(df.iloc[0]).iloc[-1]
+        result = df.append(df.iloc[0]).iloc[-1]
         expected = Series(Timestamp(timestamp, tz=tz), name=0)
         tm.assert_series_equal(result, expected)
 
@@ -262,8 +234,7 @@ class TestDataFrameAppend:
     )
     def test_other_dtypes(self, data, dtype):
         df = DataFrame(data, dtype=dtype)
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.append(df.iloc[0]).iloc[-1]
+        result = df.append(df.iloc[0]).iloc[-1]
         expected = Series(data, name=0, dtype=dtype)
         tm.assert_series_equal(result, expected)
 
@@ -278,8 +249,7 @@ class TestDataFrameAppend:
         df = DataFrame()
         other = DataFrame({"A": "foo", "B": index}, index=index)
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.append(other)
+        result = df.append(other)
         assert (result["B"] == index).all()
 
     @pytest.mark.filterwarnings("ignore:The values in the array:RuntimeWarning")
@@ -294,10 +264,15 @@ class TestDataFrameAppend:
         df2 = df.copy()
         for i in range(1, 10):
             df[i, "colA"] = 10
-            with tm.assert_produces_warning(FutureWarning):
-                df = df.append(df2, ignore_index=True)
+            df = df.append(df2, ignore_index=True)
             result = df["multi"]
             expected = DataFrame(
                 {"col1": [1, 2, 3] * (i + 1), "col2": [11, 12, 13] * (i + 1)}
             )
             tm.assert_frame_equal(result, expected)
+
+    def test_append_raises_future_warning(self):
+        df1 = DataFrame([[1, 2], [3, 4]])
+        df2 = DataFrame([[5, 6], [7, 8]])
+        with tm.assert_produces_warning(FutureWarning):
+            df1.append(df2)
