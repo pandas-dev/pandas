@@ -162,7 +162,6 @@ def _isna(obj, inf_as_na: bool = False):
             return libmissing.checknull_old(obj)
         else:
             return libmissing.checknull(obj)
-    # hack (for now) because MI registers as ndarray
     elif isinstance(obj, ABCMultiIndex):
         raise NotImplementedError("isna is not defined for MultiIndex")
     elif isinstance(obj, type):
