@@ -2891,9 +2891,9 @@ Name: Max Speed, dtype: float64
         warnings.warn(
             "The frame.append method is deprecated "
             "and will be removed from pandas in a future version. "
-            "Use pandas.core.reshape.concat instead.",
+            "Use pandas.concat instead.",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
 
         from pandas.core.reshape.concat import concat

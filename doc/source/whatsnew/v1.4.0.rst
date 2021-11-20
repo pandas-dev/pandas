@@ -463,7 +463,7 @@ Use :func:`pandas.core.reshape.concat` instead (:issue:`35407`).
     In [3]: df2 = pd.DataFrame([[5, 6], [7, 8]], columns=list('AB'))
     In [4]: df1.append(df2)
     Out [4]:
-    <stdin>:1: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.core.reshape.concat instead.
+    <stdin>:1: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.
        A  B
     0  1  2
     1  3  4
@@ -474,7 +474,7 @@ Use :func:`pandas.core.reshape.concat` instead (:issue:`35407`).
 
 .. code-block:: ipython
 
-    In [1]: pd.core.reshape.concat.concat([pd.Series([1, 2]), pd.Series([3, 4])])
+    In [1]: pd.concat([pd.Series([1, 2]), pd.Series([3, 4])])
     Out [1]:
     0    1
     1    2
@@ -484,7 +484,7 @@ Use :func:`pandas.core.reshape.concat` instead (:issue:`35407`).
 
     In [2]: df1 = pd.DataFrame([[1, 2], [3, 4]], columns=list('AB'))
     In [3]: df2 = pd.DataFrame([[5, 6], [7, 8]], columns=list('AB'))
-    In [4]: pd.core.reshape.concat.concat([df1, df2])
+    In [4]: pd.concat([df1, df2])
     Out [4]:
        A  B
     0  1  2

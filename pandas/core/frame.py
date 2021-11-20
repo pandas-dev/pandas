@@ -9117,9 +9117,9 @@ NaN 12.3   33.0
         warnings.warn(
             "The frame.append method is deprecated "
             "and will be removed from pandas in a future version. "
-            "Use pandas.core.reshape.concat instead.",
+            "Use pandas.concat instead.",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
 
         combined_columns = None
