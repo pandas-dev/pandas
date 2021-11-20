@@ -1817,6 +1817,9 @@ class TestSeriesConstructors:
         expected = Series(True, index=[0], dtype="bool")
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(
+        np_version_under1p19, reason="np.array([td64nat, float, float]) raises"
+    )
     @pytest.mark.parametrize("func", [Series, DataFrame, Index, pd.array])
     def test_constructor_mismatched_null_nullable_dtype(
         self, func, any_numeric_ea_dtype
