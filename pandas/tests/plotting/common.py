@@ -45,6 +45,8 @@ class TestPlotBase:
 
         from pandas.plotting._matplotlib import compat
 
+        self.compat = compat
+
         mpl.rcdefaults()
 
         self.start_date_to_int64 = 812419200000000000
@@ -568,6 +570,12 @@ class TestPlotBase:
         Auxiliary function for correctly unpacking cycler after MPL >= 1.5
         """
         return [v[field] for v in rcParams["axes.prop_cycle"]]
+
+    def get_x_axis(self, ax):
+        return ax._shared_axes["x"] if self.compat.mpl_ge_3_5_0() else ax._shared_x_axes
+
+    def get_y_axis(self, ax):
+        return ax._shared_axes["y"] if self.compat.mpl_ge_3_5_0() else ax._shared_y_axes
 
 
 def _check_plot_works(f, filterwarnings="always", default_axes=False, **kwargs):

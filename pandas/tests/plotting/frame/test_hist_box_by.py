@@ -195,16 +195,16 @@ class TestHistWithBy(TestPlotBase):
         ax1, ax2, ax3 = self.hist_df.plot.hist(column="A", by="C", sharex=True)
 
         # share x
-        assert ax1._shared_x_axes.joined(ax1, ax2)
-        assert ax2._shared_x_axes.joined(ax1, ax2)
-        assert ax3._shared_x_axes.joined(ax1, ax3)
-        assert ax3._shared_x_axes.joined(ax2, ax3)
+        assert self.get_x_axis(ax1).joined(ax1, ax2)
+        assert self.get_x_axis(ax2).joined(ax1, ax2)
+        assert self.get_x_axis(ax3).joined(ax1, ax3)
+        assert self.get_x_axis(ax3).joined(ax2, ax3)
 
         # don't share y
-        assert not ax1._shared_y_axes.joined(ax1, ax2)
-        assert not ax2._shared_y_axes.joined(ax1, ax2)
-        assert not ax3._shared_y_axes.joined(ax1, ax3)
-        assert not ax3._shared_y_axes.joined(ax2, ax3)
+        assert not self.get_y_axis(ax1).joined(ax1, ax2)
+        assert not self.get_y_axis(ax2).joined(ax1, ax2)
+        assert not self.get_y_axis(ax3).joined(ax1, ax3)
+        assert not self.get_y_axis(ax3).joined(ax2, ax3)
 
     @pytest.mark.slow
     def test_axis_share_y_with_by(self):
@@ -212,16 +212,16 @@ class TestHistWithBy(TestPlotBase):
         ax1, ax2, ax3 = self.hist_df.plot.hist(column="A", by="C", sharey=True)
 
         # share y
-        assert ax1._shared_y_axes.joined(ax1, ax2)
-        assert ax2._shared_y_axes.joined(ax1, ax2)
-        assert ax3._shared_y_axes.joined(ax1, ax3)
-        assert ax3._shared_y_axes.joined(ax2, ax3)
+        assert self.get_y_axis(ax1).joined(ax1, ax2)
+        assert self.get_y_axis(ax2).joined(ax1, ax2)
+        assert self.get_y_axis(ax3).joined(ax1, ax3)
+        assert self.get_y_axis(ax3).joined(ax2, ax3)
 
         # don't share x
-        assert not ax1._shared_x_axes.joined(ax1, ax2)
-        assert not ax2._shared_x_axes.joined(ax1, ax2)
-        assert not ax3._shared_x_axes.joined(ax1, ax3)
-        assert not ax3._shared_x_axes.joined(ax2, ax3)
+        assert not self.get_x_axis(ax1).joined(ax1, ax2)
+        assert not self.get_x_axis(ax2).joined(ax1, ax2)
+        assert not self.get_x_axis(ax3).joined(ax1, ax3)
+        assert not self.get_x_axis(ax3).joined(ax2, ax3)
 
     @pytest.mark.parametrize("figsize", [(12, 8), (20, 10)])
     def test_figure_shape_hist_with_by(self, figsize):
