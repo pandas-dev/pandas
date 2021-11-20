@@ -6,6 +6,7 @@ from io import BytesIO
 import os
 from textwrap import fill
 from typing import (
+    IO,
     Any,
     Mapping,
     cast,
@@ -17,10 +18,11 @@ from pandas._config import config
 
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._typing import (
-    Buffer,
     DtypeArg,
-    FilePathOrBuffer,
+    FilePath,
+    ReadBuffer,
     StorageOptions,
+    WriteExcelBuffer,
 )
 from pandas.compat._optional import (
     get_version,
@@ -234,6 +236,14 @@ thousands : str, default None
     this parameter is only necessary for columns stored as TEXT in Excel,
     any numeric columns will automatically be parsed, regardless of display
     format.
+decimal : str, default '.'
+    Character to recognize as decimal point for parsing string columns to numeric.
+    Note that this parameter is only necessary for columns stored as TEXT in Excel,
+    any numeric columns will automatically be parsed, regardless of display
+    format.(e.g. use ',' for European data).
+
+    .. versionadded:: 1.4.0
+
 comment : str, default None
     Comments out remainder of line. Pass a character or characters to this
     argument to indicate comments in the input file. Any data between the
@@ -356,6 +366,7 @@ def read_excel(
     parse_dates=False,
     date_parser=None,
     thousands=None,
+    decimal=".",
     comment=None,
     skipfooter=0,
     convert_float=None,
@@ -394,6 +405,7 @@ def read_excel(
             parse_dates=parse_dates,
             date_parser=date_parser,
             thousands=thousands,
+            decimal=decimal,
             comment=comment,
             skipfooter=skipfooter,
             convert_float=convert_float,
@@ -498,6 +510,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         parse_dates=False,
         date_parser=None,
         thousands=None,
+        decimal=".",
         comment=None,
         skipfooter=0,
         convert_float=None,
@@ -508,11 +521,10 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         if convert_float is None:
             convert_float = True
         else:
-            stacklevel = find_stack_level()
             warnings.warn(
                 "convert_float is deprecated and will be removed in a future version.",
                 FutureWarning,
-                stacklevel=stacklevel,
+                stacklevel=find_stack_level(),
             )
 
         validate_header_arg(header)
@@ -624,6 +636,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                     parse_dates=parse_dates,
                     date_parser=date_parser,
                     thousands=thousands,
+                    decimal=decimal,
                     comment=comment,
                     skipfooter=skipfooter,
                     usecols=usecols,
@@ -690,15 +703,23 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         be parsed by ``fsspec``, e.g., starting "s3://", "gcs://".
 
         .. versionadded:: 1.2.0
-    if_sheet_exists : {'error', 'new', 'replace'}, default 'error'
+
+    if_sheet_exists : {'error', 'new', 'replace', 'overlay'}, default 'error'
         How to behave when trying to write to a sheet that already
         exists (append mode only).
 
         * error: raise a ValueError.
         * new: Create a new sheet, with a name determined by the engine.
         * replace: Delete the contents of the sheet before writing to it.
+        * overlay: Write contents to the existing sheet without removing the old
+          contents.
 
         .. versionadded:: 1.3.0
+
+        .. versionchanged:: 1.4.0
+
+           Added ``overlay`` option
+
     engine_kwargs : dict, optional
         Keyword arguments to be passed into the engine.
 
@@ -764,6 +785,28 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     >>> with pd.ExcelWriter("path_to_file.xlsx", mode="a", engine="openpyxl") as writer:
     ...     df.to_excel(writer, sheet_name="Sheet3")
 
+    Here, the `if_sheet_exists` parameter can be set to replace a sheet if it
+    already exists:
+
+    >>> with ExcelWriter(
+    ...     "path_to_file.xlsx",
+    ...     mode="a",
+    ...     engine="openpyxl",
+    ...     if_sheet_exists="replace",
+    ... ) as writer:
+    ...     df.to_excel(writer, sheet_name="Sheet1")
+
+    You can also write multiple DataFrames to a single sheet. Note that the
+    ``if_sheet_exists`` parameter needs to be set to ``overlay``:
+
+    >>> with ExcelWriter("path_to_file.xlsx",
+    ...     mode="a",
+    ...     engine="openpyxl",
+    ...     if_sheet_exists="overlay",
+    ... ) as writer:
+    ...     df1.to_excel(writer, sheet_name="Sheet1")
+    ...     df2.to_excel(writer, sheet_name="Sheet1", startcol=3)
+
     You can store Excel file in RAM:
 
     >>> import io
@@ -805,7 +848,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     # ExcelWriter.
     def __new__(
         cls,
-        path: FilePathOrBuffer | ExcelWriter,
+        path: FilePath | WriteExcelBuffer | ExcelWriter,
         engine=None,
         date_format=None,
         datetime_format=None,
@@ -821,7 +864,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             warnings.warn(
                 "Use of **kwargs is deprecated, use engine_kwargs instead.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
 
         # only switch class if generic(ExcelWriter)
@@ -856,7 +899,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
                         "deprecated and will also raise a warning, it can "
                         "be globally set and the warning suppressed.",
                         FutureWarning,
-                        stacklevel=4,
+                        stacklevel=find_stack_level(),
                     )
 
             cls = get_writer(engine)
@@ -907,7 +950,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
     def __init__(
         self,
-        path: FilePathOrBuffer | ExcelWriter,
+        path: FilePath | WriteExcelBuffer | ExcelWriter,
         engine=None,
         date_format=None,
         datetime_format=None,
@@ -930,7 +973,9 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         mode = mode.replace("a", "r+")
 
         # cast ExcelWriter to avoid adding 'if self.handles is not None'
-        self.handles = IOHandles(cast(Buffer, path), compression={"copression": None})
+        self.handles = IOHandles(
+            cast(IO[bytes], path), compression={"copression": None}
+        )
         if not isinstance(path, ExcelWriter):
             self.handles = get_handle(
                 path, mode, storage_options=storage_options, is_text=False
@@ -949,10 +994,10 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
         self.mode = mode
 
-        if if_sheet_exists not in [None, "error", "new", "replace"]:
+        if if_sheet_exists not in (None, "error", "new", "replace", "overlay"):
             raise ValueError(
                 f"'{if_sheet_exists}' is not valid for if_sheet_exists. "
-                "Valid options are 'error', 'new' and 'replace'."
+                "Valid options are 'error', 'new', 'replace' and 'overlay'."
             )
         if if_sheet_exists and "r+" not in mode:
             raise ValueError("if_sheet_exists is only valid in append mode (mode='a')")
@@ -1048,7 +1093,7 @@ PEEK_SIZE = max(map(len, XLS_SIGNATURES + (ZIP_SIGNATURE,)))
 
 @doc(storage_options=_shared_docs["storage_options"])
 def inspect_excel_format(
-    content_or_path: FilePathOrBuffer,
+    content_or_path: FilePath | ReadBuffer[bytes],
     storage_options: StorageOptions = None,
 ) -> str | None:
     """
@@ -1095,9 +1140,7 @@ def inspect_excel_format(
         elif not peek.startswith(ZIP_SIGNATURE):
             return None
 
-        # ZipFile typing is overly-strict
-        # https://github.com/python/typeshed/issues/4212
-        zf = zipfile.ZipFile(stream)  # type: ignore[arg-type]
+        zf = zipfile.ZipFile(stream)
 
         # Workaround for some third party files that use forward slashes and
         # lower case names.

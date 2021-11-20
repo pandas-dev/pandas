@@ -154,6 +154,12 @@ class TestSeriesConstructors:
         with pytest.raises(NotImplementedError, match=msg):
             Series(m)
 
+    def test_constructor_index_ndim_gt_1_raises(self):
+        # GH#18579
+        df = DataFrame([[1, 2], [3, 4], [5, 6]], index=[3, 6, 9])
+        with pytest.raises(ValueError, match="Index data must be 1-dimensional"):
+            Series([1, 3, 2], index=df)
+
     @pytest.mark.parametrize("input_class", [list, dict, OrderedDict])
     def test_constructor_empty(self, input_class):
         with tm.assert_produces_warning(FutureWarning):
@@ -275,6 +281,15 @@ class TestSeriesConstructors:
         for obj in [[1, 2, 3], (1, 2, 3), np.array([1, 2, 3], dtype="int64")]:
             result = Series(obj, index=[0, 1, 2])
             tm.assert_series_equal(result, expected)
+
+    def test_constructor_boolean_index(self):
+        # GH#18579
+        s1 = Series([1, 2, 3], index=[4, 5, 6])
+
+        index = s1 == 2
+        result = Series([1, 3, 2], index=index)
+        expected = Series([1, 3, 2], index=[False, True, False])
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", ["bool", "int32", "int64", "float64"])
     def test_constructor_index_dtype(self, dtype):
@@ -1045,6 +1060,18 @@ class TestSeriesConstructors:
         expected = Series(DatetimeIndex(["NaT", "NaT"], tz="US/Eastern"))
         tm.assert_series_equal(s, expected)
 
+    def test_constructor_no_partial_datetime_casting(self):
+        # GH#40111
+        vals = [
+            "nan",
+            Timestamp("1990-01-01"),
+            "2015-03-14T16:15:14.123-08:00",
+            "2019-03-04T21:56:32.620-07:00",
+            None,
+        ]
+        ser = Series(vals)
+        assert all(ser[i] is vals[i] for i in range(len(vals)))
+
     @pytest.mark.parametrize("arr_dtype", [np.int64, np.float64])
     @pytest.mark.parametrize("dtype", ["M8", "m8"])
     @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s", "h", "m", "D"])
@@ -1618,12 +1645,12 @@ class TestSeriesConstructors:
             ts = ts.to_pydatetime()
         ts_naive = Timestamp("2019")
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             result = Series([ts], dtype="datetime64[ns]")
         expected = Series([ts_naive])
         tm.assert_series_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             result = Series(np.array([ts], dtype=object), dtype="datetime64[ns]")
         tm.assert_series_equal(result, expected)
 

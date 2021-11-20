@@ -18,6 +18,7 @@ import os
 import struct
 import sys
 from typing import (
+    IO,
     TYPE_CHECKING,
     Any,
     AnyStr,
@@ -33,10 +34,11 @@ import numpy as np
 from pandas._libs.lib import infer_dtype
 from pandas._libs.writers import max_len_string_array
 from pandas._typing import (
-    Buffer,
     CompressionOptions,
-    FilePathOrBuffer,
+    FilePath,
+    ReadBuffer,
     StorageOptions,
+    WriteBuffer,
 )
 from pandas.util._decorators import (
     Appender,
@@ -338,8 +340,8 @@ def _stata_elapsed_date_to_datetime_vec(dates, fmt) -> Series:
         deltas = to_timedelta(deltas, unit=unit)
         return base + deltas
 
-    # TODO: If/when pandas supports more than datetime64[ns], this should be
-    # improved to use correct range, e.g. datetime[Y] for yearly
+    # TODO(non-nano): If/when pandas supports more than datetime64[ns], this
+    #  should be improved to use correct range, e.g. datetime[Y] for yearly
     bad_locs = np.isnan(dates)
     has_bad_values = False
     if bad_locs.any():
@@ -600,6 +602,8 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
         # Cast from unsupported types to supported types
         is_nullable_int = isinstance(data[col].dtype, (_IntegerDtype, BooleanDtype))
         orig = data[col]
+        # We need to find orig_missing before altering data below
+        orig_missing = orig.isna()
         if is_nullable_int:
             missing_loc = data[col].isna()
             if missing_loc.any():
@@ -650,11 +654,10 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
                         f"supported by Stata ({float64_max})"
                     )
         if is_nullable_int:
-            missing = orig.isna()
-            if missing.any():
+            if orig_missing.any():
                 # Replace missing by Stata sentinel value
                 sentinel = StataMissingValue.BASE_MISSING_VALUES[data[col].dtype.name]
-                data.loc[missing, col] = sentinel
+                data.loc[orig_missing, col] = sentinel
     if ws:
         warnings.warn(ws, PossiblePrecisionLoss)
 
@@ -934,25 +937,15 @@ class StataMissingValue:
 
     @classmethod
     def get_base_missing_value(cls, dtype: np.dtype) -> int | float:
-        # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-        # operand type: "Type[signedinteger[Any]]")
-        if dtype == np.int8:  # type: ignore[comparison-overlap]
+        if dtype.type is np.int8:
             value = cls.BASE_MISSING_VALUES["int8"]
-        # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-        # operand type: "Type[signedinteger[Any]]")
-        elif dtype == np.int16:  # type: ignore[comparison-overlap]
+        elif dtype.type is np.int16:
             value = cls.BASE_MISSING_VALUES["int16"]
-        # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-        # operand type: "Type[signedinteger[Any]]")
-        elif dtype == np.int32:  # type: ignore[comparison-overlap]
+        elif dtype.type is np.int32:
             value = cls.BASE_MISSING_VALUES["int32"]
-        # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-        # operand type: "Type[floating[Any]]")
-        elif dtype == np.float32:  # type: ignore[comparison-overlap]
+        elif dtype.type is np.float32:
             value = cls.BASE_MISSING_VALUES["float32"]
-        # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-        # operand type: "Type[floating[Any]]")
-        elif dtype == np.float64:  # type: ignore[comparison-overlap]
+        elif dtype.type is np.float64:
             value = cls.BASE_MISSING_VALUES["float64"]
         else:
             raise ValueError("Unsupported dtype")
@@ -1126,7 +1119,7 @@ class StataReader(StataParser, abc.Iterator):
 
     def __init__(
         self,
-        path_or_buf: FilePathOrBuffer,
+        path_or_buf: FilePath | ReadBuffer[bytes],
         convert_dates: bool = True,
         convert_categoricals: bool = True,
         index_col: str | None = None,
@@ -1177,10 +1170,7 @@ class StataReader(StataParser, abc.Iterator):
             compression=compression,
         ) as handles:
             # Copy to BytesIO, and ensure no encoding
-
-            # Argument 1 to "BytesIO" has incompatible type "Union[Any, bytes, None,
-            # str]"; expected "bytes"
-            self.path_or_buf = BytesIO(handles.handle.read())  # type: ignore[arg-type]
+            self.path_or_buf = BytesIO(handles.handle.read())
 
         self._read_header()
         self._setup_dtype()
@@ -2011,7 +2001,7 @@ The repeated labels are:
 
 @Appender(_read_stata_doc)
 def read_stata(
-    filepath_or_buffer: FilePathOrBuffer,
+    filepath_or_buffer: FilePath | ReadBuffer[bytes],
     convert_dates: bool = True,
     convert_categoricals: bool = True,
     index_col: str | None = None,
@@ -2120,30 +2110,20 @@ def _dtype_to_stata_type(dtype: np.dtype, column: Series) -> int:
     type inserted.
     """
     # TODO: expand to handle datetime to integer conversion
-    if dtype.type == np.object_:  # try to coerce it to the biggest string
+    if dtype.type is np.object_:  # try to coerce it to the biggest string
         # not memory efficient, what else could we
         # do?
         itemsize = max_len_string_array(ensure_object(column._values))
         return max(itemsize, 1)
-    # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-    # operand type: "Type[floating[Any]]")
-    elif dtype == np.float64:  # type: ignore[comparison-overlap]
+    elif dtype.type is np.float64:
         return 255
-    # Non-overlapping equality check (left operand type: "dtype[Any]", right
-    # operand type: "Type[floating[Any]]")
-    elif dtype == np.float32:  # type: ignore[comparison-overlap]
+    elif dtype.type is np.float32:
         return 254
-    # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-    # operand type: "Type[signedinteger[Any]]")
-    elif dtype == np.int32:  # type: ignore[comparison-overlap]
+    elif dtype.type is np.int32:
         return 253
-    # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-    # operand type: "Type[signedinteger[Any]]")
-    elif dtype == np.int16:  # type: ignore[comparison-overlap]
+    elif dtype.type is np.int16:
         return 252
-    # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-    # operand type: "Type[signedinteger[Any]]")
-    elif dtype == np.int8:  # type: ignore[comparison-overlap]
+    elif dtype.type is np.int8:
         return 251
     else:  # pragma : no cover
         raise NotImplementedError(f"Data type {dtype} not supported.")
@@ -2174,7 +2154,7 @@ def _dtype_to_default_stata_fmt(
         max_str_len = 2045
         if force_strl:
             return "%9s"
-    if dtype.type == np.object_:
+    if dtype.type is np.object_:
         itemsize = max_len_string_array(ensure_object(column._values))
         if itemsize > max_str_len:
             if dta_version >= 117:
@@ -2289,7 +2269,7 @@ class StataWriter(StataParser):
 
     def __init__(
         self,
-        fname: FilePathOrBuffer,
+        fname: FilePath | WriteBuffer[bytes],
         data: DataFrame,
         convert_dates: dict[Hashable, str] | None = None,
         write_index: bool = True,
@@ -2313,7 +2293,7 @@ class StataWriter(StataParser):
         self._value_labels: list[StataValueLabel] = []
         self._has_value_labels = np.array([], dtype=bool)
         self._compression = compression
-        self._output_file: Buffer | None = None
+        self._output_file: IO[bytes] | None = None
         self._converted_names: dict[Hashable, str] = {}
         # attach nobs, nvars, data, varlist, typlist
         self._prepare_pandas(data)
@@ -2329,15 +2309,13 @@ class StataWriter(StataParser):
         """
         Helper to call encode before writing to file for Python 3 compat.
         """
-        self.handles.handle.write(
-            to_write.encode(self._encoding)  # type: ignore[arg-type]
-        )
+        self.handles.handle.write(to_write.encode(self._encoding))
 
     def _write_bytes(self, value: bytes) -> None:
         """
         Helper to assert file is open before writing.
         """
-        self.handles.handle.write(value)  # type: ignore[arg-type]
+        self.handles.handle.write(value)
 
     def _prepare_non_cat_value_labels(
         self, data: DataFrame
@@ -2400,11 +2378,11 @@ class StataWriter(StataParser):
                 # Upcast if needed so that correct missing values can be set
                 if values.max() >= get_base_missing_value(dtype):
                     if dtype == np.int8:
-                        dtype = np.int16
+                        dtype = np.dtype(np.int16)
                     elif dtype == np.int16:
-                        dtype = np.int32
+                        dtype = np.dtype(np.int32)
                     else:
-                        dtype = np.float64
+                        dtype = np.dtype(np.float64)
                     values = np.array(values, dtype=dtype)
 
                 # Replace missing values with Stata missing value for type
@@ -2624,7 +2602,7 @@ class StataWriter(StataParser):
                 continue
             column = self.data[col]
             dtype = column.dtype
-            if dtype.type == np.object_:
+            if dtype.type is np.object_:
                 inferred_dtype = infer_dtype(column, skipna=True)
                 if not ((inferred_dtype == "string") or len(column) == 0):
                     col = column.name
@@ -2705,7 +2683,7 @@ supported types."""
         if self._output_file is not None:
             assert isinstance(self.handles.handle, BytesIO)
             bio, self.handles.handle = self.handles.handle, self._output_file
-            self.handles.handle.write(bio.getvalue())  # type: ignore[arg-type]
+            self.handles.handle.write(bio.getvalue())
 
     def _write_map(self) -> None:
         """No-op, future compatibility"""
@@ -2912,7 +2890,7 @@ def _dtype_to_stata_type_117(dtype: np.dtype, column: Series, force_strl: bool) 
     # TODO: expand to handle datetime to integer conversion
     if force_strl:
         return 32768
-    if dtype.type == np.object_:  # try to coerce it to the biggest string
+    if dtype.type is np.object_:  # try to coerce it to the biggest string
         # not memory efficient, what else could we
         # do?
         itemsize = max_len_string_array(ensure_object(column._values))
@@ -2920,25 +2898,15 @@ def _dtype_to_stata_type_117(dtype: np.dtype, column: Series, force_strl: bool) 
         if itemsize <= 2045:
             return itemsize
         return 32768
-    # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-    # operand type: "Type[floating[Any]]")
-    elif dtype == np.float64:  # type: ignore[comparison-overlap]
+    elif dtype.type is np.float64:
         return 65526
-    # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-    # operand type: "Type[floating[Any]]")
-    elif dtype == np.float32:  # type: ignore[comparison-overlap]
+    elif dtype.type is np.float32:
         return 65527
-    # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-    # operand type: "Type[signedinteger[Any]]")  [comparison-overlap]
-    elif dtype == np.int32:  # type: ignore[comparison-overlap]
+    elif dtype.type is np.int32:
         return 65528
-    # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-    # operand type: "Type[signedinteger[Any]]")
-    elif dtype == np.int16:  # type: ignore[comparison-overlap]
+    elif dtype.type is np.int16:
         return 65529
-    # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-    # operand type: "Type[signedinteger[Any]]")
-    elif dtype == np.int8:  # type: ignore[comparison-overlap]
+    elif dtype.type is np.int8:
         return 65530
     else:  # pragma : no cover
         raise NotImplementedError(f"Data type {dtype} not supported.")
@@ -3232,7 +3200,7 @@ class StataWriter117(StataWriter):
 
     def __init__(
         self,
-        fname: FilePathOrBuffer,
+        fname: FilePath | WriteBuffer[bytes],
         data: DataFrame,
         convert_dates: dict[Hashable, str] | None = None,
         write_index: bool = True,
@@ -3634,7 +3602,7 @@ class StataWriterUTF8(StataWriter117):
 
     def __init__(
         self,
-        fname: FilePathOrBuffer,
+        fname: FilePath | WriteBuffer[bytes],
         data: DataFrame,
         convert_dates: dict[Hashable, str] | None = None,
         write_index: bool = True,

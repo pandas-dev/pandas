@@ -100,21 +100,18 @@ def is_scalar_indexer(indexer, ndim: int) -> bool:
         # GH37748: allow indexer to be an integer for Series
         return True
     if isinstance(indexer, tuple) and len(indexer) == ndim:
-        return all(
-            is_integer(x) or (isinstance(x, np.ndarray) and x.ndim == len(x) == 1)
-            for x in indexer
-        )
+        return all(is_integer(x) for x in indexer)
     return False
 
 
-def is_empty_indexer(indexer, arr_value: np.ndarray) -> bool:
+def is_empty_indexer(indexer, arr_value: ArrayLike) -> bool:
     """
     Check if we have an empty indexer.
 
     Parameters
     ----------
     indexer : object
-    arr_value : np.ndarray
+    arr_value : np.ndarray or ExtensionArray
 
     Returns
     -------
@@ -402,7 +399,7 @@ def unpack_1tuple(tup):
                 "slice is deprecated and will raise in a future "
                 "version.  Pass a tuple instead.",
                 FutureWarning,
-                stacklevel=3,
+                stacklevel=find_stack_level(),
             )
 
         return tup[0]
@@ -433,6 +430,24 @@ def check_key_length(columns: Index, key, value: DataFrame) -> None:
         # Missing keys in columns are represented as -1
         if len(columns.get_indexer_non_unique(key)[0]) != len(value.columns):
             raise ValueError("Columns must be same length as key")
+
+
+def unpack_tuple_and_ellipses(item: tuple):
+    """
+    Possibly unpack arr[..., n] to arr[n]
+    """
+    if len(item) > 1:
+        # Note: we are assuming this indexing is being done on a 1D arraylike
+        if item[0] is Ellipsis:
+            item = item[1:]
+        elif item[-1] is Ellipsis:
+            item = item[:-1]
+
+    if len(item) > 1:
+        raise IndexError("too many indices for array.")
+
+    item = item[0]
+    return item
 
 
 # -----------------------------------------------------------

@@ -19,7 +19,7 @@ from pandas._typing import (
     Scalar,
     type_t,
 )
-from pandas.compat import pa_version_under1p0
+from pandas.compat import pa_version_under1p01
 from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.base import (
@@ -104,11 +104,10 @@ class StringDtype(ExtensionDtype):
             raise ValueError(
                 f"Storage must be 'python' or 'pyarrow'. Got {storage} instead."
             )
-        if storage == "pyarrow" and pa_version_under1p0:
+        if storage == "pyarrow" and pa_version_under1p01:
             raise ImportError(
                 "pyarrow>=1.0.0 is required for PyArrow backed StringArray."
             )
-
         self.storage = storage
 
     @property
@@ -319,9 +318,7 @@ class StringArray(BaseStringArray, PandasArray):
 
     def _validate(self):
         """Validate that we only store NA or strings."""
-        if len(self._ndarray) and not lib.is_string_array(
-            self._ndarray.ravel("K"), skipna=True
-        ):
+        if len(self._ndarray) and not lib.is_string_array(self._ndarray, skipna=True):
             raise ValueError("StringArray requires a sequence of strings or pandas.NA")
         if self._ndarray.dtype != "object":
             raise ValueError(
@@ -437,8 +434,7 @@ class StringArray(BaseStringArray, PandasArray):
             values = arr.astype(dtype.numpy_dtype)
             return FloatingArray(values, mask, copy=False)
         elif isinstance(dtype, ExtensionDtype):
-            cls = dtype.construct_array_type()
-            return cls._from_sequence(self, dtype=dtype, copy=copy)
+            return super().astype(dtype, copy=copy)
         elif np.issubdtype(dtype, np.floating):
             arr = self._ndarray.copy()
             mask = self.isna()

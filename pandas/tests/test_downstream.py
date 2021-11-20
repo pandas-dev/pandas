@@ -5,7 +5,7 @@ import importlib
 import subprocess
 import sys
 
-import numpy as np  # noqa
+import numpy as np  # noqa:F401 needed in namespace for statsmodels
 import pytest
 
 import pandas.util._test_decorators as td
@@ -100,7 +100,7 @@ def test_oo_optimized_datetime_index_unpickle():
 )
 def test_statsmodels():
 
-    statsmodels = import_module("statsmodels")  # noqa
+    statsmodels = import_module("statsmodels")  # noqa:F841
     import statsmodels.api as sm
     import statsmodels.formula.api as smf
 
@@ -165,6 +165,19 @@ def test_pyarrow(df):
     table = pyarrow.Table.from_pandas(df)
     result = table.to_pandas()
     tm.assert_frame_equal(result, df)
+
+
+def test_yaml_dump(df):
+    # GH#42748
+    yaml = import_module("yaml")
+
+    dumped = yaml.dump(df)
+
+    loaded = yaml.load(dumped, Loader=yaml.Loader)
+    tm.assert_frame_equal(df, loaded)
+
+    loaded2 = yaml.load(dumped, Loader=yaml.UnsafeLoader)
+    tm.assert_frame_equal(df, loaded2)
 
 
 def test_missing_required_dependency():

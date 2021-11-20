@@ -17,7 +17,7 @@ env:
   PANDAS_CI: 1
   PATTERN: "not slow and not network and not clipboard"
   COVERAGE: true
-  PYTEST_TARGET:  pandas
+  PYTEST_TARGET: pandas
 
 jobs:
   build:
@@ -28,10 +28,10 @@ jobs:
         os: [ubuntu-latest, macOS-latest, windows-latest]
 
     name: actions-310-dev
-    timeout-minutes: 60
+    timeout-minutes: 80
 
     concurrency:
-      group: ${{ github.ref }}-${{ matrix.os }}-dev
+      group: ${{ github.ref }}-${{ matrix.os }}-${{ matrix.pytest_target }}-dev
       cancel-in-progress: ${{github.event_name == 'pull_request'}}
 
     steps:

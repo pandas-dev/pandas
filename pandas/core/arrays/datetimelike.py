@@ -68,13 +68,13 @@ from pandas.util._decorators import (
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
+    is_all_strings,
     is_categorical_dtype,
     is_datetime64_any_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
     is_datetime_or_timedelta_dtype,
     is_dtype_equal,
-    is_extension_array_dtype,
     is_float_dtype,
     is_integer_dtype,
     is_list_like,
@@ -87,6 +87,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
+    ExtensionDtype,
     PeriodDtype,
 )
 from pandas.core.dtypes.missing import (
@@ -407,22 +408,20 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         if is_object_dtype(dtype):
             return self._box_values(self.asi8.ravel()).reshape(self.shape)
-        elif is_string_dtype(dtype) and not is_categorical_dtype(dtype):
-            if is_extension_array_dtype(dtype):
-                arr_cls = dtype.construct_array_type()
-                return arr_cls._from_sequence(self, dtype=dtype, copy=copy)
-            else:
-                return self._format_native_types()
+
+        elif isinstance(dtype, ExtensionDtype):
+            return super().astype(dtype, copy=copy)
+        elif is_string_dtype(dtype):
+            return self._format_native_types()
         elif is_integer_dtype(dtype):
             # we deliberately ignore int32 vs. int64 here.
             # See https://github.com/pandas-dev/pandas/issues/24381 for more.
-            level = find_stack_level()
             warnings.warn(
                 f"casting {self.dtype} values to int64 with .astype(...) is "
                 "deprecated and will raise in a future version. "
                 "Use .view(...) instead.",
                 FutureWarning,
-                stacklevel=level,
+                stacklevel=find_stack_level(),
             )
 
             values = self.asi8
@@ -442,9 +441,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             # and conversions for any datetimelike to float
             msg = f"Cannot cast {type(self).__name__} to dtype {dtype}"
             raise TypeError(msg)
-        elif is_categorical_dtype(dtype):
-            arr_cls = dtype.construct_array_type()
-            return arr_cls(self, dtype=dtype)
         else:
             return np.asarray(self, dtype=dtype)
 
@@ -724,7 +720,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         value = pd_array(value)
         value = extract_array(value, extract_numpy=True)
 
-        if is_dtype_equal(value.dtype, "string"):
+        if is_all_strings(value):
             # We got a StringArray
             try:
                 # TODO: Could use from_sequence_of_strings if implemented
@@ -1470,8 +1466,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         Index.max : Return the maximum value in an Index.
         Series.max : Return the maximum value in a Series.
         """
-        # TODO: skipna is broken with max.
-        # See https://github.com/pandas-dev/pandas/issues/24265
         nv.validate_max((), kwargs)
         nv.validate_minmax_axis(axis, self.ndim)
 
@@ -1642,6 +1636,13 @@ _round_doc = """
     ------
     ValueError if the `freq` cannot be converted.
 
+    Notes
+    -----
+    If the timestamps have a timezone, {op}ing will take place relative to the
+    local ("wall") time and re-localized to the same timezone. When {op}ing
+    near daylight savings time, use ``nonexistent`` and ``ambiguous`` to
+    control the re-localization behavior.
+
     Examples
     --------
     **DatetimeIndex**
@@ -1665,6 +1666,19 @@ _round_example = """>>> rng.round('H')
     1   2018-01-01 12:00:00
     2   2018-01-01 12:00:00
     dtype: datetime64[ns]
+
+    When rounding near a daylight savings time transition, use ``ambiguous`` or
+    ``nonexistent`` to control how the timestamp should be re-localized.
+
+    >>> rng_tz = pd.DatetimeIndex(["2021-10-31 03:30:00"], tz="Europe/Amsterdam")
+
+    >>> rng_tz.floor("2H", ambiguous=False)
+    DatetimeIndex(['2021-10-31 02:00:00+01:00'],
+                  dtype='datetime64[ns, Europe/Amsterdam]', freq=None)
+
+    >>> rng_tz.floor("2H", ambiguous=True)
+    DatetimeIndex(['2021-10-31 02:00:00+02:00'],
+                  dtype='datetime64[ns, Europe/Amsterdam]', freq=None)
     """
 
 _floor_example = """>>> rng.floor('H')
@@ -1679,6 +1693,19 @@ _floor_example = """>>> rng.floor('H')
     1   2018-01-01 12:00:00
     2   2018-01-01 12:00:00
     dtype: datetime64[ns]
+
+    When rounding near a daylight savings time transition, use ``ambiguous`` or
+    ``nonexistent`` to control how the timestamp should be re-localized.
+
+    >>> rng_tz = pd.DatetimeIndex(["2021-10-31 03:30:00"], tz="Europe/Amsterdam")
+
+    >>> rng_tz.floor("2H", ambiguous=False)
+    DatetimeIndex(['2021-10-31 02:00:00+01:00'],
+                 dtype='datetime64[ns, Europe/Amsterdam]', freq=None)
+
+    >>> rng_tz.floor("2H", ambiguous=True)
+    DatetimeIndex(['2021-10-31 02:00:00+02:00'],
+                  dtype='datetime64[ns, Europe/Amsterdam]', freq=None)
     """
 
 _ceil_example = """>>> rng.ceil('H')
@@ -1693,6 +1720,19 @@ _ceil_example = """>>> rng.ceil('H')
     1   2018-01-01 12:00:00
     2   2018-01-01 13:00:00
     dtype: datetime64[ns]
+
+    When rounding near a daylight savings time transition, use ``ambiguous`` or
+    ``nonexistent`` to control how the timestamp should be re-localized.
+
+    >>> rng_tz = pd.DatetimeIndex(["2021-10-31 01:30:00"], tz="Europe/Amsterdam")
+
+    >>> rng_tz.ceil("H", ambiguous=False)
+    DatetimeIndex(['2021-10-31 02:00:00+01:00'],
+                  dtype='datetime64[ns, Europe/Amsterdam]', freq=None)
+
+    >>> rng_tz.ceil("H", ambiguous=True)
+    DatetimeIndex(['2021-10-31 02:00:00+02:00'],
+                  dtype='datetime64[ns, Europe/Amsterdam]', freq=None)
     """
 
 
