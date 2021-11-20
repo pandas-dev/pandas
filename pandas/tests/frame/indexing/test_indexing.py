@@ -1248,7 +1248,7 @@ class TestDataFrameIndexing:
         msg = "|".join(
             [
                 r"int\(\) argument must be a string, a bytes-like object or a "
-                "number, not 'NaTType'",
+                "(real )?number, not 'NaTType'",
                 r"timedelta64\[ns\] cannot be converted to an? (Floating|Integer)Dtype",
                 r"datetime64\[ns\] cannot be converted to an? (Floating|Integer)Dtype",
                 "object cannot be converted to a FloatingDtype",
