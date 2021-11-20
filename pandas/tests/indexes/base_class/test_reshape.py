@@ -53,6 +53,7 @@ class TestReshape:
         result = idx.insert(loc, val)
         expected = Index(["1", "2", val, "3"])
         tm.assert_index_equal(result, expected)
+        assert type(expected[2]) is type(val)
 
     @pytest.mark.parametrize(
         "pos,expected",
