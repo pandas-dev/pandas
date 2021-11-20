@@ -624,6 +624,15 @@ class TestDataFrameReplace:
         expected.iloc[1, 1] = m[1]
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("dtype", ["boolean", "Int64", "Float64"])
+    def test_replace_with_nullable_column(self, dtype):
+        # GH-44499
+        nullable_ser = Series([1, 0, 1], dtype=dtype)
+        df = DataFrame({"A": ["A", "B", "x"], "B": nullable_ser})
+        result = df.replace("x", "X")
+        expected = DataFrame({"A": ["A", "B", "X"], "B": nullable_ser})
+        tm.assert_frame_equal(result, expected)
+
     def test_replace_simple_nested_dict(self):
         df = DataFrame({"col": range(1, 5)})
         expected = DataFrame({"col": ["a", 2, 3, "b"]})
