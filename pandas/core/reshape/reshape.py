@@ -1121,11 +1121,11 @@ def from_dummies(
         character indicating the separation of the categorical names from the prefixes.
         For example, if your column names are 'prefix_A' and 'prefix_B',
         you can strip the underscore by specifying sep='_'.
-        Alternatively, pass a dictionary to map prefix separators to prefixes if 
+        Alternatively, pass a dictionary to map prefix separators to prefixes if
         multiple and/or mixed separators are used in the column names.
     dropped_fist : None, str or dict of str, default None
         The implied value the dummy takes when all values are zero.
-        Can be a a single value for all variables or a dict directly mapping the 
+        Can be a a single value for all variables or a dict directly mapping the
         dropped value to a prefix of a variable.
 
     Returns
@@ -1162,7 +1162,7 @@ def from_dummies(
     ...                    "col2_a": [0, 1, 0], "col2_b": [1, 0, 0],
     ...                    "col2_c": [0, 0, 0]})
 
-    >>> pd.from_dummies(df, sep="_", dropped_first=["d", "e"])
+    >>> pd.from_dummies(df, sep="_", dropped_first={"col1": "d", "col2": "e"])
         col1    col2
     0    a       b
     1    b       a
@@ -1266,9 +1266,9 @@ def from_dummies(
         if sep is None:
             cats = subset.copy()
         elif isinstance(sep, str):
-            cats = [col[len(prefix + sep):] for col in prefix_slice]
+            cats = [col[len(prefix + sep) :] for col in prefix_slice]
         elif isinstance(sep, dict):
-            cats = [col[len(prefix + sep[prefix]):] for col in prefix_slice]
+            cats = [col[len(prefix + sep[prefix]) :] for col in prefix_slice]
         assigned = data_to_decode[prefix_slice].sum(axis=1)
         if any(assigned > 1):
             raise ValueError(
