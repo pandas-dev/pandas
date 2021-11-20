@@ -101,10 +101,10 @@ def test_from_dummies_no_prefix_string_cats_dropped_first():
 def test_from_dummies_no_prefix_wrong_dropped_first_type():
     dummies = DataFrame({"a": [1, 0, 1], "b": [0, 1, 1]})
     with pytest.raises(
-        ValueError,
+        TypeError,
         match=(
-            r"Length of 'dropped_first' \(2\) did not match the length of the "
-            r"columns being encoded \(1\)"
+            r"Expected \'dropped_first\' to be of type \'str\' or \'dict\'; "
+            r"Received \'dropped_first\' of type: list"
         ),
     ):
         from_dummies(dummies, dropped_first=["c", "d"])
@@ -299,31 +299,12 @@ def test_from_dummies_with_prefix_dropped_first_str(dummies_with_unassigned):
     tm.assert_frame_equal(result, expected)
 
 
-def test_from_dummies_with_prefix_dropped_first_list(dummies_with_unassigned):
-    expected = DataFrame({"col1": ["a", "b", "x"], "col2": ["y", "a", "c"]})
-    result = from_dummies(dummies_with_unassigned, sep="_", dropped_first=["x", "y"])
-    tm.assert_frame_equal(result, expected)
-
-
-def test_from_dummies_with_prefix_dropped_first_list_not_complete(
-    dummies_with_unassigned,
-):
-    with pytest.raises(
-        ValueError,
-        match=(
-            r"Length of 'dropped_first' \(1\) did not match "
-            r"the length of the columns being encoded \(2\)"
-        ),
-    ):
-        from_dummies(dummies_with_unassigned, sep="_", dropped_first=["x"])
-
-
 def test_from_dummies_with_prefix_dropped_first_wrong_type(dummies_with_unassigned):
 
     with pytest.raises(
         TypeError,
         match=(
-            r"Expected 'dropped_first' to be of type 'str', 'list', or 'dict'; "
+            r"Expected 'dropped_first' to be of type 'str' or 'dict'; "
             r"Received 'dropped_first' of type: tuple"
         ),
     ):
@@ -394,25 +375,6 @@ def test_from_dummies_with_prefix_double_assignment():
         ),
     ):
         from_dummies(dummies, sep="_")
-
-
-def test_from_dummies_collate_prefix_sep_and_dropped_first_list():
-    dummies = DataFrame(
-        {
-            "col1_a": [1, 0, 0],
-            "col1_b": [0, 1, 0],
-            "col2-a": [0, 1, 0],
-            "col2-b": [0, 0, 0],
-            "col2-c": [0, 0, 1],
-        },
-    )
-    expected = DataFrame({"col1": ["a", "b", "x"], "col2": ["y", "a", "c"]})
-    result = from_dummies(
-        dummies,
-        sep=["_", "-"],
-        dropped_first=["x", "y"],
-    )
-    tm.assert_frame_equal(result, expected)
 
 
 def test_from_dummies_collate_prefix_sep_and_dropped_first_dict():

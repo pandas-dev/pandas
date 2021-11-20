@@ -1101,7 +1101,7 @@ def from_dummies(
     data: DataFrame,
     subset: None | Index | list[Hashable] = None,
     sep: None | str | list[str] | dict[str, str] = None,
-    dropped_first: None | str | list[str] | dict[str, str] = None,
+    dropped_first: None | str | dict[str, str] = None,
 ) -> DataFrame:
     """
     Create a categorical `DataFrame` from a `DataFrame` of dummy variables.
@@ -1126,11 +1126,10 @@ def from_dummies(
         the order of the list. Alternatively, pass a dictionary to map prefix
         separators to prefixes if multiple and/or mixed separators are used in the
         column names.
-    dropped_fist : None, str, list of str, or dict of str, default None
+    dropped_fist : None, str or dict of str, default None
         The implied value the dummy takes when all values are zero.
-        Can be a a single value for all variables, a list with a number of values
-        equal to the dummy variables, or a dict directly mapping the dropped value
-        to a prefix of a variable.
+        Can be a a single value for all variables or a dict directly mapping the 
+        dropped value to a prefix of a variable.
 
     Returns
     -------
@@ -1247,16 +1246,13 @@ def from_dummies(
     if dropped_first:
         if isinstance(dropped_first, dict):
             check_len(dropped_first, "dropped_first")
-        elif isinstance(dropped_first, list):
-            check_len(dropped_first, "dropped_first")
-            dropped_first = dict(zip(variables_slice, dropped_first))
         elif isinstance(dropped_first, str):
             dropped_first = dict(
                 zip(variables_slice, [dropped_first] * len(variables_slice))
             )
         else:
             raise TypeError(
-                f"Expected 'dropped_first' to be of type 'str', 'list', or 'dict'; "
+                f"Expected 'dropped_first' to be of type 'str' or 'dict'; "
                 f"Received 'dropped_first' of type: {type(dropped_first).__name__}"
             )
 
