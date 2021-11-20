@@ -2889,7 +2889,7 @@ Name: Max Speed, dtype: float64
         ValueError: Indexes have overlapping values: [0, 1, 2]
         """
         warnings.warn(
-            "The frame.append method is deprecated "
+            "The series.append method is deprecated "
             "and will be removed from pandas in a future version. "
             "Use pandas.concat instead.",
             FutureWarning,
