@@ -381,9 +381,7 @@ class Index(IndexOpsMixin, PandasObject):
     # associated code in pandas 2.0.
     _is_backward_compat_public_numeric_index: bool = False
 
-    _engine_type: type[libindex.IndexEngine] | type[libindex.NullableEngine] | type[
-        libindex.ExtensionEngine
-    ] = libindex.ObjectEngine
+    _engine_type: type[libindex.IndexEngine] = libindex.ObjectEngine
     # whether we support partial string indexing. Overridden
     # in DatetimeIndex and PeriodIndex
     _supports_partial_string_indexing = False
@@ -666,7 +664,6 @@ class Index(IndexOpsMixin, PandasObject):
         Constructor that uses the 1.0.x behavior inferring numeric dtypes
         for ndarray[object] inputs.
         """
-
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", ".*the Index constructor", FutureWarning)
             result = cls(*args, **kwargs)
@@ -848,11 +845,10 @@ class Index(IndexOpsMixin, PandasObject):
         ):
             return libindex.ExtensionEngine(self._values)
 
-        engine_type = cast("type[libindex.IndexEngine]", self._engine_type)
         # to avoid a reference cycle, bind `target_values` to a local variable, so
         # `self` is not passed into the lambda.
         target_values = self._get_engine_target()
-        return engine_type(target_values)
+        return self._engine_type(target_values)
 
     @final
     @cache_readonly
@@ -967,6 +963,9 @@ class Index(IndexOpsMixin, PandasObject):
 
                 arr = self._data.view("i8")
                 idx_cls = self._dtype_to_subclass(dtype)
+                # NB: we only get here for subclasses that override
+                #  _data_cls such that it is a type and not a tuple
+                #  of types.
                 arr_cls = idx_cls._data_cls
                 arr = arr_cls(self._data.view("i8"), dtype=dtype)
                 return idx_cls._simple_new(arr, name=self.name)

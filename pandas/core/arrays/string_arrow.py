@@ -312,7 +312,11 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
                 )
         elif isinstance(item, tuple):
             item = unpack_tuple_and_ellipses(item)
-        if item is Ellipsis:
+
+        # error: Non-overlapping identity check (left operand type:
+        # "Union[Union[int, integer[Any]], Union[slice, List[int],
+        # ndarray[Any, Any]]]", right operand type: "ellipsis")
+        if item is Ellipsis:  # type: ignore[comparison-overlap]
             # TODO: should be handled by pyarrow?
             item = slice(None)
 
