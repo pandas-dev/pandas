@@ -730,7 +730,7 @@ To choose another dtype, use the ``dtype`` argument:
 
 To convert a "dummy" or "indicator" ``DataFrame``, into a categorical ``DataFrame``,
 for example ``k`` columns of a ``DataFrame`` containing 1s and 0s can derive a
-``DataFrame`` which has ``k`` distinct values
+``DataFrame`` which has ``k`` distinct values using
 :func:`~pandas.from_dummies`:
 
 .. ipython:: python
