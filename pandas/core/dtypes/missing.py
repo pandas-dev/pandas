@@ -162,7 +162,6 @@ def _isna(obj, inf_as_na: bool = False):
             return libmissing.checknull_old(obj)
         else:
             return libmissing.checknull(obj)
-    # hack (for now) because MI registers as ndarray
     elif isinstance(obj, ABCMultiIndex):
         raise NotImplementedError("isna is not defined for MultiIndex")
     elif isinstance(obj, type):
@@ -243,7 +242,7 @@ def _isna_array(values: ArrayLike, inf_as_na: bool = False):
     if not isinstance(values, np.ndarray):
         # i.e. ExtensionArray
         if inf_as_na and is_categorical_dtype(dtype):
-            result = libmissing.isnaobj_old(values.to_numpy())
+            result = libmissing.isnaobj(values.to_numpy(), inf_as_na=inf_as_na)
         else:
             result = values.isna()
     elif is_string_dtype(dtype):
@@ -269,10 +268,7 @@ def _isna_string_dtype(values: np.ndarray, inf_as_na: bool) -> np.ndarray:
         result = np.zeros(values.shape, dtype=bool)
     else:
         result = np.empty(shape, dtype=bool)
-        if inf_as_na:
-            vec = libmissing.isnaobj_old(values.ravel())
-        else:
-            vec = libmissing.isnaobj(values.ravel())
+        vec = libmissing.isnaobj(values.ravel(), inf_as_na=inf_as_na)
 
         result[...] = vec.reshape(shape)
 

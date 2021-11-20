@@ -15,6 +15,7 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Fixed regression in :meth:`Series.equals` when comparing floats with dtype object to None (:issue:`44190`)
+- Fixed regression in :func:`merge_asof` raising error when array was supplied as join key (:issue:`42844`)
 - Fixed performance regression in :func:`read_csv` (:issue:`44106`)
 - Fixed regression in :meth:`Series.duplicated` and :meth:`Series.drop_duplicates` when Series has :class:`Categorical` dtype with boolean categories (:issue:`44351`)
 -

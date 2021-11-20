@@ -1849,5 +1849,5 @@ def union_with_duplicates(lvals: ArrayLike, rvals: ArrayLike) -> ArrayLike:
     unique_array = ensure_wrapped_if_datetimelike(unique_array)
 
     for i, value in enumerate(unique_array):
-        indexer += [i] * int(max(l_count[value], r_count[value]))
+        indexer += [i] * int(max(l_count.at[value], r_count.at[value]))
     return unique_array.take(indexer)
