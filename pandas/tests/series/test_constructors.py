@@ -1817,6 +1817,9 @@ class TestSeriesConstructors:
         expected = Series(True, index=[0], dtype="bool")
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:elementwise comparison failed:DeprecationWarning"
+    )
     @pytest.mark.xfail(
         np_version_under1p19, reason="np.array([td64nat, float, float]) raises"
     )
@@ -1828,7 +1831,8 @@ class TestSeriesConstructors:
         msg = "|".join(
             [
                 "cannot safely cast non-equivalent object",
-                r"int\(\) argument must be a string, a bytes-like object or a number",
+                r"int\(\) argument must be a string, a bytes-like object "
+                "or a (real )?number",
                 r"Cannot cast array data from dtype\('O'\) to dtype\('float64'\) "
                 "according to the rule 'safe'",
                 "object cannot be converted to a FloatingDtype",

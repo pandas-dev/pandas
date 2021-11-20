@@ -1217,7 +1217,10 @@ class TestDataFrameIndexing:
         expected = DataFrame({"a": [np.zeros((2,))], "b": [np.zeros((2, 2))]})
         tm.assert_frame_equal(df, expected)
 
-    def test_iloc_setitem_nullable_2d_values(self):
+    def test_iloc_setitem_nullable_2d_values(self, using_array_manager, request):
+        if using_array_manager:
+            mark = pytest.mark.xfail(reason="Goes through split path, loses dtype")
+            request.node.add_marker(mark)
 
         df = DataFrame({"A": [1, 2, 3]}, dtype="Int64")
         orig = df.copy()
