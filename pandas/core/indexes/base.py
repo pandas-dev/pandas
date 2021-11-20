@@ -6433,7 +6433,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Make new Index inserting new item at location.
 
-        Follows Python np.insert semantics for negative values.
+        Follows Python numpy.insert semantics for negative values.
 
         Parameters
         ----------
