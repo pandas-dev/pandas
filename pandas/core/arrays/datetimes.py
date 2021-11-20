@@ -2566,7 +2566,7 @@ def generate_range(start=None, end=None, periods=None, offset=BDay()):
                 break
 
             # faster than cur + offset
-            next_date = offset.apply(cur)
+            next_date = offset._apply(cur)
             if next_date <= cur:
                 raise ValueError(f"Offset {offset} did not increment date")
             cur = next_date
@@ -2580,7 +2580,7 @@ def generate_range(start=None, end=None, periods=None, offset=BDay()):
                 break
 
             # faster than cur + offset
-            next_date = offset.apply(cur)
+            next_date = offset._apply(cur)
             if next_date >= cur:
                 raise ValueError(f"Offset {offset} did not decrement date")
             cur = next_date
