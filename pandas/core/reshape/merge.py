@@ -1783,21 +1783,27 @@ class _AsOfMerge(_OrderedMerge):
         # GH#29130 Check that merge keys do not have dtype object
         if not self.left_index:
             left_on = self.left_on[0]
-            lo_dtype = (
-                self.left[left_on].dtype
-                if left_on in self.left.columns
-                else self.left.index.get_level_values(left_on)
-            )
+            if is_array_like(left_on):
+                lo_dtype = left_on.dtype
+            else:
+                lo_dtype = (
+                    self.left[left_on].dtype
+                    if left_on in self.left.columns
+                    else self.left.index.get_level_values(left_on)
+                )
         else:
             lo_dtype = self.left.index.dtype
 
         if not self.right_index:
             right_on = self.right_on[0]
-            ro_dtype = (
-                self.right[right_on].dtype
-                if right_on in self.right.columns
-                else self.right.index.get_level_values(right_on)
-            )
+            if is_array_like(right_on):
+                ro_dtype = right_on.dtype
+            else:
+                ro_dtype = (
+                    self.right[right_on].dtype
+                    if right_on in self.right.columns
+                    else self.right.index.get_level_values(right_on)
+                )
         else:
             ro_dtype = self.right.index.dtype
 
