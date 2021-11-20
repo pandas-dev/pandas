@@ -2950,7 +2950,7 @@ class Index(IndexOpsMixin, PandasObject):
         case make a shallow copy of self.
         """
         name = get_op_result_name(self, other)
-        if self.name != name:
+        if self.name is not name:
             return self.rename(name)
         return self
 

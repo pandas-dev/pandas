@@ -100,10 +100,34 @@ def test_random_state():
         (Series([1], name="x"), Series([2]), None),
         (Series([1], name="x"), [2], "x"),
         ([1], Series([2], name="y"), "y"),
+        # matching NAs
+        (Series([1], name=np.nan), pd.Index([], name=np.nan), np.nan),
+        (Series([1], name=np.nan), pd.Index([], name=pd.NaT), None),
+        (Series([1], name=pd.NA), pd.Index([], name=pd.NA), pd.NA),
+        # tuple name GH#39757
+        (
+            Series([1], name=np.int64(1)),
+            pd.Index([], name=(np.int64(1), np.int64(2))),
+            None,
+        ),
+        (
+            Series([1], name=(np.int64(1), np.int64(2))),
+            pd.Index([], name=(np.int64(1), np.int64(2))),
+            (np.int64(1), np.int64(2)),
+        ),
+        pytest.param(
+            Series([1], name=(np.float64("nan"), np.int64(2))),
+            pd.Index([], name=(np.float64("nan"), np.int64(2))),
+            (np.float64("nan"), np.int64(2)),
+            marks=pytest.mark.xfail(
+                reason="Not checking for matching NAs inside tuples."
+            ),
+        ),
     ],
 )
 def test_maybe_match_name(left, right, expected):
-    assert ops.common._maybe_match_name(left, right) == expected
+    res = ops.common._maybe_match_name(left, right)
+    assert res is expected or res == expected
 
 
 def test_standardize_mapping():
