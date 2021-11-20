@@ -103,8 +103,8 @@ def test_from_dummies_no_prefix_wrong_dropped_first_type():
     with pytest.raises(
         TypeError,
         match=(
-            r"Expected \'dropped_first\' to be of type \'str\' or \'dict\'; "
-            r"Received \'dropped_first\' of type: list"
+            r"Expected 'dropped_first' to be of type 'Hashable' or 'dict'; "
+            r"Received 'dropped_first' of type: list"
         ),
     ):
         from_dummies(dummies, dropped_first=["c", "d"])
@@ -263,15 +263,14 @@ def test_from_dummies_with_prefix_dropped_first_str(dummies_with_unassigned):
 
 
 def test_from_dummies_with_prefix_dropped_first_wrong_type(dummies_with_unassigned):
-
     with pytest.raises(
         TypeError,
         match=(
-            r"Expected 'dropped_first' to be of type 'str' or 'dict'; "
-            r"Received 'dropped_first' of type: tuple"
+            r"Expected 'dropped_first' to be of type 'Hashable' or 'dict'; "
+            r"Received 'dropped_first' of type: list"
         ),
     ):
-        from_dummies(dummies_with_unassigned, sep="_", dropped_first=("x", "y"))
+        from_dummies(dummies_with_unassigned, sep="_", dropped_first=["x", "y"])
 
 
 def test_from_dummies_with_prefix_dropped_first_dict(dummies_with_unassigned):
@@ -280,6 +279,26 @@ def test_from_dummies_with_prefix_dropped_first_dict(dummies_with_unassigned):
         dummies_with_unassigned,
         sep="_",
         dropped_first={"col2": "x", "col1": "y"},
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_from_dummies_with_prefix_dropped_first_int_and_float(dummies_with_unassigned):
+    expected = DataFrame({"col1": ["a", "b", 2.5], "col2": [1, "a", "c"]})
+    result = from_dummies(
+        dummies_with_unassigned,
+        sep="_",
+        dropped_first={"col2": 1, "col1": 2.5},
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_from_dummies_with_prefix_dropped_first_bool_and_none(dummies_with_unassigned):
+    expected = DataFrame({"col1": ["a", "b", False], "col2": [None, "a", "c"]})
+    result = from_dummies(
+        dummies_with_unassigned,
+        sep="_",
+        dropped_first={"col2": None, "col1": False},
     )
     tm.assert_frame_equal(result, expected)
 

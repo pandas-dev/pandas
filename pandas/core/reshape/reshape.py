@@ -1101,7 +1101,7 @@ def from_dummies(
     data: DataFrame,
     subset: None | Index | list[Hashable] = None,
     sep: None | str | dict[str, str] = None,
-    dropped_first: None | str | dict[str, str] = None,
+    dropped_first: None | Hashable | dict[str, Hashable] = None,
 ) -> DataFrame:
     """
     Create a categorical `DataFrame` from a `DataFrame` of dummy variables.
@@ -1123,7 +1123,7 @@ def from_dummies(
         you can strip the underscore by specifying sep='_'.
         Alternatively, pass a dictionary to map prefix separators to prefixes if
         multiple and/or mixed separators are used in the column names.
-    dropped_fist : None, str or dict of str, default None
+    dropped_fist : None, Hashable or dict of Hashables, default None
         The implied value the dummy takes when all values are zero.
         Can be a a single value for all variables or a dict directly mapping the
         dropped value to a prefix of a variable.
@@ -1219,7 +1219,7 @@ def from_dummies(
                     f"First instance column: {col}"
                 )
     elif isinstance(sep, str):
-        variables_slice: dict[str, list] = {}
+        variables_slice = {}
         for col in data_to_decode.columns:
             prefix = col.split(sep)[0]
             if len(prefix) == len(col):
@@ -1250,13 +1250,13 @@ def from_dummies(
     if dropped_first:
         if isinstance(dropped_first, dict):
             check_len(dropped_first, "dropped_first")
-        elif isinstance(dropped_first, str):
+        elif isinstance(dropped_first, Hashable):
             dropped_first = dict(
                 zip(variables_slice, [dropped_first] * len(variables_slice))
             )
         else:
             raise TypeError(
-                f"Expected 'dropped_first' to be of type 'str' or 'dict'; "
+                f"Expected 'dropped_first' to be of type 'Hashable' or 'dict'; "
                 f"Received 'dropped_first' of type: {type(dropped_first).__name__}"
             )
 
@@ -1264,10 +1264,10 @@ def from_dummies(
     for prefix, prefix_slice in variables_slice.items():
         if sep is None:
             cats = subset.copy()
-        elif isinstance(sep, str):
-            cats = [col[len(prefix + sep) :] for col in prefix_slice]
         elif isinstance(sep, dict):
             cats = [col[len(prefix + sep[prefix]) :] for col in prefix_slice]
+        else:
+            cats = [col[len(prefix + sep) :] for col in prefix_slice]
         assigned = data_to_decode[prefix_slice].sum(axis=1)
         if any(assigned > 1):
             raise ValueError(
