@@ -8,10 +8,7 @@ import pytest
 from pandas._config import config as cf
 
 from pandas._libs import missing as libmissing
-from pandas._libs.tslibs import (
-    iNaT,
-    is_null_datetimelike,
-)
+from pandas._libs.tslibs import iNaT
 
 from pandas.core.dtypes.common import (
     is_float,
@@ -44,8 +41,8 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core.api import Float64Index
 
-now = pd.Timestamp.now()
-utcnow = pd.Timestamp.now("UTC")
+fix_now = pd.Timestamp("2021-01-01")
+fix_utcnow = pd.Timestamp("2021-01-01", tz="UTC")
 
 
 @pytest.mark.parametrize("notna_f", [notna, notnull])
@@ -467,12 +464,12 @@ def test_array_equivalent_different_dtype_but_equal():
         # There are 3 variants for each of lvalue and rvalue. We include all
         #  three for the tz-naive `now` and exclude the datetim64 variant
         #  for utcnow because it drops tzinfo.
-        (now, utcnow),
-        (now.to_datetime64(), utcnow),
-        (now.to_pydatetime(), utcnow),
-        (now, utcnow),
-        (now.to_datetime64(), utcnow.to_pydatetime()),
-        (now.to_pydatetime(), utcnow.to_pydatetime()),
+        (fix_now, fix_utcnow),
+        (fix_now.to_datetime64(), fix_utcnow),
+        (fix_now.to_pydatetime(), fix_utcnow),
+        (fix_now, fix_utcnow),
+        (fix_now.to_datetime64(), fix_utcnow.to_pydatetime()),
+        (fix_now.to_pydatetime(), fix_utcnow.to_pydatetime()),
     ],
 )
 def test_array_equivalent_tzawareness(lvalue, rvalue):
@@ -686,26 +683,6 @@ class TestLibMissing:
 
         for value in never_na_vals:
             assert not libmissing.checknull_old(value)
-
-    def test_is_null_datetimelike(self):
-        for value in na_vals:
-            assert is_null_datetimelike(value)
-            assert is_null_datetimelike(value, False)
-
-        for value in inf_vals:
-            assert not is_null_datetimelike(value)
-            assert not is_null_datetimelike(value, False)
-
-        for value in int_na_vals:
-            assert is_null_datetimelike(value)
-            assert not is_null_datetimelike(value, False)
-
-        for value in sometimes_na_vals:
-            assert not is_null_datetimelike(value)
-            assert not is_null_datetimelike(value, False)
-
-        for value in never_na_vals:
-            assert not is_null_datetimelike(value)
 
     def test_is_matching_na(self, nulls_fixture, nulls_fixture2):
         left = nulls_fixture

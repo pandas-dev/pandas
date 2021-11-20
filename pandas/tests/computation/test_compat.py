@@ -29,13 +29,13 @@ def test_compat():
 @pytest.mark.parametrize("parser", expr.PARSERS)
 def test_invalid_numexpr_version(engine, parser):
     def testit():
-        a, b = 1, 2  # noqa
+        a, b = 1, 2  # noqa:F841
         res = pd.eval("a + b", engine=engine, parser=parser)
         assert res == 3
 
     if engine == "numexpr":
         try:
-            import numexpr as ne  # noqa F401
+            import numexpr as ne  # noqa:F401
         except ImportError:
             pytest.skip("no numexpr")
         else:
