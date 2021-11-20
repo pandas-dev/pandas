@@ -6433,7 +6433,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Make new Index inserting new item at location.
 
-        Follows Python list.append semantics for negative values.
+        Follows Python np.insert semantics for negative values.
 
         Parameters
         ----------
@@ -6476,6 +6476,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         else:
             new_values = np.insert(arr, loc, None)
+            loc = loc if loc >= 0 else loc - 1
             new_values[loc] = item
 
         # Use self._constructor instead of Index to retain NumericIndex GH#43921

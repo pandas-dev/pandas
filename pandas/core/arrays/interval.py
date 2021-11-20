@@ -1496,7 +1496,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def insert(self: IntervalArrayT, loc: int, item: Interval) -> IntervalArrayT:
         """
         Return a new IntervalArray inserting new item at location. Follows
-        Python list.append semantics for negative values.  Only Interval
+        Python np.insert semantics for negative values.  Only Interval
         objects and NA can be inserted into an IntervalIndex
 
         Parameters
