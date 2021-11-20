@@ -353,6 +353,9 @@ cdef class BaseOffset:
     """
     Base class for DateOffset methods that are not overridden by subclasses.
     """
+    # ensure that reversed-ops with numpy scalars return NotImplemented
+    __array_priority__ = 1000
+
     _day_opt = None
     _attributes = tuple(["n", "normalize"])
     _use_relativedelta = False
@@ -434,6 +437,10 @@ cdef class BaseOffset:
         if not isinstance(self, BaseOffset):
             # cython semantics; this is __radd__
             return other.__add__(self)
+
+        elif util.is_array(other) and other.dtype == object:
+            return np.array([self + x for x in other])
+
         try:
             return self.apply(other)
         except ApplyTypeError:
@@ -448,7 +455,8 @@ cdef class BaseOffset:
         elif not isinstance(self, BaseOffset):
             # cython semantics, this is __rsub__
             return (-other).__add__(self)
-        else:  # pragma: no cover
+        else:
+            # e.g. PeriodIndex
             return NotImplemented
 
     def __call__(self, other):
@@ -767,8 +775,6 @@ cdef class SingleConstructorOffset(BaseOffset):
 # Tick Offsets
 
 cdef class Tick(SingleConstructorOffset):
-    # ensure that reversed-ops with numpy scalars return NotImplemented
-    __array_priority__ = 1000
     _adjust_dst = False
     _prefix = "undefined"
     _attributes = tuple(["n", "normalize"])
