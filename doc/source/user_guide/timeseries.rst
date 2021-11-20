@@ -1271,6 +1271,21 @@ frequencies. We will refer to these aliases as *offset aliases*.
     "U, us", "microseconds"
     "N", "nanoseconds"
 
+.. note::
+
+   When using the offset aliases above, it should be noted that functions
+   such as ``date_range``, ``bdate_range``, will only return timestamps that
+   are in the interval defined by ``start_date`` and ``end_date``. If the
+   ``start_date`` does not correspond to the frequency, the returned timestamps
+   will start at the next valid timestamp, same for ``end_date``, the returned
+   timestamps will stop at the previous valid timestamp.
+
+   For example, for the offset ``MS``, if the ``start_date`` is not the first
+   of the month, the returned timestamps will start with the first day of the
+   next month. If ``end_date`` is not the first day of a month, the last
+   returned timestamp will be the first day of the corresponding month.
+
+
 Combining aliases
 ~~~~~~~~~~~~~~~~~
 
