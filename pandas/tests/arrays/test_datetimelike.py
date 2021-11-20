@@ -26,7 +26,7 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
-from pandas.core.arrays.datetimes import sequence_to_dt64ns
+from pandas.core.arrays.datetimes import _sequence_to_dt64ns
 from pandas.core.arrays.timedeltas import sequence_to_td64ns
 
 
@@ -1361,7 +1361,7 @@ def test_from_pandas_array(dtype):
     expected = cls._from_sequence(data)
     tm.assert_extension_array_equal(result, expected)
 
-    func = {"M8[ns]": sequence_to_dt64ns, "m8[ns]": sequence_to_td64ns}[dtype]
+    func = {"M8[ns]": _sequence_to_dt64ns, "m8[ns]": sequence_to_td64ns}[dtype]
     result = func(arr)[0]
     expected = func(data)[0]
     tm.assert_equal(result, expected)
@@ -1424,7 +1424,7 @@ def test_from_obscure_array(dtype, array_likes):
     result = cls._from_sequence(data)
     tm.assert_extension_array_equal(result, expected)
 
-    func = {"M8[ns]": sequence_to_dt64ns, "m8[ns]": sequence_to_td64ns}[dtype]
+    func = {"M8[ns]": _sequence_to_dt64ns, "m8[ns]": sequence_to_td64ns}[dtype]
     result = func(arr)[0]
     expected = func(data)[0]
     tm.assert_equal(result, expected)
