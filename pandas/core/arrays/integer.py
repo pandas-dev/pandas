@@ -215,7 +215,7 @@ def coerce_to_array(
     else:
         assert len(mask) == len(values)
 
-    if not mask.ndim == 1:
+    if mask.ndim != 1:
         raise TypeError("mask must be a 1D list-like")
 
     # infer dtype if needed
