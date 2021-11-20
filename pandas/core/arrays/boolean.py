@@ -44,6 +44,7 @@ from pandas.core.arrays.masked import (
     BaseMaskedArray,
     BaseMaskedDtype,
 )
+from pandas.core.ops import invalid_comparison
 
 if TYPE_CHECKING:
     import pyarrow
@@ -653,7 +654,11 @@ class BooleanArray(BaseMaskedArray):
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", "elementwise", FutureWarning)
                 with np.errstate(all="ignore"):
-                    result = op(self._data, other)
+                    method = getattr(self._data, f"__{op.__name__}__")
+                    result = method(other)
+
+                if result is NotImplemented:
+                    result = invalid_comparison(self._data, other, op)
 
             # nans propagate
             if mask is None:
