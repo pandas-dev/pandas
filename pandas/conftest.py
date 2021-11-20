@@ -1672,6 +1672,11 @@ def fsspectest():
         ("foo", None, None),
         ("Egon", "Venkman", None),
         ("NCC1701D", "NCC1701D", "NCC1701D"),
+        # possibly-matching NAs
+        (np.nan, np.nan, np.nan),
+        (np.nan, pd.NaT, None),
+        (np.nan, pd.NA, None),
+        (pd.NA, pd.NA, pd.NA),
     ]
 )
 def names(request):
