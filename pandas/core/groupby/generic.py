@@ -1732,7 +1732,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             if normalize:
                 # Normalize the results by dividing by the original group sizes
                 indexed_group_size = df.groupby(
-                    main_grouper, sort=self.sort, observed=self.observed, dropna=dropna
+                    main_grouper,
+                    sort=self.sort,
+                    observed=self.observed,
+                    dropna=self.dropna,
                 ).size()
                 if self.as_index:
                     if non_column_grouping:
@@ -1740,7 +1743,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                         indexed_group_size.index.set_names("Group", inplace=True)
                         result.index.set_names("Group", level=0, inplace=True)
                     # Use indexed group size series
-                    result /= indexed_group_size
+                    if self.dropna or len(self.keys) == 1:
+                        result /= indexed_group_size
+                    else:
+                        # Unfortunately, nans in multiindex seem to break Pandas alignment
+                        values = result.values / indexed_group_size.align(result, join="left")[0].values
+                        result = Series(data=values, index = result.index, name=RESULT_NAME)
                     if non_column_grouping:
                         result.index.set_names(None, level=0, inplace=True)
                 else:
