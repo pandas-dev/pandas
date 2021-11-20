@@ -438,6 +438,61 @@ when given numeric data, but in the future, a :class:`NumericIndex` will be retu
     Out [4]: NumericIndex([1, 2, 3], dtype='uint64')
 
 
+.. _whatsnew_140.deprecations.frame_series_append:
+
+Deprecated Frame.append and Series.append
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`DataFrame.append` and :meth:`Series.append` have been deprecated and will be removed in Pandas 2.0.
+Use :func:`pandas.core.reshape.concat` instead (:issue:`35407`).
+
+*Deprecated syntax*
+
+.. code-block:: ipython
+
+    In [1]: pd.Series([1, 2]).append(pd.Series([3, 4])
+    Out [1]:
+    <stdin>:1: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.core.reshape.concat instead.
+    0    1
+    1    2
+    0    3
+    1    4
+    dtype: int64
+
+    In [2]: df1 = pd.DataFrame([[1, 2], [3, 4]], columns=list('AB'))
+    In [3]: df2 = pd.DataFrame([[5, 6], [7, 8]], columns=list('AB'))
+    In [4]: df1.append(df2)
+    Out [4]:
+    <stdin>:1: FutureWarning: The frame.append method is deprecated and will be removed from pandas in a future version. Use pandas.core.reshape.concat instead.
+       A  B
+    0  1  2
+    1  3  4
+    0  5  6
+    1  7  8
+
+*Recommended syntax*
+
+.. code-block:: ipython
+
+    In [1]: pd.core.reshape.concat.concat([pd.Series([1, 2]), pd.Series([3, 4])])
+    Out [1]:
+    0    1
+    1    2
+    0    3
+    1    4
+    dtype: int64
+
+    In [2]: df1 = pd.DataFrame([[1, 2], [3, 4]], columns=list('AB'))
+    In [3]: df2 = pd.DataFrame([[5, 6], [7, 8]], columns=list('AB'))
+    In [4]: pd.core.reshape.concat.concat([df1, df2])
+    Out [4]:
+       A  B
+    0  1  2
+    1  3  4
+    0  5  6
+    1  7  8
+
+
 .. _whatsnew_140.deprecations.other:
 
 Other Deprecations

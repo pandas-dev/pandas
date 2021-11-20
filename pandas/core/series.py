@@ -2888,6 +2888,14 @@ Name: Max Speed, dtype: float64
         ...
         ValueError: Indexes have overlapping values: [0, 1, 2]
         """
+        warnings.warn(
+            "The frame.append method is deprecated "
+            "and will be removed from pandas in a future version. "
+            "Use pandas.core.reshape.concat instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+
         from pandas.core.reshape.concat import concat
 
         if isinstance(to_append, (list, tuple)):

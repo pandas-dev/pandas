@@ -9114,6 +9114,14 @@ NaN 12.3   33.0
         3  3
         4  4
         """
+        warnings.warn(
+            "The frame.append method is deprecated "
+            "and will be removed from pandas in a future version. "
+            "Use pandas.core.reshape.concat instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+
         combined_columns = None
         if isinstance(other, (Series, dict)):
             if isinstance(other, dict):
