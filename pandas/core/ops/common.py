@@ -5,6 +5,7 @@ from functools import wraps
 from typing import Callable
 
 from pandas._libs.lib import item_from_zerodim
+from pandas._libs.missing import is_matching_na
 from pandas._typing import F
 
 from pandas.core.dtypes.generic import (
@@ -116,10 +117,21 @@ def _maybe_match_name(a, b):
     a_has = hasattr(a, "name")
     b_has = hasattr(b, "name")
     if a_has and b_has:
-        if a.name == b.name:
-            return a.name
-        else:
-            # TODO: what if they both have np.nan for their names?
+        try:
+            if a.name == b.name:
+                return a.name
+            elif is_matching_na(a.name, b.name):
+                # e.g. both are np.nan
+                return a.name
+            else:
+                return None
+        except TypeError:
+            # pd.NA
+            if is_matching_na(a.name, b.name):
+                return a.name
+            return None
+        except ValueError:
+            # e.g. np.int64(1) vs (np.int64(1), np.int64(2))
             return None
     elif a_has:
         return a.name

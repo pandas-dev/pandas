@@ -1036,6 +1036,7 @@ class PlanePlot(MPLPlot):
         # use the last one which contains the latest information
         # about the ax
         img = ax.collections[-1]
+        ax.grid(False)
         cbar = self.fig.colorbar(img, ax=ax, **kwds)
 
         if mpl_ge_3_0_0():
