@@ -30,7 +30,7 @@ from pandas._typing import (
     Shape,
     npt,
 )
-from pandas.compat import np_version_under1p19
+from pandas.compat import np_version_under1p20
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
@@ -970,7 +970,7 @@ class Block(PandasObject):
             putmask_without_repeat(values.T, mask, new)
             return [self]
 
-        elif np_version_under1p19 and infer_dtype_from(new)[0].kind in ["m", "M"]:
+        elif np_version_under1p20 and infer_dtype_from(new)[0].kind in ["m", "M"]:
             # using putmask with object dtype will incorrectly cast to object
             # Having excluded self._can_hold_element, we know we cannot operate
             #  in-place, so we are safe using `where`
