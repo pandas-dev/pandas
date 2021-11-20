@@ -1143,10 +1143,9 @@ def from_dummies(
     ...                   "c": [0, 0, 1, 0]})
 
     >>> pd.from_dummies(df)
-    0  categories
-    1     b
-    2     c
-    3     a
+    0     b
+    1     c
+    2     a
 
     >>> df = pd.DataFrame({"col1_a": [1, 0, 1], "col1_b": [0, 1, 0],
     ...                   "col2_a": [0, 1, 0], "col2_b": [1, 0, 0],
