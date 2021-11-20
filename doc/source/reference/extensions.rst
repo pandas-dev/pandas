@@ -33,6 +33,7 @@ objects.
       :toctree: api/
 
       api.extensions.ExtensionArray._concat_same_type
+      api.extensions.ExtensionArray._format_array
       api.extensions.ExtensionArray._formatter
       api.extensions.ExtensionArray._from_factorized
       api.extensions.ExtensionArray._from_sequence
