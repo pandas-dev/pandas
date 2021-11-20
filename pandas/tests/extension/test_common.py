@@ -10,7 +10,8 @@ from pandas.core.arrays import ExtensionArray
 
 
 class DummyDtype(dtypes.ExtensionDtype):
-    pass
+    type = object
+    name = "dummy"
 
 
 class DummyArray(ExtensionArray):
@@ -32,6 +33,28 @@ class DummyArray(ExtensionArray):
             return self
 
         return np.array(self, dtype=dtype, copy=copy)
+
+    def __len__(self) -> int:
+        return len(self.data)
+
+
+class DummyArrayNoAsarray(DummyArray):
+    def __array__(self, dtype=None):
+        raise ValueError("Cannot be converted to an array!")
+
+    def _format_array(
+        self,
+        formatter: None,
+        float_format: None,
+        na_rep="NaN",
+        digits=None,
+        space=None,
+        justify="right",
+        decimal=".",
+        leading_space=True,
+        quoting=None,
+    ):
+        return ["<MyEA>" for _ in self.data]
 
 
 class TestExtensionArrayDtype:
@@ -79,3 +102,13 @@ def test_astype_no_copy():
 def test_is_extension_array_dtype(dtype):
     assert isinstance(dtype, dtypes.ExtensionDtype)
     assert is_extension_array_dtype(dtype)
+
+
+def test_repr_no_conversion():
+    # https://github.com/pandas-dev/pandas/issues/26837#issuecomment-967268492
+    # Validates
+    s = pd.Series(DummyArrayNoAsarray([1]))
+    repr(s)  # OK!
+
+    df = pd.DataFrame({"A": DummyArrayNoAsarray([1])}, copy=False)
+    repr(df)  # OK!
