@@ -232,4 +232,4 @@ class TestBusinessDay(Base):
                 "with datetime, datetime64 or timedelta"
             )
         with pytest.raises(ApplyTypeError, match=msg):
-            self._offset().apply(BMonthEnd())
+            self._offset()._apply(BMonthEnd())
