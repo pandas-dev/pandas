@@ -1265,9 +1265,15 @@ def from_dummies(
         if sep is None:
             cats = subset.copy()
         elif isinstance(sep, dict):
-            cats = [col[len(prefix + sep[prefix]) :] for col in prefix_slice]
+            cats = [
+                col[len(prefix + sep[prefix]) :]
+                for col in prefix_slice
+                if isinstance(col, str)
+            ]
         else:
-            cats = [col[len(prefix + sep) :] for col in prefix_slice]
+            cats = [
+                col[len(prefix + sep) :] for col in prefix_slice if isinstance(col, str)
+            ]
         assigned = data_to_decode[prefix_slice].sum(axis=1)
         if any(assigned > 1):
             raise ValueError(
