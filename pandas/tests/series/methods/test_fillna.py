@@ -7,6 +7,7 @@ from datetime import (
 import numpy as np
 import pytest
 import pytz
+from typing_extensions import Literal
 
 from pandas import (
     Categorical,
@@ -679,17 +680,17 @@ class TestSeriesFillNA:
         ],
     )
 
-    def test_series_fill(fill_value, expected_output):
+    def test_fillna_categorical(self, fill_value, expected_output):
         # GH32414
         data = ["A", "B", np.nan, np.nan, "C"]
         cat = Categorical(data, categories=["A", "B", "C"])
         ser = Series(cat)
-        exp = Categorical(expected_output, categories=["A", "B", "C"])
-        exp_ser = Series(exp)
-        result = ser.fillna(fill_value)
+        exp_cat = Categorical(expected_output, categories=["A", "B", "C"])
+        exp_ser = Series(exp_cat)
+        result_ser = ser.fillna(fill_value)
         filled = cat.fillna(fill_value)
-        tm.assert_almost_equal(result, exp_ser)
-        tm.assert_almost_equal(filled, exp)
+        tm.assert_almost_equal(result_ser, exp_ser)
+        tm.assert_almost_equal(filled, exp_cat)
 
 
     def test_fillna_categorical_raises(self):
