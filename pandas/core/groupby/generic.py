@@ -1746,7 +1746,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     if self.dropna or len(self.keys) == 1:
                         result /= indexed_group_size
                     else:
-                        # Unfortunately, nans in multiindex seem to break Pandas alignment
+                        # Unfortunately, nans in multiindex seem to break
+                        # Pandas alignment
                         values = (
                             result.values
                             / indexed_group_size.align(result, join="left")[0].values
