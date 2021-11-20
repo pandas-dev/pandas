@@ -12,10 +12,6 @@ NaT: NaTType
 iNaT: int
 nat_strings: set[str]
 
-def is_null_datetimelike(
-    val: object, inat_is_null: bool = ..., inf_as_na: bool = ...
-) -> bool: ...
-
 class NaTType(datetime):
     value: np.int64
     def asm8(self) -> np.datetime64: ...

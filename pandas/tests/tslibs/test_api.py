@@ -29,7 +29,6 @@ def test_namespace():
         "NaT",
         "NaTType",
         "iNaT",
-        "is_null_datetimelike",
         "nat_strings",
         "OutOfBoundsDatetime",
         "OutOfBoundsTimedelta",

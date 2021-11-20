@@ -8,10 +8,7 @@ import pytest
 from pandas._config import config as cf
 
 from pandas._libs import missing as libmissing
-from pandas._libs.tslibs import (
-    iNaT,
-    is_null_datetimelike,
-)
+from pandas._libs.tslibs import iNaT
 
 from pandas.core.dtypes.common import (
     is_float,
@@ -686,26 +683,6 @@ class TestLibMissing:
 
         for value in never_na_vals:
             assert not libmissing.checknull_old(value)
-
-    def test_is_null_datetimelike(self):
-        for value in na_vals:
-            assert is_null_datetimelike(value)
-            assert is_null_datetimelike(value, False)
-
-        for value in inf_vals:
-            assert not is_null_datetimelike(value)
-            assert not is_null_datetimelike(value, False)
-
-        for value in int_na_vals:
-            assert is_null_datetimelike(value)
-            assert not is_null_datetimelike(value, False)
-
-        for value in sometimes_na_vals:
-            assert not is_null_datetimelike(value)
-            assert not is_null_datetimelike(value, False)
-
-        for value in never_na_vals:
-            assert not is_null_datetimelike(value)
 
     def test_is_matching_na(self, nulls_fixture, nulls_fixture2):
         left = nulls_fixture
