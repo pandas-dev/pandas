@@ -40,6 +40,17 @@ import pandas._testing as tm
 
 
 class TestPeriodConstruction:
+    def test_from_td64nat_raises(self):
+        # GH#44507
+        td = NaT.to_numpy("m8[ns]")
+
+        msg = "Value must be Period, string, integer, or datetime"
+        with pytest.raises(ValueError, match=msg):
+            Period(td)
+
+        with pytest.raises(ValueError, match=msg):
+            Period(td, freq="D")
+
     def test_construction(self):
         i1 = Period("1/1/2005", freq="M")
         i2 = Period("Jan 2005")
