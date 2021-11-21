@@ -29,6 +29,7 @@ from pandas._typing import (
     Shape,
 )
 from pandas.compat._optional import import_optional_dependency
+from pandas.compat.numpy import np_percentile_argname
 
 from pandas.core.dtypes.common import (
     get_dtype,
@@ -1667,7 +1668,7 @@ def _nanpercentile_1d(
     if len(values) == 0:
         return np.array([na_value] * len(q), dtype=values.dtype)
 
-    return np.percentile(values, q, interpolation=interpolation)
+    return np.percentile(values, q, **{np_percentile_argname: interpolation})
 
 
 def nanpercentile(
@@ -1720,7 +1721,9 @@ def nanpercentile(
         result = np.array(result, dtype=values.dtype, copy=False).T
         return result
     else:
-        return np.percentile(values, q, axis=1, interpolation=interpolation)
+        return np.percentile(
+            values, q, axis=1, **{np_percentile_argname: interpolation}
+        )
 
 
 def na_accum_func(values: ArrayLike, accum_func, *, skipna: bool) -> ArrayLike:
