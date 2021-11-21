@@ -528,7 +528,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         else:
             mask = self._mask | mask
 
-        return BooleanArray(result, mask)
+        return BooleanArray(result, mask, copy=False)
 
     def isna(self) -> np.ndarray:
         return self._mask.copy()
