@@ -21,7 +21,6 @@ from pandas._libs.tslibs.nattype cimport (
     c_NaT as NaT,
     checknull_with_nat,
     is_dt64nat,
-    is_null_datetimelike,
     is_td64nat,
 )
 from pandas._libs.tslibs.np_datetime cimport (
@@ -99,7 +98,7 @@ cpdef bint is_matching_na(object left, object right, bint nan_matches_none=False
     return False
 
 
-cpdef bint checknull(object val):
+cpdef bint checknull(object val, bint inf_as_na=False):
     """
     Return boolean describing of the input is NA-like, defined here as any
     of:
@@ -114,21 +113,27 @@ cpdef bint checknull(object val):
     Parameters
     ----------
     val : object
+    inf_as_na : bool, default False
+        Whether to treat INF and -INF as NA values.
 
     Returns
     -------
     bool
-
-    Notes
-    -----
-    The difference between `checknull` and `checknull_old` is that `checknull`
-    does *not* consider INF or NEGINF to be NA.
     """
-    return (
-        val is C_NA
-        or is_null_datetimelike(val, inat_is_null=False)
-        or is_decimal_na(val)
-    )
+    if val is None or val is NaT or val is C_NA:
+        return True
+    elif util.is_float_object(val) or util.is_complex_object(val):
+        if val != val:
+            return True
+        elif inf_as_na:
+            return val == INF or val == NEGINF
+        return False
+    elif util.is_timedelta64_object(val):
+        return get_timedelta64_value(val) == NPY_NAT
+    elif util.is_datetime64_object(val):
+        return get_datetime64_value(val) == NPY_NAT
+    else:
+        return is_decimal_na(val)
 
 
 cdef inline bint is_decimal_na(object val):
@@ -139,42 +144,12 @@ cdef inline bint is_decimal_na(object val):
 
 
 cpdef bint checknull_old(object val):
-    """
-    Return boolean describing of the input is NA-like, defined here as any
-    of:
-     - None
-     - nan
-     - INF
-     - NEGINF
-     - NaT
-     - np.datetime64 representation of NaT
-     - np.timedelta64 representation of NaT
-     - NA
-     - Decimal("NaN")
-
-    Parameters
-    ----------
-    val : object
-
-    Returns
-    -------
-    result : bool
-
-    Notes
-    -----
-    The difference between `checknull` and `checknull_old` is that `checknull`
-    does *not* consider INF or NEGINF to be NA.
-    """
-    if checknull(val):
-        return True
-    elif util.is_float_object(val) or util.is_complex_object(val):
-        return val == INF or val == NEGINF
-    return False
+    return checknull(val, inf_as_na=True)
 
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef ndarray[uint8_t] isnaobj(ndarray arr):
+cpdef ndarray[uint8_t] isnaobj(ndarray arr, bint inf_as_na=False):
     """
     Return boolean mask denoting which elements of a 1-D array are na-like,
     according to the criteria defined in `checknull`:
@@ -205,53 +180,19 @@ cpdef ndarray[uint8_t] isnaobj(ndarray arr):
     result = np.empty(n, dtype=np.uint8)
     for i in range(n):
         val = arr[i]
-        result[i] = checknull(val)
+        result[i] = checknull(val, inf_as_na=inf_as_na)
     return result.view(np.bool_)
 
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def isnaobj_old(arr: ndarray) -> ndarray:
-    """
-    Return boolean mask denoting which elements of a 1-D array are na-like,
-    defined as being any of:
-     - None
-     - nan
-     - INF
-     - NEGINF
-     - NaT
-     - NA
-     - Decimal("NaN")
-
-    Parameters
-    ----------
-    arr : ndarray
-
-    Returns
-    -------
-    result : ndarray (dtype=np.bool_)
-    """
-    cdef:
-        Py_ssize_t i, n
-        object val
-        ndarray[uint8_t] result
-
-    assert arr.ndim == 1, "'arr' must be 1-D."
-
-    n = len(arr)
-    result = np.zeros(n, dtype=np.uint8)
-    for i in range(n):
-        val = arr[i]
-        result[i] = (
-            checknull(val)
-            or util.is_float_object(val) and (val == INF or val == NEGINF)
-        )
-    return result.view(np.bool_)
+    return isnaobj(arr, inf_as_na=True)
 
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def isnaobj2d(arr: ndarray) -> ndarray:
+def isnaobj2d(arr: ndarray, inf_as_na: bool = False) -> ndarray:
     """
     Return boolean mask denoting which elements of a 2-D array are na-like,
     according to the criteria defined in `checknull`:
@@ -270,11 +211,6 @@ def isnaobj2d(arr: ndarray) -> ndarray:
     Returns
     -------
     result : ndarray (dtype=np.bool_)
-
-    Notes
-    -----
-    The difference between `isnaobj2d` and `isnaobj2d_old` is that `isnaobj2d`
-    does *not* consider INF or NEGINF to be NA.
     """
     cdef:
         Py_ssize_t i, j, n, m
@@ -288,7 +224,7 @@ def isnaobj2d(arr: ndarray) -> ndarray:
     for i in range(n):
         for j in range(m):
             val = arr[i, j]
-            if checknull(val):
+            if checknull(val, inf_as_na=inf_as_na):
                 result[i, j] = 1
     return result.view(np.bool_)
 
@@ -296,47 +232,7 @@ def isnaobj2d(arr: ndarray) -> ndarray:
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def isnaobj2d_old(arr: ndarray) -> ndarray:
-    """
-    Return boolean mask denoting which elements of a 2-D array are na-like,
-    according to the criteria defined in `checknull_old`:
-     - None
-     - nan
-     - INF
-     - NEGINF
-     - NaT
-     - np.datetime64 representation of NaT
-     - np.timedelta64 representation of NaT
-     - NA
-     - Decimal("NaN")
-
-    Parameters
-    ----------
-    arr : ndarray
-
-    Returns
-    -------
-    ndarray (dtype=np.bool_)
-
-    Notes
-    -----
-    The difference between `isnaobj2d` and `isnaobj2d_old` is that `isnaobj2d`
-    does *not* consider INF or NEGINF to be NA.
-    """
-    cdef:
-        Py_ssize_t i, j, n, m
-        object val
-        ndarray[uint8_t, ndim=2] result
-
-    assert arr.ndim == 2, "'arr' must be 2-D."
-
-    n, m = (<object>arr).shape
-    result = np.zeros((n, m), dtype=np.uint8)
-    for i in range(n):
-        for j in range(m):
-            val = arr[i, j]
-            if checknull_old(val):
-                result[i, j] = 1
-    return result.view(np.bool_)
+    return isnaobj2d(arr, inf_as_na=True)
 
 
 def isposinf_scalar(val: object) -> bool:
