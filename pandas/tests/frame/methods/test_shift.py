@@ -376,7 +376,13 @@ class TestDataFrameShift:
         ],
         ids=lambda x: str(x.dtype),
     )
-    def test_shift_dt64values_axis1_invalid_fill(self, vals, as_cat):
+    def test_shift_dt64values_axis1_invalid_fill(
+        self, vals, as_cat, using_array_manager, request
+    ):
+        if using_array_manager:
+            mark = pytest.mark.xfail(raises=NotImplementedError)
+            request.node.add_marker(mark)
+
         ser = Series(vals)
         if as_cat:
             ser = ser.astype("category")
