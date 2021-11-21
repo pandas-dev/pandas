@@ -367,11 +367,12 @@ def qcut(
     x = _preprocess_for_cut(x)
     x, dtype = _coerce_to_type(x)
 
-    if is_integer(q):
-        quantiles = np.linspace(0, 1, q + 1)
-    else:
-        quantiles = q
-    bins = algos.quantile(x, quantiles)
+    quantiles = np.linspace(0, 1, q + 1) if is_integer(q) else q
+
+    x_np = np.asarray(x)
+    x_np = x_np[~np.isnan(x_np)]
+    bins = np.quantile(x_np, quantiles)
+
     fac, bins = _bins_to_cuts(
         x,
         bins,
@@ -442,7 +443,8 @@ def _bins_to_cuts(
             )
         elif ordered and len(set(labels)) != len(labels):
             raise ValueError(
-                "labels must be unique if ordered=True; pass ordered=False for duplicate labels"  # noqa
+                "labels must be unique if ordered=True; pass ordered=False "
+                "for duplicate labels"
             )
         else:
             if len(labels) != len(bins) - 1:

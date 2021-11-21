@@ -45,7 +45,7 @@ tick_classes = [Hour, Minute, Second, Milli, Micro, Nano]
 
 
 def test_apply_ticks():
-    result = offsets.Hour(3).apply(offsets.Hour(4))
+    result = offsets.Hour(3)._apply(offsets.Hour(4))
     exp = offsets.Hour(7)
     assert result == exp
 
@@ -76,7 +76,7 @@ def test_tick_add_sub(cls, n, m):
     expected = cls(n + m)
 
     assert left + right == expected
-    assert left.apply(right) == expected
+    assert left._apply(right) == expected
 
     expected = cls(n - m)
     assert left - right == expected
@@ -230,9 +230,16 @@ def test_Nanosecond():
 )
 def test_tick_addition(kls, expected):
     offset = kls(3)
-    result = offset + Timedelta(hours=2)
-    assert isinstance(result, Timedelta)
-    assert result == expected
+    td = Timedelta(hours=2)
+
+    for other in [td, td.to_pytimedelta(), td.to_timedelta64()]:
+        result = offset + other
+        assert isinstance(result, Timedelta)
+        assert result == expected
+
+        result = other + offset
+        assert isinstance(result, Timedelta)
+        assert result == expected
 
 
 @pytest.mark.parametrize("cls", tick_classes)

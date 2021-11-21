@@ -543,7 +543,7 @@ def has_infs(floating[:] arr) -> bool:
 def maybe_indices_to_slice(ndarray[intp_t, ndim=1] indices, int max_len):
     cdef:
         Py_ssize_t i, n = len(indices)
-        int k, vstart, vlast, v
+        intp_t k, vstart, vlast, v
 
     if n == 0:
         return slice(0, 0)
@@ -553,7 +553,7 @@ def maybe_indices_to_slice(ndarray[intp_t, ndim=1] indices, int max_len):
         return indices
 
     if n == 1:
-        return slice(vstart, vstart + 1)
+        return slice(vstart, <intp_t>(vstart + 1))
 
     vlast = indices[n - 1]
     if vlast < 0 or max_len <= vlast:
@@ -569,12 +569,12 @@ def maybe_indices_to_slice(ndarray[intp_t, ndim=1] indices, int max_len):
                 return indices
 
         if k > 0:
-            return slice(vstart, vlast + 1, k)
+            return slice(vstart, <intp_t>(vlast + 1), k)
         else:
             if vlast == 0:
                 return slice(vstart, None, k)
             else:
-                return slice(vstart, vlast - 1, k)
+                return slice(vstart, <intp_t>(vlast - 1), k)
 
 
 @cython.wraparound(False)
@@ -1462,7 +1462,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     for i in range(n):
         val = values[i]
 
-        # do not use is_null_datetimelike to keep
+        # do not use checknull to keep
         # np.datetime64('nat') and np.timedelta64('nat')
         if val is None or util.is_nan(val):
             pass
@@ -1704,10 +1704,15 @@ cdef class Validator:
     cdef bint _validate(self, ndarray values) except -1:
         cdef:
             Py_ssize_t i
-            Py_ssize_t n = self.n
+            Py_ssize_t n = values.size
+            flatiter it = PyArray_IterNew(values)
 
         for i in range(n):
-            if not self.is_valid(values[i]):
+            # The PyArray_GETITEM and PyArray_ITER_NEXT are faster
+            #  equivalents to `val = values[i]`
+            val = PyArray_GETITEM(values, PyArray_ITER_DATA(it))
+            PyArray_ITER_NEXT(it)
+            if not self.is_valid(val):
                 return False
 
         return True
@@ -1717,10 +1722,15 @@ cdef class Validator:
     cdef bint _validate_skipna(self, ndarray values) except -1:
         cdef:
             Py_ssize_t i
-            Py_ssize_t n = self.n
+            Py_ssize_t n = values.size
+            flatiter it = PyArray_IterNew(values)
 
         for i in range(n):
-            if not self.is_valid_skipna(values[i]):
+            # The PyArray_GETITEM and PyArray_ITER_NEXT are faster
+            #  equivalents to `val = values[i]`
+            val = PyArray_GETITEM(values, PyArray_ITER_DATA(it))
+            PyArray_ITER_NEXT(it)
+            if not self.is_valid_skipna(val):
                 return False
 
         return True

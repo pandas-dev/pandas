@@ -244,13 +244,7 @@ class TestSeriesArithmetic:
         result = empty + empty.copy()
         assert len(result) == 0
 
-        # FIXME: dont leave commented-out
-        # TODO: this returned NotImplemented earlier, what to do?
-        # deltas = Series([timedelta(1)] * 5, index=np.arange(5))
-        # sub_deltas = deltas[::2]
-        # deltas5 = deltas * 5
-        # deltas = deltas + sub_deltas
-
+    def test_add_float_plus_int(self, datetime_series):
         # float + int
         int_ts = datetime_series.astype(int)[:-5]
         added = datetime_series + int_ts
@@ -321,22 +315,20 @@ class TestSeriesArithmetic:
 
 class TestSeriesFlexComparison:
     @pytest.mark.parametrize("axis", [0, None, "index"])
-    def test_comparison_flex_basic(self, axis, all_compare_operators):
-        op = all_compare_operators.strip("__")
+    def test_comparison_flex_basic(self, axis, comparison_op):
         left = Series(np.random.randn(10))
         right = Series(np.random.randn(10))
-        result = getattr(left, op)(right, axis=axis)
-        expected = getattr(operator, op)(left, right)
+        result = getattr(left, comparison_op.__name__)(right, axis=axis)
+        expected = comparison_op(left, right)
         tm.assert_series_equal(result, expected)
 
-    def test_comparison_bad_axis(self, all_compare_operators):
-        op = all_compare_operators.strip("__")
+    def test_comparison_bad_axis(self, comparison_op):
         left = Series(np.random.randn(10))
         right = Series(np.random.randn(10))
 
         msg = "No axis named 1 for object type"
         with pytest.raises(ValueError, match=msg):
-            getattr(left, op)(right, axis=1)
+            getattr(left, comparison_op.__name__)(right, axis=1)
 
     @pytest.mark.parametrize(
         "values, op",
@@ -597,30 +589,22 @@ class TestSeriesComparison:
         expected = Series([True, False])
         tm.assert_series_equal(result, expected)
 
-    def test_comparison_operators_with_nas(self, all_compare_operators):
-        op = all_compare_operators
+    def test_comparison_operators_with_nas(self, comparison_op):
         ser = Series(bdate_range("1/1/2000", periods=10), dtype=object)
         ser[::2] = np.nan
-
-        f = getattr(operator, op)
 
         # test that comparisons work
         val = ser[5]
 
-        result = f(ser, val)
-        expected = f(ser.dropna(), val).reindex(ser.index)
+        result = comparison_op(ser, val)
+        expected = comparison_op(ser.dropna(), val).reindex(ser.index)
 
-        if op == "__ne__":
+        if comparison_op is operator.ne:
             expected = expected.fillna(True).astype(bool)
         else:
             expected = expected.fillna(False).astype(bool)
 
         tm.assert_series_equal(result, expected)
-
-        # FIXME: dont leave commented-out
-        # result = f(val, ser)
-        # expected = f(val, ser.dropna()).reindex(ser.index)
-        # tm.assert_series_equal(result, expected)
 
     def test_ne(self):
         ts = Series([3, 4, 5, 6, 7], [3, 4, 5, 6, 7], dtype=float)
@@ -713,6 +697,16 @@ class TestTimeSeriesArithmetic:
         assert result.index.tz == pytz.UTC
         tm.assert_series_equal(result, expected)
 
+    # TODO: redundant with test_series_add_tz_mismatch_converts_to_utc?
+    def test_series_arithmetic_mismatched_tzs_convert_to_utc(self):
+        base = pd.DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03"], tz="UTC")
+        idx1 = base.tz_convert("Asia/Tokyo")[:2]
+        idx2 = base.tz_convert("US/Eastern")[1:]
+
+        res = Series([1, 2], index=idx1) + Series([1, 1], index=idx2)
+        expected = Series([np.nan, 3, np.nan], index=base)
+        tm.assert_series_equal(res, expected)
+
     def test_series_add_aware_naive_raises(self):
         rng = date_range("1/1/2011", periods=10, freq="H")
         ser = Series(np.random.randn(len(rng)), index=rng)
@@ -784,7 +778,7 @@ class TestNamePreservation:
             # GH#37374 logical ops behaving as set ops deprecated
             warn = FutureWarning if is_rlogical and box is Index else None
             msg = "operating as a set operation is deprecated"
-            with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
+            with tm.assert_produces_warning(warn, match=msg):
                 # stacklevel is correct for Index op, not reversed op
                 result = op(left, right)
 
@@ -795,9 +789,9 @@ class TestNamePreservation:
 
         assert isinstance(result, Series)
         if box in [Index, Series]:
-            assert result.name == names[2]
+            assert result.name is names[2] or result.name == names[2]
         else:
-            assert result.name == names[0]
+            assert result.name is names[0] or result.name == names[0]
 
     def test_binop_maybe_preserve_name(self, datetime_series):
         # names match, preserve

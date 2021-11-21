@@ -1,14 +1,10 @@
 import collections
 from datetime import timedelta
-from io import StringIO
 
 import numpy as np
 import pytest
 
-from pandas._libs import iNaT
 from pandas.compat import np_array_datetime64_compat
-
-from pandas.core.dtypes.common import needs_i8_conversion
 
 import pandas as pd
 from pandas import (
@@ -54,11 +50,8 @@ def test_value_counts_null(null_obj, index_or_series_obj):
     elif isinstance(orig, pd.MultiIndex):
         pytest.skip(f"MultiIndex can't hold '{null_obj}'")
 
-    values = obj.values
-    if needs_i8_conversion(obj.dtype):
-        values[0:2] = iNaT
-    else:
-        values[0:2] = null_obj
+    values = obj._values
+    values[0:2] = null_obj
 
     klass = type(obj)
     repeated_values = np.repeat(values, range(1, len(values) + 1))
@@ -196,19 +189,21 @@ def test_value_counts_datetime64(index_or_series):
 
     # GH 3002, datetime64[ns]
     # don't test names though
-    txt = "\n".join(
-        [
-            "xxyyzz20100101PIE",
-            "xxyyzz20100101GUM",
-            "xxyyzz20100101EGG",
-            "xxyyww20090101EGG",
-            "foofoo20080909PIE",
-            "foofoo20080909GUM",
-        ]
-    )
-    f = StringIO(txt)
-    df = pd.read_fwf(
-        f, widths=[6, 8, 3], names=["person_id", "dt", "food"], parse_dates=["dt"]
+    df = pd.DataFrame(
+        {
+            "person_id": ["xxyyzz", "xxyyzz", "xxyyzz", "xxyyww", "foofoo", "foofoo"],
+            "dt": pd.to_datetime(
+                [
+                    "2010-01-01",
+                    "2010-01-01",
+                    "2010-01-01",
+                    "2009-01-01",
+                    "2008-09-09",
+                    "2008-09-09",
+                ]
+            ),
+            "food": ["PIE", "GUM", "EGG", "EGG", "PIE", "GUM"],
+        }
     )
 
     s = klass(df["dt"].copy())
@@ -287,5 +282,5 @@ def test_value_counts_with_nan(dropna, index_or_series):
     if dropna is True:
         expected = Series([1], index=[True])
     else:
-        expected = Series([2, 1], index=[pd.NA, True])
+        expected = Series([1, 1, 1], index=[True, pd.NA, np.nan])
     tm.assert_series_equal(res, expected)

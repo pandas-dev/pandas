@@ -12,8 +12,8 @@ import pandas._testing as tm
 
 
 class TestTimestampComparison:
-    def test_comparison_dt64_ndarray(self):
-        ts = Timestamp.now()
+    def test_comparison_dt64_ndarray(self, fixed_now_ts):
+        ts = Timestamp("2021-01-01")
         ts2 = Timestamp("2019-04-05")
         arr = np.array([[ts.asm8, ts2.asm8]], dtype="M8[ns]")
 
@@ -49,28 +49,27 @@ class TestTimestampComparison:
         tm.assert_numpy_array_equal(result, np.array([[True, False]], dtype=bool))
 
     @pytest.mark.parametrize("reverse", [True, False])
-    def test_comparison_dt64_ndarray_tzaware(self, reverse, all_compare_operators):
-        op = getattr(operator, all_compare_operators.strip("__"))
+    def test_comparison_dt64_ndarray_tzaware(self, reverse, comparison_op):
 
-        ts = Timestamp.now("UTC")
+        ts = Timestamp("2021-01-01 00:00:00.00000", tz="UTC")
         arr = np.array([ts.asm8, ts.asm8], dtype="M8[ns]")
 
         left, right = ts, arr
         if reverse:
             left, right = arr, ts
 
-        if op is operator.eq:
+        if comparison_op is operator.eq:
             expected = np.array([False, False], dtype=bool)
-            result = op(left, right)
+            result = comparison_op(left, right)
             tm.assert_numpy_array_equal(result, expected)
-        elif op is operator.ne:
+        elif comparison_op is operator.ne:
             expected = np.array([True, True], dtype=bool)
-            result = op(left, right)
+            result = comparison_op(left, right)
             tm.assert_numpy_array_equal(result, expected)
         else:
             msg = "Cannot compare tz-naive and tz-aware timestamps"
             with pytest.raises(TypeError, match=msg):
-                op(left, right)
+                comparison_op(left, right)
 
     def test_comparison_object_array(self):
         # GH#15183
@@ -148,7 +147,7 @@ class TestTimestampComparison:
     @pytest.mark.parametrize("tz", [None, "US/Pacific"])
     def test_compare_date(self, tz):
         # GH#36131 comparing Timestamp with date object is deprecated
-        ts = Timestamp.now(tz)
+        ts = Timestamp("2021-01-01 00:00:00.00000", tz=tz)
         dt = ts.to_pydatetime().date()
         # These are incorrectly considered as equal because they
         #  dispatch to the date comparisons which truncates ts
@@ -279,9 +278,9 @@ class TestTimestampComparison:
         assert Timestamp.min > other
         assert other < Timestamp.min
 
-    def test_compare_zerodim_array(self):
+    def test_compare_zerodim_array(self, fixed_now_ts):
         # GH#26916
-        ts = Timestamp.now()
+        ts = fixed_now_ts
         dt64 = np.datetime64("2016-01-01", "ns")
         arr = np.array(dt64)
         assert arr.ndim == 0

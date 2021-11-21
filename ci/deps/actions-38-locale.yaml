@@ -5,7 +5,7 @@ dependencies:
   - python=3.8
 
   # tools
-  - cython>=0.29.21
+  - cython>=0.29.24
   - pytest>=6.0
   - pytest-cov
   - pytest-xdist>=1.31
@@ -35,7 +35,7 @@ dependencies:
   - xlsxwriter
   - xlwt
   - moto
-  - pyarrow=1.0.0
+  - pyarrow=1.0.1
   - pip
   - pip:
     - pyxlsb

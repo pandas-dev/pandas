@@ -3,9 +3,7 @@ from __future__ import annotations
 from contextlib import suppress
 from typing import (
     TYPE_CHECKING,
-    Any,
     Hashable,
-    Sequence,
 )
 import warnings
 
@@ -18,6 +16,7 @@ from pandas.errors import (
     InvalidIndexError,
 )
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_array_like,
@@ -67,6 +66,7 @@ if TYPE_CHECKING:
 
 # "null slice"
 _NS = slice(None, None)
+_one_ellipsis_message = "indexer may only contain one '...' entry"
 
 
 # the public IndexSlicerMaker
@@ -731,11 +731,33 @@ class _LocationIndexer(NDFrameIndexerBase):
         """
         raise AbstractMethodError(self)
 
-    def _has_valid_tuple(self, key: tuple):
+    def _expand_ellipsis(self, tup: tuple) -> tuple:
+        """
+        If a tuple key includes an Ellipsis, replace it with an appropriate
+        number of null slices.
+        """
+        if any(x is Ellipsis for x in tup):
+            if tup.count(Ellipsis) > 1:
+                raise IndexingError(_one_ellipsis_message)
+
+            if len(tup) == self.ndim:
+                # It is unambiguous what axis this Ellipsis is indexing,
+                #  treat as a single null slice.
+                i = tup.index(Ellipsis)
+                # FIXME: this assumes only one Ellipsis
+                new_key = tup[:i] + (_NS,) + tup[i + 1 :]
+                return new_key
+
+            # TODO: other cases?  only one test gets here, and that is covered
+            #  by _validate_key_length
+        return tup
+
+    def _validate_tuple_indexer(self, key: tuple) -> tuple:
         """
         Check the key for valid keys across my indexer.
         """
-        self._validate_key_length(key)
+        key = self._validate_key_length(key)
+        key = self._expand_ellipsis(key)
         for i, k in enumerate(key):
             try:
                 self._validate_key(k, i)
@@ -744,6 +766,7 @@ class _LocationIndexer(NDFrameIndexerBase):
                     "Location based indexing can only have "
                     f"[{self._valid_types}] types"
                 ) from err
+        return key
 
     def _is_nested_tuple_indexer(self, tup: tuple) -> bool:
         """
@@ -772,9 +795,16 @@ class _LocationIndexer(NDFrameIndexerBase):
 
         return tuple(keyidx)
 
-    def _validate_key_length(self, key: Sequence[Any]) -> None:
+    def _validate_key_length(self, key: tuple) -> tuple:
         if len(key) > self.ndim:
+            if key[0] is Ellipsis:
+                # e.g. Series.iloc[..., 3] reduces to just Series.iloc[3]
+                key = key[1:]
+                if Ellipsis in key:
+                    raise IndexingError(_one_ellipsis_message)
+                return self._validate_key_length(key)
             raise IndexingError("Too many indexers")
+        return key
 
     def _getitem_tuple_same_dim(self, tup: tuple):
         """
@@ -822,7 +852,7 @@ class _LocationIndexer(NDFrameIndexerBase):
             with suppress(IndexingError):
                 return self._handle_lowerdim_multi_index_axis0(tup)
 
-        self._validate_key_length(tup)
+        tup = self._validate_key_length(tup)
 
         for i, key in enumerate(tup):
             if is_label_like(key):
@@ -964,7 +994,7 @@ class _LocIndexer(_LocationIndexer):
         # slice of labels (where start-end in labels)
         # slice of integers (only if in the labels)
         # boolean not in slice and with boolean index
-        if isinstance(key, bool) and not is_bool_dtype(self.obj.index):
+        if isinstance(key, bool) and not is_bool_dtype(self.obj._get_axis(axis)):
             raise KeyError(
                 f"{key}: boolean label can not be used without a boolean index"
             )
@@ -1093,10 +1123,11 @@ class _LocIndexer(_LocationIndexer):
 
     def _getitem_tuple(self, tup: tuple):
         with suppress(IndexingError):
+            tup = self._expand_ellipsis(tup)
             return self._getitem_lowerdim(tup)
 
         # no multi-index, so validate all of the indexers
-        self._has_valid_tuple(tup)
+        tup = self._validate_tuple_indexer(tup)
 
         # ugly hack for GH #836
         if self._multi_take_opportunity(tup):
@@ -1126,6 +1157,8 @@ class _LocIndexer(_LocationIndexer):
         key = item_from_zerodim(key)
         if is_iterator(key):
             key = list(key)
+        if key is Ellipsis:
+            key = slice(None)
 
         labels = self.obj._get_axis(axis)
 
@@ -1349,7 +1382,7 @@ class _iLocIndexer(_LocationIndexer):
                 "a future version.\n"
                 "consider using .loc with a DataFrame indexer for automatic alignment.",
                 FutureWarning,
-                stacklevel=3,
+                stacklevel=find_stack_level(),
             )
 
         if not isinstance(indexer, tuple):
@@ -1409,7 +1442,7 @@ class _iLocIndexer(_LocationIndexer):
 
     def _getitem_tuple(self, tup: tuple):
 
-        self._has_valid_tuple(tup)
+        tup = self._validate_tuple_indexer(tup)
         with suppress(IndexingError):
             return self._getitem_lowerdim(tup)
 
@@ -1439,7 +1472,9 @@ class _iLocIndexer(_LocationIndexer):
             raise IndexError("positional indexers are out-of-bounds") from err
 
     def _getitem_axis(self, key, axis: int):
-        if isinstance(key, ABCDataFrame):
+        if key is Ellipsis:
+            key = slice(None)
+        elif isinstance(key, ABCDataFrame):
             raise IndexError(
                 "DataFrame indexer is not allowed for .iloc\n"
                 "Consider using .loc for automatic alignment."
@@ -1825,13 +1860,22 @@ class _iLocIndexer(_LocationIndexer):
                 # in case of slice
                 ser = value[pi]
         else:
-            # set the item, possibly having a dtype change
-            ser = ser.copy()
-            ser._mgr = ser._mgr.setitem(indexer=(pi,), value=value)
-            ser._maybe_update_cacher(clear=True)
+            # set the item, first attempting to operate inplace, then
+            #  falling back to casting if necessary; see
+            #  _whatsnew_130.notable_bug_fixes.setitem_column_try_inplace
+
+            orig_values = ser._values
+            ser._mgr = ser._mgr.setitem((pi,), value)
+
+            if ser._values is orig_values:
+                # The setitem happened inplace, so the DataFrame's values
+                #  were modified inplace.
+                return
+            self.obj._iset_item(loc, ser, inplace=True)
+            return
 
         # reset the sliced object if unique
-        self.obj._iset_item(loc, ser)
+        self.obj._iset_item(loc, ser, inplace=True)
 
     def _setitem_single_block(self, indexer, value, name: str):
         """
@@ -1856,12 +1900,15 @@ class _iLocIndexer(_LocationIndexer):
                     if i != info_axis
                 )
             ):
-                selected_item_labels = item_labels[indexer[info_axis]]
-                if len(item_labels.get_indexer_for([selected_item_labels])) == 1:
-                    self.obj[selected_item_labels] = value
+                col = item_labels[indexer[info_axis]]
+                if len(item_labels.get_indexer_for([col])) == 1:
+                    # e.g. test_loc_setitem_empty_append_expands_rows
+                    loc = item_labels.get_loc(col)
+                    self.obj._iset_item(loc, value, inplace=True)
                     return
 
-            indexer = maybe_convert_ix(*indexer)
+            indexer = maybe_convert_ix(*indexer)  # e.g. test_setitem_frame_align
+
         if (isinstance(value, ABCSeries) and name != "iloc") or isinstance(value, dict):
             # TODO(EA): ExtensionBlock.setitem this causes issues with
             # setting for extensionarrays that store dicts. Need to decide
@@ -1876,7 +1923,7 @@ class _iLocIndexer(_LocationIndexer):
 
         # actually do the set
         self.obj._mgr = self.obj._mgr.setitem(indexer=indexer, value=value)
-        self.obj._maybe_update_cacher(clear=True)
+        self.obj._maybe_update_cacher(clear=True, inplace=True)
 
     def _setitem_with_indexer_missing(self, indexer, value):
         """
@@ -2263,7 +2310,7 @@ def convert_to_index_sliceable(obj: DataFrame, key):
                     "and will be removed in a future version. Use `frame.loc[string]` "
                     "instead.",
                     FutureWarning,
-                    stacklevel=3,
+                    stacklevel=find_stack_level(),
                 )
                 return res
             except (KeyError, ValueError, NotImplementedError):
@@ -2381,7 +2428,11 @@ def is_label_like(key) -> bool:
     bool
     """
     # select a label or row
-    return not isinstance(key, slice) and not is_list_like_indexer(key)
+    return (
+        not isinstance(key, slice)
+        and not is_list_like_indexer(key)
+        and key is not Ellipsis
+    )
 
 
 def need_slice(obj: slice) -> bool:

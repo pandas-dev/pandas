@@ -20,7 +20,7 @@ from pandas.compat.numpy import (
     np_version_under1p20,
 )
 from pandas.compat.pyarrow import (
-    pa_version_under1p0,
+    pa_version_under1p01,
     pa_version_under2p0,
     pa_version_under3p0,
     pa_version_under4p0,
@@ -99,7 +99,9 @@ def is_platform_arm() -> bool:
     bool
         True if the running platform uses ARM architecture.
     """
-    return platform.machine() in ("arm64", "aarch64")
+    return platform.machine() in ("arm64", "aarch64") or platform.machine().startswith(
+        "armv"
+    )
 
 
 def import_lzma():
@@ -151,7 +153,7 @@ __all__ = [
     "np_datetime64_compat",
     "np_version_under1p19",
     "np_version_under1p20",
-    "pa_version_under1p0",
+    "pa_version_under1p01",
     "pa_version_under2p0",
     "pa_version_under3p0",
     "pa_version_under4p0",

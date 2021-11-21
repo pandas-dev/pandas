@@ -152,11 +152,23 @@ class NumericArray(BaseMaskedArray):
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
 
+    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
+        result = super()._reduce(name, skipna=skipna, **kwargs)
+        if isinstance(result, np.ndarray):
+            axis = kwargs["axis"]
+            if skipna:
+                # we only retain mask for all-NA rows/columns
+                mask = self._mask.all(axis=axis)
+            else:
+                mask = self._mask.any(axis=axis)
+            return type(self)(result, mask=mask)
+        return result
+
     def __neg__(self):
         return type(self)(-self._data, self._mask.copy())
 
     def __pos__(self):
-        return self
+        return self.copy()
 
     def __abs__(self):
         return type(self)(abs(self._data), self._mask.copy())

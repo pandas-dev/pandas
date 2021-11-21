@@ -311,7 +311,7 @@ def test_fwf_regression():
 
 def test_fwf_for_uint8():
     data = """1421302965.213420    PRI=3 PGN=0xef00      DST=0x17 SRC=0x28    04 154 00 00 00 00 00 127
-1421302964.226776    PRI=6 PGN=0xf002               SRC=0x47    243 00 00 255 247 00 00 71"""  # noqa
+1421302964.226776    PRI=6 PGN=0xf002               SRC=0x47    243 00 00 255 247 00 00 71"""  # noqa:E501
     df = read_fwf(
         StringIO(data),
         colspecs=[(0, 17), (25, 26), (33, 37), (49, 51), (58, 62), (63, 1000)],
@@ -852,4 +852,28 @@ def test_len_colspecs_len_names_with_index_col(
         widths=widths,
         index_col=index_col,
     )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_colspecs_with_comment():
+    # GH 14135
+    result = read_fwf(
+        StringIO("#\nA1K\n"), colspecs=[(1, 2), (2, 3)], comment="#", header=None
+    )
+    expected = DataFrame([[1, "K"]], columns=[0, 1])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_skip_rows_and_n_rows():
+    # GH#44021
+    data = """a\tb
+1\t a
+2\t b
+3\t c
+4\t d
+5\t e
+6\t f
+    """
+    result = read_fwf(StringIO(data), nrows=4, skiprows=[2, 4])
+    expected = DataFrame({"a": [1, 3, 5, 6], "b": ["a", "c", "e", "f"]})
     tm.assert_frame_equal(result, expected)

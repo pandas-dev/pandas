@@ -461,7 +461,11 @@ class MPLPlot:
             label = self.label
             if label is None and data.name is None:
                 label = "None"
-            data = data.to_frame(name=label)
+            if label is None:
+                # We'll end up with columns of [0] instead of [None]
+                data = data.to_frame()
+            else:
+                data = data.to_frame(name=label)
         elif self._kind in ("hist", "box"):
             cols = self.columns if self.by is None else self.columns + self.by
             data = data.loc[:, cols]
@@ -1058,6 +1062,7 @@ class PlanePlot(MPLPlot):
         # use the last one which contains the latest information
         # about the ax
         img = ax.collections[-1]
+        ax.grid(False)
         cbar = self.fig.colorbar(img, ax=ax, **kwds)
 
         if mpl_ge_3_0_0():
