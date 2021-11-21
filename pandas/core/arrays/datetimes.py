@@ -2084,8 +2084,13 @@ def _sequence_to_dt64ns(
             )
             if tz and inferred_tz:
                 #  two timezones: convert to intended from base UTC repr
-                data = tzconversion.tz_convert_from_utc(data.view("i8"), tz)
-                data = data.view(DT64NS_DTYPE)
+                if data.dtype == "i8":
+                    # GH#42505
+                    # by convention, these are _already_ UTC, e.g
+                    return data.view(DT64NS_DTYPE), tz, None
+
+                utc_vals = tzconversion.tz_convert_from_utc(data.view("i8"), tz)
+                data = utc_vals.view(DT64NS_DTYPE)
             elif inferred_tz:
                 tz = inferred_tz
 
@@ -2566,7 +2571,7 @@ def generate_range(start=None, end=None, periods=None, offset=BDay()):
                 break
 
             # faster than cur + offset
-            next_date = offset.apply(cur)
+            next_date = offset._apply(cur)
             if next_date <= cur:
                 raise ValueError(f"Offset {offset} did not increment date")
             cur = next_date
@@ -2580,7 +2585,7 @@ def generate_range(start=None, end=None, periods=None, offset=BDay()):
                 break
 
             # faster than cur + offset
-            next_date = offset.apply(cur)
+            next_date = offset._apply(cur)
             if next_date >= cur:
                 raise ValueError(f"Offset {offset} did not decrement date")
             cur = next_date
