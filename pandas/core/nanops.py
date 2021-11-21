@@ -30,6 +30,7 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat._optional import import_optional_dependency
+from pandas.compat.numpy import np_percentile_argname
 
 from pandas.core.dtypes.common import (
     is_any_int_dtype,
@@ -1694,7 +1695,7 @@ def _nanpercentile_1d(
     if len(values) == 0:
         return np.array([na_value] * len(q), dtype=values.dtype)
 
-    return np.percentile(values, q, interpolation=interpolation)
+    return np.percentile(values, q, **{np_percentile_argname: interpolation})
 
 
 def nanpercentile(
@@ -1747,7 +1748,9 @@ def nanpercentile(
         result = np.array(result, dtype=values.dtype, copy=False).T
         return result
     else:
-        return np.percentile(values, q, axis=1, interpolation=interpolation)
+        return np.percentile(
+            values, q, axis=1, **{np_percentile_argname: interpolation}
+        )
 
 
 def na_accum_func(values: ArrayLike, accum_func, *, skipna: bool) -> ArrayLike:
@@ -1781,16 +1784,20 @@ def na_accum_func(values: ArrayLike, accum_func, *, skipna: bool) -> ArrayLike:
         # We need to define mask before masking NaTs
         mask = isna(values)
 
-        if accum_func == np.minimum.accumulate:
-            # Note: the accum_func comparison fails as an "is" comparison
-            y = values.view("i8")
-            y[mask] = lib.i8max
-            changed = True
-        else:
-            y = values
-            changed = False
+        y = values.view("i8")
+        # Note: the accum_func comparison fails as an "is" comparison
+        changed = accum_func == np.minimum.accumulate
 
-        result = accum_func(y.view("i8"), axis=0)
+        try:
+            if changed:
+                y[mask] = lib.i8max
+
+            result = accum_func(y, axis=0)
+        finally:
+            if changed:
+                # restore NaT elements
+                y[mask] = iNaT
+
         if skipna:
             result[mask] = iNaT
         elif accum_func == np.minimum.accumulate:
@@ -1799,10 +1806,6 @@ def na_accum_func(values: ArrayLike, accum_func, *, skipna: bool) -> ArrayLike:
             if len(nz):
                 # everything up to the first non-na entry stays NaT
                 result[: nz[0]] = iNaT
-
-        if changed:
-            # restore NaT elements
-            y[mask] = iNaT  # TODO: could try/finally for this?
 
         if isinstance(values.dtype, np.dtype):
             result = result.view(orig_dtype)

@@ -18,6 +18,7 @@ import os
 import struct
 import sys
 from typing import (
+    IO,
     TYPE_CHECKING,
     Any,
     AnyStr,
@@ -33,10 +34,11 @@ import numpy as np
 from pandas._libs.lib import infer_dtype
 from pandas._libs.writers import max_len_string_array
 from pandas._typing import (
-    Buffer,
     CompressionOptions,
-    FilePathOrBuffer,
+    FilePath,
+    ReadBuffer,
     StorageOptions,
+    WriteBuffer,
 )
 from pandas.util._decorators import (
     Appender,
@@ -1117,7 +1119,7 @@ class StataReader(StataParser, abc.Iterator):
 
     def __init__(
         self,
-        path_or_buf: FilePathOrBuffer,
+        path_or_buf: FilePath | ReadBuffer[bytes],
         convert_dates: bool = True,
         convert_categoricals: bool = True,
         index_col: str | None = None,
@@ -1168,10 +1170,7 @@ class StataReader(StataParser, abc.Iterator):
             compression=compression,
         ) as handles:
             # Copy to BytesIO, and ensure no encoding
-
-            # Argument 1 to "BytesIO" has incompatible type "Union[Any, bytes, None,
-            # str]"; expected "bytes"
-            self.path_or_buf = BytesIO(handles.handle.read())  # type: ignore[arg-type]
+            self.path_or_buf = BytesIO(handles.handle.read())
 
         self._read_header()
         self._setup_dtype()
@@ -2002,7 +2001,7 @@ The repeated labels are:
 
 @Appender(_read_stata_doc)
 def read_stata(
-    filepath_or_buffer: FilePathOrBuffer,
+    filepath_or_buffer: FilePath | ReadBuffer[bytes],
     convert_dates: bool = True,
     convert_categoricals: bool = True,
     index_col: str | None = None,
@@ -2270,7 +2269,7 @@ class StataWriter(StataParser):
 
     def __init__(
         self,
-        fname: FilePathOrBuffer,
+        fname: FilePath | WriteBuffer[bytes],
         data: DataFrame,
         convert_dates: dict[Hashable, str] | None = None,
         write_index: bool = True,
@@ -2294,7 +2293,7 @@ class StataWriter(StataParser):
         self._value_labels: list[StataValueLabel] = []
         self._has_value_labels = np.array([], dtype=bool)
         self._compression = compression
-        self._output_file: Buffer[bytes] | None = None
+        self._output_file: IO[bytes] | None = None
         self._converted_names: dict[Hashable, str] = {}
         # attach nobs, nvars, data, varlist, typlist
         self._prepare_pandas(data)
@@ -2310,15 +2309,13 @@ class StataWriter(StataParser):
         """
         Helper to call encode before writing to file for Python 3 compat.
         """
-        self.handles.handle.write(
-            to_write.encode(self._encoding)  # type: ignore[arg-type]
-        )
+        self.handles.handle.write(to_write.encode(self._encoding))
 
     def _write_bytes(self, value: bytes) -> None:
         """
         Helper to assert file is open before writing.
         """
-        self.handles.handle.write(value)  # type: ignore[arg-type]
+        self.handles.handle.write(value)
 
     def _prepare_non_cat_value_labels(
         self, data: DataFrame
@@ -2686,7 +2683,7 @@ supported types."""
         if self._output_file is not None:
             assert isinstance(self.handles.handle, BytesIO)
             bio, self.handles.handle = self.handles.handle, self._output_file
-            self.handles.handle.write(bio.getvalue())  # type: ignore[arg-type]
+            self.handles.handle.write(bio.getvalue())
 
     def _write_map(self) -> None:
         """No-op, future compatibility"""
@@ -3203,7 +3200,7 @@ class StataWriter117(StataWriter):
 
     def __init__(
         self,
-        fname: FilePathOrBuffer,
+        fname: FilePath | WriteBuffer[bytes],
         data: DataFrame,
         convert_dates: dict[Hashable, str] | None = None,
         write_index: bool = True,
@@ -3605,7 +3602,7 @@ class StataWriterUTF8(StataWriter117):
 
     def __init__(
         self,
-        fname: FilePathOrBuffer,
+        fname: FilePath | WriteBuffer[bytes],
         data: DataFrame,
         convert_dates: dict[Hashable, str] | None = None,
         write_index: bool = True,

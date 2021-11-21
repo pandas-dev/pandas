@@ -248,9 +248,7 @@ class TestCategoricalConstructors:
 
         # this is a legitimate constructor
         with tm.assert_produces_warning(None):
-            c = Categorical(  # noqa
-                np.array([], dtype="int64"), categories=[3, 2, 1], ordered=True
-            )
+            Categorical(np.array([], dtype="int64"), categories=[3, 2, 1], ordered=True)
 
     def test_constructor_with_existing_categories(self):
         # GH25318: constructing with pd.Series used to bogusly skip recoding

@@ -319,7 +319,12 @@ def test_clear(mi_styler_comp):
     # tests vars are not same vals on obj and clean copy before clear (except for excl)
     for attr in [a for a in styler.__dict__ if not (callable(a) or a in excl)]:
         res = getattr(styler, attr) == getattr(clean_copy, attr)
-        assert not (all(res) if (hasattr(res, "__iter__") and len(res) > 0) else res)
+        if hasattr(res, "__iter__") and len(res) > 0:
+            assert not all(res)  # some element in iterable differs
+        elif hasattr(res, "__iter__") and len(res) == 0:
+            pass  # empty array
+        else:
+            assert not res  # explicit var differs
 
     # test vars have same vales on obj and clean copy after clearing
     styler.clear()

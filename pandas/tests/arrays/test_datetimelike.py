@@ -26,7 +26,7 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
-from pandas.core.arrays.datetimes import sequence_to_dt64ns
+from pandas.core.arrays.datetimes import _sequence_to_dt64ns
 from pandas.core.arrays.timedeltas import sequence_to_td64ns
 
 
@@ -168,7 +168,7 @@ class SharedTests:
 
         tm.assert_index_equal(self.index_cls(result), expected)
 
-    @pytest.mark.parametrize("fill_value", [2, 2.0, Timestamp.now().time])
+    @pytest.mark.parametrize("fill_value", [2, 2.0, Timestamp(2021, 1, 1, 12).time])
     def test_take_fill_raises(self, fill_value):
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
 
@@ -839,11 +839,11 @@ class TestDatetimeArray(SharedTests):
 
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_take_fill_valid(self, arr1d):
+    def test_take_fill_valid(self, arr1d, fixed_now_ts):
         arr = arr1d
         dti = self.index_cls(arr1d)
 
-        now = Timestamp.now().tz_localize(dti.tz)
+        now = fixed_now_ts.tz_localize(dti.tz)
         result = arr.take([-1, 1], allow_fill=True, fill_value=now)
         assert result[0] == now
 
@@ -857,7 +857,7 @@ class TestDatetimeArray(SharedTests):
             arr.take([-1, 1], allow_fill=True, fill_value=Period("2014Q1"))
 
         tz = None if dti.tz is not None else "US/Eastern"
-        now = Timestamp.now().tz_localize(tz)
+        now = fixed_now_ts.tz_localize(tz)
         msg = "Cannot compare tz-naive and tz-aware datetime-like objects"
         with pytest.raises(TypeError, match=msg):
             # Timestamp with mismatched tz-awareness
@@ -877,7 +877,7 @@ class TestDatetimeArray(SharedTests):
         if arr.tz is not None:
             # GH#37356
             # Assuming here that arr1d fixture does not include Australia/Melbourne
-            value = Timestamp.now().tz_localize("Australia/Melbourne")
+            value = fixed_now_ts.tz_localize("Australia/Melbourne")
             msg = "Timezones don't match. .* != 'Australia/Melbourne'"
             with pytest.raises(ValueError, match=msg):
                 # require tz match, not just tzawareness match
@@ -1031,7 +1031,7 @@ class TestTimedeltaArray(SharedTests):
             expected = np.asarray(arr).astype(dtype)
             tm.assert_numpy_array_equal(result, expected)
 
-    def test_take_fill_valid(self, timedelta_index):
+    def test_take_fill_valid(self, timedelta_index, fixed_now_ts):
         tdi = timedelta_index
         arr = TimedeltaArray(tdi)
 
@@ -1039,14 +1039,13 @@ class TestTimedeltaArray(SharedTests):
         result = arr.take([-1, 1], allow_fill=True, fill_value=td1)
         assert result[0] == td1
 
-        now = Timestamp.now()
-        value = now
+        value = fixed_now_ts
         msg = f"value should be a '{arr._scalar_type.__name__}' or 'NaT'. Got"
         with pytest.raises(TypeError, match=msg):
             # fill_value Timestamp invalid
             arr.take([0, 1], allow_fill=True, fill_value=value)
 
-        value = now.to_period("D")
+        value = fixed_now_ts.to_period("D")
         with pytest.raises(TypeError, match=msg):
             # fill_value Period invalid
             arr.take([0, 1], allow_fill=True, fill_value=value)
@@ -1360,7 +1359,7 @@ def test_from_pandas_array(dtype):
     expected = cls._from_sequence(data)
     tm.assert_extension_array_equal(result, expected)
 
-    func = {"M8[ns]": sequence_to_dt64ns, "m8[ns]": sequence_to_td64ns}[dtype]
+    func = {"M8[ns]": _sequence_to_dt64ns, "m8[ns]": sequence_to_td64ns}[dtype]
     result = func(arr)[0]
     expected = func(data)[0]
     tm.assert_equal(result, expected)
@@ -1423,7 +1422,7 @@ def test_from_obscure_array(dtype, array_likes):
     result = cls._from_sequence(data)
     tm.assert_extension_array_equal(result, expected)
 
-    func = {"M8[ns]": sequence_to_dt64ns, "m8[ns]": sequence_to_td64ns}[dtype]
+    func = {"M8[ns]": _sequence_to_dt64ns, "m8[ns]": sequence_to_td64ns}[dtype]
     result = func(arr)[0]
     expected = func(data)[0]
     tm.assert_equal(result, expected)

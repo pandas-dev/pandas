@@ -12,7 +12,6 @@ import re
 from typing import (
     TYPE_CHECKING,
     Any,
-    AnyStr,
     Callable,
     Hashable,
     Literal,
@@ -44,7 +43,7 @@ from pandas._typing import (
     Dtype,
     DtypeArg,
     DtypeObj,
-    FilePathOrBuffer,
+    FilePath,
     IndexKeyFunc,
     IndexLabel,
     JSONSerializable,
@@ -58,6 +57,7 @@ from pandas._typing import (
     TimedeltaConvertibleTypes,
     TimestampConvertibleTypes,
     ValueKeyFunc,
+    WriteBuffer,
     npt,
 )
 from pandas.compat._optional import import_optional_dependency
@@ -2332,7 +2332,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @doc(storage_options=_shared_docs["storage_options"])
     def to_json(
         self,
-        path_or_buf: FilePathOrBuffer | None = None,
+        path_or_buf: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
         orient: str | None = None,
         date_format: str | None = None,
         double_precision: int = 10,
@@ -2353,9 +2353,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Parameters
         ----------
-        path_or_buf : str or file handle, optional
-            File path or object. If not specified, the result is returned as
-            a string.
+        path_or_buf : str, path object, file-like object, or None, default None
+            String, path object (implementing os.PathLike[str]), or file-like
+            object implementing a write() function. If None, the result is
+            returned as a string.
         orient : str
             Indication of expected JSON string format.
 
@@ -3347,7 +3348,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @doc(storage_options=_shared_docs["storage_options"])
     def to_csv(
         self,
-        path_or_buf: FilePathOrBuffer[AnyStr] | None = None,
+        path_or_buf: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
         sep: str = ",",
         na_rep: str = "",
         float_format: str | None = None,
@@ -3374,10 +3375,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Parameters
         ----------
-        path_or_buf : str or file handle, default None
-            File path or object, if None is provided the result is returned as
-            a string.  If a non-binary file object is passed, it should be opened
-            with `newline=''`, disabling universal newlines. If a binary
+        path_or_buf : str, path object, file-like object, or None, default None
+            String, path object (implementing os.PathLike[str]), or file-like
+            object implementing a write() function. If None, the result is
+            returned as a string. If a non-binary file object is passed, it should
+            be opened with `newline=''`, disabling universal newlines. If a binary
             file object is passed, `mode` might need to contain a `'b'`.
 
             .. versionchanged:: 1.2.0
@@ -5845,7 +5847,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 if col_name not in self:
                     raise KeyError(
                         "Only a column name can be used for the "
-                        "key in a dtype mappings argument."
+                        "key in a dtype mappings argument. "
+                        f"'{col_name}' not found in columns."
                     )
 
             # GH#44417 cast to Series so we can use .iat below, which will be

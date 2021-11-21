@@ -26,7 +26,8 @@ from pandas._libs.tslibs import parsing
 from pandas._typing import (
     ArrayLike,
     DtypeArg,
-    FilePathOrBuffer,
+    FilePath,
+    ReadCsvBuffer,
 )
 from pandas.errors import (
     ParserError,
@@ -218,7 +219,11 @@ class ParserBase:
         # Normally, this arg would get pre-processed earlier on
         self.on_bad_lines = kwds.get("on_bad_lines", self.BadLineHandleMethod.ERROR)
 
-    def _open_handles(self, src: FilePathOrBuffer, kwds: dict[str, Any]) -> None:
+    def _open_handles(
+        self,
+        src: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
+        kwds: dict[str, Any],
+    ) -> None:
         """
         Let the readers open IOHandles after they are done with their potential raises.
         """
@@ -700,7 +705,7 @@ class ParserBase:
             # error: Argument 2 to "isin" has incompatible type "List[Any]"; expected
             # "Union[Union[ExtensionArray, ndarray], Index, Series]"
             mask = algorithms.isin(values, list(na_values))  # type: ignore[arg-type]
-            na_count = mask.sum()
+            na_count = mask.astype("uint8", copy=False).sum()
             if na_count > 0:
                 if is_integer_dtype(values):
                     values = values.astype(np.float64)
