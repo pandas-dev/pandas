@@ -154,8 +154,8 @@ class TestSeriesPlots(TestPlotBase):
         abs(self.ts).plot(ax=ax1, kind="area")
         abs(self.ts).plot(ax=ax2, kind="area")
 
-        assert ax1._shared_y_axes.joined(ax1, ax2)
-        assert ax2._shared_y_axes.joined(ax1, ax2)
+        assert self.get_y_axis(ax1).joined(ax1, ax2)
+        assert self.get_y_axis(ax2).joined(ax1, ax2)
 
     def test_label(self):
         s = Series([1, 2])
