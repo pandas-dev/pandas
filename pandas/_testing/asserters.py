@@ -43,7 +43,6 @@ from pandas.core.algorithms import (
     take_nd,
 )
 from pandas.core.arrays import (
-    BaseMaskedArray,
     DatetimeArray,
     ExtensionArray,
     IntervalArray,
@@ -404,13 +403,6 @@ def assert_index_equal(
     if check_exact and check_categorical:
         if not left.equals(right):
             mismatch = left._values != right._values
-
-            if isinstance(mismatch, BaseMaskedArray):
-                lvalues = cast(BaseMaskedArray, left._values)
-                rvalues = cast(BaseMaskedArray, right._values)
-                mismatch = mismatch.to_numpy(dtype=int, na_value=0)
-                mismask = lvalues._mask ^ rvalues._mask
-                mismatch[mismask] = 1
 
             diff = np.sum(mismatch.astype(int)) * 100.0 / len(left)
             msg = f"{obj} values are different ({np.round(diff, 5)} %)"
