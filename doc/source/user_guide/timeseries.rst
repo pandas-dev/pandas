@@ -1296,7 +1296,7 @@ frequencies. We will refer to these aliases as *offset aliases*.
 
     We can see in the above example :func:`date_range` and
     :func:`bdate_range` will only return the valid timestamps between the
-    `start_date` and `end_date`. If these are not valid timestamps for the
+    ``start_date`` and ``end_date``. If these are not valid timestamps for the
     given frequency it will roll to the next value for ``start_date``
     (respectively previous for the ``end_date``)
 
