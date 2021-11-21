@@ -5448,6 +5448,34 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrame:
         axis = self._get_axis_number(axis)
 
+        # Handle the case of multiple shifts
+        if is_list_like(periods):
+
+            new_df = DataFrame()
+
+            from pandas.core.reshape.concat import concat
+
+            for i in periods:
+                if not isinstance(i, int):
+                    raise TypeError(
+                        f"Value {i} in periods is not an integer, expected an integer"
+                    )
+
+                new_df = concat(
+                    [
+                        new_df,
+                        super()
+                        .shift(periods=i, freq=freq, axis=axis, fill_value=fill_value)
+                        .add_suffix(f"_{i}"),
+                    ],
+                    axis=1,
+                )
+
+            if new_df.empty:
+                return self
+
+            return new_df
+
         ncols = len(self.columns)
         if axis == 1 and periods != 0 and fill_value is lib.no_default and ncols > 0:
             # We will infer fill_value to match the closest column

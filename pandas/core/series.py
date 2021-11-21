@@ -4927,6 +4927,16 @@ Keep all original rows and also all original values
     # error: Cannot determine type of 'shift'
     @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
     def shift(self, periods=1, freq=None, axis=0, fill_value=None) -> Series:
+
+        # Handle the case of multiple shifts
+        if is_list_like(periods):
+            if len(periods) == 0:
+                return self
+
+            df = self.to_frame()
+
+            return df.shift(periods, freq=freq, axis=axis, fill_value=fill_value)
+
         return super().shift(
             periods=periods, freq=freq, axis=axis, fill_value=fill_value
         )
