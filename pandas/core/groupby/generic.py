@@ -1743,7 +1743,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                         indexed_group_size.index.set_names("Group", inplace=True)
                         result.index.set_names("Group", level=0, inplace=True)
                     # Use indexed group size series
-                    if self.dropna or (isinstance(self.keys, list) and len(self.keys) == 1):
+                    if self.dropna or (
+                        isinstance(self.keys, list) and len(self.keys) == 1
+                    ):
                         result /= indexed_group_size
                     else:
                         # Unfortunately, nans in multiindex seem to break
