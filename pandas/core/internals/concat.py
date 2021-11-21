@@ -76,12 +76,17 @@ def _concatenate_array_managers(
     """
     # reindex all arrays
     mgrs = []
+    axis1_needs_copy = False
     for mgr, indexers in mgrs_indexers:
+        axis1_needs_copy_this = True
         for ax, indexer in indexers.items():
             mgr = mgr.reindex_indexer(
                 axes[ax], indexer, axis=ax, allow_dups=True, use_na_proxy=True
             )
+            if ax == 1 and indexer is not None:
+                axis1_needs_copy_this = False
         mgrs.append(mgr)
+        axis1_needs_copy = axis1_needs_copy or axis1_needs_copy_this
 
     if concat_axis == 1:
         # concatting along the rows -> concat the reindexed arrays
@@ -94,7 +99,7 @@ def _concatenate_array_managers(
         # concatting along the columns -> combine reindexed arrays in a single manager
         assert concat_axis == 0
         arrays = list(itertools.chain.from_iterable([mgr.arrays for mgr in mgrs]))
-        if copy:
+        if copy and axis1_needs_copy_this:
             arrays = [x.copy() for x in arrays]
 
     new_mgr = ArrayManager(arrays, [axes[1], axes[0]], verify_integrity=False)
