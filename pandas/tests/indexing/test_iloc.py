@@ -1149,6 +1149,7 @@ class TestiLocBaseIndependent:
         tm.assert_frame_equal(df, expected)
 
     def test_iloc_getitem_slice_negative_step_ea_block(self):
+        # GH#44551
         df = DataFrame({"A": [1, 2, 3]}, dtype="Int64")
 
         res = df.iloc[:, ::-1]
