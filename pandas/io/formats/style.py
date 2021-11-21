@@ -504,7 +504,7 @@ class Styler(StylerRenderer):
         position : str, optional
             The LaTeX positional argument (e.g. 'h!') for tables, placed in location:
 
-            \\begin{table}[<position>].
+            ``\\begin{table}[<position>]``.
         position_float : {"centering", "raggedleft", "raggedright"}, optional
             The LaTeX float command placed in location:
 
