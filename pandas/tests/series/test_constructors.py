@@ -13,7 +13,10 @@ from pandas._libs import (
     iNaT,
     lib,
 )
-from pandas.compat.numpy import np_version_under1p19
+from pandas.compat.numpy import (
+    np_version_under1p19,
+    np_version_under1p20,
+)
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
@@ -1821,7 +1824,7 @@ class TestSeriesConstructors:
         "ignore:elementwise comparison failed:DeprecationWarning"
     )
     @pytest.mark.xfail(
-        np_version_under1p19, reason="np.array([td64nat, float, float]) raises"
+        np_version_under1p20, reason="np.array([td64nat, float, float]) raises"
     )
     @pytest.mark.parametrize("func", [Series, DataFrame, Index, pd.array])
     def test_constructor_mismatched_null_nullable_dtype(
