@@ -417,13 +417,12 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         elif is_integer_dtype(dtype):
             # we deliberately ignore int32 vs. int64 here.
             # See https://github.com/pandas-dev/pandas/issues/24381 for more.
-            level = find_stack_level()
             warnings.warn(
                 f"casting {self.dtype} values to int64 with .astype(...) is "
                 "deprecated and will raise in a future version. "
                 "Use .view(...) instead.",
                 FutureWarning,
-                stacklevel=level,
+                stacklevel=find_stack_level(),
             )
 
             values = self.asi8
@@ -1469,8 +1468,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         Index.max : Return the maximum value in an Index.
         Series.max : Return the maximum value in a Series.
         """
-        # TODO: skipna is broken with max.
-        # See https://github.com/pandas-dev/pandas/issues/24265
         nv.validate_max((), kwargs)
         nv.validate_minmax_axis(axis, self.ndim)
 
@@ -1641,6 +1638,13 @@ _round_doc = """
     ------
     ValueError if the `freq` cannot be converted.
 
+    Notes
+    -----
+    If the timestamps have a timezone, {op}ing will take place relative to the
+    local ("wall") time and re-localized to the same timezone. When {op}ing
+    near daylight savings time, use ``nonexistent`` and ``ambiguous`` to
+    control the re-localization behavior.
+
     Examples
     --------
     **DatetimeIndex**
@@ -1664,6 +1668,19 @@ _round_example = """>>> rng.round('H')
     1   2018-01-01 12:00:00
     2   2018-01-01 12:00:00
     dtype: datetime64[ns]
+
+    When rounding near a daylight savings time transition, use ``ambiguous`` or
+    ``nonexistent`` to control how the timestamp should be re-localized.
+
+    >>> rng_tz = pd.DatetimeIndex(["2021-10-31 03:30:00"], tz="Europe/Amsterdam")
+
+    >>> rng_tz.floor("2H", ambiguous=False)
+    DatetimeIndex(['2021-10-31 02:00:00+01:00'],
+                  dtype='datetime64[ns, Europe/Amsterdam]', freq=None)
+
+    >>> rng_tz.floor("2H", ambiguous=True)
+    DatetimeIndex(['2021-10-31 02:00:00+02:00'],
+                  dtype='datetime64[ns, Europe/Amsterdam]', freq=None)
     """
 
 _floor_example = """>>> rng.floor('H')
@@ -1678,6 +1695,19 @@ _floor_example = """>>> rng.floor('H')
     1   2018-01-01 12:00:00
     2   2018-01-01 12:00:00
     dtype: datetime64[ns]
+
+    When rounding near a daylight savings time transition, use ``ambiguous`` or
+    ``nonexistent`` to control how the timestamp should be re-localized.
+
+    >>> rng_tz = pd.DatetimeIndex(["2021-10-31 03:30:00"], tz="Europe/Amsterdam")
+
+    >>> rng_tz.floor("2H", ambiguous=False)
+    DatetimeIndex(['2021-10-31 02:00:00+01:00'],
+                 dtype='datetime64[ns, Europe/Amsterdam]', freq=None)
+
+    >>> rng_tz.floor("2H", ambiguous=True)
+    DatetimeIndex(['2021-10-31 02:00:00+02:00'],
+                  dtype='datetime64[ns, Europe/Amsterdam]', freq=None)
     """
 
 _ceil_example = """>>> rng.ceil('H')
@@ -1692,6 +1722,19 @@ _ceil_example = """>>> rng.ceil('H')
     1   2018-01-01 12:00:00
     2   2018-01-01 13:00:00
     dtype: datetime64[ns]
+
+    When rounding near a daylight savings time transition, use ``ambiguous`` or
+    ``nonexistent`` to control how the timestamp should be re-localized.
+
+    >>> rng_tz = pd.DatetimeIndex(["2021-10-31 01:30:00"], tz="Europe/Amsterdam")
+
+    >>> rng_tz.ceil("H", ambiguous=False)
+    DatetimeIndex(['2021-10-31 02:00:00+01:00'],
+                  dtype='datetime64[ns, Europe/Amsterdam]', freq=None)
+
+    >>> rng_tz.ceil("H", ambiguous=True)
+    DatetimeIndex(['2021-10-31 02:00:00+02:00'],
+                  dtype='datetime64[ns, Europe/Amsterdam]', freq=None)
     """
 
 

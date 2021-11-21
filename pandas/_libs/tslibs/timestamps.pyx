@@ -737,9 +737,42 @@ cdef class _Timestamp(ABCTimestamp):
     # -----------------------------------------------------------------
     # Rendering Methods
 
-    def isoformat(self, sep: str = "T") -> str:
-        base = super(_Timestamp, self).isoformat(sep=sep)
-        if self.nanosecond == 0:
+    def isoformat(self, sep: str = "T", timespec: str = "auto") -> str:
+        """
+        Return the time formatted according to ISO.
+
+        The full format looks like 'YYYY-MM-DD HH:MM:SS.mmmmmmnnn'.
+        By default, the fractional part is omitted if self.microsecond == 0
+        and self.nanosecond == 0.
+
+        If self.tzinfo is not None, the UTC offset is also attached, giving
+        giving a full format of 'YYYY-MM-DD HH:MM:SS.mmmmmmnnn+HH:MM'.
+
+        Parameters
+        ----------
+        sep : str, default 'T'
+            String used as the separator between the date and time.
+
+        timespec : str, default 'auto'
+            Specifies the number of additional terms of the time to include.
+            The valid values are 'auto', 'hours', 'minutes', 'seconds',
+            'milliseconds', 'microseconds', and 'nanoseconds'.
+
+        Returns
+        -------
+        str
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
+        >>> ts.isoformat()
+        '2020-03-14T15:32:52.192548651'
+        >>> ts.isoformat(timespec='microseconds')
+        '2020-03-14T15:32:52.192548'
+        """
+        base_ts = "microseconds" if timespec == "nanoseconds" else timespec
+        base = super(_Timestamp, self).isoformat(sep=sep, timespec=base_ts)
+        if self.nanosecond == 0 and timespec != "nanoseconds":
             return base
 
         if self.tzinfo is not None:
@@ -747,10 +780,11 @@ cdef class _Timestamp(ABCTimestamp):
         else:
             base1, base2 = base, ""
 
-        if self.microsecond != 0:
-            base1 += f"{self.nanosecond:03d}"
-        else:
-            base1 += f".{self.nanosecond:09d}"
+        if timespec == "nanoseconds" or (timespec == "auto" and self.nanosecond):
+            if self.microsecond:
+                base1 += f"{self.nanosecond:03d}"
+            else:
+                base1 += f".{self.nanosecond:09d}"
 
         return base1 + base2
 
@@ -900,6 +934,10 @@ cdef class _Timestamp(ABCTimestamp):
         >>> pd.NaT.to_numpy()
         numpy.datetime64('NaT')
         """
+        if dtype is not None or copy is not False:
+            raise ValueError(
+                "Timestamp.to_numpy dtype and copy arguments are ignored."
+            )
         return self.to_datetime64()
 
     def to_period(self, freq=None):
@@ -1424,6 +1462,13 @@ timedelta}, default 'raise'
         ------
         ValueError if the freq cannot be converted
 
+        Notes
+        -----
+        If the Timestamp has a timezone, rounding will take place relative to the
+        local ("wall") time and re-localized to the same timezone. When rounding
+        near daylight savings time, use ``nonexistent`` and ``ambiguous`` to
+        control the re-localization behavior.
+
         Examples
         --------
         Create a timestamp object:
@@ -1458,6 +1503,17 @@ timedelta}, default 'raise'
 
         >>> pd.NaT.round()
         NaT
+
+        When rounding near a daylight savings time transition, use ``ambiguous`` or
+        ``nonexistent`` to control how the timestamp should be re-localized.
+
+        >>> ts_tz = pd.Timestamp("2021-10-31 01:30:00").tz_localize("Europe/Amsterdam")
+
+        >>> ts_tz.round("H", ambiguous=False)
+        Timestamp('2021-10-31 02:00:00+0100', tz='Europe/Amsterdam')
+
+        >>> ts_tz.round("H", ambiguous=True)
+        Timestamp('2021-10-31 02:00:00+0200', tz='Europe/Amsterdam')
         """
         return self._round(
             freq, RoundTo.NEAREST_HALF_EVEN, ambiguous, nonexistent
@@ -1497,6 +1553,13 @@ timedelta}, default 'raise'
         ------
         ValueError if the freq cannot be converted.
 
+        Notes
+        -----
+        If the Timestamp has a timezone, flooring will take place relative to the
+        local ("wall") time and re-localized to the same timezone. When flooring
+        near daylight savings time, use ``nonexistent`` and ``ambiguous`` to
+        control the re-localization behavior.
+
         Examples
         --------
         Create a timestamp object:
@@ -1531,6 +1594,17 @@ timedelta}, default 'raise'
 
         >>> pd.NaT.floor()
         NaT
+
+        When rounding near a daylight savings time transition, use ``ambiguous`` or
+        ``nonexistent`` to control how the timestamp should be re-localized.
+
+        >>> ts_tz = pd.Timestamp("2021-10-31 03:30:00").tz_localize("Europe/Amsterdam")
+
+        >>> ts_tz.floor("2H", ambiguous=False)
+        Timestamp('2021-10-31 02:00:00+0100', tz='Europe/Amsterdam')
+
+        >>> ts_tz.floor("2H", ambiguous=True)
+        Timestamp('2021-10-31 02:00:00+0200', tz='Europe/Amsterdam')
         """
         return self._round(freq, RoundTo.MINUS_INFTY, ambiguous, nonexistent)
 
@@ -1568,6 +1642,13 @@ timedelta}, default 'raise'
         ------
         ValueError if the freq cannot be converted.
 
+        Notes
+        -----
+        If the Timestamp has a timezone, ceiling will take place relative to the
+        local ("wall") time and re-localized to the same timezone. When ceiling
+        near daylight savings time, use ``nonexistent`` and ``ambiguous`` to
+        control the re-localization behavior.
+
         Examples
         --------
         Create a timestamp object:
@@ -1602,6 +1683,17 @@ timedelta}, default 'raise'
 
         >>> pd.NaT.ceil()
         NaT
+
+        When rounding near a daylight savings time transition, use ``ambiguous`` or
+        ``nonexistent`` to control how the timestamp should be re-localized.
+
+        >>> ts_tz = pd.Timestamp("2021-10-31 01:30:00").tz_localize("Europe/Amsterdam")
+
+        >>> ts_tz.ceil("H", ambiguous=False)
+        Timestamp('2021-10-31 02:00:00+0100', tz='Europe/Amsterdam')
+
+        >>> ts_tz.ceil("H", ambiguous=True)
+        Timestamp('2021-10-31 02:00:00+0200', tz='Europe/Amsterdam')
         """
         return self._round(freq, RoundTo.PLUS_INFTY, ambiguous, nonexistent)
 

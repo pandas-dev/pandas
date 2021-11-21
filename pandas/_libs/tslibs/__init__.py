@@ -5,7 +5,6 @@ __all__ = [
     "NaTType",
     "iNaT",
     "nat_strings",
-    "is_null_datetimelike",
     "OutOfBoundsDatetime",
     "OutOfBoundsTimedelta",
     "IncompatibleFrequency",
@@ -38,7 +37,6 @@ from pandas._libs.tslibs.nattype import (
     NaT,
     NaTType,
     iNaT,
-    is_null_datetimelike,
     nat_strings,
 )
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
