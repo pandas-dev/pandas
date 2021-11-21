@@ -176,9 +176,7 @@ def coerce_to_array(
     if mask.any():
         values = values.copy()
         values[mask] = np.nan
-        values = values.astype(dtype, copy=False)  # , casting="safe")
-    else:
-        values = values.astype(dtype, copy=False)  # , casting="safe")
+    values = values.astype(dtype, copy=False)  # , casting="safe")
 
     return values, mask
 

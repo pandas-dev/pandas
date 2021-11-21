@@ -789,9 +789,9 @@ class TestNamePreservation:
 
         assert isinstance(result, Series)
         if box in [Index, Series]:
-            assert result.name == names[2]
+            assert result.name is names[2] or result.name == names[2]
         else:
-            assert result.name == names[0]
+            assert result.name is names[0] or result.name == names[0]
 
     def test_binop_maybe_preserve_name(self, datetime_series):
         # names match, preserve

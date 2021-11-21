@@ -1523,7 +1523,7 @@ def maybe_infer_to_datetimelike(
         try:
             # GH#19671 we pass require_iso8601 to be relatively strict
             #  when parsing strings.
-            dta = sequence_to_datetimes(v, require_iso8601=True, allow_object=False)
+            dta = sequence_to_datetimes(v, require_iso8601=True)
         except (ValueError, TypeError):
             # e.g. <class 'numpy.timedelta64'> is not convertible to datetime
             return v.reshape(shape)
@@ -1635,7 +1635,7 @@ def maybe_cast_to_datetime(
 
                 try:
                     if is_datetime64:
-                        dta = sequence_to_datetimes(value, allow_object=False)
+                        dta = sequence_to_datetimes(value)
                         # GH 25843: Remove tz information since the dtype
                         # didn't specify one
 
@@ -1663,7 +1663,7 @@ def maybe_cast_to_datetime(
                         # datetime64tz is assumed to be naive which should
                         # be localized to the timezone.
                         is_dt_string = is_string_dtype(value.dtype)
-                        dta = sequence_to_datetimes(value, allow_object=False)
+                        dta = sequence_to_datetimes(value)
                         if dta.tz is not None:
                             value = dta.astype(dtype, copy=False)
                         elif is_dt_string:
