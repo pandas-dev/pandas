@@ -370,7 +370,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             freq, freq_infer = dtl.validate_inferred_freq(
                 freq, inferred_freq, freq_infer
             )
-        except ValueError:
+        except ValueError as err:
             if isinstance(freq, Tick) and isinstance(inferred_freq, DayDST):
                 # It is possible that both could be valid, so we'll
                 #  go through _validate_frequency below
@@ -418,6 +418,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 "Of the four parameters: start, end, periods, "
                 "and freq, exactly three must be specified"
             )
+        freq = to_offset(freq)
 
         if start is not None:
             start = Timestamp(start)
@@ -432,11 +433,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         start, end, _normalized = _maybe_normalize_endpoints(start, end, normalize)
         tz = _infer_tz_from_endpoints(start, end, tz)
 
-        # If freq is a str, then we will interpret "D" as Day if we are tznaive
-        #  and as DayDST if tzaware
-        aware = tz is not None
-        freq = to_offset(freq, tzaware=aware)
-
         if tz is not None:
             # Localize the start and end arguments
             start_tz = None if start is None else start.tz
@@ -448,25 +444,22 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 end, end_tz, end, freq, tz, ambiguous, nonexistent
             )
         if freq is not None:
-
-            freq_tmp = freq
-            if isinstance(freq, DayDST):
-                # Much more performant to use generate_regular_range and
-                #  then tz_localize than to go through generate_range
-                freq_tmp = Day(freq.n)
-
-            if isinstance(freq_tmp, Day):
+            # FIXME: dont do this
+            # We break Day arithmetic (fixed 24 hour) here and opt for
+            # Day to mean calendar day (23/24/25 hour). Therefore, strip
+            # tz info from start and day to avoid DST arithmetic
+            if isinstance(freq, (Day, DayDST)):
+                if tz is not None:
+                    freq = DayDST(freq.n)
                 if start is not None:
                     start = start.tz_localize(None)
                 if end is not None:
                     end = end.tz_localize(None)
 
-            if isinstance(freq_tmp, Tick):
-                values = generate_regular_range(start, end, periods, freq_tmp)
+            if isinstance(freq, Tick):
+                values = generate_regular_range(start, end, periods, freq)
             else:
-                xdr = generate_range(
-                    start=start, end=end, periods=periods, offset=freq_tmp
-                )
+                xdr = generate_range(start=start, end=end, periods=periods, offset=freq)
                 values = np.array([x.value for x in xdr], dtype=np.int64)
 
             _tz = start.tz if start is not None else end.tz

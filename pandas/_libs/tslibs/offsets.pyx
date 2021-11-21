@@ -1025,7 +1025,7 @@ cdef class DayDST(SingleConstructorOffset):
         return True
 
     @apply_wraps
-    def apply(self, other):
+    def _apply(self, other):
         return other + Timedelta(days=self.n)
 
     @apply_index_wraps
