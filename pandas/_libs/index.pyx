@@ -857,7 +857,6 @@ cdef class SharedEngine:
     cdef _check_type(self, object obj):
         raise NotImplementedError
 
-
     cpdef get_loc(self, object val):
         # -> Py_ssize_t | slice | ndarray[bool]
         cdef:
