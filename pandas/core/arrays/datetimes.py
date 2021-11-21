@@ -686,11 +686,11 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
     def _format_array(
         self,
-        formatter: Callable,
-        float_format: FloatFormatType = None,
+        formatter: Callable | None,
+        *float_format: FloatFormatType,
         na_rep: str = "NaN",
-        digits: int | None = None,
-        space: str | int = None,
+        digits: int,
+        space: str | int,
         justify: str = "right",
         decimal: str = ".",
         leading_space: bool | None = True,

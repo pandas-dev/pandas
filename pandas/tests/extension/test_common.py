@@ -1,5 +1,9 @@
+from typing import Callable
+
 import numpy as np
 import pytest
+
+from pandas._typing import FloatFormatType
 
 from pandas.core.dtypes import dtypes
 from pandas.core.dtypes.common import is_extension_array_dtype
@@ -44,15 +48,15 @@ class DummyArrayNoAsarray(DummyArray):
 
     def _format_array(
         self,
-        formatter: None,
-        float_format: None,
-        na_rep="NaN",
-        digits=None,
-        space=None,
-        justify="right",
-        decimal=".",
-        leading_space=True,
-        quoting=None,
+        formatter: Callable | None,
+        *float_format: FloatFormatType,
+        na_rep: str = "NaN",
+        digits: int,
+        space: str | int,
+        justify: str = "right",
+        decimal: str = ".",
+        leading_space: bool | None = True,
+        quoting: int | None = None,
     ):
         return ["<MyEA>" for _ in self.data]
 
