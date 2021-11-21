@@ -143,10 +143,6 @@ cdef inline bint is_decimal_na(object val):
     return isinstance(val, cDecimal) and val != val
 
 
-cpdef bint checknull_old(object val):
-    return checknull(val, inf_as_na=True)
-
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cpdef ndarray[uint8_t] isnaobj(ndarray arr, bint inf_as_na=False):
@@ -186,12 +182,6 @@ cpdef ndarray[uint8_t] isnaobj(ndarray arr, bint inf_as_na=False):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def isnaobj_old(arr: ndarray) -> ndarray:
-    return isnaobj(arr, inf_as_na=True)
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
 def isnaobj2d(arr: ndarray, inf_as_na: bool = False) -> ndarray:
     """
     Return boolean mask denoting which elements of a 2-D array are na-like,
@@ -227,12 +217,6 @@ def isnaobj2d(arr: ndarray, inf_as_na: bool = False) -> ndarray:
             if checknull(val, inf_as_na=inf_as_na):
                 result[i, j] = 1
     return result.view(np.bool_)
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def isnaobj2d_old(arr: ndarray) -> ndarray:
-    return isnaobj2d(arr, inf_as_na=True)
 
 
 def isposinf_scalar(val: object) -> bool:
