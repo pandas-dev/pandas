@@ -272,6 +272,7 @@ class TestDataFrameAppend:
             tm.assert_frame_equal(result, expected)
 
     def test_append_raises_future_warning(self):
+        # GH#35407
         df1 = DataFrame([[1, 2], [3, 4]])
         df2 = DataFrame([[5, 6], [7, 8]])
         with tm.assert_produces_warning(FutureWarning):

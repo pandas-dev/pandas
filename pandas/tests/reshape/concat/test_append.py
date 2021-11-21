@@ -109,7 +109,8 @@ class TestAppend:
         df1 = DataFrame({"a": [1, 2], "b": [1, 2]}, columns=["b", "a"])
         df2 = DataFrame({"a": [1, 2], "c": [3, 4]}, index=[2, 3])
 
-        with tm.assert_produces_warning(None):
+        # GH#35407
+        with tm.assert_produces_warning(FutureWarning):
             result = df1.append(df2, sort=sort)
 
         # for None / True

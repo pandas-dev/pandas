@@ -84,6 +84,7 @@ class TestSeriesAppend:
             df.A.append([df])
 
     def test_append_raises_future_warning(self):
+        # GH#35407
         with tm.assert_produces_warning(FutureWarning):
             Series([1, 2]).append(Series([3, 4]))
 
