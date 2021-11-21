@@ -101,14 +101,14 @@ def to_orc(
             assert engine.__name__ == 'pyarrow', "engine must be 'pyarrow' module"
             assert hasattr(engine, 'orc'), "'pyarrow' module must have orc module"
         except ImportError as e:
-            raise ValueError (
-            "Unable to find a usable engine; "
-            "tried using: 'pyarrow'.\n"
-            "A suitable version of "
-            "pyarrow is required for ORC support.\n"
-            "Trying to import the above resulted in these errors:"
-            f"\n - {e}"
-        )
+            raise ValueError(
+                "Unable to find a usable engine; "
+                "tried using: 'pyarrow'.\n"
+                "A suitable version of "
+                "pyarrow is required for ORC support.\n"
+                "Trying to import the above resulted in these errors:"
+                f"\n - {e}"
+            )
 
     if path is None:
         # to bytes: pyarrow auto closes buffers hence we read a pyarrow buffer
