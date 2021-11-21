@@ -18,6 +18,23 @@ tool for all situations. If you're working with very large datasets and a tool
 like PostgreSQL fits your needs, then you should probably be using that.
 Assuming you want or need the expressiveness and power of pandas, let's carry on.
 
+.. ipython:: python
+
+   import pandas as pd
+   import numpy as np
+
+.. ipython:: python
+   :suppress:
+
+   from pandas._testing import _make_timeseries
+
+   # Make a random in-memory dataset
+   ts = _make_timeseries(freq="30S", seed=0)
+   ts.to_csv("timeseries.csv")
+   ts.to_orc("timeseries.orc")
+   ts.to_parquet("timeseries.parquet")
+
+
 Load less data
 --------------
 

@@ -2629,6 +2629,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         See Also
         --------
         read_hdf : Read from HDF file.
+        DataFrame.to_orc : Write a DataFrame to the binary orc format.
         DataFrame.to_parquet : Write a DataFrame to the binary parquet format.
         DataFrame.to_sql : Write to a SQL table.
         DataFrame.to_feather : Write out feather-format for DataFrames.
