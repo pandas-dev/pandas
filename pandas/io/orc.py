@@ -1,9 +1,6 @@
 """ orc compat """
 from __future__ import annotations
 
-import os
-import pandas._testing as tm
-
 from typing import TYPE_CHECKING
 from tempfile import gettempdir
 
@@ -66,7 +63,7 @@ def to_orc(
     **kwargs
 ) -> bytes:
     """
-    Write a DataFrame to the orc/arrow format.
+    Write a DataFrame to the ORC format.
     Parameters
     ----------
     df : DataFrame
@@ -74,12 +71,12 @@ def to_orc(
         If a string, it will be used as Root Directory path
         when writing a partitioned dataset. By file-like object,
         we refer to objects with a write() method, such as a file handle
-        (e.g. via builtin open function) or io.BytesIO. The engine
-        fastparquet does not accept file-like objects. If path is None,
-        a bytes object is returned.
+        (e.g. via builtin open function). If path is None,
+        a bytes object is returned. Note that currently the pyarrow
+        engine doesn't work with io.BytesIO.
     engine : {{'pyarrow'}}, default 'pyarrow'
         Parquet library to use, or library it self, checked with 'pyarrow' name
-        and version > 4.0.0
+        and version >= 5.0.0
     index : bool, default None
         If ``True``, include the dataframe's index(es) in the file output. If
         ``False``, they will not be written to the file.
@@ -96,25 +93,31 @@ def to_orc(
     """
     if index is None:
         index = df.index.names[0] is not None
-    
+
     if isinstance(engine, str):
-        engine = import_optional_dependency(engine, min_version='4.0.0')
+        engine = import_optional_dependency(engine, min_version='5.0.0')
     else:
         try:
             assert engine.__name__ == 'pyarrow', "engine must be 'pyarrow' module"
             assert hasattr(engine, 'orc'), "'pyarrow' module must have orc module"
-        except Exception as e:
-            raise ValueError("Wrong engine passed, %s" % e)
-            
+        except ImportError as e:
+            raise ValueError (
+            "Unable to find a usable engine; "
+            "tried using: 'pyarrow'.\n"
+            "A suitable version of "
+            "pyarrow is required for ORC support.\n"
+            "Trying to import the above resulted in these errors:"
+            f"\n - {e}"
+        )
+
     if path is None:
-        # to bytes: tmp path, pyarrow auto closes buffers
-        with tm.ensure_clean(os.path.join(gettempdir(), os.urandom(12).hex())) as path:
-            engine.orc.write_table(
-                engine.Table.from_pandas(df, preserve_index=index),
-                path, **kwargs
-            )
-            with open(path, 'rb') as path:
-                return path.read()
+        # to bytes: pyarrow auto closes buffers hence we read a pyarrow buffer
+        stream = engine.BufferOutputStream()
+        engine.orc.write_table(
+            engine.Table.from_pandas(df, preserve_index=index),
+            stream, **kwargs
+        )
+        return stream.getvalue().to_pybytes()
     else:
         engine.orc.write_table(
             engine.Table.from_pandas(df, preserve_index=index),
