@@ -356,6 +356,7 @@ def ndarray_to_mgr(
         else:
             if is_datetime_or_timedelta_dtype(values.dtype):
                 values = ensure_wrapped_if_datetimelike(values)
+            # copy the array to ensure contiguous memory
             arrays = [values[:, i].copy() for i in range(values.shape[1])]
 
         return ArrayManager(arrays, [index, columns], verify_integrity=False)

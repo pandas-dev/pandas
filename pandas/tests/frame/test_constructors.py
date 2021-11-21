@@ -256,12 +256,17 @@ class TestDataFrameConstructors:
         should_be_view[0][0] = 99
         assert df.values[0, 0] == 99
 
-    @td.skip_array_manager_invalid_test  # TODO(ArrayManager) keep view on 2D array?
-    def test_constructor_dtype_nocast_view_2d_array(self):
-        df = DataFrame([[1, 2]])
-        should_be_view = DataFrame(df.values, dtype=df[0].dtype)
-        should_be_view[0][0] = 97
-        assert df.values[0, 0] == 97
+    def test_constructor_dtype_nocast_view_2d_array(self, using_array_manager):
+        df = DataFrame([[1, 2], [3, 4]], dtype="int64")
+        if not using_array_manager:
+            should_be_view = DataFrame(df.values, dtype=df[0].dtype)
+            should_be_view[0][0] = 97
+            assert df.values[0, 0] == 97
+        else:
+            # INFO(ArrayManager) DataFrame(ndarray) doesn't necessarily preserve
+            # a view on the array to ensure contiguous 1D arrays
+            df2 = DataFrame(df.values, dtype=df[0].dtype)
+            assert df2._mgr.arrays[0].flags.c_contiguous
 
     @td.skip_array_manager_invalid_test
     def test_1d_object_array_does_not_copy(self):
