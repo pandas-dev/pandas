@@ -226,7 +226,10 @@ class TestDataFrameValues:
 
 
 class TestPrivateValues:
-    def test_private_values_dt64tz(self, request):
+    def test_private_values_dt64tz(self, using_array_manager, request):
+        if using_array_manager:
+            mark = pytest.mark.xfail(reason="doesn't share memory")
+            request.node.add_marker(mark)
 
         dta = date_range("2000", periods=4, tz="US/Central")._data.reshape(-1, 1)
 
