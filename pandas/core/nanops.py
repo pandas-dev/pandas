@@ -463,6 +463,7 @@ def maybe_operate_rowwise(func: F) -> F:
             axis == 1
             and values.ndim == 2
             and values.flags["C_CONTIGUOUS"]
+            and (values.shape[1] / values.shape[0]) > 1000
             and values.dtype != object
             and values.dtype != bool
         ):
