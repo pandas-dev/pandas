@@ -616,6 +616,8 @@ Indexing
 - Bug in :meth:`Series.__setitem__` with a boolean mask indexer setting a listlike value of length 1 incorrectly broadcasting that value (:issue:`44265`)
 - Bug in :meth:`DataFrame.loc.__setitem__` and :meth:`DataFrame.iloc.__setitem__` with mixed dtypes sometimes failing to operate in-place (:issue:`44345`)
 - Bug in :meth:`DataFrame.loc.__getitem__` incorrectly raising ``KeyError`` when selecting a single column with a boolean key (:issue:`44322`).
+- Bug in indexing on columns with ``loc`` or ``iloc`` using a slice with a negative step with ``ExtensionDtype`` columns incorrectly raising (:issue:`??`)
+-
 
 Missing
 ^^^^^^^

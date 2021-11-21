@@ -1148,6 +1148,17 @@ class TestiLocBaseIndependent:
         expected = DataFrame({"a": [5, 1, 10]})
         tm.assert_frame_equal(df, expected)
 
+    def test_iloc_getitem_slice_negative_step_ea_block(self):
+        df = DataFrame({"A": [1, 2, 3]}, dtype="Int64")
+
+        res = df.iloc[:, ::-1]
+        tm.assert_frame_equal(res, df)
+
+        df["B"] = "foo"
+        res = df.iloc[:, ::-1]
+        expected = DataFrame({"B": df["B"], "A": df["A"]})
+        tm.assert_frame_equal(res, expected)
+
 
 class TestILocErrors:
     # NB: this test should work for _any_ Series we can pass as
