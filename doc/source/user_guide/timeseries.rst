@@ -1273,17 +1273,32 @@ frequencies. We will refer to these aliases as *offset aliases*.
 
 .. note::
 
-   When using the offset aliases above, it should be noted that functions
-   such as ``date_range``, ``bdate_range``, will only return timestamps that
-   are in the interval defined by ``start_date`` and ``end_date``. If the
-   ``start_date`` does not correspond to the frequency, the returned timestamps
-   will start at the next valid timestamp, same for ``end_date``, the returned
-   timestamps will stop at the previous valid timestamp.
+    When using the offset aliases above, it should be noted that functions
+    such as :func:`date_range`, :func:`bdate_range`, will only return
+    timestamps that are in the interval defined by ``start_date`` and
+    ``end_date``. If the ``start_date`` does not correspond to the frequency,
+    the returned timestamps will start at the next valid timestamp, same for
+    ``end_date``, the returned timestamps will stop at the previous valid
+    timestamp.
 
    For example, for the offset ``MS``, if the ``start_date`` is not the first
    of the month, the returned timestamps will start with the first day of the
    next month. If ``end_date`` is not the first day of a month, the last
    returned timestamp will be the first day of the corresponding month.
+
+   .. ipython:: python
+
+       dates_lst_1 = pd.date_range("2020-01-06", "2020-04-03", freq="MS")
+       dates_lst_1
+
+       dates_lst_2 = pd.date_range("2020-01-01", "2020-04-01", freq="MS")
+       dates_lst_2
+
+    We can see in the above example :func:`date_range` and
+    :func:`bdate_range` will only return the valid timestamps between the
+    `start_date` and `end_date`. If these are not valid timestamps for the
+    given frequency it will roll to the next value for ``start_date``
+    (respectively previous for the ``end_date``)
 
 
 Combining aliases
