@@ -14,6 +14,7 @@ from pandas import (
 import pandas._testing as tm
 
 
+@pytest.mark.filterwarnings("ignore:.*append method is deprecated.*:FutureWarning")
 class TestCrosstab:
     def setup_method(self, method):
         df = DataFrame(
@@ -796,6 +797,7 @@ class TestCrosstab:
         tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:.*append method is deprecated.*:FutureWarning")
 @pytest.mark.parametrize("a_dtype", ["category", "int64"])
 @pytest.mark.parametrize("b_dtype", ["category", "int64"])
 def test_categoricals(a_dtype, b_dtype):
