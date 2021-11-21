@@ -104,7 +104,7 @@ from pandas._libs.tslibs.nattype cimport (
     _nat_scalar_rules,
     c_NaT as NaT,
     c_nat_strings as nat_strings,
-    is_null_datetimelike,
+    checknull_with_nat,
 )
 from pandas._libs.tslibs.offsets cimport (
     BaseOffset,
@@ -1459,10 +1459,13 @@ def extract_ordinals(ndarray[object] values, freq) -> np.ndarray:
     for i in range(n):
         p = values[i]
 
-        if is_null_datetimelike(p):
+        if checknull_with_nat(p):
             ordinals[i] = NPY_NAT
         elif util.is_integer_object(p):
-            raise TypeError(p)
+            if p == NPY_NAT:
+                ordinals[i] = NPY_NAT
+            else:
+                raise TypeError(p)
         else:
             try:
                 ordinals[i] = p.ordinal
@@ -2473,14 +2476,17 @@ class Period(_Period):
                 converted = other.asfreq(freq)
                 ordinal = converted.ordinal
 
-        elif is_null_datetimelike(value) or (isinstance(value, str) and
-                                             value in nat_strings):
+        elif checknull_with_nat(value) or (isinstance(value, str) and
+                                           value in nat_strings):
             # explicit str check is necessary to avoid raising incorrectly
             #  if we have a non-hashable value.
             ordinal = NPY_NAT
 
         elif isinstance(value, str) or util.is_integer_object(value):
             if util.is_integer_object(value):
+                if value == NPY_NAT:
+                    value = "NaT"
+
                 value = str(value)
             value = value.upper()
             dt, reso = parse_time_string(value, freq)
