@@ -546,7 +546,7 @@ Datetimelike
 - Bug in constructing a :class:`Series` from datetime-like strings with mixed timezones incorrectly partially-inferring datetime values (:issue:`40111`)
 - Bug in addition with a :class:`Tick` object and a ``np.timedelta64`` object incorrectly raising instead of returning :class:`Timedelta` (:issue:`44474`)
 - Bug in adding a ``np.timedelta64`` object to a :class:`BusinessDay` or :class:`CustomBusinessDay` object incorrectly raising (:issue:`44532`)
-- Bug in :meth:`Index.insert` for inserting ``np.datetime64``, ``np.timedelta64`` or ``tuple`` into :class:`Index` with ``dtype='object'`` with negative loc addine ``None`` and replacing existing value (:issue:`44509`)
+- Bug in :meth:`Index.insert` for inserting ``np.datetime64``, ``np.timedelta64`` or ``tuple`` into :class:`Index` with ``dtype='object'`` with negative loc adding ``None`` and replacing existing value (:issue:`44509`)
 -
 
 Timedelta
@@ -614,6 +614,7 @@ Indexing
 - Bug when setting string-backed :class:`Categorical` values that can be parsed to datetimes into a :class:`DatetimeArray` or :class:`Series` or :class:`DataFrame` column backed by :class:`DatetimeArray` failing to parse these strings (:issue:`44236`)
 - Bug in :meth:`Series.__setitem__` with an integer dtype other than ``int64`` setting with a ``range`` object unnecessarily upcasting to ``int64`` (:issue:`44261`)
 - Bug in :meth:`Series.__setitem__` with a boolean mask indexer setting a listlike value of length 1 incorrectly broadcasting that value (:issue:`44265`)
+- Bug in :meth:`Series.reset_index` not ignoring ``name`` argument when ``drop`` and ``inplace`` are set to ``True`` (:issue:`44575`)
 - Bug in :meth:`DataFrame.loc.__setitem__` and :meth:`DataFrame.iloc.__setitem__` with mixed dtypes sometimes failing to operate in-place (:issue:`44345`)
 - Bug in :meth:`DataFrame.loc.__getitem__` incorrectly raising ``KeyError`` when selecting a single column with a boolean key (:issue:`44322`).
 
