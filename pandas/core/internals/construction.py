@@ -319,7 +319,7 @@ def ndarray_to_mgr(
     else:
         # by definition an array here
         # the dtypes will be coerced to a single dtype
-        values = _prep_ndarray(values, copy=copy)
+        values = _prep_ndarray(values, copy=False if typ == "array" else copy)
 
     if dtype is not None and not is_dtype_equal(values.dtype, dtype):
         shape = values.shape
@@ -328,8 +328,9 @@ def ndarray_to_mgr(
         # GH#40110 see similar check inside sanitize_array
         rcf = not (is_integer_dtype(dtype) and values.dtype.kind == "f")
 
+        copy_on_sanitize = False if typ == "array" else copy
         values = sanitize_array(
-            flat, None, dtype=dtype, copy=copy, raise_cast_failure=rcf
+            flat, None, dtype=dtype, copy=copy_on_sanitize, raise_cast_failure=rcf
         )
 
         values = values.reshape(shape)
@@ -353,11 +354,15 @@ def ndarray_to_mgr(
                 )
                 for i in range(values.shape[1])
             ]
+            if copy:
+                arrays = [arr.copy() for arr in arrays]
         else:
             if is_datetime_or_timedelta_dtype(values.dtype):
                 values = ensure_wrapped_if_datetimelike(values)
-            # copy the array to ensure contiguous memory
-            arrays = [values[:, i].copy() for i in range(values.shape[1])]
+            if copy:
+                arrays = [values[:, i].copy() for i in range(values.shape[1])]
+            else:
+                arrays = [values[:, i] for i in range(values.shape[1])]
 
         return ArrayManager(arrays, [index, columns], verify_integrity=False)
 
