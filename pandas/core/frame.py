@@ -615,7 +615,11 @@ class DataFrame(NDFrame, OpsMixin):
             if isinstance(data, dict) or data is None:
                 # retain pre-GH#38939 default behavior
                 copy = True
-            elif manager == "array" and isinstance(data, np.ndarray):
+            elif (
+                manager == "array"
+                and isinstance(data, (np.ndarray, ExtensionArray))
+                and data.ndim == 2
+            ):
                 # INFO(ArrayManager) by default copy the 2D input array to get
                 # contiguous 1D arrays
                 copy = True
