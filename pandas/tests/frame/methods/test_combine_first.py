@@ -209,15 +209,15 @@ class TestDataFrameCombineFirst:
         )
         tm.assert_frame_equal(res, exp)
         assert res["a"].dtype == "datetime64[ns]"
-        # ToDo: this must be int64
+        # TODO: this must be int64
         assert res["b"].dtype == "int64"
 
         res = dfa.iloc[:0].combine_first(dfb)
         exp = DataFrame({"a": [np.nan, np.nan], "b": [4, 5]}, columns=["a", "b"])
         tm.assert_frame_equal(res, exp)
-        # ToDo: this must be datetime64
+        # TODO: this must be datetime64
         assert res["a"].dtype == "float64"
-        # ToDo: this must be int64
+        # TODO: this must be int64
         assert res["b"].dtype == "int64"
 
     def test_combine_first_timezone(self):

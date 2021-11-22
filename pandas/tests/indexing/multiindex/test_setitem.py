@@ -368,8 +368,7 @@ class TestMultiIndexSetItem:
         assert sliced_a2.name == ("A", "2")
         assert sliced_b1.name == ("B", "1")
 
-    # TODO: no setitem here?
-    def test_getitem_setitem_tuple_plus_columns(
+    def test_loc_getitem_tuple_plus_columns(
         self, multiindex_year_month_day_dataframe_random_data
     ):
         # GH #1013

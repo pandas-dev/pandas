@@ -36,6 +36,12 @@ from pandas.tseries.offsets import BDay
 
 
 class TestSeriesGetitemScalars:
+    def test_getitem_object_index_float_string(self):
+        # GH#17286
+        ser = Series([1] * 4, index=Index(["a", "b", "c", 1.0]))
+        assert ser["a"] == 1
+        assert ser[1.0] == 1
+
     def test_getitem_float_keys_tuple_values(self):
         # see GH#13509
 
