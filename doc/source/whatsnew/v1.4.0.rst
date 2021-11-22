@@ -214,6 +214,8 @@ Other enhancements
 - :meth:`Timestamp.isoformat`, now handles the ``timespec`` argument from the base :class:``datetime`` class (:issue:`26131`)
 - :meth:`NaT.to_numpy` ``dtype`` argument is now respected, so ``np.timedelta64`` can be returned (:issue:`44460`)
 - New option ``display.max_dir_items`` customizes the number of columns added to :meth:`Dataframe.__dir__` and suggested for tab completion (:issue:`37996`)
+- Added "Juneteenth National Independence Day" to
+  ``USFederalHolidayCalendar``.  See also `Other API changes`_.
 
 
 .. ---------------------------------------------------------------------------
@@ -401,6 +403,18 @@ Other API changes
 - :meth:`Index.get_indexer_for` no longer accepts keyword arguments (other than 'target'); in the past these would be silently ignored if the index was not unique (:issue:`42310`)
 - Change in the position of the ``min_rows`` argument in :meth:`DataFrame.to_string` due to change in the docstring (:issue:`44304`)
 - Reduction operations for :class:`DataFrame` or :class:`Series` now raising a ``ValueError`` when ``None`` is passed for ``skipna`` (:issue:`44178`)
+- Changed the ``name`` attribute of several holidays in
+  ``USFederalHolidayCalendar`` to match `official federal holiday
+  names <https://www.opm.gov/policy-data-oversight/pay-leave/federal-holidays/>`_
+  specifically:
+
+   - "New Year's Day" gains the possessive apostrophe
+   - "Presidents Day" becomes "Washington's Birthday"
+   - "Martin Luther King Jr. Day" is now "Birthday of Martin Luther King, Jr."
+   - "July 4th" is now "Independence Day"
+   - "Thanksgiving" is now "Thanksgiving Day"
+   - "Christmas" is now "Christmas Day"
+   - Added "Juneteenth National Independence Day"
 -
 
 .. ---------------------------------------------------------------------------
