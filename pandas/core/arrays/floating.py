@@ -4,7 +4,10 @@ from typing import overload
 
 import numpy as np
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+    missing as libmissing,
+)
 from pandas._typing import (
     ArrayLike,
     AstypeArg,

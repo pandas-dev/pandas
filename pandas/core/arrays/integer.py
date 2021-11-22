@@ -7,6 +7,7 @@ import numpy as np
 from pandas._libs import (
     iNaT,
     lib,
+    missing as libmissing,
 )
 from pandas._typing import (
     ArrayLike,

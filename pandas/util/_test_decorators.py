@@ -285,6 +285,11 @@ def async_mark():
     return async_mark
 
 
+xfail_array_manager = pytest.mark.skipif(
+    get_option("mode.data_manager") == "array",
+    reason="Fails with ArrayManager",
+)
+
 skip_array_manager_not_yet_implemented = pytest.mark.skipif(
     get_option("mode.data_manager") == "array",
     reason="Not yet implemented for ArrayManager",

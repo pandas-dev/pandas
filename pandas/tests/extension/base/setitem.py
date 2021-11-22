@@ -364,8 +364,13 @@ class BaseSetitemTests(BaseExtensionTests):
         )
         self.assert_series_equal(result, expected)
 
-    def test_setitem_frame_2d_values(self, data, using_array_manager, request):
+    def test_setitem_frame_2d_values(self, data, request):
         # GH#44514
+        df = pd.DataFrame({"A": data})
+
+        # Avoiding using_array_manager fixture
+        #  https://github.com/pandas-dev/pandas/pull/44514#discussion_r754002410
+        using_array_manager = isinstance(df._mgr, pd.core.internals.ArrayManager)
         if using_array_manager:
             if not isinstance(
                 data.dtype, (PandasDtype, PeriodDtype, IntervalDtype, DatetimeTZDtype)
