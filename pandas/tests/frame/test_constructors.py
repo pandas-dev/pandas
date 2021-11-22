@@ -70,6 +70,19 @@ MIXED_INT_DTYPES = [
 
 
 class TestDataFrameConstructors:
+    def test_constructor_dict_with_tzaware_scalar(self):
+        # GH#42505
+        dt = Timestamp("2019-11-03 01:00:00-0700").tz_convert("America/Los_Angeles")
+
+        df = DataFrame({"dt": dt}, index=[0])
+        expected = DataFrame({"dt": [dt]})
+        tm.assert_frame_equal(df, expected)
+
+        # Non-homogeneous
+        df = DataFrame({"dt": dt, "value": [1]})
+        expected = DataFrame({"dt": [dt], "value": [1]})
+        tm.assert_frame_equal(df, expected)
+
     def test_construct_ndarray_with_nas_and_int_dtype(self):
         # GH#26919 match Series by not casting np.nan to meaningless int
         arr = np.array([[1, np.nan], [2, 3]])
@@ -2888,8 +2901,8 @@ class TestFromScalar:
         obj = constructor(td, dtype="m8[ns]")
         assert get1(obj) == td
 
-    def test_from_timestamp_scalar_preserves_nanos(self, constructor):
-        ts = Timestamp.now() + Timedelta(1)
+    def test_from_timestamp_scalar_preserves_nanos(self, constructor, fixed_now_ts):
+        ts = fixed_now_ts + Timedelta(1)
 
         obj = constructor(ts, dtype="M8[ns]")
         assert get1(obj) == ts
