@@ -399,6 +399,7 @@ Other API changes
 ^^^^^^^^^^^^^^^^^
 - :meth:`Index.get_indexer_for` no longer accepts keyword arguments (other than 'target'); in the past these would be silently ignored if the index was not unique (:issue:`42310`)
 - Change in the position of the ``min_rows`` argument in :meth:`DataFrame.to_string` due to change in the docstring (:issue:`44304`)
+- Reduction operations for :class:`DataFrame` or :class:`Series` nor raising a ``ValueError`` when ``None`` is passed for ``skipna`` (:issue:`44178`)
 -
 
 .. ---------------------------------------------------------------------------
