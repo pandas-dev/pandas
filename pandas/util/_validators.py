@@ -12,6 +12,8 @@ import warnings
 
 import numpy as np
 
+from pandas.util._exceptions import find_stack_level
+
 from pandas.core.dtypes.common import (
     is_bool,
     is_integer,
@@ -339,7 +341,7 @@ def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
             "positional arguments for 'index' or 'columns' will raise "
             "a 'TypeError'."
         )
-        warnings.warn(msg, FutureWarning, stacklevel=4)
+        warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
         out[data._get_axis_name(0)] = args[0]
         out[data._get_axis_name(1)] = args[1]
     else:

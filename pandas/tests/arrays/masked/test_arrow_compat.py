@@ -1,12 +1,11 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 import pandas._testing as tm
+from pandas.api.types import pandas_dtype
 
-pa = pytest.importorskip("pyarrow", minversion="0.17.0")
+pa = pytest.importorskip("pyarrow", minversion="1.0.1")
 
 from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask
 
@@ -20,22 +19,6 @@ def data(request):
     return request.param
 
 
-@pytest.fixture(
-    params=[
-        pd.Int8Dtype,
-        pd.Int16Dtype,
-        pd.Int32Dtype,
-        pd.Int64Dtype,
-        pd.UInt8Dtype,
-        pd.UInt16Dtype,
-        pd.UInt32Dtype,
-        pd.UInt64Dtype,
-    ]
-)
-def int_dtype(request):
-    return request.param()
-
-
 def test_arrow_array(data):
     arr = pa.array(data)
     expected = pa.array(
@@ -45,7 +28,6 @@ def test_arrow_array(data):
     assert arr.equals(expected)
 
 
-@td.skip_if_no("pyarrow")
 def test_arrow_roundtrip(data):
     df = pd.DataFrame({"a": data})
     table = pa.table(df)
@@ -55,19 +37,18 @@ def test_arrow_roundtrip(data):
     tm.assert_frame_equal(result, df)
 
 
-@td.skip_if_no("pyarrow")
-def test_dataframe_from_arrow_type_mapper(int_dtype):
-    pyarrow = pytest.importorskip("pyarrow", minversion="3.0.0")
+def test_dataframe_from_arrow_types_mapper(any_int_ea_dtype):
+    int_dtype = pandas_dtype(any_int_ea_dtype)
 
     def types_mapper(arrow_type):
-        if pyarrow.types.is_boolean(arrow_type):
+        if pa.types.is_boolean(arrow_type):
             return pd.BooleanDtype()
-        elif pyarrow.types.is_integer(arrow_type):
+        elif pa.types.is_integer(arrow_type):
             return int_dtype
 
-    bools_array = pyarrow.array([True, None, False], type=pyarrow.bool_())
-    ints_array = pyarrow.array([1, None, 2], type=pyarrow.int64())
-    record_batch = pyarrow.RecordBatch.from_arrays(
+    bools_array = pa.array([True, None, False], type=pa.bool_())
+    ints_array = pa.array([1, None, 2], type=pa.int64())
+    record_batch = pa.RecordBatch.from_arrays(
         [bools_array, ints_array], ["bools", "ints"]
     )
     result = record_batch.to_pandas(types_mapper=types_mapper)
@@ -77,7 +58,6 @@ def test_dataframe_from_arrow_type_mapper(int_dtype):
     tm.assert_frame_equal(result, expected)
 
 
-@td.skip_if_no("pyarrow")
 def test_arrow_load_from_zero_chunks(data):
     # GH-41040
 
@@ -92,7 +72,6 @@ def test_arrow_load_from_zero_chunks(data):
     tm.assert_frame_equal(result, df)
 
 
-@td.skip_if_no("pyarrow")
 def test_arrow_from_arrow_uint():
     # https://github.com/pandas-dev/pandas/issues/31896
     # possible mismatch in types
@@ -104,7 +83,6 @@ def test_arrow_from_arrow_uint():
     tm.assert_extension_array_equal(result, expected)
 
 
-@td.skip_if_no("pyarrow")
 def test_arrow_sliced(data):
     # https://github.com/pandas-dev/pandas/issues/38525
 
@@ -199,7 +177,6 @@ def test_pyarrow_array_to_numpy_and_mask(np_dtype_to_arrays):
     tm.assert_numpy_array_equal(mask, mask_expected_empty)
 
 
-@td.skip_if_no("pyarrow")
 def test_from_arrow_type_error(request, data):
     # ensure that __from_arrow__ returns a TypeError when getting a wrong
     # array type
