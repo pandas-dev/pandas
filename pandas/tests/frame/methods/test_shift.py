@@ -379,6 +379,7 @@ class TestDataFrameShift:
     def test_shift_dt64values_axis1_invalid_fill(
         self, vals, as_cat, using_array_manager, request
     ):
+        # GH#44564
         if using_array_manager:
             mark = pytest.mark.xfail(raises=NotImplementedError)
             request.node.add_marker(mark)
