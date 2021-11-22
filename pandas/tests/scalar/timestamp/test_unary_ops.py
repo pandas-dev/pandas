@@ -490,10 +490,10 @@ class TestTimestampUnaryOps:
     # --------------------------------------------------------------
 
     @td.skip_if_windows
-    def test_timestamp(self):
+    def test_timestamp(self, fixed_now_ts):
         # GH#17329
         # tz-naive --> treat it as if it were UTC for purposes of timestamp()
-        ts = Timestamp.now()
+        ts = fixed_now_ts
         uts = ts.replace(tzinfo=utc)
         assert ts.timestamp() == uts.timestamp()
 

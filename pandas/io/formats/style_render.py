@@ -316,7 +316,7 @@ class StylerRenderer:
             self.columns, sparsify_cols, max_cols, self.hidden_columns
         )
 
-        clabels = self.data.columns.tolist()[:max_cols]  # slice to allow trimming
+        clabels = self.data.columns.tolist()
         if self.data.columns.nlevels == 1:
             clabels = [[x] for x in clabels]
         clabels = list(zip(*clabels))
@@ -339,7 +339,9 @@ class StylerRenderer:
             and not all(self.hide_index_)
             and not self.hide_index_names
         ):
-            index_names_row = self._generate_index_names_row(clabels, max_cols)
+            index_names_row = self._generate_index_names_row(
+                clabels, max_cols, col_lengths
+            )
             head.append(index_names_row)
 
         return head
@@ -389,9 +391,27 @@ class StylerRenderer:
             )
         ]
 
-        column_headers = []
+        column_headers, visible_col_count = [], 0
         for c, value in enumerate(clabels[r]):
             header_element_visible = _is_visible(c, r, col_lengths)
+            if header_element_visible:
+                visible_col_count += col_lengths.get((r, c), 0)
+            if visible_col_count > max_cols:
+                # add an extra column with `...` value to indicate trimming
+                column_headers.append(
+                    _element(
+                        "th",
+                        (
+                            f"{self.css['col_heading']} {self.css['level']}{r} "
+                            f"{self.css['col_trim']}"
+                        ),
+                        "...",
+                        True,
+                        attributes="",
+                    )
+                )
+                break
+
             header_element = _element(
                 "th",
                 (
@@ -422,23 +442,9 @@ class StylerRenderer:
 
             column_headers.append(header_element)
 
-        if len(self.data.columns) > max_cols:
-            # add an extra column with `...` value to indicate trimming
-            column_headers.append(
-                _element(
-                    "th",
-                    (
-                        f"{self.css['col_heading']} {self.css['level']}{r} "
-                        f"{self.css['col_trim']}"
-                    ),
-                    "...",
-                    True,
-                    attributes="",
-                )
-            )
         return index_blanks + column_name + column_headers
 
-    def _generate_index_names_row(self, iter: tuple, max_cols):
+    def _generate_index_names_row(self, iter: tuple, max_cols: int, col_lengths: dict):
         """
         Generate the row containing index names
 
@@ -470,22 +476,37 @@ class StylerRenderer:
             for c, name in enumerate(self.data.index.names)
         ]
 
-        if not clabels:
-            blank_len = 0
-        elif len(self.data.columns) <= max_cols:
-            blank_len = len(clabels[0])
-        else:
-            blank_len = len(clabels[0]) + 1  # to allow room for `...` trim col
+        column_blanks, visible_col_count = [], 0
+        if clabels:
+            last_level = self.columns.nlevels - 1  # use last level since never sparsed
+            for c, value in enumerate(clabels[last_level]):
+                header_element_visible = _is_visible(c, last_level, col_lengths)
+                if header_element_visible:
+                    visible_col_count += 1
+                if visible_col_count > max_cols:
+                    column_blanks.append(
+                        _element(
+                            "th",
+                            (
+                                f"{self.css['blank']} {self.css['col']}{c} "
+                                f"{self.css['col_trim']}"
+                            ),
+                            self.css["blank_value"],
+                            True,
+                            attributes="",
+                        )
+                    )
+                    break
 
-        column_blanks = [
-            _element(
-                "th",
-                f"{self.css['blank']} {self.css['col']}{c}",
-                self.css["blank_value"],
-                c not in self.hidden_columns,
-            )
-            for c in range(blank_len)
-        ]
+                column_blanks.append(
+                    _element(
+                        "th",
+                        f"{self.css['blank']} {self.css['col']}{c}",
+                        self.css["blank_value"],
+                        c not in self.hidden_columns,
+                    )
+                )
+
         return index_names + column_blanks
 
     def _translate_body(self, sparsify_index: bool, max_rows: int, max_cols: int):
@@ -561,31 +582,36 @@ class StylerRenderer:
             for c in range(self.data.index.nlevels)
         ]
 
-        data = [
-            _element(
-                "td",
-                f"{self.css['data']} {self.css['col']}{c} {self.css['row_trim']}",
-                "...",
-                (c not in self.hidden_columns),
-                attributes="",
-            )
-            for c in range(max_cols)
-        ]
+        data, visible_col_count = [], 0
+        for c, _ in enumerate(self.columns):
+            data_element_visible = c not in self.hidden_columns
+            if data_element_visible:
+                visible_col_count += 1
+            if visible_col_count > max_cols:
+                data.append(
+                    _element(
+                        "td",
+                        (
+                            f"{self.css['data']} {self.css['row_trim']} "
+                            f"{self.css['col_trim']}"
+                        ),
+                        "...",
+                        True,
+                        attributes="",
+                    )
+                )
+                break
 
-        if len(self.data.columns) > max_cols:
-            # columns are also trimmed so we add the final element
             data.append(
                 _element(
                     "td",
-                    (
-                        f"{self.css['data']} {self.css['row_trim']} "
-                        f"{self.css['col_trim']}"
-                    ),
+                    f"{self.css['data']} {self.css['col']}{c} {self.css['row_trim']}",
                     "...",
-                    True,
+                    data_element_visible,
                     attributes="",
                 )
             )
+
         return index_headers + data
 
     def _generate_body_row(
@@ -654,9 +680,14 @@ class StylerRenderer:
 
             index_headers.append(header_element)
 
-        data = []
+        data, visible_col_count = [], 0
         for c, value in enumerate(row_tup[1:]):
-            if c >= max_cols:
+            data_element_visible = (
+                c not in self.hidden_columns and r not in self.hidden_rows
+            )
+            if data_element_visible:
+                visible_col_count += 1
+            if visible_col_count > max_cols:
                 data.append(
                     _element(
                         "td",
@@ -676,9 +707,6 @@ class StylerRenderer:
             if (r, c) in self.cell_context:
                 cls = " " + self.cell_context[r, c]
 
-            data_element_visible = (
-                c not in self.hidden_columns and r not in self.hidden_rows
-            )
             data_element = _element(
                 "td",
                 (
@@ -1252,15 +1280,15 @@ def _get_level_lengths(
             elif j not in hidden_elements:
                 # then element must be part of sparsified section and is visible
                 visible_row_count += 1
+                if visible_row_count > max_index:
+                    break  # do not add a length since the render trim limit reached
                 if lengths[(i, last_label)] == 0:
                     # if previous iteration was first-of-section but hidden then offset
                     last_label = j
                     lengths[(i, last_label)] = 1
                 else:
-                    # else add to previous iteration but do not extend more than max
-                    lengths[(i, last_label)] = min(
-                        max_index, 1 + lengths[(i, last_label)]
-                    )
+                    # else add to previous iteration
+                    lengths[(i, last_label)] += 1
 
     non_zero_lengths = {
         element: length for element, length in lengths.items() if length >= 1

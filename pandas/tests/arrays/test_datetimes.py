@@ -33,9 +33,13 @@ class TestDatetimeArrayComparisons:
 
         result = op(arr, arr)
         tm.assert_numpy_array_equal(result, expected)
-        for other in [right, np.array(right)]:
-            # TODO: add list and tuple, and object-dtype once those
-            #  are fixed in the constructor
+        for other in [
+            right,
+            np.array(right),
+            list(right),
+            tuple(right),
+            right.astype(object),
+        ]:
             result = op(arr, other)
             tm.assert_numpy_array_equal(result, expected)
 
@@ -142,9 +146,9 @@ class TestDatetimeArray:
     @pytest.mark.parametrize(
         "obj",
         [
-            pd.Timestamp.now(),
-            pd.Timestamp.now().to_datetime64(),
-            pd.Timestamp.now().to_pydatetime(),
+            pd.Timestamp("2021-01-01"),
+            pd.Timestamp("2021-01-01").to_datetime64(),
+            pd.Timestamp("2021-01-01").to_pydatetime(),
         ],
     )
     def test_setitem_objects(self, obj):
@@ -325,7 +329,7 @@ class TestDatetimeArray:
             "invalid",
             np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9,
             np.arange(10).view("timedelta64[ns]") * 24 * 3600 * 10 ** 9,
-            pd.Timestamp.now().to_period("D"),
+            pd.Timestamp("2021-01-01").to_period("D"),
         ],
     )
     @pytest.mark.parametrize("index", [True, False])

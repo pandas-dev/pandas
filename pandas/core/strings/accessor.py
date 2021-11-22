@@ -19,6 +19,7 @@ from pandas._typing import (
     F,
 )
 from pandas.util._decorators import Appender
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -238,7 +239,7 @@ class StringMethods(NoNewAttributesMixin):
         warnings.warn(
             "Columnar iteration over characters will be deprecated in future releases.",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         i = 0
         g = self.get(i)
@@ -419,7 +420,9 @@ class StringMethods(NoNewAttributesMixin):
         )
 
     @forbid_nonstring_types(["bytes", "mixed", "mixed-integer"])
-    def cat(self, others=None, sep=None, na_rep=None, join="left"):
+    def cat(
+        self, others=None, sep=None, na_rep=None, join="left"
+    ) -> str | Series | Index:
         """
         Concatenate strings in the Series/Index with given separator.
 
@@ -628,30 +631,22 @@ class StringMethods(NoNewAttributesMixin):
             # no NaNs - can just concatenate
             result = cat_safe(all_cols, sep)
 
+        out: Index | Series
         if isinstance(self._orig, ABCIndex):
             # add dtype for case that result is all-NA
 
-            # error: Incompatible types in assignment (expression has type
-            # "Index", variable has type "ndarray")
-            result = Index(  # type: ignore[assignment]
-                result, dtype=object, name=self._orig.name
-            )
+            out = Index(result, dtype=object, name=self._orig.name)
         else:  # Series
             if is_categorical_dtype(self._orig.dtype):
                 # We need to infer the new categories.
                 dtype = None
             else:
                 dtype = self._orig.dtype
-            # error: Incompatible types in assignment (expression has type
-            # "Series", variable has type "ndarray")
-            result = Series(  # type: ignore[assignment]
+            res_ser = Series(
                 result, dtype=dtype, index=data.index, name=self._orig.name
             )
-            # error: "ndarray" has no attribute "__finalize__"
-            result = result.__finalize__(  # type: ignore[attr-defined]
-                self._orig, method="str_cat"
-            )
-        return result
+            out = res_ser.__finalize__(self._orig, method="str_cat")
+        return out
 
     _shared_docs[
         "str_split"
@@ -1220,7 +1215,7 @@ class StringMethods(NoNewAttributesMixin):
                 "This pattern has match groups. To actually get the "
                 "groups, use str.extract.",
                 UserWarning,
-                stacklevel=3,
+                stacklevel=find_stack_level(),
             )
 
         result = self._data.array._str_contains(pat, case, flags, na, regex)
@@ -1432,7 +1427,7 @@ class StringMethods(NoNewAttributesMixin):
                         " In addition, single character regular expressions will "
                         "*not* be treated as literal strings when regex=True."
                     )
-                warnings.warn(msg, FutureWarning, stacklevel=3)
+                warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
 
         # Check whether repl is valid (GH 13438, GH 15055)
         if not (isinstance(repl, str) or callable(repl)):
