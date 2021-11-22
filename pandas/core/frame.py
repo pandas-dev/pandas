@@ -8612,7 +8612,7 @@ NaN 12.3   33.0
         ),
     )
     def diff(self, periods: int = 1, axis: Axis = 0) -> DataFrame:
-        if not isinstance(periods, int):
+        if not lib.is_integer(periods):
             if not (is_float(periods) and periods.is_integer()):
                 raise ValueError("periods must be an integer")
             periods = int(periods)
