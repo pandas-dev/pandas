@@ -11,6 +11,8 @@ from pandas.errors import PerformanceWarning
 from pandas import (
     DataFrame,
     Index,
+    Timestamp,
+    date_range,
 )
 import pandas._testing as tm
 
@@ -104,3 +106,28 @@ class TestDataFrameInsert:
         msg = r"Expected a 1D array, got an array with shape \(2, 2\)"
         with pytest.raises(ValueError, match=msg):
             df.insert(1, "newcol", df)
+
+    @pytest.mark.parametrize("allow_duplicates", [True, False])
+    def test_insert_warning_timezone_naive_and_aware_index(self, allow_duplicates):
+        # GH#44582
+        df = DataFrame(
+            [[1, 2], [3, 4]],
+            columns=date_range("1/1/2013", "1/2/2013"),
+        )
+
+        with tm.assert_produces_warning(FutureWarning):
+            df.insert(
+                loc=0,
+                column=Timestamp("2012-12-30", tz="UTC"),
+                value=0,
+                allow_duplicates=allow_duplicates,
+            )
+        expected = DataFrame(
+            [[0, 1, 2], [0, 3, 4]],
+            columns=[
+                Timestamp("2012-12-30", tz="UTC"),
+                Timestamp("2013-01-01", freq="1D"),
+                Timestamp("2013-01-02", freq="1D"),
+            ],
+        )
+        tm.assert_frame_equal(df, expected)

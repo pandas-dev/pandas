@@ -4547,7 +4547,7 @@ class DataFrame(NDFrame, OpsMixin):
                 "Cannot specify 'allow_duplicates=True' when "
                 "'self.flags.allows_duplicate_labels' is False."
             )
-        if not allow_duplicates and column in self.columns:
+        if column in self.columns and not allow_duplicates:
             # Should this be a different kind of error??
             raise ValueError(f"cannot insert {column}, already exists")
         if not isinstance(loc, int):
@@ -5955,7 +5955,7 @@ class DataFrame(NDFrame, OpsMixin):
                         level_values, lab, allow_fill=True, fill_value=lev._na_value
                     )
 
-                new_obj.insert(0, name, level_values)
+                new_obj.insert(0, name, level_values, allow_duplicates=True)
 
         new_obj.index = new_index
         if not inplace:
