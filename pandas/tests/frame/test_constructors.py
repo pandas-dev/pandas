@@ -2468,8 +2468,20 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("copy", [False, True])
-    @td.skip_array_manager_invalid_test  # TODO(ArrayManager)
-    def test_dict_nocopy(self, copy, any_numeric_ea_dtype, any_numpy_dtype):
+    def test_dict_nocopy(
+        self, request, copy, any_numeric_ea_dtype, any_numpy_dtype, using_array_manager
+    ):
+        if using_array_manager and not (
+            (any_numpy_dtype in (tm.STRING_DTYPES + tm.BYTES_DTYPES))
+            or (
+                any_numpy_dtype
+                in (tm.DATETIME64_DTYPES + tm.TIMEDELTA64_DTYPES + tm.BOOL_DTYPES)
+                and copy
+            )
+        ):
+            # TODO(ArrayManager) properly honor copy keyword for dict input
+            td.mark_array_manager_not_yet_implemented(request)
+
         a = np.array([1, 2], dtype=any_numpy_dtype)
         b = np.array([3, 4], dtype=any_numpy_dtype)
         if b.dtype.kind in ["S", "U"]:
