@@ -158,10 +158,7 @@ def _isna(obj, inf_as_na: bool = False):
     boolean ndarray or boolean
     """
     if is_scalar(obj):
-        if inf_as_na:
-            return libmissing.checknull_old(obj)
-        else:
-            return libmissing.checknull(obj)
+        return libmissing.checknull(obj, inf_as_na=inf_as_na)
     elif isinstance(obj, ABCMultiIndex):
         raise NotImplementedError("isna is not defined for MultiIndex")
     elif isinstance(obj, type):
