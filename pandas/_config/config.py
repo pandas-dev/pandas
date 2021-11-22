@@ -98,7 +98,7 @@ _reserved_keys: list[str] = ["all"]
 class OptionError(AttributeError, KeyError):
     """
     Exception for pandas.options, backwards compatible with KeyError
-    checks
+    checks.
     """
 
 

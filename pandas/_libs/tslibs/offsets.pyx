@@ -2247,7 +2247,7 @@ cdef class MonthBegin(MonthOffset):
 
 cdef class BusinessMonthEnd(MonthOffset):
     """
-    DateOffset increments between the last business day of the month
+    DateOffset increments between the last business day of the month.
 
     Examples
     --------
