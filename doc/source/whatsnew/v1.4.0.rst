@@ -546,6 +546,7 @@ Datetimelike
 - Bug in constructing a :class:`Series` from datetime-like strings with mixed timezones incorrectly partially-inferring datetime values (:issue:`40111`)
 - Bug in addition with a :class:`Tick` object and a ``np.timedelta64`` object incorrectly raising instead of returning :class:`Timedelta` (:issue:`44474`)
 - Bug in adding a ``np.timedelta64`` object to a :class:`BusinessDay` or :class:`CustomBusinessDay` object incorrectly raising (:issue:`44532`)
+- Bug in :meth:`Index.insert` for inserting ``np.datetime64``, ``np.timedelta64`` or ``tuple`` into :class:`Index` with ``dtype='object'`` with negative loc addine ``None`` and replacing existing value (:issue:`44509`)
 -
 
 Timedelta
@@ -576,7 +577,6 @@ Conversion
 - Bug in :class:`IntegerDtype` not allowing coercion from string dtype (:issue:`25472`)
 - Bug in :func:`to_datetime` with ``arg:xr.DataArray`` and ``unit="ns"`` specified raises TypeError (:issue:`44053`)
 - Bug in :meth:`DataFrame.convert_dtypes` not returning the correct type when a subclass does not overload :meth:`_constructor_sliced` (:issue:`43201`)
-- Bug in creating a :class:`DataFrame` from a timezone-aware :class:`Timestamp` scalar near a Daylight Savings Time transition (:issue:`42505`)
 -
 
 Strings
