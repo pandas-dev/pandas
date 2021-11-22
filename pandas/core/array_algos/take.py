@@ -179,8 +179,6 @@ def take_1d(
     Note: similarly to `take_nd`, this function assumes that the indexer is
     a valid(ated) indexer with no out of bound indices.
     """
-    indexer = ensure_platform_int(indexer)
-
     if not isinstance(arr, np.ndarray):
         # ExtensionArray -> dispatch to their method
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
