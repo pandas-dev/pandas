@@ -2904,8 +2904,8 @@ class DataFrame(NDFrame, OpsMixin):
 
     def to_orc(
         self,
-        path: FilePathOrBuffer = None,
-        engine: str = 'pyarrow',
+        path: FilePath | WriteBuffer[bytes] | None = None,
+        engine: Literal['pyarrow'] = 'pyarrow',
         index: bool = None,
         **kwargs
     ) -> bytes:

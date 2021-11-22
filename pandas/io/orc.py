@@ -1,12 +1,17 @@
 """ orc compat """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from types import ModuleType
+from typing import (
+    TYPE_CHECKING,
+    Literal,
+)
 from tempfile import gettempdir
 
 from pandas._typing import (
     FilePath,
     ReadBuffer,
+    WriteBuffer,
 )
 from pandas.compat._optional import import_optional_dependency
 
@@ -57,8 +62,8 @@ def read_orc(
 
 def to_orc(
     df: DataFrame,
-    path: FilePathOrBuffer = None,
-    engine: str = 'pyarrow',
+    path: FilePath | WriteBuffer[bytes] | None = None,
+    engine: Literal['pyarrow'] = 'pyarrow',  # type: ignore[arg-type]
     index: bool = None,
     **kwargs
 ) -> bytes:
@@ -96,7 +101,7 @@ def to_orc(
 
     if isinstance(engine, str):
         engine = import_optional_dependency(engine, min_version='5.0.0')
-    else:
+    elif isinstance(engine, ModuleType):
         try:
             assert engine.__name__ == 'pyarrow', "engine must be 'pyarrow' module"
             assert hasattr(engine, 'orc'), "'pyarrow' module must have orc module"
@@ -109,8 +114,17 @@ def to_orc(
                 "Trying to import the above resulted in these errors:"
                 f"\n - {e}"
             )
+    else:
+        raise TypeError(
+            f"unsuported type for engine: {type(engine)}"
+        )
 
-    if path is None:
+    if hasattr(path, "write"):
+        engine.orc.write_table(
+            engine.Table.from_pandas(df, preserve_index=index),
+            path, **kwargs
+        )
+    else:
         # to bytes: pyarrow auto closes buffers hence we read a pyarrow buffer
         stream = engine.BufferOutputStream()
         engine.orc.write_table(
@@ -118,9 +132,4 @@ def to_orc(
             stream, **kwargs
         )
         return stream.getvalue().to_pybytes()
-    else:
-        engine.orc.write_table(
-            engine.Table.from_pandas(df, preserve_index=index),
-            path, **kwargs
-        )
     return
