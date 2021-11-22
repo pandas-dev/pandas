@@ -374,5 +374,5 @@ def test_categorical(
     if as_index:
         tm.assert_series_equal(result, expected_series)
     else:
-        expected = expected_series.to_frame().reset_index()
+        expected = expected_series.reset_index()
         tm.assert_frame_equal(result, expected)
