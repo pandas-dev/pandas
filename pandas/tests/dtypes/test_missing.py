@@ -8,10 +8,7 @@ import pytest
 from pandas._config import config as cf
 
 from pandas._libs import missing as libmissing
-from pandas._libs.tslibs import (
-    iNaT,
-    is_null_datetimelike,
-)
+from pandas._libs.tslibs import iNaT
 
 from pandas.core.dtypes.common import (
     is_float,
@@ -565,21 +562,19 @@ def test_na_value_for_dtype(dtype, na_value):
 
 
 class TestNAObj:
-
-    _1d_methods = ["isnaobj", "isnaobj_old"]
-    _2d_methods = ["isnaobj2d", "isnaobj2d_old"]
-
     def _check_behavior(self, arr, expected):
-        for method in TestNAObj._1d_methods:
-            result = getattr(libmissing, method)(arr)
-            tm.assert_numpy_array_equal(result, expected)
+        result = libmissing.isnaobj(arr)
+        tm.assert_numpy_array_equal(result, expected)
+        result = libmissing.isnaobj(arr, inf_as_na=True)
+        tm.assert_numpy_array_equal(result, expected)
 
         arr = np.atleast_2d(arr)
         expected = np.atleast_2d(expected)
 
-        for method in TestNAObj._2d_methods:
-            result = getattr(libmissing, method)(arr)
-            tm.assert_numpy_array_equal(result, expected)
+        result = libmissing.isnaobj2d(arr)
+        tm.assert_numpy_array_equal(result, expected)
+        result = libmissing.isnaobj2d(arr, inf_as_na=True)
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_basic(self):
         arr = np.array([1, None, "foo", -5.1, NaT, np.nan])
@@ -676,36 +671,16 @@ class TestLibMissing:
 
     def test_checknull_old(self):
         for value in na_vals + sometimes_na_vals:
-            assert libmissing.checknull_old(value)
+            assert libmissing.checknull(value, inf_as_na=True)
 
         for value in inf_vals:
-            assert libmissing.checknull_old(value)
+            assert libmissing.checknull(value, inf_as_na=True)
 
         for value in int_na_vals:
-            assert not libmissing.checknull_old(value)
+            assert not libmissing.checknull(value, inf_as_na=True)
 
         for value in never_na_vals:
-            assert not libmissing.checknull_old(value)
-
-    def test_is_null_datetimelike(self):
-        for value in na_vals:
-            assert is_null_datetimelike(value)
-            assert is_null_datetimelike(value, False)
-
-        for value in inf_vals:
-            assert not is_null_datetimelike(value)
-            assert not is_null_datetimelike(value, False)
-
-        for value in int_na_vals:
-            assert is_null_datetimelike(value)
-            assert not is_null_datetimelike(value, False)
-
-        for value in sometimes_na_vals:
-            assert not is_null_datetimelike(value)
-            assert not is_null_datetimelike(value, False)
-
-        for value in never_na_vals:
-            assert not is_null_datetimelike(value)
+            assert not libmissing.checknull(value, inf_as_na=True)
 
     def test_is_matching_na(self, nulls_fixture, nulls_fixture2):
         left = nulls_fixture
