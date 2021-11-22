@@ -1291,14 +1291,14 @@ def format_array(
     if is_extension_array_dtype(values):
         return values._format_array(
             formatter,
-            float_format,
-            na_rep,
-            digits,
-            space,
-            justify,
-            decimal,
-            leading_space,
-            quoting,
+            float_format=float_format,
+            na_rep=na_rep,
+            digits=digits,
+            space=space,
+            justify=justify,
+            decimal=decimal,
+            leading_space=leading_space,
+            quoting=quoting,
         )
     elif is_datetime64_dtype(values.dtype):
         fmt_klass = Datetime64Formatter
