@@ -5955,7 +5955,7 @@ class DataFrame(NDFrame, OpsMixin):
                         level_values, lab, allow_fill=True, fill_value=lev._na_value
                     )
 
-                new_obj.insert(0, name, level_values, allow_duplicates=True)
+                new_obj.insert(0, name, level_values)
 
         new_obj.index = new_index
         if not inplace:
