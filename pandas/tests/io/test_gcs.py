@@ -99,10 +99,11 @@ def assert_equal_zip_safe(result: bytes, expected: bytes, compression: str):
     """
     if compression == "zip":
         # Only compare the CRC checksum of the file contents
-        res = zipfile.ZipFile(BytesIO(result))
-        exp = zipfile.ZipFile(BytesIO(expected))
-        for res_info, exp_info in zip(res.infolist(), exp.infolist()):
-            assert res_info.CRC == exp_info.CRC
+        with zipfile.ZipFile(BytesIO(result)) as exp, zipfile.ZipFile(
+            BytesIO(expected)
+        ) as res:
+            for res_info, exp_info in zip(res.infolist(), exp.infolist()):
+                assert res_info.CRC == exp_info.CRC
     else:
         assert result == expected
 
