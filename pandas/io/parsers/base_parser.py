@@ -33,7 +33,6 @@ from pandas._typing import (
     DtypeArg,
     FilePath,
     ReadCsvBuffer,
-    Scalar,
 )
 from pandas.errors import (
     ParserError,
@@ -244,9 +243,7 @@ class ParserBase:
             errors=kwds.get("encoding_errors", "strict"),
         )
 
-    def _validate_parse_dates_presence(
-        self, columns: list[Scalar] | list[tuple[Scalar, ...]]
-    ) -> None:
+    def _validate_parse_dates_presence(self, columns: Sequence[Hashable]) -> None:
         """
         Check if parse_dates are in columns.
 
@@ -404,7 +401,7 @@ class ParserBase:
         # would be nice!
         if self.mangle_dupe_cols:
             names = list(names)  # so we can index
-            counts: DefaultDict[Scalar | tuple[Scalar, ...], int] = defaultdict(int)
+            counts: DefaultDict[Hashable, int] = defaultdict(int)
             is_potential_mi = _is_potential_multi_index(names, self.index_col)
 
             for i, col in enumerate(names):
@@ -631,7 +628,7 @@ class ParserBase:
 
     @final
     def _set_noconvert_dtype_columns(
-        self, col_indices: list[int], names: list[Scalar] | list[tuple[Scalar, ...]]
+        self, col_indices: list[int], names: Sequence[Hashable]
     ) -> set[int]:
         """
         Set the columns that should not undergo dtype conversions.
