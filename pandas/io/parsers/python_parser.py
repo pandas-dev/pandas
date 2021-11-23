@@ -11,6 +11,7 @@ import csv
 from io import StringIO
 import re
 import sys
+import typing
 from typing import (
     DefaultDict,
     Hashable,
@@ -284,7 +285,7 @@ class PythonParser(ParserBase):
         data, columns = self._exclude_implicit_index(alldata)
 
         columns, date_data = self._do_date_conversions(columns, data)
-        data = cast(Mapping[Hashable, np.ndarray], date_data)
+        data = cast(typing.Mapping[typing.Hashable, np.ndarray], date_data)
 
         conv_data = self._convert_data(data)
         index, columns = self._make_index(conv_data, alldata, columns, indexnamerow)
