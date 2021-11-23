@@ -7748,7 +7748,7 @@ Captive      210.0
 Wild         185.0
 
 We can also choose to include NA in group keys or not by setting
-`dropna` parameter, the default setting is `True`:
+`dropna` parameter, the default setting is `True`.
 
 >>> l = [[1, 2, 3], [1, None, 4], [2, 1, 3], [1, 2, 2]]
 >>> df = pd.DataFrame(l, columns=["a", "b", "c"])
