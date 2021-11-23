@@ -159,7 +159,7 @@ class Styler(StylerRenderer):
         in cell display string with HTML-safe sequences.
         Use 'latex' to replace the characters ``&``, ``%``, ``$``, ``#``, ``_``,
         ``{``, ``}``, ``~``, ``^``, and ``\`` in the cell display string with
-        LaTeX-safe sequences. If not given uses ``pandas.options.styler.format.escape``
+        LaTeX-safe sequences. If not given uses ``pandas.options.styler.format.escape``.
 
         .. versionadded:: 1.3.0
     formatter : str, callable, dict, optional
@@ -527,7 +527,7 @@ class Styler(StylerRenderer):
         position : str, optional
             The LaTeX positional argument (e.g. 'h!') for tables, placed in location:
 
-            \\begin{table}[<position>]
+            ``\\begin{table}[<position>]``.
         position_float : {"centering", "raggedleft", "raggedright"}, optional
             The LaTeX float command placed in location:
 
@@ -2842,7 +2842,7 @@ class Styler(StylerRenderer):
             When None (default): the maximum value of the data will be used.
         props : str, optional
             The base CSS of the cell that is extended to add the bar chart. Defaults to
-            `"width: 10em;"`
+            `"width: 10em;"`.
 
             .. versionadded:: 1.4.0
 
@@ -3143,7 +3143,7 @@ class Styler(StylerRenderer):
         ----------
         %(subset)s
         color : str, default 'yellow'
-            Background color to use for highlighting
+            Background color to use for highlighting.
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             Axis along which to determine and highlight quantiles. If ``None`` quantiles
             are measured over the entire DataFrame. See examples.
