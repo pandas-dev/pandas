@@ -2304,15 +2304,17 @@ class TestDataFrameConstructors:
 
         assert data.b.dtype == dtype
 
-    # TODO(ArrayManager) astype to bytes dtypes does not yet give object dtype
-    @td.skip_array_manager_not_yet_implemented
     @pytest.mark.parametrize(
         "dtype", tm.STRING_DTYPES + tm.BYTES_DTYPES + tm.OBJECT_DTYPES
     )
-    def test_check_dtype_empty_string_column(self, dtype):
+    def test_check_dtype_empty_string_column(self, request, dtype, using_array_manager):
         # GH24386: Ensure dtypes are set correctly for an empty DataFrame.
         # Empty DataFrame is generated via dictionary data with non-overlapping columns.
         data = DataFrame({"a": [1, 2]}, columns=["b"], dtype=dtype)
+
+        if using_array_manager and dtype in tm.BYTES_DTYPES:
+            # TODO(ArrayManager) astype to bytes dtypes does not yet give object dtype
+            td.mark_array_manager_not_yet_implemented(request)
 
         assert data.b.dtype.name == "object"
 
@@ -2483,8 +2485,20 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("copy", [False, True])
-    @td.skip_array_manager_not_yet_implemented
-    def test_dict_nocopy(self, copy, any_numeric_ea_dtype, any_numpy_dtype):
+    def test_dict_nocopy(
+        self, request, copy, any_numeric_ea_dtype, any_numpy_dtype, using_array_manager
+    ):
+        if using_array_manager and not (
+            (any_numpy_dtype in (tm.STRING_DTYPES + tm.BYTES_DTYPES))
+            or (
+                any_numpy_dtype
+                in (tm.DATETIME64_DTYPES + tm.TIMEDELTA64_DTYPES + tm.BOOL_DTYPES)
+                and copy
+            )
+        ):
+            # TODO(ArrayManager) properly honor copy keyword for dict input
+            td.mark_array_manager_not_yet_implemented(request)
+
         a = np.array([1, 2], dtype=any_numpy_dtype)
         b = np.array([3, 4], dtype=any_numpy_dtype)
         if b.dtype.kind in ["S", "U"]:
