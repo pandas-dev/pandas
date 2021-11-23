@@ -10534,7 +10534,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         level: Level | None = None,
         numeric_only: bool_t | None = None,
         **kwargs,
-    ) -> Series | Hashable:
+    ) -> Series | float:
         return self._stat_function(
             "min", nanops.nanmin, axis, skipna, level, numeric_only, **kwargs
         )
@@ -10546,7 +10546,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         level: Level | None = None,
         numeric_only: bool_t | None = None,
         **kwargs,
-    ) -> Series | Hashable:
+    ) -> Series | float:
         return self._stat_function(
             "max", nanops.nanmax, axis, skipna, level, numeric_only, **kwargs
         )
@@ -10612,7 +10612,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         numeric_only: bool_t | None = None,
         min_count: int = 0,
         **kwargs,
-    ) -> Series | Hashable:
+    ) -> Series | float:
         if name == "sum":
             nv.validate_sum((), kwargs)
         elif name == "prod":
@@ -10654,7 +10654,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         numeric_only: bool_t | None = None,
         min_count=0,
         **kwargs,
-    ) -> Series | Hashable:
+    ) -> Series | float:
         return self._min_count_stat_function(
             "sum", nanops.nansum, axis, skipna, level, numeric_only, min_count, **kwargs
         )
@@ -10667,7 +10667,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         numeric_only: bool_t | None = None,
         min_count: int = 0,
         **kwargs,
-    ) -> Series | Hashable:
+    ) -> Series | float:
         return self._min_count_stat_function(
             "prod",
             nanops.nanprod,
