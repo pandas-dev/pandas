@@ -84,7 +84,7 @@ def test_memory_usage(index_or_series_obj):
     is_categorical = is_categorical_dtype(obj.dtype) or (
         isinstance(obj, Series) and is_categorical_dtype(obj.index.dtype)
     )
-    is_string = is_dtype_equal(obj, "string[python]") or (
+    is_object_string = is_dtype_equal(obj, "string[python]") or (
         is_ser and is_dtype_equal(obj.index.dtype, "string[python]")
     )
 
@@ -94,9 +94,8 @@ def test_memory_usage(index_or_series_obj):
         else:
             expected = 108 if IS64 else 64
         assert res_deep == res == expected
-    elif is_object or is_categorical or is_string:
+    elif is_object or is_categorical or is_object_string:
         # only deep will pick them up
-        assert res_deep > res
         assert res_deep > res
     else:
         assert res == res_deep
