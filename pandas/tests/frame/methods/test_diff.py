@@ -17,6 +17,13 @@ class TestDataFrameDiff:
         with pytest.raises(ValueError, match="periods must be an integer"):
             df.diff(1.5)
 
+    def test_diff_allows_np_integer(self):
+        # np.int64 is OK GH#44572
+        df = DataFrame(np.random.randn(2, 2))
+        res = df.diff(np.int64(1))
+        expected = df.diff(1)
+        tm.assert_frame_equal(res, expected)
+
     def test_diff(self, datetime_frame):
         the_diff = datetime_frame.diff(1)
 
