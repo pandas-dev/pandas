@@ -3048,6 +3048,8 @@ def dtypes_all_equal(list types not None):
     all(is_dtype_equal(first, t) for t in types[1:])
 
     And assuming all elements in the list are np.dtype/ExtensionDtype objects
+
+    See timings at https://github.com/pandas-dev/pandas/pull/44594
     """
     first = types[0]
     for t in types[1:]:
