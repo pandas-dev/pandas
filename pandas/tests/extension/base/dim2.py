@@ -14,6 +14,13 @@ from pandas.tests.extension.base.base import BaseExtensionTests
 
 
 class Dim2CompatTests(BaseExtensionTests):
+    def test_frame_from_2d_array(self, data):
+        arr2d = data.repeat(2).reshape(-1, 2)
+
+        df = pd.DataFrame(arr2d)
+        expected = pd.DataFrame({0: arr2d[:, 0], 1: arr2d[:, 1]})
+        self.assert_frame_equal(df, expected)
+
     def test_swapaxes(self, data):
         arr2d = data.repeat(2).reshape(-1, 2)
 
