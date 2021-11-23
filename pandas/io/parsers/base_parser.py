@@ -333,8 +333,18 @@ class ParserBase:
         passed_names: bool = False,
     ):
         """
-        extract and return the names, index_names, col_names
-        header is a list-of-lists returned from the parsers
+        Extract and return the names, index_names, col_names if the column
+        names are a MultiIndex.
+
+        Parameters
+        ----------
+        header: list of lists
+            The header rows
+        index_names: list, optional
+            The names of the future index
+        passed_names: bool, default False
+            A flag specifying if names where passed
+
         """
         if len(header) < 2:
             return header[0], index_names, None, passed_names
