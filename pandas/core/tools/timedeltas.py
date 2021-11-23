@@ -68,8 +68,14 @@ def to_timedelta(arg, unit=None, errors="raise"):
 
     Returns
     -------
-    Timedelta or TimedeltaIndex of timedelta64
-        Output type returned if parsing succeeded.
+    timedelta
+        If parsing succeeded.
+        Return type depends on input:
+
+        - list-like: TimedeltaIndex of timedelta64 dtype
+        - Series: Series of timedelta64 dtype
+        - Timedelta: Timedelta
+        - str: Timedelta
 
     See Also
     --------
