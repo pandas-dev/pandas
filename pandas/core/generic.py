@@ -10599,7 +10599,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         {see_also}\
         {examples}
         """
-        if not isinstance(skipna, bool):
+        if not is_bool(skipna):
             warnings.warn(
                 "Passing None for skipna is deprecated and will raise in a future"
                 "version. Pass True instead. Only boolean values will be allowed "
