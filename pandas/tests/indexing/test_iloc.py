@@ -106,8 +106,6 @@ class TestiLocBaseIndependent:
         expected = DataFrame({0: cat, 1: range(3)})
         tm.assert_frame_equal(df, expected)
 
-    # TODO(ArrayManager) does not yet update parent
-    @td.skip_array_manager_not_yet_implemented
     @pytest.mark.parametrize("box", [array, Series])
     def test_iloc_setitem_ea_inplace(self, frame_or_series, box, using_array_manager):
         # GH#38952 Case with not setting a full column

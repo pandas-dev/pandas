@@ -365,7 +365,6 @@ class TestRename:
         with pytest.raises(TypeError, match=msg):
             df.rename({}, columns={}, index={})
 
-    @td.skip_array_manager_not_yet_implemented
     def test_rename_with_duplicate_columns(self):
         # GH#4403
         df4 = DataFrame(

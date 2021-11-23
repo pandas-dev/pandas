@@ -29,9 +29,6 @@ def df():
     return DataFrame({"A": [1, 2, 3]})
 
 
-# TODO(ArrayManager) dask is still accessing the blocks
-# https://github.com/dask/dask/pull/7318
-@td.skip_array_manager_not_yet_implemented
 @pytest.mark.filterwarnings("ignore:.*64Index is deprecated:FutureWarning")
 def test_dask(df):
 

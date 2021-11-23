@@ -5,8 +5,6 @@ import itertools
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -949,7 +947,6 @@ class TestDataFrameReshape:
         left = df.loc[17264:].copy().set_index(["s_id", "dosage", "agent"])
         tm.assert_frame_equal(left.unstack(), right)
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) MultiIndex bug
     def test_unstack_nan_index5(self):
         # GH9497 - multiple unstack with nulls
         df = DataFrame(

@@ -722,10 +722,15 @@ class TestFrameArithmetic:
         result = collike + df
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) decide on dtypes
-    def test_df_arith_2d_array_rowlike_broadcasts(self, all_arithmetic_operators):
+    def test_df_arith_2d_array_rowlike_broadcasts(
+        self, request, all_arithmetic_operators, using_array_manager
+    ):
         # GH#23000
         opname = all_arithmetic_operators
+
+        if using_array_manager and opname in ("__rmod__", "__rfloordiv__"):
+            # TODO(ArrayManager) decide on dtypes
+            td.mark_array_manager_not_yet_implemented(request)
 
         arr = np.arange(6).reshape(3, 2)
         df = DataFrame(arr, columns=[True, False], index=["A", "B", "C"])
@@ -744,10 +749,15 @@ class TestFrameArithmetic:
         result = getattr(df, opname)(rowlike)
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) decide on dtypes
-    def test_df_arith_2d_array_collike_broadcasts(self, all_arithmetic_operators):
+    def test_df_arith_2d_array_collike_broadcasts(
+        self, request, all_arithmetic_operators, using_array_manager
+    ):
         # GH#23000
         opname = all_arithmetic_operators
+
+        if using_array_manager and opname in ("__rmod__", "__rfloordiv__"):
+            # TODO(ArrayManager) decide on dtypes
+            td.mark_array_manager_not_yet_implemented(request)
 
         arr = np.arange(6).reshape(3, 2)
         df = DataFrame(arr, columns=[True, False], index=["A", "B", "C"])

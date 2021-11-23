@@ -285,7 +285,12 @@ def async_mark():
     return async_mark
 
 
-skip_array_manager_not_yet_implemented = pytest.mark.skipif(
+def mark_array_manager_not_yet_implemented(request):
+    mark = pytest.mark.xfail(reason="Not yet implemented for ArrayManager")
+    request.node.add_marker(mark)
+
+
+skip_array_manager_not_yet_implemented = pytest.mark.xfail(
     get_option("mode.data_manager") == "array",
     reason="Not yet implemented for ArrayManager",
 )
