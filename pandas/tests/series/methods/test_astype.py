@@ -3,6 +3,7 @@ from datetime import (
     timedelta,
 )
 from importlib import reload
+import locale
 import string
 import sys
 
@@ -10,6 +11,10 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import iNaT
+from pandas.compat import (
+    PY39,
+    np_version_under1p19,
+)
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -131,6 +136,11 @@ class TestAstype:
         ser = Series(data)
 
         if np.dtype(dtype).name not in ["timedelta64", "datetime64"]:
+            # Trying to narrow down when this actually occurs
+            assert not PY39
+            assert np_version_under1p19
+            assert locale.getlocale()[0] != "en_US"
+
             mark = pytest.mark.xfail(reason="GH#33890 Is assigned ns unit")
             request.node.add_marker(mark)
 
