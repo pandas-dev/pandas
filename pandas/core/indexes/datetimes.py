@@ -1012,7 +1012,7 @@ def date_range(
     DatetimeIndex(['2018-01-01 00:00:00+09:00', '2018-01-02 00:00:00+09:00',
                    '2018-01-03 00:00:00+09:00', '2018-01-04 00:00:00+09:00',
                    '2018-01-05 00:00:00+09:00'],
-                  dtype='datetime64[ns, Asia/Tokyo]', freq='D')
+                  dtype='datetime64[ns, Asia/Tokyo]', freq='DayDST')
 
     `closed` controls whether to include `start` and `end` that are on the
     boundary. The default includes boundary points on either end.
