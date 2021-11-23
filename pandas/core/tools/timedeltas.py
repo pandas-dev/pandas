@@ -74,8 +74,7 @@ def to_timedelta(arg, unit=None, errors="raise"):
 
         - list-like: TimedeltaIndex of timedelta64 dtype
         - Series: Series of timedelta64 dtype
-        - Timedelta: Timedelta
-        - str: Timedelta
+        - scalar: Timedelta
 
     See Also
     --------
