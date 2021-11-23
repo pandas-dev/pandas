@@ -10,6 +10,7 @@ dependencies:
   - pytest-cov
   - pytest-xdist>=1.31
   - pytest-asyncio>=0.12.0
+  - pytest-timeout
   - hypothesis>=5.5.3
 
   # pandas dependencies
