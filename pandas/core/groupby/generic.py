@@ -1717,17 +1717,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             # Take the size of the overall columns
             result = df.groupby(
                 groupings,
-                as_index=self.as_index,
                 sort=self.sort,
                 observed=self.observed,
                 dropna=self.dropna,
             ).size()
-
-            # Change the nameof the size result
-            if self.as_index:
-                result.name = RESULT_NAME
-            else:
-                result.rename({"size": RESULT_NAME}, axis=1, inplace=True)
+            result.name = RESULT_NAME
 
             if normalize:
                 # Normalize the results by dividing by the original group sizes
@@ -1737,79 +1731,39 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     observed=self.observed,
                     dropna=self.dropna,
                 ).size()
-                if self.as_index:
-                    if non_column_grouping:
-                        # The common index needs a common name
-                        indexed_group_size.index.set_names("Group", inplace=True)
-                        result.index.set_names("Group", level=0, inplace=True)
-                    # Use indexed group size series
-                    if self.dropna or (
-                        isinstance(self.keys, list) and len(self.keys) == 1
-                    ):
-                        result /= indexed_group_size
-                    else:
-                        # Unfortunately, nans in multiindex seem to break
-                        # Pandas alignment
-                        values = (
-                            result.values
-                            / indexed_group_size.align(result, join="left")[0].values
-                        )
-                        result = Series(
-                            data=values, index=result.index, name=RESULT_NAME
-                        )
-                    if non_column_grouping:
-                        result.index.set_names(None, level=0, inplace=True)
+                if non_column_grouping:
+                    # The common index needs a common name
+                    indexed_group_size.index.set_names("Group", inplace=True)
+                    result.index.set_names("Group", level=0, inplace=True)
+                # Use indexed group size series
+                if self.dropna or (isinstance(self.keys, list) and len(self.keys) == 1):
+                    result /= indexed_group_size
                 else:
-                    # Make indexed key group size series
-                    indexed_group_size.name = "group_size"
-                    if non_column_grouping:
-                        # Get the column name of the added groupby index column
-                        index_column_name = result.columns[0]
-                        indexed_group_size.index.set_names(
-                            index_column_name, inplace=True
-                        )
-                        left_on = index_column_name
-                    else:
-                        left_on = keys
-                    if not non_column_grouping and len(keys) == 1:
-                        # Compose with single key group size series
-                        group_size = indexed_group_size[result[keys[0]]]
-                    else:
-                        # Merge multiple key group size series
-                        merged = result.merge(
-                            indexed_group_size,
-                            how="left",
-                            left_on=left_on,
-                            right_index=True,
-                        )
-                        group_size = merged["group_size"]
-
-                    result[RESULT_NAME] /= group_size.values
+                    # Unfortunately, nans in multi-column multiindex sometimes makes
+                    # size() produce a Series that puts nans in the result
+                    values = (
+                        result.values
+                        / indexed_group_size.align(result, join="left")[0].values
+                    )
+                    result = Series(data=values, index=result.index, name=RESULT_NAME)
+                if non_column_grouping:
+                    result.index.set_names(None, level=0, inplace=True)
 
             if sort:
                 # Sort the values and then resort by the main grouping
-                if self.as_index:
-                    if non_column_grouping:
-                        level: Any = 0
-                    else:
-                        level = keys
-                    result = (
-                        cast(Series, result)
-                        .sort_values(ascending=ascending)
-                        .sort_index(level=level, sort_remaining=False)
-                    )
+                if non_column_grouping:
+                    level: Any = 0
                 else:
-                    if non_column_grouping:
-                        by: Any = "level_0"
-                    else:
-                        by = keys
-                    result = (
-                        cast(DataFrame, result)
-                        .sort_values(by=RESULT_NAME, ascending=ascending)
-                        .sort_values(by=by, ascending=True)
-                        .reset_index(drop=True)
-                    )
+                    level = keys
+                result = (
+                    cast(Series, result)
+                    .sort_values(ascending=ascending)
+                    .sort_index(level=level, sort_remaining=False)
+                )
 
+            if not self.as_index:
+                # Convert to frame
+                result = result.reset_index()
             return result
 
 
