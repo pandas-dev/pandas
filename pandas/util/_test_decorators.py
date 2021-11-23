@@ -122,7 +122,7 @@ def _skip_if_no_scipy() -> bool:
     )
 
 
-# TODO: return type, _pytest.mark.structures.MarkDecorator is not public
+# TODO(pytest#7469): return type, _pytest.mark.structures.MarkDecorator is not public
 # https://github.com/pytest-dev/pytest/issues/7469
 def skip_if_installed(package: str):
     """
@@ -138,7 +138,7 @@ def skip_if_installed(package: str):
     )
 
 
-# TODO: return type, _pytest.mark.structures.MarkDecorator is not public
+# TODO(pytest#7469): return type, _pytest.mark.structures.MarkDecorator is not public
 # https://github.com/pytest-dev/pytest/issues/7469
 def skip_if_no(package: str, min_version: str | None = None):
     """
@@ -202,7 +202,7 @@ skip_if_no_ne = pytest.mark.skipif(
 )
 
 
-# TODO: return type, _pytest.mark.structures.MarkDecorator is not public
+# TODO(pytest#7469): return type, _pytest.mark.structures.MarkDecorator is not public
 # https://github.com/pytest-dev/pytest/issues/7469
 def skip_if_np_lt(ver_str: str, *args, reason: str | None = None):
     if reason is None:
@@ -285,7 +285,12 @@ def async_mark():
     return async_mark
 
 
-skip_array_manager_not_yet_implemented = pytest.mark.skipif(
+def mark_array_manager_not_yet_implemented(request):
+    mark = pytest.mark.xfail(reason="Not yet implemented for ArrayManager")
+    request.node.add_marker(mark)
+
+
+skip_array_manager_not_yet_implemented = pytest.mark.xfail(
     get_option("mode.data_manager") == "array",
     reason="Not yet implemented for ArrayManager",
 )

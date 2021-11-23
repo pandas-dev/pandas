@@ -1,6 +1,5 @@
 import collections
 from datetime import timedelta
-from io import StringIO
 
 import numpy as np
 import pytest
@@ -185,19 +184,21 @@ def test_value_counts_datetime64(index_or_series):
 
     # GH 3002, datetime64[ns]
     # don't test names though
-    txt = "\n".join(
-        [
-            "xxyyzz20100101PIE",
-            "xxyyzz20100101GUM",
-            "xxyyzz20100101EGG",
-            "xxyyww20090101EGG",
-            "foofoo20080909PIE",
-            "foofoo20080909GUM",
-        ]
-    )
-    f = StringIO(txt)
-    df = pd.read_fwf(
-        f, widths=[6, 8, 3], names=["person_id", "dt", "food"], parse_dates=["dt"]
+    df = pd.DataFrame(
+        {
+            "person_id": ["xxyyzz", "xxyyzz", "xxyyzz", "xxyyww", "foofoo", "foofoo"],
+            "dt": pd.to_datetime(
+                [
+                    "2010-01-01",
+                    "2010-01-01",
+                    "2010-01-01",
+                    "2009-01-01",
+                    "2008-09-09",
+                    "2008-09-09",
+                ]
+            ),
+            "food": ["PIE", "GUM", "EGG", "EGG", "PIE", "GUM"],
+        }
     )
 
     s = klass(df["dt"].copy())
@@ -276,5 +277,5 @@ def test_value_counts_with_nan(dropna, index_or_series):
     if dropna is True:
         expected = Series([1], index=[True])
     else:
-        expected = Series([2, 1], index=[pd.NA, True])
+        expected = Series([1, 1, 1], index=[True, pd.NA, np.nan])
     tm.assert_series_equal(res, expected)

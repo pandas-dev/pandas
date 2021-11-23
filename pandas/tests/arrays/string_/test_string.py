@@ -475,8 +475,8 @@ def test_value_counts_na(dtype):
 
 
 def test_value_counts_with_normalize(dtype):
-    s = pd.Series(["a", "b", "a", pd.NA], dtype=dtype)
-    result = s.value_counts(normalize=True)
+    ser = pd.Series(["a", "b", "a", pd.NA], dtype=dtype)
+    result = ser.value_counts(normalize=True)
     expected = pd.Series([2, 1], index=["a", "b"], dtype="Float64") / 3
     tm.assert_series_equal(result, expected)
 
@@ -518,8 +518,8 @@ def test_memory_usage(dtype):
 @pytest.mark.parametrize("float_dtype", [np.float16, np.float32, np.float64])
 def test_astype_from_float_dtype(float_dtype, dtype):
     # https://github.com/pandas-dev/pandas/issues/36451
-    s = pd.Series([0.1], dtype=float_dtype)
-    result = s.astype(dtype)
+    ser = pd.Series([0.1], dtype=float_dtype)
+    result = ser.astype(dtype)
     expected = pd.Series(["0.1"], dtype=dtype)
     tm.assert_series_equal(result, expected)
 
@@ -539,7 +539,7 @@ def test_to_numpy_na_value(dtype, nulls_fixture):
     tm.assert_numpy_array_equal(result, expected)
 
 
-def test_isin(dtype, request):
+def test_isin(dtype, request, fixed_now_ts):
     s = pd.Series(["a", "b", None], dtype=dtype)
 
     result = s.isin(["a", "c"])
@@ -554,6 +554,6 @@ def test_isin(dtype, request):
     expected = pd.Series([False, False, False])
     tm.assert_series_equal(result, expected)
 
-    result = s.isin(["a", pd.Timestamp.now()])
+    result = s.isin(["a", fixed_now_ts])
     expected = pd.Series([True, False, False])
     tm.assert_series_equal(result, expected)
