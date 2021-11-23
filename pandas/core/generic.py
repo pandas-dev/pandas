@@ -10287,7 +10287,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return rs
 
     @final
-    def _agg_by_level(self, name, axis=0, level=0, skipna=True, **kwargs):
+    def _agg_by_level(
+        self,
+        name: str,
+        axis: Axis = 0,
+        level: Level = 0,
+        skipna: bool_t = True,
+        **kwargs,
+    ):
         if axis is None:
             raise ValueError("Must specify 'axis' when aggregating by level.")
         grouped = self.groupby(level=level, axis=axis, sort=False)
@@ -10300,8 +10307,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     def _logical_func(
-        self, name: str, func, axis=0, bool_only=None, skipna=True, level=None, **kwargs
-    ):
+        self,
+        name: str,
+        func,
+        axis: Axis = 0,
+        bool_only: bool_t | None = None,
+        skipna: bool_t = True,
+        level: Level | None = None,
+        **kwargs,
+    ) -> Series | bool_t:
         nv.validate_logical_func((), kwargs, fname=name)
         if level is not None:
             warnings.warn(
@@ -10333,18 +10347,40 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             filter_type="bool",
         )
 
-    def any(self, axis=0, bool_only=None, skipna=True, level=None, **kwargs):
+    def any(
+        self,
+        axis: Axis = 0,
+        bool_only: bool_t | None = None,
+        skipna: bool_t = True,
+        level: Level | None = None,
+        **kwargs,
+    ) -> Series | bool_t:
         return self._logical_func(
             "any", nanops.nanany, axis, bool_only, skipna, level, **kwargs
         )
 
-    def all(self, axis=0, bool_only=None, skipna=True, level=None, **kwargs):
+    def all(
+        self,
+        axis: Axis = 0,
+        bool_only: bool_t | None = None,
+        skipna: bool_t = True,
+        level: Level | None = None,
+        **kwargs,
+    ) -> Series | bool_t:
         return self._logical_func(
             "all", nanops.nanall, axis, bool_only, skipna, level, **kwargs
         )
 
     @final
-    def _accum_func(self, name: str, func, axis=None, skipna=True, *args, **kwargs):
+    def _accum_func(
+        self,
+        name: str,
+        func,
+        axis: Axis | None = None,
+        skipna: bool_t = True,
+        *args,
+        **kwargs,
+    ) -> DataFrame | Series:
         skipna = nv.validate_cum_func_with_skipna(skipna, args, kwargs, name)
         if axis is None:
             axis = self._stat_axis_number
@@ -10368,20 +10404,26 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         return self._constructor(result).__finalize__(self, method=name)
 
-    def cummax(self, axis=None, skipna=True, *args, **kwargs):
+    def cummax(
+        self, axis: Axis | None = None, skipna: bool_t = True, *args, **kwargs
+    ) -> DataFrame | Series:
         return self._accum_func(
             "cummax", np.maximum.accumulate, axis, skipna, *args, **kwargs
         )
 
-    def cummin(self, axis=None, skipna=True, *args, **kwargs):
+    def cummin(
+        self, axis: Axis | None = None, skipna: bool_t = True, *args, **kwargs
+    ) -> DataFrame | Series:
         return self._accum_func(
             "cummin", np.minimum.accumulate, axis, skipna, *args, **kwargs
         )
 
-    def cumsum(self, axis=None, skipna=True, *args, **kwargs):
+    def cumsum(self, axis: Axis | None = None, skipna: bool_t = True, *args, **kwargs):
         return self._accum_func("cumsum", np.cumsum, axis, skipna, *args, **kwargs)
 
-    def cumprod(self, axis=None, skipna=True, *args, **kwargs):
+    def cumprod(
+        self, axis: Axis | None = None, skipna: bool_t = True, *args, **kwargs
+    ) -> DataFrame | Series:
         return self._accum_func("cumprod", np.cumprod, axis, skipna, *args, **kwargs)
 
     @final
@@ -10389,13 +10431,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         name: str,
         func,
-        axis=None,
-        skipna=True,
-        level=None,
-        ddof=1,
-        numeric_only=None,
+        axis: Axis | None = None,
+        skipna: bool_t = True,
+        level: Level | None = None,
+        ddof: int = 1,
+        numeric_only: bool_t | None = None,
         **kwargs,
-    ):
+    ) -> Series | float:
         nv.validate_stat_ddof_func((), kwargs, fname=name)
         if axis is None:
             axis = self._stat_axis_number
@@ -10415,22 +10457,40 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
 
     def sem(
-        self, axis=None, skipna=True, level=None, ddof=1, numeric_only=None, **kwargs
-    ):
+        self,
+        axis: Axis | None = None,
+        skipna: bool_t = True,
+        level: Level | None = None,
+        ddof: int = 1,
+        numeric_only: bool_t | None = None,
+        **kwargs,
+    ) -> Series | float:
         return self._stat_function_ddof(
             "sem", nanops.nansem, axis, skipna, level, ddof, numeric_only, **kwargs
         )
 
     def var(
-        self, axis=None, skipna=True, level=None, ddof=1, numeric_only=None, **kwargs
-    ):
+        self,
+        axis: Axis | None = None,
+        skipna: bool_t = True,
+        level: Level | None = None,
+        ddof: int = 1,
+        numeric_only: bool_t | None = None,
+        **kwargs,
+    ) -> Series | float:
         return self._stat_function_ddof(
             "var", nanops.nanvar, axis, skipna, level, ddof, numeric_only, **kwargs
         )
 
     def std(
-        self, axis=None, skipna=True, level=None, ddof=1, numeric_only=None, **kwargs
-    ):
+        self,
+        axis: Axis | None = None,
+        skipna: bool_t = True,
+        level: Level | None = None,
+        ddof: int = 1,
+        numeric_only: bool_t | None = None,
+        **kwargs,
+    ) -> Series | float:
         return self._stat_function_ddof(
             "std", nanops.nanstd, axis, skipna, level, ddof, numeric_only, **kwargs
         )
@@ -10440,12 +10500,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         name: str,
         func,
-        axis=None,
-        skipna=True,
-        level=None,
-        numeric_only=None,
+        axis: Axis | None = None,
+        skipna: bool_t = True,
+        level: Level | None = None,
+        numeric_only: bool_t | None = None,
         **kwargs,
-    ):
+    ) -> Series | Hashable:
         if name == "median":
             nv.validate_median((), kwargs)
         else:
@@ -10467,32 +10527,74 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             func, name=name, axis=axis, skipna=skipna, numeric_only=numeric_only
         )
 
-    def min(self, axis=None, skipna=True, level=None, numeric_only=None, **kwargs):
+    def min(
+        self,
+        axis: Axis | None = None,
+        skipna: bool_t = True,
+        level: Level | None = None,
+        numeric_only: bool_t | None = None,
+        **kwargs,
+    ) -> Series | Hashable:
         return self._stat_function(
             "min", nanops.nanmin, axis, skipna, level, numeric_only, **kwargs
         )
 
-    def max(self, axis=None, skipna=True, level=None, numeric_only=None, **kwargs):
+    def max(
+        self,
+        axis: Axis | None = None,
+        skipna: bool_t = True,
+        level: Level | None = None,
+        numeric_only: bool_t | None = None,
+        **kwargs,
+    ) -> Series | Hashable:
         return self._stat_function(
             "max", nanops.nanmax, axis, skipna, level, numeric_only, **kwargs
         )
 
-    def mean(self, axis=None, skipna=True, level=None, numeric_only=None, **kwargs):
+    def mean(
+        self,
+        axis: Axis | None = None,
+        skipna: bool_t = True,
+        level: Level | None = None,
+        numeric_only: bool_t | None = None,
+        **kwargs,
+    ) -> Series | float:
         return self._stat_function(
             "mean", nanops.nanmean, axis, skipna, level, numeric_only, **kwargs
         )
 
-    def median(self, axis=None, skipna=True, level=None, numeric_only=None, **kwargs):
+    def median(
+        self,
+        axis: Axis | None = None,
+        skipna: bool_t = True,
+        level: Level | None = None,
+        numeric_only: bool_t | None = None,
+        **kwargs,
+    ) -> Series | float:
         return self._stat_function(
             "median", nanops.nanmedian, axis, skipna, level, numeric_only, **kwargs
         )
 
-    def skew(self, axis=None, skipna=True, level=None, numeric_only=None, **kwargs):
+    def skew(
+        self,
+        axis: Axis | None = None,
+        skipna: bool_t = True,
+        level: Level | None = None,
+        numeric_only: bool_t | None = None,
+        **kwargs,
+    ) -> Series | float:
         return self._stat_function(
             "skew", nanops.nanskew, axis, skipna, level, numeric_only, **kwargs
         )
 
-    def kurt(self, axis=None, skipna=True, level=None, numeric_only=None, **kwargs):
+    def kurt(
+        self,
+        axis: Axis | None = None,
+        skipna: bool_t = True,
+        level: Level | None = None,
+        numeric_only: bool_t | None = None,
+        **kwargs,
+    ) -> Series | float:
         return self._stat_function(
             "kurt", nanops.nankurt, axis, skipna, level, numeric_only, **kwargs
         )
@@ -10504,13 +10606,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         name: str,
         func,
-        axis=None,
-        skipna=True,
-        level=None,
-        numeric_only=None,
-        min_count=0,
+        axis: Axis | None = None,
+        skipna: bool_t = True,
+        level: Level | None = None,
+        numeric_only: bool_t | None = None,
+        min_count: int = 0,
         **kwargs,
-    ):
+    ) -> Series | Hashable:
         if name == "sum":
             nv.validate_sum((), kwargs)
         elif name == "prod":
@@ -10546,26 +10648,26 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def sum(
         self,
-        axis=None,
-        skipna=True,
-        level=None,
-        numeric_only=None,
+        axis: Axis | None = None,
+        skipna: bool_t = True,
+        level: Level | None = None,
+        numeric_only: bool_t | None = None,
         min_count=0,
         **kwargs,
-    ):
+    ) -> Series | Hashable:
         return self._min_count_stat_function(
             "sum", nanops.nansum, axis, skipna, level, numeric_only, min_count, **kwargs
         )
 
     def prod(
         self,
-        axis=None,
-        skipna=True,
-        level=None,
-        numeric_only=None,
-        min_count=0,
+        axis: Axis | None = None,
+        skipna: bool_t = True,
+        level: Level | None = None,
+        numeric_only: bool_t | None = None,
+        min_count: int = 0,
         **kwargs,
-    ):
+    ) -> Series | Hashable:
         return self._min_count_stat_function(
             "prod",
             nanops.nanprod,
@@ -10579,7 +10681,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     product = prod
 
-    def mad(self, axis=None, skipna=None, level=None):
+    def mad(
+        self,
+        axis: Axis | None = None,
+        skipna: bool_t = True,
+        level: Level | None = None,
+    ) -> Series | float:
         """
         {desc}
 
