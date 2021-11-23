@@ -1838,7 +1838,7 @@ Wild       185.0
 Name: Max Speed, dtype: float64
 
 We can also choose to include `NA` in group keys or not by defining
-`dropna` parameter, the default setting is `True`:
+`dropna` parameter, the default setting is `True`.
 
 >>> ser = pd.Series([1, 2, 3, 3], index=["a", 'a', 'b', np.nan])
 >>> ser.groupby(level=0).sum()

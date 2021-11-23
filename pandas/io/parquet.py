@@ -457,7 +457,7 @@ def read_parquet(
         A file URL can also be a path to a directory that contains multiple
         partitioned parquet files. Both pyarrow and fastparquet support
         paths to directories as well as file URLs. A directory path could be:
-        ``file://localhost/path/to/tables`` or ``s3://bucket/partition_dir``
+        ``file://localhost/path/to/tables`` or ``s3://bucket/partition_dir``.
     engine : {{'auto', 'pyarrow', 'fastparquet'}}, default 'auto'
         Parquet library to use. If 'auto', then the option
         ``io.parquet.engine`` is used. The default ``io.parquet.engine``
