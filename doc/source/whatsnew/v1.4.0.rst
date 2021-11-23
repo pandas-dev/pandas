@@ -509,7 +509,7 @@ Conversion
 
 Strings
 ^^^^^^^
--
+- Fixed bug in :bug:`is_dtype_equal` raising if pyarrow not installed (:issue:`44327`)
 -
 
 Interval
