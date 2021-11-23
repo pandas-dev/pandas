@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from collections import defaultdict
+from collections import (
+    Hashable,
+    defaultdict,
+)
 import csv
 import datetime
 from enum import Enum
@@ -10,6 +13,7 @@ from typing import (
     Callable,
     DefaultDict,
     Iterable,
+    Mapping,
     Sequence,
     cast,
     final,
@@ -392,9 +396,7 @@ class ParserBase:
         return names, index_names, col_names, passed_names
 
     @final
-    def _maybe_dedup_names(
-        self, names: list[Scalar] | list[tuple[Scalar, ...]]
-    ) -> list[Scalar] | list[tuple[Scalar, ...]]:
+    def _maybe_dedup_names(self, names: Sequence[Hashable]) -> Sequence[Hashable]:
         # see gh-7160 and gh-9424: this helps to provide
         # immediate alleviation of the duplicate names
         # issue and appears to be satisfactory to users,
@@ -412,6 +414,7 @@ class ParserBase:
                     counts[col] = cur_count + 1
 
                     if is_potential_mi:
+                        # for mypy
                         assert isinstance(col, tuple)
                         col = col[:-1] + (f"{col[-1]}.{cur_count}",)
                     else:
@@ -544,7 +547,7 @@ class ParserBase:
     @final
     def _convert_to_ndarrays(
         self,
-        dct: dict,
+        dct: Mapping,
         na_values,
         na_fvalues,
         verbose: bool = False,
@@ -817,42 +820,22 @@ class ParserBase:
         self,
         names: Index,
         data: DataFrame,
-    ) -> tuple[list[Scalar] | Index, DataFrame]:
+    ) -> tuple[Sequence[Hashable] | Index, DataFrame]:
         ...
 
     @overload
     def _do_date_conversions(
         self,
-        names: list[Scalar] | list[tuple[Scalar, ...]],
-        data: dict[Scalar, ArrayLike]
-        | dict[tuple[Scalar, ...], ArrayLike]
-        | dict[Scalar, np.ndarray]
-        | dict[tuple[Scalar, ...], np.ndarray],
-    ) -> tuple[
-        list[Scalar] | list[tuple[Scalar, ...]],
-        dict[Scalar, ArrayLike]
-        | dict[tuple[Scalar, ...], ArrayLike]
-        | dict[Scalar, np.ndarray]
-        | dict[tuple[Scalar, ...], np.ndarray],
-    ]:
+        names: Sequence[Hashable],
+        data: Mapping[Hashable, ArrayLike],
+    ) -> tuple[Sequence[Hashable], Mapping[Hashable, ArrayLike]]:
         ...
 
     def _do_date_conversions(
         self,
-        names: list[Scalar] | list[tuple[Scalar, ...]] | Index,
-        data: dict[Scalar, ArrayLike]
-        | dict[tuple[Scalar, ...], ArrayLike]
-        | dict[Scalar, np.ndarray]
-        | dict[tuple[Scalar, ...], np.ndarray]
-        | DataFrame,
-    ) -> tuple[
-        list[Scalar] | list[tuple[Scalar, ...]] | Index,
-        dict[Scalar, ArrayLike]
-        | dict[tuple[Scalar, ...], ArrayLike]
-        | dict[Scalar, np.ndarray]
-        | dict[tuple[Scalar, ...], np.ndarray]
-        | DataFrame,
-    ]:
+        names: Sequence[Hashable] | Index,
+        data: Mapping[Hashable, ArrayLike] | DataFrame,
+    ) -> tuple[Sequence[Hashable] | Index, Mapping[Hashable, ArrayLike] | DataFrame]:
         # returns data, columns
 
         if self.parse_dates is not None:
@@ -870,8 +853,8 @@ class ParserBase:
 
     def _check_data_length(
         self,
-        columns: list[Scalar] | list[tuple[Scalar, ...]],
-        data: list[ArrayLike] | list[np.ndarray],
+        columns: Sequence[Hashable],
+        data: Sequence[ArrayLike],
     ) -> None:
         """Checks if length of data is equal to length of column names.
 

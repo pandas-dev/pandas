@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from collections import (
+    Mapping,
+    Sequence,
     abc,
     defaultdict,
 )
@@ -11,10 +13,8 @@ import re
 import sys
 from typing import (
     DefaultDict,
-    Dict,
+    Hashable,
     Iterator,
-    Tuple,
-    Union,
     cast,
 )
 import warnings
@@ -259,7 +259,7 @@ class PythonParser(ParserBase):
         # done with first read, next time raise StopIteration
         self._first_chunk = False
 
-        columns: list[Scalar] | list[tuple[Scalar, ...]] = list(self.orig_names)
+        columns: Sequence[Hashable] = list(self.orig_names)
         if not len(content):  # pragma: no cover
             # DataFrame with the right metadata, even though it's length 0
             names = self._maybe_dedup_names(self.orig_names)
@@ -284,10 +284,7 @@ class PythonParser(ParserBase):
         data, columns = self._exclude_implicit_index(alldata)
 
         columns, date_data = self._do_date_conversions(columns, data)
-        data = cast(
-            Union[Dict[Scalar, np.ndarray], Dict[Tuple[Scalar, ...], np.ndarray]],
-            date_data,
-        )
+        data = cast(Mapping[Hashable, np.ndarray], date_data)
 
         conv_data = self._convert_data(data)
         index, columns = self._make_index(conv_data, alldata, columns, indexnamerow)
@@ -297,10 +294,7 @@ class PythonParser(ParserBase):
     def _exclude_implicit_index(
         self,
         alldata: list[np.ndarray],
-    ) -> tuple[
-        dict[Scalar, np.ndarray] | dict[tuple[Scalar, ...], np.ndarray],
-        list[Scalar] | list[tuple[Scalar, ...]],
-    ]:
+    ) -> tuple[Mapping[Hashable, np.ndarray], Sequence[Hashable]]:
         names = self._maybe_dedup_names(self.orig_names)
 
         offset = 0
@@ -323,8 +317,9 @@ class PythonParser(ParserBase):
         return self.read(rows=size)
 
     def _convert_data(
-        self, data: dict[Scalar, np.ndarray] | dict[tuple[Scalar, ...], np.ndarray]
-    ) -> dict[Scalar, ArrayLike] | dict[tuple[Scalar, ...], ArrayLike]:
+        self,
+        data: Mapping[Hashable, np.ndarray],
+    ) -> Mapping[Hashable, ArrayLike]:
         # apply converters
         def _clean_mapping(mapping):
             """converts col numbers to names"""
@@ -765,6 +760,7 @@ class PythonParser(ParserBase):
             # assert for mypy, data is Iterator[str] or None, would error in next
             assert self.data is not None
             line = next(self.data)
+            # for mypy
             assert isinstance(line, list)
             return line
         except csv.Error as e:
@@ -882,7 +878,7 @@ class PythonParser(ParserBase):
 
     _implicit_index = False
 
-    def _get_index_name(self, columns: list[Scalar] | list[tuple[Scalar, ...]]):
+    def _get_index_name(self, columns: Sequence[Hashable]):
         """
         Try several cases to get lines:
 
