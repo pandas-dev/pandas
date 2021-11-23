@@ -354,15 +354,13 @@ def ndarray_to_mgr(
                 )
                 for i in range(values.shape[1])
             ]
-            if copy:
-                arrays = [arr.copy() for arr in arrays]
         else:
             if is_datetime_or_timedelta_dtype(values.dtype):
                 values = ensure_wrapped_if_datetimelike(values)
-            if copy:
-                arrays = [values[:, i].copy() for i in range(values.shape[1])]
-            else:
-                arrays = [values[:, i] for i in range(values.shape[1])]
+            arrays = [values[:, i] for i in range(values.shape[1])]
+
+        if copy:
+            arrays = [arr.copy() for arr in arrays]
 
         return ArrayManager(arrays, [index, columns], verify_integrity=False)
 
