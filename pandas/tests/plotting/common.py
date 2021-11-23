@@ -552,7 +552,7 @@ class TestPlotBase:
             obj.plot(kind=kind, grid=False, **kws)
             assert not is_grid_on()
 
-            if kind != "pie":
+            if kind not in ["pie", "hexbin", "scatter"]:
                 self.plt.subplot(1, 4 * len(kinds), spndx)
                 spndx += 1
                 mpl.rc("axes", grid=True)
