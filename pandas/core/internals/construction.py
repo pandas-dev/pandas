@@ -350,7 +350,7 @@ def ndarray_to_mgr(
         if dtype is None and is_object_dtype(values.dtype):
             arrays = [
                 ensure_wrapped_if_datetimelike(
-                    maybe_infer_to_datetimelike(values[:, i].copy())
+                    maybe_infer_to_datetimelike(values[:, i])
                 )
                 for i in range(values.shape[1])
             ]
