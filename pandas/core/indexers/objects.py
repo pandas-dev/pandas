@@ -124,7 +124,7 @@ class VariableWindowIndexer(BaseIndexer):
 
 
 class VariableOffsetWindowIndexer(BaseIndexer):
-    """Calculate window boundaries based on a non-fixed offset such as a BusinessDay"""
+    """Calculate window boundaries based on a non-fixed offset such as a BusinessDay."""
 
     def __init__(
         self,

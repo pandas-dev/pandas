@@ -325,7 +325,7 @@ Examples
 _transform_template = """
 Call function producing a like-indexed %(klass)s on each group and
 return a %(klass)s having the same indexes as the original object
-filled with the transformed values
+filled with the transformed values.
 
 Parameters
 ----------
