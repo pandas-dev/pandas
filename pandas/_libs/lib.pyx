@@ -3040,7 +3040,7 @@ def is_bool_list(obj: list) -> bool:
     return True
 
 
-def dtypes_all_equal(list types):
+def dtypes_all_equal(list types not None):
     """
     Faster version for:
 
