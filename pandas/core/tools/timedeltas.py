@@ -68,7 +68,7 @@ def to_timedelta(arg, unit=None, errors="raise"):
 
     Returns
     -------
-    timedelta64 or numpy.array of timedelta64
+    TimedeltaIndex of timedelta64
         Output type returned if parsing succeeded.
 
     See Also
