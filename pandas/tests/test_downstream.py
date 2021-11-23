@@ -5,7 +5,7 @@ import importlib
 import subprocess
 import sys
 
-import numpy as np  # noqa
+import numpy as np  # noqa:F401 needed in namespace for statsmodels
 import pytest
 
 import pandas.util._test_decorators as td
@@ -29,9 +29,6 @@ def df():
     return DataFrame({"A": [1, 2, 3]})
 
 
-# TODO(ArrayManager) dask is still accessing the blocks
-# https://github.com/dask/dask/pull/7318
-@td.skip_array_manager_not_yet_implemented
 @pytest.mark.filterwarnings("ignore:.*64Index is deprecated:FutureWarning")
 def test_dask(df):
 
@@ -100,7 +97,7 @@ def test_oo_optimized_datetime_index_unpickle():
 )
 def test_statsmodels():
 
-    statsmodels = import_module("statsmodels")  # noqa
+    statsmodels = import_module("statsmodels")  # noqa:F841
     import statsmodels.api as sm
     import statsmodels.formula.api as smf
 

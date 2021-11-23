@@ -399,10 +399,12 @@ class _FrequencyInferer:
         shifts = np.diff(self.index.asi8)
         shifts = np.floor_divide(shifts, _ONE_DAY)
         weekdays = np.mod(first_weekday + np.cumsum(shifts), 7)
-        # error: Incompatible return value type (got "bool_", expected "bool")
-        return np.all(  # type: ignore[return-value]
-            ((weekdays == 0) & (shifts == 3))
-            | ((weekdays > 0) & (weekdays <= 4) & (shifts == 1))
+
+        return bool(
+            np.all(
+                ((weekdays == 0) & (shifts == 3))
+                | ((weekdays > 0) & (weekdays <= 4) & (shifts == 1))
+            )
         )
 
     def _get_wom_rule(self) -> str | None:

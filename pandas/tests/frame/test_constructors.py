@@ -70,6 +70,19 @@ MIXED_INT_DTYPES = [
 
 
 class TestDataFrameConstructors:
+    def test_constructor_dict_with_tzaware_scalar(self):
+        # GH#42505
+        dt = Timestamp("2019-11-03 01:00:00-0700").tz_convert("America/Los_Angeles")
+
+        df = DataFrame({"dt": dt}, index=[0])
+        expected = DataFrame({"dt": [dt]})
+        tm.assert_frame_equal(df, expected)
+
+        # Non-homogeneous
+        df = DataFrame({"dt": dt, "value": [1]})
+        expected = DataFrame({"dt": [dt], "value": [1]})
+        tm.assert_frame_equal(df, expected)
+
     def test_construct_ndarray_with_nas_and_int_dtype(self):
         # GH#26919 match Series by not casting np.nan to meaningless int
         arr = np.array([[1, np.nan], [2, 3]])
@@ -2274,15 +2287,17 @@ class TestDataFrameConstructors:
 
         assert data.b.dtype == dtype
 
-    # TODO(ArrayManager) astype to bytes dtypes does not yet give object dtype
-    @td.skip_array_manager_not_yet_implemented
     @pytest.mark.parametrize(
         "dtype", tm.STRING_DTYPES + tm.BYTES_DTYPES + tm.OBJECT_DTYPES
     )
-    def test_check_dtype_empty_string_column(self, dtype):
+    def test_check_dtype_empty_string_column(self, request, dtype, using_array_manager):
         # GH24386: Ensure dtypes are set correctly for an empty DataFrame.
         # Empty DataFrame is generated via dictionary data with non-overlapping columns.
         data = DataFrame({"a": [1, 2]}, columns=["b"], dtype=dtype)
+
+        if using_array_manager and dtype in tm.BYTES_DTYPES:
+            # TODO(ArrayManager) astype to bytes dtypes does not yet give object dtype
+            td.mark_array_manager_not_yet_implemented(request)
 
         assert data.b.dtype.name == "object"
 
@@ -2453,8 +2468,20 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("copy", [False, True])
-    @td.skip_array_manager_not_yet_implemented
-    def test_dict_nocopy(self, copy, any_numeric_ea_dtype, any_numpy_dtype):
+    def test_dict_nocopy(
+        self, request, copy, any_numeric_ea_dtype, any_numpy_dtype, using_array_manager
+    ):
+        if using_array_manager and not (
+            (any_numpy_dtype in (tm.STRING_DTYPES + tm.BYTES_DTYPES))
+            or (
+                any_numpy_dtype
+                in (tm.DATETIME64_DTYPES + tm.TIMEDELTA64_DTYPES + tm.BOOL_DTYPES)
+                and copy
+            )
+        ):
+            # TODO(ArrayManager) properly honor copy keyword for dict input
+            td.mark_array_manager_not_yet_implemented(request)
+
         a = np.array([1, 2], dtype=any_numpy_dtype)
         b = np.array([3, 4], dtype=any_numpy_dtype)
         if b.dtype.kind in ["S", "U"]:
@@ -2888,8 +2915,8 @@ class TestFromScalar:
         obj = constructor(td, dtype="m8[ns]")
         assert get1(obj) == td
 
-    def test_from_timestamp_scalar_preserves_nanos(self, constructor):
-        ts = Timestamp.now() + Timedelta(1)
+    def test_from_timestamp_scalar_preserves_nanos(self, constructor, fixed_now_ts):
+        ts = fixed_now_ts + Timedelta(1)
 
         obj = constructor(ts, dtype="M8[ns]")
         assert get1(obj) == ts
