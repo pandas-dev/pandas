@@ -284,7 +284,10 @@ class DataFrameInfo(BaseInfo):
             deep = True
         else:
             deep = False
-        return self.data.memory_usage(index=True, deep=deep).sum()
+        usage = self.data.memory_usage(index=True, deep=deep).sum()
+        # for mypy
+        assert isinstance(usage, int)
+        return usage
 
     def render(
         self,
