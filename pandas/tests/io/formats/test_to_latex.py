@@ -1522,8 +1522,8 @@ class TestRowStringConverter:
         msg = (
             "In future versions `DataFrame.to_latex` is expected to utilise the base "
             "implementation of `Styler.to_latex` for formatting and rendering. "
-            "The arguments signature may therefore change. It is recommended instead to"
-            "use `DataFrame.style.to_latex` which also contains additional "
+            "The arguments signature may therefore change. It is recommended instead "
+            "to use `DataFrame.style.to_latex` which also contains additional "
             "functionality."
         )
         with tm.assert_produces_warning(FutureWarning, match=msg):

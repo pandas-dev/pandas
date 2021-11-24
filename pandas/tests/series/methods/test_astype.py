@@ -128,7 +128,7 @@ class TestAstype:
     def test_astype_generic_timestamp_no_frequency(self, dtype, request):
         # see GH#15524, GH#15987
         data = [1]
-        s = Series(data)
+        ser = Series(data)
 
         if np.dtype(dtype).name not in ["timedelta64", "datetime64"]:
             mark = pytest.mark.xfail(reason="GH#33890 Is assigned ns unit")
@@ -139,7 +139,7 @@ class TestAstype:
             fr"Please pass in '{dtype.__name__}\[ns\]' instead."
         )
         with pytest.raises(ValueError, match=msg):
-            s.astype(dtype)
+            ser.astype(dtype)
 
     def test_astype_dt64_to_str(self):
         # GH#10442 : testing astype(str) is correct for Series/DatetimeIndex
