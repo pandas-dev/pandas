@@ -8,7 +8,7 @@ jobs:
     environment:
       ENV_FILE: ci/deps/circle-38-arm64.yaml
       PYTEST_WORKERS: auto
-      PATTERN: "not slow and not network and not clipboard and not arm_slow"
+      PATTERN: "not slow and not network and not clipboard and not arm_slow and not single"
       PYTEST_TARGET: "pandas"
     steps:
       - checkout
