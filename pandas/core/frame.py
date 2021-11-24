@@ -2922,7 +2922,7 @@ class DataFrame(NDFrame, OpsMixin):
             a bytes object is returned. Note that currently the pyarrow
             engine doesn't work with io.BytesIO.
         engine : {{'pyarrow'}}, default 'pyarrow'
-            Parquet library to use, or library it self, checked with 'pyarrow' name
+            ORC library to use, or library itself, checked with 'pyarrow' name
             and version >= 5.0.0
         index : bool, default None
             If ``True``, include the dataframe's index(es) in the file output. If

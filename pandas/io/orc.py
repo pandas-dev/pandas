@@ -1,7 +1,6 @@
 """ orc compat """
 from __future__ import annotations
 
-from types import ModuleType
 from typing import (
     TYPE_CHECKING,
     Literal,
@@ -63,7 +62,7 @@ def read_orc(
 def to_orc(
     df: DataFrame,
     path: FilePath | WriteBuffer[bytes] | None = None,
-    engine: Literal['pyarrow'] = 'pyarrow',  # type: ignore[arg-type]
+    engine: Literal['pyarrow'] = 'pyarrow',
     index: bool = None,
     **kwargs
 ) -> bytes:
@@ -99,37 +98,28 @@ def to_orc(
     if index is None:
         index = df.index.names[0] is not None
 
-    if isinstance(engine, str):
-        engine = import_optional_dependency(engine, min_version='5.0.0')
-    elif isinstance(engine, ModuleType):
-        try:
-            assert engine.__name__ == 'pyarrow', "engine must be 'pyarrow' module"
-            assert hasattr(engine, 'orc'), "'pyarrow' module must have orc module"
-        except ImportError as e:
-            raise ValueError(
-                "Unable to find a usable engine; "
-                "tried using: 'pyarrow'.\n"
-                "A suitable version of "
-                "pyarrow is required for ORC support.\n"
-                "Trying to import the above resulted in these errors:"
-                f"\n - {e}"
-            )
+    if engine == "pyarrow":
+        engine = import_optional_dependency(engine, min_version='5.0.0') )
     else:
-        raise TypeError(
-            f"unsuported type for engine: {type(engine)}"
+        raise ValueError(
+            f"engine must be 'pyarrow'"
         )
 
-    if hasattr(path, "write"):
+    if not hasattr(path, "write"):
         engine.orc.write_table(
             engine.Table.from_pandas(df, preserve_index=index),
             path, **kwargs
         )
     else:
         # to bytes: pyarrow auto closes buffers hence we read a pyarrow buffer
-        stream = engine.BufferOutputStream()
-        engine.orc.write_table(
-            engine.Table.from_pandas(df, preserve_index=index),
-            stream, **kwargs
-        )
-        return stream.getvalue().to_pybytes()
-    return
+        with engine.BufferOutputStream() as stream:  # if that is possible
+            engine.orc.write_table(
+                engine.Table.from_pandas(df, preserve_index=index),
+                stream, **kwargs
+            )
+            # allows writing to any (fsspec) URL
+            with get_handle(path, "wb", is_text=False) as handles:
+                orc_bytes = stream.getvalue().to_pybytes()
+                handles.handle.write(orc_bytes)
+                if path is None:
+                    return orc_bytes
