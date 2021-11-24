@@ -1478,33 +1478,23 @@ class TestDataFrameReductions:
         expected = Series(data=[False, True])
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "func",
-        [
-            "any",
-            "all",
-            "count",
-            "sum",
-            "prod",
-            "max",
-            "min",
-            "mean",
-            "median",
-            "skew",
-            "kurt",
-            "sem",
-            "var",
-            "std",
-            "mad",
-        ],
-    )
-    def test_reductions_deprecation_level_argument(self, frame_or_series, func):
+    def test_reductions_deprecation_level_argument(
+        self, frame_or_series, reduction_functions
+    ):
         # GH#39983
         obj = frame_or_series(
             [1, 2, 3], index=MultiIndex.from_arrays([[1, 2, 3], [4, 5, 6]])
         )
         with tm.assert_produces_warning(FutureWarning, match="level"):
-            getattr(obj, func)(level=0)
+            getattr(obj, reduction_functions)(level=0)
+
+    def test_reductions_skipna_none_raises(self, frame_or_series, reduction_functions):
+        if reduction_functions in ["count", "mad"]:
+            pytest.skip("Count does not accept skipna. Mad needs a depreaction cycle.")
+        obj = frame_or_series([1, 2, 3])
+        msg = 'For argument "skipna" expected type bool, received type NoneType.'
+        with pytest.raises(ValueError, match=msg):
+            getattr(obj, reduction_functions)(skipna=None)
 
 
 class TestNuisanceColumns:

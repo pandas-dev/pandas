@@ -32,8 +32,8 @@ def df():
 @pytest.mark.filterwarnings("ignore:.*64Index is deprecated:FutureWarning")
 def test_dask(df):
 
-    toolz = import_module("toolz")  # noqa
-    dask = import_module("dask")  # noqa
+    toolz = import_module("toolz")  # noqa:F841
+    dask = import_module("dask")  # noqa:F841
 
     import dask.dataframe as dd
 
@@ -44,7 +44,7 @@ def test_dask(df):
 
 def test_xarray(df):
 
-    xarray = import_module("xarray")  # noqa
+    xarray = import_module("xarray")  # noqa:F841
 
     assert df.to_xarray() is not None
 
@@ -109,7 +109,7 @@ def test_statsmodels():
 @pytest.mark.filterwarnings("ignore:can't:ImportWarning")
 def test_scikit_learn(df):
 
-    sklearn = import_module("sklearn")  # noqa
+    sklearn = import_module("sklearn")  # noqa:F841
     from sklearn import (
         datasets,
         svm,
@@ -133,10 +133,14 @@ def test_seaborn():
 
 def test_pandas_gbq(df):
 
-    pandas_gbq = import_module("pandas_gbq")  # noqa
+    pandas_gbq = import_module("pandas_gbq")  # noqa:F841
 
 
-@pytest.mark.xfail(reason="0.8.1 tries to import urlencode from pd.io.common")
+@pytest.mark.xfail(
+    raises=ValueError,
+    reason="The Quandl API key must be provided either through the api_key "
+    "variable or through the environmental variable QUANDL_API_KEY",
+)
 @tm.network
 def test_pandas_datareader():
 
