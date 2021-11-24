@@ -19,6 +19,8 @@ from pandas.io.formats.latex import (
     RowStringConverter,
 )
 
+pytestmark = pytest.mark.filterwarnings("ignore::FutureWarning")
+
 
 def _dedent(string):
     """Dedent without new line in the beginning.
@@ -1514,3 +1516,15 @@ class TestRowStringConverter:
         )
 
         assert row_string_converter.get_strrow(row_num=row_num) == expected
+
+    def test_future_warning(self):
+        df = DataFrame([[1]])
+        msg = (
+            "In future versions `DataFrame.to_latex` is expected to utilise the base "
+            "implementation of `Styler.to_latex` for formatting and rendering. "
+            "The arguments signature may therefore change. It is recommended instead "
+            "to use `DataFrame.style.to_latex` which also contains additional "
+            "functionality."
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.to_latex()

@@ -265,6 +265,7 @@ class TestDataFrameReprInfoEtc:
         with option_context("display.max_columns", 20):
             assert "StringCol" in repr(df)
 
+    @pytest.mark.filterwarnings("ignore::FutureWarning")
     def test_latex_repr(self):
         result = r"""\begin{tabular}{llll}
 \toprule
