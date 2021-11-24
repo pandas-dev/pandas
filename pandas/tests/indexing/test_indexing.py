@@ -277,7 +277,7 @@ class TestFancy:
         ):
             dfnu.loc[["E"]]
 
-        # ToDo: check_index_type can be True after GH 11497
+        # TODO: check_index_type can be True after GH 11497
 
     @pytest.mark.parametrize("vals", [[0, 1, 2], list("abc")])
     def test_dups_fancy_indexing_missing_label(self, vals):

@@ -110,11 +110,11 @@ class TestTimedelta64ArrayLikeComparisons:
         [
             345600000000000,
             "a",
-            Timestamp.now(),
-            Timestamp.now("UTC"),
-            Timestamp.now().to_datetime64(),
-            Timestamp.now().to_pydatetime(),
-            Timestamp.now().date(),
+            Timestamp("2021-01-01"),
+            Timestamp("2021-01-01").now("UTC"),
+            Timestamp("2021-01-01").now().to_datetime64(),
+            Timestamp("2021-01-01").now().to_pydatetime(),
+            Timestamp("2021-01-01").date(),
             np.array(4),  # zero-dim mismatched dtype
         ],
     )
@@ -152,7 +152,7 @@ class TestTimedelta64ArrayLikeComparisons:
 
     def test_td64arr_cmp_mixed_invalid(self):
         rng = timedelta_range("1 days", periods=5)._data
-        other = np.array([0, 1, 2, rng[3], Timestamp.now()])
+        other = np.array([0, 1, 2, rng[3], Timestamp("2021-01-01")])
 
         result = rng == other
         expected = np.array([False, False, False, True, False])
@@ -1981,6 +1981,20 @@ class TestTimedeltaArraylikeMulDivOps:
         with pytest.raises(TypeError, match="Cannot divide"):
             two / tdser
 
+    @pytest.mark.parametrize("two", [2, 2.0, np.array(2), np.array(2.0)])
+    def test_td64arr_floordiv_numeric_scalar(self, box_with_array, two):
+        tdser = Series(["59 Days", "59 Days", "NaT"], dtype="m8[ns]")
+        expected = Series(["29.5D", "29.5D", "NaT"], dtype="timedelta64[ns]")
+
+        tdser = tm.box_expected(tdser, box_with_array)
+        expected = tm.box_expected(expected, box_with_array)
+
+        result = tdser // two
+        tm.assert_equal(result, expected)
+
+        with pytest.raises(TypeError, match="Cannot divide"):
+            two // tdser
+
     @pytest.mark.parametrize(
         "vector",
         [np.array([20, 30, 40]), pd.Index([20, 30, 40]), Series([20, 30, 40])],
@@ -2160,7 +2174,7 @@ class TestTimedelta64ArrayLikeArithmetic:
 
 def test_add_timestamp_to_timedelta():
     # GH: 35897
-    timestamp = Timestamp.now()
+    timestamp = Timestamp("2021-01-01")
     result = timestamp + timedelta_range("0s", "1s", periods=31)
     expected = DatetimeIndex(
         [

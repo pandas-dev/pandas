@@ -17,7 +17,8 @@ from pandas._libs.parsers import STR_NA_VALUES
 from pandas._typing import (
     ArrayLike,
     DtypeArg,
-    FilePathOrBuffer,
+    FilePath,
+    ReadCsvBuffer,
     StorageOptions,
 )
 from pandas.errors import (
@@ -505,7 +506,9 @@ def _validate_names(names):
             raise ValueError("Names should be an ordered collection.")
 
 
-def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
+def _read(
+    filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str], kwds
+):
     """Generic reader of line files."""
     if kwds.get("date_parser", None) is not None:
         if isinstance(kwds["parse_dates"], bool):
@@ -554,7 +557,7 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     )
 )
 def read_csv(
-    filepath_or_buffer: FilePathOrBuffer,
+    filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
     sep=lib.no_default,
     delimiter=None,
     # Column and Index Locations and Names
@@ -652,7 +655,7 @@ def read_csv(
     )
 )
 def read_table(
-    filepath_or_buffer: FilePathOrBuffer,
+    filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
     sep=lib.no_default,
     delimiter=None,
     # Column and Index Locations and Names
@@ -739,7 +742,7 @@ def read_table(
 
 
 def read_fwf(
-    filepath_or_buffer: FilePathOrBuffer,
+    filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
     colspecs="infer",
     widths=None,
     infer_nrows=100,
@@ -756,18 +759,12 @@ def read_fwf(
 
     Parameters
     ----------
-    filepath_or_buffer : str, path object or file-like object
-        Any valid string path is acceptable. The string could be a URL. Valid
-        URL schemes include http, ftp, s3, and file. For file URLs, a host is
+    filepath_or_buffer : str, path object, or file-like object
+        String, path object (implementing ``os.PathLike[str]``), or file-like
+        object implementing a text ``read()`` function.The string could be a URL.
+        Valid URL schemes include http, ftp, s3, and file. For file URLs, a host is
         expected. A local file could be:
         ``file://localhost/path/to/table.csv``.
-
-        If you want to pass in a path object, pandas accepts any
-        ``os.PathLike``.
-
-        By file-like object, we refer to objects with a ``read()`` method,
-        such as a file handle (e.g. via builtin ``open`` function)
-        or ``StringIO``.
     colspecs : list of tuple (int, int) or 'infer'. optional
         A list of tuples giving the extents of the fixed-width
         fields of each line as half-open intervals (i.e.,  [from, to[ ).
@@ -942,10 +939,10 @@ class TextFileReader(abc.Iterator):
 
     def _check_file_or_buffer(self, f, engine):
         # see gh-16530
-        if is_file_like(f) and engine != "c" and not hasattr(f, "__next__"):
-            # The C engine doesn't need the file-like to have the "__next__"
-            # attribute. However, the Python engine explicitly calls
-            # "__next__(...)" when iterating through such an object, meaning it
+        if is_file_like(f) and engine != "c" and not hasattr(f, "__iter__"):
+            # The C engine doesn't need the file-like to have the "__iter__"
+            # attribute. However, the Python engine needs "__iter__(...)"
+            # when iterating through such an object, meaning it
             # needs to have that attribute
             raise ValueError(
                 "The 'python' engine cannot iterate through this file buffer."
