@@ -94,13 +94,12 @@ by : mapping, function, label, or list of labels
     If ``by`` is a function, it's called on each value of the object's
     index. If a dict or Series is passed, the Series or dict VALUES
     will be used to determine the groups (the Series' values are first
-    aligned; see ``.align()`` method). If a list (of acceptable items.
-    See the `groupby user guide
-    <https://pandas.pydata.org/pandas-docs/stable/user_guide/groupby.html#splitting-an-object-into-groups>`)
-    or ndarray of length equal to the selected axis is passed, the
-    values are used as-is to determine the groups. A label or list of
-    labels may be passed to group by the columns in ``self``. Notice
-    that a tuple is interpreted as a (single) key.
+    aligned; see ``.align()`` method). If a list or ndarray of length
+    equal to the selected axis is passed (see the `groupby user guide
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/groupby.html#splitting-an-object-into-groups>`),
+    the values are used as-is to determine the groups. A label or list
+    of labels may be passed to group by the columns in ``self``.
+    Notice that a tuple is interpreted as a (single) key.
 axis : {0 or 'index', 1 or 'columns'}, default 0
     Split along rows (0) or columns (1).
 level : int, level name, or sequence of such, default None
