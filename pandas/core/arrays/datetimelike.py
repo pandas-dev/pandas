@@ -635,7 +635,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         -------
         self._scalar_type or NaT
         """
-        if isinstance(value, str):
+        if isinstance(value, self._recognized_scalars):
+            value = self._scalar_type(value)
+
+        elif isinstance(value, str):
             # NB: Careful about tzawareness
             try:
                 value = self._scalar_from_string(value)
@@ -652,9 +655,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             #  or else we'll fail to raise in _unbox_scalar
             msg = self._validation_error_message(value, allow_listlike)
             raise TypeError(msg)
-
-        elif isinstance(value, self._recognized_scalars):
-            value = self._scalar_type(value)
 
         else:
             msg = self._validation_error_message(value, allow_listlike)
