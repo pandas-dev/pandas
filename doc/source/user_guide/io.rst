@@ -2634,8 +2634,8 @@ Read in pandas ``to_html`` output (with some loss of floating point precision):
    :okwarning:
 
    df = pd.DataFrame(np.random.randn(2, 2))
-   s = df.to_html(float_format="{0:.40g}".format)
-   dfin = pd.read_html(s, index_col=0)
+   s = df.style.format("{0:.40g}").to_html()
+   dfin = pd.read_html(s, index_col=0)[0]
 
 The ``lxml`` backend will raise an error on a failed parse if that is the only
 parser you provide. If you only have a single parser you can provide just a
