@@ -518,6 +518,7 @@ Performance improvements
 - Performance improvement in :meth:`Series.to_frame` (:issue:`43558`)
 - Performance improvement in :meth:`Series.mad` (:issue:`43010`)
 - Performance improvement in :func:`merge` (:issue:`43332`)
+- Performance improvement in :func:`read_csv` when ``index_col`` was set with a numeric column (:issue:`44158`)
 - Performance improvement in :func:`concat` (:issue:`43354`)
 -
 
