@@ -10,9 +10,7 @@ from pandas._libs.tslibs import Timestamp
 
 from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
-    is_float_dtype,
     is_integer_dtype,
-    is_unsigned_integer_dtype,
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
@@ -557,20 +555,9 @@ class Base:
         # callable
         idx = simple_index
 
-        # we don't infer UInt64
-        if is_integer_dtype(idx.dtype):
-            expected = idx.astype("int64")
-        elif is_float_dtype(idx.dtype):
-            expected = idx.astype("float64")
-            if idx._is_backward_compat_public_numeric_index:
-                # We get a NumericIndex back, not Float64Index
-                expected = type(idx)(expected)
-        else:
-            expected = idx
-
         result = idx.map(lambda x: x)
         # For RangeIndex we convert to Int64Index
-        tm.assert_index_equal(result, expected, exact="equiv")
+        tm.assert_index_equal(result, idx, exact="equiv")
 
     @pytest.mark.parametrize(
         "mapper",
@@ -583,27 +570,26 @@ class Base:
 
         idx = simple_index
         if isinstance(idx, CategoricalIndex):
+            # TODO(2.0): see if we can avoid skipping once
+            #  CategoricalIndex.reindex is removed.
             pytest.skip(f"skipping tests for {type(idx)}")
 
         identity = mapper(idx.values, idx)
 
-        # we don't infer to UInt64 for a dict
-        if is_unsigned_integer_dtype(idx.dtype) and isinstance(identity, dict):
-            expected = idx.astype("int64")
-        else:
-            expected = idx
-
         result = idx.map(identity)
         # For RangeIndex we convert to Int64Index
-        tm.assert_index_equal(result, expected, exact="equiv")
+        tm.assert_index_equal(result, idx, exact="equiv")
 
         # empty mappable
+        dtype = None
         if idx._is_backward_compat_public_numeric_index:
             new_index_cls = NumericIndex
+            if idx.dtype.kind == "f":
+                dtype = idx.dtype
         else:
             new_index_cls = Float64Index
 
-        expected = new_index_cls([np.nan] * len(idx))
+        expected = new_index_cls([np.nan] * len(idx), dtype=dtype)
         result = idx.map(mapper(expected, idx))
         tm.assert_index_equal(result, expected)
 
