@@ -1,6 +1,10 @@
 from datetime import datetime
 
 from dateutil.tz import gettz
+from hypothesis import (
+    given,
+    strategies as st,
+)
 import numpy as np
 import pytest
 import pytz
@@ -276,12 +280,12 @@ class TestTimestampUnaryOps:
         with pytest.raises(OverflowError, match=msg):
             Timestamp.max.ceil("s")
 
-    @pytest.mark.parametrize("n", range(100))
+    @given(val=st.integers(iNaT + 1, lib.i8max))
     @pytest.mark.parametrize(
         "method", [Timestamp.round, Timestamp.floor, Timestamp.ceil]
     )
-    def test_round_sanity(self, method, n):
-        val = np.random.randint(iNaT + 1, lib.i8max, dtype=np.int64)
+    def test_round_sanity(self, val, method):
+        val = np.int64(val)
         ts = Timestamp(val)
 
         def checker(res, ts, nanos):
