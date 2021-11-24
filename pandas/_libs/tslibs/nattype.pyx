@@ -1201,6 +1201,7 @@ cdef inline bint checknull_with_nat(object val):
     """
     return val is None or util.is_nan(val) or val is c_NaT
 
+
 cdef inline bint is_dt64nat(object val):
     """
     Is this a np.datetime64 object np.datetime64("NaT").
@@ -1209,39 +1210,11 @@ cdef inline bint is_dt64nat(object val):
         return get_datetime64_value(val) == NPY_NAT
     return False
 
+
 cdef inline bint is_td64nat(object val):
     """
     Is this a np.timedelta64 object np.timedelta64("NaT").
     """
     if util.is_timedelta64_object(val):
         return get_timedelta64_value(val) == NPY_NAT
-    return False
-
-
-cpdef bint is_null_datetimelike(object val, bint inat_is_null=True):
-    """
-    Determine if we have a null for a timedelta/datetime (or integer versions).
-
-    Parameters
-    ----------
-    val : object
-    inat_is_null : bool, default True
-        Whether to treat integer iNaT value as null
-
-    Returns
-    -------
-    bool
-    """
-    if val is None:
-        return True
-    elif val is c_NaT:
-        return True
-    elif util.is_float_object(val) or util.is_complex_object(val):
-        return val != val
-    elif util.is_timedelta64_object(val):
-        return get_timedelta64_value(val) == NPY_NAT
-    elif util.is_datetime64_object(val):
-        return get_datetime64_value(val) == NPY_NAT
-    elif inat_is_null and util.is_integer_object(val):
-        return val == NPY_NAT
     return False
