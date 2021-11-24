@@ -180,13 +180,13 @@ jobs:
 
     - name: Run tests
       env:
-        PANDAS_DATA_MANAGER: array
+        PANDAS_DATA_MANAGER: block
         PATTERN: ${{ matrix.pattern }}
         PYTEST_WORKERS: "auto"
         PYTEST_TARGET: pandas
       run: |
         source activate pandas-dev
-        ci/run_tests.sh
+        pytest -s -v -m "not slow and not network and not clipboard" -n auto --dist=loadfile pandas
 
     - name: Print skipped tests
       run: python ci/print_skipped.py
