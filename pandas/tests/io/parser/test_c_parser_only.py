@@ -556,6 +556,8 @@ def test_read_tarfile(c_parser_only, csv_dir_path, tar_suffix):
 
 
 @pytest.mark.single
+@td.skip_if_windows  # CI: MemoryError
+@td.skip_if_32bit  # CI: OverflowError: join() result is too long for a Python string
 def test_bytes_exceed_2gb(c_parser_only):
     # see gh-16798
     #
