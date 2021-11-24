@@ -399,6 +399,7 @@ Other API changes
 ^^^^^^^^^^^^^^^^^
 - :meth:`Index.get_indexer_for` no longer accepts keyword arguments (other than 'target'); in the past these would be silently ignored if the index was not unique (:issue:`42310`)
 - Change in the position of the ``min_rows`` argument in :meth:`DataFrame.to_string` due to change in the docstring (:issue:`44304`)
+- Reduction operations for :class:`DataFrame` or :class:`Series` now raising a ``ValueError`` when ``None`` is passed for ``skipna`` (:issue:`44178`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -465,6 +466,7 @@ Other Deprecations
 - Deprecated the 'errors' keyword argument in :meth:`Series.where`, :meth:`DataFrame.where`, :meth:`Series.mask`, and meth:`DataFrame.mask`; in a future version the argument will be removed (:issue:`44294`)
 - Deprecated :meth:`PeriodIndex.astype` to ``datetime64[ns]`` or ``DatetimeTZDtype``, use ``obj.to_timestamp(how).tz_localize(dtype.tz)`` instead (:issue:`44398`)
 - Deprecated :meth:`DateOffset.apply`, use ``offset + other`` instead (:issue:`44522`)
+- A deprecation warning is now shown for :meth:`DataFrame.to_latex` indicating the arguments signature may change and emulate more the arguments to :meth:`.Styler.to_latex` in future versions (:issue:`44411`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -741,6 +743,7 @@ Other
 - Bug in :meth:`Series.to_frame` and :meth:`Index.to_frame` ignoring the ``name`` argument when ``name=None`` is explicitly passed (:issue:`44212`)
 - Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` with ``value=None`` and ExtensionDtypes (:issue:`44270`)
 - Bug in :meth:`FloatingArray.equals` failing to consider two arrays equal if they contain ``np.nan`` values (:issue:`44382`)
+- Bug in :meth:`DataFrame.diff` when passing a NumPy integer object instead of an ``int`` object (:issue:`44572`)
 -
 
 .. ***DO NOT USE THIS SECTION***
