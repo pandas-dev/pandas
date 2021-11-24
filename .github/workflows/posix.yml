@@ -28,10 +28,10 @@ jobs:
           [actions-38-locale_slow.yaml, "slow", "language-pack-it xsel", "it_IT.utf8", "it_IT.utf8", "", "", "auto"],
           [actions-38.yaml, "not slow and not network and not clipboard and not single", "", "", "", "", "", "auto"],
           [actions-38-slow-single.yaml, "slow", "", "", "", "", "", "auto"],
-          [actions-38-slow-single.yaml, "single", "", "", "", "", "-v", "1"],
+          [actions-38-slow-single.yaml, "single", "", "", "", "", "", "1"],
           [actions-38-locale.yaml, "not slow and not network and not single", "language-pack-zh-hans xsel", "zh_CN.utf8", "zh_CN.utf8", "", "", "auto"],
           [actions-39-slow-single.yaml, "slow", "", "", "", "", "", "auto"],
-          [actions-39-slow-single.yaml, "single", "", "", "", "", "-v", "1"],
+          [actions-39-slow-single.yaml, "single", "", "", "", "", "", "1"],
           [actions-39-numpydev.yaml, "not slow and not network and not single", "xsel", "", "", "deprecate", "-W error", "auto"],
           [actions-39.yaml, "not slow and not network and not clipboard and not single", "", "", "", "", "", "auto"]
         ]
