@@ -2631,6 +2631,7 @@ Use some combination of the above:
 Read in pandas ``to_html`` output (with some loss of floating point precision):
 
 .. code-block:: python
+   :okwarning:
 
    df = pd.DataFrame(np.random.randn(2, 2))
    s = df.to_html(float_format="{0:.40g}".format)
@@ -2677,6 +2678,7 @@ in the method ``to_string`` described above.
 
 .. ipython:: python
    :suppress:
+   :okwarning:
 
    def write_html(df, filename, *args, **kwargs):
        static = os.path.abspath(os.path.join("source", "_static"))
@@ -2684,6 +2686,7 @@ in the method ``to_string`` described above.
            df.to_html(f, *args, **kwargs)
 
 .. ipython:: python
+   :okwarning:
 
    df = pd.DataFrame(np.random.randn(2, 2))
    df
@@ -2702,6 +2705,7 @@ HTML:
 The ``columns`` argument will limit the columns shown:
 
 .. ipython:: python
+   :okwarning:
 
    print(df.to_html(columns=[0]))
 
@@ -2719,6 +2723,7 @@ HTML:
 point values:
 
 .. ipython:: python
+   :okwarning:
 
    print(df.to_html(float_format="{0:.10f}".format))
 
@@ -2736,6 +2741,7 @@ HTML:
 off:
 
 .. ipython:: python
+   :okwarning:
 
    print(df.to_html(bold_rows=False))
 
@@ -2752,6 +2758,7 @@ table CSS classes. Note that these classes are *appended* to the existing
 ``'dataframe'`` class.
 
 .. ipython:: python
+   :okwarning:
 
    print(df.to_html(classes=["awesome_table_class", "even_more_awesome_class"]))
 
@@ -2759,6 +2766,7 @@ The ``render_links`` argument provides the ability to add hyperlinks to cells
 that contain URLs.
 
 .. ipython:: python
+   :okwarning:
 
    url_df = pd.DataFrame(
        {
