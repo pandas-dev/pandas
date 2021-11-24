@@ -511,11 +511,14 @@ def _read(
 ):
     """Generic reader of line files."""
     if kwds.get("date_parser", None) is not None:
-        # if we pass a date_parser and parse_dates=False, we should not parse the dates GH#44366
+        # if we pass a date_parser and parse_dates=False, we should not parse the
+        # dates GH#44366
         if isinstance(kwds["parse_dates"], bool):
             pass
         else:
-            kwds["parse_dates"] = True if kwds["parse_dates"] is None else kwds["parse_dates"]
+            kwds["parse_dates"] = (
+                True if kwds["parse_dates"] is None else kwds["parse_dates"]
+            )
 
     # Extract some of the arguments (pass chunksize on).
     iterator = kwds.get("iterator", False)
