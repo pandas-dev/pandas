@@ -35,6 +35,7 @@ from pandas.core.computation.expr import (
     PandasExprVisitor,
     PythonExprVisitor,
 )
+import pandas.core.computation.expressions as expressions_module
 from pandas.core.computation.expressions import (
     NUMEXPR_INSTALLED,
     USE_NUMEXPR,
@@ -46,6 +47,8 @@ from pandas.core.computation.ops import (
     _binary_ops_dict,
     _unary_math_ops,
 )
+
+print("test_eval.py: ", expressions_module.USE_NUMEXPR, USE_NUMEXPR)
 
 
 @pytest.fixture(
@@ -1128,6 +1131,12 @@ class TestOperationsNumExprPandas:
 
     @classmethod
     def setup_class(cls):
+        print(
+            "TestOperationsNumExprPandas: ",
+            expressions_module.USE_NUMEXPR,
+            td.USE_NUMEXPR,
+            USE_NUMEXPR,
+        )
         cls.arith_ops = [
             op
             for op in expr.ARITH_OPS_SYMS + expr.CMP_OPS_SYMS
@@ -1340,6 +1349,8 @@ class TestOperationsNumExprPandas:
         tm.assert_frame_equal(df, expected)
 
     def test_column_in(self):
+        print("test_column_in: ", expressions_module.USE_NUMEXPR, USE_NUMEXPR)
+
         # GH 11235
         df = DataFrame({"a": [11], "b": [-32]})
         result = df.eval("a in [11, -32]")
@@ -2001,6 +2012,8 @@ def test_bool_ops_fails_on_scalars(lhs, cmp, rhs, engine, parser):
     ],
 )
 def test_equals_various(other):
+    print("test_equals_various: ", expressions_module.USE_NUMEXPR, USE_NUMEXPR)
+
     df = DataFrame({"A": ["a", "b", "c"]})
     result = df.eval(f"A == {other}")
     expected = Series([False, False, False], name="A")
