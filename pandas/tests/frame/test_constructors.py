@@ -70,6 +70,14 @@ MIXED_INT_DTYPES = [
 
 
 class TestDataFrameConstructors:
+    def test_constructor_from_2d_datetimearray(self):
+        dti = date_range("2016-01-01", periods=6, tz="US/Pacific")
+        dta = dti._data.reshape(3, 2)
+
+        df = DataFrame(dta)
+        expected = DataFrame({0: dta[:, 0], 1: dta[:, 1]})
+        tm.assert_frame_equal(df, expected)
+
     def test_constructor_dict_with_tzaware_scalar(self):
         # GH#42505
         dt = Timestamp("2019-11-03 01:00:00-0700").tz_convert("America/Los_Angeles")

@@ -294,10 +294,15 @@ def ndarray_to_mgr(
     if is_1d_only_ea_dtype(vdtype) or isinstance(dtype, ExtensionDtype):
         # GH#19157
 
-        if isinstance(values, np.ndarray) and values.ndim > 1:
+        if isinstance(values, (np.ndarray, ExtensionArray)) and values.ndim > 1:
             # GH#12513 a EA dtype passed with a 2D array, split into
             #  multiple EAs that view the values
-            values = [values[:, n] for n in range(values.shape[1])]
+            # error: No overload variant of "__getitem__" of "ExtensionArray"
+            # matches argument type "Tuple[slice, int]"
+            values = [
+                values[:, n]  # type: ignore[call-overload]
+                for n in range(values.shape[1])
+            ]
         else:
             values = [values]
 
