@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 from collections import (
-    Mapping,
-    Sequence,
     abc,
     defaultdict,
 )
@@ -16,6 +14,8 @@ from typing import (
     DefaultDict,
     Hashable,
     Iterator,
+    Mapping,
+    Sequence,
     cast,
 )
 import warnings
