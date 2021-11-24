@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-from collections import (
-    Hashable,
-    defaultdict,
-)
+from collections import defaultdict
 import csv
 import datetime
 from enum import Enum
@@ -12,6 +9,7 @@ from typing import (
     Any,
     Callable,
     DefaultDict,
+    Hashable,
     Iterable,
     Mapping,
     Sequence,
