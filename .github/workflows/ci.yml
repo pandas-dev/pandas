@@ -17,6 +17,7 @@ env:
 jobs:
   checks:
     name: Checks
+    if: ${{ false }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -99,6 +100,7 @@ jobs:
 
   web_and_docs:
     name: Web and docs
+    if: ${{ false }}
     runs-on: ubuntu-latest
 
     concurrency:
