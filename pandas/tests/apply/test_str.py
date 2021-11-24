@@ -26,7 +26,7 @@ from pandas.tests.apply.common import (
         pytest.param([1], {}, id="axis_from_args"),
         pytest.param([], {"axis": 1}, id="axis_from_kwds"),
         pytest.param([], {"numeric_only": True}, id="optional_kwds"),
-        pytest.param([1, None], {"numeric_only": True}, id="args_and_kwds"),
+        pytest.param([1, True], {"numeric_only": True}, id="args_and_kwds"),
     ],
 )
 @pytest.mark.parametrize("how", ["agg", "apply"])

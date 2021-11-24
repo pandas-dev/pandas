@@ -10303,6 +10303,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self, name: str, func, axis=0, bool_only=None, skipna=True, level=None, **kwargs
     ):
         nv.validate_logical_func((), kwargs, fname=name)
+        validate_bool_kwarg(skipna, "skipna", none_allowed=False)
         if level is not None:
             warnings.warn(
                 "Using the level keyword in DataFrame and Series aggregations is "
@@ -10397,6 +10398,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         **kwargs,
     ):
         nv.validate_stat_ddof_func((), kwargs, fname=name)
+        validate_bool_kwarg(skipna, "skipna", none_allowed=False)
         if axis is None:
             axis = self._stat_axis_number
         if level is not None:
@@ -10450,6 +10452,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             nv.validate_median((), kwargs)
         else:
             nv.validate_stat_func((), kwargs, fname=name)
+
+        validate_bool_kwarg(skipna, "skipna", none_allowed=False)
+
         if axis is None:
             axis = self._stat_axis_number
         if level is not None:
@@ -10517,6 +10522,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             nv.validate_prod((), kwargs)
         else:
             nv.validate_stat_func((), kwargs, fname=name)
+
+        validate_bool_kwarg(skipna, "skipna", none_allowed=False)
+
         if axis is None:
             axis = self._stat_axis_number
         if level is not None:
@@ -10669,7 +10677,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             see_also="",
             examples="",
         )
-        def mad(self, axis=None, skipna=None, level=None):
+        def mad(self, axis=None, skipna=True, level=None):
             return NDFrame.mad(self, axis, skipna, level)
 
         setattr(cls, "mad", mad)
