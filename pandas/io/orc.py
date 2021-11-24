@@ -105,7 +105,7 @@ def to_orc(
             f"engine must be 'pyarrow'"
         )
 
-    if not hasattr(path, "write"):
+    if hasattr(path, "write"):
         engine.orc.write_table(
             engine.Table.from_pandas(df, preserve_index=index),
             path, **kwargs
@@ -117,9 +117,9 @@ def to_orc(
                 engine.Table.from_pandas(df, preserve_index=index),
                 stream, **kwargs
             )
+            orc_bytes = stream.getvalue().to_pybytes()
+            if path is None:
+                return orc_bytes
             # allows writing to any (fsspec) URL
             with get_handle(path, "wb", is_text=False) as handles:
-                orc_bytes = stream.getvalue().to_pybytes()
                 handles.handle.write(orc_bytes)
-                if path is None:
-                    return orc_bytes
