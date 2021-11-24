@@ -112,8 +112,8 @@ class TestIndexer:
         exp_rs = exp_rs.take(exp_ri)
         exp_rs[exp_ri == -1] = -1
 
-        tm.assert_numpy_array_equal(ls, exp_ls, check_dtype=False)
-        tm.assert_numpy_array_equal(rs, exp_rs, check_dtype=False)
+        tm.assert_numpy_array_equal(ls, exp_ls)
+        tm.assert_numpy_array_equal(rs, exp_rs)
 
     def test_cython_inner_join(self):
         left = np.array([0, 1, 2, 1, 2, 0, 0, 1, 2, 3, 3], dtype=np.intp)
@@ -134,8 +134,8 @@ class TestIndexer:
         exp_rs = exp_rs.take(exp_ri)
         exp_rs[exp_ri == -1] = -1
 
-        tm.assert_numpy_array_equal(ls, exp_ls, check_dtype=False)
-        tm.assert_numpy_array_equal(rs, exp_rs, check_dtype=False)
+        tm.assert_numpy_array_equal(ls, exp_ls)
+        tm.assert_numpy_array_equal(rs, exp_rs)
 
 
 @pytest.mark.parametrize("readonly", [True, False])

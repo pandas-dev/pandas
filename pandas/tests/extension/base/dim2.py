@@ -4,6 +4,7 @@ Tests for 2D compatibility.
 import numpy as np
 import pytest
 
+from pandas._libs.missing import is_matching_na
 from pandas.compat import (
     IS64,
     is_platform_windows,
@@ -175,7 +176,7 @@ class Dim2CompatTests(BaseExtensionTests):
             assert type(err_result) == type(err_expected)
             return
 
-        assert result == expected  # TODO: or matching NA
+        assert is_matching_na(result, expected) or result == expected
 
     @pytest.mark.parametrize("method", ["mean", "median", "var", "std", "sum", "prod"])
     def test_reductions_2d_axis0(self, data, method, request):
@@ -254,8 +255,5 @@ class Dim2CompatTests(BaseExtensionTests):
         # not necessarily type/dtype-preserving, so weaker assertions
         assert result.shape == (1,)
         expected_scalar = getattr(data, method)()
-        if pd.isna(result[0]):
-            # TODO: require matching NA
-            assert pd.isna(expected_scalar), expected_scalar
-        else:
-            assert result[0] == expected_scalar
+        res = result[0]
+        assert is_matching_na(res, expected_scalar) or res == expected_scalar

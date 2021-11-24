@@ -1251,7 +1251,7 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         # in sqlalchemy.create_engine -> test passing of this error to user
         try:
             # the rest of this test depends on pg8000's being absent
-            import pg8000  # noqa
+            import pg8000  # noqa:F401
 
             pytest.skip("pg8000 is installed")
         except ImportError:

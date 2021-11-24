@@ -896,9 +896,7 @@ def test_append_to_multiple_dropna(setup_path):
         tm.assert_index_equal(store.select("df1").index, store.select("df2").index)
 
 
-@pytest.mark.xfail(
-    run=False, reason="append_to_multiple_dropna_false is not raising as failed"
-)
+@pytest.mark.xfail(reason="append_to_multiple_dropna_false is not raising as failed")
 def test_append_to_multiple_dropna_false(setup_path):
     df1 = tm.makeTimeDataFrame()
     df2 = tm.makeTimeDataFrame().rename(columns="{}_2".format)

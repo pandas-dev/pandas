@@ -533,7 +533,9 @@ def test_same_name_scoping(setup_path):
         result = store.select("df", "index>datetime.datetime(2013,1,5)")
         tm.assert_frame_equal(result, expected)
 
-        from datetime import datetime  # noqa
+        # changes what 'datetime' points to in the namespace where
+        #  'select' does the lookup
+        from datetime import datetime  # noqa:F401
 
         # technically an error, but allow it
         result = store.select("df", "index>datetime.datetime(2013,1,5)")

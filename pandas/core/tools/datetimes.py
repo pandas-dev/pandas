@@ -28,7 +28,7 @@ from pandas._libs.tslibs import (
     nat_strings,
     parsing,
 )
-from pandas._libs.tslibs.parsing import (  # noqa
+from pandas._libs.tslibs.parsing import (  # noqa:F401
     DateParseError,
     format_is_iso,
     guess_datetime_format,
