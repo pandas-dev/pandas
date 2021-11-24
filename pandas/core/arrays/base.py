@@ -1250,7 +1250,7 @@ class ExtensionArray:
         quoting: int | None = None,
     ) -> list[str]:
         """
-        Format an array of of values.
+        Format an array of values.
 
         This is called from both the Series and DataFrame reprs. By default,
         the ExtensionArray is converted to a NumPy array and formatted using

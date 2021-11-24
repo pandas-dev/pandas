@@ -114,8 +114,8 @@ def test_is_extension_array_dtype(dtype):
 def test_repr_no_conversion():
     # https://github.com/pandas-dev/pandas/issues/26837#issuecomment-967268492
     # Validates
-    s = pd.Series(DummyArrayNoAsarray([1]))
-    repr(s)  # OK!
+    ser = pd.Series(DummyArrayNoAsarray([1]))
+    repr(ser)  # OK!
 
     df = pd.DataFrame({"A": DummyArrayNoAsarray([1])}, copy=False)
     repr(df)  # OK!
