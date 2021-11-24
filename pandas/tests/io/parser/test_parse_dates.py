@@ -123,9 +123,7 @@ def test_read_csv_with_custom_date_parser_parse_dates_false(all_parsers):
     )
     time = Series([41047.00, 41048.00, 41049.00, 41050.00, 41051.00], name="time")
     expected = DataFrame(
-        {
-            "e": [-93.77, -95.79, -98.73, -93.99, -97.72]
-        },
+        {"e": [-93.77, -95.79, -98.73, -93.99, -97.72]},
         index=time,
     )
 
