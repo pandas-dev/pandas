@@ -95,26 +95,27 @@ See :ref:`here <advanced.numericindex>` for more about :class:`NumericIndex`.
 Styler
 ^^^^^^
 
-:class:`.Styler` has been further developed in 1.4.0. The following enhancements have been made:
+:class:`.Styler` has been further developed in 1.4.0. The following general enhancements have been made:
 
-  - Styling and formatting of indexes has been added, with :meth:`.Styler.apply_index`, :meth:`.Styler.applymap_index` and :meth:`.Styler.format_index`. These mirror the signature of the methods already used to style and format data values, and work with both HTML, LaTeX and Excel format (:issue:`41893`, :issue:`43101`, :issue:`41993`, :issue:`41995`).
+  - Styling and formatting of indexes has been added, with :meth:`.Styler.apply_index`, :meth:`.Styler.applymap_index` and :meth:`.Styler.format_index`. These mirror the signature of the methods already used to style and format data values, and work with both HTML, LaTeX and Excel format (:issue:`41893`, :issue:`43101`, :issue:`41993`, :issue:`41995`)
+  - The new method :meth:`.Styler.hide` deprecates :meth:`.Styler.hide_index` and :meth:`.Styler.hide_columns` (:issue:`43758`)
+  - The keyword arguments ``level`` and ``names`` have been added to :meth:`.Styler.hide` (and implicitly to the deprecated methods :meth:`.Styler.hide_index` and :meth:`.Styler.hide_columns`) for additional control of visibility of MultiIndexes and of index names (:issue:`25475`, :issue:`43404`, :issue:`43346`)
+  - The :meth:`.Styler.export` and :meth:`.Styler.use` have been updated to address all of the added functionality from v1.2.0 and v1.3.0 (:issue:`40675`)
+  - Global options under the category ``pd.options.styler`` have been extended to configure default ``Styler`` properties which address formatting, encoding, and HTML and LaTeX rendering. Note that formerly ``Styler`` relied on ``display.html.use_mathjax``, which has now been replaced by ``styler.html.mathjax``. (:issue:`41395`)
+  - Validation of certain keyword arguments, e.g. ``caption`` (:issue:`43368`)
+  - Various bug fixes as recorded below
+
+Additionally there are specific enhancements to the HTML specific rendering:
+
   - :meth:`.Styler.bar` introduces additional arguments to control alignment and display (:issue:`26070`, :issue:`36419`), and it also validates the input arguments ``width`` and ``height`` (:issue:`42511`).
-  - :meth:`.Styler.to_latex` introduces keyword argument ``environment``, which also allows a specific "longtable" entry through a separate jinja2 template (:issue:`41866`).
   - :meth:`.Styler.to_html` introduces keyword arguments ``sparse_index``, ``sparse_columns``, ``bold_headers``, ``caption``, ``max_rows`` and ``max_columns`` (:issue:`41946`, :issue:`43149`, :issue:`42972`).
-  - Keyword arguments ``level`` and ``names`` added to :meth:`.Styler.hide_index` and :meth:`.Styler.hide_columns` for additional control of visibility of MultiIndexes and index names (:issue:`25475`, :issue:`43404`, :issue:`43346`)
-  - Global options have been extended to configure default ``Styler`` properties including formatting and encoding and mathjax options and LaTeX (:issue:`41395`)
-  - Naive sparsification is now possible for LaTeX without the multirow package (:issue:`43369`)
-  - :meth:`.Styler.to_html` omits CSSStyle rules for hidden table elements (:issue:`43619`)
+  - :meth:`.Styler.to_html` omits CSSStyle rules for hidden table elements as a performance enhancement (:issue:`43619`)
   - Custom CSS classes can now be directly specified without string replacement (:issue:`43686`)
-  - Bug where row trimming failed to reflect hidden rows (:issue:`43703`, :issue:`44247`)
-  - Update and expand the export and use mechanics (:issue:`40675`)
-  - New method :meth:`.Styler.hide` added and deprecates :meth:`.Styler.hide_index` and :meth:`.Styler.hide_columns` (:issue:`43758`)
 
-Formerly Styler relied on ``display.html.use_mathjax``, which has now been replaced by ``styler.html.mathjax``.
+There are also some LaTeX specific enhancements:
 
-There are also bug fixes and deprecations listed below.
-
-Validation now for ``caption`` arg (:issue:`43368`)
+  - :meth:`.Styler.to_latex` introduces keyword argument ``environment``, which also allows a specific "longtable" entry through a separate jinja2 template (:issue:`41866`).
+  - Naive sparsification is now possible for LaTeX without the necessity of including the multirow package (:issue:`43369`)
 
 .. _whatsnew_140.enhancements.pyarrow_csv_engine:
 
@@ -453,6 +454,7 @@ Other Deprecations
 - Deprecated dropping of nuisance columns in :class:`Rolling`, :class:`Expanding`, and :class:`EWM` aggregations (:issue:`42738`)
 - Deprecated :meth:`Index.reindex` with a non-unique index (:issue:`42568`)
 - Deprecated :meth:`.Styler.render` in favour of :meth:`.Styler.to_html` (:issue:`42140`)
+- Deprecated :meth:`.Styler.hide_index` and :meth:`.Styler.hide_columns` in favour of :meth:`.Styler.hide` (:issue:`43758`)
 - Deprecated passing in a string column label into ``times`` in :meth:`DataFrame.ewm` (:issue:`43265`)
 - Deprecated the 'include_start' and 'include_end' arguments in :meth:`DataFrame.between_time`; in a future version passing 'include_start' or 'include_end' will raise (:issue:`40245`)
 - Deprecated the ``squeeze`` argument to :meth:`read_csv`, :meth:`read_table`, and :meth:`read_excel`. Users should squeeze the DataFrame afterwards with ``.squeeze("columns")`` instead. (:issue:`43242`)
@@ -734,7 +736,7 @@ Styler
 - Bug when rendering a single level MultiIndex (:issue:`43383`).
 - Bug when combining non-sparse rendering and :meth:`.Styler.hide_columns` or :meth:`.Styler.hide_index` (:issue:`43464`)
 - Bug setting a table style when using multiple selectors in :class:`.Styler` (:issue:`44011`)
--
+- Bugs where row trimming and column trimming failed to reflect hidden rows (:issue:`43703`, :issue:`44247`)
 
 Other
 ^^^^^
