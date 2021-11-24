@@ -121,7 +121,7 @@ def test_read_csv_with_custom_date_parser_parse_dates_false(all_parsers):
         date_parser=__custom_date_parser,
         index_col="time",
     )
-    time = pd.Series([41047.00, 41048.00, 41049.00, 41050.00, 41051.00], name="time")
+    time = Series([41047.00, 41048.00, 41049.00, 41050.00, 41051.00], name="time")
     expected = DataFrame(
         {
             "e": [-98573.7297, -98573.7299, -98573.7300, -98573.7299, -98573.7302],
