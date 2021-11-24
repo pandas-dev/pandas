@@ -531,7 +531,7 @@ class ReadCSVIndexCol(BaseIO):
         data = "a,b\n" + "1,2\n" * count_elem
         self.StringIO_input = StringIO(data)
 
-    def time_read_csv_dayfirst(self):
+    def time_read_csv_index_col(self):
         read_csv(self.StringIO_input, index_col="a")
 
 
