@@ -1408,7 +1408,7 @@ class EABackedBlock(Block):
         res_values = missing.fillna_ea_array(
             self.values.ravel(), value, limit=limit, inplace=inplace, downcast=downcast
         )
-        res_values = ensure_block_shape(res_values, self.ndim)
+        res_values = ensure_block_shape(res_values, self.ndim, self.shape)
 
         if res_values.dtype == object:
             return [self.make_block(values=res_values)]
@@ -2026,7 +2026,9 @@ def extend_blocks(result, blocks=None) -> list[Block]:
     return blocks
 
 
-def ensure_block_shape(values: ArrayLike, ndim: int = 1) -> ArrayLike:
+def ensure_block_shape(
+    values: ArrayLike, ndim: int = 1, shape: tuple = (1, -1)
+) -> ArrayLike:
     """
     Reshape if possible to have values.ndim == ndim.
     """
@@ -2037,7 +2039,7 @@ def ensure_block_shape(values: ArrayLike, ndim: int = 1) -> ArrayLike:
             # block.shape is incorrect for "2D" ExtensionArrays
             # We can't, and don't need to, reshape.
             values = cast("np.ndarray | DatetimeArray | TimedeltaArray", values)
-            values = values.reshape(1, -1)
+            values = values.reshape(*shape)
 
     return values
 
