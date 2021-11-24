@@ -21,7 +21,7 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     text;`CSV <https://en.wikipedia.org/wiki/Comma-separated_values>`__;:ref:`read_csv<io.read_csv_table>`;:ref:`to_csv<io.store_in_csv>`
     text;Fixed-Width Text File;:ref:`read_fwf<io.fwf_reader>`
     text;`JSON <https://www.json.org/>`__;:ref:`read_json<io.json_reader>`;:ref:`to_json<io.json_writer>`
-    text;`HTML <https://en.wikipedia.org/wiki/HTML>`__;:ref:`read_html<io.read_html>`;:ref:`to_html<io.html>`
+    text;`HTML <https://en.wikipedia.org/wiki/HTML>`__;:ref:`read_html<io.read_html>`;:ref:`Styler.to_html<io.html>`
     text;`LaTeX <https://en.wikipedia.org/wiki/LaTeX>`__;;:ref:`Styler.to_latex<io.latex>`
     text;`XML <https://www.w3.org/standards/xml/core>`__;:ref:`read_xml<io.read_xml>`;:ref:`to_xml<io.xml>`
     text; Local clipboard;:ref:`read_clipboard<io.clipboard>`;:ref:`to_clipboard<io.clipboard>`
@@ -2666,163 +2666,34 @@ succeeds, the function will return*.
 Writing to HTML files
 ''''''''''''''''''''''
 
-``DataFrame`` objects have an instance method ``to_html`` which renders the
-contents of the ``DataFrame`` as an HTML table. The function arguments are as
-in the method ``to_string`` described above.
-
 .. note::
 
-   Not all of the possible options for ``DataFrame.to_html`` are shown here for
-   brevity's sake. See :func:`~pandas.core.frame.DataFrame.to_html` for the
-   full set of options.
+   DataFrame *and* Styler objects currently have a ``to_html`` method. We recommend
+   using the `Styler.to_html() <../reference/api/pandas.io.formats.style.Styler.to_html.rst>`__ method
+   over `DataFrame.to_html() <../reference/api/pandas.DataFrame.to_html.rst>`__ due to the former's greater flexibility with
+   conditional styling, and the latter's possible future deprecation.
+
+Review the documentation for `Styler.to_html <../reference/api/pandas.io.formats.style.Styler.to_html.rst>`__,
+which gives examples of conditional styling and explains the operation of its keyword
+arguments. The ``to_html`` methods render the contents of the ``DataFrame`` as an HTML table.
+
+For simple application the following pattern is sufficient:
 
 .. ipython:: python
-   :suppress:
-   :okwarning:
-
-   def write_html(df, filename, *args, **kwargs):
-       static = os.path.abspath(os.path.join("source", "_static"))
-       with open(os.path.join(static, filename + ".html"), "w") as f:
-           df.to_html(f, *args, **kwargs)
-
-.. ipython:: python
-   :okwarning:
 
    df = pd.DataFrame(np.random.randn(2, 2))
    df
-   print(df.to_html())  # raw html
+   print(df.style.to_html())  # raw html
 
-.. ipython:: python
-   :suppress:
-
-   write_html(df, "basic")
-
-HTML:
-
-.. raw:: html
-   :file: ../_static/basic.html
-
-The ``columns`` argument will limit the columns shown:
-
-.. ipython:: python
-   :okwarning:
-
-   print(df.to_html(columns=[0]))
-
-.. ipython:: python
-   :suppress:
-
-   write_html(df, "columns", columns=[0])
-
-HTML:
-
-.. raw:: html
-   :file: ../_static/columns.html
-
-``float_format`` takes a Python callable to control the precision of floating
-point values:
-
-.. ipython:: python
-   :okwarning:
-
-   print(df.to_html(float_format="{0:.10f}".format))
-
-.. ipython:: python
-   :suppress:
-
-   write_html(df, "float_format", float_format="{0:.10f}".format)
-
-HTML:
-
-.. raw:: html
-   :file: ../_static/float_format.html
-
-``bold_rows`` will make the row labels bold by default, but you can turn that
-off:
-
-.. ipython:: python
-   :okwarning:
-
-   print(df.to_html(bold_rows=False))
-
-.. ipython:: python
-   :suppress:
-
-   write_html(df, "nobold", bold_rows=False)
-
-.. raw:: html
-   :file: ../_static/nobold.html
-
-The ``classes`` argument provides the ability to give the resulting HTML
-table CSS classes. Note that these classes are *appended* to the existing
-``'dataframe'`` class.
-
-.. ipython:: python
-   :okwarning:
-
-   print(df.to_html(classes=["awesome_table_class", "even_more_awesome_class"]))
-
-The ``render_links`` argument provides the ability to add hyperlinks to cells
-that contain URLs.
-
-.. ipython:: python
-   :okwarning:
-
-   url_df = pd.DataFrame(
-       {
-           "name": ["Python", "pandas"],
-           "url": ["https://www.python.org/", "https://pandas.pydata.org"],
-       }
-   )
-   print(url_df.to_html(render_links=True))
-
-.. ipython:: python
-   :suppress:
-
-   write_html(url_df, "render_links", render_links=True)
-
-HTML:
-
-.. raw:: html
-   :file: ../_static/render_links.html
-
-Finally, the ``escape`` argument allows you to control whether the
-"<", ">" and "&" characters escaped in the resulting HTML (by default it is
-``True``). So to get the HTML without escaped characters pass ``escape=False``
+To format values before output, chain the `Styler.format <../reference/api/pandas.io.formats.style.Styler.format.rst>`__
+method.
 
 .. ipython:: python
 
-   df = pd.DataFrame({"a": list("&<>"), "b": np.random.randn(3)})
+   print(df.style.format("€ {}").to_html())
 
-
-.. ipython:: python
-   :suppress:
-
-   write_html(df, "escape")
-   write_html(df, "noescape", escape=False)
-
-Escaped:
-
-.. ipython:: python
-
-   print(df.to_html())
-
-.. raw:: html
-   :file: ../_static/escape.html
-
-Not escaped:
-
-.. ipython:: python
-
-   print(df.to_html(escape=False))
-
-.. raw:: html
-   :file: ../_static/noescape.html
-
-.. note::
-
-   Some browsers may not show a difference in the rendering of the previous two
-   HTML tables.
+Some browsers or browser applications may process and add css class styling by default to alter the appearance
+of HTML tables, such as Jupyter Notebook and Google Colab.
 
 
 .. _io.html.gotchas:
