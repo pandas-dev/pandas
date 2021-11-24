@@ -511,8 +511,11 @@ def _read(
 ):
     """Generic reader of line files."""
     if kwds.get("date_parser", None) is not None:
+        # if we pass a date_parser and parse_dates=False, we should not parse the dates GH#44366
         if isinstance(kwds["parse_dates"], bool):
-            kwds["parse_dates"] = True
+            pass
+        else:
+            kwds["parse_dates"] = True if kwds["parse_dates"] is None else kwds["parse_dates"]
 
     # Extract some of the arguments (pass chunksize on).
     iterator = kwds.get("iterator", False)
@@ -585,7 +588,7 @@ def read_csv(
     verbose=False,
     skip_blank_lines=True,
     # Datetime Handling
-    parse_dates=False,
+    parse_dates=None,
     infer_datetime_format=False,
     keep_date_col=False,
     date_parser=None,
