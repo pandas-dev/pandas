@@ -213,7 +213,9 @@ class _Unstacker:
         columns = self.get_new_columns(value_columns)
         index = self.new_index
 
-        return self.constructor(values, index=index, columns=columns)
+        return self.constructor(
+            values, index=index, columns=columns, dtype=values.dtype
+        )
 
     def get_new_values(self, values, fill_value=None):
 

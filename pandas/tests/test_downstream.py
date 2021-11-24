@@ -5,7 +5,7 @@ import importlib
 import subprocess
 import sys
 
-import numpy as np  # noqa
+import numpy as np  # noqa:F401 needed in namespace for statsmodels
 import pytest
 
 import pandas.util._test_decorators as td
@@ -29,14 +29,11 @@ def df():
     return DataFrame({"A": [1, 2, 3]})
 
 
-# TODO(ArrayManager) dask is still accessing the blocks
-# https://github.com/dask/dask/pull/7318
-@td.skip_array_manager_not_yet_implemented
 @pytest.mark.filterwarnings("ignore:.*64Index is deprecated:FutureWarning")
 def test_dask(df):
 
-    toolz = import_module("toolz")  # noqa
-    dask = import_module("dask")  # noqa
+    toolz = import_module("toolz")  # noqa:F841
+    dask = import_module("dask")  # noqa:F841
 
     import dask.dataframe as dd
 
@@ -47,7 +44,7 @@ def test_dask(df):
 
 def test_xarray(df):
 
-    xarray = import_module("xarray")  # noqa
+    xarray = import_module("xarray")  # noqa:F841
 
     assert df.to_xarray() is not None
 
@@ -100,7 +97,7 @@ def test_oo_optimized_datetime_index_unpickle():
 )
 def test_statsmodels():
 
-    statsmodels = import_module("statsmodels")  # noqa
+    statsmodels = import_module("statsmodels")  # noqa:F841
     import statsmodels.api as sm
     import statsmodels.formula.api as smf
 
@@ -112,7 +109,7 @@ def test_statsmodels():
 @pytest.mark.filterwarnings("ignore:can't:ImportWarning")
 def test_scikit_learn(df):
 
-    sklearn = import_module("sklearn")  # noqa
+    sklearn = import_module("sklearn")  # noqa:F841
     from sklearn import (
         datasets,
         svm,
@@ -136,10 +133,14 @@ def test_seaborn():
 
 def test_pandas_gbq(df):
 
-    pandas_gbq = import_module("pandas_gbq")  # noqa
+    pandas_gbq = import_module("pandas_gbq")  # noqa:F841
 
 
-@pytest.mark.xfail(reason="0.8.1 tries to import urlencode from pd.io.common")
+@pytest.mark.xfail(
+    raises=ValueError,
+    reason="The Quandl API key must be provided either through the api_key "
+    "variable or through the environmental variable QUANDL_API_KEY",
+)
 @tm.network
 def test_pandas_datareader():
 
