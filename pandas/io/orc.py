@@ -99,7 +99,7 @@ def to_orc(
         index = df.index.names[0] is not None
 
     if engine == "pyarrow":
-        engine = import_optional_dependency(engine, min_version='5.0.0') )
+        engine = import_optional_dependency(engine, min_version='5.0.0')
     else:
         raise ValueError(
             f"engine must be 'pyarrow'"
