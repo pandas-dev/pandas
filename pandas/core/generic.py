@@ -10380,7 +10380,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         skipna: bool_t = True,
         *args,
         **kwargs,
-    ) -> DataFrame | Series:
+    ):
         skipna = nv.validate_cum_func_with_skipna(skipna, args, kwargs, name)
         if axis is None:
             axis = self._stat_axis_number
@@ -10404,16 +10404,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         return self._constructor(result).__finalize__(self, method=name)
 
-    def cummax(
-        self, axis: Axis | None = None, skipna: bool_t = True, *args, **kwargs
-    ) -> DataFrame | Series:
+    def cummax(self, axis: Axis | None = None, skipna: bool_t = True, *args, **kwargs):
         return self._accum_func(
             "cummax", np.maximum.accumulate, axis, skipna, *args, **kwargs
         )
 
-    def cummin(
-        self, axis: Axis | None = None, skipna: bool_t = True, *args, **kwargs
-    ) -> DataFrame | Series:
+    def cummin(self, axis: Axis | None = None, skipna: bool_t = True, *args, **kwargs):
         return self._accum_func(
             "cummin", np.minimum.accumulate, axis, skipna, *args, **kwargs
         )
@@ -10421,9 +10417,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def cumsum(self, axis: Axis | None = None, skipna: bool_t = True, *args, **kwargs):
         return self._accum_func("cumsum", np.cumsum, axis, skipna, *args, **kwargs)
 
-    def cumprod(
-        self, axis: Axis | None = None, skipna: bool_t = True, *args, **kwargs
-    ) -> DataFrame | Series:
+    def cumprod(self, axis: Axis | None = None, skipna: bool_t = True, *args, **kwargs):
         return self._accum_func("cumprod", np.cumprod, axis, skipna, *args, **kwargs)
 
     @final
@@ -10505,7 +10499,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         level: Level | None = None,
         numeric_only: bool_t | None = None,
         **kwargs,
-    ) -> Series | Hashable:
+    ):
         if name == "median":
             nv.validate_median((), kwargs)
         else:
@@ -10534,7 +10528,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         level: Level | None = None,
         numeric_only: bool_t | None = None,
         **kwargs,
-    ) -> Series | float:
+    ):
         return self._stat_function(
             "min", nanops.nanmin, axis, skipna, level, numeric_only, **kwargs
         )
@@ -10546,7 +10540,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         level: Level | None = None,
         numeric_only: bool_t | None = None,
         **kwargs,
-    ) -> Series | float:
+    ):
         return self._stat_function(
             "max", nanops.nanmax, axis, skipna, level, numeric_only, **kwargs
         )
@@ -10612,7 +10606,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         numeric_only: bool_t | None = None,
         min_count: int = 0,
         **kwargs,
-    ) -> Series | float:
+    ):
         if name == "sum":
             nv.validate_sum((), kwargs)
         elif name == "prod":
@@ -10654,7 +10648,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         numeric_only: bool_t | None = None,
         min_count=0,
         **kwargs,
-    ) -> Series | float:
+    ):
         return self._min_count_stat_function(
             "sum", nanops.nansum, axis, skipna, level, numeric_only, min_count, **kwargs
         )
@@ -10667,7 +10661,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         numeric_only: bool_t | None = None,
         min_count: int = 0,
         **kwargs,
-    ) -> Series | float:
+    ):
         return self._min_count_stat_function(
             "prod",
             nanops.nanprod,
