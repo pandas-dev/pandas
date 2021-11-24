@@ -555,7 +555,7 @@ def test_read_tarfile(c_parser_only, csv_dir_path, tar_suffix):
         tm.assert_frame_equal(out, expected)
 
 
-@pytest.mark.high_memory
+@pytest.mark.single
 def test_bytes_exceed_2gb(c_parser_only):
     # see gh-16798
     #
