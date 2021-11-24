@@ -13,7 +13,6 @@ on:
       - "doc/**"
 
 env:
-  PYTEST_WORKERS: "auto"
   PANDAS_CI: 1
 
 jobs:
@@ -25,14 +24,16 @@ jobs:
     strategy:
       matrix:
         settings: [
-          [actions-38-minimum_versions.yaml, "not slow and not network and not clipboard", "", "", "", "", ""],
-          [actions-38-locale_slow.yaml, "slow", "language-pack-it xsel", "it_IT.utf8", "it_IT.utf8", "", ""],
-          [actions-38.yaml, "not slow and not network and not clipboard", "", "", "", "", ""],
-          [actions-38-slow.yaml, "slow", "", "", "", "", ""],
-          [actions-38-locale.yaml, "not slow and not network", "language-pack-zh-hans xsel", "zh_CN.utf8", "zh_CN.utf8", "", ""],
-          [actions-39-slow.yaml, "slow", "", "", "", "", ""],
-          [actions-39-numpydev.yaml, "not slow and not network", "xsel", "", "", "deprecate", "-W error"],
-          [actions-39.yaml, "not slow and not network and not clipboard", "", "", "", "", ""]
+          [actions-38-minimum_versions.yaml, "not slow and not network and not clipboard and not single", "", "", "", "", "", "auto"],
+          [actions-38-locale_slow.yaml, "slow", "language-pack-it xsel", "it_IT.utf8", "it_IT.utf8", "", "", "auto"],
+          [actions-38.yaml, "not slow and not network and not clipboard and not single", "", "", "", "", "", "auto"],
+          [actions-38-slow-single.yaml, "slow", "", "", "", "", "", "auto"],
+          [actions-38-slow-single.yaml, "single", "", "", "", "", "-v", "1"],
+          [actions-38-locale.yaml, "not slow and not network and not single", "language-pack-zh-hans xsel", "zh_CN.utf8", "zh_CN.utf8", "", "", "auto"],
+          [actions-39-slow-single.yaml, "slow", "", "", "", "", "", "auto"],
+          [actions-39-slow-single.yaml, "single", "", "", "", "", "-v", "1"],
+          [actions-39-numpydev.yaml, "not slow and not network and not single", "xsel", "", "", "deprecate", "-W error", "auto"],
+          [actions-39.yaml, "not slow and not network and not clipboard and not single", "", "", "", "", "", "auto"]
         ]
       fail-fast: false
     env:
@@ -44,6 +45,7 @@ jobs:
       LC_ALL: ${{ matrix.settings[4] }}
       PANDAS_TESTING_MODE: ${{ matrix.settings[5] }}
       TEST_ARGS: ${{ matrix.settings[6] }}
+      PYTEST_WORKERS: $ {{ matrix.settings[7] }}
       PYTEST_TARGET:  pandas
     concurrency:
       group: ${{ github.ref }}-${{ matrix.settings[0] }}

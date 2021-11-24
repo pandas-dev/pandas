@@ -163,3 +163,11 @@ def s3_resource(s3_base, tips_file, jsonl_file, feather_file):
     while cli.list_buckets()["Buckets"] and timeout > 0:
         time.sleep(0.1)
         timeout -= 0.1
+
+
+def pytest_collection_modifyitems(items, config):
+    for item in items:
+        # All tests that use the s3_resource should be run with 1 cpu core in the CI
+        # to (hopefully) reduce flakiness (i.e. moto_server timeout) in test execution
+        if "s3_resource" in getattr(item, "fixturenames", ()):
+            item.add_marker(pytest.mark.single)
