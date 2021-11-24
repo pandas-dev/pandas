@@ -54,11 +54,9 @@ from pandas.tseries.offsets import (
 lzma = import_lzma()
 
 
-# TODO(ArrayManager) pickling
-pytestmark = [
-    td.skip_array_manager_not_yet_implemented,
-    pytest.mark.filterwarnings("ignore:Timestamp.freq is deprecated:FutureWarning"),
-]
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Timestamp.freq is deprecated:FutureWarning"
+)
 
 
 @pytest.fixture(scope="module")
@@ -612,6 +610,7 @@ def test_pickle_strings(string_series):
     tm.assert_series_equal(unp_series, string_series)
 
 
+@td.skip_array_manager_invalid_test
 def test_pickle_preserves_block_ndim():
     # GH#37631
     ser = Series(list("abc")).astype("category").iloc[[0]]

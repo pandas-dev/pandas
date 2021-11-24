@@ -3,8 +3,6 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -301,9 +299,7 @@ def test_apply(ordered):
     tm.assert_series_equal(result, expected)
 
 
-# TODO(ArrayManager) incorrect dtype for mean()
-@td.skip_array_manager_not_yet_implemented
-def test_observed(observed, using_array_manager):
+def test_observed(observed):
     # multiple groupers, don't re-expand the output space
     # of the grouper
     # gh-14942 (implement)
