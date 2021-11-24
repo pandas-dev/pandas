@@ -1270,10 +1270,10 @@ class ExtensionArray:
             handled by ``na_rep``.
         na_rep : str, optional, default 'NaN'
             String representation of ``NaN`` to use.
-        digits: int, optional
+        digits : int, optional
             Display precision in terms of decimal places. Defaults to
             ``pandas.options.display.precision``.
-        space: int, optional
+        space : int, optional
             Defaults to ``pandas.options.display.column_space``.
         justify : str, default None
             How to justify the column labels. If None uses the option from

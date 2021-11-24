@@ -702,6 +702,8 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             Datetime64TZFormatter,
         )
 
+        fmt_klass: Datetime64Formatter | Datetime64TZFormatter
+
         if is_datetime64tz_dtype(self.dtype):
             fmt_klass = Datetime64TZFormatter
         else:
