@@ -705,6 +705,7 @@ Reshaping
 - Bug in :meth:`DataFrame.append` failing to retain ``index.name`` when appending a list of :class:`Series` objects (:issue:`44109`)
 - Fixed metadata propagation in :meth:`Dataframe.apply` method, consequently fixing the same issue for :meth:`Dataframe.transform`, :meth:`Dataframe.nunique` and :meth:`Dataframe.mode` (:issue:`28283`)
 - Bug in :meth:`DataFrame.stack` with ``ExtensionDtype`` columns incorrectly raising (:issue:`43561`)
+- Bug in :meth:`Series.unstack` with object doing unwanted type inference on resulting columns (:issue:`44595`)
 -
 
 Sparse
