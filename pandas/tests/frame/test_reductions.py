@@ -1478,6 +1478,12 @@ class TestDataFrameReductions:
         expected = Series(data=[False, True])
         tm.assert_series_equal(result, expected)
 
+    def test_reductions_deprecation_skipna_none(self, frame_or_series):
+        # GH#44580
+        obj = frame_or_series([1, 2, 3])
+        with tm.assert_produces_warning(FutureWarning, match="skipna"):
+            obj.mad(skipna=None)
+
     def test_reductions_deprecation_level_argument(
         self, frame_or_series, reduction_functions
     ):
