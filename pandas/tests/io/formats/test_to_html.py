@@ -16,6 +16,8 @@ import pandas._testing as tm
 
 import pandas.io.formats.format as fmt
 
+pytestmark = pytest.mark.filterwarnings("ignore::FutureWarning")
+
 lorem_ipsum = (
     "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod "
     "tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim "
