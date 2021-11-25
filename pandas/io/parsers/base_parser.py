@@ -139,6 +139,7 @@ class ParserBase:
         self.col_names = None
 
         self.parse_dates = _validate_parse_dates_arg(kwds.pop("parse_dates", False))
+        self._parse_date_cols: Iterable = []
         self.date_parser = kwds.pop("date_parser", None)
         self.dayfirst = kwds.pop("dayfirst", False)
         self.keep_date_col = kwds.pop("keep_date_col", False)
@@ -237,7 +238,7 @@ class ParserBase:
             errors=kwds.get("encoding_errors", "strict"),
         )
 
-    def _validate_parse_dates_presence(self, columns: list[str]) -> None:
+    def _validate_parse_dates_presence(self, columns: list[str]) -> Iterable:
         """
         Check if parse_dates are in columns.
 
@@ -271,6 +272,8 @@ class ParserBase:
         else:
             cols_needed = []
 
+        cols_needed = list(cols_needed)
+
         # get only columns that are references using names (str), not by index
         missing_cols = ", ".join(
             sorted(
@@ -285,6 +288,11 @@ class ParserBase:
             raise ValueError(
                 f"Missing column provided to 'parse_dates': '{missing_cols}'"
             )
+        # Convert positions to actual column names
+        return [
+            col if (isinstance(col, str) or col in columns) else columns[col]
+            for col in cols_needed
+        ]
 
     def close(self):
         if self.handles is not None:
@@ -555,6 +563,12 @@ class ParserBase:
                 )
             else:
                 col_na_values, col_na_fvalues = set(), set()
+
+            if c in self._parse_date_cols:
+                mask = algorithms.isin(values, set(col_na_values) | col_na_fvalues)
+                np.putmask(values, mask, np.nan)
+                result[c] = values
+                continue
 
             if conv_f is not None:
                 # conv_f applied to data before inference
