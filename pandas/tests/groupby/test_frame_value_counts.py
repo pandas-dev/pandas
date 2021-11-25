@@ -4,8 +4,6 @@ import pytest
 import pandas as pd
 import pandas._testing as tm
 
-RESULT_NAME = "count"
-
 
 @pytest.fixture
 def education_df():
@@ -36,7 +34,6 @@ def test_basic(education_df):
         normalize=True
     )
     expected = pd.Series(
-        name="count",
         data=[0.5, 0.25, 0.25, 0.5, 0.5],
         index=pd.MultiIndex.from_tuples(
             [
@@ -95,11 +92,11 @@ def test_against_frame_and_seriesgroupby(
             _frame_value_counts, ["gender", "education"], normalize, sort, ascending
         )
 
-        expected.name = RESULT_NAME
         if as_index:
             tm.assert_series_equal(result, expected)
         else:
-            expected = expected.reset_index().rename({0: "count"}, axis=1)
+            name = "proportion" if normalize else "count"
+            expected = expected.reset_index().rename({0: name}, axis=1)
             if groupby == "column":
                 expected = expected.rename({"level_0": "country"}, axis=1)
                 expected["country"] = np.where(expected["country"], "US", "FR")
@@ -115,6 +112,7 @@ def test_against_frame_and_seriesgroupby(
         expected = gp["both"].value_counts(
             normalize=normalize, sort=sort, ascending=ascending
         )
+        expected.name = None
         if as_index:
             index_frame = expected.index.to_frame(index=False)
             index_frame["gender"] = index_frame["both"].str.split("-").str.get(0)
@@ -122,7 +120,6 @@ def test_against_frame_and_seriesgroupby(
             del index_frame["both"]
             index_frame = index_frame.rename({0: None}, axis=1)
             expected.index = pd.MultiIndex.from_frame(index_frame)
-            expected.name = RESULT_NAME
             tm.assert_series_equal(result, expected)
         else:
             expected.insert(1, "gender", expected["both"].str.split("-").str.get(0))
@@ -157,9 +154,11 @@ def test_compound(
     expected = pd.DataFrame()
     for column in ["country", "gender", "education"]:
         expected[column] = [education_df[column][row] for row in expected_rows]
-    expected["count"] = expected_count
     if normalize:
-        expected["count"] /= expected_group_size
+        expected["proportion"] = expected_count
+        expected["proportion"] /= expected_group_size
+    else:
+        expected["count"] = expected_count
     tm.assert_frame_equal(result, expected)
 
 
@@ -196,7 +195,6 @@ def test_data_frame_value_counts(
     )
     tm.assert_series_equal(result_frame, expected)
 
-    expected.name = RESULT_NAME
     result_frame_groupby = animals_df.groupby("key").value_counts(
         sort=sort, ascending=ascending, normalize=normalize
     )
@@ -240,7 +238,7 @@ def test_dropna_combinations(
     for column in nulls_df.columns:
         columns[column] = [nulls_df[column][row] for row in expected_rows]
     index = pd.MultiIndex.from_frame(columns)
-    expected = pd.Series(data=expected_values, index=index, name=RESULT_NAME)
+    expected = pd.Series(data=expected_values, index=index)
     tm.assert_series_equal(result, expected)
 
 
@@ -298,7 +296,6 @@ def test_data_frame_value_counts_dropna(
 
     tm.assert_series_equal(result_frame, expected)
 
-    expected.name = RESULT_NAME
     result_frame_groupby = names_with_nulls_df.groupby("key").value_counts(
         dropna=dropna, normalize=normalize
     )
@@ -359,7 +356,6 @@ def test_categorical(
     result = gp.value_counts(normalize=normalize)
 
     expected_series = pd.Series(
-        name="count",
         data=expected_data[expected_data > 0.0] if observed else expected_data,
         index=pd.MultiIndex.from_tuples(
             expected_index,
@@ -374,5 +370,5 @@ def test_categorical(
     if as_index:
         tm.assert_series_equal(result, expected_series)
     else:
-        expected = expected_series.reset_index()
+        expected = expected_series.reset_index(name="proportion" if normalize else "count")
         tm.assert_frame_equal(result, expected)

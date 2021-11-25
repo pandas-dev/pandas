@@ -1603,7 +1603,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Returns
         -------
         Series or DataFrame
-            Series if as_index is True, otherwise DataFrame.
+            Series if the groupby as_index is True, otherwise DataFrame.
 
         See Also
         --------
@@ -1647,7 +1647,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 medium     FR         0.25
         Name: count, dtype: float64
         """
-        RESULT_NAME = "count"
         if self.axis == 1:
             raise NotImplementedError(
                 "DataFrameGroupBy.value_counts only handles axis=0"
@@ -1721,7 +1720,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 observed=self.observed,
                 dropna=self.dropna,
             ).size()
-            result.name = RESULT_NAME
 
             if normalize:
                 # Normalize the results by dividing by the original group sizes
@@ -1745,7 +1743,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                         result.values
                         / indexed_group_size.align(result, join="left")[0].values
                     )
-                    result = Series(data=values, index=result.index, name=RESULT_NAME)
+                    result = Series(data=values, index=result.index)
                 if non_column_grouping:
                     result.index.set_names(None, level=0, inplace=True)
 
@@ -1763,7 +1761,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
             if not self.as_index:
                 # Convert to frame
-                result = result.reset_index()
+                result = result.reset_index(name="proportion" if normalize else "count")
             return result
 
 
