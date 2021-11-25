@@ -3058,3 +3058,25 @@ cpdef ndarray eq_NA_compat(ndarray[object] arr, object key):
             else:
                 result[i] = item == key  # FIXME: compat for other NAs
     return result
+
+
+def dtypes_all_equal(list types not None) -> bool:
+    """
+    Faster version for:
+
+    first = types[0]
+    all(is_dtype_equal(first, t) for t in types[1:])
+
+    And assuming all elements in the list are np.dtype/ExtensionDtype objects
+
+    See timings at https://github.com/pandas-dev/pandas/pull/44594
+    """
+    first = types[0]
+    for t in types[1:]:
+        try:
+            if not t == first:
+                return False
+        except (TypeError, AttributeError):
+            return False
+    else:
+        return True

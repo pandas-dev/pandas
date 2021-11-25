@@ -245,24 +245,24 @@ class _Unstacker:
             new_mask = np.ones(result_shape, dtype=bool)
             return new_values, new_mask
 
+        dtype = values.dtype
+
         # if our mask is all True, then we can use our existing dtype
         if mask_all:
             dtype = values.dtype
             new_values = np.empty(result_shape, dtype=dtype)
-            name = np.dtype(dtype).name
         else:
-            dtype, fill_value = maybe_promote(values.dtype, fill_value)
             if isinstance(dtype, ExtensionDtype):
                 # GH#41875
                 cls = dtype.construct_array_type()
                 new_values = cls._empty(result_shape, dtype=dtype)
                 new_values[:] = fill_value
-                name = dtype.name
             else:
+                dtype, fill_value = maybe_promote(dtype, fill_value)
                 new_values = np.empty(result_shape, dtype=dtype)
                 new_values.fill(fill_value)
-                name = np.dtype(dtype).name
 
+        name = dtype.name
         new_mask = np.zeros(result_shape, dtype=bool)
 
         # we need to convert to a basic dtype
