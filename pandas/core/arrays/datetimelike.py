@@ -602,7 +602,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         -------
         self._scalar_type or NaT
         """
-        if isinstance(value, str):
+        if isinstance(value, self._scalar_type):
+            pass
+
+        elif isinstance(value, str):
             # NB: Careful about tzawareness
             try:
                 value = self._scalar_from_string(value)

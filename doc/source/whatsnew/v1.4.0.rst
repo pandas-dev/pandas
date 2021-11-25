@@ -95,26 +95,27 @@ See :ref:`here <advanced.numericindex>` for more about :class:`NumericIndex`.
 Styler
 ^^^^^^
 
-:class:`.Styler` has been further developed in 1.4.0. The following enhancements have been made:
+:class:`.Styler` has been further developed in 1.4.0. The following general enhancements have been made:
 
-  - Styling and formatting of indexes has been added, with :meth:`.Styler.apply_index`, :meth:`.Styler.applymap_index` and :meth:`.Styler.format_index`. These mirror the signature of the methods already used to style and format data values, and work with both HTML, LaTeX and Excel format (:issue:`41893`, :issue:`43101`, :issue:`41993`, :issue:`41995`).
+  - Styling and formatting of indexes has been added, with :meth:`.Styler.apply_index`, :meth:`.Styler.applymap_index` and :meth:`.Styler.format_index`. These mirror the signature of the methods already used to style and format data values, and work with both HTML, LaTeX and Excel format (:issue:`41893`, :issue:`43101`, :issue:`41993`, :issue:`41995`)
+  - The new method :meth:`.Styler.hide` deprecates :meth:`.Styler.hide_index` and :meth:`.Styler.hide_columns` (:issue:`43758`)
+  - The keyword arguments ``level`` and ``names`` have been added to :meth:`.Styler.hide` (and implicitly to the deprecated methods :meth:`.Styler.hide_index` and :meth:`.Styler.hide_columns`) for additional control of visibility of MultiIndexes and of index names (:issue:`25475`, :issue:`43404`, :issue:`43346`)
+  - The :meth:`.Styler.export` and :meth:`.Styler.use` have been updated to address all of the added functionality from v1.2.0 and v1.3.0 (:issue:`40675`)
+  - Global options under the category ``pd.options.styler`` have been extended to configure default ``Styler`` properties which address formatting, encoding, and HTML and LaTeX rendering. Note that formerly ``Styler`` relied on ``display.html.use_mathjax``, which has now been replaced by ``styler.html.mathjax``. (:issue:`41395`)
+  - Validation of certain keyword arguments, e.g. ``caption`` (:issue:`43368`)
+  - Various bug fixes as recorded below
+
+Additionally there are specific enhancements to the HTML specific rendering:
+
   - :meth:`.Styler.bar` introduces additional arguments to control alignment and display (:issue:`26070`, :issue:`36419`), and it also validates the input arguments ``width`` and ``height`` (:issue:`42511`).
-  - :meth:`.Styler.to_latex` introduces keyword argument ``environment``, which also allows a specific "longtable" entry through a separate jinja2 template (:issue:`41866`).
   - :meth:`.Styler.to_html` introduces keyword arguments ``sparse_index``, ``sparse_columns``, ``bold_headers``, ``caption``, ``max_rows`` and ``max_columns`` (:issue:`41946`, :issue:`43149`, :issue:`42972`).
-  - Keyword arguments ``level`` and ``names`` added to :meth:`.Styler.hide_index` and :meth:`.Styler.hide_columns` for additional control of visibility of MultiIndexes and index names (:issue:`25475`, :issue:`43404`, :issue:`43346`)
-  - Global options have been extended to configure default ``Styler`` properties including formatting and encoding and mathjax options and LaTeX (:issue:`41395`)
-  - Naive sparsification is now possible for LaTeX without the multirow package (:issue:`43369`)
-  - :meth:`.Styler.to_html` omits CSSStyle rules for hidden table elements (:issue:`43619`)
+  - :meth:`.Styler.to_html` omits CSSStyle rules for hidden table elements as a performance enhancement (:issue:`43619`)
   - Custom CSS classes can now be directly specified without string replacement (:issue:`43686`)
-  - Bug where row trimming failed to reflect hidden rows (:issue:`43703`, :issue:`44247`)
-  - Update and expand the export and use mechanics (:issue:`40675`)
-  - New method :meth:`.Styler.hide` added and deprecates :meth:`.Styler.hide_index` and :meth:`.Styler.hide_columns` (:issue:`43758`)
 
-Formerly Styler relied on ``display.html.use_mathjax``, which has now been replaced by ``styler.html.mathjax``.
+There are also some LaTeX specific enhancements:
 
-There are also bug fixes and deprecations listed below.
-
-Validation now for ``caption`` arg (:issue:`43368`)
+  - :meth:`.Styler.to_latex` introduces keyword argument ``environment``, which also allows a specific "longtable" entry through a separate jinja2 template (:issue:`41866`).
+  - Naive sparsification is now possible for LaTeX without the necessity of including the multirow package (:issue:`43369`)
 
 .. _whatsnew_140.enhancements.pyarrow_csv_engine:
 
@@ -399,6 +400,7 @@ Other API changes
 ^^^^^^^^^^^^^^^^^
 - :meth:`Index.get_indexer_for` no longer accepts keyword arguments (other than 'target'); in the past these would be silently ignored if the index was not unique (:issue:`42310`)
 - Change in the position of the ``min_rows`` argument in :meth:`DataFrame.to_string` due to change in the docstring (:issue:`44304`)
+- Reduction operations for :class:`DataFrame` or :class:`Series` now raising a ``ValueError`` when ``None`` is passed for ``skipna`` (:issue:`44178`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -452,6 +454,7 @@ Other Deprecations
 - Deprecated dropping of nuisance columns in :class:`Rolling`, :class:`Expanding`, and :class:`EWM` aggregations (:issue:`42738`)
 - Deprecated :meth:`Index.reindex` with a non-unique index (:issue:`42568`)
 - Deprecated :meth:`.Styler.render` in favour of :meth:`.Styler.to_html` (:issue:`42140`)
+- Deprecated :meth:`.Styler.hide_index` and :meth:`.Styler.hide_columns` in favour of :meth:`.Styler.hide` (:issue:`43758`)
 - Deprecated passing in a string column label into ``times`` in :meth:`DataFrame.ewm` (:issue:`43265`)
 - Deprecated the 'include_start' and 'include_end' arguments in :meth:`DataFrame.between_time`; in a future version passing 'include_start' or 'include_end' will raise (:issue:`40245`)
 - Deprecated the ``squeeze`` argument to :meth:`read_csv`, :meth:`read_table`, and :meth:`read_excel`. Users should squeeze the DataFrame afterwards with ``.squeeze("columns")`` instead. (:issue:`43242`)
@@ -464,7 +467,9 @@ Other Deprecations
 - Deprecated casting behavior when passing an item with mismatched-timezone to :meth:`DatetimeIndex.insert`, :meth:`DatetimeIndex.putmask`, :meth:`DatetimeIndex.where` :meth:`DatetimeIndex.fillna`, :meth:`Series.mask`, :meth:`Series.where`, :meth:`Series.fillna`, :meth:`Series.shift`, :meth:`Series.replace`, :meth:`Series.reindex` (and :class:`DataFrame` column analogues). In the past this has cast to object dtype. In a future version, these will cast the passed item to the index or series's timezone (:issue:`37605`)
 - Deprecated the 'errors' keyword argument in :meth:`Series.where`, :meth:`DataFrame.where`, :meth:`Series.mask`, and meth:`DataFrame.mask`; in a future version the argument will be removed (:issue:`44294`)
 - Deprecated :meth:`PeriodIndex.astype` to ``datetime64[ns]`` or ``DatetimeTZDtype``, use ``obj.to_timestamp(how).tz_localize(dtype.tz)`` instead (:issue:`44398`)
+- Deprecated passing ``skipna=None`` for :meth:`DataFrame.mad` and :meth:`Series.mad`, pass ``skipna=True`` instead (:issue:`44580`)
 - Deprecated :meth:`DateOffset.apply`, use ``offset + other`` instead (:issue:`44522`)
+- A deprecation warning is now shown for :meth:`DataFrame.to_latex` indicating the arguments signature may change and emulate more the arguments to :meth:`.Styler.to_latex` in future versions (:issue:`44411`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -516,6 +521,7 @@ Performance improvements
 - Performance improvement in :meth:`Series.to_frame` (:issue:`43558`)
 - Performance improvement in :meth:`Series.mad` (:issue:`43010`)
 - Performance improvement in :func:`merge` (:issue:`43332`)
+- Performance improvement in :func:`read_csv` when ``index_col`` was set with a numeric column (:issue:`44158`)
 - Performance improvement in :func:`concat` (:issue:`43354`)
 -
 
@@ -546,7 +552,7 @@ Datetimelike
 - Bug in constructing a :class:`Series` from datetime-like strings with mixed timezones incorrectly partially-inferring datetime values (:issue:`40111`)
 - Bug in addition with a :class:`Tick` object and a ``np.timedelta64`` object incorrectly raising instead of returning :class:`Timedelta` (:issue:`44474`)
 - Bug in adding a ``np.timedelta64`` object to a :class:`BusinessDay` or :class:`CustomBusinessDay` object incorrectly raising (:issue:`44532`)
-- Bug in :meth:`Index.insert` for inserting ``np.datetime64``, ``np.timedelta64`` or ``tuple`` into :class:`Index` with ``dtype='object'`` with negative loc addine ``None`` and replacing existing value (:issue:`44509`)
+- Bug in :meth:`Index.insert` for inserting ``np.datetime64``, ``np.timedelta64`` or ``tuple`` into :class:`Index` with ``dtype='object'`` with negative loc adding ``None`` and replacing existing value (:issue:`44509`)
 - Bug in :meth:`Series.mode` with ``DatetimeTZDtype`` incorrectly returning timezone-naive and ``PeriodDtype`` incorrectly raising (:issue:`41927`)
 -
 
@@ -588,6 +594,7 @@ Strings
 Interval
 ^^^^^^^^
 - Bug in :meth:`IntervalIndex.get_indexer_non_unique` returning boolean mask instead of array of integers for a non unique and non monotonic index (:issue:`44084`)
+- Bug in :meth:`Series.where` with ``IntervalDtype`` incorrectly raising when the ``where`` call should not replace anything (:issue:`44181`)
 -
 
 Indexing
@@ -615,8 +622,11 @@ Indexing
 - Bug when setting string-backed :class:`Categorical` values that can be parsed to datetimes into a :class:`DatetimeArray` or :class:`Series` or :class:`DataFrame` column backed by :class:`DatetimeArray` failing to parse these strings (:issue:`44236`)
 - Bug in :meth:`Series.__setitem__` with an integer dtype other than ``int64`` setting with a ``range`` object unnecessarily upcasting to ``int64`` (:issue:`44261`)
 - Bug in :meth:`Series.__setitem__` with a boolean mask indexer setting a listlike value of length 1 incorrectly broadcasting that value (:issue:`44265`)
+- Bug in :meth:`Series.reset_index` not ignoring ``name`` argument when ``drop`` and ``inplace`` are set to ``True`` (:issue:`44575`)
 - Bug in :meth:`DataFrame.loc.__setitem__` and :meth:`DataFrame.iloc.__setitem__` with mixed dtypes sometimes failing to operate in-place (:issue:`44345`)
 - Bug in :meth:`DataFrame.loc.__getitem__` incorrectly raising ``KeyError`` when selecting a single column with a boolean key (:issue:`44322`).
+- Bug in indexing on columns with ``loc`` or ``iloc`` using a slice with a negative step with ``ExtensionDtype`` columns incorrectly raising (:issue:`44551`)
+-
 
 Missing
 ^^^^^^^
@@ -650,6 +660,7 @@ I/O
 - Bug in :func:`json_normalize` where reading data with missing multi-level metadata would not respect errors="ignore" (:issue:`44312`)
 - Bug in :func:`read_csv` with :code:`float_precision="round_trip"` which did not skip initial/trailing whitespace (:issue:`43713`)
 - Bug in dumping/loading a :class:`DataFrame` with ``yaml.dump(frame)`` (:issue:`42748`)
+- Bug in :class:`ExcelWriter`, where ``engine_kwargs`` were not passed through to all engines (:issue:`43442`)
 - Bug in :func:`read_csv` raising ``ValueError`` when ``parse_dates`` was used with ``MultiIndex`` columns (:issue:`8991`)
 - Bug in :func:`read_csv` raising ``AttributeError`` when attempting to read a .csv file and infer index column dtype from an nullable integer type (:issue:`44079`)
 - :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` with ``compression`` set to ``'zip'`` no longer create a zip file containing a file ending with ".zip". Instead, they try to infer the inner file name more smartly. (:issue:`39465`)
@@ -703,6 +714,7 @@ Reshaping
 - Bug in :meth:`DataFrame.append` failing to retain ``index.name`` when appending a list of :class:`Series` objects (:issue:`44109`)
 - Fixed metadata propagation in :meth:`Dataframe.apply` method, consequently fixing the same issue for :meth:`Dataframe.transform`, :meth:`Dataframe.nunique` and :meth:`Dataframe.mode` (:issue:`28283`)
 - Bug in :meth:`DataFrame.stack` with ``ExtensionDtype`` columns incorrectly raising (:issue:`43561`)
+- Bug in :meth:`Series.unstack` with object doing unwanted type inference on resulting columns (:issue:`44595`)
 -
 
 Sparse
@@ -731,7 +743,7 @@ Styler
 - Bug when rendering a single level MultiIndex (:issue:`43383`).
 - Bug when combining non-sparse rendering and :meth:`.Styler.hide_columns` or :meth:`.Styler.hide_index` (:issue:`43464`)
 - Bug setting a table style when using multiple selectors in :class:`.Styler` (:issue:`44011`)
--
+- Bugs where row trimming and column trimming failed to reflect hidden rows (:issue:`43703`, :issue:`44247`)
 
 Other
 ^^^^^
@@ -742,6 +754,7 @@ Other
 - Bug in :meth:`Series.to_frame` and :meth:`Index.to_frame` ignoring the ``name`` argument when ``name=None`` is explicitly passed (:issue:`44212`)
 - Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` with ``value=None`` and ExtensionDtypes (:issue:`44270`)
 - Bug in :meth:`FloatingArray.equals` failing to consider two arrays equal if they contain ``np.nan`` values (:issue:`44382`)
+- Bug in :meth:`DataFrame.diff` when passing a NumPy integer object instead of an ``int`` object (:issue:`44572`)
 -
 
 .. ***DO NOT USE THIS SECTION***
