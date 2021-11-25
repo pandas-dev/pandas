@@ -32,14 +32,23 @@ def df():
 @pytest.mark.filterwarnings("ignore:.*64Index is deprecated:FutureWarning")
 def test_dask(df):
 
-    toolz = import_module("toolz")  # noqa:F841
-    dask = import_module("dask")  # noqa:F841
+    # dask sets "compute.use_numexpr" to False, so catch the current value
+    # and ensure to reset it afterwards to avoid impacting other tests
+    from pandas.core.computation import expressions as expr
 
-    import dask.dataframe as dd
+    olduse = expr.USE_NUMEXPR
 
-    ddf = dd.from_pandas(df, npartitions=3)
-    assert ddf.A is not None
-    assert ddf.compute() is not None
+    try:
+        toolz = import_module("toolz")  # noqa:F841
+        dask = import_module("dask")  # noqa:F841
+
+        import dask.dataframe as dd
+
+        ddf = dd.from_pandas(df, npartitions=3)
+        assert ddf.A is not None
+        assert ddf.compute() is not None
+    finally:
+        expr.set_use_numexpr(olduse)
 
 
 def test_xarray(df):
