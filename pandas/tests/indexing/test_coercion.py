@@ -780,7 +780,6 @@ class TestWhereCoercion(CoercionBase):
 
         self._assert_where_conversion(obj, cond, values, exp, exp_dtype)
 
-    @pytest.mark.xfail(reason="GH 22839: do not ignore timezone, must be object")
     def test_where_index_datetime64tz(self):
         fill_val = pd.Timestamp("2012-01-01", tz="US/Eastern")
         exp_dtype = object
@@ -795,9 +794,9 @@ class TestWhereCoercion(CoercionBase):
         assert obj.dtype == "datetime64[ns]"
         cond = pd.Index([True, False, True, False])
 
-        msg = "Index\\(\\.\\.\\.\\) must be called with a collection of some kind"
-        with pytest.raises(TypeError, match=msg):
-            obj.where(cond, fill_val)
+        res = obj.where(cond, fill_val)
+        expected = pd.Index([obj[0], fill_val, obj[2], fill_val], dtype=object)
+        tm.assert_index_equal(res, expected)
 
         values = pd.Index(pd.date_range(fill_val, periods=4))
         exp = pd.Index(
