@@ -802,9 +802,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         4      2
         dtype: int8
         """
-        return self._constructor(
-            self._values.view(dtype), index=self.index
-        ).__finalize__(self, method="view")
+        # self.array instead of self._values so we piggyback on PandasArray
+        #  implementation
+        res_values = self.array.view(dtype)
+        res_ser = self._constructor(res_values, index=self.index)
+        return res_ser.__finalize__(self, method="view")
 
     # ----------------------------------------------------------------------
     # NDArray Compat
