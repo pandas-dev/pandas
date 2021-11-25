@@ -487,7 +487,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             # instead of reindexing.
             values = na_value_for_dtype(pandas_dtype(dtype), compat=False)
             if values is None:
-                values = [None]*len(index)
+                values = [None] * len(index)
             keys = index
         else:
             keys, values = (), []
