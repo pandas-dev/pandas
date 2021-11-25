@@ -3,7 +3,6 @@ from datetime import (
     datetime,
     timedelta,
 )
-import locale
 
 from dateutil.tz import tzoffset
 import numpy as np
@@ -14,10 +13,7 @@ from pandas._libs import (
     iNaT,
     lib,
 )
-from pandas.compat import (
-    PY39,
-    np_version_under1p19,
-)
+from pandas.compat.numpy import np_version_under1p19
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
@@ -1574,11 +1570,6 @@ class TestSeriesConstructors:
         msg = "dtype has no unit. Please pass in"
 
         if np.dtype(dtype).name not in ["timedelta64", "datetime64"]:
-            # Trying to narrow down when this actually occurs
-            assert not PY39
-            assert np_version_under1p19
-            assert locale.getlocale()[0] != "en_US"
-
             mark = pytest.mark.xfail(reason="GH#33890 Is assigned ns unit")
             request.node.add_marker(mark)
 
