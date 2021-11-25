@@ -3421,6 +3421,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             and mode is one of {{'zip', 'gzip', 'bz2'}}, or inferred as
             one of the above, other entries passed as
             additional compression options.
+            If `path_or_buf` is omitted or `None` or is a file opened in text
+            mode, this argument is ignored and an (uncompressed) string is
+            returned/written.
 
             .. versionchanged:: 1.0.0
 
@@ -10597,7 +10600,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     product = prod
 
-    def mad(self, axis=None, skipna=None, level=None):
+    def mad(self, axis=None, skipna=True, level=None):
         """
         {desc}
 
@@ -10605,7 +10608,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         axis : {axis_descr}
             Axis for the function to be applied on.
-        skipna : bool, default None
+        skipna : bool, default True
             Exclude NA/null values when computing the result.
         level : int or level name, default None
             If the axis is a MultiIndex (hierarchical), count along a
@@ -10617,7 +10620,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         {see_also}\
         {examples}
         """
-        if skipna is None:
+        if not is_bool(skipna):
+            warnings.warn(
+                "Passing None for skipna is deprecated and will raise in a future"
+                "version. Pass True instead. Only boolean values will be allowed "
+                "in the future.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
             skipna = True
         if axis is None:
             axis = self._stat_axis_number
