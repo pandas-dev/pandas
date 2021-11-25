@@ -10,6 +10,7 @@ import pytest
 
 import pandas.util._test_decorators as td
 
+import pandas as pd
 from pandas import DataFrame
 import pandas._testing as tm
 
@@ -36,7 +37,7 @@ def test_dask(df):
     # and ensure to reset it afterwards to avoid impacting other tests
     from pandas.core.computation import expressions as expr
 
-    olduse = expr.USE_NUMEXPR
+    olduse = pd.get_option("compute.use_numexpr")
     print("test_dask START: ", olduse)
 
     try:
@@ -49,7 +50,7 @@ def test_dask(df):
         assert ddf.A is not None
         assert ddf.compute() is not None
     finally:
-        expr.set_use_numexpr(olduse)
+        pd.set_option("compute.use_numexpr", olduse)
 
     print("test_dask END: ", expr.USE_NUMEXPR)
 
