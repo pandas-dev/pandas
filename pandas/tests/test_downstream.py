@@ -35,10 +35,7 @@ def test_dask(df):
 
     # dask sets "compute.use_numexpr" to False, so catch the current value
     # and ensure to reset it afterwards to avoid impacting other tests
-    from pandas.core.computation import expressions as expr
-
     olduse = pd.get_option("compute.use_numexpr")
-    print("test_dask START: ", olduse)
 
     try:
         toolz = import_module("toolz")  # noqa:F841
@@ -51,8 +48,6 @@ def test_dask(df):
         assert ddf.compute() is not None
     finally:
         pd.set_option("compute.use_numexpr", olduse)
-
-    print("test_dask END: ", expr.USE_NUMEXPR)
 
 
 def test_xarray(df):
