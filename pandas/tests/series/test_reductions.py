@@ -7,6 +7,7 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
+from pandas.core.algorithms import mode
 
 
 @pytest.mark.parametrize("as_period", [True, False])
@@ -23,10 +24,10 @@ def test_mode_extension_dtype(as_period):
     assert res.dtype == ser.dtype
     tm.assert_series_equal(res, ser)
 
-    res = pd.core.algorithms.mode(ser._values)
+    res = mode(ser._values)
     tm.assert_series_equal(res, ser)
 
-    res = pd.core.algorithms.mode(pd.Index(ser))
+    res = mode(pd.Index(ser))
     tm.assert_series_equal(res, ser)
 
 
