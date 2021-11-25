@@ -1613,12 +1613,15 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Notes
         -----
-        If the groupby as_index is True then the returned Series will have a
-        MultiIndex with one level per input column.
-        If the groupby as_index is False then the returned DataFrame will have an
-        additional column with the value_counts.
+        - If the groupby as_index is True then the returned Series will have a
+          MultiIndex with one level per input column.
+        - If the groupby as_index is False then the returned DataFrame will have an
+          additional column with the value_counts.
+
         By default, rows that contain any NA values are omitted from
-        the result. By default, the result will be in descending order so that the
+        the result.
+
+        By default, the result will be in descending order so that the
         first element of each group is the most frequently-occurring row.
 
         Examples
@@ -1714,12 +1717,15 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 groupings += list(grouper.groupings)
 
             # Take the size of the overall columns
-            result = df.groupby(
-                groupings,
-                sort=self.sort,
-                observed=self.observed,
-                dropna=self.dropna,
-            ).size()
+            result = cast(
+                Series,
+                df.groupby(
+                    groupings,
+                    sort=self.sort,
+                    observed=self.observed,
+                    dropna=self.dropna,
+                ).size(),
+            )
 
             if normalize:
                 # Normalize the results by dividing by the original group sizes
@@ -1731,8 +1737,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 ).size()
                 if not in_axis:
                     # The common index needs a common name
-                    indexed_group_size.index.set_names("Group", inplace=True)
-                    result.index.set_names("Group", level=0, inplace=True)
+                    indexed_group_size.index.set_names("_group_", inplace=True)
+                    result.index.set_names("_group_", level=0, inplace=True)
                 # Use indexed group size series
                 if self.dropna or (isinstance(self.keys, list) and len(self.keys) == 1):
                     result /= indexed_group_size
@@ -1753,10 +1759,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     level: Any = 0
                 else:
                     level = keys
-                result = (
-                    cast(Series, result)
-                    .sort_values(ascending=ascending)
-                    .sort_index(level=level, sort_remaining=False)
+                result = result.sort_values(ascending=ascending).sort_index(
+                    level=level, sort_remaining=False
                 )
 
             if not self.as_index:
