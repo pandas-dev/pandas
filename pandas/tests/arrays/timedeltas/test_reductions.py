@@ -127,9 +127,9 @@ class TestReductions:
         "add",
         [
             Timedelta(0),
-            pd.Timestamp.now(),
-            pd.Timestamp.now("UTC"),
-            pd.Timestamp.now("Asia/Tokyo"),
+            pd.Timestamp("2021-01-01"),
+            pd.Timestamp("2021-01-01", tz="UTC"),
+            pd.Timestamp("2021-01-01", tz="Asia/Tokyo"),
         ],
     )
     def test_std(self, add):
