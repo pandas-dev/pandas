@@ -33,18 +33,8 @@ def s3so():
     return {"client_kwargs": {"endpoint_url": "http://localhost:5000/"}}
 
 
-@pytest.fixture
-def s3_base():
-    """
-    Fixture for mocking S3 interaction.
-
-    Connects to motoserver/moto CI service
-    """
-    return "http://localhost:5000"
-
-
 @pytest.fixture()
-def s3_resource(s3_base, tips_file, jsonl_file, feather_file):
+def s3_resource(tips_file, jsonl_file, feather_file):
     """
     Sets up S3 bucket with contents
 
@@ -59,8 +49,11 @@ def s3_resource(s3_base, tips_file, jsonl_file, feather_file):
     A private bucket "cant_get_it" is also created. The boto3 s3 resource
     is yielded by the fixture.
     """
-    import boto3
-    import s3fs
+    boto3 = pytest.importorskip("boto3")
+    s3fs = pytest.importorskip("s3fs")
+
+    # motoserver/moto CI service
+    s3_base = "http://localhost:5000"
 
     test_s3_files = [
         ("tips#1.csv", tips_file),
