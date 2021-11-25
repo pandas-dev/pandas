@@ -3421,6 +3421,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             and mode is one of {{'zip', 'gzip', 'bz2'}}, or inferred as
             one of the above, other entries passed as
             additional compression options.
+            If `path_or_buf` is omitted or `None`, this argument is ignored and
+            an (uncompressed) string is returned.
 
             .. versionchanged:: 1.0.0
 
