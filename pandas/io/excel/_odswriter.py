@@ -11,7 +11,10 @@ import pandas._libs.json as json
 from pandas._typing import StorageOptions
 
 from pandas.io.excel._base import ExcelWriter
-from pandas.io.excel._util import validate_freeze_panes
+from pandas.io.excel._util import (
+    combine_kwargs,
+    validate_freeze_panes,
+)
 from pandas.io.formats.excel import ExcelCell
 
 
@@ -44,7 +47,9 @@ class ODSWriter(ExcelWriter):
             engine_kwargs=engine_kwargs,
         )
 
-        self.book = OpenDocumentSpreadsheet()
+        engine_kwargs = combine_kwargs(engine_kwargs, kwargs)
+
+        self.book = OpenDocumentSpreadsheet(**engine_kwargs)
         self._style_dict: dict[str, str] = {}
 
     def save(self) -> None:
