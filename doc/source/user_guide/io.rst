@@ -2631,7 +2631,6 @@ Use some combination of the above:
 Read in pandas ``to_html`` output (with some loss of floating point precision):
 
 .. code-block:: python
-   :okwarning:
 
    df = pd.DataFrame(np.random.randn(2, 2))
    s = df.style.format("{0:.40g}").to_html()
