@@ -370,5 +370,7 @@ def test_categorical(
     if as_index:
         tm.assert_series_equal(result, expected_series)
     else:
-        expected = expected_series.reset_index(name="proportion" if normalize else "count")
+        expected = expected_series.reset_index(
+            name="proportion" if normalize else "count"
+        )
         tm.assert_frame_equal(result, expected)
