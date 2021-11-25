@@ -1656,10 +1656,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             df = self.obj
 
             # Check for mapping, array or function rather than column grouping
-            non_column_grouping = not self.grouper.groupings[0].in_axis
+            in_axis = self.grouper.groupings[0].in_axis
 
             # Try to find column names
-            if non_column_grouping:
+            if not in_axis:
                 keys: Any = []
                 remaining_columns = self._selected_obj.columns
             elif isinstance(self._selected_obj, Series):
@@ -1729,7 +1729,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     observed=self.observed,
                     dropna=self.dropna,
                 ).size()
-                if non_column_grouping:
+                if not in_axis:
                     # The common index needs a common name
                     indexed_group_size.index.set_names("Group", inplace=True)
                     result.index.set_names("Group", level=0, inplace=True)
@@ -1744,12 +1744,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                         / indexed_group_size.align(result, join="left")[0].values
                     )
                     result = Series(data=values, index=result.index)
-                if non_column_grouping:
+                if not in_axis:
                     result.index.set_names(None, level=0, inplace=True)
 
             if sort:
                 # Sort the values and then resort by the main grouping
-                if non_column_grouping:
+                if not in_axis:
                     level: Any = 0
                 else:
                     level = keys
