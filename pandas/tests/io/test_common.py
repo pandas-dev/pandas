@@ -506,6 +506,7 @@ def test_is_fsspec_url():
     assert not icom.is_fsspec_url("random:pandas/somethingelse.com")
     assert not icom.is_fsspec_url("/local/path")
     assert not icom.is_fsspec_url("relative/local/path")
+    assert not icom.is_fsspec_url("{'url': 'gs://pandas/somethingelse.com'}")
 
 
 @pytest.mark.parametrize("encoding", [None, "utf-8"])

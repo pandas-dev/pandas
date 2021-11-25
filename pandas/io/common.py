@@ -18,6 +18,7 @@ from io import (
 import mmap
 import os
 from pathlib import Path
+import re
 import tempfile
 from typing import (
     IO,
@@ -245,9 +246,10 @@ def is_fsspec_url(url: FilePath | BaseBuffer) -> bool:
     Returns true if the given URL looks like
     something fsspec can handle
     """
+    rfc_3986_pattern = re.compile(r"^[A-Za-z][A-Za-z0-9+\-+.]*://")
     return (
         isinstance(url, str)
-        and "://" in url
+        and rfc_3986_pattern.match(url)
         and not url.startswith(("http://", "https://"))
     )
 
