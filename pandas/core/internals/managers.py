@@ -36,6 +36,7 @@ from pandas.core.dtypes.common import (
     is_1d_only_ea_dtype,
     is_dtype_equal,
     is_list_like,
+    needs_i8_conversion,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
@@ -362,7 +363,28 @@ class BaseBlockManager(DataManager):
         if fill_value is lib.no_default:
             fill_value = None
 
-        if axis == 0 and self.ndim == 2 and self.nblocks > 1:
+        if (
+            axis == 0
+            and self.ndim == 2
+            and (
+                self.nblocks > 1
+                or (
+                    # If we only have one block and we know that we can't
+                    #  keep the same dtype (i.e. the _can_hold_element check)
+                    #  then we can go through the reindex_indexer path
+                    #  (and avoid casting logic in the Block method).
+                    #  The exception to this (until 2.0) is datetimelike
+                    #  dtypes with integers, which cast.
+                    not self.blocks[0]._can_hold_element(fill_value)
+                    # TODO(2.0): remove special case for integer-with-datetimelike
+                    #  once deprecation is enforced
+                    and not (
+                        lib.is_integer(fill_value)
+                        and needs_i8_conversion(self.blocks[0].dtype)
+                    )
+                )
+            )
+        ):
             # GH#35488 we need to watch out for multi-block cases
             # We only get here with fill_value not-lib.no_default
             ncols = self.shape[0]
