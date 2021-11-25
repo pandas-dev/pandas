@@ -1,12 +1,6 @@
-import logging
-import os
-import shlex
-import subprocess
 import time
 
 import pytest
-
-import pandas._testing as tm
 
 from pandas.io.parsers import read_csv
 
@@ -35,61 +29,18 @@ def feather_file(datapath):
 
 
 @pytest.fixture
-def s3so(worker_id):
-    worker_id = "5" if worker_id == "master" else worker_id.lstrip("gw")
-    return {"client_kwargs": {"endpoint_url": f"http://127.0.0.1:555{worker_id}/"}}
+def s3so():
+    return {"client_kwargs": {"endpoint_url": "http://localhost:5000/"}}
 
 
-@pytest.fixture(scope="session")
-def s3_base(worker_id):
+@pytest.fixture
+def s3_base():
     """
     Fixture for mocking S3 interaction.
 
-    Sets up moto server in separate process
+    Connects to motoserver/moto CI service
     """
-    pytest.importorskip("s3fs")
-    pytest.importorskip("boto3")
-    requests = pytest.importorskip("requests")
-    logging.getLogger("requests").disabled = True
-
-    with tm.ensure_safe_environment_variables():
-        # temporary workaround as moto fails for botocore >= 1.11 otherwise,
-        # see https://github.com/spulec/moto/issues/1924 & 1952
-        os.environ.setdefault("AWS_ACCESS_KEY_ID", "foobar_key")
-        os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "foobar_secret")
-
-        pytest.importorskip("moto", minversion="1.3.14")
-        pytest.importorskip("flask")  # server mode needs flask too
-
-        # Launching moto in server mode, i.e., as a separate process
-        # with an S3 endpoint on localhost
-
-        worker_id = "5" if worker_id == "master" else worker_id.lstrip("gw")
-        endpoint_port = f"555{worker_id}"
-        endpoint_uri = f"http://127.0.0.1:{endpoint_port}/"
-
-        # pipe to null to avoid logging in terminal
-        proc = subprocess.Popen(
-            shlex.split(f"moto_server s3 -p {endpoint_port}"),
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-
-        timeout = 5
-        while timeout > 0:
-            try:
-                # OK to go once server is accepting connections
-                r = requests.get(endpoint_uri)
-                if r.ok:
-                    break
-            except Exception:
-                pass
-            timeout -= 0.1
-            time.sleep(0.1)
-        yield endpoint_uri
-
-        proc.terminate()
-        proc.wait()
+    return "http://localhost:5000"
 
 
 @pytest.fixture()

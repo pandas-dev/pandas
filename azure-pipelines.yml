@@ -19,6 +19,16 @@ variables:
   PYTEST_WORKERS: auto
   PYTEST_TARGET:  pandas
 
+resources:
+  containers:
+  - container: moto
+    image: motoserver/moto
+    ports:
+    - 5000:5000
+
+services:
+  moto: moto
+
 jobs:
 # Mac and Linux use the same template
 - template: ci/azure/posix.yml
