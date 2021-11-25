@@ -180,7 +180,7 @@ jobs:
 
     - name: Run tests
       env:
-        PANDAS_DATA_MANAGER: block
+        PANDAS_DATA_MANAGER: array
         PATTERN: ${{ matrix.pattern }}
         PYTEST_WORKERS: "auto"
         PYTEST_TARGET: pandas
