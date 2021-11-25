@@ -143,7 +143,7 @@ def test_maybe_get_tz_invalid_types():
 
     msg = "<class 'pandas._libs.tslibs.timestamps.Timestamp'>"
     with pytest.raises(TypeError, match=msg):
-        timezones.maybe_get_tz(Timestamp.now("UTC"))
+        timezones.maybe_get_tz(Timestamp("2021-01-01", tz="UTC"))
 
 
 def test_maybe_get_tz_offset_only():

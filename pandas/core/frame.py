@@ -3914,9 +3914,9 @@ class DataFrame(NDFrame, OpsMixin):
         if len(self):
             self._check_setitem_copy()
 
-    def _iset_item(self, loc: int, value, inplace: bool = False) -> None:
+    def _iset_item(self, loc: int, value) -> None:
         arraylike = self._sanitize_column(value)
-        self._iset_item_mgr(loc, arraylike, inplace=inplace)
+        self._iset_item_mgr(loc, arraylike, inplace=True)
 
         # check if we are modifying a copy
         # try to set first as we want an invalid
@@ -7748,7 +7748,7 @@ Captive      210.0
 Wild         185.0
 
 We can also choose to include NA in group keys or not by setting
-`dropna` parameter, the default setting is `True`:
+`dropna` parameter, the default setting is `True`.
 
 >>> l = [[1, 2, 3], [1, None, 4], [2, 1, 3], [1, 2, 2]]
 >>> df = pd.DataFrame(l, columns=["a", "b", "c"])
@@ -8612,8 +8612,12 @@ NaN 12.3   33.0
         ),
     )
     def diff(self, periods: int = 1, axis: Axis = 0) -> DataFrame:
-        if not isinstance(periods, int):
-            if not (is_float(periods) and periods.is_integer()):
+        if not lib.is_integer(periods):
+            if not (
+                is_float(periods)
+                # error: "int" has no attribute "is_integer"
+                and periods.is_integer()  # type: ignore[attr-defined]
+            ):
                 raise ValueError("periods must be an integer")
             periods = int(periods)
 

@@ -852,7 +852,7 @@ savings time. However, all :class:`DateOffset` subclasses that are an hour or sm
 
 The basic :class:`DateOffset` acts similar to ``dateutil.relativedelta`` (`relativedelta documentation`_)
 that shifts a date time by the corresponding calendar duration specified. The
-arithmetic operator (``+``) or the ``apply`` method can be used to perform the shift.
+arithmetic operator (``+``) can be used to perform the shift.
 
 .. ipython:: python
 
@@ -866,7 +866,6 @@ arithmetic operator (``+``) or the ``apply`` method can be used to perform the s
    friday.day_name()
    # Add 2 business days (Friday --> Tuesday)
    two_business_days = 2 * pd.offsets.BDay()
-   two_business_days.apply(friday)
    friday + two_business_days
    (friday + two_business_days).day_name()
 
@@ -938,14 +937,14 @@ in the operation).
 
    ts = pd.Timestamp("2014-01-01 09:00")
    day = pd.offsets.Day()
-   day.apply(ts)
-   day.apply(ts).normalize()
+   day + ts
+   (day + ts).normalize()
 
    ts = pd.Timestamp("2014-01-01 22:00")
    hour = pd.offsets.Hour()
-   hour.apply(ts)
-   hour.apply(ts).normalize()
-   hour.apply(pd.Timestamp("2014-01-01 23:30")).normalize()
+   hour + ts
+   (hour + ts).normalize()
+   (hour + pd.Timestamp("2014-01-01 23:30")).normalize()
 
 .. _relativedelta documentation: https://dateutil.readthedocs.io/en/stable/relativedelta.html
 
@@ -1185,16 +1184,16 @@ under the default business hours (9:00 - 17:00), there is no gap (0 minutes) bet
     pd.offsets.BusinessHour().rollback(pd.Timestamp("2014-08-02 15:00"))
     pd.offsets.BusinessHour().rollforward(pd.Timestamp("2014-08-02 15:00"))
 
-    # It is the same as BusinessHour().apply(pd.Timestamp('2014-08-01 17:00')).
-    # And it is the same as BusinessHour().apply(pd.Timestamp('2014-08-04 09:00'))
-    pd.offsets.BusinessHour().apply(pd.Timestamp("2014-08-02 15:00"))
+    # It is the same as BusinessHour() + pd.Timestamp('2014-08-01 17:00').
+    # And it is the same as BusinessHour() + pd.Timestamp('2014-08-04 09:00')
+    pd.offsets.BusinessHour() + pd.Timestamp("2014-08-02 15:00")
 
     # BusinessDay results (for reference)
     pd.offsets.BusinessHour().rollforward(pd.Timestamp("2014-08-02"))
 
-    # It is the same as BusinessDay().apply(pd.Timestamp('2014-08-01'))
+    # It is the same as BusinessDay() + pd.Timestamp('2014-08-01')
     # The result is the same as rollworward because BusinessDay never overlap.
-    pd.offsets.BusinessHour().apply(pd.Timestamp("2014-08-02"))
+    pd.offsets.BusinessHour() + pd.Timestamp("2014-08-02")
 
 ``BusinessHour`` regards Saturday and Sunday as holidays. To use arbitrary
 holidays, you can use ``CustomBusinessHour`` offset, as explained in the

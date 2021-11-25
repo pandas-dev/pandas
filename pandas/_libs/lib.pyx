@@ -1462,7 +1462,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     for i in range(n):
         val = values[i]
 
-        # do not use is_null_datetimelike to keep
+        # do not use checknull to keep
         # np.datetime64('nat') and np.timedelta64('nat')
         if val is None or util.is_nan(val):
             pass
@@ -3038,3 +3038,25 @@ def is_bool_list(obj: list) -> bool:
 
     # Note: we return True for empty list
     return True
+
+
+def dtypes_all_equal(list types not None) -> bool:
+    """
+    Faster version for:
+
+    first = types[0]
+    all(is_dtype_equal(first, t) for t in types[1:])
+
+    And assuming all elements in the list are np.dtype/ExtensionDtype objects
+
+    See timings at https://github.com/pandas-dev/pandas/pull/44594
+    """
+    first = types[0]
+    for t in types[1:]:
+        try:
+            if not t == first:
+                return False
+        except (TypeError, AttributeError):
+            return False
+    else:
+        return True

@@ -702,10 +702,10 @@ class ParserBase:
         """
         na_count = 0
         if issubclass(values.dtype.type, (np.number, np.bool_)):
-            # error: Argument 2 to "isin" has incompatible type "List[Any]"; expected
-            # "Union[Union[ExtensionArray, ndarray], Index, Series]"
-            mask = algorithms.isin(values, list(na_values))  # type: ignore[arg-type]
-            na_count = mask.sum()
+            # If our array has numeric dtype, we don't have to check for strings in isin
+            na_values = np.array([val for val in na_values if not isinstance(val, str)])
+            mask = algorithms.isin(values, na_values)
+            na_count = mask.astype("uint8", copy=False).sum()
             if na_count > 0:
                 if is_integer_dtype(values):
                     values = values.astype(np.float64)
