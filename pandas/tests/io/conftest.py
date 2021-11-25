@@ -69,27 +69,26 @@ def s3_base(worker_id):
         endpoint_uri = f"http://127.0.0.1:{endpoint_port}/"
 
         # pipe to null to avoid logging in terminal
-        proc = subprocess.Popen(
+        with subprocess.Popen(
             shlex.split(f"moto_server s3 -p {endpoint_port}"),
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
-        )
+        ) as proc:
 
-        timeout = 5
-        while timeout > 0:
-            try:
-                # OK to go once server is accepting connections
-                r = requests.get(endpoint_uri)
-                if r.ok:
-                    break
-            except Exception:
-                pass
-            timeout -= 0.1
-            time.sleep(0.1)
-        yield endpoint_uri
+            timeout = 5
+            while timeout > 0:
+                try:
+                    # OK to go once server is accepting connections
+                    r = requests.get(endpoint_uri)
+                    if r.ok:
+                        break
+                except Exception:
+                    pass
+                timeout -= 0.1
+                time.sleep(0.1)
+            yield endpoint_uri
 
-        proc.terminate()
-        proc.wait()
+            proc.terminate()
 
 
 @pytest.fixture()
