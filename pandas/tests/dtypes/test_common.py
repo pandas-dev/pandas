@@ -21,6 +21,7 @@ from pandas.core.dtypes.missing import isna
 import pandas as pd
 import pandas._testing as tm
 from pandas.arrays import SparseArray
+from pandas.api import types
 
 
 # EA & Actual Dtypes
@@ -391,6 +392,41 @@ def test_is_unsigned_integer_dtype(dtype):
 def test_is_not_unsigned_integer_dtype(dtype):
     assert not com.is_unsigned_integer_dtype(dtype)
 
+def test_all_type_comparison():
+    assert pd.api.types.pandas_dtype("int_") == "int_"
+    assert pd.api.types.pandas_dtype("int8") == "int8"
+    assert pd.api.types.pandas_dtype("Int8") == "Int8"
+    assert not pd.api.types.pandas_dtype("Int8") == "int8"
+    assert pd.api.types.pandas_dtype("int8") == "Int8"
+    assert pd.api.types.pandas_dtype("int16") == "int16"
+    assert pd.api.types.pandas_dtype("Int16") == "Int16"
+    assert not pd.api.types.pandas_dtype("Int16") == "int16"
+    assert pd.api.types.pandas_dtype("int16") == "Int16"
+    assert pd.api.types.pandas_dtype("int32") == "int32"
+    assert pd.api.types.pandas_dtype("Int32") == "Int32"
+    assert not pd.api.types.pandas_dtype("Int32") == "int32"
+    assert pd.api.types.pandas_dtype("int32") == "Int32"
+    assert pd.api.types.pandas_dtype("int64") == "int64"
+    assert pd.api.types.pandas_dtype("Int64") == "Int64"
+    assert not pd.api.types.pandas_dtype("Int64") == "int64"
+    assert pd.api.types.pandas_dtype("int64") == "Int64"
+    assert pd.api.types.pandas_dtype("uint8") == "uint8"
+    assert pd.api.types.pandas_dtype("uint16") == "uint16"
+    assert pd.api.types.pandas_dtype("uint32") == "uint32"
+    assert pd.api.types.pandas_dtype("uint64") == "uint64"
+    assert pd.api.types.pandas_dtype("float_") == "float_"
+    assert pd.api.types.pandas_dtype("float16") == "float16"
+    assert pd.api.types.pandas_dtype("Float16") == "Float16"
+    assert not pd.api.types.pandas_dtype("Float16") == "float16"
+    assert pd.api.types.pandas_dtype("float16") == "Float16"
+    assert pd.api.types.pandas_dtype("float32") == "float32"
+    assert pd.api.types.pandas_dtype("Float32") == "Float32"
+    assert not pd.api.types.pandas_dtype("Float32") == "float32"
+    assert pd.api.types.pandas_dtype("float32") == "Float32"
+    assert pd.api.types.pandas_dtype("float64") == "float64"
+    assert pd.api.types.pandas_dtype("Float64") == "Float64"
+    assert not pd.api.types.pandas_dtype("Float64") == "float64"
+    assert pd.api.types.pandas_dtype("float64") == "Float64"
 
 @pytest.mark.parametrize(
     "dtype", [np.int64, np.array([1, 2], dtype=np.int64), "Int64", pd.Int64Dtype]
