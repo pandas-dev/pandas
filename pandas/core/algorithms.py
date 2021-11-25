@@ -35,6 +35,7 @@ from pandas._typing import (
     npt,
 )
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
@@ -1550,7 +1551,7 @@ def searchsorted(
 _diff_special = {"float64", "float32", "int64", "int32", "int16", "int8"}
 
 
-def diff(arr, n: int, axis: int = 0, stacklevel: int = 3):
+def diff(arr, n: int, axis: int = 0):
     """
     difference of n between self,
     analogous to s-s.shift(n)
@@ -1596,7 +1597,7 @@ def diff(arr, n: int, axis: int = 0, stacklevel: int = 3):
                 "dtype lost in 'diff()'. In the future this will raise a "
                 "TypeError. Convert to a suitable dtype prior to calling 'diff'.",
                 FutureWarning,
-                stacklevel=stacklevel,
+                stacklevel=find_stack_level(),
             )
             arr = np.asarray(arr)
             dtype = arr.dtype
@@ -1848,5 +1849,5 @@ def union_with_duplicates(lvals: ArrayLike, rvals: ArrayLike) -> ArrayLike:
     unique_array = ensure_wrapped_if_datetimelike(unique_array)
 
     for i, value in enumerate(unique_array):
-        indexer += [i] * int(max(l_count[value], r_count[value]))
+        indexer += [i] * int(max(l_count.at[value], r_count.at[value]))
     return unique_array.take(indexer)

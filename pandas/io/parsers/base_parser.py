@@ -26,7 +26,8 @@ from pandas._libs.tslibs import parsing
 from pandas._typing import (
     ArrayLike,
     DtypeArg,
-    FilePathOrBuffer,
+    FilePath,
+    ReadCsvBuffer,
 )
 from pandas.errors import (
     ParserError,
@@ -212,13 +213,17 @@ class ParserBase:
 
         self.usecols, self.usecols_dtype = self._validate_usecols_arg(kwds["usecols"])
 
-        self.handles: IOHandles | None = None
+        self.handles: IOHandles[str] | None = None
 
         # Fallback to error to pass a sketchy test(test_override_set_noconvert_columns)
         # Normally, this arg would get pre-processed earlier on
         self.on_bad_lines = kwds.get("on_bad_lines", self.BadLineHandleMethod.ERROR)
 
-    def _open_handles(self, src: FilePathOrBuffer, kwds: dict[str, Any]) -> None:
+    def _open_handles(
+        self,
+        src: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
+        kwds: dict[str, Any],
+    ) -> None:
         """
         Let the readers open IOHandles after they are done with their potential raises.
         """
@@ -260,7 +265,8 @@ class ParserBase:
             # ParseDates = Union[DateGroups, List[DateGroups],
             #     Dict[ColReference, DateGroups]]
             cols_needed = itertools.chain.from_iterable(
-                col if is_list_like(col) else [col] for col in self.parse_dates
+                col if is_list_like(col) and not isinstance(col, tuple) else [col]
+                for col in self.parse_dates
             )
         else:
             cols_needed = []
@@ -699,7 +705,7 @@ class ParserBase:
             # error: Argument 2 to "isin" has incompatible type "List[Any]"; expected
             # "Union[Union[ExtensionArray, ndarray], Index, Series]"
             mask = algorithms.isin(values, list(na_values))  # type: ignore[arg-type]
-            na_count = mask.sum()
+            na_count = mask.astype("uint8", copy=False).sum()
             if na_count > 0:
                 if is_integer_dtype(values):
                     values = values.astype(np.float64)
@@ -1092,7 +1098,7 @@ def _process_date_conversion(
     if isinstance(parse_spec, list):
         # list of column lists
         for colspec in parse_spec:
-            if is_scalar(colspec):
+            if is_scalar(colspec) or isinstance(colspec, tuple):
                 if isinstance(colspec, int) and colspec not in data_dict:
                     colspec = orig_names[colspec]
                 if _isindex(colspec):
@@ -1147,7 +1153,11 @@ def _try_convert_dates(parser: Callable, colspec, data_dict, columns):
         else:
             colnames.append(c)
 
-    new_name = "_".join([str(x) for x in colnames])
+    new_name: tuple | str
+    if all(isinstance(x, tuple) for x in colnames):
+        new_name = tuple(map("_".join, zip(*colnames)))
+    else:
+        new_name = "_".join([str(x) for x in colnames])
     to_parse = [np.asarray(data_dict[c]) for c in colnames if c in data_dict]
 
     new_col = parser(*to_parse)

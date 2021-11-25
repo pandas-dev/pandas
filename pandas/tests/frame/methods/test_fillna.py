@@ -232,7 +232,6 @@ class TestFillNA:
         df = DataFrame({"a": Categorical(idx)})
         tm.assert_frame_equal(df.fillna(value=NaT), df)
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) implement downcast
     def test_fillna_downcast(self):
         # GH#15277
         # infer int64 from float64
@@ -258,7 +257,6 @@ class TestFillNA:
         expected["A"] = 0.0
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) object upcasting
     def test_fillna_dtype_conversion(self):
         # make sure that fillna on an empty frame works
         df = DataFrame(index=["A", "B", "C"], columns=[1, 2, 3, 4, 5])
@@ -276,7 +274,6 @@ class TestFillNA:
         expected = DataFrame("nan", index=range(3), columns=["A", "B"])
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) object upcasting
     @pytest.mark.parametrize("val", ["", 1, np.nan, 1.0])
     def test_fillna_dtype_conversion_equiv_replace(self, val):
         df = DataFrame({"A": [1, np.nan], "B": [1.0, 2.0]})

@@ -21,13 +21,18 @@ from pandas._config import get_option
 
 from pandas._typing import (
     Axis,
-    FilePathOrBuffer,
+    FilePath,
     IndexLabel,
     Level,
     Scalar,
+    WriteBuffer,
 )
 from pandas.compat._optional import import_optional_dependency
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    Substitution,
+    doc,
+)
+from pandas.util._exceptions import find_stack_level
 
 import pandas as pd
 from pandas import (
@@ -75,6 +80,26 @@ def _mpl(func: Callable):
         yield plt, mpl
     else:
         raise ImportError(no_mpl_message.format(func.__name__))
+
+
+####
+# Shared Doc Strings
+
+subset = """
+        subset : label, array-like, IndexSlice, optional
+            A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
+            or single key, to `DataFrame.loc[:, <subset>]` where the columns are
+            prioritised, to limit ``data`` to *before* applying the function.
+"""
+
+props = """
+        props : str, default None
+            CSS properties to use for highlighting. If ``props`` is given, ``color``
+            is not used.
+"""
+
+#
+###
 
 
 class Styler(StylerRenderer):
@@ -134,7 +159,7 @@ class Styler(StylerRenderer):
         in cell display string with HTML-safe sequences.
         Use 'latex' to replace the characters ``&``, ``%``, ``$``, ``#``, ``_``,
         ``{``, ``}``, ``~``, ``^``, and ``\`` in the cell display string with
-        LaTeX-safe sequences. If not given uses ``pandas.options.styler.format.escape``
+        LaTeX-safe sequences. If not given uses ``pandas.options.styler.format.escape``.
 
         .. versionadded:: 1.3.0
     formatter : str, callable, dict, optional
@@ -310,7 +335,7 @@ class Styler(StylerRenderer):
         warnings.warn(
             "this method is deprecated in favour of `Styler.to_html()`",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         if sparse_index is None:
             sparse_index = get_option("styler.sparse.index")
@@ -463,7 +488,7 @@ class Styler(StylerRenderer):
 
     def to_latex(
         self,
-        buf: FilePathOrBuffer[str] | None = None,
+        buf: FilePath | WriteBuffer[str] | None = None,
         *,
         column_format: str | None = None,
         position: str | None = None,
@@ -487,8 +512,10 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        buf : str, Path, or StringIO-like, optional, default None
-            Buffer to write to. If `None`, the output is returned as a string.
+        buf : str, path object, file-like object, or None, default None
+            String, path object (implementing ``os.PathLike[str]``), or file-like
+            object implementing a string ``write()`` function. If None, the result is
+            returned as a string.
         column_format : str, optional
             The LaTeX column specification placed in location:
 
@@ -500,7 +527,7 @@ class Styler(StylerRenderer):
         position : str, optional
             The LaTeX positional argument (e.g. 'h!') for tables, placed in location:
 
-            \\begin{table}[<position>]
+            ``\\begin{table}[<position>]``.
         position_float : {"centering", "raggedleft", "raggedright"}, optional
             The LaTeX float command placed in location:
 
@@ -892,7 +919,7 @@ class Styler(StylerRenderer):
 
     def to_html(
         self,
-        buf: FilePathOrBuffer[str] | None = None,
+        buf: FilePath | WriteBuffer[str] | None = None,
         *,
         table_uuid: str | None = None,
         table_attributes: str | None = None,
@@ -914,8 +941,10 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        buf : str, Path, or StringIO-like, optional, default None
-            Buffer to write to. If ``None``, the output is returned as a string.
+        buf : str, path object, file-like object, or None, default None
+            String, path object (implementing ``os.PathLike[str]``), or file-like
+            object implementing a string ``write()`` function. If None, the result is
+            returned as a string.
         table_uuid : str, optional
             Id attribute assigned to the <table> HTML element in the format:
 
@@ -1301,6 +1330,7 @@ class Styler(StylerRenderer):
         self._update_ctx(result)
         return self
 
+    @Substitution(subset=subset)
     def apply(
         self,
         func: Callable,
@@ -1331,10 +1361,7 @@ class Styler(StylerRenderer):
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
-        subset : label, array-like, IndexSlice, optional
-            A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
-            or single key, to `DataFrame.loc[:, <subset>]` where the columns are
-            prioritised, to limit ``data`` to *before* applying the function.
+        %(subset)s
         **kwargs : dict
             Pass along to ``func``.
 
@@ -1544,6 +1571,7 @@ class Styler(StylerRenderer):
         self._update_ctx(result)
         return self
 
+    @Substitution(subset=subset)
     def applymap(
         self, func: Callable, subset: Subset | None = None, **kwargs
     ) -> Styler:
@@ -1556,10 +1584,7 @@ class Styler(StylerRenderer):
         ----------
         func : function
             ``func`` should take a scalar and return a string.
-        subset : label, array-like, IndexSlice, optional
-            A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
-            or single key, to `DataFrame.loc[:, <subset>]` where the columns are
-            prioritised, to limit ``data`` to *before* applying the function.
+        %(subset)s
         **kwargs : dict
             Pass along to ``func``.
 
@@ -1608,6 +1633,7 @@ class Styler(StylerRenderer):
         )
         return self
 
+    @Substitution(subset=subset)
     def where(
         self,
         cond: Callable,
@@ -1633,10 +1659,7 @@ class Styler(StylerRenderer):
             Applied when ``cond`` returns true.
         other : str
             Applied when ``cond`` returns false.
-        subset : label, array-like, IndexSlice, optional
-            A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
-            or single key, to `DataFrame.loc[:, <subset>]` where the columns are
-            prioritised, to limit ``data`` to *before* applying the function.
+        %(subset)s
         **kwargs : dict
             Pass along to ``cond``.
 
@@ -1675,7 +1698,7 @@ class Styler(StylerRenderer):
         warnings.warn(
             "this method is deprecated in favour of `Styler.applymap()`",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
 
         if other is None:
@@ -1707,7 +1730,7 @@ class Styler(StylerRenderer):
         warnings.warn(
             "this method is deprecated in favour of `Styler.format(precision=..)`",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         self.precision = precision
         return self.format(precision=precision, na_rep=self.na_rep)
@@ -2217,7 +2240,7 @@ class Styler(StylerRenderer):
         warnings.warn(
             "this method is deprecated in favour of `Styler.format(na_rep=..)`",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         self.na_rep = na_rep
         return self.format(na_rep=na_rep, precision=self.precision)
@@ -2271,7 +2294,7 @@ class Styler(StylerRenderer):
         warnings.warn(
             "this method is deprecated in favour of `Styler.hide(axis='index')`",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self.hide(axis=0, level=level, subset=subset, names=names)
 
@@ -2324,7 +2347,7 @@ class Styler(StylerRenderer):
         warnings.warn(
             "this method is deprecated in favour of `Styler.hide(axis='columns')`",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self.hide(axis=1, level=level, subset=subset, names=names)
 
@@ -2526,6 +2549,7 @@ class Styler(StylerRenderer):
         axis="{0 or 'index', 1 or 'columns', None}",
         text_threshold="",
     )
+    @Substitution(subset=subset)
     def background_gradient(
         self,
         cmap="PuBu",
@@ -2561,10 +2585,7 @@ class Styler(StylerRenderer):
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
-        subset : label, array-like, IndexSlice, optional
-            A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
-            or single key, to `DataFrame.loc[:, <subset>]` where the columns are
-            prioritised, to limit ``data`` to *before* applying the function.
+        %(subset)s
         text_color_threshold : float or int
             {text_threshold}
             Luminance threshold for determining text color in [0, 1]. Facilitates text
@@ -2716,6 +2737,7 @@ class Styler(StylerRenderer):
             text_only=True,
         )
 
+    @Substitution(subset=subset)
     def set_properties(self, subset: Subset | None = None, **kwargs) -> Styler:
         """
         Set defined CSS-properties to each ``<td>`` HTML element within the given
@@ -2723,10 +2745,7 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        subset : label, array-like, IndexSlice, optional
-            A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
-            or single key, to `DataFrame.loc[:, <subset>]` where the columns are
-            prioritised, to limit ``data`` to *before* applying the function.
+        %(subset)s
         **kwargs : dict
             A dictionary of property, value pairs to be set for each cell.
 
@@ -2751,6 +2770,7 @@ class Styler(StylerRenderer):
         values = "".join([f"{p}: {v};" for p, v in kwargs.items()])
         return self.applymap(lambda x: values, subset=subset)
 
+    @Substitution(subset=subset)
     def bar(
         self,
         subset: Subset | None = None,
@@ -2772,10 +2792,7 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        subset : label, array-like, IndexSlice, optional
-            A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
-            or single key, to `DataFrame.loc[:, <subset>]` where the columns are
-            prioritised, to limit ``data`` to *before* applying the function.
+        %(subset)s
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
@@ -2825,7 +2842,7 @@ class Styler(StylerRenderer):
             When None (default): the maximum value of the data will be used.
         props : str, optional
             The base CSS of the cell that is extended to add the bar chart. Defaults to
-            `"width: 10em;"`
+            `"width: 10em;"`.
 
             .. versionadded:: 1.4.0
 
@@ -2876,6 +2893,7 @@ class Styler(StylerRenderer):
 
         return self
 
+    @Substitution(subset=subset, props=props)
     def highlight_null(
         self,
         null_color: str = "red",
@@ -2888,17 +2906,9 @@ class Styler(StylerRenderer):
         Parameters
         ----------
         null_color : str, default 'red'
-        subset : label, array-like, IndexSlice, optional
-            A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
-            or single key, to `DataFrame.loc[:, <subset>]` where the columns are
-            prioritised, to limit ``data`` to *before* applying the function.
-
+        %(subset)s
             .. versionadded:: 1.1.0
-
-        props : str, default None
-            CSS properties to use for highlighting. If ``props`` is given, ``color``
-            is not used.
-
+        %(props)s
             .. versionadded:: 1.3.0
 
         Returns
@@ -2920,6 +2930,7 @@ class Styler(StylerRenderer):
             props = f"background-color: {null_color};"
         return self.apply(f, axis=None, subset=subset, props=props)
 
+    @Substitution(subset=subset, props=props)
     def highlight_max(
         self,
         subset: Subset | None = None,
@@ -2932,20 +2943,14 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        subset : label, array-like, IndexSlice, optional
-            A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
-            or single key, to `DataFrame.loc[:, <subset>]` where the columns are
-            prioritised, to limit ``data`` to *before* applying the function.
+        %(subset)s
         color : str, default 'yellow'
             Background color to use for highlighting.
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
-        props : str, default None
-            CSS properties to use for highlighting. If ``props`` is given, ``color``
-            is not used.
-
+        %(props)s
             .. versionadded:: 1.3.0
 
         Returns
@@ -2969,6 +2974,7 @@ class Styler(StylerRenderer):
             props=props,
         )
 
+    @Substitution(subset=subset, props=props)
     def highlight_min(
         self,
         subset: Subset | None = None,
@@ -2981,20 +2987,14 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        subset : label, array-like, IndexSlice, optional
-            A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
-            or single key, to `DataFrame.loc[:, <subset>]` where the columns are
-            prioritised, to limit ``data`` to *before* applying the function.
+        %(subset)s
         color : str, default 'yellow'
             Background color to use for highlighting.
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
-        props : str, default None
-            CSS properties to use for highlighting. If ``props`` is given, ``color``
-            is not used.
-
+        %(props)s
             .. versionadded:: 1.3.0
 
         Returns
@@ -3018,6 +3018,7 @@ class Styler(StylerRenderer):
             props=props,
         )
 
+    @Substitution(subset=subset, props=props)
     def highlight_between(
         self,
         subset: Subset | None = None,
@@ -3035,10 +3036,7 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        subset : label, array-like, IndexSlice, optional
-            A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
-            or single key, to `DataFrame.loc[:, <subset>]` where the columns are
-            prioritised, to limit ``data`` to *before* applying the function.
+        %(subset)s
         color : str, default 'yellow'
             Background color to use for highlighting.
         axis : {0 or 'index', 1 or 'columns', None}, default 0
@@ -3050,10 +3048,7 @@ class Styler(StylerRenderer):
             Right bound for defining the range.
         inclusive : {'both', 'neither', 'left', 'right'}
             Identify whether bounds are closed or open.
-        props : str, default None
-            CSS properties to use for highlighting. If ``props`` is given, ``color``
-            is not used.
-
+        %(props)s
         Returns
         -------
         self : Styler
@@ -3127,6 +3122,7 @@ class Styler(StylerRenderer):
             inclusive=inclusive,
         )
 
+    @Substitution(subset=subset, props=props)
     def highlight_quantile(
         self,
         subset: Subset | None = None,
@@ -3145,12 +3141,9 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        subset : label, array-like, IndexSlice, optional
-            A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
-            or single key, to `DataFrame.loc[:, <subset>]` where the columns are
-            prioritised, to limit ``data`` to *before* applying the function.
+        %(subset)s
         color : str, default 'yellow'
-            Background color to use for highlighting
+            Background color to use for highlighting.
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             Axis along which to determine and highlight quantiles. If ``None`` quantiles
             are measured over the entire DataFrame. See examples.
@@ -3163,10 +3156,7 @@ class Styler(StylerRenderer):
             quantile estimation.
         inclusive : {'both', 'neither', 'left', 'right'}
             Identify whether quantile bounds are closed or open.
-        props : str, default None
-            CSS properties to use for highlighting. If ``props`` is given, ``color``
-            is not used.
-
+        %(props)s
         Returns
         -------
         self : Styler
