@@ -85,28 +85,61 @@ def test_write_cells_merge_styled(ext):
         assert xcell_a2.font == openpyxl_sty_merged
 
 
-@pytest.mark.parametrize("write_only", [True, False])
-def test_kwargs(ext, write_only):
-    # GH 42286
-    # openpyxl doesn't utilize kwargs, only test that supplying a kwarg works
-    kwargs = {"write_only": write_only}
+@pytest.mark.parametrize("iso_dates", [True, False])
+def test_kwargs(ext, iso_dates):
+    # GH 42286 GH 43445
+    kwargs = {"iso_dates": iso_dates}
     with tm.ensure_clean(ext) as f:
         msg = re.escape("Use of **kwargs is deprecated")
         with tm.assert_produces_warning(FutureWarning, match=msg):
             with ExcelWriter(f, engine="openpyxl", **kwargs) as writer:
+                assert writer.book.iso_dates == iso_dates
                 # ExcelWriter won't allow us to close without writing something
                 DataFrame().to_excel(writer)
 
 
-@pytest.mark.parametrize("write_only", [True, False])
-def test_engine_kwargs(ext, write_only):
-    # GH 42286
-    # openpyxl doesn't utilize kwargs, only test that supplying a engine_kwarg works
-    engine_kwargs = {"write_only": write_only}
+@pytest.mark.parametrize("iso_dates", [True, False])
+def test_engine_kwargs_write(ext, iso_dates):
+    # GH 42286 GH 43445
+    engine_kwargs = {"iso_dates": iso_dates}
     with tm.ensure_clean(ext) as f:
         with ExcelWriter(f, engine="openpyxl", engine_kwargs=engine_kwargs) as writer:
+            assert writer.book.iso_dates == iso_dates
             # ExcelWriter won't allow us to close without writing something
             DataFrame().to_excel(writer)
+
+
+def test_engine_kwargs_append_invalid(ext):
+    # GH 43445
+    # test whether an invalid engine kwargs actually raises
+    with tm.ensure_clean(ext) as f:
+        DataFrame(["hello", "world"]).to_excel(f)
+        with pytest.raises(
+            TypeError,
+            match=re.escape(
+                "load_workbook() got an unexpected keyword argument 'apple_banana'"
+            ),
+        ):
+            with ExcelWriter(
+                f, engine="openpyxl", mode="a", engine_kwargs={"apple_banana": "fruit"}
+            ) as writer:
+                # ExcelWriter needs us to write something to close properly
+                DataFrame(["good"]).to_excel(writer, sheet_name="Sheet2")
+
+
+@pytest.mark.parametrize("data_only, expected", [(True, 0), (False, "=1+1")])
+def test_engine_kwargs_append_data_only(ext, data_only, expected):
+    # GH 43445
+    # tests whether the data_only engine_kwarg actually works well for
+    # openpyxl's load_workbook
+    with tm.ensure_clean(ext) as f:
+        DataFrame(["=1+1"]).to_excel(f)
+        with ExcelWriter(
+            f, engine="openpyxl", mode="a", engine_kwargs={"data_only": data_only}
+        ) as writer:
+            assert writer.sheets["Sheet1"]["B2"].value == expected
+            # ExcelWriter needs us to writer something to close properly?
+            DataFrame().to_excel(writer, sheet_name="Sheet2")
 
 
 @pytest.mark.parametrize(
