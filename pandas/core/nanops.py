@@ -30,6 +30,7 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat._optional import import_optional_dependency
+from pandas.compat.numpy import np_percentile_argname
 
 from pandas.core.dtypes.common import (
     is_any_int_dtype,
@@ -454,7 +455,8 @@ def _na_for_min_count(values: np.ndarray, axis: int | None) -> Scalar | np.ndarr
 def maybe_operate_rowwise(func: F) -> F:
     """
     NumPy operations on C-contiguous ndarrays with axis=1 can be
-    very slow. Operate row-by-row and concatenate the results.
+    very slow if axis 1 >> axis 0.
+    Operate row-by-row and concatenate the results.
     """
 
     @functools.wraps(func)
@@ -463,6 +465,9 @@ def maybe_operate_rowwise(func: F) -> F:
             axis == 1
             and values.ndim == 2
             and values.flags["C_CONTIGUOUS"]
+            # only takes this path for wide arrays (long dataframes), for threshold see
+            # https://github.com/pandas-dev/pandas/pull/43311#issuecomment-974891737
+            and (values.shape[1] / 1000) > values.shape[0]
             and values.dtype != object
             and values.dtype != bool
         ):
@@ -1694,7 +1699,7 @@ def _nanpercentile_1d(
     if len(values) == 0:
         return np.array([na_value] * len(q), dtype=values.dtype)
 
-    return np.percentile(values, q, interpolation=interpolation)
+    return np.percentile(values, q, **{np_percentile_argname: interpolation})
 
 
 def nanpercentile(
@@ -1747,7 +1752,9 @@ def nanpercentile(
         result = np.array(result, dtype=values.dtype, copy=False).T
         return result
     else:
-        return np.percentile(values, q, axis=1, interpolation=interpolation)
+        return np.percentile(
+            values, q, axis=1, **{np_percentile_argname: interpolation}
+        )
 
 
 def na_accum_func(values: ArrayLike, accum_func, *, skipna: bool) -> ArrayLike:
@@ -1781,16 +1788,20 @@ def na_accum_func(values: ArrayLike, accum_func, *, skipna: bool) -> ArrayLike:
         # We need to define mask before masking NaTs
         mask = isna(values)
 
-        if accum_func == np.minimum.accumulate:
-            # Note: the accum_func comparison fails as an "is" comparison
-            y = values.view("i8")
-            y[mask] = lib.i8max
-            changed = True
-        else:
-            y = values
-            changed = False
+        y = values.view("i8")
+        # Note: the accum_func comparison fails as an "is" comparison
+        changed = accum_func == np.minimum.accumulate
 
-        result = accum_func(y.view("i8"), axis=0)
+        try:
+            if changed:
+                y[mask] = lib.i8max
+
+            result = accum_func(y, axis=0)
+        finally:
+            if changed:
+                # restore NaT elements
+                y[mask] = iNaT
+
         if skipna:
             result[mask] = iNaT
         elif accum_func == np.minimum.accumulate:
@@ -1799,10 +1810,6 @@ def na_accum_func(values: ArrayLike, accum_func, *, skipna: bool) -> ArrayLike:
             if len(nz):
                 # everything up to the first non-na entry stays NaT
                 result[: nz[0]] = iNaT
-
-        if changed:
-            # restore NaT elements
-            y[mask] = iNaT  # TODO: could try/finally for this?
 
         if isinstance(values.dtype, np.dtype):
             result = result.view(orig_dtype)
