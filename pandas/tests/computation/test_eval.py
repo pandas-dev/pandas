@@ -51,6 +51,13 @@ from pandas.core.computation.ops import (
 print("test_eval.py: ", expressions_module.USE_NUMEXPR, USE_NUMEXPR)
 
 
+@pytest.fixture(autouse=True)
+def print_debug(request):
+    print("DEBUG-START: ", expressions_module.USE_NUMEXPR, td.USE_NUMEXPR, USE_NUMEXPR)
+    yield
+    print("DEBUG-END: ", expressions_module.USE_NUMEXPR, td.USE_NUMEXPR, USE_NUMEXPR)
+
+
 @pytest.fixture(
     params=(
         pytest.param(
@@ -2012,7 +2019,7 @@ def test_bool_ops_fails_on_scalars(lhs, cmp, rhs, engine, parser):
     ],
 )
 def test_equals_various(other):
-    print("test_equals_various: ", expressions_module.USE_NUMEXPR, USE_NUMEXPR)
+    print("DEBUG: ", expressions_module.USE_NUMEXPR, td.USE_NUMEXPR, USE_NUMEXPR)
 
     df = DataFrame({"A": ["a", "b", "c"]})
     result = df.eval(f"A == {other}")
