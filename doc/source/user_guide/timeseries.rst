@@ -1293,11 +1293,11 @@ frequencies. We will refer to these aliases as *offset aliases*.
        dates_lst_2 = pd.date_range("2020-01-01", "2020-04-01", freq="MS")
        dates_lst_2
 
-    We can see in the above example :func:`date_range` and
-    :func:`bdate_range` will only return the valid timestamps between the
-    ``start_date`` and ``end_date``. If these are not valid timestamps for the
-    given frequency it will roll to the next value for ``start_date``
-    (respectively previous for the ``end_date``)
+   We can see in the above example :func:`date_range` and
+   :func:`bdate_range` will only return the valid timestamps between the
+   ``start_date`` and ``end_date``. If these are not valid timestamps for the
+   given frequency it will roll to the next value for ``start_date``
+   (respectively previous for the ``end_date``)
 
 
 Combining aliases
