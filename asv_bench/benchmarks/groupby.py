@@ -465,9 +465,9 @@ class GroupByMethods:
             # DataFrameGroupBy doesn't have these methods
             raise NotImplementedError
 
-        if method == "describe" and ncols == 5:
+        if method == "describe":
             ngroups = 20
-        elif method in ["describe", "mad", "skew"]:
+        elif method in ["mad", "skew"]:
             ngroups = 100
         else:
             ngroups = 1000
