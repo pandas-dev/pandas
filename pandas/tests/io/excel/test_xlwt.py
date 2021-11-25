@@ -101,25 +101,27 @@ def test_option_xls_writer_deprecated(ext):
         options.io.excel.xls.writer = "xlwt"
 
 
-@pytest.mark.parametrize("write_only", [True, False])
-def test_kwargs(ext, write_only):
+@pytest.mark.parametrize("style_compression", [0, 2])
+def test_kwargs(ext, style_compression):
     # GH 42286
-    # xlwt doesn't utilize kwargs, only test that supplying a kwarg works
-    kwargs = {"write_only": write_only}
+    kwargs = {"style_compression": style_compression}
     with tm.ensure_clean(ext) as f:
         msg = re.escape("Use of **kwargs is deprecated")
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            with ExcelWriter(f, engine="openpyxl", **kwargs) as writer:
+            with ExcelWriter(f, engine="xlwt", **kwargs) as writer:
+                assert (
+                    writer.book._Workbook__styles.style_compression == style_compression
+                )
                 # xlwt won't allow us to close without writing something
                 DataFrame().to_excel(writer)
 
 
-@pytest.mark.parametrize("write_only", [True, False])
-def test_engine_kwargs(ext, write_only):
+@pytest.mark.parametrize("style_compression", [0, 2])
+def test_engine_kwargs(ext, style_compression):
     # GH 42286
-    # xlwt doesn't utilize kwargs, only test that supplying a engine_kwarg works
-    engine_kwargs = {"write_only": write_only}
+    engine_kwargs = {"style_compression": style_compression}
     with tm.ensure_clean(ext) as f:
-        with ExcelWriter(f, engine="openpyxl", engine_kwargs=engine_kwargs) as writer:
+        with ExcelWriter(f, engine="xlwt", engine_kwargs=engine_kwargs) as writer:
+            assert writer.book._Workbook__styles.style_compression == style_compression
             # xlwt won't allow us to close without writing something
             DataFrame().to_excel(writer)

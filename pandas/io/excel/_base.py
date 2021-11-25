@@ -721,7 +721,13 @@ class ExcelWriter(metaclass=abc.ABCMeta):
            Added ``overlay`` option
 
     engine_kwargs : dict, optional
-        Keyword arguments to be passed into the engine.
+        Keyword arguments to be passed into the engine. These will be passed to
+        the following functions of the respective engines:
+
+        * xlsxwriter: ``xlsxwriter.Workbook(file, **engine_kwargs)``
+        * openpyxl (write mode): ``openpyxl.Workbook(**engine_kwargs)``
+        * openpyxl (append mode): ``openpyxl.load_workbook(file, **engine_kwargs)``
+        * odswriter: ``odf.opendocument.OpenDocumentSpreadsheet(**engine_kwargs)``
 
         .. versionadded:: 1.3.0
     **kwargs : dict, optional
@@ -823,6 +829,26 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     ...     with zf.open("filename.xlsx", "w") as buffer:
     ...         with pd.ExcelWriter(buffer) as writer:
     ...             df.to_excel(writer)
+
+    You can specify additional arguments to the underlying engine:
+
+    >>> with pd.ExcelWriter(
+    ...     "path_to_file.xlsx",
+    ...     engine="xlsxwriter",
+    ...     engine_kwargs={"options": {"nan_inf_to_errors": True}}
+    ... ) as writer:
+    ...     df.to_excel(writer)
+
+    In append mode, ``engine_kwargs`` are passed through to
+    openpyxl's ``load_workbook``:
+
+    >>> with pd.ExcelWriter(
+    ...     "path_to_file.xlsx",
+    ...     engine="openpyxl",
+    ...     mode="a",
+    ...     engine_kwargs={"keep_vba": True}
+    ... ) as writer:
+    ...     df.to_excel(writer, sheet_name="Sheet2")
     """
 
     # Defining an ExcelWriter implementation (see abstract methods for more...)
