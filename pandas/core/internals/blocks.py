@@ -1634,6 +1634,10 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
             # attribute "na_value"
             other = self.dtype.na_value  # type: ignore[union-attr]
 
+        icond, noop = validate_putmask(self.values, ~cond)
+        if noop:
+            return self.copy()
+
         try:
             result = self.values._where(cond, other)
         except TypeError:
