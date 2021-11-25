@@ -17,7 +17,6 @@ env:
 jobs:
   checks:
     name: Checks
-    if: ${{ false }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -100,7 +99,6 @@ jobs:
 
   web_and_docs:
     name: Web and docs
-    if: ${{ false }}
     runs-on: ubuntu-latest
 
     concurrency:
@@ -186,7 +184,7 @@ jobs:
         PYTEST_TARGET: pandas
       run: |
         source activate pandas-dev
-        pytest -s -v -m "not slow and not network and not clipboard" pandas
+        ci/run_tests.sh
 
     - name: Print skipped tests
       run: python ci/print_skipped.py
