@@ -508,7 +508,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         self._assert_tzawareness_compat(other)
         if setitem:
             # Stricter check for setitem vs comparison methods
-            if not timezones.tz_compare(self.tz, other.tz):
+            if self.tz is not None and not timezones.tz_compare(self.tz, other.tz):
                 # TODO(2.0): remove this check. GH#37605
                 warnings.warn(
                     "Setitem-like behavior with mismatched timezones is deprecated "
