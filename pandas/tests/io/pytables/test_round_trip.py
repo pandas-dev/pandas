@@ -354,7 +354,7 @@ def test_timeseries_preepoch(setup_path):
 
 
 @pytest.mark.parametrize(
-    "compression", [False, pytest.param(True, marks=td.skip_if_windows_python_3)]
+    "compression", [False, pytest.param(True, marks=td.skip_if_windows)]
 )
 def test_frame(compression, setup_path):
 
@@ -435,7 +435,7 @@ def test_store_hierarchical(setup_path):
 
 
 @pytest.mark.parametrize(
-    "compression", [False, pytest.param(True, marks=td.skip_if_windows_python_3)]
+    "compression", [False, pytest.param(True, marks=td.skip_if_windows)]
 )
 def test_store_mixed(compression, setup_path):
     def _make_one():
