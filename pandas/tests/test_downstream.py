@@ -37,6 +37,7 @@ def test_dask(df):
     from pandas.core.computation import expressions as expr
 
     olduse = expr.USE_NUMEXPR
+    print("test_dask START: ", olduse)
 
     try:
         toolz = import_module("toolz")  # noqa:F841
@@ -49,6 +50,8 @@ def test_dask(df):
         assert ddf.compute() is not None
     finally:
         expr.set_use_numexpr(olduse)
+
+    print("test_dask END: ", expr.USE_NUMEXPR)
 
 
 def test_xarray(df):
