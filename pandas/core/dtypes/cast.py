@@ -1815,7 +1815,7 @@ def find_common_type(types: list[DtypeObj]) -> DtypeObj:
 
     # workaround for find_common_type([np.dtype('datetime64[ns]')] * 2)
     # => object
-    if all(is_dtype_equal(first, t) for t in types[1:]):
+    if lib.dtypes_all_equal(list(types)):
         return first
 
     # get unique types (dict.fromkeys is used as order-preserving set())
