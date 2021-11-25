@@ -62,6 +62,11 @@ jobs:
         ports:
           - 5432:5432
 
+      moto:
+        image: motoserver/moto
+        ports:
+          - 5000:5000
+
     steps:
     - name: Checkout
       uses: actions/checkout@v2
