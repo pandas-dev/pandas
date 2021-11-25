@@ -1048,6 +1048,7 @@ class PythonParser(ParserBase):
                             assert self.data is not None
                             new_rows.append(next(self.data))
 
+                        len_new_rows = len(new_rows)
                         new_rows = self._remove_skipped_rows(new_rows)
                         lines.extend(new_rows)
                     else:
@@ -1059,13 +1060,15 @@ class PythonParser(ParserBase):
 
                             if new_row is not None:
                                 new_rows.append(new_row)
+                        len_new_rows = len(new_rows)
 
                 except StopIteration:
+                    len_new_rows = len(new_rows)
                     new_rows = self._remove_skipped_rows(new_rows)
                     lines.extend(new_rows)
                     if len(lines) == 0:
                         raise
-                self.pos += len(new_rows)
+                self.pos += len_new_rows
 
             self.buf = []
         else:
