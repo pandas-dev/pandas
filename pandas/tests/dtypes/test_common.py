@@ -417,15 +417,15 @@ def test_all_type_comparison():
     assert pd.api.types.pandas_dtype("float_") == "float_"
     assert pd.api.types.pandas_dtype("float16") == "float16"
     assert pd.api.types.pandas_dtype("Float16") == "Float16"
-    assert not pd.api.types.pandas_dtype("Float16") == "float16"
+    assert pd.api.types.pandas_dtype("Float16") == "float16"
     assert pd.api.types.pandas_dtype("float16") == "Float16"
     assert pd.api.types.pandas_dtype("float32") == "float32"
     assert pd.api.types.pandas_dtype("Float32") == "Float32"
-    assert not pd.api.types.pandas_dtype("Float32") == "float32"
+    assert pd.api.types.pandas_dtype("Float32") == "float32"
     assert pd.api.types.pandas_dtype("float32") == "Float32"
     assert pd.api.types.pandas_dtype("float64") == "float64"
     assert pd.api.types.pandas_dtype("Float64") == "Float64"
-    assert not pd.api.types.pandas_dtype("Float64") == "float64"
+    assert pd.api.types.pandas_dtype("Float64") == "float64"
     assert pd.api.types.pandas_dtype("float64") == "Float64"
 
 @pytest.mark.parametrize(
