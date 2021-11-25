@@ -688,6 +688,16 @@ class TestDataFrameIndexingWhere:
         result = df.where(mask, ser2, axis=1)
         tm.assert_frame_equal(result, expected)
 
+    def test_where_interval_noop(self):
+        # GH#44181
+        df = DataFrame([pd.Interval(0, 0)])
+        res = df.where(df.notna())
+        tm.assert_frame_equal(res, df)
+
+        ser = df[0]
+        res = ser.where(ser.notna())
+        tm.assert_series_equal(res, ser)
+
 
 def test_where_try_cast_deprecated(frame_or_series):
     obj = DataFrame(np.random.randn(4, 3))
