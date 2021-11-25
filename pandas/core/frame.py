@@ -612,7 +612,7 @@ class DataFrame(NDFrame, OpsMixin):
         manager = get_option("mode.data_manager")
 
         if copy is None:
-            if isinstance(data, dict) or data is None:
+            if isinstance(data, dict):
                 # retain pre-GH#38939 default behavior
                 copy = True
             elif (

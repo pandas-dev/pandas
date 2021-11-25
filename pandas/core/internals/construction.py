@@ -290,6 +290,10 @@ def ndarray_to_mgr(
         if not len(values) and columns is not None and len(columns):
             values = np.empty((0, 1), dtype=object)
 
+    # if the array preparation does a copy -> avoid this for ArrayManager,
+    # since the copy is done on conversion to 1D arrays
+    copy_on_sanitize = False if typ == "array" else copy
+
     vdtype = getattr(values, "dtype", None)
     if is_1d_only_ea_dtype(vdtype) or isinstance(dtype, ExtensionDtype):
         # GH#19157
@@ -319,7 +323,7 @@ def ndarray_to_mgr(
     else:
         # by definition an array here
         # the dtypes will be coerced to a single dtype
-        values = _prep_ndarray(values, copy=False if typ == "array" else copy)
+        values = _prep_ndarray(values, copy=copy_on_sanitize)
 
     if dtype is not None and not is_dtype_equal(values.dtype, dtype):
         shape = values.shape
@@ -328,7 +332,6 @@ def ndarray_to_mgr(
         # GH#40110 see similar check inside sanitize_array
         rcf = not (is_integer_dtype(dtype) and values.dtype.kind == "f")
 
-        copy_on_sanitize = False if typ == "array" else copy
         values = sanitize_array(
             flat, None, dtype=dtype, copy=copy_on_sanitize, raise_cast_failure=rcf
         )
