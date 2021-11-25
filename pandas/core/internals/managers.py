@@ -369,6 +369,12 @@ class BaseBlockManager(DataManager):
             and (
                 self.nblocks > 1
                 or (
+                    # If we only have one block and we know that we can't
+                    #  keep the same dtype (i.e. the _can_hold_element check)
+                    #  then we can go through the reindex_indexer path
+                    #  (and avoid casting logic in the Block method).
+                    #  The exception to this (until 2.0) is datetimelike
+                    #  dtypes with integers, which cast.
                     not self.blocks[0]._can_hold_element(fill_value)
                     # TODO(2.0): remove special case for integer-with-datetimelike
                     #  once deprecation is enforced

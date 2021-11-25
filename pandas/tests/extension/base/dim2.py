@@ -4,6 +4,7 @@ Tests for 2D compatibility.
 import numpy as np
 import pytest
 
+from pandas._libs.missing import is_matching_na
 from pandas.compat import (
     IS64,
     is_platform_windows,
@@ -14,6 +15,13 @@ from pandas.tests.extension.base.base import BaseExtensionTests
 
 
 class Dim2CompatTests(BaseExtensionTests):
+    def test_frame_from_2d_array(self, data):
+        arr2d = data.repeat(2).reshape(-1, 2)
+
+        df = pd.DataFrame(arr2d)
+        expected = pd.DataFrame({0: arr2d[:, 0], 1: arr2d[:, 1]})
+        self.assert_frame_equal(df, expected)
+
     def test_swapaxes(self, data):
         arr2d = data.repeat(2).reshape(-1, 2)
 
@@ -114,21 +122,23 @@ class Dim2CompatTests(BaseExtensionTests):
         assert result == expected
 
     def test_concat_2d(self, data):
-        left = data.reshape(-1, 1)
+        left = type(data)._concat_same_type([data, data]).reshape(-1, 2)
         right = left.copy()
 
         # axis=0
         result = left._concat_same_type([left, right], axis=0)
-        expected = data._concat_same_type([data, data]).reshape(-1, 1)
+        expected = data._concat_same_type([data] * 4).reshape(-1, 2)
         self.assert_extension_array_equal(result, expected)
 
         # axis=1
         result = left._concat_same_type([left, right], axis=1)
-        expected = data.repeat(2).reshape(-1, 2)
-        self.assert_extension_array_equal(result, expected)
+        assert result.shape == (len(data), 4)
+        self.assert_extension_array_equal(result[:, :2], left)
+        self.assert_extension_array_equal(result[:, 2:], right)
 
         # axis > 1 -> invalid
-        with pytest.raises(ValueError):
+        msg = "axis 2 is out of bounds for array of dimension 2"
+        with pytest.raises(ValueError, match=msg):
             left._concat_same_type([left, right], axis=2)
 
     @pytest.mark.parametrize("method", ["backfill", "pad"])
@@ -168,7 +178,7 @@ class Dim2CompatTests(BaseExtensionTests):
             assert type(err_result) == type(err_expected)
             return
 
-        assert result == expected  # TODO: or matching NA
+        assert is_matching_na(result, expected) or result == expected
 
     @pytest.mark.parametrize("method", ["mean", "median", "var", "std", "sum", "prod"])
     def test_reductions_2d_axis0(self, data, method, request):
@@ -247,8 +257,5 @@ class Dim2CompatTests(BaseExtensionTests):
         # not necessarily type/dtype-preserving, so weaker assertions
         assert result.shape == (1,)
         expected_scalar = getattr(data, method)()
-        if pd.isna(result[0]):
-            # TODO: require matching NA
-            assert pd.isna(expected_scalar), expected_scalar
-        else:
-            assert result[0] == expected_scalar
+        res = result[0]
+        assert is_matching_na(res, expected_scalar) or res == expected_scalar

@@ -1427,11 +1427,13 @@ def test_from_obscure_array(dtype, array_likes):
     expected = func(data)[0]
     tm.assert_equal(result, expected)
 
-    # FIXME: dask and memoryview both break on these
-    # func = {"M8[ns]": pd.to_datetime, "m8[ns]": pd.to_timedelta}[dtype]
-    # result = func(arr).array
-    # expected = func(data).array
-    # tm.assert_equal(result, expected)
+    if not isinstance(data, memoryview):
+        # FIXME(GH#44431) these raise on memoryview and attempted fix
+        #  fails on py3.10
+        func = {"M8[ns]": pd.to_datetime, "m8[ns]": pd.to_timedelta}[dtype]
+        result = func(arr).array
+        expected = func(data).array
+        tm.assert_equal(result, expected)
 
     # Let's check the Indexes while we're here
     idx_cls = {"M8[ns]": DatetimeIndex, "m8[ns]": TimedeltaIndex}[dtype]
