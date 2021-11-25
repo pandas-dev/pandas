@@ -1577,7 +1577,9 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
                 )
             # GH#32959 only full-slicers along fake-dim0 are valid
             # TODO(EA2D): won't be necessary with 2D EAs
-            new_locs = self._mgr_locs[first]
+            # range(1) instead of self._mgr_locs to avoid exception on [::-1]
+            #  see test_iloc_getitem_slice_negative_step_ea_block
+            new_locs = range(1)[first]
             if len(new_locs):
                 # effectively slice(None)
                 slicer = slicer[1]
