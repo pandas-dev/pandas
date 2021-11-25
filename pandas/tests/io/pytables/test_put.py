@@ -176,7 +176,7 @@ def test_put_compression(setup_path):
             store.put("b", df, format="fixed", complib="zlib")
 
 
-@td.skip_if_windows_python_3
+@td.skip_if_windows
 def test_put_compression_blosc(setup_path):
     df = tm.makeTimeDataFrame()
 
