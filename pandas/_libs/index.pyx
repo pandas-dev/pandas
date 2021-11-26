@@ -649,7 +649,7 @@ cdef class BaseMultiIndexCodesEngine:
             Integers representing one combination each
         """
         zt = [target._get_level_values(i) for i in range(target.nlevels)]
-        level_codes = [lev.get_indexer(codes) + 1 for lev, codes
+        level_codes = [lev.get_indexer_for(codes) + 1 for lev, codes
                        in zip(self.levels, zt)]
         return self._codes_to_ints(np.array(level_codes, dtype='uint64').T)
 
