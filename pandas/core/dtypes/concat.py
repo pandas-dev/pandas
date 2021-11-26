@@ -134,7 +134,7 @@ def concat_compat(to_concat, axis: int = 0, ea_compat_axis: bool = False):
 
             try:
                 codes = np.concatenate(
-                    [ci._is_dtype_compat(Index(c)).codes for c in to_concat]
+                    [ci._is_dtype_compat(Index._with_infer(c)).codes for c in to_concat]
                 )
             except TypeError:
                 # not all to_concat elements are among our categories (or NA)
