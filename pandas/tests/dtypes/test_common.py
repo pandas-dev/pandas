@@ -127,10 +127,12 @@ def test_dtype_equal(name1, dtype1, name2, dtype2):
     if name1 != name2:
         assert not com.is_dtype_equal(dtype1, dtype2)
 
+
 @pytest.mark.parametrize("name,dtype", list(dtypes.items()), ids=lambda x: str(x))
 def test_pyarrow_string_import_error(name, dtype):
     # GH-44276
     assert not com.is_dtype_equal(dtype, "string[pyarrow]")
+
 
 @pytest.mark.parametrize(
     "dtype1,dtype2",
@@ -149,6 +151,7 @@ def test_pyarrow_string_import_error(name, dtype):
 )
 def test_dtype_equal_strict(dtype1, dtype2):
     assert not com.is_dtype_equal(dtype1, dtype2)
+
 
 def get_is_dtype_funcs():
     """
