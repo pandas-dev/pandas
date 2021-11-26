@@ -1882,11 +1882,11 @@ class _iLocIndexer(_LocationIndexer):
                 # The setitem happened inplace, so the DataFrame's values
                 #  were modified inplace.
                 return
-            self.obj._iset_item(loc, ser, inplace=True)
+            self.obj._iset_item(loc, ser)
             return
 
         # reset the sliced object if unique
-        self.obj._iset_item(loc, ser, inplace=True)
+        self.obj._iset_item(loc, ser)
 
     def _setitem_single_block(self, indexer, value, name: str):
         """
@@ -1903,19 +1903,15 @@ class _iLocIndexer(_LocationIndexer):
             # set using those methods to avoid block-splitting
             # logic here
             if (
-                len(indexer) > info_axis
-                and is_integer(indexer[info_axis])
-                and all(
-                    com.is_null_slice(idx)
-                    for i, idx in enumerate(indexer)
-                    if i != info_axis
-                )
+                self.ndim == len(indexer) == 2
+                and is_integer(indexer[1])
+                and com.is_null_slice(indexer[0])
             ):
                 col = item_labels[indexer[info_axis]]
                 if len(item_labels.get_indexer_for([col])) == 1:
                     # e.g. test_loc_setitem_empty_append_expands_rows
                     loc = item_labels.get_loc(col)
-                    self.obj._iset_item(loc, value, inplace=True)
+                    self.obj._iset_item(loc, value)
                     return
 
             indexer = maybe_convert_ix(*indexer)  # e.g. test_setitem_frame_align

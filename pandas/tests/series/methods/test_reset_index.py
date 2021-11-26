@@ -160,6 +160,13 @@ class TestResetIndex:
         expected = DataFrame({"a": [1, 2, 3], 0: [1, 2, 3]})
         tm.assert_frame_equal(result, expected)
 
+    def test_reset_index_inplace_and_drop_ignore_name(self):
+        # GH#44575
+        ser = Series(range(2), name="old")
+        ser.reset_index(name="new", drop=True, inplace=True)
+        expected = Series(range(2), name="old")
+        tm.assert_series_equal(ser, expected)
+
 
 @pytest.mark.parametrize(
     "array, dtype",

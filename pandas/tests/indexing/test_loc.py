@@ -1150,9 +1150,6 @@ class TestLoc2:
         df.loc[0, "x"] = expected.loc[0, "x"]
         tm.assert_frame_equal(df, expected)
 
-    # TODO(ArrayManager) "split" path doesn't handle this case and gives wrong
-    # error message
-    @td.skip_array_manager_not_yet_implemented
     def test_loc_setitem_empty_append_raises(self):
         # GH6173, various appends to an empty dataframe
 
