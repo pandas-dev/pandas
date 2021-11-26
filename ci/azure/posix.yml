@@ -2,10 +2,19 @@ parameters:
   name: ''
   vmImage: ''
 
+resources:
+  containers:
+    - container: moto
+      image: motoserver/moto
+      ports:
+        - 5000:5000
+
 jobs:
 - job: ${{ parameters.name }}
   pool:
     vmImage: ${{ parameters.vmImage }}
+  services:
+    moto: moto
   strategy:
     matrix:
       ${{ if eq(parameters.name, 'macOS') }}:
