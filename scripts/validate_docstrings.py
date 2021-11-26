@@ -1,4 +1,4 @@
-#!/usr/bin/env python3 -X faulthandler
+#!/usr/bin/env python3
 """
 Analyze docstrings to detect errors.
 
