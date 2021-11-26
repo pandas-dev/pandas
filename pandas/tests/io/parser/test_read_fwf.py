@@ -877,3 +877,33 @@ def test_skip_rows_and_n_rows():
     result = read_fwf(StringIO(data), nrows=4, skiprows=[2, 4])
     expected = DataFrame({"a": [1, 3, 5, 6], "b": ["a", "c", "e", "f"]})
     tm.assert_frame_equal(result, expected)
+
+
+def test_skiprows_with_iterator():
+    # GH#10261
+    data = """0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+    """
+    df_iter = read_fwf(
+        StringIO(data),
+        colspecs=[(0, 2)],
+        names=["a"],
+        iterator=True,
+        chunksize=2,
+        skiprows=[0, 1, 2, 6, 9],
+    )
+    expected_frames = [
+        DataFrame({"a": [3, 4]}),
+        DataFrame({"a": [5, 7, 8]}, index=[2, 3, 4]),
+        DataFrame({"a": []}, index=[], dtype="object"),
+    ]
+    for i, result in enumerate(df_iter):
+        tm.assert_frame_equal(result, expected_frames[i])
