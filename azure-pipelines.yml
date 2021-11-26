@@ -19,19 +19,19 @@ variables:
   PYTEST_WORKERS: auto
   PYTEST_TARGET:  pandas
 
+resources:
+  containers:
+    - container: moto
+      image: motoserver/moto
+      ports:
+        - 5000:5000
+
 jobs:
 # Mac and Linux use the same template
 - template: ci/azure/posix.yml
   parameters:
     name: macOS
     vmImage: macOS-10.15
-  resources:
-    containers:
-      - container: moto
-        image: motoserver/moto
-        ports:
-          - 5000:5000
-
   services:
     moto: moto
 
@@ -39,13 +39,6 @@ jobs:
   parameters:
     name: Windows
     vmImage: windows-2019
-  resources:
-    containers:
-      - container: moto
-        image: motoserver/moto
-        ports:
-          - 5000:5000
-
   services:
     moto: moto
 
