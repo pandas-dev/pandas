@@ -250,23 +250,6 @@ def test_is_array_like():
     assert not inference.is_array_like(123)
 
 
-def test_assert_almost_equal():
-    tm.assert_almost_equal(np.array(2), np.array(2))
-    eg = MockNumpyLikeArray(np.array(2))
-    tm.assert_almost_equal(eg, eg)
-
-
-@pytest.mark.parametrize(
-    "eg",
-    (
-        np.array(2),
-        MockNumpyLikeArray(np.array(2)),
-    ),
-)
-def test_assert_almost_equal(eg):
-    tm.assert_almost_equal(eg, eg)
-
-
 @pytest.mark.parametrize(
     "inner",
     [
@@ -1860,18 +1843,21 @@ class TestIsScalar:
         assert not is_scalar(slice(None))
         assert not is_scalar(Ellipsis)
 
-    @pytest.mark.parametrize("start", (
-        np.int64(1),
-        np.float64(1.0),
-        np.int32(1),
-        np.complex64(2),
-        np.object_("foobar"),
-        np.str_("foobar"),
-        np.unicode_("foobar"),
-        np.bytes_(b"foobar"),
-        np.datetime64("2014-01-01"),
-        np.timedelta64(1, "h"),
-    ))
+    @pytest.mark.parametrize(
+        "start",
+        (
+            np.int64(1),
+            np.float64(1.0),
+            np.int32(1),
+            np.complex64(2),
+            np.object_("foobar"),
+            np.str_("foobar"),
+            np.unicode_("foobar"),
+            np.bytes_(b"foobar"),
+            np.datetime64("2014-01-01"),
+            np.timedelta64(1, "h"),
+        ),
+    )
     @pytest.mark.parametrize("numpy_like", (True, False))
     def test_is_scalar_numpy_array_scalars(self, start, numpy_like):
         if numpy_like:
@@ -1879,13 +1865,16 @@ class TestIsScalar:
 
         assert is_scalar(start)
 
-    @pytest.mark.parametrize("zerodim", (
-        np.array(1),
-        np.array("foobar"),
-        np.array(np.datetime64("2014-01-01")),
-        np.array(np.timedelta64(1, "h")),
-        np.array(np.datetime64("NaT")),
-    ))
+    @pytest.mark.parametrize(
+        "zerodim",
+        (
+            np.array(1),
+            np.array("foobar"),
+            np.array(np.datetime64("2014-01-01")),
+            np.array(np.timedelta64(1, "h")),
+            np.array(np.datetime64("NaT")),
+        ),
+    )
     @pytest.mark.parametrize("numpy_like", (True, False))
     def test_is_scalar_numpy_zerodim_arrays(self, zerodim, numpy_like):
         if numpy_like:
@@ -1894,11 +1883,14 @@ class TestIsScalar:
         assert not is_scalar(zerodim)
         assert is_scalar(lib.item_from_zerodim(zerodim))
 
-    @pytest.mark.parametrize("start", (
-        np.array([]),
-        np.array([[]]),
-        np.matrix("1; 2"),
-    ))
+    @pytest.mark.parametrize(
+        "start",
+        (
+            np.array([]),
+            np.array([[]]),
+            np.matrix("1; 2"),
+        ),
+    )
     @pytest.mark.parametrize("numpy_like", (True, False))
     @pytest.mark.filterwarnings("ignore::PendingDeprecationWarning")
     def test_is_scalar_numpy_arrays(self, start, numpy_like):

@@ -14,8 +14,10 @@ from pandas._libs.util cimport (
 )
 
 from pandas.core.dtypes.common import is_dtype_equal
-from pandas.core.dtypes.inference import is_array_like
-from pandas.core.dtypes.missing import array_equivalent, isna
+from pandas.core.dtypes.missing import (
+    array_equivalent,
+    isna,
+)
 
 
 cdef bint isiterable(obj):
@@ -103,9 +105,7 @@ cpdef assert_almost_equal(a, b,
         return True
 
     a_is_ndarray = is_array(a)
-    a_has_size_and_shape = hasattr(a, "size") and hasattr(a, "shape")
     b_is_ndarray = is_array(b)
-    b_has_size_and_shape = hasattr(b, "size") and hasattr(b, "shape")
 
     if obj is None:
         if a_is_ndarray or b_is_ndarray:
@@ -125,7 +125,7 @@ cpdef assert_almost_equal(a, b,
             f"Can't compare objects without length, one or both is invalid: ({a}, {b})"
         )
 
-        if (a_is_ndarray and b_is_ndarray) or (a_has_size_and_shape and b_has_size_and_shape):
+        if a_is_ndarray and b_is_ndarray:
             na, nb = a.size, b.size
             if a.shape != b.shape:
                 from pandas._testing import raise_assert_detail
