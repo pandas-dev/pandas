@@ -2,13 +2,6 @@ parameters:
   name: ''
   vmImage: ''
 
-resources:
-  containers:
-    - container: moto
-      image: motoserver/moto
-      ports:
-        - 5000:5000
-
 jobs:
 - job: ${{ parameters.name }}
   pool:
