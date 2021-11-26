@@ -69,7 +69,7 @@ conda remove --all -q -y -n pandas-dev
 
 echo
 echo "mamba env create -q --file=${ENV_FILE}"
-time mamba env create -q --file="environment.yml"
+time mamba env create -q --file="${ENV_FILE}"
 
 
 if [[ "$BITS32" == "yes" ]]; then
