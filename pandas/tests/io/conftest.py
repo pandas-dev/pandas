@@ -43,8 +43,8 @@ def s3_base(worker_id):
 
     Return url for motoserver/moto CI service
     """
-    pytest.importorskip("boto3")
     pytest.importorskip("s3fs")
+    pytest.importorskip("boto3")
 
     with tm.ensure_safe_environment_variables():
         # temporary workaround as moto fails for botocore >= 1.11 otherwise,
