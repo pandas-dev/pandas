@@ -107,7 +107,9 @@ def concat_compat(to_concat, axis: int = 0, ea_compat_axis: bool = False):
         to_concat = non_empties
 
     kinds = {obj.dtype.kind for obj in to_concat}
-    contains_datetime = any(kind in ["m", "M"] for kind in kinds)
+    contains_datetime = any(kind in ["m", "M"] for kind in kinds) or any(
+        isinstance(obj, ABCExtensionArray) and obj.ndim > 1 for obj in to_concat
+    )
 
     all_empty = not len(non_empties)
     single_dtype = len({x.dtype for x in to_concat}) == 1
