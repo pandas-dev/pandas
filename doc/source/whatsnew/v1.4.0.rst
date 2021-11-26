@@ -469,7 +469,7 @@ Other Deprecations
 - Deprecated :meth:`PeriodIndex.astype` to ``datetime64[ns]`` or ``DatetimeTZDtype``, use ``obj.to_timestamp(how).tz_localize(dtype.tz)`` instead (:issue:`44398`)
 - Deprecated passing ``skipna=None`` for :meth:`DataFrame.mad` and :meth:`Series.mad`, pass ``skipna=True`` instead (:issue:`44580`)
 - Deprecated :meth:`DateOffset.apply`, use ``offset + other`` instead (:issue:`44522`)
-- A deprecation warning is now shown for :meth:`DataFrame.to_latex` indicating the arguments signature may change and emulate more the arguments to :meth:`.Styler.to_latex` in future versions (:issue:`44411`)
+- A deprecation warning is now shown for both :meth:`DataFrame.to_html` and :meth:`DataFrame.to_latex` indicating the arguments signature may change and emulate more the arguments in :meth:`.Styler.to_html` and :meth:`.Styler.to_latex`, respectively, in future versions (:issue:`44411`, :issue:`44451`)
 -
 
 .. ---------------------------------------------------------------------------
