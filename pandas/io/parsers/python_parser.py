@@ -152,7 +152,7 @@ class PythonParser(ParserBase):
         if self._col_indices is None:
             self._col_indices = list(range(len(self.columns)))
 
-        self._validate_parse_dates_presence(self.columns)
+        self._parse_date_cols = self._validate_parse_dates_presence(self.columns)
         no_thousands_columns: set[int] | None = None
         if self.parse_dates:
             no_thousands_columns = self._set_noconvert_dtype_columns(
@@ -277,9 +277,9 @@ class PythonParser(ParserBase):
         alldata = self._rows_to_cols(content)
         data, columns = self._exclude_implicit_index(alldata)
 
+        data = self._convert_data(data)
         columns, data = self._do_date_conversions(columns, data)
 
-        data = self._convert_data(data)
         index, columns = self._make_index(data, alldata, columns, indexnamerow)
 
         return index, columns, data
