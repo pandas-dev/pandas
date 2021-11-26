@@ -5,6 +5,8 @@ import pydoc
 import numpy as np
 import pytest
 
+from pandas._config.config import option_context
+
 import pandas.util._test_decorators as td
 from pandas.util._test_decorators import (
     async_mark,
@@ -86,6 +88,25 @@ class TestDataFrameMisc:
         for key in list("EFGH"):
             assert key not in dir(df)
         assert isinstance(df.__getitem__("A"), DataFrame)
+
+    def test_display_max_dir_items(self):
+        # display.max_dir_items increaes the number of columns that are in __dir__.
+        columns = ["a" + str(i) for i in range(420)]
+        values = [range(420), range(420)]
+        df = DataFrame(values, columns=columns)
+
+        # The default value for display.max_dir_items is 100
+        assert "a99" in dir(df)
+        assert "a100" not in dir(df)
+
+        with option_context("display.max_dir_items", 300):
+            df = DataFrame(values, columns=columns)
+            assert "a299" in dir(df)
+            assert "a300" not in dir(df)
+
+        with option_context("display.max_dir_items", None):
+            df = DataFrame(values, columns=columns)
+            assert "a419" in dir(df)
 
     def test_not_hashable(self):
         empty_frame = DataFrame()
@@ -296,7 +317,6 @@ class TestDataFrameMisc:
         result = df.rename(columns=str)
         assert result.attrs == {"version": 1}
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) setitem (no copy)
     @pytest.mark.parametrize("allows_duplicate_labels", [True, False, None])
     def test_set_flags(self, allows_duplicate_labels, frame_or_series):
         obj = DataFrame({"A": [1, 2]})

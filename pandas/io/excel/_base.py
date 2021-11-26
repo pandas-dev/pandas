@@ -6,6 +6,7 @@ from io import BytesIO
 import os
 from textwrap import fill
 from typing import (
+    IO,
     Any,
     Mapping,
     cast,
@@ -17,10 +18,11 @@ from pandas._config import config
 
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._typing import (
-    Buffer,
     DtypeArg,
-    FilePathOrBuffer,
+    FilePath,
+    ReadBuffer,
     StorageOptions,
+    WriteExcelBuffer,
 )
 from pandas.compat._optional import (
     get_version,
@@ -701,17 +703,31 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         be parsed by ``fsspec``, e.g., starting "s3://", "gcs://".
 
         .. versionadded:: 1.2.0
-    if_sheet_exists : {'error', 'new', 'replace'}, default 'error'
+
+    if_sheet_exists : {'error', 'new', 'replace', 'overlay'}, default 'error'
         How to behave when trying to write to a sheet that already
         exists (append mode only).
 
         * error: raise a ValueError.
         * new: Create a new sheet, with a name determined by the engine.
         * replace: Delete the contents of the sheet before writing to it.
+        * overlay: Write contents to the existing sheet without removing the old
+          contents.
 
         .. versionadded:: 1.3.0
+
+        .. versionchanged:: 1.4.0
+
+           Added ``overlay`` option
+
     engine_kwargs : dict, optional
-        Keyword arguments to be passed into the engine.
+        Keyword arguments to be passed into the engine. These will be passed to
+        the following functions of the respective engines:
+
+        * xlsxwriter: ``xlsxwriter.Workbook(file, **engine_kwargs)``
+        * openpyxl (write mode): ``openpyxl.Workbook(**engine_kwargs)``
+        * openpyxl (append mode): ``openpyxl.load_workbook(file, **engine_kwargs)``
+        * odswriter: ``odf.opendocument.OpenDocumentSpreadsheet(**engine_kwargs)``
 
         .. versionadded:: 1.3.0
     **kwargs : dict, optional
@@ -775,6 +791,28 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     >>> with pd.ExcelWriter("path_to_file.xlsx", mode="a", engine="openpyxl") as writer:
     ...     df.to_excel(writer, sheet_name="Sheet3")
 
+    Here, the `if_sheet_exists` parameter can be set to replace a sheet if it
+    already exists:
+
+    >>> with ExcelWriter(
+    ...     "path_to_file.xlsx",
+    ...     mode="a",
+    ...     engine="openpyxl",
+    ...     if_sheet_exists="replace",
+    ... ) as writer:
+    ...     df.to_excel(writer, sheet_name="Sheet1")
+
+    You can also write multiple DataFrames to a single sheet. Note that the
+    ``if_sheet_exists`` parameter needs to be set to ``overlay``:
+
+    >>> with ExcelWriter("path_to_file.xlsx",
+    ...     mode="a",
+    ...     engine="openpyxl",
+    ...     if_sheet_exists="overlay",
+    ... ) as writer:
+    ...     df1.to_excel(writer, sheet_name="Sheet1")
+    ...     df2.to_excel(writer, sheet_name="Sheet1", startcol=3)
+
     You can store Excel file in RAM:
 
     >>> import io
@@ -791,6 +829,26 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     ...     with zf.open("filename.xlsx", "w") as buffer:
     ...         with pd.ExcelWriter(buffer) as writer:
     ...             df.to_excel(writer)
+
+    You can specify additional arguments to the underlying engine:
+
+    >>> with pd.ExcelWriter(
+    ...     "path_to_file.xlsx",
+    ...     engine="xlsxwriter",
+    ...     engine_kwargs={"options": {"nan_inf_to_errors": True}}
+    ... ) as writer:
+    ...     df.to_excel(writer)
+
+    In append mode, ``engine_kwargs`` are passed through to
+    openpyxl's ``load_workbook``:
+
+    >>> with pd.ExcelWriter(
+    ...     "path_to_file.xlsx",
+    ...     engine="openpyxl",
+    ...     mode="a",
+    ...     engine_kwargs={"keep_vba": True}
+    ... ) as writer:
+    ...     df.to_excel(writer, sheet_name="Sheet2")
     """
 
     # Defining an ExcelWriter implementation (see abstract methods for more...)
@@ -816,7 +874,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     # ExcelWriter.
     def __new__(
         cls,
-        path: FilePathOrBuffer | ExcelWriter,
+        path: FilePath | WriteExcelBuffer | ExcelWriter,
         engine=None,
         date_format=None,
         datetime_format=None,
@@ -918,7 +976,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
     def __init__(
         self,
-        path: FilePathOrBuffer | ExcelWriter,
+        path: FilePath | WriteExcelBuffer | ExcelWriter,
         engine=None,
         date_format=None,
         datetime_format=None,
@@ -942,7 +1000,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
         # cast ExcelWriter to avoid adding 'if self.handles is not None'
         self.handles = IOHandles(
-            cast(Buffer[bytes], path), compression={"copression": None}
+            cast(IO[bytes], path), compression={"copression": None}
         )
         if not isinstance(path, ExcelWriter):
             self.handles = get_handle(
@@ -962,10 +1020,10 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
         self.mode = mode
 
-        if if_sheet_exists not in [None, "error", "new", "replace"]:
+        if if_sheet_exists not in (None, "error", "new", "replace", "overlay"):
             raise ValueError(
                 f"'{if_sheet_exists}' is not valid for if_sheet_exists. "
-                "Valid options are 'error', 'new' and 'replace'."
+                "Valid options are 'error', 'new', 'replace' and 'overlay'."
             )
         if if_sheet_exists and "r+" not in mode:
             raise ValueError("if_sheet_exists is only valid in append mode (mode='a')")
@@ -1061,7 +1119,7 @@ PEEK_SIZE = max(map(len, XLS_SIGNATURES + (ZIP_SIGNATURE,)))
 
 @doc(storage_options=_shared_docs["storage_options"])
 def inspect_excel_format(
-    content_or_path: FilePathOrBuffer,
+    content_or_path: FilePath | ReadBuffer[bytes],
     storage_options: StorageOptions = None,
 ) -> str | None:
     """
@@ -1108,9 +1166,7 @@ def inspect_excel_format(
         elif not peek.startswith(ZIP_SIGNATURE):
             return None
 
-        # ZipFile typing is overly-strict
-        # https://github.com/python/typeshed/issues/4212
-        zf = zipfile.ZipFile(stream)  # type: ignore[arg-type]
+        zf = zipfile.ZipFile(stream)
 
         # Workaround for some third party files that use forward slashes and
         # lower case names.

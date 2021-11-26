@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import numpy as np
 
-from pandas._typing import ArrayLike
+from pandas._typing import (
+    ArrayLike,
+    npt,
+)
 
 from pandas.core.dtypes.missing import (
     isna,
@@ -12,7 +15,9 @@ from pandas.core.dtypes.missing import (
 from pandas.core.nanops import nanpercentile
 
 
-def quantile_compat(values: ArrayLike, qs: np.ndarray, interpolation: str) -> ArrayLike:
+def quantile_compat(
+    values: ArrayLike, qs: npt.NDArray[np.float64], interpolation: str
+) -> ArrayLike:
     """
     Compute the quantiles of the given values for each quantile in `qs`.
 
@@ -38,7 +43,7 @@ def quantile_with_mask(
     values: np.ndarray,
     mask: np.ndarray,
     fill_value,
-    qs: np.ndarray,
+    qs: npt.NDArray[np.float64],
     interpolation: str,
 ) -> np.ndarray:
     """
