@@ -51,10 +51,11 @@ def generate_shared_aggregator(
         start: np.ndarray,
         end: np.ndarray,
         min_periods: int,
+        *args,
     ):
         result = np.empty((len(start), values.shape[1]), dtype=np.float64)
         for i in numba.prange(values.shape[1]):
-            result[:, i] = func(values[:, i], start, end, min_periods)
+            result[:, i] = func(values[:, i], start, end, min_periods, *args)
         return result
 
     return column_looper
