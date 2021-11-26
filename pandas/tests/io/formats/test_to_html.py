@@ -874,3 +874,16 @@ def test_to_html_float_format_object_col(datapath):
     result = df.to_html(float_format=lambda x: f"{x:,.0f}")
     expected = expected_html(datapath, "gh40024_expected_output")
     assert result == expected
+
+
+def test_future_warning():
+    df = DataFrame([[1]])
+    msg = (
+        "In future versions `DataFrame.to_html` is expected to utilise the base "
+        "implementation of `Styler.to_html` for formatting and rendering. "
+        "The arguments signature may therefore change. It is recommended instead "
+        "to use `DataFrame.style.to_html` which also contains additional "
+        "functionality."
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.to_html()
