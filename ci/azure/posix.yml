@@ -21,7 +21,7 @@ jobs:
           PYTEST_TARGET: "pandas/tests/[i-z]*"
 
   steps:
-    - script: echo '##vso[task.prependpath]$(HOME)/miniconda3/bin'
+    - script: echo '##vso[task.prependpath]$(HOME)/mambaforge/condabin'
       displayName: 'Set conda path'
 
     - script: ci/setup_env.sh

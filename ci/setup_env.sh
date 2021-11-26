@@ -13,57 +13,63 @@ if [[ "$(uname)" == "Linux" && -n "$LC_ALL" ]]; then
 fi
 
 
-echo "Install Miniconda"
-DEFAULT_CONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-latest"
+echo "Install Mambaforge"
+DEFAULT_MAMBA_URL="https://github.com/conda-forge/miniforge/releases/latest/download"
 if [[ "$(uname -m)" == 'aarch64' ]]; then
-    CONDA_URL="https://github.com/conda-forge/miniforge/releases/download/4.10.1-4/Miniforge3-4.10.1-4-Linux-aarch64.sh"
+    MAMBA_NAME="Mambaforge-Linux-aarch64.sh"
+    MAMBA_URL="$DEFAULT_MAMBA_URL/$MAMBA_NAME"
 elif [[ "$(uname)" == 'Linux' ]]; then
     if [[ "$BITS32" == "yes" ]]; then
-        CONDA_URL="$DEFAULT_CONDA_URL-Linux-x86.sh"
+        MAMBA_NAME="Miniconda3-latest-Linux-x86.sh"
+        MAMBA_URL="https://repo.continuum.io/miniconda/$MAMBA_NAME"
     else
-        CONDA_URL="$DEFAULT_CONDA_URL-Linux-x86_64.sh"
+        MAMBA_NAME="Mambaforge-Linux-x86_64.sh"
+        MAMBA_URL="$DEFAULT_MAMBA_URL/$MAMBA_NAME"
     fi
 elif [[ "$(uname)" == 'Darwin' ]]; then
-    CONDA_URL="$DEFAULT_CONDA_URL-MacOSX-x86_64.sh"
+    MAMBA_NAME="Mambaforge-MacOSX-x86_64.sh"
+    MAMBA_URL="$DEFAULT_MAMBA_URL/$MAMBA_NAME"
 else
   echo "OS $(uname) not supported"
   exit 1
 fi
-echo "Downloading $CONDA_URL"
-wget -q $CONDA_URL -O miniconda.sh
-chmod +x miniconda.sh
+echo "Downloading $MAMBA_URL"
+wget -q $MAMBA_URL -O $MAMBA_NAME
+chmod +x $MAMBA_NAME
 
-MINICONDA_DIR="$HOME/miniconda3"
-rm -rf $MINICONDA_DIR
-./miniconda.sh -b -p $MINICONDA_DIR
-export PATH=$MINICONDA_DIR/bin:$PATH
-
-echo
-echo "which conda"
-which conda
+MAMBA_DIR="$HOME/mambaforge"
+echo "Mamba directory $MAMBA_DIR"
+rm -rf $MAMBA_DIR
+./$MAMBA_NAME -b -p $MAMBA_DIR
+export PATH=$MAMBA_DIR/bin:$PATH
+export PATH=$MAMBA_DIR/condabin:$PATH
 
 echo
-echo "update conda"
+echo "which mamba"
+which mamba
+
+echo
+echo "update mamba"
 conda config --set ssl_verify false
 conda config --set quiet true --set always_yes true --set changeps1 false
-conda install pip conda  # create conda to create a historical artifact for pip & setuptools
-conda update -n base conda
+mamba install -y pip conda  # create mamba to create a historical artifact for pip & setuptools
+mamba update -y -n base conda
 
-echo "conda info -a"
-conda info -a
+echo "mamba info -a"
+mamba info -a
 
 echo "source deactivate"
 source deactivate
 
-echo "conda list (root environment)"
-conda list
+echo "mamba list (root environment)"
+mamba list
 
 # Clean up any left-over from a previous build
 conda remove --all -q -y -n pandas-dev
 
 echo
-echo "conda env create -q --file=${ENV_FILE}"
-time conda env create -q --file="${ENV_FILE}"
+echo "mamba env create -q --file=${ENV_FILE}"
+time mamba env create -q --file="environment.yml"
 
 
 if [[ "$BITS32" == "yes" ]]; then
