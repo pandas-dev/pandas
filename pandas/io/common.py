@@ -249,7 +249,7 @@ def is_fsspec_url(url: FilePath | BaseBuffer) -> bool:
     """
     return (
         isinstance(url, str)
-        and _RFC_3986_PATTERN.match(url)
+        and bool(_RFC_3986_PATTERN.match(url))
         and not url.startswith(("http://", "https://"))
     )
 
