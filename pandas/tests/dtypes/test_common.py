@@ -20,7 +20,12 @@ from pandas.core.dtypes.missing import isna
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.api.types import pandas_dtype
 from pandas.arrays import SparseArray
+
+
+def test_all_type_comparison():
+    assert pandas_dtype("int_") == "int_"
 
 
 # EA & Actual Dtypes
