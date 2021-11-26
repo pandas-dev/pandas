@@ -14,6 +14,7 @@ from cpython.datetime cimport (
     PyTime_Check,
 )
 from cpython.iterator cimport PyIter_Check
+from cpython.list cimport PyList_Check
 from cpython.number cimport PyNumber_Check
 from cpython.object cimport (
     Py_EQ,
@@ -1098,6 +1099,12 @@ def is_list_like(obj: object, allow_sets: bool = True) -> bool:
 
 
 cdef inline bint c_is_list_like(object obj, bint allow_sets) except -1:
+    # first, performance short-cuts for the most common cases
+    if cnp.PyArray_Check(obj):
+        return not cnp.PyArray_IsZeroDim(obj)
+    if PyList_Check(obj):
+        return True
+    # then the generic implementation
     return (
         # equiv: `isinstance(obj, abc.Iterable)`
         getattr(obj, "__iter__", None) is not None and not isinstance(obj, type)
