@@ -846,7 +846,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return {
             c
-            for c in self.unique(level=0)[:100]
+            for c in self.unique(level=0)[: get_option("display.max_dir_items")]
             if isinstance(c, str) and c.isidentifier()
         }
 

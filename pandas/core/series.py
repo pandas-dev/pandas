@@ -4468,14 +4468,16 @@ Keep all original rows and also all original values
 
     def rename(
         self,
-        index=None,
+        mapper=None,
         *,
+        index=None,
+        columns=None,
         axis=None,
         copy=True,
         inplace=False,
         level=None,
         errors="ignore",
-    ):
+    ) -> Series | None:
         """
         Alter Series index labels or name.
 
@@ -4491,7 +4493,7 @@ Keep all original rows and also all original values
         ----------
         axis : {0 or "index"}
             Unused. Accepted for compatibility with DataFrame method only.
-        index : scalar, hashable sequence, dict-like or function, optional
+        mapper : scalar, hashable sequence, dict-like or function, optional
             Functions or dict-like are transformations to apply to
             the index.
             Scalar or hashable sequence-like will alter the ``Series.name``
@@ -4539,12 +4541,16 @@ Keep all original rows and also all original values
             # Make sure we raise if an invalid 'axis' is passed.
             axis = self._get_axis_number(axis)
 
-        if callable(index) or is_dict_like(index):
+        if index is not None and mapper is not None:
+            raise TypeError("Cannot specify both 'mapper' and 'index'")
+        if mapper is None:
+            mapper = index
+        if callable(mapper) or is_dict_like(mapper):
             return super().rename(
-                index, copy=copy, inplace=inplace, level=level, errors=errors
+                mapper, copy=copy, inplace=inplace, level=level, errors=errors
             )
         else:
-            return self._set_name(index, inplace=inplace)
+            return self._set_name(mapper, inplace=inplace)
 
     @overload
     def set_axis(
@@ -4601,8 +4607,17 @@ Keep all original rows and also all original values
         optional_labels=_shared_doc_kwargs["optional_labels"],
         optional_axis=_shared_doc_kwargs["optional_axis"],
     )
-    def reindex(self, index=None, **kwargs):
-        return super().reindex(index=index, **kwargs)
+    def reindex(self, *args, **kwargs) -> Series:
+        if len(args) > 1:
+            raise TypeError("Only one positional argument ('index') is allowed")
+        if args:
+            (index,) = args
+            if "index" in kwargs:
+                raise TypeError(
+                    "'index' passed as both positional and keyword argument"
+                )
+            kwargs.update({"index": index})
+        return super().reindex(**kwargs)
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "labels"])
     def drop(
