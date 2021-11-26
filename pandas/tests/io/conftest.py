@@ -1,4 +1,6 @@
 import os
+import shlex
+import subprocess
 import time
 
 import pytest
@@ -41,6 +43,7 @@ def s3_base(worker_id):
     """
     Fixture for mocking S3 interaction.
 
+    Sets up moto server in separate process locally
     Return url for motoserver/moto CI service
     """
     pytest.importorskip("s3fs")
@@ -51,8 +54,41 @@ def s3_base(worker_id):
         # see https://github.com/spulec/moto/issues/1924 & 1952
         os.environ.setdefault("AWS_ACCESS_KEY_ID", "foobar_key")
         os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "foobar_secret")
+        if os.environ.get("PANDAS_CI", "0") == "1":
+            return "http://localhost:5000"
+        else:
+            requests = pytest.importorskip("requests")
+            pytest.importorskip("moto", minversion="1.3.14")
+            pytest.importorskip("flask")  # server mode needs flask too
 
-        return "http://localhost:5000"
+            # Launching moto in server mode, i.e., as a separate process
+            # with an S3 endpoint on localhost
+
+            worker_id = "5" if worker_id == "master" else worker_id.lstrip("gw")
+            endpoint_port = f"555{worker_id}"
+            endpoint_uri = f"http://127.0.0.1:{endpoint_port}/"
+
+            # pipe to null to avoid logging in terminal
+            with subprocess.Popen(
+                shlex.split(f"moto_server s3 -p {endpoint_port}"),
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            ) as proc:
+
+                timeout = 5
+                while timeout > 0:
+                    try:
+                        # OK to go once server is accepting connections
+                        r = requests.get(endpoint_uri)
+                        if r.ok:
+                            break
+                    except Exception:
+                        pass
+                    timeout -= 0.1
+                    time.sleep(0.1)
+                yield endpoint_uri
+
+                proc.terminate()
 
 
 @pytest.fixture()

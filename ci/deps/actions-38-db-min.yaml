@@ -38,8 +38,6 @@ dependencies:
   - xlrd
   - xlsxwriter
   - xlwt
-  - moto
-  - flask
 
   # sql
   - psycopg2=2.8.4
