@@ -565,6 +565,8 @@ class ParserBase:
                 col_na_values, col_na_fvalues = set(), set()
 
             if c in self._parse_date_cols:
+                # GH#26203 Do not convert columns which get converted to dates
+                # but replace nans to ensure to_datetime works
                 mask = algorithms.isin(values, set(col_na_values) | col_na_fvalues)
                 np.putmask(values, mask, np.nan)
                 result[c] = values
