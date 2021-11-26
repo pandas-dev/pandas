@@ -250,6 +250,11 @@ class ParserBase:
         columns : list
             List of names of the dataframe.
 
+        Returns
+        -------
+        The names of the columns which will get parsed later if a dict or list
+        is given as specification.
+
         Raises
         ------
         ValueError
