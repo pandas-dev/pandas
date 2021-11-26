@@ -83,8 +83,12 @@ class MockNumpyLikeArray:
     ``util.is_array(mock_numpy_like_array_instance)`` returns ``False``. Other
     important properties are that the class defines a :meth:`__iter__` method
     (so that ``isinstance(abc.Iterable)`` returns ``True``) and has a
-    :meth:`ndim` property which can be used as a check for whether it is a
-    scalar or not.
+    :meth:`ndim` property, as pandas special-cases 0-dimensional arrays in some
+    cases.
+
+    We expect pandas to behave with respect to such duck arrays exactly as
+    with real numpy arrays. In particular, a 0-dimensional duck array is *NOT*
+    a scalar (`is_scalar(np.array(1)) == False`), but it is not list-like either.
     """
 
     def __init__(self, values):
@@ -102,7 +106,7 @@ class MockNumpyLikeArray:
         return len(self._values)
 
     def __array__(self, t=None):
-        return self._values
+        return np.asarray(self._values, dtype=t)
 
     @property
     def ndim(self):
@@ -1858,11 +1862,7 @@ class TestIsScalar:
             np.timedelta64(1, "h"),
         ),
     )
-    @pytest.mark.parametrize("numpy_like", (True, False))
-    def test_is_scalar_numpy_array_scalars(self, start, numpy_like):
-        if numpy_like:
-            start = MockNumpyLikeArray(start)
-
+    def test_is_scalar_numpy_array_scalars(self, start):
         assert is_scalar(start)
 
     @pytest.mark.parametrize(
@@ -1875,11 +1875,7 @@ class TestIsScalar:
             np.array(np.datetime64("NaT")),
         ),
     )
-    @pytest.mark.parametrize("numpy_like", (True, False))
-    def test_is_scalar_numpy_zerodim_arrays(self, zerodim, numpy_like):
-        if numpy_like:
-            zerodim = MockNumpyLikeArray(zerodim)
-
+    def test_is_scalar_numpy_zerodim_arrays(self, zerodim):
         assert not is_scalar(zerodim)
         assert is_scalar(lib.item_from_zerodim(zerodim))
 
