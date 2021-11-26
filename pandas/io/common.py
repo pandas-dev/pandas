@@ -63,6 +63,7 @@ lzma = import_lzma()
 
 _VALID_URLS = set(uses_relative + uses_netloc + uses_params)
 _VALID_URLS.discard("")
+_RFC_3986_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9+\-+.]*://")
 
 BaseBufferT = TypeVar("BaseBufferT", bound=BaseBuffer)
 
@@ -246,10 +247,9 @@ def is_fsspec_url(url: FilePath | BaseBuffer) -> bool:
     Returns true if the given URL looks like
     something fsspec can handle
     """
-    rfc_3986_pattern = re.compile(r"^[A-Za-z][A-Za-z0-9+\-+.]*://")
     return (
         isinstance(url, str)
-        and rfc_3986_pattern.match(url)
+        and _RFC_3986_PATTERN.match(url)
         and not url.startswith(("http://", "https://"))
     )
 

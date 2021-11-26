@@ -1529,6 +1529,12 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         expected = Series([88], index=DatetimeIndex(["2019-01-01 11:00:00"], tz="UTC"))
         tm.assert_series_equal(result, expected)
 
+    def test_read_json_with_fsspec_value(self):
+        # GH 36271
+        result = read_json('{"url":{"0":"s3://example-fsspec"}}')
+        expected = DataFrame({"url": ["s3://example-fsspec"]})
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize(
         "date_format,key", [("epoch", 86400000), ("iso", "P1DT0H0M0S")]
     )

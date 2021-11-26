@@ -506,7 +506,11 @@ def test_is_fsspec_url():
     assert not icom.is_fsspec_url("random:pandas/somethingelse.com")
     assert not icom.is_fsspec_url("/local/path")
     assert not icom.is_fsspec_url("relative/local/path")
+    # fsspec URL in string should not be recognized
+    assert not icom.is_fsspec_url("this is not fsspec://url")
     assert not icom.is_fsspec_url("{'url': 'gs://pandas/somethingelse.com'}")
+    # accept everything that conforms to RFC 3986 schema
+    assert icom.is_fsspec_url("RFC-3986+compliant.spec://something")
 
 
 @pytest.mark.parametrize("encoding", [None, "utf-8"])
