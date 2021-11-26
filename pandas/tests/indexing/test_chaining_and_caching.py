@@ -419,7 +419,6 @@ class TestChaining:
             with pytest.raises(com.SettingWithCopyError, match=msg):
                 df["C"][2] = "foo"
         else:
-            # breakpoint()
             # TODO(CoW) can we still warn here?
             # df.loc[2]["D"] = "foo"
             # df.loc[2]["C"] = "foo"

@@ -116,13 +116,12 @@ class TestXS:
 
         dm = DataFrame(np.arange(20.0).reshape(4, 5), index=range(4), columns=range(5))
 
+        dm.xs(2)[:] = 20
         if using_array_manager:
             # INFO(ArrayManager) with ArrayManager getting a row as a view is
             # not possible
-            dm.xs(2)[:] = 20
             assert not (dm.xs(2) == 20).any()
         else:
-            dm.xs(2)[:] = 20
             assert (dm.xs(2) == 20).all()
 
 

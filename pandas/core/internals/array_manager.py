@@ -171,7 +171,7 @@ class BaseArrayManager(DataManager):
         axis = self._normalize_axis(axis)
         self._axes[axis] = new_labels
 
-    def _has_no_reference(self, i: int):
+    def _has_no_reference(self, i: int) -> bool:
         """
         Check for column `i` if has references.
         (whether it references another array or is itself being referenced)
@@ -182,7 +182,7 @@ class BaseArrayManager(DataManager):
             self.arrays[i]
         ) == 0
 
-    def _clear_reference(self, i: int):
+    def _clear_reference(self, i: int) -> None:
         """
         Clear any reference for column `i`.
         """
@@ -539,8 +539,8 @@ class BaseArrayManager(DataManager):
 
         Parameters
         ----------
-        deep : bool or string, default True
-            If False, return shallow copy (do not copy data)
+        deep : bool, string or None, default True
+            If False or None, return a shallow copy (do not copy data).
             If 'all', copy data and a deep copy of the index
 
         Returns
@@ -567,14 +567,9 @@ class BaseArrayManager(DataManager):
             refs = None
         else:
             new_arrays = list(self.arrays)
-            refs = [weakref.ref(arr) for arr in self.arrays]
+            refs: list[weakref.ref | None] = [weakref.ref(arr) for arr in self.arrays]
 
-        # error: Argument 3 to "BaseArrayManager" has incompatible type
-        # "Optional[List[ReferenceType[Union[ndarray[Any, Any], ExtensionArray]]]]";
-        # expected "Optional[List[Optional[ReferenceType[Any]]]]" [arg-type]
-        return type(self)(
-            new_arrays, new_axes, refs, verify_integrity=False  # type: ignore[arg-type]
-        )
+        return type(self)(new_arrays, new_axes, refs, verify_integrity=False)
 
     def reindex_indexer(
         self: T,
@@ -619,8 +614,8 @@ class BaseArrayManager(DataManager):
         axis : int
         fill_value : object, default None
         allow_dups : bool, default False
-        copy : bool, default True
-
+        copy : bool or None, default True
+            If None, regard as False to get shallow copy.
 
         pandas-indexer with -1's only.
         """
@@ -792,7 +787,7 @@ class ArrayManager(BaseArrayManager):
                     f"{arr.ndim} dimensions instead."
                 )
         if self.refs is not None:
-            if not len(self.refs) == n_columns:
+            if len(self.refs) != n_columns:
                 raise ValueError(
                     "Number of passed refs must equal the size of the column Index: "
                     f"{len(self.refs)} refs vs {n_columns} columns."
@@ -830,10 +825,11 @@ class ArrayManager(BaseArrayManager):
     def get_slice(self, slobj: slice, axis: int = 0) -> ArrayManager:
         axis = self._normalize_axis(axis)
 
+        refs: list[weakref.ref | None]
         if axis == 0:
             arrays = [arr[slobj] for arr in self.arrays]
             # slicing results in views -> track references to original arrays
-            # TODO possible to optimizate this with single ref to the full ArrayManager?
+            # TODO possible to optimize this with single ref to the full ArrayManager?
             refs = [weakref.ref(arr) for arr in self.arrays]
         elif axis == 1:
             arrays = self.arrays[slobj]
@@ -843,12 +839,7 @@ class ArrayManager(BaseArrayManager):
         new_axes = list(self._axes)
         new_axes[axis] = new_axes[axis]._getitem_slice(slobj)
 
-        # error: Argument 3 to "ArrayManager" has incompatible type
-        # "List[ReferenceType[Union[ndarray[Any, Any], ExtensionArray]]]";
-        # expected "Optional[List[Optional[ReferenceType[Any]]]]" [arg-type]
-        return type(self)(
-            arrays, new_axes, refs, verify_integrity=False  # type: ignore[arg-type]
-        )
+        return type(self)(arrays, new_axes, refs, verify_integrity=False)
 
     def iget(self, i: int) -> SingleArrayManager:
         """
