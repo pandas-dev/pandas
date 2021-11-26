@@ -105,6 +105,19 @@ class TestRename:
 
         assert result.name == expected.name
 
+    def test_rename_method_and_index(self):
+        # GH 40977
+        ser = Series([1, 2])
+        with pytest.raises(TypeError, match="Cannot specify both 'mapper' and 'index'"):
+            ser.rename(str, index=str)
+
+    def test_rename_none(self):
+        # GH 40977
+        ser = Series([1, 2], name="foo")
+        result = ser.rename(None)
+        expected = Series([1, 2])
+        tm.assert_series_equal(result, expected)
+
     def test_rename_series_with_multiindex(self):
         # issue #43659
         arrays = [

@@ -26,7 +26,8 @@ from pandas._libs.tslibs import parsing
 from pandas._typing import (
     ArrayLike,
     DtypeArg,
-    FilePathOrBuffer,
+    FilePath,
+    ReadCsvBuffer,
 )
 from pandas.errors import (
     ParserError,
@@ -138,6 +139,7 @@ class ParserBase:
         self.col_names = None
 
         self.parse_dates = _validate_parse_dates_arg(kwds.pop("parse_dates", False))
+        self._parse_date_cols: Iterable = []
         self.date_parser = kwds.pop("date_parser", None)
         self.dayfirst = kwds.pop("dayfirst", False)
         self.keep_date_col = kwds.pop("keep_date_col", False)
@@ -212,13 +214,17 @@ class ParserBase:
 
         self.usecols, self.usecols_dtype = self._validate_usecols_arg(kwds["usecols"])
 
-        self.handles: IOHandles | None = None
+        self.handles: IOHandles[str] | None = None
 
         # Fallback to error to pass a sketchy test(test_override_set_noconvert_columns)
         # Normally, this arg would get pre-processed earlier on
         self.on_bad_lines = kwds.get("on_bad_lines", self.BadLineHandleMethod.ERROR)
 
-    def _open_handles(self, src: FilePathOrBuffer, kwds: dict[str, Any]) -> None:
+    def _open_handles(
+        self,
+        src: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
+        kwds: dict[str, Any],
+    ) -> None:
         """
         Let the readers open IOHandles after they are done with their potential raises.
         """
@@ -232,7 +238,7 @@ class ParserBase:
             errors=kwds.get("encoding_errors", "strict"),
         )
 
-    def _validate_parse_dates_presence(self, columns: list[str]) -> None:
+    def _validate_parse_dates_presence(self, columns: list[str]) -> Iterable:
         """
         Check if parse_dates are in columns.
 
@@ -243,6 +249,11 @@ class ParserBase:
         ----------
         columns : list
             List of names of the dataframe.
+
+        Returns
+        -------
+        The names of the columns which will get parsed later if a dict or list
+        is given as specification.
 
         Raises
         ------
@@ -260,10 +271,13 @@ class ParserBase:
             # ParseDates = Union[DateGroups, List[DateGroups],
             #     Dict[ColReference, DateGroups]]
             cols_needed = itertools.chain.from_iterable(
-                col if is_list_like(col) else [col] for col in self.parse_dates
+                col if is_list_like(col) and not isinstance(col, tuple) else [col]
+                for col in self.parse_dates
             )
         else:
             cols_needed = []
+
+        cols_needed = list(cols_needed)
 
         # get only columns that are references using names (str), not by index
         missing_cols = ", ".join(
@@ -279,6 +293,11 @@ class ParserBase:
             raise ValueError(
                 f"Missing column provided to 'parse_dates': '{missing_cols}'"
             )
+        # Convert positions to actual column names
+        return [
+            col if (isinstance(col, str) or col in columns) else columns[col]
+            for col in cols_needed
+        ]
 
     def close(self):
         if self.handles is not None:
@@ -550,6 +569,14 @@ class ParserBase:
             else:
                 col_na_values, col_na_fvalues = set(), set()
 
+            if c in self._parse_date_cols:
+                # GH#26203 Do not convert columns which get converted to dates
+                # but replace nans to ensure to_datetime works
+                mask = algorithms.isin(values, set(col_na_values) | col_na_fvalues)
+                np.putmask(values, mask, np.nan)
+                result[c] = values
+                continue
+
             if conv_f is not None:
                 # conv_f applied to data before inference
                 if cast_type is not None:
@@ -696,10 +723,10 @@ class ParserBase:
         """
         na_count = 0
         if issubclass(values.dtype.type, (np.number, np.bool_)):
-            # error: Argument 2 to "isin" has incompatible type "List[Any]"; expected
-            # "Union[Union[ExtensionArray, ndarray], Index, Series]"
-            mask = algorithms.isin(values, list(na_values))  # type: ignore[arg-type]
-            na_count = mask.sum()
+            # If our array has numeric dtype, we don't have to check for strings in isin
+            na_values = np.array([val for val in na_values if not isinstance(val, str)])
+            mask = algorithms.isin(values, na_values)
+            na_count = mask.astype("uint8", copy=False).sum()
             if na_count > 0:
                 if is_integer_dtype(values):
                     values = values.astype(np.float64)
@@ -1092,7 +1119,7 @@ def _process_date_conversion(
     if isinstance(parse_spec, list):
         # list of column lists
         for colspec in parse_spec:
-            if is_scalar(colspec):
+            if is_scalar(colspec) or isinstance(colspec, tuple):
                 if isinstance(colspec, int) and colspec not in data_dict:
                     colspec = orig_names[colspec]
                 if _isindex(colspec):
@@ -1147,7 +1174,11 @@ def _try_convert_dates(parser: Callable, colspec, data_dict, columns):
         else:
             colnames.append(c)
 
-    new_name = "_".join([str(x) for x in colnames])
+    new_name: tuple | str
+    if all(isinstance(x, tuple) for x in colnames):
+        new_name = tuple(map("_".join, zip(*colnames)))
+    else:
+        new_name = "_".join([str(x) for x in colnames])
     to_parse = [np.asarray(data_dict[c]) for c in colnames if c in data_dict]
 
     new_col = parser(*to_parse)

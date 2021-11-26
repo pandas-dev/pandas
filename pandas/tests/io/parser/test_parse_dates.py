@@ -98,6 +98,39 @@ def test_read_csv_with_custom_date_parser(all_parsers):
 
 
 @xfail_pyarrow
+def test_read_csv_with_custom_date_parser_parse_dates_false(all_parsers):
+    # GH44366
+    def __custom_date_parser(time):
+        time = time.astype(np.float_)
+        time = time.astype(np.int_)  # convert float seconds to int type
+        return pd.to_timedelta(time, unit="s")
+
+    testdata = StringIO(
+        """time e
+        41047.00 -93.77
+        41048.00 -95.79
+        41049.00 -98.73
+        41050.00 -93.99
+        41051.00 -97.72
+        """
+    )
+    result = all_parsers.read_csv(
+        testdata,
+        delim_whitespace=True,
+        parse_dates=False,
+        date_parser=__custom_date_parser,
+        index_col="time",
+    )
+    time = Series([41047.00, 41048.00, 41049.00, 41050.00, 41051.00], name="time")
+    expected = DataFrame(
+        {"e": [-93.77, -95.79, -98.73, -93.99, -97.72]},
+        index=time,
+    )
+
+    tm.assert_frame_equal(result, expected)
+
+
+@xfail_pyarrow
 def test_separator_date_conflict(all_parsers):
     # Regression test for gh-4678
     #
@@ -253,8 +286,6 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
 
     if not keep_date_col:
         expected = expected.drop(["X1", "X2", "X3"], axis=1)
-    elif parser.engine == "python":
-        expected["X1"] = expected["X1"].astype(np.int64)
 
     # Python can sometimes be flaky about how
     # the aggregated columns are entered, so
@@ -392,8 +423,6 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
 
     if not keep_date_col:
         expected = expected.drop(["X1", "X2", "X3"], axis=1)
-    elif parser.engine == "python":
-        expected["X1"] = expected["X1"].astype(np.int64)
 
     tm.assert_frame_equal(result, expected)
 
@@ -1733,6 +1762,39 @@ def test_date_parser_and_names(all_parsers):
 
 
 @skip_pyarrow
+def test_date_parser_multiindex_columns(all_parsers):
+    parser = all_parsers
+    data = """a,b
+1,2
+2019-12-31,6"""
+    result = parser.read_csv(StringIO(data), parse_dates=[("a", "1")], header=[0, 1])
+    expected = DataFrame({("a", "1"): Timestamp("2019-12-31"), ("b", "2"): [6]})
+    tm.assert_frame_equal(result, expected)
+
+
+@skip_pyarrow
+@pytest.mark.parametrize(
+    "parse_spec, col_name",
+    [
+        ([[("a", "1"), ("b", "2")]], ("a_b", "1_2")),
+        ({("foo", "1"): [("a", "1"), ("b", "2")]}, ("foo", "1")),
+    ],
+)
+def test_date_parser_multiindex_columns_combine_cols(all_parsers, parse_spec, col_name):
+    parser = all_parsers
+    data = """a,b,c
+1,2,3
+2019-12,-31,6"""
+    result = parser.read_csv(
+        StringIO(data),
+        parse_dates=parse_spec,
+        header=[0, 1],
+    )
+    expected = DataFrame({col_name: Timestamp("2019-12-31"), ("c", "3"): [6]})
+    tm.assert_frame_equal(result, expected)
+
+
+@skip_pyarrow
 def test_date_parser_usecols_thousands(all_parsers):
     # GH#39365
     data = """A,B,C
@@ -1841,3 +1903,44 @@ def test_dayfirst_warnings():
             index_col="date",
         ).index
     tm.assert_index_equal(expected, res8)
+
+
+@skip_pyarrow
+def test_infer_first_column_as_index(all_parsers):
+    # GH#11019
+    parser = all_parsers
+    data = "a,b,c\n1970-01-01,2,3,4"
+    result = parser.read_csv(StringIO(data), parse_dates=["a"])
+    expected = DataFrame({"a": "2", "b": 3, "c": 4}, index=["1970-01-01"])
+    tm.assert_frame_equal(result, expected)
+
+
+@skip_pyarrow
+def test_replace_nans_before_parsing_dates(all_parsers):
+    # GH#26203
+    parser = all_parsers
+    data = """Test
+2012-10-01
+0
+2015-05-15
+#
+2017-09-09
+"""
+    result = parser.read_csv(
+        StringIO(data),
+        na_values={"Test": ["#", "0"]},
+        parse_dates=["Test"],
+        date_parser=lambda x: pd.to_datetime(x, format="%Y-%m-%d"),
+    )
+    expected = DataFrame(
+        {
+            "Test": [
+                Timestamp("2012-10-01"),
+                pd.NaT,
+                Timestamp("2015-05-15"),
+                pd.NaT,
+                Timestamp("2017-09-09"),
+            ]
+        }
+    )
+    tm.assert_frame_equal(result, expected)

@@ -19,7 +19,11 @@ import warnings
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas._typing import FilePathOrBuffer
+from pandas._typing import (
+    FilePath,
+    ReadCsvBuffer,
+    Scalar,
+)
 from pandas.errors import (
     EmptyDataError,
     ParserError,
@@ -42,7 +46,9 @@ _BOM = "\ufeff"
 
 
 class PythonParser(ParserBase):
-    def __init__(self, f: FilePathOrBuffer | list, **kwds):
+    def __init__(
+        self, f: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str] | list, **kwds
+    ):
         """
         Workhorse function for processing nested list into DataFrame
         """
@@ -146,7 +152,7 @@ class PythonParser(ParserBase):
         if self._col_indices is None:
             self._col_indices = list(range(len(self.columns)))
 
-        self._validate_parse_dates_presence(self.columns)
+        self._parse_date_cols = self._validate_parse_dates_presence(self.columns)
         no_thousands_columns: set[int] | None = None
         if self.parse_dates:
             no_thousands_columns = self._set_noconvert_dtype_columns(
@@ -271,9 +277,9 @@ class PythonParser(ParserBase):
         alldata = self._rows_to_cols(content)
         data, columns = self._exclude_implicit_index(alldata)
 
+        data = self._convert_data(data)
         columns, data = self._do_date_conversions(columns, data)
 
-        data = self._convert_data(data)
         index, columns = self._make_index(data, alldata, columns, indexnamerow)
 
         return index, columns, data
@@ -1020,14 +1026,7 @@ class PythonParser(ParserBase):
                     new_rows = self.data[self.pos : self.pos + rows]
                     new_pos = self.pos + rows
 
-                # Check for stop rows. n.b.: self.skiprows is a set.
-                if self.skiprows:
-                    new_rows = [
-                        row
-                        for i, row in enumerate(new_rows)
-                        if not self.skipfunc(i + self.pos)
-                    ]
-
+                new_rows = self._remove_skipped_rows(new_rows)
                 lines.extend(new_rows)
                 self.pos = new_pos
 
@@ -1035,11 +1034,22 @@ class PythonParser(ParserBase):
                 new_rows = []
                 try:
                     if rows is not None:
-                        for _ in range(rows):
+
+                        rows_to_skip = 0
+                        if self.skiprows is not None and self.pos is not None:
+                            # Only read additional rows if pos is in skiprows
+                            rows_to_skip = len(
+                                set(self.skiprows) - set(range(self.pos))
+                            )
+
+                        for _ in range(rows + rows_to_skip):
                             # assert for mypy, data is Iterator[str] or None, would
                             # error in next
                             assert self.data is not None
                             new_rows.append(next(self.data))
+
+                        len_new_rows = len(new_rows)
+                        new_rows = self._remove_skipped_rows(new_rows)
                         lines.extend(new_rows)
                     else:
                         rows = 0
@@ -1050,18 +1060,15 @@ class PythonParser(ParserBase):
 
                             if new_row is not None:
                                 new_rows.append(new_row)
+                        len_new_rows = len(new_rows)
 
                 except StopIteration:
-                    if self.skiprows:
-                        new_rows = [
-                            row
-                            for i, row in enumerate(new_rows)
-                            if not self.skipfunc(i + self.pos)
-                        ]
+                    len_new_rows = len(new_rows)
+                    new_rows = self._remove_skipped_rows(new_rows)
                     lines.extend(new_rows)
                     if len(lines) == 0:
                         raise
-                self.pos += len(new_rows)
+                self.pos += len_new_rows
 
             self.buf = []
         else:
@@ -1075,6 +1082,13 @@ class PythonParser(ParserBase):
             lines = self._remove_empty_lines(lines)
         lines = self._check_thousands(lines)
         return self._check_decimal(lines)
+
+    def _remove_skipped_rows(self, new_rows: list[list[Scalar]]) -> list[list[Scalar]]:
+        if self.skiprows:
+            return [
+                row for i, row in enumerate(new_rows) if not self.skipfunc(i + self.pos)
+            ]
+        return new_rows
 
 
 class FixedWidthReader(abc.Iterator):
