@@ -332,9 +332,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         only handle list-likes, slices, and integer scalars
         """
         # Use cast as we know we will get back a DatetimeLikeArray or DTScalar
-        result = cast(
-            Union[DatetimeLikeArrayT, DTScalarOrNaT], super().__getitem__(key)
-        )
+        # result = cast(
+        #     Union[DatetimeLikeArrayT, DTScalarOrNaT], super().__getitem__(key)
+        # )
+        result = super().__getitem__(key)
         if lib.is_scalar(result):
             return result
         else:
