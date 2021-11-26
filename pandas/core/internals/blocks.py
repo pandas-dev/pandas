@@ -40,7 +40,6 @@ from pandas.core.dtypes.cast import (
     can_hold_element,
     find_common_type,
     infer_dtype_from,
-    maybe_downcast_numeric,
     maybe_downcast_to_dtype,
     maybe_upcast,
     soft_convert_objects,
@@ -1215,31 +1214,25 @@ class Block(PandasObject):
             else:
                 # By the time we get here, we should have all Series/Index
                 #  args extracted to ndarray
+                if (
+                    is_list_like(other)
+                    and not isinstance(other, np.ndarray)
+                    and len(other) == self.shape[-1]
+                ):
+                    # If we don't do this broadcasting here, then expressions.where
+                    #  will broadcast a 1D other to be row-like instead of
+                    #  column-like.
+                    other = np.array(other).reshape(values.shape)
+                    # If lengths don't match (or len(other)==1), we will raise
+                    #  inside expressions.where, see test_series_where
+
+                # Note: expressions.where may upcast.
                 result = expressions.where(~icond, values, other)
 
-        if self._can_hold_na or self.ndim == 1:
+        if transpose:
+            result = result.T
 
-            if transpose:
-                result = result.T
-
-            return [self.make_block(result)]
-
-        # might need to separate out blocks
-        cond = ~icond
-        axis = cond.ndim - 1
-        cond = cond.swapaxes(axis, 0)
-        mask = cond.all(axis=1)
-
-        result_blocks: list[Block] = []
-        for m in [mask, ~mask]:
-            if m.any():
-                result = cast(np.ndarray, result)  # EABlock overrides where
-                taken = result.take(m.nonzero()[0], axis=axis)
-                r = maybe_downcast_numeric(taken, self.dtype)
-                nb = self.make_block(r.T, placement=self._mgr_locs[m])
-                result_blocks.append(nb)
-
-        return result_blocks
+        return [self.make_block(result)]
 
     def _unstack(
         self,
