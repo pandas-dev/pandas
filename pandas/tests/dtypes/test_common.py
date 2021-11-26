@@ -26,6 +26,29 @@ from pandas.arrays import SparseArray
 
 def test_all_type_comparison():
     assert pandas_dtype("int_") == "int_"
+    assert pandas_dtype("int8") == "int8"
+    assert pandas_dtype("Int8") == "Int8"
+    assert not pandas_dtype("Int8") == "int8"
+    assert pandas_dtype("int16") == "int16"
+    assert pandas_dtype("Int16") == "Int16"
+    assert not pandas_dtype("Int16") == "int16"
+    assert pandas_dtype("int32") == "int32"
+    assert pandas_dtype("Int32") == "Int32"
+    assert not pandas_dtype("Int32") == "int32"
+    assert pandas_dtype("int64") == "int64"
+    assert pandas_dtype("Int64") == "Int64"
+    assert not pandas_dtype("Int64") == "int64"
+    assert pandas_dtype("uint8") == "uint8"
+    assert pandas_dtype("uint16") == "uint16"
+    assert pandas_dtype("uint32") == "uint32"
+    assert pandas_dtype("uint64") == "uint64"
+    assert pandas_dtype("float_") == "float_"
+    assert pandas_dtype("float16") == "float16"
+    assert pandas_dtype("Float16") == "float16"
+    assert pandas_dtype("float32") == "float32"
+    assert pandas_dtype("Float32") == "float32"
+    assert pandas_dtype("float64") == "float64"
+    assert pandas_dtype("Float64") == "float64"
 
 
 # EA & Actual Dtypes
