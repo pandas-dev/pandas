@@ -238,6 +238,16 @@ pc_html_use_mathjax_doc = """\
     (default: True)
 """
 
+pc_max_dir_items = """\
+: int
+    The number of items that will be added to `dir(...)`. 'None' value means
+    unlimited. Because dir is cached, changing this option will not immediately
+    affect already existing dataframes until a column is deleted or added.
+
+    This is for instance used to suggest columns from a dataframe to tab
+    completion.
+"""
+
 pc_width_doc = """
 : int
     Width of the display in characters. In case python/IPython is running in
@@ -450,6 +460,9 @@ with cf.config_prefix("display"):
     cf.register_option("html.border", 1, pc_html_border_doc, validator=is_int)
     cf.register_option(
         "html.use_mathjax", True, pc_html_use_mathjax_doc, validator=is_bool
+    )
+    cf.register_option(
+        "max_dir_items", 100, pc_max_dir_items, validator=is_nonnegative_int
     )
 
 tc_sim_interactive_doc = """
