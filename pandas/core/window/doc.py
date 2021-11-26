@@ -11,7 +11,7 @@ def create_section_header(header: str) -> str:
     return "\n".join((header, "-" * len(header))) + "\n"
 
 
-template_header = "Calculate the {window_method} {aggregation_description}.\n\n"
+template_header = "\nCalculate the {window_method} {aggregation_description}.\n\n"
 
 template_returns = dedent(
     """
