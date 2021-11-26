@@ -4,8 +4,6 @@ import inspect
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas import (
     DataFrame,
     Index,
@@ -170,7 +168,6 @@ class TestRename:
         renamed = df.rename(index={"foo1": "foo3", "bar2": "bar3"}, level=0)
         tm.assert_index_equal(renamed.index, new_index)
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) setitem copy/view
     def test_rename_nocopy(self, float_frame):
         renamed = float_frame.rename(columns={"C": "foo"}, copy=False)
         renamed["foo"][:] = 1.0
