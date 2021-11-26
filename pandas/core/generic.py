@@ -3272,6 +3272,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         {returns}
         See Also
         --------
+        Styler.to_latex : Render a DataFrame to LaTeX with conditional formatting.
         DataFrame.to_string : Render a DataFrame to a console-friendly
             tabular output.
         DataFrame.to_html : Render a DataFrame as an HTML table.
@@ -3281,7 +3282,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df = pd.DataFrame(dict(name=['Raphael', 'Donatello'],
         ...                   mask=['red', 'purple'],
         ...                   weapon=['sai', 'bo staff']))
-        >>> print(df.to_latex(index=False))  # doctest: +NORMALIZE_WHITESPACE
+        >>> print(df.to_latex(index=False))  # doctest: +SKIP
         \begin{{tabular}}{{lll}}
          \toprule
                name &    mask &    weapon \\
@@ -3291,6 +3292,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         \bottomrule
         \end{{tabular}}
         """
+        msg = (
+            "In future versions `DataFrame.to_latex` is expected to utilise the base "
+            "implementation of `Styler.to_latex` for formatting and rendering. "
+            "The arguments signature may therefore change. It is recommended instead "
+            "to use `DataFrame.style.to_latex` which also contains additional "
+            "functionality."
+        )
+        warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+
         # Get defaults from the pandas config
         if self.ndim == 1:
             self = self.to_frame()
@@ -3411,6 +3421,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             and mode is one of {{'zip', 'gzip', 'bz2'}}, or inferred as
             one of the above, other entries passed as
             additional compression options.
+            If `path_or_buf` is omitted or `None` or is a file opened in text
+            mode, this argument is ignored and an (uncompressed) string is
+            returned/written.
 
             .. versionchanged:: 1.0.0
 
@@ -10317,6 +10330,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         **kwargs,
     ) -> Series | bool_t:
         nv.validate_logical_func((), kwargs, fname=name)
+        validate_bool_kwarg(skipna, "skipna", none_allowed=False)
         if level is not None:
             warnings.warn(
                 "Using the level keyword in DataFrame and Series aggregations is "
@@ -10433,6 +10447,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         **kwargs,
     ) -> Series | float:
         nv.validate_stat_ddof_func((), kwargs, fname=name)
+        validate_bool_kwarg(skipna, "skipna", none_allowed=False)
         if axis is None:
             axis = self._stat_axis_number
         if level is not None:
@@ -10504,6 +10519,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             nv.validate_median((), kwargs)
         else:
             nv.validate_stat_func((), kwargs, fname=name)
+
+        validate_bool_kwarg(skipna, "skipna", none_allowed=False)
+
         if axis is None:
             axis = self._stat_axis_number
         if level is not None:
@@ -10613,6 +10631,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             nv.validate_prod((), kwargs)
         else:
             nv.validate_stat_func((), kwargs, fname=name)
+
+        validate_bool_kwarg(skipna, "skipna", none_allowed=False)
+
         if axis is None:
             axis = self._stat_axis_number
         if level is not None:
@@ -10688,7 +10709,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         axis : {axis_descr}
             Axis for the function to be applied on.
-        skipna : bool, default None
+        skipna : bool, default True
             Exclude NA/null values when computing the result.
         level : int or level name, default None
             If the axis is a MultiIndex (hierarchical), count along a
@@ -10700,7 +10721,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         {see_also}\
         {examples}
         """
-        if skipna is None:
+        if not is_bool(skipna):
+            warnings.warn(
+                "Passing None for skipna is deprecated and will raise in a future"
+                "version. Pass True instead. Only boolean values will be allowed "
+                "in the future.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
             skipna = True
         if axis is None:
             axis = self._stat_axis_number
@@ -10770,7 +10798,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             see_also="",
             examples="",
         )
-        def mad(self, axis=None, skipna=None, level=None):
+        def mad(self, axis=None, skipna=True, level=None):
             return NDFrame.mad(self, axis, skipna, level)
 
         setattr(cls, "mad", mad)
