@@ -196,6 +196,10 @@ class TestGetitem(BaseJSON, base.BaseGetitemTests):
     pass
 
 
+class TestIndex(BaseJSON, base.BaseIndexTests):
+    pass
+
+
 class TestMissing(BaseJSON, base.BaseMissingTests):
     @pytest.mark.skip(reason="Setting a dict as a scalar")
     def test_fillna_series(self):

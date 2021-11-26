@@ -219,6 +219,12 @@ class TestGetitem(BaseNumPyTests, base.BaseGetitemTests):
         super().test_getitem_scalar(data)
 
 
+# TODO Index.__new__ checks for PandasArray (and converts it explicitly), so the
+# monkeypatching to make PandasArray into a regular ExtensionArray doesn't work
+# class TestIndex(base.BaseIndexTests):
+#     pass
+
+
 class TestGroupby(BaseNumPyTests, base.BaseGroupbyTests):
     def test_groupby_extension_apply(
         self, data_for_grouping, groupby_apply_op, request

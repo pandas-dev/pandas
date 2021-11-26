@@ -85,6 +85,10 @@ class TestGetitem(BasePeriodTests, base.BaseGetitemTests):
     pass
 
 
+class TestIndex(base.BaseIndexTests):
+    pass
+
+
 class TestMethods(BasePeriodTests, base.BaseMethodsTests):
     def test_combine_add(self, data_repeated):
         # Period + Period is not defined.

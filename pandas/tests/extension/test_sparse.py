@@ -194,6 +194,19 @@ class TestGetitem(BaseSparseTests, base.BaseGetitemTests):
 # Skipping TestSetitem, since we don't implement it.
 
 
+class TestIndex(base.BaseIndexTests):
+    def test_index_from_array(self, data):
+        idx = pd.Index(data)
+        # TODO do we want to preserve the sparse dtype in the index
+        # now this is possible?
+        assert idx.dtype == data.dtype.subtype
+
+    # TODO this is failing because it doesn't recognize the sparse dtype
+    @pytest.mark.xfail(reason="Index cannot yet store sparse dtype")
+    def test_index_from_listlike_with_dtype(self, data):
+        super().test_index_from_listlike_with_dtype(data)
+
+
 class TestMissing(BaseSparseTests, base.BaseMissingTests):
     def test_isna(self, data_missing):
         expected_dtype = SparseDtype(bool, pd.isna(data_missing.dtype.fill_value))

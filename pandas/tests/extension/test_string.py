@@ -136,6 +136,10 @@ class TestSetitem(base.BaseSetitemTests):
         super().test_setitem_preserves_views(data)
 
 
+class TestIndex(base.BaseIndexTests):
+    pass
+
+
 class TestMissing(base.BaseMissingTests):
     pass
 
