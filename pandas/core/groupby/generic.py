@@ -1648,7 +1648,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         male    low        FR         0.50
                            US         0.25
                 medium     FR         0.25
-        Name: count, dtype: float64
+        dtype: float64
         """
         if self.axis == 1:
             raise NotImplementedError(
