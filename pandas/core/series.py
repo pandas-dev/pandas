@@ -1972,7 +1972,7 @@ Name: Max Speed, dtype: float64
             self, method="count"
         )
 
-    def mode(self, dropna=True) -> Series:
+    def mode(self, dropna: bool = True) -> Series:
         """
         Return the mode(s) of the Series.
 
