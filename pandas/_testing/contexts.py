@@ -14,6 +14,8 @@ from typing import (
 
 import numpy as np
 
+from pandas import set_option
+
 from pandas.io.common import get_handle
 
 
@@ -202,11 +204,11 @@ def use_numexpr(use, min_elements=None):
 
     olduse = expr.USE_NUMEXPR
     oldmin = expr._MIN_ELEMENTS
-    expr.set_use_numexpr(use)
+    set_option("compute.use_numexpr", use)
     expr._MIN_ELEMENTS = min_elements
     yield
     expr._MIN_ELEMENTS = oldmin
-    expr.set_use_numexpr(olduse)
+    set_option("compute.use_numexpr", olduse)
 
 
 class RNGContext:
