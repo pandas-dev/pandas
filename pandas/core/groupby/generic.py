@@ -1681,12 +1681,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 ]
 
             if subset is not None:
-                for key in subset:
-                    if key in keys:
-                        raise ValueError(
-                            f"Key {key} in subset cannot be one of "
-                            "the groupby column keys"
-                        )
+                clashing = set(subset) & set(keys)
+                if clashing:
+                    raise ValueError(
+                        f"Keys {clashing} in subset cannot be in "
+                        "the groupby column keys"
+                    )
                 remaining_columns = subset
 
             if dropna:
