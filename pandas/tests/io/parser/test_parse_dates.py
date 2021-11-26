@@ -1817,6 +1817,22 @@ def test_date_parser_usecols_thousands(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
+def test_parse_dates_and_keep_orgin_column(all_parsers):
+    # GH#13378
+    parser = all_parsers
+    data = """A
+20150908
+20150909
+"""
+    result = parser.read_csv(
+        StringIO(data), parse_dates={"date": ["A"]}, keep_date_col=True
+    )
+    expected_data = [Timestamp("2015-09-08"), Timestamp("2015-09-09")]
+    expected = DataFrame({"date": expected_data, "A": expected_data})
+    tm.assert_frame_equal(result, expected)
+
+
 def test_dayfirst_warnings():
     # GH 12585
     warning_msg_day_first = (

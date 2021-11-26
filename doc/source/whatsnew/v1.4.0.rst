@@ -654,6 +654,7 @@ I/O
 - Bug in :func:`read_csv` where reading multi-header input with unequal lengths incorrectly raising uncontrolled ``IndexError`` (:issue:`43102`)
 - Bug in :func:`read_csv`, changed exception class when expecting a file path name or file-like object from ``OSError`` to ``TypeError`` (:issue:`43366`)
 - Bug in :func:`read_csv` and :func:`read_fwf` ignoring all ``skiprows`` except first when ``nrows`` is specified for ``engine='python'`` (:issue:`44021`)
+- Bug in :func:`read_csv` keeping the original column in object format when ``keep_date_col=True`` is set (:issue:`13378`)
 - Bug in :func:`read_json` not handling non-numpy dtypes correctly (especially ``category``) (:issue:`21892`, :issue:`33205`)
 - Bug in :func:`json_normalize` where multi-character ``sep`` parameter is incorrectly prefixed to every key (:issue:`43831`)
 - Bug in :func:`json_normalize` where reading data with missing multi-level metadata would not respect errors="ignore" (:issue:`44312`)

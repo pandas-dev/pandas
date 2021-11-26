@@ -1127,6 +1127,10 @@ def _process_date_conversion(
             )
 
             new_data[new_name] = col
+
+            if len(colspec) == 1:
+                new_data[colspec[0]] = col
+
             new_cols.append(new_name)
             date_cols.update(old_names)
 
