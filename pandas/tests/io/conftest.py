@@ -1,6 +1,9 @@
+import os
 import time
 
 import pytest
+
+import pandas._testing as tm
 
 from pandas.io.parsers import read_csv
 
@@ -33,8 +36,27 @@ def s3so():
     return {"client_kwargs": {"endpoint_url": "http://localhost:5000/"}}
 
 
+@pytest.fixture(scope="session")
+def s3_base(worker_id):
+    """
+    Fixture for mocking S3 interaction.
+
+    Return url for motoserver/moto CI service
+    """
+    pytest.importorskip("boto3")
+    pytest.importorskip("s3fs")
+
+    with tm.ensure_safe_environment_variables():
+        # temporary workaround as moto fails for botocore >= 1.11 otherwise,
+        # see https://github.com/spulec/moto/issues/1924 & 1952
+        os.environ.setdefault("AWS_ACCESS_KEY_ID", "foobar_key")
+        os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "foobar_secret")
+
+        return "http://localhost:5000"
+
+
 @pytest.fixture()
-def s3_resource(tips_file, jsonl_file, feather_file):
+def s3_resource(s3_base, tips_file, jsonl_file, feather_file):
     """
     Sets up S3 bucket with contents
 
@@ -49,11 +71,8 @@ def s3_resource(tips_file, jsonl_file, feather_file):
     A private bucket "cant_get_it" is also created. The boto3 s3 resource
     is yielded by the fixture.
     """
-    boto3 = pytest.importorskip("boto3")
-    s3fs = pytest.importorskip("s3fs")
-
-    # motoserver/moto CI service
-    s3_base = "http://localhost:5000"
+    import boto3
+    import s3fs
 
     test_s3_files = [
         ("tips#1.csv", tips_file),
