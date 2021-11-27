@@ -15,6 +15,7 @@ dependencies:
   # pandas dependencies
   - beautifulsoup4
   - bottleneck
+  - boto3
   - fsspec>=0.8.0
   - gcsfs
   - html5lib

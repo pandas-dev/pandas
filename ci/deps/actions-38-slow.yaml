@@ -13,6 +13,7 @@ dependencies:
 
   # pandas dependencies
   - beautifulsoup4
+  - boto3
   - fsspec>=0.7.4
   - html5lib
   - lxml
