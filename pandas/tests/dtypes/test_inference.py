@@ -1847,53 +1847,38 @@ class TestIsScalar:
         assert not is_scalar(slice(None))
         assert not is_scalar(Ellipsis)
 
-    @pytest.mark.parametrize(
-        "start",
-        (
-            np.int64(1),
-            np.float64(1.0),
-            np.int32(1),
-            np.complex64(2),
-            np.object_("foobar"),
-            np.str_("foobar"),
-            np.unicode_("foobar"),
-            np.bytes_(b"foobar"),
-            np.datetime64("2014-01-01"),
-            np.timedelta64(1, "h"),
-        ),
-    )
-    def test_is_scalar_numpy_array_scalars(self, start):
-        assert is_scalar(start)
+    def test_is_scalar_numpy_array_scalars(self):
+        assert is_scalar(np.int64(1))
+        assert is_scalar(np.float64(1.0))
+        assert is_scalar(np.int32(1))
+        assert is_scalar(np.complex64(2))
+        assert is_scalar(np.object_("foobar"))
+        assert is_scalar(np.str_("foobar"))
+        assert is_scalar(np.unicode_("foobar"))
+        assert is_scalar(np.bytes_(b"foobar"))
+        assert is_scalar(np.datetime64("2014-01-01"))
+        assert is_scalar(np.timedelta64(1, "h"))
 
-    @pytest.mark.parametrize(
-        "zerodim",
-        (
+    def test_is_scalar_numpy_zerodim_arrays(self):
+        for zerodim in [
             np.array(1),
             np.array("foobar"),
             np.array(np.datetime64("2014-01-01")),
             np.array(np.timedelta64(1, "h")),
             np.array(np.datetime64("NaT")),
-        ),
-    )
-    def test_is_scalar_numpy_zerodim_arrays(self, zerodim):
-        assert not is_scalar(zerodim)
-        assert is_scalar(lib.item_from_zerodim(zerodim))
+        ]:
+            assert not is_scalar(zerodim)
+            assert is_scalar(lib.item_from_zerodim(zerodim))
 
-    @pytest.mark.parametrize(
-        "start",
-        (
+    @pytest.mark.filterwarnings("ignore::PendingDeprecationWarning")
+    def test_is_scalar_numpy_arrays(self):
+        for a in [
             np.array([]),
             np.array([[]]),
             np.matrix("1; 2"),
-        ),
-    )
-    @pytest.mark.parametrize("numpy_like", (True, False))
-    @pytest.mark.filterwarnings("ignore::PendingDeprecationWarning")
-    def test_is_scalar_numpy_arrays(self, start, numpy_like):
-        if numpy_like:
-            start = MockNumpyLikeArray(start)
-
-        assert not is_scalar(start)
+        ]:
+            assert not is_scalar(a)
+            assert not is_scalar(MockNumpyLikeArray(a))
 
     def test_is_scalar_pandas_scalars(self):
         assert is_scalar(Timestamp("2014-01-01"))
