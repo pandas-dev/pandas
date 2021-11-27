@@ -6,8 +6,6 @@ jobs:
 - job: ${{ parameters.name }}
   pool:
     vmImage: ${{ parameters.vmImage }}
-  services:
-    moto: moto
   strategy:
     matrix:
       py38_np18_1:

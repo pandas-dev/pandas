@@ -5,7 +5,10 @@ import time
 
 import pytest
 
-from pandas.compat import is_platform_mac
+from pandas.compat import (
+    is_platform_mac,
+    is_platform_windows,
+)
 
 import pandas._testing as tm
 
@@ -56,9 +59,11 @@ def s3_base(worker_id):
         # see https://github.com/spulec/moto/issues/1924 & 1952
         os.environ.setdefault("AWS_ACCESS_KEY_ID", "foobar_key")
         os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "foobar_secret")
-        if os.environ.get("PANDAS_CI", "0") == "1" and not is_platform_mac():
-            # MacOS on Azure pipelines does not support services
-            # Github Actions does...
+        if os.environ.get("PANDAS_CI", "0") == "1" and not (
+            is_platform_mac() or is_platform_windows()
+        ):
+            # Windows/MacOS on Azure pipelines/Github Actions
+            # does not support a moto services
             return "http://localhost:5000"
         else:
             requests = pytest.importorskip("requests")
