@@ -1839,6 +1839,7 @@ class TestSeriesConstructors:
                 r"Cannot cast array data from dtype\('O'\) to dtype\('float64'\) "
                 "according to the rule 'safe'",
                 "object cannot be converted to a FloatingDtype",
+                "'values' contains non-numeric NA",
             ]
         )
 

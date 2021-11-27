@@ -1250,6 +1250,7 @@ class TestDataFrameIndexing:
                 r"timedelta64\[ns\] cannot be converted to an? (Floating|Integer)Dtype",
                 r"datetime64\[ns\] cannot be converted to an? (Floating|Integer)Dtype",
                 "object cannot be converted to a FloatingDtype",
+                "'values' contains non-numeric NA",
             ]
         )
         with pytest.raises(TypeError, match=msg):

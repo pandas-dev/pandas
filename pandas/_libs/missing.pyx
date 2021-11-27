@@ -270,9 +270,11 @@ def is_numeric_na(values: ndarray) -> ndarray:
 
     for i in range(N):
         val = values[i]
-        if val is None or val is C_NA or util.is_nan(val) or is_decimal_na(val):
-            result[i] = True
-
+        if checknull(val):
+            if val is None or val is C_NA or util.is_nan(val) or is_decimal_na(val):
+                result[i] = True
+            else:
+                raise TypeError(f"'values' contains non-numeric NA {val}")
     return result.view(bool)
 
 
