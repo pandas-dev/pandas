@@ -127,6 +127,7 @@ from pandas.core.reshape.api import (
     pivot,
     pivot_table,
     get_dummies,
+    from_dummies,
     cut,
     qcut,
 )
@@ -361,6 +362,7 @@ __all__ = [
     "eval",
     "factorize",
     "get_dummies",
+    "from_dummies",
     "get_option",
     "infer_freq",
     "interval_range",
