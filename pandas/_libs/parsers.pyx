@@ -657,8 +657,8 @@ cdef class TextReader:
                     field_count = self.parser.line_fields[hr]
                     start = self.parser.line_start[hr]
 
-                counts = {}
                 unnamed_count = 0
+                unnamed_col_indices = []
 
                 for i in range(field_count):
                     word = self.parser.words[start + i]
@@ -666,37 +666,47 @@ cdef class TextReader:
                     name = PyUnicode_DecodeUTF8(word, strlen(word),
                                                 self.encoding_errors)
 
-                    # We use this later when collecting placeholder names.
-                    old_name = name
-
                     if name == '':
                         if self.has_mi_columns:
                             name = f'Unnamed: {i}_level_{level}'
                         else:
                             name = f'Unnamed: {i}'
+
                         unnamed_count += 1
+                        unnamed_col_indices.append(i)
 
-                    count = counts.get(name, 0)
+                    this_header.append(name)
 
-                    if not self.has_mi_columns and self.mangle_dupe_cols:
-                        if count > 0:
-                            while count > 0:
-                                counts[name] = count + 1
-                                name = f'{name}.{count}'
-                                count = counts.get(name, 0)
+                if not self.has_mi_columns and self.mangle_dupe_cols:
+                    col_loop_order = [i for i in range(len(this_header))
+                                      if i not in unnamed_col_indices
+                                      ] + unnamed_col_indices
+                    counts = {}
+
+                    for i in col_loop_order:
+                        col = this_header[i]
+                        old_col = col
+                        cur_count = counts.get(col, 0)
+
+                        if cur_count > 0:
+                            while cur_count > 0:
+                                counts[old_col] = cur_count + 1
+                                col = f'{old_col}.{cur_count}'
+                                if col in this_header:
+                                    cur_count += 1
+                                else:
+                                    cur_count = counts.get(col, 0)
+
                             if (
                                 self.dtype is not None
                                 and is_dict_like(self.dtype)
-                                and self.dtype.get(old_name) is not None
-                                and self.dtype.get(name) is None
+                                and self.dtype.get(old_col) is not None
+                                and self.dtype.get(col) is None
                             ):
-                                self.dtype.update({name: self.dtype.get(old_name)})
+                                self.dtype.update({col: self.dtype.get(old_col)})
 
-                    if old_name == '':
-                        unnamed_cols.add(name)
-
-                    this_header.append(name)
-                    counts[name] = count + 1
+                        this_header[i] = col
+                        counts[col] = cur_count + 1
 
                 if self.has_mi_columns:
 
@@ -716,6 +726,7 @@ cdef class TextReader:
 
                 data_line = hr + 1
                 header.append(this_header)
+                unnamed_cols.update({this_header[i] for i in unnamed_col_indices})
 
             if self.names is not None:
                 header = [self.names]
