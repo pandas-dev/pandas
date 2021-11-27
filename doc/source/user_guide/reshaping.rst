@@ -765,13 +765,9 @@ from the prefixes. For example, if your column names are ``prefix_A`` and ``pref
 you can strip the underscore by specifying ``sep='_'``.
 You can pass values for the ``sep`` argument depending on how many or
 nested prefix separators are used in the column names.
-If a ``list`` of separators is passed ``from_dummies`` will separate based on the
-first encountered separator following the order of the list.
 
 * string: Use the same value for ``prefix_sep`` for each column
   to be dencoded.
-* list: Variables will be decoded by the first prefix separator in the
-  passed list that is encountered in the column name.
 * dict: Directly map prefix separators to prefixes. Can be used in case multiple
   separation characters are used to separata the prefixes as well as in the
   variable names themself.
@@ -783,20 +779,6 @@ first encountered separator following the order of the list.
 
    simple = pd.from_dummies(df_simple, sep="_")
    simple
-
-   df_multi = pd.DataFrame(
-       {
-           "prefix1_a": [0, 1, 0],
-           "prefix1_b": [1, 0, 1],
-           "prefix2-a": [0, 1, 0],
-           "prefix2-b": [1, 0, 0],
-           "prefix2-c": [0, 0, 1],
-       }
-   )
-   df_multi
-
-   from_list = pd.from_dummies(df_multi, sep=["_", "-"])
-   from_list
 
    df_complex = pd.DataFrame(
        {
