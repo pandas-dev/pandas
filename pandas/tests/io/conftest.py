@@ -5,12 +5,6 @@ import time
 
 import pytest
 
-from pandas.compat import (
-    is_platform_arm,
-    is_platform_mac,
-    is_platform_windows,
-)
-
 import pandas._testing as tm
 
 from pandas.io.parsers import read_csv
@@ -60,13 +54,11 @@ def s3_base(worker_id):
         # see https://github.com/spulec/moto/issues/1924 & 1952
         os.environ.setdefault("AWS_ACCESS_KEY_ID", "foobar_key")
         os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "foobar_secret")
-        if os.environ.get("PANDAS_CI", "0") == "1" and not (
-            is_platform_mac() or is_platform_windows() or is_platform_arm()
-        ):
+        if os.environ.get("PANDAS_CI", "0") == "1":
             # Windows/MacOS on Azure pipelines/Github Actions
             # does not support a container service
             # Service on CircleCI will probably hit the Docker rate pull limit
-            return "http://localhost:5000"
+            yield "http://localhost:5000"
         else:
             requests = pytest.importorskip("requests")
             pytest.importorskip("moto", minversion="1.3.14")
