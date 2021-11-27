@@ -415,16 +415,26 @@ class PythonParser(ParserBase):
 
                 if not have_mi_columns and self.mangle_dupe_cols:
                     counts: DefaultDict = defaultdict(int)
+                    col_loop_order = [
+                        i
+                        for i in range(len(this_columns))
+                        if i not in this_unnamed_cols
+                    ] + this_unnamed_cols
 
-                    for i, col in enumerate(this_columns):
+                    for i in col_loop_order:
+                        col = this_columns[i]
                         old_col = col
                         cur_count = counts[col]
 
                         if cur_count > 0:
                             while cur_count > 0:
-                                counts[col] = cur_count + 1
-                                col = f"{col}.{cur_count}"
-                                cur_count = counts[col]
+                                counts[old_col] = cur_count + 1
+                                col = f"{old_col}.{cur_count}"
+                                if col in this_columns:
+                                    cur_count += 1
+                                else:
+                                    cur_count = counts[col]
+
                             if (
                                 self.dtype is not None
                                 and is_dict_like(self.dtype)
