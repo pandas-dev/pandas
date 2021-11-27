@@ -55,7 +55,6 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_list_like,
     is_scalar,
-    is_sparse,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
@@ -1500,10 +1499,7 @@ class ExtensionArray:
         self: ExtensionArrayT, qs: npt.NDArray[np.float64], interpolation: str
     ) -> ExtensionArrayT:
         """
-        ExtensionArray compatibility layer for quantile_with_mask.
-
-        We pretend that an ExtensionArray with shape (N,) is actually (1, N,)
-        for compatibility with non-EA code.
+        Compute the quantiles of self for each quantile in `qs`.
 
         Parameters
         ----------
@@ -1518,25 +1514,21 @@ class ExtensionArray:
         mask = np.asarray(self.isna())
         mask = np.atleast_2d(mask)
 
-        arr, fill_value = self._values_for_factorize()
-        arr = np.atleast_2d(arr)
+        arr = np.atleast_2d(np.asarray(self))
+        fill_value = np.nan
 
-        result = quantile_with_mask(arr, mask, fill_value, qs, interpolation)
+        res_values = quantile_with_mask(arr, mask, fill_value, qs, interpolation)
 
-        if not is_sparse(self.dtype):
+        if self.ndim == 2:
+            # i.e. DatetimeArray
+            result = type(self)._from_sequence(res_values)
 
-            if self.ndim == 2:
-                # i.e. DatetimeArray
-                result = type(self)._from_factorized(result, self)
+        else:
+            # shape[0] should be 1 as long as EAs are 1D
+            assert res_values.shape == (1, len(qs)), res_values.shape
+            result = type(self)._from_sequence(res_values[0])
 
-            else:
-                # shape[0] should be 1 as long as EAs are 1D
-                assert result.shape == (1, len(qs)), result.shape
-                result = type(self)._from_factorized(result[0], self)
-
-        # error: Incompatible return value type (got "ndarray", expected
-        # "ExtensionArray")
-        return result  # type: ignore[return-value]
+        return result
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         if any(
