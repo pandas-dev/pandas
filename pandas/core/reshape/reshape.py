@@ -1162,7 +1162,7 @@ def from_dummies(
     ...                    "col2_a": [0, 1, 0], "col2_b": [1, 0, 0],
     ...                    "col2_c": [0, 0, 0]})
 
-    >>> pd.from_dummies(df, sep="_", dropped_first={"col1": "d", "col2": "e"])
+    >>> pd.from_dummies(df, sep="_", dropped_first={"col1": "d", "col2": "e"})
         col1    col2
     0    a       b
     1    b       a
