@@ -11,6 +11,7 @@ dependencies:
   - pytest-xdist>=1.31
   - hypothesis>=5.5.3
   - pytest-azurepipelines
+  - psutil
 
   # pandas dependencies
   - beautifulsoup4
