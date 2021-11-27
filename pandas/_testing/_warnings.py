@@ -166,9 +166,10 @@ def _assert_caught_no_extra_warnings(
 
             if actual_warning.category == ResourceWarning:
                 psutil = safe_import("psutil")
-                proc = psutil.Process()
-                flist = proc.open_files()
-                warning_data.append(flist)
+                if psutil:
+                    proc = psutil.Process()
+                    flist = proc.open_files()
+                    warning_data.append(flist)
 
             extra_warnings.append(tuple(warning_data))
 
