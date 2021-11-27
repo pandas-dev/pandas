@@ -1068,6 +1068,8 @@ def assert_series_equal(
         assert_extension_array_equal(
             left._values,
             right._values,
+            rtol=rtol,
+            atol=atol,
             check_dtype=check_dtype,
             index_values=np.asarray(left.index),
         )

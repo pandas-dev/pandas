@@ -419,10 +419,10 @@ class TestSeriesReplace:
         tm.assert_equal(res, obj)
         assert res is not obj
 
-    def test_replace_only_one_dictlike_arg(self):
+    def test_replace_only_one_dictlike_arg(self, fixed_now_ts):
         # GH#33340
 
-        ser = pd.Series([1, 2, "A", pd.Timestamp.now(), True])
+        ser = pd.Series([1, 2, "A", fixed_now_ts, True])
         to_replace = {0: 1, 2: "A"}
         value = "foo"
         msg = "Series.replace cannot use dict-like to_replace and non-None value"

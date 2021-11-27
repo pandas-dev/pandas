@@ -846,7 +846,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return {
             c
-            for c in self.unique(level=0)[:100]
+            for c in self.unique(level=0)[: get_option("display.max_dir_items")]
             if isinstance(c, str) and c.isidentifier()
         }
 
@@ -954,7 +954,6 @@ class Index(IndexOpsMixin, PandasObject):
                     # e.g. m8[s]
                     return self._data.view(cls)
 
-                arr = self._data.view("i8")
                 idx_cls = self._dtype_to_subclass(dtype)
                 arr_cls = idx_cls._data_cls
                 arr = arr_cls(self._data.view("i8"), dtype=dtype)
@@ -2957,7 +2956,7 @@ class Index(IndexOpsMixin, PandasObject):
         case make a shallow copy of self.
         """
         name = get_op_result_name(self, other)
-        if self.name != name:
+        if self.name is not name:
             return self.rename(name)
         return self
 
@@ -6440,7 +6439,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Make new Index inserting new item at location.
 
-        Follows Python list.append semantics for negative values.
+        Follows Python numpy.insert semantics for negative values.
 
         Parameters
         ----------
@@ -6483,6 +6482,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         else:
             new_values = np.insert(arr, loc, None)
+            loc = loc if loc >= 0 else loc - 1
             new_values[loc] = item
 
         # Use self._constructor instead of Index to retain NumericIndex GH#43921
