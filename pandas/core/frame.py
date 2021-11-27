@@ -3914,9 +3914,9 @@ class DataFrame(NDFrame, OpsMixin):
         if len(self):
             self._check_setitem_copy()
 
-    def _iset_item(self, loc: int, value, inplace: bool = False) -> None:
+    def _iset_item(self, loc: int, value) -> None:
         arraylike = self._sanitize_column(value)
-        self._iset_item_mgr(loc, arraylike, inplace=inplace)
+        self._iset_item_mgr(loc, arraylike, inplace=True)
 
         # check if we are modifying a copy
         # try to set first as we want an invalid
@@ -5073,10 +5073,6 @@ class DataFrame(NDFrame, OpsMixin):
             errors=errors,
         )
 
-    @rewrite_axis_style_signature(
-        "mapper",
-        [("copy", True), ("inplace", False), ("level", None), ("errors", "ignore")],
-    )
     def rename(
         self,
         mapper: Renamer | None = None,
