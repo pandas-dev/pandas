@@ -160,6 +160,14 @@ jobs:
   data_manager:
     name: Test experimental data manager
     runs-on: ubuntu-latest
+    services:
+      moto:
+        image: motoserver/moto
+        env:
+          AWS_ACCESS_KEY_ID: foobar_key
+          AWS_SECRET_ACCESS_KEY: foobar_secret
+        ports:
+          - 5000:5000
     strategy:
       matrix:
         pattern: ["not slow and not network and not clipboard", "slow"]
