@@ -179,8 +179,6 @@ def take_1d(
     Note: similarly to `take_nd`, this function assumes that the indexer is
     a valid(ated) indexer with no out of bound indices.
     """
-    indexer = ensure_platform_int(indexer)
-
     if not isinstance(arr, np.ndarray):
         # ExtensionArray -> dispatch to their method
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
@@ -284,6 +282,9 @@ def _get_take_nd_function_cached(
     if func is not None:
         return func
 
+    # We get here with string, uint, float16, and complex dtypes that could
+    #  potentially be handled in algos_take_helper.
+    #  Also a couple with (M8[ns], object) and (m8[ns], object)
     tup = (out_dtype.name, out_dtype.name)
     if ndim == 1:
         func = _take_1d_dict.get(tup, None)

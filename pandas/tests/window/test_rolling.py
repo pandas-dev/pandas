@@ -63,9 +63,11 @@ def test_invalid_constructor(frame_or_series, w):
 
     c = frame_or_series(range(5)).rolling
 
-    msg = (
-        "window must be an integer|"
-        "passed window foo is not compatible with a datetimelike index"
+    msg = "|".join(
+        [
+            "window must be an integer",
+            "passed window foo is not compatible with a datetimelike index",
+        ]
     )
     with pytest.raises(ValueError, match=msg):
         c(window=w)
@@ -695,7 +697,7 @@ def test_rolling_count_default_min_periods_with_null_values(frame_or_series):
     expected_counts = [1.0, 2.0, 3.0, 2.0, 2.0, 2.0, 3.0]
 
     # GH 31302
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+    with tm.assert_produces_warning(FutureWarning):
         result = frame_or_series(values).rolling(3).count()
     expected = frame_or_series(expected_counts)
     tm.assert_equal(result, expected)
@@ -1616,3 +1618,107 @@ def test_rank(window, method, pct, ascending, test_data):
     result = ser.rolling(window).rank(method=method, pct=pct, ascending=ascending)
 
     tm.assert_series_equal(result, expected)
+
+
+def test_rolling_quantile_np_percentile():
+    # #9413: Tests that rolling window's quantile default behavior
+    # is analogous to Numpy's percentile
+    row = 10
+    col = 5
+    idx = date_range("20100101", periods=row, freq="B")
+    df = DataFrame(np.random.rand(row * col).reshape((row, -1)), index=idx)
+
+    df_quantile = df.quantile([0.25, 0.5, 0.75], axis=0)
+    np_percentile = np.percentile(df, [25, 50, 75], axis=0)
+
+    tm.assert_almost_equal(df_quantile.values, np.array(np_percentile))
+
+
+@pytest.mark.parametrize("quantile", [0.0, 0.1, 0.45, 0.5, 1])
+@pytest.mark.parametrize(
+    "interpolation", ["linear", "lower", "higher", "nearest", "midpoint"]
+)
+@pytest.mark.parametrize(
+    "data",
+    [
+        [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0],
+        [8.0, 1.0, 3.0, 4.0, 5.0, 2.0, 6.0, 7.0],
+        [0.0, np.nan, 0.2, np.nan, 0.4],
+        [np.nan, np.nan, np.nan, np.nan],
+        [np.nan, 0.1, np.nan, 0.3, 0.4, 0.5],
+        [0.5],
+        [np.nan, 0.7, 0.6],
+    ],
+)
+def test_rolling_quantile_interpolation_options(quantile, interpolation, data):
+    # Tests that rolling window's quantile behavior is analogous to
+    # Series' quantile for each interpolation option
+    s = Series(data)
+
+    q1 = s.quantile(quantile, interpolation)
+    q2 = s.expanding(min_periods=1).quantile(quantile, interpolation).iloc[-1]
+
+    if np.isnan(q1):
+        assert np.isnan(q2)
+    else:
+        assert q1 == q2
+
+
+def test_invalid_quantile_value():
+    data = np.arange(5)
+    s = Series(data)
+
+    msg = "Interpolation 'invalid' is not supported"
+    with pytest.raises(ValueError, match=msg):
+        s.rolling(len(data), min_periods=1).quantile(0.5, interpolation="invalid")
+
+
+def test_rolling_quantile_param():
+    ser = Series([0.0, 0.1, 0.5, 0.9, 1.0])
+    msg = "quantile value -0.1 not in \\[0, 1\\]"
+    with pytest.raises(ValueError, match=msg):
+        ser.rolling(3).quantile(-0.1)
+
+    msg = "quantile value 10.0 not in \\[0, 1\\]"
+    with pytest.raises(ValueError, match=msg):
+        ser.rolling(3).quantile(10.0)
+
+    msg = "must be real number, not str"
+    with pytest.raises(TypeError, match=msg):
+        ser.rolling(3).quantile("foo")
+
+
+def test_rolling_std_1obs():
+    vals = Series([1.0, 2.0, 3.0, 4.0, 5.0])
+
+    result = vals.rolling(1, min_periods=1).std()
+    expected = Series([np.nan] * 5)
+    tm.assert_series_equal(result, expected)
+
+    result = vals.rolling(1, min_periods=1).std(ddof=0)
+    expected = Series([0.0] * 5)
+    tm.assert_series_equal(result, expected)
+
+    result = Series([np.nan, np.nan, 3, 4, 5]).rolling(3, min_periods=2).std()
+    assert np.isnan(result[2])
+
+
+def test_rolling_std_neg_sqrt():
+    # unit test from Bottleneck
+
+    # Test move_nanstd for neg sqrt.
+
+    a = Series(
+        [
+            0.0011448196318903589,
+            0.00028718669878572767,
+            0.00028718669878572767,
+            0.00028718669878572767,
+            0.00028718669878572767,
+        ]
+    )
+    b = a.rolling(window=3).std()
+    assert np.isfinite(b[2:]).all()
+
+    b = a.ewm(span=3).std()
+    assert np.isfinite(b[2:]).all()

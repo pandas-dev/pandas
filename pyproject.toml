@@ -4,7 +4,7 @@
 requires = [
     "setuptools>=51.0.0",
     "wheel",
-    "Cython>=0.29.24,<3",  # Note: sync with setup.py
+    "Cython>=0.29.24,<3",  # Note: sync with setup.py, environment.yml and asv.conf.json
     "oldest-supported-numpy>=0.10"
 ]
 # uncomment to enable pep517 after versioneer problem is fixed.
@@ -60,6 +60,8 @@ markers = [
 
 [tool.mypy]
 # Import discovery
+mypy_path = "typings"
+files = ["pandas", "typings"]
 namespace_packages = false
 explicit_package_bases = false
 ignore_missing_imports = true
@@ -82,7 +84,7 @@ disallow_untyped_calls = false # TODO
 disallow_untyped_defs = false # TODO
 disallow_incomplete_defs = false # TODO
 check_untyped_defs = true
-disallow_untyped_decorators = false # GH#33455
+disallow_untyped_decorators = true
 # None and Optional handling
 no_implicit_optional = true
 strict_optional = true
@@ -148,7 +150,7 @@ skip = "pandas/__init__.py"
 [tool.pyright]
 pythonVersion = "3.8"
 typeCheckingMode = "strict"
-include = ["pandas"]
+include = ["pandas", "typings"]
 exclude = ["pandas/tests", "pandas/io/clipboard", "pandas/util/version"]
 reportGeneralTypeIssues = false
 reportConstantRedefinition = false
@@ -166,7 +168,6 @@ reportOptionalOperand = false
 reportOptionalSubscript = false
 reportPrivateImportUsage = false
 reportPrivateUsage = false
-reportPropertyTypeMismatch = false
 reportUnboundVariable = false
 reportUnknownArgumentType = false
 reportUnknownLambdaType = false
@@ -177,7 +178,6 @@ reportUnnecessaryComparison = false
 reportUnnecessaryIsInstance = false
 reportUnsupportedDunderAll = false
 reportUntypedBaseClass = false
-reportUntypedFunctionDecorator = false
 reportUnusedClass = false
 reportUnusedFunction = false
 reportUnusedImport = false

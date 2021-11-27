@@ -852,7 +852,7 @@ savings time. However, all :class:`DateOffset` subclasses that are an hour or sm
 
 The basic :class:`DateOffset` acts similar to ``dateutil.relativedelta`` (`relativedelta documentation`_)
 that shifts a date time by the corresponding calendar duration specified. The
-arithmetic operator (``+``) or the ``apply`` method can be used to perform the shift.
+arithmetic operator (``+``) can be used to perform the shift.
 
 .. ipython:: python
 
@@ -866,7 +866,6 @@ arithmetic operator (``+``) or the ``apply`` method can be used to perform the s
    friday.day_name()
    # Add 2 business days (Friday --> Tuesday)
    two_business_days = 2 * pd.offsets.BDay()
-   two_business_days.apply(friday)
    friday + two_business_days
    (friday + two_business_days).day_name()
 
@@ -938,14 +937,14 @@ in the operation).
 
    ts = pd.Timestamp("2014-01-01 09:00")
    day = pd.offsets.Day()
-   day.apply(ts)
-   day.apply(ts).normalize()
+   day + ts
+   (day + ts).normalize()
 
    ts = pd.Timestamp("2014-01-01 22:00")
    hour = pd.offsets.Hour()
-   hour.apply(ts)
-   hour.apply(ts).normalize()
-   hour.apply(pd.Timestamp("2014-01-01 23:30")).normalize()
+   hour + ts
+   (hour + ts).normalize()
+   (hour + pd.Timestamp("2014-01-01 23:30")).normalize()
 
 .. _relativedelta documentation: https://dateutil.readthedocs.io/en/stable/relativedelta.html
 
@@ -1185,16 +1184,16 @@ under the default business hours (9:00 - 17:00), there is no gap (0 minutes) bet
     pd.offsets.BusinessHour().rollback(pd.Timestamp("2014-08-02 15:00"))
     pd.offsets.BusinessHour().rollforward(pd.Timestamp("2014-08-02 15:00"))
 
-    # It is the same as BusinessHour().apply(pd.Timestamp('2014-08-01 17:00')).
-    # And it is the same as BusinessHour().apply(pd.Timestamp('2014-08-04 09:00'))
-    pd.offsets.BusinessHour().apply(pd.Timestamp("2014-08-02 15:00"))
+    # It is the same as BusinessHour() + pd.Timestamp('2014-08-01 17:00').
+    # And it is the same as BusinessHour() + pd.Timestamp('2014-08-04 09:00')
+    pd.offsets.BusinessHour() + pd.Timestamp("2014-08-02 15:00")
 
     # BusinessDay results (for reference)
     pd.offsets.BusinessHour().rollforward(pd.Timestamp("2014-08-02"))
 
-    # It is the same as BusinessDay().apply(pd.Timestamp('2014-08-01'))
+    # It is the same as BusinessDay() + pd.Timestamp('2014-08-01')
     # The result is the same as rollworward because BusinessDay never overlap.
-    pd.offsets.BusinessHour().apply(pd.Timestamp("2014-08-02"))
+    pd.offsets.BusinessHour() + pd.Timestamp("2014-08-02")
 
 ``BusinessHour`` regards Saturday and Sunday as holidays. To use arbitrary
 holidays, you can use ``CustomBusinessHour`` offset, as explained in the
@@ -1270,6 +1269,36 @@ frequencies. We will refer to these aliases as *offset aliases*.
     "L, ms", "milliseconds"
     "U, us", "microseconds"
     "N", "nanoseconds"
+
+.. note::
+
+    When using the offset aliases above, it should be noted that functions
+    such as :func:`date_range`, :func:`bdate_range`, will only return
+    timestamps that are in the interval defined by ``start_date`` and
+    ``end_date``. If the ``start_date`` does not correspond to the frequency,
+    the returned timestamps will start at the next valid timestamp, same for
+    ``end_date``, the returned timestamps will stop at the previous valid
+    timestamp.
+
+   For example, for the offset ``MS``, if the ``start_date`` is not the first
+   of the month, the returned timestamps will start with the first day of the
+   next month. If ``end_date`` is not the first day of a month, the last
+   returned timestamp will be the first day of the corresponding month.
+
+   .. ipython:: python
+
+       dates_lst_1 = pd.date_range("2020-01-06", "2020-04-03", freq="MS")
+       dates_lst_1
+
+       dates_lst_2 = pd.date_range("2020-01-01", "2020-04-01", freq="MS")
+       dates_lst_2
+
+   We can see in the above example :func:`date_range` and
+   :func:`bdate_range` will only return the valid timestamps between the
+   ``start_date`` and ``end_date``. If these are not valid timestamps for the
+   given frequency it will roll to the next value for ``start_date``
+   (respectively previous for the ``end_date``)
+
 
 Combining aliases
 ~~~~~~~~~~~~~~~~~
@@ -2073,14 +2102,18 @@ The ``period`` dtype can be used in ``.astype(...)``. It allows one to change th
    # change monthly freq to daily freq
    pi.astype("period[D]")
 
-   # convert to DatetimeIndex
-   pi.astype("datetime64[ns]")
-
    # convert to PeriodIndex
    dti = pd.date_range("2011-01-01", freq="M", periods=3)
    dti
    dti.astype("period[M]")
 
+.. deprecated:: 1.4.0
+    Converting PeriodIndex to DatetimeIndex with ``.astype(...)`` is deprecated and will raise in a future version. Use ``obj.to_timestamp(how).tz_localize(dtype.tz)`` instead.
+
+.. ipython:: python
+
+    # convert to DatetimeIndex
+    pi.to_timestamp(how="start")
 
 PeriodIndex partial string indexing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -598,12 +598,12 @@ class TestDataFrameIndexingWhere:
         tm.assert_frame_equal(result, exp)
         tm.assert_frame_equal(result, (df + 2).where((df + 2) > 8, (df + 2) + 10))
 
-    def test_where_tz_values(self, tz_naive_fixture):
-        df1 = DataFrame(
+    def test_where_tz_values(self, tz_naive_fixture, frame_or_series):
+        obj1 = DataFrame(
             DatetimeIndex(["20150101", "20150102", "20150103"], tz=tz_naive_fixture),
             columns=["date"],
         )
-        df2 = DataFrame(
+        obj2 = DataFrame(
             DatetimeIndex(["20150103", "20150104", "20150105"], tz=tz_naive_fixture),
             columns=["date"],
         )
@@ -612,8 +612,14 @@ class TestDataFrameIndexingWhere:
             DatetimeIndex(["20150101", "20150102", "20150105"], tz=tz_naive_fixture),
             columns=["date"],
         )
-        result = df1.where(mask, df2)
-        tm.assert_frame_equal(exp, result)
+        if frame_or_series is Series:
+            obj1 = obj1["date"]
+            obj2 = obj2["date"]
+            mask = mask["date"]
+            exp = exp["date"]
+
+        result = obj1.where(mask, obj2)
+        tm.assert_equal(exp, result)
 
     def test_df_where_change_dtype(self):
         # GH#16979
@@ -681,6 +687,16 @@ class TestDataFrameIndexingWhere:
         expected["B"] = expected["B"].astype(object)
         result = df.where(mask, ser2, axis=1)
         tm.assert_frame_equal(result, expected)
+
+    def test_where_interval_noop(self):
+        # GH#44181
+        df = DataFrame([pd.Interval(0, 0)])
+        res = df.where(df.notna())
+        tm.assert_frame_equal(res, df)
+
+        ser = df[0]
+        res = ser.where(ser.notna())
+        tm.assert_series_equal(res, ser)
 
 
 def test_where_try_cast_deprecated(frame_or_series):
@@ -759,18 +775,18 @@ def test_where_none_nan_coerce():
     tm.assert_frame_equal(result, expected)
 
 
-def test_where_non_keyword_deprecation():
+def test_where_non_keyword_deprecation(frame_or_series):
     # GH 41485
-    s = DataFrame(range(5))
+    obj = frame_or_series(range(5))
     msg = (
         "In a future version of pandas all arguments of "
-        "DataFrame.where except for the arguments 'cond' "
+        f"{frame_or_series.__name__}.where except for the arguments 'cond' "
         "and 'other' will be keyword-only"
     )
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = s.where(s > 1, 10, False)
-    expected = DataFrame([10, 10, 2, 3, 4])
-    tm.assert_frame_equal(expected, result)
+        result = obj.where(obj > 1, 10, False)
+    expected = frame_or_series([10, 10, 2, 3, 4])
+    tm.assert_equal(expected, result)
 
 
 def test_where_columns_casting():

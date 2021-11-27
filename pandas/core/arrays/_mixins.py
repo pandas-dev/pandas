@@ -16,6 +16,8 @@ import numpy as np
 from pandas._libs import lib
 from pandas._libs.arrays import NDArrayBacked
 from pandas._typing import (
+    ArrayLike,
+    Dtype,
     F,
     PositionalIndexer2D,
     PositionalIndexerTuple,
@@ -31,10 +33,18 @@ from pandas.util._decorators import doc
 from pandas.util._validators import (
     validate_bool_kwarg,
     validate_fillna_kwargs,
+    validate_insert_loc,
 )
 
-from pandas.core.dtypes.common import is_dtype_equal
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.common import (
+    is_dtype_equal,
+    pandas_dtype,
+)
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    ExtensionDtype,
+    PeriodDtype,
+)
 from pandas.core.dtypes.missing import array_equivalent
 
 from pandas.core import missing
@@ -99,6 +109,41 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         raise AbstractMethodError(self)
 
     # ------------------------------------------------------------------------
+
+    def view(self, dtype: Dtype | None = None) -> ArrayLike:
+        # We handle datetime64, datetime64tz, timedelta64, and period
+        #  dtypes here. Everything else we pass through to the underlying
+        #  ndarray.
+        if dtype is None or dtype is self.dtype:
+            return self._from_backing_data(self._ndarray)
+
+        if isinstance(dtype, type):
+            # we sometimes pass non-dtype objects, e.g np.ndarray;
+            #  pass those through to the underlying ndarray
+            return self._ndarray.view(dtype)
+
+        dtype = pandas_dtype(dtype)
+        arr = self._ndarray
+
+        if isinstance(dtype, (PeriodDtype, DatetimeTZDtype)):
+            cls = dtype.construct_array_type()
+            return cls(arr.view("i8"), dtype=dtype)
+        elif dtype == "M8[ns]":
+            from pandas.core.arrays import DatetimeArray
+
+            return DatetimeArray(arr.view("i8"), dtype=dtype)
+        elif dtype == "m8[ns]":
+            from pandas.core.arrays import TimedeltaArray
+
+            return TimedeltaArray(arr.view("i8"), dtype=dtype)
+
+        # error: Incompatible return value type (got "ndarray", expected
+        # "ExtensionArray")
+        # error: Argument "dtype" to "view" of "_ArrayOrScalarCommon" has incompatible
+        # type "Union[ExtensionDtype, dtype[Any]]"; expected "Union[dtype[Any], None,
+        # type, _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int,
+        # Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
+        return arr.view(dtype=dtype)  # type: ignore[return-value,arg-type]
 
     def take(
         self: NDArrayBackedExtensionArrayT,
@@ -196,8 +241,8 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         return self._from_backing_data(new_values)
 
     def _validate_shift_value(self, fill_value):
-        # TODO: after deprecation in datetimelikearraymixin is enforced,
-        #  we can remove this and ust validate_fill_value directly
+        # TODO(2.0): after deprecation in datetimelikearraymixin is enforced,
+        #  we can remove this and use validate_fill_value directly
         return self._validate_scalar(fill_value)
 
     def __setitem__(self, key, value):
@@ -244,6 +289,14 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
         result = self._from_backing_data(result)
         return result
+
+    def _fill_mask_inplace(
+        self, method: str, limit, mask: npt.NDArray[np.bool_]
+    ) -> None:
+        # (for now) when self.ndim == 2, we assume axis=0
+        func = missing.get_fill_func(method, ndim=self.ndim)
+        func(self._ndarray.T, limit=limit, mask=mask.T)
+        return
 
     @doc(ExtensionArray.fillna)
     def fillna(
@@ -301,7 +354,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     # ------------------------------------------------------------------------
     # __array_function__ methods
 
-    def putmask(self, mask: np.ndarray, value) -> None:
+    def _putmask(self, mask: npt.NDArray[np.bool_], value) -> None:
         """
         Analogue to np.putmask(self, mask, value)
 
@@ -319,7 +372,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
         np.putmask(self._ndarray, mask, value)
 
-    def where(
+    def _where(
         self: NDArrayBackedExtensionArrayT, mask: np.ndarray, value
     ) -> NDArrayBackedExtensionArrayT:
         """
@@ -359,6 +412,8 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         -------
         type(self)
         """
+        loc = validate_insert_loc(loc, len(self))
+
         code = self._validate_scalar(item)
 
         new_vals = np.concatenate(

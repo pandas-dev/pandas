@@ -96,10 +96,7 @@ class TestiLocBaseIndependent:
 
         # check we dont have a view on cat (may be undesired GH#39986)
         df.iloc[0, 0] = "gamma"
-        if overwrite:
-            assert cat[0] != "gamma"
-        else:
-            assert cat[0] != "gamma"
+        assert cat[0] != "gamma"
 
         # TODO with mixed dataframe ("split" path), we always overwrite the column
         frame = DataFrame({0: np.array([0, 1, 2], dtype=object), 1: range(3)})
@@ -109,8 +106,6 @@ class TestiLocBaseIndependent:
         expected = DataFrame({0: cat, 1: range(3)})
         tm.assert_frame_equal(df, expected)
 
-    # TODO(ArrayManager) does not yet update parent
-    @td.skip_array_manager_not_yet_implemented
     @pytest.mark.parametrize("box", [array, Series])
     def test_iloc_setitem_ea_inplace(self, frame_or_series, box, using_array_manager):
         # GH#38952 Case with not setting a full column
@@ -270,17 +265,15 @@ class TestiLocBaseIndependent:
         with pytest.raises(IndexError, match=msg):
             df.iloc[index_vals, column_vals]
 
-    @pytest.mark.parametrize("dims", [1, 2])
-    def test_iloc_getitem_invalid_scalar(self, dims):
+    def test_iloc_getitem_invalid_scalar(self, frame_or_series):
         # GH 21982
 
-        if dims == 1:
-            s = Series(np.arange(10))
-        else:
-            s = DataFrame(np.arange(100).reshape(10, 10))
+        obj = DataFrame(np.arange(100).reshape(10, 10))
+        if frame_or_series is Series:
+            obj = obj[0]
 
         with pytest.raises(TypeError, match="Cannot index by location index"):
-            s.iloc["a"]
+            obj.iloc["a"]
 
     def test_iloc_array_not_mutating_negative_indices(self):
 
@@ -517,9 +510,18 @@ class TestiLocBaseIndependent:
         #  but on a DataFrame with multiple blocks
         df = DataFrame([[0, 1], [2, 3]], columns=["B", "B"])
 
+        # setting float values that can be held by existing integer arrays
+        #  is inplace
         df.iloc[:, 0] = df.iloc[:, 0].astype("f8")
         if not using_array_manager:
+            assert len(df._mgr.blocks) == 1
+
+        # if the assigned values cannot be held by existing integer arrays,
+        #  we cast
+        df.iloc[:, 0] = df.iloc[:, 0] + 0.5
+        if not using_array_manager:
             assert len(df._mgr.blocks) == 2
+
         expected = df.copy()
 
         # assign back to self
@@ -826,20 +828,24 @@ class TestiLocBaseIndependent:
             df.iloc[[]], df.iloc[:0, :], check_index_type=True, check_column_type=True
         )
 
-    def test_identity_slice_returns_new_object(self, using_array_manager):
+    def test_identity_slice_returns_new_object(self, using_array_manager, request):
         # GH13873
+        if using_array_manager:
+            mark = pytest.mark.xfail(
+                reason="setting with .loc[:, 'a'] does not alter inplace"
+            )
+            request.node.add_marker(mark)
+
         original_df = DataFrame({"a": [1, 2, 3]})
         sliced_df = original_df.iloc[:]
         assert sliced_df is not original_df
 
         # should be a shallow copy
-        original_df["a"] = [4, 4, 4]
-        if using_array_manager:
-            # TODO(ArrayManager) verify it is expected that the original didn't change
-            # setitem is replacing full column, so doesn't update "viewing" dataframe
-            assert not (sliced_df["a"] == 4).all()
-        else:
-            assert (sliced_df["a"] == 4).all()
+        assert np.shares_memory(original_df["a"], sliced_df["a"])
+
+        # Setting using .loc[:, "a"] sets inplace so alters both sliced and orig
+        original_df.loc[:, "a"] = [4, 4, 4]
+        assert (sliced_df["a"] == 4).all()
 
         original_series = Series([1, 2, 3, 4, 5, 6])
         sliced_series = original_series.iloc[:]
@@ -890,7 +896,7 @@ class TestiLocBaseIndependent:
         tm.assert_frame_equal(result, expected)
 
         result.iloc[[False, False, True, True]] /= 2
-        expected = DataFrame([[0.0, 4.0], [8.0, 12.0], [4.0, 5.0], [6.0, np.nan]])
+        expected = DataFrame([[0, 4.0], [8, 12.0], [4, 5.0], [6, np.nan]])
         tm.assert_frame_equal(result, expected)
 
     def test_iloc_getitem_singlerow_slice_categoricaldtype_gives_series(self):
@@ -1139,6 +1145,18 @@ class TestiLocBaseIndependent:
         df.iloc[indexing_func([True, False, True])] = rhs_func([[5], [10]])
         expected = DataFrame({"a": [5, 1, 10]})
         tm.assert_frame_equal(df, expected)
+
+    def test_iloc_getitem_slice_negative_step_ea_block(self):
+        # GH#44551
+        df = DataFrame({"A": [1, 2, 3]}, dtype="Int64")
+
+        res = df.iloc[:, ::-1]
+        tm.assert_frame_equal(res, df)
+
+        df["B"] = "foo"
+        res = df.iloc[:, ::-1]
+        expected = DataFrame({"B": df["B"], "A": df["A"]})
+        tm.assert_frame_equal(res, expected)
 
 
 class TestILocErrors:

@@ -36,6 +36,7 @@ from pandas._typing import (
     PositionalIndexer,
     ScalarIndexer,
     SequenceIndexer,
+    npt,
 )
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender
@@ -79,7 +80,6 @@ from pandas.core.arrays.base import (
     ExtensionArray,
     _extension_array_shared_docs,
 )
-from pandas.core.arrays.categorical import Categorical
 import pandas.core.common as com
 from pandas.core.construction import (
     array as pd_array,
@@ -850,7 +850,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             ExtensionArray or NumPy ndarray with 'dtype' for its dtype.
         """
         from pandas import Index
-        from pandas.core.arrays.string_ import StringDtype
 
         if dtype is not None:
             dtype = pandas_dtype(dtype)
@@ -871,17 +870,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 )
                 raise TypeError(msg) from err
             return self._shallow_copy(new_left, new_right)
-        elif is_categorical_dtype(dtype):
-            return Categorical(np.asarray(self), dtype=dtype)
-        elif isinstance(dtype, StringDtype):
-            return dtype.construct_array_type()._from_sequence(self, copy=False)
-
-        # TODO: This try/except will be repeated.
-        try:
-            return np.asarray(self).astype(dtype, copy=copy)
-        except (TypeError, ValueError) as err:
-            msg = f"Cannot cast {type(self).__name__} to dtype {dtype}"
-            raise TypeError(msg) from err
+        else:
+            try:
+                return super().astype(dtype, copy=copy)
+            except (TypeError, ValueError) as err:
+                msg = f"Cannot cast {type(self).__name__} to dtype {dtype}"
+                raise TypeError(msg) from err
 
     def equals(self, other) -> bool:
         if type(self) != type(other):
@@ -1489,20 +1483,20 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     # ---------------------------------------------------------------------
 
-    def putmask(self, mask: np.ndarray, value) -> None:
+    def _putmask(self, mask: npt.NDArray[np.bool_], value) -> None:
         value_left, value_right = self._validate_setitem_value(value)
 
         if isinstance(self._left, np.ndarray):
             np.putmask(self._left, mask, value_left)
             np.putmask(self._right, mask, value_right)
         else:
-            self._left.putmask(mask, value_left)
-            self._right.putmask(mask, value_right)
+            self._left._putmask(mask, value_left)
+            self._right._putmask(mask, value_right)
 
     def insert(self: IntervalArrayT, loc: int, item: Interval) -> IntervalArrayT:
         """
         Return a new IntervalArray inserting new item at location. Follows
-        Python list.append semantics for negative values.  Only Interval
+        Python numpy.insert semantics for negative values.  Only Interval
         objects and NA can be inserted into an IntervalIndex
 
         Parameters

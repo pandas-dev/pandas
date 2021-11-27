@@ -37,6 +37,7 @@ from pandas.util._decorators import (
     Substitution,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_int64,
@@ -287,7 +288,8 @@ class SeriesGroupBy(GroupBy[Series]):
                 #  see test_groupby.test_basic
                 result = self._aggregate_named(func, *args, **kwargs)
 
-                index = Index(sorted(result), name=self.grouper.names[0])
+                # result is a dict whose keys are the elements of result_index
+                index = self.grouper.result_index
                 return create_series_with_explicit_dtype(
                     result, index=index, dtype_if_empty=object
                 )
@@ -674,7 +676,11 @@ class SeriesGroupBy(GroupBy[Series]):
         # multi-index components
         codes = self.grouper.reconstructed_codes
         codes = [rep(level_codes) for level_codes in codes] + [llab(lab, inc)]
-        levels = [ping.group_index for ping in self.grouper.groupings] + [lev]
+        # error: List item 0 has incompatible type "Union[ndarray[Any, Any], Index]";
+        # expected "Index"
+        levels = [ping.group_index for ping in self.grouper.groupings] + [
+            lev  # type: ignore[list-item]
+        ]
         names = self.grouper.names + [self.obj.name]
 
         if dropna:
@@ -986,7 +992,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             result = self.obj._constructor(
                 index=self.grouper.result_index, columns=data.columns
             )
-            result = result.astype(data.dtypes.to_dict(), copy=False)
+            result = result.astype(data.dtypes, copy=False)
             return result
 
         # GH12824
@@ -1033,7 +1039,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         key_index,
     ) -> DataFrame | Series:
         # this is to silence a DeprecationWarning
-        # TODO: Remove when default dtype of empty Series is object
+        # TODO(2.0): Remove when default dtype of empty Series is object
         kwargs = first_not_none._construct_axes_dict()
         backup = create_series_with_explicit_dtype(dtype_if_empty=object, **kwargs)
         values = [x if (x is not None) else backup for x in values]
@@ -1325,7 +1331,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 "Indexing with multiple keys (implicitly converted to a tuple "
                 "of keys) will be deprecated, use a list instead.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
         return super().__getitem__(key)
 
@@ -1536,6 +1542,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             result = [index[i] if i >= 0 else np.nan for i in indices]
             return df._constructor_sliced(result, index=res.index)
 
+        func.__name__ = "idxmax"
         return self._python_apply_general(func, self._obj_with_exclusions)
 
     @Appender(DataFrame.idxmin.__doc__)
@@ -1557,6 +1564,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             result = [index[i] if i >= 0 else np.nan for i in indices]
             return df._constructor_sliced(result, index=res.index)
 
+        func.__name__ = "idxmin"
         return self._python_apply_general(func, self._obj_with_exclusions)
 
     boxplot = boxplot_frame_groupby

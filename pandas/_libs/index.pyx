@@ -315,14 +315,14 @@ cdef class IndexEngine:
         missing : np.ndarray[np.intp]
         """
         cdef:
-            ndarray values, x
+            ndarray values
             ndarray[intp_t] result, missing
-            set stargets, remaining_stargets
+            set stargets, remaining_stargets, found_nas
             dict d = {}
             object val
             Py_ssize_t count = 0, count_missing = 0
             Py_ssize_t i, j, n, n_t, n_alloc, start, end
-            bint d_has_nan = False, stargets_has_nan = False, need_nan_check = True
+            bint check_na_values = False
 
         values = self.values
         stargets = set(targets)
@@ -338,7 +338,12 @@ cdef class IndexEngine:
         missing = np.empty(n_t, dtype=np.intp)
 
         # map each starget to its position in the index
-        if stargets and len(stargets) < 5 and self.is_monotonic_increasing:
+        if (
+                stargets and
+                len(stargets) < 5 and
+                not any([checknull(t) for t in stargets]) and
+                self.is_monotonic_increasing
+        ):
             # if there are few enough stargets and the index is monotonically
             # increasing, then use binary search for each starget
             remaining_stargets = set()
@@ -357,33 +362,58 @@ cdef class IndexEngine:
         if stargets:
             # otherwise, map by iterating through all items in the index
 
+            # short-circuit na check
+            if values.dtype == object:
+                check_na_values = True
+                # keep track of nas in values
+                found_nas = set()
+
             for i in range(n):
                 val = values[i]
+
+                # GH#43870
+                # handle lookup for nas
+                # (ie. np.nan, float("NaN"), Decimal("NaN"), dt64nat, td64nat)
+                if check_na_values and checknull(val):
+                    match = [na for na in found_nas if is_matching_na(val, na)]
+
+                    # matching na not found
+                    if not len(match):
+                        found_nas.add(val)
+
+                        # add na to stargets to utilize `in` for stargets/d lookup
+                        match_stargets = [
+                            x for x in stargets if is_matching_na(val, x)
+                        ]
+
+                        if len(match_stargets):
+                            # add our 'standardized' na
+                            stargets.add(val)
+
+                    # matching na found
+                    else:
+                        assert len(match) == 1
+                        val = match[0]
+
                 if val in stargets:
                     if val not in d:
                         d[val] = []
                     d[val].append(i)
 
-                elif util.is_nan(val):
-                    # GH#35392
-                    if need_nan_check:
-                        # Do this check only once
-                        stargets_has_nan = any(util.is_nan(val) for x in stargets)
-                        need_nan_check = False
-
-                    if stargets_has_nan:
-                        if not d_has_nan:
-                            # use a canonical nan object
-                            d[np.nan] = []
-                            d_has_nan = True
-                        d[np.nan].append(i)
-
         for i in range(n_t):
             val = targets[i]
 
+            # ensure there are nas in values before looking for a matching na
+            if check_na_values and checknull(val):
+                match = [na for na in found_nas if is_matching_na(val, na)]
+                if len(match):
+                    assert len(match) == 1
+                    val = match[0]
+
             # found
-            if val in d or (d_has_nan and util.is_nan(val)):
-                key = val if not util.is_nan(val) else np.nan
+            if val in d:
+                key = val
+
                 for j in d[key]:
 
                     # realloc if needed
@@ -624,7 +654,7 @@ cdef class BaseMultiIndexCodesEngine:
             Integers representing one combination each
         """
         zt = [target._get_level_values(i) for i in range(target.nlevels)]
-        level_codes = [lev.get_indexer(codes) + 1 for lev, codes
+        level_codes = [lev.get_indexer_for(codes) + 1 for lev, codes
                        in zip(self.levels, zt)]
         return self._codes_to_ints(np.array(level_codes, dtype='uint64').T)
 

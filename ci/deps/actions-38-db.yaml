@@ -12,6 +12,7 @@ dependencies:
   - pytest-cov>=2.10.1  # this is only needed in the coverage build, ref: GH 35737
 
   # pandas dependencies
+  - aiobotocore<2.0.0
   - beautifulsoup4
   - botocore>=1.11
   - dask
@@ -30,7 +31,7 @@ dependencies:
   - openpyxl
   - pandas-gbq
   - psycopg2
-  - pyarrow>=0.17.0
+  - pyarrow>=1.0.1
   - pymysql
   - pytables
   - python-snappy

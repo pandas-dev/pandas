@@ -13,6 +13,8 @@ import matplotlib.table
 import matplotlib.ticker as ticker
 import numpy as np
 
+from pandas.util._exceptions import find_stack_level
+
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -233,7 +235,7 @@ def create_subplots(
                     "When passing multiple axes, sharex and sharey "
                     "are ignored. These settings must be specified when creating axes.",
                     UserWarning,
-                    stacklevel=4,
+                    stacklevel=find_stack_level(),
                 )
             if ax.size == naxes:
                 fig = ax.flat[0].get_figure()
@@ -256,7 +258,7 @@ def create_subplots(
                 "To output multiple subplots, the figure containing "
                 "the passed axes is being cleared.",
                 UserWarning,
-                stacklevel=4,
+                stacklevel=find_stack_level(),
             )
             fig.clear()
 

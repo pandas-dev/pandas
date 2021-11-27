@@ -102,7 +102,7 @@ header : int or list of ints, default ``'infer'``
 names : array-like, default ``None``
   List of column names to use. If file contains no header row, then you should
   explicitly pass ``header=None``. Duplicates in this list are not allowed.
-index_col : int, str, sequence of int / str, or False, default ``None``
+index_col : int, str, sequence of int / str, or False, optional, default ``None``
   Column(s) to use as the row labels of the ``DataFrame``, either given as
   string name or column index. If a sequence of int / str is given, a
   MultiIndex is used.
@@ -120,7 +120,8 @@ usecols : list-like or callable, default ``None``
   Return a subset of the columns. If list-like, all elements must either
   be positional (i.e. integer indices into the document columns) or strings
   that correspond to column names provided either by the user in ``names`` or
-  inferred from the document header row(s). For example, a valid list-like
+  inferred from the document header row(s). If ``names`` are given, the document
+  header row(s) are not taken into account. For example, a valid list-like
   ``usecols`` parameter would be ``[0, 1, 2]`` or ``['foo', 'bar', 'baz']``.
 
   Element order is ignored, so ``usecols=[0, 1]`` is the same as ``[1, 0]``. To
@@ -348,7 +349,7 @@ dialect : str or :class:`python:csv.Dialect` instance, default ``None``
 Error handling
 ++++++++++++++
 
-error_bad_lines : boolean, default ``None``
+error_bad_lines : boolean, optional, default ``None``
   Lines with too many fields (e.g. a csv line with too many commas) will by
   default cause an exception to be raised, and no ``DataFrame`` will be
   returned. If ``False``, then these "bad lines" will dropped from the
@@ -358,7 +359,7 @@ error_bad_lines : boolean, default ``None``
   .. deprecated:: 1.3.0
      The ``on_bad_lines`` parameter should be used instead to specify behavior upon
      encountering a bad line instead.
-warn_bad_lines : boolean, default ``None``
+warn_bad_lines : boolean, optional, default ``None``
   If error_bad_lines is ``False``, and warn_bad_lines is ``True``, a warning for
   each "bad line" will be output.
 
@@ -3022,6 +3023,7 @@ Read in the content of the "books.xml" as instance of ``StringIO`` or
 Even read XML from AWS S3 buckets such as Python Software Foundation's IRS 990 Form:
 
 .. ipython:: python
+   :okwarning:
 
    df = pd.read_xml(
        "s3://irs-form-990/201923199349319487_public.xml",
@@ -5270,15 +5272,6 @@ Several caveats:
   raise a helpful error message on an attempt at serialization.
 
 See the `Full Documentation <https://github.com/wesm/feather>`__.
-
-.. ipython:: python
-   :suppress:
-
-   import warnings
-
-   # This can be removed once building with pyarrow >=0.15.0
-   warnings.filterwarnings("ignore", "The Sparse", FutureWarning)
-
 
 .. ipython:: python
 

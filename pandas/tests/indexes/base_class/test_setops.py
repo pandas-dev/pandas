@@ -90,7 +90,7 @@ class TestIndexSetOps:
 
     @pytest.mark.xfail(reason="GH#25151 need to decide on True behavior")
     def test_union_sort_other_incomparable_true(self):
-        # TODO decide on True behaviour
+        # TODO(GH#25151): decide on True behaviour
         # sort=True
         idx = Index([1, pd.Timestamp("2000")])
         with pytest.raises(TypeError, match=".*"):
@@ -98,7 +98,7 @@ class TestIndexSetOps:
 
     @pytest.mark.xfail(reason="GH#25151 need to decide on True behavior")
     def test_intersection_equal_sort_true(self):
-        # TODO decide on True behaviour
+        # TODO(GH#25151): decide on True behaviour
         idx = Index(["c", "a", "b"])
         sorted_ = Index(["a", "b", "c"])
         tm.assert_index_equal(idx.intersection(idx, sort=True), sorted_)

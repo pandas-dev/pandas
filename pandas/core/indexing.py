@@ -16,6 +16,7 @@ from pandas.errors import (
     InvalidIndexError,
 )
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_array_like,
@@ -993,7 +994,7 @@ class _LocIndexer(_LocationIndexer):
         # slice of labels (where start-end in labels)
         # slice of integers (only if in the labels)
         # boolean not in slice and with boolean index
-        if isinstance(key, bool) and not is_bool_dtype(self.obj.index):
+        if isinstance(key, bool) and not is_bool_dtype(self.obj._get_axis(axis)):
             raise KeyError(
                 f"{key}: boolean label can not be used without a boolean index"
             )
@@ -1381,7 +1382,7 @@ class _iLocIndexer(_LocationIndexer):
                 "a future version.\n"
                 "consider using .loc with a DataFrame indexer for automatic alignment.",
                 FutureWarning,
-                stacklevel=3,
+                stacklevel=find_stack_level(),
             )
 
         if not isinstance(indexer, tuple):
@@ -1859,10 +1860,19 @@ class _iLocIndexer(_LocationIndexer):
                 # in case of slice
                 ser = value[pi]
         else:
-            # set the item, possibly having a dtype change
-            ser = ser.copy()
-            ser._mgr = ser._mgr.setitem(indexer=(pi,), value=value)
-            ser._maybe_update_cacher(clear=True)
+            # set the item, first attempting to operate inplace, then
+            #  falling back to casting if necessary; see
+            #  _whatsnew_130.notable_bug_fixes.setitem_column_try_inplace
+
+            orig_values = ser._values
+            ser._mgr = ser._mgr.setitem((pi,), value)
+
+            if ser._values is orig_values:
+                # The setitem happened inplace, so the DataFrame's values
+                #  were modified inplace.
+                return
+            self.obj._iset_item(loc, ser)
+            return
 
         # reset the sliced object if unique
         self.obj._iset_item(loc, ser)
@@ -1882,20 +1892,19 @@ class _iLocIndexer(_LocationIndexer):
             # set using those methods to avoid block-splitting
             # logic here
             if (
-                len(indexer) > info_axis
-                and is_integer(indexer[info_axis])
-                and all(
-                    com.is_null_slice(idx)
-                    for i, idx in enumerate(indexer)
-                    if i != info_axis
-                )
+                self.ndim == len(indexer) == 2
+                and is_integer(indexer[1])
+                and com.is_null_slice(indexer[0])
             ):
-                selected_item_labels = item_labels[indexer[info_axis]]
-                if len(item_labels.get_indexer_for([selected_item_labels])) == 1:
-                    self.obj[selected_item_labels] = value
+                col = item_labels[indexer[info_axis]]
+                if len(item_labels.get_indexer_for([col])) == 1:
+                    # e.g. test_loc_setitem_empty_append_expands_rows
+                    loc = item_labels.get_loc(col)
+                    self.obj._iset_item(loc, value)
                     return
 
-            indexer = maybe_convert_ix(*indexer)
+            indexer = maybe_convert_ix(*indexer)  # e.g. test_setitem_frame_align
+
         if (isinstance(value, ABCSeries) and name != "iloc") or isinstance(value, dict):
             # TODO(EA): ExtensionBlock.setitem this causes issues with
             # setting for extensionarrays that store dicts. Need to decide
@@ -1910,7 +1919,7 @@ class _iLocIndexer(_LocationIndexer):
 
         # actually do the set
         self.obj._mgr = self.obj._mgr.setitem(indexer=indexer, value=value)
-        self.obj._maybe_update_cacher(clear=True)
+        self.obj._maybe_update_cacher(clear=True, inplace=True)
 
     def _setitem_with_indexer_missing(self, indexer, value):
         """
@@ -2297,7 +2306,7 @@ def convert_to_index_sliceable(obj: DataFrame, key):
                     "and will be removed in a future version. Use `frame.loc[string]` "
                     "instead.",
                     FutureWarning,
-                    stacklevel=3,
+                    stacklevel=find_stack_level(),
                 )
                 return res
             except (KeyError, ValueError, NotImplementedError):
