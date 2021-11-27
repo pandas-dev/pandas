@@ -57,17 +57,23 @@ CSSStyles = List[CSSDict]
 Subset = Union[slice, Sequence, Index]
 
 
+def _gl01_adjust(obj: Any) -> Any:
+    """Adjust docstrings for Numpydoc GLO1."""
+    obj.__doc__ = "\n" + obj.__doc__
+    return obj
+
+
 class StylerRenderer:
     """
     Base class to process rendering a Styler with a specified jinja2 template.
     """
 
-    loader = jinja2.PackageLoader("pandas", "io/formats/templates")
-    env = jinja2.Environment(loader=loader, trim_blocks=True)
-    template_html = env.get_template("html.tpl")
-    template_html_table = env.get_template("html_table.tpl")
-    template_html_style = env.get_template("html_style.tpl")
-    template_latex = env.get_template("latex.tpl")
+    loader = _gl01_adjust(jinja2.PackageLoader("pandas", "io/formats/templates"))
+    env = _gl01_adjust(jinja2.Environment(loader=loader, trim_blocks=True))
+    template_html = _gl01_adjust(env.get_template("html.tpl"))
+    template_html_table = _gl01_adjust(env.get_template("html_table.tpl"))
+    template_html_style = _gl01_adjust(env.get_template("html_style.tpl"))
+    template_latex = _gl01_adjust(env.get_template("latex.tpl"))
 
     def __init__(
         self,
@@ -817,12 +823,12 @@ class StylerRenderer:
             .. versionadded:: 1.3.0
 
         decimal : str, default "."
-            Character used as decimal separator for floats, complex and integers
+            Character used as decimal separator for floats, complex and integers.
 
             .. versionadded:: 1.3.0
 
         thousands : str, optional, default None
-            Character used as thousands separator for floats, complex and integers
+            Character used as thousands separator for floats, complex and integers.
 
             .. versionadded:: 1.3.0
 
@@ -1011,9 +1017,9 @@ class StylerRenderer:
             Floating point precision to use for display purposes, if not determined by
             the specified ``formatter``.
         decimal : str, default "."
-            Character used as decimal separator for floats, complex and integers
+            Character used as decimal separator for floats, complex and integers.
         thousands : str, optional, default None
-            Character used as thousands separator for floats, complex and integers
+            Character used as thousands separator for floats, complex and integers.
         escape : str, optional
             Use 'html' to replace the characters ``&``, ``<``, ``>``, ``'``, and ``"``
             in cell display string with HTML-safe sequences.
