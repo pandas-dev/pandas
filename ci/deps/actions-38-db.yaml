@@ -10,6 +10,7 @@ dependencies:
   - pytest-xdist>=1.31
   - hypothesis>=5.5.3
   - pytest-cov>=2.10.1  # this is only needed in the coverage build, ref: GH 35737
+  - psutil
 
   # pandas dependencies
   - aiobotocore<2.0.0

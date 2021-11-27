@@ -9,6 +9,8 @@ from typing import (
 )
 import warnings
 
+from pandas.util._test_decorators import safe_import
+
 
 @contextmanager
 def assert_produces_warning(
@@ -155,14 +157,20 @@ def _assert_caught_no_extra_warnings(
                 #  suppress these, xref GH#38630
                 continue
 
-            extra_warnings.append(
-                (
-                    actual_warning.category.__name__,
-                    actual_warning.message,
-                    actual_warning.filename,
-                    actual_warning.lineno,
-                )
-            )
+            warning_data = [
+                actual_warning.category.__name__,
+                actual_warning.message,
+                actual_warning.filename,
+                actual_warning.lineno,
+            ]
+
+            if actual_warning.category == ResourceWarning:
+                psutil = safe_import("psutil")
+                proc = psutil.Process()
+                flist = proc.open_files()
+                warning_data.append(flist)
+
+            extra_warnings.append(tuple(warning_data))
 
     if extra_warnings:
         raise AssertionError(f"Caused unexpected warning(s): {repr(extra_warnings)}")
