@@ -76,7 +76,7 @@ class Reindex:
         self.df.reindex(columns=self.idx)
 
     def time_reindex_both_axes(self):
-        self.df.reindex(index=self.idx, columns=self.idx)
+        self.df.reindex(index=self.idx, columns=self.idx_cols)
 
     def time_reindex_upcast(self):
         self.df2.reindex(np.random.permutation(range(1200)))
