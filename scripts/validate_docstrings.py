@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Analyze docstrings to detect errors.
 
@@ -427,12 +426,10 @@ if __name__ == "__main__":
     )
 
     args = argparser.parse_args()
-    sys.exit(
-        main(
-            args.function,
-            args.prefix,
-            args.errors.split(",") if args.errors else None,
-            args.format,
-            args.ignore_deprecated,
-        )
+    main(
+        args.function,
+        args.prefix,
+        args.errors.split(",") if args.errors else None,
+        args.format,
+        args.ignore_deprecated,
     )
