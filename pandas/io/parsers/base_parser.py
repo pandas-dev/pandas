@@ -1149,6 +1149,8 @@ def _process_date_conversion(
 
             new_data[new_name] = col
 
+            # If original column can be converted to date we keep the converted values
+            # This can only happen if values are from single column
             if len(colspec) == 1:
                 new_data[colspec[0]] = col
 
