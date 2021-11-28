@@ -1134,7 +1134,7 @@ class TestiLocBaseIndependent:
 
     @pytest.mark.parametrize("indexing_func", [list, np.array])
     @pytest.mark.parametrize("rhs_func", [list, np.array])
-    def test_iloc_setitem_boolean_list(self, rhs_func, indexing_func):
+    def test_loc_setitem_boolean_list(self, rhs_func, indexing_func):
         # GH#20438 testing specifically list key, not arraylike
         ser = Series([0, 1, 2])
         ser.iloc[indexing_func([True, False, True])] = rhs_func([5, 10])
@@ -1253,11 +1253,7 @@ class TestILocSetItemDuplicateColumns:
 class TestILocCallable:
     def test_frame_iloc_getitem_callable(self):
         # GH#11485
-
-        expected_attrs = {"a": 1}  # GH#28283 Call __finalize__
-
         df = DataFrame({"X": [1, 2, 3, 4], "Y": list("aabb")}, index=list("ABCD"))
-        df.attrs.update(expected_attrs)
 
         # return location
         res = df.iloc[lambda x: [1, 3]]
@@ -1343,9 +1339,6 @@ class TestILocCallable:
 class TestILocSeries:
     def test_iloc(self):
         ser = Series(np.random.randn(10), index=list(range(0, 20, 2)))
-
-        expected_attrs = {"a": 1}  # GH#28283 Call __finalize__
-        ser.attrs.update(expected_attrs)
 
         for i in range(len(ser)):
             result = ser.iloc[i]
