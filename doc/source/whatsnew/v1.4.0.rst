@@ -308,6 +308,41 @@ Now null-values are no longer mangled.
 
     res
 
+.. _whatsnew_140.notable_bug_fixes.read_csv_mangle_dup_cols:
+
+mangle_dupe_cols in read_csv no longer renaming unique columns conflicting with target names
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`read_csv` no longer renaming unique cols, which conflict with the target names of duplicated columns.
+Already existing columns are jumped, e.g. the next available index is used for the target column name (:issue:`14704`).
+
+.. ipython:: python
+
+    import io
+
+    data = "a,a,a.1\n1,2,3"
+    res = pd.read_csv(io.StringIO(data))
+
+Previously, the second column was called ``a.1``, while the third col was also renamed to ``a.1.1``.
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+    In [3]: res
+    Out[3]:
+        a  a.1  a.1.1
+    0   1    2      3
+
+Now the renaming checks if ``a.1`` already exists when changing the name of the second column and jumps this index. The
+second column is instead renamed to ``a.2``.
+
+*New behavior*:
+
+.. ipython:: python
+
+    res
+
 .. _whatsnew_140.notable_bug_fixes.notable_bug_fix3:
 
 notable_bug_fix3
@@ -675,7 +710,6 @@ I/O
 - Bug in :func:`read_csv` converting columns to numeric after date parsing failed (:issue:`11019`)
 - Bug in :func:`read_csv` not replacing ``NaN`` values with ``np.nan`` before attempting date conversion (:issue:`26203`)
 - Bug in :func:`read_csv` raising ``AttributeError`` when attempting to read a .csv file and infer index column dtype from an nullable integer type (:issue:`44079`)
-- Bug in :func:`read_csv` replacing existing column names if mangling of duplicate columns conflicts with the target column (:issue:`14704`)
 - :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` with ``compression`` set to ``'zip'`` no longer create a zip file containing a file ending with ".zip". Instead, they try to infer the inner file name more smartly. (:issue:`39465`)
 - Bug in :func:`read_csv` when passing simultaneously a parser in ``date_parser`` and ``parse_dates=False``, the parsing was still called (:issue:`44366`)
 
