@@ -1044,12 +1044,14 @@ def test_wrong_compression_gz(parser, comp):
 
 @pytest.mark.parametrize("comp", ["bz2", "gzip", "zip"])
 def test_wrong_compression_xz(parser, comp):
-    from lzma import LZMAError
+    lzma = pytest.importorskip("lzma")
 
     with tm.ensure_clean() as path:
         geom_df.to_xml(path, parser=parser, compression=comp)
 
-        with pytest.raises(LZMAError, match="Input format not supported by decoder"):
+        with pytest.raises(
+            lzma.LZMAError, match="Input format not supported by decoder"
+        ):
             read_xml(path, parser=parser, compression="xz")
 
 

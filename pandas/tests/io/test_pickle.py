@@ -33,7 +33,6 @@ import pytest
 
 from pandas.compat import (
     get_lzma_file,
-    import_lzma,
     is_platform_little_endian,
 )
 import pandas.util._test_decorators as td
@@ -50,9 +49,6 @@ from pandas.tseries.offsets import (
     Day,
     MonthEnd,
 )
-
-lzma = import_lzma()
-
 
 pytestmark = pytest.mark.filterwarnings(
     "ignore:Timestamp.freq is deprecated:FutureWarning"
@@ -311,7 +307,7 @@ class TestCompression:
             with zipfile.ZipFile(dest_path, "w", compression=zipfile.ZIP_DEFLATED) as f:
                 f.write(src_path, os.path.basename(src_path))
         elif compression == "xz":
-            f = get_lzma_file(lzma)(dest_path, "w")
+            f = get_lzma_file()(dest_path, "w")
         else:
             msg = f"Unrecognized compression type: {compression}"
             raise ValueError(msg)
