@@ -232,7 +232,7 @@ class TestDataFrameSortIndex:
         tm.assert_frame_equal(df, expected)
         # GH 44153 related
         # Used to be a_id != id(df["A"]), but flaky in the CI
-        assert a_values is not df["A"]._values
+        assert a_values is not df["A"]
 
         df = unordered.copy()
         return_value = df.sort_index(ascending=False, inplace=True)
