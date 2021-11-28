@@ -96,10 +96,10 @@ class TestSeriesFlexArithmetic:
 
     def test_flex_add_scalar_fill_value(self):
         # GH12723
-        s = Series([0, 1, np.nan, 3, 4, 5])
+        ser = Series([0, 1, np.nan, 3, 4, 5])
 
-        exp = s.fillna(0).add(2)
-        res = s.add(2, fill_value=0)
+        exp = ser.fillna(0).add(2)
+        res = ser.add(2, fill_value=0)
         tm.assert_series_equal(res, exp)
 
     pairings = [(Series.div, operator.truediv, 1), (Series.rdiv, ops.rtruediv, 1)]
@@ -226,12 +226,12 @@ class TestSeriesArithmetic:
         from datetime import date
         from decimal import Decimal
 
-        s = Series(
+        ser = Series(
             [Decimal("1.3"), Decimal("2.3")], index=[date(2012, 1, 1), date(2012, 1, 2)]
         )
 
-        result = s + s.shift(1)
-        result2 = s.shift(1) + s
+        result = ser + ser.shift(1)
+        result2 = ser.shift(1) + ser
         assert isna(result[0])
         assert isna(result2[0])
 
@@ -400,14 +400,11 @@ class TestSeriesComparison:
         assert result == expected
 
     @pytest.mark.parametrize(
-        "op",
-        [operator.eq, operator.ne, operator.le, operator.lt, operator.ge, operator.gt],
-    )
-    @pytest.mark.parametrize(
         "names", [(None, None, None), ("foo", "bar", None), ("baz", "baz", "baz")]
     )
-    def test_ser_cmp_result_names(self, names, op):
+    def test_ser_cmp_result_names(self, names, comparison_op):
         # datetime64 dtype
+        op = comparison_op
         dti = date_range("1949-06-07 03:00:00", freq="H", periods=5, name=names[0])
         ser = Series(dti).rename(names[1])
         result = op(ser, dti)
@@ -583,9 +580,10 @@ class TestSeriesComparison:
         expected = Series([False, False])
         tm.assert_series_equal(result, expected)
 
-        s = Series([frozenset([1]), frozenset([1, 2])])
+    def test_comparison_frozenset(self):
+        ser = Series([frozenset([1]), frozenset([1, 2])])
 
-        result = s == frozenset([1])
+        result = ser == frozenset([1])
         expected = Series([True, False])
         tm.assert_series_equal(result, expected)
 
@@ -649,8 +647,8 @@ class TestSeriesComparison:
 
     def test_compare_series_interval_keyword(self):
         # GH#25338
-        s = Series(["IntervalA", "IntervalB", "IntervalC"])
-        result = s == "IntervalA"
+        ser = Series(["IntervalA", "IntervalB", "IntervalC"])
+        result = ser == "IntervalA"
         expected = Series([True, False, False])
         tm.assert_series_equal(result, expected)
 
@@ -662,19 +660,6 @@ class TestSeriesComparison:
 
 
 class TestTimeSeriesArithmetic:
-    # TODO: De-duplicate with test below
-    def test_series_add_tz_mismatch_converts_to_utc_duplicate(self):
-        rng = date_range("1/1/2011", periods=10, freq="H", tz="US/Eastern")
-        ser = Series(np.random.randn(len(rng)), index=rng)
-
-        ts_moscow = ser.tz_convert("Europe/Moscow")
-
-        result = ser + ts_moscow
-        assert result.index.tz is pytz.utc
-
-        result = ts_moscow + ser
-        assert result.index.tz is pytz.utc
-
     def test_series_add_tz_mismatch_converts_to_utc(self):
         rng = date_range("1/1/2011", periods=100, freq="H", tz="utc")
 
@@ -696,16 +681,6 @@ class TestTimeSeriesArithmetic:
 
         assert result.index.tz == pytz.UTC
         tm.assert_series_equal(result, expected)
-
-    # TODO: redundant with test_series_add_tz_mismatch_converts_to_utc?
-    def test_series_arithmetic_mismatched_tzs_convert_to_utc(self):
-        base = pd.DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03"], tz="UTC")
-        idx1 = base.tz_convert("Asia/Tokyo")[:2]
-        idx2 = base.tz_convert("US/Eastern")[1:]
-
-        res = Series([1, 2], index=idx1) + Series([1, 1], index=idx2)
-        expected = Series([np.nan, 3, np.nan], index=base)
-        tm.assert_series_equal(res, expected)
 
     def test_series_add_aware_naive_raises(self):
         rng = date_range("1/1/2011", periods=10, freq="H")
@@ -789,9 +764,9 @@ class TestNamePreservation:
 
         assert isinstance(result, Series)
         if box in [Index, Series]:
-            assert result.name == names[2]
+            assert result.name is names[2] or result.name == names[2]
         else:
-            assert result.name == names[0]
+            assert result.name is names[0] or result.name == names[0]
 
     def test_binop_maybe_preserve_name(self, datetime_series):
         # names match, preserve
@@ -871,20 +846,20 @@ def test_none_comparison(series_with_simple_index):
     series.iloc[0] = np.nan
 
     # noinspection PyComparisonWithNone
-    result = series == None  # noqa
+    result = series == None  # noqa:E711
     assert not result.iat[0]
     assert not result.iat[1]
 
     # noinspection PyComparisonWithNone
-    result = series != None  # noqa
+    result = series != None  # noqa:E711
     assert result.iat[0]
     assert result.iat[1]
 
-    result = None == series  # noqa
+    result = None == series  # noqa:E711
     assert not result.iat[0]
     assert not result.iat[1]
 
-    result = None != series  # noqa
+    result = None != series  # noqa:E711
     assert result.iat[0]
     assert result.iat[1]
 

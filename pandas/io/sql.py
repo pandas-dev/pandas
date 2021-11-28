@@ -376,7 +376,7 @@ def read_sql_query(
         rows to include in each chunk.
     dtype : Type name or dict of columns
         Data type for data or columns. E.g. np.float64 or
-        {‘a’: np.float64, ‘b’: np.int32, ‘c’: ‘Int64’}
+        {‘a’: np.float64, ‘b’: np.int32, ‘c’: ‘Int64’}.
 
         .. versionadded:: 1.3.0
 

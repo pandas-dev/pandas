@@ -460,11 +460,10 @@ class TestBlockIndex:
         lengths = []
 
         # 0-length OK
-        # TODO: index variables are not used...is that right?
-        index = BlockIndex(0, locs, lengths)
+        BlockIndex(0, locs, lengths)
 
         # also OK even though empty
-        index = BlockIndex(1, locs, lengths)  # noqa
+        BlockIndex(1, locs, lengths)
 
         msg = "Block 0 extends beyond end"
         with pytest.raises(ValueError, match=msg):

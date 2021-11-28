@@ -704,7 +704,7 @@ class TestEvalNumexprPandas:
         tm.assert_numpy_array_equal(result, np.array([1.5]))
         assert result.shape == (1,)
 
-        x = np.array([False])  # noqa
+        x = np.array([False])  # noqa:F841
         result = pd.eval("x", engine=self.engine, parser=self.parser)
         tm.assert_numpy_array_equal(result, np.array([False]))
         assert result.shape == (1,)
@@ -1239,7 +1239,7 @@ class TestOperationsNumExprPandas:
         assert res == expec
 
     def test_failing_subscript_with_name_error(self):
-        df = DataFrame(np.random.randn(5, 3))  # noqa
+        df = DataFrame(np.random.randn(5, 3))  # noqa:F841
         with pytest.raises(NameError, match="name 'x' is not defined"):
             self.eval("df[x > 2] > 2")
 
@@ -1304,7 +1304,7 @@ class TestOperationsNumExprPandas:
         # with a local name overlap
         def f():
             df = orig_df.copy()
-            a = 1  # noqa
+            a = 1  # noqa:F841
             df.eval("a = 1 + b", inplace=True)
             return df
 
@@ -1316,7 +1316,7 @@ class TestOperationsNumExprPandas:
         df = orig_df.copy()
 
         def f():
-            a = 1  # noqa
+            a = 1  # noqa:F841
             old_a = df.a.copy()
             df.eval("a = a + b", inplace=True)
             result = old_a + df.b
@@ -1629,7 +1629,7 @@ class TestOperationsNumExprPython(TestOperationsNumExprPandas):
     parser = "python"
 
     def test_check_many_exprs(self):
-        a = 1  # noqa
+        a = 1  # noqa:F841
         expr = " * ".join("a" * 33)
         expected = 1
         res = pd.eval(expr, engine=self.engine, parser=self.parser)
@@ -1669,14 +1669,14 @@ class TestOperationsNumExprPython(TestOperationsNumExprPandas):
             )
 
     def test_fails_ampersand(self):
-        df = DataFrame(np.random.randn(5, 3))  # noqa
+        df = DataFrame(np.random.randn(5, 3))  # noqa:F841
         ex = "(df + 2)[df > 1] > 0 & (df > 0)"
         msg = "cannot evaluate scalar only bool ops"
         with pytest.raises(NotImplementedError, match=msg):
             pd.eval(ex, parser=self.parser, engine=self.engine)
 
     def test_fails_pipe(self):
-        df = DataFrame(np.random.randn(5, 3))  # noqa
+        df = DataFrame(np.random.randn(5, 3))  # noqa:F841
         ex = "(df + 2)[df > 1] > 0 | (df > 0)"
         msg = "cannot evaluate scalar only bool ops"
         with pytest.raises(NotImplementedError, match=msg):
@@ -1851,7 +1851,7 @@ class TestScope:
         assert lcls == lcls2
 
     def test_no_new_globals(self, engine, parser):
-        x = 1  # noqa
+        x = 1  # noqa:F841
         gbls = globals().copy()
         pd.eval("x + 1", engine=engine, parser=parser)
         gbls2 = globals().copy()
@@ -1936,7 +1936,7 @@ def test_name_error_exprs(engine, parser):
 
 @pytest.mark.parametrize("express", ["a + @b", "@a + b", "@a + @b"])
 def test_invalid_local_variable_reference(engine, parser, express):
-    a, b = 1, 2  # noqa
+    a, b = 1, 2  # noqa:F841
 
     if parser != "pandas":
         with pytest.raises(SyntaxError, match="The '@' prefix is only"):
@@ -1980,7 +1980,7 @@ def test_more_than_one_expression_raises(engine, parser):
 def test_bool_ops_fails_on_scalars(lhs, cmp, rhs, engine, parser):
     gen = {int: lambda: np.random.randint(10), float: np.random.randn}
 
-    mid = gen[lhs]()  # noqa
+    mid = gen[lhs]()  # noqa:F841
     lhs = gen[lhs]()
     rhs = gen[rhs]()
 

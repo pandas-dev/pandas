@@ -645,11 +645,11 @@ def test_nat_comparisons_invalid_ndarray(other):
             op(other, NaT)
 
 
-def test_compare_date():
+def test_compare_date(fixed_now_ts):
     # GH#39151 comparing NaT with date object is deprecated
     # See also: tests.scalar.timestamps.test_comparisons::test_compare_date
 
-    dt = Timestamp.now().to_pydatetime().date()
+    dt = fixed_now_ts.to_pydatetime().date()
 
     for left, right in [(NaT, dt), (dt, NaT)]:
         assert not left == right
