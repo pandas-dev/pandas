@@ -118,8 +118,8 @@ def test_value_counts_na():
 
 def test_value_counts_empty():
     # https://github.com/pandas-dev/pandas/issues/33317
-    s = pd.Series([], dtype="Int64")
-    result = s.value_counts()
+    ser = pd.Series([], dtype="Int64")
+    result = ser.value_counts()
     # TODO: The dtype of the index seems wrong (it's int64 for non-empty)
     idx = pd.Index([], dtype="object")
     expected = pd.Series([], index=idx, dtype="Int64")
@@ -128,8 +128,8 @@ def test_value_counts_empty():
 
 def test_value_counts_with_normalize():
     # GH 33172
-    s = pd.Series([1, 2, 1, pd.NA], dtype="Int64")
-    result = s.value_counts(normalize=True)
+    ser = pd.Series([1, 2, 1, pd.NA], dtype="Int64")
+    result = ser.value_counts(normalize=True)
     expected = pd.Series([2, 1], index=[1, 2], dtype="Float64") / 3
     tm.assert_series_equal(result, expected)
 

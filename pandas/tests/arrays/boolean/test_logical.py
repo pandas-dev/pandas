@@ -41,6 +41,20 @@ class TestLogicalOps(BaseOpsUtil):
         result = getattr(a, op_name)(pd.NA)
         tm.assert_extension_array_equal(a, result)
 
+    @pytest.mark.parametrize(
+        "other", ["a", pd.Timestamp(2017, 1, 1, 12), np.timedelta64(4)]
+    )
+    def test_eq_mismatched_type(self, other):
+        # GH-44499
+        arr = pd.array([True, False])
+        result = arr == other
+        expected = pd.array([False, False])
+        tm.assert_extension_array_equal(result, expected)
+
+        result = arr != other
+        expected = pd.array([True, True])
+        tm.assert_extension_array_equal(result, expected)
+
     def test_logical_length_mismatch_raises(self, all_logical_operators):
         op_name = all_logical_operators
         a = pd.array([True, False, None], dtype="boolean")
