@@ -768,7 +768,7 @@ Other
 - Bug in :meth:`FloatingArray.equals` failing to consider two arrays equal if they contain ``np.nan`` values (:issue:`44382`)
 - Bug in :meth:`DataFrame.shift` with ``axis=1`` and ``ExtensionDtype`` columns incorrectly raising when an incompatible ``fill_value`` is passed (:issue:`44564`)
 - Bug in :meth:`DataFrame.diff` when passing a NumPy integer object instead of an ``int`` object (:issue:`44572`)
--
+- Bug in :meth:`Series.replace` raising ``ValueError`` when using ``regex=True`` with a :class:`Series` containing ``np.nan`` values (:issue:`43344`)
 
 .. ***DO NOT USE THIS SECTION***
 
