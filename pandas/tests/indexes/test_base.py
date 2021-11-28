@@ -82,11 +82,6 @@ class TestIndex(Base):
         arr[0] = "SOMEBIGLONGSTRING"
         assert new_index[0] != "SOMEBIGLONGSTRING"
 
-        # FIXME: dont leave commented-out
-        # what to do here?
-        # arr = np.array(5.)
-        # pytest.raises(Exception, arr.view, Index)
-
     @pytest.mark.parametrize("cast_as_obj", [True, False])
     @pytest.mark.parametrize(
         "index",
@@ -827,14 +822,13 @@ class TestIndex(Base):
                 pytest.mark.xfail(reason="Float64Index cannot contain pd.NA")
             )
 
-        tm.assert_numpy_array_equal(
-            Float64Index([1.0, nulls_fixture]).isin([np.nan]), np.array([False, True])
-        )
+        idx = Float64Index([1.0, nulls_fixture])
+        res = idx.isin([np.nan])
+        tm.assert_numpy_array_equal(res, np.array([False, True]))
 
         # we cannot compare NaT with NaN
-        tm.assert_numpy_array_equal(
-            Float64Index([1.0, nulls_fixture]).isin([pd.NaT]), np.array([False, False])
-        )
+        res = idx.isin([pd.NaT])
+        tm.assert_numpy_array_equal(res, np.array([False, False]))
 
     @pytest.mark.parametrize("level", [0, -1])
     @pytest.mark.parametrize(

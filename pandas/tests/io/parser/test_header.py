@@ -620,3 +620,36 @@ row31,row32
         ParserError, match="Header rows must have an equal number of columns."
     ):
         parser.read_csv(StringIO(case), header=[0, 2])
+
+
+@skip_pyarrow
+def test_header_none_and_implicit_index(all_parsers):
+    # GH#22144
+    parser = all_parsers
+    data = "x,1,5\ny,2\nz,3\n"
+    result = parser.read_csv(StringIO(data), names=["a", "b"], header=None)
+    expected = DataFrame(
+        {"a": [1, 2, 3], "b": [5, np.nan, np.nan]}, index=["x", "y", "z"]
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@skip_pyarrow
+def test_header_none_and_implicit_index_in_second_row(all_parsers):
+    # GH#22144
+    parser = all_parsers
+    data = "x,1\ny,2,5\nz,3\n"
+    with pytest.raises(ParserError, match="Expected 2 fields in line 2, saw 3"):
+        parser.read_csv(StringIO(data), names=["a", "b"], header=None)
+
+
+@skip_pyarrow
+def test_header_none_and_on_bad_lines_skip(all_parsers):
+    # GH#22144
+    parser = all_parsers
+    data = "x,1\ny,2,5\nz,3\n"
+    result = parser.read_csv(
+        StringIO(data), names=["a", "b"], header=None, on_bad_lines="skip"
+    )
+    expected = DataFrame({"a": ["x", "z"], "b": [1, 3]})
+    tm.assert_frame_equal(result, expected)

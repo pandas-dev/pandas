@@ -6,7 +6,10 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import WindowingRankType
+from pandas._typing import (
+    WindowingRankType,
+    npt,
+)
 
 def roll_sum(
     values: np.ndarray,  # const float64_t[:]
@@ -83,7 +86,7 @@ def roll_apply(
     raw: bool,
     args: tuple[Any, ...],
     kwargs: dict[str, Any],
-) -> np.ndarray: ...  # np.ndarray[float]  # FIXME: could also be type(obj) if n==0
+) -> npt.NDArray[np.float64]: ...
 def roll_weighted_sum(
     values: np.ndarray,  # const float64_t[:]
     weights: np.ndarray,  # const float64_t[:]

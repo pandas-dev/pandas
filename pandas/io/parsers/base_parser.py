@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from copy import copy
 import csv
 import datetime
 from enum import Enum
@@ -148,6 +149,8 @@ class ParserBase:
         self.na_fvalues = kwds.get("na_fvalues")
         self.na_filter = kwds.get("na_filter", False)
         self.keep_default_na = kwds.get("keep_default_na", True)
+
+        self.dtype = copy(kwds.get("dtype", None))
 
         self.true_values = kwds.get("true_values")
         self.false_values = kwds.get("false_values")
@@ -511,6 +514,19 @@ class ParserBase:
 
         return index
 
+    def _clean_mapping(self, mapping):
+        """converts col numbers to names"""
+        if not isinstance(mapping, dict):
+            return mapping
+        clean = {}
+        for col, v in mapping.items():
+            # for mypy
+            assert self.orig_names is not None
+            if isinstance(col, int) and col not in self.orig_names:
+                col = self.orig_names[col]
+            clean[col] = v
+        return clean
+
     @final
     def _agg_index(self, index, try_parse_dates: bool = True) -> Index:
         arrays = []
@@ -535,7 +551,17 @@ class ParserBase:
                         col_name, self.na_values, self.na_fvalues, self.keep_default_na
                     )
 
-            arr, _ = self._infer_types(arr, col_na_values | col_na_fvalues)
+            clean_dtypes = self._clean_mapping(self.dtype)
+
+            cast_type = None
+            if isinstance(clean_dtypes, dict) and self.index_names is not None:
+                cast_type = clean_dtypes.get(self.index_names[i], None)
+
+            try_num_bool = not (cast_type and is_string_dtype(cast_type))
+
+            arr, _ = self._infer_types(
+                arr, col_na_values | col_na_fvalues, try_num_bool
+            )
             arrays.append(arr)
 
         names = self.index_names
@@ -1148,6 +1174,12 @@ def _process_date_conversion(
             )
 
             new_data[new_name] = col
+
+            # If original column can be converted to date we keep the converted values
+            # This can only happen if values are from single column
+            if len(colspec) == 1:
+                new_data[colspec[0]] = col
+
             new_cols.append(new_name)
             date_cols.update(old_names)
 

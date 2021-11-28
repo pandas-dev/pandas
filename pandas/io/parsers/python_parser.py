@@ -4,7 +4,6 @@ from collections import (
     abc,
     defaultdict,
 )
-from copy import copy
 import csv
 from io import StringIO
 import re
@@ -89,7 +88,6 @@ class PythonParser(ParserBase):
         self.verbose = kwds["verbose"]
         self.converters = kwds["converters"]
 
-        self.dtype = copy(kwds["dtype"])
         self.thousands = kwds["thousands"]
         self.decimal = kwds["decimal"]
 
@@ -308,21 +306,8 @@ class PythonParser(ParserBase):
 
     def _convert_data(self, data):
         # apply converters
-        def _clean_mapping(mapping):
-            """converts col numbers to names"""
-            clean = {}
-            for col, v in mapping.items():
-                if isinstance(col, int) and col not in self.orig_names:
-                    col = self.orig_names[col]
-                clean[col] = v
-            return clean
-
-        clean_conv = _clean_mapping(self.converters)
-        if not isinstance(self.dtype, dict):
-            # handles single dtype applied to all columns
-            clean_dtypes = self.dtype
-        else:
-            clean_dtypes = _clean_mapping(self.dtype)
+        clean_conv = self._clean_mapping(self.converters)
+        clean_dtypes = self._clean_mapping(self.dtype)
 
         # Apply NA values.
         clean_na_values = {}
@@ -356,6 +341,7 @@ class PythonParser(ParserBase):
         num_original_columns = 0
         clear_buffer = True
         unnamed_cols: set[str | int | None] = set()
+        self._header_line = None
 
         if self.header is not None:
             header = self.header
@@ -496,6 +482,8 @@ class PythonParser(ParserBase):
 
                 line = names[:]
 
+            # Store line, otherwise it is lost for guessing the index
+            self._header_line = line
             ncols = len(line)
             num_original_columns = ncols
 
@@ -867,10 +855,13 @@ class PythonParser(ParserBase):
         orig_names = list(columns)
         columns = list(columns)
 
-        try:
-            line = self._next_line()
-        except StopIteration:
-            line = None
+        if self._header_line is not None:
+            line = self._header_line
+        else:
+            try:
+                line = self._next_line()
+            except StopIteration:
+                line = None
 
         try:
             next_line = self._next_line()
