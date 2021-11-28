@@ -30,7 +30,6 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat._optional import import_optional_dependency
-from pandas.compat.numpy import np_percentile_argname
 
 from pandas.core.dtypes.common import (
     is_any_int_dtype,
@@ -1666,95 +1665,6 @@ nanlt = make_nancomp(operator.lt)
 nanle = make_nancomp(operator.le)
 naneq = make_nancomp(operator.eq)
 nanne = make_nancomp(operator.ne)
-
-
-def _nanpercentile_1d(
-    values: np.ndarray,
-    mask: npt.NDArray[np.bool_],
-    q: np.ndarray,
-    na_value: Scalar,
-    interpolation,
-) -> Scalar | np.ndarray:
-    """
-    Wrapper for np.percentile that skips missing values, specialized to
-    1-dimensional case.
-
-    Parameters
-    ----------
-    values : array over which to find quantiles
-    mask : ndarray[bool]
-        locations in values that should be considered missing
-    q : np.ndarray[float64] of quantile indices to find
-    na_value : scalar
-        value to return for empty or all-null values
-    interpolation : str
-
-    Returns
-    -------
-    quantiles : scalar or array
-    """
-    # mask is Union[ExtensionArray, ndarray]
-    values = values[~mask]
-
-    if len(values) == 0:
-        return np.array([na_value] * len(q), dtype=values.dtype)
-
-    return np.percentile(values, q, **{np_percentile_argname: interpolation})
-
-
-def nanpercentile(
-    values: np.ndarray,
-    q: np.ndarray,
-    *,
-    na_value,
-    mask: npt.NDArray[np.bool_],
-    interpolation,
-):
-    """
-    Wrapper for np.percentile that skips missing values.
-
-    Parameters
-    ----------
-    values : np.ndarray[ndim=2]  over which to find quantiles
-    q : np.ndarray[float64] of quantile indices to find
-    na_value : scalar
-        value to return for empty or all-null values
-    mask : ndarray[bool]
-        locations in values that should be considered missing
-    interpolation : str
-
-    Returns
-    -------
-    quantiles : scalar or array
-    """
-
-    if values.dtype.kind in ["m", "M"]:
-        # need to cast to integer to avoid rounding errors in numpy
-        result = nanpercentile(
-            values.view("i8"),
-            q=q,
-            na_value=na_value.view("i8"),
-            mask=mask,
-            interpolation=interpolation,
-        )
-
-        # Note: we have to do `astype` and not view because in general we
-        #  have float result at this point, not i8
-        return result.astype(values.dtype)
-
-    if not lib.is_scalar(mask) and mask.any():
-        # Caller is responsible for ensuring mask shape match
-        assert mask.shape == values.shape
-        result = [
-            _nanpercentile_1d(val, m, q, na_value, interpolation=interpolation)
-            for (val, m) in zip(list(values), list(mask))
-        ]
-        result = np.array(result, dtype=values.dtype, copy=False).T
-        return result
-    else:
-        return np.percentile(
-            values, q, axis=1, **{np_percentile_argname: interpolation}
-        )
 
 
 def na_accum_func(values: ArrayLike, accum_func, *, skipna: bool) -> ArrayLike:
