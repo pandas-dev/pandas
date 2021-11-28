@@ -831,8 +831,8 @@ class TestEvalPythonPython(TestEvalNumexprPython):
 class TestEvalPythonPandas(TestEvalPythonPython):
     engine = "python"
     parser = "pandas"
-    exclude_bool = []
-    exclude_cmp = []
+    exclude_bool: list[str] = []
+    exclude_cmp: list[str] = []
 
     def check_chained_cmp_op(self, lhs, cmp1, mid, cmp2, rhs):
         TestEvalNumexprPandas.check_chained_cmp_op(self, lhs, cmp1, mid, cmp2, rhs)
