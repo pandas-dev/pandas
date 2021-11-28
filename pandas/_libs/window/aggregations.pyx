@@ -1271,7 +1271,7 @@ def roll_apply(object obj,
         Py_ssize_t i, s, e, N = len(start), n = len(obj)
 
     if n == 0:
-        return obj
+        return np.array([], dtype=np.float64)
 
     arr = np.asarray(obj)
 
