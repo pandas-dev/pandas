@@ -47,7 +47,7 @@ import pandas
 
 blocklist = {'bs4', 'gcsfs', 'html5lib', 'http', 'ipython', 'jinja2', 'hypothesis',
              'lxml', 'matplotlib', 'openpyxl', 'py', 'pytest', 's3fs', 'scipy',
-             'tables', 'urllib.request', 'xlrd', 'xlsxwriter', 'xlwt', 'lzma'}
+             'tables', 'urllib.request', 'xlrd', 'xlsxwriter', 'xlwt'}
 
 # GH#28227 for some of these check for top-level modules, while others are
 #  more specific (e.g. urllib.request)
