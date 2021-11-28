@@ -662,6 +662,8 @@ I/O
 - Bug in :func:`read_json` not handling non-numpy dtypes correctly (especially ``category``) (:issue:`21892`, :issue:`33205`)
 - Bug in :func:`json_normalize` where multi-character ``sep`` parameter is incorrectly prefixed to every key (:issue:`43831`)
 - Bug in :func:`json_normalize` where reading data with missing multi-level metadata would not respect errors="ignore" (:issue:`44312`)
+- Bug in :func:`read_csv` used second row to guess implicit index if ``header`` was set to ``None`` for ``engine="python"`` (:issue:`22144`)
+- Bug in :func:`read_csv` not recognizing bad lines when ``names`` were given for ``engine="c"`` (:issue:`22144`)
 - Bug in :func:`read_csv` with :code:`float_precision="round_trip"` which did not skip initial/trailing whitespace (:issue:`43713`)
 - Bug in :func:`read_csv` not applying dtype for ``index_col`` (:issue:`9435`)
 - Bug in dumping/loading a :class:`DataFrame` with ``yaml.dump(frame)`` (:issue:`42748`)

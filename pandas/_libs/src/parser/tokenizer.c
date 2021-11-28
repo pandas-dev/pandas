@@ -446,7 +446,7 @@ static int end_line(parser_t *self) {
     }
 
     if (!(self->lines <= self->header_end + 1) &&
-        (self->expected_fields < 0 && fields > ex_fields) && !(self->usecols)) {
+        (fields > ex_fields) && !(self->usecols)) {
         // increment file line count
         self->file_lines++;
 
