@@ -224,13 +224,15 @@ class TestDataFrameSortIndex:
 
         # axis=0
         unordered = frame.loc[[3, 2, 4, 1]]
-        a_id = id(unordered["A"])
+        a_values = unordered["A"]._values
         df = unordered.copy()
         return_value = df.sort_index(inplace=True)
         assert return_value is None
         expected = frame
         tm.assert_frame_equal(df, expected)
-        assert a_id != id(df["A"])
+        # GH 44153 related
+        # Used to be a_id != id(df["A"]), but flaky in the CI
+        assert not np.shares_memory(a_values, df["A"]._values)
 
         df = unordered.copy()
         return_value = df.sort_index(ascending=False, inplace=True)
