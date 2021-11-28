@@ -213,6 +213,7 @@ Usage within the :class:`Series` class:
     ser = pd.Series([1, 2, 3])
     shifts = [0, 1, 2]
 
+    ser.shift(shifts)
 
 .. _whatsnew_140.enhancements.other:
 
