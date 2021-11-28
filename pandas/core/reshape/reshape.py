@@ -1174,9 +1174,9 @@ def from_dummies(
 
     >>> pd.from_dummies(df, sep={"col1": "_", "col2": "-"})
        col1  col2
-    0  a-a   b-b
-    1  b-b   a-a
-    2  a-a   c-c
+    0  a-a   b_b
+    1  b-b   a_a
+    2  a-a   c_c
     """
     from pandas.core.reshape.concat import concat
 
