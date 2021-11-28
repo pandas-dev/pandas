@@ -5311,10 +5311,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             If weights do not sum to 1, they will be normalized to sum to 1.
             Missing values in the weights column will be treated as zero.
             Infinite values not allowed.
-        random_state : int, array-like, BitGenerator, np.random.RandomState,
-            np.random.Generator, optional. If int, array-like, or BitGenerator, seed for
-            random number generator. If np.random.RandomState or np.random.Generator,
-            use as given.
+        random_state : int, array-like, BitGenerator, np.random.RandomState, np.random.Generator, optional
+            If int, array-like, or BitGenerator, seed for random number generator.
+            If np.random.RandomState or np.random.Generator, use as given.
 
             .. versionchanged:: 1.1.0
 
@@ -5403,7 +5402,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 num_legs  num_wings  num_specimen_seen
         falcon         2          2                 10
         fish           0          0                  8
-        """
+        """  # noqa:E501
         if axis is None:
             axis = self._stat_axis_number
 
@@ -7906,11 +7905,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         level : str or int, optional
             For a MultiIndex, level (name or number) to use for
             resampling. `level` must be datetime-like.
-        origin : {{'epoch', 'start', 'start_day', 'end', 'end_day'}}, Timestamp
-            or str, default 'start_day'
+        origin : Timestamp or str, default 'start_day'
             The timestamp on which to adjust the grouping. The timezone of origin
             must match the timezone of the index.
-            If a timestamp is not used, these values are also supported:
+            If string, must be one of the following:
 
             - 'epoch': `origin` is 1970-01-01
             - 'start': `origin` is the first value of the timeseries

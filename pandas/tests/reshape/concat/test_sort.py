@@ -92,3 +92,9 @@ class TestConcatSort:
         expected = DataFrame([[2, np.nan], [np.nan, 1]], index=[2, 1], columns=[2, 1])
 
         tm.assert_frame_equal(result, expected)
+
+    def test_concat_sort_none_warning(self):
+        # GH#41518
+        df = DataFrame({1: [1, 2], "a": [3, 4]})
+        with tm.assert_produces_warning(FutureWarning, match="sort"):
+            pd.concat([df, df], sort=None)

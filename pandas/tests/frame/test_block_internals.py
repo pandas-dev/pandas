@@ -352,8 +352,7 @@ class TestDataFrameBlockInternals:
             assert pd.isna(Y["g"]["c"])
 
     def test_strange_column_corruption_issue(self):
-        # FIXME: dont leave commented-out
-        # (wesm) Unclear how exactly this is related to internal matters
+        # TODO(wesm): Unclear how exactly this is related to internal matters
         df = DataFrame(index=[0, 1])
         df[0] = np.nan
         wasCol = {}
