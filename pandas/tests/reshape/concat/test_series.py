@@ -50,7 +50,7 @@ class TestSeriesConcat:
         result = concat([s1, s2])
         tm.assert_series_equal(result, expected)
 
-    def test_concat_series_axis1(self, sort=sort):
+    def test_concat_series_axis1(self, sort):
         ts = tm.makeTimeSeries()
 
         pieces = [ts[:-2], ts[2:], ts[2:-2]]
@@ -79,7 +79,9 @@ class TestSeriesConcat:
         s = Series(np.random.randn(3), index=["c", "a", "b"], name="A")
         s2 = Series(np.random.randn(4), index=["d", "a", "b", "c"], name="B")
         result = concat([s, s2], axis=1, sort=sort)
-        expected = DataFrame({"A": s, "B": s2})
+        expected = DataFrame({"A": s, "B": s2}, index=["c", "a", "b", "d"])
+        if sort:
+            expected = expected.sort_index()
         tm.assert_frame_equal(result, expected)
 
     def test_concat_series_axis1_names_applied(self):
