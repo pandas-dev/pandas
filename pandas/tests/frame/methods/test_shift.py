@@ -429,3 +429,23 @@ class TestDataFrameShift:
             columns=ci,
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_shift_with_iterable(self):
+        # GH#44424
+        data = {"a": [1, 2, 3], "b": [4, 5, 6]}
+        shifts = [0, 1, 2]
+
+        df = DataFrame(data)
+        shifted = df.shift(shifts)
+
+        expected = DataFrame(
+            {
+                "a_0": [1, 2, 3],
+                "b_0": [4, 5, 6],
+                "a_1": [np.NaN, 1.0, 2.0],
+                "b_1": [np.NaN, 4.0, 5.0],
+                "a_2": [np.NaN, np.NaN, 1.0],
+                "b_2": [np.NaN, np.NaN, 4.0],
+            }
+        )
+        tm.assert_frame_equal(expected, shifted)

@@ -14,6 +14,7 @@ from pandas import (
     offsets,
 )
 import pandas._testing as tm
+from pandas.core.frame import DataFrame
 
 from pandas.tseries.offsets import BDay
 
@@ -376,3 +377,15 @@ class TestShift:
         expected = Series(output_data, dtype="float64")
 
         tm.assert_series_equal(result, expected)
+
+    def test_shift_with_iterable(self):
+        # GH#44424
+        ser = Series([1, 2, 3])
+        shifts = [0, 1, 2]
+
+        shifted = ser.shift(shifts)
+        expected = DataFrame(
+            {"0_0": [1, 2, 3], "0_1": [np.NaN, 1.0, 2.0], "0_2": [np.NaN, np.NaN, 1.0]}
+        )
+
+        tm.assert_frame_equal(expected, shifted)
