@@ -186,6 +186,34 @@ representation of :class:`DataFrame` objects (:issue:`4889`).
     df
     df.to_dict(orient='tight')
 
+.. _whatsnew_140.enhancements.shift:
+
+DataFrame.shift and Series.shift now accept an iterable for parameter ``'period'``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The :meth:`DataFrame.shift` and :meth:`Series.shift` functions can take in an iterable, such as a list, for the period parameter. When an iterable is passed
+to either function it returns a :class:`DataFrame` object with all of the shifted rows or columns concatenated with one another.
+The function applies a shift designated by each element in the iterable. The resulting :class:`DataFrame` object's columns will retain the
+names from the :class:`DataFrame` object that called shift, but postfixed with <name>_<num>, where name is the original
+column name and num correlates to the current element of the period iterable (:issue:`44424`).
+
+Usage within the :class:`DataFrame` class:
+.. ipython:: python
+
+    df = pd.DataFrame({
+        'a': [1, 2, 3],
+        'b': [4, 5, 6]
+    })
+    shifts = [0, 1, 2]
+    df.shift(shifts)
+
+Usage within the :class:`Series` class:
+.. ipython:: python
+
+    ser = pd.Series([1, 2, 3])
+    shifts = [0, 1, 2]
+
+
 .. _whatsnew_140.enhancements.other:
 
 Other enhancements
