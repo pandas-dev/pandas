@@ -3588,10 +3588,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             sampling probabilities after normalization within each group.
             Values must be non-negative with at least one positive element
             within each group.
-        random_state : int, array-like, BitGenerator, np.random.RandomState,
-            np.random.Generator, optional. If int, array-like, or BitGenerator, seed for
-            random number generator. If np.random.RandomState or np.random.Generator,
-            use as given.
+        random_state : int, array-like, BitGenerator, np.random.RandomState, np.random.Generator, optional
+            If int, array-like, or BitGenerator, seed for random number generator.
+            If np.random.RandomState or np.random.Generator, use as given.
 
             .. versionchanged:: 1.4.0
 
@@ -3651,7 +3650,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         5  black  5
         2   blue  2
         0    red  0
-        """
+        """  # noqa:E501
         size = sample.process_sampling_size(n, frac, replace)
         if weights is not None:
             weights_arr = sample.preprocess_weights(
