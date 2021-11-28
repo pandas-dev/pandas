@@ -1767,7 +1767,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 )
 
             if self.as_index:
-                # Remove Series index names (for compatability with size())
+                # Remove Series index names (for compatibility with size())
                 for info in grouping_info:
                     if not info["in_axis"]:
                         result.index.set_names(None, level=info["level"], inplace=True)
