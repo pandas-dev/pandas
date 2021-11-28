@@ -13,6 +13,7 @@ import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
     is_bool,
+    is_float,
     is_list_like,
     is_scalar,
 )
@@ -121,7 +122,10 @@ _good_arith_ops = sorted(set(ARITH_OPS_SYMS).difference(SPECIAL_CASE_ARITH_OPS_S
 
 
 # TODO: using range(5) here is a kludge
-@pytest.fixture(params=list(range(5)))
+@pytest.fixture(
+    params=list(range(5)),
+    ids=["DataFrame", "Series", "SeriesNaN", "DataFrameNaN", "float"],
+)
 def lhs(request):
 
     nan_df1 = DataFrame(np.random.rand(10, 5))
@@ -168,7 +172,12 @@ class TestEvalNumexprPandas:
     @pytest.mark.parametrize("binop", expr.BOOL_OPS_SYMS)
     def test_complex_cmp_ops(self, cmp1, cmp2, binop, lhs, rhs):
         if binop in self.exclude_bool:
-            pytest.skip()
+            # i.e. "&" and "|"
+            msg = "'BoolOp' nodes are not implemented"
+            with pytest.raises(NotImplementedError, match=msg):
+                ex = f"(lhs {cmp1} rhs) {binop} (lhs {cmp2} rhs)"
+                result = pd.eval(ex, engine=self.engine, parser=self.parser)
+            return
 
         lhs_new = _eval_single_bin(lhs, cmp1, rhs, self.engine)
         rhs_new = _eval_single_bin(lhs, cmp2, rhs, self.engine)
@@ -180,9 +189,6 @@ class TestEvalNumexprPandas:
 
     @pytest.mark.parametrize("cmp_op", expr.CMP_OPS_SYMS)
     def test_simple_cmp_ops(self, cmp_op):
-        if cmp_op in self.exclude_cmp:
-            pytest.skip()
-
         bool_lhses = (
             DataFrame(tm.randbool(size=(10, 5))),
             Series(tm.randbool((5,))),
@@ -193,6 +199,15 @@ class TestEvalNumexprPandas:
             Series(tm.randbool((5,))),
             tm.randbool(),
         )
+
+        if cmp_op in self.exclude_cmp:
+            msg = "'(In|NotIn)' nodes are not implemented"
+            for lhs, rhs in product(bool_lhses, bool_rhses):
+
+                with pytest.raises(NotImplementedError, match=msg):
+                    self.check_simple_cmp_op(lhs, cmp_op, rhs)
+            return
+
         for lhs, rhs in product(bool_lhses, bool_rhses):
             self.check_simple_cmp_op(lhs, cmp_op, rhs)
 
@@ -213,15 +228,29 @@ class TestEvalNumexprPandas:
 
     @pytest.mark.parametrize("op", expr.CMP_OPS_SYMS)
     def test_single_invert_op(self, op, lhs):
-        if op in self.exclude_cmp:
-            pytest.skip()
-
         self.check_single_invert_op(lhs, op)
 
     @pytest.mark.parametrize("op", expr.CMP_OPS_SYMS)
-    def test_compound_invert_op(self, op, lhs, rhs):
+    def test_compound_invert_op(self, op, lhs, rhs, request):
         if op in self.exclude_cmp:
-            pytest.skip()
+
+            msg = "'(In|NotIn)' nodes are not implemented"
+            with pytest.raises(NotImplementedError, match=msg):
+                self.check_compound_invert_op(lhs, op, rhs)
+            return
+
+        if (
+            is_float(lhs)
+            and not is_float(rhs)
+            and op in ["in", "not in"]
+            and self.engine == "python"
+            and self.parser == "pandas"
+        ):
+            mark = pytest.mark.xfail(
+                reason="Looks like expected is negative, unclear whether "
+                "expected is incorrect or result is incorrect"
+            )
+            request.node.add_marker(mark)
 
         self.check_compound_invert_op(lhs, op, rhs)
 
@@ -802,6 +831,8 @@ class TestEvalPythonPython(TestEvalNumexprPython):
 class TestEvalPythonPandas(TestEvalPythonPython):
     engine = "python"
     parser = "pandas"
+    exclude_bool = []
+    exclude_cmp = []
 
     def check_chained_cmp_op(self, lhs, cmp1, mid, cmp2, rhs):
         TestEvalNumexprPandas.check_chained_cmp_op(self, lhs, cmp1, mid, cmp2, rhs)
