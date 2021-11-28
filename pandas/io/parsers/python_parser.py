@@ -415,6 +415,8 @@ class PythonParser(ParserBase):
 
                 if not have_mi_columns and self.mangle_dupe_cols:
                     counts: DefaultDict = defaultdict(int)
+                    # Ensure that regular columns are used before unnamed ones
+                    # to keep given names and mangle unnamed columns
                     col_loop_order = [
                         i
                         for i in range(len(this_columns))

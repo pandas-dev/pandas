@@ -678,6 +678,8 @@ cdef class TextReader:
                     this_header.append(name)
 
                 if not self.has_mi_columns and self.mangle_dupe_cols:
+                    # Ensure that regular columns are used before unnamed ones
+                    # to keep given names and mangle unnamed columns
                     col_loop_order = [i for i in range(len(this_header))
                                       if i not in unnamed_col_indices
                                       ] + unnamed_col_indices
