@@ -652,6 +652,7 @@ class SetitemCastingEquivalents:
 
     def test_index_where(self, obj, key, expected, val, request):
         if Index(obj).dtype != obj.dtype:
+            # TODO(ExtensionIndex): Should become unreachable
             pytest.skip("test not applicable for this dtype")
 
         mask = np.zeros(obj.shape, dtype=bool)
@@ -667,6 +668,7 @@ class SetitemCastingEquivalents:
 
     def test_index_putmask(self, obj, key, expected, val):
         if Index(obj).dtype != obj.dtype:
+            # TODO(ExtensionIndex): Should become unreachable
             pytest.skip("test not applicable for this dtype")
 
         mask = np.zeros(obj.shape, dtype=bool)

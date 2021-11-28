@@ -171,12 +171,15 @@ def test_binary_ufunc_scalar(ufunc, sparse, flip, arrays_for_binary_ufunc):
 @pytest.mark.parametrize("sparse", SPARSE, ids=SPARSE_IDS)
 @pytest.mark.parametrize("shuffle", SHUFFLE)
 @pytest.mark.filterwarnings("ignore:divide by zero:RuntimeWarning")
-def test_multiple_output_binary_ufuncs(ufunc, sparse, shuffle, arrays_for_binary_ufunc):
+def test_multiple_output_binary_ufuncs(
+    ufunc, sparse, shuffle, arrays_for_binary_ufunc, request
+):
     # Test that
     #  the same conditions from binary_ufunc_scalar apply to
     #  ufuncs with multiple outputs.
     if sparse and ufunc is np.divmod:
-        pytest.skip("sparse divmod not implemented.")
+        mark = pytest.mark.xfail(reason="sparse divmod not implemented")
+        request.node.add_marker(mark)
 
     a1, a2 = arrays_for_binary_ufunc
     # work around https://github.com/pandas-dev/pandas/issues/26987

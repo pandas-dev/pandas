@@ -79,17 +79,18 @@ class TestReductions:
             ("boolean", True),
         ],
     )
-    def test_nanminmax(self, opname, dtype, val, index_or_series):
+    def test_nanminmax(self, opname, dtype, val, index_or_series, request):
         # GH#7261
         klass = index_or_series
 
         if dtype in ["Int64", "boolean"] and klass == Index:
-            pytest.skip("EAs can't yet be stored in an index")
+            mark = pytest.mark.xfail(reason="Need EA-backed Index")
+            request.node.add_marker(mark)
 
         def check_missing(res):
             if dtype == "datetime64[ns]":
                 return res is NaT
-            elif dtype == "Int64":
+            elif dtype in ["Int64", "boolean"]:
                 return res is pd.NA
             else:
                 return isna(res)
