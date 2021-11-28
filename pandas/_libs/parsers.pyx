@@ -926,15 +926,19 @@ cdef class TextReader:
                 self.parser.line_fields[i] + \
                 (num_cols >= self.parser.line_fields[i]) * num_cols
 
+        usecols_not_callable_and_exists = not callable(self.usecols) and self.usecols
+        names_larger_num_cols = (self.names and
+                                 len(self.names) - self.leading_cols > num_cols)
+
         if self.table_width - self.leading_cols > num_cols:
-            if ((not callable(self.usecols) and self.usecols and
-                    self.table_width - self.leading_cols < len(self.usecols))
-                    or (self.names and len(self.names) - self.leading_cols > num_cols)):
+            if (usecols_not_callable_and_exists
+                    and self.table_width - self.leading_cols < len(self.usecols)
+                    or names_larger_num_cols):
                 raise ParserError(f"Too many columns specified: expected "
                                   f"{self.table_width - self.leading_cols} "
                                   f"and found {num_cols}")
 
-        if (self.usecols is not None and not callable(self.usecols) and
+        if (usecols_not_callable_and_exists and
                 all(isinstance(u, int) for u in self.usecols)):
             missing_usecols = [col for col in self.usecols if col >= num_cols]
             if missing_usecols:
