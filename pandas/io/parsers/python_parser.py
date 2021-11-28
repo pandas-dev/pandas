@@ -447,6 +447,7 @@ class PythonParser(ParserBase):
                 self._clear_buffer()
 
             if names is not None:
+                # Read first row after header to check if data are longer
                 try:
                     first_line = self._next_line()
                 except StopIteration:
