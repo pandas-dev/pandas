@@ -184,7 +184,7 @@ class TestRename:
         assert "C" in float_frame
         assert "foo" not in float_frame
 
-        c_values = float_frame["C"]._values
+        c_values = float_frame["C"]
         float_frame = float_frame.copy()
         return_value = float_frame.rename(columns={"C": "foo"}, inplace=True)
         assert return_value is None
@@ -193,7 +193,7 @@ class TestRename:
         assert "foo" in float_frame
         # GH 44153
         # Used to be id(float_frame["foo"]) != c_id, but flaky in the CI
-        assert not np.shares_memory(float_frame["foo"]._values, c_values)
+        assert float_frame["foo"] is not c_values
 
     def test_rename_bug(self):
         # GH 5344
