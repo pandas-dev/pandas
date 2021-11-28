@@ -1683,7 +1683,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                         f"Keys {clashing} in subset cannot be in "
                         "the groupby column keys"
                     )
-                remaining_columns = subset
+                remaining_columns = list(subset)
 
             if dropna:
                 df = df.dropna(subset=remaining_columns, axis="index", how="any")
@@ -1761,9 +1761,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
             if sort:
                 # Sort the values and then resort by the main grouping
-                level = [info["level"] for info in grouping_info]
+                index_level = [info["level"] for info in grouping_info]
                 result = result.sort_values(ascending=ascending).sort_index(
-                    level=level, sort_remaining=False
+                    level=index_level, sort_remaining=False
                 )
 
             if self.as_index:
