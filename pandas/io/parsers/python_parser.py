@@ -341,6 +341,7 @@ class PythonParser(ParserBase):
         num_original_columns = 0
         clear_buffer = True
         unnamed_cols: set[str | int | None] = set()
+        self._header_line = None
 
         if self.header is not None:
             header = self.header
@@ -447,7 +448,15 @@ class PythonParser(ParserBase):
                 self._clear_buffer()
 
             if names is not None:
-                if len(names) > len(columns[0]):
+                # Read first row after header to check if data are longer
+                try:
+                    first_line = self._next_line()
+                except StopIteration:
+                    first_line = None
+
+                len_first_data_row = 0 if first_line is None else len(first_line)
+
+                if len(names) > len(columns[0]) and len(names) > len_first_data_row:
                     raise ValueError(
                         "Number of passed names did not match "
                         "number of header fields in the file"
@@ -481,6 +490,8 @@ class PythonParser(ParserBase):
 
                 line = names[:]
 
+            # Store line, otherwise it is lost for guessing the index
+            self._header_line = line
             ncols = len(line)
             num_original_columns = ncols
 
@@ -852,10 +863,13 @@ class PythonParser(ParserBase):
         orig_names = list(columns)
         columns = list(columns)
 
-        try:
-            line = self._next_line()
-        except StopIteration:
-            line = None
+        if self._header_line is not None:
+            line = self._header_line
+        else:
+            try:
+                line = self._next_line()
+            except StopIteration:
+                line = None
 
         try:
             next_line = self._next_line()

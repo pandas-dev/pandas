@@ -182,7 +182,7 @@ def test_skip_row_with_newline_and_quote(all_parsers, data, exp_data):
 @pytest.mark.parametrize(
     "line_terminator", ["\n", "\r\n", "\r"]  # "LF"  # "CRLF"  # "CR"
 )
-def test_skiprows_lineterminator(all_parsers, line_terminator):
+def test_skiprows_lineterminator(all_parsers, line_terminator, request):
     # see gh-9079
     parser = all_parsers
     data = "\n".join(
@@ -203,7 +203,8 @@ def test_skiprows_lineterminator(all_parsers, line_terminator):
     )
 
     if parser.engine == "python" and line_terminator == "\r":
-        pytest.skip("'CR' not respect with the Python parser yet")
+        mark = pytest.mark.xfail(reason="'CR' not respect with the Python parser yet")
+        request.node.add_marker(mark)
 
     data = data.replace("\n", line_terminator)
     result = parser.read_csv(
