@@ -1671,9 +1671,12 @@ class TestOperationsPythonPandas(TestOperationsNumExprPandas):
 
 
 @td.skip_if_no_ne
-class TestMathPythonPython:
-    engine = "python"
-    parser = "pandas"
+class TestMath:
+    @pytest.fixture(autouse=True)
+    def set_engine_parser_attrs(self, engine, parser):
+        # Older tests look for these as attributes, so we set them here.
+        self.engine = engine
+        self.parser = parser
 
     def eval(self, *args, **kwargs):
         kwargs["engine"] = self.engine
@@ -1762,21 +1765,6 @@ class TestMathPythonPython:
 
         with pytest.raises(TypeError, match=msg):
             df.eval("sin(x=a)", engine=self.engine, parser=self.parser)
-
-
-class TestMathPythonPandas(TestMathPythonPython):
-    engine = "python"
-    parser = "pandas"
-
-
-class TestMathNumExprPandas(TestMathPythonPython):
-    engine = "numexpr"
-    parser = "pandas"
-
-
-class TestMathNumExprPython(TestMathPythonPython):
-    engine = "numexpr"
-    parser = "python"
 
 
 _var_s = np.random.randn(10)
