@@ -30,6 +30,7 @@ from pandas._typing import (
     Shape,
     npt,
 )
+from pandas.compat import np_version_under1p20
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
@@ -190,7 +191,7 @@ class Block(PandasObject):
             "future version.  Use isinstance(block.values, Categorical) "
             "instead. See https://github.com/pandas-dev/pandas/issues/40226",
             DeprecationWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return isinstance(self.values, Categorical)
 
@@ -309,7 +310,7 @@ class Block(PandasObject):
         return self.values[slicer]
 
     @final
-    def getitem_block(self, slicer) -> Block:
+    def getitem_block(self, slicer: slice | npt.NDArray[np.intp]) -> Block:
         """
         Perform __getitem__-like, return result as block.
 
@@ -326,7 +327,9 @@ class Block(PandasObject):
         return type(self)(new_values, new_mgr_locs, self.ndim)
 
     @final
-    def getitem_block_columns(self, slicer, new_mgr_locs: BlockPlacement) -> Block:
+    def getitem_block_columns(
+        self, slicer: slice, new_mgr_locs: BlockPlacement
+    ) -> Block:
         """
         Perform __getitem__-like, return result as block.
 
@@ -867,6 +870,12 @@ class Block(PandasObject):
 
     # ---------------------------------------------------------------------
 
+    def _maybe_squeeze_arg(self, arg: np.ndarray) -> np.ndarray:
+        """
+        For compatibility with 1D-only ExtensionArrays.
+        """
+        return arg
+
     def setitem(self, indexer, value):
         """
         Attempt self.values[indexer] = value, possibly creating a new array.
@@ -930,10 +939,7 @@ class Block(PandasObject):
             value = setitem_datetimelike_compat(values, len(values[indexer]), value)
             values[indexer] = value
 
-        if transpose:
-            values = values.T
-        block = type(self)(values, placement=self._mgr_locs, ndim=self.ndim)
-        return block
+        return self
 
     def putmask(self, mask, new) -> list[Block]:
         """
@@ -952,7 +958,8 @@ class Block(PandasObject):
         List[Block]
         """
         orig_mask = mask
-        mask, noop = validate_putmask(self.values.T, mask)
+        values = cast(np.ndarray, self.values)
+        mask, noop = validate_putmask(values.T, mask)
         assert not isinstance(new, (ABCIndex, ABCSeries, ABCDataFrame))
 
         # if we are passed a scalar None, convert it here
@@ -960,28 +967,30 @@ class Block(PandasObject):
             new = self.fill_value
 
         if self._can_hold_element(new):
-
-            # error: Argument 1 to "putmask_without_repeat" has incompatible type
-            # "Union[ndarray, ExtensionArray]"; expected "ndarray"
-            putmask_without_repeat(self.values.T, mask, new)  # type: ignore[arg-type]
+            putmask_without_repeat(values.T, mask, new)
             return [self]
 
-        elif noop:
-            return [self]
-
-        dtype, _ = infer_dtype_from(new)
-        if dtype.kind in ["m", "M"]:
+        elif np_version_under1p20 and infer_dtype_from(new)[0].kind in ["m", "M"]:
             # using putmask with object dtype will incorrectly cast to object
             # Having excluded self._can_hold_element, we know we cannot operate
             #  in-place, so we are safe using `where`
             return self.where(new, ~mask)
 
+        elif noop:
+            return [self]
+
         elif self.ndim == 1 or self.shape[0] == 1:
             # no need to split columns
 
-            # error: Argument 1 to "putmask_smart" has incompatible type "Union[ndarray,
-            # ExtensionArray]"; expected "ndarray"
-            nv = putmask_smart(self.values.T, mask, new).T  # type: ignore[arg-type]
+            if not is_list_like(new):
+                # putmask_smart can't save us the need to cast
+                return self.coerce_to_target_dtype(new).putmask(mask, new)
+
+            # This differs from
+            #  `self.coerce_to_target_dtype(new).putmask(mask, new)`
+            # because putmask_smart will check if new[mask] may be held
+            # by our dtype.
+            nv = putmask_smart(values.T, mask, new).T
             return [self.make_block(nv)]
 
         else:
@@ -1122,7 +1131,7 @@ class Block(PandasObject):
 
     def diff(self, n: int, axis: int = 1) -> list[Block]:
         """return block for the diff of the values"""
-        new_values = algos.diff(self.values, n, axis=axis, stacklevel=7)
+        new_values = algos.diff(self.values, n, axis=axis)
         return [self.make_block(values=new_values)]
 
     def shift(self, periods: int, axis: int = 0, fill_value: Any = None) -> list[Block]:
@@ -1301,6 +1310,9 @@ class Block(PandasObject):
         assert is_list_like(qs)  # caller is responsible for this
 
         result = quantile_compat(self.values, np.asarray(qs._values), interpolation)
+        # ensure_block_shape needed for cases where we start with EA and result
+        #  is ndarray, e.g. IntegerArray, SparseArray
+        result = ensure_block_shape(result, ndim=2)
         return new_block_2d(result, placement=self._mgr_locs)
 
 
@@ -1310,6 +1322,46 @@ class EABackedBlock(Block):
     """
 
     values: ExtensionArray
+
+    def putmask(self, mask, new) -> list[Block]:
+        """
+        See Block.putmask.__doc__
+        """
+        mask = extract_bool_array(mask)
+
+        values = self.values
+
+        mask = self._maybe_squeeze_arg(mask)
+
+        try:
+            # Caller is responsible for ensuring matching lengths
+            values._putmask(mask, new)
+        except (TypeError, ValueError) as err:
+            if isinstance(err, ValueError) and "Timezones don't match" not in str(err):
+                # TODO(2.0): remove catching ValueError at all since
+                #  DTA raising here is deprecated
+                raise
+
+            if is_interval_dtype(self.dtype):
+                # Discussion about what we want to support in the general
+                #  case GH#39584
+                blk = self.coerce_to_target_dtype(new)
+                if blk.dtype == _dtype_obj:
+                    # For now at least, only support casting e.g.
+                    #  Interval[int64]->Interval[float64],
+                    raise
+                return blk.putmask(mask, new)
+
+            elif isinstance(self, NDArrayBackedExtensionBlock):
+                # NB: not (yet) the same as
+                #  isinstance(values, NDArrayBackedExtensionArray)
+                blk = self.coerce_to_target_dtype(new)
+                return blk.putmask(mask, new)
+
+            else:
+                raise
+
+        return [self]
 
     def delete(self, loc) -> None:
         """
@@ -1407,38 +1459,16 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
             # _cache not yet initialized
             pass
 
-    def putmask(self, mask, new) -> list[Block]:
+    def _maybe_squeeze_arg(self, arg):
         """
-        See Block.putmask.__doc__
+        If necessary, squeeze a (N, 1) ndarray to (N,)
         """
-        mask = extract_bool_array(mask)
-
-        new_values = self.values
-
-        if isinstance(new, (np.ndarray, ExtensionArray)) and len(new) == len(mask):
-            new = new[mask]
-
-        if mask.ndim == new_values.ndim + 1:
+        # e.g. if we are passed a 2D mask for putmask
+        if isinstance(arg, np.ndarray) and arg.ndim == self.values.ndim + 1:
             # TODO(EA2D): unnecessary with 2D EAs
-            mask = mask.reshape(new_values.shape)
-
-        try:
-            new_values[mask] = new
-        except TypeError:
-            if not is_interval_dtype(self.dtype):
-                # Discussion about what we want to support in the general
-                #  case GH#39584
-                raise
-
-            blk = self.coerce_to_target_dtype(new)
-            if blk.dtype == _dtype_obj:
-                # For now at least, only support casting e.g.
-                #  Interval[int64]->Interval[float64],
-                raise
-            return blk.putmask(mask, new)
-
-        nb = type(self)(new_values, placement=self._mgr_locs, ndim=self.ndim)
-        return [nb]
+            assert arg.shape[1] == 1
+            arg = arg[:, 0]
+        return arg
 
     @property
     def is_view(self) -> bool:
@@ -1539,7 +1569,9 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
                 )
             # GH#32959 only full-slicers along fake-dim0 are valid
             # TODO(EA2D): won't be necessary with 2D EAs
-            new_locs = self._mgr_locs[first]
+            # range(1) instead of self._mgr_locs to avoid exception on [::-1]
+            #  see test_iloc_getitem_slice_negative_step_ea_block
+            new_locs = range(1)[first]
             if len(new_locs):
                 # effectively slice(None)
                 slicer = slicer[1]
@@ -1594,15 +1626,8 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         cond = extract_bool_array(cond)
         assert not isinstance(other, (ABCIndex, ABCSeries, ABCDataFrame))
 
-        if isinstance(other, np.ndarray) and other.ndim == 2:
-            # TODO(EA2D): unnecessary with 2D EAs
-            assert other.shape[1] == 1
-            other = other[:, 0]
-
-        if isinstance(cond, np.ndarray) and cond.ndim == 2:
-            # TODO(EA2D): unnecessary with 2D EAs
-            assert cond.shape[1] == 1
-            cond = cond[:, 0]
+        other = self._maybe_squeeze_arg(other)
+        cond = self._maybe_squeeze_arg(cond)
 
         if lib.is_scalar(other) and isna(other):
             # The default `other` for Series / Frame is np.nan
@@ -1611,6 +1636,10 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
             # error: Item "dtype[Any]" of "Union[dtype[Any], ExtensionDtype]" has no
             # attribute "na_value"
             other = self.dtype.na_value  # type: ignore[union-attr]
+
+        icond, noop = validate_putmask(self.values, ~cond)
+        if noop:
+            return self.copy()
 
         try:
             result = self.values._where(cond, other)
@@ -1696,16 +1725,6 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
             values = values.T
         values[indexer] = value
         return self
-
-    def putmask(self, mask, new) -> list[Block]:
-        mask = extract_bool_array(mask)
-
-        if not self._can_hold_element(new):
-            return self.coerce_to_target_dtype(new).putmask(mask, new)
-
-        arr = self.values
-        arr.T.putmask(mask, new)
-        return [self]
 
     def where(self, other, cond) -> list[Block]:
         arr = self.values

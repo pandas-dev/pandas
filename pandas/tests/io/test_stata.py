@@ -1134,7 +1134,7 @@ class TestStata:
     ):
         fname = getattr(self, file)
 
-        with warnings.catch_warnings(record=True) as w:
+        with warnings.catch_warnings(record=True):
             warnings.simplefilter("always")
             parsed = read_stata(
                 fname,
@@ -1150,7 +1150,7 @@ class TestStata:
 
         pos = 0
         for j in range(5):
-            with warnings.catch_warnings(record=True) as w:  # noqa
+            with warnings.catch_warnings(record=True):
                 warnings.simplefilter("always")
                 try:
                     chunk = itr.read(chunksize)
@@ -1231,7 +1231,7 @@ class TestStata:
         fname = getattr(self, file)
 
         # Read the whole file
-        with warnings.catch_warnings(record=True) as w:
+        with warnings.catch_warnings(record=True):
             warnings.simplefilter("always")
             parsed = read_stata(
                 fname,
@@ -1248,7 +1248,7 @@ class TestStata:
         )
         pos = 0
         for j in range(5):
-            with warnings.catch_warnings(record=True) as w:  # noqa
+            with warnings.catch_warnings(record=True):
                 warnings.simplefilter("always")
                 try:
                     chunk = itr.read(chunksize)

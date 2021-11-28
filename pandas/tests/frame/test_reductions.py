@@ -789,6 +789,10 @@ class TestDataFrameAnalytics:
         # GH#37392
         tdi = pd.timedelta_range("1 Day", periods=10)
         df = DataFrame({"A": tdi, "B": tdi})
+        # Copy is needed for ArrayManager case, otherwise setting df.iloc
+        #  below edits tdi, alterting both df['A'] and df['B']
+        #  FIXME: passing copy=True to constructor does not fix this
+        df = df.copy()
         df.iloc[-2, -1] = pd.NaT
 
         result = df.std(skipna=False)
@@ -1017,7 +1021,9 @@ class TestDataFrameAnalytics:
         # don't cast to object, which would raise in nanops
         dti = date_range("2016-01-01", periods=3)
 
-        df = DataFrame({1: [0, 2, 1], 2: range(3)[::-1], 3: dti})
+        # Copying dti is needed for ArrayManager otherwise when we set
+        #  df.loc[0, 3] = pd.NaT below it edits dti
+        df = DataFrame({1: [0, 2, 1], 2: range(3)[::-1], 3: dti.copy(deep=True)})
 
         result = df.idxmax()
         expected = Series([1, 0, 2], index=[1, 2, 3])
@@ -1074,6 +1080,10 @@ class TestDataFrameAnalytics:
     def test_idxmax_dt64_multicolumn_axis1(self):
         dti = date_range("2016-01-01", periods=3)
         df = DataFrame({3: dti, 4: dti[::-1]})
+        # FIXME: copy needed for ArrayManager, otherwise setting with iloc
+        #  below also sets df.iloc[-1, 1]; passing copy=True to DataFrame
+        #  does not solve this.
+        df = df.copy()
         df.iloc[0, 0] = pd.NaT
 
         df._consolidate_inplace()
@@ -1468,33 +1478,29 @@ class TestDataFrameReductions:
         expected = Series(data=[False, True])
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "func",
-        [
-            "any",
-            "all",
-            "count",
-            "sum",
-            "prod",
-            "max",
-            "min",
-            "mean",
-            "median",
-            "skew",
-            "kurt",
-            "sem",
-            "var",
-            "std",
-            "mad",
-        ],
-    )
-    def test_reductions_deprecation_level_argument(self, frame_or_series, func):
+    def test_reductions_deprecation_skipna_none(self, frame_or_series):
+        # GH#44580
+        obj = frame_or_series([1, 2, 3])
+        with tm.assert_produces_warning(FutureWarning, match="skipna"):
+            obj.mad(skipna=None)
+
+    def test_reductions_deprecation_level_argument(
+        self, frame_or_series, reduction_functions
+    ):
         # GH#39983
         obj = frame_or_series(
             [1, 2, 3], index=MultiIndex.from_arrays([[1, 2, 3], [4, 5, 6]])
         )
         with tm.assert_produces_warning(FutureWarning, match="level"):
-            getattr(obj, func)(level=0)
+            getattr(obj, reduction_functions)(level=0)
+
+    def test_reductions_skipna_none_raises(self, frame_or_series, reduction_functions):
+        if reduction_functions in ["count", "mad"]:
+            pytest.skip("Count does not accept skipna. Mad needs a depreaction cycle.")
+        obj = frame_or_series([1, 2, 3])
+        msg = 'For argument "skipna" expected type bool, received type NoneType.'
+        with pytest.raises(ValueError, match=msg):
+            getattr(obj, reduction_functions)(skipna=None)
 
 
 class TestNuisanceColumns:

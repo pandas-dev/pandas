@@ -96,10 +96,7 @@ class TestiLocBaseIndependent:
 
         # check we dont have a view on cat (may be undesired GH#39986)
         df.iloc[0, 0] = "gamma"
-        if overwrite:
-            assert cat[0] != "gamma"
-        else:
-            assert cat[0] != "gamma"
+        assert cat[0] != "gamma"
 
         # TODO with mixed dataframe ("split" path), we always overwrite the column
         frame = DataFrame({0: np.array([0, 1, 2], dtype=object), 1: range(3)})
@@ -109,8 +106,6 @@ class TestiLocBaseIndependent:
         expected = DataFrame({0: cat, 1: range(3)})
         tm.assert_frame_equal(df, expected)
 
-    # TODO(ArrayManager) does not yet update parent
-    @td.skip_array_manager_not_yet_implemented
     @pytest.mark.parametrize("box", [array, Series])
     def test_iloc_setitem_ea_inplace(self, frame_or_series, box, using_array_manager):
         # GH#38952 Case with not setting a full column
@@ -1150,6 +1145,18 @@ class TestiLocBaseIndependent:
         df.iloc[indexing_func([True, False, True])] = rhs_func([[5], [10]])
         expected = DataFrame({"a": [5, 1, 10]})
         tm.assert_frame_equal(df, expected)
+
+    def test_iloc_getitem_slice_negative_step_ea_block(self):
+        # GH#44551
+        df = DataFrame({"A": [1, 2, 3]}, dtype="Int64")
+
+        res = df.iloc[:, ::-1]
+        tm.assert_frame_equal(res, df)
+
+        df["B"] = "foo"
+        res = df.iloc[:, ::-1]
+        expected = DataFrame({"B": df["B"], "A": df["A"]})
+        tm.assert_frame_equal(res, expected)
 
 
 class TestILocErrors:

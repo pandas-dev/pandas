@@ -10,7 +10,10 @@ from typing import (
 )
 import zipfile
 
-from pandas._typing import FilePathOrBuffer
+from pandas._typing import (
+    FilePath,
+    ReadPickleBuffer,
+)
 from pandas.compat import get_lzma_file
 
 import pandas as pd
@@ -272,7 +275,7 @@ def can_connect(url, error_classes=None):
 
 
 def round_trip_pickle(
-    obj: Any, path: FilePathOrBuffer | None = None
+    obj: Any, path: FilePath | ReadPickleBuffer | None = None
 ) -> DataFrame | Series:
     """
     Pickle an object and then read it again.

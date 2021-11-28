@@ -467,7 +467,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                         "loses timezone information. Cast to object before "
                         "sparse to retain timezone information.",
                         UserWarning,
-                        stacklevel=2,
+                        stacklevel=find_stack_level(),
                     )
                     data = np.asarray(data, dtype="datetime64[ns]")
                     if fill_value is NaT:
@@ -863,6 +863,12 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             keys = Index(keys)
         return Series(counts, index=keys)
 
+    def _quantile(self, qs: npt.NDArray[np.float64], interpolation: str):
+        # Special case: the returned array isn't _really_ sparse, so we don't
+        #  wrap it in a SparseArray
+        result = super()._quantile(qs, interpolation)
+        return np.asarray(result)
+
     # --------
     # Indexing
     # --------
@@ -1089,7 +1095,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     ) -> npt.NDArray[np.intp] | np.intp:
 
         msg = "searchsorted requires high memory usage."
-        warnings.warn(msg, PerformanceWarning, stacklevel=2)
+        warnings.warn(msg, PerformanceWarning, stacklevel=find_stack_level())
         if not is_scalar(v):
             v = np.asarray(v)
         v = np.asarray(v)

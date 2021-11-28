@@ -4,7 +4,6 @@ from collections import (
     abc,
     defaultdict,
 )
-from copy import copy
 import csv
 from io import StringIO
 import re
@@ -19,11 +18,16 @@ import warnings
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas._typing import FilePathOrBuffer
+from pandas._typing import (
+    FilePath,
+    ReadCsvBuffer,
+    Scalar,
+)
 from pandas.errors import (
     EmptyDataError,
     ParserError,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_integer
 from pandas.core.dtypes.inference import is_dict_like
@@ -41,7 +45,9 @@ _BOM = "\ufeff"
 
 
 class PythonParser(ParserBase):
-    def __init__(self, f: FilePathOrBuffer | list, **kwds):
+    def __init__(
+        self, f: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str] | list, **kwds
+    ):
         """
         Workhorse function for processing nested list into DataFrame
         """
@@ -82,7 +88,6 @@ class PythonParser(ParserBase):
         self.verbose = kwds["verbose"]
         self.converters = kwds["converters"]
 
-        self.dtype = copy(kwds["dtype"])
         self.thousands = kwds["thousands"]
         self.decimal = kwds["decimal"]
 
@@ -117,24 +122,16 @@ class PythonParser(ParserBase):
 
         # Now self.columns has the set of columns that we will process.
         # The original set is stored in self.original_columns.
-        if len(self.columns) > 1:
-            # we are processing a multi index column
-            # error: Cannot determine type of 'index_names'
-            # error: Cannot determine type of 'col_names'
-            (
-                self.columns,
-                self.index_names,
-                self.col_names,
-                _,
-            ) = self._extract_multi_indexer_columns(
-                self.columns,
-                self.index_names,  # type: ignore[has-type]
-                self.col_names,  # type: ignore[has-type]
-            )
-            # Update list of original names to include all indices.
-            self.num_original_columns = len(self.columns)
-        else:
-            self.columns = self.columns[0]
+        # error: Cannot determine type of 'index_names'
+        (
+            self.columns,
+            self.index_names,
+            self.col_names,
+            _,
+        ) = self._extract_multi_indexer_columns(
+            self.columns,
+            self.index_names,  # type: ignore[has-type]
+        )
 
         # get popped off for index
         self.orig_names: list[int | str | tuple] = list(self.columns)
@@ -153,7 +150,7 @@ class PythonParser(ParserBase):
         if self._col_indices is None:
             self._col_indices = list(range(len(self.columns)))
 
-        self._validate_parse_dates_presence(self.columns)
+        self._parse_date_cols = self._validate_parse_dates_presence(self.columns)
         no_thousands_columns: set[int] | None = None
         if self.parse_dates:
             no_thousands_columns = self._set_noconvert_dtype_columns(
@@ -278,9 +275,9 @@ class PythonParser(ParserBase):
         alldata = self._rows_to_cols(content)
         data, columns = self._exclude_implicit_index(alldata)
 
+        data = self._convert_data(data)
         columns, data = self._do_date_conversions(columns, data)
 
-        data = self._convert_data(data)
         index, columns = self._make_index(data, alldata, columns, indexnamerow)
 
         return index, columns, data
@@ -309,21 +306,8 @@ class PythonParser(ParserBase):
 
     def _convert_data(self, data):
         # apply converters
-        def _clean_mapping(mapping):
-            """converts col numbers to names"""
-            clean = {}
-            for col, v in mapping.items():
-                if isinstance(col, int) and col not in self.orig_names:
-                    col = self.orig_names[col]
-                clean[col] = v
-            return clean
-
-        clean_conv = _clean_mapping(self.converters)
-        if not isinstance(self.dtype, dict):
-            # handles single dtype applied to all columns
-            clean_dtypes = self.dtype
-        else:
-            clean_dtypes = _clean_mapping(self.dtype)
+        clean_conv = self._clean_mapping(self.converters)
+        clean_dtypes = self._clean_mapping(self.dtype)
 
         # Apply NA values.
         clean_na_values = {}
@@ -357,6 +341,7 @@ class PythonParser(ParserBase):
         num_original_columns = 0
         clear_buffer = True
         unnamed_cols: set[str | int | None] = set()
+        self._header_line = None
 
         if self.header is not None:
             header = self.header
@@ -463,7 +448,15 @@ class PythonParser(ParserBase):
                 self._clear_buffer()
 
             if names is not None:
-                if len(names) > len(columns[0]):
+                # Read first row after header to check if data are longer
+                try:
+                    first_line = self._next_line()
+                except StopIteration:
+                    first_line = None
+
+                len_first_data_row = 0 if first_line is None else len(first_line)
+
+                if len(names) > len(columns[0]) and len(names) > len_first_data_row:
                     raise ValueError(
                         "Number of passed names did not match "
                         "number of header fields in the file"
@@ -497,6 +490,8 @@ class PythonParser(ParserBase):
 
                 line = names[:]
 
+            # Store line, otherwise it is lost for guessing the index
+            self._header_line = line
             ncols = len(line)
             num_original_columns = ncols
 
@@ -563,7 +558,7 @@ class PythonParser(ParserBase):
                         "Defining usecols with out of bounds indices is deprecated "
                         "and will raise a ParserError in a future version.",
                         FutureWarning,
-                        stacklevel=8,
+                        stacklevel=find_stack_level(),
                     )
                 col_indices = self.usecols
 
@@ -868,10 +863,13 @@ class PythonParser(ParserBase):
         orig_names = list(columns)
         columns = list(columns)
 
-        try:
-            line = self._next_line()
-        except StopIteration:
-            line = None
+        if self._header_line is not None:
+            line = self._header_line
+        else:
+            try:
+                line = self._next_line()
+            except StopIteration:
+                line = None
 
         try:
             next_line = self._next_line()
@@ -1027,14 +1025,7 @@ class PythonParser(ParserBase):
                     new_rows = self.data[self.pos : self.pos + rows]
                     new_pos = self.pos + rows
 
-                # Check for stop rows. n.b.: self.skiprows is a set.
-                if self.skiprows:
-                    new_rows = [
-                        row
-                        for i, row in enumerate(new_rows)
-                        if not self.skipfunc(i + self.pos)
-                    ]
-
+                new_rows = self._remove_skipped_rows(new_rows)
                 lines.extend(new_rows)
                 self.pos = new_pos
 
@@ -1042,11 +1033,22 @@ class PythonParser(ParserBase):
                 new_rows = []
                 try:
                     if rows is not None:
-                        for _ in range(rows):
+
+                        rows_to_skip = 0
+                        if self.skiprows is not None and self.pos is not None:
+                            # Only read additional rows if pos is in skiprows
+                            rows_to_skip = len(
+                                set(self.skiprows) - set(range(self.pos))
+                            )
+
+                        for _ in range(rows + rows_to_skip):
                             # assert for mypy, data is Iterator[str] or None, would
                             # error in next
                             assert self.data is not None
                             new_rows.append(next(self.data))
+
+                        len_new_rows = len(new_rows)
+                        new_rows = self._remove_skipped_rows(new_rows)
                         lines.extend(new_rows)
                     else:
                         rows = 0
@@ -1057,18 +1059,15 @@ class PythonParser(ParserBase):
 
                             if new_row is not None:
                                 new_rows.append(new_row)
+                        len_new_rows = len(new_rows)
 
                 except StopIteration:
-                    if self.skiprows:
-                        new_rows = [
-                            row
-                            for i, row in enumerate(new_rows)
-                            if not self.skipfunc(i + self.pos)
-                        ]
+                    len_new_rows = len(new_rows)
+                    new_rows = self._remove_skipped_rows(new_rows)
                     lines.extend(new_rows)
                     if len(lines) == 0:
                         raise
-                self.pos += len(new_rows)
+                self.pos += len_new_rows
 
             self.buf = []
         else:
@@ -1082,6 +1081,13 @@ class PythonParser(ParserBase):
             lines = self._remove_empty_lines(lines)
         lines = self._check_thousands(lines)
         return self._check_decimal(lines)
+
+    def _remove_skipped_rows(self, new_rows: list[list[Scalar]]) -> list[list[Scalar]]:
+        if self.skiprows:
+            return [
+                row for i, row in enumerate(new_rows) if not self.skipfunc(i + self.pos)
+            ]
+        return new_rows
 
 
 class FixedWidthReader(abc.Iterator):

@@ -192,7 +192,7 @@ class TestCustomBusinessHour(Base):
     def test_normalize(self, norm_cases):
         offset, cases = norm_cases
         for dt, expected in cases.items():
-            assert offset.apply(dt) == expected
+            assert offset._apply(dt) == expected
 
     def test_is_on_offset(self):
         tests = [
