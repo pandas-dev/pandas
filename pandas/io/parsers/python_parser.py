@@ -447,7 +447,14 @@ class PythonParser(ParserBase):
                 self._clear_buffer()
 
             if names is not None:
-                if len(names) > len(columns[0]):
+                try:
+                    first_line = self._next_line()
+                except StopIteration:
+                    first_line = None
+
+                len_first_data_row = 0 if first_line is None else len(first_line)
+
+                if len(names) > len(columns[0]) and len(names) > len_first_data_row:
                     raise ValueError(
                         "Number of passed names did not match "
                         "number of header fields in the file"
