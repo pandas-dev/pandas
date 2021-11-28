@@ -48,9 +48,11 @@ def test_array_scalar_like_equivalence(data, all_arithmetic_operators):
         tm.assert_extension_array_equal(result, expected)
 
 
-def test_array_NA(data, all_arithmetic_operators):
-    if "truediv" in all_arithmetic_operators:
-        pytest.skip("division with pd.NA raises")
+def test_array_NA(data, all_arithmetic_operators, request):
+    if "truediv" in all_arithmetic_operators and data[0].dtype.kind != "f":
+        mark = pytest.mark.xfail(reason="division with pd.NA fails")
+        request.node.add_marker(mark)
+
     data, _ = data
     op = tm.get_op_from_name(all_arithmetic_operators)
     check_skip(data, all_arithmetic_operators)
