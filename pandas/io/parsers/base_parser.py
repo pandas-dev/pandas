@@ -381,6 +381,13 @@ class ParserBase:
         for n in range(len(columns[0])):
             if all(ensure_str(col[n]) in self.unnamed_cols for col in columns):
                 header = ",".join([str(x) for x in self.header])
+                warnings.warn(
+                    f"The passed header=[{header}] has at least one line without data. "
+                    "This will return a MultiIndex in the future where at least one "
+                    "level consists of only Unnamed: entries.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
                 raise ParserError(
                     f"Passed header=[{header}] are too many rows "
                     "for this multi_index of columns"

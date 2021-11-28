@@ -557,8 +557,11 @@ def test_multi_index_unnamed(all_parsers, index_col, columns):
             r"Passed header=\[0,1\] are too "
             r"many rows for this multi_index of columns"
         )
-        with pytest.raises(ParserError, match=msg):
-            parser.read_csv(StringIO(data), header=header, index_col=index_col)
+        with tm.assert_produces_warning(
+            FutureWarning, match="consists of only Unnamed", check_stacklevel=False
+        ):
+            with pytest.raises(ParserError, match=msg):
+                parser.read_csv(StringIO(data), header=header, index_col=index_col)
     else:
         result = parser.read_csv(StringIO(data), header=header, index_col=index_col)
         exp_columns = []
