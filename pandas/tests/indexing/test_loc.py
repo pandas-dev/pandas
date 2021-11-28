@@ -2715,6 +2715,17 @@ def test_loc_getitem_multiindex_tuple_level():
     assert result2 == 6
 
 
+def test_loc_setitem_indexer_length():
+    # GH#13831
+    ser = Series([10])
+    msg = "Too many indexers"
+    with pytest.raises(IndexingError, match=msg):
+        ser.loc[0, 0] = 1000
+
+    with pytest.raises(IndexingError, match=msg):
+        ser.loc[0, 0]
+
+
 class TestLocSeries:
     @pytest.mark.parametrize("val,expected", [(2 ** 63 - 1, 3), (2 ** 63, 4)])
     def test_loc_uint64(self, val, expected):
@@ -2889,11 +2900,11 @@ class TestLocSeries:
             index=MultiIndex.from_tuples([("A", "0"), ("A", "1"), ("B", "0")]),
             data=[21, 22, 23],
         )
-        msg = "Too many indices"
-        with pytest.raises(ValueError, match=msg):
+        msg = "Too many indexers"
+        with pytest.raises(IndexingError, match=msg):
             ser.loc[indexer, :]
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(IndexingError, match=msg):
             ser.loc[indexer, :] = 1
 
     def test_loc_setitem(self, string_series):
