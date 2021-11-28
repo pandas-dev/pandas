@@ -1197,7 +1197,8 @@ class TestReaders:
         with tm.assert_produces_warning(
             FutureWarning,
             match="The squeeze argument has been deprecated "
-            "and will be removed in a future version.\n\n",
+            "and will be removed in a future version. "
+            'Append .squeeze\\("columns"\\) to the call to squeeze.\n\n',
         ):
             actual = pd.read_excel(
                 f, sheet_name="two_columns", index_col=0, squeeze=True
