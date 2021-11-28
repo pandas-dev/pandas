@@ -239,7 +239,7 @@ class TestDataFrameFormatting:
             assert "..." not in repr(df)
 
     def test_repr_deprecation_negative_int(self):
-        # FIXME: remove in future version after deprecation cycle
+        # TODO(2.0): remove in future version after deprecation cycle
         # Non-regression test for:
         # https://github.com/pandas-dev/pandas/issues/31532
         width = get_option("display.max_colwidth")
@@ -3298,6 +3298,7 @@ def test_repr_html_ipython_config(ip):
     assert not result.error_in_exec
 
 
+@pytest.mark.filterwarnings("ignore:In future versions `DataFrame.to_latex`")
 @pytest.mark.parametrize("method", ["to_string", "to_html", "to_latex"])
 @pytest.mark.parametrize(
     "encoding, data",
@@ -3319,7 +3320,8 @@ def test_filepath_or_buffer_arg(
         ):
             getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
     elif encoding == "foo":
-        with tm.assert_produces_warning(None):
+        expected_warning = FutureWarning if method == "to_latex" else None
+        with tm.assert_produces_warning(expected_warning):
             with pytest.raises(LookupError, match="unknown encoding"):
                 getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
     else:
@@ -3328,6 +3330,7 @@ def test_filepath_or_buffer_arg(
         assert_filepath_or_buffer_equals(expected)
 
 
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 @pytest.mark.parametrize("method", ["to_string", "to_html", "to_latex"])
 def test_filepath_or_buffer_bad_arg_raises(float_frame, method):
     msg = "buf is not a file name and it has no write method"

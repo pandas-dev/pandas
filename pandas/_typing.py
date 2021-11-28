@@ -1,29 +1,24 @@
+from __future__ import annotations
+
 from datetime import (
     datetime,
     timedelta,
     tzinfo,
 )
-from io import (
-    BufferedIOBase,
-    RawIOBase,
-    TextIOBase,
-    TextIOWrapper,
-)
-from mmap import mmap
 from os import PathLike
 from typing import (
-    IO,
     TYPE_CHECKING,
     Any,
-    AnyStr,
     Callable,
     Collection,
     Dict,
     Hashable,
+    Iterator,
     List,
     Literal,
     Mapping,
     Optional,
+    Protocol,
     Sequence,
     Tuple,
     Type as type_t,
@@ -111,7 +106,7 @@ Axis = Union[str, int]
 IndexLabel = Union[Hashable, Sequence[Hashable]]
 Level = Union[Hashable, int]
 Shape = Tuple[int, ...]
-Suffixes = Tuple[str, str]
+Suffixes = Tuple[Optional[str], Optional[str]]
 Ordered = Optional[bool]
 JSONSerializable = Optional[Union[PythonScalar, List, Dict]]
 Frequency = Union[str, "DateOffset"]
@@ -170,9 +165,76 @@ AggObjType = Union[
 PythonFuncType = Callable[[Any], Any]
 
 # filenames and file-like-objects
-Buffer = Union[IO[AnyStr], RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper, mmap]
-FileOrBuffer = Union[str, Buffer[AnyStr]]
-FilePathOrBuffer = Union["PathLike[str]", FileOrBuffer[AnyStr]]
+AnyStr_cov = TypeVar("AnyStr_cov", str, bytes, covariant=True)
+AnyStr_con = TypeVar("AnyStr_con", str, bytes, contravariant=True)
+
+
+class BaseBuffer(Protocol):
+    @property
+    def mode(self) -> str:
+        # for _get_filepath_or_buffer
+        ...
+
+    def fileno(self) -> int:
+        # for _MMapWrapper
+        ...
+
+    def seek(self, __offset: int, __whence: int = ...) -> int:
+        # with one argument: gzip.GzipFile, bz2.BZ2File
+        # with two arguments: zip.ZipFile, read_sas
+        ...
+
+    def seekable(self) -> bool:
+        # for bz2.BZ2File
+        ...
+
+    def tell(self) -> int:
+        # for zip.ZipFile, read_stata, to_stata
+        ...
+
+
+class ReadBuffer(BaseBuffer, Protocol[AnyStr_cov]):
+    def read(self, __n: int | None = ...) -> AnyStr_cov:
+        # for BytesIOWrapper, gzip.GzipFile, bz2.BZ2File
+        ...
+
+
+class WriteBuffer(BaseBuffer, Protocol[AnyStr_con]):
+    def write(self, __b: AnyStr_con) -> Any:
+        # for gzip.GzipFile, bz2.BZ2File
+        ...
+
+    def flush(self) -> Any:
+        # for gzip.GzipFile, bz2.BZ2File
+        ...
+
+
+class ReadPickleBuffer(ReadBuffer[bytes], Protocol):
+    def readline(self) -> AnyStr_cov:
+        ...
+
+
+class WriteExcelBuffer(WriteBuffer[bytes], Protocol):
+    def truncate(self, size: int | None = ...) -> int:
+        ...
+
+
+class ReadCsvBuffer(ReadBuffer[AnyStr_cov], Protocol):
+    def __iter__(self) -> Iterator[AnyStr_cov]:
+        # for engine=python
+        ...
+
+    def readline(self) -> AnyStr_cov:
+        # for engine=python
+        ...
+
+    @property
+    def closed(self) -> bool:
+        # for enine=pyarrow
+        ...
+
+
+FilePath = Union[str, "PathLike[str]"]
 
 # for arbitrary kwargs passed during reading/writing files
 StorageOptions = Optional[Dict[str, Any]]

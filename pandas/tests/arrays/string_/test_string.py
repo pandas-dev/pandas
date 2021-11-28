@@ -199,8 +199,8 @@ def test_add_frame(dtype):
     tm.assert_frame_equal(result, expected)
 
 
-def test_comparison_methods_scalar(all_compare_operators, dtype):
-    op_name = all_compare_operators
+def test_comparison_methods_scalar(comparison_op, dtype):
+    op_name = f"__{comparison_op.__name__}__"
     a = pd.array(["a", None, "c"], dtype=dtype)
     other = "a"
     result = getattr(a, op_name)(other)
@@ -209,21 +209,21 @@ def test_comparison_methods_scalar(all_compare_operators, dtype):
     tm.assert_extension_array_equal(result, expected)
 
 
-def test_comparison_methods_scalar_pd_na(all_compare_operators, dtype):
-    op_name = all_compare_operators
+def test_comparison_methods_scalar_pd_na(comparison_op, dtype):
+    op_name = f"__{comparison_op.__name__}__"
     a = pd.array(["a", None, "c"], dtype=dtype)
     result = getattr(a, op_name)(pd.NA)
     expected = pd.array([None, None, None], dtype="boolean")
     tm.assert_extension_array_equal(result, expected)
 
 
-def test_comparison_methods_scalar_not_string(all_compare_operators, dtype, request):
-    if all_compare_operators not in ["__eq__", "__ne__"]:
+def test_comparison_methods_scalar_not_string(comparison_op, dtype, request):
+    op_name = f"__{comparison_op.__name__}__"
+    if op_name not in ["__eq__", "__ne__"]:
         reason = "comparison op not supported between instances of 'str' and 'int'"
         mark = pytest.mark.xfail(raises=TypeError, reason=reason)
         request.node.add_marker(mark)
 
-    op_name = all_compare_operators
     a = pd.array(["a", None, "c"], dtype=dtype)
     other = 42
     result = getattr(a, op_name)(other)
@@ -234,14 +234,14 @@ def test_comparison_methods_scalar_not_string(all_compare_operators, dtype, requ
     tm.assert_extension_array_equal(result, expected)
 
 
-def test_comparison_methods_array(all_compare_operators, dtype, request):
+def test_comparison_methods_array(comparison_op, dtype, request):
     if dtype.storage == "pyarrow":
         mark = pytest.mark.xfail(
             raises=AssertionError, reason="left is not an ExtensionArray"
         )
         request.node.add_marker(mark)
 
-    op_name = all_compare_operators
+    op_name = f"__{comparison_op.__name__}__"
 
     a = pd.array(["a", None, "c"], dtype=dtype)
     other = [None, None, "c"]
@@ -475,8 +475,8 @@ def test_value_counts_na(dtype):
 
 
 def test_value_counts_with_normalize(dtype):
-    s = pd.Series(["a", "b", "a", pd.NA], dtype=dtype)
-    result = s.value_counts(normalize=True)
+    ser = pd.Series(["a", "b", "a", pd.NA], dtype=dtype)
+    result = ser.value_counts(normalize=True)
     expected = pd.Series([2, 1], index=["a", "b"], dtype="Float64") / 3
     tm.assert_series_equal(result, expected)
 
@@ -518,8 +518,8 @@ def test_memory_usage(dtype):
 @pytest.mark.parametrize("float_dtype", [np.float16, np.float32, np.float64])
 def test_astype_from_float_dtype(float_dtype, dtype):
     # https://github.com/pandas-dev/pandas/issues/36451
-    s = pd.Series([0.1], dtype=float_dtype)
-    result = s.astype(dtype)
+    ser = pd.Series([0.1], dtype=float_dtype)
+    result = ser.astype(dtype)
     expected = pd.Series(["0.1"], dtype=dtype)
     tm.assert_series_equal(result, expected)
 
@@ -539,7 +539,7 @@ def test_to_numpy_na_value(dtype, nulls_fixture):
     tm.assert_numpy_array_equal(result, expected)
 
 
-def test_isin(dtype, request):
+def test_isin(dtype, request, fixed_now_ts):
     s = pd.Series(["a", "b", None], dtype=dtype)
 
     result = s.isin(["a", "c"])
@@ -554,6 +554,6 @@ def test_isin(dtype, request):
     expected = pd.Series([False, False, False])
     tm.assert_series_equal(result, expected)
 
-    result = s.isin(["a", pd.Timestamp.now()])
+    result = s.isin(["a", fixed_now_ts])
     expected = pd.Series([True, False, False])
     tm.assert_series_equal(result, expected)

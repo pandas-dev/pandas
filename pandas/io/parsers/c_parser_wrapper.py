@@ -7,9 +7,11 @@ import numpy as np
 import pandas._libs.parsers as parsers
 from pandas._typing import (
     ArrayLike,
-    FilePathOrBuffer,
+    FilePath,
+    ReadCsvBuffer,
 )
 from pandas.errors import DtypeWarning
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -30,7 +32,9 @@ class CParserWrapper(ParserBase):
     low_memory: bool
     _reader: parsers.TextReader
 
-    def __init__(self, src: FilePathOrBuffer, **kwds):
+    def __init__(
+        self, src: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str], **kwds
+    ):
         self.kwds = kwds
         kwds = kwds.copy()
         ParserBase.__init__(self, kwds)
@@ -78,25 +82,18 @@ class CParserWrapper(ParserBase):
         if self._reader.header is None:
             self.names = None
         else:
-            if len(self._reader.header) > 1:
-                # we have a multi index in the columns
-                # error: Cannot determine type of 'names'
-                # error: Cannot determine type of 'index_names'
-                # error: Cannot determine type of 'col_names'
-                (
-                    self.names,  # type: ignore[has-type]
-                    self.index_names,
-                    self.col_names,
-                    passed_names,
-                ) = self._extract_multi_indexer_columns(
-                    self._reader.header,
-                    self.index_names,  # type: ignore[has-type]
-                    self.col_names,  # type: ignore[has-type]
-                    passed_names,
-                )
-            else:
-                # error: Cannot determine type of 'names'
-                self.names = list(self._reader.header[0])  # type: ignore[has-type]
+            # error: Cannot determine type of 'names'
+            # error: Cannot determine type of 'index_names'
+            (
+                self.names,  # type: ignore[has-type]
+                self.index_names,
+                self.col_names,
+                passed_names,
+            ) = self._extract_multi_indexer_columns(
+                self._reader.header,
+                self.index_names,  # type: ignore[has-type]
+                passed_names,
+            )
 
         # error: Cannot determine type of 'names'
         if self.names is None:  # type: ignore[has-type]
@@ -205,9 +202,10 @@ class CParserWrapper(ParserBase):
         """
         assert self.orig_names is not None
         # error: Cannot determine type of 'names'
-        col_indices = [
-            self.orig_names.index(x) for x in self.names  # type: ignore[has-type]
-        ]
+
+        # much faster than using orig_names.index(x) xref GH#44106
+        names_dict = {x: i for i, x in enumerate(self.orig_names)}
+        col_indices = [names_dict[x] for x in self.names]  # type: ignore[has-type]
         # error: Cannot determine type of 'names'
         noconvert_columns = self._set_noconvert_dtype_columns(
             col_indices,
@@ -393,7 +391,7 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
                 f"Specify dtype option on import or set low_memory=False."
             ]
         )
-        warnings.warn(warning_message, DtypeWarning, stacklevel=8)
+        warnings.warn(warning_message, DtypeWarning, stacklevel=find_stack_level())
     return result
 
 

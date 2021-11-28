@@ -1,3 +1,5 @@
+import numpy as np
+
 import pandas as pd
 from pandas import DataFrame
 import pandas._testing as tm
@@ -81,3 +83,18 @@ class TestConcatSort:
         expected = DataFrame({1: [1, 2, 1, 2], "a": [3, 4, 3, 4]}, columns=[1, "a"])
         result = pd.concat([df, df], ignore_index=True, sort=True)
         tm.assert_frame_equal(result, expected)
+
+    def test_concat_frame_with_sort_false(self):
+        # GH 43375
+        result = pd.concat(
+            [DataFrame({i: i}, index=[i]) for i in range(2, 0, -1)], sort=False
+        )
+        expected = DataFrame([[2, np.nan], [np.nan, 1]], index=[2, 1], columns=[2, 1])
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_concat_sort_none_warning(self):
+        # GH#41518
+        df = DataFrame({1: [1, 2], "a": [3, 4]})
+        with tm.assert_produces_warning(FutureWarning, match="sort"):
+            pd.concat([df, df], sort=None)

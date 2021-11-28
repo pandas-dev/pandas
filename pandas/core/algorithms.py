@@ -8,7 +8,9 @@ import operator
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
+    Hashable,
     Literal,
+    Sequence,
     Union,
     cast,
     final,
@@ -27,11 +29,13 @@ from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
     DtypeObj,
+    IndexLabel,
     Scalar,
     TakeIndexer,
     npt,
 )
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
@@ -58,6 +62,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     needs_i8_conversion,
 )
+from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import PandasDtype
 from pandas.core.dtypes.generic import (
     ABCDatetimeArray,
@@ -144,7 +149,7 @@ def _ensure_data(values: ArrayLike) -> np.ndarray:
             # i.e. all-bool Categorical, BooleanArray
             try:
                 return np.asarray(values).astype("uint8", copy=False)
-            except TypeError:
+            except (TypeError, ValueError):
                 # GH#42107 we have pd.NAs present
                 return np.asarray(values)
 
@@ -210,7 +215,7 @@ def _reconstruct_data(
         if isinstance(values, cls) and values.dtype == dtype:
             return values
 
-        values = cls._from_sequence(values)
+        values = cls._from_sequence(values, dtype=dtype)
     elif is_bool_dtype(dtype):
         values = values.astype(dtype, copy=False)
 
@@ -955,15 +960,18 @@ def mode(values, dropna: bool = True) -> Series:
     original = values
 
     # categorical is a fast-path
-    if is_categorical_dtype(values):
+    if is_categorical_dtype(values.dtype):
         if isinstance(values, Series):
             # TODO: should we be passing `name` below?
             return Series(values._values.mode(dropna=dropna), name=values.name)
         return values.mode(dropna=dropna)
 
-    if dropna and needs_i8_conversion(values.dtype):
-        mask = values.isnull()
-        values = values[~mask]
+    if needs_i8_conversion(values.dtype):
+        if dropna:
+            mask = values.isna()
+            values = values[~mask]
+        modes = mode(values.view("i8"))
+        return modes.view(original.dtype)
 
     values = _ensure_data(values)
 
@@ -1117,89 +1125,6 @@ def checked_add_with_arr(
     return arr + b
 
 
-def quantile(x, q, interpolation_method="fraction"):
-    """
-    Compute sample quantile or quantiles of the input array. For example, q=0.5
-    computes the median.
-
-    The `interpolation_method` parameter supports three values, namely
-    `fraction` (default), `lower` and `higher`. Interpolation is done only,
-    if the desired quantile lies between two data points `i` and `j`. For
-    `fraction`, the result is an interpolated value between `i` and `j`;
-    for `lower`, the result is `i`, for `higher` the result is `j`.
-
-    Parameters
-    ----------
-    x : ndarray
-        Values from which to extract score.
-    q : scalar or array
-        Percentile at which to extract score.
-    interpolation_method : {'fraction', 'lower', 'higher'}, optional
-        This optional parameter specifies the interpolation method to use,
-        when the desired quantile lies between two data points `i` and `j`:
-
-        - fraction: `i + (j - i)*fraction`, where `fraction` is the
-                    fractional part of the index surrounded by `i` and `j`.
-        -lower: `i`.
-        - higher: `j`.
-
-    Returns
-    -------
-    score : float
-        Score at percentile.
-
-    Examples
-    --------
-    >>> from scipy import stats
-    >>> a = np.arange(100)
-    >>> stats.scoreatpercentile(a, 50)
-    49.5
-
-    """
-    x = np.asarray(x)
-    mask = isna(x)
-
-    x = x[~mask]
-
-    values = np.sort(x)
-
-    def _interpolate(a, b, fraction):
-        """
-        Returns the point at the given fraction between a and b, where
-        'fraction' must be between 0 and 1.
-        """
-        return a + (b - a) * fraction
-
-    def _get_score(at):
-        if len(values) == 0:
-            return np.nan
-
-        idx = at * (len(values) - 1)
-        if idx % 1 == 0:
-            score = values[int(idx)]
-        else:
-            if interpolation_method == "fraction":
-                score = _interpolate(values[int(idx)], values[int(idx) + 1], idx % 1)
-            elif interpolation_method == "lower":
-                score = values[np.floor(idx)]
-            elif interpolation_method == "higher":
-                score = values[np.ceil(idx)]
-            else:
-                raise ValueError(
-                    "interpolation_method can only be 'fraction' "
-                    ", 'lower' or 'higher'"
-                )
-
-        return score
-
-    if is_scalar(q):
-        return _get_score(q)
-
-    q = np.asarray(q, np.float64)
-    result = [_get_score(x) for x in q]
-    return np.array(result, dtype=np.float64)
-
-
 # --------------- #
 # select n        #
 # --------------- #
@@ -1338,10 +1263,12 @@ class SelectNFrame(SelectN):
     nordered : DataFrame
     """
 
-    def __init__(self, obj, n: int, keep: str, columns):
+    def __init__(self, obj: DataFrame, n: int, keep: str, columns: IndexLabel):
         super().__init__(obj, n, keep)
         if not is_list_like(columns) or isinstance(columns, tuple):
             columns = [columns]
+
+        columns = cast(Sequence[Hashable], columns)
         columns = list(columns)
         self.columns = columns
 
@@ -1627,7 +1554,7 @@ def searchsorted(
 _diff_special = {"float64", "float32", "int64", "int32", "int16", "int8"}
 
 
-def diff(arr, n: int, axis: int = 0, stacklevel: int = 3):
+def diff(arr, n: int, axis: int = 0):
     """
     difference of n between self,
     analogous to s-s.shift(n)
@@ -1673,7 +1600,7 @@ def diff(arr, n: int, axis: int = 0, stacklevel: int = 3):
                 "dtype lost in 'diff()'. In the future this will raise a "
                 "TypeError. Convert to a suitable dtype prior to calling 'diff'.",
                 FutureWarning,
-                stacklevel=stacklevel,
+                stacklevel=find_stack_level(),
             )
             arr = np.asarray(arr)
             dtype = arr.dtype
@@ -1912,17 +1839,18 @@ def union_with_duplicates(lvals: ArrayLike, rvals: ArrayLike) -> ArrayLike:
     -------
     np.ndarray or ExtensionArray
         Containing the unsorted union of both arrays.
+
+    Notes
+    -----
+    Caller is responsible for ensuring lvals.dtype == rvals.dtype.
     """
     indexer = []
     l_count = value_counts(lvals, dropna=False)
     r_count = value_counts(rvals, dropna=False)
     l_count, r_count = l_count.align(r_count, fill_value=0)
-    unique_array = unique(np.append(lvals, rvals))
-    if not isinstance(lvals, np.ndarray):
-        # i.e. ExtensionArray
-        # Note: we only get here with lvals.dtype == rvals.dtype
-        # TODO: are there any cases where union won't be type/dtype preserving?
-        unique_array = type(lvals)._from_sequence(unique_array, dtype=lvals.dtype)
+    unique_array = unique(concat_compat([lvals, rvals]))
+    unique_array = ensure_wrapped_if_datetimelike(unique_array)
+
     for i, value in enumerate(unique_array):
-        indexer += [i] * int(max(l_count[value], r_count[value]))
+        indexer += [i] * int(max(l_count.at[value], r_count.at[value]))
     return unique_array.take(indexer)

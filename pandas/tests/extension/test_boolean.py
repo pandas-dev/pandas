@@ -150,15 +150,12 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
         # overwriting to indicate ops don't raise an error
         super().check_opname(s, op_name, other, exc=None)
 
-    def _compare_other(self, s, data, op_name, other):
-        self.check_opname(s, op_name, other)
-
     @pytest.mark.skip(reason="Tested in tests/arrays/test_boolean.py")
-    def test_compare_scalar(self, data, all_compare_operators):
+    def test_compare_scalar(self, data, comparison_op):
         pass
 
     @pytest.mark.skip(reason="Tested in tests/arrays/test_boolean.py")
-    def test_compare_array(self, data, all_compare_operators):
+    def test_compare_array(self, data, comparison_op):
         pass
 
 
@@ -395,4 +392,8 @@ class TestUnaryOps(base.BaseUnaryOpsTests):
 
 
 class TestParsing(base.BaseParsingTests):
+    pass
+
+
+class Test2DCompat(base.Dim2CompatTests):
     pass

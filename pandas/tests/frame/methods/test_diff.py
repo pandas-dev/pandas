@@ -17,26 +17,31 @@ class TestDataFrameDiff:
         with pytest.raises(ValueError, match="periods must be an integer"):
             df.diff(1.5)
 
-    def test_diff(self, datetime_frame):
-        the_diff = datetime_frame.diff(1)
+    # GH#44572 np.int64 is accepted
+    @pytest.mark.parametrize("num", [1, np.int64(1)])
+    def test_diff(self, datetime_frame, num):
+        df = datetime_frame
+        the_diff = df.diff(num)
 
-        tm.assert_series_equal(
-            the_diff["A"], datetime_frame["A"] - datetime_frame["A"].shift(1)
-        )
+        expected = df["A"] - df["A"].shift(num)
+        tm.assert_series_equal(the_diff["A"], expected)
 
+    def test_diff_int_dtype(self):
         # int dtype
         a = 10_000_000_000_000_000
         b = a + 1
-        s = Series([a, b])
+        ser = Series([a, b])
 
-        rs = DataFrame({"s": s}).diff()
+        rs = DataFrame({"s": ser}).diff()
         assert rs.s[1] == 1
 
+    def test_diff_mixed_numeric(self, datetime_frame):
         # mixed numeric
         tf = datetime_frame.astype("float32")
         the_diff = tf.diff(1)
         tm.assert_series_equal(the_diff["A"], tf["A"] - tf["A"].shift(1))
 
+    def test_diff_axis1_nonconsolidated(self):
         # GH#10907
         df = DataFrame({"y": Series([2]), "z": Series([3])})
         df.insert(0, "x", 1)

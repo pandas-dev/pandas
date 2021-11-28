@@ -179,7 +179,7 @@ cdef class BlockPlacement:
     cdef BlockPlacement iadd(self, other):
         cdef:
             slice s = self._ensure_has_slice()
-            Py_ssize_t other_int, start, stop, step, l
+            Py_ssize_t other_int, start, stop, step
 
         if is_integer_object(other) and s is not None:
             other_int = <Py_ssize_t>other
@@ -188,7 +188,7 @@ cdef class BlockPlacement:
                 # BlockPlacement is treated as immutable
                 return self
 
-            start, stop, step, l = slice_get_indices_ex(s)
+            start, stop, step, _ = slice_get_indices_ex(s)
             start += other_int
             stop += other_int
 
@@ -226,14 +226,14 @@ cdef class BlockPlacement:
         """
         cdef:
             slice nv, s = self._ensure_has_slice()
-            Py_ssize_t other_int, start, stop, step, l
-            ndarray newarr
+            Py_ssize_t other_int, start, stop, step
+            ndarray[intp_t, ndim=1] newarr
 
         if s is not None:
             # see if we are either all-above or all-below, each of which
             #  have fastpaths available.
 
-            start, stop, step, l = slice_get_indices_ex(s)
+            start, stop, step, _ = slice_get_indices_ex(s)
 
             if start < loc and stop <= loc:
                 # We are entirely below, nothing to increment
@@ -260,7 +260,7 @@ cdef class BlockPlacement:
         cdef:
             slice slc = self._ensure_has_slice()
             slice new_slice
-            ndarray new_placement
+            ndarray[intp_t, ndim=1] new_placement
 
         if slc is not None and slc.step == 1:
             new_slc = slice(slc.start * factor, slc.stop * factor, 1)
@@ -338,14 +338,16 @@ cpdef Py_ssize_t slice_len(slice slc, Py_ssize_t objlen=PY_SSIZE_T_MAX) except -
         Py_ssize_t start, stop, step, length
 
     if slc is None:
-        raise TypeError("slc must be slice")
+        raise TypeError("slc must be slice")  # pragma: no cover
 
     PySlice_GetIndicesEx(slc, objlen, &start, &stop, &step, &length)
 
     return length
 
 
-cdef slice_get_indices_ex(slice slc, Py_ssize_t objlen=PY_SSIZE_T_MAX):
+cdef (Py_ssize_t, Py_ssize_t, Py_ssize_t, Py_ssize_t) slice_get_indices_ex(
+    slice slc, Py_ssize_t objlen=PY_SSIZE_T_MAX
+):
     """
     Get (start, stop, step, length) tuple for a slice.
 
@@ -356,7 +358,7 @@ cdef slice_get_indices_ex(slice slc, Py_ssize_t objlen=PY_SSIZE_T_MAX):
         Py_ssize_t start, stop, step, length
 
     if slc is None:
-        raise TypeError("slc should be a slice")
+        raise TypeError("slc should be a slice")  # pragma: no cover
 
     PySlice_GetIndicesEx(slc, objlen, &start, &stop, &step, &length)
 
@@ -406,7 +408,7 @@ cdef slice indexer_as_slice(intp_t[:] vals):
         int64_t d
 
     if vals is None:
-        raise TypeError("vals must be ndarray")
+        raise TypeError("vals must be ndarray")  # pragma: no cover
 
     n = vals.shape[0]
 
@@ -460,9 +462,11 @@ def get_blkno_indexers(
     # blockno handling.
     cdef:
         int64_t cur_blkno
-        Py_ssize_t i, start, stop, n, diff, tot_len
+        Py_ssize_t i, start, stop, n, diff
+        cnp.npy_intp tot_len
         int64_t blkno
         object group_dict = defaultdict(list)
+        ndarray[int64_t, ndim=1] arr
 
     n = blknos.shape[0]
     result = list()
@@ -495,7 +499,8 @@ def get_blkno_indexers(
                 result.append((blkno, slice(slices[0][0], slices[0][1])))
             else:
                 tot_len = sum(stop - start for start, stop in slices)
-                arr = np.empty(tot_len, dtype=np.int64)
+                # equiv np.empty(tot_len, dtype=np.int64)
+                arr = cnp.PyArray_EMPTY(1, &tot_len, cnp.NPY_INT64, 0)
 
                 i = 0
                 for start, stop in slices:
@@ -526,8 +531,13 @@ def get_blkno_placements(blknos, group: bool = True):
         yield blkno, BlockPlacement(indexer)
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cpdef update_blklocs_and_blknos(
-    ndarray[intp_t] blklocs, ndarray[intp_t] blknos, Py_ssize_t loc, intp_t nblocks
+    ndarray[intp_t, ndim=1] blklocs,
+    ndarray[intp_t, ndim=1] blknos,
+    Py_ssize_t loc,
+    intp_t nblocks,
 ):
     """
     Update blklocs and blknos when a new column is inserted at 'loc'.
@@ -535,7 +545,7 @@ cpdef update_blklocs_and_blknos(
     cdef:
         Py_ssize_t i
         cnp.npy_intp length = len(blklocs) + 1
-        ndarray[intp_t] new_blklocs, new_blknos
+        ndarray[intp_t, ndim=1] new_blklocs, new_blknos
 
     # equiv: new_blklocs = np.empty(length, dtype=np.intp)
     new_blklocs = cnp.PyArray_EMPTY(1, &length, cnp.NPY_INTP, 0)
@@ -553,6 +563,14 @@ cpdef update_blklocs_and_blknos(
         new_blknos[i + 1] = blknos[i]
 
     return new_blklocs, new_blknos
+
+
+def _unpickle_block(values, placement, ndim):
+    # We have to do some gymnastics b/c "ndim" is keyword-only
+
+    from pandas.core.internals.blocks import new_block
+
+    return new_block(values, placement, ndim=ndim)
 
 
 @cython.freelist(64)
@@ -578,14 +596,8 @@ cdef class SharedBlock:
         self.ndim = ndim
 
     cpdef __reduce__(self):
-        # We have to do some gymnastics b/c "ndim" is keyword-only
-        from functools import partial
-
-        from pandas.core.internals.blocks import new_block
-
-        args = (self.values, self.mgr_locs.indexer)
-        func = partial(new_block, ndim=self.ndim)
-        return func, args
+        args = (self.values, self.mgr_locs.indexer, self.ndim)
+        return _unpickle_block, args
 
     cpdef __setstate__(self, state):
         from pandas.core.construction import extract_array
@@ -693,7 +705,7 @@ cdef class BlockManager:
             cnp.npy_intp length = self.shape[0]
             SharedBlock blk
             BlockPlacement bp
-            ndarray[intp_t] new_blknos, new_blklocs
+            ndarray[intp_t, ndim=1] new_blknos, new_blklocs
 
         # equiv: np.empty(length, dtype=np.intp)
         new_blknos = cnp.PyArray_EMPTY(1, &length, cnp.NPY_INTP, 0)
@@ -711,7 +723,11 @@ cdef class BlockManager:
                 new_blknos[j] = blkno
                 new_blklocs[j] = i
 
-        for blkno in new_blknos:
+        for i in range(length):
+            # faster than `for blkno in new_blknos`
+            #  https://github.com/cython/cython/issues/4393
+            blkno = new_blknos[i]
+
             # If there are any -1s remaining, this indicates that our mgr_locs
             #  are invalid.
             if blkno == -1:
@@ -758,7 +774,7 @@ cdef class BlockManager:
             self.blocks = blocks
             self.axes = axes
 
-        else:
+        else:  # pragma: no cover
             raise NotImplementedError("pre-0.14.1 pickles are no longer supported")
 
         self._post_setstate()

@@ -94,7 +94,7 @@ class TestTimestampEquivDateRange:
         ts = Timestamp("20090415", tz=pytz.timezone("US/Eastern"))
         assert ts == stamp
 
-    @td.skip_if_windows_python_3
+    @td.skip_if_windows
     def test_date_range_timestamp_equiv_explicit_dateutil(self):
         from pandas._libs.tslibs.timezones import dateutil_gettz as gettz
 
@@ -121,6 +121,41 @@ class TestTimestampEquivDateRange:
 
 
 class TestDateRanges:
+    @pytest.mark.parametrize("freq", ["N", "U", "L", "T", "S", "H", "D"])
+    def test_date_range_edges(self, freq):
+        # GH#13672
+        td = Timedelta(f"1{freq}")
+        ts = Timestamp("1970-01-01")
+
+        idx = date_range(
+            start=ts + td,
+            end=ts + 4 * td,
+            freq=freq,
+        )
+        exp = DatetimeIndex(
+            [ts + n * td for n in range(1, 5)],
+            freq=freq,
+        )
+        tm.assert_index_equal(idx, exp)
+
+        # start after end
+        idx = date_range(
+            start=ts + 4 * td,
+            end=ts + td,
+            freq=freq,
+        )
+        exp = DatetimeIndex([], freq=freq)
+        tm.assert_index_equal(idx, exp)
+
+        # start matches end
+        idx = date_range(
+            start=ts + td,
+            end=ts + td,
+            freq=freq,
+        )
+        exp = DatetimeIndex([ts + td], freq=freq)
+        tm.assert_index_equal(idx, exp)
+
     def test_date_range_near_implementation_bound(self):
         # GH#???
         freq = Timedelta(1)
@@ -711,13 +746,13 @@ class TestDateRanges:
         assert len(rng) == 50
         assert rng[0] == datetime(2010, 9, 1, 5)
 
-    def test_timezone_comparaison_bug(self):
+    def test_timezone_comparison_bug(self):
         # smoke test
         start = Timestamp("20130220 10:00", tz="US/Eastern")
         result = date_range(start, periods=2, tz="US/Eastern")
         assert len(result) == 2
 
-    def test_timezone_comparaison_assert(self):
+    def test_timezone_comparison_assert(self):
         start = Timestamp("20130220 10:00", tz="US/Eastern")
         msg = "Inferred time zone not equal to passed time zone"
         with pytest.raises(AssertionError, match=msg):

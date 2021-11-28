@@ -1,7 +1,10 @@
 """
 Utility functions related to concat.
 """
-from typing import cast
+from typing import (
+    TYPE_CHECKING,
+    cast,
+)
 
 import numpy as np
 
@@ -10,7 +13,10 @@ from pandas._typing import (
     DtypeObj,
 )
 
-from pandas.core.dtypes.cast import find_common_type
+from pandas.core.dtypes.cast import (
+    astype_array,
+    find_common_type,
+)
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_dtype_equal,
@@ -19,15 +25,12 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCCategoricalIndex,
+    ABCExtensionArray,
     ABCSeries,
 )
 
-from pandas.core.arrays import ExtensionArray
-from pandas.core.arrays.sparse import SparseArray
-from pandas.core.construction import (
-    array as pd_array,
-    ensure_wrapped_if_datetimelike,
-)
+if TYPE_CHECKING:
+    from pandas.core.arrays.sparse import SparseArray
 
 
 def cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
@@ -59,26 +62,11 @@ def cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
         # SupportsDType[dtype[Any]], str, Union[Tuple[Any, int], Tuple[Any,
         # Union[SupportsIndex, Sequence[SupportsIndex]]], List[Any], _DTypeDict,
         # Tuple[Any, Any]]]"  [arg-type]
-        arr = cast(SparseArray, arr)
+        arr = cast("SparseArray", arr)
         return arr.to_dense().astype(dtype, copy=False)  # type: ignore[arg-type]
 
-    if (
-        isinstance(arr, np.ndarray)
-        and arr.dtype.kind in ["m", "M"]
-        and dtype is np.dtype("object")
-    ):
-        # wrap datetime-likes in EA to ensure astype(object) gives Timestamp/Timedelta
-        # this can happen when concat_compat is called directly on arrays (when arrays
-        # are not coming from Index/Series._values), eg in BlockManager.quantile
-        arr = ensure_wrapped_if_datetimelike(arr)
-
-    if isinstance(dtype, ExtensionDtype):
-        if isinstance(arr, np.ndarray):
-            # numpy's astype cannot handle ExtensionDtypes
-            return pd_array(arr, dtype=dtype, copy=False)
-        return arr.astype(dtype, copy=False)
-
-    return arr.astype(dtype, copy=False)
+    # astype_array includes ensure_wrapped_if_datetimelike
+    return astype_array(arr, dtype=dtype, copy=False)
 
 
 def concat_compat(to_concat, axis: int = 0, ea_compat_axis: bool = False):
@@ -119,7 +107,9 @@ def concat_compat(to_concat, axis: int = 0, ea_compat_axis: bool = False):
         to_concat = non_empties
 
     kinds = {obj.dtype.kind for obj in to_concat}
-    contains_datetime = any(kind in ["m", "M"] for kind in kinds)
+    contains_datetime = any(kind in ["m", "M"] for kind in kinds) or any(
+        isinstance(obj, ABCExtensionArray) and obj.ndim > 1 for obj in to_concat
+    )
 
     all_empty = not len(non_empties)
     single_dtype = len({x.dtype for x in to_concat}) == 1
@@ -135,7 +125,8 @@ def concat_compat(to_concat, axis: int = 0, ea_compat_axis: bool = False):
             target_dtype = find_common_type([x.dtype for x in to_concat])
             to_concat = [cast_to_common_type(arr, target_dtype) for arr in to_concat]
 
-        if isinstance(to_concat[0], ExtensionArray):
+        if isinstance(to_concat[0], ABCExtensionArray):
+            # TODO: what about EA-backed Index?
             cls = type(to_concat[0])
             return cls._concat_same_type(to_concat)
         else:
@@ -346,6 +337,8 @@ def _concat_datetime(to_concat, axis=0):
     -------
     a single array, preserving the combined dtypes
     """
+    from pandas.core.construction import ensure_wrapped_if_datetimelike
+
     to_concat = [ensure_wrapped_if_datetimelike(x) for x in to_concat]
 
     single_dtype = len({x.dtype for x in to_concat}) == 1

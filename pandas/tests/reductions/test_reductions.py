@@ -79,17 +79,18 @@ class TestReductions:
             ("boolean", True),
         ],
     )
-    def test_nanminmax(self, opname, dtype, val, index_or_series):
+    def test_nanminmax(self, opname, dtype, val, index_or_series, request):
         # GH#7261
         klass = index_or_series
 
         if dtype in ["Int64", "boolean"] and klass == Index:
-            pytest.skip("EAs can't yet be stored in an index")
+            mark = pytest.mark.xfail(reason="Need EA-backed Index")
+            request.node.add_marker(mark)
 
         def check_missing(res):
             if dtype == "datetime64[ns]":
                 return res is NaT
-            elif dtype == "Int64":
+            elif dtype in ["Int64", "boolean"]:
                 return res is pd.NA
             else:
                 return isna(res)
@@ -221,7 +222,7 @@ class TestIndexReductions:
     def test_max_min_range(self, start, stop, step):
         # GH#17607
         idx = RangeIndex(start, stop, step)
-        expected = idx._int64index.max()
+        expected = idx._values.max()
         result = idx.max()
         assert result == expected
 
@@ -229,7 +230,7 @@ class TestIndexReductions:
         result2 = idx.max(skipna=False)
         assert result2 == expected
 
-        expected = idx._int64index.min()
+        expected = idx._values.min()
         result = idx.min()
         assert result == expected
 
@@ -431,13 +432,11 @@ class TestIndexReductions:
         # GH#26125
         idx = RangeIndex(0, 10, 3)
 
-        expected = idx._int64index.max()
         result = np.max(idx)
-        assert result == expected
+        assert result == 9
 
-        expected = idx._int64index.min()
         result = np.min(idx)
-        assert result == expected
+        assert result == 0
 
         errmsg = "the 'out' parameter is not supported"
         with pytest.raises(ValueError, match=errmsg):
@@ -931,13 +930,11 @@ class TestSeriesReductions:
             with tm.assert_produces_warning(FutureWarning):
                 s.all(bool_only=True, level=0)
 
-        # bool_only is not implemented alone.
-        # TODO GH38810 change this error message to:
-        # "Series.any does not implement bool_only"
-        msg = "Series.any does not implement numeric_only"
+        # GH#38810 bool_only is not implemented alone.
+        msg = "Series.any does not implement bool_only"
         with pytest.raises(NotImplementedError, match=msg):
             s.any(bool_only=True)
-        msg = "Series.all does not implement numeric_only."
+        msg = "Series.all does not implement bool_only."
         with pytest.raises(NotImplementedError, match=msg):
             s.all(bool_only=True)
 

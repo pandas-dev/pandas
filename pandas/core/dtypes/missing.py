@@ -37,6 +37,7 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
 )
 from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
     ExtensionDtype,
     IntervalDtype,
     PeriodDtype,
@@ -157,24 +158,24 @@ def _isna(obj, inf_as_na: bool = False):
     boolean ndarray or boolean
     """
     if is_scalar(obj):
-        if inf_as_na:
-            return libmissing.checknull_old(obj)
-        else:
-            return libmissing.checknull(obj)
-    # hack (for now) because MI registers as ndarray
+        return libmissing.checknull(obj, inf_as_na=inf_as_na)
     elif isinstance(obj, ABCMultiIndex):
         raise NotImplementedError("isna is not defined for MultiIndex")
     elif isinstance(obj, type):
         return False
     elif isinstance(obj, (np.ndarray, ABCExtensionArray)):
         return _isna_array(obj, inf_as_na=inf_as_na)
-    elif isinstance(obj, (ABCSeries, ABCIndex)):
+    elif isinstance(obj, ABCIndex):
+        # Try to use cached isna, which also short-circuits for integer dtypes
+        #  and avoids materializing RangeIndex._values
+        if not obj._can_hold_na:
+            return obj.isna()
+        return _isna_array(obj._values, inf_as_na=inf_as_na)
+
+    elif isinstance(obj, ABCSeries):
         result = _isna_array(obj._values, inf_as_na=inf_as_na)
         # box
-        if isinstance(obj, ABCSeries):
-            result = obj._constructor(
-                result, index=obj.index, name=obj.name, copy=False
-            )
+        result = obj._constructor(result, index=obj.index, name=obj.name, copy=False)
         return result
     elif isinstance(obj, ABCDataFrame):
         return obj.isna()
@@ -238,7 +239,7 @@ def _isna_array(values: ArrayLike, inf_as_na: bool = False):
     if not isinstance(values, np.ndarray):
         # i.e. ExtensionArray
         if inf_as_na and is_categorical_dtype(dtype):
-            result = libmissing.isnaobj_old(values.to_numpy())
+            result = libmissing.isnaobj(values.to_numpy(), inf_as_na=inf_as_na)
         else:
             result = values.isna()
     elif is_string_dtype(dtype):
@@ -264,10 +265,7 @@ def _isna_string_dtype(values: np.ndarray, inf_as_na: bool) -> np.ndarray:
         result = np.zeros(values.shape, dtype=bool)
     else:
         result = np.empty(shape, dtype=bool)
-        if inf_as_na:
-            vec = libmissing.isnaobj_old(values.ravel())
-        else:
-            vec = libmissing.isnaobj(values.ravel())
+        vec = libmissing.isnaobj(values.ravel(), inf_as_na=inf_as_na)
 
         result[...] = vec.reshape(shape)
 
@@ -470,8 +468,8 @@ def array_equivalent(
     return np.array_equal(left, right)
 
 
-def _array_equivalent_float(left, right):
-    return ((left == right) | (np.isnan(left) & np.isnan(right))).all()
+def _array_equivalent_float(left, right) -> bool:
+    return bool(((left == right) | (np.isnan(left) & np.isnan(right))).all())
 
 
 def _array_equivalent_datetimelike(left, right):
@@ -640,6 +638,9 @@ def is_valid_na_for_dtype(obj, dtype: DtypeObj) -> bool:
 
     elif isinstance(dtype, IntervalDtype):
         return lib.is_float(obj) or obj is None or obj is libmissing.NA
+
+    elif isinstance(dtype, CategoricalDtype):
+        return is_valid_na_for_dtype(obj, dtype.categories.dtype)
 
     # fallback, default to allowing NaN, None, NA, NaT
     return not isinstance(obj, (np.datetime64, np.timedelta64, Decimal))

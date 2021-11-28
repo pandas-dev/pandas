@@ -44,16 +44,18 @@ def generate_shared_aggregator(
 
     numba = import_optional_dependency("numba")
 
-    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+    # error: Untyped decorator makes function "column_looper" untyped
+    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)  # type: ignore[misc]
     def column_looper(
         values: np.ndarray,
         start: np.ndarray,
         end: np.ndarray,
         min_periods: int,
+        *args,
     ):
         result = np.empty((len(start), values.shape[1]), dtype=np.float64)
         for i in numba.prange(values.shape[1]):
-            result[:, i] = func(values[:, i], start, end, min_periods)
+            result[:, i] = func(values[:, i], start, end, min_periods, *args)
         return result
 
     return column_looper

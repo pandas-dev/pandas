@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 
 import pandas as pd
@@ -7,22 +9,24 @@ class Methods:
 
     params = (
         ["DataFrame", "Series"],
-        [10, 1000],
+        [("rolling", {"window": 10}), ("rolling", {"window": 1000}), ("expanding", {})],
         ["int", "float"],
-        ["median", "mean", "max", "min", "std", "count", "skew", "kurt", "sum"],
+        ["median", "mean", "max", "min", "std", "count", "skew", "kurt", "sum", "sem"],
     )
-    param_names = ["constructor", "window", "dtype", "method"]
+    param_names = ["constructor", "window_kwargs", "dtype", "method"]
 
-    def setup(self, constructor, window, dtype, method):
+    def setup(self, constructor, window_kwargs, dtype, method):
         N = 10 ** 5
+        window, kwargs = window_kwargs
         arr = (100 * np.random.random(N)).astype(dtype)
-        self.roll = getattr(pd, constructor)(arr).rolling(window)
+        obj = getattr(pd, constructor)(arr)
+        self.window = getattr(obj, window)(**kwargs)
 
-    def time_rolling(self, constructor, window, dtype, method):
-        getattr(self.roll, method)()
+    def time_method(self, constructor, window_kwargs, dtype, method):
+        getattr(self.window, method)()
 
-    def peakmem_rolling(self, constructor, window, dtype, method):
-        getattr(self.roll, method)()
+    def peakmem_method(self, constructor, window_kwargs, dtype, method):
+        getattr(self.window, method)()
 
 
 class Apply:
@@ -44,77 +48,116 @@ class Apply:
         self.roll.apply(function, raw=raw)
 
 
-class Engine:
+class NumbaEngineMethods:
     params = (
         ["DataFrame", "Series"],
         ["int", "float"],
-        [np.sum, lambda x: np.sum(x) + 5],
-        ["cython", "numba"],
-        ["sum", "max", "min", "median", "mean"],
+        [("rolling", {"window": 10}), ("expanding", {})],
+        ["sum", "max", "min", "median", "mean", "var", "std"],
+        [True, False],
+        [None, 100],
     )
-    param_names = ["constructor", "dtype", "function", "engine", "method"]
+    param_names = [
+        "constructor",
+        "dtype",
+        "window_kwargs",
+        "method",
+        "parallel",
+        "cols",
+    ]
 
-    def setup(self, constructor, dtype, function, engine, method):
+    def setup(self, constructor, dtype, window_kwargs, method, parallel, cols):
         N = 10 ** 3
-        arr = (100 * np.random.random(N)).astype(dtype)
-        self.data = getattr(pd, constructor)(arr)
+        window, kwargs = window_kwargs
+        shape = (N, cols) if cols is not None and constructor != "Series" else N
+        arr = (100 * np.random.random(shape)).astype(dtype)
+        data = getattr(pd, constructor)(arr)
 
-    def time_rolling_apply(self, constructor, dtype, function, engine, method):
-        self.data.rolling(10).apply(function, raw=True, engine=engine)
+        # Warm the cache
+        with warnings.catch_warnings(record=True):
+            # Catch parallel=True not being applicable e.g. 1D data
+            self.window = getattr(data, window)(**kwargs)
+            getattr(self.window, method)(
+                engine="numba", engine_kwargs={"parallel": parallel}
+            )
 
-    def time_expanding_apply(self, constructor, dtype, function, engine, method):
-        self.data.expanding().apply(function, raw=True, engine=engine)
+    def test_method(self, constructor, dtype, window_kwargs, method, parallel, cols):
+        with warnings.catch_warnings(record=True):
+            getattr(self.window, method)(
+                engine="numba", engine_kwargs={"parallel": parallel}
+            )
 
-    def time_rolling_methods(self, constructor, dtype, function, engine, method):
-        getattr(self.data.rolling(10), method)(engine=engine)
 
-
-class ExpandingMethods:
-
+class NumbaEngineApply:
     params = (
         ["DataFrame", "Series"],
         ["int", "float"],
-        ["median", "mean", "max", "min", "std", "count", "skew", "kurt", "sum"],
+        [("rolling", {"window": 10}), ("expanding", {})],
+        [np.sum, lambda x: np.sum(x) + 5],
+        [True, False],
+        [None, 100],
     )
-    param_names = ["constructor", "window", "dtype", "method"]
+    param_names = [
+        "constructor",
+        "dtype",
+        "window_kwargs",
+        "function",
+        "parallel",
+        "cols",
+    ]
 
-    def setup(self, constructor, dtype, method):
-        N = 10 ** 5
-        N_groupby = 100
-        arr = (100 * np.random.random(N)).astype(dtype)
-        self.expanding = getattr(pd, constructor)(arr).expanding()
-        self.expanding_groupby = (
-            pd.DataFrame({"A": arr[:N_groupby], "B": range(N_groupby)})
-            .groupby("B")
-            .expanding()
-        )
+    def setup(self, constructor, dtype, window_kwargs, function, parallel, cols):
+        N = 10 ** 3
+        window, kwargs = window_kwargs
+        shape = (N, cols) if cols is not None and constructor != "Series" else N
+        arr = (100 * np.random.random(shape)).astype(dtype)
+        data = getattr(pd, constructor)(arr)
 
-    def time_expanding(self, constructor, dtype, method):
-        getattr(self.expanding, method)()
+        # Warm the cache
+        with warnings.catch_warnings(record=True):
+            # Catch parallel=True not being applicable e.g. 1D data
+            self.window = getattr(data, window)(**kwargs)
+            self.window.apply(
+                function, raw=True, engine="numba", engine_kwargs={"parallel": parallel}
+            )
 
-    def time_expanding_groupby(self, constructor, dtype, method):
-        getattr(self.expanding_groupby, method)()
+    def test_method(self, constructor, dtype, window_kwargs, function, parallel, cols):
+        with warnings.catch_warnings(record=True):
+            self.window.apply(
+                function, raw=True, engine="numba", engine_kwargs={"parallel": parallel}
+            )
 
 
 class EWMMethods:
 
-    params = (["DataFrame", "Series"], [10, 1000], ["int", "float"], ["mean", "std"])
-    param_names = ["constructor", "window", "dtype", "method"]
+    params = (
+        ["DataFrame", "Series"],
+        [
+            ({"halflife": 10}, "mean"),
+            ({"halflife": 10}, "std"),
+            ({"halflife": 1000}, "mean"),
+            ({"halflife": 1000}, "std"),
+            (
+                {
+                    "halflife": "1 Day",
+                    "times": pd.date_range("1900", periods=10 ** 5, freq="23s"),
+                },
+                "mean",
+            ),
+        ],
+        ["int", "float"],
+    )
+    param_names = ["constructor", "kwargs_method", "dtype"]
 
-    def setup(self, constructor, window, dtype, method):
+    def setup(self, constructor, kwargs_method, dtype):
         N = 10 ** 5
+        kwargs, method = kwargs_method
         arr = (100 * np.random.random(N)).astype(dtype)
-        times = pd.date_range("1900", periods=N, freq="23s")
-        self.ewm = getattr(pd, constructor)(arr).ewm(halflife=window)
-        self.ewm_times = getattr(pd, constructor)(arr).ewm(
-            halflife="1 Day", times=times
-        )
+        self.method = method
+        self.ewm = getattr(pd, constructor)(arr).ewm(**kwargs)
 
-    def time_ewm(self, constructor, window, dtype, method):
-        getattr(self.ewm, method)()
-
-    def time_ewm_times(self, constructor, window, dtype, method):
-        self.ewm_times.mean()
+    def time_ewm(self, constructor, kwargs_method, dtype):
+        getattr(self.ewm, self.method)()
 
 
 class VariableWindowMethods(Methods):
@@ -122,7 +165,7 @@ class VariableWindowMethods(Methods):
         ["DataFrame", "Series"],
         ["50s", "1h", "1d"],
         ["int", "float"],
-        ["median", "mean", "max", "min", "std", "count", "skew", "kurt", "sum"],
+        ["median", "mean", "max", "min", "std", "count", "skew", "kurt", "sum", "sem"],
     )
     param_names = ["constructor", "window", "dtype", "method"]
 
@@ -130,35 +173,35 @@ class VariableWindowMethods(Methods):
         N = 10 ** 5
         arr = (100 * np.random.random(N)).astype(dtype)
         index = pd.date_range("2017-01-01", periods=N, freq="5s")
-        self.roll = getattr(pd, constructor)(arr, index=index).rolling(window)
+        self.window = getattr(pd, constructor)(arr, index=index).rolling(window)
 
 
 class Pairwise:
 
-    params = ([10, 1000, None], ["corr", "cov"], [True, False])
-    param_names = ["window", "method", "pairwise"]
+    params = (
+        [({"window": 10}, "rolling"), ({"window": 1000}, "rolling"), ({}, "expanding")],
+        ["corr", "cov"],
+        [True, False],
+    )
+    param_names = ["window_kwargs", "method", "pairwise"]
 
-    def setup(self, window, method, pairwise):
+    def setup(self, kwargs_window, method, pairwise):
         N = 10 ** 4
         n_groups = 20
+        kwargs, window = kwargs_window
         groups = [i for _ in range(N // n_groups) for i in range(n_groups)]
         arr = np.random.random(N)
         self.df = pd.DataFrame(arr)
-        self.df_group = pd.DataFrame({"A": groups, "B": arr}).groupby("A")
+        self.window = getattr(self.df, window)(**kwargs)
+        self.window_group = getattr(
+            pd.DataFrame({"A": groups, "B": arr}).groupby("A"), window
+        )(**kwargs)
 
-    def time_pairwise(self, window, method, pairwise):
-        if window is None:
-            r = self.df.expanding()
-        else:
-            r = self.df.rolling(window=window)
-        getattr(r, method)(self.df, pairwise=pairwise)
+    def time_pairwise(self, kwargs_window, method, pairwise):
+        getattr(self.window, method)(self.df, pairwise=pairwise)
 
-    def time_groupby(self, window, method, pairwise):
-        if window is None:
-            r = self.df_group.expanding()
-        else:
-            r = self.df_group.rolling(window=window)
-        getattr(r, method)(self.df, pairwise=pairwise)
+    def time_groupby(self, kwargs_window, method, pairwise):
+        getattr(self.window_group, method)(self.df, pairwise=pairwise)
 
 
 class Quantile:
@@ -245,10 +288,18 @@ class ForwardWindowMethods:
 
 class Groupby:
 
-    params = ["sum", "median", "mean", "max", "min", "kurt", "sum"]
+    params = (
+        ["sum", "median", "mean", "max", "min", "kurt", "sum"],
+        [
+            ("rolling", {"window": 2}),
+            ("rolling", {"window": "30s", "on": "C"}),
+            ("expanding", {}),
+        ],
+    )
 
-    def setup(self, method):
+    def setup(self, method, window_kwargs):
         N = 1000
+        window, kwargs = window_kwargs
         df = pd.DataFrame(
             {
                 "A": [str(i) for i in range(N)] * 10,
@@ -256,14 +307,10 @@ class Groupby:
                 "C": pd.date_range(start="1900-01-01", freq="1min", periods=N * 10),
             }
         )
-        self.groupby_roll_int = df.groupby("A").rolling(window=2)
-        self.groupby_roll_offset = df.groupby("A").rolling(window="30s", on="C")
+        self.groupby_window = getattr(df.groupby("A"), window)(**kwargs)
 
-    def time_rolling_int(self, method):
-        getattr(self.groupby_roll_int, method)()
-
-    def time_rolling_offset(self, method):
-        getattr(self.groupby_roll_offset, method)()
+    def time_method(self, method, window_kwargs):
+        getattr(self.groupby_window, method)()
 
 
 class GroupbyLargeGroups:

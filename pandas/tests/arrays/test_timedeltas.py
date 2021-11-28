@@ -55,11 +55,11 @@ class TestTimedeltaArray:
             np.int64(1),
             1.0,
             np.datetime64("NaT"),
-            pd.Timestamp.now(),
+            pd.Timestamp("2021-01-01"),
             "invalid",
             np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9,
             (np.arange(10) * 24 * 3600 * 10 ** 9).view("datetime64[ns]"),
-            pd.Timestamp.now().to_period("D"),
+            pd.Timestamp("2021-01-01").to_period("D"),
         ],
     )
     @pytest.mark.parametrize("index", [True, False])
@@ -90,6 +90,21 @@ class TestUnaryOps:
         result = abs(arr)
         tm.assert_timedelta_array_equal(result, expected)
 
+        result2 = np.abs(arr)
+        tm.assert_timedelta_array_equal(result2, expected)
+
+    def test_pos(self):
+        vals = np.array([-3600 * 10 ** 9, "NaT", 7200 * 10 ** 9], dtype="m8[ns]")
+        arr = TimedeltaArray(vals)
+
+        result = +arr
+        tm.assert_timedelta_array_equal(result, arr)
+        assert not np.shares_memory(result._ndarray, arr._ndarray)
+
+        result2 = np.positive(arr)
+        tm.assert_timedelta_array_equal(result2, arr)
+        assert not np.shares_memory(result2._ndarray, arr._ndarray)
+
     def test_neg(self):
         vals = np.array([-3600 * 10 ** 9, "NaT", 7200 * 10 ** 9], dtype="m8[ns]")
         arr = TimedeltaArray(vals)
@@ -100,6 +115,9 @@ class TestUnaryOps:
         result = -arr
         tm.assert_timedelta_array_equal(result, expected)
 
+        result2 = np.negative(arr)
+        tm.assert_timedelta_array_equal(result2, expected)
+
     def test_neg_freq(self):
         tdi = pd.timedelta_range("2 Days", periods=4, freq="H")
         arr = TimedeltaArray(tdi, freq=tdi.freq)
@@ -108,3 +126,6 @@ class TestUnaryOps:
 
         result = -arr
         tm.assert_timedelta_array_equal(result, expected)
+
+        result2 = np.negative(arr)
+        tm.assert_timedelta_array_equal(result2, expected)

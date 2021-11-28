@@ -354,8 +354,12 @@ class IntervalIndex(ExtensionIndex):
         return MultiIndex.from_arrays([self.left, self.right], names=["left", "right"])
 
     def __reduce__(self):
-        d = {"left": self.left, "right": self.right, "closed": self.closed}
-        d.update(self._get_attributes_dict())
+        d = {
+            "left": self.left,
+            "right": self.right,
+            "closed": self.closed,
+            "name": self.name,
+        }
         return _new_IntervalIndex, (type(self), d), None
 
     @property
@@ -527,7 +531,9 @@ class IntervalIndex(ExtensionIndex):
                 key_i8 = key_i8.where(~key._isnan)
 
         # ensure consistency with IntervalIndex subtype
-        subtype = self.dtype.subtype
+        # error: Item "ExtensionDtype"/"dtype[Any]" of "Union[dtype[Any],
+        # ExtensionDtype]" has no attribute "subtype"
+        subtype = self.dtype.subtype  # type: ignore[union-attr]
 
         if not is_dtype_equal(subtype, key_dtype):
             raise ValueError(
@@ -721,6 +727,8 @@ class IntervalIndex(ExtensionIndex):
                 if isinstance(locs, slice):
                     # Only needed for get_indexer_non_unique
                     locs = np.arange(locs.start, locs.stop, locs.step, dtype="intp")
+                elif not self.is_unique and not self.is_monotonic:
+                    locs = np.where(locs)[0]
                 locs = np.array(locs, ndmin=1)
             except KeyError:
                 missing.append(i)
@@ -762,7 +770,9 @@ class IntervalIndex(ExtensionIndex):
     def _should_fallback_to_positional(self) -> bool:
         # integer lookups in Series.__getitem__ are unambiguously
         #  positional in this case
-        return self.dtype.subtype.kind in ["m", "M"]
+        # error: Item "ExtensionDtype"/"dtype[Any]" of "Union[dtype[Any],
+        # ExtensionDtype]" has no attribute "subtype"
+        return self.dtype.subtype.kind in ["m", "M"]  # type: ignore[union-attr]
 
     def _maybe_cast_slice_bound(self, label, side: str, kind=lib.no_default):
         self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
@@ -796,7 +806,8 @@ class IntervalIndex(ExtensionIndex):
     # Rendering Methods
     # __repr__ associated methods are based on MultiIndex
 
-    def _format_with_header(self, header: list[str], na_rep: str = "NaN") -> list[str]:
+    def _format_with_header(self, header: list[str], na_rep: str) -> list[str]:
+        # matches base class except for whitespace padding
         return header + list(self._format_native_types(na_rep=na_rep))
 
     def _format_native_types(self, na_rep="NaN", quoting=None, **kwargs):
