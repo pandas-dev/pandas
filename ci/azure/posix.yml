@@ -12,12 +12,12 @@ jobs:
         py38_macos_1:
           ENV_FILE: ci/deps/azure-macos-38.yaml
           CONDA_PY: "38"
-          PATTERN: "not slow and not network"
+          PATTERN: "not slow"
           PYTEST_TARGET: "pandas/tests/[a-h]*"
         py38_macos_2:
           ENV_FILE: ci/deps/azure-macos-38.yaml
           CONDA_PY: "38"
-          PATTERN: "not slow and not network"
+          PATTERN: "not slow"
           PYTEST_TARGET: "pandas/tests/[i-z]*"
 
   steps:
