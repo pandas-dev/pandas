@@ -115,4 +115,4 @@ class TestTranspose:
         assert result._mgr.nblocks == 1
 
         rtrip = result._mgr.blocks[0].values
-        assert np.shares_memory(arr._data, rtrip._data)
+        assert np.shares_memory(arr._ndarray, rtrip._ndarray)

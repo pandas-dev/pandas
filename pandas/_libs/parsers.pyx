@@ -721,10 +721,6 @@ cdef class TextReader:
                 header = [self.names]
 
         elif self.names is not None:
-            # Enforce this unless usecols
-            if not self.has_usecols:
-                self.parser.expected_fields = len(self.names)
-
             # Names passed
             if self.parser.lines < 1:
                 self._tokenize_rows(1)
@@ -735,6 +731,10 @@ cdef class TextReader:
                 field_count = len(header[0])
             else:
                 field_count = self.parser.line_fields[data_line]
+
+            # Enforce this unless usecols
+            if not self.has_usecols:
+                self.parser.expected_fields = max(field_count, len(self.names))
         else:
             # No header passed nor to be found in the file
             if self.parser.lines < 1:
@@ -926,12 +926,19 @@ cdef class TextReader:
                 self.parser.line_fields[i] + \
                 (num_cols >= self.parser.line_fields[i]) * num_cols
 
-        if self.table_width - self.leading_cols > num_cols:
-            raise ParserError(f"Too many columns specified: expected "
-                              f"{self.table_width - self.leading_cols} "
-                              f"and found {num_cols}")
+        usecols_not_callable_and_exists = not callable(self.usecols) and self.usecols
+        names_larger_num_cols = (self.names and
+                                 len(self.names) - self.leading_cols > num_cols)
 
-        if (self.usecols is not None and not callable(self.usecols) and
+        if self.table_width - self.leading_cols > num_cols:
+            if (usecols_not_callable_and_exists
+                    and self.table_width - self.leading_cols < len(self.usecols)
+                    or names_larger_num_cols):
+                raise ParserError(f"Too many columns specified: expected "
+                                  f"{self.table_width - self.leading_cols} "
+                                  f"and found {num_cols}")
+
+        if (usecols_not_callable_and_exists and
                 all(isinstance(u, int) for u in self.usecols)):
             missing_usecols = [col for col in self.usecols if col >= num_cols]
             if missing_usecols:

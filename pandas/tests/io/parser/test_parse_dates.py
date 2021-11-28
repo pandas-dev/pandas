@@ -286,8 +286,6 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
 
     if not keep_date_col:
         expected = expected.drop(["X1", "X2", "X3"], axis=1)
-    elif parser.engine == "python":
-        expected["X1"] = expected["X1"].astype(np.int64)
 
     # Python can sometimes be flaky about how
     # the aggregated columns are entered, so
@@ -425,8 +423,6 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
 
     if not keep_date_col:
         expected = expected.drop(["X1", "X2", "X3"], axis=1)
-    elif parser.engine == "python":
-        expected["X1"] = expected["X1"].astype(np.int64)
 
     tm.assert_frame_equal(result, expected)
 
@@ -1817,6 +1813,22 @@ def test_date_parser_usecols_thousands(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
+def test_parse_dates_and_keep_orgin_column(all_parsers):
+    # GH#13378
+    parser = all_parsers
+    data = """A
+20150908
+20150909
+"""
+    result = parser.read_csv(
+        StringIO(data), parse_dates={"date": ["A"]}, keep_date_col=True
+    )
+    expected_data = [Timestamp("2015-09-08"), Timestamp("2015-09-09")]
+    expected = DataFrame({"date": expected_data, "A": expected_data})
+    tm.assert_frame_equal(result, expected)
+
+
 def test_dayfirst_warnings():
     # GH 12585
     warning_msg_day_first = (
@@ -1907,3 +1919,44 @@ def test_dayfirst_warnings():
             index_col="date",
         ).index
     tm.assert_index_equal(expected, res8)
+
+
+@skip_pyarrow
+def test_infer_first_column_as_index(all_parsers):
+    # GH#11019
+    parser = all_parsers
+    data = "a,b,c\n1970-01-01,2,3,4"
+    result = parser.read_csv(StringIO(data), parse_dates=["a"])
+    expected = DataFrame({"a": "2", "b": 3, "c": 4}, index=["1970-01-01"])
+    tm.assert_frame_equal(result, expected)
+
+
+@skip_pyarrow
+def test_replace_nans_before_parsing_dates(all_parsers):
+    # GH#26203
+    parser = all_parsers
+    data = """Test
+2012-10-01
+0
+2015-05-15
+#
+2017-09-09
+"""
+    result = parser.read_csv(
+        StringIO(data),
+        na_values={"Test": ["#", "0"]},
+        parse_dates=["Test"],
+        date_parser=lambda x: pd.to_datetime(x, format="%Y-%m-%d"),
+    )
+    expected = DataFrame(
+        {
+            "Test": [
+                Timestamp("2012-10-01"),
+                pd.NaT,
+                Timestamp("2015-05-15"),
+                pd.NaT,
+                Timestamp("2017-09-09"),
+            ]
+        }
+    )
+    tm.assert_frame_equal(result, expected)
