@@ -69,10 +69,7 @@ import pandas.core.common as com
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.core.groupby import (
-    base,
-    ops,
-)
+from pandas.core.groupby import base
 from pandas.core.groupby.groupby import (
     GroupBy,
     _agg_template,
@@ -1658,30 +1655,29 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         with self._group_selection_context():
             df = self.obj
 
-            # Check for mapping, array or function rather than column grouping
-            in_axis = self.grouper.groupings[0].in_axis
-
-            # Try to find column names
-            if not in_axis:
-                keys: Any = []
-                remaining_columns = self._selected_obj.columns
-            elif isinstance(self._selected_obj, Series):
-                keys = [grouping.name for grouping in self.grouper.groupings]
-                remaining_columns = [self._selected_obj.name]
+            grouping_info = [
+                {
+                    "level": i,
+                    "name": grouping.name if grouping.in_axis else f"level_{i}",
+                    "in_axis": grouping.in_axis,
+                }
+                for i, grouping in enumerate(self.grouper.groupings)
+            ]
+            in_axis_names = [
+                grouping.name for grouping in self.grouper.groupings if grouping.in_axis
+            ]
+            if isinstance(self._selected_obj, Series):
+                name = self._selected_obj.name
+                remaining_columns = [] if name in in_axis_names else [name]
             else:
-                if isinstance(self.keys, ops.BaseGrouper):
-                    keys = [grouping.name for grouping in self.keys.groupings]
-                elif isinstance(self.keys, str):
-                    keys = [self.keys]
-                else:
-                    keys = self.keys
-
                 remaining_columns = [
-                    key for key in self._selected_obj.columns if key not in keys
+                    name
+                    for name in self._selected_obj.columns
+                    if name not in in_axis_names
                 ]
 
             if subset is not None:
-                clashing = set(subset) & set(keys)
+                clashing = set(subset) - set(remaining_columns)
                 if clashing:
                     raise ValueError(
                         f"Keys {clashing} in subset cannot be in "
@@ -1703,10 +1699,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 dropna=self.dropna,
             )
             groupings = list(main_grouper.groupings)
-            for key in remaining_columns:
+            for name in remaining_columns:
                 grouper, _, _ = get_grouper(
                     df,
-                    key=key,
+                    key=name,
                     axis=self.axis,
                     level=self.level,
                     sort=self.sort,
@@ -1727,6 +1723,13 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 ).size(),
             )
 
+            # Temporarily fill in index column names
+            for info in grouping_info:
+                if not info["in_axis"]:
+                    result.index.set_names(
+                        info["name"], level=info["level"], inplace=True
+                    )
+
             if normalize:
                 # Normalize the results by dividing by the original group sizes
                 indexed_group_size = df.groupby(
@@ -1735,10 +1738,15 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     observed=self.observed,
                     dropna=self.dropna,
                 ).size()
-                if not in_axis:
-                    # The common index needs a common name
-                    indexed_group_size.index.set_names("_group_", inplace=True)
-                    result.index.set_names("_group_", level=0, inplace=True)
+
+                # Set the non-in_axis index names
+                for info in grouping_info:
+                    if not info["in_axis"]:
+                        level = info["level"] if len(grouping_info) > 1 else None
+                        indexed_group_size.index.set_names(
+                            info["name"], level=level, inplace=True
+                        )
+
                 # Use indexed group size series
                 if self.dropna or (isinstance(self.keys, list) and len(self.keys) == 1):
                     result /= indexed_group_size
@@ -1750,20 +1758,20 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                         / indexed_group_size.align(result, join="left")[0].values
                     )
                     result = Series(data=values, index=result.index)
-                if not in_axis:
-                    result.index.set_names(None, level=0, inplace=True)
 
             if sort:
                 # Sort the values and then resort by the main grouping
-                if not in_axis:
-                    level: Any = 0
-                else:
-                    level = keys
+                level = [info["level"] for info in grouping_info]
                 result = result.sort_values(ascending=ascending).sort_index(
                     level=level, sort_remaining=False
                 )
 
-            if not self.as_index:
+            if self.as_index:
+                # Remove Series index names (for compatability with size())
+                for info in grouping_info:
+                    if not info["in_axis"]:
+                        result.index.set_names(None, level=info["level"], inplace=True)
+            else:
                 # Convert to frame
                 result = result.reset_index(name="proportion" if normalize else "count")
             return result
