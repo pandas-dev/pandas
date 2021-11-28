@@ -348,6 +348,7 @@ Look,a snake,🐍"""
         else:
             tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:In future versions `DataFrame.to_latex`")
     @pytest.mark.parametrize(
         "writer_name, writer_kwargs, module",
         [
@@ -384,7 +385,6 @@ Look,a snake,🐍"""
     @pytest.mark.filterwarnings(  # pytables np.object usage
         "ignore:`np.object` is a deprecated alias:DeprecationWarning"
     )
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) IO HDF5
     def test_write_fspath_hdf5(self):
         # Same test as write_fspath_all, except HDF5 files aren't
         # necessarily byte-for-byte identical for a given dataframe, so we'll

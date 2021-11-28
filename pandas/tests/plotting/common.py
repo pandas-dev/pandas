@@ -45,6 +45,8 @@ class TestPlotBase:
 
         from pandas.plotting._matplotlib import compat
 
+        self.compat = compat
+
         mpl.rcdefaults()
 
         self.start_date_to_int64 = 812419200000000000
@@ -550,7 +552,7 @@ class TestPlotBase:
             obj.plot(kind=kind, grid=False, **kws)
             assert not is_grid_on()
 
-            if kind != "pie":
+            if kind not in ["pie", "hexbin", "scatter"]:
                 self.plt.subplot(1, 4 * len(kinds), spndx)
                 spndx += 1
                 mpl.rc("axes", grid=True)
@@ -568,6 +570,12 @@ class TestPlotBase:
         Auxiliary function for correctly unpacking cycler after MPL >= 1.5
         """
         return [v[field] for v in rcParams["axes.prop_cycle"]]
+
+    def get_x_axis(self, ax):
+        return ax._shared_axes["x"] if self.compat.mpl_ge_3_5_0() else ax._shared_x_axes
+
+    def get_y_axis(self, ax):
+        return ax._shared_axes["y"] if self.compat.mpl_ge_3_5_0() else ax._shared_y_axes
 
 
 def _check_plot_works(f, filterwarnings="always", default_axes=False, **kwargs):

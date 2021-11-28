@@ -116,6 +116,13 @@ index_col : int, str, sequence of int / str, or False, optional, default ``None`
   of the data file, then a default index is used.  If it is larger, then
   the first columns are used as index so that the remaining number of fields in
   the body are equal to the number of fields in the header.
+
+  The first row after the header is used to determine the number of columns,
+  which will go into the index. If the subsequent rows contain less columns
+  than the first row, they are filled with ``NaN``.
+
+  This can be avoided through ``usecols``. This ensures that the columns are
+  taken as is and the trailing data are ignored.
 usecols : list-like or callable, default ``None``
   Return a subset of the columns. If list-like, all elements must either
   be positional (i.e. integer indices into the document columns) or strings
@@ -143,9 +150,15 @@ usecols : list-like or callable, default ``None``
      pd.read_csv(StringIO(data))
      pd.read_csv(StringIO(data), usecols=lambda x: x.upper() in ["COL1", "COL3"])
 
-  Using this parameter results in much faster parsing time and lower memory usage.
+  Using this parameter results in much faster parsing time and lower memory usage
+  when using the c engine. The Python engine loads the data first before deciding
+  which columns to drop.
 squeeze : boolean, default ``False``
   If the parsed data only contains one column then return a ``Series``.
+
+  .. deprecated:: 1.4.0
+     Append ``.squeeze("columns")`` to the call to ``{func_name}`` to squeeze
+     the data.
 prefix : str, default ``None``
   Prefix to add to column numbers when no header, e.g. 'X' for X0, X1, ...
 mangle_dupe_cols : boolean, default ``True``
@@ -3023,6 +3036,7 @@ Read in the content of the "books.xml" as instance of ``StringIO`` or
 Even read XML from AWS S3 buckets such as Python Software Foundation's IRS 990 Form:
 
 .. ipython:: python
+   :okwarning:
 
    df = pd.read_xml(
        "s3://irs-form-990/201923199349319487_public.xml",

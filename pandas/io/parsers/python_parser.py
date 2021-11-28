@@ -4,7 +4,6 @@ from collections import (
     abc,
     defaultdict,
 )
-from copy import copy
 import csv
 from io import StringIO
 import re
@@ -89,7 +88,6 @@ class PythonParser(ParserBase):
         self.verbose = kwds["verbose"]
         self.converters = kwds["converters"]
 
-        self.dtype = copy(kwds["dtype"])
         self.thousands = kwds["thousands"]
         self.decimal = kwds["decimal"]
 
@@ -152,7 +150,7 @@ class PythonParser(ParserBase):
         if self._col_indices is None:
             self._col_indices = list(range(len(self.columns)))
 
-        self._validate_parse_dates_presence(self.columns)
+        self._parse_date_cols = self._validate_parse_dates_presence(self.columns)
         no_thousands_columns: set[int] | None = None
         if self.parse_dates:
             no_thousands_columns = self._set_noconvert_dtype_columns(
@@ -277,9 +275,9 @@ class PythonParser(ParserBase):
         alldata = self._rows_to_cols(content)
         data, columns = self._exclude_implicit_index(alldata)
 
+        data = self._convert_data(data)
         columns, data = self._do_date_conversions(columns, data)
 
-        data = self._convert_data(data)
         index, columns = self._make_index(data, alldata, columns, indexnamerow)
 
         return index, columns, data
@@ -308,21 +306,8 @@ class PythonParser(ParserBase):
 
     def _convert_data(self, data):
         # apply converters
-        def _clean_mapping(mapping):
-            """converts col numbers to names"""
-            clean = {}
-            for col, v in mapping.items():
-                if isinstance(col, int) and col not in self.orig_names:
-                    col = self.orig_names[col]
-                clean[col] = v
-            return clean
-
-        clean_conv = _clean_mapping(self.converters)
-        if not isinstance(self.dtype, dict):
-            # handles single dtype applied to all columns
-            clean_dtypes = self.dtype
-        else:
-            clean_dtypes = _clean_mapping(self.dtype)
+        clean_conv = self._clean_mapping(self.converters)
+        clean_dtypes = self._clean_mapping(self.dtype)
 
         # Apply NA values.
         clean_na_values = {}
@@ -1048,6 +1033,7 @@ class PythonParser(ParserBase):
                             assert self.data is not None
                             new_rows.append(next(self.data))
 
+                        len_new_rows = len(new_rows)
                         new_rows = self._remove_skipped_rows(new_rows)
                         lines.extend(new_rows)
                     else:
@@ -1059,13 +1045,15 @@ class PythonParser(ParserBase):
 
                             if new_row is not None:
                                 new_rows.append(new_row)
+                        len_new_rows = len(new_rows)
 
                 except StopIteration:
+                    len_new_rows = len(new_rows)
                     new_rows = self._remove_skipped_rows(new_rows)
                     lines.extend(new_rows)
                     if len(lines) == 0:
                         raise
-                self.pos += len(new_rows)
+                self.pos += len_new_rows
 
             self.buf = []
         else:
