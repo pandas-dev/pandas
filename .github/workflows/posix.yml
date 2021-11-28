@@ -48,7 +48,6 @@ jobs:
     concurrency:
       group: ${{ github.ref }}-${{ matrix.settings[0] }}
       cancel-in-progress: ${{github.event_name == 'pull_request'}}
-    # https://github.com/qld-gov-au/ckanext-s3filestore/blob/master/.github/workflows/test.yml#L39
     services:
       moto:
         image: motoserver/moto

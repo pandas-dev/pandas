@@ -55,9 +55,11 @@ def s3_base(worker_id):
         os.environ.setdefault("AWS_ACCESS_KEY_ID", "foobar_key")
         os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "foobar_secret")
         if os.environ.get("PANDAS_CI", "0") == "1":
-            # Windows/MacOS on Azure pipelines/Github Actions
-            # does not support a container service
-            # Service on CircleCI will probably hit the Docker rate pull limit
+            # NOT RUN on Windows/MacOS/ARM, only Ubuntu
+            # - subprocess in CI can cause timeouts
+            # - Azure pipelines/Github Actions do not support
+            #   container services for the above OSs
+            # - CircleCI will probably hit the Docker rate pull limit
             yield "http://localhost:5000"
         else:
             requests = pytest.importorskip("requests")
