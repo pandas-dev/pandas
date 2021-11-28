@@ -782,8 +782,8 @@ class TestEvalNumexprPandas:
 
 @td.skip_if_no_ne
 class TestEvalNumexprPython(TestEvalNumexprPandas):
-    exclude_cmp = ["in", "not in"]
-    exclude_bool = ["and", "or"]
+    exclude_cmp: list[str] = ["in", "not in"]
+    exclude_bool: list[str] = ["and", "or"]
 
     engine = "numexpr"
     parser = "python"
