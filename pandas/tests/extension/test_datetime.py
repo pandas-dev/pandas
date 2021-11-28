@@ -108,22 +108,13 @@ class TestGetitem(BaseDatetimeTests, base.BaseGetitemTests):
 
 
 class TestMethods(BaseDatetimeTests, base.BaseMethodsTests):
-    @pytest.mark.skip(reason="Incorrect expected")
-    def test_value_counts(self, all_data, dropna):
-        pass
-
     def test_combine_add(self, data_repeated):
         # Timestamp.__add__(Timestamp) not defined
         pass
 
 
 class TestInterface(BaseDatetimeTests, base.BaseInterfaceTests):
-    def test_array_interface(self, data):
-        if data.tz:
-            # np.asarray(DTA) is currently always tz-naive.
-            pytest.skip("GH-23569")
-        else:
-            super().test_array_interface(data)
+    pass
 
 
 class TestArithmeticOps(BaseDatetimeTests, base.BaseArithmeticOpsTests):
@@ -140,23 +131,23 @@ class TestArithmeticOps(BaseDatetimeTests, base.BaseArithmeticOpsTests):
 
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
         if all_arithmetic_operators in self.implements:
-            s = pd.Series(data)
-            self.check_opname(s, all_arithmetic_operators, s.iloc[0], exc=None)
+            ser = pd.Series(data)
+            self.check_opname(ser, all_arithmetic_operators, ser.iloc[0], exc=None)
         else:
             # ... but not the rest.
             super().test_arith_series_with_scalar(data, all_arithmetic_operators)
 
     def test_add_series_with_extension_array(self, data):
         # Datetime + Datetime not implemented
-        s = pd.Series(data)
+        ser = pd.Series(data)
         msg = "cannot add DatetimeArray and DatetimeArray"
         with pytest.raises(TypeError, match=msg):
-            s + data
+            ser + data
 
     def test_arith_series_with_array(self, data, all_arithmetic_operators):
         if all_arithmetic_operators in self.implements:
-            s = pd.Series(data)
-            self.check_opname(s, all_arithmetic_operators, s.iloc[0], exc=None)
+            ser = pd.Series(data)
+            self.check_opname(ser, all_arithmetic_operators, ser.iloc[0], exc=None)
         else:
             # ... but not the rest.
             super().test_arith_series_with_scalar(data, all_arithmetic_operators)
