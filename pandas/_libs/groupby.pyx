@@ -26,7 +26,10 @@ from numpy cimport (
     uint32_t,
     uint64_t,
 )
-from numpy.math cimport NAN, isinf
+from numpy.math cimport (
+    NAN,
+    isinf,
+)
 
 cnp.import_array()
 
