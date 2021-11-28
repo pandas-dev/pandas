@@ -1306,6 +1306,20 @@ data that appear in some lines but not others:
     1  4  5   6
     2  8  9  10
 
+In case you want to keep all data including the lines with too many fields, you can
+specify a sufficient number of ``names``. This ensures that lines with not enough
+fields are filled with ``NaN``.
+
+.. code-block:: ipython
+
+   In [31]: pd.read_csv(StringIO(data), names=['a', 'b', 'c', 'd'])
+
+   Out[31]:
+       a  b   c  d
+    0  1  2   3  NaN
+    1  4  5   6  7
+    2  8  9  10  NaN
+
 .. _io.dialect:
 
 Dialect
