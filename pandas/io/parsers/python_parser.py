@@ -281,12 +281,12 @@ class PythonParser(ParserBase):
         alldata = self._rows_to_cols(content)
         data, columns = self._exclude_implicit_index(alldata)
 
-        data = self._convert_data(data)
-        columns, data = self._do_date_conversions(columns, data)
+        conv_data = self._convert_data(data)
+        columns, conv_data = self._do_date_conversions(columns, conv_data)
 
-        index, columns = self._make_index(data, alldata, columns, indexnamerow)
+        index, columns = self._make_index(conv_data, alldata, columns, indexnamerow)
 
-        return index, columns, data
+        return index, columns, conv_data
 
     def _exclude_implicit_index(
         self,
@@ -461,6 +461,7 @@ class PythonParser(ParserBase):
             if clear_buffer:
                 self._clear_buffer()
 
+            first_line: list[Scalar] | None
             if names is not None:
                 # Read first row after header to check if data are longer
                 try:
