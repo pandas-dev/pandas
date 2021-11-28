@@ -26,7 +26,7 @@ from numpy cimport (
     uint32_t,
     uint64_t,
 )
-from numpy.math cimport NAN
+from numpy.math cimport NAN, isinf
 
 cnp.import_array()
 
@@ -51,7 +51,14 @@ from pandas._libs.missing cimport checknull
 cdef int64_t NPY_NAT = get_nat()
 _int64_max = np.iinfo(np.int64).max
 
-cdef float64_t NaN = <float64_t>np.NaN
+cdef:
+    float32_t MINfloat32 = np.NINF
+    float64_t MINfloat64 = np.NINF
+
+    float32_t MAXfloat32 = np.inf
+    float64_t MAXfloat64 = np.inf
+
+    float64_t NaN = <float64_t>np.NaN
 
 cdef enum InterpolationEnumType:
     INTERPOLATION_LINEAR,
@@ -251,13 +258,18 @@ def group_cumsum(numeric_t[:, ::1] out,
 
                 # For floats, use Kahan summation to reduce floating-point
                 # error (https://en.wikipedia.org/wiki/Kahan_summation_algorithm)
-                if numeric_t == float32_t or numeric_t == float64_t:
+                if numeric_t is float32_t or numeric_t is float64_t:
                     if val == val:
-                        y = val - compensation[lab, j]
-                        t = accum[lab, j] + y
-                        compensation[lab, j] = t - accum[lab, j] - y
-                        accum[lab, j] = t
-                        out[i, j] = t
+                        # if val or accum are inf/-inf don't use kahan
+                        if isinf(val) or isinf(accum[lab, j]):
+                            accum[lab, j] += val
+                            out[i, j] = accum[lab, j]
+                        else:
+                            y = val - compensation[lab, j]
+                            t = accum[lab, j] + y
+                            compensation[lab, j] = t - accum[lab, j] - y
+                            accum[lab, j] = t
+                            out[i, j] = t
                     else:
                         out[i, j] = NaN
                         if not skipna:
@@ -556,6 +568,9 @@ def group_add(add_t[:, ::1] out,
                 for j in range(K):
                     val = values[i, j]
 
+                    if (val == MAXfloat64) or (val == MINfloat64):
+                        sumx[lab, j] = val
+                        break
                     # not nan
                     if val == val:
                         nobs[lab, j] += 1

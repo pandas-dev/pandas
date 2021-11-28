@@ -100,6 +100,10 @@ cdef inline void add_sum(float64_t val, int64_t *nobs, float64_t *sum_x,
         t = sum_x[0] + y
         compensation[0] = t - sum_x[0] - y
         sum_x[0] = t
+    if (val == MINfloat64) or (val == MAXfloat64):
+        sum_x[0] = val
+        nobs[0] = nobs[0] + 1
+        compensation[0] = 0
 
 
 cdef inline void remove_sum(float64_t val, int64_t *nobs, float64_t *sum_x,
@@ -116,6 +120,10 @@ cdef inline void remove_sum(float64_t val, int64_t *nobs, float64_t *sum_x,
         t = sum_x[0] + y
         compensation[0] = t - sum_x[0] - y
         sum_x[0] = t
+    if (val == MINfloat64) or (val == MAXfloat64):
+        sum_x[0] = val
+        nobs[0] = nobs[0] - 1
+        compensation[0] = 0
 
 
 def roll_sum(const float64_t[:] values, ndarray[int64_t] start,

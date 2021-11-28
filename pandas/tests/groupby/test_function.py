@@ -1162,3 +1162,31 @@ def test_mean_on_timedelta():
         pd.to_timedelta([4, 5]), name="time", index=Index(["A", "B"], name="cat")
     )
     tm.assert_series_equal(result, expected)
+
+
+def test_sum_with_nan_inf():
+    df = DataFrame(
+        {"a": ["hello", "hello", "world", "world"], "b": [np.inf, 10, np.nan, 10]}
+    )
+    gb = df.groupby("a")
+    result = gb.sum()
+    expected = DataFrame(
+        [np.inf, 10], index=Index(["hello", "world"], name="a"), columns=["b"]
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_cumsum_inf():
+    ser = Series([np.inf, 1, 1])
+
+    result = ser.groupby([1, 1, 1]).cumsum()
+    expected = Series([np.inf, np.inf, np.inf])
+    tm.assert_series_equal(result, expected)
+
+
+def test_cumsum_ninf_inf():
+    ser = Series([np.inf, 1, 1, -np.inf, 1])
+
+    result = ser.groupby([1, 1, 1, 1, 1]).cumsum()
+    expected = Series([np.inf, np.inf, np.inf, np.nan, np.nan])
+    tm.assert_series_equal(result, expected)
