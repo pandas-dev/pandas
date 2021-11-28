@@ -1397,12 +1397,6 @@ class TestSeriesConstructors:
         td = Series([np.timedelta64(1, "s")])
         assert td.dtype == "timedelta64[ns]"
 
-        # FIXME: dont leave commented-out
-        # these are frequency conversion astypes
-        # for t in ['s', 'D', 'us', 'ms']:
-        #    with pytest.raises(TypeError):
-        #        td.astype('m8[%s]' % t)
-
         # valid astype
         with tm.assert_produces_warning(FutureWarning):
             # astype(int64) deprecated
