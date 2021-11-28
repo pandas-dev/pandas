@@ -800,19 +800,13 @@ class TestDataFrameIndexing:
         assert df["timestamp"].dtype == np.object_
         assert df.loc["b", "timestamp"] == iNaT
 
-        # allow this syntax
+        # allow this syntax (as of GH#3216)
         df.loc["c", "timestamp"] = np.nan
         assert isna(df.loc["c", "timestamp"])
 
         # allow this syntax
         df.loc["d", :] = np.nan
         assert not isna(df.loc["c", :]).all()
-
-        # FIXME: don't leave commented-out
-        # as of GH 3216 this will now work!
-        # try to set with a list like item
-        # pytest.raises(
-        #    Exception, df.loc.__setitem__, ('d', 'timestamp'), [np.nan])
 
     def test_setitem_mixed_datetime(self):
         # GH 9336

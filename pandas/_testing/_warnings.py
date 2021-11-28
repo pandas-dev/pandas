@@ -151,8 +151,8 @@ def _assert_caught_no_extra_warnings(
             if actual_warning.category == ResourceWarning and unclosed in str(
                 actual_warning.message
             ):
-                # FIXME: kludge because pytest.filterwarnings does not
-                #  suppress these, xref GH#38630
+                # FIXME(GH#38630): kludge because pytest.filterwarnings does not
+                #  suppress these
                 continue
 
             extra_warnings.append(
