@@ -657,6 +657,7 @@ I/O
 - Column headers are dropped when constructing a :class:`DataFrame` from a sqlalchemy's ``Row`` object (:issue:`40682`)
 - Bug in unpickling a :class:`Index` with object dtype incorrectly inferring numeric dtypes (:issue:`43188`)
 - Bug in :func:`read_csv` where reading multi-header input with unequal lengths incorrectly raising uncontrolled ``IndexError`` (:issue:`43102`)
+- Bug in :func:`read_csv` raising ``ParserError`` when reading file in chunks and aome chunk blocks have fewer columns than header for ``engine="c"`` (:issue:`21211`)
 - Bug in :func:`read_csv`, changed exception class when expecting a file path name or file-like object from ``OSError`` to ``TypeError`` (:issue:`43366`)
 - Bug in :func:`read_csv` and :func:`read_fwf` ignoring all ``skiprows`` except first when ``nrows`` is specified for ``engine='python'`` (:issue:`44021`, :issue:`10261`)
 - Bug in :func:`read_csv` keeping the original column in object format when ``keep_date_col=True`` is set (:issue:`13378`)
