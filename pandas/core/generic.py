@@ -5875,6 +5875,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # GH 19920: retain column metadata after concat
         result = concat(results, axis=1, copy=False)
         result.columns = self.columns
+        result = result.__finalize__(result, method="astype")
         # https://github.com/python/mypy/issues/8354
         return cast(NDFrameT, result)
 
