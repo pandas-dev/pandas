@@ -721,10 +721,6 @@ cdef class TextReader:
                 header = [self.names]
 
         elif self.names is not None:
-            # Enforce this unless usecols
-            if not self.has_usecols:
-                self.parser.expected_fields = len(self.names)
-
             # Names passed
             if self.parser.lines < 1:
                 self._tokenize_rows(1)
@@ -735,6 +731,10 @@ cdef class TextReader:
                 field_count = len(header[0])
             else:
                 field_count = self.parser.line_fields[data_line]
+
+            # Enforce this unless usecols
+            if not self.has_usecols:
+                self.parser.expected_fields = max(field_count, len(self.names))
         else:
             # No header passed nor to be found in the file
             if self.parser.lines < 1:
