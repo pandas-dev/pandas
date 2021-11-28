@@ -497,6 +497,7 @@ class PythonParser(ParserBase):
 
                 line = names[:]
 
+            # Store line, otherwise it is lost for guessing the index
             self._header_line = line
             ncols = len(line)
             num_original_columns = ncols
