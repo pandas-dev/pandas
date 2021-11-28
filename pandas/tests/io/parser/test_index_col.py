@@ -321,3 +321,14 @@ def test_infer_types_boolean_sum(all_parsers):
     # index column of dtype 'object', and the Python parser will return a
     # index column of dtype 'int64'.
     tm.assert_frame_equal(result, expected, check_index_type=False)
+
+
+@skip_pyarrow
+@pytest.mark.parametrize("dtype, val", [(object, "01"), ("int64", 1)])
+def test_specify_dtype_for_index_col(all_parsers, dtype, val):
+    # GH#9435
+    data = "a,b\n01,2"
+    parser = all_parsers
+    result = parser.read_csv(StringIO(data), index_col="a", dtype={"a": dtype})
+    expected = DataFrame({"b": [2]}, index=Index([val], name="a"))
+    tm.assert_frame_equal(result, expected)

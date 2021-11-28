@@ -348,6 +348,31 @@ def test_reindex_periodindex_with_object(p_values, o_values, values, expected_va
     tm.assert_series_equal(result, expected)
 
 
+def test_reindex_too_many_args():
+    # GH 40980
+    ser = Series([1, 2])
+    with pytest.raises(
+        TypeError, match=r"Only one positional argument \('index'\) is allowed"
+    ):
+        ser.reindex([2, 3], False)
+
+
+def test_reindex_double_index():
+    # GH 40980
+    ser = Series([1, 2])
+    msg = r"'index' passed as both positional and keyword argument"
+    with pytest.raises(TypeError, match=msg):
+        ser.reindex([2, 3], index=[3, 4])
+
+
+def test_reindex_no_posargs():
+    # GH 40980
+    ser = Series([1, 2])
+    result = ser.reindex(index=[1, 0])
+    expected = Series([2, 1], index=[1, 0])
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("values", [[["a"], ["x"]], [[], []]])
 def test_reindex_empty_with_level(values):
     # GH41170

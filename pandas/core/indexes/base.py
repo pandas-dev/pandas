@@ -846,7 +846,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return {
             c
-            for c in self.unique(level=0)[:100]
+            for c in self.unique(level=0)[: get_option("display.max_dir_items")]
             if isinstance(c, str) and c.isidentifier()
         }
 
@@ -947,7 +947,6 @@ class Index(IndexOpsMixin, PandasObject):
                     # e.g. m8[s]
                     return self._data.view(cls)
 
-                arr = self._data.view("i8")
                 idx_cls = self._dtype_to_subclass(dtype)
                 arr_cls = idx_cls._data_cls
                 arr = arr_cls(self._data.view("i8"), dtype=dtype)
