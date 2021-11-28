@@ -452,7 +452,7 @@ _pyarrow_unsupported = {
 
 class _DeprecationConfig(NamedTuple):
     default_value: Any
-    msg: str
+    msg: str | None
 
 
 _deprecated_defaults: dict[str, _DeprecationConfig] = {
@@ -940,7 +940,7 @@ class TextFileReader(abc.Iterator):
                     elif (
                         value
                         == _deprecated_defaults.get(
-                            argname, (default, None)
+                            argname, _DeprecationConfig(default, None)
                         ).default_value
                     ):
                         pass
@@ -950,7 +950,9 @@ class TextFileReader(abc.Iterator):
                             f"{repr(engine)} engine"
                         )
             else:
-                value = _deprecated_defaults.get(argname, (default, None)).default_value
+                value = _deprecated_defaults.get(
+                    argname, _DeprecationConfig(default, None)
+                ).default_value
             options[argname] = value
 
         if engine == "python-fwf":
