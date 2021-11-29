@@ -3,7 +3,6 @@ from __future__ import annotations
 import numbers
 
 import numpy as np
-from numpy.lib.mixins import NDArrayOperatorsMixin
 
 from pandas._libs import lib
 from pandas._typing import (
@@ -31,7 +30,6 @@ from pandas.core.strings.object_array import ObjectStringArrayMixin
 class PandasArray(
     OpsMixin,
     NDArrayBackedExtensionArray,
-    NDArrayOperatorsMixin,
     ObjectStringArrayMixin,
 ):
     """
