@@ -160,7 +160,6 @@ def test_transform_bad_dtype(op, frame_or_series, request):
 @pytest.mark.parametrize("op", frame_kernels_raise)
 def test_transform_partial_failure_typeerror(op):
     # GH 35964
-
     if op == "rank":
         pytest.skip("GH 40418: rank does not raise a TypeError")
 
@@ -168,25 +167,33 @@ def test_transform_partial_failure_typeerror(op):
     df = DataFrame({"A": 3 * [object], "B": [1, 2, 3]})
 
     expected = df[["B"]].transform([op])
-    result = df.transform([op])
+    match = r"\['A'\] did not transform successfully"
+    with tm.assert_produces_warning(FutureWarning, match=match):
+        result = df.transform([op])
     tm.assert_equal(result, expected)
 
     expected = df[["B"]].transform({"B": op})
-    result = df.transform({"A": op, "B": op})
+    match = r"\['A'\] did not transform successfully"
+    with tm.assert_produces_warning(FutureWarning, match=match):
+        result = df.transform({"A": op, "B": op})
     tm.assert_equal(result, expected)
 
     expected = df[["B"]].transform({"B": [op]})
-    result = df.transform({"A": [op], "B": [op]})
+    match = r"\['A'\] did not transform successfully"
+    with tm.assert_produces_warning(FutureWarning, match=match):
+        result = df.transform({"A": [op], "B": [op]})
     tm.assert_equal(result, expected)
 
     expected = df.transform({"A": ["shift"], "B": [op]})
-    result = df.transform({"A": [op, "shift"], "B": [op]})
+    match = rf"\['{op}'\] did not transform successfully"
+    with tm.assert_produces_warning(FutureWarning, match=match):
+        result = df.transform({"A": [op, "shift"], "B": [op]})
     tm.assert_equal(result, expected)
 
 
 def test_transform_partial_failure_valueerror():
     # GH 40211
-    match = ".*did not transform successfully and did not raise a TypeError"
+    match = ".*did not transform successfully"
 
     def op(x):
         if np.sum(np.sum(x)) < 10:
@@ -211,7 +218,7 @@ def test_transform_partial_failure_valueerror():
     tm.assert_equal(result, expected)
 
     expected = df.transform({"A": ["shift"], "B": [op]})
-    with tm.assert_produces_warning(FutureWarning, match=match, check_stacklevel=False):
+    with tm.assert_produces_warning(FutureWarning, match=match):
         result = df.transform({"A": [op, "shift"], "B": [op]})
     tm.assert_equal(result, expected)
 

@@ -57,7 +57,7 @@ Excel
 
    ExcelWriter
 
-.. currentmodule:: pandas.io.json
+.. currentmodule:: pandas
 
 JSON
 ~~~~
@@ -65,7 +65,10 @@ JSON
    :toctree: api/
 
    read_json
-   to_json
+   json_normalize
+   DataFrame.to_json
+
+.. currentmodule:: pandas.io.json
 
 .. autosummary::
    :toctree: api/

@@ -14,6 +14,7 @@ import numpy as np
 from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op  # noqa:F401
 from pandas._typing import Level
 from pandas.util._decorators import Appender
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_array_like,
@@ -300,7 +301,7 @@ def align_method_FRAME(
                     "Do `left, right = left.align(right, axis=1, copy=False)` "
                     "before e.g. `left == right`",
                     FutureWarning,
-                    stacklevel=5,
+                    stacklevel=find_stack_level(),
                 )
 
         left, right = left.align(

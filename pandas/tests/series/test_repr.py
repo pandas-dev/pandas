@@ -169,7 +169,7 @@ class TestSeriesRepr:
 
     def test_repr_max_rows(self):
         # GH 6863
-        with option_context("max_rows", None):
+        with option_context("display.max_rows", None):
             str(Series(range(1001)))  # should not raise exception
 
     def test_unicode_string_with_unicode(self):
@@ -196,6 +196,7 @@ class TestSeriesRepr:
         ts2 = ts.iloc[np.random.randint(0, len(ts) - 1, 400)]
         repr(ts2).splitlines()[-1]
 
+    @pytest.mark.filterwarnings("ignore::FutureWarning")
     def test_latex_repr(self):
         result = r"""\begin{tabular}{ll}
 \toprule
@@ -355,7 +356,7 @@ Categories (10, int64): [0 < 1 < 2 < 3 ... 6 < 7 < 8 < 9]"""
 4   2011-01-01 13:00:00
 dtype: category
 Categories (5, datetime64[ns]): [2011-01-01 09:00:00, 2011-01-01 10:00:00, 2011-01-01 11:00:00,
-                                 2011-01-01 12:00:00, 2011-01-01 13:00:00]"""  # noqa
+                                 2011-01-01 12:00:00, 2011-01-01 13:00:00]"""  # noqa:E501
 
         assert repr(s) == exp
 
@@ -369,7 +370,7 @@ Categories (5, datetime64[ns]): [2011-01-01 09:00:00, 2011-01-01 10:00:00, 2011-
 dtype: category
 Categories (5, datetime64[ns, US/Eastern]): [2011-01-01 09:00:00-05:00, 2011-01-01 10:00:00-05:00,
                                              2011-01-01 11:00:00-05:00, 2011-01-01 12:00:00-05:00,
-                                             2011-01-01 13:00:00-05:00]"""  # noqa
+                                             2011-01-01 13:00:00-05:00]"""  # noqa:E501
 
         assert repr(s) == exp
 
@@ -383,7 +384,7 @@ Categories (5, datetime64[ns, US/Eastern]): [2011-01-01 09:00:00-05:00, 2011-01-
 4   2011-01-01 13:00:00
 dtype: category
 Categories (5, datetime64[ns]): [2011-01-01 09:00:00 < 2011-01-01 10:00:00 < 2011-01-01 11:00:00 <
-                                 2011-01-01 12:00:00 < 2011-01-01 13:00:00]"""  # noqa
+                                 2011-01-01 12:00:00 < 2011-01-01 13:00:00]"""  # noqa:E501
 
         assert repr(s) == exp
 
@@ -397,7 +398,7 @@ Categories (5, datetime64[ns]): [2011-01-01 09:00:00 < 2011-01-01 10:00:00 < 201
 dtype: category
 Categories (5, datetime64[ns, US/Eastern]): [2011-01-01 09:00:00-05:00 < 2011-01-01 10:00:00-05:00 <
                                              2011-01-01 11:00:00-05:00 < 2011-01-01 12:00:00-05:00 <
-                                             2011-01-01 13:00:00-05:00]"""  # noqa
+                                             2011-01-01 13:00:00-05:00]"""  # noqa:E501
 
         assert repr(s) == exp
 
@@ -411,7 +412,7 @@ Categories (5, datetime64[ns, US/Eastern]): [2011-01-01 09:00:00-05:00 < 2011-01
 4    2011-01-01 13:00
 dtype: category
 Categories (5, period[H]): [2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00, 2011-01-01 12:00,
-                            2011-01-01 13:00]"""  # noqa
+                            2011-01-01 13:00]"""  # noqa:E501
 
         assert repr(s) == exp
 
@@ -437,7 +438,7 @@ Categories (5, period[M]): [2011-01, 2011-02, 2011-03, 2011-04, 2011-05]"""
 4    2011-01-01 13:00
 dtype: category
 Categories (5, period[H]): [2011-01-01 09:00 < 2011-01-01 10:00 < 2011-01-01 11:00 < 2011-01-01 12:00 <
-                            2011-01-01 13:00]"""  # noqa
+                            2011-01-01 13:00]"""  # noqa:E501
 
         assert repr(s) == exp
 
@@ -481,7 +482,7 @@ Categories (5, timedelta64[ns]): [1 days, 2 days, 3 days, 4 days, 5 days]"""
 dtype: category
 Categories (10, timedelta64[ns]): [0 days 01:00:00, 1 days 01:00:00, 2 days 01:00:00,
                                    3 days 01:00:00, ..., 6 days 01:00:00, 7 days 01:00:00,
-                                   8 days 01:00:00, 9 days 01:00:00]"""  # noqa
+                                   8 days 01:00:00, 9 days 01:00:00]"""  # noqa:E501
 
         assert repr(s) == exp
 
@@ -513,6 +514,6 @@ Categories (5, timedelta64[ns]): [1 days < 2 days < 3 days < 4 days < 5 days]"""
 dtype: category
 Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01:00:00 <
                                    3 days 01:00:00 ... 6 days 01:00:00 < 7 days 01:00:00 <
-                                   8 days 01:00:00 < 9 days 01:00:00]"""  # noqa
+                                   8 days 01:00:00 < 9 days 01:00:00]"""  # noqa:E501
 
         assert repr(s) == exp

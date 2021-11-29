@@ -1,5 +1,3 @@
-from itertools import product
-
 import numpy as np
 import pytest
 
@@ -9,11 +7,6 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-
-
-@pytest.fixture(params=product([True, False], [True, False]))
-def close_open_fixture(request):
-    return request.param
 
 
 @pytest.fixture
@@ -266,3 +259,26 @@ def frame_of_index_cols():
         }
     )
     return df
+
+
+@pytest.fixture(
+    params=[
+        "any",
+        "all",
+        "count",
+        "sum",
+        "prod",
+        "max",
+        "min",
+        "mean",
+        "median",
+        "skew",
+        "kurt",
+        "sem",
+        "var",
+        "std",
+        "mad",
+    ]
+)
+def reduction_functions(request):
+    return request.param

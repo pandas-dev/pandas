@@ -12,15 +12,16 @@ from pandas._libs.tslibs import Timedelta
 import pandas._libs.window.aggregations as window_aggregations
 from pandas._typing import (
     Axis,
-    FrameOrSeries,
     TimedeltaConvertibleTypes,
 )
 
 if TYPE_CHECKING:
     from pandas import DataFrame, Series
+    from pandas.core.generic import NDFrame
 
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_datetime64_ns_dtype
 from pandas.core.dtypes.missing import isna
@@ -45,8 +46,8 @@ from pandas.core.window.doc import (
     window_agg_numba_parameters,
 )
 from pandas.core.window.numba_ import (
-    generate_ewma_numba_table_func,
-    generate_numba_ewma_func,
+    generate_numba_ewm_func,
+    generate_numba_ewm_table_func,
 )
 from pandas.core.window.online import (
     EWMMeanState,
@@ -92,7 +93,7 @@ def get_center_of_mass(
 
 
 def _calculate_deltas(
-    times: str | np.ndarray | FrameOrSeries | None,
+    times: str | np.ndarray | NDFrame | None,
     halflife: float | TimedeltaConvertibleTypes | None,
 ) -> np.ndarray:
     """
@@ -112,9 +113,9 @@ def _calculate_deltas(
     np.ndarray
         Diff of the times divided by the half-life
     """
-    # error: Item "str" of "Union[str, ndarray, FrameOrSeries, None]" has no
+    # error: Item "str" of "Union[str, ndarray, NDFrameT, None]" has no
     # attribute "view"
-    # error: Item "None" of "Union[str, ndarray, FrameOrSeries, None]" has no
+    # error: Item "None" of "Union[str, ndarray, NDFrameT, None]" has no
     # attribute "view"
     _times = np.asarray(
         times.view(np.int64), dtype=np.float64  # type: ignore[union-attr]
@@ -125,9 +126,7 @@ def _calculate_deltas(
 
 class ExponentialMovingWindow(BaseWindow):
     r"""
-    Provide exponential weighted (EW) functions.
-
-    Available EW functions: ``mean()``, ``var()``, ``std()``, ``corr()``, ``cov()``.
+    Provide exponentially weighted (EW) calculations.
 
     Exactly one parameter: ``com``, ``span``, ``halflife``, or ``alpha`` must be
     provided.
@@ -135,28 +134,36 @@ class ExponentialMovingWindow(BaseWindow):
     Parameters
     ----------
     com : float, optional
-        Specify decay in terms of center of mass,
+        Specify decay in terms of center of mass
+
         :math:`\alpha = 1 / (1 + com)`, for :math:`com \geq 0`.
+
     span : float, optional
-        Specify decay in terms of span,
+        Specify decay in terms of span
+
         :math:`\alpha = 2 / (span + 1)`, for :math:`span \geq 1`.
+
     halflife : float, str, timedelta, optional
-        Specify decay in terms of half-life,
+        Specify decay in terms of half-life
+
         :math:`\alpha = 1 - \exp\left(-\ln(2) / halflife\right)`, for
         :math:`halflife > 0`.
 
         If ``times`` is specified, the time unit (str or timedelta) over which an
-        observation decays to half its value. Only applicable to ``mean()``
+        observation decays to half its value. Only applicable to ``mean()``,
         and halflife value will not apply to the other functions.
 
         .. versionadded:: 1.1.0
 
     alpha : float, optional
-        Specify smoothing factor :math:`\alpha` directly,
+        Specify smoothing factor :math:`\alpha` directly
+
         :math:`0 < \alpha \leq 1`.
+
     min_periods : int, default 0
-        Minimum number of observations in window required to have a value
-        (otherwise result is NA).
+        Minimum number of observations in window required to have a value;
+        otherwise, result is ``np.nan``.
+
     adjust : bool, default True
         Divide by decaying adjustment factor in beginning periods to account
         for imbalance in relative weightings (viewing EWMA as a moving average).
@@ -178,8 +185,7 @@ class ExponentialMovingWindow(BaseWindow):
                 y_t &= (1 - \alpha) y_{t-1} + \alpha x_t,
             \end{split}
     ignore_na : bool, default False
-        Ignore missing values when calculating weights; specify ``True`` to reproduce
-        pre-0.15.0 behavior.
+        Ignore missing values when calculating weights.
 
         - When ``ignore_na=False`` (default), weights are based on absolute positions.
           For example, the weights of :math:`x_0` and :math:`x_2` used in calculating
@@ -187,27 +193,34 @@ class ExponentialMovingWindow(BaseWindow):
           :math:`(1-\alpha)^2` and :math:`1` if ``adjust=True``, and
           :math:`(1-\alpha)^2` and :math:`\alpha` if ``adjust=False``.
 
-        - When ``ignore_na=True`` (reproducing pre-0.15.0 behavior), weights are based
+        - When ``ignore_na=True``, weights are based
           on relative positions. For example, the weights of :math:`x_0` and :math:`x_2`
           used in calculating the final weighted average of
           [:math:`x_0`, None, :math:`x_2`] are :math:`1-\alpha` and :math:`1` if
           ``adjust=True``, and :math:`1-\alpha` and :math:`\alpha` if ``adjust=False``.
+
     axis : {0, 1}, default 0
-        The axis to use. The value 0 identifies the rows, and 1
-        identifies the columns.
+        If ``0`` or ``'index'``, calculate across the rows.
+
+        If ``1`` or ``'columns'``, calculate across the columns.
+
     times : str, np.ndarray, Series, default None
 
         .. versionadded:: 1.1.0
 
+        Only applicable to ``mean()``.
+
         Times corresponding to the observations. Must be monotonically increasing and
         ``datetime64[ns]`` dtype.
 
-        If str, the name of the column in the DataFrame representing the times.
-
         If 1-D array like, a sequence with the same shape as the observations.
 
-        Only applicable to ``mean()``.
+        .. deprecated:: 1.4.0
+            If str, the name of the column in the DataFrame representing the times.
+
     method : str {'single', 'table'}, default 'single'
+        .. versionadded:: 1.4.0
+
         Execute the rolling operation per single column or row (``'single'``)
         or over the entire object (``'table'``).
 
@@ -216,12 +229,9 @@ class ExponentialMovingWindow(BaseWindow):
 
         Only applicable to ``mean()``
 
-        .. versionadded:: 1.4.0
-
     Returns
     -------
-    DataFrame
-        A Window sub-classed for the particular operation.
+    ``ExponentialMovingWindow`` subclass
 
     See Also
     --------
@@ -230,9 +240,8 @@ class ExponentialMovingWindow(BaseWindow):
 
     Notes
     -----
-
-    More details can be found at:
-    :ref:`Exponentially weighted windows <window.exponentially_weighted>`.
+    See :ref:`Windowing Operations <window.exponentially_weighted>`
+    for further usage details and examples.
 
     Examples
     --------
@@ -252,8 +261,52 @@ class ExponentialMovingWindow(BaseWindow):
     2  1.615385
     3  1.615385
     4  3.670213
+    >>> df.ewm(alpha=2 / 3).mean()
+              B
+    0  0.000000
+    1  0.750000
+    2  1.615385
+    3  1.615385
+    4  3.670213
 
-    Specifying ``times`` with a timedelta ``halflife`` when computing mean.
+    **adjust**
+
+    >>> df.ewm(com=0.5, adjust=True).mean()
+              B
+    0  0.000000
+    1  0.750000
+    2  1.615385
+    3  1.615385
+    4  3.670213
+    >>> df.ewm(com=0.5, adjust=False).mean()
+              B
+    0  0.000000
+    1  0.666667
+    2  1.555556
+    3  1.555556
+    4  3.650794
+
+    **ignore_na**
+
+    >>> df.ewm(com=0.5, ignore_na=True).mean()
+              B
+    0  0.000000
+    1  0.750000
+    2  1.615385
+    3  1.615385
+    4  3.225000
+    >>> df.ewm(com=0.5, ignore_na=False).mean()
+              B
+    0  0.000000
+    1  0.750000
+    2  1.615385
+    3  1.615385
+    4  3.670213
+
+    **times**
+
+    Exponentially weighted mean with weights calculated with a timedelta ``halflife``
+    relative to ``times``.
 
     >>> times = ['2020-01-01', '2020-01-03', '2020-01-10', '2020-01-15', '2020-01-17']
     >>> df.ewm(halflife='4 days', times=pd.DatetimeIndex(times)).mean()
@@ -280,7 +333,7 @@ class ExponentialMovingWindow(BaseWindow):
 
     def __init__(
         self,
-        obj: FrameOrSeries,
+        obj: NDFrame,
         com: float | None = None,
         span: float | None = None,
         halflife: float | TimedeltaConvertibleTypes | None = None,
@@ -289,7 +342,7 @@ class ExponentialMovingWindow(BaseWindow):
         adjust: bool = True,
         ignore_na: bool = False,
         axis: Axis = 0,
-        times: str | np.ndarray | FrameOrSeries | None = None,
+        times: str | np.ndarray | NDFrame | None = None,
         method: str = "single",
         *,
         selection=None,
@@ -315,11 +368,20 @@ class ExponentialMovingWindow(BaseWindow):
             if not self.adjust:
                 raise NotImplementedError("times is not supported with adjust=False.")
             if isinstance(self.times, str):
+                warnings.warn(
+                    (
+                        "Specifying times as a string column label is deprecated "
+                        "and will be removed in a future version. Pass the column "
+                        "into times instead."
+                    ),
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
                 self.times = self._selected_obj[self.times]
             if not is_datetime64_ns_dtype(self.times):
                 raise ValueError("times must be datetime64[ns] dtype.")
             # error: Argument 1 to "len" has incompatible type "Union[str, ndarray,
-            # FrameOrSeries, None]"; expected "Sized"
+            # NDFrameT, None]"; expected "Sized"
             if len(self.times) != len(obj):  # type: ignore[arg-type]
                 raise ValueError("times must be the same length as the object.")
             if not isinstance(self.halflife, (str, datetime.timedelta)):
@@ -354,6 +416,13 @@ class ExponentialMovingWindow(BaseWindow):
                 self.halflife,  # type: ignore[arg-type]
                 self.alpha,
             )
+
+    def _check_window_bounds(
+        self, start: np.ndarray, end: np.ndarray, num_vals: int
+    ) -> None:
+        # emw algorithms are iterative with each point
+        # ExponentialMovingWindowIndexer "bounds" are the entire window
+        pass
 
     def _get_window_indexer(self) -> BaseIndexer:
         """
@@ -442,7 +511,7 @@ class ExponentialMovingWindow(BaseWindow):
         template_header,
         create_section_header("Parameters"),
         args_compat,
-        window_agg_numba_parameters,
+        window_agg_numba_parameters(),
         kwargs_compat,
         create_section_header("Returns"),
         template_returns,
@@ -457,17 +526,21 @@ class ExponentialMovingWindow(BaseWindow):
     def mean(self, *args, engine=None, engine_kwargs=None, **kwargs):
         if maybe_use_numba(engine):
             if self.method == "single":
-                ewma_func = generate_numba_ewma_func(
-                    engine_kwargs, self._com, self.adjust, self.ignore_na, self._deltas
-                )
-                numba_cache_key = (lambda x: x, "ewma")
+                func = generate_numba_ewm_func
+                numba_cache_key = (lambda x: x, "ewm_mean")
             else:
-                ewma_func = generate_ewma_numba_table_func(
-                    engine_kwargs, self._com, self.adjust, self.ignore_na, self._deltas
-                )
-                numba_cache_key = (lambda x: x, "ewma_table")
+                func = generate_numba_ewm_table_func
+                numba_cache_key = (lambda x: x, "ewm_mean_table")
+            ewm_func = func(
+                engine_kwargs=engine_kwargs,
+                com=self._com,
+                adjust=self.adjust,
+                ignore_na=self.ignore_na,
+                deltas=self._deltas,
+                normalize=True,
+            )
             return self._apply(
-                ewma_func,
+                ewm_func,
                 numba_cache_key=numba_cache_key,
             )
         elif engine in ("cython", None):
@@ -477,11 +550,68 @@ class ExponentialMovingWindow(BaseWindow):
 
             deltas = None if self.times is None else self._deltas
             window_func = partial(
-                window_aggregations.ewma,
+                window_aggregations.ewm,
                 com=self._com,
                 adjust=self.adjust,
                 ignore_na=self.ignore_na,
                 deltas=deltas,
+                normalize=True,
+            )
+            return self._apply(window_func)
+        else:
+            raise ValueError("engine must be either 'numba' or 'cython'")
+
+    @doc(
+        template_header,
+        create_section_header("Parameters"),
+        args_compat,
+        window_agg_numba_parameters(),
+        kwargs_compat,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        template_see_also,
+        create_section_header("Notes"),
+        numba_notes.replace("\n", "", 1),
+        window_method="ewm",
+        aggregation_description="(exponential weighted moment) sum",
+        agg_method="sum",
+    )
+    def sum(self, *args, engine=None, engine_kwargs=None, **kwargs):
+        if not self.adjust:
+            raise NotImplementedError("sum is not implemented with adjust=False")
+        if maybe_use_numba(engine):
+            if self.method == "single":
+                func = generate_numba_ewm_func
+                numba_cache_key = (lambda x: x, "ewm_sum")
+            else:
+                func = generate_numba_ewm_table_func
+                numba_cache_key = (lambda x: x, "ewm_sum_table")
+            ewm_func = func(
+                engine_kwargs=engine_kwargs,
+                com=self._com,
+                adjust=self.adjust,
+                ignore_na=self.ignore_na,
+                deltas=self._deltas,
+                normalize=False,
+            )
+            return self._apply(
+                ewm_func,
+                numba_cache_key=numba_cache_key,
+            )
+        elif engine in ("cython", None):
+            if engine_kwargs is not None:
+                raise ValueError("cython engine does not accept engine_kwargs")
+            nv.validate_window_func("sum", args, kwargs)
+
+            deltas = None if self.times is None else self._deltas
+            window_func = partial(
+                window_aggregations.ewm,
+                com=self._com,
+                adjust=self.adjust,
+                ignore_na=self.ignore_na,
+                deltas=deltas,
+                normalize=False,
             )
             return self._apply(window_func)
         else:
@@ -517,7 +647,7 @@ class ExponentialMovingWindow(BaseWindow):
                 "Use std instead."
             ),
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self.std(bias, *args, **kwargs)
 
@@ -725,7 +855,7 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
         GroupbyIndexer
         """
         window_indexer = GroupbyIndexer(
-            groupby_indicies=self._grouper.indices,
+            groupby_indices=self._grouper.indices,
             window_indexer=ExponentialMovingWindowIndexer,
         )
         return window_indexer
@@ -734,7 +864,7 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
 class OnlineExponentialMovingWindow(ExponentialMovingWindow):
     def __init__(
         self,
-        obj: FrameOrSeries,
+        obj: NDFrame,
         com: float | None = None,
         span: float | None = None,
         halflife: float | TimedeltaConvertibleTypes | None = None,
@@ -743,7 +873,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         adjust: bool = True,
         ignore_na: bool = False,
         axis: Axis = 0,
-        times: str | np.ndarray | FrameOrSeries | None = None,
+        times: str | np.ndarray | NDFrame | None = None,
         engine: str = "numba",
         engine_kwargs: dict[str, bool] | None = None,
         *,

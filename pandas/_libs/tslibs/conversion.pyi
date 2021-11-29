@@ -5,6 +5,8 @@ from datetime import (
 
 import numpy as np
 
+from pandas._typing import npt
+
 DT64NS_DTYPE: np.dtype
 TD64NS_DTYPE: np.dtype
 
@@ -22,6 +24,6 @@ def ensure_timedelta64ns(
     copy: bool = ...,
 ) -> np.ndarray: ...  # np.ndarray[timedelta64ns]
 def datetime_to_datetime64(
-    values: np.ndarray,  # np.ndarray[object]
+    values: npt.NDArray[np.object_],
 ) -> tuple[np.ndarray, tzinfo | None,]: ...  # (np.ndarray[dt64ns], _)
 def localize_pydatetime(dt: datetime, tz: tzinfo | None) -> datetime: ...

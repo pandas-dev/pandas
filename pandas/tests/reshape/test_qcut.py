@@ -21,7 +21,6 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
-from pandas.core.algorithms import quantile
 
 from pandas.tseries.offsets import (
     Day,
@@ -34,8 +33,8 @@ def test_qcut():
 
     # We store the bins as Index that have been
     # rounded to comparisons are a bit tricky.
-    labels, bins = qcut(arr, 4, retbins=True)
-    ex_bins = quantile(arr, [0, 0.25, 0.5, 0.75, 1.0])
+    labels, _ = qcut(arr, 4, retbins=True)
+    ex_bins = np.quantile(arr, [0, 0.25, 0.5, 0.75, 1.0])
 
     result = labels.categories.left.values
     assert np.allclose(result, ex_bins[:-1], atol=1e-2)

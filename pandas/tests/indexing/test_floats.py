@@ -3,13 +3,15 @@ import pytest
 
 from pandas import (
     DataFrame,
-    Float64Index,
     Index,
-    Int64Index,
     RangeIndex,
     Series,
 )
 import pandas._testing as tm
+from pandas.core.api import (
+    Float64Index,
+    Int64Index,
+)
 
 
 def gen_obj(klass, index):
@@ -477,7 +479,6 @@ class TestFloatIndexers:
         index = Index([1.5, 2, 3, 4.5, 5])
         s = Series(range(5), index=index)
         assert s[3] == 2
-        assert s.loc[3] == 2
         assert s.loc[3] == 2
         assert s.iloc[3] == 3
 

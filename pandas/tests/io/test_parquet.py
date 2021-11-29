@@ -15,9 +15,9 @@ from pandas._config import get_option
 
 from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
-    pa_version_under1p0,
     pa_version_under2p0,
     pa_version_under5p0,
+    pa_version_under6p0,
 )
 import pandas.util._test_decorators as td
 
@@ -637,6 +637,29 @@ class TestBasic(Base):
             expected = expected.drop("c", axis=1)
         tm.assert_frame_equal(result2, expected)
 
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "Int64",
+            "UInt8",
+            "boolean",
+            "object",
+            "datetime64[ns, UTC]",
+            "float",
+            "period[D]",
+            "Float64",
+            "string",
+        ],
+    )
+    def test_read_empty_array(self, pa, dtype):
+        # GH #41241
+        df = pd.DataFrame(
+            {
+                "value": pd.array([], dtype=dtype),
+            }
+        )
+        check_round_trip(df, pa, read_kwargs={"use_nullable_dtypes": True})
+
 
 @pytest.mark.filterwarnings("ignore:CategoricalBlock is deprecated:DeprecationWarning")
 class TestParquetPyArrow(Base):
@@ -761,11 +784,7 @@ class TestParquetPyArrow(Base):
         # only used if partition field is string, but this changed again to use
         # category dtype for all types (not only strings) in pyarrow 2.0.0
         if partition_col:
-            partition_col_type = (
-                "int32"
-                if (not pa_version_under1p0) and pa_version_under2p0
-                else "category"
-            )
+            partition_col_type = "int32" if pa_version_under2p0 else "category"
 
             expected_df[partition_col] = expected_df[partition_col].astype(
                 partition_col_type
@@ -884,10 +903,15 @@ class TestParquetPyArrow(Base):
         check_round_trip(df, pa)
 
     def test_timestamp_nanoseconds(self, pa):
-        # with version 2.0, pyarrow defaults to writing the nanoseconds, so
+        # with version 2.6, pyarrow defaults to writing the nanoseconds, so
         # this should work without error
+        # Note in previous pyarrows(<6.0.0), only the pseudo-version 2.0 was available
+        if not pa_version_under6p0:
+            ver = "2.6"
+        else:
+            ver = "2.0"
         df = pd.DataFrame({"a": pd.date_range("2017-01-01", freq="1n", periods=10)})
-        check_round_trip(df, pa, write_kwargs={"version": "2.0"})
+        check_round_trip(df, pa, write_kwargs={"version": ver})
 
     def test_timezone_aware_index(self, pa, timezone_aware_date_list):
         if not pa_version_under2p0:

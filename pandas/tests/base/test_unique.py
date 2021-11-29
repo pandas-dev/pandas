@@ -1,12 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas._libs import iNaT
-
-from pandas.core.dtypes.common import (
-    is_datetime64tz_dtype,
-    needs_i8_conversion,
-)
+from pandas.core.dtypes.common import is_datetime64tz_dtype
 
 import pandas as pd
 from pandas import NumericIndex
@@ -49,11 +44,8 @@ def test_unique_null(null_obj, index_or_series_obj):
     elif isinstance(obj, pd.MultiIndex):
         pytest.skip(f"MultiIndex can't hold '{null_obj}'")
 
-    values = obj.values
-    if needs_i8_conversion(obj.dtype):
-        values[0:2] = iNaT
-    else:
-        values[0:2] = null_obj
+    values = obj._values
+    values[0:2] = null_obj
 
     klass = type(obj)
     repeated_values = np.repeat(values, range(1, len(values) + 1))
@@ -96,11 +88,8 @@ def test_nunique_null(null_obj, index_or_series_obj):
     elif isinstance(obj, pd.MultiIndex):
         pytest.skip(f"MultiIndex can't hold '{null_obj}'")
 
-    values = obj.values
-    if needs_i8_conversion(obj.dtype):
-        values[0:2] = iNaT
-    else:
-        values[0:2] = null_obj
+    values = obj._values
+    values[0:2] = null_obj
 
     klass = type(obj)
     repeated_values = np.repeat(values, range(1, len(values) + 1))
@@ -115,12 +104,12 @@ def test_nunique_null(null_obj, index_or_series_obj):
         assert obj.nunique(dropna=False) == max(0, num_unique_values)
 
 
-@pytest.mark.parametrize(
-    "idx_or_series_w_bad_unicode", [pd.Index(["\ud83d"] * 2), pd.Series(["\ud83d"] * 2)]
-)
-def test_unique_bad_unicode(idx_or_series_w_bad_unicode):
+@pytest.mark.single
+def test_unique_bad_unicode(index_or_series):
     # regression test for #34550
-    obj = idx_or_series_w_bad_unicode
+    uval = "\ud83d"  # smiley emoji
+
+    obj = index_or_series([uval] * 2)
     result = obj.unique()
 
     if isinstance(obj, pd.Index):

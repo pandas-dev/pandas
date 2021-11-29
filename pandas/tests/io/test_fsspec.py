@@ -13,6 +13,7 @@ from pandas import (
     read_parquet,
     read_pickle,
     read_stata,
+    read_table,
 )
 import pandas._testing as tm
 from pandas.util import _test_decorators as td
@@ -38,9 +39,8 @@ def cleared_fs():
 
 
 def test_read_csv(cleared_fs):
-    from fsspec.implementations.memory import MemoryFile
-
-    cleared_fs.store["test/test.csv"] = MemoryFile(data=text)
+    with cleared_fs.open("test/test.csv", "wb") as w:
+        w.write(text)
     df2 = read_csv("memory://test/test.csv", parse_dates=["dt"])
 
     tm.assert_frame_equal(df1, df2)
@@ -119,6 +119,17 @@ def test_csv_options(fsspectest):
     )
     assert fsspectest.test[0] == "csv_write"
     read_csv("testmem://test/test.csv", storage_options={"test": "csv_read"})
+    assert fsspectest.test[0] == "csv_read"
+
+
+def test_read_table_options(fsspectest):
+    # GH #39167
+    df = DataFrame({"a": [0]})
+    df.to_csv(
+        "testmem://test/test.csv", storage_options={"test": "csv_write"}, index=False
+    )
+    assert fsspectest.test[0] == "csv_write"
+    read_table("testmem://test/test.csv", storage_options={"test": "csv_read"})
     assert fsspectest.test[0] == "csv_read"
 
 
@@ -282,7 +293,7 @@ def test_markdown_options(fsspectest):
     df = DataFrame({"a": [0]})
     df.to_markdown("testmem://afile", storage_options={"test": "md_write"})
     assert fsspectest.test[0] == "md_write"
-    assert fsspectest.cat("afile")
+    assert fsspectest.cat("testmem://afile")
 
 
 @td.skip_if_no("pyarrow")

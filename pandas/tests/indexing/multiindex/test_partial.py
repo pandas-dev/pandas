@@ -5,13 +5,15 @@ import pandas.util._test_decorators as td
 
 from pandas import (
     DataFrame,
-    Float64Index,
-    Int64Index,
     MultiIndex,
     date_range,
     to_datetime,
 )
 import pandas._testing as tm
+from pandas.core.api import (
+    Float64Index,
+    Int64Index,
+)
 
 
 class TestMultiIndexPartial:

@@ -147,15 +147,18 @@ class TestSeriesFillNA:
         )
         tm.assert_series_equal(result, expected)
 
-        # where (we ignore the errors=)
-        result = ser.where(
-            [True, False], Timestamp("20130101", tz="US/Eastern"), errors="ignore"
-        )
+        msg = "The 'errors' keyword in "
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            # where (we ignore the errors=)
+            result = ser.where(
+                [True, False], Timestamp("20130101", tz="US/Eastern"), errors="ignore"
+            )
         tm.assert_series_equal(result, expected)
 
-        result = ser.where(
-            [True, False], Timestamp("20130101", tz="US/Eastern"), errors="ignore"
-        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = ser.where(
+                [True, False], Timestamp("20130101", tz="US/Eastern"), errors="ignore"
+            )
         tm.assert_series_equal(result, expected)
 
         # with a non-datetime
@@ -523,7 +526,8 @@ class TestSeriesFillNA:
         tm.assert_series_equal(expected, result)
         tm.assert_series_equal(isna(ser), null_loc)
 
-        result = ser.fillna(Timestamp("20130101", tz="US/Pacific"))
+        with tm.assert_produces_warning(FutureWarning, match="mismatched timezone"):
+            result = ser.fillna(Timestamp("20130101", tz="US/Pacific"))
         expected = Series(
             [
                 Timestamp("2011-01-01 10:00", tz=tz),
@@ -702,6 +706,23 @@ class TestSeriesFillNA:
         with pytest.raises(TypeError, match=msg):
             ser.fillna(DataFrame({1: ["a"], 3: ["b"]}))
 
+    @pytest.mark.parametrize("dtype", [float, "float32", "float64"])
+    @pytest.mark.parametrize("fill_type", tm.ALL_REAL_NUMPY_DTYPES)
+    def test_fillna_float_casting(self, dtype, fill_type):
+        # GH-43424
+        ser = Series([np.nan, 1.2], dtype=dtype)
+        fill_values = Series([2, 2], dtype=fill_type)
+        result = ser.fillna(fill_values)
+        expected = Series([2.0, 1.2], dtype=dtype)
+        tm.assert_series_equal(result, expected)
+
+    def test_fillna_f32_upcast_with_dict(self):
+        # GH-43424
+        ser = Series([np.nan, 1.2], dtype=np.float32)
+        result = ser.fillna({0: 1})
+        expected = Series([1.0, 1.2], dtype=np.float32)
+        tm.assert_series_equal(result, expected)
+
     # ---------------------------------------------------------------
     # Invalid Usages
 
@@ -725,10 +746,12 @@ class TestSeriesFillNA:
 
         # related GH#9217, make sure limit is an int and greater than 0
         ser = Series([1, 2, 3, None])
-        msg = (
-            r"Cannot specify both 'value' and 'method'\.|"
-            r"Limit must be greater than 0|"
-            "Limit must be an integer"
+        msg = "|".join(
+            [
+                r"Cannot specify both 'value' and 'method'\.",
+                "Limit must be greater than 0",
+                "Limit must be an integer",
+            ]
         )
         for limit in [-1, 0, 1.0, 2.0]:
             for method in ["backfill", "bfill", "pad", "ffill", None]:
@@ -747,8 +770,15 @@ class TestSeriesFillNA:
         # but we dont (yet) consider distinct tzinfos for non-UTC tz equivalent
         ts = Timestamp("2000-01-01", tz="US/Pacific")
         ser2 = Series(ser._values.tz_convert("dateutil/US/Pacific"))
-        result = ser2.fillna(ts)
+        assert ser2.dtype.kind == "M"
+        with tm.assert_produces_warning(FutureWarning, match="mismatched timezone"):
+            result = ser2.fillna(ts)
         expected = Series([ser[0], ts, ser[2]], dtype=object)
+        # once deprecation is enforced
+        # expected = Series(
+        #    [ser2[0], ts.tz_convert(ser2.dtype.tz), ser2[2]],
+        #    dtype=ser2.dtype,
+        # )
         tm.assert_series_equal(result, expected)
 
     def test_fillna_pos_args_deprecation(self):

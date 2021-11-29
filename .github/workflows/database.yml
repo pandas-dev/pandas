@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - 1.3.x
   pull_request:
     branches:
       - master
@@ -79,7 +80,7 @@ jobs:
     - uses: conda-incubator/setup-miniconda@v2
       with:
         activate-environment: pandas-dev
-        channel-priority: flexible
+        channel-priority: strict
         environment-file: ${{ matrix.ENV_FILE }}
         use-only-tar-bz2: true
 

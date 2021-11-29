@@ -34,6 +34,7 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
+from pandas.core.api import Int64Index
 
 
 class TestCategoricalConstructors:
@@ -71,7 +72,7 @@ class TestCategoricalConstructors:
         tm.assert_index_equal(c.categories, expected)
 
         c = Categorical([], categories=[1, 2, 3])
-        expected = pd.Int64Index([1, 2, 3])
+        expected = Int64Index([1, 2, 3])
         tm.assert_index_equal(c.categories, expected)
 
     def test_constructor_empty_boolean(self):
@@ -235,21 +236,19 @@ class TestCategoricalConstructors:
         #  - when the first is an integer dtype and the second is not
         #  - when the resulting codes are all -1/NaN
         with tm.assert_produces_warning(None):
-            c_old = Categorical([0, 1, 2, 0, 1, 2], categories=["a", "b", "c"])
+            Categorical([0, 1, 2, 0, 1, 2], categories=["a", "b", "c"])
 
         with tm.assert_produces_warning(None):
-            c_old = Categorical([0, 1, 2, 0, 1, 2], categories=[3, 4, 5])  # noqa
+            Categorical([0, 1, 2, 0, 1, 2], categories=[3, 4, 5])
 
         # the next one are from the old docs
         with tm.assert_produces_warning(None):
-            c_old2 = Categorical([0, 1, 2, 0, 1, 2], [1, 2, 3])  # noqa
+            Categorical([0, 1, 2, 0, 1, 2], [1, 2, 3])
             cat = Categorical([1, 2], categories=[1, 2, 3])
 
         # this is a legitimate constructor
         with tm.assert_produces_warning(None):
-            c = Categorical(  # noqa
-                np.array([], dtype="int64"), categories=[3, 2, 1], ordered=True
-            )
+            Categorical(np.array([], dtype="int64"), categories=[3, 2, 1], ordered=True)
 
     def test_constructor_with_existing_categories(self):
         # GH25318: constructing with pd.Series used to bogusly skip recoding

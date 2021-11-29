@@ -6,6 +6,7 @@ from pandas import (
     Index,
 )
 import pandas._testing as tm
+from pandas.core.api import Int64Index
 
 
 def test_pipe():
@@ -76,6 +77,6 @@ def test_pipe_args():
     ser = pd.Series([1, 1, 2, 2, 3, 3])
     result = ser.groupby(ser).pipe(lambda grp: grp.sum() * grp.count())
 
-    expected = pd.Series([4, 8, 12], index=pd.Int64Index([1, 2, 3]))
+    expected = pd.Series([4, 8, 12], index=Int64Index([1, 2, 3]))
 
     tm.assert_series_equal(result, expected)
