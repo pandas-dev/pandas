@@ -711,6 +711,15 @@ class TestAstype:
         expected = df.iloc[index_slice]
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
+    def test_astype_retain_attrs(self):
+        # GH#44414
+        df = DataFrame({"a": [0, 1, 2], "b": [3, 4, 5]})
+        df.attrs["Location"] = "Michigan"
+
+        df2 = df.astype({"a": float})
+
+        tm.assert_dict_equal(df.attrs, df2.attrs)
+
 
 class TestAstypeCategorical:
     def test_astype_from_categorical3(self):
