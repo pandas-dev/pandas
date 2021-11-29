@@ -303,7 +303,6 @@ Other enhancements
 - :class:`.DatetimeIndex` and :class:`Series` with ``datetime64`` or ``datetime64tz`` dtypes now support ``std`` (:issue:`37436`)
 - :class:`Window` now supports all Scipy window types in ``win_type`` with flexible keyword argument support (:issue:`34556`)
 - :meth:`testing.assert_index_equal` now has a ``check_order`` parameter that allows indexes to be checked in an order-insensitive manner (:issue:`37478`)
-- :meth:`Series.info` has been added, for compatibility with :meth:`DataFrame.info` (:issue:`5167`)
 - :func:`read_csv` supports memory-mapping for compressed files (:issue:`37621`)
 - Add support for ``min_count`` keyword for :meth:`DataFrame.groupby` and :meth:`DataFrame.resample` for functions ``min``, ``max``, ``first`` and ``last`` (:issue:`37821`, :issue:`37768`)
 - Improve error reporting for :meth:`DataFrame.merge` when invalid merge column definitions were given (:issue:`16228`)

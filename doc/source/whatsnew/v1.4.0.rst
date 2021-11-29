@@ -217,6 +217,7 @@ Other enhancements
 - Added "Juneteenth National Independence Day" to
   ``USFederalHolidayCalendar``.  See also `Other API changes`_.
 - :meth:`.Rolling.var`, :meth:`.Expanding.var`, :meth:`.Rolling.std`, :meth:`.Expanding.std` now support `Numba <http://numba.pydata.org/>`_ execution with the ``engine`` keyword (:issue:`44461`)
+- :meth:`Series.info` has been added, for compatibility with :meth:`DataFrame.info` (:issue:`5167`)
 
 
 .. ---------------------------------------------------------------------------
