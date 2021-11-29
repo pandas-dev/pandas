@@ -421,9 +421,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 if null_mask.any():
                     # We remove null values here, then below will re-insert
                     #  them, grep "full_codes"
-                    arr_list = [
-                        values[idx] for idx in np.where(~null_mask)[0]
-                    ]
+                    arr_list = [values[idx] for idx in np.where(~null_mask)[0]]
                     arr = sanitize_array(arr_list, None)
                 values = arr
 
