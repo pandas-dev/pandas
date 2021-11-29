@@ -931,7 +931,7 @@ Merge
 
 The :ref:`Concat <merging.concatenation>` docs. The :ref:`Join <merging.join>` docs.
 
-`Append two dataframes with overlapping index (emulate R rbind)
+`Concatenate two dataframes with overlapping index (emulate R rbind)
 <https://stackoverflow.com/questions/14988480/pandas-version-of-rbind>`__
 
 .. ipython:: python
@@ -944,7 +944,7 @@ Depending on df construction, ``ignore_index`` may be needed
 
 .. ipython:: python
 
-   df = df1.append(df2, ignore_index=True)
+   df = pd.concat([df1, df2], ignore_index=True)
    df
 
 `Self Join of a DataFrame

@@ -3372,9 +3372,16 @@ class DataFrame(NDFrame, OpsMixin):
             index=self.columns,
         )
         if index:
-            result = self._constructor_sliced(
-                self.index.memory_usage(deep=deep), index=["Index"]
-            ).append(result)
+            from pandas.core.reshape.concat import concat
+
+            result = concat(
+                [
+                    self._constructor_sliced(
+                        self.index.memory_usage(deep=deep), index=["Index"]
+                    ),
+                    result,
+                ]
+            )
         return result
 
     def transpose(self, *args, copy: bool = False) -> DataFrame:
@@ -9824,7 +9831,11 @@ NaN 12.3   33.0
             idx_diff = result_index.difference(correl.index)
 
             if len(idx_diff) > 0:
-                correl = correl.append(Series([np.nan] * len(idx_diff), index=idx_diff))
+                from pandas.core.reshape.concat import concat
+
+                correl = concat(
+                    [correl, Series([np.nan] * len(idx_diff), index=idx_diff)]
+                )
 
         return correl
 

@@ -327,7 +327,7 @@ def _add_margins(
         margin_dummy[cols] = margin_dummy[cols].apply(
             maybe_downcast_to_dtype, args=(dtype,)
         )
-    result = result.append(margin_dummy)
+    result = concat([result, margin_dummy])
     result.index.names = row_names
 
     return result
@@ -740,7 +740,7 @@ def _normalize(table, normalize, margins: bool, margins_name="All"):
 
         elif normalize == "index":
             index_margin = index_margin / index_margin.sum()
-            table = table.append(index_margin)
+            table = concat([table, index_margin.to_frame().T])
             table = table.fillna(0)
             table.index = table_index
 
@@ -749,7 +749,7 @@ def _normalize(table, normalize, margins: bool, margins_name="All"):
             index_margin = index_margin / index_margin.sum()
             index_margin.loc[margins_name] = 1
             table = concat([table, column_margin], axis=1)
-            table = table.append(index_margin)
+            table = concat([table, index_margin.to_frame().T])
 
             table = table.fillna(0)
             table.index = table_index

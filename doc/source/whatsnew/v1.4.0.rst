@@ -252,7 +252,7 @@ ignored when finding the concatenated dtype.  These are now consistently _not_ i
 
     df1 = pd.DataFrame({"bar": [pd.Timestamp("2013-01-01")]}, index=range(1))
     df2 = pd.DataFrame({"bar": np.nan}, index=range(1, 2))
-    res = df1.append(df2)
+    res = pd.concat([df1, df2])
 
 Previously, the float-dtype in ``df2`` would be ignored so the result dtype would be ``datetime64[ns]``. As a result, the ``np.nan`` would be cast to ``NaT``.
 
