@@ -48,7 +48,6 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.inference import is_inferred_bool_dtype
 from pandas.core.dtypes.missing import (
-    _isna_array,
     array_equals,
     isna,
     na_value_for_dtype,
