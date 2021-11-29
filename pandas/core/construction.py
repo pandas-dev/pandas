@@ -498,8 +498,7 @@ def sanitize_array(
     """
     if isinstance(data, ma.MaskedArray):
         data = sanitize_masked_array(data)
-
-    if isinstance(data, np.matrix):
+    elif isinstance(data, np.matrix):
         data = data.A
 
     if isinstance(dtype, PandasDtype):
