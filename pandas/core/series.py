@@ -4468,10 +4468,8 @@ Keep all original rows and also all original values
 
     def rename(
         self,
-        mapper=None,
-        *,
         index=None,
-        columns=None,
+        *,
         axis=None,
         copy=True,
         inplace=False,
@@ -4546,7 +4544,7 @@ Keep all original rows and also all original values
         if mapper is None:
             mapper = index
         if callable(mapper) or is_dict_like(mapper):
-            return super().rename(
+            return super()._rename(
                 mapper, copy=copy, inplace=inplace, level=level, errors=errors
             )
         else:

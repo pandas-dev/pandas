@@ -989,7 +989,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # ----------------------------------------------------------------------
     # Rename
 
-    def rename(
+    def _rename(
         self: NDFrameT,
         mapper: Renamer | None = None,
         *,
