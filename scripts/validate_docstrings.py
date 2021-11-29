@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import doctest
+import faulthandler
 import importlib
 import io
 import json
@@ -33,6 +34,8 @@ from numpydoc.validate import (
 )
 
 import pandas
+
+faulthandler.enable(file=open("segfault.log", "w"))
 
 # With template backend, matplotlib plots nothing
 matplotlib.use("template")
