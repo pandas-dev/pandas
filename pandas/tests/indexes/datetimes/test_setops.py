@@ -515,7 +515,7 @@ class TestBusinessDatetimeIndex:
 
         early_dr.union(late_dr, sort=sort)
 
-    @td.skip_if_windows_python_3
+    @td.skip_if_windows
     def test_month_range_union_tz_dateutil(self, sort):
         from pandas._libs.tslibs.timezones import dateutil_gettz
 

@@ -348,6 +348,7 @@ Look,a snake,🐍"""
         else:
             tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:In future versions `DataFrame.to_latex`")
     @pytest.mark.parametrize(
         "writer_name, writer_kwargs, module",
         [
