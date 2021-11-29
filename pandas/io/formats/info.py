@@ -239,7 +239,7 @@ series_sub_kwargs = {
     "show_counts_sub": show_counts_sub,
     "examples_sub": series_examples_sub,
     "see_also_sub": series_see_also_sub,
-    "version_added_sub": "\n.. versionadded:: 1.2.0\n",
+    "version_added_sub": "\n.. versionadded:: 1.4.0\n",
 }
 
 
