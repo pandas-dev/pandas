@@ -399,7 +399,7 @@ def unpack_1tuple(tup):
                 "slice is deprecated and will raise in a future "
                 "version.  Pass a tuple instead.",
                 FutureWarning,
-                stacklevel=3,
+                stacklevel=find_stack_level(),
             )
 
         return tup[0]

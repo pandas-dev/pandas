@@ -69,26 +69,6 @@ class Base:
         with pytest.raises(TypeError, match=msg):
             self._index_cls()
 
-    @pytest.mark.parametrize("name", [None, "new_name"])
-    def test_to_frame(self, name, simple_index):
-        # see GH-15230, GH-22580
-        idx = simple_index
-
-        if name:
-            idx_name = name
-        else:
-            idx_name = idx.name or 0
-
-        df = idx.to_frame(name=idx_name)
-
-        assert df.index is idx
-        assert len(df.columns) == 1
-        assert df.columns[0] == idx_name
-        assert df[idx_name].values is not idx.values
-
-        df = idx.to_frame(index=False, name=idx_name)
-        assert df.index is not idx
-
     def test_shift(self, simple_index):
 
         # GH8083 test the base class for shift
@@ -226,46 +206,6 @@ class Base:
             repr(idx)
             assert "..." not in str(idx)
 
-    def test_copy_name(self, index):
-        # gh-12309: Check that the "name" argument
-        # passed at initialization is honored.
-        if isinstance(index, MultiIndex):
-            return
-
-        first = type(index)(index, copy=True, name="mario")
-        second = type(first)(first, copy=False)
-
-        # Even though "copy=False", we want a new object.
-        assert first is not second
-
-        # Not using tm.assert_index_equal() since names differ.
-        assert index.equals(first)
-
-        assert first.name == "mario"
-        assert second.name == "mario"
-
-        s1 = Series(2, index=first)
-        s2 = Series(3, index=second[:-1])
-
-        if not isinstance(index, CategoricalIndex):
-            # See gh-13365
-            s3 = s1 * s2
-            assert s3.index.name == "mario"
-
-    def test_copy_name2(self, index):
-        # gh-35592
-        if isinstance(index, MultiIndex):
-            return
-
-        assert index.copy(name="mario").name == "mario"
-
-        with pytest.raises(ValueError, match="Length of new names must be 1, got 2"):
-            index.copy(name=["mario", "luigi"])
-
-        msg = f"{type(index).__name__}.name must be a hashable type"
-        with pytest.raises(TypeError, match=msg):
-            index.copy(name=[["mario"]])
-
     def test_ensure_copied_data(self, index):
         # Check the "copy" argument of each Index.__new__ is honoured
         # GH12309
@@ -333,11 +273,9 @@ class Base:
         expected = index.argsort()
         tm.assert_numpy_array_equal(result, expected)
 
-        if not isinstance(index, RangeIndex):
-            # TODO: add compatibility to RangeIndex?
-            result = np.argsort(index, kind="mergesort")
-            expected = index.argsort(kind="mergesort")
-            tm.assert_numpy_array_equal(result, expected)
+        result = np.argsort(index, kind="mergesort")
+        expected = index.argsort(kind="mergesort")
+        tm.assert_numpy_array_equal(result, expected)
 
         # these are the only two types that perform
         # pandas compatibility input validation - the
@@ -377,8 +315,8 @@ class Base:
         with pytest.raises(ValueError, match=msg):
             np.repeat(idx, rep, axis=0)
 
-    def test_where(self, listlike_box_with_tuple, simple_index):
-        klass = listlike_box_with_tuple
+    def test_where(self, listlike_box, simple_index):
+        klass = listlike_box
 
         idx = simple_index
         if isinstance(idx, (DatetimeIndex, TimedeltaIndex)):

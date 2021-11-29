@@ -488,8 +488,8 @@ def test_replaced_css_class_names(styler_mi):
         uuid_len=0,
     ).set_table_styles(css_class_names=css)
     styler_mi.index.names = ["n1", "n2"]
-    styler_mi.hide_index(styler_mi.index[1:])
-    styler_mi.hide_columns(styler_mi.columns[1:])
+    styler_mi.hide(styler_mi.index[1:], axis=0)
+    styler_mi.hide(styler_mi.columns[1:], axis=1)
     styler_mi.applymap_index(lambda v: "color: red;", axis=0)
     styler_mi.applymap_index(lambda v: "color: green;", axis=1)
     styler_mi.applymap(lambda v: "color: blue;")
@@ -611,9 +611,9 @@ def test_hiding_index_columns_multiindex_alignment():
     )
     df = DataFrame(np.arange(16).reshape(4, 4), index=midx, columns=cidx)
     styler = Styler(df, uuid_len=0)
-    styler.hide_index(level=1).hide_columns(level=0)
-    styler.hide_index([("j0", "i1", "j2")])
-    styler.hide_columns([("c0", "d1", "d2")])
+    styler.hide(level=1, axis=0).hide(level=0, axis=1)
+    styler.hide([("j0", "i1", "j2")], axis=0)
+    styler.hide([("c0", "d1", "d2")], axis=1)
     result = styler.to_html()
     expected = dedent(
         """\
@@ -667,4 +667,100 @@ def test_hiding_index_columns_multiindex_alignment():
     </table>
     """
     )
+    assert result == expected
+
+
+def test_hiding_index_columns_multiindex_trimming():
+    # gh 44272
+    df = DataFrame(np.arange(64).reshape(8, 8))
+    df.columns = MultiIndex.from_product([[0, 1, 2, 3], [0, 1]])
+    df.index = MultiIndex.from_product([[0, 1, 2, 3], [0, 1]])
+    df.index.names, df.columns.names = ["a", "b"], ["c", "d"]
+    styler = Styler(df, cell_ids=False, uuid_len=0)
+    styler.hide([(0, 0), (0, 1), (1, 0)], axis=1).hide([(0, 0), (0, 1), (1, 0)], axis=0)
+    with option_context("styler.render.max_rows", 4, "styler.render.max_columns", 4):
+        result = styler.to_html()
+
+    expected = dedent(
+        """\
+    <style type="text/css">
+    </style>
+    <table id="T_">
+      <thead>
+        <tr>
+          <th class="blank" >&nbsp;</th>
+          <th class="index_name level0" >c</th>
+          <th class="col_heading level0 col3" >1</th>
+          <th class="col_heading level0 col4" colspan="2">2</th>
+          <th class="col_heading level0 col6" >3</th>
+        </tr>
+        <tr>
+          <th class="blank" >&nbsp;</th>
+          <th class="index_name level1" >d</th>
+          <th class="col_heading level1 col3" >1</th>
+          <th class="col_heading level1 col4" >0</th>
+          <th class="col_heading level1 col5" >1</th>
+          <th class="col_heading level1 col6" >0</th>
+          <th class="col_heading level1 col_trim" >...</th>
+        </tr>
+        <tr>
+          <th class="index_name level0" >a</th>
+          <th class="index_name level1" >b</th>
+          <th class="blank col3" >&nbsp;</th>
+          <th class="blank col4" >&nbsp;</th>
+          <th class="blank col5" >&nbsp;</th>
+          <th class="blank col6" >&nbsp;</th>
+          <th class="blank col7 col_trim" >&nbsp;</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th class="row_heading level0 row3" >1</th>
+          <th class="row_heading level1 row3" >1</th>
+          <td class="data row3 col3" >27</td>
+          <td class="data row3 col4" >28</td>
+          <td class="data row3 col5" >29</td>
+          <td class="data row3 col6" >30</td>
+          <td class="data row3 col_trim" >...</td>
+        </tr>
+        <tr>
+          <th class="row_heading level0 row4" rowspan="2">2</th>
+          <th class="row_heading level1 row4" >0</th>
+          <td class="data row4 col3" >35</td>
+          <td class="data row4 col4" >36</td>
+          <td class="data row4 col5" >37</td>
+          <td class="data row4 col6" >38</td>
+          <td class="data row4 col_trim" >...</td>
+        </tr>
+        <tr>
+          <th class="row_heading level1 row5" >1</th>
+          <td class="data row5 col3" >43</td>
+          <td class="data row5 col4" >44</td>
+          <td class="data row5 col5" >45</td>
+          <td class="data row5 col6" >46</td>
+          <td class="data row5 col_trim" >...</td>
+        </tr>
+        <tr>
+          <th class="row_heading level0 row6" >3</th>
+          <th class="row_heading level1 row6" >0</th>
+          <td class="data row6 col3" >51</td>
+          <td class="data row6 col4" >52</td>
+          <td class="data row6 col5" >53</td>
+          <td class="data row6 col6" >54</td>
+          <td class="data row6 col_trim" >...</td>
+        </tr>
+        <tr>
+          <th class="row_heading level0 row_trim" >...</th>
+          <th class="row_heading level1 row_trim" >...</th>
+          <td class="data col3 row_trim" >...</td>
+          <td class="data col4 row_trim" >...</td>
+          <td class="data col5 row_trim" >...</td>
+          <td class="data col6 row_trim" >...</td>
+          <td class="data row_trim col_trim" >...</td>
+        </tr>
+      </tbody>
+    </table>
+    """
+    )
+
     assert result == expected

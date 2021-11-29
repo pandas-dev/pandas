@@ -21,6 +21,7 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
@@ -421,9 +422,21 @@ class IntegerIndex(NumericIndex):
         warnings.warn(
             "Index.asi8 is deprecated and will be removed in a future version.",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self._values.view(self._default_dtype)
+
+    def _validate_fill_value(self, value):
+        # e.g. np.array([1.0]) we want np.array([1], dtype=self.dtype)
+        #  see TestSetitemFloatNDarrayIntoIntegerSeries
+        super()._validate_fill_value(value)
+        if hasattr(value, "dtype") and is_float_dtype(value.dtype):
+            converted = value.astype(self.dtype)
+            if (converted == value).all():
+                # See also: can_hold_element
+                return converted
+            raise TypeError
+        return value
 
 
 class Int64Index(IntegerIndex):

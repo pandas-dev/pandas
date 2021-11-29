@@ -75,6 +75,7 @@ from pandas.core.algorithms import (
     isin,
     unique,
 )
+from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.sorting import (
     nargminmax,
     nargsort,
@@ -1012,10 +1013,8 @@ class ExtensionArray:
             arr, na_sentinel=na_sentinel, na_value=na_value
         )
 
-        uniques = self._from_factorized(uniques, self)
-        # error: Incompatible return value type (got "Tuple[ndarray, ndarray]",
-        # expected "Tuple[ndarray, ExtensionArray]")
-        return codes, uniques  # type: ignore[return-value]
+        uniques_ea = self._from_factorized(uniques, self)
+        return codes, uniques_ea
 
     _extension_array_shared_docs[
         "repeat"
@@ -1411,6 +1410,33 @@ class ExtensionArray:
 
         return type(self)._concat_same_type([self[:loc], item_arr, self[loc:]])
 
+    def _putmask(self, mask: npt.NDArray[np.bool_], value) -> None:
+        """
+        Analogue to np.putmask(self, mask, value)
+
+        Parameters
+        ----------
+        mask : np.ndarray[bool]
+        value : scalar or listlike
+            If listlike, must be arraylike with same length as self.
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        Unlike np.putmask, we do not repeat listlike values with mismatched length.
+        'value' should either be a scalar or an arraylike with the same length
+        as self.
+        """
+        if is_list_like(value):
+            val = value[mask]
+        else:
+            val = value
+
+        self[mask] = val
+
     def _where(
         self: ExtensionArrayT, mask: npt.NDArray[np.bool_], value
     ) -> ExtensionArrayT:
@@ -1436,6 +1462,24 @@ class ExtensionArray:
         result[~mask] = val
         return result
 
+    def _fill_mask_inplace(
+        self, method: str, limit, mask: npt.NDArray[np.bool_]
+    ) -> None:
+        """
+        Replace values in locations specified by 'mask' using pad or backfill.
+
+        See also
+        --------
+        ExtensionArray.fillna
+        """
+        func = missing.get_fill_func(method)
+        # NB: if we don't copy mask here, it may be altered inplace, which
+        #  would mess up the `self[mask] = ...` below.
+        new_values, _ = func(self.astype(object), limit=limit, mask=mask.copy())
+        new_values = self._from_sequence(new_values, dtype=self.dtype)
+        self[mask] = new_values[mask]
+        return
+
     @classmethod
     def _empty(cls, shape: Shape, dtype: ExtensionDtype):
         """
@@ -1449,6 +1493,41 @@ class ExtensionArray:
             raise NotImplementedError(
                 f"Default 'empty' implementation is invalid for dtype='{dtype}'"
             )
+        return result
+
+    def _quantile(
+        self: ExtensionArrayT, qs: npt.NDArray[np.float64], interpolation: str
+    ) -> ExtensionArrayT:
+        """
+        Compute the quantiles of self for each quantile in `qs`.
+
+        Parameters
+        ----------
+        qs : np.ndarray[float64]
+        interpolation: str
+
+        Returns
+        -------
+        same type as self
+        """
+        # asarray needed for Sparse, see GH#24600
+        mask = np.asarray(self.isna())
+        mask = np.atleast_2d(mask)
+
+        arr = np.atleast_2d(np.asarray(self))
+        fill_value = np.nan
+
+        res_values = quantile_with_mask(arr, mask, fill_value, qs, interpolation)
+
+        if self.ndim == 2:
+            # i.e. DatetimeArray
+            result = type(self)._from_sequence(res_values)
+
+        else:
+            # shape[0] should be 1 as long as EAs are 1D
+            assert res_values.shape == (1, len(qs)), res_values.shape
+            result = type(self)._from_sequence(res_values[0])
+
         return result
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
@@ -1467,6 +1546,13 @@ class ExtensionArray:
             return arraylike.dispatch_ufunc_with_out(
                 self, ufunc, method, *inputs, **kwargs
             )
+
+        if method == "reduce":
+            result = arraylike.dispatch_reduction_ufunc(
+                self, ufunc, method, *inputs, **kwargs
+            )
+            if result is not NotImplemented:
+                return result
 
         return arraylike.default_array_ufunc(self, ufunc, method, *inputs, **kwargs)
 

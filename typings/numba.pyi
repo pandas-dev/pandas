@@ -1,3 +1,4 @@
+# pyright: reportIncompleteStub = false
 from typing import (
     Any,
     Callable,
@@ -39,3 +40,4 @@ def jit(
 ) -> Callable[[F], F]: ...
 
 njit = jit
+generated_jit = jit

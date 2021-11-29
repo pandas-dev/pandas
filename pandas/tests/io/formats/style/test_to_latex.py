@@ -803,7 +803,7 @@ def test_css_convert_apply_index(styler, axis):
 
 def test_hide_index_latex(styler):
     # GH 43637
-    styler.hide_index([0])
+    styler.hide([0], axis=0)
     result = styler.to_latex()
     expected = dedent(
         """\
@@ -826,9 +826,9 @@ def test_latex_hiding_index_columns_multiindex_alignment():
     )
     df = DataFrame(np.arange(16).reshape(4, 4), index=midx, columns=cidx)
     styler = Styler(df, uuid_len=0)
-    styler.hide_index(level=1).hide_columns(level=0)
-    styler.hide_index([("i0", "i1", "i2")])
-    styler.hide_columns([("c0", "c1", "c2")])
+    styler.hide(level=1, axis=0).hide(level=0, axis=1)
+    styler.hide([("i0", "i1", "i2")], axis=0)
+    styler.hide([("c0", "c1", "c2")], axis=1)
     styler.applymap(lambda x: "color:{red};" if x == 5 else "")
     styler.applymap_index(lambda x: "color:{blue};" if "j" in x else "")
     result = styler.to_latex()

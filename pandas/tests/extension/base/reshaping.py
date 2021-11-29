@@ -3,12 +3,6 @@ import itertools
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import (
-    is_datetime64tz_dtype,
-    is_interval_dtype,
-    is_period_dtype,
-)
-
 import pandas as pd
 from pandas.api.extensions import ExtensionArray
 from pandas.core.internals import ExtensionBlock
@@ -327,17 +321,11 @@ class BaseReshapingTests(BaseExtensionTests):
             expected = ser.astype(object).unstack(
                 level=level, fill_value=data.dtype.na_value
             )
-            if obj == "series":
-                # TODO: special cases belong in dtype-specific tests
-                if is_datetime64tz_dtype(data.dtype):
-                    assert expected.dtypes.apply(is_datetime64tz_dtype).all()
-                    expected = expected.astype(object)
-                if is_period_dtype(data.dtype):
-                    assert expected.dtypes.apply(is_period_dtype).all()
-                    expected = expected.astype(object)
-                if is_interval_dtype(data.dtype):
-                    assert expected.dtypes.apply(is_interval_dtype).all()
-                    expected = expected.astype(object)
+            if obj == "series" and not isinstance(ser.dtype, pd.SparseDtype):
+                # GH#34457 SparseArray.astype(object) gives Sparse[object]
+                #  instead of np.dtype(object)
+                assert (expected.dtypes == object).all()
+
             result = result.astype(object)
 
             self.assert_frame_equal(result, expected)
