@@ -321,6 +321,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # fastpath of passing a manager doesn't check the option/manager class
         return self._constructor(new_mgr).__finalize__(self)
 
+    @property
+    def _using_array_manager(self) -> bool_t:
+        """
+        Private attribute to quickly check if the DataFrame/Series is
+        backed by an ArrayManager or not.
+        """
+        return isinstance(self._mgr, (ArrayManager, SingleArrayManager))
+
     # ----------------------------------------------------------------------
     # attrs and flags
 
@@ -5606,7 +5614,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Consolidate _mgr -- if the blocks have changed, then clear the
         cache
         """
-        if isinstance(self._mgr, (ArrayManager, SingleArrayManager)):
+        if self._using_array_manager:
             return f()
         blocks_before = len(self._mgr.blocks)
         result = f()
