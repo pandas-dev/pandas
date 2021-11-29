@@ -17,8 +17,6 @@ Instead of splitting it was decided to define sections here:
 - Dtypes
 - Misc
 """
-# pyright: reportUntypedFunctionDecorator = false
-
 from collections import abc
 from datetime import (
     date,
@@ -30,6 +28,9 @@ from datetime import (
 from decimal import Decimal
 import operator
 import os
+
+# pyright: reportUntypedFunctionDecorator = false
+import sys
 
 from dateutil.tz import (
     tzlocal,
@@ -205,7 +206,9 @@ def check_bufferedrandom_resourcewarning():
     proc = psutil.Process()
     with tm.assert_produces_warning(None):
         yield
-        print(proc.open_files(), flush=True)
+        # sys.stderr for xdist
+        # https://github.com/pytest-dev/pytest/issues/1693#issuecomment-233282644
+        print(proc.open_files(), flush=True, file=sys.stderr)
 
 
 # ----------------------------------------------------------------

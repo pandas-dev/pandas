@@ -171,7 +171,7 @@ def _assert_caught_no_extra_warnings(
 
             extra_warnings.append(tuple(warning_data))
 
-    if extra_warnings:
+    if extra_warnings and any(data[0] == ResourceWarning for data in extra_warnings):
         raise AssertionError(f"Caused unexpected warning(s): {repr(extra_warnings)}")
 
 
