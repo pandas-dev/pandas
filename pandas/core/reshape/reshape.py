@@ -1100,7 +1100,7 @@ def _get_dummies_1d(
 def from_dummies(
     data: DataFrame,
     sep: None | str = None,
-    dropped_first: None | Hashable | dict[str, Hashable] = None,
+    implied_value: None | Hashable | dict[str, Hashable] = None,
 ) -> DataFrame:
     """
     Create a categorical `DataFrame` from a `DataFrame` of dummy variables.
@@ -1116,7 +1116,7 @@ def from_dummies(
         character indicating the separation of the categorical names from the prefixes.
         For example, if your column names are 'prefix_A' and 'prefix_B',
         you can strip the underscore by specifying sep='_'.
-    dropped_fist : None, Hashable or dict of Hashables, default None
+    implied_value : None, Hashable or dict of Hashables, default None
         The implied value the dummy takes when all values are zero.
         Can be a a single value for all variables or a dict directly mapping the
         dropped value to a prefix of a variable.
@@ -1155,7 +1155,7 @@ def from_dummies(
     ...                    "col2_a": [0, 1, 0], "col2_b": [1, 0, 0],
     ...                    "col2_c": [0, 0, 0]})
 
-    >>> pd.from_dummies(df, sep="_", dropped_first={"col1": "d", "col2": "e"})
+    >>> pd.from_dummies(df, sep="_", implied_value={"col1": "d", "col2": "e"})
         col1    col2
     0    a       b
     1    b       a
@@ -1194,7 +1194,7 @@ def from_dummies(
             f"Received 'sep' of type: {type(sep).__name__}"
         )
 
-    # validate number of dropped_first
+    # validate number of implied_value
     def check_len(item, name) -> None:
         if not len(item) == len(variables_slice):
             len_msg = (
@@ -1204,18 +1204,18 @@ def from_dummies(
             )
             raise ValueError(len_msg)
 
-    if dropped_first:
-        if isinstance(dropped_first, dict):
-            check_len(dropped_first, "dropped_first")
-        elif isinstance(dropped_first, Hashable):
-            dropped_first = dict(
-                zip(variables_slice, [dropped_first] * len(variables_slice))
+    if implied_value:
+        if isinstance(implied_value, dict):
+            check_len(implied_value, "implied_value")
+        elif isinstance(implied_value, Hashable):
+            implied_value = dict(
+                zip(variables_slice, [implied_value] * len(variables_slice))
             )
         else:
             raise TypeError(
-                f"Expected 'dropped_first' to be of type "
+                f"Expected 'implied_value' to be of type "
                 f"'None', 'Hashable', or 'dict'; "
-                f"Received 'dropped_first' of type: {type(dropped_first).__name__}"
+                f"Received 'implied_value' of type: {type(implied_value).__name__}"
             )
 
     cat_data = {}
@@ -1233,8 +1233,8 @@ def from_dummies(
                 f"First instance in row: {assigned.argmax()}"
             )
         elif any(assigned == 0):
-            if isinstance(dropped_first, dict):
-                cats.append(dropped_first[prefix])
+            if isinstance(implied_value, dict):
+                cats.append(implied_value[prefix])
             else:
                 raise ValueError(
                     f"Dummy DataFrame contains unassigned value(s); "
