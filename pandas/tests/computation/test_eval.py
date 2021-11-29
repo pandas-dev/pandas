@@ -53,11 +53,14 @@ from pandas.core.computation.ops import (
     params=(
         pytest.param(
             engine,
-            marks=pytest.mark.skipif(
-                engine == "numexpr" and not USE_NUMEXPR,
-                reason=f"numexpr enabled->{USE_NUMEXPR}, "
-                f"installed->{NUMEXPR_INSTALLED}",
-            ),
+            marks=[
+                pytest.mark.skipif(
+                    engine == "numexpr" and not USE_NUMEXPR,
+                    reason=f"numexpr enabled->{USE_NUMEXPR}, "
+                    f"installed->{NUMEXPR_INSTALLED}",
+                ),
+                td.skip_if_no_ne,
+            ],
         )
         for engine in ENGINES
     )
