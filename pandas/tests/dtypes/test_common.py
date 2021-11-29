@@ -409,11 +409,10 @@ def test_is_not_unsigned_integer_dtype(dtype):
                           ("uint64", "uint64"),
                           ("float_", "float_"),
                           ("float16", "float16"),
-                          ("Float16", "float16"),
                           ("float32", "float32"),
-                          ("Float32", "float32"),
+                          ("Float32", "Float32"),                          
                           ("float64", "float64"),
-                          ("Float64", "float64"),
+                          ("Float64", "Float64"),
                          ])
 def test_all_type_comparison_with_true_result(dtype1, dtype2):
     assert pandas_dtype(dtype1) == dtype2
@@ -424,6 +423,11 @@ def test_all_type_comparison_with_true_result(dtype1, dtype2):
                           ("Int16", "int16"),
                           ("Int32", "int32"),
                           ("Int64", "int64"),
+                          ("float16", "Float16"),
+                          ("Float32", "float32"),
+                          ("float32", "Float32"),
+                          ("Float64", "float64"),
+                          ("float64", "Float64"),
                          ])
 def test_all_type_comparison_with_false_result(dtype1, dtype2):
     assert not pandas_dtype(dtype1) == dtype2
