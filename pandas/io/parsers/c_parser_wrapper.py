@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+from typing import (
+    Hashable,
+    Mapping,
+    Sequence,
+)
 import warnings
 
 import numpy as np
@@ -11,7 +16,6 @@ from pandas._typing import (
     DtypeObj,
     FilePath,
     ReadCsvBuffer,
-    Scalar,
 )
 from pandas.errors import DtypeWarning
 from pandas.util._exceptions import find_stack_level
@@ -226,8 +230,8 @@ class CParserWrapper(ParserBase):
         nrows: int | None = None,
     ) -> tuple[
         Index | MultiIndex | None,
-        list[Scalar] | MultiIndex,
-        dict[Scalar | tuple, ArrayLike],
+        Sequence[Hashable] | MultiIndex,
+        Mapping[Hashable, ArrayLike],
     ]:
         try:
             if self.low_memory:
@@ -320,11 +324,11 @@ class CParserWrapper(ParserBase):
             index, names = self._make_index(date_data, alldata, names)
 
         # maybe create a mi on the columns
-        names = self._maybe_make_multi_index_columns(names, self.col_names)
+        conv_names = self._maybe_make_multi_index_columns(names, self.col_names)
 
-        return index, names, date_data
+        return index, conv_names, date_data
 
-    def _filter_usecols(self, names: list[Scalar]) -> list[Scalar]:
+    def _filter_usecols(self, names: Sequence[Hashable]) -> Sequence[Hashable]:
         # hackish
         usecols = self._evaluate_usecols(self.usecols, names)
         if usecols is not None and len(names) != len(usecols):
@@ -410,8 +414,8 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
 
 
 def ensure_dtype_objs(
-    dtype: DtypeArg | dict[Scalar, DtypeArg] | None
-) -> DtypeObj | dict[Scalar, DtypeObj] | None:
+    dtype: DtypeArg | Mapping[Hashable, DtypeArg] | None
+) -> DtypeObj | Mapping[Hashable, DtypeObj] | None:
     """
     Ensure we have either None, a dtype object, or a dictionary mapping to
     dtype objects.

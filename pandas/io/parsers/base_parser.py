@@ -453,9 +453,9 @@ class ParserBase:
     @final
     def _maybe_make_multi_index_columns(
         self,
-        columns: list[Scalar] | list[tuple],
-        col_names: list[Scalar | None] | list[tuple] | None = None,
-    ) -> list[Scalar] | MultiIndex:
+        columns: Sequence[Hashable],
+        col_names: Sequence[Hashable] | None = None,
+    ) -> Sequence[Hashable] | MultiIndex:
         # possibly create a column mi here
         if _is_potential_multi_index(columns):
             columns = cast(List[Tuple], columns)
@@ -940,21 +940,27 @@ class ParserBase:
             )
 
     @overload
-    def _evaluate_usecols(self, usecols: Callable, names: list[Scalar]) -> set[int]:
+    def _evaluate_usecols(
+        self, usecols: Callable, names: Sequence[Hashable]
+    ) -> set[int]:
         ...
 
     @overload
-    def _evaluate_usecols(self, usecols: set[int], names: list[Scalar]) -> set[int]:
+    def _evaluate_usecols(
+        self, usecols: set[int], names: Sequence[Hashable]
+    ) -> set[int]:
         ...
 
     @overload
-    def _evaluate_usecols(self, usecols: set[str], names: list[Scalar]) -> set[str]:
+    def _evaluate_usecols(
+        self, usecols: set[str], names: Sequence[Hashable]
+    ) -> set[str]:
         ...
 
     def _evaluate_usecols(
         self,
         usecols: Callable | set[str] | set[int],
-        names: list[Scalar],
+        names: Sequence[Hashable],
     ) -> set[str] | set[int]:
         """
         Check whether or not the 'usecols' parameter
@@ -1321,7 +1327,7 @@ def _get_na_values(col, na_values, na_fvalues, keep_default_na):
 
 
 def _is_potential_multi_index(
-    columns: list[Scalar] | list[tuple] | MultiIndex,
+    columns: Sequence[Hashable] | MultiIndex,
     index_col: bool | Sequence[int] | None = None,
 ) -> bool:
     """

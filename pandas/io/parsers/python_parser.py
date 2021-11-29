@@ -268,8 +268,8 @@ class PythonParser(ParserBase):
                 self.index_names,
                 self.dtype,
             )
-            columns = self._maybe_make_multi_index_columns(columns, self.col_names)
-            return index, columns, col_dict
+            conv_columns = self._maybe_make_multi_index_columns(columns, self.col_names)
+            return index, conv_columns, col_dict
 
         # handle new style for names in index
         count_empty_content_vals = count_empty_vals(content[0])
