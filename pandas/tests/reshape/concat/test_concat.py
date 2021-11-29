@@ -701,7 +701,7 @@ def test_concat_posargs_deprecation():
 
 
 @pytest.mark.parametrize("data", [Series(data=[1, 2]),
-                                  DataFrame(data={"col1": [1, 2],}),
+                                  DataFrame(data={"col1": [1, 2], }),
                                   DataFrame(),
                                   Series()])
 def test_concat_drop_attrs(data):
@@ -715,7 +715,7 @@ def test_concat_drop_attrs(data):
 
 
 @pytest.mark.parametrize("data", [Series(data=[1, 2]),
-                                  DataFrame(data={"col1": [1, 2],}),
+                                  DataFrame(data={"col1": [1, 2], }),
                                   DataFrame(),
                                   Series()])
 def test_concat_retain_attrs(data):
