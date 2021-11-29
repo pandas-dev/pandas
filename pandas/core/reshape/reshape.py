@@ -1099,8 +1099,7 @@ def _get_dummies_1d(
 
 def from_dummies(
     data: DataFrame,
-    subset: None | Index | list[Hashable] = None,
-    sep: None | str | dict[str, str] = None,
+    sep: None | str = None,
     dropped_first: None | Hashable | dict[str, Hashable] = None,
 ) -> DataFrame:
     """
@@ -1112,17 +1111,11 @@ def from_dummies(
     ----------
     data : `DataFrame`
         Data which contains dummy-coded variables.
-    subset : None, Index, or list of Hashables, default 'None'
-        The columns which to convert from dummy-encoding and return as categorical
-        `DataFrame`. If `columns` is None then all dummy columns are converted and
-        appended to the non-dummy columns.
-    sep : str or dict of str, default '_'
+    sep : str, default None
         Separator used in the column names of the dummy categories they are
         character indicating the separation of the categorical names from the prefixes.
         For example, if your column names are 'prefix_A' and 'prefix_B',
         you can strip the underscore by specifying sep='_'.
-        Alternatively, pass a dictionary to map prefix separators to prefixes if
-        multiple and/or mixed separators are used in the column names.
     dropped_fist : None, Hashable or dict of Hashables, default None
         The implied value the dummy takes when all values are zero.
         Can be a a single value for all variables or a dict directly mapping the
@@ -1167,30 +1160,10 @@ def from_dummies(
     0    a       b
     1    b       a
     2    d       e
-
-    >>> df = pd.DataFrame({"col1_a-a": [1, 0, 1], "col1_b-b": [0, 1, 0],
-    ...                   "col2-a_a": [0, 1, 0], "col2-b_b": [1, 0, 0],
-    ...                   "col2-c_c": [0, 0, 1]})
-
-    >>> pd.from_dummies(df, sep={"col1": "_", "col2": "-"})
-       col1  col2
-    0  a-a   b_b
-    1  b-b   a_a
-    2  a-a   c_c
     """
     from pandas.core.reshape.concat import concat
 
-    if subset is None:
-        subset = list(data.columns)
-    elif isinstance(subset, Index):
-        subset = list(subset)
-    elif not isinstance(subset, list):
-        raise TypeError(
-            f"Expected 'subset' to be of type 'Index', or 'list'; "
-            f"Received 'subset' of type: {type(subset).__name__}"
-        )
-
-    if data[subset].isna().any().any():
+    if data.isna().any().any():
         raise ValueError(
             f"Dummy DataFrame contains NA value in column: "
             f"'{data.columns[data.isna().any().argmax()]}'"
@@ -1198,43 +1171,26 @@ def from_dummies(
 
     # index data with a list of all columns that are dummies
     try:
-        data_to_decode = data[subset].astype("boolean")
+        data_to_decode = data.astype("boolean")
     except TypeError:
         raise TypeError("Passed DataFrame contains non-dummy data")
 
-    # get separator for each prefix and lists to slice data for each prefix
+    # collect prefixes and get lists to slice data for each prefix
     if sep is None:
-        variables_slice = {"": subset}
-    elif isinstance(sep, dict):
-        variables_slice = {prefix: [] for prefix in sep}
-        for col in data_to_decode.columns:
-            sep_available = False
-            for prefix in sep:
-                if prefix in col:
-                    sep_available = True
-                    variables_slice[prefix].append(col)
-                    break
-            if not sep_available:
-                raise ValueError(
-                    f"Separator not specified for all columns; "
-                    f"First instance column: {col}"
-                )
+        variables_slice = {"": list(data.columns)}
     elif isinstance(sep, str):
         variables_slice = {}
         for col in data_to_decode.columns:
             prefix = col.split(sep)[0]
             if len(prefix) == len(col):
-                raise ValueError(
-                    f"Separator not specified for all columns; "
-                    f"First instance column: {col}"
-                )
+                raise ValueError(f"Separator not specified for column: {col}")
             if prefix not in variables_slice:
                 variables_slice[prefix] = [col]
             else:
                 variables_slice[prefix].append(col)
     else:
         raise TypeError(
-            f"Expected 'sep' to be of type 'str' or 'dict'; "
+            f"Expected 'sep' to be of type 'str' or 'None'; "
             f"Received 'sep' of type: {type(sep).__name__}"
         )
 
@@ -1257,20 +1213,15 @@ def from_dummies(
             )
         else:
             raise TypeError(
-                f"Expected 'dropped_first' to be of type 'Hashable' or 'dict'; "
+                f"Expected 'dropped_first' to be of type "
+                f"'None', 'Hashable', or 'dict'; "
                 f"Received 'dropped_first' of type: {type(dropped_first).__name__}"
             )
 
     cat_data = {}
     for prefix, prefix_slice in variables_slice.items():
         if sep is None:
-            cats = subset.copy()
-        elif isinstance(sep, dict):
-            cats = [
-                col[len(prefix + sep[prefix]) :]
-                for col in prefix_slice
-                if isinstance(col, str)
-            ]
+            cats = prefix_slice.copy()
         else:
             cats = [
                 col[len(prefix + sep) :] for col in prefix_slice if isinstance(col, str)

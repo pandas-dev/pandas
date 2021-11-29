@@ -103,7 +103,7 @@ def test_from_dummies_no_prefix_wrong_dropped_first_type():
     with pytest.raises(
         TypeError,
         match=(
-            r"Expected 'dropped_first' to be of type 'Hashable' or 'dict'; "
+            r"Expected 'dropped_first' to be of type 'None', 'Hashable', or 'dict'; "
             r"Received 'dropped_first' of type: list"
         ),
     ):
@@ -130,7 +130,7 @@ def test_from_dummies_no_prefix_contains_nan():
         from_dummies(dummies)
 
 
-def test_from_dummies_no_dummies():
+def test_from_dummies_contains_non_dummies():
     dummies = DataFrame(
         {"a": [1, 6, 3, 1], "b": [0, 1, 0, 2], "c": ["c1", "c2", "c3", "c4"]}
     )
@@ -138,7 +138,7 @@ def test_from_dummies_no_dummies():
         TypeError,
         match=r"Passed DataFrame contains non-dummy data",
     ):
-        from_dummies(dummies, sep="_")
+        from_dummies(dummies)
 
 
 def test_from_dummies_with_prefix_basic(dummies_basic):
@@ -147,7 +147,7 @@ def test_from_dummies_with_prefix_basic(dummies_basic):
     tm.assert_frame_equal(result, expected)
 
 
-def test_from_dummies_with_prefix_prefix_multiple_seperators():
+def test_from_dummies_with_prefix_multiple_seperators():
     dummies = DataFrame(
         {
             "col1_a": [1, 0, 1],
@@ -158,52 +158,9 @@ def test_from_dummies_with_prefix_prefix_multiple_seperators():
     )
     with pytest.raises(
         ValueError,
-        match=(
-            r"Separator not specified for all columns; "
-            r"First instance column: col2-a"
-        ),
+        match=(r"Separator not specified for column: col2-a"),
     ):
         from_dummies(dummies, sep="_")
-
-
-def test_from_dummies_with_prefix_prefix_sep_dict():
-    dummies = DataFrame(
-        {
-            "col1_a-a": [1, 0, 1],
-            "col1_b-b": [0, 1, 0],
-            "col_2-a": [0, 1, 0],
-            "col_2-b": [1, 0, 0],
-            "col_2-c": [0, 0, 1],
-        },
-    )
-    expected = DataFrame({"col1": ["a-a", "b-b", "a-a"], "col_2": ["b", "a", "c"]})
-    result = from_dummies(
-        dummies,
-        sep={
-            "col1": "_",
-            "col_2": "-",
-        },
-    )
-    tm.assert_frame_equal(result, expected)
-
-
-def test_from_dummies_with_prefix_prefix_partial_sep_dict():
-    dummies = DataFrame(
-        {
-            "col1_a-a": [1, 0, 1],
-            "col1_b-b": [0, 1, 0],
-            "col2-a_a": [0, 1, 0],
-            "col2-b_b": [1, 0, 1],
-        },
-    )
-    with pytest.raises(
-        ValueError,
-        match=(
-            r"Separator not specified for all columns; "
-            r"First instance column: col2-a_a"
-        ),
-    ):
-        from_dummies(dummies, sep={"col1": "_"})
 
 
 def test_from_dummies_with_prefix_sep_wrong_type(dummies_basic):
@@ -211,7 +168,7 @@ def test_from_dummies_with_prefix_sep_wrong_type(dummies_basic):
     with pytest.raises(
         TypeError,
         match=(
-            r"Expected 'sep' to be of type 'str' or 'dict'; "
+            r"Expected 'sep' to be of type 'str' or 'None'; "
             r"Received 'sep' of type: list"
         ),
     ):
@@ -246,16 +203,6 @@ def test_from_dummies_with_prefix_contains_unassigned(dummies_with_unassigned):
         from_dummies(dummies_with_unassigned, sep="_")
 
 
-def test_from_dummies_with_prefix_subset(dummies_basic):
-    expected = DataFrame({"col1": ["a", "b", "a"], "col2": ["b", "a", "c"]})
-    result = from_dummies(
-        dummies_basic,
-        subset=["col1_a", "col1_b", "col2_a", "col2_b", "col2_c"],
-        sep="_",
-    )
-    tm.assert_frame_equal(result, expected)
-
-
 def test_from_dummies_with_prefix_dropped_first_str(dummies_with_unassigned):
     expected = DataFrame({"col1": ["a", "b", "x"], "col2": ["x", "a", "c"]})
     result = from_dummies(dummies_with_unassigned, sep="_", dropped_first="x")
@@ -266,21 +213,11 @@ def test_from_dummies_with_prefix_dropped_first_wrong_type(dummies_with_unassign
     with pytest.raises(
         TypeError,
         match=(
-            r"Expected 'dropped_first' to be of type 'Hashable' or 'dict'; "
+            r"Expected 'dropped_first' to be of type 'None', 'Hashable', or 'dict'; "
             r"Received 'dropped_first' of type: list"
         ),
     ):
         from_dummies(dummies_with_unassigned, sep="_", dropped_first=["x", "y"])
-
-
-def test_from_dummies_with_prefix_dropped_first_dict(dummies_with_unassigned):
-    expected = DataFrame({"col1": ["a", "b", "y"], "col2": ["x", "a", "c"]})
-    result = from_dummies(
-        dummies_with_unassigned,
-        sep="_",
-        dropped_first={"col2": "x", "col1": "y"},
-    )
-    tm.assert_frame_equal(result, expected)
 
 
 def test_from_dummies_with_prefix_dropped_first_int_and_float(dummies_with_unassigned):
@@ -316,26 +253,17 @@ def test_from_dummies_with_prefix_dropped_first_dict_not_complete(
         from_dummies(dummies_with_unassigned, sep="_", dropped_first={"col1": "x"})
 
 
-def test_from_dummies_with_prefix_wrong_subset_type(dummies_basic):
-    with pytest.raises(
-        TypeError,
-        match=(
-            r"Expected 'subset' to be of type 'Index', or 'list'; "
-            r"Received 'subset' of type: str"
-        ),
-    ):
-        from_dummies(
-            dummies_basic,
-            subset="col1_a",
-            sep="_",
-        )
-
-
 def test_from_dummies_with_prefix_contains_nan(dummies_basic):
     dummies_basic["col2_c"][2] = np.nan
     with pytest.raises(
         ValueError, match=r"Dummy DataFrame contains NA value in column: 'col2_c'"
     ):
+        from_dummies(dummies_basic, sep="_")
+
+
+def test_from_dummies_with_prefix_contains_non_dummies(dummies_basic):
+    dummies_basic["col2_c"][2] = "str"
+    with pytest.raises(TypeError, match=r"Passed DataFrame contains non-dummy data"):
         from_dummies(dummies_basic, sep="_")
 
 
@@ -357,25 +285,3 @@ def test_from_dummies_with_prefix_double_assignment():
         ),
     ):
         from_dummies(dummies, sep="_")
-
-
-def test_from_dummies_collate_prefix_sep_and_dropped_first_dict():
-    dummies = DataFrame(
-        {
-            "col1_a-a": [1, 0, 0],
-            "col1_b-b": [0, 1, 0],
-            "col2-a_a": [0, 1, 0],
-            "col2-b_b": [0, 0, 0],
-            "col2-c_c": [0, 0, 1],
-        },
-    )
-    expected = DataFrame({"col1": ["a-a", "b-b", "x"], "col2": ["y", "a_a", "c_c"]})
-    result = from_dummies(
-        dummies,
-        sep={
-            "col1": "_",
-            "col2": "-",
-        },
-        dropped_first={"col1": "x", "col2": "y"},
-    )
-    tm.assert_frame_equal(result, expected)
