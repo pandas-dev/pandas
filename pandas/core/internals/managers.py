@@ -36,6 +36,7 @@ from pandas.core.dtypes.common import (
     is_1d_only_ea_dtype,
     is_dtype_equal,
     is_list_like,
+    needs_i8_conversion,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
@@ -79,8 +80,6 @@ from pandas.core.internals.ops import (
     blockwise_all,
     operate_blockwise,
 )
-
-# TODO: flexible with index=None and/or items=None
 
 T = TypeVar("T", bound="BaseBlockManager")
 
@@ -364,7 +363,28 @@ class BaseBlockManager(DataManager):
         if fill_value is lib.no_default:
             fill_value = None
 
-        if axis == 0 and self.ndim == 2 and self.nblocks > 1:
+        if (
+            axis == 0
+            and self.ndim == 2
+            and (
+                self.nblocks > 1
+                or (
+                    # If we only have one block and we know that we can't
+                    #  keep the same dtype (i.e. the _can_hold_element check)
+                    #  then we can go through the reindex_indexer path
+                    #  (and avoid casting logic in the Block method).
+                    #  The exception to this (until 2.0) is datetimelike
+                    #  dtypes with integers, which cast.
+                    not self.blocks[0]._can_hold_element(fill_value)
+                    # TODO(2.0): remove special case for integer-with-datetimelike
+                    #  once deprecation is enforced
+                    and not (
+                        lib.is_integer(fill_value)
+                        and needs_i8_conversion(self.blocks[0].dtype)
+                    )
+                )
+            )
+        ):
             # GH#35488 we need to watch out for multi-block cases
             # We only get here with fill_value not-lib.no_default
             ncols = self.shape[0]
@@ -862,9 +882,9 @@ class BaseBlockManager(DataManager):
         # We have 6 tests that get here with a slice
         # TODO: should these be np.intp?
         indexer = (
-            np.arange(indexer.start, indexer.stop, indexer.step, dtype="int64")
+            np.arange(indexer.start, indexer.stop, indexer.step, dtype=np.intp)
             if isinstance(indexer, slice)
-            else np.asanyarray(indexer, dtype="int64")
+            else np.asanyarray(indexer, dtype=np.intp)
         )
 
         n = self.shape[axis]
@@ -1193,7 +1213,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 "Consider joining all columns at once using pd.concat(axis=1) "
                 "instead. To get a de-fragmented frame, use `newframe = frame.copy()`",
                 PerformanceWarning,
-                stacklevel=5,
+                stacklevel=find_stack_level(),
             )
 
     def _insert_update_mgr_locs(self, loc) -> None:
@@ -1638,7 +1658,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
                 "The `fastpath` keyword is deprecated and will be removed "
                 "in a future version.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
 
         self.axes = [axis]

@@ -17,6 +17,7 @@ from pandas._typing import (
     npt,
 )
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -218,7 +219,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
                 "deprecated and will raise in a future version. "
                 "Use CategoricalIndex([], ...) instead.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
             data = []
 
@@ -431,7 +432,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
                     "reindexing with a non-unique Index is deprecated and will "
                     "raise in a future version.",
                     FutureWarning,
-                    stacklevel=2,
+                    stacklevel=find_stack_level(),
                 )
 
         if len(self) and indexer is not None:
@@ -506,7 +507,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
             "CategoricalIndex.take_nd is deprecated, use CategoricalIndex.take "
             "instead.",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self.take(*args, **kwargs)
 

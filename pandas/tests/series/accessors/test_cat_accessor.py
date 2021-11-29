@@ -51,7 +51,7 @@ class TestCatAccessor:
 
         exp = Categorical(["a", "b", np.nan, "a"], categories=["b", "a"])
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             # issue #37643 inplace kwarg deprecated
             return_value = ser.cat.set_categories(["b", "a"], inplace=True)
 
@@ -88,7 +88,7 @@ class TestCatAccessor:
         return_value = ser.drop(0, inplace=True)
         assert return_value is None
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             return_value = ser.cat.remove_unused_categories(inplace=True)
 
         assert return_value is None

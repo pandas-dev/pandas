@@ -279,9 +279,7 @@ class TestSeriesLogicalOps:
         tm.assert_index_equal(result, expected)
 
         expected = Index.symmetric_difference(idx2, ser)
-        with tm.assert_produces_warning(
-            FutureWarning, match=msg, check_stacklevel=False
-        ):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             result = idx2 ^ ser
         tm.assert_index_equal(result, expected)
 
@@ -337,9 +335,7 @@ class TestSeriesLogicalOps:
         idx = Index([False, True])
 
         msg = "operating as a set operation"
-        with tm.assert_produces_warning(
-            FutureWarning, match=msg, check_stacklevel=False
-        ):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             # behaving as set ops is deprecated, will become logical ops
             result = op(ser, idx)
         tm.assert_index_equal(result, expected)

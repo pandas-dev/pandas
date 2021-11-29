@@ -23,6 +23,7 @@ import numpy as np
 
 from pandas._libs.tslibs import Timestamp
 from pandas._typing import NDFrameT
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_percentile
 
 from pandas.core.dtypes.common import (
@@ -377,7 +378,7 @@ def select_describe_func(
                 "version of pandas. Specify `datetime_is_numeric=True` to "
                 "silence this warning and adopt the future behavior now.",
                 FutureWarning,
-                stacklevel=5,
+                stacklevel=find_stack_level(),
             )
             return describe_timestamp_as_categorical_1d
     elif is_timedelta64_dtype(data.dtype):

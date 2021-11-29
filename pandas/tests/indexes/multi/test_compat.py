@@ -96,10 +96,3 @@ def test_inplace_mutation_resets_values():
     assert "_values" not in mi2._cache
     tm.assert_almost_equal(mi2.values, new_values)
     assert "_values" in mi2._cache
-
-
-def test_pickle_compat_construction():
-    # this is testing for pickle compat
-    # need an object to create with
-    with pytest.raises(TypeError, match="Must pass both levels and codes"):
-        MultiIndex()

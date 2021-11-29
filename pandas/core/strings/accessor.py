@@ -19,6 +19,7 @@ from pandas._typing import (
     F,
 )
 from pandas.util._decorators import Appender
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -238,7 +239,7 @@ class StringMethods(NoNewAttributesMixin):
         warnings.warn(
             "Columnar iteration over characters will be deprecated in future releases.",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         i = 0
         g = self.get(i)
@@ -1214,7 +1215,7 @@ class StringMethods(NoNewAttributesMixin):
                 "This pattern has match groups. To actually get the "
                 "groups, use str.extract.",
                 UserWarning,
-                stacklevel=3,
+                stacklevel=find_stack_level(),
             )
 
         result = self._data.array._str_contains(pat, case, flags, na, regex)
@@ -1426,7 +1427,7 @@ class StringMethods(NoNewAttributesMixin):
                         " In addition, single character regular expressions will "
                         "*not* be treated as literal strings when regex=True."
                     )
-                warnings.warn(msg, FutureWarning, stacklevel=3)
+                warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
 
         # Check whether repl is valid (GH 13438, GH 15055)
         if not (isinstance(repl, str) or callable(repl)):
@@ -1976,7 +1977,7 @@ class StringMethods(NoNewAttributesMixin):
     Parameters
     ----------
     %(side)s : str
-        %(side)s to remove.
+        Remove the %(side)s of the string.
 
     Returns
     -------

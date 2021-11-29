@@ -319,7 +319,12 @@ def test_clear(mi_styler_comp):
     # tests vars are not same vals on obj and clean copy before clear (except for excl)
     for attr in [a for a in styler.__dict__ if not (callable(a) or a in excl)]:
         res = getattr(styler, attr) == getattr(clean_copy, attr)
-        assert not (all(res) if (hasattr(res, "__iter__") and len(res) > 0) else res)
+        if hasattr(res, "__iter__") and len(res) > 0:
+            assert not all(res)  # some element in iterable differs
+        elif hasattr(res, "__iter__") and len(res) == 0:
+            pass  # empty array
+        else:
+            assert not res  # explicit var differs
 
     # test vars have same vales on obj and clean copy after clearing
     styler.clear()
@@ -749,7 +754,7 @@ class TestStyler:
         col = MultiIndex.from_product([["x", "y"], ["A", "B"]])
         df = DataFrame(np.random.rand(4, 4), columns=col, index=idx)
 
-        with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
+        with tm.assert_produces_warning(warn, match=msg):
             df.style.applymap(lambda x: "color: red;", subset=slice_).to_html()
 
     def test_applymap_subset_multiindex_code(self):
