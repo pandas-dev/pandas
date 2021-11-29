@@ -164,7 +164,7 @@ frame_sub_kwargs = {
 
 
 INFO_DOCSTRING = dedent(
-    """\
+    """
     Print a concise summary of a {klass}.
 
     This method prints information about a {klass} including
