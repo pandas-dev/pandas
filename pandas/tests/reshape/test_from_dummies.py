@@ -39,6 +39,28 @@ def test_from_dummies_no_prefix_string_cats_basic():
     tm.assert_frame_equal(result, expected)
 
 
+def test_from_dummies_no_prefix_string_cats_basic_bool_values():
+    dummies = DataFrame(
+        {
+            "a": [True, False, False, True],
+            "b": [False, True, False, False],
+            "c": [False, False, True, False],
+        }
+    )
+    expected = DataFrame({"": ["a", "b", "c", "a"]})
+    result = from_dummies(dummies)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_from_dummies_no_prefix_string_cats_basic_mixed_bool_values():
+    dummies = DataFrame(
+        {"a": [1, 0, 0, 1], "b": [False, True, False, False], "c": [0, 0, 1, 0]}
+    )
+    expected = DataFrame({"": ["a", "b", "c", "a"]})
+    result = from_dummies(dummies)
+    tm.assert_frame_equal(result, expected)
+
+
 def test_from_dummies_no_prefix_int_cats_basic():
     dummies = DataFrame(
         {1: [1, 0, 0, 0], 25: [0, 1, 0, 0], 2: [0, 0, 1, 0], 5: [0, 0, 0, 1]}

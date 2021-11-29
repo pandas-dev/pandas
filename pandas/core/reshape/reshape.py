@@ -1126,6 +1126,11 @@ def from_dummies(
     `DataFrame`
         Categorical data decoded from the dummy input-data.
 
+    Notes
+    -----
+    The columns of the passed dummy data should only include 1's and 0's,
+    or boolean values.
+
     See Also
     --------
     get_dummies : Convert `Series` or `DataFrame` to dummy codes.
