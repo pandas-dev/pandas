@@ -34,7 +34,7 @@ if TYPE_CHECKING:
 
 
 frame_max_cols_sub = dedent(
-    """\
+    """
     max_cols : int, optional
         When to switch from the verbose to the truncated output. If the
         DataFrame has more than `max_cols` columns, the truncated output
@@ -44,7 +44,7 @@ frame_max_cols_sub = dedent(
 
 
 show_counts_sub = dedent(
-    """\
+    """
     show_counts : bool, optional
         Whether to show the non-null counts. By default, this is shown
         only if the DataFrame is smaller than
@@ -54,7 +54,7 @@ show_counts_sub = dedent(
 )
 
 null_counts_sub = dedent(
-    """\
+    """
     null_counts : bool, optional
         .. deprecated:: 1.2.0
             Use show_counts instead."""
@@ -62,7 +62,7 @@ null_counts_sub = dedent(
 
 
 frame_examples_sub = dedent(
-    """\
+    """
     >>> int_values = [1, 2, 3, 4, 5]
     >>> text_values = ['alpha', 'beta', 'gamma', 'delta', 'epsilon']
     >>> float_values = [0.0, 0.25, 0.5, 0.75, 1.0]
@@ -148,7 +148,7 @@ frame_examples_sub = dedent(
 
 
 frame_see_also_sub = dedent(
-    """\
+    """
     DataFrame.describe: Generate descriptive statistics of DataFrame
         columns.
     DataFrame.memory_usage: Memory usage of DataFrame columns."""
@@ -168,7 +168,7 @@ frame_sub_kwargs = {
 
 
 series_examples_sub = dedent(
-    """\
+    """
     >>> int_values = [1, 2, 3, 4, 5]
     >>> text_values = ['alpha', 'beta', 'gamma', 'delta', 'epsilon']
     >>> s = pd.Series(text_values, index=int_values)
@@ -230,7 +230,7 @@ series_examples_sub = dedent(
 
 
 series_see_also_sub = dedent(
-    """\
+    """
     Series.describe: Generate descriptive statistics of Series.
     Series.memory_usage: Memory usage of Series."""
 )
@@ -280,8 +280,8 @@ INFO_DOCSTRING = dedent(
         made based in column dtype and number of rows assuming values
         consume the same memory amount for corresponding dtypes. With deep
         memory introspection, a real memory usage calculation is performed
-        at the cost of computational resources.
-    {show_counts_sub}
+        at the cost of computational resources.\
+    {show_counts_sub}\
     {null_counts_sub}
 
     Returns
@@ -290,11 +290,11 @@ INFO_DOCSTRING = dedent(
         This method prints a summary of a {klass} and returns None.
 
     See Also
-    --------
+    --------\
     {see_also_sub}
 
     Examples
-    --------
+    --------\
     {examples_sub}
     """
 )
