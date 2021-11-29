@@ -20,7 +20,7 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
-from pandas.tests.frame.common import (
+from pandas._testing._hypothesis import (
     OPTIONAL_DICTS,
     OPTIONAL_FLOATS,
     OPTIONAL_INTS,
