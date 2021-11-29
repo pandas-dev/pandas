@@ -7,7 +7,8 @@ import numpy as np
 import pandas._libs.parsers as parsers
 from pandas._typing import (
     ArrayLike,
-    FilePathOrBuffer,
+    FilePath,
+    ReadCsvBuffer,
 )
 from pandas.errors import DtypeWarning
 from pandas.util._exceptions import find_stack_level
@@ -31,7 +32,9 @@ class CParserWrapper(ParserBase):
     low_memory: bool
     _reader: parsers.TextReader
 
-    def __init__(self, src: FilePathOrBuffer, **kwds):
+    def __init__(
+        self, src: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str], **kwds
+    ):
         self.kwds = kwds
         kwds = kwds.copy()
         ParserBase.__init__(self, kwds)
@@ -276,7 +279,7 @@ class CParserWrapper(ParserBase):
             data_tups = sorted(data.items())
             data = {k: v for k, (i, v) in zip(names, data_tups)}
 
-            names, data = self._do_date_conversions(names, data)
+            names, date_data = self._do_date_conversions(names, data)
 
         else:
             # rename dict keys
@@ -299,13 +302,13 @@ class CParserWrapper(ParserBase):
 
             data = {k: v for k, (i, v) in zip(names, data_tups)}
 
-            names, data = self._do_date_conversions(names, data)
-            index, names = self._make_index(data, alldata, names)
+            names, date_data = self._do_date_conversions(names, data)
+            index, names = self._make_index(date_data, alldata, names)
 
         # maybe create a mi on the columns
         names = self._maybe_make_multi_index_columns(names, self.col_names)
 
-        return index, names, data
+        return index, names, date_data
 
     def _filter_usecols(self, names):
         # hackish
