@@ -38,6 +38,7 @@ from dateutil.tz import (
 import hypothesis
 from hypothesis import strategies as st
 import numpy as np
+import psutil
 import pytest
 from pytz import (
     FixedOffset,
@@ -197,6 +198,14 @@ def add_imports(doctest_namespace):
     """
     doctest_namespace["np"] = np
     doctest_namespace["pd"] = pd
+
+
+@pytest.fixture(autouse=True)
+def check_bufferedrandom_resourcewarning():
+    proc = psutil.Process()
+    with tm.assert_produces_warning(None):
+        yield
+        print(proc.open_files(), flush=True)
 
 
 # ----------------------------------------------------------------
