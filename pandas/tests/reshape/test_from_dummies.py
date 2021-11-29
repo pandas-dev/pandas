@@ -113,23 +113,23 @@ def test_from_dummies_no_prefix_contains_unassigned():
         from_dummies(dummies)
 
 
-def test_from_dummies_no_prefix_string_cats_implied_value():
+def test_from_dummies_no_prefix_string_cats_implied_category():
     dummies = DataFrame({"a": [1, 0, 0], "b": [0, 1, 0]})
     expected = DataFrame({"": ["a", "b", "c"]})
-    result = from_dummies(dummies, implied_value="c")
+    result = from_dummies(dummies, implied_category="c")
     tm.assert_frame_equal(result, expected)
 
 
-def test_from_dummies_no_prefix_wrong_implied_value_type():
+def test_from_dummies_no_prefix_wrong_implied_category_type():
     dummies = DataFrame({"a": [1, 0, 1], "b": [0, 1, 1]})
     with pytest.raises(
         TypeError,
         match=(
-            r"Expected 'implied_value' to be of type 'None', 'Hashable', or 'dict'; "
-            r"Received 'implied_value' of type: list"
+            r"Expected 'implied_category' to be of type 'None', 'Hashable', or 'dict'; "
+            r"Received 'implied_category' of type: list"
         ),
     ):
-        from_dummies(dummies, implied_value=["c", "d"])
+        from_dummies(dummies, implied_category=["c", "d"])
 
 
 def test_from_dummies_no_prefix_multi_assignment():
@@ -225,54 +225,58 @@ def test_from_dummies_with_prefix_contains_unassigned(dummies_with_unassigned):
         from_dummies(dummies_with_unassigned, sep="_")
 
 
-def test_from_dummies_with_prefix_implied_value_str(dummies_with_unassigned):
+def test_from_dummies_with_prefix_implied_category_str(dummies_with_unassigned):
     expected = DataFrame({"col1": ["a", "b", "x"], "col2": ["x", "a", "c"]})
-    result = from_dummies(dummies_with_unassigned, sep="_", implied_value="x")
+    result = from_dummies(dummies_with_unassigned, sep="_", implied_category="x")
     tm.assert_frame_equal(result, expected)
 
 
-def test_from_dummies_with_prefix_implied_value_wrong_type(dummies_with_unassigned):
+def test_from_dummies_with_prefix_implied_category_wrong_type(dummies_with_unassigned):
     with pytest.raises(
         TypeError,
         match=(
-            r"Expected 'implied_value' to be of type 'None', 'Hashable', or 'dict'; "
-            r"Received 'implied_value' of type: list"
+            r"Expected 'implied_category' to be of type 'None', 'Hashable', or 'dict'; "
+            r"Received 'implied_category' of type: list"
         ),
     ):
-        from_dummies(dummies_with_unassigned, sep="_", implied_value=["x", "y"])
+        from_dummies(dummies_with_unassigned, sep="_", implied_category=["x", "y"])
 
 
-def test_from_dummies_with_prefix_implied_value_int_and_float(dummies_with_unassigned):
+def test_from_dummies_with_prefix_implied_category_int_and_float(
+    dummies_with_unassigned,
+):
     expected = DataFrame({"col1": ["a", "b", 2.5], "col2": [1, "a", "c"]})
     result = from_dummies(
         dummies_with_unassigned,
         sep="_",
-        implied_value={"col2": 1, "col1": 2.5},
+        implied_category={"col2": 1, "col1": 2.5},
     )
     tm.assert_frame_equal(result, expected)
 
 
-def test_from_dummies_with_prefix_implied_value_bool_and_none(dummies_with_unassigned):
+def test_from_dummies_with_prefix_implied_category_bool_and_none(
+    dummies_with_unassigned,
+):
     expected = DataFrame({"col1": ["a", "b", False], "col2": [None, "a", "c"]})
     result = from_dummies(
         dummies_with_unassigned,
         sep="_",
-        implied_value={"col2": None, "col1": False},
+        implied_category={"col2": None, "col1": False},
     )
     tm.assert_frame_equal(result, expected)
 
 
-def test_from_dummies_with_prefix_implied_value_dict_not_complete(
+def test_from_dummies_with_prefix_implied_category_dict_not_complete(
     dummies_with_unassigned,
 ):
     with pytest.raises(
         ValueError,
         match=(
-            r"Length of 'implied_value' \(1\) did not match "
+            r"Length of 'implied_category' \(1\) did not match "
             r"the length of the columns being encoded \(2\)"
         ),
     ):
-        from_dummies(dummies_with_unassigned, sep="_", implied_value={"col1": "x"})
+        from_dummies(dummies_with_unassigned, sep="_", implied_category={"col1": "x"})
 
 
 def test_from_dummies_with_prefix_contains_nan(dummies_basic):
