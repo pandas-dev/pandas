@@ -564,7 +564,7 @@ def _take_preprocess_indexer_and_fill_value(
         if dtype != arr.dtype:
             # check if promotion is actually required based on indexer
             if mask is not None:
-                mask, needs_masking = mask, True
+                needs_masking = True
             else:
                 mask = indexer == -1
                 needs_masking = bool(mask.any())
