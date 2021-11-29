@@ -1119,7 +1119,7 @@ def from_dummies(
     implied_value : None, Hashable or dict of Hashables, default None
         The implied value the dummy takes when all values are zero.
         Can be a a single value for all variables or a dict directly mapping the
-        dropped value to a prefix of a variable.
+        implied values to a prefix of a variable.
 
     Returns
     -------
