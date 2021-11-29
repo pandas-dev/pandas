@@ -480,7 +480,6 @@ class TestFloatIndexers:
         s = Series(range(5), index=index)
         assert s[3] == 2
         assert s.loc[3] == 2
-        assert s.loc[3] == 2
         assert s.iloc[3] == 3
 
     def test_floating_misc(self, indexer_sl):

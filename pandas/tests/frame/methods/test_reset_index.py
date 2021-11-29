@@ -144,32 +144,31 @@ class TestResetIndex:
         df = float_frame.reset_index().set_index(["index", "A", "B"])
         rs = df.reset_index(["A", "B"])
 
-        # TODO should reset_index check_names ?
-        tm.assert_frame_equal(rs, float_frame, check_names=False)
+        tm.assert_frame_equal(rs, float_frame)
 
         rs = df.reset_index(["index", "A", "B"])
-        tm.assert_frame_equal(rs, float_frame.reset_index(), check_names=False)
+        tm.assert_frame_equal(rs, float_frame.reset_index())
 
         rs = df.reset_index(["index", "A", "B"])
-        tm.assert_frame_equal(rs, float_frame.reset_index(), check_names=False)
+        tm.assert_frame_equal(rs, float_frame.reset_index())
 
         rs = df.reset_index("A")
         xp = float_frame.reset_index().set_index(["index", "B"])
-        tm.assert_frame_equal(rs, xp, check_names=False)
+        tm.assert_frame_equal(rs, xp)
 
         # test resetting in place
         df = float_frame.copy()
         reset = float_frame.reset_index()
         return_value = df.reset_index(inplace=True)
         assert return_value is None
-        tm.assert_frame_equal(df, reset, check_names=False)
+        tm.assert_frame_equal(df, reset)
 
         df = float_frame.reset_index().set_index(["index", "A", "B"])
         rs = df.reset_index("A", drop=True)
         xp = float_frame.copy()
         del xp["A"]
         xp = xp.set_index(["B"], append=True)
-        tm.assert_frame_equal(rs, xp, check_names=False)
+        tm.assert_frame_equal(rs, xp)
 
     def test_reset_index_name(self):
         df = DataFrame(

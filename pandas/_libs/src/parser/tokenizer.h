@@ -141,7 +141,7 @@ typedef struct parser_t {
 
     int usecols;  // Boolean: 1: usecols provided, 0: none provided
 
-    int expected_fields;
+    Py_ssize_t expected_fields;
     BadLineHandleMethod on_bad_lines;
 
     // floating point options
@@ -175,7 +175,7 @@ typedef struct coliter_t {
     int64_t col;
 } coliter_t;
 
-void coliter_setup(coliter_t *self, parser_t *parser, int i, int start);
+void coliter_setup(coliter_t *self, parser_t *parser, int64_t i, int64_t start);
 
 #define COLITER_NEXT(iter, word)                           \
     do {                                                   \

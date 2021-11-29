@@ -680,6 +680,7 @@ class TestRolling:
         )
         tm.assert_index_equal(result.index, expected_index)
 
+    def test_groupby_rolling_resulting_multiindex2(self):
         # grouping by 2 columns -> 3-level MI as result
         df = DataFrame({"a": np.arange(12.0), "b": [1, 2] * 6, "c": [1, 2, 3, 4] * 3})
         result = df.groupby(["b", "c"]).rolling(2).sum()
@@ -702,6 +703,7 @@ class TestRolling:
         )
         tm.assert_index_equal(result.index, expected_index)
 
+    def test_groupby_rolling_resulting_multiindex3(self):
         # grouping with 1 level on dataframe with 2-level MI -> 3-level MI as result
         df = DataFrame({"a": np.arange(8.0), "b": [1, 2] * 4, "c": [1, 2, 3, 4] * 2})
         df = df.set_index("c", append=True)
@@ -719,7 +721,7 @@ class TestRolling:
             ],
             names=["b", None, "c"],
         )
-        tm.assert_index_equal(result.index, expected_index)
+        tm.assert_index_equal(result.index, expected_index, exact="equiv")
 
     def test_groupby_rolling_object_doesnt_affect_groupby_apply(self):
         # GH 39732

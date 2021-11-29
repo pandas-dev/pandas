@@ -1,14 +1,10 @@
 from __future__ import annotations
 
 from typing import overload
-import warnings
 
 import numpy as np
 
-from pandas._libs import (
-    lib,
-    missing as libmissing,
-)
+from pandas._libs import lib
 from pandas._typing import (
     ArrayLike,
     AstypeArg,
@@ -24,7 +20,6 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_float_dtype,
     is_integer_dtype,
-    is_list_like,
     is_object_dtype,
     pandas_dtype,
 )
@@ -39,7 +34,6 @@ from pandas.core.arrays.numeric import (
     NumericArray,
     NumericDtype,
 )
-from pandas.core.ops import invalid_comparison
 from pandas.core.tools.numeric import to_numeric
 
 
@@ -176,9 +170,7 @@ def coerce_to_array(
     if mask.any():
         values = values.copy()
         values[mask] = np.nan
-        values = values.astype(dtype, copy=False)  # , casting="safe")
-    else:
-        values = values.astype(dtype, copy=False)  # , casting="safe")
+    values = values.astype(dtype, copy=False)  # , casting="safe")
 
     return values, mask
 
@@ -339,67 +331,21 @@ class FloatingArray(NumericArray):
     def _values_for_argsort(self) -> np.ndarray:
         return self._data
 
-    def _cmp_method(self, other, op):
-        from pandas.arrays import (
-            BooleanArray,
-            IntegerArray,
-        )
-
-        mask = None
-
-        if isinstance(other, (BooleanArray, IntegerArray, FloatingArray)):
-            other, mask = other._data, other._mask
-
-        elif is_list_like(other):
-            other = np.asarray(other)
-            if other.ndim > 1:
-                raise NotImplementedError("can only perform ops with 1-d structures")
-
-        if other is libmissing.NA:
-            # numpy does not handle pd.NA well as "other" scalar (it returns
-            # a scalar False instead of an array)
-            # This may be fixed by NA.__array_ufunc__. Revisit this check
-            # once that's implemented.
-            result = np.zeros(self._data.shape, dtype="bool")
-            mask = np.ones(self._data.shape, dtype="bool")
-        else:
-            with warnings.catch_warnings():
-                # numpy may show a FutureWarning:
-                #     elementwise comparison failed; returning scalar instead,
-                #     but in the future will perform elementwise comparison
-                # before returning NotImplemented. We fall back to the correct
-                # behavior today, so that should be fine to ignore.
-                warnings.filterwarnings("ignore", "elementwise", FutureWarning)
-                with np.errstate(all="ignore"):
-                    method = getattr(self._data, f"__{op.__name__}__")
-                    result = method(other)
-
-                if result is NotImplemented:
-                    result = invalid_comparison(self._data, other, op)
-
-        # nans propagate
-        if mask is None:
-            mask = self._mask.copy()
-        else:
-            mask = self._mask | mask
-
-        return BooleanArray(result, mask)
-
-    def sum(self, *, skipna=True, min_count=0, **kwargs):
+    def sum(self, *, skipna=True, min_count=0, axis: int | None = 0, **kwargs):
         nv.validate_sum((), kwargs)
-        return super()._reduce("sum", skipna=skipna, min_count=min_count)
+        return super()._reduce("sum", skipna=skipna, min_count=min_count, axis=axis)
 
-    def prod(self, *, skipna=True, min_count=0, **kwargs):
+    def prod(self, *, skipna=True, min_count=0, axis: int | None = 0, **kwargs):
         nv.validate_prod((), kwargs)
-        return super()._reduce("prod", skipna=skipna, min_count=min_count)
+        return super()._reduce("prod", skipna=skipna, min_count=min_count, axis=axis)
 
-    def min(self, *, skipna=True, **kwargs):
+    def min(self, *, skipna=True, axis: int | None = 0, **kwargs):
         nv.validate_min((), kwargs)
-        return super()._reduce("min", skipna=skipna)
+        return super()._reduce("min", skipna=skipna, axis=axis)
 
-    def max(self, *, skipna=True, **kwargs):
+    def max(self, *, skipna=True, axis: int | None = 0, **kwargs):
         nv.validate_max((), kwargs)
-        return super()._reduce("max", skipna=skipna)
+        return super()._reduce("max", skipna=skipna, axis=axis)
 
     def _maybe_mask_result(self, result, mask, other, op_name: str):
         """
