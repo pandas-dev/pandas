@@ -16,4 +16,5 @@ cdef _NaT c_NaT
 
 
 cdef bint checknull_with_nat(object val)
-cpdef bint is_null_datetimelike(object val, bint inat_is_null=*)
+cdef bint is_dt64nat(object val)
+cdef bint is_td64nat(object val)

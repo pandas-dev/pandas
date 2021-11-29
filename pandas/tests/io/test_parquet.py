@@ -15,7 +15,6 @@ from pandas._config import get_option
 
 from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
-    pa_version_under1p0,
     pa_version_under2p0,
     pa_version_under5p0,
 )
@@ -784,11 +783,7 @@ class TestParquetPyArrow(Base):
         # only used if partition field is string, but this changed again to use
         # category dtype for all types (not only strings) in pyarrow 2.0.0
         if partition_col:
-            partition_col_type = (
-                "int32"
-                if (not pa_version_under1p0) and pa_version_under2p0
-                else "category"
-            )
+            partition_col_type = "int32" if pa_version_under2p0 else "category"
 
             expected_df[partition_col] = expected_df[partition_col].astype(
                 partition_col_type

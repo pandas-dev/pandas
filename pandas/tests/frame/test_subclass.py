@@ -13,6 +13,16 @@ from pandas import (
 import pandas._testing as tm
 
 
+@pytest.fixture()
+def gpd_style_subclass_df():
+    class SubclassedDataFrame(DataFrame):
+        @property
+        def _constructor(self):
+            return SubclassedDataFrame
+
+    return SubclassedDataFrame({"a": [1, 2, 3]})
+
+
 class TestDataFrameSubclassing:
     def test_frame_subclassing_and_slicing(self):
         # Subclass frame and ensure it returns the right class on slicing it
@@ -703,6 +713,15 @@ class TestDataFrameSubclassing:
         df = tm.SubclassedDataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
         result = df.idxmax()
         assert isinstance(result, tm.SubclassedSeries)
+
+    def test_convert_dtypes_preserves_subclass(self, gpd_style_subclass_df):
+        # GH 43668
+        df = tm.SubclassedDataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
+        result = df.convert_dtypes()
+        assert isinstance(result, tm.SubclassedDataFrame)
+
+        result = gpd_style_subclass_df.convert_dtypes()
+        assert isinstance(result, type(gpd_style_subclass_df))
 
     def test_equals_subclass(self):
         # https://github.com/pandas-dev/pandas/pull/34402

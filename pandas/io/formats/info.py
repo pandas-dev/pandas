@@ -7,7 +7,6 @@ from abc import (
 import sys
 from textwrap import dedent
 from typing import (
-    IO,
     TYPE_CHECKING,
     Iterable,
     Iterator,
@@ -17,7 +16,10 @@ from typing import (
 
 from pandas._config import get_option
 
-from pandas._typing import Dtype
+from pandas._typing import (
+    Dtype,
+    WriteBuffer,
+)
 from pandas.util._decorators import doc
 
 from pandas.core.indexes.api import Index
@@ -353,7 +355,7 @@ class BaseInfo(ABC):
     def render(
         self,
         *,
-        buf: IO[str] | None,
+        buf: WriteBuffer[str] | None,
         max_cols: int | None,
         verbose: bool | None,
         show_counts: bool | None,
@@ -433,7 +435,7 @@ class DataFrameInfo(BaseInfo):
     def render(
         self,
         *,
-        buf: IO[str] | None,
+        buf: WriteBuffer[str] | None,
         max_cols: int | None,
         verbose: bool | None,
         show_counts: bool | None,
@@ -452,7 +454,7 @@ class InfoPrinterAbstract:
     Class for printing dataframe or series info.
     """
 
-    def to_buffer(self, buf: IO[str] | None = None) -> None:
+    def to_buffer(self, buf: WriteBuffer[str] | None = None) -> None:
         """Save dataframe info into buffer."""
         table_builder = self._create_table_builder()
         lines = table_builder.get_lines()

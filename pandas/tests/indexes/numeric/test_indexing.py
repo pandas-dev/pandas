@@ -2,15 +2,17 @@ import numpy as np
 import pytest
 
 from pandas import (
-    Float64Index,
     Index,
-    Int64Index,
     RangeIndex,
     Series,
     Timestamp,
-    UInt64Index,
 )
 import pandas._testing as tm
+from pandas.core.indexes.api import (
+    Float64Index,
+    Int64Index,
+    UInt64Index,
+)
 
 
 @pytest.fixture
@@ -395,18 +397,17 @@ class TestWhere:
             UInt64Index(np.arange(5, dtype="uint64")),
         ],
     )
-    @pytest.mark.parametrize("klass", [list, tuple, np.array, Series])
-    def test_where(self, klass, index):
+    def test_where(self, listlike_box, index):
         cond = [True] * len(index)
         expected = index
-        result = index.where(klass(cond))
+        result = index.where(listlike_box(cond))
 
         cond = [False] + [True] * (len(index) - 1)
         expected = Float64Index([index._na_value] + index[1:].tolist())
-        result = index.where(klass(cond))
+        result = index.where(listlike_box(cond))
         tm.assert_index_equal(result, expected)
 
-    def test_where_uin64(self):
+    def test_where_uint64(self):
         idx = UInt64Index([0, 6, 2])
         mask = np.array([False, True, False])
         other = np.array([1], dtype=np.int64)

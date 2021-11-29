@@ -259,15 +259,15 @@ cdef inline numeric_t kth_smallest_c(numeric_t* arr, Py_ssize_t k, Py_ssize_t n)
     in groupby.pyx
     """
     cdef:
-        Py_ssize_t i, j, l, m
+        Py_ssize_t i, j, left, m
         numeric_t x
 
-    l = 0
+    left = 0
     m = n - 1
 
-    while l < m:
+    while left < m:
         x = arr[k]
-        i = l
+        i = left
         j = m
 
         while 1:
@@ -284,7 +284,7 @@ cdef inline numeric_t kth_smallest_c(numeric_t* arr, Py_ssize_t k, Py_ssize_t n)
                 break
 
         if j < k:
-            l = i
+            left = i
         if k < i:
             m = j
     return arr[k]
@@ -637,7 +637,7 @@ def pad_inplace(numeric_object_t[:] values, uint8_t[:] mask, limit=None):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def pad_2d_inplace(numeric_object_t[:, :] values, const uint8_t[:, :] mask, limit=None):
+def pad_2d_inplace(numeric_object_t[:, :] values, uint8_t[:, :] mask, limit=None):
     cdef:
         Py_ssize_t i, j, N, K
         numeric_object_t val
@@ -656,10 +656,11 @@ def pad_2d_inplace(numeric_object_t[:, :] values, const uint8_t[:, :] mask, limi
         val = values[j, 0]
         for i in range(N):
             if mask[j, i]:
-                if fill_count >= lim:
+                if fill_count >= lim or i == 0:
                     continue
                 fill_count += 1
                 values[j, i] = val
+                mask[j, i] = False
             else:
                 fill_count = 0
                 val = values[j, i]
@@ -759,7 +760,7 @@ def backfill_inplace(numeric_object_t[:] values, uint8_t[:] mask, limit=None):
 
 
 def backfill_2d_inplace(numeric_object_t[:, :] values,
-                        const uint8_t[:, :] mask,
+                        uint8_t[:, :] mask,
                         limit=None):
     pad_2d_inplace(values[:, ::-1], mask[:, ::-1], limit)
 
@@ -946,7 +947,7 @@ def rank_1d(
 
     N = len(values)
     if labels is not None:
-        # TODO Cython 3.0: cast won't be necessary (#2992)
+        # TODO(cython3): cast won't be necessary (#2992)
         assert <Py_ssize_t>len(labels) == N
     out = np.empty(N)
     grp_sizes = np.ones(N, dtype=np.int64)
@@ -1085,7 +1086,7 @@ cdef void rank_sorted_1d(
     # array that we sorted previously, which gives us the location of
     # that sorted value for retrieval back from the original
     # values / masked_vals arrays
-    # TODO: de-duplicate once cython supports conditional nogil
+    # TODO(cython3): de-duplicate once cython supports conditional nogil
     if iu_64_floating_obj_t is object:
         with gil:
             for i in range(N):
@@ -1412,7 +1413,7 @@ ctypedef fused out_t:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def diff_2d(
-    ndarray[diff_t, ndim=2] arr,  # TODO(cython 3) update to "const diff_t[:, :] arr"
+    ndarray[diff_t, ndim=2] arr,  # TODO(cython3) update to "const diff_t[:, :] arr"
     ndarray[out_t, ndim=2] out,
     Py_ssize_t periods,
     int axis,
@@ -1421,20 +1422,20 @@ def diff_2d(
     cdef:
         Py_ssize_t i, j, sx, sy, start, stop
         bint f_contig = arr.flags.f_contiguous
-        # bint f_contig = arr.is_f_contig()  # TODO(cython 3)
+        # bint f_contig = arr.is_f_contig()  # TODO(cython3)
         diff_t left, right
 
     # Disable for unsupported dtype combinations,
     #  see https://github.com/cython/cython/issues/2646
     if (out_t is float32_t
             and not (diff_t is float32_t or diff_t is int8_t or diff_t is int16_t)):
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
     elif (out_t is float64_t
           and (diff_t is float32_t or diff_t is int8_t or diff_t is int16_t)):
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
     elif out_t is int64_t and diff_t is not int64_t:
         # We only have out_t of int64_t if we have datetimelike
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
     else:
         # We put this inside an indented else block to avoid cython build
         #  warnings about unreachable code

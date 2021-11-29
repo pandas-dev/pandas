@@ -10,6 +10,7 @@ from pandas.util._decorators import (
     Appender,
     deprecate_kwarg,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_extension_array_dtype,
@@ -58,7 +59,7 @@ def melt(
             "In the future this will raise an error, please set the 'value_name' "
             "parameter of DataFrame.melt to a unique name.",
             FutureWarning,
-            stacklevel=3,
+            stacklevel=find_stack_level(),
         )
 
     if id_vars is not None:

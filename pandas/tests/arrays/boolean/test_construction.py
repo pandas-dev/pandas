@@ -27,10 +27,10 @@ def test_boolean_array_constructor():
     with pytest.raises(TypeError, match="mask should be boolean numpy array"):
         BooleanArray(values, None)
 
-    with pytest.raises(ValueError, match="values must be a 1D array"):
+    with pytest.raises(ValueError, match="values.shape must match mask.shape"):
         BooleanArray(values.reshape(1, -1), mask)
 
-    with pytest.raises(ValueError, match="mask must be a 1D array"):
+    with pytest.raises(ValueError, match="values.shape must match mask.shape"):
         BooleanArray(values, mask.reshape(1, -1))
 
 
@@ -183,10 +183,10 @@ def test_coerce_to_array():
     values = np.array([True, False, True, False], dtype="bool")
     mask = np.array([False, False, False, True], dtype="bool")
 
-    with pytest.raises(ValueError, match="values must be a 1D list-like"):
+    with pytest.raises(ValueError, match="values.shape and mask.shape must match"):
         coerce_to_array(values.reshape(1, -1))
 
-    with pytest.raises(ValueError, match="mask must be a 1D list-like"):
+    with pytest.raises(ValueError, match="values.shape and mask.shape must match"):
         coerce_to_array(values, mask=mask.reshape(1, -1))
 
 

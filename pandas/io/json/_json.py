@@ -661,7 +661,7 @@ class JsonReader(abc.Iterator):
         self.nrows_seen = 0
         self.nrows = nrows
         self.encoding_errors = encoding_errors
-        self.handles: IOHandles | None = None
+        self.handles: IOHandles[str] | None = None
 
         if self.chunksize is not None:
             self.chunksize = validate_integer("chunksize", self.chunksize, 1)
@@ -876,11 +876,8 @@ class Parser:
 
     def parse(self):
 
-        # try numpy
-        numpy = self.numpy
-        if numpy:
+        if self.numpy:
             self._parse_numpy()
-
         else:
             self._parse_no_numpy()
 
@@ -941,10 +938,6 @@ class Parser:
                 )
                 if dtype is not None:
                     try:
-                        # error: Argument 1 to "dtype" has incompatible type
-                        # "Union[ExtensionDtype, str, dtype[Any], Type[object]]";
-                        # expected "Type[Any]"
-                        dtype = np.dtype(dtype)  # type: ignore[arg-type]
                         return data.astype(dtype), True
                     except (TypeError, ValueError):
                         return data, False

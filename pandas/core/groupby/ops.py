@@ -753,6 +753,18 @@ class BaseGrouper:
                 mutated = True
             result_values.append(res)
 
+        # getattr pattern for __name__ is needed for functools.partial objects
+        if len(group_keys) == 0 and getattr(f, "__name__", None) not in [
+            "idxmin",
+            "idxmax",
+            "nanargmin",
+            "nanargmax",
+        ]:
+            # If group_keys is empty, then no function calls have been made,
+            #  so we will not have raised even if this is an invalid dtype.
+            #  So do one dummy call here to raise appropriate TypeError.
+            f(data.iloc[:0])
+
         return result_values, mutated
 
     @cache_readonly
@@ -856,8 +868,8 @@ class BaseGrouper:
         Analogous to result_index, but returning an ndarray/ExtensionArray
         allowing us to retain ExtensionDtypes not supported by Index.
         """
-        # TODO: once Index supports arbitrary EAs, this can be removed in favor
-        #  of result_index
+        # TODO(ExtensionIndex): once Index supports arbitrary EAs, this can
+        #  be removed in favor of result_index
         if len(self.groupings) == 1:
             return self.groupings[0].group_arraylike
 

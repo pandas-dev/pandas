@@ -5,7 +5,6 @@ from typing import (
     TYPE_CHECKING,
     overload,
 )
-import warnings
 
 import numpy as np
 
@@ -245,10 +244,8 @@ def coerce_to_array(
             if mask_values is not None:
                 mask = mask | mask_values
 
-    if values.ndim != 1:
-        raise ValueError("values must be a 1D list-like")
-    if mask.ndim != 1:
-        raise ValueError("mask must be a 1D list-like")
+    if values.shape != mask.shape:
+        raise ValueError("values.shape and mask.shape must match")
 
     return values, mask
 
@@ -484,48 +481,6 @@ class BooleanArray(BaseMaskedArray):
         # expected "ndarray"
         return BooleanArray(result, mask)  # type: ignore[arg-type]
 
-    def _cmp_method(self, other, op):
-        from pandas.arrays import (
-            FloatingArray,
-            IntegerArray,
-        )
-
-        if isinstance(other, (IntegerArray, FloatingArray)):
-            return NotImplemented
-
-        mask = None
-
-        if isinstance(other, BooleanArray):
-            other, mask = other._data, other._mask
-
-        elif is_list_like(other):
-            other = np.asarray(other)
-            if other.ndim > 1:
-                raise NotImplementedError("can only perform ops with 1-d structures")
-            if len(self) != len(other):
-                raise ValueError("Lengths must match to compare")
-
-        if other is libmissing.NA:
-            # numpy does not handle pd.NA well as "other" scalar (it returns
-            # a scalar False instead of an array)
-            result = np.zeros_like(self._data)
-            mask = np.ones_like(self._data)
-        else:
-            # numpy will show a DeprecationWarning on invalid elementwise
-            # comparisons, this will raise in the future
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", "elementwise", FutureWarning)
-                with np.errstate(all="ignore"):
-                    result = op(self._data, other)
-
-            # nans propagate
-            if mask is None:
-                mask = self._mask.copy()
-            else:
-                mask = self._mask | mask
-
-        return BooleanArray(result, mask, copy=False)
-
     def _arith_method(self, other, op):
         mask = None
         op_name = op.__name__
@@ -604,3 +559,6 @@ class BooleanArray(BaseMaskedArray):
         else:
             result[mask] = np.nan
             return result
+
+    def __abs__(self):
+        return self.copy()
