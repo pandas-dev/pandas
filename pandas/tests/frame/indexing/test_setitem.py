@@ -689,7 +689,8 @@ class TestDataFrameSetItem:
         a = np.ones((10, 1))
         df = DataFrame(index=np.arange(10))
         df["np-array"] = a
-        df["np-matrix"] = np.matrix(a)
+        with tm.assert_produces_warning(PendingDeprecationWarning):
+            df["np-matrix"] = np.matrix(a)
 
         tm.assert_frame_equal(df, expected)
 
