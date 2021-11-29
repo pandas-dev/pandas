@@ -56,6 +56,7 @@ def group_add(
     values: np.ndarray,  # ndarray[complexfloating_t, ndim=2]
     labels: np.ndarray,  # const intp_t[:]
     min_count: int = ...,
+    datetimelike: bool = ...,
 ) -> None: ...
 def group_prod(
     out: np.ndarray,  # floating[:, ::1]
