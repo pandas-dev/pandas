@@ -54,7 +54,7 @@ show_counts_sub = dedent(
 )
 
 null_counts_sub = dedent(
-    """\
+    """
     null_counts : bool, optional
         .. deprecated:: 1.2.0
             Use show_counts instead."""
@@ -281,7 +281,7 @@ INFO_DOCSTRING = dedent(
         consume the same memory amount for corresponding dtypes. With deep
         memory introspection, a real memory usage calculation is performed
         at the cost of computational resources.
-    {show_counts_sub}
+    {show_counts_sub}\
     {null_counts_sub}
 
     Returns
