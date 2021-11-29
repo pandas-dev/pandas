@@ -40,3 +40,4 @@ def jit(
 ) -> Callable[[F], F]: ...
 
 njit = jit
+generated_jit = jit

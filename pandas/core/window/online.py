@@ -1,4 +1,5 @@
 from typing import (
+    TYPE_CHECKING,
     Dict,
     Optional,
 )
@@ -31,10 +32,12 @@ def generate_online_numba_ewma_func(engine_kwargs: Optional[Dict[str, bool]]):
     if cache_key in NUMBA_FUNC_CACHE:
         return NUMBA_FUNC_CACHE[cache_key]
 
-    numba = import_optional_dependency("numba")
+    if TYPE_CHECKING:
+        import numba
+    else:
+        numba = import_optional_dependency("numba")
 
-    # error: Untyped decorator makes function "online_ewma" untyped
-    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)  # type: ignore[misc]
+    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
     def online_ewma(
         values: np.ndarray,
         deltas: np.ndarray,
