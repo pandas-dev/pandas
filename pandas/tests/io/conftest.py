@@ -5,6 +5,12 @@ import time
 
 import pytest
 
+from pandas.compat import (
+    is_platform_arm,
+    is_platform_mac,
+    is_platform_windows,
+)
+
 import pandas._testing as tm
 
 from pandas.io.parsers import read_csv
@@ -55,12 +61,18 @@ def s3_base(worker_id):
         os.environ.setdefault("AWS_ACCESS_KEY_ID", "foobar_key")
         os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "foobar_secret")
         if os.environ.get("PANDAS_CI", "0") == "1":
-            # NOT RUN on Windows/MacOS/ARM, only Ubuntu
-            # - subprocess in CI can cause timeouts
-            # - Azure pipelines/Github Actions do not support
-            #   container services for the above OSs
-            # - CircleCI will probably hit the Docker rate pull limit
-            yield "http://localhost:5000"
+            if is_platform_arm() or is_platform_mac() or is_platform_windows():
+                # NOT RUN on Windows/MacOS/ARM, only Ubuntu
+                # - subprocess in CI can cause timeouts
+                # - Azure pipelines/Github Actions do not support
+                #   container services for the above OSs
+                # - CircleCI will probably hit the Docker rate pull limit
+                pytest.skip(
+                    "S3 tests do not have a corresponding service in "
+                    "Windows, MacOS or ARM platforms"
+                )
+            else:
+                yield "http://localhost:5000"
         else:
             requests = pytest.importorskip("requests")
             pytest.importorskip("moto", minversion="1.3.14")
