@@ -552,7 +552,7 @@ def _take_preprocess_indexer_and_fill_value(
     allow_fill: bool,
     mask: npt.NDArray[np.bool_] | None = None,
 ):
-    mask_info = None
+    mask_info: tuple[np.ndarray | None, bool] | None = None
 
     if not allow_fill:
         dtype, fill_value = arr.dtype, arr.dtype.type()
@@ -567,7 +567,7 @@ def _take_preprocess_indexer_and_fill_value(
                 mask, needs_masking = mask, True
             else:
                 mask = indexer == -1
-                needs_masking = mask.any()
+                needs_masking = bool(mask.any())
             mask_info = mask, needs_masking
             if not needs_masking:
                 # if not, then depromote, set fill_value to dummy

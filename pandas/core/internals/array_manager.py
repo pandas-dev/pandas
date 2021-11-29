@@ -1072,12 +1072,13 @@ class ArrayManager(BaseArrayManager):
         for arr in self.arrays:
             for i in range(unstacker.full_shape[1]):
                 if allow_fill:
+                    # error: Value of type "Optional[Any]" is not indexable  [index]
                     new_arr = take_1d(
                         arr,
                         new_indexer2D[:, i],
-                        allow_fill=needs_masking[i],
+                        allow_fill=needs_masking[i],  # type: ignore[index]
                         fill_value=fill_value,
-                        mask=new_mask2D[:, i],
+                        mask=new_mask2D[:, i],  # type: ignore[index]
                     )
                 else:
                     new_arr = take_1d(arr, new_indexer2D[:, i], allow_fill=False)
