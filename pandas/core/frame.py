@@ -5326,15 +5326,18 @@ class DataFrame(NDFrame, OpsMixin):
         freq: Frequency | None = None,
         axis: Axis = 0,
         fill_value=lib.no_default,
+        suffix=None,
     ) -> DataFrame:
         axis = self._get_axis_number(axis)
 
-        # Handle the case of multiple shifts
+        # GH#44424 Handle the case of multiple shifts
         if is_list_like(periods):
 
             new_df = DataFrame()
 
             from pandas.core.reshape.concat import concat
+
+            new_df_list = []
 
             for i in periods:
                 if not isinstance(i, int):
@@ -5342,15 +5345,13 @@ class DataFrame(NDFrame, OpsMixin):
                         f"Value {i} in periods is not an integer, expected an integer"
                     )
 
-                new_df = concat(
-                    [
-                        new_df,
-                        super()
-                        .shift(periods=i, freq=freq, axis=axis, fill_value=fill_value)
-                        .add_suffix(f"_{i}"),
-                    ],
-                    axis=1,
+                new_df_list.append(
+                    super()
+                    .shift(periods=i, freq=freq, axis=axis, fill_value=fill_value)
+                    .add_suffix(f"_{i}" if suffix is None else suffix)
                 )
+
+            new_df = concat(new_df_list, axis=1)
 
             if new_df.empty:
                 return self

@@ -188,14 +188,15 @@ representation of :class:`DataFrame` objects (:issue:`4889`).
 
 .. _whatsnew_140.enhancements.shift:
 
-DataFrame.shift and Series.shift now accept an iterable for parameter ``'period'``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+DataFrame.shift and Series.shift now accept an iterable for parameter ``'period'`` and new parameter ``'suffix'``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The :meth:`DataFrame.shift` and :meth:`Series.shift` functions can take in an iterable, such as a list, for the period parameter. When an iterable is passed
 to either function it returns a :class:`DataFrame` object with all of the shifted rows or columns concatenated with one another.
 The function applies a shift designated by each element in the iterable. The resulting :class:`DataFrame` object's columns will retain the
 names from the :class:`DataFrame` object that called shift, but postfixed with <name>_<num>, where name is the original
-column name and num correlates to the current element of the period iterable (:issue:`44424`).
+column name and num correlates to the current element of the period iterable. The function also now takes in a ``'suffix'`` parameter to add a custom suffix
+to the column names instead of adding the current element of the period iterable (:issue:`44424`).
 
 Usage within the :class:`DataFrame` class:
 .. ipython:: python
