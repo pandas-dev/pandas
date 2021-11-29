@@ -740,60 +740,16 @@ for example ``k`` columns of a ``DataFrame`` containing 1s and 0s can derive a
 
    pd.from_dummies(df, sep="_")
 
-The ``k`` distinct values can also be represented be a ``dropped_first`` which
-means that no value assigned implies a the value of the dropped value:
+Dummy coded data only requires ``k - 1`` values to be included, in this case
+the ``k`` th value implied by not being assigned any of the other ``k - 1`` values
+can be passed via ``implied_value``.
 
 .. ipython:: python
 
    df = pd.DataFrame({"prefix_a": [0, 1, 0]})
    df
 
-   pd.from_dummies(df, sep="_", dropped_first="b")
-
-The ``subset`` argument controls which columns of the input ```DataFrame`` to consider
-for the decoding:
-
-.. ipython:: python
-
-   df = pd.DataFrame({"C": [1, 2, 3], "prefix_a": [0, 1, 0], "prefix_b": [1, 0, 1]})
-   df
-
-   pd.from_dummies(df, subset=["prefix_a", "prefix_b"], sep="_")
-
-``sep`` is (or are) character(s) indicating the separation of the categorical names
-from the prefixes. For example, if your column names are ``prefix_A`` and ``prefix_B``,
-you can strip the underscore by specifying ``sep='_'``.
-You can pass values for the ``sep`` argument depending on how many or
-nested prefix separators are used in the column names.
-
-* string: Use the same value for ``prefix_sep`` for each column
-  to be dencoded.
-* dict: Directly map prefix separators to prefixes. Can be used in case multiple
-  separation characters are used to separata the prefixes as well as in the
-  variable names themself.
-
-.. ipython:: python
-
-   df_simple = pd.DataFrame({"prefix_a": [0, 1, 0], "prefix_b": [1, 0, 1]})
-   df_simple
-
-   simple = pd.from_dummies(df_simple, sep="_")
-   simple
-
-   df_complex = pd.DataFrame(
-       {
-           "prefix1_a-a": [1, 0, 1],
-           "prefix1_b-b": [0, 1, 0],
-           "prefix_2-a": [0, 1, 0],
-           "prefix_2-b": [1, 0, 0],
-           "prefix_2-c": [0, 0, 1],
-       }
-   )
-   df_complex
-
-   from_dict = pd.from_dummies(df_complex, sep={"prefix1": "_", "prefix_2": "-"})
-   from_dict
-
+   pd.from_dummies(df, sep="_", implied_value="b")
 
 .. _reshaping.factorize:
 
