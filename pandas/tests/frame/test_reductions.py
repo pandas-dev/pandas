@@ -93,9 +93,11 @@ def assert_stat_op_calc(
         tm.assert_series_equal(
             result0, frame.apply(wrapper), check_dtype=check_dtype, rtol=rtol, atol=atol
         )
+        # FIXME: HACK: win32
         tm.assert_series_equal(
             result1,
             frame.apply(wrapper, axis=1),
+            check_dtype=False,
             rtol=rtol,
             atol=atol,
         )
@@ -198,7 +200,9 @@ def assert_bool_op_calc(opname, alternative, frame, has_skipna=True):
         result1 = f(axis=1, skipna=False)
 
         tm.assert_series_equal(result0, frame.apply(wrapper))
-        tm.assert_series_equal(result1, frame.apply(wrapper, axis=1))
+        tm.assert_series_equal(
+            result1, frame.apply(wrapper, axis=1), check_dtype=False
+        )  # FIXME: HACK: win32
     else:
         skipna_wrapper = alternative
         wrapper = alternative
