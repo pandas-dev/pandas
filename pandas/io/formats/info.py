@@ -261,7 +261,7 @@ INFO_DOCSTRING = dedent(
     buf : writable buffer, defaults to sys.stdout
         Where to send the output. By default, the output is printed to
         sys.stdout. Pass a writable buffer if you need to further process
-        the output.
+        the output.\
     {max_cols_sub}
     memory_usage : bool, str, optional
         Specifies whether total memory usage of the {klass}
