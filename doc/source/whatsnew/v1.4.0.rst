@@ -602,6 +602,7 @@ Datetimelike
 - Bug in in calling ``np.isnan``, ``np.isfinite``, or ``np.isinf`` on a timezone-aware :class:`DatetimeIndex` incorrectly raising ``TypeError`` (:issue:`43917`)
 - Bug in constructing a :class:`Series` from datetime-like strings with mixed timezones incorrectly partially-inferring datetime values (:issue:`40111`)
 - Bug in addition with a :class:`Tick` object and a ``np.timedelta64`` object incorrectly raising instead of returning :class:`Timedelta` (:issue:`44474`)
+- ``np.maximum.reduce`` and ``np.minimum.reduce`` now correctly return :class:`Timestamp` and :class:`Timedelta` objects when operating on :class:`Series`, :class:`DataFrame`, or :class:`Index` with ``datetime64[ns]`` or ``timedelta64[ns]`` dtype (:issue:`43923`)
 - Bug in adding a ``np.timedelta64`` object to a :class:`BusinessDay` or :class:`CustomBusinessDay` object incorrectly raising (:issue:`44532`)
 - Bug in :meth:`Index.insert` for inserting ``np.datetime64``, ``np.timedelta64`` or ``tuple`` into :class:`Index` with ``dtype='object'`` with negative loc adding ``None`` and replacing existing value (:issue:`44509`)
 - Bug in :meth:`Series.mode` with ``DatetimeTZDtype`` incorrectly returning timezone-naive and ``PeriodDtype`` incorrectly raising (:issue:`41927`)
@@ -793,6 +794,7 @@ ExtensionArray
 ^^^^^^^^^^^^^^
 - Bug in :func:`array` failing to preserve :class:`PandasArray` (:issue:`43887`)
 - NumPy ufuncs ``np.abs``, ``np.positive``, ``np.negative`` now correctly preserve dtype when called on ExtensionArrays that implement ``__abs__, __pos__, __neg__``, respectively. In particular this is fixed for :class:`TimedeltaArray` (:issue:`43899`)
+- NumPy ufuncs ``np.minimum.reduce`` and ``np.maximum.reduce`` now work correctly instead of raising ``NotImplementedError`` on :class:`Series` with ``IntegerDtype`` or ``FloatDtype`` (:issue:`43923`)
 - Avoid raising ``PerformanceWarning`` about fragmented DataFrame when using many columns with an extension dtype (:issue:`44098`)
 - Bug in :meth:`BooleanArray.__eq__` and :meth:`BooleanArray.__ne__` raising ``TypeError`` on comparison with an incompatible type (like a string). This caused :meth:`DataFrame.replace` to sometimes raise a ``TypeError`` if a nullable boolean column was included (:issue:`44499`)
 -
