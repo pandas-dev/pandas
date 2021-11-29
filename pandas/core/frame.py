@@ -206,6 +206,7 @@ from pandas.io.formats import (
     format as fmt,
 )
 from pandas.io.formats.info import (
+    INFO_DOCSTRING,
     DataFrameInfo,
     frame_sub_kwargs,
 )
@@ -3138,7 +3139,7 @@ class DataFrame(NDFrame, OpsMixin):
         return xml_formatter.write_output()
 
     # ----------------------------------------------------------------------
-    @doc(DataFrameInfo.render, **frame_sub_kwargs)
+    @doc(INFO_DOCSTRING, **frame_sub_kwargs)
     def info(
         self,
         verbose: bool | None = None,

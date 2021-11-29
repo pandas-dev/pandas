@@ -140,6 +140,7 @@ from pandas.core.tools.datetimes import to_datetime
 
 import pandas.io.formats.format as fmt
 from pandas.io.formats.info import (
+    INFO_DOCSTRING,
     SeriesInfo,
     series_sub_kwargs,
 )
@@ -4918,7 +4919,7 @@ Keep all original rows and also all original values
             method=method,
         )
 
-    @doc(SeriesInfo.render, **series_sub_kwargs)
+    @doc(INFO_DOCSTRING, **series_sub_kwargs)
     def info(
         self,
         verbose: bool | None = None,

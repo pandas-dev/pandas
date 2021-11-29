@@ -20,7 +20,6 @@ from pandas._typing import (
     Dtype,
     WriteBuffer,
 )
-from pandas.util._decorators import doc
 
 from pandas.core.indexes.api import Index
 
@@ -509,17 +508,6 @@ class DataFrameInfo(BaseInfo):
             deep = False
         return self.data.memory_usage(index=True, deep=deep).sum()
 
-    @doc(
-        INFO_DOCSTRING,
-        klass="DataFrame",
-        type_sub=" and columns",
-        max_cols_sub=frame_max_cols_sub,
-        show_counts_sub=show_counts_sub,
-        null_counts_sub=null_counts_sub,
-        examples_sub=frame_examples_sub,
-        see_also_sub=frame_see_also_sub,
-        version_added_sub="",
-    )
     def render(
         self,
         *,
@@ -550,17 +538,6 @@ class SeriesInfo(BaseInfo):
         self.data: Series = data
         self.memory_usage = _initialize_memory_usage(memory_usage)
 
-    @doc(
-        INFO_DOCSTRING,
-        klass="Series",
-        type_sub="",
-        max_cols_sub="",
-        show_counts_sub=show_counts_sub,
-        null_counts_sub="",
-        examples_sub=series_examples_sub,
-        see_also_sub=series_see_also_sub,
-        version_added_sub="\n.. versionadded:: 1.4.0\n",
-    )
     def render(
         self,
         *,
