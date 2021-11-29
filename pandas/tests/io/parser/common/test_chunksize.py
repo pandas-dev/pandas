@@ -162,6 +162,7 @@ def test_chunk_begins_with_newline_whitespace(all_parsers):
 
 
 @pytest.mark.slow
+@pytest.mark.xfail(reason="GH38630, sometimes gives ResourceWarning", strict=False)
 def test_chunks_have_consistent_numerical_type(all_parsers):
     parser = all_parsers
     integers = [str(i) for i in range(499999)]
@@ -175,7 +176,7 @@ def test_chunks_have_consistent_numerical_type(all_parsers):
     assert result.a.dtype == float
 
 
-def test_warn_if_chunks_have_mismatched_type(all_parsers):
+def test_warn_if_chunks_have_mismatched_type(all_parsers, request):
     warning_type = None
     parser = all_parsers
     size = 10000
@@ -192,8 +193,24 @@ def test_warn_if_chunks_have_mismatched_type(all_parsers):
 
     buf = StringIO(data)
 
-    with tm.assert_produces_warning(warning_type):
-        df = parser.read_csv(buf)
+    try:
+        with tm.assert_produces_warning(warning_type):
+            df = parser.read_csv(buf)
+    except AssertionError as err:
+        # 2021-02-21 this occasionally fails on the CI with an unexpected
+        #  ResourceWarning that we have been unable to track down,
+        #  see GH#38630
+        if "ResourceWarning" not in str(err) or parser.engine != "python":
+            raise
+
+        # Check the main assertion of the test before re-raising
+        assert df.a.dtype == object
+
+        mark = pytest.mark.xfail(
+            reason="ResourceWarning for unclosed SSL Socket, GH#38630"
+        )
+        request.node.add_marker(mark)
+        raise
 
     assert df.a.dtype == object
 
