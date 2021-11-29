@@ -143,7 +143,8 @@ c,3
     result = parser.read_csv_check_warnings(
         FutureWarning,
         "The squeeze argument has been deprecated "
-        "and will be removed in a future version.\n\n",
+        "and will be removed in a future version. "
+        'Append .squeeze\\("columns"\\) to the call to squeeze.\n\n',
         StringIO(data),
         index_col=0,
         header=None,
@@ -877,7 +878,8 @@ def test_deprecated_bad_lines_warns(all_parsers, csv1, on_bad_lines):
     parser.read_csv_check_warnings(
         FutureWarning,
         f"The {on_bad_lines}_bad_lines argument has been deprecated "
-        "and will be removed in a future version.\n\n",
+        "and will be removed in a future version. "
+        "Use on_bad_lines in the future.\n\n",
         csv1,
         **kwds,
     )
