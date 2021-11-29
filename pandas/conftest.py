@@ -208,7 +208,9 @@ def check_bufferedrandom_resourcewarning():
         yield
         # sys.stderr for xdist
         # https://github.com/pytest-dev/pytest/issues/1693#issuecomment-233282644
-        print(proc.open_files(), flush=True, file=sys.stderr)
+        open_files = proc.open_files()
+        if open_files:
+            print(open_files, flush=True, file=sys.stderr)
 
 
 # ----------------------------------------------------------------
