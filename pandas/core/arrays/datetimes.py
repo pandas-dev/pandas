@@ -370,7 +370,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             freq, freq_infer = dtl.validate_inferred_freq(
                 freq, inferred_freq, freq_infer
             )
-        except ValueError as err:
+        except ValueError:
             if isinstance(freq, Tick) and isinstance(inferred_freq, DayDST):
                 # It is possible that both could be valid, so we'll
                 #  go through _validate_frequency below
