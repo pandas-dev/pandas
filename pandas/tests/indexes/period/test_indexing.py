@@ -52,14 +52,6 @@ def non_comparable_idx(request):
 
 
 class TestGetItem:
-    def test_ellipsis(self):
-        # GH#21282
-        idx = period_range("2011-01-01", "2011-01-31", freq="D", name="idx")
-
-        result = idx[...]
-        assert result.equals(idx)
-        assert result is not idx
-
     def test_getitem_slice_keeps_name(self):
         idx = period_range("20010101", periods=10, freq="D", name="bob")
         assert idx.name == idx[1:].name

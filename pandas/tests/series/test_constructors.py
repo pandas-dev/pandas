@@ -1397,12 +1397,6 @@ class TestSeriesConstructors:
         td = Series([np.timedelta64(1, "s")])
         assert td.dtype == "timedelta64[ns]"
 
-        # FIXME: dont leave commented-out
-        # these are frequency conversion astypes
-        # for t in ['s', 'D', 'us', 'ms']:
-        #    with pytest.raises(TypeError):
-        #        td.astype('m8[%s]' % t)
-
         # valid astype
         with tm.assert_produces_warning(FutureWarning):
             # astype(int64) deprecated
@@ -1645,12 +1639,12 @@ class TestSeriesConstructors:
             ts = ts.to_pydatetime()
         ts_naive = Timestamp("2019")
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             result = Series([ts], dtype="datetime64[ns]")
         expected = Series([ts_naive])
         tm.assert_series_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             result = Series(np.array([ts], dtype=object), dtype="datetime64[ns]")
         tm.assert_series_equal(result, expected)
 

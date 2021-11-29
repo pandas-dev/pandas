@@ -9,10 +9,12 @@ from pandas._typing import (
     ArrayLike,
     DtypeArg,
     DtypeObj,
-    FilePathOrBuffer,
+    FilePath,
+    ReadCsvBuffer,
     Scalar,
 )
 from pandas.errors import DtypeWarning
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -37,7 +39,9 @@ class CParserWrapper(ParserBase):
     low_memory: bool
     _reader: parsers.TextReader
 
-    def __init__(self, src: FilePathOrBuffer, **kwds) -> None:
+    def __init__(
+        self, src: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str], **kwds
+    ) -> None:
         self.kwds = kwds
         kwds = kwds.copy()
         ParserBase.__init__(self, kwds)
@@ -289,7 +293,7 @@ class CParserWrapper(ParserBase):
             data_tups = sorted(data.items())
             data = {k: v for k, (i, v) in zip(names, data_tups)}
 
-            names, data = self._do_date_conversions(names, data)
+            names, date_data = self._do_date_conversions(names, data)
 
         else:
             # rename dict keys
@@ -312,13 +316,13 @@ class CParserWrapper(ParserBase):
 
             data = {k: v for k, (i, v) in zip(names, data_tups)}
 
-            names, data = self._do_date_conversions(names, data)
-            index, names = self._make_index(data, alldata, names)
+            names, date_data = self._do_date_conversions(names, data)
+            index, names = self._make_index(date_data, alldata, names)
 
         # maybe create a mi on the columns
         names = self._maybe_make_multi_index_columns(names, self.col_names)
 
-        return index, names, data
+        return index, names, date_data
 
     def _filter_usecols(self, names: list[Scalar]) -> list[Scalar]:
         # hackish
@@ -401,7 +405,7 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
                 f"Specify dtype option on import or set low_memory=False."
             ]
         )
-        warnings.warn(warning_message, DtypeWarning, stacklevel=8)
+        warnings.warn(warning_message, DtypeWarning, stacklevel=find_stack_level())
     return result
 
 

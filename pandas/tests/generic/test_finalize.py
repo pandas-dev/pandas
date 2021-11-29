@@ -347,10 +347,7 @@ _all_methods = [
         operator.methodcaller("infer_objects"),
     ),
     (pd.Series, ([1, 2],), operator.methodcaller("convert_dtypes")),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("convert_dtypes")),
-        marks=not_implemented_mark,
-    ),
+    (pd.DataFrame, frame_data, operator.methodcaller("convert_dtypes")),
     (pd.Series, ([1, None, 3],), operator.methodcaller("interpolate")),
     (pd.DataFrame, ({"A": [1, None, 3]},), operator.methodcaller("interpolate")),
     (pd.Series, ([1, 2],), operator.methodcaller("clip", lower=1)),

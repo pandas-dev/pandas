@@ -1,6 +1,7 @@
 """
 Tests for ndarray-like method on the base Index class
 """
+import numpy as np
 import pytest
 
 from pandas import Index
@@ -41,6 +42,18 @@ class TestReshape:
         expected = Index(["a", nulls_fixture, "b", "c"])
         result = Index(list("abc")).insert(1, nulls_fixture)
         tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "val", [(1, 2), np.datetime64("2019-12-31"), np.timedelta64(1, "D")]
+    )
+    @pytest.mark.parametrize("loc", [-1, 2])
+    def test_insert_datetime_into_object(self, loc, val):
+        # GH#44509
+        idx = Index(["1", "2", "3"])
+        result = idx.insert(loc, val)
+        expected = Index(["1", "2", val, "3"])
+        tm.assert_index_equal(result, expected)
+        assert type(expected[2]) is type(val)
 
     @pytest.mark.parametrize(
         "pos,expected",

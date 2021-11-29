@@ -137,6 +137,12 @@ class TestRoundTrips:
 
 
 class TestIndexing:
+    def test_getitem_ellipsis(self, index):
+        # GH#21282
+        result = index[...]
+        assert result.equals(index)
+        assert result is not index
+
     def test_slice_keeps_name(self, index):
         assert index.name == index[1:].name
 
