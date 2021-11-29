@@ -561,7 +561,11 @@ def group_add(add_t[:, ::1] out,
                     # With dt64/td64 values, values have been cast to float64
                     #  instead if int64 for group_add, but the logic
                     #  is otherwise the same as in _treat_as_na
-                    if val == val and not (add_t is float64_t and datetimelike and val == <float64_t>NPY_NAT):
+                    if val == val and not (
+                            add_t is float64_t
+                            and datetimelike
+                            and val == <float64_t>NPY_NAT
+                        ):
                         nobs[lab, j] += 1
                         y = val - compensation[lab, j]
                         t = sumx[lab, j] + y
