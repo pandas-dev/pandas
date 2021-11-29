@@ -309,6 +309,41 @@ Now null-values are no longer mangled.
 
     res
 
+.. _whatsnew_140.notable_bug_fixes.read_csv_mangle_dup_cols:
+
+mangle_dupe_cols in read_csv no longer renaming unique columns conflicting with target names
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`read_csv` no longer renaming unique cols, which conflict with the target names of duplicated columns.
+Already existing columns are jumped, e.g. the next available index is used for the target column name (:issue:`14704`).
+
+.. ipython:: python
+
+    import io
+
+    data = "a,a,a.1\n1,2,3"
+    res = pd.read_csv(io.StringIO(data))
+
+Previously, the second column was called ``a.1``, while the third col was also renamed to ``a.1.1``.
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+    In [3]: res
+    Out[3]:
+        a  a.1  a.1.1
+    0   1    2      3
+
+Now the renaming checks if ``a.1`` already exists when changing the name of the second column and jumps this index. The
+second column is instead renamed to ``a.2``.
+
+*New behavior*:
+
+.. ipython:: python
+
+    res
+
 .. _whatsnew_140.notable_bug_fixes.notable_bug_fix3:
 
 notable_bug_fix3
@@ -658,14 +693,20 @@ I/O
 - Column headers are dropped when constructing a :class:`DataFrame` from a sqlalchemy's ``Row`` object (:issue:`40682`)
 - Bug in unpickling a :class:`Index` with object dtype incorrectly inferring numeric dtypes (:issue:`43188`)
 - Bug in :func:`read_csv` where reading multi-header input with unequal lengths incorrectly raising uncontrolled ``IndexError`` (:issue:`43102`)
+- Bug in :func:`read_csv` raising ``ParserError`` when reading file in chunks and aome chunk blocks have fewer columns than header for ``engine="c"`` (:issue:`21211`)
 - Bug in :func:`read_csv`, changed exception class when expecting a file path name or file-like object from ``OSError`` to ``TypeError`` (:issue:`43366`)
 - Bug in :func:`read_csv` and :func:`read_fwf` ignoring all ``skiprows`` except first when ``nrows`` is specified for ``engine='python'`` (:issue:`44021`, :issue:`10261`)
+- Bug in :func:`read_csv` keeping the original column in object format when ``keep_date_col=True`` is set (:issue:`13378`)
 - Bug in :func:`read_json` not handling non-numpy dtypes correctly (especially ``category``) (:issue:`21892`, :issue:`33205`)
 - Bug in :func:`json_normalize` where multi-character ``sep`` parameter is incorrectly prefixed to every key (:issue:`43831`)
 - Bug in :func:`json_normalize` where reading data with missing multi-level metadata would not respect errors="ignore" (:issue:`44312`)
+- Bug in :func:`read_csv` used second row to guess implicit index if ``header`` was set to ``None`` for ``engine="python"`` (:issue:`22144`)
+- Bug in :func:`read_csv` not recognizing bad lines when ``names`` were given for ``engine="c"`` (:issue:`22144`)
 - Bug in :func:`read_csv` with :code:`float_precision="round_trip"` which did not skip initial/trailing whitespace (:issue:`43713`)
+- Bug when Python is built without lzma module: a warning was raised at the pandas import time, even if the lzma capability isn't used. (:issue:`43495`)
 - Bug in :func:`read_csv` not applying dtype for ``index_col`` (:issue:`9435`)
 - Bug in dumping/loading a :class:`DataFrame` with ``yaml.dump(frame)`` (:issue:`42748`)
+- Bug in :func:`read_csv` raising ``ValueError`` when names was longer than header but equal to data rows for ``engine="python"`` (:issue:`38453`)
 - Bug in :class:`ExcelWriter`, where ``engine_kwargs`` were not passed through to all engines (:issue:`43442`)
 - Bug in :func:`read_csv` raising ``ValueError`` when ``parse_dates`` was used with ``MultiIndex`` columns (:issue:`8991`)
 - Bug in :func:`read_csv` converting columns to numeric after date parsing failed (:issue:`11019`)

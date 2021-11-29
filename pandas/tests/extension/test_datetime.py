@@ -114,12 +114,7 @@ class TestMethods(BaseDatetimeTests, base.BaseMethodsTests):
 
 
 class TestInterface(BaseDatetimeTests, base.BaseInterfaceTests):
-    def test_array_interface(self, data):
-        if data.tz:
-            # np.asarray(DTA) is currently always tz-naive.
-            pytest.skip("GH-23569")
-        else:
-            super().test_array_interface(data)
+    pass
 
 
 class TestArithmeticOps(BaseDatetimeTests, base.BaseArithmeticOpsTests):
