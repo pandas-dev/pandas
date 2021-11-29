@@ -184,9 +184,6 @@ skip_if_no_mpl = pytest.mark.skipif(
 skip_if_mpl = pytest.mark.skipif(not _skip_if_no_mpl(), reason="matplotlib is present")
 skip_if_32bit = pytest.mark.skipif(not IS64, reason="skipping for 32 bit")
 skip_if_windows = pytest.mark.skipif(is_platform_windows(), reason="Running on Windows")
-skip_if_windows_python_3 = pytest.mark.skipif(
-    is_platform_windows(), reason="not used on win32"
-)
 skip_if_has_locale = pytest.mark.skipif(
     _skip_if_has_locale(), reason=f"Specific locale is set {locale.getlocale()[0]}"
 )
@@ -285,7 +282,12 @@ def async_mark():
     return async_mark
 
 
-skip_array_manager_not_yet_implemented = pytest.mark.skipif(
+def mark_array_manager_not_yet_implemented(request):
+    mark = pytest.mark.xfail(reason="Not yet implemented for ArrayManager")
+    request.node.add_marker(mark)
+
+
+skip_array_manager_not_yet_implemented = pytest.mark.xfail(
     get_option("mode.data_manager") == "array",
     reason="Not yet implemented for ArrayManager",
 )

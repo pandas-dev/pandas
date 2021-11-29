@@ -21,7 +21,6 @@ from pandas._libs.tslibs.nattype cimport (
     c_NaT as NaT,
     checknull_with_nat,
     is_dt64nat,
-    is_null_datetimelike,
     is_td64nat,
 )
 from pandas._libs.tslibs.np_datetime cimport (
@@ -121,11 +120,20 @@ cpdef bint checknull(object val, bint inf_as_na=False):
     -------
     bool
     """
-    return (
-        val is C_NA
-        or is_null_datetimelike(val, inat_is_null=False, inf_as_na=inf_as_na)
-        or is_decimal_na(val)
-    )
+    if val is None or val is NaT or val is C_NA:
+        return True
+    elif util.is_float_object(val) or util.is_complex_object(val):
+        if val != val:
+            return True
+        elif inf_as_na:
+            return val == INF or val == NEGINF
+        return False
+    elif util.is_timedelta64_object(val):
+        return get_timedelta64_value(val) == NPY_NAT
+    elif util.is_datetime64_object(val):
+        return get_datetime64_value(val) == NPY_NAT
+    else:
+        return is_decimal_na(val)
 
 
 cdef inline bint is_decimal_na(object val):
@@ -133,10 +141,6 @@ cdef inline bint is_decimal_na(object val):
     Is this a decimal.Decimal object Decimal("NAN").
     """
     return isinstance(val, cDecimal) and val != val
-
-
-cpdef bint checknull_old(object val):
-    return checknull(val, inf_as_na=True)
 
 
 @cython.wraparound(False)
@@ -178,12 +182,6 @@ cpdef ndarray[uint8_t] isnaobj(ndarray arr, bint inf_as_na=False):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def isnaobj_old(arr: ndarray) -> ndarray:
-    return isnaobj(arr, inf_as_na=True)
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
 def isnaobj2d(arr: ndarray, inf_as_na: bool = False) -> ndarray:
     """
     Return boolean mask denoting which elements of a 2-D array are na-like,
@@ -219,12 +217,6 @@ def isnaobj2d(arr: ndarray, inf_as_na: bool = False) -> ndarray:
             if checknull(val, inf_as_na=inf_as_na):
                 result[i, j] = 1
     return result.view(np.bool_)
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def isnaobj2d_old(arr: ndarray) -> ndarray:
-    return isnaobj2d(arr, inf_as_na=True)
 
 
 def isposinf_scalar(val: object) -> bool:

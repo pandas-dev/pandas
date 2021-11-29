@@ -30,6 +30,7 @@ from pandas._typing import (
     Shape,
     npt,
 )
+from pandas.compat import np_version_under1p20
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
@@ -969,15 +970,14 @@ class Block(PandasObject):
             putmask_without_repeat(values.T, mask, new)
             return [self]
 
-        elif noop:
-            return [self]
-
-        dtype, _ = infer_dtype_from(new)
-        if dtype.kind in ["m", "M"]:
+        elif np_version_under1p20 and infer_dtype_from(new)[0].kind in ["m", "M"]:
             # using putmask with object dtype will incorrectly cast to object
             # Having excluded self._can_hold_element, we know we cannot operate
             #  in-place, so we are safe using `where`
             return self.where(new, ~mask)
+
+        elif noop:
+            return [self]
 
         elif self.ndim == 1 or self.shape[0] == 1:
             # no need to split columns
@@ -1310,6 +1310,9 @@ class Block(PandasObject):
         assert is_list_like(qs)  # caller is responsible for this
 
         result = quantile_compat(self.values, np.asarray(qs._values), interpolation)
+        # ensure_block_shape needed for cases where we start with EA and result
+        #  is ndarray, e.g. IntegerArray, SparseArray
+        result = ensure_block_shape(result, ndim=2)
         return new_block_2d(result, placement=self._mgr_locs)
 
 
@@ -1566,7 +1569,9 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
                 )
             # GH#32959 only full-slicers along fake-dim0 are valid
             # TODO(EA2D): won't be necessary with 2D EAs
-            new_locs = self._mgr_locs[first]
+            # range(1) instead of self._mgr_locs to avoid exception on [::-1]
+            #  see test_iloc_getitem_slice_negative_step_ea_block
+            new_locs = range(1)[first]
             if len(new_locs):
                 # effectively slice(None)
                 slicer = slicer[1]
@@ -1631,6 +1636,10 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
             # error: Item "dtype[Any]" of "Union[dtype[Any], ExtensionDtype]" has no
             # attribute "na_value"
             other = self.dtype.na_value  # type: ignore[union-attr]
+
+        icond, noop = validate_putmask(self.values, ~cond)
+        if noop:
+            return self.copy()
 
         try:
             result = self.values._where(cond, other)

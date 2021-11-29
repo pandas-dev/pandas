@@ -264,13 +264,10 @@ class TestCategoricalIndex(Base):
         #
         # Must be tested separately from other indexes because
         # self.values is not an ndarray.
-        # GH#29918 Index.base has been removed
-        # FIXME: is this test still meaningful?
-        _base = lambda ar: ar if getattr(ar, "base", None) is None else ar.base
 
         result = CategoricalIndex(index.values, copy=True)
         tm.assert_index_equal(index, result)
-        assert _base(index.values) is not _base(result.values)
+        assert not np.shares_memory(result._data._codes, index._data._codes)
 
         result = CategoricalIndex(index.values, copy=False)
         assert result._data._codes is index._data._codes

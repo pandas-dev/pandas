@@ -63,13 +63,13 @@ class OpenpyxlWriter(ExcelWriter):
         if "r+" in self.mode:  # Load from existing workbook
             from openpyxl import load_workbook
 
-            self.book = load_workbook(self.handles.handle)
+            self.book = load_workbook(self.handles.handle, **engine_kwargs)
             self.handles.handle.seek(0)
             self.sheets = {name: self.book[name] for name in self.book.sheetnames}
 
         else:
             # Create workbook object with default optimized_write=True.
-            self.book = Workbook()
+            self.book = Workbook(**engine_kwargs)
 
             if self.book.worksheets:
                 self.book.remove(self.book.worksheets[0])
