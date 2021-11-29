@@ -72,7 +72,7 @@ class TestPeriodArrayLikeComparisons:
         "scalar",
         [
             "foo",
-            Timestamp.now(),
+            Timestamp("2021-01-01"),
             Timedelta(days=4),
             9,
             9.5,
@@ -693,9 +693,9 @@ class TestPeriodIndexArithmetic:
         "other",
         [
             # datetime scalars
-            Timestamp.now(),
-            Timestamp.now().to_pydatetime(),
-            Timestamp.now().to_datetime64(),
+            Timestamp("2016-01-01"),
+            Timestamp("2016-01-01").to_pydatetime(),
+            Timestamp("2016-01-01").to_datetime64(),
             # datetime-like arrays
             pd.date_range("2016-01-01", periods=3, freq="H"),
             pd.date_range("2016-01-01", periods=3, tz="Europe/Brussels"),

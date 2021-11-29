@@ -39,4 +39,6 @@ class TestCommon(TestPlotBase):
         next(gen)
         axes = fig.get_axes()
         assert len(axes) == 1
-        assert axes[0].get_geometry() == (2, 1, 2)
+        subplot_geometry = list(axes[0].get_subplotspec().get_geometry()[:-1])
+        subplot_geometry[-1] += 1
+        assert subplot_geometry == [2, 1, 2]

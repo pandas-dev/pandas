@@ -93,11 +93,9 @@ def assert_stat_op_calc(
         tm.assert_series_equal(
             result0, frame.apply(wrapper), check_dtype=check_dtype, rtol=rtol, atol=atol
         )
-        # FIXME: HACK: win32
         tm.assert_series_equal(
             result1,
             frame.apply(wrapper, axis=1),
-            check_dtype=False,
             rtol=rtol,
             atol=atol,
         )
@@ -200,9 +198,7 @@ def assert_bool_op_calc(opname, alternative, frame, has_skipna=True):
         result1 = f(axis=1, skipna=False)
 
         tm.assert_series_equal(result0, frame.apply(wrapper))
-        tm.assert_series_equal(
-            result1, frame.apply(wrapper, axis=1), check_dtype=False
-        )  # FIXME: HACK: win32
+        tm.assert_series_equal(result1, frame.apply(wrapper, axis=1))
     else:
         skipna_wrapper = alternative
         wrapper = alternative
@@ -1478,33 +1474,29 @@ class TestDataFrameReductions:
         expected = Series(data=[False, True])
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "func",
-        [
-            "any",
-            "all",
-            "count",
-            "sum",
-            "prod",
-            "max",
-            "min",
-            "mean",
-            "median",
-            "skew",
-            "kurt",
-            "sem",
-            "var",
-            "std",
-            "mad",
-        ],
-    )
-    def test_reductions_deprecation_level_argument(self, frame_or_series, func):
+    def test_reductions_deprecation_skipna_none(self, frame_or_series):
+        # GH#44580
+        obj = frame_or_series([1, 2, 3])
+        with tm.assert_produces_warning(FutureWarning, match="skipna"):
+            obj.mad(skipna=None)
+
+    def test_reductions_deprecation_level_argument(
+        self, frame_or_series, reduction_functions
+    ):
         # GH#39983
         obj = frame_or_series(
             [1, 2, 3], index=MultiIndex.from_arrays([[1, 2, 3], [4, 5, 6]])
         )
         with tm.assert_produces_warning(FutureWarning, match="level"):
-            getattr(obj, func)(level=0)
+            getattr(obj, reduction_functions)(level=0)
+
+    def test_reductions_skipna_none_raises(self, frame_or_series, reduction_functions):
+        if reduction_functions in ["count", "mad"]:
+            pytest.skip("Count does not accept skipna. Mad needs a depreaction cycle.")
+        obj = frame_or_series([1, 2, 3])
+        msg = 'For argument "skipna" expected type bool, received type NoneType.'
+        with pytest.raises(ValueError, match=msg):
+            getattr(obj, reduction_functions)(skipna=None)
 
 
 class TestNuisanceColumns:

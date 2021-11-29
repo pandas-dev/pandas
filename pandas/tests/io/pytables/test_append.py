@@ -896,9 +896,6 @@ def test_append_to_multiple_dropna(setup_path):
         tm.assert_index_equal(store.select("df1").index, store.select("df2").index)
 
 
-@pytest.mark.xfail(
-    run=False, reason="append_to_multiple_dropna_false is not raising as failed"
-)
 def test_append_to_multiple_dropna_false(setup_path):
     df1 = tm.makeTimeDataFrame()
     df2 = tm.makeTimeDataFrame().rename(columns="{}_2".format)
@@ -912,8 +909,7 @@ def test_append_to_multiple_dropna_false(setup_path):
             {"df1a": ["A", "B"], "df2a": None}, df, selector="df1a", dropna=False
         )
 
-        # TODO Update error message to desired message for this case
-        msg = "Cannot select as multiple after appending with dropna=False"
+        msg = "all tables must have exactly the same nrows!"
         with pytest.raises(ValueError, match=msg):
             store.select_as_multiple(["df1a", "df2a"])
 
