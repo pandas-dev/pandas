@@ -147,9 +147,6 @@ midhs = lhs
 
 @td.skip_if_no_ne
 class TestEvalNumexprPandas:
-    exclude_cmp: list[str] = []
-    exclude_bool: list[str] = []
-
     engine = "numexpr"
     parser = "pandas"
 
@@ -171,8 +168,7 @@ class TestEvalNumexprPandas:
     @pytest.mark.parametrize("cmp2", [">", "<"], ids=["gt", "lt"])
     @pytest.mark.parametrize("binop", expr.BOOL_OPS_SYMS)
     def test_complex_cmp_ops(self, cmp1, cmp2, binop, lhs, rhs):
-        if binop in self.exclude_bool:
-            # i.e. "&" and "|"
+        if self.parser == "python" and binop in ["and", "or"]:
             msg = "'BoolOp' nodes are not implemented"
             with pytest.raises(NotImplementedError, match=msg):
                 ex = f"(lhs {cmp1} rhs) {binop} (lhs {cmp2} rhs)"
@@ -200,7 +196,7 @@ class TestEvalNumexprPandas:
             tm.randbool(),
         )
 
-        if cmp_op in self.exclude_cmp:
+        if self.parser == "python" and cmp_op in ["in", "not in"]:
             msg = "'(In|NotIn)' nodes are not implemented"
             for lhs, rhs in product(bool_lhses, bool_rhses):
 
@@ -232,7 +228,7 @@ class TestEvalNumexprPandas:
 
     @pytest.mark.parametrize("op", expr.CMP_OPS_SYMS)
     def test_compound_invert_op(self, op, lhs, rhs, request):
-        if op in self.exclude_cmp:
+        if self.parser == "python" and op in ["in", "not in"]:
 
             msg = "'(In|NotIn)' nodes are not implemented"
             with pytest.raises(NotImplementedError, match=msg):
@@ -289,11 +285,13 @@ class TestEvalNumexprPandas:
 
     def check_simple_cmp_op(self, lhs, cmp1, rhs):
         ex = f"lhs {cmp1} rhs"
-        msg = (
-            r"only list-like( or dict-like)? objects are allowed to be "
-            r"passed to (DataFrame\.)?isin\(\), you passed a "
-            r"(\[|')bool(\]|')|"
-            "argument of type 'bool' is not iterable"
+        msg = "|".join(
+            [
+                r"only list-like( or dict-like)? objects are allowed to be "
+                r"passed to (DataFrame\.)?isin\(\), you passed a "
+                r"(\[|')bool(\]|')",
+                "argument of type 'bool' is not iterable",
+            ]
         )
         if cmp1 in ("in", "not in") and not is_list_like(rhs):
             with pytest.raises(TypeError, match=msg):
@@ -327,13 +325,17 @@ class TestEvalNumexprPandas:
             # TypeError, AttributeError: series or frame with scalar align
             pass
         else:
-            # direct numpy comparison
-            expected = self.ne.evaluate(f"nlhs {op} ghs")
-            # Update assert statement due to unreliable numerical
-            # precision component (GH37328)
-            # TODO: update testing code so that assert_almost_equal statement
-            #  can be replaced again by the assert_numpy_array_equal statement
-            tm.assert_almost_equal(result.values, expected)
+            if self.engine == "numexpr":
+                # direct numpy comparison
+                expected = self.ne.evaluate(f"nlhs {op} ghs")
+                # Update assert statement due to unreliable numerical
+                # precision component (GH37328)
+                # TODO: update testing code so that assert_almost_equal statement
+                #  can be replaced again by the assert_numpy_array_equal statement
+                tm.assert_almost_equal(result.values, expected)
+            else:
+                expected = eval(f"nlhs {op} ghs")
+                tm.assert_almost_equal(result, expected)
 
     # modulus, pow, and floor division require special casing
 
@@ -369,24 +371,9 @@ class TestEvalNumexprPandas:
                     parser=self.parser,
                 )
 
-    def get_expected_pow_result(self, lhs, rhs):
-        try:
-            expected = _eval_single_bin(lhs, "**", rhs, self.engine)
-        except ValueError as e:
-            if str(e).startswith(
-                "negative number cannot be raised to a fractional power"
-            ):
-                if self.engine == "python":
-                    pytest.skip(str(e))
-                else:
-                    expected = np.nan
-            else:
-                raise
-        return expected
-
     def check_pow(self, lhs, arith1, rhs):
         ex = f"lhs {arith1} rhs"
-        expected = self.get_expected_pow_result(lhs, rhs)
+        expected = _eval_single_bin(lhs, "**", rhs, self.engine)
         result = pd.eval(ex, engine=self.engine, parser=self.parser)
 
         if (
@@ -402,9 +389,9 @@ class TestEvalNumexprPandas:
 
             ex = f"(lhs {arith1} rhs) {arith1} rhs"
             result = pd.eval(ex, engine=self.engine, parser=self.parser)
-            expected = self.get_expected_pow_result(
-                self.get_expected_pow_result(lhs, rhs), rhs
-            )
+
+            middle = _eval_single_bin(lhs, "**", rhs, self.engine)
+            expected = _eval_single_bin(middle, "**", rhs, self.engine)
             tm.assert_almost_equal(result, expected)
 
     def check_single_invert_op(self, elem, cmp1):
@@ -426,11 +413,13 @@ class TestEvalNumexprPandas:
         skip_these = ["in", "not in"]
         ex = f"~(lhs {cmp1} rhs)"
 
-        msg = (
-            r"only list-like( or dict-like)? objects are allowed to be "
-            r"passed to (DataFrame\.)?isin\(\), you passed a "
-            r"(\[|')float(\]|')|"
-            "argument of type 'float' is not iterable"
+        msg = "|".join(
+            [
+                r"only list-like( or dict-like)? objects are allowed to be "
+                r"passed to (DataFrame\.)?isin\(\), you passed a "
+                r"(\[|')float(\]|')",
+                "argument of type 'float' is not iterable",
+            ]
         )
         if is_scalar(rhs) and cmp1 in skip_these:
             with pytest.raises(TypeError, match=msg):
@@ -457,11 +446,8 @@ class TestEvalNumexprPandas:
                 ev = pd.eval(ex, engine=self.engine, parser=self.parser)
                 tm.assert_almost_equal(ev, result)
 
-    def ex(self, op, var_name="lhs"):
-        return f"{op}{var_name}"
-
     def test_frame_invert(self):
-        expr = self.ex("~")
+        expr = "~lhs"
 
         # ~ ##
         # frame
@@ -505,7 +491,7 @@ class TestEvalNumexprPandas:
 
     def test_series_invert(self):
         # ~ ####
-        expr = self.ex("~")
+        expr = "~lhs"
 
         # series
         # float raises
@@ -551,7 +537,7 @@ class TestEvalNumexprPandas:
                 result = pd.eval(expr, engine=self.engine, parser=self.parser)
 
     def test_frame_negate(self):
-        expr = self.ex("-")
+        expr = "-lhs"
 
         # float
         lhs = DataFrame(np.random.randn(5, 2))
@@ -577,7 +563,7 @@ class TestEvalNumexprPandas:
             tm.assert_frame_equal(expect, result)
 
     def test_series_negate(self):
-        expr = self.ex("-")
+        expr = "-lhs"
 
         # float
         lhs = Series(np.random.randn(5))
@@ -614,7 +600,7 @@ class TestEvalNumexprPandas:
         ],
     )
     def test_frame_pos(self, lhs):
-        expr = self.ex("+")
+        expr = "+lhs"
         expect = lhs
 
         result = pd.eval(expr, engine=self.engine, parser=self.parser)
@@ -632,7 +618,7 @@ class TestEvalNumexprPandas:
         ],
     )
     def test_series_pos(self, lhs):
-        expr = self.ex("+")
+        expr = "+lhs"
         expect = lhs
 
         result = pd.eval(expr, engine=self.engine, parser=self.parser)
@@ -782,18 +768,8 @@ class TestEvalNumexprPandas:
 
 @td.skip_if_no_ne
 class TestEvalNumexprPython(TestEvalNumexprPandas):
-    exclude_cmp: list[str] = ["in", "not in"]
-    exclude_bool: list[str] = ["and", "or"]
-
     engine = "numexpr"
     parser = "python"
-
-    @classmethod
-    def setup_class(cls):
-        super().setup_class()
-        import numexpr as ne
-
-        cls.ne = ne
 
     def check_chained_cmp_op(self, lhs, cmp1, mid, cmp2, rhs):
         ex1 = f"lhs {cmp1} mid {cmp2} rhs"
@@ -816,25 +792,14 @@ class TestEvalPythonPython(TestEvalNumexprPython):
         expected = _eval_single_bin(expected, arith1, rhs, self.engine)
         tm.assert_almost_equal(result, expected)
 
-    def check_alignment(self, result, nlhs, ghs, op):
-        try:
-            nlhs, ghs = nlhs.align(ghs)
-        except (ValueError, TypeError, AttributeError):
-            # ValueError: series frame or frame series align
-            # TypeError, AttributeError: series or frame with scalar align
-            pass
-        else:
-            expected = eval(f"nlhs {op} ghs")
-            tm.assert_almost_equal(result, expected)
-
 
 class TestEvalPythonPandas(TestEvalPythonPython):
     engine = "python"
     parser = "pandas"
-    exclude_bool: list[str] = []
-    exclude_cmp: list[str] = []
 
     def check_chained_cmp_op(self, lhs, cmp1, mid, cmp2, rhs):
+        # FIXME: by calling this parent class method, we are using the parent
+        #  class's "engine" and "parser", which I don't think is what we want.
         TestEvalNumexprPandas.check_chained_cmp_op(self, lhs, cmp1, mid, cmp2, rhs)
 
 
