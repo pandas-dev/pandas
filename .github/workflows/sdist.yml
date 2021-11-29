@@ -23,7 +23,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.8", "3.9"]
+        python-version: ["3.8", "3.9", "3.10"]
     concurrency:
       group: ${{github.ref}}-${{matrix.python-version}}-sdist
       cancel-in-progress: ${{github.event_name == 'pull_request'}}
@@ -53,12 +53,24 @@ jobs:
     - uses: conda-incubator/setup-miniconda@v2
       with:
         activate-environment: pandas-sdist
-        python-version: ${{ matrix.python-version }}
+        channels: conda-forge
+        python-version: '${{ matrix.python-version }}'
 
     - name: Install pandas from sdist
       run: |
-        conda list
+        pip list
         python -m pip install dist/*.gz
+
+    - name: Force oldest supported NumPy
+      run: |
+        case "${{matrix.python-version}}" in
+        3.8)
+          pip install numpy==1.18.5 ;;
+        3.9)
+          pip install numpy==1.19.3 ;;
+        3.10)
+          pip install numpy==1.21.2 ;;
+        esac
 
     - name: Import pandas
       run: |

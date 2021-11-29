@@ -38,11 +38,11 @@ and so passing in a substring will work - as long as it is unambiguous:
 
 .. ipython:: python
 
-   pd.get_option("display.max_rows")
-   pd.set_option("display.max_rows", 101)
-   pd.get_option("display.max_rows")
-   pd.set_option("max_r", 102)
-   pd.get_option("display.max_rows")
+   pd.get_option("display.chop_threshold")
+   pd.set_option("display.chop_threshold", 2)
+   pd.get_option("display.chop_threshold")
+   pd.set_option("chop", 4)
+   pd.get_option("display.chop_threshold")
 
 
 The following will **not work** because it matches multiple option names, e.g.
@@ -52,7 +52,7 @@ The following will **not work** because it matches multiple option names, e.g.
    :okexcept:
 
    try:
-       pd.get_option("column")
+       pd.get_option("max")
    except KeyError as e:
        print(e)
 
@@ -138,7 +138,7 @@ More information can be found in the `IPython documentation
   import pandas as pd
 
   pd.set_option("display.max_rows", 999)
-  pd.set_option("precision", 5)
+  pd.set_option("display.precision", 5)
 
 .. _options.frequently_used:
 
@@ -153,27 +153,27 @@ lines are replaced by an ellipsis.
 .. ipython:: python
 
    df = pd.DataFrame(np.random.randn(7, 2))
-   pd.set_option("max_rows", 7)
+   pd.set_option("display.max_rows", 7)
    df
-   pd.set_option("max_rows", 5)
+   pd.set_option("display.max_rows", 5)
    df
-   pd.reset_option("max_rows")
+   pd.reset_option("display.max_rows")
 
 Once the ``display.max_rows`` is exceeded, the ``display.min_rows`` options
 determines how many rows are shown in the truncated repr.
 
 .. ipython:: python
 
-   pd.set_option("max_rows", 8)
-   pd.set_option("min_rows", 4)
+   pd.set_option("display.max_rows", 8)
+   pd.set_option("display.min_rows", 4)
    # below max_rows -> all rows shown
    df = pd.DataFrame(np.random.randn(7, 2))
    df
    # above max_rows -> only min_rows (4) rows shown
    df = pd.DataFrame(np.random.randn(9, 2))
    df
-   pd.reset_option("max_rows")
-   pd.reset_option("min_rows")
+   pd.reset_option("display.max_rows")
+   pd.reset_option("display.min_rows")
 
 ``display.expand_frame_repr`` allows for the representation of
 dataframes to stretch across pages, wrapped over the full column vs row-wise.
@@ -193,13 +193,13 @@ dataframes to stretch across pages, wrapped over the full column vs row-wise.
 .. ipython:: python
 
    df = pd.DataFrame(np.random.randn(10, 10))
-   pd.set_option("max_rows", 5)
+   pd.set_option("display.max_rows", 5)
    pd.set_option("large_repr", "truncate")
    df
    pd.set_option("large_repr", "info")
    df
    pd.reset_option("large_repr")
-   pd.reset_option("max_rows")
+   pd.reset_option("display.max_rows")
 
 ``display.max_colwidth`` sets the maximum width of columns.  Cells
 of this length or longer will be truncated with an ellipsis.
@@ -253,9 +253,9 @@ This is only a suggestion.
 .. ipython:: python
 
    df = pd.DataFrame(np.random.randn(5, 5))
-   pd.set_option("precision", 7)
+   pd.set_option("display.precision", 7)
    df
-   pd.set_option("precision", 4)
+   pd.set_option("display.precision", 4)
    df
 
 ``display.chop_threshold`` sets at what level pandas rounds to zero when
@@ -430,6 +430,10 @@ display.html.use_mathjax                True         When True, Jupyter notebook
                                                      table contents using MathJax, rendering
                                                      mathematical expressions enclosed by the
                                                      dollar symbol.
+display.max_dir_items                   100          The number of columns from a dataframe that
+                                                     are added to dir. These columns can then be
+                                                     suggested by tab completion. 'None' value means
+                                                     unlimited.
 io.excel.xls.writer                     xlwt         The default Excel writer engine for
                                                      'xls' files.
 
@@ -487,8 +491,32 @@ styler.sparse.index                     True         "Sparsify" MultiIndex displ
                                                      elements in outer levels within groups).
 styler.sparse.columns                   True         "Sparsify" MultiIndex display for columns
                                                      in Styler output.
+styler.render.repr                      html         Standard output format for Styler rendered in Jupyter Notebook.
+                                                     Should be one of "html" or "latex".
 styler.render.max_elements              262144       Maximum number of datapoints that Styler will render
                                                      trimming either rows, columns or both to fit.
+styler.render.max_rows                  None         Maximum number of rows that Styler will render. By default
+                                                     this is dynamic based on ``max_elements``.
+styler.render.max_columns               None         Maximum number of columns that Styler will render. By default
+                                                     this is dynamic based on ``max_elements``.
+styler.render.encoding                  utf-8        Default encoding for output HTML or LaTeX files.
+styler.format.formatter                 None         Object to specify formatting functions to ``Styler.format``.
+styler.format.na_rep                    None         String representation for missing data.
+styler.format.precision                 6            Precision to display floating point and complex numbers.
+styler.format.decimal                   .            String representation for decimal point separator for floating
+                                                     point and complex numbers.
+styler.format.thousands                 None         String representation for thousands separator for
+                                                     integers, and floating point and complex numbers.
+styler.format.escape                    None         Whether to escape "html" or "latex" special
+                                                     characters in the display representation.
+styler.html.mathjax                     True         If set to False will render specific CSS classes to
+                                                     table attributes that will prevent Mathjax from rendering
+                                                     in Jupyter Notebook.
+styler.latex.multicol_align             r            Alignment of headers in a merged column due to sparsification. Can be in {"r", "c", "l"}.
+styler.latex.multirow_align             c            Alignment of index labels in a merged row due to sparsification. Can be in {"c", "t", "b"}.
+styler.latex.environment                None         If given will replace the default ``\\begin{table}`` environment. If "longtable" is specified
+                                                     this will render with a specific "longtable" template with longtable features.
+styler.latex.hrules                     False        If set to True will render ``\\toprule``, ``\\midrule``, and ``\bottomrule`` by default.
 ======================================= ============ ==================================
 
 

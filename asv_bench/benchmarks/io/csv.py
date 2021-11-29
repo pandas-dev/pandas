@@ -10,6 +10,7 @@ import numpy as np
 from pandas import (
     Categorical,
     DataFrame,
+    concat,
     date_range,
     read_csv,
     to_datetime,
@@ -206,7 +207,7 @@ class ReadCSVConcatDatetimeBadDateValue(StringIORewind):
 class ReadCSVSkipRows(BaseIO):
 
     fname = "__test__.csv"
-    params = ([None, 10000], ["c", "python"])
+    params = ([None, 10000], ["c", "python", "pyarrow"])
     param_names = ["skiprows", "engine"]
 
     def setup(self, skiprows, engine):
@@ -320,7 +321,7 @@ class ReadCSVFloatPrecision(StringIORewind):
 
 
 class ReadCSVEngine(StringIORewind):
-    params = ["c", "python"]
+    params = ["c", "python", "pyarrow"]
     param_names = ["engine"]
 
     def setup(self, engine):
@@ -459,6 +460,34 @@ class ReadCSVParseSpecialDate(StringIORewind):
         )
 
 
+class ReadCSVMemMapUTF8:
+
+    fname = "__test__.csv"
+    number = 5
+
+    def setup(self):
+        lines = []
+        line_length = 128
+        start_char = " "
+        end_char = "\U00010080"
+        # This for loop creates a list of 128-char strings
+        # consisting of consecutive Unicode chars
+        for lnum in range(ord(start_char), ord(end_char), line_length):
+            line = "".join([chr(c) for c in range(lnum, lnum + 0x80)]) + "\n"
+            try:
+                line.encode("utf-8")
+            except UnicodeEncodeError:
+                # Some 16-bit words are not valid Unicode chars and must be skipped
+                continue
+            lines.append(line)
+        df = DataFrame(lines)
+        df = concat([df for n in range(100)], ignore_index=True)
+        df.to_csv(self.fname, index=False, header=False, encoding="utf-8")
+
+    def time_read_memmapped_utf8(self):
+        read_csv(self.fname, header=None, memory_map=True, encoding="utf-8", engine="c")
+
+
 class ParseDateComparison(StringIORewind):
     params = ([False, True],)
     param_names = ["cache_dates"]
@@ -494,6 +523,16 @@ class ParseDateComparison(StringIORewind):
             self.data(self.StringIO_input), dtype={"date": str}, names=["date"]
         )
         to_datetime(df["date"], cache=cache_dates, format="%d-%m-%Y")
+
+
+class ReadCSVIndexCol(StringIORewind):
+    def setup(self):
+        count_elem = 100_000
+        data = "a,b\n" + "1,2\n" * count_elem
+        self.StringIO_input = StringIO(data)
+
+    def time_read_csv_index_col(self):
+        read_csv(self.StringIO_input, index_col="a")
 
 
 from ..pandas_vb_common import setup  # noqa: F401 isort:skip

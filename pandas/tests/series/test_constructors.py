@@ -13,6 +13,7 @@ from pandas._libs import (
     iNaT,
     lib,
 )
+from pandas.compat.numpy import np_version_under1p19
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
@@ -41,6 +42,7 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
+from pandas.core.api import Int64Index
 from pandas.core.arrays import (
     IntervalArray,
     period_array,
@@ -151,6 +153,12 @@ class TestSeriesConstructors:
         msg = "initializing a Series from a MultiIndex is not supported"
         with pytest.raises(NotImplementedError, match=msg):
             Series(m)
+
+    def test_constructor_index_ndim_gt_1_raises(self):
+        # GH#18579
+        df = DataFrame([[1, 2], [3, 4], [5, 6]], index=[3, 6, 9])
+        with pytest.raises(ValueError, match="Index data must be 1-dimensional"):
+            Series([1, 3, 2], index=df)
 
     @pytest.mark.parametrize("input_class", [list, dict, OrderedDict])
     def test_constructor_empty(self, input_class):
@@ -273,6 +281,15 @@ class TestSeriesConstructors:
         for obj in [[1, 2, 3], (1, 2, 3), np.array([1, 2, 3], dtype="int64")]:
             result = Series(obj, index=[0, 1, 2])
             tm.assert_series_equal(result, expected)
+
+    def test_constructor_boolean_index(self):
+        # GH#18579
+        s1 = Series([1, 2, 3], index=[4, 5, 6])
+
+        index = s1 == 2
+        result = Series([1, 3, 2], index=index)
+        expected = Series([1, 3, 2], index=[False, True, False])
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", ["bool", "int32", "int64", "float64"])
     def test_constructor_index_dtype(self, dtype):
@@ -660,7 +677,7 @@ class TestSeriesConstructors:
             timedelta_range("1 day", periods=3),
             period_range("2012Q1", periods=3, freq="Q"),
             Index(list("abc")),
-            pd.Int64Index([1, 2, 3]),
+            Int64Index([1, 2, 3]),
             RangeIndex(0, 3),
         ],
         ids=lambda x: type(x).__name__,
@@ -1043,6 +1060,18 @@ class TestSeriesConstructors:
         expected = Series(DatetimeIndex(["NaT", "NaT"], tz="US/Eastern"))
         tm.assert_series_equal(s, expected)
 
+    def test_constructor_no_partial_datetime_casting(self):
+        # GH#40111
+        vals = [
+            "nan",
+            Timestamp("1990-01-01"),
+            "2015-03-14T16:15:14.123-08:00",
+            "2019-03-04T21:56:32.620-07:00",
+            None,
+        ]
+        ser = Series(vals)
+        assert all(ser[i] is vals[i] for i in range(len(vals)))
+
     @pytest.mark.parametrize("arr_dtype", [np.int64, np.float64])
     @pytest.mark.parametrize("dtype", ["M8", "m8"])
     @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s", "h", "m", "D"])
@@ -1368,12 +1397,6 @@ class TestSeriesConstructors:
         td = Series([np.timedelta64(1, "s")])
         assert td.dtype == "timedelta64[ns]"
 
-        # FIXME: dont leave commented-out
-        # these are frequency conversion astypes
-        # for t in ['s', 'D', 'us', 'ms']:
-        #    with pytest.raises(TypeError):
-        #        td.astype('m8[%s]' % t)
-
         # valid astype
         with tm.assert_produces_warning(FutureWarning):
             # astype(int64) deprecated
@@ -1616,12 +1639,12 @@ class TestSeriesConstructors:
             ts = ts.to_pydatetime()
         ts_naive = Timestamp("2019")
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             result = Series([ts], dtype="datetime64[ns]")
         expected = Series([ts_naive])
         tm.assert_series_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             result = Series(np.array([ts], dtype=object), dtype="datetime64[ns]")
         tm.assert_series_equal(result, expected)
 
@@ -1839,3 +1862,25 @@ def test_constructor(rand_series_with_duplicate_datetimeindex):
     dups = rand_series_with_duplicate_datetimeindex
     assert isinstance(dups, Series)
     assert isinstance(dups.index, DatetimeIndex)
+
+
+@pytest.mark.parametrize(
+    "input_dict,expected",
+    [
+        ({0: 0}, np.array([[0]], dtype=np.int64)),
+        ({"a": "a"}, np.array([["a"]], dtype=object)),
+        ({1: 1}, np.array([[1]], dtype=np.int64)),
+    ],
+)
+@pytest.mark.skipif(np_version_under1p19, reason="fails on numpy below 1.19")
+def test_numpy_array(input_dict, expected):
+    result = np.array([Series(input_dict)])
+    tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.skipif(
+    not np_version_under1p19, reason="check failure on numpy below 1.19"
+)
+def test_numpy_array_np_v1p19():
+    with pytest.raises(KeyError, match="0"):
+        np.array([Series({1: 1})])

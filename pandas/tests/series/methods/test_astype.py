@@ -16,6 +16,7 @@ from pandas import (
     NA,
     Categorical,
     CategoricalDtype,
+    DatetimeTZDtype,
     Index,
     Interval,
     NaT,
@@ -127,7 +128,7 @@ class TestAstype:
     def test_astype_generic_timestamp_no_frequency(self, dtype, request):
         # see GH#15524, GH#15987
         data = [1]
-        s = Series(data)
+        ser = Series(data)
 
         if np.dtype(dtype).name not in ["timedelta64", "datetime64"]:
             mark = pytest.mark.xfail(reason="GH#33890 Is assigned ns unit")
@@ -138,7 +139,7 @@ class TestAstype:
             fr"Please pass in '{dtype.__name__}\[ns\]' instead."
         )
         with pytest.raises(ValueError, match=msg):
-            s.astype(dtype)
+            ser.astype(dtype)
 
     def test_astype_dt64_to_str(self):
         # GH#10442 : testing astype(str) is correct for Series/DatetimeIndex
@@ -361,6 +362,38 @@ class TestAstype:
         ser = Series(np.nan, dtype="object")
         result = ser.astype("bool")
         expected = Series(True, dtype="bool")
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "dtype",
+        tm.ALL_INT_EA_DTYPES + tm.FLOAT_EA_DTYPES,
+    )
+    def test_astype_ea_to_datetimetzdtype(self, dtype):
+        # GH37553
+        result = Series([4, 0, 9], dtype=dtype).astype(DatetimeTZDtype(tz="US/Pacific"))
+        expected = Series(
+            {
+                0: Timestamp("1969-12-31 16:00:00.000000004-08:00", tz="US/Pacific"),
+                1: Timestamp("1969-12-31 16:00:00.000000000-08:00", tz="US/Pacific"),
+                2: Timestamp("1969-12-31 16:00:00.000000009-08:00", tz="US/Pacific"),
+            }
+        )
+
+        if dtype in tm.FLOAT_EA_DTYPES:
+            expected = Series(
+                {
+                    0: Timestamp(
+                        "1970-01-01 00:00:00.000000004-08:00", tz="US/Pacific"
+                    ),
+                    1: Timestamp(
+                        "1970-01-01 00:00:00.000000000-08:00", tz="US/Pacific"
+                    ),
+                    2: Timestamp(
+                        "1970-01-01 00:00:00.000000009-08:00", tz="US/Pacific"
+                    ),
+                }
+            )
+
         tm.assert_series_equal(result, expected)
 
 

@@ -311,7 +311,7 @@ def test_fwf_regression():
 
 def test_fwf_for_uint8():
     data = """1421302965.213420    PRI=3 PGN=0xef00      DST=0x17 SRC=0x28    04 154 00 00 00 00 00 127
-1421302964.226776    PRI=6 PGN=0xf002               SRC=0x47    243 00 00 255 247 00 00 71"""  # noqa
+1421302964.226776    PRI=6 PGN=0xf002               SRC=0x47    243 00 00 255 247 00 00 71"""  # noqa:E501
     df = read_fwf(
         StringIO(data),
         colspecs=[(0, 17), (25, 26), (33, 37), (49, 51), (58, 62), (63, 1000)],
@@ -710,3 +710,200 @@ def test_encoding_mmap(memory_map):
     data.seek(0)
     df_reference = DataFrame([[1, "A", "Ä", 2]])
     tm.assert_frame_equal(df, df_reference)
+
+
+@pytest.mark.parametrize(
+    "colspecs, names, widths, index_col",
+    [
+        (
+            [(0, 6), (6, 12), (12, 18), (18, None)],
+            list("abcde"),
+            None,
+            None,
+        ),
+        (
+            None,
+            list("abcde"),
+            [6] * 4,
+            None,
+        ),
+        (
+            [(0, 6), (6, 12), (12, 18), (18, None)],
+            list("abcde"),
+            None,
+            True,
+        ),
+        (
+            None,
+            list("abcde"),
+            [6] * 4,
+            False,
+        ),
+        (
+            None,
+            list("abcde"),
+            [6] * 4,
+            True,
+        ),
+        (
+            [(0, 6), (6, 12), (12, 18), (18, None)],
+            list("abcde"),
+            None,
+            False,
+        ),
+    ],
+)
+def test_len_colspecs_len_names(colspecs, names, widths, index_col):
+    # GH#40830
+    data = """col1  col2  col3  col4
+    bab   ba    2"""
+    msg = "Length of colspecs must match length of names"
+    with pytest.raises(ValueError, match=msg):
+        read_fwf(
+            StringIO(data),
+            colspecs=colspecs,
+            names=names,
+            widths=widths,
+            index_col=index_col,
+        )
+
+
+@pytest.mark.parametrize(
+    "colspecs, names, widths, index_col, expected",
+    [
+        (
+            [(0, 6), (6, 12), (12, 18), (18, None)],
+            list("abc"),
+            None,
+            0,
+            DataFrame(
+                index=["col1", "ba"],
+                columns=["a", "b", "c"],
+                data=[["col2", "col3", "col4"], ["b   ba", "2", np.nan]],
+            ),
+        ),
+        (
+            [(0, 6), (6, 12), (12, 18), (18, None)],
+            list("ab"),
+            None,
+            [0, 1],
+            DataFrame(
+                index=[["col1", "ba"], ["col2", "b   ba"]],
+                columns=["a", "b"],
+                data=[["col3", "col4"], ["2", np.nan]],
+            ),
+        ),
+        (
+            [(0, 6), (6, 12), (12, 18), (18, None)],
+            list("a"),
+            None,
+            [0, 1, 2],
+            DataFrame(
+                index=[["col1", "ba"], ["col2", "b   ba"], ["col3", "2"]],
+                columns=["a"],
+                data=[["col4"], [np.nan]],
+            ),
+        ),
+        (
+            None,
+            list("abc"),
+            [6] * 4,
+            0,
+            DataFrame(
+                index=["col1", "ba"],
+                columns=["a", "b", "c"],
+                data=[["col2", "col3", "col4"], ["b   ba", "2", np.nan]],
+            ),
+        ),
+        (
+            None,
+            list("ab"),
+            [6] * 4,
+            [0, 1],
+            DataFrame(
+                index=[["col1", "ba"], ["col2", "b   ba"]],
+                columns=["a", "b"],
+                data=[["col3", "col4"], ["2", np.nan]],
+            ),
+        ),
+        (
+            None,
+            list("a"),
+            [6] * 4,
+            [0, 1, 2],
+            DataFrame(
+                index=[["col1", "ba"], ["col2", "b   ba"], ["col3", "2"]],
+                columns=["a"],
+                data=[["col4"], [np.nan]],
+            ),
+        ),
+    ],
+)
+def test_len_colspecs_len_names_with_index_col(
+    colspecs, names, widths, index_col, expected
+):
+    # GH#40830
+    data = """col1  col2  col3  col4
+    bab   ba    2"""
+    result = read_fwf(
+        StringIO(data),
+        colspecs=colspecs,
+        names=names,
+        widths=widths,
+        index_col=index_col,
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_colspecs_with_comment():
+    # GH 14135
+    result = read_fwf(
+        StringIO("#\nA1K\n"), colspecs=[(1, 2), (2, 3)], comment="#", header=None
+    )
+    expected = DataFrame([[1, "K"]], columns=[0, 1])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_skip_rows_and_n_rows():
+    # GH#44021
+    data = """a\tb
+1\t a
+2\t b
+3\t c
+4\t d
+5\t e
+6\t f
+    """
+    result = read_fwf(StringIO(data), nrows=4, skiprows=[2, 4])
+    expected = DataFrame({"a": [1, 3, 5, 6], "b": ["a", "c", "e", "f"]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_skiprows_with_iterator():
+    # GH#10261
+    data = """0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+    """
+    df_iter = read_fwf(
+        StringIO(data),
+        colspecs=[(0, 2)],
+        names=["a"],
+        iterator=True,
+        chunksize=2,
+        skiprows=[0, 1, 2, 6, 9],
+    )
+    expected_frames = [
+        DataFrame({"a": [3, 4]}),
+        DataFrame({"a": [5, 7, 8]}, index=[2, 3, 4]),
+        DataFrame({"a": []}, index=[], dtype="object"),
+    ]
+    for i, result in enumerate(df_iter):
+        tm.assert_frame_equal(result, expected_frames[i])

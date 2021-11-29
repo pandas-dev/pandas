@@ -1,5 +1,3 @@
-import warnings
-
 cimport cython
 
 import numpy as np
@@ -34,7 +32,11 @@ from pandas._libs import (
     algos,
     hashtable as _hash,
 )
-from pandas._libs.missing import checknull
+
+from pandas._libs.missing cimport (
+    checknull,
+    is_matching_na,
+)
 
 
 cdef inline bint is_definitely_invalid_key(object val):
@@ -45,27 +47,83 @@ cdef inline bint is_definitely_invalid_key(object val):
     return False
 
 
+cdef ndarray _get_bool_indexer(ndarray values, object val):
+    """
+    Return a ndarray[bool] of locations where val matches self.values.
+
+    If val is not NA, this is equivalent to `self.values == val`
+    """
+    # Caller is responsible for ensuring _check_type has already been called
+    cdef:
+        ndarray[uint8_t, ndim=1, cast=True] indexer
+        Py_ssize_t i
+        object item
+
+    if values.descr.type_num == cnp.NPY_OBJECT:
+        # i.e. values.dtype == object
+        if not checknull(val):
+            indexer = values == val
+
+        else:
+            # We need to check for _matching_ NA values
+            indexer = np.empty(len(values), dtype=np.uint8)
+
+            for i in range(len(values)):
+                item = values[i]
+                indexer[i] = is_matching_na(item, val)
+
+    else:
+        if util.is_nan(val):
+            indexer = np.isnan(values)
+        else:
+            indexer = values == val
+
+    return indexer.view(bool)
+
+
 # Don't populate hash tables in monotonic indexes larger than this
 _SIZE_CUTOFF = 1_000_000
+
+
+cdef _unpack_bool_indexer(ndarray[uint8_t, ndim=1, cast=True] indexer, object val):
+    """
+    Possibly unpack a boolean mask to a single indexer.
+    """
+    # Returns ndarray[bool] or int
+    cdef:
+        ndarray[intp_t, ndim=1] found
+        int count
+
+    found = np.where(indexer)[0]
+    count = len(found)
+
+    if count > 1:
+        return indexer
+    if count == 1:
+        return int(found[0])
+
+    raise KeyError(val)
 
 
 @cython.freelist(32)
 cdef class IndexEngine:
 
     cdef readonly:
-        object vgetter
+        ndarray values
         HashTable mapping
         bint over_size_threshold
 
     cdef:
         bint unique, monotonic_inc, monotonic_dec
         bint need_monotonic_check, need_unique_check
+        object _np_type
 
-    def __init__(self, vgetter, n):
-        self.vgetter = vgetter
+    def __init__(self, ndarray values):
+        self.values = values
 
-        self.over_size_threshold = n >= _SIZE_CUTOFF
+        self.over_size_threshold = len(values) >= _SIZE_CUTOFF
         self.clear_mapping()
+        self._np_type = values.dtype.type
 
     def __contains__(self, val: object) -> bool:
         # We assume before we get here:
@@ -81,17 +139,14 @@ cdef class IndexEngine:
         if is_definitely_invalid_key(val):
             raise TypeError(f"'{val}' is an invalid key")
 
+        self._check_type(val)
+
         if self.over_size_threshold and self.is_monotonic_increasing:
             if not self.is_unique:
                 return self._get_loc_duplicates(val)
-            values = self._get_index_values()
+            values = self.values
 
-            self._check_type(val)
-            try:
-                loc = _bin_search(values, val)  # .searchsorted(val, side='left')
-            except TypeError:
-                # GH#35788 e.g. val=None with float64 values
-                raise KeyError(val)
+            loc = self._searchsorted_left(val)
             if loc >= len(values):
                 raise KeyError(val)
             if values[loc] != val:
@@ -102,26 +157,35 @@ cdef class IndexEngine:
         if not self.unique:
             return self._get_loc_duplicates(val)
 
-        self._check_type(val)
-
         try:
             return self.mapping.get_item(val)
-        except (TypeError, ValueError, OverflowError):
+        except OverflowError as err:
             # GH#41775 OverflowError e.g. if we are uint64 and val is -1
-            raise KeyError(val)
+            #  or if we are int64 and value is np.iinfo(np.int64).max+1
+            #  (the uint64 with -1 case should actually be excluded by _check_type)
+            raise KeyError(val) from err
+
+    cdef Py_ssize_t _searchsorted_left(self, val) except? -1:
+        """
+        See ObjectEngine._searchsorted_left.__doc__.
+        """
+        # Caller is responsible for ensuring _check_type has already been called
+        loc = self.values.searchsorted(self._np_type(val), side="left")
+        return loc
 
     cdef inline _get_loc_duplicates(self, object val):
         # -> Py_ssize_t | slice | ndarray[bool]
         cdef:
-            Py_ssize_t diff
+            Py_ssize_t diff, left, right
 
         if self.is_monotonic_increasing:
-            values = self._get_index_values()
+            values = self.values
             try:
                 left = values.searchsorted(val, side='left')
                 right = values.searchsorted(val, side='right')
             except TypeError:
                 # e.g. GH#29189 get_loc(None) with a Float64Index
+                #  2021-09-29 Now only reached for object-dtype
                 raise KeyError(val)
 
             diff = right - left
@@ -139,26 +203,8 @@ cdef class IndexEngine:
         cdef:
             ndarray[uint8_t, ndim=1, cast=True] indexer
 
-        indexer = self._get_index_values() == val
-        return self._unpack_bool_indexer(indexer, val)
-
-    cdef _unpack_bool_indexer(self,
-                              ndarray[uint8_t, ndim=1, cast=True] indexer,
-                              object val):
-        # Returns ndarray[bool] or int
-        cdef:
-            ndarray[intp_t, ndim=1] found
-            int count
-
-        found = np.where(indexer)[0]
-        count = len(found)
-
-        if count > 1:
-            return indexer
-        if count == 1:
-            return int(found[0])
-
-        raise KeyError(val)
+        indexer = _get_bool_indexer(self.values, val)
+        return _unpack_bool_indexer(indexer, val)
 
     def sizeof(self, deep: bool = False) -> int:
         """ return the sizeof our mapping """
@@ -199,7 +245,7 @@ cdef class IndexEngine:
         cdef:
             bint is_unique
         try:
-            values = self._get_index_values()
+            values = self.values
             self.monotonic_inc, self.monotonic_dec, is_unique = \
                 self._call_monotonic(values)
         except TypeError:
@@ -214,20 +260,11 @@ cdef class IndexEngine:
             self.unique = 1
             self.need_unique_check = 0
 
-    cdef _get_index_values(self):
-        return self.vgetter()
-
     cdef _call_monotonic(self, values):
         return algos.is_monotonic(values, timelike=False)
 
-    def get_backfill_indexer(self, other: np.ndarray, limit=None) -> np.ndarray:
-        return algos.backfill(self._get_index_values(), other, limit=limit)
-
-    def get_pad_indexer(self, other: np.ndarray, limit=None) -> np.ndarray:
-        return algos.pad(self._get_index_values(), other, limit=limit)
-
     cdef _make_hash_table(self, Py_ssize_t n):
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
     cdef _check_type(self, object val):
         hash(val)
@@ -243,17 +280,14 @@ cdef class IndexEngine:
 
         if not self.is_mapping_populated:
 
-            values = self._get_index_values()
+            values = self.values
             self.mapping = self._make_hash_table(len(values))
-            self._call_map_locations(values)
+            self.mapping.map_locations(values)
 
             if len(self.mapping) == len(values):
                 self.unique = 1
 
         self.need_unique_check = 0
-
-    cdef void _call_map_locations(self, ndarray values):
-        self.mapping.map_locations(values)
 
     def clear_mapping(self):
         self.mapping = None
@@ -281,17 +315,16 @@ cdef class IndexEngine:
         missing : np.ndarray[np.intp]
         """
         cdef:
-            ndarray values, x
+            ndarray values
             ndarray[intp_t] result, missing
-            set stargets, remaining_stargets
+            set stargets, remaining_stargets, found_nas
             dict d = {}
             object val
-            int count = 0, count_missing = 0
-            Py_ssize_t i, j, n, n_t, n_alloc
-            bint d_has_nan = False, stargets_has_nan = False, need_nan_check = True
+            Py_ssize_t count = 0, count_missing = 0
+            Py_ssize_t i, j, n, n_t, n_alloc, start, end
+            bint check_na_values = False
 
-        self._ensure_mapping_populated()
-        values = np.array(self._get_index_values(), copy=False)
+        values = self.values
         stargets = set(targets)
 
         n = len(values)
@@ -305,7 +338,12 @@ cdef class IndexEngine:
         missing = np.empty(n_t, dtype=np.intp)
 
         # map each starget to its position in the index
-        if stargets and len(stargets) < 5 and self.is_monotonic_increasing:
+        if (
+                stargets and
+                len(stargets) < 5 and
+                not any([checknull(t) for t in stargets]) and
+                self.is_monotonic_increasing
+        ):
             # if there are few enough stargets and the index is monotonically
             # increasing, then use binary search for each starget
             remaining_stargets = set()
@@ -324,33 +362,58 @@ cdef class IndexEngine:
         if stargets:
             # otherwise, map by iterating through all items in the index
 
+            # short-circuit na check
+            if values.dtype == object:
+                check_na_values = True
+                # keep track of nas in values
+                found_nas = set()
+
             for i in range(n):
                 val = values[i]
+
+                # GH#43870
+                # handle lookup for nas
+                # (ie. np.nan, float("NaN"), Decimal("NaN"), dt64nat, td64nat)
+                if check_na_values and checknull(val):
+                    match = [na for na in found_nas if is_matching_na(val, na)]
+
+                    # matching na not found
+                    if not len(match):
+                        found_nas.add(val)
+
+                        # add na to stargets to utilize `in` for stargets/d lookup
+                        match_stargets = [
+                            x for x in stargets if is_matching_na(val, x)
+                        ]
+
+                        if len(match_stargets):
+                            # add our 'standardized' na
+                            stargets.add(val)
+
+                    # matching na found
+                    else:
+                        assert len(match) == 1
+                        val = match[0]
+
                 if val in stargets:
                     if val not in d:
                         d[val] = []
                     d[val].append(i)
 
-                elif util.is_nan(val):
-                    # GH#35392
-                    if need_nan_check:
-                        # Do this check only once
-                        stargets_has_nan = any(util.is_nan(val) for x in stargets)
-                        need_nan_check = False
-
-                    if stargets_has_nan:
-                        if not d_has_nan:
-                            # use a canonical nan object
-                            d[np.nan] = []
-                            d_has_nan = True
-                        d[np.nan].append(i)
-
         for i in range(n_t):
             val = targets[i]
 
+            # ensure there are nas in values before looking for a matching na
+            if check_na_values and checknull(val):
+                match = [na for na in found_nas if is_matching_na(val, na)]
+                if len(match):
+                    assert len(match) == 1
+                    val = match[0]
+
             # found
-            if val in d or (d_has_nan and util.is_nan(val)):
-                key = val if not util.is_nan(val) else np.nan
+            if val in d:
+                key = val
+
                 for j in d[key]:
 
                     # realloc if needed
@@ -376,6 +439,11 @@ cdef class IndexEngine:
 
 
 cdef Py_ssize_t _bin_search(ndarray values, object val) except -1:
+    # GH#1757 ndarray.searchsorted is not safe to use with array of tuples
+    #  (treats a tuple `val` as a sequence of keys instead of a single key),
+    #  so we implement something similar.
+    # This is equivalent to the stdlib's bisect.bisect_left
+
     cdef:
         Py_ssize_t mid = 0, lo = 0, hi = len(values) - 1
         object pval
@@ -408,11 +476,17 @@ cdef class ObjectEngine(IndexEngine):
     cdef _make_hash_table(self, Py_ssize_t n):
         return _hash.PyObjectHashTable(n)
 
+    cdef Py_ssize_t _searchsorted_left(self, val) except? -1:
+        # using values.searchsorted here would treat a tuple `val` as a sequence
+        #  instead of a single key, so we use a different implementation
+        try:
+            loc = _bin_search(self.values, val)
+        except TypeError as err:
+            raise KeyError(val) from err
+        return loc
+
 
 cdef class DatetimeEngine(Int64Engine):
-
-    cdef str _get_box_dtype(self):
-        return 'M8[ns]'
 
     cdef int64_t _unbox_scalar(self, scalar) except? -1:
         # NB: caller is responsible for ensuring tzawareness compat
@@ -424,22 +498,12 @@ cdef class DatetimeEngine(Int64Engine):
     def __contains__(self, val: object) -> bool:
         # We assume before we get here:
         #  - val is hashable
-        cdef:
-            int64_t loc, conv
-
-        conv = self._unbox_scalar(val)
-        if self.over_size_threshold and self.is_monotonic_increasing:
-            if not self.is_unique:
-                return self._get_loc_duplicates(conv)
-            values = self._get_index_values()
-            loc = values.searchsorted(conv, side='left')
-            return values[loc] == conv
-
-        self._ensure_mapping_populated()
-        return conv in self.mapping
-
-    cdef _get_index_values(self):
-        return self.vgetter().view('i8')
+        self._unbox_scalar(val)
+        try:
+            self.get_loc(val)
+            return True
+        except KeyError:
+            return False
 
     cdef _call_monotonic(self, values):
         return algos.is_monotonic(values, timelike=True)
@@ -449,7 +513,8 @@ cdef class DatetimeEngine(Int64Engine):
         #  with either a Timestamp or NaT (Timedelta or NaT for TimedeltaEngine)
 
         cdef:
-            int64_t loc
+            Py_ssize_t loc
+
         if is_definitely_invalid_key(val):
             raise TypeError(f"'{val}' is an invalid key")
 
@@ -462,7 +527,7 @@ cdef class DatetimeEngine(Int64Engine):
         if self.over_size_threshold and self.is_monotonic_increasing:
             if not self.is_unique:
                 return self._get_loc_duplicates(conv)
-            values = self._get_index_values()
+            values = self.values
 
             loc = values.searchsorted(conv, side='left')
 
@@ -479,34 +544,8 @@ cdef class DatetimeEngine(Int64Engine):
         except KeyError:
             raise KeyError(val)
 
-    def get_indexer_non_unique(self, ndarray targets):
-        # we may get datetime64[ns] or timedelta64[ns], cast these to int64
-        return super().get_indexer_non_unique(targets.view("i8"))
-
-    def get_indexer(self, ndarray values) -> np.ndarray:
-        self._ensure_mapping_populated()
-        if values.dtype != self._get_box_dtype():
-            return np.repeat(-1, len(values)).astype(np.intp)
-        values = np.asarray(values).view('i8')
-        return self.mapping.lookup(values)
-
-    def get_pad_indexer(self, other: np.ndarray, limit=None) -> np.ndarray:
-        if other.dtype != self._get_box_dtype():
-            return np.repeat(-1, len(other)).astype(np.intp)
-        other = np.asarray(other).view('i8')
-        return algos.pad(self._get_index_values(), other, limit=limit)
-
-    def get_backfill_indexer(self, other: np.ndarray, limit=None) -> np.ndarray:
-        if other.dtype != self._get_box_dtype():
-            return np.repeat(-1, len(other)).astype(np.intp)
-        other = np.asarray(other).view('i8')
-        return algos.backfill(self._get_index_values(), other, limit=limit)
-
 
 cdef class TimedeltaEngine(DatetimeEngine):
-
-    cdef str _get_box_dtype(self):
-        return 'm8[ns]'
 
     cdef int64_t _unbox_scalar(self, scalar) except? -1:
         if not (isinstance(scalar, _Timedelta) or scalar is NaT):
@@ -536,9 +575,6 @@ cdef class PeriodEngine(Int64Engine):
             raise KeyError(val)
 
         return Int64Engine.get_loc(self, conv)
-
-    cdef _get_index_values(self):
-        return super(PeriodEngine, self).vgetter().view("i8")
 
     cdef _call_monotonic(self, values):
         return algos.is_monotonic(values, timelike=True)
@@ -598,31 +634,31 @@ cdef class BaseMultiIndexCodesEngine:
 
         # Initialize underlying index (e.g. libindex.UInt64Engine) with
         # integers representing labels: we will use its get_loc and get_indexer
-        self._base.__init__(self, lambda: lab_ints, len(lab_ints))
+        self._base.__init__(self, lab_ints)
 
     def _codes_to_ints(self, ndarray[uint64_t] codes) -> np.ndarray:
-        raise NotImplementedError("Implemented by subclass")
+        raise NotImplementedError("Implemented by subclass")  # pragma: no cover
 
-    def _extract_level_codes(self, ndarray[object] target) -> np.ndarray:
+    def _extract_level_codes(self, target) -> np.ndarray:
         """
         Map the requested list of (tuple) keys to their integer representations
         for searching in the underlying integer index.
 
         Parameters
         ----------
-        target : ndarray[object]
-            Each key is a tuple, with a label for each level of the index.
+        target : MultiIndex
 
         Returns
         ------
         int_keys : 1-dimensional array of dtype uint64 or object
             Integers representing one combination each
         """
-        level_codes = [lev.get_indexer(codes) + 1 for lev, codes
-                       in zip(self.levels, zip(*target))]
+        zt = [target._get_level_values(i) for i in range(target.nlevels)]
+        level_codes = [lev.get_indexer_for(codes) + 1 for lev, codes
+                       in zip(self.levels, zt)]
         return self._codes_to_ints(np.array(level_codes, dtype='uint64').T)
 
-    def get_indexer(self, ndarray[object] target) -> np.ndarray:
+    def get_indexer(self, target: np.ndarray) -> np.ndarray:
         """
         Returns an array giving the positions of each value of `target` in
         `self.values`, where -1 represents a value in `target` which does not
@@ -630,16 +666,14 @@ cdef class BaseMultiIndexCodesEngine:
 
         Parameters
         ----------
-        target : ndarray[object]
-            Each key is a tuple, with a label for each level of the index
+        target : np.ndarray
 
         Returns
         -------
         np.ndarray[intp_t, ndim=1] of the indexer of `target` into
         `self.values`
         """
-        lab_ints = self._extract_level_codes(target)
-        return self._base.get_indexer(self, lab_ints)
+        return self._base.get_indexer(self, target)
 
     def get_indexer_with_fill(self, ndarray target, ndarray values,
                               str method, object limit) -> np.ndarray:
@@ -742,10 +776,8 @@ cdef class BaseMultiIndexCodesEngine:
 
         return self._base.get_loc(self, lab_int)
 
-    def get_indexer_non_unique(self, ndarray[object] target):
-
-        lab_ints = self._extract_level_codes(target)
-        indexer = self._base.get_indexer_non_unique(self, lab_ints)
+    def get_indexer_non_unique(self, target: np.ndarray) -> np.ndarray:
+        indexer = self._base.get_indexer_non_unique(self, target)
 
         return indexer
 

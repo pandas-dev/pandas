@@ -13,7 +13,10 @@ from typing import (
     overload,
 )
 
-from pandas._typing import FilePathOrBuffer
+from pandas._typing import (
+    FilePath,
+    ReadBuffer,
+)
 
 from pandas.io.common import stringify_path
 
@@ -44,7 +47,7 @@ class ReaderBase(metaclass=ABCMeta):
 
 @overload
 def read_sas(
-    filepath_or_buffer: FilePathOrBuffer,
+    filepath_or_buffer: FilePath | ReadBuffer[bytes],
     format: str | None = ...,
     index: Hashable | None = ...,
     encoding: str | None = ...,
@@ -56,7 +59,7 @@ def read_sas(
 
 @overload
 def read_sas(
-    filepath_or_buffer: FilePathOrBuffer,
+    filepath_or_buffer: FilePath | ReadBuffer[bytes],
     format: str | None = ...,
     index: Hashable | None = ...,
     encoding: str | None = ...,
@@ -67,7 +70,7 @@ def read_sas(
 
 
 def read_sas(
-    filepath_or_buffer: FilePathOrBuffer,
+    filepath_or_buffer: FilePath | ReadBuffer[bytes],
     format: str | None = None,
     index: Hashable | None = None,
     encoding: str | None = None,
@@ -79,18 +82,12 @@ def read_sas(
 
     Parameters
     ----------
-    filepath_or_buffer : str, path object or file-like object
-        Any valid string path is acceptable. The string could be a URL. Valid
-        URL schemes include http, ftp, s3, and file. For file URLs, a host is
+    filepath_or_buffer : str, path object, or file-like object
+        String, path object (implementing ``os.PathLike[str]``), or file-like
+        object implementing a binary ``read()`` function. The string could be a URL.
+        Valid URL schemes include http, ftp, s3, and file. For file URLs, a host is
         expected. A local file could be:
         ``file://localhost/path/to/table.sas``.
-
-        If you want to pass in a path object, pandas accepts any
-        ``os.PathLike``.
-
-        By file-like object, we refer to objects with a ``read()`` method,
-        such as a file handle (e.g. via builtin ``open`` function)
-        or ``StringIO``.
     format : str {'xport', 'sas7bdat'} or None
         If None, file format is inferred from file extension. If 'xport' or
         'sas7bdat', uses the corresponding format.

@@ -13,6 +13,10 @@ import pandas as pd
 from pandas import DataFrame
 import pandas._testing as tm
 
+# We'll probably always skip these for pyarrow
+# Maybe we'll add our own tests for pyarrow too
+pytestmark = pytest.mark.usefixtures("pyarrow_skip")
+
 
 def _construct_dataframe(num_rows):
     """

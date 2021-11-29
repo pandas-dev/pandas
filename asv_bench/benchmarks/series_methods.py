@@ -27,6 +27,19 @@ class SeriesConstructor:
         Series(data=self.data, index=self.idx)
 
 
+class ToFrame:
+    params = [["int64", "datetime64[ns]", "category", "Int64"], [None, "foo"]]
+    param_names = ["dtype", "name"]
+
+    def setup(self, dtype, name):
+        arr = np.arange(10 ** 5)
+        ser = Series(arr, dtype=dtype)
+        self.ser = ser
+
+    def time_to_frame(self, dtype, name):
+        self.ser.to_frame(name)
+
+
 class NSort:
 
     params = ["first", "last", "all"]
@@ -139,6 +152,18 @@ class ValueCounts:
         self.s.value_counts()
 
 
+class ValueCountsObjectDropNAFalse:
+
+    params = [10 ** 3, 10 ** 4, 10 ** 5]
+    param_names = ["N"]
+
+    def setup(self, N):
+        self.s = Series(np.random.randint(0, N, size=10 * N)).astype("object")
+
+    def time_value_counts(self, N):
+        self.s.value_counts(dropna=False)
+
+
 class Mode:
 
     params = [[10 ** 3, 10 ** 4, 10 ** 5], ["int", "uint", "float", "object"]]
@@ -149,6 +174,18 @@ class Mode:
 
     def time_mode(self, N, dtype):
         self.s.mode()
+
+
+class ModeObjectDropNAFalse:
+
+    params = [10 ** 3, 10 ** 4, 10 ** 5]
+    param_names = ["N"]
+
+    def setup(self, N):
+        self.s = Series(np.random.randint(0, N, size=10 * N)).astype("object")
+
+    def time_mode(self, N):
+        self.s.mode(dropna=False)
 
 
 class Dir:

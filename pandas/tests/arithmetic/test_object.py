@@ -21,17 +21,15 @@ from pandas.core import ops
 
 
 class TestObjectComparisons:
-    def test_comparison_object_numeric_nas(self):
+    def test_comparison_object_numeric_nas(self, comparison_op):
         ser = Series(np.random.randn(10), dtype=object)
         shifted = ser.shift(2)
 
-        ops = ["lt", "le", "gt", "ge", "eq", "ne"]
-        for op in ops:
-            func = getattr(operator, op)
+        func = comparison_op
 
-            result = func(ser, shifted)
-            expected = func(ser.astype(float), shifted.astype(float))
-            tm.assert_series_equal(result, expected)
+        result = func(ser, shifted)
+        expected = func(ser.astype(float), shifted.astype(float))
+        tm.assert_series_equal(result, expected)
 
     def test_object_comparisons(self):
         ser = Series(["a", "b", np.nan, "c", "a"])
@@ -141,11 +139,13 @@ class TestArithmetic:
         ser = Series(data, dtype=dtype)
 
         ser = tm.box_expected(ser, box_with_array)
-        msg = (
-            "can only concatenate str|"
-            "did not contain a loop with signature matching types|"
-            "unsupported operand type|"
-            "must be str"
+        msg = "|".join(
+            [
+                "can only concatenate str",
+                "did not contain a loop with signature matching types",
+                "unsupported operand type",
+                "must be str",
+            ]
         )
         with pytest.raises(TypeError, match=msg):
             "foo_" + ser
@@ -159,7 +159,9 @@ class TestArithmetic:
         obj_ser.name = "objects"
 
         obj_ser = tm.box_expected(obj_ser, box)
-        msg = "can only concatenate str|unsupported operand type|must be str"
+        msg = "|".join(
+            ["can only concatenate str", "unsupported operand type", "must be str"]
+        )
         with pytest.raises(Exception, match=msg):
             op(obj_ser, 1)
         with pytest.raises(Exception, match=msg):
@@ -313,7 +315,7 @@ class TestArithmetic:
         with pytest.raises(TypeError, match=msg):
             index - np.array([2, "foo"], dtype=object)
 
-    def test_rsub_object(self):
+    def test_rsub_object(self, fixed_now_ts):
         # GH#19369
         index = pd.Index([Decimal(1), Decimal(2)])
         expected = pd.Index([Decimal(1), Decimal(0)])
@@ -329,7 +331,7 @@ class TestArithmetic:
             "foo" - index
 
         with pytest.raises(TypeError, match=msg):
-            np.array([True, Timestamp.now()]) - index
+            np.array([True, fixed_now_ts]) - index
 
 
 class MyIndex(pd.Index):
@@ -341,7 +343,6 @@ class MyIndex(pd.Index):
     def _simple_new(cls, values, name=None, dtype=None):
         result = object.__new__(cls)
         result._data = values
-        result._index_data = values
         result._name = name
         result._calls = 0
         result._reset_identity()
@@ -350,7 +351,7 @@ class MyIndex(pd.Index):
 
     def __add__(self, other):
         self._calls += 1
-        return self._simple_new(self._index_data)
+        return self._simple_new(self._data)
 
     def __radd__(self, other):
         return self.__add__(other)

@@ -17,6 +17,7 @@ Instead of splitting it was decided to define sections here:
 - Dtypes
 - Misc
 """
+# pyright: reportUntypedFunctionDecorator = false
 
 from collections import abc
 from datetime import (
@@ -92,32 +93,44 @@ def pytest_addoption(parser):
     )
 
 
-def pytest_runtest_setup(item):
-    if "slow" in item.keywords and item.config.getoption("--skip-slow"):
-        pytest.skip("skipping due to --skip-slow")
+def pytest_collection_modifyitems(items, config):
+    skip_slow = config.getoption("--skip-slow")
+    only_slow = config.getoption("--only-slow")
+    skip_network = config.getoption("--skip-network")
+    skip_db = config.getoption("--skip-db")
+    run_high_memory = config.getoption("--run-high-memory")
 
-    if "slow" not in item.keywords and item.config.getoption("--only-slow"):
-        pytest.skip("skipping due to --only-slow")
+    marks = [
+        (pytest.mark.slow, "slow", skip_slow, "--skip-slow"),
+        (pytest.mark.network, "network", skip_network, "--network"),
+        (pytest.mark.db, "db", skip_db, "--skip-db"),
+    ]
 
-    if "network" in item.keywords and item.config.getoption("--skip-network"):
-        pytest.skip("skipping due to --skip-network")
-
-    if "db" in item.keywords and item.config.getoption("--skip-db"):
-        pytest.skip("skipping due to --skip-db")
-
-    if "high_memory" in item.keywords and not item.config.getoption(
-        "--run-high-memory"
-    ):
-        pytest.skip("skipping high memory test since --run-high-memory was not set")
-
-
-def pytest_collection_modifyitems(items):
     for item in items:
         # mark all tests in the pandas/tests/frame directory with "arraymanager"
         if "/frame/" in item.nodeid:
             item.add_marker(pytest.mark.arraymanager)
-
         item.add_marker(suppress_npdev_promotion_warning)
+
+        for (mark, kwd, skip_if_found, arg_name) in marks:
+            if kwd in item.keywords:
+                # If we're skipping, no need to actually add the marker or look for
+                # other markers
+                if skip_if_found:
+                    item.add_marker(pytest.mark.skip(f"skipping due to {arg_name}"))
+                    break
+
+                item.add_marker(mark)
+
+        if only_slow and "slow" not in item.keywords:
+            item.add_marker(pytest.mark.skip("skipping due to --only-slow"))
+
+        if "high_memory" in item.keywords and not run_high_memory:
+            item.add_marker(
+                pytest.mark.skip(
+                    "skipping high memory test since --run-high-memory was not set"
+                )
+            )
 
 
 # Hypothesis
@@ -230,6 +243,14 @@ def keep(request):
     return request.param
 
 
+@pytest.fixture(params=["both", "neither", "left", "right"])
+def inclusive_endpoints_fixture(request):
+    """
+    Fixture for trying all interval 'inclusive' parameters.
+    """
+    return request.param
+
+
 @pytest.fixture(params=["left", "right", "both", "neither"])
 def closed(request):
     """
@@ -311,6 +332,19 @@ def unique_nulls_fixture(request):
 
 # Generate cartesian product of unique_nulls_fixture:
 unique_nulls_fixture2 = unique_nulls_fixture
+
+
+@pytest.fixture(params=tm.NP_NAT_OBJECTS, ids=lambda x: type(x).__name__)
+def np_nat_fixture(request):
+    """
+    Fixture for each NaT type in numpy.
+    """
+    return request.param
+
+
+# Generate cartesian product of np_nat_fixture:
+np_nat_fixture2 = np_nat_fixture
+
 
 # ----------------------------------------------------------------
 # Classes
@@ -961,17 +995,19 @@ def all_reductions(request):
     return request.param
 
 
-@pytest.fixture(params=["__eq__", "__ne__", "__le__", "__lt__", "__ge__", "__gt__"])
-def all_compare_operators(request):
+@pytest.fixture(
+    params=[
+        operator.eq,
+        operator.ne,
+        operator.gt,
+        operator.ge,
+        operator.lt,
+        operator.le,
+    ]
+)
+def comparison_op(request):
     """
-    Fixture for dunder names for common compare operations
-
-    * >=
-    * >
-    * ==
-    * !=
-    * <
-    * <=
+    Fixture for operator module comparison functions.
     """
     return request.param
 
@@ -1230,6 +1266,16 @@ def timedelta64_dtype(request):
     * 'm8[ns]'
     """
     return request.param
+
+
+@pytest.fixture
+def fixed_now_ts():
+    """
+    Fixture emits fixed Timestamp.now()
+    """
+    return Timestamp(
+        year=2021, month=1, day=1, hour=12, minute=4, second=13, microsecond=22
+    )
 
 
 @pytest.fixture(params=tm.FLOAT_NUMPY_DTYPES)
@@ -1620,6 +1666,11 @@ def fsspectest():
         ("foo", None, None),
         ("Egon", "Venkman", None),
         ("NCC1701D", "NCC1701D", "NCC1701D"),
+        # possibly-matching NAs
+        (np.nan, np.nan, np.nan),
+        (np.nan, pd.NaT, None),
+        (np.nan, pd.NA, None),
+        (pd.NA, pd.NA, pd.NA),
     ]
 )
 def names(request):

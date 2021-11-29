@@ -1,18 +1,17 @@
 """
 Collection of tests asserting things that should be true for
-any index subclass. Makes use of the `indices` fixture defined
-in pandas/tests/indexes/conftest.py.
+any index subclass except for MultiIndex. Makes use of the `index_flat`
+fixture defined in pandas/conftest.py.
 """
 import re
 
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import iNaT
 from pandas.compat import IS64
 
 from pandas.core.dtypes.common import (
-    is_period_dtype,
+    is_integer_dtype,
     needs_i8_conversion,
 )
 
@@ -30,6 +29,26 @@ import pandas._testing as tm
 
 
 class TestCommon:
+    @pytest.mark.parametrize("name", [None, "new_name"])
+    def test_to_frame(self, name, index_flat):
+        # see GH#15230, GH#22580
+        idx = index_flat
+
+        if name:
+            idx_name = name
+        else:
+            idx_name = idx.name or 0
+
+        df = idx.to_frame(name=idx_name)
+
+        assert df.index is idx
+        assert len(df.columns) == 1
+        assert df.columns[0] == idx_name
+        assert df[idx_name].values is not idx.values
+
+        df = idx.to_frame(index=False, name=idx_name)
+        assert df.index is not idx
+
     def test_droplevel(self, index):
         # GH 21115
         if isinstance(index, MultiIndex):
@@ -127,6 +146,46 @@ class TestCommon:
         new_copy = index.copy(deep=True, name="banana")
         assert new_copy.name == "banana"
 
+    def test_copy_name(self, index_flat):
+        # GH#12309: Check that the "name" argument
+        # passed at initialization is honored.
+        index = index_flat
+
+        first = type(index)(index, copy=True, name="mario")
+        second = type(first)(first, copy=False)
+
+        # Even though "copy=False", we want a new object.
+        assert first is not second
+        tm.assert_index_equal(first, second)
+
+        # Not using tm.assert_index_equal() since names differ.
+        assert index.equals(first)
+
+        assert first.name == "mario"
+        assert second.name == "mario"
+
+        # TODO: belongs in series arithmetic tests?
+        s1 = pd.Series(2, index=first)
+        s2 = pd.Series(3, index=second[:-1])
+        # See GH#13365
+        s3 = s1 * s2
+        assert s3.index.name == "mario"
+
+    def test_copy_name2(self, index_flat):
+        # GH#35592
+        index = index_flat
+        if isinstance(index, MultiIndex):
+            return
+
+        assert index.copy(name="mario").name == "mario"
+
+        with pytest.raises(ValueError, match="Length of new names must be 1, got 2"):
+            index.copy(name=["mario", "luigi"])
+
+        msg = f"{type(index).__name__}.name must be a hashable type"
+        with pytest.raises(TypeError, match=msg):
+            index.copy(name=[["mario"]])
+
     def test_unique_level(self, index_flat):
         # don't test a MultiIndex here (as its tested separated)
         index = index_flat
@@ -172,21 +231,10 @@ class TestCommon:
         if not index._can_hold_na:
             pytest.skip("Skip na-check if index cannot hold na")
 
-        if is_period_dtype(index.dtype):
-            vals = index[[0] * 5]._data
-            vals[0] = pd.NaT
-        elif needs_i8_conversion(index.dtype):
-            vals = index._data._ndarray[[0] * 5]
-            vals[0] = iNaT
-        else:
-            vals = index.values[[0] * 5]
-            vals[0] = np.nan
+        vals = index._values[[0] * 5]
+        vals[0] = np.nan
 
         vals_unique = vals[:2]
-        if index.dtype.kind in ["m", "M"]:
-            # i.e. needs_i8_conversion but not period_dtype, as above
-            vals = type(index._data)(vals, dtype=index.dtype)
-            vals_unique = type(index._data)._simple_new(vals_unique, dtype=index.dtype)
         idx_nan = index._shallow_copy(vals)
         idx_unique_nan = index._shallow_copy(vals_unique)
         assert idx_unique_nan.is_unique is True
@@ -344,6 +392,9 @@ class TestCommon:
         ):
             # This astype is deprecated in favor of tz_localize
             warn = FutureWarning
+        elif isinstance(index, PeriodIndex) and dtype == "datetime64[ns]":
+            # Deprecated in favor of to_timestamp GH#44398
+            warn = FutureWarning
         try:
             # Some of these conversions cannot succeed so we use a try / except
             with tm.assert_produces_warning(warn):
@@ -365,6 +416,33 @@ class TestCommon:
 
         with tm.assert_produces_warning(warn):
             index.asi8
+
+    def test_hasnans_isnans(self, index_flat):
+        # GH#11343, added tests for hasnans / isnans
+        index = index_flat
+
+        # cases in indices doesn't include NaN
+        idx = index.copy(deep=True)
+        expected = np.array([False] * len(idx), dtype=bool)
+        tm.assert_numpy_array_equal(idx._isnan, expected)
+        assert idx.hasnans is False
+
+        idx = index.copy(deep=True)
+        values = idx._values
+
+        if len(index) == 0:
+            return
+        elif isinstance(index, NumericIndex) and is_integer_dtype(index.dtype):
+            return
+
+        values[1] = np.nan
+
+        idx = type(index)(values)
+
+        expected = np.array([False] * len(idx), dtype=bool)
+        expected[1] = True
+        tm.assert_numpy_array_equal(idx._isnan, expected)
+        assert idx.hasnans is True
 
 
 @pytest.mark.parametrize("na_position", [None, "middle"])
