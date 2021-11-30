@@ -38,6 +38,7 @@ def test_value_counts(index_or_series_obj):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:.*append method is deprecated.*:FutureWarning")
 @pytest.mark.parametrize("null_obj", [np.nan, None])
 def test_value_counts_null(null_obj, index_or_series_obj):
     orig = index_or_series_obj
