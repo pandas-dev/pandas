@@ -1,9 +1,11 @@
 """Common utilities for Numba operations"""
-# pyright: reportUntypedFunctionDecorator = false
 from __future__ import annotations
 
 import types
-from typing import Callable
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+)
 
 import numpy as np
 
@@ -84,7 +86,10 @@ def jit_user_function(
     function
         Numba JITed function
     """
-    numba = import_optional_dependency("numba")
+    if TYPE_CHECKING:
+        import numba
+    else:
+        numba = import_optional_dependency("numba")
 
     if numba.extending.is_jitted(func):
         # Don't jit a user passed jitted function

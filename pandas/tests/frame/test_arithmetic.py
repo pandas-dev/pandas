@@ -668,6 +668,21 @@ class TestFrameFlexArithmetic:
         str(result)
         result.dtypes
 
+    @pytest.mark.parametrize("level", [0, None])
+    def test_broadcast_multiindex(self, level):
+        # GH34388
+        df1 = DataFrame({"A": [0, 1, 2], "B": [1, 2, 3]})
+        df1.columns = df1.columns.set_names("L1")
+
+        df2 = DataFrame({("A", "C"): [0, 0, 0], ("A", "D"): [0, 0, 0]})
+        df2.columns = df2.columns.set_names(["L1", "L2"])
+
+        result = df1.add(df2, level=level)
+        expected = DataFrame({("A", "C"): [0, 1, 2], ("A", "D"): [0, 1, 2]})
+        expected.columns = expected.columns.set_names(["L1", "L2"])
+
+        tm.assert_frame_equal(result, expected)
+
 
 class TestFrameArithmetic:
     def test_td64_op_nat_casting(self):
@@ -722,10 +737,15 @@ class TestFrameArithmetic:
         result = collike + df
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) decide on dtypes
-    def test_df_arith_2d_array_rowlike_broadcasts(self, all_arithmetic_operators):
+    def test_df_arith_2d_array_rowlike_broadcasts(
+        self, request, all_arithmetic_operators, using_array_manager
+    ):
         # GH#23000
         opname = all_arithmetic_operators
+
+        if using_array_manager and opname in ("__rmod__", "__rfloordiv__"):
+            # TODO(ArrayManager) decide on dtypes
+            td.mark_array_manager_not_yet_implemented(request)
 
         arr = np.arange(6).reshape(3, 2)
         df = DataFrame(arr, columns=[True, False], index=["A", "B", "C"])
@@ -744,10 +764,15 @@ class TestFrameArithmetic:
         result = getattr(df, opname)(rowlike)
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) decide on dtypes
-    def test_df_arith_2d_array_collike_broadcasts(self, all_arithmetic_operators):
+    def test_df_arith_2d_array_collike_broadcasts(
+        self, request, all_arithmetic_operators, using_array_manager
+    ):
         # GH#23000
         opname = all_arithmetic_operators
+
+        if using_array_manager and opname in ("__rmod__", "__rfloordiv__"):
+            # TODO(ArrayManager) decide on dtypes
+            td.mark_array_manager_not_yet_implemented(request)
 
         arr = np.arange(6).reshape(3, 2)
         df = DataFrame(arr, columns=[True, False], index=["A", "B", "C"])

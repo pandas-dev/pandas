@@ -525,4 +525,14 @@ class ParseDateComparison(StringIORewind):
         to_datetime(df["date"], cache=cache_dates, format="%d-%m-%Y")
 
 
+class ReadCSVIndexCol(StringIORewind):
+    def setup(self):
+        count_elem = 100_000
+        data = "a,b\n" + "1,2\n" * count_elem
+        self.StringIO_input = StringIO(data)
+
+    def time_read_csv_index_col(self):
+        read_csv(self.StringIO_input, index_col="a")
+
+
 from ..pandas_vb_common import setup  # noqa: F401 isort:skip

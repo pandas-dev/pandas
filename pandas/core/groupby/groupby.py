@@ -1931,7 +1931,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         2    4.0
         Name: B, dtype: float64
         """
-        numeric_only = self._resolve_numeric_only(numeric_only)
+        numeric_only_bool = self._resolve_numeric_only(numeric_only)
 
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_mean
@@ -1940,8 +1940,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         else:
             result = self._cython_agg_general(
                 "mean",
-                alt=lambda x: Series(x).mean(numeric_only=numeric_only),
-                numeric_only=numeric_only,
+                alt=lambda x: Series(x).mean(numeric_only=numeric_only_bool),
+                numeric_only=numeric_only_bool,
             )
             return result.__finalize__(self.obj, method="groupby")
 
@@ -1965,12 +1965,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
             Median of values within each group.
         """
-        numeric_only = self._resolve_numeric_only(numeric_only)
+        numeric_only_bool = self._resolve_numeric_only(numeric_only)
 
         result = self._cython_agg_general(
             "median",
-            alt=lambda x: Series(x).median(numeric_only=numeric_only),
-            numeric_only=numeric_only,
+            alt=lambda x: Series(x).median(numeric_only=numeric_only_bool),
+            numeric_only=numeric_only_bool,
         )
         return result.__finalize__(self.obj, method="groupby")
 
@@ -2082,7 +2082,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             result = self._obj_1d_constructor(result)
 
         if not self.as_index:
-            result = result.rename("size").reset_index()
+            # Item "None" of "Optional[Series]" has no attribute "reset_index"
+            result = result.rename("size").reset_index()  # type: ignore[union-attr]
 
         return self._reindex_output(result, fill_value=0)
 
@@ -3587,10 +3588,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             sampling probabilities after normalization within each group.
             Values must be non-negative with at least one positive element
             within each group.
-        random_state : int, array-like, BitGenerator, np.random.RandomState,
-            np.random.Generator, optional. If int, array-like, or BitGenerator, seed for
-            random number generator. If np.random.RandomState or np.random.Generator,
-            use as given.
+        random_state : int, array-like, BitGenerator, np.random.RandomState, np.random.Generator, optional
+            If int, array-like, or BitGenerator, seed for random number generator.
+            If np.random.RandomState or np.random.Generator, use as given.
 
             .. versionchanged:: 1.4.0
 
@@ -3650,7 +3650,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         5  black  5
         2   blue  2
         0    red  0
-        """
+        """  # noqa:E501
         size = sample.process_sampling_size(n, frac, replace)
         if weights is not None:
             weights_arr = sample.preprocess_weights(
