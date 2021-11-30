@@ -214,6 +214,7 @@ import pandas.plotting
 if TYPE_CHECKING:
 
     from pandas.core.groupby.generic import DataFrameGroupBy
+    from pandas.core.internals import SingleDataManager
     from pandas.core.resample import Resampler
 
     from pandas.io.formats.style import Styler
@@ -3430,8 +3431,8 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             label = self.columns[i]
 
-            values = self._mgr.iget(i)
-            result = self._box_col_values(values, i)
+            col_mgr = self._mgr.iget(i)
+            result = self._box_col_values(col_mgr, i)
 
             # this is a cached value, mark it so
             result._set_as_cached(label, self)
@@ -3894,7 +3895,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             self._mgr = self._mgr.reindex_axis(index_copy, axis=1, fill_value=np.nan)
 
-    def _box_col_values(self, values, loc: int) -> Series:
+    def _box_col_values(self, values: SingleDataManager, loc: int) -> Series:
         """
         Provide boxed values for a column.
         """
@@ -3919,8 +3920,8 @@ class DataFrame(NDFrame, OpsMixin):
             #  pending resolution of GH#33047
 
             loc = self.columns.get_loc(item)
-            values = self._mgr.iget(loc)
-            res = self._box_col_values(values, loc).__finalize__(self)
+            col_mgr = self._mgr.iget(loc)
+            res = self._box_col_values(col_mgr, loc).__finalize__(self)
 
             cache[item] = res
             res._set_as_cached(item, self)
