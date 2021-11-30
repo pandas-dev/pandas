@@ -1066,20 +1066,12 @@ class TestAlignment:
 # Slightly more complex ops
 
 
-@td.skip_if_no_ne
-class TestOperationsNumExprPandas:
-    exclude_arith: list[str] = []
-
-    engine = "numexpr"
-    parser = "pandas"
-
-    @classmethod
-    def setup_class(cls):
-        cls.arith_ops = [
-            op
-            for op in expr.ARITH_OPS_SYMS + expr.CMP_OPS_SYMS
-            if op not in cls.exclude_arith
-        ]
+class TestOperations:
+    @pytest.fixture(autouse=True)
+    def set_engine_parser_attrs(self, engine, parser):
+        # Older tests look for these as attributes, so we set them here.
+        self.engine = engine
+        self.parser = parser
 
     def eval(self, *args, **kwargs):
         kwargs["engine"] = self.engine
@@ -1088,7 +1080,17 @@ class TestOperationsNumExprPandas:
         return pd.eval(*args, **kwargs)
 
     def test_simple_arith_ops(self):
-        ops = (op for op in self.arith_ops if op != "//")
+        exclude_arith = []
+        if self.parser == "python":
+            exclude_arith = ["in", "not in"]
+
+        arith_ops = [
+            op
+            for op in expr.ARITH_OPS_SYMS + expr.CMP_OPS_SYMS
+            if op not in exclude_arith
+        ]
+
+        ops = (op for op in arith_ops if op != "//")
 
         for op in ops:
             ex = f"1 {op} 1"
@@ -1121,6 +1123,13 @@ class TestOperationsNumExprPandas:
     @pytest.mark.parametrize("op", expr.BOOL_OPS_SYMS)
     def test_simple_bool_ops(self, rhs, lhs, op):
         ex = f"{lhs} {op} {rhs}"
+
+        if self.parser == "python" and op in ["and", "or"]:
+            msg = "'BoolOp' nodes are not implemented"
+            with pytest.raises(NotImplementedError, match=msg):
+                self.eval(ex)
+            return
+
         res = self.eval(ex)
         exp = eval(ex)
         assert res == exp
@@ -1130,6 +1139,13 @@ class TestOperationsNumExprPandas:
     @pytest.mark.parametrize("op", expr.BOOL_OPS_SYMS)
     def test_bool_ops_with_constants(self, rhs, lhs, op):
         ex = f"{lhs} {op} {rhs}"
+
+        if self.parser == "python" and op in ["and", "or"]:
+            msg = "'BoolOp' nodes are not implemented"
+            with pytest.raises(NotImplementedError, match=msg):
+                self.eval(ex)
+            return
+
         res = self.eval(ex)
         exp = eval(ex)
         assert res == exp
@@ -1567,14 +1583,6 @@ class TestOperationsNumExprPandas:
                     "[3] not in (1, 2, [[3]])", engine=self.engine, parser=self.parser
                 )
 
-
-@td.skip_if_no_ne
-class TestOperationsNumExprPython(TestOperationsNumExprPandas):
-    exclude_arith: list[str] = ["in", "not in"]
-
-    engine = "numexpr"
-    parser = "python"
-
     def test_check_many_exprs(self):
         a = 1  # noqa:F841
         expr = " * ".join("a" * 33)
@@ -1582,98 +1590,56 @@ class TestOperationsNumExprPython(TestOperationsNumExprPandas):
         res = pd.eval(expr, engine=self.engine, parser=self.parser)
         assert res == expected
 
-    def test_fails_and(self):
+    @pytest.mark.parametrize(
+        "expr",
+        [
+            "df > 2 and df > 3",
+            "df > 2 or df > 3",
+            "not df > 2",
+        ],
+    )
+    def test_fails_and_or_not(self, expr):
         df = DataFrame(np.random.randn(5, 3))
-        msg = "'BoolOp' nodes are not implemented"
-        with pytest.raises(NotImplementedError, match=msg):
+        if self.parser == "python":
+            msg = "'BoolOp' nodes are not implemented"
+            if "not" in expr:
+                msg = "'Not' nodes are not implemented"
+
+            with pytest.raises(NotImplementedError, match=msg):
+                pd.eval(
+                    expr,
+                    local_dict={"df": df},
+                    parser=self.parser,
+                    engine=self.engine,
+                )
+        else:
+            # smoke-test, should not raise
             pd.eval(
-                "df > 2 and df > 3",
+                expr,
                 local_dict={"df": df},
                 parser=self.parser,
                 engine=self.engine,
             )
 
-    def test_fails_or(self):
-        df = DataFrame(np.random.randn(5, 3))
-        msg = "'BoolOp' nodes are not implemented"
-        with pytest.raises(NotImplementedError, match=msg):
-            pd.eval(
-                "df > 2 or df > 3",
-                local_dict={"df": df},
-                parser=self.parser,
-                engine=self.engine,
-            )
-
-    def test_fails_not(self):
-        df = DataFrame(np.random.randn(5, 3))
-        msg = "'Not' nodes are not implemented"
-        with pytest.raises(NotImplementedError, match=msg):
-            pd.eval(
-                "not df > 2",
-                local_dict={"df": df},
-                parser=self.parser,
-                engine=self.engine,
-            )
-
-    def test_fails_ampersand(self):
+    @pytest.mark.parametrize("char", ["|", "&"])
+    def test_fails_ampersand_pipe(self, char):
         df = DataFrame(np.random.randn(5, 3))  # noqa:F841
-        ex = "(df + 2)[df > 1] > 0 & (df > 0)"
-        msg = "cannot evaluate scalar only bool ops"
-        with pytest.raises(NotImplementedError, match=msg):
+        ex = f"(df + 2)[df > 1] > 0 {char} (df > 0)"
+        if self.parser == "python":
+            msg = "cannot evaluate scalar only bool ops"
+            with pytest.raises(NotImplementedError, match=msg):
+                pd.eval(ex, parser=self.parser, engine=self.engine)
+        else:
+            # smoke-test, should not raise
             pd.eval(ex, parser=self.parser, engine=self.engine)
 
-    def test_fails_pipe(self):
-        df = DataFrame(np.random.randn(5, 3))  # noqa:F841
-        ex = "(df + 2)[df > 1] > 0 | (df > 0)"
-        msg = "cannot evaluate scalar only bool ops"
-        with pytest.raises(NotImplementedError, match=msg):
-            pd.eval(ex, parser=self.parser, engine=self.engine)
 
-    @pytest.mark.parametrize("rhs", [True, False])
-    @pytest.mark.parametrize("lhs", [True, False])
-    @pytest.mark.parametrize("op", expr.BOOL_OPS_SYMS)
-    def test_bool_ops_with_constants(self, lhs, rhs, op):
-        ex = f"{lhs} {op} {rhs}"
-        if op in ("and", "or"):
-            msg = "'BoolOp' nodes are not implemented"
-            with pytest.raises(NotImplementedError, match=msg):
-                self.eval(ex)
-        else:
-            res = self.eval(ex)
-            exp = eval(ex)
-            assert res == exp
-
-    @pytest.mark.parametrize("rhs", [True, False])
-    @pytest.mark.parametrize("lhs", [True, False])
-    @pytest.mark.parametrize("op", expr.BOOL_OPS_SYMS)
-    def test_simple_bool_ops(self, lhs, rhs, op):
-        ex = f"lhs {op} rhs"
-        if op in ("and", "or"):
-            msg = "'BoolOp' nodes are not implemented"
-            with pytest.raises(NotImplementedError, match=msg):
-                pd.eval(ex, engine=self.engine, parser=self.parser)
-        else:
-            res = pd.eval(ex, engine=self.engine, parser=self.parser)
-            exp = eval(ex)
-            assert res == exp
-
-
-class TestOperationsPythonPython(TestOperationsNumExprPython):
-    engine = "python"
-    parser = "python"
-
-
-class TestOperationsPythonPandas(TestOperationsNumExprPandas):
-    exclude_arith: list[str] = []
-
-    engine = "python"
-    parser = "pandas"
-
-
-@td.skip_if_no_ne
-class TestMathPythonPython:
-    engine = "python"
-    parser = "pandas"
+class TestMath:
+    @pytest.fixture(autouse=True)
+    def set_engine_parser_attrs(self, engine, parser):
+        # Older tests look for these as attributes, so we set them here.
+        self.engine = engine
+        self.parser = parser
 
     def eval(self, *args, **kwargs):
         kwargs["engine"] = self.engine
@@ -1762,21 +1728,6 @@ class TestMathPythonPython:
 
         with pytest.raises(TypeError, match=msg):
             df.eval("sin(x=a)", engine=self.engine, parser=self.parser)
-
-
-class TestMathPythonPandas(TestMathPythonPython):
-    engine = "python"
-    parser = "pandas"
-
-
-class TestMathNumExprPandas(TestMathPythonPython):
-    engine = "numexpr"
-    parser = "pandas"
-
-
-class TestMathNumExprPython(TestMathPythonPython):
-    engine = "numexpr"
-    parser = "python"
 
 
 _var_s = np.random.randn(10)
