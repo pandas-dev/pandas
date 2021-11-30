@@ -656,7 +656,6 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             Index,
             Series,
         )
-        from pandas.arrays import IntegerArray
 
         # compute counts on the data with no nans
         data = self._data[~self._mask]
@@ -679,9 +678,6 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 np.concatenate([index, np.array([self.dtype.na_value], dtype=object)]),
                 dtype=object,
             )
-
-        mask = np.zeros(len(counts), dtype="bool")
-        counts = IntegerArray(counts, mask)
 
         return Series(counts, index=index)
 

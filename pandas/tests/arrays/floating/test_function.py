@@ -97,11 +97,11 @@ def test_stat_method(pandasmethname, kwargs):
 def test_value_counts_na():
     arr = pd.array([0.1, 0.2, 0.1, pd.NA], dtype="Float64")
     result = arr.value_counts(dropna=False)
-    expected = pd.Series([2, 1, 1], index=[0.1, 0.2, pd.NA], dtype="Int64")
+    expected = pd.Series([2, 1, 1], index=[0.1, 0.2, pd.NA])
     tm.assert_series_equal(result, expected)
 
     result = arr.value_counts(dropna=True)
-    expected = pd.Series([2, 1], index=[0.1, 0.2], dtype="Int64")
+    expected = pd.Series([2, 1], index=[0.1, 0.2])
     tm.assert_series_equal(result, expected)
 
 
@@ -109,14 +109,14 @@ def test_value_counts_empty():
     ser = pd.Series([], dtype="Float64")
     result = ser.value_counts()
     idx = pd.Index([], dtype="object")
-    expected = pd.Series([], index=idx, dtype="Int64")
+    expected = pd.Series([], index=idx, dtype="int64")
     tm.assert_series_equal(result, expected)
 
 
 def test_value_counts_with_normalize():
     ser = pd.Series([0.1, 0.2, 0.1, pd.NA], dtype="Float64")
     result = ser.value_counts(normalize=True)
-    expected = pd.Series([2, 1], index=[0.1, 0.2], dtype="Float64") / 3
+    expected = pd.Series([2, 1], index=[0.1, 0.2]) / 3
     tm.assert_series_equal(result, expected)
 
 

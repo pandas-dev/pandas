@@ -148,9 +148,6 @@ class TestMethods(base.BaseMethodsTests):
 
         tm.assert_series_equal(result, expected)
 
-    def test_value_counts_with_normalize(self, data):
-        return super().test_value_counts_with_normalize(data)
-
 
 class TestCasting(base.BaseCastingTests):
     pass

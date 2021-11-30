@@ -622,7 +622,7 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
         # Index cannot hold ExtensionArrays yet
         index = Index(type(self)(values)).astype(object)
 
-        return Series(counts, index=index).astype("Int64")
+        return Series(counts, index=index)
 
     def astype(self, dtype, copy=True):
         dtype = pandas_dtype(dtype)
