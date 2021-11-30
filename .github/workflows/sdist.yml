@@ -26,7 +26,7 @@ jobs:
         python-version: ["3.8", "3.9", "3.10"]
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
-      group: ${{ github.ref == 'refs/heads/master' && github.run_number || github.ref }}-${{matrix.python-version}}-sdist
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{matrix.python-version}}-sdist
       cancel-in-progress: true
 
     steps:
