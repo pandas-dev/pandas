@@ -222,10 +222,13 @@ class TestAstype:
         # in the keys of the dtype dict
         dt4 = dtype_class({"b": str, 2: str})
         dt5 = dtype_class({"e": str})
-        msg = "Only a column name can be used for the key in a dtype mappings argument"
-        with pytest.raises(KeyError, match=msg):
+        msg_frame = (
+            "Only a column name can be used for the key in a dtype mappings argument. "
+            "'{}' not found in columns."
+        )
+        with pytest.raises(KeyError, match=msg_frame.format(2)):
             df.astype(dt4)
-        with pytest.raises(KeyError, match=msg):
+        with pytest.raises(KeyError, match=msg_frame.format("e")):
             df.astype(dt5)
         tm.assert_frame_equal(df, original)
 

@@ -19,7 +19,6 @@ from typing import (
     IO,
     TYPE_CHECKING,
     Any,
-    AnyStr,
     Callable,
     Hashable,
     Iterable,
@@ -51,11 +50,12 @@ from pandas._typing import (
     ColspaceArgType,
     ColspaceType,
     CompressionOptions,
-    FilePathOrBuffer,
+    FilePath,
     FloatFormatType,
     FormattersType,
     IndexLabel,
     StorageOptions,
+    WriteBuffer,
 )
 
 from pandas.core.dtypes.common import (
@@ -1021,7 +1021,7 @@ class DataFrameRenderer:
 
     def to_latex(
         self,
-        buf: FilePathOrBuffer[str] | None = None,
+        buf: FilePath | WriteBuffer[str] | None = None,
         column_format: str | None = None,
         longtable: bool = False,
         encoding: str | None = None,
@@ -1053,7 +1053,7 @@ class DataFrameRenderer:
 
     def to_html(
         self,
-        buf: FilePathOrBuffer[str] | None = None,
+        buf: FilePath | WriteBuffer[str] | None = None,
         encoding: str | None = None,
         classes: str | list | tuple | None = None,
         notebook: bool = False,
@@ -1066,8 +1066,10 @@ class DataFrameRenderer:
 
         Parameters
         ----------
-        buf : str, Path or StringIO-like, optional, default None
-            Buffer to write to. If None, the output is returned as a string.
+        buf : str, path object, file-like object, or None, default None
+            String, path object (implementing ``os.PathLike[str]``), or file-like
+            object implementing a string ``write()`` function. If None, the result is
+            returned as a string.
         encoding : str, default “utf-8”
             Set character encoding.
         classes : str or list-like
@@ -1102,7 +1104,7 @@ class DataFrameRenderer:
 
     def to_string(
         self,
-        buf: FilePathOrBuffer[str] | None = None,
+        buf: FilePath | WriteBuffer[str] | None = None,
         encoding: str | None = None,
         line_width: int | None = None,
     ) -> str | None:
@@ -1111,8 +1113,10 @@ class DataFrameRenderer:
 
         Parameters
         ----------
-        buf : str, Path or StringIO-like, optional, default None
-            Buffer to write to. If None, the output is returned as a string.
+        buf : str, path object, file-like object, or None, default None
+            String, path object (implementing ``os.PathLike[str]``), or file-like
+            object implementing a string ``write()`` function. If None, the result is
+            returned as a string.
         encoding: str, default “utf-8”
             Set character encoding.
         line_width : int, optional
@@ -1126,7 +1130,7 @@ class DataFrameRenderer:
 
     def to_csv(
         self,
-        path_or_buf: FilePathOrBuffer[AnyStr] | None = None,
+        path_or_buf: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
         encoding: str | None = None,
         sep: str = ",",
         columns: Sequence[Hashable] | None = None,
@@ -1186,7 +1190,7 @@ class DataFrameRenderer:
 
 def save_to_buffer(
     string: str,
-    buf: FilePathOrBuffer[str] | None = None,
+    buf: FilePath | WriteBuffer[str] | None = None,
     encoding: str | None = None,
 ) -> str | None:
     """
@@ -1200,7 +1204,7 @@ def save_to_buffer(
 
 
 @contextmanager
-def get_buffer(buf: FilePathOrBuffer[str] | None, encoding: str | None = None):
+def get_buffer(buf: FilePath | WriteBuffer[str] | None, encoding: str | None = None):
     """
     Context manager to open, yield and close buffer for filenames or Path-like
     objects, otherwise yield buf unchanged.
@@ -2142,7 +2146,7 @@ def get_level_lengths(
     return result
 
 
-def buffer_put_lines(buf: IO[str], lines: list[str]) -> None:
+def buffer_put_lines(buf: WriteBuffer[str], lines: list[str]) -> None:
     """
     Appends lines to a buffer.
 
