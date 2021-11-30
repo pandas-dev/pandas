@@ -288,6 +288,7 @@ class GroupByNthSelector:
     """
     Dynamically substituted for GroupBy.nth to enable both call and index
     """
+
     def __init__(self, groupby_object: groupby.GroupBy):
         self.groupby_object = groupby_object
 
