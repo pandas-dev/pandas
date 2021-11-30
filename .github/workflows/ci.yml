@@ -12,7 +12,7 @@ on:
 
 env:
   ENV_FILE: environment.yml
-  PANDAS_CI: 0
+  PANDAS_CI: 1
 
 jobs:
   checks:
