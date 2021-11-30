@@ -2685,6 +2685,18 @@ def test_loc_with_period_index_indexer():
     tm.assert_frame_equal(df, df.loc[list(idx)])
 
 
+def test_loc_setitem_multiindex_timestamp():
+    # GH#13831
+    vals = np.random.randn(8, 6)
+    idx = date_range("1/1/2000", periods=8)
+    cols = ["A", "B", "C", "D", "E", "F"]
+    df_mt = DataFrame(vals, index=idx, columns=cols)
+    df_mt.loc[df_mt.index[1], ("A", "B")] = np.nan
+    vals[1][0:2] = np.nan
+    res = DataFrame(vals, index=idx, columns=cols)
+    tm.assert_frame_equal(res, df_mt)
+
+
 def test_loc_getitem_multiindex_tuple_level():
     # GH#27591
     lev1 = ["a", "b", "c"]
@@ -2715,15 +2727,18 @@ def test_loc_getitem_multiindex_tuple_level():
     assert result2 == 6
 
 
-def test_loc_setitem_indexer_length():
+@pytest.mark.parametrize(
+    "ser, keys",
+    [(Series([10]), (0, 0)), (Series([1, 2, 3], index=list("abc")), (0, 1))],
+)
+def test_loc_setitem_indexer_length(ser, keys):
     # GH#13831
-    ser = Series([10])
     msg = "Too many indexers"
     with pytest.raises(IndexingError, match=msg):
-        ser.loc[0, 0] = 1000
+        ser.loc[keys] = 1000
 
     with pytest.raises(IndexingError, match=msg):
-        ser.loc[0, 0]
+        ser.loc[keys]
 
 
 class TestLocSeries:

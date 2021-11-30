@@ -1231,10 +1231,13 @@ class _LocIndexer(_LocationIndexer):
         is_int_index = labels.is_integer()
         is_int_positional = is_integer(key) and not is_int_index
 
-        if isinstance(key, tuple) and not isinstance(labels, MultiIndex):
-            if len(key) > 1:
-                raise IndexingError("Too many indexers")
-            key = key[0]
+        if (
+            isinstance(key, tuple)
+            and not isinstance(labels, MultiIndex)
+            and self.ndim < 2
+            and len(key) > 1
+        ):
+            raise IndexingError("Too many indexers")
 
         if is_scalar(key) or (isinstance(labels, MultiIndex) and is_hashable(key)):
             # Otherwise get_loc will raise InvalidIndexError

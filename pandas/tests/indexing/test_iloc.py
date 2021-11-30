@@ -1189,14 +1189,17 @@ class TestILocErrors:
             # GH#32257 we let numpy do validation, get their exception
             float_frame.iloc[:, :, :] = 1
 
-    def test_iloc_setitem_indexer_length(self):
+    @pytest.mark.parametrize(
+        "ser, keys",
+        [(Series([10]), (0, 0)), (Series([1, 2, 3], index=list("abc")), (0, 1))],
+    )
+    def test_iloc_setitem_indexer_length(self, ser, keys):
         # GH#13831
-        ser = Series([10])
         with pytest.raises(IndexError, match="too many indices for array"):
-            ser.iloc[0, 0] = 1000
+            ser.iloc[keys] = 1000
 
         with pytest.raises(IndexingError, match="Too many indexers"):
-            ser.iloc[0, 0]
+            ser.iloc[keys]
 
     # TODO(ArrayManager) "split" path doesn't properly implement DataFrame indexer
     @td.skip_array_manager_not_yet_implemented
