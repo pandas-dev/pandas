@@ -33,7 +33,7 @@ class TestSAS7BDAT:
             for k in range(df.shape[1]):
                 col = df.iloc[:, k]
                 if col.dtype == np.int64:
-                    df.iloc[:, k] = df.iloc[:, k].astype(np.float64)
+                    df[df.columns[k]] = df.iloc[:, k].astype(np.float64)
             self.data.append(df)
 
     @pytest.mark.slow
