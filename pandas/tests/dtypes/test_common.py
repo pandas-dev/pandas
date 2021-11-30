@@ -416,6 +416,7 @@ def test_is_not_unsigned_integer_dtype(dtype):
     ],
 )
 def test_all_type_comparison_with_true_result(dtype):
+    # GH#43038
     assert pandas_dtype(dtype) == dtype
 
 
@@ -431,6 +432,7 @@ def test_all_type_comparison_with_true_result(dtype):
     ],
 )
 def test_all_type_comparison_with_false_result(dtype, expected):
+    # GH#43038
     assert not pandas_dtype(dtype) == expected
 
 
