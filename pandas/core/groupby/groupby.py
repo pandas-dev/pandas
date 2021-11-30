@@ -906,7 +906,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
     def __getattribute__(self, attr):
-        # Intercept nth to allow indexing
+        # Intercept nth to allow both call and index
         if attr == "nth":
             return GroupByNthSelector(self)
         elif attr == "nth_actual":
@@ -2536,6 +2536,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Take the nth row from each group if n is an int, otherwise a subset of rows.
 
+        Can be either a call or an index. dropna is not available with index notation.
+        Index notation accepts a comma separated list of integers and slices.
+
         If dropna, will take the nth non-null row, dropna is either
         'all' or 'any'; this is equivalent to calling dropna(how=dropna)
         before the groupby.
@@ -2547,6 +2550,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             .. versionchanged:: 1.4.0
                 Added slice and lists containiing slices.
+                Added index notation.
 
         dropna : {'any', 'all', None}, default None
             Apply the specified dropna operation before counting which row is
@@ -2586,6 +2590,22 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         2  3.0
         2  5.0
         >>> g.nth(slice(None, -1))
+             B
+        A
+        1  NaN
+        1  2.0
+        2  3.0
+
+        Index notation may also be used
+
+        >>> g.nth[0, 1]
+             B
+        A
+        1  NaN
+        1  2.0
+        2  3.0
+        2  5.0
+        >>> g.nth[:-1]
              B
         A
         1  NaN

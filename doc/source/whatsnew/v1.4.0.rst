@@ -164,6 +164,14 @@ Previously, negative arguments returned empty frames.
     df.groupby("A").nth(slice(1, -1))
     df.groupby("A").nth([slice(None, 1), slice(-1, None)])
 
+:meth:`.GroupBy.nth` now accepts index notation.
+
+.. ipython:: python
+
+    df.groupby("A").nth[1, -1]
+    df.groupby("A").nth[1:-1]
+    df.groupby("A").nth[:1, -1:]
+
 .. _whatsnew_140.dict_tight:
 
 DataFrame.from_dict and DataFrame.to_dict have new ``'tight'`` option
