@@ -40,6 +40,7 @@ from pandas.core.dtypes.cast import (
     can_hold_element,
     find_common_type,
     infer_dtype_from,
+    maybe_downcast_numeric,
     maybe_downcast_to_dtype,
     maybe_upcast,
     soft_convert_objects,
@@ -1229,10 +1230,29 @@ class Block(PandasObject):
                 # Note: expressions.where may upcast.
                 result = expressions.where(~icond, values, other)
 
-        if transpose:
-            result = result.T
+        if self._can_hold_na or self.ndim == 1:
 
-        return [self.make_block(result)]
+            if transpose:
+                result = result.T
+
+            return [self.make_block(result)]
+
+        # might need to separate out blocks
+        cond = ~icond
+        axis = cond.ndim - 1
+        cond = cond.swapaxes(axis, 0)
+        mask = cond.all(axis=1)
+
+        result_blocks: list[Block] = []
+        for m in [mask, ~mask]:
+            if m.any():
+                result = cast(np.ndarray, result)  # EABlock overrides where
+                taken = result.take(m.nonzero()[0], axis=axis)
+                r = maybe_downcast_numeric(taken, self.dtype)
+                nb = self.make_block(r.T, placement=self._mgr_locs[m])
+                result_blocks.append(nb)
+
+        return result_blocks
 
     def _unstack(
         self,
