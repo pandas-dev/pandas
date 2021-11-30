@@ -219,6 +219,7 @@ class TestConcatenate:
         with pytest.raises(ValueError, match=msg):
             concat([df, df2], keys=["one", "two"], levels=[["foo", "bar", "baz"]])
 
+    @pytest.mark.filterwarnings("ignore:.*append method is deprecated.*:FutureWarning")
     def test_crossed_dtypes_weird_corner(self):
         columns = ["A", "B", "C", "D"]
         df1 = DataFrame(

@@ -80,6 +80,7 @@ def test_getitem_setitem_ellipsis():
     assert (result == 5).all()
 
 
+@pytest.mark.filterwarnings("ignore:.*append method is deprecated.*:FutureWarning")
 @pytest.mark.parametrize(
     "result_1, duplicate_item, expected_1",
     [
@@ -153,6 +154,7 @@ def test_getitem_dups_with_missing(indexer_sl):
         indexer_sl(ser)[["foo", "bar", "bah", "bam"]]
 
 
+@pytest.mark.filterwarnings("ignore:.*append method is deprecated.*:FutureWarning")
 def test_setitem_ambiguous_keyerror(indexer_sl):
     s = Series(range(10), index=list(range(0, 20, 2)))
 

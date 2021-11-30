@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
@@ -184,6 +185,7 @@ class TestCategoricalConcat:
         )
         tm.assert_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:.*append method is deprecated.*:FutureWarning")
     def test_categorical_concat_gh7864(self):
         # GH 7864
         # make sure ordering is preserved

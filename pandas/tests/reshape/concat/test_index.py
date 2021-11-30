@@ -141,6 +141,7 @@ class TestIndexConcat:
         exp = DataFrame([[1, 5, 3, 7], [2, 6, 4, 8]])
         tm.assert_frame_equal(res, exp, check_index_type=True, check_column_type=True)
 
+    @pytest.mark.filterwarnings("ignore:.*append method is deprecated.*:FutureWarning")
     def test_dups_index(self):
         # GH 4771
 

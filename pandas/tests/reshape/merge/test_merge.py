@@ -682,6 +682,7 @@ class TestMerge:
 
         assert isinstance(result, NotADataFrame)
 
+    @pytest.mark.filterwarnings("ignore:.*append method is deprecated.*:FutureWarning")
     def test_join_append_timedeltas(self):
         # timedelta64 issues with join/merge
         # GH 5695
@@ -1098,6 +1099,7 @@ class TestMerge:
         test5 = df3.merge(df4, on=["col1", "col2"], how="outer", indicator=True)
         tm.assert_frame_equal(test5, hand_coded_result)
 
+    @pytest.mark.filterwarnings("ignore:.*append method is deprecated.*:FutureWarning")
     def test_validation(self):
         left = DataFrame(
             {"a": ["a", "b", "c", "d"], "b": ["cat", "dog", "weasel", "horse"]},
