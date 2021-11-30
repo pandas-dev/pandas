@@ -393,7 +393,7 @@ def test_is_not_unsigned_integer_dtype(dtype):
 
 
 @pytest.mark.parametrize(
-    "dtype1,dtype2",
+    "dtype,expected",
     [
         ("int_", "int_"),
         ("int8", "int8"),
@@ -415,12 +415,12 @@ def test_is_not_unsigned_integer_dtype(dtype):
         ("Float64", "Float64"),
     ],
 )
-def test_all_type_comparison_with_true_result(dtype1, dtype2):
-    assert pandas_dtype(dtype1) == dtype2
+def test_all_type_comparison_with_true_result(dtype, expected):
+    assert pandas_dtype(dtype) == expected
 
 
 @pytest.mark.parametrize(
-    "dtype1,dtype2",
+    "dtype,expected",
     [
         ("Int8", "int8"),
         ("Int16", "int16"),
@@ -430,8 +430,8 @@ def test_all_type_comparison_with_true_result(dtype1, dtype2):
         ("Float64", "float64"),
     ],
 )
-def test_all_type_comparison_with_false_result(dtype1, dtype2):
-    assert not pandas_dtype(dtype1) == dtype2
+def test_all_type_comparison_with_false_result(dtype, expected):
+    assert not pandas_dtype(dtype) == expected
 
 
 @pytest.mark.parametrize(
