@@ -197,14 +197,12 @@ class TestEmptyConcat:
         result = concat(
             [Series(dtype="float64").astype("Sparse"), Series(dtype="float64")]
         )
-        # TODO(TomAugspurger#22325): release-note: concat sparse dtype
         expected = pd.SparseDtype(np.float64)
         assert result.dtype == expected
 
         result = concat(
             [Series(dtype="float64").astype("Sparse"), Series(dtype="object")]
         )
-        # TODO(TomAugspurger#22325): release-note: concat sparse dtype
         expected = pd.SparseDtype("object")
         assert result.dtype == expected
 
