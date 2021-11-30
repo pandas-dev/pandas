@@ -24,7 +24,7 @@ jobs:
 
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
-      group: ${{ github.ref == 'refs/heads/master' && github.run_number || github.ref }}-checks
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-checks
       cancel-in-progress: true
 
     steps:
