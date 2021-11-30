@@ -719,9 +719,10 @@ class TestAstype:
         df = DataFrame({"a": [0, 1, 2], "b": [3, 4, 5]})
         df.attrs["Location"] = "Michigan"
 
-        df2 = df.astype({"a": float})
+        result = df.astype({"a": float}).attrs
+        expected = df.attrs
 
-        tm.assert_dict_equal(df.attrs, df2.attrs)
+        tm.assert_dict_equal(expected, result)
 
 
 class TestAstypeCategorical:
