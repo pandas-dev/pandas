@@ -5,7 +5,7 @@ import pytest
 
 import pandas as pd
 from pandas.api.extensions import ExtensionArray
-from pandas.core.internals import EABackedBlock
+from pandas.core.internals.blocks import EABackedBlock
 from pandas.tests.extension.base.base import BaseExtensionTests
 
 
