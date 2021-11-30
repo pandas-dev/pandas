@@ -726,6 +726,15 @@ def test_slice(slice_test_df, slice_test_grouped, arg, expected_rows):
     tm.assert_frame_equal(result, expected)
 
 
+def test_nth_indexed(slice_test_df, slice_test_grouped):
+    # Test index notation     GH  #44688
+
+    result = slice_test_grouped.nth[0, 1, -2:]
+    expected = slice_test_df.iloc[[0, 1, 2, 3, 4, 6, 7]]
+
+    tm.assert_frame_equal(result, expected)
+
+
 def test_invalid_argument(slice_test_grouped):
     # Test for error on invalid argument
 
