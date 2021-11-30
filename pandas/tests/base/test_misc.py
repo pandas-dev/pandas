@@ -15,7 +15,6 @@ from pandas.core.dtypes.common import (
 
 import pandas as pd
 from pandas import (
-    DataFrame,
     Index,
     Series,
 )
@@ -33,10 +32,11 @@ from pandas import (
         ("floordiv", "//"),
     ],
 )
-@pytest.mark.parametrize("klass", [Series, DataFrame])
-def test_binary_ops_docstring(klass, op_name, op):
+def test_binary_ops_docstring(frame_or_series, op_name, op):
     # not using the all_arithmetic_functions fixture with _get_opstr
     # as _get_opstr is used internally in the dynamic implementation of the docstring
+    klass = frame_or_series
+
     operand1 = klass.__name__.lower()
     operand2 = "other"
     expected_str = " ".join([operand1, op, operand2])
@@ -134,12 +134,11 @@ def test_searchsorted(index_or_series_obj):
     assert 0 <= index <= len(obj)
 
 
-def test_access_by_position(index):
+def test_access_by_position(index_flat):
+    index = index_flat
 
     if len(index) == 0:
         pytest.skip("Test doesn't make sense on empty data")
-    elif isinstance(index, pd.MultiIndex):
-        pytest.skip("Can't instantiate Series from MultiIndex")
 
     series = Series(index)
     assert index[0] == series.iloc[0]

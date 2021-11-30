@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from copy import copy
 import csv
 import datetime
 from enum import Enum
@@ -9,10 +10,13 @@ from typing import (
     Any,
     Callable,
     DefaultDict,
+    Hashable,
     Iterable,
+    Mapping,
     Sequence,
     cast,
     final,
+    overload,
 )
 import warnings
 
@@ -55,6 +59,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import isna
 
+from pandas import DataFrame
 from pandas.core import algorithms
 from pandas.core.arrays import Categorical
 from pandas.core.indexes.api import (
@@ -149,6 +154,8 @@ class ParserBase:
         self.na_filter = kwds.get("na_filter", False)
         self.keep_default_na = kwds.get("keep_default_na", True)
 
+        self.dtype = copy(kwds.get("dtype", None))
+
         self.true_values = kwds.get("true_values")
         self.false_values = kwds.get("false_values")
         self.mangle_dupe_cols = kwds.get("mangle_dupe_cols", True)
@@ -238,7 +245,7 @@ class ParserBase:
             errors=kwds.get("encoding_errors", "strict"),
         )
 
-    def _validate_parse_dates_presence(self, columns: list[str]) -> Iterable:
+    def _validate_parse_dates_presence(self, columns: Sequence[Hashable]) -> Iterable:
         """
         Check if parse_dates are in columns.
 
@@ -334,11 +341,24 @@ class ParserBase:
 
     @final
     def _extract_multi_indexer_columns(
-        self, header, index_names, passed_names: bool = False
+        self,
+        header,
+        index_names: list | None,
+        passed_names: bool = False,
     ):
         """
-        extract and return the names, index_names, col_names
-        header is a list-of-lists returned from the parsers
+        Extract and return the names, index_names, col_names if the column
+        names are a MultiIndex.
+
+        Parameters
+        ----------
+        header: list of lists
+            The header rows
+        index_names: list, optional
+            The names of the future index
+        passed_names: bool, default False
+            A flag specifying if names where passed
+
         """
         if len(header) < 2:
             return header[0], index_names, None, passed_names
@@ -397,7 +417,7 @@ class ParserBase:
         return names, index_names, col_names, passed_names
 
     @final
-    def _maybe_dedup_names(self, names):
+    def _maybe_dedup_names(self, names: Sequence[Hashable]) -> Sequence[Hashable]:
         # see gh-7160 and gh-9424: this helps to provide
         # immediate alleviation of the duplicate names
         # issue and appears to be satisfactory to users,
@@ -405,7 +425,7 @@ class ParserBase:
         # would be nice!
         if self.mangle_dupe_cols:
             names = list(names)  # so we can index
-            counts: DefaultDict[int | str | tuple, int] = defaultdict(int)
+            counts: DefaultDict[Hashable, int] = defaultdict(int)
             is_potential_mi = _is_potential_multi_index(names, self.index_col)
 
             for i, col in enumerate(names):
@@ -415,6 +435,8 @@ class ParserBase:
                     counts[col] = cur_count + 1
 
                     if is_potential_mi:
+                        # for mypy
+                        assert isinstance(col, tuple)
                         col = col[:-1] + (f"{col[-1]}.{cur_count}",)
                     else:
                         col = f"{col}.{cur_count}"
@@ -511,6 +533,19 @@ class ParserBase:
 
         return index
 
+    def _clean_mapping(self, mapping):
+        """converts col numbers to names"""
+        if not isinstance(mapping, dict):
+            return mapping
+        clean = {}
+        for col, v in mapping.items():
+            # for mypy
+            assert self.orig_names is not None
+            if isinstance(col, int) and col not in self.orig_names:
+                col = self.orig_names[col]
+            clean[col] = v
+        return clean
+
     @final
     def _agg_index(self, index, try_parse_dates: bool = True) -> Index:
         arrays = []
@@ -535,7 +570,17 @@ class ParserBase:
                         col_name, self.na_values, self.na_fvalues, self.keep_default_na
                     )
 
-            arr, _ = self._infer_types(arr, col_na_values | col_na_fvalues)
+            clean_dtypes = self._clean_mapping(self.dtype)
+
+            cast_type = None
+            if isinstance(clean_dtypes, dict) and self.index_names is not None:
+                cast_type = clean_dtypes.get(self.index_names[i], None)
+
+            try_num_bool = not (cast_type and is_string_dtype(cast_type))
+
+            arr, _ = self._infer_types(
+                arr, col_na_values | col_na_fvalues, try_num_bool
+            )
             arrays.append(arr)
 
         names = self.index_names
@@ -546,7 +591,7 @@ class ParserBase:
     @final
     def _convert_to_ndarrays(
         self,
-        dct: dict,
+        dct: Mapping,
         na_values,
         na_fvalues,
         verbose: bool = False,
@@ -638,7 +683,7 @@ class ParserBase:
 
     @final
     def _set_noconvert_dtype_columns(
-        self, col_indices: list[int], names: list[int | str | tuple]
+        self, col_indices: list[int], names: Sequence[Hashable]
     ) -> set[int]:
         """
         Set the columns that should not undergo dtype conversions.
@@ -822,7 +867,27 @@ class ParserBase:
                 ) from err
         return values
 
-    def _do_date_conversions(self, names, data):
+    @overload
+    def _do_date_conversions(
+        self,
+        names: Index,
+        data: DataFrame,
+    ) -> tuple[Sequence[Hashable] | Index, DataFrame]:
+        ...
+
+    @overload
+    def _do_date_conversions(
+        self,
+        names: Sequence[Hashable],
+        data: Mapping[Hashable, ArrayLike],
+    ) -> tuple[Sequence[Hashable], Mapping[Hashable, ArrayLike]]:
+        ...
+
+    def _do_date_conversions(
+        self,
+        names: Sequence[Hashable] | Index,
+        data: Mapping[Hashable, ArrayLike] | DataFrame,
+    ) -> tuple[Sequence[Hashable] | Index, Mapping[Hashable, ArrayLike] | DataFrame]:
         # returns data, columns
 
         if self.parse_dates is not None:
@@ -838,7 +903,11 @@ class ParserBase:
 
         return names, data
 
-    def _check_data_length(self, columns: list[str], data: list[ArrayLike]) -> None:
+    def _check_data_length(
+        self,
+        columns: Sequence[Hashable],
+        data: Sequence[ArrayLike],
+    ) -> None:
         """Checks if length of data is equal to length of column names.
 
         One set of trailing commas is allowed. self.index_col not False
@@ -1148,6 +1217,12 @@ def _process_date_conversion(
             )
 
             new_data[new_name] = col
+
+            # If original column can be converted to date we keep the converted values
+            # This can only happen if values are from single column
+            if len(colspec) == 1:
+                new_data[colspec[0]] = col
+
             new_cols.append(new_name)
             date_cols.update(old_names)
 
