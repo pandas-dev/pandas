@@ -55,6 +55,7 @@ from pandas.core.dtypes.missing import (
 )
 
 from pandas.core import (
+    arraylike,
     missing,
     nanops,
     ops,
@@ -65,6 +66,7 @@ from pandas.core.algorithms import (
     take,
 )
 from pandas.core.array_algos import masked_reductions
+from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
 from pandas.core.indexers import check_array_indexer
@@ -414,7 +416,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # For MaskedArray inputs, we apply the ufunc to ._data
         # and mask the result.
-        if method == "reduce":
+        if method == "reduce" and ufunc not in [np.maximum, np.minimum]:
             # Not clear how to handle missing values in reductions. Raise.
             raise NotImplementedError("The 'reduce' method is not supported.")
 
@@ -430,6 +432,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         )
         if result is not NotImplemented:
             return result
+
+        if method == "reduce":
+            result = arraylike.dispatch_reduction_ufunc(
+                self, ufunc, method, *inputs, **kwargs
+            )
+            if result is not NotImplemented:
+                return result
 
         mask = np.zeros(len(self), dtype=bool)
         inputs2 = []
@@ -691,6 +700,38 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         left = self._data[~self._mask]
         right = other._data[~other._mask]
         return array_equivalent(left, right, dtype_equal=True)
+
+    def _quantile(
+        self: BaseMaskedArrayT, qs: npt.NDArray[np.float64], interpolation: str
+    ) -> BaseMaskedArrayT:
+        """
+        Dispatch to quantile_with_mask, needed because we do not have
+        _from_factorized.
+
+        Notes
+        -----
+        We assume that all impacted cases are 1D-only.
+        """
+        mask = np.atleast_2d(np.asarray(self.isna()))
+        npvalues = np.atleast_2d(np.asarray(self))
+
+        res = quantile_with_mask(
+            npvalues,
+            mask=mask,
+            fill_value=self.dtype.na_value,
+            qs=qs,
+            interpolation=interpolation,
+        )
+        assert res.ndim == 2
+        assert res.shape[0] == 1
+        res = res[0]
+        try:
+            out = type(self)._from_sequence(res, dtype=self.dtype)
+        except TypeError:
+            # GH#42626: not able to safely cast Int64
+            # for floating point output
+            out = np.asarray(res, dtype=np.float64)
+        return out
 
     def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         if name in {"any", "all"}:
