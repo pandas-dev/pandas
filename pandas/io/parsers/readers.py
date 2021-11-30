@@ -7,7 +7,10 @@ from collections import abc
 import csv
 import sys
 from textwrap import fill
-from typing import Any
+from typing import (
+    Any,
+    NamedTuple,
+)
 import warnings
 
 import numpy as np
@@ -17,7 +20,8 @@ from pandas._libs.parsers import STR_NA_VALUES
 from pandas._typing import (
     ArrayLike,
     DtypeArg,
-    FilePathOrBuffer,
+    FilePath,
+    ReadCsvBuffer,
     StorageOptions,
 )
 from pandas.errors import (
@@ -445,10 +449,18 @@ _pyarrow_unsupported = {
     "low_memory",
 }
 
-_deprecated_defaults: dict[str, Any] = {
-    "error_bad_lines": None,
-    "warn_bad_lines": None,
-    "squeeze": None,
+
+class _DeprecationConfig(NamedTuple):
+    default_value: Any
+    msg: str | None
+
+
+_deprecated_defaults: dict[str, _DeprecationConfig] = {
+    "error_bad_lines": _DeprecationConfig(None, "Use on_bad_lines in the future."),
+    "warn_bad_lines": _DeprecationConfig(None, "Use on_bad_lines in the future."),
+    "squeeze": _DeprecationConfig(
+        None, 'Append .squeeze("columns") to the call to squeeze.'
+    ),
 }
 
 
@@ -505,11 +517,19 @@ def _validate_names(names):
             raise ValueError("Names should be an ordered collection.")
 
 
-def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
+def _read(
+    filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str], kwds
+):
     """Generic reader of line files."""
-    if kwds.get("date_parser", None) is not None:
-        if isinstance(kwds["parse_dates"], bool):
-            kwds["parse_dates"] = True
+    # if we pass a date_parser and parse_dates=False, we should not parse the
+    # dates GH#44366
+    if (
+        kwds.get("date_parser", None) is not None
+        and kwds.get("parse_dates", None) is None
+    ):
+        kwds["parse_dates"] = True
+    elif kwds.get("parse_dates", None) is None:
+        kwds["parse_dates"] = False
 
     # Extract some of the arguments (pass chunksize on).
     iterator = kwds.get("iterator", False)
@@ -554,7 +574,7 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
     )
 )
 def read_csv(
-    filepath_or_buffer: FilePathOrBuffer,
+    filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
     sep=lib.no_default,
     delimiter=None,
     # Column and Index Locations and Names
@@ -582,7 +602,7 @@ def read_csv(
     verbose=False,
     skip_blank_lines=True,
     # Datetime Handling
-    parse_dates=False,
+    parse_dates=None,
     infer_datetime_format=False,
     keep_date_col=False,
     date_parser=None,
@@ -652,7 +672,7 @@ def read_csv(
     )
 )
 def read_table(
-    filepath_or_buffer: FilePathOrBuffer,
+    filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
     sep=lib.no_default,
     delimiter=None,
     # Column and Index Locations and Names
@@ -739,7 +759,7 @@ def read_table(
 
 
 def read_fwf(
-    filepath_or_buffer: FilePathOrBuffer,
+    filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
     colspecs="infer",
     widths=None,
     infer_nrows=100,
@@ -756,18 +776,12 @@ def read_fwf(
 
     Parameters
     ----------
-    filepath_or_buffer : str, path object or file-like object
-        Any valid string path is acceptable. The string could be a URL. Valid
-        URL schemes include http, ftp, s3, and file. For file URLs, a host is
+    filepath_or_buffer : str, path object, or file-like object
+        String, path object (implementing ``os.PathLike[str]``), or file-like
+        object implementing a text ``read()`` function.The string could be a URL.
+        Valid URL schemes include http, ftp, s3, and file. For file URLs, a host is
         expected. A local file could be:
         ``file://localhost/path/to/table.csv``.
-
-        If you want to pass in a path object, pandas accepts any
-        ``os.PathLike``.
-
-        By file-like object, we refer to objects with a ``read()`` method,
-        such as a file handle (e.g. via builtin ``open`` function)
-        or ``StringIO``.
     colspecs : list of tuple (int, int) or 'infer'. optional
         A list of tuples giving the extents of the fixed-width
         fields of each line as half-open intervals (i.e.,  [from, to[ ).
@@ -923,7 +937,12 @@ class TextFileReader(abc.Iterator):
                 if engine != "c" and value != default:
                     if "python" in engine and argname not in _python_unsupported:
                         pass
-                    elif value == _deprecated_defaults.get(argname, default):
+                    elif (
+                        value
+                        == _deprecated_defaults.get(
+                            argname, _DeprecationConfig(default, None)
+                        ).default_value
+                    ):
                         pass
                     else:
                         raise ValueError(
@@ -931,7 +950,9 @@ class TextFileReader(abc.Iterator):
                             f"{repr(engine)} engine"
                         )
             else:
-                value = _deprecated_defaults.get(argname, default)
+                value = _deprecated_defaults.get(
+                    argname, _DeprecationConfig(default, None)
+                ).default_value
             options[argname] = value
 
         if engine == "python-fwf":
@@ -942,10 +963,10 @@ class TextFileReader(abc.Iterator):
 
     def _check_file_or_buffer(self, f, engine):
         # see gh-16530
-        if is_file_like(f) and engine != "c" and not hasattr(f, "__next__"):
-            # The C engine doesn't need the file-like to have the "__next__"
-            # attribute. However, the Python engine explicitly calls
-            # "__next__(...)" when iterating through such an object, meaning it
+        if is_file_like(f) and engine != "c" and not hasattr(f, "__iter__"):
+            # The C engine doesn't need the file-like to have the "__iter__"
+            # attribute. However, the Python engine needs "__iter__(...)"
+            # when iterating through such an object, meaning it
             # needs to have that attribute
             raise ValueError(
                 "The 'python' engine cannot iterate through this file buffer."
@@ -1056,10 +1077,10 @@ class TextFileReader(abc.Iterator):
         for arg in _deprecated_defaults.keys():
             parser_default = _c_parser_defaults.get(arg, parser_defaults[arg])
             depr_default = _deprecated_defaults[arg]
-            if result.get(arg, depr_default) != depr_default:
+            if result.get(arg, depr_default) != depr_default.default_value:
                 msg = (
                     f"The {arg} argument has been deprecated and will be "
-                    "removed in a future version.\n\n"
+                    f"removed in a future version. {depr_default.msg}\n\n"
                 )
                 warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
             else:

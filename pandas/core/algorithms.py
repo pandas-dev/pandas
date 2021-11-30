@@ -215,7 +215,7 @@ def _reconstruct_data(
         if isinstance(values, cls) and values.dtype == dtype:
             return values
 
-        values = cls._from_sequence(values)
+        values = cls._from_sequence(values, dtype=dtype)
     elif is_bool_dtype(dtype):
         values = values.astype(dtype, copy=False)
 
@@ -960,15 +960,18 @@ def mode(values, dropna: bool = True) -> Series:
     original = values
 
     # categorical is a fast-path
-    if is_categorical_dtype(values):
+    if is_categorical_dtype(values.dtype):
         if isinstance(values, Series):
             # TODO: should we be passing `name` below?
             return Series(values._values.mode(dropna=dropna), name=values.name)
         return values.mode(dropna=dropna)
 
-    if dropna and needs_i8_conversion(values.dtype):
-        mask = values.isnull()
-        values = values[~mask]
+    if needs_i8_conversion(values.dtype):
+        if dropna:
+            mask = values.isna()
+            values = values[~mask]
+        modes = mode(values.view("i8"))
+        return modes.view(original.dtype)
 
     values = _ensure_data(values)
 
@@ -1849,5 +1852,5 @@ def union_with_duplicates(lvals: ArrayLike, rvals: ArrayLike) -> ArrayLike:
     unique_array = ensure_wrapped_if_datetimelike(unique_array)
 
     for i, value in enumerate(unique_array):
-        indexer += [i] * int(max(l_count[value], r_count[value]))
+        indexer += [i] * int(max(l_count.at[value], r_count.at[value]))
     return unique_array.take(indexer)
