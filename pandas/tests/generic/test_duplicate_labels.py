@@ -294,6 +294,7 @@ class TestRaises:
 
         assert data.flags.allows_duplicate_labels is True
 
+    @pytest.mark.filterwarnings("ignore:.*append method is deprecated.*:FutureWarning")
     @pytest.mark.parametrize(
         "func", [operator.methodcaller("append", pd.Series(0, index=["a", "b"]))]
     )

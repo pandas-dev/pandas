@@ -17,6 +17,7 @@ from pandas import (
 import pandas._testing as tm
 
 
+@pytest.mark.filterwarnings("ignore:.*append method is deprecated.*:FutureWarning")
 class TestAppend:
     def test_append(self, sort, float_frame):
         mixed_frame = float_frame.copy()

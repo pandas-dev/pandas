@@ -177,6 +177,7 @@ def test_resample_entirely_nat_window(method, method_args, unit):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:.*append method is deprecated.*:FutureWarning")
 @pytest.mark.parametrize(
     "func, fill_value",
     [("min", np.nan), ("max", np.nan), ("sum", 0), ("prod", 1), ("count", 0)],
@@ -215,6 +216,7 @@ def test_aggregate_with_nat(func, fill_value):
     assert dt_result.index.name == "key"
 
 
+@pytest.mark.filterwarnings("ignore:.*append method is deprecated.*:FutureWarning")
 def test_aggregate_with_nat_size():
     # GH 9925
     n = 20

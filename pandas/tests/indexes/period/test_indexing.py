@@ -115,6 +115,7 @@ class TestGetItem:
         )
         tm.assert_index_equal(result, exp)
 
+    @pytest.mark.filterwarnings("ignore:.*append method is deprecated.*:FutureWarning")
     def test_getitem_partial(self):
         rng = period_range("2007-01", periods=50, freq="M")
         ts = Series(np.random.randn(len(rng)), rng)

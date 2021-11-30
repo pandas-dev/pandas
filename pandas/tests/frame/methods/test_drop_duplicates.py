@@ -21,6 +21,7 @@ def test_drop_duplicates_with_misspelled_column_name(subset):
         df.drop_duplicates(subset)
 
 
+@pytest.mark.filterwarnings("ignore:.*append method is deprecated.*:FutureWarning")
 def test_drop_duplicates():
     df = DataFrame(
         {

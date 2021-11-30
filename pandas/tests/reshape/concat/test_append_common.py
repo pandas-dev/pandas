@@ -11,6 +11,7 @@ from pandas import (
 import pandas._testing as tm
 
 
+@pytest.mark.filterwarnings("ignore:.*append method is deprecated.*:FutureWarning")
 class TestConcatAppendCommon:
     """
     Test common dtype coercion rules between concat and append.

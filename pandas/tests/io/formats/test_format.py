@@ -2418,6 +2418,7 @@ class TestSeriesFormatting:
             else:
                 assert "+10" in line
 
+    @pytest.mark.filterwarnings("ignore:.*append method is deprecated.*:FutureWarning")
     def test_datetimeindex(self):
 
         index = date_range("20130102", periods=6)

@@ -353,6 +353,7 @@ class TestPartialSetting:
         df.at[dates[-1] + dates.freq, 0] = 7
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.filterwarnings("ignore:.*append method is deprecated.*:FutureWarning")
     def test_partial_setting_mixed_dtype(self):
 
         # in a mixed dtype environment, try to preserve dtypes
@@ -528,6 +529,7 @@ class TestPartialSetting:
 
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.filterwarnings("ignore:.*append method is deprecated.*:FutureWarning")
     def test_partial_set_invalid(self):
 
         # GH 4940
