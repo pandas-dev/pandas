@@ -17,7 +17,7 @@ import pytz
 
 import pandas as pd
 from pandas._testing._hypothesis import (
-    DATETIME,
+    DATETIME_JAN_1_1900_OPTIONAL_TZ,
     YQM_OFFSET,
 )
 
@@ -26,7 +26,7 @@ from pandas._testing._hypothesis import (
 
 
 @pytest.mark.arm_slow
-@given(DATETIME, YQM_OFFSET)
+@given(DATETIME_JAN_1_1900_OPTIONAL_TZ, YQM_OFFSET)
 def test_on_offset_implementations(dt, offset):
     assume(not offset.normalize)
     # check that the class-specific implementations of is_on_offset match

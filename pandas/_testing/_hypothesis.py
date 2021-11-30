@@ -45,29 +45,22 @@ OPTIONAL_LISTS = st.lists(
 )
 
 if is_platform_windows():
-    _min_timestamp = datetime(1900, 1, 1)
+    DATETIME_NO_TZ = st.datetimes(min_value=datetime(1900, 1, 1))
 else:
-    _min_timestamp = None
+    DATETIME_NO_TZ = st.datetimes()
 
-DATETIME_NO_TZ = st.datetimes(min_value=_min_timestamp)
-
-DATETIME_OPTIONAL_TZ = st.datetimes(
-    min_value=_min_timestamp,
+DATETIME_JAN_1_1900_OPTIONAL_TZ = st.datetimes(
+    min_value=pd.Timestamp(1900, 1, 1).to_pydatetime(),
+    max_value=pd.Timestamp(1900, 1, 1).to_pydatetime(),
     timezones=st.one_of(st.none(), dateutil_timezones(), pytz_timezones()),
 )
 
-DATE_RANGE = st.builds(
-    pd.date_range,
-    start=st.datetimes(
-        min_value=pd.Timestamp.min.to_pydatetime(warn=False),
-        max_value=pd.Timestamp.max.to_pydatetime(warn=False),
-    ),
-    periods=st.integers(min_value=2, max_value=100),
-    freq=st.sampled_from("Y Q M D H T s ms us ns".split()),
-    tz=st.one_of(st.none(), dateutil_timezones(), pytz_timezones()),
+DATETIME_IN_PD_TIMESTAMP_RANGE_NO_TZ = st.datetimes(
+    min_value=pd.Timestamp.min.to_pydatetime(warn=False),
+    max_value=pd.Timestamp.max.to_pydatetime(warn=False),
 )
 
-INTEGER = st.integers()
+INT_NEG_999_TO_POS_999 = st.integers(-999, 999)
 
 # The strategy for each type is registered in conftest.py, as they don't carry
 # enough runtime information (e.g. type hints) to infer how to build them.
