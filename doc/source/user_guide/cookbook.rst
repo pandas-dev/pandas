@@ -929,7 +929,7 @@ Valid frequency arguments to Grouper :ref:`Timeseries <timeseries.offset_aliases
 Merge
 -----
 
-The :ref:`Concat <merging.concatenation>` docs. The :ref:`Join <merging.join>` docs.
+The :ref:`Join <merging.join>` docs.
 
 `Concatenate two dataframes with overlapping index (emulate R rbind)
 <https://stackoverflow.com/questions/14988480/pandas-version-of-rbind>`__
