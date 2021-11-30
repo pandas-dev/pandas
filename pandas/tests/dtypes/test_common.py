@@ -409,7 +409,6 @@ def test_is_not_unsigned_integer_dtype(dtype):
         ("uint16", "uint16"),
         ("uint32", "uint32"),
         ("uint64", "uint64"),
-        ("float_", "float_"),
         ("float16", "float16"),
         ("float32", "float32"),
         ("Float32", "Float32"),
