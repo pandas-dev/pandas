@@ -19,6 +19,7 @@ Fixed regressions
 - Fixed regression in creating a :class:`DataFrame` from a timezone-aware :class:`Timestamp` scalar near a Daylight Savings Time transition (:issue:`42505`)
 - Fixed performance regression in :func:`read_csv` (:issue:`44106`)
 - Fixed regression in :meth:`Series.duplicated` and :meth:`Series.drop_duplicates` when Series has :class:`Categorical` dtype with boolean categories (:issue:`44351`)
+- Fixed regression in :meth:`.GroupBy.sum` with ``timedelta64[ns]`` dtype containing ``NaT`` failing to treat that value as NA (:issue:`42659`)
 -
 
 .. ---------------------------------------------------------------------------
