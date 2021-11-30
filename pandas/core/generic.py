@@ -5522,8 +5522,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 object.__setattr__(self, name, getattr(other, name, None))
 
         if method == "concat":
-            # Issue #41828, retain the attrs only if all NDFrame have the same
-            # attrs.
             attrs = other.objs[0].attrs
             check_attrs = all(objs.attrs == attrs for objs in other.objs[1:])
             if check_attrs:
