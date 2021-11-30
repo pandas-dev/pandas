@@ -249,7 +249,7 @@ class NumericIndex(Index):
                     "values are required for conversion"
                 )
             elif is_integer_dtype(dtype) and not is_extension_array_dtype(dtype):
-                # TODO(jreback); this can change once we have an EA Index type
+                # TODO(ExtensionIndex); this can change once we have an EA Index type
                 # GH 13149
                 arr = astype_nansafe(self._values, dtype=dtype)
                 if isinstance(self, Float64Index):

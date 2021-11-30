@@ -913,7 +913,9 @@ class Parser:
     def _try_convert_types(self):
         raise AbstractMethodError(self)
 
-    def _try_convert_data(self, name, data, use_dtypes=True, convert_dates=True):
+    def _try_convert_data(
+        self, name, data, use_dtypes: bool = True, convert_dates: bool = True
+    ):
         """
         Try to parse a ndarray like into a column by inferring dtype.
         """
