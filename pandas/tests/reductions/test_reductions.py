@@ -83,7 +83,7 @@ class TestReductions:
         # GH#7261
         klass = index_or_series
 
-        if dtype in ["Int64", "boolean"] and klass == Index:
+        if dtype in ["boolean"] and klass == Index:
             mark = pytest.mark.xfail(reason="Need EA-backed Index")
             request.node.add_marker(mark)
 

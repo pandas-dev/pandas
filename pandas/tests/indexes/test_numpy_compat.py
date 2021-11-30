@@ -117,10 +117,14 @@ def test_numpy_ufuncs_other(index, func, request):
 
 
 @pytest.mark.parametrize("func", [np.maximum, np.minimum])
-def test_numpy_ufuncs_reductions(index, func):
+def test_numpy_ufuncs_reductions(index, func, request):
     # TODO: overlap with tests.series.test_ufunc.test_reductions
     if len(index) == 0:
         return
+
+    if repr(index.dtype) == "string[pyarrow]" or index.dtype == "boolean":
+        mark = pytest.mark.xfail(reason="ArrowStringArray/BooleanArray has no min/max")
+        request.node.add_marker(mark)
 
     if isinstance(index, CategoricalIndex) and index.dtype.ordered is False:
         with pytest.raises(TypeError, match="is not ordered for"):
