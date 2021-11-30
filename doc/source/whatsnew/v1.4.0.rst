@@ -199,6 +199,7 @@ column name and num correlates to the current element of the period iterable. Th
 to the column names instead of adding the current element of the period iterable (:issue:`44424`).
 
 Usage within the :class:`DataFrame` class:
+
 .. ipython:: python
 
     df = pd.DataFrame({
@@ -209,6 +210,7 @@ Usage within the :class:`DataFrame` class:
     df.shift(shifts)
 
 Usage within the :class:`Series` class:
+
 .. ipython:: python
 
     ser = pd.Series([1, 2, 3])
