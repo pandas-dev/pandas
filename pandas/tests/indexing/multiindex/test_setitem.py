@@ -121,9 +121,6 @@ class TestMultiIndexSetItem:
             expected=copy,
         )
 
-    # TODO(ArrayManager) df.loc["bar"] *= 2 doesn't raise an error but results in
-    # all NaNs -> doesn't work in the "split" path (also for BlockManager actually)
-    @td.skip_array_manager_not_yet_implemented
     def test_multiindex_setitem(self):
 
         # GH 3738
