@@ -393,30 +393,30 @@ def test_is_not_unsigned_integer_dtype(dtype):
 
 
 @pytest.mark.parametrize(
-    "dtype,expected",
+    "dtype",
     [
-        ("int_", "int_"),
-        ("int8", "int8"),
-        ("Int8", "Int8"),
-        ("int16", "int16"),
-        ("Int16", "Int16"),
-        ("int32", "int32"),
-        ("Int32", "Int32"),
-        ("int64", "int64"),
-        ("Int64", "Int64"),
-        ("uint8", "uint8"),
-        ("uint16", "uint16"),
-        ("uint32", "uint32"),
-        ("uint64", "uint64"),
-        ("float16", "float16"),
-        ("float32", "float32"),
-        ("Float32", "Float32"),
-        ("float64", "float64"),
-        ("Float64", "Float64"),
+        "int_",
+        "int8",
+        "Int8",
+        "int16",
+        "Int16",
+        "int32",
+        "Int32",
+        "int64",
+        "Int64",
+        "uint8",
+        "uint16",
+        "uint32",
+        "uint64",
+        "float16",
+        "float32",
+        "Float32",
+        "float64",
+        "Float64",
     ],
 )
-def test_all_type_comparison_with_true_result(dtype, expected):
-    assert pandas_dtype(dtype) == expected
+def test_all_type_comparison_with_true_result(dtype):
+    assert pandas_dtype(dtype) == dtype
 
 
 @pytest.mark.parametrize(
