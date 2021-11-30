@@ -122,7 +122,7 @@ def test_numpy_ufuncs_reductions(index, func, request):
     if len(index) == 0:
         return
 
-    if repr(index.dtype) == "string[pyarrow]" or index.dtype == "boolean":
+    if repr(index.dtype) == "string[pyarrow]" or str(index.dtype) == "boolean":
         mark = pytest.mark.xfail(reason="ArrowStringArray/BooleanArray has no min/max")
         request.node.add_marker(mark)
 
