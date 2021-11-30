@@ -32,7 +32,7 @@ jobs:
 
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
-      group: ${{ github.ref == 'refs/heads/master' && github.run_number || github.ref }}-${{ matrix.ENV_FILE }}
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.ENV_FILE }}
       cancel-in-progress: true
 
     services:
