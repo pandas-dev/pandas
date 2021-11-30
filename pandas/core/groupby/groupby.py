@@ -100,7 +100,10 @@ from pandas.core.groupby import (
     numba_,
     ops,
 )
-from pandas.core.groupby.indexing import GroupByIndexingMixin
+from pandas.core.groupby.indexing import (
+    GroupByIndexingMixin,
+    GroupByNthSelector,
+)
 from pandas.core.indexes.api import (
     CategoricalIndex,
     Index,
@@ -901,6 +904,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         raise AttributeError(
             f"'{type(self).__name__}' object has no attribute '{attr}'"
         )
+
+    def __getattribute__(self, attr):
+        # Intercept nth to allow indexing
+        if attr == "nth":
+            return GroupByNthSelector(self)
+        elif attr == "nth_actual":
+            return super().__getattribute__("nth")
+        else:
+            return super().__getattribute__(attr)
 
     @final
     def _make_wrapper(self, name: str) -> Callable:
