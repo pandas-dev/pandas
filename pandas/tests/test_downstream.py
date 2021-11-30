@@ -10,6 +10,7 @@ import pytest
 
 import pandas.util._test_decorators as td
 
+import pandas as pd
 from pandas import DataFrame
 import pandas._testing as tm
 
@@ -32,14 +33,21 @@ def df():
 @pytest.mark.filterwarnings("ignore:.*64Index is deprecated:FutureWarning")
 def test_dask(df):
 
-    toolz = import_module("toolz")  # noqa:F841
-    dask = import_module("dask")  # noqa:F841
+    # dask sets "compute.use_numexpr" to False, so catch the current value
+    # and ensure to reset it afterwards to avoid impacting other tests
+    olduse = pd.get_option("compute.use_numexpr")
 
-    import dask.dataframe as dd
+    try:
+        toolz = import_module("toolz")  # noqa:F841
+        dask = import_module("dask")  # noqa:F841
 
-    ddf = dd.from_pandas(df, npartitions=3)
-    assert ddf.A is not None
-    assert ddf.compute() is not None
+        import dask.dataframe as dd
+
+        ddf = dd.from_pandas(df, npartitions=3)
+        assert ddf.A is not None
+        assert ddf.compute() is not None
+    finally:
+        pd.set_option("compute.use_numexpr", olduse)
 
 
 def test_xarray(df):

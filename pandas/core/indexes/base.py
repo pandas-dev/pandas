@@ -860,7 +860,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return {
             c
-            for c in self.unique(level=0)[:100]
+            for c in self.unique(level=0)[: get_option("display.max_dir_items")]
             if isinstance(c, str) and c.isidentifier()
         }
 
@@ -889,6 +889,13 @@ class Index(IndexOpsMixin, PandasObject):
         )
         if result is not NotImplemented:
             return result
+
+        if method == "reduce":
+            result = arraylike.dispatch_reduction_ufunc(
+                self, ufunc, method, *inputs, **kwargs
+            )
+            if result is not NotImplemented:
+                return result
 
         new_inputs = [x if x is not self else x._values for x in inputs]
         result = getattr(ufunc, method)(*new_inputs, **kwargs)
@@ -961,7 +968,6 @@ class Index(IndexOpsMixin, PandasObject):
                     # e.g. m8[s]
                     return self._data.view(cls)
 
-                arr = self._data.view("i8")
                 idx_cls = self._dtype_to_subclass(dtype)
                 # NB: we only get here for subclasses that override
                 #  _data_cls such that it is a type and not a tuple
