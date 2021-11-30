@@ -74,5 +74,6 @@ Style export and import
    Styler.to_html
    Styler.to_latex
    Styler.to_excel
+   Styler.to_string
    Styler.export
    Styler.use
