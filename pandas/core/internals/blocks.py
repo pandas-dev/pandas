@@ -1139,17 +1139,11 @@ class Block(PandasObject):
         # convert integer to float if necessary. need to do a lot more than
         # that, handle boolean etc also
 
-        # error: Value of type variable "NumpyArrayT" of "maybe_upcast" cannot be
-        # "Union[ndarray[Any, Any], ExtensionArray]"
-        new_values, fill_value = maybe_upcast(
-            self.values, fill_value  # type: ignore[type-var]
-        )
+        values = cast(np.ndarray, self.values)
 
-        # error: Argument 1 to "shift" has incompatible type "Union[ndarray[Any, Any],
-        # ExtensionArray]"; expected "ndarray[Any, Any]"
-        new_values = shift(
-            new_values, periods, axis, fill_value  # type: ignore[arg-type]
-        )
+        new_values, fill_value = maybe_upcast(values, fill_value)
+
+        new_values = shift(new_values, periods, axis, fill_value)
 
         return [self.make_block(new_values)]
 
@@ -1171,7 +1165,8 @@ class Block(PandasObject):
 
         transpose = self.ndim == 2
 
-        values = self.values
+        # EABlocks override where
+        values = cast(np.ndarray, self.values)
         orig_other = other
         if transpose:
             values = values.T
@@ -1185,22 +1180,15 @@ class Block(PandasObject):
             # TODO: avoid the downcasting at the end in this case?
             # GH-39595: Always return a copy
             result = values.copy()
-        else:
-            # see if we can operate on the entire block, or need item-by-item
-            # or if we are a single block (ndim == 1)
-            if not self._can_hold_element(other):
-                # we cannot coerce, return a compat dtype
-                block = self.coerce_to_target_dtype(other)
-                blocks = block.where(orig_other, cond)
-                return self._maybe_downcast(blocks, "infer")
 
-            # error: Argument 1 to "setitem_datetimelike_compat" has incompatible type
-            # "Union[ndarray, ExtensionArray]"; expected "ndarray"
-            # error: Argument 2 to "setitem_datetimelike_compat" has incompatible type
-            # "number[Any]"; expected "int"
-            alt = setitem_datetimelike_compat(
-                values, icond.sum(), other  # type: ignore[arg-type]
-            )
+        elif not self._can_hold_element(other):
+            # we cannot coerce, return a compat dtype
+            block = self.coerce_to_target_dtype(other)
+            blocks = block.where(orig_other, cond)
+            return self._maybe_downcast(blocks, "infer")
+
+        else:
+            alt = setitem_datetimelike_compat(values, icond.sum(), other)
             if alt is not other:
                 if is_list_like(other) and len(other) < len(values):
                     # call np.where with other to get the appropriate ValueError
@@ -1246,7 +1234,6 @@ class Block(PandasObject):
         result_blocks: list[Block] = []
         for m in [mask, ~mask]:
             if m.any():
-                result = cast(np.ndarray, result)  # EABlock overrides where
                 taken = result.take(m.nonzero()[0], axis=axis)
                 r = maybe_downcast_numeric(taken, self.dtype)
                 nb = self.make_block(r.T, placement=self._mgr_locs[m])
@@ -1747,7 +1734,9 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
         try:
             res_values = arr.T._where(cond, other).T
         except (ValueError, TypeError):
-            return Block.where(self, other, cond)
+            blk = self.coerce_to_target_dtype(other)
+            nbs = blk.where(other, cond)
+            return self._maybe_downcast(nbs, "infer")
 
         nb = self.make_block_same_class(res_values)
         return [nb]
