@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
-      group: ${{ github.ref == 'refs/heads/master' && github.run_number || github.ref }}-pre-commit
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-pre-commit
       cancel-in-progress: true
     steps:
     - uses: actions/checkout@v2
