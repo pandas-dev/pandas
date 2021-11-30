@@ -20,6 +20,7 @@ import doctest
 import importlib
 import io
 import json
+import os
 import pathlib
 import subprocess
 import sys
@@ -145,10 +146,17 @@ class PandasDocstring(Docstring):
         runner = doctest.DocTestRunner(optionflags=flags)
         context = {"np": numpy, "pd": pandas}
         error_msgs = ""
+        current_dir = set(os.listdir())
         for test in finder.find(self.raw_doc, self.name, globs=context):
             f = io.StringIO()
             runner.run(test, out=f.write)
             error_msgs += f.getvalue()
+            leftover_files = set(os.listdir()).difference(current_dir)
+            if leftover_files:
+                error_msgs += (
+                    f"The following files were leftover from the doctest: "
+                    f"{leftover_files}"
+                )
         return error_msgs
 
     @property
