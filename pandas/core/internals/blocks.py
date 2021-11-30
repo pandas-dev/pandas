@@ -1215,6 +1215,19 @@ class Block(PandasObject):
             else:
                 # By the time we get here, we should have all Series/Index
                 #  args extracted to ndarray
+                if (
+                    is_list_like(other)
+                    and not isinstance(other, np.ndarray)
+                    and len(other) == self.shape[-1]
+                ):
+                    # If we don't do this broadcasting here, then expressions.where
+                    #  will broadcast a 1D other to be row-like instead of
+                    #  column-like.
+                    other = np.array(other).reshape(values.shape)
+                    # If lengths don't match (or len(other)==1), we will raise
+                    #  inside expressions.where, see test_series_where
+
+                # Note: expressions.where may upcast.
                 result = expressions.where(~icond, values, other)
 
         if self._can_hold_na or self.ndim == 1:
