@@ -461,6 +461,9 @@ _deprecated_defaults: dict[str, _DeprecationConfig] = {
     "squeeze": _DeprecationConfig(
         None, 'Append .squeeze("columns") to the call to squeeze.'
     ),
+    "prefix": _DeprecationConfig(
+        None, "Use a list comprehension on the column names in the future."
+    ),
 }
 
 

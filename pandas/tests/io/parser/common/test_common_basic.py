@@ -823,7 +823,8 @@ def test_names_and_prefix_not_None_raises(all_parsers, func):
     parser = all_parsers
     msg = "Specified named and prefix; you can only specify one."
     with pytest.raises(ValueError, match=msg):
-        getattr(parser, func)(f, names=["a", "b"], prefix="x")
+        with tm.assert_produces_warning(FutureWarning):
+            getattr(parser, func)(f, names=["a", "b"], prefix="x")
 
 
 @pytest.mark.parametrize("func", ["read_csv", "read_table"])
@@ -833,7 +834,10 @@ def test_names_and_prefix_explicit_None(all_parsers, names, prefix, func):
     f = StringIO("a,b\n1,2")
     expected = DataFrame({"x0": ["a", "1"], "x1": ["b", "2"]})
     parser = all_parsers
-    result = getattr(parser, func)(f, names=names, sep=",", prefix=prefix, header=None)
+    with tm.assert_produces_warning(FutureWarning):
+        result = getattr(parser, func)(
+            f, names=names, sep=",", prefix=prefix, header=None
+        )
     tm.assert_frame_equal(result, expected)
 
 

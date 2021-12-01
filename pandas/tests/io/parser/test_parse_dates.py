@@ -180,14 +180,15 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
         """
         return parsing.try_parse_dates(parsing.concat_date_cols(date_cols))
 
-    result = parser.read_csv(
-        StringIO(data),
-        header=None,
-        date_parser=date_parser,
-        prefix="X",
-        parse_dates={"actual": [1, 2], "nominal": [1, 3]},
-        keep_date_col=keep_date_col,
-    )
+    with tm.assert_produces_warning(FutureWarning):
+        result = parser.read_csv(
+            StringIO(data),
+            header=None,
+            date_parser=date_parser,
+            prefix="X",
+            parse_dates={"actual": [1, 2], "nominal": [1, 3]},
+            keep_date_col=keep_date_col,
+        )
     expected = DataFrame(
         [
             [
@@ -318,13 +319,14 @@ KORD,19990127, 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
 KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
 """
     parser = all_parsers
-    result = parser.read_csv(
-        StringIO(data),
-        header=None,
-        prefix="X",
-        parse_dates=[[1, 2], [1, 3]],
-        keep_date_col=keep_date_col,
-    )
+    with tm.assert_produces_warning(FutureWarning):
+        result = parser.read_csv(
+            StringIO(data),
+            header=None,
+            prefix="X",
+            parse_dates=[[1, 2], [1, 3]],
+            keep_date_col=keep_date_col,
+        )
     expected = DataFrame(
         [
             [
@@ -436,9 +438,10 @@ KORD,19990127 21:00:00, 21:18:00, -0.9900, 2.0100, 3.6000, 0.0000, 270.0000
 KORD,19990127 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
 """
     parser = all_parsers
-    result = parser.read_csv(
-        StringIO(data), header=None, prefix="X", parse_dates=[1], index_col=1
-    )
+    with tm.assert_produces_warning(FutureWarning):
+        result = parser.read_csv(
+            StringIO(data), header=None, prefix="X", parse_dates=[1], index_col=1
+        )
 
     index = Index(
         [
@@ -486,14 +489,15 @@ def test_multiple_date_cols_int_cast(all_parsers, date_parser, warning):
     parse_dates = {"actual": [1, 2], "nominal": [1, 3]}
     parser = all_parsers
 
-    with tm.assert_produces_warning(warning, check_stacklevel=False):
-        result = parser.read_csv(
-            StringIO(data),
-            header=None,
-            date_parser=date_parser,
-            parse_dates=parse_dates,
-            prefix="X",
-        )
+    with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(warning, check_stacklevel=False):
+            result = parser.read_csv(
+                StringIO(data),
+                header=None,
+                date_parser=date_parser,
+                parse_dates=parse_dates,
+                prefix="X",
+            )
 
     expected = DataFrame(
         [
