@@ -46,9 +46,14 @@ class TestSeriesClip:
         # Ensure that clipping method can handle NA values with out failing
         # GH#40581
 
-        s = Series([nulls_fixture, 1.0, 3.0], dtype=any_numeric_ea_dtype)
-        s_clipped_upper = s.clip(upper=2.0)
-        s_clipped_lower = s.clip(lower=2.0)
+        if nulls_fixture is pd.NaT:
+            # constructor will raise, see
+            #  test_constructor_mismatched_null_nullable_dtype
+            return
+
+        ser = Series([nulls_fixture, 1.0, 3.0], dtype=any_numeric_ea_dtype)
+        s_clipped_upper = ser.clip(upper=2.0)
+        s_clipped_lower = ser.clip(lower=2.0)
 
         expected_upper = Series([nulls_fixture, 1.0, 2.0], dtype=any_numeric_ea_dtype)
         expected_lower = Series([nulls_fixture, 2.0, 3.0], dtype=any_numeric_ea_dtype)

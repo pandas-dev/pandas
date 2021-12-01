@@ -97,14 +97,18 @@ def test_to_array_mixed_integer_float():
         np.array(["foo"]),
         [[1, 2], [3, 4]],
         [np.nan, {"a": 1}],
+        # GH#44514 all-NA case used to get quietly swapped out before checking ndim
+        np.array([pd.NA] * 6, dtype=object).reshape(3, 2),
     ],
 )
 def test_to_array_error(values):
     # error in converting existing arrays to FloatingArray
-    msg = (
-        r"(:?.* cannot be converted to a FloatingDtype)"
-        r"|(:?values must be a 1D list-like)"
-        r"|(:?Cannot pass scalar)"
+    msg = "|".join(
+        [
+            "cannot be converted to a FloatingDtype",
+            "values must be a 1D list-like",
+            "Cannot pass scalar",
+        ]
     )
     with pytest.raises((TypeError, ValueError), match=msg):
         pd.array(values, dtype="Float64")

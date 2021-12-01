@@ -248,6 +248,36 @@ cdef bint checknull_with_nat_and_na(object obj):
     return checknull_with_nat(obj) or obj is C_NA
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def is_numeric_na(values: ndarray) -> ndarray:
+    """
+    Check for NA values consistent with IntegerArray/FloatingArray.
+
+    Similar to a vectorized is_valid_na_for_dtype restricted to numeric dtypes.
+
+    Returns
+    -------
+    ndarray[bool]
+    """
+    cdef:
+        ndarray[uint8_t] result
+        Py_ssize_t i, N
+        object val
+
+    N = len(values)
+    result = np.zeros(N, dtype=np.uint8)
+
+    for i in range(N):
+        val = values[i]
+        if checknull(val):
+            if val is None or val is C_NA or util.is_nan(val) or is_decimal_na(val):
+                result[i] = True
+            else:
+                raise TypeError(f"'values' contains non-numeric NA {val}")
+    return result.view(bool)
+
+
 # -----------------------------------------------------------------------------
 # Implementation of NA singleton
 
