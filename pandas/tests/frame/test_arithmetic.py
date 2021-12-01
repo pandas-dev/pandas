@@ -1732,6 +1732,18 @@ class TestFrameArithmeticUnsorted:
         expected = df2 - df2.mean()
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "op", [DataFrame.add, DataFrame.sub, DataFrame.mul, DataFrame.truediv]
+    )
+    def test_ops_retain_attrs(self, op):
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        df.attrs["location"] = "michigan"
+
+        result = op(df, 1).attrs
+        expected = {"location": "michigan"}
+
+        tm.assert_dict_equal(result, expected)
+
 
 def test_pow_with_realignment():
     # GH#32685 pow has special semantics for operating with null values
