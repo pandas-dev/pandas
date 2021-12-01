@@ -9,12 +9,14 @@ from io import StringIO
 import re
 import sys
 from typing import (
+    IO,
     DefaultDict,
     Hashable,
     Iterator,
     Mapping,
     Sequence,
     cast,
+    overload,
 )
 import warnings
 
@@ -35,6 +37,11 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_integer
 from pandas.core.dtypes.inference import is_dict_like
+
+from pandas import (
+    Index,
+    MultiIndex,
+)
 
 from pandas.io.parsers.base_parser import (
     ParserBase,
@@ -178,7 +185,7 @@ class PythonParser(ParserBase):
             )
         self.num = re.compile(regex)
 
-    def _make_reader(self, f) -> None:
+    def _make_reader(self, f: IO[str]) -> None:
         sep = self.delimiter
 
         if sep is None or len(sep) == 1:
@@ -203,8 +210,8 @@ class PythonParser(ParserBase):
             else:
                 # attempt to sniff the delimiter from the first valid line,
                 # i.e. no comment line and not in skiprows
-                line = f.readline()
-                lines = self._check_comments([[line]])[0]
+                line: str = f.readline()
+                lines: list[str] = self._check_comments([[line]])[0]
                 while self.skipfunc(self.pos) or not lines:
                     self.pos += 1
                     line = f.readline()
@@ -212,15 +219,15 @@ class PythonParser(ParserBase):
 
                 # since `line` was a string, lines will be a list containing
                 # only a single string
-                line = lines[0]
+                first_line = lines[0]
 
                 self.pos += 1
                 self.line_pos += 1
-                sniffed = csv.Sniffer().sniff(line)
+                sniffed = csv.Sniffer().sniff(first_line)
                 dia.delimiter = sniffed.delimiter
 
                 # Note: encoding is irrelevant here
-                line_rdr = csv.reader(StringIO(line), dialect=dia)
+                line_rdr = csv.reader(StringIO(first_line), dialect=dia)
                 self.buf.extend(list(line_rdr))
 
             # Note: encoding is irrelevant here
@@ -244,7 +251,11 @@ class PythonParser(ParserBase):
         # TextIOWrapper, mmap, None]")
         self.data = reader  # type: ignore[assignment]
 
-    def read(self, rows: int | None = None):
+    def read(
+        self, rows: int | None = None
+    ) -> tuple[
+        Index | None, Sequence[Hashable] | MultiIndex, Mapping[Hashable, ArrayLike]
+    ]:
         try:
             content = self._get_lines(rows)
         except StopIteration:
@@ -284,9 +295,11 @@ class PythonParser(ParserBase):
         conv_data = self._convert_data(data)
         columns, conv_data = self._do_date_conversions(columns, conv_data)
 
-        index, columns = self._make_index(conv_data, alldata, columns, indexnamerow)
+        index, result_columns = self._make_index(
+            conv_data, alldata, columns, indexnamerow
+        )
 
-        return index, columns, conv_data
+        return index, result_columns, conv_data
 
     def _exclude_implicit_index(
         self,
@@ -596,7 +609,7 @@ class PythonParser(ParserBase):
             self._col_indices = sorted(col_indices)
         return columns
 
-    def _buffered_line(self):
+    def _buffered_line(self) -> list[Scalar]:
         """
         Return a line from buffer, filling buffer if required.
         """
@@ -799,7 +812,17 @@ class PythonParser(ParserBase):
                 self._alert_malformed(msg, row_num)
             return None
 
+    @overload
     def _check_comments(self, lines: list[list[Scalar]]) -> list[list[Scalar]]:
+        ...
+
+    @overload
+    def _check_comments(self, lines: list[list[str]]) -> list[list[str]]:
+        ...
+
+    def _check_comments(
+        self, lines: list[list[Scalar]] | list[list[str]]
+    ) -> list[list[Scalar]] | list[list[str]]:
         if self.comment is None:
             return lines
         ret = []
@@ -886,7 +909,9 @@ class PythonParser(ParserBase):
 
     _implicit_index = False
 
-    def _get_index_name(self, columns: list[Hashable]):
+    def _get_index_name(
+        self, columns: list[Hashable]
+    ) -> tuple[list[Hashable] | None, list[Hashable], list[Hashable]]:
         """
         Try several cases to get lines:
 
@@ -951,8 +976,8 @@ class PythonParser(ParserBase):
 
         else:
             # Case 2
-            (index_name, columns_, self.index_col) = self._clean_index_names(
-                columns, self.index_col, self.unnamed_cols
+            (index_name, _, self.index_col) = self._clean_index_names(
+                columns, self.index_col
             )
 
         return index_name, orig_names, columns
@@ -1040,7 +1065,7 @@ class PythonParser(ParserBase):
                 ]
         return zipped_content
 
-    def _get_lines(self, rows: int | None = None):
+    def _get_lines(self, rows: int | None = None) -> list[list[Scalar]]:
         lines = self.buf
         new_rows = None
 
