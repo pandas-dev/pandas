@@ -332,7 +332,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         ):
             # GH#33357 called with just the SingleBlockManager
             NDFrame.__init__(self, data)
-            self.name = name
+            if fastpath:
+                # e.g. from _box_col_values, skip validation of name
+                object.__setattr__(self, "_name", name)
+            else:
+                self.name = name
             return
 
         # we are called internally, so short-circuit

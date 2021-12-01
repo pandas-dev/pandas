@@ -3,8 +3,6 @@ import random
 import numpy as np
 import pytest
 
-from pandas.errors import PerformanceWarning
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -849,13 +847,7 @@ class TestSortValuesLevelAsStr:
         # Compute result by transposing and sorting on axis=1.
         result = df_idx.T.sort_values(by=sort_names, ascending=ascending, axis=1)
 
-        if len(levels) > 1:
-            # Accessing multi-level columns that are not lexsorted raises a
-            # performance warning
-            with tm.assert_produces_warning(PerformanceWarning):
-                tm.assert_frame_equal(result, expected)
-        else:
-            tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_sort_values_pos_args_deprecation(self):
         # https://github.com/pandas-dev/pandas/issues/41485
