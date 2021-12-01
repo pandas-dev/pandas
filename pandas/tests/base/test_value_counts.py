@@ -38,7 +38,6 @@ def test_value_counts(index_or_series_obj):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:.*append method is deprecated.*:FutureWarning")
 @pytest.mark.parametrize("null_obj", [np.nan, None])
 def test_value_counts_null(null_obj, index_or_series_obj):
     orig = index_or_series_obj
@@ -75,7 +74,7 @@ def test_value_counts_null(null_obj, index_or_series_obj):
     # can't use expected[null_obj] = 3 as
     # IntervalIndex doesn't allow assignment
     new_entry = Series({np.nan: 3}, dtype=np.int64)
-    expected = expected.append(new_entry)
+    expected = pd.concat([expected, new_entry])
 
     result = obj.value_counts(dropna=False)
     if obj.duplicated().any():

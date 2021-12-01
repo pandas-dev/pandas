@@ -115,7 +115,6 @@ class TestGetItem:
         )
         tm.assert_index_equal(result, exp)
 
-    @pytest.mark.filterwarnings("ignore:.*append method is deprecated.*:FutureWarning")
     def test_getitem_partial(self):
         rng = period_range("2007-01", periods=50, freq="M")
         ts = Series(np.random.randn(len(rng)), rng)
@@ -145,7 +144,9 @@ class TestGetItem:
         result = ts[24:]
         tm.assert_series_equal(exp, result)
 
-        ts = ts[10:].append(ts[10:])
+        from pandas.core.reshape.concat import concat
+
+        ts = concat([ts[10:], ts[10:]])
         msg = "left slice bound for non-unique label: '2008'"
         with pytest.raises(KeyError, match=msg):
             ts[slice("2008", "2009")]

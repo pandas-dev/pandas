@@ -180,13 +180,19 @@ _all_methods = [
             pd.DataFrame,
             frame_data,
             operator.methodcaller("append", pd.DataFrame({"A": [1]})),
-        )
+        ),
+        marks=pytest.mark.filterwarnings(
+            "ignore:.*append method is deprecated.*:FutureWarning"
+        ),
     ),
     pytest.param(
         (
             pd.DataFrame,
             frame_data,
             operator.methodcaller("append", pd.DataFrame({"B": [1]})),
+        ),
+        marks=pytest.mark.filterwarnings(
+            "ignore:.*append method is deprecated.*:FutureWarning"
         ),
     ),
     pytest.param(
@@ -511,7 +517,6 @@ def ndframe_method(request):
     return request.param
 
 
-@pytest.mark.filterwarnings("ignore:.*append method is deprecated.*:FutureWarning")
 def test_finalize_called(ndframe_method):
     cls, init_args, method = ndframe_method
     ndframe = cls(*init_args)
