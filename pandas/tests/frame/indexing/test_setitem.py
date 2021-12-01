@@ -680,7 +680,7 @@ class TestDataFrameSetItem:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_2d_array(self):
+    def test_setitem_npmatrix_2d(self):
         # for use-case df["x"] = sparse.random(10, 10).mean(axis=1)
         expected = DataFrame(
             {"np-array": np.ones(10), "np-matrix": np.ones(10)}, index=np.arange(10)

@@ -498,8 +498,6 @@ def sanitize_array(
     """
     if isinstance(data, ma.MaskedArray):
         data = sanitize_masked_array(data)
-    elif isinstance(data, np.matrix):
-        data = data.A
 
     if isinstance(dtype, PandasDtype):
         # Avoid ending up with a PandasArray
@@ -525,6 +523,8 @@ def sanitize_array(
 
     # GH#846
     if isinstance(data, np.ndarray):
+        if isinstance(data, np.matrix):
+            data = data.A
 
         if dtype is not None and is_float_dtype(data.dtype) and is_integer_dtype(dtype):
             # possibility of nan -> garbage
