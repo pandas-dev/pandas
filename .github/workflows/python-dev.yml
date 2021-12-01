@@ -31,8 +31,9 @@ jobs:
     timeout-minutes: 80
 
     concurrency:
-      group: ${{ github.ref }}-${{ matrix.os }}-${{ matrix.pytest_target }}-dev
-      cancel-in-progress: ${{github.event_name == 'pull_request'}}
+      #https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.os }}-${{ matrix.pytest_target }}-dev
+      cancel-in-progress: true
 
     steps:
     - uses: actions/checkout@v2
