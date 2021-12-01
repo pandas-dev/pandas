@@ -46,8 +46,9 @@ jobs:
       TEST_ARGS: ${{ matrix.settings[6] }}
       PYTEST_TARGET:  pandas
     concurrency:
-      group: ${{ github.ref }}-${{ matrix.settings[0] }}
-      cancel-in-progress: ${{github.event_name == 'pull_request'}}
+      # https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.settings[0] }}
+      cancel-in-progress: true
 
     steps:
     - name: Checkout
