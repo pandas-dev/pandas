@@ -17,6 +17,7 @@ from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
     pa_version_under2p0,
     pa_version_under5p0,
+    pa_version_under6p0,
 )
 import pandas.util._test_decorators as td
 
@@ -902,10 +903,15 @@ class TestParquetPyArrow(Base):
         check_round_trip(df, pa)
 
     def test_timestamp_nanoseconds(self, pa):
-        # with version 2.0, pyarrow defaults to writing the nanoseconds, so
+        # with version 2.6, pyarrow defaults to writing the nanoseconds, so
         # this should work without error
+        # Note in previous pyarrows(<6.0.0), only the pseudo-version 2.0 was available
+        if not pa_version_under6p0:
+            ver = "2.6"
+        else:
+            ver = "2.0"
         df = pd.DataFrame({"a": pd.date_range("2017-01-01", freq="1n", periods=10)})
-        check_round_trip(df, pa, write_kwargs={"version": "2.0"})
+        check_round_trip(df, pa, write_kwargs={"version": ver})
 
     def test_timezone_aware_index(self, pa, timezone_aware_date_list):
         if not pa_version_under2p0:

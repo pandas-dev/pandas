@@ -49,16 +49,11 @@ from pandas._typing import (
     StorageOptions,
     WriteBuffer,
 )
-from pandas.compat import (
-    get_lzma_file,
-    import_lzma,
-)
+from pandas.compat import get_lzma_file
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_file_like
-
-lzma = import_lzma()
 
 _VALID_URLS = set(uses_relative + uses_netloc + uses_params)
 _VALID_URLS.discard("")
@@ -754,7 +749,7 @@ def get_handle(
 
         # XZ Compression
         elif compression == "xz":
-            handle = get_lzma_file(lzma)(handle, ioargs.mode)
+            handle = get_lzma_file()(handle, ioargs.mode)
 
         # Unrecognized Compression
         else:
