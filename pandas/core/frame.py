@@ -206,6 +206,7 @@ from pandas.io.formats import (
     format as fmt,
 )
 from pandas.io.formats.info import (
+    INFO_DOCSTRING,
     DataFrameInfo,
     frame_sub_kwargs,
 )
@@ -3147,7 +3148,7 @@ class DataFrame(NDFrame, OpsMixin):
         return xml_formatter.write_output()
 
     # ----------------------------------------------------------------------
-    @doc(DataFrameInfo.render, **frame_sub_kwargs)
+    @doc(INFO_DOCSTRING, **frame_sub_kwargs)
     def info(
         self,
         verbose: bool | None = None,
@@ -3911,7 +3912,8 @@ class DataFrame(NDFrame, OpsMixin):
         #  we attach the Timestamp object as the name.
         name = self.columns[loc]
         klass = self._constructor_sliced
-        return klass(values, index=self.index, name=name, fastpath=True)
+        # We get index=self.index bc values is a SingleDataManager
+        return klass(values, name=name, fastpath=True)
 
     # ----------------------------------------------------------------------
     # Lookup Caching
