@@ -15,7 +15,6 @@ import pandas as pd
 from pandas import (
     DataFrame,
     Index,
-    MultiIndex,
     Series,
     _testing as tm,
     bdate_range,
@@ -419,13 +418,8 @@ def test_can_serialize_dates(setup_path):
     _check_roundtrip(frame, tm.assert_frame_equal, path=setup_path)
 
 
-def test_store_hierarchical(setup_path):
-    index = MultiIndex(
-        levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
-        codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
-        names=["foo", "bar"],
-    )
-    frame = DataFrame(np.random.randn(10, 3), index=index, columns=["A", "B", "C"])
+def test_store_hierarchical(setup_path, multiindex_dataframe_random_data):
+    frame = multiindex_dataframe_random_data
 
     _check_roundtrip(frame, tm.assert_frame_equal, path=setup_path)
     _check_roundtrip(frame.T, tm.assert_frame_equal, path=setup_path)

@@ -23,8 +23,9 @@ jobs:
         shell: bash -l {0}
 
     concurrency:
-      group: ${{ github.ref }}-checks
-      cancel-in-progress: ${{github.event_name == 'pull_request'}}
+      # https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-checks
+      cancel-in-progress: true
 
     steps:
     - name: Checkout
