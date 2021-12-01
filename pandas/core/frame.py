@@ -3267,11 +3267,12 @@ class DataFrame(NDFrame, OpsMixin):
         if index:
             from pandas.core.reshape.concat import concat
 
+            index_memory_usage = self._constructor_sliced(
+                self.index.memory_usage(deep=deep), index=["Index"]
+            )
             result = concat(
                 [
-                    self._constructor_sliced(
-                        self.index.memory_usage(deep=deep), index=["Index"]
-                    ),
+                    index_memory_usage,
                     result,
                 ]
             )
@@ -9726,9 +9727,8 @@ NaN 12.3   33.0
             if len(idx_diff) > 0:
                 from pandas.core.reshape.concat import concat
 
-                correl = concat(
-                    [correl, Series([np.nan] * len(idx_diff), index=idx_diff)]
-                )
+                nan_correl = Series([np.nan] * len(idx_diff), index=idx_diff)
+                correl = concat([correl, nan_correl])
 
         return correl
 
