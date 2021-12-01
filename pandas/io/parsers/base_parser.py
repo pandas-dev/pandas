@@ -34,7 +34,6 @@ from pandas._typing import (
     DtypeArg,
     FilePath,
     ReadCsvBuffer,
-    Scalar,
 )
 from pandas.errors import (
     ParserError,
@@ -458,9 +457,8 @@ class ParserBase:
     ) -> Sequence[Hashable] | MultiIndex:
         # possibly create a column mi here
         if _is_potential_multi_index(columns):
-            columns = cast(List[Tuple], columns)
-            return MultiIndex.from_tuples(columns, names=col_names)
-        columns = cast(List[Scalar], columns)
+            list_columns = cast(List[Tuple], columns)
+            return MultiIndex.from_tuples(list_columns, names=col_names)
         return columns
 
     @final
@@ -941,13 +939,7 @@ class ParserBase:
 
     @overload
     def _evaluate_usecols(
-        self, usecols: Callable, names: Sequence[Hashable]
-    ) -> set[int]:
-        ...
-
-    @overload
-    def _evaluate_usecols(
-        self, usecols: set[int], names: Sequence[Hashable]
+        self, usecols: set[int] | Callable, names: Sequence[Hashable]
     ) -> set[int]:
         ...
 
