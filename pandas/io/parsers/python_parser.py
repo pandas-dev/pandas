@@ -13,10 +13,10 @@ from typing import (
     DefaultDict,
     Hashable,
     Iterator,
+    List,
     Mapping,
     Sequence,
     cast,
-    overload,
 )
 import warnings
 
@@ -211,15 +211,16 @@ class PythonParser(ParserBase):
                 # attempt to sniff the delimiter from the first valid line,
                 # i.e. no comment line and not in skiprows
                 line: str = f.readline()
-                lines: list[str] = self._check_comments([[line]])[0]
+                lines = self._check_comments([[line]])[0]
                 while self.skipfunc(self.pos) or not lines:
                     self.pos += 1
                     line = f.readline()
                     lines = self._check_comments([[line]])[0]
+                lines_str = cast(List[str], lines)
 
                 # since `line` was a string, lines will be a list containing
                 # only a single string
-                first_line = lines[0]
+                first_line = lines_str[0]
 
                 self.pos += 1
                 self.line_pos += 1
@@ -812,17 +813,7 @@ class PythonParser(ParserBase):
                 self._alert_malformed(msg, row_num)
             return None
 
-    @overload
     def _check_comments(self, lines: list[list[Scalar]]) -> list[list[Scalar]]:
-        ...
-
-    @overload
-    def _check_comments(self, lines: list[list[str]]) -> list[list[str]]:
-        ...
-
-    def _check_comments(
-        self, lines: list[list[Scalar]] | list[list[str]]
-    ) -> list[list[Scalar]] | list[list[str]]:
         if self.comment is None:
             return lines
         ret = []
