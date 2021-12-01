@@ -12,6 +12,8 @@ Additional tests should either be added to one of the BaseExtensionTests
 classes (if they are relevant for the extension interface for all dtypes), or
 be added to the array-specific tests in `pandas/tests/arrays/`.
 
+Note: we do not bother with base.BaseIndexTests because PandasArray
+will never be held in an Index.
 """
 import numpy as np
 import pytest
@@ -217,12 +219,6 @@ class TestGetitem(BaseNumPyTests, base.BaseGetitemTests):
     def test_getitem_scalar(self, data):
         # AssertionError
         super().test_getitem_scalar(data)
-
-
-# TODO Index.__new__ checks for PandasArray (and converts it explicitly), so the
-# monkeypatching to make PandasArray into a regular ExtensionArray doesn't work
-# class TestIndex(base.BaseIndexTests):
-#     pass
 
 
 class TestGroupby(BaseNumPyTests, base.BaseGroupbyTests):

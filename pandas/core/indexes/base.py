@@ -3471,6 +3471,7 @@ class Index(IndexOpsMixin, PandasObject):
         res_values = concat_compat([left_diff, right_diff])
         res_values = _maybe_try_sort(res_values, sort)
 
+        # pass dtype so we retain object dtype
         result = Index(res_values, name=result_name, dtype=res_values.dtype)
 
         if self._is_multi:

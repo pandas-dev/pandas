@@ -257,7 +257,7 @@ def test_numpy_array_all_dtypes(any_numpy_dtype):
 def test_array(arr, attr, index_or_series, request):
     box = index_or_series
     if arr.dtype.name in ("Sparse[int64, 0]") and box is pd.Index:
-        mark = pytest.mark.xfail(reason="Needs EA-Backed Index")
+        mark = pytest.mark.xfail(reason="Index cannot yet store sparse dtype")
         request.node.add_marker(mark)
 
     result = box(arr, copy=False).array
