@@ -218,7 +218,7 @@ bar2,12,13,14,15
     msg = "Each column specification must be.+"
 
     with pytest.raises(TypeError, match=msg):
-        read_fwf(StringIO(data), [("a", 1)])
+        read_fwf(StringIO(data), colspecs=[("a", 1)])
 
 
 @pytest.mark.parametrize(
