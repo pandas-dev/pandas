@@ -627,6 +627,7 @@ Numeric
 - Bug in :class:`DataFrame` arithmetic ops with a subclass whose :meth:`_constructor` attribute is a callable other than the subclass itself (:issue:`43201`)
 - Bug in arithmetic operations involving :class:`RangeIndex` where the result would have the incorrect ``name`` (:issue:`43962`)
 - Bug in arithmetic operations involving :class:`Series` where the result could have the incorrect ``name`` when the operands having matching NA or matching tuple names (:issue:`44459`)
+- Bug in arithmetic operations involving :class:`DataFrame` where the operation does not propagate metadata such as attributes to the result (:issue:`28283`)
 -
 
 Conversion
