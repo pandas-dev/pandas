@@ -801,6 +801,7 @@ def test_where_columns_casting():
 
 @pytest.mark.parametrize("as_cat", [True, False])
 def test_where_period_invalid_na(frame_or_series, as_cat):
+    # GH#44697
     idx = pd.period_range("2016-01-01", periods=3, freq="D")
     if as_cat:
         idx = idx.astype("category")
@@ -827,6 +828,7 @@ def test_where_period_invalid_na(frame_or_series, as_cat):
 
 
 def test_where_nullable_invalid_na(frame_or_series, any_numeric_ea_dtype):
+    # GH#44697
     arr = pd.array([1, 2, 3], dtype=any_numeric_ea_dtype)
     obj = frame_or_series(arr)
 
