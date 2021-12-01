@@ -764,7 +764,7 @@ def read_fwf(
     widths: list[int] | None = None,
     infer_nrows: int = 100,
     **kwds,
-) -> DataFrame:
+) -> DataFrame | TextFileReader:
     r"""
     Read a table of fixed-width formatted lines into DataFrame.
 
@@ -799,7 +799,7 @@ def read_fwf(
 
     Returns
     -------
-    DataFrame
+    DataFrame or TextFileReader
         A comma-separated values (csv) file is returned as two-dimensional
         data structure with labeled axes.
 

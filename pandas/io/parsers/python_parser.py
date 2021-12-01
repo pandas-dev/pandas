@@ -13,6 +13,7 @@ from typing import (
     DefaultDict,
     Hashable,
     Iterator,
+    Literal,
     Mapping,
     Sequence,
     cast,
@@ -1139,7 +1140,7 @@ class FixedWidthReader(abc.Iterator):
     def __init__(
         self,
         f: IO[str],
-        colspecs: list[tuple[int, int]] | str,
+        colspecs: list[tuple[int, int]] | Literal["infer"],
         delimiter: str | None,
         comment: str | None,
         skiprows: set[int] | None = None,
@@ -1154,8 +1155,6 @@ class FixedWidthReader(abc.Iterator):
                 infer_nrows=infer_nrows, skiprows=skiprows
             )
         else:
-            # for mypy
-            assert not isinstance(colspecs, str)
             self.colspecs = colspecs
 
         if not isinstance(self.colspecs, (tuple, list)):
@@ -1236,7 +1235,7 @@ class FixedWidthReader(abc.Iterator):
         edge_pairs = list(zip(edges[::2], edges[1::2]))
         return edge_pairs
 
-    def __next__(self) -> list[Scalar]:
+    def __next__(self) -> list[str]:
         if self.buffer is not None:
             try:
                 line = next(self.buffer)
