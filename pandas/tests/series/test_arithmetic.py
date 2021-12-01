@@ -729,13 +729,6 @@ class TestNamePreservation:
         # GH#33930 consistent name renteiton
         op = all_binary_operators
 
-        if op is ops.rfloordiv and box in [list, tuple] and not flex:
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason="op fails because of inconsistent ndarray-wrapping GH#28759"
-                )
-            )
-
         left = Series(range(10), name=names[0])
         right = Series(range(10), name=names[1])
 
