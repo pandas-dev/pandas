@@ -508,6 +508,8 @@ class BooleanArray(BaseMaskedArray):
             # actual op, so we need to choose the resulting dtype manually
             if op_name in {"floordiv", "rfloordiv", "mod", "rmod", "pow", "rpow"}:
                 dtype = "int8"
+            elif op_name in {"truediv", "rtruediv"}:
+                dtype = "float64"
             else:
                 dtype = "bool"
             result = np.zeros(len(self._data), dtype=dtype)

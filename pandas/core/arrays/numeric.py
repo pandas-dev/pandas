@@ -136,6 +136,11 @@ class NumericArray(BaseMaskedArray):
 
         if other is libmissing.NA:
             result = np.ones_like(self._data)
+            if "truediv" in op_name and self.dtype.kind != "f":
+                # The actual data here doesn't matter since the mask
+                #  will be all-True, but since this is division, we want
+                #  to end up with floating dtype.
+                result = result.astype(np.float64)
         else:
             with np.errstate(all="ignore"):
                 result = op(self._data, other)
