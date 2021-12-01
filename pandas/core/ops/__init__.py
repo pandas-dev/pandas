@@ -421,7 +421,7 @@ def flex_arith_method_FRAME(op):
         if should_reindex_frame_op(
             self, other, op, axis, default_axis, fill_value, level
         ):
-            return frame_arith_method_with_reindex(self, other, op)
+            return frame_arith_method_with_reindex(self, other, op).__finalize__(self)
 
         if isinstance(other, ABCSeries) and fill_value is not None:
             # TODO: We could allow this in cases where we end up going
@@ -446,7 +446,7 @@ def flex_arith_method_FRAME(op):
 
             new_data = self._dispatch_frame_op(other, op)
 
-        return self._construct_result(new_data)
+        return self._construct_result(new_data).__finalize__(self)
 
     f.__name__ = op_name
 
