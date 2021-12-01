@@ -30,7 +30,6 @@ from pandas.core.dtypes.dtypes import (
     ExtensionDtype,
     register_extension_dtype,
 )
-from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.numeric import (
@@ -153,10 +152,6 @@ def coerce_to_array(
 
     if mask is None:
         mask = libmissing.is_numeric_na(values)
-        mask2 = isna(values)
-        if not (mask == mask2).all():
-            # e.g. if we have a timedelta64("NaT")
-            raise TypeError(f"{values.dtype} cannot be converted to a FloatingDtype")
 
     else:
         assert len(mask) == len(values)

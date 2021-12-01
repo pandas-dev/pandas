@@ -1211,8 +1211,9 @@ class TestDataFrameIndexing:
         expected = DataFrame({"a": [np.zeros((2,))], "b": [np.zeros((2, 2))]})
         tm.assert_frame_equal(df, expected)
 
+    # with AM goes through split-path, loses dtype
+    @td.skip_array_manager_not_yet_implemented
     def test_iloc_setitem_nullable_2d_values(self):
-
         df = DataFrame({"A": [1, 2, 3]}, dtype="Int64")
         orig = df.copy()
 
@@ -1239,10 +1240,11 @@ class TestDataFrameIndexing:
         msg = "|".join(
             [
                 r"int\(\) argument must be a string, a bytes-like object or a "
-                "number, not 'NaTType'",
+                "(real )?number, not 'NaTType'",
                 r"timedelta64\[ns\] cannot be converted to an? (Floating|Integer)Dtype",
                 r"datetime64\[ns\] cannot be converted to an? (Floating|Integer)Dtype",
                 "object cannot be converted to a FloatingDtype",
+                "'values' contains non-numeric NA",
             ]
         )
         with pytest.raises(TypeError, match=msg):
