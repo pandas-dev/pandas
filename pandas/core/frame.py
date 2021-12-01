@@ -3911,7 +3911,8 @@ class DataFrame(NDFrame, OpsMixin):
         #  we attach the Timestamp object as the name.
         name = self.columns[loc]
         klass = self._constructor_sliced
-        return klass(values, index=self.index, name=name, fastpath=True)
+        # We get index=self.index bc values is a SingleDataManager
+        return klass(values, name=name, fastpath=True)
 
     # ----------------------------------------------------------------------
     # Lookup Caching
