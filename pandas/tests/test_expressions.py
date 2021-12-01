@@ -372,7 +372,7 @@ class TestExpressions:
         "op",
         [
             "__mod__",
-            pytest.param("__rmod__", marks=pytest.mark.xfail(reason="GH-36552")),
+            "__rmod__",
             "__floordiv__",
             "__rfloordiv__",
         ],
