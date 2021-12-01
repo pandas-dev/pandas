@@ -1094,7 +1094,7 @@ class Styler(StylerRenderer):
             Rows and columns may be reduced if the number of total elements is
             large. This value is set to ``pandas.options.styler.render.max_elements``,
             which is 262144 (18 bit browser rendering).
-        delimiter: string, default single space
+        delimiter : string, default single space
             The separator between data elements.
 
         Returns
