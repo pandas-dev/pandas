@@ -14,6 +14,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import (
+    Period,
     internals as libinternals,
     lib,
 )
@@ -926,15 +927,27 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                         f"Number of Block dimensions ({block.ndim}) must equal "
                         f"number of axes ({self.ndim})"
                     )
-                if isinstance(block, DatetimeTZBlock) and block.values.ndim == 1:
+                if block.values.ndim == 1 and (
+                    isinstance(block, DatetimeTZBlock) or block.dtype.type is Period
+                ):
                     # TODO(2.0): remove once fastparquet no longer needs this
-                    warnings.warn(
-                        "In a future version, the BlockManager constructor "
-                        "will assume that a DatetimeTZBlock with block.ndim==2 "
-                        "has block.values.ndim == 2.",
-                        DeprecationWarning,
-                        stacklevel=find_stack_level(),
-                    )
+                    if isinstance(block, DatetimeTZBlock):
+                        warnings.warn(
+                            "In a future version, the BlockManager constructor "
+                            "will assume that a DatetimeTZBlock with block.ndim==2 "
+                            "has block.values.ndim == 2.",
+                            DeprecationWarning,
+                            stacklevel=find_stack_level(),
+                        )
+                    else:
+                        warnings.warn(
+                            "In a future version, the BlockManager constructor "
+                            "will assume that a Block backed by PeriodArray with "
+                            "will be NDArrayBackedExtensionBlock and will have "
+                            "block.values.ndim == 2",
+                            DeprecationWarning,
+                            stacklevel=find_stack_level(),
+                        )
 
                     # error: Incompatible types in assignment (expression has type
                     # "Union[ExtensionArray, ndarray]", variable has type
