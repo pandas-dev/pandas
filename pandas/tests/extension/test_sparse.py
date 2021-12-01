@@ -199,9 +199,14 @@ class TestIndex(base.BaseIndexTests):
         idx = pd.Index(data)
         # TODO do we want to preserve the sparse dtype in the index
         # now this is possible?
+        if data.dtype.subtype == "f":
+            assert idx.dtype == np.float64
+        elif data.dtype.subtype == "i":
+            assert idx.dtype == np.int64
         assert idx.dtype == data.dtype.subtype
 
-    # TODO this is failing because it doesn't recognize the sparse dtype
+    # TODO(ExtensionIndex) this is failing because it doesn't recognize
+    #  the sparse dtype
     @pytest.mark.xfail(reason="Index cannot yet store sparse dtype")
     def test_index_from_listlike_with_dtype(self, data):
         super().test_index_from_listlike_with_dtype(data)
