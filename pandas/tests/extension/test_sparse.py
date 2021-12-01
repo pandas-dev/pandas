@@ -203,7 +203,8 @@ class TestIndex(base.BaseIndexTests):
             assert idx.dtype == np.float64
         elif data.dtype.subtype == "i":
             assert idx.dtype == np.int64
-        assert idx.dtype == data.dtype.subtype
+        else:
+            assert idx.dtype == data.dtype.subtype
 
     # TODO(ExtensionIndex) this is failing because it doesn't recognize
     #  the sparse dtype
