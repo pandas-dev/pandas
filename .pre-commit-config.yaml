@@ -9,7 +9,7 @@ repos:
     -   id: absolufy-imports
         files: ^pandas/
 -   repo: https://github.com/python/black
-    rev: 21.10b0
+    rev: 21.11b1
     hooks:
     -   id: black
 -   repo: https://github.com/codespell-project/codespell
@@ -55,11 +55,11 @@ repos:
         types: [text]
         args: [--append-config=flake8/cython-template.cfg]
 -   repo: https://github.com/PyCQA/isort
-    rev: 5.9.3
+    rev: 5.10.1
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v2.29.0
+    rev: v2.29.1
     hooks:
     -   id: pyupgrade
         args: [--py38-plus]
