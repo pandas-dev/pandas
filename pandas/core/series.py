@@ -139,6 +139,11 @@ from pandas.core.strings import StringMethods
 from pandas.core.tools.datetimes import to_datetime
 
 import pandas.io.formats.format as fmt
+from pandas.io.formats.info import (
+    INFO_DOCSTRING,
+    SeriesInfo,
+    series_sub_kwargs,
+)
 import pandas.plotting
 
 if TYPE_CHECKING:
@@ -4916,6 +4921,22 @@ Keep all original rows and also all original values
             limit=limit,
             regex=regex,
             method=method,
+        )
+
+    @doc(INFO_DOCSTRING, **series_sub_kwargs)
+    def info(
+        self,
+        verbose: bool | None = None,
+        buf: IO[str] | None = None,
+        max_cols: int | None = None,
+        memory_usage: bool | str | None = None,
+        show_counts: bool = True,
+    ) -> None:
+        return SeriesInfo(self, memory_usage).render(
+            buf=buf,
+            max_cols=max_cols,
+            verbose=verbose,
+            show_counts=show_counts,
         )
 
     def _replace_single(self, to_replace, method: str, inplace: bool, limit):

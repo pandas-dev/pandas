@@ -110,12 +110,6 @@ class TestSeriesMisc:
     def test_contains(self, datetime_series):
         tm.assert_contains_all(datetime_series.index, datetime_series)
 
-    def test_raise_on_info(self):
-        s = Series(np.random.randn(10))
-        msg = "'Series' object has no attribute 'info'"
-        with pytest.raises(AttributeError, match=msg):
-            s.info()
-
     def test_axis_alias(self):
         s = Series([1, 2, np.nan])
         tm.assert_series_equal(s.dropna(axis="rows"), s.dropna(axis="index"))
