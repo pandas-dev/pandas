@@ -7,6 +7,15 @@ from pandas import (
 )
 
 
+def test_is_monotonic_increasing_lexsorted(lexsorted_two_level_string_multiindex):
+    # string ordering
+    mi = lexsorted_two_level_string_multiindex
+    assert mi.is_monotonic is False
+    assert Index(mi.values).is_monotonic is False
+    assert mi._is_strictly_monotonic_increasing is False
+    assert Index(mi.values)._is_strictly_monotonic_increasing is False
+
+
 def test_is_monotonic_increasing():
     i = MultiIndex.from_product([np.arange(10), np.arange(10)], names=["one", "two"])
     assert i.is_monotonic is True
@@ -34,17 +43,6 @@ def test_is_monotonic_increasing():
     assert i.is_monotonic is False
     assert i._is_strictly_monotonic_increasing is False
     assert Index(i.values).is_monotonic is False
-    assert Index(i.values)._is_strictly_monotonic_increasing is False
-
-    # string ordering
-    i = MultiIndex(
-        levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
-        codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
-        names=["first", "second"],
-    )
-    assert i.is_monotonic is False
-    assert Index(i.values).is_monotonic is False
-    assert i._is_strictly_monotonic_increasing is False
     assert Index(i.values)._is_strictly_monotonic_increasing is False
 
     i = MultiIndex(

@@ -8,7 +8,6 @@ import pytest
 from pandas import (
     DataFrame,
     IndexSlice,
-    MultiIndex,
     Series,
     Timedelta,
     Timestamp,
@@ -305,12 +304,8 @@ def test_setitem_mask_promote():
     tm.assert_series_equal(ser, expected)
 
 
-def test_multilevel_preserve_name(indexer_sl):
-    index = MultiIndex(
-        levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
-        codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
-        names=["first", "second"],
-    )
+def test_multilevel_preserve_name(lexsorted_two_level_string_multiindex, indexer_sl):
+    index = lexsorted_two_level_string_multiindex
     ser = Series(np.random.randn(len(index)), index=index, name="sth")
 
     result = indexer_sl(ser)["foo"]

@@ -12,7 +12,6 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import (
     DataFrame,
-    MultiIndex,
     Series,
     _testing as tm,
     concat,
@@ -638,13 +637,9 @@ def test_append_with_data_columns(setup_path):
         tm.assert_frame_equal(result, expected)
 
 
-def test_append_hierarchical(setup_path):
-    index = MultiIndex(
-        levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
-        codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
-        names=["foo", "bar"],
-    )
-    df = DataFrame(np.random.randn(10, 3), index=index, columns=["A", "B", "C"])
+def test_append_hierarchical(setup_path, multiindex_dataframe_random_data):
+    df = multiindex_dataframe_random_data
+    df.columns.name = None
 
     with ensure_clean_store(setup_path) as store:
         store.append("mi", df)

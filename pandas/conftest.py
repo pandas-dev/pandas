@@ -440,13 +440,21 @@ def multiindex_year_month_day_dataframe_random_data():
 
 
 @pytest.fixture
-def multiindex_dataframe_random_data():
-    """DataFrame with 2 level MultiIndex with random data"""
-    index = MultiIndex(
+def lexsorted_two_level_string_multiindex():
+    """
+    2-level MultiIndex, lexsorted, with string names.
+    """
+    return MultiIndex(
         levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
         codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
         names=["first", "second"],
     )
+
+
+@pytest.fixture
+def multiindex_dataframe_random_data(lexsorted_two_level_string_multiindex):
+    """DataFrame with 2 level MultiIndex with random data"""
+    index = lexsorted_two_level_string_multiindex
     return DataFrame(
         np.random.randn(10, 3), index=index, columns=Index(["A", "B", "C"], name="exp")
     )

@@ -23,18 +23,6 @@ def switch_numexpr_min_elements(request):
 
 
 # ------------------------------------------------------------------
-# Helper Functions
-
-
-def id_func(x):
-    if isinstance(x, tuple):
-        assert len(x) == 2
-        return x[0].__name__ + "-" + str(x[1])
-    else:
-        return x.__name__
-
-
-# ------------------------------------------------------------------
 
 
 @pytest.fixture(params=[1, np.array(1, dtype=np.int64)])
@@ -228,7 +216,9 @@ def mismatched_freq(request):
 # ------------------------------------------------------------------
 
 
-@pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame, pd.array], ids=id_func)
+@pytest.fixture(
+    params=[pd.Index, pd.Series, pd.DataFrame, pd.array], ids=lambda x: x.__name__
+)
 def box_with_array(request):
     """
     Fixture to test behavior for Index, Series, DataFrame, and pandas Array
@@ -237,7 +227,9 @@ def box_with_array(request):
     return request.param
 
 
-@pytest.fixture(params=[pd.Index, pd.Series, tm.to_array, np.array, list], ids=id_func)
+@pytest.fixture(
+    params=[pd.Index, pd.Series, tm.to_array, np.array, list], ids=lambda x: x.__name__
+)
 def box_1d_array(request):
     """
     Fixture to test behavior for Index, Series, tm.to_array, numpy Array and list

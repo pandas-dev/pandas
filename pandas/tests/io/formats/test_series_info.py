@@ -37,15 +37,11 @@ def test_info_categorical():
 
 
 @pytest.mark.parametrize("verbose", [True, False])
-def test_info_series(verbose):
-    index = MultiIndex(
-        levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
-        codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
-        names=["first", "second"],
-    )
-    s = Series(range(len(index)), index=index, name="sth")
+def test_info_series(lexsorted_two_level_string_multiindex, verbose):
+    index = lexsorted_two_level_string_multiindex
+    ser = Series(range(len(index)), index=index, name="sth")
     buf = StringIO()
-    s.info(verbose=verbose, buf=buf)
+    ser.info(verbose=verbose, buf=buf)
     result = buf.getvalue()
 
     expected = textwrap.dedent(
@@ -66,7 +62,7 @@ def test_info_series(verbose):
     expected += textwrap.dedent(
         f"""\
         dtypes: int64(1)
-        memory usage: {s.memory_usage()}.0+ bytes
+        memory usage: {ser.memory_usage()}.0+ bytes
         """
     )
     assert result == expected
