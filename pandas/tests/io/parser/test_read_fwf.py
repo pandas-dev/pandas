@@ -907,3 +907,15 @@ def test_skiprows_with_iterator():
     ]
     for i, result in enumerate(df_iter):
         tm.assert_frame_equal(result, expected_frames[i])
+
+
+def test_skiprows_passing_as_positional_deprecated():
+    # GH#41485
+    data = """0
+1
+2
+"""
+    with tm.assert_produces_warning(FutureWarning, match="keyword-only"):
+        result = read_fwf(StringIO(data), [(0, 2)])
+    expected = DataFrame({"0": [1, 2]})
+    tm.assert_frame_equal(result, expected)
