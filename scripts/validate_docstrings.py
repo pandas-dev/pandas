@@ -151,12 +151,18 @@ class PandasDocstring(Docstring):
             f = io.StringIO()
             runner.run(test, out=f.write)
             error_msgs += f.getvalue()
-            leftover_files = set(os.listdir()).difference(current_dir)
-            if leftover_files:
-                error_msgs += (
-                    f"The following files were leftover from the doctest: "
-                    f"{leftover_files}"
-                )
+        leftovers = set(os.listdir()).difference(current_dir)
+        if leftovers:
+            for leftover in leftovers:
+                path = pathlib.Path(leftover).resolve()
+                if path.is_dir():
+                    path.rmdir()
+                elif path.is_file():
+                    path.unlink(missing_ok=True)
+            raise Exception(
+                f"The following files were leftover from the doctest: "
+                f"{leftovers}. Please use # doctest: +SKIP"
+            )
         return error_msgs
 
     @property
