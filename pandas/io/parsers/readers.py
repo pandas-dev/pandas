@@ -760,11 +760,11 @@ def read_table(
 
 def read_fwf(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
-    colspecs="infer",
-    widths=None,
-    infer_nrows=100,
+    colspecs: list[tuple[int, int]] | str | None = "infer",
+    widths: list[int] | None = None,
+    infer_nrows: int = 100,
     **kwds,
-):
+) -> DataFrame | TextFileReader:
     r"""
     Read a table of fixed-width formatted lines into DataFrame.
 
@@ -799,7 +799,7 @@ def read_fwf(
 
     Returns
     -------
-    DataFrame or TextParser
+    DataFrame or TextFileReader
         A comma-separated values (csv) file is returned as two-dimensional
         data structure with labeled axes.
 
@@ -824,6 +824,9 @@ def read_fwf(
         for w in widths:
             colspecs.append((col, col + w))
             col += w
+
+    # for mypy
+    assert colspecs is not None
 
     # GH#40830
     # Ensure length of `colspecs` matches length of `names`
