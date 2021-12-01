@@ -220,7 +220,7 @@ class PythonParser(ParserBase):
 
                 # since `line` was a string, lines will be a list containing
                 # only a single string
-                first_line = lines_str[0]
+                first_line: str = lines_str[0]
 
                 self.pos += 1
                 self.line_pos += 1

@@ -223,6 +223,7 @@ class CParserWrapper(ParserBase):
 
     def read(self, nrows=None):
         index: Index | MultiIndex | Sequence[Hashable] | None
+        column_names: Sequence[Hashable] | MultiIndex
 
         try:
             if self.low_memory:
