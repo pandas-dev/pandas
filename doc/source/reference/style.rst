@@ -27,6 +27,7 @@ Styler properties
    Styler.template_html_style
    Styler.template_html_table
    Styler.template_latex
+   Styler.template_string
    Styler.loader
 
 Style application
