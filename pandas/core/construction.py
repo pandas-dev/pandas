@@ -25,6 +25,7 @@ from pandas._typing import (
     DtypeObj,
 )
 from pandas.errors import IntCastingNaNError
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import (
     ExtensionDtype,
@@ -538,7 +539,7 @@ def sanitize_array(
                         "if they cannot be cast losslessly (matching Series behavior). "
                         "To retain the old behavior, use DataFrame(data).astype(dtype)",
                         FutureWarning,
-                        stacklevel=4,
+                        stacklevel=find_stack_level(),
                     )
                     # GH#40110 until the deprecation is enforced, we _dont_
                     #  ignore the dtype for DataFrame, and _do_ cast even though
@@ -777,7 +778,7 @@ def _try_cast(
                 "passed to 'DataFrame', either all columns will be cast to that "
                 "dtype, or a TypeError will be raised.",
                 FutureWarning,
-                stacklevel=7,
+                stacklevel=find_stack_level(),
             )
             subarr = np.array(arr, dtype=object, copy=copy)
     return subarr

@@ -9,8 +9,7 @@ from pandas.tests.extension.base import BaseOpsUtil
 
 
 class ComparisonOps(BaseOpsUtil):
-    def _compare_other(self, data, op_name, other):
-        op = self.get_op_from_name(op_name)
+    def _compare_other(self, data, op, other):
 
         # array
         result = pd.Series(op(data, other))
@@ -34,8 +33,8 @@ class ComparisonOps(BaseOpsUtil):
         tm.assert_series_equal(result, expected)
 
     # subclass will override to parametrize 'other'
-    def test_scalar(self, other, all_compare_operators, dtype):
-        op = self.get_op_from_name(all_compare_operators)
+    def test_scalar(self, other, comparison_op, dtype):
+        op = comparison_op
         left = pd.array([1, 0, None], dtype=dtype)
 
         result = op(left, other)
@@ -59,8 +58,8 @@ class NumericOps:
         result = data + 1
         assert np.shares_memory(result._mask, data._mask) is False
 
-    def test_array(self, all_compare_operators, dtype):
-        op = self.get_op_from_name(all_compare_operators)
+    def test_array(self, comparison_op, dtype):
+        op = comparison_op
 
         left = pd.array([0, 1, 2, None, None, None], dtype=dtype)
         right = pd.array([0, 1, None, 0, 1, None], dtype=dtype)
@@ -81,8 +80,8 @@ class NumericOps:
             right, pd.array([0, 1, None, 0, 1, None], dtype=dtype)
         )
 
-    def test_compare_with_booleanarray(self, all_compare_operators, dtype):
-        op = self.get_op_from_name(all_compare_operators)
+    def test_compare_with_booleanarray(self, comparison_op, dtype):
+        op = comparison_op
 
         left = pd.array([True, False, None] * 3, dtype="boolean")
         right = pd.array([0] * 3 + [1] * 3 + [None] * 3, dtype=dtype)

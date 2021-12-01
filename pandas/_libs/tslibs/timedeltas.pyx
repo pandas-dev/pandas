@@ -929,6 +929,10 @@ cdef class _Timedelta(timedelta):
         --------
         Series.to_numpy : Similar method for Series.
         """
+        if dtype is not None or copy is not False:
+            raise ValueError(
+                "Timedelta.to_numpy dtype and copy arguments are ignored"
+            )
         return self.to_timedelta64()
 
     def view(self, dtype):

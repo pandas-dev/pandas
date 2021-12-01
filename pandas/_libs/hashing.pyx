@@ -52,7 +52,7 @@ def hash_object_array(
     mixed array types will raise TypeError.
     """
     cdef:
-        Py_ssize_t i, l, n
+        Py_ssize_t i, n
         uint64_t[:] result
         bytes data, k
         uint8_t *kb
@@ -97,8 +97,7 @@ def hash_object_array(
                 "must be string or null"
             )
 
-        l = len(data)
-        lens[i] = l
+        lens[i] = len(data)
         cdata = data
 
         # keep the references alive through the end of the

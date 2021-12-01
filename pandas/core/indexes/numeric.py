@@ -21,6 +21,7 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
@@ -101,8 +102,9 @@ class NumericIndex(Index):
     _can_hold_strings = False
     _is_backward_compat_public_numeric_index: bool = True
 
+    # error: Signature of "_can_hold_na" incompatible with supertype "Index"
     @cache_readonly
-    def _can_hold_na(self) -> bool:
+    def _can_hold_na(self) -> bool:  # type: ignore[override]
         if is_float_dtype(self.dtype):
             return True
         else:
@@ -123,7 +125,9 @@ class NumericIndex(Index):
 
     @property
     def _engine_type(self):
-        return self._engine_types[self.dtype]
+        # error: Invalid index type "Union[dtype[Any], ExtensionDtype]" for
+        # "Dict[dtype[Any], Type[IndexEngine]]"; expected type "dtype[Any]"
+        return self._engine_types[self.dtype]  # type: ignore[index]
 
     @cache_readonly
     def inferred_type(self) -> str:
@@ -264,7 +268,8 @@ class NumericIndex(Index):
     # ----------------------------------------------------------------
     # Indexing Methods
 
-    @cache_readonly
+    # error: Decorated property not supported
+    @cache_readonly  # type: ignore[misc]
     @doc(Index._should_fallback_to_positional)
     def _should_fallback_to_positional(self) -> bool:
         return False
@@ -417,9 +422,21 @@ class IntegerIndex(NumericIndex):
         warnings.warn(
             "Index.asi8 is deprecated and will be removed in a future version.",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self._values.view(self._default_dtype)
+
+    def _validate_fill_value(self, value):
+        # e.g. np.array([1.0]) we want np.array([1], dtype=self.dtype)
+        #  see TestSetitemFloatNDarrayIntoIntegerSeries
+        super()._validate_fill_value(value)
+        if hasattr(value, "dtype") and is_float_dtype(value.dtype):
+            converted = value.astype(self.dtype)
+            if (converted == value).all():
+                # See also: can_hold_element
+                return converted
+            raise TypeError
+        return value
 
 
 class Int64Index(IntegerIndex):

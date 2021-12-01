@@ -338,26 +338,19 @@ def test_slice_with_zero_step_raises(index, frame_or_series, indexer_sli):
     ],
 )
 def test_slice_with_negative_step(index):
-    def assert_slices_equivalent(l_slc, i_slc):
-        expected = ts.iloc[i_slc]
-
-        tm.assert_series_equal(ts[l_slc], expected)
-        tm.assert_series_equal(ts.loc[l_slc], expected)
-
     keystr1 = str(index[9])
     keystr2 = str(index[13])
-    box = type(index[0])
 
-    ts = Series(np.arange(20), index)
+    ser = Series(np.arange(20), index)
     SLC = IndexSlice
 
-    for key in [keystr1, box(keystr1)]:
-        assert_slices_equivalent(SLC[key::-1], SLC[9::-1])
-        assert_slices_equivalent(SLC[:key:-1], SLC[:8:-1])
+    for key in [keystr1, index[9]]:
+        tm.assert_indexing_slices_equivalent(ser, SLC[key::-1], SLC[9::-1])
+        tm.assert_indexing_slices_equivalent(ser, SLC[:key:-1], SLC[:8:-1])
 
-        for key2 in [keystr2, box(keystr2)]:
-            assert_slices_equivalent(SLC[key2:key:-1], SLC[13:8:-1])
-            assert_slices_equivalent(SLC[key:key2:-1], SLC[0:0:-1])
+        for key2 in [keystr2, index[13]]:
+            tm.assert_indexing_slices_equivalent(ser, SLC[key2:key:-1], SLC[13:8:-1])
+            tm.assert_indexing_slices_equivalent(ser, SLC[key:key2:-1], SLC[0:0:-1])
 
 
 def test_tuple_index():
@@ -377,17 +370,3 @@ def test_frozenset_index():
     assert s[idx1] == 2
     s[idx1] = 3
     assert s[idx1] == 3
-
-
-def test_boolean_index():
-    # GH18579
-    s1 = Series([1, 2, 3], index=[4, 5, 6])
-    s2 = Series([1, 3, 2], index=s1 == 2)
-    tm.assert_series_equal(Series([1, 3, 2], [False, True, False]), s2)
-
-
-def test_index_ndim_gt_1_raises():
-    # GH18579
-    df = DataFrame([[1, 2], [3, 4], [5, 6]], index=[3, 6, 9])
-    with pytest.raises(ValueError, match="Index data must be 1-dimensional"):
-        Series([1, 3, 2], index=df)

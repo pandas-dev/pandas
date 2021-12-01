@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from io import StringIO
 import re
 
 import numpy as np
@@ -625,6 +624,15 @@ class TestDataFrameReplace:
         expected.iloc[1, 1] = m[1]
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("dtype", ["boolean", "Int64", "Float64"])
+    def test_replace_with_nullable_column(self, dtype):
+        # GH-44499
+        nullable_ser = Series([1, 0, 1], dtype=dtype)
+        df = DataFrame({"A": ["A", "B", "x"], "B": nullable_ser})
+        result = df.replace("x", "X")
+        expected = DataFrame({"A": ["A", "B", "X"], "B": nullable_ser})
+        tm.assert_frame_equal(result, expected)
+
     def test_replace_simple_nested_dict(self):
         df = DataFrame({"col": range(1, 5)})
         expected = DataFrame({"col": ["a", 2, 3, "b"]})
@@ -912,12 +920,14 @@ class TestDataFrameReplace:
         tm.assert_frame_equal(res3, expected)
 
     def test_replace_doesnt_replace_without_regex(self):
-        raw = """fol T_opp T_Dir T_Enh
-        0    1     0     0    vo
-        1    2    vr     0     0
-        2    2     0     0     0
-        3    3     0    bt     0"""
-        df = pd.read_csv(StringIO(raw), sep=r"\s+")
+        df = DataFrame(
+            {
+                "fol": [1, 2, 2, 3],
+                "T_opp": ["0", "vr", "0", "0"],
+                "T_Dir": ["0", "0", "0", "bt"],
+                "T_Enh": ["vo", "0", "0", "0"],
+            }
+        )
         res = df.replace({r"\D": 1})
         tm.assert_frame_equal(df, res)
 
@@ -1109,12 +1119,17 @@ class TestDataFrameReplace:
         # coerce to object
         result = df.copy()
         result.iloc[1, 0] = np.nan
-        result = result.replace({"A": pd.NaT}, Timestamp("20130104", tz="US/Pacific"))
+        with tm.assert_produces_warning(FutureWarning, match="mismatched timezone"):
+            result = result.replace(
+                {"A": pd.NaT}, Timestamp("20130104", tz="US/Pacific")
+            )
         expected = DataFrame(
             {
                 "A": [
                     Timestamp("20130101", tz="US/Eastern"),
                     Timestamp("20130104", tz="US/Pacific"),
+                    # once deprecation is enforced
+                    # Timestamp("20130104", tz="US/Pacific").tz_convert("US/Eastern"),
                     Timestamp("20130103", tz="US/Eastern"),
                 ],
                 "B": [0, np.nan, 2],

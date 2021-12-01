@@ -430,6 +430,10 @@ display.html.use_mathjax                True         When True, Jupyter notebook
                                                      table contents using MathJax, rendering
                                                      mathematical expressions enclosed by the
                                                      dollar symbol.
+display.max_dir_items                   100          The number of columns from a dataframe that
+                                                     are added to dir. These columns can then be
+                                                     suggested by tab completion. 'None' value means
+                                                     unlimited.
 io.excel.xls.writer                     xlwt         The default Excel writer engine for
                                                      'xls' files.
 
