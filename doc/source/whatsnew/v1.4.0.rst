@@ -346,6 +346,39 @@ second column is instead renamed to ``a.2``.
 
     res
 
+.. _whatsnew_140.notable_bug_fixes.mean_implicit_conversion_to_numeric:
+
+Implicit conversion of string to numeric type in mean
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When computing the ``mean`` of a :class:`Series` or :class:`DataFrame` with a string-type value, the elements are concatenated
+to a single string then coerced to a numeric type implicitly before computing the mean. This can lead to unexpected results:
+
+.. code-block:: ipython
+
+    In [5]: df = DataFrame({
+                    "A": ["1", "2", "3"],
+                    "B": ["0", "1", "J"],
+                })
+    In [6]: df.mean(numeric_only=False)
+    Out[6]:
+    A     41.00000+0.00000j
+    C    0.000000+0.333333j
+    dtype: complex128
+
+Now, an exception will be raised whenever ``mean`` is called on a string-type column or :class:`Series`.
+
+.. code-block:: ipython
+
+    In [7]: df = DataFrame({
+                    "A": ["1", "2", "3"],
+                    "B": ["0", "1", "J"],
+                })
+    In [8]: df.mean(numeric_only=False)
+    Out[8]:
+    ...
+    TypeError: cannot find the mean of type 'str'
+
 .. _whatsnew_140.notable_bug_fixes.notable_bug_fix3:
 
 notable_bug_fix3
