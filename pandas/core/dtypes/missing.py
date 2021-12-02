@@ -33,7 +33,6 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_object_dtype,
     is_scalar,
-    is_string_dtype,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.dtypes import (
@@ -242,7 +241,7 @@ def _isna_array(values: ArrayLike, inf_as_na: bool = False):
             result = libmissing.isnaobj(values.to_numpy(), inf_as_na=inf_as_na)
         else:
             result = values.isna()
-    elif is_string_dtype(dtype):
+    elif _is_string_dtype(dtype):
         result = _isna_string_dtype(values, inf_as_na=inf_as_na)
     elif needs_i8_conversion(dtype):
         # this is the NaT pattern
@@ -376,7 +375,10 @@ def isna_compat(arr, fill_value=np.nan) -> bool:
 
 
 def array_equivalent(
-    left, right, strict_nan: bool = False, dtype_equal: bool = False
+    left: np.ndarray,
+    right: np.ndarray,
+    strict_nan: bool = False,
+    dtype_equal: bool = False,
 ) -> bool:
     """
     True if two arrays, left and right, have equal non-NaN elements, and NaNs
@@ -421,13 +423,13 @@ def array_equivalent(
 
     if dtype_equal:
         # fastpath when we require that the dtypes match (Block.equals)
-        if is_float_dtype(left.dtype) or is_complex_dtype(left.dtype):
+        if left.dtype.kind in ["f", "c"]:
             return _array_equivalent_float(left, right)
         elif is_datetimelike_v_numeric(left.dtype, right.dtype):
             return False
         elif needs_i8_conversion(left.dtype):
             return _array_equivalent_datetimelike(left, right)
-        elif is_string_dtype(left.dtype):
+        elif _is_string_dtype(left.dtype):
             # TODO: fastpath for pandas' StringDtype
             return _array_equivalent_object(left, right, strict_nan)
         else:
@@ -644,3 +646,8 @@ def is_valid_na_for_dtype(obj, dtype: DtypeObj) -> bool:
 
     # fallback, default to allowing NaN, None, NA, NaT
     return not isinstance(obj, (np.datetime64, np.timedelta64, Decimal))
+
+
+def _is_string_dtype(dtype: np.dtype) -> bool:
+    # Faster implementation of dtypes.common.is_string_dtype
+    return dtype == object or dtype.kind in "SU"
