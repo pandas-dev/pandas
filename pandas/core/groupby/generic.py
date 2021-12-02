@@ -1655,123 +1655,73 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         with self._group_selection_context():
             df = self.obj
 
-            grouping_info = [
-                {
-                    "level": i,
-                    "name": grouping.name if grouping.in_axis else f"level_{i}",
-                    "in_axis": grouping.in_axis,
-                }
-                for i, grouping in enumerate(self.grouper.groupings)
-            ]
-            in_axis_names = [
+            in_axis_names = {
                 grouping.name for grouping in self.grouper.groupings if grouping.in_axis
-            ]
+            }
             if isinstance(self._selected_obj, Series):
                 name = self._selected_obj.name
-                remaining_columns = [] if name in in_axis_names else [name]
+                keys = [] if name in in_axis_names else [self._selected_obj]
             else:
-                remaining_columns = [
-                    name
-                    for name in self._selected_obj.columns
+                keys = [
+                    # TODO: Is there a better way to get the Series for the grouper?
+                    self._selected_obj.iloc[:, idx]
+                    for idx, name in enumerate(self._selected_obj.columns)
                     if name not in in_axis_names
                 ]
 
             if subset is not None:
-                clashing = set(subset) - set(remaining_columns)
+                clashing = set(subset) & set(in_axis_names)
                 if clashing:
                     raise ValueError(
                         f"Keys {clashing} in subset cannot be in "
                         "the groupby column keys"
                     )
-                remaining_columns = list(subset)
 
-            if dropna:
-                df = df.dropna(subset=remaining_columns, axis="index", how="any")
-
-            # Add the remaining_column keys to the main grouper
-            main_grouper, _, _ = get_grouper(
-                df,
-                key=self.keys,
-                axis=self.axis,
-                level=self.level,
-                sort=self.sort,
-                mutated=self.mutated,
-                dropna=self.dropna,
-            )
-            groupings = list(main_grouper.groupings)
-            for name in remaining_columns:
+            groupings = list(self.grouper.groupings)
+            for key in keys:
                 grouper, _, _ = get_grouper(
                     df,
-                    key=name,
+                    key=key,
                     axis=self.axis,
                     level=self.level,
                     sort=self.sort,
                     mutated=self.mutated,
-                    # nulls have already been dropped from remaining_columns
-                    dropna=False,
+                    dropna=dropna,
                 )
                 groupings += list(grouper.groupings)
 
             # Take the size of the overall columns
-            result = cast(
-                Series,
-                df.groupby(
-                    groupings,
-                    sort=self.sort,
-                    observed=self.observed,
-                    dropna=self.dropna,
-                ).size(),
+            gb = df.groupby(
+                groupings,
+                sort=self.sort,
+                observed=self.observed,
+                dropna=self.dropna,
             )
-
-            # Temporarily fill in index column names
-            for info in grouping_info:
-                if not info["in_axis"]:
-                    result.index.set_names(
-                        info["name"], level=info["level"], inplace=True
-                    )
+            result = cast(Series, gb.size())
 
             if normalize:
-                # Normalize the results by dividing by the original group sizes
-                indexed_group_size = df.groupby(
-                    main_grouper,
+                # Normalize the results by dividing by the original group sizes.
+                # We are guaranteed to have the first N levels be the
+                # user-requested grouping.
+                # TODO: Is there a better way to subset levels from a MultiIndex?
+                levels = list(range(len(self.grouper.groupings), result.index.nlevels))
+                indexed_group_size = result.groupby(
+                    result.index.droplevel(levels),
                     sort=self.sort,
                     observed=self.observed,
                     dropna=self.dropna,
-                ).size()
+                ).transform("sum")
 
-                # Set the non-in_axis index names
-                for info in grouping_info:
-                    if not info["in_axis"]:
-                        level = info["level"] if len(grouping_info) > 1 else None
-                        indexed_group_size.index.set_names(
-                            info["name"], level=level, inplace=True
-                        )
-
-                # Use indexed group size series
-                if self.dropna or (isinstance(self.keys, list) and len(self.keys) == 1):
-                    result /= indexed_group_size
-                else:
-                    # Unfortunately, nans in multi-column multiindex sometimes makes
-                    # size() produce a Series that puts nans in the result
-                    values = (
-                        result.values
-                        / indexed_group_size.align(result, join="left")[0].values
-                    )
-                    result = Series(data=values, index=result.index)
+                result /= indexed_group_size
 
             if sort:
                 # Sort the values and then resort by the main grouping
-                index_level = [info["level"] for info in grouping_info]
+                index_level = range(len(self.grouper.groupings))
                 result = result.sort_values(ascending=ascending).sort_index(
                     level=index_level, sort_remaining=False
                 )
 
-            if self.as_index:
-                # Remove Series index names (for compatibility with size())
-                for info in grouping_info:
-                    if not info["in_axis"]:
-                        result.index.set_names(None, level=info["level"], inplace=True)
-            else:
+            if not self.as_index:
                 # Convert to frame
                 result = result.reset_index(name="proportion" if normalize else "count")
             return result
