@@ -172,26 +172,22 @@ Examples
 Creating a dummy stata for this example
 >>> df = pd.DataFrame({{'animal': ['falcon', 'parrot', 'falcon',
 ...                              'parrot'],
-...                   'speed': [350, 18, 361, 15]}})
->>> df.to_stata('animals.dta')
+...                   'speed': [350, 18, 361, 15]}})  # doctest: +SKIP
+>>> df.to_stata('animals.dta')  # doctest: +SKIP
 
 Read a Stata dta file:
 
->>> df = pd.read_stata('animals.dta')
+>>> df = pd.read_stata('animals.dta')  # doctest: +SKIP
 
 Read a Stata dta file in 10,000 line chunks:
->>> values = np.random.randint(0, 10, size=(20_000, 1), dtype="uint8")
->>> df = pd.DataFrame(values, columns=["i"])
->>> df.to_stata('filename.dta')
+>>> values = np.random.randint(0, 10, size=(20_000, 1), dtype="uint8")  # doctest: +SKIP
+>>> df = pd.DataFrame(values, columns=["i"])  # doctest: +SKIP
+>>> df.to_stata('filename.dta')  # doctest: +SKIP
 
->>> itr = pd.read_stata('filename.dta', chunksize=10000)
+>>> itr = pd.read_stata('filename.dta', chunksize=10000)  # doctest: +SKIP
 >>> for chunk in itr:
 ...    # Operate on a single chunk, e.g., chunk.mean()
-...    pass
-
->>> import os
->>> os.remove("./filename.dta")
->>> os.remove("./animals.dta")
+...    pass  # doctest: +SKIP
 """
 
 _read_method_doc = f"""\

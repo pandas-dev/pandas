@@ -71,28 +71,25 @@ def to_pickle(
 
     Examples
     --------
-    >>> original_df = pd.DataFrame({{"foo": range(5), "bar": range(5, 10)}})
-    >>> original_df
+    >>> original_df = pd.DataFrame({{"foo": range(5), "bar": range(5, 10)}})  # doctest: +SKIP
+    >>> original_df  # doctest: +SKIP
        foo  bar
     0    0    5
     1    1    6
     2    2    7
     3    3    8
     4    4    9
-    >>> pd.to_pickle(original_df, "./dummy.pkl")
+    >>> pd.to_pickle(original_df, "./dummy.pkl")  # doctest: +SKIP
 
-    >>> unpickled_df = pd.read_pickle("./dummy.pkl")
-    >>> unpickled_df
+    >>> unpickled_df = pd.read_pickle("./dummy.pkl")  # doctest: +SKIP
+    >>> unpickled_df  # doctest: +SKIP
        foo  bar
     0    0    5
     1    1    6
     2    2    7
     3    3    8
     4    4    9
-
-    >>> import os
-    >>> os.remove("./dummy.pkl")
-    """
+    """  # noqa: E501
     if protocol < 0:
         protocol = pickle.HIGHEST_PROTOCOL
 
@@ -165,28 +162,25 @@ def read_pickle(
 
     Examples
     --------
-    >>> original_df = pd.DataFrame({{"foo": range(5), "bar": range(5, 10)}})
-    >>> original_df
+    >>> original_df = pd.DataFrame({{"foo": range(5), "bar": range(5, 10)}})  # doctest: +SKIP
+    >>> original_df  # doctest: +SKIP
        foo  bar
     0    0    5
     1    1    6
     2    2    7
     3    3    8
     4    4    9
-    >>> pd.to_pickle(original_df, "./dummy.pkl")
+    >>> pd.to_pickle(original_df, "./dummy.pkl")  # doctest: +SKIP
 
-    >>> unpickled_df = pd.read_pickle("./dummy.pkl")
-    >>> unpickled_df
+    >>> unpickled_df = pd.read_pickle("./dummy.pkl")  # doctest: +SKIP
+    >>> unpickled_df  # doctest: +SKIP
        foo  bar
     0    0    5
     1    1    6
     2    2    7
     3    3    8
     4    4    9
-
-    >>> import os
-    >>> os.remove("./dummy.pkl")
-    """
+    """  # noqa: E501
     excs_to_catch = (AttributeError, ImportError, ModuleNotFoundError, TypeError)
     with get_handle(
         filepath_or_buffer,
