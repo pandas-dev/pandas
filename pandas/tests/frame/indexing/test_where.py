@@ -1,5 +1,9 @@
 from datetime import datetime
 
+from hypothesis import (
+    given,
+    strategies as st,
+)
 import numpy as np
 import pytest
 
@@ -16,6 +20,13 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
+from pandas._testing._hypothesis import (
+    OPTIONAL_DICTS,
+    OPTIONAL_FLOATS,
+    OPTIONAL_INTS,
+    OPTIONAL_LISTS,
+    OPTIONAL_TEXT,
+)
 
 
 @pytest.fixture(params=["default", "float_string", "mixed_float", "mixed_int"])
@@ -797,3 +808,16 @@ def test_where_columns_casting():
     result = df.where(pd.notnull(df), None)
     # make sure dtypes don't change
     tm.assert_frame_equal(expected, result)
+
+
+@given(
+    data=st.one_of(
+        OPTIONAL_DICTS, OPTIONAL_FLOATS, OPTIONAL_INTS, OPTIONAL_LISTS, OPTIONAL_TEXT
+    )
+)
+def test_where_inplace_casting(data):
+    # GH 22051
+    df = DataFrame({"a": data})
+    df_copy = df.where(pd.notnull(df), None).copy()
+    df.where(pd.notnull(df), None, inplace=True)
+    tm.assert_equal(df, df_copy)

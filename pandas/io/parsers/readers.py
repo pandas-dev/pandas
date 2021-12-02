@@ -758,6 +758,9 @@ def read_table(
     return _read(filepath_or_buffer, kwds)
 
 
+@deprecate_nonkeyword_arguments(
+    version=None, allowed_args=["filepath_or_buffer"], stacklevel=2
+)
 def read_fwf(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
     colspecs: list[tuple[int, int]] | str | None = "infer",
