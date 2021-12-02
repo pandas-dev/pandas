@@ -98,12 +98,12 @@ def to_orc(
     if index is None:
         index = df.index.names[0] is not None
 
-    if engine == "pyarrow":
-        engine = import_optional_dependency(engine, min_version='5.0.0')
-    else:
+    if engine != "pyarrow":
         raise ValueError(
             f"engine must be 'pyarrow'"
         )
+    engine = import_optional_dependency(engine, min_version='5.0.0')
+        
 
     if hasattr(path, "write"):
         engine.orc.write_table(
