@@ -98,7 +98,6 @@ jobs:
         path: asv_bench/benchmarks.log
       if: failure()
 
-<<<<<<< HEAD
 #  web_and_docs:
 #    name: Web and docs
 #    runs-on: ubuntu-latest
