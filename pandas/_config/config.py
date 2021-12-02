@@ -764,7 +764,7 @@ def config_prefix(prefix):
     get_option = wrap(get_option)
     register_option = wrap(register_option)
     try:
-        yield None
+        yield
     finally:
         set_option = _set_option
         get_option = _get_option
