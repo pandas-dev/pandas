@@ -834,7 +834,7 @@ def test_names_and_prefix_explicit_None(all_parsers, names, prefix, func):
     f = StringIO("a,b\n1,2")
     expected = DataFrame({"x0": ["a", "1"], "x1": ["b", "2"]})
     parser = all_parsers
-    with tm.assert_produces_warning(FutureWarning):
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         result = getattr(parser, func)(
             f, names=names, sep=",", prefix=prefix, header=None
         )
