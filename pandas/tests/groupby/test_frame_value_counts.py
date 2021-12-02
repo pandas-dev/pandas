@@ -401,23 +401,24 @@ def test_mixed_groupings(normalize, expected_label, expected_values):
 
 
 @pytest.mark.parametrize(
-    "test, expected_values",
+    "test, expected_names",
     [
-        ("repeat", []),
-        ("level", []),
+        ("repeat", ["a", None, "d", "b", "b", "e"]),
+        ("level", ["a", None, "d", "b", "c", "level_1"]),
     ],
 )
-def test_column_name_clashes(test, expected_values):
+def test_column_name_clashes(test, expected_names):
     df = pd.DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6], "d": [7, 8], "e": [9, 10]})
     if test == "repeat":
         df.columns = list("abbde")
     else:
         df.columns = list("abcd") + ["level_1"]
-    print("\nDF")
-    print(df)
-    result = df.groupby(["a", [0, 1], "d"], as_index=False).value_counts()
-    print("\nRESULT")
-    print(result)
-    expected = pd.DataFrame({"a": [1, 2], "level_1": [0, 1], "d": [7, 8], "b": [3, 4], "c": [5, 6], "e": [9, 10], "count": [1, 1]})
-    print(expected)
-    tm.assert_frame_equal(result, expected)
+    result = df.groupby(["a", [0, 1], "d"]).value_counts()
+    expected = pd.Series(
+        data=(1, 1),
+        index=pd.MultiIndex.from_tuples(
+            [(1, 0, 7, 3, 5, 9), (2, 1, 8, 4, 6, 10)],
+            names=expected_names,
+        ),
+    )
+    tm.assert_series_equal(result, expected)
