@@ -15,14 +15,12 @@ dependencies:
 
   # pandas dependencies
   - beautifulsoup4
-  - flask
   - html5lib
   - ipython
   - jinja2
   - jedi
   - lxml
   - matplotlib<3.3.0
-  - moto
   - nomkl
   - numexpr
   - numpy<1.20  # GH#39541 compat with pyarrow<3
@@ -35,7 +33,6 @@ dependencies:
   - xlrd
   - xlsxwriter
   - xlwt
-  - moto
   - pyarrow=1.0.1
   - pip
   - pip:
