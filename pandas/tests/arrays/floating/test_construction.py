@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.compat import np_version_under1p19
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import FloatingArray
@@ -40,7 +42,7 @@ def test_floating_array_constructor():
         FloatingArray(values)
 
 
-def test_floating_array_disallows_float16():
+def test_floating_array_disallows_float16(request):
     # GH#44715
     arr = np.array([1, 2], dtype=np.float16)
     mask = np.array([False, False])
@@ -48,6 +50,10 @@ def test_floating_array_disallows_float16():
     msg = "FloatingArray does not support np.float16 dtype"
     with pytest.raises(TypeError, match=msg):
         FloatingArray(arr, mask)
+
+    if np_version_under1p19:
+        mark = pytest.mark.xfail(reason="numpy does not raise on np.dtype('Float16')")
+        request.node.add_marker(mark)
 
     with pytest.raises(TypeError, match="data type 'Float16' not understood"):
         pd.array([1.0, 2.0], dtype="Float16")
