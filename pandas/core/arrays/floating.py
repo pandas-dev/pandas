@@ -254,6 +254,10 @@ class FloatingArray(NumericArray):
                 "values should be floating numpy array. Use "
                 "the 'pd.array' function instead"
             )
+        if values.dtype == np.float16:
+            # If we don't raise here, then accessing self.dtype would raise
+            raise TypeError("FloatingArray does not support np.float16 dtype.")
+
         super().__init__(values, mask, copy=copy)
 
     @classmethod

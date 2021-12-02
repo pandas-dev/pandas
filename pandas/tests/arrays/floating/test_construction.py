@@ -40,6 +40,18 @@ def test_floating_array_constructor():
         FloatingArray(values)
 
 
+def test_floating_array_disallows_float16():
+    arr = np.array([1, 2], dtype=np.float16)
+    mask = np.array([False, False])
+
+    msg = "FloatingArray does not support np.float16 dtype"
+    with pytest.raises(TypeError, match=msg):
+        FloatingArray(arr, mask)
+
+    with pytest.raises(TypeError, match="data type 'Float16' not understood"):
+        pd.array([1.0, 2.0], dtype="Float16")
+
+
 def test_floating_array_constructor_copy():
     values = np.array([1, 2, 3, 4], dtype="float64")
     mask = np.array([False, False, False, True], dtype="bool")
