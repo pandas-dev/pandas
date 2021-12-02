@@ -33,6 +33,7 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_object_dtype,
     is_scalar,
+    is_string_or_object_np_dtype,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.dtypes import (
@@ -241,7 +242,7 @@ def _isna_array(values: ArrayLike, inf_as_na: bool = False):
             result = libmissing.isnaobj(values.to_numpy(), inf_as_na=inf_as_na)
         else:
             result = values.isna()
-    elif _is_string_dtype(dtype):
+    elif is_string_or_object_np_dtype(dtype):
         result = _isna_string_dtype(values, inf_as_na=inf_as_na)
     elif needs_i8_conversion(dtype):
         # this is the NaT pattern
@@ -429,7 +430,7 @@ def array_equivalent(
             return False
         elif needs_i8_conversion(left.dtype):
             return _array_equivalent_datetimelike(left, right)
-        elif _is_string_dtype(left.dtype):
+        elif is_string_or_object_np_dtype(left.dtype):
             # TODO: fastpath for pandas' StringDtype
             return _array_equivalent_object(left, right, strict_nan)
         else:
@@ -646,8 +647,3 @@ def is_valid_na_for_dtype(obj, dtype: DtypeObj) -> bool:
 
     # fallback, default to allowing NaN, None, NA, NaT
     return not isinstance(obj, (np.datetime64, np.timedelta64, Decimal))
-
-
-def _is_string_dtype(dtype: np.dtype) -> bool:
-    # Faster implementation of dtypes.common.is_string_dtype
-    return dtype == object or dtype.kind in "SU"
