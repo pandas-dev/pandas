@@ -10848,7 +10848,7 @@ NaN 12.3   33.0
     def where(
         self,
         cond,
-        other=np.nan,
+        other=lib.no_default,
         inplace=False,
         axis=None,
         level=None,
