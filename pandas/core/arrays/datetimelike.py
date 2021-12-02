@@ -35,6 +35,7 @@ from pandas._libs.tslibs import (
     Timestamp,
     delta_to_nanoseconds,
     iNaT,
+    ints_to_pydatetime,
     to_offset,
 )
 from pandas._libs.tslibs.fields import (
@@ -403,6 +404,15 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         dtype = pandas_dtype(dtype)
 
         if is_object_dtype(dtype):
+            if self.dtype.kind == "M":
+                # *much* faster than self._box_values
+                #  for e.g. test_get_loc_tuple_monotonic_above_size_cutoff
+                i8data = self.asi8.ravel()
+                converted = ints_to_pydatetime(
+                    i8data, tz=self.tz, freq=self.freq, box="timestamp"
+                )
+                return converted.reshape(self.shape)
+
             return self._box_values(self.asi8.ravel()).reshape(self.shape)
 
         elif isinstance(dtype, ExtensionDtype):
