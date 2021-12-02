@@ -270,8 +270,8 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
-    def _compare_other(self, s, data, op_name, other):
-        op = self.get_op_from_name(op_name)
+    def _compare_other(self, s, data, op, other):
+        op_name = f"__{op.__name__}__"
         if op_name == "__eq__":
             result = op(s, other)
             expected = s.combine(other, lambda x, y: x == y)
@@ -303,3 +303,14 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
 
 class TestParsing(base.BaseParsingTests):
     pass
+
+
+class Test2DCompat(base.Dim2CompatTests):
+    def test_repr_2d(self, data):
+        # Categorical __repr__ doesn't include "Categorical", so we need
+        #  to special-case
+        res = repr(data.reshape(1, -1))
+        assert res.count("\nCategories") == 1
+
+        res = repr(data.reshape(-1, 1))
+        assert res.count("\nCategories") == 1

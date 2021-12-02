@@ -82,6 +82,7 @@ from pandas._testing.asserters import (  # noqa:F401
     assert_extension_array_equal,
     assert_frame_equal,
     assert_index_equal,
+    assert_indexing_slices_equivalent,
     assert_interval_array_equal,
     assert_is_sorted,
     assert_is_valid_plot_return_object,
@@ -157,6 +158,25 @@ ALL_NUMPY_DTYPES = (
 )
 
 NULL_OBJECTS = [None, np.nan, pd.NaT, float("nan"), pd.NA, Decimal("NaN")]
+NP_NAT_OBJECTS = [
+    cls("NaT", unit)
+    for cls in [np.datetime64, np.timedelta64]
+    for unit in [
+        "Y",
+        "M",
+        "W",
+        "D",
+        "h",
+        "m",
+        "s",
+        "ms",
+        "us",
+        "ns",
+        "ps",
+        "fs",
+        "as",
+    ]
+]
 
 EMPTY_STRING_PATTERN = re.compile("^$")
 
@@ -240,7 +260,7 @@ def box_expected(expected, box_cls, transpose=True):
         expected = DatetimeArray(expected)
     elif box_cls is TimedeltaArray:
         expected = TimedeltaArray(expected)
-    elif box_cls is np.ndarray:
+    elif box_cls is np.ndarray or box_cls is np.array:
         expected = np.array(expected)
     elif box_cls is to_array:
         expected = to_array(expected)

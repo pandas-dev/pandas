@@ -142,9 +142,7 @@ class TestDatetime64:
         assert dti.is_month_start[0] == 1
 
     def test_datetimeindex_accessors5(self):
-        with tm.assert_produces_warning(
-            FutureWarning, match="The 'freq' argument", check_stacklevel=False
-        ):
+        with tm.assert_produces_warning(FutureWarning, match="The 'freq' argument"):
             tests = [
                 (Timestamp("2013-06-01", freq="M").is_month_start, 1),
                 (Timestamp("2013-06-01", freq="BM").is_month_start, 0),
@@ -295,21 +293,6 @@ def test_week_and_weekofyear_are_deprecated():
         idx.week
     with tm.assert_produces_warning(FutureWarning):
         idx.weekofyear
-
-
-def test_isocalendar_returns_correct_values_close_to_new_year_with_tz():
-    # GH 6538: Check that DatetimeIndex and its TimeStamp elements
-    # return the same weekofyear accessor close to new year w/ tz
-    dates = ["2013/12/29", "2013/12/30", "2013/12/31"]
-    dates = DatetimeIndex(dates, tz="Europe/Brussels")
-    result = dates.isocalendar()
-    expected_data_frame = pd.DataFrame(
-        [[2013, 52, 7], [2014, 1, 1], [2014, 1, 2]],
-        columns=["year", "week", "day"],
-        index=dates,
-        dtype="UInt32",
-    )
-    tm.assert_frame_equal(result, expected_data_frame)
 
 
 def test_add_timedelta_preserves_freq():

@@ -15,6 +15,7 @@ from pandas import (
     DatetimeIndex,
     Index,
     MultiIndex,
+    RangeIndex,
     Series,
     TimedeltaIndex,
     Timestamp,
@@ -453,19 +454,20 @@ class TestSetOps:
     "method", ["intersection", "union", "difference", "symmetric_difference"]
 )
 def test_setop_with_categorical(index, sort, method):
-    if isinstance(index, MultiIndex):
+    if isinstance(index, MultiIndex):  # TODO: flat_index?
         # tested separately in tests.indexes.multi.test_setops
         return
 
     other = index.astype("category")
+    exact = "equiv" if isinstance(index, RangeIndex) else True
 
     result = getattr(index, method)(other, sort=sort)
     expected = getattr(index, method)(index, sort=sort)
-    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(result, expected, exact=exact)
 
     result = getattr(index, method)(other[:5], sort=sort)
     expected = getattr(index, method)(index[:5], sort=sort)
-    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(result, expected, exact=exact)
 
 
 def test_intersection_duplicates_all_indexes(index):
@@ -771,7 +773,7 @@ class TestSetOpsUnsorted:
     @pytest.mark.xfail(reason="Not implemented")
     @pytest.mark.parametrize("opname", ["difference", "symmetric_difference"])
     def test_difference_incomparable_true(self, opname):
-        # TODO: decide on True behaviour
+        # TODO(GH#25151): decide on True behaviour
         # # sort=True, raises
         a = Index([3, Timestamp("2000"), 1])
         b = Index([2, Timestamp("1999"), 1])

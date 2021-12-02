@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from typing import Callable
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+)
 
 import numpy as np
 
@@ -42,7 +45,10 @@ def generate_shared_aggregator(
     if cache_key in NUMBA_FUNC_CACHE:
         return NUMBA_FUNC_CACHE[cache_key]
 
-    numba = import_optional_dependency("numba")
+    if TYPE_CHECKING:
+        import numba
+    else:
+        numba = import_optional_dependency("numba")
 
     @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
     def column_looper(
@@ -50,10 +56,11 @@ def generate_shared_aggregator(
         start: np.ndarray,
         end: np.ndarray,
         min_periods: int,
+        *args,
     ):
         result = np.empty((len(start), values.shape[1]), dtype=np.float64)
         for i in numba.prange(values.shape[1]):
-            result[:, i] = func(values[:, i], start, end, min_periods)
+            result[:, i] = func(values[:, i], start, end, min_periods, *args)
         return result
 
     return column_looper

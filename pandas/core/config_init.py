@@ -25,6 +25,8 @@ from pandas._config.config import (
     is_text,
 )
 
+from pandas.util._exceptions import find_stack_level
+
 # compute
 
 use_bottleneck_doc = """
@@ -236,6 +238,16 @@ pc_html_use_mathjax_doc = """\
     (default: True)
 """
 
+pc_max_dir_items = """\
+: int
+    The number of items that will be added to `dir(...)`. 'None' value means
+    unlimited. Because dir is cached, changing this option will not immediately
+    affect already existing dataframes until a column is deleted or added.
+
+    This is for instance used to suggest columns from a dataframe to tab
+    completion.
+"""
+
 pc_width_doc = """
 : int
     Width of the display in characters. In case python/IPython is running in
@@ -373,7 +385,7 @@ with cf.config_prefix("display"):
                 "will not be supported in future version. Instead, use None "
                 "to not limit the column width.",
                 FutureWarning,
-                stacklevel=4,
+                stacklevel=find_stack_level(),
             )
 
     cf.register_option(
@@ -448,6 +460,9 @@ with cf.config_prefix("display"):
     cf.register_option("html.border", 1, pc_html_border_doc, validator=is_int)
     cf.register_option(
         "html.use_mathjax", True, pc_html_use_mathjax_doc, validator=is_bool
+    )
+    cf.register_option(
+        "max_dir_items", 100, pc_max_dir_items, validator=is_nonnegative_int
     )
 
 tc_sim_interactive_doc = """
@@ -823,6 +838,11 @@ styler_multicol_align = r"""
     rules, e.g. "\|r" will draw a rule on the left side of right aligned merged cells.
 """
 
+styler_hrules = """
+: bool
+    Whether to add horizontal rules on top and bottom and below the headers.
+"""
+
 styler_environment = """
 : str
     The environment to replace ``\\begin{table}``. If "longtable" is used results
@@ -928,6 +948,8 @@ with cf.config_prefix("styler"):
         styler_multicol_align,
         validator=is_one_of_factory(val_mca),
     )
+
+    cf.register_option("latex.hrules", False, styler_hrules, validator=is_bool)
 
     cf.register_option(
         "latex.environment",

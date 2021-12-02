@@ -71,7 +71,7 @@ void traced_free(void* ptr){
 // The python 3 hash function has the invariant hash(x) == hash(int(x)) == hash(decimal(x))
 // and the size of hash may be different by platform / version (long in py2, Py_ssize_t in py3).
 // We don't need those invariants because types will be cast before hashing, and if Py_ssize_t
-// is 64 bits the truncation causes collission issues.  Given all that, we use our own
+// is 64 bits the truncation causes collision issues.  Given all that, we use our own
 // simple hash, viewing the double bytes as an int64 and using khash's default
 // hash for 64 bit integers.
 // GH 13436 showed that _Py_HashDouble doesn't work well with khash
@@ -338,13 +338,13 @@ khuint32_t PANDAS_INLINE kh_python_hash_func(PyObject* key) {
     //    are possible
     if (PyFloat_CheckExact(key)) {
         // we cannot use kh_float64_hash_func
-        // becase float(k) == k holds for any int-object k
+        // because float(k) == k holds for any int-object k
         // and kh_float64_hash_func doesn't respect it
         hash = floatobject_hash((PyFloatObject*)key);
     }
     else if (PyComplex_CheckExact(key)) {
         // we cannot use kh_complex128_hash_func
-        // becase complex(k,0) == k holds for any int-object k
+        // because complex(k,0) == k holds for any int-object k
         // and kh_complex128_hash_func doesn't respect it
         hash = complexobject_hash((PyComplexObject*)key);
     }

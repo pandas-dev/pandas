@@ -21,6 +21,7 @@ from pandas._typing import (
 )
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import sanitize_to_nanoseconds
 from pandas.core.dtypes.common import (
@@ -105,11 +106,10 @@ class Grouper:
             However, loffset is also deprecated for ``.resample(...)``
             See: :class:`DataFrame.resample`
 
-    origin : {{'epoch', 'start', 'start_day', 'end', 'end_day'}}, Timestamp
-        or str, default 'start_day'
+    origin : Timestamp or str, default 'start_day'
         The timestamp on which to adjust the grouping. The timezone of origin must
         match the timezone of the index.
-        If a timestamp is not used, these values are also supported:
+        If string, must be one of the following:
 
         - 'epoch': `origin` is 1970-01-01
         - 'start': `origin` is the first value of the timeseries
@@ -964,8 +964,6 @@ def _check_deprecated_resample_kwargs(kwargs, origin):
         From where this function is being called; either Grouper or TimeGrouper. Used
         to determine an approximate stacklevel.
     """
-    from pandas.core.resample import TimeGrouper
-
     # Deprecation warning of `base` and `loffset` since v1.1.0:
     # we are raising the warning here to be able to set the `stacklevel`
     # properly since we need to raise the `base` and `loffset` deprecation
@@ -975,11 +973,6 @@ def _check_deprecated_resample_kwargs(kwargs, origin):
     #   core/groupby/grouper.py::Grouper
     # raising these warnings from TimeGrouper directly would fail the test:
     #   tests/resample/test_deprecated.py::test_deprecating_on_loffset_and_base
-    # hacky way to set the stacklevel: if cls is TimeGrouper it means
-    # that the call comes from a pandas internal call of resample,
-    # otherwise it comes from pd.Grouper
-    stacklevel = (5 if origin is TimeGrouper else 2) + 1
-    # the + 1 is for this helper function, check_deprecated_resample_kwargs
 
     if kwargs.get("base", None) is not None:
         warnings.warn(
@@ -989,7 +982,7 @@ def _check_deprecated_resample_kwargs(kwargs, origin):
             "\nbecomes:\n"
             '\n>>> df.resample(freq="3s", offset="2s")\n',
             FutureWarning,
-            stacklevel=stacklevel,
+            stacklevel=find_stack_level(),
         )
     if kwargs.get("loffset", None) is not None:
         warnings.warn(
@@ -1000,5 +993,5 @@ def _check_deprecated_resample_kwargs(kwargs, origin):
             '\n>>> df = df.resample(freq="3s").mean()'
             '\n>>> df.index = df.index.to_timestamp() + to_offset("8H")\n',
             FutureWarning,
-            stacklevel=stacklevel,
+            stacklevel=find_stack_level(),
         )

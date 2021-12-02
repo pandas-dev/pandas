@@ -211,7 +211,7 @@ class TestDataFrameShift:
 
     @pytest.mark.filterwarnings("ignore:tshift is deprecated:FutureWarning")
     def test_tshift(self, datetime_frame):
-        # TODO: remove this test when tshift deprecation is enforced
+        # TODO(2.0): remove this test when tshift deprecation is enforced
 
         # PeriodIndex
         ps = tm.makePeriodFrame()
@@ -329,6 +329,83 @@ class TestDataFrameShift:
             result = df2.shift(1, axis=1, fill_value=0)
 
         expected = DataFrame({"A": [pd.Timestamp(0), pd.Timestamp(0)], "B": df2["A"]})
+        tm.assert_frame_equal(result, expected)
+
+        # same thing but not consolidated
+        # This isn't great that we get different behavior, but
+        #  that will go away when the deprecation is enforced
+        df3 = DataFrame({"A": ser})
+        df3["B"] = ser
+        assert len(df3._mgr.arrays) == 2
+        result = df3.shift(1, axis=1, fill_value=0)
+        expected = DataFrame({"A": [0, 0], "B": df2["A"]})
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "as_cat",
+        [
+            pytest.param(
+                True,
+                marks=pytest.mark.xfail(
+                    reason="_can_hold_element incorrectly always returns True"
+                ),
+            ),
+            False,
+        ],
+    )
+    @pytest.mark.parametrize(
+        "vals",
+        [
+            date_range("2020-01-01", periods=2),
+            date_range("2020-01-01", periods=2, tz="US/Pacific"),
+            pd.period_range("2020-01-01", periods=2, freq="D"),
+            pd.timedelta_range("2020 Days", periods=2, freq="D"),
+            pd.interval_range(0, 3, periods=2),
+            pytest.param(
+                pd.array([1, 2], dtype="Int64"),
+                marks=pytest.mark.xfail(
+                    reason="_can_hold_element incorrectly always returns True"
+                ),
+            ),
+            pytest.param(
+                pd.array([1, 2], dtype="Float32"),
+                marks=pytest.mark.xfail(
+                    reason="_can_hold_element incorrectly always returns True"
+                ),
+            ),
+        ],
+        ids=lambda x: str(x.dtype),
+    )
+    def test_shift_dt64values_axis1_invalid_fill(
+        self, vals, as_cat, using_array_manager, request
+    ):
+        # GH#44564
+        if using_array_manager:
+            mark = pytest.mark.xfail(raises=NotImplementedError)
+            request.node.add_marker(mark)
+
+        ser = Series(vals)
+        if as_cat:
+            ser = ser.astype("category")
+
+        df = DataFrame({"A": ser})
+        result = df.shift(-1, axis=1, fill_value="foo")
+        expected = DataFrame({"A": ["foo", "foo"]})
+        tm.assert_frame_equal(result, expected)
+
+        # same thing but multiple blocks
+        df2 = DataFrame({"A": ser, "B": ser})
+        df2._consolidate_inplace()
+
+        result = df2.shift(-1, axis=1, fill_value="foo")
+        expected = DataFrame({"A": df2["B"], "B": ["foo", "foo"]})
+        tm.assert_frame_equal(result, expected)
+
+        # same thing but not consolidated
+        df3 = DataFrame({"A": ser})
+        df3["B"] = ser
+        assert len(df3._mgr.arrays) == 2
+        result = df3.shift(-1, axis=1, fill_value="foo")
         tm.assert_frame_equal(result, expected)
 
     def test_shift_axis1_categorical_columns(self):

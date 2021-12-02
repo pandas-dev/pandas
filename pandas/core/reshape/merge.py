@@ -35,6 +35,7 @@ from pandas.util._decorators import (
     Appender,
     Substitution,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import (
@@ -676,7 +677,7 @@ class _MergeOperation:
             )
             # stacklevel chosen to be correct when this is reached via pd.merge
             # (and not DataFrame.join)
-            warnings.warn(msg, FutureWarning, stacklevel=3)
+            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
 
         self._validate_specification()
 
@@ -1280,10 +1281,12 @@ class _MergeOperation:
             # incompatible dtypes. See GH 16900.
             if name in self.left.columns:
                 typ = lk.categories.dtype if lk_is_cat else object
-                self.left = self.left.assign(**{name: self.left[name].astype(typ)})
+                self.left = self.left.copy()
+                self.left[name] = self.left[name].astype(typ)
             if name in self.right.columns:
                 typ = rk.categories.dtype if rk_is_cat else object
-                self.right = self.right.assign(**{name: self.right[name].astype(typ)})
+                self.right = self.right.copy()
+                self.right[name] = self.right[name].astype(typ)
 
     def _create_cross_configuration(
         self, left: DataFrame, right: DataFrame
@@ -1780,21 +1783,27 @@ class _AsOfMerge(_OrderedMerge):
         # GH#29130 Check that merge keys do not have dtype object
         if not self.left_index:
             left_on = self.left_on[0]
-            lo_dtype = (
-                self.left[left_on].dtype
-                if left_on in self.left.columns
-                else self.left.index.get_level_values(left_on)
-            )
+            if is_array_like(left_on):
+                lo_dtype = left_on.dtype
+            else:
+                lo_dtype = (
+                    self.left[left_on].dtype
+                    if left_on in self.left.columns
+                    else self.left.index.get_level_values(left_on)
+                )
         else:
             lo_dtype = self.left.index.dtype
 
         if not self.right_index:
             right_on = self.right_on[0]
-            ro_dtype = (
-                self.right[right_on].dtype
-                if right_on in self.right.columns
-                else self.right.index.get_level_values(right_on)
-            )
+            if is_array_like(right_on):
+                ro_dtype = right_on.dtype
+            else:
+                ro_dtype = (
+                    self.right[right_on].dtype
+                    if right_on in self.right.columns
+                    else self.right.index.get_level_values(right_on)
+                )
         else:
             ro_dtype = self.right.index.dtype
 
@@ -2295,7 +2304,7 @@ def _items_overlap_with_suffix(
             "unexpected results. Provide 'suffixes' as a tuple instead. In the "
             "future a 'TypeError' will be raised.",
             FutureWarning,
-            stacklevel=4,
+            stacklevel=find_stack_level(),
         )
 
     to_rename = left.intersection(right)
@@ -2345,7 +2354,7 @@ def _items_overlap_with_suffix(
             f"Passing 'suffixes' which cause duplicate columns {set(dups)} in the "
             f"result is deprecated and will raise a MergeError in a future version.",
             FutureWarning,
-            stacklevel=4,
+            stacklevel=find_stack_level(),
         )
 
     return llabels, rlabels

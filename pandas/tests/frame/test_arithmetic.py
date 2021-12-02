@@ -668,6 +668,21 @@ class TestFrameFlexArithmetic:
         str(result)
         result.dtypes
 
+    @pytest.mark.parametrize("level", [0, None])
+    def test_broadcast_multiindex(self, level):
+        # GH34388
+        df1 = DataFrame({"A": [0, 1, 2], "B": [1, 2, 3]})
+        df1.columns = df1.columns.set_names("L1")
+
+        df2 = DataFrame({("A", "C"): [0, 0, 0], ("A", "D"): [0, 0, 0]})
+        df2.columns = df2.columns.set_names(["L1", "L2"])
+
+        result = df1.add(df2, level=level)
+        expected = DataFrame({("A", "C"): [0, 1, 2], ("A", "D"): [0, 1, 2]})
+        expected.columns = expected.columns.set_names(["L1", "L2"])
+
+        tm.assert_frame_equal(result, expected)
+
 
 class TestFrameArithmetic:
     def test_td64_op_nat_casting(self):
@@ -722,10 +737,15 @@ class TestFrameArithmetic:
         result = collike + df
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) decide on dtypes
-    def test_df_arith_2d_array_rowlike_broadcasts(self, all_arithmetic_operators):
+    def test_df_arith_2d_array_rowlike_broadcasts(
+        self, request, all_arithmetic_operators, using_array_manager
+    ):
         # GH#23000
         opname = all_arithmetic_operators
+
+        if using_array_manager and opname in ("__rmod__", "__rfloordiv__"):
+            # TODO(ArrayManager) decide on dtypes
+            td.mark_array_manager_not_yet_implemented(request)
 
         arr = np.arange(6).reshape(3, 2)
         df = DataFrame(arr, columns=[True, False], index=["A", "B", "C"])
@@ -744,10 +764,15 @@ class TestFrameArithmetic:
         result = getattr(df, opname)(rowlike)
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) decide on dtypes
-    def test_df_arith_2d_array_collike_broadcasts(self, all_arithmetic_operators):
+    def test_df_arith_2d_array_collike_broadcasts(
+        self, request, all_arithmetic_operators, using_array_manager
+    ):
         # GH#23000
         opname = all_arithmetic_operators
+
+        if using_array_manager and opname in ("__rmod__", "__rfloordiv__"):
+            # TODO(ArrayManager) decide on dtypes
+            td.mark_array_manager_not_yet_implemented(request)
 
         arr = np.arange(6).reshape(3, 2)
         df = DataFrame(arr, columns=[True, False], index=["A", "B", "C"])
@@ -925,8 +950,8 @@ class TestFrameArithmetic:
             (operator.mul, "bool"),
         }
 
-        e = DummyElement(value, dtype)
-        s = DataFrame({"A": [e.value, e.value]}, dtype=e.dtype)
+        elem = DummyElement(value, dtype)
+        df = DataFrame({"A": [elem.value, elem.value]}, dtype=elem.dtype)
 
         invalid = {
             (operator.pow, "<M8[ns]"),
@@ -960,7 +985,7 @@ class TestFrameArithmetic:
 
             with pytest.raises(TypeError, match=msg):
                 with tm.assert_produces_warning(warn):
-                    op(s, e.value)
+                    op(df, elem.value)
 
         elif (op, dtype) in skip:
 
@@ -971,19 +996,17 @@ class TestFrameArithmetic:
                 else:
                     warn = None
                 with tm.assert_produces_warning(warn):
-                    op(s, e.value)
+                    op(df, elem.value)
 
             else:
                 msg = "operator '.*' not implemented for .* dtypes"
                 with pytest.raises(NotImplementedError, match=msg):
-                    op(s, e.value)
+                    op(df, elem.value)
 
         else:
-            # FIXME: Since dispatching to Series, this test no longer
-            # asserts anything meaningful
             with tm.assert_produces_warning(None):
-                result = op(s, e.value).dtypes
-                expected = op(s, value).dtypes
+                result = op(df, elem.value).dtypes
+                expected = op(df, value).dtypes
             tm.assert_series_equal(result, expected)
 
 
@@ -1240,9 +1263,7 @@ class TestFrameArithmeticUnsorted:
         added = float_frame + mixed_int_frame
         _check_mixed_float(added, dtype="float64")
 
-    def test_combine_series(
-        self, float_frame, mixed_float_frame, mixed_int_frame, datetime_frame
-    ):
+    def test_combine_series(self, float_frame, mixed_float_frame, mixed_int_frame):
 
         # Series
         series = float_frame.xs(float_frame.index[0])
@@ -1272,17 +1293,18 @@ class TestFrameArithmeticUnsorted:
         added = mixed_float_frame + series.astype("float16")
         _check_mixed_float(added, dtype={"C": None})
 
-        # FIXME: don't leave commented-out
-        # these raise with numexpr.....as we are adding an int64 to an
-        # uint64....weird vs int
+        # these used to raise with numexpr as we are adding an int64 to an
+        #  uint64....weird vs int
+        added = mixed_int_frame + (100 * series).astype("int64")
+        _check_mixed_int(
+            added, dtype={"A": "int64", "B": "float64", "C": "int64", "D": "int64"}
+        )
+        added = mixed_int_frame + (100 * series).astype("int32")
+        _check_mixed_int(
+            added, dtype={"A": "int32", "B": "float64", "C": "int32", "D": "int64"}
+        )
 
-        # added = mixed_int_frame + (100*series).astype('int64')
-        # _check_mixed_int(added, dtype = {"A": 'int64', "B": 'float64', "C":
-        # 'int64', "D": 'int64'})
-        # added = mixed_int_frame + (100*series).astype('int32')
-        # _check_mixed_int(added, dtype = {"A": 'int32', "B": 'float64', "C":
-        # 'int32', "D": 'int64'})
-
+    def test_combine_timeseries(self, datetime_frame):
         # TimeSeries
         ts = datetime_frame["A"]
 
