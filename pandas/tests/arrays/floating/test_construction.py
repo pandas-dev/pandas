@@ -41,6 +41,7 @@ def test_floating_array_constructor():
 
 
 def test_floating_array_disallows_float16():
+    # GH#44715
     arr = np.array([1, 2], dtype=np.float16)
     mask = np.array([False, False])
 

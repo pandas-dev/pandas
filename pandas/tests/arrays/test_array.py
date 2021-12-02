@@ -51,7 +51,7 @@ from pandas.tests.extension.decimal import (
         # String alias passes through to NumPy
         ([1, 2], "float32", PandasArray(np.array([1, 2], dtype="float32"))),
         ([1, 2], "int64", PandasArray(np.array([1, 2], dtype=np.int64))),
-        # FloatingArray does not support float16, so we fall back to PandasArray
+        # GH#44715 FloatingArray does not support float16, so fall back to PandasArray
         (
             np.array([1, 2], dtype=np.float16),
             None,
