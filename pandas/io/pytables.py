@@ -390,9 +390,9 @@ def read_hdf(
 
     Examples
     --------
-    >>> df = pd.DataFrame([[1, 1.0, 'a']], columns=['x', 'y', 'z'])
-    >>> df.to_hdf('./store.h5', 'data')
-    >>> reread = pd.read_hdf('./store.h5')
+    >>> df = pd.DataFrame([[1, 1.0, 'a']], columns=['x', 'y', 'z'])  # doctest: +SKIP
+    >>> df.to_hdf('./store.h5', 'data')  # doctest: +SKIP
+    >>> reread = pd.read_hdf('./store.h5')  # doctest: +SKIP
     """
     if mode not in ["r", "r+", "a"]:
         raise ValueError(
