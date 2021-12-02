@@ -14,7 +14,6 @@ from dateutil.parser import parse as du_parse
 from hypothesis import (
     given,
     settings,
-    strategies as st,
 )
 import numpy as np
 import pytest
@@ -22,10 +21,7 @@ import pytz
 
 from pandas._libs.tslibs import parsing
 from pandas._libs.tslibs.parsing import parse_datetime_string
-from pandas.compat import (
-    is_platform_windows,
-    np_array_datetime64_compat,
-)
+from pandas.compat import np_array_datetime64_compat
 from pandas.compat.pyarrow import pa_version_under6p0
 
 import pandas as pd
@@ -38,6 +34,7 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
+from pandas._testing._hypothesis import DATETIME_NO_TZ
 from pandas.core.indexes.datetimes import date_range
 
 import pandas.io.date_converters as conv
@@ -51,12 +48,6 @@ skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 # constant
 _DEFAULT_DATETIME = datetime(1, 1, 1)
-
-# Strategy for hypothesis
-if is_platform_windows():
-    date_strategy = st.datetimes(min_value=datetime(1900, 1, 1))
-else:
-    date_strategy = st.datetimes()
 
 
 @xfail_pyarrow
@@ -1683,7 +1674,7 @@ def _helper_hypothesis_delimited_date(call, date_string, **kwargs):
 
 
 @skip_pyarrow
-@given(date_strategy)
+@given(DATETIME_NO_TZ)
 @settings(deadline=None)
 @pytest.mark.parametrize("delimiter", list(" -./"))
 @pytest.mark.parametrize("dayfirst", [True, False])
