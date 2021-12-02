@@ -472,7 +472,9 @@ class DataFrame(NDFrame, OpsMixin):
     data : ndarray (structured or homogeneous), Iterable, dict, or DataFrame
         Dict can contain Series, arrays, constants, dataclass or list-like objects. If
         data is a dict, column order follows insertion-order. If a dict contains Series
-        which have an index defined, it is aligned by its index.
+        which have an index defined, it is aligned by its index.For best performance,
+        iterable objects, such as a Pytorch Tensor, that can efficiently be converted to a Numpy Array,
+        should be converted before passing it to pd.DataFrame.
 
         .. versionchanged:: 0.25.0
            If data is a list of dicts, column order follows insertion-order.
