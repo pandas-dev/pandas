@@ -410,7 +410,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 #  for e.g. test_get_loc_tuple_monotonic_above_size_cutoff
                 i8data = self.asi8.ravel()
                 converted = ints_to_pydatetime(
-                    i8data, tz=self.tz, freq=self.freq, box="timestamp"
+                    i8data,
+                    # error: "DatetimeLikeArrayMixin" has no attribute "tz"
+                    tz=self.tz,  # type: ignore[attr-defined]
+                    freq=self.freq,
+                    box="timestamp",
                 )
                 return converted.reshape(self.shape)
 

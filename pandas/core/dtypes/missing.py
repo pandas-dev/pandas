@@ -376,8 +376,8 @@ def isna_compat(arr, fill_value=np.nan) -> bool:
 
 
 def array_equivalent(
-    left: np.ndarray,
-    right: np.ndarray,
+    left,
+    right,
     strict_nan: bool = False,
     dtype_equal: bool = False,
 ) -> bool:
