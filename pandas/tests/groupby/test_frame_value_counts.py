@@ -408,7 +408,9 @@ def test_mixed_groupings(normalize, expected_label, expected_values):
     ],
 )
 def test_column_name_clashes(test, expected_names):
-    df = pd.DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6], "d": [7, 8], "e": [9, 10]})
+    df = pd.DataFrame(
+        {"a": [1, 2], "b": [3, 4], "c": [5, 6], "d": [7, 8], "e": [9, 10]}
+    )
     if test == "repeat":
         df.columns = list("abbde")
     else:
