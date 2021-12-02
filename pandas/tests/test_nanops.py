@@ -156,6 +156,15 @@ class TestnanopsDataFrame:
             else:
                 targ = targfunc(targartempval, axis=axis, **kwargs)
 
+            if targartempval.dtype == object and (
+                targfunc is np.any or targfunc is np.all
+            ):
+                # GH#12863 the numpy functions will retain e.g. floatiness
+                if isinstance(targ, np.ndarray):
+                    targ = targ.astype(bool)
+                else:
+                    targ = bool(targ)
+
             res = testfunc(testarval, axis=axis, skipna=skipna, **kwargs)
             self.check_results(targ, res, axis, check_dtype=check_dtype)
             if skipna:
@@ -270,7 +279,6 @@ class TestnanopsDataFrame:
                 value = value.astype("f8")
         return func(value, **kwargs)
 
-    @pytest.mark.xfail(reason="GH12863: numpy result won't match for object type")
     @pytest.mark.parametrize(
         "nan_op,np_op", [(nanops.nanany, np.any), (nanops.nanall, np.all)]
     )
