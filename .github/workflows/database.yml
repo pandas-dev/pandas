@@ -63,6 +63,14 @@ jobs:
         ports:
           - 5432:5432
 
+      moto:
+        image: motoserver/moto
+        env:
+          AWS_ACCESS_KEY_ID: foobar_key
+          AWS_SECRET_ACCESS_KEY: foobar_secret
+        ports:
+          - 5000:5000
+
     steps:
     - name: Checkout
       uses: actions/checkout@v2
