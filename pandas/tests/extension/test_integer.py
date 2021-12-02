@@ -101,10 +101,7 @@ def data_for_grouping(dtype):
 
 
 class TestDtype(base.BaseDtypeTests):
-    @pytest.mark.skip(reason="using multiple dtypes")
-    def test_is_dtype_unboxes_dtype(self):
-        # we have multiple dtypes, so skip
-        pass
+    pass
 
 
 class TestArithmeticOps(base.BaseArithmeticOpsTests):
@@ -196,6 +193,7 @@ class TestMissing(base.BaseMissingTests):
 
 class TestMethods(base.BaseMethodsTests):
     @pytest.mark.skip(reason="uses nullable integer")
+    @pytest.mark.parametrize("dropna", [True, False])
     def test_value_counts(self, all_data, dropna):
         all_data = all_data[:10]
         if dropna:
