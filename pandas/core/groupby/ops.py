@@ -574,6 +574,16 @@ class WrappedCythonOp:
                     min_count,
                     is_datetimelike=is_datetimelike,
                 )
+            elif self.how in ["add"]:
+                # We support datetimelike
+                func(
+                    result,
+                    counts,
+                    values,
+                    comp_ids,
+                    min_count,
+                    datetimelike=is_datetimelike,
+                )
             else:
                 func(result, counts, values, comp_ids, min_count)
         else:
