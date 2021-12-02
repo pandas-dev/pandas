@@ -36,6 +36,20 @@ def find_stack_level() -> int:
     pkg_dir = os.path.dirname(pd.__file__)
     test_dir = os.path.join(pkg_dir, "tests")
 
+    import json
+
+    filename = "/home/richard/pandas/find_stack_level.json"
+    if os.path.exists(filename):
+        with open(filename) as f:
+            calls = json.load(f)
+    else:
+        calls = {}
+    caller = f"{stack[1].filename[len(pkg_dir):]}:{stack[1].lineno}"
+    calls[caller] = calls.get(caller, 0) + 1
+
+    with open(filename, "w") as f:
+        json.dump(calls, f)
+
     for n in range(len(stack)):
         fname = stack[n].filename
         if fname.startswith(pkg_dir) and not fname.startswith(test_dir):
