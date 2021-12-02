@@ -19,7 +19,10 @@ try:
     )
 except ImportError:
     # For compatibility with older versions
-    from pandas.core.datetools import *  # noqa
+    from pandas.core.datetools import (
+        Hour,
+        Nano,
+    )
 
 
 class FromDicts:

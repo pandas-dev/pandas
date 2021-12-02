@@ -272,7 +272,7 @@ Manager2D = Union["ArrayManager", "BlockManager"]
 # SequenceIndexer is for list like or slices (but not tuples)
 # PositionalIndexerTuple is extends the PositionalIndexer for 2D arrays
 # These are used in various __getitem__ overloads
-# TODO: add Ellipsis, see
+# TODO(typing#684): add Ellipsis, see
 # https://github.com/python/typing/issues/684#issuecomment-548203158
 # https://bugs.python.org/issue41810
 # Using List[int] here rather than Sequence[int] to disallow tuples.

@@ -1150,7 +1150,6 @@ cdef class RelativeDeltaOffset(BaseOffset):
     def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
-        # TODO: see GH#1395
         return True
 
 
@@ -2659,7 +2658,6 @@ cdef class WeekOfMonth(WeekOfMonthMixin):
     def _from_name(cls, suffix=None):
         if not suffix:
             raise ValueError(f"Prefix {repr(cls._prefix)} requires a suffix.")
-        # TODO: handle n here...
         # only one digit weeks (1 --> week 0, 2 --> week 1, etc.)
         week = int(suffix[0]) - 1
         weekday = weekday_to_int[suffix[1:]]
@@ -2725,7 +2723,6 @@ cdef class LastWeekOfMonth(WeekOfMonthMixin):
     def _from_name(cls, suffix=None):
         if not suffix:
             raise ValueError(f"Prefix {repr(cls._prefix)} requires a suffix.")
-        # TODO: handle n here...
         weekday = weekday_to_int[suffix]
         return cls(weekday=weekday)
 
