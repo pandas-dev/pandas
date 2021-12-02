@@ -1891,6 +1891,7 @@ with optional parameters:
      ``index``; dict like {index -> {column -> value}}
      ``columns``; dict like {column -> {index -> value}}
      ``values``; just the values array
+     ``table``; adhering to the JSON `Table Schema`_
 
 * ``date_format`` : string, type of date conversion, 'epoch' for timestamp, 'iso' for ISO8601.
 * ``double_precision`` : The number of decimal places to use when encoding floating point values, default 10.
@@ -1906,6 +1907,18 @@ Note ``NaN``'s, ``NaT``'s and ``None`` will be converted to ``null`` and ``datet
    dfj = pd.DataFrame(np.random.randn(5, 2), columns=list("AB"))
    json = dfj.to_json()
    json
+
+.. note::
+
+   When using ``orient='table'`` along with user-defined ``ExtensionArray``,
+   the generated schema will contain an additional ``extDtype`` key in the respective
+   ``fields`` element. This extra key is not standard but does enable JSON roundtrips
+   for extension types (e.g. ``read_json(df.to_json(orient="table"), orient="table")``).
+
+   The ``extDtype`` key carries the name of the extension, if you have properly registered
+   the ``ExtensionDtype``, pandas will use said name to perform a lookup into the registry
+   and re-convert the serialized data into your custom dtype.
+
 
 Orient options
 ++++++++++++++
@@ -2465,6 +2478,10 @@ A few notes on the generated table schema:
     * For ``MultiIndex``, ``mi.names`` is used. If any level has no name,
       then ``level_<i>`` is used.
 
+* When using a ``DataFrame`` containing a ``Series`` backed by a used-defined
+  ``ExtensionArray``, the generated JSON will contain an extra ``extDtype``
+  key under the respective ``fields`` array element. While this key is not standard
+  it enables roundtripping for custom types (e.g. ``read_json(df.to_json(orient="table"), orient="table")``).
 
 ``read_json`` also accepts ``orient='table'`` as an argument. This allows for
 the preservation of metadata such as dtypes and index names in a
