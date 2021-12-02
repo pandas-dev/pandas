@@ -5,6 +5,7 @@ import re
 import numpy as np
 import pytest
 
+import pandas as pd
 from pandas import (
     DataFrame,
     IndexSlice,
@@ -154,14 +155,13 @@ def test_getitem_dups_with_missing(indexer_sl):
         indexer_sl(ser)[["foo", "bar", "bah", "bam"]]
 
 
-@pytest.mark.filterwarnings("ignore:.*append method is deprecated.*:FutureWarning")
 def test_setitem_ambiguous_keyerror(indexer_sl):
     s = Series(range(10), index=list(range(0, 20, 2)))
 
     # equivalent of an append
     s2 = s.copy()
     indexer_sl(s2)[1] = 5
-    expected = s.append(Series([5], index=[1]))
+    expected = pd.concat([s, Series([5], index=[1])])
     tm.assert_series_equal(s2, expected)
 
 

@@ -353,7 +353,6 @@ class TestPartialSetting:
         df.at[dates[-1] + dates.freq, 0] = 7
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.filterwarnings("ignore:.*append method is deprecated.*:FutureWarning")
     def test_partial_setting_mixed_dtype(self):
 
         # in a mixed dtype environment, try to preserve dtypes
@@ -362,7 +361,7 @@ class TestPartialSetting:
 
         s = df.loc[1].copy()
         s.name = 2
-        expected = df.append(s)
+        expected = df._append(s)
 
         df.loc[2] = df.loc[1]
         tm.assert_frame_equal(df, expected)
@@ -529,7 +528,6 @@ class TestPartialSetting:
 
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.filterwarnings("ignore:.*append method is deprecated.*:FutureWarning")
     def test_partial_set_invalid(self):
 
         # GH 4940
@@ -540,7 +538,7 @@ class TestPartialSetting:
         # allow object conversion here
         df = orig.copy()
         df.loc["a", :] = df.iloc[0]
-        exp = orig.append(Series(df.iloc[0], name="a"))
+        exp = orig._append(Series(df.iloc[0], name="a"))
         tm.assert_frame_equal(df, exp)
         tm.assert_index_equal(df.index, Index(orig.index.tolist() + ["a"]))
         assert df.index.dtype == "object"

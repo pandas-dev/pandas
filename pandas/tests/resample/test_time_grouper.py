@@ -177,7 +177,6 @@ def test_resample_entirely_nat_window(method, method_args, unit):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:.*append method is deprecated.*:FutureWarning")
 @pytest.mark.parametrize(
     "func, fill_value",
     [("min", np.nan), ("max", np.nan), ("sum", 0), ("prod", 1), ("count", 0)],
@@ -208,7 +207,7 @@ def test_aggregate_with_nat(func, fill_value):
     dt_result = getattr(dt_grouped, func)()
 
     pad = DataFrame([[fill_value] * 4], index=[3], columns=["A", "B", "C", "D"])
-    expected = normal_result.append(pad)
+    expected = pd.concat([normal_result, pad])
     expected = expected.sort_index()
     dti = date_range(start="2013-01-01", freq="D", periods=5, name="key")
     expected.index = dti._with_freq(None)  # TODO: is this desired?
@@ -216,7 +215,6 @@ def test_aggregate_with_nat(func, fill_value):
     assert dt_result.index.name == "key"
 
 
-@pytest.mark.filterwarnings("ignore:.*append method is deprecated.*:FutureWarning")
 def test_aggregate_with_nat_size():
     # GH 9925
     n = 20
@@ -240,7 +238,7 @@ def test_aggregate_with_nat_size():
     dt_result = dt_grouped.size()
 
     pad = Series([0], index=[3])
-    expected = normal_result.append(pad)
+    expected = pd.concat([normal_result, pad])
     expected = expected.sort_index()
     expected.index = date_range(
         start="2013-01-01", freq="D", periods=5, name="key"

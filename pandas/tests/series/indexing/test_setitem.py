@@ -8,6 +8,7 @@ import pytest
 
 from pandas.core.dtypes.common import is_list_like
 
+import pandas as pd
 from pandas import (
     Categorical,
     DataFrame,
@@ -433,7 +434,6 @@ class TestSetitemWithExpansion:
         expected = Series([Timestamp("2016-01-01"), 3.0, "foo"], index=["a", "b", "c"])
         tm.assert_series_equal(ser, expected)
 
-    @pytest.mark.filterwarnings("ignore:.*append method is deprecated.*:FutureWarning")
     def test_setitem_not_contained(self, string_series):
         # set item that's not contained
         ser = string_series.copy()
@@ -441,7 +441,7 @@ class TestSetitemWithExpansion:
         ser["foobar"] = 1
 
         app = Series([1], index=["foobar"], name="series")
-        expected = string_series.append(app)
+        expected = pd.concat([string_series, app])
         tm.assert_series_equal(ser, expected)
 
 

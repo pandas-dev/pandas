@@ -1993,14 +1993,7 @@ class _iLocIndexer(_LocationIndexer):
                     df = df.infer_objects()
                 self.obj._mgr = df._mgr
             else:
-                from pandas.core.reshape.concat import concat
-
-                df = value.to_frame().T
-                index_names = self.obj.index.names
-                df_preserve_dtype_and_index = df.infer_objects().rename_axis(
-                    index_names
-                )
-                self.obj._mgr = concat([self.obj, df_preserve_dtype_and_index])._mgr
+                self.obj._mgr = self.obj._append(value)._mgr
             self.obj._maybe_update_cacher(clear=True)
 
     def _ensure_iterable_column_indexer(self, column_indexer):

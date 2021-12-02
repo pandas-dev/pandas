@@ -1099,7 +1099,6 @@ class TestMerge:
         test5 = df3.merge(df4, on=["col1", "col2"], how="outer", indicator=True)
         tm.assert_frame_equal(test5, hand_coded_result)
 
-    @pytest.mark.filterwarnings("ignore:.*append method is deprecated.*:FutureWarning")
     def test_validation(self):
         left = DataFrame(
             {"a": ["a", "b", "c", "d"], "b": ["cat", "dog", "weasel", "horse"]},
@@ -1178,7 +1177,7 @@ class TestMerge:
         tm.assert_frame_equal(result, expected_3)
 
         # Dups on right
-        right_w_dups = right.append(DataFrame({"a": ["e"], "c": ["moo"]}, index=[4]))
+        right_w_dups = concat([right, DataFrame({"a": ["e"], "c": ["moo"]}, index=[4])])
         merge(
             left,
             right_w_dups,
@@ -1201,8 +1200,8 @@ class TestMerge:
             merge(left, right_w_dups, on="a", validate="one_to_one")
 
         # Dups on left
-        left_w_dups = left.append(
-            DataFrame({"a": ["a"], "c": ["cow"]}, index=[3]), sort=True
+        left_w_dups = concat(
+            [left, DataFrame({"a": ["a"], "c": ["cow"]}, index=[3])], sort=True
         )
         merge(
             left_w_dups,

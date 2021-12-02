@@ -1127,7 +1127,6 @@ class TestPivotTable:
 
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:.*append method is deprecated.*:FutureWarning")
     def test_margins_no_values_no_cols(self):
         # Regression test on pivot table: no values or cols passed.
         result = self.data[["A", "B"]].pivot_table(

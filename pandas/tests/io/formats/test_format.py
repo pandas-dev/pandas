@@ -2418,7 +2418,6 @@ class TestSeriesFormatting:
             else:
                 assert "+10" in line
 
-    @pytest.mark.filterwarnings("ignore:.*append method is deprecated.*:FutureWarning")
     def test_datetimeindex(self):
 
         index = date_range("20130102", periods=6)
@@ -2428,7 +2427,7 @@ class TestSeriesFormatting:
 
         # nat in index
         s2 = Series(2, index=[Timestamp("20130111"), NaT])
-        s = s2.append(s)
+        s = pd.concat([s2, s])
         result = s.to_string()
         assert "NaT" in result
 
