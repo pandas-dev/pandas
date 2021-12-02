@@ -9,11 +9,13 @@ on:
     branches:
       - master
       - 1.3.x
+    types: [labeled, opened, synchronize, reopened]
     paths-ignore:
       - "doc/**"
 
 jobs:
   build:
+    if: ${{ github.event.label.name == 'Build' || github.event_name == 'push'}}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     defaults:
