@@ -763,10 +763,12 @@ def config_prefix(prefix):
     set_option = wrap(set_option)
     get_option = wrap(get_option)
     register_option = wrap(register_option)
-    yield None
-    set_option = _set_option
-    get_option = _get_option
-    register_option = _register_option
+    try:
+        yield
+    finally:
+        set_option = _set_option
+        get_option = _get_option
+        register_option = _register_option
 
 
 # These factories and methods are handy for use as the validator
