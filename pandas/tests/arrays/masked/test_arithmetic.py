@@ -7,7 +7,6 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays import ExtensionArray
 
 # integer dtypes
 arrays = [pd.array([1, 2, 3, None], dtype=dtype) for dtype in tm.ALL_INT_EA_DTYPES]
@@ -71,11 +70,7 @@ def test_numpy_array_equivalence(data, all_arithmetic_operators):
 
     result = op(data, numpy_array)
     expected = op(data, pd_array)
-    if isinstance(expected, ExtensionArray):
-        tm.assert_extension_array_equal(result, expected)
-    else:
-        # TODO div still gives float ndarray -> remove this once we have Float EA
-        tm.assert_numpy_array_equal(result, expected)
+    tm.assert_extension_array_equal(result, expected)
 
 
 # Test equivalence with Series and DataFrame ops
