@@ -1365,6 +1365,7 @@ class TestMixedIntIndex(Base):
     def test_index_with_tuple_bool(self):
         # GH34123
         # TODO: also this op right now produces FutureWarning from numpy
+        #  https://github.com/numpy/numpy/issues/11521
         idx = Index([("a", "b"), ("b", "c"), ("c", "a")])
         result = idx == ("c", "a")
         expected = np.array([False, False, True])

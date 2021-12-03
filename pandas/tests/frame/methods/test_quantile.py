@@ -571,7 +571,7 @@ class TestDataFrameQuantile:
 
 class TestQuantileExtensionDtype:
     # TODO: tests for axis=1?
-    # TODO: empty case?  might as well do dt64 and td64 here too
+    # TODO: empty case?
 
     @pytest.fixture(
         params=[
@@ -581,6 +581,7 @@ class TestQuantileExtensionDtype:
             ),
             pd.period_range("2016-01-01", periods=9, freq="D"),
             pd.date_range("2016-01-01", periods=9, tz="US/Pacific"),
+            pd.timedelta_range("1 Day", periods=9),
             pd.array(np.arange(9), dtype="Int64"),
             pd.array(np.arange(9), dtype="Float64"),
         ],
