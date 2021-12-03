@@ -36,7 +36,8 @@ def test_value_counts(index_or_series_obj):
         # i.e IntegerDtype
         expected = expected.astype(result.dtype)
 
-    # TODO: Order of entries with the same count is inconsistent on CI (gh-32449)
+    # TODO(GH#32514): Order of entries with the same count is inconsistent
+    #  on CI (gh-32449)
     if obj.duplicated().any():
         result = result.sort_index()
         expected = expected.sort_index()
@@ -71,7 +72,7 @@ def test_value_counts_null(null_obj, index_or_series_obj):
 
     result = obj.value_counts()
     if obj.duplicated().any():
-        # TODO:
+        # TODO(GH#32514):
         #  Order of entries with the same count is inconsistent on CI (gh-32449)
         expected = expected.sort_index()
         result = result.sort_index()
@@ -82,15 +83,11 @@ def test_value_counts_null(null_obj, index_or_series_obj):
         expected = expected.astype(result.dtype)
     tm.assert_series_equal(result, expected)
 
-    # can't use expected[null_obj] = 3 as
-    # IntervalIndex doesn't allow assignment
-    # TODO: test that both expected.append(Series({np.nan: 3}, dtype=np.int64))
-    #  and expected[null_obj] = 3 work with IntegerNAIndex
     expected[null_obj] = 3
 
     result = obj.value_counts(dropna=False)
     if obj.duplicated().any():
-        # TODO:
+        # TODO(GH#32514):
         #  Order of entries with the same count is inconsistent on CI (gh-32449)
         expected = expected.sort_index()
         result = result.sort_index()
@@ -289,8 +286,8 @@ def test_value_counts_with_nan(dropna, index_or_series):
     # GH31944
     klass = index_or_series
     values = [True, pd.NA, np.nan]
-    s = klass(values)
-    res = s.value_counts(dropna=dropna)
+    obj = klass(values)
+    res = obj.value_counts(dropna=dropna)
     if dropna is True:
         expected = Series([1], index=[True])
     else:

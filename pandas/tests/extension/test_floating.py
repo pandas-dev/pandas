@@ -89,10 +89,7 @@ def data_for_grouping(dtype):
 
 
 class TestDtype(base.BaseDtypeTests):
-    @pytest.mark.skip(reason="using multiple dtypes")
-    def test_is_dtype_unboxes_dtype(self):
-        # we have multiple dtypes, so skip
-        pass
+    pass
 
 
 class TestArithmeticOps(base.BaseArithmeticOpsTests):

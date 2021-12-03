@@ -35,11 +35,13 @@ Data cleaning and validation
 
 Pyjanitor provides a clean API for cleaning data, using method chaining.
 
-`Engarde <https://engarde.readthedocs.io/en/latest/>`__
+`Pandera <https://pandera.readthedocs.io/en/stable/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Engarde is a lightweight library used to explicitly state assumptions about your datasets
-and check that they're *actually* true.
+Pandera provides a flexible and expressive API for performing data validation on dataframes
+to make data processing pipelines more readable and robust.
+Dataframes contain information that pandera explicitly validates at runtime. This is useful in
+production-critical data pipelines or reproducible research settings.
 
 `pandas-path <https://github.com/drivendataorg/pandas-path/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
