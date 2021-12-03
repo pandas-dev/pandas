@@ -26,8 +26,13 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat._optional import import_optional_dependency
+from pandas.util._validators import validate_bool_kwarg
 
-from pandas.core.dtypes.cast import infer_dtype_from
+from pandas.core.dtypes.cast import (
+    infer_dtype_from,
+    maybe_downcast_to_dtype,
+    soft_convert_objects,
+)
 from pandas.core.dtypes.common import (
     is_array_like,
     is_numeric_v_string_like,
@@ -41,6 +46,7 @@ from pandas.core.dtypes.missing import (
 
 if TYPE_CHECKING:
     from pandas import Index
+    from pandas.core.arrays import ExtensionArray
 
 
 def check_value_size(value, mask: np.ndarray, length: int):
@@ -973,3 +979,66 @@ def _rolling_window(a: npt.NDArray[np.bool_], window: int) -> npt.NDArray[np.boo
     shape = a.shape[:-1] + (a.shape[-1] - window + 1, window)
     strides = a.strides + (a.strides[-1],)
     return np.lib.stride_tricks.as_strided(a, shape=shape, strides=strides)
+
+
+def _maybe_downcast(arr: np.ndarray, downcast=None):
+    if arr.dtype == np.dtype(object):
+        if downcast is None:
+            arr = soft_convert_objects(arr, datetime=True, numeric=False)
+
+    if downcast:
+        arr = maybe_downcast_to_dtype(arr, downcast)
+    return arr
+
+
+def interpolate_array(
+    arr: np.ndarray | ExtensionArray,
+    method: str = "pad",
+    axis: int = 0,
+    index: Index | None = None,
+    inplace: bool = False,
+    limit: int | None = None,
+    limit_direction: str = "forward",
+    limit_area: str | None = None,
+    fill_value: Any | None = None,
+    coerce: bool = False,
+    downcast: str | None = None,
+    **kwargs,
+) -> np.ndarray | ExtensionArray:
+
+    inplace = validate_bool_kwarg(inplace, "inplace")
+
+    # first check for extensionarrays
+    if not isinstance(arr, np.ndarray):
+        return arr.fillna(value=fill_value, method=method, limit=limit)
+
+    if arr.dtype.kind in ["b", "i", "u"]:
+        # those dtypes can never hold NAs
+        # If there are no NAs, then interpolate is a no-op
+        return arr if inplace else arr.copy()
+
+    try:
+        m = clean_fill_method(method)
+    except ValueError:
+        m = None
+    if m is None and arr.dtype.kind != "f":
+        # only deal with floats
+        # bc we already checked that can_hold_na, we dont have int dtype here
+        # TODO: make a copy if not inplace?
+        return arr
+
+    data = arr if inplace else arr.copy()
+
+    interp_values = interpolate_array_2d(
+        data,
+        method=method,
+        axis=axis,
+        index=index,
+        limit=limit,
+        limit_direction=limit_direction,
+        limit_area=limit_area,
+        fill_value=fill_value,
+        **kwargs,
+    )
+
+    return _maybe_downcast(interp_values, downcast)

@@ -89,6 +89,7 @@ from pandas.core.internals.blocks import (
     new_block,
     to_native_types,
 )
+from pandas.core.missing import interpolate_array
 
 if TYPE_CHECKING:
     from pandas import Float64Index
@@ -367,8 +368,13 @@ class BaseArrayManager(DataManager):
             axis = 0
         return self.apply(algos.diff, n=n, axis=axis)
 
-    def interpolate(self: T, **kwargs) -> T:
-        return self.apply_with_block("interpolate", swap_axis=False, **kwargs)
+    def interpolate(self: T, axis: int = 0, **kwargs) -> T:
+        if axis == 0:
+            return self.apply(interpolate_array, **kwargs)
+        else:
+            return self.apply_with_block(
+                "interpolate", swap_axis=False, axis=axis, **kwargs
+            )
 
     def shift(self: T, periods: int, axis: int, fill_value) -> T:
         if fill_value is lib.no_default:
