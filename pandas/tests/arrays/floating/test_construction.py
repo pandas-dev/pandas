@@ -53,9 +53,11 @@ def test_floating_array_disallows_float16(request):
     with pytest.raises(TypeError, match=msg):
         FloatingArray(arr, mask)
 
-    # Troubleshoot https://github.com/numpy/numpy/issues/20512#issuecomment-985807740
-    lowered = np.core._type_aliases.english_lower("Float16")
-    assert lowered == "float16", lowered
+    if not np_version_under1p19:
+        # Troubleshoot
+        #  https://github.com/numpy/numpy/issues/20512#issuecomment-985807740
+        lowered = np.core._type_aliases.english_lower("Float16")
+        assert lowered == "float16", lowered
 
     if np_version_under1p19 or locale.getlocale()[0] != "en_US":
         # the locale condition may need to be refined; this fails on
