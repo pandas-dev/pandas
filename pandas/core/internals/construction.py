@@ -295,7 +295,7 @@ def ndarray_to_mgr(
     copy_on_sanitize = False if typ == "array" else copy
 
     vdtype = getattr(values, "dtype", None)
-    if is_1d_only_ea_dtype(vdtype) or isinstance(dtype, ExtensionDtype):
+    if is_1d_only_ea_dtype(vdtype) or is_1d_only_ea_dtype(dtype):
         # GH#19157
 
         if isinstance(values, (np.ndarray, ExtensionArray)) and values.ndim > 1:

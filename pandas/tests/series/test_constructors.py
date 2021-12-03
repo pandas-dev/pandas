@@ -1491,10 +1491,6 @@ class TestSeriesConstructors:
         tm.assert_series_equal(s, expected)
 
         # convert from a numpy array of non-ns datetime64
-        # note that creating a numpy datetime64 is in LOCAL time!!!!
-        # seems to work for M8[D], but not for M8[s]
-        # TODO: is the above comment still accurate/needed?
-
         arr = np.array(
             ["2013-01-01", "2013-01-02", "2013-01-03"], dtype="datetime64[D]"
         )
