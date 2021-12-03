@@ -3,7 +3,10 @@ import locale
 import numpy as np
 import pytest
 
-from pandas.compat import np_version_under1p19
+from pandas.compat import (
+    is_platform_windows,
+    np_version_under1p19,
+)
 
 import pandas as pd
 import pandas._testing as tm
@@ -59,7 +62,9 @@ def test_floating_array_disallows_float16(request):
         lowered = np.core._type_aliases.english_lower("Float16")
         assert lowered == "float16", lowered
 
-    if np_version_under1p19 or locale.getlocale()[0] != "en_US":
+    if np_version_under1p19 or (
+        locale.getlocale()[0] != "en_US" and not is_platform_windows()
+    ):
         # the locale condition may need to be refined; this fails on
         #  the CI in the ZH_CN build
         mark = pytest.mark.xfail(reason="numpy does not raise on np.dtype('Float16')")
