@@ -504,8 +504,8 @@ class TestChaining:
 
             df["bb"].iloc[0] = 0.13
 
-            # TODO: unused
-            df_tmp = df.iloc[ck]  # noqa
+            # GH#3970 this lookup used to break the chained setting to 0.15
+            df.iloc[ck]
 
             df["bb"].iloc[0] = 0.15
             assert df["bb"].iloc[0] == 0.15
