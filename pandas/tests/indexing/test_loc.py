@@ -199,8 +199,8 @@ class TestLoc(Base):
             assert res == exp
 
 
-class TestLoc2:
-    # TODO: better name, just separating out things that rely on base class
+class TestLocBaseIndependent:
+    # Tests for loc that do not depend on subclassing Base
     @pytest.mark.parametrize(
         "msg, key",
         [

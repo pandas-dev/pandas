@@ -1364,9 +1364,9 @@ class TestMixedIntIndex(Base):
     @pytest.mark.filterwarnings("ignore:elementwise comparison failed:FutureWarning")
     def test_index_with_tuple_bool(self):
         # GH34123
-        # TODO: remove tupleize_cols=False once correct behaviour is restored
         # TODO: also this op right now produces FutureWarning from numpy
-        idx = Index([("a", "b"), ("b", "c"), ("c", "a")], tupleize_cols=False)
+        #  https://github.com/numpy/numpy/issues/11521
+        idx = Index([("a", "b"), ("b", "c"), ("c", "a")])
         result = idx == ("c", "a")
         expected = np.array([False, False, True])
         tm.assert_numpy_array_equal(result, expected)

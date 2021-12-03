@@ -453,10 +453,9 @@ class TestSetOps:
 @pytest.mark.parametrize(
     "method", ["intersection", "union", "difference", "symmetric_difference"]
 )
-def test_setop_with_categorical(index, sort, method):
-    if isinstance(index, MultiIndex):  # TODO: flat_index?
-        # tested separately in tests.indexes.multi.test_setops
-        return
+def test_setop_with_categorical(index_flat, sort, method):
+    # MultiIndex tested separately in tests.indexes.multi.test_setops
+    index = index_flat
 
     other = index.astype("category")
     exact = "equiv" if isinstance(index, RangeIndex) else True

@@ -360,7 +360,7 @@ def test_apply_frame_not_as_index_column_name(df):
     grouped = df.groupby(["A", "B"], as_index=False)
     result = grouped.apply(len)
     expected = grouped.count().rename(columns={"C": np.nan}).drop(columns="D")
-    # TODO: Use assert_frame_equal when column name is not np.nan (GH 36306)
+    # TODO(GH#34306): Use assert_frame_equal when column name is not np.nan
     tm.assert_index_equal(result.index, expected.index)
     tm.assert_numpy_array_equal(result.values, expected.values)
 
@@ -1134,9 +1134,8 @@ def test_positional_slice_groups_datetimelike():
     tm.assert_frame_equal(result, expected)
 
 
-def test_doctest_example2():
+def test_groupby_apply_shape_cache_safety():
     # GH#42702 this fails if we cache_readonly Block.shape
-    # TODO: more informative name
     df = DataFrame({"A": ["a", "a", "b"], "B": [1, 2, 3], "C": [4, 6, 5]})
     gb = df.groupby("A")
     result = gb[["B", "C"]].apply(lambda x: x.astype(float).max() - x.min())
