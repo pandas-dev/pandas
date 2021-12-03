@@ -1620,7 +1620,7 @@ def _is_dtype_type(arr_or_dtype, condition) -> bool:
     return condition(tipo)
 
 
-def infer_dtype_from_object(dtype) -> DtypeObj:
+def infer_dtype_from_object(dtype) -> type:
     """
     Get a numpy dtype.type-style object for a dtype object.
 
@@ -1637,14 +1637,12 @@ def infer_dtype_from_object(dtype) -> DtypeObj:
 
     Returns
     -------
-    dtype_object : The extracted numpy dtype.type-style object.
+    type
     """
     if isinstance(dtype, type) and issubclass(dtype, np.generic):
         # Type object from a dtype
 
-        # error: Incompatible return value type (got "Type[generic]", expected
-        # "Union[dtype[Any], ExtensionDtype]")
-        return dtype  # type: ignore[return-value]
+        return dtype
     elif isinstance(dtype, (np.dtype, ExtensionDtype)):
         # dtype object
         try:
@@ -1652,9 +1650,7 @@ def infer_dtype_from_object(dtype) -> DtypeObj:
         except TypeError:
             # Should still pass if we don't have a date-like
             pass
-        # error: Incompatible return value type (got "Union[Type[generic], Type[Any]]",
-        # expected "Union[dtype[Any], ExtensionDtype]")
-        return dtype.type  # type: ignore[return-value]
+        return dtype.type
 
     try:
         dtype = pandas_dtype(dtype)
@@ -1668,9 +1664,7 @@ def infer_dtype_from_object(dtype) -> DtypeObj:
         # TODO(jreback)
         # should deprecate these
         if dtype in ["datetimetz", "datetime64tz"]:
-            # error: Incompatible return value type (got "Type[Any]", expected
-            # "Union[dtype[Any], ExtensionDtype]")
-            return DatetimeTZDtype.type  # type: ignore[return-value]
+            return DatetimeTZDtype.type
         elif dtype in ["period"]:
             raise NotImplementedError
 
