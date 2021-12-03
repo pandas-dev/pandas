@@ -64,11 +64,15 @@ def arithmetic_win_operators(request):
 
 @pytest.fixture(
     params=[
-        "sum",
-        "mean",
-        "median",
-        "max",
-        "min",
+        ["sum", {}],
+        ["mean", {}],
+        ["median", {}],
+        ["max", {}],
+        ["min", {}],
+        ["var", {}],
+        ["var", {"ddof": 0}],
+        ["std", {}],
+        ["std", {"ddof": 0}],
     ]
 )
 def arithmetic_numba_supported_operators(request):
@@ -196,13 +200,7 @@ def halflife_with_times(request):
         "float64",
         "m8[ns]",
         "M8[ns]",
-        pytest.param(
-            "datetime64[ns, UTC]",
-            marks=pytest.mark.skip(
-                "direct creation of extension dtype datetime64[ns, UTC] "
-                "is not supported ATM"
-            ),
-        ),
+        "datetime64[ns, UTC]",
     ]
 )
 def dtypes(request):
