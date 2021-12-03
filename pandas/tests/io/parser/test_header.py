@@ -82,7 +82,8 @@ def test_no_header_prefix(all_parsers):
 6,7,8,9,10
 11,12,13,14,15
 """
-    result = parser.read_csv(StringIO(data), prefix="Field", header=None)
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        result = parser.read_csv(StringIO(data), prefix="Field", header=None)
     expected = DataFrame(
         [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10], [11, 12, 13, 14, 15]],
         columns=["Field0", "Field1", "Field2", "Field3", "Field4"],
@@ -457,7 +458,11 @@ def test_no_header(all_parsers, kwargs, names):
     expected = DataFrame(
         [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10], [11, 12, 13, 14, 15]], columns=names
     )
-    result = parser.read_csv(StringIO(data), header=None, **kwargs)
+    if "prefix" in kwargs.keys():
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = parser.read_csv(StringIO(data), header=None, **kwargs)
+    else:
+        result = parser.read_csv(StringIO(data), header=None, **kwargs)
     tm.assert_frame_equal(result, expected)
 
 

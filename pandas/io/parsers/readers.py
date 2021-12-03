@@ -143,6 +143,9 @@ squeeze : bool, default False
         the data.
 prefix : str, optional
     Prefix to add to column numbers when no header, e.g. 'X' for X0, X1, ...
+
+    .. deprecated:: 1.4.0
+       Use a list comprehension on the DataFrame's columns after calling ``read_csv``.
 mangle_dupe_cols : bool, default True
     Duplicate columns will be specified as 'X', 'X.1', ...'X.N', rather than
     'X'...'X'. Passing in False will cause data to be overwritten if there
@@ -460,6 +463,9 @@ _deprecated_defaults: dict[str, _DeprecationConfig] = {
     "warn_bad_lines": _DeprecationConfig(None, "Use on_bad_lines in the future."),
     "squeeze": _DeprecationConfig(
         None, 'Append .squeeze("columns") to the call to squeeze.'
+    ),
+    "prefix": _DeprecationConfig(
+        None, "Use a list comprehension on the column names in the future."
     ),
 }
 

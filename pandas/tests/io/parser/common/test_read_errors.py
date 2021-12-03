@@ -128,7 +128,8 @@ def test_read_csv_raises_on_header_prefix(all_parsers):
     s = StringIO("0,1\n2,3")
 
     with pytest.raises(ValueError, match=msg):
-        parser.read_csv(s, header=0, prefix="_X")
+        with tm.assert_produces_warning(FutureWarning):
+            parser.read_csv(s, header=0, prefix="_X")
 
 
 def test_unexpected_keyword_parameter_exception(all_parsers):
