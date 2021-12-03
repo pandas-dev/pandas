@@ -13,7 +13,10 @@ from pandas._libs import (
     iNaT,
     lib,
 )
-from pandas.compat.numpy import np_version_under1p19
+from pandas.compat.numpy import (
+    np_version_under1p19,
+    np_version_under1p20,
+)
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
@@ -1488,10 +1491,6 @@ class TestSeriesConstructors:
         tm.assert_series_equal(s, expected)
 
         # convert from a numpy array of non-ns datetime64
-        # note that creating a numpy datetime64 is in LOCAL time!!!!
-        # seems to work for M8[D], but not for M8[s]
-        # TODO: is the above comment still accurate/needed?
-
         arr = np.array(
             ["2013-01-01", "2013-01-02", "2013-01-03"], dtype="datetime64[D]"
         )
@@ -1810,6 +1809,33 @@ class TestSeriesConstructors:
         result = Series(index=[0], dtype="bool")
         expected = Series(True, index=[0], dtype="bool")
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.filterwarnings(
+        "ignore:elementwise comparison failed:DeprecationWarning"
+    )
+    @pytest.mark.xfail(
+        np_version_under1p20, reason="np.array([td64nat, float, float]) raises"
+    )
+    @pytest.mark.parametrize("func", [Series, DataFrame, Index, pd.array])
+    def test_constructor_mismatched_null_nullable_dtype(
+        self, func, any_numeric_ea_dtype
+    ):
+        # GH#44514
+        msg = "|".join(
+            [
+                "cannot safely cast non-equivalent object",
+                r"int\(\) argument must be a string, a bytes-like object "
+                "or a (real )?number",
+                r"Cannot cast array data from dtype\('O'\) to dtype\('float64'\) "
+                "according to the rule 'safe'",
+                "object cannot be converted to a FloatingDtype",
+                "'values' contains non-numeric NA",
+            ]
+        )
+
+        for null in tm.NP_NAT_OBJECTS + [NaT]:
+            with pytest.raises(TypeError, match=msg):
+                func([null, 1.0, 3.0], dtype=any_numeric_ea_dtype)
 
 
 class TestSeriesConstructorIndexCoercion:
