@@ -7,7 +7,10 @@ from collections import abc
 import csv
 import sys
 from textwrap import fill
-from typing import Any
+from typing import (
+    Any,
+    NamedTuple,
+)
 import warnings
 
 import numpy as np
@@ -446,10 +449,18 @@ _pyarrow_unsupported = {
     "low_memory",
 }
 
-_deprecated_defaults: dict[str, Any] = {
-    "error_bad_lines": None,
-    "warn_bad_lines": None,
-    "squeeze": None,
+
+class _DeprecationConfig(NamedTuple):
+    default_value: Any
+    msg: str | None
+
+
+_deprecated_defaults: dict[str, _DeprecationConfig] = {
+    "error_bad_lines": _DeprecationConfig(None, "Use on_bad_lines in the future."),
+    "warn_bad_lines": _DeprecationConfig(None, "Use on_bad_lines in the future."),
+    "squeeze": _DeprecationConfig(
+        None, 'Append .squeeze("columns") to the call to squeeze.'
+    ),
 }
 
 
@@ -747,13 +758,16 @@ def read_table(
     return _read(filepath_or_buffer, kwds)
 
 
+@deprecate_nonkeyword_arguments(
+    version=None, allowed_args=["filepath_or_buffer"], stacklevel=2
+)
 def read_fwf(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
-    colspecs="infer",
-    widths=None,
-    infer_nrows=100,
+    colspecs: list[tuple[int, int]] | str | None = "infer",
+    widths: list[int] | None = None,
+    infer_nrows: int = 100,
     **kwds,
-):
+) -> DataFrame | TextFileReader:
     r"""
     Read a table of fixed-width formatted lines into DataFrame.
 
@@ -788,7 +802,7 @@ def read_fwf(
 
     Returns
     -------
-    DataFrame or TextParser
+    DataFrame or TextFileReader
         A comma-separated values (csv) file is returned as two-dimensional
         data structure with labeled axes.
 
@@ -813,6 +827,9 @@ def read_fwf(
         for w in widths:
             colspecs.append((col, col + w))
             col += w
+
+    # for mypy
+    assert colspecs is not None
 
     # GH#40830
     # Ensure length of `colspecs` matches length of `names`
@@ -926,7 +943,12 @@ class TextFileReader(abc.Iterator):
                 if engine != "c" and value != default:
                     if "python" in engine and argname not in _python_unsupported:
                         pass
-                    elif value == _deprecated_defaults.get(argname, default):
+                    elif (
+                        value
+                        == _deprecated_defaults.get(
+                            argname, _DeprecationConfig(default, None)
+                        ).default_value
+                    ):
                         pass
                     else:
                         raise ValueError(
@@ -934,7 +956,9 @@ class TextFileReader(abc.Iterator):
                             f"{repr(engine)} engine"
                         )
             else:
-                value = _deprecated_defaults.get(argname, default)
+                value = _deprecated_defaults.get(
+                    argname, _DeprecationConfig(default, None)
+                ).default_value
             options[argname] = value
 
         if engine == "python-fwf":
@@ -1059,10 +1083,10 @@ class TextFileReader(abc.Iterator):
         for arg in _deprecated_defaults.keys():
             parser_default = _c_parser_defaults.get(arg, parser_defaults[arg])
             depr_default = _deprecated_defaults[arg]
-            if result.get(arg, depr_default) != depr_default:
+            if result.get(arg, depr_default) != depr_default.default_value:
                 msg = (
                     f"The {arg} argument has been deprecated and will be "
-                    "removed in a future version.\n\n"
+                    f"removed in a future version. {depr_default.msg}\n\n"
                 )
                 warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
             else:

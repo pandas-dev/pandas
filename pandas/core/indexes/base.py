@@ -846,7 +846,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return {
             c
-            for c in self.unique(level=0)[:100]
+            for c in self.unique(level=0)[: get_option("display.max_dir_items")]
             if isinstance(c, str) and c.isidentifier()
         }
 
@@ -875,6 +875,13 @@ class Index(IndexOpsMixin, PandasObject):
         )
         if result is not NotImplemented:
             return result
+
+        if method == "reduce":
+            result = arraylike.dispatch_reduction_ufunc(
+                self, ufunc, method, *inputs, **kwargs
+            )
+            if result is not NotImplemented:
+                return result
 
         new_inputs = [x if x is not self else x._values for x in inputs]
         result = getattr(ufunc, method)(*new_inputs, **kwargs)

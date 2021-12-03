@@ -338,7 +338,12 @@ cdef class IndexEngine:
         missing = np.empty(n_t, dtype=np.intp)
 
         # map each starget to its position in the index
-        if stargets and len(stargets) < 5 and self.is_monotonic_increasing:
+        if (
+                stargets and
+                len(stargets) < 5 and
+                not any([checknull(t) for t in stargets]) and
+                self.is_monotonic_increasing
+        ):
             # if there are few enough stargets and the index is monotonically
             # increasing, then use binary search for each starget
             remaining_stargets = set()

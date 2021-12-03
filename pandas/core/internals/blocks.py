@@ -962,6 +962,9 @@ class Block(PandasObject):
         mask, noop = validate_putmask(values.T, mask)
         assert not isinstance(new, (ABCIndex, ABCSeries, ABCDataFrame))
 
+        if new is lib.no_default:
+            new = self.fill_value
+
         # if we are passed a scalar None, convert it here
         if not self.is_object and is_valid_na_for_dtype(new, self.dtype):
             new = self.fill_value
@@ -1139,17 +1142,11 @@ class Block(PandasObject):
         # convert integer to float if necessary. need to do a lot more than
         # that, handle boolean etc also
 
-        # error: Value of type variable "NumpyArrayT" of "maybe_upcast" cannot be
-        # "Union[ndarray[Any, Any], ExtensionArray]"
-        new_values, fill_value = maybe_upcast(
-            self.values, fill_value  # type: ignore[type-var]
-        )
+        values = cast(np.ndarray, self.values)
 
-        # error: Argument 1 to "shift" has incompatible type "Union[ndarray[Any, Any],
-        # ExtensionArray]"; expected "ndarray[Any, Any]"
-        new_values = shift(
-            new_values, periods, axis, fill_value  # type: ignore[arg-type]
-        )
+        new_values, fill_value = maybe_upcast(values, fill_value)
+
+        new_values = shift(new_values, periods, axis, fill_value)
 
         return [self.make_block(new_values)]
 
@@ -1171,12 +1168,16 @@ class Block(PandasObject):
 
         transpose = self.ndim == 2
 
-        values = self.values
+        # EABlocks override where
+        values = cast(np.ndarray, self.values)
         orig_other = other
         if transpose:
             values = values.T
 
         icond, noop = validate_putmask(values, ~cond)
+
+        if other is lib.no_default:
+            other = self.fill_value
 
         if is_valid_na_for_dtype(other, self.dtype) and self.dtype != _dtype_obj:
             other = self.fill_value
@@ -1185,22 +1186,15 @@ class Block(PandasObject):
             # TODO: avoid the downcasting at the end in this case?
             # GH-39595: Always return a copy
             result = values.copy()
-        else:
-            # see if we can operate on the entire block, or need item-by-item
-            # or if we are a single block (ndim == 1)
-            if not self._can_hold_element(other):
-                # we cannot coerce, return a compat dtype
-                block = self.coerce_to_target_dtype(other)
-                blocks = block.where(orig_other, cond)
-                return self._maybe_downcast(blocks, "infer")
 
-            # error: Argument 1 to "setitem_datetimelike_compat" has incompatible type
-            # "Union[ndarray, ExtensionArray]"; expected "ndarray"
-            # error: Argument 2 to "setitem_datetimelike_compat" has incompatible type
-            # "number[Any]"; expected "int"
-            alt = setitem_datetimelike_compat(
-                values, icond.sum(), other  # type: ignore[arg-type]
-            )
+        elif not self._can_hold_element(other):
+            # we cannot coerce, return a compat dtype
+            block = self.coerce_to_target_dtype(other)
+            blocks = block.where(orig_other, cond)
+            return self._maybe_downcast(blocks, "infer")
+
+        else:
+            alt = setitem_datetimelike_compat(values, icond.sum(), other)
             if alt is not other:
                 if is_list_like(other) and len(other) < len(values):
                     # call np.where with other to get the appropriate ValueError
@@ -1215,6 +1209,19 @@ class Block(PandasObject):
             else:
                 # By the time we get here, we should have all Series/Index
                 #  args extracted to ndarray
+                if (
+                    is_list_like(other)
+                    and not isinstance(other, np.ndarray)
+                    and len(other) == self.shape[-1]
+                ):
+                    # If we don't do this broadcasting here, then expressions.where
+                    #  will broadcast a 1D other to be row-like instead of
+                    #  column-like.
+                    other = np.array(other).reshape(values.shape)
+                    # If lengths don't match (or len(other)==1), we will raise
+                    #  inside expressions.where, see test_series_where
+
+                # Note: expressions.where may upcast.
                 result = expressions.where(~icond, values, other)
 
         if self._can_hold_na or self.ndim == 1:
@@ -1233,7 +1240,6 @@ class Block(PandasObject):
         result_blocks: list[Block] = []
         for m in [mask, ~mask]:
             if m.any():
-                result = cast(np.ndarray, result)  # EABlock overrides where
                 taken = result.take(m.nonzero()[0], axis=axis)
                 r = maybe_downcast_numeric(taken, self.dtype)
                 nb = self.make_block(r.T, placement=self._mgr_locs[m])
@@ -1310,6 +1316,9 @@ class Block(PandasObject):
         assert is_list_like(qs)  # caller is responsible for this
 
         result = quantile_compat(self.values, np.asarray(qs._values), interpolation)
+        # ensure_block_shape needed for cases where we start with EA and result
+        #  is ndarray, e.g. IntegerArray, SparseArray
+        result = ensure_block_shape(result, ndim=2)
         return new_block_2d(result, placement=self._mgr_locs)
 
 
@@ -1508,6 +1517,17 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
             # we are always 1-D
             indexer = indexer[0]
 
+        # TODO(EA2D): not needed with 2D EAS
+        if isinstance(value, (np.ndarray, ExtensionArray)) and value.ndim == 2:
+            assert value.shape[1] == 1
+            # error: No overload variant of "__getitem__" of "ExtensionArray"
+            # matches argument type "Tuple[slice, int]"
+            value = value[:, 0]  # type: ignore[call-overload]
+        elif isinstance(value, ABCDataFrame):
+            # TODO: should we avoid getting here with DataFrame?
+            assert value.shape[1] == 1
+            value = value._ixs(0, axis=1)._values
+
         check_setitem_lengths(indexer, value, self.values)
         self.values[indexer] = value
         return self
@@ -1626,13 +1646,8 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         other = self._maybe_squeeze_arg(other)
         cond = self._maybe_squeeze_arg(cond)
 
-        if lib.is_scalar(other) and isna(other):
-            # The default `other` for Series / Frame is np.nan
-            # we want to replace that with the correct NA value
-            # for the type
-            # error: Item "dtype[Any]" of "Union[dtype[Any], ExtensionDtype]" has no
-            # attribute "na_value"
-            other = self.dtype.na_value  # type: ignore[union-attr]
+        if other is lib.no_default:
+            other = self.fill_value
 
         icond, noop = validate_putmask(self.values, ~cond)
         if noop:
@@ -1727,11 +1742,15 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
         arr = self.values
 
         cond = extract_bool_array(cond)
+        if other is lib.no_default:
+            other = self.fill_value
 
         try:
             res_values = arr.T._where(cond, other).T
         except (ValueError, TypeError):
-            return Block.where(self, other, cond)
+            blk = self.coerce_to_target_dtype(other)
+            nbs = blk.where(other, cond)
+            return self._maybe_downcast(nbs, "infer")
 
         nb = self.make_block_same_class(res_values)
         return [nb]

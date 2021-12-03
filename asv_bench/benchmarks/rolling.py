@@ -53,7 +53,7 @@ class NumbaEngineMethods:
         ["DataFrame", "Series"],
         ["int", "float"],
         [("rolling", {"window": 10}), ("expanding", {})],
-        ["sum", "max", "min", "median", "mean"],
+        ["sum", "max", "min", "median", "mean", "var", "std"],
         [True, False],
         [None, 100],
     )
