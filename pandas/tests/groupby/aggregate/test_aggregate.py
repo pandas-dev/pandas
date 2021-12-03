@@ -9,8 +9,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas.errors import PerformanceWarning
-
 from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
@@ -57,8 +55,6 @@ def test_agg_must_agg(df):
 
 
 def test_agg_ser_multi_key(df):
-    # TODO(wesm): unused
-    ser = df.C  # noqa
 
     f = lambda x: x.sum()
     results = df.C.groupby([df.A, df.B]).aggregate(f)
@@ -375,9 +371,7 @@ def test_agg_multiple_functions_same_name_with_ohlc_present():
     expected = DataFrame(
         expected_values, columns=expected_columns, index=expected_index
     )
-    # PerformanceWarning is thrown by `assert col in right` in assert_frame_equal
-    with tm.assert_produces_warning(PerformanceWarning):
-        tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_multiple_functions_tuples_and_non_tuples(df):

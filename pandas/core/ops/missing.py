@@ -103,14 +103,14 @@ def mask_zero_div_zero(x, y, result: np.ndarray) -> np.ndarray:
     array([ inf,  nan, -inf])
     """
 
-    if is_scalar(y):
+    if not hasattr(y, "dtype"):
+        # e.g. scalar, tuple
         y = np.array(y)
+    if not hasattr(x, "dtype"):
+        # e.g scalar, tuple
+        x = np.array(x)
 
     zmask = y == 0
-
-    if isinstance(zmask, bool):
-        # FIXME: numpy did not evaluate pointwise, seen in docs build
-        return result
 
     if zmask.any():
 
