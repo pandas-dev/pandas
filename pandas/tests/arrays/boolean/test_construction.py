@@ -321,20 +321,3 @@ def test_to_numpy_copy():
     result = arr.to_numpy(dtype=bool, copy=True)
     result[0] = False
     tm.assert_extension_array_equal(arr, pd.array([True, False, True], dtype="boolean"))
-
-
-# TODO when BooleanArray coerces to object dtype numpy array, need to do conversion
-# manually in the indexing code
-# TODO: belongs somewhere else?
-@pytest.mark.xfail(reason="fails to raise")
-def test_indexing_boolean_mask():
-    arr = pd.array([1, 2, 3, 4], dtype="Int64")
-    mask = pd.array([True, False, True, False], dtype="boolean")
-    result = arr[mask]
-    expected = pd.array([1, 3], dtype="Int64")
-    tm.assert_extension_array_equal(result, expected)
-
-    # missing values -> error
-    mask = pd.array([True, False, True, None], dtype="boolean")
-    with pytest.raises(IndexError, match="TBD"):
-        result = arr[mask]
