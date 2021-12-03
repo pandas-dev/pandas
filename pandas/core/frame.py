@@ -2905,9 +2905,9 @@ class DataFrame(NDFrame, OpsMixin):
     def to_orc(
         self,
         path: FilePath | WriteBuffer[bytes] | None = None,
-        engine: Literal['pyarrow'] = 'pyarrow',
+        engine: Literal["pyarrow"] = "pyarrow",
         index: bool = None,
-        **kwargs
+        **kwargs,
     ) -> bytes:
         """
         Write a DataFrame to the ORC format.
@@ -2969,13 +2969,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         from pandas.io.orc import to_orc
 
-        return to_orc(
-            self,
-            path,
-            engine,
-            index=index,
-            **kwargs
-        )
+        return to_orc(self, path, engine, index=index, **kwargs)
 
     @Substitution(
         header_type="bool",

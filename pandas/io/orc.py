@@ -1,11 +1,11 @@
 """ orc compat """
 from __future__ import annotations
 
+from tempfile import gettempdir
 from typing import (
     TYPE_CHECKING,
     Literal,
 )
-from tempfile import gettempdir
 
 from pandas._typing import (
     FilePath,
@@ -62,9 +62,9 @@ def read_orc(
 def to_orc(
     df: DataFrame,
     path: FilePath | WriteBuffer[bytes] | None = None,
-    engine: Literal['pyarrow'] = 'pyarrow',
+    engine: Literal["pyarrow"] = "pyarrow",
     index: bool = None,
-    **kwargs
+    **kwargs,
 ) -> bytes:
     """
     Write a DataFrame to the ORC format.
@@ -99,23 +99,18 @@ def to_orc(
         index = df.index.names[0] is not None
 
     if engine != "pyarrow":
-        raise ValueError(
-            f"engine must be 'pyarrow'"
-        )
-    engine = import_optional_dependency(engine, min_version='5.0.0')
-        
+        raise ValueError(f"engine must be 'pyarrow'")
+    engine = import_optional_dependency(engine, min_version="5.0.0")
 
     if hasattr(path, "write"):
         engine.orc.write_table(
-            engine.Table.from_pandas(df, preserve_index=index),
-            path, **kwargs
+            engine.Table.from_pandas(df, preserve_index=index), path, **kwargs
         )
     else:
         # to bytes: pyarrow auto closes buffers hence we read a pyarrow buffer
         with engine.BufferOutputStream() as stream:  # if that is possible
             engine.orc.write_table(
-                engine.Table.from_pandas(df, preserve_index=index),
-                stream, **kwargs
+                engine.Table.from_pandas(df, preserve_index=index), stream, **kwargs
             )
             orc_bytes = stream.getvalue().to_pybytes()
             if path is None:
