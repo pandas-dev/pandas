@@ -202,9 +202,6 @@ def test_encoding_named_temp_file(all_parsers):
     parser = all_parsers
     encoding = "shift-jis"
 
-    if parser.engine == "python":
-        pytest.skip("NamedTemporaryFile does not work with Python engine")
-
     title = "てすと"
     data = "こむ"
 
