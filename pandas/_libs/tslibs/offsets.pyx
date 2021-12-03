@@ -186,7 +186,8 @@ def apply_wraps(func):
         if self.normalize:
             result = result.normalize()
 
-        # nanosecond may be deleted depending on offset process
+        # If the offset object does not have a nanoseconds component,
+        # the result's nanosecond component may be lost.
         if not self.normalize and nano != 0 and not hasattr(self, "nanoseconds"):
             if result.nanosecond != nano:
                 if result.tz is not None:
