@@ -402,6 +402,37 @@ do so using the ``levels`` argument:
 This is fairly esoteric, but it is actually necessary for implementing things
 like GroupBy where the order of a categorical variable is meaningful.
 
+.. _merging.append.row:
+
+Appending rows to a DataFrame
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can append a single row in form of a series to a ``DataFrame`` in-place
+using ``loc``.
+
+.. ipython:: python
+
+   s2 = pd.Series(["X0", "X1", "X2", "X3"], index=["A", "B", "C", "D"])
+   df1.loc[len(df1)] = s2
+
+Alternatively, you can convert the row into a DataFrame and use ``concat``,
+which doesn't have a side-effect on df1.
+
+.. ipython:: python
+
+   result = pd.concat([df1, s2.to_frame().T], ignore_index=True)
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_append_series_as_row.png
+   p.plot([df1, s2], result, labels=["df1", "s2"], vertical=True);
+   plt.close("all");
+
+You should use ``ignore_index`` with this method to instruct DataFrame to
+discard its index. If you wish to preserve the index, you should construct an
+appropriately-indexed DataFrame and append or concatenate those objects.
+
 .. _merging.join:
 
 Database-style DataFrame or named Series joining/merging
