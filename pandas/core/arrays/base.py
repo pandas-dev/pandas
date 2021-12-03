@@ -1354,8 +1354,10 @@ class ExtensionArray:
         """
         meth = getattr(self, name, None)
         if meth is None:
-            msg = f"'{type(self).__name__}' does not implement reduction '{name}'"
-            raise TypeError(msg)
+            raise TypeError(
+                f"'{type(self).__name__}' with dtype {self.dtype} "
+                f"does not implement reduction '{name}'"
+            )
         return meth(skipna=skipna, **kwargs)
 
     # https://github.com/python/typeshed/issues/2148#issuecomment-520783318
