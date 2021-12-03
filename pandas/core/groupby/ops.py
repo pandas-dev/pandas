@@ -23,6 +23,7 @@ import numpy as np
 
 from pandas._libs import (
     NaT,
+    Period,
     lib,
 )
 import pandas._libs.groupby as libgroupby
@@ -46,12 +47,10 @@ from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
     is_1d_only_ea_obj,
-    is_bool_dtype,
     is_categorical_dtype,
     is_complex_dtype,
     is_datetime64_any_dtype,
     is_float_dtype,
-    is_integer_dtype,
     is_numeric_dtype,
     is_sparse,
     is_timedelta64_dtype,
@@ -262,27 +261,35 @@ class WrappedCythonOp:
             out_shape = (ngroups,) + values.shape[1:]
         return out_shape
 
-    def get_out_dtype(self, dtype: np.dtype) -> np.dtype:
-        how = self.how
-
+    # Note: we make this a classmethod and pass kind+how so that caching
+    #  works at the class level and not the instance level
+    @classmethod
+    @functools.lru_cache(maxsize=None)
+    def get_out_dtype(cls, how: str, dtype: np.dtype) -> np.dtype:
         if how == "rank":
             out_dtype = "float64"
         else:
-            if is_numeric_dtype(dtype):
+            if dtype.kind in "uifcb":
                 out_dtype = f"{dtype.kind}{dtype.itemsize}"
             else:
                 out_dtype = "object"
         return np.dtype(out_dtype)
 
     @overload
-    def _get_result_dtype(self, dtype: np.dtype) -> np.dtype:
+    @classmethod
+    def _get_result_dtype(cls, dtype: np.dtype) -> np.dtype:
         ...  # pragma: no cover
 
     @overload
-    def _get_result_dtype(self, dtype: ExtensionDtype) -> ExtensionDtype:
+    @classmethod
+    def _get_result_dtype(cls, dtype: ExtensionDtype) -> ExtensionDtype:
         ...  # pragma: no cover
 
-    def _get_result_dtype(self, dtype: DtypeObj) -> DtypeObj:
+    # Note: we make this a classmethod and pass kind+how so that caching
+    #  works at the class level and not the instance level
+    @classmethod
+    @functools.lru_cache(maxsize=None)
+    def _get_result_dtype(cls, how: str, dtype: DtypeObj) -> DtypeObj:
         """
         Get the desired dtype of a result based on the
         input dtype and how it was computed.
@@ -297,8 +304,6 @@ class WrappedCythonOp:
         np.dtype or ExtensionDtype
             The desired dtype of the result.
         """
-        how = self.how
-
         if how in ["add", "cumsum", "sum", "prod"]:
             if dtype == np.dtype(bool):
                 return np.dtype(np.int64)
@@ -382,7 +387,7 @@ class WrappedCythonOp:
         if isinstance(
             values.dtype, (BooleanDtype, _IntegerDtype, FloatingDtype, StringDtype)
         ):
-            dtype = self._get_result_dtype(values.dtype)
+            dtype = self._get_result_dtype(self.how, values.dtype)
             cls = dtype.construct_array_type()
             return cls._from_sequence(res_values, dtype=dtype)
 
@@ -422,7 +427,7 @@ class WrappedCythonOp:
             **kwargs,
         )
 
-        dtype = self._get_result_dtype(orig_values.dtype)
+        dtype = self._get_result_dtype(self.how, orig_values.dtype)
         assert isinstance(dtype, BaseMaskedDtype)
         cls = dtype.construct_array_type()
 
@@ -490,21 +495,26 @@ class WrappedCythonOp:
         orig_values = values
 
         dtype = values.dtype
-        is_numeric = is_numeric_dtype(dtype)
+        dtype_kind = dtype.kind
+        # is_numeric_dtype
+        is_numeric = dtype_kind in "uifcb"
 
-        is_datetimelike = needs_i8_conversion(dtype)
+        # is_datetimelike = needs_i8_conversion(dtype)
+        is_datetimelike = dtype_kind in ["m", "M"] or (
+            dtype_kind == "O" and dtype.type is Period
+        )
 
         if is_datetimelike:
             values = values.view("int64")
             is_numeric = True
-        elif is_bool_dtype(dtype):
+        elif dtype_kind == "b":
             values = values.astype("int64")
-        elif is_integer_dtype(dtype):
+        elif dtype_kind in "ui":
             # e.g. uint8 -> uint64, int16 -> int64
             dtype_str = dtype.kind + "8"
             values = values.astype(dtype_str, copy=False)
         elif is_numeric:
-            if not is_complex_dtype(dtype):
+            if not dtype_kind == "c":
                 values = ensure_float64(values)
 
         values = values.T
@@ -515,7 +525,7 @@ class WrappedCythonOp:
 
         out_shape = self._get_output_shape(ngroups, values)
         func, values = self.get_cython_func_and_vals(values, is_numeric)
-        out_dtype = self.get_out_dtype(values.dtype)
+        out_dtype = self.get_out_dtype(self.how, values.dtype)
 
         result = maybe_fill(np.empty(out_shape, dtype=out_dtype))
         if self.kind == "aggregate":
@@ -562,7 +572,7 @@ class WrappedCythonOp:
             # i.e. counts is defined.  Locations where count<min_count
             # need to have the result set to np.nan, which may require casting,
             # see GH#40767
-            if is_integer_dtype(result.dtype) and not is_datetimelike:
+            if result.dtype.kind in "ui" and not is_datetimelike:
                 cutoff = max(1, min_count)
                 empty_groups = counts < cutoff
                 if empty_groups.any():
@@ -575,7 +585,7 @@ class WrappedCythonOp:
         if self.how not in self.cast_blocklist:
             # e.g. if we are int64 and need to restore to datetime64/timedelta64
             # "rank" is the only member of cast_blocklist we get here
-            res_dtype = self._get_result_dtype(orig_values.dtype)
+            res_dtype = self._get_result_dtype(self.how, orig_values.dtype)
             op_result = maybe_downcast_to_dtype(result, res_dtype)
         else:
             op_result = result
@@ -608,7 +618,8 @@ class WrappedCythonOp:
             assert axis == 0
 
         dtype = values.dtype
-        is_numeric = is_numeric_dtype(dtype)
+        # is_numeric_dtype
+        is_numeric = dtype.kind in "uifcb"
 
         # can we do this operation with our cython functions
         # if not raise NotImplementedError

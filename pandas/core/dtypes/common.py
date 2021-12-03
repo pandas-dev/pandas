@@ -1223,6 +1223,10 @@ def is_numeric_dtype(arr_or_dtype) -> bool:
     >>> is_numeric_dtype(np.array([], dtype=np.timedelta64))
     False
     """
+    try:
+        return arr_or_dtype.kind in "uifcb"
+    except AttributeError:
+        pass
     return _is_dtype_type(
         arr_or_dtype, classes_and_not_datetimelike(np.number, np.bool_)
     )
