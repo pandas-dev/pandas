@@ -9124,17 +9124,17 @@ NaN 12.3   33.0
 
         Examples
         --------
-        >>> df = pd.DataFrame({'key': ['K0', 'K1', 'K2', 'K3', 'K4', 'K5'],
+        >>> df = pd.DataFrame({'key': ['K0', 'K1', 'K1', 'K3', 'K0', 'K1'],
         ...                    'A': ['A0', 'A1', 'A2', 'A3', 'A4', 'A5']})
 
         >>> df
           key   A
         0  K0  A0
         1  K1  A1
-        2  K2  A2
+        2  K1  A2
         3  K3  A3
-        4  K4  A4
-        5  K5  A5
+        4  K0  A4
+        5  K1  A5
 
         >>> other = pd.DataFrame({'key': ['K0', 'K1', 'K2'],
         ...                       'B': ['B0', 'B1', 'B2']})
@@ -9151,10 +9151,10 @@ NaN 12.3   33.0
           key_caller   A key_other    B
         0         K0  A0        K0   B0
         1         K1  A1        K1   B1
-        2         K2  A2        K2   B2
+        2         K1  A2        K2   B2
         3         K3  A3       NaN  NaN
-        4         K4  A4       NaN  NaN
-        5         K5  A5       NaN  NaN
+        4         K0  A4       NaN  NaN
+        5         K1  A5       NaN  NaN
 
         If we want to join using the key columns, we need to set key to be
         the index in both `df` and `other`. The joined DataFrame will have
@@ -9164,11 +9164,11 @@ NaN 12.3   33.0
               A    B
         key
         K0   A0   B0
+        K0   A4   B0
         K1   A1   B1
-        K2   A2   B2
+        K1   A2   B1
+        K1   A5   B1
         K3   A3  NaN
-        K4   A4  NaN
-        K5   A5  NaN
 
         Another option to join using the key columns is to use the `on`
         parameter. DataFrame.join always uses `other`'s index but we can use
@@ -9179,10 +9179,10 @@ NaN 12.3   33.0
           key   A    B
         0  K0  A0   B0
         1  K1  A1   B1
-        2  K2  A2   B2
+        2  K1  A2   B1
         3  K3  A3  NaN
-        4  K4  A4  NaN
-        5  K5  A5  NaN
+        4  K0  A4   B0
+        5  K1  A5   B1
         """
         return self._join_compat(
             other, on=on, how=how, lsuffix=lsuffix, rsuffix=rsuffix, sort=sort
