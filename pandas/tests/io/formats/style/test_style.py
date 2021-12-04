@@ -1037,7 +1037,7 @@ class TestStyler:
         tm.assert_dict_equal(result, expected)
 
     def test_mi_sparse_index_names(self):
-        # TODO this test is verbose can be minimised to more directly target test
+        # Test the class names and displayed value are correct on rendering MI names
         df = DataFrame(
             {"A": [1, 2]},
             index=MultiIndex.from_arrays(
@@ -1049,28 +1049,19 @@ class TestStyler:
         expected = [
             {
                 "class": "index_name level0",
-                "value": "idx_level_0",
-                "type": "th",
-                "is_visible": True,
                 "display_value": "idx_level_0",
             },
             {
                 "class": "index_name level1",
-                "value": "idx_level_1",
-                "type": "th",
-                "is_visible": True,
                 "display_value": "idx_level_1",
             },
             {
                 "class": "blank col0",
-                "value": self.blank_value,
-                "type": "th",
-                "is_visible": True,
                 "display_value": self.blank_value,
             },
         ]
-
-        assert head == expected
+        for i, expected_dict in enumerate(expected):
+            assert expected_dict.items() <= head[i].items()
 
     def test_mi_sparse_column_names(self):
         df = DataFrame(
