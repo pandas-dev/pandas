@@ -356,7 +356,7 @@ class TestIndexReductions:
             [
                 f"reduction operation '{opname}' not allowed for this dtype",
                 rf"cannot perform {opname} with type timedelta64\[ns\]",
-                f"does not implement reduction '{opname}'",
+                f"does not support reduction '{opname}'",
             ]
         )
 
@@ -727,7 +727,7 @@ class TestSeriesReductions:
                 [
                     "operation 'var' not allowed",
                     r"cannot perform var with type timedelta64\[ns\]",
-                    "does not implement reduction 'var'",
+                    "does not support reduction 'var'",
                 ]
             )
             with pytest.raises(TypeError, match=msg):
