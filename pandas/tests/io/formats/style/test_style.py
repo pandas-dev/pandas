@@ -1071,60 +1071,25 @@ class TestStyler:
                 names=["idx_level_0", "idx_level_1"],
             ),
             columns=MultiIndex.from_arrays(
-                [["C1", "C1", "C2", "C2"], [1, 0, 1, 0]], names=["col_0", "col_1"]
+                [["C1", "C1", "C2", "C2"], [1, 0, 1, 0]], names=["colnam_0", "colnam_1"]
             ),
         )
         result = Styler(df, cell_ids=False)._translate(True, True)
-        head = result["head"][1]
-        expected = [
-            {
-                "class": "blank",
-                "value": self.blank_value,
-                "display_value": self.blank_value,
-                "type": "th",
-                "is_visible": True,
-            },
-            {
-                "class": "index_name level1",
-                "value": "col_1",
-                "display_value": "col_1",
-                "is_visible": True,
-                "type": "th",
-            },
-            {
-                "class": "col_heading level1 col0",
-                "display_value": "1",
-                "is_visible": True,
-                "type": "th",
-                "value": 1,
-                "attributes": "",
-            },
-            {
-                "class": "col_heading level1 col1",
-                "display_value": "0",
-                "is_visible": True,
-                "type": "th",
-                "value": 0,
-                "attributes": "",
-            },
-            {
-                "class": "col_heading level1 col2",
-                "display_value": "1",
-                "is_visible": True,
-                "type": "th",
-                "value": 1,
-                "attributes": "",
-            },
-            {
-                "class": "col_heading level1 col3",
-                "display_value": "0",
-                "is_visible": True,
-                "type": "th",
-                "value": 0,
-                "attributes": "",
-            },
-        ]
-        assert head == expected
+
+        for level in [0, 1]:
+            head = result["head"][level]
+            expected = [
+                {
+                    "class": "blank",
+                    "display_value": self.blank_value,
+                },
+                {
+                    "class": f"index_name level{level}",
+                    "display_value": f"colnam_{level}",
+                },
+            ]
+            for i, expected_dict in enumerate(expected):
+                assert expected_dict.items() <= head[i].items()
 
     def test_hide_column_headers(self):
         ctx = self.styler.hide(axis="columns")._translate(True, True)
