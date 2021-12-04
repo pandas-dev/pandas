@@ -466,6 +466,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 return IntegerArray(x, m)
             elif is_float_dtype(x.dtype):
                 m = mask.copy()
+                if x.dtype == np.float16:
+                    # reached in e.g. np.sqrt on BooleanArray
+                    # we don't support float16
+                    x = x.astype(np.float32)
                 return FloatingArray(x, m)
             else:
                 x[mask] = np.nan
