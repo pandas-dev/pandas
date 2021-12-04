@@ -1253,7 +1253,7 @@ class Block(PandasObject):
         fill_value,
         new_placement: npt.NDArray[np.intp],
         allow_fill: bool,
-        needs_masking: np.ndarray[np.bool_] | None,
+        needs_masking: np.NDArray[np.bool_] | None,
     ):
         """
         Return a list of unstacked blocks of self
@@ -1676,7 +1676,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         fill_value,
         new_placement: npt.NDArray[np.intp],
         allow_fill: bool,
-        needs_masking: np.ndarray[np.bool_] | None,
+        needs_masking: np.NDArray[np.bool_] | None,
     ):
         # ExtensionArray-safe unstack.
         # We override ObjectBlock._unstack, which unstacks directly on the
