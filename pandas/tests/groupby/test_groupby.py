@@ -869,7 +869,7 @@ def test_omit_nuisance(df):
 
     # won't work with axis = 1
     grouped = df.groupby({"A": 0, "C": 0, "D": 1, "E": 1}, axis=1)
-    msg = "'DatetimeArray' does not implement reduction 'sum'"
+    msg = "does not support reduction 'sum'"
     with pytest.raises(TypeError, match=msg):
         grouped.agg(lambda x: x.sum(0, numeric_only=False))
 
@@ -1931,7 +1931,7 @@ def test_empty_groupby(columns, keys, values, method, op, request, using_array_m
                 # GH#41291
                 # datetime64 -> prod and sum are invalid
                 if op == "skew":
-                    msg = "'DatetimeArray' does not implement reduction 'skew'"
+                    msg = "does not support reduction 'skew'"
                 else:
                     msg = "datetime64 type does not support"
                 with pytest.raises(TypeError, match=msg):
@@ -1943,9 +1943,9 @@ def test_empty_groupby(columns, keys, values, method, op, request, using_array_m
                 # GH#41291
                 if op == "mad":
                     # mad calls mean, which Categorical doesn't implement
-                    msg = "'Categorical' does not implement reduction 'mean'"
+                    msg = "does not support reduction 'mean'"
                 elif op == "skew":
-                    msg = f"'Categorical' does not implement reduction '{op}'"
+                    msg = f"does not support reduction '{op}'"
                 else:
                     msg = "category type does not support"
                 with pytest.raises(TypeError, match=msg):

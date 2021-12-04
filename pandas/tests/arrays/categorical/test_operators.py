@@ -371,7 +371,7 @@ class TestCategoricalOps:
         # min/max)
         s = df["value_group"]
         for op in ["kurt", "skew", "var", "std", "mean", "sum", "median"]:
-            msg = f"'Categorical' does not implement reduction '{op}'"
+            msg = f"does not support reduction '{op}'"
             with pytest.raises(TypeError, match=msg):
                 getattr(s, op)(numeric_only=False)
 
@@ -379,9 +379,7 @@ class TestCategoricalOps:
 
         # numpy ops
         s = Series(Categorical([1, 2, 3, 4]))
-        with pytest.raises(
-            TypeError, match="'Categorical' does not implement reduction 'sum'"
-        ):
+        with pytest.raises(TypeError, match="does not support reduction 'sum'"):
             np.sum(s)
 
         # numeric ops on a Series

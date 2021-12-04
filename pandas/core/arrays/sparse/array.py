@@ -1363,13 +1363,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         else:
             arr = self.dropna()
 
-        # we don't support these kwargs.
-        # They should only be present when called via pandas, so do it here.
-        # instead of in `any` / `all` (which will raise if they're present,
-        # thanks to nv.validate
-        kwargs.pop("filter_type", None)
-        kwargs.pop("numeric_only", None)
-        kwargs.pop("op", None)
         return getattr(arr, name)(**kwargs)
 
     def all(self, axis=None, *args, **kwargs):
