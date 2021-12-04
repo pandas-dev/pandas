@@ -20,7 +20,8 @@ pytestmark = pytest.mark.filterwarnings(
 )
 
 
-if xlrd_version >= Version("2"):
+# error: Unsupported operand types for <= ("Version" and "None")
+if xlrd_version >= Version("2"):  # type: ignore[operator]
     exts = [".xls"]
 else:
     exts = [".xls", ".xlsx", ".xlsm"]
