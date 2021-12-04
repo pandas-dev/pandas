@@ -782,3 +782,30 @@ def test_groupby_nth_with_column_axis():
     )
     expected.columns.name = "y"
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "start, stop, expected_values, expected_columns",
+    [
+        (None, None, [0, 1, 2, 3, 4], [5, 5, 5, 6, 6]),
+        (None, 1, [0, 3], [5, 6]),
+        (None, 9, [0, 1, 2, 3, 4], [5, 5, 5, 6, 6]),
+        (None, -1, [0, 1, 3], [5, 5, 6]),
+        (1, None, [1, 2, 4], [5, 5, 6]),
+        (1, -1, [1], [5]),
+        (-1, None, [2, 4], [5, 6]),
+        (-1, 2, [4], [6]),
+    ],
+)
+@pytest.mark.parametrize("method", ["call", "index"])
+def test_nth_slices_with_column_axis(
+    start, stop, expected_values, expected_columns, method
+):
+    df = pd.DataFrame([range(5)], columns=[list("ABCDE")])
+    gb = df.groupby([5, 5, 5, 6, 6], axis=1)
+    result = {
+        "call": lambda start, stop: gb.nth(slice(start, stop)),
+        "index": lambda start, stop: gb.nth[start:stop],
+    }[method](start, stop)
+    expected = pd.DataFrame([expected_values], columns=expected_columns)
+    tm.assert_frame_equal(result, expected)
