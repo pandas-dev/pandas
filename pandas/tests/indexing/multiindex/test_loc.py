@@ -395,6 +395,10 @@ class TestMultiIndexLoc:
         result = df.loc["2011-01-01":"2011-01-02"]
         tm.assert_frame_equal(result, expected)
 
+        df = pd.concat([ser1, ser2.reindex(ser1.index)], axis=1)
+        result = df.loc["2011-01-01":"2011-01-02"]
+        tm.assert_frame_equal(result, expected)
+
 
 @pytest.mark.parametrize(
     "indexer, pos",
