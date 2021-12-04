@@ -785,38 +785,40 @@ def test_tick_normalize_raises(tick_classes):
 
 
 @pytest.mark.parametrize(
-    "cases",
+    "offset_kwargs, ts_arg, expected_arg",
     [
-        ("nanoseconds", 1, Timestamp("1970-01-01 00:00:00.000000001")),
-        ("nanoseconds", 5, Timestamp("1970-01-01 00:00:00.000000005")),
-        ("nanoseconds", -1, Timestamp("1969-12-31 23:59:59.999999999")),
-        ("microseconds", 1, Timestamp("1970-01-01 00:00:00.000001")),
-        ("microseconds", -1, Timestamp("1969-12-31 23:59:59.999999")),
-        ("seconds", 1, Timestamp("1970-01-01 00:00:01")),
-        ("seconds", -1, Timestamp("1969-12-31 23:59:59")),
-        ("minutes", 1, Timestamp("1970-01-01 00:01:00")),
-        ("minutes", -1, Timestamp("1969-12-31 23:59:00")),
-        ("hours", 1, Timestamp("1970-01-01 01:00:00")),
-        ("hours", -1, Timestamp("1969-12-31 23:00:00")),
-        ("days", 1, Timestamp("1970-01-02 00:00:00")),
-        ("days", -1, Timestamp("1969-12-31 00:00:00")),
-        ("weeks", 1, Timestamp("1970-01-08 00:00:00")),
-        ("weeks", -1, Timestamp("1969-12-25 00:00:00")),
-        ("months", 1, Timestamp("1970-02-01 00:00:00")),
-        ("months", -1, Timestamp("1969-12-01 00:00:00")),
-        ("years", 1, Timestamp("1971-01-01 00:00:00")),
-        ("years", -1, Timestamp("1969-01-01 00:00:00")),
+        ({"nanoseconds": 1}, 0, "1970-01-01 00:00:00.000000001"),
+        ({"nanoseconds": 5}, 0, "1970-01-01 00:00:00.000000005"),
+        ({"nanoseconds": -1}, 0, "1969-12-31 23:59:59.999999999"),
+        ({"microseconds": 1}, 0, "1970-01-01 00:00:00.000001"),
+        ({"microseconds": -1}, 0, "1969-12-31 23:59:59.999999"),
+        ({"seconds": 1}, 0, "1970-01-01 00:00:01"),
+        ({"seconds": -1}, 0, "1969-12-31 23:59:59"),
+        ({"minutes": 1}, 0, "1970-01-01 00:01:00"),
+        ({"minutes": -1}, 0, "1969-12-31 23:59:00"),
+        ({"hours": 1}, 0, "1970-01-01 01:00:00"),
+        ({"hours": -1}, 0, "1969-12-31 23:00:00"),
+        ({"days": 1}, 0, "1970-01-02 00:00:00"),
+        ({"days": -1}, 0, "1969-12-31 00:00:00"),
+        ({"weeks": 1}, 0, "1970-01-08 00:00:00"),
+        ({"weeks": -1}, 0, "1969-12-25 00:00:00"),
+        ({"months": 1}, 0, "1970-02-01 00:00:00"),
+        ({"months": -1}, 0, "1969-12-01 00:00:00"),
+        ({"years": 1}, 0, "1971-01-01 00:00:00"),
+        ({"years": -1}, 0, "1969-01-01 00:00:00"),
+        ({"minutes": 2, "nanoseconds": 9}, 4, "1970-01-01 00:02:00.000000013"),
     ],
 )
-def test_dateoffset_add_sub(cases):
-    time_unit, num, expected = cases
-    offset = DateOffset(**{time_unit: num})
-    ts = Timestamp(0) + offset
-    assert ts == expected
-    ts -= offset
-    assert ts == Timestamp(0)
-    ts = offset + Timestamp(0)
-    assert ts == expected
+def test_dateoffset_add_sub(offset_kwargs, ts_arg, expected_arg):
+    offset = DateOffset(**offset_kwargs)
+    ts = Timestamp(ts_arg)
+    result = ts + offset
+    expected = Timestamp(expected_arg)
+    assert result == expected
+    result -= offset
+    assert result == ts
+    result = offset + ts
+    assert result == expected
 
 
 @pytest.mark.parametrize(
