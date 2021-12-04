@@ -178,15 +178,15 @@ def test_array_copy():
     a = np.array([1, 2])
     # default is to copy
     b = pd.array(a, dtype=a.dtype)
-    assert np.shares_memory(a, b._ndarray) is False
+    assert not tm.shares_memory(a, b)
 
     # copy=True
     b = pd.array(a, dtype=a.dtype, copy=True)
-    assert np.shares_memory(a, b._ndarray) is False
+    assert not tm.shares_memory(a, b)
 
     # copy=False
     b = pd.array(a, dtype=a.dtype, copy=False)
-    assert np.shares_memory(a, b._ndarray) is True
+    assert tm.shares_memory(a, b)
 
 
 cet = pytz.timezone("CET")
