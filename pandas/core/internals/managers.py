@@ -1549,6 +1549,22 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         return arr.transpose()
 
+    def as_array_dtype(self):
+        """
+        The dtype of the np.ndarray when you would convert self to a numpy array
+        (i.e. calling ``mgr.as_array()`` or ``df.values``).
+        """
+        if len(self.blocks) == 0:
+            return np.dtype(float)
+
+        if self.is_single_block:
+            return self.blocks[0].dtype
+
+        dtype = interleaved_dtype(  # type: ignore[assignment]
+            [blk.dtype for blk in self.blocks]
+        )
+        return dtype
+
     def _interleave(
         self,
         dtype: np.dtype | None = None,

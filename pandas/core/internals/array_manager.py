@@ -1145,6 +1145,15 @@ class ArrayManager(BaseArrayManager):
 
         return result
 
+    def as_array_dtype(self):
+        """
+        The dtype of the np.ndarray when you would convert self to a numpy array
+        (i.e. calling ``mgr.as_array()`` or ``df.values``).
+        """
+        if len(self.arrays) == 0:
+            return np.dtype(float)
+        return interleaved_dtype([arr.dtype for arr in self.arrays])
+
 
 class SingleArrayManager(BaseArrayManager, SingleDataManager):
 

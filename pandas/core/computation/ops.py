@@ -146,15 +146,18 @@ class Term:
     @property
     def type(self):
         try:
-            # potentially very slow for large, mixed dtype frames
-            return self._value.values.dtype
+            # .values for dataframe would be slow
+            return self._value._mgr.as_array_dtype()
         except AttributeError:
             try:
-                # ndarray
-                return self._value.dtype
+                return self._value.values.dtype
             except AttributeError:
-                # scalar
-                return type(self._value)
+                try:
+                    # ndarray
+                    return self._value.dtype
+                except AttributeError:
+                    # scalar
+                    return type(self._value)
 
     return_type = type
 
