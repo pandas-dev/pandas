@@ -12,6 +12,23 @@ import pandas._testing as tm
 
 
 class TestDataFrameInterpolate:
+    def test_interpolate_inplace(self, frame_or_series, using_array_manager, request):
+        # GH#44749
+        if using_array_manager and frame_or_series is DataFrame:
+            mark = pytest.mark.xfail(reason=".values-based in-place check is invalid")
+            request.node.add_marker(mark)
+
+        obj = frame_or_series([1, np.nan, 2])
+        orig = obj.values
+
+        obj.interpolate(inplace=True)
+        expected = frame_or_series([1, 1.5, 2])
+        tm.assert_equal(obj, expected)
+
+        # check we operated *actually* inplace
+        assert np.shares_memory(orig, obj.values)
+        assert orig.squeeze()[1] == 1.5
+
     def test_interp_basic(self):
         df = DataFrame(
             {
