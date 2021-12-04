@@ -574,36 +574,6 @@ class TestStyler:
         }
         assert expected.items() <= result["head"][1][0].items()
 
-    def test_multiindex_name(self):
-        # https://github.com/pandas-dev/pandas/issues/11655
-        df = DataFrame({"A": [1, 2], "B": [3, 4], "C": [5, 6]})
-        result = df.set_index(["A", "B"]).style._translate(True, True)
-
-        expected = [
-            {
-                "class": "index_name level0",
-                "type": "th",
-                "value": "A",
-                "is_visible": True,
-                "display_value": "A",
-            },
-            {
-                "class": "index_name level1",
-                "type": "th",
-                "value": "B",
-                "is_visible": True,
-                "display_value": "B",
-            },
-            {
-                "class": "blank col0",
-                "type": "th",
-                "value": self.blank_value,
-                "is_visible": True,
-                "display_value": self.blank_value,
-            },
-        ]
-        assert result["head"][1] == expected
-
     def test_numeric_columns(self):
         # https://github.com/pandas-dev/pandas/issues/12125
         # smoke test for _translate
