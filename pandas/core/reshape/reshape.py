@@ -1109,7 +1109,7 @@ def from_dummies(
 
     Parameters
     ----------
-    data : `DataFrame`
+    data : DataFrame
         Data which contains dummy-coded variables.
     sep : str, default None
         Separator used in the column names of the dummy categories they are
@@ -1123,7 +1123,7 @@ def from_dummies(
 
     Returns
     -------
-    `DataFrame`
+    DataFrame
         Categorical data decoded from the dummy input-data.
 
     Notes
@@ -1138,7 +1138,7 @@ def from_dummies(
     Examples
     --------
     >>> df = pd.DataFrame({"a": [1, 0, 0, 1], "b": [0, 1, 0, 0],
-    ...                   "c": [0, 0, 1, 0]})
+    ...                    "c": [0, 0, 1, 0]})
 
     >>> pd.from_dummies(df)
     0     a
@@ -1147,8 +1147,8 @@ def from_dummies(
     3     a
 
     >>> df = pd.DataFrame({"col1_a": [1, 0, 1], "col1_b": [0, 1, 0],
-    ...                   "col2_a": [0, 1, 0], "col2_b": [1, 0, 0],
-    ...                   "col2_c": [0, 0, 1]})
+    ...                    "col2_a": [0, 1, 0], "col2_b": [1, 0, 0],
+    ...                    "col2_c": [0, 0, 1]})
 
     >>> pd.from_dummies(df, sep="_")
         col1    col2
