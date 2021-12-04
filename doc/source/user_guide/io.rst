@@ -161,6 +161,18 @@ squeeze : boolean, default ``False``
      the data.
 prefix : str, default ``None``
   Prefix to add to column numbers when no header, e.g. 'X' for X0, X1, ...
+
+  .. deprecated:: 1.4.0
+     Use a list comprehension on the DataFrame's columns after calling ``read_csv``.
+
+  .. ipython:: python
+
+     data = "col1,col2,col3\na,b,1"
+
+     df = pd.read_csv(StringIO(data))
+     df.columns = [f"pre_{col}" for col in df.columns]
+     df
+
 mangle_dupe_cols : boolean, default ``True``
   Duplicate columns will be specified as 'X', 'X.1'...'X.N', rather than 'X'...'X'.
   Passing in ``False`` will cause data to be overwritten if there are duplicate
