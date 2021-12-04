@@ -1020,14 +1020,17 @@ class TestStyler:
             {
                 "class": "index_name level0",
                 "display_value": "idx_level_0",
+                "is_visible": True,
             },
             {
                 "class": "index_name level1",
                 "display_value": "idx_level_1",
+                "is_visible": True,
             },
             {
                 "class": "blank col0",
                 "display_value": self.blank_value,
+                "is_visible": True,
             },
         ]
         for i, expected_dict in enumerate(expected):
@@ -1052,10 +1055,12 @@ class TestStyler:
                 {
                     "class": "blank",
                     "display_value": self.blank_value,
+                    "is_visible": True,
                 },
                 {
                     "class": f"index_name level{level}",
                     "display_value": f"colnam_{level}",
+                    "is_visible": True,
                 },
             ]
             for i, expected_dict in enumerate(expected):
