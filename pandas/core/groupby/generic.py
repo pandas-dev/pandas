@@ -1663,7 +1663,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 keys = [] if name in in_axis_names else [self._selected_obj]
             else:
                 keys = [
-                    # TODO: Is there a better way to get the Series for the grouper?
+                    # Can't use .values because the column label needs to be preserved
                     self._selected_obj.iloc[:, idx]
                     for idx, name in enumerate(self._selected_obj.columns)
                     if name not in in_axis_names
@@ -1683,9 +1683,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     df,
                     key=key,
                     axis=self.axis,
-                    level=self.level,
                     sort=self.sort,
-                    mutated=self.mutated,
                     dropna=dropna,
                 )
                 groupings += list(grouper.groupings)
