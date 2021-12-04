@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import defaultdict
 import itertools
 from typing import (
     TYPE_CHECKING,
@@ -1181,18 +1182,15 @@ def from_dummies(
         raise TypeError("Passed DataFrame contains non-dummy data")
 
     # collect prefixes and get lists to slice data for each prefix
+    variables_slice = defaultdict(list)
     if sep is None:
-        variables_slice = {"": list(data.columns)}
+        variables_slice[""] = list(data.columns)
     elif isinstance(sep, str):
-        variables_slice = {}
         for col in data_to_decode.columns:
             prefix = col.split(sep)[0]
             if len(prefix) == len(col):
                 raise ValueError(f"Separator not specified for column: {col}")
-            if prefix not in variables_slice:
-                variables_slice[prefix] = [col]
-            else:
-                variables_slice[prefix].append(col)
+            variables_slice[prefix].append(col)
     else:
         raise TypeError(
             f"Expected 'sep' to be of type 'str' or 'None'; "
