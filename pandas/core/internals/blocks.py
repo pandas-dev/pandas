@@ -963,6 +963,9 @@ class Block(PandasObject):
         mask, noop = validate_putmask(values.T, mask)
         assert not isinstance(new, (ABCIndex, ABCSeries, ABCDataFrame))
 
+        if new is lib.no_default:
+            new = self.fill_value
+
         # if we are passed a scalar None, convert it here
         if not self.is_object and is_valid_na_for_dtype(new, self.dtype):
             new = self.fill_value
@@ -1173,6 +1176,9 @@ class Block(PandasObject):
             values = values.T
 
         icond, noop = validate_putmask(values, ~cond)
+
+        if other is lib.no_default:
+            other = self.fill_value
 
         if is_valid_na_for_dtype(other, self.dtype) and self.dtype != _dtype_obj:
             other = self.fill_value
@@ -1641,13 +1647,8 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         other = self._maybe_squeeze_arg(other)
         cond = self._maybe_squeeze_arg(cond)
 
-        if lib.is_scalar(other) and isna(other):
-            # The default `other` for Series / Frame is np.nan
-            # we want to replace that with the correct NA value
-            # for the type
-            # error: Item "dtype[Any]" of "Union[dtype[Any], ExtensionDtype]" has no
-            # attribute "na_value"
-            other = self.dtype.na_value  # type: ignore[union-attr]
+        if other is lib.no_default:
+            other = self.fill_value
 
         icond, noop = validate_putmask(self.values, ~cond)
         if noop:
@@ -1747,6 +1748,8 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
         arr = self.values
 
         cond = extract_bool_array(cond)
+        if other is lib.no_default:
+            other = self.fill_value
 
         try:
             res_values = arr.T._where(cond, other).T
