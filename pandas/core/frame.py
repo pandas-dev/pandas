@@ -206,6 +206,7 @@ from pandas.io.formats import (
     format as fmt,
 )
 from pandas.io.formats.info import (
+    INFO_DOCSTRING,
     DataFrameInfo,
     frame_sub_kwargs,
 )
@@ -214,6 +215,7 @@ import pandas.plotting
 if TYPE_CHECKING:
 
     from pandas.core.groupby.generic import DataFrameGroupBy
+    from pandas.core.internals import SingleDataManager
     from pandas.core.resample import Resampler
 
     from pandas.io.formats.style import Styler
@@ -593,13 +595,6 @@ class DataFrame(NDFrame, OpsMixin):
         copy: bool | None = None,
     ):
 
-        if copy is None:
-            if isinstance(data, dict) or data is None:
-                # retain pre-GH#38939 default behavior
-                copy = True
-            else:
-                copy = False
-
         if data is None:
             data = {}
         if dtype is not None:
@@ -617,6 +612,21 @@ class DataFrame(NDFrame, OpsMixin):
                 return
 
         manager = get_option("mode.data_manager")
+
+        if copy is None:
+            if isinstance(data, dict):
+                # retain pre-GH#38939 default behavior
+                copy = True
+            elif (
+                manager == "array"
+                and isinstance(data, (np.ndarray, ExtensionArray))
+                and data.ndim == 2
+            ):
+                # INFO(ArrayManager) by default copy the 2D input array to get
+                # contiguous 1D arrays
+                copy = True
+            else:
+                copy = False
 
         if isinstance(data, (BlockManager, ArrayManager)):
             mgr = self._init_mgr(
@@ -3138,7 +3148,7 @@ class DataFrame(NDFrame, OpsMixin):
         return xml_formatter.write_output()
 
     # ----------------------------------------------------------------------
-    @doc(DataFrameInfo.render, **frame_sub_kwargs)
+    @doc(INFO_DOCSTRING, **frame_sub_kwargs)
     def info(
         self,
         verbose: bool | None = None,
@@ -3430,8 +3440,8 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             label = self.columns[i]
 
-            values = self._mgr.iget(i)
-            result = self._box_col_values(values, i)
+            col_mgr = self._mgr.iget(i)
+            result = self._box_col_values(col_mgr, i)
 
             # this is a cached value, mark it so
             result._set_as_cached(label, self)
@@ -3894,7 +3904,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             self._mgr = self._mgr.reindex_axis(index_copy, axis=1, fill_value=np.nan)
 
-    def _box_col_values(self, values, loc: int) -> Series:
+    def _box_col_values(self, values: SingleDataManager, loc: int) -> Series:
         """
         Provide boxed values for a column.
         """
@@ -3902,7 +3912,8 @@ class DataFrame(NDFrame, OpsMixin):
         #  we attach the Timestamp object as the name.
         name = self.columns[loc]
         klass = self._constructor_sliced
-        return klass(values, index=self.index, name=name, fastpath=True)
+        # We get index=self.index bc values is a SingleDataManager
+        return klass(values, name=name, fastpath=True)
 
     # ----------------------------------------------------------------------
     # Lookup Caching
@@ -3919,8 +3930,8 @@ class DataFrame(NDFrame, OpsMixin):
             #  pending resolution of GH#33047
 
             loc = self.columns.get_loc(item)
-            values = self._mgr.iget(loc)
-            res = self._box_col_values(values, loc).__finalize__(self)
+            col_mgr = self._mgr.iget(loc)
+            res = self._box_col_values(col_mgr, loc).__finalize__(self)
 
             cache[item] = res
             res._set_as_cached(item, self)
@@ -4322,27 +4333,18 @@ class DataFrame(NDFrame, OpsMixin):
 
         # convert the myriad valid dtypes object to a single representation
         def check_int_infer_dtype(dtypes):
-            converted_dtypes = []
+            converted_dtypes: list[type] = []
             for dtype in dtypes:
                 # Numpy maps int to different types (int32, in64) on Windows and Linux
                 # see https://github.com/numpy/numpy/issues/9464
                 if (isinstance(dtype, str) and dtype == "int") or (dtype is int):
                     converted_dtypes.append(np.int32)
-                    # error: Argument 1 to "append" of "list" has incompatible type
-                    # "Type[signedinteger[Any]]"; expected "Type[signedinteger[Any]]"
-                    converted_dtypes.append(np.int64)  # type: ignore[arg-type]
+                    converted_dtypes.append(np.int64)
                 elif dtype == "float" or dtype is float:
                     # GH#42452 : np.dtype("float") coerces to np.float64 from Numpy 1.20
-                    converted_dtypes.extend(
-                        [np.float64, np.float32]  # type: ignore[list-item]
-                    )
+                    converted_dtypes.extend([np.float64, np.float32])
                 else:
-                    # error: Argument 1 to "append" of "list" has incompatible type
-                    # "Union[dtype[Any], ExtensionDtype]"; expected
-                    # "Type[signedinteger[Any]]"
-                    converted_dtypes.append(
-                        infer_dtype_from_object(dtype)  # type: ignore[arg-type]
-                    )
+                    converted_dtypes.append(infer_dtype_from_object(dtype))
             return frozenset(converted_dtypes)
 
         include = check_int_infer_dtype(include)
@@ -10846,7 +10848,7 @@ NaN 12.3   33.0
     def where(
         self,
         cond,
-        other=np.nan,
+        other=lib.no_default,
         inplace=False,
         axis=None,
         level=None,

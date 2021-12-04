@@ -9,9 +9,11 @@ from io import StringIO
 import re
 import sys
 from typing import (
+    IO,
     DefaultDict,
     Hashable,
     Iterator,
+    Literal,
     Mapping,
     Sequence,
     cast,
@@ -1136,9 +1138,17 @@ class FixedWidthReader(abc.Iterator):
     A reader of fixed-width lines.
     """
 
-    def __init__(self, f, colspecs, delimiter, comment, skiprows=None, infer_nrows=100):
+    def __init__(
+        self,
+        f: IO[str],
+        colspecs: list[tuple[int, int]] | Literal["infer"],
+        delimiter: str | None,
+        comment: str | None,
+        skiprows: set[int] | None = None,
+        infer_nrows: int = 100,
+    ) -> None:
         self.f = f
-        self.buffer = None
+        self.buffer: Iterator | None = None
         self.delimiter = "\r\n" + delimiter if delimiter else "\n\r\t "
         self.comment = comment
         if colspecs == "infer":
@@ -1166,7 +1176,7 @@ class FixedWidthReader(abc.Iterator):
                     "2 element tuple or list of integers"
                 )
 
-    def get_rows(self, infer_nrows, skiprows=None):
+    def get_rows(self, infer_nrows: int, skiprows: set[int] | None = None) -> list[str]:
         """
         Read rows from self.f, skipping as specified.
 
@@ -1204,7 +1214,9 @@ class FixedWidthReader(abc.Iterator):
         self.buffer = iter(buffer_rows)
         return detect_rows
 
-    def detect_colspecs(self, infer_nrows=100, skiprows=None):
+    def detect_colspecs(
+        self, infer_nrows: int = 100, skiprows: set[int] | None = None
+    ) -> list[tuple[int, int]]:
         # Regex escape the delimiters
         delimiters = "".join([fr"\{x}" for x in self.delimiter])
         pattern = re.compile(f"([^{delimiters}]+)")
@@ -1224,7 +1236,7 @@ class FixedWidthReader(abc.Iterator):
         edge_pairs = list(zip(edges[::2], edges[1::2]))
         return edge_pairs
 
-    def __next__(self):
+    def __next__(self) -> list[str]:
         if self.buffer is not None:
             try:
                 line = next(self.buffer)
@@ -1243,13 +1255,15 @@ class FixedWidthFieldParser(PythonParser):
     See PythonParser for details.
     """
 
-    def __init__(self, f, **kwds):
+    def __init__(
+        self, f: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str], **kwds
+    ) -> None:
         # Support iterators, convert to a list.
         self.colspecs = kwds.pop("colspecs")
         self.infer_nrows = kwds.pop("infer_nrows")
         PythonParser.__init__(self, f, **kwds)
 
-    def _make_reader(self, f):
+    def _make_reader(self, f: IO[str]) -> None:
         self.data = FixedWidthReader(
             f,
             self.colspecs,
@@ -1259,7 +1273,7 @@ class FixedWidthFieldParser(PythonParser):
             self.infer_nrows,
         )
 
-    def _remove_empty_lines(self, lines) -> list:
+    def _remove_empty_lines(self, lines: list[list[Scalar]]) -> list[list[Scalar]]:
         """
         Returns the list of lines without the empty ones. With fixed-width
         fields, empty lines become arrays of empty strings.

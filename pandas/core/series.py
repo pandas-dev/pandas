@@ -139,6 +139,11 @@ from pandas.core.strings import StringMethods
 from pandas.core.tools.datetimes import to_datetime
 
 import pandas.io.formats.format as fmt
+from pandas.io.formats.info import (
+    INFO_DOCSTRING,
+    SeriesInfo,
+    series_sub_kwargs,
+)
 import pandas.plotting
 
 if TYPE_CHECKING:
@@ -332,7 +337,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         ):
             # GH#33357 called with just the SingleBlockManager
             NDFrame.__init__(self, data)
-            self.name = name
+            if fastpath:
+                # e.g. from _box_col_values, skip validation of name
+                object.__setattr__(self, "_name", name)
+            else:
+                self.name = name
             return
 
         # we are called internally, so short-circuit
@@ -4914,6 +4923,22 @@ Keep all original rows and also all original values
             method=method,
         )
 
+    @doc(INFO_DOCSTRING, **series_sub_kwargs)
+    def info(
+        self,
+        verbose: bool | None = None,
+        buf: IO[str] | None = None,
+        max_cols: int | None = None,
+        memory_usage: bool | str | None = None,
+        show_counts: bool = True,
+    ) -> None:
+        return SeriesInfo(self, memory_usage).render(
+            buf=buf,
+            max_cols=max_cols,
+            verbose=verbose,
+            show_counts=show_counts,
+        )
+
     def _replace_single(self, to_replace, method: str, inplace: bool, limit):
         """
         Replaces values in a Series using the fill method specified when no
@@ -5485,7 +5510,7 @@ Keep all original rows and also all original values
     def where(
         self,
         cond,
-        other=np.nan,
+        other=lib.no_default,
         inplace=False,
         axis=None,
         level=None,
