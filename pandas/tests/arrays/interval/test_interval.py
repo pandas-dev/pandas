@@ -165,6 +165,7 @@ def test_repr():
 
 class TestReductions:
     def test_min_max(self, left_right_dtypes, index_or_series_or_array):
+        # GH#44746
         left, right = left_right_dtypes
         left = left.copy(deep=True)
         right = right.copy(deep=True)
