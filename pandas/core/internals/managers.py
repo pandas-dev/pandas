@@ -949,12 +949,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                             stacklevel=find_stack_level(),
                         )
 
-                    # error: Incompatible types in assignment (expression has type
-                    # "Union[ExtensionArray, ndarray]", variable has type
-                    # "DatetimeArray")
-                    block.values = ensure_block_shape(  # type: ignore[assignment]
-                        block.values, self.ndim
-                    )
+                    block.values = ensure_block_shape(block.values, self.ndim)
                     try:
                         block._cache.clear()
                     except AttributeError:

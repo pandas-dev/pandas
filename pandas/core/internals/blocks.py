@@ -1721,8 +1721,9 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
 
     values: NDArrayBackedExtensionArray
 
+    # error: Signature of "is_extension" incompatible with supertype "Block"
     @cache_readonly
-    def is_extension(self) -> bool:
+    def is_extension(self) -> bool:  # type: ignore[override]
         # i.e. datetime64tz, PeriodDtype
         return not isinstance(self.dtype, np.dtype)
 
