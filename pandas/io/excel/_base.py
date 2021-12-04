@@ -1000,7 +1000,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
         # cast ExcelWriter to avoid adding 'if self.handles is not None'
         self.handles = IOHandles(
-            cast(IO[bytes], path), compression={"copression": None}
+            cast(IO[bytes], path), compression={"compression": None}
         )
         if not isinstance(path, ExcelWriter):
             self.handles = get_handle(
