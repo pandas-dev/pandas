@@ -1171,7 +1171,7 @@ def from_dummies(
     if data.isna().any().any():
         raise ValueError(
             f"Dummy DataFrame contains NA value in column: "
-            f"'{data.columns[data.isna().any().argmax()]}'"
+            f"'{data.isna().any().idxmax()}'"
         )
 
     # index data with a list of all columns that are dummies
@@ -1236,7 +1236,7 @@ def from_dummies(
         if any(assigned > 1):
             raise ValueError(
                 f"Dummy DataFrame contains multi-assignment(s); "
-                f"First instance in row: {assigned.argmax()}"
+                f"First instance in row: {assigned.idxmax()}"
             )
         elif any(assigned == 0):
             if isinstance(implied_category, dict):
@@ -1244,7 +1244,7 @@ def from_dummies(
             else:
                 raise ValueError(
                     f"Dummy DataFrame contains unassigned value(s); "
-                    f"First instance in row: {assigned.argmin()}"
+                    f"First instance in row: {assigned.idxmin()}"
                 )
             data_slice = concat((data_to_decode[prefix_slice], assigned == 0), axis=1)
         else:
