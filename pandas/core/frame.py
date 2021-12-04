@@ -3272,12 +3272,7 @@ class DataFrame(NDFrame, OpsMixin):
             index_memory_usage = self._constructor_sliced(
                 self.index.memory_usage(deep=deep), index=["Index"]
             )
-            result = concat(
-                [
-                    index_memory_usage,
-                    result,
-                ]
-            )
+            result = concat([index_memory_usage, result])
         return result
 
     def transpose(self, *args, copy: bool = False) -> DataFrame:
