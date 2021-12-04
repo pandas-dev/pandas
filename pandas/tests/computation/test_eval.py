@@ -673,7 +673,9 @@ class TestEval:
         exprs += ("2 * x > 2 or 1 and 2",)
         exprs += ("2 * df > 3 and 1 or a",)
 
-        x, a, b, df = np.random.randn(3), 1, 2, DataFrame(np.random.randn(3, 2))  # noqa
+        x, a, b = np.random.randn(3), 1, 2  # noqa:F841
+        df = DataFrame(np.random.randn(3, 2))  # noqa:F841
+
         for ex in exprs:
             msg = "cannot evaluate scalar only bool ops|'BoolOp' nodes are not"
             with pytest.raises(NotImplementedError, match=msg):
@@ -1167,9 +1169,8 @@ class TestOperations:
         tm.assert_frame_equal(df, df2)
 
     def test_truediv(self):
-        s = np.array([1])
+        s = np.array([1])  # noqa:F841
         ex = "s / 1"
-        d = {"s": s}  # noqa
 
         # FutureWarning: The `truediv` parameter in pd.eval is deprecated and will be
         # removed in a future version.
