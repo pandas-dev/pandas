@@ -574,36 +574,6 @@ class TestStyler:
         }
         assert expected.items() <= result["head"][1][0].items()
 
-    def test_multiindex_name(self):
-        # https://github.com/pandas-dev/pandas/issues/11655
-        df = DataFrame({"A": [1, 2], "B": [3, 4], "C": [5, 6]})
-        result = df.set_index(["A", "B"]).style._translate(True, True)
-
-        expected = [
-            {
-                "class": "index_name level0",
-                "type": "th",
-                "value": "A",
-                "is_visible": True,
-                "display_value": "A",
-            },
-            {
-                "class": "index_name level1",
-                "type": "th",
-                "value": "B",
-                "is_visible": True,
-                "display_value": "B",
-            },
-            {
-                "class": "blank col0",
-                "type": "th",
-                "value": self.blank_value,
-                "is_visible": True,
-                "display_value": self.blank_value,
-            },
-        ]
-        assert result["head"][1] == expected
-
     def test_numeric_columns(self):
         # https://github.com/pandas-dev/pandas/issues/12125
         # smoke test for _translate
@@ -1037,7 +1007,7 @@ class TestStyler:
         tm.assert_dict_equal(result, expected)
 
     def test_mi_sparse_index_names(self):
-        # TODO this test is verbose can be minimised to more directly target test
+        # Test the class names and displayed value are correct on rendering MI names
         df = DataFrame(
             {"A": [1, 2]},
             index=MultiIndex.from_arrays(
@@ -1049,28 +1019,22 @@ class TestStyler:
         expected = [
             {
                 "class": "index_name level0",
-                "value": "idx_level_0",
-                "type": "th",
-                "is_visible": True,
                 "display_value": "idx_level_0",
+                "is_visible": True,
             },
             {
                 "class": "index_name level1",
-                "value": "idx_level_1",
-                "type": "th",
-                "is_visible": True,
                 "display_value": "idx_level_1",
+                "is_visible": True,
             },
             {
                 "class": "blank col0",
-                "value": self.blank_value,
-                "type": "th",
-                "is_visible": True,
                 "display_value": self.blank_value,
+                "is_visible": True,
             },
         ]
-
-        assert head == expected
+        for i, expected_dict in enumerate(expected):
+            assert expected_dict.items() <= head[i].items()
 
     def test_mi_sparse_column_names(self):
         df = DataFrame(
@@ -1080,60 +1044,27 @@ class TestStyler:
                 names=["idx_level_0", "idx_level_1"],
             ),
             columns=MultiIndex.from_arrays(
-                [["C1", "C1", "C2", "C2"], [1, 0, 1, 0]], names=["col_0", "col_1"]
+                [["C1", "C1", "C2", "C2"], [1, 0, 1, 0]], names=["colnam_0", "colnam_1"]
             ),
         )
         result = Styler(df, cell_ids=False)._translate(True, True)
-        head = result["head"][1]
-        expected = [
-            {
-                "class": "blank",
-                "value": self.blank_value,
-                "display_value": self.blank_value,
-                "type": "th",
-                "is_visible": True,
-            },
-            {
-                "class": "index_name level1",
-                "value": "col_1",
-                "display_value": "col_1",
-                "is_visible": True,
-                "type": "th",
-            },
-            {
-                "class": "col_heading level1 col0",
-                "display_value": "1",
-                "is_visible": True,
-                "type": "th",
-                "value": 1,
-                "attributes": "",
-            },
-            {
-                "class": "col_heading level1 col1",
-                "display_value": "0",
-                "is_visible": True,
-                "type": "th",
-                "value": 0,
-                "attributes": "",
-            },
-            {
-                "class": "col_heading level1 col2",
-                "display_value": "1",
-                "is_visible": True,
-                "type": "th",
-                "value": 1,
-                "attributes": "",
-            },
-            {
-                "class": "col_heading level1 col3",
-                "display_value": "0",
-                "is_visible": True,
-                "type": "th",
-                "value": 0,
-                "attributes": "",
-            },
-        ]
-        assert head == expected
+
+        for level in [0, 1]:
+            head = result["head"][level]
+            expected = [
+                {
+                    "class": "blank",
+                    "display_value": self.blank_value,
+                    "is_visible": True,
+                },
+                {
+                    "class": f"index_name level{level}",
+                    "display_value": f"colnam_{level}",
+                    "is_visible": True,
+                },
+            ]
+            for i, expected_dict in enumerate(expected):
+                assert expected_dict.items() <= head[i].items()
 
     def test_hide_column_headers(self):
         ctx = self.styler.hide(axis="columns")._translate(True, True)
