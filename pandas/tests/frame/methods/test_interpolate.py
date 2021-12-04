@@ -12,7 +12,8 @@ import pandas._testing as tm
 
 
 class TestDataFrameInterpolate:
-    def test_inerpolate_inplace(self, frame_or_series, using_array_manager, request):
+    def test_interpolate_inplace(self, frame_or_series, using_array_manager, request):
+        # GH#44749
         if using_array_manager and frame_or_series is DataFrame:
             mark = pytest.mark.xfail(reason=".values-based in-place check is invalid")
             request.node.add_marker(mark)
