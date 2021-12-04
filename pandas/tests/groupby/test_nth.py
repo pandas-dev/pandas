@@ -737,7 +737,6 @@ def test_nth_indexed(slice_test_df, slice_test_grouped):
     tm.assert_frame_equal(result, expected)
 
 
-
 def test_invalid_argument(slice_test_grouped):
     # Test for error on invalid argument
 
