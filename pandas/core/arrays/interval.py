@@ -790,6 +790,36 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             ascending=ascending, kind=kind, na_position=na_position, **kwargs
         )
 
+    def min(self, *, axis: int | None = None, skipna: bool = True):
+        if axis is not None and axis >= self.ndim:
+            raise ValueError(axis)
+        if not len(self):
+            return self._na_value
+
+        mask = self.isna()
+        if mask.any():
+            if not skipna:
+                return self._na_value
+            return self[~mask].min()
+
+        indexer = self.argsort()[0]
+        return self[indexer]
+
+    def max(self, *, axis: int | None = None, skipna: bool = True):
+        if axis is not None and axis >= self.ndim:
+            raise ValueError(axis)
+        if not len(self):
+            return self._na_value
+
+        mask = self.isna()
+        if mask.any():
+            if not skipna:
+                return self._na_value
+            return self[~mask].max()
+
+        indexer = self.argsort()[-1]
+        return self[indexer]
+
     def fillna(
         self: IntervalArrayT, value=None, method=None, limit=None
     ) -> IntervalArrayT:
