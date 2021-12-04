@@ -727,6 +727,7 @@ def test_slice(slice_test_df, slice_test_grouped, arg, expected_rows):
     tm.assert_frame_equal(result, expected)
     tm.assert_frame_equal(equivalent, expected)
 
+
 def test_nth_indexed(slice_test_df, slice_test_grouped):
     # Test index notation     GH #44688
 
