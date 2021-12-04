@@ -1977,7 +1977,7 @@ class StringMethods(NoNewAttributesMixin):
     Parameters
     ----------
     %(side)s : str
-        %(side)s to remove.
+        Remove the %(side)s of the string.
 
     Returns
     -------

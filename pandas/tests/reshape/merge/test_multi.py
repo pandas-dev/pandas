@@ -26,17 +26,13 @@ def left():
 
 
 @pytest.fixture
-def right():
+def right(multiindex_dataframe_random_data):
     """right dataframe (multi-indexed) for multi-index join tests"""
-    index = MultiIndex(
-        levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
-        codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
-        names=["key1", "key2"],
-    )
+    df = multiindex_dataframe_random_data
+    df.index.names = ["key1", "key2"]
 
-    return DataFrame(
-        np.random.randn(10, 3), index=index, columns=["j_one", "j_two", "j_three"]
-    )
+    df.columns = ["j_one", "j_two", "j_three"]
+    return df
 
 
 @pytest.fixture
@@ -78,36 +74,6 @@ def idx_cols_multi():
 
 
 class TestMergeMulti:
-    def setup_method(self):
-        self.index = MultiIndex(
-            levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
-            codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
-            names=["first", "second"],
-        )
-        self.to_join = DataFrame(
-            np.random.randn(10, 3),
-            index=self.index,
-            columns=["j_one", "j_two", "j_three"],
-        )
-
-        # a little relevant example with NAs
-        key1 = ["bar", "bar", "bar", "foo", "foo", "baz", "baz", "qux", "qux", "snap"]
-        key2 = [
-            "two",
-            "one",
-            "three",
-            "one",
-            "two",
-            "one",
-            "two",
-            "two",
-            "three",
-            "one",
-        ]
-
-        data = np.random.randn(len(key1))
-        self.data = DataFrame({"key1": key1, "key2": key2, "data": data})
-
     def test_merge_on_multikey(self, left, right, join_type):
         on_cols = ["key1", "key2"]
         result = left.join(right, on=on_cols, how=join_type).reset_index(drop=True)
