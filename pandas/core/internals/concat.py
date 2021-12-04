@@ -77,14 +77,14 @@ def _concatenate_array_managers(
     # reindex all arrays
     mgrs = []
     for mgr, indexers in mgrs_indexers:
-        axis1_needs_copy = True
+        axis1_made_copy = False
         for ax, indexer in indexers.items():
             mgr = mgr.reindex_indexer(
                 axes[ax], indexer, axis=ax, allow_dups=True, use_na_proxy=True
             )
             if ax == 1 and indexer is not None:
-                axis1_needs_copy = False
-        if copy and concat_axis == 0 and axis1_needs_copy:
+                axis1_made_copy = True
+        if copy and concat_axis == 0 and not axis1_made_copy:
             # for concat_axis 1 we will always get a copy through concat_arrays
             mgr = mgr.copy()
         mgrs.append(mgr)
