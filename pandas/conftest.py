@@ -67,6 +67,18 @@ from pandas.core.indexes.api import (
     MultiIndex,
 )
 
+
+@pytest.fixture(autouse=True)
+def get_test_id(request):
+    if hasattr(request.node, "callspec"):
+        id = request.node.callspec.id
+    else:
+        # When a test is not parametrized, callspec isn't yet setup
+        id = "none"
+    with open("/home/richard/pandas/pytest_hack.txt", "w") as f:
+        f.write(id)
+
+
 # Until https://github.com/numpy/numpy/issues/19078 is sorted out, just suppress
 suppress_npdev_promotion_warning = pytest.mark.filterwarnings(
     "ignore:Promotion of numbers and bools:FutureWarning"

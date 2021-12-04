@@ -945,7 +945,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 "a future version. Removing unused categories will always "
                 "return a new Categorical object.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                # stacklevel=find_stack_level(),
+                stacklevel=1,
             )
         else:
             inplace = False

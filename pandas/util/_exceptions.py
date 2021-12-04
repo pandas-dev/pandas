@@ -44,8 +44,24 @@ def find_stack_level() -> int:
             calls = json.load(f)
     else:
         calls = {}
-    caller = f"{stack[1].filename[len(pkg_dir):]}:{stack[1].lineno}"
-    calls[caller] = calls.get(caller, 0) + 1
+
+    with open("/home/richard/pandas/pytest_hack.txt") as f:
+        pytest_id = f.read()
+
+    mystack = inspect.stack()
+    test_files = [
+        f"{e.filename[len(pkg_dir):]}:{e.lineno}:{pytest_id}"
+        for e in mystack
+        if e.filename.startswith(test_dir)
+    ]
+    if len(test_files) == 0:
+        tester = "UNKNOWN"
+    else:
+        tester = test_files[0]
+    # caller = f"{stack[1].filename[len(pkg_dir):]}:{stack[1].lineno}"
+    entry = calls.get(tester, {})
+    entry["calls"] = entry.get("calls", 0) + 1
+    calls[tester] = entry
 
     with open(filename, "w") as f:
         json.dump(calls, f)
