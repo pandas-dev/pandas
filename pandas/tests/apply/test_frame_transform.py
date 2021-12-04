@@ -158,7 +158,7 @@ def test_transform_bad_dtype(op, frame_or_series, request):
 
 
 @pytest.mark.parametrize("op", frame_kernels_raise)
-def test_transform_partial_failure_typeerror(op, request):
+def test_transform_partial_failure_typeerror(op):
     # GH 35964
 
     # Using object makes most transform kernels fail
