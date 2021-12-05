@@ -7,6 +7,7 @@ import pytest
 from pandas import (
     DataFrame,
     NaT,
+    concat,
 )
 import pandas._testing as tm
 
@@ -111,8 +112,6 @@ def test_drop_duplicates():
 
     # GH 11864
     df = DataFrame([i] * 9 for i in range(16))
-    from pandas.core.reshape.concat import concat
-
     df = concat([df, DataFrame([[1] + [0] * 8])], ignore_index=True)
 
     for keep in ["first", "last", False]:
