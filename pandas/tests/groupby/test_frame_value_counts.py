@@ -81,7 +81,7 @@ def test_against_frame_and_seriesgroupby(
     # - Whether or not to use the groupby as an index
     # - 3-way compare against:
     #   - apply with :meth:`~DataFrame.value_counts`
-    #   - `~SeriesGroupBy.value_counts` (apart from certain cases where it crashes)
+    #   - `~SeriesGroupBy.value_counts`
     by = {
         "column": "country",
         "array": education_df["country"].values,
