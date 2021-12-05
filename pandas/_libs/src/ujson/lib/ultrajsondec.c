@@ -116,7 +116,7 @@ JSOBJ FASTCALL_MSVC decodePreciseFloat(struct DecoderState *ds) {
 
 JSOBJ FASTCALL_MSVC decode_numeric(struct DecoderState *ds) {
     int intNeg = 1;
-    int mantSize = 0;
+    char charCount = 0;
     JSUINT64 intValue;
     int chr;
     int decimalCount = 0;
@@ -125,7 +125,7 @@ JSOBJ FASTCALL_MSVC decode_numeric(struct DecoderState *ds) {
     double expValue;
     char *offset = ds->start;
 
-    JSUINT64 overflowLimit = LLONG_MAX;
+    JSUINT64 signedOverflowLimit = LLONG_MAX;
 
     if (*(offset) == 'I') {
       goto DECODE_INF;
@@ -137,7 +137,7 @@ JSOBJ FASTCALL_MSVC decode_numeric(struct DecoderState *ds) {
         if (*(offset) == 'I') {
           goto DECODE_INF;
         }
-        overflowLimit = LLONG_MIN;
+        signedOverflowLimit = LLONG_MAX + 1;
     }
 
     // Scan integer part
@@ -157,19 +157,29 @@ JSOBJ FASTCALL_MSVC decode_numeric(struct DecoderState *ds) {
             case '7':
             case '8':
             case '9': {
-                // FIXME: Check for arithmetic overflow here
-                // PERF: Don't do 64-bit arithmetic here unless we know we have
-                // to
-                intValue = intValue * 10ULL + (JSLONG)(chr - 48);
+                JSUINT64 newContribution = (JSUINT64)(chr - 48);
 
-                if (intValue > overflowLimit) {
-                    return SetError(ds, -1, overflowLimit == LLONG_MAX
-                                                ? "Value is too big"
-                                                : "Value is too small");
+                // check overflow when unsigned
+                if (charCount > 18 && intNeg == 1) {  // 2**64 = 18_446_744_073_709_551_616
+                    if (intValue > (ULLONG_MAX - newContribution) / 10)
+                        return SetError(ds, -1, "unsigned long long overflow: Value is too big");
                 }
 
+                intValue = intValue * 10ULL + newContribution;
+
+                // check overflow when signed
+                if (charCount > 17 && intNeg == -1) {  // 2**63 = 9_223_372_036_854_775_807
+                    if (intValue > signedOverflowLimit) {
+                        return SetError(ds, -1, signedOverflowLimit == LLONG_MAX
+                                                    ? "Value is too big"
+                                                    : "Value is too small");
+                    }
+                }
+
+                if (intValue != 0)
+                    charCount++;
+
                 offset++;
-                mantSize++;
                 break;
             }
             case '.': {
@@ -197,9 +207,16 @@ BREAK_INT_LOOP:
     ds->start = offset;
 
     if ((intValue >> 31)) {
-        return ds->dec->newLong(ds->prv, (JSINT64)(intValue * (JSINT64)intNeg));
+        if (intNeg == 1)
+            return ds->dec->newUnsignedLong(ds->prv, intValue);
+        else
+            return ds->dec->newLong(ds->prv, (JSINT64)(-intValue));
     } else {
-        return ds->dec->newInt(ds->prv, (JSINT32)(intValue * intNeg));
+        if (intNeg == 1)
+            return ds->dec->newInt(ds->prv, intValue);
+        else
+            return ds->dec->newInt(ds->prv, (JSINT32)(-intValue));
+
     }
 
 DECODE_FRACTION:
