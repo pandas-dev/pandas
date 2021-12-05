@@ -5,7 +5,6 @@ import json
 import locale
 import math
 import re
-import sys
 import time
 
 import dateutil
@@ -607,12 +606,15 @@ class TestUltraJSONTests:
             assert output == json.dumps(long_input)
             assert long_input == ujson.decode(output)
 
-    @pytest.mark.parametrize("bigNum", [2**64, -2**63-1])
+    @pytest.mark.parametrize("bigNum", [2 ** 64, -(2 ** 63) - 1])
     def test_dumps_ints_larger_than_maxsize(self, bigNum):
         encoding = ujson.encode(bigNum)
         assert str(bigNum) == encoding
 
-        with pytest.raises(ValueError, match="unsigned long long overflow: Value is too big|Value is too small"):
+        with pytest.raises(
+            ValueError,
+            match="unsigned long long overflow: Value is too big|Value is too small",
+        ):
             assert ujson.loads(encoding) == bigNum
 
     @pytest.mark.parametrize(
@@ -1158,11 +1160,12 @@ class TestPandasJSONTests:
     def test_decode_extreme_numbers(self, extreme_num):
         assert extreme_num == ujson.decode(str(extreme_num))
 
-    @pytest.mark.parametrize(
-        "too_extreme_num", [f"{2**64}", f"{-2**63-1}"]
-    )
+    @pytest.mark.parametrize("too_extreme_num", [f"{2**64}", f"{-2**63-1}"])
     def test_decode_too_extreme_numbers(self, too_extreme_num):
-        with pytest.raises(ValueError, match="unsigned long long overflow: Value is too big|Value is too small"):
+        with pytest.raises(
+            ValueError,
+            match="unsigned long long overflow: Value is too big|Value is too small",
+        ):
             ujson.decode(too_extreme_num)
 
     def test_decode_with_trailing_whitespaces(self):
@@ -1174,7 +1177,10 @@ class TestPandasJSONTests:
 
     @pytest.mark.parametrize("value", [f"{2**64}", f"{-2**63-1}"])
     def test_decode_array_with_big_int(self, value):
-        with pytest.raises(ValueError, match="unsigned long long overflow: Value is too big|Value is too small"):
+        with pytest.raises(
+            ValueError,
+            match="unsigned long long overflow: Value is too big|Value is too small",
+        ):
             ujson.loads(value)
 
     @pytest.mark.parametrize(

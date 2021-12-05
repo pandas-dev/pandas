@@ -160,15 +160,18 @@ JSOBJ FASTCALL_MSVC decode_numeric(struct DecoderState *ds) {
                 JSUINT64 newContribution = (JSUINT64)(chr - 48);
 
                 // check overflow when unsigned
-                if (charCount > 18 && intNeg == 1) {  // 2**64 = 18_446_744_073_709_551_616
+                // 2**64 = 18_446_744_073_709_551_616
+                if (charCount > 18 && intNeg == 1) {
                     if (intValue > (ULLONG_MAX - newContribution) / 10)
-                        return SetError(ds, -1, "unsigned long long overflow: Value is too big");
+                        return SetError(ds, -1,
+                        "unsigned long long overflow: Value is too big");
                 }
 
                 intValue = intValue * 10ULL + newContribution;
 
                 // check overflow when signed
-                if (charCount > 17 && intNeg == -1) {  // 2**63 = 9_223_372_036_854_775_807
+                // 2**63 = 9_223_372_036_854_775_807
+                if (charCount > 17 && intNeg == -1) {
                     if (intValue > signedOverflowLimit) {
                         return SetError(ds, -1, signedOverflowLimit == LLONG_MAX
                                                     ? "Value is too big"
@@ -216,7 +219,6 @@ BREAK_INT_LOOP:
             return ds->dec->newInt(ds->prv, intValue);
         else
             return ds->dec->newInt(ds->prv, (JSINT32)(-intValue));
-
     }
 
 DECODE_FRACTION:
