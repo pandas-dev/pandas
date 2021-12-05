@@ -120,6 +120,34 @@ class BaseGetitemTests(BaseExtensionTests):
         result = pd.Series(data)[0]
         assert isinstance(result, data.dtype.type)
 
+    def test_getitem_invalid(self, data):
+        # TODO: box over scalar, [scalar], (scalar,)?
+
+        msg = (
+            r"only integers, slices \(`:`\), ellipsis \(`...`\), numpy.newaxis "
+            r"\(`None`\) and integer or boolean arrays are valid indices"
+        )
+        with pytest.raises(IndexError, match=msg):
+            data["foo"]
+        with pytest.raises(IndexError, match=msg):
+            data[2.5]
+
+        ub = len(data)
+        msg = "|".join(
+            [
+                "list index out of range",  # json
+                "index out of bounds",  # pyarrow
+                "Out of bounds access",  # Sparse
+                f"loc must be an integer between -{ub} and {ub}",  # Sparse
+                f"index {ub+1} is out of bounds for axis 0 with size {ub}",
+                f"index -{ub+1} is out of bounds for axis 0 with size {ub}",
+            ]
+        )
+        with pytest.raises(IndexError, match=msg):
+            data[ub + 1]
+        with pytest.raises(IndexError, match=msg):
+            data[-ub - 1]
+
     def test_getitem_scalar_na(self, data_missing, na_cmp, na_value):
         result = data_missing[0]
         assert na_cmp(result, na_value)
@@ -233,9 +261,9 @@ class BaseGetitemTests(BaseExtensionTests):
         # FIXME: dont leave commented-out
         # TODO: this raises KeyError about labels not found (it tries label-based)
         # import pandas._testing as tm
-        # s = pd.Series(data, index=[tm.rands(4) for _ in range(len(data))])
+        # ser = pd.Series(data, index=[tm.rands(4) for _ in range(len(data))])
         # with pytest.raises(ValueError, match=msg):
-        #    s[idx]
+        #    ser[idx]
 
     def test_getitem_slice(self, data):
         # getitem[slice] should return an array

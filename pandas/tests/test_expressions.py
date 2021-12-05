@@ -5,6 +5,7 @@ import warnings
 import numpy as np
 import pytest
 
+from pandas import set_option
 import pandas._testing as tm
 from pandas.core.api import (
     DataFrame,
@@ -65,9 +66,9 @@ class TestExpressions:
         else:
             op = getattr(operator, opname)
 
-        expr.set_use_numexpr(False)
+        set_option("compute.use_numexpr", False)
         expected = op(df, other)
-        expr.set_use_numexpr(True)
+        set_option("compute.use_numexpr", True)
 
         expr.get_test_result()
 
@@ -107,9 +108,9 @@ class TestExpressions:
     def run_frame(self, df, other, flex: bool):
         self.run_arithmetic(df, other, flex)
 
-        expr.set_use_numexpr(False)
+        set_option("compute.use_numexpr", False)
         binary_comp = other + 1
-        expr.set_use_numexpr(True)
+        set_option("compute.use_numexpr", True)
         self.run_binary(df, binary_comp, flex)
 
         for i in range(len(df.columns)):
@@ -179,9 +180,9 @@ class TestExpressions:
             result = expr._can_use_numexpr(op, op_str, right, right, "evaluate")
             assert not result
 
-        expr.set_use_numexpr(False)
+        set_option("compute.use_numexpr", False)
         testit()
-        expr.set_use_numexpr(True)
+        set_option("compute.use_numexpr", True)
         expr.set_numexpr_threads(1)
         testit()
         expr.set_numexpr_threads()
@@ -215,9 +216,9 @@ class TestExpressions:
             result = expr._can_use_numexpr(op, op_str, right, f22, "evaluate")
             assert not result
 
-        expr.set_use_numexpr(False)
+        set_option("compute.use_numexpr", False)
         testit()
-        expr.set_use_numexpr(True)
+        set_option("compute.use_numexpr", True)
         expr.set_numexpr_threads(1)
         testit()
         expr.set_numexpr_threads()
@@ -233,9 +234,9 @@ class TestExpressions:
             expected = np.where(c, df.values, df.values + 1)
             tm.assert_numpy_array_equal(result, expected)
 
-        expr.set_use_numexpr(False)
+        set_option("compute.use_numexpr", False)
         testit()
-        expr.set_use_numexpr(True)
+        set_option("compute.use_numexpr", True)
         expr.set_numexpr_threads(1)
         testit()
         expr.set_numexpr_threads()
@@ -287,32 +288,32 @@ class TestExpressions:
             return
 
         with tm.use_numexpr(True, min_elements=5):
-            with tm.assert_produces_warning(check_stacklevel=False):
+            with tm.assert_produces_warning():
                 r = f(df, df)
                 e = fe(df, df)
                 tm.assert_frame_equal(r, e)
 
-            with tm.assert_produces_warning(check_stacklevel=False):
+            with tm.assert_produces_warning():
                 r = f(df.a, df.b)
                 e = fe(df.a, df.b)
                 tm.assert_series_equal(r, e)
 
-            with tm.assert_produces_warning(check_stacklevel=False):
+            with tm.assert_produces_warning():
                 r = f(df.a, True)
                 e = fe(df.a, True)
                 tm.assert_series_equal(r, e)
 
-            with tm.assert_produces_warning(check_stacklevel=False):
+            with tm.assert_produces_warning():
                 r = f(False, df.a)
                 e = fe(False, df.a)
                 tm.assert_series_equal(r, e)
 
-            with tm.assert_produces_warning(check_stacklevel=False):
+            with tm.assert_produces_warning():
                 r = f(False, df)
                 e = fe(False, df)
                 tm.assert_frame_equal(r, e)
 
-            with tm.assert_produces_warning(check_stacklevel=False):
+            with tm.assert_produces_warning():
                 r = f(df, True)
                 e = fe(df, True)
                 tm.assert_frame_equal(r, e)
@@ -360,9 +361,9 @@ class TestExpressions:
 
         op_func = getattr(df, arith)
 
-        expr.set_use_numexpr(False)
+        set_option("compute.use_numexpr", False)
         expected = op_func(other, axis=axis)
-        expr.set_use_numexpr(True)
+        set_option("compute.use_numexpr", True)
 
         result = op_func(other, axis=axis)
         tm.assert_frame_equal(expected, result)
@@ -371,7 +372,7 @@ class TestExpressions:
         "op",
         [
             "__mod__",
-            pytest.param("__rmod__", marks=pytest.mark.xfail(reason="GH-36552")),
+            "__rmod__",
             "__floordiv__",
             "__rfloordiv__",
         ],
@@ -387,9 +388,9 @@ class TestExpressions:
         result = method(scalar)
 
         # compare result with numpy
-        expr.set_use_numexpr(False)
+        set_option("compute.use_numexpr", False)
         expected = method(scalar)
-        expr.set_use_numexpr(True)
+        set_option("compute.use_numexpr", True)
         tm.assert_equal(result, expected)
 
         # compare result element-wise with Python

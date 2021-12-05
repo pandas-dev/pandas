@@ -3,7 +3,6 @@ from __future__ import annotations
 import numbers
 
 import numpy as np
-from numpy.lib.mixins import NDArrayOperatorsMixin
 
 from pandas._libs import lib
 from pandas._typing import (
@@ -31,7 +30,6 @@ from pandas.core.strings.object_array import ObjectStringArrayMixin
 class PandasArray(
     OpsMixin,
     NDArrayBackedExtensionArray,
-    NDArrayOperatorsMixin,
     ObjectStringArrayMixin,
 ):
     """
@@ -387,6 +385,15 @@ class PandasArray(
 
     def __invert__(self) -> PandasArray:
         return type(self)(~self._ndarray)
+
+    def __neg__(self) -> PandasArray:
+        return type(self)(-self._ndarray)
+
+    def __pos__(self) -> PandasArray:
+        return type(self)(+self._ndarray)
+
+    def __abs__(self) -> PandasArray:
+        return type(self)(abs(self._ndarray))
 
     def _cmp_method(self, other, op):
         if isinstance(other, PandasArray):

@@ -9,11 +9,6 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.fixture(params=["both", "neither", "left", "right"])
-def inclusive_endpoints_fixture(request):
-    return request.param
-
-
 @pytest.fixture
 def float_frame_with_na():
     """
@@ -264,3 +259,26 @@ def frame_of_index_cols():
         }
     )
     return df
+
+
+@pytest.fixture(
+    params=[
+        "any",
+        "all",
+        "count",
+        "sum",
+        "prod",
+        "max",
+        "min",
+        "mean",
+        "median",
+        "skew",
+        "kurt",
+        "sem",
+        "var",
+        "std",
+        "mad",
+    ]
+)
+def reduction_functions(request):
+    return request.param

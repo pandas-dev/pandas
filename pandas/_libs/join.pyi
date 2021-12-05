@@ -11,7 +11,7 @@ def left_outer_join(
     left: np.ndarray,  # const intp_t[:]
     right: np.ndarray,  # const intp_t[:]
     max_groups: int,
-    sort: bool = True,
+    sort: bool = ...,
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]: ...
 def full_outer_join(
     left: np.ndarray,  # const intp_t[:]
@@ -54,40 +54,40 @@ def asof_join_backward_on_X_by_Y(
     right_values: np.ndarray,  # asof_t[:]
     left_by_values: np.ndarray,  # by_t[:]
     right_by_values: np.ndarray,  # by_t[:]
-    allow_exact_matches: bool = True,
-    tolerance=None,
+    allow_exact_matches: bool = ...,
+    tolerance=...,
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]: ...
 def asof_join_forward_on_X_by_Y(
     left_values: np.ndarray,  # asof_t[:]
     right_values: np.ndarray,  # asof_t[:]
     left_by_values: np.ndarray,  # by_t[:]
     right_by_values: np.ndarray,  # by_t[:]
-    allow_exact_matches: bool = True,
-    tolerance=None,
+    allow_exact_matches: bool = ...,
+    tolerance=...,
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]: ...
 def asof_join_nearest_on_X_by_Y(
     left_values: np.ndarray,  # asof_t[:]
     right_values: np.ndarray,  # asof_t[:]
     left_by_values: np.ndarray,  # by_t[:]
     right_by_values: np.ndarray,  # by_t[:]
-    allow_exact_matches: bool = True,
-    tolerance=None,
+    allow_exact_matches: bool = ...,
+    tolerance=...,
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]: ...
 def asof_join_backward(
     left_values: np.ndarray,  # asof_t[:]
     right_values: np.ndarray,  # asof_t[:]
-    allow_exact_matches: bool = True,
-    tolerance=None,
+    allow_exact_matches: bool = ...,
+    tolerance=...,
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]: ...
 def asof_join_forward(
     left_values: np.ndarray,  # asof_t[:]
     right_values: np.ndarray,  # asof_t[:]
-    allow_exact_matches: bool = True,
-    tolerance=None,
+    allow_exact_matches: bool = ...,
+    tolerance=...,
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]: ...
 def asof_join_nearest(
     left_values: np.ndarray,  # asof_t[:]
     right_values: np.ndarray,  # asof_t[:]
-    allow_exact_matches: bool = True,
-    tolerance=None,
+    allow_exact_matches: bool = ...,
+    tolerance=...,
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]: ...

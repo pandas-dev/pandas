@@ -878,10 +878,7 @@ def test_translate(index_or_series, any_string_dtype):
     expected = index_or_series(
         ["cdedefg", "cdee", "edddfg", "edefggg"], dtype=any_string_dtype
     )
-    if index_or_series is Series:
-        tm.assert_series_equal(result, expected)
-    else:
-        tm.assert_index_equal(result, expected)
+    tm.assert_equal(result, expected)
 
 
 def test_translate_mixed_object():

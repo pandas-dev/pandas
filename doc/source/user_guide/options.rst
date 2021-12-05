@@ -430,6 +430,10 @@ display.html.use_mathjax                True         When True, Jupyter notebook
                                                      table contents using MathJax, rendering
                                                      mathematical expressions enclosed by the
                                                      dollar symbol.
+display.max_dir_items                   100          The number of columns from a dataframe that
+                                                     are added to dir. These columns can then be
+                                                     suggested by tab completion. 'None' value means
+                                                     unlimited.
 io.excel.xls.writer                     xlwt         The default Excel writer engine for
                                                      'xls' files.
 
@@ -512,6 +516,7 @@ styler.latex.multicol_align             r            Alignment of headers in a m
 styler.latex.multirow_align             c            Alignment of index labels in a merged row due to sparsification. Can be in {"c", "t", "b"}.
 styler.latex.environment                None         If given will replace the default ``\\begin{table}`` environment. If "longtable" is specified
                                                      this will render with a specific "longtable" template with longtable features.
+styler.latex.hrules                     False        If set to True will render ``\\toprule``, ``\\midrule``, and ``\bottomrule`` by default.
 ======================================= ============ ==================================
 
 

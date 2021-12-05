@@ -4,19 +4,17 @@ import bz2
 from functools import wraps
 import gzip
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
 )
 import zipfile
 
 from pandas._typing import (
-    FilePathOrBuffer,
-    FrameOrSeries,
+    FilePath,
+    ReadPickleBuffer,
 )
-from pandas.compat import (
-    get_lzma_file,
-    import_lzma,
-)
+from pandas.compat import get_lzma_file
 
 import pandas as pd
 from pandas._testing._random import rands
@@ -24,9 +22,13 @@ from pandas._testing.contexts import ensure_clean
 
 from pandas.io.common import urlopen
 
-_RAISE_NETWORK_ERROR_DEFAULT = False
+if TYPE_CHECKING:
+    from pandas import (
+        DataFrame,
+        Series,
+    )
 
-lzma = import_lzma()
+_RAISE_NETWORK_ERROR_DEFAULT = False
 
 # skip tests on exceptions with these messages
 _network_error_messages = (
@@ -272,7 +274,9 @@ def can_connect(url, error_classes=None):
 # File-IO
 
 
-def round_trip_pickle(obj: Any, path: FilePathOrBuffer | None = None) -> FrameOrSeries:
+def round_trip_pickle(
+    obj: Any, path: FilePath | ReadPickleBuffer | None = None
+) -> DataFrame | Series:
     """
     Pickle an object and then read it again.
 
@@ -388,7 +392,7 @@ def write_to_compressed(compression, path, data, dest="test"):
     elif compression == "bz2":
         compress_method = bz2.BZ2File
     elif compression == "xz":
-        compress_method = get_lzma_file(lzma)
+        compress_method = get_lzma_file()
     else:
         raise ValueError(f"Unrecognized compression type: {compression}")
 

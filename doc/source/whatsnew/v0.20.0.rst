@@ -105,6 +105,7 @@ aggregations. This is similar to how groupby ``.agg()`` works. (:issue:`15015`)
    df.dtypes
 
 .. ipython:: python
+   :okwarning:
 
    df.agg(['min', 'sum'])
 
