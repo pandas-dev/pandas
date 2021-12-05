@@ -20,6 +20,7 @@ from pandas.core.dtypes.missing import isna
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.api.types import pandas_dtype
 from pandas.arrays import SparseArray
 
 
@@ -619,6 +620,18 @@ def test_is_complex_dtype():
     assert com.is_complex_dtype(np.complex_)
     assert com.is_complex_dtype(complex)
     assert com.is_complex_dtype(np.array([1 + 1j, 5]))
+
+
+def test_all_type_comparison_with_true_result(any_real_numpy_dtype):
+    # GH#43038
+    assert pandas_dtype(any_real_numpy_dtype) == any_real_numpy_dtype
+
+
+def test_all_type_comparison_with_false_result(
+    any_signed_int_ea_dtype, any_signed_int_numpy_dtype
+):
+    # GH#43038
+    assert not pandas_dtype(any_signed_int_ea_dtype) == any_signed_int_numpy_dtype
 
 
 @pytest.mark.parametrize(
