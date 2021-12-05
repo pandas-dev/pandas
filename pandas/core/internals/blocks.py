@@ -1079,7 +1079,7 @@ class Block(PandasObject):
         data = self.values if inplace else self.values.copy()
         data = cast(np.ndarray, data)  # bc overridden by ExtensionBlock
 
-        interp_values = missing.interpolate_array_2d(
+        missing.interpolate_array_2d(
             data,
             method=method,
             axis=axis,
@@ -1091,7 +1091,7 @@ class Block(PandasObject):
             **kwargs,
         )
 
-        nb = self.make_block_same_class(interp_values)
+        nb = self.make_block_same_class(data)
         return nb._maybe_downcast([nb], downcast)
 
     def take_nd(
