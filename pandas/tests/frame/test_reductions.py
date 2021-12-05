@@ -93,11 +93,9 @@ def assert_stat_op_calc(
         tm.assert_series_equal(
             result0, frame.apply(wrapper), check_dtype=check_dtype, rtol=rtol, atol=atol
         )
-        # FIXME: HACK: win32
         tm.assert_series_equal(
             result1,
             frame.apply(wrapper, axis=1),
-            check_dtype=False,
             rtol=rtol,
             atol=atol,
         )
@@ -200,9 +198,7 @@ def assert_bool_op_calc(opname, alternative, frame, has_skipna=True):
         result1 = f(axis=1, skipna=False)
 
         tm.assert_series_equal(result0, frame.apply(wrapper))
-        tm.assert_series_equal(
-            result1, frame.apply(wrapper, axis=1), check_dtype=False
-        )  # FIXME: HACK: win32
+        tm.assert_series_equal(result1, frame.apply(wrapper, axis=1))
     else:
         skipna_wrapper = alternative
         wrapper = alternative
@@ -1511,13 +1507,13 @@ class TestNuisanceColumns:
         df = ser.to_frame()
 
         # Double-check the Series behavior is to raise
-        with pytest.raises(TypeError, match="does not implement reduction"):
+        with pytest.raises(TypeError, match="does not support reduction"):
             getattr(ser, method)()
 
-        with pytest.raises(TypeError, match="does not implement reduction"):
+        with pytest.raises(TypeError, match="does not support reduction"):
             getattr(np, method)(ser)
 
-        with pytest.raises(TypeError, match="does not implement reduction"):
+        with pytest.raises(TypeError, match="does not support reduction"):
             getattr(df, method)(bool_only=False)
 
         # With bool_only=None, operating on this column raises and is ignored,
@@ -1541,10 +1537,10 @@ class TestNuisanceColumns:
         ser = df["A"]
 
         # Double-check the Series behavior is to raise
-        with pytest.raises(TypeError, match="does not implement reduction"):
+        with pytest.raises(TypeError, match="does not support reduction"):
             ser.median()
 
-        with pytest.raises(TypeError, match="does not implement reduction"):
+        with pytest.raises(TypeError, match="does not support reduction"):
             df.median(numeric_only=False)
 
         with tm.assert_produces_warning(
@@ -1557,7 +1553,7 @@ class TestNuisanceColumns:
         # same thing, but with an additional non-categorical column
         df["B"] = df["A"].astype(int)
 
-        with pytest.raises(TypeError, match="does not implement reduction"):
+        with pytest.raises(TypeError, match="does not support reduction"):
             df.median(numeric_only=False)
 
         with tm.assert_produces_warning(

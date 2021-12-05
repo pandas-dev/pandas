@@ -150,14 +150,6 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
         # overwriting to indicate ops don't raise an error
         super().check_opname(s, op_name, other, exc=None)
 
-    @pytest.mark.skip(reason="Tested in tests/arrays/test_boolean.py")
-    def test_compare_scalar(self, data, comparison_op):
-        pass
-
-    @pytest.mark.skip(reason="Tested in tests/arrays/test_boolean.py")
-    def test_compare_array(self, data, comparison_op):
-        pass
-
 
 class TestReshaping(base.BaseReshapingTests):
     pass
@@ -378,7 +370,6 @@ class TestNumericReduce(base.BaseNumericReduceTests):
         tm.assert_almost_equal(result, expected)
 
 
-@pytest.mark.skip(reason="Tested in tests/reductions/test_reductions.py")
 class TestBooleanReduce(base.BaseBooleanReduceTests):
     pass
 
