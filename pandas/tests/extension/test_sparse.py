@@ -116,9 +116,6 @@ class TestDtype(BaseSparseTests, base.BaseDtypeTests):
 
 
 class TestInterface(BaseSparseTests, base.BaseInterfaceTests):
-    def test_no_values_attribute(self, data):
-        pytest.skip("We have values")
-
     def test_copy(self, data):
         # __setitem__ does not work, so we only have a smoke-test
         data.copy()

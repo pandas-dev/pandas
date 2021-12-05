@@ -1492,7 +1492,7 @@ class TestDataFrameReductions:
 
     def test_reductions_skipna_none_raises(self, frame_or_series, reduction_functions):
         if reduction_functions in ["count", "mad"]:
-            pytest.skip("Count does not accept skipna. Mad needs a depreaction cycle.")
+            pytest.skip("Count does not accept skipna. Mad needs a deprecation cycle.")
         obj = frame_or_series([1, 2, 3])
         msg = 'For argument "skipna" expected type bool, received type NoneType.'
         with pytest.raises(ValueError, match=msg):

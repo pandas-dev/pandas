@@ -187,9 +187,6 @@ def test_map(idx):
 )
 def test_map_dictlike(idx, mapper):
 
-    if isinstance(idx, (pd.CategoricalIndex, pd.IntervalIndex)):
-        pytest.skip(f"skipping tests for {type(idx)}")
-
     identity = mapper(idx.values, idx)
 
     # we don't infer to UInt64 for a dict

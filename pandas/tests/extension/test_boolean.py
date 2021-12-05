@@ -208,13 +208,13 @@ class TestMethods(base.BaseMethodsTests):
         sorter = np.array([1, 0])
         assert data_for_sorting.searchsorted(a, sorter=sorter) == 0
 
-    @pytest.mark.skip(reason="uses nullable integer")
+    @pytest.mark.xfail(reason="uses nullable integer")
     def test_value_counts(self, all_data, dropna):
         return super().test_value_counts(all_data, dropna)
 
-    @pytest.mark.skip(reason="uses nullable integer")
+    @pytest.mark.xfail(reason="uses nullable integer")
     def test_value_counts_with_normalize(self, data):
-        pass
+        super().test_value_counts_with_normalize(data)
 
     def test_argmin_argmax(self, data_for_sorting, data_missing_for_sorting):
         # override because there are only 2 unique values
