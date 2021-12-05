@@ -1,13 +1,19 @@
 import numpy as np
 import pytest
 
-import pandas as pd
+from pandas import (
+    CategoricalIndex,
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+)
 import pandas._testing as tm
 
 
 @pytest.fixture
 def education_df():
-    return pd.DataFrame(
+    return DataFrame(
         {
             "gender": ["male", "male", "female", "male", "female", "male"],
             "education": ["low", "medium", "high", "low", "high", "low"],
@@ -33,9 +39,9 @@ def test_basic(education_df):
     result = education_df.groupby("country")[["gender", "education"]].value_counts(
         normalize=True
     )
-    expected = pd.Series(
+    expected = Series(
         data=[0.5, 0.25, 0.25, 0.5, 0.5],
-        index=pd.MultiIndex.from_tuples(
+        index=MultiIndex.from_tuples(
             [
                 ("FR", "male", "low"),
                 ("FR", "female", "high"),
@@ -119,7 +125,7 @@ def test_against_frame_and_seriesgroupby(
             index_frame["education"] = index_frame["both"].str.split("-").str.get(1)
             del index_frame["both"]
             index_frame = index_frame.rename({0: None}, axis=1)
-            expected.index = pd.MultiIndex.from_frame(index_frame)
+            expected.index = MultiIndex.from_frame(index_frame)
             tm.assert_series_equal(result, expected)
         else:
             expected.insert(1, "gender", expected["both"].str.split("-").str.get(0))
@@ -151,7 +157,7 @@ def test_compound(
     result = gp["education"].value_counts(
         normalize=normalize, sort=sort, ascending=ascending
     )
-    expected = pd.DataFrame()
+    expected = DataFrame()
     for column in ["country", "gender", "education"]:
         expected[column] = [education_df[column][row] for row in expected_rows]
     if normalize:
@@ -164,7 +170,7 @@ def test_compound(
 
 @pytest.fixture
 def animals_df():
-    return pd.DataFrame(
+    return DataFrame(
         {"key": [1, 1, 1, 1], "num_legs": [2, 4, 4, 6], "num_wings": [2, 0, 0, 0]},
         index=["falcon", "dog", "cat", "ant"],
     )
@@ -187,9 +193,9 @@ def test_data_frame_value_counts(
     result_frame = animals_df.value_counts(
         sort=sort, ascending=ascending, normalize=normalize
     )
-    expected = pd.Series(
+    expected = Series(
         data=expected_data,
-        index=pd.MultiIndex.from_arrays(
+        index=MultiIndex.from_arrays(
             expected_index, names=["key", "num_legs", "num_wings"]
         ),
     )
@@ -205,7 +211,7 @@ def test_data_frame_value_counts(
 @pytest.fixture
 def nulls_df():
     n = np.nan
-    return pd.DataFrame(
+    return DataFrame(
         {
             "A": [1, 1, n, 4, n, 6, 6, 6, 6],
             "B": [1, 1, 3, n, n, 6, 6, 6, 6],
@@ -234,17 +240,17 @@ def test_dropna_combinations(
 ):
     gp = nulls_df.groupby(["A", "B"], dropna=group_dropna)
     result = gp.value_counts(normalize=True, sort=True, dropna=count_dropna)
-    columns = pd.DataFrame()
+    columns = DataFrame()
     for column in nulls_df.columns:
         columns[column] = [nulls_df[column][row] for row in expected_rows]
-    index = pd.MultiIndex.from_frame(columns)
-    expected = pd.Series(data=expected_values, index=index)
+    index = MultiIndex.from_frame(columns)
+    expected = Series(data=expected_values, index=index)
     tm.assert_series_equal(result, expected)
 
 
 @pytest.fixture
 def names_with_nulls_df(nulls_fixture):
-    return pd.DataFrame(
+    return DataFrame(
         {
             "key": [1, 1, 1, 1],
             "first_name": ["John", "Anne", "John", "Beth"],
@@ -259,7 +265,7 @@ def names_with_nulls_df(nulls_fixture):
         (
             True,
             [1, 1],
-            pd.MultiIndex.from_arrays(
+            MultiIndex.from_arrays(
                 [(1, 1), ("Beth", "John"), ("Louise", "Smith")],
                 names=["key", "first_name", "middle_name"],
             ),
@@ -267,11 +273,11 @@ def names_with_nulls_df(nulls_fixture):
         (
             False,
             [1, 1, 1, 1],
-            pd.MultiIndex(
+            MultiIndex(
                 levels=[
-                    pd.Index([1]),
-                    pd.Index(["Anne", "Beth", "John"]),
-                    pd.Index(["Louise", "Smith", np.nan]),
+                    Index([1]),
+                    Index(["Anne", "Beth", "John"]),
+                    Index(["Louise", "Smith", np.nan]),
                 ],
                 codes=[[0, 0, 0, 0], [0, 1, 2, 2], [2, 0, 1, 2]],
                 names=["key", "first_name", "middle_name"],
@@ -287,7 +293,7 @@ def test_data_frame_value_counts_dropna(
     # 3-way compare with :meth:`~DataFrame.value_counts`
     # Tests with nulls from frame/methods/test_value_counts.py
     result_frame = names_with_nulls_df.value_counts(dropna=dropna, normalize=normalize)
-    expected = pd.Series(
+    expected = Series(
         data=expected_data,
         index=expected_index,
     )
@@ -355,16 +361,16 @@ def test_categorical(
     )
     result = gp.value_counts(normalize=normalize)
 
-    expected_series = pd.Series(
+    expected_series = Series(
         data=expected_data[expected_data > 0.0] if observed else expected_data,
-        index=pd.MultiIndex.from_tuples(
+        index=MultiIndex.from_tuples(
             expected_index,
             names=["country", "gender", "education"],
         ),
     )
     for i in range(3):
         expected_series.index = expected_series.index.set_levels(
-            pd.CategoricalIndex(expected_series.index.levels[i]), level=i
+            CategoricalIndex(expected_series.index.levels[i]), level=i
         )
 
     if as_index:
@@ -385,10 +391,10 @@ def test_categorical(
 )
 def test_mixed_groupings(normalize, expected_label, expected_values):
     # Test multiple groupings
-    df = pd.DataFrame({"A": [1, 2, 1], "B": [1, 2, 3]})
+    df = DataFrame({"A": [1, 2, 1], "B": [1, 2, 3]})
     gp = df.groupby([[4, 5, 4], "A", lambda i: 7 if i == 1 else 8], as_index=False)
     result = gp.value_counts(sort=True, normalize=normalize)
-    expected = pd.DataFrame(
+    expected = DataFrame(
         {
             "level_0": [4, 4, 5],
             "A": [1, 1, 2],
@@ -408,17 +414,15 @@ def test_mixed_groupings(normalize, expected_label, expected_values):
     ],
 )
 def test_column_name_clashes(test, expected_names):
-    df = pd.DataFrame(
-        {"a": [1, 2], "b": [3, 4], "c": [5, 6], "d": [7, 8], "e": [9, 10]}
-    )
+    df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6], "d": [7, 8], "e": [9, 10]})
     if test == "repeat":
         df.columns = list("abbde")
     else:
         df.columns = list("abcd") + ["level_1"]
     result = df.groupby(["a", [0, 1], "d"]).value_counts()
-    expected = pd.Series(
+    expected = Series(
         data=(1, 1),
-        index=pd.MultiIndex.from_tuples(
+        index=MultiIndex.from_tuples(
             [(1, 0, 7, 3, 5, 9), (2, 1, 8, 4, 6, 10)],
             names=expected_names,
         ),

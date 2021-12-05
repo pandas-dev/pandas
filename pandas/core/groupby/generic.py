@@ -1701,7 +1701,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 # Normalize the results by dividing by the original group sizes.
                 # We are guaranteed to have the first N levels be the
                 # user-requested grouping.
-                # TODO: Is there a better way to subset levels from a MultiIndex?
                 levels = list(range(len(self.grouper.groupings), result.index.nlevels))
                 indexed_group_size = result.groupby(
                     result.index.droplevel(levels),
