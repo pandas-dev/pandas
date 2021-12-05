@@ -509,7 +509,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             result = self.copy() if copy else self
 
         elif is_categorical_dtype(dtype):
-            dtype = cast(Union[str, CategoricalDtype], dtype)
+            dtype = cast("Union[str, CategoricalDtype]", dtype)
 
             # GH 10696/18593/18630
             dtype = self.dtype.update_dtype(dtype)
@@ -940,7 +940,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 "a future version. Removing unused categories will always "
                 "return a new Categorical object.",
                 FutureWarning,
-                stacklevel=find_stack_level(),
+                stacklevel=2,
             )
         else:
             inplace = False

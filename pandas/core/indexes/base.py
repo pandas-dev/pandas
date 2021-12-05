@@ -7056,7 +7056,7 @@ def _maybe_cast_data_without_dtype(
             "In a future version, the Index constructor will not infer numeric "
             "dtypes when passed object-dtype sequences (matching Series behavior)",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=3,
         )
     if result.dtype.kind in ["b", "c"]:
         return subarr

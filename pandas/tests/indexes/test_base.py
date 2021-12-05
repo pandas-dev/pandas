@@ -25,7 +25,6 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
-from pandas.api.types import is_float_dtype
 from pandas.core.api import (
     Float64Index,
     Int64Index,
@@ -535,19 +534,15 @@ class TestIndex(Base):
             # to match proper result coercion for uints
             expected = Index([])
         elif index._is_backward_compat_public_numeric_index:
-            if is_float_dtype(index.dtype):
-                exp_dtype = np.float64
-            else:
-                exp_dtype = np.int64
-            exp_dtype = index.dtype
-            expected = index._constructor(np.arange(len(index), 0, -1), dtype=exp_dtype)
+            expected = index._constructor(
+                np.arange(len(index), 0, -1), dtype=index.dtype
+            )
         elif type(index) is Index and index.dtype != object:
             # i.e. EA-backed, for now just Nullable
             expected = Index(np.arange(len(index), 0, -1), dtype=index.dtype)
         elif index.dtype.kind == "u":
             # TODO: case where e.g. we cannot hold result in UInt8?
             expected = Index(np.arange(len(index), 0, -1), dtype=index.dtype)
-
         else:
             expected = Index(np.arange(len(index), 0, -1))
 
@@ -1372,9 +1367,9 @@ class TestMixedIntIndex(Base):
     @pytest.mark.filterwarnings("ignore:elementwise comparison failed:FutureWarning")
     def test_index_with_tuple_bool(self):
         # GH34123
-        # TODO: remove tupleize_cols=False once correct behaviour is restored
         # TODO: also this op right now produces FutureWarning from numpy
-        idx = Index([("a", "b"), ("b", "c"), ("c", "a")], tupleize_cols=False)
+        #  https://github.com/numpy/numpy/issues/11521
+        idx = Index([("a", "b"), ("b", "c"), ("c", "a")])
         result = idx == ("c", "a")
         expected = np.array([False, False, True])
         tm.assert_numpy_array_equal(result, expected)
