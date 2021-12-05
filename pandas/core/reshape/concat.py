@@ -126,12 +126,12 @@ def concat(
     axis: Axis = ...,
     join: str = ...,
     ignore_index: bool = ...,
-    keys=None,
-    levels=None,
-    names=None,
-    verify_integrity: bool = False,
-    sort: bool = False,
-    copy: bool = True,
+    keys=...,
+    levels=...,
+    names=...,
+    verify_integrity: bool = ...,
+    sort: bool = ...,
+    copy: bool = ...,
 ) -> DataFrame | Series:
     ...
 

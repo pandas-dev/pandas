@@ -277,7 +277,7 @@ class TestFancy:
         ):
             dfnu.loc[["E"]]
 
-        # ToDo: check_index_type can be True after GH 11497
+        # TODO: check_index_type can be True after GH 11497
 
     @pytest.mark.parametrize("vals", [[0, 1, 2], list("abc")])
     def test_dups_fancy_indexing_missing_label(self, vals):
@@ -323,9 +323,9 @@ class TestFancy:
 
     def test_duplicate_int_indexing(self, indexer_sl):
         # GH 17347
-        s = Series(range(3), index=[1, 1, 3])
-        expected = s[1]
-        result = indexer_sl(s)[[1]]
+        ser = Series(range(3), index=[1, 1, 3])
+        expected = Series(range(2), index=[1, 1])
+        result = indexer_sl(ser)[[1]]
         tm.assert_series_equal(result, expected)
 
     def test_indexing_mixed_frame_bug(self):
@@ -653,13 +653,6 @@ class TestMisc:
         df.loc[df.index] = df.loc[df.index]
         tm.assert_frame_equal(df, df2)
 
-    def test_float_index_at_iat(self):
-        s = Series([1, 2, 3], index=[0.1, 0.2, 0.3])
-        for el, item in s.items():
-            assert s.at[el] == item
-        for i in range(len(s)):
-            assert s.iat[i] == i + 1
-
     def test_rhs_alignment(self):
         # GH8258, tests that both rows & columns are aligned to what is
         # assigned to. covers both uniform data-type & multi-type cases
@@ -963,7 +956,11 @@ def test_extension_array_cross_section():
 def test_extension_array_cross_section_converts():
     # all numeric columns -> numeric series
     df = DataFrame(
-        {"A": pd.array([1, 2], dtype="Int64"), "B": np.array([1, 2])}, index=["a", "b"]
+        {
+            "A": pd.array([1, 2], dtype="Int64"),
+            "B": np.array([1, 2], dtype="int64"),
+        },
+        index=["a", "b"],
     )
     result = df.loc["a"]
     expected = Series([1, 1], dtype="Int64", index=["A", "B"], name="a")
@@ -983,10 +980,3 @@ def test_extension_array_cross_section_converts():
 
     result = df.iloc[0]
     tm.assert_series_equal(result, expected)
-
-
-def test_getitem_object_index_float_string():
-    # GH 17286
-    s = Series([1] * 4, index=Index(["a", "b", "c", 1.0]))
-    assert s["a"] == 1
-    assert s[1.0] == 1

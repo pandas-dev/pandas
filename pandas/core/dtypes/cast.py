@@ -969,13 +969,12 @@ def astype_dt64_to_dt64tz(
             # this should be the only copy
             values = values.copy()
 
-        level = find_stack_level()
         warnings.warn(
             "Using .astype to convert from timezone-naive dtype to "
             "timezone-aware dtype is deprecated and will raise in a "
             "future version.  Use ser.dt.tz_localize instead.",
             FutureWarning,
-            stacklevel=level,
+            stacklevel=find_stack_level(),
         )
 
         # GH#33401 this doesn't match DatetimeArray.astype, which
@@ -986,13 +985,12 @@ def astype_dt64_to_dt64tz(
         # DatetimeArray/DatetimeIndex.astype behavior
         if values.tz is None and aware:
             dtype = cast(DatetimeTZDtype, dtype)
-            level = find_stack_level()
             warnings.warn(
                 "Using .astype to convert from timezone-naive dtype to "
                 "timezone-aware dtype is deprecated and will raise in a "
                 "future version.  Use obj.tz_localize instead.",
                 FutureWarning,
-                stacklevel=level,
+                stacklevel=find_stack_level(),
             )
 
             return values.tz_localize(dtype.tz)
@@ -1006,14 +1004,13 @@ def astype_dt64_to_dt64tz(
             return result
 
         elif values.tz is not None:
-            level = find_stack_level()
             warnings.warn(
                 "Using .astype to convert from timezone-aware dtype to "
                 "timezone-naive dtype is deprecated and will raise in a "
                 "future version.  Use obj.tz_localize(None) or "
                 "obj.tz_convert('UTC').tz_localize(None) instead",
                 FutureWarning,
-                stacklevel=level,
+                stacklevel=find_stack_level(),
             )
 
             result = values.tz_convert("UTC").tz_localize(None)
@@ -1526,7 +1523,7 @@ def maybe_infer_to_datetimelike(
         try:
             # GH#19671 we pass require_iso8601 to be relatively strict
             #  when parsing strings.
-            dta = sequence_to_datetimes(v, require_iso8601=True, allow_object=False)
+            dta = sequence_to_datetimes(v, require_iso8601=True)
         except (ValueError, TypeError):
             # e.g. <class 'numpy.timedelta64'> is not convertible to datetime
             return v.reshape(shape)
@@ -1587,6 +1584,7 @@ def maybe_infer_to_datetimelike(
                 value = try_datetime(v)  # type: ignore[assignment]
 
     if value.dtype.kind in ["m", "M"] and seen_str:
+        # TODO(2.0): enforcing this deprecation should close GH#40111
         warnings.warn(
             f"Inferring {value.dtype} from data containing strings is deprecated "
             "and will be removed in a future version. To retain the old behavior "
@@ -1637,7 +1635,7 @@ def maybe_cast_to_datetime(
 
                 try:
                     if is_datetime64:
-                        dta = sequence_to_datetimes(value, allow_object=False)
+                        dta = sequence_to_datetimes(value)
                         # GH 25843: Remove tz information since the dtype
                         # didn't specify one
 
@@ -1665,7 +1663,7 @@ def maybe_cast_to_datetime(
                         # datetime64tz is assumed to be naive which should
                         # be localized to the timezone.
                         is_dt_string = is_string_dtype(value.dtype)
-                        dta = sequence_to_datetimes(value, allow_object=False)
+                        dta = sequence_to_datetimes(value)
                         if dta.tz is not None:
                             value = dta.astype(dtype, copy=False)
                         elif is_dt_string:

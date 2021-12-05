@@ -44,6 +44,19 @@ from pandas.tseries.offsets import BDay
 
 
 class TestDataFrameSetItem:
+    def test_setitem_str_subclass(self):
+        # GH#37366
+        class mystring(str):
+            pass
+
+        data = ["2020-10-22 01:21:00+00:00"]
+        index = DatetimeIndex(data)
+        df = DataFrame({"a": [1]}, index=index)
+        df["b"] = 2
+        df[mystring("c")] = 3
+        expected = DataFrame({"a": [1], "b": [2], mystring("c"): [3]}, index=index)
+        tm.assert_equal(df, expected)
+
     @pytest.mark.parametrize("dtype", ["int32", "int64", "float32", "float64"])
     def test_setitem_dtype(self, dtype, float_frame):
         arr = np.random.randn(len(float_frame))
@@ -715,8 +728,6 @@ class TestSetitemTZAwareValues:
 
 
 class TestDataFrameSetItemWithExpansion:
-    # TODO(ArrayManager) update parent (_maybe_update_cacher)
-    @td.skip_array_manager_not_yet_implemented
     def test_setitem_listlike_views(self):
         # GH#38148
         df = DataFrame({"a": [1, 2, 3], "b": [4, 4, 6]})
@@ -936,7 +947,7 @@ class TestDataFrameSetItemBooleanMask:
         df = DataFrame({"cats": catsf, "values": valuesf}, index=idxf)
 
         exp_fancy = exp_multi_row.copy()
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             # issue #37643 inplace kwarg deprecated
             return_value = exp_fancy["cats"].cat.set_categories(
                 ["a", "b", "c"], inplace=True

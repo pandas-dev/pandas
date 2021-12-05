@@ -1012,7 +1012,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # mpl hackaround
         if com.any_none(*key):
             result = self._get_values(key)
-            deprecate_ndim_indexing(result, stacklevel=5)
+            deprecate_ndim_indexing(result, stacklevel=find_stack_level())
             return result
 
         if not isinstance(self.index, MultiIndex):
@@ -1838,7 +1838,7 @@ Wild       185.0
 Name: Max Speed, dtype: float64
 
 We can also choose to include `NA` in group keys or not by defining
-`dropna` parameter, the default setting is `True`:
+`dropna` parameter, the default setting is `True`.
 
 >>> ser = pd.Series([1, 2, 3, 3], index=["a", 'a', 'b', np.nan])
 >>> ser.groupby(level=0).sum()

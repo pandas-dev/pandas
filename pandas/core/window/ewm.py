@@ -417,6 +417,13 @@ class ExponentialMovingWindow(BaseWindow):
                 self.alpha,
             )
 
+    def _check_window_bounds(
+        self, start: np.ndarray, end: np.ndarray, num_vals: int
+    ) -> None:
+        # emw algorithms are iterative with each point
+        # ExponentialMovingWindowIndexer "bounds" are the entire window
+        pass
+
     def _get_window_indexer(self) -> BaseIndexer:
         """
         Return an indexer class that will compute the window start and end bounds

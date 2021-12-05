@@ -21,7 +21,7 @@ VERSIONS = {
     "odfpy": "1.4.1",
     "openpyxl": "3.0.2",
     "pandas_gbq": "0.14.0",
-    "pyarrow": "0.17.0",
+    "pyarrow": "1.0.1",
     "pytest": "6.0",
     "pyxlsb": "1.0.6",
     "s3fs": "0.4.0",

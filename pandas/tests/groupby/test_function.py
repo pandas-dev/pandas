@@ -154,9 +154,7 @@ class TestNumericOnly:
             ],
         )
 
-        with tm.assert_produces_warning(
-            FutureWarning, match="Dropping invalid", check_stacklevel=False
-        ):
+        with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
             result = getattr(gb, method)(numeric_only=False)
         tm.assert_frame_equal(result.reindex_like(expected), expected)
 

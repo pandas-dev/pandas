@@ -182,6 +182,7 @@ def test_nat_methods_nat(method):
 def test_nat_iso_format(get_nat):
     # see gh-12300
     assert get_nat("NaT").isoformat() == "NaT"
+    assert get_nat("NaT").isoformat(timespec="nanoseconds") == "NaT"
 
 
 @pytest.mark.parametrize(
@@ -324,6 +325,15 @@ def test_nat_doc_strings(compare):
     # The docstrings for overlapping methods should match.
     klass, method = compare
     klass_doc = getattr(klass, method).__doc__
+
+    # Ignore differences with Timestamp.isoformat() as they're intentional
+    if klass == Timestamp and method == "isoformat":
+        return
+
+    if method == "to_numpy":
+        # GH#44460 can return either dt64 or td64 depending on dtype,
+        #  different docstring is intentional
+        return
 
     nat_doc = getattr(NaT, method).__doc__
     assert klass_doc == nat_doc
@@ -506,6 +516,22 @@ def test_to_numpy_alias():
 
     assert isna(expected) and isna(result)
 
+    # GH#44460
+    result = NaT.to_numpy("M8[s]")
+    assert isinstance(result, np.datetime64)
+    assert result.dtype == "M8[s]"
+
+    result = NaT.to_numpy("m8[ns]")
+    assert isinstance(result, np.timedelta64)
+    assert result.dtype == "m8[ns]"
+
+    result = NaT.to_numpy("m8[s]")
+    assert isinstance(result, np.timedelta64)
+    assert result.dtype == "m8[s]"
+
+    with pytest.raises(ValueError, match="NaT.to_numpy dtype must be a "):
+        NaT.to_numpy(np.int64)
+
 
 @pytest.mark.parametrize(
     "other",
@@ -619,11 +645,11 @@ def test_nat_comparisons_invalid_ndarray(other):
             op(other, NaT)
 
 
-def test_compare_date():
+def test_compare_date(fixed_now_ts):
     # GH#39151 comparing NaT with date object is deprecated
     # See also: tests.scalar.timestamps.test_comparisons::test_compare_date
 
-    dt = Timestamp.now().to_pydatetime().date()
+    dt = fixed_now_ts.to_pydatetime().date()
 
     for left, right in [(NaT, dt), (dt, NaT)]:
         assert not left == right

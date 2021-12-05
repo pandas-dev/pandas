@@ -389,6 +389,8 @@ def _json_normalize(
         try:
             if isinstance(spec, list):
                 for field in spec:
+                    if result is None:
+                        raise KeyError(field)
                     result = result[field]
             else:
                 result = result[spec]

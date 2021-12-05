@@ -15,7 +15,7 @@ from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
 
 
 @td.skip_if_no("numba")
-@pytest.mark.filterwarnings("ignore:\\nThe keyword argument")
+@pytest.mark.filterwarnings("ignore:\n")
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
 class TestEngine:
     @pytest.mark.parametrize("jit", [True, False])
@@ -265,7 +265,7 @@ def test_invalid_kwargs_nopython():
 
 @td.skip_if_no("numba")
 @pytest.mark.slow
-@pytest.mark.filterwarnings("ignore:\\nThe keyword argument")
+@pytest.mark.filterwarnings("ignore:\n")
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
 class TestTableMethod:
     def test_table_series_valueerror(self):

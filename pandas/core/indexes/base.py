@@ -2950,7 +2950,7 @@ class Index(IndexOpsMixin, PandasObject):
         case make a shallow copy of self.
         """
         name = get_op_result_name(self, other)
-        if self.name != name:
+        if self.name is not name:
             return self.rename(name)
         return self
 
@@ -6433,7 +6433,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Make new Index inserting new item at location.
 
-        Follows Python list.append semantics for negative values.
+        Follows Python numpy.insert semantics for negative values.
 
         Parameters
         ----------
@@ -6476,6 +6476,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         else:
             new_values = np.insert(arr, loc, None)
+            loc = loc if loc >= 0 else loc - 1
             new_values[loc] = item
 
         # Use self._constructor instead of Index to retain NumericIndex GH#43921
@@ -6681,8 +6682,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        **all**
-
         True, because nonzero integers are considered True.
 
         >>> pd.Index([1, 2, 3]).all()
@@ -6691,18 +6690,6 @@ class Index(IndexOpsMixin, PandasObject):
         False, because ``0`` is considered False.
 
         >>> pd.Index([0, 1, 2]).all()
-        False
-
-        **any**
-
-        True, because ``1`` is considered True.
-
-        >>> pd.Index([0, 0, 1]).any()
-        True
-
-        False, because ``0`` is considered False.
-
-        >>> pd.Index([0, 0, 0]).any()
         False
         """
         nv.validate_all(args, kwargs)

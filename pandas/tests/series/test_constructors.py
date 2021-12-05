@@ -1645,12 +1645,12 @@ class TestSeriesConstructors:
             ts = ts.to_pydatetime()
         ts_naive = Timestamp("2019")
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             result = Series([ts], dtype="datetime64[ns]")
         expected = Series([ts_naive])
         tm.assert_series_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             result = Series(np.array([ts], dtype=object), dtype="datetime64[ns]")
         tm.assert_series_equal(result, expected)
 
