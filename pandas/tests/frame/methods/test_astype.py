@@ -714,15 +714,12 @@ class TestAstype:
         expected = df.iloc[index_slice]
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
-    @pytest.mark.parametrize(
-        "dtype", ["float", "int32", "int64", "string", "int16", "float32"]
-    )
-    def test_astype_retain_attrs(self, dtype):
+    def test_astype_retain_attrs(self, any_numpy_dtype):
         # GH#44414
         df = DataFrame({"a": [0, 1, 2], "b": [3, 4, 5]})
         df.attrs["Location"] = "Michigan"
 
-        result = df.astype({"a": dtype}).attrs
+        result = df.astype({"a": any_numpy_dtype}).attrs
         expected = df.attrs
 
         tm.assert_dict_equal(expected, result)
