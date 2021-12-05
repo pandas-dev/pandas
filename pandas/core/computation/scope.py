@@ -133,9 +133,7 @@ class Scope:
             # shallow copy here because we don't want to replace what's in
             # scope when we align terms (alignment accesses the underlying
             # numpy array of pandas objects)
-            scope_global = self.scope.new_child(
-                (global_dict or frame.f_globals).copy()
-            )
+            scope_global = self.scope.new_child((global_dict or frame.f_globals).copy())
             self.scope = DeepChainMap(scope_global)
             if not isinstance(local_dict, Scope):
                 scope_local = self.scope.new_child(
