@@ -231,7 +231,7 @@ class ParserBase:
         self,
         src: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
         kwds: dict[str, Any],
-        is_text:bool = True,
+        is_text: bool = True,
     ) -> None:
         """
         Let the readers open IOHandles after they are done with their potential raises.
