@@ -1105,8 +1105,8 @@ class TestExcelWriter:
 
         write_frame = DataFrame({"A": datetimes})
         write_frame.to_excel(path, "Sheet1")
-        if path.endswith("xlsx") or path.endswith("xlsm"):
-            pytest.skip("Defaults to openpyxl and fails - GH #38644")
+        # GH#38644 now fixed at one point there was an issue with openpyxl
+        #  and xlsx/xlsm files involving floating point error on datetimes
         read_frame = pd.read_excel(path, sheet_name="Sheet1", header=0)
 
         tm.assert_series_equal(write_frame["A"], read_frame["A"])

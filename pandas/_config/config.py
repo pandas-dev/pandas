@@ -642,7 +642,6 @@ def _warn_if_deprecated(key: str) -> bool:
     d = _get_deprecated_option(key)
     if d:
         if d.msg:
-            print(d.msg)
             warnings.warn(d.msg, FutureWarning)
         else:
             msg = f"'{key}' is deprecated"

@@ -647,7 +647,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             try:
                 key = self._maybe_cast_for_get_loc(key)
             except ValueError as err:
-                # FIXME: we get here because parse_with_reso doesn't raise on "t2m"
+                # FIXME(dateutil#1180): we get here because parse_with_reso
+                #  doesn't raise on "t2m"
                 raise KeyError(key) from err
 
         elif isinstance(key, timedelta):

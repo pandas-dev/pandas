@@ -6023,7 +6023,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         timedelta: bool_t = False,
     ) -> NDFrameT:
         """
-        Attempt to infer better dtype for object columns
+        Attempt to infer better dtype for object columns.
 
         Parameters
         ----------

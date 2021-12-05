@@ -286,11 +286,7 @@ def test_reduce(values, box, request):
             mark = pytest.mark.xfail(reason="IntervalArray.min/max not implemented")
             request.node.add_marker(mark)
 
-    if values.dtype == "i8" and box is pd.array:
-        # FIXME: pd.array casts to Int64
-        obj = values
-    else:
-        obj = box(values)
+    obj = box(values)
 
     result = np.maximum.reduce(obj)
     expected = values[1]
