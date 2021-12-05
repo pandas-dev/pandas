@@ -9203,6 +9203,29 @@ NaN 12.3   33.0
         3  K3  A3  NaN
         4  K4  A4  NaN
         5  K5  A5  NaN
+
+        Using non-unique key values shows how they are matched.
+
+        >>> df = pd.DataFrame({'key': ['K0', 'K1', 'K1', 'K3', 'K0', 'K1'],
+        ...                    'A': ['A0', 'A1', 'A2', 'A3', 'A4', 'A5']})
+
+        >>> df
+          key   A
+        0  K0  A0
+        1  K1  A1
+        2  K1  A2
+        3  K3  A3
+        4  K0  A4
+        5  K1  A5
+
+        >>> df.join(other.set_index('key'), on='key')
+          key   A    B
+        0  K0  A0   B0
+        1  K1  A1   B1
+        2  K1  A2   B1
+        3  K3  A3  NaN
+        4  K0  A4   B0
+        5  K1  A5   B1
         """
         return self._join_compat(
             other, on=on, how=how, lsuffix=lsuffix, rsuffix=rsuffix, sort=sort
