@@ -1432,7 +1432,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             new_mask2D = (~unstacker.mask).reshape(*unstacker.full_shape)
             needs_masking = new_mask2D.any(axis=0)
         else:
-            needs_masking = None
+            needs_masking = np.zeros(unstacker.full_shape[1], dtype=bool)
 
         new_blocks: list[Block] = []
         columns_mask: list[np.ndarray] = []

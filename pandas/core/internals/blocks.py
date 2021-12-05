@@ -1253,7 +1253,7 @@ class Block(PandasObject):
         fill_value,
         new_placement: npt.NDArray[np.intp],
         allow_fill: bool,
-        needs_masking: npt.NDArray[np.bool_] | None,
+        needs_masking: npt.NDArray[np.bool_],
     ):
         """
         Return a list of unstacked blocks of self
@@ -1265,7 +1265,7 @@ class Block(PandasObject):
             Only used in ExtensionBlock._unstack
         new_placement : np.ndarray[np.intp]
         allow_fill : bool
-        needs_masking : np.ndarray[bool] or Non
+        needs_masking : np.ndarray[bool]
 
         Returns
         -------
@@ -1676,7 +1676,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         fill_value,
         new_placement: npt.NDArray[np.intp],
         allow_fill: bool,
-        needs_masking: npt.NDArray[np.bool_] | None,
+        needs_masking: npt.NDArray[np.bool_],
     ):
         # ExtensionArray-safe unstack.
         # We override ObjectBlock._unstack, which unstacks directly on the
@@ -1695,34 +1695,21 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         new_values = new_values.T[mask]
         new_placement = new_placement[mask]
 
-        if allow_fill:
-            # needs_masking[i] calculated once in BlockManager.unstack tells
-            #  us if there are any -1s in the relevant indices.  When False,
-            #  that allows us to go through a faster path in 'take', among
-            #  other things avoiding e.g. Categorical._validate_scalar.
-            blocks = [
-                # TODO: could cast to object depending on fill_value?
-                type(self)(
-                    self.values.take(
-                        indices, allow_fill=needs_masking[i], fill_value=fill_value
-                    ),
-                    BlockPlacement(place),
-                    ndim=2,
-                )
-                for i, (indices, place) in enumerate(zip(new_values, new_placement))
-            ]
-        else:
-            blocks = [
-                type(self)(
-                    self.values.take(
-                        indices, allow_fill=allow_fill, fill_value=fill_value
-                    ),
-                    BlockPlacement(place),
-                    ndim=2,
-                )
-                for indices, place in zip(new_values, new_placement)
-            ]
-
+        # needs_masking[i] calculated once in BlockManager.unstack tells
+        #  us if there are any -1s in the relevant indices.  When False,
+        #  that allows us to go through a faster path in 'take', among
+        #  other things avoiding e.g. Categorical._validate_scalar.
+        blocks = [
+            # TODO: could cast to object depending on fill_value?
+            type(self)(
+                self.values.take(
+                    indices, allow_fill=needs_masking[i], fill_value=fill_value
+                ),
+                BlockPlacement(place),
+                ndim=2,
+            )
+            for i, (indices, place) in enumerate(zip(new_values, new_placement))
+        ]
         return blocks, mask
 
 
