@@ -398,7 +398,9 @@ def test_all_type_comparison_with_true_result(any_real_numpy_dtype):
     assert pandas_dtype(any_real_numpy_dtype) == any_real_numpy_dtype
 
 
-def test_all_type_comparison_with_false_result(any_signed_int_ea_dtype, any_signed_int_numpy_dtype):
+def test_all_type_comparison_with_false_result(
+    any_signed_int_ea_dtype, any_signed_int_numpy_dtype
+):
     # GH#43038
     assert not pandas_dtype(any_signed_int_ea_dtype) == any_signed_int_numpy_dtype
 
@@ -631,18 +633,6 @@ def test_is_complex_dtype():
     assert com.is_complex_dtype(np.array([1 + 1j, 5]))
 
 
-def test_all_type_comparison_with_true_result(any_real_numpy_dtype):
-    # GH#43038
-    assert pandas_dtype(any_real_numpy_dtype) == any_real_numpy_dtype
-
-
-def test_all_type_comparison_with_false_result(
-    any_signed_int_ea_dtype, any_signed_int_numpy_dtype
-):
-    # GH#43038
-    assert not pandas_dtype(any_signed_int_ea_dtype) == any_signed_int_numpy_dtype
-
-
 @pytest.mark.parametrize(
     "input_param,result",
     [
@@ -692,18 +682,6 @@ def test_get_dtype_fails(input_param, expected_error_message):
     expected_error_message += f"|Cannot interpret '{input_param}' as a data type"
     with pytest.raises(TypeError, match=expected_error_message):
         com.get_dtype(input_param)
-
-
-def test_all_type_comparison_with_true_result(any_real_numpy_dtype):
-    # GH#43038
-    assert pandas_dtype(any_real_numpy_dtype) == any_real_numpy_dtype
-
-
-def test_all_type_comparison_with_false_result(
-    any_signed_int_ea_dtype, any_signed_int_numpy_dtype
-):
-    # GH#43038
-    assert not pandas_dtype(any_signed_int_ea_dtype) == any_signed_int_numpy_dtype
 
 
 @pytest.mark.parametrize(
