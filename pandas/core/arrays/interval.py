@@ -791,8 +791,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         )
 
     def min(self, *, axis: int | None = None, skipna: bool = True):
-        if axis is not None and axis >= self.ndim:
-            raise ValueError(axis)
+        nv.validate_minmax_axis(axis, self.ndim)
+
         if not len(self):
             return self._na_value
 
@@ -806,8 +806,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return self[indexer]
 
     def max(self, *, axis: int | None = None, skipna: bool = True):
-        if axis is not None and axis >= self.ndim:
-            raise ValueError(axis)
+        nv.validate_minmax_axis(axis, self.ndim)
+
         if not len(self):
             return self._na_value
 
