@@ -392,49 +392,15 @@ def test_is_not_unsigned_integer_dtype(dtype):
     assert not com.is_unsigned_integer_dtype(dtype)
 
 
-@pytest.mark.parametrize(
-    "dtype",
-    [
-        "int_",
-        "int8",
-        "Int8",
-        "int16",
-        "Int16",
-        "int32",
-        "Int32",
-        "int64",
-        "Int64",
-        "uint8",
-        "uint16",
-        "uint32",
-        "uint64",
-        "float_",
-        "float16",
-        "float32",
-        "Float32",
-        "float64",
-        "Float64",
-    ],
-)
-def test_all_type_comparison_with_true_result(dtype):
+def test_all_type_comparison_with_true_result(any_real_numpy_dtype):
     # GH#43038
-    assert pandas_dtype(dtype) == dtype
+    assert pandas_dtype(any_real_numpy_dtype) == any_real_numpy_dtype
 
 
-@pytest.mark.parametrize(
-    "dtype,expected",
-    [
-        ("Int8", "int8"),
-        ("Int16", "int16"),
-        ("Int32", "int32"),
-        ("Int64", "int64"),
-        ("Float32", "float32"),
-        ("Float64", "float64"),
-    ],
-)
-def test_all_type_comparison_with_false_result(dtype, expected):
+def test_all_type_comparison_with_false_result(any_signed_int_ea_dtype, any_signed_int_numpy_dtype):
     # GH#43038
-    assert not pandas_dtype(dtype) == expected
+    any_signed_int_numpy_dtype.pop(0)
+    assert not pandas_dtype(any_signed_int_ea_dtype) == any_signed_int_numpy_dtype
 
 
 @pytest.mark.parametrize(
