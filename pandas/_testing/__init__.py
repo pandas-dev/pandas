@@ -1083,8 +1083,10 @@ def shares_memory(left, right) -> bool:
     if isinstance(left, ExtensionArray) and left.dtype == "string[pyarrow]":
         # https://github.com/pandas-dev/pandas/pull/43930#discussion_r736862669
         if isinstance(right, ExtensionArray) and right.dtype == "string[pyarrow]":
-            left_pa_data = left._data
-            right_pa_data = right._data
+            # error: "ExtensionArray" has no attribute "_data"
+            left_pa_data = left._data  # type: ignore[attr-defined]
+            # error: "ExtensionArray" has no attribute "_data"
+            right_pa_data = right._data  # type: ignore[attr-defined]
             left_buf1 = left_pa_data.chunk(0).buffers()[1]
             right_buf1 = right_pa_data.chunk(0).buffers()[1]
             return left_buf1 == right_buf1
