@@ -369,7 +369,9 @@ class TestResetIndex:
         # GH#44755 reset_index with duplicate column labels
         result = df.rename_axis("A").reset_index()
         levels = [["A", ""], ["A", ""], ["B", "b"]]
-        expected = DataFrame([[0, 0, 2], [1, 1, 3]], columns=MultiIndex.from_tuples(levels))
+        expected = DataFrame(
+            [[0, 0, 2], [1, 1, 3]], columns=MultiIndex.from_tuples(levels)
+        )
         tm.assert_frame_equal(result, expected)
 
         # GH#16164: multiindex (tuple) full key
