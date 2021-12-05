@@ -141,7 +141,6 @@ class TestIndexConcat:
         exp = DataFrame([[1, 5, 3, 7], [2, 6, 4, 8]])
         tm.assert_frame_equal(res, exp, check_index_type=True, check_column_type=True)
 
-    @pytest.mark.filterwarnings("ignore:.*append method is deprecated.*:FutureWarning")
     def test_dups_index(self):
         # GH 4771
 
@@ -179,15 +178,11 @@ class TestIndexConcat:
         tm.assert_frame_equal(result.iloc[10:], df)
 
         # append
-        result = df.iloc[0:8, :].append(df.iloc[8:])
+        result = concat([df.iloc[0:8, :], df.iloc[8:]])
         tm.assert_frame_equal(result, df)
 
-        result = df.iloc[0:8, :].append(df.iloc[8:9]).append(df.iloc[9:10])
+        result = concat([df.iloc[0:8, :], df.iloc[8:9], df.iloc[9:10]])
         tm.assert_frame_equal(result, df)
-
-        expected = concat([df, df], axis=0)
-        result = df.append(df)
-        tm.assert_frame_equal(result, expected)
 
 
 class TestMultiIndexConcat:

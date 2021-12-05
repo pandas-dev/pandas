@@ -682,15 +682,16 @@ class TestMerge:
 
         assert isinstance(result, NotADataFrame)
 
-    @pytest.mark.filterwarnings("ignore:.*append method is deprecated.*:FutureWarning")
     def test_join_append_timedeltas(self):
         # timedelta64 issues with join/merge
         # GH 5695
 
-        d = {"d": datetime(2013, 11, 5, 5, 56), "t": timedelta(0, 22500)}
+        d = DataFrame.from_dict(
+            {"d": [datetime(2013, 11, 5, 5, 56)], "t": [timedelta(0, 22500)]}
+        )
         df = DataFrame(columns=list("dt"))
-        df = df.append(d, ignore_index=True)
-        result = df.append(d, ignore_index=True)
+        df = concat([df, d], ignore_index=True)
+        result = concat([df, d], ignore_index=True)
         expected = DataFrame(
             {
                 "d": [datetime(2013, 11, 5, 5, 56), datetime(2013, 11, 5, 5, 56)],

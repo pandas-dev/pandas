@@ -294,15 +294,11 @@ class TestRaises:
 
         assert data.flags.allows_duplicate_labels is True
 
-    @pytest.mark.filterwarnings("ignore:.*append method is deprecated.*:FutureWarning")
-    @pytest.mark.parametrize(
-        "func", [operator.methodcaller("append", pd.Series(0, index=["a", "b"]))]
-    )
-    def test_series_raises(self, func):
+    def test_series_raises(self):
         s = pd.Series([0, 1], index=["a", "b"]).set_flags(allows_duplicate_labels=False)
         msg = "Index has duplicates."
         with pytest.raises(pd.errors.DuplicateLabelError, match=msg):
-            func(s)
+            pd.concat([pd.Series(0, index=["a", "b"]), s])
 
     @pytest.mark.parametrize(
         "getter, target",

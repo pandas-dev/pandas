@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
@@ -185,7 +184,6 @@ class TestCategoricalConcat:
         )
         tm.assert_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore:.*append method is deprecated.*:FutureWarning")
     def test_categorical_concat_gh7864(self):
         # GH 7864
         # make sure ordering is preserved
@@ -201,9 +199,6 @@ class TestCategoricalConcat:
 
         dfx = pd.concat([df1, df2])
         tm.assert_index_equal(df["grade"].cat.categories, dfx["grade"].cat.categories)
-
-        dfa = df1.append(df2)
-        tm.assert_index_equal(df["grade"].cat.categories, dfa["grade"].cat.categories)
 
     def test_categorical_index_upcast(self):
         # GH 17629
