@@ -111,8 +111,7 @@ def test_against_frame_and_seriesgroupby(
             else:
                 expected["level_0"] = np.where(expected["level_0"], "US", "FR")
             tm.assert_frame_equal(result, expected)
-    elif groupby == "column" or as_index:
-        # (otherwise SeriesGroupby crashes)
+    else:
         # compare against SeriesGroupBy value_counts
         education_df["both"] = education_df["gender"] + "-" + education_df["education"]
         expected = gp["both"].value_counts(
