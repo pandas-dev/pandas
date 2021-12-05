@@ -135,12 +135,12 @@ class Scope:
             # numpy array of pandas objects)
             scope_global = self.scope.new_child(
                 (global_dict or frame.f_globals).copy()
-                )
+            )
             self.scope = DeepChainMap(scope_global)
             if not isinstance(local_dict, Scope):
                 scope_local = self.scope.new_child(
                     (local_dict or frame.f_locals).copy()
-                    )
+                )
                 self.scope = DeepChainMap(scope_local)
         finally:
             del frame
