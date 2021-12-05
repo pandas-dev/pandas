@@ -274,7 +274,9 @@ def test_union_with_regular_index(idx):
     assert ("foo", "one") in result
     assert "B" in result
 
-    result2 = idx.union(other)
+    msg = "The values in the array are unorderable"
+    with tm.assert_produces_warning(RuntimeWarning, match=msg):
+        result2 = idx.union(other)
     assert result.equals(result2)
 
 
