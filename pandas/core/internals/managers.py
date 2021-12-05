@@ -14,7 +14,6 @@ import warnings
 import numpy as np
 
 from pandas._libs import (
-    Period,
     internals as libinternals,
     lib,
 )
@@ -927,29 +926,22 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                         f"Number of Block dimensions ({block.ndim}) must equal "
                         f"number of axes ({self.ndim})"
                     )
-                if block.values.ndim == 1 and (
-                    isinstance(block, DatetimeTZBlock) or block.dtype.type is Period
-                ):
+                if isinstance(block, DatetimeTZBlock) and block.values.ndim == 1:
                     # TODO(2.0): remove once fastparquet no longer needs this
-                    if isinstance(block, DatetimeTZBlock):
-                        warnings.warn(
-                            "In a future version, the BlockManager constructor "
-                            "will assume that a DatetimeTZBlock with block.ndim==2 "
-                            "has block.values.ndim == 2.",
-                            DeprecationWarning,
-                            stacklevel=find_stack_level(),
-                        )
-                    else:
-                        warnings.warn(
-                            "In a future version, the BlockManager constructor "
-                            "will assume that a Block backed by PeriodArray with "
-                            "will be NDArrayBackedExtensionBlock and will have "
-                            "block.values.ndim == 2",
-                            DeprecationWarning,
-                            stacklevel=find_stack_level(),
-                        )
+                    warnings.warn(
+                        "In a future version, the BlockManager constructor "
+                        "will assume that a DatetimeTZBlock with block.ndim==2 "
+                        "has block.values.ndim == 2.",
+                        DeprecationWarning,
+                        stacklevel=find_stack_level(),
+                    )
 
-                    block.values = ensure_block_shape(block.values, self.ndim)
+                    # error: Incompatible types in assignment (expression has type
+                    # "Union[ExtensionArray, ndarray]", variable has type
+                    # "DatetimeArray")
+                    block.values = ensure_block_shape(  # type: ignore[assignment]
+                        block.values, self.ndim
+                    )
                     try:
                         block._cache.clear()
                     except AttributeError:
