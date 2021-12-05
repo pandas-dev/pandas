@@ -217,6 +217,7 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
     def test_numeric_arr_mul_tdscalar_numexpr_path(
         self, dtype, scalar_td, box_with_array
     ):
+        # GH#44772 for the float64 case
         box = box_with_array
 
         arr_i8 = np.arange(2 * 10 ** 4).astype(np.int64, copy=False)
