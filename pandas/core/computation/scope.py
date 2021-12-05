@@ -133,10 +133,15 @@ class Scope:
             # shallow copy here because we don't want to replace what's in
             # scope when we align terms (alignment accesses the underlying
             # numpy array of pandas objects)
-
-            self.scope = DeepChainMap(self.scope.new_child( (global_dict or frame.f_globals).copy()))
+            scope_global = self.scope.new_child(
+                (global_dict or frame.f_globals).copy()
+                )
+            self.scope = DeepChainMap(scope_global)
             if not isinstance(local_dict, Scope):
-                self.scope = DeepChainMap( self.scope.new_child((local_dict or frame.f_locals).copy()))
+                scope_local = self.scope.new_child(
+                    (local_dict or frame.f_locals).copy()
+                    )
+                self.scope = DeepChainMap(scope_local)
         finally:
             del frame
 
