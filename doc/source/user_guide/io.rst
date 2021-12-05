@@ -3546,9 +3546,9 @@ with ``on_demand=True``.
 Specifying sheets
 +++++++++++++++++
 
-.. note :: The second argument is ``sheet_name``, not to be confused with ``ExcelFile.sheet_names``.
+.. note:: The second argument is ``sheet_name``, not to be confused with ``ExcelFile.sheet_names``.
 
-.. note :: An ExcelFile's attribute ``sheet_names`` provides access to a list of sheets.
+.. note:: An ExcelFile's attribute ``sheet_names`` provides access to a list of sheets.
 
 * The arguments ``sheet_name`` allows specifying the sheet or sheets to read.
 * The default value for ``sheet_name`` is 0, indicating to read the first sheet

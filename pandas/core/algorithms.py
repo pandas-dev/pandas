@@ -633,7 +633,7 @@ def factorize(
         is a Categorical. When `values` is some other pandas object, an
         `Index` is returned. Otherwise, a 1-D ndarray is returned.
 
-        .. note ::
+        .. note::
 
            Even if there's a missing value in `values`, `uniques` will
            *not* contain an entry for it.
