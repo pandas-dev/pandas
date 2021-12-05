@@ -562,7 +562,7 @@ class SetitemCastingEquivalents:
             if arr.dtype.kind in ["m", "M"]:
                 # We may not have the same DTA/TDA, but will have the same
                 #  underlying data
-                assert arr._data is obj._values._data
+                assert arr._ndarray is obj._values._ndarray
             else:
                 assert obj._values is arr
         else:
