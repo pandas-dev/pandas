@@ -31,7 +31,8 @@ def test_value_counts(index_or_series_obj):
     if isinstance(obj, pd.MultiIndex):
         expected.index = Index(expected.index)
 
-    # TODO: Order of entries with the same count is inconsistent on CI (gh-32449)
+    # TODO(GH#32514): Order of entries with the same count is inconsistent
+    #  on CI (gh-32449)
     if obj.duplicated().any():
         result = result.sort_index()
         expected = expected.sort_index()
@@ -64,16 +65,13 @@ def test_value_counts_null(null_obj, dropna, index_or_series_obj):
     expected = Series(dict(counter.most_common()), dtype=np.int64)
     expected.index = expected.index.astype(obj.dtype)
 
-    if not dropna:
-        # can't use expected[null_obj] = 3 as
-        # IntervalIndex doesn't allow assignment
-        new_entry = Series({np.nan: 3}, dtype=np.int64)
-        expected = expected.append(new_entry)
-
     result = obj.value_counts(dropna=dropna)
 
+    if not dropna:
+        expected[null_obj] = 3
+
     if obj.duplicated().any():
-        # TODO:
+        # TODO(GH#32514):
         #  Order of entries with the same count is inconsistent on CI (gh-32449)
         expected = expected.sort_index()
         result = result.sort_index()
@@ -272,8 +270,8 @@ def test_value_counts_with_nan(dropna, index_or_series):
     # GH31944
     klass = index_or_series
     values = [True, pd.NA, np.nan]
-    s = klass(values)
-    res = s.value_counts(dropna=dropna)
+    obj = klass(values)
+    res = obj.value_counts(dropna=dropna)
     if dropna is True:
         expected = Series([1], index=[True])
     else:
