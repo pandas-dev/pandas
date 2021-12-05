@@ -595,13 +595,16 @@ class TestBasic(Base):
         msg = r"parquet must have string column names"
         self.check_error_on_write(df, engine, ValueError, msg)
 
-    def test_use_nullable_dtypes(self, engine):
+    def test_use_nullable_dtypes(self, engine, request):
         import pyarrow.parquet as pq
 
         if engine == "fastparquet":
             # We are manually disabling fastparquet's
             # nullable dtype support pending discussion
-            pytest.skip("Fastparquet nullable dtype support is disabled")
+            mark = pytest.mark.xfail(
+                reason="Fastparquet nullable dtype support is disabled"
+            )
+            request.node.add_marker(mark)
 
         table = pyarrow.table(
             {

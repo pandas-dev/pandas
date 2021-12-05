@@ -1077,7 +1077,7 @@ def shares_memory(left, right) -> bool:
 
     if isinstance(left, NDArrayBackedExtensionArray):
         return shares_memory(left._ndarray, right)
-    if isinstance(left, pd.SparseArray):
+    if isinstance(left, pd.core.arrays.SparseArray):
         return shares_memory(left.sp_values, right)
 
     if isinstance(left, ExtensionArray) and left.dtype == "string[pyarrow]":
