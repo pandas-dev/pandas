@@ -186,3 +186,29 @@ def test_reset_index_dtypes_on_empty_series_with_multiindex(array, dtype):
         {"level_0": np.int64, "level_1": np.float64, "level_2": dtype, 0: object}
     )
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "test, expected_names",
+    [
+        ("repeat", ["a", None, "d", "b", "b", "e"]),
+        ("level", ["a", None, "d", "b", "c", "level_1"]),
+    ],
+)
+def test_column_name_clashes(test, expected_names):
+    df = pd.DataFrame(
+        {"a": [1, 2], "b": [3, 4], "c": [5, 6], "d": [7, 8], "e": [9, 10]}
+    )
+    if test == "repeat":
+        df.columns = list("abbde")
+    else:
+        df.columns = list("abcd") + ["level_1"]
+    result = df.groupby(["a", [0, 1], "d"]).value_counts()
+    expected = pd.Series(
+        data=(1, 1),
+        index=pd.MultiIndex.from_tuples(
+            [(1, 0, 7, 3, 5, 9), (2, 1, 8, 4, 6, 10)],
+            names=expected_names,
+        ),
+    )
+    tm.assert_series_equal(result, expected)
