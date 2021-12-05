@@ -40,8 +40,13 @@ def feather_file(datapath):
 
 
 @pytest.fixture
-def s3so():
-    return {"client_kwargs": {"endpoint_url": "http://localhost:5000/"}}
+def s3so(worker_id):
+    if os.environ.get("PANDAS_CI", "0") == "1":
+        url = "http://localhost:5000/"
+    else:
+        worker_id = "5" if worker_id == "master" else worker_id.lstrip("gw")
+        url = f"http://127.0.0.1:555{worker_id}/"
+    return {"client_kwargs": {"endpoint_url": url}}
 
 
 @pytest.fixture(scope="session")
