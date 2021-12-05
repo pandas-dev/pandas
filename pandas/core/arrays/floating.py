@@ -251,12 +251,7 @@ class FloatingArray(NumericArray):
         return FLOAT_STR_TO_DTYPE[str(self._data.dtype)]
 
     def __init__(self, values: np.ndarray, mask: np.ndarray, copy: bool = False):
-        if not (
-            isinstance(values, np.ndarray)
-            and values.dtype.kind == "f"
-            and values.dtype.itemsize > 2
-        ):
-            # We do not support float16
+        if not (isinstance(values, np.ndarray) and values.dtype.kind == "f"):
             raise TypeError(
                 "values should be floating numpy array. Use "
                 "the 'pd.array' function instead"
