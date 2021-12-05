@@ -31,6 +31,7 @@ enhancement2
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 - Improved the rendering of ``categories`` in :class:`CategoricalIndex` (:issue:`45218`)
+- :meth:`to_numeric` now preserves float64 arrays when downcasting would generate values not representable in float32 (:issue:`43693`)
 -
 
 .. ---------------------------------------------------------------------------
