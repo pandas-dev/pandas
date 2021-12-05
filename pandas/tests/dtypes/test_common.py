@@ -399,7 +399,6 @@ def test_all_type_comparison_with_true_result(any_real_numpy_dtype):
 
 def test_all_type_comparison_with_false_result(any_signed_int_ea_dtype, any_signed_int_numpy_dtype):
     # GH#43038
-    any_signed_int_numpy_dtype.pop(0)
     assert not pandas_dtype(any_signed_int_ea_dtype) == any_signed_int_numpy_dtype
 
 
