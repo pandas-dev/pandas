@@ -51,7 +51,9 @@ class CParserWrapper(ParserBase):
         kwds["usecols"] = self.usecols
 
         # open handles
-        self._open_handles(src, kwds)
+        # The c-engine can cope with utf-8 bytes: no need to use TextIOWrapper when the
+        # encoding is utf-8: get_handle(..., is_text=Flase)
+        self._open_handles(src, kwds, is_text=kwds.get("encoding") != "utf-8")
         assert self.handles is not None
 
         # Have to pass int, would break tests using TextReader directly otherwise :(

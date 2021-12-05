@@ -236,9 +236,14 @@ def test_parse_encoded_special_characters(encoding):
 def test_encoding_memory_map(all_parsers, encoding):
     # GH40986
     parser = all_parsers
+
+    # add one entry with a special character
+    encoding_ = encoding or "utf-8"
+    leonardo = "Léonardo".encode(encoding_, errors="ignore").decode(encoding_)
+
     expected = DataFrame(
         {
-            "name": ["Raphael", "Donatello", "Miguel Angel", "Leonardo"],
+            "name": ["Raphael", "Donatello", "Miguel Angel", leonardo],
             "mask": ["red", "purple", "orange", "blue"],
             "weapon": ["sai", "bo staff", "nunchunk", "katana"],
         }

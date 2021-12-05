@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import bz2
 import codecs
-from collections import abc
 import dataclasses
 import gzip
 from io import (
@@ -671,14 +670,7 @@ def get_handle(
     handles: list[BaseBuffer]
 
     # memory mapping needs to be the first step
-    handle, memory_map, handles = _maybe_memory_map(
-        handle,
-        memory_map,
-        ioargs.encoding,
-        ioargs.mode,
-        errors,
-        ioargs.compression["method"] not in _compression_to_extension,
-    )
+    handle, memory_map, handles = _maybe_memory_map(handle, memory_map)
 
     is_path = isinstance(handle, str)
     compression_args = dict(ioargs.compression)
@@ -782,7 +774,9 @@ def get_handle(
             handle,
             encoding=ioargs.encoding,
         )
-    elif is_text and (compression or _is_binary_mode(handle, ioargs.mode)):
+    elif is_text and (
+        compression or _is_binary_mode(handle, ioargs.mode) or memory_map
+    ):
         handle = TextIOWrapper(
             # error: Argument 1 to "TextIOWrapper" has incompatible type
             # "Union[IO[bytes], IO[Any], RawIOBase, BufferedIOBase, TextIOBase, mmap]";
@@ -904,82 +898,19 @@ class _BytesZipFile(zipfile.ZipFile, BytesIO):  # type: ignore[misc]
         return self.fp is None
 
 
-class _MMapWrapper(abc.Iterator):
-    """
-    Wrapper for the Python's mmap class so that it can be properly read in
-    by Python's csv.reader class.
-
-    Parameters
-    ----------
-    f : file object
-        File object to be mapped onto memory. Must support the 'fileno'
-        method or have an equivalent attribute
-
-    """
-
-    def __init__(
-        self,
-        f: IO,
-        encoding: str = "utf-8",
-        errors: str = "strict",
-        decode: bool = True,
-    ):
-        self.encoding = encoding
-        self.errors = errors
-        self.decoder = codecs.getincrementaldecoder(encoding)(errors=errors)
-        self.decode = decode
-
-        self.attributes = {}
-        for attribute in ("seekable", "readable"):
-            if not hasattr(f, attribute):
-                continue
-            self.attributes[attribute] = getattr(f, attribute)()
-        self.mmap = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
-
-    def __getattr__(self, name: str):
-        if name in self.attributes:
-            return lambda: self.attributes[name]
-        return getattr(self.mmap, name)
-
-    def __iter__(self) -> _MMapWrapper:
-        return self
-
-    def read(self, size: int = -1) -> str | bytes:
-        # CSV c-engine uses read instead of iterating
-        content: bytes = self.mmap.read(size)
-        if self.decode and self.encoding != "utf-8":
-            # memory mapping is applied before compression. Encoding should
-            # be applied to the de-compressed data.
-            final = size == -1 or len(content) < size
-            return self.decoder.decode(content, final=final)
-        return content
-
-    def __next__(self) -> str:
-        newbytes = self.mmap.readline()
-
-        # readline returns bytes, not str, but Python's CSV reader
-        # expects str, so convert the output to str before continuing
-        newline = self.decoder.decode(newbytes)
-
-        # mmap doesn't raise if reading past the allocated
-        # data but instead returns an empty string, so raise
-        # if that is returned
-        if newline == "":
-            raise StopIteration
-
-        # IncrementalDecoder seems to push newline to the next line
-        return newline.lstrip("\n")
-
-
 class _IOWrapper:
     # Lies that certain attributes exist and are True.
 
     def __init__(self, buffer: BaseBuffer):
         self.buffer = buffer
-        self.attributes = ("seekable", "readable", "writable")
+        self.attributes = tuple(
+            attr
+            for attr in ("seekable", "readable", "writable")
+            if not hasattr(self.buffer, attr)
+        )
 
     def __getattr__(self, name: str):
-        if name in self.attributes and not hasattr(self.buffer, name):
+        if name in self.attributes:
             return lambda: True
         return getattr(self.buffer, name)
 
@@ -1014,12 +945,7 @@ class _BytesIOWrapper:
 
 
 def _maybe_memory_map(
-    handle: str | BaseBuffer,
-    memory_map: bool,
-    encoding: str,
-    mode: str,
-    errors: str | None,
-    decode: bool,
+    handle: str | BaseBuffer, memory_map: bool
 ) -> tuple[str | BaseBuffer, bool, list[BaseBuffer]]:
     """Try to memory map file/buffer."""
     handles: list[BaseBuffer] = []
@@ -1029,32 +955,17 @@ def _maybe_memory_map(
 
     # need to open the file first
     if isinstance(handle, str):
-        if encoding and "b" not in mode:
-            # Encoding
-            handle = open(handle, mode, encoding=encoding, errors=errors, newline="")
-        else:
-            # Binary mode
-            handle = open(handle, mode)
+        # encoding will be handled later in TextIOWrapper
+        handle = open(handle, "rb")
         handles.append(handle)
 
-    try:
-        # error: Argument 1 to "_MMapWrapper" has incompatible type "Union[IO[Any],
-        # RawIOBase, BufferedIOBase, TextIOBase, mmap]"; expected "IO[Any]"
-        wrapped = cast(
-            BaseBuffer,
-            _MMapWrapper(handle, encoding, errors, decode),  # type: ignore[arg-type]
-        )
-        # error: "BaseBuffer" has no attribute "close"
-        handle.close()  # type: ignore[attr-defined]
-        handles.remove(handle)
-        handles.append(wrapped)
-        handle = wrapped
-    except Exception:
-        # we catch any errors that may have occurred
-        # because that is consistent with the lower-level
-        # functionality of the C engine (pd.read_csv), so
-        # leave the file handler as is then
-        memory_map = False
+    mmap_handle = mmap.mmap(handle.fileno(), 0, access=mmap.ACCESS_READ)
+
+    # error: Argument 1 to "_IOWrapper" has incompatible type "mmap";
+    # expected "BaseBuffer"
+    wrapped = _IOWrapper(mmap_handle)  # type: ignore[arg-type]
+    handles.append(wrapped)
+    handle = wrapped
 
     return handle, memory_map, handles
 

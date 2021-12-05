@@ -425,39 +425,45 @@ class TestMMapWrapper:
             err = mmap.error
 
         with pytest.raises(err, match=msg):
-            icom._MMapWrapper(non_file)
+            icom._maybe_memory_map(non_file, True)
 
         target = open(mmap_file)
         target.close()
 
         msg = "I/O operation on closed file"
         with pytest.raises(ValueError, match=msg):
-            icom._MMapWrapper(target)
+            icom._maybe_memory_map(target, True)
 
     def test_get_attr(self, mmap_file):
         with open(mmap_file) as target:
-            wrapper = icom._MMapWrapper(target)
+            handles = icom.get_handle(target, "r", memory_map=True)
 
-        attrs = dir(wrapper.mmap)
-        attrs = [attr for attr in attrs if not attr.startswith("__")]
-        attrs.append("__next__")
+        with handles:
+            next_wrapper = handles.handle
+            mmap_wrapper = handles.created_handles[-1]
+            mmap_handle = mmap_wrapper.buffer
 
-        for attr in attrs:
-            assert hasattr(wrapper, attr)
+            # check _IOWrapper
+            attrs = dir(mmap_handle)
+            attrs = [attr for attr in attrs if not attr.startswith("__")]
 
-        assert not hasattr(wrapper, "foo")
+            for attr in attrs:
+                assert hasattr(mmap_wrapper, attr)
+
+            assert hasattr(next_wrapper, "__next__")
 
     def test_next(self, mmap_file):
         with open(mmap_file) as target:
-            wrapper = icom._MMapWrapper(target)
+            handles = icom.get_handle(target, "r", memory_map=True)
             lines = target.readlines()
 
-        for line in lines:
-            next_line = next(wrapper)
-            assert next_line.strip() == line.strip()
+        with handles:
+            for line in lines:
+                next_line = next(handles.handle)
+                assert next_line.strip() == line.strip()
 
-        with pytest.raises(StopIteration, match=r"^$"):
-            next(wrapper)
+            with pytest.raises(StopIteration, match=r"^$"):
+                next(handles.handle)
 
     def test_unknown_engine(self):
         with tm.ensure_clean() as path:
@@ -466,36 +472,38 @@ class TestMMapWrapper:
             with pytest.raises(ValueError, match="Unknown engine"):
                 pd.read_csv(path, engine="pyt")
 
-    def test_binary_mode(self):
-        """
-        'encoding' shouldn't be passed to 'open' in binary mode.
 
-        GH 35058
-        """
-        with tm.ensure_clean() as path:
-            df = tm.makeDataFrame()
-            df.to_csv(path, mode="w+b")
-            tm.assert_frame_equal(df, pd.read_csv(path, index_col=0))
+def test_binary_mode():
+    """
+    'encoding' shouldn't be passed to 'open' in binary mode.
 
-    @pytest.mark.parametrize("encoding", ["utf-16", "utf-32"])
-    @pytest.mark.parametrize("compression_", ["bz2", "xz"])
-    def test_warning_missing_utf_bom(self, encoding, compression_):
-        """
-        bz2 and xz do not write the byte order mark (BOM) for utf-16/32.
-
-        https://stackoverflow.com/questions/55171439
-
-        GH 35681
-        """
+    GH 35058
+    """
+    with tm.ensure_clean() as path:
         df = tm.makeDataFrame()
-        with tm.ensure_clean() as path:
-            with tm.assert_produces_warning(UnicodeWarning):
-                df.to_csv(path, compression=compression_, encoding=encoding)
+        df.to_csv(path, mode="w+b")
+        tm.assert_frame_equal(df, pd.read_csv(path, index_col=0))
 
-            # reading should fail (otherwise we wouldn't need the warning)
-            msg = r"UTF-\d+ stream does not start with BOM"
-            with pytest.raises(UnicodeError, match=msg):
-                pd.read_csv(path, compression=compression_, encoding=encoding)
+
+@pytest.mark.parametrize("encoding", ["utf-16", "utf-32"])
+@pytest.mark.parametrize("compression_", ["bz2", "xz"])
+def test_warning_missing_utf_bom(encoding, compression_):
+    """
+    bz2 and xz do not write the byte order mark (BOM) for utf-16/32.
+
+    https://stackoverflow.com/questions/55171439
+
+    GH 35681
+    """
+    df = tm.makeDataFrame()
+    with tm.ensure_clean() as path:
+        with tm.assert_produces_warning(UnicodeWarning):
+            df.to_csv(path, compression=compression_, encoding=encoding)
+
+        # reading should fail (otherwise we wouldn't need the warning)
+        msg = r"UTF-\d+ stream does not start with BOM"
+        with pytest.raises(UnicodeError, match=msg):
+            pd.read_csv(path, compression=compression_, encoding=encoding)
 
 
 def test_is_fsspec_url():

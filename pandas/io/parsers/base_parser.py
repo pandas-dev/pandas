@@ -231,6 +231,7 @@ class ParserBase:
         self,
         src: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
         kwds: dict[str, Any],
+        is_text:bool = True,
     ) -> None:
         """
         Let the readers open IOHandles after they are done with their potential raises.
@@ -243,6 +244,7 @@ class ParserBase:
             memory_map=kwds.get("memory_map", False),
             storage_options=kwds.get("storage_options", None),
             errors=kwds.get("encoding_errors", "strict"),
+            is_text=is_text,
         )
 
     def _validate_parse_dates_presence(self, columns: Sequence[Hashable]) -> Iterable:
