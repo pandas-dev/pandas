@@ -152,7 +152,6 @@ def get_is_dtype_funcs():
     """
     Get all functions in pandas.core.dtypes.common that
     begin with 'is_' and end with 'dtype'
-
     """
     fnames = [f for f in dir(com) if (f.startswith("is_") and f.endswith("dtype"))]
     fnames.remove("is_string_or_object_np_dtype")  # fastpath requires np.dtype obj
@@ -392,6 +391,16 @@ def test_is_unsigned_integer_dtype(dtype):
 )
 def test_is_not_unsigned_integer_dtype(dtype):
     assert not com.is_unsigned_integer_dtype(dtype)
+
+
+def test_all_type_comparison_with_true_result(any_real_numpy_dtype):
+    # GH#43038
+    assert pandas_dtype(any_real_numpy_dtype) == any_real_numpy_dtype
+
+
+def test_all_type_comparison_with_false_result(any_signed_int_ea_dtype, any_signed_int_numpy_dtype):
+    # GH#43038
+    assert not pandas_dtype(any_signed_int_ea_dtype) == any_signed_int_numpy_dtype
 
 
 @pytest.mark.parametrize(
