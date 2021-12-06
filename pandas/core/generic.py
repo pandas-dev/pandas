@@ -5888,6 +5888,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # GH 19920: retain column metadata after concat
         result = concat(results, axis=1, copy=False)
         result.columns = self.columns
+        result = result.__finalize__(self, method="astype")
         # https://github.com/python/mypy/issues/8354
         return cast(NDFrameT, result)
 
@@ -6023,7 +6024,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         timedelta: bool_t = False,
     ) -> NDFrameT:
         """
-        Attempt to infer better dtype for object columns
+        Attempt to infer better dtype for object columns.
 
         Parameters
         ----------

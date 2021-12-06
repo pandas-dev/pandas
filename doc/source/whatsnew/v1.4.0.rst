@@ -227,6 +227,7 @@ Other enhancements
   ``USFederalHolidayCalendar``.  See also `Other API changes`_.
 - :meth:`.Rolling.var`, :meth:`.Expanding.var`, :meth:`.Rolling.std`, :meth:`.Expanding.std` now support `Numba <http://numba.pydata.org/>`_ execution with the ``engine`` keyword (:issue:`44461`)
 - :meth:`Series.info` has been added, for compatibility with :meth:`DataFrame.info` (:issue:`5167`)
+- Implemented :meth:`IntervalArray.min`, :meth:`IntervalArray.max`, as a result of which ``min`` and ``max`` now work for :class:`IntervalIndex`, :class:`Series` and :class:`DataFrame` with ``IntervalDtype`` (:issue:`44746`)
 - :meth:`UInt64Index.map` now retains ``dtype`` where possible (:issue:`44609`)
 -
 
@@ -652,7 +653,7 @@ Conversion
 - Bug in :class:`IntegerDtype` not allowing coercion from string dtype (:issue:`25472`)
 - Bug in :func:`to_datetime` with ``arg:xr.DataArray`` and ``unit="ns"`` specified raises TypeError (:issue:`44053`)
 - Bug in :meth:`DataFrame.convert_dtypes` not returning the correct type when a subclass does not overload :meth:`_constructor_sliced` (:issue:`43201`)
--
+- Bug in :meth:`DataFrame.astype` not propagating ``attrs`` from the original :class:`DataFrame` (:issue:`44414`)
 
 Strings
 ^^^^^^^
