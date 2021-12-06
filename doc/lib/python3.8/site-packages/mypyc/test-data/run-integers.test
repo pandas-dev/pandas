@@ -1,0 +1,330 @@
+# Test cases for integers (compile and run)
+
+[case testInc]
+def inc(x: int) -> int:
+    return x + 1
+[file driver.py]
+from native import inc
+print(inc(3))
+print(inc(-5))
+print(inc(10**20))
+[out]
+4
+-4
+100000000000000000001
+
+[case testCount]
+def count(n: int) -> int:
+    i = 1
+    while i <= n:
+        i = i + 1
+    return i
+[file driver.py]
+from native import count
+print(count(0))
+print(count(1))
+print(count(5))
+[out]
+1
+2
+6
+
+[case testIntMathOps]
+# This tests integer math things that are either easier to test in Python than
+# in our C tests or are tested here because (for annoying reasons) we don't run
+# the C unit tests in our 32-bit CI.
+def multiply(x: int, y: int) -> int:
+    return x * y
+
+# these stringify their outputs because that will catch if exceptions are mishandled
+def floor_div(x: int, y: int) -> str:
+    return str(x // y)
+def remainder(x: int, y: int) -> str:
+    return str(x % y)
+
+[file driver.py]
+from native import multiply, floor_div, remainder
+
+def test_multiply(x, y):
+    assert multiply(x, y) == x * y
+def test_floor_div(x, y):
+    assert floor_div(x, y) == str(x // y)
+def test_remainder(x, y):
+    assert remainder(x, y) == str(x % y)
+
+test_multiply(10**6, 10**6)
+test_multiply(2**15, 2**15-1)
+test_multiply(2**14, 2**14)
+
+test_multiply(10**12, 10**12)
+test_multiply(2**30, 2**30-1)
+test_multiply(2**29, 2**29)
+
+test_floor_div(-2**62, -1)
+test_floor_div(-2**30, -1)
+try:
+    floor_div(10, 0)
+except ZeroDivisionError:
+    pass
+else:
+    assert False, "Expected ZeroDivisionError"
+
+test_remainder(-2**62, -1)
+test_remainder(-2**30, -1)
+try:
+    remainder(10, 0)
+except ZeroDivisionError:
+    pass
+else:
+    assert False, "Expected ZeroDivisionError"
+
+[case testBigIntLiteral]
+def big_int() -> None:
+    a_62_bit = 4611686018427387902
+    max_62_bit = 4611686018427387903
+    b_63_bit = 4611686018427387904
+    c_63_bit = 9223372036854775806
+    max_63_bit = 9223372036854775807
+    d_64_bit = 9223372036854775808
+    max_32_bit = 2147483647
+    max_31_bit = 1073741823
+    print(a_62_bit)
+    print(max_62_bit)
+    print(b_63_bit)
+    print(c_63_bit)
+    print(max_63_bit)
+    print(d_64_bit)
+    print(max_32_bit)
+    print(max_31_bit)
+[file driver.py]
+from native import big_int
+big_int()
+[out]
+4611686018427387902
+4611686018427387903
+4611686018427387904
+9223372036854775806
+9223372036854775807
+9223372036854775808
+2147483647
+1073741823
+
+[case testNeg]
+def neg(x: int) -> int:
+    return -x
+[file driver.py]
+from native import neg
+assert neg(5) == -5
+assert neg(-5) == 5
+assert neg(1073741823) == -1073741823
+assert neg(-1073741823) == 1073741823
+assert neg(1073741824) == -1073741824
+assert neg(-1073741824) == 1073741824
+assert neg(2147483647) == -2147483647
+assert neg(-2147483647) == 2147483647
+assert neg(2147483648) == -2147483648
+assert neg(-2147483648) == 2147483648
+assert neg(4611686018427387904) == -4611686018427387904
+assert neg(-4611686018427387904) == 4611686018427387904
+assert neg(9223372036854775807) == -9223372036854775807
+assert neg(-9223372036854775807) == 9223372036854775807
+assert neg(9223372036854775808) == -9223372036854775808
+assert neg(-9223372036854775808) == 9223372036854775808
+
+[case testIntOps]
+def check_and(x: int, y: int) -> None:
+    # eval() can be trusted to calculate expected result
+    expected = eval('{} & {}'.format(x, y))
+    actual = x & y
+    assert actual == expected, '{} & {}: got {}, expected {}'.format(x, y, actual, expected)
+
+def check_or(x: int, y: int) -> None:
+    # eval() can be trusted to calculate expected result
+    expected = eval('{} | {}'.format(x, y))
+    actual = x | y
+    assert actual == expected, '{} | {}: got {}, expected {}'.format(x, y, actual, expected)
+
+def check_xor(x: int, y: int) -> None:
+    # eval() can be trusted to calculate expected result
+    expected = eval('{} ^ {}'.format(x, y))
+    actual = x ^ y
+    assert actual == expected, '{} ^ {}: got {}, expected {}'.format(x, y, actual, expected)
+
+def check_bitwise(x: int, y: int) -> None:
+    for l, r in (x, y), (y, x):
+        for ll, rr in (l, r), (-l, r), (l, -r), (-l, -r):
+            check_and(ll, rr)
+            check_or(ll, rr)
+            check_xor(ll, rr)
+
+[case testIsinstanceIntAndNotBool]
+def test_isinstance_int_and_not_bool(value: object) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)
+[file driver.py]
+from native import test_isinstance_int_and_not_bool
+assert test_isinstance_int_and_not_bool(True) == False
+assert test_isinstance_int_and_not_bool(1) == True
+
+
+SHIFT = 30
+DIGIT0a = 615729753
+DIGIT0b = 832796681
+DIGIT1a = 744342356 << SHIFT
+DIGIT1b = 321006080 << SHIFT
+DIGIT2a = 643582106 << (SHIFT * 2)
+DIGIT2b = 656420725 << (SHIFT * 2)
+DIGIT50 = 315723472 << (SHIFT * 50)
+DIGIT100a = 1020652627 << (SHIFT * 100)
+DIGIT100b = 923752451 << (SHIFT * 100)
+BIG_SHORT = 3491190729721336556
+MAX_SHORT = (1 << 62) - 1
+MIN_SHORT = -(1 << 62)
+MAX_SHORT_32 = (1 << 30) - 1
+MIN_SHORT_32 = -(1 << 30)
+
+def test_and_or_xor() -> None:
+    check_bitwise(0, 0)
+    check_bitwise(0, 1)
+    check_bitwise(1, 1)
+    check_bitwise(DIGIT0a, DIGIT0b)
+    check_bitwise(DIGIT1a, DIGIT1b)
+    check_bitwise(DIGIT2a, DIGIT2b)
+    check_bitwise(DIGIT100a, DIGIT100b)
+    check_bitwise(DIGIT0a, DIGIT0b + DIGIT2a)
+    check_bitwise(DIGIT0a, DIGIT0b + DIGIT50)
+    check_bitwise(DIGIT50 + DIGIT1a, DIGIT100a + DIGIT2b)
+    check_bitwise(BIG_SHORT, DIGIT0a)
+    check_bitwise(BIG_SHORT, DIGIT0a + DIGIT1a)
+    check_bitwise(BIG_SHORT, DIGIT0a + DIGIT1a + DIGIT2a)
+    check_bitwise(BIG_SHORT, DIGIT0a + DIGIT1a + DIGIT2a + DIGIT50)
+
+def test_bitwise_inplace() -> None:
+    # Basic sanity checks; these should use the same code as the non-in-place variants
+    for x, y in (DIGIT0a, DIGIT1a), (DIGIT2a, DIGIT0a + DIGIT2b):
+        n = x
+        n &= y
+        assert n == x & y
+        n = x
+        n |= y
+        assert n == x | y
+        n = x
+        n ^= y
+        assert n == x ^ y
+
+def check_invert(x: int) -> None:
+    # Use eval() as the source of truth
+    assert ~x == eval('~{}'.format(x))
+    assert ~(-x) == eval('~({})'.format(-x))
+
+def test_invert() -> None:
+    check_invert(0)
+    check_invert(1)
+    check_invert(DIGIT0a)
+    check_invert(DIGIT0a + DIGIT1a)
+    check_invert(DIGIT0a + DIGIT1a + DIGIT2a)
+    check_invert(DIGIT0a + DIGIT1a + DIGIT2a + DIGIT50)
+    check_invert(BIG_SHORT)
+    for delta in -1, 0, 1:
+        check_invert(MAX_SHORT + delta)
+        check_invert(MIN_SHORT + delta)
+        check_invert(MAX_SHORT_32 + delta)
+        check_invert(MIN_SHORT_32 + delta)
+
+def check_right_shift(x: int, n: int) -> None:
+    if n < 0:
+        try:
+            x >> n
+        except ValueError:
+            return
+        assert False, "no exception raised"
+    # Use eval() as the source of truth
+    expected = eval('{} >> {}'.format(x, n))
+    actual = x >> n
+    assert actual == expected, "{} >> {}: got {}, expected {}".format(x, n, actual, expected)
+
+def test_right_shift() -> None:
+    for x in 0, 1, 1235, DIGIT0a, DIGIT0a + DIGIT1a, DIGIT0a + DIGIT50:
+        for n in 0, 1, 2, 3, 4, 10, 40, 10000, DIGIT1a, -1, -1334444, -DIGIT1a:
+            check_right_shift(x, n)
+            check_right_shift(-x, n)
+    x = DIGIT0a
+    x >>= 1
+    assert x == DIGIT0a >> 1
+    x = DIGIT50
+    x >>= 5
+    assert x == DIGIT50 >> 5
+    for i in range(256):
+        check_right_shift(1, i)
+        check_right_shift(137, i)
+        check_right_shift(MAX_SHORT, i)
+        check_right_shift(MAX_SHORT_32, i)
+        check_right_shift(MAX_SHORT + 1, i)
+        check_right_shift(MAX_SHORT_32 + 1, i)
+    for x in 1, DIGIT50:
+        try:
+            # It's okay if this raises an exception
+            assert x >> DIGIT2a == 0
+        except Exception:
+            pass
+        try:
+            x >> -DIGIT2a
+            assert False
+        except Exception:
+            pass
+
+def check_left_shift(x: int, n: int) -> None:
+    if n < 0:
+        try:
+            x << n
+        except ValueError:
+            return
+        assert False, "no exception raised"
+    # Use eval() as the source of truth
+    expected = eval('{} << {}'.format(x, n))
+    actual = x << n
+    assert actual == expected, "{} << {}: got {}, expected {}".format(x, n, actual, expected)
+
+def test_left_shift() -> None:
+    for x in 0, 1, 1235, DIGIT0a, DIGIT0a + DIGIT1a, DIGIT0a + DIGIT50:
+        for n in 0, 1, 2, 10, 40, 10000, -1, -1334444:
+            check_left_shift(x, n)
+            check_left_shift(-x, n)
+    x = DIGIT0a
+    x <<= 1
+    assert x == DIGIT0a << 1
+    x = DIGIT50
+    x <<= 5
+    assert x == DIGIT50 << 5
+    for shift in range(256):
+        check_left_shift(1, shift)
+        check_left_shift(137, shift)
+    for x in 1, DIGIT50:
+        try:
+            x << DIGIT50
+            assert False
+        except Exception:
+            pass
+        try:
+            x << -DIGIT50
+            assert False
+        except Exception:
+            pass
+
+def is_true(x: int) -> bool:
+    if x:
+        return True
+    else:
+        return False
+
+def is_false(x: int) -> bool:
+    if not x:
+        return True
+    else:
+        return False
+
+def test_int_as_bool() -> None:
+    assert not is_true(0)
+    assert is_false(0)
+    for x in 1, 55, -1, -7, 1 << 50, 1 << 101, -(1 << 50), -(1 << 101):
+        assert is_true(x)
+        assert not is_false(x)

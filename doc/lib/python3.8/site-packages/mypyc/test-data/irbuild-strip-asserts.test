@@ -1,0 +1,15 @@
+[case testStripAssert1]
+def g():
+  x = 1 + 2
+  assert x < 5
+  return x
+[out]
+def g():
+    r0 :: int
+    r1, x :: object
+L0:
+    r0 = CPyTagged_Add(2, 4)
+    r1 = box(int, r0)
+    x = r1
+    return x
+

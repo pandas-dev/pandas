@@ -96,7 +96,6 @@ programming language.
             :text: To the development guide
             :classes: btn-block btn-secondary stretched-link
 
-
 {% if single_doc and single_doc.endswith('.rst') -%}
 .. toctree::
     :maxdepth: 3

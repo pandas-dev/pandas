@@ -1,0 +1,161 @@
+[case testStrSplit]
+from typing import Optional, List
+
+def do_split(s: str, sep: Optional[str] = None, max_split: Optional[int] = None) -> List[str]:
+    if sep is not None:
+        if max_split is not None:
+            return s.split(sep, max_split)
+        else:
+            return s.split(sep)
+    return s.split()
+[out]
+def do_split(s, sep, max_split):
+    s :: str
+    sep :: union[str, None]
+    max_split :: union[int, None]
+    r0, r1, r2 :: object
+    r3, r4 :: bit
+    r5 :: object
+    r6, r7 :: bit
+    r8 :: str
+    r9 :: int
+    r10 :: list
+    r11 :: str
+    r12, r13 :: list
+L0:
+    if is_error(sep) goto L1 else goto L2
+L1:
+    r0 = box(None, 1)
+    sep = r0
+L2:
+    if is_error(max_split) goto L3 else goto L4
+L3:
+    r1 = box(None, 1)
+    max_split = r1
+L4:
+    r2 = box(None, 1)
+    r3 = sep == r2
+    r4 = r3 ^ 1
+    if r4 goto L5 else goto L9 :: bool
+L5:
+    r5 = box(None, 1)
+    r6 = max_split == r5
+    r7 = r6 ^ 1
+    if r7 goto L6 else goto L7 :: bool
+L6:
+    r8 = cast(str, sep)
+    r9 = unbox(int, max_split)
+    r10 = CPyStr_Split(s, r8, r9)
+    return r10
+L7:
+    r11 = cast(str, sep)
+    r12 = PyUnicode_Split(s, r11, -1)
+    return r12
+L8:
+L9:
+    r13 = PyUnicode_Split(s, 0, -1)
+    return r13
+
+[case testStrEquality]
+def eq(x: str, y: str) -> bool:
+    return x == y
+
+def neq(x: str, y: str) -> bool:
+    return x != y
+
+[out]
+def eq(x, y):
+    x, y :: str
+    r0 :: int32
+    r1 :: bit
+    r2 :: object
+    r3, r4, r5 :: bit
+L0:
+    r0 = PyUnicode_Compare(x, y)
+    r1 = r0 == -1
+    if r1 goto L1 else goto L3 :: bool
+L1:
+    r2 = PyErr_Occurred()
+    r3 = r2 != 0
+    if r3 goto L2 else goto L3 :: bool
+L2:
+    r4 = CPy_KeepPropagating()
+L3:
+    r5 = r0 == 0
+    return r5
+def neq(x, y):
+    x, y :: str
+    r0 :: int32
+    r1 :: bit
+    r2 :: object
+    r3, r4, r5 :: bit
+L0:
+    r0 = PyUnicode_Compare(x, y)
+    r1 = r0 == -1
+    if r1 goto L1 else goto L3 :: bool
+L1:
+    r2 = PyErr_Occurred()
+    r3 = r2 != 0
+    if r3 goto L2 else goto L3 :: bool
+L2:
+    r4 = CPy_KeepPropagating()
+L3:
+    r5 = r0 != 0
+    return r5
+
+[case testStrReplace]
+from typing import Optional
+
+def do_replace(s: str, old_substr: str, new_substr: str, max_count: Optional[int] = None) -> str: 
+    if max_count is not None: 
+        return s.replace(old_substr, new_substr, max_count) 
+    else: 
+        return s.replace(old_substr, new_substr) 
+[out]
+def do_replace(s, old_substr, new_substr, max_count): 
+    s, old_substr, new_substr :: str 
+    max_count :: union[int, None] 
+    r0, r1 :: object 
+    r2, r3 :: bit 
+    r4 :: int 
+    r5, r6 :: str 
+L0: 
+    if is_error(max_count) goto L1 else goto L2 
+L1: 
+    r0 = box(None, 1) 
+    max_count = r0 
+L2: 
+    r1 = box(None, 1) 
+    r2 = max_count == r1 
+    r3 = r2 ^ 1 
+    if r3 goto L3 else goto L4 :: bool 
+L3: 
+    r4 = unbox(int, max_count) 
+    r5 = CPyStr_Replace(s, old_substr, new_substr, r4) 
+    return r5 
+L4: 
+    r6 = PyUnicode_Replace(s, old_substr, new_substr, -1) 
+    return r6 
+L5: 
+    unreachable 
+    
+[case testStrToBool]
+def is_true(x: str) -> bool:
+    if x:
+        return True
+    else:
+        return False
+[out]
+def is_true(x):
+    x :: str
+    r0 :: bit
+L0:
+    r0 = CPyStr_IsTrue(x)
+    if r0 goto L1 else goto L2 :: bool
+L1:
+    return 1
+L2:
+    return 0
+L3:
+    unreachable
+

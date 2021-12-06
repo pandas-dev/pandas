@@ -1,0 +1,52 @@
+-- Test cases for Python 3.8 features
+
+[case testWalrus1]
+from typing import Optional
+
+def foo(x: int) -> Optional[int]:
+    if x < 0:
+        return None
+    return x
+
+def test(x: int) -> str:
+    if (n := foo(x)) is not None:
+        return str(x)
+    else:
+        return "<fail>"
+
+[file driver.py]
+from native import test
+
+assert test(10) == "10"
+assert test(-1) == "<fail>"
+
+
+[case testWalrus2]
+from typing import Optional, Tuple, List
+
+class Node:
+    def __init__(self, val: int, next: Optional['Node']) -> None:
+        self.val = val
+        self.next = next
+
+def pairs(nobe: Optional[Node]) -> List[Tuple[int, int]]:
+    if nobe is None:
+        return []
+    l = []
+    while next := nobe.next:
+        l.append((nobe.val, next.val))
+        nobe = next
+    return l
+
+def make(l: List[int]) -> Optional[Node]:
+    cur: Optional[Node] = None
+    for x in reversed(l):
+        cur = Node(x, cur)
+    return cur
+
+[file driver.py]
+from native import Node, make, pairs
+
+assert pairs(make([1,2,3])) == [(1,2), (2,3)]
+assert pairs(make([1])) == []
+assert pairs(make([])) == []

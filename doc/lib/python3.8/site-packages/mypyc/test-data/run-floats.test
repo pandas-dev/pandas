@@ -1,0 +1,20 @@
+[case testStrToFloat]
+def str_to_float(x: str) -> float:
+    return float(x)
+
+[file driver.py]
+from native import str_to_float
+
+assert str_to_float("1") == 1.0
+assert str_to_float("1.234567") == 1.234567
+assert str_to_float("44324") == 44324.0
+assert str_to_float("23.4") == 23.4
+assert str_to_float("-43.44e-4") == -43.44e-4
+
+[case testFloatAbs]
+def test_abs() -> None:
+    assert abs(0.0) == 0.0
+    assert abs(-1.234567) == 1.234567
+    assert abs(44324.732) == 44324.732
+    assert abs(-23.4) == 23.4
+    assert abs(-43.44e-4) == 43.44e-4

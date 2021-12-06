@@ -270,7 +270,9 @@ html_favicon = "../../web/pandas/static/img/favicon.ico"
 # html_use_smartypants = True
 
 # Custom sidebar templates, maps document names to template names.
-# html_sidebars = {}
+# html_sidebars = {
+#     
+# }
 
 # Additional templates that should be rendered to pages, maps page names to
 # template names.
@@ -351,7 +353,6 @@ header = f"""\
    import os
    os.chdir(r'{os.path.dirname(os.path.dirname(__file__))}')
 """
-
 
 html_context = {
     "redirects": {old: new for old, new in moved_api_pages},

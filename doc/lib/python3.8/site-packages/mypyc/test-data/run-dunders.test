@@ -1,0 +1,314 @@
+# Test cases for (some) dunder methods (compile and run)
+
+[case testDundersMisc]
+# Legacy test case for dunders (don't add more here)
+
+from typing import Any
+class Item:
+    def __init__(self, value: str) -> None:
+        self.value = value
+
+    def __hash__(self) -> int:
+        return hash(self.value)
+
+    def __eq__(self, rhs: object) -> bool:
+        return isinstance(rhs, Item) and self.value == rhs.value
+
+    def __lt__(self, x: 'Item') -> bool:
+        return self.value < x.value
+
+class Subclass1(Item):
+    def __bool__(self) -> bool:
+        return bool(self.value)
+
+class NonBoxedThing:
+    def __getitem__(self, index: Item) -> Item:
+        return Item("2 * " + index.value + " + 1")
+
+class BoxedThing:
+    def __getitem__(self, index: int) -> int:
+        return 2 * index + 1
+
+class Subclass2(BoxedThing):
+    pass
+
+class UsesNotImplemented:
+    def __eq__(self, b: object) -> bool:
+        return NotImplemented
+
+def index_into(x : Any, y : Any) -> Any:
+    return x[y]
+
+def internal_index_into() -> None:
+    x = BoxedThing()
+    print (x[3])
+    y = NonBoxedThing()
+    z = Item("3")
+    print(y[z].value)
+
+def is_truthy(x: Item) -> bool:
+    return True if x else False
+
+[file driver.py]
+from native import *
+x = BoxedThing()
+y = 3
+print(x[y], index_into(x, y))
+
+x = Subclass2()
+y = 3
+print(x[y], index_into(x, y))
+
+z = NonBoxedThing()
+w = Item("3")
+print(z[w].value, index_into(z, w).value)
+
+i1 = Item('lolol')
+i2 = Item('lol' + 'ol')
+i3 = Item('xyzzy')
+assert hash(i1) == hash(i2)
+
+assert i1 == i2
+assert not i1 != i2
+assert not i1 == i3
+assert i1 != i3
+assert i2 < i3
+assert not i1 < i2
+assert i1 == Subclass1('lolol')
+
+assert is_truthy(Item(''))
+assert is_truthy(Item('a'))
+assert not is_truthy(Subclass1(''))
+assert is_truthy(Subclass1('a'))
+
+assert UsesNotImplemented() != object()
+
+internal_index_into()
+[out]
+7 7
+7 7
+2 * 3 + 1 2 * 3 + 1
+7
+2 * 3 + 1
+
+[case testDundersContainer]
+# Sequence/mapping dunder methods
+
+from typing import Any
+
+class Seq:
+    def __init__(self) -> None:
+        self.key = 0
+        self.value = 0
+
+    def __len__(self) -> int:
+        return 5
+
+    def __setitem__(self, key: int, value: int) -> None:
+        self.key = key
+        self.value = value
+
+    def __contains__(self, x: int) -> bool:
+        return x == 3
+
+    def __delitem__(self, key: int) -> None:
+        self.key = key
+
+class Plain: pass
+
+def any_seq() -> Any:
+    """Return Any-typed Seq."""
+    return Seq()
+
+def any_plain() -> Any:
+    """Return Any-typed Seq."""
+    return Plain()
+
+def test_len() -> None:
+    assert len(any_seq()) == 5
+    assert len(Seq()) == 5
+
+def test_len_error() -> None:
+    try:
+        len(any_plain())
+    except TypeError:
+        pass
+    else:
+        assert False
+
+def test_set_item() -> None:
+    s = any_seq()
+    s[44] = 66
+    assert s.key == 44 and s.value == 66
+    ss = Seq()
+    ss[33] = 55
+    assert ss.key == 33 and ss.value == 55
+
+def test_contains() -> None:
+    assert 3 in any_seq()
+    assert 4 not in any_seq()
+    assert 2 not in any_seq()
+    assert 3 in Seq()
+    assert 4 not in Seq()
+    assert 2 not in Seq()
+
+def test_delitem() -> None:
+    s = any_seq()
+    del s[55]
+    assert s.key == 55
+
+class SeqAny:
+    def __contains__(self, x: Any) -> Any:
+        return x == 3
+
+    def __setitem__(self, x: Any, y: Any) -> Any:
+        self.x = x
+        return 'x'
+
+def test_contains_any() -> None:
+    assert (3 in SeqAny()) is True
+    assert (2 in SeqAny()) is False
+    assert (3 not in SeqAny()) is False
+    assert (2 not in SeqAny()) is True
+    s = SeqAny()  # type: Any
+    assert (3 in s) is True
+    assert (2 in s) is False
+    assert (3 not in s) is False
+    assert (2 not in s) is True
+
+def test_set_item_any() -> None:
+    s = SeqAny()
+    s[4] = 6
+    assert s.x == 4
+    ss = SeqAny()  # type: Any
+    ss[5] = 7
+    assert ss.x == 5
+
+class SeqError:
+    def __setitem__(self, key: int, value: int) -> None:
+        raise RuntimeError()
+
+    def __contains__(self, x: int) -> bool:
+        raise RuntimeError()
+
+    def __len__(self):
+        return -5
+
+def any_seq_error() -> Any:
+    return SeqError()
+
+def test_set_item_error_propagate() -> None:
+    s = any_seq_error()
+    try:
+        s[44] = 66
+    except RuntimeError:
+        pass
+    else:
+        assert False
+
+def test_contains_error_propagate() -> None:
+    s = any_seq_error()
+    try:
+        3 in s
+    except RuntimeError:
+        pass
+    else:
+        assert False
+
+def test_negative_len() -> None:
+    try:
+        len(SeqError())
+    except ValueError:
+        pass
+    else:
+        assert False
+
+class DelItemNoSetItem:
+    def __delitem__(self, x: int) -> None:
+        self.key = x
+
+def test_del_item_with_no_set_item() -> None:
+    o = DelItemNoSetItem()
+    del o[22]
+    assert o.key == 22
+    a = o  # type: Any
+    del a[12]
+    assert a.key == 12
+    try:
+        a[1] = 2
+    except TypeError as e:
+        assert str(e) == "'DelItemNoSetItem' object does not support item assignment"
+    else:
+        assert False
+
+class SetItemOverride(dict):
+    # Only override __setitem__, __delitem__ comes from dict
+
+    def __setitem__(self, x: int, y: int) -> None:
+        self.key = x
+        self.value = y
+
+def test_set_item_override() -> None:
+    o = SetItemOverride({'x': 12, 'y': 13})
+    o[2] = 3
+    assert o.key == 2 and o.value == 3
+    a = o  # type: Any
+    o[4] = 5
+    assert o.key == 4 and o.value == 5
+    assert o['x'] == 12
+    assert o['y'] == 13
+    del o['x']
+    assert 'x' not in o and 'y' in o
+    del a['y']
+    assert 'y' not in a and 'x' not in a
+
+class DelItemOverride(dict):
+    # Only override __delitem__, __setitem__ comes from dict
+
+    def __delitem__(self, x: int) -> None:
+        self.key = x
+
+def test_del_item_override() -> None:
+    o = DelItemOverride()
+    del o[2]
+    assert o.key == 2
+    a = o  # type: Any
+    del o[5]
+    assert o.key == 5
+    o['x'] = 12
+    assert o['x'] == 12
+    a['y'] = 13
+    assert a['y'] == 13
+
+class SetItemOverrideNative(Seq):
+    def __setitem__(self, key: int, value: int) -> None:
+        self.key = key + 1
+        self.value = value + 1
+
+def test_native_set_item_override() -> None:
+    o = SetItemOverrideNative()
+    o[1] = 4
+    assert o.key == 2 and o.value == 5
+    del o[6]
+    assert o.key == 6
+    a = o  # type: Any
+    a[10] = 12
+    assert a.key == 11 and a.value == 13
+    del a[16]
+    assert a.key == 16
+
+class DelItemOverrideNative(Seq):
+    def __delitem__(self, key: int) -> None:
+        self.key = key + 2
+
+def test_native_del_item_override() -> None:
+    o = DelItemOverrideNative()
+    o[1] = 4
+    assert o.key == 1 and o.value == 4
+    del o[6]
+    assert o.key == 8
+    a = o  # type: Any
+    a[10] = 12
+    assert a.key == 10 and a.value == 12
+    del a[16]
+    assert a.key == 18

@@ -1,0 +1,180 @@
+# Test cases for strings (compile and run)
+
+[case testStr]
+from typing import Tuple
+def f() -> str:
+    return 'some string'
+def g() -> str:
+    return 'some\a \v \t \x7f " \n \0string 🐍'
+def tostr(x: int) -> str:
+    return str(x)
+def booltostr(x: bool) -> str:
+    return str(x)
+def concat(x: str, y: str) -> str:
+    return x + y
+def eq(x: str) -> int:
+    if x == 'foo':
+        return 0
+    elif x != 'bar':
+        return 1
+    return 2
+def match(x: str, y: str) -> Tuple[bool, bool]:
+    return (x.startswith(y), x.endswith(y))
+
+[file driver.py]
+from native import f, g, tostr, booltostr, concat, eq, match
+import sys
+
+assert f() == 'some string'
+assert f() is sys.intern('some string')
+assert g() == 'some\a \v \t \x7f " \n \0string 🐍'
+assert tostr(57) == '57'
+assert concat('foo', 'bar') == 'foobar'
+assert booltostr(True) == 'True'
+assert booltostr(False) == 'False'
+assert eq('foo') == 0
+assert eq('zar') == 1
+assert eq('bar') == 2
+
+assert int(tostr(0)) == 0
+assert int(tostr(20)) == 20
+assert match('', '') == (True, True)
+assert match('abc', '') == (True, True)
+assert match('abc', 'a') == (True, False)
+assert match('abc', 'c') == (False, True)
+assert match('', 'abc') == (False, False)
+
+[case testStringOps]
+from typing import List, Optional
+
+var = 'mypyc'
+
+num = 20
+
+def test_fstring_simple() -> None:
+    f1 = f'Hello {var}, this is a test'
+    assert f1 == "Hello mypyc, this is a test"
+
+def test_fstring_conversion() -> None:
+    f2 = f'Hello {var!r}'
+    assert f2 == "Hello 'mypyc'"
+    f3 = f'Hello {var!a}'
+    assert f3 == "Hello 'mypyc'"
+    f4 = f'Hello {var!s}'
+    assert f4 == "Hello mypyc"
+
+def test_fstring_align() -> None:
+    f5 = f'Hello {var:>20}'
+    assert f5 == "Hello                mypyc"
+    f6 = f'Hello {var!r:>20}'
+    assert f6 == "Hello              'mypyc'"
+    f7 = f'Hello {var:>{num}}'
+    assert f7 == "Hello                mypyc"
+    f8 = f'Hello {var!r:>{num}}'
+    assert f8 == "Hello              'mypyc'"
+
+def test_fstring_multi() -> None:
+    f9 = f'Hello {var}, hello again {var}'
+    assert f9 == "Hello mypyc, hello again mypyc"
+
+def do_split(s: str, sep: Optional[str] = None, max_split: Optional[int] = None) -> List[str]:
+    if sep is not None:
+        if max_split is not None:
+            return s.split(sep, max_split)
+        else:
+            return s.split(sep)
+    return s.split()
+
+ss = "abc abcd abcde abcdef"
+
+def test_split() -> None:
+    assert do_split(ss) == ["abc", "abcd", "abcde", "abcdef"]
+    assert do_split(ss, " ") == ["abc", "abcd", "abcde", "abcdef"]
+    assert do_split(ss, "-") == ["abc abcd abcde abcdef"]
+    assert do_split(ss, " ", -1) == ["abc", "abcd", "abcde", "abcdef"]
+    assert do_split(ss, " ", 0) == ["abc abcd abcde abcdef"]
+    assert do_split(ss, " ", 1) == ["abc", "abcd abcde abcdef"]
+    assert do_split(ss, " ", 2) == ["abc", "abcd", "abcde abcdef"]
+
+def getitem(s: str, index: int) -> str:
+    return s[index]
+
+from testutil import assertRaises
+
+s = "abc"
+
+def test_getitem() -> None:
+    assert getitem(s, 0) == "a"
+    assert getitem(s, 1) == "b"
+    assert getitem(s, 2) == "c"
+    assert getitem(s, -3) == "a"
+    assert getitem(s, -2) == "b"
+    assert getitem(s, -1) == "c"
+    with assertRaises(IndexError, "string index out of range"):
+        getitem(s, 4)
+    with assertRaises(IndexError, "string index out of range"):
+        getitem(s, -4)
+
+def str_to_int(s: str, base: Optional[int] = None) -> int:
+    if base:
+        return int(s, base)
+    else:
+        return int(s)
+
+def test_str_to_int() -> None:
+    assert str_to_int("1") == 1
+    assert str_to_int("10") == 10
+    assert str_to_int("a", 16) == 10
+    assert str_to_int("1a", 16) == 26
+    with assertRaises(ValueError, "invalid literal for int() with base 10: 'xyz'"):
+        str_to_int("xyz")
+
+def test_slicing() -> None:
+    # Use dummy adds to avoid constant folding
+    zero = int()
+    two = zero + 2
+    s = "foobar" + str()
+    assert s[two:] == "obar"
+    assert s[:two] == "fo"
+    assert s[two:-two] == "ob"
+    assert s[two:two] == ""
+    assert s[two:two + 1] == "o"
+    assert s[-two:] == "ar"
+    assert s[:-two] == "foob"
+    assert s[:] == "foobar"
+    assert s[two:333] == "obar"
+    assert s[333:two] == ""
+    assert s[two:-333] == ""
+    assert s[-333:two] == "fo"
+    big_int: int = 1000 * 1000 * 1000 * 1000 * 1000 * 1000 * 1000
+    assert s[1:big_int] == "oobar"
+    assert s[big_int:] == ""
+    assert s[-big_int:-1] == "fooba"
+
+def test_str_replace() -> None:
+    a = "foofoofoo"
+    assert a.replace("foo", "bar") == "barbarbar"
+    assert a.replace("foo", "bar", -1) == "barbarbar"
+    assert a.replace("foo", "bar", 1) == "barfoofoo"
+    assert a.replace("foo", "bar", 4) == "barbarbar"
+    assert a.replace("aaa", "bar") == "foofoofoo"
+    assert a.replace("ofo", "xyzw") == "foxyzwxyzwo"
+
+def is_true(x: str) -> bool:
+    if x:
+        return True
+    else:
+        return False
+
+def is_false(x: str) -> bool:
+    if not x:
+        return True
+    else:
+        return False
+
+def test_str_to_bool() -> None:
+    assert is_false('')
+    assert not is_true('')
+    for x in 'a', 'foo', 'bar', 'some string':
+        assert is_true(x)
+        assert not is_false(x)

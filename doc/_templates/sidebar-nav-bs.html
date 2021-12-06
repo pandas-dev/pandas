@@ -1,9 +1,45 @@
-<nav class="bd-links" id="bd-docs-nav" aria-label="Main navigation">
-  <div class="bd-toc-item active">
-    {% if pagename.startswith("reference") %}
-    {{ generate_nav_html("sidebar", maxdepth=4, collapse=True, includehidden=True, titles_only=True) }}
-    {% else %}
-    {{ generate_nav_html("sidebar", maxdepth=4, collapse=False, includehidden=True, titles_only=True) }}
-    {% endif %}
-  </div>
-</nav>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+  
+  <script type="text/javascript">
+    /* This method gets the current href of the source doc link, appends the
+     * path of the github source doc page after "source/" and replaces the .html
+     * extension with .rst. This combined new href will take the user to the 
+     * source documentation on Github where they can edit the docs.
+     */
+    function get_and_set_href() {
+      let url = window.location.href;
+      let link = document.getElementById("source_doc_link");
+      let curr_href = link.getAttribute('href');
+      
+      let path = url.substring(url.lastIndexOf("source/") + 7, url.lastIndexOf(".html"))
+      let extension = ".rst"
+      
+      link.setAttribute('href', curr_href + path + extension)
+    }
+  </script>
+
+  <nav class="bd-links" id="bd-docs-nav" aria-label="Main navigation">
+    <div class="bd-toc-item active">
+      {% if pagename.startswith("reference") %}
+      {{ generate_nav_html("sidebar", maxdepth=4, collapse=True, includehidden=True, titles_only=True) }}
+      {% else %}
+      {{ generate_nav_html("sidebar", maxdepth=4, collapse=False, includehidden=True, titles_only=True) }}
+      {% endif %}
+      <div>
+        <a id="source_doc_link" class="d-flex align-items-center" 
+           style="padding-left:15px;" onclick="get_and_set_href()" 
+           href="https://github.com/pandas-dev/pandas/tree/master/doc/source/">
+           Source Documentation</a>
+      </div>
+    </div>
+  </nav>
+
+</body>
+</html>
