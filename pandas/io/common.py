@@ -18,6 +18,7 @@ from io import (
 import mmap
 import os
 from pathlib import Path
+import tarfile
 import tempfile
 from typing import (
     IO,
@@ -520,6 +521,9 @@ def infer_compression(
             # Cannot infer compression of a buffer, assume no compression
             return None
 
+        if ".tar" in filepath_or_buffer:
+            return "tar"
+
         # Infer compression from the filename/URL extension
         for compression, extension in _compression_to_extension.items():
             if filepath_or_buffer.lower().endswith(extension):
@@ -746,6 +750,21 @@ def get_handle(
                         "Multiple files found in ZIP file. "
                         f"Only one file per ZIP: {zip_names}"
                     )
+
+        # TAR Encoding
+        elif compression == "tar":
+            tar = tarfile.open(handle, "r:*")
+            handles.append(tar)
+            files = tar.getnames()
+            if len(files) == 1:
+                handle = tar.extractfile(files[0])
+            elif len(files) == 0:
+                raise ValueError(f"Zero files found in TAR archive {path_or_buf}")
+            else:
+                raise ValueError(
+                    "Multiple files found in TAR archive. "
+                    f"Only one file per TAR archive: {files}"
+                )
 
         # XZ Compression
         elif compression == "xz":
