@@ -27,7 +27,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
--
+- Fixed bug where a single column ``np.matrix`` was no longer coerced to a 1d ``np.ndarray`` when added to a :class:`DataFrame` (:issue:`42376`)
 -
 
 .. ---------------------------------------------------------------------------
