@@ -527,7 +527,7 @@ class BaseArrayManager(DataManager):
         if deep:
             new_arrays = [arr.copy() for arr in self.arrays]
         else:
-            new_arrays = self.arrays
+            new_arrays = list(self.arrays)
         return type(self)(new_arrays, new_axes, verify_integrity=False)
 
     def reindex_indexer(
