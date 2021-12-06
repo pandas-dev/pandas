@@ -1806,9 +1806,7 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
                 value, limit, inplace, downcast
             )
 
-        values = self.values
-        values = values if inplace else values.copy()
-        new_values = values.fillna(value=value, limit=limit)
+        new_values = self.values.fillna(value=value, limit=limit)
         return [self.make_block_same_class(values=new_values)]
 
 
