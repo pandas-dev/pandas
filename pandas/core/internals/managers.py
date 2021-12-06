@@ -1425,7 +1425,14 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         new_columns = unstacker.get_new_columns(self.items)
         new_index = unstacker.new_index
 
-        allow_fill = not unstacker.mask.all()
+        allow_fill = not unstacker.mask_all
+        if allow_fill:
+            # calculating the full mask once and passing it to Block._unstack is
+            #  faster than letting calculating it in each repeated call
+            new_mask2D = (~unstacker.mask).reshape(*unstacker.full_shape)
+            needs_masking = new_mask2D.any(axis=0)
+        else:
+            needs_masking = np.zeros(unstacker.full_shape[1], dtype=bool)
 
         new_blocks: list[Block] = []
         columns_mask: list[np.ndarray] = []
@@ -1445,7 +1452,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 unstacker,
                 fill_value,
                 new_placement=new_placement,
-                allow_fill=allow_fill,
+                needs_masking=needs_masking,
             )
 
             new_blocks.extend(blocks)
