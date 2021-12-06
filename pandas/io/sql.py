@@ -22,9 +22,8 @@ from typing import (
 )
 import warnings
 
-from sqlalchemy.sql.expression import text
-
 import numpy as np
+from sqlalchemy.sql.expression import text
 
 import pandas._libs.lib as lib
 from pandas._typing import DtypeArg
