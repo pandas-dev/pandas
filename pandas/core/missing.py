@@ -23,6 +23,7 @@ from pandas._typing import (
     ArrayLike,
     Axis,
     F,
+    FillnaOptions,
     npt,
 )
 from pandas.compat._optional import import_optional_dependency
@@ -983,18 +984,17 @@ def _rolling_window(a: npt.NDArray[np.bool_], window: int) -> npt.NDArray[np.boo
 
 
 def _maybe_downcast(arr: np.ndarray, downcast=None):
-    if arr.dtype == np.dtype(object):
-        if downcast is None:
-            arr = soft_convert_objects(arr, datetime=True, numeric=False)
+    if arr.dtype == np.dtype(object) and downcast is None:
+        return soft_convert_objects(arr, datetime=True, numeric=False)
 
     if downcast:
-        arr = maybe_downcast_to_dtype(arr, downcast)
+        return maybe_downcast_to_dtype(arr, downcast)
     return arr
 
 
 def interpolate_array(
     arr: ArrayLike,
-    method: str = "pad",
+    method: FillnaOptions = "pad",
     axis: int = 0,
     index: Index | None = None,
     inplace: bool = False,
