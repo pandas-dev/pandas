@@ -188,7 +188,7 @@ BREAK_INT_LOOP:
     ds->lastType = JT_INT;
     ds->start = offset;
 
-    if (intNeg == 1 && (intValue & 0x8000000000000000ULL) != 0) {
+    if (intNeg == 1 && (intValue & 0x8000000000000000ULL) != 0)
         return ds->dec->newUnsignedLong(ds->prv, intValue);
     else if ((intValue >> 31))
         return ds->dec->newLong(ds->prv, (JSINT64)(intValue * (JSINT64)intNeg));
