@@ -278,11 +278,7 @@ def test_reduce(values, box, request):
             # ATM Index casts to object, so we get python ints/floats
             same_type = False
 
-    if values.dtype == "i8" and box is pd.array:
-        # FIXME: pd.array casts to Int64
-        obj = values
-    else:
-        obj = box(values)
+    obj = box(values)
 
     result = np.maximum.reduce(obj)
     expected = values[1]

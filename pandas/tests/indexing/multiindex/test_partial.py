@@ -170,28 +170,6 @@ class TestMultiIndexPartial:
                 mi.get_value(ser, 14)
 
     # ---------------------------------------------------------------------
-    # AMBIGUOUS CASES!
-
-    def test_partial_loc_missing(self, multiindex_year_month_day_dataframe_random_data):
-        pytest.skip("skipping for now")
-
-        ymd = multiindex_year_month_day_dataframe_random_data
-        result = ymd.loc[2000, 0]
-        expected = ymd.loc[2000]["A"]
-        tm.assert_series_equal(result, expected)
-
-        # need to put in some work here
-        # FIXME: dont leave commented-out
-        # self.ymd.loc[2000, 0] = 0
-        # assert (self.ymd.loc[2000]['A'] == 0).all()
-
-        # Pretty sure the second (and maybe even the first) is already wrong.
-        with pytest.raises(KeyError, match="6"):
-            ymd.loc[(2000, 6)]
-        with pytest.raises(KeyError, match="(2000, 6)"):
-            ymd.loc[(2000, 6), 0]
-
-    # ---------------------------------------------------------------------
 
     def test_setitem_multiple_partial(self, multiindex_dataframe_random_data):
         frame = multiindex_dataframe_random_data

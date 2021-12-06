@@ -113,12 +113,6 @@ class TestConvert:
         result = ser._convert(datetime=True)
         tm.assert_series_equal(result, ser)
 
-        # FIXME: dont leave commented-out
-        # res = ser.copy()
-        # res[0] = np.nan
-        # result = res._convert(datetime=True, numeric=False)
-        # assert result.dtype == 'M8[ns]'
-
     def test_convert_no_arg_error(self):
         ser = Series(["1.0", "2"])
         msg = r"At least one of datetime, numeric or timedelta must be True\."
