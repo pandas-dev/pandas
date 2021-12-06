@@ -128,7 +128,7 @@ def test_constructor_copy():
     arr = np.array([0, 1])
     result = PandasArray(arr, copy=True)
 
-    assert np.shares_memory(result._ndarray, arr) is False
+    assert not tm.shares_memory(result, arr)
 
 
 def test_constructor_with_data(any_numpy_array):
