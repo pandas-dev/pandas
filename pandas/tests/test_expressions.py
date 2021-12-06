@@ -115,13 +115,13 @@ class TestExpressions:
         ],
     )
     @pytest.mark.parametrize("flex", [True, False])
-    @pytest.mark.parametrize("arith", ["gt", "lt", "ge", "le", "eq", "ne"])
-    def test_run_binary(self, df, flex, arith):
+    def test_run_binary(self, df, flex, comparison_op):
         """
         tests solely that the result is the same whether or not numexpr is
         enabled.  Need to test whether the function does the correct thing
         elsewhere.
         """
+        arith = comparison_op.__name__
         set_option("compute.use_numexpr", False)
         other = df.copy() + 1
         set_option("compute.use_numexpr", True)
@@ -348,14 +348,14 @@ class TestExpressions:
         result = test_input.loc[:, ["a", "dtype"]].ne(test_input.loc[:, ["a", "dtype"]])
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("df", [_frame])
     @pytest.mark.parametrize(
         "arith", ("add", "sub", "mul", "mod", "truediv", "floordiv")
     )
     @pytest.mark.parametrize("axis", (0, 1))
-    def test_frame_series_axis(self, df, axis, arith):
+    def test_frame_series_axis(self, axis, arith):
         # GH#26736 Dataframe.floordiv(Series, axis=1) fails
 
+        df = _frame
         if axis == 1:
             other = df.iloc[0, :]
         else:
