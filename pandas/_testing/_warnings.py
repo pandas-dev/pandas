@@ -153,9 +153,8 @@ def _assert_caught_no_extra_warnings(
                 "unclosed transport <asyncio.sslproto._SSLProtocolTransport",
                 "unclosed <ssl.SSLSocket",
             )
-            if (
-                actual_warning.category == ResourceWarning
-                and str(actual_warning.message) in unclosed_ssl
+            if actual_warning.category == ResourceWarning and any(
+                msg in str(actual_warning.message) for msg in unclosed_ssl
             ):
                 # FIXME(GH#38630): kludge because pytest.filterwarnings does not
                 #  suppress these
