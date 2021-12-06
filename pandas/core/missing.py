@@ -46,7 +46,6 @@ from pandas.core.dtypes.missing import (
 
 if TYPE_CHECKING:
     from pandas import Index
-    from pandas.core.arrays import ExtensionArray
 
 
 def check_value_size(value, mask: np.ndarray, length: int):
@@ -994,7 +993,7 @@ def _maybe_downcast(arr: np.ndarray, downcast=None):
 
 
 def interpolate_array(
-    arr: np.ndarray | ExtensionArray,
+    arr: ArrayLike,
     method: str = "pad",
     axis: int = 0,
     index: Index | None = None,
@@ -1006,7 +1005,7 @@ def interpolate_array(
     coerce: bool = False,
     downcast: str | None = None,
     **kwargs,
-) -> np.ndarray | ExtensionArray:
+) -> ArrayLike:
 
     inplace = validate_bool_kwarg(inplace, "inplace")
 
