@@ -690,6 +690,8 @@ class TestDataFrameSetItem:
         a = np.ones((10, 1))
         df = DataFrame(index=np.arange(10))
         df["np-array"] = a
+
+        # Instantiation of `np.matrix` gives PendingDeprecationWarning
         with tm.assert_produces_warning(PendingDeprecationWarning):
             df["np-matrix"] = np.matrix(a)
 
