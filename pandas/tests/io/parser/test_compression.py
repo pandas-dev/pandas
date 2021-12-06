@@ -162,6 +162,14 @@ def test_invalid_compression(all_parsers, invalid_compression):
         parser.read_csv("test_file.zip", **compress_kwargs)
 
 
+@skip_pyarrow
+def test_compression_tar_archive(all_parsers, csv_dir_path):
+    parser = all_parsers
+    path = os.path.join(csv_dir_path, "tar_csv.tar.gz")
+    df = parser.read_csv(path)
+    assert list(df.columns) == ["a"]
+
+
 def test_ignore_compression_extension(all_parsers):
     parser = all_parsers
     df = DataFrame({"a": [0, 1]})
