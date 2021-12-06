@@ -680,6 +680,8 @@ class TestDataFrameSetItem:
         )
         tm.assert_frame_equal(result, expected)
 
+    # TODO(ArrayManager) set column with 2d column array, see #44788
+    @td.skip_array_manager_not_yet_implemented
     def test_setitem_npmatrix_2d(self):
         # GH#42376
         # for use-case df["x"] = sparse.random(10, 10).mean(axis=1)
