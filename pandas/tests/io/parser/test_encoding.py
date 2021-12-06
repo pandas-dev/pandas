@@ -202,9 +202,6 @@ def test_encoding_named_temp_file(all_parsers):
     parser = all_parsers
     encoding = "shift-jis"
 
-    if parser.engine == "python":
-        pytest.skip("NamedTemporaryFile does not work with Python engine")
-
     title = "てすと"
     data = "こむ"
 
@@ -302,11 +299,15 @@ def test_readcsv_memmap_utf8(all_parsers):
     tm.assert_frame_equal(df, dfr)
 
 
-def test_not_readable(all_parsers):
+def test_not_readable(all_parsers, request):
     # GH43439
     parser = all_parsers
     if parser.engine in ("python", "pyarrow"):
-        pytest.skip("SpooledTemporaryFile does only work with the c-engine")
+        mark = pytest.mark.xfail(
+            reason="SpooledTemporaryFile does only work with the c-engine"
+        )
+        request.node.add_marker(mark)
+
     with tempfile.SpooledTemporaryFile() as handle:
         handle.write(b"abcd")
         handle.seek(0)
