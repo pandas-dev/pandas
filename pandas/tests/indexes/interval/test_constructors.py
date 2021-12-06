@@ -178,9 +178,6 @@ class ConstructorTests:
     @pytest.mark.parametrize("cat_constructor", [Categorical, CategoricalIndex])
     def test_constructor_categorical_valid(self, constructor, cat_constructor):
         # GH 21243/21253
-        if isinstance(constructor, partial) and constructor.func is Index:
-            # Index is defined to create CategoricalIndex from categorical data
-            pytest.skip()
 
         breaks = np.arange(10, dtype="int64")
         expected = IntervalIndex.from_breaks(breaks)
