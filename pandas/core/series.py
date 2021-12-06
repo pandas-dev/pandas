@@ -3897,7 +3897,7 @@ Keep all original rows and also all original values
             Whether to copy underlying data."""
         ),
         examples=dedent(
-            """
+            """\
         Examples
         --------
         >>> s = pd.Series(

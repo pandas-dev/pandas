@@ -6790,7 +6790,7 @@ class DataFrame(NDFrame, OpsMixin):
             'columns' for column-wise."""
         ),
         examples=dedent(
-            """
+            """\
         Examples
         --------
         >>> df = pd.DataFrame(
