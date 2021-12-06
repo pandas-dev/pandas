@@ -528,7 +528,6 @@ def _get_empty_dtype(join_units: Sequence[JoinUnit]) -> DtypeObj:
         return blk.dtype
 
     if _is_uniform_reindex(join_units):
-        # FIXME: integrate property
         empty_dtype = join_units[0].block.dtype
         return empty_dtype
 
