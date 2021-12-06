@@ -225,11 +225,13 @@ def interpolate_array_2d(
     coerce: bool = False,
     downcast: str | None = None,
     **kwargs,
-) -> np.ndarray:
+) -> None:
     """
     Wrapper to dispatch to either interpolate_2d or _interpolate_2d_with_fill.
 
-    Returned ndarray has same dtype as 'data'.
+    Notes
+    -----
+    Alters 'data' in-place.
     """
     try:
         m = clean_fill_method(method)
@@ -248,11 +250,10 @@ def interpolate_array_2d(
             limit=limit,
             limit_area=limit_area,
         )
-        interp_values = data
     else:
         assert index is not None  # for mypy
 
-        interp_values = _interpolate_2d_with_fill(
+        _interpolate_2d_with_fill(
             data=data,
             index=index,
             axis=axis,
@@ -263,7 +264,7 @@ def interpolate_array_2d(
             fill_value=fill_value,
             **kwargs,
         )
-    return interp_values
+    return
 
 
 def _interpolate_2d_with_fill(
@@ -276,13 +277,15 @@ def _interpolate_2d_with_fill(
     limit_area: str | None = None,
     fill_value: Any | None = None,
     **kwargs,
-) -> np.ndarray:
+) -> None:
     """
     Column-wise application of _interpolate_1d.
 
     Notes
     -----
-    The signature does differs from _interpolate_1d because it only
+    Alters 'data' in-place.
+
+    The signature does differ from _interpolate_1d because it only
     includes what is needed for Block.interpolate.
     """
     # validate the interp method
@@ -322,12 +325,10 @@ def _interpolate_2d_with_fill(
 
     indices = _index_to_interp_indices(index, method)
 
-    def func(yvalues: np.ndarray) -> np.ndarray:
-        # process 1-d slices in the axis direction, returning it
+    def func(yvalues: np.ndarray) -> None:
+        # process 1-d slices in the axis direction
 
-        # should the axis argument be handled below in apply_along_axis?
-        # i.e. not an arg to _interpolate_1d
-        return _interpolate_1d(
+        _interpolate_1d(
             indices=indices,
             yvalues=yvalues,
             method=method,
@@ -340,7 +341,8 @@ def _interpolate_2d_with_fill(
         )
 
     # interp each column independently
-    return np.apply_along_axis(func, axis, data)
+    np.apply_along_axis(func, axis, data)
+    return
 
 
 def _index_to_interp_indices(index: Index, method: str) -> np.ndarray:
@@ -378,23 +380,25 @@ def _interpolate_1d(
     **kwargs,
 ):
     """
-    Logic for the 1-d interpolation.  The result should be 1-d, inputs
+    Logic for the 1-d interpolation.  The input
     indices and yvalues will each be 1-d arrays of the same length.
 
     Bounds_error is currently hardcoded to False since non-scipy ones don't
     take it as an argument.
+
+    Notes
+    -----
+    Fills 'yvalues' in-place.
     """
 
     invalid = isna(yvalues)
     valid = ~invalid
 
     if not valid.any():
-        result = np.empty(indices.shape, dtype=np.float64)
-        result.fill(np.nan)
-        return result
+        return
 
     if valid.all():
-        return yvalues
+        return
 
     # These are sets of index pointers to invalid values... i.e. {0, 1, etc...
     all_nans = set(np.flatnonzero(invalid))
@@ -440,17 +444,15 @@ def _interpolate_1d(
     # sort preserve_nans and convert to list
     preserve_nans = sorted(preserve_nans)
 
-    result = yvalues.copy()
-
     if method in NP_METHODS:
         # np.interp requires sorted X values, #21037
 
         indexer = np.argsort(indices[valid])
-        result[invalid] = np.interp(
+        yvalues[invalid] = np.interp(
             indices[invalid], indices[valid][indexer], yvalues[valid][indexer]
         )
     else:
-        result[invalid] = _interpolate_scipy_wrapper(
+        yvalues[invalid] = _interpolate_scipy_wrapper(
             indices[valid],
             yvalues[valid],
             indices[invalid],
@@ -461,8 +463,8 @@ def _interpolate_1d(
             **kwargs,
         )
 
-    result[preserve_nans] = np.nan
-    return result
+    yvalues[preserve_nans] = np.nan
+    return
 
 
 def _interpolate_scipy_wrapper(
@@ -1006,7 +1008,6 @@ def fillna_ea_array(values, value, limit=None, inplace: bool = False, downcast=N
         values = values.astype(object)
         return fillna_array(values, value, limit=limit, inplace=True, downcast=downcast)
 
-    values = values if inplace else values.copy()
     return values.fillna(value, limit=limit)
 
 
