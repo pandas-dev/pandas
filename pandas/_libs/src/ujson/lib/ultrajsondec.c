@@ -127,9 +127,8 @@ JSOBJ FASTCALL_MSVC decode_numeric(struct DecoderState *ds) {
 
     JSUINT64 overflowLimit = LLONG_MAX;
 
-    if (*(offset) == '-')
-    {
-        offset ++;
+    if (*(offset) == '-') {
+        offset++;
         intNeg = -1;
         overflowLimit  = LLONG_MIN;
     }
@@ -151,20 +150,18 @@ JSOBJ FASTCALL_MSVC decode_numeric(struct DecoderState *ds) {
             case '7':
             case '8':
             case '9': {
-                //PERF: Don't do 64-bit arithmetic here unless we know we have to
+                // PERF: Don't do 64-bit arithmetic here unless we have to
                 prevIntValue = intValue;
                 intValue = intValue * 10ULL + (JSLONG) (chr - 48);
 
-                if (intNeg == 1 && prevIntValue > intValue)
-                {
-                return SetError(ds, -1, "Value is too big!");
-                }
-                else if (intNeg == -1 && intValue > overflowLimit)
-                {
-                return SetError(ds, -1, overflowLimit == LLONG_MAX ? "Value is too big!" : "Value is too small");
+                if (intNeg == 1 && prevIntValue > intValue) {
+                    return SetError(ds, -1, "Value is too big!");
+                } else if (intNeg == -1 && intValue > overflowLimit) {
+                    return SetError(ds, -1, overflowLimit == LLONG_MAX ?
+                                    "Value is too big!" : "Value is too small");
                 }
 
-                offset ++;
+                offset++;
                 break;
             }
             case '.': {
@@ -191,18 +188,12 @@ BREAK_INT_LOOP:
     ds->lastType = JT_INT;
     ds->start = offset;
 
-    if (intNeg == 1 && (intValue & 0x8000000000000000ULL) != 0)
-    {
+    if (intNeg == 1 && (intValue & 0x8000000000000000ULL) != 0) {
         return ds->dec->newUnsignedLong(ds->prv, intValue);
-    }
     else if ((intValue >> 31))
-    {
-        return ds->dec->newLong(ds->prv, (JSINT64) (intValue * (JSINT64) intNeg));
-    }
+        return ds->dec->newLong(ds->prv, (JSINT64)(intValue * (JSINT64)intNeg));
     else
-    {
-        return ds->dec->newInt(ds->prv, (JSINT32) (intValue * intNeg));
-    }
+        return ds->dec->newInt(ds->prv, (JSINT32)(intValue * intNeg));
 
 DECODE_FRACTION:
 
