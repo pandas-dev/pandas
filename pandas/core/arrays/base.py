@@ -1355,8 +1355,7 @@ class ExtensionArray:
         meth = getattr(self, name, None)
         if meth is None:
             raise TypeError(
-                f"'{type(self).__name__}' with dtype {self.dtype} "
-                f"does not support reduction '{name}'"
+                f"reduction '{name}' is not supported for data with dtype {self.dtype}"
             )
         return meth(skipna=skipna, **kwargs)
 
