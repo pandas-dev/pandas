@@ -1031,7 +1031,7 @@ def interpolate_array(
 
     data = arr if inplace else arr.copy()
 
-    interp_values = interpolate_array_2d(
+    interpolate_array_2d(
         data,
         method=method,
         axis=axis,
@@ -1043,4 +1043,4 @@ def interpolate_array(
         **kwargs,
     )
 
-    return _maybe_downcast(interp_values, downcast)
+    return _maybe_downcast(data, downcast)
