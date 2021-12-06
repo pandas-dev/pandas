@@ -116,8 +116,8 @@ JSOBJ FASTCALL_MSVC decodePreciseFloat(struct DecoderState *ds) {
 
 JSOBJ FASTCALL_MSVC decode_numeric(struct DecoderState *ds) {
     int intNeg = 1;
-    char charCount = 0;
     JSUINT64 intValue;
+    JSUINT64 prevIntValue;
     int chr;
     int decimalCount = 0;
     double frcValue = 0.0;
@@ -125,19 +125,13 @@ JSOBJ FASTCALL_MSVC decode_numeric(struct DecoderState *ds) {
     double expValue;
     char *offset = ds->start;
 
-    JSUINT64 signedOverflowLimit = LLONG_MAX;
+    JSUINT64 overflowLimit = LLONG_MAX;
 
-    if (*(offset) == 'I') {
-      goto DECODE_INF;
-    } else if (*(offset) == 'N') {
-      goto DECODE_NAN;
-    } else if (*(offset) == '-') {
-        offset++;
+    if (*(offset) == '-')
+    {
+        offset ++;
         intNeg = -1;
-        if (*(offset) == 'I') {
-          goto DECODE_INF;
-        }
-        signedOverflowLimit = LLONG_MAX + 1;
+        overflowLimit  = LLONG_MIN;
     }
 
     // Scan integer part
@@ -157,32 +151,20 @@ JSOBJ FASTCALL_MSVC decode_numeric(struct DecoderState *ds) {
             case '7':
             case '8':
             case '9': {
-                JSUINT64 newContribution = (JSUINT64)(chr - 48);
+                //PERF: Don't do 64-bit arithmetic here unless we know we have to
+                prevIntValue = intValue;
+                intValue = intValue * 10ULL + (JSLONG) (chr - 48);
 
-                // check overflow when unsigned
-                // 2**64 = 18_446_744_073_709_551_616
-                if (charCount > 18 && intNeg == 1) {
-                    if (intValue > (ULLONG_MAX - newContribution) / 10)
-                        return SetError(ds, -1,
-                        "unsigned long long overflow: Value is too big");
+                if (intNeg == 1 && prevIntValue > intValue)
+                {
+                return SetError(ds, -1, "Value is too big!");
+                }
+                else if (intNeg == -1 && intValue > overflowLimit)
+                {
+                return SetError(ds, -1, overflowLimit == LLONG_MAX ? "Value is too big!" : "Value is too small");
                 }
 
-                intValue = intValue * 10ULL + newContribution;
-
-                // check overflow when signed
-                // 2**63 = 9_223_372_036_854_775_807
-                if (charCount > 17 && intNeg == -1) {
-                    if (intValue > signedOverflowLimit) {
-                        return SetError(ds, -1, signedOverflowLimit == LLONG_MAX
-                                                    ? "Value is too big"
-                                                    : "Value is too small");
-                    }
-                }
-
-                if (intValue != 0)
-                    charCount++;
-
-                offset++;
+                offset ++;
                 break;
             }
             case '.': {
@@ -209,16 +191,17 @@ BREAK_INT_LOOP:
     ds->lastType = JT_INT;
     ds->start = offset;
 
-    if ((intValue >> 31)) {
-        if (intNeg == 1)
-            return ds->dec->newUnsignedLong(ds->prv, intValue);
-        else
-            return ds->dec->newLong(ds->prv, (JSINT64)(-intValue));
-    } else {
-        if (intNeg == 1)
-            return ds->dec->newInt(ds->prv, intValue);
-        else
-            return ds->dec->newInt(ds->prv, (JSINT32)(-intValue));
+    if (intNeg == 1 && (intValue & 0x8000000000000000ULL) != 0)
+    {
+        return ds->dec->newUnsignedLong(ds->prv, intValue);
+    }
+    else if ((intValue >> 31))
+    {
+        return ds->dec->newLong(ds->prv, (JSINT64) (intValue * (JSINT64) intNeg));
+    }
+    else
+    {
+        return ds->dec->newInt(ds->prv, (JSINT32) (intValue * intNeg));
     }
 
 DECODE_FRACTION:

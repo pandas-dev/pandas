@@ -598,13 +598,13 @@ class TestUltraJSONTests:
             np.array(long_input), ujson.decode(output, numpy=True, dtype=np.int64)
         )
 
-    def test_encode_long_conversion(self):
-        for long_input in [9223372036854775807, 18446744073709551615]:
-            output = ujson.encode(long_input)
+    @pytest.mark.parametrize("long_input", [9223372036854775807, 18446744073709551615])
+    def test_encode_long_conversion(self, long_input):
+        output = ujson.encode(long_input)
 
-            assert long_input == json.loads(output)
-            assert output == json.dumps(long_input)
-            assert long_input == ujson.decode(output)
+        assert long_input == json.loads(output)
+        assert output == json.dumps(long_input)
+        assert long_input == ujson.decode(output)
 
     @pytest.mark.parametrize("bigNum", [2 ** 64, -(2 ** 63) - 1])
     def test_dumps_ints_larger_than_maxsize(self, bigNum):
@@ -613,7 +613,7 @@ class TestUltraJSONTests:
 
         with pytest.raises(
             ValueError,
-            match="unsigned long long overflow: Value is too big|Value is too small",
+            match="Value is too big|Value is too small",
         ):
             assert ujson.loads(encoding) == bigNum
 
@@ -1164,7 +1164,7 @@ class TestPandasJSONTests:
     def test_decode_too_extreme_numbers(self, too_extreme_num):
         with pytest.raises(
             ValueError,
-            match="unsigned long long overflow: Value is too big|Value is too small",
+            match="Value is too big|Value is too small",
         ):
             ujson.decode(too_extreme_num)
 
@@ -1179,7 +1179,7 @@ class TestPandasJSONTests:
     def test_decode_array_with_big_int(self, value):
         with pytest.raises(
             ValueError,
-            match="unsigned long long overflow: Value is too big|Value is too small",
+            match="Value is too big|Value is too small",
         ):
             ujson.loads(value)
 
