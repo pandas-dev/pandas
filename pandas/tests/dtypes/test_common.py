@@ -393,14 +393,14 @@ def test_is_not_unsigned_integer_dtype(dtype):
     assert not com.is_unsigned_integer_dtype(dtype)
 
 
-def test_type_comparison_with_numeric_ea_dtype(any_numeric_ea_dtype):
-    # GH#43038
-    assert pandas_dtype(any_numeric_ea_dtype) == any_numeric_ea_dtype
-
-
 def test_type_comparison_with_real_numpy_dtype(any_real_numpy_dtype):
     # GH#43038
     assert pandas_dtype(any_real_numpy_dtype) == any_real_numpy_dtype
+
+
+def test_type_comparison_with_numeric_ea_dtype(any_numeric_ea_dtype):
+    # GH#43038
+    assert pandas_dtype(any_numeric_ea_dtype) == any_numeric_ea_dtype
 
 
 def test_type_comparison_with_signed_int_ea_dtype_and_signed_int_numpy_dtype(
