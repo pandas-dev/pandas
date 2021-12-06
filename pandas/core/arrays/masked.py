@@ -783,13 +783,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return out
 
     def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
-        if name in {"any", "all"}:
+        if name in {"any", "all", "min", "max", "sum", "prod"}:
             return getattr(self, name)(skipna=skipna, **kwargs)
 
         data = self._data
         mask = self._mask
 
-        if name in {"sum", "prod", "min", "max", "mean"}:
+        if name in {"mean"}:
             op = getattr(masked_reductions, name)
             result = op(data, mask, skipna=skipna, **kwargs)
             return result
@@ -799,6 +799,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if self._hasna:
             data = self.to_numpy("float64", na_value=np.nan)
 
+        # median, var, std, skew, kurt, idxmin, idxmax
         op = getattr(nanops, "nan" + name)
         result = op(data, axis=0, skipna=skipna, mask=mask, **kwargs)
 
@@ -806,6 +807,66 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             return libmissing.NA
 
         return result
+
+    def _wrap_reduction_result(self, name: str, result, skipna, **kwargs):
+        if isinstance(result, np.ndarray):
+            axis = kwargs["axis"]
+            if skipna:
+                # we only retain mask for all-NA rows/columns
+                mask = self._mask.all(axis=axis)
+            else:
+                mask = self._mask.any(axis=axis)
+
+            return self._maybe_mask_result(result, mask, other=None, op_name=name)
+        return result
+
+    def sum(self, *, skipna=True, min_count=0, axis: int | None = 0, **kwargs):
+        nv.validate_sum((), kwargs)
+
+        # TODO: do this in validate_sum?
+        if "out" in kwargs:
+            # np.sum; test_floating_array_numpy_sum
+            if kwargs["out"] is not None:
+                raise NotImplementedError
+            kwargs.pop("out")
+
+        result = masked_reductions.sum(
+            self._data,
+            self._mask,
+            skipna=skipna,
+            min_count=min_count,
+            axis=axis,
+            **kwargs,
+        )
+        return self._wrap_reduction_result(
+            "sum", result, skipna=skipna, axis=axis, **kwargs
+        )
+
+    def prod(self, *, skipna=True, min_count=0, axis: int | None = 0, **kwargs):
+        nv.validate_prod((), kwargs)
+        result = masked_reductions.prod(
+            self._data,
+            self._mask,
+            skipna=skipna,
+            min_count=min_count,
+            axis=axis,
+            **kwargs,
+        )
+        return self._wrap_reduction_result(
+            "prod", result, skipna=skipna, axis=axis, **kwargs
+        )
+
+    def min(self, *, skipna=True, axis: int | None = 0, **kwargs):
+        nv.validate_min((), kwargs)
+        return masked_reductions.min(
+            self._data, self._mask, skipna=skipna, axis=axis, **kwargs
+        )
+
+    def max(self, *, skipna=True, axis: int | None = 0, **kwargs):
+        nv.validate_max((), kwargs)
+        return masked_reductions.max(
+            self._data, self._mask, skipna=skipna, axis=axis, **kwargs
+        )
 
     def any(self, *, skipna: bool = True, **kwargs):
         """
