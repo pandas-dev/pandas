@@ -334,7 +334,10 @@ class TestResetIndex:
             index=["A", "B"],
         )
         df.index.name = name
-        result = df.reset_index()
+ 
+        with tm.assert_produces_warning(warn):
+            result = df.reset_index()
+
         item = name if name is not None else "index"
         columns = Index([item, datetime(2013, 1, 1), datetime(2013, 1, 2)])
         if isinstance(item, str) and item == "2012-12-31":
@@ -365,6 +368,11 @@ class TestResetIndex:
         df = DataFrame([[0, 2], [1, 3]], columns=MultiIndex.from_tuples(levels))
         result = df[["B"]].rename_axis("A").reset_index()
         tm.assert_frame_equal(result, df)
+
+        # GH#16120: already existing column
+        msg = r"cannot insert \('A', ''\), already exists"
+        with pytest.raises(ValueError, match=msg):
+            df.rename_axis("A").reset_index()
 
         # GH#16164: multiindex (tuple) full key
         result = df.set_index([("A", "")]).reset_index()

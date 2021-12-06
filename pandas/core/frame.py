@@ -5839,11 +5839,7 @@ class DataFrame(NDFrame, OpsMixin):
                     )
 
                 new_obj.insert(
-                    0,
-                    name,
-                    level_values,
-                    allow_duplicates=self.flags.allows_duplicate_labels,
-                )
+                new_obj.insert(0, name, level_values)
 
         new_obj.index = new_index
         if not inplace:
