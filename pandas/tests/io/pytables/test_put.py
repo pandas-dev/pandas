@@ -351,7 +351,7 @@ def test_store_multiindex(setup_path):
             columns=["a", "b"],
             index=make_index(["date", "a", "t"]),
         )
-        msg = "cannot reindex on an axis with duplicate labels"
+        msg = "duplicate names/columns in the multi-index when storing as a table"
         with pytest.raises(ValueError, match=msg):
             store.append("df", df)
 

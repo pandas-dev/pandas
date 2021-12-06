@@ -328,13 +328,21 @@ class TestResetIndex:
     )
     def test_reset_index_with_datetimeindex_cols(self, name):
         # GH#5818
+        warn = None
+        if isinstance(name, Timestamp) and name.tz is not None:
+            # _deprecate_mismatched_indexing
+            warn = FutureWarning
+
         df = DataFrame(
             [[1, 2], [3, 4]],
             columns=date_range("1/1/2013", "1/2/2013"),
             index=["A", "B"],
         )
         df.index.name = name
-        result = df.reset_index()
+
+        with tm.assert_produces_warning(warn):
+            result = df.reset_index()
+
         item = name if name is not None else "index"
         columns = Index([item, datetime(2013, 1, 1), datetime(2013, 1, 2)])
         if isinstance(item, str) and item == "2012-12-31":
@@ -366,8 +374,13 @@ class TestResetIndex:
         result = df[["B"]].rename_axis("A").reset_index()
         tm.assert_frame_equal(result, df)
 
+        # GH#16120: already existing column
+        msg = r"cannot insert \('A', ''\), already exists"    
+        with pytest.raises(ValueError, match=msg):
+            df.rename_axis("A").reset_index()    
+
         # GH#44755 reset_index with duplicate column labels
-        result = df.rename_axis("A").reset_index()
+        result = df.rename_axis("A").reset_index(allow_duplicates=True)
         levels = [["A", ""], ["A", ""], ["B", "b"]]
         expected = DataFrame(
             [[0, 0, 2], [1, 1, 3]], columns=MultiIndex.from_tuples(levels)
