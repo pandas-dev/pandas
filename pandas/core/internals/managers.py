@@ -1452,7 +1452,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 unstacker,
                 fill_value,
                 new_placement=new_placement,
-                allow_fill=allow_fill,
                 needs_masking=needs_masking,
             )
 

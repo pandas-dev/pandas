@@ -1252,7 +1252,6 @@ class Block(PandasObject):
         unstacker,
         fill_value,
         new_placement: npt.NDArray[np.intp],
-        allow_fill: bool,
         needs_masking: npt.NDArray[np.bool_],
     ):
         """
@@ -1675,7 +1674,6 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         unstacker,
         fill_value,
         new_placement: npt.NDArray[np.intp],
-        allow_fill: bool,
         needs_masking: npt.NDArray[np.bool_],
     ):
         # ExtensionArray-safe unstack.
