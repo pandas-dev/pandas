@@ -213,13 +213,18 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         ],
         ids=lambda x: type(x).__name__,
     )
-    def test_numeric_arr_mul_tdscalar_numexpr_path(self, scalar_td, box_with_array):
+    @pytest.mark.parametrize("dtype", [np.int64, np.float64])
+    def test_numeric_arr_mul_tdscalar_numexpr_path(
+        self, dtype, scalar_td, box_with_array
+    ):
+        # GH#44772 for the float64 case
         box = box_with_array
 
-        arr = np.arange(2 * 10 ** 4).astype(np.int64)
+        arr_i8 = np.arange(2 * 10 ** 4).astype(np.int64, copy=False)
+        arr = arr_i8.astype(dtype, copy=False)
         obj = tm.box_expected(arr, box, transpose=False)
 
-        expected = arr.view("timedelta64[D]").astype("timedelta64[ns]")
+        expected = arr_i8.view("timedelta64[D]").astype("timedelta64[ns]")
         expected = tm.box_expected(expected, box, transpose=False)
 
         result = obj * scalar_td
