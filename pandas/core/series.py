@@ -1379,6 +1379,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             when `drop` is True.
         inplace : bool, default False
             Modify the Series in place (do not create a new object).
+        allow_duplicates : bool, default False
+            Allow duplicate column labels to be created.
 
         Returns
         -------

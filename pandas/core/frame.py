@@ -5668,6 +5668,9 @@ class DataFrame(NDFrame, OpsMixin):
         col_fill : object, default ''
             If the columns have multiple levels, determines how the other
             levels are named. If None then the index name is repeated.
+        allow_duplicates : bool or None, default False
+            Allow duplicate column labels to be created.
+            If None take value from self.flags.allows_duplicate_labels.
 
         Returns
         -------
