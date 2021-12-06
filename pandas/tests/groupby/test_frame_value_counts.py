@@ -412,18 +412,24 @@ def test_mixed_groupings(normalize, expected_label, expected_values):
         ("level", ["a", None, "d", "b", "c", "level_1"]),
     ],
 )
-def test_column_name_clashes(test, expected_names):
+@pytest.mark.parametrize("as_index", [False, True])
+def test_column_name_clashes(test, expected_names, as_index):
     df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6], "d": [7, 8], "e": [9, 10]})
     if test == "repeat":
         df.columns = list("abbde")
     else:
         df.columns = list("abcd") + ["level_1"]
-    result = df.groupby(["a", [0, 1], "d"]).value_counts()
-    expected = Series(
-        data=(1, 1),
-        index=MultiIndex.from_tuples(
-            [(1, 0, 7, 3, 5, 9), (2, 1, 8, 4, 6, 10)],
-            names=expected_names,
-        ),
-    )
-    tm.assert_series_equal(result, expected)
+
+    if as_index:
+        result = df.groupby(["a", [0, 1], "d"], as_index=as_index).value_counts()
+        expected = Series(
+            data=(1, 1),
+            index=MultiIndex.from_tuples(
+                [(1, 0, 7, 3, 5, 9), (2, 1, 8, 4, 6, 10)],
+                names=expected_names,
+            ),
+        )
+        tm.assert_series_equal(result, expected)
+    else:
+        with pytest.raises(ValueError, match="cannot insert"):
+            df.groupby(["a", [0, 1], "d"], as_index=as_index).value_counts()
