@@ -1066,7 +1066,7 @@ class Index(IndexOpsMixin, PandasObject):
     ):
         if kwargs:
             nv.validate_take((), kwargs)
-        if np.isscalar(indices):
+        if is_scalar(indices):
             raise TypeError("Expected indices to be array-like")
         indices = ensure_platform_int(indices)
         allow_fill = self._maybe_disallow_fill(allow_fill, fill_value, indices)

@@ -71,7 +71,8 @@ class TestTake:
                 index.freq
 
     def test_take_indexer_type(self):
-        integer_index = Int64Index([0, 1, 2, 3])
+        # GH#42875
+        integer_index = Index([0, 1, 2, 3])
         scalar_index = 1
         msg = "Expected indices to be array-like"
         with pytest.raises(TypeError, match=msg):
