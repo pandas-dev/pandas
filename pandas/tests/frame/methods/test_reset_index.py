@@ -375,9 +375,9 @@ class TestResetIndex:
         tm.assert_frame_equal(result, df)
 
         # GH#16120: already existing column
-        msg = r"cannot insert \('A', ''\), already exists"    
+        msg = r"cannot insert \('A', ''\), already exists"
         with pytest.raises(ValueError, match=msg):
-            df.rename_axis("A").reset_index()    
+            df.rename_axis("A").reset_index()
 
         # GH#44755 reset_index with duplicate column labels
         result = df.rename_axis("A").reset_index(allow_duplicates=True)

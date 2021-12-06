@@ -1350,7 +1350,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         )
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "level"])
-    def reset_index(self, level=None, drop=False, name=lib.no_default, inplace=False, allow_duplicates: bool = False):
+    def reset_index(
+        self,
+        level=None,
+        drop=False,
+        name=lib.no_default,
+        inplace=False,
+        allow_duplicates: bool = False,
+    ):
         """
         Generate a new DataFrame or Series with the index reset.
 
@@ -1488,7 +1495,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     name = self.name
 
             df = self.to_frame(name)
-            return df.reset_index(level=level, drop=drop, allow_duplicates=allow_duplicates)
+            return df.reset_index(
+                level=level, drop=drop, allow_duplicates=allow_duplicates
+            )
 
     # ----------------------------------------------------------------------
     # Rendering Methods
