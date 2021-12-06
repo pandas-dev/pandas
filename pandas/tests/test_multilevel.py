@@ -48,31 +48,28 @@ class TestMultiLevel:
         expected = ymd.groupby(level="month").transform(np.sum).T
         tm.assert_frame_equal(result, expected)
 
-    def test_binops_level(self, multiindex_year_month_day_dataframe_random_data):
+    @pytest.mark.parametrize("opname", ["sub", "add", "mul", "div"])
+    def test_binops_level(
+        self, opname, multiindex_year_month_day_dataframe_random_data
+    ):
         ymd = multiindex_year_month_day_dataframe_random_data
 
-        def _check_op(opname):
-            op = getattr(DataFrame, opname)
-            with tm.assert_produces_warning(FutureWarning):
-                month_sums = ymd.sum(level="month")
-            result = op(ymd, month_sums, level="month")
+        op = getattr(DataFrame, opname)
+        with tm.assert_produces_warning(FutureWarning):
+            month_sums = ymd.sum(level="month")
+        result = op(ymd, month_sums, level="month")
 
-            broadcasted = ymd.groupby(level="month").transform(np.sum)
-            expected = op(ymd, broadcasted)
-            tm.assert_frame_equal(result, expected)
+        broadcasted = ymd.groupby(level="month").transform(np.sum)
+        expected = op(ymd, broadcasted)
+        tm.assert_frame_equal(result, expected)
 
-            # Series
-            op = getattr(Series, opname)
-            result = op(ymd["A"], month_sums["A"], level="month")
-            broadcasted = ymd["A"].groupby(level="month").transform(np.sum)
-            expected = op(ymd["A"], broadcasted)
-            expected.name = "A"
-            tm.assert_series_equal(result, expected)
-
-        _check_op("sub")
-        _check_op("add")
-        _check_op("mul")
-        _check_op("div")
+        # Series
+        op = getattr(Series, opname)
+        result = op(ymd["A"], month_sums["A"], level="month")
+        broadcasted = ymd["A"].groupby(level="month").transform(np.sum)
+        expected = op(ymd["A"], broadcasted)
+        expected.name = "A"
+        tm.assert_series_equal(result, expected)
 
     def test_reindex(self, multiindex_dataframe_random_data):
         frame = multiindex_dataframe_random_data
@@ -235,25 +232,25 @@ class TestMultiLevel:
 
         tm.assert_frame_equal(leftside, rightside)
 
-    def test_std_var_pass_ddof(self):
+    @pytest.mark.parametrize("meth", ["var", "std"])
+    def test_std_var_pass_ddof(self, meth):
         index = MultiIndex.from_arrays(
             [np.arange(5).repeat(10), np.tile(np.arange(10), 5)]
         )
         df = DataFrame(np.random.randn(len(index), 5), index=index)
 
-        for meth in ["var", "std"]:
-            ddof = 4
-            alt = lambda x: getattr(x, meth)(ddof=ddof)
+        ddof = 4
+        alt = lambda x: getattr(x, meth)(ddof=ddof)
 
-            with tm.assert_produces_warning(FutureWarning):
-                result = getattr(df[0], meth)(level=0, ddof=ddof)
-            expected = df[0].groupby(level=0).agg(alt)
-            tm.assert_series_equal(result, expected)
+        with tm.assert_produces_warning(FutureWarning):
+            result = getattr(df[0], meth)(level=0, ddof=ddof)
+        expected = df[0].groupby(level=0).agg(alt)
+        tm.assert_series_equal(result, expected)
 
-            with tm.assert_produces_warning(FutureWarning):
-                result = getattr(df, meth)(level=0, ddof=ddof)
-            expected = df.groupby(level=0).agg(alt)
-            tm.assert_frame_equal(result, expected)
+        with tm.assert_produces_warning(FutureWarning):
+            result = getattr(df, meth)(level=0, ddof=ddof)
+        expected = df.groupby(level=0).agg(alt)
+        tm.assert_frame_equal(result, expected)
 
     def test_agg_multiple_levels(
         self, multiindex_year_month_day_dataframe_random_data, frame_or_series
@@ -283,9 +280,6 @@ class TestMultiLevel:
 
         result2 = ymd.groupby(level=ymd.index.names[:2]).mean()
         tm.assert_frame_equal(result, result2)
-
-    def test_groupby_multilevel_with_transform(self):
-        pass
 
     def test_multilevel_consolidate(self):
         index = MultiIndex.from_tuples(
