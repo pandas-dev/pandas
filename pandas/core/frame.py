@@ -4675,7 +4675,11 @@ class DataFrame(NDFrame, OpsMixin):
         new_index, row_indexer = self.index.reindex(axes["index"])
         new_columns, col_indexer = self.columns.reindex(axes["columns"])
 
-        if row_indexer is not None and col_indexer is not None:
+        if (
+            row_indexer is not None
+            and col_indexer is not None
+            and not isinstance(self._mgr, ArrayManager)
+        ):
             # Fastpath. By doing two 'take's at once we avoid making an
             #  unnecessary copy.
             # We only get here with `not self._is_mixed_type`, which (almost)
