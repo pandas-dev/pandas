@@ -846,7 +846,9 @@ class TestNanvarFixedValues:
         # The overestimated variance.
         tm.assert_almost_equal(variance_2, (n - 1.0) / (n - 2.0) * var, rtol=1e-2)
 
-    def test_ground_truth(self):
+    @pytest.mark.parametrize("axis", range(2))
+    @pytest.mark.parametrize("ddof", range(3))
+    def test_ground_truth(self, axis, ddof):
         # Test against values that were precomputed with Numpy.
         samples = np.empty((4, 4))
         samples[:3, :3] = np.array(
@@ -875,26 +877,22 @@ class TestNanvarFixedValues:
         )
 
         # Test nanvar.
-        for axis in range(2):
-            for ddof in range(3):
-                var = nanops.nanvar(samples, skipna=True, axis=axis, ddof=ddof)
-                tm.assert_almost_equal(var[:3], variance[axis, ddof])
-                assert np.isnan(var[3])
+        var = nanops.nanvar(samples, skipna=True, axis=axis, ddof=ddof)
+        tm.assert_almost_equal(var[:3], variance[axis, ddof])
+        assert np.isnan(var[3])
 
         # Test nanstd.
-        for axis in range(2):
-            for ddof in range(3):
-                std = nanops.nanstd(samples, skipna=True, axis=axis, ddof=ddof)
-                tm.assert_almost_equal(std[:3], variance[axis, ddof] ** 0.5)
-                assert np.isnan(std[3])
+        std = nanops.nanstd(samples, skipna=True, axis=axis, ddof=ddof)
+        tm.assert_almost_equal(std[:3], variance[axis, ddof] ** 0.5)
+        assert np.isnan(std[3])
 
-    def test_nanstd_roundoff(self):
+    @pytest.mark.parametrize("ddof", range(3))
+    def test_nanstd_roundoff(self, ddof):
         # Regression test for GH 10242 (test data taken from GH 10489). Ensure
         # that variance is stable.
         data = Series(766897346 * np.ones(10))
-        for ddof in range(3):
-            result = data.std(ddof=ddof)
-            assert result == 0.0
+        result = data.std(ddof=ddof)
+        assert result == 0.0
 
     @property
     def prng(self):
@@ -959,12 +957,12 @@ class TestNankurtFixedValues:
         self.samples = np.sin(np.linspace(0, 1, 200))
         self.actual_kurt = -1.2058303433799713
 
-    def test_constant_series(self):
+    @pytest.mark.parametrize("val", [3075.2, 3075.3, 3075.5])
+    def test_constant_series(self, val):
         # xref GH 11974
-        for val in [3075.2, 3075.3, 3075.5]:
-            data = val * np.ones(300)
-            kurt = nanops.nankurt(data)
-            assert kurt == 0.0
+        data = val * np.ones(300)
+        kurt = nanops.nankurt(data)
+        assert kurt == 0.0
 
     def test_all_finite(self):
         alpha, beta = 0.3, 0.1
