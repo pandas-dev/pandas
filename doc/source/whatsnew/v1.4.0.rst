@@ -644,6 +644,7 @@ Numeric
 - Bug in arithmetic operations involving :class:`RangeIndex` where the result would have the incorrect ``name`` (:issue:`43962`)
 - Bug in arithmetic operations involving :class:`Series` where the result could have the incorrect ``name`` when the operands having matching NA or matching tuple names (:issue:`44459`)
 - Bug in division with ``IntegerDtype`` or ``BooleanDtype`` array and NA scalar incorrectly raising (:issue:`44685`)
+- Bug in multiplying a :class:`Series` with ``FloatingDtype`` with a timedelta-like scalar incorrectly raising (:issue:`44772`)
 -
 
 Conversion
