@@ -478,8 +478,9 @@ def read_json(
     compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', 'tar', None}}, default 'infer'
         For on-the-fly decompression of on-disk data. If 'infer', then use
         gzip, bz2, zip, xz or tar if path_or_buf is a string ending in
-        '.gz', '.bz2', '.zip', '.xz' or containing '.tar' respectively, and no decompression
-        otherwise. If using 'zip' or 'tar', the archive must contain only one data
+        '.gz', '.bz2', '.zip', '.xz' or containing '.tar' respectively,
+        and no decompression otherwise.
+        If using 'zip' or 'tar', the archive must contain only one data
         file to be read in. Set to None for no decompression.
 
     nrows : int, optional

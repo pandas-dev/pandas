@@ -3020,11 +3020,13 @@ class DataFrame(NDFrame, OpsMixin):
             layout of elements and attributes from original output. This
             argument requires ``lxml`` to be installed. Only XSLT 1.0
             scripts and not later versions is currently supported.
-        compression : {{'infer', 'gzip', 'bz2', 'zip', 'tar', 'xz', None}}, default 'infer'
+        compression : {{'infer', 'gzip', 'bz2',
+            'zip', 'tar', 'xz', None}}, default 'infer'
             For on-the-fly decompression of on-disk data. If 'infer', then use
             gzip, bz2, zip, xz or tar if path_or_buffer is a string ending in
-            '.gz', '.bz2', '.zip', '.xz' or containing '.tar' respectively, and no decompression
-            otherwise. If using 'zip' or 'tar', the archive must contain only one data
+            '.gz', '.bz2', '.zip', '.xz' or containing '.tar' respectively,
+            and no decompression otherwise.
+            If using 'zip' or 'tar', the archive must contain only one data
             file to be read in. Set to None for no decompression.
         {storage_options}
 
