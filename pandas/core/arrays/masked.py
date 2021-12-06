@@ -836,7 +836,6 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             skipna=skipna,
             min_count=min_count,
             axis=axis,
-            **kwargs,
         )
         return self._wrap_reduction_result(
             "sum", result, skipna=skipna, axis=axis, **kwargs
@@ -850,7 +849,6 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             skipna=skipna,
             min_count=min_count,
             axis=axis,
-            **kwargs,
         )
         return self._wrap_reduction_result(
             "prod", result, skipna=skipna, axis=axis, **kwargs
@@ -859,13 +857,19 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def min(self, *, skipna=True, axis: int | None = 0, **kwargs):
         nv.validate_min((), kwargs)
         return masked_reductions.min(
-            self._data, self._mask, skipna=skipna, axis=axis, **kwargs
+            self._data,
+            self._mask,
+            skipna=skipna,
+            axis=axis,
         )
 
     def max(self, *, skipna=True, axis: int | None = 0, **kwargs):
         nv.validate_max((), kwargs)
         return masked_reductions.max(
-            self._data, self._mask, skipna=skipna, axis=axis, **kwargs
+            self._data,
+            self._mask,
+            skipna=skipna,
+            axis=axis,
         )
 
     def any(self, *, skipna: bool = True, **kwargs):
