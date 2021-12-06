@@ -134,9 +134,9 @@ def read_pickle(
         .. versionchanged:: 1.0.0
            Accept URL. URL is not limited to S3 and GCS.
 
-    compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
+    compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', 'tar', None}}, default 'infer'
         If 'infer' and 'path_or_url' is path-like, then detect compression from
-        the following extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise no
+        the following extensions: '.gz', '.bz2', '.zip', '.tar', or '.xz' (otherwise no
         compression) If 'infer' and 'path_or_url' is not path-like, then use
         None (= no decompression).
 

@@ -68,9 +68,9 @@ class _XMLFrameParser:
         URL, file, file-like object, or a raw string containing XSLT,
         `etree` does not support XSLT but retained for consistency.
 
-    compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
+    compression : {'infer', 'gzip', 'bz2', 'zip', 'tar', 'xz', None}, default 'infer'
         Compression type for on-the-fly decompression of on-disk data.
-        If 'infer', then use extension for gzip, bz2, zip or xz.
+        If 'infer', then use extension for gzip, bz2, zip, tar or xz.
 
     storage_options : dict, optional
         Extra options that make sense for a particular storage connection,
@@ -801,11 +801,11 @@ def read_xml(
         transformation and not the original XML document. Only XSLT 1.0
         scripts and not later versions is currently supported.
 
-    compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
+    compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', 'tar', None}}, default 'infer'
         For on-the-fly decompression of on-disk data. If 'infer', then use
-        gzip, bz2, zip or xz if path_or_buffer is a string ending in
-        '.gz', '.bz2', '.zip', or 'xz', respectively, and no decompression
-        otherwise. If using 'zip', the ZIP file must contain only one data
+        gzip, bz2, zip, xz, or tar if path_or_buffer is a string ending in
+        '.gz', '.bz2', '.zip', '.xz', or containing '.tar' respectively, and no decompression
+        otherwise. If using 'zip' or 'tar', the archive must contain only one data
         file to be read in. Set to None for no decompression.
 
     {storage_options}

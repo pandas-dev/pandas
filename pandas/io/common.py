@@ -263,7 +263,7 @@ def _get_filepath_or_buffer(
     ----------
     filepath_or_buffer : a url, filepath (str, py.path.local or pathlib.Path),
                          or buffer
-    compression : {{'gzip', 'bz2', 'zip', 'xz', None}}, optional
+    compression : {{'gzip', 'bz2', 'zip', 'xz', 'tar', None}}, optional
     encoding : the encoding to use to decode bytes, default is 'utf-8'
     mode : str, optional
 
@@ -497,9 +497,9 @@ def infer_compression(
     ----------
     filepath_or_buffer : str or file handle
         File path or object.
-    compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}
+    compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', 'tar', None}
         If 'infer' and `filepath_or_buffer` is path-like, then detect
-        compression from the following extensions: '.gz', '.bz2', '.zip',
+        compression from the following extensions: '.gz', '.bz2', '.zip', '.tar',
         or '.xz' (otherwise no compression).
 
     Returns
