@@ -419,9 +419,6 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # For MaskedArray inputs, we apply the ufunc to ._data
         # and mask the result.
-        if method == "reduce" and ufunc not in [np.maximum, np.minimum]:
-            # Not clear how to handle missing values in reductions. Raise.
-            raise NotImplementedError("The 'reduce' method is not supported.")
 
         out = kwargs.get("out", ())
 
@@ -481,6 +478,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         result = getattr(ufunc, method)(*inputs2, **kwargs)
         if isinstance(result, tuple):
             return tuple(reconstruct(x) for x in result)
+        elif method == "reduce":
+            # e.g. np.add.reduce; test_ufunc_reduce_raises
+            if self._mask.any():
+                return self._na_value
+            return result
         else:
             return reconstruct(result)
 
