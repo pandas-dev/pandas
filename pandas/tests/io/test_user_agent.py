@@ -39,11 +39,10 @@ class BaseUserAgentResponder(http.server.BaseHTTPRequestHandler):
         """
         some web servers will send back gzipped files to save bandwidth
         """
-        bio = BytesIO()
-        zipper = gzip.GzipFile(fileobj=bio, mode="w")
-        zipper.write(response_bytes)
-        zipper.close()
-        response_bytes = bio.getvalue()
+        with BytesIO() as bio:
+            with gzip.GzipFile(fileobj=bio, mode="w") as zipper:
+                zipper.write(response_bytes)
+            response_bytes = bio.getvalue()
         return response_bytes
 
     def write_back_bytes(self, response_bytes):
