@@ -22,6 +22,8 @@ from typing import (
 )
 import warnings
 
+from sqlalchemy.sql.expression import text
+
 import numpy as np
 
 import pandas._libs.lib as lib
@@ -66,9 +68,15 @@ def _gt14() -> bool:
     return Version(sqlalchemy.__version__) >= Version("1.4.0")
 
 
-def _convert_params(sql, params):
+def _convert_params(sql, params, sqlalchemy=False):
     """Convert SQL and params args to DBAPI2.0 compliant format."""
-    args = [sql]
+    if sqlalchemy:
+        if isinstance(sql, str):
+            args = [text(sql)]
+        else:
+            args = [sql]
+    else:
+        args = [sql]
     if params is not None:
         if hasattr(params, "keys"):  # test if params is a mapping
             args += [params]
@@ -180,7 +188,11 @@ def execute(sql, con, params=None):
     """
     pandas_sql = pandasSQL_builder(con)
     args = _convert_params(sql, params)
-    return pandas_sql.execute(*args)
+    if isinstance(pandas_sql, SQLiteDatabase):
+        return pandas_sql.execute(*args)
+    else:
+        with pandas_sql.run_transaction() as conn:
+            return pandas_sql.execute(conn, *args)
 
 
 # -----------------------------------------------------------------------------
@@ -963,29 +975,30 @@ class SQLTable(PandasObject):
         else:
             sql_select = select(self.table) if _gt14() else self.table.select()
 
-        result = self.pd_sql.execute(sql_select)
-        column_names = result.keys()
+        with self.pd_sql.run_transaction() as conn:
+            result = self.pd_sql.execute(conn, sql_select)
+            column_names = result.keys()
 
-        if chunksize is not None:
-            return self._query_iterator(
-                result,
-                chunksize,
-                column_names,
-                coerce_float=coerce_float,
-                parse_dates=parse_dates,
-            )
-        else:
-            data = result.fetchall()
-            self.frame = DataFrame.from_records(
-                data, columns=column_names, coerce_float=coerce_float
-            )
+            if chunksize is not None:
+                return self._query_iterator(
+                    result,
+                    chunksize,
+                    column_names,
+                    coerce_float=coerce_float,
+                    parse_dates=parse_dates,
+                )
+            else:
+                data = result.fetchall()
+                self.frame = DataFrame.from_records(
+                    data, columns=column_names, coerce_float=coerce_float
+                )
 
-            self._harmonize_columns(parse_dates=parse_dates)
+                self._harmonize_columns(parse_dates=parse_dates)
 
-            if self.index is not None:
-                self.frame.set_index(self.index, inplace=True)
+                if self.index is not None:
+                    self.frame.set_index(self.index, inplace=True)
 
-            return self.frame
+                return self.frame
 
     def _index_name(self, index, index_label):
         # for writing: index=True to include index in sql table
@@ -1367,9 +1380,9 @@ class SQLDatabase(PandasSQL):
         else:
             yield self.connectable
 
-    def execute(self, *args, **kwargs):
+    def execute(self, conn, *args, **kwargs):
         """Simple passthrough to SQLAlchemy connectable"""
-        return self.connectable.execution_options().execute(*args, **kwargs)
+        return conn.execute(*args, **kwargs)
 
     def read_table(
         self,
@@ -1524,30 +1537,31 @@ class SQLDatabase(PandasSQL):
         """
         args = _convert_params(sql, params)
 
-        result = self.execute(*args)
-        columns = result.keys()
+        with self.run_transaction() as conn:
+            result = conn.execute(*args)
+            columns = result.keys()
 
-        if chunksize is not None:
-            return self._query_iterator(
-                result,
-                chunksize,
-                columns,
-                index_col=index_col,
-                coerce_float=coerce_float,
-                parse_dates=parse_dates,
-                dtype=dtype,
-            )
-        else:
-            data = result.fetchall()
-            frame = _wrap_result(
-                data,
-                columns,
-                index_col=index_col,
-                coerce_float=coerce_float,
-                parse_dates=parse_dates,
-                dtype=dtype,
-            )
-            return frame
+            if chunksize is not None:
+                return self._query_iterator(
+                    result,
+                    chunksize,
+                    columns,
+                    index_col=index_col,
+                    coerce_float=coerce_float,
+                    parse_dates=parse_dates,
+                    dtype=dtype,
+                )
+            else:
+                data = result.fetchall()
+                frame = _wrap_result(
+                    data,
+                    columns,
+                    index_col=index_col,
+                    coerce_float=coerce_float,
+                    parse_dates=parse_dates,
+                    dtype=dtype,
+                )
+                return frame
 
     read_sql = read_query
 
