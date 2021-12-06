@@ -302,7 +302,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         3. ``data.dtype.fill_value`` if `fill_value` is None and `dtype`
            is not a ``SparseDtype`` and `data` is a ``SparseArray``.
 
-    kind : {'integer', 'block'}, default 'integer'
+    kind : str
+        Can be 'integer' or 'block', default is 'integer'.
         The type of storage for sparse locations.
 
         * 'block': Stores a `block` and `block_length` for each
@@ -1363,13 +1364,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         else:
             arr = self.dropna()
 
-        # we don't support these kwargs.
-        # They should only be present when called via pandas, so do it here.
-        # instead of in `any` / `all` (which will raise if they're present,
-        # thanks to nv.validate
-        kwargs.pop("filter_type", None)
-        kwargs.pop("numeric_only", None)
-        kwargs.pop("op", None)
         return getattr(arr, name)(**kwargs)
 
     def all(self, axis=None, *args, **kwargs):

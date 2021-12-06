@@ -3,10 +3,7 @@ Tests that can be parametrized over _any_ Index object.
 """
 import re
 
-import numpy as np
 import pytest
-
-from pandas.core.dtypes.common import is_float_dtype
 
 import pandas._testing as tm
 
@@ -49,16 +46,7 @@ def test_mutability(index):
 def test_map_identity_mapping(index):
     # GH#12766
     result = index.map(lambda x: x)
-    if index._is_backward_compat_public_numeric_index:
-        if is_float_dtype(index.dtype):
-            expected = index.astype(np.float64)
-        elif index.dtype == np.uint64:
-            expected = index.astype(np.uint64)
-        else:
-            expected = index.astype(np.int64)
-    else:
-        expected = index
-    tm.assert_index_equal(result, expected, exact="equiv")
+    tm.assert_index_equal(result, index, exact="equiv")
 
 
 def test_wrong_number_names(index):
