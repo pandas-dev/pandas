@@ -347,25 +347,6 @@ def test_read_csv_file_handle(all_parsers, io_class, encoding):
     assert not handle.closed
 
 
-def test_memory_map_file_handle_silent_fallback(all_parsers, compression):
-    """
-    Do not fail for buffers with memory_map=True (cannot memory map BytesIO).
-
-    GH 37621
-    """
-    parser = all_parsers
-    expected = DataFrame({"a": [1], "b": [2]})
-
-    handle = BytesIO()
-    expected.to_csv(handle, index=False, compression=compression, mode="wb")
-    handle.seek(0)
-
-    tm.assert_frame_equal(
-        parser.read_csv(handle, memory_map=True, compression=compression),
-        expected,
-    )
-
-
 def test_memory_map_compression(all_parsers, compression):
     """
     Support memory map for compressed files.

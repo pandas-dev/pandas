@@ -1040,26 +1040,15 @@ def _maybe_memory_map(
             handle = open(handle, mode)
         handles.append(handle)
 
-    try:
-        # error: Argument 1 to "_MMapWrapper" has incompatible type "Union[IO[Any],
-        # RawIOBase, BufferedIOBase, TextIOBase, mmap]"; expected "IO[Any]"
-        wrapped = cast(
-            BaseBuffer,
-            _MMapWrapper(handle, encoding, errors, decode),  # type: ignore[arg-type]
-        )
-        # error: "BaseBuffer" has no attribute "close"
-        handle.close()  # type: ignore[attr-defined]
-        handles.remove(handle)
-        handles.append(wrapped)
-        handle = wrapped
-    except Exception:
-        # we catch any errors that may have occurred
-        # because that is consistent with the lower-level
-        # functionality of the C engine (pd.read_csv), so
-        # leave the file handler as is then
-        memory_map = False
+    # error: Argument 1 to "_MMapWrapper" has incompatible type "Union[IO[Any],
+    # RawIOBase, BufferedIOBase, TextIOBase, mmap]"; expected "IO[Any]"
+    wrapped = cast(
+        BaseBuffer,
+        _MMapWrapper(handle, encoding, errors, decode),  # type: ignore[arg-type]
+    )
+    handles.append(wrapped)
 
-    return handle, memory_map, handles
+    return wrapped, memory_map, handles
 
 
 def file_exists(filepath_or_buffer: FilePath | BaseBuffer) -> bool:
