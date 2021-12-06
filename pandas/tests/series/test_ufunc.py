@@ -277,14 +277,6 @@ def test_reduce(values, box, request):
         if values.dtype.kind in ["i", "f"]:
             # ATM Index casts to object, so we get python ints/floats
             same_type = False
-        elif isinstance(values, pd.IntervalIndex):
-            mark = pytest.mark.xfail(reason="IntervalArray.min/max not implemented")
-            request.node.add_marker(mark)
-
-    elif box is pd.Series or box is pd.DataFrame:
-        if isinstance(values, pd.IntervalIndex):
-            mark = pytest.mark.xfail(reason="IntervalArray.min/max not implemented")
-            request.node.add_marker(mark)
 
     if values.dtype == "i8" and box is pd.array:
         # FIXME: pd.array casts to Int64
