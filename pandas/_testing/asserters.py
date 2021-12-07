@@ -1385,7 +1385,8 @@ def assert_equal(left, right, **kwargs):
         assert kwargs == {}
         assert left == right
     else:
-        raise NotImplementedError(type(left))
+        assert kwargs == {}
+        assert_almost_equal(left, right)
 
 
 def assert_sp_array_equal(left, right):
