@@ -42,6 +42,22 @@ def test_read_missing_key_close_store(setup_path):
         df.to_hdf(path, "k2")
 
 
+def test_read_missing_attribute_close_store(setup_path):
+
+    with ensure_clean_path(setup_path) as path:
+        df = DataFrame()
+        with HDFStore(path) as s:
+            s.put("k", df)
+            s.get_storer("k").attributes.clear()
+
+        with pytest.raises(AttributeError, match="object has no attribute"):
+            read_hdf(path, "k")
+
+        # smoke test to test that file is properly closed after
+        # read with AttributeError before another write
+        df.to_hdf(path, "k")
+
+
 def test_read_missing_key_opened_store(setup_path):
     # GH 28699
     with ensure_clean_path(setup_path) as path:
