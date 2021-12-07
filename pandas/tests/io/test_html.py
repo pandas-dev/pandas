@@ -118,7 +118,6 @@ class TestReadHtml:
         self.read_html = partial(read_html, flavor=flavor)
         yield
 
-    @pytest.mark.filterwarnings("ignore::FutureWarning")
     def test_to_html_compat(self):
         df = (
             tm.makeCustomDataframe(
@@ -878,7 +877,6 @@ class TestReadHtml:
 
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore::FutureWarning")
     def test_parse_dates_list(self):
         df = DataFrame({"date": date_range("1/1/2001", periods=10)})
         expected = df.to_html()
@@ -1099,7 +1097,6 @@ class TestReadHtml:
 
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.filterwarnings("ignore::FutureWarning")
     def test_multiple_header_rows(self):
         # Issue #13434
         expected_df = DataFrame(
@@ -1124,7 +1121,6 @@ class TestReadHtml:
         banklist_data = datapath("io", "data", "html", "banklist.html")
         self.read_html(banklist_data, match=".*Water.*", flavor=["lxml", "html5lib"])
 
-    @pytest.mark.filterwarnings("ignore::FutureWarning")
     def test_to_html_timestamp(self):
         rng = date_range("2000-01-01", periods=10)
         df = DataFrame(np.random.randn(10, 4), index=rng)
