@@ -1166,6 +1166,10 @@ class TestReadHtml:
         else:
             assert len(dfs) == 1  # Should not parse hidden table
 
+    @pytest.mark.filterwarnings(
+        "ignore:You provided Unicode markup but also provided a value for "
+        "from_encoding.*:UserWarning"
+    )
     def test_encode(self, html_encoding_file):
         base_path = os.path.basename(html_encoding_file)
         root = os.path.splitext(base_path)[0]
