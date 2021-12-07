@@ -326,12 +326,15 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
         reconstruct_kwargs = {}
 
     def reconstruct(result):
+        if ufunc.nout > 1:
+            # np.modf, np.frexp, np.divmod
+            return tuple(_reconstruct(x) for x in result)
+
+        return _reconstruct(result)
+
+    def _reconstruct(result):
         if lib.is_scalar(result):
             return result
-
-        if isinstance(result, tuple):
-            # np.modf, np.frexp, np.divmod
-            return tuple(reconstruct(x) for x in result)
 
         if result.ndim != self.ndim:
             if method == "outer":

@@ -152,7 +152,7 @@ class PandasArray(
             )
         result = getattr(ufunc, method)(*inputs, **kwargs)
 
-        if type(result) is tuple and len(result):
+        if ufunc.nout > 1:
             # multiple return values
             if not lib.is_scalar(result[0]):
                 # re-box array-like results
@@ -163,6 +163,13 @@ class PandasArray(
         elif method == "at":
             # no return value
             return None
+        elif method == "reduce":
+            if isinstance(result, np.ndarray):
+                # e.g. test_np_reduce_2d
+                return type(self)(result)
+
+            # e.g. test_np_max_nested_tuples
+            return result
         else:
             # one return value
             if not lib.is_scalar(result):

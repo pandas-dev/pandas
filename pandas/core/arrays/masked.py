@@ -479,7 +479,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             return x
 
         result = getattr(ufunc, method)(*inputs2, **kwargs)
-        if isinstance(result, tuple):
+        if ufunc.nout > 1:
+            # e.g. np.divmod
             return tuple(reconstruct(x) for x in result)
         else:
             return reconstruct(result)
