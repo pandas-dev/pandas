@@ -39,11 +39,10 @@ class BaseUserAgentResponder(http.server.BaseHTTPRequestHandler):
         """
         some web servers will send back gzipped files to save bandwidth
         """
-        bio = BytesIO()
-        zipper = gzip.GzipFile(fileobj=bio, mode="w")
-        zipper.write(response_bytes)
-        zipper.close()
-        response_bytes = bio.getvalue()
+        with BytesIO() as bio:
+            with gzip.GzipFile(fileobj=bio, mode="w") as zipper:
+                zipper.write(response_bytes)
+            response_bytes = bio.getvalue()
         return response_bytes
 
     def write_back_bytes(self, response_bytes):
@@ -205,7 +204,7 @@ def test_server_and_default_headers(responder, read_method, parquet_engine):
 
     # passing 0 for the port will let the system find an unused port
     with http.server.HTTPServer(("localhost", 0), responder) as server:
-        server_thread = threading.Thread(target=server.serve_forever)
+        server_thread = threading.Thread(target=server.handle_request)
         server_thread.start()
 
         port = server.server_port
@@ -213,9 +212,8 @@ def test_server_and_default_headers(responder, read_method, parquet_engine):
             df_http = read_method(f"http://localhost:{port}")
         else:
             df_http = read_method(f"http://localhost:{port}", engine=parquet_engine)
-        server.shutdown()
         server.server_close()
-        server_thread.join()
+        server_thread.join(timeout=2)
     assert not df_http.empty
 
 
@@ -249,7 +247,7 @@ def test_server_and_custom_headers(responder, read_method, parquet_engine):
 
     # passing 0 for the port will let the system find an unused port
     with http.server.HTTPServer(("localhost", 0), responder) as server:
-        server_thread = threading.Thread(target=server.serve_forever)
+        server_thread = threading.Thread(target=server.handle_request)
         server_thread.start()
 
         port = server.server_port
@@ -264,10 +262,8 @@ def test_server_and_custom_headers(responder, read_method, parquet_engine):
                 storage_options={"User-Agent": custom_user_agent},
                 engine=parquet_engine,
             )
-        server.shutdown()
-
         server.server_close()
-        server_thread.join()
+        server_thread.join(timeout=2)
 
     tm.assert_frame_equal(df_true, df_http)
 
@@ -288,7 +284,7 @@ def test_server_and_all_custom_headers(responder, read_method):
 
     # passing 0 for the port will let the system find an unused port
     with http.server.HTTPServer(("localhost", 0), responder) as server:
-        server_thread = threading.Thread(target=server.serve_forever)
+        server_thread = threading.Thread(target=server.handle_request)
         server_thread.start()
 
         port = server.server_port
@@ -296,9 +292,8 @@ def test_server_and_all_custom_headers(responder, read_method):
             f"http://localhost:{port}",
             storage_options=storage_options,
         )
-        server.shutdown()
         server.server_close()
-        server_thread.join()
+        server_thread.join(timeout=2)
 
     df_http = df_http[df_http["0"].isin(storage_options.keys())]
     df_http = df_http.sort_values(["0"]).reset_index()
