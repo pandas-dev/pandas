@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas import (
     Categorical,
     DataFrame,
@@ -281,7 +279,6 @@ class TestFillNA:
         result = df.fillna(val)
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_invalid_test
     def test_fillna_datetime_columns(self):
         # GH#7095
         df = DataFrame(

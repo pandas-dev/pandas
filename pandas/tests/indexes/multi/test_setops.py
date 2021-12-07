@@ -361,9 +361,7 @@ def test_union_sort_other_empty(slice_):
     # default, sort=None
     other = idx[slice_]
     tm.assert_index_equal(idx.union(other), idx)
-    # MultiIndex does not special case empty.union(idx)
-    # FIXME: don't leave commented-out
-    # tm.assert_index_equal(other.union(idx), idx)
+    tm.assert_index_equal(other.union(idx), idx)
 
     # sort=False
     tm.assert_index_equal(idx.union(other, sort=False), idx)

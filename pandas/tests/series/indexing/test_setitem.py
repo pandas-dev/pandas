@@ -658,11 +658,6 @@ class SetitemCastingEquivalents:
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
 
-        if obj.dtype == bool:
-            msg = "Index/Series casting behavior inconsistent GH#38692"
-            mark = pytest.mark.xfail(reason=msg)
-            request.node.add_marker(mark)
-
         res = Index(obj).where(~mask, val)
         tm.assert_index_equal(res, Index(expected))
 

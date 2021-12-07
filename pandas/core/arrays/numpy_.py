@@ -137,23 +137,12 @@ class PandasArray(
         # The primary modification is not boxing scalar return values
         # in PandasArray, since pandas' ExtensionArrays are 1-d.
         out = kwargs.get("out", ())
-        for x in inputs + out:
-            # Only support operations with instances of _HANDLED_TYPES.
-            # Use PandasArray instead of type(self) for isinstance to
-            # allow subclasses that don't override __array_ufunc__ to
-            # handle PandasArray objects.
-            if not isinstance(x, self._HANDLED_TYPES + (PandasArray,)):
-                return NotImplemented
 
-        if ufunc not in [np.logical_or, np.bitwise_or, np.bitwise_xor]:
-            # For binary ops, use our custom dunder methods
-            # We haven't implemented logical dunder funcs, so exclude these
-            #  to avoid RecursionError
-            result = ops.maybe_dispatch_ufunc_to_dunder_op(
-                self, ufunc, method, *inputs, **kwargs
-            )
-            if result is not NotImplemented:
-                return result
+        result = ops.maybe_dispatch_ufunc_to_dunder_op(
+            self, ufunc, method, *inputs, **kwargs
+        )
+        if result is not NotImplemented:
+            return result
 
         # Defer to the implementation of the ufunc on unwrapped values.
         inputs = tuple(x._ndarray if isinstance(x, PandasArray) else x for x in inputs)
