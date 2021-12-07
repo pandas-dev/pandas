@@ -446,7 +446,16 @@ def file_path_to_url(path: str) -> str:
     return urljoin("file:", pathname2url(path))
 
 
-_extension_to_compression = {".gz": "gzip", ".bz2": "bz2", ".zip": "zip", ".xz": "xz"}
+_extension_to_compression = {
+    ".tar": "tar",
+    ".tar.gz": "tar",
+    ".tar.bz2": "tar",
+    ".tar.xz": "tar",
+    ".gz": "gzip",
+    ".bz2": "bz2",
+    ".zip": "zip",
+    ".xz": "xz",
+}
 _supported_compressions = set(_extension_to_compression.values())
 
 
@@ -521,9 +530,6 @@ def infer_compression(
         if not isinstance(filepath_or_buffer, str):
             # Cannot infer compression of a buffer, assume no compression
             return None
-
-        if ".tar" in filepath_or_buffer:
-            return "tar"
 
         # Infer compression from the filename/URL extension
         for extension, compression in _extension_to_compression.items():
