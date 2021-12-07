@@ -21,6 +21,7 @@ import os
 from pathlib import Path
 import pickle
 import shutil
+import tarfile
 from warnings import (
     catch_warnings,
     filterwarnings,
@@ -306,13 +307,18 @@ class TestCompression:
         elif compression == "zip":
             with zipfile.ZipFile(dest_path, "w", compression=zipfile.ZIP_DEFLATED) as f:
                 f.write(src_path, os.path.basename(src_path))
+        elif compression == "tar":
+            with open(src_path, "rb") as fh:
+                with tarfile.open(dest_path, mode="w") as tar:
+                    tarinfo = tar.gettarinfo(src_path, os.path.basename(src_path))
+                    tar.addfile(tarinfo, fh)
         elif compression == "xz":
             f = get_lzma_file()(dest_path, "w")
         else:
             msg = f"Unrecognized compression type: {compression}"
             raise ValueError(msg)
 
-        if compression != "zip":
+        if compression not in ["zip", "tar"]:
             with open(src_path, "rb") as fh, f:
                 f.write(fh.read())
 

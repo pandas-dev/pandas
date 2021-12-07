@@ -5,6 +5,7 @@ import gzip
 import io
 import os
 import struct
+import tarfile
 import warnings
 import zipfile
 
@@ -1899,6 +1900,9 @@ def test_compression(compression, version, use_dict, infer):
         elif compression == "zip":
             with zipfile.ZipFile(path, "r") as comp:
                 fp = io.BytesIO(comp.read(comp.filelist[0]))
+        elif compression == "tar":
+            with tarfile.open(path) as tar:
+                fp = io.BytesIO(tar.extractfile(tar.getnames()[0]).read())
         elif compression == "bz2":
             with bz2.open(path, "rb") as comp:
                 fp = io.BytesIO(comp.read())

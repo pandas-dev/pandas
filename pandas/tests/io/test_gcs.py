@@ -1,5 +1,6 @@
 from io import BytesIO
 import os
+import tarfile
 import zipfile
 
 import numpy as np
@@ -104,6 +105,14 @@ def assert_equal_zip_safe(result: bytes, expected: bytes, compression: str):
         ) as res:
             for res_info, exp_info in zip(res.infolist(), exp.infolist()):
                 assert res_info.CRC == exp_info.CRC
+    elif compression == "tar":
+        with tarfile.open(fileobj=BytesIO(result)) as exp, tarfile.open(
+            fileobj=BytesIO(expected)
+        ) as res:
+            for res_info, exp_info in zip(res.getmembers(), exp.getmembers()):
+                assert (
+                    res.extractfile(res_info).read() == exp.extractfile(exp_info).read()
+                )
     else:
         assert result == expected
 

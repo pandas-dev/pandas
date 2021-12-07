@@ -25,6 +25,7 @@ def to_pickle(
     obj: Any,
     filepath_or_buffer: FilePath | WriteBuffer[bytes],
     compression: CompressionOptions = "infer",
+    mode: str = "wb",
     protocol: int = pickle.HIGHEST_PROTOCOL,
     storage_options: StorageOptions = None,
 ):
@@ -95,7 +96,7 @@ def to_pickle(
 
     with get_handle(
         filepath_or_buffer,
-        "wb",
+        mode,
         compression=compression,
         is_text=False,
         storage_options=storage_options,

@@ -10,6 +10,7 @@ import io
 from io import (
     BufferedIOBase,
     BytesIO,
+    FileIO,
     RawIOBase,
     StringIO,
     TextIOBase,
@@ -758,18 +759,22 @@ def get_handle(
 
         # TAR Encoding
         elif compression == "tar":
-            tar = tarfile.open(handle, "r:*")
-            handles.append(tar)
-            files = tar.getnames()
-            if len(files) == 1:
-                handle = tar.extractfile(files[0])
-            elif len(files) == 0:
-                raise ValueError(f"Zero files found in TAR archive {path_or_buf}")
+            if is_path:
+                handle = _BytesTarFile.open(name=handle, mode=ioargs.mode)
             else:
-                raise ValueError(
-                    "Multiple files found in TAR archive. "
-                    f"Only one file per TAR archive: {files}"
-                )
+                handle = _BytesTarFile.open(fileobj=handle, mode=ioargs.mode)
+            if handle.mode == "r":
+                handles.append(handle)
+                files = handle.getnames()
+                if len(files) == 1:
+                    handle = handle.extractfile(files[0])
+                elif len(files) == 0:
+                    raise ValueError(f"Zero files found in TAR archive {path_or_buf}")
+                else:
+                    raise ValueError(
+                        "Multiple files found in TAR archive. "
+                        f"Only one file per TAR archive: {files}"
+                    )
 
         # XZ Compression
         elif compression == "xz":
@@ -850,6 +855,80 @@ def get_handle(
         is_mmap=memory_map,
         compression=ioargs.compression,
     )
+
+
+class _BytesTarFile(tarfile.TarFile, BytesIO):
+
+    # GH 17778
+    def __init__(
+        self,
+        name: FilePath | ReadBuffer[bytes] | WriteBuffer[bytes],
+        mode: str,
+        fileobj: FileIO,
+        archive_name: str | None = None,
+        **kwargs,
+    ):
+        self.archive_name = archive_name
+        self.multiple_write_buffer: StringIO | BytesIO | None = None
+        self._closing = False
+
+        super().__init__(name=name, mode=mode, fileobj=fileobj, **kwargs)
+
+    @classmethod
+    def open(cls, mode="r", **kwargs):
+        mode = mode.replace("b", "")
+        return super().open(mode=mode, **kwargs)
+
+    def infer_filename(self):
+        """
+        If an explicit archive_name is not given, we still want the file inside the zip
+        file not to be named something.tar, because that causes confusion (GH39465).
+        """
+        if isinstance(self.name, (os.PathLike, str)):
+            filename = Path(self.name)
+            if filename.suffix == ".tar":
+                return filename.with_suffix("").name
+            if filename.suffix in [".tar.gz", ".tar.bz2", ".tar.xz"]:
+                return filename.with_suffix("").with_suffix("").name
+            return filename.name
+        return None
+
+    def write(self, data):
+        # buffer multiple write calls, write on flush
+        if self.multiple_write_buffer is None:
+            self.multiple_write_buffer = (
+                BytesIO() if isinstance(data, bytes) else StringIO()
+            )
+        self.multiple_write_buffer.write(data)
+
+    def flush(self) -> None:
+        # write to actual handle and close write buffer
+        if self.multiple_write_buffer is None or self.multiple_write_buffer.closed:
+            return
+
+        # TarFile needs a non-empty string
+        archive_name = self.archive_name or self.infer_filename() or "tar"
+        with self.multiple_write_buffer:
+            value = self.multiple_write_buffer.getvalue()
+            tarinfo = tarfile.TarInfo(name=archive_name)
+            tarinfo.size = len(value)
+            self.addfile(tarinfo, io.BytesIO(value))
+
+    def close(self):
+        self.flush()
+        super().close()
+
+    @property
+    def closed(self):
+        if self.multiple_write_buffer is None:
+            return False
+        return self.multiple_write_buffer.closed and super().closed
+
+    @closed.setter
+    def closed(self, value):
+        if not self._closing and value:
+            self._closing = True
+            self.close()
 
 
 # error: Definition of "__exit__" in base class "ZipFile" is incompatible with

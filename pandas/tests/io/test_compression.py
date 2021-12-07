@@ -14,6 +14,10 @@ import pandas._testing as tm
 import pandas.io.common as icom
 
 
+def flip(my_dict: dict):
+    return {value: key for key, value in my_dict.items()}
+
+
 @pytest.mark.parametrize(
     "obj",
     [
@@ -26,8 +30,13 @@ import pandas.io.common as icom
 )
 @pytest.mark.parametrize("method", ["to_pickle", "to_json", "to_csv"])
 def test_compression_size(obj, method, compression_only):
+    kwargs = {}
+
+    if compression_only == "tar":
+        kwargs["mode"] = "w:gz"
+
     with tm.ensure_clean() as path:
-        getattr(obj, method)(path, compression=compression_only)
+        getattr(obj, method)(path, compression=compression_only, **kwargs)
         compressed_size = os.path.getsize(path)
         getattr(obj, method)(path, compression=None)
         uncompressed_size = os.path.getsize(path)
@@ -72,7 +81,7 @@ def test_dataframe_compression_defaults_to_infer(
 ):
     # GH22004
     input = pd.DataFrame([[1.0, 0, -4], [3.4, 5, 2]], columns=["X", "Y", "Z"])
-    extension = icom._compression_to_extension[compression_only]
+    extension = flip(icom._extension_to_compression)[compression_only]
     with tm.ensure_clean("compressed" + extension) as path:
         getattr(input, write_method)(path, **write_kwargs)
         output = read_method(path, compression=compression_only)
@@ -92,7 +101,7 @@ def test_series_compression_defaults_to_infer(
 ):
     # GH22004
     input = pd.Series([0, 5, -2, 10], name="X")
-    extension = icom._compression_to_extension[compression_only]
+    extension = flip(icom._extension_to_compression)[compression_only]
     with tm.ensure_clean("compressed" + extension) as path:
         getattr(input, write_method)(path, **write_kwargs)
         if "squeeze" in read_kwargs:

@@ -2341,6 +2341,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         default_handler: Callable[[Any], JSONSerializable] | None = None,
         lines: bool_t = False,
         compression: CompressionOptions = "infer",
+        mode: str = "w",
         index: bool_t = True,
         indent: int | None = None,
         storage_options: StorageOptions = None,
@@ -2604,6 +2605,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             default_handler=default_handler,
             lines=lines,
             compression=compression,
+            mode=mode,
             index=index,
             indent=indent,
             storage_options=storage_options,
@@ -2923,6 +2925,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         path,
         compression: CompressionOptions = "infer",
+        mode: str = "wb",
         protocol: int = pickle.HIGHEST_PROTOCOL,
         storage_options: StorageOptions = None,
     ) -> None:
@@ -2990,6 +2993,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             self,
             path,
             compression=compression,
+            mode=mode,
             protocol=protocol,
             storage_options=storage_options,
         )
