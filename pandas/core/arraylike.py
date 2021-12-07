@@ -367,10 +367,12 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
         return result
 
     if "out" in kwargs:
+        # e.g. test_multiindex_get_loc
         result = dispatch_ufunc_with_out(self, ufunc, method, *inputs, **kwargs)
         return reconstruct(result)
 
     if method == "reduce":
+        # e.g. test.series.test_ufunc.test_reduce
         result = dispatch_reduction_ufunc(self, ufunc, method, *inputs, **kwargs)
         if result is not NotImplemented:
             return result
