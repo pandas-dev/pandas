@@ -228,7 +228,6 @@ Look,a snake,🐍"""
         ):
             reader(path)
 
-    @pytest.mark.filterwarnings("ignore:In future versions `DataFrame.to_html`")
     @pytest.mark.parametrize(
         "method, module, error_class, fn_ext",
         [
@@ -351,7 +350,6 @@ Look,a snake,🐍"""
             tm.assert_frame_equal(result, expected)
 
     @pytest.mark.filterwarnings("ignore:In future versions `DataFrame.to_latex`")
-    @pytest.mark.filterwarnings("ignore:In future versions `DataFrame.to_html`")
     @pytest.mark.parametrize(
         "writer_name, writer_kwargs, module",
         [
