@@ -63,6 +63,7 @@ __all__ = [
     "union_indexes",
     "get_unanimous_names",
     "all_indexes_same",
+    "default_index",
 ]
 
 
@@ -146,7 +147,7 @@ def _get_combined_index(
         for other in indexes[1:]:
             index = index.intersection(other)
     else:
-        index = union_indexes(indexes, sort=sort)
+        index = union_indexes(indexes, sort=False)
         index = ensure_index(index)
 
     if sort:
@@ -162,7 +163,7 @@ def _get_combined_index(
     return index
 
 
-def union_indexes(indexes, sort: bool = True) -> Index:
+def union_indexes(indexes, sort: bool | None = True) -> Index:
     """
     Return the union of indexes.
 
@@ -218,7 +219,7 @@ def union_indexes(indexes, sort: bool = True) -> Index:
             return result.union_many(indexes[1:])
         else:
             for other in indexes[1:]:
-                result = result.union(other)
+                result = result.union(other, sort=None if sort else False)
             return result
     elif kind == "array":
         index = indexes[0]
@@ -287,3 +288,8 @@ def all_indexes_same(indexes) -> bool:
     itr = iter(indexes)
     first = next(itr)
     return all(first.equals(index) for index in itr)
+
+
+def default_index(n: int) -> RangeIndex:
+    rng = range(0, n)
+    return RangeIndex._simple_new(rng, name=None)

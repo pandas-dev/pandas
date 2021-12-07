@@ -26,7 +26,7 @@ from pandas.tests.apply.common import (
         pytest.param([1], {}, id="axis_from_args"),
         pytest.param([], {"axis": 1}, id="axis_from_kwds"),
         pytest.param([], {"numeric_only": True}, id="optional_kwds"),
-        pytest.param([1, None], {"numeric_only": True}, id="args_and_kwds"),
+        pytest.param([1, True], {"numeric_only": True}, id="args_and_kwds"),
     ],
 )
 @pytest.mark.parametrize("how", ["agg", "apply"])
@@ -72,8 +72,17 @@ def test_apply_np_reducer(float_frame, op, how):
 @pytest.mark.parametrize("how", ["transform", "apply"])
 def test_apply_np_transformer(float_frame, op, how):
     # GH 39116
-    result = getattr(float_frame, how)(op)
-    expected = getattr(np, op)(float_frame)
+
+    # float_frame will _usually_ have negative values, which will
+    #  trigger the warning here, but let's put one in just to be sure
+    float_frame.iloc[0, 0] = -1.0
+    warn = None
+    if op in ["log", "sqrt"]:
+        warn = RuntimeWarning
+
+    with tm.assert_produces_warning(warn):
+        result = getattr(float_frame, how)(op)
+        expected = getattr(np, op)(float_frame)
     tm.assert_frame_equal(result, expected)
 
 

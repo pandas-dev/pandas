@@ -912,3 +912,11 @@ def test_loc_keyerror_rightmost_key_missing():
     df = df.set_index(["A", "B"])
     with pytest.raises(KeyError, match="^1$"):
         df.loc[(100, 1)]
+
+
+def test_multindex_series_loc_with_tuple_label():
+    # GH#43908
+    mi = MultiIndex.from_tuples([(1, 2), (3, (4, 5))])
+    ser = Series([1, 2], index=mi)
+    result = ser.loc[(3, (4, 5))]
+    assert result == 2

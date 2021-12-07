@@ -3,10 +3,15 @@ from collections import (
     deque,
 )
 from decimal import Decimal
-from warnings import catch_warnings
+from warnings import (
+    catch_warnings,
+    simplefilter,
+)
 
 import numpy as np
 import pytest
+
+from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import (
@@ -560,6 +565,22 @@ def test_duplicate_keys(keys):
     tm.assert_frame_equal(result, expected)
 
 
+def test_duplicate_keys_same_frame():
+    # GH 43595
+    keys = ["e", "e"]
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    result = concat([df, df], axis=1, keys=keys)
+    expected_values = [[1, 4, 1, 4], [2, 5, 2, 5], [3, 6, 3, 6]]
+    expected_columns = MultiIndex.from_tuples(
+        [(keys[0], "a"), (keys[0], "b"), (keys[1], "a"), (keys[1], "b")]
+    )
+    expected = DataFrame(expected_values, columns=expected_columns)
+    with catch_warnings():
+        # result.columns not sorted, resulting in performance warning
+        simplefilter("ignore", PerformanceWarning)
+        tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "obj",
     [
@@ -677,3 +698,49 @@ def test_concat_posargs_deprecation():
         result = concat([df, df2], 0)
     expected = DataFrame([[1, 2, 3], [4, 5, 6]], index=["a", "b"])
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        Series(data=[1, 2]),
+        DataFrame(
+            data={
+                "col1": [1, 2],
+            }
+        ),
+        DataFrame(dtype=float),
+        Series(dtype=float),
+    ],
+)
+def test_concat_drop_attrs(data):
+    # GH#41828
+    df1 = data.copy()
+    df1.attrs = {1: 1}
+    df2 = data.copy()
+    df2.attrs = {1: 2}
+    df = concat([df1, df2])
+    assert len(df.attrs) == 0
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        Series(data=[1, 2]),
+        DataFrame(
+            data={
+                "col1": [1, 2],
+            }
+        ),
+        DataFrame(dtype=float),
+        Series(dtype=float),
+    ],
+)
+def test_concat_retain_attrs(data):
+    # GH#41828
+    df1 = data.copy()
+    df1.attrs = {1: 1}
+    df2 = data.copy()
+    df2.attrs = {1: 1}
+    df = concat([df1, df2])
+    assert df.attrs[1] == 1

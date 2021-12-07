@@ -36,6 +36,12 @@ from pandas.tseries.offsets import BDay
 
 
 class TestSeriesGetitemScalars:
+    def test_getitem_object_index_float_string(self):
+        # GH#17286
+        ser = Series([1] * 4, index=Index(["a", "b", "c", 1.0]))
+        assert ser["a"] == 1
+        assert ser[1.0] == 1
+
     def test_getitem_float_keys_tuple_values(self):
         # see GH#13509
 
@@ -104,8 +110,8 @@ class TestSeriesGetitemScalars:
         idx = np.int64(5)
         assert datetime_series[idx] == datetime_series[5]
 
-    # TODO: better name/GH ref?
-    def test_getitem_regression(self):
+    def test_getitem_full_range(self):
+        # github.com/pandas-dev/pandas/commit/4f433773141d2eb384325714a2776bcc5b2e20f7
         ser = Series(range(5), index=list(range(5)))
         result = ser[list(range(5))]
         tm.assert_series_equal(result, ser)
@@ -234,11 +240,11 @@ class TestSeriesGetitemSlices:
         result = ser["1 days, 10:11:12.001001"]
         assert result == ser.iloc[1001]
 
-    def test_getitem_slice_2d(self, datetime_series, using_array_manager):
+    def test_getitem_slice_2d(self, datetime_series):
         # GH#30588 multi-dimensional indexing deprecated
 
         with tm.assert_produces_warning(
-            FutureWarning, check_stacklevel=not using_array_manager
+            FutureWarning, match="Support for multi-dimensional indexing"
         ):
             # GH#30867 Don't want to support this long-term, but
             # for now ensure that the warning from Index
@@ -520,11 +526,10 @@ def test_getitem_generator(string_series):
         Series(date_range("2012-01-01", periods=2, tz="CET")),
     ],
 )
-def test_getitem_ndim_deprecated(series, using_array_manager):
+def test_getitem_ndim_deprecated(series):
     with tm.assert_produces_warning(
         FutureWarning,
         match="Support for multi-dimensional indexing",
-        check_stacklevel=not using_array_manager,
     ):
         result = series[:, None]
 

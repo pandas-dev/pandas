@@ -88,6 +88,8 @@ class TestSetitemCoercion(CoercionBase):
         # check dtype explicitly for sure
         assert temp.dtype == expected_dtype
 
+        # AFAICT the problem is in Series.__setitem__ where with integer dtype
+        #  ser[1] = 2.2 casts 2.2 to 2 instead of casting the ser to floating
         # FIXME: dont leave commented-out
         # .loc works different rule, temporary disable
         # temp = original_series.copy()
@@ -237,11 +239,17 @@ class TestSetitemCoercion(CoercionBase):
             [
                 pd.Timestamp("2011-01-01", tz=tz),
                 val,
+                # once deprecation is enforced
+                # val if getattr(val, "tz", None) is None else val.tz_convert(tz),
                 pd.Timestamp("2011-01-03", tz=tz),
                 pd.Timestamp("2011-01-04", tz=tz),
             ]
         )
-        self._assert_setitem_series_conversion(obj, val, exp, exp_dtype)
+        warn = None
+        if getattr(val, "tz", None) is not None and val.tz != obj[0].tz:
+            warn = FutureWarning
+        with tm.assert_produces_warning(warn, match="mismatched timezones"):
+            self._assert_setitem_series_conversion(obj, val, exp, exp_dtype)
 
     @pytest.mark.parametrize(
         "val,exp_dtype",
@@ -467,9 +475,12 @@ class TestInsertIndexCoercion(CoercionBase):
 
             # mismatched tz --> cast to object (could reasonably cast to common tz)
             ts = pd.Timestamp("2012-01-01", tz="Asia/Tokyo")
-            result = obj.insert(1, ts)
+            with tm.assert_produces_warning(FutureWarning, match="mismatched timezone"):
+                result = obj.insert(1, ts)
+            # once deprecation is enforced:
+            # expected = obj.insert(1, ts.tz_convert(obj.dtype.tz))
+            # assert expected.dtype == obj.dtype
             expected = obj.astype(object).insert(1, ts)
-            assert expected.dtype == object
             tm.assert_index_equal(result, expected)
 
         else:
@@ -601,10 +612,12 @@ class TestWhereCoercion(CoercionBase):
         "fill_val,exp_dtype",
         [(1, np.int64), (1.1, np.float64), (1 + 1j, np.complex128), (True, object)],
     )
-    def test_where_int64(self, index_or_series, fill_val, exp_dtype):
+    def test_where_int64(self, index_or_series, fill_val, exp_dtype, request):
         klass = index_or_series
         if klass is pd.Index and exp_dtype is np.complex128:
-            pytest.skip("Complex Index not supported")
+            mark = pytest.mark.xfail(reason="Complex Index not supported")
+            request.node.add_marker(mark)
+
         obj = klass([1, 2, 3, 4])
         assert obj.dtype == np.int64
         cond = klass([True, False, True, False])
@@ -623,10 +636,12 @@ class TestWhereCoercion(CoercionBase):
         "fill_val, exp_dtype",
         [(1, np.float64), (1.1, np.float64), (1 + 1j, np.complex128), (True, object)],
     )
-    def test_where_float64(self, index_or_series, fill_val, exp_dtype):
+    def test_where_float64(self, index_or_series, fill_val, exp_dtype, request):
         klass = index_or_series
         if klass is pd.Index and exp_dtype is np.complex128:
-            pytest.skip("Complex Index not supported")
+            mark = pytest.mark.xfail(reason="Complex Index not supported")
+            request.node.add_marker(mark)
+
         obj = klass([1.1, 2.2, 3.3, 4.4])
         assert obj.dtype == np.float64
         cond = klass([True, False, True, False])
@@ -771,7 +786,6 @@ class TestWhereCoercion(CoercionBase):
 
         self._assert_where_conversion(obj, cond, values, exp, exp_dtype)
 
-    @pytest.mark.xfail(reason="GH 22839: do not ignore timezone, must be object")
     def test_where_index_datetime64tz(self):
         fill_val = pd.Timestamp("2012-01-01", tz="US/Eastern")
         exp_dtype = object
@@ -786,9 +800,9 @@ class TestWhereCoercion(CoercionBase):
         assert obj.dtype == "datetime64[ns]"
         cond = pd.Index([True, False, True, False])
 
-        msg = "Index\\(\\.\\.\\.\\) must be called with a collection of some kind"
-        with pytest.raises(TypeError, match=msg):
-            obj.where(cond, fill_val)
+        res = obj.where(cond, fill_val)
+        expected = pd.Index([obj[0], fill_val, obj[2], fill_val], dtype=object)
+        tm.assert_index_equal(res, expected)
 
         values = pd.Index(pd.date_range(fill_val, periods=4))
         exp = pd.Index(
@@ -990,11 +1004,18 @@ class TestFillnaSeriesCoercion(CoercionBase):
             [
                 pd.Timestamp("2011-01-01", tz=tz),
                 fill_val,
+                # Once deprecation is enforced, this becomes:
+                # fill_val.tz_convert(tz) if getattr(fill_val, "tz", None)
+                #  is not None else fill_val,
                 pd.Timestamp("2011-01-03", tz=tz),
                 pd.Timestamp("2011-01-04", tz=tz),
             ]
         )
-        self._assert_fillna_conversion(obj, fill_val, exp, fill_dtype)
+        warn = None
+        if getattr(fill_val, "tz", None) is not None and fill_val.tz != obj[0].tz:
+            warn = FutureWarning
+        with tm.assert_produces_warning(warn, match="mismatched timezone"):
+            self._assert_fillna_conversion(obj, fill_val, exp, fill_dtype)
 
     @pytest.mark.xfail(reason="Test not implemented")
     def test_fillna_series_int64(self):

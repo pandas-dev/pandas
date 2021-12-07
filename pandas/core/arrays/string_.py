@@ -19,7 +19,7 @@ from pandas._typing import (
     Scalar,
     type_t,
 )
-from pandas.compat import pa_version_under1p0
+from pandas.compat import pa_version_under1p01
 from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.base import (
@@ -104,11 +104,10 @@ class StringDtype(ExtensionDtype):
             raise ValueError(
                 f"Storage must be 'python' or 'pyarrow'. Got {storage} instead."
             )
-        if storage == "pyarrow" and pa_version_under1p0:
+        if storage == "pyarrow" and pa_version_under1p01:
             raise ImportError(
                 "pyarrow>=1.0.0 is required for PyArrow backed StringArray."
             )
-
         self.storage = storage
 
     @property
@@ -435,8 +434,7 @@ class StringArray(BaseStringArray, PandasArray):
             values = arr.astype(dtype.numpy_dtype)
             return FloatingArray(values, mask, copy=False)
         elif isinstance(dtype, ExtensionDtype):
-            cls = dtype.construct_array_type()
-            return cls._from_sequence(self, dtype=dtype, copy=copy)
+            return super().astype(dtype, copy=copy)
         elif np.issubdtype(dtype, np.floating):
             arr = self._ndarray.copy()
             mask = self.isna()
@@ -447,9 +445,11 @@ class StringArray(BaseStringArray, PandasArray):
 
         return super().astype(dtype, copy)
 
-    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
+    def _reduce(
+        self, name: str, *, skipna: bool = True, axis: int | None = 0, **kwargs
+    ):
         if name in ["min", "max"]:
-            return getattr(self, name)(skipna=skipna)
+            return getattr(self, name)(skipna=skipna, axis=axis)
 
         raise TypeError(f"Cannot perform reduction '{name}' with string dtype")
 

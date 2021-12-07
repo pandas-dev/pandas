@@ -28,16 +28,16 @@ from pandas.core.arrays import IntervalArray
         (Index([0, 2, 4, 4]), Index([1, 3, 5, 8])),
         (Index([0.0, 1.0, 2.0, np.nan]), Index([1.0, 2.0, 3.0, np.nan])),
         (
-            timedelta_range("0 days", periods=3).insert(4, pd.NaT),
-            timedelta_range("1 day", periods=3).insert(4, pd.NaT),
+            timedelta_range("0 days", periods=3).insert(3, pd.NaT),
+            timedelta_range("1 day", periods=3).insert(3, pd.NaT),
         ),
         (
-            date_range("20170101", periods=3).insert(4, pd.NaT),
-            date_range("20170102", periods=3).insert(4, pd.NaT),
+            date_range("20170101", periods=3).insert(3, pd.NaT),
+            date_range("20170102", periods=3).insert(3, pd.NaT),
         ),
         (
-            date_range("20170101", periods=3, tz="US/Eastern").insert(4, pd.NaT),
-            date_range("20170102", periods=3, tz="US/Eastern").insert(4, pd.NaT),
+            date_range("20170101", periods=3, tz="US/Eastern").insert(3, pd.NaT),
+            date_range("20170102", periods=3, tz="US/Eastern").insert(3, pd.NaT),
         ),
     ],
     ids=lambda x: str(x[0].dtype),

@@ -465,15 +465,9 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                 [cat_array, np.arange(len(cat_array), dtype=cat_array.dtype)]
             )
         else:
-            # error: Incompatible types in assignment (expression has type
-            # "List[ndarray]", variable has type "ndarray")
-            cat_array = [cat_array]  # type: ignore[assignment]
-        # error: Incompatible types in assignment (expression has type "ndarray",
-        # variable has type "int")
-        hashed = combine_hash_arrays(  # type: ignore[assignment]
-            iter(cat_array), num_items=len(cat_array)
-        )
-        return np.bitwise_xor.reduce(hashed)
+            cat_array = np.array([cat_array])
+        combined_hashed = combine_hash_arrays(iter(cat_array), num_items=len(cat_array))
+        return np.bitwise_xor.reduce(combined_hashed)
 
     @classmethod
     def construct_array_type(cls) -> type_t[Categorical]:
@@ -1259,7 +1253,6 @@ class IntervalDtype(PandasExtensionDtype):
         return IntervalArray._concat_same_type(results)
 
     def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
-        # NB: this doesn't handle checking for closed match
         if not all(isinstance(x, IntervalDtype) for x in dtypes):
             return None
 

@@ -6,14 +6,14 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas import (
+import pandas._testing as tm
+from pandas.core.indexes.api import (
     Float64Index,
     Index,
     Int64Index,
     RangeIndex,
     UInt64Index,
 )
-import pandas._testing as tm
 
 
 @pytest.fixture
@@ -155,7 +155,7 @@ class TestSetOpsSort:
     @pytest.mark.xfail(reason="Not implemented")
     @pytest.mark.parametrize("slice_", [slice(None), slice(0)])
     def test_union_sort_special_true(self, slice_):
-        # TODO: decide on True behaviour
+        # TODO(GH#25151): decide on True behaviour
         # sort=True
         idx = Index([1, 0, 2])
         # default, sort=None

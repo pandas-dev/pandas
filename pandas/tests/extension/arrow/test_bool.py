@@ -6,7 +6,7 @@ import pandas._testing as tm
 from pandas.api.types import is_bool_dtype
 from pandas.tests.extension import base
 
-pytest.importorskip("pyarrow", minversion="0.13.0")
+pytest.importorskip("pyarrow", minversion="1.0.1")
 
 from pandas.tests.extension.arrow.arrays import (  # isort:skip
     ArrowBoolArray,
@@ -41,8 +41,7 @@ class BaseArrowTests:
 
 
 class TestDtype(BaseArrowTests, base.BaseDtypeTests):
-    def test_array_type_with_arg(self, data, dtype):
-        pytest.skip("GH-22666")
+    pass
 
 
 class TestInterface(BaseArrowTests, base.BaseInterfaceTests):
@@ -54,15 +53,15 @@ class TestInterface(BaseArrowTests, base.BaseInterfaceTests):
         # __setitem__ does not work, so we only have a smoke-test
         data.view()
 
-    @pytest.mark.xfail(raises=AssertionError, reason="Not implemented yet")
+    @pytest.mark.xfail(
+        raises=AttributeError,
+        reason="__eq__ incorrectly returns bool instead of ndarray[bool]",
+    )
     def test_contains(self, data, data_missing):
         super().test_contains(data, data_missing)
 
 
 class TestConstructors(BaseArrowTests, base.BaseConstructorsTests):
-    def test_from_dtype(self, data):
-        pytest.skip("GH-22666")
-
     # seems like some bug in isna on empty BoolArray returning floats.
     @pytest.mark.xfail(reason="bad is-na for empty data")
     def test_from_sequence_from_cls(self, data):

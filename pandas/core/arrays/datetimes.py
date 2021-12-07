@@ -9,7 +9,6 @@ from datetime import (
 from typing import (
     TYPE_CHECKING,
     Literal,
-    overload,
 )
 import warnings
 
@@ -39,6 +38,8 @@ from pandas._libs.tslibs import (
 )
 from pandas._typing import npt
 from pandas.errors import PerformanceWarning
+from pandas.util._exceptions import find_stack_level
+from pandas.util._validators import validate_inclusive
 
 from pandas.core.dtypes.cast import astype_dt64_to_dt64tz
 from pandas.core.dtypes.common import (
@@ -354,7 +355,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
         freq, freq_infer = dtl.maybe_infer_freq(freq)
 
-        subarr, tz, inferred_freq = sequence_to_dt64ns(
+        subarr, tz, inferred_freq = _sequence_to_dt64ns(
             data,
             dtype=dtype,
             copy=copy,
@@ -393,7 +394,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         normalize=False,
         ambiguous="raise",
         nonexistent="raise",
-        closed=None,
+        inclusive="both",
     ):
 
         periods = dtl.validate_periods(periods)
@@ -416,7 +417,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         if start is NaT or end is NaT:
             raise ValueError("Neither `start` nor `end` can be NaT")
 
-        left_closed, right_closed = dtl.validate_endpoints(closed)
+        left_inclusive, right_inclusive = validate_inclusive(inclusive)
         start, end, _normalized = _maybe_normalize_endpoints(start, end, normalize)
         tz = _infer_tz_from_endpoints(start, end, tz)
 
@@ -476,10 +477,15 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             arr = arr.astype("M8[ns]", copy=False)
             index = cls._simple_new(arr, freq=None, dtype=dtype)
 
-        if not left_closed and len(index) and index[0] == start:
-            index = index[1:]
-        if not right_closed and len(index) and index[-1] == end:
-            index = index[:-1]
+        if start == end:
+            if not left_inclusive and not right_inclusive:
+                index = index[1:-1]
+        else:
+            if not left_inclusive or not right_inclusive:
+                if not left_inclusive and len(index) and index[0] == start:
+                    index = index[1:]
+                if not right_inclusive and len(index) and index[-1] == end:
+                    index = index[:-1]
 
         dtype = tz_to_dtype(tz)
         return cls._simple_new(index._ndarray, freq=freq, dtype=dtype)
@@ -502,7 +508,20 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         self._assert_tzawareness_compat(other)
         if setitem:
             # Stricter check for setitem vs comparison methods
-            if not timezones.tz_compare(self.tz, other.tz):
+            if self.tz is not None and not timezones.tz_compare(self.tz, other.tz):
+                # TODO(2.0): remove this check. GH#37605
+                warnings.warn(
+                    "Setitem-like behavior with mismatched timezones is deprecated "
+                    "and will change in a future version. Instead of raising "
+                    "(or for Index, Series, and DataFrame methods, coercing to "
+                    "object dtype), the value being set (or passed as a "
+                    "fill_value, or inserted) will be cast to the existing "
+                    "DatetimeArray/DatetimeIndex/Series/DataFrame column's "
+                    "timezone. To retain the old behavior, explicitly cast to "
+                    "object dtype before the operation.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
                 raise ValueError(f"Timezones don't match. '{self.tz}' != '{other.tz}'")
 
     # -----------------------------------------------------------------
@@ -615,17 +634,13 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             chunksize = 10000
             chunks = (length // chunksize) + 1
 
-            with warnings.catch_warnings():
-                # filter out warnings about Timestamp.freq
-                warnings.filterwarnings("ignore", category=FutureWarning)
-
-                for i in range(chunks):
-                    start_i = i * chunksize
-                    end_i = min((i + 1) * chunksize, length)
-                    converted = ints_to_pydatetime(
-                        data[start_i:end_i], tz=self.tz, freq=self.freq, box="timestamp"
-                    )
-                    yield from converted
+            for i in range(chunks):
+                start_i = i * chunksize
+                end_i = min((i + 1) * chunksize, length)
+                converted = ints_to_pydatetime(
+                    data[start_i:end_i], tz=self.tz, freq=self.freq, box="timestamp"
+                )
+                yield from converted
 
     def astype(self, dtype, copy: bool = True):
         # We handle
@@ -1190,7 +1205,7 @@ default 'raise'
             "Use `dtindex - dtindex.to_period(freq).to_timestamp()` instead.",
             FutureWarning,
             # stacklevel chosen to be correct for when called from DatetimeIndex
-            stacklevel=3,
+            stacklevel=find_stack_level(),
         )
         from pandas.core.arrays.timedeltas import TimedeltaArray
 
@@ -1357,7 +1372,7 @@ default 'raise'
             "weekofyear and return an Index, you may call "
             "pd.Int64Index(idx.isocalendar().week)",
             FutureWarning,
-            stacklevel=3,
+            stacklevel=find_stack_level(),
         )
         week_series = self.isocalendar().week
         if week_series.hasnans:
@@ -1921,6 +1936,26 @@ default 'raise'
         keepdims: bool = False,
         skipna: bool = True,
     ):
+        """
+        Return sample standard deviation over requested axis.
+
+        Normalized by N-1 by default. This can be changed using the ddof argument
+
+        Parameters
+        ----------
+        axis : int optional, default None
+            Axis for the function to be applied on.
+        ddof : int, default 1
+            Degrees of Freedom. The divisor used in calculations is N - ddof,
+            where N represents the number of elements.
+        skipna : bool, default True
+            Exclude NA/null values. If an entire row/column is NA, the result will be
+            NA.
+
+        Returns
+        -------
+        Timedelta
+        """
         # Because std is translation-invariant, we can get self.std
         #  by calculating (self - Timestamp(0)).std, and we can do it
         #  without creating a copy by using a view on self._ndarray
@@ -1936,41 +1971,22 @@ default 'raise'
 # Constructor Helpers
 
 
-@overload
-def sequence_to_datetimes(
-    data, allow_object: Literal[False] = ..., require_iso8601: bool = ...
-) -> DatetimeArray:
-    ...
-
-
-@overload
-def sequence_to_datetimes(
-    data, allow_object: Literal[True] = ..., require_iso8601: bool = ...
-) -> np.ndarray | DatetimeArray:
-    ...
-
-
-def sequence_to_datetimes(
-    data, allow_object: bool = False, require_iso8601: bool = False
-) -> np.ndarray | DatetimeArray:
+def sequence_to_datetimes(data, require_iso8601: bool = False) -> DatetimeArray:
     """
     Parse/convert the passed data to either DatetimeArray or np.ndarray[object].
     """
-    result, tz, freq = sequence_to_dt64ns(
+    result, tz, freq = _sequence_to_dt64ns(
         data,
-        allow_object=allow_object,
         allow_mixed=True,
         require_iso8601=require_iso8601,
     )
-    if result.dtype == object:
-        return result
 
     dtype = tz_to_dtype(tz)
     dta = DatetimeArray._simple_new(result, freq=freq, dtype=dtype)
     return dta
 
 
-def sequence_to_dt64ns(
+def _sequence_to_dt64ns(
     data,
     dtype=None,
     copy=False,
@@ -1979,7 +1995,6 @@ def sequence_to_dt64ns(
     yearfirst=False,
     ambiguous="raise",
     *,
-    allow_object: bool = False,
     allow_mixed: bool = False,
     require_iso8601: bool = False,
 ):
@@ -1994,9 +2009,6 @@ def sequence_to_dt64ns(
     yearfirst : bool, default False
     ambiguous : str, bool, or arraylike, default 'raise'
         See pandas._libs.tslibs.tzconversion.tz_localize_to_utc.
-    allow_object : bool, default False
-        Whether to return an object-dtype ndarray instead of raising if the
-        data contains more than one timezone.
     allow_mixed : bool, default False
         Interpret integers as timestamps when datetime objects are also present.
     require_iso8601 : bool, default False
@@ -2066,19 +2078,21 @@ def sequence_to_dt64ns(
                 data,
                 dayfirst=dayfirst,
                 yearfirst=yearfirst,
-                allow_object=allow_object,
+                allow_object=False,
                 allow_mixed=allow_mixed,
                 require_iso8601=require_iso8601,
             )
             if tz and inferred_tz:
                 #  two timezones: convert to intended from base UTC repr
-                data = tzconversion.tz_convert_from_utc(data.view("i8"), tz)
-                data = data.view(DT64NS_DTYPE)
+                if data.dtype == "i8":
+                    # GH#42505
+                    # by convention, these are _already_ UTC, e.g
+                    return data.view(DT64NS_DTYPE), tz, None
+
+                utc_vals = tzconversion.tz_convert_from_utc(data.view("i8"), tz)
+                data = utc_vals.view(DT64NS_DTYPE)
             elif inferred_tz:
                 tz = inferred_tz
-            elif allow_object and data.dtype == object:
-                # We encountered mixed-timezones.
-                return data, None, None
 
         data_dtype = data.dtype
 
@@ -2557,7 +2571,7 @@ def generate_range(start=None, end=None, periods=None, offset=BDay()):
                 break
 
             # faster than cur + offset
-            next_date = offset.apply(cur)
+            next_date = offset._apply(cur)
             if next_date <= cur:
                 raise ValueError(f"Offset {offset} did not increment date")
             cur = next_date
@@ -2571,7 +2585,7 @@ def generate_range(start=None, end=None, periods=None, offset=BDay()):
                 break
 
             # faster than cur + offset
-            next_date = offset.apply(cur)
+            next_date = offset._apply(cur)
             if next_date >= cur:
                 raise ValueError(f"Offset {offset} did not decrement date")
             cur = next_date
