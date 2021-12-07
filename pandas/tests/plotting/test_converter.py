@@ -81,20 +81,20 @@ class TestRegistration:
     @td.skip_if_no("matplotlib", min_version="3.1.3")
     def test_registering_no_warning(self):
         plt = pytest.importorskip("matplotlib.pyplot")
-        s = Series(range(12), index=date_range("2017", periods=12))
+        ser = Series(range(12), index=date_range("2017", periods=12))
         _, ax = plt.subplots()
 
         # Set to the "warn" state, in case this isn't the first test run
         register_matplotlib_converters()
-        ax.plot(s.index, s.values)
+        ax.plot(ser.index, ser.values)
         plt.close()
 
     def test_pandas_plots_register(self):
         plt = pytest.importorskip("matplotlib.pyplot")
-        s = Series(range(12), index=date_range("2017", periods=12))
+        ser = Series(range(12), index=date_range("2017", periods=12))
         # Set to the "warn" state, in case this isn't the first test run
         with tm.assert_produces_warning(None) as w:
-            s.plot()
+            ser.plot()
 
         try:
             assert len(w) == 0
@@ -118,17 +118,17 @@ class TestRegistration:
         pytest.importorskip("matplotlib.pyplot")
         ctx = cf.option_context("plotting.matplotlib.register_converters", False)
         plt = pytest.importorskip("matplotlib.pyplot")
-        s = Series(range(12), index=date_range("2017", periods=12))
+        ser = Series(range(12), index=date_range("2017", periods=12))
         _, ax = plt.subplots()
 
         # Test without registering first, no warning
         with ctx:
-            ax.plot(s.index, s.values)
+            ax.plot(ser.index, ser.values)
 
         # Now test with registering
         register_matplotlib_converters()
         with ctx:
-            ax.plot(s.index, s.values)
+            ax.plot(ser.index, ser.values)
         plt.close()
 
     def test_registry_resets(self):

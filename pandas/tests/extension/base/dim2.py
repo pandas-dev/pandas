@@ -210,7 +210,7 @@ class Dim2CompatTests(BaseExtensionTests):
             if method in ["sum", "prod"] and data.dtype.kind in ["i", "u"]:
                 # FIXME: kludge
                 if data.dtype.kind == "i":
-                    dtype2 = INT_STR_TO_DTYPE[np.dtype(int).name]()
+                    dtype2 = INT_STR_TO_DTYPE[np.dtype(int).name]
                     if is_platform_windows() or not IS64:
                         # FIXME: kludge for 32bit builds
                         if result.dtype.itemsize == 4:
@@ -220,7 +220,7 @@ class Dim2CompatTests(BaseExtensionTests):
                     else:
                         dtype = pd.Int64Dtype()
                 else:
-                    dtype2 = INT_STR_TO_DTYPE[np.dtype(np.uint).name]()
+                    dtype2 = INT_STR_TO_DTYPE[np.dtype(np.uint).name]
                     if is_platform_windows() or not IS64:
                         # FIXME: kludge for 32bit builds
                         if result.dtype.itemsize == 4:
