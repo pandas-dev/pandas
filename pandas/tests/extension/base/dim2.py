@@ -205,7 +205,7 @@ class Dim2CompatTests(BaseExtensionTests):
             #  where other builds will have int64/uint64.
             if dtype.itemsize == 8:
                 return dtype
-            elif dtype.kind == "i":
+            elif dtype.kind in "ib":
                 return INT_STR_TO_DTYPE[np.dtype(int).name]
             else:
                 # i.e. dtype.kind == "u"
