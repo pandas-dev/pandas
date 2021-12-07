@@ -108,8 +108,8 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
             # None -> EA.__contains__ only checks for self._dtype.na_value, not
             #  any compatible NA value.
             # self.dtype.na_value -> <pa.NullScalar:None> isn't recognized by pd.isna
-            return self.isna().any()
-        return super().__contains__(obj)
+            return bool(self.isna().any())
+        return bool(super().__contains__(obj))
 
     def __getitem__(self, item):
         if is_scalar(item):
