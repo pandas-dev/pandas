@@ -885,7 +885,6 @@ class TestReadHtml:
         res = self.read_html(expected, parse_dates=["date"], index_col=0)
         tm.assert_frame_equal(df, res[0])
 
-    @pytest.mark.filterwarnings("ignore::FutureWarning")
     def test_parse_dates_combine(self):
         raw_dates = Series(date_range("1/1/2001", periods=10))
         df = DataFrame(
