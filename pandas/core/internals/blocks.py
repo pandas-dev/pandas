@@ -962,6 +962,9 @@ class Block(PandasObject):
         mask, noop = validate_putmask(values.T, mask)
         assert not isinstance(new, (ABCIndex, ABCSeries, ABCDataFrame))
 
+        if new is lib.no_default:
+            new = self.fill_value
+
         # if we are passed a scalar None, convert it here
         if not self.is_object and is_valid_na_for_dtype(new, self.dtype):
             new = self.fill_value
@@ -1076,7 +1079,7 @@ class Block(PandasObject):
         data = self.values if inplace else self.values.copy()
         data = cast(np.ndarray, data)  # bc overridden by ExtensionBlock
 
-        interp_values = missing.interpolate_array_2d(
+        missing.interpolate_array_2d(
             data,
             method=method,
             axis=axis,
@@ -1088,7 +1091,7 @@ class Block(PandasObject):
             **kwargs,
         )
 
-        nb = self.make_block_same_class(interp_values)
+        nb = self.make_block_same_class(data)
         return nb._maybe_downcast([nb], downcast)
 
     def take_nd(
@@ -1173,6 +1176,9 @@ class Block(PandasObject):
 
         icond, noop = validate_putmask(values, ~cond)
 
+        if other is lib.no_default:
+            other = self.fill_value
+
         if is_valid_na_for_dtype(other, self.dtype) and self.dtype != _dtype_obj:
             other = self.fill_value
 
@@ -1246,7 +1252,7 @@ class Block(PandasObject):
         unstacker,
         fill_value,
         new_placement: npt.NDArray[np.intp],
-        allow_fill: bool,
+        needs_masking: npt.NDArray[np.bool_],
     ):
         """
         Return a list of unstacked blocks of self
@@ -1258,6 +1264,7 @@ class Block(PandasObject):
             Only used in ExtensionBlock._unstack
         new_placement : np.ndarray[np.intp]
         allow_fill : bool
+        needs_masking : np.ndarray[bool]
 
         Returns
         -------
@@ -1640,13 +1647,8 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         other = self._maybe_squeeze_arg(other)
         cond = self._maybe_squeeze_arg(cond)
 
-        if lib.is_scalar(other) and isna(other):
-            # The default `other` for Series / Frame is np.nan
-            # we want to replace that with the correct NA value
-            # for the type
-            # error: Item "dtype[Any]" of "Union[dtype[Any], ExtensionDtype]" has no
-            # attribute "na_value"
-            other = self.dtype.na_value  # type: ignore[union-attr]
+        if other is lib.no_default:
+            other = self.fill_value
 
         icond, noop = validate_putmask(self.values, ~cond)
         if noop:
@@ -1672,7 +1674,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         unstacker,
         fill_value,
         new_placement: npt.NDArray[np.intp],
-        allow_fill: bool,
+        needs_masking: npt.NDArray[np.bool_],
     ):
         # ExtensionArray-safe unstack.
         # We override ObjectBlock._unstack, which unstacks directly on the
@@ -1691,14 +1693,20 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         new_values = new_values.T[mask]
         new_placement = new_placement[mask]
 
+        # needs_masking[i] calculated once in BlockManager.unstack tells
+        #  us if there are any -1s in the relevant indices.  When False,
+        #  that allows us to go through a faster path in 'take', among
+        #  other things avoiding e.g. Categorical._validate_scalar.
         blocks = [
             # TODO: could cast to object depending on fill_value?
             type(self)(
-                self.values.take(indices, allow_fill=allow_fill, fill_value=fill_value),
+                self.values.take(
+                    indices, allow_fill=needs_masking[i], fill_value=fill_value
+                ),
                 BlockPlacement(place),
                 ndim=2,
             )
-            for indices, place in zip(new_values, new_placement)
+            for i, (indices, place) in enumerate(zip(new_values, new_placement))
         ]
         return blocks, mask
 
@@ -1741,6 +1749,8 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
         arr = self.values
 
         cond = extract_bool_array(cond)
+        if other is lib.no_default:
+            other = self.fill_value
 
         try:
             res_values = arr.T._where(cond, other).T
@@ -1794,9 +1804,7 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
                 value, limit, inplace, downcast
             )
 
-        values = self.values
-        values = values if inplace else values.copy()
-        new_values = values.fillna(value=value, limit=limit)
+        new_values = self.values.fillna(value=value, limit=limit)
         return [self.make_block_same_class(values=new_values)]
 
 

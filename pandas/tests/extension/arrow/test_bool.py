@@ -41,8 +41,7 @@ class BaseArrowTests:
 
 
 class TestDtype(BaseArrowTests, base.BaseDtypeTests):
-    def test_array_type_with_arg(self, data, dtype):
-        pytest.skip("GH-22666")
+    pass
 
 
 class TestInterface(BaseArrowTests, base.BaseInterfaceTests):
@@ -63,9 +62,6 @@ class TestInterface(BaseArrowTests, base.BaseInterfaceTests):
 
 
 class TestConstructors(BaseArrowTests, base.BaseConstructorsTests):
-    def test_from_dtype(self, data):
-        pytest.skip("GH-22666")
-
     # seems like some bug in isna on empty BoolArray returning floats.
     @pytest.mark.xfail(reason="bad is-na for empty data")
     def test_from_sequence_from_cls(self, data):

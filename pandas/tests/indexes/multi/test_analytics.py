@@ -174,14 +174,8 @@ def test_map(idx):
     # callable
     index = idx
 
-    # we don't infer UInt64
-    if isinstance(index, UInt64Index):
-        expected = index.astype("int64")
-    else:
-        expected = index
-
     result = index.map(lambda x: x)
-    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(result, index)
 
 
 @pytest.mark.parametrize(
@@ -192,9 +186,6 @@ def test_map(idx):
     ],
 )
 def test_map_dictlike(idx, mapper):
-
-    if isinstance(idx, (pd.CategoricalIndex, pd.IntervalIndex)):
-        pytest.skip(f"skipping tests for {type(idx)}")
 
     identity = mapper(idx.values, idx)
 
