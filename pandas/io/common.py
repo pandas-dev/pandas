@@ -446,7 +446,8 @@ def file_path_to_url(path: str) -> str:
     return urljoin("file:", pathname2url(path))
 
 
-_compression_to_extension = {"gzip": ".gz", "bz2": ".bz2", "zip": ".zip", "xz": ".xz"}
+_extension_to_compression = {".gz": "gzip", ".bz2": "bz2", ".zip": "zip", ".xz": "xz"}
+_supported_compressions = set(_extension_to_compression.values())
 
 
 def get_compression_method(
@@ -525,20 +526,18 @@ def infer_compression(
             return "tar"
 
         # Infer compression from the filename/URL extension
-        for compression, extension in _compression_to_extension.items():
+        for extension, compression in _extension_to_compression.items():
             if filepath_or_buffer.lower().endswith(extension):
                 return compression
         return None
 
     # Compression has been specified. Check that it's valid
-    if compression in _compression_to_extension:
+    if compression in _supported_compressions:
         return compression
 
     # https://github.com/python/mypy/issues/5492
     # Unsupported operand types for + ("List[Optional[str]]" and "List[str]")
-    valid = ["infer", None] + sorted(
-        _compression_to_extension
-    )  # type: ignore[operator]
+    valid = ["infer", None] + sorted(_supported_compressions)  # type: ignore[operator]
     msg = (
         f"Unrecognized compression type: {compression}\n"
         f"Valid compression types are {valid}"
@@ -683,7 +682,7 @@ def get_handle(
         ioargs.encoding,
         ioargs.mode,
         errors,
-        ioargs.compression["method"] not in _compression_to_extension,
+        ioargs.compression["method"] not in _supported_compressions,
     )
 
     is_path = isinstance(handle, str)
