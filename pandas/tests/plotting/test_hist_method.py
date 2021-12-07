@@ -236,6 +236,11 @@ class TestSeriesPlots(TestPlotBase):
 
 @td.skip_if_no_mpl
 class TestDataFramePlots(TestPlotBase):
+    @pytest.mark.xfail(
+        reason="2021-12-06 ValueError: view limit minimum -36435.78943428784 is "
+        "less than 1 and is an invalid Matplotlib date value. This often happens "
+        "if you pass a non-datetime value to an axis that has datetime units"
+    )
     def test_hist_df_legacy(self):
         from matplotlib.patches import Rectangle
 
