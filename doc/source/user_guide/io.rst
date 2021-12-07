@@ -116,6 +116,13 @@ index_col : int, str, sequence of int / str, or False, optional, default ``None`
   of the data file, then a default index is used.  If it is larger, then
   the first columns are used as index so that the remaining number of fields in
   the body are equal to the number of fields in the header.
+
+  The first row after the header is used to determine the number of columns,
+  which will go into the index. If the subsequent rows contain less columns
+  than the first row, they are filled with ``NaN``.
+
+  This can be avoided through ``usecols``. This ensures that the columns are
+  taken as is and the trailing data are ignored.
 usecols : list-like or callable, default ``None``
   Return a subset of the columns. If list-like, all elements must either
   be positional (i.e. integer indices into the document columns) or strings
@@ -143,11 +150,29 @@ usecols : list-like or callable, default ``None``
      pd.read_csv(StringIO(data))
      pd.read_csv(StringIO(data), usecols=lambda x: x.upper() in ["COL1", "COL3"])
 
-  Using this parameter results in much faster parsing time and lower memory usage.
+  Using this parameter results in much faster parsing time and lower memory usage
+  when using the c engine. The Python engine loads the data first before deciding
+  which columns to drop.
 squeeze : boolean, default ``False``
   If the parsed data only contains one column then return a ``Series``.
+
+  .. deprecated:: 1.4.0
+     Append ``.squeeze("columns")`` to the call to ``{func_name}`` to squeeze
+     the data.
 prefix : str, default ``None``
   Prefix to add to column numbers when no header, e.g. 'X' for X0, X1, ...
+
+  .. deprecated:: 1.4.0
+     Use a list comprehension on the DataFrame's columns after calling ``read_csv``.
+
+  .. ipython:: python
+
+     data = "col1,col2,col3\na,b,1"
+
+     df = pd.read_csv(StringIO(data))
+     df.columns = [f"pre_{col}" for col in df.columns]
+     df
+
 mangle_dupe_cols : boolean, default ``True``
   Duplicate columns will be specified as 'X', 'X.1'...'X.N', rather than 'X'...'X'.
   Passing in ``False`` will cause data to be overwritten if there are duplicate
@@ -1292,6 +1317,20 @@ data that appear in some lines but not others:
     0  1  2   3
     1  4  5   6
     2  8  9  10
+
+In case you want to keep all data including the lines with too many fields, you can
+specify a sufficient number of ``names``. This ensures that lines with not enough
+fields are filled with ``NaN``.
+
+.. code-block:: ipython
+
+   In [31]: pd.read_csv(StringIO(data), names=['a', 'b', 'c', 'd'])
+
+   Out[31]:
+       a  b   c  d
+    0  1  2   3  NaN
+    1  4  5   6  7
+    2  8  9  10  NaN
 
 .. _io.dialect:
 
@@ -3385,9 +3424,9 @@ with ``on_demand=True``.
 Specifying sheets
 +++++++++++++++++
 
-.. note :: The second argument is ``sheet_name``, not to be confused with ``ExcelFile.sheet_names``.
+.. note:: The second argument is ``sheet_name``, not to be confused with ``ExcelFile.sheet_names``.
 
-.. note :: An ExcelFile's attribute ``sheet_names`` provides access to a list of sheets.
+.. note:: An ExcelFile's attribute ``sheet_names`` provides access to a list of sheets.
 
 * The arguments ``sheet_name`` allows specifying the sheet or sheets to read.
 * The default value for ``sheet_name`` is 0, indicating to read the first sheet

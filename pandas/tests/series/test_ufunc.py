@@ -167,16 +167,19 @@ def test_binary_ufunc_scalar(ufunc, sparse, flip, arrays_for_binary_ufunc):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("ufunc", [np.divmod])  # TODO: any others?
+@pytest.mark.parametrize("ufunc", [np.divmod])  # TODO: np.modf, np.frexp
 @pytest.mark.parametrize("sparse", SPARSE, ids=SPARSE_IDS)
 @pytest.mark.parametrize("shuffle", SHUFFLE)
 @pytest.mark.filterwarnings("ignore:divide by zero:RuntimeWarning")
-def test_multiple_output_binary_ufuncs(ufunc, sparse, shuffle, arrays_for_binary_ufunc):
+def test_multiple_output_binary_ufuncs(
+    ufunc, sparse, shuffle, arrays_for_binary_ufunc, request
+):
     # Test that
     #  the same conditions from binary_ufunc_scalar apply to
     #  ufuncs with multiple outputs.
     if sparse and ufunc is np.divmod:
-        pytest.skip("sparse divmod not implemented.")
+        mark = pytest.mark.xfail(reason="sparse divmod not implemented")
+        request.node.add_marker(mark)
 
     a1, a2 = arrays_for_binary_ufunc
     # work around https://github.com/pandas-dev/pandas/issues/26987
@@ -252,16 +255,53 @@ def test_object_series_ok():
 @pytest.mark.parametrize(
     "values",
     [
-        pd.array([1, 3, 2], dtype="int64"),
-        pd.array([1, 10, 0], dtype="Sparse[int]"),
+        pd.array([1, 3, 2], dtype=np.int64),
+        pd.array([1, 3, 2], dtype="Int64"),
+        pd.array([1, 3, 2], dtype="Float32"),
+        pd.array([1, 10, 2], dtype="Sparse[int]"),
         pd.to_datetime(["2000", "2010", "2001"]),
         pd.to_datetime(["2000", "2010", "2001"]).tz_localize("CET"),
         pd.to_datetime(["2000", "2010", "2001"]).to_period(freq="D"),
+        pd.to_timedelta(["1 Day", "3 Days", "2 Days"]),
+        pd.IntervalIndex([pd.Interval(0, 1), pd.Interval(2, 3), pd.Interval(1, 2)]),
     ],
+    ids=lambda x: str(x.dtype),
 )
-def test_reduce(values):
-    a = pd.Series(values)
-    assert np.maximum.reduce(a) == values[1]
+@pytest.mark.parametrize("box", [pd.array, pd.Index, pd.Series, pd.DataFrame])
+def test_reduce(values, box, request):
+    # TODO: cases with NAs
+
+    same_type = True
+
+    if box is pd.Index:
+        if values.dtype.kind in ["i", "f"]:
+            # ATM Index casts to object, so we get python ints/floats
+            same_type = False
+
+    obj = box(values)
+
+    result = np.maximum.reduce(obj)
+    expected = values[1]
+    if box is pd.DataFrame:
+        # TODO: cases with axis kwarg
+        expected = obj.max(numeric_only=False)
+        tm.assert_series_equal(result, expected)
+    else:
+        assert result == expected
+        if same_type:
+            # check we have e.g. Timestamp instead of dt64
+            assert type(result) == type(expected)
+
+    result = np.minimum.reduce(obj)
+    expected = values[0]
+    if box is pd.DataFrame:
+        expected = obj.min(numeric_only=False)
+        tm.assert_series_equal(result, expected)
+    else:
+        assert result == expected
+        if same_type:
+            # check we have e.g. Timestamp instead of dt64
+            assert type(result) == type(expected)
 
 
 @pytest.mark.parametrize("type_", [list, deque, tuple])

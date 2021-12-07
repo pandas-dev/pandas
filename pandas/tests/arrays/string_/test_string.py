@@ -345,7 +345,7 @@ def test_reduce(skipna, dtype):
 def test_min_max(method, skipna, dtype, request):
     if dtype.storage == "pyarrow":
         reason = "'ArrowStringArray' object has no attribute 'max'"
-        mark = pytest.mark.xfail(raises=AttributeError, reason=reason)
+        mark = pytest.mark.xfail(raises=TypeError, reason=reason)
         request.node.add_marker(mark)
 
     arr = pd.Series(["a", "b", "c", None], dtype=dtype)
@@ -362,12 +362,10 @@ def test_min_max(method, skipna, dtype, request):
 def test_min_max_numpy(method, box, dtype, request):
     if dtype.storage == "pyarrow":
         if box is pd.array:
-            raises = TypeError
             reason = "'<=' not supported between instances of 'str' and 'NoneType'"
         else:
-            raises = AttributeError
             reason = "'ArrowStringArray' object has no attribute 'max'"
-        mark = pytest.mark.xfail(raises=raises, reason=reason)
+        mark = pytest.mark.xfail(raises=TypeError, reason=reason)
         request.node.add_marker(mark)
 
     arr = box(["a", "b", "c", None], dtype=dtype)

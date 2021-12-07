@@ -116,9 +116,6 @@ class TestDtype(BaseSparseTests, base.BaseDtypeTests):
 
 
 class TestInterface(BaseSparseTests, base.BaseInterfaceTests):
-    def test_no_values_attribute(self, data):
-        pytest.skip("We have values")
-
     def test_copy(self, data):
         # __setitem__ does not work, so we only have a smoke-test
         data.copy()
@@ -179,12 +176,12 @@ class TestReshaping(BaseSparseTests, base.BaseReshapingTests):
 
 class TestGetitem(BaseSparseTests, base.BaseGetitemTests):
     def test_get(self, data):
-        s = pd.Series(data, index=[2 * i for i in range(len(data))])
-        if np.isnan(s.values.fill_value):
-            assert np.isnan(s.get(4)) and np.isnan(s.iloc[2])
+        ser = pd.Series(data, index=[2 * i for i in range(len(data))])
+        if np.isnan(ser.values.fill_value):
+            assert np.isnan(ser.get(4)) and np.isnan(ser.iloc[2])
         else:
-            assert s.get(4) == s.iloc[2]
-        assert s.get(2) == s.iloc[1]
+            assert ser.get(4) == ser.iloc[2]
+        assert ser.get(2) == ser.iloc[1]
 
     def test_reindex(self, data, na_value):
         self._check_unsupported(data)
@@ -328,11 +325,14 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         expected = pd.Series(cls._from_sequence([a, b, b, b], dtype=data.dtype))
         self.assert_series_equal(result, expected)
 
-    def test_combine_first(self, data):
+    def test_combine_first(self, data, request):
         if data.dtype.subtype == "int":
             # Right now this is upcasted to float, just like combine_first
             # for Series[int]
-            pytest.skip("TODO(SparseArray.__setitem__ will preserve dtype.")
+            mark = pytest.mark.xfail(
+                reason="TODO(SparseArray.__setitem__) will preserve dtype."
+            )
+            request.node.add_marker(mark)
         super().test_combine_first(data)
 
     def test_searchsorted(self, data_for_sorting, as_series):
@@ -454,8 +454,8 @@ class TestComparisonOps(BaseSparseTests, base.BaseComparisonOpsTests):
         tm.assert_series_equal(result, expected)
 
         # series
-        s = pd.Series(data)
-        result = op(s, other)
+        ser = pd.Series(data)
+        result = op(ser, other)
         tm.assert_series_equal(result, expected)
 
 

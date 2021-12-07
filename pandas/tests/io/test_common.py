@@ -7,6 +7,7 @@ from functools import partial
 from io import (
     BytesIO,
     StringIO,
+    UnsupportedOperation,
 )
 import mmap
 import os
@@ -604,3 +605,8 @@ def test_errno_attribute():
     with pytest.raises(FileNotFoundError, match="\\[Errno 2\\]") as err:
         pd.read_csv("doesnt_exist")
         assert err.errno == errno.ENOENT
+
+
+def test_fail_mmap():
+    with pytest.raises(UnsupportedOperation, match="fileno"):
+        icom.get_handle(BytesIO(), "rb", memory_map=True)

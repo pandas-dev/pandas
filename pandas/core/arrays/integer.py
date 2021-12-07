@@ -5,8 +5,8 @@ from typing import overload
 import numpy as np
 
 from pandas._libs import (
-    iNaT,
     lib,
+    missing as libmissing,
 )
 from pandas._typing import (
     ArrayLike,
@@ -25,14 +25,12 @@ from pandas.core.dtypes.base import (
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_datetime64_dtype,
-    is_float,
     is_float_dtype,
     is_integer_dtype,
     is_object_dtype,
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.masked import BaseMaskedDtype
@@ -183,8 +181,7 @@ def coerce_to_array(
     if is_object_dtype(values) or is_string_dtype(values):
         inferred_type = lib.infer_dtype(values, skipna=True)
         if inferred_type == "empty":
-            values = np.empty(len(values))
-            values.fill(np.nan)
+            pass
         elif inferred_type not in [
             "floating",
             "integer",
@@ -202,13 +199,14 @@ def coerce_to_array(
     elif not (is_integer_dtype(values) or is_float_dtype(values)):
         raise TypeError(f"{values.dtype} cannot be converted to an IntegerDtype")
 
+    if values.ndim != 1:
+        raise TypeError("values must be a 1D list-like")
+
     if mask is None:
-        mask = isna(values)
+        mask = libmissing.is_numeric_na(values)
     else:
         assert len(mask) == len(values)
 
-    if values.ndim != 1:
-        raise TypeError("values must be a 1D list-like")
     if mask.ndim != 1:
         raise TypeError("mask must be a 1D list-like")
 
@@ -426,33 +424,6 @@ class IntegerArray(NumericArray):
     def max(self, *, skipna=True, axis: int | None = 0, **kwargs):
         nv.validate_max((), kwargs)
         return super()._reduce("max", skipna=skipna, axis=axis)
-
-    def _maybe_mask_result(self, result, mask, other, op_name: str):
-        """
-        Parameters
-        ----------
-        result : array-like
-        mask : array-like bool
-        other : scalar or array-like
-        op_name : str
-        """
-        # if we have a float operand we are by-definition
-        # a float result
-        # or our op is a divide
-        if (is_float_dtype(other) or is_float(other)) or (
-            op_name in ["rtruediv", "truediv"]
-        ):
-            from pandas.core.arrays import FloatingArray
-
-            return FloatingArray(result, mask, copy=False)
-
-        if result.dtype == "timedelta64[ns]":
-            from pandas.core.arrays import TimedeltaArray
-
-            result[mask] = iNaT
-            return TimedeltaArray._simple_new(result)
-
-        return type(self)(result, mask, copy=False)
 
 
 _dtype_docstring = """

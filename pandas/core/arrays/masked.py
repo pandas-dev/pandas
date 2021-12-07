@@ -12,6 +12,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import (
+    iNaT,
     lib,
     missing as libmissing,
 )
@@ -39,9 +40,11 @@ from pandas.core.dtypes.common import (
     is_bool,
     is_bool_dtype,
     is_dtype_equal,
+    is_float,
     is_float_dtype,
     is_integer_dtype,
     is_list_like,
+    is_numeric_dtype,
     is_object_dtype,
     is_scalar,
     is_string_dtype,
@@ -55,6 +58,7 @@ from pandas.core.dtypes.missing import (
 )
 
 from pandas.core import (
+    arraylike,
     missing,
     nanops,
     ops,
@@ -65,6 +69,7 @@ from pandas.core.algorithms import (
     take,
 )
 from pandas.core.array_algos import masked_reductions
+from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
 from pandas.core.indexers import check_array_indexer
@@ -414,7 +419,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # For MaskedArray inputs, we apply the ufunc to ._data
         # and mask the result.
-        if method == "reduce":
+        if method == "reduce" and ufunc not in [np.maximum, np.minimum]:
             # Not clear how to handle missing values in reductions. Raise.
             raise NotImplementedError("The 'reduce' method is not supported.")
 
@@ -430,6 +435,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         )
         if result is not NotImplemented:
             return result
+
+        if method == "reduce":
+            result = arraylike.dispatch_reduction_ufunc(
+                self, ufunc, method, *inputs, **kwargs
+            )
+            if result is not NotImplemented:
+                return result
 
         mask = np.zeros(len(self), dtype=bool)
         inputs2 = []
@@ -457,6 +469,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 return IntegerArray(x, m)
             elif is_float_dtype(x.dtype):
                 m = mask.copy()
+                if x.dtype == np.float16:
+                    # reached in e.g. np.sqrt on BooleanArray
+                    # we don't support float16
+                    x = x.astype(np.float32)
                 return FloatingArray(x, m)
             else:
                 x[mask] = np.nan
@@ -529,6 +545,48 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             mask = self._mask | mask
 
         return BooleanArray(result, mask, copy=False)
+
+    def _maybe_mask_result(self, result, mask, other, op_name: str):
+        """
+        Parameters
+        ----------
+        result : array-like
+        mask : array-like bool
+        other : scalar or array-like
+        op_name : str
+        """
+        # if we have a float operand we are by-definition
+        # a float result
+        # or our op is a divide
+        if (
+            (is_float_dtype(other) or is_float(other))
+            or (op_name in ["rtruediv", "truediv"])
+            or (is_float_dtype(self.dtype) and is_numeric_dtype(result.dtype))
+        ):
+            from pandas.core.arrays import FloatingArray
+
+            return FloatingArray(result, mask, copy=False)
+
+        elif is_bool_dtype(result):
+            from pandas.core.arrays import BooleanArray
+
+            return BooleanArray(result, mask, copy=False)
+
+        elif result.dtype == "timedelta64[ns]":
+            # e.g. test_numeric_arr_mul_tdscalar_numexpr_path
+            from pandas.core.arrays import TimedeltaArray
+
+            result[mask] = iNaT
+            return TimedeltaArray._simple_new(result)
+
+        elif is_integer_dtype(result):
+            from pandas.core.arrays import IntegerArray
+
+            return IntegerArray(result, mask, copy=False)
+
+        else:
+            result[mask] = np.nan
+            return result
 
     def isna(self) -> np.ndarray:
         return self._mask.copy()
@@ -691,6 +749,38 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         left = self._data[~self._mask]
         right = other._data[~other._mask]
         return array_equivalent(left, right, dtype_equal=True)
+
+    def _quantile(
+        self: BaseMaskedArrayT, qs: npt.NDArray[np.float64], interpolation: str
+    ) -> BaseMaskedArrayT:
+        """
+        Dispatch to quantile_with_mask, needed because we do not have
+        _from_factorized.
+
+        Notes
+        -----
+        We assume that all impacted cases are 1D-only.
+        """
+        mask = np.atleast_2d(np.asarray(self.isna()))
+        npvalues = np.atleast_2d(np.asarray(self))
+
+        res = quantile_with_mask(
+            npvalues,
+            mask=mask,
+            fill_value=self.dtype.na_value,
+            qs=qs,
+            interpolation=interpolation,
+        )
+        assert res.ndim == 2
+        assert res.shape[0] == 1
+        res = res[0]
+        try:
+            out = type(self)._from_sequence(res, dtype=self.dtype)
+        except TypeError:
+            # GH#42626: not able to safely cast Int64
+            # for floating point output
+            out = np.asarray(res, dtype=np.float64)
+        return out
 
     def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         if name in {"any", "all"}:
