@@ -127,10 +127,17 @@ JSOBJ FASTCALL_MSVC decode_numeric(struct DecoderState *ds) {
 
     JSUINT64 overflowLimit = LLONG_MAX;
 
-    if (*(offset) == '-') {
+    if (*(offset) == 'I') {
+      goto DECODE_INF;
+    } else if (*(offset) == 'N') {
+      goto DECODE_NAN;
+    } else if (*(offset) == '-') {
         offset++;
         intNeg = -1;
         overflowLimit  = LLONG_MIN;
+        if (*(offset) == 'I') {
+          goto DECODE_INF;
+        }
     }
 
     // Scan integer part
