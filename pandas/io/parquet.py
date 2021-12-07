@@ -486,6 +486,12 @@ def read_parquet(
 
         .. versionadded:: 1.3.0
 
+        When using the 'pyarrow' engine, no storage options are provided
+        and a filesystem is implemented by both ``pyarrow.fs`` and ``fsspec``
+        (e.g. "s3://"), then the ``pyarrow.fs`` filesystem is preferred.
+        Provide the instantiated fsspec filesystem using the ``filesystem``
+        keyword if you wish to use its implementation.
+
     use_nullable_dtypes : bool, default False
         If True, use dtypes that use ``pd.NA`` as missing value indicator
         for the resulting DataFrame. (only applicable for the ``pyarrow``
