@@ -980,16 +980,24 @@ class _IOWrapper:
     # seek/read/writ-able.
     def __init__(self, buffer: BaseBuffer):
         self.buffer = buffer
-        self.attributes = tuple(
-            attr
-            for attr in ("seekable", "readable", "writable")
-            if not hasattr(self.buffer, attr)
-        )
 
     def __getattr__(self, name: str):
-        if name in self.attributes:
-            return lambda: True
         return getattr(self.buffer, name)
+
+    def readable(self) -> bool:
+        if hasattr(self.buffer, "readable"):
+            return self.buffer.readable()
+        return True
+
+    def seekable(self) -> bool:
+        if hasattr(self.buffer, "seekable"):
+            return self.buffer.seekable()
+        return True
+
+    def writable(self) -> bool:
+        if hasattr(self.buffer, "writable"):
+            return self.buffer.writable()
+        return True
 
 
 class _BytesIOWrapper:
