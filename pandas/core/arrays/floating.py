@@ -103,8 +103,6 @@ def coerce_to_array(
     if dtype is None and hasattr(values, "dtype"):
         if is_float_dtype(values.dtype):
             dtype = values.dtype
-            if dtype == "float16":
-                raise TypeError("FloatingArray does not support float16 dtype")
 
     if dtype is not None:
         if isinstance(dtype, str) and dtype.startswith("Float"):
