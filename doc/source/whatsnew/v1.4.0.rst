@@ -645,6 +645,7 @@ Numeric
 - Bug in arithmetic operations involving :class:`RangeIndex` where the result would have the incorrect ``name`` (:issue:`43962`)
 - Bug in arithmetic operations involving :class:`Series` where the result could have the incorrect ``name`` when the operands having matching NA or matching tuple names (:issue:`44459`)
 - Bug in division with ``IntegerDtype`` or ``BooleanDtype`` array and NA scalar incorrectly raising (:issue:`44685`)
+- Bug in multiplying a :class:`Series` with ``FloatingDtype`` with a timedelta-like scalar incorrectly raising (:issue:`44772`)
 -
 
 Conversion
@@ -748,6 +749,8 @@ I/O
 - Bug in :func:`read_csv` raising ``AttributeError`` when attempting to read a .csv file and infer index column dtype from an nullable integer type (:issue:`44079`)
 - :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` with ``compression`` set to ``'zip'`` no longer create a zip file containing a file ending with ".zip". Instead, they try to infer the inner file name more smartly. (:issue:`39465`)
 - Bug in :func:`read_csv` when passing simultaneously a parser in ``date_parser`` and ``parse_dates=False``, the parsing was still called (:issue:`44366`)
+- Bug in :func:`read_csv` silently ignoring errors when failling to create a memory-mapped file (:issue:`44766`)
+-
 
 Period
 ^^^^^^
