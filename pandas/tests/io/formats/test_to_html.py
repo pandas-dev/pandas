@@ -876,14 +876,48 @@ def test_to_html_float_format_object_col(datapath):
     assert result == expected
 
 
-def test_future_warning():
+@pytest.mark.parametrize(
+    "kw1, kw1_val, kw1_msg",
+    [
+        ("classes", "text", "replaced by `table_attributes`"),
+        ("sparsify", True, "replaced by `sparse_index` and `sparse_columns`"),
+        ("max_cols", 1, "replaced by `max_columns` for consistency"),
+        ("formatters", [None], "replaced by `formatter` accepted by `Styler.format`"),
+        ("float_format", "txt", "replaced by `precision`, `decimal`, and `thousands`"),
+        ("border", 10, "removed as deprecated HTML, suggested to use CSS"),
+        ("col_space", 1, "removed, suggested to use CSS `min-width: 100px;`"),
+        ("justify", "right", "removed, suggested to use CSS"),
+    ],
+)
+@pytest.mark.parametrize(
+    "kw2, kw2_val, kw2_msg",
+    [
+        ("render_links", True, "removed due to limited functionality"),
+        ("notebook", True, "removed as a legacy argument"),
+        ("show_dimensions", True, "removed, suggested to use `caption=f'{df.shape}'`"),
+        (
+            "bold_rows",
+            False,
+            "replaced by `bold_headers` controlling index and columns",
+        ),
+    ],
+)
+def test_future_warning(kw1, kw1_val, kw1_msg, kw2, kw2_val, kw2_msg):
     df = DataFrame([[1]])
     msg = (
         "In future versions `DataFrame.to_html` is expected to utilise the base "
         "implementation of `Styler.to_html` for formatting and rendering. "
-        "The arguments signature may therefore change. It is recommended instead "
-        "to use `DataFrame.style.to_html` which also contains additional "
-        "functionality."
+        "The arguments signature may therefore change. You are specifically using "
+        "the following arguments: "
     )
+    msg += f"\\n    `{kw1}`, which may be {kw1_msg}."
+    msg += f"\\n    `{kw2}`, which may be {kw2_msg}."
+
     with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.to_html(**{kw1: kw1_val, kw2: kw2_val})
+
+
+def test_no_future_warning():
+    df = DataFrame([[1]])
+    with tm.assert_produces_warning(None):
         df.to_html()

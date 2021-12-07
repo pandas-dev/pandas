@@ -2911,14 +2911,51 @@ class DataFrame(NDFrame, OpsMixin):
         Styler.to_html : Render a DataFrame to HTML with conditional formatting.
         to_string : Convert DataFrame to a string.
         """
-        msg = (
+        # Warnings are shown in 1.4.0 in preparation for signature changes in 2.0.0
+        warnings_default_none = {
+            "classes": "replaced by `table_attributes`",
+            "sparsify": "replaced by `sparse_index` and `sparse_columns`",
+            "max_cols": "replaced by `max_columns` for consistency",
+            "formatters": "replaced by `formatter` accepted by `Styler.format`",
+            "float_format": "replaced by `precision`, `decimal`, and `thousands`",
+            "border": "removed as deprecated HTML, suggested to use CSS",
+            "col_space": "removed, suggested to use CSS `min-width: 100px;`",
+            "justify": "removed, suggested to use CSS",
+        }
+
+        warnings_default_false = {
+            "render_links": "removed due to limited functionality",
+            "notebook": "removed as a legacy argument",
+            "show_dimensions": "removed, suggested to use `caption=f'{df.shape}'`",
+        }
+
+        warnings_default_true = {
+            "bold_rows": "replaced by `bold_headers` controlling index and columns",
+        }
+
+        warning_msg = (
             "In future versions `DataFrame.to_html` is expected to utilise the base "
             "implementation of `Styler.to_html` for formatting and rendering. "
-            "The arguments signature may therefore change. It is recommended instead "
-            "to use `DataFrame.style.to_html` which also contains additional "
-            "functionality."
+            "The arguments signature may therefore change. You are specifically using "
+            "the following arguments: "
         )
-        warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+        warning_flag = False
+
+        for kwarg, msg in warnings_default_none.items():
+            if locals()[kwarg] is not None:
+                warning_flag = True
+                warning_msg += f"\n    `{kwarg}`, which may be {msg}."
+        for kwarg, msg in warnings_default_false.items():
+            if locals()[kwarg] is True:
+                warning_flag = True
+                warning_msg += f"\n    `{kwarg}`, which may be {msg}."
+        for kwarg, msg in warnings_default_true.items():
+            if locals()[kwarg] is False:
+                warning_flag = True
+                warning_msg += f"\n    `{kwarg}`, which may be {msg}."
+
+        if warning_flag:
+            warnings.warn(warning_msg, FutureWarning, stacklevel=find_stack_level())
 
         if justify is not None and justify not in fmt._VALID_JUSTIFY_PARAMETERS:
             raise ValueError("Invalid value for justify parameter")
