@@ -47,7 +47,7 @@ _HAS_LXML = False
 _HAS_HTML5LIB = False
 
 
-def _importers():
+def _importers() -> None:
     # import things we need
     # but make this done on a first use basis
 
@@ -93,7 +93,7 @@ def _remove_whitespace(s: str, regex: Pattern = _RE_WHITESPACE) -> str:
     return regex.sub(" ", s.strip())
 
 
-def _get_skiprows(skiprows: int | Sequence[int] | slice | None):
+def _get_skiprows(skiprows: int | Sequence[int] | slice | None) -> int | Sequence[int]:
     """
     Get an iterator given an integer, slice or container.
 
@@ -116,6 +116,7 @@ def _get_skiprows(skiprows: int | Sequence[int] | slice | None):
         start, step = skiprows.start or 0, skiprows.step or 1
         return list(range(start, skiprows.stop, step))
     elif isinstance(skiprows, numbers.Integral) or is_list_like(skiprows):
+        assert skiprows is not None
         return skiprows
     elif skiprows is None:
         return 0
