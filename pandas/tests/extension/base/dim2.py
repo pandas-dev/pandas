@@ -204,13 +204,24 @@ class Dim2CompatTests(BaseExtensionTests):
             else:
                 raise AssertionError("Both reductions should raise or neither")
 
+        def get_reduction_result_dtype(dtype):
+            # windows and 32bit builds will in some cases have int32/uint32
+            #  where other builds will have int64/uint64.
+            if dtype.itemsize == 8:
+                return dtype
+            elif dtype.kind == "i":
+                return INT_STR_TO_DTYPE[np.dtype(int).name]
+            else:
+                # i.e. dtype.kind == "u"
+                return INT_STR_TO_DTYPE[np.dtype(np.uint).name]
+
         if method in ["mean", "median", "sum", "prod"]:
             # std and var are not dtype-preserving
             expected = data
             if method in ["sum", "prod"] and data.dtype.kind in ["i", "u"]:
                 # FIXME: kludge
+                dtype2 = get_reduction_result_dtype(data.dtype)
                 if data.dtype.kind == "i":
-                    dtype2 = INT_STR_TO_DTYPE[np.dtype(int).name]
                     if is_platform_windows() or not IS64:
                         # FIXME: kludge for 32bit builds
                         if result.dtype.itemsize == 4:
@@ -220,7 +231,6 @@ class Dim2CompatTests(BaseExtensionTests):
                     else:
                         dtype = pd.Int64Dtype()
                 else:
-                    dtype2 = INT_STR_TO_DTYPE[np.dtype(np.uint).name]
                     if is_platform_windows() or not IS64:
                         # FIXME: kludge for 32bit builds
                         if result.dtype.itemsize == 4:
@@ -230,7 +240,7 @@ class Dim2CompatTests(BaseExtensionTests):
                     else:
                         dtype = pd.UInt64Dtype()
 
-                assert type(dtype) is type(dtype2)
+                assert type(dtype) is type(dtype2), (dtype, dtype2)
 
                 expected = data.astype(dtype)
                 assert type(expected) == type(data), type(expected)
