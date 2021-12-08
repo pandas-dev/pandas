@@ -2444,11 +2444,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ``orient='table'`` contains a 'pandas_version' field under 'schema'.
         This stores the version of `pandas` used in the latest revision of the
         schema.
-        When using :class:`ExtensionDtype`-kind columns, the schema fields will
-        carry 'extDtype', this field stores the :class:`ExtensionDtype` name
-        and is used to resolve the correct dtype during deserialization.
-        This procedure is handled by the :class:`ExtensionDtype`'s
-        :func:`_from_sequence` method.
 
         Examples
         --------
