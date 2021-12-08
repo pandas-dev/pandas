@@ -800,10 +800,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if mask.any():
             if not skipna:
                 return self._na_value
-            return self[~mask].min()
+            obj = self[~mask]
+        else:
+            obj = self
 
-        indexer = self.argsort()[0]
-        return self[indexer]
+        indexer = obj.argsort()[0]
+        return obj[indexer]
 
     def max(self, *, axis: int | None = None, skipna: bool = True):
         nv.validate_minmax_axis(axis, self.ndim)
@@ -815,10 +817,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if mask.any():
             if not skipna:
                 return self._na_value
-            return self[~mask].max()
+            obj = self[~mask]
+        else:
+            obj = self
 
-        indexer = self.argsort()[-1]
-        return self[indexer]
+        indexer = obj.argsort()[-1]
+        return obj[indexer]
 
     def fillna(
         self: IntervalArrayT, value=None, method=None, limit=None

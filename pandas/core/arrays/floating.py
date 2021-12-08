@@ -14,7 +14,6 @@ from pandas._typing import (
     DtypeObj,
     npt,
 )
-from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import astype_nansafe
@@ -337,22 +336,6 @@ class FloatingArray(NumericArray):
 
     def _values_for_argsort(self) -> np.ndarray:
         return self._data
-
-    def sum(self, *, skipna=True, min_count=0, axis: int | None = 0, **kwargs):
-        nv.validate_sum((), kwargs)
-        return super()._reduce("sum", skipna=skipna, min_count=min_count, axis=axis)
-
-    def prod(self, *, skipna=True, min_count=0, axis: int | None = 0, **kwargs):
-        nv.validate_prod((), kwargs)
-        return super()._reduce("prod", skipna=skipna, min_count=min_count, axis=axis)
-
-    def min(self, *, skipna=True, axis: int | None = 0, **kwargs):
-        nv.validate_min((), kwargs)
-        return super()._reduce("min", skipna=skipna, axis=axis)
-
-    def max(self, *, skipna=True, axis: int | None = 0, **kwargs):
-        nv.validate_max((), kwargs)
-        return super()._reduce("max", skipna=skipna, axis=axis)
 
 
 _dtype_docstring = """
