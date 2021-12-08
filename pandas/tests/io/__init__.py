@@ -24,4 +24,6 @@ pytestmark = [
     pytest.mark.filterwarnings(
         "ignore:As the xlwt package is no longer maintained:FutureWarning"
     ),
+    # Troubleshooting build failures that look like network timeouts
+    pytest.mark.timeout(60),
 ]

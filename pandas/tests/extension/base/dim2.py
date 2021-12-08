@@ -5,12 +5,9 @@ import numpy as np
 import pytest
 
 from pandas._libs.missing import is_matching_na
-from pandas.compat import (
-    IS64,
-    is_platform_windows,
-)
 
 import pandas as pd
+from pandas.core.arrays.integer import INT_STR_TO_DTYPE
 from pandas.tests.extension.base.base import BaseExtensionTests
 
 
@@ -203,32 +200,29 @@ class Dim2CompatTests(BaseExtensionTests):
             else:
                 raise AssertionError("Both reductions should raise or neither")
 
+        def get_reduction_result_dtype(dtype):
+            # windows and 32bit builds will in some cases have int32/uint32
+            #  where other builds will have int64/uint64.
+            if dtype.itemsize == 8:
+                return dtype
+            elif dtype.kind in "ib":
+                return INT_STR_TO_DTYPE[np.dtype(int).name]
+            else:
+                # i.e. dtype.kind == "u"
+                return INT_STR_TO_DTYPE[np.dtype(np.uint).name]
+
         if method in ["mean", "median", "sum", "prod"]:
             # std and var are not dtype-preserving
             expected = data
-            if method in ["sum", "prod"] and data.dtype.kind in ["i", "u"]:
-                # FIXME: kludge
-                if data.dtype.kind == "i":
-                    if is_platform_windows() or not IS64:
-                        # FIXME: kludge for 32bit builds
-                        if result.dtype.itemsize == 4:
-                            dtype = pd.Int32Dtype()
-                        else:
-                            dtype = pd.Int64Dtype()
-                    else:
-                        dtype = pd.Int64Dtype()
-                else:
-                    if is_platform_windows() or not IS64:
-                        # FIXME: kludge for 32bit builds
-                        if result.dtype.itemsize == 4:
-                            dtype = pd.UInt32Dtype()
-                        else:
-                            dtype = pd.UInt64Dtype()
-                    else:
-                        dtype = pd.UInt64Dtype()
+            if method in ["sum", "prod"] and data.dtype.kind in "iub":
+                dtype = get_reduction_result_dtype(data.dtype)
 
                 expected = data.astype(dtype)
-                assert type(expected) == type(data), type(expected)
+                if data.dtype.kind == "b" and method in ["sum", "prod"]:
+                    # We get IntegerArray instead of BooleanArray
+                    pass
+                else:
+                    assert type(expected) == type(data), type(expected)
                 assert dtype == expected.dtype
 
             self.assert_extension_array_equal(result, expected)
