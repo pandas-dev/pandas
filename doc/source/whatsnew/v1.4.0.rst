@@ -477,12 +477,33 @@ Deprecations
 
 Deprecated Int64Index, UInt64Index & Float64Index
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 :class:`Int64Index`, :class:`UInt64Index` and :class:`Float64Index` have been deprecated
-in favor of the new :class:`NumericIndex` and will be removed in Pandas 2.0 (:issue:`43028`).
+in favor of the base :class:`Index` class and will be removed in Pandas 2.0 (:issue:`43028`).
+
+For constructing a numeric index, you can use the base :class:`Index` class instead
+specifying the data type (which will also work on older pandas releases):
+
+.. code-block:: python
+
+    # replace
+    pd.Int64Index([1, 2, 3])
+    # with
+    pd.Index([1, 2, 3], dtype="int64")
+
+For checking the data type of an index object, you can replace ``isinstance``
+checks with checking the ``dtype``:
+
+.. code-block:: python
+
+    # replace
+    isinstance(idx, pd.Int64Index)
+    # with
+    idx.dtype == "int64"
 
 Currently, in order to maintain backward compatibility, calls to
 :class:`Index` will continue to return :class:`Int64Index`, :class:`UInt64Index` and :class:`Float64Index`
-when given numeric data, but in the future, a :class:`NumericIndex` will be returned.
+when given numeric data, but in the future, an :class:`Index` will be returned.
 
 *Current behavior*:
 
@@ -498,9 +519,9 @@ when given numeric data, but in the future, a :class:`NumericIndex` will be retu
 .. code-block:: ipython
 
     In [3]: pd.Index([1, 2, 3], dtype="int32")
-    Out [3]: NumericIndex([1, 2, 3], dtype='int32')
+    Out [3]: Index([1, 2, 3], dtype='int32')
     In [4]: pd.Index([1, 2, 3], dtype="uint64")
-    Out [4]: NumericIndex([1, 2, 3], dtype='uint64')
+    Out [4]: Index([1, 2, 3], dtype='uint64')
 
 
 .. _whatsnew_140.deprecations.other:

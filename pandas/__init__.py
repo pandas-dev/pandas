@@ -71,7 +71,6 @@ from pandas.core.api import (
     Index,
     CategoricalIndex,
     RangeIndex,
-    NumericIndex,
     MultiIndex,
     IntervalIndex,
     TimedeltaIndex,
@@ -197,7 +196,7 @@ def __getattr__(name):
         warnings.warn(
             f"pandas.{name} is deprecated "
             "and will be removed from pandas in a future version. "
-            "Use pandas.NumericIndex with the appropriate dtype instead.",
+            "Use pandas.Index with the appropriate dtype instead.",
             FutureWarning,
             stacklevel=2,
         )
@@ -333,7 +332,6 @@ __all__ = [
     "NA",
     "NaT",
     "NamedAgg",
-    "NumericIndex",
     "Period",
     "PeriodDtype",
     "PeriodIndex",

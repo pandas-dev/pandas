@@ -20,12 +20,12 @@ from pandas import (
     CategoricalIndex,
     DatetimeIndex,
     MultiIndex,
-    NumericIndex,
     PeriodIndex,
     RangeIndex,
     TimedeltaIndex,
 )
 import pandas._testing as tm
+from pandas.core.api import NumericIndex
 
 
 class TestCommon:

@@ -21,7 +21,6 @@ from pandas import (
     Index,
     IntervalIndex,
     MultiIndex,
-    NumericIndex,
     PeriodIndex,
     RangeIndex,
     Series,
@@ -32,6 +31,7 @@ import pandas._testing as tm
 from pandas.core.api import (  # noqa:F401
     Float64Index,
     Int64Index,
+    NumericIndex,
     UInt64Index,
 )
 
