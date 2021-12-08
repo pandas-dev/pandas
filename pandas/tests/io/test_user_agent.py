@@ -185,11 +185,22 @@ def process_server(responder, port):
     server.server_close()
 
 
-def get_open_port():
+@pytest.fixture(scope="session")
+def responder(request):
     with socket.socket() as sock:
         sock.bind(("localhost", 0))
         port = sock.getsockname()[1]
-    return port
+
+    server_process = multiprocessing.Process(
+        target=process_server, args=(request.param, port)
+    )
+    server_process.start()
+    time.sleep(2)
+    yield port
+    server_process.terminate()
+    while server_process.is_alive():
+        time.sleep(0.5)
+    server_process.close()
 
 
 @pytest.mark.parametrize(
@@ -210,6 +221,7 @@ def get_open_port():
         (GzippedCSVUserAgentResponder, pd.read_csv, None),
         (GzippedJSONUserAgentResponder, pd.read_json, None),
     ],
+    indirect=["responder"],
 )
 def test_server_and_default_headers(responder, read_method, parquet_engine):
     if parquet_engine is not None:
@@ -217,20 +229,11 @@ def test_server_and_default_headers(responder, read_method, parquet_engine):
         if parquet_engine == "fastparquet":
             pytest.importorskip("fsspec")
 
-    port = get_open_port()
-    server_process = multiprocessing.Process(
-        target=process_server, args=(responder, port)
-    )
-    server_process.start()
-    time.sleep(1)
     if parquet_engine is None:
-        df_http = read_method(f"http://localhost:{port}")
+        df_http = read_method(f"http://localhost:{responder}")
     else:
-        df_http = read_method(f"http://localhost:{port}", engine=parquet_engine)
-    server_process.terminate()
-    while server_process.is_alive():
-        time.sleep(1)
-    server_process.close()
+        df_http = read_method(f"http://localhost:{responder}", engine=parquet_engine)
+
     assert not df_http.empty
 
 
@@ -252,6 +255,7 @@ def test_server_and_default_headers(responder, read_method, parquet_engine):
         (GzippedCSVUserAgentResponder, pd.read_csv, None),
         (GzippedJSONUserAgentResponder, pd.read_json, None),
     ],
+    indirect=["responder"],
 )
 def test_server_and_custom_headers(responder, read_method, parquet_engine):
     if parquet_engine is not None:
@@ -262,27 +266,18 @@ def test_server_and_custom_headers(responder, read_method, parquet_engine):
     custom_user_agent = "Super Cool One"
     df_true = pd.DataFrame({"header": [custom_user_agent]})
 
-    port = get_open_port()
-    server_process = multiprocessing.Process(
-        target=process_server, args=(responder, port)
-    )
-    server_process.start()
-    time.sleep(1)
     if parquet_engine is None:
         df_http = read_method(
-            f"http://localhost:{port}",
+            f"http://localhost:{responder}",
             storage_options={"User-Agent": custom_user_agent},
         )
     else:
         df_http = read_method(
-            f"http://localhost:{port}",
+            f"http://localhost:{responder}",
             storage_options={"User-Agent": custom_user_agent},
             engine=parquet_engine,
         )
-    server_process.terminate()
-    while server_process.is_alive():
-        time.sleep(1)
-    server_process.close()
+
     tm.assert_frame_equal(df_true, df_http)
 
 
@@ -291,6 +286,7 @@ def test_server_and_custom_headers(responder, read_method, parquet_engine):
     [
         (AllHeaderCSVResponder, pd.read_csv),
     ],
+    indirect=["responder"],
 )
 def test_server_and_all_custom_headers(responder, read_method):
     custom_user_agent = "Super Cool One"
@@ -300,21 +296,10 @@ def test_server_and_all_custom_headers(responder, read_method):
         "Auth": custom_auth_token,
     }
 
-    # passing 0 for the port will let the system find an unused port
-    port = get_open_port()
-    server_process = multiprocessing.Process(
-        target=process_server, args=(responder, port)
-    )
-    server_process.start()
-    time.sleep(1)
     df_http = read_method(
-        f"http://localhost:{port}",
+        f"http://localhost:{responder}",
         storage_options=storage_options,
     )
-    server_process.terminate()
-    while server_process.is_alive():
-        time.sleep(1)
-    server_process.close()
 
     df_http = df_http[df_http["0"].isin(storage_options.keys())]
     df_http = df_http.sort_values(["0"]).reset_index()
