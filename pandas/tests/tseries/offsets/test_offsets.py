@@ -820,7 +820,7 @@ def test_dateoffset_add_sub(offset_kwargs, expected_arg):
     assert result == expected
 
 
-def test_dataoffset_add_sub_timestamp_with_nano()
+def test_dataoffset_add_sub_timestamp_with_nano():
     offset = DateOffset(minutes=2, nanoseconds=9)
     ts = Timestamp(4)
     result = ts + offset
