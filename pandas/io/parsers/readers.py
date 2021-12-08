@@ -143,6 +143,9 @@ squeeze : bool, default False
         the data.
 prefix : str, optional
     Prefix to add to column numbers when no header, e.g. 'X' for X0, X1, ...
+
+    .. deprecated:: 1.4.0
+       Use a list comprehension on the DataFrame's columns after calling ``read_csv``.
 mangle_dupe_cols : bool, default True
     Duplicate columns will be specified as 'X', 'X.1', ...'X.N', rather than
     'X'...'X'. Passing in False will cause data to be overwritten if there
@@ -461,6 +464,9 @@ _deprecated_defaults: dict[str, _DeprecationConfig] = {
     "squeeze": _DeprecationConfig(
         None, 'Append .squeeze("columns") to the call to squeeze.'
     ),
+    "prefix": _DeprecationConfig(
+        None, "Use a list comprehension on the column names in the future."
+    ),
 }
 
 
@@ -758,13 +764,16 @@ def read_table(
     return _read(filepath_or_buffer, kwds)
 
 
+@deprecate_nonkeyword_arguments(
+    version=None, allowed_args=["filepath_or_buffer"], stacklevel=2
+)
 def read_fwf(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
-    colspecs="infer",
-    widths=None,
-    infer_nrows=100,
+    colspecs: list[tuple[int, int]] | str | None = "infer",
+    widths: list[int] | None = None,
+    infer_nrows: int = 100,
     **kwds,
-):
+) -> DataFrame | TextFileReader:
     r"""
     Read a table of fixed-width formatted lines into DataFrame.
 
@@ -799,7 +808,7 @@ def read_fwf(
 
     Returns
     -------
-    DataFrame or TextParser
+    DataFrame or TextFileReader
         A comma-separated values (csv) file is returned as two-dimensional
         data structure with labeled axes.
 
@@ -824,6 +833,9 @@ def read_fwf(
         for w in widths:
             colspecs.append((col, col + w))
             col += w
+
+    # for mypy
+    assert colspecs is not None
 
     # GH#40830
     # Ensure length of `colspecs` matches length of `names`

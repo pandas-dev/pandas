@@ -206,9 +206,9 @@ class Dim2CompatTests(BaseExtensionTests):
         if method in ["mean", "median", "sum", "prod"]:
             # std and var are not dtype-preserving
             expected = data
-            if method in ["sum", "prod"] and data.dtype.kind in ["i", "u"]:
+            if method in ["sum", "prod"] and data.dtype.kind in "iub":
                 # FIXME: kludge
-                if data.dtype.kind == "i":
+                if data.dtype.kind in ["i", "b"]:
                     if is_platform_windows() or not IS64:
                         # FIXME: kludge for 32bit builds
                         if result.dtype.itemsize == 4:
@@ -217,7 +217,7 @@ class Dim2CompatTests(BaseExtensionTests):
                             dtype = pd.Int64Dtype()
                     else:
                         dtype = pd.Int64Dtype()
-                else:
+                elif data.dtype.kind == "u":
                     if is_platform_windows() or not IS64:
                         # FIXME: kludge for 32bit builds
                         if result.dtype.itemsize == 4:
@@ -228,7 +228,11 @@ class Dim2CompatTests(BaseExtensionTests):
                         dtype = pd.UInt64Dtype()
 
                 expected = data.astype(dtype)
-                assert type(expected) == type(data), type(expected)
+                if data.dtype.kind == "b" and method in ["sum", "prod"]:
+                    # We get IntegerArray instead of BooleanArray
+                    pass
+                else:
+                    assert type(expected) == type(data), type(expected)
                 assert dtype == expected.dtype
 
             self.assert_extension_array_equal(result, expected)

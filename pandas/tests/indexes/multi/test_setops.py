@@ -260,17 +260,24 @@ def test_union(idx, sort):
     else:
         assert result.equals(idx)
 
-    # FIXME: don't leave commented-out
-    # not valid for python 3
-    # def test_union_with_regular_index(self):
-    #     other = Index(['A', 'B', 'C'])
 
-    #     result = other.union(idx)
-    #     assert ('foo', 'one') in result
-    #     assert 'B' in result
+@pytest.mark.xfail(
+    # This test was commented out from Oct 2011 to Dec 2021, may no longer
+    #  be relevant.
+    reason="Length of names must match number of levels in MultiIndex",
+    raises=ValueError,
+)
+def test_union_with_regular_index(idx):
+    other = Index(["A", "B", "C"])
 
-    #     result2 = _index.union(other)
-    #     assert result.equals(result2)
+    result = other.union(idx)
+    assert ("foo", "one") in result
+    assert "B" in result
+
+    msg = "The values in the array are unorderable"
+    with tm.assert_produces_warning(RuntimeWarning, match=msg):
+        result2 = idx.union(other)
+    assert result.equals(result2)
 
 
 def test_intersection(idx, sort):
@@ -354,8 +361,7 @@ def test_union_sort_other_empty(slice_):
     # default, sort=None
     other = idx[slice_]
     tm.assert_index_equal(idx.union(other), idx)
-    # MultiIndex does not special case empty.union(idx)
-    # tm.assert_index_equal(other.union(idx), idx)
+    tm.assert_index_equal(other.union(idx), idx)
 
     # sort=False
     tm.assert_index_equal(idx.union(other, sort=False), idx)
