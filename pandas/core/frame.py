@@ -6790,7 +6790,8 @@ class DataFrame(NDFrame, OpsMixin):
             'columns' for column-wise."""
         ),
         examples=dedent(
-            """Examples
+            """\
+        Examples
         --------
         >>> df = pd.DataFrame(
         ...     {"Grade": ["A", "B", "A", "C"]},
