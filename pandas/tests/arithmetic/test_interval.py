@@ -20,7 +20,10 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.arrays import IntervalArray
+from pandas.core.arrays import (
+    BooleanArray,
+    IntervalArray,
+)
 
 
 @pytest.fixture(
@@ -129,18 +132,20 @@ class TestComparison:
         expected = self.elementwise_comparison(op, interval_array, other)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_compare_scalar_na(self, op, interval_array, nulls_fixture, request):
+    def test_compare_scalar_na(self, op, interval_array, nulls_fixture):
         result = op(interval_array, nulls_fixture)
-        expected = self.elementwise_comparison(op, interval_array, nulls_fixture)
 
-        if nulls_fixture is pd.NA and interval_array.dtype.subtype != "int64":
-            mark = pytest.mark.xfail(
-                raises=AssertionError,
-                reason="broken for non-integer IntervalArray; see GH 31882",
-            )
-            request.node.add_marker(mark)
+        if nulls_fixture is pd.NA:
+            # GH#31882
+            exp = np.ones(interval_array.shape, dtype=bool)
+            expected = BooleanArray(exp, exp)
+        else:
+            expected = self.elementwise_comparison(op, interval_array, nulls_fixture)
 
-        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_equal(result, expected)
+
+        rev = op(nulls_fixture, interval_array)
+        tm.assert_equal(rev, expected)
 
     @pytest.mark.parametrize(
         "other",
@@ -214,17 +219,12 @@ class TestComparison:
         expected = self.elementwise_comparison(op, interval_array, other)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_compare_list_like_nan(self, op, interval_array, nulls_fixture, request):
+    def test_compare_list_like_nan(self, op, interval_array, nulls_fixture):
         other = [nulls_fixture] * 4
         result = op(interval_array, other)
         expected = self.elementwise_comparison(op, interval_array, other)
 
-        if nulls_fixture is pd.NA and interval_array.dtype.subtype != "i8":
-            reason = "broken for non-integer IntervalArray; see GH 31882"
-            mark = pytest.mark.xfail(raises=AssertionError, reason=reason)
-            request.node.add_marker(mark)
-
-        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize(
         "other",
