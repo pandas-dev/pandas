@@ -61,6 +61,7 @@ def test_floating_array_disallows_float16(request):
     ):
         # the locale condition may need to be refined; this fails on
         #  the CI in the ZH_CN build
+        # https://github.com/numpy/numpy/issues/20512
         mark = pytest.mark.xfail(reason="numpy does not raise on np.dtype('Float16')")
         request.node.add_marker(mark)
 
