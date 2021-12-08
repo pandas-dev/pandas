@@ -13,6 +13,10 @@ import pandas.util._test_decorators as td
 import pandas as pd
 import pandas._testing as tm
 
+# Troubleshooting build failures on Windows that tentatively look like
+#  they are stalling in this file.
+pytestmark = pytest.mark.timeout(60)
+
 
 class BaseUserAgentResponder(http.server.BaseHTTPRequestHandler):
     """

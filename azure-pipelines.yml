@@ -43,7 +43,7 @@ jobs:
         /opt/python/cp38-cp38/bin/python -m venv ~/virtualenvs/pandas-dev && \
         . ~/virtualenvs/pandas-dev/bin/activate && \
         python -m pip install --no-deps -U pip wheel setuptools && \
-        pip install cython numpy python-dateutil pytz pytest pytest-xdist hypothesis pytest-azurepipelines && \
+        pip install cython numpy python-dateutil pytz pytest pytest-xdist hypothesis pytest-azurepipelines pytest-timeout && \
         python setup.py build_ext -q -j2 && \
         python -m pip install --no-build-isolation -e . && \
         pytest -m 'not slow and not network and not clipboard' pandas --junitxml=test-data.xml"
