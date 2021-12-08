@@ -596,9 +596,7 @@ def is_dtype_equal(source, target) -> bool:
     False
     """
     if isinstance(target, str):
-        if get_dtype(source) == "string":
-            return False
-        elif not isinstance(source, str):
+        if not isinstance(source, str):
             # GH#38516 ensure we get the same behavior from
             #  is_dtype_equal(CDT, "category") and CDT == "category"
             # GH-44276 ensures behaviour is consistent
@@ -607,7 +605,7 @@ def is_dtype_equal(source, target) -> bool:
                 src = get_dtype(source)
                 if isinstance(src, (ExtensionDtype, np.dtype)):
 
-                    return src == target
+                    return type(src) == type(target)
             except (TypeError, AttributeError):
                 return False
     elif isinstance(source, str):
