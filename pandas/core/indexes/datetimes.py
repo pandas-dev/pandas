@@ -495,7 +495,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                     "is deprecated and will be removed in a future version. "
                     "You can stop passing 'keep_tz' to silence this warning.",
                     FutureWarning,
-                    stacklevel=2,
+                    stacklevel=find_stack_level(),
                 )
             else:
                 warnings.warn(
@@ -505,7 +505,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                     "can do 'idx.tz_convert(None)' before calling "
                     "'to_series'.",
                     FutureWarning,
-                    stacklevel=2,
+                    stacklevel=find_stack_level(),
                 )
         else:
             keep_tz = True
@@ -647,7 +647,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             try:
                 key = self._maybe_cast_for_get_loc(key)
             except ValueError as err:
-                # FIXME: we get here because parse_with_reso doesn't raise on "t2m"
+                # FIXME(dateutil#1180): we get here because parse_with_reso
+                #  doesn't raise on "t2m"
                 raise KeyError(key) from err
 
         elif isinstance(key, timedelta):
@@ -752,7 +753,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 "with non-existing keys is deprecated and will raise a "
                 "KeyError in a future Version.",
                 FutureWarning,
-                stacklevel=5,
+                stacklevel=find_stack_level(),
             )
         indexer = mask.nonzero()[0][::step]
         if len(indexer) == len(self):
@@ -1042,7 +1043,7 @@ def date_range(
         warnings.warn(
             "Argument `closed` is deprecated in favor of `inclusive`.",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         if closed is None:
             inclusive = "both"

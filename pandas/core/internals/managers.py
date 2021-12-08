@@ -27,6 +27,7 @@ from pandas._typing import (
 )
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import infer_dtype_from_scalar
@@ -35,6 +36,7 @@ from pandas.core.dtypes.common import (
     is_1d_only_ea_dtype,
     is_dtype_equal,
     is_list_like,
+    needs_i8_conversion,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
@@ -78,8 +80,6 @@ from pandas.core.internals.ops import (
     blockwise_all,
     operate_blockwise,
 )
-
-# TODO: flexible with index=None and/or items=None
 
 T = TypeVar("T", bound="BaseBlockManager")
 
@@ -314,7 +314,7 @@ class BaseBlockManager(DataManager):
         out = type(self).from_blocks(result_blocks, self.axes)
         return out
 
-    def where(self: T, other, cond, align: bool, errors: str) -> T:
+    def where(self: T, other, cond, align: bool) -> T:
         if align:
             align_keys = ["other", "cond"]
         else:
@@ -326,7 +326,6 @@ class BaseBlockManager(DataManager):
             align_keys=align_keys,
             other=other,
             cond=cond,
-            errors=errors,
         )
 
     def setitem(self: T, indexer, value) -> T:
@@ -364,7 +363,28 @@ class BaseBlockManager(DataManager):
         if fill_value is lib.no_default:
             fill_value = None
 
-        if axis == 0 and self.ndim == 2 and self.nblocks > 1:
+        if (
+            axis == 0
+            and self.ndim == 2
+            and (
+                self.nblocks > 1
+                or (
+                    # If we only have one block and we know that we can't
+                    #  keep the same dtype (i.e. the _can_hold_element check)
+                    #  then we can go through the reindex_indexer path
+                    #  (and avoid casting logic in the Block method).
+                    #  The exception to this (until 2.0) is datetimelike
+                    #  dtypes with integers, which cast.
+                    not self.blocks[0]._can_hold_element(fill_value)
+                    # TODO(2.0): remove special case for integer-with-datetimelike
+                    #  once deprecation is enforced
+                    and not (
+                        lib.is_integer(fill_value)
+                        and needs_i8_conversion(self.blocks[0].dtype)
+                    )
+                )
+            )
+        ):
             # GH#35488 we need to watch out for multi-block cases
             # We only get here with fill_value not-lib.no_default
             ncols = self.shape[0]
@@ -861,9 +881,9 @@ class BaseBlockManager(DataManager):
         """
         # We have 6 tests that get here with a slice
         indexer = (
-            np.arange(indexer.start, indexer.stop, indexer.step, dtype="int64")
+            np.arange(indexer.start, indexer.stop, indexer.step, dtype=np.intp)
             if isinstance(indexer, slice)
-            else np.asanyarray(indexer, dtype="int64")
+            else np.asanyarray(indexer, dtype=np.intp)
         )
 
         n = self.shape[axis]
@@ -907,7 +927,15 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                         f"number of axes ({self.ndim})"
                     )
                 if isinstance(block, DatetimeTZBlock) and block.values.ndim == 1:
-                    # TODO: remove once fastparquet no longer needs this
+                    # TODO(2.0): remove once fastparquet no longer needs this
+                    warnings.warn(
+                        "In a future version, the BlockManager constructor "
+                        "will assume that a DatetimeTZBlock with block.ndim==2 "
+                        "has block.values.ndim == 2.",
+                        DeprecationWarning,
+                        stacklevel=find_stack_level(),
+                    )
+
                     # error: Incompatible types in assignment (expression has type
                     # "Union[ExtensionArray, ndarray]", variable has type
                     # "DatetimeArray")
@@ -1023,7 +1051,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         # expected "List[ndarray[Any, Any]]")
         return result  # type: ignore[return-value]
 
-    def iset(self, loc: int | slice | np.ndarray, value: ArrayLike):
+    def iset(
+        self, loc: int | slice | np.ndarray, value: ArrayLike, inplace: bool = False
+    ):
         """
         Set new item in-place. Does not consolidate. Adds new Block if not
         contained in the current set of items
@@ -1035,8 +1065,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             self._rebuild_blknos_and_blklocs()
 
         # Note: we exclude DTA/TDA here
-        vdtype = getattr(value, "dtype", None)
-        value_is_extension_type = is_1d_only_ea_dtype(vdtype)
+        value_is_extension_type = is_1d_only_ea_dtype(value.dtype)
 
         # categorical/sparse/datetimetz
         if value_is_extension_type:
@@ -1078,7 +1107,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         for blkno, val_locs in libinternals.get_blkno_placements(blknos, group=True):
             blk = self.blocks[blkno]
             blk_locs = blklocs[val_locs.indexer]
-            if blk.should_store(value):
+            if inplace and blk.should_store(value):
                 blk.set_inplace(blk_locs, value_getitem(val_locs))
             else:
                 unfit_mgr_locs.append(blk.mgr_locs.as_array[blk_locs])
@@ -1183,7 +1212,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 "Consider joining all columns at once using pd.concat(axis=1) "
                 "instead. To get a de-fragmented frame, use `newframe = frame.copy()`",
                 PerformanceWarning,
-                stacklevel=5,
+                stacklevel=find_stack_level(),
             )
 
     def _insert_update_mgr_locs(self, loc) -> None:
@@ -1396,7 +1425,14 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         new_columns = unstacker.get_new_columns(self.items)
         new_index = unstacker.new_index
 
-        allow_fill = not unstacker.mask.all()
+        allow_fill = not unstacker.mask_all
+        if allow_fill:
+            # calculating the full mask once and passing it to Block._unstack is
+            #  faster than letting calculating it in each repeated call
+            new_mask2D = (~unstacker.mask).reshape(*unstacker.full_shape)
+            needs_masking = new_mask2D.any(axis=0)
+        else:
+            needs_masking = np.zeros(unstacker.full_shape[1], dtype=bool)
 
         new_blocks: list[Block] = []
         columns_mask: list[np.ndarray] = []
@@ -1416,7 +1452,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 unstacker,
                 fill_value,
                 new_placement=new_placement,
-                allow_fill=allow_fill,
+                needs_masking=needs_masking,
             )
 
             new_blocks.extend(blocks)
@@ -1455,7 +1491,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
     def as_array(
         self,
-        transpose: bool = False,
         dtype: np.dtype | None = None,
         copy: bool = False,
         na_value=lib.no_default,
@@ -1465,8 +1500,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         Parameters
         ----------
-        transpose : bool, default False
-            If True, transpose the return array.
         dtype : np.dtype or None, default None
             Data type of the return array.
         copy : bool, default False
@@ -1482,7 +1515,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         """
         if len(self.blocks) == 0:
             arr = np.empty(self.shape, dtype=float)
-            return arr.transpose() if transpose else arr
+            return arr.transpose()
 
         # We want to copy when na_value is provided to avoid
         # mutating the original object
@@ -1514,7 +1547,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         if na_value is not lib.no_default:
             arr[isna(arr)] = na_value
 
-        return arr.transpose() if transpose else arr
+        return arr.transpose()
 
     def _interleave(
         self,
@@ -1631,7 +1664,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
                 "The `fastpath` keyword is deprecated and will be removed "
                 "in a future version.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
 
         self.axes = [axis]

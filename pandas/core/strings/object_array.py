@@ -12,7 +12,7 @@ import pandas._libs.lib as lib
 import pandas._libs.missing as libmissing
 import pandas._libs.ops as libops
 from pandas._typing import (
-    Dtype,
+    NpDtype,
     Scalar,
 )
 
@@ -37,7 +37,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         raise NotImplementedError
 
     def _str_map(
-        self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True
+        self, f, na_value=None, dtype: NpDtype | None = None, convert: bool = True
     ):
         """
         Map a callable over valid elements of the array.
@@ -62,16 +62,14 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             na_value = self._str_na_value
 
         if not len(self):
-            # error: Argument 1 to "ndarray" has incompatible type "int";
-            # expected "Sequence[int]"
-            return np.ndarray(0, dtype=dtype)  # type: ignore[arg-type]
+            return np.ndarray(0, dtype=dtype)
 
         arr = np.asarray(self, dtype=object)
         mask = isna(arr)
         map_convert = convert and not np.all(mask)
         try:
             result = lib.map_infer_mask(arr, f, mask.view(np.uint8), map_convert)
-        except (TypeError, AttributeError) as e:
+        except (TypeError, AttributeError) as err:
             # Reraise the exception if callable `f` got wrong number of args.
             # The user may want to be warned by this, instead of getting NaN
             p_err = (
@@ -79,9 +77,9 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
                 r"(?(3)required )positional arguments?"
             )
 
-            if len(e.args) >= 1 and re.search(p_err, e.args[0]):
+            if len(err.args) >= 1 and re.search(p_err, err.args[0]):
                 # FIXME: this should be totally avoidable
-                raise e
+                raise err
 
             def g(x):
                 # This type of fallback behavior can be removed once
@@ -308,21 +306,38 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
         return self._str_map(f)
 
-    def _str_split(self, pat=None, n=-1, expand=False):
+    def _str_split(
+        self,
+        pat: str | re.Pattern | None = None,
+        n=-1,
+        expand=False,
+        regex: bool | None = None,
+    ):
         if pat is None:
             if n is None or n == 0:
                 n = -1
             f = lambda x: x.split(pat, n)
         else:
-            if len(pat) == 1:
+            new_pat: str | re.Pattern
+            if regex is True or isinstance(pat, re.Pattern):
+                new_pat = re.compile(pat)
+            elif regex is False:
+                new_pat = pat
+            # regex is None so link to old behavior #43563
+            else:
+                if len(pat) == 1:
+                    new_pat = pat
+                else:
+                    new_pat = re.compile(pat)
+
+            if isinstance(new_pat, re.Pattern):
+                if n is None or n == -1:
+                    n = 0
+                f = lambda x: new_pat.split(x, maxsplit=n)
+            else:
                 if n is None or n == 0:
                     n = -1
                 f = lambda x: x.split(pat, n)
-            else:
-                if n is None or n == -1:
-                    n = 0
-                regex = re.compile(pat)
-                f = lambda x: regex.split(x, maxsplit=n)
         return self._str_map(f, dtype=object)
 
     def _str_rsplit(self, pat=None, n=-1):

@@ -40,6 +40,17 @@ import pandas._testing as tm
 
 
 class TestPeriodConstruction:
+    def test_from_td64nat_raises(self):
+        # GH#44507
+        td = NaT.to_numpy("m8[ns]")
+
+        msg = "Value must be Period, string, integer, or datetime"
+        with pytest.raises(ValueError, match=msg):
+            Period(td)
+
+        with pytest.raises(ValueError, match=msg):
+            Period(td, freq="D")
+
     def test_construction(self):
         i1 = Period("1/1/2005", freq="M")
         i2 = Period("Jan 2005")
@@ -1147,6 +1158,16 @@ class TestPeriodComparisons:
             assert left != right
             assert not left <= right
             assert not left >= right
+
+    @pytest.mark.parametrize(
+        "zerodim_arr, expected",
+        ((np.array(0), False), (np.array(Period("2000-01", "M")), True)),
+    )
+    def test_comparison_numpy_zerodim_arr(self, zerodim_arr, expected):
+        p = Period("2000-01", "M")
+
+        assert (p == zerodim_arr) is expected
+        assert (zerodim_arr == p) is expected
 
 
 class TestArithmetic:

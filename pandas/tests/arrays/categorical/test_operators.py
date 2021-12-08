@@ -1,4 +1,3 @@
-import operator
 import warnings
 
 import numpy as np
@@ -145,9 +144,9 @@ class TestCategoricalOps:
         expected = DataFrame([[False, True, True, False]])
         tm.assert_frame_equal(result, expected)
 
-    def test_compare_frame_raises(self, all_compare_operators):
+    def test_compare_frame_raises(self, comparison_op):
         # alignment raises unless we transpose
-        op = getattr(operator, all_compare_operators)
+        op = comparison_op
         cat = Categorical(["a", "b", 2, "a"])
         df = DataFrame(cat)
         msg = "Unable to coerce to Series, length must be 1: given 4"
@@ -372,7 +371,7 @@ class TestCategoricalOps:
         # min/max)
         s = df["value_group"]
         for op in ["kurt", "skew", "var", "std", "mean", "sum", "median"]:
-            msg = f"'Categorical' does not implement reduction '{op}'"
+            msg = f"does not support reduction '{op}'"
             with pytest.raises(TypeError, match=msg):
                 getattr(s, op)(numeric_only=False)
 
@@ -380,9 +379,7 @@ class TestCategoricalOps:
 
         # numpy ops
         s = Series(Categorical([1, 2, 3, 4]))
-        with pytest.raises(
-            TypeError, match="'Categorical' does not implement reduction 'sum'"
-        ):
+        with pytest.raises(TypeError, match="does not support reduction 'sum'"):
             np.sum(s)
 
         # numeric ops on a Series

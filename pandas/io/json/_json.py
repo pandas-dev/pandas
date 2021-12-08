@@ -661,7 +661,7 @@ class JsonReader(abc.Iterator):
         self.nrows_seen = 0
         self.nrows = nrows
         self.encoding_errors = encoding_errors
-        self.handles: IOHandles | None = None
+        self.handles: IOHandles[str] | None = None
 
         if self.chunksize is not None:
             self.chunksize = validate_integer("chunksize", self.chunksize, 1)
@@ -913,7 +913,9 @@ class Parser:
     def _try_convert_types(self):
         raise AbstractMethodError(self)
 
-    def _try_convert_data(self, name, data, use_dtypes=True, convert_dates=True):
+    def _try_convert_data(
+        self, name, data, use_dtypes: bool = True, convert_dates: bool = True
+    ):
         """
         Try to parse a ndarray like into a column by inferring dtype.
         """

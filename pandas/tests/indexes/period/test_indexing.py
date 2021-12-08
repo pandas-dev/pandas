@@ -52,14 +52,6 @@ def non_comparable_idx(request):
 
 
 class TestGetItem:
-    def test_ellipsis(self):
-        # GH#21282
-        idx = period_range("2011-01-01", "2011-01-31", freq="D", name="idx")
-
-        result = idx[...]
-        assert result.equals(idx)
-        assert result is not idx
-
     def test_getitem_slice_keeps_name(self):
         idx = period_range("20010101", periods=10, freq="D", name="bob")
         assert idx.name == idx[1:].name
@@ -201,19 +193,18 @@ class TestGetItem:
                 "2013/02/01 9H",
                 "2013/02/01 09:00",
             ]
-            for v in values:
+            for val in values:
                 # GH7116
                 # these show deprecations as we are trying
                 # to slice with non-integer indexers
-                # with pytest.raises(IndexError):
-                #    idx[v]
-                continue
+                with pytest.raises(IndexError, match="only integers, slices"):
+                    idx[val]
 
-            s = Series(np.random.rand(len(idx)), index=idx)
-            tm.assert_series_equal(s["2013/01/01 10:00"], s[3600:3660])
-            tm.assert_series_equal(s["2013/01/01 9H"], s[:3600])
+            ser = Series(np.random.rand(len(idx)), index=idx)
+            tm.assert_series_equal(ser["2013/01/01 10:00"], ser[3600:3660])
+            tm.assert_series_equal(ser["2013/01/01 9H"], ser[:3600])
             for d in ["2013/01/01", "2013/01", "2013"]:
-                tm.assert_series_equal(s[d], s)
+                tm.assert_series_equal(ser[d], ser)
 
     def test_getitem_day(self):
         # GH#6716
@@ -230,24 +221,23 @@ class TestGetItem:
                 "2013/02/01 9H",
                 "2013/02/01 09:00",
             ]
-            for v in values:
+            for val in values:
 
                 # GH7116
                 # these show deprecations as we are trying
                 # to slice with non-integer indexers
-                # with pytest.raises(IndexError):
-                #    idx[v]
-                continue
+                with pytest.raises(IndexError, match="only integers, slices"):
+                    idx[val]
 
-            s = Series(np.random.rand(len(idx)), index=idx)
-            tm.assert_series_equal(s["2013/01"], s[0:31])
-            tm.assert_series_equal(s["2013/02"], s[31:59])
-            tm.assert_series_equal(s["2014"], s[365:])
+            ser = Series(np.random.rand(len(idx)), index=idx)
+            tm.assert_series_equal(ser["2013/01"], ser[0:31])
+            tm.assert_series_equal(ser["2013/02"], ser[31:59])
+            tm.assert_series_equal(ser["2014"], ser[365:])
 
             invalid = ["2013/02/01 9H", "2013/02/01 09:00"]
-            for v in invalid:
-                with pytest.raises(KeyError, match=v):
-                    s[v]
+            for val in invalid:
+                with pytest.raises(KeyError, match=val):
+                    ser[val]
 
 
 class TestGetLoc:
@@ -602,16 +592,16 @@ class TestGetIndexer:
 
 
 class TestWhere:
-    def test_where(self, listlike_box_with_tuple):
+    def test_where(self, listlike_box):
         i = period_range("20130101", periods=5, freq="D")
         cond = [True] * len(i)
         expected = i
-        result = i.where(listlike_box_with_tuple(cond))
+        result = i.where(listlike_box(cond))
         tm.assert_index_equal(result, expected)
 
         cond = [False] + [True] * (len(i) - 1)
         expected = PeriodIndex([NaT] + i[1:].tolist(), freq="D")
-        result = i.where(listlike_box_with_tuple(cond))
+        result = i.where(listlike_box(cond))
         tm.assert_index_equal(result, expected)
 
     def test_where_other(self):
@@ -813,12 +803,6 @@ class TestGetValue:
         with tm.assert_produces_warning(FutureWarning):
             result2 = idx2.get_value(input2, p1)
         tm.assert_series_equal(result2, expected2)
-
-    def test_loc_str(self):
-        # https://github.com/pandas-dev/pandas/issues/33964
-        index = period_range(start="2000", periods=20, freq="B")
-        series = Series(range(20), index=index)
-        assert series.loc["2000-01-14"] == 9
 
     @pytest.mark.parametrize("freq", ["H", "D"])
     def test_get_value_datetime_hourly(self, freq):
