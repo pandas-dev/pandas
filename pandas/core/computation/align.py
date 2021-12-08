@@ -16,6 +16,7 @@ import warnings
 import numpy as np
 
 from pandas.errors import PerformanceWarning
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -126,7 +127,9 @@ def _align_core(terms):
                         f"than an order of magnitude on term {repr(terms[i].name)}, "
                         f"by more than {ordm:.4g}; performance may suffer."
                     )
-                    warnings.warn(w, category=PerformanceWarning, stacklevel=6)
+                    warnings.warn(
+                        w, category=PerformanceWarning, stacklevel=find_stack_level()
+                    )
 
                 f = partial(ti.reindex, reindexer, axis=axis, copy=False)
 

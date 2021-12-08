@@ -89,10 +89,7 @@ def data_for_grouping(dtype):
 
 
 class TestDtype(base.BaseDtypeTests):
-    @pytest.mark.skip(reason="using multiple dtypes")
-    def test_is_dtype_unboxes_dtype(self):
-        # we have multiple dtypes, so skip
-        pass
+    pass
 
 
 class TestArithmeticOps(base.BaseArithmeticOpsTests):
@@ -142,7 +139,8 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
     def check_opname(self, s, op_name, other, exc=None):
         super().check_opname(s, op_name, other, exc=None)
 
-    def _compare_other(self, s, data, op_name, other):
+    def _compare_other(self, s, data, op, other):
+        op_name = f"__{op.__name__}__"
         self.check_opname(s, op_name, other)
 
 
@@ -171,7 +169,9 @@ class TestMissing(base.BaseMissingTests):
 
 
 class TestMethods(base.BaseMethodsTests):
+    # TODO(ExtensionIndex): re-enable
     @pytest.mark.skip(reason="uses nullable integer")
+    @pytest.mark.parametrize("dropna", [True, False])
     def test_value_counts(self, all_data, dropna):
         all_data = all_data[:10]
         if dropna:
@@ -185,9 +185,9 @@ class TestMethods(base.BaseMethodsTests):
 
         self.assert_series_equal(result, expected)
 
-    @pytest.mark.skip(reason="uses nullable integer")
+    @pytest.mark.xfail(reason="uses nullable integer")
     def test_value_counts_with_normalize(self, data):
-        pass
+        super().test_value_counts_with_normalize(data)
 
 
 class TestCasting(base.BaseCastingTests):

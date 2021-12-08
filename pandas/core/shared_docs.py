@@ -94,10 +94,12 @@ by : mapping, function, label, or list of labels
     If ``by`` is a function, it's called on each value of the object's
     index. If a dict or Series is passed, the Series or dict VALUES
     will be used to determine the groups (the Series' values are first
-    aligned; see ``.align()`` method). If an ndarray is passed, the
-    values are used as-is to determine the groups. A label or list of
-    labels may be passed to group by the columns in ``self``. Notice
-    that a tuple is interpreted as a (single) key.
+    aligned; see ``.align()`` method). If a list or ndarray of length
+    equal to the selected axis is passed (see the `groupby user guide
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/groupby.html#splitting-an-object-into-groups>`),
+    the values are used as-is to determine the groups. A label or list
+    of labels may be passed to group by the columns in ``self``.
+    Notice that a tuple is interpreted as a (single) key.
 axis : {0 or 'index', 1 or 'columns'}, default 0
     Split along rows (0) or columns (1).
 level : int, level name, or sequence of such, default None
@@ -126,7 +128,7 @@ observed : bool, default False
 dropna : bool, default True
     If True, and if group keys contain NA values, NA values together
     with row/column will be dropped.
-    If False, NA values will also be treated as the key in groups
+    If False, NA values will also be treated as the key in groups.
 
     .. versionadded:: 1.1.0
 
@@ -143,7 +145,9 @@ resample : Convenience method for frequency conversion and resampling
 Notes
 -----
 See the `user guide
-<https://pandas.pydata.org/pandas-docs/stable/groupby.html>`__ for more.
+<https://pandas.pydata.org/pandas-docs/stable/groupby.html>`__ for more
+detailed usage and examples, including splitting an object into groups,
+iterating through groups, selecting a group, aggregation, and more.
 """
 
 _shared_docs[
@@ -535,13 +539,13 @@ _shared_docs[
 
     **Scalar `to_replace` and `value`**
 
-    >>> s = pd.Series([0, 1, 2, 3, 4])
-    >>> s.replace(0, 5)
+    >>> s = pd.Series([1, 2, 3, 4, 5])
+    >>> s.replace(1, 5)
     0    5
-    1    1
-    2    2
-    3    3
-    4    4
+    1    2
+    2    3
+    3    4
+    4    5
     dtype: int64
 
     >>> df = pd.DataFrame({{'A': [0, 1, 2, 3, 4],
@@ -574,11 +578,11 @@ _shared_docs[
     4  4  9  e
 
     >>> s.replace([1, 2], method='bfill')
-    0    0
+    0    3
     1    3
     2    3
-    3    3
-    4    4
+    3    4
+    4    5
     dtype: int64
 
     **dict-like `to_replace`**

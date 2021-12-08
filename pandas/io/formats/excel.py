@@ -325,12 +325,6 @@ class CSSToExcelConverter:
             "color": self.color_to_excel(props.get("color")),
             # shadow if nonzero digit before shadow color
             "shadow": self._get_shadow(props),
-            # FIXME: dont leave commented-out
-            # 'vertAlign':,
-            # 'charset': ,
-            # 'scheme': ,
-            # 'outline': ,
-            # 'condense': ,
         }
 
     def _get_is_bold(self, props: Mapping[str, str]) -> bool | None:

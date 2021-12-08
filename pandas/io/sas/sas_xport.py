@@ -7,17 +7,19 @@ The file format is defined here:
 
 https://support.sas.com/techsup/technote/ts140.pdf
 """
+from __future__ import annotations
+
 from collections import abc
 from datetime import datetime
 import struct
-from typing import (
-    IO,
-    cast,
-)
 import warnings
 
 import numpy as np
 
+from pandas._typing import (
+    FilePath,
+    ReadBuffer,
+)
 from pandas.util._decorators import Appender
 
 import pandas as pd
@@ -248,7 +250,11 @@ class XportReader(ReaderBase, abc.Iterator):
     __doc__ = _xport_reader_doc
 
     def __init__(
-        self, filepath_or_buffer, index=None, encoding="ISO-8859-1", chunksize=None
+        self,
+        filepath_or_buffer: FilePath | ReadBuffer[bytes],
+        index=None,
+        encoding: str | None = "ISO-8859-1",
+        chunksize=None,
     ):
 
         self._encoding = encoding
@@ -259,7 +265,7 @@ class XportReader(ReaderBase, abc.Iterator):
         self.handles = get_handle(
             filepath_or_buffer, "rb", encoding=encoding, is_text=False
         )
-        self.filepath_or_buffer = cast(IO[bytes], self.handles.handle)
+        self.filepath_or_buffer = self.handles.handle
 
         try:
             self._read_header()
@@ -279,6 +285,12 @@ class XportReader(ReaderBase, abc.Iterator):
         # read file header
         line1 = self._get_row()
         if line1 != _correct_line1:
+            if "**COMPRESSED**" in line1:
+                # this was created with the PROC CPORT method and can't be read
+                # https://documentation.sas.com/doc/en/pgmsascdc/9.4_3.5/movefile/p1bm6aqp3fw4uin1hucwh718f6kp.htm
+                raise ValueError(
+                    "Header record indicates a CPORT file, which is not readable."
+                )
             raise ValueError("Header record is not an XPORT file.")
 
         line2 = self._get_row()

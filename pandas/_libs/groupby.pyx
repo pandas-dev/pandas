@@ -495,7 +495,8 @@ def group_add(add_t[:, ::1] out,
               int64_t[::1] counts,
               ndarray[add_t, ndim=2] values,
               const intp_t[::1] labels,
-              Py_ssize_t min_count=0) -> None:
+              Py_ssize_t min_count=0,
+              bint datetimelike=False) -> None:
     """
     Only aggregates on axis=0 using Kahan summation
     """
@@ -557,7 +558,14 @@ def group_add(add_t[:, ::1] out,
                     val = values[i, j]
 
                     # not nan
-                    if val == val:
+                    # With dt64/td64 values, values have been cast to float64
+                    #  instead if int64 for group_add, but the logic
+                    #  is otherwise the same as in _treat_as_na
+                    if val == val and not (
+                        add_t is float64_t
+                        and datetimelike
+                        and val == <float64_t>NPY_NAT
+                    ):
                         nobs[lab, j] += 1
                         y = val - compensation[lab, j]
                         t = sumx[lab, j] + y

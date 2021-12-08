@@ -29,6 +29,7 @@ from pandas.core.api import (
     UInt64Index,
 )
 from pandas.core.computation import expressions as expr
+from pandas.tests.arithmetic.common import assert_invalid_comparison
 
 
 @pytest.fixture(params=[Index, Series, tm.to_array])
@@ -84,25 +85,13 @@ class TestNumericComparisons:
         expected = 0.0 > Series([1, 2, 3])
         tm.assert_series_equal(result, expected)
 
-    def test_df_numeric_cmp_dt64_raises(self):
+    def test_df_numeric_cmp_dt64_raises(self, box_with_array, fixed_now_ts):
         # GH#8932, GH#22163
-        ts = pd.Timestamp.now()
-        df = pd.DataFrame({"x": range(5)})
+        ts = fixed_now_ts
+        obj = np.array(range(5))
+        obj = tm.box_expected(obj, box_with_array)
 
-        msg = (
-            "'[<>]' not supported between instances of 'numpy.ndarray' and 'Timestamp'"
-        )
-        with pytest.raises(TypeError, match=msg):
-            df > ts
-        with pytest.raises(TypeError, match=msg):
-            df < ts
-        with pytest.raises(TypeError, match=msg):
-            ts < df
-        with pytest.raises(TypeError, match=msg):
-            ts > df
-
-        assert not (df == ts).any().any()
-        assert (df != ts).all().all()
+        assert_invalid_comparison(obj, ts, box_with_array)
 
     def test_compare_invalid(self):
         # GH#8058
@@ -224,13 +213,18 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         ],
         ids=lambda x: type(x).__name__,
     )
-    def test_numeric_arr_mul_tdscalar_numexpr_path(self, scalar_td, box_with_array):
+    @pytest.mark.parametrize("dtype", [np.int64, np.float64])
+    def test_numeric_arr_mul_tdscalar_numexpr_path(
+        self, dtype, scalar_td, box_with_array
+    ):
+        # GH#44772 for the float64 case
         box = box_with_array
 
-        arr = np.arange(2 * 10 ** 4).astype(np.int64)
+        arr_i8 = np.arange(2 * 10 ** 4).astype(np.int64, copy=False)
+        arr = arr_i8.astype(dtype, copy=False)
         obj = tm.box_expected(arr, box, transpose=False)
 
-        expected = arr.view("timedelta64[D]").astype("timedelta64[ns]")
+        expected = arr_i8.view("timedelta64[D]").astype("timedelta64[ns]")
         expected = tm.box_expected(expected, box, transpose=False)
 
         result = obj * scalar_td
@@ -292,9 +286,9 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
     @pytest.mark.parametrize(
         "other",
         [
-            pd.Timestamp.now().to_pydatetime(),
-            pd.Timestamp.now(tz="UTC").to_pydatetime(),
-            pd.Timestamp.now().to_datetime64(),
+            pd.Timestamp("2021-01-01").to_pydatetime(),
+            pd.Timestamp("2021-01-01", tz="UTC").to_pydatetime(),
+            pd.Timestamp("2021-01-01").to_datetime64(),
             pd.NaT,
         ],
     )
@@ -884,7 +878,7 @@ class TestAdditionSubtraction:
         tm.assert_frame_equal(second + first, expected)
 
     # TODO: This came from series.test.test_operators, needs cleanup
-    def test_series_frame_radd_bug(self):
+    def test_series_frame_radd_bug(self, fixed_now_ts):
         # GH#353
         vals = Series(tm.rands_array(5, 10))
         result = "foo_" + vals
@@ -900,7 +894,7 @@ class TestAdditionSubtraction:
         ts.name = "ts"
 
         # really raise this time
-        now = pd.Timestamp.now().to_pydatetime()
+        fix_now = fixed_now_ts.to_pydatetime()
         msg = "|".join(
             [
                 "unsupported operand type",
@@ -909,10 +903,10 @@ class TestAdditionSubtraction:
             ]
         )
         with pytest.raises(TypeError, match=msg):
-            now + ts
+            fix_now + ts
 
         with pytest.raises(TypeError, match=msg):
-            ts + now
+            ts + fix_now
 
     # TODO: This came from series.test.test_operators, needs cleanup
     def test_datetime64_with_index(self):

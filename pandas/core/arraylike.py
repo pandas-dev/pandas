@@ -11,6 +11,9 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
+from pandas.util._exceptions import find_stack_level
+
+from pandas.core.dtypes.generic import ABCNDFrame
 
 from pandas.core.construction import extract_array
 from pandas.core.ops import (
@@ -18,6 +21,11 @@ from pandas.core.ops import (
     roperator,
 )
 from pandas.core.ops.common import unpack_zerodim_and_defer
+
+REDUCTION_ALIASES = {
+    "maximum": "max",
+    "minimum": "min",
+}
 
 
 class OpsMixin:
@@ -210,7 +218,7 @@ def _maybe_fallback(ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any):
                 "or align manually (eg 'df1, df2 = df1.align(df2)') before passing to "
                 "the ufunc to obtain the future behaviour and silence this warning.",
                 FutureWarning,
-                stacklevel=4,
+                stacklevel=find_stack_level(),
             )
 
             # keep the first dataframe of the inputs, other DataFrame/Series is
@@ -318,12 +326,15 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
         reconstruct_kwargs = {}
 
     def reconstruct(result):
+        if ufunc.nout > 1:
+            # np.modf, np.frexp, np.divmod
+            return tuple(_reconstruct(x) for x in result)
+
+        return _reconstruct(result)
+
+    def _reconstruct(result):
         if lib.is_scalar(result):
             return result
-
-        if isinstance(result, tuple):
-            # np.modf, np.frexp, np.divmod
-            return tuple(reconstruct(x) for x in result)
 
         if result.ndim != self.ndim:
             if method == "outer":
@@ -336,12 +347,14 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
                         "Consider explicitly converting the DataFrame "
                         "to an array with '.to_numpy()' first."
                     )
-                    warnings.warn(msg.format(ufunc), FutureWarning, stacklevel=4)
+                    warnings.warn(
+                        msg.format(ufunc), FutureWarning, stacklevel=find_stack_level()
+                    )
                     return result
                 raise NotImplementedError
             return result
         if isinstance(result, BlockManager):
-            # we went through BlockManager.apply
+            # we went through BlockManager.apply e.g. np.sqrt
             result = self._constructor(result, **reconstruct_kwargs, copy=False)
         else:
             # we converted an array, lost our axes
@@ -357,8 +370,15 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
         return result
 
     if "out" in kwargs:
+        # e.g. test_multiindex_get_loc
         result = dispatch_ufunc_with_out(self, ufunc, method, *inputs, **kwargs)
         return reconstruct(result)
+
+    if method == "reduce":
+        # e.g. test.series.test_ufunc.test_reduce
+        result = dispatch_reduction_ufunc(self, ufunc, method, *inputs, **kwargs)
+        if result is not NotImplemented:
+            return result
 
     # We still get here with kwargs `axis` for e.g. np.maximum.accumulate
     #  and `dtype` and `keepdims` for np.ptp
@@ -370,6 +390,8 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
         #   returned a Tuple[BlockManager].
         # * len(inputs) > 1 is doable when we know that we have
         #   aligned blocks / dtypes.
+
+        # e.g. my_ufunc, modf, logaddexp, heaviside, subtract, add
         inputs = tuple(np.asarray(x) for x in inputs)
         # Note: we can't use default_array_ufunc here bc reindexing means
         #  that `self` may not be among `inputs`
@@ -390,6 +412,7 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
             # otherwise specific ufunc methods (eg np.<ufunc>.accumulate(..))
             # Those can have an axis keyword and thus can't be called block-by-block
             result = default_array_ufunc(inputs[0], ufunc, method, *inputs, **kwargs)
+            # e.g. np.negative (only one reached), with "where" and "out" in kwargs
 
     result = reconstruct(result)
     return result
@@ -470,3 +493,39 @@ def default_array_ufunc(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
     new_inputs = [x if x is not self else np.asarray(x) for x in inputs]
 
     return getattr(ufunc, method)(*new_inputs, **kwargs)
+
+
+def dispatch_reduction_ufunc(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
+    """
+    Dispatch ufunc reductions to self's reduction methods.
+    """
+    assert method == "reduce"
+
+    if len(inputs) != 1 or inputs[0] is not self:
+        return NotImplemented
+
+    if ufunc.__name__ not in REDUCTION_ALIASES:
+        return NotImplemented
+
+    method_name = REDUCTION_ALIASES[ufunc.__name__]
+
+    # NB: we are assuming that min/max represent minimum/maximum methods,
+    #  which would not be accurate for e.g. Timestamp.min
+    if not hasattr(self, method_name):
+        return NotImplemented
+
+    if self.ndim > 1:
+        if isinstance(self, ABCNDFrame):
+            # TODO: test cases where this doesn't hold, i.e. 2D DTA/TDA
+            kwargs["numeric_only"] = False
+
+        if "axis" not in kwargs:
+            # For DataFrame reductions we don't want the default axis=0
+            # FIXME: DataFrame.min ignores axis=None
+            # FIXME: np.minimum.reduce(df) gets here bc axis is not in kwargs,
+            #  but np.minimum.reduce(df.values) behaves as if axis=0
+            kwargs["axis"] = None
+
+    # By default, numpy's reductions do not skip NaNs, so we have to
+    #  pass skipna=False
+    return getattr(self, method_name)(skipna=False, **kwargs)

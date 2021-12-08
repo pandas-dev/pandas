@@ -1,6 +1,5 @@
 import collections
 from datetime import timedelta
-from io import StringIO
 
 import numpy as np
 import pytest
@@ -32,7 +31,8 @@ def test_value_counts(index_or_series_obj):
     if isinstance(obj, pd.MultiIndex):
         expected.index = Index(expected.index)
 
-    # TODO: Order of entries with the same count is inconsistent on CI (gh-32449)
+    # TODO(GH#32514): Order of entries with the same count is inconsistent
+    #  on CI (gh-32449)
     if obj.duplicated().any():
         result = result.sort_index()
         expected = expected.sort_index()
@@ -66,20 +66,17 @@ def test_value_counts_null(null_obj, index_or_series_obj):
 
     result = obj.value_counts()
     if obj.duplicated().any():
-        # TODO:
+        # TODO(GH#32514):
         #  Order of entries with the same count is inconsistent on CI (gh-32449)
         expected = expected.sort_index()
         result = result.sort_index()
     tm.assert_series_equal(result, expected)
 
-    # can't use expected[null_obj] = 3 as
-    # IntervalIndex doesn't allow assignment
-    new_entry = Series({np.nan: 3}, dtype=np.int64)
-    expected = expected.append(new_entry)
+    expected[null_obj] = 3
 
     result = obj.value_counts(dropna=False)
     if obj.duplicated().any():
-        # TODO:
+        # TODO(GH#32514):
         #  Order of entries with the same count is inconsistent on CI (gh-32449)
         expected = expected.sort_index()
         result = result.sort_index()
@@ -190,19 +187,21 @@ def test_value_counts_datetime64(index_or_series):
 
     # GH 3002, datetime64[ns]
     # don't test names though
-    txt = "\n".join(
-        [
-            "xxyyzz20100101PIE",
-            "xxyyzz20100101GUM",
-            "xxyyzz20100101EGG",
-            "xxyyww20090101EGG",
-            "foofoo20080909PIE",
-            "foofoo20080909GUM",
-        ]
-    )
-    f = StringIO(txt)
-    df = pd.read_fwf(
-        f, widths=[6, 8, 3], names=["person_id", "dt", "food"], parse_dates=["dt"]
+    df = pd.DataFrame(
+        {
+            "person_id": ["xxyyzz", "xxyyzz", "xxyyzz", "xxyyww", "foofoo", "foofoo"],
+            "dt": pd.to_datetime(
+                [
+                    "2010-01-01",
+                    "2010-01-01",
+                    "2010-01-01",
+                    "2009-01-01",
+                    "2008-09-09",
+                    "2008-09-09",
+                ]
+            ),
+            "food": ["PIE", "GUM", "EGG", "EGG", "PIE", "GUM"],
+        }
     )
 
     s = klass(df["dt"].copy())
@@ -276,10 +275,10 @@ def test_value_counts_with_nan(dropna, index_or_series):
     # GH31944
     klass = index_or_series
     values = [True, pd.NA, np.nan]
-    s = klass(values)
-    res = s.value_counts(dropna=dropna)
+    obj = klass(values)
+    res = obj.value_counts(dropna=dropna)
     if dropna is True:
         expected = Series([1], index=[True])
     else:
-        expected = Series([2, 1], index=[pd.NA, True])
+        expected = Series([1, 1, 1], index=[True, pd.NA, np.nan])
     tm.assert_series_equal(res, expected)

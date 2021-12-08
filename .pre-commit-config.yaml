@@ -9,7 +9,7 @@ repos:
     -   id: absolufy-imports
         files: ^pandas/
 -   repo: https://github.com/python/black
-    rev: 21.9b0
+    rev: 21.11b1
     hooks:
     -   id: black
 -   repo: https://github.com/codespell-project/codespell
@@ -39,10 +39,11 @@ repos:
     rev: 3.9.2
     hooks:
     -   id: flake8
-        additional_dependencies:
-            - flake8-comprehensions==3.1.0
-            - flake8-bugbear==21.3.2
-            - pandas-dev-flaker==0.2.0
+        additional_dependencies: &flake8_dependencies
+        - flake8==3.9.2
+        - flake8-comprehensions==3.1.0
+        - flake8-bugbear==21.3.2
+        - pandas-dev-flaker==0.2.0
     -   id: flake8
         alias: flake8-cython
         name: flake8 (cython)
@@ -54,11 +55,11 @@ repos:
         types: [text]
         args: [--append-config=flake8/cython-template.cfg]
 -   repo: https://github.com/PyCQA/isort
-    rev: 5.9.3
+    rev: 5.10.1
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v2.29.0
+    rev: v2.29.1
     hooks:
     -   id: pyupgrade
         args: [--py38-plus]
@@ -73,14 +74,10 @@ repos:
         types: [text]  # overwrite types: [rst]
         types_or: [python, rst]
 -   repo: https://github.com/asottile/yesqa
-    rev: v1.2.3
+    rev: v1.3.0
     hooks:
     -   id: yesqa
-        additional_dependencies:
-            - flake8==3.9.2
-            - flake8-comprehensions==3.1.0
-            - flake8-bugbear==21.3.2
-            - pandas-dev-flaker==0.2.0
+        additional_dependencies: *flake8_dependencies
 -   repo: local
     hooks:
     -   id: pyright
@@ -114,6 +111,8 @@ repos:
             # Incorrect code-block / IPython directives
             |\.\.\ code-block\ ::
             |\.\.\ ipython\ ::
+            # directive should not have a space before ::
+            |\.\.\ \w+\ ::
 
             # Check for deprecated messages without sphinx directive
             |(DEPRECATED|DEPRECATE|Deprecated)(:|,|\.)
