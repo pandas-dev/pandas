@@ -285,3 +285,14 @@ def test_column_axis(column_group_df):
     expected = column_group_df.iloc[:, [1, 3]]
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_columns_on_iter():
+    # GitHub issue #44821
+    df = pd.DataFrame({k: range(10) for k in "ABC"})
+
+    # Group-by and select columns
+    cols = ["A", "B"]
+    for _, dg in df.groupby(df.A < 4)[cols]:
+        tm.assert_index_equal(dg.columns, pd.Index(cols))
+        assert "C" not in dg.columns
