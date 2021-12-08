@@ -73,6 +73,7 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
+from pandas.core import arraylike
 import pandas.core.algorithms as algos
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
@@ -1589,6 +1590,13 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if result is not NotImplemented:
             return result
 
+        if "out" in kwargs:
+            # e.g. tests.arrays.sparse.test_arithmetics.test_ndarray_inplace
+            res = arraylike.dispatch_ufunc_with_out(
+                self, ufunc, method, *inputs, **kwargs
+            )
+            return res
+
         if len(inputs) == 1:
             # No alignment necessary.
             sp_values = getattr(ufunc, method)(self.sp_values, **kwargs)
@@ -1611,7 +1619,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 sp_values, self.sp_index, SparseDtype(sp_values.dtype, fill_value)
             )
 
-        result = getattr(ufunc, method)(*(np.asarray(x) for x in inputs), **kwargs)
+        new_inputs = tuple(np.asarray(x) for x in inputs)
+        result = getattr(ufunc, method)(*new_inputs, **kwargs)
         if out:
             if len(out) == 1:
                 out = out[0]
