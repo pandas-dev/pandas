@@ -1476,7 +1476,7 @@ class TestTimedeltaArraylikeMulDivOps:
             [
                 "argument must be an integer",
                 "cannot use operands with types dtype",
-                r"unsupported operand type(s) for \*",
+                r"unsupported operand type\(s\) for \*",
             ]
         )
         with pytest.raises(TypeError, match=msg):
