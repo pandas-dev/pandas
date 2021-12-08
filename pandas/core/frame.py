@@ -9744,10 +9744,9 @@ NaN 12.3   33.0
             idx_diff = result_index.difference(correl.index)
 
             if len(idx_diff) > 0:
-                from pandas.core.reshape.concat import concat
-
-                nan_correl = Series([np.nan] * len(idx_diff), index=idx_diff)
-                correl = concat([correl, nan_correl])
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
 
         return correl
 
