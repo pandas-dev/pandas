@@ -4,7 +4,9 @@ Tests for the pandas custom headers in http(s) requests
 import gzip
 import http.server
 from io import BytesIO
-import threading
+import multiprocessing
+import socket
+import time
 
 import pytest
 
@@ -177,6 +179,19 @@ class AllHeaderCSVResponder(http.server.BaseHTTPRequestHandler):
         self.wfile.write(response_bytes)
 
 
+def process_server(responder, port):
+    with http.server.HTTPServer(("localhost", port), responder) as server:
+        server.handle_request()
+    server.server_close()
+
+
+def get_open_port():
+    with socket.socket() as sock:
+        sock.bind(("localhost", 0))
+        port = sock.getsockname()[1]
+    return port
+
+
 @pytest.mark.parametrize(
     "responder, read_method, parquet_engine",
     [
@@ -202,18 +217,20 @@ def test_server_and_default_headers(responder, read_method, parquet_engine):
         if parquet_engine == "fastparquet":
             pytest.importorskip("fsspec")
 
-    # passing 0 for the port will let the system find an unused port
-    with http.server.HTTPServer(("localhost", 0), responder) as server:
-        server_thread = threading.Thread(target=server.handle_request)
-        server_thread.start()
-
-        port = server.server_port
-        if parquet_engine is None:
-            df_http = read_method(f"http://localhost:{port}")
-        else:
-            df_http = read_method(f"http://localhost:{port}", engine=parquet_engine)
-        server.server_close()
-        server_thread.join(timeout=2)
+    port = get_open_port()
+    server_process = multiprocessing.Process(
+        target=process_server, args=(responder, port)
+    )
+    server_process.start()
+    time.sleep(1)
+    if parquet_engine is None:
+        df_http = read_method(f"http://localhost:{port}")
+    else:
+        df_http = read_method(f"http://localhost:{port}", engine=parquet_engine)
+    server_process.terminate()
+    while server_process.is_alive():
+        time.sleep(1)
+    server_process.close()
     assert not df_http.empty
 
 
@@ -245,26 +262,27 @@ def test_server_and_custom_headers(responder, read_method, parquet_engine):
     custom_user_agent = "Super Cool One"
     df_true = pd.DataFrame({"header": [custom_user_agent]})
 
-    # passing 0 for the port will let the system find an unused port
-    with http.server.HTTPServer(("localhost", 0), responder) as server:
-        server_thread = threading.Thread(target=server.handle_request)
-        server_thread.start()
-
-        port = server.server_port
-        if parquet_engine is None:
-            df_http = read_method(
-                f"http://localhost:{port}",
-                storage_options={"User-Agent": custom_user_agent},
-            )
-        else:
-            df_http = read_method(
-                f"http://localhost:{port}",
-                storage_options={"User-Agent": custom_user_agent},
-                engine=parquet_engine,
-            )
-        server.server_close()
-        server_thread.join(timeout=2)
-
+    port = get_open_port()
+    server_process = multiprocessing.Process(
+        target=process_server, args=(responder, port)
+    )
+    server_process.start()
+    time.sleep(1)
+    if parquet_engine is None:
+        df_http = read_method(
+            f"http://localhost:{port}",
+            storage_options={"User-Agent": custom_user_agent},
+        )
+    else:
+        df_http = read_method(
+            f"http://localhost:{port}",
+            storage_options={"User-Agent": custom_user_agent},
+            engine=parquet_engine,
+        )
+    server_process.terminate()
+    while server_process.is_alive():
+        time.sleep(1)
+    server_process.close()
     tm.assert_frame_equal(df_true, df_http)
 
 
@@ -283,17 +301,20 @@ def test_server_and_all_custom_headers(responder, read_method):
     }
 
     # passing 0 for the port will let the system find an unused port
-    with http.server.HTTPServer(("localhost", 0), responder) as server:
-        server_thread = threading.Thread(target=server.handle_request)
-        server_thread.start()
-
-        port = server.server_port
-        df_http = read_method(
-            f"http://localhost:{port}",
-            storage_options=storage_options,
-        )
-        server.server_close()
-        server_thread.join(timeout=2)
+    port = get_open_port()
+    server_process = multiprocessing.Process(
+        target=process_server, args=(responder, port)
+    )
+    server_process.start()
+    time.sleep(1)
+    df_http = read_method(
+        f"http://localhost:{port}",
+        storage_options=storage_options,
+    )
+    server_process.terminate()
+    while server_process.is_alive():
+        time.sleep(1)
+    server_process.close()
 
     df_http = df_http[df_http["0"].isin(storage_options.keys())]
     df_http = df_http.sort_values(["0"]).reset_index()
