@@ -74,8 +74,8 @@ class TestDatetimeLikeStatReductions:
         obj = box(tdarr)
 
         result = obj.mean()
-        expected = np.array(tdarr).mean()
-        assert result == expected
+        np_tda = np.array(tdarr)
+        assert result == np_tda.mean()
 
         tdarr[0] = pd.NaT
         assert obj.mean(skipna=False) is pd.NaT
