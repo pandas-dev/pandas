@@ -92,8 +92,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     freq: BaseOffset | None
     freqstr: str | None
     _resolution_obj: Resolution
-    _bool_ops: list[str] = []
-    _field_ops: list[str] = []
 
     # error: "Callable[[Any], Any]" has no attribute "fget"
     hasnans = cast(
