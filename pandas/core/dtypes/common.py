@@ -605,8 +605,8 @@ def is_dtype_equal(source, target) -> bool:
                 src = get_dtype(source)
                 if isinstance(src, (ExtensionDtype, np.dtype)):
 
-                    return type(src) == type(target)
-            except (TypeError, AttributeError):
+                    return src == target
+            except (TypeError, AttributeError, ImportError):
                 return False
     elif isinstance(source, str):
         return is_dtype_equal(target, source)
