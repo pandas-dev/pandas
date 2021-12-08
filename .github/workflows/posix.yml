@@ -23,7 +23,7 @@ jobs:
       run:
         shell: bash -l {0}
     # TODO: Don't continue on error for PyPy
-    continue-on-failure: ${{ contains(matrix.settings[0], 'pypy') }}
+    continue-on-error: ${{ contains(matrix.settings[0], 'pypy') }}
     strategy:
       matrix:
         settings: [
