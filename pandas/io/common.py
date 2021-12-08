@@ -49,16 +49,11 @@ from pandas._typing import (
     StorageOptions,
     WriteBuffer,
 )
-from pandas.compat import (
-    get_lzma_file,
-    import_lzma,
-)
+from pandas.compat import get_lzma_file
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_file_like
-
-lzma = import_lzma()
 
 _VALID_URLS = set(uses_relative + uses_netloc + uses_params)
 _VALID_URLS.discard("")
@@ -754,7 +749,7 @@ def get_handle(
 
         # XZ Compression
         elif compression == "xz":
-            handle = get_lzma_file(lzma)(handle, ioargs.mode)
+            handle = get_lzma_file()(handle, ioargs.mode)
 
         # Unrecognized Compression
         else:
@@ -1045,26 +1040,15 @@ def _maybe_memory_map(
             handle = open(handle, mode)
         handles.append(handle)
 
-    try:
-        # error: Argument 1 to "_MMapWrapper" has incompatible type "Union[IO[Any],
-        # RawIOBase, BufferedIOBase, TextIOBase, mmap]"; expected "IO[Any]"
-        wrapped = cast(
-            BaseBuffer,
-            _MMapWrapper(handle, encoding, errors, decode),  # type: ignore[arg-type]
-        )
-        # error: "BaseBuffer" has no attribute "close"
-        handle.close()  # type: ignore[attr-defined]
-        handles.remove(handle)
-        handles.append(wrapped)
-        handle = wrapped
-    except Exception:
-        # we catch any errors that may have occurred
-        # because that is consistent with the lower-level
-        # functionality of the C engine (pd.read_csv), so
-        # leave the file handler as is then
-        memory_map = False
+    # error: Argument 1 to "_MMapWrapper" has incompatible type "Union[IO[Any],
+    # RawIOBase, BufferedIOBase, TextIOBase, mmap]"; expected "IO[Any]"
+    wrapped = cast(
+        BaseBuffer,
+        _MMapWrapper(handle, encoding, errors, decode),  # type: ignore[arg-type]
+    )
+    handles.append(wrapped)
 
-    return handle, memory_map, handles
+    return wrapped, memory_map, handles
 
 
 def file_exists(filepath_or_buffer: FilePath | BaseBuffer) -> bool:

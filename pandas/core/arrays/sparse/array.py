@@ -302,7 +302,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         3. ``data.dtype.fill_value`` if `fill_value` is None and `dtype`
            is not a ``SparseDtype`` and `data` is a ``SparseArray``.
 
-    kind : {'integer', 'block'}, default 'integer'
+    kind : str
+        Can be 'integer' or 'block', default is 'integer'.
         The type of storage for sparse locations.
 
         * 'block': Stores a `block` and `block_length` for each
@@ -863,6 +864,12 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             keys = Index(keys)
         return Series(counts, index=keys)
 
+    def _quantile(self, qs: npt.NDArray[np.float64], interpolation: str):
+        # Special case: the returned array isn't _really_ sparse, so we don't
+        #  wrap it in a SparseArray
+        result = super()._quantile(qs, interpolation)
+        return np.asarray(result)
+
     # --------
     # Indexing
     # --------
@@ -1357,13 +1364,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         else:
             arr = self.dropna()
 
-        # we don't support these kwargs.
-        # They should only be present when called via pandas, so do it here.
-        # instead of in `any` / `all` (which will raise if they're present,
-        # thanks to nv.validate
-        kwargs.pop("filter_type", None)
-        kwargs.pop("numeric_only", None)
-        kwargs.pop("op", None)
         return getattr(arr, name)(**kwargs)
 
     def all(self, axis=None, *args, **kwargs):
@@ -1580,7 +1580,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             sp_values = getattr(ufunc, method)(self.sp_values, **kwargs)
             fill_value = getattr(ufunc, method)(self.fill_value, **kwargs)
 
-            if isinstance(sp_values, tuple):
+            if ufunc.nout > 1:
                 # multiple outputs. e.g. modf
                 arrays = tuple(
                     self._simple_new(
@@ -1589,7 +1589,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                     for sp_value, fv in zip(sp_values, fill_value)
                 )
                 return arrays
-            elif is_scalar(sp_values):
+            elif method == "reduce":
                 # e.g. reductions
                 return sp_values
 
@@ -1603,7 +1603,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 out = out[0]
             return out
 
-        if type(result) is tuple:
+        if ufunc.nout > 1:
             return tuple(type(self)(x) for x in result)
         elif method == "at":
             # no return value

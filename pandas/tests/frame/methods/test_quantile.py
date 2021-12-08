@@ -571,7 +571,7 @@ class TestDataFrameQuantile:
 
 class TestQuantileExtensionDtype:
     # TODO: tests for axis=1?
-    # TODO: empty case?  might as well do dt64 and td64 here too
+    # TODO: empty case?
 
     @pytest.fixture(
         params=[
@@ -581,6 +581,7 @@ class TestQuantileExtensionDtype:
             ),
             pd.period_range("2016-01-01", periods=9, freq="D"),
             pd.date_range("2016-01-01", periods=9, tz="US/Pacific"),
+            pd.timedelta_range("1 Day", periods=9),
             pd.array(np.arange(9), dtype="Int64"),
             pd.array(np.arange(9), dtype="Float64"),
         ],
@@ -650,7 +651,18 @@ class TestQuantileExtensionDtype:
 
     # TODO(GH#39763): filtering can be removed after GH#39763 is fixed
     @pytest.mark.filterwarnings("ignore:Using .astype to convert:FutureWarning")
-    def test_quantile_ea_all_na(self, obj, index, frame_or_series):
+    def test_quantile_ea_all_na(
+        self, obj, index, frame_or_series, using_array_manager, request
+    ):
+        if (
+            using_array_manager
+            and frame_or_series is DataFrame
+            and index.dtype == "m8[ns]"
+        ):
+            mark = pytest.mark.xfail(
+                reason="obj.astype fails bc obj is incorrectly dt64 at this point"
+            )
+            request.node.add_marker(mark)
 
         obj.iloc[:] = index._na_value
 

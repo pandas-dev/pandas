@@ -720,10 +720,23 @@ def test_groupby_last_first_nth_with_none(method, nulls_fixture):
 def test_slice(slice_test_df, slice_test_grouped, arg, expected_rows):
     # Test slices     GH #42947
 
-    result = slice_test_grouped.nth(arg)
+    result = slice_test_grouped.nth[arg]
+    equivalent = slice_test_grouped.nth(arg)
     expected = slice_test_df.iloc[expected_rows]
 
     tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(equivalent, expected)
+
+
+def test_nth_indexed(slice_test_df, slice_test_grouped):
+    # Test index notation     GH #44688
+
+    result = slice_test_grouped.nth[0, 1, -2:]
+    equivalent = slice_test_grouped.nth([0, 1, slice(-2, None)])
+    expected = slice_test_df.iloc[[0, 1, 2, 3, 4, 6, 7]]
+
+    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(equivalent, expected)
 
 
 def test_invalid_argument(slice_test_grouped):
@@ -768,4 +781,31 @@ def test_groupby_nth_with_column_axis():
         columns=[7, 8],
     )
     expected.columns.name = "y"
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "start, stop, expected_values, expected_columns",
+    [
+        (None, None, [0, 1, 2, 3, 4], [5, 5, 5, 6, 6]),
+        (None, 1, [0, 3], [5, 6]),
+        (None, 9, [0, 1, 2, 3, 4], [5, 5, 5, 6, 6]),
+        (None, -1, [0, 1, 3], [5, 5, 6]),
+        (1, None, [1, 2, 4], [5, 5, 6]),
+        (1, -1, [1], [5]),
+        (-1, None, [2, 4], [5, 6]),
+        (-1, 2, [4], [6]),
+    ],
+)
+@pytest.mark.parametrize("method", ["call", "index"])
+def test_nth_slices_with_column_axis(
+    start, stop, expected_values, expected_columns, method
+):
+    df = DataFrame([range(5)], columns=[list("ABCDE")])
+    gb = df.groupby([5, 5, 5, 6, 6], axis=1)
+    result = {
+        "call": lambda start, stop: gb.nth(slice(start, stop)),
+        "index": lambda start, stop: gb.nth[start:stop],
+    }[method](start, stop)
+    expected = DataFrame([expected_values], columns=expected_columns)
     tm.assert_frame_equal(result, expected)

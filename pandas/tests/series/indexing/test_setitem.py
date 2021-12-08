@@ -562,7 +562,7 @@ class SetitemCastingEquivalents:
             if arr.dtype.kind in ["m", "M"]:
                 # We may not have the same DTA/TDA, but will have the same
                 #  underlying data
-                assert arr._data is obj._values._data
+                assert arr._ndarray is obj._values._ndarray
             else:
                 assert obj._values is arr
         else:
@@ -652,21 +652,18 @@ class SetitemCastingEquivalents:
 
     def test_index_where(self, obj, key, expected, val, request):
         if Index(obj).dtype != obj.dtype:
+            # TODO(ExtensionIndex): Should become unreachable
             pytest.skip("test not applicable for this dtype")
 
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
-
-        if obj.dtype == bool:
-            msg = "Index/Series casting behavior inconsistent GH#38692"
-            mark = pytest.mark.xfail(reason=msg)
-            request.node.add_marker(mark)
 
         res = Index(obj).where(~mask, val)
         tm.assert_index_equal(res, Index(expected))
 
     def test_index_putmask(self, obj, key, expected, val):
         if Index(obj).dtype != obj.dtype:
+            # TODO(ExtensionIndex): Should become unreachable
             pytest.skip("test not applicable for this dtype")
 
         mask = np.zeros(obj.shape, dtype=bool)
