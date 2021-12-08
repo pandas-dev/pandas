@@ -12,7 +12,6 @@ dependencies:
   - pytest-timeout
   - hypothesis>=5.5.3
   - pytest-azurepipelines
-  - pytest-timeout
 
   # pandas dependencies
   - blosc

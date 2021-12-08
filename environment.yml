@@ -64,7 +64,6 @@ dependencies:
   - pytest-timeout
   - pytest-asyncio
   - pytest-instafail
-  - pytest-timeout
 
   # downstream tests
   - seaborn
