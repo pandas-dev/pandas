@@ -1580,7 +1580,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             sp_values = getattr(ufunc, method)(self.sp_values, **kwargs)
             fill_value = getattr(ufunc, method)(self.fill_value, **kwargs)
 
-            if isinstance(sp_values, tuple):
+            if ufunc.nout > 1:
                 # multiple outputs. e.g. modf
                 arrays = tuple(
                     self._simple_new(
@@ -1589,7 +1589,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                     for sp_value, fv in zip(sp_values, fill_value)
                 )
                 return arrays
-            elif is_scalar(sp_values):
+            elif method == "reduce":
                 # e.g. reductions
                 return sp_values
 
@@ -1603,7 +1603,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 out = out[0]
             return out
 
-        if type(result) is tuple:
+        if ufunc.nout > 1:
             return tuple(type(self)(x) for x in result)
         elif method == "at":
             # no return value
