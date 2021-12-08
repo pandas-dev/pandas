@@ -26,6 +26,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.api import Float64Index
+from pandas.core.indexing import IndexingError
 from pandas.tests.indexing.common import _mklbl
 from pandas.tests.indexing.test_floats import gen_obj
 
@@ -980,3 +981,24 @@ def test_extension_array_cross_section_converts():
 
     result = df.iloc[0]
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "ser, keys",
+    [(Series([10]), (0, 0)), (Series([1, 2, 3], index=list("abc")), (0, 1))],
+)
+def test_ser_indexer_exceeds_dimensions(ser, keys, indexer_sli):
+    # GH#13831
+    if indexer_sli == tm.setitem:
+        return
+
+    exp_err, exp_msg = IndexingError, "Too many indexers"
+    with pytest.raises(exp_err, match=exp_msg):
+        indexer_sli(ser)[keys]
+
+    if indexer_sli == tm.iloc:
+        # For iloc.__setitem__ we let numpy handle the error reporting.
+        exp_err, exp_msg = IndexError, "too many indices for array"
+
+    with pytest.raises(exp_err, match=exp_msg):
+        indexer_sli(ser)[keys] = 0
