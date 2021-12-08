@@ -149,6 +149,7 @@ def _assert_caught_no_extra_warnings(
         if _is_unexpected_warning(actual_warning, expected_warning):
             # GH 44732: Don't make the CI flaky by filtering SSL-related
             # ResourceWarning from dependencies
+            # GH#38630 pytest.filterwarnings does not suppress these.
             unclosed_ssl = (
                 "unclosed transport <asyncio.sslproto._SSLProtocolTransport",
                 "unclosed <ssl.SSLSocket",
@@ -156,8 +157,6 @@ def _assert_caught_no_extra_warnings(
             if actual_warning.category == ResourceWarning and any(
                 msg in str(actual_warning.message) for msg in unclosed_ssl
             ):
-                # FIXME(GH#38630): kludge because pytest.filterwarnings does not
-                #  suppress these
                 continue
 
             extra_warnings.append(
