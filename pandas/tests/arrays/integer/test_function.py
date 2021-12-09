@@ -120,7 +120,8 @@ def test_value_counts_empty():
     # https://github.com/pandas-dev/pandas/issues/33317
     ser = pd.Series([], dtype="Int64")
     result = ser.value_counts()
-    # TODO: The dtype of the index seems wrong (it's int64 for non-empty)
+    # TODO(ExtensionIndex): The dtype of the index seems wrong
+    #  (it's int64 for non-empty)
     idx = pd.Index([], dtype="object")
     expected = pd.Series([], index=idx, dtype="Int64")
     tm.assert_series_equal(result, expected)

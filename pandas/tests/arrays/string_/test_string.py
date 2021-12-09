@@ -217,15 +217,18 @@ def test_comparison_methods_scalar_pd_na(comparison_op, dtype):
     tm.assert_extension_array_equal(result, expected)
 
 
-def test_comparison_methods_scalar_not_string(comparison_op, dtype, request):
+def test_comparison_methods_scalar_not_string(comparison_op, dtype):
     op_name = f"__{comparison_op.__name__}__"
-    if op_name not in ["__eq__", "__ne__"]:
-        reason = "comparison op not supported between instances of 'str' and 'int'"
-        mark = pytest.mark.xfail(raises=TypeError, reason=reason)
-        request.node.add_marker(mark)
 
     a = pd.array(["a", None, "c"], dtype=dtype)
     other = 42
+
+    if op_name not in ["__eq__", "__ne__"]:
+        with pytest.raises(TypeError, match="not supported between"):
+            getattr(a, op_name)(other)
+
+        return
+
     result = getattr(a, op_name)(other)
     expected_data = {"__eq__": [False, None, False], "__ne__": [True, None, True]}[
         op_name
@@ -234,12 +237,7 @@ def test_comparison_methods_scalar_not_string(comparison_op, dtype, request):
     tm.assert_extension_array_equal(result, expected)
 
 
-def test_comparison_methods_array(comparison_op, dtype, request):
-    if dtype.storage == "pyarrow":
-        mark = pytest.mark.xfail(
-            raises=AssertionError, reason="left is not an ExtensionArray"
-        )
-        request.node.add_marker(mark)
+def test_comparison_methods_array(comparison_op, dtype):
 
     op_name = f"__{comparison_op.__name__}__"
 
@@ -340,12 +338,23 @@ def test_reduce(skipna, dtype):
     assert result == "abc"
 
 
+@pytest.mark.parametrize("skipna", [True, False])
+@pytest.mark.xfail(reason="Not implemented StringArray.sum")
+def test_reduce_missing(skipna, dtype):
+    arr = pd.Series([None, "a", None, "b", "c", None], dtype=dtype)
+    result = arr.sum(skipna=skipna)
+    if skipna:
+        assert result == "abc"
+    else:
+        assert pd.isna(result)
+
+
 @pytest.mark.parametrize("method", ["min", "max"])
 @pytest.mark.parametrize("skipna", [True, False])
 def test_min_max(method, skipna, dtype, request):
     if dtype.storage == "pyarrow":
         reason = "'ArrowStringArray' object has no attribute 'max'"
-        mark = pytest.mark.xfail(raises=AttributeError, reason=reason)
+        mark = pytest.mark.xfail(raises=TypeError, reason=reason)
         request.node.add_marker(mark)
 
     arr = pd.Series(["a", "b", "c", None], dtype=dtype)
@@ -362,29 +371,16 @@ def test_min_max(method, skipna, dtype, request):
 def test_min_max_numpy(method, box, dtype, request):
     if dtype.storage == "pyarrow":
         if box is pd.array:
-            raises = TypeError
             reason = "'<=' not supported between instances of 'str' and 'NoneType'"
         else:
-            raises = AttributeError
             reason = "'ArrowStringArray' object has no attribute 'max'"
-        mark = pytest.mark.xfail(raises=raises, reason=reason)
+        mark = pytest.mark.xfail(raises=TypeError, reason=reason)
         request.node.add_marker(mark)
 
     arr = box(["a", "b", "c", None], dtype=dtype)
     result = getattr(np, method)(arr)
     expected = "a" if method == "min" else "c"
     assert result == expected
-
-
-@pytest.mark.parametrize("skipna", [True, False])
-@pytest.mark.xfail(reason="Not implemented StringArray.sum")
-def test_reduce_missing(skipna, dtype):
-    arr = pd.Series([None, "a", None, "b", "c", None], dtype=dtype)
-    result = arr.sum(skipna=skipna)
-    if skipna:
-        assert result == "abc"
-    else:
-        assert pd.isna(result)
 
 
 def test_fillna_args(dtype, request):

@@ -981,7 +981,6 @@ class TestTimedeltaComparison:
         result = arr != td
         tm.assert_numpy_array_equal(result, ~expected)
 
-    @pytest.mark.skip(reason="GH#20829 is reverted until after 0.24.0")
     def test_compare_custom_object(self):
         """
         Make sure non supported operations on Timedelta returns NonImplemented

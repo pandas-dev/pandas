@@ -9,19 +9,19 @@ dependencies:
   - pytest>=6.0
   - pytest-cov
   - pytest-xdist>=1.31
+  - pytest-timeout
   - hypothesis>=5.5.3
 
   # pandas dependencies
   - beautifulsoup4
   - bottleneck
+  - boto3
   - fsspec>=0.8.0
   - gcsfs
   - html5lib
   - jinja2
   - lxml
   - matplotlib
-  - moto>=1.3.14
-  - flask
   - numba
   - numexpr
   - numpy
