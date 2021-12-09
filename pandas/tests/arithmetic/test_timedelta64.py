@@ -1990,7 +1990,7 @@ class TestTimedeltaArraylikeMulDivOps:
                 # 2021-12-09 npdev started giving a new message; not sure if it
                 #  will be changed back
                 "ufunc 'divide' cannot use operands with types "
-                r"dtype\('float64'\) and dtype\('<m8\[ns\]'\)",
+                r"dtype\('.*'\) and dtype\('<m8\[ns\]'\)",
             ]
         )
         with pytest.raises(TypeError, match=msg):
@@ -2072,7 +2072,7 @@ class TestTimedeltaArraylikeMulDivOps:
                 "Cannot divide",
                 # 2021-12-09 new message on npdev
                 "ufunc 'divide' cannot use operands with types "
-                r"dtype\('float32'\) and dtype\('<m8\[ns\]'\)",
+                r"dtype\('.*'\) and dtype\('<m8\[ns\]'\)",
             ]
         )
         with pytest.raises(TypeError, match=pattern):
