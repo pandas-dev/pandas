@@ -176,7 +176,7 @@ def rec_array_to_mgr(
     # essentially process a record array then fill it
     fdata = ma.getdata(data)
     if index is None:
-        index = default_index(len(data))
+        index = default_index(len(fdata))
     else:
         index = ensure_index(index)
 
