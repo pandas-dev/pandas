@@ -24,6 +24,7 @@ from pandas.core.arrays import (
     BooleanArray,
     IntervalArray,
 )
+from pandas.tests.arithmetic.common import get_upcast_box
 
 
 @pytest.fixture(
@@ -132,8 +133,20 @@ class TestComparison:
         expected = self.elementwise_comparison(op, interval_array, other)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_compare_scalar_na(self, op, interval_array, nulls_fixture):
-        result = op(interval_array, nulls_fixture)
+    def test_compare_scalar_na(
+        self, op, interval_array, nulls_fixture, box_with_array, request
+    ):
+        box = box_with_array
+
+        if box is pd.DataFrame:
+            if interval_array.dtype.subtype.kind not in "iuf":
+                mark = pytest.mark.xfail(
+                    reason="raises on DataFrame.transpose (would be fixed by EA2D)"
+                )
+                request.node.add_marker(mark)
+
+        obj = tm.box_expected(interval_array, box)
+        result = op(obj, nulls_fixture)
 
         if nulls_fixture is pd.NA:
             # GH#31882
@@ -142,9 +155,14 @@ class TestComparison:
         else:
             expected = self.elementwise_comparison(op, interval_array, nulls_fixture)
 
+        if not (box is Index and nulls_fixture is pd.NA):
+            # don't cast expected from BooleanArray to ndarray[object]
+            xbox = get_upcast_box(obj, nulls_fixture, True)
+            expected = tm.box_expected(expected, xbox)
+
         tm.assert_equal(result, expected)
 
-        rev = op(nulls_fixture, interval_array)
+        rev = op(nulls_fixture, obj)
         tm.assert_equal(rev, expected)
 
     @pytest.mark.parametrize(
