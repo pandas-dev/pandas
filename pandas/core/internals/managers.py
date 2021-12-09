@@ -1087,7 +1087,14 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             blk = self.blocks[blkno]
             if len(blk._mgr_locs) == 1:  # TODO: fastest way to check this?
                 return self._iset_single(
-                    loc, value, inplace=inplace, blkno=blkno, blk=blk
+                    # error: Argument 1 to "_iset_single" of "BlockManager" has
+                    # incompatible type "Union[int, slice, ndarray[Any, Any]]";
+                    # expected "int"
+                    loc,  # type:ignore[arg-type]
+                    value,
+                    inplace=inplace,
+                    blkno=blkno,
+                    blk=blk,
                 )
 
             # error: Incompatible types in assignment (expression has type
