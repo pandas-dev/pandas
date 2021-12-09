@@ -9,6 +9,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Collection,
     Hashable,
     Iterable,
     Literal,
@@ -4938,8 +4939,9 @@ Keep all original rows and also all original values
 
     # error: Cannot determine type of 'shift'
     @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
-    def shift(self, periods=1, freq=None, axis=0, fill_value=None) -> Series:
-
+    def shift(
+        self, periods: int | Collection[int] = 1, freq=None, axis=0, fill_value=None
+    ) -> Series | DataFrame:
         # Handle the case of multiple shifts
         if is_list_like(periods):
             if len(periods) == 0:
