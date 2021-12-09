@@ -1276,6 +1276,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
     @pytest.mark.parametrize("bigNum", [-(2 ** 63) - 1, 2 ** 64])
     def test_read_json_large_numbers(self, bigNum):
+        # GH20599, 26068
         json = StringIO('{"articleId":' + str(bigNum) + "}")
         msg = r"Value is too small|Value is too big"
         with pytest.raises(ValueError, match=msg):
