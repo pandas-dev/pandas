@@ -1057,10 +1057,15 @@ def _maybe_memory_map(
 
     # error: Argument 1 to "_MMapWrapper" has incompatible type "Union[IO[Any],
     # RawIOBase, BufferedIOBase, TextIOBase, mmap]"; expected "IO[Any]"
-    wrapped = cast(
-        BaseBuffer,
-        _MMapWrapper(handle, encoding, errors, decode),  # type: ignore[arg-type]
-    )
+    try:
+        wrapped = cast(
+            BaseBuffer,
+            _MMapWrapper(handle, encoding, errors, decode),  # type: ignore[arg-type]
+        )
+    finally:
+        for handle in reversed(handles):
+            # error: "BaseBuffer" has no attribute "close"
+            handle.close()  # type: ignore[attr-defined]
     handles.append(wrapped)
 
     return wrapped, memory_map, handles
