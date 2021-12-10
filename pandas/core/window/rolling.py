@@ -747,8 +747,11 @@ class BaseWindowGroupby(BaseWindow):
         target = self._create_data(target)
         result = super()._apply_pairwise(target, other, pairwise, func)
         # 1) Determine the levels + codes of the groupby levels
-        if other is not None:
-            # When we have other, we must reindex (expand) the result
+        if other is not None and not all(
+            len(group) == len(other) for group in self._grouper.indices.values()
+        ):
+            # GH 42915
+            # len(other) != len(any group), so must reindex (expand) the result
             # from flex_binary_moment to a "transform"-like result
             # per groupby combination
             old_result_len = len(result)
@@ -770,10 +773,9 @@ class BaseWindowGroupby(BaseWindow):
                 codes, levels = factorize(labels)
                 groupby_codes.append(codes)
                 groupby_levels.append(levels)
-
         else:
-            # When we evaluate the pairwise=True result, repeat the groupby
-            # labels by the number of columns in the original object
+            # pairwise=True or len(other) == len(each group), so repeat
+            # the groupby labels by the number of columns in the original object
             groupby_codes = self._grouper.codes
             # error: Incompatible types in assignment (expression has type
             # "List[Index]", variable has type "List[Union[ndarray, Index]]")
