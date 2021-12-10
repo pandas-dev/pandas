@@ -1829,17 +1829,17 @@ def test_resample_aggregate_functions_min_count(func):
     tm.assert_series_equal(result, expected)
 
 
-def test_resample_unsigned_int(any_unsigned_int_numpy_dtype):
+def test_resample_unsigned_int(uint_dtype):
     # gh-43329
     df = DataFrame(
         index=date_range(start="2000-01-01", end="2000-01-03 23", freq="12H"),
         columns=["x"],
         data=[0, 1, 0] * 2,
-        dtype=any_unsigned_int_numpy_dtype,
+        dtype=uint_dtype,
     )
     df = df.loc[(df.index < "2000-01-02") | (df.index > "2000-01-03"), :]
 
-    if any_unsigned_int_numpy_dtype == "uint64":
+    if uint_dtype == "uint64":
         with pytest.raises(RuntimeError, match="empty group with uint64_t"):
             result = df.resample("D").max()
     else:
