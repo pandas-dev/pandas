@@ -424,18 +424,27 @@ class TestResetIndex:
         result = df2.rename_axis([("c", "ii")]).reset_index(col_level=1, col_fill="C")
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("flag", [False, True])
     @pytest.mark.parametrize("allow_duplicates", ["absent", False, None, True])
-    def test_reset_index_duplicate_columns(self, multiindex_df, allow_duplicates):
+    def test_reset_index_duplicate_columns(self, multiindex_df, flag, allow_duplicates):
         # GH#44755 reset_index with duplicate column labels
-        if allow_duplicates is False or allow_duplicates == "absent":
-            msg = r"cannot insert \('A', ''\), already exists"
+        df = multiindex_df.rename_axis("A")
+        df = df.set_flags(allows_duplicate_labels=flag)
+
+        if (
+            flag and (allow_duplicates is False or allow_duplicates == "absent")
+        ) or not flag:
+            if allow_duplicates is True and flag is False:
+                msg = "Cannot specify 'allow_duplicates=True' when 'self.flags.allows_duplicate_labels' is False"
+            else:
+                msg = r"cannot insert \('A', ''\), already exists"
             with pytest.raises(ValueError, match=msg):
                 if allow_duplicates == "absent":
-                    multiindex_df.rename_axis("A").reset_index()
+                    df.reset_index()
                 else:
-                    multiindex_df.rename_axis("A").reset_index(allow_duplicates=False)
+                    df.reset_index(allow_duplicates=allow_duplicates)
         else:
-            result = multiindex_df.rename_axis("A").reset_index(allow_duplicates=True)
+            result = df.reset_index(allow_duplicates=allow_duplicates)
             levels = [["A", ""], ["A", ""], ["B", "b"]]
             expected = DataFrame(
                 [[0, 0, 2], [1, 1, 3]], columns=MultiIndex.from_tuples(levels)
