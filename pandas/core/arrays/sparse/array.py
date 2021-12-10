@@ -52,6 +52,7 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     is_array_like,
+    is_bool,
     is_bool_dtype,
     is_datetime64_any_dtype,
     is_datetime64tz_dtype,
@@ -181,7 +182,6 @@ def _sparse_array_op(
         ltype = SparseDtype(subtype, left.fill_value)
         rtype = SparseDtype(subtype, right.fill_value)
 
-        # TODO(GH-23092): pass copy=False. Need to fix astype_nansafe
         left = left.astype(ltype)
         right = right.astype(rtype)
         dtype = ltype.subtype
@@ -945,13 +945,18 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             )
 
         else:
-            # TODO: I think we can avoid densifying when masking a
-            # boolean SparseArray with another. Need to look at the
-            # key's fill_value for True / False, and then do an intersection
-            # on the indices of the sp_values.
             if isinstance(key, SparseArray):
                 if is_bool_dtype(key):
-                    key = key.to_dense()
+                    if is_bool(key.fill_value):
+                        msk = np.full(
+                            shape=len(self),
+                            fill_value=key.fill_value,
+                            dtype=np.bool8,
+                        )
+                        msk[key.sp_index.indices] = not key.fill_value
+                        return self.take(np.arange(len(self), dtype=np.int32)[msk])
+                    else:
+                        key = key.to_dense()
                 else:
                     key = np.asarray(key)
 

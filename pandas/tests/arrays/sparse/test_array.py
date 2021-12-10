@@ -248,6 +248,16 @@ class TestSparseArray:
         assert arr.dtype == dtype
         assert exp.dtype == dtype
 
+    # GH 23122
+    def test_get_item_bool_sparse_array(self):
+        spar_bool = SparseArray([False, True] * 5, dtype=np.bool8, fill_value=True)
+        exp = SparseArray([np.nan, 2, np.nan, 5, 6])
+        tm.assert_sp_array_equal(self.arr[spar_bool], exp)
+
+        spar_bool = SparseArray(~spar_bool.to_dense(), dtype=np.bool8, fill_value=False)
+        exp = SparseArray([np.nan, 1, 3, 4, np.nan])
+        tm.assert_sp_array_equal(self.arr[spar_bool], exp)
+
     def test_get_item(self):
 
         assert np.isnan(self.arr[1])
