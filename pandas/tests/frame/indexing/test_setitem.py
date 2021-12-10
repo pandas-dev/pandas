@@ -922,17 +922,26 @@ class TestDataFrameSetItemBooleanMask:
         expected.values[np.array(mask)] = np.nan
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(reason="Currently empty indexers are treated as all False")
     @pytest.mark.parametrize("box", [list, np.array, Series])
-    @pytest.mark.parametrize("value", [[], [False]])
-    def test_setitem_loc_only_false_indexer_dtype_changed(self, box, value):
+    def test_setitem_loc_empty_indexer_raises_with_non_empty_value(self, box):
+        # GH#37672
+        df = DataFrame({"a": ["a"], "b": [1], "c": [1]})
+        if box == Series:
+            indexer = box([], dtype="object")
+        else:
+            indexer = box([])
+        msg = "Must have equal len keys and value when setting with an iterable"
+        with pytest.raises(ValueError, match=msg):
+            df.loc[indexer, ["b"]] = [1]
+
+    @pytest.mark.parametrize("box", [list, np.array, Series])
+    def test_setitem_loc_only_false_indexer_dtype_changed(self, box):
         # GH#37550
         # Dtype is only changed when value to set is a Series and indexer is
         # empty/bool all False
         df = DataFrame({"a": ["a"], "b": [1], "c": [1]})
-        if box == Series and not value:
-            indexer = box(value, dtype="object")
-        else:
-            indexer = box(value)
+        indexer = box([False])
         df.loc[indexer, ["b"]] = 10 - df["c"]
         expected = DataFrame({"a": ["a"], "b": [1], "c": [1]})
         tm.assert_frame_equal(df, expected)
