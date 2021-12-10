@@ -232,11 +232,11 @@ class TestFancy:
         df.head()
         str(df)
         result = DataFrame([[1, 2, 1.0, 2.0, 3.0, "foo", "bar"]])
-        result.columns = list("aaaaaaa")
+        result.columns = list("aaaaaaa")  # GH#3468
 
-        # TODO(wesm): unused?
-        df_v = df.iloc[:, 4]  # noqa
-        res_v = result.iloc[:, 4]  # noqa
+        # GH#3509 smoke tests for indexing with duplicate columns
+        df.iloc[:, 4]
+        result.iloc[:, 4]
 
         tm.assert_frame_equal(df, result)
 

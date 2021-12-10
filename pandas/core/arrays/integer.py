@@ -5,7 +5,6 @@ from typing import overload
 import numpy as np
 
 from pandas._libs import (
-    iNaT,
     lib,
     missing as libmissing,
 )
@@ -16,7 +15,6 @@ from pandas._typing import (
     DtypeObj,
     npt,
 )
-from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.base import (
@@ -26,7 +24,6 @@ from pandas.core.dtypes.base import (
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_datetime64_dtype,
-    is_float,
     is_float_dtype,
     is_integer_dtype,
     is_object_dtype,
@@ -410,49 +407,6 @@ class IntegerArray(NumericArray):
         if self._mask.any():
             data[self._mask] = data.min() - 1
         return data
-
-    def sum(self, *, skipna=True, min_count=0, axis: int | None = 0, **kwargs):
-        nv.validate_sum((), kwargs)
-        return super()._reduce("sum", skipna=skipna, min_count=min_count, axis=axis)
-
-    def prod(self, *, skipna=True, min_count=0, axis: int | None = 0, **kwargs):
-        nv.validate_prod((), kwargs)
-        return super()._reduce("prod", skipna=skipna, min_count=min_count, axis=axis)
-
-    def min(self, *, skipna=True, axis: int | None = 0, **kwargs):
-        nv.validate_min((), kwargs)
-        return super()._reduce("min", skipna=skipna, axis=axis)
-
-    def max(self, *, skipna=True, axis: int | None = 0, **kwargs):
-        nv.validate_max((), kwargs)
-        return super()._reduce("max", skipna=skipna, axis=axis)
-
-    def _maybe_mask_result(self, result, mask, other, op_name: str):
-        """
-        Parameters
-        ----------
-        result : array-like
-        mask : array-like bool
-        other : scalar or array-like
-        op_name : str
-        """
-        # if we have a float operand we are by-definition
-        # a float result
-        # or our op is a divide
-        if (is_float_dtype(other) or is_float(other)) or (
-            op_name in ["rtruediv", "truediv"]
-        ):
-            from pandas.core.arrays import FloatingArray
-
-            return FloatingArray(result, mask, copy=False)
-
-        if result.dtype == "timedelta64[ns]":
-            from pandas.core.arrays import TimedeltaArray
-
-            result[mask] = iNaT
-            return TimedeltaArray._simple_new(result)
-
-        return type(self)(result, mask, copy=False)
 
 
 _dtype_docstring = """

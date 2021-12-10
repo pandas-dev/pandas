@@ -3897,7 +3897,8 @@ Keep all original rows and also all original values
             Whether to copy underlying data."""
         ),
         examples=dedent(
-            """Examples
+            """\
+        Examples
         --------
         >>> s = pd.Series(
         ...     ["A", "B", "A", "C"],
@@ -4477,10 +4478,8 @@ Keep all original rows and also all original values
 
     def rename(
         self,
-        mapper=None,
-        *,
         index=None,
-        columns=None,
+        *,
         axis=None,
         copy=True,
         inplace=False,
@@ -4502,7 +4501,7 @@ Keep all original rows and also all original values
         ----------
         axis : {0 or "index"}
             Unused. Accepted for compatibility with DataFrame method only.
-        mapper : scalar, hashable sequence, dict-like or function, optional
+        index : scalar, hashable sequence, dict-like or function, optional
             Functions or dict-like are transformations to apply to
             the index.
             Scalar or hashable sequence-like will alter the ``Series.name``
@@ -4550,16 +4549,12 @@ Keep all original rows and also all original values
             # Make sure we raise if an invalid 'axis' is passed.
             axis = self._get_axis_number(axis)
 
-        if index is not None and mapper is not None:
-            raise TypeError("Cannot specify both 'mapper' and 'index'")
-        if mapper is None:
-            mapper = index
-        if callable(mapper) or is_dict_like(mapper):
-            return super().rename(
-                mapper, copy=copy, inplace=inplace, level=level, errors=errors
+        if callable(index) or is_dict_like(index):
+            return super()._rename(
+                index, copy=copy, inplace=inplace, level=level, errors=errors
             )
         else:
-            return self._set_name(mapper, inplace=inplace)
+            return self._set_name(index, inplace=inplace)
 
     @overload
     def set_axis(
