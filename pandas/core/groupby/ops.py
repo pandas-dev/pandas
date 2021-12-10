@@ -500,9 +500,10 @@ class WrappedCythonOp:
         elif is_bool_dtype(dtype):
             values = values.astype("int64")
         elif is_integer_dtype(dtype):
-            # e.g. uint8 -> uint64, int16 -> int64
-            dtype_str = dtype.kind + "8"
-            values = values.astype(dtype_str, copy=False)
+            # GH#43329 If the dtype is explicitly of type uint64 the type is not
+            # changed to prevent overflow.
+            if dtype != np.uint64:
+                values = values.astype(np.int64, copy=False)
         elif is_numeric:
             if not is_complex_dtype(dtype):
                 values = ensure_float64(values)
