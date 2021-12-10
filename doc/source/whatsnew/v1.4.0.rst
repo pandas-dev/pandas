@@ -230,6 +230,7 @@ Other enhancements
 - Implemented :meth:`IntervalArray.min`, :meth:`IntervalArray.max`, as a result of which ``min`` and ``max`` now work for :class:`IntervalIndex`, :class:`Series` and :class:`DataFrame` with ``IntervalDtype`` (:issue:`44746`)
 - :meth:`UInt64Index.map` now retains ``dtype`` where possible (:issue:`44609`)
 - :meth:`read_json` can now parse unsigned long long integers (:issue:`26068`)
+- :meth:`DataFrame.take` now raises a ``TypeError`` when passed a scalar for the indexer (:issue:`42875`)
 -
 
 
