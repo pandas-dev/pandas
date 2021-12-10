@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from pandas.compat import np_version_under1p20
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -30,10 +31,12 @@ class BaseCastingTests(BaseExtensionTests):
         assert isinstance(result._mgr.arrays[0], np.ndarray)
         assert result._mgr.arrays[0].dtype == np.dtype(object)
 
-        # FIXME: these currently fail; dont leave commented-out
-        # check that we can compare the dtypes
-        # cmp = result.dtypes.equals(df.dtypes)
-        # assert not cmp.any()
+        # earlier numpy raises TypeError on e.g. np.dtype(np.int64) == "Int64"
+        #  instead of returning False
+        if not np_version_under1p20:
+            # check that we can compare the dtypes
+            comp = result.dtypes == df.dtypes
+            assert not comp.any()
 
     def test_tolist(self, data):
         result = pd.Series(data).tolist()
@@ -48,16 +51,14 @@ class BaseCastingTests(BaseExtensionTests):
     @pytest.mark.parametrize(
         "nullable_string_dtype",
         [
-            "string",
+            "string[python]",
             pytest.param(
-                "arrow_string", marks=td.skip_if_no("pyarrow", min_version="1.0.0")
+                "string[pyarrow]", marks=td.skip_if_no("pyarrow", min_version="1.0.0")
             ),
         ],
     )
     def test_astype_string(self, data, nullable_string_dtype):
         # GH-33465
-        from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
-
         result = pd.Series(data[:5]).astype(nullable_string_dtype)
         expected = pd.Series([str(x) for x in data[:5]], dtype=nullable_string_dtype)
         self.assert_series_equal(result, expected)

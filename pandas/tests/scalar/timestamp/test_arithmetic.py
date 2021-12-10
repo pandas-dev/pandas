@@ -36,7 +36,7 @@ class TestTimestampArithmetic:
         # xref https://github.com/statsmodels/statsmodels/issues/3374
         # ends up multiplying really large numbers which overflow
 
-        stamp = Timestamp("2017-01-13 00:00:00", freq="D")
+        stamp = Timestamp("2017-01-13 00:00:00")
         offset_overflow = 20169940 * offsets.Day(1)
         msg = (
             "the add operation between "
@@ -91,7 +91,7 @@ class TestTimestampArithmetic:
     def test_rsub_dtscalars(self, tz_naive_fixture):
         # In particular, check that datetime64 - Timestamp works GH#28286
         td = Timedelta(1235345642000)
-        ts = Timestamp.now(tz_naive_fixture)
+        ts = Timestamp("2021-01-01", tz=tz_naive_fixture)
         other = ts + td
 
         assert other - ts == td
@@ -116,7 +116,9 @@ class TestTimestampArithmetic:
         td = timedelta(seconds=1)
         # build a timestamp with a frequency, since then it supports
         # addition/subtraction of integers
-        ts = Timestamp(dt, freq="D")
+        with tm.assert_produces_warning(FutureWarning, match="The 'freq' argument"):
+            # freq deprecated
+            ts = Timestamp(dt, freq="D")
 
         msg = "Addition/subtraction of integers"
         with pytest.raises(TypeError, match=msg):
@@ -148,6 +150,8 @@ class TestTimestampArithmetic:
             ("M", None, np.timedelta64(1, "M")),
         ],
     )
+    @pytest.mark.filterwarnings("ignore:Timestamp.freq is deprecated:FutureWarning")
+    @pytest.mark.filterwarnings("ignore:The 'freq' argument:FutureWarning")
     def test_addition_subtraction_preserve_frequency(self, freq, td, td64):
         ts = Timestamp("2014-03-05 00:00:00", freq=freq)
         original_freq = ts.freq
@@ -166,9 +170,9 @@ class TestTimestampArithmetic:
     @pytest.mark.parametrize(
         "td", [Timedelta(hours=3), np.timedelta64(3, "h"), timedelta(hours=3)]
     )
-    def test_radd_tdscalar(self, td):
+    def test_radd_tdscalar(self, td, fixed_now_ts):
         # GH#24775 timedelta64+Timestamp should not raise
-        ts = Timestamp.now()
+        ts = fixed_now_ts
         assert td + ts == ts + td
 
     @pytest.mark.parametrize(
@@ -189,8 +193,8 @@ class TestTimestampArithmetic:
     @pytest.mark.parametrize(
         "ts",
         [
-            Timestamp("1776-07-04", freq="D"),
-            Timestamp("1776-07-04", tz="UTC", freq="D"),
+            Timestamp("1776-07-04"),
+            Timestamp("1776-07-04", tz="UTC"),
         ],
     )
     @pytest.mark.parametrize(

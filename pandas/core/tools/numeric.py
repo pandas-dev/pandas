@@ -1,4 +1,4 @@
-from typing import Optional
+from __future__ import annotations
 
 import numpy as np
 
@@ -48,7 +48,8 @@ def to_numeric(arg, errors="raise", downcast=None):
         - If 'raise', then invalid parsing will raise an exception.
         - If 'coerce', then invalid parsing will be set as NaN.
         - If 'ignore', then invalid parsing will return the input.
-    downcast : {'integer', 'signed', 'unsigned', 'float'}, default None
+    downcast : str, default None
+        Can be 'integer', 'signed', 'unsigned', or 'float'.
         If not None, and if the data has been successfully cast to a
         numerical dtype (or if the data was numeric to begin with),
         downcast that resulting data to the smallest numerical dtype
@@ -166,7 +167,7 @@ def to_numeric(arg, errors="raise", downcast=None):
 
     # GH33013: for IntegerArray & FloatingArray extract non-null values for casting
     # save mask to reconstruct the full array after casting
-    mask: Optional[np.ndarray] = None
+    mask: np.ndarray | None = None
     if isinstance(values, NumericArray):
         mask = values._mask
         values = values._data[~mask]
@@ -190,7 +191,7 @@ def to_numeric(arg, errors="raise", downcast=None):
     # attempt downcast only if the data has been successfully converted
     # to a numerical dtype and if a downcast method has been specified
     if downcast is not None and is_numeric_dtype(values.dtype):
-        typecodes = None
+        typecodes: str | None = None
 
         if downcast in ("integer", "signed"):
             typecodes = np.typecodes["Integer"]
@@ -208,8 +209,8 @@ def to_numeric(arg, errors="raise", downcast=None):
 
         if typecodes is not None:
             # from smallest to largest
-            for dtype in typecodes:
-                dtype = np.dtype(dtype)
+            for typecode in typecodes:
+                dtype = np.dtype(typecode)
                 if dtype.itemsize <= values.dtype.itemsize:
                     values = maybe_downcast_numeric(values, dtype)
 

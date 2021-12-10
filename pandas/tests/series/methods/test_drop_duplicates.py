@@ -77,7 +77,7 @@ class TestSeriesDropDuplicates:
         return request.param
 
     @pytest.fixture
-    def cat_series1(self, dtype, ordered):
+    def cat_series_unused_category(self, dtype, ordered):
         # Test case 1
         cat_array = np.array([1, 2, 3, 4, 5], dtype=np.dtype(dtype))
 
@@ -86,8 +86,8 @@ class TestSeriesDropDuplicates:
         tc1 = Series(cat)
         return tc1
 
-    def test_drop_duplicates_categorical_non_bool(self, cat_series1):
-        tc1 = cat_series1
+    def test_drop_duplicates_categorical_non_bool(self, cat_series_unused_category):
+        tc1 = cat_series_unused_category
 
         expected = Series([False, False, False, True])
 
@@ -102,8 +102,10 @@ class TestSeriesDropDuplicates:
         assert return_value is None
         tm.assert_series_equal(sc, tc1[~expected])
 
-    def test_drop_duplicates_categorical_non_bool_keeplast(self, cat_series1):
-        tc1 = cat_series1
+    def test_drop_duplicates_categorical_non_bool_keeplast(
+        self, cat_series_unused_category
+    ):
+        tc1 = cat_series_unused_category
 
         expected = Series([False, False, True, False])
 
@@ -118,8 +120,10 @@ class TestSeriesDropDuplicates:
         assert return_value is None
         tm.assert_series_equal(sc, tc1[~expected])
 
-    def test_drop_duplicates_categorical_non_bool_keepfalse(self, cat_series1):
-        tc1 = cat_series1
+    def test_drop_duplicates_categorical_non_bool_keepfalse(
+        self, cat_series_unused_category
+    ):
+        tc1 = cat_series_unused_category
 
         expected = Series([False, False, True, True])
 
@@ -135,8 +139,8 @@ class TestSeriesDropDuplicates:
         tm.assert_series_equal(sc, tc1[~expected])
 
     @pytest.fixture
-    def cat_series2(self, dtype, ordered):
-        # Test case 2; TODO: better name
+    def cat_series(self, dtype, ordered):
+        # no unused categories, unlike cat_series_unused_category
         cat_array = np.array([1, 2, 3, 4, 5], dtype=np.dtype(dtype))
 
         input2 = np.array([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype(dtype))
@@ -144,9 +148,8 @@ class TestSeriesDropDuplicates:
         tc2 = Series(cat)
         return tc2
 
-    def test_drop_duplicates_categorical_non_bool2(self, cat_series2):
-        # Test case 2; TODO: better name
-        tc2 = cat_series2
+    def test_drop_duplicates_categorical_non_bool2(self, cat_series):
+        tc2 = cat_series
 
         expected = Series([False, False, False, False, True, True, False])
 
@@ -161,8 +164,8 @@ class TestSeriesDropDuplicates:
         assert return_value is None
         tm.assert_series_equal(sc, tc2[~expected])
 
-    def test_drop_duplicates_categorical_non_bool2_keeplast(self, cat_series2):
-        tc2 = cat_series2
+    def test_drop_duplicates_categorical_non_bool2_keeplast(self, cat_series):
+        tc2 = cat_series
 
         expected = Series([False, True, True, False, False, False, False])
 
@@ -177,8 +180,8 @@ class TestSeriesDropDuplicates:
         assert return_value is None
         tm.assert_series_equal(sc, tc2[~expected])
 
-    def test_drop_duplicates_categorical_non_bool2_keepfalse(self, cat_series2):
-        tc2 = cat_series2
+    def test_drop_duplicates_categorical_non_bool2_keepfalse(self, cat_series):
+        tc2 = cat_series
 
         expected = Series([False, True, True, False, True, True, False])
 
@@ -223,3 +226,32 @@ class TestSeriesDropDuplicates:
         return_value = sc.drop_duplicates(keep=False, inplace=True)
         assert return_value is None
         tm.assert_series_equal(sc, tc[~expected])
+
+    def test_drop_duplicates_categorical_bool_na(self, nulls_fixture):
+        # GH#44351
+        ser = Series(
+            Categorical(
+                [True, False, True, False, nulls_fixture],
+                categories=[True, False],
+                ordered=True,
+            )
+        )
+        result = ser.drop_duplicates()
+        expected = Series(
+            Categorical([True, False, np.nan], categories=[True, False], ordered=True),
+            index=[0, 1, 4],
+        )
+        tm.assert_series_equal(result, expected)
+
+
+def test_drop_duplicates_pos_args_deprecation():
+    # GH#41485
+    s = Series(["a", "b", "c", "b"])
+    msg = (
+        "In a future version of pandas all arguments of "
+        "Series.drop_duplicates will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = s.drop_duplicates("last")
+    expected = Series(["a", "c", "b"], index=[0, 2, 3])
+    tm.assert_series_equal(expected, result)

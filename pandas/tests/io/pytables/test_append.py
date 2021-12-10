@@ -12,7 +12,6 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import (
     DataFrame,
-    MultiIndex,
     Series,
     _testing as tm,
     concat,
@@ -25,7 +24,7 @@ from pandas.tests.io.pytables.common import (
     ensure_clean_store,
 )
 
-pytestmark = [pytest.mark.single, td.skip_array_manager_not_yet_implemented]
+pytestmark = pytest.mark.single
 
 
 @pytest.mark.filterwarnings("ignore:object name:tables.exceptions.NaturalNameWarning")
@@ -638,13 +637,9 @@ def test_append_with_data_columns(setup_path):
         tm.assert_frame_equal(result, expected)
 
 
-def test_append_hierarchical(setup_path):
-    index = MultiIndex(
-        levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
-        codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
-        names=["foo", "bar"],
-    )
-    df = DataFrame(np.random.randn(10, 3), index=index, columns=["A", "B", "C"])
+def test_append_hierarchical(setup_path, multiindex_dataframe_random_data):
+    df = multiindex_dataframe_random_data
+    df.columns.name = None
 
     with ensure_clean_store(setup_path) as store:
         store.append("mi", df)
@@ -714,6 +709,10 @@ def test_append_misc(setup_path):
         tm.assert_frame_equal(store.select("df2"), df)
 
 
+# TODO(ArrayManager) currently we rely on falling back to BlockManager, but
+# the conversion from AM->BM converts the invalid object dtype column into
+# a datetime64 column no longer raising an error
+@td.skip_array_manager_not_yet_implemented
 def test_append_raise(setup_path):
 
     with ensure_clean_store(setup_path) as store:
@@ -770,6 +769,22 @@ because its data contents are not [string] but [mixed] object dtype"""
             "invalid combination of [non_index_axes] on appending data "
             "[(1, ['A', 'B', 'C', 'D', 'foo'])] vs current table "
             "[(1, ['A', 'B', 'C', 'D'])]"
+        )
+        with pytest.raises(ValueError, match=msg):
+            store.append("df", df)
+
+        # incompatible type (GH 41897)
+        _maybe_remove(store, "df")
+        df["foo"] = Timestamp("20130101")
+        store.append("df", df)
+        df["foo"] = "bar"
+        msg = re.escape(
+            "invalid combination of [values_axes] on appending data "
+            "[name->values_block_1,cname->values_block_1,"
+            "dtype->bytes24,kind->string,shape->(1, 30)] "
+            "vs current table "
+            "[name->values_block_1,cname->values_block_1,"
+            "dtype->datetime64,kind->datetime64,shape->None]"
         )
         with pytest.raises(ValueError, match=msg):
             store.append("df", df)
@@ -876,9 +891,6 @@ def test_append_to_multiple_dropna(setup_path):
         tm.assert_index_equal(store.select("df1").index, store.select("df2").index)
 
 
-@pytest.mark.xfail(
-    run=False, reason="append_to_multiple_dropna_false is not raising as failed"
-)
 def test_append_to_multiple_dropna_false(setup_path):
     df1 = tm.makeTimeDataFrame()
     df2 = tm.makeTimeDataFrame().rename(columns="{}_2".format)
@@ -892,8 +904,7 @@ def test_append_to_multiple_dropna_false(setup_path):
             {"df1a": ["A", "B"], "df2a": None}, df, selector="df1a", dropna=False
         )
 
-        # TODO Update error message to desired message for this case
-        msg = "Cannot select as multiple after appending with dropna=False"
+        msg = "all tables must have exactly the same nrows!"
         with pytest.raises(ValueError, match=msg):
             store.select_as_multiple(["df1a", "df2a"])
 

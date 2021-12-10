@@ -525,8 +525,8 @@ class TestDataFramePlots(TestPlotBase):
         df.plot(ax=ax1, kind="area")
         df.plot(ax=ax2, kind="area")
 
-        assert ax1._shared_y_axes.joined(ax1, ax2)
-        assert ax2._shared_y_axes.joined(ax1, ax2)
+        assert self.get_y_axis(ax1).joined(ax1, ax2)
+        assert self.get_y_axis(ax2).joined(ax1, ax2)
 
     def test_bar_linewidth(self):
         df = DataFrame(np.random.randn(5, 5))
@@ -1753,7 +1753,7 @@ class TestDataFramePlots(TestPlotBase):
 
     @td.skip_if_no_scipy
     def test_memory_leak(self):
-        """ Check that every plot type gets properly collected. """
+        """Check that every plot type gets properly collected."""
         import gc
         import weakref
 

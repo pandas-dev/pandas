@@ -1,4 +1,3 @@
-from io import StringIO
 import operator
 
 import numpy as np
@@ -110,7 +109,7 @@ class TestDataFrameEval:
         df.iloc[0] = 2
         m = df.mean()
 
-        base = DataFrame(  # noqa
+        base = DataFrame(  # noqa:F841
             np.tile(m.values, n).reshape(n, -1), columns=list("abcd")
         )
 
@@ -493,7 +492,7 @@ class TestDataFrameQueryNumExprPandas:
 
         df = DataFrame(np.random.randn(20, 2), columns=list("ab"))
 
-        a, b = 1, 2  # noqa
+        a, b = 1, 2  # noqa:F841
         res = df.query("a > b", engine=engine, parser=parser)
         expected = df[df.a > df.b]
         tm.assert_frame_equal(res, expected)
@@ -662,7 +661,7 @@ class TestDataFrameQueryNumExprPandas:
     def test_at_inside_string(self):
         engine, parser = self.engine, self.parser
         skip_if_no_pandas_parser(parser)
-        c = 1  # noqa
+        c = 1  # noqa:F841
         df = DataFrame({"a": ["a", "a", "b", "b", "@c", "@c"]})
         result = df.query('a == "@c"', engine=engine, parser=parser)
         expected = df[df.a == "@c"]
@@ -681,7 +680,7 @@ class TestDataFrameQueryNumExprPandas:
             df.query("a == @c", engine=engine, parser=parser)
 
     def test_index_resolvers_come_after_columns_with_the_same_name(self):
-        n = 1  # noqa
+        n = 1  # noqa:F841
         a = np.r_[20:101:20]
 
         df = DataFrame({"index": a, "b": np.random.randn(a.size)})
@@ -729,6 +728,26 @@ class TestDataFrameQueryNumExprPandas:
 
         expected = DataFrame(df_index)
         result = df.reset_index().query('"2018-01-03 00:00:00+00" < time')
+        tm.assert_frame_equal(result, expected)
+
+    def test_method_calls_in_query(self):
+        # https://github.com/pandas-dev/pandas/issues/22435
+        n = 10
+        df = DataFrame({"a": 2 * np.random.rand(n), "b": np.random.rand(n)})
+        expected = df[df["a"].astype("int") == 0]
+        result = df.query(
+            "a.astype('int') == 0", engine=self.engine, parser=self.parser
+        )
+        tm.assert_frame_equal(result, expected)
+
+        df = DataFrame(
+            {
+                "a": np.where(np.random.rand(n) < 0.5, np.nan, np.random.randn(n)),
+                "b": np.random.randn(n),
+            }
+        )
+        expected = df[df["a"].notnull()]
+        result = df.query("a.notnull()", engine=self.engine, parser=self.parser)
         tm.assert_frame_equal(result, expected)
 
 
@@ -815,7 +834,7 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
         engine = self.engine
         parser = self.parser
         # smoke test
-        x = 1  # noqa
+        x = 1  # noqa:F841
         result = pd.eval("x + 1", engine=engine, parser=parser)
         assert result == 2
 
@@ -1000,23 +1019,19 @@ class TestDataFrameQueryStrings:
 
     def test_query_with_nested_strings(self, parser, engine):
         skip_if_no_pandas_parser(parser)
-        raw = """id          event          timestamp
-        1   "page 1 load"   1/1/2014 0:00:01
-        1   "page 1 exit"   1/1/2014 0:00:31
-        2   "page 2 load"   1/1/2014 0:01:01
-        2   "page 2 exit"   1/1/2014 0:01:31
-        3   "page 3 load"   1/1/2014 0:02:01
-        3   "page 3 exit"   1/1/2014 0:02:31
-        4   "page 1 load"   2/1/2014 1:00:01
-        4   "page 1 exit"   2/1/2014 1:00:31
-        5   "page 2 load"   2/1/2014 1:01:01
-        5   "page 2 exit"   2/1/2014 1:01:31
-        6   "page 3 load"   2/1/2014 1:02:01
-        6   "page 3 exit"   2/1/2014 1:02:31
-        """
-        df = pd.read_csv(
-            StringIO(raw), sep=r"\s{2,}", engine="python", parse_dates=["timestamp"]
+        events = [
+            f"page {n} {act}" for n in range(1, 4) for act in ["load", "exit"]
+        ] * 2
+        stamps1 = date_range("2014-01-01 0:00:01", freq="30s", periods=6)
+        stamps2 = date_range("2014-02-01 1:00:01", freq="30s", periods=6)
+        df = DataFrame(
+            {
+                "id": np.arange(1, 7).repeat(2),
+                "event": events,
+                "timestamp": stamps1.append(stamps2),
+            }
         )
+
         expected = df[df.event == '"page 1 load"']
         res = df.query("""'"page 1 load"' in event""", parser=parser, engine=engine)
         tm.assert_frame_equal(expected, res)
@@ -1058,7 +1073,7 @@ class TestDataFrameQueryStrings:
             }
         )
         e = df[df.Symbol == "BUD US"]
-        symb = "BUD US"  # noqa
+        symb = "BUD US"  # noqa:F841
         r = df.query("Symbol == @symb", parser=parser, engine=engine)
         tm.assert_frame_equal(e, r)
 
@@ -1240,7 +1255,7 @@ class TestDataFrameQueryBacktickQuoting:
         def func(*_):
             return 1
 
-        funcs = [func]  # noqa
+        funcs = [func]  # noqa:F841
 
         df.eval("@func()")
 

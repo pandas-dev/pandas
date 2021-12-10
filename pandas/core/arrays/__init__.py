@@ -17,12 +17,14 @@ from pandas.core.arrays.period import (
 )
 from pandas.core.arrays.sparse import SparseArray
 from pandas.core.arrays.string_ import StringArray
+from pandas.core.arrays.string_arrow import ArrowStringArray
 from pandas.core.arrays.timedeltas import TimedeltaArray
 
 __all__ = [
     "ExtensionArray",
     "ExtensionOpsMixin",
     "ExtensionScalarOpsMixin",
+    "ArrowStringArray",
     "BaseMaskedArray",
     "BooleanArray",
     "Categorical",

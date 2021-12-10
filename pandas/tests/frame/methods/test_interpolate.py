@@ -12,6 +12,23 @@ import pandas._testing as tm
 
 
 class TestDataFrameInterpolate:
+    def test_interpolate_inplace(self, frame_or_series, using_array_manager, request):
+        # GH#44749
+        if using_array_manager and frame_or_series is DataFrame:
+            mark = pytest.mark.xfail(reason=".values-based in-place check is invalid")
+            request.node.add_marker(mark)
+
+        obj = frame_or_series([1, np.nan, 2])
+        orig = obj.values
+
+        obj.interpolate(inplace=True)
+        expected = frame_or_series([1, 1.5, 2])
+        tm.assert_equal(obj, expected)
+
+        # check we operated *actually* inplace
+        assert np.shares_memory(orig, obj.values)
+        assert orig.squeeze()[1] == 1.5
+
     def test_interp_basic(self):
         df = DataFrame(
             {
@@ -102,34 +119,34 @@ class TestDataFrameInterpolate:
         expected = df.copy()
         result = df.interpolate(method="polynomial", order=1)
 
-        expected.A.loc[3] = 2.66666667
-        expected.A.loc[13] = 5.76923076
+        expected.loc[3, "A"] = 2.66666667
+        expected.loc[13, "A"] = 5.76923076
         tm.assert_frame_equal(result, expected)
 
         result = df.interpolate(method="cubic")
         # GH #15662.
-        expected.A.loc[3] = 2.81547781
-        expected.A.loc[13] = 5.52964175
+        expected.loc[3, "A"] = 2.81547781
+        expected.loc[13, "A"] = 5.52964175
         tm.assert_frame_equal(result, expected)
 
         result = df.interpolate(method="nearest")
-        expected.A.loc[3] = 2
-        expected.A.loc[13] = 5
+        expected.loc[3, "A"] = 2
+        expected.loc[13, "A"] = 5
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
         result = df.interpolate(method="quadratic")
-        expected.A.loc[3] = 2.82150771
-        expected.A.loc[13] = 6.12648668
+        expected.loc[3, "A"] = 2.82150771
+        expected.loc[13, "A"] = 6.12648668
         tm.assert_frame_equal(result, expected)
 
         result = df.interpolate(method="slinear")
-        expected.A.loc[3] = 2.66666667
-        expected.A.loc[13] = 5.76923077
+        expected.loc[3, "A"] = 2.66666667
+        expected.loc[13, "A"] = 5.76923077
         tm.assert_frame_equal(result, expected)
 
         result = df.interpolate(method="zero")
-        expected.A.loc[3] = 2.0
-        expected.A.loc[13] = 5
+        expected.loc[3, "A"] = 2.0
+        expected.loc[13, "A"] = 5
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
     @td.skip_if_no_scipy
@@ -218,7 +235,7 @@ class TestDataFrameInterpolate:
         )
         result = df.interpolate()
         expected = df.copy()
-        expected["B"].loc[3] = -3.75
+        expected.loc[3, "B"] = -3.75
         tm.assert_frame_equal(result, expected)
 
         if check_scipy:
@@ -328,10 +345,13 @@ class TestDataFrameInterpolate:
         expected = df.interpolate(method="linear", axis=axis_number)
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) support axis=1
     @pytest.mark.parametrize("method", ["ffill", "bfill", "pad"])
-    def test_interp_fillna_methods(self, axis, method):
+    def test_interp_fillna_methods(self, request, axis, method, using_array_manager):
         # GH 12918
+        if using_array_manager and (axis == 1 or axis == "columns"):
+            # TODO(ArrayManager) support axis=1
+            td.mark_array_manager_not_yet_implemented(request)
+
         df = DataFrame(
             {
                 "A": [1.0, 2.0, 3.0, 4.0, np.nan, 5.0],

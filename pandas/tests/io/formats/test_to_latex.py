@@ -19,6 +19,8 @@ from pandas.io.formats.latex import (
     RowStringConverter,
 )
 
+pytestmark = pytest.mark.filterwarnings("ignore::FutureWarning")
+
 
 def _dedent(string):
     """Dedent without new line in the beginning.
@@ -1393,6 +1395,44 @@ class TestToLatexMultiindex:
         )
         assert result == expected
 
+    def test_to_latex_multiindex_multirow(self):
+        # GH 16719
+        mi = pd.MultiIndex.from_product(
+            [[0.0, 1.0], [3.0, 2.0, 1.0], ["0", "1"]], names=["i", "val0", "val1"]
+        )
+        df = DataFrame(index=mi)
+        result = df.to_latex(multirow=True, escape=False)
+        expected = _dedent(
+            r"""
+            \begin{tabular}{lll}
+            \toprule
+                &     &   \\
+            i & val0 & val1 \\
+            \midrule
+            \multirow{6}{*}{0.0} & \multirow{2}{*}{3.0} & 0 \\
+                &     & 1 \\
+            \cline{2-3}
+                & \multirow{2}{*}{2.0} & 0 \\
+                &     & 1 \\
+            \cline{2-3}
+                & \multirow{2}{*}{1.0} & 0 \\
+                &     & 1 \\
+            \cline{1-3}
+            \cline{2-3}
+            \multirow{6}{*}{1.0} & \multirow{2}{*}{3.0} & 0 \\
+                &     & 1 \\
+            \cline{2-3}
+                & \multirow{2}{*}{2.0} & 0 \\
+                &     & 1 \\
+            \cline{2-3}
+                & \multirow{2}{*}{1.0} & 0 \\
+                &     & 1 \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
+        assert result == expected
+
 
 class TestTableBuilder:
     @pytest.fixture
@@ -1476,3 +1516,15 @@ class TestRowStringConverter:
         )
 
         assert row_string_converter.get_strrow(row_num=row_num) == expected
+
+    def test_future_warning(self):
+        df = DataFrame([[1]])
+        msg = (
+            "In future versions `DataFrame.to_latex` is expected to utilise the base "
+            "implementation of `Styler.to_latex` for formatting and rendering. "
+            "The arguments signature may therefore change. It is recommended instead "
+            "to use `DataFrame.style.to_latex` which also contains additional "
+            "functionality."
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.to_latex()

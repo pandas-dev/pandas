@@ -17,6 +17,9 @@ from pandas import (
 )
 import pandas._testing as tm
 
+# TODO(1.4): Change me into individual xfails at release time
+pytestmark = pytest.mark.usefixtures("pyarrow_skip")
+
 
 def test_dtype_all_columns_empty(all_parsers):
     # see gh-12048

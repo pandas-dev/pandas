@@ -30,9 +30,13 @@ from pandas._typing import Dtype
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_datetime64tz_dtype,
+    is_float_dtype,
+    is_integer_dtype,
     is_period_dtype,
     is_sequence,
     is_timedelta64_dtype,
+    is_unsigned_integer_dtype,
+    pandas_dtype,
 )
 
 import pandas as pd
@@ -44,6 +48,7 @@ from pandas import (
     Index,
     IntervalIndex,
     MultiIndex,
+    NumericIndex,
     RangeIndex,
     Series,
     bdate_range,
@@ -77,6 +82,7 @@ from pandas._testing.asserters import (  # noqa:F401
     assert_extension_array_equal,
     assert_frame_equal,
     assert_index_equal,
+    assert_indexing_slices_equivalent,
     assert_interval_array_equal,
     assert_is_sorted,
     assert_is_valid_plot_return_object,
@@ -98,13 +104,21 @@ from pandas._testing.contexts import (  # noqa:F401
     use_numexpr,
     with_csv_dialect,
 )
+from pandas.core.api import (
+    Float64Index,
+    Int64Index,
+    UInt64Index,
+)
 from pandas.core.arrays import (
+    BaseMaskedArray,
     DatetimeArray,
+    ExtensionArray,
     PandasArray,
     PeriodArray,
     TimedeltaArray,
     period_array,
 )
+from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 
 if TYPE_CHECKING:
     from pandas import (
@@ -115,14 +129,14 @@ if TYPE_CHECKING:
 _N = 30
 _K = 4
 
-UNSIGNED_INT_DTYPES: list[Dtype] = ["uint8", "uint16", "uint32", "uint64"]
-UNSIGNED_EA_INT_DTYPES: list[Dtype] = ["UInt8", "UInt16", "UInt32", "UInt64"]
-SIGNED_INT_DTYPES: list[Dtype] = [int, "int8", "int16", "int32", "int64"]
-SIGNED_EA_INT_DTYPES: list[Dtype] = ["Int8", "Int16", "Int32", "Int64"]
-ALL_INT_DTYPES = UNSIGNED_INT_DTYPES + SIGNED_INT_DTYPES
-ALL_EA_INT_DTYPES = UNSIGNED_EA_INT_DTYPES + SIGNED_EA_INT_DTYPES
+UNSIGNED_INT_NUMPY_DTYPES: list[Dtype] = ["uint8", "uint16", "uint32", "uint64"]
+UNSIGNED_INT_EA_DTYPES: list[Dtype] = ["UInt8", "UInt16", "UInt32", "UInt64"]
+SIGNED_INT_NUMPY_DTYPES: list[Dtype] = [int, "int8", "int16", "int32", "int64"]
+SIGNED_INT_EA_DTYPES: list[Dtype] = ["Int8", "Int16", "Int32", "Int64"]
+ALL_INT_NUMPY_DTYPES = UNSIGNED_INT_NUMPY_DTYPES + SIGNED_INT_NUMPY_DTYPES
+ALL_INT_EA_DTYPES = UNSIGNED_INT_EA_DTYPES + SIGNED_INT_EA_DTYPES
 
-FLOAT_DTYPES: list[Dtype] = [float, "float32", "float64"]
+FLOAT_NUMPY_DTYPES: list[Dtype] = [float, "float32", "float64"]
 FLOAT_EA_DTYPES: list[Dtype] = ["Float32", "Float64"]
 COMPLEX_DTYPES: list[Dtype] = [complex, "complex64", "complex128"]
 STRING_DTYPES: list[Dtype] = [str, "str", "U"]
@@ -134,9 +148,9 @@ BOOL_DTYPES: list[Dtype] = [bool, "bool"]
 BYTES_DTYPES: list[Dtype] = [bytes, "bytes"]
 OBJECT_DTYPES: list[Dtype] = [object, "object"]
 
-ALL_REAL_DTYPES = FLOAT_DTYPES + ALL_INT_DTYPES
+ALL_REAL_NUMPY_DTYPES = FLOAT_NUMPY_DTYPES + ALL_INT_NUMPY_DTYPES
 ALL_NUMPY_DTYPES = (
-    ALL_REAL_DTYPES
+    ALL_REAL_NUMPY_DTYPES
     + COMPLEX_DTYPES
     + STRING_DTYPES
     + DATETIME64_DTYPES
@@ -147,6 +161,25 @@ ALL_NUMPY_DTYPES = (
 )
 
 NULL_OBJECTS = [None, np.nan, pd.NaT, float("nan"), pd.NA, Decimal("NaN")]
+NP_NAT_OBJECTS = [
+    cls("NaT", unit)
+    for cls in [np.datetime64, np.timedelta64]
+    for unit in [
+        "Y",
+        "M",
+        "W",
+        "D",
+        "h",
+        "m",
+        "s",
+        "ms",
+        "us",
+        "ns",
+        "ps",
+        "fs",
+        "as",
+    ]
+]
 
 EMPTY_STRING_PATTERN = re.compile("^$")
 
@@ -211,7 +244,7 @@ def box_expected(expected, box_cls, transpose=True):
         else:
             expected = pd.array(expected)
     elif box_cls is Index:
-        expected = Index(expected)
+        expected = Index._with_infer(expected)
     elif box_cls is Series:
         expected = Series(expected)
     elif box_cls is DataFrame:
@@ -230,7 +263,7 @@ def box_expected(expected, box_cls, transpose=True):
         expected = DatetimeArray(expected)
     elif box_cls is TimedeltaArray:
         expected = TimedeltaArray(expected)
-    elif box_cls is np.ndarray:
+    elif box_cls is np.ndarray or box_cls is np.array:
         expected = np.array(expected)
     elif box_cls is to_array:
         expected = to_array(expected)
@@ -271,7 +304,7 @@ def makeUnicodeIndex(k=10, name=None):
 
 
 def makeCategoricalIndex(k=10, n=3, name=None, **kwargs):
-    """ make a length k index or n categories """
+    """make a length k index or n categories"""
     x = rands_array(nchars=4, size=n)
     return CategoricalIndex(
         Categorical.from_codes(np.arange(k) % n, categories=x), name=name, **kwargs
@@ -279,7 +312,7 @@ def makeCategoricalIndex(k=10, n=3, name=None, **kwargs):
 
 
 def makeIntervalIndex(k=10, name=None, **kwargs):
-    """ make a length k IntervalIndex """
+    """make a length k IntervalIndex"""
     x = np.linspace(0, 100, num=(k + 1))
     return IntervalIndex.from_breaks(x, name=name, **kwargs)
 
@@ -292,12 +325,32 @@ def makeBoolIndex(k=10, name=None):
     return Index([False, True] + [False] * (k - 2), name=name)
 
 
+def makeNumericIndex(k=10, name=None, *, dtype):
+    dtype = pandas_dtype(dtype)
+    assert isinstance(dtype, np.dtype)
+
+    if is_integer_dtype(dtype):
+        values = np.arange(k, dtype=dtype)
+        if is_unsigned_integer_dtype(dtype):
+            values += 2 ** (dtype.itemsize * 8 - 1)
+    elif is_float_dtype(dtype):
+        values = np.random.random_sample(k) - np.random.random_sample(1)
+        values.sort()
+        values = values * (10 ** np.random.randint(0, 9))
+    else:
+        raise NotImplementedError(f"wrong dtype {dtype}")
+
+    return NumericIndex(values, dtype=dtype, name=name)
+
+
 def makeIntIndex(k=10, name=None):
-    return Index(list(range(k)), name=name)
+    base_idx = makeNumericIndex(k, name=name, dtype="int64")
+    return Int64Index(base_idx)
 
 
 def makeUIntIndex(k=10, name=None):
-    return Index([2 ** 63 + i for i in range(k)], name=name)
+    base_idx = makeNumericIndex(k, name=name, dtype="uint64")
+    return UInt64Index(base_idx)
 
 
 def makeRangeIndex(k=10, name=None, **kwargs):
@@ -305,8 +358,8 @@ def makeRangeIndex(k=10, name=None, **kwargs):
 
 
 def makeFloatIndex(k=10, name=None):
-    values = sorted(np.random.random_sample(k)) - np.random.random_sample(1)
-    return Index(values * (10 ** np.random.randint(0, 9)), name=name)
+    base_idx = makeNumericIndex(k, name=name, dtype="float64")
+    return Float64Index(base_idx)
 
 
 def makeDateIndex(k: int = 10, freq="B", name=None, **kwargs) -> DatetimeIndex:
@@ -1000,3 +1053,53 @@ def at(x):
 
 def iat(x):
     return x.iat
+
+
+# -----------------------------------------------------------------------------
+
+
+def shares_memory(left, right) -> bool:
+    """
+    Pandas-compat for np.shares_memory.
+    """
+    if isinstance(left, np.ndarray) and isinstance(right, np.ndarray):
+        return np.shares_memory(left, right)
+    elif isinstance(left, np.ndarray):
+        # Call with reversed args to get to unpacking logic below.
+        return shares_memory(right, left)
+
+    if isinstance(left, RangeIndex):
+        return False
+    if isinstance(left, MultiIndex):
+        return shares_memory(left._codes, right)
+    if isinstance(left, (Index, Series)):
+        return shares_memory(left._values, right)
+
+    if isinstance(left, NDArrayBackedExtensionArray):
+        return shares_memory(left._ndarray, right)
+    if isinstance(left, pd.core.arrays.SparseArray):
+        return shares_memory(left.sp_values, right)
+
+    if isinstance(left, ExtensionArray) and left.dtype == "string[pyarrow]":
+        # https://github.com/pandas-dev/pandas/pull/43930#discussion_r736862669
+        if isinstance(right, ExtensionArray) and right.dtype == "string[pyarrow]":
+            # error: "ExtensionArray" has no attribute "_data"
+            left_pa_data = left._data  # type: ignore[attr-defined]
+            # error: "ExtensionArray" has no attribute "_data"
+            right_pa_data = right._data  # type: ignore[attr-defined]
+            left_buf1 = left_pa_data.chunk(0).buffers()[1]
+            right_buf1 = right_pa_data.chunk(0).buffers()[1]
+            return left_buf1 == right_buf1
+
+    if isinstance(left, BaseMaskedArray) and isinstance(right, BaseMaskedArray):
+        # By convention, we'll say these share memory if they share *either*
+        #  the _data or the _mask
+        return np.shares_memory(left._data, right._data) or np.shares_memory(
+            left._mask, right._mask
+        )
+
+    if isinstance(left, DataFrame) and len(left._mgr.arrays) == 1:
+        arr = left._mgr.arrays[0]
+        return shares_memory(arr, right)
+
+    raise NotImplementedError(type(left), type(right))

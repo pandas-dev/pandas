@@ -2,7 +2,6 @@ from datetime import (
     datetime,
     timedelta,
 )
-from io import StringIO
 import itertools
 
 import numpy as np
@@ -258,8 +257,11 @@ class TestDataFrameBlockInternals:
             f([("A", "datetime64[h]"), ("B", "str"), ("C", "int32")])
 
         # these work (though results may be unexpected)
-        f("int64")
-        f("float64")
+        depr_msg = "either all columns will be cast to that dtype, or a TypeError will"
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            f("int64")
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            f("float64")
 
         # 10822
         # invalid error message on dt inference
@@ -286,15 +288,29 @@ class TestDataFrameBlockInternals:
     def test_consolidate_datetime64(self):
         # numpy vstack bug
 
-        data = (
-            "starting,ending,measure\n"
-            "2012-06-21 00:00,2012-06-23 07:00,77\n"
-            "2012-06-23 07:00,2012-06-23 16:30,65\n"
-            "2012-06-23 16:30,2012-06-25 08:00,77\n"
-            "2012-06-25 08:00,2012-06-26 12:00,0\n"
-            "2012-06-26 12:00,2012-06-27 08:00,77\n"
+        df = DataFrame(
+            {
+                "starting": pd.to_datetime(
+                    [
+                        "2012-06-21 00:00",
+                        "2012-06-23 07:00",
+                        "2012-06-23 16:30",
+                        "2012-06-25 08:00",
+                        "2012-06-26 12:00",
+                    ]
+                ),
+                "ending": pd.to_datetime(
+                    [
+                        "2012-06-23 07:00",
+                        "2012-06-23 16:30",
+                        "2012-06-25 08:00",
+                        "2012-06-26 12:00",
+                        "2012-06-27 08:00",
+                    ]
+                ),
+                "measure": [77, 65, 77, 0, 77],
+            }
         )
-        df = pd.read_csv(StringIO(data), parse_dates=[0, 1])
 
         ser_starting = df.starting
         ser_starting.index = ser_starting.values
@@ -336,8 +352,7 @@ class TestDataFrameBlockInternals:
             assert pd.isna(Y["g"]["c"])
 
     def test_strange_column_corruption_issue(self):
-        # FIXME: dont leave commented-out
-        # (wesm) Unclear how exactly this is related to internal matters
+        # TODO(wesm): Unclear how exactly this is related to internal matters
         df = DataFrame(index=[0, 1])
         df[0] = np.nan
         wasCol = {}

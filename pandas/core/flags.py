@@ -68,9 +68,9 @@ class Flags:
         Examples
         --------
         >>> df = pd.DataFrame({"A": [1, 2]}, index=['a', 'a'])
-        >>> df.allows_duplicate_labels
+        >>> df.flags.allows_duplicate_labels
         True
-        >>> df.allows_duplicate_labels = False
+        >>> df.flags.allows_duplicate_labels = False
         Traceback (most recent call last):
             ...
         pandas.errors.DuplicateLabelError: Index has duplicates.

@@ -9,13 +9,16 @@ import pandas as pd
 from pandas import (
     DatetimeIndex,
     Index,
-    Int64Index,
     NaT,
     PeriodIndex,
     Timestamp,
     date_range,
 )
 import pandas._testing as tm
+from pandas.core.api import (
+    Int64Index,
+    UInt64Index,
+)
 
 
 class TestDatetimeIndex:
@@ -46,7 +49,7 @@ class TestDatetimeIndex:
 
     def test_astype_uint(self):
         arr = date_range("2000", periods=2, name="idx")
-        expected = pd.UInt64Index(
+        expected = UInt64Index(
             np.array([946684800000000000, 946771200000000000], dtype="uint64"),
             name="idx",
         )
@@ -223,7 +226,7 @@ class TestDatetimeIndex:
     def test_astype_raises(self, dtype):
         # GH 13149, GH 13209
         idx = DatetimeIndex(["2016-05-16", "NaT", NaT, np.NaN])
-        msg = "Cannot cast DatetimeArray to dtype"
+        msg = "Cannot cast DatetimeIndex to dtype"
         with pytest.raises(TypeError, match=msg):
             idx.astype(dtype)
 

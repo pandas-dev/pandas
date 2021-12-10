@@ -20,7 +20,7 @@ class BaseReduceTests(BaseExtensionTests):
 
 
 class BaseNoReduceTests(BaseReduceTests):
-    """ we don't define any reductions """
+    """we don't define any reductions"""
 
     @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna):
@@ -29,7 +29,7 @@ class BaseNoReduceTests(BaseReduceTests):
 
         msg = (
             "[Cc]annot perform|Categorical is not ordered for operation|"
-            "'Categorical' does not implement reduction|"
+            "does not support reduction|"
         )
 
         with pytest.raises(TypeError, match=msg):
@@ -42,7 +42,7 @@ class BaseNoReduceTests(BaseReduceTests):
 
         msg = (
             "[Cc]annot perform|Categorical is not ordered for operation|"
-            "'Categorical' does not implement reduction|"
+            "does not support reduction|"
         )
 
         with pytest.raises(TypeError, match=msg):

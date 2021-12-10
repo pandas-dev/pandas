@@ -777,8 +777,8 @@ value is included in the ``categories``:
     df
     try:
         df.iloc[2:4, :] = [["c", 3], ["c", 3]]
-    except ValueError as e:
-        print("ValueError:", str(e))
+    except TypeError as e:
+        print("TypeError:", str(e))
 
 Setting values by assigning categorical data will also check that the ``categories`` match:
 
@@ -788,8 +788,8 @@ Setting values by assigning categorical data will also check that the ``categori
     df
     try:
         df.loc["j":"k", "cats"] = pd.Categorical(["b", "b"], categories=["a", "b", "c"])
-    except ValueError as e:
-        print("ValueError:", str(e))
+    except TypeError as e:
+        print("TypeError:", str(e))
 
 Assigning a ``Categorical`` to parts of a column of other types will use the values:
 
@@ -1141,7 +1141,7 @@ Categorical index
 ``CategoricalIndex`` is a type of index that is useful for supporting
 indexing with duplicates. This is a container around a ``Categorical``
 and allows efficient indexing and storage of an index with a large number of duplicated elements.
-See the :ref:`advanced indexing docs <indexing.categoricalindex>` for a more detailed
+See the :ref:`advanced indexing docs <advanced.categoricalindex>` for a more detailed
 explanation.
 
 Setting the index will create a ``CategoricalIndex``:

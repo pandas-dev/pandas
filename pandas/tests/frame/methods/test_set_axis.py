@@ -98,3 +98,26 @@ class TestSeriesSetAxis(SharedSetAxisTests):
     def obj(self):
         ser = Series(np.arange(4), index=[1, 3, 5, 7], dtype="int64")
         return ser
+
+
+def test_nonkeyword_arguments_deprecation_warning():
+    # https://github.com/pandas-dev/pandas/issues/41485
+    df = DataFrame({"a": [1, 2, 3]})
+    msg = (
+        r"In a future version of pandas all arguments of DataFrame\.set_axis "
+        r"except for the argument 'labels' will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.set_axis([1, 2, 4], 0)
+    expected = DataFrame({"a": [1, 2, 3]}, index=[1, 2, 4])
+    tm.assert_frame_equal(result, expected)
+
+    ser = Series([1, 2, 3])
+    msg = (
+        r"In a future version of pandas all arguments of Series\.set_axis "
+        r"except for the argument 'labels' will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = ser.set_axis([1, 2, 4], 0)
+    expected = Series([1, 2, 3], index=[1, 2, 4])
+    tm.assert_series_equal(result, expected)

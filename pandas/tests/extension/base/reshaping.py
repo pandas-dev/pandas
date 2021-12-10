@@ -5,7 +5,7 @@ import pytest
 
 import pandas as pd
 from pandas.api.extensions import ExtensionArray
-from pandas.core.internals import ExtensionBlock
+from pandas.core.internals.blocks import EABackedBlock
 from pandas.tests.extension.base.base import BaseExtensionTests
 
 
@@ -28,7 +28,7 @@ class BaseReshapingTests(BaseExtensionTests):
 
         assert dtype == data.dtype
         if hasattr(result._mgr, "blocks"):
-            assert isinstance(result._mgr.blocks[0], ExtensionBlock)
+            assert isinstance(result._mgr.blocks[0], EABackedBlock)
         assert isinstance(result._mgr.arrays[0], ExtensionArray)
 
     @pytest.mark.parametrize("in_frame", [True, False])
@@ -321,6 +321,11 @@ class BaseReshapingTests(BaseExtensionTests):
             expected = ser.astype(object).unstack(
                 level=level, fill_value=data.dtype.na_value
             )
+            if obj == "series" and not isinstance(ser.dtype, pd.SparseDtype):
+                # GH#34457 SparseArray.astype(object) gives Sparse[object]
+                #  instead of np.dtype(object)
+                assert (expected.dtypes == object).all()
+
             result = result.astype(object)
 
             self.assert_frame_equal(result, expected)

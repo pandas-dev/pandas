@@ -555,6 +555,19 @@ def test_replace_moar(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
+def test_replace_not_case_sensitive_not_regex(any_string_dtype):
+    # https://github.com/pandas-dev/pandas/issues/41602
+    ser = Series(["A.", "a.", "Ab", "ab", np.nan], dtype=any_string_dtype)
+
+    result = ser.str.replace("a", "c", case=False, regex=False)
+    expected = Series(["c.", "c.", "cb", "cb", np.nan], dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
+
+    result = ser.str.replace("a.", "c.", case=False, regex=False)
+    expected = Series(["c.", "c.", "Ab", "ab", np.nan], dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 def test_replace_regex_default_warning(any_string_dtype):
     # https://github.com/pandas-dev/pandas/pull/24809
     s = Series(["a", "b", "ac", np.nan, ""], dtype=any_string_dtype)
@@ -865,10 +878,7 @@ def test_translate(index_or_series, any_string_dtype):
     expected = index_or_series(
         ["cdedefg", "cdee", "edddfg", "edefggg"], dtype=any_string_dtype
     )
-    if index_or_series is Series:
-        tm.assert_series_equal(result, expected)
-    else:
-        tm.assert_index_equal(result, expected)
+    tm.assert_equal(result, expected)
 
 
 def test_translate_mixed_object():
@@ -909,7 +919,7 @@ def test_flags_kwarg(any_string_dtype):
     result = data.str.count(pat, flags=re.IGNORECASE)
     assert result[0] == 1
 
-    msg = "This pattern has match groups"
+    msg = "has match groups"
     with tm.assert_produces_warning(UserWarning, match=msg):
         result = data.str.contains(pat, flags=re.IGNORECASE)
     assert result[0]

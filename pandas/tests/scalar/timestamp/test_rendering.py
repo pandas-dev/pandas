@@ -4,6 +4,7 @@ import pytest
 import pytz  # noqa  # a test below uses pytz but only inside a `eval` call
 
 from pandas import Timestamp
+import pandas._testing as tm
 
 
 class TestTimestampRendering:
@@ -35,17 +36,26 @@ class TestTimestampRendering:
         assert freq_repr not in repr(date_tz)
         assert date_tz == eval(repr(date_tz))
 
-        date_freq = Timestamp(date, freq=freq)
+        msg = "The 'freq' argument in Timestamp"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            date_freq = Timestamp(date, freq=freq)
         assert date in repr(date_freq)
         assert tz_repr not in repr(date_freq)
         assert freq_repr in repr(date_freq)
-        assert date_freq == eval(repr(date_freq))
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
+            assert date_freq == eval(repr(date_freq))
 
-        date_tz_freq = Timestamp(date, tz=tz, freq=freq)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            date_tz_freq = Timestamp(date, tz=tz, freq=freq)
         assert date in repr(date_tz_freq)
         assert tz_repr in repr(date_tz_freq)
         assert freq_repr in repr(date_tz_freq)
-        assert date_tz_freq == eval(repr(date_tz_freq))
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
+            assert date_tz_freq == eval(repr(date_tz_freq))
 
     def test_repr_utcoffset(self):
         # This can cause the tz field to be populated, but it's redundant to

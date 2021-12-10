@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import np_percentile_argname
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -153,7 +155,10 @@ class TestDataFrameQuantile:
 
         # cross-check interpolation=nearest results in original dtype
         exp = np.percentile(
-            np.array([[1, 2, 3], [2, 3, 4]]), 0.5, axis=0, interpolation="nearest"
+            np.array([[1, 2, 3], [2, 3, 4]]),
+            0.5,
+            axis=0,
+            **{np_percentile_argname: "nearest"},
         )
         expected = Series(exp, index=[1, 2, 3], name=0.5, dtype="int64")
         tm.assert_series_equal(result, expected)
@@ -167,7 +172,7 @@ class TestDataFrameQuantile:
             np.array([[1.0, 2.0, 3.0], [2.0, 3.0, 4.0]]),
             0.5,
             axis=0,
-            interpolation="nearest",
+            **{np_percentile_argname: "nearest"},
         )
         expected = Series(exp, index=[1, 2, 3], name=0.5, dtype="float64")
         tm.assert_series_equal(result, expected)
@@ -280,9 +285,13 @@ class TestDataFrameQuantile:
         tm.assert_frame_equal(result, expected)
 
         # empty when numeric_only=True
-        # FIXME (gives empty frame in 0.18.1, broken in 0.19.0)
-        # result = df[['a', 'c']].quantile(.5)
-        # result = df[['a', 'c']].quantile([.5])
+        result = df[["a", "c"]].quantile(0.5)
+        expected = Series([], index=[], dtype=np.float64, name=0.5)
+        tm.assert_series_equal(result, expected)
+
+        result = df[["a", "c"]].quantile([0.5])
+        expected = DataFrame(index=[0.5])
+        tm.assert_frame_equal(result, expected)
 
     def test_quantile_invalid(self, datetime_frame):
         msg = "percentiles should all be in the interval \\[0, 1\\]"
@@ -481,7 +490,7 @@ class TestDataFrameQuantile:
         )
         tm.assert_frame_equal(res, exp)
 
-    def test_quantile_empty_no_rows(self):
+    def test_quantile_empty_no_rows_floats(self):
 
         # floats
         df = DataFrame(columns=["a", "b"], dtype="float64")
@@ -494,21 +503,43 @@ class TestDataFrameQuantile:
         exp = DataFrame([[np.nan, np.nan]], columns=["a", "b"], index=[0.5])
         tm.assert_frame_equal(res, exp)
 
-        # FIXME (gives empty frame in 0.18.1, broken in 0.19.0)
-        # res = df.quantile(0.5, axis=1)
-        # res = df.quantile([0.5], axis=1)
+        res = df.quantile(0.5, axis=1)
+        exp = Series([], index=[], dtype="float64", name=0.5)
+        tm.assert_series_equal(res, exp)
 
+        res = df.quantile([0.5], axis=1)
+        exp = DataFrame(columns=[], index=[0.5])
+        tm.assert_frame_equal(res, exp)
+
+    def test_quantile_empty_no_rows_ints(self):
         # ints
         df = DataFrame(columns=["a", "b"], dtype="int64")
 
-        # FIXME (gives empty frame in 0.18.1, broken in 0.19.0)
-        # res = df.quantile(0.5)
+        res = df.quantile(0.5)
+        exp = Series([np.nan, np.nan], index=["a", "b"], name=0.5)
+        tm.assert_series_equal(res, exp)
 
+    def test_quantile_empty_no_rows_dt64(self):
         # datetimes
         df = DataFrame(columns=["a", "b"], dtype="datetime64[ns]")
 
-        # FIXME (gives NaNs instead of NaT in 0.18.1 or 0.19.0)
-        # res = df.quantile(0.5, numeric_only=False)
+        res = df.quantile(0.5, numeric_only=False)
+        exp = Series(
+            [pd.NaT, pd.NaT], index=["a", "b"], dtype="datetime64[ns]", name=0.5
+        )
+        tm.assert_series_equal(res, exp)
+
+        # Mixed dt64/dt64tz
+        df["a"] = df["a"].dt.tz_localize("US/Central")
+        res = df.quantile(0.5, numeric_only=False)
+        exp = exp.astype(object)
+        tm.assert_series_equal(res, exp)
+
+        # both dt64tz
+        df["b"] = df["b"].dt.tz_localize("US/Central")
+        res = df.quantile(0.5, numeric_only=False)
+        exp = exp.astype(df["b"].dtype)
+        tm.assert_series_equal(res, exp)
 
     def test_quantile_empty_no_columns(self):
         # GH#23925 _get_numeric_data may drop all columns
@@ -540,7 +571,7 @@ class TestDataFrameQuantile:
 
 class TestQuantileExtensionDtype:
     # TODO: tests for axis=1?
-    # TODO: empty case?  might as well do dt64 and td64 here too
+    # TODO: empty case?
 
     @pytest.fixture(
         params=[
@@ -550,21 +581,28 @@ class TestQuantileExtensionDtype:
             ),
             pd.period_range("2016-01-01", periods=9, freq="D"),
             pd.date_range("2016-01-01", periods=9, tz="US/Pacific"),
-            pytest.param(
-                pd.array(np.arange(9), dtype="Int64"),
-                marks=pytest.mark.xfail(reason="doesn't implement from_factorized"),
-            ),
-            pytest.param(
-                pd.array(np.arange(9), dtype="Float64"),
-                marks=pytest.mark.xfail(reason="doesn't implement from_factorized"),
-            ),
+            pd.timedelta_range("1 Day", periods=9),
+            pd.array(np.arange(9), dtype="Int64"),
+            pd.array(np.arange(9), dtype="Float64"),
         ],
         ids=lambda x: str(x.dtype),
     )
     def index(self, request):
+        # NB: not actually an Index object
         idx = request.param
         idx.name = "A"
         return idx
+
+    @pytest.fixture
+    def obj(self, index, frame_or_series):
+        # bc index is not always an Index (yet), we need to re-patch .name
+        obj = frame_or_series(index).copy()
+
+        if frame_or_series is Series:
+            obj.name = "A"
+        else:
+            obj.columns = ["A"]
+        return obj
 
     def compute_quantile(self, obj, qs):
         if isinstance(obj, Series):
@@ -573,8 +611,7 @@ class TestQuantileExtensionDtype:
             result = obj.quantile(qs, numeric_only=False)
         return result
 
-    def test_quantile_ea(self, index, frame_or_series):
-        obj = frame_or_series(index).copy()
+    def test_quantile_ea(self, obj, index):
 
         # result should be invariant to shuffling
         indexer = np.arange(len(index), dtype=np.intp)
@@ -585,13 +622,14 @@ class TestQuantileExtensionDtype:
         result = self.compute_quantile(obj, qs)
 
         # expected here assumes len(index) == 9
-        expected = Series([index[4], index[0], index[-1]], index=qs, name="A")
-        expected = frame_or_series(expected)
+        expected = Series(
+            [index[4], index[0], index[-1]], dtype=index.dtype, index=qs, name="A"
+        )
+        expected = type(obj)(expected)
 
         tm.assert_equal(result, expected)
 
-    def test_quantile_ea_with_na(self, index, frame_or_series):
-        obj = frame_or_series(index).copy()
+    def test_quantile_ea_with_na(self, obj, index):
 
         obj.iloc[0] = index._na_value
         obj.iloc[-1] = index._na_value
@@ -605,15 +643,26 @@ class TestQuantileExtensionDtype:
         result = self.compute_quantile(obj, qs)
 
         # expected here assumes len(index) == 9
-        expected = Series([index[4], index[1], index[-2]], index=qs, name="A")
-        expected = frame_or_series(expected)
+        expected = Series(
+            [index[4], index[1], index[-2]], dtype=index.dtype, index=qs, name="A"
+        )
+        expected = type(obj)(expected)
         tm.assert_equal(result, expected)
 
-    # TODO: filtering can be removed after GH#39763 is fixed
+    # TODO(GH#39763): filtering can be removed after GH#39763 is fixed
     @pytest.mark.filterwarnings("ignore:Using .astype to convert:FutureWarning")
-    def test_quantile_ea_all_na(self, index, frame_or_series):
-
-        obj = frame_or_series(index).copy()
+    def test_quantile_ea_all_na(
+        self, obj, index, frame_or_series, using_array_manager, request
+    ):
+        if (
+            using_array_manager
+            and frame_or_series is DataFrame
+            and index.dtype == "m8[ns]"
+        ):
+            mark = pytest.mark.xfail(
+                reason="obj.astype fails bc obj is incorrectly dt64 at this point"
+            )
+            request.node.add_marker(mark)
 
         obj.iloc[:] = index._na_value
 
@@ -630,13 +679,12 @@ class TestQuantileExtensionDtype:
         result = self.compute_quantile(obj, qs)
 
         expected = index.take([-1, -1, -1], allow_fill=True, fill_value=index._na_value)
-        expected = Series(expected, index=qs)
-        expected = frame_or_series(expected)
+        expected = Series(expected, index=qs, name="A")
+        expected = type(obj)(expected)
         tm.assert_equal(result, expected)
 
-    def test_quantile_ea_scalar(self, index, frame_or_series):
+    def test_quantile_ea_scalar(self, obj, index):
         # scalar qs
-        obj = frame_or_series(index).copy()
 
         # result should be invariant to shuffling
         indexer = np.arange(len(index), dtype=np.intp)
@@ -646,8 +694,8 @@ class TestQuantileExtensionDtype:
         qs = 0.5
         result = self.compute_quantile(obj, qs)
 
-        expected = Series({"A": index[4]}, name=0.5)
-        if frame_or_series is Series:
+        expected = Series({"A": index[4]}, dtype=index.dtype, name=0.5)
+        if isinstance(obj, Series):
             expected = expected["A"]
             assert result == expected
         else:

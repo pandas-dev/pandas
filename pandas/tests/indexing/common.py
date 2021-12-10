@@ -5,13 +5,15 @@ import numpy as np
 
 from pandas import (
     DataFrame,
-    Float64Index,
     MultiIndex,
     Series,
-    UInt64Index,
     date_range,
 )
 import pandas._testing as tm
+from pandas.core.api import (
+    Float64Index,
+    UInt64Index,
+)
 
 
 def _mklbl(prefix, n):
@@ -26,7 +28,7 @@ def _axify(obj, key, axis):
 
 
 class Base:
-    """ indexing comprehensive base class """
+    """indexing comprehensive base class"""
 
     _kinds = {"series", "frame"}
     _typs = {
@@ -120,7 +122,7 @@ class Base:
         return itertools.product(*axes)
 
     def get_value(self, name, f, i, values=False):
-        """ return the value for the location i """
+        """return the value for the location i"""
         # check against values
         if values:
             return f.values[i]
@@ -153,7 +155,7 @@ class Base:
 
     def check_result(self, method, key, typs=None, axes=None, fails=None):
         def _eq(axis, obj, key):
-            """ compare equal for these 2 keys """
+            """compare equal for these 2 keys"""
             axified = _axify(obj, key, axis)
             try:
                 getattr(obj, method).__getitem__(axified)

@@ -1,3 +1,5 @@
+import re
+
 import numpy as np
 import pytest
 
@@ -97,3 +99,29 @@ def test_option_xls_writer_deprecated(ext):
         check_stacklevel=False,
     ):
         options.io.excel.xls.writer = "xlwt"
+
+
+@pytest.mark.parametrize("style_compression", [0, 2])
+def test_kwargs(ext, style_compression):
+    # GH 42286
+    kwargs = {"style_compression": style_compression}
+    with tm.ensure_clean(ext) as f:
+        msg = re.escape("Use of **kwargs is deprecated")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            with ExcelWriter(f, engine="xlwt", **kwargs) as writer:
+                assert (
+                    writer.book._Workbook__styles.style_compression == style_compression
+                )
+                # xlwt won't allow us to close without writing something
+                DataFrame().to_excel(writer)
+
+
+@pytest.mark.parametrize("style_compression", [0, 2])
+def test_engine_kwargs(ext, style_compression):
+    # GH 42286
+    engine_kwargs = {"style_compression": style_compression}
+    with tm.ensure_clean(ext) as f:
+        with ExcelWriter(f, engine="xlwt", engine_kwargs=engine_kwargs) as writer:
+            assert writer.book._Workbook__styles.style_compression == style_compression
+            # xlwt won't allow us to close without writing something
+            DataFrame().to_excel(writer)

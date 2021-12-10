@@ -74,6 +74,7 @@ class TestFirstValidIndex:
         assert ser.first_valid_index() is None
         assert ser.last_valid_index() is None
 
+    @pytest.mark.filterwarnings("ignore:Timestamp.freq is deprecated:FutureWarning")
     def test_first_last_valid_preserves_freq(self):
         # GH#20499: its preserves freq with holes
         index = date_range("20110101", periods=30, freq="B")

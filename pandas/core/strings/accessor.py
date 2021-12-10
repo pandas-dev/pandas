@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import codecs
-from collections.abc import Callable  # noqa: PDF001
 from functools import wraps
 import re
 from typing import (
     TYPE_CHECKING,
+    Callable,
     Hashable,
+    cast,
 )
 import warnings
 
@@ -14,10 +15,11 @@ import numpy as np
 
 import pandas._libs.lib as lib
 from pandas._typing import (
-    ArrayLike,
-    FrameOrSeriesUnion,
+    DtypeObj,
+    F,
 )
 from pandas.util._decorators import Appender
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -37,9 +39,14 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.base import NoNewAttributesMixin
+from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
-    from pandas import Index
+    from pandas import (
+        DataFrame,
+        Index,
+        Series,
+    )
 
 _shared_docs: dict[str, str] = {}
 _cpython_optimized_encoders = (
@@ -54,7 +61,9 @@ _cpython_optimized_encoders = (
 _cpython_optimized_decoders = _cpython_optimized_encoders + ("utf-16", "utf-32")
 
 
-def forbid_nonstring_types(forbidden, name=None):
+def forbid_nonstring_types(
+    forbidden: list[str] | None, name: str | None = None
+) -> Callable[[F], F]:
     """
     Decorator to forbid specific types for a method of StringMethods.
 
@@ -102,7 +111,7 @@ def forbid_nonstring_types(forbidden, name=None):
         forbidden
     )
 
-    def _forbid_nonstring_types(func):
+    def _forbid_nonstring_types(func: F) -> F:
         func_name = func.__name__ if name is None else name
 
         @wraps(func)
@@ -116,7 +125,7 @@ def forbid_nonstring_types(forbidden, name=None):
             return func(self, *args, **kwargs)
 
         wrapper.__name__ = func_name
-        return wrapper
+        return cast(F, wrapper)
 
     return _forbid_nonstring_types
 
@@ -160,7 +169,6 @@ class StringMethods(NoNewAttributesMixin):
     # TODO: Dispatch all the methods
     # Currently the following are not dispatched to the array
     # * cat
-    # * extract
     # * extractall
 
     def __init__(self, data):
@@ -213,8 +221,9 @@ class StringMethods(NoNewAttributesMixin):
         # see _libs/lib.pyx for list of inferred types
         allowed_types = ["string", "empty", "bytes", "mixed", "mixed-integer"]
 
-        values = getattr(data, "values", data)  # Series / Index
-        values = getattr(values, "categories", values)  # categorical / normal
+        data = extract_array(data)
+
+        values = getattr(data, "categories", data)  # categorical / normal
 
         inferred_dtype = lib.infer_dtype(values, skipna=True)
 
@@ -230,7 +239,7 @@ class StringMethods(NoNewAttributesMixin):
         warnings.warn(
             "Columnar iteration over characters will be deprecated in future releases.",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         i = 0
         g = self.get(i)
@@ -243,9 +252,10 @@ class StringMethods(NoNewAttributesMixin):
         self,
         result,
         name=None,
-        expand=None,
+        expand: bool | None = None,
         fill_value=np.nan,
         returns_string=True,
+        returns_bool: bool = False,
     ):
         from pandas import (
             Index,
@@ -319,15 +329,21 @@ class StringMethods(NoNewAttributesMixin):
                     out = out.get_level_values(0)
                 return out
             else:
-                return Index(result, name=name)
+                return Index._with_infer(result, name=name)
         else:
             index = self._orig.index
             # This is a mess.
-            dtype: str | None
-            if self._is_string and returns_string:
-                dtype = self._orig.dtype
+            dtype: DtypeObj | str | None
+            vdtype = getattr(result, "dtype", None)
+            if self._is_string:
+                if is_bool_dtype(vdtype):
+                    dtype = result.dtype
+                elif returns_string:
+                    dtype = self._orig.dtype
+                else:
+                    dtype = vdtype
             else:
-                dtype = None
+                dtype = vdtype
 
             if expand:
                 cons = self._orig._constructor_expanddim
@@ -335,7 +351,7 @@ class StringMethods(NoNewAttributesMixin):
             else:
                 # Must be a Series
                 cons = self._orig._constructor
-                result = cons(result, name=name, index=index)
+                result = cons(result, name=name, index=index, dtype=dtype)
             result = result.__finalize__(self._orig, method="str")
             if name is not None and result.ndim == 1:
                 # __finalize__ might copy over the original name, but we may
@@ -373,7 +389,7 @@ class StringMethods(NoNewAttributesMixin):
         if isinstance(others, ABCSeries):
             return [others]
         elif isinstance(others, ABCIndex):
-            return [Series(others._values, index=idx)]
+            return [Series(others._values, index=idx, dtype=others.dtype)]
         elif isinstance(others, ABCDataFrame):
             return [others[x] for x in others]
         elif isinstance(others, np.ndarray) and others.ndim == 2:
@@ -404,7 +420,9 @@ class StringMethods(NoNewAttributesMixin):
         )
 
     @forbid_nonstring_types(["bytes", "mixed", "mixed-integer"])
-    def cat(self, others=None, sep=None, na_rep=None, join="left"):
+    def cat(
+        self, others=None, sep=None, na_rep=None, join="left"
+    ) -> str | Series | Index:
         """
         Concatenate strings in the Series/Index with given separator.
 
@@ -551,7 +569,7 @@ class StringMethods(NoNewAttributesMixin):
             sep = ""
 
         if isinstance(self._orig, ABCIndex):
-            data = Series(self._orig, index=self._orig)
+            data = Series(self._orig, index=self._orig, dtype=self._orig.dtype)
         else:  # Series
             data = self._orig
 
@@ -613,30 +631,22 @@ class StringMethods(NoNewAttributesMixin):
             # no NaNs - can just concatenate
             result = cat_safe(all_cols, sep)
 
+        out: Index | Series
         if isinstance(self._orig, ABCIndex):
             # add dtype for case that result is all-NA
 
-            # error: Incompatible types in assignment (expression has type
-            # "Index", variable has type "ndarray")
-            result = Index(  # type: ignore[assignment]
-                result, dtype=object, name=self._orig.name
-            )
+            out = Index(result, dtype=object, name=self._orig.name)
         else:  # Series
             if is_categorical_dtype(self._orig.dtype):
                 # We need to infer the new categories.
                 dtype = None
             else:
                 dtype = self._orig.dtype
-            # error: Incompatible types in assignment (expression has type
-            # "Series", variable has type "ndarray")
-            result = Series(  # type: ignore[assignment]
+            res_ser = Series(
                 result, dtype=dtype, index=data.index, name=self._orig.name
             )
-            # error: "ndarray" has no attribute "__finalize__"
-            result = result.__finalize__(  # type: ignore[attr-defined]
-                self._orig, method="str_cat"
-            )
-        return result
+            out = res_ser.__finalize__(self._orig, method="str_cat")
+        return out
 
     _shared_docs[
         "str_split"
@@ -644,11 +654,11 @@ class StringMethods(NoNewAttributesMixin):
     Split strings around given separator/delimiter.
 
     Splits the string in the Series/Index from the %(side)s,
-    at the specified delimiter string. Equivalent to :meth:`str.%(method)s`.
+    at the specified delimiter string.
 
     Parameters
     ----------
-    pat : str, optional
+    pat : str or compiled regex, optional
         String or regular expression to split on.
         If not specified, split on whitespace.
     n : int, default -1 (all)
@@ -657,13 +667,29 @@ class StringMethods(NoNewAttributesMixin):
     expand : bool, default False
         Expand the split strings into separate columns.
 
-        * If ``True``, return DataFrame/MultiIndex expanding dimensionality.
-        * If ``False``, return Series/Index, containing lists of strings.
+        - If ``True``, return DataFrame/MultiIndex expanding dimensionality.
+        - If ``False``, return Series/Index, containing lists of strings.
+
+    regex : bool, default None
+        Determines if the passed-in pattern is a regular expression:
+
+        - If ``True``, assumes the passed-in pattern is a regular expression
+        - If ``False``, treats the pattern as a literal string.
+        - If ``None`` and `pat` length is 1, treats `pat` as a literal string.
+        - If ``None`` and `pat` length is not 1, treats `pat` as a regular expression.
+        - Cannot be set to False if `pat` is a compiled regex
+
+        .. versionadded:: 1.4.0
 
     Returns
     -------
     Series, Index, DataFrame or MultiIndex
         Type matches caller unless ``expand=True`` (see Notes).
+
+    Raises
+    ------
+    ValueError
+        * if `regex` is False and `pat` is a compiled regex
 
     See Also
     --------
@@ -686,6 +712,9 @@ class StringMethods(NoNewAttributesMixin):
 
     If using ``expand=True``, Series and Index callers return DataFrame and
     MultiIndex objects, respectively.
+
+    Use of `regex=False` with a `pat` as a compiled regex will raise
+    an error.
 
     Examples
     --------
@@ -761,22 +790,63 @@ class StringMethods(NoNewAttributesMixin):
     1  https://docs.python.org/3/tutorial  index.html
     2                                 NaN         NaN
 
-    Remember to escape special characters when explicitly using regular
-    expressions.
+    Remember to escape special characters when explicitly using regular expressions.
 
-    >>> s = pd.Series(["1+1=2"])
-    >>> s
-    0    1+1=2
-    dtype: object
-    >>> s.str.split(r"\+|=", expand=True)
-         0    1    2
-    0    1    1    2
+    >>> s = pd.Series(["foo and bar plus baz"])
+    >>> s.str.split(r"and|plus", expand=True)
+        0   1   2
+    0 foo bar baz
+
+    Regular expressions can be used to handle urls or file names.
+    When `pat` is a string and ``regex=None`` (the default), the given `pat` is compiled
+    as a regex only if ``len(pat) != 1``.
+
+    >>> s = pd.Series(['foojpgbar.jpg'])
+    >>> s.str.split(r".", expand=True)
+               0    1
+    0  foojpgbar  jpg
+
+    >>> s.str.split(r"\.jpg", expand=True)
+               0 1
+    0  foojpgbar
+
+    When ``regex=True``, `pat` is interpreted as a regex
+
+    >>> s.str.split(r"\.jpg", regex=True, expand=True)
+               0 1
+    0  foojpgbar
+
+    A compiled regex can be passed as `pat`
+
+    >>> import re
+    >>> s.str.split(re.compile(r"\.jpg"), expand=True)
+               0 1
+    0  foojpgbar
+
+    When ``regex=False``, `pat` is interpreted as the string itself
+
+    >>> s.str.split(r"\.jpg", regex=False, expand=True)
+                   0
+    0  foojpgbar.jpg
     """
 
     @Appender(_shared_docs["str_split"] % {"side": "beginning", "method": "split"})
     @forbid_nonstring_types(["bytes"])
-    def split(self, pat=None, n=-1, expand=False):
-        result = self._data.array._str_split(pat, n, expand)
+    def split(
+        self,
+        pat: str | re.Pattern | None = None,
+        n=-1,
+        expand=False,
+        *,
+        regex: bool | None = None,
+    ):
+        if regex is False and is_re(pat):
+            raise ValueError(
+                "Cannot use a compiled regex as replacement pattern with regex=False"
+            )
+        if is_re(pat):
+            regex = True
+        result = self._data.array._str_split(pat, n, expand, regex)
         return self._wrap_result(result, returns_string=expand, expand=expand)
 
     @Appender(_shared_docs["str_split"] % {"side": "end", "method": "rsplit"})
@@ -1142,10 +1212,10 @@ class StringMethods(NoNewAttributesMixin):
         """
         if regex and re.compile(pat).groups:
             warnings.warn(
-                "This pattern has match groups. To actually get the "
-                "groups, use str.extract.",
+                "This pattern is interpreted as a regular expression, and has "
+                "match groups. To actually get the groups, use str.extract.",
                 UserWarning,
-                stacklevel=3,
+                stacklevel=find_stack_level(),
             )
 
         result = self._data.array._str_contains(pat, case, flags, na, regex)
@@ -1357,15 +1427,14 @@ class StringMethods(NoNewAttributesMixin):
                         " In addition, single character regular expressions will "
                         "*not* be treated as literal strings when regex=True."
                     )
-                warnings.warn(msg, FutureWarning, stacklevel=3)
-            regex = True
+                warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
 
         # Check whether repl is valid (GH 13438, GH 15055)
         if not (isinstance(repl, str) or callable(repl)):
             raise TypeError("repl must be a string or callable")
 
         is_compiled_re = is_re(pat)
-        if regex:
+        if regex or regex is None:
             if is_compiled_re and (case is not None or flags != 0):
                 raise ValueError(
                     "case and flags cannot be set when pat is a compiled regex"
@@ -1377,6 +1446,14 @@ class StringMethods(NoNewAttributesMixin):
             )
         elif callable(repl):
             raise ValueError("Cannot use a callable replacement when regex=False")
+
+        # The current behavior is to treat single character patterns as literal strings,
+        # even when ``regex`` is set to ``True``.
+        if isinstance(pat, str) and len(pat) == 1:
+            regex = False
+
+        if regex is None:
+            regex = True
 
         if case is None:
             case = True
@@ -1891,6 +1968,69 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_rstrip(to_strip)
         return self._wrap_result(result)
 
+    _shared_docs[
+        "str_removefix"
+    ] = r"""
+    Remove a %(side)s from an object series. If the %(side)s is not present,
+    the original string will be returned.
+
+    Parameters
+    ----------
+    %(side)s : str
+        Remove the %(side)s of the string.
+
+    Returns
+    -------
+    Series/Index: object
+        The Series or Index with given %(side)s removed.
+
+    See Also
+    --------
+    Series.str.remove%(other_side)s : Remove a %(other_side)s from an object series.
+
+    Examples
+    --------
+    >>> s = pd.Series(["str_foo", "str_bar", "no_prefix"])
+    >>> s
+    0    str_foo
+    1    str_bar
+    2    no_prefix
+    dtype: object
+    >>> s.str.removeprefix("str_")
+    0    foo
+    1    bar
+    2    no_prefix
+    dtype: object
+
+    >>> s = pd.Series(["foo_str", "bar_str", "no_suffix"])
+    >>> s
+    0    foo_str
+    1    bar_str
+    2    no_suffix
+    dtype: object
+    >>> s.str.removesuffix("_str")
+    0    foo
+    1    bar
+    2    no_suffix
+    dtype: object
+    """
+
+    @Appender(
+        _shared_docs["str_removefix"] % {"side": "prefix", "other_side": "suffix"}
+    )
+    @forbid_nonstring_types(["bytes"])
+    def removeprefix(self, prefix):
+        result = self._data.array._str_removeprefix(prefix)
+        return self._wrap_result(result)
+
+    @Appender(
+        _shared_docs["str_removefix"] % {"side": "suffix", "other_side": "prefix"}
+    )
+    @forbid_nonstring_types(["bytes"])
+    def removesuffix(self, suffix):
+        result = self._data.array._str_removesuffix(suffix)
+        return self._wrap_result(result)
+
     @forbid_nonstring_types(["bytes"])
     def wrap(self, width, **kwargs):
         r"""
@@ -2297,7 +2437,7 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def extract(
         self, pat: str, flags: int = 0, expand: bool = True
-    ) -> FrameOrSeriesUnion | Index:
+    ) -> DataFrame | Series | Index:
         r"""
         Extract capture groups in the regex `pat` as columns in a DataFrame.
 
@@ -2378,6 +2518,8 @@ class StringMethods(NoNewAttributesMixin):
         2    NaN
         dtype: object
         """
+        from pandas import DataFrame
+
         if not isinstance(expand, bool):
             raise ValueError("expand must be True or False")
 
@@ -2388,8 +2530,37 @@ class StringMethods(NoNewAttributesMixin):
         if not expand and regex.groups > 1 and isinstance(self._data, ABCIndex):
             raise ValueError("only one regex group is supported with Index")
 
-        # TODO: dispatch
-        return str_extract(self, pat, flags, expand=expand)
+        obj = self._data
+        result_dtype = _result_dtype(obj)
+
+        returns_df = regex.groups > 1 or expand
+
+        if returns_df:
+            name = None
+            columns = _get_group_names(regex)
+
+            if obj.array.size == 0:
+                result = DataFrame(columns=columns, dtype=result_dtype)
+
+            else:
+                result_list = self._data.array._str_extract(
+                    pat, flags=flags, expand=returns_df
+                )
+
+                result_index: Index | None
+                if isinstance(obj, ABCSeries):
+                    result_index = obj.index
+                else:
+                    result_index = None
+
+                result = DataFrame(
+                    result_list, columns=columns, index=result_index, dtype=result_dtype
+                )
+
+        else:
+            name = _get_single_group_name(regex)
+            result = self._data.array._str_extract(pat, flags=flags, expand=returns_df)
+        return self._wrap_result(result, name=name)
 
     @forbid_nonstring_types(["bytes"])
     def extractall(self, pat, flags=0):
@@ -2957,7 +3128,7 @@ class StringMethods(NoNewAttributesMixin):
         "isdigit", docstring=_shared_docs["ismethods"] % _doc_args["isdigit"]
     )
     isspace = _map_and_wrap(
-        "isspace", docstring=_shared_docs["ismethods"] % _doc_args["isalnum"]
+        "isspace", docstring=_shared_docs["ismethods"] % _doc_args["isspace"]
     )
     islower = _map_and_wrap(
         "islower", docstring=_shared_docs["ismethods"] % _doc_args["islower"]
@@ -3046,7 +3217,7 @@ def _result_dtype(arr):
     from pandas.core.arrays.string_ import StringDtype
 
     if isinstance(arr.dtype, StringDtype):
-        return arr.dtype.name
+        return arr.dtype
     else:
         return object
 
@@ -3074,72 +3245,6 @@ def _get_group_names(regex: re.Pattern) -> list[Hashable]:
     """
     names = {v: k for k, v in regex.groupindex.items()}
     return [names.get(1 + i, i) for i in range(regex.groups)]
-
-
-def _str_extract(arr: ArrayLike, pat: str, flags=0, expand: bool = True):
-    """
-    Find groups in each string in the array using passed regular expression.
-
-    Returns
-    -------
-    np.ndarray or list of lists is expand is True
-    """
-    regex = re.compile(pat, flags=flags)
-
-    empty_row = [np.nan] * regex.groups
-
-    def f(x):
-        if not isinstance(x, str):
-            return empty_row
-        m = regex.search(x)
-        if m:
-            return [np.nan if item is None else item for item in m.groups()]
-        else:
-            return empty_row
-
-    if expand:
-        return [f(val) for val in np.asarray(arr)]
-
-    return np.array([f(val)[0] for val in np.asarray(arr)], dtype=object)
-
-
-def str_extract(accessor: StringMethods, pat: str, flags: int = 0, expand: bool = True):
-    from pandas import (
-        DataFrame,
-        array as pd_array,
-    )
-
-    obj = accessor._data
-    result_dtype = _result_dtype(obj)
-    regex = re.compile(pat, flags=flags)
-    returns_df = regex.groups > 1 or expand
-
-    if returns_df:
-        name = None
-        columns = _get_group_names(regex)
-
-        if obj.array.size == 0:
-            result = DataFrame(columns=columns, dtype=result_dtype)
-
-        else:
-            result_list = _str_extract(obj.array, pat, flags=flags, expand=returns_df)
-
-            result_index: Index | None
-            if isinstance(obj, ABCSeries):
-                result_index = obj.index
-            else:
-                result_index = None
-
-            result = DataFrame(
-                result_list, columns=columns, index=result_index, dtype=result_dtype
-            )
-
-    else:
-        name = _get_single_group_name(regex)
-        result_arr = _str_extract(obj.array, pat, flags=flags, expand=returns_df)
-        # not dispatching, so we have to reconstruct here.
-        result = pd_array(result_arr, dtype=result_dtype)
-    return accessor._wrap_result(result, name=name)
 
 
 def str_extractall(arr, pat, flags=0):

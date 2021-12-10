@@ -5,8 +5,8 @@ from abc import (
     abstractmethod,
 )
 import sys
+from textwrap import dedent
 from typing import (
-    IO,
     TYPE_CHECKING,
     Iterable,
     Iterator,
@@ -18,7 +18,7 @@ from pandas._config import get_option
 
 from pandas._typing import (
     Dtype,
-    FrameOrSeriesUnion,
+    WriteBuffer,
 )
 
 from pandas.core.indexes.api import Index
@@ -27,7 +27,276 @@ from pandas.io.formats import format as fmt
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
-    from pandas.core.frame import DataFrame
+    from pandas.core.frame import (
+        DataFrame,
+        Series,
+    )
+
+
+frame_max_cols_sub = dedent(
+    """\
+    max_cols : int, optional
+        When to switch from the verbose to the truncated output. If the
+        DataFrame has more than `max_cols` columns, the truncated output
+        is used. By default, the setting in
+        ``pandas.options.display.max_info_columns`` is used."""
+)
+
+
+show_counts_sub = dedent(
+    """\
+    show_counts : bool, optional
+        Whether to show the non-null counts. By default, this is shown
+        only if the DataFrame is smaller than
+        ``pandas.options.display.max_info_rows`` and
+        ``pandas.options.display.max_info_columns``. A value of True always
+        shows the counts, and False never shows the counts."""
+)
+
+null_counts_sub = dedent(
+    """
+    null_counts : bool, optional
+        .. deprecated:: 1.2.0
+            Use show_counts instead."""
+)
+
+
+frame_examples_sub = dedent(
+    """\
+    >>> int_values = [1, 2, 3, 4, 5]
+    >>> text_values = ['alpha', 'beta', 'gamma', 'delta', 'epsilon']
+    >>> float_values = [0.0, 0.25, 0.5, 0.75, 1.0]
+    >>> df = pd.DataFrame({"int_col": int_values, "text_col": text_values,
+    ...                   "float_col": float_values})
+    >>> df
+        int_col text_col  float_col
+    0        1    alpha       0.00
+    1        2     beta       0.25
+    2        3    gamma       0.50
+    3        4    delta       0.75
+    4        5  epsilon       1.00
+
+    Prints information of all columns:
+
+    >>> df.info(verbose=True)
+    <class 'pandas.core.frame.DataFrame'>
+    RangeIndex: 5 entries, 0 to 4
+    Data columns (total 3 columns):
+     #   Column     Non-Null Count  Dtype
+    ---  ------     --------------  -----
+     0   int_col    5 non-null      int64
+     1   text_col   5 non-null      object
+     2   float_col  5 non-null      float64
+    dtypes: float64(1), int64(1), object(1)
+    memory usage: 248.0+ bytes
+
+    Prints a summary of columns count and its dtypes but not per column
+    information:
+
+    >>> df.info(verbose=False)
+    <class 'pandas.core.frame.DataFrame'>
+    RangeIndex: 5 entries, 0 to 4
+    Columns: 3 entries, int_col to float_col
+    dtypes: float64(1), int64(1), object(1)
+    memory usage: 248.0+ bytes
+
+    Pipe output of DataFrame.info to buffer instead of sys.stdout, get
+    buffer content and writes to a text file:
+
+    >>> import io
+    >>> buffer = io.StringIO()
+    >>> df.info(buf=buffer)
+    >>> s = buffer.getvalue()
+    >>> with open("df_info.txt", "w",
+    ...           encoding="utf-8") as f:  # doctest: +SKIP
+    ...     f.write(s)
+    260
+
+    The `memory_usage` parameter allows deep introspection mode, specially
+    useful for big DataFrames and fine-tune memory optimization:
+
+    >>> random_strings_array = np.random.choice(['a', 'b', 'c'], 10 ** 6)
+    >>> df = pd.DataFrame({
+    ...     'column_1': np.random.choice(['a', 'b', 'c'], 10 ** 6),
+    ...     'column_2': np.random.choice(['a', 'b', 'c'], 10 ** 6),
+    ...     'column_3': np.random.choice(['a', 'b', 'c'], 10 ** 6)
+    ... })
+    >>> df.info()
+    <class 'pandas.core.frame.DataFrame'>
+    RangeIndex: 1000000 entries, 0 to 999999
+    Data columns (total 3 columns):
+     #   Column    Non-Null Count    Dtype
+    ---  ------    --------------    -----
+     0   column_1  1000000 non-null  object
+     1   column_2  1000000 non-null  object
+     2   column_3  1000000 non-null  object
+    dtypes: object(3)
+    memory usage: 22.9+ MB
+
+    >>> df.info(memory_usage='deep')
+    <class 'pandas.core.frame.DataFrame'>
+    RangeIndex: 1000000 entries, 0 to 999999
+    Data columns (total 3 columns):
+     #   Column    Non-Null Count    Dtype
+    ---  ------    --------------    -----
+     0   column_1  1000000 non-null  object
+     1   column_2  1000000 non-null  object
+     2   column_3  1000000 non-null  object
+    dtypes: object(3)
+    memory usage: 165.9 MB"""
+)
+
+
+frame_see_also_sub = dedent(
+    """\
+    DataFrame.describe: Generate descriptive statistics of DataFrame
+        columns.
+    DataFrame.memory_usage: Memory usage of DataFrame columns."""
+)
+
+
+frame_sub_kwargs = {
+    "klass": "DataFrame",
+    "type_sub": " and columns",
+    "max_cols_sub": frame_max_cols_sub,
+    "show_counts_sub": show_counts_sub,
+    "null_counts_sub": null_counts_sub,
+    "examples_sub": frame_examples_sub,
+    "see_also_sub": frame_see_also_sub,
+    "version_added_sub": "",
+}
+
+
+series_examples_sub = dedent(
+    """\
+    >>> int_values = [1, 2, 3, 4, 5]
+    >>> text_values = ['alpha', 'beta', 'gamma', 'delta', 'epsilon']
+    >>> s = pd.Series(text_values, index=int_values)
+    >>> s.info()
+    <class 'pandas.core.series.Series'>
+    Int64Index: 5 entries, 1 to 5
+    Series name: None
+    Non-Null Count  Dtype
+    --------------  -----
+    5 non-null      object
+    dtypes: object(1)
+    memory usage: 80.0+ bytes
+
+    Prints a summary excluding information about its values:
+
+    >>> s.info(verbose=False)
+    <class 'pandas.core.series.Series'>
+    Int64Index: 5 entries, 1 to 5
+    dtypes: object(1)
+    memory usage: 80.0+ bytes
+
+    Pipe output of Series.info to buffer instead of sys.stdout, get
+    buffer content and writes to a text file:
+
+    >>> import io
+    >>> buffer = io.StringIO()
+    >>> s.info(buf=buffer)
+    >>> s = buffer.getvalue()
+    >>> with open("df_info.txt", "w",
+    ...           encoding="utf-8") as f:  # doctest: +SKIP
+    ...     f.write(s)
+    260
+
+    The `memory_usage` parameter allows deep introspection mode, specially
+    useful for big Series and fine-tune memory optimization:
+
+    >>> random_strings_array = np.random.choice(['a', 'b', 'c'], 10 ** 6)
+    >>> s = pd.Series(np.random.choice(['a', 'b', 'c'], 10 ** 6))
+    >>> s.info()
+    <class 'pandas.core.series.Series'>
+    RangeIndex: 1000000 entries, 0 to 999999
+    Series name: None
+    Non-Null Count    Dtype
+    --------------    -----
+    1000000 non-null  object
+    dtypes: object(1)
+    memory usage: 7.6+ MB
+
+    >>> s.info(memory_usage='deep')
+    <class 'pandas.core.series.Series'>
+    RangeIndex: 1000000 entries, 0 to 999999
+    Series name: None
+    Non-Null Count    Dtype
+    --------------    -----
+    1000000 non-null  object
+    dtypes: object(1)
+    memory usage: 55.3 MB"""
+)
+
+
+series_see_also_sub = dedent(
+    """\
+    Series.describe: Generate descriptive statistics of Series.
+    Series.memory_usage: Memory usage of Series."""
+)
+
+
+series_sub_kwargs = {
+    "klass": "Series",
+    "type_sub": "",
+    "max_cols_sub": "",
+    "show_counts_sub": show_counts_sub,
+    "null_counts_sub": "",
+    "examples_sub": series_examples_sub,
+    "see_also_sub": series_see_also_sub,
+    "version_added_sub": "\n.. versionadded:: 1.4.0\n",
+}
+
+
+INFO_DOCSTRING = dedent(
+    """
+    Print a concise summary of a {klass}.
+
+    This method prints information about a {klass} including
+    the index dtype{type_sub}, non-null values and memory usage.
+    {version_added_sub}\
+
+    Parameters
+    ----------
+    data : {klass}
+        {klass} to print information about.
+    verbose : bool, optional
+        Whether to print the full summary. By default, the setting in
+        ``pandas.options.display.max_info_columns`` is followed.
+    buf : writable buffer, defaults to sys.stdout
+        Where to send the output. By default, the output is printed to
+        sys.stdout. Pass a writable buffer if you need to further process
+        the output.\
+    {max_cols_sub}
+    memory_usage : bool, str, optional
+        Specifies whether total memory usage of the {klass}
+        elements (including the index) should be displayed. By default,
+        this follows the ``pandas.options.display.memory_usage`` setting.
+
+        True always show memory usage. False never shows memory usage.
+        A value of 'deep' is equivalent to "True with deep introspection".
+        Memory usage is shown in human-readable units (base-2
+        representation). Without deep introspection a memory estimation is
+        made based in column dtype and number of rows assuming values
+        consume the same memory amount for corresponding dtypes. With deep
+        memory introspection, a real memory usage calculation is performed
+        at the cost of computational resources.
+    {show_counts_sub}{null_counts_sub}
+
+    Returns
+    -------
+    None
+        This method prints a summary of a {klass} and returns None.
+
+    See Also
+    --------
+    {see_also_sub}
+
+    Examples
+    --------
+    {examples_sub}
+    """
+)
 
 
 def _put_str(s: str | Dtype, space: int) -> str:
@@ -110,7 +379,7 @@ class BaseInfo(ABC):
         values.
     """
 
-    data: FrameOrSeriesUnion
+    data: DataFrame | Series
     memory_usage: bool | str
 
     @property
@@ -171,58 +440,12 @@ class BaseInfo(ABC):
     def render(
         self,
         *,
-        buf: IO[str] | None,
+        buf: WriteBuffer[str] | None,
         max_cols: int | None,
         verbose: bool | None,
         show_counts: bool | None,
     ) -> None:
-        """
-        Print a concise summary of a %(klass)s.
-
-        This method prints information about a %(klass)s including
-        the index dtype%(type_sub)s, non-null values and memory usage.
-        %(version_added_sub)s\
-
-        Parameters
-        ----------
-        data : %(klass)s
-            %(klass)s to print information about.
-        verbose : bool, optional
-            Whether to print the full summary. By default, the setting in
-            ``pandas.options.display.max_info_columns`` is followed.
-        buf : writable buffer, defaults to sys.stdout
-            Where to send the output. By default, the output is printed to
-            sys.stdout. Pass a writable buffer if you need to further process
-            the output.
-        %(max_cols_sub)s
-        memory_usage : bool, str, optional
-            Specifies whether total memory usage of the %(klass)s
-            elements (including the index) should be displayed. By default,
-            this follows the ``pandas.options.display.memory_usage`` setting.
-
-            True always show memory usage. False never shows memory usage.
-            A value of 'deep' is equivalent to "True with deep introspection".
-            Memory usage is shown in human-readable units (base-2
-            representation). Without deep introspection a memory estimation is
-            made based in column dtype and number of rows assuming values
-            consume the same memory amount for corresponding dtypes. With deep
-            memory introspection, a real memory usage calculation is performed
-            at the cost of computational resources.
-        %(show_counts_sub)s
-
-        Returns
-        -------
-        None
-            This method prints a summary of a %(klass)s and returns None.
-
-        See Also
-        --------
-        %(see_also_sub)s
-
-        Examples
-        --------
-        %(examples_sub)s
-        """
+        pass
 
 
 class DataFrameInfo(BaseInfo):
@@ -287,7 +510,7 @@ class DataFrameInfo(BaseInfo):
     def render(
         self,
         *,
-        buf: IO[str] | None,
+        buf: WriteBuffer[str] | None,
         max_cols: int | None,
         verbose: bool | None,
         show_counts: bool | None,
@@ -301,12 +524,75 @@ class DataFrameInfo(BaseInfo):
         printer.to_buffer(buf)
 
 
+class SeriesInfo(BaseInfo):
+    """
+    Class storing series-specific info.
+    """
+
+    def __init__(
+        self,
+        data: Series,
+        memory_usage: bool | str | None = None,
+    ):
+        self.data: Series = data
+        self.memory_usage = _initialize_memory_usage(memory_usage)
+
+    def render(
+        self,
+        *,
+        buf: WriteBuffer[str] | None = None,
+        max_cols: int | None = None,
+        verbose: bool | None = None,
+        show_counts: bool | None = None,
+    ) -> None:
+        if max_cols is not None:
+            raise ValueError(
+                "Argument `max_cols` can only be passed "
+                "in DataFrame.info, not Series.info"
+            )
+        printer = SeriesInfoPrinter(
+            info=self,
+            verbose=verbose,
+            show_counts=show_counts,
+        )
+        printer.to_buffer(buf)
+
+    @property
+    def non_null_counts(self) -> Sequence[int]:
+        return [self.data.count()]
+
+    @property
+    def dtypes(self) -> Iterable[Dtype]:
+        return [self.data.dtypes]
+
+    @property
+    def dtype_counts(self):
+        from pandas.core.frame import DataFrame
+
+        return _get_dataframe_dtype_counts(DataFrame(self.data))
+
+    @property
+    def memory_usage_bytes(self) -> int:
+        """Memory usage in bytes.
+
+        Returns
+        -------
+        memory_usage_bytes : int
+            Object's total memory usage in bytes.
+        """
+        if self.memory_usage == "deep":
+            deep = True
+        else:
+            deep = False
+        return self.data.memory_usage(index=True, deep=deep)
+
+
 class InfoPrinterAbstract:
     """
     Class for printing dataframe or series info.
     """
 
-    def to_buffer(self, buf: IO[str] | None = None) -> None:
+    def to_buffer(self, buf: WriteBuffer[str] | None = None) -> None:
         """Save dataframe info into buffer."""
         table_builder = self._create_table_builder()
         lines = table_builder.get_lines()
@@ -400,6 +686,49 @@ class DataFrameInfoPrinter(InfoPrinterAbstract):
                 )
 
 
+class SeriesInfoPrinter(InfoPrinterAbstract):
+    """Class for printing series info.
+
+    Parameters
+    ----------
+    info : SeriesInfo
+        Instance of SeriesInfo.
+    verbose : bool, optional
+        Whether to print the full summary.
+    show_counts : bool, optional
+        Whether to show the non-null counts.
+    """
+
+    def __init__(
+        self,
+        info: SeriesInfo,
+        verbose: bool | None = None,
+        show_counts: bool | None = None,
+    ):
+        self.info = info
+        self.data = info.data
+        self.verbose = verbose
+        self.show_counts = self._initialize_show_counts(show_counts)
+
+    def _create_table_builder(self) -> SeriesTableBuilder:
+        """
+        Create instance of table builder based on verbosity.
+        """
+        if self.verbose or self.verbose is None:
+            return SeriesTableBuilderVerbose(
+                info=self.info,
+                with_counts=self.show_counts,
+            )
+        else:
+            return SeriesTableBuilderNonVerbose(info=self.info)
+
+    def _initialize_show_counts(self, show_counts: bool | None) -> bool:
+        if show_counts is None:
+            return True
+        else:
+            return show_counts
+
+
 class TableBuilderAbstract(ABC):
     """
     Abstract builder for info table.
@@ -413,7 +742,7 @@ class TableBuilderAbstract(ABC):
         """Product in a form of list of lines (strings)."""
 
     @property
-    def data(self) -> FrameOrSeriesUnion:
+    def data(self) -> DataFrame | Series:
         return self.info.data
 
     @property
@@ -682,6 +1011,102 @@ class DataFrameTableBuilderVerbose(DataFrameTableBuilder, TableBuilderVerboseMix
         """Iterator with string representation of column names."""
         for col in self.ids:
             yield pprint_thing(col)
+
+
+class SeriesTableBuilder(TableBuilderAbstract):
+    """
+    Abstract builder for series info table.
+
+    Parameters
+    ----------
+    info : SeriesInfo.
+        Instance of SeriesInfo.
+    """
+
+    def __init__(self, *, info: SeriesInfo):
+        self.info: SeriesInfo = info
+
+    def get_lines(self) -> list[str]:
+        self._lines = []
+        self._fill_non_empty_info()
+        return self._lines
+
+    @property
+    def data(self) -> Series:
+        """Series."""
+        return self.info.data
+
+    def add_memory_usage_line(self) -> None:
+        """Add line containing memory usage."""
+        self._lines.append(f"memory usage: {self.memory_usage_string}")
+
+    @abstractmethod
+    def _fill_non_empty_info(self) -> None:
+        """Add lines to the info table, pertaining to non-empty series."""
+
+
+class SeriesTableBuilderNonVerbose(SeriesTableBuilder):
+    """
+    Series info table builder for non-verbose output.
+    """
+
+    def _fill_non_empty_info(self) -> None:
+        """Add lines to the info table, pertaining to non-empty series."""
+        self.add_object_type_line()
+        self.add_index_range_line()
+        self.add_dtypes_line()
+        if self.display_memory_usage:
+            self.add_memory_usage_line()
+
+
+class SeriesTableBuilderVerbose(SeriesTableBuilder, TableBuilderVerboseMixin):
+    """
+    Series info table builder for verbose output.
+    """
+
+    def __init__(
+        self,
+        *,
+        info: SeriesInfo,
+        with_counts: bool,
+    ):
+        self.info = info
+        self.with_counts = with_counts
+        self.strrows: Sequence[Sequence[str]] = list(self._gen_rows())
+        self.gross_column_widths: Sequence[int] = self._get_gross_column_widths()
+
+    def _fill_non_empty_info(self) -> None:
+        """Add lines to the info table, pertaining to non-empty series."""
+        self.add_object_type_line()
+        self.add_index_range_line()
+        self.add_series_name_line()
+        self.add_header_line()
+        self.add_separator_line()
+        self.add_body_lines()
+        self.add_dtypes_line()
+        if self.display_memory_usage:
+            self.add_memory_usage_line()
+
+    def add_series_name_line(self):
+        self._lines.append(f"Series name: {self.data.name}")
+
+    @property
+    def headers(self) -> Sequence[str]:
+        """Headers names of the columns in verbose table."""
+        if self.with_counts:
+            return ["Non-Null Count", "Dtype"]
+        return ["Dtype"]
+
+    def _gen_rows_without_counts(self) -> Iterator[Sequence[str]]:
+        """Iterator with string representation of body data without counts."""
+        yield from self._gen_dtypes()
+
+    def _gen_rows_with_counts(self) -> Iterator[Sequence[str]]:
+        """Iterator with string representation of body data with counts."""
+        yield from zip(
+            self._gen_non_null_counts(),
+            self._gen_dtypes(),
+        )
 
 
 def _get_dataframe_dtype_counts(df: DataFrame) -> Mapping[str, int]:

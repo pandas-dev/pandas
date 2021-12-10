@@ -4,6 +4,7 @@ All of pandas' ExtensionArrays.
 See :ref:`extending.extension-types` for more.
 """
 from pandas.core.arrays import (
+    ArrowStringArray,
     BooleanArray,
     Categorical,
     DatetimeArray,
@@ -18,6 +19,7 @@ from pandas.core.arrays import (
 )
 
 __all__ = [
+    "ArrowStringArray",
     "BooleanArray",
     "Categorical",
     "DatetimeArray",

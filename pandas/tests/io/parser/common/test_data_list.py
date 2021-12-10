@@ -5,12 +5,17 @@ specific classification into the other test modules.
 import csv
 from io import StringIO
 
+import pytest
+
 from pandas import DataFrame
 import pandas._testing as tm
 
 from pandas.io.parsers import TextParser
 
+xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
+
+@xfail_pyarrow
 def test_read_data_list(all_parsers):
     parser = all_parsers
     kwargs = {"index_col": 0}

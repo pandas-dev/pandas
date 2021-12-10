@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.common import pandas_dtype
+
 from pandas import (
+    NA,
     DataFrame,
     Series,
 )
@@ -18,9 +21,7 @@ from pandas.core.base import DataError
 def get_dtype(dtype, coerce_int=None):
     if coerce_int is False and "int" in dtype:
         return None
-    if dtype != "category":
-        return np.dtype(dtype)
-    return dtype
+    return pandas_dtype(dtype)
 
 
 @pytest.mark.parametrize(
@@ -65,15 +66,25 @@ def get_dtype(dtype, coerce_int=None):
     ],
 )
 def test_series_dtypes(method, data, expected_data, coerce_int, dtypes, min_periods):
-    s = Series(data, dtype=get_dtype(dtypes, coerce_int=coerce_int))
-    if dtypes in ("m8[ns]", "M8[ns]") and method != "count":
+    ser = Series(data, dtype=get_dtype(dtypes, coerce_int=coerce_int))
+    rolled = ser.rolling(2, min_periods=min_periods)
+
+    if dtypes in ("m8[ns]", "M8[ns]", "datetime64[ns, UTC]") and method != "count":
         msg = "No numeric types to aggregate"
         with pytest.raises(DataError, match=msg):
-            getattr(s.rolling(2, min_periods=min_periods), method)()
+            getattr(rolled, method)()
     else:
-        result = getattr(s.rolling(2, min_periods=min_periods), method)()
+        result = getattr(rolled, method)()
         expected = Series(expected_data, dtype="float64")
         tm.assert_almost_equal(result, expected)
+
+
+def test_series_nullable_int(any_signed_int_ea_dtype):
+    # GH 43016
+    ser = Series([0, 1, NA], dtype=any_signed_int_ea_dtype)
+    result = ser.rolling(2).mean()
+    expected = Series([np.nan, 0.5, np.nan])
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -121,14 +132,15 @@ def test_series_dtypes(method, data, expected_data, coerce_int, dtypes, min_peri
     ],
 )
 def test_dataframe_dtypes(method, expected_data, dtypes, min_periods):
-    if dtypes == "category":
-        pytest.skip("Category dataframe testing not implemented.")
+
     df = DataFrame(np.arange(10).reshape((5, 2)), dtype=get_dtype(dtypes))
-    if dtypes in ("m8[ns]", "M8[ns]") and method != "count":
+    rolled = df.rolling(2, min_periods=min_periods)
+
+    if dtypes in ("m8[ns]", "M8[ns]", "datetime64[ns, UTC]") and method != "count":
         msg = "No numeric types to aggregate"
         with pytest.raises(DataError, match=msg):
-            getattr(df.rolling(2, min_periods=min_periods), method)()
+            getattr(rolled, method)()
     else:
-        result = getattr(df.rolling(2, min_periods=min_periods), method)()
+        result = getattr(rolled, method)()
         expected = DataFrame(expected_data, dtype="float64")
         tm.assert_frame_equal(result, expected)

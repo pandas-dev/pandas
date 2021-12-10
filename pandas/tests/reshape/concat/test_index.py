@@ -96,18 +96,18 @@ class TestIndexConcat:
         tm.assert_frame_equal(result, exp)
         assert result.index.names == exp.index.names
 
-    @pytest.mark.parametrize("test_series", [True, False])
-    def test_concat_copy_index(self, test_series, axis):
+    def test_concat_copy_index_series(self, axis):
         # GH 29879
-        if test_series:
-            ser = Series([1, 2])
-            comb = concat([ser, ser], axis=axis, copy=True)
-            assert comb.index is not ser.index
-        else:
-            df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
-            comb = concat([df, df], axis=axis, copy=True)
-            assert comb.index is not df.index
-            assert comb.columns is not df.columns
+        ser = Series([1, 2])
+        comb = concat([ser, ser], axis=axis, copy=True)
+        assert comb.index is not ser.index
+
+    def test_concat_copy_index_frame(self, axis):
+        # GH 29879
+        df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
+        comb = concat([df, df], axis=axis, copy=True)
+        assert comb.index is not df.index
+        assert comb.columns is not df.columns
 
     def test_default_index(self):
         # is_series and ignore_index
@@ -190,17 +190,9 @@ class TestIndexConcat:
 
 
 class TestMultiIndexConcat:
-    def test_concat_multiindex_with_keys(self):
-        index = MultiIndex(
-            levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
-            codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
-            names=["first", "second"],
-        )
-        frame = DataFrame(
-            np.random.randn(10, 3),
-            index=index,
-            columns=Index(["A", "B", "C"], name="exp"),
-        )
+    def test_concat_multiindex_with_keys(self, multiindex_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
+        index = frame.index
         result = concat([frame, frame], keys=[0, 1], names=["iteration"])
 
         assert result.index.names == ("iteration",) + index.names

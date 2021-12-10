@@ -1,6 +1,8 @@
 """
 Tests of pandas.tseries.offsets
 """
+from __future__ import annotations
+
 from datetime import (
     datetime,
     timedelta,
@@ -34,7 +36,6 @@ import pandas._testing as tm
 from pandas.tests.tseries.offsets.common import (
     Base,
     WeekDay,
-    assert_offset_equal,
 )
 
 import pandas.tseries.offsets as offsets
@@ -49,7 +50,6 @@ from pandas.tseries.offsets import (
     CustomBusinessMonthBegin,
     CustomBusinessMonthEnd,
     DateOffset,
-    Day,
     Easter,
     FY5253Quarter,
     LastWeekOfMonth,
@@ -125,7 +125,7 @@ class TestCommon(Base):
         assert offset + NaT is NaT
 
         assert NaT - offset is NaT
-        assert (-offset).apply(NaT) is NaT
+        assert (-offset)._apply(NaT) is NaT
 
     def test_offset_n(self, offset_types):
         offset = self._get_offset(offset_types)
@@ -188,7 +188,7 @@ class TestCommon(Base):
 
         if (
             type(offset_s).__name__ == "DateOffset"
-            and (funcname == "apply" or normalize)
+            and (funcname in ["apply", "_apply"] or normalize)
             and ts.nanosecond > 0
         ):
             exp_warning = UserWarning
@@ -196,6 +196,17 @@ class TestCommon(Base):
         # test nanosecond is preserved
         with tm.assert_produces_warning(exp_warning):
             result = func(ts)
+
+        if exp_warning is None and funcname == "_apply":
+            # GH#44522
+            # Check in this particular case to avoid headaches with
+            #  testing for multiple warnings produced by the same call.
+            with tm.assert_produces_warning(FutureWarning, match="apply is deprecated"):
+                res2 = offset_s.apply(ts)
+
+            assert type(res2) is type(result)
+            assert res2 == result
+
         assert isinstance(result, Timestamp)
         if normalize is False:
             assert result == expected + Nano(5)
@@ -225,7 +236,7 @@ class TestCommon(Base):
 
             if (
                 type(offset_s).__name__ == "DateOffset"
-                and (funcname == "apply" or normalize)
+                and (funcname in ["apply", "_apply"] or normalize)
                 and ts.nanosecond > 0
             ):
                 exp_warning = UserWarning
@@ -243,13 +254,14 @@ class TestCommon(Base):
         sdt = datetime(2011, 1, 1, 9, 0)
         ndt = np_datetime64_compat("2011-01-01 09:00Z")
 
-        for dt in [sdt, ndt]:
-            expected = self.expecteds[offset_types.__name__]
-            self._check_offsetfunc_works(offset_types, "apply", dt, expected)
+        expected = self.expecteds[offset_types.__name__]
+        expected_norm = Timestamp(expected.date())
 
-            expected = Timestamp(expected.date())
+        for dt in [sdt, ndt]:
+            self._check_offsetfunc_works(offset_types, "_apply", dt, expected)
+
             self._check_offsetfunc_works(
-                offset_types, "apply", dt, expected, normalize=True
+                offset_types, "_apply", dt, expected_norm, normalize=True
             )
 
     def test_rollforward(self, offset_types):
@@ -498,11 +510,11 @@ class TestCommon(Base):
         base_dt = datetime(2020, 1, 1)
         assert base_dt + off == base_dt + res
 
-    def test_onOffset_deprecated(self, offset_types):
+    def test_onOffset_deprecated(self, offset_types, fixed_now_ts):
         # GH#30340 use idiomatic naming
         off = self._get_offset(offset_types)
 
-        ts = Timestamp.now()
+        ts = fixed_now_ts
         with tm.assert_produces_warning(FutureWarning):
             result = off.onOffset(ts)
 
@@ -561,22 +573,6 @@ class TestDateOffset(Base):
         offset2 = DateOffset(days=365)
 
         assert offset1 != offset2
-
-
-def test_Easter():
-    assert_offset_equal(Easter(), datetime(2010, 1, 1), datetime(2010, 4, 4))
-    assert_offset_equal(Easter(), datetime(2010, 4, 5), datetime(2011, 4, 24))
-    assert_offset_equal(Easter(2), datetime(2010, 1, 1), datetime(2011, 4, 24))
-
-    assert_offset_equal(Easter(), datetime(2010, 4, 4), datetime(2011, 4, 24))
-    assert_offset_equal(Easter(2), datetime(2010, 4, 4), datetime(2012, 4, 8))
-
-    assert_offset_equal(-Easter(), datetime(2011, 1, 1), datetime(2010, 4, 4))
-    assert_offset_equal(-Easter(), datetime(2010, 4, 5), datetime(2010, 4, 4))
-    assert_offset_equal(-Easter(2), datetime(2011, 1, 1), datetime(2009, 4, 12))
-
-    assert_offset_equal(-Easter(), datetime(2010, 4, 4), datetime(2009, 4, 12))
-    assert_offset_equal(-Easter(2), datetime(2010, 4, 4), datetime(2008, 3, 23))
 
 
 class TestOffsetNames:
@@ -794,65 +790,6 @@ def test_tick_normalize_raises(tick_classes):
     msg = "Tick offset with `normalize=True` are not allowed."
     with pytest.raises(ValueError, match=msg):
         cls(n=3, normalize=True)
-
-
-def test_weeks_onoffset():
-    # GH#18510 Week with weekday = None, normalize = False should always
-    # be is_on_offset
-    offset = Week(n=2, weekday=None)
-    ts = Timestamp("1862-01-13 09:03:34.873477378+0210", tz="Africa/Lusaka")
-    fast = offset.is_on_offset(ts)
-    slow = (ts + offset) - offset == ts
-    assert fast == slow
-
-    # negative n
-    offset = Week(n=2, weekday=None)
-    ts = Timestamp("1856-10-24 16:18:36.556360110-0717", tz="Pacific/Easter")
-    fast = offset.is_on_offset(ts)
-    slow = (ts + offset) - offset == ts
-    assert fast == slow
-
-
-def test_weekofmonth_onoffset():
-    # GH#18864
-    # Make sure that nanoseconds don't trip up is_on_offset (and with it apply)
-    offset = WeekOfMonth(n=2, week=2, weekday=0)
-    ts = Timestamp("1916-05-15 01:14:49.583410462+0422", tz="Asia/Qyzylorda")
-    fast = offset.is_on_offset(ts)
-    slow = (ts + offset) - offset == ts
-    assert fast == slow
-
-    # negative n
-    offset = WeekOfMonth(n=-3, week=1, weekday=0)
-    ts = Timestamp("1980-12-08 03:38:52.878321185+0500", tz="Asia/Oral")
-    fast = offset.is_on_offset(ts)
-    slow = (ts + offset) - offset == ts
-    assert fast == slow
-
-
-def test_last_week_of_month_on_offset():
-    # GH#19036, GH#18977 _adjust_dst was incorrect for LastWeekOfMonth
-    offset = LastWeekOfMonth(n=4, weekday=6)
-    ts = Timestamp("1917-05-27 20:55:27.084284178+0200", tz="Europe/Warsaw")
-    slow = (ts + offset) - offset == ts
-    fast = offset.is_on_offset(ts)
-    assert fast == slow
-
-    # negative n
-    offset = LastWeekOfMonth(n=-4, weekday=5)
-    ts = Timestamp("2005-08-27 05:01:42.799392561-0500", tz="America/Rainy_River")
-    slow = (ts + offset) - offset == ts
-    fast = offset.is_on_offset(ts)
-    assert fast == slow
-
-
-def test_week_add_invalid():
-    # Week with weekday should raise TypeError and _not_ AttributeError
-    #  when adding invalid offset
-    offset = Week(weekday=1)
-    other = Day()
-    with pytest.raises(TypeError, match="Cannot add"):
-        offset + other
 
 
 @pytest.mark.parametrize(

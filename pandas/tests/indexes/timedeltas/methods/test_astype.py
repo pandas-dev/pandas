@@ -5,15 +5,18 @@ import pytest
 
 import pandas as pd
 from pandas import (
-    Float64Index,
     Index,
-    Int64Index,
     NaT,
     Timedelta,
     TimedeltaIndex,
     timedelta_range,
 )
 import pandas._testing as tm
+from pandas.core.api import (
+    Float64Index,
+    Int64Index,
+    UInt64Index,
+)
 
 
 class TestTimedeltaIndex:
@@ -74,7 +77,7 @@ class TestTimedeltaIndex:
 
     def test_astype_uint(self):
         arr = timedelta_range("1H", periods=2)
-        expected = pd.UInt64Index(
+        expected = UInt64Index(
             np.array([3600000000000, 90000000000000], dtype="uint64")
         )
         with tm.assert_produces_warning(FutureWarning):
@@ -101,7 +104,7 @@ class TestTimedeltaIndex:
     def test_astype_raises(self, dtype):
         # GH 13149, GH 13209
         idx = TimedeltaIndex([1e14, "NaT", NaT, np.NaN])
-        msg = "Cannot cast TimedeltaArray to dtype"
+        msg = "Cannot cast TimedeltaIndex to dtype"
         with pytest.raises(TypeError, match=msg):
             idx.astype(dtype)
 

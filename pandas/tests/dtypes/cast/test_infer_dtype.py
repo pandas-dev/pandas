@@ -30,20 +30,20 @@ def pandas_dtype(request):
     return request.param
 
 
-def test_infer_dtype_from_int_scalar(any_int_dtype):
+def test_infer_dtype_from_int_scalar(any_int_numpy_dtype):
     # Test that infer_dtype_from_scalar is
     # returning correct dtype for int and float.
-    data = np.dtype(any_int_dtype).type(12)
+    data = np.dtype(any_int_numpy_dtype).type(12)
     dtype, val = infer_dtype_from_scalar(data)
     assert dtype == type(data)
 
 
-def test_infer_dtype_from_float_scalar(float_dtype):
-    float_dtype = np.dtype(float_dtype).type
-    data = float_dtype(12)
+def test_infer_dtype_from_float_scalar(float_numpy_dtype):
+    float_numpy_dtype = np.dtype(float_numpy_dtype).type
+    data = float_numpy_dtype(12)
 
     dtype, val = infer_dtype_from_scalar(data)
-    assert dtype == float_dtype
+    assert dtype == float_numpy_dtype
 
 
 @pytest.mark.parametrize(

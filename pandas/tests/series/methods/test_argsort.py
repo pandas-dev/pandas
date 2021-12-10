@@ -38,11 +38,11 @@ class TestSeriesArgsort:
         assert isna(shifted[4])
 
         result = s.argsort()
-        expected = Series(range(5), dtype="int64")
+        expected = Series(range(5), dtype=np.intp)
         tm.assert_series_equal(result, expected)
 
         result = shifted.argsort()
-        expected = Series(list(range(4)) + [-1], dtype="int64")
+        expected = Series(list(range(4)) + [-1], dtype=np.intp)
         tm.assert_series_equal(result, expected)
 
     def test_argsort_stable(self):

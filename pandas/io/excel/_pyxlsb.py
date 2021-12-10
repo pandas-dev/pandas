@@ -1,7 +1,9 @@
-from typing import List
+# pyright: reportMissingImports=false
+from __future__ import annotations
 
 from pandas._typing import (
-    FilePathOrBuffer,
+    FilePath,
+    ReadBuffer,
     Scalar,
     StorageOptions,
 )
@@ -13,7 +15,7 @@ from pandas.io.excel._base import BaseExcelReader
 class PyxlsbReader(BaseExcelReader):
     def __init__(
         self,
-        filepath_or_buffer: FilePathOrBuffer,
+        filepath_or_buffer: FilePath | ReadBuffer[bytes],
         storage_options: StorageOptions = None,
     ):
         """
@@ -37,7 +39,7 @@ class PyxlsbReader(BaseExcelReader):
 
         return Workbook
 
-    def load_workbook(self, filepath_or_buffer: FilePathOrBuffer):
+    def load_workbook(self, filepath_or_buffer: FilePath | ReadBuffer[bytes]):
         from pyxlsb import open_workbook
 
         # TODO: hack in buffer capability
@@ -47,7 +49,7 @@ class PyxlsbReader(BaseExcelReader):
         return open_workbook(filepath_or_buffer)
 
     @property
-    def sheet_names(self) -> List[str]:
+    def sheet_names(self) -> list[str]:
         return self.book.sheets
 
     def get_sheet_by_name(self, name: str):
@@ -74,7 +76,7 @@ class PyxlsbReader(BaseExcelReader):
 
         return cell.v
 
-    def get_sheet_data(self, sheet, convert_float: bool) -> List[List[Scalar]]:
+    def get_sheet_data(self, sheet, convert_float: bool) -> list[list[Scalar]]:
         data: list[list[Scalar]] = []
         prevous_row_number = -1
         # When sparse=True the rows can have different lengths and empty rows are

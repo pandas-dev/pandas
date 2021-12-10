@@ -562,7 +562,7 @@ all standard database join operations between ``DataFrame`` or named ``Series`` 
   (hierarchical), the number of levels must match the number of join keys
   from the right DataFrame or Series.
 * ``right_index``: Same usage as ``left_index`` for the right DataFrame or Series
-* ``how``: One of ``'left'``, ``'right'``, ``'outer'``, ``'inner'``. Defaults
+* ``how``: One of ``'left'``, ``'right'``, ``'outer'``, ``'inner'``, ``'cross'``. Defaults
   to ``inner``. See below for more detailed description of each method.
 * ``sort``: Sort the result DataFrame by the join keys in lexicographical
   order. Defaults to ``True``, setting to ``False`` will improve performance
@@ -707,6 +707,7 @@ either the left or right tables, the values in the joined table will be
     ``right``, ``RIGHT OUTER JOIN``, Use keys from right frame only
     ``outer``, ``FULL OUTER JOIN``, Use union of keys from both frames
     ``inner``, ``INNER JOIN``, Use intersection of keys from both frames
+    ``cross``, ``CROSS JOIN``, Create the cartesian product of rows of both frames
 
 .. ipython:: python
 
@@ -748,6 +749,17 @@ either the left or right tables, the values in the joined table will be
    :suppress:
 
    @savefig merging_merge_on_key_inner.png
+   p.plot([left, right], result, labels=["left", "right"], vertical=False);
+   plt.close("all");
+
+.. ipython:: python
+
+   result = pd.merge(left, right, how="cross")
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_merge_cross.png
    p.plot([left, right], result, labels=["left", "right"], vertical=False);
    plt.close("all");
 

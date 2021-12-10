@@ -72,7 +72,7 @@ These packages will automatically be installed by using the ``pandas``
 
 **Windows**
 
-You will need `Build Tools for Visual Studio 2017
+You will need `Build Tools for Visual Studio 2019
 <https://visualstudio.microsoft.com/downloads/>`_.
 
 .. warning::
@@ -133,7 +133,6 @@ compiler installation instructions.
 
 Let us know if you have any difficulties by opening an issue or reaching out on `Gitter <https://gitter.im/pydata/pandas/>`_.
 
-
 Creating a Python environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -166,7 +165,7 @@ We'll now kick off a three-step process:
 
 At this point you should be able to import pandas from your locally built version::
 
-   $ python  # start an interpreter
+   $ python
    >>> import pandas
    >>> print(pandas.__version__)
    0.22.0.dev0+29.g4ad6d4d74
@@ -189,11 +188,8 @@ Creating a Python environment (pip)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If you aren't using conda for your development environment, follow these instructions.
-You'll need to have at least the :ref:`minimum Python version <install.version>` that pandas supports. If your Python version
-is 3.8.0 (or later), you might need to update your ``setuptools`` to version 42.0.0 (or later)
-in your development environment before installing the build dependencies::
-
-      pip install --upgrade setuptools
+You'll need to have at least the :ref:`minimum Python version <install.version>` that pandas supports.
+You also need to have ``setuptools`` 51.0.0 or later to build pandas.
 
 **Unix**/**macOS with virtualenv**
 

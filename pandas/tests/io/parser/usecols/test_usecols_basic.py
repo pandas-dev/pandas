@@ -22,6 +22,9 @@ _msg_validate_usecols_names = (
     "Usecols do not match columns, columns expected but not found: {0}"
 )
 
+# TODO(1.4): Change to xfails at release time
+pytestmark = pytest.mark.usefixtures("pyarrow_skip")
+
 
 def test_raise_on_mixed_dtype_usecols(all_parsers):
     # See gh-12678
@@ -383,7 +386,9 @@ def test_usecols_indices_out_of_bounds(all_parsers, names):
 a,b
 1,2
     """
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+    with tm.assert_produces_warning(
+        FutureWarning, check_stacklevel=False, raise_on_extra_warnings=False
+    ):
         result = parser.read_csv(StringIO(data), usecols=[0, 2], names=names, header=0)
     expected = DataFrame({"a": [1], "b": [None]})
     if names is None and parser.engine == "python":

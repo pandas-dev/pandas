@@ -62,6 +62,14 @@ def calculate_variable_window_bounds(
     if closed in ['left', 'both']:
         left_closed = True
 
+    # GH 43997:
+    # If the forward and the backward facing windows
+    # would result in a fraction of 1/2 a nanosecond
+    # we need to make both interval ends inclusive.
+    if center and window_size % 2 == 1:
+        right_closed = True
+        left_closed = True
+
     if index[num_values - 1] < index[0]:
         index_growth_sign = -1
 
@@ -79,12 +87,13 @@ def calculate_variable_window_bounds(
     else:
         end[0] = 0
     if center:
-        for j in range(0, num_values + 1):
-            if (index[j] == index[0] + index_growth_sign * window_size / 2 and
-               right_closed):
+        end_bound = index[0] + index_growth_sign * window_size / 2
+        for j in range(0, num_values):
+            if (index[j] - end_bound) * index_growth_sign < 0:
                 end[0] = j + 1
-                break
-            elif index[j] >= index[0] + index_growth_sign * window_size / 2:
+            elif (index[j] - end_bound) * index_growth_sign == 0 and right_closed:
+                end[0] = j + 1
+            elif (index[j] - end_bound) * index_growth_sign >= 0:
                 end[0] = j
                 break
 
@@ -121,7 +130,6 @@ def calculate_variable_window_bounds(
                     elif ((index[j] - end_bound) * index_growth_sign == 0 and
                           right_closed):
                         end[i] = j + 1
-                        break
                     elif (index[j] - end_bound) * index_growth_sign >= 0:
                         end[i] = j
                         break

@@ -5,9 +5,15 @@ SeriesGroupBy and the DataFrameGroupBy objects.
 """
 from __future__ import annotations
 
-import collections
+import dataclasses
+from typing import Hashable
 
-OutputKey = collections.namedtuple("OutputKey", ["label", "position"])
+
+@dataclasses.dataclass(order=True, frozen=True)
+class OutputKey:
+    label: Hashable
+    position: int
+
 
 # special case to prevent duplicate plots when catching exceptions when
 # forwarding methods from NDFrames

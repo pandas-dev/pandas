@@ -88,7 +88,7 @@ def test_astype_index(all_data, dropna):
         other = all_data
 
     dtype = all_data.dtype
-    idx = pd.Index(np.array(other))
+    idx = pd.Index._with_infer(np.array(other))
     assert isinstance(idx, ABCIndex)
 
     result = idx.astype(dtype)
@@ -153,8 +153,7 @@ def test_astype_copy():
     # copy=True -> ensure both data and mask are actual copies
     result = arr.astype("Int64", copy=True)
     assert result is not arr
-    assert not np.shares_memory(result._data, arr._data)
-    assert not np.shares_memory(result._mask, arr._mask)
+    assert not tm.shares_memory(result, arr)
     result[0] = 10
     tm.assert_extension_array_equal(arr, orig)
     result[0] = pd.NA
@@ -176,8 +175,7 @@ def test_astype_copy():
     orig = pd.array([1, 2, 3, None], dtype="Int64")
 
     result = arr.astype("Int32", copy=False)
-    assert not np.shares_memory(result._data, arr._data)
-    assert not np.shares_memory(result._mask, arr._mask)
+    assert not tm.shares_memory(result, arr)
     result[0] = 10
     tm.assert_extension_array_equal(arr, orig)
     result[0] = pd.NA

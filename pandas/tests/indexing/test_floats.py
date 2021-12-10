@@ -3,13 +3,15 @@ import pytest
 
 from pandas import (
     DataFrame,
-    Float64Index,
     Index,
-    Int64Index,
     RangeIndex,
     Series,
 )
 import pandas._testing as tm
+from pandas.core.api import (
+    Float64Index,
+    Int64Index,
+)
 
 
 def gen_obj(klass, index):
@@ -66,27 +68,16 @@ class TestFloatIndexers:
         # contains
         assert 3.0 not in s
 
-        # setting with an indexer
-        if s.index.inferred_type in ["categorical"]:
-            # Value or Type Error
-            pass
-        elif s.index.inferred_type in ["datetime64", "timedelta64", "period"]:
+        s2 = s.copy()
+        indexer_sl(s2)[3.0] = 10
 
-            # FIXME: dont leave commented-out
-            # these should prob work
-            # and are inconsistent between series/dataframe ATM
-            # for idxr in [lambda x: x]:
-            #    s2 = s.copy()
-            #
-            #    with pytest.raises(TypeError):
-            #        idxr(s2)[3.0] = 0
-            pass
-
+        if indexer_sl is tm.setitem:
+            assert 3.0 in s2.axes[-1]
+        elif indexer_sl is tm.loc:
+            assert 3.0 in s2.axes[0]
         else:
-
-            s2 = s.copy()
-            indexer_sl(s2)[3.0] = 10
-            assert s2.index.is_object()
+            assert 3.0 not in s2.axes[0]
+            assert 3.0 not in s2.axes[-1]
 
     @pytest.mark.parametrize(
         "index_func",
@@ -478,7 +469,6 @@ class TestFloatIndexers:
         s = Series(range(5), index=index)
         assert s[3] == 2
         assert s.loc[3] == 2
-        assert s.loc[3] == 2
         assert s.iloc[3] == 3
 
     def test_floating_misc(self, indexer_sl):
@@ -512,8 +502,8 @@ class TestFloatIndexers:
         for fancy_idx in [[5.0, 0.0], np.array([5.0, 0.0])]:  # float
             tm.assert_series_equal(indexer_sl(s)[fancy_idx], expected)
 
-        expected = Series([2, 0], index=Index([5, 0], dtype="int64"))
-        for fancy_idx in [[5, 0], np.array([5, 0])]:  # int
+        expected = Series([2, 0], index=Index([5, 0], dtype="float64"))
+        for fancy_idx in [[5, 0], np.array([5, 0])]:
             tm.assert_series_equal(indexer_sl(s)[fancy_idx], expected)
 
         # all should return the same as we are slicing 'the same'

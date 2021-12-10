@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import abc
 import datetime
-import inspect
 from io import BytesIO
 import os
 from textwrap import fill
 from typing import (
+    IO,
     Any,
     Mapping,
     cast,
@@ -18,10 +18,11 @@ from pandas._config import config
 
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._typing import (
-    Buffer,
     DtypeArg,
-    FilePathOrBuffer,
+    FilePath,
+    ReadBuffer,
     StorageOptions,
+    WriteExcelBuffer,
 )
 from pandas.compat._optional import (
     get_version,
@@ -33,6 +34,7 @@ from pandas.util._decorators import (
     deprecate_nonkeyword_arguments,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -82,8 +84,9 @@ io : str, bytes, ExcelFile, xlrd.Book, path object, or file-like object
     or ``StringIO``.
 sheet_name : str, int, list, or None, default 0
     Strings are used for sheet names. Integers are used in zero-indexed
-    sheet positions. Lists of strings/integers are used to request
-    multiple sheets. Specify None to get all sheets.
+    sheet positions (chart sheets do not count as a sheet position).
+    Lists of strings/integers are used to request multiple sheets.
+    Specify None to get all worksheets.
 
     Available cases:
 
@@ -92,7 +95,7 @@ sheet_name : str, int, list, or None, default 0
     * ``"Sheet1"``: Load sheet with name "Sheet1"
     * ``[0, 1, "Sheet5"]``: Load first, second and sheet named "Sheet5"
       as a dict of `DataFrame`
-    * None: All sheets.
+    * None: All worksheets.
 
 header : int, list of int, default 0
     Row (0-indexed) to use for the column labels of the parsed
@@ -114,18 +117,16 @@ usecols : int, str, list-like, or callable default None
       both sides.
     * If list of int, then indicates list of column numbers to be parsed.
     * If list of string, then indicates list of column names to be parsed.
-
-      .. versionadded:: 0.24.0
-
     * If callable, then evaluate each column name against it and parse the
       column if the callable returns ``True``.
 
     Returns a subset of the columns according to behavior above.
-
-      .. versionadded:: 0.24.0
-
 squeeze : bool, default False
     If the parsed data only contains one column then return a Series.
+
+    .. deprecated:: 1.4.0
+       Append ``.squeeze("columns")`` to the call to ``read_excel`` to squeeze
+       the data.
 dtype : Type name or dict of column -> type, default None
     Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32}
     Use `object` to preserve data as stored in Excel and not interpret dtype.
@@ -235,6 +236,14 @@ thousands : str, default None
     this parameter is only necessary for columns stored as TEXT in Excel,
     any numeric columns will automatically be parsed, regardless of display
     format.
+decimal : str, default '.'
+    Character to recognize as decimal point for parsing string columns to numeric.
+    Note that this parameter is only necessary for columns stored as TEXT in Excel,
+    any numeric columns will automatically be parsed, regardless of display
+    format.(e.g. use ',' for European data).
+
+    .. versionadded:: 1.4.0
+
 comment : str, default None
     Comments out remainder of line. Pass a character or characters to this
     argument to indicate comments in the input file. Any data between the
@@ -245,6 +254,10 @@ convert_float : bool, default True
     Convert integral floats to int (i.e., 1.0 --> 1). If False, all numeric
     data will be read in as floats: Excel stores all numbers as floats
     internally.
+
+    .. deprecated:: 1.3.0
+        convert_float will be removed in a future version
+
 mangle_dupe_cols : bool, default True
     Duplicate columns will be specified as 'X', 'X.1', ...'X.N', rather than
     'X'...'X'. Passing in False will cause data to be overwritten if there
@@ -338,7 +351,7 @@ def read_excel(
     names=None,
     index_col=None,
     usecols=None,
-    squeeze=False,
+    squeeze=None,
     dtype: DtypeArg | None = None,
     engine=None,
     converters=None,
@@ -353,9 +366,10 @@ def read_excel(
     parse_dates=False,
     date_parser=None,
     thousands=None,
+    decimal=".",
     comment=None,
     skipfooter=0,
-    convert_float=True,
+    convert_float=None,
     mangle_dupe_cols=True,
     storage_options: StorageOptions = None,
 ):
@@ -391,6 +405,7 @@ def read_excel(
             parse_dates=parse_dates,
             date_parser=date_parser,
             thousands=thousands,
+            decimal=decimal,
             comment=comment,
             skipfooter=skipfooter,
             convert_float=convert_float,
@@ -405,6 +420,10 @@ def read_excel(
 
 class BaseExcelReader(metaclass=abc.ABCMeta):
     def __init__(self, filepath_or_buffer, storage_options: StorageOptions = None):
+        # First argument can also be bytes, so create a buffer
+        if isinstance(filepath_or_buffer, bytes):
+            filepath_or_buffer = BytesIO(filepath_or_buffer)
+
         self.handles = IOHandles(
             handle=filepath_or_buffer, compression={"method": None}
         )
@@ -418,9 +437,11 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         elif hasattr(self.handles.handle, "read"):
             # N.B. xlrd.Book has a read attribute too
             self.handles.handle.seek(0)
-            self.book = self.load_workbook(self.handles.handle)
-        elif isinstance(self.handles.handle, bytes):
-            self.book = self.load_workbook(BytesIO(self.handles.handle))
+            try:
+                self.book = self.load_workbook(self.handles.handle)
+            except Exception:
+                self.close()
+                raise
         else:
             raise ValueError(
                 "Must explicitly set engine if not passing in buffer or path for io."
@@ -436,8 +457,10 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         pass
 
     def close(self):
-        if hasattr(self.book, "close"):
-            # pyxlsb opens a TemporaryFile
+        if hasattr(self, "book") and hasattr(self.book, "close"):
+            # pyxlsb: opens a TemporaryFile
+            # openpyxl: https://stackoverflow.com/questions/31416842/
+            #     openpyxl-does-not-close-excel-workbook-in-read-only-mode
             self.book.close()
         self.handles.close()
 
@@ -476,7 +499,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         names=None,
         index_col=None,
         usecols=None,
-        squeeze=False,
+        squeeze=None,
         dtype: DtypeArg | None = None,
         true_values=None,
         false_values=None,
@@ -487,12 +510,22 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         parse_dates=False,
         date_parser=None,
         thousands=None,
+        decimal=".",
         comment=None,
         skipfooter=0,
-        convert_float=True,
+        convert_float=None,
         mangle_dupe_cols=True,
         **kwds,
     ):
+
+        if convert_float is None:
+            convert_float = True
+        else:
+            warnings.warn(
+                "convert_float is deprecated and will be removed in a future version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
 
         validate_header_arg(header)
 
@@ -603,6 +636,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                     parse_dates=parse_dates,
                     date_parser=date_parser,
                     thousands=thousands,
+                    decimal=decimal,
                     comment=comment,
                     skipfooter=skipfooter,
                     usecols=usecols,
@@ -632,7 +666,10 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     """
     Class for writing DataFrame objects into excel sheets.
 
-    Default is to use xlwt for xls, openpyxl for xlsx, odf for ods.
+    Default is to use :
+    * xlwt for xls
+    * xlsxwriter for xlsx if xlsxwriter is installed otherwise openpyxl
+    * odf for ods.
     See DataFrame.to_excel for typical usage.
 
     The writer should be used as a context manager. Otherwise, call `close()` to save
@@ -660,25 +697,37 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         (e.g. 'YYYY-MM-DD HH:MM:SS').
     mode : {'w', 'a'}, default 'w'
         File mode to use (write or append). Append does not work with fsspec URLs.
-
-        .. versionadded:: 0.24.0
     storage_options : dict, optional
         Extra options that make sense for a particular storage connection, e.g.
         host, port, username, password, etc., if using a URL that will
         be parsed by ``fsspec``, e.g., starting "s3://", "gcs://".
 
         .. versionadded:: 1.2.0
-    if_sheet_exists : {'error', 'new', 'replace'}, default 'error'
+
+    if_sheet_exists : {'error', 'new', 'replace', 'overlay'}, default 'error'
         How to behave when trying to write to a sheet that already
         exists (append mode only).
 
         * error: raise a ValueError.
         * new: Create a new sheet, with a name determined by the engine.
         * replace: Delete the contents of the sheet before writing to it.
+        * overlay: Write contents to the existing sheet without removing the old
+          contents.
 
         .. versionadded:: 1.3.0
+
+        .. versionchanged:: 1.4.0
+
+           Added ``overlay`` option
+
     engine_kwargs : dict, optional
-        Keyword arguments to be passed into the engine.
+        Keyword arguments to be passed into the engine. These will be passed to
+        the following functions of the respective engines:
+
+        * xlsxwriter: ``xlsxwriter.Workbook(file, **engine_kwargs)``
+        * openpyxl (write mode): ``openpyxl.Workbook(**engine_kwargs)``
+        * openpyxl (append mode): ``openpyxl.load_workbook(file, **engine_kwargs)``
+        * odswriter: ``odf.opendocument.OpenDocumentSpreadsheet(**engine_kwargs)``
 
         .. versionadded:: 1.3.0
     **kwargs : dict, optional
@@ -707,21 +756,21 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     --------
     Default usage:
 
-    >>> df = pd.DataFrame([["ABC", "XYZ"]], columns=["Foo", "Bar"])
-    >>> with ExcelWriter("path_to_file.xlsx") as writer:
-    ...     df.to_excel(writer)
+    >>> df = pd.DataFrame([["ABC", "XYZ"]], columns=["Foo", "Bar"])  # doctest: +SKIP
+    >>> with pd.ExcelWriter("path_to_file.xlsx") as writer:
+    ...     df.to_excel(writer)  # doctest: +SKIP
 
     To write to separate sheets in a single file:
 
-    >>> df1 = pd.DataFrame([["AAA", "BBB"]], columns=["Spam", "Egg"])
-    >>> df2 = pd.DataFrame([["ABC", "XYZ"]], columns=["Foo", "Bar"])
-    >>> with ExcelWriter("path_to_file.xlsx") as writer:
-    ...     df1.to_excel(writer, sheet_name="Sheet1")
-    ...     df2.to_excel(writer, sheet_name="Sheet2")
+    >>> df1 = pd.DataFrame([["AAA", "BBB"]], columns=["Spam", "Egg"])  # doctest: +SKIP
+    >>> df2 = pd.DataFrame([["ABC", "XYZ"]], columns=["Foo", "Bar"])  # doctest: +SKIP
+    >>> with pd.ExcelWriter("path_to_file.xlsx") as writer:
+    ...     df1.to_excel(writer, sheet_name="Sheet1")  # doctest: +SKIP
+    ...     df2.to_excel(writer, sheet_name="Sheet2")  # doctest: +SKIP
 
     You can set the date format or datetime format:
 
-    >>> from datetime import date, datetime
+    >>> from datetime import date, datetime  # doctest: +SKIP
     >>> df = pd.DataFrame(
     ...     [
     ...         [date(2014, 1, 31), date(1999, 9, 24)],
@@ -729,18 +778,40 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     ...     ],
     ...     index=["Date", "Datetime"],
     ...     columns=["X", "Y"],
-    ... )
-    >>> with ExcelWriter(
+    ... )  # doctest: +SKIP
+    >>> with pd.ExcelWriter(
     ...     "path_to_file.xlsx",
     ...     date_format="YYYY-MM-DD",
     ...     datetime_format="YYYY-MM-DD HH:MM:SS"
     ... ) as writer:
-    ...     df.to_excel(writer)
+    ...     df.to_excel(writer)  # doctest: +SKIP
 
     You can also append to an existing Excel file:
 
-    >>> with ExcelWriter("path_to_file.xlsx", mode="a", engine="openpyxl") as writer:
-    ...     df.to_excel(writer, sheet_name="Sheet3")
+    >>> with pd.ExcelWriter("path_to_file.xlsx", mode="a", engine="openpyxl") as writer:
+    ...     df.to_excel(writer, sheet_name="Sheet3")  # doctest: +SKIP
+
+    Here, the `if_sheet_exists` parameter can be set to replace a sheet if it
+    already exists:
+
+    >>> with ExcelWriter(
+    ...     "path_to_file.xlsx",
+    ...     mode="a",
+    ...     engine="openpyxl",
+    ...     if_sheet_exists="replace",
+    ... ) as writer:
+    ...     df.to_excel(writer, sheet_name="Sheet1")  # doctest: +SKIP
+
+    You can also write multiple DataFrames to a single sheet. Note that the
+    ``if_sheet_exists`` parameter needs to be set to ``overlay``:
+
+    >>> with ExcelWriter("path_to_file.xlsx",
+    ...     mode="a",
+    ...     engine="openpyxl",
+    ...     if_sheet_exists="overlay",
+    ... ) as writer:
+    ...     df1.to_excel(writer, sheet_name="Sheet1")
+    ...     df2.to_excel(writer, sheet_name="Sheet1", startcol=3)  # doctest: +SKIP
 
     You can store Excel file in RAM:
 
@@ -752,12 +823,32 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
     You can pack Excel file into zip archive:
 
-    >>> import zipfile
-    >>> df = pd.DataFrame([["ABC", "XYZ"]], columns=["Foo", "Bar"])
+    >>> import zipfile  # doctest: +SKIP
+    >>> df = pd.DataFrame([["ABC", "XYZ"]], columns=["Foo", "Bar"])  # doctest: +SKIP
     >>> with zipfile.ZipFile("path_to_file.zip", "w") as zf:
     ...     with zf.open("filename.xlsx", "w") as buffer:
     ...         with pd.ExcelWriter(buffer) as writer:
-    ...             df.to_excel(writer)
+    ...             df.to_excel(writer)  # doctest: +SKIP
+
+    You can specify additional arguments to the underlying engine:
+
+    >>> with pd.ExcelWriter(
+    ...     "path_to_file.xlsx",
+    ...     engine="xlsxwriter",
+    ...     engine_kwargs={"options": {"nan_inf_to_errors": True}}
+    ... ) as writer:
+    ...     df.to_excel(writer)  # doctest: +SKIP
+
+    In append mode, ``engine_kwargs`` are passed through to
+    openpyxl's ``load_workbook``:
+
+    >>> with pd.ExcelWriter(
+    ...     "path_to_file.xlsx",
+    ...     engine="openpyxl",
+    ...     mode="a",
+    ...     engine_kwargs={"keep_vba": True}
+    ... ) as writer:
+    ...     df.to_excel(writer, sheet_name="Sheet2")  # doctest: +SKIP
     """
 
     # Defining an ExcelWriter implementation (see abstract methods for more...)
@@ -783,7 +874,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     # ExcelWriter.
     def __new__(
         cls,
-        path: FilePathOrBuffer | ExcelWriter,
+        path: FilePath | WriteExcelBuffer | ExcelWriter,
         engine=None,
         date_format=None,
         datetime_format=None,
@@ -799,7 +890,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             warnings.warn(
                 "Use of **kwargs is deprecated, use engine_kwargs instead.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
 
         # only switch class if generic(ExcelWriter)
@@ -834,7 +925,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
                         "deprecated and will also raise a warning, it can "
                         "be globally set and the warning suppressed.",
                         FutureWarning,
-                        stacklevel=4,
+                        stacklevel=find_stack_level(),
                     )
 
             cls = get_writer(engine)
@@ -885,7 +976,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
     def __init__(
         self,
-        path: FilePathOrBuffer | ExcelWriter,
+        path: FilePath | WriteExcelBuffer | ExcelWriter,
         engine=None,
         date_format=None,
         datetime_format=None,
@@ -908,7 +999,9 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         mode = mode.replace("a", "r+")
 
         # cast ExcelWriter to avoid adding 'if self.handles is not None'
-        self.handles = IOHandles(cast(Buffer, path), compression={"copression": None})
+        self.handles = IOHandles(
+            cast(IO[bytes], path), compression={"compression": None}
+        )
         if not isinstance(path, ExcelWriter):
             self.handles = get_handle(
                 path, mode, storage_options=storage_options, is_text=False
@@ -927,10 +1020,10 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
         self.mode = mode
 
-        if if_sheet_exists not in [None, "error", "new", "replace"]:
+        if if_sheet_exists not in (None, "error", "new", "replace", "overlay"):
             raise ValueError(
                 f"'{if_sheet_exists}' is not valid for if_sheet_exists. "
-                "Valid options are 'error', 'new' and 'replace'."
+                "Valid options are 'error', 'new', 'replace' and 'overlay'."
             )
         if if_sheet_exists and "r+" not in mode:
             raise ValueError("if_sheet_exists is only valid in append mode (mode='a')")
@@ -1026,7 +1119,7 @@ PEEK_SIZE = max(map(len, XLS_SIGNATURES + (ZIP_SIGNATURE,)))
 
 @doc(storage_options=_shared_docs["storage_options"])
 def inspect_excel_format(
-    content_or_path: FilePathOrBuffer,
+    content_or_path: FilePath | ReadBuffer[bytes],
     storage_options: StorageOptions = None,
 ) -> str | None:
     """
@@ -1073,9 +1166,7 @@ def inspect_excel_format(
         elif not peek.startswith(ZIP_SIGNATURE):
             return None
 
-        # ZipFile typing is overly-strict
-        # https://github.com/python/typeshed/issues/4212
-        zf = zipfile.ZipFile(stream)  # type: ignore[arg-type]
+        zf = zipfile.ZipFile(stream)
 
         # Workaround for some third party files that use forward slashes and
         # lower case names.
@@ -1098,7 +1189,7 @@ class ExcelFile:
 
     Parameters
     ----------
-    path_or_buffer : str, path object (pathlib.Path or py._path.local.LocalPath),
+    path_or_buffer : str, bytes, path object (pathlib.Path or py._path.local.LocalPath),
         a file-like object, xlrd workbook or openpyxl workbook.
         If a string or path object, expected to be a path to a
         .xls, .xlsx, .xlsb, .xlsm, .odf, .ods, or .odt file.
@@ -1157,6 +1248,10 @@ class ExcelFile:
         if engine is not None and engine not in self._engines:
             raise ValueError(f"Unknown engine: {engine}")
 
+        # First argument can also be bytes, so create a buffer
+        if isinstance(path_or_buffer, bytes):
+            path_or_buffer = BytesIO(path_or_buffer)
+
         # Could be a str, ExcelFile, Book, etc.
         self.io = path_or_buffer
         # Always a string
@@ -1206,16 +1301,7 @@ class ExcelFile:
                     f"only the xls format is supported. Install openpyxl instead."
                 )
             elif ext and ext != "xls":
-                caller = inspect.stack()[1]
-                if (
-                    caller.filename.endswith(
-                        os.path.join("pandas", "io", "excel", "_base.py")
-                    )
-                    and caller.function == "read_excel"
-                ):
-                    stacklevel = 4
-                else:
-                    stacklevel = 2
+                stacklevel = find_stack_level()
                 warnings.warn(
                     f"Your version of xlrd is {xlrd_version}. In xlrd >= 2.0, "
                     f"only the xls format is supported. Install "
@@ -1239,7 +1325,7 @@ class ExcelFile:
         names=None,
         index_col=None,
         usecols=None,
-        squeeze=False,
+        squeeze=None,
         converters=None,
         true_values=None,
         false_values=None,
@@ -1251,7 +1337,7 @@ class ExcelFile:
         thousands=None,
         comment=None,
         skipfooter=0,
-        convert_float=True,
+        convert_float=None,
         mangle_dupe_cols=True,
         **kwds,
     ):

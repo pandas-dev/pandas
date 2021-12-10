@@ -23,6 +23,7 @@ import pickle
 import shutil
 from warnings import (
     catch_warnings,
+    filterwarnings,
     simplefilter,
 )
 import zipfile
@@ -31,9 +32,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import (
-    PY38,
     get_lzma_file,
-    import_lzma,
     is_platform_little_endian,
 )
 import pandas.util._test_decorators as td
@@ -51,11 +50,9 @@ from pandas.tseries.offsets import (
     MonthEnd,
 )
 
-lzma = import_lzma()
-
-
-# TODO(ArrayManager) pickling
-pytestmark = td.skip_array_manager_not_yet_implemented
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Timestamp.freq is deprecated:FutureWarning"
+)
 
 
 @pytest.fixture(scope="module")
@@ -63,7 +60,12 @@ def current_pickle_data():
     # our current version pickle data
     from pandas.tests.io.generate_legacy_storage_files import create_pickle_data
 
-    return create_pickle_data()
+    with catch_warnings():
+        filterwarnings(
+            "ignore", "The 'freq' argument in Timestamp", category=FutureWarning
+        )
+
+        return create_pickle_data()
 
 
 # ---------------------
@@ -154,9 +156,9 @@ def compare_index_period(result, expected, typ, version):
     tm.assert_index_equal(result.shift(2), expected.shift(2))
 
 
-files = glob.glob(
-    os.path.join(os.path.dirname(__file__), "data", "legacy_pickle", "*", "*.pickle")
-)
+here = os.path.dirname(__file__)
+legacy_dirname = os.path.join(here, "data", "legacy_pickle")
+files = glob.glob(os.path.join(legacy_dirname, "*", "*.pickle"))
 
 
 @pytest.fixture(params=files)
@@ -201,10 +203,10 @@ def python_unpickler(path):
         pytest.param(
             functools.partial(pd.to_pickle, protocol=5),
             id="pandas_proto_5",
-            marks=pytest.mark.skipif(not PY38, reason="protocol 5 not supported"),
         ),
     ],
 )
+@pytest.mark.filterwarnings("ignore:The 'freq' argument in Timestamp:FutureWarning")
 def test_round_trip_current(current_pickle_data, pickle_writer):
     data = current_pickle_data
     for typ, dv in data.items():
@@ -305,7 +307,7 @@ class TestCompression:
             with zipfile.ZipFile(dest_path, "w", compression=zipfile.ZIP_DEFLATED) as f:
                 f.write(src_path, os.path.basename(src_path))
         elif compression == "xz":
-            f = get_lzma_file(lzma)(dest_path, "w")
+            f = get_lzma_file()(dest_path, "w")
         else:
             msg = f"Unrecognized compression type: {compression}"
             raise ValueError(msg)
@@ -604,6 +606,7 @@ def test_pickle_strings(string_series):
     tm.assert_series_equal(unp_series, string_series)
 
 
+@td.skip_array_manager_invalid_test
 def test_pickle_preserves_block_ndim():
     # GH#37631
     ser = Series(list("abc")).astype("category").iloc[[0]]
@@ -625,3 +628,13 @@ def test_pickle_big_dataframe_compression(protocol, compression):
         partial(pd.read_pickle, compression=compression),
     )
     tm.assert_frame_equal(df, result)
+
+
+def test_pickle_frame_v124_unpickle_130():
+    # GH#42345 DataFrame created in 1.2.x, unpickle in 1.3.x
+    path = os.path.join(legacy_dirname, "1.2.4", "empty_frame_v1_2_4-GH#42345.pkl")
+    with open(path, "rb") as fd:
+        df = pickle.load(fd)
+
+    expected = pd.DataFrame()
+    tm.assert_frame_equal(df, expected)

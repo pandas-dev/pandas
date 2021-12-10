@@ -1,0 +1,48 @@
+<!--
+     This is an HTML fragment that gets included into a notebook & rst document
+
+     Inspired by nbconvert
+
+     https://github.com/jupyter/nbconvert/blob/8ac591a0b8694147d0f34bf6392594c2811c1395/docs/source/template_structure.html
+
+
+   -->
+<style type="text/css">
+    /* Overrides of notebook CSS for static HTML export */
+    .template_block {
+        background-color: hsla(120, 60%, 70%, 0.2);
+        margin: 10px;
+        padding: 5px;
+        border: 1px solid hsla(120, 60%, 70%, 0.5);
+        border-left: 2px solid black;
+    }
+    .template_block pre {
+        background: transparent;
+        padding: 0;
+    }
+    .big_vertical_ellipsis {
+        font-size: 24pt;
+    }
+</style>
+
+<div class="template_block" >before_table</div>
+
+<div class="template_block" >table
+    <pre>&lt;table ...&gt;</pre>
+    <div class="template_block">caption</div>
+
+    <div class="template_block" >thead
+        <div class="template_block" >before_head_rows</div>
+        <div class="template_block">head_tr (loop over headers)</div>
+        <div class="template_block" >after_head_rows</div>
+    </div>
+
+    <div class="template_block" >tbody
+        <div class="template_block" >before_rows</div>
+        <div class="template_block">tr (loop over data rows)</div>
+        <div class="template_block" >after_rows</div>
+    </div>
+    <pre>&lt;/table&gt;</pre>
+</div><!-- /table -->
+
+<div class="template_block" >after_table</div>

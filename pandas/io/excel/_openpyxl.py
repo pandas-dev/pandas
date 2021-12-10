@@ -9,7 +9,8 @@ from typing import (
 import numpy as np
 
 from pandas._typing import (
-    FilePathOrBuffer,
+    FilePath,
+    ReadBuffer,
     Scalar,
     StorageOptions,
 )
@@ -19,7 +20,10 @@ from pandas.io.excel._base import (
     BaseExcelReader,
     ExcelWriter,
 )
-from pandas.io.excel._util import validate_freeze_panes
+from pandas.io.excel._util import (
+    combine_kwargs,
+    validate_freeze_panes,
+)
 
 if TYPE_CHECKING:
     from openpyxl.descriptors.serialisable import Serialisable
@@ -39,9 +43,12 @@ class OpenpyxlWriter(ExcelWriter):
         storage_options: StorageOptions = None,
         if_sheet_exists: str | None = None,
         engine_kwargs: dict[str, Any] | None = None,
+        **kwargs,
     ):
         # Use the openpyxl module as the Excel writer.
         from openpyxl.workbook import Workbook
+
+        engine_kwargs = combine_kwargs(engine_kwargs, kwargs)
 
         super().__init__(
             path,
@@ -56,13 +63,13 @@ class OpenpyxlWriter(ExcelWriter):
         if "r+" in self.mode:  # Load from existing workbook
             from openpyxl import load_workbook
 
-            self.book = load_workbook(self.handles.handle)
+            self.book = load_workbook(self.handles.handle, **engine_kwargs)
             self.handles.handle.seek(0)
             self.sheets = {name: self.book[name] for name in self.book.sheetnames}
 
         else:
             # Create workbook object with default optimized_write=True.
-            self.book = Workbook()
+            self.book = Workbook(**engine_kwargs)
 
             if self.book.worksheets:
                 self.book.remove(self.book.worksheets[0])
@@ -431,10 +438,12 @@ class OpenpyxlWriter(ExcelWriter):
                         f"Sheet '{sheet_name}' already exists and "
                         f"if_sheet_exists is set to 'error'."
                     )
+                elif self.if_sheet_exists == "overlay":
+                    wks = self.sheets[sheet_name]
                 else:
                     raise ValueError(
                         f"'{self.if_sheet_exists}' is not valid for if_sheet_exists. "
-                        "Valid options are 'error', 'new' and 'replace'."
+                        "Valid options are 'error', 'new', 'replace' and 'overlay'."
                     )
             else:
                 wks = self.sheets[sheet_name]
@@ -499,7 +508,7 @@ class OpenpyxlWriter(ExcelWriter):
 class OpenpyxlReader(BaseExcelReader):
     def __init__(
         self,
-        filepath_or_buffer: FilePathOrBuffer,
+        filepath_or_buffer: FilePath | ReadBuffer[bytes],
         storage_options: StorageOptions = None,
     ) -> None:
         """
@@ -521,22 +530,16 @@ class OpenpyxlReader(BaseExcelReader):
 
         return Workbook
 
-    def load_workbook(self, filepath_or_buffer: FilePathOrBuffer):
+    def load_workbook(self, filepath_or_buffer: FilePath | ReadBuffer[bytes]):
         from openpyxl import load_workbook
 
         return load_workbook(
             filepath_or_buffer, read_only=True, data_only=True, keep_links=False
         )
 
-    def close(self):
-        # https://stackoverflow.com/questions/31416842/
-        #  openpyxl-does-not-close-excel-workbook-in-read-only-mode
-        self.book.close()
-        super().close()
-
     @property
     def sheet_names(self) -> list[str]:
-        return self.book.sheetnames
+        return [sheet.title for sheet in self.book.worksheets]
 
     def get_sheet_by_name(self, name: str):
         self.raise_if_bad_sheet_by_name(name)

@@ -1211,6 +1211,9 @@ The :ref:`Excel <io.excel>` docs
 `Modifying formatting in XlsxWriter output
 <https://pbpython.com/improve-pandas-excel-output.html>`__
 
+`Loading only visible sheets
+<https://github.com/pandas-dev/pandas/issues/19842#issuecomment-892150745>`__
+
 .. _cookbook.html:
 
 HTML
@@ -1300,7 +1303,7 @@ is closed.
 
 .. ipython:: python
 
-   store = pd.HDFStore("test.h5", "w", diver="H5FD_CORE")
+   store = pd.HDFStore("test.h5", "w", driver="H5FD_CORE")
 
    df = pd.DataFrame(np.random.randn(8, 3))
    store["test"] = df

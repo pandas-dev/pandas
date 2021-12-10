@@ -187,6 +187,16 @@ class TestTimedeltas:
         result = Series([to_timedelta("00:00:01")])
         tm.assert_series_equal(result, expected)
 
+    def test_to_timedelta_inference_without_warning(self):
+        # GH#41731 inference produces a warning in the Series constructor,
+        #  but _not_ in to_timedelta
+        vals = ["00:00:01", pd.NaT]
+        with tm.assert_produces_warning(None):
+            result = to_timedelta(vals)
+
+        expected = TimedeltaIndex([pd.Timedelta(seconds=1), pd.NaT])
+        tm.assert_index_equal(result, expected)
+
     def test_to_timedelta_on_missing_values(self):
         # GH5438
         timedelta_NaT = np.timedelta64("NaT")
@@ -197,7 +207,10 @@ class TestTimedeltas:
         )
         tm.assert_series_equal(actual, expected)
 
-        actual = to_timedelta(Series(["00:00:01", pd.NaT]))
+        with tm.assert_produces_warning(FutureWarning, match="Inferring timedelta64"):
+            ser = Series(["00:00:01", pd.NaT])
+        assert ser.dtype == "m8[ns]"
+        actual = to_timedelta(ser)
         tm.assert_series_equal(actual, expected)
 
         actual = to_timedelta(np.nan)
@@ -254,9 +267,9 @@ class TestTimedeltas:
         result = func(input)
         assert result == expected
 
-    def test_to_timedelta_zerodim(self):
+    def test_to_timedelta_zerodim(self, fixed_now_ts):
         # ndarray.item() incorrectly returns int for dt64[ns] and td64[ns]
-        dt64 = pd.Timestamp.now().to_datetime64()
+        dt64 = fixed_now_ts.to_datetime64()
         arg = np.array(dt64)
 
         msg = (

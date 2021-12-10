@@ -371,7 +371,7 @@ class TestConcatAppendCommon:
         )
 
         res = dti1.append(dti3)
-        # tm.assert_index_equal(res, exp)
+        tm.assert_index_equal(res, exp)
 
         dts1 = Series(dti1)
         dts3 = Series(dti3)

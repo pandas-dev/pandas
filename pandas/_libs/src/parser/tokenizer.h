@@ -84,6 +84,12 @@ typedef enum {
     QUOTE_NONE
 } QuoteStyle;
 
+typedef enum {
+    ERROR,
+    WARN,
+    SKIP
+} BadLineHandleMethod;
+
 typedef void *(*io_callback)(void *src, size_t nbytes, size_t *bytes_read,
                              int *status, const char *encoding_errors);
 typedef int (*io_cleanup)(void *src);
@@ -135,9 +141,8 @@ typedef struct parser_t {
 
     int usecols;  // Boolean: 1: usecols provided, 0: none provided
 
-    int expected_fields;
-    int error_bad_lines;
-    int warn_bad_lines;
+    Py_ssize_t expected_fields;
+    BadLineHandleMethod on_bad_lines;
 
     // floating point options
     char decimal;
@@ -170,7 +175,7 @@ typedef struct coliter_t {
     int64_t col;
 } coliter_t;
 
-void coliter_setup(coliter_t *self, parser_t *parser, int i, int start);
+void coliter_setup(coliter_t *self, parser_t *parser, int64_t i, int64_t start);
 
 #define COLITER_NEXT(iter, word)                           \
     do {                                                   \

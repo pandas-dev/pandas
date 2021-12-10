@@ -15,9 +15,9 @@ class TestFillNA:
 
         cat = idx._data
 
-        # fill by value not in categories raises ValueError on EA, casts on CI
+        # fill by value not in categories raises TypeError on EA, casts on CI
         msg = "Cannot setitem on a Categorical with a new category"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             cat.fillna(2.0)
 
         result = idx.fillna(2.0)
@@ -48,5 +48,5 @@ class TestFillNA:
         tm.assert_index_equal(res, ci)
 
         # Same check directly on the Categorical
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             cat.fillna(False)

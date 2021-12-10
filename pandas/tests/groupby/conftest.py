@@ -1,10 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    MultiIndex,
-)
+from pandas import DataFrame
 import pandas._testing as tm
 from pandas.core.groupby.base import (
     reduction_kernels,
@@ -12,14 +9,19 @@ from pandas.core.groupby.base import (
 )
 
 
+@pytest.fixture(params=[True, False])
+def sort(request):
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def as_index(request):
+    return request.param
+
+
 @pytest.fixture
-def mframe():
-    index = MultiIndex(
-        levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
-        codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
-        names=["first", "second"],
-    )
-    return DataFrame(np.random.randn(10, 3), index=index, columns=["A", "B", "C"])
+def mframe(multiindex_dataframe_random_data):
+    return multiindex_dataframe_random_data
 
 
 @pytest.fixture
@@ -111,6 +113,27 @@ def three_group():
     )
 
 
+@pytest.fixture()
+def slice_test_df():
+    data = [
+        [0, "a", "a0_at_0"],
+        [1, "b", "b0_at_1"],
+        [2, "a", "a1_at_2"],
+        [3, "b", "b1_at_3"],
+        [4, "c", "c0_at_4"],
+        [5, "a", "a2_at_5"],
+        [6, "a", "a3_at_6"],
+        [7, "a", "a4_at_7"],
+    ]
+    df = DataFrame(data, columns=["Index", "Group", "Value"])
+    return df.set_index("Index")
+
+
+@pytest.fixture()
+def slice_test_grouped(slice_test_df):
+    return slice_test_df.groupby("Group", as_index=False)
+
+
 @pytest.fixture(params=sorted(reduction_kernels))
 def reduction_func(request):
     """
@@ -137,13 +160,17 @@ def parallel(request):
     return request.param
 
 
-@pytest.fixture(params=[True, False])
+# Can parameterize nogil & nopython over True | False, but limiting per
+# https://github.com/pandas-dev/pandas/pull/41971#issuecomment-860607472
+
+
+@pytest.fixture(params=[False])
 def nogil(request):
     """nogil keyword argument for numba.jit"""
     return request.param
 
 
-@pytest.fixture(params=[True, False])
+@pytest.fixture(params=[True])
 def nopython(request):
     """nopython keyword argument for numba.jit"""
     return request.param

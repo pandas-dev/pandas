@@ -193,7 +193,7 @@ class TestTimedeltaIndex:
             timedelta_range(start="1 days", periods="foo", freq="D")
 
         msg = (
-            r"TimedeltaIndex\(\) must be called with a collection of some kind, "
+            r"TimedeltaIndex\(\.\.\.\) must be called with a collection of some kind, "
             "'1 days' was passed"
         )
         with pytest.raises(TypeError, match=msg):

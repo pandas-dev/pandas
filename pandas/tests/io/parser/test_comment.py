@@ -10,6 +10,8 @@ import pytest
 from pandas import DataFrame
 import pandas._testing as tm
 
+pytestmark = pytest.mark.usefixtures("pyarrow_skip")
+
 
 @pytest.mark.parametrize("na_values", [None, ["NaN"]])
 def test_comment(all_parsers, na_values):
@@ -28,7 +30,7 @@ def test_comment(all_parsers, na_values):
 @pytest.mark.parametrize(
     "read_kwargs", [{}, {"lineterminator": "*"}, {"delim_whitespace": True}]
 )
-def test_line_comment(all_parsers, read_kwargs):
+def test_line_comment(all_parsers, read_kwargs, request):
     parser = all_parsers
     data = """# empty
 A,B,C
@@ -40,7 +42,10 @@ A,B,C
         data = data.replace(",", " ")
     elif read_kwargs.get("lineterminator"):
         if parser.engine != "c":
-            pytest.skip("Custom terminator not supported with Python engine")
+            mark = pytest.mark.xfail(
+                reason="Custom terminator not supported with Python engine"
+            )
+            request.node.add_marker(mark)
 
         data = data.replace("\n", read_kwargs.get("lineterminator"))
 

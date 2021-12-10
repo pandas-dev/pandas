@@ -1,11 +1,24 @@
 from pandas import (
     DataFrame,
+    Index,
     Series,
 )
 import pandas._testing as tm
 
 
 class TestToFrame:
+    def test_to_frame_respects_name_none(self):
+        # GH#44212 if we explicitly pass name=None, then that should be respected,
+        #  not changed to 0
+        ser = Series(range(3))
+        result = ser.to_frame(None)
+
+        exp_index = Index([None], dtype=object)
+        tm.assert_index_equal(result.columns, exp_index)
+
+        result = ser.rename("foo").to_frame(None)
+        tm.assert_index_equal(result.columns, exp_index)
+
     def test_to_frame(self, datetime_series):
         datetime_series.name = None
         rs = datetime_series.to_frame()
