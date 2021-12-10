@@ -1179,25 +1179,16 @@ def test_apply_empty_string_nan_coerce_bug():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("is_float", [True, False])
-def test_apply_index_key_error_bug(is_float):
+@pytest.mark.parametrize("index_values", [[1, 2, 3], [1.0, 2.0, 3.0]])
+def test_apply_index_key_error_bug(index_values):
     # GH 44310
-    if is_float:
-        result = DataFrame(
-            {
-                "a": ["aa", "a2", "a3"],
-                "b": [1, 2, 3],
-            },
-            index=Index([1.0, 2.0, 3.0]),
-        )
-    else:
-        result = DataFrame(
-            {
-                "a": ["aa", "a2", "a3"],
-                "b": [1, 2, 3],
-            },
-            index=Index([1, 2, 3]),
-        )
+    result = DataFrame(
+        {
+            "a": ["aa", "a2", "a3"],
+            "b": [1, 2, 3],
+        },
+        index=Index(index_values),
+    )
     expected = DataFrame(
         {
             "b_mean": [2.0, 3.0, 1.0],
