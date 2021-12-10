@@ -1706,10 +1706,6 @@ class _iLocIndexer(_LocationIndexer):
             if isinstance(value, ABCDataFrame):
                 self._setitem_with_indexer_frame_value(indexer, value, name)
 
-            elif lplane_indexer == 0 and not isinstance(pi, slice):
-                # We get here in one case via .loc with a all-False mask
-                pass
-
             elif np.ndim(value) == 2:
                 self._setitem_with_indexer_2d_value(indexer, value)
 
@@ -2062,6 +2058,8 @@ class _iLocIndexer(_LocationIndexer):
             # we have a frame, with multiple indexers on both axes; and a
             # series, so need to broadcast (see GH5206)
             if sum_aligners == self.ndim and all(is_sequence(_) for _ in indexer):
+                if is_empty_indexer(indexer[0], ser._values):
+                    return ser._values.copy()
                 ser = ser.reindex(obj.axes[0][indexer[0]], copy=True)._values
 
                 # single indexer
