@@ -229,6 +229,8 @@ Other enhancements
 - :meth:`Series.info` has been added, for compatibility with :meth:`DataFrame.info` (:issue:`5167`)
 - Implemented :meth:`IntervalArray.min`, :meth:`IntervalArray.max`, as a result of which ``min`` and ``max`` now work for :class:`IntervalIndex`, :class:`Series` and :class:`DataFrame` with ``IntervalDtype`` (:issue:`44746`)
 - :meth:`UInt64Index.map` now retains ``dtype`` where possible (:issue:`44609`)
+- :meth:`read_json` can now parse unsigned long long integers (:issue:`26068`)
+- :meth:`DataFrame.take` now raises a ``TypeError`` when passed a scalar for the indexer (:issue:`42875`)
 -
 
 
@@ -714,6 +716,7 @@ MultiIndex
 - Bug in :meth:`MultiIndex.get_loc` where the first level is a :class:`DatetimeIndex` and a string key is passed (:issue:`42465`)
 - Bug in :meth:`MultiIndex.reindex` when passing a ``level`` that corresponds to an ``ExtensionDtype`` level (:issue:`42043`)
 - Bug in :meth:`MultiIndex.get_loc` raising ``TypeError`` instead of ``KeyError`` on nested tuple (:issue:`42440`)
+- Bug in :meth:`MultiIndex.union` setting wrong ``sortorder`` causing errors in subsequent indexing operations with slices (:issue:`44752`)
 - Bug in :meth:`MultiIndex.putmask` where the other value was also a :class:`MultiIndex` (:issue:`43212`)
 -
 
