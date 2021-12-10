@@ -48,7 +48,8 @@ jobs:
       shell: bash
       run: |
         python -m pip install --upgrade pip setuptools wheel
-        pip install -i https://pypi.anaconda.org/scipy-wheels-nightly/simple numpy
+        # TODO: unpin
+        pip install -i https://pypi.anaconda.org/scipy-wheels-nightly/simple "numpy==1.23.0.dev0+101.ga81535a36"
         pip install git+https://github.com/nedbat/coveragepy.git
         pip install cython python-dateutil pytz hypothesis pytest>=6.2.5 pytest-xdist pytest-cov
         pip list
