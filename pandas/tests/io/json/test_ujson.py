@@ -5,7 +5,6 @@ import json
 import locale
 import math
 import re
-import sys
 import time
 
 import dateutil
@@ -599,24 +598,23 @@ class TestUltraJSONTests:
             np.array(long_input), ujson.decode(output, numpy=True, dtype=np.int64)
         )
 
-    def test_encode_long_conversion(self):
-        long_input = 9223372036854775807
+    @pytest.mark.parametrize("long_input", [9223372036854775807, 18446744073709551615])
+    def test_encode_long_conversion(self, long_input):
         output = ujson.encode(long_input)
 
         assert long_input == json.loads(output)
         assert output == json.dumps(long_input)
         assert long_input == ujson.decode(output)
 
-    @pytest.mark.parametrize("bigNum", [sys.maxsize + 1, -(sys.maxsize + 2)])
-    @pytest.mark.xfail(not IS64, reason="GH-35288")
+    @pytest.mark.parametrize("bigNum", [2 ** 64, -(2 ** 63) - 1])
     def test_dumps_ints_larger_than_maxsize(self, bigNum):
-        # GH34395
-        bigNum = sys.maxsize + 1
         encoding = ujson.encode(bigNum)
         assert str(bigNum) == encoding
 
-        # GH20599
-        with pytest.raises(ValueError, match="Value is too big"):
+        with pytest.raises(
+            ValueError,
+            match="Value is too big|Value is too small",
+        ):
             assert ujson.loads(encoding) == bigNum
 
     @pytest.mark.parametrize(
@@ -1162,11 +1160,12 @@ class TestPandasJSONTests:
     def test_decode_extreme_numbers(self, extreme_num):
         assert extreme_num == ujson.decode(str(extreme_num))
 
-    @pytest.mark.parametrize(
-        "too_extreme_num", ["9223372036854775808", "-90223372036854775809"]
-    )
+    @pytest.mark.parametrize("too_extreme_num", [f"{2**64}", f"{-2**63-1}"])
     def test_decode_too_extreme_numbers(self, too_extreme_num):
-        with pytest.raises(ValueError, match="Value is too big|Value is too small"):
+        with pytest.raises(
+            ValueError,
+            match="Value is too big|Value is too small",
+        ):
             ujson.decode(too_extreme_num)
 
     def test_decode_with_trailing_whitespaces(self):
@@ -1176,9 +1175,13 @@ class TestPandasJSONTests:
         with pytest.raises(ValueError, match="Trailing data"):
             ujson.decode("{}\n\t a")
 
-    def test_decode_array_with_big_int(self):
-        with pytest.raises(ValueError, match="Value is too big"):
-            ujson.loads("[18446098363113800555]")
+    @pytest.mark.parametrize("value", [f"{2**64}", f"{-2**63-1}"])
+    def test_decode_array_with_big_int(self, value):
+        with pytest.raises(
+            ValueError,
+            match="Value is too big|Value is too small",
+        ):
+            ujson.loads(value)
 
     @pytest.mark.parametrize(
         "float_number",
