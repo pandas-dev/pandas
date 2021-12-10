@@ -228,6 +228,7 @@ Other enhancements
 - :meth:`.Rolling.var`, :meth:`.Expanding.var`, :meth:`.Rolling.std`, :meth:`.Expanding.std` now support `Numba <http://numba.pydata.org/>`_ execution with the ``engine`` keyword (:issue:`44461`)
 - :meth:`Series.info` has been added, for compatibility with :meth:`DataFrame.info` (:issue:`5167`)
 - :meth:`UInt64Index.map` now retains ``dtype`` where possible (:issue:`44609`)
+- :meth:`read_json` can now parse unsigned long long integers (:issue:`26068`)
 -
 
 
