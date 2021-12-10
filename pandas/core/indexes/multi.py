@@ -3593,7 +3593,7 @@ class MultiIndex(Index):
             rvals = other._values.astype(object, copy=False)
             result = lib.fast_unique_multiple([self._values, rvals], sort=sort)
 
-        return MultiIndex.from_arrays(zip(*result), sortorder=0, names=result_names)
+        return MultiIndex.from_arrays(zip(*result), sortorder=None, names=result_names)
 
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         return is_object_dtype(dtype)
