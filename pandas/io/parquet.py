@@ -137,7 +137,7 @@ class BaseImpl:
             raise ValueError("Index level names must be strings")
 
         # Paquet format does not support saving float16
-        if df.select_dtypes(include='float16').columns.size>0:
+        if df.select_dtypes(include='float16').columns.size > 0:
             raise ValueError("Parquet format does not support saving float16")
 
     def write(self, df: DataFrame, path, compression, **kwargs):
