@@ -25,6 +25,12 @@ from pandas import (
 import pandas._testing as tm
 
 
+@pytest.fixture()
+def multiindex_df():
+    levels = [["A", ""], ["B", "b"]]
+    return DataFrame([[0, 2], [1, 3]], columns=MultiIndex.from_tuples(levels))
+
+
 class TestResetIndex:
     def test_set_reset(self):
 
@@ -368,41 +374,31 @@ class TestResetIndex:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_reset_index_multiindex_columns(self):
-        levels = [["A", ""], ["B", "b"]]
-        df = DataFrame([[0, 2], [1, 3]], columns=MultiIndex.from_tuples(levels))
-        result = df[["B"]].rename_axis("A").reset_index()
-        tm.assert_frame_equal(result, df)
+    def test_reset_index_multiindex_columns(self, multiindex_df):
+        result = multiindex_df[["B"]].rename_axis("A").reset_index()
+        tm.assert_frame_equal(result, multiindex_df)
 
         # GH#16120: already existing column
         msg = r"cannot insert \('A', ''\), already exists"
         with pytest.raises(ValueError, match=msg):
-            df.rename_axis("A").reset_index()
-
-        # GH#44755 reset_index with duplicate column labels
-        result = df.rename_axis("A").reset_index(allow_duplicates=True)
-        levels = [["A", ""], ["A", ""], ["B", "b"]]
-        expected = DataFrame(
-            [[0, 0, 2], [1, 1, 3]], columns=MultiIndex.from_tuples(levels)
-        )
-        tm.assert_frame_equal(result, expected)
+            multiindex_df.rename_axis("A").reset_index()
 
         # GH#16164: multiindex (tuple) full key
-        result = df.set_index([("A", "")]).reset_index()
-        tm.assert_frame_equal(result, df)
+        result = multiindex_df.set_index([("A", "")]).reset_index()
+        tm.assert_frame_equal(result, multiindex_df)
 
         # with additional (unnamed) index level
         idx_col = DataFrame(
             [[0], [1]], columns=MultiIndex.from_tuples([("level_0", "")])
         )
-        expected = pd.concat([idx_col, df[[("B", "b"), ("A", "")]]], axis=1)
-        result = df.set_index([("B", "b")], append=True).reset_index()
+        expected = pd.concat([idx_col, multiindex_df[[("B", "b"), ("A", "")]]], axis=1)
+        result = multiindex_df.set_index([("B", "b")], append=True).reset_index()
         tm.assert_frame_equal(result, expected)
 
         # with index name which is a too long tuple...
         msg = "Item must have length equal to number of levels."
         with pytest.raises(ValueError, match=msg):
-            df.rename_axis([("C", "c", "i")]).reset_index()
+            multiindex_df.rename_axis([("C", "c", "i")]).reset_index()
 
         # or too short...
         levels = [["A", "a", ""], ["B", "b", "i"]]
@@ -427,6 +423,24 @@ class TestResetIndex:
         # with col_level != 0
         result = df2.rename_axis([("c", "ii")]).reset_index(col_level=1, col_fill="C")
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("allow_duplicates", ["absent", False, None, True])
+    def test_reset_index_duplicate_columns(self, multiindex_df, allow_duplicates):
+        # GH#44755 reset_index with duplicate column labels
+        if allow_duplicates is False or allow_duplicates == "absent":
+            msg = r"cannot insert \('A', ''\), already exists"
+            with pytest.raises(ValueError, match=msg):
+                if allow_duplicates == "absent":
+                    multiindex_df.rename_axis("A").reset_index()
+                else:
+                    multiindex_df.rename_axis("A").reset_index(allow_duplicates=False)
+        else:
+            result = multiindex_df.rename_axis("A").reset_index(allow_duplicates=True)
+            levels = [["A", ""], ["A", ""], ["B", "b"]]
+            expected = DataFrame(
+                [[0, 0, 2], [1, 1, 3]], columns=MultiIndex.from_tuples(levels)
+            )
+            tm.assert_frame_equal(result, expected)
 
     @pytest.mark.filterwarnings("ignore:Timestamp.freq is deprecated:FutureWarning")
     def test_reset_index_datetime(self, tz_naive_fixture):
