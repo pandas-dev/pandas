@@ -113,6 +113,11 @@ class TestDataFrameSelectReindex:
         )
         tm.assert_frame_equal(res, expected)
 
+        # only reindexing rows
+        with tm.assert_produces_warning(FutureWarning):
+            res = df.reindex(index=range(4), fill_value=fv)
+        tm.assert_frame_equal(res, expected[["A", "B"]])
+
         # same with a datetime-castable str
         res = df.reindex(
             index=range(4), columns=["A", "B", "C"], fill_value="2016-01-01"
