@@ -169,14 +169,7 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         result = right // left
         tm.assert_equal(result, expected)
 
-        msg = "|".join(
-            [
-                "Cannot divide",
-                # 2021-12-09 new message in npdev
-                "ufunc 'divide' cannot use operands with types "
-                r"dtype\('.*'\) and dtype\('<m8\[ns\]'\)",
-            ]
-        )
+        msg = "Cannot divide"
         with pytest.raises(TypeError, match=msg):
             left / right
 
@@ -253,14 +246,7 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         result = three_days / index
         tm.assert_equal(result, expected)
 
-        msg = "|".join(
-            [
-                "cannot use operands with types dtype",
-                # 2021-12-09 new message in npdev
-                "ufunc 'divide' cannot use operands with types "
-                r"dtype\('.*'\) and dtype\('<m8\[ns\]'\)",
-            ]
-        )
+        msg = "cannot use operands with types dtype"
         with pytest.raises(TypeError, match=msg):
             index / three_days
 

@@ -1472,13 +1472,7 @@ class TestTimedeltaArraylikeMulDivOps:
     def test_td64arr_mul_tdlike_scalar_raises(self, two_hours, box_with_array):
         rng = timedelta_range("1 days", "10 days", name="foo")
         rng = tm.box_expected(rng, box_with_array)
-        msg = "|".join(
-            [
-                "argument must be an integer",
-                "cannot use operands with types dtype",
-                r"unsupported operand type\(s\) for \*",
-            ]
-        )
+        msg = "argument must be an integer|cannot use operands with types dtype"
         with pytest.raises(TypeError, match=msg):
             rng * two_hours
 
@@ -1984,16 +1978,7 @@ class TestTimedeltaArraylikeMulDivOps:
         result = tdser / two
         tm.assert_equal(result, expected)
 
-        msg = "|".join(
-            [
-                "Cannot divide",
-                # 2021-12-09 npdev started giving a new message; not sure if it
-                #  will be changed back
-                "ufunc 'divide' cannot use operands with types "
-                r"dtype\('.*'\) and dtype\('<m8\[ns\]'\)",
-            ]
-        )
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError, match="Cannot divide"):
             two / tdser
 
     @pytest.mark.parametrize("two", [2, 2.0, np.array(2), np.array(2.0)])
@@ -2070,9 +2055,6 @@ class TestTimedeltaArraylikeMulDivOps:
                 "cannot perform __truediv__",
                 "unsupported operand",
                 "Cannot divide",
-                # 2021-12-09 new message on npdev
-                "ufunc 'divide' cannot use operands with types "
-                r"dtype\('.*'\) and dtype\('<m8\[ns\]'\)",
             ]
         )
         with pytest.raises(TypeError, match=pattern):
