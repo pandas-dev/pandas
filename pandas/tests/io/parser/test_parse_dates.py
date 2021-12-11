@@ -1709,8 +1709,8 @@ def _helper_hypothesis_delimited_date(call, date_string, **kwargs):
 def test_hypothesis_delimited_date(date_format, dayfirst, delimiter, test_datetime):
     if date_format == "%m %Y" and delimiter == ".":
         pytest.skip(
-            "parse_datetime_string cannot reliably tell whether \
-        e.g. %m.%Y is a float or a date, thus we skip it"
+            "parse_datetime_string cannot reliably tell whether "
+            "e.g. %m.%Y is a float or a date, thus we skip it"
         )
     result, expected = None, None
     except_in_dateutil, except_out_dateutil = None, None
