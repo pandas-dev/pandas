@@ -2104,32 +2104,24 @@ class TestDaysInMonth:
         with pytest.raises(ValueError, match=msg):
             to_datetime("2015-02-29", errors="raise", cache=cache)
 
-        msg = "time data 2015-02-29 doesn't match format specified"
+    @pytest.mark.parametrize("arg", ["2015-02-29", "2015-02-32", "2015-04-31"])
+    def test_day_not_in_month_raise_value(self, cache, arg):
+        msg = f"time data {arg} doesn't match format specified"
         with pytest.raises(ValueError, match=msg):
-            to_datetime("2015-02-29", errors="raise", format="%Y-%m-%d", cache=cache)
+            to_datetime(arg, errors="raise", format="%Y-%m-%d", cache=cache)
 
-        msg = "time data 2015-02-32 doesn't match format specified"
-        with pytest.raises(ValueError, match=msg):
-            to_datetime("2015-02-32", errors="raise", format="%Y-%m-%d", cache=cache)
-
-        msg = "time data 2015-04-31 doesn't match format specified"
-        with pytest.raises(ValueError, match=msg):
-            to_datetime("2015-04-31", errors="raise", format="%Y-%m-%d", cache=cache)
-
-    def test_day_not_in_month_ignore(self, cache):
-        assert to_datetime("2015-02-29", errors="ignore", cache=cache) == "2015-02-29"
-        assert (
-            to_datetime("2015-02-29", errors="ignore", format="%Y-%m-%d", cache=cache)
-            == "2015-02-29"
-        )
-        assert (
-            to_datetime("2015-02-32", errors="ignore", format="%Y-%m-%d", cache=cache)
-            == "2015-02-32"
-        )
-        assert (
-            to_datetime("2015-04-31", errors="ignore", format="%Y-%m-%d", cache=cache)
-            == "2015-04-31"
-        )
+    @pytest.mark.parametrize(
+        "expected, format",
+        [
+            ["2015-02-29", None],
+            ["2015-02-29", "%Y-%m-%d"],
+            ["2015-02-29", "%Y-%m-%d"],
+            ["2015-04-31", "%Y-%m-%d"],
+        ],
+    )
+    def test_day_not_in_month_ignore(self, cache, expected, format):
+        result = to_datetime(expected, errors="ignore", format=format, cache=cache)
+        assert result == expected
 
 
 class TestDatetimeParsingWrappers:
@@ -2235,7 +2227,22 @@ class TestDatetimeParsingWrappers:
         assert result3 is NaT
         assert result4 is NaT
 
-    def test_parsers_dayfirst_yearfirst(self, cache):
+    @pytest.mark.parametrize(
+        "date_str, dayfirst, yearfirst, expected",
+        [
+            ("10-11-12", False, False, datetime(2012, 10, 11)),
+            ("10-11-12", True, False, datetime(2012, 11, 10)),
+            ("10-11-12", False, True, datetime(2010, 11, 12)),
+            ("10-11-12", True, True, datetime(2010, 12, 11)),
+            ("20/12/21", False, False, datetime(2021, 12, 20)),
+            ("20/12/21", True, False, datetime(2021, 12, 20)),
+            ("20/12/21", False, True, datetime(2020, 12, 21)),
+            ("20/12/21", True, True, datetime(2020, 12, 21)),
+        ],
+    )
+    def test_parsers_dayfirst_yearfirst(
+        self, cache, date_str, dayfirst, yearfirst, expected
+    ):
         # OK
         # 2.5.1 10-11-12   [dayfirst=0, yearfirst=0] -> 2012-10-11 00:00:00
         # 2.5.2 10-11-12   [dayfirst=0, yearfirst=1] -> 2012-10-11 00:00:00
@@ -2277,72 +2284,51 @@ class TestDatetimeParsingWrappers:
         # 2.5.3 20/12/21   [dayfirst=1, yearfirst=0] -> 2021-12-20 00:00:00
 
         # str : dayfirst, yearfirst, expected
-        cases = {
-            "10-11-12": [
-                (False, False, datetime(2012, 10, 11)),
-                (True, False, datetime(2012, 11, 10)),
-                (False, True, datetime(2010, 11, 12)),
-                (True, True, datetime(2010, 12, 11)),
-            ],
-            "20/12/21": [
-                (False, False, datetime(2021, 12, 20)),
-                (True, False, datetime(2021, 12, 20)),
-                (False, True, datetime(2020, 12, 21)),
-                (True, True, datetime(2020, 12, 21)),
-            ],
-        }
 
-        for date_str, values in cases.items():
-            for dayfirst, yearfirst, expected in values:
+        # compare with dateutil result
+        dateutil_result = parse(date_str, dayfirst=dayfirst, yearfirst=yearfirst)
+        assert dateutil_result == expected
 
-                # compare with dateutil result
-                dateutil_result = parse(
-                    date_str, dayfirst=dayfirst, yearfirst=yearfirst
-                )
-                assert dateutil_result == expected
+        result1, _ = parsing.parse_time_string(
+            date_str, dayfirst=dayfirst, yearfirst=yearfirst
+        )
 
-                result1, _ = parsing.parse_time_string(
-                    date_str, dayfirst=dayfirst, yearfirst=yearfirst
-                )
+        # we don't support dayfirst/yearfirst here:
+        if not dayfirst and not yearfirst:
+            result2 = Timestamp(date_str)
+            assert result2 == expected
 
-                # we don't support dayfirst/yearfirst here:
-                if not dayfirst and not yearfirst:
-                    result2 = Timestamp(date_str)
-                    assert result2 == expected
+        result3 = to_datetime(
+            date_str, dayfirst=dayfirst, yearfirst=yearfirst, cache=cache
+        )
 
-                result3 = to_datetime(
-                    date_str, dayfirst=dayfirst, yearfirst=yearfirst, cache=cache
-                )
+        result4 = DatetimeIndex([date_str], dayfirst=dayfirst, yearfirst=yearfirst)[0]
 
-                result4 = DatetimeIndex(
-                    [date_str], dayfirst=dayfirst, yearfirst=yearfirst
-                )[0]
+        assert result1 == expected
+        assert result3 == expected
+        assert result4 == expected
 
-                assert result1 == expected
-                assert result3 == expected
-                assert result4 == expected
-
-    def test_parsers_timestring(self, cache):
+    @pytest.mark.parametrize(
+        "date_str, exp_def",
+        [["10:15", datetime(1, 1, 1, 10, 15)], ["9:05", datetime(1, 1, 1, 9, 5)]],
+    )
+    def test_parsers_timestring(self, date_str, exp_def):
         # must be the same as dateutil result
-        cases = {
-            "10:15": (parse("10:15"), datetime(1, 1, 1, 10, 15)),
-            "9:05": (parse("9:05"), datetime(1, 1, 1, 9, 5)),
-        }
+        exp_now = parse(date_str)
 
-        for date_str, (exp_now, exp_def) in cases.items():
-            result1, _ = parsing.parse_time_string(date_str)
-            result2 = to_datetime(date_str)
-            result3 = to_datetime([date_str])
-            result4 = Timestamp(date_str)
-            result5 = DatetimeIndex([date_str])[0]
-            # parse time string return time string based on default date
-            # others are not, and can't be changed because it is used in
-            # time series plot
-            assert result1 == exp_def
-            assert result2 == exp_now
-            assert result3 == exp_now
-            assert result4 == exp_now
-            assert result5 == exp_now
+        result1, _ = parsing.parse_time_string(date_str)
+        result2 = to_datetime(date_str)
+        result3 = to_datetime([date_str])
+        result4 = Timestamp(date_str)
+        result5 = DatetimeIndex([date_str])[0]
+        # parse time string return time string based on default date
+        # others are not, and can't be changed because it is used in
+        # time series plot
+        assert result1 == exp_def
+        assert result2 == exp_now
+        assert result3 == exp_now
+        assert result4 == exp_now
+        assert result5 == exp_now
 
     @pytest.mark.parametrize(
         "dt_string, tz, dt_string_repr",
@@ -2420,7 +2406,7 @@ def julian_dates():
 
 
 class TestOrigin:
-    def test_to_basic(self, julian_dates):
+    def test_julian(self, julian_dates):
         # gh-11276, gh-11745
         # for origin as julian
 
@@ -2430,14 +2416,8 @@ class TestOrigin:
         )
         tm.assert_series_equal(result, expected)
 
+    def test_unix(self):
         result = Series(to_datetime([0, 1, 2], unit="D", origin="unix"))
-        expected = Series(
-            [Timestamp("1970-01-01"), Timestamp("1970-01-02"), Timestamp("1970-01-03")]
-        )
-        tm.assert_series_equal(result, expected)
-
-        # default
-        result = Series(to_datetime([0, 1, 2], unit="D"))
         expected = Series(
             [Timestamp("1970-01-01"), Timestamp("1970-01-02"), Timestamp("1970-01-03")]
         )
@@ -2460,15 +2440,13 @@ class TestOrigin:
             with pytest.raises(ValueError, match=msg):
                 to_datetime(julian_dates, unit=units, origin="julian")
 
-    def test_invalid_origin(self):
+    @pytest.mark.parametrize("unit", ["ns", "D"])
+    def test_invalid_origin(self, unit):
 
         # need to have a numeric specified
         msg = "it must be numeric with a unit specified"
         with pytest.raises(ValueError, match=msg):
-            to_datetime("2005-01-01", origin="1960-01-01")
-
-        with pytest.raises(ValueError, match=msg):
-            to_datetime("2005-01-01", origin="1960-01-01", unit="D")
+            to_datetime("2005-01-01", origin="1960-01-01", unit=unit)
 
     def test_epoch(self, units, epochs, epoch_1960, units_from_epochs):
 
@@ -2506,12 +2484,20 @@ class TestOrigin:
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             to_datetime("2417-10-27 00:00:00", format=format)
 
-    def test_processing_order(self):
+    @pytest.mark.parametrize(
+        "arg, origin, expected_str",
+        [
+            [200 * 365, "unix", "2169-11-13 00:00:00"],
+            [200 * 365, "1870-01-01", "2069-11-13 00:00:00"],
+            [300 * 365, "1870-01-01", "2169-10-20 00:00:00"],
+        ],
+    )
+    def test_processing_order(self, arg, origin, expected_str):
         # make sure we handle out-of-bounds *before*
         # constructing the dates
 
-        result = to_datetime(200 * 365, unit="D")
-        expected = Timestamp("2169-11-13 00:00:00")
+        result = to_datetime(arg, unit="D", origin=origin)
+        expected = Timestamp(expected_str)
         assert result == expected
 
         result = to_datetime(200 * 365, unit="D", origin="1870-01-01")
@@ -2626,7 +2612,7 @@ def test_empty_string_datetime_coerce_format():
 
     # raise an exception in case a format is given
     with pytest.raises(ValueError, match="does not match format"):
-        result = to_datetime(td, format=format, errors="raise")
+        to_datetime(td, format=format, errors="raise")
 
     # don't raise an exception in case no format is given
     result = to_datetime(td, errors="raise")
