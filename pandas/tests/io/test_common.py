@@ -607,4 +607,5 @@ def test_errno_attribute():
 
 def test_fail_mmap():
     with pytest.raises(UnsupportedOperation, match="fileno"):
-        icom.get_handle(BytesIO(), "rb", memory_map=True)
+        with BytesIO() as buffer:
+            icom.get_handle(buffer, "rb", memory_map=True)
