@@ -8,6 +8,8 @@ from itertools import permutations
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -97,6 +99,7 @@ class TestDataFrameSelectReindex:
         result2 = df.reindex(columns=cols, index=df.index, copy=True)
         assert not np.shares_memory(result2[0]._values, df[0]._values)
 
+    @td.skip_array_manager_not_yet_implemented
     def test_reindex_date_fill_value(self):
         # passing date to dt64 is deprecated
         arr = date_range("2016-01-01", periods=6).values.reshape(3, 2)
