@@ -78,6 +78,24 @@ jobs:
       run: pytest scripts
       if: always()
 
+  benchmarks:
+    name: Benchmarks
+    runs-on: ubuntu-latest
+
+    concurrency:
+      # https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-web-docs
+      cancel-in-progress: true
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    - name: Set up pandas
+      uses: ./.github/actions/setup
+
     - name: Running benchmarks
       run: |
         cd asv_bench
