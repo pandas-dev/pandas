@@ -638,9 +638,9 @@ def test_hiding_index_columns_multiindex_alignment():
         <tr>
           <th class="blank" >&nbsp;</th>
           <th class="descriptor_name descriptor0" >mean</th>
-          <th class="descriptor_value descriptor0 col0" >6.0</th>
-          <th class="descriptor_value descriptor0 col1" >7.0</th>
-          <th class="descriptor_value descriptor0 col2" >8.0</th>
+          <th class="descriptor_value descriptor0 col0" >6.000000</th>
+          <th class="descriptor_value descriptor0 col1" >7.000000</th>
+          <th class="descriptor_value descriptor0 col2" >8.000000</th>
         </tr>
         <tr>
           <th class="index_name level0" >i-0</th>
@@ -687,7 +687,14 @@ def test_hiding_index_columns_multiindex_trimming():
     styler = Styler(df, cell_ids=False, uuid_len=0)
     styler.hide([(0, 0), (0, 1), (1, 0)], axis=1).hide([(0, 0), (0, 1), (1, 0)], axis=0)
     styler.set_descriptors(["mean"])
-    with option_context("styler.render.max_rows", 4, "styler.render.max_columns", 4):
+    with option_context(
+        "styler.render.max_rows",
+        4,
+        "styler.render.max_columns",
+        4,
+        "styler.format.precision",
+        0,
+    ):
         result = styler.to_html()
 
     expected = dedent(
@@ -715,10 +722,10 @@ def test_hiding_index_columns_multiindex_trimming():
         <tr>
           <th class="blank" >&nbsp;</th>
           <th class="descriptor_name descriptor0" >mean</th>
-          <th class="descriptor_value descriptor0 col3" >31.0</th>
-          <th class="descriptor_value descriptor0 col4" >32.0</th>
-          <th class="descriptor_value descriptor0 col5" >33.0</th>
-          <th class="descriptor_value descriptor0 col6" >34.0</th>
+          <th class="descriptor_value descriptor0 col3" >31</th>
+          <th class="descriptor_value descriptor0 col4" >32</th>
+          <th class="descriptor_value descriptor0 col5" >33</th>
+          <th class="descriptor_value descriptor0 col6" >34</th>
           <th class="descriptor_value descriptor0 col_trim" >...</th>
         </tr>
         <tr>

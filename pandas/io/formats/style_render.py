@@ -496,6 +496,12 @@ class StylerRenderer:
         else:
             name, func = None, descriptor
 
+        precision = get_option("styler.format.precision")
+        thousands = get_option("styler.format.thousands")
+        display_func: Callable = lambda x: _default_formatter(
+            func(x), precision=precision, thousands=thousands
+        )
+
         base_css = f"{self.css['descriptor_name']} {self.css['descriptor']}{r}"
         descriptor_name = [
             _element(
@@ -516,7 +522,7 @@ class StylerRenderer:
                 header_element_visible = True
                 visible_col_count += 1
                 try:
-                    header_element_value = func(self.data[col])
+                    header_element_value = display_func(self.data[col])
                 except Exception:
                     header_element_value = self.css["blank_value"]
             else:
