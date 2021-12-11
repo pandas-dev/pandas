@@ -537,6 +537,7 @@ class TestDataFrameIndexing:
 
     @td.skip_array_manager_invalid_test  # already covered in test_iloc_col_slice_view
     def test_fancy_getitem_slice_mixed(self, float_frame, float_string_frame):
+
         sliced = float_string_frame.iloc[:, -3:]
         assert sliced["D"].dtype == np.float64
 
@@ -544,9 +545,11 @@ class TestDataFrameIndexing:
         # setting it triggers setting with copy
         sliced = float_frame.iloc[:, -3:]
 
+        assert np.shares_memory(sliced["C"]._values, float_frame["C"]._values)
+
         msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
         with pytest.raises(com.SettingWithCopyError, match=msg):
-            sliced["C"] = 4.0
+            sliced.loc[:, "C"] = 4.0
 
         assert (float_frame["C"] == 4).all()
 
@@ -576,13 +579,11 @@ class TestDataFrameIndexing:
         xp = df.reindex([0])
         tm.assert_frame_equal(rs, xp)
 
-        # FIXME: dont leave commented-out
-        """ #1321
+        # GH#1321
         df = DataFrame(np.random.randn(3, 2))
-        rs = df.loc[df.index==0, df.columns==1]
-        xp = df.reindex([0], [1])
+        rs = df.loc[df.index == 0, df.columns == 1]
+        xp = df.reindex(index=[0], columns=[1])
         tm.assert_frame_equal(rs, xp)
-        """
 
     def test_getitem_fancy_scalar(self, float_frame):
         f = float_frame
@@ -799,19 +800,13 @@ class TestDataFrameIndexing:
         assert df["timestamp"].dtype == np.object_
         assert df.loc["b", "timestamp"] == iNaT
 
-        # allow this syntax
+        # allow this syntax (as of GH#3216)
         df.loc["c", "timestamp"] = np.nan
         assert isna(df.loc["c", "timestamp"])
 
         # allow this syntax
         df.loc["d", :] = np.nan
         assert not isna(df.loc["c", :]).all()
-
-        # FIXME: don't leave commented-out
-        # as of GH 3216 this will now work!
-        # try to set with a list like item
-        # pytest.raises(
-        #    Exception, df.loc.__setitem__, ('d', 'timestamp'), [np.nan])
 
     def test_setitem_mixed_datetime(self):
         # GH 9336
@@ -1004,9 +999,11 @@ class TestDataFrameIndexing:
         # setting it makes it raise/warn
         subset = df.iloc[slice(4, 8)]
 
+        assert np.shares_memory(df[2], subset[2])
+
         msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
         with pytest.raises(com.SettingWithCopyError, match=msg):
-            subset[2] = 0.0
+            subset.loc[:, 2] = 0.0
 
         exp_col = original[2].copy()
         # TODO(ArrayManager) verify it is expected that the original didn't change
@@ -1043,10 +1040,13 @@ class TestDataFrameIndexing:
 
         if not using_array_manager:
             # verify slice is view
+
+            assert np.shares_memory(df[8]._values, subset[8]._values)
+
             # and that we are setting a copy
             msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
             with pytest.raises(com.SettingWithCopyError, match=msg):
-                subset[8] = 0.0
+                subset.loc[:, 8] = 0.0
 
             assert (df[8] == 0).all()
         else:
@@ -1167,12 +1167,10 @@ class TestDataFrameIndexing:
 
     def test_type_error_multiindex(self):
         # See gh-12218
-        df = DataFrame(
-            columns=["i", "c", "x", "y"],
-            data=[[0, 0, 1, 2], [1, 0, 3, 4], [0, 1, 1, 2], [1, 1, 3, 4]],
+        mi = MultiIndex.from_product([["x", "y"], [0, 1]], names=[None, "c"])
+        dg = DataFrame(
+            [[1, 1, 2, 2], [3, 3, 4, 4]], columns=mi, index=Index([0, 1], name="i")
         )
-        dg = df.pivot_table(index="i", columns="c", values=["x", "y"])
-        # TODO: Is this test for pivot_table?
         with pytest.raises(TypeError, match="unhashable type"):
             dg[:, 0]
 
@@ -1212,6 +1210,75 @@ class TestDataFrameIndexing:
         df.loc[0] = {"a": np.zeros((2,)), "b": np.zeros((2, 2))}
         expected = DataFrame({"a": [np.zeros((2,))], "b": [np.zeros((2, 2))]})
         tm.assert_frame_equal(df, expected)
+
+    # with AM goes through split-path, loses dtype
+    @td.skip_array_manager_not_yet_implemented
+    def test_iloc_setitem_nullable_2d_values(self):
+        df = DataFrame({"A": [1, 2, 3]}, dtype="Int64")
+        orig = df.copy()
+
+        df.loc[:] = df.values[:, ::-1]
+        tm.assert_frame_equal(df, orig)
+
+        df.loc[:] = pd.core.arrays.PandasArray(df.values[:, ::-1])
+        tm.assert_frame_equal(df, orig)
+
+        df.iloc[:] = df.iloc[:, :]
+        tm.assert_frame_equal(df, orig)
+
+    @pytest.mark.parametrize(
+        "null", [pd.NaT, pd.NaT.to_numpy("M8[ns]"), pd.NaT.to_numpy("m8[ns]")]
+    )
+    def test_setting_mismatched_na_into_nullable_fails(
+        self, null, any_numeric_ea_dtype
+    ):
+        # GH#44514 don't cast mismatched nulls to pd.NA
+        df = DataFrame({"A": [1, 2, 3]}, dtype=any_numeric_ea_dtype)
+        ser = df["A"]
+        arr = ser._values
+
+        msg = "|".join(
+            [
+                r"int\(\) argument must be a string, a bytes-like object or a "
+                "(real )?number, not 'NaTType'",
+                r"timedelta64\[ns\] cannot be converted to an? (Floating|Integer)Dtype",
+                r"datetime64\[ns\] cannot be converted to an? (Floating|Integer)Dtype",
+                "object cannot be converted to a FloatingDtype",
+                "'values' contains non-numeric NA",
+            ]
+        )
+        with pytest.raises(TypeError, match=msg):
+            arr[0] = null
+
+        with pytest.raises(TypeError, match=msg):
+            arr[:2] = [null, null]
+
+        with pytest.raises(TypeError, match=msg):
+            ser[0] = null
+
+        with pytest.raises(TypeError, match=msg):
+            ser[:2] = [null, null]
+
+        with pytest.raises(TypeError, match=msg):
+            ser.iloc[0] = null
+
+        with pytest.raises(TypeError, match=msg):
+            ser.iloc[:2] = [null, null]
+
+        with pytest.raises(TypeError, match=msg):
+            df.iloc[0, 0] = null
+
+        with pytest.raises(TypeError, match=msg):
+            df.iloc[:2, 0] = [null, null]
+
+        # Multi-Block
+        df2 = df.copy()
+        df2["B"] = ser.copy()
+        with pytest.raises(TypeError, match=msg):
+            df2.iloc[0, 0] = null
+
+        with pytest.raises(TypeError, match=msg):
+            df2.iloc[:2, 0] = [null, null]
 
 
 class TestDataFrameIndexingUInt64:

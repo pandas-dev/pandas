@@ -11,9 +11,12 @@ jobs:
   pre-commit:
     runs-on: ubuntu-latest
     concurrency:
-      group: ${{ github.ref }}-pre-commit
-      cancel-in-progress: ${{github.event_name == 'pull_request'}}
+      # https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-pre-commit
+      cancel-in-progress: true
     steps:
     - uses: actions/checkout@v2
     - uses: actions/setup-python@v2
+      with:
+        python-version: '3.9.7'
     - uses: pre-commit/action@v2.0.0

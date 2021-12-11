@@ -9,6 +9,7 @@ dependencies:
   - pytest>=6.0
   - pytest-cov
   - pytest-xdist>=1.31
+  - pytest-timeout
   - hypothesis>=5.5.3
   - psutil
 
@@ -23,7 +24,7 @@ dependencies:
   - pytables=3.6.1
   - python-dateutil=2.8.1
   - pytz=2020.1
-  - pyarrow=0.17.0
+  - pyarrow=1.0.1
   - scipy=1.4.1
   - xlrd=2.0.1
   - xlsxwriter=1.2.2

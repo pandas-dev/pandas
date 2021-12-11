@@ -1,12 +1,10 @@
 from __future__ import annotations
 
 from typing import overload
-import warnings
 
 import numpy as np
 
 from pandas._libs import (
-    iNaT,
     lib,
     missing as libmissing,
 )
@@ -17,7 +15,6 @@ from pandas._typing import (
     DtypeObj,
     npt,
 )
-from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.base import (
@@ -27,25 +24,19 @@ from pandas.core.dtypes.base import (
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_datetime64_dtype,
-    is_float,
     is_float_dtype,
     is_integer_dtype,
-    is_list_like,
     is_object_dtype,
+    is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays import ExtensionArray
-from pandas.core.arrays.masked import (
-    BaseMaskedArray,
-    BaseMaskedDtype,
-)
+from pandas.core.arrays.masked import BaseMaskedDtype
 from pandas.core.arrays.numeric import (
     NumericArray,
     NumericDtype,
 )
-from pandas.core.ops import invalid_comparison
 from pandas.core.tools.numeric import to_numeric
 
 
@@ -124,12 +115,10 @@ def safe_cast(values, dtype, copy: bool):
     Safely cast the values to the dtype if they
     are equivalent, meaning floats must be equivalent to the
     ints.
-
     """
     try:
         return values.astype(dtype, casting="safe", copy=copy)
     except TypeError as err:
-
         casted = values.astype(dtype, copy=copy)
         if (casted == values).all():
             return casted
@@ -143,7 +132,7 @@ def coerce_to_array(
     values, dtype, mask=None, copy: bool = False
 ) -> tuple[np.ndarray, np.ndarray]:
     """
-    Coerce the input values array to numpy arrays with a mask
+    Coerce the input values array to numpy arrays with a mask.
 
     Parameters
     ----------
@@ -187,17 +176,19 @@ def coerce_to_array(
         return values, mask
 
     values = np.array(values, copy=copy)
-    if is_object_dtype(values):
+    inferred_type = None
+    if is_object_dtype(values) or is_string_dtype(values):
         inferred_type = lib.infer_dtype(values, skipna=True)
         if inferred_type == "empty":
-            values = np.empty(len(values))
-            values.fill(np.nan)
+            pass
         elif inferred_type not in [
             "floating",
             "integer",
             "mixed-integer",
             "integer-na",
             "mixed-integer-float",
+            "string",
+            "unicode",
         ]:
             raise TypeError(f"{values.dtype} cannot be converted to an IntegerDtype")
 
@@ -207,14 +198,15 @@ def coerce_to_array(
     elif not (is_integer_dtype(values) or is_float_dtype(values)):
         raise TypeError(f"{values.dtype} cannot be converted to an IntegerDtype")
 
+    if values.ndim != 1:
+        raise TypeError("values must be a 1D list-like")
+
     if mask is None:
-        mask = isna(values)
+        mask = libmissing.is_numeric_na(values)
     else:
         assert len(mask) == len(values)
 
-    if not values.ndim == 1:
-        raise TypeError("values must be a 1D list-like")
-    if not mask.ndim == 1:
+    if mask.ndim != 1:
         raise TypeError("mask must be a 1D list-like")
 
     # infer dtype if needed
@@ -230,7 +222,10 @@ def coerce_to_array(
     if mask.any():
         values = values.copy()
         values[mask] = 1
-        values = safe_cast(values, dtype, copy=False)
+    if inferred_type in ("string", "unicode"):
+        # casts from str are always safe since they raise
+        # a ValueError if the str cannot be parsed into an int
+        values = values.astype(dtype, copy=copy)
     else:
         values = safe_cast(values, dtype, copy=False)
 
@@ -412,94 +407,6 @@ class IntegerArray(NumericArray):
         if self._mask.any():
             data[self._mask] = data.min() - 1
         return data
-
-    def _cmp_method(self, other, op):
-        from pandas.core.arrays import BooleanArray
-
-        mask = None
-
-        if isinstance(other, BaseMaskedArray):
-            other, mask = other._data, other._mask
-
-        elif is_list_like(other):
-            other = np.asarray(other)
-            if other.ndim > 1:
-                raise NotImplementedError("can only perform ops with 1-d structures")
-            if len(self) != len(other):
-                raise ValueError("Lengths must match to compare")
-
-        if other is libmissing.NA:
-            # numpy does not handle pd.NA well as "other" scalar (it returns
-            # a scalar False instead of an array)
-            # This may be fixed by NA.__array_ufunc__. Revisit this check
-            # once that's implemented.
-            result = np.zeros(self._data.shape, dtype="bool")
-            mask = np.ones(self._data.shape, dtype="bool")
-        else:
-            with warnings.catch_warnings():
-                # numpy may show a FutureWarning:
-                #     elementwise comparison failed; returning scalar instead,
-                #     but in the future will perform elementwise comparison
-                # before returning NotImplemented. We fall back to the correct
-                # behavior today, so that should be fine to ignore.
-                warnings.filterwarnings("ignore", "elementwise", FutureWarning)
-                with np.errstate(all="ignore"):
-                    method = getattr(self._data, f"__{op.__name__}__")
-                    result = method(other)
-
-                if result is NotImplemented:
-                    result = invalid_comparison(self._data, other, op)
-
-        # nans propagate
-        if mask is None:
-            mask = self._mask.copy()
-        else:
-            mask = self._mask | mask
-
-        return BooleanArray(result, mask)
-
-    def sum(self, *, skipna=True, min_count=0, axis: int | None = 0, **kwargs):
-        nv.validate_sum((), kwargs)
-        return super()._reduce("sum", skipna=skipna, min_count=min_count, axis=axis)
-
-    def prod(self, *, skipna=True, min_count=0, axis: int | None = 0, **kwargs):
-        nv.validate_prod((), kwargs)
-        return super()._reduce("prod", skipna=skipna, min_count=min_count, axis=axis)
-
-    def min(self, *, skipna=True, axis: int | None = 0, **kwargs):
-        nv.validate_min((), kwargs)
-        return super()._reduce("min", skipna=skipna, axis=axis)
-
-    def max(self, *, skipna=True, axis: int | None = 0, **kwargs):
-        nv.validate_max((), kwargs)
-        return super()._reduce("max", skipna=skipna, axis=axis)
-
-    def _maybe_mask_result(self, result, mask, other, op_name: str):
-        """
-        Parameters
-        ----------
-        result : array-like
-        mask : array-like bool
-        other : scalar or array-like
-        op_name : str
-        """
-        # if we have a float operand we are by-definition
-        # a float result
-        # or our op is a divide
-        if (is_float_dtype(other) or is_float(other)) or (
-            op_name in ["rtruediv", "truediv"]
-        ):
-            from pandas.core.arrays import FloatingArray
-
-            return FloatingArray(result, mask, copy=False)
-
-        if result.dtype == "timedelta64[ns]":
-            from pandas.core.arrays import TimedeltaArray
-
-            result[mask] = iNaT
-            return TimedeltaArray._simple_new(result)
-
-        return type(self)(result, mask, copy=False)
 
 
 _dtype_docstring = """

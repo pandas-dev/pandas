@@ -47,6 +47,7 @@ from pandas.util._decorators import (
 from pandas.util._validators import (
     validate_bool_kwarg,
     validate_fillna_kwargs,
+    validate_insert_loc,
 )
 
 from pandas.core.dtypes.cast import maybe_cast_to_extension_array
@@ -74,6 +75,7 @@ from pandas.core.algorithms import (
     isin,
     unique,
 )
+from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.sorting import (
     nargminmax,
     nargsort,
@@ -123,6 +125,7 @@ class ExtensionArray:
     factorize
     fillna
     equals
+    insert
     isin
     isna
     ravel
@@ -561,11 +564,9 @@ class ExtensionArray:
         Returns
         -------
         array : np.ndarray or ExtensionArray
-            An ExtensionArray if dtype is StringDtype,
-            or same as that of underlying array.
+            An ExtensionArray if dtype is ExtensionDtype,
             Otherwise a NumPy ndarray with 'dtype' for its dtype.
         """
-        from pandas.core.arrays.string_ import StringDtype
 
         dtype = pandas_dtype(dtype)
         if is_dtype_equal(dtype, self.dtype):
@@ -574,16 +575,11 @@ class ExtensionArray:
             else:
                 return self.copy()
 
-        # FIXME: Really hard-code here?
-        if isinstance(dtype, StringDtype):
-            # allow conversion to StringArrays
-            return dtype.construct_array_type()._from_sequence(self, copy=False)
+        if isinstance(dtype, ExtensionDtype):
+            cls = dtype.construct_array_type()
+            return cls._from_sequence(self, dtype=dtype, copy=copy)
 
-        # error: Argument "dtype" to "array" has incompatible type
-        # "Union[ExtensionDtype, dtype[Any]]"; expected "Union[dtype[Any], None, type,
-        # _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int,
-        # Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
-        return np.array(self, dtype=dtype, copy=copy)  # type: ignore[arg-type]
+        return np.array(self, dtype=dtype, copy=copy)
 
     def isna(self) -> np.ndarray | ExtensionArraySupportsAnyAll:
         """
@@ -1017,10 +1013,8 @@ class ExtensionArray:
             arr, na_sentinel=na_sentinel, na_value=na_value
         )
 
-        uniques = self._from_factorized(uniques, self)
-        # error: Incompatible return value type (got "Tuple[ndarray, ndarray]",
-        # expected "Tuple[ndarray, ExtensionArray]")
-        return codes, uniques  # type: ignore[return-value]
+        uniques_ea = self._from_factorized(uniques, self)
+        return codes, uniques_ea
 
     _extension_array_shared_docs[
         "repeat"
@@ -1358,7 +1352,13 @@ class ExtensionArray:
         ------
         TypeError : subclass does not define reductions
         """
-        raise TypeError(f"cannot perform {name} with type {self.dtype}")
+        meth = getattr(self, name, None)
+        if meth is None:
+            raise TypeError(
+                f"'{type(self).__name__}' with dtype {self.dtype} "
+                f"does not support reduction '{name}'"
+            )
+        return meth(skipna=skipna, **kwargs)
 
     # https://github.com/python/typeshed/issues/2148#issuecomment-520783318
     # Incompatible types in assignment (expression has type "None", base class
@@ -1388,6 +1388,104 @@ class ExtensionArray:
         indexer = np.delete(np.arange(len(self)), loc)
         return self.take(indexer)
 
+    def insert(self: ExtensionArrayT, loc: int, item) -> ExtensionArrayT:
+        """
+        Insert an item at the given position.
+
+        Parameters
+        ----------
+        loc : int
+        item : scalar-like
+
+        Returns
+        -------
+        same type as self
+
+        Notes
+        -----
+        This method should be both type and dtype-preserving.  If the item
+        cannot be held in an array of this type/dtype, either ValueError or
+        TypeError should be raised.
+
+        The default implementation relies on _from_sequence to raise on invalid
+        items.
+        """
+        loc = validate_insert_loc(loc, len(self))
+
+        item_arr = type(self)._from_sequence([item], dtype=self.dtype)
+
+        return type(self)._concat_same_type([self[:loc], item_arr, self[loc:]])
+
+    def _putmask(self, mask: npt.NDArray[np.bool_], value) -> None:
+        """
+        Analogue to np.putmask(self, mask, value)
+
+        Parameters
+        ----------
+        mask : np.ndarray[bool]
+        value : scalar or listlike
+            If listlike, must be arraylike with same length as self.
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        Unlike np.putmask, we do not repeat listlike values with mismatched length.
+        'value' should either be a scalar or an arraylike with the same length
+        as self.
+        """
+        if is_list_like(value):
+            val = value[mask]
+        else:
+            val = value
+
+        self[mask] = val
+
+    def _where(
+        self: ExtensionArrayT, mask: npt.NDArray[np.bool_], value
+    ) -> ExtensionArrayT:
+        """
+        Analogue to np.where(mask, self, value)
+
+        Parameters
+        ----------
+        mask : np.ndarray[bool]
+        value : scalar or listlike
+
+        Returns
+        -------
+        same type as self
+        """
+        result = self.copy()
+
+        if is_list_like(value):
+            val = value[~mask]
+        else:
+            val = value
+
+        result[~mask] = val
+        return result
+
+    def _fill_mask_inplace(
+        self, method: str, limit, mask: npt.NDArray[np.bool_]
+    ) -> None:
+        """
+        Replace values in locations specified by 'mask' using pad or backfill.
+
+        See also
+        --------
+        ExtensionArray.fillna
+        """
+        func = missing.get_fill_func(method)
+        # NB: if we don't copy mask here, it may be altered inplace, which
+        #  would mess up the `self[mask] = ...` below.
+        new_values, _ = func(self.astype(object), limit=limit, mask=mask.copy())
+        new_values = self._from_sequence(new_values, dtype=self.dtype)
+        self[mask] = new_values[mask]
+        return
+
     @classmethod
     def _empty(cls, shape: Shape, dtype: ExtensionDtype):
         """
@@ -1401,6 +1499,41 @@ class ExtensionArray:
             raise NotImplementedError(
                 f"Default 'empty' implementation is invalid for dtype='{dtype}'"
             )
+        return result
+
+    def _quantile(
+        self: ExtensionArrayT, qs: npt.NDArray[np.float64], interpolation: str
+    ) -> ExtensionArrayT:
+        """
+        Compute the quantiles of self for each quantile in `qs`.
+
+        Parameters
+        ----------
+        qs : np.ndarray[float64]
+        interpolation: str
+
+        Returns
+        -------
+        same type as self
+        """
+        # asarray needed for Sparse, see GH#24600
+        mask = np.asarray(self.isna())
+        mask = np.atleast_2d(mask)
+
+        arr = np.atleast_2d(np.asarray(self))
+        fill_value = np.nan
+
+        res_values = quantile_with_mask(arr, mask, fill_value, qs, interpolation)
+
+        if self.ndim == 2:
+            # i.e. DatetimeArray
+            result = type(self)._from_sequence(res_values)
+
+        else:
+            # shape[0] should be 1 as long as EAs are 1D
+            assert res_values.shape == (1, len(qs)), res_values.shape
+            result = type(self)._from_sequence(res_values[0])
+
         return result
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
@@ -1419,6 +1552,13 @@ class ExtensionArray:
             return arraylike.dispatch_ufunc_with_out(
                 self, ufunc, method, *inputs, **kwargs
             )
+
+        if method == "reduce":
+            result = arraylike.dispatch_reduction_ufunc(
+                self, ufunc, method, *inputs, **kwargs
+            )
+            if result is not NotImplemented:
+                return result
 
         return arraylike.default_array_ufunc(self, ufunc, method, *inputs, **kwargs)
 

@@ -203,7 +203,7 @@ def test_difference_sort_special():
 
 @pytest.mark.xfail(reason="Not implemented.")
 def test_difference_sort_special_true():
-    # TODO decide on True behaviour
+    # TODO(GH#25151): decide on True behaviour
     idx = MultiIndex.from_product([[1, 0], ["a", "b"]])
     result = idx.difference([], sort=True)
     expected = MultiIndex.from_product([[0, 1], ["a", "b"]])
@@ -253,22 +253,31 @@ def test_union(idx, sort):
     the_union = idx.union(idx[:0], sort=sort)
     tm.assert_index_equal(the_union, idx)
 
-    # FIXME: dont leave commented-out
-    # won't work in python 3
-    # tuples = _index.values
-    # result = _index[:4] | tuples[4:]
-    # assert result.equals(tuples)
+    tuples = idx.values
+    result = idx[:4].union(tuples[4:], sort=sort)
+    if sort is None:
+        tm.equalContents(result, idx)
+    else:
+        assert result.equals(idx)
 
-    # not valid for python 3
-    # def test_union_with_regular_index(self):
-    #     other = Index(['A', 'B', 'C'])
 
-    #     result = other.union(idx)
-    #     assert ('foo', 'one') in result
-    #     assert 'B' in result
+@pytest.mark.xfail(
+    # This test was commented out from Oct 2011 to Dec 2021, may no longer
+    #  be relevant.
+    reason="Length of names must match number of levels in MultiIndex",
+    raises=ValueError,
+)
+def test_union_with_regular_index(idx):
+    other = Index(["A", "B", "C"])
 
-    #     result2 = _index.union(other)
-    #     assert result.equals(result2)
+    result = other.union(idx)
+    assert ("foo", "one") in result
+    assert "B" in result
+
+    msg = "The values in the array are unorderable"
+    with tm.assert_produces_warning(RuntimeWarning, match=msg):
+        result2 = idx.union(other)
+    assert result.equals(result2)
 
 
 def test_intersection(idx, sort):
@@ -290,11 +299,9 @@ def test_intersection(idx, sort):
     expected = idx[:0]
     assert empty.equals(expected)
 
-    # FIXME: dont leave commented-out
-    # can't do in python 3
-    # tuples = _index.values
-    # result = _index & tuples
-    # assert result.equals(tuples)
+    tuples = idx.values
+    result = idx.intersection(tuples)
+    assert result.equals(idx)
 
 
 @pytest.mark.parametrize(
@@ -340,7 +347,7 @@ def test_intersect_equal_sort():
 
 @pytest.mark.xfail(reason="Not implemented.")
 def test_intersect_equal_sort_true():
-    # TODO decide on True behaviour
+    # TODO(GH#25151): decide on True behaviour
     idx = MultiIndex.from_product([[1, 0], ["a", "b"]])
     sorted_ = MultiIndex.from_product([[0, 1], ["a", "b"]])
     tm.assert_index_equal(idx.intersection(idx, sort=True), sorted_)
@@ -354,8 +361,7 @@ def test_union_sort_other_empty(slice_):
     # default, sort=None
     other = idx[slice_]
     tm.assert_index_equal(idx.union(other), idx)
-    # MultiIndex does not special case empty.union(idx)
-    # tm.assert_index_equal(other.union(idx), idx)
+    tm.assert_index_equal(other.union(idx), idx)
 
     # sort=False
     tm.assert_index_equal(idx.union(other, sort=False), idx)
@@ -363,7 +369,7 @@ def test_union_sort_other_empty(slice_):
 
 @pytest.mark.xfail(reason="Not implemented.")
 def test_union_sort_other_empty_sort(slice_):
-    # TODO decide on True behaviour
+    # TODO(GH#25151): decide on True behaviour
     # # sort=True
     idx = MultiIndex.from_product([[1, 0], ["a", "b"]])
     other = idx[:0]
@@ -388,7 +394,7 @@ def test_union_sort_other_incomparable():
 
 @pytest.mark.xfail(reason="Not implemented.")
 def test_union_sort_other_incomparable_sort():
-    # TODO decide on True behaviour
+    # TODO(GH#25151): decide on True behaviour
     # # sort=True
     idx = MultiIndex.from_product([[1, pd.Timestamp("2000")], ["a", "b"]])
     with pytest.raises(TypeError, match="Cannot compare"):

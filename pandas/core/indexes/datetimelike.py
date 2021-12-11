@@ -36,6 +36,7 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -91,12 +92,13 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     freq: BaseOffset | None
     freqstr: str | None
     _resolution_obj: Resolution
-    _bool_ops: list[str] = []
-    _field_ops: list[str] = []
 
     # error: "Callable[[Any], Any]" has no attribute "fget"
-    hasnans = cache_readonly(
-        DatetimeLikeArrayMixin._hasnans.fget  # type: ignore[attr-defined]
+    hasnans = cast(
+        bool,
+        cache_readonly(
+            DatetimeLikeArrayMixin._hasnans.fget  # type: ignore[attr-defined]
+        ),
     )
 
     @property
@@ -188,6 +190,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     def _format_with_header(
         self, header: list[str], na_rep: str = "NaT", date_format: str | None = None
     ) -> list[str]:
+        # matches base class except for whitespace padding and date_format
         return header + list(
             self._format_native_types(na_rep=na_rep, date_format=date_format)
         )
@@ -207,39 +210,15 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
                 freq = self.freqstr
                 if freq is not None:
                     freq = repr(freq)  # e.g. D -> 'D'
-                # Argument 1 to "append" of "list" has incompatible type
-                # "Tuple[str, Optional[str]]"; expected "Tuple[str, Union[str, int]]"
-                attrs.append(("freq", freq))  # type: ignore[arg-type]
+                attrs.append(("freq", freq))
         return attrs
 
+    @Appender(Index._summary.__doc__)
     def _summary(self, name=None) -> str:
-        """
-        Return a summarized representation.
-
-        Parameters
-        ----------
-        name : str
-            Name to use in the summary representation.
-
-        Returns
-        -------
-        str
-            Summarized representation of the index.
-        """
-        formatter = self._formatter_func
-        if len(self) > 0:
-            index_summary = f", {formatter(self[0])} to {formatter(self[-1])}"
-        else:
-            index_summary = ""
-
-        if name is None:
-            name = type(self).__name__
-        result = f"{name}: {len(self)} entries{index_summary}"
+        result = super()._summary(name=name)
         if self.freq:
             result += f"\nFreq: {self.freqstr}"
 
-        # display as values, not quoted
-        result = result.replace("'", "")
         return result
 
     # --------------------------------------------------------------------
@@ -423,7 +402,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             f"{type(self).__name__}.is_type_compatible is deprecated and will be "
             "removed in a future version.",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return kind in self._data._infer_matches
 
@@ -693,7 +672,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
                     freq = self.freq
             else:
                 # Adding a single item to an empty index may preserve freq
-                if self.freq.is_on_offset(item):
+                if isinstance(self.freq, Tick):
+                    # all TimedeltaIndex cases go through here; is_on_offset
+                    #  would raise TypeError
+                    freq = self.freq
+                elif self.freq.is_on_offset(item):
                     freq = self.freq
         return freq
 

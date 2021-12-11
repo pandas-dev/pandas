@@ -1,10 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    MultiIndex,
-)
+from pandas import DataFrame
 import pandas._testing as tm
 from pandas.core.groupby.base import (
     reduction_kernels,
@@ -13,18 +10,18 @@ from pandas.core.groupby.base import (
 
 
 @pytest.fixture(params=[True, False])
+def sort(request):
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
 def as_index(request):
     return request.param
 
 
 @pytest.fixture
-def mframe():
-    index = MultiIndex(
-        levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
-        codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
-        names=["first", "second"],
-    )
-    return DataFrame(np.random.randn(10, 3), index=index, columns=["A", "B", "C"])
+def mframe(multiindex_dataframe_random_data):
+    return multiindex_dataframe_random_data
 
 
 @pytest.fixture

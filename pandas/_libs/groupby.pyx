@@ -495,7 +495,8 @@ def group_add(add_t[:, ::1] out,
               int64_t[::1] counts,
               ndarray[add_t, ndim=2] values,
               const intp_t[::1] labels,
-              Py_ssize_t min_count=0) -> None:
+              Py_ssize_t min_count=0,
+              bint datetimelike=False) -> None:
     """
     Only aggregates on axis=0 using Kahan summation
     """
@@ -557,7 +558,14 @@ def group_add(add_t[:, ::1] out,
                     val = values[i, j]
 
                     # not nan
-                    if val == val:
+                    # With dt64/td64 values, values have been cast to float64
+                    #  instead if int64 for group_add, but the logic
+                    #  is otherwise the same as in _treat_as_na
+                    if val == val and not (
+                        add_t is float64_t
+                        and datetimelike
+                        and val == <float64_t>NPY_NAT
+                    ):
                         nobs[lab, j] += 1
                         y = val - compensation[lab, j]
                         t = sumx[lab, j] + y
@@ -963,7 +971,7 @@ def group_last(iu_64_floating_obj_t[:, ::1] out,
         ndarray[int64_t, ndim=2] nobs
         bint runtime_error = False
 
-    # TODO(cython 3.0):
+    # TODO(cython3):
     # Instead of `labels.shape[0]` use `len(labels)`
     if not len(values) == labels.shape[0]:
         raise AssertionError("len(index) != len(labels)")
@@ -978,7 +986,7 @@ def group_last(iu_64_floating_obj_t[:, ::1] out,
     N, K = (<object>values).shape
 
     if iu_64_floating_obj_t is object:
-        # TODO: De-duplicate once conditional-nogil is available
+        # TODO(cython3): De-duplicate once conditional-nogil is available
         for i in range(N):
             lab = labels[i]
             if lab < 0:
@@ -1057,7 +1065,7 @@ def group_nth(iu_64_floating_obj_t[:, ::1] out,
         ndarray[int64_t, ndim=2] nobs
         bint runtime_error = False
 
-    # TODO(cython 3.0):
+    # TODO(cython3):
     # Instead of `labels.shape[0]` use `len(labels)`
     if not len(values) == labels.shape[0]:
         raise AssertionError("len(index) != len(labels)")
@@ -1072,7 +1080,7 @@ def group_nth(iu_64_floating_obj_t[:, ::1] out,
     N, K = (<object>values).shape
 
     if iu_64_floating_obj_t is object:
-        # TODO: De-duplicate once conditional-nogil is available
+        # TODO(cython3): De-duplicate once conditional-nogil is available
         for i in range(N):
             lab = labels[i]
             if lab < 0:
@@ -1255,7 +1263,7 @@ cdef group_min_max(iu_64_floating_t[:, ::1] out,
         bint uses_mask = mask is not None
         bint isna_entry
 
-    # TODO(cython 3.0):
+    # TODO(cython3):
     # Instead of `labels.shape[0]` use `len(labels)`
     if not len(values) == labels.shape[0]:
         raise AssertionError("len(index) != len(labels)")

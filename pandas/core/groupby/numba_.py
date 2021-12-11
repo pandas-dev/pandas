@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import inspect
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
 )
@@ -90,7 +91,10 @@ def generate_numba_agg_func(
         return NUMBA_FUNC_CACHE[cache_key]
 
     numba_func = jit_user_function(func, nopython, nogil, parallel)
-    numba = import_optional_dependency("numba")
+    if TYPE_CHECKING:
+        import numba
+    else:
+        numba = import_optional_dependency("numba")
 
     @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
     def group_agg(
@@ -151,7 +155,10 @@ def generate_numba_transform_func(
         return NUMBA_FUNC_CACHE[cache_key]
 
     numba_func = jit_user_function(func, nopython, nogil, parallel)
-    numba = import_optional_dependency("numba")
+    if TYPE_CHECKING:
+        import numba
+    else:
+        numba = import_optional_dependency("numba")
 
     @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
     def group_transform(

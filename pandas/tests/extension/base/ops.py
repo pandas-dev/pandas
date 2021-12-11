@@ -130,10 +130,9 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
 class BaseComparisonOpsTests(BaseOpsUtil):
     """Various Series and DataFrame comparison ops methods."""
 
-    def _compare_other(self, ser: pd.Series, data, op_name: str, other):
+    def _compare_other(self, ser: pd.Series, data, op, other):
 
-        op = self.get_op_from_name(op_name)
-        if op_name in ["__eq__", "__ne__"]:
+        if op.__name__ in ["eq", "ne"]:
             # comparison should match point-wise comparisons
             result = op(ser, other)
             expected = ser.combine(other, op)
@@ -154,16 +153,14 @@ class BaseComparisonOpsTests(BaseOpsUtil):
                 with pytest.raises(type(exc)):
                     ser.combine(other, op)
 
-    def test_compare_scalar(self, data, all_compare_operators):
-        op_name = all_compare_operators
+    def test_compare_scalar(self, data, comparison_op):
         ser = pd.Series(data)
-        self._compare_other(ser, data, op_name, 0)
+        self._compare_other(ser, data, comparison_op, 0)
 
-    def test_compare_array(self, data, all_compare_operators):
-        op_name = all_compare_operators
+    def test_compare_array(self, data, comparison_op):
         ser = pd.Series(data)
         other = pd.Series([data[0]] * len(data))
-        self._compare_other(ser, data, op_name, other)
+        self._compare_other(ser, data, comparison_op, other)
 
     @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
     def test_direct_arith_with_ndframe_returns_not_implemented(self, data, box):

@@ -9,6 +9,7 @@ dependencies:
   - pytest>=6.0
   - pytest-cov
   - pytest-xdist>=1.31
+  - pytest-timeout
   - hypothesis>=5.5.3
 
   # required
@@ -31,17 +32,15 @@ dependencies:
   - openpyxl
   - pandas-gbq
   - protobuf>=3.12.4
-  - pyarrow=0.17.1 # GH 38803
+  - pyarrow=1.0.1
   - pytables>=3.6.1
   - scipy
   - xarray=0.15.1
   - xlrd
   - xlsxwriter
   - xlwt
-  - moto
-  - flask
 
   # sql
   - psycopg2=2.8.4
   - pymysql=0.10.1
-  - sqlalchemy=1.3.11
+  - sqlalchemy=1.4.0

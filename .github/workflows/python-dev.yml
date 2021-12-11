@@ -17,7 +17,7 @@ env:
   PANDAS_CI: 1
   PATTERN: "not slow and not network and not clipboard"
   COVERAGE: true
-  PYTEST_TARGET:  pandas
+  PYTEST_TARGET: pandas
 
 jobs:
   build:
@@ -28,14 +28,12 @@ jobs:
         os: [ubuntu-latest, macOS-latest, windows-latest]
 
     name: actions-310-dev
-    timeout-minutes: 60
-
-    env:
-      NUMPY_WHEELS_AVAILABLE: ${{ matrix.os == 'ubuntu-latest' }}
+    timeout-minutes: 80
 
     concurrency:
-      group: ${{ github.ref }}-${{ matrix.os }}-dev
-      cancel-in-progress: ${{github.event_name == 'pull_request'}}
+      #https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.os }}-${{ matrix.pytest_target }}-dev
+      cancel-in-progress: true
 
     steps:
     - uses: actions/checkout@v2
@@ -51,13 +49,9 @@ jobs:
       shell: bash
       run: |
         python -m pip install --upgrade pip setuptools wheel
-        if [[ "$NUMPY_WHEELS_AVAILABLE" == "true" ]]; then
-          pip install -i https://pypi.anaconda.org/scipy-wheels-nightly/simple numpy
-        else
-          pip install git+https://github.com/numpy/numpy.git
-        fi
+        pip install -i https://pypi.anaconda.org/scipy-wheels-nightly/simple numpy
         pip install git+https://github.com/nedbat/coveragepy.git
-        pip install cython python-dateutil pytz hypothesis pytest>=6.2.5 pytest-xdist pytest-cov
+        pip install cython python-dateutil pytz hypothesis pytest>=6.2.5 pytest-xdist pytest-cov pytest-timeout
         pip list
 
     - name: Build Pandas

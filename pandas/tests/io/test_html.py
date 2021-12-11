@@ -1166,6 +1166,10 @@ class TestReadHtml:
         else:
             assert len(dfs) == 1  # Should not parse hidden table
 
+    @pytest.mark.filterwarnings(
+        "ignore:You provided Unicode markup but also provided a value for "
+        "from_encoding.*:UserWarning"
+    )
     def test_encode(self, html_encoding_file):
         base_path = os.path.basename(html_encoding_file)
         root = os.path.splitext(base_path)[0]
@@ -1232,6 +1236,10 @@ class TestReadHtml:
 
             def seekable(self):
                 return True
+
+            def __iter__(self):
+                # to fool `is_file_like`, should never end up here
+                assert False
 
         good = MockFile("<table><tr><td>spam<br />eggs</td></tr></table>")
         bad = MockFile("<table><tr><td>spam<foobr />eggs</td></tr></table>")

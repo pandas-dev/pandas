@@ -258,7 +258,7 @@ class TestSparseArray:
         assert self.zarr[2] == 1
         assert self.zarr[7] == 5
 
-        errmsg = re.compile("bounds")
+        errmsg = "must be an integer between -10 and 10"
 
         with pytest.raises(IndexError, match=errmsg):
             self.arr[11]
@@ -1203,7 +1203,7 @@ class TestAccessor:
         row = [0, 3, 1, 0]
         col = [0, 3, 1, 2]
         data = [4, 5, 7, 9]
-        # TODO: Remove dtype when scipy is fixed
+        # TODO(scipy#13585): Remove dtype when scipy is fixed
         # https://github.com/scipy/scipy/issues/13585
         sp_array = scipy.sparse.coo_matrix((data, (row, col)), dtype="int")
         result = pd.Series.sparse.from_coo(sp_array)
@@ -1255,7 +1255,7 @@ class TestAccessor:
         A, rows, cols = ss.sparse.to_coo(
             row_levels=(0, 1), column_levels=(2, 3), sort_labels=sort_labels
         )
-        assert isinstance(A, scipy.sparse.coo.coo_matrix)
+        assert isinstance(A, scipy.sparse.coo_matrix)
         tm.assert_numpy_array_equal(A.toarray(), expected_A)
         assert rows == expected_rows
         assert cols == expected_cols
@@ -1387,10 +1387,20 @@ class TestMinMax:
         ],
     )
     def test_nan_fill_value(self, raw_data, max_expected, min_expected):
-        max_result = SparseArray(raw_data).max()
-        min_result = SparseArray(raw_data).min()
+        arr = SparseArray(raw_data)
+        max_result = arr.max()
+        min_result = arr.min()
         assert max_result in max_expected
         assert min_result in min_expected
+
+        max_result = arr.max(skipna=False)
+        min_result = arr.min(skipna=False)
+        if np.isnan(raw_data).any():
+            assert np.isnan(max_result)
+            assert np.isnan(min_result)
+        else:
+            assert max_result in max_expected
+            assert min_result in min_expected
 
     @pytest.mark.parametrize(
         "fill_value,max_expected,min_expected",
@@ -1409,6 +1419,16 @@ class TestMinMax:
         min_result = arr.min()
         assert min_result == min_expected
 
+    def test_only_fill_value(self):
+        fv = 100
+        arr = SparseArray(np.array([fv, fv, fv]), dtype=SparseDtype("int", fv))
+        assert len(arr._valid_sp_values) == 0
+
+        assert arr.max() == fv
+        assert arr.min() == fv
+        assert arr.max(skipna=False) == fv
+        assert arr.min(skipna=False) == fv
+
     @pytest.mark.parametrize("func", ["min", "max"])
     @pytest.mark.parametrize("data", [np.array([]), np.array([np.nan, np.nan])])
     @pytest.mark.parametrize(
@@ -1423,7 +1443,8 @@ class TestMinMax:
     def test_na_value_if_no_valid_values(self, func, data, dtype, expected):
         arr = SparseArray(data, dtype=dtype)
         result = getattr(arr, func)()
-        if expected == pd.NaT:
-            assert result == pd.NaT
+        if expected is pd.NaT:
+            # TODO: pin down whether we wrap datetime64("NaT")
+            assert result is pd.NaT or np.isnat(result)
         else:
             assert np.isnan(result)

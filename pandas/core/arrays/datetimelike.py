@@ -35,6 +35,7 @@ from pandas._libs.tslibs import (
     Timestamp,
     delta_to_nanoseconds,
     iNaT,
+    ints_to_pydatetime,
     to_offset,
 )
 from pandas._libs.tslibs.fields import (
@@ -68,13 +69,13 @@ from pandas.util._decorators import (
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
+    is_all_strings,
     is_categorical_dtype,
     is_datetime64_any_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
     is_datetime_or_timedelta_dtype,
     is_dtype_equal,
-    is_extension_array_dtype,
     is_float_dtype,
     is_integer_dtype,
     is_list_like,
@@ -85,10 +86,7 @@ from pandas.core.dtypes.common import (
     is_unsigned_integer_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import (
-    DatetimeTZDtype,
-    PeriodDtype,
-)
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
     isna,
@@ -334,9 +332,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         This getitem defers to the underlying array, which by-definition can
         only handle list-likes, slices, and integer scalars
         """
-        # Use cast as we know we will get back a DatetimeLikeArray or DTScalar
+        # Use cast as we know we will get back a DatetimeLikeArray or DTScalar,
+        # but skip evaluating the Union at runtime for performance
+        # (see https://github.com/pandas-dev/pandas/pull/44624)
         result = cast(
-            Union[DatetimeLikeArrayT, DTScalarOrNaT], super().__getitem__(key)
+            "Union[DatetimeLikeArrayT, DTScalarOrNaT]", super().__getitem__(key)
         )
         if lib.is_scalar(result):
             return result
@@ -406,23 +406,34 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         dtype = pandas_dtype(dtype)
 
         if is_object_dtype(dtype):
+            if self.dtype.kind == "M":
+                # *much* faster than self._box_values
+                #  for e.g. test_get_loc_tuple_monotonic_above_size_cutoff
+                i8data = self.asi8.ravel()
+                converted = ints_to_pydatetime(
+                    i8data,
+                    # error: "DatetimeLikeArrayMixin" has no attribute "tz"
+                    tz=self.tz,  # type: ignore[attr-defined]
+                    freq=self.freq,
+                    box="timestamp",
+                )
+                return converted.reshape(self.shape)
+
             return self._box_values(self.asi8.ravel()).reshape(self.shape)
-        elif is_string_dtype(dtype) and not is_categorical_dtype(dtype):
-            if is_extension_array_dtype(dtype):
-                arr_cls = dtype.construct_array_type()
-                return arr_cls._from_sequence(self, dtype=dtype, copy=copy)
-            else:
-                return self._format_native_types()
+
+        elif isinstance(dtype, ExtensionDtype):
+            return super().astype(dtype, copy=copy)
+        elif is_string_dtype(dtype):
+            return self._format_native_types()
         elif is_integer_dtype(dtype):
             # we deliberately ignore int32 vs. int64 here.
             # See https://github.com/pandas-dev/pandas/issues/24381 for more.
-            level = find_stack_level()
             warnings.warn(
                 f"casting {self.dtype} values to int64 with .astype(...) is "
                 "deprecated and will raise in a future version. "
                 "Use .view(...) instead.",
                 FutureWarning,
-                stacklevel=level,
+                stacklevel=find_stack_level(),
             )
 
             values = self.asi8
@@ -442,9 +453,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             # and conversions for any datetimelike to float
             msg = f"Cannot cast {type(self).__name__} to dtype {dtype}"
             raise TypeError(msg)
-        elif is_categorical_dtype(dtype):
-            arr_cls = dtype.construct_array_type()
-            return arr_cls(self, dtype=dtype)
         else:
             return np.asarray(self, dtype=dtype)
 
@@ -465,36 +473,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         ...
 
     def view(self, dtype: Dtype | None = None) -> ArrayLike:
-        # We handle datetime64, datetime64tz, timedelta64, and period
-        #  dtypes here. Everything else we pass through to the underlying
-        #  ndarray.
-        if dtype is None or dtype is self.dtype:
-            return type(self)(self._ndarray, dtype=self.dtype)
-
-        if isinstance(dtype, type):
-            # we sometimes pass non-dtype objects, e.g np.ndarray;
-            #  pass those through to the underlying ndarray
-            return self._ndarray.view(dtype)
-
-        dtype = pandas_dtype(dtype)
-        if isinstance(dtype, (PeriodDtype, DatetimeTZDtype)):
-            cls = dtype.construct_array_type()
-            return cls(self.asi8, dtype=dtype)
-        elif dtype == "M8[ns]":
-            from pandas.core.arrays import DatetimeArray
-
-            return DatetimeArray(self.asi8, dtype=dtype)
-        elif dtype == "m8[ns]":
-            from pandas.core.arrays import TimedeltaArray
-
-            return TimedeltaArray(self.asi8, dtype=dtype)
-        # error: Incompatible return value type (got "ndarray", expected
-        # "ExtensionArray")
-        # error: Argument "dtype" to "view" of "_ArrayOrScalarCommon" has incompatible
-        # type "Union[ExtensionDtype, dtype[Any]]"; expected "Union[dtype[Any], None,
-        # type, _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int,
-        # Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
-        return self._ndarray.view(dtype=dtype)  # type: ignore[return-value,arg-type]
+        # we need to explicitly call super() method as long as the `@overload`s
+        #  are present in this file.
+        return super().view(dtype)
 
     # ------------------------------------------------------------------
     # ExtensionArray Interface
@@ -639,7 +620,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         -------
         self._scalar_type or NaT
         """
-        if isinstance(value, str):
+        if isinstance(value, self._scalar_type):
+            pass
+
+        elif isinstance(value, str):
             # NB: Careful about tzawareness
             try:
                 value = self._scalar_from_string(value)
@@ -724,7 +708,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         value = pd_array(value)
         value = extract_array(value, extract_numpy=True)
 
-        if is_dtype_equal(value.dtype, "string"):
+        if is_all_strings(value):
             # We got a StringArray
             try:
                 # TODO: Could use from_sequence_of_strings if implemented
@@ -1470,8 +1454,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         Index.max : Return the maximum value in an Index.
         Series.max : Return the maximum value in a Series.
         """
-        # TODO: skipna is broken with max.
-        # See https://github.com/pandas-dev/pandas/issues/24265
         nv.validate_max((), kwargs)
         nv.validate_minmax_axis(axis, self.ndim)
 
@@ -1642,6 +1624,13 @@ _round_doc = """
     ------
     ValueError if the `freq` cannot be converted.
 
+    Notes
+    -----
+    If the timestamps have a timezone, {op}ing will take place relative to the
+    local ("wall") time and re-localized to the same timezone. When {op}ing
+    near daylight savings time, use ``nonexistent`` and ``ambiguous`` to
+    control the re-localization behavior.
+
     Examples
     --------
     **DatetimeIndex**
@@ -1665,6 +1654,19 @@ _round_example = """>>> rng.round('H')
     1   2018-01-01 12:00:00
     2   2018-01-01 12:00:00
     dtype: datetime64[ns]
+
+    When rounding near a daylight savings time transition, use ``ambiguous`` or
+    ``nonexistent`` to control how the timestamp should be re-localized.
+
+    >>> rng_tz = pd.DatetimeIndex(["2021-10-31 03:30:00"], tz="Europe/Amsterdam")
+
+    >>> rng_tz.floor("2H", ambiguous=False)
+    DatetimeIndex(['2021-10-31 02:00:00+01:00'],
+                  dtype='datetime64[ns, Europe/Amsterdam]', freq=None)
+
+    >>> rng_tz.floor("2H", ambiguous=True)
+    DatetimeIndex(['2021-10-31 02:00:00+02:00'],
+                  dtype='datetime64[ns, Europe/Amsterdam]', freq=None)
     """
 
 _floor_example = """>>> rng.floor('H')
@@ -1679,6 +1681,19 @@ _floor_example = """>>> rng.floor('H')
     1   2018-01-01 12:00:00
     2   2018-01-01 12:00:00
     dtype: datetime64[ns]
+
+    When rounding near a daylight savings time transition, use ``ambiguous`` or
+    ``nonexistent`` to control how the timestamp should be re-localized.
+
+    >>> rng_tz = pd.DatetimeIndex(["2021-10-31 03:30:00"], tz="Europe/Amsterdam")
+
+    >>> rng_tz.floor("2H", ambiguous=False)
+    DatetimeIndex(['2021-10-31 02:00:00+01:00'],
+                 dtype='datetime64[ns, Europe/Amsterdam]', freq=None)
+
+    >>> rng_tz.floor("2H", ambiguous=True)
+    DatetimeIndex(['2021-10-31 02:00:00+02:00'],
+                  dtype='datetime64[ns, Europe/Amsterdam]', freq=None)
     """
 
 _ceil_example = """>>> rng.ceil('H')
@@ -1693,6 +1708,19 @@ _ceil_example = """>>> rng.ceil('H')
     1   2018-01-01 12:00:00
     2   2018-01-01 13:00:00
     dtype: datetime64[ns]
+
+    When rounding near a daylight savings time transition, use ``ambiguous`` or
+    ``nonexistent`` to control how the timestamp should be re-localized.
+
+    >>> rng_tz = pd.DatetimeIndex(["2021-10-31 01:30:00"], tz="Europe/Amsterdam")
+
+    >>> rng_tz.ceil("H", ambiguous=False)
+    DatetimeIndex(['2021-10-31 02:00:00+01:00'],
+                  dtype='datetime64[ns, Europe/Amsterdam]', freq=None)
+
+    >>> rng_tz.ceil("H", ambiguous=True)
+    DatetimeIndex(['2021-10-31 02:00:00+02:00'],
+                  dtype='datetime64[ns, Europe/Amsterdam]', freq=None)
     """
 
 

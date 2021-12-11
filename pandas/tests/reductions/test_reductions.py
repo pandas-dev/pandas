@@ -79,17 +79,18 @@ class TestReductions:
             ("boolean", True),
         ],
     )
-    def test_nanminmax(self, opname, dtype, val, index_or_series):
+    def test_nanminmax(self, opname, dtype, val, index_or_series, request):
         # GH#7261
         klass = index_or_series
 
         if dtype in ["Int64", "boolean"] and klass == Index:
-            pytest.skip("EAs can't yet be stored in an index")
+            mark = pytest.mark.xfail(reason="Need EA-backed Index")
+            request.node.add_marker(mark)
 
         def check_missing(res):
             if dtype == "datetime64[ns]":
                 return res is NaT
-            elif dtype == "Int64":
+            elif dtype in ["Int64", "boolean"]:
                 return res is pd.NA
             else:
                 return isna(res)
@@ -355,7 +356,7 @@ class TestIndexReductions:
             [
                 f"reduction operation '{opname}' not allowed for this dtype",
                 rf"cannot perform {opname} with type timedelta64\[ns\]",
-                f"'TimedeltaArray' does not implement reduction '{opname}'",
+                f"does not support reduction '{opname}'",
             ]
         )
 
@@ -569,7 +570,9 @@ class TestSeriesReductions:
         res = nanops.nansum(arr, axis=1)
         assert np.isinf(res).all()
 
-    @pytest.mark.parametrize("dtype", ["float64", "Int64", "boolean", "object"])
+    @pytest.mark.parametrize(
+        "dtype", ["float64", "Float32", "Int64", "boolean", "object"]
+    )
     @pytest.mark.parametrize("use_bottleneck", [True, False])
     @pytest.mark.parametrize("method, unit", [("sum", 0.0), ("prod", 1.0)])
     def test_empty(self, method, unit, use_bottleneck, dtype):
@@ -726,7 +729,7 @@ class TestSeriesReductions:
                 [
                     "operation 'var' not allowed",
                     r"cannot perform var with type timedelta64\[ns\]",
-                    "'TimedeltaArray' does not implement reduction 'var'",
+                    "does not support reduction 'var'",
                 ]
             )
             with pytest.raises(TypeError, match=msg):
@@ -929,13 +932,11 @@ class TestSeriesReductions:
             with tm.assert_produces_warning(FutureWarning):
                 s.all(bool_only=True, level=0)
 
-        # bool_only is not implemented alone.
-        # TODO GH38810 change this error message to:
-        # "Series.any does not implement bool_only"
-        msg = "Series.any does not implement numeric_only"
+        # GH#38810 bool_only is not implemented alone.
+        msg = "Series.any does not implement bool_only"
         with pytest.raises(NotImplementedError, match=msg):
             s.any(bool_only=True)
-        msg = "Series.all does not implement numeric_only."
+        msg = "Series.all does not implement bool_only."
         with pytest.raises(NotImplementedError, match=msg):
             s.all(bool_only=True)
 

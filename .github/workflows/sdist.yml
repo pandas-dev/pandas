@@ -25,8 +25,9 @@ jobs:
       matrix:
         python-version: ["3.8", "3.9", "3.10"]
     concurrency:
-      group: ${{github.ref}}-${{matrix.python-version}}-sdist
-      cancel-in-progress: ${{github.event_name == 'pull_request'}}
+      # https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{matrix.python-version}}-sdist
+      cancel-in-progress: true
 
     steps:
     - uses: actions/checkout@v2
@@ -53,6 +54,7 @@ jobs:
     - uses: conda-incubator/setup-miniconda@v2
       with:
         activate-environment: pandas-sdist
+        channels: conda-forge
         python-version: '${{ matrix.python-version }}'
 
     - name: Install pandas from sdist

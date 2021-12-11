@@ -3,7 +3,6 @@ from __future__ import annotations
 import numbers
 
 import numpy as np
-from numpy.lib.mixins import NDArrayOperatorsMixin
 
 from pandas._libs import lib
 from pandas._typing import (
@@ -31,7 +30,6 @@ from pandas.core.strings.object_array import ObjectStringArrayMixin
 class PandasArray(
     OpsMixin,
     NDArrayBackedExtensionArray,
-    NDArrayOperatorsMixin,
     ObjectStringArrayMixin,
 ):
     """
@@ -139,23 +137,12 @@ class PandasArray(
         # The primary modification is not boxing scalar return values
         # in PandasArray, since pandas' ExtensionArrays are 1-d.
         out = kwargs.get("out", ())
-        for x in inputs + out:
-            # Only support operations with instances of _HANDLED_TYPES.
-            # Use PandasArray instead of type(self) for isinstance to
-            # allow subclasses that don't override __array_ufunc__ to
-            # handle PandasArray objects.
-            if not isinstance(x, self._HANDLED_TYPES + (PandasArray,)):
-                return NotImplemented
 
-        if ufunc not in [np.logical_or, np.bitwise_or, np.bitwise_xor]:
-            # For binary ops, use our custom dunder methods
-            # We haven't implemented logical dunder funcs, so exclude these
-            #  to avoid RecursionError
-            result = ops.maybe_dispatch_ufunc_to_dunder_op(
-                self, ufunc, method, *inputs, **kwargs
-            )
-            if result is not NotImplemented:
-                return result
+        result = ops.maybe_dispatch_ufunc_to_dunder_op(
+            self, ufunc, method, *inputs, **kwargs
+        )
+        if result is not NotImplemented:
+            return result
 
         # Defer to the implementation of the ufunc on unwrapped values.
         inputs = tuple(x._ndarray if isinstance(x, PandasArray) else x for x in inputs)
@@ -165,7 +152,7 @@ class PandasArray(
             )
         result = getattr(ufunc, method)(*inputs, **kwargs)
 
-        if type(result) is tuple and len(result):
+        if ufunc.nout > 1:
             # multiple return values
             if not lib.is_scalar(result[0]):
                 # re-box array-like results
@@ -176,6 +163,13 @@ class PandasArray(
         elif method == "at":
             # no return value
             return None
+        elif method == "reduce":
+            if isinstance(result, np.ndarray):
+                # e.g. test_np_reduce_2d
+                return type(self)(result)
+
+            # e.g. test_np_max_nested_tuples
+            return result
         else:
             # one return value
             if not lib.is_scalar(result):

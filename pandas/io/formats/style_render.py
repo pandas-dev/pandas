@@ -57,17 +57,23 @@ CSSStyles = List[CSSDict]
 Subset = Union[slice, Sequence, Index]
 
 
+def _gl01_adjust(obj: Any) -> Any:
+    """Adjust docstrings for Numpydoc GLO1."""
+    obj.__doc__ = "\n" + obj.__doc__
+    return obj
+
+
 class StylerRenderer:
     """
     Base class to process rendering a Styler with a specified jinja2 template.
     """
 
-    loader = jinja2.PackageLoader("pandas", "io/formats/templates")
-    env = jinja2.Environment(loader=loader, trim_blocks=True)
-    template_html = env.get_template("html.tpl")
-    template_html_table = env.get_template("html_table.tpl")
-    template_html_style = env.get_template("html_style.tpl")
-    template_latex = env.get_template("latex.tpl")
+    loader = _gl01_adjust(jinja2.PackageLoader("pandas", "io/formats/templates"))
+    env = _gl01_adjust(jinja2.Environment(loader=loader, trim_blocks=True))
+    template_html = _gl01_adjust(env.get_template("html.tpl"))
+    template_html_table = _gl01_adjust(env.get_template("html_table.tpl"))
+    template_html_style = _gl01_adjust(env.get_template("html_style.tpl"))
+    template_latex = _gl01_adjust(env.get_template("latex.tpl"))
 
     def __init__(
         self,
@@ -316,7 +322,7 @@ class StylerRenderer:
             self.columns, sparsify_cols, max_cols, self.hidden_columns
         )
 
-        clabels = self.data.columns.tolist()[:max_cols]  # slice to allow trimming
+        clabels = self.data.columns.tolist()
         if self.data.columns.nlevels == 1:
             clabels = [[x] for x in clabels]
         clabels = list(zip(*clabels))
@@ -324,83 +330,13 @@ class StylerRenderer:
         head = []
         # 1) column headers
         for r, hide in enumerate(self.hide_columns_):
-            if hide:
+            if hide or not clabels:
                 continue
             else:
-                # number of index blanks is governed by number of hidden index levels
-                index_blanks = [
-                    _element("th", self.css["blank"], self.css["blank_value"], True)
-                ] * (self.index.nlevels - sum(self.hide_index_) - 1)
-
-                name = self.data.columns.names[r]
-                column_name = [
-                    _element(
-                        "th",
-                        (
-                            f"{self.css['blank']} {self.css['level']}{r}"
-                            if name is None
-                            else f"{self.css['index_name']} {self.css['level']}{r}"
-                        ),
-                        name
-                        if (name is not None and not self.hide_column_names)
-                        else self.css["blank_value"],
-                        not all(self.hide_index_),
-                    )
-                ]
-
-                if clabels:
-                    column_headers = []
-                    for c, value in enumerate(clabels[r]):
-                        header_element_visible = _is_visible(c, r, col_lengths)
-                        header_element = _element(
-                            "th",
-                            (
-                                f"{self.css['col_heading']} {self.css['level']}{r} "
-                                f"{self.css['col']}{c}"
-                            ),
-                            value,
-                            header_element_visible,
-                            display_value=self._display_funcs_columns[(r, c)](value),
-                            attributes=(
-                                f'colspan="{col_lengths.get((r, c), 0)}"'
-                                if col_lengths.get((r, c), 0) > 1
-                                else ""
-                            ),
-                        )
-
-                        if self.cell_ids:
-                            header_element[
-                                "id"
-                            ] = f"{self.css['level']}{r}_{self.css['col']}{c}"
-                        if (
-                            header_element_visible
-                            and (r, c) in self.ctx_columns
-                            and self.ctx_columns[r, c]
-                        ):
-                            header_element[
-                                "id"
-                            ] = f"{self.css['level']}{r}_{self.css['col']}{c}"
-                            self.cellstyle_map_columns[
-                                tuple(self.ctx_columns[r, c])
-                            ].append(f"{self.css['level']}{r}_{self.css['col']}{c}")
-
-                        column_headers.append(header_element)
-
-                    if len(self.data.columns) > max_cols:
-                        # add an extra column with `...` value to indicate trimming
-                        column_headers.append(
-                            _element(
-                                "th",
-                                (
-                                    f"{self.css['col_heading']} {self.css['level']}{r} "
-                                    f"{self.css['col_trim']}"
-                                ),
-                                "...",
-                                True,
-                                attributes="",
-                            )
-                        )
-                    head.append(index_blanks + column_name + column_headers)
+                header_row = self._generate_col_header_row(
+                    (r, clabels), max_cols, col_lengths
+                )
+                head.append(header_row)
 
         # 2) index names
         if (
@@ -409,35 +345,175 @@ class StylerRenderer:
             and not all(self.hide_index_)
             and not self.hide_index_names
         ):
-            index_names = [
-                _element(
-                    "th",
-                    f"{self.css['index_name']} {self.css['level']}{c}",
-                    self.css["blank_value"] if name is None else name,
-                    not self.hide_index_[c],
-                )
-                for c, name in enumerate(self.data.index.names)
-            ]
-
-            if not clabels:
-                blank_len = 0
-            elif len(self.data.columns) <= max_cols:
-                blank_len = len(clabels[0])
-            else:
-                blank_len = len(clabels[0]) + 1  # to allow room for `...` trim col
-
-            column_blanks = [
-                _element(
-                    "th",
-                    f"{self.css['blank']} {self.css['col']}{c}",
-                    self.css["blank_value"],
-                    c not in self.hidden_columns,
-                )
-                for c in range(blank_len)
-            ]
-            head.append(index_names + column_blanks)
+            index_names_row = self._generate_index_names_row(
+                clabels, max_cols, col_lengths
+            )
+            head.append(index_names_row)
 
         return head
+
+    def _generate_col_header_row(self, iter: tuple, max_cols: int, col_lengths: dict):
+        """
+        Generate the row containing column headers:
+
+         +----------------------------+---------------+---------------------------+
+         |  index_blanks ...          | column_name_i |  column_headers (level_i) |
+         +----------------------------+---------------+---------------------------+
+
+        Parameters
+        ----------
+        iter : tuple
+            Looping variables from outer scope
+        max_cols : int
+            Permissible number of columns
+        col_lenths :
+            c
+
+        Returns
+        -------
+        list of elements
+        """
+
+        r, clabels = iter
+
+        # number of index blanks is governed by number of hidden index levels
+        index_blanks = [
+            _element("th", self.css["blank"], self.css["blank_value"], True)
+        ] * (self.index.nlevels - sum(self.hide_index_) - 1)
+
+        name = self.data.columns.names[r]
+        column_name = [
+            _element(
+                "th",
+                (
+                    f"{self.css['blank']} {self.css['level']}{r}"
+                    if name is None
+                    else f"{self.css['index_name']} {self.css['level']}{r}"
+                ),
+                name
+                if (name is not None and not self.hide_column_names)
+                else self.css["blank_value"],
+                not all(self.hide_index_),
+            )
+        ]
+
+        column_headers, visible_col_count = [], 0
+        for c, value in enumerate(clabels[r]):
+            header_element_visible = _is_visible(c, r, col_lengths)
+            if header_element_visible:
+                visible_col_count += col_lengths.get((r, c), 0)
+            if visible_col_count > max_cols:
+                # add an extra column with `...` value to indicate trimming
+                column_headers.append(
+                    _element(
+                        "th",
+                        (
+                            f"{self.css['col_heading']} {self.css['level']}{r} "
+                            f"{self.css['col_trim']}"
+                        ),
+                        "...",
+                        True,
+                        attributes="",
+                    )
+                )
+                break
+
+            header_element = _element(
+                "th",
+                (
+                    f"{self.css['col_heading']} {self.css['level']}{r} "
+                    f"{self.css['col']}{c}"
+                ),
+                value,
+                header_element_visible,
+                display_value=self._display_funcs_columns[(r, c)](value),
+                attributes=(
+                    f'colspan="{col_lengths.get((r, c), 0)}"'
+                    if col_lengths.get((r, c), 0) > 1
+                    else ""
+                ),
+            )
+
+            if self.cell_ids:
+                header_element["id"] = f"{self.css['level']}{r}_{self.css['col']}{c}"
+            if (
+                header_element_visible
+                and (r, c) in self.ctx_columns
+                and self.ctx_columns[r, c]
+            ):
+                header_element["id"] = f"{self.css['level']}{r}_{self.css['col']}{c}"
+                self.cellstyle_map_columns[tuple(self.ctx_columns[r, c])].append(
+                    f"{self.css['level']}{r}_{self.css['col']}{c}"
+                )
+
+            column_headers.append(header_element)
+
+        return index_blanks + column_name + column_headers
+
+    def _generate_index_names_row(self, iter: tuple, max_cols: int, col_lengths: dict):
+        """
+        Generate the row containing index names
+
+         +----------------------------+---------------+---------------------------+
+         |  index_names (level_0 to level_n) ...      | column_blanks ...         |
+         +----------------------------+---------------+---------------------------+
+
+        Parameters
+        ----------
+        iter : tuple
+            Looping variables from outer scope
+        max_cols : int
+            Permissible number of columns
+
+        Returns
+        -------
+        list of elements
+        """
+
+        clabels = iter
+
+        index_names = [
+            _element(
+                "th",
+                f"{self.css['index_name']} {self.css['level']}{c}",
+                self.css["blank_value"] if name is None else name,
+                not self.hide_index_[c],
+            )
+            for c, name in enumerate(self.data.index.names)
+        ]
+
+        column_blanks, visible_col_count = [], 0
+        if clabels:
+            last_level = self.columns.nlevels - 1  # use last level since never sparsed
+            for c, value in enumerate(clabels[last_level]):
+                header_element_visible = _is_visible(c, last_level, col_lengths)
+                if header_element_visible:
+                    visible_col_count += 1
+                if visible_col_count > max_cols:
+                    column_blanks.append(
+                        _element(
+                            "th",
+                            (
+                                f"{self.css['blank']} {self.css['col']}{c} "
+                                f"{self.css['col_trim']}"
+                            ),
+                            self.css["blank_value"],
+                            True,
+                            attributes="",
+                        )
+                    )
+                    break
+
+                column_blanks.append(
+                    _element(
+                        "th",
+                        f"{self.css['blank']} {self.css['col']}{c}",
+                        self.css["blank_value"],
+                        c not in self.hidden_columns,
+                    )
+                )
+
+        return index_names + column_blanks
 
     def _translate_body(self, sparsify_index: bool, max_rows: int, max_cols: int):
         """
@@ -445,7 +521,7 @@ class StylerRenderer:
 
         Use the following structure:
           +--------------------------------------------+---------------------------+
-          |  index_header_0    ...    index_header_n   |  data_by_column           |
+          |  index_header_0    ...    index_header_n   |  data_by_column   ...     |
           +--------------------------------------------+---------------------------+
 
         Also add elements to the cellstyle_map for more efficient grouped elements in
@@ -466,149 +542,201 @@ class StylerRenderer:
             self.index, sparsify_index, max_rows, self.hidden_rows
         )
 
-        rlabels = self.data.index.tolist()[:max_rows]  # slice to allow trimming
+        rlabels = self.data.index.tolist()
         if not isinstance(self.data.index, MultiIndex):
             rlabels = [[x] for x in rlabels]
 
-        body = []
-        for r, row_tup in enumerate(self.data.itertuples()):
-            if r >= max_rows:  # used only to add a '...' trimmed row:
-                index_headers = [
-                    _element(
-                        "th",
-                        (
-                            f"{self.css['row_heading']} {self.css['level']}{c} "
-                            f"{self.css['row_trim']}"
-                        ),
-                        "...",
-                        not self.hide_index_[c],
-                        attributes="",
-                    )
-                    for c in range(self.data.index.nlevels)
-                ]
+        body, row_count = [], 0
+        for r, row_tup in [
+            z for z in enumerate(self.data.itertuples()) if z[0] not in self.hidden_rows
+        ]:
+            row_count += 1
+            if row_count > max_rows:  # used only to add a '...' trimmed row:
+                trimmed_row = self._generate_trimmed_row(max_cols)
+                body.append(trimmed_row)
+                break
+            body_row = self._generate_body_row(
+                (r, row_tup, rlabels), max_cols, idx_lengths
+            )
+            body.append(body_row)
+        return body
 
-                data = [
+    def _generate_trimmed_row(self, max_cols: int) -> list:
+        """
+        When a render has too many rows we generate a trimming row containing "..."
+
+        Parameters
+        ----------
+        max_cols : int
+            Number of permissible columns
+
+        Returns
+        -------
+        list of elements
+        """
+        index_headers = [
+            _element(
+                "th",
+                (
+                    f"{self.css['row_heading']} {self.css['level']}{c} "
+                    f"{self.css['row_trim']}"
+                ),
+                "...",
+                not self.hide_index_[c],
+                attributes="",
+            )
+            for c in range(self.data.index.nlevels)
+        ]
+
+        data, visible_col_count = [], 0
+        for c, _ in enumerate(self.columns):
+            data_element_visible = c not in self.hidden_columns
+            if data_element_visible:
+                visible_col_count += 1
+            if visible_col_count > max_cols:
+                data.append(
                     _element(
                         "td",
                         (
-                            f"{self.css['data']} {self.css['col']}{c} "
-                            f"{self.css['row_trim']}"
+                            f"{self.css['data']} {self.css['row_trim']} "
+                            f"{self.css['col_trim']}"
                         ),
                         "...",
-                        (c not in self.hidden_columns),
+                        True,
                         attributes="",
                     )
-                    for c in range(max_cols)
-                ]
-
-                if len(self.data.columns) > max_cols:
-                    # columns are also trimmed so we add the final element
-                    data.append(
-                        _element(
-                            "td",
-                            (
-                                f"{self.css['data']} {self.css['row_trim']} "
-                                f"{self.css['col_trim']}"
-                            ),
-                            "...",
-                            True,
-                            attributes="",
-                        )
-                    )
-
-                body.append(index_headers + data)
+                )
                 break
 
-            index_headers = []
-            for c, value in enumerate(rlabels[r]):
-                header_element_visible = (
-                    _is_visible(r, c, idx_lengths) and not self.hide_index_[c]
-                )
-                header_element = _element(
-                    "th",
-                    (
-                        f"{self.css['row_heading']} {self.css['level']}{c} "
-                        f"{self.css['row']}{r}"
-                    ),
-                    value,
-                    header_element_visible,
-                    display_value=self._display_funcs_index[(r, c)](value),
-                    attributes=(
-                        f'rowspan="{idx_lengths.get((c, r), 0)}"'
-                        if idx_lengths.get((c, r), 0) > 1
-                        else ""
-                    ),
-                )
-
-                if self.cell_ids:
-                    header_element[
-                        "id"
-                    ] = f"{self.css['level']}{c}_{self.css['row']}{r}"  # id is given
-                if (
-                    header_element_visible
-                    and (r, c) in self.ctx_index
-                    and self.ctx_index[r, c]
-                ):
-                    # always add id if a style is specified
-                    header_element[
-                        "id"
-                    ] = f"{self.css['level']}{c}_{self.css['row']}{r}"
-                    self.cellstyle_map_index[tuple(self.ctx_index[r, c])].append(
-                        f"{self.css['level']}{c}_{self.css['row']}{r}"
-                    )
-
-                index_headers.append(header_element)
-
-            data = []
-            for c, value in enumerate(row_tup[1:]):
-                if c >= max_cols:
-                    data.append(
-                        _element(
-                            "td",
-                            (
-                                f"{self.css['data']} {self.css['row']}{r} "
-                                f"{self.css['col_trim']}"
-                            ),
-                            "...",
-                            True,
-                            attributes="",
-                        )
-                    )
-                    break
-
-                # add custom classes from cell context
-                cls = ""
-                if (r, c) in self.cell_context:
-                    cls = " " + self.cell_context[r, c]
-
-                data_element_visible = (
-                    c not in self.hidden_columns and r not in self.hidden_rows
-                )
-                data_element = _element(
+            data.append(
+                _element(
                     "td",
-                    (
-                        f"{self.css['data']} {self.css['row']}{r} "
-                        f"{self.css['col']}{c}{cls}"
-                    ),
-                    value,
+                    f"{self.css['data']} {self.css['col']}{c} {self.css['row_trim']}",
+                    "...",
                     data_element_visible,
                     attributes="",
-                    display_value=self._display_funcs[(r, c)](value),
+                )
+            )
+
+        return index_headers + data
+
+    def _generate_body_row(
+        self,
+        iter: tuple,
+        max_cols: int,
+        idx_lengths: dict,
+    ):
+        """
+        Generate a regular row for the body section of appropriate format.
+
+          +--------------------------------------------+---------------------------+
+          |  index_header_0    ...    index_header_n   |  data_by_column   ...     |
+          +--------------------------------------------+---------------------------+
+
+        Parameters
+        ----------
+        iter : tuple
+            Iterable from outer scope: row number, row data tuple, row index labels.
+        max_cols : int
+            Number of permissible columns.
+        idx_lengths : dict
+            A map of the sparsification structure of the index
+
+        Returns
+        -------
+            list of elements
+        """
+        r, row_tup, rlabels = iter
+
+        index_headers = []
+        for c, value in enumerate(rlabels[r]):
+            header_element_visible = (
+                _is_visible(r, c, idx_lengths) and not self.hide_index_[c]
+            )
+            header_element = _element(
+                "th",
+                (
+                    f"{self.css['row_heading']} {self.css['level']}{c} "
+                    f"{self.css['row']}{r}"
+                ),
+                value,
+                header_element_visible,
+                display_value=self._display_funcs_index[(r, c)](value),
+                attributes=(
+                    f'rowspan="{idx_lengths.get((c, r), 0)}"'
+                    if idx_lengths.get((c, r), 0) > 1
+                    else ""
+                ),
+            )
+
+            if self.cell_ids:
+                header_element[
+                    "id"
+                ] = f"{self.css['level']}{c}_{self.css['row']}{r}"  # id is given
+            if (
+                header_element_visible
+                and (r, c) in self.ctx_index
+                and self.ctx_index[r, c]
+            ):
+                # always add id if a style is specified
+                header_element["id"] = f"{self.css['level']}{c}_{self.css['row']}{r}"
+                self.cellstyle_map_index[tuple(self.ctx_index[r, c])].append(
+                    f"{self.css['level']}{c}_{self.css['row']}{r}"
                 )
 
-                if self.cell_ids:
-                    data_element["id"] = f"{self.css['row']}{r}_{self.css['col']}{c}"
-                if data_element_visible and (r, c) in self.ctx and self.ctx[r, c]:
-                    # always add id if needed due to specified style
-                    data_element["id"] = f"{self.css['row']}{r}_{self.css['col']}{c}"
-                    self.cellstyle_map[tuple(self.ctx[r, c])].append(
-                        f"{self.css['row']}{r}_{self.css['col']}{c}"
+            index_headers.append(header_element)
+
+        data, visible_col_count = [], 0
+        for c, value in enumerate(row_tup[1:]):
+            data_element_visible = (
+                c not in self.hidden_columns and r not in self.hidden_rows
+            )
+            if data_element_visible:
+                visible_col_count += 1
+            if visible_col_count > max_cols:
+                data.append(
+                    _element(
+                        "td",
+                        (
+                            f"{self.css['data']} {self.css['row']}{r} "
+                            f"{self.css['col_trim']}"
+                        ),
+                        "...",
+                        True,
+                        attributes="",
                     )
+                )
+                break
 
-                data.append(data_element)
+            # add custom classes from cell context
+            cls = ""
+            if (r, c) in self.cell_context:
+                cls = " " + self.cell_context[r, c]
 
-            body.append(index_headers + data)
-        return body
+            data_element = _element(
+                "td",
+                (
+                    f"{self.css['data']} {self.css['row']}{r} "
+                    f"{self.css['col']}{c}{cls}"
+                ),
+                value,
+                data_element_visible,
+                attributes="",
+                display_value=self._display_funcs[(r, c)](value),
+            )
+
+            if self.cell_ids:
+                data_element["id"] = f"{self.css['row']}{r}_{self.css['col']}{c}"
+            if data_element_visible and (r, c) in self.ctx and self.ctx[r, c]:
+                # always add id if needed due to specified style
+                data_element["id"] = f"{self.css['row']}{r}_{self.css['col']}{c}"
+                self.cellstyle_map[tuple(self.ctx[r, c])].append(
+                    f"{self.css['row']}{r}_{self.css['col']}{c}"
+                )
+
+            data.append(data_element)
+
+        return index_headers + data
 
     def _translate_latex(self, d: dict) -> None:
         r"""
@@ -629,7 +757,14 @@ class StylerRenderer:
             for r, row in enumerate(d["head"])
         ]
         body = []
-        for r, row in enumerate(d["body"]):
+        index_levels = self.data.index.nlevels
+        for r, row in zip(
+            [r for r in range(len(self.data.index)) if r not in self.hidden_rows],
+            d["body"],
+        ):
+            # note: cannot enumerate d["body"] because rows were dropped if hidden
+            # during _translate_body so must zip to acquire the true r-index associated
+            # with the ctx obj which contains the cell styles.
             if all(self.hide_index_):
                 row_body_headers = []
             else:
@@ -639,15 +774,15 @@ class StylerRenderer:
                         "display_value": col["display_value"]
                         if col["is_visible"]
                         else "",
-                        "cellstyle": self.ctx_index[r, c] if col["is_visible"] else [],
+                        "cellstyle": self.ctx_index[r, c],
                     }
-                    for c, col in enumerate(row)
-                    if col["type"] == "th"
+                    for c, col in enumerate(row[:index_levels])
+                    if (col["type"] == "th" and not self.hide_index_[c])
                 ]
 
             row_body_cells = [
-                {**col, "cellstyle": self.ctx[r, c - self.data.index.nlevels]}
-                for c, col in enumerate(row)
+                {**col, "cellstyle": self.ctx[r, c]}
+                for c, col in enumerate(row[index_levels:])
                 if (col["is_visible"] and col["type"] == "td")
             ]
 
@@ -688,12 +823,12 @@ class StylerRenderer:
             .. versionadded:: 1.3.0
 
         decimal : str, default "."
-            Character used as decimal separator for floats, complex and integers
+            Character used as decimal separator for floats, complex and integers.
 
             .. versionadded:: 1.3.0
 
         thousands : str, optional, default None
-            Character used as thousands separator for floats, complex and integers
+            Character used as thousands separator for floats, complex and integers.
 
             .. versionadded:: 1.3.0
 
@@ -882,9 +1017,9 @@ class StylerRenderer:
             Floating point precision to use for display purposes, if not determined by
             the specified ``formatter``.
         decimal : str, default "."
-            Character used as decimal separator for floats, complex and integers
+            Character used as decimal separator for floats, complex and integers.
         thousands : str, optional, default None
-            Character used as thousands separator for floats, complex and integers
+            Character used as thousands separator for floats, complex and integers.
         escape : str, optional
             Use 'html' to replace the characters ``&``, ``<``, ``>``, ``'``, and ``"``
             in cell display string with HTML-safe sequences.
@@ -1129,24 +1264,32 @@ def _get_level_lengths(
         return lengths
 
     for i, lvl in enumerate(levels):
+        visible_row_count = 0  # used to break loop due to display trimming
         for j, row in enumerate(lvl):
-            if j >= max_index:
-                # stop the loop due to display trimming
+            if visible_row_count > max_index:
                 break
             if not sparsify:
+                # then lengths will always equal 1 since no aggregation.
                 if j not in hidden_elements:
                     lengths[(i, j)] = 1
+                    visible_row_count += 1
             elif (row is not lib.no_default) and (j not in hidden_elements):
+                # this element has not been sparsified so must be the start of section
                 last_label = j
                 lengths[(i, last_label)] = 1
+                visible_row_count += 1
             elif row is not lib.no_default:
-                # even if its hidden, keep track of it in case
-                # length >1 and later elements are visible
+                # even if the above is hidden, keep track of it in case length > 1 and
+                # later elements are visible
                 last_label = j
                 lengths[(i, last_label)] = 0
             elif j not in hidden_elements:
+                # then element must be part of sparsified section and is visible
+                visible_row_count += 1
+                if visible_row_count > max_index:
+                    break  # do not add a length since the render trim limit reached
                 if lengths[(i, last_label)] == 0:
-                    # if the previous iteration was first-of-kind but hidden then offset
+                    # if previous iteration was first-of-section but hidden then offset
                     last_label = j
                     lengths[(i, last_label)] = 1
                 else:

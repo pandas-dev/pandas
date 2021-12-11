@@ -6,7 +6,6 @@ import operator
 from shutil import get_terminal_size
 from typing import (
     TYPE_CHECKING,
-    Any,
     Hashable,
     Sequence,
     TypeVar,
@@ -38,10 +37,6 @@ from pandas._typing import (
     Dtype,
     NpDtype,
     Ordered,
-    PositionalIndexer2D,
-    PositionalIndexerTuple,
-    ScalarIndexer,
-    SequenceIndexer,
     Shape,
     npt,
     type_t,
@@ -102,7 +97,10 @@ from pandas.core.algorithms import (
     take_nd,
     unique1d,
 )
-from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
+from pandas.core.arrays._mixins import (
+    NDArrayBackedExtensionArray,
+    ravel_compat,
+)
 from pandas.core.base import (
     ExtensionArray,
     NoNewAttributesMixin,
@@ -110,11 +108,9 @@ from pandas.core.base import (
 )
 import pandas.core.common as com
 from pandas.core.construction import (
-    array as pd_array,
     extract_array,
     sanitize_array,
 )
-from pandas.core.indexers import deprecate_ndim_indexing
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.sorting import nargsort
 from pandas.core.strings.object_array import ObjectStringArrayMixin
@@ -394,7 +390,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 "Allowing scalars in the Categorical constructor is deprecated "
                 "and will raise in a future version.  Use `[value]` instead",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
             values = [values]
 
@@ -425,13 +421,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 if null_mask.any():
                     # We remove null values here, then below will re-insert
                     #  them, grep "full_codes"
-
-                    # error: Incompatible types in assignment (expression has type
-                    # "List[Any]", variable has type "ExtensionArray")
-                    arr = [  # type: ignore[assignment]
-                        values[idx] for idx in np.where(~null_mask)[0]
-                    ]
-                    arr = sanitize_array(arr, None)
+                    arr_list = [values[idx] for idx in np.where(~null_mask)[0]]
+                    arr = sanitize_array(arr_list, None)
                 values = arr
 
         if dtype.categories is None:
@@ -518,16 +509,15 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             result = self.copy() if copy else self
 
         elif is_categorical_dtype(dtype):
-            dtype = cast(Union[str, CategoricalDtype], dtype)
+            dtype = cast("Union[str, CategoricalDtype]", dtype)
 
             # GH 10696/18593/18630
             dtype = self.dtype.update_dtype(dtype)
             self = self.copy() if copy else self
             result = self._set_dtype(dtype)
 
-        # TODO: consolidate with ndarray case?
         elif isinstance(dtype, ExtensionDtype):
-            result = pd_array(self, dtype=dtype, copy=copy)
+            return super().astype(dtype, copy=copy)
 
         elif is_integer_dtype(dtype) and self.isna().any():
             raise ValueError("Cannot convert float NaN to integer")
@@ -1050,7 +1040,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 "a future version. Removing unused categories will always "
                 "return a new Categorical object.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
         else:
             inplace = False
@@ -1182,7 +1172,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 "a future version. Removing unused categories will always "
                 "return a new Categorical object.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
         else:
             inplace = False
@@ -1257,7 +1247,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 "a future version. Removing unused categories will always "
                 "return a new Categorical object.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
         else:
             inplace = False
@@ -1332,7 +1322,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 "remove_unused_categories is deprecated and "
                 "will be removed in a future version.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
         else:
             inplace = False
@@ -1486,6 +1476,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     # -------------------------------------------------------------
 
+    @ravel_compat
     def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
         """
         The numpy array interface.
@@ -1888,7 +1879,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             "Categorical.to_dense is deprecated and will be removed in "
             "a future version.  Use np.asarray(cat) instead.",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return np.asarray(self)
 
@@ -1905,7 +1896,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             "Setting the codes on a Categorical is deprecated and will raise in "
             "a future version. Create a new Categorical object instead",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )  # GH#40606
         NDArrayBacked.__init__(self, value, self.dtype)
 
@@ -1928,7 +1919,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         warn(
             "Categorical.take_nd is deprecated, use Categorical.take instead",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self.take(indexer, allow_fill=allow_fill, fill_value=fill_value)
 
@@ -1936,7 +1927,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         Returns an Iterator over the values of this Categorical.
         """
-        return iter(self._internal_get_values().tolist())
+        if self.ndim == 1:
+            return iter(self._internal_get_values().tolist())
+        else:
+            return (self[n] for n in range(len(self)))
 
     def __contains__(self, key) -> bool:
         """
@@ -2054,27 +2048,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return result
 
     # ------------------------------------------------------------------
-
-    @overload
-    def __getitem__(self, key: ScalarIndexer) -> Any:
-        ...
-
-    @overload
-    def __getitem__(
-        self: CategoricalT,
-        key: SequenceIndexer | PositionalIndexerTuple,
-    ) -> CategoricalT:
-        ...
-
-    def __getitem__(self: CategoricalT, key: PositionalIndexer2D) -> CategoricalT | Any:
-        """
-        Return an item.
-        """
-        result = super().__getitem__(key)
-        if getattr(result, "ndim", 0) > 1:
-            result = result._ndarray
-            deprecate_ndim_indexing(result)
-        return result
 
     def _validate_listlike(self, value):
         # NB: here we assume scalar-like tuples have already been excluded
@@ -2313,7 +2286,29 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     ) -> CategoricalT:
         from pandas.core.dtypes.concat import union_categoricals
 
-        return union_categoricals(to_concat)
+        first = to_concat[0]
+        if axis >= first.ndim:
+            raise ValueError(
+                f"axis {axis} is out of bounds for array of dimension {first.ndim}"
+            )
+
+        if axis == 1:
+            # Flatten, concatenate then reshape
+            if not all(x.ndim == 2 for x in to_concat):
+                raise ValueError
+
+            # pass correctly-shaped to union_categoricals
+            tc_flat = []
+            for obj in to_concat:
+                tc_flat.extend([obj[:, i] for i in range(obj.shape[1])])
+
+            res_flat = cls._concat_same_type(tc_flat, axis=0)
+
+            result = res_flat.reshape(len(first), -1, order="F")
+            return result
+
+        result = union_categoricals(to_concat)
+        return result
 
     # ------------------------------------------------------------------
 
@@ -2354,7 +2349,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             "Categorical.is_dtype_equal is deprecated and will be removed "
             "in a future version",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         try:
             return self._categories_match_up_to_permutation(other)
@@ -2701,7 +2696,12 @@ def _get_codes_for_values(values, categories: Index) -> np.ndarray:
     """
     dtype_equal = is_dtype_equal(values.dtype, categories.dtype)
 
-    if is_extension_array_dtype(categories.dtype) and is_object_dtype(values):
+    if values.ndim > 1:
+        flat = values.ravel()
+        codes = _get_codes_for_values(flat, categories)
+        return codes.reshape(values.shape)
+
+    if isinstance(categories.dtype, ExtensionDtype) and is_object_dtype(values):
         # Support inferring the correct extension dtype from an array of
         # scalar objects. e.g.
         # Categorical(array[Period, Period], categories=PeriodIndex(...))

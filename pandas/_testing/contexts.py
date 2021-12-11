@@ -14,6 +14,8 @@ from typing import (
 
 import numpy as np
 
+from pandas import set_option
+
 from pandas.io.common import get_handle
 
 
@@ -189,8 +191,10 @@ def with_csv_dialect(name, **kwargs):
         raise ValueError("Cannot override builtin dialect.")
 
     csv.register_dialect(name, **kwargs)
-    yield
-    csv.unregister_dialect(name)
+    try:
+        yield
+    finally:
+        csv.unregister_dialect(name)
 
 
 @contextmanager
@@ -202,11 +206,13 @@ def use_numexpr(use, min_elements=None):
 
     olduse = expr.USE_NUMEXPR
     oldmin = expr._MIN_ELEMENTS
-    expr.set_use_numexpr(use)
+    set_option("compute.use_numexpr", use)
     expr._MIN_ELEMENTS = min_elements
-    yield
-    expr._MIN_ELEMENTS = oldmin
-    expr.set_use_numexpr(olduse)
+    try:
+        yield
+    finally:
+        expr._MIN_ELEMENTS = oldmin
+        set_option("compute.use_numexpr", olduse)
 
 
 class RNGContext:

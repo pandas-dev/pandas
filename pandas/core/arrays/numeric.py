@@ -14,7 +14,6 @@ from pandas._libs import (
     missing as libmissing,
 )
 from pandas.compat.numpy import function as nv
-from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import (
     is_float,
@@ -80,9 +79,6 @@ class NumericArray(BaseMaskedArray):
     Base class for IntegerArray and FloatingArray.
     """
 
-    def _maybe_mask_result(self, result, mask, other, op_name: str):
-        raise AbstractMethodError(self)
-
     def _arith_method(self, other, op):
         op_name = op.__name__
         omask = None
@@ -136,6 +132,11 @@ class NumericArray(BaseMaskedArray):
 
         if other is libmissing.NA:
             result = np.ones_like(self._data)
+            if "truediv" in op_name and self.dtype.kind != "f":
+                # The actual data here doesn't matter since the mask
+                #  will be all-True, but since this is division, we want
+                #  to end up with floating dtype.
+                result = result.astype(np.float64)
         else:
             with np.errstate(all="ignore"):
                 result = op(self._data, other)
@@ -152,23 +153,11 @@ class NumericArray(BaseMaskedArray):
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
 
-    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
-        result = super()._reduce(name, skipna=skipna, **kwargs)
-        if isinstance(result, np.ndarray):
-            axis = kwargs["axis"]
-            if skipna:
-                # we only retain mask for all-NA rows/columns
-                mask = self._mask.all(axis=axis)
-            else:
-                mask = self._mask.any(axis=axis)
-            return type(self)(result, mask=mask)
-        return result
-
     def __neg__(self):
         return type(self)(-self._data, self._mask.copy())
 
     def __pos__(self):
-        return self
+        return self.copy()
 
     def __abs__(self):
         return type(self)(abs(self._data), self._mask.copy())

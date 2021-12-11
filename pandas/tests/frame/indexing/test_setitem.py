@@ -44,6 +44,19 @@ from pandas.tseries.offsets import BDay
 
 
 class TestDataFrameSetItem:
+    def test_setitem_str_subclass(self):
+        # GH#37366
+        class mystring(str):
+            pass
+
+        data = ["2020-10-22 01:21:00+00:00"]
+        index = DatetimeIndex(data)
+        df = DataFrame({"a": [1]}, index=index)
+        df["b"] = 2
+        df[mystring("c")] = 3
+        expected = DataFrame({"a": [1], "b": [2], mystring("c"): [3]}, index=index)
+        tm.assert_equal(df, expected)
+
     @pytest.mark.parametrize("dtype", ["int32", "int64", "float32", "float64"])
     def test_setitem_dtype(self, dtype, float_frame):
         arr = np.random.randn(len(float_frame))
@@ -384,7 +397,7 @@ class TestDataFrameSetItem:
         expected["A"] = expected["A"].astype("object")
         tm.assert_frame_equal(df, expected)
 
-    def test_setitem_frame_duplicate_columns(self, using_array_manager):
+    def test_setitem_frame_duplicate_columns(self, using_array_manager, request):
         # GH#15695
         cols = ["A", "B", "C"] * 2
         df = DataFrame(index=range(3), columns=cols)
@@ -407,6 +420,11 @@ class TestDataFrameSetItem:
             expected["C"] = expected["C"].astype("int64")
             # TODO(ArrayManager) .loc still overwrites
             expected["B"] = expected["B"].astype("int64")
+
+            mark = pytest.mark.xfail(
+                reason="Both 'A' columns get set with 3 instead of 0 and 3"
+            )
+            request.node.add_marker(mark)
         else:
             # set these with unique columns to be extra-unambiguous
             expected[2] = expected[2].astype(np.int64)
@@ -710,8 +728,6 @@ class TestSetitemTZAwareValues:
 
 
 class TestDataFrameSetItemWithExpansion:
-    # TODO(ArrayManager) update parent (_maybe_update_cacher)
-    @td.skip_array_manager_not_yet_implemented
     def test_setitem_listlike_views(self):
         # GH#38148
         df = DataFrame({"a": [1, 2, 3], "b": [4, 4, 6]})
@@ -995,21 +1011,36 @@ class TestDataFrameSetitemCopyViewSemantics:
         float_frame["E"][5:10] = np.nan
         assert notna(s[5:10]).all()
 
-    def test_setitem_clear_caches(self):
-        # see GH#304
+    @pytest.mark.parametrize("consolidate", [True, False])
+    def test_setitem_partial_column_inplace(self, consolidate, using_array_manager):
+        # This setting should be in-place, regardless of whether frame is
+        #  single-block or multi-block
+        # GH#304 this used to be incorrectly not-inplace, in which case
+        #  we needed to ensure _item_cache was cleared.
+
         df = DataFrame(
             {"x": [1.1, 2.1, 3.1, 4.1], "y": [5.1, 6.1, 7.1, 8.1]}, index=[0, 1, 2, 3]
         )
         df.insert(2, "z", np.nan)
+        if not using_array_manager:
+            if consolidate:
+                df._consolidate_inplace()
+                assert len(df._mgr.blocks) == 1
+            else:
+                assert len(df._mgr.blocks) == 2
 
-        # cache it
-        foo = df["z"]
-        df.loc[df.index[2:], "z"] = 42
+        zvals = df["z"]._values
+
+        df.loc[2:, "z"] = 42
 
         expected = Series([np.nan, np.nan, 42, 42], index=df.index, name="z")
-
-        assert df["z"] is not foo
         tm.assert_series_equal(df["z"], expected)
+
+        # check setting occurred in-place
+        tm.assert_numpy_array_equal(zvals, expected.values)
+        assert np.shares_memory(zvals, df["z"]._values)
+        if not consolidate:
+            assert df["z"]._values is zvals
 
     def test_setitem_duplicate_columns_not_inplace(self):
         # GH#39510
@@ -1028,12 +1059,6 @@ class TestDataFrameSetitemCopyViewSemantics:
     )
     def test_setitem_same_dtype_not_inplace(self, value, using_array_manager, request):
         # GH#39510
-        if not using_array_manager:
-            mark = pytest.mark.xfail(
-                reason="Setitem with same dtype still changing inplace"
-            )
-            request.node.add_marker(mark)
-
         cols = ["A", "B"]
         df = DataFrame(0, index=[0, 1], columns=cols)
         df_copy = df.copy()
@@ -1056,3 +1081,34 @@ class TestDataFrameSetitemCopyViewSemantics:
         expected = DataFrame([[0, 1.0], [0, 1.0]], columns=cols)
         tm.assert_frame_equal(df_view, df_copy)
         tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize(
+        "indexer",
+        [
+            "a",
+            ["a"],
+            pytest.param(
+                [True, False],
+                marks=pytest.mark.xfail(
+                    reason="Boolean indexer incorrectly setting inplace",
+                    strict=False,  # passing on some builds, no obvious pattern
+                ),
+            ),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "value, set_value",
+        [
+            (1, 5),
+            (1.0, 5.0),
+            (Timestamp("2020-12-31"), Timestamp("2021-12-31")),
+            ("a", "b"),
+        ],
+    )
+    def test_setitem_not_operating_inplace(self, value, set_value, indexer):
+        # GH#43406
+        df = DataFrame({"a": value}, index=[0, 1])
+        expected = df.copy()
+        view = df[:]
+        df[indexer] = set_value
+        tm.assert_frame_equal(view, expected)

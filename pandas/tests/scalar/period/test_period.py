@@ -40,6 +40,17 @@ import pandas._testing as tm
 
 
 class TestPeriodConstruction:
+    def test_from_td64nat_raises(self):
+        # GH#44507
+        td = NaT.to_numpy("m8[ns]")
+
+        msg = "Value must be Period, string, integer, or datetime"
+        with pytest.raises(ValueError, match=msg):
+            Period(td)
+
+        with pytest.raises(ValueError, match=msg):
+            Period(td, freq="D")
+
     def test_construction(self):
         i1 = Period("1/1/2005", freq="M")
         i2 = Period("Jan 2005")
@@ -1148,6 +1159,16 @@ class TestPeriodComparisons:
             assert not left <= right
             assert not left >= right
 
+    @pytest.mark.parametrize(
+        "zerodim_arr, expected",
+        ((np.array(0), False), (np.array(Period("2000-01", "M")), True)),
+    )
+    def test_comparison_numpy_zerodim_arr(self, zerodim_arr, expected):
+        p = Period("2000-01", "M")
+
+        assert (p == zerodim_arr) is expected
+        assert (zerodim_arr == p) is expected
+
 
 class TestArithmetic:
     def test_sub_delta(self):
@@ -1287,20 +1308,8 @@ class TestArithmetic:
                 msg = "Input has different freq|Input cannot be converted to Period"
                 with pytest.raises(IncompatibleFrequency, match=msg):
                     p + o
-
-                if isinstance(o, np.timedelta64):
-                    msg = "cannot use operands with types"
-                    with pytest.raises(TypeError, match=msg):
-                        o + p
-                else:
-                    msg = "|".join(
-                        [
-                            "Input has different freq",
-                            "Input cannot be converted to Period",
-                        ]
-                    )
-                    with pytest.raises(IncompatibleFrequency, match=msg):
-                        o + p
+                with pytest.raises(IncompatibleFrequency, match=msg):
+                    o + p
 
         for freq in ["M", "2M", "3M"]:
             p = Period("2011-03", freq=freq)
@@ -1312,6 +1321,13 @@ class TestArithmetic:
             assert p + offsets.MonthEnd(12) == exp
             assert offsets.MonthEnd(12) + p == exp
 
+            msg = "|".join(
+                [
+                    "Input has different freq",
+                    "Input cannot be converted to Period",
+                ]
+            )
+
             for o in [
                 offsets.YearBegin(2),
                 offsets.MonthBegin(1),
@@ -1319,23 +1335,11 @@ class TestArithmetic:
                 np.timedelta64(365, "D"),
                 timedelta(365),
             ]:
-                msg = "Input has different freq|Input cannot be converted to Period"
+
                 with pytest.raises(IncompatibleFrequency, match=msg):
                     p + o
-
-                if isinstance(o, np.timedelta64):
-                    msg = "cannot use operands with types"
-                    with pytest.raises(TypeError, match=msg):
-                        o + p
-                else:
-                    msg = "|".join(
-                        [
-                            "Input has different freq",
-                            "Input cannot be converted to Period",
-                        ]
-                    )
-                    with pytest.raises(IncompatibleFrequency, match=msg):
-                        o + p
+                with pytest.raises(IncompatibleFrequency, match=msg):
+                    o + p
 
         # freq is Tick
         for freq in ["D", "2D", "3D"]:
@@ -1351,14 +1355,11 @@ class TestArithmetic:
 
             exp = Period("2011-04-03", freq=freq)
             assert p + np.timedelta64(2, "D") == exp
-            msg = "cannot use operands with types"
-            with pytest.raises(TypeError, match=msg):
-                np.timedelta64(2, "D") + p
+            assert np.timedelta64(2, "D") + p == exp
 
             exp = Period("2011-04-02", freq=freq)
             assert p + np.timedelta64(3600 * 24, "s") == exp
-            with pytest.raises(TypeError, match=msg):
-                np.timedelta64(3600 * 24, "s") + p
+            assert np.timedelta64(3600 * 24, "s") + p == exp
 
             exp = Period("2011-03-30", freq=freq)
             assert p + timedelta(-2) == exp
@@ -1368,6 +1369,13 @@ class TestArithmetic:
             assert p + timedelta(hours=48) == exp
             assert timedelta(hours=48) + p == exp
 
+            msg = "|".join(
+                [
+                    "Input has different freq",
+                    "Input cannot be converted to Period",
+                ]
+            )
+
             for o in [
                 offsets.YearBegin(2),
                 offsets.MonthBegin(1),
@@ -1375,23 +1383,10 @@ class TestArithmetic:
                 np.timedelta64(4, "h"),
                 timedelta(hours=23),
             ]:
-                msg = "Input has different freq|Input cannot be converted to Period"
                 with pytest.raises(IncompatibleFrequency, match=msg):
                     p + o
-
-                if isinstance(o, np.timedelta64):
-                    msg = "cannot use operands with types"
-                    with pytest.raises(TypeError, match=msg):
-                        o + p
-                else:
-                    msg = "|".join(
-                        [
-                            "Input has different freq",
-                            "Input cannot be converted to Period",
-                        ]
-                    )
-                    with pytest.raises(IncompatibleFrequency, match=msg):
-                        o + p
+                with pytest.raises(IncompatibleFrequency, match=msg):
+                    o + p
 
         for freq in ["H", "2H", "3H"]:
             p = Period("2011-04-01 09:00", freq=freq)
@@ -1407,13 +1402,11 @@ class TestArithmetic:
             msg = "cannot use operands with types"
             exp = Period("2011-04-01 12:00", freq=freq)
             assert p + np.timedelta64(3, "h") == exp
-            with pytest.raises(TypeError, match=msg):
-                np.timedelta64(3, "h") + p
+            assert np.timedelta64(3, "h") + p == exp
 
             exp = Period("2011-04-01 10:00", freq=freq)
             assert p + np.timedelta64(3600, "s") == exp
-            with pytest.raises(TypeError, match=msg):
-                np.timedelta64(3600, "s") + p
+            assert np.timedelta64(3600, "s") + p == exp
 
             exp = Period("2011-04-01 11:00", freq=freq)
             assert p + timedelta(minutes=120) == exp
@@ -1423,6 +1416,13 @@ class TestArithmetic:
             assert p + timedelta(days=4, minutes=180) == exp
             assert timedelta(days=4, minutes=180) + p == exp
 
+            msg = "|".join(
+                [
+                    "Input has different freq",
+                    "Input cannot be converted to Period",
+                ]
+            )
+
             for o in [
                 offsets.YearBegin(2),
                 offsets.MonthBegin(1),
@@ -1430,27 +1430,20 @@ class TestArithmetic:
                 np.timedelta64(3200, "s"),
                 timedelta(hours=23, minutes=30),
             ]:
-                msg = "Input has different freq|Input cannot be converted to Period"
                 with pytest.raises(IncompatibleFrequency, match=msg):
                     p + o
-
-                if isinstance(o, np.timedelta64):
-                    msg = "cannot use operands with types"
-                    with pytest.raises(TypeError, match=msg):
-                        o + p
-                else:
-                    msg = "|".join(
-                        [
-                            "Input has different freq",
-                            "Input cannot be converted to Period",
-                        ]
-                    )
-                    with pytest.raises(IncompatibleFrequency, match=msg):
-                        o + p
+                with pytest.raises(IncompatibleFrequency, match=msg):
+                    o + p
 
     def test_sub_offset(self):
         # freq is DateOffset
-        msg = "Input has different freq|Input cannot be converted to Period"
+        msg = "|".join(
+            [
+                "Input has different freq",
+                "Input cannot be converted to Period",
+            ]
+        )
+
         for freq in ["A", "2A", "3A"]:
             p = Period("2011", freq=freq)
             assert p - offsets.YearEnd(2) == Period("2009", freq=freq)

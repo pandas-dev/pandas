@@ -38,6 +38,7 @@ from pandas.core.dtypes.common import (
     is_unsigned_integer_dtype,
     pandas_dtype,
 )
+from pandas.core.dtypes.dtypes import IntervalDtype
 
 import pandas as pd
 from pandas import (
@@ -82,6 +83,7 @@ from pandas._testing.asserters import (  # noqa:F401
     assert_extension_array_equal,
     assert_frame_equal,
     assert_index_equal,
+    assert_indexing_slices_equivalent,
     assert_interval_array_equal,
     assert_is_sorted,
     assert_is_valid_plot_return_object,
@@ -109,12 +111,15 @@ from pandas.core.api import (
     UInt64Index,
 )
 from pandas.core.arrays import (
+    BaseMaskedArray,
     DatetimeArray,
+    ExtensionArray,
     PandasArray,
     PeriodArray,
     TimedeltaArray,
     period_array,
 )
+from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 
 if TYPE_CHECKING:
     from pandas import (
@@ -157,6 +162,25 @@ ALL_NUMPY_DTYPES = (
 )
 
 NULL_OBJECTS = [None, np.nan, pd.NaT, float("nan"), pd.NA, Decimal("NaN")]
+NP_NAT_OBJECTS = [
+    cls("NaT", unit)
+    for cls in [np.datetime64, np.timedelta64]
+    for unit in [
+        "Y",
+        "M",
+        "W",
+        "D",
+        "h",
+        "m",
+        "s",
+        "ms",
+        "us",
+        "ns",
+        "ps",
+        "fs",
+        "as",
+    ]
+]
 
 EMPTY_STRING_PATTERN = re.compile("^$")
 
@@ -240,7 +264,7 @@ def box_expected(expected, box_cls, transpose=True):
         expected = DatetimeArray(expected)
     elif box_cls is TimedeltaArray:
         expected = TimedeltaArray(expected)
-    elif box_cls is np.ndarray:
+    elif box_cls is np.ndarray or box_cls is np.array:
         expected = np.array(expected)
     elif box_cls is to_array:
         expected = to_array(expected)
@@ -259,6 +283,10 @@ def to_array(obj):
         return DatetimeArray._from_sequence(obj)
     elif is_timedelta64_dtype(dtype):
         return TimedeltaArray._from_sequence(obj)
+    elif isinstance(obj, pd.core.arrays.BooleanArray):
+        return obj
+    elif isinstance(dtype, IntervalDtype):
+        return pd.core.arrays.IntervalArray(obj)
     else:
         return np.array(obj)
 
@@ -1030,3 +1058,53 @@ def at(x):
 
 def iat(x):
     return x.iat
+
+
+# -----------------------------------------------------------------------------
+
+
+def shares_memory(left, right) -> bool:
+    """
+    Pandas-compat for np.shares_memory.
+    """
+    if isinstance(left, np.ndarray) and isinstance(right, np.ndarray):
+        return np.shares_memory(left, right)
+    elif isinstance(left, np.ndarray):
+        # Call with reversed args to get to unpacking logic below.
+        return shares_memory(right, left)
+
+    if isinstance(left, RangeIndex):
+        return False
+    if isinstance(left, MultiIndex):
+        return shares_memory(left._codes, right)
+    if isinstance(left, (Index, Series)):
+        return shares_memory(left._values, right)
+
+    if isinstance(left, NDArrayBackedExtensionArray):
+        return shares_memory(left._ndarray, right)
+    if isinstance(left, pd.core.arrays.SparseArray):
+        return shares_memory(left.sp_values, right)
+
+    if isinstance(left, ExtensionArray) and left.dtype == "string[pyarrow]":
+        # https://github.com/pandas-dev/pandas/pull/43930#discussion_r736862669
+        if isinstance(right, ExtensionArray) and right.dtype == "string[pyarrow]":
+            # error: "ExtensionArray" has no attribute "_data"
+            left_pa_data = left._data  # type: ignore[attr-defined]
+            # error: "ExtensionArray" has no attribute "_data"
+            right_pa_data = right._data  # type: ignore[attr-defined]
+            left_buf1 = left_pa_data.chunk(0).buffers()[1]
+            right_buf1 = right_pa_data.chunk(0).buffers()[1]
+            return left_buf1 == right_buf1
+
+    if isinstance(left, BaseMaskedArray) and isinstance(right, BaseMaskedArray):
+        # By convention, we'll say these share memory if they share *either*
+        #  the _data or the _mask
+        return np.shares_memory(left._data, right._data) or np.shares_memory(
+            left._mask, right._mask
+        )
+
+    if isinstance(left, DataFrame) and len(left._mgr.arrays) == 1:
+        arr = left._mgr.arrays[0]
+        return shares_memory(arr, right)
+
+    raise NotImplementedError(type(left), type(right))
