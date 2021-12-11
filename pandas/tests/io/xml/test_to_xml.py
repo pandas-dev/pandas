@@ -1314,7 +1314,9 @@ def test_unsuported_compression(datapath, parser):
             # Argument "compression" to "to_xml" of "DataFrame" has incompatible type
             # "Literal['7z']"; expected "Union[Literal['infer'], Literal['gzip'],
             # Literal['bz2'], Literal['zip'], Literal['xz'], Dict[str, Any], None]"
-            geom_df.to_xml(path, parser=parser, compression="7z")  # type: ignore[arg-type]
+            geom_df.to_xml(
+                path, parser=parser, compression="7z"  # type: ignore[arg-type]
+            )
 
 
 # STORAGE OPTIONS
