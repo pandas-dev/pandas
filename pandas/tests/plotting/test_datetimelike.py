@@ -180,12 +180,7 @@ class TestTSPlot(TestPlotBase):
             first_line = ax.get_lines()[0]
             first_x = first_line.get_xdata()[0].ordinal
             first_y = first_line.get_ydata()[0]
-            try:
-                assert expected_string == ax.format_coord(first_x, first_y)
-            except (ValueError):
-                pytest.skip(
-                    "skipping test because issue forming test comparison GH7664"
-                )
+            assert expected_string == ax.format_coord(first_x, first_y)
 
         annual = Series(1, index=date_range("2014-01-01", periods=3, freq="A-DEC"))
         _, ax = self.plt.subplots()
