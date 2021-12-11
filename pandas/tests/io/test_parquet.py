@@ -711,7 +711,7 @@ class TestParquetPyArrow(Base):
         # #44847
         # Not able to write float 16 column using pyarrow.
         data = np.arange(2, 10, dtype=np.float16)
-        df = pd.DataFrame(data=data, columns=['fp16'])
+        df = pd.DataFrame(data=data, columns=["fp16"])
         msg = "PyArrow does not support saving float16"
         self.check_error_on_write(df, pa, ValueError, msg)
 
