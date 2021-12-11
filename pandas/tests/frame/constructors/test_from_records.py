@@ -34,10 +34,7 @@ class TestFromRecords:
         arrdata = [np.array([datetime(2005, 3, 1, 0, 0), None])]
         dtypes = [("EXPIRY", "<M8[ns]")]
 
-        try:
-            recarray = np.core.records.fromarrays(arrdata, dtype=dtypes)
-        except (ValueError):
-            pytest.skip("known failure of numpy rec array creation")
+        recarray = np.core.records.fromarrays(arrdata, dtype=dtypes)
 
         result = DataFrame.from_records(recarray)
         tm.assert_frame_equal(result, expected)
