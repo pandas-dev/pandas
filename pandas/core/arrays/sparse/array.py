@@ -1491,49 +1491,50 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             nsparse = self.sp_index.ngaps
             return (sp_sum + self.fill_value * nsparse) / (ct + nsparse)
 
-    def max(self, axis: int = 0, *args, **kwargs) -> Scalar:
+    def max(self, *, axis: int | None = None, skipna: bool = True):
         """
-        Max of non-NA/null values
+        Max of array values, ignoring NA values if specified.
 
         Parameters
         ----------
         axis : int, default 0
             Not Used. NumPy compatibility.
-        *args, **kwargs
-            Not Used. NumPy compatibility.
+        skipna : bool, default True
+            Whether to ignore NA values.
 
         Returns
         -------
         scalar
         """
-        nv.validate_max(args, kwargs)
-        return self._min_max("max")
+        nv.validate_minmax_axis(axis, self.ndim)
+        return self._min_max("max", skipna=skipna)
 
-    def min(self, axis: int = 0, *args, **kwargs) -> Scalar:
+    def min(self, *, axis: int | None = None, skipna: bool = True):
         """
-        Min of non-NA/null values
+        Min of array values, ignoring NA values if specified.
 
         Parameters
         ----------
         axis : int, default 0
             Not Used. NumPy compatibility.
-        *args, **kwargs
-            Not Used. NumPy compatibility.
+        skipna : bool, default True
+            Whether to ignore NA values.
 
         Returns
         -------
         scalar
         """
-        nv.validate_min(args, kwargs)
-        return self._min_max("min")
+        nv.validate_minmax_axis(axis, self.ndim)
+        return self._min_max("min", skipna=skipna)
 
-    def _min_max(self, kind: Literal["min", "max"]) -> Scalar:
+    def _min_max(self, kind: Literal["min", "max"], skipna: bool) -> Scalar:
         """
         Min/max of non-NA/null values
 
         Parameters
         ----------
         kind : {"min", "max"}
+        skipna : bool
 
         Returns
         -------
@@ -1541,6 +1542,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         """
         valid_vals = self._valid_sp_values
         has_nonnull_fill_vals = not self._null_fill_value and self.sp_index.ngaps > 0
+
         if len(valid_vals) > 0:
             sp_min_max = getattr(valid_vals, kind)()
 
@@ -1548,12 +1550,17 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             if has_nonnull_fill_vals:
                 func = max if kind == "max" else min
                 return func(sp_min_max, self.fill_value)
-            else:
+            elif skipna:
                 return sp_min_max
+            elif self.sp_index.ngaps == 0:
+                # No NAs present
+                return sp_min_max
+            else:
+                return na_value_for_dtype(self.dtype.subtype, compat=False)
         elif has_nonnull_fill_vals:
             return self.fill_value
         else:
-            return na_value_for_dtype(self.dtype.subtype)
+            return na_value_for_dtype(self.dtype.subtype, compat=False)
 
     # ------------------------------------------------------------------------
     # Ufuncs
