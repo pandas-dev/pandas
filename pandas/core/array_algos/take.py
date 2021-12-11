@@ -94,7 +94,7 @@ def take_nd(
     """
     if fill_value is lib.no_default:
         fill_value = na_value_for_dtype(arr.dtype, compat=False)
-    elif arr.dtype.kind in "mM":
+    elif isinstance(arr.dtype, np.dtype) and arr.dtype.kind in "mM":
         dtype, fill_value = maybe_promote(arr.dtype, fill_value)
         if arr.dtype != dtype:
             # EA.take is strict about returning a new object of the same type
