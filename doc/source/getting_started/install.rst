@@ -409,6 +409,8 @@ Experimenting with type annotations
 .. warning::
 
     * Pandas is not yet a `py.typed library <https://www.python.org/dev/peps/pep-0561/>`_!
+      The primary purpose of locally declaring pandas as a py.typed library is to test and
+      improve the builtin type annotations.
 
 Until pandas becomes a py.typed library, it is possible to easily experiment with the type
 annotations shipped with pandas by creating an empty file named "py.typed" in the pandas

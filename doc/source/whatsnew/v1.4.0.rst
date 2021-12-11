@@ -194,23 +194,6 @@ representation of :class:`DataFrame` objects (:issue:`4889`).
     df
     df.to_dict(orient='tight')
 
-.. _whatsnew_140.typing:
-
-Experimenting with type annotations
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Pandas is not yet a `py.typed library <https://www.python.org/dev/peps/pep-0561/>`_! Until
-pandas becomes a py.typed library, it is possible to easily experiment with the type
-annotations shipped with pandas by creating an empty file named "py.typed" in the pandas
-installation folder:
-
-.. code-block:: none
-
-   python -c "import pandas; import pathlib; (pathlib.Path(pandas.__path__[0]) / 'py.typed').touch()"
-
-The existence of the py.typed file signals to type checkers that pandas is already a py.typed
-library. This makes type checkers aware of the type annotations shipped with pandas.
-
 .. _whatsnew_140.enhancements.other:
 
 Other enhancements
