@@ -357,8 +357,8 @@ class PandasAutoDateLocator(dates.AutoDateLocator):
             locator = MilliSecondLocator(self.tz)
             locator.set_axis(self.axis)
 
-            locator.set_view_interval(*self.axis.get_view_interval())
-            locator.set_data_interval(*self.axis.get_data_interval())
+            locator.axis.set_view_interval(*self.axis.get_view_interval())
+            locator.axis.set_data_interval(*self.axis.get_data_interval())
             return locator
 
         return dates.AutoDateLocator.get_locator(self, dmin, dmax)

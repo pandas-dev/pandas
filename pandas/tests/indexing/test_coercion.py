@@ -88,6 +88,8 @@ class TestSetitemCoercion(CoercionBase):
         # check dtype explicitly for sure
         assert temp.dtype == expected_dtype
 
+        # AFAICT the problem is in Series.__setitem__ where with integer dtype
+        #  ser[1] = 2.2 casts 2.2 to 2 instead of casting the ser to floating
         # FIXME: dont leave commented-out
         # .loc works different rule, temporary disable
         # temp = original_series.copy()
@@ -610,10 +612,12 @@ class TestWhereCoercion(CoercionBase):
         "fill_val,exp_dtype",
         [(1, np.int64), (1.1, np.float64), (1 + 1j, np.complex128), (True, object)],
     )
-    def test_where_int64(self, index_or_series, fill_val, exp_dtype):
+    def test_where_int64(self, index_or_series, fill_val, exp_dtype, request):
         klass = index_or_series
         if klass is pd.Index and exp_dtype is np.complex128:
-            pytest.skip("Complex Index not supported")
+            mark = pytest.mark.xfail(reason="Complex Index not supported")
+            request.node.add_marker(mark)
+
         obj = klass([1, 2, 3, 4])
         assert obj.dtype == np.int64
         cond = klass([True, False, True, False])
@@ -632,10 +636,12 @@ class TestWhereCoercion(CoercionBase):
         "fill_val, exp_dtype",
         [(1, np.float64), (1.1, np.float64), (1 + 1j, np.complex128), (True, object)],
     )
-    def test_where_float64(self, index_or_series, fill_val, exp_dtype):
+    def test_where_float64(self, index_or_series, fill_val, exp_dtype, request):
         klass = index_or_series
         if klass is pd.Index and exp_dtype is np.complex128:
-            pytest.skip("Complex Index not supported")
+            mark = pytest.mark.xfail(reason="Complex Index not supported")
+            request.node.add_marker(mark)
+
         obj = klass([1.1, 2.2, 3.3, 4.4])
         assert obj.dtype == np.float64
         cond = klass([True, False, True, False])
@@ -780,7 +786,6 @@ class TestWhereCoercion(CoercionBase):
 
         self._assert_where_conversion(obj, cond, values, exp, exp_dtype)
 
-    @pytest.mark.xfail(reason="GH 22839: do not ignore timezone, must be object")
     def test_where_index_datetime64tz(self):
         fill_val = pd.Timestamp("2012-01-01", tz="US/Eastern")
         exp_dtype = object
@@ -795,9 +800,9 @@ class TestWhereCoercion(CoercionBase):
         assert obj.dtype == "datetime64[ns]"
         cond = pd.Index([True, False, True, False])
 
-        msg = "Index\\(\\.\\.\\.\\) must be called with a collection of some kind"
-        with pytest.raises(TypeError, match=msg):
-            obj.where(cond, fill_val)
+        res = obj.where(cond, fill_val)
+        expected = pd.Index([obj[0], fill_val, obj[2], fill_val], dtype=object)
+        tm.assert_index_equal(res, expected)
 
         values = pd.Index(pd.date_range(fill_val, periods=4))
         exp = pd.Index(

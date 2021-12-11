@@ -36,6 +36,7 @@ from pandas._typing import (
     Scalar,
     T,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
@@ -175,7 +176,7 @@ def cast_scalar_indexer(val, warn_float: bool = False):
                 "Indexing with a float is deprecated, and will raise an IndexError "
                 "in pandas 2.0. You can manually convert to an integer key instead.",
                 FutureWarning,
-                stacklevel=3,
+                stacklevel=find_stack_level(),
             )
         return int(val)
     return val

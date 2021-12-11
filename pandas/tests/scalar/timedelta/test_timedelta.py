@@ -1,6 +1,10 @@
 """ test the scalar Timedelta """
 from datetime import timedelta
 
+from hypothesis import (
+    given,
+    strategies as st,
+)
 import numpy as np
 import pytest
 
@@ -317,6 +321,13 @@ class TestTimedeltas:
         td = Timedelta("10m7s")
         assert td.to_timedelta64() == td.to_numpy()
 
+        # GH#44460
+        msg = "dtype and copy arguments are ignored"
+        with pytest.raises(ValueError, match=msg):
+            td.to_numpy("m8[s]")
+        with pytest.raises(ValueError, match=msg):
+            td.to_numpy(copy=True)
+
     @pytest.mark.parametrize(
         "freq,s1,s2",
         [
@@ -387,12 +398,12 @@ class TestTimedeltas:
         with pytest.raises(OverflowError, match=msg):
             Timedelta.max.ceil("s")
 
-    @pytest.mark.parametrize("n", range(100))
+    @given(val=st.integers(min_value=iNaT + 1, max_value=lib.i8max))
     @pytest.mark.parametrize(
         "method", [Timedelta.round, Timedelta.floor, Timedelta.ceil]
     )
-    def test_round_sanity(self, method, n, request):
-        val = np.random.randint(iNaT + 1, lib.i8max, dtype=np.int64)
+    def test_round_sanity(self, val, method):
+        val = np.int64(val)
         td = Timedelta(val)
 
         assert method(td, "ns") == td

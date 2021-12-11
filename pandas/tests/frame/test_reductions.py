@@ -93,11 +93,9 @@ def assert_stat_op_calc(
         tm.assert_series_equal(
             result0, frame.apply(wrapper), check_dtype=check_dtype, rtol=rtol, atol=atol
         )
-        # FIXME: HACK: win32
         tm.assert_series_equal(
             result1,
             frame.apply(wrapper, axis=1),
-            check_dtype=False,
             rtol=rtol,
             atol=atol,
         )
@@ -200,9 +198,7 @@ def assert_bool_op_calc(opname, alternative, frame, has_skipna=True):
         result1 = f(axis=1, skipna=False)
 
         tm.assert_series_equal(result0, frame.apply(wrapper))
-        tm.assert_series_equal(
-            result1, frame.apply(wrapper, axis=1), check_dtype=False
-        )  # FIXME: HACK: win32
+        tm.assert_series_equal(result1, frame.apply(wrapper, axis=1))
     else:
         skipna_wrapper = alternative
         wrapper = alternative
@@ -789,6 +785,10 @@ class TestDataFrameAnalytics:
         # GH#37392
         tdi = pd.timedelta_range("1 Day", periods=10)
         df = DataFrame({"A": tdi, "B": tdi})
+        # Copy is needed for ArrayManager case, otherwise setting df.iloc
+        #  below edits tdi, alterting both df['A'] and df['B']
+        #  FIXME: passing copy=True to constructor does not fix this
+        df = df.copy()
         df.iloc[-2, -1] = pd.NaT
 
         result = df.std(skipna=False)
@@ -1017,7 +1017,9 @@ class TestDataFrameAnalytics:
         # don't cast to object, which would raise in nanops
         dti = date_range("2016-01-01", periods=3)
 
-        df = DataFrame({1: [0, 2, 1], 2: range(3)[::-1], 3: dti})
+        # Copying dti is needed for ArrayManager otherwise when we set
+        #  df.loc[0, 3] = pd.NaT below it edits dti
+        df = DataFrame({1: [0, 2, 1], 2: range(3)[::-1], 3: dti.copy(deep=True)})
 
         result = df.idxmax()
         expected = Series([1, 0, 2], index=[1, 2, 3])
@@ -1074,6 +1076,10 @@ class TestDataFrameAnalytics:
     def test_idxmax_dt64_multicolumn_axis1(self):
         dti = date_range("2016-01-01", periods=3)
         df = DataFrame({3: dti, 4: dti[::-1]})
+        # FIXME: copy needed for ArrayManager, otherwise setting with iloc
+        #  below also sets df.iloc[-1, 1]; passing copy=True to DataFrame
+        #  does not solve this.
+        df = df.copy()
         df.iloc[0, 0] = pd.NaT
 
         df._consolidate_inplace()
@@ -1468,33 +1474,29 @@ class TestDataFrameReductions:
         expected = Series(data=[False, True])
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "func",
-        [
-            "any",
-            "all",
-            "count",
-            "sum",
-            "prod",
-            "max",
-            "min",
-            "mean",
-            "median",
-            "skew",
-            "kurt",
-            "sem",
-            "var",
-            "std",
-            "mad",
-        ],
-    )
-    def test_reductions_deprecation_level_argument(self, frame_or_series, func):
+    def test_reductions_deprecation_skipna_none(self, frame_or_series):
+        # GH#44580
+        obj = frame_or_series([1, 2, 3])
+        with tm.assert_produces_warning(FutureWarning, match="skipna"):
+            obj.mad(skipna=None)
+
+    def test_reductions_deprecation_level_argument(
+        self, frame_or_series, reduction_functions
+    ):
         # GH#39983
         obj = frame_or_series(
             [1, 2, 3], index=MultiIndex.from_arrays([[1, 2, 3], [4, 5, 6]])
         )
         with tm.assert_produces_warning(FutureWarning, match="level"):
-            getattr(obj, func)(level=0)
+            getattr(obj, reduction_functions)(level=0)
+
+    def test_reductions_skipna_none_raises(self, frame_or_series, reduction_functions):
+        if reduction_functions in ["count", "mad"]:
+            pytest.skip("Count does not accept skipna. Mad needs a deprecation cycle.")
+        obj = frame_or_series([1, 2, 3])
+        msg = 'For argument "skipna" expected type bool, received type NoneType.'
+        with pytest.raises(ValueError, match=msg):
+            getattr(obj, reduction_functions)(skipna=None)
 
 
 class TestNuisanceColumns:
@@ -1505,13 +1507,13 @@ class TestNuisanceColumns:
         df = ser.to_frame()
 
         # Double-check the Series behavior is to raise
-        with pytest.raises(TypeError, match="does not implement reduction"):
+        with pytest.raises(TypeError, match="does not support reduction"):
             getattr(ser, method)()
 
-        with pytest.raises(TypeError, match="does not implement reduction"):
+        with pytest.raises(TypeError, match="does not support reduction"):
             getattr(np, method)(ser)
 
-        with pytest.raises(TypeError, match="does not implement reduction"):
+        with pytest.raises(TypeError, match="does not support reduction"):
             getattr(df, method)(bool_only=False)
 
         # With bool_only=None, operating on this column raises and is ignored,
@@ -1535,10 +1537,10 @@ class TestNuisanceColumns:
         ser = df["A"]
 
         # Double-check the Series behavior is to raise
-        with pytest.raises(TypeError, match="does not implement reduction"):
+        with pytest.raises(TypeError, match="does not support reduction"):
             ser.median()
 
-        with pytest.raises(TypeError, match="does not implement reduction"):
+        with pytest.raises(TypeError, match="does not support reduction"):
             df.median(numeric_only=False)
 
         with tm.assert_produces_warning(
@@ -1551,7 +1553,7 @@ class TestNuisanceColumns:
         # same thing, but with an additional non-categorical column
         df["B"] = df["A"].astype(int)
 
-        with pytest.raises(TypeError, match="does not implement reduction"):
+        with pytest.raises(TypeError, match="does not support reduction"):
             df.median(numeric_only=False)
 
         with tm.assert_produces_warning(
@@ -1718,7 +1720,7 @@ def test_mad_nullable_integer_all_na(any_signed_int_ea_dtype):
     df2 = df.astype(any_signed_int_ea_dtype)
 
     # case with all-NA row/column
-    df2.iloc[:, 1] = pd.NA  # FIXME: this doesn't operate in-place
+    df2.iloc[:, 1] = pd.NA  # FIXME(GH#44199): this doesn't operate in-place
     df2.iloc[:, 1] = pd.array([pd.NA] * len(df2), dtype=any_signed_int_ea_dtype)
     result = df2.mad()
     expected = df.mad()

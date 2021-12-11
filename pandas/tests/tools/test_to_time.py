@@ -13,9 +13,9 @@ from pandas.core.tools.times import to_time
 
 class TestToTime:
     @td.skip_if_has_locale
-    def test_parsers_time(self):
-        # GH#11818
-        strings = [
+    @pytest.mark.parametrize(
+        "time_string",
+        [
             "14:15",
             "1415",
             "2:15pm",
@@ -25,18 +25,22 @@ class TestToTime:
             "2:15:00pm",
             "021500pm",
             time(14, 15),
-        ]
-        expected = time(14, 15)
+        ],
+    )
+    def test_parsers_time(self, time_string):
+        # GH#11818
+        assert to_time(time_string) == time(14, 15)
 
-        for time_string in strings:
-            assert to_time(time_string) == expected
-
+    @td.skip_if_has_locale
+    def test_odd_format(self):
         new_string = "14.15"
         msg = r"Cannot convert arg \['14\.15'\] to a time"
         with pytest.raises(ValueError, match=msg):
             to_time(new_string)
-        assert to_time(new_string, format="%H.%M") == expected
+        assert to_time(new_string, format="%H.%M") == time(14, 15)
 
+    @td.skip_if_has_locale
+    def test_arraylike(self):
         arg = ["14:15", "20:20"]
         expected_arr = [time(14, 15), time(20, 20)]
         assert to_time(arg) == expected_arr

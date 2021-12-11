@@ -300,8 +300,8 @@ class TestGetIndexer:
 
 
 class TestWhere:
-    def test_where(self, listlike_box_with_tuple):
-        klass = listlike_box_with_tuple
+    def test_where(self, listlike_box):
+        klass = listlike_box
 
         i = CategoricalIndex(list("aabbca"), categories=list("cab"), ordered=False)
         cond = [True] * len(i)

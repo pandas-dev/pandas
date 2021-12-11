@@ -22,7 +22,6 @@ from pandas import (
     DatetimeIndex,
     Series,
     Timestamp,
-    compat,
     read_json,
 )
 import pandas._testing as tm
@@ -1275,11 +1274,9 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         expected = '{"0":{"articleId":' + str(bigNum) + "}}"
         assert json == expected
 
-    @pytest.mark.parametrize("bigNum", [sys.maxsize + 1, -(sys.maxsize + 2)])
-    @pytest.mark.skipif(not compat.IS64, reason="GH-35279")
+    @pytest.mark.parametrize("bigNum", [-(2 ** 63) - 1, 2 ** 64])
     def test_read_json_large_numbers(self, bigNum):
-        # GH20599
-
+        # GH20599, 26068
         json = StringIO('{"articleId":' + str(bigNum) + "}")
         msg = r"Value is too small|Value is too big"
         with pytest.raises(ValueError, match=msg):
@@ -1741,11 +1738,6 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         result = series.to_json(orient="index")
         assert result == expected
 
-    @pytest.mark.xfail(
-        is_platform_windows(),
-        reason="localhost connection rejected",
-        strict=False,
-    )
     def test_to_s3(self, s3_resource, s3so):
         import time
 

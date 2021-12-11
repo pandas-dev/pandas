@@ -440,13 +440,21 @@ def multiindex_year_month_day_dataframe_random_data():
 
 
 @pytest.fixture
-def multiindex_dataframe_random_data():
-    """DataFrame with 2 level MultiIndex with random data"""
-    index = MultiIndex(
+def lexsorted_two_level_string_multiindex():
+    """
+    2-level MultiIndex, lexsorted, with string names.
+    """
+    return MultiIndex(
         levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
         codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
         names=["first", "second"],
     )
+
+
+@pytest.fixture
+def multiindex_dataframe_random_data(lexsorted_two_level_string_multiindex):
+    """DataFrame with 2 level MultiIndex with random data"""
+    index = lexsorted_two_level_string_multiindex
     return DataFrame(
         np.random.randn(10, 3), index=index, columns=Index(["A", "B", "C"], name="exp")
     )
@@ -1268,6 +1276,16 @@ def timedelta64_dtype(request):
     return request.param
 
 
+@pytest.fixture
+def fixed_now_ts():
+    """
+    Fixture emits fixed Timestamp.now()
+    """
+    return Timestamp(
+        year=2021, month=1, day=1, hour=12, minute=4, second=13, microsecond=22
+    )
+
+
 @pytest.fixture(params=tm.FLOAT_NUMPY_DTYPES)
 def float_numpy_dtype(request):
     """
@@ -1656,6 +1674,11 @@ def fsspectest():
         ("foo", None, None),
         ("Egon", "Venkman", None),
         ("NCC1701D", "NCC1701D", "NCC1701D"),
+        # possibly-matching NAs
+        (np.nan, np.nan, np.nan),
+        (np.nan, pd.NaT, None),
+        (np.nan, pd.NA, None),
+        (pd.NA, pd.NA, pd.NA),
     ]
 )
 def names(request):
