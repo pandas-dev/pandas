@@ -1421,6 +1421,7 @@ def test_groupby_rolling_nan_included():
 
 def test_groupby_rolling_non_monotonic():
     # GH 43909
+
     shuffled = [3, 0, 1, 2]
     sec = 1_000
     df = DataFrame(
