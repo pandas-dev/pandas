@@ -707,6 +707,14 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame(np.arange(12).reshape(4, 3), columns=list("aaa")).copy()
         self.check_error_on_write(df, pa, ValueError, "Duplicate column names found")
 
+    def test_write_column_fp16(self, pa):
+        # #44847
+        # Not able to write float 16 column using pyarrow.
+        data = np.arange(2, 10, dtype=np.float16)
+        df = pd.DataFrame(data=data, columns=['fp16'])
+        msg = "PyArrow does not support saving float16"
+        self.check_error_on_write(df, pa, ValueError, msg)
+
     def test_unsupported(self, pa):
         # timedelta
         df = pd.DataFrame({"a": pd.timedelta_range("1 day", periods=3)})
