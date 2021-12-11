@@ -116,9 +116,6 @@ class TestDtype(BaseSparseTests, base.BaseDtypeTests):
 
 
 class TestInterface(BaseSparseTests, base.BaseInterfaceTests):
-    def test_no_values_attribute(self, data):
-        pytest.skip("We have values")
-
     def test_copy(self, data):
         # __setitem__ does not work, so we only have a smoke-test
         data.copy()
@@ -328,11 +325,14 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         expected = pd.Series(cls._from_sequence([a, b, b, b], dtype=data.dtype))
         self.assert_series_equal(result, expected)
 
-    def test_combine_first(self, data):
+    def test_combine_first(self, data, request):
         if data.dtype.subtype == "int":
             # Right now this is upcasted to float, just like combine_first
             # for Series[int]
-            pytest.skip("TODO(SparseArray.__setitem__ will preserve dtype.")
+            mark = pytest.mark.xfail(
+                reason="TODO(SparseArray.__setitem__) will preserve dtype."
+            )
+            request.node.add_marker(mark)
         super().test_combine_first(data)
 
     def test_searchsorted(self, data_for_sorting, as_series):
