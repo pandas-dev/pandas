@@ -301,7 +301,7 @@ on : label or list, or Callable
     provide a custom match condition for the join. The callable takes 2
     arguments, which represent the left and right sides of the merge, and
     must return a boolean.
-    ** note: Currently, for callables, the 2 arguements are represented by
+    ** note: Currently, for callables, the 2 arguments are represented by
              DataFrame objects. This is subject to change in the future. For
              the highest chance of forward compatibility treat the args passed
              into the callable as if they are a simple datastructure
