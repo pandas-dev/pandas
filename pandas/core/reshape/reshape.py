@@ -213,7 +213,9 @@ class _Unstacker:
         columns = self.get_new_columns(value_columns)
         index = self.new_index
 
-        return self.constructor(values, index=index, columns=columns)
+        return self.constructor(
+            values, index=index, columns=columns, dtype=values.dtype
+        )
 
     def get_new_values(self, values, fill_value=None):
 
@@ -243,24 +245,24 @@ class _Unstacker:
             new_mask = np.ones(result_shape, dtype=bool)
             return new_values, new_mask
 
+        dtype = values.dtype
+
         # if our mask is all True, then we can use our existing dtype
         if mask_all:
             dtype = values.dtype
             new_values = np.empty(result_shape, dtype=dtype)
-            name = np.dtype(dtype).name
         else:
-            dtype, fill_value = maybe_promote(values.dtype, fill_value)
             if isinstance(dtype, ExtensionDtype):
                 # GH#41875
                 cls = dtype.construct_array_type()
                 new_values = cls._empty(result_shape, dtype=dtype)
                 new_values[:] = fill_value
-                name = dtype.name
             else:
+                dtype, fill_value = maybe_promote(dtype, fill_value)
                 new_values = np.empty(result_shape, dtype=dtype)
                 new_values.fill(fill_value)
-                name = np.dtype(dtype).name
 
+        name = dtype.name
         new_mask = np.zeros(result_shape, dtype=bool)
 
         # we need to convert to a basic dtype
@@ -745,13 +747,15 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
             if frame._is_homogeneous_type and is_extension_array_dtype(
                 frame.dtypes.iloc[0]
             ):
+                # TODO(EA2D): won't need special case, can go through .values
+                #  paths below (might change to ._values)
                 dtype = this[this.columns[loc]].dtypes.iloc[0]
                 subset = this[this.columns[loc]]
 
                 value_slice = dtype.construct_array_type()._concat_same_type(
                     [x._values for _, x in subset.items()]
                 )
-                N, K = this.shape
+                N, K = subset.shape
                 idx = np.arange(N * K).reshape(K, N).T.ravel()
                 value_slice = value_slice.take(idx)
 

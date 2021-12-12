@@ -21,6 +21,7 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
@@ -248,7 +249,7 @@ class NumericIndex(Index):
                     "values are required for conversion"
                 )
             elif is_integer_dtype(dtype) and not is_extension_array_dtype(dtype):
-                # TODO(jreback); this can change once we have an EA Index type
+                # TODO(ExtensionIndex); this can change once we have an EA Index type
                 # GH 13149
                 arr = astype_nansafe(self._values, dtype=dtype)
                 if isinstance(self, Float64Index):
@@ -421,7 +422,7 @@ class IntegerIndex(NumericIndex):
         warnings.warn(
             "Index.asi8 is deprecated and will be removed in a future version.",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self._values.view(self._default_dtype)
 

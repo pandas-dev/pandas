@@ -36,6 +36,7 @@ from pandas.core.dtypes.common import (
     is_1d_only_ea_dtype,
     is_dtype_equal,
     is_list_like,
+    needs_i8_conversion,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
@@ -79,8 +80,6 @@ from pandas.core.internals.ops import (
     blockwise_all,
     operate_blockwise,
 )
-
-# TODO: flexible with index=None and/or items=None
 
 T = TypeVar("T", bound="BaseBlockManager")
 
@@ -364,7 +363,28 @@ class BaseBlockManager(DataManager):
         if fill_value is lib.no_default:
             fill_value = None
 
-        if axis == 0 and self.ndim == 2 and self.nblocks > 1:
+        if (
+            axis == 0
+            and self.ndim == 2
+            and (
+                self.nblocks > 1
+                or (
+                    # If we only have one block and we know that we can't
+                    #  keep the same dtype (i.e. the _can_hold_element check)
+                    #  then we can go through the reindex_indexer path
+                    #  (and avoid casting logic in the Block method).
+                    #  The exception to this (until 2.0) is datetimelike
+                    #  dtypes with integers, which cast.
+                    not self.blocks[0]._can_hold_element(fill_value)
+                    # TODO(2.0): remove special case for integer-with-datetimelike
+                    #  once deprecation is enforced
+                    and not (
+                        lib.is_integer(fill_value)
+                        and needs_i8_conversion(self.blocks[0].dtype)
+                    )
+                )
+            )
+        ):
             # GH#35488 we need to watch out for multi-block cases
             # We only get here with fill_value not-lib.no_default
             ncols = self.shape[0]
@@ -861,9 +881,9 @@ class BaseBlockManager(DataManager):
         """
         # We have 6 tests that get here with a slice
         indexer = (
-            np.arange(indexer.start, indexer.stop, indexer.step, dtype="int64")
+            np.arange(indexer.start, indexer.stop, indexer.step, dtype=np.intp)
             if isinstance(indexer, slice)
-            else np.asanyarray(indexer, dtype="int64")
+            else np.asanyarray(indexer, dtype=np.intp)
         )
 
         n = self.shape[axis]
@@ -1046,21 +1066,11 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         # Note: we exclude DTA/TDA here
         value_is_extension_type = is_1d_only_ea_dtype(value.dtype)
-
-        # categorical/sparse/datetimetz
-        if value_is_extension_type:
-
-            def value_getitem(placement):
-                return value
-
-        else:
+        if not value_is_extension_type:
             if value.ndim == 2:
                 value = value.T
             else:
                 value = ensure_block_shape(value, ndim=2)
-
-            def value_getitem(placement):
-                return value[placement.indexer]
 
             if value.shape[1:] != self.shape[1:]:
                 raise AssertionError(
@@ -1072,10 +1082,36 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             # In this case, get_blkno_placements will yield only one tuple,
             #  containing (self._blknos[loc], BlockPlacement(slice(0, 1, 1)))
 
+            # Check if we can use _iset_single fastpath
+            blkno = self.blknos[loc]
+            blk = self.blocks[blkno]
+            if len(blk._mgr_locs) == 1:  # TODO: fastest way to check this?
+                return self._iset_single(
+                    # error: Argument 1 to "_iset_single" of "BlockManager" has
+                    # incompatible type "Union[int, slice, ndarray[Any, Any]]";
+                    # expected "int"
+                    loc,  # type:ignore[arg-type]
+                    value,
+                    inplace=inplace,
+                    blkno=blkno,
+                    blk=blk,
+                )
+
             # error: Incompatible types in assignment (expression has type
             # "List[Union[int, slice, ndarray]]", variable has type "Union[int,
             # slice, ndarray]")
             loc = [loc]  # type: ignore[assignment]
+
+        # categorical/sparse/datetimetz
+        if value_is_extension_type:
+
+            def value_getitem(placement):
+                return value
+
+        else:
+
+            def value_getitem(placement):
+                return value[placement.indexer]
 
         # Accessing public blknos ensures the public versions are initialized
         blknos = self.blknos[loc]
@@ -1152,6 +1188,29 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             # Newly created block's dtype may already be present.
             self._known_consolidated = False
 
+    def _iset_single(
+        self, loc: int, value: ArrayLike, inplace: bool, blkno: int, blk: Block
+    ) -> None:
+        """
+        Fastpath for iset when we are only setting a single position and
+        the Block currently in that position is itself single-column.
+
+        In this case we can swap out the entire Block and blklocs and blknos
+        are unaffected.
+        """
+        # Caller is responsible for verifying value.shape
+
+        if inplace and blk.should_store(value):
+            iloc = self.blklocs[loc]
+            blk.set_inplace(slice(iloc, iloc + 1), value)
+            return
+
+        nb = new_block_2d(value, placement=blk._mgr_locs)
+        old_blocks = self.blocks
+        new_blocks = old_blocks[:blkno] + (nb,) + old_blocks[blkno + 1 :]
+        self.blocks = new_blocks
+        return
+
     def insert(self, loc: int, item: Hashable, value: ArrayLike) -> None:
         """
         Insert item at selected position.
@@ -1177,8 +1236,13 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         bp = BlockPlacement(slice(loc, loc + 1))
         block = new_block_2d(values=value, placement=bp)
 
-        self._insert_update_mgr_locs(loc)
-        self._insert_update_blklocs_and_blknos(loc)
+        if not len(self.blocks):
+            # Fastpath
+            self._blklocs = np.array([0], dtype=np.intp)
+            self._blknos = np.array([0], dtype=np.intp)
+        else:
+            self._insert_update_mgr_locs(loc)
+            self._insert_update_blklocs_and_blknos(loc)
 
         self.axes[0] = new_axis
         self.blocks += (block,)
@@ -1192,7 +1256,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 "Consider joining all columns at once using pd.concat(axis=1) "
                 "instead. To get a de-fragmented frame, use `newframe = frame.copy()`",
                 PerformanceWarning,
-                stacklevel=5,
+                stacklevel=find_stack_level(),
             )
 
     def _insert_update_mgr_locs(self, loc) -> None:
@@ -1405,7 +1469,14 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         new_columns = unstacker.get_new_columns(self.items)
         new_index = unstacker.new_index
 
-        allow_fill = not unstacker.mask.all()
+        allow_fill = not unstacker.mask_all
+        if allow_fill:
+            # calculating the full mask once and passing it to Block._unstack is
+            #  faster than letting calculating it in each repeated call
+            new_mask2D = (~unstacker.mask).reshape(*unstacker.full_shape)
+            needs_masking = new_mask2D.any(axis=0)
+        else:
+            needs_masking = np.zeros(unstacker.full_shape[1], dtype=bool)
 
         new_blocks: list[Block] = []
         columns_mask: list[np.ndarray] = []
@@ -1425,7 +1496,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 unstacker,
                 fill_value,
                 new_placement=new_placement,
-                allow_fill=allow_fill,
+                needs_masking=needs_masking,
             )
 
             new_blocks.extend(blocks)
@@ -1637,7 +1708,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
                 "The `fastpath` keyword is deprecated and will be removed "
                 "in a future version.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
 
         self.axes = [axis]

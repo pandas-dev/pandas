@@ -32,6 +32,7 @@ class TestConvert:
         results = ser._convert(timedelta=True)
         tm.assert_series_equal(results, ser)
 
+    def test_convert_numeric_strings_with_other_true_args(self):
         # test pass-through and non-conversion when other types selected
         ser = Series(["1.0", "2.0", "3.0"])
         results = ser._convert(datetime=True, numeric=True, timedelta=True)
@@ -40,6 +41,7 @@ class TestConvert:
         results = ser._convert(True, False, True)
         tm.assert_series_equal(results, ser)
 
+    def test_convert_datetime_objects(self):
         ser = Series(
             [datetime(2001, 1, 1, 0, 0), datetime(2001, 1, 1, 0, 0)], dtype="O"
         )
@@ -49,6 +51,27 @@ class TestConvert:
         results = ser._convert(datetime=False, numeric=True, timedelta=True)
         tm.assert_series_equal(results, ser)
 
+    def test_convert_datetime64(self):
+        # no-op if already dt64 dtype
+        ser = Series(
+            [
+                datetime(2001, 1, 1, 0, 0),
+                datetime(2001, 1, 2, 0, 0),
+                datetime(2001, 1, 3, 0, 0),
+            ]
+        )
+
+        result = ser._convert(datetime=True)
+        expected = Series(
+            [Timestamp("20010101"), Timestamp("20010102"), Timestamp("20010103")],
+            dtype="M8[ns]",
+        )
+        tm.assert_series_equal(result, expected)
+
+        result = ser._convert(datetime=True)
+        tm.assert_series_equal(result, expected)
+
+    def test_convert_timedeltas(self):
         td = datetime(2001, 1, 1, 0, 0) - datetime(2000, 1, 1, 0, 0)
         ser = Series([td, td], dtype="O")
         results = ser._convert(datetime=True, numeric=True, timedelta=True)
@@ -57,6 +80,7 @@ class TestConvert:
         results = ser._convert(True, True, False)
         tm.assert_series_equal(results, ser)
 
+    def test_convert_numeric_strings(self):
         ser = Series([1.0, 2, 3], index=["a", "b", "c"])
         result = ser._convert(numeric=True)
         tm.assert_series_equal(result, ser)
@@ -79,6 +103,7 @@ class TestConvert:
         expected["a"] = np.nan
         tm.assert_series_equal(result, expected)
 
+    def test_convert_mixed_type_noop(self):
         # GH 4119, not converting a mixed type (e.g.floats and object)
         ser = Series([1, "na", 3, 4])
         result = ser._convert(datetime=True, numeric=True)
@@ -89,35 +114,11 @@ class TestConvert:
         result = ser._convert(datetime=True, numeric=True)
         tm.assert_series_equal(result, expected)
 
-        # dates
-        ser = Series(
-            [
-                datetime(2001, 1, 1, 0, 0),
-                datetime(2001, 1, 2, 0, 0),
-                datetime(2001, 1, 3, 0, 0),
-            ]
-        )
-
-        result = ser._convert(datetime=True)
-        expected = Series(
-            [Timestamp("20010101"), Timestamp("20010102"), Timestamp("20010103")],
-            dtype="M8[ns]",
-        )
-        tm.assert_series_equal(result, expected)
-
-        result = ser._convert(datetime=True)
-        tm.assert_series_equal(result, expected)
-
-        # preserver if non-object
+    def test_convert_preserve_non_object(self):
+        # preserve if non-object
         ser = Series([1], dtype="float32")
         result = ser._convert(datetime=True)
         tm.assert_series_equal(result, ser)
-
-        # FIXME: dont leave commented-out
-        # res = ser.copy()
-        # r[0] = np.nan
-        # result = res._convert(convert_dates=True,convert_numeric=False)
-        # assert result.dtype == 'M8[ns]'
 
     def test_convert_no_arg_error(self):
         ser = Series(["1.0", "2"])

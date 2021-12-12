@@ -100,7 +100,10 @@ from pandas.core.groupby import (
     numba_,
     ops,
 )
-from pandas.core.groupby.indexing import GroupByIndexingMixin
+from pandas.core.groupby.indexing import (
+    GroupByIndexingMixin,
+    GroupByNthSelector,
+)
 from pandas.core.indexes.api import (
     CategoricalIndex,
     Index,
@@ -325,7 +328,7 @@ Examples
 _transform_template = """
 Call function producing a like-indexed %(klass)s on each group and
 return a %(klass)s having the same indexes as the original object
-filled with the transformed values
+filled with the transformed values.
 
 Parameters
 ----------
@@ -901,6 +904,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         raise AttributeError(
             f"'{type(self).__name__}' object has no attribute '{attr}'"
         )
+
+    def __getattribute__(self, attr: str):
+        # Intercept nth to allow both call and index
+        if attr == "nth":
+            return GroupByNthSelector(self)
+        elif attr == "nth_actual":
+            return super().__getattribute__("nth")
+        else:
+            return super().__getattribute__(attr)
 
     @final
     def _make_wrapper(self, name: str) -> Callable:
@@ -1931,7 +1943,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         2    4.0
         Name: B, dtype: float64
         """
-        numeric_only = self._resolve_numeric_only(numeric_only)
+        numeric_only_bool = self._resolve_numeric_only(numeric_only)
 
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_mean
@@ -1940,8 +1952,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         else:
             result = self._cython_agg_general(
                 "mean",
-                alt=lambda x: Series(x).mean(numeric_only=numeric_only),
-                numeric_only=numeric_only,
+                alt=lambda x: Series(x).mean(numeric_only=numeric_only_bool),
+                numeric_only=numeric_only_bool,
             )
             return result.__finalize__(self.obj, method="groupby")
 
@@ -1965,12 +1977,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
             Median of values within each group.
         """
-        numeric_only = self._resolve_numeric_only(numeric_only)
+        numeric_only_bool = self._resolve_numeric_only(numeric_only)
 
         result = self._cython_agg_general(
             "median",
-            alt=lambda x: Series(x).median(numeric_only=numeric_only),
-            numeric_only=numeric_only,
+            alt=lambda x: Series(x).median(numeric_only=numeric_only_bool),
+            numeric_only=numeric_only_bool,
         )
         return result.__finalize__(self.obj, method="groupby")
 
@@ -2082,7 +2094,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             result = self._obj_1d_constructor(result)
 
         if not self.as_index:
-            result = result.rename("size").reset_index()
+            # Item "None" of "Optional[Series]" has no attribute "reset_index"
+            result = result.rename("size").reset_index()  # type: ignore[union-attr]
 
         return self._reindex_output(result, fill_value=0)
 
@@ -2523,6 +2536,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Take the nth row from each group if n is an int, otherwise a subset of rows.
 
+        Can be either a call or an index. dropna is not available with index notation.
+        Index notation accepts a comma separated list of integers and slices.
+
         If dropna, will take the nth non-null row, dropna is either
         'all' or 'any'; this is equivalent to calling dropna(how=dropna)
         before the groupby.
@@ -2534,6 +2550,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             .. versionchanged:: 1.4.0
                 Added slice and lists containiing slices.
+                Added index notation.
 
         dropna : {'any', 'all', None}, default None
             Apply the specified dropna operation before counting which row is
@@ -2573,6 +2590,22 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         2  3.0
         2  5.0
         >>> g.nth(slice(None, -1))
+             B
+        A
+        1  NaN
+        1  2.0
+        2  3.0
+
+        Index notation may also be used
+
+        >>> g.nth[0, 1]
+             B
+        A
+        1  NaN
+        1  2.0
+        2  3.0
+        2  5.0
+        >>> g.nth[:-1]
              B
         A
         1  NaN
@@ -3337,7 +3370,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
             Percentage changes within each group.
         """
-        # TODO: Remove this conditional for SeriesGroupBy when GH#23918 is fixed
+        # TODO(GH#23918): Remove this conditional for SeriesGroupBy when
+        #  GH#23918 is fixed
         if freq is not None or axis != 0:
             return self.apply(
                 lambda x: x.pct_change(
@@ -3586,10 +3620,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             sampling probabilities after normalization within each group.
             Values must be non-negative with at least one positive element
             within each group.
-        random_state : int, array-like, BitGenerator, np.random.RandomState,
-            np.random.Generator, optional. If int, array-like, or BitGenerator, seed for
-            random number generator. If np.random.RandomState or np.random.Generator,
-            use as given.
+        random_state : int, array-like, BitGenerator, np.random.RandomState, np.random.Generator, optional
+            If int, array-like, or BitGenerator, seed for random number generator.
+            If np.random.RandomState or np.random.Generator, use as given.
 
             .. versionchanged:: 1.4.0
 
@@ -3649,7 +3682,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         5  black  5
         2   blue  2
         0    red  0
-        """
+        """  # noqa:E501
         size = sample.process_sampling_size(n, frac, replace)
         if weights is not None:
             weights_arr = sample.preprocess_weights(

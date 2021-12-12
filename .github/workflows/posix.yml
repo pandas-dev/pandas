@@ -27,12 +27,12 @@ jobs:
         settings: [
           [actions-38-minimum_versions.yaml, "not slow and not network and not clipboard", "", "", "", "", ""],
           [actions-38-locale_slow.yaml, "slow", "language-pack-it xsel", "it_IT.utf8", "it_IT.utf8", "", ""],
-          [actions-38.yaml, "not slow and not network and not clipboard", "", "", "", "", ""],
+          [actions-38.yaml, "not slow and not clipboard", "", "", "", "", ""],
           [actions-38-slow.yaml, "slow", "", "", "", "", ""],
           [actions-38-locale.yaml, "not slow and not network", "language-pack-zh-hans xsel", "zh_CN.utf8", "zh_CN.utf8", "", ""],
           [actions-39-slow.yaml, "slow", "", "", "", "", ""],
           [actions-39-numpydev.yaml, "not slow and not network", "xsel", "", "", "deprecate", "-W error"],
-          [actions-39.yaml, "not slow and not network and not clipboard", "", "", "", "", ""]
+          [actions-39.yaml, "not slow and not clipboard", "", "", "", "", ""]
         ]
       fail-fast: false
     env:
@@ -46,8 +46,17 @@ jobs:
       TEST_ARGS: ${{ matrix.settings[6] }}
       PYTEST_TARGET:  pandas
     concurrency:
-      group: ${{ github.ref }}-${{ matrix.settings[0] }}
-      cancel-in-progress: ${{github.event_name == 'pull_request'}}
+      # https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.settings[0] }}
+      cancel-in-progress: true
+    services:
+      moto:
+        image: motoserver/moto
+        env:
+          AWS_ACCESS_KEY_ID: foobar_key
+          AWS_SECRET_ACCESS_KEY: foobar_secret
+        ports:
+          - 5000:5000
 
     steps:
     - name: Checkout

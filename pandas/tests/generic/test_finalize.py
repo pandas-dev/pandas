@@ -347,10 +347,7 @@ _all_methods = [
         operator.methodcaller("infer_objects"),
     ),
     (pd.Series, ([1, 2],), operator.methodcaller("convert_dtypes")),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("convert_dtypes")),
-        marks=not_implemented_mark,
-    ),
+    (pd.DataFrame, frame_data, operator.methodcaller("convert_dtypes")),
     (pd.Series, ([1, None, 3],), operator.methodcaller("interpolate")),
     (pd.DataFrame, ({"A": [1, None, 3]},), operator.methodcaller("interpolate")),
     (pd.Series, ([1, 2],), operator.methodcaller("clip", lower=1)),
@@ -761,7 +758,6 @@ def test_groupby_finalize(obj, method):
     "method",
     [
         lambda x: x.agg(["sum", "count"]),
-        lambda x: x.transform(lambda y: y),
         lambda x: x.apply(lambda y: y),
         lambda x: x.agg("std"),
         lambda x: x.agg("var"),

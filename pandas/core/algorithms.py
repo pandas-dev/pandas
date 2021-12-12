@@ -35,6 +35,7 @@ from pandas._typing import (
     npt,
 )
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
@@ -148,7 +149,7 @@ def _ensure_data(values: ArrayLike) -> np.ndarray:
             # i.e. all-bool Categorical, BooleanArray
             try:
                 return np.asarray(values).astype("uint8", copy=False)
-            except TypeError:
+            except (TypeError, ValueError):
                 # GH#42107 we have pd.NAs present
                 return np.asarray(values)
 
@@ -214,7 +215,7 @@ def _reconstruct_data(
         if isinstance(values, cls) and values.dtype == dtype:
             return values
 
-        values = cls._from_sequence(values)
+        values = cls._from_sequence(values, dtype=dtype)
     elif is_bool_dtype(dtype):
         values = values.astype(dtype, copy=False)
 
@@ -632,7 +633,7 @@ def factorize(
         is a Categorical. When `values` is some other pandas object, an
         `Index` is returned. Otherwise, a 1-D ndarray is returned.
 
-        .. note ::
+        .. note::
 
            Even if there's a missing value in `values`, `uniques` will
            *not* contain an entry for it.
@@ -959,15 +960,18 @@ def mode(values, dropna: bool = True) -> Series:
     original = values
 
     # categorical is a fast-path
-    if is_categorical_dtype(values):
+    if is_categorical_dtype(values.dtype):
         if isinstance(values, Series):
             # TODO: should we be passing `name` below?
             return Series(values._values.mode(dropna=dropna), name=values.name)
         return values.mode(dropna=dropna)
 
-    if dropna and needs_i8_conversion(values.dtype):
-        mask = values.isnull()
-        values = values[~mask]
+    if needs_i8_conversion(values.dtype):
+        if dropna:
+            mask = values.isna()
+            values = values[~mask]
+        modes = mode(values.view("i8"))
+        return modes.view(original.dtype)
 
     values = _ensure_data(values)
 
@@ -1550,7 +1554,7 @@ def searchsorted(
 _diff_special = {"float64", "float32", "int64", "int32", "int16", "int8"}
 
 
-def diff(arr, n: int, axis: int = 0, stacklevel: int = 3):
+def diff(arr, n: int, axis: int = 0):
     """
     difference of n between self,
     analogous to s-s.shift(n)
@@ -1596,7 +1600,7 @@ def diff(arr, n: int, axis: int = 0, stacklevel: int = 3):
                 "dtype lost in 'diff()'. In the future this will raise a "
                 "TypeError. Convert to a suitable dtype prior to calling 'diff'.",
                 FutureWarning,
-                stacklevel=stacklevel,
+                stacklevel=find_stack_level(),
             )
             arr = np.asarray(arr)
             dtype = arr.dtype
@@ -1848,5 +1852,5 @@ def union_with_duplicates(lvals: ArrayLike, rvals: ArrayLike) -> ArrayLike:
     unique_array = ensure_wrapped_if_datetimelike(unique_array)
 
     for i, value in enumerate(unique_array):
-        indexer += [i] * int(max(l_count[value], r_count[value]))
+        indexer += [i] * int(max(l_count.at[value], r_count.at[value]))
     return unique_array.take(indexer)

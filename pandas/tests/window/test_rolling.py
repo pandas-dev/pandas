@@ -697,7 +697,7 @@ def test_rolling_count_default_min_periods_with_null_values(frame_or_series):
     expected_counts = [1.0, 2.0, 3.0, 2.0, 2.0, 2.0, 3.0]
 
     # GH 31302
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+    with tm.assert_produces_warning(FutureWarning):
         result = frame_or_series(values).rolling(3).count()
     expected = frame_or_series(expected_counts)
     tm.assert_equal(result, expected)
@@ -1634,7 +1634,6 @@ def test_rolling_quantile_np_percentile():
     tm.assert_almost_equal(df_quantile.values, np.array(np_percentile))
 
 
-@pytest.mark.xfail(reason="GH#44343", strict=False)
 @pytest.mark.parametrize("quantile", [0.0, 0.1, 0.45, 0.5, 1])
 @pytest.mark.parametrize(
     "interpolation", ["linear", "lower", "higher", "nearest", "midpoint"]

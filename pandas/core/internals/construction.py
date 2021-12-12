@@ -23,6 +23,7 @@ from pandas._typing import (
     DtypeObj,
     Manager,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
@@ -175,7 +176,7 @@ def rec_array_to_mgr(
     # essentially process a record array then fill it
     fdata = ma.getdata(data)
     if index is None:
-        index = _get_names_from_index(fdata)
+        index = default_index(len(fdata))
     else:
         index = ensure_index(index)
 
@@ -289,14 +290,23 @@ def ndarray_to_mgr(
         if not len(values) and columns is not None and len(columns):
             values = np.empty((0, 1), dtype=object)
 
+    # if the array preparation does a copy -> avoid this for ArrayManager,
+    # since the copy is done on conversion to 1D arrays
+    copy_on_sanitize = False if typ == "array" else copy
+
     vdtype = getattr(values, "dtype", None)
-    if is_1d_only_ea_dtype(vdtype) or isinstance(dtype, ExtensionDtype):
+    if is_1d_only_ea_dtype(vdtype) or is_1d_only_ea_dtype(dtype):
         # GH#19157
 
-        if isinstance(values, np.ndarray) and values.ndim > 1:
+        if isinstance(values, (np.ndarray, ExtensionArray)) and values.ndim > 1:
             # GH#12513 a EA dtype passed with a 2D array, split into
             #  multiple EAs that view the values
-            values = [values[:, n] for n in range(values.shape[1])]
+            # error: No overload variant of "__getitem__" of "ExtensionArray"
+            # matches argument type "Tuple[slice, int]"
+            values = [
+                values[:, n]  # type: ignore[call-overload]
+                for n in range(values.shape[1])
+            ]
         else:
             values = [values]
 
@@ -318,7 +328,7 @@ def ndarray_to_mgr(
     else:
         # by definition an array here
         # the dtypes will be coerced to a single dtype
-        values = _prep_ndarray(values, copy=copy)
+        values = _prep_ndarray(values, copy=copy_on_sanitize)
 
     if dtype is not None and not is_dtype_equal(values.dtype, dtype):
         shape = values.shape
@@ -328,7 +338,7 @@ def ndarray_to_mgr(
         rcf = not (is_integer_dtype(dtype) and values.dtype.kind == "f")
 
         values = sanitize_array(
-            flat, None, dtype=dtype, copy=copy, raise_cast_failure=rcf
+            flat, None, dtype=dtype, copy=copy_on_sanitize, raise_cast_failure=rcf
         )
 
         values = values.reshape(shape)
@@ -356,6 +366,9 @@ def ndarray_to_mgr(
             if is_datetime_or_timedelta_dtype(values.dtype):
                 values = ensure_wrapped_if_datetimelike(values)
             arrays = [values[:, i] for i in range(values.shape[1])]
+
+        if copy:
+            arrays = [arr.copy() for arr in arrays]
 
         return ArrayManager(arrays, [index, columns], verify_integrity=False)
 
@@ -442,15 +455,18 @@ def dict_to_mgr(
         if missing.any() and not is_integer_dtype(dtype):
             nan_dtype: DtypeObj
 
-            if dtype is None or (
-                isinstance(dtype, np.dtype) and np.issubdtype(dtype, np.flexible)
-            ):
+            if dtype is not None:
+                # calling sanitize_array ensures we don't mix-and-match
+                #  NA dtypes
+                midxs = missing.values.nonzero()[0]
+                for i in midxs:
+                    arr = sanitize_array(arrays.iat[i], index, dtype=dtype)
+                    arrays.iat[i] = arr
+            else:
                 # GH#1783
                 nan_dtype = np.dtype("object")
-            else:
-                nan_dtype = dtype
-            val = construct_1d_arraylike_from_scalar(np.nan, len(index), nan_dtype)
-            arrays.loc[missing] = [val] * missing.sum()
+                val = construct_1d_arraylike_from_scalar(np.nan, len(index), nan_dtype)
+                arrays.loc[missing] = [val] * missing.sum()
 
         arrays = list(arrays)
         columns = ensure_index(columns)
@@ -830,7 +846,7 @@ def to_arrays(
             "To retain the old behavior, pass as a dictionary "
             "DataFrame({col: categorical, ..})",
             FutureWarning,
-            stacklevel=4,
+            stacklevel=find_stack_level(),
         )
         if columns is None:
             columns = default_index(len(data))

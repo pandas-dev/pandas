@@ -11,6 +11,7 @@ from pandas._libs.lib import (
 )
 from pandas._libs.missing import is_matching_na
 import pandas._libs.testing as _testing
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -21,7 +22,10 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.dtypes import PandasDtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    PandasDtype,
+)
 from pandas.core.dtypes.missing import array_equivalent
 
 import pandas as pd
@@ -106,7 +110,7 @@ def assert_almost_equal(
             "is deprecated and will be removed in a future version. "
             "You can stop passing 'check_less_precise' to silence this warning.",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         # https://github.com/python/mypy/issues/7642
         # error: Argument 1 to "_get_tol_from_less_precise" has incompatible
@@ -340,7 +344,7 @@ def assert_index_equal(
             "is deprecated and will be removed in a future version. "
             "You can stop passing 'check_less_precise' to silence this warning.",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         # https://github.com/python/mypy/issues/7642
         # error: Argument 1 to "_get_tol_from_less_precise" has incompatible
@@ -541,7 +545,7 @@ def assert_categorical_equal(
     left : Categorical
     right : Categorical
     check_dtype : bool, default True
-        Check that integer dtype of the codes are the same
+        Check that integer dtype of the codes are the same.
     check_category_order : bool, default True
         Whether the order of the categories should be compared, which
         implies identical integer codes.  If False, only the resulting
@@ -549,7 +553,7 @@ def assert_categorical_equal(
         checked regardless.
     obj : str, default 'Categorical'
         Specify object name being compared, internally used to show appropriate
-        assertion message
+        assertion message.
     """
     _check_isinstance(left, right, Categorical)
 
@@ -654,7 +658,7 @@ def raise_assert_detail(obj, message, left, right, diff=None, index_values=None)
     if isinstance(left, np.ndarray):
         left = pprint_thing(left)
     elif (
-        is_categorical_dtype(left)
+        isinstance(left, CategoricalDtype)
         or isinstance(left, PandasDtype)
         or isinstance(left, StringDtype)
     ):
@@ -663,7 +667,7 @@ def raise_assert_detail(obj, message, left, right, diff=None, index_values=None)
     if isinstance(right, np.ndarray):
         right = pprint_thing(right)
     elif (
-        is_categorical_dtype(right)
+        isinstance(right, CategoricalDtype)
         or isinstance(right, PandasDtype)
         or isinstance(right, StringDtype)
     ):
@@ -818,7 +822,7 @@ def assert_extension_array_equal(
             "is deprecated and will be removed in a future version. "
             "You can stop passing 'check_less_precise' to silence this warning.",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         rtol = atol = _get_tol_from_less_precise(check_less_precise)
 
@@ -964,7 +968,7 @@ def assert_series_equal(
             "is deprecated and will be removed in a future version. "
             "You can stop passing 'check_less_precise' to silence this warning.",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         rtol = atol = _get_tol_from_less_precise(check_less_precise)
 
@@ -1007,8 +1011,8 @@ def assert_series_equal(
         # is False. We'll still raise if only one is a `Categorical`,
         # regardless of `check_categorical`
         if (
-            is_categorical_dtype(left.dtype)
-            and is_categorical_dtype(right.dtype)
+            isinstance(left.dtype, CategoricalDtype)
+            and isinstance(right.dtype, CategoricalDtype)
             and not check_categorical
         ):
             pass
@@ -1053,7 +1057,9 @@ def assert_series_equal(
             raise AssertionError(msg)
     elif is_interval_dtype(left.dtype) and is_interval_dtype(right.dtype):
         assert_interval_array_equal(left.array, right.array)
-    elif is_categorical_dtype(left.dtype) or is_categorical_dtype(right.dtype):
+    elif isinstance(left.dtype, CategoricalDtype) or isinstance(
+        right.dtype, CategoricalDtype
+    ):
         _testing.assert_almost_equal(
             left._values,
             right._values,
@@ -1067,6 +1073,8 @@ def assert_series_equal(
         assert_extension_array_equal(
             left._values,
             right._values,
+            rtol=rtol,
+            atol=atol,
             check_dtype=check_dtype,
             index_values=np.asarray(left.index),
         )
@@ -1103,7 +1111,9 @@ def assert_series_equal(
         assert_attr_equal("name", left, right, obj=obj)
 
     if check_categorical:
-        if is_categorical_dtype(left.dtype) or is_categorical_dtype(right.dtype):
+        if isinstance(left.dtype, CategoricalDtype) or isinstance(
+            right.dtype, CategoricalDtype
+        ):
             assert_categorical_equal(
                 left._values,
                 right._values,
@@ -1247,7 +1257,7 @@ def assert_frame_equal(
             "is deprecated and will be removed in a future version. "
             "You can stop passing 'check_less_precise' to silence this warning.",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         rtol = atol = _get_tol_from_less_precise(check_less_precise)
 
@@ -1312,9 +1322,11 @@ def assert_frame_equal(
     # compare by columns
     else:
         for i, col in enumerate(left.columns):
-            assert col in right
-            lcol = left.iloc[:, i]
-            rcol = right.iloc[:, i]
+            # We have already checked that columns match, so we can do
+            #  fast location-based lookups
+            lcol = left._ixs(i, axis=1)
+            rcol = right._ixs(i, axis=1)
+
             # GH #38183
             # use check_index=False, because we do not want to run
             # assert_index_equal for each column,
@@ -1373,7 +1385,8 @@ def assert_equal(left, right, **kwargs):
         assert kwargs == {}
         assert left == right
     else:
-        raise NotImplementedError(type(left))
+        assert kwargs == {}
+        assert_almost_equal(left, right)
 
 
 def assert_sp_array_equal(left, right):
@@ -1444,3 +1457,17 @@ def is_extension_array_dtype_and_needs_i8_conversion(left_dtype, right_dtype) ->
     Related to issue #37609
     """
     return is_extension_array_dtype(left_dtype) and needs_i8_conversion(right_dtype)
+
+
+def assert_indexing_slices_equivalent(ser: Series, l_slc: slice, i_slc: slice):
+    """
+    Check that ser.iloc[i_slc] matches ser.loc[l_slc] and, if applicable,
+    ser[l_slc].
+    """
+    expected = ser.iloc[i_slc]
+
+    assert_series_equal(ser.loc[l_slc], expected)
+
+    if not ser.index.is_integer():
+        # For integer indices, .loc and plain getitem are position-based.
+        assert_series_equal(ser[l_slc], expected)

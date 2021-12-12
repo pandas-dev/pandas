@@ -419,10 +419,10 @@ class TestSeriesReplace:
         tm.assert_equal(res, obj)
         assert res is not obj
 
-    def test_replace_only_one_dictlike_arg(self):
+    def test_replace_only_one_dictlike_arg(self, fixed_now_ts):
         # GH#33340
 
-        ser = pd.Series([1, 2, "A", pd.Timestamp.now(), True])
+        ser = pd.Series([1, 2, "A", fixed_now_ts, True])
         to_replace = {0: 1, 2: "A"}
         value = "foo"
         msg = "Series.replace cannot use dict-like to_replace and non-None value"
@@ -499,3 +499,16 @@ class TestSeriesReplace:
         result = s.replace({regex: "z"}, regex=True)
         expected = pd.Series(["z", "b", "c"])
         tm.assert_series_equal(result, expected)
+
+    def test_pandas_replace_na(self):
+        # GH#43344
+        ser = pd.Series(["AA", "BB", "CC", "DD", "EE", "", pd.NA], dtype="string")
+        regex_mapping = {
+            "AA": "CC",
+            "BB": "CC",
+            "EE": "CC",
+            "CC": "CC-REPL",
+        }
+        result = ser.replace(regex_mapping, regex=True)
+        exp = pd.Series(["CC", "CC", "CC-REPL", "DD", "CC", "", pd.NA], dtype="string")
+        tm.assert_series_equal(result, exp)

@@ -22,6 +22,7 @@ from pandas._typing import (
     ArrayLike,
     DtypeObj,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import _registry as registry
 from pandas.core.dtypes.dtypes import (
@@ -304,7 +305,7 @@ def is_categorical(arr) -> bool:
         "is_categorical is deprecated and will be removed in a future version. "
         "Use is_categorical_dtype instead.",
         FutureWarning,
-        stacklevel=2,
+        stacklevel=find_stack_level(),
     )
     return isinstance(arr, ABCCategorical) or is_categorical_dtype(arr)
 
@@ -525,6 +526,15 @@ def is_categorical_dtype(arr_or_dtype) -> bool:
     if arr_or_dtype is None:
         return False
     return CategoricalDtype.is_dtype(arr_or_dtype)
+
+
+def is_string_or_object_np_dtype(dtype: np.dtype) -> bool:
+    """
+    Faster alternative to is_string_dtype, assumes we have a np.dtype object.
+    """
+    # error: Non-overlapping equality check (left operand type: "dtype[Any]",
+    # right operand type: "Type[object]")
+    return dtype == object or dtype.kind in "SU"  # type: ignore[comparison-overlap]
 
 
 def is_string_dtype(arr_or_dtype) -> bool:
@@ -1378,7 +1388,7 @@ def is_extension_type(arr) -> bool:
         "'is_extension_type' is deprecated and will be removed in a future "
         "version.  Use 'is_extension_array_dtype' instead.",
         FutureWarning,
-        stacklevel=2,
+        stacklevel=find_stack_level(),
     )
 
     if is_categorical_dtype(arr):
@@ -1619,7 +1629,7 @@ def _is_dtype_type(arr_or_dtype, condition) -> bool:
     return condition(tipo)
 
 
-def infer_dtype_from_object(dtype) -> DtypeObj:
+def infer_dtype_from_object(dtype) -> type:
     """
     Get a numpy dtype.type-style object for a dtype object.
 
@@ -1636,14 +1646,12 @@ def infer_dtype_from_object(dtype) -> DtypeObj:
 
     Returns
     -------
-    dtype_object : The extracted numpy dtype.type-style object.
+    type
     """
     if isinstance(dtype, type) and issubclass(dtype, np.generic):
         # Type object from a dtype
 
-        # error: Incompatible return value type (got "Type[generic]", expected
-        # "Union[dtype[Any], ExtensionDtype]")
-        return dtype  # type: ignore[return-value]
+        return dtype
     elif isinstance(dtype, (np.dtype, ExtensionDtype)):
         # dtype object
         try:
@@ -1651,9 +1659,7 @@ def infer_dtype_from_object(dtype) -> DtypeObj:
         except TypeError:
             # Should still pass if we don't have a date-like
             pass
-        # error: Incompatible return value type (got "Union[Type[generic], Type[Any]]",
-        # expected "Union[dtype[Any], ExtensionDtype]")
-        return dtype.type  # type: ignore[return-value]
+        return dtype.type
 
     try:
         dtype = pandas_dtype(dtype)
@@ -1667,9 +1673,7 @@ def infer_dtype_from_object(dtype) -> DtypeObj:
         # TODO(jreback)
         # should deprecate these
         if dtype in ["datetimetz", "datetime64tz"]:
-            # error: Incompatible return value type (got "Type[Any]", expected
-            # "Union[dtype[Any], ExtensionDtype]")
-            return DatetimeTZDtype.type  # type: ignore[return-value]
+            return DatetimeTZDtype.type
         elif dtype in ["period"]:
             raise NotImplementedError
 
