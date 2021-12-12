@@ -308,7 +308,7 @@ on : label or list, or Callable
              (e.g. dictionary or dataclass) holding just a single row of the
              merge operation, such that accessing any element in the
              datastructure would provide a scalar value, rather than a
-             column/Series. 
+             column/Series.
 left_on : label or list, or array-like
     Column or index level names to join on in the left DataFrame. Can also
     be an array or list of arrays of the length of the left DataFrame.
