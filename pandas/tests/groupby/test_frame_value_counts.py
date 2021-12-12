@@ -433,3 +433,12 @@ def test_column_name_clashes(test, expected_names, as_index):
     else:
         with pytest.raises(ValueError, match="cannot insert"):
             df.groupby(["a", [0, 1], "d"], as_index=as_index).value_counts()
+
+
+def test_ambiguous_grouping():
+    # Test that groupby is not confused by groupings length equal to row count
+    df = DataFrame({"a": [1, 1]})
+    gb = df.groupby([1, 1])
+    result = gb.value_counts()
+    expected = Series([2], index=MultiIndex.from_tuples([[1, 1]], names=[None, "a"]))
+    tm.assert_series_equal(result, expected)
