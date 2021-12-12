@@ -10349,6 +10349,34 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             )
             return res._logical_func(name, func, skipna=skipna, **kwargs)
 
+        if (
+            self.ndim > 1
+            and axis == 1
+            and len(self._mgr.arrays) > 1
+            and bool_only is not None
+        ):
+            # Try to avoid a potentially-expensive transpose
+            arrays = self._mgr.arrays
+            if all(x.ndim == 2 for x in arrays):
+                # TODO(EA2D): special case not needed
+                obj = self
+                if bool_only:
+                    obj = self._get_bool_data()
+
+                if name == "all":
+                    result = np.ones(len(obj), dtype=bool)
+                    ufunc = np.logical_and
+                else:
+                    result = np.zeros(len(obj), dtype=bool)
+                    ufunc = np.logical_or
+
+                for arr in obj._mgr.arrays:
+                    middle = func(arr, axis=0, skipna=skipna)
+                    result = ufunc(result, middle)
+
+                res_ser = obj._constructor_sliced(result, index=obj.index)
+                return res_ser
+
         return self._reduce(
             func,
             name=name,
