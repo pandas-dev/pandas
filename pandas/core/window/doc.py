@@ -11,12 +11,12 @@ def create_section_header(header: str) -> str:
     return "\n".join((header, "-" * len(header))) + "\n"
 
 
-template_header = "Calculate the {window_method} {aggregation_description}.\n\n"
+template_header = "\nCalculate the {window_method} {aggregation_description}.\n\n"
 
 template_returns = dedent(
     """
     Series or DataFrame
-        Return type is the same as the original object.\n
+        Return type is the same as the original object with ``np.float64`` dtype.\n
     """
 ).replace("\n", "", 1)
 
@@ -59,7 +59,7 @@ window_apply_parameters = dedent(
 
         .. versionchanged:: 1.0.0
 
-    raw : bool, default None
+    raw : bool, default False
         * ``False`` : passes each row or column as a Series to the
           function.
         * ``True`` : the passed function will receive ndarray
@@ -98,14 +98,17 @@ numba_notes = (
     "extended documentation and performance considerations for the Numba engine.\n\n"
 )
 
-window_agg_numba_parameters = dedent(
-    """
+
+def window_agg_numba_parameters(version: str = "1.3") -> str:
+    return (
+        dedent(
+            """
     engine : str, default None
         * ``'cython'`` : Runs the operation through C-extensions from cython.
         * ``'numba'`` : Runs the operation through JIT compiled code from numba.
         * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
 
-          .. versionadded:: 1.3.0
+          .. versionadded:: {version}.0
 
     engine_kwargs : dict, default None
         * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
@@ -114,6 +117,9 @@ window_agg_numba_parameters = dedent(
           ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
           ``{{'nopython': True, 'nogil': False, 'parallel': False}}``
 
-          .. versionadded:: 1.3.0\n
+          .. versionadded:: {version}.0\n
     """
-).replace("\n", "", 1)
+        )
+        .replace("\n", "", 1)
+        .replace("{version}", version)
+    )

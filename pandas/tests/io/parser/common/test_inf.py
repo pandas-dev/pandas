@@ -13,7 +13,10 @@ from pandas import (
 )
 import pandas._testing as tm
 
+xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
+
+@xfail_pyarrow
 @pytest.mark.parametrize("na_filter", [True, False])
 def test_inf_parsing(all_parsers, na_filter):
     parser = all_parsers
@@ -37,6 +40,7 @@ j,-inF"""
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize("na_filter", [True, False])
 def test_infinity_parsing(all_parsers, na_filter):
     parser = all_parsers

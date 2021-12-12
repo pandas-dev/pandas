@@ -3,15 +3,14 @@ from __future__ import annotations
 
 import io
 import os
-from typing import (
-    Any,
-    AnyStr,
-)
+from typing import Any
 from warnings import catch_warnings
 
 from pandas._typing import (
-    FilePathOrBuffer,
+    FilePath,
+    ReadBuffer,
     StorageOptions,
+    WriteBuffer,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
@@ -69,12 +68,14 @@ def get_engine(engine: str) -> BaseImpl:
 
 
 def _get_path_or_handle(
-    path: FilePathOrBuffer,
+    path: FilePath | ReadBuffer[bytes] | WriteBuffer[bytes],
     fs: Any,
     storage_options: StorageOptions = None,
     mode: str = "rb",
     is_dir: bool = False,
-) -> tuple[FilePathOrBuffer, IOHandles | None, Any]:
+) -> tuple[
+    FilePath | ReadBuffer[bytes] | WriteBuffer[bytes], IOHandles[bytes] | None, Any
+]:
     """File handling for PyArrow."""
     path_or_handle = stringify_path(path)
     if is_fsspec_url(path_or_handle) and fs is None:
@@ -150,14 +151,14 @@ class PyArrowImpl(BaseImpl):
         import pyarrow.parquet
 
         # import utils to register the pyarrow extension types
-        import pandas.core.arrays._arrow_utils  # noqa
+        import pandas.core.arrays._arrow_utils  # noqa:F401
 
         self.api = pyarrow
 
     def write(
         self,
         df: DataFrame,
-        path: FilePathOrBuffer[AnyStr],
+        path: FilePath | WriteBuffer[bytes],
         compression: str | None = "snappy",
         index: bool | None = None,
         storage_options: StorageOptions = None,
@@ -309,20 +310,16 @@ class FastParquetImpl(BaseImpl):
     def read(
         self, path, columns=None, storage_options: StorageOptions = None, **kwargs
     ):
-        parquet_kwargs = {}
+        parquet_kwargs: dict[str, Any] = {}
         use_nullable_dtypes = kwargs.pop("use_nullable_dtypes", False)
-        # Technically works with 0.7.0, but was incorrect
-        # so lets just require 0.7.1
         if Version(self.api.__version__) >= Version("0.7.1"):
-            # Need to set even for use_nullable_dtypes = False,
-            # since our defaults differ
-            parquet_kwargs["pandas_nulls"] = use_nullable_dtypes
-        else:
-            if use_nullable_dtypes:
-                raise ValueError(
-                    "The 'use_nullable_dtypes' argument is not supported for the "
-                    "fastparquet engine for fastparquet versions less than 0.7.1"
-                )
+            # We are disabling nullable dtypes for fastparquet pending discussion
+            parquet_kwargs["pandas_nulls"] = False
+        if use_nullable_dtypes:
+            raise ValueError(
+                "The 'use_nullable_dtypes' argument is not supported for the "
+                "fastparquet engine"
+            )
         path = stringify_path(path)
         handles = None
         if is_fsspec_url(path):
@@ -357,7 +354,7 @@ class FastParquetImpl(BaseImpl):
 @doc(storage_options=generic._shared_docs["storage_options"])
 def to_parquet(
     df: DataFrame,
-    path: FilePathOrBuffer | None = None,
+    path: FilePath | WriteBuffer[bytes] | None = None,
     engine: str = "auto",
     compression: str | None = "snappy",
     index: bool | None = None,
@@ -371,13 +368,12 @@ def to_parquet(
     Parameters
     ----------
     df : DataFrame
-    path : str or file-like object, default None
-        If a string, it will be used as Root Directory path
-        when writing a partitioned dataset. By file-like object,
-        we refer to objects with a write() method, such as a file handle
-        (e.g. via builtin open function) or io.BytesIO. The engine
-        fastparquet does not accept file-like objects. If path is None,
-        a bytes object is returned.
+    path : str, path object, file-like object, or None, default None
+        String, path object (implementing ``os.PathLike[str]``), or file-like
+        object implementing a binary ``write()`` function. If None, the result is
+        returned as bytes. If a string, it will be used as Root Directory path
+        when writing a partitioned dataset. The engine fastparquet does not
+        accept file-like objects.
 
         .. versionchanged:: 1.2.0
 
@@ -386,8 +382,12 @@ def to_parquet(
         ``io.parquet.engine`` is used. The default ``io.parquet.engine``
         behavior is to try 'pyarrow', falling back to 'fastparquet' if
         'pyarrow' is unavailable.
-    compression : {{'snappy', 'gzip', 'brotli', None}}, default 'snappy'
-        Name of the compression to use. Use ``None`` for no compression.
+    compression : {{'snappy', 'gzip', 'brotli', 'lz4', 'zstd', None}},
+        default 'snappy'. Name of the compression to use. Use ``None``
+        for no compression. The supported compression methods actually
+        depend on which engine is used. For 'pyarrow', 'snappy', 'gzip',
+        'brotli', 'lz4', 'zstd' are all supported. For 'fastparquet',
+        only 'gzip' and 'snappy' are supported.
     index : bool, default None
         If ``True``, include the dataframe's index(es) in the file output. If
         ``False``, they will not be written to the file.
@@ -415,7 +415,7 @@ def to_parquet(
         partition_cols = [partition_cols]
     impl = get_engine(engine)
 
-    path_or_buf: FilePathOrBuffer = io.BytesIO() if path is None else path
+    path_or_buf: FilePath | WriteBuffer[bytes] = io.BytesIO() if path is None else path
 
     impl.write(
         df,
@@ -449,21 +449,15 @@ def read_parquet(
     Parameters
     ----------
     path : str, path object or file-like object
-        Any valid string path is acceptable. The string could be a URL. Valid
-        URL schemes include http, ftp, s3, gs, and file. For file URLs, a host is
-        expected. A local file could be:
+        String, path object (implementing ``os.PathLike[str]``), or file-like
+        object implementing a binary ``read()`` function.
+        The string could be a URL. Valid URL schemes include http, ftp, s3,
+        gs, and file. For file URLs, a host is expected. A local file could be:
         ``file://localhost/path/to/table.parquet``.
         A file URL can also be a path to a directory that contains multiple
         partitioned parquet files. Both pyarrow and fastparquet support
         paths to directories as well as file URLs. A directory path could be:
-        ``file://localhost/path/to/tables`` or ``s3://bucket/partition_dir``
-
-        If you want to pass in a path object, pandas accepts any
-        ``os.PathLike``.
-
-        By file-like object, we refer to objects with a ``read()`` method,
-        such as a file handle (e.g. via builtin ``open`` function)
-        or ``StringIO``.
+        ``file://localhost/path/to/tables`` or ``s3://bucket/partition_dir``.
     engine : {{'auto', 'pyarrow', 'fastparquet'}}, default 'auto'
         Parquet library to use. If 'auto', then the option
         ``io.parquet.engine`` is used. The default ``io.parquet.engine``
@@ -478,17 +472,14 @@ def read_parquet(
 
     use_nullable_dtypes : bool, default False
         If True, use dtypes that use ``pd.NA`` as missing value indicator
-        for the resulting DataFrame.
+        for the resulting DataFrame. (only applicable for the ``pyarrow``
+        engine)
         As new dtypes are added that support ``pd.NA`` in the future, the
         output with this option will change to use those dtypes.
         Note: this is an experimental option, and behaviour (e.g. additional
         support dtypes) may change without notice.
 
         .. versionadded:: 1.2.0
-
-        .. versionchanged:: 1.3.2
-            ``use_nullable_dtypes`` now works with the the ``fastparquet`` engine
-            if ``fastparquet`` is version 0.7.1 or higher.
 
     **kwargs
         Any additional kwargs are passed to the engine.

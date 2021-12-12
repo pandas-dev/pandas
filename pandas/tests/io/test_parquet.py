@@ -13,11 +13,10 @@ import pytest
 
 from pandas._config import get_option
 
-from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
-    pa_version_under1p0,
     pa_version_under2p0,
     pa_version_under5p0,
+    pa_version_under6p0,
 )
 import pandas.util._test_decorators as td
 
@@ -596,15 +595,16 @@ class TestBasic(Base):
         msg = r"parquet must have string column names"
         self.check_error_on_write(df, engine, ValueError, msg)
 
-    def test_use_nullable_dtypes(self, engine):
+    def test_use_nullable_dtypes(self, engine, request):
         import pyarrow.parquet as pq
 
         if engine == "fastparquet":
-            pytest.importorskip(
-                "fastparquet",
-                "0.7.1",
-                reason="fastparquet must be 0.7.1 or higher for nullable dtype support",
+            # We are manually disabling fastparquet's
+            # nullable dtype support pending discussion
+            mark = pytest.mark.xfail(
+                reason="Fastparquet nullable dtype support is disabled"
             )
+            request.node.add_marker(mark)
 
         table = pyarrow.table(
             {
@@ -612,6 +612,8 @@ class TestBasic(Base):
                 "b": pyarrow.array([1, 2, 3, None], "uint8"),
                 "c": pyarrow.array(["a", "b", "c", None]),
                 "d": pyarrow.array([True, False, True, None]),
+                # Test that nullable dtypes used even in absence of nulls
+                "e": pyarrow.array([1, 2, 3, 4], "int64"),
             }
         )
         with tm.ensure_clean() as path:
@@ -627,6 +629,7 @@ class TestBasic(Base):
                 "b": pd.array([1, 2, 3, None], dtype="UInt8"),
                 "c": pd.array(["a", "b", "c", None], dtype="string"),
                 "d": pd.array([True, False, True, None], dtype="boolean"),
+                "e": pd.array([1, 2, 3, 4], dtype="Int64"),
             }
         )
         if engine == "fastparquet":
@@ -635,6 +638,29 @@ class TestBasic(Base):
             result2 = result2.drop("c", axis=1)
             expected = expected.drop("c", axis=1)
         tm.assert_frame_equal(result2, expected)
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "Int64",
+            "UInt8",
+            "boolean",
+            "object",
+            "datetime64[ns, UTC]",
+            "float",
+            "period[D]",
+            "Float64",
+            "string",
+        ],
+    )
+    def test_read_empty_array(self, pa, dtype):
+        # GH #41241
+        df = pd.DataFrame(
+            {
+                "value": pd.array([], dtype=dtype),
+            }
+        )
+        check_round_trip(df, pa, read_kwargs={"use_nullable_dtypes": True})
 
 
 @pytest.mark.filterwarnings("ignore:CategoricalBlock is deprecated:DeprecationWarning")
@@ -711,11 +737,6 @@ class TestParquetPyArrow(Base):
 
         check_round_trip(df, pa)
 
-    @pytest.mark.xfail(
-        is_platform_windows(),
-        reason="localhost connection rejected",
-        strict=False,
-    )
     def test_s3_roundtrip_explicit_fs(self, df_compat, s3_resource, pa, s3so):
         s3fs = pytest.importorskip("s3fs")
         s3 = s3fs.S3FileSystem(**s3so)
@@ -760,11 +781,7 @@ class TestParquetPyArrow(Base):
         # only used if partition field is string, but this changed again to use
         # category dtype for all types (not only strings) in pyarrow 2.0.0
         if partition_col:
-            partition_col_type = (
-                "int32"
-                if (not pa_version_under1p0) and pa_version_under2p0
-                else "category"
-            )
+            partition_col_type = "int32" if pa_version_under2p0 else "category"
 
             expected_df[partition_col] = expected_df[partition_col].astype(
                 partition_col_type
@@ -883,10 +900,15 @@ class TestParquetPyArrow(Base):
         check_round_trip(df, pa)
 
     def test_timestamp_nanoseconds(self, pa):
-        # with version 2.0, pyarrow defaults to writing the nanoseconds, so
+        # with version 2.6, pyarrow defaults to writing the nanoseconds, so
         # this should work without error
+        # Note in previous pyarrows(<6.0.0), only the pseudo-version 2.0 was available
+        if not pa_version_under6p0:
+            ver = "2.6"
+        else:
+            ver = "2.0"
         df = pd.DataFrame({"a": pd.date_range("2017-01-01", freq="1n", periods=10)})
-        check_round_trip(df, pa, write_kwargs={"version": "2.0"})
+        check_round_trip(df, pa, write_kwargs={"version": ver})
 
     def test_timezone_aware_index(self, pa, timezone_aware_date_list):
         if not pa_version_under2p0:
@@ -1078,11 +1100,6 @@ class TestParquetFastParquet(Base):
     def test_use_nullable_dtypes_not_supported(self, monkeypatch, fp):
         df = pd.DataFrame({"a": [1, 2]})
 
-        # This is supported now in fastparquet 0.7.1 and above actually
-        # Still need to ensure that this raises in all versions below
-        import fastparquet as fp
-
-        monkeypatch.setattr(fp, "__version__", "0.4")
         with tm.ensure_clean() as path:
             df.to_parquet(path)
             with pytest.raises(ValueError, match="not supported for the fastparquet"):

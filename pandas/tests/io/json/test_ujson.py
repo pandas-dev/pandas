@@ -5,7 +5,6 @@ import json
 import locale
 import math
 import re
-import sys
 import time
 
 import dateutil
@@ -599,24 +598,23 @@ class TestUltraJSONTests:
             np.array(long_input), ujson.decode(output, numpy=True, dtype=np.int64)
         )
 
-    def test_encode_long_conversion(self):
-        long_input = 9223372036854775807
+    @pytest.mark.parametrize("long_input", [9223372036854775807, 18446744073709551615])
+    def test_encode_long_conversion(self, long_input):
         output = ujson.encode(long_input)
 
         assert long_input == json.loads(output)
         assert output == json.dumps(long_input)
         assert long_input == ujson.decode(output)
 
-    @pytest.mark.parametrize("bigNum", [sys.maxsize + 1, -(sys.maxsize + 2)])
-    @pytest.mark.xfail(not IS64, reason="GH-35288")
+    @pytest.mark.parametrize("bigNum", [2 ** 64, -(2 ** 63) - 1])
     def test_dumps_ints_larger_than_maxsize(self, bigNum):
-        # GH34395
-        bigNum = sys.maxsize + 1
         encoding = ujson.encode(bigNum)
         assert str(bigNum) == encoding
 
-        # GH20599
-        with pytest.raises(ValueError, match="Value is too big"):
+        with pytest.raises(
+            ValueError,
+            match="Value is too big|Value is too small",
+        ):
             assert ujson.loads(encoding) == bigNum
 
     @pytest.mark.parametrize(
@@ -720,6 +718,21 @@ class TestUltraJSONTests:
             ujson.encode(obj_list, default_handler=str)
         )
 
+    def test_encode_object(self):
+        class _TestObject:
+            def __init__(self, a, b, _c, d):
+                self.a = a
+                self.b = b
+                self._c = _c
+                self.d = d
+
+            def e(self):
+                return 5
+
+        # JSON keys should be all non-callable non-underscore attributes, see GH-42768
+        test_object = _TestObject(a=1, b=2, _c=3, d=4)
+        assert ujson.decode(ujson.encode(test_object)) == {"a": 1, "b": 2, "d": 4}
+
 
 class TestNumpyJSONTests:
     @pytest.mark.parametrize("bool_input", [True, False])
@@ -734,55 +747,55 @@ class TestNumpyJSONTests:
         output = np.array(ujson.decode(ujson.encode(bool_array)), dtype=bool)
         tm.assert_numpy_array_equal(bool_array, output)
 
-    def test_int(self, any_int_dtype):
-        klass = np.dtype(any_int_dtype).type
+    def test_int(self, any_int_numpy_dtype):
+        klass = np.dtype(any_int_numpy_dtype).type
         num = klass(1)
 
         assert klass(ujson.decode(ujson.encode(num))) == num
 
-    def test_int_array(self, any_int_dtype):
+    def test_int_array(self, any_int_numpy_dtype):
         arr = np.arange(100, dtype=int)
-        arr_input = arr.astype(any_int_dtype)
+        arr_input = arr.astype(any_int_numpy_dtype)
 
         arr_output = np.array(
-            ujson.decode(ujson.encode(arr_input)), dtype=any_int_dtype
+            ujson.decode(ujson.encode(arr_input)), dtype=any_int_numpy_dtype
         )
         tm.assert_numpy_array_equal(arr_input, arr_output)
 
-    def test_int_max(self, any_int_dtype):
-        if any_int_dtype in ("int64", "uint64") and not IS64:
+    def test_int_max(self, any_int_numpy_dtype):
+        if any_int_numpy_dtype in ("int64", "uint64") and not IS64:
             pytest.skip("Cannot test 64-bit integer on 32-bit platform")
 
-        klass = np.dtype(any_int_dtype).type
+        klass = np.dtype(any_int_numpy_dtype).type
 
         # uint64 max will always overflow,
         # as it's encoded to signed.
-        if any_int_dtype == "uint64":
+        if any_int_numpy_dtype == "uint64":
             num = np.iinfo("int64").max
         else:
-            num = np.iinfo(any_int_dtype).max
+            num = np.iinfo(any_int_numpy_dtype).max
 
         assert klass(ujson.decode(ujson.encode(num))) == num
 
-    def test_float(self, float_dtype):
-        klass = np.dtype(float_dtype).type
+    def test_float(self, float_numpy_dtype):
+        klass = np.dtype(float_numpy_dtype).type
         num = klass(256.2013)
 
         assert klass(ujson.decode(ujson.encode(num))) == num
 
-    def test_float_array(self, float_dtype):
+    def test_float_array(self, float_numpy_dtype):
         arr = np.arange(12.5, 185.72, 1.7322, dtype=float)
-        float_input = arr.astype(float_dtype)
+        float_input = arr.astype(float_numpy_dtype)
 
         float_output = np.array(
             ujson.decode(ujson.encode(float_input, double_precision=15)),
-            dtype=float_dtype,
+            dtype=float_numpy_dtype,
         )
         tm.assert_almost_equal(float_input, float_output)
 
-    def test_float_max(self, float_dtype):
-        klass = np.dtype(float_dtype).type
-        num = klass(np.finfo(float_dtype).max / 10)
+    def test_float_max(self, float_numpy_dtype):
+        klass = np.dtype(float_numpy_dtype).type
+        num = klass(np.finfo(float_numpy_dtype).max / 10)
 
         tm.assert_almost_equal(
             klass(ujson.decode(ujson.encode(num, double_precision=15))), num
@@ -1147,11 +1160,12 @@ class TestPandasJSONTests:
     def test_decode_extreme_numbers(self, extreme_num):
         assert extreme_num == ujson.decode(str(extreme_num))
 
-    @pytest.mark.parametrize(
-        "too_extreme_num", ["9223372036854775808", "-90223372036854775809"]
-    )
+    @pytest.mark.parametrize("too_extreme_num", [f"{2**64}", f"{-2**63-1}"])
     def test_decode_too_extreme_numbers(self, too_extreme_num):
-        with pytest.raises(ValueError, match="Value is too big|Value is too small"):
+        with pytest.raises(
+            ValueError,
+            match="Value is too big|Value is too small",
+        ):
             ujson.decode(too_extreme_num)
 
     def test_decode_with_trailing_whitespaces(self):
@@ -1161,9 +1175,13 @@ class TestPandasJSONTests:
         with pytest.raises(ValueError, match="Trailing data"):
             ujson.decode("{}\n\t a")
 
-    def test_decode_array_with_big_int(self):
-        with pytest.raises(ValueError, match="Value is too big"):
-            ujson.loads("[18446098363113800555]")
+    @pytest.mark.parametrize("value", [f"{2**64}", f"{-2**63-1}"])
+    def test_decode_array_with_big_int(self, value):
+        with pytest.raises(
+            ValueError,
+            match="Value is too big|Value is too small",
+        ):
+            ujson.loads(value)
 
     @pytest.mark.parametrize(
         "float_number",

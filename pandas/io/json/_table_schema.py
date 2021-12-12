@@ -15,7 +15,6 @@ import warnings
 import pandas._libs.json as json
 from pandas._typing import (
     DtypeObj,
-    FrameOrSeries,
     JSONSerializable,
 )
 
@@ -36,6 +35,7 @@ from pandas import DataFrame
 import pandas.core.common as com
 
 if TYPE_CHECKING:
+    from pandas import Series
     from pandas.core.indexes.multi import MultiIndex
 
 loads = json.loads
@@ -94,9 +94,11 @@ def set_default_names(data):
     if com.all_not_none(*data.index.names):
         nms = data.index.names
         if len(nms) == 1 and data.index.name == "index":
-            warnings.warn("Index name of 'index' is not round-trippable")
+            warnings.warn("Index name of 'index' is not round-trippable.")
         elif len(nms) > 1 and any(x.startswith("level_") for x in nms):
-            warnings.warn("Index names beginning with 'level_' are not round-trippable")
+            warnings.warn(
+                "Index names beginning with 'level_' are not round-trippable."
+            )
         return data
 
     data = data.copy()
@@ -204,7 +206,7 @@ def convert_json_field_to_pandas_type(field):
 
 
 def build_table_schema(
-    data: FrameOrSeries,
+    data: DataFrame | Series,
     index: bool = True,
     primary_key: bool | None = None,
     version: bool = True,

@@ -179,17 +179,16 @@ def test_error_invalid_values(data, all_arithmetic_operators):
     with pytest.raises(TypeError, match=msg):
         ops(pd.Series("foo", index=s.index))
 
-    if op != "__rpow__":
-        # TODO(extension)
-        # rpow with a datetimelike coerces the integer array incorrectly
-        msg = (
-            "can only perform ops with numeric values|"
-            "cannot perform .* with this index type: DatetimeArray|"
+    msg = "|".join(
+        [
+            "can only perform ops with numeric values",
+            "cannot perform .* with this index type: DatetimeArray",
             "Addition/subtraction of integers and integer-arrays "
-            "with DatetimeArray is no longer supported. *"
-        )
-        with pytest.raises(TypeError, match=msg):
-            ops(pd.Series(pd.date_range("20180101", periods=len(s))))
+            "with DatetimeArray is no longer supported. *",
+        ]
+    )
+    with pytest.raises(TypeError, match=msg):
+        ops(pd.Series(pd.date_range("20180101", periods=len(s))))
 
 
 # Various
@@ -291,10 +290,8 @@ def test_reduce_to_float(op):
         ([-1, 0, 1], [1, 0, -1], [1, 0, 1]),
     ],
 )
-def test_unary_int_operators(
-    any_signed_nullable_int_dtype, source, neg_target, abs_target
-):
-    dtype = any_signed_nullable_int_dtype
+def test_unary_int_operators(any_signed_int_ea_dtype, source, neg_target, abs_target):
+    dtype = any_signed_int_ea_dtype
     arr = pd.array(source, dtype=dtype)
     neg_result, pos_result, abs_result = -arr, +arr, abs(arr)
     neg_target = pd.array(neg_target, dtype=dtype)
@@ -302,4 +299,5 @@ def test_unary_int_operators(
 
     tm.assert_extension_array_equal(neg_result, neg_target)
     tm.assert_extension_array_equal(pos_result, arr)
+    assert not tm.shares_memory(pos_result, arr)
     tm.assert_extension_array_equal(abs_result, abs_target)

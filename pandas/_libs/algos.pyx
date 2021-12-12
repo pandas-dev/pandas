@@ -15,6 +15,8 @@ import numpy as np
 
 cimport numpy as cnp
 from numpy cimport (
+    NPY_COMPLEX64,
+    NPY_COMPLEX128,
     NPY_FLOAT32,
     NPY_FLOAT64,
     NPY_INT8,
@@ -43,6 +45,11 @@ from numpy cimport (
 cnp.import_array()
 
 cimport pandas._libs.util as util
+from pandas._libs.dtypes cimport (
+    iu_64_floating_obj_t,
+    numeric_object_t,
+    numeric_t,
+)
 from pandas._libs.khash cimport (
     kh_destroy_int64,
     kh_get_int64,
@@ -52,10 +59,7 @@ from pandas._libs.khash cimport (
     kh_resize_int64,
     khiter_t,
 )
-from pandas._libs.util cimport (
-    get_nat,
-    numeric,
-)
+from pandas._libs.util cimport get_nat
 
 import pandas._libs.missing as missing
 
@@ -64,13 +68,6 @@ cdef:
     float64_t NaN = <float64_t>np.NaN
     int64_t NPY_NAT = get_nat()
 
-cdef enum TiebreakEnumType:
-    TIEBREAK_AVERAGE
-    TIEBREAK_MIN,
-    TIEBREAK_MAX
-    TIEBREAK_FIRST
-    TIEBREAK_FIRST_DESCENDING
-    TIEBREAK_DENSE
 
 tiebreakers = {
     "average": TIEBREAK_AVERAGE,
@@ -122,7 +119,7 @@ cpdef ndarray[int64_t, ndim=1] unique_deltas(const int64_t[:] arr):
 
     Parameters
     ----------
-    arr : ndarray[in64_t]
+    arr : ndarray[int64_t]
 
     Returns
     -------
@@ -244,9 +241,9 @@ def groupsort_indexer(const intp_t[:] index, Py_ssize_t ngroups):
     return indexer.base, counts.base
 
 
-cdef inline Py_ssize_t swap(numeric *a, numeric *b) nogil:
+cdef inline Py_ssize_t swap(numeric_t *a, numeric_t *b) nogil:
     cdef:
-        numeric t
+        numeric_t t
 
     # cython doesn't allow pointer dereference so use array syntax
     t = a[0]
@@ -255,22 +252,22 @@ cdef inline Py_ssize_t swap(numeric *a, numeric *b) nogil:
     return 0
 
 
-cdef inline numeric kth_smallest_c(numeric* arr, Py_ssize_t k, Py_ssize_t n) nogil:
+cdef inline numeric_t kth_smallest_c(numeric_t* arr, Py_ssize_t k, Py_ssize_t n) nogil:
     """
     See kth_smallest.__doc__. The additional parameter n specifies the maximum
     number of elements considered in arr, needed for compatibility with usage
     in groupby.pyx
     """
     cdef:
-        Py_ssize_t i, j, l, m
-        numeric x
+        Py_ssize_t i, j, left, m
+        numeric_t x
 
-    l = 0
+    left = 0
     m = n - 1
 
-    while l < m:
+    while left < m:
         x = arr[k]
-        i = l
+        i = left
         j = m
 
         while 1:
@@ -287,7 +284,7 @@ cdef inline numeric kth_smallest_c(numeric* arr, Py_ssize_t k, Py_ssize_t n) nog
                 break
 
         if j < k:
-            l = i
+            left = i
         if k < i:
             m = j
     return arr[k]
@@ -295,7 +292,7 @@ cdef inline numeric kth_smallest_c(numeric* arr, Py_ssize_t k, Py_ssize_t n) nog
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def kth_smallest(numeric[::1] arr, Py_ssize_t k) -> numeric:
+def kth_smallest(numeric_t[::1] arr, Py_ssize_t k) -> numeric_t:
     """
     Compute the kth smallest value in arr. Note that the input
     array will be modified.
@@ -313,7 +310,7 @@ def kth_smallest(numeric[::1] arr, Py_ssize_t k) -> numeric:
         The kth smallest value in arr
     """
     cdef:
-        numeric result
+        numeric_t result
 
     with nogil:
         result = kth_smallest_c(&arr[0], k, arr.shape[0])
@@ -517,111 +514,6 @@ def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarr
 
 
 # ----------------------------------------------------------------------
-# Kendall correlation
-# Wikipedia article: https://en.wikipedia.org/wiki/Kendall_rank_correlation_coefficient
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def nancorr_kendall(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarray:
-    """
-    Perform kendall correlation on a 2d array
-
-    Parameters
-    ----------
-    mat : np.ndarray[float64_t, ndim=2]
-        Array to compute kendall correlation on
-    minp : int, default 1
-        Minimum number of observations required per pair of columns
-        to have a valid result.
-
-    Returns
-    -------
-    numpy.ndarray[float64_t, ndim=2]
-        Correlation matrix
-    """
-    cdef:
-        Py_ssize_t i, j, k, xi, yi, N, K
-        ndarray[float64_t, ndim=2] result
-        ndarray[float64_t, ndim=2] ranked_mat
-        ndarray[uint8_t, ndim=2] mask
-        float64_t currj
-        ndarray[uint8_t, ndim=1] valid
-        ndarray[int64_t] sorted_idxs
-        ndarray[float64_t, ndim=1] col
-        int64_t n_concordant
-        int64_t total_concordant = 0
-        int64_t total_discordant = 0
-        float64_t kendall_tau
-        int64_t n_obs
-
-    N, K = (<object>mat).shape
-
-    result = np.empty((K, K), dtype=np.float64)
-    mask = np.isfinite(mat)
-
-    ranked_mat = np.empty((N, K), dtype=np.float64)
-
-    for i in range(K):
-        ranked_mat[:, i] = rank_1d(mat[:, i])
-
-    for xi in range(K):
-        sorted_idxs = ranked_mat[:, xi].argsort()
-        ranked_mat = ranked_mat[sorted_idxs]
-        mask = mask[sorted_idxs]
-        for yi in range(xi + 1, K):
-            valid = mask[:, xi] & mask[:, yi]
-            if valid.sum() < minp:
-                result[xi, yi] = NaN
-                result[yi, xi] = NaN
-            else:
-                # Get columns and order second column using 1st column ranks
-                if not valid.all():
-                    col = ranked_mat[valid.nonzero()][:, yi]
-                else:
-                    col = ranked_mat[:, yi]
-                n_obs = col.shape[0]
-                total_concordant = 0
-                total_discordant = 0
-                for j in range(n_obs - 1):
-                    currj = col[j]
-                    # Count num concordant and discordant pairs
-                    n_concordant = 0
-                    for k in range(j, n_obs):
-                        if col[k] > currj:
-                            n_concordant += 1
-                    total_concordant += n_concordant
-                    total_discordant += (n_obs - 1 - j - n_concordant)
-                # Note: we do total_concordant+total_discordant here which is
-                # equivalent to the C(n, 2), the total # of pairs,
-                # listed on wikipedia
-                kendall_tau = (total_concordant - total_discordant) / \
-                              (total_concordant + total_discordant)
-                result[xi, yi] = kendall_tau
-                result[yi, xi] = kendall_tau
-
-        if mask[:, xi].sum() > minp:
-            result[xi, xi] = 1
-        else:
-            result[xi, xi] = NaN
-
-    return result
-
-
-# ----------------------------------------------------------------------
-
-ctypedef fused algos_t:
-    float64_t
-    float32_t
-    object
-    int64_t
-    int32_t
-    int16_t
-    int8_t
-    uint64_t
-    uint32_t
-    uint16_t
-    uint8_t
-
 
 def validate_limit(nobs: int | None, limit=None) -> int:
     """
@@ -651,12 +543,16 @@ def validate_limit(nobs: int | None, limit=None) -> int:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def pad(ndarray[algos_t] old, ndarray[algos_t] new, limit=None) -> ndarray:
+def pad(
+    ndarray[numeric_object_t] old,
+    ndarray[numeric_object_t] new,
+    limit=None
+) -> ndarray:
     # -> ndarray[intp_t, ndim=1]
     cdef:
         Py_ssize_t i, j, nleft, nright
         ndarray[intp_t, ndim=1] indexer
-        algos_t cur, next_val
+        numeric_object_t cur, next_val
         int lim, fill_count = 0
 
     nleft = len(old)
@@ -709,10 +605,10 @@ def pad(ndarray[algos_t] old, ndarray[algos_t] new, limit=None) -> ndarray:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def pad_inplace(algos_t[:] values, uint8_t[:] mask, limit=None):
+def pad_inplace(numeric_object_t[:] values, uint8_t[:] mask, limit=None):
     cdef:
         Py_ssize_t i, N
-        algos_t val
+        numeric_object_t val
         uint8_t prev_mask
         int lim, fill_count = 0
 
@@ -741,10 +637,10 @@ def pad_inplace(algos_t[:] values, uint8_t[:] mask, limit=None):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def pad_2d_inplace(algos_t[:, :] values, const uint8_t[:, :] mask, limit=None):
+def pad_2d_inplace(numeric_object_t[:, :] values, uint8_t[:, :] mask, limit=None):
     cdef:
         Py_ssize_t i, j, N, K
-        algos_t val
+        numeric_object_t val
         int lim, fill_count = 0
 
     K, N = (<object>values).shape
@@ -760,10 +656,11 @@ def pad_2d_inplace(algos_t[:, :] values, const uint8_t[:, :] mask, limit=None):
         val = values[j, 0]
         for i in range(N):
             if mask[j, i]:
-                if fill_count >= lim:
+                if fill_count >= lim or i == 0:
                     continue
                 fill_count += 1
                 values[j, i] = val
+                mask[j, i] = False
             else:
                 fill_count = 0
                 val = values[j, i]
@@ -797,12 +694,16 @@ D
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def backfill(ndarray[algos_t] old, ndarray[algos_t] new, limit=None) -> ndarray:
+def backfill(
+    ndarray[numeric_object_t] old,
+    ndarray[numeric_object_t] new,
+    limit=None
+) -> ndarray:
     # -> ndarray[intp_t, ndim=1]
     cdef:
         Py_ssize_t i, j, nleft, nright
         ndarray[intp_t, ndim=1] indexer
-        algos_t cur, prev
+        numeric_object_t cur, prev
         int lim, fill_count = 0
 
     nleft = len(old)
@@ -854,19 +755,19 @@ def backfill(ndarray[algos_t] old, ndarray[algos_t] new, limit=None) -> ndarray:
     return indexer
 
 
-def backfill_inplace(algos_t[:] values, uint8_t[:] mask, limit=None):
+def backfill_inplace(numeric_object_t[:] values, uint8_t[:] mask, limit=None):
     pad_inplace(values[::-1], mask[::-1], limit=limit)
 
 
-def backfill_2d_inplace(algos_t[:, :] values,
-                        const uint8_t[:, :] mask,
+def backfill_2d_inplace(numeric_object_t[:, :] values,
+                        uint8_t[:, :] mask,
                         limit=None):
     pad_2d_inplace(values[:, ::-1], mask[:, ::-1], limit)
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def is_monotonic(ndarray[algos_t, ndim=1] arr, bint timelike):
+def is_monotonic(ndarray[numeric_object_t, ndim=1] arr, bint timelike):
     """
     Returns
     -------
@@ -877,7 +778,7 @@ def is_monotonic(ndarray[algos_t, ndim=1] arr, bint timelike):
     """
     cdef:
         Py_ssize_t i, n
-        algos_t prev, cur
+        numeric_object_t prev, cur
         bint is_monotonic_inc = 1
         bint is_monotonic_dec = 1
         bint is_unique = 1
@@ -897,7 +798,7 @@ def is_monotonic(ndarray[algos_t, ndim=1] arr, bint timelike):
     if timelike and <int64_t>arr[0] == NPY_NAT:
         return False, False, True
 
-    if algos_t is not object:
+    if numeric_object_t is not object:
         with nogil:
             prev = arr[0]
             for i in range(1, n):
@@ -956,34 +857,30 @@ def is_monotonic(ndarray[algos_t, ndim=1] arr, bint timelike):
 # rank_1d, rank_2d
 # ----------------------------------------------------------------------
 
-ctypedef fused rank_t:
-    object
-    float64_t
-    uint64_t
-    int64_t
-
-
-cdef rank_t get_rank_nan_fill_val(bint rank_nans_highest, rank_t[:] _=None):
+cdef iu_64_floating_obj_t get_rank_nan_fill_val(
+        bint rank_nans_highest,
+        iu_64_floating_obj_t[:] _=None
+):
     """
     Return the value we'll use to represent missing values when sorting depending
     on if we'd like missing values to end up at the top/bottom. (The second parameter
     is unused, but needed for fused type specialization)
     """
     if rank_nans_highest:
-        if rank_t is object:
+        if iu_64_floating_obj_t is object:
             return Infinity()
-        elif rank_t is int64_t:
+        elif iu_64_floating_obj_t is int64_t:
             return util.INT64_MAX
-        elif rank_t is uint64_t:
+        elif iu_64_floating_obj_t is uint64_t:
             return util.UINT64_MAX
         else:
             return np.inf
     else:
-        if rank_t is object:
+        if iu_64_floating_obj_t is object:
             return NegInfinity()
-        elif rank_t is int64_t:
+        elif iu_64_floating_obj_t is int64_t:
             return NPY_NAT
-        elif rank_t is uint64_t:
+        elif iu_64_floating_obj_t is uint64_t:
             return 0
         else:
             return -np.inf
@@ -992,7 +889,7 @@ cdef rank_t get_rank_nan_fill_val(bint rank_nans_highest, rank_t[:] _=None):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def rank_1d(
-    ndarray[rank_t, ndim=1] values,
+    ndarray[iu_64_floating_obj_t, ndim=1] values,
     const intp_t[:] labels=None,
     bint is_datetimelike=False,
     ties_method="average",
@@ -1005,7 +902,7 @@ def rank_1d(
 
     Parameters
     ----------
-    values : array of rank_t values to be ranked
+    values : array of iu_64_floating_obj_t values to be ranked
     labels : np.ndarray[np.intp] or None
         Array containing unique label for each group, with its ordering
         matching up to the corresponding record in `values`. If not called
@@ -1035,11 +932,11 @@ def rank_1d(
         int64_t[::1] grp_sizes
         intp_t[:] lexsort_indexer
         float64_t[::1] out
-        ndarray[rank_t, ndim=1] masked_vals
-        rank_t[:] masked_vals_memview
+        ndarray[iu_64_floating_obj_t, ndim=1] masked_vals
+        iu_64_floating_obj_t[:] masked_vals_memview
         uint8_t[:] mask
         bint keep_na, nans_rank_highest, check_labels, check_mask
-        rank_t nan_fill_val
+        iu_64_floating_obj_t nan_fill_val
 
     tiebreak = tiebreakers[ties_method]
     if tiebreak == TIEBREAK_FIRST:
@@ -1050,7 +947,7 @@ def rank_1d(
 
     N = len(values)
     if labels is not None:
-        # TODO Cython 3.0: cast won't be necessary (#2992)
+        # TODO(cython3): cast won't be necessary (#2992)
         assert <Py_ssize_t>len(labels) == N
     out = np.empty(N)
     grp_sizes = np.ones(N, dtype=np.int64)
@@ -1060,21 +957,22 @@ def rank_1d(
     check_labels = labels is not None
 
     # For cases where a mask is not possible, we can avoid mask checks
-    check_mask = not (rank_t is uint64_t or (rank_t is int64_t and not is_datetimelike))
+    check_mask = not (iu_64_floating_obj_t is uint64_t or
+                      (iu_64_floating_obj_t is int64_t and not is_datetimelike))
 
     # Copy values into new array in order to fill missing data
     # with mask, without obfuscating location of missing data
     # in values array
-    if rank_t is object and values.dtype != np.object_:
+    if iu_64_floating_obj_t is object and values.dtype != np.object_:
         masked_vals = values.astype('O')
     else:
         masked_vals = values.copy()
 
-    if rank_t is object:
+    if iu_64_floating_obj_t is object:
         mask = missing.isnaobj(masked_vals)
-    elif rank_t is int64_t and is_datetimelike:
+    elif iu_64_floating_obj_t is int64_t and is_datetimelike:
         mask = (masked_vals == NPY_NAT).astype(np.uint8)
-    elif rank_t is float64_t:
+    elif iu_64_floating_obj_t is float64_t:
         mask = np.isnan(masked_vals).astype(np.uint8)
     else:
         mask = np.zeros(shape=len(masked_vals), dtype=np.uint8)
@@ -1086,7 +984,7 @@ def rank_1d(
     # will flip the ordering to still end up with lowest rank.
     # Symmetric logic applies to `na_option == 'bottom'`
     nans_rank_highest = ascending ^ (na_option == 'top')
-    nan_fill_val = get_rank_nan_fill_val[rank_t](nans_rank_highest)
+    nan_fill_val = get_rank_nan_fill_val[iu_64_floating_obj_t](nans_rank_highest)
     if nans_rank_highest:
         order = [masked_vals, mask]
     else:
@@ -1133,7 +1031,7 @@ cdef void rank_sorted_1d(
     int64_t[::1] grp_sizes,
     const intp_t[:] sort_indexer,
     # Can make const with cython3 (https://github.com/cython/cython/issues/3222)
-    rank_t[:] masked_vals,
+    iu_64_floating_obj_t[:] masked_vals,
     const uint8_t[:] mask,
     bint check_mask,
     Py_ssize_t N,
@@ -1157,7 +1055,7 @@ cdef void rank_sorted_1d(
         if labels is None.
     sort_indexer : intp_t[:]
         Array of indices which sorts masked_vals
-    masked_vals : rank_t[:]
+    masked_vals : iu_64_floating_obj_t[:]
         The values input to rank_1d, with missing values replaced by fill values
     mask : uint8_t[:]
         Array where entries are True if the value is missing, False otherwise.
@@ -1188,8 +1086,8 @@ cdef void rank_sorted_1d(
     # array that we sorted previously, which gives us the location of
     # that sorted value for retrieval back from the original
     # values / masked_vals arrays
-    # TODO: de-duplicate once cython supports conditional nogil
-    if rank_t is object:
+    # TODO(cython3): de-duplicate once cython supports conditional nogil
+    if iu_64_floating_obj_t is object:
         with gil:
             for i in range(N):
                 at_end = i == N - 1
@@ -1397,7 +1295,7 @@ cdef void rank_sorted_1d(
 
 
 def rank_2d(
-    ndarray[rank_t, ndim=2] in_arr,
+    ndarray[iu_64_floating_obj_t, ndim=2] in_arr,
     int axis=0,
     bint is_datetimelike=False,
     ties_method="average",
@@ -1412,13 +1310,13 @@ def rank_2d(
         Py_ssize_t k, n, col
         float64_t[::1, :] out  # Column-major so columns are contiguous
         int64_t[::1] grp_sizes
-        ndarray[rank_t, ndim=2] values
-        rank_t[:, :] masked_vals
+        ndarray[iu_64_floating_obj_t, ndim=2] values
+        iu_64_floating_obj_t[:, :] masked_vals
         intp_t[:, :] sort_indexer
         uint8_t[:, :] mask
         TiebreakEnumType tiebreak
         bint check_mask, keep_na, nans_rank_highest
-        rank_t nan_fill_val
+        iu_64_floating_obj_t nan_fill_val
 
     tiebreak = tiebreakers[ties_method]
     if tiebreak == TIEBREAK_FIRST:
@@ -1428,24 +1326,25 @@ def rank_2d(
     keep_na = na_option == 'keep'
 
     # For cases where a mask is not possible, we can avoid mask checks
-    check_mask = not (rank_t is uint64_t or (rank_t is int64_t and not is_datetimelike))
+    check_mask = not (iu_64_floating_obj_t is uint64_t or
+                      (iu_64_floating_obj_t is int64_t and not is_datetimelike))
 
     if axis == 1:
         values = np.asarray(in_arr).T.copy()
     else:
         values = np.asarray(in_arr).copy()
 
-    if rank_t is object:
+    if iu_64_floating_obj_t is object:
         if values.dtype != np.object_:
             values = values.astype('O')
 
     nans_rank_highest = ascending ^ (na_option == 'top')
     if check_mask:
-        nan_fill_val = get_rank_nan_fill_val[rank_t](nans_rank_highest)
+        nan_fill_val = get_rank_nan_fill_val[iu_64_floating_obj_t](nans_rank_highest)
 
-        if rank_t is object:
+        if iu_64_floating_obj_t is object:
             mask = missing.isnaobj2d(values).view(np.uint8)
-        elif rank_t is float64_t:
+        elif iu_64_floating_obj_t is float64_t:
             mask = np.isnan(values).view(np.uint8)
 
         # int64 and datetimelike
@@ -1514,7 +1413,7 @@ ctypedef fused out_t:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def diff_2d(
-    ndarray[diff_t, ndim=2] arr,  # TODO(cython 3) update to "const diff_t[:, :] arr"
+    ndarray[diff_t, ndim=2] arr,  # TODO(cython3) update to "const diff_t[:, :] arr"
     ndarray[out_t, ndim=2] out,
     Py_ssize_t periods,
     int axis,
@@ -1523,20 +1422,20 @@ def diff_2d(
     cdef:
         Py_ssize_t i, j, sx, sy, start, stop
         bint f_contig = arr.flags.f_contiguous
-        # bint f_contig = arr.is_f_contig()  # TODO(cython 3)
+        # bint f_contig = arr.is_f_contig()  # TODO(cython3)
         diff_t left, right
 
     # Disable for unsupported dtype combinations,
     #  see https://github.com/cython/cython/issues/2646
     if (out_t is float32_t
             and not (diff_t is float32_t or diff_t is int8_t or diff_t is int16_t)):
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
     elif (out_t is float64_t
           and (diff_t is float32_t or diff_t is int8_t or diff_t is int16_t)):
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
     elif out_t is int64_t and diff_t is not int64_t:
         # We only have out_t of int64_t if we have datetimelike
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
     else:
         # We put this inside an indented else block to avoid cython build
         #  warnings about unreachable code

@@ -2,13 +2,13 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
+from pandas import RangeIndex
+import pandas._testing as tm
+from pandas.core.api import (
     Float64Index,
     Int64Index,
-    RangeIndex,
     UInt64Index,
 )
-import pandas._testing as tm
 from pandas.core.computation import expressions as expr
 
 
@@ -20,18 +20,6 @@ def switch_numexpr_min_elements(request):
     expr._MIN_ELEMENTS = request.param
     yield request.param
     expr._MIN_ELEMENTS = _MIN_ELEMENTS
-
-
-# ------------------------------------------------------------------
-# Helper Functions
-
-
-def id_func(x):
-    if isinstance(x, tuple):
-        assert len(x) == 2
-        return x[0].__name__ + "-" + str(x[1])
-    else:
-        return x.__name__
 
 
 # ------------------------------------------------------------------
@@ -228,7 +216,9 @@ def mismatched_freq(request):
 # ------------------------------------------------------------------
 
 
-@pytest.fixture(params=[pd.Index, pd.Series, pd.DataFrame, pd.array], ids=id_func)
+@pytest.fixture(
+    params=[pd.Index, pd.Series, pd.DataFrame, pd.array], ids=lambda x: x.__name__
+)
 def box_with_array(request):
     """
     Fixture to test behavior for Index, Series, DataFrame, and pandas Array
@@ -237,7 +227,9 @@ def box_with_array(request):
     return request.param
 
 
-@pytest.fixture(params=[pd.Index, pd.Series, tm.to_array, np.array, list], ids=id_func)
+@pytest.fixture(
+    params=[pd.Index, pd.Series, tm.to_array, np.array, list], ids=lambda x: x.__name__
+)
 def box_1d_array(request):
     """
     Fixture to test behavior for Index, Series, tm.to_array, numpy Array and list

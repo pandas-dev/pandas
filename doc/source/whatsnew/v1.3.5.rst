@@ -1,0 +1,33 @@
+.. _whatsnew_135:
+
+What's new in 1.3.5 (December 12, 2021)
+---------------------------------------
+
+These are the changes in pandas 1.3.5. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_135.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Fixed regression in :meth:`Series.equals` when comparing floats with dtype object to None (:issue:`44190`)
+- Fixed regression in :func:`merge_asof` raising error when array was supplied as join key (:issue:`42844`)
+- Fixed regression when resampling :class:`DataFrame` with :class:`DateTimeIndex` with empty groups and ``uint8``, ``uint16`` or ``uint32`` columns incorrectly raising ``RuntimeError`` (:issue:`43329`)
+- Fixed regression in creating a :class:`DataFrame` from a timezone-aware :class:`Timestamp` scalar near a Daylight Savings Time transition (:issue:`42505`)
+- Fixed performance regression in :func:`read_csv` (:issue:`44106`)
+- Fixed regression in :meth:`Series.duplicated` and :meth:`Series.drop_duplicates` when Series has :class:`Categorical` dtype with boolean categories (:issue:`44351`)
+- Fixed regression in :meth:`.GroupBy.sum` with ``timedelta64[ns]`` dtype containing ``NaT`` failing to treat that value as NA (:issue:`42659`)
+- Fixed regression in :meth:`.RollingGroupby.cov` and :meth:`.RollingGroupby.corr` when ``other`` had the same shape as each group would incorrectly return superfluous groups in the result (:issue:`42915`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_135.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.3.4..v1.3.5|HEAD

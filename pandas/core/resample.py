@@ -4,6 +4,7 @@ import copy
 from datetime import timedelta
 from textwrap import dedent
 from typing import (
+    TYPE_CHECKING,
     Callable,
     Hashable,
     Literal,
@@ -24,7 +25,8 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._typing import (
-    FrameOrSeries,
+    IndexLabel,
+    NDFrameT,
     T,
     TimedeltaConvertibleTypes,
     TimestampConvertibleTypes,
@@ -89,6 +91,12 @@ from pandas.tseries.offsets import (
     Tick,
 )
 
+if TYPE_CHECKING:
+    from pandas import (
+        DataFrame,
+        Series,
+    )
+
 _shared_docs_kwargs: dict[str, str] = {}
 
 
@@ -134,7 +142,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
     def __init__(
         self,
-        obj: FrameOrSeries,
+        obj: DataFrame | Series,
         groupby: TimeGrouper,
         axis: int = 0,
         kind=None,
@@ -190,9 +198,9 @@ class Resampler(BaseGroupBy, PandasObject):
 
     # error: Signature of "obj" incompatible with supertype "BaseGroupBy"
     @property
-    def obj(self) -> FrameOrSeries:  # type: ignore[override]
+    def obj(self) -> NDFrameT:  # type: ignore[override]
         # error: Incompatible return value type (got "Optional[Any]",
-        # expected "FrameOrSeries")
+        # expected "NDFrameT")
         return self.groupby.obj  # type: ignore[return-value]
 
     @property
@@ -212,7 +220,7 @@ class Resampler(BaseGroupBy, PandasObject):
             self.groupby.key is not None or self.groupby.level is not None
         )
 
-    def _convert_obj(self, obj: FrameOrSeries) -> FrameOrSeries:
+    def _convert_obj(self, obj: NDFrameT) -> NDFrameT:
         """
         Provide any conversions for the object in order to correctly handle.
 
@@ -316,6 +324,12 @@ class Resampler(BaseGroupBy, PandasObject):
     2013-01-01 00:00:00  2.121320      3
     2013-01-01 00:00:02  4.949747      7
     2013-01-01 00:00:04       NaN      5
+
+    >>> r.agg(average="mean", total="sum")
+                             average  total
+    2013-01-01 00:00:00      1.5      3
+    2013-01-01 00:00:02      3.5      7
+    2013-01-01 00:00:04      5.0      5
     """
     )
 
@@ -326,13 +340,12 @@ class Resampler(BaseGroupBy, PandasObject):
         klass="DataFrame",
         axis="",
     )
-    def aggregate(self, func, *args, **kwargs):
+    def aggregate(self, func=None, *args, **kwargs):
 
         result = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
         if result is None:
             how = func
-            grouper = None
-            result = self._groupby_and_aggregate(how, grouper, *args, **kwargs)
+            result = self._groupby_and_aggregate(how, *args, **kwargs)
 
         result = self._apply_loffset(result)
         return result
@@ -402,12 +415,11 @@ class Resampler(BaseGroupBy, PandasObject):
         except KeyError:
             return grouped
 
-    def _groupby_and_aggregate(self, how, grouper=None, *args, **kwargs):
+    def _groupby_and_aggregate(self, how, *args, **kwargs):
         """
         Re-evaluate the obj with a groupby aggregation.
         """
-        if grouper is None:
-            grouper = self.grouper
+        grouper = self.grouper
 
         obj = self._selected_obj
 
@@ -1026,6 +1038,7 @@ class _GroupByMixin(PandasObject):
     """
 
     _attributes: list[str]  # in practice the same as Resampler._attributes
+    _selection: IndexLabel | None = None
 
     def __init__(self, obj, parent=None, groupby=None, **kwargs):
         # reached via ._gotitem and _get_resampler_for_grouping
@@ -1037,6 +1050,7 @@ class _GroupByMixin(PandasObject):
         # the resampler attributes
         for attr in self._attributes:
             setattr(self, attr, kwargs.get(attr, getattr(parent, attr)))
+        self._selection = kwargs.get("selection")
 
         self.binner = parent.binner
 
@@ -1046,7 +1060,7 @@ class _GroupByMixin(PandasObject):
         self.groupby = copy.copy(parent.groupby)
 
     @no_type_check
-    def _apply(self, f, grouper=None, *args, **kwargs):
+    def _apply(self, f, *args, **kwargs):
         """
         Dispatch to _upsample; we are stripping all of the _upsample kwargs and
         performing the original function call on the grouped object.
@@ -1246,7 +1260,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
             return super()._get_binner_for_time()
         return self.groupby._get_period_bins(self.ax)
 
-    def _convert_obj(self, obj: FrameOrSeries) -> FrameOrSeries:
+    def _convert_obj(self, obj: NDFrameT) -> NDFrameT:
         obj = super()._convert_obj(obj)
 
         if self._from_selection:
@@ -1287,7 +1301,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 
         if is_subperiod(ax.freq, self.freq):
             # Downsampling
-            return self._groupby_and_aggregate(how, grouper=self.grouper, **kwargs)
+            return self._groupby_and_aggregate(how, **kwargs)
         elif is_superperiod(ax.freq, self.freq):
             if how == "ohlc":
                 # GH #13083
@@ -1295,7 +1309,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
                 # for pure aggregating/reducing methods
                 # OHLC reduces along the time dimension, but creates multiple
                 # values for each period -> handle by _groupby_and_aggregate()
-                return self._groupby_and_aggregate(how, grouper=self.grouper)
+                return self._groupby_and_aggregate(how)
             return self.asfreq()
         elif ax.freq == self.freq:
             return self.asfreq()
@@ -1781,12 +1795,12 @@ class TimeGrouper(Grouper):
 
 
 def _take_new_index(
-    obj: FrameOrSeries, indexer: npt.NDArray[np.intp], new_index: Index, axis: int = 0
-) -> FrameOrSeries:
+    obj: NDFrameT, indexer: npt.NDArray[np.intp], new_index: Index, axis: int = 0
+) -> NDFrameT:
 
     if isinstance(obj, ABCSeries):
         new_values = algos.take_nd(obj._values, indexer)
-        # error: Incompatible return value type (got "Series", expected "FrameOrSeries")
+        # error: Incompatible return value type (got "Series", expected "NDFrameT")
         return obj._constructor(  # type: ignore[return-value]
             new_values, index=new_index, name=obj.name
         )
@@ -1795,7 +1809,7 @@ def _take_new_index(
             raise NotImplementedError("axis 1 is not supported")
         new_mgr = obj._mgr.reindex_indexer(new_axis=new_index, indexer=indexer, axis=1)
         # error: Incompatible return value type
-        # (got "DataFrame", expected "FrameOrSeries")
+        # (got "DataFrame", expected "NDFrameT")
         return obj._constructor(new_mgr)  # type: ignore[return-value]
     else:
         raise ValueError("'obj' should be either a Series or a DataFrame")
@@ -1943,8 +1957,13 @@ def _insert_nat_bin(
     assert nat_count > 0
     bins += nat_count
     bins = np.insert(bins, 0, nat_count)
-    binner = binner.insert(0, NaT)
-    labels = labels.insert(0, NaT)
+
+    # Incompatible types in assignment (expression has type "Index", variable
+    # has type "PeriodIndex")
+    binner = binner.insert(0, NaT)  # type: ignore[assignment]
+    # Incompatible types in assignment (expression has type "Index", variable
+    # has type "PeriodIndex")
+    labels = labels.insert(0, NaT)  # type: ignore[assignment]
     return binner, bins, labels
 
 
@@ -2025,13 +2044,13 @@ def _adjust_dates_anchored(
 
 
 def asfreq(
-    obj: FrameOrSeries,
+    obj: NDFrameT,
     freq,
     method=None,
     how=None,
     normalize: bool = False,
     fill_value=None,
-) -> FrameOrSeries:
+) -> NDFrameT:
     """
     Utility frequency conversion method for Series/DataFrame.
 

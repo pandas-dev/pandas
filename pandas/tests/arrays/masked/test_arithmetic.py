@@ -7,10 +7,9 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays import ExtensionArray
 
 # integer dtypes
-arrays = [pd.array([1, 2, 3, None], dtype=dtype) for dtype in tm.ALL_EA_INT_DTYPES]
+arrays = [pd.array([1, 2, 3, None], dtype=dtype) for dtype in tm.ALL_INT_EA_DTYPES]
 scalars: list[Any] = [2] * len(arrays)
 # floating dtypes
 arrays += [pd.array([0.1, 0.2, 0.3, None], dtype=dtype) for dtype in tm.FLOAT_EA_DTYPES]
@@ -48,9 +47,7 @@ def test_array_scalar_like_equivalence(data, all_arithmetic_operators):
         tm.assert_extension_array_equal(result, expected)
 
 
-def test_array_NA(data, all_arithmetic_operators):
-    if "truediv" in all_arithmetic_operators:
-        pytest.skip("division with pd.NA raises")
+def test_array_NA(data, all_arithmetic_operators, request):
     data, _ = data
     op = tm.get_op_from_name(all_arithmetic_operators)
     check_skip(data, all_arithmetic_operators)
@@ -73,11 +70,7 @@ def test_numpy_array_equivalence(data, all_arithmetic_operators):
 
     result = op(data, numpy_array)
     expected = op(data, pd_array)
-    if isinstance(expected, ExtensionArray):
-        tm.assert_extension_array_equal(result, expected)
-    else:
-        # TODO div still gives float ndarray -> remove this once we have Float EA
-        tm.assert_numpy_array_equal(result, expected)
+    tm.assert_extension_array_equal(result, expected)
 
 
 # Test equivalence with Series and DataFrame ops
@@ -167,14 +160,22 @@ def test_error_len_mismatch(data, all_arithmetic_operators):
 def test_unary_op_does_not_propagate_mask(data, op, request):
     # https://github.com/pandas-dev/pandas/issues/39943
     data, _ = data
-    if data.dtype in ["Float32", "Float64"] and op == "__invert__":
-        request.node.add_marker(
-            pytest.mark.xfail(
-                raises=TypeError, reason="invert is not implemented for float ea dtypes"
-            )
-        )
-    s = pd.Series(data)
-    result = getattr(s, op)()
+    ser = pd.Series(data)
+
+    if op == "__invert__" and data.dtype.kind == "f":
+        # we follow numpy in raising
+        msg = "ufunc 'invert' not supported for the input types"
+        with pytest.raises(TypeError, match=msg):
+            getattr(ser, op)()
+        with pytest.raises(TypeError, match=msg):
+            getattr(data, op)()
+        with pytest.raises(TypeError, match=msg):
+            # Check that this is still the numpy behavior
+            getattr(data._data, op)()
+
+        return
+
+    result = getattr(ser, op)()
     expected = result.copy(deep=True)
-    s[0] = None
+    ser[0] = None
     tm.assert_series_equal(result, expected)

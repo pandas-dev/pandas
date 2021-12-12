@@ -35,11 +35,13 @@ Data cleaning and validation
 
 Pyjanitor provides a clean API for cleaning data, using method chaining.
 
-`Engarde <https://engarde.readthedocs.io/en/latest/>`__
+`Pandera <https://pandera.readthedocs.io/en/stable/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Engarde is a lightweight library used to explicitly state assumptions about your datasets
-and check that they're *actually* true.
+Pandera provides a flexible and expressive API for performing data validation on dataframes
+to make data processing pipelines more readable and robust.
+Dataframes contain information that pandera explicitly validates at runtime. This is useful in
+production-critical data pipelines or reproducible research settings.
 
 `pandas-path <https://github.com/drivendataorg/pandas-path/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -575,3 +577,17 @@ Library            Accessor     Classes                              Description
 .. _composeml: https://github.com/alteryx/compose
 .. _datatest: https://datatest.readthedocs.io/
 .. _woodwork: https://github.com/alteryx/woodwork
+
+Development tools
+----------------------------
+
+`pandas-stubs <https://github.com/VirtusLab/pandas-stubs>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+While pandas repository is partially typed, the package itself doesn't expose this information for external use.
+Install pandas-stubs to enable basic type coverage of pandas API.
+
+Learn more by reading through these issues `14468 <https://github.com/pandas-dev/pandas/issues/14468>`_,
+`26766 <https://github.com/pandas-dev/pandas/issues/26766>`_, `28142 <https://github.com/pandas-dev/pandas/issues/28142>`_.
+
+See installation and usage instructions on the `github page <https://github.com/VirtusLab/pandas-stubs>`__.

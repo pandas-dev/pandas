@@ -76,7 +76,7 @@ class Reindex:
         self.df.reindex(columns=self.idx)
 
     def time_reindex_both_axes(self):
-        self.df.reindex(index=self.idx, columns=self.idx)
+        self.df.reindex(index=self.idx, columns=self.idx_cols)
 
     def time_reindex_upcast(self):
         self.df2.reindex(np.random.permutation(range(1200)))
@@ -538,8 +538,12 @@ class Interpolate:
     def setup(self, downcast):
         N = 10000
         # this is the worst case, where every column has NaNs.
-        self.df = DataFrame(np.random.randn(N, 100))
-        self.df.values[::2] = np.nan
+        arr = np.random.randn(N, 100)
+        # NB: we need to set values in array, not in df.values, otherwise
+        #  the benchmark will be misleading for ArrayManager
+        arr[::2] = np.nan
+
+        self.df = DataFrame(arr)
 
         self.df2 = DataFrame(
             {
@@ -725,17 +729,6 @@ class Describe:
 
     def time_dataframe_describe(self):
         self.df.describe()
-
-
-class SelectDtypes:
-    params = [100, 1000]
-    param_names = ["n"]
-
-    def setup(self, n):
-        self.df = DataFrame(np.random.randn(10, n))
-
-    def time_select_dtypes(self, n):
-        self.df.select_dtypes(include="int")
 
 
 class MemoryUsage:

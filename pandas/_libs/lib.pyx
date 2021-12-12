@@ -175,6 +175,7 @@ def is_scalar(val: object) -> bool:
 
     Examples
     --------
+    >>> import datetime
     >>> dt = datetime.datetime(2018, 10, 3)
     >>> pd.api.types.is_scalar(dt)
     True
@@ -256,11 +257,12 @@ def is_iterator(obj: object) -> bool:
 
     Examples
     --------
+    >>> import datetime
     >>> is_iterator((x for x in []))
     True
     >>> is_iterator([1, 2, 3])
     False
-    >>> is_iterator(datetime(2017, 1, 1))
+    >>> is_iterator(datetime.datetime(2017, 1, 1))
     False
     >>> is_iterator("foo")
     False
@@ -348,7 +350,7 @@ def fast_unique_multiple(list arrays, sort: bool = True):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_unique_multiple_list(lists: list, sort: bool = True) -> list:
+def fast_unique_multiple_list(lists: list, sort: bool | None = True) -> list:
     cdef:
         list buf
         Py_ssize_t k = len(lists)
@@ -446,7 +448,7 @@ def fast_zip(list ndarrays) -> ndarray[object]:
     """
     cdef:
         Py_ssize_t i, j, k, n
-        ndarray[object] result
+        ndarray[object, ndim=1] result
         flatiter it
         object val, tup
 
@@ -505,7 +507,7 @@ def get_reverse_indexer(const intp_t[:] indexer, Py_ssize_t length) -> ndarray:
     """
     cdef:
         Py_ssize_t i, n = len(indexer)
-        ndarray[intp_t] rev_indexer
+        ndarray[intp_t, ndim=1] rev_indexer
         intp_t idx
 
     rev_indexer = np.empty(length, dtype=np.intp)
@@ -538,10 +540,10 @@ def has_infs(floating[:] arr) -> bool:
     return ret
 
 
-def maybe_indices_to_slice(ndarray[intp_t] indices, int max_len):
+def maybe_indices_to_slice(ndarray[intp_t, ndim=1] indices, int max_len):
     cdef:
         Py_ssize_t i, n = len(indices)
-        int k, vstart, vlast, v
+        intp_t k, vstart, vlast, v
 
     if n == 0:
         return slice(0, 0)
@@ -551,7 +553,7 @@ def maybe_indices_to_slice(ndarray[intp_t] indices, int max_len):
         return indices
 
     if n == 1:
-        return slice(vstart, vstart + 1)
+        return slice(vstart, <intp_t>(vstart + 1))
 
     vlast = indices[n - 1]
     if vlast < 0 or max_len <= vlast:
@@ -567,17 +569,17 @@ def maybe_indices_to_slice(ndarray[intp_t] indices, int max_len):
                 return indices
 
         if k > 0:
-            return slice(vstart, vlast + 1, k)
+            return slice(vstart, <intp_t>(vlast + 1), k)
         else:
             if vlast == 0:
                 return slice(vstart, None, k)
             else:
-                return slice(vstart, vlast - 1, k)
+                return slice(vstart, <intp_t>(vlast - 1), k)
 
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def maybe_booleans_to_slice(ndarray[uint8_t] mask):
+def maybe_booleans_to_slice(ndarray[uint8_t, ndim=1] mask):
     cdef:
         Py_ssize_t i, n = len(mask)
         Py_ssize_t start = 0, end = 0
@@ -727,14 +729,19 @@ cpdef ndarray[object] ensure_string_array(
             continue
 
         if not checknull(val):
-            result[i] = str(val)
+            if not isinstance(val, np.floating):
+                # f"{val}" is faster than str(val)
+                result[i] = f"{val}"
+            else:
+                # f"{val}" is not always equivalent to str(val) for floats
+                result[i] = str(val)
         else:
             if convert_na_value:
                 val = na_value
             if skipna:
                 result[i] = val
             else:
-                result[i] = str(val)
+                result[i] = f"{val}"
 
     return result
 
@@ -768,14 +775,14 @@ def is_all_arraylike(obj: list) -> bool:
 # is a general, O(max(len(values), len(binner))) method.
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def generate_bins_dt64(ndarray[int64_t] values, const int64_t[:] binner,
+def generate_bins_dt64(ndarray[int64_t, ndim=1] values, const int64_t[:] binner,
                        object closed='left', bint hasnans=False):
     """
     Int64 (datetime64) version of generic python version in ``groupby.py``.
     """
     cdef:
         Py_ssize_t lenidx, lenbin, i, j, bc, vc
-        ndarray[int64_t] bins
+        ndarray[int64_t, ndim=1] bins
         int64_t l_bin, r_bin, nat_count
         bint right_closed = closed == 'right'
 
@@ -924,7 +931,7 @@ def generate_slices(const intp_t[:] labels, Py_ssize_t ngroups):
     return np.asarray(starts), np.asarray(ends)
 
 
-def indices_fast(ndarray[intp_t] index, const int64_t[:] labels, list keys,
+def indices_fast(ndarray[intp_t, ndim=1] index, const int64_t[:] labels, list keys,
                  list sorted_labels) -> dict:
     """
     Parameters
@@ -1071,11 +1078,12 @@ def is_list_like(obj: object, allow_sets: bool = True) -> bool:
 
     Examples
     --------
+    >>> import datetime
     >>> is_list_like([1, 2, 3])
     True
     >>> is_list_like({1, 2, 3})
     True
-    >>> is_list_like(datetime(2017, 1, 1))
+    >>> is_list_like(datetime.datetime(2017, 1, 1))
     False
     >>> is_list_like("foo")
     False
@@ -1092,7 +1100,7 @@ def is_list_like(obj: object, allow_sets: bool = True) -> bool:
 cdef inline bint c_is_list_like(object obj, bint allow_sets) except -1:
     return (
         # equiv: `isinstance(obj, abc.Iterable)`
-        hasattr(obj, "__iter__") and not isinstance(obj, type)
+        getattr(obj, "__iter__", None) is not None and not isinstance(obj, type)
         # we do not count strings/unicode/bytes as list-like
         and not isinstance(obj, (str, bytes))
         # exclude zero-dimensional numpy arrays, effectively scalars
@@ -1350,6 +1358,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
 
     Examples
     --------
+    >>> import datetime
     >>> infer_dtype(['foo', 'bar'])
     'string'
 
@@ -1414,7 +1423,8 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
         # this will handle ndarray-like
         # e.g. categoricals
         dtype = value.dtype
-        if not isinstance(dtype, np.dtype):
+        if not cnp.PyArray_DescrCheck(dtype):
+            # i.e. not isinstance(dtype, np.dtype)
             inferred = _try_infer_map(value.dtype)
             if inferred is not None:
                 return inferred
@@ -1452,7 +1462,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     for i in range(n):
         val = values[i]
 
-        # do not use is_null_datetimelike to keep
+        # do not use checknull to keep
         # np.datetime64('nat') and np.timedelta64('nat')
         if val is None or util.is_nan(val):
             pass
@@ -1694,10 +1704,15 @@ cdef class Validator:
     cdef bint _validate(self, ndarray values) except -1:
         cdef:
             Py_ssize_t i
-            Py_ssize_t n = self.n
+            Py_ssize_t n = values.size
+            flatiter it = PyArray_IterNew(values)
 
         for i in range(n):
-            if not self.is_valid(values[i]):
+            # The PyArray_GETITEM and PyArray_ITER_NEXT are faster
+            #  equivalents to `val = values[i]`
+            val = PyArray_GETITEM(values, PyArray_ITER_DATA(it))
+            PyArray_ITER_NEXT(it)
+            if not self.is_valid(val):
                 return False
 
         return True
@@ -1707,10 +1722,15 @@ cdef class Validator:
     cdef bint _validate_skipna(self, ndarray values) except -1:
         cdef:
             Py_ssize_t i
-            Py_ssize_t n = self.n
+            Py_ssize_t n = values.size
+            flatiter it = PyArray_IterNew(values)
 
         for i in range(n):
-            if not self.is_valid_skipna(values[i]):
+            # The PyArray_GETITEM and PyArray_ITER_NEXT are faster
+            #  equivalents to `val = values[i]`
+            val = PyArray_GETITEM(values, PyArray_ITER_DATA(it))
+            PyArray_ITER_NEXT(it)
+            if not self.is_valid_skipna(val):
                 return False
 
         return True
@@ -2057,7 +2077,9 @@ cdef bint is_period_array(ndarray[object] values):
     if len(values) == 0:
         return False
 
-    for val in values:
+    for i in range(n):
+        val = values[i]
+
         if is_period_object(val):
             if dtype_code == -10000:
                 dtype_code = val._dtype._dtype_code
@@ -2092,7 +2114,9 @@ cpdef bint is_interval_array(ndarray values):
     if len(values) == 0:
         return False
 
-    for val in values:
+    for i in range(n):
+        val = values[i]
+
         if is_interval(val):
             if closed is None:
                 closed = val.closed
@@ -2134,7 +2158,7 @@ cpdef bint is_interval_array(ndarray values):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def maybe_convert_numeric(
-    ndarray[object] values,
+    ndarray[object, ndim=1] values,
     set na_values,
     bint convert_empty=True,
     bint coerce_numeric=False,
@@ -2195,12 +2219,12 @@ def maybe_convert_numeric(
         int status, maybe_int
         Py_ssize_t i, n = values.size
         Seen seen = Seen(coerce_numeric)
-        ndarray[float64_t] floats = np.empty(n, dtype='f8')
-        ndarray[complex128_t] complexes = np.empty(n, dtype='c16')
-        ndarray[int64_t] ints = np.empty(n, dtype='i8')
-        ndarray[uint64_t] uints = np.empty(n, dtype='u8')
-        ndarray[uint8_t] bools = np.empty(n, dtype='u1')
-        ndarray[uint8_t] mask = np.zeros(n, dtype="u1")
+        ndarray[float64_t, ndim=1] floats = np.empty(n, dtype='f8')
+        ndarray[complex128_t, ndim=1] complexes = np.empty(n, dtype='c16')
+        ndarray[int64_t, ndim=1] ints = np.empty(n, dtype='i8')
+        ndarray[uint64_t, ndim=1] uints = np.empty(n, dtype='u8')
+        ndarray[uint8_t, ndim=1] bools = np.empty(n, dtype='u1')
+        ndarray[uint8_t, ndim=1] mask = np.zeros(n, dtype="u1")
         float64_t fval
         bint allow_null_in_int = convert_to_masked_nullable
 
@@ -2714,7 +2738,8 @@ cdef _infer_all_nats(dtype, ndarray datetimes, ndarray timedeltas):
     """
     If we have all-NaT values, cast these to the given dtype.
     """
-    if isinstance(dtype, np.dtype):
+    if cnp.PyArray_DescrCheck(dtype):
+        # i.e. isinstance(dtype, np.dtype):
         if dtype == "M8[ns]":
             result = datetimes
         elif dtype == "m8[ns]":
@@ -3013,3 +3038,25 @@ def is_bool_list(obj: list) -> bool:
 
     # Note: we return True for empty list
     return True
+
+
+def dtypes_all_equal(list types not None) -> bool:
+    """
+    Faster version for:
+
+    first = types[0]
+    all(is_dtype_equal(first, t) for t in types[1:])
+
+    And assuming all elements in the list are np.dtype/ExtensionDtype objects
+
+    See timings at https://github.com/pandas-dev/pandas/pull/44594
+    """
+    first = types[0]
+    for t in types[1:]:
+        try:
+            if not t == first:
+                return False
+        except (TypeError, AttributeError):
+            return False
+    else:
+        return True

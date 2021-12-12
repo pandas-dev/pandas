@@ -185,7 +185,7 @@ class LegacyVersion(_BaseVersion):
 
         warnings.warn(
             "Creating a LegacyVersion has been deprecated and will be "
-            "removed in the next major release",
+            "removed in the next major release.",
             DeprecationWarning,
         )
 

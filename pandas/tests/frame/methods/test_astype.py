@@ -17,12 +17,13 @@ from pandas import (
     Series,
     Timedelta,
     Timestamp,
-    UInt64Index,
     concat,
     date_range,
     option_context,
 )
 import pandas._testing as tm
+from pandas.core.api import UInt64Index
+from pandas.core.arrays.integer import coerce_to_array
 
 
 def _check_cast(df, v):
@@ -221,10 +222,13 @@ class TestAstype:
         # in the keys of the dtype dict
         dt4 = dtype_class({"b": str, 2: str})
         dt5 = dtype_class({"e": str})
-        msg = "Only a column name can be used for the key in a dtype mappings argument"
-        with pytest.raises(KeyError, match=msg):
+        msg_frame = (
+            "Only a column name can be used for the key in a dtype mappings argument. "
+            "'{}' not found in columns."
+        )
+        with pytest.raises(KeyError, match=msg_frame.format(2)):
             df.astype(dt4)
-        with pytest.raises(KeyError, match=msg):
+        with pytest.raises(KeyError, match=msg_frame.format("e")):
             df.astype(dt5)
         tm.assert_frame_equal(df, original)
 
@@ -258,6 +262,26 @@ class TestAstype:
 
         result = df.astype({"a": "str"})
         expected = concat([a1_str, b, a2_str], axis=1)
+        tm.assert_frame_equal(result, expected)
+
+    def test_astype_duplicate_col_series_arg(self):
+        # GH#44417
+        vals = np.random.randn(3, 4)
+        df = DataFrame(vals, columns=["A", "B", "C", "A"])
+        dtypes = df.dtypes
+        dtypes.iloc[0] = str
+        dtypes.iloc[2] = "Float64"
+
+        result = df.astype(dtypes)
+        expected = DataFrame(
+            {
+                0: vals[:, 0].astype(str),
+                1: vals[:, 1],
+                2: pd.array(vals[:, 2], dtype="Float64"),
+                3: vals[:, 3],
+            }
+        )
+        expected.columns = df.columns
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -690,6 +714,16 @@ class TestAstype:
         expected = df.iloc[index_slice]
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
+    def test_astype_retain_attrs(self, any_numpy_dtype):
+        # GH#44414
+        df = DataFrame({"a": [0, 1, 2], "b": [3, 4, 5]})
+        df.attrs["Location"] = "Michigan"
+
+        result = df.astype({"a": any_numpy_dtype}).attrs
+        expected = df.attrs
+
+        tm.assert_dict_equal(expected, result)
+
 
 class TestAstypeCategorical:
     def test_astype_from_categorical3(self):
@@ -708,15 +742,13 @@ class TestAstypeCategorical:
         df["cats"] = df["cats"].astype("category")
         tm.assert_frame_equal(exp_df, df)
 
-    def test_categorical_astype_to_int(self, any_int_or_nullable_int_dtype):
+    def test_categorical_astype_to_int(self, any_int_dtype):
         # GH#39402
 
         df = DataFrame(data={"col1": pd.array([2.0, 1.0, 3.0])})
         df.col1 = df.col1.astype("category")
-        df.col1 = df.col1.astype(any_int_or_nullable_int_dtype)
-        expected = DataFrame(
-            {"col1": pd.array([2, 1, 3], dtype=any_int_or_nullable_int_dtype)}
-        )
+        df.col1 = df.col1.astype(any_int_dtype)
+        expected = DataFrame({"col1": pd.array([2, 1, 3], dtype=any_int_dtype)})
         tm.assert_frame_equal(df, expected)
 
     def test_astype_categorical_to_string_missing(self):
@@ -726,3 +758,32 @@ class TestAstypeCategorical:
         cat = df.astype("category")
         result = cat.astype(str)
         tm.assert_frame_equal(result, expected)
+
+
+class IntegerArrayNoCopy(pd.core.arrays.IntegerArray):
+    # GH 42501
+
+    @classmethod
+    def _from_sequence(cls, scalars, *, dtype=None, copy=False):
+        values, mask = coerce_to_array(scalars, dtype=dtype, copy=copy)
+        return IntegerArrayNoCopy(values, mask)
+
+    def copy(self):
+        assert False
+
+
+class Int16DtypeNoCopy(pd.Int16Dtype):
+    # GH 42501
+
+    @classmethod
+    def construct_array_type(cls):
+        return IntegerArrayNoCopy
+
+
+def test_frame_astype_no_copy():
+    # GH 42501
+    df = DataFrame({"a": [1, 4, None, 5], "b": [6, 7, 8, 9]}, dtype=object)
+    result = df.astype({"a": Int16DtypeNoCopy()}, copy=False)
+
+    assert result.a.dtype == pd.Int16Dtype()
+    assert np.shares_memory(df.b.values, result.b.values)

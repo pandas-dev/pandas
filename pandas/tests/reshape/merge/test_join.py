@@ -346,7 +346,7 @@ class TestJoin:
         tm.assert_frame_equal(joined, expected)
         assert joined.index.names == index1.names
 
-    def test_join_inner_multiindex(self):
+    def test_join_inner_multiindex(self, lexsorted_two_level_string_multiindex):
         key1 = ["bar", "bar", "bar", "foo", "foo", "baz", "baz", "qux", "qux", "snap"]
         key2 = [
             "two",
@@ -364,11 +364,7 @@ class TestJoin:
         data = np.random.randn(len(key1))
         data = DataFrame({"key1": key1, "key2": key2, "data": data})
 
-        index = MultiIndex(
-            levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
-            codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
-            names=["first", "second"],
-        )
+        index = lexsorted_two_level_string_multiindex
         to_join = DataFrame(
             np.random.randn(10, 3), index=index, columns=["j_one", "j_two", "j_three"]
         )
@@ -630,7 +626,7 @@ class TestJoin:
         dta = x.merge(y, left_index=True, right_index=True).merge(
             z, left_index=True, right_index=True, how="outer"
         )
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             dta = dta.merge(w, left_index=True, right_index=True)
         expected = concat([x, y, z, w], axis=1)
         expected.columns = ["x_x", "y_x", "x_y", "y_y", "x_x", "y_x", "x_y", "y_y"]

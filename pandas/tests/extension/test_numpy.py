@@ -265,6 +265,18 @@ class TestMethods(BaseNumPyTests, base.BaseMethodsTests):
     def test_diff(self, data, periods):
         return super().test_diff(data, periods)
 
+    def test_insert(self, data, request):
+        if data.dtype.numpy_dtype == object:
+            mark = pytest.mark.xfail(reason="Dimension mismatch in np.concatenate")
+            request.node.add_marker(mark)
+
+        super().test_insert(data)
+
+    @skip_nested
+    def test_insert_invalid(self, data, invalid_scalar):
+        # PandasArray[object] can hold anything, so skip
+        super().test_insert_invalid(data, invalid_scalar)
+
 
 class TestArithmetics(BaseNumPyTests, base.BaseArithmeticOpsTests):
     divmod_exc = None
@@ -336,8 +348,26 @@ class TestReshaping(BaseNumPyTests, base.BaseReshapingTests):
         # Fails creating expected (key column becomes a PandasDtype because)
         super().test_merge(data, na_value)
 
+    @pytest.mark.parametrize(
+        "in_frame",
+        [
+            True,
+            pytest.param(
+                False,
+                marks=pytest.mark.xfail(reason="PandasArray inconsistently extracted"),
+            ),
+        ],
+    )
+    def test_concat(self, data, in_frame):
+        super().test_concat(data, in_frame)
+
 
 class TestSetitem(BaseNumPyTests, base.BaseSetitemTests):
+    @skip_nested
+    def test_setitem_invalid(self, data, invalid_scalar):
+        # object dtype can hold anything, so doesn't raise
+        super().test_setitem_invalid(data, invalid_scalar)
+
     @skip_nested
     def test_setitem_sequence_broadcasts(self, data, box_in_series):
         # ValueError: cannot set using a list-like indexer with a different

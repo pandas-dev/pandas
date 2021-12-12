@@ -209,15 +209,15 @@ class TestDataFrameCombineFirst:
         )
         tm.assert_frame_equal(res, exp)
         assert res["a"].dtype == "datetime64[ns]"
-        # ToDo: this must be int64
+        # TODO: this must be int64
         assert res["b"].dtype == "int64"
 
         res = dfa.iloc[:0].combine_first(dfb)
         exp = DataFrame({"a": [np.nan, np.nan], "b": [4, 5]}, columns=["a", "b"])
         tm.assert_frame_equal(res, exp)
-        # ToDo: this must be datetime64
+        # TODO: this must be datetime64
         assert res["a"].dtype == "float64"
-        # ToDo: this must be int64
+        # TODO: this must be int64
         assert res["b"].dtype == "int64"
 
     def test_combine_first_timezone(self):
@@ -489,6 +489,31 @@ def test_combine_preserve_dtypes():
             "C": [np.nan, np.nan, "a", "b"],
         },
         index=[0, 1, 5, 6],
+    )
+    combined = df1.combine_first(df2)
+    tm.assert_frame_equal(combined, expected)
+
+
+def test_combine_first_duplicates_rows_for_nan_index_values():
+    # GH39881
+    df1 = DataFrame(
+        {"x": [9, 10, 11]},
+        index=MultiIndex.from_arrays([[1, 2, 3], [np.nan, 5, 6]], names=["a", "b"]),
+    )
+
+    df2 = DataFrame(
+        {"y": [12, 13, 14]},
+        index=MultiIndex.from_arrays([[1, 2, 4], [np.nan, 5, 7]], names=["a", "b"]),
+    )
+
+    expected = DataFrame(
+        {
+            "x": [9.0, 10.0, 11.0, np.nan],
+            "y": [12.0, 13.0, np.nan, 14.0],
+        },
+        index=MultiIndex.from_arrays(
+            [[1, 2, 3, 4], [np.nan, 5.0, 6.0, 7.0]], names=["a", "b"]
+        ),
     )
     combined = df1.combine_first(df2)
     tm.assert_frame_equal(combined, expected)

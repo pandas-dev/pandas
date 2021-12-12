@@ -28,7 +28,7 @@ from pandas._libs.tslibs import (
     nat_strings,
     parsing,
 )
-from pandas._libs.tslibs.parsing import (  # noqa
+from pandas._libs.tslibs.parsing import (  # noqa:F401
     DateParseError,
     format_is_iso,
     guess_datetime_format,
@@ -39,6 +39,7 @@ from pandas._typing import (
     ArrayLike,
     Timezone,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -69,6 +70,7 @@ from pandas.core.arrays.datetimes import (
     objects_to_datetime64ns,
     tz_to_dtype,
 )
+from pandas.core.construction import extract_array
 from pandas.core.indexes.base import Index
 from pandas.core.indexes.datetimes import DatetimeIndex
 
@@ -325,7 +327,6 @@ def _convert_listlike_datetimes(
     -------
     Index-like of parsed dates
     """
-
     if isinstance(arg, (list, tuple)):
         arg = np.array(arg, dtype="O")
 
@@ -517,7 +518,7 @@ def _to_datetime_with_unit(arg, unit, name, tz, errors: str) -> Index:
     """
     to_datetime specalized to the case where a 'unit' is passed.
     """
-    arg = getattr(arg, "_values", arg)  # TODO: extract_array
+    arg = extract_array(arg, extract_numpy=True)
 
     # GH#30050 pass an ndarray to tslib.array_with_unit_to_datetime
     # because it expects an ndarray argument
@@ -525,6 +526,7 @@ def _to_datetime_with_unit(arg, unit, name, tz, errors: str) -> Index:
         arr = arg.astype(f"datetime64[{unit}]")
         tz_parsed = None
     else:
+        arg = np.asarray(arg)
         arr, tz_parsed = tslib.array_with_unit_to_datetime(arg, unit, errors=errors)
 
     if errors == "ignore":
@@ -692,7 +694,8 @@ def to_datetime(
     Parameters
     ----------
     arg : int, float, str, datetime, list, tuple, 1-d array, Series, DataFrame/dict-like
-        The object to convert to a datetime.
+        The object to convert to a datetime. If the DataFrame is provided, the method
+        expects minimally the following columns: "year", "month", "day".
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.
         - If 'coerce', then invalid parsing will be set as NaT.
@@ -701,8 +704,14 @@ def to_datetime(
         Specify a date parse order if `arg` is str or its list-likes.
         If True, parses dates with the day first, eg 10/11/12 is parsed as
         2012-11-10.
-        Warning: dayfirst=True is not strict, but will prefer to parse
-        with day first (this is a known bug, based on dateutil behavior).
+
+        .. warning::
+
+            dayfirst=True is not strict, but will prefer to parse
+            with day first. If a delimited date string cannot be parsed in
+            accordance with the given `dayfirst` option, e.g.
+            ``to_datetime(['31-12-2021'])``, then a warning will be shown.
+
     yearfirst : bool, default False
         Specify a date parse order if `arg` is str or its list-likes.
 
@@ -711,8 +720,11 @@ def to_datetime(
         - If both dayfirst and yearfirst are True, yearfirst is preceded (same
           as dateutil).
 
-        Warning: yearfirst=True is not strict, but will prefer to parse
-        with year first (this is a known bug, based on dateutil behavior).
+        .. warning::
+
+            yearfirst=True is not strict, but will prefer to parse
+            with year first.
+
     utc : bool, default None
         Return UTC DatetimeIndex if True (converting any tz-aware
         datetime.datetime objects as well).
@@ -766,6 +778,7 @@ def to_datetime(
             - DatetimeIndex, if timezone naive or aware with the same timezone
             - Index of object dtype, if timezone aware with mixed time offsets
         - Series: Series of datetime64 dtype
+        - DataFrame: Series of datetime64 dtype
         - scalar: Timestamp
 
         In case when it is not possible to return designated types (e.g. when
@@ -876,11 +889,9 @@ def to_datetime(
         result = arg
         if tz is not None:
             if arg.tz is not None:
-                # error: Too many arguments for "tz_convert" of "NaTType"
-                result = result.tz_convert(tz)  # type: ignore[call-arg]
+                result = arg.tz_convert(tz)
             else:
-                # error: Too many arguments for "tz_localize" of "NaTType"
-                result = result.tz_localize(tz)  # type: ignore[call-arg]
+                result = arg.tz_localize(tz)
     elif isinstance(arg, ABCSeries):
         cache_array = _maybe_cache(arg, format, cache, convert_listlike)
         if not cache_array.empty:
@@ -1096,10 +1107,10 @@ def _attempt_YYYYMMDD(arg: np.ndarray, errors: str) -> np.ndarray | None:
 def to_time(arg, format=None, infer_time_format=False, errors="raise"):
     # GH#34145
     warnings.warn(
-        "`to_time` has been moved, should be imported from pandas.core.tools.times.  "
+        "`to_time` has been moved, should be imported from pandas.core.tools.times. "
         "This alias will be removed in a future version.",
         FutureWarning,
-        stacklevel=2,
+        stacklevel=find_stack_level(),
     )
     from pandas.core.tools.times import to_time
 

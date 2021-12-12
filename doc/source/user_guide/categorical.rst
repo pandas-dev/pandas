@@ -1141,7 +1141,7 @@ Categorical index
 ``CategoricalIndex`` is a type of index that is useful for supporting
 indexing with duplicates. This is a container around a ``Categorical``
 and allows efficient indexing and storage of an index with a large number of duplicated elements.
-See the :ref:`advanced indexing docs <indexing.categoricalindex>` for a more detailed
+See the :ref:`advanced indexing docs <advanced.categoricalindex>` for a more detailed
 explanation.
 
 Setting the index will create a ``CategoricalIndex``:

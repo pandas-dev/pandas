@@ -927,7 +927,6 @@ int Dir_iterNext(JSOBJ _obj, JSONTypeContext *tc) {
 
         GET_TC(tc)->itemName = itemName;
         GET_TC(tc)->itemValue = itemValue;
-        GET_TC(tc)->index++;
 
         itemName = attr;
         break;

@@ -130,6 +130,10 @@ class TestDataFrameDrop:
         with pytest.raises(KeyError, match=r"\['C'\] not found in axis"):
             simple.drop(["A", "C"], axis=1)
 
+        # GH 42881
+        with pytest.raises(KeyError, match=r"\['C', 'D', 'F'\] not found in axis"):
+            simple.drop(["C", "D", "F"], axis=1)
+
         # errors = 'ignore'
         tm.assert_frame_equal(simple.drop(5, errors="ignore"), simple)
         tm.assert_frame_equal(
@@ -377,17 +381,8 @@ class TestDataFrameDrop:
 
         tm.assert_frame_equal(result, expected)
 
-    def test_drop_level(self):
-        index = MultiIndex(
-            levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
-            codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
-            names=["first", "second"],
-        )
-        frame = DataFrame(
-            np.random.randn(10, 3),
-            index=index,
-            columns=Index(["A", "B", "C"], name="exp"),
-        )
+    def test_drop_level(self, multiindex_dataframe_random_data):
+        frame = multiindex_dataframe_random_data
 
         result = frame.drop(["bar", "qux"], level="first")
         expected = frame.iloc[[0, 1, 2, 5, 6]]

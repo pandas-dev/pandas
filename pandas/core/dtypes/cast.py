@@ -77,6 +77,7 @@ from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
     IntervalDtype,
+    PandasDtype,
     PeriodDtype,
 )
 from pandas.core.dtypes.generic import (
@@ -562,7 +563,7 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
                     "dtype is deprecated. In a future version, this will be cast "
                     "to object dtype. Pass `fill_value=Timestamp(date_obj)` instead.",
                     FutureWarning,
-                    stacklevel=8,
+                    stacklevel=find_stack_level(),
                 )
                 return dtype, fv
         elif isinstance(fill_value, str):
@@ -909,9 +910,9 @@ def maybe_upcast(
     """
     new_dtype, fill_value = maybe_promote(values.dtype, fill_value)
     # We get a copy in all cases _except_ (values.dtype == new_dtype and not copy)
-    values = values.astype(new_dtype, copy=copy)
+    upcast_values = values.astype(new_dtype, copy=copy)
 
-    return values, fill_value
+    return upcast_values, fill_value  # type: ignore[return-value]
 
 
 def invalidate_string_dtypes(dtype_set: set[DtypeObj]):
@@ -968,16 +969,15 @@ def astype_dt64_to_dt64tz(
             # this should be the only copy
             values = values.copy()
 
-        level = find_stack_level()
         warnings.warn(
             "Using .astype to convert from timezone-naive dtype to "
             "timezone-aware dtype is deprecated and will raise in a "
             "future version.  Use ser.dt.tz_localize instead.",
             FutureWarning,
-            stacklevel=level,
+            stacklevel=find_stack_level(),
         )
 
-        # FIXME: GH#33401 this doesn't match DatetimeArray.astype, which
+        # GH#33401 this doesn't match DatetimeArray.astype, which
         #  goes through the `not via_utc` path
         return values.tz_localize("UTC").tz_convert(dtype.tz)
 
@@ -985,13 +985,12 @@ def astype_dt64_to_dt64tz(
         # DatetimeArray/DatetimeIndex.astype behavior
         if values.tz is None and aware:
             dtype = cast(DatetimeTZDtype, dtype)
-            level = find_stack_level()
             warnings.warn(
                 "Using .astype to convert from timezone-naive dtype to "
                 "timezone-aware dtype is deprecated and will raise in a "
                 "future version.  Use obj.tz_localize instead.",
                 FutureWarning,
-                stacklevel=level,
+                stacklevel=find_stack_level(),
             )
 
             return values.tz_localize(dtype.tz)
@@ -1005,14 +1004,13 @@ def astype_dt64_to_dt64tz(
             return result
 
         elif values.tz is not None:
-            level = find_stack_level()
             warnings.warn(
                 "Using .astype to convert from timezone-aware dtype to "
                 "timezone-naive dtype is deprecated and will raise in a "
                 "future version.  Use obj.tz_localize(None) or "
                 "obj.tz_convert('UTC').tz_localize(None) instead",
                 FutureWarning,
-                stacklevel=level,
+                stacklevel=find_stack_level(),
             )
 
             result = values.tz_convert("UTC").tz_localize(None)
@@ -1132,7 +1130,7 @@ def astype_nansafe(
                 "Use .view(...) instead.",
                 FutureWarning,
                 # stacklevel chosen to be correct when reached via Series.astype
-                stacklevel=7,
+                stacklevel=find_stack_level(),
             )
             if isna(arr).any():
                 raise ValueError("Cannot convert NaT values to integer")
@@ -1154,7 +1152,7 @@ def astype_nansafe(
                 "Use .view(...) instead.",
                 FutureWarning,
                 # stacklevel chosen to be correct when reached via Series.astype
-                stacklevel=7,
+                stacklevel=find_stack_level(),
             )
             if isna(arr).any():
                 raise ValueError("Cannot convert NaT values to integer")
@@ -1305,6 +1303,9 @@ def astype_array_safe(
         raise TypeError(msg)
 
     dtype = pandas_dtype(dtype)
+    if isinstance(dtype, PandasDtype):
+        # Ensure we don't end up with a PandasArray
+        dtype = dtype.numpy_dtype
 
     try:
         new_values = astype_array(values, dtype, copy=copy)
@@ -1420,7 +1421,7 @@ def convert_dtypes(
             inferred_dtype = input_array.dtype
 
         if is_string_dtype(inferred_dtype):
-            if not convert_string:
+            if not convert_string or inferred_dtype == "bytes":
                 return input_array.dtype
             else:
                 return pandas_dtype("string")
@@ -1522,7 +1523,7 @@ def maybe_infer_to_datetimelike(
         try:
             # GH#19671 we pass require_iso8601 to be relatively strict
             #  when parsing strings.
-            dta = sequence_to_datetimes(v, require_iso8601=True, allow_object=True)
+            dta = sequence_to_datetimes(v, require_iso8601=True)
         except (ValueError, TypeError):
             # e.g. <class 'numpy.timedelta64'> is not convertible to datetime
             return v.reshape(shape)
@@ -1583,10 +1584,11 @@ def maybe_infer_to_datetimelike(
                 value = try_datetime(v)  # type: ignore[assignment]
 
     if value.dtype.kind in ["m", "M"] and seen_str:
+        # TODO(2.0): enforcing this deprecation should close GH#40111
         warnings.warn(
             f"Inferring {value.dtype} from data containing strings is deprecated "
             "and will be removed in a future version. To retain the old behavior "
-            "explicitly pass Series(data, dtype={value.dtype})",
+            f"explicitly pass Series(data, dtype={value.dtype})",
             FutureWarning,
             stacklevel=find_stack_level(),
         )
@@ -1633,7 +1635,7 @@ def maybe_cast_to_datetime(
 
                 try:
                     if is_datetime64:
-                        dta = sequence_to_datetimes(value, allow_object=False)
+                        dta = sequence_to_datetimes(value)
                         # GH 25843: Remove tz information since the dtype
                         # didn't specify one
 
@@ -1647,7 +1649,7 @@ def maybe_cast_to_datetime(
                                 "`pd.Series(values).dt.tz_localize(None)` "
                                 "instead.",
                                 FutureWarning,
-                                stacklevel=8,
+                                stacklevel=find_stack_level(),
                             )
                             # equiv: dta.view(dtype)
                             # Note: NOT equivalent to dta.astype(dtype)
@@ -1661,7 +1663,7 @@ def maybe_cast_to_datetime(
                         # datetime64tz is assumed to be naive which should
                         # be localized to the timezone.
                         is_dt_string = is_string_dtype(value.dtype)
-                        dta = sequence_to_datetimes(value, allow_object=False)
+                        dta = sequence_to_datetimes(value)
                         if dta.tz is not None:
                             value = dta.astype(dtype, copy=False)
                         elif is_dt_string:
@@ -1687,7 +1689,7 @@ def maybe_cast_to_datetime(
                                     ".tz_localize('UTC').tz_convert(dtype.tz) "
                                     "or pd.Series(data.view('int64'), dtype=dtype)",
                                     FutureWarning,
-                                    stacklevel=5,
+                                    stacklevel=find_stack_level(),
                                 )
 
                             value = dta.tz_localize("UTC").tz_convert(dtype.tz)
@@ -1788,6 +1790,7 @@ def ensure_nanosecond_dtype(dtype: DtypeObj) -> DtypeObj:
     return dtype
 
 
+# TODO: overload to clarify that if all types are np.dtype then result is np.dtype
 def find_common_type(types: list[DtypeObj]) -> DtypeObj:
     """
     Find a common data type among the given dtypes.
@@ -1812,7 +1815,7 @@ def find_common_type(types: list[DtypeObj]) -> DtypeObj:
 
     # workaround for find_common_type([np.dtype('datetime64[ns]')] * 2)
     # => object
-    if all(is_dtype_equal(first, t) for t in types[1:]):
+    if lib.dtypes_all_equal(list(types)):
         return first
 
     # get unique types (dict.fromkeys is used as order-preserving set())
@@ -1854,7 +1857,7 @@ def construct_2d_arraylike_from_scalar(
     shape = (length, width)
 
     if dtype.kind in ["m", "M"]:
-        value = maybe_unbox_datetimelike_tz_deprecation(value, dtype, stacklevel=4)
+        value = maybe_unbox_datetimelike_tz_deprecation(value, dtype)
     # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
     # operand type: "Type[object]")
     elif dtype == object:  # type: ignore[comparison-overlap]
@@ -1927,9 +1930,7 @@ def construct_1d_arraylike_from_scalar(
     return subarr
 
 
-def maybe_unbox_datetimelike_tz_deprecation(
-    value: Scalar, dtype: DtypeObj, stacklevel: int = 5
-):
+def maybe_unbox_datetimelike_tz_deprecation(value: Scalar, dtype: DtypeObj):
     """
     Wrap maybe_unbox_datetimelike with a check for a timezone-aware Timestamp
     along with a timezone-naive datetime64 dtype, which is deprecated.
@@ -1958,7 +1959,7 @@ def maybe_unbox_datetimelike_tz_deprecation(
                 "`pd.Series(values).dt.tz_localize(None)` "
                 "instead.",
                 FutureWarning,
-                stacklevel=stacklevel,
+                stacklevel=find_stack_level(),
             )
             new_value = value.tz_localize(None)
             return maybe_unbox_datetimelike(new_value, dtype)
@@ -2085,7 +2086,7 @@ def maybe_cast_to_integer_array(
         warnings.warn(
             f"Constructing Series or DataFrame from {arr.dtype} values and "
             f"dtype={dtype} is deprecated and will raise in a future version. "
-            "Use values.view(dtype) instead",
+            "Use values.view(dtype) instead.",
             FutureWarning,
             stacklevel=find_stack_level(),
         )
@@ -2185,13 +2186,29 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
         # ExtensionBlock._can_hold_element
         return True
 
+    # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
+    # operand type: "Type[object]")
+    if dtype == object:  # type: ignore[comparison-overlap]
+        return True
+
     tipo = maybe_infer_dtype_type(element)
 
     if dtype.kind in ["i", "u"]:
+        if isinstance(element, range):
+            return _dtype_can_hold_range(element, dtype)
+
         if tipo is not None:
             if tipo.kind not in ["i", "u"]:
                 if is_float(element) and element.is_integer():
                     return True
+
+                if isinstance(element, np.ndarray) and element.dtype.kind == "f":
+                    # If all can be losslessly cast to integers, then we can hold them
+                    #  We do something similar in putmask_smart
+                    casted = element.astype(dtype)
+                    comp = casted == element
+                    return comp.all()
+
                 # Anything other than integer we cannot hold
                 return False
             elif dtype.itemsize < tipo.itemsize:
@@ -2200,6 +2217,7 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
                 # i.e. nullable IntegerDtype; we can put this into an ndarray
                 #  losslessly iff it has no NAs
                 return not element._mask.any()
+
             return True
 
         # We have not inferred an integer from the dtype
@@ -2232,11 +2250,6 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
             return tipo.kind == "b"
         return lib.is_bool(element)
 
-    # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-    # operand type: "Type[object]")
-    elif dtype == object:  # type: ignore[comparison-overlap]
-        return True
-
     elif dtype.kind == "S":
         # TODO: test tests.frame.methods.test_replace tests get here,
         #  need more targeted tests.  xref phofl has a PR about this
@@ -2245,3 +2258,14 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
         return isinstance(element, bytes) and len(element) <= dtype.itemsize
 
     raise NotImplementedError(dtype)
+
+
+def _dtype_can_hold_range(rng: range, dtype: np.dtype) -> bool:
+    """
+    maybe_infer_dtype_type infers to int64 (and float64 for very large endpoints),
+    but in many cases a range can be held by a smaller integer dtype.
+    Check if this is one of those cases.
+    """
+    if not len(rng):
+        return True
+    return np.can_cast(rng[0], dtype) and np.can_cast(rng[-1], dtype)

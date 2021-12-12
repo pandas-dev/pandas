@@ -21,6 +21,8 @@ import pandas.util._test_decorators as td
 from pandas import DataFrame
 import pandas._testing as tm
 
+pytestmark = pytest.mark.usefixtures("pyarrow_skip")
+
 
 def test_empty_decimal_marker(all_parsers):
     data = """A|B|C
@@ -126,7 +128,8 @@ def test_read_csv_raises_on_header_prefix(all_parsers):
     s = StringIO("0,1\n2,3")
 
     with pytest.raises(ValueError, match=msg):
-        parser.read_csv(s, header=0, prefix="_X")
+        with tm.assert_produces_warning(FutureWarning):
+            parser.read_csv(s, header=0, prefix="_X")
 
 
 def test_unexpected_keyword_parameter_exception(all_parsers):
@@ -242,7 +245,7 @@ def test_open_file(all_parsers):
     # GH 39024
     parser = all_parsers
     if parser.engine == "c":
-        pytest.skip()
+        pytest.skip("'c' engine does not support sep=None with delim_whitespace=False")
 
     with tm.ensure_clean() as path:
         file = Path(path)

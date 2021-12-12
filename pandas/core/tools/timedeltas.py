@@ -1,6 +1,7 @@
 """
 timedelta support tools
 """
+from __future__ import annotations
 
 import numpy as np
 
@@ -67,8 +68,13 @@ def to_timedelta(arg, unit=None, errors="raise"):
 
     Returns
     -------
-    timedelta64 or numpy.array of timedelta64
-        Output type returned if parsing succeeded.
+    timedelta
+        If parsing succeeded.
+        Return type depends on input:
+
+        - list-like: TimedeltaIndex of timedelta64 dtype
+        - Series: Series of timedelta64 dtype
+        - scalar: Timedelta
 
     See Also
     --------
@@ -144,7 +150,7 @@ def to_timedelta(arg, unit=None, errors="raise"):
 
 def _coerce_scalar_to_timedelta_type(r, unit="ns", errors="raise"):
     """Convert string 'r' to a timedelta object."""
-    result: Timedelta | NaTType  # TODO: alias?
+    result: Timedelta | NaTType
 
     try:
         result = Timedelta(r, unit)

@@ -6,23 +6,22 @@ dependencies:
   - python=3.9
 
   # tools
-  - cython>=0.29.21
+  - cython>=0.29.24
   - pytest>=6.0
   - pytest-xdist>=1.31
+  - pytest-timeout
   - hypothesis>=5.5.3
   - pytest-azurepipelines
 
   # pandas dependencies
   - beautifulsoup4
   - bottleneck
-  - fsspec>=0.8.0, <2021.6.0
+  - fsspec>=0.8.0
   - gcsfs
   - html5lib
   - jinja2
   - lxml
   - matplotlib
-  - moto>=1.3.14
-  - flask
   - numba
   - numexpr
   - numpy

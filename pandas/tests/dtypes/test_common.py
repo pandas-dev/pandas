@@ -20,6 +20,7 @@ from pandas.core.dtypes.missing import isna
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.api.types import pandas_dtype
 from pandas.arrays import SparseArray
 
 
@@ -154,6 +155,7 @@ def get_is_dtype_funcs():
 
     """
     fnames = [f for f in dir(com) if (f.startswith("is_") and f.endswith("dtype"))]
+    fnames.remove("is_string_or_object_np_dtype")  # fastpath requires np.dtype obj
     return [getattr(com, fname) for fname in fnames]
 
 
@@ -295,10 +297,10 @@ integer_dtypes: list = []
     "dtype",
     integer_dtypes
     + [pd.Series([1, 2])]
-    + tm.ALL_INT_DTYPES
-    + to_numpy_dtypes(tm.ALL_INT_DTYPES)
-    + tm.ALL_EA_INT_DTYPES
-    + to_ea_dtypes(tm.ALL_EA_INT_DTYPES),
+    + tm.ALL_INT_NUMPY_DTYPES
+    + to_numpy_dtypes(tm.ALL_INT_NUMPY_DTYPES)
+    + tm.ALL_INT_EA_DTYPES
+    + to_ea_dtypes(tm.ALL_INT_EA_DTYPES),
 )
 def test_is_integer_dtype(dtype):
     assert com.is_integer_dtype(dtype)
@@ -327,10 +329,10 @@ signed_integer_dtypes: list = []
     "dtype",
     signed_integer_dtypes
     + [pd.Series([1, 2])]
-    + tm.SIGNED_INT_DTYPES
-    + to_numpy_dtypes(tm.SIGNED_INT_DTYPES)
-    + tm.SIGNED_EA_INT_DTYPES
-    + to_ea_dtypes(tm.SIGNED_EA_INT_DTYPES),
+    + tm.SIGNED_INT_NUMPY_DTYPES
+    + to_numpy_dtypes(tm.SIGNED_INT_NUMPY_DTYPES)
+    + tm.SIGNED_INT_EA_DTYPES
+    + to_ea_dtypes(tm.SIGNED_INT_EA_DTYPES),
 )
 def test_is_signed_integer_dtype(dtype):
     assert com.is_integer_dtype(dtype)
@@ -347,10 +349,10 @@ def test_is_signed_integer_dtype(dtype):
         np.array(["a", "b"]),
         np.array([], dtype=np.timedelta64),
     ]
-    + tm.UNSIGNED_INT_DTYPES
-    + to_numpy_dtypes(tm.UNSIGNED_INT_DTYPES)
-    + tm.UNSIGNED_EA_INT_DTYPES
-    + to_ea_dtypes(tm.UNSIGNED_EA_INT_DTYPES),
+    + tm.UNSIGNED_INT_NUMPY_DTYPES
+    + to_numpy_dtypes(tm.UNSIGNED_INT_NUMPY_DTYPES)
+    + tm.UNSIGNED_INT_EA_DTYPES
+    + to_ea_dtypes(tm.UNSIGNED_INT_EA_DTYPES),
 )
 def test_is_not_signed_integer_dtype(dtype):
     assert not com.is_signed_integer_dtype(dtype)
@@ -363,10 +365,10 @@ unsigned_integer_dtypes: list = []
     "dtype",
     unsigned_integer_dtypes
     + [pd.Series([1, 2], dtype=np.uint32)]
-    + tm.UNSIGNED_INT_DTYPES
-    + to_numpy_dtypes(tm.UNSIGNED_INT_DTYPES)
-    + tm.UNSIGNED_EA_INT_DTYPES
-    + to_ea_dtypes(tm.UNSIGNED_EA_INT_DTYPES),
+    + tm.UNSIGNED_INT_NUMPY_DTYPES
+    + to_numpy_dtypes(tm.UNSIGNED_INT_NUMPY_DTYPES)
+    + tm.UNSIGNED_INT_EA_DTYPES
+    + to_ea_dtypes(tm.UNSIGNED_INT_EA_DTYPES),
 )
 def test_is_unsigned_integer_dtype(dtype):
     assert com.is_unsigned_integer_dtype(dtype)
@@ -383,10 +385,10 @@ def test_is_unsigned_integer_dtype(dtype):
         np.array(["a", "b"]),
         np.array([], dtype=np.timedelta64),
     ]
-    + tm.SIGNED_INT_DTYPES
-    + to_numpy_dtypes(tm.SIGNED_INT_DTYPES)
-    + tm.SIGNED_EA_INT_DTYPES
-    + to_ea_dtypes(tm.SIGNED_EA_INT_DTYPES),
+    + tm.SIGNED_INT_NUMPY_DTYPES
+    + to_numpy_dtypes(tm.SIGNED_INT_NUMPY_DTYPES)
+    + tm.SIGNED_INT_EA_DTYPES
+    + to_ea_dtypes(tm.SIGNED_INT_EA_DTYPES),
 )
 def test_is_not_unsigned_integer_dtype(dtype):
     assert not com.is_unsigned_integer_dtype(dtype)
@@ -397,6 +399,23 @@ def test_is_not_unsigned_integer_dtype(dtype):
 )
 def test_is_int64_dtype(dtype):
     assert com.is_int64_dtype(dtype)
+
+
+def test_type_comparison_with_numeric_ea_dtype(any_numeric_ea_dtype):
+    # GH#43038
+    assert pandas_dtype(any_numeric_ea_dtype) == any_numeric_ea_dtype
+
+
+def test_type_comparison_with_real_numpy_dtype(any_real_numpy_dtype):
+    # GH#43038
+    assert pandas_dtype(any_real_numpy_dtype) == any_real_numpy_dtype
+
+
+def test_type_comparison_with_signed_int_ea_dtype_and_signed_int_numpy_dtype(
+    any_signed_int_ea_dtype, any_signed_int_numpy_dtype
+):
+    # GH#43038
+    assert not pandas_dtype(any_signed_int_ea_dtype) == any_signed_int_numpy_dtype
 
 
 @pytest.mark.parametrize(
@@ -722,9 +741,9 @@ def test_astype_nansafe(val, typ):
             astype_nansafe(arr, dtype=typ)
 
 
-def test_astype_nansafe_copy_false(any_int_dtype):
+def test_astype_nansafe_copy_false(any_int_numpy_dtype):
     # GH#34457 use astype, not view
-    arr = np.array([1, 2, 3], dtype=any_int_dtype)
+    arr = np.array([1, 2, 3], dtype=any_int_numpy_dtype)
 
     dtype = np.dtype("float64")
     result = astype_nansafe(arr, dtype, copy=False)

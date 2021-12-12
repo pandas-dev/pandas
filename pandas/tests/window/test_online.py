@@ -10,8 +10,8 @@ from pandas import (
 import pandas._testing as tm
 
 
-@td.skip_if_no("numba", "0.46.0")
-@pytest.mark.filterwarnings("ignore:\\nThe keyword argument")
+@td.skip_if_no("numba")
+@pytest.mark.filterwarnings("ignore:\n")
 class TestEWM:
     def test_invalid_update(self):
         df = DataFrame({"a": range(5), "b": range(5)})

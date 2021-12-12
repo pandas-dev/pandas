@@ -10,6 +10,7 @@ module is imported, register them here rather than in the module.
 
 """
 import os
+from typing import Callable
 import warnings
 
 import pandas._config.config as cf
@@ -20,8 +21,11 @@ from pandas._config.config import (
     is_int,
     is_nonnegative_int,
     is_one_of_factory,
+    is_str,
     is_text,
 )
+
+from pandas.util._exceptions import find_stack_level
 
 # compute
 
@@ -234,6 +238,16 @@ pc_html_use_mathjax_doc = """\
     (default: True)
 """
 
+pc_max_dir_items = """\
+: int
+    The number of items that will be added to `dir(...)`. 'None' value means
+    unlimited. Because dir is cached, changing this option will not immediately
+    affect already existing dataframes until a column is deleted or added.
+
+    This is for instance used to suggest columns from a dataframe to tab
+    completion.
+"""
+
 pc_width_doc = """
 : int
     Width of the display in characters. In case python/IPython is running in
@@ -371,7 +385,7 @@ with cf.config_prefix("display"):
                 "will not be supported in future version. Instead, use None "
                 "to not limit the column width.",
                 FutureWarning,
-                stacklevel=4,
+                stacklevel=find_stack_level(),
             )
 
     cf.register_option(
@@ -446,6 +460,9 @@ with cf.config_prefix("display"):
     cf.register_option("html.border", 1, pc_html_border_doc, validator=is_int)
     cf.register_option(
         "html.use_mathjax", True, pc_html_use_mathjax_doc, validator=is_bool
+    )
+    cf.register_option(
+        "max_dir_items", 100, pc_max_dir_items, validator=is_nonnegative_int
     )
 
 tc_sim_interactive_doc = """
@@ -756,17 +773,105 @@ styler_sparse_columns_doc = """
     display each explicit level element in a hierarchical key for each column.
 """
 
+styler_render_repr = """
+: str
+    Determine which output to use in Jupyter Notebook in {"html", "latex"}.
+"""
+
 styler_max_elements = """
 : int
     The maximum number of data-cell (<td>) elements that will be rendered before
     trimming will occur over columns, rows or both if needed.
 """
 
+styler_max_rows = """
+: int, optional
+    The maximum number of rows that will be rendered. May still be reduced to
+    satsify ``max_elements``, which takes precedence.
+"""
+
+styler_max_columns = """
+: int, optional
+    The maximum number of columns that will be rendered. May still be reduced to
+    satsify ``max_elements``, which takes precedence.
+"""
+
+styler_precision = """
+: int
+    The precision for floats and complex numbers.
+"""
+
+styler_decimal = """
+: str
+    The character representation for the decimal separator for floats and complex.
+"""
+
+styler_thousands = """
+: str, optional
+    The character representation for thousands separator for floats, int and complex.
+"""
+
+styler_na_rep = """
+: str, optional
+    The string representation for values identified as missing.
+"""
+
+styler_escape = """
+: str, optional
+    Whether to escape certain characters according to the given context; html or latex.
+"""
+
+styler_formatter = """
+: str, callable, dict, optional
+    A formatter object to be used as default within ``Styler.format``.
+"""
+
+styler_multirow_align = """
+: {"c", "t", "b"}
+    The specifier for vertical alignment of sparsified LaTeX multirows.
+"""
+
+styler_multicol_align = r"""
+: {"r", "c", "l", "naive-l", "naive-r"}
+    The specifier for horizontal alignment of sparsified LaTeX multicolumns. Pipe
+    decorators can also be added to non-naive values to draw vertical
+    rules, e.g. "\|r" will draw a rule on the left side of right aligned merged cells.
+"""
+
+styler_hrules = """
+: bool
+    Whether to add horizontal rules on top and bottom and below the headers.
+"""
+
+styler_environment = """
+: str
+    The environment to replace ``\\begin{table}``. If "longtable" is used results
+    in a specific longtable environment format.
+"""
+
+styler_encoding = """
+: str
+    The encoding used for output HTML and LaTeX files.
+"""
+
+styler_mathjax = """
+: bool
+    If False will render special CSS classes to table attributes that indicate Mathjax
+    will not be used in Jupyter Notebook.
+"""
+
 with cf.config_prefix("styler"):
-    cf.register_option("sparse.index", True, styler_sparse_index_doc, validator=bool)
+    cf.register_option("sparse.index", True, styler_sparse_index_doc, validator=is_bool)
 
     cf.register_option(
-        "sparse.columns", True, styler_sparse_columns_doc, validator=bool
+        "sparse.columns", True, styler_sparse_columns_doc, validator=is_bool
+    )
+
+    cf.register_option(
+        "render.repr",
+        "html",
+        styler_render_repr,
+        validator=is_one_of_factory(["html", "latex"]),
     )
 
     cf.register_option(
@@ -774,4 +879,81 @@ with cf.config_prefix("styler"):
         2 ** 18,
         styler_max_elements,
         validator=is_nonnegative_int,
+    )
+
+    cf.register_option(
+        "render.max_rows",
+        None,
+        styler_max_rows,
+        validator=is_nonnegative_int,
+    )
+
+    cf.register_option(
+        "render.max_columns",
+        None,
+        styler_max_columns,
+        validator=is_nonnegative_int,
+    )
+
+    cf.register_option("render.encoding", "utf-8", styler_encoding, validator=is_str)
+
+    cf.register_option("format.decimal", ".", styler_decimal, validator=is_str)
+
+    cf.register_option(
+        "format.precision", 6, styler_precision, validator=is_nonnegative_int
+    )
+
+    cf.register_option(
+        "format.thousands",
+        None,
+        styler_thousands,
+        validator=is_instance_factory([type(None), str]),
+    )
+
+    cf.register_option(
+        "format.na_rep",
+        None,
+        styler_na_rep,
+        validator=is_instance_factory([type(None), str]),
+    )
+
+    cf.register_option(
+        "format.escape",
+        None,
+        styler_escape,
+        validator=is_one_of_factory([None, "html", "latex"]),
+    )
+
+    cf.register_option(
+        "format.formatter",
+        None,
+        styler_formatter,
+        validator=is_instance_factory([type(None), dict, Callable, str]),
+    )
+
+    cf.register_option("html.mathjax", True, styler_mathjax, validator=is_bool)
+
+    cf.register_option(
+        "latex.multirow_align",
+        "c",
+        styler_multirow_align,
+        validator=is_one_of_factory(["c", "t", "b", "naive"]),
+    )
+
+    val_mca = ["r", "|r|", "|r", "r|", "c", "|c|", "|c", "c|", "l", "|l|", "|l", "l|"]
+    val_mca += ["naive-l", "naive-r"]
+    cf.register_option(
+        "latex.multicol_align",
+        "r",
+        styler_multicol_align,
+        validator=is_one_of_factory(val_mca),
+    )
+
+    cf.register_option("latex.hrules", False, styler_hrules, validator=is_bool)
+
+    cf.register_option(
+        "latex.environment",
+        None,
+        styler_environment,
+        validator=is_instance_factory([type(None), str]),
     )
