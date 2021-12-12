@@ -293,6 +293,14 @@ on : label or list, or Callable
     provide a custom match condition for the join. The callable takes 2
     arguments, which represent the left and right sides of the merge, and
     must return a boolean.
+    ** note: Currently, for callables, the 2 arguements are represented by
+             DataFrame objects. This is subject to change in the future. For
+             the highest chance of forward compatibility treat the args passed
+             into the callable as if they are a simple datastructure
+             (e.g. dictionary or dataclass) holding just a single row of the
+             merge operation, such that accessing any element in the
+             datastructure would provide a scalar value, rather than a
+             column/Series. 
 left_on : label or list, or array-like
     Column or index level names to join on in the left DataFrame. Can also
     be an array or list of arrays of the length of the left DataFrame.
