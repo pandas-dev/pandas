@@ -38,7 +38,7 @@ from pandas.core.ops import roperator
     "nat,idx",
     [
         (Timestamp("NaT"), DatetimeArray),
-        (Timedelta("NaT"), TimedeltaIndex),
+        (Timedelta("NaT"), TimedeltaArray),
         (Period("NaT", freq="M"), PeriodArray),
     ],
 )
@@ -68,7 +68,7 @@ def test_nat_fields(nat, idx):
 def test_nat_vector_field_access():
     idx = DatetimeIndex(["1/1/2000", None, None, "1/4/2000"])
 
-    for field in DatetimeIndex._field_ops:
+    for field in DatetimeArray._field_ops:
         # weekday is a property of DTI, but a method
         # on NaT/Timestamp for compat with datetime
         if field == "weekday":
