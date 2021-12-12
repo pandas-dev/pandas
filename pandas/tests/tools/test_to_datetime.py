@@ -65,29 +65,44 @@ class TestTimeConversionFormats:
         expected = to_datetime([])
         tm.assert_index_equal(result, expected)
 
-    def test_to_datetime_format(self, cache):
-        values = ["1/1/2000", "1/2/2000", "1/3/2000"]
+    @pytest.mark.parametrize("box", [Series, Index])
+    @pytest.mark.parametrize(
+        "format, expected",
+        [
+            [
+                "%d/%m/%Y",
+                [Timestamp("20000101"), Timestamp("20000201"), Timestamp("20000301")],
+            ],
+            [
+                "%m/%d/%Y",
+                [Timestamp("20000101"), Timestamp("20000102"), Timestamp("20000103")],
+            ],
+        ],
+    )
+    def test_to_datetime_format(self, cache, box, format, expected):
+        values = box(["1/1/2000", "1/2/2000", "1/3/2000"])
+        result = to_datetime(values, format=format, cache=cache)
+        expected = box(expected)
+        if isinstance(expected, Series):
+            tm.assert_series_equal(result, expected)
+        else:
+            tm.assert_index_equal(result, expected)
 
-        results1 = [Timestamp("20000101"), Timestamp("20000201"), Timestamp("20000301")]
-        results2 = [Timestamp("20000101"), Timestamp("20000102"), Timestamp("20000103")]
-        for vals, expecteds in [
-            (values, (Index(results1), Index(results2))),
-            (Series(values), (Series(results1), Series(results2))),
-            (values[0], (results1[0], results2[0])),
-            (values[1], (results1[1], results2[1])),
-            (values[2], (results1[2], results2[2])),
-        ]:
-
-            for i, fmt in enumerate(["%d/%m/%Y", "%m/%d/%Y"]):
-                result = to_datetime(vals, format=fmt, cache=cache)
-                expected = expecteds[i]
-
-                if isinstance(expected, Series):
-                    tm.assert_series_equal(result, Series(expected))
-                elif isinstance(expected, Timestamp):
-                    assert result == expected
-                else:
-                    tm.assert_index_equal(result, expected)
+    @pytest.mark.parametrize(
+        "arg, expected, format",
+        [
+            ["1/1/2000", "20000101", "%d/%m/%Y"],
+            ["1/1/2000", "20000101", "%m/%d/%Y"],
+            ["1/2/2000", "20000201", "%d/%m/%Y"],
+            ["1/2/2000", "20000102", "%m/%d/%Y"],
+            ["1/3/2000", "20000301", "%d/%m/%Y"],
+            ["1/3/2000", "20000103", "%m/%d/%Y"],
+        ],
+    )
+    def test_to_datetime_format_scalar(self, cache, arg, expected, format):
+        result = to_datetime(arg, format=format, cache=cache)
+        expected = Timestamp(expected)
+        assert result == expected
 
     def test_to_datetime_format_YYYYMMDD(self, cache):
         ser = Series([19801222, 19801222] + [19810105] * 5)
@@ -99,6 +114,8 @@ class TestTimeConversionFormats:
         result = to_datetime(ser.apply(str), format="%Y%m%d", cache=cache)
         tm.assert_series_equal(result, expected)
 
+    def test_to_datetime_format_YYYYMMDD_with_nat(self, cache):
+        ser = Series([19801222, 19801222] + [19810105] * 5)
         # with NaT
         expected = Series(
             [Timestamp("19801222"), Timestamp("19801222")] + [Timestamp("19810105")] * 5
@@ -115,7 +132,7 @@ class TestTimeConversionFormats:
         result = to_datetime(ser2, format="%Y%m%d", cache=cache)
         tm.assert_series_equal(result, expected)
 
-    def test_to_datetime_format_YYYYMMDD_coercion(self, cache):
+    def test_to_datetime_format_YYYYMMDD_ignore(self, cache):
         # coercion
         # GH 7930
         ser = Series([20121231, 20141231, 99991231])
@@ -126,6 +143,10 @@ class TestTimeConversionFormats:
         )
         tm.assert_series_equal(result, expected)
 
+    def test_to_datetime_format_YYYYMMDD_coercion(self, cache):
+        # coercion
+        # GH 7930
+        ser = Series([20121231, 20141231, 99991231])
         result = to_datetime(ser, format="%Y%m%d", errors="coerce", cache=cache)
         expected = Series(["20121231", "20141231", "NaT"], dtype="M8[ns]")
         tm.assert_series_equal(result, expected)
@@ -243,9 +264,6 @@ class TestTimeConversionFormats:
         assert result == expected
 
     def test_to_datetime_format_microsecond(self, cache):
-
-        # these are locale dependent
-        lang, _ = locale.getlocale()
         month_abbr = calendar.month_abbr[4]
         val = f"01-{month_abbr}-2011 00:00:01.978"
 
@@ -254,8 +272,9 @@ class TestTimeConversionFormats:
         exp = datetime.strptime(val, format)
         assert result == exp
 
-    def test_to_datetime_format_time(self, cache):
-        data = [
+    @pytest.mark.parametrize(
+        "value, format, dt",
+        [
             ["01/10/2010 15:20", "%m/%d/%Y %H:%M", Timestamp("2010-01-10 15:20")],
             ["01/10/2010 05:43", "%m/%d/%Y %I:%M", Timestamp("2010-01-10 05:43")],
             [
@@ -263,23 +282,37 @@ class TestTimeConversionFormats:
                 "%m/%d/%Y %H:%M:%S",
                 Timestamp("2010-01-10 13:56:01"),
             ],
-        ]
-        locale_specific = [
-            ["01/10/2010 08:14 PM", "%m/%d/%Y %I:%M %p", Timestamp("2010-01-10 20:14")],
-            ["01/10/2010 07:40 AM", "%m/%d/%Y %I:%M %p", Timestamp("2010-01-10 07:40")],
-            [
+            pytest.param(
+                "01/10/2010 08:14 PM",
+                "%m/%d/%Y %I:%M %p",
+                Timestamp("2010-01-10 20:14"),
+                marks=pytest.mark.xfail(
+                    locale.getlocale()[0] != "en_US",
+                    reason="fail on a CI build with LC_ALL=zh_CN.utf8",
+                ),
+            ),
+            pytest.param(
+                "01/10/2010 07:40 AM",
+                "%m/%d/%Y %I:%M %p",
+                Timestamp("2010-01-10 07:40"),
+                marks=pytest.mark.xfail(
+                    locale.getlocale()[0] != "en_US",
+                    reason="fail on a CI build with LC_ALL=zh_CN.utf8",
+                ),
+            ),
+            pytest.param(
                 "01/10/2010 09:12:56 AM",
                 "%m/%d/%Y %I:%M:%S %p",
                 Timestamp("2010-01-10 09:12:56"),
-            ],
-        ]
-        if locale.getlocale()[0] == "en_US":
-            # this fail on a CI build with LC_ALL=zh_CN.utf8, so en_US
-            #  may be more specific than necessary.
-            data.extend(locale_specific)
-
-        for value, format, dt in data:
-            assert to_datetime(value, format=format, cache=cache) == dt
+                marks=pytest.mark.xfail(
+                    locale.getlocale()[0] != "en_US",
+                    reason="fail on a CI build with LC_ALL=zh_CN.utf8",
+                ),
+            ),
+        ],
+    )
+    def test_to_datetime_format_time(self, cache, value, format, dt):
+        assert to_datetime(value, format=format, cache=cache) == dt
 
     @td.skip_if_has_locale
     def test_to_datetime_with_non_exact(self, cache):
@@ -295,20 +328,23 @@ class TestTimeConversionFormats:
         )
         tm.assert_series_equal(result, expected)
 
-    def test_parse_nanoseconds_with_formula(self, cache):
-
-        # GH8989
-        # truncating the nanoseconds when a format was provided
-        for v in [
+    @pytest.mark.parametrize(
+        "arg",
+        [
             "2012-01-01 09:00:00.000000001",
             "2012-01-01 09:00:00.000001",
             "2012-01-01 09:00:00.001",
             "2012-01-01 09:00:00.001000",
             "2012-01-01 09:00:00.001000000",
-        ]:
-            expected = to_datetime(v, cache=cache)
-            result = to_datetime(v, format="%Y-%m-%d %H:%M:%S.%f", cache=cache)
-            assert result == expected
+        ],
+    )
+    def test_parse_nanoseconds_with_formula(self, cache, arg):
+
+        # GH8989
+        # truncating the nanoseconds when a format was provided
+        expected = to_datetime(arg, cache=cache)
+        result = to_datetime(arg, format="%Y-%m-%d %H:%M:%S.%f", cache=cache)
+        assert result == expected
 
     @pytest.mark.parametrize(
         "value,fmt,expected",
@@ -537,9 +573,6 @@ class TestToDatetime:
         result = to_datetime(arr)
         assert result is arr
 
-        result = to_datetime(arr)
-        assert result is arr
-
     def test_to_datetime_pydatetime(self):
         actual = to_datetime(datetime(2008, 1, 15))
         assert actual == datetime(2008, 1, 15)
@@ -570,14 +603,15 @@ class TestToDatetime:
             assert pdnow2.tzinfo is None
 
     @td.skip_if_windows  # `tm.set_timezone` does not work in windows
-    def test_to_datetime_today(self):
+    @pytest.mark.parametrize("tz", ["Pacific/Auckland", "US/Samoa"])
+    def test_to_datetime_today(self, tz):
         # See GH#18666
         # Test with one timezone far ahead of UTC and another far behind, so
         # one of these will _almost_ always be in a different day from UTC.
         # Unfortunately this test between 12 and 1 AM Samoa time
         # this both of these timezones _and_ UTC will all be in the same day,
         # so this test will not detect the regression introduced in #18666.
-        with tm.set_timezone("Pacific/Auckland"):  # 12-13 hours ahead of UTC
+        with tm.set_timezone(tz):
             nptoday = np.datetime64("today").astype("datetime64[ns]").astype(np.int64)
             pdtoday = to_datetime("today")
             pdtoday2 = to_datetime(["today"])[0]
@@ -595,28 +629,15 @@ class TestToDatetime:
             assert pdtoday.tzinfo is None
             assert pdtoday2.tzinfo is None
 
-        with tm.set_timezone("US/Samoa"):  # 11 hours behind UTC
-            nptoday = np.datetime64("today").astype("datetime64[ns]").astype(np.int64)
-            pdtoday = to_datetime("today")
-            pdtoday2 = to_datetime(["today"])[0]
+    @pytest.mark.parametrize("arg", ["now", "today"])
+    def test_to_datetime_today_now_unicode_bytes(self, arg):
+        to_datetime([arg])
 
-            # These should all be equal with infinite perf; this gives
-            # a generous margin of 10 seconds
-            assert abs(pdtoday.normalize().value - nptoday) < 1e10
-            assert abs(pdtoday2.normalize().value - nptoday) < 1e10
-
-            assert pdtoday.tzinfo is None
-            assert pdtoday2.tzinfo is None
-
-    def test_to_datetime_today_now_unicode_bytes(self):
-        to_datetime(["now"])
-        to_datetime(["today"])
-
-    def test_to_datetime_dt64s(self, cache):
-        in_bound_dts = [np.datetime64("2000-01-01"), np.datetime64("2000-01-02")]
-
-        for dt in in_bound_dts:
-            assert to_datetime(dt, cache=cache) == Timestamp(dt)
+    @pytest.mark.parametrize(
+        "dt", [np.datetime64("2000-01-01"), np.datetime64("2000-01-02")]
+    )
+    def test_to_datetime_dt64s(self, cache, dt):
+        assert to_datetime(dt, cache=cache) == Timestamp(dt)
 
     @pytest.mark.parametrize(
         "dt", [np.datetime64("1000-01-01"), np.datetime64("5000-01-02")]
@@ -681,6 +702,7 @@ class TestToDatetime:
         )
         tm.assert_index_equal(result, expected)
 
+    def test_to_datetime_tz_mixed_raises(self, cache):
         # mixed tzs will raise
         arr = [
             Timestamp("2013-01-01 13:00:00", tz="US/Pacific"),
@@ -748,10 +770,17 @@ class TestToDatetime:
         expected = end_constructor(expected_data)
         tm.assert_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "scalar, expected",
+        [
+            ["20100102 121314", Timestamp("2010-01-02 12:13:14", tz="utc")],
+            ["20100102 121315", Timestamp("2010-01-02 12:13:15", tz="utc")],
+        ],
+    )
+    def test_to_datetime_utc_true_scalar(self, cache, scalar, expected):
         # Test scalar case as well
-        for scalar, expected in zip(data, expected_data):
-            result = to_datetime(scalar, format="%Y%m%d %H%M%S", utc=True, cache=cache)
-            assert result == expected
+        result = to_datetime(scalar, format="%Y%m%d %H%M%S", utc=True, cache=cache)
+        assert result == expected
 
     def test_to_datetime_utc_true_with_series_single_value(self, cache):
         # GH 15760 UTC=True with Series
@@ -1069,6 +1098,8 @@ class TestToDatetime:
         expected = Index(expected)
         tm.assert_index_equal(result, expected)
 
+    def test_iso_8601_strings_with_different_offsets_utc(self):
+        ts_strings = ["2015-11-18 15:30:00+05:30", "2015-11-18 16:30:00+06:30", NaT]
         result = to_datetime(ts_strings, utc=True)
         expected = DatetimeIndex(
             [Timestamp(2015, 11, 18, 10), Timestamp(2015, 11, 18, 10), NaT], tz="UTC"
