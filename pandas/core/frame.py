@@ -5819,7 +5819,6 @@ class DataFrame(NDFrame, OpsMixin):
                 to_insert = ((self.index, None),)
 
             multi_col = isinstance(self.columns, MultiIndex)
-
             for i, (lev, lab) in reversed(list(enumerate(to_insert))):
                 if level is not None and i not in level:
                     continue
