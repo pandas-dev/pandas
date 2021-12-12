@@ -1582,7 +1582,7 @@ class PlotAccessor(PandasObject):
             raise ValueError("pie requires either y column or 'subplots=True'")
         return self(kind="pie", **kwargs)
 
-    def scatter(self, x, y, s=None, c=None, **kwargs):
+    def scatter(self, x, y, size=None, s=None, color=None, c=None, **kwargs):
         """
         Create a scatter plot with varying marker point size and color.
 
@@ -1601,7 +1601,7 @@ class PlotAccessor(PandasObject):
         y : int or str
             The column name or column position to be used as vertical
             coordinates for each point.
-        s : str, scalar or array-like, optional
+        size : str, scalar or array-like, optional
             The size of each point. Possible values are:
 
             - A string with the name of the column to be used for marker's size.
@@ -1614,7 +1614,7 @@ class PlotAccessor(PandasObject):
 
               .. versionchanged:: 1.1.0
 
-        c : str, int or array-like, optional
+        color : str, int or array-like, optional
             The color of each point. Possible values are:
 
             - A single color string referred to by name, RGB or RGBA code,
@@ -1653,7 +1653,7 @@ class PlotAccessor(PandasObject):
             ...                   columns=['length', 'width', 'species'])
             >>> ax1 = df.plot.scatter(x='length',
             ...                       y='width',
-            ...                       c='DarkBlue')
+            ...                       color='DarkBlue')
 
         And now with the color determined by a column as well.
 
@@ -1662,10 +1662,10 @@ class PlotAccessor(PandasObject):
 
             >>> ax2 = df.plot.scatter(x='length',
             ...                       y='width',
-            ...                       c='species',
+            ...                       color='species',
             ...                       colormap='viridis')
         """
-        return self(kind="scatter", x=x, y=y, s=s, c=c, **kwargs)
+        return self(kind="scatter", x=x, y=y, s=size or s, c=color or c, **kwargs)
 
     def hexbin(self, x, y, C=None, reduce_C_function=None, gridsize=None, **kwargs):
         """
