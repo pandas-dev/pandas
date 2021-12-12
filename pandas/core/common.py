@@ -604,3 +604,11 @@ def is_builtin_func(arg):
     otherwise return the arg
     """
     return _builtin_table.get(arg, arg)
+
+
+def fill_missing_names(names):
+    return [f"level_{i}" if name is None else name for i, name in enumerate(names)]
+
+
+def revert_missing_names(names):
+    return [None if name == f"level_{i}"  else name for i, name in enumerate(names)]

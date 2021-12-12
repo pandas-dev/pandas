@@ -736,12 +736,7 @@ class MultiIndex(Index):
         """
         from pandas import Series
 
-        return Series(
-            {
-                f"level_{idx}" if level.name is None else level.name: level.dtype
-                for idx, level in enumerate(self.levels)
-            }
-        )
+        return Series(com.fill_missing_names(self.levels))
 
     def __len__(self) -> int:
         return len(self.codes[0])
