@@ -5571,7 +5571,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: Literal[False] = ...,
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
-        allow_duplicates: bool | None = ...,
+        allow_duplicates: bool | str = ...,
     ) -> DataFrame:
         ...
 
@@ -5583,7 +5583,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: Literal[True],
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
-        allow_duplicates: bool | None = ...,
+        allow_duplicates: bool | str = ...,
     ) -> None:
         ...
 
@@ -5595,7 +5595,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: Literal[True],
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
-        allow_duplicates: bool | None = ...,
+        allow_duplicates: bool | str = ...,
     ) -> None:
         ...
 
@@ -5607,7 +5607,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: Literal[True],
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
-        allow_duplicates: bool | None = ...,
+        allow_duplicates: bool | str = ...,
     ) -> None:
         ...
 
@@ -5618,7 +5618,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: Literal[True],
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
-        allow_duplicates: bool | None = ...,
+        allow_duplicates: bool | str = ...,
     ) -> None:
         ...
 
@@ -5630,7 +5630,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: bool = ...,
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
-        allow_duplicates: bool | None = ...,
+        allow_duplicates: bool | str = ...,
     ) -> DataFrame | None:
         ...
 
@@ -5642,7 +5642,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: bool = False,
         col_level: Hashable = 0,
         col_fill: Hashable = "",
-        allow_duplicates: bool | None = False,
+        allow_duplicates: bool | str = False,
     ) -> DataFrame | None:
         """
         Reset the index, or a level of it.
@@ -5668,9 +5668,9 @@ class DataFrame(NDFrame, OpsMixin):
         col_fill : object, default ''
             If the columns have multiple levels, determines how the other
             levels are named. If None then the index name is repeated.
-        allow_duplicates : bool or None, default False
+        allow_duplicates : bool or str, default False
             Allow duplicate column labels to be created.
-            If None take value from self.flags.allows_duplicate_labels.
+            If "use_flag" take value from self.flags.allows_duplicate_labels.
 
         Returns
         -------
@@ -5795,6 +5795,9 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             new_obj = self.copy()
 
+        if allow_duplicates not in [False, True, "use_flag"]:
+            raise ValueError(f"Illegal allow_duplicates value: {allow_duplicates}")
+
         new_index = default_index(len(new_obj))
         if level is not None:
             if not isinstance(level, (tuple, list)):
@@ -5817,6 +5820,10 @@ class DataFrame(NDFrame, OpsMixin):
                 to_insert = ((self.index, None),)
 
             multi_col = isinstance(self.columns, MultiIndex)
+
+            if allow_duplicates == "use_flag":
+                allow_duplicates = self.flags.allows_duplicate_labels
+
             for i, (lev, lab) in reversed(list(enumerate(to_insert))):
                 if level is not None and i not in level:
                     continue
@@ -5848,14 +5855,11 @@ class DataFrame(NDFrame, OpsMixin):
                         level_values, lab, allow_fill=True, fill_value=lev._na_value
                     )
 
-                if allow_duplicates is None:
-                    allow_duplicates = self.flags.allows_duplicate_labels
-
                 new_obj.insert(
                     0,
                     name,
                     level_values,
-                    allow_duplicates=allow_duplicates,
+                    allow_duplicates=cast(bool, allow_duplicates),
                 )
 
         new_obj.index = new_index

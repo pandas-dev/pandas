@@ -425,7 +425,7 @@ class TestResetIndex:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("flag", [False, True])
-    @pytest.mark.parametrize("allow_duplicates", ["absent", False, None, True])
+    @pytest.mark.parametrize("allow_duplicates", ["absent", False, "use_flag", True])
     def test_reset_index_duplicate_columns(self, multiindex_df, flag, allow_duplicates):
         # GH#44755 reset_index with duplicate column labels
         df = multiindex_df.rename_axis("A")
@@ -451,6 +451,11 @@ class TestResetIndex:
                 [[0, 0, 2], [1, 1, 3]], columns=MultiIndex.from_tuples(levels)
             )
             tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("allow_duplicates", [None, "bad value"])
+    def test_reset_index_allow_duplicates_check(self, multiindex_df, allow_duplicates):
+        with pytest.raises(ValueError, match="Illegal allow_duplicates value"):
+            multiindex_df.reset_index(allow_duplicates=allow_duplicates)
 
     @pytest.mark.filterwarnings("ignore:Timestamp.freq is deprecated:FutureWarning")
     def test_reset_index_datetime(self, tz_naive_fixture):
