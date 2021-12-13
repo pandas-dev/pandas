@@ -647,3 +647,87 @@ def test_fillna_nonconsolidated_frame():
     df_nonconsol = df.pivot("i1", "i2")
     result = df_nonconsol.fillna(0)
     assert result.isna().sum().sum() == 0
+
+
+def test_fillna_with_int_and_string_nonempty():
+    df = DataFrame(
+        {
+            "A": [1, 2, np.nan],
+            "B": [4, np.nan, 8],
+        },
+        dtype="Int64",
+    )
+    df.fillna("nan")
+
+    expected = df = DataFrame(
+        {
+            "A": [1, 2, " "],
+            "B": [4, " ", 8],
+        },
+        dtype="Int64",
+    )
+
+    tm.assert_frame_equal(df, expected)
+
+
+def test_fillna_with_int_and_string_empty():
+    df = DataFrame(
+        {
+            "A": [1, 2, np.nan],
+            "B": [4, np.nan, 8],
+        },
+        dtype="Int64",
+    )
+    df.fillna(" ")
+
+    expected = df = DataFrame(
+        {
+            "A": [1, 2, " "],
+            "B": [4, " ", 8],
+        },
+        dtype="Int64",
+    )
+
+    tm.assert_frame_equal(df, expected)
+
+
+def test_fillna_with_float_and_string_nonempty():
+    df = DataFrame(
+        {
+            "A": [1, 2, np.nan],
+            "B": [4, np.nan, 8],
+        },
+        dtype="Float64",
+    )
+    df.fillna("nan")
+
+    expected = df = DataFrame(
+        {
+            "A": [1, 2, " "],
+            "B": [4, " ", 8],
+        },
+        dtype="Float64",
+    )
+
+    tm.assert_frame_equal(df, expected)
+
+
+def test_fillna_with_float_and_string_empty():
+    df = DataFrame(
+        {
+            "A": [1, 2, np.nan],
+            "B": [4, np.nan, 8],
+        },
+        dtype="Float64",
+    )
+    df.fillna(" ")
+
+    expected = df = DataFrame(
+        {
+            "A": [1, 2, " "],
+            "B": [4, " ", 8],
+        },
+        dtype="Float64",
+    )
+
+    tm.assert_frame_equal(df, expected)

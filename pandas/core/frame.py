@@ -598,6 +598,12 @@ class DataFrame(NDFrame, OpsMixin):
         if data is None:
             data = {}
         if dtype is not None:
+            if isinstance(dtype, str):
+                if dtype == "Int64":
+                    dtype = "int64"
+                elif dtype == "Float64":
+                    dtype = "float64"
+
             dtype = self._validate_dtype(dtype)
 
         if isinstance(data, DataFrame):
