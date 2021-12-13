@@ -252,12 +252,7 @@ class Base:
                     index._values._ndarray, result._values._ndarray, check_same="same"
                 )
             elif index.dtype == "string[pyarrow]":
-                # https://github.com/pandas-dev/pandas/pull/43930#discussion_r736862669
-                result_pa_data = result._values._data
-                index_pa_data = index._values._data
-                res_buf1 = result_pa_data.chunk(0).buffers()[1]
-                idx_buf1 = index_pa_data.chunk(0).buffers()[1]
-                assert res_buf1.address == idx_buf1.address
+                assert tm.shares_memory(result._values, index._values)
             else:
                 raise NotImplementedError(index.dtype)
         else:

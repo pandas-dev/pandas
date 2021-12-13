@@ -32,16 +32,14 @@ def test_value_counts(index_or_series_obj):
         expected.index = Index(expected.index)
 
     if not isinstance(result.dtype, np.dtype):
-        # TODO: be more specific
         # i.e IntegerDtype
-        expected = expected.astype(result.dtype)
+        expected = expected.astype("Int64")
 
     # TODO(GH#32514): Order of entries with the same count is inconsistent
     #  on CI (gh-32449)
     if obj.duplicated().any():
         result = result.sort_index()
         expected = expected.sort_index()
-
     tm.assert_series_equal(result, expected)
 
 
@@ -78,9 +76,8 @@ def test_value_counts_null(null_obj, index_or_series_obj):
         result = result.sort_index()
 
     if not isinstance(result.dtype, np.dtype):
-        # TODO: be more specific
         # i.e IntegerDtype
-        expected = expected.astype(result.dtype)
+        expected = expected.astype("Int64")
     tm.assert_series_equal(result, expected)
 
     expected[null_obj] = 3
