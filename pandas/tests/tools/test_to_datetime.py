@@ -305,7 +305,7 @@ class TestTimeConversionFormats:
                 "%m/%d/%Y %I:%M:%S %p",
                 Timestamp("2010-01-10 09:12:56"),
                 marks=pytest.mark.xfail(
-                    locale.getlocale()[0] != "en_US",
+                    locale.getlocale()[0] == "en_US",
                     reason="fail on a CI build with LC_ALL=zh_CN.utf8",
                 ),
             ),
