@@ -1,3 +1,6 @@
+from collections.abc import Iterable
+import numbers
+
 import numpy as np
 import pytest
 
@@ -9,29 +12,80 @@ import pandas._testing as tm
 from pandas.core.arrays import ExtensionArray
 
 
-class DummyDtype(dtypes.ExtensionDtype):
+class DummyClass:
     pass
 
 
-class DummyArray(ExtensionArray):
-    def __init__(self, data):
-        self.data = data
+class DummyDtype(dtypes.ExtensionDtype):
 
-    def __array__(self, dtype):
+    type = DummyClass
+    name = "dummy"
+
+    @classmethod
+    def construct_from_string(cls, string):
+        if string == cls.name:
+            return cls()
+        else:
+            raise TypeError("Cannot construct a '{}' from " "'{}'".format(cls, string))
+
+    @classmethod
+    def construct_array_type(cls):
+        return DummyArray
+
+
+class DummyArray(ExtensionArray):
+
+    _dtype = DummyDtype
+
+    def __init__(self, data):
+        self.data = np.array(data)
+
+    def __array__(self, dtype=None):
         return self.data
 
     @property
     def dtype(self):
-        return DummyDtype()
+        return DummyArray._dtype()
 
     def astype(self, dtype, copy=True):
         # we don't support anything but a single dtype
-        if isinstance(dtype, DummyDtype):
+        if isinstance(dtype, self._dtype):
             if copy:
                 return type(self)(self.data)
             return self
 
         return np.array(self, dtype=dtype, copy=copy)
+
+    def __len__(self):
+        return len(self.data)
+
+    @classmethod
+    def _from_sequence(cls, scalars, dtype=None, copy=False):
+        if isinstance(scalars, cls._dtype.type):
+            scalars = [scalars]
+        return DummyArray(scalars)
+
+    def take(self, indices, allow_fill=False, fill_value=None):
+        from pandas.core.algorithms import take
+
+        data = self.astype(object)
+
+        if allow_fill and fill_value is None:
+            fill_value = self.dtype.na_value
+
+        result = take(data, indices, fill_value=fill_value, allow_fill=allow_fill)
+        return self._from_sequence(result, dtype=self.dtype)
+
+    def isna(self):
+        return np.array([x is self.dtype.na_value for x in self.data], dtype="bool")
+
+    def __getitem__(self, idx):
+        if isinstance(idx, numbers.Integral):
+            return self.data[idx]
+        elif isinstance(idx, (Iterable, slice)):
+            return DummyArray(self.data[idx])
+        else:
+            raise TypeError("Index type not supported", idx)
 
 
 class TestExtensionArrayDtype:
@@ -79,3 +133,20 @@ def test_astype_no_copy():
 def test_is_extension_array_dtype(dtype):
     assert isinstance(dtype, dtypes.ExtensionDtype)
     assert is_extension_array_dtype(dtype)
+
+
+@pytest.mark.parametrize("na_value", [np.nan, pd.NA, None])
+def test_empty_series_construction(na_value):
+    class TempDType(DummyDtype):
+        @classmethod
+        def construct_array_type(cls):
+            return TempArray
+
+    TempDType.na_value = na_value
+
+    class TempArray(DummyArray):
+        _dtype = TempDType
+
+    result = pd.Series(index=[1, 2, 3], dtype=TempDType())
+    expected = pd.Series([na_value] * 3, index=[1, 2, 3], dtype=TempDType())
+    tm.assert_series_equal(result, expected)
