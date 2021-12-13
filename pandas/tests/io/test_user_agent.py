@@ -201,7 +201,7 @@ def process_server(responder, port):
     server.server_close()
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def responder(request):
     with socket.socket() as sock:
         sock.bind(("localhost", 0))
