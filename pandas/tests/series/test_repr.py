@@ -11,7 +11,6 @@ from pandas import (
     Categorical,
     DataFrame,
     Index,
-    MultiIndex,
     Series,
     date_range,
     option_context,
@@ -22,13 +21,9 @@ import pandas._testing as tm
 
 
 class TestSeriesRepr:
-    def test_multilevel_name_print(self):
-        index = MultiIndex(
-            levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
-            codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
-            names=["first", "second"],
-        )
-        s = Series(range(len(index)), index=index, name="sth")
+    def test_multilevel_name_print(self, lexsorted_two_level_string_multiindex):
+        index = lexsorted_two_level_string_multiindex
+        ser = Series(range(len(index)), index=index, name="sth")
         expected = [
             "first  second",
             "foo    one       0",
@@ -44,7 +39,7 @@ class TestSeriesRepr:
             "Name: sth, dtype: int64",
         ]
         expected = "\n".join(expected)
-        assert repr(s) == expected
+        assert repr(ser) == expected
 
     def test_name_printing(self):
         # Test small Series.
