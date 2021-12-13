@@ -287,7 +287,7 @@ class TestTimeConversionFormats:
                 "%m/%d/%Y %I:%M %p",
                 Timestamp("2010-01-10 20:14"),
                 marks=pytest.mark.xfail(
-                    locale.getlocale()[0] != "en_US",
+                    locale.getlocale()[0] == "zh_CN",
                     reason="fail on a CI build with LC_ALL=zh_CN.utf8",
                 ),
             ),
@@ -296,7 +296,7 @@ class TestTimeConversionFormats:
                 "%m/%d/%Y %I:%M %p",
                 Timestamp("2010-01-10 07:40"),
                 marks=pytest.mark.xfail(
-                    locale.getlocale()[0] != "en_US",
+                    locale.getlocale()[0] == "zh_CN",
                     reason="fail on a CI build with LC_ALL=zh_CN.utf8",
                 ),
             ),
