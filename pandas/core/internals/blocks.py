@@ -738,8 +738,8 @@ class Block(PandasObject):
         new_values = self.values if inplace else self.values.copy()
         replace_regex(new_values, rx, value, mask)
 
-        block = self.make_block(new_values).convert(numeric=False, copy=False)
-        return [block]
+        block = self.make_block(new_values)
+        return block.convert(numeric=False, copy=False)
 
     @final
     def _replace_list(
