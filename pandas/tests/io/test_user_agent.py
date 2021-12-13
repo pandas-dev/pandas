@@ -7,6 +7,7 @@ from io import BytesIO
 import multiprocessing
 import socket
 import time
+import urllib.error
 
 import pytest
 
@@ -183,6 +184,17 @@ class AllHeaderCSVResponder(http.server.BaseHTTPRequestHandler):
         self.wfile.write(response_bytes)
 
 
+def wait_until_ready(func, *args, **kwargs):
+    def inner(*args, **kwargs):
+        while True:
+            try:
+                return func(*args, **kwargs)
+            except urllib.error.URLError:
+                time.sleep(0.1)
+
+    return inner
+
+
 def process_server(responder, port):
     with http.server.HTTPServer(("localhost", port), responder) as server:
         server.handle_request()
@@ -199,11 +211,17 @@ def responder(request):
         target=process_server, args=(request.param, port)
     )
     server_process.start()
-    time.sleep(2)
     yield port
     server_process.terminate()
+    kill_time = 5
+    wait_time = 0
     while server_process.is_alive():
-        time.sleep(0.5)
+        if wait_time > kill_time:
+            server_process.kill()
+            break
+        else:
+            wait_time += 0.1
+            time.sleep(0.1)
     server_process.close()
 
 
@@ -233,6 +251,7 @@ def test_server_and_default_headers(responder, read_method, parquet_engine):
         if parquet_engine == "fastparquet":
             pytest.importorskip("fsspec")
 
+    read_method = wait_until_ready(read_method)
     if parquet_engine is None:
         df_http = read_method(f"http://localhost:{responder}")
     else:
@@ -270,6 +289,7 @@ def test_server_and_custom_headers(responder, read_method, parquet_engine):
     custom_user_agent = "Super Cool One"
     df_true = pd.DataFrame({"header": [custom_user_agent]})
 
+    read_method = wait_until_ready(read_method)
     if parquet_engine is None:
         df_http = read_method(
             f"http://localhost:{responder}",
@@ -299,7 +319,7 @@ def test_server_and_all_custom_headers(responder, read_method):
         "User-Agent": custom_user_agent,
         "Auth": custom_auth_token,
     }
-
+    read_method = wait_until_ready(read_method)
     df_http = read_method(
         f"http://localhost:{responder}",
         storage_options=storage_options,
