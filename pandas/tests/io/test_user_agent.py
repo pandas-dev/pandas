@@ -190,6 +190,7 @@ def wait_until_ready(func, *args, **kwargs):
             try:
                 return func(*args, **kwargs)
             except urllib.error.URLError:
+                # Connection refused as http server is starting
                 time.sleep(0.1)
 
     return inner
@@ -203,6 +204,14 @@ def process_server(responder, port):
 
 @pytest.fixture
 def responder(request):
+    """
+    Fixture that starts a local http server in a separate process on localhost
+    and returns the port.
+
+    Running in a separate process instead of a thread to allow termination/killing
+    of http server upon cleanup.
+    """
+    # Find an available port
     with socket.socket() as sock:
         sock.bind(("localhost", 0))
         port = sock.getsockname()[1]
