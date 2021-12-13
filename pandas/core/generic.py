@@ -10368,7 +10368,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     ufunc = np.logical_and
                 else:
                     result = np.zeros(len(obj), dtype=bool)
-                    ufunc = np.logical_or
+                    # error: Incompatible types in assignment
+                    # (expression has type "_UFunc_Nin2_Nout1[Literal['logical_or'],
+                    # Literal[20], Literal[False]]", variable has type
+                    # "_UFunc_Nin2_Nout1[Literal['logical_and'], Literal[20],
+                    # Literal[True]]")
+                    ufunc = np.logical_or  # type: ignore[assignment]
 
                 for arr in obj._mgr.arrays:
                     middle = func(arr, axis=0, skipna=skipna)
