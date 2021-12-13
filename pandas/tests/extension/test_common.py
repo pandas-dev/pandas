@@ -1,4 +1,4 @@
-from collections.abc import Iterable
+from collections import abc
 import numbers
 
 import numpy as np
@@ -26,7 +26,7 @@ class DummyDtype(dtypes.ExtensionDtype):
         if string == cls.name:
             return cls()
         else:
-            raise TypeError("Cannot construct a '{}' from " "'{}'".format(cls, string))
+            raise TypeError("Cannot construct a '{}' from '{}'".format(cls, string))
 
     @classmethod
     def construct_array_type(cls):
@@ -82,7 +82,7 @@ class DummyArray(ExtensionArray):
     def __getitem__(self, idx):
         if isinstance(idx, numbers.Integral):
             return self.data[idx]
-        elif isinstance(idx, (Iterable, slice)):
+        elif isinstance(idx, (abc.Iterable, slice)):
             return DummyArray(self.data[idx])
         else:
             raise TypeError("Index type not supported", idx)
