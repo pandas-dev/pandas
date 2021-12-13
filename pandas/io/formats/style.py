@@ -2241,7 +2241,7 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        descriptors : list of strings, callables or 2-tuples of string and callable
+        descriptors : list of str, callables or 2-tuples of str and callable
             If a string is given must be a valid Series method, e.g. "mean" invokes
             Series.mean().
 
