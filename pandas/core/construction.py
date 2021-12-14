@@ -528,6 +528,8 @@ def sanitize_array(
 
     # GH#846
     if isinstance(data, np.ndarray):
+        if isinstance(data, np.matrix):
+            data = data.A
 
         if dtype is not None and is_float_dtype(data.dtype) and is_integer_dtype(dtype):
             # possibility of nan -> garbage
