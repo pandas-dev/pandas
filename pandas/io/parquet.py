@@ -167,9 +167,12 @@ class PyArrowImpl(BaseImpl):
     ):
         self.validate_dataframe(df)
 
-        # PyArrow does not support saving float16
-        if df.select_dtypes(include="float16").columns.size > 0:
-            raise ValueError("PyArrow does not support saving float16")
+        fp16_columns = df.select_dtypes(include="float16").columns
+        if fp16_columns.size > 0:
+            raise ValueError(
+                f"Columns [{','.join(fp16_columns.values)}] are of dtype float16. "
+                + "PyArrow does not support saving float16 dtype columns."
+            )
 
         from_pandas_kwargs: dict[str, Any] = {"schema": kwargs.pop("schema", None)}
         if index is not None:
