@@ -607,4 +607,7 @@ def is_builtin_func(arg):
 
 
 def fill_missing_names(names):
+    """
+    If a name is missing then replace it by level_n, where n is the count
+    """
     return [f"level_{i}" if name is None else name for i, name in enumerate(names)]
