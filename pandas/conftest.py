@@ -17,8 +17,6 @@ Instead of splitting it was decided to define sections here:
 - Dtypes
 - Misc
 """
-# pyright: reportUntypedFunctionDecorator = false
-
 from collections import abc
 from datetime import (
     date,
@@ -30,6 +28,9 @@ from datetime import (
 from decimal import Decimal
 import operator
 import os
+import re
+import subprocess
+import sys
 
 from dateutil.tz import (
     tzlocal,
@@ -197,6 +198,20 @@ def add_imports(doctest_namespace):
     """
     doctest_namespace["np"] = np
     doctest_namespace["pd"] = pd
+
+
+pat = re.compile(r"(0?[1-9]|1[0-9]|2[0-5])u")
+
+
+@pytest.fixture(autouse=True)
+def check_bufferedrandom_resourcewarning():
+    yield
+    lsof = subprocess.run(["lsof"], capture_output=True).stdout.decode("utf-8")
+    for line in lsof.split("\n"):
+        if re.match(pat, line):
+            # sys.stderr for xdist
+            # https://github.com/pytest-dev/pytest/issues/1693#issuecomment-233282644
+            print(line, flush=True, file=sys.stderr)
 
 
 # ----------------------------------------------------------------
