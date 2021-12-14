@@ -58,6 +58,7 @@ from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     ExtensionDtype,
     PandasDtype,
+    PeriodDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -1736,6 +1737,12 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
 
     values: NDArrayBackedExtensionArray
 
+    # error: Signature of "is_extension" incompatible with supertype "Block"
+    @cache_readonly
+    def is_extension(self) -> bool:  # type: ignore[override]
+        # i.e. datetime64tz, PeriodDtype
+        return not isinstance(self.dtype, np.dtype)
+
     @property
     def is_view(self) -> bool:
         """return a boolean if I am possibly a view"""
@@ -1764,6 +1771,9 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
         try:
             res_values = arr.T._where(cond, other).T
         except (ValueError, TypeError):
+            if isinstance(self.dtype, PeriodDtype):
+                # TODO: don't special-case
+                raise
             blk = self.coerce_to_target_dtype(other)
             nbs = blk.where(other, cond)
             return self._maybe_downcast(nbs, "infer")
@@ -1957,6 +1967,8 @@ def get_block_type(dtype: DtypeObj):
         cls = CategoricalBlock
     elif vtype is Timestamp:
         cls = DatetimeTZBlock
+    elif isinstance(dtype, PeriodDtype):
+        cls = NDArrayBackedExtensionBlock
     elif isinstance(dtype, ExtensionDtype):
         # Note: need to be sure PandasArray is unwrapped before we get here
         cls = ExtensionBlock

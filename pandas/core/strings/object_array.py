@@ -193,7 +193,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             return result
 
     def _str_match(
-        self, pat: str, case: bool = True, flags: int = 0, na: Scalar = None
+        self, pat: str, case: bool = True, flags: int = 0, na: Scalar | None = None
     ):
         if not case:
             flags |= re.IGNORECASE
@@ -208,7 +208,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         pat: str | re.Pattern,
         case: bool = True,
         flags: int = 0,
-        na: Scalar = None,
+        na: Scalar | None = None,
     ):
         if not case:
             flags |= re.IGNORECASE
