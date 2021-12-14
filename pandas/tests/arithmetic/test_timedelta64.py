@@ -2060,18 +2060,16 @@ class TestTimedeltaArraylikeMulDivOps:
         with pytest.raises(TypeError, match=pattern):
             vector / tdser
 
-        if not isinstance(vector, pd.Index):
-            # Index.__rdiv__ won't try to operate elementwise, just raises
-            result = tdser / vector.astype(object)
-            if box_with_array is DataFrame:
-                expected = [tdser.iloc[0, n] / vector[n] for n in range(len(vector))]
-            else:
-                expected = [tdser[n] / vector[n] for n in range(len(tdser))]
-            expected = pd.Index(expected)  # do dtype inference
-            expected = tm.box_expected(expected, xbox)
-            assert tm.get_dtype(expected) == "m8[ns]"
+        result = tdser / vector.astype(object)
+        if box_with_array is DataFrame:
+            expected = [tdser.iloc[0, n] / vector[n] for n in range(len(vector))]
+        else:
+            expected = [tdser[n] / vector[n] for n in range(len(tdser))]
+        expected = pd.Index(expected)  # do dtype inference
+        expected = tm.box_expected(expected, xbox)
+        assert tm.get_dtype(expected) == "m8[ns]"
 
-            tm.assert_equal(result, expected)
+        tm.assert_equal(result, expected)
 
         with pytest.raises(TypeError, match=pattern):
             vector.astype(object) / tdser
