@@ -219,7 +219,7 @@ Other enhancements
 - :meth:`DataFrame.dropna` now accepts a single label as ``subset`` along with array-like (:issue:`41021`)
 - :class:`ExcelWriter` argument ``if_sheet_exists="overlay"`` option added (:issue:`40231`)
 - :meth:`read_excel` now accepts a ``decimal`` argument that allow the user to specify the decimal point when parsing string columns to numeric (:issue:`14403`)
-- :meth:`.GroupBy.mean` now supports `Numba <http://numba.pydata.org/>`_ execution with the ``engine`` keyword (:issue:`43731`)
+- :meth:`.GroupBy.mean`, :meth:`.GroupBy.std`, and :meth:`.GroupBy.var` now supports `Numba <http://numba.pydata.org/>`_ execution with the ``engine`` keyword (:issue:`43731`, :issue:`44862`)
 - :meth:`Timestamp.isoformat`, now handles the ``timespec`` argument from the base :class:``datetime`` class (:issue:`26131`)
 - :meth:`NaT.to_numpy` ``dtype`` argument is now respected, so ``np.timedelta64`` can be returned (:issue:`44460`)
 - New option ``display.max_dir_items`` customizes the number of columns added to :meth:`Dataframe.__dir__` and suggested for tab completion (:issue:`37996`)
@@ -699,6 +699,7 @@ Indexing
 - Bug in :meth:`DataFrame.loc.__getitem__` incorrectly raising ``KeyError`` when selecting a single column with a boolean key (:issue:`44322`).
 - Bug in setting :meth:`DataFrame.iloc` with a single ``ExtensionDtype`` column and setting 2D values e.g. ``df.iloc[:] = df.values`` incorrectly raising (:issue:`44514`)
 - Bug in indexing on columns with ``loc`` or ``iloc`` using a slice with a negative step with ``ExtensionDtype`` columns incorrectly raising (:issue:`44551`)
+- Bug in :meth:`DataFrame.loc.__setitem__` changing dtype when indexer was completely ``False`` (:issue:`37550`)
 - Bug in :meth:`IntervalIndex.get_indexer_non_unique` returning boolean mask instead of array of integers for a non unique and non monotonic index (:issue:`44084`)
 - Bug in :meth:`IntervalIndex.get_indexer_non_unique` not handling targets of ``dtype`` 'object' with NaNs correctly (:issue:`44482`)
 -
