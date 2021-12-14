@@ -183,6 +183,22 @@ for name in "QuarterBegin QuarterEnd BQuarterBegin BQuarterEnd".split():
 # ----------------------------------------------------------------
 # Autouse fixtures
 # ----------------------------------------------------------------
+pat = re.compile(r"python3")
+
+
+@pytest.fixture(autouse=True)
+def check_bufferedrandom_resourcewarning():
+    yield
+    lsof = subprocess.run(["lsof", "-d", "0-25"], capture_output=True).stdout.decode(
+        "utf-8"
+    )
+    for line in lsof.split("\n"):
+        if re.search(pat, line):
+            # sys.stderr for xdist
+            # https://github.com/pytest-dev/pytest/issues/1693#issuecomment-233282644
+            print(line, flush=True, file=sys.stderr)
+
+
 @pytest.fixture(autouse=True)
 def configure_tests():
     """
@@ -198,20 +214,6 @@ def add_imports(doctest_namespace):
     """
     doctest_namespace["np"] = np
     doctest_namespace["pd"] = pd
-
-
-pat = re.compile(r"(0?[1-9]|1[0-9]|2[0-5])u")
-
-
-@pytest.fixture(autouse=True)
-def check_bufferedrandom_resourcewarning():
-    yield
-    lsof = subprocess.run(["lsof"], capture_output=True).stdout.decode("utf-8")
-    for line in lsof.split("\n"):
-        if re.match(pat, line):
-            # sys.stderr for xdist
-            # https://github.com/pytest-dev/pytest/issues/1693#issuecomment-233282644
-            print(line, flush=True, file=sys.stderr)
 
 
 # ----------------------------------------------------------------
