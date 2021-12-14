@@ -9,7 +9,7 @@ def month_position_check(fields, weekdays) -> str | None: ...
 def get_date_name_field(
     dtindex: npt.NDArray[np.int64],  # const int64_t[:]
     field: str,
-    locale=...,
+    locale: str | None = ...,
 ) -> npt.NDArray[np.object_]: ...
 def get_start_end_field(
     dtindex: npt.NDArray[np.int64],  # const int64_t[:]
@@ -31,7 +31,7 @@ def isleapyear_arr(
 def build_isocalendar_sarray(
     dtindex: npt.NDArray[np.int64],  # const int64_t[:]
 ) -> np.ndarray: ...
-def get_locale_names(name_type: str, locale: object = ...): ...
+def get_locale_names(name_type: str, locale: str | None = ...): ...
 
 class RoundTo:
     @property
