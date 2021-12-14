@@ -105,8 +105,8 @@ class _XMLFrameParser:
         names,
         encoding,
         stylesheet,
-        compression,
-        storage_options,
+        compression: CompressionOptions,
+        storage_options: StorageOptions,
     ) -> None:
         self.path_or_buffer = path_or_buffer
         self.xpath = xpath
@@ -570,8 +570,8 @@ class _LxmlFrameParser(_XMLFrameParser):
 def get_data_from_filepath(
     filepath_or_buffer: FilePath | bytes | ReadBuffer[bytes] | ReadBuffer[str],
     encoding,
-    compression,
-    storage_options,
+    compression: CompressionOptions,
+    storage_options: StorageOptions,
 ) -> str | bytes | ReadBuffer[bytes] | ReadBuffer[str]:
     """
     Extract raw XML data.
@@ -666,8 +666,8 @@ def _parse(
     encoding,
     parser,
     stylesheet,
-    compression,
-    storage_options,
+    compression: CompressionOptions,
+    storage_options: StorageOptions,
     **kwargs,
 ) -> DataFrame:
     """

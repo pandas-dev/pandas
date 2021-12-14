@@ -61,7 +61,6 @@ dependencies:
   - pytest>=6.0
   - pytest-cov
   - pytest-xdist>=1.31
-  - pytest-timeout
   - pytest-asyncio
   - pytest-instafail
 
