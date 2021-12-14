@@ -84,7 +84,7 @@ jobs:
         channel-priority: flexible
         environment-file: ${{ env.ENV_FILE }}
         use-only-tar-bz2: true
-      if: !IS_PYPY # No pypy3.8 support
+      if: ${{ !IS_PYPY }} # No pypy3.8 support
     
     - name: Setup PyPy
       uses: actions/setup-python@v2.3.1
