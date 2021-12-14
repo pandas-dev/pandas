@@ -1099,21 +1099,24 @@ class TestTimedeltaArraylikeAddSubOps:
 
     @pytest.mark.parametrize("pi_freq", ["D", "W", "Q", "H"])
     @pytest.mark.parametrize("tdi_freq", [None, "H"])
-    def test_td64arr_sub_periodlike(self, box_with_array, tdi_freq, pi_freq):
+    def test_td64arr_sub_periodlike(
+        self, box_with_array, box_with_array2, tdi_freq, pi_freq
+    ):
         # GH#20049 subtracting PeriodIndex should raise TypeError
         tdi = TimedeltaIndex(["1 hours", "2 hours"], freq=tdi_freq)
         dti = Timestamp("2018-03-07 17:16:40") + tdi
         pi = dti.to_period(pi_freq)
+        per = pi[0]
 
-        # TODO: parametrize over box for pi?
         tdi = tm.box_expected(tdi, box_with_array)
+        pi = tm.box_expected(pi, box_with_array2)
         msg = "cannot subtract|unsupported operand type"
         with pytest.raises(TypeError, match=msg):
             tdi - pi
 
         # GH#13078 subtraction of Period scalar not supported
         with pytest.raises(TypeError, match=msg):
-            tdi - pi[0]
+            tdi - per
 
     @pytest.mark.parametrize(
         "other",
@@ -2099,12 +2102,8 @@ class TestTimedeltaArraylikeMulDivOps:
         result = ser * tdi
         tm.assert_equal(result, expected)
 
-        # The direct operation tdi * ser still needs to be fixed.
-        result = ser.__rmul__(tdi)
-        if box is DataFrame:
-            assert result is NotImplemented
-        else:
-            tm.assert_equal(result, expected)
+        result = tdi * ser
+        tm.assert_equal(result, expected)
 
     # TODO: Should we be parametrizing over types for `ser` too?
     def test_float_series_rdiv_td64arr(self, box_with_array, names):
