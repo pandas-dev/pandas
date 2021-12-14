@@ -648,7 +648,15 @@ class TestBasic(Base):
             "object",
             "datetime64[ns, UTC]",
             "float",
-            "period[D]",
+            pytest.param(
+                "period[D]",
+                # Note: I don't know exactly what version the cutoff is;
+                #  On the CI it fails with 1.0.1
+                marks=pytest.mark.xfail(
+                    pa_version_under2p0,
+                    reason="pyarrow uses pandas internal API incorrectly",
+                ),
+            ),
             "Float64",
             "string",
         ],
@@ -887,6 +895,9 @@ class TestParquetPyArrow(Base):
             check_round_trip(df, pa, expected=df.astype(f"string[{string_storage}]"))
 
     @td.skip_if_no("pyarrow")
+    @pytest.mark.xfail(
+        pa_version_under2p0, reason="pyarrow uses pandas internal API incorrectly"
+    )
     def test_additional_extension_types(self, pa):
         # test additional ExtensionArrays that are supported through the
         # __arrow_array__ protocol + by defining a custom ExtensionType
