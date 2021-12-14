@@ -96,6 +96,26 @@ class TestDataFrameAppend:
         expected = df.append(DataFrame(dicts), ignore_index=True, sort=True)
         tm.assert_frame_equal(result, expected)
 
+    def test_append_list_retain_index_name(self):
+        df = DataFrame(
+            [[1, 2], [3, 4]], index=pd.Index(["a", "b"], name="keepthisname")
+        )
+
+        serc = Series([5, 6], name="c")
+
+        expected = DataFrame(
+            [[1, 2], [3, 4], [5, 6]],
+            index=pd.Index(["a", "b", "c"], name="keepthisname"),
+        )
+
+        # append series
+        result = df.append(serc)
+        tm.assert_frame_equal(result, expected)
+
+        # append list of series
+        result = df.append([serc])
+        tm.assert_frame_equal(result, expected)
+
     def test_append_missing_cols(self):
         # GH22252
         # exercise the conditional branch in append method where the data

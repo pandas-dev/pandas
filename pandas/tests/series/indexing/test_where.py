@@ -88,7 +88,7 @@ def test_where_unsafe():
     s = Series(np.arange(10))
     mask = s > 5
 
-    msg = "cannot assign mismatch length to masked array"
+    msg = "cannot set using a list-like indexer with a different length than the value"
     with pytest.raises(ValueError, match=msg):
         s[mask] = [5, 4, 3, 2, 1]
 
@@ -161,13 +161,10 @@ def test_where_error():
     tm.assert_series_equal(s, expected)
 
     # failures
-    msg = "cannot assign mismatch length to masked array"
+    msg = "cannot set using a list-like indexer with a different length than the value"
     with pytest.raises(ValueError, match=msg):
         s[[True, False]] = [0, 2, 3]
-    msg = (
-        "NumPy boolean array indexing assignment cannot assign 0 input "
-        "values to the 1 output values where the mask is true"
-    )
+
     with pytest.raises(ValueError, match=msg):
         s[[True, False]] = []
 
@@ -298,6 +295,7 @@ def test_where_setitem_invalid():
     "box", [lambda x: np.array([x]), lambda x: [x], lambda x: (x,)]
 )
 def test_broadcast(size, mask, item, box):
+    # GH#8801, GH#4195
     selection = np.resize(mask, size)
 
     data = np.arange(size, dtype=float)
@@ -309,7 +307,8 @@ def test_broadcast(size, mask, item, box):
     )
 
     s = Series(data)
-    s[selection] = box(item)
+
+    s[selection] = item
     tm.assert_series_equal(s, expected)
 
     s = Series(data)
@@ -441,12 +440,14 @@ def test_where_categorical(frame_or_series):
     tm.assert_equal(exp, res)
 
 
-# TODO(ArrayManager) DataFrame.values not yet correctly returning datetime array
-# for categorical with datetime categories
-@td.skip_array_manager_not_yet_implemented
-def test_where_datetimelike_categorical(tz_naive_fixture):
+def test_where_datetimelike_categorical(request, tz_naive_fixture, using_array_manager):
     # GH#37682
     tz = tz_naive_fixture
+
+    if using_array_manager and tz is None:
+        # TODO(ArrayManager) DataFrame.values not yet correctly returning datetime array
+        # for categorical with datetime categories
+        td.mark_array_manager_not_yet_implemented(request)
 
     dr = date_range("2001-01-01", periods=3, tz=tz)._with_freq(None)
     lvals = pd.DatetimeIndex([dr[0], dr[1], pd.NaT])

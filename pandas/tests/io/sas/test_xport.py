@@ -30,6 +30,7 @@ class TestXport:
         self.file02 = os.path.join(self.dirpath, "SSHSV1_A.xpt")
         self.file03 = os.path.join(self.dirpath, "DRXFCD_G.xpt")
         self.file04 = os.path.join(self.dirpath, "paxraw_d_short.xpt")
+        self.file05 = os.path.join(self.dirpath, "DEMO_PUF.cpt")
 
         with td.file_leak_context():
             yield
@@ -157,3 +158,11 @@ class TestXport:
 
         data = read_sas(self.file04, format="xport")
         tm.assert_frame_equal(data.astype("int64"), data_csv)
+
+    def test_cport_header_found_raises(self):
+        # Test with DEMO_PUF.cpt, the beginning of puf2019_1_fall.xpt
+        # from https://www.cms.gov/files/zip/puf2019.zip
+        # (despite the extension, it's a cpt file)
+        msg = "Header record indicates a CPORT file, which is not readable."
+        with pytest.raises(ValueError, match=msg):
+            read_sas(self.file05, format="xport")

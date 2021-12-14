@@ -33,7 +33,7 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_object_dtype,
     is_scalar,
-    is_string_dtype,
+    is_string_or_object_np_dtype,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.dtypes import (
@@ -158,11 +158,7 @@ def _isna(obj, inf_as_na: bool = False):
     boolean ndarray or boolean
     """
     if is_scalar(obj):
-        if inf_as_na:
-            return libmissing.checknull_old(obj)
-        else:
-            return libmissing.checknull(obj)
-    # hack (for now) because MI registers as ndarray
+        return libmissing.checknull(obj, inf_as_na=inf_as_na)
     elif isinstance(obj, ABCMultiIndex):
         raise NotImplementedError("isna is not defined for MultiIndex")
     elif isinstance(obj, type):
@@ -243,10 +239,10 @@ def _isna_array(values: ArrayLike, inf_as_na: bool = False):
     if not isinstance(values, np.ndarray):
         # i.e. ExtensionArray
         if inf_as_na and is_categorical_dtype(dtype):
-            result = libmissing.isnaobj_old(values.to_numpy())
+            result = libmissing.isnaobj(values.to_numpy(), inf_as_na=inf_as_na)
         else:
             result = values.isna()
-    elif is_string_dtype(dtype):
+    elif is_string_or_object_np_dtype(values.dtype):
         result = _isna_string_dtype(values, inf_as_na=inf_as_na)
     elif needs_i8_conversion(dtype):
         # this is the NaT pattern
@@ -269,10 +265,7 @@ def _isna_string_dtype(values: np.ndarray, inf_as_na: bool) -> np.ndarray:
         result = np.zeros(values.shape, dtype=bool)
     else:
         result = np.empty(shape, dtype=bool)
-        if inf_as_na:
-            vec = libmissing.isnaobj_old(values.ravel())
-        else:
-            vec = libmissing.isnaobj(values.ravel())
+        vec = libmissing.isnaobj(values.ravel(), inf_as_na=inf_as_na)
 
         result[...] = vec.reshape(shape)
 
@@ -383,7 +376,10 @@ def isna_compat(arr, fill_value=np.nan) -> bool:
 
 
 def array_equivalent(
-    left, right, strict_nan: bool = False, dtype_equal: bool = False
+    left,
+    right,
+    strict_nan: bool = False,
+    dtype_equal: bool = False,
 ) -> bool:
     """
     True if two arrays, left and right, have equal non-NaN elements, and NaNs
@@ -428,13 +424,13 @@ def array_equivalent(
 
     if dtype_equal:
         # fastpath when we require that the dtypes match (Block.equals)
-        if is_float_dtype(left.dtype) or is_complex_dtype(left.dtype):
+        if left.dtype.kind in ["f", "c"]:
             return _array_equivalent_float(left, right)
         elif is_datetimelike_v_numeric(left.dtype, right.dtype):
             return False
         elif needs_i8_conversion(left.dtype):
             return _array_equivalent_datetimelike(left, right)
-        elif is_string_dtype(left.dtype):
+        elif is_string_or_object_np_dtype(left.dtype):
             # TODO: fastpath for pandas' StringDtype
             return _array_equivalent_object(left, right, strict_nan)
         else:
@@ -475,8 +471,8 @@ def array_equivalent(
     return np.array_equal(left, right)
 
 
-def _array_equivalent_float(left, right):
-    return ((left == right) | (np.isnan(left) & np.isnan(right))).all()
+def _array_equivalent_float(left, right) -> bool:
+    return bool(((left == right) | (np.isnan(left) & np.isnan(right))).all())
 
 
 def _array_equivalent_datetimelike(left, right):

@@ -3,10 +3,7 @@ Tests that can be parametrized over _any_ Index object.
 """
 import re
 
-import numpy as np
 import pytest
-
-from pandas.core.dtypes.common import is_float_dtype
 
 import pandas._testing as tm
 
@@ -49,16 +46,7 @@ def test_mutability(index):
 def test_map_identity_mapping(index):
     # GH#12766
     result = index.map(lambda x: x)
-    if index._is_backward_compat_public_numeric_index:
-        if is_float_dtype(index.dtype):
-            expected = index.astype(np.float64)
-        elif index.dtype == np.uint64:
-            expected = index.astype(np.uint64)
-        else:
-            expected = index.astype(np.int64)
-    else:
-        expected = index
-    tm.assert_index_equal(result, expected, exact="equiv")
+    tm.assert_index_equal(result, index, exact="equiv")
 
 
 def test_wrong_number_names(index):
@@ -82,6 +70,13 @@ def test_is_type_compatible_deprecation(index):
     msg = "is_type_compatible is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):
         index.is_type_compatible(index.inferred_type)
+
+
+def test_is_mixed_deprecated(index):
+    # GH#32922
+    msg = "Index.is_mixed is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        index.is_mixed()
 
 
 class TestConversion:
@@ -130,6 +125,12 @@ class TestRoundTrips:
 
 
 class TestIndexing:
+    def test_getitem_ellipsis(self, index):
+        # GH#21282
+        result = index[...]
+        assert result.equals(index)
+        assert result is not index
+
     def test_slice_keeps_name(self, index):
         assert index.name == index[1:].name
 

@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from pandas._typing import FilePathOrBuffer
+from pandas._typing import (
+    FilePath,
+    ReadBuffer,
+)
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.inference import is_integer
@@ -16,7 +19,7 @@ class ArrowParserWrapper(ParserBase):
     Wrapper for the pyarrow engine for read_csv()
     """
 
-    def __init__(self, src: FilePathOrBuffer, **kwds):
+    def __init__(self, src: FilePath | ReadBuffer[bytes], **kwds):
         self.kwds = kwds
         self.src = src
 
@@ -107,7 +110,12 @@ class ArrowParserWrapper(ParserBase):
                 multi_index_named = False
             frame.columns = self.names
         # we only need the frame not the names
-        frame.columns, frame = self._do_date_conversions(frame.columns, frame)
+        # error: Incompatible types in assignment (expression has type
+        # "Union[List[Union[Union[str, int, float, bool], Union[Period, Timestamp,
+        # Timedelta, Any]]], Index]", variable has type "Index")  [assignment]
+        frame.columns, frame = self._do_date_conversions(  # type: ignore[assignment]
+            frame.columns, frame
+        )
         if self.index_col is not None:
             for i, item in enumerate(self.index_col):
                 if is_integer(item):

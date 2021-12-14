@@ -29,14 +29,14 @@ import pandas._testing as tm
         ([1, 2, "3"], "5", ["5", "5", 3], True),
     ],
 )
-def test_replace(to_replace, value, expected, flip_categories):
+def test_replace_categorical_series(to_replace, value, expected, flip_categories):
     # GH 31720
     stays_categorical = not isinstance(value, list) or len(pd.unique(value)) == 1
 
-    s = pd.Series([1, 2, 3], dtype="category")
-    result = s.replace(to_replace, value)
+    ser = pd.Series([1, 2, 3], dtype="category")
+    result = ser.replace(to_replace, value)
     expected = pd.Series(expected, dtype="category")
-    s.replace(to_replace, value, inplace=True)
+    ser.replace(to_replace, value, inplace=True)
 
     if flip_categories:
         expected = expected.cat.set_categories(expected.cat.categories[::-1])
@@ -46,7 +46,7 @@ def test_replace(to_replace, value, expected, flip_categories):
         expected = pd.Series(np.asarray(expected))
 
     tm.assert_series_equal(expected, result, check_category_order=False)
-    tm.assert_series_equal(expected, s, check_category_order=False)
+    tm.assert_series_equal(expected, ser, check_category_order=False)
 
 
 @pytest.mark.parametrize(
@@ -59,8 +59,7 @@ def test_replace(to_replace, value, expected, flip_categories):
         ("b", None, ["a", None], "Categorical.categories length are different"),
     ],
 )
-def test_replace2(to_replace, value, result, expected_error_msg):
-    # TODO: better name
+def test_replace_categorical(to_replace, value, result, expected_error_msg):
     # GH#26988
     cat = Categorical(["a", "b"])
     expected = Categorical(result)

@@ -88,7 +88,7 @@ class TestCatAccessor:
         return_value = ser.drop(0, inplace=True)
         assert return_value is None
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             return_value = ser.cat.remove_unused_categories(inplace=True)
 
         assert return_value is None

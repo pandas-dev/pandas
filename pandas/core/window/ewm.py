@@ -417,6 +417,13 @@ class ExponentialMovingWindow(BaseWindow):
                 self.alpha,
             )
 
+    def _check_window_bounds(
+        self, start: np.ndarray, end: np.ndarray, num_vals: int
+    ) -> None:
+        # emw algorithms are iterative with each point
+        # ExponentialMovingWindowIndexer "bounds" are the entire window
+        pass
+
     def _get_window_indexer(self) -> BaseIndexer:
         """
         Return an indexer class that will compute the window start and end bounds
@@ -504,7 +511,7 @@ class ExponentialMovingWindow(BaseWindow):
         template_header,
         create_section_header("Parameters"),
         args_compat,
-        window_agg_numba_parameters,
+        window_agg_numba_parameters(),
         kwargs_compat,
         create_section_header("Returns"),
         template_returns,
@@ -558,7 +565,7 @@ class ExponentialMovingWindow(BaseWindow):
         template_header,
         create_section_header("Parameters"),
         args_compat,
-        window_agg_numba_parameters,
+        window_agg_numba_parameters(),
         kwargs_compat,
         create_section_header("Returns"),
         template_returns,
@@ -640,7 +647,7 @@ class ExponentialMovingWindow(BaseWindow):
                 "Use std instead."
             ),
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self.std(bias, *args, **kwargs)
 

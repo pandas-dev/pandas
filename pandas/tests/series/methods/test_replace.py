@@ -419,10 +419,10 @@ class TestSeriesReplace:
         tm.assert_equal(res, obj)
         assert res is not obj
 
-    def test_replace_only_one_dictlike_arg(self):
+    def test_replace_only_one_dictlike_arg(self, fixed_now_ts):
         # GH#33340
 
-        ser = pd.Series([1, 2, "A", pd.Timestamp.now(), True])
+        ser = pd.Series([1, 2, "A", fixed_now_ts, True])
         to_replace = {0: 1, 2: "A"}
         value = "foo"
         msg = "Series.replace cannot use dict-like to_replace and non-None value"
@@ -442,6 +442,56 @@ class TestSeriesReplace:
         # should not have changed dtype
         tm.assert_equal(obj, result)
 
+    def _check_replace_with_method(self, ser: pd.Series):
+        df = ser.to_frame()
+
+        res = ser.replace(ser[1], method="pad")
+        expected = pd.Series([ser[0], ser[0]] + list(ser[2:]), dtype=ser.dtype)
+        tm.assert_series_equal(res, expected)
+
+        res_df = df.replace(ser[1], method="pad")
+        tm.assert_frame_equal(res_df, expected.to_frame())
+
+        ser2 = ser.copy()
+        res2 = ser2.replace(ser[1], method="pad", inplace=True)
+        assert res2 is None
+        tm.assert_series_equal(ser2, expected)
+
+        res_df2 = df.replace(ser[1], method="pad", inplace=True)
+        assert res_df2 is None
+        tm.assert_frame_equal(df, expected.to_frame())
+
+    def test_replace_ea_dtype_with_method(self, any_numeric_ea_dtype):
+        arr = pd.array([1, 2, pd.NA, 4], dtype=any_numeric_ea_dtype)
+        ser = pd.Series(arr)
+
+        self._check_replace_with_method(ser)
+
+    @pytest.mark.parametrize("as_categorical", [True, False])
+    def test_replace_interval_with_method(self, as_categorical):
+        # in particular interval that can't hold NA
+
+        idx = pd.IntervalIndex.from_breaks(range(4))
+        ser = pd.Series(idx)
+        if as_categorical:
+            ser = ser.astype("category")
+
+        self._check_replace_with_method(ser)
+
+    @pytest.mark.parametrize("as_period", [True, False])
+    @pytest.mark.parametrize("as_categorical", [True, False])
+    def test_replace_datetimelike_with_method(self, as_period, as_categorical):
+        idx = pd.date_range("2016-01-01", periods=5, tz="US/Pacific")
+        if as_period:
+            idx = idx.tz_localize(None).to_period("D")
+
+        ser = pd.Series(idx)
+        ser.iloc[-2] = pd.NaT
+        if as_categorical:
+            ser = ser.astype("category")
+
+        self._check_replace_with_method(ser)
+
     def test_replace_with_compiled_regex(self):
         # https://github.com/pandas-dev/pandas/issues/35680
         s = pd.Series(["a", "b", "c"])
@@ -449,3 +499,16 @@ class TestSeriesReplace:
         result = s.replace({regex: "z"}, regex=True)
         expected = pd.Series(["z", "b", "c"])
         tm.assert_series_equal(result, expected)
+
+    def test_pandas_replace_na(self):
+        # GH#43344
+        ser = pd.Series(["AA", "BB", "CC", "DD", "EE", "", pd.NA], dtype="string")
+        regex_mapping = {
+            "AA": "CC",
+            "BB": "CC",
+            "EE": "CC",
+            "CC": "CC-REPL",
+        }
+        result = ser.replace(regex_mapping, regex=True)
+        exp = pd.Series(["CC", "CC", "CC-REPL", "DD", "CC", "", pd.NA], dtype="string")
+        tm.assert_series_equal(result, exp)

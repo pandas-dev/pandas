@@ -1,5 +1,7 @@
 import pytest
 
+from pandas.core.dtypes.common import is_extension_array_dtype
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -105,7 +107,7 @@ def test_series_not_equal_metadata_mismatch(kwargs):
 
 
 @pytest.mark.parametrize("data1,data2", [(0.12345, 0.12346), (0.1235, 0.1236)])
-@pytest.mark.parametrize("dtype", ["float32", "float64"])
+@pytest.mark.parametrize("dtype", ["float32", "float64", "Float32"])
 @pytest.mark.parametrize("decimals", [0, 1, 2, 3, 5, 10])
 def test_less_precise(data1, data2, dtype, decimals):
     rtol = 10 ** -decimals
@@ -115,7 +117,10 @@ def test_less_precise(data1, data2, dtype, decimals):
     if (decimals == 5 or decimals == 10) or (
         decimals >= 3 and abs(data1 - data2) >= 0.0005
     ):
-        msg = "Series values are different"
+        if is_extension_array_dtype(dtype):
+            msg = "ExtensionArray are different"
+        else:
+            msg = "Series values are different"
         with pytest.raises(AssertionError, match=msg):
             tm.assert_series_equal(s1, s2, rtol=rtol)
     else:
