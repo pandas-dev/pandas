@@ -612,7 +612,6 @@ def is_dtype_equal(source, target) -> bool:
             try:
                 src = get_dtype(source)
                 if isinstance(src, ExtensionDtype):
-
                     return src == target
             except (TypeError, AttributeError, ImportError):
                 return False
