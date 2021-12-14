@@ -97,6 +97,10 @@ class BaseInterfaceTests(BaseExtensionTests):
 
             assert na.dtype._is_boolean
 
+    def test_copy_does_not_share_data(self, data):
+        result = data.copy()
+        assert not tm.shares_memory(data, result)
+
     def test_copy(self, data):
         # GH#27083 removing deep keyword from EA.copy
         assert data[0] != data[1]

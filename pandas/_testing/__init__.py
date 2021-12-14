@@ -1084,6 +1084,8 @@ def shares_memory(left, right) -> bool:
         return shares_memory(left._ndarray, right)
     if isinstance(left, pd.core.arrays.SparseArray):
         return shares_memory(left.sp_values, right)
+    if isinstance(left, pd.core.arrays.IntervalArray):
+        return shares_memory(left._left, right) or shares_memory(left._right, right)
 
     if isinstance(left, ExtensionArray) and left.dtype == "string[pyarrow]":
         # https://github.com/pandas-dev/pandas/pull/43930#discussion_r736862669
