@@ -1894,7 +1894,7 @@ class StringMethods(NoNewAttributesMixin):
 
     See Also
     --------
-    Series.str.strip : Remove leading and trailing characters in Series/Index.
+    Series.str.strip : Remove leading and trailing characters in Series/Index, it also replaces numeric and bool values with NaN.
     Series.str.lstrip : Remove leading characters in Series/Index.
     Series.str.rstrip : Remove trailing characters in Series/Index.
 
@@ -1934,6 +1934,31 @@ class StringMethods(NoNewAttributesMixin):
     1    Bee
     2    Cat
     3    NaN
+    dtype: object
+
+    s = pd.Series(['hello ', ' goodbye', 1.0, 0.0, 1, 0, True, False, np.nan])
+    >>> s
+    0      hello 
+    1     goodbye
+    2         1.0
+    3         0.0
+    4           1
+    5           0
+    6        True
+    7       False
+    8         NaN
+    dtype: object
+
+    >>> s.str.strip()
+    0      hello
+    1    goodbye
+    2        NaN
+    3        NaN
+    4        NaN
+    5        NaN
+    6        NaN
+    7        NaN
+    8        NaN
     dtype: object
     """
 
