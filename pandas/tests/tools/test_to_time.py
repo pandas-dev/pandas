@@ -3,8 +3,6 @@ from datetime import time
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas import Series
 import pandas._testing as tm
 from pandas.core.tools.datetimes import to_time as to_time_alias
@@ -12,7 +10,6 @@ from pandas.core.tools.times import to_time
 
 
 class TestToTime:
-    @td.skip_if_has_locale
     @pytest.mark.parametrize(
         "time_string",
         [
@@ -31,7 +28,6 @@ class TestToTime:
         # GH#11818
         assert to_time(time_string) == time(14, 15)
 
-    @td.skip_if_has_locale
     def test_odd_format(self):
         new_string = "14.15"
         msg = r"Cannot convert arg \['14\.15'\] to a time"
@@ -39,7 +35,6 @@ class TestToTime:
             to_time(new_string)
         assert to_time(new_string, format="%H.%M") == time(14, 15)
 
-    @td.skip_if_has_locale
     def test_arraylike(self):
         arg = ["14:15", "20:20"]
         expected_arr = [time(14, 15), time(20, 20)]
