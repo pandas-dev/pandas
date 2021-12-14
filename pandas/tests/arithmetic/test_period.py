@@ -1262,6 +1262,9 @@ class TestPeriodSeriesArithmetic:
         )
 
         obj = tm.box_expected(ser, box_with_array)
+        if box_with_array is pd.DataFrame:
+            assert (obj.dtypes == "Period[D]").all()
+
         expected = tm.box_expected(expected, box_with_array)
 
         result = obj + three_days
