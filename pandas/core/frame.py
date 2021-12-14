@@ -150,7 +150,6 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 from pandas.core.arrays.sparse import SparseFrameAccessor
-import pandas.core.common as com
 from pandas.core.construction import (
     extract_array,
     sanitize_array,
@@ -2371,11 +2370,7 @@ class DataFrame(NDFrame, OpsMixin):
             index_names = list(self.index.names)
 
             if isinstance(self.index, MultiIndex):
-                count = 0
-                for i, n in enumerate(index_names):
-                    if n is None:
-                        index_names[i] = f"level_{count}"
-                        count += 1
+                index_names = com.fill_missing_names(index_names)
             elif index_names[0] is None:
                 index_names = ["index"]
 

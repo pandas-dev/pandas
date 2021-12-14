@@ -91,7 +91,7 @@ class TestDataFrameToRecords:
         df.index = MultiIndex.from_tuples([("a", "x"), ("a", "y"), ("b", "z")])
         df.index.names = ["A", None]
         rs = df.to_records()
-        assert "level_0" in rs.dtype.fields
+        assert "level_1" in rs.dtype.fields
 
     def test_to_records_with_unicode_index(self):
         # GH#13172
