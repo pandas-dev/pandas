@@ -19,6 +19,7 @@ import pandas._libs.lib as lib
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._typing import (
     ArrayLike,
+    CompressionOptions,
     DtypeArg,
     FilePath,
     ReadCsvBuffer,
@@ -618,7 +619,7 @@ def read_csv(
     iterator=False,
     chunksize=None,
     # Quoting, Compression, and File Format
-    compression="infer",
+    compression: CompressionOptions = "infer",
     thousands=None,
     decimal: str = ".",
     lineterminator=None,
@@ -716,7 +717,7 @@ def read_table(
     iterator=False,
     chunksize=None,
     # Quoting, Compression, and File Format
-    compression="infer",
+    compression: CompressionOptions = "infer",
     thousands=None,
     decimal: str = ".",
     lineterminator=None,

@@ -1069,7 +1069,10 @@ def test_wrong_compression_zip(parser, comp):
 def test_unsuported_compression(datapath, parser):
     with pytest.raises(ValueError, match="Unrecognized compression type"):
         with tm.ensure_clean() as path:
-            read_xml(path, parser=parser, compression="7z")
+            # error: Argument "compression" to "read_xml" has incompatible type
+            # "Literal['7z']"; expected "Union[Literal['infer'], Literal['gzip'],
+            # Literal['bz2'], Literal['zip'], Literal['xz'], Dict[str, Any], None]"
+            read_xml(path, parser=parser, compression="7z")  # type: ignore[arg-type]
 
 
 # STORAGE OPTIONS
