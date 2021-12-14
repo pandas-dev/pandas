@@ -318,7 +318,7 @@ def ndarray_to_mgr(
         return arrays_to_mgr(values, columns, index, dtype=dtype, typ=typ)
 
     elif is_extension_array_dtype(vdtype) and not is_1d_only_ea_dtype(vdtype):
-        # i.e. Datetime64TZ
+        # i.e. Datetime64TZ, PeriodDtype
         values = extract_array(values, extract_numpy=True)
         if copy:
             values = values.copy()
