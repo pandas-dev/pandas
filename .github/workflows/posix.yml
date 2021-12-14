@@ -46,6 +46,7 @@ jobs:
       PANDAS_TESTING_MODE: ${{ matrix.settings[5] }}
       TEST_ARGS: ${{ matrix.settings[6] }}
       PYTEST_TARGET:  pandas
+      IS_PYPY: ${{ contains(matrix.settings[0], 'pypy') }}
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.settings[0] }}
@@ -83,6 +84,18 @@ jobs:
         channel-priority: flexible
         environment-file: ${{ env.ENV_FILE }}
         use-only-tar-bz2: true
+      if: !IS_PYPY # No pypy3.8 support
+    
+    - name: Setup PyPy
+      uses: actions/setup-python@v2.3.1
+      with:
+        python-version: "pypy-3.8"
+      if: IS_PYPY
+    
+    - name: Setup PyPy dependencies
+      run: |
+        pip install cython>=0.29.24 numpy python-dateutil pytz pytest>=6.0 pytest-cov pytest-xdist>=1.31 hypothesis>=5.5.3
+      if: IS_PYPY    
 
     - name: Build Pandas
       uses: ./.github/actions/build_pandas
@@ -90,7 +103,7 @@ jobs:
     - name: Test
       run: ci/run_tests.sh
       # TODO: Don't continue on error for PyPy
-      continue-on-error: ${{ contains(matrix.settings[0], 'pypy') }}
+      continue-on-error: ${{ IS_PYPY }}
       if: always()
 
     - name: Build Version
