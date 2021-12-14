@@ -5670,12 +5670,18 @@ class DataFrame(NDFrame, OpsMixin):
             levels are named. If None then the index name is repeated.
         allow_duplicates : bool, default False
             Allow duplicate column labels to be created.
-            Does not work if self.flags.allows_duplicate_labels is False.
+
+            .. versionadded:: 1.4.0
 
         Returns
         -------
         DataFrame or None
             DataFrame with the new index or None if ``inplace=True``.
+
+        Raises
+        ------
+        ValueError
+            If allow_duplicates and not self.flags.allows_duplicate_labels.
 
         See Also
         --------

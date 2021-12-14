@@ -1382,6 +1382,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         allow_duplicates : bool, default False
             Allow duplicate column labels to be created.
 
+            .. versionadded:: 1.4.0
+
         Returns
         -------
         Series or DataFrame or None
