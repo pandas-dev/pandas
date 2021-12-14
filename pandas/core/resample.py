@@ -2012,30 +2012,30 @@ def _adjust_dates_anchored(
     if closed == "right":
         if foffset > 0:
             # roll back
-            fresult = first.value - foffset
+            fresult_int = first.value - foffset
         else:
-            fresult = first.value - freq.nanos
+            fresult_int = first.value - freq.nanos
 
         if loffset > 0:
             # roll forward
-            lresult = last.value + (freq.nanos - loffset)
+            lresult_int = last.value + (freq.nanos - loffset)
         else:
             # already the end of the road
-            lresult = last.value
+            lresult_int = last.value
     else:  # closed == 'left'
         if foffset > 0:
-            fresult = first.value - foffset
+            fresult_int = first.value - foffset
         else:
             # start of the road
-            fresult = first.value
+            fresult_int = first.value
 
         if loffset > 0:
             # roll forward
-            lresult = last.value + (freq.nanos - loffset)
+            lresult_int = last.value + (freq.nanos - loffset)
         else:
-            lresult = last.value + freq.nanos
-    fresult = Timestamp(fresult)
-    lresult = Timestamp(lresult)
+            lresult_int = last.value + freq.nanos
+    fresult = Timestamp(fresult_int)
+    lresult = Timestamp(lresult_int)
     if first_tzinfo is not None:
         fresult = fresult.tz_localize("UTC").tz_convert(first_tzinfo)
     if last_tzinfo is not None:
