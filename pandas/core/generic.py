@@ -10353,34 +10353,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             self.ndim > 1
             and axis == 1
             and len(self._mgr.arrays) > 1
+            # TODO(EA2D): special-case not needed
+            and all(x.ndim == 2 for x in self._mgr.arrays)
             and bool_only is not None
+            and not kwargs
         ):
-            # Try to avoid a potentially-expensive transpose
-            arrays = self._mgr.arrays
-            if all(x.ndim == 2 for x in arrays):
-                # TODO(EA2D): special case not needed
-                obj = self
-                if bool_only:
-                    obj = self._get_bool_data()
-
-                if name == "all":
-                    result = np.ones(len(obj), dtype=bool)
-                    ufunc = np.logical_and
-                else:
-                    result = np.zeros(len(obj), dtype=bool)
-                    # error: Incompatible types in assignment
-                    # (expression has type "_UFunc_Nin2_Nout1[Literal['logical_or'],
-                    # Literal[20], Literal[False]]", variable has type
-                    # "_UFunc_Nin2_Nout1[Literal['logical_and'], Literal[20],
-                    # Literal[True]]")
-                    ufunc = np.logical_or  # type: ignore[assignment]
-
-                for arr in obj._mgr.arrays:
-                    middle = func(arr, axis=0, skipna=skipna)
-                    result = ufunc(result, middle)
-
-                res_ser = obj._constructor_sliced(result, index=obj.index)
-                return res_ser
+            # Fastpath avoiding potentially expensive transpose
+            obj = self
+            if bool_only:
+                obj = self._get_bool_data()
+            return obj._reduce_axis1(name, func, skipna=skipna)
 
         return self._reduce(
             func,
