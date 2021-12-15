@@ -161,6 +161,17 @@ ALL_NUMPY_DTYPES = (
     + BYTES_DTYPES
 )
 
+NARROW_NP_DTYPES = [
+    np.float16,
+    np.float32,
+    np.int8,
+    np.int16,
+    np.int32,
+    np.uint8,
+    np.uint16,
+    np.uint32,
+]
+
 NULL_OBJECTS = [None, np.nan, pd.NaT, float("nan"), pd.NA, Decimal("NaN")]
 NP_NAT_OBJECTS = [
     cls("NaT", unit)

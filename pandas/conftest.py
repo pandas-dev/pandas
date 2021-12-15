@@ -600,11 +600,6 @@ def index_with_missing(request):
 # Series'
 # ----------------------------------------------------------------
 @pytest.fixture
-def empty_series():
-    return Series([], index=[], dtype=np.float64)
-
-
-@pytest.fixture
 def string_series():
     """
     Fixture for Series of floats with Index of unique strings
@@ -672,29 +667,10 @@ def series_with_multilevel_index():
     return ser
 
 
-_narrow_dtypes = [
-    np.float16,
-    np.float32,
-    np.int8,
-    np.int16,
-    np.int32,
-    np.uint8,
-    np.uint16,
-    np.uint32,
-]
 _narrow_series = {
     f"{dtype.__name__}-series": tm.makeFloatSeries(name="a").astype(dtype)
-    for dtype in _narrow_dtypes
+    for dtype in tm.NARROW_NP_DTYPES
 }
-
-
-@pytest.fixture(params=_narrow_series.keys())
-def narrow_series(request):
-    """
-    Fixture for Series with low precision data types
-    """
-    # copy to avoid mutation, e.g. setting .name
-    return _narrow_series[request.param].copy()
 
 
 _index_or_series_objs = {**indices_dict, **_series, **_narrow_series}
@@ -712,11 +688,6 @@ def index_or_series_obj(request):
 # ----------------------------------------------------------------
 # DataFrames
 # ----------------------------------------------------------------
-@pytest.fixture
-def empty_frame():
-    return DataFrame()
-
-
 @pytest.fixture
 def int_frame():
     """
