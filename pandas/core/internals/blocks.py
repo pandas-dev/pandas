@@ -661,11 +661,14 @@ class Block(PandasObject):
             return [blk]
 
         regex = should_use_regex(regex, to_replace)
+        mask = missing.mask_missing(values, to_replace)
 
         if regex:
-            self.values = np.asarray(
-                self._replace_regex(to_replace, value, inplace=inplace)
-            )
+            if self._can_hold_element(value):
+                blk = self if inplace else self.copy()
+                putmask_inplace(blk.values, mask, value)
+                return blk.convert(numeric=False, copy=False)
+            return self._replace_regex(to_replace, value, inplace=inplace)
 
         if not self._can_hold_element(to_replace):
             # We cannot hold `to_replace`, so we know immediately that
@@ -674,7 +677,6 @@ class Block(PandasObject):
             #  replace_list instead of replace.
             return [self] if inplace else [self.copy()]
 
-        mask = missing.mask_missing(values, to_replace)
         if not mask.any():
             # Note: we get here with test_replace_extension_other incorrectly
             #  bc _can_hold_element is incorrect.
