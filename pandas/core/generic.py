@@ -10363,7 +10363,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self: DataFrame,
         axis: Axis = ...,
         bool_only: bool_t | None = ...,
-        skipna: bool_t = True,
+        skipna: bool_t = ...,
         level: Level | None = ...,
         **kwargs,
     ) -> Series:
@@ -10374,7 +10374,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self: Series,
         axis: Axis = ...,
         bool_only: bool_t | None = ...,
-        skipna: bool_t = True,
+        skipna: bool_t = ...,
         level: Level | None = ...,
         **kwargs,
     ) -> bool_t:
