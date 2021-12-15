@@ -38,6 +38,7 @@ from pandas.core.dtypes.common import (
     is_unsigned_integer_dtype,
     pandas_dtype,
 )
+from pandas.core.dtypes.dtypes import IntervalDtype
 
 import pandas as pd
 from pandas import (
@@ -159,6 +160,17 @@ ALL_NUMPY_DTYPES = (
     + OBJECT_DTYPES
     + BYTES_DTYPES
 )
+
+NARROW_NP_DTYPES = [
+    np.float16,
+    np.float32,
+    np.int8,
+    np.int16,
+    np.int32,
+    np.uint8,
+    np.uint16,
+    np.uint32,
+]
 
 NULL_OBJECTS = [None, np.nan, pd.NaT, float("nan"), pd.NA, Decimal("NaN")]
 NP_NAT_OBJECTS = [
@@ -282,6 +294,10 @@ def to_array(obj):
         return DatetimeArray._from_sequence(obj)
     elif is_timedelta64_dtype(dtype):
         return TimedeltaArray._from_sequence(obj)
+    elif isinstance(obj, pd.core.arrays.BooleanArray):
+        return obj
+    elif isinstance(dtype, IntervalDtype):
+        return pd.core.arrays.IntervalArray(obj)
     else:
         return np.array(obj)
 

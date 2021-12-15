@@ -22,7 +22,6 @@ from pandas import (
     DatetimeIndex,
     Series,
     Timestamp,
-    compat,
     read_json,
 )
 import pandas._testing as tm
@@ -245,7 +244,8 @@ class TestPandasContainer:
 
     @pytest.mark.parametrize("convert_axes", [True, False])
     @pytest.mark.parametrize("numpy", [True, False])
-    def test_roundtrip_empty(self, orient, convert_axes, numpy, empty_frame):
+    def test_roundtrip_empty(self, orient, convert_axes, numpy):
+        empty_frame = DataFrame()
         data = empty_frame.to_json(orient=orient)
         result = read_json(data, orient=orient, convert_axes=convert_axes, numpy=numpy)
         expected = empty_frame.copy()
@@ -674,7 +674,8 @@ class TestPandasContainer:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("numpy", [True, False])
-    def test_series_roundtrip_empty(self, orient, numpy, empty_series):
+    def test_series_roundtrip_empty(self, orient, numpy):
+        empty_series = Series([], index=[], dtype=np.float64)
         data = empty_series.to_json(orient=orient)
         result = read_json(data, typ="series", orient=orient, numpy=numpy)
 
@@ -1275,11 +1276,9 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         expected = '{"0":{"articleId":' + str(bigNum) + "}}"
         assert json == expected
 
-    @pytest.mark.parametrize("bigNum", [sys.maxsize + 1, -(sys.maxsize + 2)])
-    @pytest.mark.skipif(not compat.IS64, reason="GH-35279")
+    @pytest.mark.parametrize("bigNum", [-(2 ** 63) - 1, 2 ** 64])
     def test_read_json_large_numbers(self, bigNum):
-        # GH20599
-
+        # GH20599, 26068
         json = StringIO('{"articleId":' + str(bigNum) + "}")
         msg = r"Value is too small|Value is too big"
         with pytest.raises(ValueError, match=msg):

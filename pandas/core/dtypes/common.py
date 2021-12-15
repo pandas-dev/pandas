@@ -613,7 +613,7 @@ def is_dtype_equal(source, target) -> bool:
                 src = get_dtype(source)
                 if isinstance(src, ExtensionDtype):
                     return src == target
-            except (TypeError, AttributeError):
+            except (TypeError, AttributeError, ImportError):
                 return False
     elif isinstance(source, str):
         return is_dtype_equal(target, source)
@@ -622,7 +622,7 @@ def is_dtype_equal(source, target) -> bool:
         source = get_dtype(source)
         target = get_dtype(target)
         return source == target
-    except (TypeError, AttributeError):
+    except (TypeError, AttributeError, ImportError):
 
         # invalid comparison
         # object == category will hit this
@@ -1408,11 +1408,12 @@ def is_1d_only_ea_obj(obj: Any) -> bool:
     from pandas.core.arrays import (
         DatetimeArray,
         ExtensionArray,
+        PeriodArray,
         TimedeltaArray,
     )
 
     return isinstance(obj, ExtensionArray) and not isinstance(
-        obj, (DatetimeArray, TimedeltaArray)
+        obj, (DatetimeArray, TimedeltaArray, PeriodArray)
     )
 
 
@@ -1424,7 +1425,9 @@ def is_1d_only_ea_dtype(dtype: DtypeObj | None) -> bool:
     #  here too.
     # NB: need to check DatetimeTZDtype and not is_datetime64tz_dtype
     #  to exclude ArrowTimestampUSDtype
-    return isinstance(dtype, ExtensionDtype) and not isinstance(dtype, DatetimeTZDtype)
+    return isinstance(dtype, ExtensionDtype) and not isinstance(
+        dtype, (DatetimeTZDtype, PeriodDtype)
+    )
 
 
 def is_extension_array_dtype(arr_or_dtype) -> bool:
