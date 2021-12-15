@@ -38,6 +38,7 @@ from pandas.core.dtypes.common import (
     is_unsigned_integer_dtype,
     pandas_dtype,
 )
+from pandas.core.dtypes.dtypes import IntervalDtype
 
 import pandas as pd
 from pandas import (
@@ -282,6 +283,10 @@ def to_array(obj):
         return DatetimeArray._from_sequence(obj)
     elif is_timedelta64_dtype(dtype):
         return TimedeltaArray._from_sequence(obj)
+    elif isinstance(obj, pd.core.arrays.BooleanArray):
+        return obj
+    elif isinstance(dtype, IntervalDtype):
+        return pd.core.arrays.IntervalArray(obj)
     else:
         return np.array(obj)
 

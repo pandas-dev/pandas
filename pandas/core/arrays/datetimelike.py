@@ -338,7 +338,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         result = cast(
             "Union[DatetimeLikeArrayT, DTScalarOrNaT]", super().__getitem__(key)
         )
-        result = super().__getitem__(key)
         if lib.is_scalar(result):
             return result
         else:
