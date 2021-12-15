@@ -10380,6 +10380,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> bool_t:
         ...
 
+    @overload
+    def any(
+        self: NDFrame,
+        axis: Axis = ...,
+        bool_only: bool_t | None = ...,
+        skipna: bool_t = ...,
+        level: Level | None = ...,
+        **kwargs,
+    ) -> Series | bool_t:
+        ...
+
     def any(
         self,
         axis: Axis = 0,
