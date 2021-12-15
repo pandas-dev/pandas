@@ -39,7 +39,6 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
     ensure_object,
-    ensure_str,
     is_bool_dtype,
     is_categorical_dtype,
     is_dict_like,
@@ -375,23 +374,6 @@ class ParserBase:
 
         columns = list(zip(*(extract(r) for r in header)))
         names = ic + columns
-
-        # If we find unnamed columns all in a single
-        # level, then our header was too long.
-        for n in range(len(columns[0])):
-            if all(ensure_str(col[n]) in self.unnamed_cols for col in columns):
-                header = ",".join([str(x) for x in self.header])
-                warnings.warn(
-                    f"The passed header=[{header}] has at least one line without data. "
-                    "This will return a MultiIndex in the future where at least one "
-                    "level consists of only Unnamed: entries.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                raise ParserError(
-                    f"Passed header=[{header}] are too many rows "
-                    "for this multi_index of columns"
-                )
 
         # Clean the column names (if we have an index_col).
         if len(ic):
