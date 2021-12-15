@@ -1648,15 +1648,11 @@ class _OrderedMerge(_MergeOperation):
         right_join_indexer: np.ndarray | None
 
         if self.fill_method == "ffill":
-            # error: Argument 1 to "ffill_indexer" has incompatible type
-            # "Optional[ndarray]"; expected "ndarray"
             left_join_indexer = libjoin.ffill_indexer(
-                left_indexer  # type: ignore[arg-type]
+                np.asarray(left_indexer)
             )
-            # error: Argument 1 to "ffill_indexer" has incompatible type
-            # "Optional[ndarray]"; expected "ndarray"
             right_join_indexer = libjoin.ffill_indexer(
-                right_indexer  # type: ignore[arg-type]
+                np.asarray(right_indexer)
             )
         else:
             left_join_indexer = left_indexer
