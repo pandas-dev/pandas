@@ -514,8 +514,8 @@ class TestSeriesReplace:
         tm.assert_series_equal(result, exp)
 
     def test_replace_regex_dtype(self):
-        #GH-48644
-        s = pd.Series(['0'])
-        exp = s.replace(to_replace = '0', value = 1, regex = False).dtype
-        res = s.replace(to_replace = '0', value = 1, regex = True).dtype
+        # GH-48644
+        s = pd.Series(["0"])
+        exp = s.replace(to_replace="0", value=1, regex=False).dtype
+        res = s.replace(to_replace="0", value=1, regex=True).dtype
         assert exp == res

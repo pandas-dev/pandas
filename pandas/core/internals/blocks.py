@@ -663,7 +663,9 @@ class Block(PandasObject):
         regex = should_use_regex(regex, to_replace)
 
         if regex:
-            self.values = np.asarray(self._replace_regex(to_replace, value, inplace=inplace))
+            self.values = np.asarray(
+                self._replace_regex(to_replace, value, inplace=inplace)
+            )
 
         if not self._can_hold_element(to_replace):
             # We cannot hold `to_replace`, so we know immediately that
