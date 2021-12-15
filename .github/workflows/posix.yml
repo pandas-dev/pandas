@@ -46,7 +46,7 @@ jobs:
       TEST_ARGS: ${{ matrix.settings[6] }}
       PYTEST_TARGET:  pandas
       IS_PYPY: ${{ contains(matrix.settings[0], 'pypy') }}
-      COVERAGE: ${{ IS_PYPY == 'false' }}
+      COVERAGE: ${{ env.IS_PYPY == 'false' }}
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.settings[0] }}
