@@ -834,16 +834,18 @@ class Index(IndexOpsMixin, PandasObject):
     @cache_readonly
     def _engine(
         self,
-    ) -> libindex.IndexEngine | libindex.NullableEngine | libindex.ExtensionEngine:
+    ) -> libindex.IndexEngine:
         # For base class (object dtype) we get ObjectEngine
 
         if isinstance(self._values, BaseMaskedArray):
-            return libindex.NullableEngine(self._values)
+            # TODO(ExtensionIndex): use libindex.NullableEngine(self._values)
+            return libindex.ObjectEngine(self._get_engine_target())
         elif (
             isinstance(self._values, ExtensionArray)
             and self._engine_type is libindex.ObjectEngine
         ):
-            return libindex.ExtensionEngine(self._values)
+            # TODO(ExtensionIndex): use libindex.ExtensionEngine(self._values)
+            return libindex.ObjectEngine(self._get_engine_target())
 
         # to avoid a reference cycle, bind `target_values` to a local variable, so
         # `self` is not passed into the lambda.
@@ -3209,10 +3211,13 @@ class Index(IndexOpsMixin, PandasObject):
         name = get_op_result_name(self, other)
         if isinstance(result, Index):
             if result.name != name:
-                return result.rename(name)
-            return result
+                result = result.rename(name)
         else:
-            return self._shallow_copy(result, name=name)
+            result = self._shallow_copy(result, name=name)
+
+        # TODO(ExtensionIndex): revert this astype; it is a kludge to make
+        #  it possible to split ExtensionEngine from ExtensionIndex PR.
+        return result.astype(self.dtype, copy=False)
 
     # TODO: standardize return type of non-union setops type(self vs other)
     @final
@@ -4782,6 +4787,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         # error: Incompatible return value type (got "Union[ExtensionArray,
         # ndarray]", expected "ndarray")
+        if type(self) is Index and isinstance(self._values, ExtensionArray):
+            # TODO(ExtensionIndex): remove special-case, just use self._values
+            return self._values.astype(object)
         return self._values  # type: ignore[return-value]
 
     def _from_join_target(self, result: np.ndarray) -> ArrayLike:
