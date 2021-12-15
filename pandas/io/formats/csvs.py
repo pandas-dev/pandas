@@ -86,6 +86,7 @@ class CSVFormatter:
         self.line_terminator = line_terminator or os.linesep
         self.date_format = date_format
         self.cols = self._initialize_columns(cols)
+        self.data_index = self.get_data_index()
         self.chunksize = self._initialize_chunksize(chunksize)
 
     @property
@@ -175,8 +176,7 @@ class CSVFormatter:
             "decimal": self.decimal,
         }
 
-    @property
-    def data_index(self) -> Index:
+    def get_data_index(self) -> Index:
         data_index = self.obj.index
         if (
             isinstance(data_index, (ABCDatetimeIndex, ABCPeriodIndex))
