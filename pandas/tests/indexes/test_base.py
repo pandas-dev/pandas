@@ -1270,7 +1270,7 @@ class TestMixedIntIndex(Base):
             assert index3.names == ["NewName"]
 
     def test_copy_names_deprecated(self, simple_index):
-        # GH#xxxxx
+        # GH44916
         with tm.assert_produces_warning(FutureWarning):
             simple_index.copy(names=["a"])
 
