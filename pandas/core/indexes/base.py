@@ -1178,6 +1178,10 @@ class Index(IndexOpsMixin, PandasObject):
         names : list-like, optional
             Kept for compatibility with MultiIndex. Should not be used.
 
+            .. deprecated:: 1.4.0
+                use ``name`` instead.
+
+
         Returns
         -------
         Index
@@ -1188,6 +1192,14 @@ class Index(IndexOpsMixin, PandasObject):
         In most cases, there should be no functional difference from using
         ``deep``, but if ``deep`` is passed it will attempt to deepcopy.
         """
+        if names is not None:
+            warnings.warn(
+                "parameter names is deprecated and will be removed in a future "
+                "version. Use the name parameter instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
         name = self._validate_names(name=name, names=names, deep=deep)[0]
         if deep:
             new_data = self._data.copy()
