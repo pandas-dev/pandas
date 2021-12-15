@@ -103,7 +103,7 @@ jobs:
     - name: Test
       run: ci/run_tests.sh
       # TODO: Don't continue on error for PyPy
-      continue-on-error: ${{ env.IS_PYPY }}
+      continue-on-error: ${{ env.IS_PYPY == 'true'}}
       if: always()
 
     - name: Build Version
