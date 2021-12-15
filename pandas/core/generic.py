@@ -10358,6 +10358,28 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             filter_type="bool",
         )
 
+    @overload
+    def any(
+        self: DataFrame,
+        axis: Axis = ...,
+        bool_only: bool_t | None = ...,
+        skipna: bool_t = True,
+        level: Level | None = ...,
+        **kwargs,
+    ) -> Series:
+        ...
+
+    @overload
+    def any(
+        self: Series,
+        axis: Axis = ...,
+        bool_only: bool_t | None = ...,
+        skipna: bool_t = True,
+        level: Level | None = ...,
+        **kwargs,
+    ) -> bool_t:
+        ...
+
     def any(
         self,
         axis: Axis = 0,
