@@ -1,4 +1,5 @@
 from datetime import time
+import locale
 
 import numpy as np
 import pytest
@@ -8,6 +9,11 @@ import pandas._testing as tm
 from pandas.core.tools.datetimes import to_time as to_time_alias
 from pandas.core.tools.times import to_time
 
+fails_on_zh_cn = pytest.mark.xfail(
+    locale.getlocale()[0] == "zh_CN",
+    reason="fail on a CI build with LC_ALL=zh_CN.utf8",
+)
+
 
 class TestToTime:
     @pytest.mark.parametrize(
@@ -15,12 +21,12 @@ class TestToTime:
         [
             "14:15",
             "1415",
-            "2:15pm",
-            "0215pm",
+            pytest.param("2:15pm", marks=fails_on_zh_cn),
+            pytest.param("0215pm", marks=fails_on_zh_cn),
             "14:15:00",
             "141500",
-            "2:15:00pm",
-            "021500pm",
+            pytest.param("2:15:00pm", marks=fails_on_zh_cn),
+            pytest.param("021500pm", marks=fails_on_zh_cn),
             time(14, 15),
         ],
     )
