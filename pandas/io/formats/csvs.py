@@ -18,6 +18,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs import writers as libwriters
+from pandas._libs.properties import cache_readonly
 from pandas._typing import (
     CompressionOptions,
     FilePath,
@@ -86,7 +87,6 @@ class CSVFormatter:
         self.line_terminator = line_terminator or os.linesep
         self.date_format = date_format
         self.cols = self._initialize_columns(cols)
-        self.data_index = self.get_data_index()
         self.chunksize = self._initialize_chunksize(chunksize)
 
     @property
@@ -176,7 +176,8 @@ class CSVFormatter:
             "decimal": self.decimal,
         }
 
-    def get_data_index(self) -> Index:
+    @cache_readonly
+    def data_index(self) -> Index:
         data_index = self.obj.index
         if (
             isinstance(data_index, (ABCDatetimeIndex, ABCPeriodIndex))
