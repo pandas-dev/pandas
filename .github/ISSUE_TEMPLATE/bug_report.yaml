@@ -7,6 +7,7 @@ body:
   - type: checkboxes
     id: checks
     attributes:
+      label: Pandas version checks
       options:
         - label: >
             I have checked that this issue has not already been reported.
