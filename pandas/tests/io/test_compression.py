@@ -56,7 +56,11 @@ def test_compression_size(obj, method, compression_only):
 @pytest.mark.parametrize("method", ["to_csv", "to_json"])
 def test_compression_size_fh(obj, method, compression_only):
     with tm.ensure_clean() as path:
-        with icom.get_handle(path, "w", compression=compression_only) as handles:
+        with icom.get_handle(
+            path,
+            "w:gz" if compression_only == "tar" else "w",
+            compression=compression_only,
+        ) as handles:
             getattr(obj, method)(handles.handle)
             assert not handles.handle.closed
         compressed_size = os.path.getsize(path)
