@@ -84,18 +84,18 @@ jobs:
         channel-priority: flexible
         environment-file: ${{ env.ENV_FILE }}
         use-only-tar-bz2: true
-      if: ${{ !env.IS_PYPY }} # No pypy3.8 support
+      if: ${{ env.IS_PYPY == 'false' }} # No pypy3.8 support
     
     - name: Setup PyPy
       uses: actions/setup-python@v2.3.1
       with:
         python-version: "pypy-3.8"
-      if: ${{ env.IS_PYPY }}
+      if: ${{ env.IS_PYPY == 'true' }}
     
     - name: Setup PyPy dependencies
       run: |
         pip install cython>=0.29.24 numpy python-dateutil pytz pytest>=6.0 pytest-cov pytest-xdist>=1.31 hypothesis>=5.5.3
-      if: ${{ env.IS_PYPY }}    
+      if: ${{ env.IS_PYPY == 'true' }}    
 
     - name: Build Pandas
       uses: ./.github/actions/build_pandas
@@ -103,7 +103,7 @@ jobs:
     - name: Test
       run: ci/run_tests.sh
       # TODO: Don't continue on error for PyPy
-      continue-on-error: ${{ env.IS_PYPY == 'true'}}
+      continue-on-error: ${{ env.IS_PYPY == 'true' }}
       if: always()
 
     - name: Build Version
