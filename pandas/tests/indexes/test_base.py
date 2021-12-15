@@ -816,14 +816,17 @@ class TestIndex(Base):
             )
 
     def test_isin_nan_common_float64(self, request, nulls_fixture):
-        if nulls_fixture is pd.NaT:
-            pytest.skip("pd.NaT not compatible with Float64Index")
 
-        # Float64Index overrides isin, so must be checked separately
-        if nulls_fixture is pd.NA:
-            request.node.add_marker(
-                pytest.mark.xfail(reason="Float64Index cannot contain pd.NA")
-            )
+        if nulls_fixture is pd.NaT or nulls_fixture is pd.NA:
+            # Check 1) that we cannot construct a Float64Index with this value
+            #  and 2) that with an NaN we do not have .isin(nulls_fixture)
+            msg = "data is not compatible with Float64Index"
+            with pytest.raises(ValueError, match=msg):
+                Float64Index([1.0, nulls_fixture])
+
+            idx = Float64Index([1.0, np.nan])
+            assert not idx.isin([nulls_fixture]).any()
+            return
 
         idx = Float64Index([1.0, nulls_fixture])
         res = idx.isin([np.nan])
