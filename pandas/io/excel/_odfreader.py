@@ -198,11 +198,17 @@ class ODFReader(BaseExcelReader):
             return float(cell_value)
         elif cell_type == "date":
             cell_value = cell.attributes.get((OFFICENS, "date-value"))
-            return pd.to_datetime(cell_value)
+            # error: Incompatible return value type (got "Union[float, str, NaTType]",
+            # expected "Union[Union[str, int, float, bool], Union[Period, Timestamp,
+            # Timedelta, Interval[Any]], datetime64, timedelta64]")
+            return pd.to_datetime(cell_value)  # type: ignore[return-value]
         elif cell_type == "time":
             stamp = pd.to_datetime(str(cell))
             # error: Item "str" of "Union[float, str, NaTType]" has no attribute "time"
-            return stamp.time()  # type: ignore[union-attr]
+            # error: Incompatible return value type (got "Union[Any, time]", expected
+            # "Union[Union[str, int, float, bool], Union[Period, Timestamp, Timedelta,
+            # Interval[Any]], datetime64, timedelta64]")
+            return stamp.time()  # type: ignore[union-attr,return-value]
         else:
             self.close()
             raise ValueError(f"Unrecognized type {cell_type}")

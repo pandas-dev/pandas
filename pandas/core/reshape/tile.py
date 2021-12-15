@@ -560,7 +560,7 @@ def _format_labels(
     bins, precision: int, right: bool = True, include_lowest: bool = False, dtype=None
 ):
     """based on the dtype, return our labels"""
-    closed = "right" if right else "left"
+    closed: Literal["right", "left"] = "right" if right else "left"
 
     formatter: Callable[[Any], Timestamp] | Callable[[Any], Timedelta]
 

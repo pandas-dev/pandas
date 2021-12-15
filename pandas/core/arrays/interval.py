@@ -29,6 +29,7 @@ from pandas._libs.missing import NA
 from pandas._typing import (
     ArrayLike,
     Dtype,
+    IntervalBound,
     NpDtype,
     PositionalIndexer,
     ScalarIndexer,
@@ -196,6 +197,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     ndim = 1
     can_hold_na = True
     _na_value = _fill_value = np.nan
+    _left: np.ndarray
+    _right: np.ndarray
+    _dtype: IntervalDtype
 
     # ---------------------------------------------------------------------
     # Constructors
@@ -657,11 +661,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             if is_scalar(left) and isna(left):
                 return self._fill_value
             return Interval(left, right, self.closed)
-        # error: Argument 1 to "ndim" has incompatible type "Union[ndarray,
-        # ExtensionArray]"; expected "Union[Union[int, float, complex, str, bytes,
-        # generic], Sequence[Union[int, float, complex, str, bytes, generic]],
-        # Sequence[Sequence[Any]], _SupportsArray]"
-        if np.ndim(left) > 1:  # type: ignore[arg-type]
+        if np.ndim(left) > 1:
             # GH#30588 multi-dimensional indexer disallowed
             raise ValueError("multi-dimensional indexing not allowed")
         return self._shallow_copy(left, right)
@@ -945,10 +945,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         -------
         IntervalArray
         """
-        closed = {interval.closed for interval in to_concat}
-        if len(closed) != 1:
+        closed_set = {interval.closed for interval in to_concat}
+        if len(closed_set) != 1:
             raise ValueError("Intervals must all be closed on the same side.")
-        closed = closed.pop()
+        closed = closed_set.pop()
 
         left = np.concatenate([interval.left for interval in to_concat])
         right = np.concatenate([interval.right for interval in to_concat])
@@ -1317,7 +1317,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     # ---------------------------------------------------------------------
 
     @property
-    def closed(self):
+    def closed(self) -> IntervalBound:
         """
         Whether the intervals are closed on the left-side, right-side, both or
         neither.
@@ -1665,8 +1665,14 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         dtype = self._left.dtype
         if needs_i8_conversion(dtype):
-            new_left = type(self._left)._from_sequence(nc[:, 0], dtype=dtype)
-            new_right = type(self._right)._from_sequence(nc[:, 1], dtype=dtype)
+            # error: "Type[ndarray[Any, Any]]" has no attribute "_from_sequence"
+            new_left = type(self._left)._from_sequence(  # type: ignore[attr-defined]
+                nc[:, 0], dtype=dtype
+            )
+            # error: "Type[ndarray[Any, Any]]" has no attribute "_from_sequence"
+            new_right = type(self._right)._from_sequence(  # type: ignore[attr-defined]
+                nc[:, 1], dtype=dtype
+            )
         else:
             new_left = nc[:, 0].view(dtype)
             new_right = nc[:, 1].view(dtype)

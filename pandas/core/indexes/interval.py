@@ -9,6 +9,7 @@ import textwrap
 from typing import (
     Any,
     Hashable,
+    Literal,
 )
 
 import numpy as np
@@ -28,6 +29,7 @@ from pandas._libs.tslibs import (
 from pandas._typing import (
     Dtype,
     DtypeObj,
+    IntervalBound,
     npt,
 )
 from pandas.errors import InvalidIndexError
@@ -191,10 +193,12 @@ class IntervalIndex(ExtensionIndex):
     _typ = "intervalindex"
 
     # annotate properties pinned via inherit_names
-    closed: str
+    closed: IntervalBound
     is_non_overlapping_monotonic: bool
     closed_left: bool
     closed_right: bool
+    open_left: bool
+    open_right: bool
 
     _data: IntervalArray
     _values: IntervalArray
@@ -246,7 +250,7 @@ class IntervalIndex(ExtensionIndex):
     def from_breaks(
         cls,
         breaks,
-        closed: str = "right",
+        closed: IntervalBound = "right",
         name: Hashable = None,
         copy: bool = False,
         dtype: Dtype | None = None,
@@ -277,7 +281,7 @@ class IntervalIndex(ExtensionIndex):
         cls,
         left,
         right,
-        closed: str = "right",
+        closed: IntervalBound = "right",
         name: Hashable = None,
         copy: bool = False,
         dtype: Dtype | None = None,
@@ -307,7 +311,7 @@ class IntervalIndex(ExtensionIndex):
     def from_tuples(
         cls,
         data,
-        closed: str = "right",
+        closed: IntervalBound = "right",
         name: Hashable = None,
         copy: bool = False,
         dtype: Dtype | None = None,
@@ -318,8 +322,10 @@ class IntervalIndex(ExtensionIndex):
 
     # --------------------------------------------------------------------
 
+    # error: Return type "IntervalTree[Any]" of "_engine" incompatible with return type
+    # "IndexEngine" in supertype "Index"
     @cache_readonly
-    def _engine(self) -> IntervalTree:
+    def _engine(self) -> IntervalTree:  # type: ignore[override]
         left = self._maybe_convert_i8(self.left)
         right = self._maybe_convert_i8(self.right)
         return IntervalTree(left, right, closed=self.closed)
@@ -511,7 +517,10 @@ class IntervalIndex(ExtensionIndex):
             left = self._maybe_convert_i8(key.left)
             right = self._maybe_convert_i8(key.right)
             constructor = Interval if scalar else IntervalIndex.from_arrays
-            return constructor(left, right, closed=self.closed)
+            # error: "object" not callable
+            return constructor(  # type: ignore[operator]
+                left, right, closed=self.closed
+            )
 
         if scalar:
             # Timestamp/Timedelta
@@ -543,7 +552,7 @@ class IntervalIndex(ExtensionIndex):
 
         return key_i8
 
-    def _searchsorted_monotonic(self, label, side: str = "left"):
+    def _searchsorted_monotonic(self, label, side: Literal["left", "right"] = "left"):
         if not self.is_non_overlapping_monotonic:
             raise KeyError(
                 "can only get slices from an IntervalIndex if bounds are "
@@ -663,7 +672,9 @@ class IntervalIndex(ExtensionIndex):
             # homogeneous scalar index: use IntervalTree
             # we should always have self._should_partial_index(target) here
             target = self._maybe_convert_i8(target)
-            indexer = self._engine.get_indexer(target.values)
+            # error: Argument 1 to "get_indexer" of "IntervalTree" has incompatible type
+            # "Union[ExtensionArray, ndarray[Any, Any]]"; expected "ndarray[Any, Any]"
+            indexer = self._engine.get_indexer(target.values)  # type: ignore[arg-type]
         else:
             # heterogeneous scalar index: defer elementwise to get_loc
             # we should always have self._should_partial_index(target) here
@@ -698,7 +709,12 @@ class IntervalIndex(ExtensionIndex):
             # Note: this case behaves differently from other Index subclasses
             #  because IntervalIndex does partial-int indexing
             target = self._maybe_convert_i8(target)
-            indexer, missing = self._engine.get_indexer_non_unique(target.values)
+            # error: Argument 1 to "get_indexer_non_unique" of "IntervalTree" has
+            # incompatible type "Union[ExtensionArray, ndarray[Any, Any]]"; expected
+            # "ndarray[Any, Any]"  [arg-type]
+            indexer, missing = self._engine.get_indexer_non_unique(
+                target.values  # type: ignore[arg-type]
+            )
 
         return ensure_platform_int(indexer), ensure_platform_int(missing)
 
@@ -941,7 +957,12 @@ def _is_type_compatible(a, b) -> bool:
 
 
 def interval_range(
-    start=None, end=None, periods=None, freq=None, name: Hashable = None, closed="right"
+    start=None,
+    end=None,
+    periods=None,
+    freq=None,
+    name: Hashable = None,
+    closed: IntervalBound = "right",
 ) -> IntervalIndex:
     """
     Return a fixed frequency IntervalIndex.
