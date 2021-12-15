@@ -1,7 +1,4 @@
 """ support numpy compatibility across versions """
-
-import re
-
 import numpy as np
 
 from pandas.util.version import Version
@@ -27,18 +24,6 @@ if _nlv < Version(_min_numpy_ver):
         f"your numpy version is {_np_version}.\n"
         f"Please upgrade numpy to >= {_min_numpy_ver} to use this pandas version"
     )
-
-
-_tz_regex = re.compile("[+-]0000$")
-
-
-def _tz_replacer(tstring):
-    if isinstance(tstring, str):
-        if tstring.endswith("Z"):
-            tstring = tstring[:-1]
-        elif _tz_regex.search(tstring):
-            tstring = tstring[:-5]
-    return tstring
 
 
 __all__ = [
