@@ -116,6 +116,7 @@ dtypes = {
     "float": np.dtype(np.float64),
     "object": np.dtype(object),
     "category": com.pandas_dtype("category"),
+    "string": pd.StringDtype(),
 }
 
 
@@ -127,6 +128,12 @@ def test_dtype_equal(name1, dtype1, name2, dtype2):
     assert com.is_dtype_equal(dtype1, dtype1)
     if name1 != name2:
         assert not com.is_dtype_equal(dtype1, dtype2)
+
+
+@pytest.mark.parametrize("name,dtype", list(dtypes.items()), ids=lambda x: str(x))
+def test_pyarrow_string_import_error(name, dtype):
+    # GH-44276
+    assert not com.is_dtype_equal(dtype, "string[pyarrow]")
 
 
 @pytest.mark.parametrize(
