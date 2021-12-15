@@ -1,7 +1,6 @@
 """
 Tests shared by MaskedArray subclasses.
 """
-import numpy as np
 
 import pandas as pd
 import pandas._testing as tm
@@ -56,7 +55,7 @@ class NumericOps:
 
     def test_no_shared_mask(self, data):
         result = data + 1
-        assert np.shares_memory(result._mask, data._mask) is False
+        assert not tm.shares_memory(result, data)
 
     def test_array(self, comparison_op, dtype):
         op = comparison_op

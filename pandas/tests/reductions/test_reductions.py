@@ -356,7 +356,7 @@ class TestIndexReductions:
             [
                 f"reduction operation '{opname}' not allowed for this dtype",
                 rf"cannot perform {opname} with type timedelta64\[ns\]",
-                f"'TimedeltaArray' does not implement reduction '{opname}'",
+                f"does not support reduction '{opname}'",
             ]
         )
 
@@ -570,7 +570,9 @@ class TestSeriesReductions:
         res = nanops.nansum(arr, axis=1)
         assert np.isinf(res).all()
 
-    @pytest.mark.parametrize("dtype", ["float64", "Int64", "boolean", "object"])
+    @pytest.mark.parametrize(
+        "dtype", ["float64", "Float32", "Int64", "boolean", "object"]
+    )
     @pytest.mark.parametrize("use_bottleneck", [True, False])
     @pytest.mark.parametrize("method, unit", [("sum", 0.0), ("prod", 1.0)])
     def test_empty(self, method, unit, use_bottleneck, dtype):
@@ -727,7 +729,7 @@ class TestSeriesReductions:
                 [
                     "operation 'var' not allowed",
                     r"cannot perform var with type timedelta64\[ns\]",
-                    "'TimedeltaArray' does not implement reduction 'var'",
+                    "does not support reduction 'var'",
                 ]
             )
             with pytest.raises(TypeError, match=msg):

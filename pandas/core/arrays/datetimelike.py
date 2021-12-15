@@ -35,6 +35,7 @@ from pandas._libs.tslibs import (
     Timestamp,
     delta_to_nanoseconds,
     iNaT,
+    ints_to_pydatetime,
     to_offset,
 )
 from pandas._libs.tslibs.fields import (
@@ -331,9 +332,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         This getitem defers to the underlying array, which by-definition can
         only handle list-likes, slices, and integer scalars
         """
-        # Use cast as we know we will get back a DatetimeLikeArray or DTScalar
+        # Use cast as we know we will get back a DatetimeLikeArray or DTScalar,
+        # but skip evaluating the Union at runtime for performance
+        # (see https://github.com/pandas-dev/pandas/pull/44624)
         result = cast(
-            Union[DatetimeLikeArrayT, DTScalarOrNaT], super().__getitem__(key)
+            "Union[DatetimeLikeArrayT, DTScalarOrNaT]", super().__getitem__(key)
         )
         if lib.is_scalar(result):
             return result
@@ -403,6 +406,19 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         dtype = pandas_dtype(dtype)
 
         if is_object_dtype(dtype):
+            if self.dtype.kind == "M":
+                # *much* faster than self._box_values
+                #  for e.g. test_get_loc_tuple_monotonic_above_size_cutoff
+                i8data = self.asi8.ravel()
+                converted = ints_to_pydatetime(
+                    i8data,
+                    # error: "DatetimeLikeArrayMixin" has no attribute "tz"
+                    tz=self.tz,  # type: ignore[attr-defined]
+                    freq=self.freq,
+                    box="timestamp",
+                )
+                return converted.reshape(self.shape)
+
             return self._box_values(self.asi8.ravel()).reshape(self.shape)
 
         elif isinstance(dtype, ExtensionDtype):
