@@ -47,7 +47,7 @@ jobs:
       PYTEST_TARGET:  pandas
       IS_PYPY: ${{ contains(matrix.settings[0], 'pypy') }}
       # TODO: re-enable coverage on pypy, its slow
-      COVERAGE: ${{ contains(matrix.settings[0], 'pypy') }}
+      COVERAGE: ${{ !contains(matrix.settings[0], 'pypy') }}
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.settings[0] }}
