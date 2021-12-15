@@ -1649,9 +1649,8 @@ class MultiIndex(Index):
 
         Length of returned vector is equal to the length of the index. Note
         that if the level contains missing values, the result may be casted to
-        ``float`` with missing values specified with ``NaN``. This is because
-        the level is converted to a regular ``Index``, not to a ``MultiIndex``
-        when this method is called.
+        ``float`` with missing values specified as ``NaN``. This is because
+        the level is converted to a regular ``Index``.
 
         Parameters
         ----------
