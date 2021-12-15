@@ -1649,7 +1649,7 @@ class MultiIndex(Index):
 
         Length of returned vector is equal to the length of the index. Note
         that if the level contains null, the result may be casted to ``float``
-        with null rows specified with NaN.
+        with null rows specified with ``NaN``.
 
         Parameters
         ----------
