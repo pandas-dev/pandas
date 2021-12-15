@@ -18,6 +18,7 @@ from pandas.core.dtypes.dtypes import PandasDtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import (
+    arraylike,
     nanops,
     ops,
 )
@@ -144,6 +145,14 @@ class PandasArray(
         if result is not NotImplemented:
             return result
 
+        if method == "reduce":
+            result = arraylike.dispatch_reduction_ufunc(
+                self, ufunc, method, *inputs, **kwargs
+            )
+            if result is not NotImplemented:
+                # e.g. tests.series.test_ufunc.TestNumpyReductions
+                return result
+
         # Defer to the implementation of the ufunc on unwrapped values.
         inputs = tuple(x._ndarray if isinstance(x, PandasArray) else x for x in inputs)
         if out:
@@ -153,13 +162,8 @@ class PandasArray(
         result = getattr(ufunc, method)(*inputs, **kwargs)
 
         if ufunc.nout > 1:
-            # multiple return values
-            if not lib.is_scalar(result[0]):
-                # re-box array-like results
-                return tuple(type(self)(x) for x in result)
-            else:
-                # but not scalar reductions
-                return result
+            # multiple return values; re-box array-like results
+            return tuple(type(self)(x) for x in result)
         elif method == "at":
             # no return value
             return None
@@ -171,11 +175,8 @@ class PandasArray(
             # e.g. test_np_max_nested_tuples
             return result
         else:
-            # one return value
-            if not lib.is_scalar(result):
-                # re-box array-like results, but not scalar reductions
-                result = type(self)(result)
-            return result
+            # one return value; re-box array-like results
+            return type(self)(result)
 
     # ------------------------------------------------------------------------
     # Pandas ExtensionArray Interface
