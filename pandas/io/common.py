@@ -875,9 +875,25 @@ class _BytesTarFile(tarfile.TarFile, BytesIO):
         super().__init__(name=name, mode=mode, fileobj=fileobj, **kwargs)
 
     @classmethod
-    def open(cls, mode="r", **kwargs):
+    def open(cls, name=None, mode="r", **kwargs):
         mode = mode.replace("b", "")
-        return super().open(mode=mode, **kwargs)
+        return super().open(name=name, mode=cls.extend_mode(name, mode), **kwargs)
+
+    @classmethod
+    def extend_mode(
+        cls, name: FilePath | ReadBuffer[bytes] | WriteBuffer[bytes], mode: str
+    ) -> str:
+        if mode != "w":
+            return mode
+        if isinstance(name, (os.PathLike, str)):
+            filename = Path(name)
+            if filename.suffix == ".gz":
+                return mode + ":gz"
+            elif filename.suffix == ".xz":
+                return mode + ":xz"
+            elif filename.suffix == ".bz2":
+                return mode + ":bz2"
+        return mode
 
     def infer_filename(self):
         """
