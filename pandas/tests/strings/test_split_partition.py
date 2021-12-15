@@ -108,6 +108,47 @@ def test_split_n(any_string_dtype, method):
     result = getattr(s.str, method)(" ", n=0)
     tm.assert_series_equal(result, expected)
 
+def test_split_whitespace_not_nums(any_string_dtype):
+    value0 = " test 0"
+    result0 = Series.str.strip(value0)
+    exp0 = "test0"
+    tm.assert_series_equal(result0, exp0)
+
+    value1 = "1te st"
+    result1 = Series.str.strip(value1)
+    exp1 = "1test"
+    tm.assert_series_equal(result1, exp1)
+
+    value2 = "2test2 "
+    result2 = Series.str.strip(value2)
+    exp2 = "2test2"
+    tm.assert_series_equal(result2, exp2)
+    
+    value3 = "te 3 st"
+    result3 = Series.str.strip(value3)
+    exp3 = "te3st"
+    tm.assert_series_equal(result3, exp3)
+    
+    value4 = "4 te 4st4"
+    result4 = Series.str.strip(value4)
+    exp4 = "4te4st4"
+    tm.assert_series_equal(result4, exp4)
+    
+    value5 = " 555"
+    result5 = Series.str.strip(value5)
+    exp5 = "555"
+    tm.assert_series_equal(result5, exp5)
+    
+    value6 = "6 6"
+    result6 = Series.str.strip(value6)
+    exp6 = "66"
+    tm.assert_series_equal(result6, exp6)
+    
+    value7 = " 7 "
+    result7 = Series.str.strip(value7)
+    exp7 = "7"
+    tm.assert_series_equal(result7, exp7)
+
 
 def test_rsplit(any_string_dtype):
     values = Series(["a_b_c", "c_d_e", np.nan, "f_g_h"], dtype=any_string_dtype)
