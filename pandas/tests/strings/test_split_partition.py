@@ -129,12 +129,12 @@ def test_split_whitespace_not_nums(any_string_dtype):
     exp3 = "te3st"
     tm.assert_series_equal(result3, exp3)
     
-    value4 = "4 te 4st4"
+    value4 = "4 te 4st4" 
     result4 = Series.str.strip(value4)
     exp4 = "4te4st4"
     tm.assert_series_equal(result4, exp4)
     
-    value5 = " 555"
+    value5 = "\n5\n5n5\n"
     result5 = Series.str.strip(value5)
     exp5 = "555"
     tm.assert_series_equal(result5, exp5)
