@@ -251,7 +251,7 @@ class TestCommon(Base):
 
     def test_apply(self, offset_types):
         sdt = datetime(2011, 1, 1, 9, 0)
-        ndt = np.datetime64("2011-01-01 09:00Z")
+        ndt = np.datetime64("2011-01-01 09:00")
 
         expected = self.expecteds[offset_types.__name__]
         expected_norm = Timestamp(expected.date())

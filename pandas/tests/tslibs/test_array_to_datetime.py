@@ -23,15 +23,15 @@ import pandas._testing as tm
         (
             ["01-01-2013", "01-02-2013"],
             [
-                "2013-01-01T00:00:00.000000000-0000",
-                "2013-01-02T00:00:00.000000000-0000",
+                "2013-01-01T00:00:00.000000000",
+                "2013-01-02T00:00:00.000000000",
             ],
         ),
         (
             ["Mon Sep 16 2013", "Tue Sep 17 2013"],
             [
-                "2013-09-16T00:00:00.000000000-0000",
-                "2013-09-17T00:00:00.000000000-0000",
+                "2013-09-16T00:00:00.000000000",
+                "2013-09-17T00:00:00.000000000",
             ],
         ),
     ],
@@ -140,7 +140,7 @@ def test_coerce_outside_ns_bounds_one_valid():
     arr = np.array(["1/1/1000", "1/1/2000"], dtype=object)
     result, _ = tslib.array_to_datetime(arr, errors="coerce")
 
-    expected = [iNaT, "2000-01-01T00:00:00.000000000-0000"]
+    expected = [iNaT, "2000-01-01T00:00:00.000000000"]
     expected = np.array(expected, dtype="M8[ns]")
 
     tm.assert_numpy_array_equal(result, expected)
@@ -159,7 +159,7 @@ def test_coerce_of_invalid_datetimes(errors):
     else:  # coerce.
         # With coercing, the invalid dates becomes iNaT
         result, _ = tslib.array_to_datetime(arr, errors="coerce")
-        expected = ["2013-01-01T00:00:00.000000000-0000", iNaT, iNaT]
+        expected = ["2013-01-01T00:00:00.000000000", iNaT, iNaT]
 
         tm.assert_numpy_array_equal(result, np.array(expected, dtype="M8[ns]"))
 
@@ -183,9 +183,9 @@ class SubDatetime(datetime):
 @pytest.mark.parametrize(
     "data,expected",
     [
-        ([SubDatetime(2000, 1, 1)], ["2000-01-01T00:00:00.000000000-0000"]),
-        ([datetime(2000, 1, 1)], ["2000-01-01T00:00:00.000000000-0000"]),
-        ([Timestamp(2000, 1, 1)], ["2000-01-01T00:00:00.000000000-0000"]),
+        ([SubDatetime(2000, 1, 1)], ["2000-01-01T00:00:00.000000000"]),
+        ([datetime(2000, 1, 1)], ["2000-01-01T00:00:00.000000000"]),
+        ([Timestamp(2000, 1, 1)], ["2000-01-01T00:00:00.000000000"]),
     ],
 )
 def test_datetime_subclass(data, expected):

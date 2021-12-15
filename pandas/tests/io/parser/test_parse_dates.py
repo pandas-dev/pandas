@@ -1549,7 +1549,7 @@ date,time,prn,rxstatus
         index_col=["datetime", "prn"],
     )
 
-    datetimes = np.array(["2013-11-03T19:00:00Z"] * 3, dtype="datetime64[s]")
+    datetimes = np.array(["2013-11-03T19:00:00"] * 3, dtype="datetime64[s]")
     expected = DataFrame(
         data={"rxstatus": ["00E80000"] * 3},
         index=MultiIndex.from_tuples(

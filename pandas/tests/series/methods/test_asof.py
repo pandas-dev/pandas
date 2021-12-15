@@ -27,7 +27,7 @@ class TestSeriesAsof:
         #  handle nanoseconds
         assert first_value == ser["2013-01-01 00:00:00.000000050+0000"]
 
-        expected_ts = np.datetime64("2013-01-01 00:00:00.000000050+0000", "ns")
+        expected_ts = np.datetime64("2013-01-01 00:00:00.000000050", "ns")
         assert first_value == ser[Timestamp(expected_ts)]
 
     def test_basic(self):
