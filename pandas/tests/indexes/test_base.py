@@ -1261,7 +1261,7 @@ class TestMixedIntIndex(Base):
         assert index.name == "MyName"
         assert index2.name == "NewName"
 
-        with catch_warnings(record=True):
+        with tm.assert_produces_warning(FutureWarning):
             index3 = index.copy(names=["NewName"])
         tm.assert_index_equal(index, index3, check_names=False)
         assert index.name == "MyName"
