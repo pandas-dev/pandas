@@ -516,6 +516,11 @@ class Base:
 
             idx = type(index)(values)
 
+            msg = "does not support 'downcast'"
+            with pytest.raises(NotImplementedError, match=msg):
+                # For now at least, we only raise if there are NAs present
+                idx.fillna(idx[0], downcast="infer")
+
             expected = np.array([False] * len(idx), dtype=bool)
             expected[1] = True
             tm.assert_numpy_array_equal(idx._isnan, expected)
