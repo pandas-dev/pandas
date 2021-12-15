@@ -22,7 +22,6 @@ from pandas import (
     DatetimeIndex,
     Series,
     Timestamp,
-    compat,
     read_json,
 )
 import pandas._testing as tm
@@ -1275,11 +1274,9 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         expected = '{"0":{"articleId":' + str(bigNum) + "}}"
         assert json == expected
 
-    @pytest.mark.parametrize("bigNum", [sys.maxsize + 1, -(sys.maxsize + 2)])
-    @pytest.mark.skipif(not compat.IS64, reason="GH-35279")
+    @pytest.mark.parametrize("bigNum", [-(2 ** 63) - 1, 2 ** 64])
     def test_read_json_large_numbers(self, bigNum):
-        # GH20599
-
+        # GH20599, 26068
         json = StringIO('{"articleId":' + str(bigNum) + "}")
         msg = r"Value is too small|Value is too big"
         with pytest.raises(ValueError, match=msg):
@@ -1385,6 +1382,36 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         expected = DataFrame({"a": [1, 2], "b": [3.0, 4.0], "c": ["5", "6"]})
         dfjson = expected.to_json(orient="table")
         result = read_json(dfjson, orient="table")
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("orient", ["split", "records", "index", "columns"])
+    def test_to_json_from_json_columns_dtypes(self, orient):
+        # GH21892 GH33205
+        expected = DataFrame.from_dict(
+            {
+                "Integer": Series([1, 2, 3], dtype="int64"),
+                "Float": Series([None, 2.0, 3.0], dtype="float64"),
+                "Object": Series([None, "", "c"], dtype="object"),
+                "Bool": Series([True, False, True], dtype="bool"),
+                "Category": Series(["a", "b", None], dtype="category"),
+                "Datetime": Series(
+                    ["2020-01-01", None, "2020-01-03"], dtype="datetime64[ns]"
+                ),
+            }
+        )
+        dfjson = expected.to_json(orient=orient)
+        result = read_json(
+            dfjson,
+            orient=orient,
+            dtype={
+                "Integer": "int64",
+                "Float": "float64",
+                "Object": "object",
+                "Bool": "bool",
+                "Category": "category",
+                "Datetime": "datetime64[ns]",
+            },
+        )
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", [True, {"b": int, "c": int}])
@@ -1711,11 +1738,6 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         result = series.to_json(orient="index")
         assert result == expected
 
-    @pytest.mark.xfail(
-        is_platform_windows(),
-        reason="localhost connection rejected",
-        strict=False,
-    )
     def test_to_s3(self, s3_resource, s3so):
         import time
 

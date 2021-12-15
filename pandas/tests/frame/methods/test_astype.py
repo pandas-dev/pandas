@@ -222,10 +222,13 @@ class TestAstype:
         # in the keys of the dtype dict
         dt4 = dtype_class({"b": str, 2: str})
         dt5 = dtype_class({"e": str})
-        msg = "Only a column name can be used for the key in a dtype mappings argument"
-        with pytest.raises(KeyError, match=msg):
+        msg_frame = (
+            "Only a column name can be used for the key in a dtype mappings argument. "
+            "'{}' not found in columns."
+        )
+        with pytest.raises(KeyError, match=msg_frame.format(2)):
             df.astype(dt4)
-        with pytest.raises(KeyError, match=msg):
+        with pytest.raises(KeyError, match=msg_frame.format("e")):
             df.astype(dt5)
         tm.assert_frame_equal(df, original)
 
@@ -259,6 +262,26 @@ class TestAstype:
 
         result = df.astype({"a": "str"})
         expected = concat([a1_str, b, a2_str], axis=1)
+        tm.assert_frame_equal(result, expected)
+
+    def test_astype_duplicate_col_series_arg(self):
+        # GH#44417
+        vals = np.random.randn(3, 4)
+        df = DataFrame(vals, columns=["A", "B", "C", "A"])
+        dtypes = df.dtypes
+        dtypes.iloc[0] = str
+        dtypes.iloc[2] = "Float64"
+
+        result = df.astype(dtypes)
+        expected = DataFrame(
+            {
+                0: vals[:, 0].astype(str),
+                1: vals[:, 1],
+                2: pd.array(vals[:, 2], dtype="Float64"),
+                3: vals[:, 3],
+            }
+        )
+        expected.columns = df.columns
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -690,6 +713,16 @@ class TestAstype:
         result = df.iloc[index_slice].astype("int16")
         expected = df.iloc[index_slice]
         tm.assert_frame_equal(result, expected, check_dtype=False)
+
+    def test_astype_retain_attrs(self, any_numpy_dtype):
+        # GH#44414
+        df = DataFrame({"a": [0, 1, 2], "b": [3, 4, 5]})
+        df.attrs["Location"] = "Michigan"
+
+        result = df.astype({"a": any_numpy_dtype}).attrs
+        expected = df.attrs
+
+        tm.assert_dict_equal(expected, result)
 
 
 class TestAstypeCategorical:

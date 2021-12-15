@@ -9,7 +9,6 @@ Other items:
 """
 import platform
 import sys
-import warnings
 
 from pandas._typing import F
 from pandas.compat.numpy import (
@@ -20,7 +19,7 @@ from pandas.compat.numpy import (
     np_version_under1p20,
 )
 from pandas.compat.pyarrow import (
-    pa_version_under1p0,
+    pa_version_under1p01,
     pa_version_under2p0,
     pa_version_under3p0,
     pa_version_under4p0,
@@ -99,30 +98,12 @@ def is_platform_arm() -> bool:
     bool
         True if the running platform uses ARM architecture.
     """
-    return platform.machine() in ("arm64", "aarch64")
+    return platform.machine() in ("arm64", "aarch64") or platform.machine().startswith(
+        "armv"
+    )
 
 
-def import_lzma():
-    """
-    Importing the `lzma` module.
-
-    Warns
-    -----
-    When the `lzma` module is not available.
-    """
-    try:
-        import lzma
-
-        return lzma
-    except ImportError:
-        msg = (
-            "Could not import the lzma module. Your installed Python is incomplete. "
-            "Attempting to use lzma compression will result in a RuntimeError."
-        )
-        warnings.warn(msg)
-
-
-def get_lzma_file(lzma):
+def get_lzma_file():
     """
     Importing the `LZMAFile` class from the `lzma` module.
 
@@ -136,7 +117,9 @@ def get_lzma_file(lzma):
     RuntimeError
         If the `lzma` module was not imported correctly, or didn't exist.
     """
-    if lzma is None:
+    try:
+        import lzma
+    except ImportError:
         raise RuntimeError(
             "lzma module not available. "
             "A Python re-install with the proper dependencies, "
@@ -151,7 +134,7 @@ __all__ = [
     "np_datetime64_compat",
     "np_version_under1p19",
     "np_version_under1p20",
-    "pa_version_under1p0",
+    "pa_version_under1p01",
     "pa_version_under2p0",
     "pa_version_under3p0",
     "pa_version_under4p0",

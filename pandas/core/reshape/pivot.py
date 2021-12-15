@@ -25,6 +25,7 @@ from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
+    is_nested_list_like,
     is_scalar,
 )
 from pandas.core.dtypes.generic import (
@@ -625,8 +626,10 @@ def crosstab(
     if values is not None and aggfunc is None:
         raise ValueError("values cannot be used without an aggfunc.")
 
-    index = com.maybe_make_list(index)
-    columns = com.maybe_make_list(columns)
+    if not is_nested_list_like(index):
+        index = [index]
+    if not is_nested_list_like(columns):
+        columns = [columns]
 
     common_idx = None
     pass_objs = [x for x in index + columns if isinstance(x, (ABCSeries, ABCDataFrame))]

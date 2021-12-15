@@ -68,27 +68,16 @@ class TestFloatIndexers:
         # contains
         assert 3.0 not in s
 
-        # setting with an indexer
-        if s.index.inferred_type in ["categorical"]:
-            # Value or Type Error
-            pass
-        elif s.index.inferred_type in ["datetime64", "timedelta64", "period"]:
+        s2 = s.copy()
+        indexer_sl(s2)[3.0] = 10
 
-            # FIXME: dont leave commented-out
-            # these should prob work
-            # and are inconsistent between series/dataframe ATM
-            # for idxr in [lambda x: x]:
-            #    s2 = s.copy()
-            #
-            #    with pytest.raises(TypeError):
-            #        idxr(s2)[3.0] = 0
-            pass
-
+        if indexer_sl is tm.setitem:
+            assert 3.0 in s2.axes[-1]
+        elif indexer_sl is tm.loc:
+            assert 3.0 in s2.axes[0]
         else:
-
-            s2 = s.copy()
-            indexer_sl(s2)[3.0] = 10
-            assert s2.index.is_object()
+            assert 3.0 not in s2.axes[0]
+            assert 3.0 not in s2.axes[-1]
 
     @pytest.mark.parametrize(
         "index_func",
@@ -479,7 +468,6 @@ class TestFloatIndexers:
         index = Index([1.5, 2, 3, 4.5, 5])
         s = Series(range(5), index=index)
         assert s[3] == 2
-        assert s.loc[3] == 2
         assert s.loc[3] == 2
         assert s.iloc[3] == 3
 

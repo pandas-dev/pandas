@@ -23,8 +23,9 @@ jobs:
         shell: bash -l {0}
 
     concurrency:
-      group: ${{ github.ref }}-checks
-      cancel-in-progress: ${{github.event_name == 'pull_request'}}
+      # https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-checks
+      cancel-in-progress: true
 
     steps:
     - name: Checkout
@@ -102,7 +103,8 @@ jobs:
     runs-on: ubuntu-latest
 
     concurrency:
-      group: ${{ github.ref }}-web-docs
+      # https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-web-docs
       cancel-in-progress: true
 
     steps:
@@ -136,8 +138,11 @@ jobs:
         echo "${{ secrets.server_ip }} ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBE1Kkopomm7FHG5enATf7SgnpICZ4W2bw+Ho+afqin+w7sMcrsa0je7sbztFAV8YchDkiBKnWTG4cRT+KZgZCaY=" > ~/.ssh/known_hosts
       if: ${{github.event_name == 'push' && github.ref == 'refs/heads/master'}}
 
+    - name: Copy cheatsheets into site directory
+      run: cp doc/cheatsheet/Pandas_Cheat_Sheet* web/build/
+
     - name: Upload web
-      run: rsync -az --delete --exclude='pandas-docs' --exclude='docs' --exclude='Pandas_Cheat_Sheet*' web/build/ docs@${{ secrets.server_ip }}:/usr/share/nginx/pandas
+      run: rsync -az --delete --exclude='pandas-docs' --exclude='docs' web/build/ docs@${{ secrets.server_ip }}:/usr/share/nginx/pandas
       if: ${{github.event_name == 'push' && github.ref == 'refs/heads/master'}}
 
     - name: Upload dev docs
@@ -146,6 +151,7 @@ jobs:
 
     - name: Move docs into site directory
       run: mv doc/build/html web/build/docs
+
     - name: Save website as an artifact
       uses: actions/upload-artifact@v2
       with:
@@ -156,11 +162,20 @@ jobs:
   data_manager:
     name: Test experimental data manager
     runs-on: ubuntu-latest
+    services:
+      moto:
+        image: motoserver/moto
+        env:
+          AWS_ACCESS_KEY_ID: foobar_key
+          AWS_SECRET_ACCESS_KEY: foobar_secret
+        ports:
+          - 5000:5000
     strategy:
       matrix:
         pattern: ["not slow and not network and not clipboard", "slow"]
     concurrency:
-      group: ${{ github.ref }}-data_manager-${{ matrix.pattern }}
+      # https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-data_manager-${{ matrix.pattern }}
       cancel-in-progress: true
 
     steps:

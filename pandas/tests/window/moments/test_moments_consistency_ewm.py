@@ -9,67 +9,6 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.mark.parametrize("func", ["cov", "corr"])
-def test_ewm_pairwise_cov_corr(func, frame):
-    result = getattr(frame.ewm(span=10, min_periods=5), func)()
-    result = result.loc[(slice(None), 1), 5]
-    result.index = result.index.droplevel(1)
-    expected = getattr(frame[1].ewm(span=10, min_periods=5), func)(frame[5])
-    tm.assert_series_equal(result, expected, check_names=False)
-
-
-@pytest.mark.parametrize("name", ["cov", "corr"])
-def test_ewm_corr_cov(name):
-    A = Series(np.random.randn(50), index=np.arange(50))
-    B = A[2:] + np.random.randn(48)
-
-    A[:10] = np.NaN
-    B[-10:] = np.NaN
-
-    result = getattr(A.ewm(com=20, min_periods=5), name)(B)
-    assert np.isnan(result.values[:14]).all()
-    assert not np.isnan(result.values[14:]).any()
-
-
-@pytest.mark.parametrize("min_periods", [0, 1, 2])
-@pytest.mark.parametrize("name", ["cov", "corr"])
-def test_ewm_corr_cov_min_periods(name, min_periods):
-    # GH 7898
-    A = Series(np.random.randn(50), index=np.arange(50))
-    B = A[2:] + np.random.randn(48)
-
-    A[:10] = np.NaN
-    B[-10:] = np.NaN
-
-    result = getattr(A.ewm(com=20, min_periods=min_periods), name)(B)
-    # binary functions (ewmcov, ewmcorr) with bias=False require at
-    # least two values
-    assert np.isnan(result.values[:11]).all()
-    assert not np.isnan(result.values[11:]).any()
-
-    # check series of length 0
-    empty = Series([], dtype=np.float64)
-    result = getattr(empty.ewm(com=50, min_periods=min_periods), name)(empty)
-    tm.assert_series_equal(result, empty)
-
-    # check series of length 1
-    result = getattr(Series([1.0]).ewm(com=50, min_periods=min_periods), name)(
-        Series([1.0])
-    )
-    tm.assert_series_equal(result, Series([np.NaN]))
-
-
-@pytest.mark.parametrize("name", ["cov", "corr"])
-def test_different_input_array_raise_exception(name):
-    A = Series(np.random.randn(50), index=np.arange(50))
-    A[:10] = np.NaN
-
-    msg = "other must be a DataFrame or Series"
-    # exception raised is Exception
-    with pytest.raises(ValueError, match=msg):
-        getattr(A.ewm(com=20, min_periods=5), name)(np.random.randn(50))
-
-
 def create_mock_weights(obj, com, adjust, ignore_na):
     if isinstance(obj, DataFrame):
         if not len(obj.columns):
@@ -79,7 +18,7 @@ def create_mock_weights(obj, com, adjust, ignore_na):
                 create_mock_series_weights(
                     obj.iloc[:, i], com=com, adjust=adjust, ignore_na=ignore_na
                 )
-                for i, _ in enumerate(obj.columns)
+                for i in range(len(obj.columns))
             ],
             axis=1,
         )
@@ -119,7 +58,6 @@ def create_mock_series_weights(s, com, adjust, ignore_na):
     return w
 
 
-@pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
 def test_ewm_consistency_mean(consistency_data, adjust, ignore_na, min_periods):
     x, is_constant, no_nans = consistency_data
     com = 3.0
@@ -137,7 +75,6 @@ def test_ewm_consistency_mean(consistency_data, adjust, ignore_na, min_periods):
     tm.assert_equal(result, expected.astype("float64"))
 
 
-@pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
 def test_ewm_consistency_consistent(consistency_data, adjust, ignore_na, min_periods):
     x, is_constant, no_nans = consistency_data
     com = 3.0
@@ -163,7 +100,6 @@ def test_ewm_consistency_consistent(consistency_data, adjust, ignore_na, min_per
         tm.assert_equal(corr_x_x, expected)
 
 
-@pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
 def test_ewm_consistency_var_debiasing_factors(
     consistency_data, adjust, ignore_na, min_periods
 ):
@@ -189,7 +125,6 @@ def test_ewm_consistency_var_debiasing_factors(
     tm.assert_equal(var_unbiased_x, var_biased_x * var_debiasing_factors_x)
 
 
-@pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
 @pytest.mark.parametrize("bias", [True, False])
 def test_moments_consistency_var(
     consistency_data, adjust, ignore_na, min_periods, bias
@@ -215,7 +150,6 @@ def test_moments_consistency_var(
         tm.assert_equal(var_x, mean_x2 - (mean_x * mean_x))
 
 
-@pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
 @pytest.mark.parametrize("bias", [True, False])
 def test_moments_consistency_var_constant(
     consistency_data, adjust, ignore_na, min_periods, bias
@@ -237,7 +171,6 @@ def test_moments_consistency_var_constant(
         tm.assert_equal(var_x, expected)
 
 
-@pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
 @pytest.mark.parametrize("bias", [True, False])
 def test_ewm_consistency_std(consistency_data, adjust, ignore_na, min_periods, bias):
     x, is_constant, no_nans = consistency_data
@@ -245,25 +178,15 @@ def test_ewm_consistency_std(consistency_data, adjust, ignore_na, min_periods, b
     var_x = x.ewm(
         com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
     ).var(bias=bias)
+    assert not (var_x < 0).any().any()
+
     std_x = x.ewm(
         com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
     ).std(bias=bias)
-    assert not (var_x < 0).any().any()
     assert not (std_x < 0).any().any()
 
     # check that var(x) == std(x)^2
     tm.assert_equal(var_x, std_x * std_x)
-
-
-@pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
-@pytest.mark.parametrize("bias", [True, False])
-def test_ewm_consistency_cov(consistency_data, adjust, ignore_na, min_periods, bias):
-    x, is_constant, no_nans = consistency_data
-    com = 3.0
-    var_x = x.ewm(
-        com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
-    ).var(bias=bias)
-    assert not (var_x < 0).any().any()
 
     cov_x_x = x.ewm(
         com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
@@ -274,7 +197,6 @@ def test_ewm_consistency_cov(consistency_data, adjust, ignore_na, min_periods, b
     tm.assert_equal(var_x, cov_x_x)
 
 
-@pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4])
 @pytest.mark.parametrize("bias", [True, False])
 def test_ewm_consistency_series_cov_corr(
     consistency_data, adjust, ignore_na, min_periods, bias

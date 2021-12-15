@@ -740,9 +740,6 @@ class IndexOpsMixin(OpsMixin):
         numpy.ndarray.tolist : Return the array as an a.ndim-levels deep
             nested list of Python scalars.
         """
-        if not isinstance(self._values, np.ndarray):
-            # check for ndarray instead of dtype to catch DTA/TDA
-            return list(self._values)
         return self._values.tolist()
 
     to_list = tolist
@@ -1242,8 +1239,8 @@ class IndexOpsMixin(OpsMixin):
     def searchsorted(  # type: ignore[misc]
         self,
         value: npt._ScalarLike_co,
-        side: Literal["left", "right"] = "left",
-        sorter: NumpySorter = None,
+        side: Literal["left", "right"] = ...,
+        sorter: NumpySorter = ...,
     ) -> np.intp:
         ...
 
@@ -1251,8 +1248,8 @@ class IndexOpsMixin(OpsMixin):
     def searchsorted(
         self,
         value: npt.ArrayLike | ExtensionArray,
-        side: Literal["left", "right"] = "left",
-        sorter: NumpySorter = None,
+        side: Literal["left", "right"] = ...,
+        sorter: NumpySorter = ...,
     ) -> npt.NDArray[np.intp]:
         ...
 

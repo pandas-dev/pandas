@@ -110,12 +110,6 @@ class TestSeriesMisc:
     def test_contains(self, datetime_series):
         tm.assert_contains_all(datetime_series.index, datetime_series)
 
-    def test_raise_on_info(self):
-        s = Series(np.random.randn(10))
-        msg = "'Series' object has no attribute 'info'"
-        with pytest.raises(AttributeError, match=msg):
-            s.info()
-
     def test_axis_alias(self):
         s = Series([1, 2, np.nan])
         tm.assert_series_equal(s.dropna(axis="rows"), s.dropna(axis="index"))
@@ -182,3 +176,29 @@ class TestSeriesMisc:
         ser = Series(dtype=object)
         with tm.assert_produces_warning(None):
             inspect.getmembers(ser)
+
+    def test_unknown_attribute(self):
+        # GH#9680
+        tdi = pd.timedelta_range(start=0, periods=10, freq="1s")
+        ser = Series(np.random.normal(size=10), index=tdi)
+        assert "foo" not in ser.__dict__.keys()
+        msg = "'Series' object has no attribute 'foo'"
+        with pytest.raises(AttributeError, match=msg):
+            ser.foo
+
+    def test_datetime_series_no_datelike_attrs(self, datetime_series):
+        # GH#7206
+        for op in ["year", "day", "second", "weekday"]:
+            msg = f"'Series' object has no attribute '{op}'"
+            with pytest.raises(AttributeError, match=msg):
+                getattr(datetime_series, op)
+
+    def test_series_datetimelike_attribute_access(self):
+        # attribute access should still work!
+        ser = Series({"year": 2000, "month": 1, "day": 10})
+        assert ser.year == 2000
+        assert ser.month == 1
+        assert ser.day == 10
+        msg = "'Series' object has no attribute 'weekday'"
+        with pytest.raises(AttributeError, match=msg):
+            ser.weekday

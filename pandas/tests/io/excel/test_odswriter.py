@@ -19,23 +19,40 @@ def test_write_append_mode_raises(ext):
             ExcelWriter(f, engine="odf", mode="a")
 
 
-@pytest.mark.parametrize("nan_inf_to_errors", [True, False])
-def test_kwargs(ext, nan_inf_to_errors):
+def test_kwargs(ext):
     # GH 42286
-    # odswriter doesn't utilize kwargs, nothing to check except that it works
-    kwargs = {"options": {"nan_inf_to_errors": nan_inf_to_errors}}
+    # GH 43445
+    # test for error: OpenDocumentSpreadsheet does not accept any arguments
+    kwargs = {"kwarg": 1}
     with tm.ensure_clean(ext) as f:
         msg = re.escape("Use of **kwargs is deprecated")
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            with ExcelWriter(f, engine="odf", **kwargs) as _:
-                pass
+        error = re.escape(
+            "OpenDocumentSpreadsheet() got an unexpected keyword argument 'kwarg'"
+        )
+        with pytest.raises(
+            TypeError,
+            match=error,
+        ):
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                with ExcelWriter(f, engine="odf", **kwargs) as _:
+                    pass
 
 
-@pytest.mark.parametrize("nan_inf_to_errors", [True, False])
-def test_engine_kwargs(ext, nan_inf_to_errors):
+@pytest.mark.parametrize("engine_kwargs", [None, {"kwarg": 1}])
+def test_engine_kwargs(ext, engine_kwargs):
     # GH 42286
-    # odswriter doesn't utilize engine_kwargs, nothing to check except that it works
-    engine_kwargs = {"options": {"nan_inf_to_errors": nan_inf_to_errors}}
+    # GH 43445
+    # test for error: OpenDocumentSpreadsheet does not accept any arguments
     with tm.ensure_clean(ext) as f:
-        with ExcelWriter(f, engine="odf", engine_kwargs=engine_kwargs) as _:
-            pass
+        if engine_kwargs is not None:
+            error = re.escape(
+                "OpenDocumentSpreadsheet() got an unexpected keyword argument 'kwarg'"
+            )
+            with pytest.raises(
+                TypeError,
+                match=error,
+            ):
+                ExcelWriter(f, engine="odf", engine_kwargs=engine_kwargs)
+        else:
+            with ExcelWriter(f, engine="odf", engine_kwargs=engine_kwargs) as _:
+                pass
