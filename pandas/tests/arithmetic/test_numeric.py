@@ -1400,11 +1400,15 @@ def test_integer_array_add_list_like(
     if Series == box_pandas_1d_array:
         expected = Series(expected_data, dtype="Int64")
     elif Series == box_1d_array:
-        expected = Series(expected_data, dtype="object")
+        if box_pandas_1d_array is tm.to_array:
+            expected = Series(expected_data, dtype="Int64")
+        else:
+            expected = Series(expected_data, dtype="object")
     elif Index in (box_pandas_1d_array, box_1d_array):
         expected = Int64Index(expected_data)
     else:
-        expected = np.array(expected_data, dtype="object")
+        # box_pandas_1d_array is tm.to_array; preserves IntegerArray
+        expected = array(expected_data, dtype="Int64")
 
     tm.assert_equal(left, expected)
     tm.assert_equal(right, expected)
