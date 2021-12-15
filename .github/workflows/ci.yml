@@ -81,6 +81,9 @@ jobs:
   benchmarks:
     name: Benchmarks
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
 
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
@@ -92,9 +95,6 @@ jobs:
       uses: actions/checkout@v2
       with:
         fetch-depth: 0
-
-    - name: Set up pandas
-      uses: ./.github/actions/setup
 
     - name: Cache conda
       uses: actions/cache@v2
