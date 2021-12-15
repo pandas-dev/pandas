@@ -62,7 +62,7 @@ from pandas.tseries.offsets import (
 
 _ApplyCases = List[Tuple[BaseOffset, Dict[datetime, datetime]]]
 
-_ARITHMATIC_DATE_OFFSET = [
+_ARITHMETIC_DATE_OFFSET = [
     "years",
     "months",
     "weeks",
@@ -584,7 +584,7 @@ class TestDateOffset(Base):
     @pytest.mark.parametrize(
         "arithmatic_offset_type, expected",
         zip(
-            _ARITHMATIC_DATE_OFFSET,
+            _ARITHMETIC_DATE_OFFSET,
             [
                 "2009-01-02",
                 "2008-02-02",
@@ -605,7 +605,7 @@ class TestDateOffset(Base):
     @pytest.mark.parametrize(
         "arithmatic_offset_type, expected",
         zip(
-            _ARITHMATIC_DATE_OFFSET,
+            _ARITHMETIC_DATE_OFFSET,
             [
                 "2007-01-02",
                 "2007-12-02",
@@ -627,7 +627,7 @@ class TestDateOffset(Base):
     @pytest.mark.parametrize(
         "arithmatic_offset_type, n, expected",
         zip(
-            _ARITHMATIC_DATE_OFFSET,
+            _ARITHMETIC_DATE_OFFSET,
             range(1, 10),
             [
                 "2009-01-02",
@@ -659,7 +659,7 @@ class TestDateOffset(Base):
     @pytest.mark.parametrize(
         "arithmatic_offset_type, n, expected",
         zip(
-            _ARITHMATIC_DATE_OFFSET,
+            _ARITHMETIC_DATE_OFFSET,
             range(1, 10),
             [
                 "2007-01-02",
