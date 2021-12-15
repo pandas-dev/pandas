@@ -22,7 +22,6 @@ Fixed regressions
 - Fixed regression in :meth:`Series.duplicated` and :meth:`Series.drop_duplicates` when Series has :class:`Categorical` dtype with boolean categories (:issue:`44351`)
 - Fixed regression in :meth:`.GroupBy.sum` with ``timedelta64[ns]`` dtype containing ``NaT`` failing to treat that value as NA (:issue:`42659`)
 - Fixed regression in :meth:`.RollingGroupby.cov` and :meth:`.RollingGroupby.corr` when ``other`` had the same shape as each group would incorrectly return superfluous groups in the result (:issue:`42915`)
-- Fixed regression where a single column ``np.matrix`` was no longer coerced to a 1d ``np.ndarray`` when added to a :class:`DataFrame` (:issue:`42376`)
 
 
 .. ---------------------------------------------------------------------------
