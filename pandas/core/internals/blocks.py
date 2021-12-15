@@ -664,10 +664,6 @@ class Block(PandasObject):
         mask = missing.mask_missing(values, to_replace)
 
         if regex:
-            if self._can_hold_element(value):
-                blk = self if inplace else self.copy()
-                putmask_inplace(blk.values, mask, value)
-                return blk.convert(numeric=False, copy=False)
             return self._replace_regex(to_replace, value, inplace=inplace)
 
         if not self._can_hold_element(to_replace):
@@ -743,7 +739,10 @@ class Block(PandasObject):
         replace_regex(new_values, rx, value, mask)
 
         block = self.make_block(new_values)
-        return [block]
+        if (self.ndim == 1 or self.shape[0] == 1):
+            return block.convert(numeric=False, copy=False)
+        else:
+            return [block]
 
     @final
     def _replace_list(
