@@ -116,3 +116,10 @@ class TestTranspose:
 
         rtrip = result._mgr.blocks[0].values
         assert np.shares_memory(arr._ndarray, rtrip._ndarray)
+
+    def test_transpose_mixed_dtypes(self):
+        # GH#43337
+        df = DataFrame({"a": [1], "b": [2]}).astype({"b": "Int64"})
+        result = df.T
+        expected = DataFrame([1, 2], index=["a", "b"], dtype="Int64")
+        tm.assert_frame_equal(result, expected)
