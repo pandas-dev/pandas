@@ -806,6 +806,7 @@ Reshaping
 - Bug in :func:`crosstab` would fail when inputs are lists or tuples (:issue:`44076`)
 - Bug in :meth:`DataFrame.append` failing to retain ``index.name`` when appending a list of :class:`Series` objects (:issue:`44109`)
 - Fixed metadata propagation in :meth:`Dataframe.apply` method, consequently fixing the same issue for :meth:`Dataframe.transform`, :meth:`Dataframe.nunique` and :meth:`Dataframe.mode` (:issue:`28283`)
+- Bug in :func:`concat` casting levels of :class:`MultiIndex` to float if the only consist of missing values (:issue:`44900`)
 - Bug in :meth:`DataFrame.stack` with ``ExtensionDtype`` columns incorrectly raising (:issue:`43561`)
 - Bug in :meth:`Series.unstack` with object doing unwanted type inference on resulting columns (:issue:`44595`)
 - Bug in :class:`MultiIndex` failing join operations with overlapping ``IntervalIndex`` levels (:issue:`44096`)
