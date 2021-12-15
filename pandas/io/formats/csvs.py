@@ -18,7 +18,6 @@ from typing import (
 import numpy as np
 
 from pandas._libs import writers as libwriters
-from pandas._libs.properties import cache_readonly
 from pandas._typing import (
     CompressionOptions,
     FilePath,
@@ -27,6 +26,7 @@ from pandas._typing import (
     StorageOptions,
     WriteBuffer,
 )
+from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
