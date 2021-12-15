@@ -143,22 +143,24 @@ engine : str, default None
     - "pyxlsb" supports Binary Excel files.
 
     .. versionchanged:: 1.2.0
-        The engine `xlrd <https://xlrd.readthedocs.io/en/latest/>`_
-        now only supports old-style ``.xls`` files.
-        When ``engine=None``, the following logic will be
-        used to determine the engine:
+       The engine `xlrd <https://xlrd.readthedocs.io/en/latest/>`_
+       now only supports old-style ``.xls`` files.
+       When ``engine=None``, the following logic will be
+       used to determine the engine:
 
        - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
          then `odf <https://pypi.org/project/odfpy/>`_ will be used.
        - Otherwise if ``path_or_buffer`` is an xls format,
          ``xlrd`` will be used.
        - Otherwise if ``path_or_buffer`` is in xlsb format,
-         ``pyxlsb`` will be used.
+         `pyxlsb <https://pypi.org/project/pyxlsb/>`_ will be used.
 
-         .. versionadded:: 1.3.0
-       - Otherwise ``openpyxl`` will be used.
-
-         .. versionchanged:: 1.3.0
+    .. versionchanged:: 1.3.0
+       - Otherwise if `openpyxl <https://pypi.org/project/openpyxl/>`_ is installed,
+         then ``openpyxl`` will be used.
+       - Otherwise if ``xlrd >= 2.0`` is installed, a ``ValueError`` will be raised.
+       - Otherwise ``xlrd`` will be used and a ``FutureWarning`` will be raised.
+         This case will raise a ``ValueError`` in a future version of pandas.
 
 converters : dict, default None
     Dict of functions for converting values in certain columns. Keys can
@@ -1217,14 +1219,15 @@ class ExcelFile:
            - Otherwise if ``path_or_buffer`` is in xlsb format,
              `pyxlsb <https://pypi.org/project/pyxlsb/>`_ will be used.
 
-           .. versionadded:: 1.3.0
+       .. versionchanged:: 1.3.0
+
            - Otherwise if `openpyxl <https://pypi.org/project/openpyxl/>`_ is installed,
              then ``openpyxl`` will be used.
            - Otherwise if ``xlrd >= 2.0`` is installed, a ``ValueError`` will be raised.
            - Otherwise ``xlrd`` will be used and a ``FutureWarning`` will be raised.
              This case will raise a ``ValueError`` in a future version of pandas.
 
-           .. warning::
+       .. warning::
 
             Please do not report issues when using ``xlrd`` to read ``.xlsx`` files.
             This is not supported, switch to using ``openpyxl`` instead.

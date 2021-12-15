@@ -2517,8 +2517,7 @@ class DataFrame(NDFrame, OpsMixin):
             object implementing a binary ``write()`` function.
 
             .. versionchanged:: 1.0.0
-
-            Previously this was "fname"
+                Previously this was "fname"
 
         convert_dates : dict
             Dictionary mapping columns containing datetime types to stata
@@ -2767,8 +2766,7 @@ class DataFrame(NDFrame, OpsMixin):
             path when writing a partitioned dataset.
 
             .. versionchanged:: 1.2.0
-
-            Previously this was "fname"
+                Previously this was "fname"
 
         engine : {{'auto', 'pyarrow', 'fastparquet'}}, default 'auto'
             Parquet library to use. If 'auto', then the option

@@ -731,7 +731,7 @@ The :meth:`~plt.close` method is used to `close <https://matplotlib.org/3.1.1/ap
    ts = ts.cumsum()
 
    @savefig series_plot_basic.png
-   ts.plot();
+   ts.plot()
 
 If running under Jupyter Notebook, the plot will appear on :meth:`~ts.plot`.  Otherwise use
 `matplotlib.pyplot.show <https://matplotlib.org/3.1.1/api/_as_gen/matplotlib.pyplot.show.html>`__ to show it or
@@ -739,7 +739,7 @@ If running under Jupyter Notebook, the plot will appear on :meth:`~ts.plot`.  Ot
 
 .. ipython:: python
 
-   plt.show();
+   plt.show()
 
 On a DataFrame, the :meth:`~DataFrame.plot` method is a convenience to plot all
 of the columns with labels:
@@ -752,10 +752,10 @@ of the columns with labels:
 
    df = df.cumsum()
 
-   plt.figure();
-   df.plot();
+   plt.figure()
+   df.plot()
    @savefig frame_plot_basic.png
-   plt.legend(loc='best');
+   plt.legend(loc='best')
 
 Getting data in/out
 -------------------
