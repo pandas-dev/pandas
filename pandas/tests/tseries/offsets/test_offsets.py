@@ -566,6 +566,11 @@ class TestDateOffset(Base):
 
     @pytest.mark.parametrize("relativedelta_kwd", list(liboffsets._relativedelta_kwds))
     def test_constructor(self, relativedelta_kwd):
+        if relativedelta_kwd == "millisecond":
+            pytest.skip(
+                "Constructing DateOffset object with `millisecond` is not yet "
+                "supported."
+            )
         offset = DateOffset(**{relativedelta_kwd: 2})
         assert offset.kwds == {relativedelta_kwd: 2}
         assert getattr(offset, relativedelta_kwd) == 2
@@ -871,6 +876,10 @@ def test_month_offset_name(month_classes):
 
 @pytest.mark.parametrize("kwd", sorted(liboffsets._relativedelta_kwds))
 def test_valid_relativedelta_kwargs(kwd):
+    if kwd == "millisecond":
+        pytest.skip(
+            "Constructing DateOffset object with `millisecond` is not yet supported."
+        )
     # Check that all the arguments specified in liboffsets._relativedelta_kwds
     # are in fact valid relativedelta keyword args
     DateOffset(**{kwd: 1})
