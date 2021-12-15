@@ -698,3 +698,49 @@ def test_concat_posargs_deprecation():
         result = concat([df, df2], 0)
     expected = DataFrame([[1, 2, 3], [4, 5, 6]], index=["a", "b"])
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        Series(data=[1, 2]),
+        DataFrame(
+            data={
+                "col1": [1, 2],
+            }
+        ),
+        DataFrame(dtype=float),
+        Series(dtype=float),
+    ],
+)
+def test_concat_drop_attrs(data):
+    # GH#41828
+    df1 = data.copy()
+    df1.attrs = {1: 1}
+    df2 = data.copy()
+    df2.attrs = {1: 2}
+    df = concat([df1, df2])
+    assert len(df.attrs) == 0
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        Series(data=[1, 2]),
+        DataFrame(
+            data={
+                "col1": [1, 2],
+            }
+        ),
+        DataFrame(dtype=float),
+        Series(dtype=float),
+    ],
+)
+def test_concat_retain_attrs(data):
+    # GH#41828
+    df1 = data.copy()
+    df1.attrs = {1: 1}
+    df2 = data.copy()
+    df2.attrs = {1: 1}
+    df = concat([df1, df2])
+    assert df.attrs[1] == 1

@@ -154,9 +154,7 @@ class TestNumericOnly:
             ],
         )
 
-        with tm.assert_produces_warning(
-            FutureWarning, match="Dropping invalid", check_stacklevel=False
-        ):
+        with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
             result = getattr(gb, method)(numeric_only=False)
         tm.assert_frame_equal(result.reindex_like(expected), expected)
 
@@ -394,8 +392,7 @@ def test_median_empty_bins(observed):
 
     result = df.groupby(bins, observed=observed).median()
     expected = df.groupby(bins, observed=observed).agg(lambda x: x.median())
-    # TODO: GH 41137
-    tm.assert_frame_equal(result, expected, check_dtype=False)
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -1155,3 +1152,37 @@ def test_groupby_sum_below_mincount_nullable_integer():
     result = grouped.sum(min_count=2)
     expected = DataFrame({"b": [pd.NA] * 3, "c": [pd.NA] * 3}, dtype="Int64", index=idx)
     tm.assert_frame_equal(result, expected)
+
+
+def test_mean_on_timedelta():
+    # GH 17382
+    df = DataFrame({"time": pd.to_timedelta(range(10)), "cat": ["A", "B"] * 5})
+    result = df.groupby("cat")["time"].mean()
+    expected = Series(
+        pd.to_timedelta([4, 5]), name="time", index=Index(["A", "B"], name="cat")
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_groupby_sum_timedelta_with_nat():
+    # GH#42659
+    df = DataFrame(
+        {
+            "a": [1, 1, 2, 2],
+            "b": [pd.Timedelta("1d"), pd.Timedelta("2d"), pd.Timedelta("3d"), pd.NaT],
+        }
+    )
+    td3 = pd.Timedelta(days=3)
+
+    gb = df.groupby("a")
+
+    res = gb.sum()
+    expected = DataFrame({"b": [td3, td3]}, index=Index([1, 2], name="a"))
+    tm.assert_frame_equal(res, expected)
+
+    res = gb["b"].sum()
+    tm.assert_series_equal(res, expected["b"])
+
+    res = gb["b"].sum(min_count=2)
+    expected = Series([td3, pd.NaT], dtype="m8[ns]", name="b", index=expected.index)
+    tm.assert_series_equal(res, expected)

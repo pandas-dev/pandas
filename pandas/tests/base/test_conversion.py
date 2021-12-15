@@ -193,26 +193,15 @@ class TestToIterable:
             pd.core.dtypes.dtypes.PeriodDtype("A-DEC"),
         ),
         (pd.IntervalIndex.from_breaks([0, 1, 2]), IntervalArray, "interval"),
-        # This test is currently failing for datetime64[ns] and timedelta64[ns].
-        # The NumPy type system is sufficient for representing these types, so
-        # we just use NumPy for Series / DataFrame columns of these types (so
-        # we get consolidation and so on).
-        # However, DatetimeIndex and TimedeltaIndex use the DateLikeArray
-        # abstraction to for code reuse.
-        # At the moment, we've judged that allowing this test to fail is more
-        # practical that overriding Series._values to special case
-        # Series[M8[ns]] and Series[m8[ns]] to return a DateLikeArray.
-        pytest.param(
+        (
             pd.DatetimeIndex(["2017", "2018"]),
-            np.ndarray,
+            DatetimeArray,
             "datetime64[ns]",
-            marks=[pytest.mark.xfail(reason="datetime _values")],
         ),
-        pytest.param(
+        (
             pd.TimedeltaIndex([10 ** 10]),
-            np.ndarray,
+            TimedeltaArray,
             "m8[ns]",
-            marks=[pytest.mark.xfail(reason="timedelta _values")],
         ),
     ],
 )
@@ -265,10 +254,12 @@ def test_numpy_array_all_dtypes(any_numpy_dtype):
         ),
     ],
 )
-def test_array(arr, attr, index_or_series):
+def test_array(arr, attr, index_or_series, request):
     box = index_or_series
     if arr.dtype.name in ("Int64", "Sparse[int64, 0]") and box is pd.Index:
-        pytest.skip(f"No index type for {arr.dtype}")
+        mark = pytest.mark.xfail(reason="Needs EA-Backed Index")
+        request.node.add_marker(mark)
+
     result = box(arr, copy=False).array
 
     if attr:
@@ -340,9 +331,6 @@ def test_array_multiindex_raises():
 def test_to_numpy(arr, expected, index_or_series_or_array, request):
     box = index_or_series_or_array
     thing = box(arr)
-
-    if arr.dtype.name in ("Int64", "Sparse[int64, 0]") and box is pd.Index:
-        pytest.skip(f"No index type for {arr.dtype}")
 
     if arr.dtype.name == "int64" and box is pd.array:
         mark = pytest.mark.xfail(reason="thing is Int64 and to_numpy() returns object")

@@ -84,10 +84,12 @@ class TestCrosstab:
         expected = expected.unstack("A").fillna(0).astype(np.int64)
         tm.assert_frame_equal(result, expected)
 
-    def test_crosstab_ndarray(self):
-        a = np.random.randint(0, 5, size=100)
-        b = np.random.randint(0, 3, size=100)
-        c = np.random.randint(0, 10, size=100)
+    @pytest.mark.parametrize("box", [np.array, list, tuple])
+    def test_crosstab_ndarray(self, box):
+        # GH 44076
+        a = box(np.random.randint(0, 5, size=100))
+        b = box(np.random.randint(0, 3, size=100))
+        c = box(np.random.randint(0, 10, size=100))
 
         df = DataFrame({"a": a, "b": b, "c": c})
 
@@ -100,9 +102,11 @@ class TestCrosstab:
         tm.assert_frame_equal(result, expected)
 
         # assign arbitrary names
-        result = crosstab(self.df["A"].values, self.df["C"].values)
-        assert result.index.name == "row_0"
-        assert result.columns.name == "col_0"
+        result = crosstab(a, c)
+        expected = crosstab(df["a"], df["c"])
+        expected.index.names = ["row_0"]
+        expected.columns.names = ["col_0"]
+        tm.assert_frame_equal(result, expected)
 
     def test_crosstab_non_aligned(self):
         # GH 17005

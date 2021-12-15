@@ -12,6 +12,7 @@ from typing import (
 
 import numpy as np
 
+from pandas._libs import algos as libalgos
 from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.tslibs import (
     BaseOffset,
@@ -506,7 +507,22 @@ class PeriodArray(dtl.DatelikeOps):
         new_parr = self.asfreq(freq, how=how)
 
         new_data = libperiod.periodarr_to_dt64arr(new_parr.asi8, base)
-        return DatetimeArray(new_data)._with_freq("infer")
+        dta = DatetimeArray(new_data)
+
+        if self.freq.name == "B":
+            # See if we can retain BDay instead of Day in cases where
+            #  len(self) is too small for infer_freq to distinguish between them
+            diffs = libalgos.unique_deltas(self.asi8)
+            if len(diffs) == 1:
+                diff = diffs[0]
+                if diff == self.freq.n:
+                    dta._freq = self.freq
+                elif diff == 1:
+                    dta._freq = self.freq.base
+                # TODO: other cases?
+            return dta
+        else:
+            return dta._with_freq("infer")
 
     # --------------------------------------------------------------------
 
@@ -669,7 +685,9 @@ class PeriodArray(dtl.DatelikeOps):
             # view as dt64 so we get treated as timelike in core.missing
             dta = self.view("M8[ns]")
             result = dta.fillna(value=value, method=method, limit=limit)
-            return result.view(self.dtype)
+            # error: Incompatible return value type (got "Union[ExtensionArray,
+            # ndarray[Any, Any]]", expected "PeriodArray")
+            return result.view(self.dtype)  # type: ignore[return-value]
         return super().fillna(value=value, method=method, limit=limit)
 
     # ------------------------------------------------------------------

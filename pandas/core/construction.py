@@ -25,6 +25,7 @@ from pandas._typing import (
     DtypeObj,
 )
 from pandas.errors import IntCastingNaNError
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import (
     ExtensionDtype,
@@ -297,6 +298,7 @@ def array(
     from pandas.core.arrays import (
         BooleanArray,
         DatetimeArray,
+        ExtensionArray,
         FloatingArray,
         IntegerArray,
         IntervalArray,
@@ -310,7 +312,7 @@ def array(
         msg = f"Cannot pass scalar '{data}' to 'pandas.array'."
         raise ValueError(msg)
 
-    if dtype is None and isinstance(data, (ABCSeries, ABCIndex, ABCExtensionArray)):
+    if dtype is None and isinstance(data, (ABCSeries, ABCIndex, ExtensionArray)):
         # Note: we exclude np.ndarray here, will do type inference on it
         dtype = data.dtype
 
@@ -351,7 +353,12 @@ def array(
         elif inferred_dtype == "integer":
             return IntegerArray._from_sequence(data, copy=copy)
 
-        elif inferred_dtype in ("floating", "mixed-integer-float"):
+        elif (
+            inferred_dtype in ("floating", "mixed-integer-float")
+            and getattr(data, "dtype", None) != np.float16
+        ):
+            # GH#44715 Exclude np.float16 bc FloatingArray does not support it;
+            #  we will fall back to PandasArray.
             return FloatingArray._from_sequence(data, copy=copy)
 
         elif inferred_dtype == "boolean":
@@ -521,6 +528,8 @@ def sanitize_array(
 
     # GH#846
     if isinstance(data, np.ndarray):
+        if isinstance(data, np.matrix):
+            data = data.A
 
         if dtype is not None and is_float_dtype(data.dtype) and is_integer_dtype(dtype):
             # possibility of nan -> garbage
@@ -537,7 +546,7 @@ def sanitize_array(
                         "if they cannot be cast losslessly (matching Series behavior). "
                         "To retain the old behavior, use DataFrame(data).astype(dtype)",
                         FutureWarning,
-                        stacklevel=4,
+                        stacklevel=find_stack_level(),
                     )
                     # GH#40110 until the deprecation is enforced, we _dont_
                     #  ignore the dtype for DataFrame, and _do_ cast even though
@@ -776,7 +785,7 @@ def _try_cast(
                 "passed to 'DataFrame', either all columns will be cast to that "
                 "dtype, or a TypeError will be raised.",
                 FutureWarning,
-                stacklevel=7,
+                stacklevel=find_stack_level(),
             )
             subarr = np.array(arr, dtype=object, copy=copy)
     return subarr

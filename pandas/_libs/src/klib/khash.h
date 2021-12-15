@@ -206,7 +206,7 @@ khuint32_t PANDAS_INLINE murmur2_32to32(khuint32_t k){
 }
 
 // it is possible to have a special x64-version, which would need less operations, but
-// using 32bit version always has also some benifits:
+// using 32bit version always has also some benefits:
 //    - one code for 32bit and 64bit builds
 //    - the same case for 32bit and 64bit builds
 //    - no performance difference could be measured compared to a possible x64-version

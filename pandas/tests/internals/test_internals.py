@@ -750,7 +750,11 @@ class TestBlockManager:
         )
 
         # Check sharing
-        numeric.iset(numeric.items.get_loc("float"), np.array([100.0, 200.0, 300.0]))
+        numeric.iset(
+            numeric.items.get_loc("float"),
+            np.array([100.0, 200.0, 300.0]),
+            inplace=True,
+        )
         tm.assert_almost_equal(
             mgr.iget(mgr.items.get_loc("float")).internal_values(),
             np.array([100.0, 200.0, 300.0]),
@@ -759,7 +763,9 @@ class TestBlockManager:
         numeric2 = mgr.get_numeric_data(copy=True)
         tm.assert_index_equal(numeric.items, Index(["int", "float", "complex", "bool"]))
         numeric2.iset(
-            numeric2.items.get_loc("float"), np.array([1000.0, 2000.0, 3000.0])
+            numeric2.items.get_loc("float"),
+            np.array([1000.0, 2000.0, 3000.0]),
+            inplace=True,
         )
         tm.assert_almost_equal(
             mgr.iget(mgr.items.get_loc("float")).internal_values(),
@@ -781,7 +787,7 @@ class TestBlockManager:
             bools.iget(bools.items.get_loc("bool")).internal_values(),
         )
 
-        bools.iset(0, np.array([True, False, True]))
+        bools.iset(0, np.array([True, False, True]), inplace=True)
         tm.assert_numpy_array_equal(
             mgr.iget(mgr.items.get_loc("bool")).internal_values(),
             np.array([True, False, True]),
@@ -845,7 +851,7 @@ class TestBlockManager:
 def _as_array(mgr):
     if mgr.ndim == 1:
         return mgr.external_values()
-    return mgr.as_array()
+    return mgr.as_array().T
 
 
 class TestIndexing:
@@ -1269,7 +1275,7 @@ class TestCanHoldElement:
 
     def test_period_can_hold_element_emptylist(self):
         pi = period_range("2016", periods=3, freq="A")
-        blk = new_block(pi._data, [1], ndim=2)
+        blk = new_block(pi._data.reshape(1, 3), [1], ndim=2)
 
         assert blk._can_hold_element([])
 

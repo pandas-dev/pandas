@@ -181,7 +181,7 @@ def coo_to_sparse_series(
 
     Parameters
     ----------
-    A : scipy.sparse.coo.coo_matrix
+    A : scipy.sparse.coo_matrix
     dense_index : bool, default False
 
     Returns

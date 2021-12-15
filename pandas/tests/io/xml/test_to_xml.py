@@ -1311,7 +1311,12 @@ def test_filename_and_suffix_comp(parser, comp, compfile):
 def test_unsuported_compression(datapath, parser):
     with pytest.raises(ValueError, match="Unrecognized compression type"):
         with tm.ensure_clean() as path:
-            geom_df.to_xml(path, parser=parser, compression="7z")
+            # Argument "compression" to "to_xml" of "DataFrame" has incompatible type
+            # "Literal['7z']"; expected "Union[Literal['infer'], Literal['gzip'],
+            # Literal['bz2'], Literal['zip'], Literal['xz'], Dict[str, Any], None]"
+            geom_df.to_xml(
+                path, parser=parser, compression="7z"  # type: ignore[arg-type]
+            )
 
 
 # STORAGE OPTIONS

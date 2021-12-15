@@ -42,6 +42,7 @@ from pandas._typing import (
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
+from pandas.util._validators import validate_insert_loc
 
 from pandas.core.dtypes.cast import (
     astype_nansafe,
@@ -56,6 +57,7 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_dtype_equal,
     is_integer,
+    is_list_like,
     is_object_dtype,
     is_scalar,
     is_string_dtype,
@@ -81,7 +83,10 @@ from pandas.core.construction import (
     extract_array,
     sanitize_array,
 )
-from pandas.core.indexers import check_array_indexer
+from pandas.core.indexers import (
+    check_array_indexer,
+    unpack_tuple_and_ellipses,
+)
 from pandas.core.missing import interpolate_2d
 from pandas.core.nanops import check_below_min_count
 import pandas.core.ops as ops
@@ -297,7 +302,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         3. ``data.dtype.fill_value`` if `fill_value` is None and `dtype`
            is not a ``SparseDtype`` and `data` is a ``SparseArray``.
 
-    kind : {'integer', 'block'}, default 'integer'
+    kind : str
+        Can be 'integer' or 'block', default is 'integer'.
         The type of storage for sparse locations.
 
         * 'block': Stores a `block` and `block_length` for each
@@ -462,7 +468,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                         "loses timezone information. Cast to object before "
                         "sparse to retain timezone information.",
                         UserWarning,
-                        stacklevel=2,
+                        stacklevel=find_stack_level(),
                     )
                     data = np.asarray(data, dtype="datetime64[ns]")
                     if fill_value is NaT:
@@ -743,8 +749,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         elif method is not None:
             msg = "fillna with 'method' requires high memory usage."
             warnings.warn(msg, PerformanceWarning)
-            filled = interpolate_2d(np.asarray(self), method=method, limit=limit)
-            return type(self)(filled, fill_value=self.fill_value)
+            new_values = np.asarray(self)
+            # interpolate_2d modifies new_values inplace
+            interpolate_2d(new_values, method=method, limit=limit)
+            return type(self)(new_values, fill_value=self.fill_value)
 
         else:
             new_values = np.where(isna(self.sp_values), value, self.sp_values)
@@ -856,6 +864,12 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             keys = Index(keys)
         return Series(counts, index=keys)
 
+    def _quantile(self, qs: npt.NDArray[np.float64], interpolation: str):
+        # Special case: the returned array isn't _really_ sparse, so we don't
+        #  wrap it in a SparseArray
+        result = super()._quantile(qs, interpolation)
+        return np.asarray(result)
+
     # --------
     # Indexing
     # --------
@@ -876,16 +890,13 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     ) -> SparseArrayT | Any:
 
         if isinstance(key, tuple):
-            if len(key) > 1:
-                if key[0] is Ellipsis:
-                    key = key[1:]
-                elif key[-1] is Ellipsis:
-                    key = key[:-1]
-            if len(key) > 1:
-                raise IndexError("too many indices for array.")
-            if key[0] is Ellipsis:
+            key = unpack_tuple_and_ellipses(key)
+            # Non-overlapping identity check (left operand type:
+            # "Union[Union[Union[int, integer[Any]], Union[slice, List[int],
+            # ndarray[Any, Any]]], Tuple[Union[int, ellipsis], ...]]",
+            # right operand type: "ellipsis")
+            if key is Ellipsis:  # type: ignore[comparison-overlap]
                 raise ValueError("Cannot slice with Ellipsis")
-            key = key[0]
 
         if is_integer(key):
             return self._get_val_at(key)
@@ -925,6 +936,14 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 indices = np.arange(len(self), dtype=np.int32)[key]
                 return self.take(indices)
 
+        elif not is_list_like(key):
+            # e.g. "foo" or 2.5
+            # exception message copied from numpy
+            raise IndexError(
+                r"only integers, slices (`:`), ellipsis (`...`), numpy.newaxis "
+                r"(`None`) and integer or boolean arrays are valid indices"
+            )
+
         else:
             # TODO: I think we can avoid densifying when masking a
             # boolean SparseArray with another. Need to look at the
@@ -950,12 +969,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return type(self)(data_slice, kind=self.kind)
 
     def _get_val_at(self, loc):
-        n = len(self)
-        if loc < 0:
-            loc += n
-
-        if loc >= n or loc < 0:
-            raise IndexError("Out of bounds access")
+        loc = validate_insert_loc(loc, len(self))
 
         sp_loc = self.sp_index.lookup(loc)
         if sp_loc == -1:
@@ -1082,7 +1096,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     ) -> npt.NDArray[np.intp] | np.intp:
 
         msg = "searchsorted requires high memory usage."
-        warnings.warn(msg, PerformanceWarning, stacklevel=2)
+        warnings.warn(msg, PerformanceWarning, stacklevel=find_stack_level())
         if not is_scalar(v):
             v = np.asarray(v)
         v = np.asarray(v)
@@ -1305,6 +1319,13 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
     _internal_get_values = to_dense
 
+    def _where(self, mask, value):
+        # NB: may not preserve dtype, e.g. result may be Sparse[float64]
+        #  while self is Sparse[int64]
+        naive_implementation = np.where(mask, self, value)
+        result = type(self)._from_sequence(naive_implementation)
+        return result
+
     # ------------------------------------------------------------------------
     # IO
     # ------------------------------------------------------------------------
@@ -1343,13 +1364,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         else:
             arr = self.dropna()
 
-        # we don't support these kwargs.
-        # They should only be present when called via pandas, so do it here.
-        # instead of in `any` / `all` (which will raise if they're present,
-        # thanks to nv.validate
-        kwargs.pop("filter_type", None)
-        kwargs.pop("numeric_only", None)
-        kwargs.pop("op", None)
         return getattr(arr, name)(**kwargs)
 
     def all(self, axis=None, *args, **kwargs):
@@ -1477,49 +1491,50 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             nsparse = self.sp_index.ngaps
             return (sp_sum + self.fill_value * nsparse) / (ct + nsparse)
 
-    def max(self, axis: int = 0, *args, **kwargs) -> Scalar:
+    def max(self, *, axis: int | None = None, skipna: bool = True):
         """
-        Max of non-NA/null values
+        Max of array values, ignoring NA values if specified.
 
         Parameters
         ----------
         axis : int, default 0
             Not Used. NumPy compatibility.
-        *args, **kwargs
-            Not Used. NumPy compatibility.
+        skipna : bool, default True
+            Whether to ignore NA values.
 
         Returns
         -------
         scalar
         """
-        nv.validate_max(args, kwargs)
-        return self._min_max("max")
+        nv.validate_minmax_axis(axis, self.ndim)
+        return self._min_max("max", skipna=skipna)
 
-    def min(self, axis: int = 0, *args, **kwargs) -> Scalar:
+    def min(self, *, axis: int | None = None, skipna: bool = True):
         """
-        Min of non-NA/null values
+        Min of array values, ignoring NA values if specified.
 
         Parameters
         ----------
         axis : int, default 0
             Not Used. NumPy compatibility.
-        *args, **kwargs
-            Not Used. NumPy compatibility.
+        skipna : bool, default True
+            Whether to ignore NA values.
 
         Returns
         -------
         scalar
         """
-        nv.validate_min(args, kwargs)
-        return self._min_max("min")
+        nv.validate_minmax_axis(axis, self.ndim)
+        return self._min_max("min", skipna=skipna)
 
-    def _min_max(self, kind: Literal["min", "max"]) -> Scalar:
+    def _min_max(self, kind: Literal["min", "max"], skipna: bool) -> Scalar:
         """
         Min/max of non-NA/null values
 
         Parameters
         ----------
         kind : {"min", "max"}
+        skipna : bool
 
         Returns
         -------
@@ -1527,6 +1542,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         """
         valid_vals = self._valid_sp_values
         has_nonnull_fill_vals = not self._null_fill_value and self.sp_index.ngaps > 0
+
         if len(valid_vals) > 0:
             sp_min_max = getattr(valid_vals, kind)()
 
@@ -1534,12 +1550,17 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             if has_nonnull_fill_vals:
                 func = max if kind == "max" else min
                 return func(sp_min_max, self.fill_value)
-            else:
+            elif skipna:
                 return sp_min_max
+            elif self.sp_index.ngaps == 0:
+                # No NAs present
+                return sp_min_max
+            else:
+                return na_value_for_dtype(self.dtype.subtype, compat=False)
         elif has_nonnull_fill_vals:
             return self.fill_value
         else:
-            return na_value_for_dtype(self.dtype.subtype)
+            return na_value_for_dtype(self.dtype.subtype, compat=False)
 
     # ------------------------------------------------------------------------
     # Ufuncs
@@ -1566,7 +1587,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             sp_values = getattr(ufunc, method)(self.sp_values, **kwargs)
             fill_value = getattr(ufunc, method)(self.fill_value, **kwargs)
 
-            if isinstance(sp_values, tuple):
+            if ufunc.nout > 1:
                 # multiple outputs. e.g. modf
                 arrays = tuple(
                     self._simple_new(
@@ -1575,7 +1596,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                     for sp_value, fv in zip(sp_values, fill_value)
                 )
                 return arrays
-            elif is_scalar(sp_values):
+            elif method == "reduce":
                 # e.g. reductions
                 return sp_values
 
@@ -1589,7 +1610,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 out = out[0]
             return out
 
-        if type(result) is tuple:
+        if ufunc.nout > 1:
             return tuple(type(self)(x) for x in result)
         elif method == "at":
             # no return value

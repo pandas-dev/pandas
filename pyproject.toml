@@ -4,18 +4,8 @@
 requires = [
     "setuptools>=51.0.0",
     "wheel",
-    "Cython>=0.29.21,<3",  # Note: sync with setup.py
-    # Numpy requirements for different OS/architectures
-    # Copied from https://github.com/scipy/scipy/blob/master/pyproject.toml (which is also licensed under BSD)
-    "numpy==1.17.3; python_version=='3.7' and (platform_machine!='arm64' or platform_system!='Darwin') and platform_machine!='aarch64'",
-    "numpy==1.18.3; python_version=='3.8' and (platform_machine!='arm64' or platform_system!='Darwin') and platform_machine!='aarch64'",
-    "numpy==1.19.3; python_version>='3.9' and (platform_machine!='arm64' or platform_system!='Darwin')",
-    # Aarch64(Python 3.9 requirements are the same as AMD64)
-    "numpy==1.19.2; python_version=='3.7' and platform_machine=='aarch64'",
-    "numpy==1.19.2; python_version=='3.8' and platform_machine=='aarch64'",
-    # Darwin Arm64
-    "numpy>=1.20.0; python_version=='3.8' and platform_machine=='arm64' and platform_system=='Darwin'",
-    "numpy>=1.20.0; python_version=='3.9' and platform_machine=='arm64' and platform_system=='Darwin'"
+    "Cython>=0.29.24,<3",  # Note: sync with setup.py, environment.yml and asv.conf.json
+    "oldest-supported-numpy>=0.10"
 ]
 # uncomment to enable pep517 after versioneer problem is fixed.
 # https://github.com/python-versioneer/python-versioneer/issues/193
@@ -70,6 +60,8 @@ markers = [
 
 [tool.mypy]
 # Import discovery
+mypy_path = "typings"
+files = ["pandas", "typings"]
 namespace_packages = false
 explicit_package_bases = false
 ignore_missing_imports = true
@@ -92,7 +84,7 @@ disallow_untyped_calls = false # TODO
 disallow_untyped_defs = false # TODO
 disallow_incomplete_defs = false # TODO
 check_untyped_defs = true
-disallow_untyped_decorators = false # GH#33455
+disallow_untyped_decorators = true
 # None and Optional handling
 no_implicit_optional = true
 strict_optional = true
@@ -158,15 +150,14 @@ skip = "pandas/__init__.py"
 [tool.pyright]
 pythonVersion = "3.8"
 typeCheckingMode = "strict"
-include = ["pandas"]
-exclude = ["pandas/tests", "pandas/util/version"]
+include = ["pandas", "typings"]
+exclude = ["pandas/tests", "pandas/io/clipboard", "pandas/util/version"]
 reportGeneralTypeIssues = false
 reportConstantRedefinition = false
 reportFunctionMemberAccess = false
 reportImportCycles = false
 reportIncompatibleMethodOverride = false
 reportIncompatibleVariableOverride = false
-reportMissingImports = false
 reportMissingModuleSource = false
 reportMissingTypeArgument = false
 reportMissingTypeStubs = false
@@ -177,7 +168,6 @@ reportOptionalOperand = false
 reportOptionalSubscript = false
 reportPrivateImportUsage = false
 reportPrivateUsage = false
-reportPropertyTypeMismatch = false
 reportUnboundVariable = false
 reportUnknownArgumentType = false
 reportUnknownLambdaType = false
@@ -188,7 +178,6 @@ reportUnnecessaryComparison = false
 reportUnnecessaryIsInstance = false
 reportUnsupportedDunderAll = false
 reportUntypedBaseClass = false
-reportUntypedFunctionDecorator = false
 reportUnusedClass = false
 reportUnusedFunction = false
 reportUnusedImport = false
