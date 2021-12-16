@@ -2494,3 +2494,15 @@ def test_dt64arr_addsub_object_dtype_2d():
     assert result2.shape == (4, 1)
     assert result2.freq is None
     assert (result2.asi8 == 0).all()
+
+
+def test_concat_float_datetime64():
+    # GH Issue number #32934
+    df_time = pd.DataFrame({"A": pd.array(["2000"], dtype="datetime64[ns]")})
+    df_float = pd.DataFrame({"A": pd.array([1.0], dtype="float64")})
+
+    assert pd.concat([df_time, df_float])["A"].dtype == object
+    assert pd.concat([df_time.iloc[:0], df_float.iloc[:0]])["A"].dtype == object
+    assert pd.concat([df_time.iloc[:0], df_float.iloc[:0]])["A"].dtype == object
+    assert pd.concat([df_time.iloc[:0], df_float])["A"].dtype == object
+    assert pd.concat([df_time, df_float.iloc[:0]])["A"].dtype == object
