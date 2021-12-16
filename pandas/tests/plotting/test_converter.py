@@ -333,7 +333,10 @@ class TestPeriodConverter:
         assert rs == xp
 
         rs = self.pc.convert(
-            np.array(["2012-01-01 00:00:00+0000", "2012-01-02 00:00:00+0000"]),
+            np.array(
+                ["2012-01-01 00:00:00+0000", "2012-01-02 00:00:00+0000"],
+                dtype="datetime64[ns]",
+            ),
             None,
             self.axis,
         )
