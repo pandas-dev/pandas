@@ -2,6 +2,8 @@
 import numpy as np
 import pytest
 
+from pandas.compat.pyarrow import pa_version_under2p0
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -85,7 +87,11 @@ class TestFeather:
                 ),
             }
         )
-        df["periods"] = pd.period_range("2013", freq="M", periods=3)
+        if not pa_version_under2p0:
+            # older pyarrow incorrectly uses pandas internal API, so
+            #  constructs invalid Block
+            df["periods"] = pd.period_range("2013", freq="M", periods=3)
+
         df["timedeltas"] = pd.timedelta_range("1 day", periods=3)
         df["intervals"] = pd.interval_range(0, 3, 3)
 
