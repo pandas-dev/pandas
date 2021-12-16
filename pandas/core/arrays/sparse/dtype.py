@@ -292,7 +292,7 @@ class SparseDtype(ExtensionDtype):
             return True
         return isinstance(dtype, np.dtype) or dtype == "Sparse"
 
-    def update_dtype(self, dtype):
+    def update_dtype(self, dtype) -> SparseDtype:
         """
         Convert the SparseDtype to a new dtype.
 

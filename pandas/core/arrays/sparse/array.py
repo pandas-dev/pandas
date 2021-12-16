@@ -181,9 +181,8 @@ def _sparse_array_op(
         ltype = SparseDtype(subtype, left.fill_value)
         rtype = SparseDtype(subtype, right.fill_value)
 
-        # TODO(GH-23092): pass copy=False. Need to fix astype_nansafe
-        left = left.astype(ltype)
-        right = right.astype(rtype)
+        left = left.astype(ltype, copy=False)
+        right = right.astype(rtype, copy=False)
         dtype = ltype.subtype
     else:
         dtype = ltype
@@ -232,6 +231,15 @@ def _sparse_array_op(
                 right.sp_index,
                 right.fill_value,
             )
+
+    if name == "divmod":
+        # result is a 2-tuple
+        # error: Incompatible return value type (got "Tuple[SparseArray,
+        # SparseArray]", expected "SparseArray")
+        return (  # type: ignore[return-value]
+            _wrap_result(name, result[0], index, fill[0], dtype=result_dtype),
+            _wrap_result(name, result[1], index, fill[1], dtype=result_dtype),
+        )
 
     if result_dtype is None:
         result_dtype = result.dtype
@@ -1224,30 +1232,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             else:
                 return self.copy()
         dtype = self.dtype.update_dtype(dtype)
-        # error: Item "ExtensionDtype" of "Union[ExtensionDtype, str, dtype[Any],
-        # Type[str], Type[float], Type[int], Type[complex], Type[bool], Type[object],
-        # None]" has no attribute "_subtype_with_str"
-        # error: Item "str" of "Union[ExtensionDtype, str, dtype[Any], Type[str],
-        # Type[float], Type[int], Type[complex], Type[bool], Type[object], None]" has no
-        # attribute "_subtype_with_str"
-        # error: Item "dtype[Any]" of "Union[ExtensionDtype, str, dtype[Any], Type[str],
-        # Type[float], Type[int], Type[complex], Type[bool], Type[object], None]" has no
-        # attribute "_subtype_with_str"
-        # error: Item "ABCMeta" of "Union[ExtensionDtype, str, dtype[Any], Type[str],
-        # Type[float], Type[int], Type[complex], Type[bool], Type[object], None]" has no
-        # attribute "_subtype_with_str"
-        # error: Item "type" of "Union[ExtensionDtype, str, dtype[Any], Type[str],
-        # Type[float], Type[int], Type[complex], Type[bool], Type[object], None]" has no
-        # attribute "_subtype_with_str"
-        # error: Item "None" of "Union[ExtensionDtype, str, dtype[Any], Type[str],
-        # Type[float], Type[int], Type[complex], Type[bool], Type[object], None]" has no
-        # attribute "_subtype_with_str"
-        subtype = pandas_dtype(dtype._subtype_with_str)  # type: ignore[union-attr]
-        # TODO copy=False is broken for astype_nansafe with int -> float, so cannot
-        # passthrough copy keyword: https://github.com/pandas-dev/pandas/issues/34456
-        sp_values = astype_nansafe(self.sp_values, subtype, copy=True)
-        if sp_values is self.sp_values and copy:
-            sp_values = sp_values.copy()
+        subtype = pandas_dtype(dtype._subtype_with_str)
+        sp_values = astype_nansafe(self.sp_values, subtype, copy=copy)
 
         # error: Argument 1 to "_simple_new" of "SparseArray" has incompatible type
         # "ExtensionArray"; expected "ndarray"
@@ -1646,7 +1632,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         else:
             other = np.asarray(other)
             with np.errstate(all="ignore"):
-                # TODO: look into _wrap_result
                 if len(self) != len(other):
                     raise AssertionError(
                         f"length mismatch: {len(self)} vs. {len(other)}"

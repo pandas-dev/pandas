@@ -177,9 +177,6 @@ def test_multiple_output_binary_ufuncs(
     # Test that
     #  the same conditions from binary_ufunc_scalar apply to
     #  ufuncs with multiple outputs.
-    if sparse and ufunc is np.divmod:
-        mark = pytest.mark.xfail(reason="sparse divmod not implemented")
-        request.node.add_marker(mark)
 
     a1, a2 = arrays_for_binary_ufunc
     # work around https://github.com/pandas-dev/pandas/issues/26987
