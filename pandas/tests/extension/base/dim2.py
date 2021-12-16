@@ -150,10 +150,7 @@ class Dim2CompatTests(BaseExtensionTests):
         self.assert_extension_array_equal(result, expected)
 
     @pytest.mark.parametrize("method", ["mean", "median", "var", "std", "sum", "prod"])
-    def test_reductions_2d_axis_none(self, data, method, request):
-        if not hasattr(data, method):
-            pytest.skip("test is not applicable for this type/dtype")
-
+    def test_reductions_2d_axis_none(self, data, method):
         arr2d = data.reshape(1, -1)
 
         err_expected = None
@@ -178,10 +175,7 @@ class Dim2CompatTests(BaseExtensionTests):
         assert is_matching_na(result, expected) or result == expected
 
     @pytest.mark.parametrize("method", ["mean", "median", "var", "std", "sum", "prod"])
-    def test_reductions_2d_axis0(self, data, method, request):
-        if not hasattr(data, method):
-            pytest.skip("test is not applicable for this type/dtype")
-
+    def test_reductions_2d_axis0(self, data, method):
         arr2d = data.reshape(1, -1)
 
         kwargs = {}
@@ -231,10 +225,7 @@ class Dim2CompatTests(BaseExtensionTests):
         # punt on method == "var"
 
     @pytest.mark.parametrize("method", ["mean", "median", "var", "std", "sum", "prod"])
-    def test_reductions_2d_axis1(self, data, method, request):
-        if not hasattr(data, method):
-            pytest.skip("test is not applicable for this type/dtype")
-
+    def test_reductions_2d_axis1(self, data, method):
         arr2d = data.reshape(1, -1)
 
         try:

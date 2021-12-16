@@ -498,9 +498,6 @@ z
         # see gh-15008
         compression = compression_only
 
-        if compression == "zip":
-            pytest.skip(f"{compression} is not supported for to_csv")
-
         # We'll complete file extension subsequently.
         filename = "test."
 

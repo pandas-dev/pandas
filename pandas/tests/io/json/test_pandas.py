@@ -1323,10 +1323,9 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         tm.assert_frame_equal(read_json(result, lines=True), df)
 
     # TODO: there is a near-identical test for pytables; can we share?
+    @pytest.mark.xfail(reason="GH#13774 encoding kwarg not supported", raises=TypeError)
     def test_latin_encoding(self):
         # GH 13774
-        pytest.skip("encoding not implemented in .to_json(), xref #13774")
-
         values = [
             [b"E\xc9, 17", b"", b"a", b"b", b"c"],
             [b"E\xc9, 17", b"a", b"b", b"c"],
