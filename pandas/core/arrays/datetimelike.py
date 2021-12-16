@@ -291,7 +291,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     # ----------------------------------------------------------------
     # Rendering Methods
 
-    def _format_native_types(self, na_rep="NaT", date_format=None):
+    def _format_native_types(self, *, na_rep="NaT", date_format=None):
         """
         Helper method for astype when converting to strings.
 

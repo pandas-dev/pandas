@@ -149,8 +149,10 @@ def create_block(typestr, placement, item_shape=None, num_offset=0, maker=new_bl
     elif typestr in ("category2",):
         values = Categorical(["a", "a", "a", "a", "b", "b", "c", "c", "c", "d"])
     elif typestr in ("sparse", "sparse_na"):
-        # FIXME: doesn't support num_rows != 10
-        assert shape[-1] == 10
+        if shape[-1] != 10:
+            # We also are implicitly assuming this in the category cases above
+            raise NotImplementedError
+
         assert all(s == 1 for s in shape[:-1])
         if typestr.endswith("_na"):
             fill_value = np.nan

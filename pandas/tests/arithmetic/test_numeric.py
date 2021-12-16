@@ -128,8 +128,6 @@ class TestNumericComparisons:
 
 
 class TestNumericArraylikeArithmeticWithDatetimeLike:
-
-    # TODO: also check name retentention
     @pytest.mark.parametrize("box_cls", [np.array, Index, Series])
     @pytest.mark.parametrize(
         "left", lefts, ids=lambda x: type(x).__name__ + str(x.dtype)
@@ -149,7 +147,6 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         result = right * left
         tm.assert_equal(result, expected)
 
-    # TODO: also check name retentention
     @pytest.mark.parametrize("box_cls", [np.array, Index, Series])
     @pytest.mark.parametrize(
         "left", lefts, ids=lambda x: type(x).__name__ + str(x.dtype)
@@ -1241,7 +1238,7 @@ class TestNumericArithmeticUnsorted:
         idxs = [RangeIndex(0, 10, 1), RangeIndex(0, 20, 2)]
         self.check_binop(ops, scalars, idxs)
 
-    # TODO: mod, divmod?
+    # TODO: divmod?
     @pytest.mark.parametrize(
         "op",
         [
@@ -1251,6 +1248,7 @@ class TestNumericArithmeticUnsorted:
             operator.floordiv,
             operator.truediv,
             operator.pow,
+            operator.mod,
         ],
     )
     def test_arithmetic_with_frame_or_series(self, op):
@@ -1400,11 +1398,15 @@ def test_integer_array_add_list_like(
     if Series == box_pandas_1d_array:
         expected = Series(expected_data, dtype="Int64")
     elif Series == box_1d_array:
-        expected = Series(expected_data, dtype="object")
+        if box_pandas_1d_array is tm.to_array:
+            expected = Series(expected_data, dtype="Int64")
+        else:
+            expected = Series(expected_data, dtype="object")
     elif Index in (box_pandas_1d_array, box_1d_array):
         expected = Int64Index(expected_data)
     else:
-        expected = np.array(expected_data, dtype="object")
+        # box_pandas_1d_array is tm.to_array; preserves IntegerArray
+        expected = array(expected_data, dtype="Int64")
 
     tm.assert_equal(left, expected)
     tm.assert_equal(right, expected)
