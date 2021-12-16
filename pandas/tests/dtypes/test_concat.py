@@ -44,3 +44,21 @@ def test_concat_periodarray_2d():
 
     with pytest.raises(ValueError, match=msg):
         _concat.concat_compat([arr[:2], arr[2:]], axis=1)
+
+def test_concat_float_datetime():
+    # Mock dataframes
+    df_time = pd.DataFrame({"A": pd.array(["2000"], dtype="datetime64[ns]")})
+    df_float = pd.DataFrame({"A": pd.array([1.0], dtype="float64")})
+
+    msg = "dtype of concat should be a object type"
+    with pytest.raises(ValueError, match=msg):
+        isinstance(pd.concat([df_time.iloc[:0], df_float.iloc[:0]])["A"].dtype, object)
+
+    with pytest.raises(ValueError, match=msg):
+        isinstance(pd.concat([df_time.iloc[:0], df_float.iloc[:0]])["A"].dtype, object)
+
+    with pytest.raises(ValueError, match=msg):
+        isinstance(pd.concat([df_time.iloc[:0], df_float])["A"].dtype, object)
+
+    with pytest.raises(ValueError, match=msg):
+        isinstance(pd.concat([df_time, df_float.iloc[:0]])["A"].dtype, object)
