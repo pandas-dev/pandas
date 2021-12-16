@@ -176,6 +176,11 @@ class RangeIndex(Int64Index):
         rng = self._range
         return [("start", rng.start), ("stop", rng.stop), ("step", rng.step)]
 
+    def __reduce__(self):
+        d = self._get_attributes_dict()
+        d.update(dict(self._get_data_as_items()))
+        return ibase._new_Index, (type(self), d), None
+
     # --------------------------------------------------------------------
     # Rendering Methods
 

@@ -300,6 +300,14 @@ class Block(PandasObject):
     def __len__(self) -> int:
         return len(self.values)
 
+    def __getstate__(self):
+        return self.mgr_locs.indexer, self.values
+
+    def __setstate__(self, state):
+        self.mgr_locs = libinternals.BlockPlacement(state[0])
+        self.values = state[1]
+        self.ndim = self.values.ndim
+
     def _slice(self, slicer):
         """ return a slice of my values """
         return self.values[slicer]

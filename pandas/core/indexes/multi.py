@@ -1892,6 +1892,38 @@ class MultiIndex(Index):
         """
         return tuple(len(x) for x in self.levels)
 
+    def __reduce__(self):
+        """Necessary for making this object picklable"""
+        d = dict(
+            levels=list(self.levels),
+            codes=list(self.codes),
+            sortorder=self.sortorder,
+            names=list(self.names),
+        )
+        return ibase._new_Index, (type(self), d), None
+
+    def __setstate__(self, state):
+        """Necessary for making this object picklable"""
+
+        if isinstance(state, dict):
+            levels = state.get("levels")
+            codes = state.get("codes")
+            sortorder = state.get("sortorder")
+            names = state.get("names")
+
+        elif isinstance(state, tuple):
+
+            nd_state, own_state = state
+            levels, codes, sortorder, names = own_state
+
+        self._set_levels([Index(x) for x in levels], validate=False)
+        self._set_codes(codes)
+        new_codes = self._verify_integrity()
+        self._set_codes(new_codes)
+        self._set_names(names)
+        self.sortorder = sortorder
+        self._reset_identity()
+
     def __getitem__(self, key):
         if is_scalar(key):
             key = com.cast_scalar_indexer(key)
