@@ -2105,6 +2105,10 @@ def to_native_types(
     **kwargs,
 ) -> np.ndarray:
     """convert to our native types format"""
+    if isinstance(values, Categorical):
+        # GH#40754 Convert categorical datetimes to datetime array
+        values = np.asarray(values)
+
     values = ensure_wrapped_if_datetimelike(values)
 
     if isinstance(values, (DatetimeArray, TimedeltaArray)):

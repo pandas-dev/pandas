@@ -282,6 +282,12 @@ $1$,$2$
         df_sec_grouped = df_sec.groupby([pd.Grouper(key="A", freq="1h"), "B"])
         assert df_sec_grouped.mean().to_csv(date_format="%Y-%m-%d") == expected_ymd_sec
 
+    def test_to_csv_date_format_in_categorical(self):
+        # GH#40754
+        ser = pd.Series(pd.to_datetime(["2021-03-27"], format="%Y-%m-%d"))
+        ser = ser.astype("category")
+        assert ser.to_csv(index=False) == "0\n2021-03-27\n"
+
     def test_to_csv_multi_index(self):
         # see gh-6618
         df = DataFrame([1], columns=pd.MultiIndex.from_arrays([[1], [2]]))
