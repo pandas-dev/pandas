@@ -1171,9 +1171,11 @@ def from_dummies(
     """
     from pandas.core.reshape.concat import concat
 
-    if data.isna().any().any():
+    # error: Item "bool" of "Union[Series, bool]" has no attribute "any"
+    if data.isna().any().any():  # type: ignore[union-attr]
+        # error: Item "bool" of "Union[Series, bool]" has no attribute "idxmax"
         raise ValueError(
-            f"Dummy DataFrame contains NA value in column: "
+            f"Dummy DataFrame contains NA value in column: "  # type: ignore[union-attr]
             f"'{data.isna().any().idxmax()}'"
         )
 
@@ -1229,9 +1231,7 @@ def from_dummies(
         if sep is None:
             cats = prefix_slice.copy()
         else:
-            cats = [
-                col[len(prefix + sep) :] for col in prefix_slice if isinstance(col, str)
-            ]
+            cats = [col[len(prefix + sep) :] for col in prefix_slice]
         assigned = data_to_decode[prefix_slice].sum(axis=1)
         if any(assigned > 1):
             raise ValueError(
