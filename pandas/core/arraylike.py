@@ -326,12 +326,15 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
         reconstruct_kwargs = {}
 
     def reconstruct(result):
+        if ufunc.nout > 1:
+            # np.modf, np.frexp, np.divmod
+            return tuple(_reconstruct(x) for x in result)
+
+        return _reconstruct(result)
+
+    def _reconstruct(result):
         if lib.is_scalar(result):
             return result
-
-        if isinstance(result, tuple):
-            # np.modf, np.frexp, np.divmod
-            return tuple(reconstruct(x) for x in result)
 
         if result.ndim != self.ndim:
             if method == "outer":
@@ -367,10 +370,12 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
         return result
 
     if "out" in kwargs:
+        # e.g. test_multiindex_get_loc
         result = dispatch_ufunc_with_out(self, ufunc, method, *inputs, **kwargs)
         return reconstruct(result)
 
     if method == "reduce":
+        # e.g. test.series.test_ufunc.test_reduce
         result = dispatch_reduction_ufunc(self, ufunc, method, *inputs, **kwargs)
         if result is not NotImplemented:
             return result

@@ -100,7 +100,10 @@ from pandas.core.groupby import (
     numba_,
     ops,
 )
-from pandas.core.groupby.indexing import GroupByIndexingMixin
+from pandas.core.groupby.indexing import (
+    GroupByIndexingMixin,
+    GroupByNthSelector,
+)
 from pandas.core.indexes.api import (
     CategoricalIndex,
     Index,
@@ -902,6 +905,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             f"'{type(self).__name__}' object has no attribute '{attr}'"
         )
 
+    def __getattribute__(self, attr: str):
+        # Intercept nth to allow both call and index
+        if attr == "nth":
+            return GroupByNthSelector(self)
+        elif attr == "nth_actual":
+            return super().__getattribute__("nth")
+        else:
+            return super().__getattribute__(attr)
+
     @final
     def _make_wrapper(self, name: str) -> Callable:
         assert name in self._apply_allowlist
@@ -1260,6 +1272,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         func: Callable,
         engine_kwargs: dict[str, bool] | None,
         numba_cache_key_str: str,
+        *aggregator_args,
     ):
         """
         Perform groupby with a standard numerical aggregation function (e.g. mean)
@@ -1279,7 +1292,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         aggregator = executor.generate_shared_aggregator(
             func, engine_kwargs, numba_cache_key_str
         )
-        result = aggregator(sorted_data, starts, ends, 0)
+        result = aggregator(sorted_data, starts, ends, 0, *aggregator_args)
 
         cache_key = (func, numba_cache_key_str)
         if cache_key not in NUMBA_FUNC_CACHE:
@@ -1977,7 +1990,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def std(self, ddof: int = 1):
+    def std(
+        self,
+        ddof: int = 1,
+        engine: str | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
+    ):
         """
         Compute standard deviation of groups, excluding missing values.
 
@@ -1988,23 +2006,52 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ddof : int, default 1
             Degrees of freedom.
 
+        engine : str, default None
+            * ``'cython'`` : Runs the operation through C-extensions from cython.
+            * ``'numba'`` : Runs the operation through JIT compiled code from numba.
+            * ``None`` : Defaults to ``'cython'`` or globally setting
+              ``compute.use_numba``
+
+            .. versionadded:: 1.4.0
+
+        engine_kwargs : dict, default None
+            * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+              ``{{'nopython': True, 'nogil': False, 'parallel': False}}``
+
+            .. versionadded:: 1.4.0
+
         Returns
         -------
         Series or DataFrame
             Standard deviation of values within each group.
         """
-        return self._get_cythonized_result(
-            libgroupby.group_var,
-            needs_counts=True,
-            cython_dtype=np.dtype(np.float64),
-            post_processing=lambda vals, inference: np.sqrt(vals),
-            ddof=ddof,
-        )
+        if maybe_use_numba(engine):
+            from pandas.core._numba.kernels import sliding_var
+
+            return np.sqrt(
+                self._numba_agg_general(sliding_var, engine_kwargs, "groupby_std", ddof)
+            )
+        else:
+            return self._get_cythonized_result(
+                libgroupby.group_var,
+                needs_counts=True,
+                cython_dtype=np.dtype(np.float64),
+                post_processing=lambda vals, inference: np.sqrt(vals),
+                ddof=ddof,
+            )
 
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def var(self, ddof: int = 1):
+    def var(
+        self,
+        ddof: int = 1,
+        engine: str | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
+    ):
         """
         Compute variance of groups, excluding missing values.
 
@@ -2015,20 +2062,46 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ddof : int, default 1
             Degrees of freedom.
 
+        engine : str, default None
+            * ``'cython'`` : Runs the operation through C-extensions from cython.
+            * ``'numba'`` : Runs the operation through JIT compiled code from numba.
+            * ``None`` : Defaults to ``'cython'`` or globally setting
+              ``compute.use_numba``
+
+            .. versionadded:: 1.4.0
+
+        engine_kwargs : dict, default None
+            * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+              ``{{'nopython': True, 'nogil': False, 'parallel': False}}``
+
+            .. versionadded:: 1.4.0
+
         Returns
         -------
         Series or DataFrame
             Variance of values within each group.
         """
-        if ddof == 1:
-            numeric_only = self._resolve_numeric_only(lib.no_default)
-            return self._cython_agg_general(
-                "var", alt=lambda x: Series(x).var(ddof=ddof), numeric_only=numeric_only
+        if maybe_use_numba(engine):
+            from pandas.core._numba.kernels import sliding_var
+
+            return self._numba_agg_general(
+                sliding_var, engine_kwargs, "groupby_var", ddof
             )
         else:
-            func = lambda x: x.var(ddof=ddof)
-            with self._group_selection_context():
-                return self._python_agg_general(func)
+            if ddof == 1:
+                numeric_only = self._resolve_numeric_only(lib.no_default)
+                return self._cython_agg_general(
+                    "var",
+                    alt=lambda x: Series(x).var(ddof=ddof),
+                    numeric_only=numeric_only,
+                )
+            else:
+                func = lambda x: x.var(ddof=ddof)
+                with self._group_selection_context():
+                    return self._python_agg_general(func)
 
     @final
     @Substitution(name="groupby")
@@ -2524,6 +2597,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Take the nth row from each group if n is an int, otherwise a subset of rows.
 
+        Can be either a call or an index. dropna is not available with index notation.
+        Index notation accepts a comma separated list of integers and slices.
+
         If dropna, will take the nth non-null row, dropna is either
         'all' or 'any'; this is equivalent to calling dropna(how=dropna)
         before the groupby.
@@ -2535,6 +2611,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             .. versionchanged:: 1.4.0
                 Added slice and lists containiing slices.
+                Added index notation.
 
         dropna : {'any', 'all', None}, default None
             Apply the specified dropna operation before counting which row is
@@ -2574,6 +2651,22 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         2  3.0
         2  5.0
         >>> g.nth(slice(None, -1))
+             B
+        A
+        1  NaN
+        1  2.0
+        2  3.0
+
+        Index notation may also be used
+
+        >>> g.nth[0, 1]
+             B
+        A
+        1  NaN
+        1  2.0
+        2  3.0
+        2  5.0
+        >>> g.nth[:-1]
              B
         A
         1  NaN
