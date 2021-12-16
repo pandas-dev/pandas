@@ -985,7 +985,7 @@ def test_extension_array_cross_section_converts():
     "ser, keys",
     [(Series([10]), (0, 0)), (Series([1, 2, 3], index=list("abc")), (0, 1))],
 )
-def test_ser_indexer_exceeds_dimensions(ser, keys, indexer_sli):
+def test_ser_tup_indexer_exceeds_dimensions(ser, keys, indexer_sli):
     # GH#13831
     if indexer_sli == tm.setitem:
         return
@@ -1000,3 +1000,13 @@ def test_ser_indexer_exceeds_dimensions(ser, keys, indexer_sli):
 
     with pytest.raises(exp_err, match=exp_msg):
         indexer_sli(ser)[keys] = 0
+
+
+def test_ser_list_indexer_exceeds_dimensions(indexer_sli):
+    # GH#13831
+    if indexer_sli == tm.setitem:
+        return
+    ser = Series([10])
+    res = indexer_sli(ser)[[0, 0]]
+    exp = Series([10, 10], index=Index([0, 0]))
+    tm.assert_series_equal(res, exp)
