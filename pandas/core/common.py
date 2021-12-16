@@ -608,7 +608,7 @@ def is_builtin_func(arg):
     return _builtin_table.get(arg, arg)
 
 
-def fill_missing_names(names: Sequence[Hashable|None]) -> list[Hashable]:
+def fill_missing_names(names: Sequence[Hashable | None]) -> list[Hashable]:
     """
     If a name is missing then replace it by level_n, where n is the count
 
@@ -618,7 +618,7 @@ def fill_missing_names(names: Sequence[Hashable|None]) -> list[Hashable]:
     ----------
     names : list-like
         list of column names or None values.
- 
+
     Returns
     -------
     list
