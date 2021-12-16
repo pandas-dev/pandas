@@ -12,14 +12,6 @@ randn = np.random.randn
 
 
 class TestDatetimeIndex:
-    def test_roundtrip_pickle_with_tz(self):
-
-        # GH 8367
-        # round-trip of timezone
-        index = date_range("20130101", periods=3, tz="US/Eastern", name="foo")
-        unpickled = tm.round_trip_pickle(index)
-        tm.assert_index_equal(index, unpickled)
-
     def test_reindex_preserves_tz_if_target_is_empty_list_or_array(self):
         # GH7774
         index = date_range("20130101", periods=3, tz="US/Eastern")

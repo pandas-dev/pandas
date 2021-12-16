@@ -53,7 +53,8 @@ try:
     from Cython.Build import cythonize
 
     _CYTHON_INSTALLED = _CYTHON_VERSION >= LooseVersion(min_cython_ver)
-except ImportError:
+except ImportError as exc:
+    print(exc)
     _CYTHON_VERSION = None
     _CYTHON_INSTALLED = False
     cythonize = lambda x, *args, **kwargs: x  # dummy func

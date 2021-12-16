@@ -54,33 +54,10 @@ class Base:
         assert not self.dtype == np.str_
         assert not np.str_ == self.dtype
 
-    def test_pickle(self):
-        # make sure our cache is NOT pickled
-
-        # clear the cache
-        type(self.dtype).reset_cache()
-        assert not len(self.dtype._cache)
-
-        # force back to the cache
-        result = tm.round_trip_pickle(self.dtype)
-        assert not len(self.dtype._cache)
-        assert result == self.dtype
-
 
 class TestCategoricalDtype(Base):
     def create(self):
         return CategoricalDtype()
-
-    def test_pickle(self):
-        # make sure our cache is NOT pickled
-
-        # clear the cache
-        type(self.dtype).reset_cache()
-        assert not len(self.dtype._cache)
-
-        # force back to the cache
-        result = tm.round_trip_pickle(self.dtype)
-        assert result == self.dtype
 
     def test_hash_vs_equality(self):
         dtype = self.dtype
@@ -680,18 +657,6 @@ class TestIntervalDtype(Base):
         assert not is_interval_dtype(np.object_)
         assert not is_interval_dtype(np.int64)
         assert not is_interval_dtype(np.float64)
-
-    def test_caching(self):
-        IntervalDtype.reset_cache()
-        dtype = IntervalDtype("int64")
-        assert len(IntervalDtype._cache) == 1
-
-        IntervalDtype("interval")
-        assert len(IntervalDtype._cache) == 2
-
-        IntervalDtype.reset_cache()
-        tm.round_trip_pickle(dtype)
-        assert len(IntervalDtype._cache) == 0
 
     def test_not_string(self):
         # GH30568: though IntervalDtype has object kind, it cannot be string

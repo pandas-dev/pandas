@@ -221,15 +221,6 @@ class TestBlock:
         int32block = create_block("i4", [0])
         assert int32block.dtype == np.int32
 
-    def test_pickle(self):
-        def _check(blk):
-            assert_block_equal(tm.round_trip_pickle(blk), blk)
-
-        _check(self.fblock)
-        _check(self.cblock)
-        _check(self.oblock)
-        _check(self.bool_block)
-
     def test_mgr_locs(self):
         assert isinstance(self.fblock.mgr_locs, BlockPlacement)
         tm.assert_numpy_array_equal(
@@ -361,41 +352,6 @@ class TestBlockManager:
     def test_contains(self, mgr):
         assert "a" in mgr
         assert "baz" not in mgr
-
-    def test_pickle(self, mgr):
-
-        mgr2 = tm.round_trip_pickle(mgr)
-        tm.assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
-
-        # share ref_items
-        # assert mgr2.blocks[0].ref_items is mgr2.blocks[1].ref_items
-
-        # GH2431
-        assert hasattr(mgr2, "_is_consolidated")
-        assert hasattr(mgr2, "_known_consolidated")
-
-        # reset to False on load
-        assert not mgr2._is_consolidated
-        assert not mgr2._known_consolidated
-
-    def test_non_unique_pickle(self):
-
-        mgr = create_mgr("a,a,a:f8")
-        mgr2 = tm.round_trip_pickle(mgr)
-        tm.assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
-
-        mgr = create_mgr("a: f8; a: i8")
-        mgr2 = tm.round_trip_pickle(mgr)
-        tm.assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
-
-    def test_categorical_block_pickle(self):
-        mgr = create_mgr("a: category")
-        mgr2 = tm.round_trip_pickle(mgr)
-        tm.assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
-
-        smgr = create_single_mgr("category")
-        smgr2 = tm.round_trip_pickle(smgr)
-        tm.assert_series_equal(Series(smgr), Series(smgr2))
 
     def test_get(self):
         cols = Index(list("abc"))

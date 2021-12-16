@@ -201,27 +201,6 @@ class TestSeriesIO:
         )
         tm.assert_frame_equal(rs, xp)
 
-    def test_timeseries_periodindex(self):
-        # GH2891
-        from pandas import period_range
-
-        prng = period_range("1/1/2011", "1/1/2012", freq="M")
-        ts = Series(np.random.randn(len(prng)), prng)
-        new_ts = tm.round_trip_pickle(ts)
-        assert new_ts.index.freq == "M"
-
-    def test_pickle_preserve_name(self):
-        for n in [777, 777.0, "name", datetime(2001, 11, 11), (1, 2)]:
-            unpickled = self._pickle_roundtrip_name(tm.makeTimeSeries(name=n))
-            assert unpickled.name == n
-
-    def _pickle_roundtrip_name(self, obj):
-
-        with tm.ensure_clean() as path:
-            obj.to_pickle(path)
-            unpickled = pd.read_pickle(path)
-            return unpickled
-
     def test_to_frame_expanddim(self):
         # GH 9762
 

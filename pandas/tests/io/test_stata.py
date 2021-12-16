@@ -1475,13 +1475,6 @@ The repeated labels are:\n-+\nwolof
         result = tm.round_trip_pathlib(df.to_stata, reader)
         tm.assert_frame_equal(df, result)
 
-    def test_pickle_path_localpath(self):
-        df = tm.makeDataFrame()
-        df.index.name = "index"
-        reader = lambda x: read_stata(x).set_index("index")
-        result = tm.round_trip_localpath(df.to_stata, reader)
-        tm.assert_frame_equal(df, result)
-
     @pytest.mark.parametrize("write_index", [True, False])
     def test_value_labels_iterator(self, write_index):
         # GH 16923

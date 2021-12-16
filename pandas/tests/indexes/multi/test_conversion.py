@@ -129,30 +129,6 @@ def test_to_frame_resulting_column_order():
     assert result == expected
 
 
-def test_roundtrip_pickle_with_tz():
-    return  # FIXME: this can't be right?
-
-    # GH 8367
-    # round-trip of timezone
-    index = MultiIndex.from_product(
-        [[1, 2], ["a", "b"], date_range("20130101", periods=3, tz="US/Eastern")],
-        names=["one", "two", "three"],
-    )
-    unpickled = tm.round_trip_pickle(index)
-    assert index.equal_levels(unpickled)
-
-
-def test_pickle(indices):
-    return  # FIXME: this can't be right?
-
-    unpickled = tm.round_trip_pickle(indices)
-    assert indices.equals(unpickled)
-    original_name, indices.name = indices.name, "foo"
-    unpickled = tm.round_trip_pickle(indices)
-    assert indices.equals(unpickled)
-    indices.name = original_name
-
-
 def test_to_series(idx):
     # assert that we are creating a copy of the index
 

@@ -34,17 +34,6 @@ class Base:
     _holder: Optional[Type[Index]] = None
     _compat_props = ["shape", "ndim", "size", "nbytes"]
 
-    def test_pickle_compat_construction(self):
-        # need an object to create with
-        msg = (
-            r"Index\(\.\.\.\) must be called with a collection of some"
-            r" kind, None was passed|"
-            r"__new__\(\) missing 1 required positional argument: 'data'|"
-            r"__new__\(\) takes at least 2 arguments \(1 given\)"
-        )
-        with pytest.raises(TypeError, match=msg):
-            self._holder()
-
     def test_to_series(self):
         # assert that we are creating a copy of the index
 

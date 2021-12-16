@@ -675,12 +675,6 @@ class TestTimedeltas:
         s2 = s[0:1000]
         result = (s2 - s2.min()).sum()
 
-    def test_pickle(self):
-
-        v = Timedelta("1 days 10:11:12.0123456")
-        v_p = tm.round_trip_pickle(v)
-        assert v == v_p
-
     def test_timedelta_hash_equality(self):
         # GH 11129
         v = Timedelta(1, "D")

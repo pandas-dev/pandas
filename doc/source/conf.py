@@ -276,7 +276,6 @@ moved_api_pages = [
     ("pandas.io.parsers.read_csv", "pandas.read_csv"),
     ("pandas.io.parsers.read_fwf", "pandas.read_fwf"),
     ("pandas.io.parsers.read_table", "pandas.read_table"),
-    ("pandas.io.pickle.read_pickle", "pandas.read_pickle"),
     ("pandas.io.pytables.HDFStore.append", "pandas.HDFStore.append"),
     ("pandas.io.pytables.HDFStore.get", "pandas.HDFStore.get"),
     ("pandas.io.pytables.HDFStore.put", "pandas.HDFStore.put"),

@@ -1,6 +1,5 @@
 """ Test cases for time series specific (freq conversion, etc) """
 from datetime import date, datetime, time, timedelta
-import pickle
 import sys
 
 import numpy as np
@@ -1505,14 +1504,5 @@ def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
         with tm.ensure_clean(return_filelike=True) as path:
             plt.savefig(path)
 
-        # GH18439
-        # this is supported only in Python 3 pickle since
-        # pickle in Python2 doesn't support instancemethod pickling
-        # TODO(statsmodels 0.10.0): Remove the statsmodels check
-        # https://github.com/pandas-dev/pandas/issues/24088
-        # https://github.com/statsmodels/statsmodels/issues/4772
-        if "statsmodels" not in sys.modules:
-            with tm.ensure_clean(return_filelike=True) as path:
-                pickle.dump(fig, path)
     finally:
         plt.close(fig)

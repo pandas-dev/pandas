@@ -134,7 +134,6 @@ bar2,12,13,14,15
             (pd.read_stata, "os", FileNotFoundError, "dta"),
             (pd.read_sas, "os", FileNotFoundError, "sas7bdat"),
             (pd.read_json, "os", ValueError, "json"),
-            (pd.read_pickle, "os", FileNotFoundError, "pickle"),
         ],
     )
     def test_read_non_existant(self, reader, module, error_class, fn_ext):
@@ -170,7 +169,6 @@ bar2,12,13,14,15
             (pd.read_stata, "os", FileNotFoundError, "dta"),
             (pd.read_sas, "os", FileNotFoundError, "sas7bdat"),
             (pd.read_json, "os", ValueError, "json"),
-            (pd.read_pickle, "os", FileNotFoundError, "pickle"),
         ],
     )
     def test_read_expands_user_home_dir(
@@ -223,11 +221,6 @@ bar2,12,13,14,15
             (pd.read_stata, "os", ("io", "data", "stata", "stata10_115.dta")),
             (pd.read_sas, "os", ("io", "sas", "data", "test1.sas7bdat")),
             (pd.read_json, "os", ("io", "json", "data", "tsframe_v012.json")),
-            (
-                pd.read_pickle,
-                "os",
-                ("io", "data", "pickle", "categorical.0.25.0.pickle"),
-            ),
         ],
     )
     def test_read_fspath_all(self, reader, module, path, datapath):
@@ -253,7 +246,6 @@ bar2,12,13,14,15
             ("to_html", {}, "os"),
             ("to_json", {}, "os"),
             ("to_latex", {}, "os"),
-            ("to_pickle", {}, "os"),
             ("to_stata", {"time_stamp": pd.to_datetime("2019-01-01 00:00")}, "os"),
         ],
     )

@@ -26,7 +26,6 @@ import pandas._testing as tm
 from pandas.core.indexes.datetimes import DatetimeIndex, date_range
 from pandas.core.series import Series
 
-from pandas.io.pickle import read_pickle
 from pandas.tseries.frequencies import _get_offset, _offset_map
 from pandas.tseries.holiday import USFederalHolidayCalendar
 import pandas.tseries.offsets as offsets
@@ -639,21 +638,6 @@ class TestCommon(Base):
         with tm.assert_produces_warning(warn):
             result = offset_s + dta
         tm.assert_equal(result, dta)
-
-    def test_pickle_v0_15_2(self, datapath):
-        offsets = {
-            "DateOffset": DateOffset(years=1),
-            "MonthBegin": MonthBegin(1),
-            "Day": Day(1),
-            "YearBegin": YearBegin(1),
-            "Week": Week(1),
-        }
-
-        pickle_path = datapath("tseries", "offsets", "data", "dateoffset_0_15_2.pickle")
-        # This code was executed once on v0.15.2 to generate the pickle:
-        # with open(pickle_path, 'wb') as f: pickle.dump(offsets, f)
-        #
-        tm.assert_dict_equal(offsets, read_pickle(pickle_path))
 
     def test_onOffset_deprecated(self, offset_types):
         # GH#30340 use idiomatic naming
@@ -2830,22 +2814,6 @@ class TestCustomBusinessDay(Base):
         dt = datetime(2014, 1, 17)
         assert_offset_equal(CDay(calendar=calendar), dt, datetime(2014, 1, 21))
 
-    def test_roundtrip_pickle(self):
-        def _check_roundtrip(obj):
-            unpickled = tm.round_trip_pickle(obj)
-            assert unpickled == obj
-
-        _check_roundtrip(self.offset)
-        _check_roundtrip(self.offset2)
-        _check_roundtrip(self.offset * 2)
-
-    def test_pickle_compat_0_14_1(self, datapath):
-        hdays = [datetime(2013, 1, 1) for ele in range(4)]
-        pth = datapath("tseries", "offsets", "data", "cday-0.14.1.pickle")
-        cday0_14_1 = read_pickle(pth)
-        cday = CDay(holidays=hdays)
-        assert cday == cday0_14_1
-
 
 class CustomBusinessMonthBase:
     def setup_method(self, method):
@@ -2863,15 +2831,6 @@ class CustomBusinessMonthBase:
 
     def test_hash(self):
         assert hash(self.offset2) == hash(self.offset2)
-
-    def test_roundtrip_pickle(self):
-        def _check_roundtrip(obj):
-            unpickled = tm.round_trip_pickle(obj)
-            assert unpickled == obj
-
-        _check_roundtrip(self._offset())
-        _check_roundtrip(self._offset(2))
-        _check_roundtrip(self._offset() * 2)
 
     def test_copy(self):
         # GH 17452

@@ -641,24 +641,6 @@ class TestTimeSeries:
         # does .resample() set .freq correctly?
         assert df.resample("D").asfreq().index.freq == "D"
 
-    def test_pickle(self):
-
-        # GH4606
-        p = tm.round_trip_pickle(NaT)
-        assert p is NaT
-
-        idx = pd.to_datetime(["2013-01-01", NaT, "2014-01-06"])
-        idx_p = tm.round_trip_pickle(idx)
-        assert idx_p[0] == idx[0]
-        assert idx_p[1] is NaT
-        assert idx_p[2] == idx[2]
-
-        # GH11002
-        # don't infer freq
-        idx = date_range("1750-1-1", "2050-1-1", freq="7D")
-        idx_p = tm.round_trip_pickle(idx)
-        tm.assert_index_equal(idx, idx_p)
-
     @pytest.mark.parametrize("tz", [None, "Asia/Tokyo", "US/Eastern"])
     def test_setops_preserve_freq(self, tz):
         rng = date_range("1/1/2000", "1/1/2002", name="idx", tz=tz)

@@ -99,21 +99,6 @@ class TestSeriesMisc:
         result = datetime_series[5:10]
         assert result.name == datetime_series.name
 
-    def test_pickle_datetimes(self, datetime_series):
-        unp_ts = self._pickle_roundtrip(datetime_series)
-        tm.assert_series_equal(unp_ts, datetime_series)
-
-    def test_pickle_strings(self, string_series):
-        unp_series = self._pickle_roundtrip(string_series)
-        tm.assert_series_equal(unp_series, string_series)
-
-    def _pickle_roundtrip(self, obj):
-
-        with tm.ensure_clean() as path:
-            obj.to_pickle(path)
-            unpickled = pd.read_pickle(path)
-            return unpickled
-
     def test_sort_index_name(self, datetime_series):
         result = datetime_series.sort_index(ascending=False)
         assert result.name == datetime_series.name

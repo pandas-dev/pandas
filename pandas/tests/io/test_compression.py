@@ -21,7 +21,7 @@ import pandas.io.common as icom
         pd.Series(100 * [0.123456, 0.234567, 0.567567], name="X"),
     ],
 )
-@pytest.mark.parametrize("method", ["to_pickle", "to_json", "to_csv"])
+@pytest.mark.parametrize("method", ["to_json", "to_csv"])
 def test_compression_size(obj, method, compression_only):
     with tm.ensure_clean() as path:
         getattr(obj, method)(path, compression=compression_only)
@@ -65,7 +65,6 @@ def test_compression_size_fh(obj, method, compression_only):
     [
         ("to_csv", {"index": False}, pd.read_csv),
         ("to_json", {}, pd.read_json),
-        ("to_pickle", {}, pd.read_pickle),
     ],
 )
 def test_dataframe_compression_defaults_to_infer(
@@ -85,7 +84,6 @@ def test_dataframe_compression_defaults_to_infer(
     [
         ("to_csv", {"index": False, "header": True}, pd.read_csv, {"squeeze": True}),
         ("to_json", {}, pd.read_json, {"typ": "series"}),
-        ("to_pickle", {}, pd.read_pickle, {}),
     ],
 )
 def test_series_compression_defaults_to_infer(

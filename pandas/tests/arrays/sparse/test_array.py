@@ -736,14 +736,6 @@ class TestSparseArray:
             for first_arr, second_arr in [(arr1, arr2), (farr1, farr2)]:
                 _check_op(op, first_arr, second_arr)
 
-    def test_pickle(self):
-        def _check_roundtrip(obj):
-            unpickled = tm.round_trip_pickle(obj)
-            tm.assert_sp_array_equal(unpickled, obj)
-
-        _check_roundtrip(self.arr)
-        _check_roundtrip(self.zarr)
-
     def test_generator_warnings(self):
         sp_arr = SparseArray([1, 2, 3])
         with warnings.catch_warnings(record=True) as w:

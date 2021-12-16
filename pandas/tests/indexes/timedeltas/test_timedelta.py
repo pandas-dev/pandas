@@ -39,9 +39,6 @@ class TestTimedeltaIndex(DatetimeLike):
     def test_shift(self):
         pass  # this is handled in test_arithmetic.py
 
-    def test_pickle_compat_construction(self):
-        pass
-
     def test_fillna_timedelta(self):
         # GH 11343
         idx = pd.TimedeltaIndex(["1 day", pd.NaT, "3 day"])
@@ -167,12 +164,6 @@ class TestTimedeltaIndex(DatetimeLike):
         expected = Index(rng.to_pytimedelta(), dtype=object)
 
         tm.assert_numpy_array_equal(idx.values, expected.values)
-
-    def test_pickle(self):
-
-        rng = timedelta_range("1 days", periods=10)
-        rng_p = tm.round_trip_pickle(rng)
-        tm.assert_index_equal(rng, rng_p)
 
     def test_hash_error(self):
         index = timedelta_range("1 days", periods=10)

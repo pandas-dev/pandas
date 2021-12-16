@@ -4,7 +4,6 @@ import functools
 import gc
 import json
 import operator
-import pickle
 import re
 from textwrap import dedent
 from typing import (
@@ -1926,50 +1925,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
     #    return dict(typestr=values.dtype.str,shape=values.shape,data=values)
 
     # ----------------------------------------------------------------------
-    # Picklability
-
-    def __getstate__(self) -> Dict[str, Any]:
-        meta = {k: getattr(self, k, None) for k in self._metadata}
-        return dict(
-            _data=self._data,
-            _typ=self._typ,
-            _metadata=self._metadata,
-            attrs=self.attrs,
-            **meta,
-        )
-
-    def __setstate__(self, state):
-
-        if isinstance(state, BlockManager):
-            self._data = state
-        elif isinstance(state, dict):
-            typ = state.get("_typ")
-            if typ is not None:
-                attrs = state.get("_attrs", {})
-                object.__setattr__(self, "_attrs", attrs)
-
-                # set in the order of internal names
-                # to avoid definitional recursion
-                # e.g. say fill_value needing _data to be
-                # defined
-                meta = set(self._internal_names + self._metadata)
-                for k in list(meta):
-                    if k in state:
-                        v = state[k]
-                        object.__setattr__(self, k, v)
-
-                for k, v in state.items():
-                    if k not in meta:
-                        object.__setattr__(self, k, v)
-
-            else:
-                self._unpickle_series_compat(state)
-        elif len(state) == 2:
-            self._unpickle_series_compat(state)
-
-        self._item_cache = {}
-
-    # ----------------------------------------------------------------------
     # Rendering Methods
 
     def __repr__(self) -> str:
@@ -2663,66 +2618,6 @@ class NDFrame(PandasObject, SelectionMixin, indexing.IndexingMixin):
             method=method,
         )
 
-    def to_pickle(
-        self,
-        path,
-        compression: Optional[str] = "infer",
-        protocol: int = pickle.HIGHEST_PROTOCOL,
-    ) -> None:
-        """
-        Pickle (serialize) object to file.
-
-        Parameters
-        ----------
-        path : str
-            File path where the pickled object will be stored.
-        compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, \
-        default 'infer'
-            A string representing the compression to use in the output file. By
-            default, infers from the file extension in specified path.
-        protocol : int
-            Int which indicates which protocol should be used by the pickler,
-            default HIGHEST_PROTOCOL (see [1]_ paragraph 12.1.2). The possible
-            values are 0, 1, 2, 3, 4. A negative value for the protocol
-            parameter is equivalent to setting its value to HIGHEST_PROTOCOL.
-
-            .. [1] https://docs.python.org/3/library/pickle.html.
-            .. versionadded:: 0.21.0.
-
-        See Also
-        --------
-        read_pickle : Load pickled pandas object (or any object) from file.
-        DataFrame.to_hdf : Write DataFrame to an HDF5 file.
-        DataFrame.to_sql : Write DataFrame to a SQL database.
-        DataFrame.to_parquet : Write a DataFrame to the binary parquet format.
-
-        Examples
-        --------
-        >>> original_df = pd.DataFrame({"foo": range(5), "bar": range(5, 10)})
-        >>> original_df
-           foo  bar
-        0    0    5
-        1    1    6
-        2    2    7
-        3    3    8
-        4    4    9
-        >>> original_df.to_pickle("./dummy.pkl")
-
-        >>> unpickled_df = pd.read_pickle("./dummy.pkl")
-        >>> unpickled_df
-           foo  bar
-        0    0    5
-        1    1    6
-        2    2    7
-        3    3    8
-        4    4    9
-
-        >>> import os
-        >>> os.remove("./dummy.pkl")
-        """
-        from pandas.io.pickle import to_pickle
-
-        to_pickle(self, path, compression=compression, protocol=protocol)
 
     def to_clipboard(
         self, excel: bool_t = True, sep: Optional[str] = None, **kwargs

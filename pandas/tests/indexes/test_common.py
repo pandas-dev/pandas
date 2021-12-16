@@ -308,12 +308,6 @@ class TestCommon:
             with pytest.raises(ValueError):
                 indices._searchsorted_monotonic(value, side="left")
 
-    def test_pickle(self, indices):
-        original_name, indices.name = indices.name, "foo"
-        unpickled = tm.round_trip_pickle(indices)
-        assert indices.equals(unpickled)
-        indices.name = original_name
-
     @pytest.mark.parametrize("keep", ["first", "last", False])
     def test_duplicated(self, indices, keep):
         if not len(indices) or isinstance(indices, (MultiIndex, RangeIndex)):

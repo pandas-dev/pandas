@@ -608,10 +608,6 @@ class TestRangeIndex(Numeric):
         result = RangeIndex(5, big_num * 2, 1)._max_fitting_element(big_num)
         assert big_num == result
 
-    def test_pickle_compat_construction(self):
-        # RangeIndex() is a valid constructor
-        pass
-
     def test_slice_specialised(self):
         index = self.create_index()
         index.name = "foo"

@@ -1306,18 +1306,6 @@ class Categorical(ExtensionArray, PandasObject):
             f"the numpy op {ufunc.__name__}"
         )
 
-    def __setstate__(self, state):
-        """Necessary for making this object picklable"""
-        if not isinstance(state, dict):
-            raise Exception("invalid pickle state")
-
-        # compat with pre 0.21.0 CategoricalDtype change
-        if "_dtype" not in state:
-            state["_dtype"] = CategoricalDtype(state["_categories"], state["_ordered"])
-
-        for k, v in state.items():
-            setattr(self, k, v)
-
     @property
     def T(self):
         """

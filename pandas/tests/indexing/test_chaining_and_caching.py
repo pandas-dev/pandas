@@ -187,12 +187,6 @@ class TestChaining:
         df = DataFrame({"A": [1, 2]})
         assert df._is_copy is None
 
-        with tm.ensure_clean("__tmp__pickle") as path:
-            df.to_pickle(path)
-            df2 = pd.read_pickle(path)
-            df2["B"] = df2["A"]
-            df2["B"] = df2["A"]
-
         # gh-5597: a spurious raise as we are setting the entire column here
         from string import ascii_letters as letters
 

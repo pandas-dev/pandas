@@ -344,23 +344,6 @@ class TestDataFrameBlockInternals:
         copy = float_string_frame.copy()
         assert copy._data is not float_string_frame._data
 
-    def test_pickle(self, float_string_frame, timezone_frame):
-        empty_frame = DataFrame()
-
-        unpickled = tm.round_trip_pickle(float_string_frame)
-        tm.assert_frame_equal(float_string_frame, unpickled)
-
-        # buglet
-        float_string_frame._data.ndim
-
-        # empty
-        unpickled = tm.round_trip_pickle(empty_frame)
-        repr(unpickled)
-
-        # tz frame
-        unpickled = tm.round_trip_pickle(timezone_frame)
-        tm.assert_frame_equal(timezone_frame, unpickled)
-
     def test_consolidate_datetime64(self):
         # numpy vstack bug
 

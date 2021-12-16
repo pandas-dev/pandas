@@ -1186,13 +1186,6 @@ class TestDataFrameToCSV:
             )
             tm.assert_frame_equal(result, df)
 
-        # assert working
-        df.astype(str)
-
-        with tm.ensure_clean("csv_date_format_with_dst") as path:
-            df.to_pickle(path)
-            result = pd.read_pickle(path)
-            tm.assert_frame_equal(result, df)
 
     def test_to_csv_quoting(self):
         df = DataFrame(

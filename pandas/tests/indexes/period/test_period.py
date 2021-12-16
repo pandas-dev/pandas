@@ -38,15 +38,6 @@ class TestPeriodIndex(DatetimeLike):
     def create_index(self):
         return period_range("20130101", periods=5, freq="D")
 
-    def test_pickle_compat_construction(self):
-        pass
-
-    @pytest.mark.parametrize("freq", ["D", "M", "A"])
-    def test_pickle_round_trip(self, freq):
-        idx = PeriodIndex(["2016-05-16", "NaT", NaT, np.NaN], freq=freq)
-        result = tm.round_trip_pickle(idx)
-        tm.assert_index_equal(result, idx)
-
     def test_where(self):
         # This is handled in test_indexing
         pass
@@ -583,13 +574,6 @@ class TestPeriodIndex(DatetimeLike):
         result = pd.concat([s1, s2])
         assert isinstance(result.index, PeriodIndex)
         assert result.index[0] == s1.index[0]
-
-    def test_pickle_freq(self):
-        # GH2891
-        prng = period_range("1/1/2011", "1/1/2012", freq="M")
-        new_prng = tm.round_trip_pickle(prng)
-        assert new_prng.freq == offsets.MonthEnd()
-        assert new_prng.freqstr == "M"
 
     def test_map(self):
         # test_map_dictlike generally tests

@@ -411,11 +411,6 @@ class IntervalIndex(IntervalMixin, ExtensionIndex):
         # we don't want the superclass implementation
         return result
 
-    def __reduce__(self):
-        d = dict(left=self.left, right=self.right)
-        d.update(self._get_attributes_dict())
-        return _new_IntervalIndex, (type(self), d), None
-
     @Appender(_index_shared_docs["astype"])
     def astype(self, dtype, copy=True):
         with rewrite_exception("IntervalArray", type(self).__name__):

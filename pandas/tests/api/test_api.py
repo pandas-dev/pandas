@@ -162,7 +162,6 @@ class TestPDApi(Base):
         "read_hdf",
         "read_html",
         "read_json",
-        "read_pickle",
         "read_sas",
         "read_sql",
         "read_sql_query",
@@ -179,7 +178,7 @@ class TestPDApi(Base):
     funcs_json = ["json_normalize"]
 
     # top-level to_* funcs
-    funcs_to = ["to_datetime", "to_numeric", "to_pickle", "to_timedelta"]
+    funcs_to = ["to_datetime", "to_numeric", "to_timedelta"]
 
     # top-level to deprecate in the future
     deprecated_funcs_in_future: List[str] = []

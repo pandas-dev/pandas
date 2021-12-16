@@ -143,10 +143,6 @@ class PandasExtensionDtype(ExtensionDtype):
     def __hash__(self) -> int:
         raise NotImplementedError("sub-classes should implement an __hash__ method")
 
-    def __getstate__(self) -> Dict[str_type, Any]:
-        # pickle support; we don't want to pickle the cache
-        return {k: getattr(self, k, None) for k in self._metadata}
-
     @classmethod
     def reset_cache(cls) -> None:
         """ clear the cache """
@@ -370,13 +366,6 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
         self._categories = categories
         self._ordered = ordered
-
-    def __setstate__(self, state: MutableMapping[str_type, Any]) -> None:
-        # for pickle compat. __get_state__ is defined in the
-        # PandasExtensionDtype superclass and uses the public properties to
-        # pickle -> need to set the settable private ones here (see GH26067)
-        self._categories = state.pop("categories", None)
-        self._ordered = state.pop("ordered", False)
 
     def __hash__(self) -> int:
         # _hash_categories returns a uint64, so use the negative
@@ -769,13 +758,6 @@ class DatetimeTZDtype(PandasExtensionDtype):
             and str(self.tz) == str(other.tz)
         )
 
-    def __setstate__(self, state):
-        # for pickle compat. __get_state__ is defined in the
-        # PandasExtensionDtype superclass and uses the public properties to
-        # pickle -> need to set the settable private ones here (see GH26067)
-        self._tz = state["tz"]
-        self._unit = state["unit"]
-
 
 @register_extension_dtype
 class PeriodDtype(PandasExtensionDtype):
@@ -907,12 +889,6 @@ class PeriodDtype(PandasExtensionDtype):
             return other == self.name or other == self.name.title()
 
         return isinstance(other, PeriodDtype) and self.freq == other.freq
-
-    def __setstate__(self, state):
-        # for pickle compat. __get_state__ is defined in the
-        # PandasExtensionDtype superclass and uses the public properties to
-        # pickle -> need to set the settable private ones here (see GH26067)
-        self._freq = state["freq"]
 
     @classmethod
     def is_dtype(cls, dtype) -> bool:
@@ -1114,12 +1090,6 @@ class IntervalDtype(PandasExtensionDtype):
             from pandas.core.dtypes.common import is_dtype_equal
 
             return is_dtype_equal(self.subtype, other.subtype)
-
-    def __setstate__(self, state):
-        # for pickle compat. __get_state__ is defined in the
-        # PandasExtensionDtype superclass and uses the public properties to
-        # pickle -> need to set the settable private ones here (see GH26067)
-        self._subtype = state["subtype"]
 
     @classmethod
     def is_dtype(cls, dtype) -> bool:

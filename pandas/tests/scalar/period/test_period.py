@@ -472,11 +472,6 @@ class TestPeriodConstruction:
 
 
 class TestPeriodMethods:
-    def test_round_trip(self):
-        p = Period("2000Q1")
-        new_p = tm.round_trip_pickle(p)
-        assert new_p == p
-
     def test_hash(self):
         assert hash(Period("2011-01", freq="M")) == hash(Period("2011-01", freq="M"))
 
