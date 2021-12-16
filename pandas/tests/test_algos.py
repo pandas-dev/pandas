@@ -509,7 +509,8 @@ class TestUnique:
     def test_dtype_preservation(self, any_numpy_dtype):
         # GH 15442
         if any_numpy_dtype in (tm.BYTES_DTYPES + tm.STRING_DTYPES):
-            pytest.skip("skip string dtype")
+            data = [1, 2, 2]
+            uniques = [1, 2]
         elif is_integer_dtype(any_numpy_dtype):
             data = [1, 2, 2]
             uniques = [1, 2]
@@ -532,6 +533,9 @@ class TestUnique:
 
         result = Series(data, dtype=any_numpy_dtype).unique()
         expected = np.array(uniques, dtype=any_numpy_dtype)
+
+        if any_numpy_dtype in tm.STRING_DTYPES:
+            expected = expected.astype(object)
 
         tm.assert_numpy_array_equal(result, expected)
 

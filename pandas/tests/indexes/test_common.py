@@ -244,13 +244,17 @@ class TestCommon:
             result = i.unique()
             tm.assert_index_equal(result, expected)
 
-    def test_searchsorted_monotonic(self, index_flat):
+    def test_searchsorted_monotonic(self, index_flat, request):
         # GH17271
         index = index_flat
         # not implemented for tuple searches in MultiIndex
         # or Intervals searches in IntervalIndex
         if isinstance(index, pd.IntervalIndex):
-            pytest.skip("Skip check for MultiIndex/IntervalIndex")
+            mark = pytest.mark.xfail(
+                reason="IntervalIndex.searchsorted does not support Interval arg",
+                raises=NotImplementedError,
+            )
+            request.node.add_marker(mark)
 
         # nothing to test if the index is empty
         if index.empty:
@@ -450,12 +454,13 @@ def test_sort_values_invalid_na_position(index_with_missing, na_position):
 
 
 @pytest.mark.parametrize("na_position", ["first", "last"])
-def test_sort_values_with_missing(index_with_missing, na_position):
+def test_sort_values_with_missing(index_with_missing, na_position, request):
     # GH 35584. Test that sort_values works with missing values,
     # sort non-missing and place missing according to na_position
 
     if isinstance(index_with_missing, CategoricalIndex):
-        pytest.skip("missing value sorting order not well-defined")
+        mark = pytest.mark.xfail(reason="missing value sorting order not well-defined")
+        request.node.add_marker(mark)
 
     missing_count = np.sum(index_with_missing.isna())
     not_na_vals = index_with_missing[index_with_missing.notna()].values
