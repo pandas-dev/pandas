@@ -197,3 +197,17 @@ class TestCategoricalMissing:
         result = Series(a1, dtype=cat_type) == Series(a2, dtype=cat_type)
         expected = Series(a1) == Series(a2)
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "na_value, dtype",
+        [
+            (pd.NaT, "datetime64[ns]"),
+            (None, "float64"),
+            (np.nan, "float64"),
+            (pd.NA, "float64"),
+        ],
+    )
+    def test_categorical_only_missing_values_no_cast(self, na_value, dtype):
+        # GH#44900
+        result = Categorical([na_value, na_value])
+        tm.assert_index_equal(result.categories, Index([], dtype=dtype))
