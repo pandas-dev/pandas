@@ -558,18 +558,11 @@ cdef class TextReader:
         pass
 
     def __dealloc__(self):
-        self.close()
+        _close(self)
         parser_del(self.parser)
 
-    def close(self) -> None:
-        # also preemptively free all allocated memory
-        parser_free(self.parser)
-        if self.true_set:
-            kh_destroy_str_starts(self.true_set)
-            self.true_set = NULL
-        if self.false_set:
-            kh_destroy_str_starts(self.false_set)
-            self.false_set = NULL
+    def close(self):
+        _close(self)
 
     def _set_quoting(self, quote_char: str | bytes | None, quoting: int):
         if not isinstance(quoting, int):
@@ -1290,6 +1283,21 @@ cdef class TextReader:
                     return self.header[0][j]
             else:
                 return None
+
+
+# Factor out code common to TextReader.__dealloc__ and TextReader.close
+# It cannot be a class method, since calling self.close() in __dealloc__
+# which causes a class attribute lookup and violates best parctices
+# https://cython.readthedocs.io/en/latest/src/userguide/special_methods.html#finalization-method-dealloc
+cdef _close(TextReader reader):
+    # also preemptively free all allocated memory
+    parser_free(reader.parser)
+    if reader.true_set:
+        kh_destroy_str_starts(reader.true_set)
+        reader.true_set = NULL
+    if reader.false_set:
+        kh_destroy_str_starts(reader.false_set)
+        reader.false_set = NULL
 
 
 cdef:
