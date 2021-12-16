@@ -423,7 +423,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                     #  them, grep "full_codes"
                     arr_list = [values[idx] for idx in np.where(~null_mask)[0]]
 
-                    # Do not cast to float if we have only missing values
+                    # GH#44900 Do not cast to float if we have only missing values
                     if arr_list or arr.dtype == "object":
                         sanitize_dtype = None
                     else:
