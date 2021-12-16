@@ -244,7 +244,8 @@ class TestPandasContainer:
 
     @pytest.mark.parametrize("convert_axes", [True, False])
     @pytest.mark.parametrize("numpy", [True, False])
-    def test_roundtrip_empty(self, orient, convert_axes, numpy, empty_frame):
+    def test_roundtrip_empty(self, orient, convert_axes, numpy):
+        empty_frame = DataFrame()
         data = empty_frame.to_json(orient=orient)
         result = read_json(data, orient=orient, convert_axes=convert_axes, numpy=numpy)
         expected = empty_frame.copy()
@@ -673,7 +674,8 @@ class TestPandasContainer:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("numpy", [True, False])
-    def test_series_roundtrip_empty(self, orient, numpy, empty_series):
+    def test_series_roundtrip_empty(self, orient, numpy):
+        empty_series = Series([], index=[], dtype=np.float64)
         data = empty_series.to_json(orient=orient)
         result = read_json(data, typ="series", orient=orient, numpy=numpy)
 

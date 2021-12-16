@@ -613,7 +613,7 @@ def is_dtype_equal(source, target) -> bool:
                 src = get_dtype(source)
                 if isinstance(src, ExtensionDtype):
                     return src == target
-            except (TypeError, AttributeError):
+            except (TypeError, AttributeError, ImportError):
                 return False
     elif isinstance(source, str):
         return is_dtype_equal(target, source)
@@ -622,7 +622,7 @@ def is_dtype_equal(source, target) -> bool:
         source = get_dtype(source)
         target = get_dtype(target)
         return source == target
-    except (TypeError, AttributeError):
+    except (TypeError, AttributeError, ImportError):
 
         # invalid comparison
         # object == category will hit this
