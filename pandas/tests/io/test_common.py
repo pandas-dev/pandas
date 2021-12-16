@@ -200,7 +200,8 @@ Look,a snake,🐍"""
             (pd.read_hdf, "tables", FileNotFoundError, "h5"),
             (pd.read_stata, "os", FileNotFoundError, "dta"),
             (pd.read_sas, "os", FileNotFoundError, "sas7bdat"),
-            (pd.read_json, "os", ValueError, "json"),
+            # (pd.read_json, "os", ValueError, "json"),
+            (pd.read_json, "os", FileNotFoundError, "json"),
             (pd.read_pickle, "os", FileNotFoundError, "pickle"),
         ],
     )
@@ -266,7 +267,8 @@ Look,a snake,🐍"""
             (pd.read_hdf, "tables", FileNotFoundError, "h5"),
             (pd.read_stata, "os", FileNotFoundError, "dta"),
             (pd.read_sas, "os", FileNotFoundError, "sas7bdat"),
-            (pd.read_json, "os", ValueError, "json"),
+            # (pd.read_json, "os", ValueError, "json"),
+            (pd.read_json, "os", FileNotFoundError, "json"),
             (pd.read_pickle, "os", FileNotFoundError, "pickle"),
         ],
     )

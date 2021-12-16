@@ -690,6 +690,31 @@ class JsonReader(abc.Iterator):
             data = StringIO(data)
 
         return data
+    
+    def check_jsonstring_or_filepath(self, filepath_or_buffer):
+        """
+        This function takes filepath_or_buffer and checks to see
+        if filepath_or_buffer is intended as a JSON string or is
+        intended as a valid filepath. This is because we cannot say
+        that since a string is not a valid path, raise a
+        FileNotFound Exception.
+
+        This function provides a check on when the filepath does not
+        exist and when the filepath_or_buffer is not a json, what
+        the course of action should be.
+        """
+
+        # Use json.loads() which will throw a ValueError if the string you
+        # pass can't be decoded as JSON.
+        try:
+            json.loads(filepath_or_buffer)
+            return "json"
+        except ValueError:
+            # Then, check if filepath_or_buffer is a valid filepath.
+            if file_exists(filepath_or_buffer):
+                return "filepath"
+            else:
+                return "string"
 
     def _get_data_from_filepath(self, filepath_or_buffer):
         """
@@ -701,6 +726,21 @@ class JsonReader(abc.Iterator):
         This method turns (1) into (2) to simplify the rest of the processing.
         It returns input types (2) and (3) unchanged.
         """
+
+        # Provides a check on when the filepath does not exist and the filepath_or_buffer
+        # is not a json, what should be our action.
+        jsonstring_or_filepath = check_jsonstring_or_filepath(filepath_or_buffer)
+        if jsonstring_or_filepath == "json":
+            return
+        elif jsonstring_or_filepath == "filepath":
+            pass
+        else:
+            raise ValueError(
+                "This filepath {filepath} does not occur and is not a valid JSON string".format(
+                    filepath_or_buffer
+                )
+            )
+
         # if it is a string but the file does not exist, it might be a JSON string
         filepath_or_buffer = stringify_path(filepath_or_buffer)
         if (
