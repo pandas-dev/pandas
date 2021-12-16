@@ -223,6 +223,20 @@ def _sparse_array_op(
 
         sparse_op = getattr(splib, opname)
 
+        if (
+            name in ["floordiv", "mod"]
+            and (right == 0).any()
+            and left.dtype.kind in ["i", "u"]
+        ):
+            # Match the non-Sparse Series behavior
+            if name == "floordiv":
+                sparse_op = splib.sparse_floordiv_float64
+            else:
+                sparse_op = splib.sparse_mod_float64
+
+            left_sp_values = left_sp_values.astype("float64")
+            right_sp_values = right_sp_values.astype("float64")
+
         with np.errstate(all="ignore"):
             result, index, fill = sparse_op(
                 left_sp_values,
