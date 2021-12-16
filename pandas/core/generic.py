@@ -10358,39 +10358,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             filter_type="bool",
         )
 
-    @overload
-    def any(
-        self: DataFrame,
-        axis: Axis = ...,
-        bool_only: bool_t | None = ...,
-        skipna: bool_t = ...,
-        level: Level | None = ...,
-        **kwargs,
-    ) -> Series:
-        ...
-
-    @overload
-    def any(
-        self: Series,
-        axis: Axis = ...,
-        bool_only: bool_t | None = ...,
-        skipna: bool_t = ...,
-        level: Level | None = ...,
-        **kwargs,
-    ) -> bool_t:
-        ...
-
-    @overload
-    def any(
-        self: NDFrame,
-        axis: Axis = ...,
-        bool_only: bool_t | None = ...,
-        skipna: bool_t = ...,
-        level: Level | None = ...,
-        **kwargs,
-    ) -> Series | bool_t:
-        ...
-
     def any(
         self,
         axis: Axis = 0,
@@ -10398,7 +10365,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         skipna: bool_t = True,
         level: Level | None = None,
         **kwargs,
-    ) -> Series | bool_t:
+    ):
         return self._logical_func(
             "any", nanops.nanany, axis, bool_only, skipna, level, **kwargs
         )

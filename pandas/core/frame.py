@@ -8642,6 +8642,19 @@ NaN 12.3   33.0
 
     agg = aggregate
 
+    @doc(NDFrame.any, **_shared_doc_kwargs)
+    def any(
+        self: DataFrame,
+        axis: Axis = 0,
+        bool_only: bool | None = None,
+        skipna: bool = True,
+        level: Level | None = None,
+        **kwargs,
+    ) -> Series:
+        return super().any(
+            axis=axis, bool_only=bool_only, skipna=skipna, level=level, **kwargs
+        )
+
     @doc(
         _shared_docs["transform"],
         klass=_shared_doc_kwargs["klass"],
