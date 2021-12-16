@@ -20,6 +20,8 @@ from typing import (
     Collection,
     Iterable,
     Iterator,
+    Hashable,
+    Sequence,
     cast,
     overload,
 )
@@ -606,8 +608,20 @@ def is_builtin_func(arg):
     return _builtin_table.get(arg, arg)
 
 
-def fill_missing_names(names):
+def fill_missing_names(names: Sequence[Hashable|None]) -> list[Hashable]:
     """
     If a name is missing then replace it by level_n, where n is the count
+
+    .. versionadded:: 1.4.0
+
+    Parameters
+    ----------
+    names : list-like
+        list of column names or None values.
+ 
+    Returns
+    -------
+    list
+        list of column names with the None values replaced.
     """
     return [f"level_{i}" if name is None else name for i, name in enumerate(names)]
