@@ -3377,9 +3377,7 @@ class Table(Fixed):
         validate that we can store the multi-index; reset and return the
         new object
         """
-        levels = [
-            l if l is not None else f"level_{i}" for i, l in enumerate(obj.index.names)
-        ]
+        levels = com.fill_missing_names(obj.index.names)
         try:
             reset_obj = obj.reset_index()
         except ValueError as err:
