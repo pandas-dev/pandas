@@ -286,7 +286,8 @@ $1$,$2$
         # GH#40754
         ser = pd.Series(pd.to_datetime(["2021-03-27"], format="%Y-%m-%d"))
         ser = ser.astype("category")
-        assert ser.to_csv(index=False) == "0\n2021-03-27\n"
+        expected = tm.convert_rows_list_to_csv_str(["0", "2021-03-27"])
+        assert ser.to_csv(index=False) == expected
 
     def test_to_csv_multi_index(self):
         # see gh-6618
