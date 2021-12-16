@@ -11,6 +11,8 @@ fi
 
 if $COVERAGE; then
     COVERAGE="-s --cov=pandas --cov-report=xml --cov-append"
+else
+    COVERAGE=""
 fi
 
 # If no X server is found, we use xvfb to emulate it
