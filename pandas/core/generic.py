@@ -10349,6 +10349,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             )
             return res._logical_func(name, func, skipna=skipna, **kwargs)
 
+        if (
+            self.ndim > 1
+            and axis == 1
+            and len(self._mgr.arrays) > 1
+            # TODO(EA2D): special-case not needed
+            and all(x.ndim == 2 for x in self._mgr.arrays)
+            and bool_only is not None
+            and not kwargs
+        ):
+            # Fastpath avoiding potentially expensive transpose
+            obj = self
+            if bool_only:
+                obj = self._get_bool_data()
+            return obj._reduce_axis1(name, func, skipna=skipna)
+
         return self._reduce(
             func,
             name=name,
