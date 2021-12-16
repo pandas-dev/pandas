@@ -1460,6 +1460,13 @@ def _refine_defaults_read(
             "delim_whitespace=True; you can only specify one."
         )
 
+    if delimiter == "\n":
+        raise ValueError(
+            r"Specified \n as separator or delimiter. This forces the python engine "
+            "which does not accept a line terminator. Hence it is not allowed to use "
+            "the line terminator as separator.",
+        )
+
     if delimiter is lib.no_default:
         # assign default separator value
         kwds["delimiter"] = delim_default
