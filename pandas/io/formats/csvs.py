@@ -26,6 +26,7 @@ from pandas._typing import (
     StorageOptions,
     WriteBuffer,
 )
+from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
@@ -175,7 +176,7 @@ class CSVFormatter:
             "decimal": self.decimal,
         }
 
-    @property
+    @cache_readonly
     def data_index(self) -> Index:
         data_index = self.obj.index
         if (
