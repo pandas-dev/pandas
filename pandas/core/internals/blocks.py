@@ -651,14 +651,14 @@ class Block(PandasObject):
 
         # Note: the checks we do in NDFrame.replace ensure we never get
         #  here with listlike to_replace or value, as those cases
-        #  go through _replace_list
+        #  go through replace_list
 
         values = self.values
 
         if isinstance(values, Categorical):
             # TODO: avoid special-casing
             blk = self if inplace else self.copy()
-            blk.values.replace(to_replace, value, inplace=True)
+            blk.values._replace(to_replace=to_replace, value=value, inplace=True)
             return [blk]
 
         regex = should_use_regex(regex, to_replace)
@@ -743,7 +743,7 @@ class Block(PandasObject):
         return [block]
 
     @final
-    def _replace_list(
+    def replace_list(
         self,
         src_list: Iterable[Any],
         dest_list: Sequence[Any],
@@ -751,7 +751,7 @@ class Block(PandasObject):
         regex: bool = False,
     ) -> list[Block]:
         """
-        See BlockManager._replace_list docstring.
+        See BlockManager.replace_list docstring.
         """
         values = self.values
 

@@ -28,7 +28,6 @@ from pandas._libs.tslibs.offsets import (
     _offset_map,
 )
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
-from pandas.compat import np_datetime64_compat
 from pandas.errors import PerformanceWarning
 
 from pandas import DatetimeIndex
@@ -101,7 +100,7 @@ class TestCommon(Base):
         "Second": Timestamp("2011-01-01 09:00:01"),
         "Milli": Timestamp("2011-01-01 09:00:00.001000"),
         "Micro": Timestamp("2011-01-01 09:00:00.000001"),
-        "Nano": Timestamp(np_datetime64_compat("2011-01-01T09:00:00.000000001Z")),
+        "Nano": Timestamp("2011-01-01T09:00:00.000000001"),
     }
 
     def test_immutable(self, offset_types):
@@ -252,7 +251,7 @@ class TestCommon(Base):
 
     def test_apply(self, offset_types):
         sdt = datetime(2011, 1, 1, 9, 0)
-        ndt = np_datetime64_compat("2011-01-01 09:00Z")
+        ndt = np.datetime64("2011-01-01 09:00")
 
         expected = self.expecteds[offset_types.__name__]
         expected_norm = Timestamp(expected.date())
@@ -309,7 +308,7 @@ class TestCommon(Base):
         norm_expected.update(normalized)
 
         sdt = datetime(2011, 1, 1, 9, 0)
-        ndt = np_datetime64_compat("2011-01-01 09:00Z")
+        ndt = np.datetime64("2011-01-01 09:00")
 
         for dt in [sdt, ndt]:
             expected = expecteds[offset_types.__name__]
@@ -383,7 +382,7 @@ class TestCommon(Base):
         norm_expected.update(normalized)
 
         sdt = datetime(2011, 1, 1, 9, 0)
-        ndt = np_datetime64_compat("2011-01-01 09:00Z")
+        ndt = np.datetime64("2011-01-01 09:00")
 
         for dt in [sdt, ndt]:
             expected = expecteds[offset_types.__name__]

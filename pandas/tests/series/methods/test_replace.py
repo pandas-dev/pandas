@@ -8,7 +8,7 @@ import pandas._testing as tm
 
 
 class TestSeriesReplace:
-    def test_replace(self, datetime_series):
+    def test_replace(self):
         N = 100
         ser = pd.Series(np.random.randn(N))
         ser[0:4] = np.nan
@@ -58,6 +58,7 @@ class TestSeriesReplace:
         assert (ser[6:10] == -1).all()
         assert (ser[20:30] == -1).all()
 
+    def test_replace_nan_with_inf(self):
         ser = pd.Series([np.nan, 0, np.inf])
         tm.assert_series_equal(ser.replace(np.nan, 0), ser.fillna(0))
 
@@ -67,6 +68,7 @@ class TestSeriesReplace:
         filled[4] = 0
         tm.assert_series_equal(ser.replace(np.inf, 0), filled)
 
+    def test_replace_listlike_value_listlike_target(self, datetime_series):
         ser = pd.Series(datetime_series.index)
         tm.assert_series_equal(ser.replace(np.nan, 0), ser.fillna(0))
 

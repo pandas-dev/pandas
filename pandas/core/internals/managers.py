@@ -449,7 +449,7 @@ class BaseBlockManager(DataManager):
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         bm = self.apply(
-            "_replace_list",
+            "replace_list",
             src_list=src_list,
             dest_list=dest_list,
             inplace=inplace,
