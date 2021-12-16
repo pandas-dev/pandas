@@ -19,7 +19,6 @@ import pytz
 
 from pandas._libs.tslibs.conversion import localize_pydatetime
 from pandas._libs.tslibs.offsets import shift_months
-from pandas.compat import np_datetime64_compat
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
@@ -487,12 +486,12 @@ class TestDatetimeIndexComparisons:
         )
         darr = np.array(
             [
-                np_datetime64_compat("2014-02-01 00:00Z"),
-                np_datetime64_compat("2014-03-01 00:00Z"),
-                np_datetime64_compat("nat"),
+                np.datetime64("2014-02-01 00:00"),
+                np.datetime64("2014-03-01 00:00"),
                 np.datetime64("nat"),
-                np_datetime64_compat("2014-06-01 00:00Z"),
-                np_datetime64_compat("2014-07-01 00:00Z"),
+                np.datetime64("nat"),
+                np.datetime64("2014-06-01 00:00"),
+                np.datetime64("2014-07-01 00:00"),
             ]
         )
 

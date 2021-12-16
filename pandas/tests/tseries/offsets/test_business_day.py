@@ -7,6 +7,7 @@ from datetime import (
     timedelta,
 )
 
+import numpy as np
 import pytest
 
 from pandas._libs.tslibs.offsets import (
@@ -14,7 +15,6 @@ from pandas._libs.tslibs.offsets import (
     BDay,
     BMonthEnd,
 )
-from pandas.compat import np_datetime64_compat
 
 from pandas import (
     DatetimeIndex,
@@ -36,7 +36,7 @@ class TestBusinessDay(Base):
 
     def setup_method(self, method):
         self.d = datetime(2008, 1, 1)
-        self.nd = np_datetime64_compat("2008-01-01 00:00:00Z")
+        self.nd = np.datetime64("2008-01-01 00:00:00")
 
         self.offset = self._offset()
         self.offset1 = self.offset
