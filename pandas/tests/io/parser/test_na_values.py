@@ -639,12 +639,8 @@ NaN
 True
 False
 """
-    if parser.engine == "pyarrow":
-        with pytest.raises(TypeError, match="not 'NoneType'"):
-            parser.read_csv(StringIO(data), dtype="int")
-    else:
-        with pytest.raises(ValueError, match="convert"):
-            parser.read_csv(StringIO(data), dtype="int")
+    with pytest.raises(ValueError, match="convert|NoneType"):
+        parser.read_csv(StringIO(data), dtype="int")
 
 
 def test_bool_and_nan_to_float(all_parsers):
