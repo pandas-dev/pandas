@@ -3,7 +3,7 @@
 # Workaround for pytest-xdist (it collects different tests in the workers if PYTHONHASHSEED is not set)
 # https://github.com/pytest-dev/pytest/issues/920
 # https://github.com/pytest-dev/pytest/issues/1075
-export PYTHONHASHSEED=$(python -c 'import random; print(random.randint(1, 4294967295))')
+export PYTHONHASHSEED=1176580836
 
 # May help reproduce flaky CI builds if set in subsequent runs
 echo PYTHONHASHSEED=$PYTHONHASHSEED
@@ -22,7 +22,7 @@ if [[ $(uname) == "Linux" && -z $DISPLAY ]]; then
     XVFB="xvfb-run "
 fi
 
-PYTEST_CMD="${XVFB}pytest -m \"$PATTERN\" -n $PYTEST_WORKERS --dist=loadfile $TEST_ARGS $COVERAGE $PYTEST_TARGET"
+PYTEST_CMD="${XVFB}pytest -vv -m \"$PATTERN\" -n $PYTEST_WORKERS --dist=loadfile $TEST_ARGS $COVERAGE $PYTEST_TARGET"
 
 if [[ $(uname) != "Linux"  && $(uname) != "Darwin" ]]; then
     PYTEST_CMD="$PYTEST_CMD --ignore=pandas/tests/plotting/"
