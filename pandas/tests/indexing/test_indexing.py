@@ -712,8 +712,8 @@ class TestMisc:
                 ser, SLC[idx[9] : idx[13] : -1], SLC[:0]
             )
 
-    def test_slice_with_zero_step_raises(self, indexer_sl, frame_or_series):
-        obj = frame_or_series(np.arange(20), index=_mklbl("A", 20))
+    def test_slice_with_zero_step_raises(self, index, indexer_sl, frame_or_series):
+        obj = frame_or_series(np.arange(len(index)), index=index)
         with pytest.raises(ValueError, match="slice step cannot be zero"):
             indexer_sl(obj)[::0]
 

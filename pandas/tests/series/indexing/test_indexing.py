@@ -262,48 +262,6 @@ def test_preserve_refs(datetime_series):
     assert not np.isnan(datetime_series[10])
 
 
-def test_cast_on_putmask():
-    # GH 2746
-
-    # need to upcast
-    s = Series([1, 2], index=[1, 2], dtype="int64")
-    s[[True, False]] = Series([0], index=[1], dtype="int64")
-    expected = Series([0, 2], index=[1, 2], dtype="int64")
-
-    tm.assert_series_equal(s, expected)
-
-
-def test_type_promote_putmask():
-    # GH8387: test that changing types does not break alignment
-    ts = Series(np.random.randn(100), index=np.arange(100, 0, -1)).round(5)
-    left, mask = ts.copy(), ts > 0
-    right = ts[mask].copy().map(str)
-    left[mask] = right
-    tm.assert_series_equal(left, ts.map(lambda t: str(t) if t > 0 else t))
-
-
-def test_setitem_mask_promote_strs():
-
-    ser = Series([0, 1, 2, 0])
-    mask = ser > 0
-    ser2 = ser[mask].map(str)
-    ser[mask] = ser2
-
-    expected = Series([0, "1", "2", 0])
-    tm.assert_series_equal(ser, expected)
-
-
-def test_setitem_mask_promote():
-
-    ser = Series([0, "foo", "bar", 0])
-    mask = Series([False, True, True, False])
-    ser2 = ser[mask]
-    ser[mask] = ser2
-
-    expected = Series([0, "foo", "bar", 0])
-    tm.assert_series_equal(ser, expected)
-
-
 def test_multilevel_preserve_name(lexsorted_two_level_string_multiindex, indexer_sl):
     index = lexsorted_two_level_string_multiindex
     ser = Series(np.random.randn(len(index)), index=index, name="sth")
@@ -315,13 +273,6 @@ def test_multilevel_preserve_name(lexsorted_two_level_string_multiindex, indexer
 """
 miscellaneous methods
 """
-
-
-def test_slice_with_zero_step_raises(index, frame_or_series, indexer_sli):
-    ts = frame_or_series(np.arange(len(index)), index=index)
-
-    with pytest.raises(ValueError, match="slice step cannot be zero"):
-        indexer_sli(ts)[::0]
 
 
 @pytest.mark.parametrize(
