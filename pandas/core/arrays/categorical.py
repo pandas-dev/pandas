@@ -2457,6 +2457,16 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         [3, 2, 3, 3]
         Categories (2, int64): [2, 3]
         """
+        # GH#44929 deprecation
+        warn(
+            "Categorical.replace is deprecated and will be removed in a future "
+            "version. Use Series.replace directly instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self._replace(to_replace=to_replace, value=value, inplace=inplace)
+
+    def _replace(self, *, to_replace, value, inplace: bool = False):
         inplace = validate_bool_kwarg(inplace, "inplace")
         cat = self if inplace else self.copy()
 
