@@ -2457,6 +2457,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         [3, 2, 3, 3]
         Categories (2, int64): [2, 3]
         """
+        # GH#44929 deprecation
         warn(
             "Categorical.replace is deprecated and will be removed in a future "
             "version. Use Series.replace directly instead.",

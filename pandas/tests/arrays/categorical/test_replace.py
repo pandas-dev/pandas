@@ -64,6 +64,7 @@ def test_replace_categorical(to_replace, value, result, expected_error_msg):
     cat = Categorical(["a", "b"])
     expected = Categorical(result)
     with tm.assert_produces_warning(FutureWarning, match="Series.replace"):
+        # GH#44929 replace->_replace
         result = cat.replace(to_replace, value)
 
     tm.assert_categorical_equal(result, expected)
@@ -73,6 +74,7 @@ def test_replace_categorical(to_replace, value, result, expected_error_msg):
             tm.assert_categorical_equal(cat, expected)
 
     with tm.assert_produces_warning(FutureWarning, match="Series.replace"):
+        # GH#44929 replace->_replace
         cat.replace(to_replace, value, inplace=True)
 
     tm.assert_categorical_equal(cat, expected)
