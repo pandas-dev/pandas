@@ -1,7 +1,13 @@
 from datetime import datetime
 
+from hypothesis import (
+    given,
+    strategies as st,
+)
 import numpy as np
 import pytest
+
+from pandas.compat import np_version_under1p19
 
 from pandas.core.dtypes.common import is_scalar
 
@@ -16,6 +22,13 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
+from pandas._testing._hypothesis import (
+    OPTIONAL_DICTS,
+    OPTIONAL_FLOATS,
+    OPTIONAL_INTS,
+    OPTIONAL_LISTS,
+    OPTIONAL_TEXT,
+)
 
 
 @pytest.fixture(params=["default", "float_string", "mixed_float", "mixed_int"])
@@ -797,3 +810,78 @@ def test_where_columns_casting():
     result = df.where(pd.notnull(df), None)
     # make sure dtypes don't change
     tm.assert_frame_equal(expected, result)
+
+
+@pytest.mark.parametrize("as_cat", [True, False])
+def test_where_period_invalid_na(frame_or_series, as_cat, request):
+    # GH#44697
+    idx = pd.period_range("2016-01-01", periods=3, freq="D")
+    if as_cat:
+        idx = idx.astype("category")
+    obj = frame_or_series(idx)
+
+    # NA value that we should *not* cast to Period dtype
+    tdnat = pd.NaT.to_numpy("m8[ns]")
+
+    mask = np.array([True, True, False], ndmin=obj.ndim).T
+
+    if as_cat:
+        msg = (
+            r"Cannot setitem on a Categorical with a new category \(NaT\), "
+            "set the categories first"
+        )
+        if np_version_under1p19:
+            mark = pytest.mark.xfail(
+                reason="When evaluating the f-string to generate the exception "
+                "message, numpy somehow ends up trying to cast None to int, so "
+                "ends up raising TypeError but with an unrelated message."
+            )
+            request.node.add_marker(mark)
+    else:
+        msg = "value should be a 'Period'"
+
+    with pytest.raises(TypeError, match=msg):
+        obj.where(mask, tdnat)
+
+    with pytest.raises(TypeError, match=msg):
+        obj.mask(mask, tdnat)
+
+
+def test_where_nullable_invalid_na(frame_or_series, any_numeric_ea_dtype):
+    # GH#44697
+    arr = pd.array([1, 2, 3], dtype=any_numeric_ea_dtype)
+    obj = frame_or_series(arr)
+
+    mask = np.array([True, True, False], ndmin=obj.ndim).T
+
+    msg = "|".join(
+        [
+            r"datetime64\[.{1,2}\] cannot be converted to an? (Integer|Floating)Dtype",
+            r"timedelta64\[.{1,2}\] cannot be converted to an? (Integer|Floating)Dtype",
+            r"int\(\) argument must be a string, a bytes-like object or a number, "
+            "not 'NaTType'",
+            "object cannot be converted to a FloatingDtype",
+            "'values' contains non-numeric NA",
+        ]
+    )
+
+    for null in tm.NP_NAT_OBJECTS + [pd.NaT]:
+        # NaT is an NA value that we should *not* cast to pd.NA dtype
+        with pytest.raises(TypeError, match=msg):
+            obj.where(mask, null)
+
+        with pytest.raises(TypeError, match=msg):
+            obj.mask(mask, null)
+
+
+@given(
+    data=st.one_of(
+        OPTIONAL_DICTS, OPTIONAL_FLOATS, OPTIONAL_INTS, OPTIONAL_LISTS, OPTIONAL_TEXT
+    )
+)
+def test_where_inplace_casting(data):
+    # GH 22051
+    df = DataFrame({"a": data})
+    df_copy = df.where(pd.notnull(df), None).copy()
+    df.where(pd.notnull(df), None, inplace=True)
+    tm.assert_equal(df, df_copy)

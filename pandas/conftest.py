@@ -440,13 +440,21 @@ def multiindex_year_month_day_dataframe_random_data():
 
 
 @pytest.fixture
-def multiindex_dataframe_random_data():
-    """DataFrame with 2 level MultiIndex with random data"""
-    index = MultiIndex(
+def lexsorted_two_level_string_multiindex():
+    """
+    2-level MultiIndex, lexsorted, with string names.
+    """
+    return MultiIndex(
         levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
         codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
         names=["first", "second"],
     )
+
+
+@pytest.fixture
+def multiindex_dataframe_random_data(lexsorted_two_level_string_multiindex):
+    """DataFrame with 2 level MultiIndex with random data"""
+    index = lexsorted_two_level_string_multiindex
     return DataFrame(
         np.random.randn(10, 3), index=index, columns=Index(["A", "B", "C"], name="exp")
     )
@@ -592,11 +600,6 @@ def index_with_missing(request):
 # Series'
 # ----------------------------------------------------------------
 @pytest.fixture
-def empty_series():
-    return Series([], index=[], dtype=np.float64)
-
-
-@pytest.fixture
 def string_series():
     """
     Fixture for Series of floats with Index of unique strings
@@ -664,29 +667,10 @@ def series_with_multilevel_index():
     return ser
 
 
-_narrow_dtypes = [
-    np.float16,
-    np.float32,
-    np.int8,
-    np.int16,
-    np.int32,
-    np.uint8,
-    np.uint16,
-    np.uint32,
-]
 _narrow_series = {
     f"{dtype.__name__}-series": tm.makeFloatSeries(name="a").astype(dtype)
-    for dtype in _narrow_dtypes
+    for dtype in tm.NARROW_NP_DTYPES
 }
-
-
-@pytest.fixture(params=_narrow_series.keys())
-def narrow_series(request):
-    """
-    Fixture for Series with low precision data types
-    """
-    # copy to avoid mutation, e.g. setting .name
-    return _narrow_series[request.param].copy()
 
 
 _index_or_series_objs = {**indices_dict, **_series, **_narrow_series}
@@ -704,11 +688,6 @@ def index_or_series_obj(request):
 # ----------------------------------------------------------------
 # DataFrames
 # ----------------------------------------------------------------
-@pytest.fixture
-def empty_frame():
-    return DataFrame()
-
-
 @pytest.fixture
 def int_frame():
     """

@@ -528,6 +528,15 @@ def is_categorical_dtype(arr_or_dtype) -> bool:
     return CategoricalDtype.is_dtype(arr_or_dtype)
 
 
+def is_string_or_object_np_dtype(dtype: np.dtype) -> bool:
+    """
+    Faster alternative to is_string_dtype, assumes we have a np.dtype object.
+    """
+    # error: Non-overlapping equality check (left operand type: "dtype[Any]",
+    # right operand type: "Type[object]")
+    return dtype == object or dtype.kind in "SU"  # type: ignore[comparison-overlap]
+
+
 def is_string_dtype(arr_or_dtype) -> bool:
     """
     Check whether the provided array or dtype is of the string dtype.
@@ -604,7 +613,7 @@ def is_dtype_equal(source, target) -> bool:
                 src = get_dtype(source)
                 if isinstance(src, ExtensionDtype):
                     return src == target
-            except (TypeError, AttributeError):
+            except (TypeError, AttributeError, ImportError):
                 return False
     elif isinstance(source, str):
         return is_dtype_equal(target, source)
@@ -613,7 +622,7 @@ def is_dtype_equal(source, target) -> bool:
         source = get_dtype(source)
         target = get_dtype(target)
         return source == target
-    except (TypeError, AttributeError):
+    except (TypeError, AttributeError, ImportError):
 
         # invalid comparison
         # object == category will hit this
@@ -1399,11 +1408,12 @@ def is_1d_only_ea_obj(obj: Any) -> bool:
     from pandas.core.arrays import (
         DatetimeArray,
         ExtensionArray,
+        PeriodArray,
         TimedeltaArray,
     )
 
     return isinstance(obj, ExtensionArray) and not isinstance(
-        obj, (DatetimeArray, TimedeltaArray)
+        obj, (DatetimeArray, TimedeltaArray, PeriodArray)
     )
 
 
@@ -1415,7 +1425,9 @@ def is_1d_only_ea_dtype(dtype: DtypeObj | None) -> bool:
     #  here too.
     # NB: need to check DatetimeTZDtype and not is_datetime64tz_dtype
     #  to exclude ArrowTimestampUSDtype
-    return isinstance(dtype, ExtensionDtype) and not isinstance(dtype, DatetimeTZDtype)
+    return isinstance(dtype, ExtensionDtype) and not isinstance(
+        dtype, (DatetimeTZDtype, PeriodDtype)
+    )
 
 
 def is_extension_array_dtype(arr_or_dtype) -> bool:
@@ -1620,7 +1632,7 @@ def _is_dtype_type(arr_or_dtype, condition) -> bool:
     return condition(tipo)
 
 
-def infer_dtype_from_object(dtype) -> DtypeObj:
+def infer_dtype_from_object(dtype) -> type:
     """
     Get a numpy dtype.type-style object for a dtype object.
 
@@ -1637,14 +1649,12 @@ def infer_dtype_from_object(dtype) -> DtypeObj:
 
     Returns
     -------
-    dtype_object : The extracted numpy dtype.type-style object.
+    type
     """
     if isinstance(dtype, type) and issubclass(dtype, np.generic):
         # Type object from a dtype
 
-        # error: Incompatible return value type (got "Type[generic]", expected
-        # "Union[dtype[Any], ExtensionDtype]")
-        return dtype  # type: ignore[return-value]
+        return dtype
     elif isinstance(dtype, (np.dtype, ExtensionDtype)):
         # dtype object
         try:
@@ -1652,9 +1662,7 @@ def infer_dtype_from_object(dtype) -> DtypeObj:
         except TypeError:
             # Should still pass if we don't have a date-like
             pass
-        # error: Incompatible return value type (got "Union[Type[generic], Type[Any]]",
-        # expected "Union[dtype[Any], ExtensionDtype]")
-        return dtype.type  # type: ignore[return-value]
+        return dtype.type
 
     try:
         dtype = pandas_dtype(dtype)
@@ -1668,9 +1676,7 @@ def infer_dtype_from_object(dtype) -> DtypeObj:
         # TODO(jreback)
         # should deprecate these
         if dtype in ["datetimetz", "datetime64tz"]:
-            # error: Incompatible return value type (got "Type[Any]", expected
-            # "Union[dtype[Any], ExtensionDtype]")
-            return DatetimeTZDtype.type  # type: ignore[return-value]
+            return DatetimeTZDtype.type
         elif dtype in ["period"]:
             raise NotImplementedError
 
