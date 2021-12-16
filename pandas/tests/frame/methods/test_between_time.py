@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import timezones
+from pandas.compat import is_platform_windows
 
 from pandas import (
     DataFrame,
@@ -18,7 +19,10 @@ import pandas._testing as tm
 
 
 class TestBetweenTime:
-    @pytest.mark.xfail(locale.getlocale(0) == "zh_CN", reason="The 'am' cases fail")
+    @pytest.mark.xfail(
+        is_platform_windows() or locale.getlocale(0) == "zh_CN",
+        reason="The 'am' cases fail",
+    )
     def test_between_time_formats(self, frame_or_series):
         # GH#11818
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
