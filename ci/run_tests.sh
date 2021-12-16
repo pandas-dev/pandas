@@ -11,6 +11,8 @@ fi
 
 if [[ "$COVERAGE" == "true" ]]; then
     COVERAGE="-s --cov=pandas --cov-report=xml --cov-append"
+else
+    COVERAGE="" # We need to reset this for COVERAGE="false" case
 fi
 
 # If no X server is found, we use xvfb to emulate it
