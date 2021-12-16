@@ -3,7 +3,6 @@ from datetime import datetime
 from io import StringIO
 import math
 import re
-from warnings import catch_warnings
 
 import numpy as np
 import pytest
