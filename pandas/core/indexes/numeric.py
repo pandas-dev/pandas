@@ -343,7 +343,7 @@ class NumericIndex(Index):
         return False
 
     def _format_native_types(
-        self, na_rep="", float_format=None, decimal=".", quoting=None, **kwargs
+        self, *, na_rep="", float_format=None, decimal=".", quoting=None, **kwargs
     ):
         from pandas.io.formats.format import FloatArrayFormatter
 

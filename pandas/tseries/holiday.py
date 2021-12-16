@@ -6,7 +6,7 @@ from datetime import (
 )
 import warnings
 
-from dateutil.relativedelta import (  # noqa
+from dateutil.relativedelta import (  # noqa:F401
     FR,
     MO,
     SA,

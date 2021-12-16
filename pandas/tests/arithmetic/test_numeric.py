@@ -128,8 +128,6 @@ class TestNumericComparisons:
 
 
 class TestNumericArraylikeArithmeticWithDatetimeLike:
-
-    # TODO: also check name retentention
     @pytest.mark.parametrize("box_cls", [np.array, Index, Series])
     @pytest.mark.parametrize(
         "left", lefts, ids=lambda x: type(x).__name__ + str(x.dtype)
@@ -149,7 +147,6 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         result = right * left
         tm.assert_equal(result, expected)
 
-    # TODO: also check name retentention
     @pytest.mark.parametrize("box_cls", [np.array, Index, Series])
     @pytest.mark.parametrize(
         "left", lefts, ids=lambda x: type(x).__name__ + str(x.dtype)
@@ -1241,7 +1238,7 @@ class TestNumericArithmeticUnsorted:
         idxs = [RangeIndex(0, 10, 1), RangeIndex(0, 20, 2)]
         self.check_binop(ops, scalars, idxs)
 
-    # TODO: mod, divmod?
+    # TODO: divmod?
     @pytest.mark.parametrize(
         "op",
         [
@@ -1251,6 +1248,7 @@ class TestNumericArithmeticUnsorted:
             operator.floordiv,
             operator.truediv,
             operator.pow,
+            operator.mod,
         ],
     )
     def test_arithmetic_with_frame_or_series(self, op):
