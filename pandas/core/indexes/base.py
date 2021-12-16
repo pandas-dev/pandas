@@ -1181,7 +1181,6 @@ class Index(IndexOpsMixin, PandasObject):
             .. deprecated:: 1.4.0
                 use ``name`` instead.
 
-
         Returns
         -------
         Index
