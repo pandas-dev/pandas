@@ -660,7 +660,7 @@ Conversion
 
 Strings
 ^^^^^^^
-- Fixed bug in checking for ``string[pyarrow]`` dtype incorrectly raising an ImportError when pyarrow is not installed (:issue:`44327`)
+- Fixed bug in checking for ``string[pyarrow]`` dtype incorrectly raising an ImportError when pyarrow is not installed (:issue:`44276`)
 -
 
 Interval
