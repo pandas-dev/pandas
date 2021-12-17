@@ -26,6 +26,7 @@ from pandas._typing import (
     StorageOptions,
     WriteBuffer,
 )
+from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
@@ -175,7 +176,7 @@ class CSVFormatter:
             "decimal": self.decimal,
         }
 
-    @property
+    @cache_readonly
     def data_index(self) -> Index:
         data_index = self.obj.index
         if (
@@ -185,6 +186,8 @@ class CSVFormatter:
             data_index = Index(
                 [x.strftime(self.date_format) if notna(x) else "" for x in data_index]
             )
+        elif isinstance(data_index, ABCMultiIndex):
+            data_index = data_index.remove_unused_levels()
         return data_index
 
     @property

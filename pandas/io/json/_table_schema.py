@@ -103,11 +103,7 @@ def set_default_names(data):
 
     data = data.copy()
     if data.index.nlevels > 1:
-        names = [
-            name if name is not None else f"level_{i}"
-            for i, name in enumerate(data.index.names)
-        ]
-        data.index.names = names
+        data.index.names = com.fill_missing_names(data.index.names)
     else:
         data.index.name = data.index.name or "index"
     return data
