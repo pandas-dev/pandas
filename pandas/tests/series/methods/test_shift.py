@@ -3,10 +3,8 @@ import pytest
 
 from pandas.errors import NullFrequencyError
 
-import pandas as pd
 from pandas import (
     DatetimeIndex,
-    NaT,
     Series,
     TimedeltaIndex,
     date_range,
@@ -30,12 +28,6 @@ class TestShift:
     def test_shift_always_copy(self, ser, shift_size):
         # GH22397
         assert ser.shift(shift_size) is not ser
-
-    @pytest.mark.parametrize("move_by_freq", [pd.Timedelta("1D"), pd.Timedelta("1min")])
-    def test_datetime_shift_always_copy(self, move_by_freq, frame_or_series):
-        # GH#22397
-        obj = frame_or_series(range(5), index=date_range("2017", periods=5))
-        assert obj.shift(freq=move_by_freq) is not obj
 
     def test_shift(self, datetime_series):
         shifted = datetime_series.shift(1)
@@ -64,17 +56,6 @@ class TestShift:
         # corner case
         unshifted = datetime_series.shift(0)
         tm.assert_series_equal(unshifted, datetime_series)
-
-    def test_shift_32bit_take(self):
-        # 32-bit taking
-        # GH#8129
-        index = date_range("2000-01-01", periods=5)
-        for dtype in ["int32", "int64"]:
-            s1 = Series(np.arange(5, dtype=dtype), index=index)
-            p = s1.iloc[1]
-            result = s1.shift(periods=p)
-            expected = Series([np.nan, 0, 1, 2, 3], index=index)
-            tm.assert_series_equal(result, expected)
 
     def test_shift_with_tz(self):
         # GH#8260
@@ -112,54 +93,6 @@ class TestShift:
         with pytest.raises(NullFrequencyError, match=msg):
             idx.shift(1)
 
-    def test_shift_categorical_fill_value(self):
-        ts = Series(["a", "b", "c", "d"], dtype="category")
-        res = ts.shift(1, fill_value="a")
-        expected = Series(
-            pd.Categorical(
-                ["a", "a", "b", "c"], categories=["a", "b", "c", "d"], ordered=False
-            )
-        )
-        tm.assert_equal(res, expected)
-
-        # check for incorrect fill_value
-        msg = r"Cannot setitem on a Categorical with a new category \(f\)"
-        with pytest.raises(TypeError, match=msg):
-            ts.shift(1, fill_value="f")
-
-    def test_shift_dst(self):
-        # GH#13926
-        dates = date_range("2016-11-06", freq="H", periods=10, tz="US/Eastern")
-        s = Series(dates)
-
-        res = s.shift(0)
-        tm.assert_series_equal(res, s)
-        assert res.dtype == "datetime64[ns, US/Eastern]"
-
-        res = s.shift(1)
-        exp_vals = [NaT] + dates.astype(object).values.tolist()[:9]
-        exp = Series(exp_vals)
-        tm.assert_series_equal(res, exp)
-        assert res.dtype == "datetime64[ns, US/Eastern]"
-
-        res = s.shift(-2)
-        exp_vals = dates.astype(object).values.tolist()[2:] + [NaT, NaT]
-        exp = Series(exp_vals)
-        tm.assert_series_equal(res, exp)
-        assert res.dtype == "datetime64[ns, US/Eastern]"
-
-        for ex in [10, -10, 20, -20]:
-            res = s.shift(ex)
-            exp = Series([NaT] * 10, dtype="datetime64[ns, US/Eastern]")
-            tm.assert_series_equal(res, exp)
-            assert res.dtype == "datetime64[ns, US/Eastern]"
-
-    def test_shift_int(self, datetime_series):
-        ts = datetime_series.astype(int)
-        shifted = ts.shift(1)
-        expected = ts.astype(float).shift(1)
-        tm.assert_series_equal(shifted, expected)
-
     def test_shift_object_non_scalar_fill(self):
         # shift requires scalar fill_value except for object dtype
         ser = Series(range(3))
@@ -196,22 +129,6 @@ class TestShift:
 
         tm.assert_index_equal(s.values.categories, sp1.values.categories)
         tm.assert_index_equal(s.values.categories, sn2.values.categories)
-
-    @pytest.mark.parametrize("periods", [1, 2, 3, 4])
-    def test_shift_preserve_freqstr(self, periods):
-        # GH#21275
-        ser = Series(
-            range(periods),
-            index=date_range("2016-1-1 00:00:00", periods=periods, freq="H"),
-        )
-
-        result = ser.shift(1, "2H")
-
-        expected = Series(
-            range(periods),
-            index=date_range("2016-1-1 02:00:00", periods=periods, freq="H"),
-        )
-        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
         "input_data, output_data",

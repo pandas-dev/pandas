@@ -8,6 +8,7 @@ from pandas import (
     CategoricalIndex,
     DataFrame,
     Index,
+    NaT,
     Series,
     date_range,
     offsets,
@@ -16,6 +17,67 @@ import pandas._testing as tm
 
 
 class TestDataFrameShift:
+    def test_shift_int(self, datetime_frame, frame_or_series):
+        ts = tm.get_obj(datetime_frame, frame_or_series).astype(int)
+        shifted = ts.shift(1)
+        expected = ts.astype(float).shift(1)
+        tm.assert_equal(shifted, expected)
+
+    def test_shift_32bit_take(self, frame_or_series):
+        # 32-bit taking
+        # GH#8129
+        index = date_range("2000-01-01", periods=5)
+        for dtype in ["int32", "int64"]:
+            arr = np.arange(5, dtype=dtype)
+            s1 = frame_or_series(arr, index=index)
+            p = arr[1]
+            result = s1.shift(periods=p)
+            expected = frame_or_series([np.nan, 0, 1, 2, 3], index=index)
+            tm.assert_equal(result, expected)
+
+    @pytest.mark.parametrize("periods", [1, 2, 3, 4])
+    def test_shift_preserve_freqstr(self, periods, frame_or_series):
+        # GH#21275
+        obj = frame_or_series(
+            range(periods),
+            index=date_range("2016-1-1 00:00:00", periods=periods, freq="H"),
+        )
+
+        result = obj.shift(1, "2H")
+
+        expected = frame_or_series(
+            range(periods),
+            index=date_range("2016-1-1 02:00:00", periods=periods, freq="H"),
+        )
+        tm.assert_equal(result, expected)
+
+    def test_shift_dst(self, frame_or_series):
+        # GH#13926
+        dates = date_range("2016-11-06", freq="H", periods=10, tz="US/Eastern")
+        obj = frame_or_series(dates)
+
+        res = obj.shift(0)
+        tm.assert_equal(res, obj)
+        assert tm.get_dtype(res) == "datetime64[ns, US/Eastern]"
+
+        res = obj.shift(1)
+        exp_vals = [NaT] + dates.astype(object).values.tolist()[:9]
+        exp = frame_or_series(exp_vals)
+        tm.assert_equal(res, exp)
+        assert tm.get_dtype(res) == "datetime64[ns, US/Eastern]"
+
+        res = obj.shift(-2)
+        exp_vals = dates.astype(object).values.tolist()[2:] + [NaT, NaT]
+        exp = frame_or_series(exp_vals)
+        tm.assert_equal(res, exp)
+        assert tm.get_dtype(res) == "datetime64[ns, US/Eastern]"
+
+        for ex in [10, -10, 20, -20]:
+            res = obj.shift(ex)
+            exp = frame_or_series([NaT] * 10, dtype="datetime64[ns, US/Eastern]")
+            tm.assert_equal(res, exp)
+            assert tm.get_dtype(res) == "datetime64[ns, US/Eastern]"
+
     def test_shift(self, datetime_frame, frame_or_series):
         # naive shift
         shiftedFrame = datetime_frame.shift(5)
@@ -119,6 +181,21 @@ class TestDataFrameShift:
         rs = df.shift(1)
         xp = DataFrame({"one": s1.shift(1), "two": s2.shift(1)})
         tm.assert_frame_equal(rs, xp)
+
+    def test_shift_categorical_fill_value(self, frame_or_series):
+        ts = frame_or_series(["a", "b", "c", "d"], dtype="category")
+        res = ts.shift(1, fill_value="a")
+        expected = frame_or_series(
+            pd.Categorical(
+                ["a", "a", "b", "c"], categories=["a", "b", "c", "d"], ordered=False
+            )
+        )
+        tm.assert_equal(res, expected)
+
+        # check for incorrect fill_value
+        msg = r"Cannot setitem on a Categorical with a new category \(f\)"
+        with pytest.raises(TypeError, match=msg):
+            ts.shift(1, fill_value="f")
 
     def test_shift_fill_value(self, frame_or_series):
         # GH#24128
