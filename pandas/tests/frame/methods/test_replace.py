@@ -1387,6 +1387,7 @@ class TestDataFrameReplace:
         Test to ensure category dtypes are maintained
         after replace with dict values
         """
+        # GH#35268, GH#44940
 
         # create input dataframe
         input_dict = {"col1": ["a"], "col2": ["obj1"], "col3": ["cat1"]}

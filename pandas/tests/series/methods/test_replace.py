@@ -159,8 +159,7 @@ class TestSeriesReplace:
             tm.assert_series_equal(expected, result)
             tm.assert_series_equal(expected, sc)
 
-        # 3.0 can still be held in our int64 series, so we do not upcast
-        # Note this matches what we get with the scalars 3 and 3.0
+        # 3.0 can still be held in our int64 series, so we do not upcast GH#44940
         tr, v = [3], [3.0]
         check_replace(tr, v, ser)
         # Note this matches what we get with the scalars 3 and 3.0
@@ -260,7 +259,7 @@ class TestSeriesReplace:
         assert (ser[20:30] == -1).all()
 
     def test_replace_with_dictlike_and_string_dtype(self, nullable_string_dtype):
-        # GH 32621
+        # GH 32621, GH#44940
         ser = pd.Series(["one", "two", np.nan], dtype=nullable_string_dtype)
         expected = pd.Series(["1", "2", np.nan], dtype=nullable_string_dtype)
         result = ser.replace({"one": "1", "two": "2"})
@@ -318,6 +317,7 @@ class TestSeriesReplace:
         expected = pd.Series(numeric).astype("category")
         if 2 not in expected.cat.categories:
             # i.e. categories should be [1, 2] even if there are no "B"s present
+            # GH#44940
             expected = expected.cat.add_categories(2)
         tm.assert_series_equal(expected, result)
 

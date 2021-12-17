@@ -1206,7 +1206,7 @@ class TestReplaceSeriesCoercion(CoercionBase):
             and obj.dtype != rep_ser.dtype
         ):
             # mismatched tz DatetimeArray behavior will change to cast
-            #  for setitem-like methods with mismatched tzs
+            #  for setitem-like methods with mismatched tzs GH#44940
             warn = FutureWarning
 
         msg = "explicitly cast to object"
