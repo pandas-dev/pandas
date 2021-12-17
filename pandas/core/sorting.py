@@ -96,7 +96,9 @@ def get_indexer_indexer(
     return indexer
 
 
-def get_group_index(labels, shape: Shape, sort: bool, xnull: bool):
+def get_group_index(
+    labels, shape: Shape, sort: bool, xnull: bool
+) -> npt.NDArray[np.int64]:
     """
     For the particular label_list, gets the offsets into the hypothetical list
     representing the totally ordered cartesian product of all possible label
@@ -651,7 +653,7 @@ def get_group_index_sorter(
 
 
 def compress_group_index(
-    group_index: np.ndarray, sort: bool = True
+    group_index: npt.NDArray[np.int64], sort: bool = True
 ) -> tuple[npt.NDArray[np.int64], npt.NDArray[np.int64]]:
     """
     Group_index is offsets into cartesian product of all possible labels. This

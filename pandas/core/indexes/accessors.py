@@ -8,6 +8,8 @@ import warnings
 
 import numpy as np
 
+from pandas.util._exceptions import find_stack_level
+
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_datetime64_dtype,
@@ -286,7 +288,7 @@ class DatetimeProperties(Properties):
             "Series.dt.weekofyear and Series.dt.week have been deprecated. "
             "Please use Series.dt.isocalendar().week instead.",
             FutureWarning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         week_series = self.isocalendar().week
         week_series.name = self.name

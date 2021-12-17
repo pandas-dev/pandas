@@ -28,7 +28,6 @@ from pandas._libs.tslibs.offsets import (
     _offset_map,
 )
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
-from pandas.compat import np_datetime64_compat
 from pandas.errors import PerformanceWarning
 
 from pandas import DatetimeIndex
@@ -101,7 +100,7 @@ class TestCommon(Base):
         "Second": Timestamp("2011-01-01 09:00:01"),
         "Milli": Timestamp("2011-01-01 09:00:00.001000"),
         "Micro": Timestamp("2011-01-01 09:00:00.000001"),
-        "Nano": Timestamp(np_datetime64_compat("2011-01-01T09:00:00.000000001Z")),
+        "Nano": Timestamp("2011-01-01T09:00:00.000000001"),
     }
 
     def test_immutable(self, offset_types):
@@ -125,7 +124,7 @@ class TestCommon(Base):
         assert offset + NaT is NaT
 
         assert NaT - offset is NaT
-        assert (-offset).apply(NaT) is NaT
+        assert (-offset)._apply(NaT) is NaT
 
     def test_offset_n(self, offset_types):
         offset = self._get_offset(offset_types)
@@ -188,7 +187,7 @@ class TestCommon(Base):
 
         if (
             type(offset_s).__name__ == "DateOffset"
-            and (funcname == "apply" or normalize)
+            and (funcname in ["apply", "_apply"] or normalize)
             and ts.nanosecond > 0
         ):
             exp_warning = UserWarning
@@ -196,6 +195,17 @@ class TestCommon(Base):
         # test nanosecond is preserved
         with tm.assert_produces_warning(exp_warning):
             result = func(ts)
+
+        if exp_warning is None and funcname == "_apply":
+            # GH#44522
+            # Check in this particular case to avoid headaches with
+            #  testing for multiple warnings produced by the same call.
+            with tm.assert_produces_warning(FutureWarning, match="apply is deprecated"):
+                res2 = offset_s.apply(ts)
+
+            assert type(res2) is type(result)
+            assert res2 == result
+
         assert isinstance(result, Timestamp)
         if normalize is False:
             assert result == expected + Nano(5)
@@ -225,7 +235,7 @@ class TestCommon(Base):
 
             if (
                 type(offset_s).__name__ == "DateOffset"
-                and (funcname == "apply" or normalize)
+                and (funcname in ["apply", "_apply"] or normalize)
                 and ts.nanosecond > 0
             ):
                 exp_warning = UserWarning
@@ -241,15 +251,16 @@ class TestCommon(Base):
 
     def test_apply(self, offset_types):
         sdt = datetime(2011, 1, 1, 9, 0)
-        ndt = np_datetime64_compat("2011-01-01 09:00Z")
+        ndt = np.datetime64("2011-01-01 09:00")
+
+        expected = self.expecteds[offset_types.__name__]
+        expected_norm = Timestamp(expected.date())
 
         for dt in [sdt, ndt]:
-            expected = self.expecteds[offset_types.__name__]
-            self._check_offsetfunc_works(offset_types, "apply", dt, expected)
+            self._check_offsetfunc_works(offset_types, "_apply", dt, expected)
 
-            expected = Timestamp(expected.date())
             self._check_offsetfunc_works(
-                offset_types, "apply", dt, expected, normalize=True
+                offset_types, "_apply", dt, expected_norm, normalize=True
             )
 
     def test_rollforward(self, offset_types):
@@ -297,7 +308,7 @@ class TestCommon(Base):
         norm_expected.update(normalized)
 
         sdt = datetime(2011, 1, 1, 9, 0)
-        ndt = np_datetime64_compat("2011-01-01 09:00Z")
+        ndt = np.datetime64("2011-01-01 09:00")
 
         for dt in [sdt, ndt]:
             expected = expecteds[offset_types.__name__]
@@ -371,7 +382,7 @@ class TestCommon(Base):
         norm_expected.update(normalized)
 
         sdt = datetime(2011, 1, 1, 9, 0)
-        ndt = np_datetime64_compat("2011-01-01 09:00Z")
+        ndt = np.datetime64("2011-01-01 09:00")
 
         for dt in [sdt, ndt]:
             expected = expecteds[offset_types.__name__]
@@ -498,11 +509,11 @@ class TestCommon(Base):
         base_dt = datetime(2020, 1, 1)
         assert base_dt + off == base_dt + res
 
-    def test_onOffset_deprecated(self, offset_types):
+    def test_onOffset_deprecated(self, offset_types, fixed_now_ts):
         # GH#30340 use idiomatic naming
         off = self._get_offset(offset_types)
 
-        ts = Timestamp.now()
+        ts = fixed_now_ts
         with tm.assert_produces_warning(FutureWarning):
             result = off.onOffset(ts)
 

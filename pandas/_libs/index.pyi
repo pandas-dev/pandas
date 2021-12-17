@@ -62,4 +62,4 @@ class BaseMultiIndexCodesEngine:
         values: np.ndarray,  # np.ndarray[object] of tuples
         method: str,
         limit: int | None,
-    ) -> np.ndarray: ...  # np.ndarray[np.int64]
+    ) -> npt.NDArray[np.intp]: ...

@@ -22,7 +22,6 @@ from pandas._libs.tslibs.timezones import (
     dateutil_gettz as gettz,
     get_timezone,
 )
-from pandas.compat import np_datetime64_compat
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -492,7 +491,7 @@ class TestTimestampNsOperations:
         assert t.value == expected
         assert t.nanosecond == 5
 
-        t = Timestamp(np_datetime64_compat("2011-01-01 00:00:00.000000005Z"))
+        t = Timestamp("2011-01-01 00:00:00.000000005")
         assert repr(t) == "Timestamp('2011-01-01 00:00:00.000000005')"
         assert t.value == expected
         assert t.nanosecond == 5
@@ -508,7 +507,7 @@ class TestTimestampNsOperations:
         assert t.value == expected
         assert t.nanosecond == 10
 
-        t = Timestamp(np_datetime64_compat("2011-01-01 00:00:00.000000010Z"))
+        t = Timestamp("2011-01-01 00:00:00.000000010")
         assert repr(t) == "Timestamp('2011-01-01 00:00:00.000000010')"
         assert t.value == expected
         assert t.nanosecond == 10
@@ -579,7 +578,7 @@ class TestTimestampConversion:
         assert stamp == dtval
         assert stamp.tzinfo == dtval.tzinfo
 
-    @td.skip_if_windows_python_3
+    @td.skip_if_windows
     def test_timestamp_to_datetime_explicit_dateutil(self):
         stamp = Timestamp("20090415", tz=gettz("US/Eastern"))
         dtval = stamp.to_pydatetime()
@@ -618,6 +617,13 @@ class TestTimestampConversion:
         # GH 24653: alias .to_numpy() for scalars
         ts = Timestamp(datetime.now())
         assert ts.to_datetime64() == ts.to_numpy()
+
+        # GH#44460
+        msg = "dtype and copy arguments are ignored"
+        with pytest.raises(ValueError, match=msg):
+            ts.to_numpy("M8[s]")
+        with pytest.raises(ValueError, match=msg):
+            ts.to_numpy(copy=True)
 
 
 class SubDatetime(datetime):

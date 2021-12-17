@@ -15,6 +15,7 @@ from pandas import (
     DatetimeIndex,
     Index,
     MultiIndex,
+    RangeIndex,
     Series,
     TimedeltaIndex,
     Timestamp,
@@ -271,13 +272,11 @@ class TestSetOps:
             (None, None, None),
         ],
     )
-    def test_corner_union(self, index_flat, fname, sname, expected_name):
+    def test_corner_union(self, index_flat_unique, fname, sname, expected_name):
         # GH#9943, GH#9862
         # Test unions with various name combinations
         # Do not test MultiIndex or repeats
-        index = index_flat
-        if not index.is_unique:
-            pytest.skip("Not for MultiIndex or repeated indices")
+        index = index_flat_unique
 
         # Test copy.union(copy)
         first = index.copy().set_names(fname)
@@ -317,10 +316,8 @@ class TestSetOps:
             (None, None, None),
         ],
     )
-    def test_union_unequal(self, index_flat, fname, sname, expected_name):
-        index = index_flat
-        if not index.is_unique:
-            pytest.skip("Not for MultiIndex or repeated indices")
+    def test_union_unequal(self, index_flat_unique, fname, sname, expected_name):
+        index = index_flat_unique
 
         # test copy.union(subset) - need sort for unicode and string
         first = index.copy().set_names(fname)
@@ -339,12 +336,10 @@ class TestSetOps:
             (None, None, None),
         ],
     )
-    def test_corner_intersect(self, index_flat, fname, sname, expected_name):
+    def test_corner_intersect(self, index_flat_unique, fname, sname, expected_name):
         # GH#35847
         # Test intersections with various name combinations
-        index = index_flat
-        if not index.is_unique:
-            pytest.skip("Not for MultiIndex or repeated indices")
+        index = index_flat_unique
 
         # Test copy.intersection(copy)
         first = index.copy().set_names(fname)
@@ -384,10 +379,8 @@ class TestSetOps:
             (None, None, None),
         ],
     )
-    def test_intersect_unequal(self, index_flat, fname, sname, expected_name):
-        index = index_flat
-        if not index.is_unique:
-            pytest.skip("Not for MultiIndex or repeated indices")
+    def test_intersect_unequal(self, index_flat_unique, fname, sname, expected_name):
+        index = index_flat_unique
 
         # test copy.intersection(subset) - need sort for unicode and string
         first = index.copy().set_names(fname)
@@ -452,20 +445,20 @@ class TestSetOps:
 @pytest.mark.parametrize(
     "method", ["intersection", "union", "difference", "symmetric_difference"]
 )
-def test_setop_with_categorical(index, sort, method):
-    if isinstance(index, MultiIndex):
-        # tested separately in tests.indexes.multi.test_setops
-        return
+def test_setop_with_categorical(index_flat, sort, method):
+    # MultiIndex tested separately in tests.indexes.multi.test_setops
+    index = index_flat
 
     other = index.astype("category")
+    exact = "equiv" if isinstance(index, RangeIndex) else True
 
     result = getattr(index, method)(other, sort=sort)
     expected = getattr(index, method)(index, sort=sort)
-    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(result, expected, exact=exact)
 
     result = getattr(index, method)(other[:5], sort=sort)
     expected = getattr(index, method)(index[:5], sort=sort)
-    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(result, expected, exact=exact)
 
 
 def test_intersection_duplicates_all_indexes(index):
@@ -771,7 +764,7 @@ class TestSetOpsUnsorted:
     @pytest.mark.xfail(reason="Not implemented")
     @pytest.mark.parametrize("opname", ["difference", "symmetric_difference"])
     def test_difference_incomparable_true(self, opname):
-        # TODO: decide on True behaviour
+        # TODO(GH#25151): decide on True behaviour
         # # sort=True, raises
         a = Index([3, Timestamp("2000"), 1])
         b = Index([2, Timestamp("1999"), 1])

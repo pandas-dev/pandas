@@ -447,5 +447,5 @@ def is_inferred_bool_dtype(arr: ArrayLike) -> bool:
     if dtype == np.dtype(bool):
         return True
     elif dtype == np.dtype("object"):
-        return lib.is_bool_array(arr.ravel("K"))
+        return lib.is_bool_array(arr)
     return False

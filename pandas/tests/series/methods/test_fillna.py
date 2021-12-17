@@ -61,7 +61,12 @@ class TestSeriesFillNA:
         tm.assert_frame_equal(filled, expected)
         tm.assert_frame_equal(filled2, expected)
 
-    def test_fillna(self, datetime_series):
+    def test_fillna_value_or_method(self, datetime_series):
+        msg = "Cannot specify both 'value' and 'method'"
+        with pytest.raises(ValueError, match=msg):
+            datetime_series.fillna(value=0, method="ffill")
+
+    def test_fillna(self):
         ts = Series([0.0, 1.0, 2.0, 3.0, 4.0], index=tm.makeDateIndex(5))
 
         tm.assert_series_equal(ts, ts.fillna(method="ffill"))
@@ -81,10 +86,7 @@ class TestSeriesFillNA:
         with pytest.raises(ValueError, match=msg):
             ts.fillna()
 
-        msg = "Cannot specify both 'value' and 'method'"
-        with pytest.raises(ValueError, match=msg):
-            datetime_series.fillna(value=0, method="ffill")
-
+    def test_fillna_nonscalar(self):
         # GH#5703
         s1 = Series([np.nan])
         s2 = Series([1])
@@ -108,13 +110,14 @@ class TestSeriesFillNA:
         result = s1.fillna(Series({0: 1, 1: 1}, index=[4, 5]))
         tm.assert_series_equal(result, s1)
 
+    def test_fillna_aligns(self):
         s1 = Series([0, 1, 2], list("abc"))
         s2 = Series([0, np.nan, 2], list("bac"))
         result = s2.fillna(s1)
         expected = Series([0, 0, 2.0], list("bac"))
         tm.assert_series_equal(result, expected)
 
-        # limit
+    def test_fillna_limit(self):
         ser = Series(np.nan, index=[0, 1, 2])
         result = ser.fillna(999, limit=1)
         expected = Series([999, np.nan, np.nan], index=[0, 1, 2])
@@ -124,6 +127,7 @@ class TestSeriesFillNA:
         expected = Series([999, 999, np.nan], index=[0, 1, 2])
         tm.assert_series_equal(result, expected)
 
+    def test_fillna_dont_cast_strings(self):
         # GH#9043
         # make sure a string representation of int/float values can be filled
         # correctly without raising errors or being converted
@@ -147,15 +151,18 @@ class TestSeriesFillNA:
         )
         tm.assert_series_equal(result, expected)
 
-        # where (we ignore the errors=)
-        result = ser.where(
-            [True, False], Timestamp("20130101", tz="US/Eastern"), errors="ignore"
-        )
+        msg = "The 'errors' keyword in "
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            # where (we ignore the errors=)
+            result = ser.where(
+                [True, False], Timestamp("20130101", tz="US/Eastern"), errors="ignore"
+            )
         tm.assert_series_equal(result, expected)
 
-        result = ser.where(
-            [True, False], Timestamp("20130101", tz="US/Eastern"), errors="ignore"
-        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = ser.where(
+                [True, False], Timestamp("20130101", tz="US/Eastern"), errors="ignore"
+            )
         tm.assert_series_equal(result, expected)
 
         # with a non-datetime
@@ -317,6 +324,7 @@ class TestSeriesFillNA:
         )
         tm.assert_series_equal(result, expected)
 
+    def test_datetime64_fillna_backfill(self):
         # GH#6587
         # make sure that we are treating as integer when filling
         msg = "containing strings is deprecated"
@@ -523,7 +531,8 @@ class TestSeriesFillNA:
         tm.assert_series_equal(expected, result)
         tm.assert_series_equal(isna(ser), null_loc)
 
-        result = ser.fillna(Timestamp("20130101", tz="US/Pacific"))
+        with tm.assert_produces_warning(FutureWarning, match="mismatched timezone"):
+            result = ser.fillna(Timestamp("20130101", tz="US/Pacific"))
         expected = Series(
             [
                 Timestamp("2011-01-01 10:00", tz=tz),
@@ -742,10 +751,12 @@ class TestSeriesFillNA:
 
         # related GH#9217, make sure limit is an int and greater than 0
         ser = Series([1, 2, 3, None])
-        msg = (
-            r"Cannot specify both 'value' and 'method'\.|"
-            r"Limit must be greater than 0|"
-            "Limit must be an integer"
+        msg = "|".join(
+            [
+                r"Cannot specify both 'value' and 'method'\.",
+                "Limit must be greater than 0",
+                "Limit must be an integer",
+            ]
         )
         for limit in [-1, 0, 1.0, 2.0]:
             for method in ["backfill", "bfill", "pad", "ffill", None]:
@@ -764,8 +775,15 @@ class TestSeriesFillNA:
         # but we dont (yet) consider distinct tzinfos for non-UTC tz equivalent
         ts = Timestamp("2000-01-01", tz="US/Pacific")
         ser2 = Series(ser._values.tz_convert("dateutil/US/Pacific"))
-        result = ser2.fillna(ts)
+        assert ser2.dtype.kind == "M"
+        with tm.assert_produces_warning(FutureWarning, match="mismatched timezone"):
+            result = ser2.fillna(ts)
         expected = Series([ser[0], ts, ser[2]], dtype=object)
+        # TODO(2.0): once deprecation is enforced
+        # expected = Series(
+        #    [ser2[0], ts.tz_convert(ser2.dtype.tz), ser2[2]],
+        #    dtype=ser2.dtype,
+        # )
         tm.assert_series_equal(result, expected)
 
     def test_fillna_pos_args_deprecation(self):

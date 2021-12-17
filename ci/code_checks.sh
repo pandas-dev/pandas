@@ -93,8 +93,8 @@ fi
 ### DOCSTRINGS ###
 if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
-    MSG='Validate docstrings (GL02, GL03, GL04, GL05, GL06, GL07, GL09, GL10, SS01, SS02, SS04, SS05, PR03, PR04, PR05, PR10, EX04, RT01, RT04, RT05, SA02, SA03)' ; echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=GL02,GL03,GL04,GL05,GL06,GL07,GL09,GL10,SS02,SS04,SS05,PR03,PR04,PR05,PR10,EX04,RT01,RT04,RT05,SA02,SA03
+    MSG='Validate docstrings (GL01, GL02, GL03, GL04, GL05, GL06, GL07, GL09, GL10, SS01, SS02, SS03, SS04, SS05, PR03, PR04, PR05, PR06, PR08, PR09, PR10, EX04, RT01, RT04, RT05, SA02, SA03)' ; echo $MSG
+    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=GL01,GL02,GL03,GL04,GL05,GL06,GL07,GL09,GL10,SS02,SS03,SS04,SS05,PR03,PR04,PR05,PR06,PR08,PR09,PR10,EX04,RT01,RT04,RT05,SA02,SA03
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
@@ -106,7 +106,7 @@ if [[ -z "$CHECK" || "$CHECK" == "typing" ]]; then
     mypy --version
 
     MSG='Performing static analysis using mypy' ; echo $MSG
-    mypy pandas
+    mypy
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     # run pyright, if it is installed

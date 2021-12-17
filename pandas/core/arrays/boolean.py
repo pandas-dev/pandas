@@ -5,7 +5,6 @@ from typing import (
     TYPE_CHECKING,
     overload,
 )
-import warnings
 
 import numpy as np
 
@@ -24,7 +23,6 @@ from pandas._typing import (
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
-    is_float,
     is_float_dtype,
     is_integer_dtype,
     is_list_like,
@@ -245,10 +243,8 @@ def coerce_to_array(
             if mask_values is not None:
                 mask = mask | mask_values
 
-    if values.ndim != 1:
-        raise ValueError("values must be a 1D list-like")
-    if mask.ndim != 1:
-        raise ValueError("mask must be a 1D list-like")
+    if values.shape != mask.shape:
+        raise ValueError("values.shape and mask.shape must match")
 
     return values, mask
 
@@ -484,48 +480,6 @@ class BooleanArray(BaseMaskedArray):
         # expected "ndarray"
         return BooleanArray(result, mask)  # type: ignore[arg-type]
 
-    def _cmp_method(self, other, op):
-        from pandas.arrays import (
-            FloatingArray,
-            IntegerArray,
-        )
-
-        if isinstance(other, (IntegerArray, FloatingArray)):
-            return NotImplemented
-
-        mask = None
-
-        if isinstance(other, BooleanArray):
-            other, mask = other._data, other._mask
-
-        elif is_list_like(other):
-            other = np.asarray(other)
-            if other.ndim > 1:
-                raise NotImplementedError("can only perform ops with 1-d structures")
-            if len(self) != len(other):
-                raise ValueError("Lengths must match to compare")
-
-        if other is libmissing.NA:
-            # numpy does not handle pd.NA well as "other" scalar (it returns
-            # a scalar False instead of an array)
-            result = np.zeros_like(self._data)
-            mask = np.ones_like(self._data)
-        else:
-            # numpy will show a DeprecationWarning on invalid elementwise
-            # comparisons, this will raise in the future
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", "elementwise", FutureWarning)
-                with np.errstate(all="ignore"):
-                    result = op(self._data, other)
-
-            # nans propagate
-            if mask is None:
-                mask = self._mask.copy()
-            else:
-                mask = self._mask | mask
-
-        return BooleanArray(result, mask, copy=False)
-
     def _arith_method(self, other, op):
         mask = None
         op_name = op.__name__
@@ -553,6 +507,8 @@ class BooleanArray(BaseMaskedArray):
             # actual op, so we need to choose the resulting dtype manually
             if op_name in {"floordiv", "rfloordiv", "mod", "rmod", "pow", "rpow"}:
                 dtype = "int8"
+            elif op_name in {"truediv", "rtruediv"}:
+                dtype = "float64"
             else:
                 dtype = "bool"
             result = np.zeros(len(self._data), dtype=dtype)
@@ -574,36 +530,6 @@ class BooleanArray(BaseMaskedArray):
             )
 
         return self._maybe_mask_result(result, mask, other, op_name)
-
-    def _maybe_mask_result(self, result, mask, other, op_name: str):
-        """
-        Parameters
-        ----------
-        result : array-like
-        mask : array-like bool
-        other : scalar or array-like
-        op_name : str
-        """
-        # if we have a float operand we are by-definition
-        # a float result
-        # or our op is a divide
-        if (is_float_dtype(other) or is_float(other)) or (
-            op_name in ["rtruediv", "truediv"]
-        ):
-            from pandas.core.arrays import FloatingArray
-
-            return FloatingArray(result, mask, copy=False)
-
-        elif is_bool_dtype(result):
-            return BooleanArray(result, mask, copy=False)
-
-        elif is_integer_dtype(result):
-            from pandas.core.arrays import IntegerArray
-
-            return IntegerArray(result, mask, copy=False)
-        else:
-            result[mask] = np.nan
-            return result
 
     def __abs__(self):
         return self.copy()

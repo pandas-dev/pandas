@@ -21,25 +21,12 @@ from pandas import (
 )
 import pandas._testing as tm
 
-from pandas.tseries.offsets import (
-    BDay,
-    CDay,
-)
+from pandas.tseries.frequencies import to_offset
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
 
 class TestGetItem:
-    def test_ellipsis(self):
-        # GH#21282
-        idx = date_range(
-            "2011-01-01", "2011-01-31", freq="D", tz="Asia/Tokyo", name="idx"
-        )
-
-        result = idx[...]
-        assert result.equals(idx)
-        assert result is not idx
-
     def test_getitem_slice_keeps_name(self):
         # GH4226
         st = Timestamp("2013-07-01 00:00:00", tz="America/Los_Angeles")
@@ -88,17 +75,17 @@ class TestGetItem:
             tm.assert_index_equal(result, expected)
             assert result.freq == expected.freq
 
-    def test_dti_business_getitem(self):
-        rng = bdate_range(START, END)
+    @pytest.mark.parametrize("freq", ["B", "C"])
+    def test_dti_business_getitem(self, freq):
+        rng = bdate_range(START, END, freq=freq)
         smaller = rng[:5]
-        exp = DatetimeIndex(rng.view(np.ndarray)[:5], freq="B")
+        exp = DatetimeIndex(rng.view(np.ndarray)[:5], freq=freq)
         tm.assert_index_equal(smaller, exp)
         assert smaller.freq == exp.freq
-
         assert smaller.freq == rng.freq
 
         sliced = rng[::5]
-        assert sliced.freq == BDay() * 5
+        assert sliced.freq == to_offset(freq) * 5
 
         fancy_indexed = rng[[4, 3, 2, 1, 0]]
         assert len(fancy_indexed) == 5
@@ -108,35 +95,9 @@ class TestGetItem:
         # 32-bit vs. 64-bit platforms
         assert rng[4] == rng[np.int_(4)]
 
-    def test_dti_business_getitem_matplotlib_hackaround(self):
-        rng = bdate_range(START, END)
-        with tm.assert_produces_warning(FutureWarning):
-            # GH#30588 multi-dimensional indexing deprecated
-            values = rng[:, None]
-        expected = rng.values[:, None]
-        tm.assert_numpy_array_equal(values, expected)
-
-    def test_dti_custom_getitem(self):
-        rng = bdate_range(START, END, freq="C")
-        smaller = rng[:5]
-        exp = DatetimeIndex(rng.view(np.ndarray)[:5], freq="C")
-        tm.assert_index_equal(smaller, exp)
-        assert smaller.freq == exp.freq
-        assert smaller.freq == rng.freq
-
-        sliced = rng[::5]
-        assert sliced.freq == CDay() * 5
-
-        fancy_indexed = rng[[4, 3, 2, 1, 0]]
-        assert len(fancy_indexed) == 5
-        assert isinstance(fancy_indexed, DatetimeIndex)
-        assert fancy_indexed.freq is None
-
-        # 32-bit vs. 64-bit platforms
-        assert rng[4] == rng[np.int_(4)]
-
-    def test_dti_custom_getitem_matplotlib_hackaround(self):
-        rng = bdate_range(START, END, freq="C")
+    @pytest.mark.parametrize("freq", ["B", "C"])
+    def test_dti_business_getitem_matplotlib_hackaround(self, freq):
+        rng = bdate_range(START, END, freq=freq)
         with tm.assert_produces_warning(FutureWarning):
             # GH#30588 multi-dimensional indexing deprecated
             values = rng[:, None]
@@ -255,6 +216,12 @@ class TestWhere:
 
 
 class TestTake:
+    def test_take_nan_first_datetime(self):
+        index = DatetimeIndex([pd.NaT, Timestamp("20130101"), Timestamp("20130102")])
+        result = index.take([-1, 0, 1])
+        expected = DatetimeIndex([index[-1], index[0], index[1]])
+        tm.assert_index_equal(result, expected)
+
     def test_take(self):
         # GH#10295
         idx1 = date_range("2011-01-01", "2011-01-31", freq="D", name="idx")
@@ -549,9 +516,7 @@ class TestGetLoc:
             freq="5s",
         )
         key = Timestamp("2019-12-12 10:19:25", tz="US/Eastern")
-        with tm.assert_produces_warning(
-            FutureWarning, match="deprecated", check_stacklevel=False
-        ):
+        with tm.assert_produces_warning(FutureWarning, match="deprecated"):
             result = dti.get_loc(key, method="nearest")
         assert result == 7433
 
@@ -685,10 +650,6 @@ class TestGetIndexer:
             ([Timestamp("2020-01-01"), date(9999, 1, 1)], [0, -1]),
             ([date(9999, 1, 1), date(9999, 1, 1)], [-1, -1]),
         ],
-    )
-    # FIXME: these warnings are flaky GH#36131
-    @pytest.mark.filterwarnings(
-        "ignore:Comparison of Timestamp with datetime.date:FutureWarning"
     )
     def test_get_indexer_out_of_bounds_date(self, target, positions):
         values = DatetimeIndex([Timestamp("2020-01-01"), Timestamp("2020-01-02")])

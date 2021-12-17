@@ -33,7 +33,6 @@ import pytest
 
 from pandas.compat import (
     get_lzma_file,
-    import_lzma,
     is_platform_little_endian,
 )
 import pandas.util._test_decorators as td
@@ -51,14 +50,9 @@ from pandas.tseries.offsets import (
     MonthEnd,
 )
 
-lzma = import_lzma()
-
-
-# TODO(ArrayManager) pickling
-pytestmark = [
-    td.skip_array_manager_not_yet_implemented,
-    pytest.mark.filterwarnings("ignore:Timestamp.freq is deprecated:FutureWarning"),
-]
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Timestamp.freq is deprecated:FutureWarning"
+)
 
 
 @pytest.fixture(scope="module")
@@ -313,7 +307,7 @@ class TestCompression:
             with zipfile.ZipFile(dest_path, "w", compression=zipfile.ZIP_DEFLATED) as f:
                 f.write(src_path, os.path.basename(src_path))
         elif compression == "xz":
-            f = get_lzma_file(lzma)(dest_path, "w")
+            f = get_lzma_file()(dest_path, "w")
         else:
             msg = f"Unrecognized compression type: {compression}"
             raise ValueError(msg)
@@ -612,6 +606,7 @@ def test_pickle_strings(string_series):
     tm.assert_series_equal(unp_series, string_series)
 
 
+@td.skip_array_manager_invalid_test
 def test_pickle_preserves_block_ndim():
     # GH#37631
     ser = Series(list("abc")).astype("category").iloc[[0]]

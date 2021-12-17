@@ -575,12 +575,14 @@ def test_resample_ohlc_dataframe():
             }
         )
     ).reindex(["VOLUME", "PRICE"], axis=1)
+    df.columns.name = "Cols"
     res = df.resample("H").ohlc()
     exp = pd.concat(
         [df["VOLUME"].resample("H").ohlc(), df["PRICE"].resample("H").ohlc()],
         axis=1,
-        keys=["VOLUME", "PRICE"],
+        keys=df.columns,
     )
+    assert exp.columns.names[0] == "Cols"
     tm.assert_frame_equal(exp, res)
 
     df.columns = [["a", "b"], ["c", "d"]]
@@ -1690,8 +1692,6 @@ def test_resample_apply_with_additional_args(series):
     df = DataFrame({"A": 1, "B": 2}, index=date_range("2017", periods=10))
     result = df.groupby("A").resample("D").agg(f, multiplier).astype(float)
     expected = df.groupby("A").resample("D").mean().multiply(multiplier)
-    # TODO: GH 41137
-    expected = expected.astype("float64")
     tm.assert_frame_equal(result, expected)
 
 
@@ -1828,3 +1828,27 @@ def test_resample_aggregate_functions_min_count(func):
         index=DatetimeIndex(["2020-03-31"], dtype="datetime64[ns]", freq="Q-DEC"),
     )
     tm.assert_series_equal(result, expected)
+
+
+def test_resample_unsigned_int(any_unsigned_int_numpy_dtype):
+    # gh-43329
+    df = DataFrame(
+        index=date_range(start="2000-01-01", end="2000-01-03 23", freq="12H"),
+        columns=["x"],
+        data=[0, 1, 0] * 2,
+        dtype=any_unsigned_int_numpy_dtype,
+    )
+    df = df.loc[(df.index < "2000-01-02") | (df.index > "2000-01-03"), :]
+
+    if any_unsigned_int_numpy_dtype == "uint64":
+        with pytest.raises(RuntimeError, match="empty group with uint64_t"):
+            result = df.resample("D").max()
+    else:
+        result = df.resample("D").max()
+
+        expected = DataFrame(
+            [1, np.nan, 0],
+            columns=["x"],
+            index=date_range(start="2000-01-01", end="2000-01-03 23", freq="D"),
+        )
+        tm.assert_frame_equal(result, expected)

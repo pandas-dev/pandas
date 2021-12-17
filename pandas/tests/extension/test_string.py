@@ -19,6 +19,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
+from pandas.core.arrays import ArrowStringArray
 from pandas.core.arrays.string_ import StringDtype
 from pandas.tests.extension import base
 
@@ -145,9 +146,9 @@ class TestNoReduce(base.BaseNoReduceTests):
         if op_name in ["min", "max"]:
             return None
 
-        s = pd.Series(data)
+        ser = pd.Series(data)
         with pytest.raises(TypeError):
-            getattr(s, op_name)(skipna=skipna)
+            getattr(ser, op_name)(skipna=skipna)
 
 
 class TestMethods(base.BaseMethodsTests):
@@ -165,15 +166,15 @@ class TestCasting(base.BaseCastingTests):
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
-    def _compare_other(self, s, data, op_name, other):
-        result = getattr(s, op_name)(other)
-        expected = getattr(s.astype(object), op_name)(other).astype("boolean")
+    def _compare_other(self, ser, data, op, other):
+        op_name = f"__{op.__name__}__"
+        result = getattr(ser, op_name)(other)
+        expected = getattr(ser.astype(object), op_name)(other).astype("boolean")
         self.assert_series_equal(result, expected)
 
-    def test_compare_scalar(self, data, all_compare_operators):
-        op_name = all_compare_operators
-        s = pd.Series(data)
-        self._compare_other(s, data, op_name, "abc")
+    def test_compare_scalar(self, data, comparison_op):
+        ser = pd.Series(data)
+        self._compare_other(ser, data, comparison_op, "abc")
 
 
 class TestParsing(base.BaseParsingTests):
@@ -186,3 +187,13 @@ class TestPrinting(base.BasePrintingTests):
 
 class TestGroupBy(base.BaseGroupbyTests):
     pass
+
+
+class Test2DCompat(base.Dim2CompatTests):
+    @pytest.fixture(autouse=True)
+    def arrow_not_supported(self, data, request):
+        if isinstance(data, ArrowStringArray):
+            mark = pytest.mark.xfail(
+                reason="2D support not implemented for ArrowStringArray"
+            )
+            request.node.add_marker(mark)

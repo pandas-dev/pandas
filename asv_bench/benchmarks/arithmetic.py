@@ -144,7 +144,7 @@ class FrameWithFrameWide:
         # should already be the case, but just to be sure
         df._consolidate_inplace()
 
-        # TODO: GH#33198 the setting here shoudlnt need two steps
+        # TODO: GH#33198 the setting here shouldn't need two steps
         arr1 = np.random.randn(n_rows, max(n_cols // 4, 3)).astype("f8")
         arr2 = np.random.randn(n_rows, n_cols // 2).astype("i8")
         arr3 = np.random.randn(n_rows, n_cols // 4).astype("f8")

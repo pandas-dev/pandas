@@ -27,15 +27,13 @@ from pandas._typing import (
     npt,
 )
 from pandas.compat import (
-    pa_version_under1p0,
+    pa_version_under1p01,
     pa_version_under2p0,
     pa_version_under3p0,
     pa_version_under4p0,
 )
 from pandas.util._decorators import doc
-from pandas.util._validators import validate_fillna_kwargs
 
-from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
@@ -49,7 +47,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import missing
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.boolean import BooleanDtype
@@ -61,14 +58,12 @@ from pandas.core.arrays.string_ import (
 )
 from pandas.core.indexers import (
     check_array_indexer,
+    unpack_tuple_and_ellipses,
     validate_indices,
 )
 from pandas.core.strings.object_array import ObjectStringArrayMixin
 
-# PyArrow backed StringArrays are available starting at 1.0.0, but this
-# file is imported from even if pyarrow is < 1.0.0, before pyarrow.compute
-# and its compute functions existed. GH38801
-if not pa_version_under1p0:
+if not pa_version_under1p01:
     import pyarrow as pa
     import pyarrow.compute as pc
 
@@ -89,7 +84,7 @@ ArrowStringScalarOrNAT = Union[str, libmissing.NAType]
 
 
 def _chk_pyarrow_available() -> None:
-    if pa_version_under1p0:
+    if pa_version_under1p01:
         msg = "pyarrow>=1.0.0 is required for PyArrow backed StringArray."
         raise ImportError(msg)
 
@@ -316,15 +311,15 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
                     "boolean arrays are valid indices."
                 )
         elif isinstance(item, tuple):
-            # possibly unpack arr[..., n] to arr[n]
-            if len(item) == 1:
-                item = item[0]
-            elif len(item) == 2:
-                if item[0] is Ellipsis:
-                    item = item[1]
-                elif item[1] is Ellipsis:
-                    item = item[0]
+            item = unpack_tuple_and_ellipses(item)
 
+        if is_scalar(item) and not is_integer(item):
+            # e.g. "foo" or 2.5
+            # exception message copied from numpy
+            raise IndexError(
+                r"only integers, slices (`:`), ellipsis (`...`), numpy.newaxis "
+                r"(`None`) and integer or boolean arrays are valid indices"
+            )
         # We are not an array indexer, so maybe e.g. a slice or integer
         # indexer. We dispatch to pyarrow.
         value = self._data[item]
@@ -339,61 +334,6 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
             return self._dtype.na_value
         else:
             return scalar
-
-    def fillna(self, value=None, method=None, limit=None):
-        """
-        Fill NA/NaN values using the specified method.
-
-        Parameters
-        ----------
-        value : scalar, array-like
-            If a scalar value is passed it is used to fill all missing values.
-            Alternatively, an array-like 'value' can be given. It's expected
-            that the array-like have the same length as 'self'.
-        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
-            Method to use for filling holes in reindexed Series
-            pad / ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill gap.
-        limit : int, default None
-            If method is specified, this is the maximum number of consecutive
-            NaN values to forward/backward fill. In other words, if there is
-            a gap with more than this number of consecutive NaNs, it will only
-            be partially filled. If method is not specified, this is the
-            maximum number of entries along the entire axis where NaNs will be
-            filled.
-
-        Returns
-        -------
-        ExtensionArray
-            With NA/NaN filled.
-        """
-        value, method = validate_fillna_kwargs(value, method)
-
-        mask = self.isna()
-        value = missing.check_value_size(value, mask, len(self))
-
-        if mask.any():
-            if method is not None:
-                func = missing.get_fill_func(method)
-                new_values, _ = func(
-                    self.to_numpy("object"),
-                    limit=limit,
-                    mask=mask,
-                )
-                new_values = self._from_sequence(new_values)
-            else:
-                # fill with value
-                new_values = self.copy()
-                new_values[mask] = value
-        else:
-            new_values = self.copy()
-        return new_values
-
-    def _reduce(self, name: str, skipna: bool = True, **kwargs):
-        if name in ["min", "max"]:
-            return getattr(self, name)(skipna=skipna)
-
-        raise TypeError(f"Cannot perform reduction '{name}' with string dtype")
 
     @property
     def nbytes(self) -> int:
@@ -427,7 +367,7 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
         pc_func = ARROW_CMP_FUNCS[op.__name__]
         if isinstance(other, ArrowStringArray):
             result = pc_func(self._data, other._data)
-        elif isinstance(other, np.ndarray):
+        elif isinstance(other, (np.ndarray, list)):
             result = pc_func(self._data, other)
         elif is_scalar(other):
             try:
@@ -443,6 +383,11 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
 
         # TODO(ARROW-9429): Add a .to_numpy() to ChunkedArray
         return BooleanArray._from_sequence(result.to_pandas().values)
+
+    def insert(self, loc: int, item):
+        if not isinstance(item, str) and item is not libmissing.NA:
+            raise TypeError("Scalar must be NA or str")
+        return super().insert(loc, item)
 
     def __setitem__(self, key: int | slice | np.ndarray, value: Any) -> None:
         """Set one or more values inplace.
@@ -685,11 +630,7 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
             data = self._data.cast(pa.from_numpy_dtype(dtype.numpy_dtype))
             return dtype.__from_arrow__(data)
 
-        elif isinstance(dtype, ExtensionDtype):
-            cls = dtype.construct_array_type()
-            return cls._from_sequence(self, dtype=dtype, copy=copy)
-
-        return super().astype(dtype, copy)
+        return super().astype(dtype, copy=copy)
 
     # ------------------------------------------------------------------------
     # String methods interface
