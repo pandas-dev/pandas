@@ -798,7 +798,9 @@ def to_datetime(
         - scalar: Timestamp (or datetime.datetime)
         - array-like: DatetimeIndex (or Series with object dtype containing
           datetime.datetime)
-        - Series or DataFrame: Series of datetime64 dtype (or Series or object
+        - Series: Series of datetime64 dtype (or Series of object
+          dtype containing datetime.datetime)
+        - DataFrame: Series of datetime64 dtype (or Series of object
           dtype containing datetime.datetime)
 
     Raises
