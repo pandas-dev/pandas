@@ -67,6 +67,18 @@ class ToCSVDatetime(BaseIO):
         self.data.to_csv(self.fname, date_format="%Y%m%d")
 
 
+class ToCSVDatetimeIndex(BaseIO):
+
+    fname = "__test__.csv"
+
+    def setup(self):
+        rng = date_range("2000", periods=100_000, freq="S")
+        self.data = DataFrame({"a": 1}, index=rng)
+
+    def time_frame_date_formatting_index(self):
+        self.data.to_csv(self.fname, date_format="%Y-%m-%d %H:%M:%S")
+
+
 class ToCSVDatetimeBig(BaseIO):
 
     fname = "__test__.csv"

@@ -234,6 +234,43 @@ class TestSetitemSlices:
 
 
 class TestSetitemBooleanMask:
+    def test_setitem_mask_cast(self):
+        # GH#2746
+        # need to upcast
+        ser = Series([1, 2], index=[1, 2], dtype="int64")
+        ser[[True, False]] = Series([0], index=[1], dtype="int64")
+        expected = Series([0, 2], index=[1, 2], dtype="int64")
+
+        tm.assert_series_equal(ser, expected)
+
+    def test_setitem_mask_align_and_promote(self):
+        # GH#8387: test that changing types does not break alignment
+        ts = Series(np.random.randn(100), index=np.arange(100, 0, -1)).round(5)
+        mask = ts > 0
+        left = ts.copy()
+        right = ts[mask].copy().map(str)
+        left[mask] = right
+        expected = ts.map(lambda t: str(t) if t > 0 else t)
+        tm.assert_series_equal(left, expected)
+
+    def test_setitem_mask_promote_strs(self):
+        ser = Series([0, 1, 2, 0])
+        mask = ser > 0
+        ser2 = ser[mask].map(str)
+        ser[mask] = ser2
+
+        expected = Series([0, "1", "2", 0])
+        tm.assert_series_equal(ser, expected)
+
+    def test_setitem_mask_promote(self):
+        ser = Series([0, "foo", "bar", 0])
+        mask = Series([False, True, True, False])
+        ser2 = ser[mask]
+        ser[mask] = ser2
+
+        expected = Series([0, "foo", "bar", 0])
+        tm.assert_series_equal(ser, expected)
+
     def test_setitem_boolean(self, string_series):
         mask = string_series > string_series.median()
 

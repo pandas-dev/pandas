@@ -563,6 +563,21 @@ index_flat2 = index_flat
     params=[
         key
         for key in indices_dict
+        if not isinstance(indices_dict[key], MultiIndex) and indices_dict[key].is_unique
+    ]
+)
+def index_flat_unique(request):
+    """
+    index_flat with uniqueness requirement.
+    """
+    key = request.param
+    return indices_dict[key].copy()
+
+
+@pytest.fixture(
+    params=[
+        key
+        for key in indices_dict
         if not (
             key in ["int", "uint", "range", "empty", "repeats"]
             or key.startswith("num_")

@@ -422,7 +422,14 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                     # We remove null values here, then below will re-insert
                     #  them, grep "full_codes"
                     arr_list = [values[idx] for idx in np.where(~null_mask)[0]]
-                    arr = sanitize_array(arr_list, None)
+
+                    # GH#44900 Do not cast to float if we have only missing values
+                    if arr_list or arr.dtype == "object":
+                        sanitize_dtype = None
+                    else:
+                        sanitize_dtype = arr.dtype
+
+                    arr = sanitize_array(arr_list, None, dtype=sanitize_dtype)
                 values = arr
 
         if dtype.categories is None:
@@ -2377,7 +2384,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         return result
 
-    def isin(self, values) -> np.ndarray:
+    def isin(self, values) -> npt.NDArray[np.bool_]:
         """
         Check whether `values` are contained in Categorical.
 
@@ -2394,7 +2401,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Returns
         -------
-        isin : numpy.ndarray (bool dtype)
+        np.ndarray[bool]
 
         Raises
         ------
@@ -2457,6 +2464,16 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         [3, 2, 3, 3]
         Categories (2, int64): [2, 3]
         """
+        # GH#44929 deprecation
+        warn(
+            "Categorical.replace is deprecated and will be removed in a future "
+            "version. Use Series.replace directly instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self._replace(to_replace=to_replace, value=value, inplace=inplace)
+
+    def _replace(self, *, to_replace, value, inplace: bool = False):
         inplace = validate_bool_kwarg(inplace, "inplace")
         cat = self if inplace else self.copy()
 
