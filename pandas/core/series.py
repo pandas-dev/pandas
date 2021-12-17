@@ -4258,6 +4258,28 @@ Keep all original rows and also all original values
 
     agg = aggregate
 
+    @overload
+    def any(
+        self: Series,
+        axis: Axis = ...,
+        bool_only: bool | None = None,
+        skipna: bool = ...,
+        level: None = ...,
+        **kwargs,
+    ) -> bool:
+        ...
+
+    @overload
+    def any(
+        self: Series,
+        axis: Axis = ...,
+        bool_only: bool | None = None,
+        skipna: bool = ...,
+        level: Level = ...,
+        **kwargs,
+    ) -> Series:
+        ...
+
     @doc(NDFrame.any, **_shared_doc_kwargs)
     def any(
         self: Series,
@@ -4266,7 +4288,7 @@ Keep all original rows and also all original values
         skipna: bool = True,
         level: Level | None = None,
         **kwargs,
-    ) -> bool:
+    ) -> bool | Series:
         return super().any(
             axis=axis, bool_only=bool_only, skipna=skipna, level=level, **kwargs
         )

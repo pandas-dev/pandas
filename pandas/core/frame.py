@@ -8642,6 +8642,28 @@ NaN 12.3   33.0
 
     agg = aggregate
 
+    @overload
+    def any(
+        self: DataFrame,
+        axis: Axis = ...,
+        bool_only: bool | None = None,
+        skipna: bool = ...,
+        level: None = ...,
+        **kwargs,
+    ) -> Series:
+        ...
+
+    @overload
+    def any(
+        self: DataFrame,
+        axis: Axis = ...,
+        bool_only: bool | None = None,
+        skipna: bool = ...,
+        level: Level = ...,
+        **kwargs,
+    ) -> DataFrame:
+        ...
+
     @doc(NDFrame.any, **_shared_doc_kwargs)
     def any(
         self: DataFrame,
@@ -8650,7 +8672,7 @@ NaN 12.3   33.0
         skipna: bool = True,
         level: Level | None = None,
         **kwargs,
-    ) -> Series:
+    ) -> Series | DataFrame:
         return super().any(
             axis=axis, bool_only=bool_only, skipna=skipna, level=level, **kwargs
         )
