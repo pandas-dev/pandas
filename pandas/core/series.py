@@ -4262,7 +4262,7 @@ Keep all original rows and also all original values
     def any(
         self: Series,
         axis: Axis = ...,
-        bool_only: bool | None = None,
+        bool_only: bool | None = ...,
         skipna: bool = ...,
         level: None = ...,
         **kwargs,
@@ -4273,7 +4273,7 @@ Keep all original rows and also all original values
     def any(
         self: Series,
         axis: Axis = ...,
-        bool_only: bool | None = None,
+        bool_only: bool | None = ...,
         skipna: bool = ...,
         level: Level = ...,
         **kwargs,

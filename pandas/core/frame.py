@@ -8646,7 +8646,7 @@ NaN 12.3   33.0
     def any(
         self: DataFrame,
         axis: Axis = ...,
-        bool_only: bool | None = None,
+        bool_only: bool | None = ...,
         skipna: bool = ...,
         level: None = ...,
         **kwargs,
@@ -8657,7 +8657,7 @@ NaN 12.3   33.0
     def any(
         self: DataFrame,
         axis: Axis = ...,
-        bool_only: bool | None = None,
+        bool_only: bool | None = ...,
         skipna: bool = ...,
         level: Level = ...,
         **kwargs,
