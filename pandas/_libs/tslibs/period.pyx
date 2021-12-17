@@ -1088,6 +1088,7 @@ def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
     """
     cdef:
         Py_ssize_t n = len(arr)
+        Py_ssize_t increment = arr.strides[0] // 8
         ndarray[int64_t] result = np.empty(n, dtype=np.int64)
 
     _period_asfreq(
@@ -1097,6 +1098,7 @@ def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
         freq1,
         freq2,
         end,
+        increment,
     )
     return result
 
@@ -1110,6 +1112,7 @@ cdef void _period_asfreq(
     int freq1,
     int freq2,
     bint end,
+    Py_ssize_t increment=1,
 ):
     """See period_asfreq.__doc__"""
     cdef:
@@ -1127,7 +1130,7 @@ cdef void _period_asfreq(
     get_asfreq_info(freq1, freq2, end, &af_info)
 
     for i in range(length):
-        val = ordinals[i]
+        val = ordinals[i * increment]
         if val != NPY_NAT:
             val = func(val, &af_info)
         out[i] = val
