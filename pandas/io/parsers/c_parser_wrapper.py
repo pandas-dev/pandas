@@ -45,7 +45,7 @@ class CParserWrapper(ParserBase):
 
     def __init__(
         self, src: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str], **kwds
-    ) -> None:
+    ):
         self.kwds = kwds
         kwds = kwds.copy()
         ParserBase.__init__(self, kwds)
