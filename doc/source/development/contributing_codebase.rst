@@ -325,7 +325,7 @@ You should write
 
    maybe_primes: list[Union[int, None]] = []
 
-or 
+or
 
 .. code-block:: python
 
@@ -338,7 +338,7 @@ You should write
 .. code-block:: python
 
    from __future__ import annotations
-   
+
    maybe_primes: list[int | None] = []
 
 In some cases in the code base classes may define class variables that shadow builtins. This causes an issue as described in `Mypy 1775 <https://github.com/python/mypy/issues/1775#issuecomment-310969854>`_. The defensive solution here is to create an unambiguous alias of the builtin and use that without your annotation. For example, if you come across a definition like
