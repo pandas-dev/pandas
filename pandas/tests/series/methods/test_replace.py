@@ -5,6 +5,7 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.core.arrays import IntervalArray
 
 
 class TestSeriesReplace:
@@ -148,20 +149,22 @@ class TestSeriesReplace:
         tm.assert_series_equal(s, ser)
 
     def test_replace_mixed_types(self):
-        s = pd.Series(np.arange(5), dtype="int64")
+        ser = pd.Series(np.arange(5), dtype="int64")
 
         def check_replace(to_rep, val, expected):
-            sc = s.copy()
-            r = s.replace(to_rep, val)
+            sc = ser.copy()
+            result = ser.replace(to_rep, val)
             return_value = sc.replace(to_rep, val, inplace=True)
             assert return_value is None
-            tm.assert_series_equal(expected, r)
+            tm.assert_series_equal(expected, result)
             tm.assert_series_equal(expected, sc)
 
-        # MUST upcast to float
-        e = pd.Series([0.0, 1.0, 2.0, 3.0, 4.0])
+        # 3.0 can still be held in our int64 series, so we do not upcast
+        # Note this matches what we get with the scalars 3 and 3.0
         tr, v = [3], [3.0]
-        check_replace(tr, v, e)
+        check_replace(tr, v, ser)
+        # Note this matches what we get with the scalars 3 and 3.0
+        check_replace(tr[0], v[0], ser)
 
         # MUST upcast to float
         e = pd.Series([0, 1, 2, 3.5, 4])
@@ -258,9 +261,9 @@ class TestSeriesReplace:
 
     def test_replace_with_dictlike_and_string_dtype(self, nullable_string_dtype):
         # GH 32621
-        s = pd.Series(["one", "two", np.nan], dtype=nullable_string_dtype)
-        expected = pd.Series(["1", "2", np.nan])
-        result = s.replace({"one": "1", "two": "2"})
+        ser = pd.Series(["one", "two", np.nan], dtype=nullable_string_dtype)
+        expected = pd.Series(["1", "2", np.nan], dtype=nullable_string_dtype)
+        result = ser.replace({"one": "1", "two": "2"})
         tm.assert_series_equal(expected, result)
 
     def test_replace_with_empty_dictlike(self):
@@ -305,17 +308,17 @@ class TestSeriesReplace:
         "categorical, numeric",
         [
             (pd.Categorical(["A"], categories=["A", "B"]), [1]),
-            (pd.Categorical(("A",), categories=["A", "B"]), [1]),
-            (pd.Categorical(("A", "B"), categories=["A", "B"]), [1, 2]),
+            (pd.Categorical(["A", "B"], categories=["A", "B"]), [1, 2]),
         ],
     )
     def test_replace_categorical(self, categorical, numeric):
-        # GH 24971
-        # Do not check if dtypes are equal due to a known issue that
-        # Categorical.replace sometimes coerces to object (GH 23305)
-        s = pd.Series(categorical)
-        result = s.replace({"A": 1, "B": 2})
-        expected = pd.Series(numeric)
+        # GH 24971, GH#23305
+        ser = pd.Series(categorical)
+        result = ser.replace({"A": 1, "B": 2})
+        expected = pd.Series(numeric).astype("category")
+        if 2 not in expected.cat.categories:
+            # i.e. categories should be [1, 2] even if there are no "B"s present
+            expected = expected.cat.add_categories(2)
         tm.assert_series_equal(expected, result)
 
     def test_replace_categorical_single(self):
@@ -514,3 +517,39 @@ class TestSeriesReplace:
         result = ser.replace(regex_mapping, regex=True)
         exp = pd.Series(["CC", "CC", "CC-REPL", "DD", "CC", "", pd.NA], dtype="string")
         tm.assert_series_equal(result, exp)
+
+    @pytest.mark.parametrize(
+        "dtype, input_data, to_replace, expected_data",
+        [
+            ("bool", [True, False], {True: False}, [False, False]),
+            ("int64", [1, 2], {1: 10, 2: 20}, [10, 20]),
+            ("Int64", [1, 2], {1: 10, 2: 20}, [10, 20]),
+            ("float64", [1.1, 2.2], {1.1: 10.1, 2.2: 20.5}, [10.1, 20.5]),
+            ("Float64", [1.1, 2.2], {1.1: 10.1, 2.2: 20.5}, [10.1, 20.5]),
+            ("string", ["one", "two"], {"one": "1", "two": "2"}, ["1", "2"]),
+            (
+                pd.IntervalDtype("int64"),
+                IntervalArray([pd.Interval(1, 2), pd.Interval(2, 3)]),
+                {pd.Interval(1, 2): pd.Interval(10, 20)},
+                IntervalArray([pd.Interval(10, 20), pd.Interval(2, 3)]),
+            ),
+            (
+                pd.IntervalDtype("float64"),
+                IntervalArray([pd.Interval(1.0, 2.7), pd.Interval(2.8, 3.1)]),
+                {pd.Interval(1.0, 2.7): pd.Interval(10.6, 20.8)},
+                IntervalArray([pd.Interval(10.6, 20.8), pd.Interval(2.8, 3.1)]),
+            ),
+            (
+                pd.PeriodDtype("M"),
+                [pd.Period("2020-05", freq="M")],
+                {pd.Period("2020-05", freq="M"): pd.Period("2020-06", freq="M")},
+                [pd.Period("2020-06", freq="M")],
+            ),
+        ],
+    )
+    def test_replace_dtype(self, dtype, input_data, to_replace, expected_data):
+        # GH#33484
+        ser = pd.Series(input_data, dtype=dtype)
+        result = ser.replace(to_replace)
+        expected = pd.Series(expected_data, dtype=dtype)
+        tm.assert_series_equal(result, expected)

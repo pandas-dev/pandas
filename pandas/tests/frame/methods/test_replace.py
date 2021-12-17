@@ -1382,10 +1382,6 @@ class TestDataFrameReplace:
 
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(
-        reason="category dtype gets changed to object type after replace, see #35268",
-        raises=AssertionError,
-    )
     def test_replace_dict_category_type(self):
         """
         Test to ensure category dtypes are maintained
