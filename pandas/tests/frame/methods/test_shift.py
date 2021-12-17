@@ -78,7 +78,13 @@ class TestDataFrameShift:
             tm.assert_equal(res, exp)
             assert tm.get_dtype(res) == "datetime64[ns, US/Eastern]"
 
-    def test_shift(self, datetime_frame, frame_or_series):
+    def test_shift_by_zero(self, datetime_frame, frame_or_series):
+        # shift by 0
+        obj = tm.get_obj(datetime_frame, frame_or_series)
+        unshifted = obj.shift(0)
+        tm.assert_equal(unshifted, obj)
+
+    def test_shift(self, datetime_frame):
         # naive shift
         shiftedFrame = datetime_frame.shift(5)
         tm.assert_index_equal(shiftedFrame.index, datetime_frame.index)
@@ -92,22 +98,28 @@ class TestDataFrameShift:
         shiftedSeries = datetime_frame["A"].shift(-5)
         tm.assert_series_equal(shiftedFrame["A"], shiftedSeries)
 
-        # shift by 0
-        unshifted = datetime_frame.shift(0)
-        tm.assert_frame_equal(unshifted, datetime_frame)
-
+    def test_shift_by_offset(self, datetime_frame, frame_or_series):
         # shift by DateOffset
-        shiftedFrame = datetime_frame.shift(5, freq=offsets.BDay())
-        assert len(shiftedFrame) == len(datetime_frame)
+        obj = tm.get_obj(datetime_frame, frame_or_series)
+        offset = offsets.BDay()
 
-        shiftedFrame2 = datetime_frame.shift(5, freq="B")
-        tm.assert_frame_equal(shiftedFrame, shiftedFrame2)
+        shifted = obj.shift(5, freq=offset)
+        assert len(shifted) == len(obj)
+        unshifted = shifted.shift(-5, freq=offset)
+        tm.assert_equal(unshifted, obj)
 
-        d = datetime_frame.index[0]
-        shifted_d = d + offsets.BDay(5)
-        tm.assert_series_equal(
-            datetime_frame.xs(d), shiftedFrame.xs(shifted_d), check_names=False
-        )
+        shifted2 = obj.shift(5, freq="B")
+        tm.assert_equal(shifted, shifted2)
+
+        unshifted = obj.shift(0, freq=offset)
+        tm.assert_equal(unshifted, obj)
+
+        d = obj.index[0]
+        shifted_d = d + offset * 5
+        if frame_or_series is DataFrame:
+            tm.assert_series_equal(obj.xs(d), shifted.xs(shifted_d), check_names=False)
+        else:
+            tm.assert_almost_equal(obj.at[d], shifted.at[shifted_d])
 
     def test_shift_with_periodindex(self, frame_or_series):
         # Shifting with PeriodIndex

@@ -12,8 +12,6 @@ from pandas import (
 )
 import pandas._testing as tm
 
-from pandas.tseries.offsets import BDay
-
 
 class TestShift:
     @pytest.mark.parametrize(
@@ -38,24 +36,6 @@ class TestShift:
         tm.assert_numpy_array_equal(
             unshifted.dropna().values, datetime_series.values[:-1]
         )
-
-        offset = BDay()
-        shifted = datetime_series.shift(1, freq=offset)
-        unshifted = shifted.shift(-1, freq=offset)
-
-        tm.assert_series_equal(unshifted, datetime_series)
-
-        unshifted = datetime_series.shift(0, freq=offset)
-        tm.assert_series_equal(unshifted, datetime_series)
-
-        shifted = datetime_series.shift(1, freq="B")
-        unshifted = shifted.shift(-1, freq="B")
-
-        tm.assert_series_equal(unshifted, datetime_series)
-
-        # corner case
-        unshifted = datetime_series.shift(0)
-        tm.assert_series_equal(unshifted, datetime_series)
 
     def test_shift_with_tz(self):
         # GH#8260
