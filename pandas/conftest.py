@@ -30,6 +30,8 @@ from datetime import (
 from decimal import Decimal
 import operator
 import os
+import sys
+import time as t_time
 
 from dateutil.tz import (
     tzlocal,
@@ -182,6 +184,19 @@ for name in "QuarterBegin QuarterEnd BQuarterBegin BQuarterEnd".split():
 # ----------------------------------------------------------------
 # Autouse fixtures
 # ----------------------------------------------------------------
+@pytest.fixture(autouse=True)
+def log_test_runs(request):
+    print(f"Starting {request.node.name}", flush=True, file=sys.stderr)
+    t0 = t_time.time()
+    yield
+    t1 = t_time.time()
+    print(
+        f"Finished {request.node.name} in {round(t1 - t0, 3)}",
+        flush=True,
+        file=sys.stderr,
+    )
+
+
 @pytest.fixture(autouse=True)
 def configure_tests():
     """
