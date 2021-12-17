@@ -413,7 +413,7 @@ class BaseArrayManager(DataManager):
 
         return self.apply(_convert)
 
-    def replace_regex(self: T, **kwargs):
+    def replace_regex(self: T, **kwargs) -> T:
         return self.apply_with_block("_replace_regex", **kwargs)
 
     def replace(self: T, to_replace, value, inplace: bool) -> T:
