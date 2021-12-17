@@ -15,12 +15,6 @@ from pandas import (
 import pandas._testing as tm
 
 
-def get_obj(df, klass):
-    if klass is Series:
-        return df._ixs(0, axis=1)
-    return df
-
-
 class TestDataFrameShift:
     def test_shift(self, datetime_frame, frame_or_series):
         # naive shift
@@ -56,7 +50,7 @@ class TestDataFrameShift:
     def test_shift_with_periodindex(self, frame_or_series):
         # Shifting with PeriodIndex
         ps = tm.makePeriodFrame()
-        ps = get_obj(ps, frame_or_series)
+        ps = tm.get_obj(ps, frame_or_series)
 
         shifted = ps.shift(1)
         unshifted = shifted.shift(-1)
@@ -244,7 +238,7 @@ class TestDataFrameShift:
 
         # PeriodIndex
         ps = tm.makePeriodFrame()
-        ps = get_obj(ps, frame_or_series)
+        ps = tm.get_obj(ps, frame_or_series)
         shifted = ps.tshift(1)
         unshifted = shifted.tshift(-1)
 
@@ -261,7 +255,7 @@ class TestDataFrameShift:
             ps.tshift(freq="M")
 
         # DatetimeIndex
-        dtobj = get_obj(datetime_frame, frame_or_series)
+        dtobj = tm.get_obj(datetime_frame, frame_or_series)
         shifted = dtobj.tshift(1)
         unshifted = shifted.tshift(-1)
 
@@ -275,7 +269,7 @@ class TestDataFrameShift:
             Index(np.asarray(datetime_frame.index)),
             columns=datetime_frame.columns,
         )
-        inferred_ts = get_obj(inferred_ts, frame_or_series)
+        inferred_ts = tm.get_obj(inferred_ts, frame_or_series)
         shifted = inferred_ts.tshift(1)
 
         expected = dtobj.tshift(1)
@@ -292,13 +286,13 @@ class TestDataFrameShift:
 
     def test_tshift_deprecated(self, datetime_frame, frame_or_series):
         # GH#11631
-        dtobj = get_obj(datetime_frame, frame_or_series)
+        dtobj = tm.get_obj(datetime_frame, frame_or_series)
         with tm.assert_produces_warning(FutureWarning):
             dtobj.tshift()
 
     def test_period_index_frame_shift_with_freq(self, frame_or_series):
         ps = tm.makePeriodFrame()
-        ps = get_obj(ps, frame_or_series)
+        ps = tm.get_obj(ps, frame_or_series)
 
         shifted = ps.shift(1, freq="infer")
         unshifted = shifted.shift(-1, freq="infer")
@@ -311,7 +305,7 @@ class TestDataFrameShift:
         tm.assert_equal(shifted, shifted3)
 
     def test_datetime_frame_shift_with_freq(self, datetime_frame, frame_or_series):
-        dtobj = get_obj(datetime_frame, frame_or_series)
+        dtobj = tm.get_obj(datetime_frame, frame_or_series)
         shifted = dtobj.shift(1, freq="infer")
         unshifted = shifted.shift(-1, freq="infer")
         tm.assert_equal(dtobj, unshifted)
@@ -324,7 +318,7 @@ class TestDataFrameShift:
             Index(np.asarray(datetime_frame.index)),
             columns=datetime_frame.columns,
         )
-        inferred_ts = get_obj(inferred_ts, frame_or_series)
+        inferred_ts = tm.get_obj(inferred_ts, frame_or_series)
         shifted = inferred_ts.shift(1, freq="infer")
         expected = dtobj.shift(1, freq="infer")
         expected.index = expected.index._with_freq(None)
@@ -335,7 +329,7 @@ class TestDataFrameShift:
 
     def test_period_index_frame_shift_with_freq_error(self, frame_or_series):
         ps = tm.makePeriodFrame()
-        ps = get_obj(ps, frame_or_series)
+        ps = tm.get_obj(ps, frame_or_series)
         msg = "Given freq M does not match PeriodIndex freq B"
         with pytest.raises(ValueError, match=msg):
             ps.shift(freq="M")
@@ -343,7 +337,7 @@ class TestDataFrameShift:
     def test_datetime_frame_shift_with_freq_error(
         self, datetime_frame, frame_or_series
     ):
-        dtobj = get_obj(datetime_frame, frame_or_series)
+        dtobj = tm.get_obj(datetime_frame, frame_or_series)
         no_freq = dtobj.iloc[[0, 5, 7]]
         msg = "Freq was not set in the index hence cannot be inferred"
         with pytest.raises(ValueError, match=msg):
@@ -420,6 +414,7 @@ class TestDataFrameShift:
         ],
         ids=lambda x: str(x.dtype),
     )
+    # TODO(2.0): remove filtering
     @pytest.mark.filterwarnings("ignore:Index.ravel.*:FutureWarning")
     def test_shift_dt64values_axis1_invalid_fill(
         self, vals, as_cat, using_array_manager, request
