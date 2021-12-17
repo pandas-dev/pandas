@@ -2,6 +2,7 @@
 
 import random
 
+import numpy as np
 import pytest
 
 import pandas as pd
@@ -284,4 +285,21 @@ def test_column_axis(column_group_df):
     result = g._positional_selector[1:-1]
     expected = column_group_df.iloc[:, [1, 3]]
 
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", [list, pd.Index, pd.Series, np.array])
+def test_groupby_duplicated_columns(func):
+    # GH#44924
+    df = pd.DataFrame(
+        {
+            "A": [1, 2],
+            "B": [3, 3],
+            "C": ["G", "G"],
+        }
+    )
+    result = df.groupby("C")[func(["A", "B", "A"])].mean()
+    expected = pd.DataFrame(
+        [[1.5, 3.0, 1.5]], columns=["A", "B", "A"], index=pd.Index(["G"], name="C")
+    )
     tm.assert_frame_equal(result, expected)
