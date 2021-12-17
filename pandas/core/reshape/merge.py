@@ -2422,10 +2422,6 @@ class _LazyCustomInnerMerge:
         #       that ability. Should we (1) restrict those cases now? (2) allow them and
         #       fail in the future? or (3) plan to develop future implementation to work
         #       with these constructs as well?
-        #
-        #       Currently, planning to go with option (2). Have added a note in the
-        #       merge docstring calling attention to this, and suggesting best practices
-        #       for forward compatibility.
         condition: Callable,
         left_chunk_size: int | None = None,
         right_chunk_size: int | None = None,
