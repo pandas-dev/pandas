@@ -539,13 +539,13 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         else:
             # GH8628 (PERF): astype category codes instead of astyping array
-            try:
-                if is_datetime64_dtype(self.categories):
-                    values = ensure_wrapped_if_datetimelike(np.asarray(self.categories))
-                    new_cats = values._format_native_types()
-                else:
-                    new_cats = np.asarray(self.categories)
+            if is_datetime64_dtype(self.categories):
+                new_cats = ensure_wrapped_if_datetimelike(self.categories._values)
+                # new_cats = values._format_native_types()
+            else:
+                new_cats = np.asarray(self.categories)
 
+            try:
                 new_cats = new_cats.astype(dtype=dtype, copy=copy)
                 fill_value = lib.item_from_zerodim(np.array(np.nan).astype(dtype))
             except (

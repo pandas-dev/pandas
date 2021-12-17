@@ -180,9 +180,9 @@ class TestCategoricalDtypes:
 
     def test_astype_object_datetime_categories(self):
         # GH#40754
-        cat = Categorical(to_datetime(["2021-03-27", NaT], format="%Y-%m-%d"))
+        cat = Categorical(to_datetime(["2021-03-27", NaT]))
         result = cat.astype(object)
-        expected = np.array(["2021-03-27", np.nan], dtype="object")
+        expected = np.array([Timestamp("2021-03-27 00:00:00"), np.nan], dtype="object")
         tm.assert_numpy_array_equal(result, expected)
 
     def test_iter_python_types(self):
