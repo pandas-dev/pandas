@@ -767,31 +767,16 @@ class FrameApply(NDFrameApply):
 
         # we are not asked to reduce or infer reduction
         # so just return a copy of the existing object
-        if self.result_type not in ["reduce", None]:
+        if self.result_type != "reduce":
             return self.obj.copy()
 
-        # we may need to infer
-        should_reduce = self.result_type == "reduce"
-
-        from pandas import Series
-
-        if not should_reduce:
-            try:
-                r = self.f(Series([], dtype=np.float64))
-            except Exception:
-                pass
-            else:
-                should_reduce = not isinstance(r, Series)
-
-        if should_reduce:
+        else:
             if len(self.agg_axis):
                 r = self.f(Series([], dtype=np.float64))
             else:
                 r = np.nan
 
             return self.obj._constructor_sliced(r, index=self.agg_axis)
-        else:
-            return self.obj.copy()
 
     def apply_raw(self):
         """apply to the values as a numpy array"""
