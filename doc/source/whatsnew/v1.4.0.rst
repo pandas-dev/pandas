@@ -538,6 +538,7 @@ Other Deprecations
 - Deprecated passing arguments as positional for :func:`read_fwf` other than ``filepath_or_buffer`` (:issue:`41485`):
 - Deprecated passing ``skipna=None`` for :meth:`DataFrame.mad` and :meth:`Series.mad`, pass ``skipna=True`` instead (:issue:`44580`)
 - Deprecated :meth:`DateOffset.apply`, use ``offset + other`` instead (:issue:`44522`)
+- Deprecated parameter ``names`` in :meth:`Index.copy` (:issue:`44916`)
 - A deprecation warning is now shown for :meth:`DataFrame.to_latex` indicating the arguments signature may change and emulate more the arguments to :meth:`.Styler.to_latex` in future versions (:issue:`44411`)
 - Deprecated :meth:`Categorical.replace`, use :meth:`Series.replace` instead (:issue:`44929`)
 -
@@ -592,6 +593,7 @@ Performance improvements
 - Performance improvement in :meth:`Series.mad` (:issue:`43010`)
 - Performance improvement in :func:`merge` (:issue:`43332`)
 - Performance improvement in :func:`to_csv` when index column is a datetime and is formatted (:issue:`39413`)
+- Performance improvement in :func:`to_csv` when :class:`MultiIndex` contains a lot of unused levels (:issue:`37484`)
 - Performance improvement in :func:`read_csv` when ``index_col`` was set with a numeric column (:issue:`44158`)
 - Performance improvement in :func:`concat` (:issue:`43354`)
 -
@@ -757,6 +759,7 @@ I/O
 - Bug in :func:`read_csv` not replacing ``NaN`` values with ``np.nan`` before attempting date conversion (:issue:`26203`)
 - Bug in :func:`read_csv` raising ``AttributeError`` when attempting to read a .csv file and infer index column dtype from an nullable integer type (:issue:`44079`)
 - :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` with ``compression`` set to ``'zip'`` no longer create a zip file containing a file ending with ".zip". Instead, they try to infer the inner file name more smartly. (:issue:`39465`)
+- Bug in :func:`read_csv` where reading a mixed column of booleans and missing values to a float type results in the missing values becoming 1.0 rather than NaN (:issue:`42808`, :issue:`34120`)
 - Bug in :func:`read_csv` when passing simultaneously a parser in ``date_parser`` and ``parse_dates=False``, the parsing was still called (:issue:`44366`)
 - Bug in :func:`read_csv` silently ignoring errors when failling to create a memory-mapped file (:issue:`44766`)
 - Bug in :func:`read_csv` when passing a ``tempfile.SpooledTemporaryFile`` opened in binary mode (:issue:`44748`)
@@ -810,6 +813,7 @@ Reshaping
 - Bug in :func:`crosstab` would fail when inputs are lists or tuples (:issue:`44076`)
 - Bug in :meth:`DataFrame.append` failing to retain ``index.name`` when appending a list of :class:`Series` objects (:issue:`44109`)
 - Fixed metadata propagation in :meth:`Dataframe.apply` method, consequently fixing the same issue for :meth:`Dataframe.transform`, :meth:`Dataframe.nunique` and :meth:`Dataframe.mode` (:issue:`28283`)
+- Bug in :func:`concat` casting levels of :class:`MultiIndex` to float if the only consist of missing values (:issue:`44900`)
 - Bug in :meth:`DataFrame.stack` with ``ExtensionDtype`` columns incorrectly raising (:issue:`43561`)
 - Bug in :meth:`Series.unstack` with object doing unwanted type inference on resulting columns (:issue:`44595`)
 - Bug in :class:`MultiIndex` failing join operations with overlapping ``IntervalIndex`` levels (:issue:`44096`)
