@@ -735,7 +735,6 @@ class Block(PandasObject):
             return block.convert(numeric=False, copy=False)
         else:
             return [block]
-        return [block]
 
     @final
     def replace_list(
