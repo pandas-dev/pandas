@@ -17,6 +17,75 @@ import pandas._testing as tm
 
 
 class TestDataFrameShift:
+    @pytest.mark.parametrize(
+        "input_data, output_data",
+        [(np.empty(shape=(0,)), []), (np.ones(shape=(2,)), [np.nan, 1.0])],
+    )
+    def test_shift_non_writable_array(self, input_data, output_data, frame_or_series):
+        # GH21049 Verify whether non writable numpy array is shiftable
+        input_data.setflags(write=False)
+
+        result = frame_or_series(input_data).shift(1)
+        if frame_or_series is not Series:
+            # need to explicitly specify columns in the empty case
+            expected = frame_or_series(
+                output_data,
+                index=range(len(output_data)),
+                columns=range(1),
+                dtype="float64",
+            )
+        else:
+            expected = frame_or_series(output_data, dtype="float64")
+
+        tm.assert_equal(result, expected)
+
+    def test_shift_mismatched_freq(self, frame_or_series):
+        ts = frame_or_series(
+            np.random.randn(5), index=date_range("1/1/2000", periods=5, freq="H")
+        )
+
+        result = ts.shift(1, freq="5T")
+        exp_index = ts.index.shift(1, freq="5T")
+        tm.assert_index_equal(result.index, exp_index)
+
+        # GH#1063, multiple of same base
+        result = ts.shift(1, freq="4H")
+        exp_index = ts.index + offsets.Hour(4)
+        tm.assert_index_equal(result.index, exp_index)
+
+    @pytest.mark.parametrize(
+        "obj",
+        [
+            Series([np.arange(5)]),
+            date_range("1/1/2011", periods=24, freq="H"),
+            Series(range(5), index=date_range("2017", periods=5)),
+        ],
+    )
+    @pytest.mark.parametrize("shift_size", [0, 1, 2])
+    def test_shift_always_copy(self, obj, shift_size, frame_or_series):
+        # GH#22397
+        if frame_or_series is not Series:
+            obj = obj.to_frame()
+        assert obj.shift(shift_size) is not obj
+
+    def test_shift_object_non_scalar_fill(self):
+        # shift requires scalar fill_value except for object dtype
+        ser = Series(range(3))
+        with pytest.raises(ValueError, match="fill_value must be a scalar"):
+            ser.shift(1, fill_value=[])
+
+        df = ser.to_frame()
+        with pytest.raises(ValueError, match="fill_value must be a scalar"):
+            df.shift(1, fill_value=np.arange(3))
+
+        obj_ser = ser.astype(object)
+        result = obj_ser.shift(1, fill_value={})
+        assert result[0] == {}
+
+        obj_df = obj_ser.to_frame()
+        result = obj_df.shift(1, fill_value={})
+        assert result.iloc[0, 0] == {}
+
     def test_shift_int(self, datetime_frame, frame_or_series):
         ts = tm.get_obj(datetime_frame, frame_or_series).astype(int)
         shifted = ts.shift(1)
@@ -194,6 +263,33 @@ class TestDataFrameShift:
             columns=["high", "low"],
         )
         tm.assert_frame_equal(rs, xp)
+
+    def test_shift_categorical1(self, frame_or_series):
+        # GH#9416
+        obj = frame_or_series(["a", "b", "c", "d"], dtype="category")
+
+        rt = obj.shift(1).shift(-1)
+        tm.assert_equal(obj.iloc[:-1], rt.dropna())
+
+        def get_cat_values(ndframe):
+            # For Series we could just do ._values; for DataFrame
+            #  we may be able to do this if we ever have 2D Categoricals
+            return ndframe._mgr.arrays[0]
+
+        cat = get_cat_values(obj)
+
+        sp1 = obj.shift(1)
+        tm.assert_index_equal(obj.index, sp1.index)
+        assert np.all(get_cat_values(sp1).codes[:1] == -1)
+        assert np.all(cat.codes[:-1] == get_cat_values(sp1).codes[1:])
+
+        sn2 = obj.shift(-2)
+        tm.assert_index_equal(obj.index, sn2.index)
+        assert np.all(get_cat_values(sn2).codes[-2:] == -1)
+        assert np.all(cat.codes[2:] == get_cat_values(sn2).codes[:-2])
+
+        tm.assert_index_equal(cat.categories, get_cat_values(sp1).categories)
+        tm.assert_index_equal(cat.categories, get_cat_values(sn2).categories)
 
     def test_shift_categorical(self):
         # GH#9416
