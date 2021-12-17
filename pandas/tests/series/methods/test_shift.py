@@ -32,10 +32,10 @@ class TestShift:
         assert ser.shift(shift_size) is not ser
 
     @pytest.mark.parametrize("move_by_freq", [pd.Timedelta("1D"), pd.Timedelta("1min")])
-    def test_datetime_shift_always_copy(self, move_by_freq):
+    def test_datetime_shift_always_copy(self, move_by_freq, frame_or_series):
         # GH#22397
-        ser = Series(range(5), index=date_range("2017", periods=5))
-        assert ser.shift(freq=move_by_freq) is not ser
+        obj = frame_or_series(range(5), index=date_range("2017", periods=5))
+        assert obj.shift(freq=move_by_freq) is not obj
 
     def test_shift(self, datetime_series):
         shifted = datetime_series.shift(1)
@@ -196,16 +196,6 @@ class TestShift:
 
         tm.assert_index_equal(s.values.categories, sp1.values.categories)
         tm.assert_index_equal(s.values.categories, sn2.values.categories)
-
-    def test_shift_dt64values_int_fill_deprecated(self):
-        # GH#31971
-        ser = Series([pd.Timestamp("2020-01-01"), pd.Timestamp("2020-01-02")])
-
-        with tm.assert_produces_warning(FutureWarning):
-            result = ser.shift(1, fill_value=0)
-
-        expected = Series([pd.Timestamp(0), ser[0]])
-        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("periods", [1, 2, 3, 4])
     def test_shift_preserve_freqstr(self, periods):

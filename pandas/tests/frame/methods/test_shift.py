@@ -353,12 +353,16 @@ class TestDataFrameShift:
     def test_shift_dt64values_int_fill_deprecated(self):
         # GH#31971
         ser = Series([pd.Timestamp("2020-01-01"), pd.Timestamp("2020-01-02")])
-        df = ser.to_frame()
 
         with tm.assert_produces_warning(FutureWarning):
-            result = df.shift(1, fill_value=0)
+            result = ser.shift(1, fill_value=0)
+        expected = Series([pd.Timestamp(0), ser[0]])
+        tm.assert_series_equal(result, expected)
 
-        expected = Series([pd.Timestamp(0), ser[0]]).to_frame()
+        df = ser.to_frame()
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.shift(1, fill_value=0)
+        expected = expected.to_frame()
         tm.assert_frame_equal(result, expected)
 
         # axis = 1
@@ -416,6 +420,7 @@ class TestDataFrameShift:
         ],
         ids=lambda x: str(x.dtype),
     )
+    @pytest.mark.filterwarnings("ignore:Index.ravel.*:FutureWarning")
     def test_shift_dt64values_axis1_invalid_fill(
         self, vals, as_cat, using_array_manager, request
     ):
