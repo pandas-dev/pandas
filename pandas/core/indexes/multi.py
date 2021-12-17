@@ -327,7 +327,9 @@ class MultiIndex(Index):
         result._set_levels(levels, copy=copy, validate=False)
         result._set_codes(codes, copy=copy, validate=False)
 
-        result._names = [None] * len(levels)
+        # Incompatible types in assignment (expression has type "List[None]",
+        # variable has type "FrozenList")  [assignment]
+        result._names = [None] * len(levels)  # type: ignore[assignment]
         if names is not None:
             # handles name validation
             result._set_names(names)
