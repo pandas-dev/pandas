@@ -15,8 +15,14 @@ from pandas import (
 import pandas._testing as tm
 
 
+def get_obj(df, klass):
+    if klass is Series:
+        return df._ixs(0, axis=1)
+    return df
+
+
 class TestDataFrameShift:
-    def test_shift(self, datetime_frame, int_frame):
+    def test_shift(self, datetime_frame, frame_or_series):
         # naive shift
         shiftedFrame = datetime_frame.shift(5)
         tm.assert_index_equal(shiftedFrame.index, datetime_frame.index)
@@ -47,28 +53,39 @@ class TestDataFrameShift:
             datetime_frame.xs(d), shiftedFrame.xs(shifted_d), check_names=False
         )
 
-        # shift int frame
-        int_shifted = int_frame.shift(1)  # noqa
-
+    def test_shift_with_periodindex(self, frame_or_series):
         # Shifting with PeriodIndex
         ps = tm.makePeriodFrame()
+        ps = get_obj(ps, frame_or_series)
+
         shifted = ps.shift(1)
         unshifted = shifted.shift(-1)
         tm.assert_index_equal(shifted.index, ps.index)
         tm.assert_index_equal(unshifted.index, ps.index)
-        tm.assert_numpy_array_equal(
-            unshifted.iloc[:, 0].dropna().values, ps.iloc[:-1, 0].values
-        )
+        if frame_or_series is DataFrame:
+            tm.assert_numpy_array_equal(
+                unshifted.iloc[:, 0].dropna().values, ps.iloc[:-1, 0].values
+            )
+        else:
+            tm.assert_numpy_array_equal(unshifted.dropna().values, ps.values[:-1])
 
         shifted2 = ps.shift(1, "B")
         shifted3 = ps.shift(1, offsets.BDay())
-        tm.assert_frame_equal(shifted2, shifted3)
-        tm.assert_frame_equal(ps, shifted2.shift(-1, "B"))
+        tm.assert_equal(shifted2, shifted3)
+        tm.assert_equal(ps, shifted2.shift(-1, "B"))
 
         msg = "does not match PeriodIndex freq"
         with pytest.raises(ValueError, match=msg):
             ps.shift(freq="D")
 
+        # legacy support
+        shifted4 = ps.shift(1, freq="B")
+        tm.assert_equal(shifted2, shifted4)
+
+        shifted5 = ps.shift(1, freq=offsets.BDay())
+        tm.assert_equal(shifted5, shifted4)
+
+    def test_shift_other_axis(self):
         # shift other axis
         # GH#6371
         df = DataFrame(np.random.rand(10, 5))
@@ -80,6 +97,7 @@ class TestDataFrameShift:
         result = df.shift(1, axis=1)
         tm.assert_frame_equal(result, expected)
 
+    def test_shift_named_axis(self):
         # shift named axis
         df = DataFrame(np.random.rand(10, 5))
         expected = pd.concat(
@@ -108,22 +126,33 @@ class TestDataFrameShift:
         xp = DataFrame({"one": s1.shift(1), "two": s2.shift(1)})
         tm.assert_frame_equal(rs, xp)
 
-    def test_shift_fill_value(self):
+    def test_shift_fill_value(self, frame_or_series):
         # GH#24128
-        df = DataFrame(
-            [1, 2, 3, 4, 5], index=date_range("1/1/2000", periods=5, freq="H")
-        )
-        exp = DataFrame(
-            [0, 1, 2, 3, 4], index=date_range("1/1/2000", periods=5, freq="H")
-        )
-        result = df.shift(1, fill_value=0)
-        tm.assert_frame_equal(result, exp)
+        dti = date_range("1/1/2000", periods=5, freq="H")
 
-        exp = DataFrame(
-            [0, 0, 1, 2, 3], index=date_range("1/1/2000", periods=5, freq="H")
-        )
-        result = df.shift(2, fill_value=0)
-        tm.assert_frame_equal(result, exp)
+        ts = frame_or_series([1.0, 2.0, 3.0, 4.0, 5.0], index=dti)
+        exp = frame_or_series([0.0, 1.0, 2.0, 3.0, 4.0], index=dti)
+        # check that fill value works
+        result = ts.shift(1, fill_value=0.0)
+        tm.assert_equal(result, exp)
+
+        exp = frame_or_series([0.0, 0.0, 1.0, 2.0, 3.0], index=dti)
+        result = ts.shift(2, fill_value=0.0)
+        tm.assert_equal(result, exp)
+
+        ts = frame_or_series([1, 2, 3])
+        res = ts.shift(2, fill_value=0)
+        assert tm.get_dtype(res) == tm.get_dtype(ts)
+
+        # retain integer dtype
+        obj = frame_or_series([1, 2, 3, 4, 5], index=dti)
+        exp = frame_or_series([0, 1, 2, 3, 4], index=dti)
+        result = obj.shift(1, fill_value=0)
+        tm.assert_equal(result, exp)
+
+        exp = frame_or_series([0, 0, 1, 2, 3], index=dti)
+        result = obj.shift(2, fill_value=0)
+        tm.assert_equal(result, exp)
 
     def test_shift_empty(self):
         # Regression test for GH#8019
@@ -210,101 +239,112 @@ class TestDataFrameShift:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.filterwarnings("ignore:tshift is deprecated:FutureWarning")
-    def test_tshift(self, datetime_frame):
+    def test_tshift(self, datetime_frame, frame_or_series):
         # TODO(2.0): remove this test when tshift deprecation is enforced
 
         # PeriodIndex
         ps = tm.makePeriodFrame()
+        ps = get_obj(ps, frame_or_series)
         shifted = ps.tshift(1)
         unshifted = shifted.tshift(-1)
 
-        tm.assert_frame_equal(unshifted, ps)
+        tm.assert_equal(unshifted, ps)
 
         shifted2 = ps.tshift(freq="B")
-        tm.assert_frame_equal(shifted, shifted2)
+        tm.assert_equal(shifted, shifted2)
 
         shifted3 = ps.tshift(freq=offsets.BDay())
-        tm.assert_frame_equal(shifted, shifted3)
+        tm.assert_equal(shifted, shifted3)
 
         msg = "Given freq M does not match PeriodIndex freq B"
         with pytest.raises(ValueError, match=msg):
             ps.tshift(freq="M")
 
         # DatetimeIndex
-        shifted = datetime_frame.tshift(1)
+        dtobj = get_obj(datetime_frame, frame_or_series)
+        shifted = dtobj.tshift(1)
         unshifted = shifted.tshift(-1)
 
-        tm.assert_frame_equal(datetime_frame, unshifted)
+        tm.assert_equal(dtobj, unshifted)
 
-        shifted2 = datetime_frame.tshift(freq=datetime_frame.index.freq)
-        tm.assert_frame_equal(shifted, shifted2)
+        shifted2 = dtobj.tshift(freq=dtobj.index.freq)
+        tm.assert_equal(shifted, shifted2)
 
         inferred_ts = DataFrame(
             datetime_frame.values,
             Index(np.asarray(datetime_frame.index)),
             columns=datetime_frame.columns,
         )
+        inferred_ts = get_obj(inferred_ts, frame_or_series)
         shifted = inferred_ts.tshift(1)
 
-        expected = datetime_frame.tshift(1)
+        expected = dtobj.tshift(1)
         expected.index = expected.index._with_freq(None)
-        tm.assert_frame_equal(shifted, expected)
+        tm.assert_equal(shifted, expected)
 
         unshifted = shifted.tshift(-1)
-        tm.assert_frame_equal(unshifted, inferred_ts)
+        tm.assert_equal(unshifted, inferred_ts)
 
-        no_freq = datetime_frame.iloc[[0, 5, 7], :]
+        no_freq = dtobj.iloc[[0, 5, 7]]
         msg = "Freq was not set in the index hence cannot be inferred"
         with pytest.raises(ValueError, match=msg):
             no_freq.tshift()
 
-    def test_tshift_deprecated(self, datetime_frame):
+    def test_tshift_deprecated(self, datetime_frame, frame_or_series):
         # GH#11631
+        dtobj = get_obj(datetime_frame, frame_or_series)
         with tm.assert_produces_warning(FutureWarning):
-            datetime_frame.tshift()
+            dtobj.tshift()
 
-    def test_period_index_frame_shift_with_freq(self):
+    def test_period_index_frame_shift_with_freq(self, frame_or_series):
         ps = tm.makePeriodFrame()
+        ps = get_obj(ps, frame_or_series)
 
         shifted = ps.shift(1, freq="infer")
         unshifted = shifted.shift(-1, freq="infer")
-        tm.assert_frame_equal(unshifted, ps)
+        tm.assert_equal(unshifted, ps)
 
         shifted2 = ps.shift(freq="B")
-        tm.assert_frame_equal(shifted, shifted2)
+        tm.assert_equal(shifted, shifted2)
 
         shifted3 = ps.shift(freq=offsets.BDay())
-        tm.assert_frame_equal(shifted, shifted3)
+        tm.assert_equal(shifted, shifted3)
 
-    def test_datetime_frame_shift_with_freq(self, datetime_frame):
-        shifted = datetime_frame.shift(1, freq="infer")
+    def test_datetime_frame_shift_with_freq(self, datetime_frame, frame_or_series):
+        dtobj = get_obj(datetime_frame, frame_or_series)
+        shifted = dtobj.shift(1, freq="infer")
         unshifted = shifted.shift(-1, freq="infer")
-        tm.assert_frame_equal(datetime_frame, unshifted)
+        tm.assert_equal(dtobj, unshifted)
 
-        shifted2 = datetime_frame.shift(freq=datetime_frame.index.freq)
-        tm.assert_frame_equal(shifted, shifted2)
+        shifted2 = dtobj.shift(freq=dtobj.index.freq)
+        tm.assert_equal(shifted, shifted2)
 
         inferred_ts = DataFrame(
             datetime_frame.values,
             Index(np.asarray(datetime_frame.index)),
             columns=datetime_frame.columns,
         )
+        inferred_ts = get_obj(inferred_ts, frame_or_series)
         shifted = inferred_ts.shift(1, freq="infer")
-        expected = datetime_frame.shift(1, freq="infer")
+        expected = dtobj.shift(1, freq="infer")
         expected.index = expected.index._with_freq(None)
-        tm.assert_frame_equal(shifted, expected)
+        tm.assert_equal(shifted, expected)
 
         unshifted = shifted.shift(-1, freq="infer")
-        tm.assert_frame_equal(unshifted, inferred_ts)
+        tm.assert_equal(unshifted, inferred_ts)
 
-    def test_period_index_frame_shift_with_freq_error(self):
+    def test_period_index_frame_shift_with_freq_error(self, frame_or_series):
         ps = tm.makePeriodFrame()
+        ps = get_obj(ps, frame_or_series)
         msg = "Given freq M does not match PeriodIndex freq B"
         with pytest.raises(ValueError, match=msg):
             ps.shift(freq="M")
 
-    def test_datetime_frame_shift_with_freq_error(self, datetime_frame):
-        no_freq = datetime_frame.iloc[[0, 5, 7], :]
+    def test_datetime_frame_shift_with_freq_error(
+        self, datetime_frame, frame_or_series
+    ):
+        dtobj = get_obj(datetime_frame, frame_or_series)
+        no_freq = dtobj.iloc[[0, 5, 7]]
         msg = "Freq was not set in the index hence cannot be inferred"
         with pytest.raises(ValueError, match=msg):
             no_freq.shift(freq="infer")
