@@ -78,6 +78,9 @@ class ToCSVDatetimeIndex(BaseIO):
     def time_frame_date_formatting_index(self):
         self.data.to_csv(self.fname, date_format="%Y-%m-%d %H:%M:%S")
 
+    def time_frame_date_no_format_index(self):
+        self.data.to_csv(self.fname)
+
 
 class ToCSVDatetimeBig(BaseIO):
 
