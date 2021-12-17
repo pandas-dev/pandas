@@ -58,6 +58,7 @@ from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     ExtensionDtype,
     PandasDtype,
+    PeriodDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -639,25 +640,22 @@ class Block(PandasObject):
         to_replace,
         value,
         inplace: bool = False,
-        regex: bool = False,
     ) -> list[Block]:
         """
         replace the to_replace value with value, possible to create new
-        blocks here this is just a call to putmask. regex is not used here.
-        It is used in ObjectBlocks.  It is here for API compatibility.
+        blocks here this is just a call to putmask.
         """
-        inplace = validate_bool_kwarg(inplace, "inplace")
 
         # Note: the checks we do in NDFrame.replace ensure we never get
         #  here with listlike to_replace or value, as those cases
-        #  go through _replace_list
+        #  go through replace_list
 
         values = self.values
 
         if isinstance(values, Categorical):
             # TODO: avoid special-casing
             blk = self if inplace else self.copy()
-            blk.values.replace(to_replace, value, inplace=True)
+            blk.values._replace(to_replace=to_replace, value=value, inplace=True)
             return [blk]
 
         regex = should_use_regex(regex, to_replace)
@@ -690,13 +688,12 @@ class Block(PandasObject):
                 to_replace=to_replace,
                 value=value,
                 inplace=True,
-                regex=regex,
             )
 
         else:
             # split so that we only upcast where necessary
             return self.split_and_operate(
-                type(self).replace, to_replace, value, inplace=True, regex=regex
+                type(self).replace, to_replace, value, inplace=True
             )
 
     @final
@@ -745,7 +742,7 @@ class Block(PandasObject):
             return [block]
 
     @final
-    def _replace_list(
+    def replace_list(
         self,
         src_list: Iterable[Any],
         dest_list: Sequence[Any],
@@ -753,15 +750,19 @@ class Block(PandasObject):
         regex: bool = False,
     ) -> list[Block]:
         """
-        See BlockManager._replace_list docstring.
+        See BlockManager.replace_list docstring.
         """
         values = self.values
 
         # TODO: dont special-case Categorical
-        if isinstance(values, Categorical) and len(algos.unique(dest_list)) == 1:
+        if (
+            isinstance(values, Categorical)
+            and len(algos.unique(dest_list)) == 1
+            and not regex
+        ):
             # We likely got here by tiling value inside NDFrame.replace,
             #  so un-tile here
-            return self.replace(src_list, dest_list[0], inplace, regex)
+            return self.replace(src_list, dest_list[0], inplace)
 
         # Exclude anything that we know we won't contain
         pairs = [
@@ -868,7 +869,7 @@ class Block(PandasObject):
                         convert=False,
                         mask=mask,
                     )
-                return self.replace(to_replace, value, inplace=inplace, regex=False)
+                return self.replace(to_replace, value, inplace=inplace)
         return [self]
 
     # ---------------------------------------------------------------------
@@ -1255,7 +1256,7 @@ class Block(PandasObject):
         unstacker,
         fill_value,
         new_placement: npt.NDArray[np.intp],
-        allow_fill: bool,
+        needs_masking: npt.NDArray[np.bool_],
     ):
         """
         Return a list of unstacked blocks of self
@@ -1267,6 +1268,7 @@ class Block(PandasObject):
             Only used in ExtensionBlock._unstack
         new_placement : np.ndarray[np.intp]
         allow_fill : bool
+        needs_masking : np.ndarray[bool]
 
         Returns
         -------
@@ -1459,7 +1461,8 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
     def set_inplace(self, locs, values) -> None:
         # NB: This is a misnomer, is supposed to be inplace but is not,
         #  see GH#33457
-        assert locs.tolist() == [0]
+        # When an ndarray, we should have locs.tolist() == [0]
+        # When a BlockPlacement we should have list(locs) == [0]
         self.values = values
         try:
             # TODO(GH33457) this can be removed
@@ -1676,7 +1679,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         unstacker,
         fill_value,
         new_placement: npt.NDArray[np.intp],
-        allow_fill: bool,
+        needs_masking: npt.NDArray[np.bool_],
     ):
         # ExtensionArray-safe unstack.
         # We override ObjectBlock._unstack, which unstacks directly on the
@@ -1695,14 +1698,20 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         new_values = new_values.T[mask]
         new_placement = new_placement[mask]
 
+        # needs_masking[i] calculated once in BlockManager.unstack tells
+        #  us if there are any -1s in the relevant indices.  When False,
+        #  that allows us to go through a faster path in 'take', among
+        #  other things avoiding e.g. Categorical._validate_scalar.
         blocks = [
             # TODO: could cast to object depending on fill_value?
             type(self)(
-                self.values.take(indices, allow_fill=allow_fill, fill_value=fill_value),
+                self.values.take(
+                    indices, allow_fill=needs_masking[i], fill_value=fill_value
+                ),
                 BlockPlacement(place),
                 ndim=2,
             )
-            for indices, place in zip(new_values, new_placement)
+            for i, (indices, place) in enumerate(zip(new_values, new_placement))
         ]
         return blocks, mask
 
@@ -1722,6 +1731,12 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
     """
 
     values: NDArrayBackedExtensionArray
+
+    # error: Signature of "is_extension" incompatible with supertype "Block"
+    @cache_readonly
+    def is_extension(self) -> bool:  # type: ignore[override]
+        # i.e. datetime64tz, PeriodDtype
+        return not isinstance(self.dtype, np.dtype)
 
     @property
     def is_view(self) -> bool:
@@ -1751,6 +1766,9 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
         try:
             res_values = arr.T._where(cond, other).T
         except (ValueError, TypeError):
+            if isinstance(self.dtype, PeriodDtype):
+                # TODO: don't special-case
+                raise
             blk = self.coerce_to_target_dtype(other)
             nbs = blk.where(other, cond)
             return self._maybe_downcast(nbs, "infer")
@@ -1800,9 +1818,7 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
                 value, limit, inplace, downcast
             )
 
-        values = self.values
-        values = values if inplace else values.copy()
-        new_values = values.fillna(value=value, limit=limit)
+        new_values = self.values.fillna(value=value, limit=limit)
         return [self.make_block_same_class(values=new_values)]
 
 
@@ -1946,6 +1962,8 @@ def get_block_type(dtype: DtypeObj):
         cls = CategoricalBlock
     elif vtype is Timestamp:
         cls = DatetimeTZBlock
+    elif isinstance(dtype, PeriodDtype):
+        cls = NDArrayBackedExtensionBlock
     elif isinstance(dtype, ExtensionDtype):
         # Note: need to be sure PandasArray is unwrapped before we get here
         cls = ExtensionBlock

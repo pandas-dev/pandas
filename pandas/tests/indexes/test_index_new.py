@@ -10,8 +10,6 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
-from pandas.compat import np_datetime64_compat
-
 from pandas.core.dtypes.common import is_unsigned_integer_dtype
 
 from pandas import (
@@ -273,9 +271,7 @@ class TestDtypeEnforced:
         [
             [1, 2, 3],
             np.array([1, 2, 3], dtype=int),
-            np.array(
-                [np_datetime64_compat("2011-01-01"), np_datetime64_compat("2011-01-02")]
-            ),
+            np.array(["2011-01-01", "2011-01-02"], dtype="datetime64[ns]"),
             [datetime(2011, 1, 1), datetime(2011, 1, 2)],
         ],
     )
@@ -287,14 +283,7 @@ class TestDtypeEnforced:
     @pytest.mark.parametrize(
         "vals",
         [
-            Index(
-                np.array(
-                    [
-                        np_datetime64_compat("2011-01-01"),
-                        np_datetime64_compat("2011-01-02"),
-                    ]
-                )
-            ),
+            Index(np.array([np.datetime64("2011-01-01"), np.datetime64("2011-01-02")])),
             Index([datetime(2011, 1, 1), datetime(2011, 1, 2)]),
         ],
     )

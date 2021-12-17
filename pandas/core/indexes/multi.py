@@ -736,11 +736,9 @@ class MultiIndex(Index):
         """
         from pandas import Series
 
+        names = com.fill_missing_names([level.name for level in self.levels])
         return Series(
-            {
-                f"level_{idx}" if level.name is None else level.name: level.dtype
-                for idx, level in enumerate(self.levels)
-            }
+            {names[idx]: level.dtype for idx, level in enumerate(self.levels)}
         )
 
     def __len__(self) -> int:
@@ -1283,7 +1281,7 @@ class MultiIndex(Index):
         formatter_funcs = [level._formatter_func for level in self.levels]
         return tuple(func(val) for func, val in zip(formatter_funcs, tup))
 
-    def _format_native_types(self, na_rep="nan", **kwargs):
+    def _format_native_types(self, *, na_rep="nan", **kwargs):
         new_levels = []
         new_codes = []
 
@@ -3593,7 +3591,7 @@ class MultiIndex(Index):
             rvals = other._values.astype(object, copy=False)
             result = lib.fast_unique_multiple([self._values, rvals], sort=sort)
 
-        return MultiIndex.from_arrays(zip(*result), sortorder=0, names=result_names)
+        return MultiIndex.from_arrays(zip(*result), sortorder=None, names=result_names)
 
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         return is_object_dtype(dtype)

@@ -116,9 +116,6 @@ class TestDtype(BaseSparseTests, base.BaseDtypeTests):
 
 
 class TestInterface(BaseSparseTests, base.BaseInterfaceTests):
-    def test_no_values_attribute(self, data):
-        pytest.skip("We have values")
-
     def test_copy(self, data):
         # __setitem__ does not work, so we only have a smoke-test
         data.copy()
@@ -432,6 +429,10 @@ class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):
             mark = pytest.mark.xfail(reason="result dtype.fill_value mismatch")
             request.node.add_marker(mark)
         super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
+
+    def _check_divmod_op(self, ser, op, other, exc=NotImplementedError):
+        # We implement divmod
+        super()._check_divmod_op(ser, op, other, exc=None)
 
 
 class TestComparisonOps(BaseSparseTests, base.BaseComparisonOpsTests):

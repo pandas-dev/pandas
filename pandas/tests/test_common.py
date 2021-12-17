@@ -25,7 +25,9 @@ def test_get_callable_name():
 
     class somecall:
         def __call__(self):
-            return x  # noqa
+            # This shouldn't actually get called below; somecall.__init__
+            #  should.
+            raise NotImplementedError
 
     assert getname(fn) == "fn"
     assert getname(lambda_)

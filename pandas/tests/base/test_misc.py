@@ -18,6 +18,7 @@ from pandas import (
     Index,
     Series,
 )
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize(
@@ -109,8 +110,9 @@ def test_memory_usage_components_series(series_with_simple_index):
     assert total_usage == non_index_usage + index_usage
 
 
-def test_memory_usage_components_narrow_series(narrow_series):
-    series = narrow_series
+@pytest.mark.parametrize("dtype", tm.NARROW_NP_DTYPES)
+def test_memory_usage_components_narrow_series(dtype):
+    series = tm.makeFloatSeries(name="a").astype(dtype)
     total_usage = series.memory_usage(index=True)
     non_index_usage = series.memory_usage(index=False)
     index_usage = series.index.memory_usage()
