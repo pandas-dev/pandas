@@ -513,11 +513,10 @@ class TestSeriesReplace:
         exp = pd.Series(["CC", "CC", "CC-REPL", "DD", "CC", "", pd.NA], dtype="string")
         tm.assert_series_equal(result, exp)
 
-    def test_replace_regex_dtype(self):
+    @pytest.mark.parametrize("frame", [False, True])
+    def test_replace_regex_dtype(self, frame):
         # GH-48644
-        s = pd.Series(["0"])
+        series = pd.Series(["0"])
         expected = pd.Series([1])
-        result_series_false = s.replace(to_replace="0", value=1, regex=False)
-        tm.assert_series_equal(result_series_false, expected)
-        result_series_true = s.replace(to_replace="0", value=1, regex=True)
-        tm.assert_series_equal(result_series_true, expected)
+        result = series.replace(to_replace="0", value=1, regex=frame)
+        tm.assert_series_equal(result, expected)
