@@ -17,6 +17,8 @@ Instead of splitting it was decided to define sections here:
 - Dtypes
 - Misc
 """
+# pyright: reportUntypedFunctionDecorator = false
+
 from collections import abc
 from datetime import (
     date,
@@ -28,9 +30,6 @@ from datetime import (
 from decimal import Decimal
 import operator
 import os
-import re
-import subprocess
-import sys
 
 from dateutil.tz import (
     tzlocal,
@@ -183,22 +182,6 @@ for name in "QuarterBegin QuarterEnd BQuarterBegin BQuarterEnd".split():
 # ----------------------------------------------------------------
 # Autouse fixtures
 # ----------------------------------------------------------------
-pat = re.compile(r"python3")
-
-
-@pytest.fixture(autouse=True)
-def check_bufferedrandom_resourcewarning():
-    yield
-    lsof = subprocess.run(["lsof", "-d", "0-25"], capture_output=True).stdout.decode(
-        "utf-8"
-    )
-    for line in lsof.split("\n"):
-        if re.search(pat, line):
-            # sys.stderr for xdist
-            # https://github.com/pytest-dev/pytest/issues/1693#issuecomment-233282644
-            print(line, flush=True, file=sys.stderr)
-
-
 @pytest.fixture(autouse=True)
 def configure_tests():
     """
