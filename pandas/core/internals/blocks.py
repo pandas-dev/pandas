@@ -640,14 +640,11 @@ class Block(PandasObject):
         to_replace,
         value,
         inplace: bool = False,
-        regex: bool = False,
     ) -> list[Block]:
         """
         replace the to_replace value with value, possible to create new
-        blocks here this is just a call to putmask. regex is not used here.
-        It is used in ObjectBlocks.  It is here for API compatibility.
+        blocks here this is just a call to putmask.
         """
-        inplace = validate_bool_kwarg(inplace, "inplace")
 
         # Note: the checks we do in NDFrame.replace ensure we never get
         #  here with listlike to_replace or value, as those cases
@@ -660,11 +657,6 @@ class Block(PandasObject):
             blk = self if inplace else self.copy()
             blk.values._replace(to_replace=to_replace, value=value, inplace=True)
             return [blk]
-
-        regex = should_use_regex(regex, to_replace)
-
-        if regex:
-            return self._replace_regex(to_replace, value, inplace=inplace)
 
         if not self._can_hold_element(to_replace):
             # We cannot hold `to_replace`, so we know immediately that
@@ -691,13 +683,12 @@ class Block(PandasObject):
                 to_replace=to_replace,
                 value=value,
                 inplace=True,
-                regex=regex,
             )
 
         else:
             # split so that we only upcast where necessary
             return self.split_and_operate(
-                type(self).replace, to_replace, value, inplace=True, regex=regex
+                type(self).replace, to_replace, value, inplace=True
             )
 
     @final
@@ -756,10 +747,14 @@ class Block(PandasObject):
         values = self.values
 
         # TODO: dont special-case Categorical
-        if isinstance(values, Categorical) and len(algos.unique(dest_list)) == 1:
+        if (
+            isinstance(values, Categorical)
+            and len(algos.unique(dest_list)) == 1
+            and not regex
+        ):
             # We likely got here by tiling value inside NDFrame.replace,
             #  so un-tile here
-            return self.replace(src_list, dest_list[0], inplace, regex)
+            return self.replace(src_list, dest_list[0], inplace)
 
         # Exclude anything that we know we won't contain
         pairs = [
@@ -866,7 +861,7 @@ class Block(PandasObject):
                         convert=False,
                         mask=mask,
                     )
-                return self.replace(to_replace, value, inplace=inplace, regex=False)
+                return self.replace(to_replace, value, inplace=inplace)
         return [self]
 
     # ---------------------------------------------------------------------
