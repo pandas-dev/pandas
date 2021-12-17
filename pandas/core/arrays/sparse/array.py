@@ -229,9 +229,11 @@ def _sparse_array_op(
         ):
             # Match the non-Sparse Series behavior
             if name == "floordiv":
-                sparse_op = splib.sparse_floordiv_float64
+                # error: Module has no attribute "sparse_floordiv_float64"
+                sparse_op = splib.sparse_floordiv_float64  # type: ignore[attr-defined]
             else:
-                sparse_op = splib.sparse_mod_float64
+                # error: Module has no attribute "sparse_mod_float64"
+                sparse_op = splib.sparse_mod_float64  # type: ignore[attr-defined]
 
             left_sp_values = left_sp_values.astype("float64")
             right_sp_values = right_sp_values.astype("float64")
