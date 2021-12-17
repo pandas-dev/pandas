@@ -939,7 +939,9 @@ class ParserBase:
 
     @overload
     def _evaluate_usecols(
-        self, usecols: set[int] | Callable[[Hashable], bool], names: Sequence[Hashable]
+        self,
+        usecols: set[int] | Callable[[Hashable], object],
+        names: Sequence[Hashable],
     ) -> set[int]:
         ...
 
@@ -951,7 +953,7 @@ class ParserBase:
 
     def _evaluate_usecols(
         self,
-        usecols: Callable[[Hashable], bool] | set[str] | set[int],
+        usecols: Callable[[Hashable], object] | set[str] | set[int],
         names: Sequence[Hashable],
     ) -> set[str] | set[int]:
         """
