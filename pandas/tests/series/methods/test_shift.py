@@ -27,16 +27,6 @@ class TestShift:
         # GH22397
         assert ser.shift(shift_size) is not ser
 
-    def test_shift(self, datetime_series):
-        shifted = datetime_series.shift(1)
-        unshifted = shifted.shift(-1)
-
-        tm.assert_index_equal(shifted.index, datetime_series.index)
-        tm.assert_index_equal(unshifted.index, datetime_series.index)
-        tm.assert_numpy_array_equal(
-            unshifted.dropna().values, datetime_series.values[:-1]
-        )
-
     def test_shift_with_tz(self):
         # GH#8260
         # with tz

@@ -86,17 +86,27 @@ class TestDataFrameShift:
 
     def test_shift(self, datetime_frame):
         # naive shift
-        shiftedFrame = datetime_frame.shift(5)
-        tm.assert_index_equal(shiftedFrame.index, datetime_frame.index)
+        ser = datetime_frame["A"]
 
-        shiftedSeries = datetime_frame["A"].shift(5)
-        tm.assert_series_equal(shiftedFrame["A"], shiftedSeries)
+        shifted = datetime_frame.shift(5)
+        tm.assert_index_equal(shifted.index, datetime_frame.index)
 
-        shiftedFrame = datetime_frame.shift(-5)
-        tm.assert_index_equal(shiftedFrame.index, datetime_frame.index)
+        shifted_ser = ser.shift(5)
+        tm.assert_series_equal(shifted["A"], shifted_ser)
 
-        shiftedSeries = datetime_frame["A"].shift(-5)
-        tm.assert_series_equal(shiftedFrame["A"], shiftedSeries)
+        shifted = datetime_frame.shift(-5)
+        tm.assert_index_equal(shifted.index, datetime_frame.index)
+
+        shifted_ser = ser.shift(-5)
+        tm.assert_series_equal(shifted["A"], shifted_ser)
+
+        unshifted = datetime_frame.shift(5).shift(-5)
+        tm.assert_numpy_array_equal(
+            unshifted.dropna().values, datetime_frame.values[:-5]
+        )
+
+        unshifted_ser = ser.shift(5).shift(-5)
+        tm.assert_numpy_array_equal(unshifted_ser.dropna().values, ser.values[:-5])
 
     def test_shift_by_offset(self, datetime_frame, frame_or_series):
         # shift by DateOffset
