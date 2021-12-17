@@ -430,7 +430,7 @@ class BaseArrayManager(DataManager):
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         return self.apply_with_block(
-            "_replace_list",
+            "replace_list",
             src_list=src_list,
             dest_list=dest_list,
             inplace=inplace,

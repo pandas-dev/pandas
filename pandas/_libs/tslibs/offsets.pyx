@@ -3579,7 +3579,7 @@ cpdef to_offset(freq):
 
     Parameters
     ----------
-    freq : str, tuple, datetime.timedelta, DateOffset or None
+    freq : str, datetime.timedelta, BaseOffset or None
 
     Returns
     -------
@@ -3592,7 +3592,7 @@ cpdef to_offset(freq):
 
     See Also
     --------
-    DateOffset : Standard kind of date increment used for a date range.
+    BaseOffset : Standard kind of date increment used for a date range.
 
     Examples
     --------

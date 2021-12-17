@@ -31,6 +31,7 @@ jobs:
           [actions-38-slow.yaml, "slow", "", "", "", "", ""],
           [actions-38-locale.yaml, "not slow and not network", "language-pack-zh-hans xsel", "zh_CN.utf8", "zh_CN.utf8", "", ""],
           [actions-39-slow.yaml, "slow", "", "", "", "", ""],
+          [actions-pypy-38.yaml, "not slow and not clipboard", "", "", "", "", ""],
           [actions-39-numpydev.yaml, "not slow and not network", "xsel", "", "", "deprecate", "-W error"],
           [actions-39.yaml, "not slow and not clipboard", "", "", "", "", ""]
         ]

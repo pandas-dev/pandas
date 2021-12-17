@@ -367,7 +367,7 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
         pc_func = ARROW_CMP_FUNCS[op.__name__]
         if isinstance(other, ArrowStringArray):
             result = pc_func(self._data, other._data)
-        elif isinstance(other, np.ndarray):
+        elif isinstance(other, (np.ndarray, list)):
             result = pc_func(self._data, other)
         elif is_scalar(other):
             try:
