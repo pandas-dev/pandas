@@ -17,6 +17,7 @@ from pandas import (
 import pandas._testing as tm
 
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
+xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
 
 @skip_pyarrow
@@ -614,4 +615,42 @@ def test_nan_multi_index(all_parsers):
         }
     )
 
+    tm.assert_frame_equal(result, expected)
+
+
+@xfail_pyarrow
+def test_bool_and_nan_to_bool(all_parsers):
+    # GH#42808
+    parser = all_parsers
+    data = """0
+NaN
+True
+False
+"""
+    with pytest.raises(ValueError, match="NA values"):
+        parser.read_csv(StringIO(data), dtype="bool")
+
+
+def test_bool_and_nan_to_int(all_parsers):
+    # GH#42808
+    parser = all_parsers
+    data = """0
+NaN
+True
+False
+"""
+    with pytest.raises(ValueError, match="convert|NoneType"):
+        parser.read_csv(StringIO(data), dtype="int")
+
+
+def test_bool_and_nan_to_float(all_parsers):
+    # GH#42808
+    parser = all_parsers
+    data = """0
+NaN
+True
+False
+"""
+    result = parser.read_csv(StringIO(data), dtype="float")
+    expected = DataFrame.from_dict({"0": [np.nan, 1.0, 0.0]})
     tm.assert_frame_equal(result, expected)
