@@ -728,29 +728,19 @@ def to_datetime(
     utc : bool, default None
         Control timezone-related parsing, localization and conversion.
 
-        - If True, returns a timezone-aware UTC-localized Timestamp, Series or
-          DatetimeIndex. Any timezone-naive element will be *localized* as UTC.
-          Any already timezone-aware input element (e.g. timezone-aware
-          datetime.datetime object, or datetime string with explicit timezone
-          offset) will be *converted* to UTC.
+        - If ``True``, the function *always* returns a timezone-aware
+          UTC-localized Timestamp, Series or DatetimeIndex. To do this,
+          timezone-naive inputs are *localized* as UTC (e.g.
+          ``01-01-2020 01:00:00`` becomes ``01-01-2020 01:00:00Z``), while
+          timezone-aware inputs are *converted* to UTC (e.g.
+          ``01-01-2020 01:00:00+0100`` becomes ``01-01-2020 00:00:00Z``).
 
-        - If False (default), for scalar inputs, the result will be a
-          timezone-aware Timestamp if the scalar is timezone-aware, otherwise
-          it will be a timezone-naive Timestamp.
-          For multiple inputs (list, series):
+        - If ``False`` (default), the result is a "best effort automation",
+          with some limitations - in particular for timezones with daylight
+          savings. See :ref:`Examples <to_datetime_tz_examples>` section for
+          details.
 
-           - Timezone-aware datetime.datetime inputs are not supported (raise
-             ValueError).
-           - The result will be a timezone-aware Series or DatetimeIndex
-             ONLY if all time offsets in string datetime inputs are
-             identical.
-           - If all inputs are timezone-naive, the result will be
-             timezone-naive.
-           - In other cases, for example if the time offset is
-             not identical in all string entries, the result will be an Index
-             of dtype object.
-
-        See pandas general documentation about `timezone conversion and
+        See also: pandas general documentation about `timezone conversion and
         localization
         <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html
         #time-zone-handling>`_.
@@ -869,6 +859,9 @@ def to_datetime(
 
     Examples
     --------
+
+    **a. Handling various input formats**
+
     Assembling a datetime from multiple columns of a DataFrame. The keys can be
     common abbreviations like ['year', 'month', 'day', 'minute', 'second',
     'ms', 'us', 'ns']) or plurals of the same
@@ -881,20 +874,7 @@ def to_datetime(
     1   2016-03-05
     dtype: datetime64[ns]
 
-    If a date does not meet the `timestamp limitations
-    <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html
-    #timeseries-timestamp-limits>`_, passing errors='ignore'
-    will return the original input instead of raising any exception.
-
-    Passing errors='coerce' will force an out-of-bounds date to NaT,
-    in addition to forcing non-dates (or non-parseable dates) to NaT.
-
-    >>> pd.to_datetime('13000101', format='%Y%m%d', errors='ignore')
-    datetime.datetime(1300, 1, 1, 0, 0)
-    >>> pd.to_datetime('13000101', format='%Y%m%d', errors='coerce')
-    NaT
-
-    Passing infer_datetime_format=True can often-times speedup a parsing
+    Passing ``infer_datetime_format=True`` can often-times speedup a parsing
     if its not an ISO8601 format exactly, but in a regular format.
 
     >>> s = pd.Series(['3/11/2000', '3/12/2000', '3/13/2000'] * 1000)
@@ -929,62 +909,77 @@ def to_datetime(
     DatetimeIndex(['1960-01-02', '1960-01-03', '1960-01-04'],
                   dtype='datetime64[ns]', freq=None)
 
-    .. warning:: By default (utc=False), all items in an input array must
-        either be all timezone-naive, or all timezone-aware with the same
-        offset. Mixed offsets result in datetime.datetime objects being
-        returned instead, see examples below.
+    **b. Non-convertible date/times**
 
-    Default (utc=False) and timezone-naive returns timezone-naive
-    DatetimeIndex:
+    If a date does not meet the `timestamp limitations
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html
+    #timeseries-timestamp-limits>`_, passing errors='ignore'
+    will return the original input instead of raising any exception.
+
+    Passing ``errors='coerce'`` will force an out-of-bounds date to ``NaT``,
+    in addition to forcing non-dates (or non-parseable dates) to ``NaT``.
+
+    >>> pd.to_datetime('13000101', format='%Y%m%d', errors='ignore')
+    datetime.datetime(1300, 1, 1, 0, 0)
+    >>> pd.to_datetime('13000101', format='%Y%m%d', errors='coerce')
+    NaT
+
+    .. _to_datetime_tz_examples:
+
+    **c. Timezones and time offsets**
+
+    The default behaviour (``utc=False``) might be confusing concerning timezones:
+
+    - Timezone-naive inputs are converted to timezone-naive ``DatetimeIndex``:
 
     >>> pd.to_datetime(['2018-10-26 12:00', '2018-10-26 13:00:15'])
     DatetimeIndex(['2018-10-26 12:00:00', '2018-10-26 13:00:15'],
                   dtype='datetime64[ns]', freq=None)
 
-    Default (utc=False) and timezone-aware with constant offset returns
-    timezone-aware DatetimeIndex:
+    - Timezone-aware inputs *with constant time offset* are converted to
+      timezone-aware ``DatetimeIndex``:
 
     >>> pd.to_datetime(['2018-10-26 12:00 -0500', '2018-10-26 13:00 -0500'])
     DatetimeIndex(['2018-10-26 12:00:00-05:00', '2018-10-26 13:00:00-05:00'],
                   dtype='datetime64[ns, pytz.FixedOffset(-300)]', freq=None)
 
-    Default (utc=False) and timezone-aware with mixed offsets (for example from
-    a timezone with daylight savings) returns a simple Index containing
-    datetime.datetime objects:
+    - However, timezone-aware inputs *with mixed time offsets* (for example
+      issued from a timezone with daylight savings, such as Europe/Paris)
+      are **not successfully converted** to a ``DatetimeIndex``. Instead a
+      simple ``Index`` containing ``datetime.datetime`` objects is returned:
 
     >>> pd.to_datetime(['2020-10-25 02:00 +0200', '2020-10-25 04:00 +0100'])
     Index([2020-10-25 02:00:00+02:00, 2020-10-25 04:00:00+01:00],
           dtype='object')
 
-    Default (utc=False) and a mix of timezone-aware and timezone-naive returns
-    a timezone-aware DatetimeIndex if the timezone-naive are datetime...
+    - A mix of timezone-aware and timezone-naive inputs is converted to
+      a timezone-aware ``DatetimeIndex`` but only if the timezone-naive
+      elements are ``datetime.datetime``...
 
     >>> from datetime import datetime
     >>> pd.to_datetime(["2020-01-01 01:00 -01:00", datetime(2020, 1, 1, 3, 0)])
     DatetimeIndex(['2020-01-01 01:00:00-01:00', '2020-01-01 02:00:00-01:00'],
                   dtype='datetime64[ns, pytz.FixedOffset(-60)]', freq=None)
 
-    ...but does not if the timezone-naive are strings
+    - ...and not if the timezone-naive elements are strings
 
     >>> pd.to_datetime(["2020-01-01 01:00 -01:00", "2020-01-01 03:00"])
     Index([2020-01-01 01:00:00-01:00, 2020-01-01 03:00:00], dtype='object')
 
-    Special case: mixing timezone-aware string and datetime fails when
-    utc=False, even if they have the same time offset.
+    - Finally, mixing timezone-aware strings and ``datetime.datetime`` always
+      raises an error, even if the elements all have the same time offset.
 
     >>> from datetime import datetime, timezone, timedelta
     >>> d = datetime(2020, 1, 1, 18, tzinfo=timezone(-timedelta(hours=1)))
-    >>> d
-    datetime.datetime(2020, 1, 1, 18, 0,
-                      tzinfo=datetime.timezone(datetime.timedelta(days=-1,
-                                                               seconds=82800)))
     >>> pd.to_datetime(["2020-01-01 17:00 -0100", d])
     Traceback (most recent call last):
         ...
     ValueError: Tz-aware datetime.datetime cannot be converted to datetime64
                 unless utc=True
 
-    Setting utc=True solves most of the above issues, as timezone-naive
+    |
+
+    Setting ``utc=True`` solves most of the above issues, as timezone-naive
     elements will be localized to UTC, while timezone-aware ones will simply be
     converted to UTC (exact same datetime, but represented differently):
 
