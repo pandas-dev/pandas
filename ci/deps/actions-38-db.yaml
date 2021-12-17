@@ -12,7 +12,7 @@ dependencies:
   - pytest-cov>=2.10.1  # this is only needed in the coverage build, ref: GH 35737
 
   # pandas dependencies
-  - aiobotocore<2.0.0
+  - aiobotocore<2.0.0  # GH#44311 pinned to fix docbuild
   - beautifulsoup4
   - boto3
   - botocore>=1.11
