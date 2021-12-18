@@ -561,6 +561,31 @@ class TestSeriesReplace:
         expected = pd.Series(["1", "2", np.nan], dtype="string")
         tm.assert_series_equal(res, expected)
 
+        # GH#31644
+        ser2 = pd.Series(["A", np.nan], dtype="string")
+        res2 = ser2.replace("A", "B")
+        expected2 = pd.Series(["B", np.nan], dtype="string")
+        tm.assert_series_equal(res2, expected2)
+
+        ser3 = pd.Series(["A", "B"], dtype="string")
+        res3 = ser3.replace("A", pd.NA)
+        expected3 = pd.Series([pd.NA, "B"], dtype="string")
+        tm.assert_series_equal(res3, expected3)
+
+    def test_replace_string_dtype_list_to_replace(self):
+        # GH#41215, GH#44940
+        ser = pd.Series(["abc", "def"], dtype="string")
+        res = ser.replace(["abc", "any other string"], "xyz")
+        expected = pd.Series(["xyz", "def"], dtype="string")
+        tm.assert_series_equal(res, expected)
+
+    def test_replace_string_dtype_regex(self):
+        # GH#31644
+        ser = pd.Series(["A", "B"], dtype="string")
+        res = ser.replace(r".", "C", regex=True)
+        expected = pd.Series(["C", "C"], dtype="string")
+        tm.assert_series_equal(res, expected)
+
     def test_replace_nullable_numeric(self):
         # GH#40732, GH#44940
 
