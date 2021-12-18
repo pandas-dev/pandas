@@ -377,20 +377,6 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
 
         return contains(self, key, container=self._engine)
 
-    @doc(Index.fillna)
-    def fillna(self, value, downcast=None):
-        value = self._require_scalar(value)
-        try:
-            cat = self._data.fillna(value)
-        except (ValueError, TypeError):
-            # invalid fill_value
-            if not self.hasnans:
-                # nothing to fill, we can get away without casting
-                return self.copy()
-            return self.astype(object).fillna(value, downcast=downcast)
-
-        return type(self)._simple_new(cat, name=self.name)
-
     # TODO(2.0): remove reindex once non-unique deprecation is enforced
     def reindex(
         self, target, method=None, level=None, limit=None, tolerance=None

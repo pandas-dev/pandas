@@ -25,7 +25,6 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
-from pandas.api.types import is_float_dtype
 from pandas.core.api import (
     Float64Index,
     Int64Index,
@@ -81,11 +80,6 @@ class TestIndex(Base):
         tm.assert_numpy_array_equal(arr, new_index.values)
         arr[0] = "SOMEBIGLONGSTRING"
         assert new_index[0] != "SOMEBIGLONGSTRING"
-
-        # FIXME: dont leave commented-out
-        # what to do here?
-        # arr = np.array(5.)
-        # pytest.raises(Exception, arr.view, Index)
 
     @pytest.mark.parametrize("cast_as_obj", [True, False])
     @pytest.mark.parametrize(
@@ -540,11 +534,15 @@ class TestIndex(Base):
             # to match proper result coercion for uints
             expected = Index([])
         elif index._is_backward_compat_public_numeric_index:
-            if is_float_dtype(index.dtype):
-                exp_dtype = np.float64
-            else:
-                exp_dtype = np.int64
-            expected = index._constructor(np.arange(len(index), 0, -1), dtype=exp_dtype)
+            expected = index._constructor(
+                np.arange(len(index), 0, -1), dtype=index.dtype
+            )
+        elif type(index) is Index and index.dtype != object:
+            # i.e. EA-backed, for now just Nullable
+            expected = Index(np.arange(len(index), 0, -1), dtype=index.dtype)
+        elif index.dtype.kind == "u":
+            # TODO: case where e.g. we cannot hold result in UInt8?
+            expected = Index(np.arange(len(index), 0, -1), dtype=index.dtype)
         else:
             expected = Index(np.arange(len(index), 0, -1))
 
@@ -818,23 +816,25 @@ class TestIndex(Base):
             )
 
     def test_isin_nan_common_float64(self, request, nulls_fixture):
-        if nulls_fixture is pd.NaT:
-            pytest.skip("pd.NaT not compatible with Float64Index")
 
-        # Float64Index overrides isin, so must be checked separately
-        if nulls_fixture is pd.NA:
-            request.node.add_marker(
-                pytest.mark.xfail(reason="Float64Index cannot contain pd.NA")
-            )
+        if nulls_fixture is pd.NaT or nulls_fixture is pd.NA:
+            # Check 1) that we cannot construct a Float64Index with this value
+            #  and 2) that with an NaN we do not have .isin(nulls_fixture)
+            msg = "data is not compatible with Float64Index"
+            with pytest.raises(ValueError, match=msg):
+                Float64Index([1.0, nulls_fixture])
 
-        tm.assert_numpy_array_equal(
-            Float64Index([1.0, nulls_fixture]).isin([np.nan]), np.array([False, True])
-        )
+            idx = Float64Index([1.0, np.nan])
+            assert not idx.isin([nulls_fixture]).any()
+            return
+
+        idx = Float64Index([1.0, nulls_fixture])
+        res = idx.isin([np.nan])
+        tm.assert_numpy_array_equal(res, np.array([False, True]))
 
         # we cannot compare NaT with NaN
-        tm.assert_numpy_array_equal(
-            Float64Index([1.0, nulls_fixture]).isin([pd.NaT]), np.array([False, False])
-        )
+        res = idx.isin([pd.NaT])
+        tm.assert_numpy_array_equal(res, np.array([False, False]))
 
     @pytest.mark.parametrize("level", [0, -1])
     @pytest.mark.parametrize(
@@ -1260,12 +1260,18 @@ class TestMixedIntIndex(Base):
         assert index.name == "MyName"
         assert index2.name == "NewName"
 
-        index3 = index.copy(names=["NewName"])
+        with tm.assert_produces_warning(FutureWarning):
+            index3 = index.copy(names=["NewName"])
         tm.assert_index_equal(index, index3, check_names=False)
         assert index.name == "MyName"
         assert index.names == ["MyName"]
         assert index3.name == "NewName"
         assert index3.names == ["NewName"]
+
+    def test_copy_names_deprecated(self, simple_index):
+        # GH44916
+        with tm.assert_produces_warning(FutureWarning):
+            simple_index.copy(names=["a"])
 
     def test_unique_na(self):
         idx = Index([2, np.nan, 2, 1], name="my_index")
@@ -1370,9 +1376,9 @@ class TestMixedIntIndex(Base):
     @pytest.mark.filterwarnings("ignore:elementwise comparison failed:FutureWarning")
     def test_index_with_tuple_bool(self):
         # GH34123
-        # TODO: remove tupleize_cols=False once correct behaviour is restored
         # TODO: also this op right now produces FutureWarning from numpy
-        idx = Index([("a", "b"), ("b", "c"), ("c", "a")], tupleize_cols=False)
+        #  https://github.com/numpy/numpy/issues/11521
+        idx = Index([("a", "b"), ("b", "c"), ("c", "a")])
         result = idx == ("c", "a")
         expected = np.array([False, False, True])
         tm.assert_numpy_array_equal(result, expected)

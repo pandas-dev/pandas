@@ -353,7 +353,12 @@ def array(
         elif inferred_dtype == "integer":
             return IntegerArray._from_sequence(data, copy=copy)
 
-        elif inferred_dtype in ("floating", "mixed-integer-float"):
+        elif (
+            inferred_dtype in ("floating", "mixed-integer-float")
+            and getattr(data, "dtype", None) != np.float16
+        ):
+            # GH#44715 Exclude np.float16 bc FloatingArray does not support it;
+            #  we will fall back to PandasArray.
             return FloatingArray._from_sequence(data, copy=copy)
 
         elif inferred_dtype == "boolean":
@@ -523,6 +528,8 @@ def sanitize_array(
 
     # GH#846
     if isinstance(data, np.ndarray):
+        if isinstance(data, np.matrix):
+            data = data.A
 
         if dtype is not None and is_float_dtype(data.dtype) and is_integer_dtype(dtype):
             # possibility of nan -> garbage

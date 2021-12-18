@@ -85,18 +85,16 @@ class TestDataFrameTruncate:
             obj.truncate(before=3, after=9)
 
     def test_sort_values_nonsortedindex(self):
-        # TODO: belongs elsewhere?
-
         rng = date_range("2011-01-01", "2012-01-01", freq="W")
         ts = DataFrame(
             {"A": np.random.randn(len(rng)), "B": np.random.randn(len(rng))}, index=rng
         )
 
+        decreasing = ts.sort_values("A", ascending=False)
+
         msg = "truncate requires a sorted index"
         with pytest.raises(ValueError, match=msg):
-            ts.sort_values("A", ascending=False).truncate(
-                before="2011-11", after="2011-12"
-            )
+            decreasing.truncate(before="2011-11", after="2011-12")
 
     def test_truncate_nonsortedindex_axis1(self):
         # GH#17935

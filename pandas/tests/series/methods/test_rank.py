@@ -33,9 +33,9 @@ class TestSeriesRank:
         "dense": np.array([1, 3, 4, 2, np.nan, 2, 1, 5, np.nan, 3]),
     }
 
+    @td.skip_if_no_scipy
     def test_rank(self, datetime_series):
-        pytest.importorskip("scipy.stats.special")
-        rankdata = pytest.importorskip("scipy.stats.rankdata")
+        from scipy.stats import rankdata
 
         datetime_series[::2] = np.nan
         datetime_series[:10][::3] = 4.0
@@ -280,9 +280,9 @@ class TestSeriesRank:
         exp = Series([3, np.nan, 1, 4, 2], dtype="float64")
         tm.assert_series_equal(result, exp)
 
+    @td.skip_if_no_scipy
     def test_rank_methods_series(self):
-        pytest.importorskip("scipy.stats.special")
-        rankdata = pytest.importorskip("scipy.stats.rankdata")
+        from scipy.stats import rankdata
 
         xs = np.random.randn(9)
         xs = np.concatenate([xs[i:] for i in range(0, 9, 2)])  # add duplicates

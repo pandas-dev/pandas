@@ -68,6 +68,7 @@ from pandas.core.dtypes.cast import (
     can_hold_element,
     find_common_type,
     infer_dtype_from,
+    maybe_cast_pointwise_result,
     validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
@@ -876,6 +877,13 @@ class Index(IndexOpsMixin, PandasObject):
         if result is not NotImplemented:
             return result
 
+        if method == "reduce":
+            result = arraylike.dispatch_reduction_ufunc(
+                self, ufunc, method, *inputs, **kwargs
+            )
+            if result is not NotImplemented:
+                return result
+
         new_inputs = [x if x is not self else x._values for x in inputs]
         result = getattr(ufunc, method)(*new_inputs, **kwargs)
         if ufunc.nout == 2:
@@ -1058,6 +1066,8 @@ class Index(IndexOpsMixin, PandasObject):
     ):
         if kwargs:
             nv.validate_take((), kwargs)
+        if is_scalar(indices):
+            raise TypeError("Expected indices to be array-like")
         indices = ensure_platform_int(indices)
         allow_fill = self._maybe_disallow_fill(allow_fill, fill_value, indices)
 
@@ -1168,6 +1178,9 @@ class Index(IndexOpsMixin, PandasObject):
         names : list-like, optional
             Kept for compatibility with MultiIndex. Should not be used.
 
+            .. deprecated:: 1.4.0
+                use ``name`` instead.
+
         Returns
         -------
         Index
@@ -1178,6 +1191,14 @@ class Index(IndexOpsMixin, PandasObject):
         In most cases, there should be no functional difference from using
         ``deep``, but if ``deep`` is passed it will attempt to deepcopy.
         """
+        if names is not None:
+            warnings.warn(
+                "parameter names is deprecated and will be removed in a future "
+                "version. Use the name parameter instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
         name = self._validate_names(name=name, names=names, deep=deep)[0]
         if deep:
             new_data = self._data.copy()
@@ -1377,7 +1398,7 @@ class Index(IndexOpsMixin, PandasObject):
             values = values[slicer]
         return values._format_native_types(**kwargs)
 
-    def _format_native_types(self, na_rep="", quoting=None, **kwargs):
+    def _format_native_types(self, *, na_rep="", quoting=None, **kwargs):
         """
         Actually format specific types of the index.
         """
@@ -2713,13 +2734,18 @@ class Index(IndexOpsMixin, PandasObject):
         DataFrame.fillna : Fill NaN values of a DataFrame.
         Series.fillna : Fill NaN Values of a Series.
         """
+
         value = self._require_scalar(value)
         if self.hasnans:
             result = self.putmask(self._isnan, value)
             if downcast is None:
                 # no need to care metadata other than name
-                # because it can't have freq if
+                # because it can't have freq if it has NaTs
                 return Index._with_infer(result, name=self.name)
+            raise NotImplementedError(
+                f"{type(self).__name__}.fillna does not support 'downcast' "
+                "argument values other than 'None'."
+            )
         return self._view()
 
     def dropna(self: _IndexT, how: str_t = "any") -> _IndexT:
@@ -5970,6 +5996,15 @@ class Index(IndexOpsMixin, PandasObject):
             # empty
             dtype = self.dtype
 
+        # e.g. if we are floating and new_values is all ints, then we
+        #  don't want to cast back to floating.  But if we are UInt64
+        #  and new_values is all ints, we want to try.
+        same_dtype = lib.infer_dtype(new_values, skipna=False) == self.inferred_type
+        if same_dtype:
+            new_values = maybe_cast_pointwise_result(
+                new_values, self.dtype, same_dtype=same_dtype
+            )
+
         if self._is_backward_compat_public_numeric_index and is_numeric_dtype(
             new_values.dtype
         ):
@@ -7009,7 +7044,7 @@ def _maybe_cast_data_without_dtype(
             "In a future version, the Index constructor will not infer numeric "
             "dtypes when passed object-dtype sequences (matching Series behavior)",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=3,
         )
     if result.dtype.kind in ["b", "c"]:
         return subarr

@@ -390,9 +390,9 @@ def read_hdf(
 
     Examples
     --------
-    >>> df = pd.DataFrame([[1, 1.0, 'a']], columns=['x', 'y', 'z'])
-    >>> df.to_hdf('./store.h5', 'data')
-    >>> reread = pd.read_hdf('./store.h5')
+    >>> df = pd.DataFrame([[1, 1.0, 'a']], columns=['x', 'y', 'z'])  # doctest: +SKIP
+    >>> df.to_hdf('./store.h5', 'data')  # doctest: +SKIP
+    >>> reread = pd.read_hdf('./store.h5')  # doctest: +SKIP
     """
     if mode not in ["r", "r+", "a"]:
         raise ValueError(
@@ -2093,11 +2093,8 @@ class IndexCol:
             if "freq" in kwargs:
                 kwargs["freq"] = None
             new_pd_index = factory(values, **kwargs)
-
-        # error: Incompatible types in assignment (expression has type
-        # "Union[ndarray, DatetimeIndex]", variable has type "Index")
-        new_pd_index = _set_tz(new_pd_index, self.tz)  # type: ignore[assignment]
-        return new_pd_index, new_pd_index
+        final_pd_index = _set_tz(new_pd_index, self.tz)
+        return final_pd_index, final_pd_index
 
     def take_data(self):
         """return the values"""
@@ -3380,9 +3377,7 @@ class Table(Fixed):
         validate that we can store the multi-index; reset and return the
         new object
         """
-        levels = [
-            l if l is not None else f"level_{i}" for i, l in enumerate(obj.index.names)
-        ]
+        levels = com.fill_missing_names(obj.index.names)
         try:
             reset_obj = obj.reset_index()
         except ValueError as err:

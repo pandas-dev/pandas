@@ -16,7 +16,6 @@ import pandas as pd
 from pandas import (
     Categorical,
     Index,
-    IntervalIndex,
     Series,
     Timedelta,
     bdate_range,
@@ -729,13 +728,6 @@ class TestNamePreservation:
         # GH#33930 consistent name renteiton
         op = all_binary_operators
 
-        if op is ops.rfloordiv and box in [list, tuple] and not flex:
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason="op fails because of inconsistent ndarray-wrapping GH#28759"
-                )
-            )
-
         left = Series(range(10), name=names[0])
         right = Series(range(10), name=names[1])
 
@@ -835,9 +827,7 @@ class TestInplaceOperations:
 
 def test_none_comparison(series_with_simple_index):
     series = series_with_simple_index
-    if isinstance(series.index, IntervalIndex):
-        # IntervalIndex breaks on "series[0] = np.nan" below
-        pytest.skip("IntervalIndex doesn't support assignment")
+
     if len(series) < 1:
         pytest.skip("Test doesn't make sense on empty data")
 

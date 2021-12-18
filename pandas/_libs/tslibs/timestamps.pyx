@@ -307,7 +307,6 @@ cdef class _Timestamp(ABCTimestamp):
         elif not isinstance(self, _Timestamp):
             # cython semantics, args have been switched and this is __radd__
             return other.__add__(self)
-
         return NotImplemented
 
     def __sub__(self, other):
@@ -1162,7 +1161,7 @@ class Timestamp(_Timestamp):
 
         Examples
         --------
-        >>> pd.Timestamp.fromtimestamp(1584199972)
+        >>> pd.Timestamp.utcfromtimestamp(1584199972)
         Timestamp('2020-03-14 15:32:52')
         """
         return cls(datetime.utcfromtimestamp(ts))
@@ -1176,7 +1175,7 @@ class Timestamp(_Timestamp):
 
         Examples
         --------
-        >>> pd.Timestamp.utcfromtimestamp(1584199972)
+        >>> pd.Timestamp.fromtimestamp(1584199972)
         Timestamp('2020-03-14 15:32:52')
 
         Note that the output may change depending on your local time.
