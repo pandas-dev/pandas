@@ -1043,6 +1043,48 @@ class TestDatetime64Arithmetic:
     # -------------------------------------------------------------
     # Other Invalid Addition/Subtraction
 
+    # Note: freq here includes both Tick and non-Tick offsets; this is
+    #  relevant because historically integer-addition was allowed if we had
+    #  a freq.
+    @pytest.mark.parametrize("freq", ["H", "D", "W", "M", "MS", "Q", "B", None])
+    @pytest.mark.parametrize("dtype", [None, "uint8"])
+    def test_dt64arr_addsub_intlike(
+        self, dtype, box_with_array, freq, tz_naive_fixture
+    ):
+        # GH#19959, GH#19123, GH#19012
+        tz = tz_naive_fixture
+        if box_with_array is pd.DataFrame:
+            # alignment headaches
+            return
+
+        if freq is None:
+            dti = DatetimeIndex(["NaT", "2017-04-05 06:07:08"], tz=tz)
+        else:
+            dti = date_range("2016-01-01", periods=2, freq=freq, tz=tz)
+
+        obj = box_with_array(dti)
+        other = np.array([4, -1], dtype=dtype)
+
+        msg = "|".join(
+            [
+                "Addition/subtraction of integers",
+                "cannot subtract DatetimeArray from",
+                # IntegerArray
+                "can only perform ops with numeric values",
+                "unsupported operand type.*Categorical",
+            ]
+        )
+        assert_invalid_addsub_type(obj, 1, msg)
+        assert_invalid_addsub_type(obj, np.int64(2), msg)
+        assert_invalid_addsub_type(obj, np.array(3, dtype=np.int64), msg)
+        assert_invalid_addsub_type(obj, other, msg)
+        assert_invalid_addsub_type(obj, np.array(other), msg)
+        assert_invalid_addsub_type(obj, pd.array(other), msg)
+        assert_invalid_addsub_type(obj, pd.Categorical(other), msg)
+        assert_invalid_addsub_type(obj, pd.Index(other), msg)
+        assert_invalid_addsub_type(obj, pd.core.indexes.api.NumericIndex(other), msg)
+        assert_invalid_addsub_type(obj, Series(other), msg)
+
     @pytest.mark.parametrize(
         "other",
         [
@@ -1101,6 +1143,7 @@ class TestDatetime64Arithmetic:
         obj1 = tm.box_expected(obj1, box_with_array)
         obj2 = tm.box_expected(obj2, box_with_array)
 
+        # TODO: can we use assert_invalid_addsub_type?
         with warnings.catch_warnings(record=True):
             # pandas.errors.PerformanceWarning: Non-vectorized DateOffset being
             # applied to Series or DatetimeIndex
@@ -1143,6 +1186,35 @@ class TestDatetime64Arithmetic:
             )
             with pytest.raises(TypeError, match=msg):
                 obj2 + obj1
+
+    # -------------------------------------------------------------
+    # Other invalid operations
+
+    @pytest.mark.parametrize(
+        "dt64_series",
+        [
+            Series([Timestamp("19900315"), Timestamp("19900315")]),
+            Series([NaT, Timestamp("19900315")]),
+            Series([NaT, NaT], dtype="datetime64[ns]"),
+        ],
+    )
+    @pytest.mark.parametrize("one", [1, 1.0, np.array(1)])
+    def test_dt64_mul_div_numeric_invalid(self, one, dt64_series, box_with_array):
+        obj = tm.box_expected(dt64_series, box_with_array)
+
+        msg = "cannot perform .* with this index type"
+
+        # multiplication
+        with pytest.raises(TypeError, match=msg):
+            obj * one
+        with pytest.raises(TypeError, match=msg):
+            one * obj
+
+        # division
+        with pytest.raises(TypeError, match=msg):
+            obj / one
+        with pytest.raises(TypeError, match=msg):
+            one / obj
 
 
 class TestDatetime64DateOffsetArithmetic:
@@ -1867,50 +1939,6 @@ class TestTimestampSeriesArithmetic:
 
     # -------------------------------------------------------------
     # Invalid Operations
-    # TODO: this block also needs to be de-duplicated and parametrized
-
-    @pytest.mark.parametrize(
-        "dt64_series",
-        [
-            Series([Timestamp("19900315"), Timestamp("19900315")]),
-            Series([NaT, Timestamp("19900315")]),
-            Series([NaT, NaT], dtype="datetime64[ns]"),
-        ],
-    )
-    @pytest.mark.parametrize("one", [1, 1.0, np.array(1)])
-    def test_dt64_mul_div_numeric_invalid(self, one, dt64_series):
-        # multiplication
-        msg = "cannot perform .* with this index type"
-        with pytest.raises(TypeError, match=msg):
-            dt64_series * one
-        with pytest.raises(TypeError, match=msg):
-            one * dt64_series
-
-        # division
-        with pytest.raises(TypeError, match=msg):
-            dt64_series / one
-        with pytest.raises(TypeError, match=msg):
-            one / dt64_series
-
-    # TODO: parametrize over box
-    def test_dt64_series_add_intlike(self, tz_naive_fixture):
-        # GH#19123
-        tz = tz_naive_fixture
-        dti = DatetimeIndex(["2016-01-02", "2016-02-03", "NaT"], tz=tz)
-        ser = Series(dti)
-
-        other = Series([20, 30, 40], dtype="uint8")
-
-        msg = "|".join(
-            [
-                "Addition/subtraction of integers and integer-arrays",
-                "cannot subtract .* from ndarray",
-            ]
-        )
-        assert_invalid_addsub_type(ser, 1, msg)
-        assert_invalid_addsub_type(ser, other, msg)
-        assert_invalid_addsub_type(ser, np.array(other), msg)
-        assert_invalid_addsub_type(ser, pd.Index(other), msg)
 
     # -------------------------------------------------------------
     # Timezone-Centric Tests
@@ -1979,62 +2007,6 @@ class TestTimestampSeriesArithmetic:
 
 
 class TestDatetimeIndexArithmetic:
-
-    # -------------------------------------------------------------
-    # Binary operations DatetimeIndex and int
-
-    def test_dti_addsub_int(self, tz_naive_fixture, one):
-        # Variants of `one` for #19012
-        tz = tz_naive_fixture
-        rng = date_range("2000-01-01 09:00", freq="H", periods=10, tz=tz)
-        msg = "Addition/subtraction of integers"
-
-        with pytest.raises(TypeError, match=msg):
-            rng + one
-        with pytest.raises(TypeError, match=msg):
-            rng += one
-        with pytest.raises(TypeError, match=msg):
-            rng - one
-        with pytest.raises(TypeError, match=msg):
-            rng -= one
-
-    # -------------------------------------------------------------
-    # __add__/__sub__ with integer arrays
-
-    @pytest.mark.parametrize("freq", ["H", "D"])
-    @pytest.mark.parametrize("int_holder", [np.array, pd.Index])
-    def test_dti_add_intarray_tick(self, int_holder, freq):
-        # GH#19959
-        dti = date_range("2016-01-01", periods=2, freq=freq)
-        other = int_holder([4, -1])
-
-        msg = "|".join(
-            ["Addition/subtraction of integers", "cannot subtract DatetimeArray from"]
-        )
-        assert_invalid_addsub_type(dti, other, msg)
-
-    @pytest.mark.parametrize("freq", ["W", "M", "MS", "Q"])
-    @pytest.mark.parametrize("int_holder", [np.array, pd.Index])
-    def test_dti_add_intarray_non_tick(self, int_holder, freq):
-        # GH#19959
-        dti = date_range("2016-01-01", periods=2, freq=freq)
-        other = int_holder([4, -1])
-
-        msg = "|".join(
-            ["Addition/subtraction of integers", "cannot subtract DatetimeArray from"]
-        )
-        assert_invalid_addsub_type(dti, other, msg)
-
-    @pytest.mark.parametrize("int_holder", [np.array, pd.Index])
-    def test_dti_add_intarray_no_freq(self, int_holder):
-        # GH#19959
-        dti = DatetimeIndex(["2016-01-01", "NaT", "2017-04-05 06:07:08"])
-        other = int_holder([9, 4, -1])
-        msg = "|".join(
-            ["cannot subtract DatetimeArray from", "Addition/subtraction of integers"]
-        )
-        assert_invalid_addsub_type(dti, other, msg)
-
     # -------------------------------------------------------------
     # Binary operations DatetimeIndex and TimedeltaIndex/array
 

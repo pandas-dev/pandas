@@ -746,7 +746,7 @@ class TestTimedeltaArraylikeAddSubOps:
         with pytest.raises(TypeError, match=msg):
             # Passing datetime64-dtype data to TimedeltaIndex is no longer
             #  supported GH#29794
-            pd.to_timedelta(Series([NaT]))
+            pd.to_timedelta(Series([NaT]))  # TODO: belongs elsewhere?
 
         sn = pd.to_timedelta(Series([NaT], dtype="m8[ns]"))
 
@@ -755,7 +755,7 @@ class TestTimedeltaArraylikeAddSubOps:
         with pytest.raises(TypeError, match=msg):
             # Passing datetime64-dtype data to TimedeltaIndex is no longer
             #  supported GH#29794
-            DataFrame([NaT]).apply(pd.to_timedelta)
+            DataFrame([NaT]).apply(pd.to_timedelta)  # TODO: belongs elsewhere?
 
         dfn = DataFrame([NaT.value]).apply(pd.to_timedelta)
 
