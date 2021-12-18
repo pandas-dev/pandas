@@ -624,6 +624,14 @@ class TestDataFrameReplace:
         expected.iloc[1, 1] = m[1]
         tm.assert_frame_equal(result, expected)
 
+    def test_replace_nullable_int_with_string_doesnt_cast(self):
+        # GH#25438 don't cast df['a'] to float64
+        df = DataFrame({"a": [1, 2, 3, np.nan], "b": ["some", "strings", "here", "he"]})
+        df["a"] = df["a"].astype("Int64")
+
+        res = df.replace("", np.nan)
+        tm.assert_series_equal(res["a"], df["a"])
+
     @pytest.mark.parametrize("dtype", ["boolean", "Int64", "Float64"])
     def test_replace_with_nullable_column(self, dtype):
         # GH-44499
