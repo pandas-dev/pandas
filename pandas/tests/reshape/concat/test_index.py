@@ -262,5 +262,5 @@ class TestMultiIndexConcat:
         # GH#44786
         df = DataFrame({"col": ["a", "b", "c"]}, index=["1", "2", "2"])
         result = concat([df], keys=["X"])
-        assert result.index.is_unique is False
-        assert result.index.has_duplicates is True
+        assert not result.index.is_unique
+        assert result.index.has_duplicates
