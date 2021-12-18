@@ -553,3 +553,29 @@ class TestSeriesReplace:
         result = ser.replace(to_replace)
         expected = pd.Series(expected_data, dtype=dtype)
         tm.assert_series_equal(result, expected)
+
+    def test_replace_string_dtype(self):
+        # GH#40732, GH#44940
+        ser = pd.Series(["one", "two", np.nan], dtype="string")
+        res = ser.replace({"one": "1", "two": "2"})
+        expected = pd.Series(["1", "2", np.nan], dtype="string")
+        tm.assert_series_equal(res, expected)
+
+    def test_replace_nullable_numeric(self):
+        # GH#40732, GH#44940
+
+        floats = pd.Series([1.0, 2.0, 3.999, 4.4], dtype=pd.Float64Dtype())
+        assert floats.replace({1.0: 9}).dtype == floats.dtype
+        assert floats.replace(1.0, 9).dtype == floats.dtype
+        assert floats.replace({1.0: 9.0}).dtype == floats.dtype
+        assert floats.replace(1.0, 9.0).dtype == floats.dtype
+
+        res = floats.replace(to_replace=[1.0, 2.0], value=[9.0, 10.0])
+        assert res.dtype == floats.dtype
+
+        ints = pd.Series([1, 2, 3, 4], dtype=pd.Int64Dtype())
+        assert ints.replace({1: 9}).dtype == ints.dtype
+        assert ints.replace(1, 9).dtype == ints.dtype
+        assert ints.replace({1: 9.0}).dtype == ints.dtype
+        assert ints.replace(1, 9.0).dtype == ints.dtype
+        # FIXME: ints.replace({1: 9.5}) raises bc of incorrect _can_hold_element
