@@ -1646,7 +1646,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         male    low        FR         2
                            US         1
                 medium     FR         1
-        dtype: float64
+        dtype: int64
 
         >>> df.groupby('gender').value_counts(ascending=True)
         gender  education  country
