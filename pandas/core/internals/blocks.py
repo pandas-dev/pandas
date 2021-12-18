@@ -731,7 +731,7 @@ class Block(PandasObject):
         replace_regex(new_values, rx, value, mask)
 
         block = self.make_block(new_values)
-        if self.ndim == 1 or self.shape[0] == 1:
+        if (self.ndim == 1 or self.shape[0] == 1) or (self.ndim == 2 and self.shape[0] != 1):
             return block.convert(numeric=False, copy=False)
         else:
             return [block]

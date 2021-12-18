@@ -1503,3 +1503,10 @@ class TestDataFrameReplaceRegex:
 
         expected.loc[expected["a"] == ".", "a"] = expected_replace_val
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("regex", [False, True])
+    def test_replace_regex_dtype_frame(self, regex):
+        df = pd.DataFrame({"A": ["0"], "B": ["0"]})
+        expected = pd.DataFrame({"A": [1], "B": [1]})
+        result = df.replace(to_replace="0", value=1, regex=regex)
+        tm.assert_frame_equal(result, expected)
