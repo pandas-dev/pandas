@@ -792,7 +792,8 @@ def to_datetime(
     datetime
         If parsing succeeded.
         Return type depends on input (types in parenthesis correspond to
-        fallback in case of timezone issues or out-of-range timestamps):
+        fallback in case of unsuccessful timezone or out-of-range timestamp
+        parsing):
 
         - scalar: Timestamp (or datetime.datetime)
         - array-like: DatetimeIndex (or Series with object dtype containing
