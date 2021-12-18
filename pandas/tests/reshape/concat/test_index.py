@@ -257,3 +257,11 @@ class TestMultiIndexConcat:
         tm.assert_frame_equal(result_copy, expected)
         result_no_copy = concat(example_dict, names=["testname"])
         tm.assert_frame_equal(result_no_copy, expected)
+
+    def test_concat_multiindex_unique(self):
+        # GH#44786
+        df1 = DataFrame({"col": ["a", "b", "c"]}, index=["1", "2", "2"])
+        df2 = concat([df1], keys=["X"])
+        result = np.array([df2.index.is_unique])
+        expected = np.array([False])
+        tm.assert_numpy_array_equal(result, expected)
