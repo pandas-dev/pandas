@@ -1101,7 +1101,7 @@ cdef inline bint c_is_list_like(object obj, bint allow_sets) except -1:
     # first, performance short-cuts for the most common cases
     if util.is_array(obj):
         return not cnp.PyArray_IsZeroDim(obj)
-    if isinstance(obj, list):
+    elif isinstance(obj, list):
         return True
     # then the generic implementation
     return (

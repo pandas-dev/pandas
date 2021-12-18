@@ -231,6 +231,7 @@ Other enhancements
 - :meth:`UInt64Index.map` now retains ``dtype`` where possible (:issue:`44609`)
 - :meth:`read_json` can now parse unsigned long long integers (:issue:`26068`)
 - :meth:`DataFrame.take` now raises a ``TypeError`` when passed a scalar for the indexer (:issue:`42875`)
+- :meth:`is_list_like` now identifies duck-arrays as list-like unless ``.ndim == 0`` (:issue:`35131`)
 -
 
 
