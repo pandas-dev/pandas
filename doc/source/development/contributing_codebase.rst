@@ -303,7 +303,7 @@ pandas strongly encourages the use of :pep:`484` style type hints. New developme
 Style guidelines
 ~~~~~~~~~~~~~~~~
 
-Type imports should follow the ``from typing import ...`` convention. Some types do not need to be imported since :pep:`585` as some builtin constructs, such as ``list`` and ``tuple``, can directly be used for type annotations. So rather than
+Type imports should follow the ``from typing import ...`` convention. Some types do not need to be imported since :pep:`585` some builtin constructs, such as ``list`` and ``tuple``, can directly be used for type annotations. So rather than
 
 .. code-block:: python
 
@@ -337,7 +337,7 @@ You should write
 
 .. code-block:: python
 
-   from __future__ import annotations
+   from __future__ import annotations  # noqa: F404
 
    maybe_primes: list[int | None] = []
 
