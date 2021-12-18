@@ -14,7 +14,6 @@ from pandas._typing import (
     DtypeObj,
     npt,
 )
-from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import astype_nansafe
@@ -254,6 +253,10 @@ class FloatingArray(NumericArray):
                 "values should be floating numpy array. Use "
                 "the 'pd.array' function instead"
             )
+        if values.dtype == np.float16:
+            # If we don't raise here, then accessing self.dtype would raise
+            raise TypeError("FloatingArray does not support np.float16 dtype.")
+
         super().__init__(values, mask, copy=copy)
 
     @classmethod
@@ -333,43 +336,6 @@ class FloatingArray(NumericArray):
 
     def _values_for_argsort(self) -> np.ndarray:
         return self._data
-
-    def sum(self, *, skipna=True, min_count=0, axis: int | None = 0, **kwargs):
-        nv.validate_sum((), kwargs)
-        return super()._reduce("sum", skipna=skipna, min_count=min_count, axis=axis)
-
-    def prod(self, *, skipna=True, min_count=0, axis: int | None = 0, **kwargs):
-        nv.validate_prod((), kwargs)
-        return super()._reduce("prod", skipna=skipna, min_count=min_count, axis=axis)
-
-    def min(self, *, skipna=True, axis: int | None = 0, **kwargs):
-        nv.validate_min((), kwargs)
-        return super()._reduce("min", skipna=skipna, axis=axis)
-
-    def max(self, *, skipna=True, axis: int | None = 0, **kwargs):
-        nv.validate_max((), kwargs)
-        return super()._reduce("max", skipna=skipna, axis=axis)
-
-    def _maybe_mask_result(self, result, mask, other, op_name: str):
-        """
-        Parameters
-        ----------
-        result : array-like
-        mask : array-like bool
-        other : scalar or array-like
-        op_name : str
-        """
-        # TODO are there cases we don't end up with float?
-        # if we have a float operand we are by-definition
-        # a float result
-        # or our op is a divide
-        # if (is_float_dtype(other) or is_float(other)) or (
-        #     op_name in ["rtruediv", "truediv"]
-        # ):
-        #     result[mask] = np.nan
-        #     return result
-
-        return type(self)(result, mask, copy=False)
 
 
 _dtype_docstring = """

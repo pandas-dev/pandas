@@ -360,7 +360,7 @@ def test_apply_frame_not_as_index_column_name(df):
     grouped = df.groupby(["A", "B"], as_index=False)
     result = grouped.apply(len)
     expected = grouped.count().rename(columns={"C": np.nan}).drop(columns="D")
-    # TODO: Use assert_frame_equal when column name is not np.nan (GH 36306)
+    # TODO(GH#34306): Use assert_frame_equal when column name is not np.nan
     tm.assert_index_equal(result.index, expected.index)
     tm.assert_numpy_array_equal(result.values, expected.values)
 
@@ -1134,9 +1134,8 @@ def test_positional_slice_groups_datetimelike():
     tm.assert_frame_equal(result, expected)
 
 
-def test_doctest_example2():
+def test_groupby_apply_shape_cache_safety():
     # GH#42702 this fails if we cache_readonly Block.shape
-    # TODO: more informative name
     df = DataFrame({"A": ["a", "a", "b"], "B": [1, 2, 3], "C": [4, 6, 5]})
     gb = df.groupby("A")
     result = gb[["B", "C"]].apply(lambda x: x.astype(float).max() - x.min())
@@ -1176,5 +1175,27 @@ def test_apply_empty_string_nan_coerce_bug():
         [[1, "", pd.to_datetime(2, unit="s")], [2, "", pd.to_datetime(4, unit="s")]],
         columns=["a", "b", "c"],
         index=MultiIndex.from_tuples([(1, ""), (2, "")], names=["a", "b"]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("index_values", [[1, 2, 3], [1.0, 2.0, 3.0]])
+def test_apply_index_key_error_bug(index_values):
+    # GH 44310
+    result = DataFrame(
+        {
+            "a": ["aa", "a2", "a3"],
+            "b": [1, 2, 3],
+        },
+        index=Index(index_values),
+    )
+    expected = DataFrame(
+        {
+            "b_mean": [2.0, 3.0, 1.0],
+        },
+        index=Index(["a2", "a3", "aa"], name="a"),
+    )
+    result = result.groupby("a").apply(
+        lambda df: Series([df["b"].mean()], index=["b_mean"])
     )
     tm.assert_frame_equal(result, expected)

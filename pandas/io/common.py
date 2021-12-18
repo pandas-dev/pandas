@@ -6,7 +6,6 @@ import codecs
 from collections import abc
 import dataclasses
 import gzip
-import io
 from io import (
     BufferedIOBase,
     BytesIO,
@@ -18,7 +17,6 @@ from io import (
 import mmap
 import os
 from pathlib import Path
-import tempfile
 from typing import (
     IO,
     Any,
@@ -104,7 +102,7 @@ class IOHandles(Generic[AnyStr]):
         avoid closing the potentially user-created buffer.
         """
         if self.is_wrapped:
-            assert isinstance(self.handle, (TextIOWrapper, BytesIOWrapper))
+            assert isinstance(self.handle, TextIOWrapper)
             self.handle.flush()
             self.handle.detach()
             self.created_handles.remove(self.handle)
@@ -779,20 +777,17 @@ def get_handle(
     # Convert BytesIO or file objects passed with an encoding
     is_wrapped = False
     if not is_text and ioargs.mode == "rb" and isinstance(handle, TextIOBase):
-        handle = BytesIOWrapper(
+        # not added to handles as it does not open/buffer resources
+        handle = _BytesIOWrapper(
             handle,
             encoding=ioargs.encoding,
         )
-        handles.append(handle)
-        # the (text) handle is always provided by the caller
-        # since get_handle would have opened it in binary mode
-        is_wrapped = True
     elif is_text and (compression or _is_binary_mode(handle, ioargs.mode)):
         handle = TextIOWrapper(
             # error: Argument 1 to "TextIOWrapper" has incompatible type
             # "Union[IO[bytes], IO[Any], RawIOBase, BufferedIOBase, TextIOBase, mmap]";
             # expected "IO[bytes]"
-            handle,  # type: ignore[arg-type]
+            _IOWrapper(handle),  # type: ignore[arg-type]
             encoding=ioargs.encoding,
             errors=errors,
             newline="",
@@ -935,7 +930,7 @@ class _MMapWrapper(abc.Iterator):
         self.decode = decode
 
         self.attributes = {}
-        for attribute in ("seekable", "readable", "writeable"):
+        for attribute in ("seekable", "readable"):
             if not hasattr(f, attribute):
                 continue
             self.attributes[attribute] = getattr(f, attribute)()
@@ -976,11 +971,40 @@ class _MMapWrapper(abc.Iterator):
         return newline.lstrip("\n")
 
 
-# Wrapper that wraps a StringIO buffer and reads bytes from it
-# Created for compat with pyarrow read_csv
-class BytesIOWrapper(io.BytesIO):
-    buffer: StringIO | TextIOBase | None
+class _IOWrapper:
+    # TextIOWrapper is overly strict: it request that the buffer has seekable, readable,
+    # and writable. If we have a read-only buffer, we shouldn't need writable and vice
+    # versa. Some buffers, are seek/read/writ-able but they do not have the "-able"
+    # methods, e.g., tempfile.SpooledTemporaryFile.
+    # If a buffer does not have the above "-able" methods, we simple assume they are
+    # seek/read/writ-able.
+    def __init__(self, buffer: BaseBuffer):
+        self.buffer = buffer
 
+    def __getattr__(self, name: str):
+        return getattr(self.buffer, name)
+
+    def readable(self) -> bool:
+        if hasattr(self.buffer, "readable"):
+            # error: "BaseBuffer" has no attribute "readable"
+            return self.buffer.readable()  # type: ignore[attr-defined]
+        return True
+
+    def seekable(self) -> bool:
+        if hasattr(self.buffer, "seekable"):
+            return self.buffer.seekable()
+        return True
+
+    def writable(self) -> bool:
+        if hasattr(self.buffer, "writable"):
+            # error: "BaseBuffer" has no attribute "writable"
+            return self.buffer.writable()  # type: ignore[attr-defined]
+        return True
+
+
+class _BytesIOWrapper:
+    # Wrapper that wraps a StringIO buffer and reads bytes from it
+    # Created for compat with pyarrow read_csv
     def __init__(self, buffer: StringIO | TextIOBase, encoding: str = "utf-8"):
         self.buffer = buffer
         self.encoding = encoding
@@ -1005,15 +1029,6 @@ class BytesIOWrapper(io.BytesIO):
             to_return = combined_bytestring[:n]
             self.overflow = combined_bytestring[n:]
             return to_return
-
-    def detach(self):
-        # Slightly modified from Python's TextIOWrapper detach method
-        if self.buffer is None:
-            raise ValueError("buffer is already detached")
-        self.flush()
-        buffer = self.buffer
-        self.buffer = None
-        return buffer
 
 
 def _maybe_memory_map(
@@ -1040,26 +1055,20 @@ def _maybe_memory_map(
             handle = open(handle, mode)
         handles.append(handle)
 
+    # error: Argument 1 to "_MMapWrapper" has incompatible type "Union[IO[Any],
+    # RawIOBase, BufferedIOBase, TextIOBase, mmap]"; expected "IO[Any]"
     try:
-        # error: Argument 1 to "_MMapWrapper" has incompatible type "Union[IO[Any],
-        # RawIOBase, BufferedIOBase, TextIOBase, mmap]"; expected "IO[Any]"
         wrapped = cast(
             BaseBuffer,
             _MMapWrapper(handle, encoding, errors, decode),  # type: ignore[arg-type]
         )
-        # error: "BaseBuffer" has no attribute "close"
-        handle.close()  # type: ignore[attr-defined]
-        handles.remove(handle)
-        handles.append(wrapped)
-        handle = wrapped
-    except Exception:
-        # we catch any errors that may have occurred
-        # because that is consistent with the lower-level
-        # functionality of the C engine (pd.read_csv), so
-        # leave the file handler as is then
-        memory_map = False
+    finally:
+        for handle in reversed(handles):
+            # error: "BaseBuffer" has no attribute "close"
+            handle.close()  # type: ignore[attr-defined]
+    handles.append(wrapped)
 
-    return handle, memory_map, handles
+    return wrapped, memory_map, handles
 
 
 def file_exists(filepath_or_buffer: FilePath | BaseBuffer) -> bool:
@@ -1088,8 +1097,6 @@ def _is_binary_mode(handle: FilePath | BaseBuffer, mode: str) -> bool:
         codecs.StreamWriter,
         codecs.StreamReader,
         codecs.StreamReaderWriter,
-        # cannot be wrapped in TextIOWrapper GH43439
-        tempfile.SpooledTemporaryFile,
     )
     if issubclass(type(handle), text_classes):
         return False

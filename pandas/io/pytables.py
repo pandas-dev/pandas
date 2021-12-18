@@ -390,9 +390,9 @@ def read_hdf(
 
     Examples
     --------
-    >>> df = pd.DataFrame([[1, 1.0, 'a']], columns=['x', 'y', 'z'])
-    >>> df.to_hdf('./store.h5', 'data')
-    >>> reread = pd.read_hdf('./store.h5')
+    >>> df = pd.DataFrame([[1, 1.0, 'a']], columns=['x', 'y', 'z'])  # doctest: +SKIP
+    >>> df.to_hdf('./store.h5', 'data')  # doctest: +SKIP
+    >>> reread = pd.read_hdf('./store.h5')  # doctest: +SKIP
     """
     if mode not in ["r", "r+", "a"]:
         raise ValueError(
@@ -3377,9 +3377,7 @@ class Table(Fixed):
         validate that we can store the multi-index; reset and return the
         new object
         """
-        levels = [
-            l if l is not None else f"level_{i}" for i, l in enumerate(obj.index.names)
-        ]
+        levels = com.fill_missing_names(obj.index.names)
         try:
             reset_obj = obj.reset_index()
         except ValueError as err:

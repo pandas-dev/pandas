@@ -1102,7 +1102,7 @@ class DataFrame(NDFrame, OpsMixin):
         ...
 
     @Substitution(
-        header_type="bool or sequence of strings",
+        header_type="bool or sequence of str",
         header="Write out the column names. If a list of strings "
         "is given, it is assumed to be aliases for the "
         "column names",
@@ -2370,11 +2370,7 @@ class DataFrame(NDFrame, OpsMixin):
             index_names = list(self.index.names)
 
             if isinstance(self.index, MultiIndex):
-                count = 0
-                for i, n in enumerate(index_names):
-                    if n is None:
-                        index_names[i] = f"level_{count}"
-                        count += 1
+                index_names = com.fill_missing_names(index_names)
             elif index_names[0] is None:
                 index_names = ["index"]
 
@@ -4333,27 +4329,18 @@ class DataFrame(NDFrame, OpsMixin):
 
         # convert the myriad valid dtypes object to a single representation
         def check_int_infer_dtype(dtypes):
-            converted_dtypes = []
+            converted_dtypes: list[type] = []
             for dtype in dtypes:
                 # Numpy maps int to different types (int32, in64) on Windows and Linux
                 # see https://github.com/numpy/numpy/issues/9464
                 if (isinstance(dtype, str) and dtype == "int") or (dtype is int):
                     converted_dtypes.append(np.int32)
-                    # error: Argument 1 to "append" of "list" has incompatible type
-                    # "Type[signedinteger[Any]]"; expected "Type[signedinteger[Any]]"
-                    converted_dtypes.append(np.int64)  # type: ignore[arg-type]
+                    converted_dtypes.append(np.int64)
                 elif dtype == "float" or dtype is float:
                     # GH#42452 : np.dtype("float") coerces to np.float64 from Numpy 1.20
-                    converted_dtypes.extend(
-                        [np.float64, np.float32]  # type: ignore[list-item]
-                    )
+                    converted_dtypes.extend([np.float64, np.float32])
                 else:
-                    # error: Argument 1 to "append" of "list" has incompatible type
-                    # "Union[dtype[Any], ExtensionDtype]"; expected
-                    # "Type[signedinteger[Any]]"
-                    converted_dtypes.append(
-                        infer_dtype_from_object(dtype)  # type: ignore[arg-type]
-                    )
+                    converted_dtypes.append(infer_dtype_from_object(dtype))
             return frozenset(converted_dtypes)
 
         include = check_int_infer_dtype(include)
@@ -5088,7 +5075,7 @@ class DataFrame(NDFrame, OpsMixin):
         2  2  5
         4  3  6
         """
-        return super().rename(
+        return super()._rename(
             mapper=mapper,
             index=index,
             columns=columns,
@@ -5805,10 +5792,7 @@ class DataFrame(NDFrame, OpsMixin):
         if not drop:
             to_insert: Iterable[tuple[Any, Any | None]]
             if isinstance(self.index, MultiIndex):
-                names = [
-                    (n if n is not None else f"level_{i}")
-                    for i, n in enumerate(self.index.names)
-                ]
+                names = com.fill_missing_names(self.index.names)
                 to_insert = zip(self.index.levels, self.index.codes)
             else:
                 default = "index" if "index" not in self else "level_0"
@@ -6007,14 +5991,15 @@ class DataFrame(NDFrame, OpsMixin):
                 raise KeyError(np.array(subset)[check].tolist())
             agg_obj = self.take(indices, axis=agg_axis)
 
-        count = agg_obj.count(axis=agg_axis)
-
         if thresh is not None:
+            count = agg_obj.count(axis=agg_axis)
             mask = count >= thresh
         elif how == "any":
-            mask = count == len(agg_obj._get_axis(agg_axis))
+            # faster equivalent to 'agg_obj.count(agg_axis) == self.shape[agg_axis]'
+            mask = notna(agg_obj).all(axis=agg_axis, bool_only=False)
         elif how == "all":
-            mask = count > 0
+            # faster equivalent to 'agg_obj.count(agg_axis) > 0'
+            mask = notna(agg_obj).any(axis=agg_axis, bool_only=False)
         else:
             if how is not None:
                 raise ValueError(f"invalid how option: {how}")
@@ -6799,7 +6784,8 @@ class DataFrame(NDFrame, OpsMixin):
             'columns' for column-wise."""
         ),
         examples=dedent(
-            """Examples
+            """\
+        Examples
         --------
         >>> df = pd.DataFrame(
         ...     {"Grade": ["A", "B", "A", "C"]},
@@ -9192,6 +9178,29 @@ NaN 12.3   33.0
         3  K3  A3  NaN
         4  K4  A4  NaN
         5  K5  A5  NaN
+
+        Using non-unique key values shows how they are matched.
+
+        >>> df = pd.DataFrame({'key': ['K0', 'K1', 'K1', 'K3', 'K0', 'K1'],
+        ...                    'A': ['A0', 'A1', 'A2', 'A3', 'A4', 'A5']})
+
+        >>> df
+          key   A
+        0  K0  A0
+        1  K1  A1
+        2  K1  A2
+        3  K3  A3
+        4  K0  A4
+        5  K1  A5
+
+        >>> df.join(other.set_index('key'), on='key')
+          key   A    B
+        0  K0  A0   B0
+        1  K1  A1   B1
+        2  K1  A2   B1
+        3  K3  A3  NaN
+        4  K0  A4   B0
+        5  K1  A5   B1
         """
         return self._join_compat(
             other, on=on, how=how, lsuffix=lsuffix, rsuffix=rsuffix, sort=sort
@@ -10019,6 +10028,34 @@ NaN 12.3   33.0
 
         result = self._constructor_sliced(result, index=labels)
         return result
+
+    def _reduce_axis1(self, name: str, func, skipna: bool) -> Series:
+        """
+        Special case for _reduce to try to avoid a potentially-expensive transpose.
+
+        Apply the reduction block-wise along axis=1 and then reduce the resulting
+        1D arrays.
+        """
+        if name == "all":
+            result = np.ones(len(self), dtype=bool)
+            ufunc = np.logical_and
+        elif name == "any":
+            result = np.zeros(len(self), dtype=bool)
+            # error: Incompatible types in assignment
+            # (expression has type "_UFunc_Nin2_Nout1[Literal['logical_or'],
+            # Literal[20], Literal[False]]", variable has type
+            # "_UFunc_Nin2_Nout1[Literal['logical_and'], Literal[20],
+            # Literal[True]]")
+            ufunc = np.logical_or  # type: ignore[assignment]
+        else:
+            raise NotImplementedError(name)
+
+        for arr in self._mgr.arrays:
+            middle = func(arr, axis=0, skipna=skipna)
+            result = ufunc(result, middle)
+
+        res_ser = self._constructor_sliced(result, index=self.index)
+        return res_ser
 
     def nunique(self, axis: Axis = 0, dropna: bool = True) -> Series:
         """
@@ -10857,7 +10894,7 @@ NaN 12.3   33.0
     def where(
         self,
         cond,
-        other=np.nan,
+        other=lib.no_default,
         inplace=False,
         axis=None,
         level=None,

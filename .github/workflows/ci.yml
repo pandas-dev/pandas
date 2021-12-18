@@ -78,6 +78,40 @@ jobs:
       run: pytest scripts
       if: always()
 
+  benchmarks:
+    name: Benchmarks
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    concurrency:
+      # https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-benchmarks
+      cancel-in-progress: true
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    - name: Cache conda
+      uses: actions/cache@v2
+      with:
+        path: ~/conda_pkgs_dir
+        key: ${{ runner.os }}-conda-${{ hashFiles('${{ env.ENV_FILE }}') }}
+
+    - uses: conda-incubator/setup-miniconda@v2
+      with:
+        activate-environment: pandas-dev
+        channel-priority: strict
+        environment-file: ${{ env.ENV_FILE }}
+        use-only-tar-bz2: true
+
+    - name: Build Pandas
+      uses: ./.github/actions/build_pandas
+
     - name: Running benchmarks
       run: |
         cd asv_bench
@@ -162,6 +196,14 @@ jobs:
   data_manager:
     name: Test experimental data manager
     runs-on: ubuntu-latest
+    services:
+      moto:
+        image: motoserver/moto
+        env:
+          AWS_ACCESS_KEY_ID: foobar_key
+          AWS_SECRET_ACCESS_KEY: foobar_secret
+        ports:
+          - 5000:5000
     strategy:
       matrix:
         pattern: ["not slow and not network and not clipboard", "slow"]
