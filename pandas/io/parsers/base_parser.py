@@ -391,7 +391,9 @@ class ParserBase:
             return tuple(r[i] for i in range(field_count) if i not in sic)
 
         columns = list(zip(*(extract(r) for r in header)))
-        names = ic + columns
+        names = columns.copy()
+        for single_ic in sorted(ic):
+            names.insert(single_ic, single_ic)
 
         # If we find unnamed columns all in a single
         # level, then our header was too long.
@@ -406,7 +408,9 @@ class ParserBase:
         # Clean the column names (if we have an index_col).
         if len(ic):
             col_names = [
-                r[0] if ((r[0] is not None) and r[0] not in self.unnamed_cols) else None
+                r[ic[0]]
+                if ((r[ic[0]] is not None) and r[ic[0]] not in self.unnamed_cols)
+                else None
                 for r in header
             ]
         else:
