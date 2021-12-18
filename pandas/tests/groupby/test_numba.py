@@ -24,6 +24,7 @@ class TestEngine:
             engine="numba", engine_kwargs=engine_kwargs, **kwargs
         )
         expected = getattr(gb, func)(**kwargs)
+        # check_dtype can be removed if GH 44952 is addressed
         check_dtype = func != "sum"
         tm.assert_frame_equal(result, expected, check_dtype=check_dtype)
 
@@ -38,6 +39,7 @@ class TestEngine:
             engine="numba", engine_kwargs=engine_kwargs, **kwargs
         )
         expected = getattr(gb, func)(**kwargs)
+        # check_dtype can be removed if GH 44952 is addressed
         check_dtype = func != "sum"
         tm.assert_series_equal(result, expected, check_dtype=check_dtype)
 
@@ -52,6 +54,7 @@ class TestEngine:
             engine="numba", engine_kwargs=engine_kwargs, **kwargs
         )
         expected = getattr(gb, func)(**kwargs)
+        # check_dtype can be removed if GH 44952 is addressed
         check_dtype = func != "sum"
         tm.assert_series_equal(result, expected, check_dtype=check_dtype)
 
