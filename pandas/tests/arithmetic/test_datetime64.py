@@ -1143,49 +1143,20 @@ class TestDatetime64Arithmetic:
         obj1 = tm.box_expected(obj1, box_with_array)
         obj2 = tm.box_expected(obj2, box_with_array)
 
-        # TODO: can we use assert_invalid_addsub_type?
+        msg = "|".join(
+            [
+                "unsupported operand",
+                "cannot subtract DatetimeArray from ndarray",
+            ]
+        )
+
         with warnings.catch_warnings(record=True):
             # pandas.errors.PerformanceWarning: Non-vectorized DateOffset being
             # applied to Series or DatetimeIndex
             # we aren't testing that here, so ignore.
             warnings.simplefilter("ignore", PerformanceWarning)
 
-            # If `x + y` raises, then `y + x` should raise here as well
-
-            msg = (
-                r"unsupported operand type\(s\) for -: "
-                "'(Timestamp|DatetimeArray)' and 'datetime.time'"
-            )
-            with pytest.raises(TypeError, match=msg):
-                obj1 - obj2
-
-            msg = "|".join(
-                [
-                    "cannot subtract DatetimeArray from ndarray",
-                    "ufunc (subtract|'subtract') cannot use operands with types "
-                    r"dtype\('O'\) and dtype\('<M8\[ns\]'\)",
-                ]
-            )
-            with pytest.raises(TypeError, match=msg):
-                obj2 - obj1
-
-            msg = (
-                r"unsupported operand type\(s\) for \+: "
-                "'(Timestamp|DatetimeArray)' and 'datetime.time'"
-            )
-            with pytest.raises(TypeError, match=msg):
-                obj1 + obj2
-
-            msg = "|".join(
-                [
-                    r"unsupported operand type\(s\) for \+: "
-                    "'(Timestamp|DatetimeArray)' and 'datetime.time'",
-                    "ufunc (add|'add') cannot use operands with types "
-                    r"dtype\('O'\) and dtype\('<M8\[ns\]'\)",
-                ]
-            )
-            with pytest.raises(TypeError, match=msg):
-                obj2 + obj1
+            assert_invalid_addsub_type(obj1, obj2, msg=msg)
 
     # -------------------------------------------------------------
     # Other invalid operations
