@@ -516,7 +516,7 @@ class TestSeriesReplace:
         tm.assert_series_equal(result, exp)
 
     @pytest.mark.parametrize("regex", [False, True])
-    def test_replace_regex_dtype(self, regex):
+    def test_replace_regex_dtype_series(self, regex):
         # GH-48644
         series = pd.Series(["0"])
         expected = pd.Series([1])

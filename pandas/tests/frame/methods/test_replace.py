@@ -1506,7 +1506,13 @@ class TestDataFrameReplaceRegex:
 
     @pytest.mark.parametrize("regex", [False, True])
     def test_replace_regex_dtype_frame(self, regex):
-        df = DataFrame({"A": ["0"], "B": ["0"]})
-        expected = DataFrame({"A": [1], "B": [1]})
-        result = df.replace(to_replace="0", value=1, regex=regex)
-        tm.assert_frame_equal(result, expected)
+        # GH-48644
+        df1 = DataFrame({"A": ["0"], "B": ["0"]})
+        expected_df1 = DataFrame({"A": [1], "B": [1]})
+        result_df1 = df1.replace(to_replace="0", value=1, regex=regex)
+        tm.assert_frame_equal(result_df1, expected_df1)
+
+        df2 = DataFrame({"A": ["0"], "B": [np.NaN]})
+        expected_df2 = DataFrame({"A": [1], "B": [np.NaN]})
+        result_df2 = df2.replace(to_replace="0", value=1, regex=regex)
+        tm.assert_frame_equal(result_df2, expected_df2)
