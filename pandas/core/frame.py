@@ -8642,28 +8642,7 @@ NaN 12.3   33.0
 
     agg = aggregate
 
-    @overload
-    def any(
-        self: DataFrame,
-        axis: Axis = ...,
-        bool_only: bool | None = ...,
-        skipna: bool = ...,
-        level: None = ...,
-        **kwargs,
-    ) -> Series:
-        ...
-
-    @overload
-    def any(
-        self: DataFrame,
-        axis: Axis = ...,
-        bool_only: bool | None = ...,
-        skipna: bool = ...,
-        level: Level = ...,
-        **kwargs,
-    ) -> DataFrame:
-        ...
-
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     @doc(NDFrame.any, **_shared_doc_kwargs)
     def any(
         self: DataFrame,

@@ -4258,28 +4258,7 @@ Keep all original rows and also all original values
 
     agg = aggregate
 
-    @overload
-    def any(
-        self: Series,
-        axis: Axis = ...,
-        bool_only: bool | None = ...,
-        skipna: bool = ...,
-        level: None = ...,
-        **kwargs,
-    ) -> bool:
-        ...
-
-    @overload
-    def any(
-        self: Series,
-        axis: Axis = ...,
-        bool_only: bool | None = ...,
-        skipna: bool = ...,
-        level: Level = ...,
-        **kwargs,
-    ) -> Series:
-        ...
-
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     @doc(NDFrame.any, **_shared_doc_kwargs)
     def any(
         self: Series,
