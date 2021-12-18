@@ -738,7 +738,7 @@ class TestCategoricalConstructors:
 
         result = Categorical._from_sequence(cat, dtype=None, copy=True)
 
-        assert not np.shares_memory(result._codes, cat._codes)
+        assert not tm.shares_memory(result, cat)
 
     @pytest.mark.xfail(
         not IS64 or is_platform_windows(),

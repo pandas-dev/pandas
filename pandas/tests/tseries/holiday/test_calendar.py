@@ -85,7 +85,7 @@ def test_calendar_observance_dates():
 
 def test_rule_from_name():
     us_fed_cal = get_calendar("USFederalHolidayCalendar")
-    assert us_fed_cal.rule_from_name("Thanksgiving") == USThanksgivingDay
+    assert us_fed_cal.rule_from_name("Thanksgiving Day") == USThanksgivingDay
 
 
 def test_calendar_2031():

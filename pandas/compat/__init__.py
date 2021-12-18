@@ -9,13 +9,10 @@ Other items:
 """
 import platform
 import sys
-import warnings
 
 from pandas._typing import F
 from pandas.compat.numpy import (
     is_numpy_dev,
-    np_array_datetime64_compat,
-    np_datetime64_compat,
     np_version_under1p19,
     np_version_under1p20,
 )
@@ -104,27 +101,7 @@ def is_platform_arm() -> bool:
     )
 
 
-def import_lzma():
-    """
-    Importing the `lzma` module.
-
-    Warns
-    -----
-    When the `lzma` module is not available.
-    """
-    try:
-        import lzma
-
-        return lzma
-    except ImportError:
-        msg = (
-            "Could not import the lzma module. Your installed Python is incomplete. "
-            "Attempting to use lzma compression will result in a RuntimeError."
-        )
-        warnings.warn(msg)
-
-
-def get_lzma_file(lzma):
+def get_lzma_file():
     """
     Importing the `LZMAFile` class from the `lzma` module.
 
@@ -138,7 +115,9 @@ def get_lzma_file(lzma):
     RuntimeError
         If the `lzma` module was not imported correctly, or didn't exist.
     """
-    if lzma is None:
+    try:
+        import lzma
+    except ImportError:
         raise RuntimeError(
             "lzma module not available. "
             "A Python re-install with the proper dependencies, "
@@ -149,8 +128,6 @@ def get_lzma_file(lzma):
 
 __all__ = [
     "is_numpy_dev",
-    "np_array_datetime64_compat",
-    "np_datetime64_compat",
     "np_version_under1p19",
     "np_version_under1p20",
     "pa_version_under1p01",
