@@ -19,7 +19,6 @@ import pytz
 
 from pandas._libs.tslibs.conversion import localize_pydatetime
 from pandas._libs.tslibs.offsets import shift_months
-from pandas.compat import np_datetime64_compat
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
@@ -229,10 +228,6 @@ class TestDatetime64SeriesComparison:
     @pytest.mark.parametrize("dtype", [None, object])
     def test_nat_comparisons_scalar(self, dtype, data, box_with_array):
         box = box_with_array
-        if box_with_array is tm.to_array and dtype is object:
-            # dont bother testing ndarray comparison methods as this fails
-            #  on older numpys (since they check object identity)
-            return
 
         left = Series(data, dtype=dtype)
         left = tm.box_expected(left, box)
@@ -434,10 +429,6 @@ class TestDatetimeIndexComparisons:
 
     @pytest.mark.parametrize("dtype", [None, object])
     def test_dti_cmp_nat(self, dtype, box_with_array):
-        if box_with_array is tm.to_array and dtype is object:
-            # dont bother testing ndarray comparison methods as this fails
-            #  on older numpys (since they check object identity)
-            return
 
         left = DatetimeIndex([Timestamp("2011-01-01"), NaT, Timestamp("2011-01-03")])
         right = DatetimeIndex([NaT, NaT, Timestamp("2011-01-03")])
@@ -487,12 +478,12 @@ class TestDatetimeIndexComparisons:
         )
         darr = np.array(
             [
-                np_datetime64_compat("2014-02-01 00:00Z"),
-                np_datetime64_compat("2014-03-01 00:00Z"),
-                np_datetime64_compat("nat"),
+                np.datetime64("2014-02-01 00:00"),
+                np.datetime64("2014-03-01 00:00"),
                 np.datetime64("nat"),
-                np_datetime64_compat("2014-06-01 00:00Z"),
-                np_datetime64_compat("2014-07-01 00:00Z"),
+                np.datetime64("nat"),
+                np.datetime64("2014-06-01 00:00"),
+                np.datetime64("2014-07-01 00:00"),
             ]
         )
 

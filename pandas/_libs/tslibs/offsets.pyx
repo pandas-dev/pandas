@@ -186,8 +186,9 @@ def apply_wraps(func):
         if self.normalize:
             result = result.normalize()
 
-        # nanosecond may be deleted depending on offset process
-        if not self.normalize and nano != 0:
+        # If the offset object does not have a nanoseconds component,
+        # the result's nanosecond component may be lost.
+        if not self.normalize and nano != 0 and not hasattr(self, "nanoseconds"):
             if result.nanosecond != nano:
                 if result.tz is not None:
                     # convert to UTC
@@ -333,7 +334,7 @@ cdef _determine_offset(kwds):
             # sub-daily offset - use timedelta (tz-aware)
             offset = timedelta(**kwds_no_nanos)
     else:
-        offset = timedelta(1)
+        offset = timedelta(0)
     return offset, use_relativedelta
 
 
@@ -1068,12 +1069,17 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 # perform calculation in UTC
                 other = other.replace(tzinfo=None)
 
+            if hasattr(self, "nanoseconds"):
+                td_nano = Timedelta(nanoseconds=self.nanoseconds)
+            else:
+                td_nano = Timedelta(0)
+
             if self.n > 0:
                 for i in range(self.n):
-                    other = other + self._offset
+                    other = other + self._offset + td_nano
             else:
                 for i in range(-self.n):
-                    other = other - self._offset
+                    other = other - self._offset - td_nano
 
             if tzinfo is not None and self._use_relativedelta:
                 # bring tz back from UTC calculation
@@ -3573,7 +3579,7 @@ cpdef to_offset(freq):
 
     Parameters
     ----------
-    freq : str, tuple, datetime.timedelta, DateOffset or None
+    freq : str, datetime.timedelta, BaseOffset or None
 
     Returns
     -------
@@ -3586,7 +3592,7 @@ cpdef to_offset(freq):
 
     See Also
     --------
-    DateOffset : Standard kind of date increment used for a date range.
+    BaseOffset : Standard kind of date increment used for a date range.
 
     Examples
     --------

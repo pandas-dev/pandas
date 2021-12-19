@@ -299,17 +299,16 @@ def test_readcsv_memmap_utf8(all_parsers):
     tm.assert_frame_equal(df, dfr)
 
 
-def test_not_readable(all_parsers, request):
+@pytest.mark.usefixtures("pyarrow_xfail")
+@pytest.mark.parametrize("mode", ["w+b", "w+t"])
+def test_not_readable(all_parsers, mode):
     # GH43439
     parser = all_parsers
-    if parser.engine in ("python", "pyarrow"):
-        mark = pytest.mark.xfail(
-            reason="SpooledTemporaryFile does only work with the c-engine"
-        )
-        request.node.add_marker(mark)
-
-    with tempfile.SpooledTemporaryFile() as handle:
-        handle.write(b"abcd")
+    content = b"abcd"
+    if "t" in mode:
+        content = "abcd"
+    with tempfile.SpooledTemporaryFile(mode=mode) as handle:
+        handle.write(content)
         handle.seek(0)
         df = parser.read_csv(handle)
     expected = DataFrame([], columns=["abcd"])
