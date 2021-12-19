@@ -2103,7 +2103,11 @@ def to_native_types(
     values = ensure_wrapped_if_datetimelike(values)
 
     if isinstance(values, (DatetimeArray, TimedeltaArray)):
-        # GH#21734 Process every column separate, they migh have different formats
+        if values.ndim == 1:
+            result = values._format_native_types(na_rep=na_rep, **kwargs)
+            result = result.astype(object, copy=False)
+            return result
+        # GH#21734 Process every column separately, they might have different formats
         results_converted = []
         for i in range(len(values)):
             result = values[i, :]._format_native_types(na_rep=na_rep, **kwargs)
