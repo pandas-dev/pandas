@@ -217,7 +217,7 @@ class TestSorting:
         result = nargsort(
             items, kind="mergesort", ascending=ascending, na_position=na_position
         )
-        tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.int64))
+        tm.assert_numpy_array_equal(result, np.array(exp), check_dtype=False)
 
 
 class TestMerge:
