@@ -23,6 +23,7 @@ from pandas._config.localization import (  # noqa:F401
     can_set_locale,
     get_locales,
     set_locale,
+    utf8_locales,
 )
 
 from pandas._typing import Dtype

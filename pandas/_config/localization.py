@@ -164,3 +164,7 @@ def get_locales(prefix=None, normalize=True, locale_getter=_default_locale_gette
     pattern = re.compile(f"{prefix}.*")
     found = pattern.findall("\n".join(out_locales))
     return _valid_locales(found, normalize)
+
+
+all_locals = get_locales() or []
+utf8_locales = [locale for locale in all_locals if "UTF-8" in locale]
