@@ -25,7 +25,7 @@ dependencies:
   - numexpr
   - numpy
   - openpyxl
-  - pyarrow
+  - pyarrow>2.0.0
   - pytables
   - python-dateutil
   - pytz
