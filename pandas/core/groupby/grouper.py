@@ -800,7 +800,7 @@ def get_grouper(
 
     # what are we after, exactly?
     any_callable = any(callable(g) or isinstance(g, dict) for g in keys)
-    any_groupers = any(isinstance(g, Grouper) for g in keys)
+    any_groupers = any(isinstance(g, (Grouper, Grouping)) for g in keys)
     any_arraylike = any(
         isinstance(g, (list, tuple, Series, Index, np.ndarray)) for g in keys
     )
