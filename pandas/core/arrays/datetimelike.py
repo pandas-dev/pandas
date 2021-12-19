@@ -507,8 +507,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         new_obj._freq = new_freq
         return new_obj
 
-    def copy(self: DatetimeLikeArrayT) -> DatetimeLikeArrayT:
-        new_obj = super().copy()
+    def copy(self: DatetimeLikeArrayT, order="C") -> DatetimeLikeArrayT:
+        new_obj = super().copy(order=order)
         new_obj._freq = self.freq
         return new_obj
 
