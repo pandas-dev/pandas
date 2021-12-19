@@ -47,14 +47,12 @@ def consistent_data(request):
     return request.param
 
 
-@pytest.fixture(params=create_series(), scope="module")
+@pytest.fixture(params=create_series())
 def series_data(request):
     return request.param
 
 
-@pytest.fixture(
-    params=itertools.chain(create_series(), create_dataframes()), scope="module"
-)
+@pytest.fixture(params=itertools.chain(create_series(), create_dataframes()))
 def all_data(request):
     """
     Test:
@@ -70,12 +68,12 @@ def all_data(request):
     return request.param
 
 
-@pytest.fixture(params=[(1, 0), (5, 1)], scope="module")
+@pytest.fixture(params=[(1, 0), (5, 1)])
 def rolling_consistency_cases(request):
     """window, min_periods"""
     return request.param
 
 
-@pytest.fixture(params=[0, 2], scope="module")
+@pytest.fixture(params=[0, 2])
 def min_periods(request):
     return request.param
