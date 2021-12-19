@@ -2,11 +2,13 @@ from typing import Literal
 
 import numpy as np
 
+from pandas._typing import npt
+
 def group_median_float64(
     out: np.ndarray,  # ndarray[float64_t, ndim=2]
-    counts: np.ndarray,  # ndarray[int64_t]
+    counts: npt.NDArray[np.int64],
     values: np.ndarray,  # ndarray[float64_t, ndim=2]
-    labels: np.ndarray,  # ndarray[int64_t]
+    labels: npt.NDArray[np.int64],
     min_count: int = ...,  # Py_ssize_t
 ) -> None: ...
 def group_cumprod_float64(
@@ -32,9 +34,10 @@ def group_shift_indexer(
     periods: int,
 ) -> None: ...
 def group_fillna_indexer(
-    out: np.ndarray,  # ndarray[int64_t]
+    out: np.ndarray,  # ndarray[intp_t]
     labels: np.ndarray,  # ndarray[int64_t]
-    mask: np.ndarray,  # ndarray[uint8_t]
+    sorted_labels: npt.NDArray[np.intp],
+    mask: npt.NDArray[np.uint8],
     direction: Literal["ffill", "bfill"],
     limit: int,  # int64_t
     dropna: bool,
@@ -53,6 +56,7 @@ def group_add(
     values: np.ndarray,  # ndarray[complexfloating_t, ndim=2]
     labels: np.ndarray,  # const intp_t[:]
     min_count: int = ...,
+    datetimelike: bool = ...,
 ) -> None: ...
 def group_prod(
     out: np.ndarray,  # floating[:, ::1]
@@ -74,7 +78,10 @@ def group_mean(
     counts: np.ndarray,  # int64_t[::1]
     values: np.ndarray,  # ndarray[floating, ndim=2]
     labels: np.ndarray,  # const intp_t[:]
-    min_count: int = ...,
+    min_count: int = ...,  # Py_ssize_t
+    is_datetimelike: bool = ...,  # bint
+    mask: np.ndarray | None = ...,
+    result_mask: np.ndarray | None = ...,
 ) -> None: ...
 def group_ohlc(
     out: np.ndarray,  # floating[:, ::1]
@@ -84,11 +91,12 @@ def group_ohlc(
     min_count: int = ...,
 ) -> None: ...
 def group_quantile(
-    out: np.ndarray,  # ndarray[float64_t]
+    out: npt.NDArray[np.float64],
     values: np.ndarray,  # ndarray[numeric, ndim=1]
-    labels: np.ndarray,  # ndarray[int64_t]
-    mask: np.ndarray,  # ndarray[uint8_t]
-    q: float,  # float64_t
+    labels: npt.NDArray[np.intp],
+    mask: npt.NDArray[np.uint8],
+    sort_indexer: npt.NDArray[np.intp],  # const
+    qs: npt.NDArray[np.float64],  # const
     interpolation: Literal["linear", "lower", "higher", "nearest", "midpoint"],
 ) -> None: ...
 def group_last(
@@ -123,6 +131,8 @@ def group_max(
     values: np.ndarray,  # ndarray[groupby_t, ndim=2]
     labels: np.ndarray,  # const int64_t[:]
     min_count: int = ...,
+    mask: np.ndarray | None = ...,
+    result_mask: np.ndarray | None = ...,
 ) -> None: ...
 def group_min(
     out: np.ndarray,  # groupby_t[:, ::1]
@@ -130,6 +140,8 @@ def group_min(
     values: np.ndarray,  # ndarray[groupby_t, ndim=2]
     labels: np.ndarray,  # const int64_t[:]
     min_count: int = ...,
+    mask: np.ndarray | None = ...,
+    result_mask: np.ndarray | None = ...,
 ) -> None: ...
 def group_cummin(
     out: np.ndarray,  # groupby_t[:, ::1]

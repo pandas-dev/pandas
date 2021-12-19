@@ -71,7 +71,9 @@ class TestFrameAccessor:
         expected = pd.DataFrame(mat.toarray(), columns=columns).astype(dtype)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("colnames", [("A", "B"), (1, 2), (1, pd.NA), (0.1, 0.2)])
+    @pytest.mark.parametrize(
+        "colnames", [("A", "B"), (1, 2), (1, pd.NA), (0.1, 0.2), ("x", "x"), (0, 0)]
+    )
     @td.skip_if_no_scipy
     def test_to_coo(self, colnames):
         import scipy.sparse
@@ -82,6 +84,22 @@ class TestFrameAccessor:
         result = df.sparse.to_coo()
         expected = scipy.sparse.coo_matrix(np.asarray(df))
         assert (result != expected).nnz == 0
+
+    @pytest.mark.parametrize("fill_value", [1, np.nan])
+    @td.skip_if_no_scipy
+    def test_to_coo_nonzero_fill_val_raises(self, fill_value):
+        df = pd.DataFrame(
+            {
+                "A": SparseArray(
+                    [fill_value, fill_value, fill_value, 2], fill_value=fill_value
+                ),
+                "B": SparseArray(
+                    [fill_value, 2, fill_value, fill_value], fill_value=fill_value
+                ),
+            }
+        )
+        with pytest.raises(ValueError, match="fill value must be 0"):
+            df.sparse.to_coo()
 
     def test_to_dense(self):
         df = pd.DataFrame(

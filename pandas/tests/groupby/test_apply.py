@@ -16,6 +16,7 @@ from pandas import (
     bdate_range,
 )
 import pandas._testing as tm
+from pandas.core.api import Int64Index
 
 
 def test_apply_issues():
@@ -359,7 +360,7 @@ def test_apply_frame_not_as_index_column_name(df):
     grouped = df.groupby(["A", "B"], as_index=False)
     result = grouped.apply(len)
     expected = grouped.count().rename(columns={"C": np.nan}).drop(columns="D")
-    # TODO: Use assert_frame_equal when column name is not np.nan (GH 36306)
+    # TODO(GH#34306): Use assert_frame_equal when column name is not np.nan
     tm.assert_index_equal(result.index, expected.index)
     tm.assert_numpy_array_equal(result.values, expected.values)
 
@@ -785,10 +786,10 @@ def test_apply_with_mixed_types():
 
 def test_func_returns_object():
     # GH 28652
-    df = DataFrame({"a": [1, 2]}, index=pd.Int64Index([1, 2]))
+    df = DataFrame({"a": [1, 2]}, index=Int64Index([1, 2]))
     result = df.groupby("a").apply(lambda g: g.index)
     expected = Series(
-        [pd.Int64Index([1]), pd.Int64Index([2])], index=pd.Int64Index([1, 2], name="a")
+        [Int64Index([1]), Int64Index([2])], index=Int64Index([1, 2], name="a")
     )
 
     tm.assert_series_equal(result, expected)
@@ -1061,9 +1062,10 @@ def test_apply_by_cols_equals_apply_by_rows_transposed():
     tm.assert_frame_equal(by_cols, df)
 
 
-def test_apply_dropna_with_indexed_same():
+@pytest.mark.parametrize("dropna", [True, False])
+def test_apply_dropna_with_indexed_same(dropna):
     # GH 38227
-
+    # GH#43205
     df = DataFrame(
         {
             "col": [1, 2, 3, 4, 5],
@@ -1071,15 +1073,8 @@ def test_apply_dropna_with_indexed_same():
         },
         index=list("xxyxz"),
     )
-    result = df.groupby("group").apply(lambda x: x)
-    expected = DataFrame(
-        {
-            "col": [1, 4, 5],
-            "group": ["a", "b", "b"],
-        },
-        index=list("xxz"),
-    )
-
+    result = df.groupby("group", dropna=dropna).apply(lambda x: x)
+    expected = df.dropna() if dropna else df.iloc[[0, 3, 1, 2, 4]]
     tm.assert_frame_equal(result, expected)
 
 
@@ -1139,14 +1134,68 @@ def test_positional_slice_groups_datetimelike():
     tm.assert_frame_equal(result, expected)
 
 
-def test_doctest_example2():
+def test_groupby_apply_shape_cache_safety():
     # GH#42702 this fails if we cache_readonly Block.shape
-    # TODO: more informative name
     df = DataFrame({"A": ["a", "a", "b"], "B": [1, 2, 3], "C": [4, 6, 5]})
     gb = df.groupby("A")
     result = gb[["B", "C"]].apply(lambda x: x.astype(float).max() - x.min())
 
     expected = DataFrame(
         {"B": [1.0, 0.0], "C": [2.0, 0.0]}, index=Index(["a", "b"], name="A")
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dropna", [True, False])
+def test_apply_na(dropna):
+    # GH#28984
+    df = DataFrame(
+        {"grp": [1, 1, 2, 2], "y": [1, 0, 2, 5], "z": [1, 2, np.nan, np.nan]}
+    )
+    dfgrp = df.groupby("grp", dropna=dropna)
+    result = dfgrp.apply(lambda grp_df: grp_df.nlargest(1, "z"))
+    expected = dfgrp.apply(lambda x: x.sort_values("z", ascending=False).head(1))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_apply_empty_string_nan_coerce_bug():
+    # GH#24903
+    result = (
+        DataFrame(
+            {
+                "a": [1, 1, 2, 2],
+                "b": ["", "", "", ""],
+                "c": pd.to_datetime([1, 2, 3, 4], unit="s"),
+            }
+        )
+        .groupby(["a", "b"])
+        .apply(lambda df: df.iloc[-1])
+    )
+    expected = DataFrame(
+        [[1, "", pd.to_datetime(2, unit="s")], [2, "", pd.to_datetime(4, unit="s")]],
+        columns=["a", "b", "c"],
+        index=MultiIndex.from_tuples([(1, ""), (2, "")], names=["a", "b"]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("index_values", [[1, 2, 3], [1.0, 2.0, 3.0]])
+def test_apply_index_key_error_bug(index_values):
+    # GH 44310
+    result = DataFrame(
+        {
+            "a": ["aa", "a2", "a3"],
+            "b": [1, 2, 3],
+        },
+        index=Index(index_values),
+    )
+    expected = DataFrame(
+        {
+            "b_mean": [2.0, 3.0, 1.0],
+        },
+        index=Index(["a2", "a3", "aa"], name="a"),
+    )
+    result = result.groupby("a").apply(
+        lambda df: Series([df["b"].mean()], index=["b_mean"])
     )
     tm.assert_frame_equal(result, expected)

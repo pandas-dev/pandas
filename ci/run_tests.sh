@@ -5,12 +5,17 @@
 # https://github.com/pytest-dev/pytest/issues/1075
 export PYTHONHASHSEED=$(python -c 'import random; print(random.randint(1, 4294967295))')
 
+# May help reproduce flaky CI builds if set in subsequent runs
+echo PYTHONHASHSEED=$PYTHONHASHSEED
+
 if [[ "not network" == *"$PATTERN"* ]]; then
     export http_proxy=http://1.2.3.4 https_proxy=http://1.2.3.4;
 fi
 
-if [ "$COVERAGE" ]; then
+if [[ "$COVERAGE" == "true" ]]; then
     COVERAGE="-s --cov=pandas --cov-report=xml --cov-append"
+else
+    COVERAGE="" # We need to reset this for COVERAGE="false" case
 fi
 
 # If no X server is found, we use xvfb to emulate it
@@ -19,12 +24,10 @@ if [[ $(uname) == "Linux" && -z $DISPLAY ]]; then
     XVFB="xvfb-run "
 fi
 
-PYTEST_CMD="${XVFB}pytest -m \"$PATTERN\" -n $PYTEST_WORKERS --dist=loadfile $TEST_ARGS $COVERAGE pandas"
+PYTEST_CMD="${XVFB}pytest -m \"$PATTERN\" -n $PYTEST_WORKERS --dist=loadfile $TEST_ARGS $COVERAGE $PYTEST_TARGET"
 
 if [[ $(uname) != "Linux"  && $(uname) != "Darwin" ]]; then
-    # GH#37455 windows py38 build appears to be running out of memory
-    #  skip collection of window tests
-    PYTEST_CMD="$PYTEST_CMD --ignore=pandas/tests/window/moments --ignore=pandas/tests/plotting/"
+    PYTEST_CMD="$PYTEST_CMD --ignore=pandas/tests/plotting/"
 fi
 
 echo $PYTEST_CMD

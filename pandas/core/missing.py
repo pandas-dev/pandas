@@ -23,6 +23,7 @@ from pandas._typing import (
     ArrayLike,
     Axis,
     F,
+    npt,
 )
 from pandas.compat._optional import import_optional_dependency
 
@@ -57,7 +58,7 @@ def check_value_size(value, mask: np.ndarray, length: int):
     return value
 
 
-def mask_missing(arr: ArrayLike, values_to_mask) -> np.ndarray:
+def mask_missing(arr: ArrayLike, values_to_mask) -> npt.NDArray[np.bool_]:
     """
     Return a masking array of same size/shape as arr
     with entries equaling any member of values_to_mask set to True
@@ -96,6 +97,9 @@ def mask_missing(arr: ArrayLike, values_to_mask) -> np.ndarray:
     if na_mask.any():
         mask |= isna(arr)
 
+    if not isinstance(mask, np.ndarray):
+        # e.g. if arr is IntegerArray, then mask is BooleanArray
+        mask = mask.to_numpy(dtype=bool, na_value=False)
     return mask
 
 
@@ -213,9 +217,13 @@ def interpolate_array_2d(
     coerce: bool = False,
     downcast: str | None = None,
     **kwargs,
-):
+) -> None:
     """
     Wrapper to dispatch to either interpolate_2d or _interpolate_2d_with_fill.
+
+    Notes
+    -----
+    Alters 'data' in-place.
     """
     try:
         m = clean_fill_method(method)
@@ -227,7 +235,7 @@ def interpolate_array_2d(
             # similar to validate_fillna_kwargs
             raise ValueError("Cannot pass both fill_value and method")
 
-        interp_values = interpolate_2d(
+        interpolate_2d(
             data,
             method=m,
             axis=axis,
@@ -237,7 +245,7 @@ def interpolate_array_2d(
     else:
         assert index is not None  # for mypy
 
-        interp_values = _interpolate_2d_with_fill(
+        _interpolate_2d_with_fill(
             data=data,
             index=index,
             axis=axis,
@@ -248,7 +256,7 @@ def interpolate_array_2d(
             fill_value=fill_value,
             **kwargs,
         )
-    return interp_values
+    return
 
 
 def _interpolate_2d_with_fill(
@@ -261,13 +269,15 @@ def _interpolate_2d_with_fill(
     limit_area: str | None = None,
     fill_value: Any | None = None,
     **kwargs,
-) -> np.ndarray:
+) -> None:
     """
     Column-wise application of _interpolate_1d.
 
     Notes
     -----
-    The signature does differs from _interpolate_1d because it only
+    Alters 'data' in-place.
+
+    The signature does differ from _interpolate_1d because it only
     includes what is needed for Block.interpolate.
     """
     # validate the interp method
@@ -307,12 +317,10 @@ def _interpolate_2d_with_fill(
 
     indices = _index_to_interp_indices(index, method)
 
-    def func(yvalues: np.ndarray) -> np.ndarray:
-        # process 1-d slices in the axis direction, returning it
+    def func(yvalues: np.ndarray) -> None:
+        # process 1-d slices in the axis direction
 
-        # should the axis argument be handled below in apply_along_axis?
-        # i.e. not an arg to _interpolate_1d
-        return _interpolate_1d(
+        _interpolate_1d(
             indices=indices,
             yvalues=yvalues,
             method=method,
@@ -325,7 +333,8 @@ def _interpolate_2d_with_fill(
         )
 
     # interp each column independently
-    return np.apply_along_axis(func, axis, data)
+    np.apply_along_axis(func, axis, data)
+    return
 
 
 def _index_to_interp_indices(index: Index, method: str) -> np.ndarray:
@@ -363,23 +372,25 @@ def _interpolate_1d(
     **kwargs,
 ):
     """
-    Logic for the 1-d interpolation.  The result should be 1-d, inputs
+    Logic for the 1-d interpolation.  The input
     indices and yvalues will each be 1-d arrays of the same length.
 
     Bounds_error is currently hardcoded to False since non-scipy ones don't
     take it as an argument.
+
+    Notes
+    -----
+    Fills 'yvalues' in-place.
     """
 
     invalid = isna(yvalues)
     valid = ~invalid
 
     if not valid.any():
-        result = np.empty(indices.shape, dtype=np.float64)
-        result.fill(np.nan)
-        return result
+        return
 
     if valid.all():
-        return yvalues
+        return
 
     # These are sets of index pointers to invalid values... i.e. {0, 1, etc...
     all_nans = set(np.flatnonzero(invalid))
@@ -425,17 +436,15 @@ def _interpolate_1d(
     # sort preserve_nans and convert to list
     preserve_nans = sorted(preserve_nans)
 
-    result = yvalues.copy()
-
     if method in NP_METHODS:
         # np.interp requires sorted X values, #21037
 
         indexer = np.argsort(indices[valid])
-        result[invalid] = np.interp(
+        yvalues[invalid] = np.interp(
             indices[invalid], indices[valid][indexer], yvalues[valid][indexer]
         )
     else:
-        result[invalid] = _interpolate_scipy_wrapper(
+        yvalues[invalid] = _interpolate_scipy_wrapper(
             indices[valid],
             yvalues[valid],
             indices[invalid],
@@ -446,8 +455,8 @@ def _interpolate_1d(
             **kwargs,
         )
 
-    result[preserve_nans] = np.nan
-    return result
+    yvalues[preserve_nans] = np.nan
+    return
 
 
 def _interpolate_scipy_wrapper(
@@ -686,14 +695,14 @@ def _cubicspline_interpolate(xi, yi, x, axis=0, bc_type="not-a-knot", extrapolat
 
 
 def _interpolate_with_limit_area(
-    values: ArrayLike, method: str, limit: int | None, limit_area: str | None
-) -> ArrayLike:
+    values: np.ndarray, method: str, limit: int | None, limit_area: str | None
+) -> None:
     """
     Apply interpolation and limit_area logic to values along a to-be-specified axis.
 
     Parameters
     ----------
-    values: array-like
+    values: np.ndarray
         Input array.
     method: str
         Interpolation method. Could be "bfill" or "pad"
@@ -702,10 +711,9 @@ def _interpolate_with_limit_area(
     limit_area: str
         Limit area for interpolation. Can be "inside" or "outside"
 
-    Returns
-    -------
-    values: array-like
-        Interpolated array.
+    Notes
+    -----
+    Modifies values in-place.
     """
 
     invalid = isna(values)
@@ -718,7 +726,7 @@ def _interpolate_with_limit_area(
         if last is None:
             last = len(values)
 
-        values = interpolate_2d(
+        interpolate_2d(
             values,
             method=method,
             limit=limit,
@@ -731,23 +739,23 @@ def _interpolate_with_limit_area(
 
         values[invalid] = np.nan
 
-    return values
+    return
 
 
 def interpolate_2d(
-    values,
+    values: np.ndarray,
     method: str = "pad",
     axis: Axis = 0,
     limit: int | None = None,
     limit_area: str | None = None,
-):
+) -> None:
     """
     Perform an actual interpolation of values, values will be make 2-d if
     needed fills inplace, returns the result.
 
     Parameters
     ----------
-    values: array-like
+    values: np.ndarray
         Input array.
     method: str, default "pad"
         Interpolation method. Could be "bfill" or "pad"
@@ -758,13 +766,12 @@ def interpolate_2d(
     limit_area: str, optional
         Limit area for interpolation. Can be "inside" or "outside"
 
-    Returns
-    -------
-    values: array-like
-        Interpolated array.
+    Notes
+    -----
+    Modifies values in-place.
     """
     if limit_area is not None:
-        return np.apply_along_axis(
+        np.apply_along_axis(
             partial(
                 _interpolate_with_limit_area,
                 method=method,
@@ -774,11 +781,11 @@ def interpolate_2d(
             axis,
             values,
         )
+        return
 
     transf = (lambda x: x) if axis == 0 else (lambda x: x.T)
 
     # reshape a 1 dim if needed
-    ndim = values.ndim
     if values.ndim == 1:
         if axis != 0:  # pragma: no cover
             raise AssertionError("cannot interpolate on a ndim == 1 with axis != 0")
@@ -786,20 +793,19 @@ def interpolate_2d(
 
     method = clean_fill_method(method)
     tvalues = transf(values)
+
+    # _pad_2d and _backfill_2d both modify tvalues inplace
     if method == "pad":
-        result, _ = _pad_2d(tvalues, limit=limit)
+        _pad_2d(tvalues, limit=limit)
     else:
-        result, _ = _backfill_2d(tvalues, limit=limit)
+        _backfill_2d(tvalues, limit=limit)
 
-    result = transf(result)
-    # reshape back
-    if ndim == 1:
-        result = result[0]
-
-    return result
+    return
 
 
-def _fillna_prep(values, mask: np.ndarray | None = None) -> np.ndarray:
+def _fillna_prep(
+    values, mask: npt.NDArray[np.bool_] | None = None
+) -> npt.NDArray[np.bool_]:
     # boilerplate for _pad_1d, _backfill_1d, _pad_2d, _backfill_2d
 
     if mask is None:
@@ -833,8 +839,8 @@ def _datetimelike_compat(func: F) -> F:
 def _pad_1d(
     values: np.ndarray,
     limit: int | None = None,
-    mask: np.ndarray | None = None,
-) -> tuple[np.ndarray, np.ndarray]:
+    mask: npt.NDArray[np.bool_] | None = None,
+) -> tuple[np.ndarray, npt.NDArray[np.bool_]]:
     mask = _fillna_prep(values, mask)
     algos.pad_inplace(values, mask, limit=limit)
     return values, mask
@@ -844,15 +850,15 @@ def _pad_1d(
 def _backfill_1d(
     values: np.ndarray,
     limit: int | None = None,
-    mask: np.ndarray | None = None,
-) -> tuple[np.ndarray, np.ndarray]:
+    mask: npt.NDArray[np.bool_] | None = None,
+) -> tuple[np.ndarray, npt.NDArray[np.bool_]]:
     mask = _fillna_prep(values, mask)
     algos.backfill_inplace(values, mask, limit=limit)
     return values, mask
 
 
 @_datetimelike_compat
-def _pad_2d(values, limit=None, mask=None):
+def _pad_2d(values: np.ndarray, limit=None, mask: npt.NDArray[np.bool_] | None = None):
     mask = _fillna_prep(values, mask)
 
     if np.all(values.shape):
@@ -864,7 +870,7 @@ def _pad_2d(values, limit=None, mask=None):
 
 
 @_datetimelike_compat
-def _backfill_2d(values, limit=None, mask=None):
+def _backfill_2d(values, limit=None, mask: npt.NDArray[np.bool_] | None = None):
     mask = _fillna_prep(values, mask)
 
     if np.all(values.shape):
@@ -889,7 +895,7 @@ def clean_reindex_fill_method(method):
     return clean_fill_method(method, allow_nearest=True)
 
 
-def _interp_limit(invalid: np.ndarray, fw_limit, bw_limit):
+def _interp_limit(invalid: npt.NDArray[np.bool_], fw_limit, bw_limit):
     """
     Get indexers of values that won't be filled
     because they exceed the limits.
@@ -954,7 +960,7 @@ def _interp_limit(invalid: np.ndarray, fw_limit, bw_limit):
     return f_idx & b_idx
 
 
-def _rolling_window(a: np.ndarray, window: int):
+def _rolling_window(a: npt.NDArray[np.bool_], window: int) -> npt.NDArray[np.bool_]:
     """
     [True, True, False, True, False], 2 ->
 

@@ -102,7 +102,7 @@ header : int or list of ints, default ``'infer'``
 names : array-like, default ``None``
   List of column names to use. If file contains no header row, then you should
   explicitly pass ``header=None``. Duplicates in this list are not allowed.
-index_col : int, str, sequence of int / str, or False, default ``None``
+index_col : int, str, sequence of int / str, or False, optional, default ``None``
   Column(s) to use as the row labels of the ``DataFrame``, either given as
   string name or column index. If a sequence of int / str is given, a
   MultiIndex is used.
@@ -116,11 +116,19 @@ index_col : int, str, sequence of int / str, or False, default ``None``
   of the data file, then a default index is used.  If it is larger, then
   the first columns are used as index so that the remaining number of fields in
   the body are equal to the number of fields in the header.
+
+  The first row after the header is used to determine the number of columns,
+  which will go into the index. If the subsequent rows contain less columns
+  than the first row, they are filled with ``NaN``.
+
+  This can be avoided through ``usecols``. This ensures that the columns are
+  taken as is and the trailing data are ignored.
 usecols : list-like or callable, default ``None``
   Return a subset of the columns. If list-like, all elements must either
   be positional (i.e. integer indices into the document columns) or strings
   that correspond to column names provided either by the user in ``names`` or
-  inferred from the document header row(s). For example, a valid list-like
+  inferred from the document header row(s). If ``names`` are given, the document
+  header row(s) are not taken into account. For example, a valid list-like
   ``usecols`` parameter would be ``[0, 1, 2]`` or ``['foo', 'bar', 'baz']``.
 
   Element order is ignored, so ``usecols=[0, 1]`` is the same as ``[1, 0]``. To
@@ -142,11 +150,29 @@ usecols : list-like or callable, default ``None``
      pd.read_csv(StringIO(data))
      pd.read_csv(StringIO(data), usecols=lambda x: x.upper() in ["COL1", "COL3"])
 
-  Using this parameter results in much faster parsing time and lower memory usage.
+  Using this parameter results in much faster parsing time and lower memory usage
+  when using the c engine. The Python engine loads the data first before deciding
+  which columns to drop.
 squeeze : boolean, default ``False``
   If the parsed data only contains one column then return a ``Series``.
+
+  .. deprecated:: 1.4.0
+     Append ``.squeeze("columns")`` to the call to ``{func_name}`` to squeeze
+     the data.
 prefix : str, default ``None``
   Prefix to add to column numbers when no header, e.g. 'X' for X0, X1, ...
+
+  .. deprecated:: 1.4.0
+     Use a list comprehension on the DataFrame's columns after calling ``read_csv``.
+
+  .. ipython:: python
+
+     data = "col1,col2,col3\na,b,1"
+
+     df = pd.read_csv(StringIO(data))
+     df.columns = [f"pre_{col}" for col in df.columns]
+     df
+
 mangle_dupe_cols : boolean, default ``True``
   Duplicate columns will be specified as 'X', 'X.1'...'X.N', rather than 'X'...'X'.
   Passing in ``False`` will cause data to be overwritten if there are duplicate
@@ -160,9 +186,15 @@ dtype : Type name or dict of column -> type, default ``None``
   (unsupported with ``engine='python'``). Use ``str`` or ``object`` together
   with suitable ``na_values`` settings to preserve and
   not interpret dtype.
-engine : {``'c'``, ``'python'``}
-  Parser engine to use. The C engine is faster while the Python engine is
-  currently more feature-complete.
+engine : {``'c'``, ``'python'``, ``'pyarrow'``}
+  Parser engine to use. The C and pyarrow engines are faster, while the python engine
+  is currently more feature-complete. Multithreading is currently only supported by
+  the pyarrow engine.
+
+  .. versionadded:: 1.4.0
+
+     The "pyarrow" engine was added as an *experimental* engine, and some features
+     are unsupported, or may not work correctly, with this engine.
 converters : dict, default ``None``
   Dict of functions for converting values in certain columns. Keys can either be
   integers or column labels.
@@ -342,7 +374,7 @@ dialect : str or :class:`python:csv.Dialect` instance, default ``None``
 Error handling
 ++++++++++++++
 
-error_bad_lines : boolean, default ``None``
+error_bad_lines : boolean, optional, default ``None``
   Lines with too many fields (e.g. a csv line with too many commas) will by
   default cause an exception to be raised, and no ``DataFrame`` will be
   returned. If ``False``, then these "bad lines" will dropped from the
@@ -352,7 +384,7 @@ error_bad_lines : boolean, default ``None``
   .. deprecated:: 1.3.0
      The ``on_bad_lines`` parameter should be used instead to specify behavior upon
      encountering a bad line instead.
-warn_bad_lines : boolean, default ``None``
+warn_bad_lines : boolean, optional, default ``None``
   If error_bad_lines is ``False``, and warn_bad_lines is ``True``, a warning for
   each "bad line" will be output.
 
@@ -1202,6 +1234,10 @@ Returning Series
 Using the ``squeeze`` keyword, the parser will return output with a single column
 as a ``Series``:
 
+.. deprecated:: 1.4.0
+   Users should append ``.squeeze("columns")`` to the DataFrame returned by
+   ``read_csv`` instead.
+
 .. ipython:: python
    :suppress:
 
@@ -1211,6 +1247,7 @@ as a ``Series``:
        fh.write(data)
 
 .. ipython:: python
+   :okwarning:
 
    print(open("tmp.csv").read())
 
@@ -1280,6 +1317,20 @@ data that appear in some lines but not others:
     0  1  2   3
     1  4  5   6
     2  8  9  10
+
+In case you want to keep all data including the lines with too many fields, you can
+specify a sufficient number of ``names``. This ensures that lines with not enough
+fields are filled with ``NaN``.
+
+.. code-block:: ipython
+
+   In [31]: pd.read_csv(StringIO(data), names=['a', 'b', 'c', 'd'])
+
+   Out[31]:
+       a  b   c  d
+    0  1  2   3  NaN
+    1  4  5   6  7
+    2  8  9  10  NaN
 
 .. _io.dialect:
 
@@ -1622,11 +1673,17 @@ Specifying ``iterator=True`` will also return the ``TextFileReader`` object:
 Specifying the parser engine
 ''''''''''''''''''''''''''''
 
-Under the hood pandas uses a fast and efficient parser implemented in C as well
-as a Python implementation which is currently more feature-complete. Where
-possible pandas uses the C parser (specified as ``engine='c'``), but may fall
-back to Python if C-unsupported options are specified. Currently, C-unsupported
-options include:
+Pandas currently supports three engines, the C engine, the python engine, and an experimental
+pyarrow engine (requires the ``pyarrow`` package). In general, the pyarrow engine is fastest
+on larger workloads and is equivalent in speed to the C engine on most other workloads.
+The python engine tends to be slower than the pyarrow and C engines on most workloads. However,
+the pyarrow engine is much less robust than the C engine, which lacks a few features compared to the
+Python engine.
+
+Where possible, pandas uses the C parser (specified as ``engine='c'``), but it may fall
+back to Python if C-unsupported options are specified.
+
+Currently, options unsupported by the C and pyarrow engines include:
 
 * ``sep`` other than a single character (e.g. regex separators)
 * ``skipfooter``
@@ -1634,6 +1691,32 @@ options include:
 
 Specifying any of the above options will produce a ``ParserWarning`` unless the
 python engine is selected explicitly using ``engine='python'``.
+
+Options that are unsupported by the pyarrow engine which are not covered by the list above include:
+
+* ``float_precision``
+* ``chunksize``
+* ``comment``
+* ``nrows``
+* ``thousands``
+* ``memory_map``
+* ``dialect``
+* ``warn_bad_lines``
+* ``error_bad_lines``
+* ``on_bad_lines``
+* ``delim_whitespace``
+* ``quoting``
+* ``lineterminator``
+* ``converters``
+* ``decimal``
+* ``iterator``
+* ``dayfirst``
+* ``infer_datetime_format``
+* ``verbose``
+* ``skipinitialspace``
+* ``low_memory``
+
+Specifying these options with ``engine='pyarrow'`` will raise a ``ValueError``.
 
 .. _io.remote:
 
@@ -2464,14 +2547,16 @@ Read a URL with no options:
 
 .. ipython:: python
 
-   url = (
-       "https://raw.githubusercontent.com/pandas-dev/pandas/master/"
-       "pandas/tests/io/data/html/spam.html"
-   )
+   url = "https://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list"
    dfs = pd.read_html(url)
    dfs
 
-Read in the content of the "banklist.html" file and pass it to ``read_html``
+.. note::
+
+   The data from the above URL changes every Monday so the resulting data above
+   and the data below may be slightly different.
+
+Read in the content of the file from the above URL and pass it to ``read_html``
 as a string:
 
 .. ipython:: python
@@ -2977,6 +3062,7 @@ Read in the content of the "books.xml" as instance of ``StringIO`` or
 Even read XML from AWS S3 buckets such as Python Software Foundation's IRS 990 Form:
 
 .. ipython:: python
+   :okwarning:
 
    df = pd.read_xml(
        "s3://irs-form-990/201923199349319487_public.xml",
@@ -3460,9 +3546,9 @@ with ``on_demand=True``.
 Specifying sheets
 +++++++++++++++++
 
-.. note :: The second argument is ``sheet_name``, not to be confused with ``ExcelFile.sheet_names``.
+.. note:: The second argument is ``sheet_name``, not to be confused with ``ExcelFile.sheet_names``.
 
-.. note :: An ExcelFile's attribute ``sheet_names`` provides access to a list of sheets.
+.. note:: An ExcelFile's attribute ``sheet_names`` provides access to a list of sheets.
 
 * The arguments ``sheet_name`` allows specifying the sheet or sheets to read.
 * The default value for ``sheet_name`` is 0, indicating to read the first sheet
@@ -5225,15 +5311,6 @@ Several caveats:
   raise a helpful error message on an attempt at serialization.
 
 See the `Full Documentation <https://github.com/wesm/feather>`__.
-
-.. ipython:: python
-   :suppress:
-
-   import warnings
-
-   # This can be removed once building with pyarrow >=0.15.0
-   warnings.filterwarnings("ignore", "The Sparse", FutureWarning)
-
 
 .. ipython:: python
 

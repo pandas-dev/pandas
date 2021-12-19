@@ -26,7 +26,6 @@ from pandas._libs import (
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
-    FrameOrSeries,
     IndexLabel,
     Suffixes,
     npt,
@@ -36,7 +35,9 @@ from pandas.util._decorators import (
     Appender,
     Substitution,
 )
+from pandas.util._exceptions import find_stack_level
 
+from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import (
     ensure_float64,
     ensure_int64,
@@ -70,6 +71,7 @@ from pandas import (
     Categorical,
     Index,
     MultiIndex,
+    Series,
 )
 from pandas.core import groupby
 import pandas.core.algorithms as algos
@@ -81,10 +83,7 @@ from pandas.core.internals import concatenate_managers
 from pandas.core.sorting import is_int64_overflow_possible
 
 if TYPE_CHECKING:
-    from pandas import (
-        DataFrame,
-        Series,
-    )
+    from pandas import DataFrame
     from pandas.core.arrays import DatetimeArray
 
 
@@ -673,12 +672,12 @@ class _MergeOperation:
         if _left.columns.nlevels != _right.columns.nlevels:
             msg = (
                 "merging between different levels is deprecated and will be removed "
-                f"in a future version. ({left.columns.nlevels} levels on the left,"
+                f"in a future version. ({left.columns.nlevels} levels on the left, "
                 f"{right.columns.nlevels} on the right)"
             )
             # stacklevel chosen to be correct when this is reached via pd.merge
             # (and not DataFrame.join)
-            warnings.warn(msg, FutureWarning, stacklevel=3)
+            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
 
         self._validate_specification()
 
@@ -748,7 +747,7 @@ class _MergeOperation:
         self, result: DataFrame, cross_col: str | None
     ) -> None:
         if cross_col is not None:
-            result.drop(columns=cross_col, inplace=True)
+            del result[cross_col]
 
     def _indicator_pre_merge(
         self, left: DataFrame, right: DataFrame
@@ -904,17 +903,22 @@ class _MergeOperation:
                 # error: Item "bool" of "Union[Any, bool]" has no attribute "all"
                 if mask_left.all():  # type: ignore[union-attr]
                     key_col = Index(rvals)
+                    result_dtype = rvals.dtype
                 # error: Item "bool" of "Union[Any, bool]" has no attribute "all"
                 elif (
                     right_indexer is not None
                     and mask_right.all()  # type: ignore[union-attr]
                 ):
                     key_col = Index(lvals)
+                    result_dtype = lvals.dtype
                 else:
                     key_col = Index(lvals).where(~mask_left, rvals)
+                    result_dtype = find_common_type([lvals.dtype, rvals.dtype])
 
                 if result._is_label_reference(name):
-                    result[name] = key_col
+                    result[name] = Series(
+                        key_col, dtype=result_dtype, index=result.index
+                    )
                 elif result._is_level_reference(name):
                     if isinstance(result.index, MultiIndex):
                         key_col.name = name
@@ -931,17 +935,16 @@ class _MergeOperation:
                 else:
                     result.insert(i, name or f"key_{i}", key_col)
 
-    def _get_join_indexers(self) -> tuple[np.ndarray, np.ndarray]:
+    def _get_join_indexers(self) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
         """return the join indexers"""
-        # Both returned ndarrays are np.intp
         return get_join_indexers(
             self.left_join_keys, self.right_join_keys, sort=self.sort, how=self.how
         )
 
     def _get_join_info(
         self,
-    ) -> tuple[Index, np.ndarray | None, np.ndarray | None]:
-        # Both returned ndarrays are np.intp (if not None)
+    ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
+
         left_ax = self.left.axes[self.axis]
         right_ax = self.right.axes[self.axis]
 
@@ -1201,7 +1204,7 @@ class _MergeOperation:
                         warnings.warn(
                             "You are merging on int and float "
                             "columns where the float values "
-                            "are not equal to their int representation",
+                            "are not equal to their int representation.",
                             UserWarning,
                         )
                     continue
@@ -1211,7 +1214,7 @@ class _MergeOperation:
                         warnings.warn(
                             "You are merging on int and float "
                             "columns where the float values "
-                            "are not equal to their int representation",
+                            "are not equal to their int representation.",
                             UserWarning,
                         )
                     continue
@@ -1278,10 +1281,12 @@ class _MergeOperation:
             # incompatible dtypes. See GH 16900.
             if name in self.left.columns:
                 typ = lk.categories.dtype if lk_is_cat else object
-                self.left = self.left.assign(**{name: self.left[name].astype(typ)})
+                self.left = self.left.copy()
+                self.left[name] = self.left[name].astype(typ)
             if name in self.right.columns:
                 typ = rk.categories.dtype if rk_is_cat else object
-                self.right = self.right.assign(**{name: self.right[name].astype(typ)})
+                self.right = self.right.copy()
+                self.right[name] = self.right[name].astype(typ)
 
     def _create_cross_configuration(
         self, left: DataFrame, right: DataFrame
@@ -1778,21 +1783,27 @@ class _AsOfMerge(_OrderedMerge):
         # GH#29130 Check that merge keys do not have dtype object
         if not self.left_index:
             left_on = self.left_on[0]
-            lo_dtype = (
-                self.left[left_on].dtype
-                if left_on in self.left.columns
-                else self.left.index.get_level_values(left_on)
-            )
+            if is_array_like(left_on):
+                lo_dtype = left_on.dtype
+            else:
+                lo_dtype = (
+                    self.left[left_on].dtype
+                    if left_on in self.left.columns
+                    else self.left.index.get_level_values(left_on)
+                )
         else:
             lo_dtype = self.left.index.dtype
 
         if not self.right_index:
             right_on = self.right_on[0]
-            ro_dtype = (
-                self.right[right_on].dtype
-                if right_on in self.right.columns
-                else self.right.index.get_level_values(right_on)
-            )
+            if is_array_like(right_on):
+                ro_dtype = right_on.dtype
+            else:
+                ro_dtype = (
+                    self.right[right_on].dtype
+                    if right_on in self.right.columns
+                    else self.right.index.get_level_values(right_on)
+                )
         else:
             ro_dtype = self.right.index.dtype
 
@@ -1892,8 +1903,7 @@ class _AsOfMerge(_OrderedMerge):
 
         return left_join_keys, right_join_keys, join_names
 
-    def _get_join_indexers(self) -> tuple[np.ndarray, np.ndarray]:
-        # Both returned ndarrays are np.intp
+    def _get_join_indexers(self) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
         """return the join indexers"""
 
         def flip(xs) -> np.ndarray:
@@ -1987,8 +1997,7 @@ class _AsOfMerge(_OrderedMerge):
 
 def _get_multiindex_indexer(
     join_keys, index: MultiIndex, sort: bool
-) -> tuple[np.ndarray, np.ndarray]:
-    # Both returned ndarrays are np.intp
+) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
 
     # left & right join labels and num. of levels at each location
     mapped = (
@@ -2026,8 +2035,7 @@ def _get_multiindex_indexer(
 
 def _get_single_indexer(
     join_key, index: Index, sort: bool = False
-) -> tuple[np.ndarray, np.ndarray]:
-    # Both returned ndarrays are np.intp
+) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
     left_key, right_key, count = _factorize_keys(join_key, index._values, sort=sort)
 
     return libjoin.left_outer_join(left_key, right_key, count, sort=sort)
@@ -2035,8 +2043,7 @@ def _get_single_indexer(
 
 def _left_join_on_index(
     left_ax: Index, right_ax: Index, join_keys, sort: bool = False
-) -> tuple[Index, np.ndarray | None, np.ndarray]:
-    # Both returned ndarrays are np.intp (if not None)
+) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp]]:
     if len(join_keys) > 1:
         if not (
             isinstance(right_ax, MultiIndex) and len(join_keys) == right_ax.nlevels
@@ -2174,10 +2181,16 @@ def _factorize_keys(
 
     rizer = klass(max(len(lk), len(rk)))
 
-    llab = rizer.factorize(lk)
-    rlab = rizer.factorize(rk)
-    assert llab.dtype == np.intp, llab.dtype
-    assert rlab.dtype == np.intp, rlab.dtype
+    # Argument 1 to "factorize" of "ObjectFactorizer" has incompatible type
+    # "Union[ndarray[Any, dtype[signedinteger[_64Bit]]],
+    # ndarray[Any, dtype[object_]]]"; expected "ndarray[Any, dtype[object_]]"
+    llab = rizer.factorize(lk)  # type: ignore[arg-type]
+    # Argument 1 to "factorize" of "ObjectFactorizer" has incompatible type
+    # "Union[ndarray[Any, dtype[signedinteger[_64Bit]]],
+    # ndarray[Any, dtype[object_]]]"; expected "ndarray[Any, dtype[object_]]"
+    rlab = rizer.factorize(rk)  # type: ignore[arg-type]
+    assert llab.dtype == np.dtype(np.intp), llab.dtype
+    assert rlab.dtype == np.dtype(np.intp), rlab.dtype
 
     count = rizer.get_count()
 
@@ -2205,8 +2218,7 @@ def _factorize_keys(
 
 def _sort_labels(
     uniques: np.ndarray, left: np.ndarray, right: np.ndarray
-) -> tuple[np.ndarray, np.ndarray]:
-    # Both returned ndarrays are np.intp
+) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
 
     llength = len(left)
     labels = np.concatenate([left, right])
@@ -2261,7 +2273,7 @@ def _any(x) -> bool:
     return x is not None and com.any_not_none(*x)
 
 
-def _validate_operand(obj: FrameOrSeries) -> DataFrame:
+def _validate_operand(obj: DataFrame | Series) -> DataFrame:
     if isinstance(obj, ABCDataFrame):
         return obj
     elif isinstance(obj, ABCSeries):
@@ -2292,7 +2304,7 @@ def _items_overlap_with_suffix(
             "unexpected results. Provide 'suffixes' as a tuple instead. In the "
             "future a 'TypeError' will be raised.",
             FutureWarning,
-            stacklevel=4,
+            stacklevel=find_stack_level(),
         )
 
     to_rename = left.intersection(right)
@@ -2342,7 +2354,7 @@ def _items_overlap_with_suffix(
             f"Passing 'suffixes' which cause duplicate columns {set(dups)} in the "
             f"result is deprecated and will raise a MergeError in a future version.",
             FutureWarning,
-            stacklevel=4,
+            stacklevel=find_stack_level(),
         )
 
     return llabels, rlabels

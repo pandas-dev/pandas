@@ -132,6 +132,9 @@ Installing from PyPI
 pandas can be installed via pip from
 `PyPI <https://pypi.org/project/pandas>`__.
 
+.. note::
+    You must have ``pip>=19.3`` to install from PyPI.
+
 ::
 
     pip install pandas
@@ -342,7 +345,7 @@ SQL databases
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
-SQLAlchemy                1.3.11              SQL support for databases other than sqlite
+SQLAlchemy                1.4.0               SQL support for databases other than sqlite
 psycopg2                  2.8.4               PostgreSQL engine for sqlalchemy
 pymysql                   0.10.1              MySQL engine for sqlalchemy
 ========================= ================== =============================================================
@@ -357,7 +360,7 @@ PyTables                  3.6.1              HDF5-based reading / writing
 blosc                     1.20.1             Compression for HDF5
 zlib                                         Compression for HDF5
 fastparquet               0.4.0              Parquet reading / writing
-pyarrow                   0.17.0             Parquet, ORC, and feather reading / writing
+pyarrow                   1.0.1              Parquet, ORC, and feather reading / writing
 pyreadstat                                   SPSS files (.sav) reading
 ========================= ================== =============================================================
 

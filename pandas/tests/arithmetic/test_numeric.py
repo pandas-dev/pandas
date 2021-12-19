@@ -14,19 +14,22 @@ import pytest
 
 import pandas as pd
 from pandas import (
-    Float64Index,
     Index,
-    Int64Index,
     RangeIndex,
     Series,
     Timedelta,
     TimedeltaIndex,
-    UInt64Index,
     array,
 )
 import pandas._testing as tm
 from pandas.core import ops
+from pandas.core.api import (
+    Float64Index,
+    Int64Index,
+    UInt64Index,
+)
 from pandas.core.computation import expressions as expr
+from pandas.tests.arithmetic.common import assert_invalid_comparison
 
 
 @pytest.fixture(params=[Index, Series, tm.to_array])
@@ -82,25 +85,13 @@ class TestNumericComparisons:
         expected = 0.0 > Series([1, 2, 3])
         tm.assert_series_equal(result, expected)
 
-    def test_df_numeric_cmp_dt64_raises(self):
+    def test_df_numeric_cmp_dt64_raises(self, box_with_array, fixed_now_ts):
         # GH#8932, GH#22163
-        ts = pd.Timestamp.now()
-        df = pd.DataFrame({"x": range(5)})
+        ts = fixed_now_ts
+        obj = np.array(range(5))
+        obj = tm.box_expected(obj, box_with_array)
 
-        msg = (
-            "'[<>]' not supported between instances of 'numpy.ndarray' and 'Timestamp'"
-        )
-        with pytest.raises(TypeError, match=msg):
-            df > ts
-        with pytest.raises(TypeError, match=msg):
-            df < ts
-        with pytest.raises(TypeError, match=msg):
-            ts < df
-        with pytest.raises(TypeError, match=msg):
-            ts > df
-
-        assert not (df == ts).any().any()
-        assert (df != ts).all().all()
+        assert_invalid_comparison(obj, ts, box_with_array)
 
     def test_compare_invalid(self):
         # GH#8058
@@ -137,8 +128,6 @@ class TestNumericComparisons:
 
 
 class TestNumericArraylikeArithmeticWithDatetimeLike:
-
-    # TODO: also check name retentention
     @pytest.mark.parametrize("box_cls", [np.array, Index, Series])
     @pytest.mark.parametrize(
         "left", lefts, ids=lambda x: type(x).__name__ + str(x.dtype)
@@ -158,7 +147,6 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         result = right * left
         tm.assert_equal(result, expected)
 
-    # TODO: also check name retentention
     @pytest.mark.parametrize("box_cls", [np.array, Index, Series])
     @pytest.mark.parametrize(
         "left", lefts, ids=lambda x: type(x).__name__ + str(x.dtype)
@@ -222,13 +210,18 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         ],
         ids=lambda x: type(x).__name__,
     )
-    def test_numeric_arr_mul_tdscalar_numexpr_path(self, scalar_td, box_with_array):
+    @pytest.mark.parametrize("dtype", [np.int64, np.float64])
+    def test_numeric_arr_mul_tdscalar_numexpr_path(
+        self, dtype, scalar_td, box_with_array
+    ):
+        # GH#44772 for the float64 case
         box = box_with_array
 
-        arr = np.arange(2 * 10 ** 4).astype(np.int64)
+        arr_i8 = np.arange(2 * 10 ** 4).astype(np.int64, copy=False)
+        arr = arr_i8.astype(dtype, copy=False)
         obj = tm.box_expected(arr, box, transpose=False)
 
-        expected = arr.view("timedelta64[D]").astype("timedelta64[ns]")
+        expected = arr_i8.view("timedelta64[D]").astype("timedelta64[ns]")
         expected = tm.box_expected(expected, box, transpose=False)
 
         result = obj * scalar_td
@@ -290,9 +283,9 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
     @pytest.mark.parametrize(
         "other",
         [
-            pd.Timestamp.now().to_pydatetime(),
-            pd.Timestamp.now(tz="UTC").to_pydatetime(),
-            pd.Timestamp.now().to_datetime64(),
+            pd.Timestamp("2021-01-01").to_pydatetime(),
+            pd.Timestamp("2021-01-01", tz="UTC").to_pydatetime(),
+            pd.Timestamp("2021-01-01").to_datetime64(),
             pd.NaT,
         ],
     )
@@ -691,11 +684,10 @@ class TestMultiplicationDivision:
         tm.assert_series_equal(result, expected)
 
     def test_mul_index(self, numeric_idx):
-        # in general not true for RangeIndex
         idx = numeric_idx
-        if not isinstance(idx, RangeIndex):
-            result = idx * idx
-            tm.assert_index_equal(result, idx ** 2)
+
+        result = idx * idx
+        tm.assert_index_equal(result, idx ** 2)
 
     def test_mul_datelike_raises(self, numeric_idx):
         idx = numeric_idx
@@ -883,7 +875,7 @@ class TestAdditionSubtraction:
         tm.assert_frame_equal(second + first, expected)
 
     # TODO: This came from series.test.test_operators, needs cleanup
-    def test_series_frame_radd_bug(self):
+    def test_series_frame_radd_bug(self, fixed_now_ts):
         # GH#353
         vals = Series(tm.rands_array(5, 10))
         result = "foo_" + vals
@@ -899,7 +891,7 @@ class TestAdditionSubtraction:
         ts.name = "ts"
 
         # really raise this time
-        now = pd.Timestamp.now().to_pydatetime()
+        fix_now = fixed_now_ts.to_pydatetime()
         msg = "|".join(
             [
                 "unsupported operand type",
@@ -908,10 +900,10 @@ class TestAdditionSubtraction:
             ]
         )
         with pytest.raises(TypeError, match=msg):
-            now + ts
+            fix_now + ts
 
         with pytest.raises(TypeError, match=msg):
-            ts + now
+            ts + fix_now
 
     # TODO: This came from series.test.test_operators, needs cleanup
     def test_datetime64_with_index(self):
@@ -1088,11 +1080,11 @@ class TestUFuncCompat:
         box = Series if holder is Series else Index
 
         if holder is RangeIndex:
-            idx = RangeIndex(0, 5)
+            idx = RangeIndex(0, 5, name="foo")
         else:
-            idx = holder(np.arange(5, dtype="int64"))
+            idx = holder(np.arange(5, dtype="int64"), name="foo")
         result = np.sin(idx)
-        expected = box(np.sin(np.arange(5, dtype="int64")))
+        expected = box(np.sin(np.arange(5, dtype="int64")), name="foo")
         tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize("holder", [Int64Index, UInt64Index, Float64Index, Series])
@@ -1210,14 +1202,16 @@ class TestNumericArithmeticUnsorted:
     def check_binop(self, ops, scalars, idxs):
         for op in ops:
             for a, b in combinations(idxs, 2):
+                a = a._rename("foo")
+                b = b._rename("bar")
                 result = op(a, b)
                 expected = op(Int64Index(a), Int64Index(b))
-                tm.assert_index_equal(result, expected)
+                tm.assert_index_equal(result, expected, exact="equiv")
             for idx in idxs:
                 for scalar in scalars:
                     result = op(idx, scalar)
                     expected = op(Int64Index(idx), scalar)
-                    tm.assert_index_equal(result, expected)
+                    tm.assert_index_equal(result, expected, exact="equiv")
 
     def test_binops(self):
         ops = [
@@ -1244,7 +1238,7 @@ class TestNumericArithmeticUnsorted:
         idxs = [RangeIndex(0, 10, 1), RangeIndex(0, 20, 2)]
         self.check_binop(ops, scalars, idxs)
 
-    # TODO: mod, divmod?
+    # TODO: divmod?
     @pytest.mark.parametrize(
         "op",
         [
@@ -1254,6 +1248,7 @@ class TestNumericArithmeticUnsorted:
             operator.floordiv,
             operator.truediv,
             operator.pow,
+            operator.mod,
         ],
     )
     def test_arithmetic_with_frame_or_series(self, op):
@@ -1309,18 +1304,22 @@ class TestNumericArithmeticUnsorted:
         # __pow__
         idx = RangeIndex(0, 1000, 2)
         result = idx ** 2
-        expected = idx._int64index ** 2
+        expected = Int64Index(idx._values) ** 2
         tm.assert_index_equal(Index(result.values), expected, exact=True)
 
         # __floordiv__
         cases_exact = [
             (RangeIndex(0, 1000, 2), 2, RangeIndex(0, 500, 1)),
             (RangeIndex(-99, -201, -3), -3, RangeIndex(33, 67, 1)),
-            (RangeIndex(0, 1000, 1), 2, RangeIndex(0, 1000, 1)._int64index // 2),
+            (
+                RangeIndex(0, 1000, 1),
+                2,
+                Int64Index(RangeIndex(0, 1000, 1)._values) // 2,
+            ),
             (
                 RangeIndex(0, 100, 1),
                 2.0,
-                RangeIndex(0, 100, 1)._int64index // 2.0,
+                Int64Index(RangeIndex(0, 100, 1)._values) // 2.0,
             ),
             (RangeIndex(0), 50, RangeIndex(0)),
             (RangeIndex(2, 4, 2), 3, RangeIndex(0, 1, 1)),
@@ -1397,20 +1396,20 @@ def test_integer_array_add_list_like(
     right = box_1d_array(data) + container
 
     if Series == box_pandas_1d_array:
-        assert_function = tm.assert_series_equal
         expected = Series(expected_data, dtype="Int64")
     elif Series == box_1d_array:
-        assert_function = tm.assert_series_equal
-        expected = Series(expected_data, dtype="object")
+        if box_pandas_1d_array is tm.to_array:
+            expected = Series(expected_data, dtype="Int64")
+        else:
+            expected = Series(expected_data, dtype="object")
     elif Index in (box_pandas_1d_array, box_1d_array):
-        assert_function = tm.assert_index_equal
         expected = Int64Index(expected_data)
     else:
-        assert_function = tm.assert_numpy_array_equal
-        expected = np.array(expected_data, dtype="object")
+        # box_pandas_1d_array is tm.to_array; preserves IntegerArray
+        expected = array(expected_data, dtype="Int64")
 
-    assert_function(left, expected)
-    assert_function(right, expected)
+    tm.assert_equal(left, expected)
+    tm.assert_equal(right, expected)
 
 
 def test_sub_multiindex_swapped_levels():
@@ -1425,4 +1424,17 @@ def test_sub_multiindex_swapped_levels():
     df2.index = df2.index.swaplevel(0, 1)
     result = df - df2
     expected = pd.DataFrame([0.0] * 6, columns=["a"], index=df.index)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("power", [1, 2, 5])
+@pytest.mark.parametrize("string_size", [0, 1, 2, 5])
+def test_empty_str_comparison(power, string_size):
+    # GH 37348
+    a = np.array(range(10 ** power))
+    right = pd.DataFrame(a, dtype=np.int64)
+    left = " " * string_size
+
+    result = right == left
+    expected = pd.DataFrame(np.zeros(right.shape, dtype=bool))
     tm.assert_frame_equal(result, expected)

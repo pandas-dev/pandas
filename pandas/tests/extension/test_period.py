@@ -154,10 +154,7 @@ class TestCasting(BasePeriodTests, base.BaseCastingTests):
 
 
 class TestComparisonOps(BasePeriodTests, base.BaseComparisonOpsTests):
-    def _compare_other(self, s, data, op_name, other):
-        # the base test is not appropriate for us. We raise on comparison
-        # with (some) integers, depending on the value.
-        pass
+    pass
 
 
 class TestMissing(BasePeriodTests, base.BaseMissingTests):

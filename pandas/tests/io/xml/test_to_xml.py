@@ -202,10 +202,13 @@ def test_str_output(datapath, parser):
 
 
 def test_wrong_file_path(parser):
+    path = "/my/fake/path/output.xml"
+
     with pytest.raises(
-        FileNotFoundError, match=("No such file or directory|没有那个文件或目录")
+        OSError,
+        match=(r"Cannot save file into a non-existent directory: .*path"),
     ):
-        geom_df.to_xml("/my/fake/path/output.xml", parser=parser)
+        geom_df.to_xml(path, parser=parser)
 
 
 # INDEX
@@ -1308,7 +1311,12 @@ def test_filename_and_suffix_comp(parser, comp, compfile):
 def test_unsuported_compression(datapath, parser):
     with pytest.raises(ValueError, match="Unrecognized compression type"):
         with tm.ensure_clean() as path:
-            geom_df.to_xml(path, parser=parser, compression="7z")
+            # Argument "compression" to "to_xml" of "DataFrame" has incompatible type
+            # "Literal['7z']"; expected "Union[Literal['infer'], Literal['gzip'],
+            # Literal['bz2'], Literal['zip'], Literal['xz'], Dict[str, Any], None]"
+            geom_df.to_xml(
+                path, parser=parser, compression="7z"  # type: ignore[arg-type]
+            )
 
 
 # STORAGE OPTIONS

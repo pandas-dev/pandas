@@ -11,7 +11,6 @@ from pandas import (
     CategoricalIndex,
     DataFrame,
     Index,
-    Int64Index,
     Interval,
     RangeIndex,
     Series,
@@ -34,10 +33,7 @@ class TestFromRecords:
         arrdata = [np.array([datetime(2005, 3, 1, 0, 0), None])]
         dtypes = [("EXPIRY", "<M8[ns]")]
 
-        try:
-            recarray = np.core.records.fromarrays(arrdata, dtype=dtypes)
-        except (ValueError):
-            pytest.skip("known failure of numpy rec array creation")
+        recarray = np.core.records.fromarrays(arrdata, dtype=dtypes)
 
         result = DataFrame.from_records(recarray)
         tm.assert_frame_equal(result, expected)
@@ -448,7 +444,7 @@ class TestFromRecords:
         a = np.array([(1, 2)], dtype=[("id", np.int64), ("value", np.int64)])
         df = DataFrame.from_records(a, index="id")
 
-        ex_index = Int64Index([1], name="id")
+        ex_index = Index([1], name="id")
         expected = DataFrame({"value": [2]}, index=ex_index, columns=["value"])
         tm.assert_frame_equal(df, expected)
 

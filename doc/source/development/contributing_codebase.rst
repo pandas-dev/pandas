@@ -181,7 +181,7 @@ run this command, though it may take longer::
 
    git diff upstream/master --name-only -- "*.py" | xargs -r flake8
 
-Note that on OSX, the ``-r`` flag is not available, so you have to omit it and
+Note that on macOS, the ``-r`` flag is not available, so you have to omit it and
 run this slightly modified command::
 
    git diff upstream/master --name-only -- "*.py" | xargs flake8
@@ -244,7 +244,7 @@ Alternatively, you can run a command similar to what was suggested for ``black``
 
     git diff upstream/master --name-only -- "*.py" | xargs -r isort
 
-Where similar caveats apply if you are on OSX or Windows.
+Where similar caveats apply if you are on macOS or Windows.
 
 You can then verify the changes look ok, then git :any:`commit <contributing.commit-code>` and :any:`push <contributing.push-code>`.
 
@@ -395,13 +395,40 @@ This module will ultimately house types for repeatedly used concepts like "path-
 Validating type hints
 ~~~~~~~~~~~~~~~~~~~~~
 
-pandas uses `mypy <http://mypy-lang.org>`_ to statically analyze the code base and type hints. After making any change you can ensure your type hints are correct by running
+pandas uses `mypy <http://mypy-lang.org>`_ and `pyright <https://github.com/microsoft/pyright>`_ to statically analyze the code base and type hints. After making any change you can ensure your type hints are correct by running
 
 .. code-block:: shell
 
-   mypy pandas
+   mypy
+
+   # let pre-commit setup and run pyright
+   pre-commit run --hook-stage manual --all-files pyright
+   # or if pyright is installed (requires node.js)
+   pyright
+
+A recent version of ``numpy`` (>=1.21.0) is required for type validation.
 
 .. _contributing.ci:
+
+Testing type hints in code using pandas
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. warning::
+
+    * Pandas is not yet a py.typed library (:pep:`561`)!
+      The primary purpose of locally declaring pandas as a py.typed library is to test and
+      improve the pandas-builtin type annotations.
+
+Until pandas becomes a py.typed library, it is possible to easily experiment with the type
+annotations shipped with pandas by creating an empty file named "py.typed" in the pandas
+installation folder:
+
+.. code-block:: none
+
+   python -c "import pandas; import pathlib; (pathlib.Path(pandas.__path__[0]) / 'py.typed').touch()"
+
+The existence of the py.typed file signals to type checkers that pandas is already a py.typed
+library. This makes type checkers aware of the type annotations shipped with pandas.
 
 Testing with continuous integration
 -----------------------------------

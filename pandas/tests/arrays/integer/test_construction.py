@@ -44,7 +44,6 @@ def test_from_dtype_from_float(data):
 
 
 def test_conversions(data_missing):
-
     # astype to object series
     df = pd.DataFrame({"A": data_missing})
     result = df["A"].astype("object")
@@ -123,7 +122,6 @@ def test_to_integer_array_none_is_nan(a, b):
     "values",
     [
         ["foo", "bar"],
-        ["1", "2"],
         "foo",
         1,
         1.0,
@@ -135,15 +133,18 @@ def test_to_integer_array_none_is_nan(a, b):
 )
 def test_to_integer_array_error(values):
     # error in converting existing arrays to IntegerArrays
-    msg = (
-        r"(:?.* cannot be converted to an IntegerDtype)"
-        r"|(:?values must be a 1D list-like)"
-        r"|(Cannot pass scalar)"
+    msg = "|".join(
+        [
+            r"cannot be converted to an IntegerDtype",
+            r"invalid literal for int\(\) with base 10:",
+            r"values must be a 1D list-like",
+            r"Cannot pass scalar",
+        ]
     )
     with pytest.raises((ValueError, TypeError), match=msg):
         pd.array(values, dtype="Int64")
 
-    with pytest.raises(TypeError, match=msg):
+    with pytest.raises((ValueError, TypeError), match=msg):
         IntegerArray._from_sequence(values)
 
 
@@ -179,6 +180,22 @@ def test_to_integer_array_float():
     # for float dtypes, the itemsize is not preserved
     result = IntegerArray._from_sequence(np.array([1.0, 2.0], dtype="float32"))
     assert result.dtype == Int64Dtype()
+
+
+def test_to_integer_array_str():
+    result = IntegerArray._from_sequence(["1", "2", None])
+    expected = pd.array([1, 2, np.nan], dtype="Int64")
+    tm.assert_extension_array_equal(result, expected)
+
+    with pytest.raises(
+        ValueError, match=r"invalid literal for int\(\) with base 10: .*"
+    ):
+        IntegerArray._from_sequence(["1", "2", ""])
+
+    with pytest.raises(
+        ValueError, match=r"invalid literal for int\(\) with base 10: .*"
+    ):
+        IntegerArray._from_sequence(["1.5", "2.0"])
 
 
 @pytest.mark.parametrize(

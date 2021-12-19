@@ -95,7 +95,14 @@ def test_series_compression_defaults_to_infer(
     extension = icom._compression_to_extension[compression_only]
     with tm.ensure_clean("compressed" + extension) as path:
         getattr(input, write_method)(path, **write_kwargs)
-        output = read_method(path, compression=compression_only, **read_kwargs)
+        if "squeeze" in read_kwargs:
+            kwargs = read_kwargs.copy()
+            del kwargs["squeeze"]
+            output = read_method(path, compression=compression_only, **kwargs).squeeze(
+                "columns"
+            )
+        else:
+            output = read_method(path, compression=compression_only, **read_kwargs)
     tm.assert_series_equal(output, input, check_names=False)
 
 

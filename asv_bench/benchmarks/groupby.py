@@ -443,7 +443,7 @@ class GroupByMethods:
             "var",
         ],
         ["direct", "transformation"],
-        [1, 2, 5, 10],
+        [1, 5],
     ]
 
     def setup(self, dtype, method, application, ncols):
@@ -454,7 +454,23 @@ class GroupByMethods:
             # DataFrameGroupBy doesn't have these methods
             raise NotImplementedError
 
-        ngroups = 1000
+        if application == "transformation" and method in [
+            "describe",
+            "head",
+            "tail",
+            "unique",
+            "value_counts",
+            "size",
+        ]:
+            # DataFrameGroupBy doesn't have these methods
+            raise NotImplementedError
+
+        if method == "describe":
+            ngroups = 20
+        elif method in ["mad", "skew"]:
+            ngroups = 100
+        else:
+            ngroups = 1000
         size = ngroups * 2
         rng = np.arange(ngroups).reshape(-1, 1)
         rng = np.broadcast_to(rng, (len(rng), ncols))
@@ -480,10 +496,7 @@ class GroupByMethods:
         if len(cols) == 1:
             cols = cols[0]
 
-        if application == "transform":
-            if method == "describe":
-                raise NotImplementedError
-
+        if application == "transformation":
             self.as_group_method = lambda: df.groupby("key")[cols].transform(method)
             self.as_field_method = lambda: df.groupby(cols)["key"].transform(method)
         else:
@@ -591,6 +604,38 @@ class Float32:
 
     def time_sum(self):
         self.df.groupby(["a"])["b"].sum()
+
+
+class String:
+    # GH#41596
+    param_names = ["dtype", "method"]
+    params = [
+        ["str", "string[python]"],
+        [
+            "sum",
+            "prod",
+            "min",
+            "max",
+            "mean",
+            "median",
+            "var",
+            "first",
+            "last",
+            "any",
+            "all",
+        ],
+    ]
+
+    def setup(self, dtype, method):
+        cols = list("abcdefghjkl")
+        self.df = DataFrame(
+            np.random.randint(0, 100, size=(1_000_000, len(cols))),
+            columns=cols,
+            dtype=dtype,
+        )
+
+    def time_str_func(self, dtype, method):
+        self.df.groupby("a")[self.df.columns[1:]].agg(method)
 
 
 class Categories:

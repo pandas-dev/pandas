@@ -27,7 +27,9 @@ from pandas._libs.tslibs.offsets import (  # noqa:F401
     to_offset,
 )
 from pandas._libs.tslibs.parsing import get_rule_month
+from pandas._typing import npt
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
@@ -113,9 +115,9 @@ def get_offset(name: str) -> DateOffset:
     """
     warnings.warn(
         "get_offset is deprecated and will be removed in a future version, "
-        "use to_offset instead",
+        "use to_offset instead.",
         FutureWarning,
-        stacklevel=2,
+        stacklevel=find_stack_level(),
     )
     return _get_offset(name)
 
@@ -153,7 +155,12 @@ def infer_freq(index, warn: bool = True) -> str | None:
     >>> pd.infer_freq(idx)
     'D'
     """
-    import pandas as pd
+    from pandas.core.api import (
+        DatetimeIndex,
+        Float64Index,
+        Index,
+        Int64Index,
+    )
 
     if isinstance(index, ABCSeries):
         values = index._values
@@ -182,15 +189,15 @@ def infer_freq(index, warn: bool = True) -> str | None:
         inferer = _TimedeltaFrequencyInferer(index, warn=warn)
         return inferer.get_freq()
 
-    if isinstance(index, pd.Index) and not isinstance(index, pd.DatetimeIndex):
-        if isinstance(index, (pd.Int64Index, pd.Float64Index)):
+    if isinstance(index, Index) and not isinstance(index, DatetimeIndex):
+        if isinstance(index, (Int64Index, Float64Index)):
             raise TypeError(
                 f"cannot infer freq from a non-convertible index type {type(index)}"
             )
         index = index._values
 
-    if not isinstance(index, pd.DatetimeIndex):
-        index = pd.DatetimeIndex(index)
+    if not isinstance(index, DatetimeIndex):
+        index = DatetimeIndex(index)
 
     inferer = _FrequencyInferer(index, warn=warn)
     return inferer.get_freq()
@@ -223,11 +230,11 @@ class _FrequencyInferer:
         )
 
     @cache_readonly
-    def deltas(self):
+    def deltas(self) -> npt.NDArray[np.int64]:
         return unique_deltas(self.i8values)
 
     @cache_readonly
-    def deltas_asi8(self):
+    def deltas_asi8(self) -> npt.NDArray[np.int64]:
         # NB: we cannot use self.i8values here because we may have converted
         #  the tz in __init__
         return unique_deltas(self.index.asi8)
@@ -295,7 +302,7 @@ class _FrequencyInferer:
         return [x / _ONE_HOUR for x in self.deltas]
 
     @cache_readonly
-    def fields(self):
+    def fields(self) -> np.ndarray:  # structured array of fields
         return build_field_sarray(self.i8values)
 
     @cache_readonly
@@ -306,12 +313,12 @@ class _FrequencyInferer:
         return month_position_check(self.fields, self.index.dayofweek)
 
     @cache_readonly
-    def mdiffs(self):
+    def mdiffs(self) -> npt.NDArray[np.int64]:
         nmonths = self.fields["Y"] * 12 + self.fields["M"]
         return unique_deltas(nmonths.astype("i8"))
 
     @cache_readonly
-    def ydiffs(self):
+    def ydiffs(self) -> npt.NDArray[np.int64]:
         return unique_deltas(self.fields["Y"].astype("i8"))
 
     def _infer_daily_rule(self) -> str | None:
@@ -392,10 +399,12 @@ class _FrequencyInferer:
         shifts = np.diff(self.index.asi8)
         shifts = np.floor_divide(shifts, _ONE_DAY)
         weekdays = np.mod(first_weekday + np.cumsum(shifts), 7)
-        # error: Incompatible return value type (got "bool_", expected "bool")
-        return np.all(  # type: ignore[return-value]
-            ((weekdays == 0) & (shifts == 3))
-            | ((weekdays > 0) & (weekdays <= 4) & (shifts == 1))
+
+        return bool(
+            np.all(
+                ((weekdays == 0) & (shifts == 3))
+                | ((weekdays > 0) & (weekdays <= 4) & (shifts == 1))
+            )
         )
 
     def _get_wom_rule(self) -> str | None:

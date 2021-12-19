@@ -10,12 +10,12 @@ from pandas import (
     DataFrame,
     DatetimeIndex,
     Index,
-    Int64Index,
     Series,
     bdate_range,
     date_range,
 )
 import pandas._testing as tm
+from pandas.core.api import Int64Index
 
 from pandas.tseries.offsets import (
     BMonthEnd,
@@ -515,7 +515,7 @@ class TestBusinessDatetimeIndex:
 
         early_dr.union(late_dr, sort=sort)
 
-    @td.skip_if_windows_python_3
+    @td.skip_if_windows
     def test_month_range_union_tz_dateutil(self, sort):
         from pandas._libs.tslibs.timezones import dateutil_gettz
 

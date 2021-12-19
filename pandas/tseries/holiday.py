@@ -6,7 +6,7 @@ from datetime import (
 )
 import warnings
 
-from dateutil.relativedelta import (  # noqa
+from dateutil.relativedelta import (  # noqa:F401
     FR,
     MO,
     SA,
@@ -531,17 +531,17 @@ USColumbusDay = Holiday(
     "Columbus Day", month=10, day=1, offset=DateOffset(weekday=MO(2))
 )
 USThanksgivingDay = Holiday(
-    "Thanksgiving", month=11, day=1, offset=DateOffset(weekday=TH(4))
+    "Thanksgiving Day", month=11, day=1, offset=DateOffset(weekday=TH(4))
 )
 USMartinLutherKingJr = Holiday(
-    "Martin Luther King Jr. Day",
+    "Birthday of Martin Luther King, Jr.",
     start_date=datetime(1986, 1, 1),
     month=1,
     day=1,
     offset=DateOffset(weekday=MO(3)),
 )
 USPresidentsDay = Holiday(
-    "Presidents Day", month=2, day=1, offset=DateOffset(weekday=MO(3))
+    "Washington’s Birthday", month=2, day=1, offset=DateOffset(weekday=MO(3))
 )
 GoodFriday = Holiday("Good Friday", month=1, day=1, offset=[Easter(), Day(-2)])
 
@@ -556,16 +556,23 @@ class USFederalHolidayCalendar(AbstractHolidayCalendar):
     """
 
     rules = [
-        Holiday("New Years Day", month=1, day=1, observance=nearest_workday),
+        Holiday("New Year's Day", month=1, day=1, observance=nearest_workday),
         USMartinLutherKingJr,
         USPresidentsDay,
         USMemorialDay,
-        Holiday("July 4th", month=7, day=4, observance=nearest_workday),
+        Holiday(
+            "Juneteenth National Independence Day",
+            month=6,
+            day=19,
+            start_date="2021-06-18",
+            observance=nearest_workday,
+        ),
+        Holiday("Independence Day", month=7, day=4, observance=nearest_workday),
         USLaborDay,
         USColumbusDay,
         Holiday("Veterans Day", month=11, day=11, observance=nearest_workday),
         USThanksgivingDay,
-        Holiday("Christmas", month=12, day=25, observance=nearest_workday),
+        Holiday("Christmas Day", month=12, day=25, observance=nearest_workday),
     ]
 
 

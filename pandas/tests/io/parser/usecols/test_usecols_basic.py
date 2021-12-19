@@ -22,6 +22,9 @@ _msg_validate_usecols_names = (
     "Usecols do not match columns, columns expected but not found: {0}"
 )
 
+# TODO(1.4): Change to xfails at release time
+pytestmark = pytest.mark.usefixtures("pyarrow_skip")
+
 
 def test_raise_on_mixed_dtype_usecols(all_parsers):
     # See gh-12678
@@ -168,6 +171,28 @@ def test_usecols_implicit_index_col(all_parsers):
 
     result = parser.read_csv(StringIO(data), usecols=["a", "b"])
     expected = DataFrame({"a": ["apple", "orange"], "b": ["bat", "cow"]}, index=[4, 8])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_usecols_index_col_middle(all_parsers):
+    # GH#9098
+    parser = all_parsers
+    data = """a,b,c,d
+1,2,3,4
+"""
+    result = parser.read_csv(StringIO(data), usecols=["b", "c", "d"], index_col="c")
+    expected = DataFrame({"b": [2], "d": [4]}, index=Index([3], name="c"))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_usecols_index_col_end(all_parsers):
+    # GH#9098
+    parser = all_parsers
+    data = """a,b,c,d
+1,2,3,4
+"""
+    result = parser.read_csv(StringIO(data), usecols=["b", "c", "d"], index_col="d")
+    expected = DataFrame({"b": [2], "c": [3]}, index=Index([4], name="d"))
     tm.assert_frame_equal(result, expected)
 
 

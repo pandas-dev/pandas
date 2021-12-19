@@ -150,6 +150,18 @@ def test_is_list_like_recursion():
         foo()
 
 
+def test_is_list_like_iter_is_none():
+    # GH 43373
+    # is_list_like was yielding false positives with __iter__ == None
+    class NotListLike:
+        def __getitem__(self, item):
+            return self
+
+        __iter__ = None
+
+    assert not inference.is_list_like(NotListLike())
+
+
 def test_is_sequence():
     is_seq = inference.is_sequence
     assert is_seq((1, 2))
@@ -1417,9 +1429,11 @@ class TestTypeInference:
         func = getattr(lib, func)
         arr = np.array(["foo", "bar"])
         assert not func(arr)
+        assert not func(arr.reshape(2, 1))
 
         arr = np.array([1, 2])
         assert not func(arr)
+        assert not func(arr.reshape(2, 1))
 
     def test_date(self):
 

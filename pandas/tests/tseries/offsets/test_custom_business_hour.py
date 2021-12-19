@@ -192,7 +192,7 @@ class TestCustomBusinessHour(Base):
     def test_normalize(self, norm_cases):
         offset, cases = norm_cases
         for dt, expected in cases.items():
-            assert offset.apply(dt) == expected
+            assert offset._apply(dt) == expected
 
     def test_is_on_offset(self):
         tests = [
@@ -308,3 +308,21 @@ class TestCustomBusinessHour(Base):
         result = t0 + bhour_us * 8
         expected = Timestamp("2014-01-21 15:00:00")
         assert result == expected
+
+
+@pytest.mark.parametrize(
+    "weekmask, expected_time, mult",
+    [
+        ["Mon Tue Wed Thu Fri Sat", "2018-11-10 09:00:00", 10],
+        ["Tue Wed Thu Fri Sat", "2018-11-13 08:00:00", 18],
+    ],
+)
+def test_custom_businesshour_weekmask_and_holidays(weekmask, expected_time, mult):
+    # GH 23542
+    holidays = ["2018-11-09"]
+    bh = CustomBusinessHour(
+        start="08:00", end="17:00", weekmask=weekmask, holidays=holidays
+    )
+    result = Timestamp("2018-11-08 08:00") + mult * bh
+    expected = Timestamp(expected_time)
+    assert result == expected

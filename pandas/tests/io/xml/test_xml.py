@@ -709,7 +709,7 @@ def test_utf16_encoding(datapath, parser):
 
 def test_unknown_encoding(datapath, parser):
     filename = datapath("io", "data", "xml", "baby_names.xml")
-    with pytest.raises(LookupError, match=("unknown encoding: uft-8")):
+    with pytest.raises(LookupError, match=("unknown encoding: UFT-8")):
         read_xml(filename, encoding="UFT-8", parser=parser)
 
 
@@ -1044,12 +1044,14 @@ def test_wrong_compression_gz(parser, comp):
 
 @pytest.mark.parametrize("comp", ["bz2", "gzip", "zip"])
 def test_wrong_compression_xz(parser, comp):
-    from lzma import LZMAError
+    lzma = pytest.importorskip("lzma")
 
     with tm.ensure_clean() as path:
         geom_df.to_xml(path, parser=parser, compression=comp)
 
-        with pytest.raises(LZMAError, match="Input format not supported by decoder"):
+        with pytest.raises(
+            lzma.LZMAError, match="Input format not supported by decoder"
+        ):
             read_xml(path, parser=parser, compression="xz")
 
 
@@ -1067,7 +1069,10 @@ def test_wrong_compression_zip(parser, comp):
 def test_unsuported_compression(datapath, parser):
     with pytest.raises(ValueError, match="Unrecognized compression type"):
         with tm.ensure_clean() as path:
-            read_xml(path, parser=parser, compression="7z")
+            # error: Argument "compression" to "read_xml" has incompatible type
+            # "Literal['7z']"; expected "Union[Literal['infer'], Literal['gzip'],
+            # Literal['bz2'], Literal['zip'], Literal['xz'], Dict[str, Any], None]"
+            read_xml(path, parser=parser, compression="7z")  # type: ignore[arg-type]
 
 
 # STORAGE OPTIONS

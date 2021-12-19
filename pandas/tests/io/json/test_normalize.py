@@ -3,8 +3,6 @@ import json
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas import (
     DataFrame,
     Index,
@@ -153,8 +151,6 @@ class TestJSONNormalize:
 
         tm.assert_frame_equal(result, expected)
 
-    # TODO(ArrayManager) sanitize S/U numpy dtypes to object
-    @td.skip_array_manager_not_yet_implemented
     def test_simple_normalize(self, state_data):
         result = json_normalize(state_data[0], "counties")
         expected = DataFrame(state_data[0]["counties"])
@@ -219,6 +215,13 @@ class TestJSONNormalize:
         )
         expected = Index(["name", "pop", "country", "states_name"]).sort_values()
         assert result.columns.sort_values().equals(expected)
+
+    def test_normalize_with_multichar_separator(self):
+        # GH #43831
+        data = {"a": [1, 2], "b": {"b_1": 2, "b_2": (3, 4)}}
+        result = json_normalize(data, sep="__")
+        expected = DataFrame([[[1, 2], 2, (3, 4)]], columns=["a", "b__b_1", "b__b_2"])
+        tm.assert_frame_equal(result, expected)
 
     def test_value_array_record_prefix(self):
         # GH 21536
@@ -374,8 +377,6 @@ class TestJSONNormalize:
         for val in ["metafoo", "metabar", "foo", "bar"]:
             assert val in result
 
-    # TODO(ArrayManager) sanitize S/U numpy dtypes to object
-    @td.skip_array_manager_not_yet_implemented
     def test_record_prefix(self, state_data):
         result = json_normalize(state_data[0], "counties")
         expected = DataFrame(state_data[0]["counties"])
@@ -626,6 +627,33 @@ class TestNestedToRecord:
         columns = ["number", "street", "city", "state", "zip", "name"]
         expected = DataFrame(ex_data, columns=columns)
         tm.assert_frame_equal(result, expected)
+
+    def test_missing_nested_meta(self):
+        # GH44312
+        # If errors="ignore" and nested metadata is null, we should return nan
+        data = {"meta": "foo", "nested_meta": None, "value": [{"rec": 1}, {"rec": 2}]}
+        result = json_normalize(
+            data,
+            record_path="value",
+            meta=["meta", ["nested_meta", "leaf"]],
+            errors="ignore",
+        )
+        ex_data = [[1, "foo", np.nan], [2, "foo", np.nan]]
+        columns = ["rec", "meta", "nested_meta.leaf"]
+        expected = DataFrame(ex_data, columns=columns).astype(
+            {"nested_meta.leaf": object}
+        )
+        tm.assert_frame_equal(result, expected)
+
+        # If errors="raise" and nested metadata is null, we should raise with the
+        # key of the first missing level
+        with pytest.raises(KeyError, match="'leaf' not found"):
+            json_normalize(
+                data,
+                record_path="value",
+                meta=["meta", ["nested_meta", "leaf"]],
+                errors="raise",
+            )
 
     def test_missing_meta_multilevel_record_path_errors_raise(self, missing_metadata):
         # GH41876

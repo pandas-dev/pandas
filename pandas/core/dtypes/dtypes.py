@@ -29,8 +29,8 @@ from pandas._libs.tslibs import (
 from pandas._typing import (
     Dtype,
     DtypeObj,
-    NpDtype,
     Ordered,
+    npt,
     type_t,
 )
 
@@ -465,15 +465,9 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                 [cat_array, np.arange(len(cat_array), dtype=cat_array.dtype)]
             )
         else:
-            # error: Incompatible types in assignment (expression has type
-            # "List[ndarray]", variable has type "ndarray")
-            cat_array = [cat_array]  # type: ignore[assignment]
-        # error: Incompatible types in assignment (expression has type "ndarray",
-        # variable has type "int")
-        hashed = combine_hash_arrays(  # type: ignore[assignment]
-            iter(cat_array), num_items=len(cat_array)
-        )
-        return np.bitwise_xor.reduce(hashed)
+            cat_array = np.array([cat_array])
+        combined_hashed = combine_hash_arrays(iter(cat_array), num_items=len(cat_array))
+        return np.bitwise_xor.reduce(combined_hashed)
 
     @classmethod
     def construct_array_type(cls) -> type_t[Categorical]:
@@ -882,15 +876,15 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
 
     @classmethod
     def _parse_dtype_strict(cls, freq: str_type) -> BaseOffset:
-        if isinstance(freq, str):
+        if isinstance(freq, str):  # note: freq is already of type str!
             if freq.startswith("period[") or freq.startswith("Period["):
                 m = cls._match.search(freq)
                 if m is not None:
                     freq = m.group("freq")
 
-            freq = to_offset(freq)
-            if freq is not None:
-                return freq
+            freq_offset = to_offset(freq)
+            if freq_offset is not None:
+                return freq_offset
 
         raise ValueError("could not construct PeriodDtype")
 
@@ -936,7 +930,18 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
         if isinstance(other, str):
             return other in [self.name, self.name.title()]
 
-        return isinstance(other, PeriodDtype) and self.freq == other.freq
+        elif isinstance(other, PeriodDtype):
+
+            # For freqs that can be held by a PeriodDtype, this check is
+            # equivalent to (and much faster than) self.freq == other.freq
+            sfreq = self.freq
+            ofreq = other.freq
+            return (
+                sfreq.n == ofreq.n
+                and sfreq._period_dtype_code == ofreq._period_dtype_code
+            )
+
+        return False
 
     def __ne__(self, other: Any) -> bool:
         return not self.__eq__(other)
@@ -1248,7 +1253,6 @@ class IntervalDtype(PandasExtensionDtype):
         return IntervalArray._concat_same_type(results)
 
     def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
-        # NB: this doesn't handle checking for closed match
         if not all(isinstance(x, IntervalDtype) for x in dtypes):
             return None
 
@@ -1283,7 +1287,7 @@ class PandasDtype(ExtensionDtype):
 
     _metadata = ("_dtype",)
 
-    def __init__(self, dtype: NpDtype | PandasDtype | None):
+    def __init__(self, dtype: npt.DTypeLike | PandasDtype | None):
         if isinstance(dtype, PandasDtype):
             # make constructor univalent
             dtype = dtype.numpy_dtype

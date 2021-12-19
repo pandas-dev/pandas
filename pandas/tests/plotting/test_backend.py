@@ -71,7 +71,7 @@ def test_register_entrypoint(restore_backend):
     result = pandas.plotting._core._get_plot_backend("my_backend")
     assert result is mod
 
-    # TODO: https://github.com/pandas-dev/pandas/issues/27517
+    # TODO(GH#27517): https://github.com/pandas-dev/pandas/issues/27517
     # Remove the td.skip_if_no_mpl
     with pandas.option_context("plotting.backend", "my_backend"):
         result = pandas.plotting._core._get_plot_backend()

@@ -38,7 +38,6 @@ from pandas.util._decorators import (
 from pandas.util._exceptions import rewrite_exception
 
 from pandas.core.dtypes.cast import (
-    construct_1d_object_array_from_listlike,
     find_common_type,
     infer_dtype_from_scalar,
     maybe_box_datetimelike,
@@ -355,8 +354,12 @@ class IntervalIndex(ExtensionIndex):
         return MultiIndex.from_arrays([self.left, self.right], names=["left", "right"])
 
     def __reduce__(self):
-        d = {"left": self.left, "right": self.right, "closed": self.closed}
-        d.update(self._get_attributes_dict())
+        d = {
+            "left": self.left,
+            "right": self.right,
+            "closed": self.closed,
+            "name": self.name,
+        }
         return _new_IntervalIndex, (type(self), d), None
 
     @property
@@ -528,7 +531,9 @@ class IntervalIndex(ExtensionIndex):
                 key_i8 = key_i8.where(~key._isnan)
 
         # ensure consistency with IntervalIndex subtype
-        subtype = self.dtype.subtype
+        # error: Item "ExtensionDtype"/"dtype[Any]" of "Union[dtype[Any],
+        # ExtensionDtype]" has no attribute "subtype"
+        subtype = self.dtype.subtype  # type: ignore[union-attr]
 
         if not is_dtype_equal(subtype, key_dtype):
             raise ValueError(
@@ -648,12 +653,11 @@ class IntervalIndex(ExtensionIndex):
     ) -> npt.NDArray[np.intp]:
 
         if isinstance(target, IntervalIndex):
-            # non-overlapping -> at most one match per interval in target
+            # We only get here with not self.is_overlapping
+            # -> at most one match per interval in target
             # want exact matches -> need both left/right to match, so defer to
             # left/right get_indexer, compare elementwise, equality -> match
-            left_indexer = self.left.get_indexer(target.left)
-            right_indexer = self.right.get_indexer(target.right)
-            indexer = np.where(left_indexer == right_indexer, left_indexer, -1)
+            indexer = self._get_indexer_unique_sides(target)
 
         elif not is_object_dtype(target.dtype):
             # homogeneous scalar index: use IntervalTree
@@ -678,6 +682,14 @@ class IntervalIndex(ExtensionIndex):
             #  -> no matches
             return self._get_indexer_non_comparable(target, None, unique=False)
 
+        elif isinstance(target, IntervalIndex):
+            if self.left.is_unique and self.right.is_unique:
+                # fastpath available even if we don't have self._index_as_unique
+                indexer = self._get_indexer_unique_sides(target)
+                missing = (indexer == -1).nonzero()[0]
+            else:
+                return self._get_indexer_pointwise(target)
+
         elif is_object_dtype(target.dtype) or not self._should_partial_index(target):
             # target might contain intervals: defer elementwise to get_loc
             return self._get_indexer_pointwise(target)
@@ -689,6 +701,18 @@ class IntervalIndex(ExtensionIndex):
             indexer, missing = self._engine.get_indexer_non_unique(target.values)
 
         return ensure_platform_int(indexer), ensure_platform_int(missing)
+
+    def _get_indexer_unique_sides(self, target: IntervalIndex) -> npt.NDArray[np.intp]:
+        """
+        _get_indexer specialized to the case where both of our sides are unique.
+        """
+        # Caller is responsible for checking
+        #  `self.left.is_unique and self.right.is_unique`
+
+        left_indexer = self.left.get_indexer(target.left)
+        right_indexer = self.right.get_indexer(target.right)
+        indexer = np.where(left_indexer == right_indexer, left_indexer, -1)
+        return indexer
 
     def _get_indexer_pointwise(
         self, target: Index
@@ -703,7 +727,11 @@ class IntervalIndex(ExtensionIndex):
                 if isinstance(locs, slice):
                     # Only needed for get_indexer_non_unique
                     locs = np.arange(locs.start, locs.stop, locs.step, dtype="intp")
-                locs = np.array(locs, ndmin=1)
+                elif lib.is_integer(locs):
+                    locs = np.array(locs, ndmin=1)
+                else:
+                    # otherwise we have ndarray[bool]
+                    locs = np.where(locs)[0]
             except KeyError:
                 missing.append(i)
                 locs = np.array([-1])
@@ -744,7 +772,9 @@ class IntervalIndex(ExtensionIndex):
     def _should_fallback_to_positional(self) -> bool:
         # integer lookups in Series.__getitem__ are unambiguously
         #  positional in this case
-        return self.dtype.subtype.kind in ["m", "M"]
+        # error: Item "ExtensionDtype"/"dtype[Any]" of "Union[dtype[Any],
+        # ExtensionDtype]" has no attribute "subtype"
+        return self.dtype.subtype.kind in ["m", "M"]  # type: ignore[union-attr]
 
     def _maybe_cast_slice_bound(self, label, side: str, kind=lib.no_default):
         self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
@@ -778,10 +808,11 @@ class IntervalIndex(ExtensionIndex):
     # Rendering Methods
     # __repr__ associated methods are based on MultiIndex
 
-    def _format_with_header(self, header: list[str], na_rep: str = "NaN") -> list[str]:
+    def _format_with_header(self, header: list[str], na_rep: str) -> list[str]:
+        # matches base class except for whitespace padding
         return header + list(self._format_native_types(na_rep=na_rep))
 
-    def _format_native_types(self, na_rep="NaN", quoting=None, **kwargs):
+    def _format_native_types(self, *, na_rep="NaN", quoting=None, **kwargs):
         # GH 28210: use base method but with different default na_rep
         return super()._format_native_types(na_rep=na_rep, quoting=quoting, **kwargs)
 
@@ -874,18 +905,17 @@ class IntervalIndex(ExtensionIndex):
         """
         return False
 
-    def _get_join_target(self) -> np.ndarray:
-        # constructing tuples is much faster than constructing Intervals
-        tups = list(zip(self.left, self.right))
-        target = construct_1d_object_array_from_listlike(tups)
-        return target
+    def _get_engine_target(self) -> np.ndarray:
+        # Note: we _could_ use libjoin functions by either casting to object
+        #  dtype or constructing tuples (faster than constructing Intervals)
+        #  but the libjoin fastpaths are no longer fast in these cases.
+        raise NotImplementedError(
+            "IntervalIndex does not use libjoin fastpaths or pass values to "
+            "IndexEngine objects"
+        )
 
     def _from_join_target(self, result):
-        left, right = list(zip(*result))
-        arr = type(self._data).from_arrays(
-            left, right, dtype=self.dtype, closed=self.closed
-        )
-        return type(self)._simple_new(arr, name=self.name)
+        raise NotImplementedError("IntervalIndex does not use libjoin fastpaths")
 
     # TODO: arithmetic operations
 

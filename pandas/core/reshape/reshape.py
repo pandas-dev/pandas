@@ -1,10 +1,7 @@
 from __future__ import annotations
 
 import itertools
-from typing import (
-    TYPE_CHECKING,
-    cast,
-)
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -192,6 +189,18 @@ class _Unstacker:
         self.unique_groups = obs_ids
         self.compressor = comp_index.searchsorted(np.arange(ngroups))
 
+    @cache_readonly
+    def mask_all(self) -> bool:
+        return bool(self.mask.all())
+
+    @cache_readonly
+    def arange_result(self) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.bool_]]:
+        # We cache this for re-use in ExtensionBlock._unstack
+        dummy_arr = np.arange(len(self.index), dtype=np.intp)
+        new_values, mask = self.get_new_values(dummy_arr, fill_value=-1)
+        return new_values, mask.any(0)
+        # TODO: in all tests we have mask.any(0).all(); can we rely on that?
+
     def get_result(self, values, value_columns, fill_value):
 
         if values.ndim == 1:
@@ -204,7 +213,9 @@ class _Unstacker:
         columns = self.get_new_columns(value_columns)
         index = self.new_index
 
-        return self.constructor(values, index=index, columns=columns)
+        return self.constructor(
+            values, index=index, columns=columns, dtype=values.dtype
+        )
 
     def get_new_values(self, values, fill_value=None):
 
@@ -219,7 +230,7 @@ class _Unstacker:
         result_width = width * stride
         result_shape = (length, result_width)
         mask = self.mask
-        mask_all = mask.all()
+        mask_all = self.mask_all
 
         # we can simply reshape if we don't have a mask
         if mask_all and len(values):
@@ -234,24 +245,24 @@ class _Unstacker:
             new_mask = np.ones(result_shape, dtype=bool)
             return new_values, new_mask
 
+        dtype = values.dtype
+
         # if our mask is all True, then we can use our existing dtype
         if mask_all:
             dtype = values.dtype
             new_values = np.empty(result_shape, dtype=dtype)
-            name = np.dtype(dtype).name
         else:
-            dtype, fill_value = maybe_promote(values.dtype, fill_value)
             if isinstance(dtype, ExtensionDtype):
                 # GH#41875
                 cls = dtype.construct_array_type()
                 new_values = cls._empty(result_shape, dtype=dtype)
                 new_values[:] = fill_value
-                name = dtype.name
             else:
+                dtype, fill_value = maybe_promote(dtype, fill_value)
                 new_values = np.empty(result_shape, dtype=dtype)
                 new_values.fill(fill_value)
-                name = np.dtype(dtype).name
 
+        name = dtype.name
         new_mask = np.zeros(result_shape, dtype=bool)
 
         # we need to convert to a basic dtype
@@ -304,7 +315,12 @@ class _Unstacker:
 
             new_codes = [lab.take(propagator) for lab in value_columns.codes]
         else:
-            new_levels = [value_columns, self.removed_level_full]
+            # error: Incompatible types in assignment (expression has type "List[Any]",
+            # variable has type "FrozenList")
+            new_levels = [  # type: ignore[assignment]
+                value_columns,
+                self.removed_level_full,
+            ]
             new_names = [value_columns.name, self.removed_name]
             new_codes = [propagator]
 
@@ -513,7 +529,11 @@ def _unstack_extension_series(series, level, fill_value):
     # Defer to the logic in ExtensionBlock._unstack
     df = series.to_frame()
     result = df.unstack(level=level, fill_value=fill_value)
-    return result.droplevel(level=0, axis=1)
+
+    # equiv: result.droplevel(level=0, axis=1)
+    #  but this avoids an extra copy
+    result.columns = result.columns.droplevel(0)
+    return result
 
 
 def stack(frame, level=-1, dropna=True):
@@ -727,13 +747,15 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
             if frame._is_homogeneous_type and is_extension_array_dtype(
                 frame.dtypes.iloc[0]
             ):
+                # TODO(EA2D): won't need special case, can go through .values
+                #  paths below (might change to ._values)
                 dtype = this[this.columns[loc]].dtypes.iloc[0]
                 subset = this[this.columns[loc]]
 
                 value_slice = dtype.construct_array_type()._concat_same_type(
                     [x._values for _, x in subset.items()]
                 )
-                N, K = this.shape
+                N, K = subset.shape
                 idx = np.arange(N * K).reshape(K, N).T.ravel()
                 value_slice = value_slice.take(idx)
 
@@ -982,7 +1004,7 @@ def _get_dummies_1d(
     codes, levels = factorize_from_iterable(Series(data))
 
     if dtype is None:
-        dtype = np.uint8
+        dtype = np.dtype(np.uint8)
     # error: Argument 1 to "dtype" has incompatible type "Union[ExtensionDtype, str,
     # dtype[Any], Type[object]]"; expected "Type[Any]"
     dtype = np.dtype(dtype)  # type: ignore[arg-type]
@@ -1028,9 +1050,7 @@ def _get_dummies_1d(
         fill_value: bool | float | int
         if is_integer_dtype(dtype):
             fill_value = 0
-        # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-        # operand type: "Type[bool]")
-        elif dtype == bool:  # type: ignore[comparison-overlap]
+        elif dtype == np.dtype(bool):
             fill_value = False
         else:
             fill_value = 0.0
@@ -1059,10 +1079,7 @@ def _get_dummies_1d(
             )
             sparse_series.append(Series(data=sarr, index=index, name=col))
 
-        out = concat(sparse_series, axis=1, copy=False)
-        # TODO: overload concat with Literal for axis
-        out = cast(DataFrame, out)
-        return out
+        return concat(sparse_series, axis=1, copy=False)
 
     else:
         # take on axis=1 + transpose to ensure ndarray layout is column-major

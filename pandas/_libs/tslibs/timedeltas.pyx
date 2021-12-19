@@ -571,7 +571,7 @@ cdef inline timedelta_from_spec(object number, object frac, object unit):
         if unit in ["M", "Y", "y"]:
             warnings.warn(
                 "Units 'M', 'Y' and 'y' do not represent unambiguous "
-                "timedelta values and will be removed in a future version",
+                "timedelta values and will be removed in a future version.",
                 FutureWarning,
                 stacklevel=2,
             )
@@ -929,6 +929,10 @@ cdef class _Timedelta(timedelta):
         --------
         Series.to_numpy : Similar method for Series.
         """
+        if dtype is not None or copy is not False:
+            raise ValueError(
+                "Timedelta.to_numpy dtype and copy arguments are ignored"
+            )
         return self.to_timedelta64()
 
     def view(self, dtype):

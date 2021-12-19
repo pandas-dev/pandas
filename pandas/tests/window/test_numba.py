@@ -14,8 +14,8 @@ import pandas._testing as tm
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
 
 
-@td.skip_if_no("numba", "0.46.0")
-@pytest.mark.filterwarnings("ignore:\\nThe keyword argument")
+@td.skip_if_no("numba")
+@pytest.mark.filterwarnings("ignore:\n")
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
 class TestEngine:
     @pytest.mark.parametrize("jit", [True, False])
@@ -43,44 +43,58 @@ class TestEngine:
         )
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "data", [DataFrame(np.eye(5)), Series(range(5), name="foo")]
+    )
     def test_numba_vs_cython_rolling_methods(
-        self, nogil, parallel, nopython, arithmetic_numba_supported_operators
+        self, data, nogil, parallel, nopython, arithmetic_numba_supported_operators
     ):
 
-        method = arithmetic_numba_supported_operators
+        method, kwargs = arithmetic_numba_supported_operators
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
 
-        df = DataFrame(np.eye(5))
-        roll = df.rolling(2)
-        result = getattr(roll, method)(engine="numba", engine_kwargs=engine_kwargs)
-        expected = getattr(roll, method)(engine="cython")
+        roll = data.rolling(2)
+        result = getattr(roll, method)(
+            engine="numba", engine_kwargs=engine_kwargs, **kwargs
+        )
+        expected = getattr(roll, method)(engine="cython", **kwargs)
 
         # Check the cache
-        assert (getattr(np, f"nan{method}"), "Rolling_apply_single") in NUMBA_FUNC_CACHE
+        if method not in ("mean", "sum", "var", "std"):
+            assert (
+                getattr(np, f"nan{method}"),
+                "Rolling_apply_single",
+            ) in NUMBA_FUNC_CACHE
 
-        tm.assert_frame_equal(result, expected)
+        tm.assert_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "data", [DataFrame(np.eye(5)), Series(range(5), name="foo")]
+    )
     def test_numba_vs_cython_expanding_methods(
-        self, nogil, parallel, nopython, arithmetic_numba_supported_operators
+        self, data, nogil, parallel, nopython, arithmetic_numba_supported_operators
     ):
 
-        method = arithmetic_numba_supported_operators
+        method, kwargs = arithmetic_numba_supported_operators
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
 
-        df = DataFrame(np.eye(5))
-        expand = df.expanding()
-        result = getattr(expand, method)(engine="numba", engine_kwargs=engine_kwargs)
-        expected = getattr(expand, method)(engine="cython")
+        data = DataFrame(np.eye(5))
+        expand = data.expanding()
+        result = getattr(expand, method)(
+            engine="numba", engine_kwargs=engine_kwargs, **kwargs
+        )
+        expected = getattr(expand, method)(engine="cython", **kwargs)
 
         # Check the cache
-        assert (
-            getattr(np, f"nan{method}"),
-            "Expanding_apply_single",
-        ) in NUMBA_FUNC_CACHE
+        if method not in ("mean", "sum", "var", "std"):
+            assert (
+                getattr(np, f"nan{method}"),
+                "Expanding_apply_single",
+            ) in NUMBA_FUNC_CACHE
 
-        tm.assert_frame_equal(result, expected)
+        tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize("jit", [True, False])
     def test_cache_apply(self, jit, nogil, parallel, nopython):
@@ -150,29 +164,32 @@ class TestEngine:
         tm.assert_frame_equal(result, expected)
 
 
-@td.skip_if_no("numba", "0.46.0")
-class TestEWMMean:
+@td.skip_if_no("numba")
+class TestEWM:
     @pytest.mark.parametrize(
         "grouper", [lambda x: x, lambda x: x.groupby("A")], ids=["None", "groupby"]
     )
-    def test_invalid_engine(self, grouper):
+    @pytest.mark.parametrize("method", ["mean", "sum"])
+    def test_invalid_engine(self, grouper, method):
         df = DataFrame({"A": ["a", "b", "a", "b"], "B": range(4)})
         with pytest.raises(ValueError, match="engine must be either"):
-            grouper(df).ewm(com=1.0).mean(engine="foo")
+            getattr(grouper(df).ewm(com=1.0), method)(engine="foo")
 
     @pytest.mark.parametrize(
         "grouper", [lambda x: x, lambda x: x.groupby("A")], ids=["None", "groupby"]
     )
-    def test_invalid_engine_kwargs(self, grouper):
+    @pytest.mark.parametrize("method", ["mean", "sum"])
+    def test_invalid_engine_kwargs(self, grouper, method):
         df = DataFrame({"A": ["a", "b", "a", "b"], "B": range(4)})
         with pytest.raises(ValueError, match="cython engine does not"):
-            grouper(df).ewm(com=1.0).mean(
+            getattr(grouper(df).ewm(com=1.0), method)(
                 engine="cython", engine_kwargs={"nopython": True}
             )
 
     @pytest.mark.parametrize("grouper", ["None", "groupby"])
+    @pytest.mark.parametrize("method", ["mean", "sum"])
     def test_cython_vs_numba(
-        self, grouper, nogil, parallel, nopython, ignore_na, adjust
+        self, grouper, method, nogil, parallel, nopython, ignore_na, adjust
     ):
         if grouper == "None":
             grouper = lambda x: x
@@ -180,15 +197,16 @@ class TestEWMMean:
         else:
             grouper = lambda x: x.groupby("A")
             warn = None
-
+        if method == "sum":
+            adjust = True
         df = DataFrame({"A": ["a", "b", "a", "b"], "B": range(4)})
         ewm = grouper(df).ewm(com=1.0, adjust=adjust, ignore_na=ignore_na)
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
         with tm.assert_produces_warning(warn, match="nuisance"):
             # GH#42738
-            result = ewm.mean(engine="numba", engine_kwargs=engine_kwargs)
-            expected = ewm.mean(engine="cython")
+            result = getattr(ewm, method)(engine="numba", engine_kwargs=engine_kwargs)
+            expected = getattr(ewm, method)(engine="cython")
 
         tm.assert_frame_equal(result, expected)
 
@@ -229,7 +247,7 @@ class TestEWMMean:
         tm.assert_frame_equal(result, expected)
 
 
-@td.skip_if_no("numba", "0.46.0")
+@td.skip_if_no("numba")
 def test_use_global_config():
     def f(x):
         return np.mean(x) + 2
@@ -241,7 +259,7 @@ def test_use_global_config():
     tm.assert_series_equal(expected, result)
 
 
-@td.skip_if_no("numba", "0.46.0")
+@td.skip_if_no("numba")
 def test_invalid_kwargs_nopython():
     with pytest.raises(NumbaUtilError, match="numba does not support kwargs with"):
         Series(range(1)).rolling(1).apply(
@@ -249,9 +267,9 @@ def test_invalid_kwargs_nopython():
         )
 
 
-@td.skip_if_no("numba", "0.46.0")
+@td.skip_if_no("numba")
 @pytest.mark.slow
-@pytest.mark.filterwarnings("ignore:\\nThe keyword argument")
+@pytest.mark.filterwarnings("ignore:\n")
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
 class TestTableMethod:
     def test_table_series_valueerror(self):
@@ -268,19 +286,26 @@ class TestTableMethod:
     def test_table_method_rolling_methods(
         self, axis, nogil, parallel, nopython, arithmetic_numba_supported_operators
     ):
-        method = arithmetic_numba_supported_operators
+        method, kwargs = arithmetic_numba_supported_operators
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
 
         df = DataFrame(np.eye(3))
-
-        result = getattr(
-            df.rolling(2, method="table", axis=axis, min_periods=0), method
-        )(engine_kwargs=engine_kwargs, engine="numba")
-        expected = getattr(
-            df.rolling(2, method="single", axis=axis, min_periods=0), method
-        )(engine_kwargs=engine_kwargs, engine="numba")
-        tm.assert_frame_equal(result, expected)
+        roll_table = df.rolling(2, method="table", axis=axis, min_periods=0)
+        if method in ("var", "std"):
+            with pytest.raises(NotImplementedError, match=f"{method} not supported"):
+                getattr(roll_table, method)(
+                    engine_kwargs=engine_kwargs, engine="numba", **kwargs
+                )
+        else:
+            roll_single = df.rolling(2, method="single", axis=axis, min_periods=0)
+            result = getattr(roll_table, method)(
+                engine_kwargs=engine_kwargs, engine="numba", **kwargs
+            )
+            expected = getattr(roll_single, method)(
+                engine_kwargs=engine_kwargs, engine="numba", **kwargs
+            )
+            tm.assert_frame_equal(result, expected)
 
     def test_table_method_rolling_apply(self, axis, nogil, parallel, nopython):
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
@@ -335,30 +360,38 @@ class TestTableMethod:
     def test_table_method_expanding_methods(
         self, axis, nogil, parallel, nopython, arithmetic_numba_supported_operators
     ):
-        method = arithmetic_numba_supported_operators
+        method, kwargs = arithmetic_numba_supported_operators
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
 
         df = DataFrame(np.eye(3))
-
-        result = getattr(df.expanding(method="table", axis=axis), method)(
-            engine_kwargs=engine_kwargs, engine="numba"
-        )
-        expected = getattr(df.expanding(method="single", axis=axis), method)(
-            engine_kwargs=engine_kwargs, engine="numba"
-        )
-        tm.assert_frame_equal(result, expected)
+        expand_table = df.expanding(method="table", axis=axis)
+        if method in ("var", "std"):
+            with pytest.raises(NotImplementedError, match=f"{method} not supported"):
+                getattr(expand_table, method)(
+                    engine_kwargs=engine_kwargs, engine="numba", **kwargs
+                )
+        else:
+            expand_single = df.expanding(method="single", axis=axis)
+            result = getattr(expand_table, method)(
+                engine_kwargs=engine_kwargs, engine="numba", **kwargs
+            )
+            expected = getattr(expand_single, method)(
+                engine_kwargs=engine_kwargs, engine="numba", **kwargs
+            )
+            tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("data", [np.eye(3), np.ones((2, 3)), np.ones((3, 2))])
-    def test_table_method_ewm(self, data, axis, nogil, parallel, nopython):
+    @pytest.mark.parametrize("method", ["mean", "sum"])
+    def test_table_method_ewm(self, data, method, axis, nogil, parallel, nopython):
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
 
         df = DataFrame(data)
 
-        result = df.ewm(com=1, method="table", axis=axis).mean(
+        result = getattr(df.ewm(com=1, method="table", axis=axis), method)(
             engine_kwargs=engine_kwargs, engine="numba"
         )
-        expected = df.ewm(com=1, method="single", axis=axis).mean(
+        expected = getattr(df.ewm(com=1, method="single", axis=axis), method)(
             engine_kwargs=engine_kwargs, engine="numba"
         )
         tm.assert_frame_equal(result, expected)

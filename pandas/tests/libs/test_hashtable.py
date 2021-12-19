@@ -44,6 +44,7 @@ def get_allocated_khash_memory():
         (ht.UInt16HashTable, np.uint16),
         (ht.Int8HashTable, np.int8),
         (ht.UInt8HashTable, np.uint8),
+        (ht.IntpHashTable, np.intp),
     ],
 )
 class TestHashTable:
@@ -369,155 +370,146 @@ def test_unique_for_nan_objects_tuple():
     assert len(unique) == 2
 
 
-def get_ht_function(fun_name, type_suffix):
-    return getattr(ht, fun_name)
-
-
 @pytest.mark.parametrize(
-    "dtype, type_suffix",
+    "dtype",
     [
-        (np.object_, "object"),
-        (np.complex128, "complex128"),
-        (np.int64, "int64"),
-        (np.uint64, "uint64"),
-        (np.float64, "float64"),
-        (np.complex64, "complex64"),
-        (np.int32, "int32"),
-        (np.uint32, "uint32"),
-        (np.float32, "float32"),
-        (np.int16, "int16"),
-        (np.uint16, "uint16"),
-        (np.int8, "int8"),
-        (np.uint8, "uint8"),
+        np.object_,
+        np.complex128,
+        np.int64,
+        np.uint64,
+        np.float64,
+        np.complex64,
+        np.int32,
+        np.uint32,
+        np.float32,
+        np.int16,
+        np.uint16,
+        np.int8,
+        np.uint8,
+        np.intp,
     ],
 )
 class TestHelpFunctions:
-    def test_value_count(self, dtype, type_suffix, writable):
+    def test_value_count(self, dtype, writable):
         N = 43
-        value_count = get_ht_function("value_count", type_suffix)
         expected = (np.arange(N) + N).astype(dtype)
         values = np.repeat(expected, 5)
         values.flags.writeable = writable
-        keys, counts = value_count(values, False)
+        keys, counts = ht.value_count(values, False)
         tm.assert_numpy_array_equal(np.sort(keys), expected)
         assert np.all(counts == 5)
 
-    def test_value_count_stable(self, dtype, type_suffix, writable):
+    def test_value_count_stable(self, dtype, writable):
         # GH12679
-        value_count = get_ht_function("value_count", type_suffix)
         values = np.array([2, 1, 5, 22, 3, -1, 8]).astype(dtype)
         values.flags.writeable = writable
-        keys, counts = value_count(values, False)
+        keys, counts = ht.value_count(values, False)
         tm.assert_numpy_array_equal(keys, values)
         assert np.all(counts == 1)
 
-    def test_duplicated_first(self, dtype, type_suffix, writable):
+    def test_duplicated_first(self, dtype, writable):
         N = 100
-        duplicated = get_ht_function("duplicated", type_suffix)
         values = np.repeat(np.arange(N).astype(dtype), 5)
         values.flags.writeable = writable
-        result = duplicated(values)
+        result = ht.duplicated(values)
         expected = np.ones_like(values, dtype=np.bool_)
         expected[::5] = False
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_ismember_yes(self, dtype, type_suffix, writable):
+    def test_ismember_yes(self, dtype, writable):
         N = 127
-        ismember = get_ht_function("ismember", type_suffix)
         arr = np.arange(N).astype(dtype)
         values = np.arange(N).astype(dtype)
         arr.flags.writeable = writable
         values.flags.writeable = writable
-        result = ismember(arr, values)
+        result = ht.ismember(arr, values)
         expected = np.ones_like(values, dtype=np.bool_)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_ismember_no(self, dtype, type_suffix):
+    def test_ismember_no(self, dtype):
         N = 17
-        ismember = get_ht_function("ismember", type_suffix)
         arr = np.arange(N).astype(dtype)
         values = (np.arange(N) + N).astype(dtype)
-        result = ismember(arr, values)
+        result = ht.ismember(arr, values)
         expected = np.zeros_like(values, dtype=np.bool_)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_mode(self, dtype, type_suffix, writable):
+    def test_mode(self, dtype, writable):
         if dtype in (np.int8, np.uint8):
             N = 53
         else:
             N = 11111
-        mode = get_ht_function("mode", type_suffix)
         values = np.repeat(np.arange(N).astype(dtype), 5)
         values[0] = 42
         values.flags.writeable = writable
-        result = mode(values, False)
+        result = ht.mode(values, False)
         assert result == 42
 
-    def test_mode_stable(self, dtype, type_suffix, writable):
-        mode = get_ht_function("mode", type_suffix)
+    def test_mode_stable(self, dtype, writable):
         values = np.array([2, 1, 5, 22, 3, -1, 8]).astype(dtype)
         values.flags.writeable = writable
-        keys = mode(values, False)
+        keys = ht.mode(values, False)
         tm.assert_numpy_array_equal(keys, values)
 
 
 def test_modes_with_nans():
-    # GH39007
-    values = np.array([True, pd.NA, np.nan], dtype=np.object_)
-    # pd.Na and np.nan will have the same representative: np.nan
-    # thus we have 2 nans and 1 True
+    # GH42688, nans aren't mangled
+    nulls = [pd.NA, np.nan, pd.NaT, None]
+    values = np.array([True] + nulls * 2, dtype=np.object_)
     modes = ht.mode(values, False)
-    assert modes.size == 1
-    assert np.isnan(modes[0])
+    assert modes.size == len(nulls)
+
+
+def test_unique_label_indices_intp(writable):
+    keys = np.array([1, 2, 2, 2, 1, 3], dtype=np.intp)
+    keys.flags.writeable = writable
+    result = ht.unique_label_indices(keys)
+    expected = np.array([0, 1, 5], dtype=np.intp)
+    tm.assert_numpy_array_equal(result, expected)
 
 
 @pytest.mark.parametrize(
-    "dtype, type_suffix",
+    "dtype",
     [
-        (np.float64, "float64"),
-        (np.float32, "float32"),
-        (np.complex128, "complex128"),
-        (np.complex64, "complex64"),
+        np.float64,
+        np.float32,
+        np.complex128,
+        np.complex64,
     ],
 )
 class TestHelpFunctionsWithNans:
-    def test_value_count(self, dtype, type_suffix):
-        value_count = get_ht_function("value_count", type_suffix)
+    def test_value_count(self, dtype):
         values = np.array([np.nan, np.nan, np.nan], dtype=dtype)
-        keys, counts = value_count(values, True)
+        keys, counts = ht.value_count(values, True)
         assert len(keys) == 0
-        keys, counts = value_count(values, False)
+        keys, counts = ht.value_count(values, False)
         assert len(keys) == 1 and np.all(np.isnan(keys))
         assert counts[0] == 3
 
-    def test_duplicated_first(self, dtype, type_suffix):
-        duplicated = get_ht_function("duplicated", type_suffix)
+    def test_duplicated_first(self, dtype):
         values = np.array([np.nan, np.nan, np.nan], dtype=dtype)
-        result = duplicated(values)
+        result = ht.duplicated(values)
         expected = np.array([False, True, True])
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_ismember_yes(self, dtype, type_suffix):
-        ismember = get_ht_function("ismember", type_suffix)
+    def test_ismember_yes(self, dtype):
         arr = np.array([np.nan, np.nan, np.nan], dtype=dtype)
         values = np.array([np.nan, np.nan], dtype=dtype)
-        result = ismember(arr, values)
+        result = ht.ismember(arr, values)
         expected = np.array([True, True, True], dtype=np.bool_)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_ismember_no(self, dtype, type_suffix):
-        ismember = get_ht_function("ismember", type_suffix)
+    def test_ismember_no(self, dtype):
         arr = np.array([np.nan, np.nan, np.nan], dtype=dtype)
         values = np.array([1], dtype=dtype)
-        result = ismember(arr, values)
+        result = ht.ismember(arr, values)
         expected = np.array([False, False, False], dtype=np.bool_)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_mode(self, dtype, type_suffix):
-        mode = get_ht_function("mode", type_suffix)
+    def test_mode(self, dtype):
         values = np.array([42, np.nan, np.nan, np.nan], dtype=dtype)
-        assert mode(values, True) == 42
-        assert np.isnan(mode(values, False))
+        assert ht.mode(values, True) == 42
+        assert np.isnan(ht.mode(values, False))
 
 
 def test_ismember_tuple_with_nans():

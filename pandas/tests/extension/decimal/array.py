@@ -124,7 +124,7 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
             else:
                 return DecimalArray._from_sequence(x)
 
-        if isinstance(result, tuple):
+        if ufunc.nout > 1:
             return tuple(reconstruct(x) for x in result)
         else:
             return reconstruct(result)
