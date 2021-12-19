@@ -530,7 +530,7 @@ class NaTType(_NaT):
         Examples
         --------
         >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
-        >>> ts.strftime('%Y-%m-%d %X')
+        >>> ts.strftime('%Y-%m-%d %H:%M:%S')
         '2020-03-14 15:32:52'
         """,
     )
