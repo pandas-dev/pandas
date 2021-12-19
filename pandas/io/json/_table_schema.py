@@ -87,7 +87,7 @@ def as_json_table_type(x: DtypeObj) -> str:
         return "duration"
     elif is_categorical_dtype(x):
         return "any"
-    if is_extension_array_dtype(x):
+    elif is_extension_array_dtype(x):
         return "any"
     elif is_string_dtype(x):
         return "string"
@@ -203,7 +203,7 @@ def convert_json_field_to_pandas_type(field):
             return CategoricalDtype(
                 categories=field["constraints"]["enum"], ordered=field["ordered"]
             )
-        if "extDtype" in field:
+        elif "extDtype" in field:
             return registry.find(field["extDtype"])
         else:
             return "object"

@@ -2519,18 +2519,16 @@ indicate missing values and the subsequent read cannot distinguish the intent.
 
    os.remove("test.json")
 
+When using ``orient='table'`` along with user-defined ``ExtensionArray``,
+the generated schema will contain an additional ``extDtype`` key in the respective
+``fields`` element. This extra key is not standard but does enable JSON roundtrips
+for extension types (e.g. ``read_json(df.to_json(orient="table"), orient="table")``).
+
+The ``extDtype`` key carries the name of the extension, if you have properly registered
+the ``ExtensionDtype``, pandas will use said name to perform a lookup into the registry
+and re-convert the serialized data into your custom dtype.
+
 .. _Table Schema: https://specs.frictionlessdata.io/table-schema/
-
-.. note::
-
-   When using ``orient='table'`` along with user-defined ``ExtensionArray``,
-   the generated schema will contain an additional ``extDtype`` key in the respective
-   ``fields`` element. This extra key is not standard but does enable JSON roundtrips
-   for extension types (e.g. ``read_json(df.to_json(orient="table"), orient="table")``).
-
-   The ``extDtype`` key carries the name of the extension, if you have properly registered
-   the ``ExtensionDtype``, pandas will use said name to perform a lookup into the registry
-   and re-convert the serialized data into your custom dtype.
 
 
 HTML
