@@ -640,6 +640,8 @@ class Block(PandasObject):
         to_replace,
         value,
         inplace: bool = False,
+        # mask may be pre-computed if we're called from replace_list
+        mask: npt.NDArray[np.bool_] | None = None,
     ) -> list[Block]:
         """
         replace the to_replace value with value, possible to create new
@@ -665,7 +667,8 @@ class Block(PandasObject):
             #  replace_list instead of replace.
             return [self] if inplace else [self.copy()]
 
-        mask = missing.mask_missing(values, to_replace)
+        if mask is None:
+            mask = missing.mask_missing(values, to_replace)
         if not mask.any():
             # Note: we get here with test_replace_extension_other incorrectly
             #  bc _can_hold_element is incorrect.
@@ -683,6 +686,7 @@ class Block(PandasObject):
                 to_replace=to_replace,
                 value=value,
                 inplace=True,
+                mask=mask,
             )
 
         else:
@@ -745,16 +749,6 @@ class Block(PandasObject):
         See BlockManager.replace_list docstring.
         """
         values = self.values
-
-        # TODO: dont special-case Categorical
-        if (
-            isinstance(values, Categorical)
-            and len(algos.unique(dest_list)) == 1
-            and not regex
-        ):
-            # We likely got here by tiling value inside NDFrame.replace,
-            #  so un-tile here
-            return self.replace(src_list, dest_list[0], inplace)
 
         # Exclude anything that we know we won't contain
         pairs = [
@@ -844,25 +838,18 @@ class Block(PandasObject):
         -------
         List[Block]
         """
-        if mask.any():
-            if not regex:
-                nb = self.coerce_to_target_dtype(value)
-                if nb is self and not inplace:
-                    nb = nb.copy()
-                putmask_inplace(nb.values, mask, value)
-                return [nb]
-            else:
-                regex = should_use_regex(regex, to_replace)
-                if regex:
-                    return self._replace_regex(
-                        to_replace,
-                        value,
-                        inplace=inplace,
-                        convert=False,
-                        mask=mask,
-                    )
-                return self.replace(to_replace, value, inplace=inplace)
-        return [self]
+        if should_use_regex(regex, to_replace):
+            return self._replace_regex(
+                to_replace,
+                value,
+                inplace=inplace,
+                convert=False,
+                mask=mask,
+            )
+        else:
+            return self.replace(
+                to_replace=to_replace, value=value, inplace=inplace, mask=mask
+            )
 
     # ---------------------------------------------------------------------
 

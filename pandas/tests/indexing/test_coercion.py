@@ -1177,6 +1177,7 @@ class TestReplaceSeriesCoercion(CoercionBase):
         assert obj.dtype == from_key
 
         result = obj.replace(replacer)
+
         exp = pd.Series(self.rep[to_key], index=index, name="yyy")
         assert exp.dtype == to_key
 
@@ -1197,7 +1198,21 @@ class TestReplaceSeriesCoercion(CoercionBase):
         obj = pd.Series(self.rep[from_key], index=index, name="yyy")
         assert obj.dtype == from_key
 
-        result = obj.replace(replacer)
+        warn = None
+        rep_ser = pd.Series(replacer)
+        if (
+            isinstance(obj.dtype, pd.DatetimeTZDtype)
+            and isinstance(rep_ser.dtype, pd.DatetimeTZDtype)
+            and obj.dtype != rep_ser.dtype
+        ):
+            # mismatched tz DatetimeArray behavior will change to cast
+            #  for setitem-like methods with mismatched tzs GH#44940
+            warn = FutureWarning
+
+        msg = "explicitly cast to object"
+        with tm.assert_produces_warning(warn, match=msg):
+            result = obj.replace(replacer)
+
         exp = pd.Series(self.rep[to_key], index=index, name="yyy")
         assert exp.dtype == to_key
 
