@@ -2107,6 +2107,7 @@ def to_native_types(
             result = values._format_native_types(na_rep=na_rep, **kwargs)
             result = result.astype(object, copy=False)
             return result
+
         # GH#21734 Process every column separately, they might have different formats
         results_converted = []
         for i in range(len(values)):
