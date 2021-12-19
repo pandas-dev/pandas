@@ -18,7 +18,7 @@ import pandas._testing as tm
 
 
 class TestBetweenTime:
-    @td.skip_if_has_locale
+    @td.skip_if_not_us_locale
     def test_between_time_formats(self, frame_or_series):
         # GH#11818
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")

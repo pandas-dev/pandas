@@ -9,6 +9,12 @@ from pandas import (
 import pandas._testing as tm
 
 
+@pytest.fixture(params=tm.utf8_locales, autouse=True)
+def with_locale(request):
+    with tm.set_locale(request.param):
+        yield
+
+
 @pytest.fixture
 def float_frame_with_na():
     """
