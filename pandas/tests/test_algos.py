@@ -1721,9 +1721,9 @@ class TestHashTable:
         ],
     )
     def test_hashtable_large_sizehint(self, hashtable):
-        # GH 22729
+        # GH#22729 smoketest for not raising when passing a large size_hint
         size_hint = np.iinfo(np.uint32).max + 1
-        tbl = hashtable(size_hint=size_hint)  # noqa
+        hashtable(size_hint=size_hint)
 
 
 def test_unique_label_indices():
