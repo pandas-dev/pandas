@@ -88,6 +88,8 @@ jobs:
 
     - uses: conda-incubator/setup-miniconda@v2
       with:
+        mamba-version: "*"
+        channels: conda-forge,defaults
         activate-environment: pandas-dev
         channel-priority: strict
         environment-file: ${{ matrix.ENV_FILE }}
