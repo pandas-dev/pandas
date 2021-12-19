@@ -1552,7 +1552,8 @@ class TestTimedeltaArraylikeMulDivOps:
         dt64nat = np.datetime64("NaT", "ns")
         msg = "|".join(
             [
-                "ufunc 'true_divide' cannot use operands",
+                # 'divide' on npdev as of 2021-12-18
+                "ufunc '(true_divide|divide)' cannot use operands",
                 "cannot perform __r?truediv__",
                 "Cannot divide datetime64 by TimedeltaArray",
             ]
