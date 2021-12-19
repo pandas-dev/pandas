@@ -1,12 +1,10 @@
-# flake8: noqa
-
 """
 Expose public exceptions & warnings
 """
 
-from pandas._config.config import OptionError
+from pandas._config.config import OptionError  # noqa:F401
 
-from pandas._libs.tslibs import (
+from pandas._libs.tslibs import (  # noqa:F401
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
 )
