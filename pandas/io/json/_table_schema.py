@@ -18,11 +18,13 @@ from pandas._typing import (
     JSONSerializable,
 )
 
+from pandas.core.dtypes.base import _registry as registry
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_categorical_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
+    is_extension_array_dtype,
     is_integer_dtype,
     is_numeric_dtype,
     is_period_dtype,
@@ -39,6 +41,8 @@ if TYPE_CHECKING:
     from pandas.core.indexes.multi import MultiIndex
 
 loads = json.loads
+
+TABLE_SCHEMA_VERSION = "1.4.0"
 
 
 def as_json_table_type(x: DtypeObj) -> str:
@@ -82,6 +86,8 @@ def as_json_table_type(x: DtypeObj) -> str:
     elif is_timedelta64_dtype(x):
         return "duration"
     elif is_categorical_dtype(x):
+        return "any"
+    elif is_extension_array_dtype(x):
         return "any"
     elif is_string_dtype(x):
         return "string"
@@ -130,6 +136,8 @@ def convert_pandas_type_to_json_field(arr):
         field["freq"] = dtype.freq.freqstr
     elif is_datetime64tz_dtype(dtype):
         field["tz"] = dtype.tz.zone
+    elif is_extension_array_dtype(dtype):
+        field["extDtype"] = dtype.name
     return field
 
 
@@ -195,6 +203,8 @@ def convert_json_field_to_pandas_type(field):
             return CategoricalDtype(
                 categories=field["constraints"]["enum"], ordered=field["ordered"]
             )
+        elif "extDtype" in field:
+            return registry.find(field["extDtype"])
         else:
             return "object"
 
@@ -253,7 +263,7 @@ def build_table_schema(
 {'name': 'B', 'type': 'string'}, \
 {'name': 'C', 'type': 'datetime'}], \
 'primaryKey': ['idx'], \
-'pandas_version': '0.20.0'}
+'pandas_version': '1.4.0'}
     """
     if index is True:
         data = set_default_names(data)
@@ -287,7 +297,7 @@ def build_table_schema(
         schema["primaryKey"] = primary_key
 
     if version:
-        schema["pandas_version"] = "0.20.0"
+        schema["pandas_version"] = TABLE_SCHEMA_VERSION
     return schema
 
 

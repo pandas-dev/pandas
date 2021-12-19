@@ -67,8 +67,11 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
 
     def __init__(self, values, dtype=None, copy=False, context=None):
         for i, val in enumerate(values):
-            if is_float(val) and np.isnan(val):
-                values[i] = DecimalDtype.na_value
+            if is_float(val):
+                if np.isnan(val):
+                    values[i] = DecimalDtype.na_value
+                else:
+                    values[i] = DecimalDtype.type(val)
             elif not isinstance(val, decimal.Decimal):
                 raise TypeError("All values must be of type " + str(decimal.Decimal))
         values = np.asarray(values, dtype=object)

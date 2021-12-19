@@ -1673,7 +1673,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         "primaryKey":[
             "index"
         ],
-        "pandas_version":"0.20.0"
+        "pandas_version":"1.4.0"
     },
     "data":[
         {
