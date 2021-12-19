@@ -220,6 +220,16 @@ def _sparse_array_op(
             left_sp_values = left.sp_values
             right_sp_values = right.sp_values
 
+        if (
+            name in ["floordiv", "mod"]
+            and (right == 0).any()
+            and left.dtype.kind in ["i", "u"]
+        ):
+            # Match the non-Sparse Series behavior
+            opname = f"sparse_{name}_float64"
+            left_sp_values = left_sp_values.astype("float64")
+            right_sp_values = right_sp_values.astype("float64")
+
         sparse_op = getattr(splib, opname)
 
         with np.errstate(all="ignore"):
