@@ -303,7 +303,7 @@ pandas strongly encourages the use of :pep:`484` style type hints. New developme
 Style guidelines
 ~~~~~~~~~~~~~~~~
 
-Types imports should follow the ``from typing import ...`` convention. So rather than
+Type imports should follow the ``from typing import ...`` convention. Some types do not need to be imported since :pep:`585` some builtin constructs, such as ``list`` and ``tuple``, can directly be used for type annotations. So rather than
 
 .. code-block:: python
 
@@ -315,21 +315,31 @@ You should write
 
 .. code-block:: python
 
-   from typing import List, Optional, Union
+   primes: list[int] = []
 
-   primes: List[int] = []
-
-``Optional`` should be used where applicable, so instead of
+``Optional`` should be  avoided in favor of the shorter ``| None``, so instead of
 
 .. code-block:: python
 
-   maybe_primes: List[Union[int, None]] = []
+   from typing import Union
+
+   maybe_primes: list[Union[int, None]] = []
+
+or
+
+.. code-block:: python
+
+   from typing import Optional
+
+   maybe_primes: list[Optional[int]] = []
 
 You should write
 
 .. code-block:: python
 
-   maybe_primes: List[Optional[int]] = []
+   from __future__ import annotations  # noqa: F404
+
+   maybe_primes: list[int | None] = []
 
 In some cases in the code base classes may define class variables that shadow builtins. This causes an issue as described in `Mypy 1775 <https://github.com/python/mypy/issues/1775#issuecomment-310969854>`_. The defensive solution here is to create an unambiguous alias of the builtin and use that without your annotation. For example, if you come across a definition like
 
