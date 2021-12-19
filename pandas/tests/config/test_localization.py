@@ -14,6 +14,7 @@ from pandas._config.localization import (
 from pandas.compat import is_platform_windows
 
 import pandas as pd
+import pandas._testing as tm
 
 _current_locale = locale.getlocale()
 
@@ -25,6 +26,12 @@ pytestmark = pytest.mark.skipif(
 _skip_if_only_one_locale = pytest.mark.skipif(
     len(_all_locales) <= 1, reason="Need multiple locales for meaningful test"
 )
+
+
+@pytest.fixture(params=_all_locales, autouse=True)
+def with_locale(request):
+    with tm.set_locale(request.param):
+        yield
 
 
 def test_can_set_locale_valid_set():
@@ -62,21 +69,7 @@ def test_get_locales_prefix():
 
 
 @_skip_if_only_one_locale
-@pytest.mark.parametrize(
-    "lang,enc",
-    [
-        ("it_CH", "UTF-8"),
-        ("en_US", "ascii"),
-        ("zh_CN", "GB2312"),
-        ("it_IT", "ISO-8859-1"),
-    ],
-)
 def test_set_locale(lang, enc):
-    if all(x is None for x in _current_locale):
-        # Not sure why, but on some Travis runs with pytest,
-        #  getlocale() returned (None, None).
-        pytest.skip("Current locale is not set.")
-
     enc = codecs.lookup(enc).name
     new_locale = lang, enc
 

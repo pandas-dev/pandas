@@ -25,23 +25,21 @@ jobs:
     strategy:
       matrix:
         settings: [
-          [actions-38-minimum_versions.yaml, "not slow and not network and not clipboard", "", "", "", "", ""],
-          [actions-38-locale_slow.yaml, "slow", "xsel", "it_IT.utf8", "it_IT.utf8", "", ""],
-          [actions-38.yaml, "not slow and not clipboard", "", "", "", "", ""],
-          [actions-38-slow.yaml, "slow", "", "", "", "", ""],
-          [actions-38-locale.yaml, "not slow and not network", "xsel", "zh_CN.utf8", "zh_CN.utf8", "", ""],
-          [actions-39-slow.yaml, "slow", "", "", "", "", ""],
-          [actions-pypy-38.yaml, "not slow and not clipboard", "", "", "", "", "--max-worker-restart 0"],
-          [actions-39-numpydev.yaml, "not slow and not network", "xsel", "", "", "deprecate", "-W error"],
-          [actions-39.yaml, "not slow and not clipboard", "", "", "", "", ""]
+          [actions-38-minimum_versions.yaml, "not slow and not network and not clipboard", "", "", ""],
+          [actions-38-locale_slow.yaml, "slow", "xsel", "", ""],
+          [actions-38.yaml, "not slow and not clipboard", "", "", ""],
+          [actions-38-slow.yaml, "slow", "", "", ""],
+          [actions-38-locale.yaml, "not slow and not network", "xsel", "", ""],
+          [actions-39-slow.yaml, "slow", "", "", ""],
+          [actions-pypy-38.yaml, "not slow and not clipboard", "", "", "--max-worker-restart 0"],
+          [actions-39-numpydev.yaml, "not slow and not network", "xsel", "deprecate", "-W error"],
+          [actions-39.yaml, "not slow and not clipboard", "", "", ""]
         ]
       fail-fast: false
     env:
       ENV_FILE: ci/deps/${{ matrix.settings[0] }}
       PATTERN: ${{ matrix.settings[1] }}
       EXTRA_APT: ${{ matrix.settings[2] }}
-      LANG: ${{ matrix.settings[3] }}
-      LC_ALL: ${{ matrix.settings[4] }}
       PANDAS_TESTING_MODE: ${{ matrix.settings[5] }}
       TEST_ARGS: ${{ matrix.settings[6] }}
       PYTEST_TARGET:  pandas
