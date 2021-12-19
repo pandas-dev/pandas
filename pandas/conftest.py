@@ -1682,6 +1682,14 @@ def indexer_sli(request):
     return request.param
 
 
+@pytest.fixture(params=[tm.loc, tm.iloc])
+def indexer_li(request):
+    """
+    Parametrize over loc.__getitem__, iloc.__getitem__
+    """
+    return request.param
+
+
 @pytest.fixture(params=[tm.setitem, tm.iloc])
 def indexer_si(request):
     """
