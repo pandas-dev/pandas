@@ -2,6 +2,7 @@ from datetime import datetime
 
 from hypothesis import (
     given,
+    settings,
     strategies as st,
 )
 import numpy as np
@@ -879,6 +880,7 @@ def test_where_nullable_invalid_na(frame_or_series, any_numeric_ea_dtype):
         OPTIONAL_DICTS, OPTIONAL_FLOATS, OPTIONAL_INTS, OPTIONAL_LISTS, OPTIONAL_TEXT
     )
 )
+@settings(deadline=None)
 def test_where_inplace_casting(data):
     # GH 22051
     df = DataFrame({"a": data})
