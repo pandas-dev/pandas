@@ -828,6 +828,7 @@ Sparse
 - Bug in :meth:`SparseArray.max` and :meth:`SparseArray.min` raising ``ValueError`` for arrays with 0 non-null elements (:issue:`43527`)
 - Bug in :meth:`DataFrame.sparse.to_coo` silently converting non-zero fill values to zero (:issue:`24817`)
 - Bug in :class:`SparseArray` comparison methods with an array-like operand of mismatched length raising ``AssertionError`` or unclear ``ValueError`` depending on the input (:issue:`43863`)
+- Bug in :class:`SparseArray` arithmetic methods ``floordiv`` and ``mod`` behaviors when dividing by zero not matching the non-sparse :class:`Series` behavior (:issue:`38172`)
 -
 
 ExtensionArray
