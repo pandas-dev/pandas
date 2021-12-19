@@ -259,38 +259,50 @@ class TestMultiIndexConcat:
         tm.assert_frame_equal(result_no_copy, expected)
 
     @pytest.mark.parametrize(
-        "mi1",
+        "mi1_list",
         [
-            MultiIndex.from_product([["a"], range(2)]),
-            MultiIndex.from_product([["a"], np.arange(2.0)]),
-            MultiIndex.from_product([["b"], ["A", "B"]]),
-            MultiIndex.from_product(
-                [["c"], pd.date_range(start="2017", end="2018", periods=2)]
-            ),
+            [["a"], range(2)],
+            [["b"], np.arange(2.0, 4.0)],
+            [["c"], ["A", "B"]],
+            [["d"], pd.date_range(start="2017", end="2018", periods=2)],
         ],
     )
     @pytest.mark.parametrize(
-        "mi2",
+        "mi2_list",
         [
-            MultiIndex.from_product([["a"], range(2)]),
-            MultiIndex.from_product([["a"], np.arange(2.0)]),
-            MultiIndex.from_product([["b"], ["A", "B"]]),
-            MultiIndex.from_product(
-                [["c"], pd.date_range(start="2017", end="2018", periods=2)]
-            ),
+            [["a"], range(2)],
+            [["b"], np.arange(2.0, 4.0)],
+            [["c"], ["A", "B"]],
+            [["d"], pd.date_range(start="2017", end="2018", periods=2)],
         ],
     )
-    def test_concat_with_various_multiindex_dtypes(self, mi1, mi2):
+    def test_concat_with_various_multiindex_dtypes(
+        self, mi1_list: list, mi2_list: list
+    ):
         # GitHub #23478
+        mi1 = MultiIndex.from_product(mi1_list)
+        mi2 = MultiIndex.from_product(mi2_list)
+
         df1 = DataFrame(np.zeros((1, len(mi1))), columns=mi1)
         df2 = DataFrame(np.zeros((1, len(mi2))), columns=mi2)
 
-        expected = DataFrame(
-            np.zeros((1, len(mi1) + len(mi2))),
-            columns=MultiIndex.from_tuples(list(mi1) + list(mi2)),
-        )
+        if mi1_list[0] == mi2_list[0]:
+            expected_mi = MultiIndex(
+                levels=[mi1_list[0], list(mi1_list[1])],
+                codes=[[0, 0, 0, 0], [0, 1, 0, 1]],
+            )
+        else:
+            expected_mi = MultiIndex(
+                levels=[
+                    mi1_list[0] + mi2_list[0],
+                    list(mi1_list[1]) + list(mi2_list[1]),
+                ],
+                codes=[[0, 0, 1, 1], [0, 1, 2, 3]],
+            )
+
+        expected_df = DataFrame(np.zeros((1, len(expected_mi))), columns=expected_mi)
 
         with tm.assert_produces_warning(None):
-            result = concat((df1, df2), axis=1)
+            result_df = concat((df1, df2), axis=1)
 
-        tm.assert_frame_equal(expected, result)
+        tm.assert_frame_equal(expected_df, result_df)
