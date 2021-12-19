@@ -70,12 +70,12 @@ def all_data(request):
     return request.param
 
 
-@pytest.fixture(params=[(1, 0), (5, 1)])
+@pytest.fixture(params=[(1, 0), (5, 1)], scope="module")
 def rolling_consistency_cases(request):
     """window, min_periods"""
     return request.param
 
 
-@pytest.fixture(params=[0, 2])
+@pytest.fixture(params=[0, 2], scope="module")
 def min_periods(request):
     return request.param
