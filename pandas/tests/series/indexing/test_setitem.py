@@ -107,7 +107,7 @@ class TestSetitemDT64Values:
         tm.assert_series_equal(ser, exp)
 
     def test_setitem_with_tz_dst(self, indexer_sli):
-        # GH XXX TODO: fill in GH ref
+        # GH#14146 trouble setting values near DST boundary
         tz = "US/Eastern"
         orig = Series(date_range("2016-11-06", freq="H", periods=3, tz=tz))
         assert orig.dtype == f"datetime64[ns, {tz}]"

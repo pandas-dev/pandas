@@ -972,7 +972,8 @@ def test_columns_multiindex_modified(setup_path):
         )
         cols2load = list("BCD")
         cols2load_original = list(cols2load)
-        df_loaded = read_hdf(path, "df", columns=cols2load)  # noqa
+        # GH#10055 make sure read_hdf call does not alter cols2load inplace
+        read_hdf(path, "df", columns=cols2load)
         assert cols2load_original == cols2load
 
 

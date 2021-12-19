@@ -158,8 +158,7 @@ def test_get_with_default():
     "arr",
     [np.random.randn(10), tm.makeDateIndex(10, name="a").tz_localize(tz="US/Eastern")],
 )
-def test_get2(arr):
-    # TODO: better name, possibly split
+def test_get_with_ea(arr):
     # GH#21260
     ser = Series(arr, index=[2 * i for i in range(len(arr))])
     assert ser.get(4) == ser.iloc[2]

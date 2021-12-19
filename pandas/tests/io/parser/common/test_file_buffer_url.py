@@ -28,7 +28,6 @@ pytestmark = pytest.mark.usefixtures("pyarrow_skip")
 
 @tm.network
 def test_url(all_parsers, csv_dir_path):
-    # TODO: FTP testing
     parser = all_parsers
     kwargs = {"sep": "\t"}
 

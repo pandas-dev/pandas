@@ -188,12 +188,9 @@ class TestPDApi(Base):
     # private modules in pandas namespace
     private_modules = [
         "_config",
-        "_hashtable",
-        "_lib",
         "_libs",
         "_is_numpy_dev",
         "_testing",
-        "_tslib",
         "_typing",
         "_version",
     ]

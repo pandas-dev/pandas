@@ -597,7 +597,7 @@ class TestMerge:
         tm.assert_frame_equal(actual, expected)
 
     def test_merge_nosort(self):
-        # GH#2098, TODO: anything to do?
+        # GH#2098
 
         d = {
             "var1": np.random.randint(0, 10, size=10),
