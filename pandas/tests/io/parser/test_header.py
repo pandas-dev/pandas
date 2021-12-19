@@ -557,26 +557,21 @@ def test_multi_index_unnamed(all_parsers, index_col, columns):
     else:
         data = ",".join([""] + (columns or ["", ""])) + "\n,0,1\n0,2,3\n1,4,5\n"
 
+    result = parser.read_csv(StringIO(data), header=header, index_col=index_col)
+    exp_columns = []
+
     if columns is None:
-        msg = (
-            r"Passed header=\[0,1\] are too "
-            r"many rows for this multi_index of columns"
-        )
-        with pytest.raises(ParserError, match=msg):
-            parser.read_csv(StringIO(data), header=header, index_col=index_col)
-    else:
-        result = parser.read_csv(StringIO(data), header=header, index_col=index_col)
-        exp_columns = []
+        columns = ["", "", ""]
 
-        for i, col in enumerate(columns):
-            if not col:  # Unnamed.
-                col = f"Unnamed: {i if index_col is None else i + 1}_level_0"
+    for i, col in enumerate(columns):
+        if not col:  # Unnamed.
+            col = f"Unnamed: {i if index_col is None else i + 1}_level_0"
 
-            exp_columns.append(col)
+        exp_columns.append(col)
 
-        columns = MultiIndex.from_tuples(zip(exp_columns, ["0", "1"]))
-        expected = DataFrame([[2, 3], [4, 5]], columns=columns)
-        tm.assert_frame_equal(result, expected)
+    columns = MultiIndex.from_tuples(zip(exp_columns, ["0", "1"]))
+    expected = DataFrame([[2, 3], [4, 5]], columns=columns)
+    tm.assert_frame_equal(result, expected)
 
 
 @skip_pyarrow
