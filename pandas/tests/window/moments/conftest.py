@@ -40,18 +40,21 @@ def is_constant(x):
         obj
         for obj in itertools.chain(create_series(), create_dataframes())
         if is_constant(obj)
-    )
+    ),
+    scope="module",
 )
 def consistent_data(request):
     return request.param
 
 
-@pytest.fixture(params=create_series())
+@pytest.fixture(params=create_series(), scope="module")
 def series_data(request):
     return request.param
 
 
-@pytest.fixture(params=itertools.chain(create_series(), create_dataframes()))
+@pytest.fixture(
+    params=itertools.chain(create_series(), create_dataframes()), scope="module"
+)
 def all_data(request):
     """
     Test:
