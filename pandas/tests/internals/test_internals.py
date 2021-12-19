@@ -494,15 +494,12 @@ class TestBlockManager:
 
     def test_sparse(self):
         mgr = create_mgr("a: sparse-1; b: sparse-2")
-        # what to test here?
         assert mgr.as_array().dtype == np.float64
 
     def test_sparse_mixed(self):
         mgr = create_mgr("a: sparse-1; b: sparse-2; c: f8")
         assert len(mgr.blocks) == 3
         assert isinstance(mgr, BlockManager)
-
-        # TODO: what to test here?
 
     @pytest.mark.parametrize(
         "mgr_string, dtype",
