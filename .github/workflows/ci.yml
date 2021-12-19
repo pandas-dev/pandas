@@ -41,6 +41,8 @@ jobs:
 
     - uses: conda-incubator/setup-miniconda@v2
       with:
+        mamba-version: "*"
+        channels: conda-forge,defaults
         activate-environment: pandas-dev
         channel-priority: strict
         environment-file: ${{ env.ENV_FILE }}
@@ -104,6 +106,8 @@ jobs:
 
     - uses: conda-incubator/setup-miniconda@v2
       with:
+        mamba-version: "*"
+        channels: conda-forge,defaults
         activate-environment: pandas-dev
         channel-priority: strict
         environment-file: ${{ env.ENV_FILE }}
