@@ -107,15 +107,15 @@ def numeric_idx(request):
 
 @pytest.fixture(
     params=[
-        pd.Timedelta("5m4s").to_pytimedelta(),
-        pd.Timedelta("5m4s"),
-        pd.Timedelta("5m4s").to_timedelta64(),
+        pd.Timedelta("10m7s").to_pytimedelta(),
+        pd.Timedelta("10m7s"),
+        pd.Timedelta("10m7s").to_timedelta64(),
     ],
     ids=lambda x: type(x).__name__,
 )
 def scalar_td(request):
     """
-    Several variants of Timedelta scalars representing 5 minutes and 4 seconds
+    Several variants of Timedelta scalars representing 10 minutes and 7 seconds.
     """
     return request.param
 
