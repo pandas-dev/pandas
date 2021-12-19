@@ -21,9 +21,9 @@ dependencies:
   - jinja2
   - lxml
   - matplotlib
+  - numpy
   - numba
   - numexpr
-  - numpy
   - openpyxl
   - pyarrow>2.0.0
   - pytables
