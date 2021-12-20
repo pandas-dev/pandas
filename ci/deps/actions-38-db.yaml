@@ -30,7 +30,7 @@ dependencies:
   - openpyxl
   - pandas-gbq
   - psycopg2
-  - pyarrow>=1.0.1
+  - pyarrow>2
   - pymysql
   - pytables
   - python-snappy

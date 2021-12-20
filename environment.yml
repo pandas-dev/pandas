@@ -100,7 +100,7 @@ dependencies:
   - odfpy
 
   - fastparquet>=0.4.0  # pandas.read_parquet, DataFrame.to_parquet
-  - pyarrow>=1.0.1  # pandas.read_parquet, DataFrame.to_parquet, pandas.read_feather, DataFrame.to_feather
+  - pyarrow>2  # pandas.read_parquet, DataFrame.to_parquet, pandas.read_feather, DataFrame.to_feather
   - python-snappy  # required by pyarrow
 
   - pytables>=3.6.1  # pandas.read_hdf, DataFrame.to_hdf
