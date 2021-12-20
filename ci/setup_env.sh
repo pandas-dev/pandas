@@ -106,7 +106,7 @@ echo "[Build extensions]"
 python setup.py build_ext -q -j2
 
 echo "[Updating pip]"
-python -m pip install --no-deps -U pip wheel setuptools
+python -m pip install --no-deps -U pip wheel "setuptools<60.0.0"
 
 echo "[Install pandas]"
 python -m pip install --no-build-isolation -e .
