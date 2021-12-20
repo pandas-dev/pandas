@@ -670,6 +670,21 @@ class Base:
 
         assert isinstance(res, np.ndarray), type(res)
 
+        if not isinstance(idx, RangeIndex):
+            # GH#44051 RangeIndex already raises
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                res = idx[True]
+            assert isinstance(res, np.ndarray), type(res)
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                res = idx[False]
+            assert isinstance(res, np.ndarray), type(res)
+        else:
+            msg = "only integers, slices"
+            with pytest.raises(IndexError, match=msg):
+                idx[True]
+            with pytest.raises(IndexError, match=msg):
+                idx[False]
+
     def test_copy_shares_cache(self, simple_index):
         # GH32898, GH36840
         idx = simple_index
