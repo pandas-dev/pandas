@@ -2,6 +2,7 @@
 Tests for Timestamp parsing, aimed at pandas/_libs/tslibs/parsing.pyx
 """
 from datetime import datetime
+import locale
 import re
 
 from dateutil.parser import parse
@@ -10,7 +11,6 @@ import pytest
 
 from pandas._libs.tslibs import parsing
 from pandas._libs.tslibs.parsing import parse_time_string
-import pandas.util._test_decorators as td
 
 import pandas._testing as tm
 
@@ -135,7 +135,6 @@ def test_parsers_month_freq(date_str, expected):
     assert result == expected
 
 
-@td.skip_if_not_us_locale
 @pytest.mark.parametrize(
     "string,fmt",
     [
@@ -171,7 +170,19 @@ def test_parsers_month_freq(date_str, expected):
         ("Tuesday 24 Aug 2021 01:30:48 AM", "%A %d %b %Y %H:%M:%S %p"),
     ],
 )
-def test_guess_datetime_format_with_parseable_formats(string, fmt):
+def test_guess_datetime_format_with_parseable_formats(request, string, fmt):
+    if fmt and fmt.endswith("%p") and locale.getlocale()[0] == "it_IT":
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="Only passes with LC_ALL=en_US.utf8",
+            )
+        )
+    if fmt not in (None, "%Y%m%d") and locale.getlocale()[0] == "zh_CN":
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="Only passes with LC_ALL=en_US.utf8",
+            )
+        )
     result = parsing.guess_datetime_format(string)
     assert result == fmt
 
@@ -183,7 +194,6 @@ def test_guess_datetime_format_with_dayfirst(dayfirst, expected):
     assert result == expected
 
 
-@td.skip_if_not_us_locale
 @pytest.mark.parametrize(
     "string,fmt",
     [
@@ -192,7 +202,13 @@ def test_guess_datetime_format_with_dayfirst(dayfirst, expected):
         ("30/Dec/2011 00:00:00", "%d/%b/%Y %H:%M:%S"),
     ],
 )
-def test_guess_datetime_format_with_locale_specific_formats(string, fmt):
+def test_guess_datetime_format_with_locale_specific_formats(request, string, fmt):
+    if locale.getlocale()[0] != "en_US":
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="Only passes with LC_ALL=en_US.utf8",
+            )
+        )
     result = parsing.guess_datetime_format(string)
     assert result == fmt
 
