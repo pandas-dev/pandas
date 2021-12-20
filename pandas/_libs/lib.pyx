@@ -1450,9 +1450,10 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
         # This should not be reached
         values = values.astype(object)
 
+    # for f-contiguous array 1000 x 1000, passing order="K" gives 5000x speedup
+    values = values.ravel(order="K")
+
     if skipna:
-        # for f-contiguous array 1000 x 1000, passing order="K" gives 5000x speedup
-        values = values.ravel(order="K")
         values = values[~isnaobj(values)]
 
     n = cnp.PyArray_SIZE(values)
