@@ -3,7 +3,7 @@
 # Workaround for pytest-xdist (it collects different tests in the workers if PYTHONHASHSEED is not set)
 # https://github.com/pytest-dev/pytest/issues/920
 # https://github.com/pytest-dev/pytest/issues/1075
-export PYTHONHASHSEED=1176580836
+export PYTHONHASHSEED=$(python -c 'import random; print(random.randint(1, 4294967295))')
 
 # May help reproduce flaky CI builds if set in subsequent runs
 echo PYTHONHASHSEED=$PYTHONHASHSEED
