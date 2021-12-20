@@ -171,18 +171,18 @@ def test_parsers_month_freq(date_str, expected):
     ],
 )
 def test_guess_datetime_format_with_parseable_formats(request, string, fmt):
-    if fmt and fmt.endswith("%p") and locale.getlocale()[0] == "it_IT":
-        request.node.add_marker(
-            pytest.mark.xfail(
-                reason="Only passes with LC_ALL=en_US.utf8",
-            )
+    request.node.add_marker(
+        pytest.mark.xfail(
+            fmt and fmt.endswith("%p") and locale.getlocale()[0] == "it_IT",
+            reason="Only passes with LC_ALL=en_US.utf8",
         )
-    if fmt not in (None, "%Y%m%d") and locale.getlocale()[0] == "zh_CN":
-        request.node.add_marker(
-            pytest.mark.xfail(
-                reason="Only passes with LC_ALL=en_US.utf8",
-            )
+    )
+    request.node.add_marker(
+        pytest.mark.xfail(
+            fmt not in (None, "%Y%m%d") and locale.getlocale()[0] == "zh_CN",
+            reason="Only passes with LC_ALL=en_US.utf8",
         )
+    )
     result = parsing.guess_datetime_format(string)
     assert result == fmt
 
@@ -203,12 +203,12 @@ def test_guess_datetime_format_with_dayfirst(dayfirst, expected):
     ],
 )
 def test_guess_datetime_format_with_locale_specific_formats(request, string, fmt):
-    if locale.getlocale()[0] != "en_US":
-        request.node.add_marker(
-            pytest.mark.xfail(
-                reason="Only passes with LC_ALL=en_US.utf8",
-            )
+    request.node.add_marker(
+        pytest.mark.xfail(
+            locale.getlocale()[0] != "en_US",
+            reason="Only passes with LC_ALL=en_US.utf8",
         )
+    )
     result = parsing.guess_datetime_format(string)
     assert result == fmt
 

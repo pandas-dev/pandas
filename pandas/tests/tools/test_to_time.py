@@ -9,11 +9,6 @@ import pandas._testing as tm
 from pandas.core.tools.datetimes import to_time as to_time_alias
 from pandas.core.tools.times import to_time
 
-fails_on_zh_cn = pytest.mark.xfail(
-    locale.getlocale()[0] == "zh_CN",
-    reason="fail on a CI build with LC_ALL=zh_CN.utf8",
-)
-
 
 class TestToTime:
     @pytest.mark.parametrize(
@@ -21,17 +16,25 @@ class TestToTime:
         [
             "14:15",
             "1415",
-            pytest.param("2:15pm", marks=fails_on_zh_cn),
-            pytest.param("0215pm", marks=fails_on_zh_cn),
+            "2:15pm",
+            "0215pm",
             "14:15:00",
             "141500",
-            pytest.param("2:15:00pm", marks=fails_on_zh_cn),
-            pytest.param("021500pm", marks=fails_on_zh_cn),
+            "2:15:00pm",
+            "021500pm",
             time(14, 15),
         ],
     )
-    def test_parsers_time(self, time_string):
+    def test_parsers_time(self, request, time_string):
         # GH#11818
+        request.node.add_marker(
+            pytest.mark.xfail(
+                isinstance(time_string, str)
+                and "pm" in time_string
+                and locale.getlocale()[0] == "zh_CN",
+                reason="fail on a CI build with LC_ALL=zh_CN.utf8",
+            )
+        )
         assert to_time(time_string) == time(14, 15)
 
     def test_odd_format(self):
