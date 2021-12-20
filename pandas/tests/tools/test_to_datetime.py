@@ -282,43 +282,42 @@ class TestTimeConversionFormats:
                 "%m/%d/%Y %H:%M:%S",
                 Timestamp("2010-01-10 13:56:01"),
             ],
-            pytest.param(
+            [
                 "01/10/2010 08:14 PM",
                 "%m/%d/%Y %I:%M %p",
                 Timestamp("2010-01-10 20:14"),
-                marks=pytest.mark.xfail(
-                    locale.getlocale()[0] == "zh_CN",
-                    reason="fail on a CI build with LC_ALL=zh_CN.utf8",
-                ),
-            ),
-            pytest.param(
+            ],
+            [
                 "01/10/2010 07:40 AM",
                 "%m/%d/%Y %I:%M %p",
                 Timestamp("2010-01-10 07:40"),
-                marks=pytest.mark.xfail(
-                    locale.getlocale()[0] == "zh_CN",
-                    reason="fail on a CI build with LC_ALL=zh_CN.utf8",
-                ),
-            ),
-            pytest.param(
+            ],
+            [
                 "01/10/2010 09:12:56 AM",
                 "%m/%d/%Y %I:%M:%S %p",
                 Timestamp("2010-01-10 09:12:56"),
-                marks=pytest.mark.xfail(
-                    locale.getlocale()[0] == "zh_CN",
-                    reason="fail on a CI build with LC_ALL=zh_CN.utf8",
-                ),
-            ),
+            ],
         ],
     )
-    def test_to_datetime_format_time(self, cache, value, format, dt):
+    def test_to_datetime_format_time(self, request, cache, value, format, dt):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                "%p" in format and locale.getlocale()[0] != "en_US",
+                reason="Only passes with LC_ALL=en_US.utf8",
+            )
+        )
         assert to_datetime(value, format=format, cache=cache) == dt
 
-    @td.skip_if_not_us_locale
-    def test_to_datetime_with_non_exact(self, cache):
+    def test_to_datetime_with_non_exact(self, request, cache):
         # GH 10834
         # 8904
         # exact kw
+        request.node.add_marker(
+            pytest.mark.xfail(
+                locale.getlocale()[0] != "en_US",
+                reason="Only passes with LC_ALL=en_US.utf8",
+            )
+        )
         ser = Series(
             ["19MAY11", "foobar19MAY11", "19MAY11:00:00:00", "19MAY11 00:00:00Z"]
         )
@@ -1670,21 +1669,29 @@ class TestToDatetimeMisc:
         result_ignore = to_datetime(ser, errors="ignore", cache=cache)
         tm.assert_series_equal(result_ignore, ser)
 
-    @td.skip_if_not_us_locale
-    def test_to_datetime_with_apply(self, cache):
-        # this is only locale tested with US/None locales
+    def test_to_datetime_with_apply(self, request, cache):
         # GH 5195
         # with a format and coerce a single item to_datetime fails
+        request.node.add_marker(
+            pytest.mark.xfail(
+                locale.getlocale()[0] != "en_US",
+                reason="Only passes with LC_ALL=en_US.utf8",
+            )
+        )
         td = Series(["May 04", "Jun 02", "Dec 11"], index=[1, 2, 3])
         expected = to_datetime(td, format="%b %y", cache=cache)
         result = td.apply(to_datetime, format="%b %y", cache=cache)
         tm.assert_series_equal(result, expected)
 
-    @td.skip_if_not_us_locale
-    def test_to_datetime_with_apply_with_empty_str(self, cache):
-        # this is only locale tested with US/None locales
+    def test_to_datetime_with_apply_with_empty_str(self, request, cache):
         # GH 5195
         # with a format and coerce a single item to_datetime fails
+        request.node.add_marker(
+            pytest.mark.xfail(
+                locale.getlocale()[0] != "en_US",
+                reason="Only passes with LC_ALL=en_US.utf8",
+            )
+        )
         td = Series(["May 04", "Jun 02", ""], index=[1, 2, 3])
         msg = r"time data '' does not match format '%b %y' \(match\)"
         with pytest.raises(ValueError, match=msg):
