@@ -518,14 +518,6 @@ class TestSeriesReplace:
         exp = pd.Series(["CC", "CC", "CC-REPL", "DD", "CC", "", pd.NA], dtype="string")
         tm.assert_series_equal(result, exp)
 
-    @pytest.mark.parametrize("regex", [False, True])
-    def test_replace_regex_dtype_series(self, regex):
-        # GH-48644
-        series = pd.Series(["0"])
-        expected = pd.Series([1])
-        result = series.replace(to_replace="0", value=1, regex=regex)
-        tm.assert_series_equal(result, expected)
-
     @pytest.mark.parametrize(
         "dtype, input_data, to_replace, expected_data",
         [
@@ -612,3 +604,11 @@ class TestSeriesReplace:
         assert ints.replace({1: 9.0}).dtype == ints.dtype
         assert ints.replace(1, 9.0).dtype == ints.dtype
         # FIXME: ints.replace({1: 9.5}) raises bc of incorrect _can_hold_element
+
+    @pytest.mark.parametrize("regex", [False, True])
+    def test_replace_regex_dtype_series(self, regex):
+        # GH-48644
+        series = pd.Series(["0"])
+        expected = pd.Series([1])
+        result = series.replace(to_replace="0", value=1, regex=regex)
+        tm.assert_series_equal(result, expected)
