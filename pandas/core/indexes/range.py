@@ -1041,7 +1041,11 @@ class RangeIndex(NumericIndex):
                 rstop = op(left.stop, right)
 
             res_name = ops.get_op_result_name(self, other)
-            result = type(self)(rstart, rstop, rstep, name=res_name)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", DeprecationWarning)
+                # The constructor validation can lead to a DeprecationWarning
+                #  from numpy, e.g. with RangeIndex + np.datetime64("now")
+                result = type(self)(rstart, rstop, rstep, name=res_name)
 
             # for compat with numpy / Int64Index
             # even if we can represent as a RangeIndex, return
