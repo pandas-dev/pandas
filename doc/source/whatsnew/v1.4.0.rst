@@ -217,6 +217,7 @@ Other enhancements
 - Added :meth:`.ExponentialMovingWindow.sum` (:issue:`13297`)
 - :meth:`Series.str.split` now supports a ``regex`` argument that explicitly specifies whether the pattern is a regular expression. Default is ``None`` (:issue:`43563`, :issue:`32835`, :issue:`25549`)
 - :meth:`DataFrame.dropna` now accepts a single label as ``subset`` along with array-like (:issue:`41021`)
+- Added :meth:`DataFrameGroupBy.value_counts` (:issue:`43564`)
 - :class:`ExcelWriter` argument ``if_sheet_exists="overlay"`` option added (:issue:`40231`)
 - :meth:`read_excel` now accepts a ``decimal`` argument that allow the user to specify the decimal point when parsing string columns to numeric (:issue:`14403`)
 - :meth:`.GroupBy.mean`, :meth:`.GroupBy.std`, :meth:`.GroupBy.var`, :meth:`.GroupBy.sum` now supports `Numba <http://numba.pydata.org/>`_ execution with the ``engine`` keyword (:issue:`43731`, :issue:`44862`, :issue:`44939`)
@@ -231,6 +232,7 @@ Other enhancements
 - :meth:`UInt64Index.map` now retains ``dtype`` where possible (:issue:`44609`)
 - :meth:`read_json` can now parse unsigned long long integers (:issue:`26068`)
 - :meth:`DataFrame.take` now raises a ``TypeError`` when passed a scalar for the indexer (:issue:`42875`)
+- :class:`ExtensionDtype` and :class:`ExtensionArray` are now (de)serialized when exporting a :class:`DataFrame` with :meth:`DataFrame.to_json` using ``orient='table'`` (:issue:`20612`, :issue:`44705`).
 -
 
 
@@ -454,6 +456,7 @@ Other API changes
 - :meth:`Index.get_indexer_for` no longer accepts keyword arguments (other than 'target'); in the past these would be silently ignored if the index was not unique (:issue:`42310`)
 - Change in the position of the ``min_rows`` argument in :meth:`DataFrame.to_string` due to change in the docstring (:issue:`44304`)
 - Reduction operations for :class:`DataFrame` or :class:`Series` now raising a ``ValueError`` when ``None`` is passed for ``skipna`` (:issue:`44178`)
+- :func:`read_csv` and :func:`read_html` no longer raising an error when one of the header rows consists only of ``Unnamed:`` columns (:issue:`13054`)
 - Changed the ``name`` attribute of several holidays in
   ``USFederalHolidayCalendar`` to match `official federal holiday
   names <https://www.opm.gov/policy-data-oversight/pay-leave/federal-holidays/>`_
