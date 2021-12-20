@@ -2568,7 +2568,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "primaryKey": [
                     "index"
                 ],
-                "pandas_version": "0.20.0"
+                "pandas_version": "1.4.0"
             }},
             "data": [
                 {{
