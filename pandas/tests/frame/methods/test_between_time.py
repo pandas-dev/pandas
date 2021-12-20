@@ -2,12 +2,12 @@ from datetime import (
     datetime,
     time,
 )
+import locale
 
 import numpy as np
 import pytest
 
 from pandas._libs.tslibs import timezones
-import pandas.util._test_decorators as td
 
 from pandas import (
     DataFrame,
@@ -18,15 +18,9 @@ import pandas._testing as tm
 
 
 class TestBetweenTime:
-    @td.skip_if_not_us_locale
-    def test_between_time_formats(self, frame_or_series):
-        # GH#11818
-        rng = date_range("1/1/2000", "1/5/2000", freq="5min")
-        ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
-        if frame_or_series is Series:
-            ts = ts[0]
-
-        strings = [
+    @pytest.mark.parametrize(
+        "time_string",
+        [
             ("2:00", "2:30"),
             ("0200", "0230"),
             ("2:00am", "2:30am"),
@@ -35,11 +29,23 @@ class TestBetweenTime:
             ("020000", "023000"),
             ("2:00:00am", "2:30:00am"),
             ("020000am", "023000am"),
-        ]
-        expected_length = 28
+        ],
+    )
+    def test_between_time_formats(self, request, time_string, frame_or_series):
+        # GH#11818
+        request.node.add_marker(
+            pytest.mark.xfail(
+                "am" in time_string[0] and locale.getlocale()[0] != "en_US",
+                reason="Only passes with LC_ALL=en_US.utf8",
+            )
+        )
+        rng = date_range("1/1/2000", "1/5/2000", freq="5min")
+        ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
+        if frame_or_series is Series:
+            ts = ts[0]
 
-        for time_string in strings:
-            assert len(ts.between_time(*time_string)) == expected_length
+        expected_length = 28
+        assert len(ts.between_time(*time_string)) == expected_length
 
     @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])
     def test_localized_between_time(self, tzstr, frame_or_series):

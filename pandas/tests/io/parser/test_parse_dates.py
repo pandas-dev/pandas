@@ -875,12 +875,12 @@ def test_multi_index_parse_dates(request, all_parsers, index_col):
 20090103,two,b,3,4
 20090103,three,c,4,5
 """
-    if locale.getlocale()[0] != "zh_CN" and index_col == ["index2", "index1"]:
-        request.node.add_marker(
-            pytest.mark.xfail(
-                reason="Only passes with LC_ALL=zh_CN.utf8",
-            )
+    request.node.add_marker(
+        pytest.mark.xfail(
+            locale.getlocale()[0] != "zh_CN" and index_col == [1, 0],
+            reason="Only passes with LC_ALL=zh_CN.utf8",
         )
+    )
     parser = all_parsers
     index = MultiIndex.from_product(
         [
