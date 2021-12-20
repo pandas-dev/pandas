@@ -28,12 +28,6 @@ _skip_if_only_one_locale = pytest.mark.skipif(
 )
 
 
-@pytest.fixture(params=_all_locales, autouse=True)
-def with_locale(request):
-    with tm.set_locale(request.param):
-        yield
-
-
 def test_can_set_locale_valid_set():
     # Can set the default locale.
     assert can_set_locale("")
@@ -69,7 +63,9 @@ def test_get_locales_prefix():
 
 
 @_skip_if_only_one_locale
-def test_set_locale(lang, enc):
+@pytest.mark.parametrize("test_local", tm.testing_locales)
+def test_set_locale(test_local):
+    lang, enc = test_local.split(".")
     enc = codecs.lookup(enc).name
     new_locale = lang, enc
 
