@@ -55,6 +55,26 @@ class ToCSV(BaseIO):
         self.df.to_csv(self.fname)
 
 
+class ToCSVMultiIndexUnusedLevels(BaseIO):
+
+    fname = "__test__.csv"
+
+    def setup(self):
+        df = DataFrame({"a": np.random.randn(100_000), "b": 1, "c": 1})
+        self.df = df.set_index(["a", "b"])
+        self.df_unused_levels = self.df.iloc[:10_000]
+        self.df_single_index = df.set_index(["a"]).iloc[:10_000]
+
+    def time_full_frame(self):
+        self.df.to_csv(self.fname)
+
+    def time_sliced_frame(self):
+        self.df_unused_levels.to_csv(self.fname)
+
+    def time_single_index_frame(self):
+        self.df_single_index.to_csv(self.fname)
+
+
 class ToCSVDatetime(BaseIO):
 
     fname = "__test__.csv"
@@ -65,6 +85,21 @@ class ToCSVDatetime(BaseIO):
 
     def time_frame_date_formatting(self):
         self.data.to_csv(self.fname, date_format="%Y%m%d")
+
+
+class ToCSVDatetimeIndex(BaseIO):
+
+    fname = "__test__.csv"
+
+    def setup(self):
+        rng = date_range("2000", periods=100_000, freq="S")
+        self.data = DataFrame({"a": 1}, index=rng)
+
+    def time_frame_date_formatting_index(self):
+        self.data.to_csv(self.fname, date_format="%Y-%m-%d %H:%M:%S")
+
+    def time_frame_date_no_format_index(self):
+        self.data.to_csv(self.fname)
 
 
 class ToCSVDatetimeBig(BaseIO):
