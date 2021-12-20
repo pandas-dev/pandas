@@ -16,7 +16,7 @@ import pandas._testing as tm
 from pandas.io.parsers import read_csv
 
 
-@pytest.fixture(params=tm.utf8_locales, autouse=True)
+@pytest.fixture(params=tm.testing_locales, autouse=True)
 def with_locale(request):
     with tm.set_locale(request.param):
         yield

@@ -167,4 +167,9 @@ def get_locales(prefix=None, normalize=True, locale_getter=_default_locale_gette
 
 
 all_locals = get_locales() or []
-utf8_locales = [locale for locale in all_locals if "UTF-8" in locale]
+# Our Linux CI environments install the associated language packs
+testing_locales = [
+    locale
+    for locale in all_locals
+    if locale in {"en_US.UTF-8", "it_IT.UTF-8", "zh_CN.UTF-8"}
+]

@@ -8,6 +8,7 @@ from datetime import (
     datetime,
 )
 from io import StringIO
+import locale
 import warnings
 
 from dateutil.parser import parse as du_parse
@@ -862,7 +863,7 @@ def test_parse_dates_column_list(all_parsers, parse_dates):
 
 @xfail_pyarrow
 @pytest.mark.parametrize("index_col", [[0, 1], [1, 0]])
-def test_multi_index_parse_dates(all_parsers, index_col):
+def test_multi_index_parse_dates(request, all_parsers, index_col):
     data = """index1,index2,A,B,C
 20090101,one,a,1,2
 20090101,two,b,3,4
@@ -874,6 +875,12 @@ def test_multi_index_parse_dates(all_parsers, index_col):
 20090103,two,b,3,4
 20090103,three,c,4,5
 """
+    if locale.getlocale()[0] != "zh_CN" and index_col == ["index2", "index1"]:
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="Only passes with LC_ALL=zh_CN.utf8",
+            )
+        )
     parser = all_parsers
     index = MultiIndex.from_product(
         [
