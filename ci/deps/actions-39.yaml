@@ -11,6 +11,9 @@ dependencies:
   - pytest-xdist>=1.31
   - hypothesis>=5.5.3
 
+  - numpy
+  - pyarrow
+
   # pandas dependencies
   - beautifulsoup4
   - bottleneck
@@ -21,11 +24,9 @@ dependencies:
   - jinja2
   - lxml
   - matplotlib
-  - numpy
   - numba
   - numexpr
   - openpyxl
-  - pyarrow
   - pytables
   - python-dateutil
   - pytz

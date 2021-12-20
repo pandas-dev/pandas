@@ -47,6 +47,9 @@ ipywidgets
 nbformat
 notebook>=6.0.3
 pip
+fastparquet>=0.4.0
+pyarrow>=1.0.1
+python-snappy
 blosc
 bottleneck>=1.3.1
 ipykernel
@@ -64,9 +67,6 @@ xlrd
 xlsxwriter
 xlwt
 odfpy
-fastparquet>=0.4.0
-pyarrow>=1.0.1
-python-snappy
 tables>=3.6.1
 s3fs>=0.4.0
 aiobotocore<2.0.0
