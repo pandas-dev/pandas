@@ -456,6 +456,7 @@ Other API changes
 - :meth:`Index.get_indexer_for` no longer accepts keyword arguments (other than 'target'); in the past these would be silently ignored if the index was not unique (:issue:`42310`)
 - Change in the position of the ``min_rows`` argument in :meth:`DataFrame.to_string` due to change in the docstring (:issue:`44304`)
 - Reduction operations for :class:`DataFrame` or :class:`Series` now raising a ``ValueError`` when ``None`` is passed for ``skipna`` (:issue:`44178`)
+- :func:`read_csv` and :func:`read_html` no longer raising an error when one of the header rows consists only of ``Unnamed:`` columns (:issue:`13054`)
 - Changed the ``name`` attribute of several holidays in
   ``USFederalHolidayCalendar`` to match `official federal holiday
   names <https://www.opm.gov/policy-data-oversight/pay-leave/federal-holidays/>`_
