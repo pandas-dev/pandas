@@ -15,6 +15,5 @@ dependencies:
   - numpy
   - python-dateutil
   - pytz
-  - zstandard
   - flask
   - moto

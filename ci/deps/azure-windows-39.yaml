@@ -37,4 +37,3 @@ dependencies:
   - xlwt
   - pyreadstat
   - pyxlsb
-  - zstandard
