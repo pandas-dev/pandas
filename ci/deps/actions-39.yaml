@@ -11,8 +11,7 @@ dependencies:
   - pytest-xdist>=1.31
   - hypothesis>=5.5.3
 
-  - numpy
-  - pyarrow
+
 
   # pandas dependencies
   - beautifulsoup4
@@ -24,9 +23,11 @@ dependencies:
   - jinja2
   - lxml
   - matplotlib
+  - numpy
   - numba
   - numexpr
   - openpyxl
+  - pyarrow>2.0.1
   - pytables
   - python-dateutil
   - pytz

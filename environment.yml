@@ -74,10 +74,6 @@ dependencies:
   - notebook>=6.0.3
   - pip
 
-  - fastparquet>=0.4.0  # pandas.read_parquet, DataFrame.to_parquet
-  - pyarrow>=1.0.1  # pandas.read_parquet, DataFrame.to_parquet, pandas.read_feather, DataFrame.to_feather
-  - python-snappy  # required by pyarrow
-
   # optional
   - blosc
   - bottleneck>=1.3.1
@@ -102,6 +98,10 @@ dependencies:
   - xlsxwriter
   - xlwt
   - odfpy
+
+  - fastparquet>=0.4.0  # pandas.read_parquet, DataFrame.to_parquet
+  - pyarrow>2.0.1  # pandas.read_parquet, DataFrame.to_parquet, pandas.read_feather, DataFrame.to_feather
+  - python-snappy  # required by pyarrow
 
   - pytables>=3.6.1  # pandas.read_hdf, DataFrame.to_hdf
   - s3fs>=0.4.0  # file IO when using 's3://...' path
