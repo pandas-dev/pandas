@@ -102,6 +102,7 @@ from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
 import pandas.core.common as com
 from pandas.core.construction import (
+    construct_1d_arraylike_from_scalar,
     create_series_with_explicit_dtype,
     extract_array,
     is_empty_data,
@@ -485,9 +486,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         elif index is not None:
             # fastpath for Series(data=None). Just use broadcasting a scalar
             # instead of reindexing.
-            values = na_value_for_dtype(pandas_dtype(dtype), compat=False)
+            dtype_ = pandas_dtype(dtype)
+            values = na_value_for_dtype(dtype_, compat=False)
             if values is None:
-                values = [None] * len(index)
+                # bugfix for GH#44602
+                values = construct_1d_arraylike_from_scalar(values, len(index), dtype_)
             keys = index
         else:
             keys, values = (), []
