@@ -4267,7 +4267,7 @@ Keep all original rows and also all original values
         skipna: bool = True,
         level: Level | None = None,
         **kwargs,
-    ) -> bool | Series:
+    ) -> Series | bool:
         return super().any(
             axis=axis, bool_only=bool_only, skipna=skipna, level=level, **kwargs
         )

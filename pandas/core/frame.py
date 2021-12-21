@@ -8651,7 +8651,7 @@ NaN 12.3   33.0
         skipna: bool = True,
         level: Level | None = None,
         **kwargs,
-    ) -> Series | DataFrame:
+    ) -> DataFrame | Series:
         return super().any(
             axis=axis, bool_only=bool_only, skipna=skipna, level=level, **kwargs
         )

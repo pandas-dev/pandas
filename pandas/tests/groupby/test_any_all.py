@@ -11,6 +11,10 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
+from pandas._testing.asserters import (
+    assert_equal,
+    assert_series_equal,
+)
 
 
 @pytest.mark.parametrize("agg_func", ["any", "all"])
@@ -59,6 +63,28 @@ def test_any():
     expected.index.name = "A"
     result = df.groupby("A").any()
     tm.assert_frame_equal(result, expected)
+
+
+def test_any_non_keyword_deprecation():
+    df = DataFrame({"A": [1, 2], "B": [0, 2], "C": [0, 0]})
+    msg = (
+        "In a future version of pandas all arguments of "
+        "DataFrame.any will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.any("index")
+    expected = Series({"A": True, "B": True, "C": False})
+    assert_series_equal(result, expected)
+
+    s = Series([False, False, False])
+    msg = (
+        "In a future version of pandas all arguments of "
+        "Series.any will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = s.any("index")
+    expected = False
+    assert_equal(result, expected)
 
 
 @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
