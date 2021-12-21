@@ -11,8 +11,6 @@ dependencies:
   - pytest-xdist>=1.31
   - hypothesis>=5.5.3
 
-
-
   # pandas dependencies
   - beautifulsoup4
   - bottleneck
@@ -23,7 +21,7 @@ dependencies:
   - jinja2
   - lxml
   - matplotlib
-  - numpy
+  - numpy  # move up to solve before numba
   - numba
   - numexpr
   - openpyxl
