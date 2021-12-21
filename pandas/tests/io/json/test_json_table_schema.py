@@ -185,14 +185,11 @@ class TestTableSchemaType:
     def test_as_json_table_type_timedelta_dtypes(self, td_dtype):
         assert as_json_table_type(td_dtype) == "duration"
 
-    @pytest.mark.parametrize("str_dtype", [object])  # TODO
+    @pytest.mark.parametrize("str_dtype", [object])  # TODO(GH#14904) flesh out dtypes?
     def test_as_json_table_type_string_dtypes(self, str_dtype):
         assert as_json_table_type(str_dtype) == "string"
 
     def test_as_json_table_type_categorical_dtypes(self):
-        # TODO: I think before is_categorical_dtype(Categorical)
-        # returned True, but now it's False. Figure out why or
-        # if it matters
         assert as_json_table_type(pd.Categorical(["a"]).dtype) == "any"
         assert as_json_table_type(CategoricalDtype()) == "any"
 

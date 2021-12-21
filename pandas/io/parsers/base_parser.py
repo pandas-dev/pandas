@@ -42,7 +42,6 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
     ensure_object,
-    ensure_str,
     is_bool_dtype,
     is_categorical_dtype,
     is_dict_like,
@@ -391,22 +390,16 @@ class ParserBase:
             return tuple(r[i] for i in range(field_count) if i not in sic)
 
         columns = list(zip(*(extract(r) for r in header)))
-        names = ic + columns
-
-        # If we find unnamed columns all in a single
-        # level, then our header was too long.
-        for n in range(len(columns[0])):
-            if all(ensure_str(col[n]) in self.unnamed_cols for col in columns):
-                header = ",".join([str(x) for x in self.header])
-                raise ParserError(
-                    f"Passed header=[{header}] are too many rows "
-                    "for this multi_index of columns"
-                )
+        names = columns.copy()
+        for single_ic in sorted(ic):
+            names.insert(single_ic, single_ic)
 
         # Clean the column names (if we have an index_col).
         if len(ic):
             col_names = [
-                r[0] if ((r[0] is not None) and r[0] not in self.unnamed_cols) else None
+                r[ic[0]]
+                if ((r[ic[0]] is not None) and r[ic[0]] not in self.unnamed_cols)
+                else None
                 for r in header
             ]
         else:
