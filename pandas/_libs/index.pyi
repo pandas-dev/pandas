@@ -1,16 +1,8 @@
-from typing import TYPE_CHECKING
-
 import numpy as np
 
 from pandas._typing import npt
 
 from pandas import MultiIndex
-
-if TYPE_CHECKING:
-    from pandas.core.arrays import (
-        BaseMaskedArray,
-        ExtensionArray,
-    )
 
 class IndexEngine:
     over_size_threshold: bool
