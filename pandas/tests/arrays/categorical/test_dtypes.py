@@ -185,6 +185,13 @@ class TestCategoricalDtypes:
         expected = np.array([Timestamp("2021-03-27 00:00:00"), np.nan], dtype="object")
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_astype_object_timestamp_categories(self):
+        # GH#18024
+        cat = Categorical([Timestamp("2014-01-01")])
+        result = cat.astype(object)
+        expected = np.array([Timestamp("2014-01-01 00:00:00")], dtype="object")
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_iter_python_types(self):
         # GH-19909
         cat = Categorical([1, 2])
