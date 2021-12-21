@@ -333,7 +333,7 @@ describe_option(pat, _print_desc=False)
 
 Prints the description for one or more registered options.
 
-Call with not arguments to get a listing for all registered options.
+Call with no arguments to get a listing for all registered options.
 
 Available options:
 
@@ -411,7 +411,7 @@ class option_context(ContextDecorator):
     Examples
     --------
     >>> with option_context('display.max_rows', 10, 'display.max_columns', 5):
-    ...     ...
+    ...     pass
     """
 
     def __init__(self, *args):

@@ -54,13 +54,13 @@ def set_timezone(tz: str):
     --------
     >>> from datetime import datetime
     >>> from dateutil.tz import tzlocal
-    >>> tzlocal().tzname(datetime.now())
+    >>> tzlocal().tzname(datetime(2021, 1, 1))  # doctest: +SKIP
     'IST'
 
     >>> with set_timezone('US/Eastern'):
-    ...     tzlocal().tzname(datetime.now())
+    ...     tzlocal().tzname(datetime(2021, 1, 1))
     ...
-    'EDT'
+    'EST'
     """
     import os
     import time
