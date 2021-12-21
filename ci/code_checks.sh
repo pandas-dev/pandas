@@ -79,8 +79,8 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
       pandas/util/ \
       pandas/_typing.py \
       pandas/_version.py \
-      pandas/confest.py \
-      pandas/testing.py \
+      pandas/conftest.py \
+      pandas/testing.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Cython Doctests' ; echo $MSG
