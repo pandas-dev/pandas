@@ -156,13 +156,7 @@ def test_access_by_position(index_flat):
     assert index[-1] == index[size - 1]
 
     msg = f"index {size} is out of bounds for axis 0 with size {size}"
-    try:
-        eq = is_dtype_equal(index.dtype, "string[pyarrow]")
-    except ImportError:
-        # TODO(GH#44276) is_dtype_equal can raise here
-        eq = False
-
-    if eq:
+    if is_dtype_equal(index.dtype, "string[pyarrow]"):
         msg = "index out of bounds"
     with pytest.raises(IndexError, match=msg):
         index[size]

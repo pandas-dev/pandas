@@ -6050,8 +6050,7 @@ class Index(IndexOpsMixin, PandasObject):
                 new_values, dtype=dtype, copy=False, name=self.name
             )
 
-        result = Index._with_infer(new_values, dtype=dtype, copy=False, name=self.name)
-        return result
+        return Index._with_infer(new_values, dtype=dtype, copy=False, name=self.name)
 
     # TODO: De-duplicate with map, xref GH#32349
     @final
