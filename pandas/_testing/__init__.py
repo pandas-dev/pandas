@@ -89,7 +89,10 @@ from pandas._testing.asserters import (  # noqa:F401
     assert_timedelta_array_equal,
     raise_assert_detail,
 )
-from pandas._testing.compat import get_dtype  # noqa:F401
+from pandas._testing.compat import (  # noqa:F401
+    get_dtype,
+    get_obj,
+)
 from pandas._testing.contexts import (  # noqa:F401
     RNGContext,
     decompress_file,
@@ -428,7 +431,7 @@ def _make_timeseries(start="2000-01-01", end="2000-12-31", freq="1D", seed=None)
 
     Examples
     --------
-    >>> _make_timeseries()
+    >>> _make_timeseries()  # doctest: +SKIP
                   id    name         x         y
     timestamp
     2000-01-01   982   Frank  0.031261  0.986727

@@ -180,7 +180,7 @@ As an example of fully-formed metadata:
          'numpy_type': 'int64',
          'metadata': None}
     ],
-    'pandas_version': '0.20.0',
+    'pandas_version': '1.4.0',
     'creator': {
       'library': 'pyarrow',
       'version': '0.13.0'
