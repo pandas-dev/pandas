@@ -632,7 +632,7 @@ Datetimelike
 - Bug in adding a ``np.timedelta64`` object to a :class:`BusinessDay` or :class:`CustomBusinessDay` object incorrectly raising (:issue:`44532`)
 - Bug in :meth:`Index.insert` for inserting ``np.datetime64``, ``np.timedelta64`` or ``tuple`` into :class:`Index` with ``dtype='object'`` with negative loc adding ``None`` and replacing existing value (:issue:`44509`)
 - Bug in :meth:`Series.mode` with ``DatetimeTZDtype`` incorrectly returning timezone-naive and ``PeriodDtype`` incorrectly raising (:issue:`41927`)
-- Bug in :class:`DateOffset`` addition with :class:`Timestamp` where ``offset.nanoseconds`` would not be included in the result. (:issue:`43968`)
+- Bug in :class:`DateOffset`` addition with :class:`Timestamp` where ``offset.nanoseconds`` would not be included in the result. (:issue:`43968`,:issue:`36589`)
 -
 
 Timedelta
@@ -869,7 +869,7 @@ Other
 - Bug in :meth:`RangeIndex.union` with another ``RangeIndex`` with matching (even) ``step`` and starts differing by strictly less than ``step / 2`` (:issue:`44019`)
 - Bug in :meth:`RangeIndex.difference` with ``sort=None`` and ``step<0`` failing to sort (:issue:`44085`)
 - Bug in :meth:`Series.to_frame` and :meth:`Index.to_frame` ignoring the ``name`` argument when ``name=None`` is explicitly passed (:issue:`44212`)
-- Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` with ``value=None`` and ExtensionDtypes (:issue:`44270`)
+- Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` with ``value=None`` and ExtensionDtypes (:issue:`44270`,:issue:`37899`)
 - Bug in :meth:`FloatingArray.equals` failing to consider two arrays equal if they contain ``np.nan`` values (:issue:`44382`)
 - Bug in :meth:`DataFrame.shift` with ``axis=1`` and ``ExtensionDtype`` columns incorrectly raising when an incompatible ``fill_value`` is passed (:issue:`44564`)
 - Bug in :meth:`DataFrame.diff` when passing a NumPy integer object instead of an ``int`` object (:issue:`44572`)
