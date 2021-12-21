@@ -71,6 +71,8 @@ def test_insert(idx):
     tm.assert_frame_equal(left, right, check_dtype=False)
     tm.assert_series_equal(ts, right["3rd"])
 
+
+def test_insert2():
     # GH9250
     idx = (
         [("test1", i) for i in range(5)]

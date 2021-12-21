@@ -68,8 +68,6 @@ from pandas.io.parsers.readers import validate_integer
 loads = json.loads
 dumps = json.dumps
 
-TABLE_SCHEMA_VERSION = "0.20.0"
-
 
 # interface to/from
 def to_json(
@@ -565,7 +563,7 @@ def read_json(
 {{"name":"col 1","type":"string"}},\
 {{"name":"col 2","type":"string"}}],\
 "primaryKey":["index"],\
-"pandas_version":"0.20.0"}},\
+"pandas_version":"1.4.0"}},\
 "data":[\
 {{"index":"row 1","col 1":"a","col 2":"b"}},\
 {{"index":"row 2","col 1":"c","col 2":"d"}}]\
