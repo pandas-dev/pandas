@@ -74,15 +74,7 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
       pandas/compat/ \
       pandas/core \
       pandas/errors/ \
-      pandas/io/clipboard/ \
-      pandas/io/json/ \
-      pandas/io/excel/ \
-      pandas/io/parsers/ \
-      pandas/io/sas/ \
-      pandas/io/sql.py \
-      pandas/io/formats/format.py \
-      pandas/io/formats/style.py \
-      pandas/io/stata.py \
+      pandas/io/ \
       pandas/tseries/ \
       pandas/_typing.py \
       pandas/_version.py \
