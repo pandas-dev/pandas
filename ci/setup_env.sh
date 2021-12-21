@@ -106,6 +106,7 @@ echo "[Build extensions]"
 python setup.py build_ext -q -j2
 
 echo "[Updating pip]"
+# TODO: GH#44980 https://github.com/pypa/setuptools/issues/2941
 python -m pip install --no-deps -U pip wheel "setuptools<60.0.0"
 
 echo "[Install pandas]"
