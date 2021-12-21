@@ -41,7 +41,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip setuptools wheel
+        python -m pip install --upgrade pip "setuptools<60.0.0" wheel
 
         # GH 39416
         pip install numpy
