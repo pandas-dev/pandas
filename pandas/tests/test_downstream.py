@@ -186,6 +186,9 @@ def test_torch_frame_construction(using_array_manager):
     if not using_array_manager:
         assert np.shares_memory(df, val_tensor)
 
+    ser = pd.Series(val_tensor[0])
+    assert np.shares_memory(ser, val_tensor)
+
 
 def test_yaml_dump(df):
     # GH#42748
