@@ -406,7 +406,7 @@ def mysql_pymysql_conn(mysql_pymysql_engine):
 @pytest.fixture
 def postgresql_psycopg2_engine(iris_path, types_data):
     sqlalchemy = pytest.importorskip("sqlalchemy")
-    _ = pytest.importorskip("psycopg2")
+    pytest.importorskip("psycopg2")
     engine = sqlalchemy.create_engine(
         "postgresql+psycopg2://postgres:postgres@localhost:5432/pandas"
     )
@@ -576,13 +576,14 @@ def test_default_type_conversion(conn, request):
 
 @pytest.mark.parametrize("conn", mysql_connectable)
 def test_read_procedure(conn, request):
+    conn = request.getfixturevalue(conn)
+
     # GH 7324
     # Although it is more an api test, it is added to the
     # mysql tests as sqlite does not have stored procedures
     from sqlalchemy import text
     from sqlalchemy.engine import Engine
 
-    conn = request.getfixturevalue(conn)
     df = DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3]})
     df.to_sql("test_frame", conn, index=False)
 
