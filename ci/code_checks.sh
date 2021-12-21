@@ -66,22 +66,21 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
     MSG='Doctests' ; echo $MSG
     python -m pytest --doctest-modules \
+      pandas/_config/ \
       pandas/_libs/ \
+      pandas/_testing/ \
       pandas/api/ \
       pandas/arrays/ \
       pandas/compat/ \
       pandas/core \
       pandas/errors/ \
-      pandas/io/clipboard/ \
-      pandas/io/json/ \
-      pandas/io/excel/ \
-      pandas/io/parsers/ \
-      pandas/io/sas/ \
-      pandas/io/sql.py \
-      pandas/io/formats/format.py \
-      pandas/io/formats/style.py \
-      pandas/io/stata.py \
-      pandas/tseries/
+      pandas/io/ \
+      pandas/tseries/ \
+      pandas/util/ \
+      pandas/_typing.py \
+      pandas/_version.py \
+      pandas/conftest.py \
+      pandas/testing.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Cython Doctests' ; echo $MSG

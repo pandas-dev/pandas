@@ -167,7 +167,7 @@ def network(
       ... def test_network():
       ...     with pd.io.common.urlopen("rabbit://bonanza.com"):
       ...         pass
-      >>> test_network()
+      >>> test_network()  # doctest: +SKIP
       Traceback
          ...
       URLError: <urlopen error unknown url type: rabbit>
@@ -189,7 +189,7 @@ def network(
         ... def test_something():
         ...     print("I ran!")
         ...     raise ValueError("Failure")
-        >>> test_something()
+        >>> test_something()  # doctest: +SKIP
         Traceback (most recent call last):
             ...
 
