@@ -1,4 +1,3 @@
-import io
 import re
 import subprocess
 import sys
@@ -8,15 +7,13 @@ import pytest
 pat = re.compile(r"python3")
 
 
-def __init_closer__(self, path, *args, **kwargs):
-    with open(path, "rb") as f:
-        stream = io.BytesIO(f.read())
-    super().__init__(stream, *args, **kwargs)
-
-
 @pytest.fixture(autouse=True)
-def check_bufferedrandom_resourcewarning(request):
+def clear_font_filehandles(request):
+    # https://github.com/matplotlib/matplotlib/issues/22017#issuecomment-998241017
     yield
+    import matplotlib
+
+    matplotlib.font_manager._get_font.cache_clear()
     lsof = subprocess.run(["lsof", "-d", "0-25"], capture_output=True).stdout.decode(
         "utf-8"
     )
@@ -25,16 +22,3 @@ def check_bufferedrandom_resourcewarning(request):
             # sys.stderr for xdist
             # https://github.com/pytest-dev/pytest/issues/1693#issuecomment-233282644
             print(f"{request.node.name}: {line}", flush=True, file=sys.stderr)
-
-
-@pytest.fixture(autouse=True)
-def no_font_loading(monkeypatch):
-    # import matplotlib
-    #
-    # class FT2FontCloser(matplotlib.ft2font.FT2Font):
-    #     def __init__(self, path, *args, **kwargs):
-    #         with open(path, "rb") as f:
-    #             stream = io.BytesIO(f.read())
-    #         super().__init__(stream, *args, **kwargs)
-
-    monkeypatch.setattr("matplotlib.ft2font.FT2Font.__init__", __init_closer__)
