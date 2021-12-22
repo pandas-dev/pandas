@@ -13,14 +13,12 @@ import pandas._testing as tm
 class TestFirst:
     def test_first_subset(self, frame_or_series):
         ts = tm.makeTimeDataFrame(freq="12h")
-        if frame_or_series is not DataFrame:
-            ts = ts["A"]
+        ts = tm.get_obj(ts, frame_or_series)
         result = ts.first("10d")
         assert len(result) == 20
 
         ts = tm.makeTimeDataFrame(freq="D")
-        if frame_or_series is not DataFrame:
-            ts = ts["A"]
+        ts = tm.get_obj(ts, frame_or_series)
         result = ts.first("10d")
         assert len(result) == 10
 
@@ -38,8 +36,7 @@ class TestFirst:
     def test_first_last_raises(self, frame_or_series):
         # GH#20725
         obj = DataFrame([[1, 2, 3], [4, 5, 6]])
-        if frame_or_series is not DataFrame:
-            obj = obj[0]
+        obj = tm.get_obj(obj, frame_or_series)
 
         msg = "'first' only supports a DatetimeIndex index"
         with pytest.raises(TypeError, match=msg):  # index is not a DatetimeIndex
@@ -51,14 +48,12 @@ class TestFirst:
 
     def test_last_subset(self, frame_or_series):
         ts = tm.makeTimeDataFrame(freq="12h")
-        if frame_or_series is not DataFrame:
-            ts = ts["A"]
+        ts = tm.get_obj(ts, frame_or_series)
         result = ts.last("10d")
         assert len(result) == 20
 
         ts = tm.makeTimeDataFrame(nper=30, freq="D")
-        if frame_or_series is not DataFrame:
-            ts = ts["A"]
+        ts = tm.get_obj(ts, frame_or_series)
         result = ts.last("10d")
         assert len(result) == 10
 
