@@ -665,6 +665,7 @@ class TestDataFrameShift:
         )
         tm.assert_frame_equal(result, expected)
 
+    @td.skip_array_manager_not_yet_implemented
     def test_shift_axis1_many_periods(self):
         # GH#44978 periods > len(columns)
         df = DataFrame(np.random.rand(5, 3))
