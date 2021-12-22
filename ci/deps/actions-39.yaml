@@ -36,6 +36,4 @@ dependencies:
   - xlsxwriter
   - xlwt
   - pyreadstat
-  - pip
-  - pip:
-    - pyxlsb
+  - pyxlsb
