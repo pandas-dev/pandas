@@ -4,7 +4,10 @@ Tests for the pandas custom headers in http(s) requests
 import gzip
 import http.server
 from io import BytesIO
-import threading
+import multiprocessing
+import socket
+import time
+import urllib.error
 
 import pytest
 
@@ -12,10 +15,6 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
-
-# Troubleshooting build failures on Windows that tentatively look like
-#  they are stalling in this file.
-pytestmark = pytest.mark.timeout(60)
 
 
 class BaseUserAgentResponder(http.server.BaseHTTPRequestHandler):
@@ -181,6 +180,56 @@ class AllHeaderCSVResponder(http.server.BaseHTTPRequestHandler):
         self.wfile.write(response_bytes)
 
 
+def wait_until_ready(func, *args, **kwargs):
+    def inner(*args, **kwargs):
+        while True:
+            try:
+                return func(*args, **kwargs)
+            except urllib.error.URLError:
+                # Connection refused as http server is starting
+                time.sleep(0.1)
+
+    return inner
+
+
+def process_server(responder, port):
+    with http.server.HTTPServer(("localhost", port), responder) as server:
+        server.handle_request()
+    server.server_close()
+
+
+@pytest.fixture
+def responder(request):
+    """
+    Fixture that starts a local http server in a separate process on localhost
+    and returns the port.
+
+    Running in a separate process instead of a thread to allow termination/killing
+    of http server upon cleanup.
+    """
+    # Find an available port
+    with socket.socket() as sock:
+        sock.bind(("localhost", 0))
+        port = sock.getsockname()[1]
+
+    server_process = multiprocessing.Process(
+        target=process_server, args=(request.param, port)
+    )
+    server_process.start()
+    yield port
+    server_process.terminate()
+    kill_time = 5
+    wait_time = 0
+    while server_process.is_alive():
+        if wait_time > kill_time:
+            server_process.kill()
+            break
+        else:
+            wait_time += 0.1
+            time.sleep(0.1)
+    server_process.close()
+
+
 @pytest.mark.parametrize(
     "responder, read_method, parquet_engine",
     [
@@ -199,6 +248,7 @@ class AllHeaderCSVResponder(http.server.BaseHTTPRequestHandler):
         (GzippedCSVUserAgentResponder, pd.read_csv, None),
         (GzippedJSONUserAgentResponder, pd.read_json, None),
     ],
+    indirect=["responder"],
 )
 def test_server_and_default_headers(responder, read_method, parquet_engine):
     if parquet_engine is not None:
@@ -206,18 +256,12 @@ def test_server_and_default_headers(responder, read_method, parquet_engine):
         if parquet_engine == "fastparquet":
             pytest.importorskip("fsspec")
 
-    # passing 0 for the port will let the system find an unused port
-    with http.server.HTTPServer(("localhost", 0), responder) as server:
-        server_thread = threading.Thread(target=server.handle_request)
-        server_thread.start()
+    read_method = wait_until_ready(read_method)
+    if parquet_engine is None:
+        df_http = read_method(f"http://localhost:{responder}")
+    else:
+        df_http = read_method(f"http://localhost:{responder}", engine=parquet_engine)
 
-        port = server.server_port
-        if parquet_engine is None:
-            df_http = read_method(f"http://localhost:{port}")
-        else:
-            df_http = read_method(f"http://localhost:{port}", engine=parquet_engine)
-        server.server_close()
-        server_thread.join(timeout=2)
     assert not df_http.empty
 
 
@@ -239,6 +283,7 @@ def test_server_and_default_headers(responder, read_method, parquet_engine):
         (GzippedCSVUserAgentResponder, pd.read_csv, None),
         (GzippedJSONUserAgentResponder, pd.read_json, None),
     ],
+    indirect=["responder"],
 )
 def test_server_and_custom_headers(responder, read_method, parquet_engine):
     if parquet_engine is not None:
@@ -249,25 +294,18 @@ def test_server_and_custom_headers(responder, read_method, parquet_engine):
     custom_user_agent = "Super Cool One"
     df_true = pd.DataFrame({"header": [custom_user_agent]})
 
-    # passing 0 for the port will let the system find an unused port
-    with http.server.HTTPServer(("localhost", 0), responder) as server:
-        server_thread = threading.Thread(target=server.handle_request)
-        server_thread.start()
-
-        port = server.server_port
-        if parquet_engine is None:
-            df_http = read_method(
-                f"http://localhost:{port}",
-                storage_options={"User-Agent": custom_user_agent},
-            )
-        else:
-            df_http = read_method(
-                f"http://localhost:{port}",
-                storage_options={"User-Agent": custom_user_agent},
-                engine=parquet_engine,
-            )
-        server.server_close()
-        server_thread.join(timeout=2)
+    read_method = wait_until_ready(read_method)
+    if parquet_engine is None:
+        df_http = read_method(
+            f"http://localhost:{responder}",
+            storage_options={"User-Agent": custom_user_agent},
+        )
+    else:
+        df_http = read_method(
+            f"http://localhost:{responder}",
+            storage_options={"User-Agent": custom_user_agent},
+            engine=parquet_engine,
+        )
 
     tm.assert_frame_equal(df_true, df_http)
 
@@ -277,6 +315,7 @@ def test_server_and_custom_headers(responder, read_method, parquet_engine):
     [
         (AllHeaderCSVResponder, pd.read_csv),
     ],
+    indirect=["responder"],
 )
 def test_server_and_all_custom_headers(responder, read_method):
     custom_user_agent = "Super Cool One"
@@ -285,19 +324,11 @@ def test_server_and_all_custom_headers(responder, read_method):
         "User-Agent": custom_user_agent,
         "Auth": custom_auth_token,
     }
-
-    # passing 0 for the port will let the system find an unused port
-    with http.server.HTTPServer(("localhost", 0), responder) as server:
-        server_thread = threading.Thread(target=server.handle_request)
-        server_thread.start()
-
-        port = server.server_port
-        df_http = read_method(
-            f"http://localhost:{port}",
-            storage_options=storage_options,
-        )
-        server.server_close()
-        server_thread.join(timeout=2)
+    read_method = wait_until_ready(read_method)
+    df_http = read_method(
+        f"http://localhost:{responder}",
+        storage_options=storage_options,
+    )
 
     df_http = df_http[df_http["0"].isin(storage_options.keys())]
     df_http = df_http.sort_values(["0"]).reset_index()

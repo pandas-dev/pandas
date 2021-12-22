@@ -42,6 +42,11 @@ cdef inline sparse_t __mod__(sparse_t a, sparse_t b):
 cdef inline sparse_t __floordiv__(sparse_t a, sparse_t b):
     if b == 0:
         if sparse_t is float64_t:
+            # Match non-sparse Series behavior implemented in mask_zero_div_zero
+            if a > 0:
+                return INF
+            elif a < 0:
+                return -INF
             return NaN
         else:
             return 0

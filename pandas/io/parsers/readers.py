@@ -19,6 +19,7 @@ import pandas._libs.lib as lib
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._typing import (
     ArrayLike,
+    CompressionOptions,
     DtypeArg,
     FilePath,
     ReadCsvBuffer,
@@ -618,7 +619,7 @@ def read_csv(
     iterator=False,
     chunksize=None,
     # Quoting, Compression, and File Format
-    compression="infer",
+    compression: CompressionOptions = "infer",
     thousands=None,
     decimal: str = ".",
     lineterminator=None,
@@ -716,7 +717,7 @@ def read_table(
     iterator=False,
     chunksize=None,
     # Quoting, Compression, and File Format
-    compression="infer",
+    compression: CompressionOptions = "infer",
     thousands=None,
     decimal: str = ".",
     lineterminator=None,
@@ -1457,6 +1458,13 @@ def _refine_defaults_read(
         raise ValueError(
             "Specified a delimiter with both sep and "
             "delim_whitespace=True; you can only specify one."
+        )
+
+    if delimiter == "\n":
+        raise ValueError(
+            r"Specified \n as separator or delimiter. This forces the python engine "
+            "which does not accept a line terminator. Hence it is not allowed to use "
+            "the line terminator as separator.",
         )
 
     if delimiter is lib.no_default:
