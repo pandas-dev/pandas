@@ -721,7 +721,7 @@ def test_where_try_cast_deprecated(frame_or_series):
         obj.where(mask, -1, try_cast=False)
 
 
-def test_where_int_downcasting_deprecated():
+def test_where_int_downcasting_deprecated(using_array_manager):
     # GH#44597
     arr = np.arange(6).astype(np.int16).reshape(3, 2)
     df = DataFrame(arr)
@@ -730,7 +730,8 @@ def test_where_int_downcasting_deprecated():
     mask[:, 0] = True
 
     msg = "Downcasting integer-dtype"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    warn = FutureWarning if not using_array_manager else None
+    with tm.assert_produces_warning(warn, match=msg):
         res = df.where(mask, 2 ** 17)
 
     expected = DataFrame({0: arr[:, 0], 1: np.array([2 ** 17] * 3, dtype=np.int32)})
