@@ -98,7 +98,7 @@ class TestDataFrameIndexingWhere:
 
         tm.assert_series_equal(result, expected)
 
-    def test_where_alignment(self, where_frame, float_string_frame):
+    def test_where_alignment(self, where_frame, float_string_frame, mixed_int_frame):
         # aligning
         def _check_align(df, cond, other, check_dtypes=True):
             rs = df.where(cond, other)
@@ -141,7 +141,11 @@ class TestDataFrameIndexingWhere:
 
         # check other is ndarray
         cond = df > 0
-        _check_align(df, cond, (_safe_add(df).values))
+        warn = None
+        if df is mixed_int_frame:
+            warn = FutureWarning
+        with tm.assert_produces_warning(warn, match="Downcasting integer-dtype"):
+            _check_align(df, cond, (_safe_add(df).values))
 
         # integers are upcast, so don't check the dtypes
         cond = df > 0
@@ -716,6 +720,22 @@ def test_where_try_cast_deprecated(frame_or_series):
     with tm.assert_produces_warning(FutureWarning):
         # try_cast keyword deprecated
         obj.where(mask, -1, try_cast=False)
+
+
+def test_where_int_downcasting_deprecated():
+    # GH#44597
+    arr = np.arange(6).astype(np.int16).reshape(3, 2)
+    df = DataFrame(arr)
+
+    mask = np.zeros(arr.shape, dtype=bool)
+    mask[:, 0] = True
+
+    msg = "Downcasting integer-dtype"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        res = df.where(mask, 2 ** 17)
+
+    expected = DataFrame({0: arr[:, 0], 1: np.array([2 ** 17] * 3, dtype=np.int32)})
+    tm.assert_frame_equal(res, expected)
 
 
 def test_where_copies_with_noop(frame_or_series):
