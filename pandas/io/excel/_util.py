@@ -8,7 +8,7 @@ from typing import (
     Iterable,
     Literal,
     MutableMapping,
-    Type,
+    TypeVar,
     overload,
 )
 
@@ -22,7 +22,8 @@ from pandas.core.dtypes.common import (
 if TYPE_CHECKING:
     from pandas.io.excel._base import ExcelWriter
 
-    ExcelWriter_t = Type[ExcelWriter]
+    ExcelWriter_t = type[ExcelWriter]
+    usecols_func = TypeVar("usecols_func", bound=Callable[[Hashable], object])
 
 _writers: MutableMapping[str, ExcelWriter_t] = {}
 
@@ -45,7 +46,7 @@ def register_writer(klass: ExcelWriter_t) -> None:
     _writers[engine_name] = klass
 
 
-def get_default_engine(ext: str, mode: str = "reader") -> str:
+def get_default_engine(ext: str, mode: Literal["reader", "writer"] = "reader") -> str:
     """
     Return the default reader/writer for the given extension.
 
@@ -170,9 +171,7 @@ def maybe_convert_usecols(usecols: list[str]) -> list[str]:
 
 
 @overload
-def maybe_convert_usecols(
-    usecols: Callable[[Hashable], object]
-) -> Callable[[Hashable], object]:
+def maybe_convert_usecols(usecols: usecols_func) -> usecols_func:
     ...
 
 
@@ -182,8 +181,8 @@ def maybe_convert_usecols(usecols: None) -> None:
 
 
 def maybe_convert_usecols(
-    usecols: str | list[int] | list[str] | Callable[[Hashable], object] | None,
-) -> None | list[int] | list[str] | Callable[[Hashable], object]:
+    usecols: str | list[int] | list[str] | usecols_func | None,
+) -> None | list[int] | list[str] | usecols_func:
     """
     Convert `usecols` into a compatible format for parsing in `parsers.py`.
 
