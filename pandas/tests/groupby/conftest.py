@@ -183,6 +183,7 @@ def nopython(request):
         ("var", {"ddof": 0}),
         ("std", {"ddof": 1}),
         ("std", {"ddof": 0}),
+        ("sum", {}),
     ]
 )
 def numba_supported_reductions(request):
