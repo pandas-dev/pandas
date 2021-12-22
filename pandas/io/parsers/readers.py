@@ -1170,8 +1170,7 @@ class TextFileReader(abc.Iterator):
             raise ValueError(
                 f"Unknown engine: {engine} (valid options are {mapping.keys()})"
             )
-        # error: Too many arguments for "ParserBase"
-        return mapping[engine](self.f, **self.options)  # type: ignore[call-arg]
+        return mapping[engine](self.f, **self.options)
 
     def _failover_to_python(self):
         raise AbstractMethodError(self)

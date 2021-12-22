@@ -397,7 +397,7 @@ If installed, we now require:
 +-----------------+-----------------+----------+---------+
 | pytest (dev)    | 6.0             |          |         |
 +-----------------+-----------------+----------+---------+
-| mypy (dev)      | 0.910           |          |    X    |
+| mypy (dev)      | 0.920           |          |    X    |
 +-----------------+-----------------+----------+---------+
 
 For `optional libraries <https://pandas.pydata.org/docs/getting_started/install.html>`_ the general recommendation is to use the latest version.

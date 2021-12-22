@@ -12,7 +12,7 @@ flake8==3.9.2
 flake8-bugbear==21.3.2
 flake8-comprehensions==3.1.0
 isort>=5.2.1
-mypy==0.910
+mypy==0.920
 pre-commit>=2.9.2
 pycodestyle
 pyupgrade

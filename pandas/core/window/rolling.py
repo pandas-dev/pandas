@@ -1127,7 +1127,10 @@ class Window(BaseWindow):
         -------
         y : type of input
         """
-        window = self._scipy_weight_generator(self.window, **kwargs)
+        # "None" not callable  [misc]
+        window = self._scipy_weight_generator(  # type: ignore[misc]
+            self.window, **kwargs
+        )
         offset = (len(window) - 1) // 2 if self.center else 0
 
         def homogeneous_func(values: np.ndarray):

@@ -2634,8 +2634,7 @@ class DataFrame(NDFrame, OpsMixin):
             # Specifying the version is only supported for UTF8 (118 or 119)
             kwargs["version"] = version
 
-        # mypy: Too many arguments for "StataWriter"
-        writer = statawriter(  # type: ignore[call-arg]
+        writer = statawriter(
             path,
             self,
             convert_dates=convert_dates,

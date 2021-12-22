@@ -3351,8 +3351,11 @@ class Table(Fixed):
             if sv != ov:
 
                 # show the error for the specific axes
-                for i, sax in enumerate(sv):
-                    oax = ov[i]
+                # Argument 1 to "enumerate" has incompatible type
+                # "Optional[Any]"; expected "Iterable[Any]"  [arg-type]
+                for i, sax in enumerate(sv):  # type: ignore[arg-type]
+                    # Value of type "Optional[Any]" is not indexable  [index]
+                    oax = ov[i]  # type: ignore[index]
                     if sax != oax:
                         raise ValueError(
                             f"invalid combination of [{c}] on appending data "
@@ -3592,7 +3595,9 @@ class Table(Fixed):
             # TODO: why kind_attr here?
             values = getattr(table_attrs, f"{adj_name}_kind", None)
             dtype = getattr(table_attrs, f"{adj_name}_dtype", None)
-            kind = _dtype_to_kind(dtype)
+            # Argument 1 to "_dtype_to_kind" has incompatible type
+            # "Optional[Any]"; expected "str"  [arg-type]
+            kind = _dtype_to_kind(dtype)  # type: ignore[arg-type]
 
             md = self.read_metadata(c)
             # TODO: figure out why these two versions of `meta` dont always match.
