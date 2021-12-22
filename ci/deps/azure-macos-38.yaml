@@ -32,6 +32,7 @@ dependencies:
   - xlrd
   - xlsxwriter
   - xlwt
+  - zstandard
   - pip
   - pip:
     - cython>=0.29.24
