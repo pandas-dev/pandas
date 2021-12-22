@@ -1,4 +1,4 @@
-# flake8: noqa
+# flake8: noqa:F401
 
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.melt import (

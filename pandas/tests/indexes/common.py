@@ -516,6 +516,11 @@ class Base:
 
             idx = type(index)(values)
 
+            msg = "does not support 'downcast'"
+            with pytest.raises(NotImplementedError, match=msg):
+                # For now at least, we only raise if there are NAs present
+                idx.fillna(idx[0], downcast="infer")
+
             expected = np.array([False] * len(idx), dtype=bool)
             expected[1] = True
             tm.assert_numpy_array_equal(idx._isnan, expected)
@@ -664,6 +669,21 @@ class Base:
             res = idx[:, None]
 
         assert isinstance(res, np.ndarray), type(res)
+
+        if not isinstance(idx, RangeIndex):
+            # GH#44051 RangeIndex already raises
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                res = idx[True]
+            assert isinstance(res, np.ndarray), type(res)
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                res = idx[False]
+            assert isinstance(res, np.ndarray), type(res)
+        else:
+            msg = "only integers, slices"
+            with pytest.raises(IndexError, match=msg):
+                idx[True]
+            with pytest.raises(IndexError, match=msg):
+                idx[False]
 
     def test_copy_shares_cache(self, simple_index):
         # GH32898, GH36840
