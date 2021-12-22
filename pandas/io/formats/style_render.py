@@ -1062,7 +1062,7 @@ class StylerRenderer:
         --------
         Using ``na_rep`` and ``precision`` with the default ``formatter``
 
-        >>> df = pd.DataFrame([[1, 2, 3]], columns=[2.0, np.nan, 4.0]])
+        >>> df = pd.DataFrame([[1, 2, 3]], columns=[2.0, np.nan, 4.0])
         >>> df.style.format_index(axis=1, na_rep='MISS', precision=3)  # doctest: +SKIP
             2.000    MISS   4.000
         0       1       2       3
@@ -1096,6 +1096,7 @@ class StylerRenderer:
 
         >>> df = pd.DataFrame([[1, 2, 3]], columns=['"A"', 'A&B', None])
         >>> s = df.style.format_index('$ {0}', axis=1, escape="html", na_rep="NA")
+        ...  # doctest: +SKIP
         <th .. >$ &#34;A&#34;</th>
         <th .. >$ A&amp;B</th>
         <th .. >NA</td>
@@ -1811,7 +1812,7 @@ def _parse_latex_header_span(
 
     Examples
     --------
-    >>> cell = {'display_value':'text', 'attributes': 'colspan="3"'}
+    >>> cell = {'cellstyle': '', 'display_value':'text', 'attributes': 'colspan="3"'}
     >>> _parse_latex_header_span(cell, 't', 'c')
     '\\multicolumn{3}{c}{text}'
     """
