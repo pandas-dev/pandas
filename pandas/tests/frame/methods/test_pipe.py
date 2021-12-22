@@ -21,8 +21,7 @@ class TestPipe:
 
     def test_pipe_tuple(self, frame_or_series):
         obj = DataFrame({"A": [1, 2, 3]})
-        if frame_or_series is Series:
-            obj = obj["A"]
+        obj = tm.get_obj(obj, frame_or_series)
 
         f = lambda x, y: y
         result = obj.pipe((f, "y"), 0)
@@ -30,8 +29,7 @@ class TestPipe:
 
     def test_pipe_tuple_error(self, frame_or_series):
         obj = DataFrame({"A": [1, 2, 3]})
-        if frame_or_series is Series:
-            obj = obj["A"]
+        obj = tm.get_obj(obj, frame_or_series)
 
         f = lambda x, y: y
 

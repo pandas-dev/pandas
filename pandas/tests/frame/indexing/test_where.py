@@ -712,8 +712,7 @@ class TestDataFrameIndexingWhere:
 
 def test_where_try_cast_deprecated(frame_or_series):
     obj = DataFrame(np.random.randn(4, 3))
-    if frame_or_series is not DataFrame:
-        obj = obj[0]
+    obj = tm.get_obj(obj, frame_or_series)
 
     mask = obj > 0
 
