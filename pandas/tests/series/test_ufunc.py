@@ -85,7 +85,10 @@ def test_binary_ufunc_with_index(flip, sparse, ufunc, arrays_for_binary_ufunc):
 
     name = "name"  # op(pd.Series, array) preserves the name.
     series = pd.Series(a1, name=name)
-    other = pd.Index(a2, name=name).astype("int64")
+
+    warn = None if not sparse else FutureWarning
+    with tm.assert_produces_warning(warn):
+        other = pd.Index(a2, name=name).astype("int64")
 
     array_args = (a1, a2)
     series_args = (series, other)  # ufunc(series, array)
@@ -275,7 +278,11 @@ def test_reduce(values, box, request):
             # ATM Index casts to object, so we get python ints/floats
             same_type = False
 
-    obj = box(values)
+    warn = None
+    if values.dtype == "Sparse[int]" and box is pd.Index:
+        warn = FutureWarning
+    with tm.assert_produces_warning(warn):
+        obj = box(values)
 
     result = np.maximum.reduce(obj)
     expected = values[1]

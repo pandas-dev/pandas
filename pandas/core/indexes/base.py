@@ -3768,7 +3768,7 @@ class Index(IndexOpsMixin, PandasObject):
             if target._is_multi and self._is_multi:
                 engine = self._engine
                 # error: "IndexEngine" has no attribute "_extract_level_codes"
-                tgt_values = engine._extract_level_codes(  # type: ignore[union-attr]
+                tgt_values = engine._extract_level_codes(  # type: ignore[attr-defined]
                     target
                 )
 
@@ -3848,7 +3848,7 @@ class Index(IndexOpsMixin, PandasObject):
             # TODO: get_indexer_with_fill docstring says values must be _sorted_
             #  but that doesn't appear to be enforced
             # error: "IndexEngine" has no attribute "get_indexer_with_fill"
-            return self._engine.get_indexer_with_fill(  # type: ignore[union-attr]
+            return self._engine.get_indexer_with_fill(  # type: ignore[attr-defined]
                 target=target._values, values=self._values, method=method, limit=limit
             )
 
@@ -5692,7 +5692,9 @@ class Index(IndexOpsMixin, PandasObject):
         if self._is_multi and target._is_multi:
             engine = self._engine
             # error: "IndexEngine" has no attribute "_extract_level_codes"
-            tgt_values = engine._extract_level_codes(target)  # type: ignore[union-attr]
+            tgt_values = engine._extract_level_codes(
+                target  # type: ignore[attr-defined]
+            )
 
         indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
         return ensure_platform_int(indexer), ensure_platform_int(missing)
