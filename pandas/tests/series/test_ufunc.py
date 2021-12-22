@@ -167,7 +167,7 @@ def test_binary_ufunc_scalar(ufunc, sparse, flip, arrays_for_binary_ufunc):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("ufunc", [np.divmod])  # TODO: any others?
+@pytest.mark.parametrize("ufunc", [np.divmod])  # TODO: np.modf, np.frexp
 @pytest.mark.parametrize("sparse", SPARSE, ids=SPARSE_IDS)
 @pytest.mark.parametrize("shuffle", SHUFFLE)
 @pytest.mark.filterwarnings("ignore:divide by zero:RuntimeWarning")
@@ -177,9 +177,6 @@ def test_multiple_output_binary_ufuncs(
     # Test that
     #  the same conditions from binary_ufunc_scalar apply to
     #  ufuncs with multiple outputs.
-    if sparse and ufunc is np.divmod:
-        mark = pytest.mark.xfail(reason="sparse divmod not implemented")
-        request.node.add_marker(mark)
 
     a1, a2 = arrays_for_binary_ufunc
     # work around https://github.com/pandas-dev/pandas/issues/26987
@@ -277,20 +274,8 @@ def test_reduce(values, box, request):
         if values.dtype.kind in ["i", "f"]:
             # ATM Index casts to object, so we get python ints/floats
             same_type = False
-        elif isinstance(values, pd.IntervalIndex):
-            mark = pytest.mark.xfail(reason="IntervalArray.min/max not implemented")
-            request.node.add_marker(mark)
 
-    elif box is pd.Series or box is pd.DataFrame:
-        if isinstance(values, pd.IntervalIndex):
-            mark = pytest.mark.xfail(reason="IntervalArray.min/max not implemented")
-            request.node.add_marker(mark)
-
-    if values.dtype == "i8" and box is pd.array:
-        # FIXME: pd.array casts to Int64
-        obj = values
-    else:
-        obj = box(values)
+    obj = box(values)
 
     result = np.maximum.reduce(obj)
     expected = values[1]

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import (
     Hashable,
+    Mapping,
     Sequence,
 )
 import warnings
@@ -11,6 +12,8 @@ import numpy as np
 import pandas._libs.parsers as parsers
 from pandas._typing import (
     ArrayLike,
+    DtypeArg,
+    DtypeObj,
     FilePath,
     ReadCsvBuffer,
 )
@@ -200,7 +203,7 @@ class CParserWrapper(ParserBase):
         except ValueError:
             pass
 
-    def _set_noconvert_columns(self):
+    def _set_noconvert_columns(self) -> None:
         """
         Set the columns that should not undergo dtype conversions.
 
@@ -221,10 +224,16 @@ class CParserWrapper(ParserBase):
         for col in noconvert_columns:
             self._reader.set_noconvert(col)
 
-    def read(self, nrows=None):
+    def read(
+        self,
+        nrows: int | None = None,
+    ) -> tuple[
+        Index | MultiIndex | None,
+        Sequence[Hashable] | MultiIndex,
+        Mapping[Hashable, ArrayLike],
+    ]:
         index: Index | MultiIndex | Sequence[Hashable] | None
         column_names: Sequence[Hashable] | MultiIndex
-
         try:
             if self.low_memory:
                 chunks = self._reader.read_low_memory(nrows)
@@ -322,7 +331,7 @@ class CParserWrapper(ParserBase):
 
         return index, column_names, date_data
 
-    def _filter_usecols(self, names):
+    def _filter_usecols(self, names: Sequence[Hashable]) -> Sequence[Hashable]:
         # hackish
         usecols = self._evaluate_usecols(self.usecols, names)
         if usecols is not None and len(names) != len(usecols):
@@ -407,13 +416,15 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
     return result
 
 
-def ensure_dtype_objs(dtype):
+def ensure_dtype_objs(
+    dtype: DtypeArg | dict[Hashable, DtypeArg] | None
+) -> DtypeObj | dict[Hashable, DtypeObj] | None:
     """
     Ensure we have either None, a dtype object, or a dictionary mapping to
     dtype objects.
     """
     if isinstance(dtype, dict):
-        dtype = {k: pandas_dtype(dtype[k]) for k in dtype}
+        return {k: pandas_dtype(dtype[k]) for k in dtype}
     elif dtype is not None:
-        dtype = pandas_dtype(dtype)
+        return pandas_dtype(dtype)
     return dtype

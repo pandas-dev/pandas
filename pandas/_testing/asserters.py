@@ -193,16 +193,15 @@ def _get_tol_from_less_precise(check_less_precise: bool | int) -> float:
     --------
     >>> # Using check_less_precise as a bool:
     >>> _get_tol_from_less_precise(False)
-    0.5e-5
+    5e-06
     >>> _get_tol_from_less_precise(True)
-    0.5e-3
+    0.0005
     >>> # Using check_less_precise as an int representing the decimal
     >>> # tolerance intended:
     >>> _get_tol_from_less_precise(2)
-    0.5e-2
+    0.005
     >>> _get_tol_from_less_precise(8)
-    0.5e-8
-
+    5e-09
     """
     if isinstance(check_less_precise, bool):
         if check_less_precise:
@@ -1385,7 +1384,8 @@ def assert_equal(left, right, **kwargs):
         assert kwargs == {}
         assert left == right
     else:
-        raise NotImplementedError(type(left))
+        assert kwargs == {}
+        assert_almost_equal(left, right)
 
 
 def assert_sp_array_equal(left, right):
