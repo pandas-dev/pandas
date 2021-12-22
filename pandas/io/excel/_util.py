@@ -8,6 +8,7 @@ from typing import (
     Iterable,
     Literal,
     MutableMapping,
+    Sequence,
     TypeVar,
     overload,
 )
@@ -274,7 +275,7 @@ def fill_mi_header(
 
 
 def pop_header_name(
-    row: list[Hashable], index_col: int | list[int]
+    row: list[Hashable], index_col: int | Sequence[int]
 ) -> tuple[Hashable | None, list[Hashable]]:
     """
     Pop the header name for MultiIndex parsing.
