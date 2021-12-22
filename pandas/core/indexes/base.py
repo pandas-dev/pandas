@@ -5692,8 +5692,8 @@ class Index(IndexOpsMixin, PandasObject):
         if self._is_multi and target._is_multi:
             engine = self._engine
             # error: "IndexEngine" has no attribute "_extract_level_codes"
-            tgt_values = engine._extract_level_codes(
-                target  # type: ignore[attr-defined]
+            tgt_values = engine._extract_level_codes(  # type: ignore[attr-defined]
+                target
             )
 
         indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
