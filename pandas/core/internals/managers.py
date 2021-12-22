@@ -388,12 +388,13 @@ class BaseBlockManager(DataManager):
             # GH#35488 we need to watch out for multi-block cases
             # We only get here with fill_value not-lib.no_default
             ncols = self.shape[0]
+            nper = abs(periods)
+            nper = min(nper, ncols)
             if periods > 0:
                 indexer = np.array(
-                    [-1] * periods + list(range(ncols - periods)), dtype=np.intp
+                    [-1] * nper + list(range(ncols - periods)), dtype=np.intp
                 )
             else:
-                nper = abs(periods)
                 indexer = np.array(
                     list(range(nper, ncols)) + [-1] * nper, dtype=np.intp
                 )
