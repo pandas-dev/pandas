@@ -23,6 +23,7 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import (
+    NaT,
     algos as libalgos,
     index as libindex,
     lib,
@@ -2616,9 +2617,12 @@ class Index(IndexOpsMixin, PandasObject):
     @cache_readonly
     def _na_value(self):
         """The expected NA value to use with this index."""
-        if isinstance(self.dtype, np.dtype):
+        dtype = self.dtype
+        if isinstance(dtype, np.dtype):
+            if dtype.kind in ["m", "M"]:
+                return NaT
             return np.nan
-        return self.dtype.na_value
+        return dtype.na_value
 
     @cache_readonly
     def _isnan(self) -> npt.NDArray[np.bool_]:
