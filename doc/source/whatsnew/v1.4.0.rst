@@ -545,6 +545,7 @@ Other Deprecations
 - A deprecation warning is now shown for :meth:`DataFrame.to_latex` indicating the arguments signature may change and emulate more the arguments to :meth:`.Styler.to_latex` in future versions (:issue:`44411`)
 - Deprecated :meth:`Categorical.replace`, use :meth:`Series.replace` instead (:issue:`44929`)
 - Deprecated :meth:`Index.__getitem__` with a bool key; use ``index.values[key]`` to get the old behavior (:issue:`44051`)
+- Deprecated :meth:`DatetimeIndex.union_many`, use :meth:`DatetimeIndex.union` instead (:issue:`44091`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -634,6 +635,7 @@ Datetimelike
 - Bug in :meth:`Index.insert` for inserting ``np.datetime64``, ``np.timedelta64`` or ``tuple`` into :class:`Index` with ``dtype='object'`` with negative loc adding ``None`` and replacing existing value (:issue:`44509`)
 - Bug in :meth:`Series.mode` with ``DatetimeTZDtype`` incorrectly returning timezone-naive and ``PeriodDtype`` incorrectly raising (:issue:`41927`)
 - Bug in :class:`DateOffset`` addition with :class:`Timestamp` where ``offset.nanoseconds`` would not be included in the result. (:issue:`43968`,:issue:`36589`)
+- Bug in :class:`DataFrame` construction from dict of :class:`Series` with mismatched index dtypes sometimes raising depending on the ordering of the passed dict (:issue:`44091`)
 -
 
 Timedelta
