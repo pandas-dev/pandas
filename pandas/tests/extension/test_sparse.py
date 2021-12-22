@@ -193,9 +193,10 @@ class TestGetitem(BaseSparseTests, base.BaseGetitemTests):
 
 class TestIndex(base.BaseIndexTests):
     def test_index_from_array(self, data):
-        idx = pd.Index(data)
-        # TODO do we want to preserve the sparse dtype in the index
-        # now this is possible?
+        msg = "will store that array directly"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            idx = pd.Index(data)
+
         if data.dtype.subtype == "f":
             assert idx.dtype == np.float64
         elif data.dtype.subtype == "i":
@@ -274,6 +275,14 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
 
 
 class TestMethods(BaseSparseTests, base.BaseMethodsTests):
+    @pytest.mark.parametrize("ascending", [True, False])
+    def test_sort_values_frame(self, data_for_sorting, ascending):
+        msg = "will store that array directly"
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
+            super().test_sort_values_frame(data_for_sorting, ascending)
+
     def test_combine_le(self, data_repeated):
         # We return a Series[SparseArray].__le__ returns a
         # Series[Sparse[bool]]

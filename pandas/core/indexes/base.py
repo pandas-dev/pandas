@@ -570,6 +570,14 @@ class Index(IndexOpsMixin, PandasObject):
                 return PeriodIndex
 
             elif isinstance(dtype, SparseDtype):
+                warnings.warn(
+                    "In a future version, passing a SparseArray to pd.Index "
+                    "will store that array directly instead of converting to a "
+                    "dense numpy ndarray. To retain the old behavior, use "
+                    "pd.Index(arr.to_numpy()) instead",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
                 return cls._dtype_to_subclass(dtype.subtype)
 
             return Index
