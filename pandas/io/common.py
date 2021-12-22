@@ -714,12 +714,10 @@ def get_handle(
 
         # BZ Compression
         elif compression == "bz2":
-            handle = bz2.BZ2File(
-                # Argument 1 to "BZ2File" has incompatible type "Union[str,
-                # Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper,
-                # mmap]]"; expected "Union[Union[str, bytes, _PathLike[str],
-                # _PathLike[bytes]], IO[bytes]]"
-                handle,  # type: ignore[arg-type]
+            # No overload variant of "BZ2File" matches argument types
+            # "Union[str, BaseBuffer]", "str", "Dict[str, Any]"
+            handle = bz2.BZ2File(  # type: ignore[call-overload]
+                handle,
                 mode=ioargs.mode,
                 **compression_args,
             )

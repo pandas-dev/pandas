@@ -1903,6 +1903,7 @@ with optional parameters:
      ``index``; dict like {index -> {column -> value}}
      ``columns``; dict like {column -> {index -> value}}
      ``values``; just the values array
+     ``table``; adhering to the JSON `Table Schema`_
 
 * ``date_format`` : string, type of date conversion, 'epoch' for timestamp, 'iso' for ISO8601.
 * ``double_precision`` : The number of decimal places to use when encoding floating point values, default 10.
@@ -2477,7 +2478,6 @@ A few notes on the generated table schema:
     * For ``MultiIndex``, ``mi.names`` is used. If any level has no name,
       then ``level_<i>`` is used.
 
-
 ``read_json`` also accepts ``orient='table'`` as an argument. This allows for
 the preservation of metadata such as dtypes and index names in a
 round-trippable manner.
@@ -2519,7 +2519,17 @@ indicate missing values and the subsequent read cannot distinguish the intent.
 
    os.remove("test.json")
 
+When using ``orient='table'`` along with user-defined ``ExtensionArray``,
+the generated schema will contain an additional ``extDtype`` key in the respective
+``fields`` element. This extra key is not standard but does enable JSON roundtrips
+for extension types (e.g. ``read_json(df.to_json(orient="table"), orient="table")``).
+
+The ``extDtype`` key carries the name of the extension, if you have properly registered
+the ``ExtensionDtype``, pandas will use said name to perform a lookup into the registry
+and re-convert the serialized data into your custom dtype.
+
 .. _Table Schema: https://specs.frictionlessdata.io/table-schema/
+
 
 HTML
 ----
