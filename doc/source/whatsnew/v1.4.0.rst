@@ -668,6 +668,7 @@ Conversion
 - Bug in :func:`to_datetime` with ``arg:xr.DataArray`` and ``unit="ns"`` specified raises TypeError (:issue:`44053`)
 - Bug in :meth:`DataFrame.convert_dtypes` not returning the correct type when a subclass does not overload :meth:`_constructor_sliced` (:issue:`43201`)
 - Bug in :meth:`DataFrame.astype` not propagating ``attrs`` from the original :class:`DataFrame` (:issue:`44414`)
+- Bug in :meth:`DataFrame.convert_dtypes` result losing ``columns.names`` (:issue:`41435`)
 
 Strings
 ^^^^^^^
@@ -808,6 +809,7 @@ Groupby/resample/rolling
 - Bug in :meth:`GroupBy.nth` failing on ``axis=1`` (:issue:`43926`)
 - Fixed bug in :meth:`Series.rolling` and :meth:`DataFrame.rolling` not respecting right bound on centered datetime-like windows, if the index contain duplicates (:issue:`3944`)
 - Bug in :meth:`Series.rolling` and :meth:`DataFrame.rolling` when using a :class:`pandas.api.indexers.BaseIndexer` subclass that returned unequal start and end arrays would segfault instead of raising a ``ValueError`` (:issue:`44470`)
+- Fixed bug where grouping by a :class:`Series` that has a categorical data type and length unequal to the axis of grouping raised ``ValueError`` (:issue:`44179`)
 
 Reshaping
 ^^^^^^^^^
