@@ -1391,14 +1391,10 @@ def _maybe_arg_null_out(
     if axis is None or not getattr(result, "ndim", False):
         if skipna:
             if mask.all():
-                # error: Incompatible types in assignment (expression has type
-                # "int", variable has type "ndarray")
-                result = -1  # type: ignore[assignment]
+                return -1
         else:
             if mask.any():
-                # error: Incompatible types in assignment (expression has type
-                # "int", variable has type "ndarray")
-                result = -1  # type: ignore[assignment]
+                return -1
     else:
         if skipna:
             na_mask = mask.all(axis)
