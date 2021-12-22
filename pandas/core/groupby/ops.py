@@ -500,9 +500,10 @@ class WrappedCythonOp:
         elif is_bool_dtype(dtype):
             values = values.astype("int64")
         elif is_integer_dtype(dtype):
-            # e.g. uint8 -> uint64, int16 -> int64
-            dtype_str = dtype.kind + "8"
-            values = values.astype(dtype_str, copy=False)
+            # GH#43329 If the dtype is explicitly of type uint64 the type is not
+            # changed to prevent overflow.
+            if dtype != np.uint64:
+                values = values.astype(np.int64, copy=False)
         elif is_numeric:
             if not is_complex_dtype(dtype):
                 values = ensure_float64(values)
@@ -530,6 +531,16 @@ class WrappedCythonOp:
                     mask=mask,
                     result_mask=result_mask,
                     is_datetimelike=is_datetimelike,
+                )
+            elif self.how in ["add"]:
+                # We support datetimelike
+                func(
+                    result,
+                    counts,
+                    values,
+                    comp_ids,
+                    min_count,
+                    datetimelike=is_datetimelike,
                 )
             else:
                 func(result, counts, values, comp_ids, min_count)
@@ -868,8 +879,8 @@ class BaseGrouper:
         Analogous to result_index, but returning an ndarray/ExtensionArray
         allowing us to retain ExtensionDtypes not supported by Index.
         """
-        # TODO: once Index supports arbitrary EAs, this can be removed in favor
-        #  of result_index
+        # TODO(ExtensionIndex): once Index supports arbitrary EAs, this can
+        #  be removed in favor of result_index
         if len(self.groupings) == 1:
             return self.groupings[0].group_arraylike
 

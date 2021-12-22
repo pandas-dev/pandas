@@ -57,17 +57,23 @@ CSSStyles = List[CSSDict]
 Subset = Union[slice, Sequence, Index]
 
 
+def _gl01_adjust(obj: Any) -> Any:
+    """Adjust docstrings for Numpydoc GLO1."""
+    obj.__doc__ = "\n" + obj.__doc__
+    return obj
+
+
 class StylerRenderer:
     """
     Base class to process rendering a Styler with a specified jinja2 template.
     """
 
-    loader = jinja2.PackageLoader("pandas", "io/formats/templates")
-    env = jinja2.Environment(loader=loader, trim_blocks=True)
-    template_html = env.get_template("html.tpl")
-    template_html_table = env.get_template("html_table.tpl")
-    template_html_style = env.get_template("html_style.tpl")
-    template_latex = env.get_template("latex.tpl")
+    loader = _gl01_adjust(jinja2.PackageLoader("pandas", "io/formats/templates"))
+    env = _gl01_adjust(jinja2.Environment(loader=loader, trim_blocks=True))
+    template_html = _gl01_adjust(env.get_template("html.tpl"))
+    template_html_table = _gl01_adjust(env.get_template("html_table.tpl"))
+    template_html_style = _gl01_adjust(env.get_template("html_style.tpl"))
+    template_latex = _gl01_adjust(env.get_template("latex.tpl"))
 
     def __init__(
         self,
@@ -817,12 +823,12 @@ class StylerRenderer:
             .. versionadded:: 1.3.0
 
         decimal : str, default "."
-            Character used as decimal separator for floats, complex and integers
+            Character used as decimal separator for floats, complex and integers.
 
             .. versionadded:: 1.3.0
 
         thousands : str, optional, default None
-            Character used as thousands separator for floats, complex and integers
+            Character used as thousands separator for floats, complex and integers.
 
             .. versionadded:: 1.3.0
 
@@ -1011,9 +1017,9 @@ class StylerRenderer:
             Floating point precision to use for display purposes, if not determined by
             the specified ``formatter``.
         decimal : str, default "."
-            Character used as decimal separator for floats, complex and integers
+            Character used as decimal separator for floats, complex and integers.
         thousands : str, optional, default None
-            Character used as thousands separator for floats, complex and integers
+            Character used as thousands separator for floats, complex and integers.
         escape : str, optional
             Use 'html' to replace the characters ``&``, ``<``, ``>``, ``'``, and ``"``
             in cell display string with HTML-safe sequences.
@@ -1056,7 +1062,7 @@ class StylerRenderer:
         --------
         Using ``na_rep`` and ``precision`` with the default ``formatter``
 
-        >>> df = pd.DataFrame([[1, 2, 3]], columns=[2.0, np.nan, 4.0]])
+        >>> df = pd.DataFrame([[1, 2, 3]], columns=[2.0, np.nan, 4.0])
         >>> df.style.format_index(axis=1, na_rep='MISS', precision=3)  # doctest: +SKIP
             2.000    MISS   4.000
         0       1       2       3
@@ -1090,6 +1096,7 @@ class StylerRenderer:
 
         >>> df = pd.DataFrame([[1, 2, 3]], columns=['"A"', 'A&B', None])
         >>> s = df.style.format_index('$ {0}', axis=1, escape="html", na_rep="NA")
+        ...  # doctest: +SKIP
         <th .. >$ &#34;A&#34;</th>
         <th .. >$ A&amp;B</th>
         <th .. >NA</td>
@@ -1805,7 +1812,7 @@ def _parse_latex_header_span(
 
     Examples
     --------
-    >>> cell = {'display_value':'text', 'attributes': 'colspan="3"'}
+    >>> cell = {'cellstyle': '', 'display_value':'text', 'attributes': 'colspan="3"'}
     >>> _parse_latex_header_span(cell, 't', 'c')
     '\\multicolumn{3}{c}{text}'
     """

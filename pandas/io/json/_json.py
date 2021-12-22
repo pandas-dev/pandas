@@ -68,8 +68,6 @@ from pandas.io.parsers.readers import validate_integer
 loads = json.loads
 dumps = json.dumps
 
-TABLE_SCHEMA_VERSION = "0.20.0"
-
 
 # interface to/from
 def to_json(
@@ -565,7 +563,7 @@ def read_json(
 {{"name":"col 1","type":"string"}},\
 {{"name":"col 2","type":"string"}}],\
 "primaryKey":["index"],\
-"pandas_version":"0.20.0"}},\
+"pandas_version":"1.4.0"}},\
 "data":[\
 {{"index":"row 1","col 1":"a","col 2":"b"}},\
 {{"index":"row 2","col 1":"c","col 2":"d"}}]\
@@ -661,7 +659,7 @@ class JsonReader(abc.Iterator):
         self.nrows_seen = 0
         self.nrows = nrows
         self.encoding_errors = encoding_errors
-        self.handles: IOHandles | None = None
+        self.handles: IOHandles[str] | None = None
 
         if self.chunksize is not None:
             self.chunksize = validate_integer("chunksize", self.chunksize, 1)
@@ -913,7 +911,9 @@ class Parser:
     def _try_convert_types(self):
         raise AbstractMethodError(self)
 
-    def _try_convert_data(self, name, data, use_dtypes=True, convert_dates=True):
+    def _try_convert_data(
+        self, name, data, use_dtypes: bool = True, convert_dates: bool = True
+    ):
         """
         Try to parse a ndarray like into a column by inferring dtype.
         """

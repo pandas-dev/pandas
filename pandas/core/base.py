@@ -235,7 +235,7 @@ class SelectionMixin(Generic[NDFrameT]):
             raise IndexError(f"Column(s) {self._selection} already selected")
 
         if isinstance(key, (list, tuple, ABCSeries, ABCIndex, np.ndarray)):
-            if len(self.obj.columns.intersection(key)) != len(key):
+            if len(self.obj.columns.intersection(key)) != len(set(key)):
                 bad_keys = list(set(key).difference(self.obj.columns))
                 raise KeyError(f"Columns not found: {str(bad_keys)[1:-1]}")
             return self._gotitem(list(key), ndim=2)
@@ -1239,8 +1239,8 @@ class IndexOpsMixin(OpsMixin):
     def searchsorted(  # type: ignore[misc]
         self,
         value: npt._ScalarLike_co,
-        side: Literal["left", "right"] = "left",
-        sorter: NumpySorter = None,
+        side: Literal["left", "right"] = ...,
+        sorter: NumpySorter = ...,
     ) -> np.intp:
         ...
 
@@ -1248,8 +1248,8 @@ class IndexOpsMixin(OpsMixin):
     def searchsorted(
         self,
         value: npt.ArrayLike | ExtensionArray,
-        side: Literal["left", "right"] = "left",
-        sorter: NumpySorter = None,
+        side: Literal["left", "right"] = ...,
+        sorter: NumpySorter = ...,
     ) -> npt.NDArray[np.intp]:
         ...
 

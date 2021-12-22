@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 from pandas import (
-    NA,
     Categorical,
     Series,
 )
@@ -39,11 +38,13 @@ def test_duplicated_nan_none(keep, expected):
     tm.assert_series_equal(result, expected)
 
 
-def test_duplicated_categorical_bool_na():
+def test_duplicated_categorical_bool_na(nulls_fixture):
     # GH#44351
     ser = Series(
         Categorical(
-            [True, False, True, False, NA], categories=[True, False], ordered=True
+            [True, False, True, False, nulls_fixture],
+            categories=[True, False],
+            ordered=True,
         )
     )
     result = ser.duplicated()

@@ -1098,13 +1098,20 @@ def is_list_like(obj: object, allow_sets: bool = True) -> bool:
 
 
 cdef inline bint c_is_list_like(object obj, bint allow_sets) except -1:
+    # first, performance short-cuts for the most common cases
+    if util.is_array(obj):
+        # exclude zero-dimensional numpy arrays, effectively scalars
+        return not cnp.PyArray_IsZeroDim(obj)
+    elif isinstance(obj, list):
+        return True
+    # then the generic implementation
     return (
         # equiv: `isinstance(obj, abc.Iterable)`
         getattr(obj, "__iter__", None) is not None and not isinstance(obj, type)
         # we do not count strings/unicode/bytes as list-like
         and not isinstance(obj, (str, bytes))
-        # exclude zero-dimensional numpy arrays, effectively scalars
-        and not cnp.PyArray_IsZeroDim(obj)
+        # exclude zero-dimensional duck-arrays, effectively scalars
+        and not (hasattr(obj, "ndim") and obj.ndim == 0)
         # exclude sets if allow_sets is False
         and not (allow_sets is False and isinstance(obj, abc.Set))
     )
@@ -1440,29 +1447,32 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
         from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
         values = construct_1d_object_array_from_listlike(value)
 
-    # make contiguous
-    # for f-contiguous array 1000 x 1000, passing order="K" gives 5000x speedup
-    values = values.ravel(order="K")
-
     val = _try_infer_map(values.dtype)
     if val is not None:
+        # Anything other than object-dtype should return here.
         return val
 
-    if values.dtype != np.object_:
-        values = values.astype("O")
+    if values.descr.type_num != NPY_OBJECT:
+        # i.e. values.dtype != np.object
+        # This should not be reached
+        values = values.astype(object)
+
+    # for f-contiguous array 1000 x 1000, passing order="K" gives 5000x speedup
+    values = values.ravel(order="K")
 
     if skipna:
         values = values[~isnaobj(values)]
 
-    n = len(values)
+    n = cnp.PyArray_SIZE(values)
     if n == 0:
         return "empty"
 
-    # try to use a valid value
+    # Iterate until we find our first valid value. We will use this
+    #  value to decide which of the is_foo_array functions to call.
     for i in range(n):
         val = values[i]
 
-        # do not use is_null_datetimelike to keep
+        # do not use checknull to keep
         # np.datetime64('nat') and np.timedelta64('nat')
         if val is None or util.is_nan(val):
             pass
@@ -1704,10 +1714,15 @@ cdef class Validator:
     cdef bint _validate(self, ndarray values) except -1:
         cdef:
             Py_ssize_t i
-            Py_ssize_t n = self.n
+            Py_ssize_t n = values.size
+            flatiter it = PyArray_IterNew(values)
 
         for i in range(n):
-            if not self.is_valid(values[i]):
+            # The PyArray_GETITEM and PyArray_ITER_NEXT are faster
+            #  equivalents to `val = values[i]`
+            val = PyArray_GETITEM(values, PyArray_ITER_DATA(it))
+            PyArray_ITER_NEXT(it)
+            if not self.is_valid(val):
                 return False
 
         return True
@@ -1717,10 +1732,15 @@ cdef class Validator:
     cdef bint _validate_skipna(self, ndarray values) except -1:
         cdef:
             Py_ssize_t i
-            Py_ssize_t n = self.n
+            Py_ssize_t n = values.size
+            flatiter it = PyArray_IterNew(values)
 
         for i in range(n):
-            if not self.is_valid_skipna(values[i]):
+            # The PyArray_GETITEM and PyArray_ITER_NEXT are faster
+            #  equivalents to `val = values[i]`
+            val = PyArray_GETITEM(values, PyArray_ITER_DATA(it))
+            PyArray_ITER_NEXT(it)
+            if not self.is_valid_skipna(val):
                 return False
 
         return True
@@ -3028,3 +3048,25 @@ def is_bool_list(obj: list) -> bool:
 
     # Note: we return True for empty list
     return True
+
+
+def dtypes_all_equal(list types not None) -> bool:
+    """
+    Faster version for:
+
+    first = types[0]
+    all(is_dtype_equal(first, t) for t in types[1:])
+
+    And assuming all elements in the list are np.dtype/ExtensionDtype objects
+
+    See timings at https://github.com/pandas-dev/pandas/pull/44594
+    """
+    first = types[0]
+    for t in types[1:]:
+        try:
+            if not t == first:
+                return False
+        except (TypeError, AttributeError):
+            return False
+    else:
+        return True

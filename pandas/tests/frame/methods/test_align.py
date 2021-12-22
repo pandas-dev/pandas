@@ -55,9 +55,7 @@ class TestDataFrameAlign:
         # test fill value
         join_idx = float_frame.index.join(other.index)
         diff_a = float_frame.index.difference(join_idx)
-        diff_b = other.index.difference(join_idx)
         diff_a_vals = af.reindex(diff_a).values
-        diff_b_vals = bf.reindex(diff_b).values
         assert (diff_a_vals == -1).all()
 
         af, bf = float_frame.align(other, join="right", axis=0)
@@ -74,11 +72,7 @@ class TestDataFrameAlign:
         # test fill value
         join_idx = float_frame.index.join(other.index)
         diff_a = float_frame.index.difference(join_idx)
-        diff_b = other.index.difference(join_idx)
         diff_a_vals = af.reindex(diff_a).values
-
-        # TODO(wesm): unused?
-        diff_b_vals = bf.reindex(diff_b).values  # noqa
 
         assert (diff_a_vals == -1).all()
 

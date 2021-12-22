@@ -685,6 +685,13 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             other = pd_array(other)
         elif not isinstance(other, Interval):
             # non-interval scalar -> no matches
+            if other is NA:
+                # GH#31882
+                from pandas.core.arrays import BooleanArray
+
+                arr = np.empty(self.shape, dtype=bool)
+                mask = np.ones(self.shape, dtype=bool)
+                return BooleanArray(arr, mask)
             return invalid_comparison(self, other, op)
 
         # determine the dtype of the elements we want to compare
@@ -743,7 +750,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 if obj is NA:
                     # comparison with np.nan returns NA
                     # github.com/pandas-dev/pandas/pull/37124#discussion_r509095092
-                    result[i] = op is operator.ne
+                    result = result.astype(object)
+                    result[i] = NA
                 else:
                     raise
         return result
@@ -789,6 +797,40 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return super().argsort(
             ascending=ascending, kind=kind, na_position=na_position, **kwargs
         )
+
+    def min(self, *, axis: int | None = None, skipna: bool = True):
+        nv.validate_minmax_axis(axis, self.ndim)
+
+        if not len(self):
+            return self._na_value
+
+        mask = self.isna()
+        if mask.any():
+            if not skipna:
+                return self._na_value
+            obj = self[~mask]
+        else:
+            obj = self
+
+        indexer = obj.argsort()[0]
+        return obj[indexer]
+
+    def max(self, *, axis: int | None = None, skipna: bool = True):
+        nv.validate_minmax_axis(axis, self.ndim)
+
+        if not len(self):
+            return self._na_value
+
+        mask = self.isna()
+        if mask.any():
+            if not skipna:
+                return self._na_value
+            obj = self[~mask]
+        else:
+            obj = self
+
+        indexer = obj.argsort()[-1]
+        return obj[indexer]
 
     def fillna(
         self: IntervalArrayT, value=None, method=None, limit=None
@@ -1195,15 +1237,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Return an Index with entries denoting the length of each Interval in
         the IntervalArray.
         """
-        try:
-            return self.right - self.left
-        except TypeError as err:
-            # length not defined for some types, e.g. string
-            msg = (
-                "IntervalArray contains Intervals without defined length, "
-                "e.g. Intervals with string endpoints"
-            )
-            raise TypeError(msg) from err
+        return self.right - self.left
 
     @property
     def mid(self):
@@ -1496,7 +1530,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def insert(self: IntervalArrayT, loc: int, item: Interval) -> IntervalArrayT:
         """
         Return a new IntervalArray inserting new item at location. Follows
-        Python list.append semantics for negative values.  Only Interval
+        Python numpy.insert semantics for negative values.  Only Interval
         objects and NA can be inserted into an IntervalIndex
 
         Parameters

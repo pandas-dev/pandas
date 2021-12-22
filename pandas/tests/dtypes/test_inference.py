@@ -75,6 +75,56 @@ def coerce(request):
     return request.param
 
 
+class MockNumpyLikeArray:
+    """
+    A class which is numpy-like (e.g. Pint's Quantity) but not actually numpy
+
+    The key is that it is not actually a numpy array so
+    ``util.is_array(mock_numpy_like_array_instance)`` returns ``False``. Other
+    important properties are that the class defines a :meth:`__iter__` method
+    (so that ``isinstance(abc.Iterable)`` returns ``True``) and has a
+    :meth:`ndim` property, as pandas special-cases 0-dimensional arrays in some
+    cases.
+
+    We expect pandas to behave with respect to such duck arrays exactly as
+    with real numpy arrays. In particular, a 0-dimensional duck array is *NOT*
+    a scalar (`is_scalar(np.array(1)) == False`), but it is not list-like either.
+    """
+
+    def __init__(self, values):
+        self._values = values
+
+    def __iter__(self):
+        iter_values = iter(self._values)
+
+        def it_outer():
+            yield from iter_values
+
+        return it_outer()
+
+    def __len__(self):
+        return len(self._values)
+
+    def __array__(self, t=None):
+        return np.asarray(self._values, dtype=t)
+
+    @property
+    def ndim(self):
+        return self._values.ndim
+
+    @property
+    def dtype(self):
+        return self._values.dtype
+
+    @property
+    def size(self):
+        return self._values.size
+
+    @property
+    def shape(self):
+        return self._values.shape
+
+
 # collect all objects to be tested for list-like-ness; use tuples of objects,
 # whether they are list-like or not (special casing for sets), and their ID
 ll_params = [
@@ -109,6 +159,15 @@ ll_params = [
     (np.ndarray((2,) * 4), True, "ndarray-4d"),
     (np.array([[[[]]]]), True, "ndarray-4d-empty"),
     (np.array(2), False, "ndarray-0d"),
+    (MockNumpyLikeArray(np.ndarray((2,) * 1)), True, "duck-ndarray-1d"),
+    (MockNumpyLikeArray(np.array([])), True, "duck-ndarray-1d-empty"),
+    (MockNumpyLikeArray(np.ndarray((2,) * 2)), True, "duck-ndarray-2d"),
+    (MockNumpyLikeArray(np.array([[]])), True, "duck-ndarray-2d-empty"),
+    (MockNumpyLikeArray(np.ndarray((2,) * 3)), True, "duck-ndarray-3d"),
+    (MockNumpyLikeArray(np.array([[[]]])), True, "duck-ndarray-3d-empty"),
+    (MockNumpyLikeArray(np.ndarray((2,) * 4)), True, "duck-ndarray-4d"),
+    (MockNumpyLikeArray(np.array([[[[]]]])), True, "duck-ndarray-4d-empty"),
+    (MockNumpyLikeArray(np.array(2)), False, "duck-ndarray-0d"),
     (1, False, "int"),
     (b"123", False, "bytes"),
     (b"", False, "bytes-empty"),
@@ -181,6 +240,8 @@ def test_is_array_like():
     assert inference.is_array_like(Series([1, 2]))
     assert inference.is_array_like(np.array(["a", "b"]))
     assert inference.is_array_like(Index(["2016-01-01"]))
+    assert inference.is_array_like(np.array([2, 3]))
+    assert inference.is_array_like(MockNumpyLikeArray(np.array([2, 3])))
 
     class DtypeList(list):
         dtype = "special"
@@ -1429,9 +1490,11 @@ class TestTypeInference:
         func = getattr(lib, func)
         arr = np.array(["foo", "bar"])
         assert not func(arr)
+        assert not func(arr.reshape(2, 1))
 
         arr = np.array([1, 2])
         assert not func(arr)
+        assert not func(arr.reshape(2, 1))
 
     def test_date(self):
 
@@ -1809,9 +1872,13 @@ class TestIsScalar:
 
     @pytest.mark.filterwarnings("ignore::PendingDeprecationWarning")
     def test_is_scalar_numpy_arrays(self):
-        assert not is_scalar(np.array([]))
-        assert not is_scalar(np.array([[]]))
-        assert not is_scalar(np.matrix("1; 2"))
+        for a in [
+            np.array([]),
+            np.array([[]]),
+            np.matrix("1; 2"),
+        ]:
+            assert not is_scalar(a)
+            assert not is_scalar(MockNumpyLikeArray(a))
 
     def test_is_scalar_pandas_scalars(self):
         assert is_scalar(Timestamp("2014-01-01"))

@@ -3,8 +3,6 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -301,9 +299,7 @@ def test_apply(ordered):
     tm.assert_series_equal(result, expected)
 
 
-# TODO(ArrayManager) incorrect dtype for mean()
-@td.skip_array_manager_not_yet_implemented
-def test_observed(observed, using_array_manager):
+def test_observed(observed):
     # multiple groupers, don't re-expand the output space
     # of the grouper
     # gh-14942 (implement)
@@ -668,9 +664,30 @@ def test_bins_unequal_len():
     bins = pd.cut(series.dropna().values, 4)
 
     # len(bins) != len(series) here
-    msg = r"Length of grouper \(8\) and axis \(10\) must be same length"
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(ValueError, match="Grouper and axis must be same length"):
         series.groupby(bins).mean()
+
+
+@pytest.mark.parametrize(
+    ["series", "data"],
+    [
+        # Group a series with length and index equal to those of the grouper.
+        (Series(range(4)), {"A": [0, 3], "B": [1, 2]}),
+        # Group a series with length equal to that of the grouper and index unequal to
+        # that of the grouper.
+        (Series(range(4)).rename(lambda idx: idx + 1), {"A": [2], "B": [0, 1]}),
+        # GH44179: Group a series with length unequal to that of the grouper.
+        (Series(range(7)), {"A": [0, 3], "B": [1, 2]}),
+    ],
+)
+def test_categorical_series(series, data):
+    # Group the given series by a series with categorical data type such that group A
+    # takes indices 0 and 3 and group B indices 1 and 2, obtaining the values mapped in
+    # the given data.
+    groupby = series.groupby(Series(list("ABBA"), dtype="category"))
+    result = groupby.aggregate(list)
+    expected = Series(data, index=CategoricalIndex(data.keys()))
+    tm.assert_series_equal(result, expected)
 
 
 def test_as_index():

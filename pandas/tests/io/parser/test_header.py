@@ -82,7 +82,8 @@ def test_no_header_prefix(all_parsers):
 6,7,8,9,10
 11,12,13,14,15
 """
-    result = parser.read_csv(StringIO(data), prefix="Field", header=None)
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        result = parser.read_csv(StringIO(data), prefix="Field", header=None)
     expected = DataFrame(
         [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10], [11, 12, 13, 14, 15]],
         columns=["Field0", "Field1", "Field2", "Field3", "Field4"],
@@ -457,7 +458,11 @@ def test_no_header(all_parsers, kwargs, names):
     expected = DataFrame(
         [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10], [11, 12, 13, 14, 15]], columns=names
     )
-    result = parser.read_csv(StringIO(data), header=None, **kwargs)
+    if "prefix" in kwargs.keys():
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = parser.read_csv(StringIO(data), header=None, **kwargs)
+    else:
+        result = parser.read_csv(StringIO(data), header=None, **kwargs)
     tm.assert_frame_equal(result, expected)
 
 
@@ -552,26 +557,34 @@ def test_multi_index_unnamed(all_parsers, index_col, columns):
     else:
         data = ",".join([""] + (columns or ["", ""])) + "\n,0,1\n0,2,3\n1,4,5\n"
 
+    result = parser.read_csv(StringIO(data), header=header, index_col=index_col)
+    exp_columns = []
+
     if columns is None:
-        msg = (
-            r"Passed header=\[0,1\] are too "
-            r"many rows for this multi_index of columns"
-        )
-        with pytest.raises(ParserError, match=msg):
-            parser.read_csv(StringIO(data), header=header, index_col=index_col)
-    else:
-        result = parser.read_csv(StringIO(data), header=header, index_col=index_col)
-        exp_columns = []
+        columns = ["", "", ""]
 
-        for i, col in enumerate(columns):
-            if not col:  # Unnamed.
-                col = f"Unnamed: {i if index_col is None else i + 1}_level_0"
+    for i, col in enumerate(columns):
+        if not col:  # Unnamed.
+            col = f"Unnamed: {i if index_col is None else i + 1}_level_0"
 
-            exp_columns.append(col)
+        exp_columns.append(col)
 
-        columns = MultiIndex.from_tuples(zip(exp_columns, ["0", "1"]))
-        expected = DataFrame([[2, 3], [4, 5]], columns=columns)
-        tm.assert_frame_equal(result, expected)
+    columns = MultiIndex.from_tuples(zip(exp_columns, ["0", "1"]))
+    expected = DataFrame([[2, 3], [4, 5]], columns=columns)
+    tm.assert_frame_equal(result, expected)
+
+
+@skip_pyarrow
+def test_names_longer_than_header_but_equal_with_data_rows(all_parsers):
+    # GH#38453
+    parser = all_parsers
+    data = """a, b
+1,2,3
+5,6,4
+"""
+    result = parser.read_csv(StringIO(data), header=0, names=["A", "B", "C"])
+    expected = DataFrame({"A": [1, 5], "B": [2, 6], "C": [3, 4]})
+    tm.assert_frame_equal(result, expected)
 
 
 @skip_pyarrow
@@ -620,3 +633,36 @@ row31,row32
         ParserError, match="Header rows must have an equal number of columns."
     ):
         parser.read_csv(StringIO(case), header=[0, 2])
+
+
+@skip_pyarrow
+def test_header_none_and_implicit_index(all_parsers):
+    # GH#22144
+    parser = all_parsers
+    data = "x,1,5\ny,2\nz,3\n"
+    result = parser.read_csv(StringIO(data), names=["a", "b"], header=None)
+    expected = DataFrame(
+        {"a": [1, 2, 3], "b": [5, np.nan, np.nan]}, index=["x", "y", "z"]
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@skip_pyarrow
+def test_header_none_and_implicit_index_in_second_row(all_parsers):
+    # GH#22144
+    parser = all_parsers
+    data = "x,1\ny,2,5\nz,3\n"
+    with pytest.raises(ParserError, match="Expected 2 fields in line 2, saw 3"):
+        parser.read_csv(StringIO(data), names=["a", "b"], header=None)
+
+
+@skip_pyarrow
+def test_header_none_and_on_bad_lines_skip(all_parsers):
+    # GH#22144
+    parser = all_parsers
+    data = "x,1\ny,2,5\nz,3\n"
+    result = parser.read_csv(
+        StringIO(data), names=["a", "b"], header=None, on_bad_lines="skip"
+    )
+    expected = DataFrame({"a": ["x", "z"], "b": [1, 3]})
+    tm.assert_frame_equal(result, expected)

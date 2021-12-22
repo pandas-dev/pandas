@@ -68,6 +68,7 @@ from pandas.core.dtypes.cast import (
     can_hold_element,
     find_common_type,
     infer_dtype_from,
+    maybe_cast_pointwise_result,
     validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
@@ -846,7 +847,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return {
             c
-            for c in self.unique(level=0)[:100]
+            for c in self.unique(level=0)[: get_option("display.max_dir_items")]
             if isinstance(c, str) and c.isidentifier()
         }
 
@@ -875,6 +876,13 @@ class Index(IndexOpsMixin, PandasObject):
         )
         if result is not NotImplemented:
             return result
+
+        if method == "reduce":
+            result = arraylike.dispatch_reduction_ufunc(
+                self, ufunc, method, *inputs, **kwargs
+            )
+            if result is not NotImplemented:
+                return result
 
         new_inputs = [x if x is not self else x._values for x in inputs]
         result = getattr(ufunc, method)(*new_inputs, **kwargs)
@@ -947,7 +955,6 @@ class Index(IndexOpsMixin, PandasObject):
                     # e.g. m8[s]
                     return self._data.view(cls)
 
-                arr = self._data.view("i8")
                 idx_cls = self._dtype_to_subclass(dtype)
                 arr_cls = idx_cls._data_cls
                 arr = arr_cls(self._data.view("i8"), dtype=dtype)
@@ -1059,6 +1066,8 @@ class Index(IndexOpsMixin, PandasObject):
     ):
         if kwargs:
             nv.validate_take((), kwargs)
+        if is_scalar(indices):
+            raise TypeError("Expected indices to be array-like")
         indices = ensure_platform_int(indices)
         allow_fill = self._maybe_disallow_fill(allow_fill, fill_value, indices)
 
@@ -1169,6 +1178,9 @@ class Index(IndexOpsMixin, PandasObject):
         names : list-like, optional
             Kept for compatibility with MultiIndex. Should not be used.
 
+            .. deprecated:: 1.4.0
+                use ``name`` instead.
+
         Returns
         -------
         Index
@@ -1179,6 +1191,14 @@ class Index(IndexOpsMixin, PandasObject):
         In most cases, there should be no functional difference from using
         ``deep``, but if ``deep`` is passed it will attempt to deepcopy.
         """
+        if names is not None:
+            warnings.warn(
+                "parameter names is deprecated and will be removed in a future "
+                "version. Use the name parameter instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
         name = self._validate_names(name=name, names=names, deep=deep)[0]
         if deep:
             new_data = self._data.copy()
@@ -1378,7 +1398,7 @@ class Index(IndexOpsMixin, PandasObject):
             values = values[slicer]
         return values._format_native_types(**kwargs)
 
-    def _format_native_types(self, na_rep="", quoting=None, **kwargs):
+    def _format_native_types(self, *, na_rep="", quoting=None, **kwargs):
         """
         Actually format specific types of the index.
         """
@@ -2714,13 +2734,18 @@ class Index(IndexOpsMixin, PandasObject):
         DataFrame.fillna : Fill NaN values of a DataFrame.
         Series.fillna : Fill NaN Values of a Series.
         """
+
         value = self._require_scalar(value)
         if self.hasnans:
             result = self.putmask(self._isnan, value)
             if downcast is None:
                 # no need to care metadata other than name
-                # because it can't have freq if
+                # because it can't have freq if it has NaTs
                 return Index._with_infer(result, name=self.name)
+            raise NotImplementedError(
+                f"{type(self).__name__}.fillna does not support 'downcast' "
+                "argument values other than 'None'."
+            )
         return self._view()
 
     def dropna(self: _IndexT, how: str_t = "any") -> _IndexT:
@@ -2950,7 +2975,7 @@ class Index(IndexOpsMixin, PandasObject):
         case make a shallow copy of self.
         """
         name = get_op_result_name(self, other)
-        if self.name != name:
+        if self.name is not name:
             return self.rename(name)
         return self
 
@@ -4915,7 +4940,8 @@ class Index(IndexOpsMixin, PandasObject):
         """
         getitem = self._data.__getitem__
 
-        if is_scalar(key):
+        if is_integer(key) or is_float(key):
+            # GH#44051 exclude bool, which would return a 2d ndarray
             key = com.cast_scalar_indexer(key, warn_float=True)
             return getitem(key)
 
@@ -5971,6 +5997,15 @@ class Index(IndexOpsMixin, PandasObject):
             # empty
             dtype = self.dtype
 
+        # e.g. if we are floating and new_values is all ints, then we
+        #  don't want to cast back to floating.  But if we are UInt64
+        #  and new_values is all ints, we want to try.
+        same_dtype = lib.infer_dtype(new_values, skipna=False) == self.inferred_type
+        if same_dtype:
+            new_values = maybe_cast_pointwise_result(
+                new_values, self.dtype, same_dtype=same_dtype
+            )
+
         if self._is_backward_compat_public_numeric_index and is_numeric_dtype(
             new_values.dtype
         ):
@@ -6433,7 +6468,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Make new Index inserting new item at location.
 
-        Follows Python list.append semantics for negative values.
+        Follows Python numpy.insert semantics for negative values.
 
         Parameters
         ----------
@@ -6476,6 +6511,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         else:
             new_values = np.insert(arr, loc, None)
+            loc = loc if loc >= 0 else loc - 1
             new_values[loc] = item
 
         # Use self._constructor instead of Index to retain NumericIndex GH#43921
@@ -6681,8 +6717,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        **all**
-
         True, because nonzero integers are considered True.
 
         >>> pd.Index([1, 2, 3]).all()
@@ -6691,18 +6725,6 @@ class Index(IndexOpsMixin, PandasObject):
         False, because ``0`` is considered False.
 
         >>> pd.Index([0, 1, 2]).all()
-        False
-
-        **any**
-
-        True, because ``1`` is considered True.
-
-        >>> pd.Index([0, 0, 1]).any()
-        True
-
-        False, because ``0`` is considered False.
-
-        >>> pd.Index([0, 0, 0]).any()
         False
         """
         nv.validate_all(args, kwargs)
@@ -7023,7 +7045,7 @@ def _maybe_cast_data_without_dtype(
             "In a future version, the Index constructor will not infer numeric "
             "dtypes when passed object-dtype sequences (matching Series behavior)",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=3,
         )
     if result.dtype.kind in ["b", "c"]:
         return subarr

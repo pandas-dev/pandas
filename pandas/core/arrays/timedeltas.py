@@ -426,7 +426,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     @dtl.ravel_compat
     def _format_native_types(
-        self, na_rep="NaT", date_format=None, **kwargs
+        self, *, na_rep="NaT", date_format=None, **kwargs
     ) -> np.ndarray:
         from pandas.io.formats.format import get_format_timedelta64
 
@@ -651,8 +651,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
             # at this point we should only have numeric scalars; anything
             #  else will raise
-            result = self.asi8 // other
-            np.putmask(result, self._isnan, iNaT)
+            result = self._ndarray // other
             freq = None
             if self.freq is not None:
                 # Note: freq gets division, not floor-division
@@ -661,7 +660,7 @@ class TimedeltaArray(dtl.TimelikeOps):
                     # e.g. if self.freq is Nano(1) then dividing by 2
                     #  rounds down to zero
                     freq = None
-            return type(self)(result.view("m8[ns]"), freq=freq)
+            return type(self)(result, freq=freq)
 
         if not hasattr(other, "dtype"):
             # list, tuple
@@ -801,7 +800,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         return type(self)(-self._ndarray)
 
     def __pos__(self) -> TimedeltaArray:
-        return type(self)(self._ndarray, freq=self.freq)
+        return type(self)(self._ndarray.copy(), freq=self.freq)
 
     def __abs__(self) -> TimedeltaArray:
         # Note: freq is not preserved

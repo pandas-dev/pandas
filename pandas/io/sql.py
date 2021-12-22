@@ -28,6 +28,7 @@ import pandas._libs.lib as lib
 from pandas._typing import DtypeArg
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
@@ -43,6 +44,7 @@ from pandas.core.api import (
     Series,
 )
 from pandas.core.base import PandasObject
+import pandas.core.common as com
 from pandas.core.tools.datetimes import to_datetime
 from pandas.util.version import Version
 
@@ -190,12 +192,12 @@ def execute(sql, con, params=None):
 def read_sql_table(
     table_name,
     con,
-    schema=None,
-    index_col=None,
-    coerce_float=True,
-    parse_dates=None,
-    columns=None,
-    chunksize: None = None,
+    schema=...,
+    index_col=...,
+    coerce_float=...,
+    parse_dates=...,
+    columns=...,
+    chunksize: None = ...,
 ) -> DataFrame:
     ...
 
@@ -204,12 +206,12 @@ def read_sql_table(
 def read_sql_table(
     table_name,
     con,
-    schema=None,
-    index_col=None,
-    coerce_float=True,
-    parse_dates=None,
-    columns=None,
-    chunksize: int = 1,
+    schema=...,
+    index_col=...,
+    coerce_float=...,
+    parse_dates=...,
+    columns=...,
+    chunksize: int = ...,
 ) -> Iterator[DataFrame]:
     ...
 
@@ -302,12 +304,12 @@ def read_sql_table(
 def read_sql_query(
     sql,
     con,
-    index_col=None,
-    coerce_float=True,
-    params=None,
-    parse_dates=None,
-    chunksize: None = None,
-    dtype: DtypeArg | None = None,
+    index_col=...,
+    coerce_float=...,
+    params=...,
+    parse_dates=...,
+    chunksize: None = ...,
+    dtype: DtypeArg | None = ...,
 ) -> DataFrame:
     ...
 
@@ -316,12 +318,12 @@ def read_sql_query(
 def read_sql_query(
     sql,
     con,
-    index_col=None,
-    coerce_float=True,
-    params=None,
-    parse_dates=None,
-    chunksize: int = 1,
-    dtype: DtypeArg | None = None,
+    index_col=...,
+    coerce_float=...,
+    params=...,
+    parse_dates=...,
+    chunksize: int = ...,
+    dtype: DtypeArg | None = ...,
 ) -> Iterator[DataFrame]:
     ...
 
@@ -375,7 +377,7 @@ def read_sql_query(
         rows to include in each chunk.
     dtype : Type name or dict of columns
         Data type for data or columns. E.g. np.float64 or
-        {‘a’: np.float64, ‘b’: np.int32, ‘c’: ‘Int64’}
+        {‘a’: np.float64, ‘b’: np.int32, ‘c’: ‘Int64’}.
 
         .. versionadded:: 1.3.0
 
@@ -409,12 +411,12 @@ def read_sql_query(
 def read_sql(
     sql,
     con,
-    index_col=None,
-    coerce_float=True,
-    params=None,
-    parse_dates=None,
-    columns=None,
-    chunksize: None = None,
+    index_col=...,
+    coerce_float=...,
+    params=...,
+    parse_dates=...,
+    columns=...,
+    chunksize: None = ...,
 ) -> DataFrame:
     ...
 
@@ -423,12 +425,12 @@ def read_sql(
 def read_sql(
     sql,
     con,
-    index_col=None,
-    coerce_float=True,
-    params=None,
-    parse_dates=None,
-    columns=None,
-    chunksize: int = 1,
+    index_col=...,
+    coerce_float=...,
+    params=...,
+    parse_dates=...,
+    columns=...,
+    chunksize: int = ...,
 ) -> Iterator[DataFrame]:
     ...
 
@@ -1009,10 +1011,7 @@ class SQLTable(PandasObject):
             ):
                 return ["index"]
             else:
-                return [
-                    l if l is not None else f"level_{i}"
-                    for i, l in enumerate(self.frame.index.names)
-                ]
+                return com.fill_missing_names(self.frame.index.names)
 
         # for reading: index=(list of) string to specify column to set as index
         elif isinstance(index, str):
@@ -1159,7 +1158,7 @@ class SQLTable(PandasObject):
                 "the 'timedelta' type is not supported, and will be "
                 "written as integer values (ns frequency) to the database.",
                 UserWarning,
-                stacklevel=8,
+                stacklevel=find_stack_level(),
             )
             return BigInteger
         elif col_type == "floating":
@@ -1817,12 +1816,6 @@ def _get_valid_sqlite_name(name):
     return '"' + uname.replace('"', '""') + '"'
 
 
-_SAFE_NAMES_WARNING = (
-    "The spaces in these column names will not be changed. "
-    "In pandas versions < 0.14, spaces were converted to underscores."
-)
-
-
 class SQLiteTable(SQLTable):
     """
     Patch the SQLTable for fallback support.
@@ -1882,12 +1875,6 @@ class SQLiteTable(SQLTable):
         statement while the rest will be CREATE INDEX statements.
         """
         column_names_and_types = self._get_column_names_and_types(self._sql_type_name)
-
-        pat = re.compile(r"\s+")
-        column_names = [col_name for col_name, _, _ in column_names_and_types]
-        if any(map(pat.search, column_names)):
-            warnings.warn(_SAFE_NAMES_WARNING, stacklevel=6)
-
         escape = _get_valid_sqlite_name
 
         create_tbl_stmts = [
@@ -1948,7 +1935,7 @@ class SQLiteTable(SQLTable):
                 "the 'timedelta' type is not supported, and will be "
                 "written as integer values (ns frequency) to the database.",
                 UserWarning,
-                stacklevel=8,
+                stacklevel=find_stack_level(),
             )
             col_type = "integer"
 
@@ -2169,9 +2156,6 @@ class SQLiteDatabase(PandasSQL):
         table.insert(chunksize, method)
 
     def has_table(self, name: str, schema: str | None = None):
-        # TODO(wesm): unused?
-        # escape = _get_valid_sqlite_name
-        # esc_name = escape(name)
 
         wld = "?"
         query = f"SELECT name FROM sqlite_master WHERE type='table' AND name={wld};"
