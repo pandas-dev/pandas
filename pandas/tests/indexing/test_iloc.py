@@ -269,8 +269,7 @@ class TestiLocBaseIndependent:
         # GH 21982
 
         obj = DataFrame(np.arange(100).reshape(10, 10))
-        if frame_or_series is Series:
-            obj = obj[0]
+        obj = tm.get_obj(obj, frame_or_series)
 
         with pytest.raises(TypeError, match="Cannot index by location index"):
             obj.iloc["a"]

@@ -256,8 +256,7 @@ class TestMultiLevel:
         self, multiindex_year_month_day_dataframe_random_data, frame_or_series
     ):
         ymd = multiindex_year_month_day_dataframe_random_data
-        if frame_or_series is Series:
-            ymd = ymd["A"]
+        ymd = tm.get_obj(ymd, frame_or_series)
 
         with tm.assert_produces_warning(FutureWarning):
             result = ymd.sum(level=["year", "month"])

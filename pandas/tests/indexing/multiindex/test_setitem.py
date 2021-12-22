@@ -387,8 +387,7 @@ class TestMultiIndexSetItem:
         obj = DataFrame(
             np.random.randn(len(index), 4), index=index, columns=["a", "b", "c", "d"]
         )
-        if frame_or_series is not DataFrame:
-            obj = obj["a"]
+        obj = tm.get_obj(obj, frame_or_series)
 
         res = obj.loc[1:2]
         exp = obj.reindex(obj.index[2:])

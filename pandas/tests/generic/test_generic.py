@@ -382,8 +382,7 @@ class TestNDFrame:
     def test_numpy_transpose(self, frame_or_series):
 
         obj = tm.makeTimeDataFrame()
-        if frame_or_series is Series:
-            obj = obj["A"]
+        obj = tm.get_obj(obj, frame_or_series)
 
         if frame_or_series is Series:
             # 1D -> np.transpose is no-op
@@ -417,8 +416,7 @@ class TestNDFrame:
         indices = [-3, 2, 0, 1]
 
         obj = tm.makeTimeDataFrame()
-        if frame_or_series is Series:
-            obj = obj["A"]
+        obj = tm.get_obj(obj, frame_or_series)
 
         msg = r"take\(\) got an unexpected keyword argument 'foo'"
         with pytest.raises(TypeError, match=msg):
@@ -436,8 +434,7 @@ class TestNDFrame:
     def test_depr_take_kwarg_is_copy(self, is_copy, frame_or_series):
         # GH 27357
         obj = DataFrame({"A": [1, 2, 3]})
-        if frame_or_series is Series:
-            obj = obj["A"]
+        obj = tm.get_obj(obj, frame_or_series)
 
         msg = (
             "is_copy is deprecated and will be removed in a future version. "
@@ -485,8 +482,7 @@ class TestNDFrame:
     def test_slice_shift_deprecated(self, frame_or_series):
         # GH 37601
         obj = DataFrame({"A": [1, 2, 3, 4]})
-        if frame_or_series is DataFrame:
-            obj = obj["A"]
+        obj = tm.get_obj(obj, frame_or_series)
 
         with tm.assert_produces_warning(FutureWarning):
             obj.slice_shift()

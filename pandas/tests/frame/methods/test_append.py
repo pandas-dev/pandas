@@ -15,8 +15,7 @@ import pandas._testing as tm
 class TestDataFrameAppend:
     def test_append_multiindex(self, multiindex_dataframe_random_data, frame_or_series):
         obj = multiindex_dataframe_random_data
-        if frame_or_series is Series:
-            obj = obj["A"]
+        obj = tm.get_obj(obj, frame_or_series)
 
         a = obj[:5]
         b = obj[5:]

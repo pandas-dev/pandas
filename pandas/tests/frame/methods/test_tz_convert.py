@@ -16,13 +16,11 @@ class TestTZConvert:
         rng = date_range("1/1/2011", periods=200, freq="D", tz="US/Eastern")
 
         obj = DataFrame({"a": 1}, index=rng)
-        if frame_or_series is not DataFrame:
-            obj = obj["a"]
+        obj = tm.get_obj(obj, frame_or_series)
 
         result = obj.tz_convert("Europe/Berlin")
         expected = DataFrame({"a": 1}, rng.tz_convert("Europe/Berlin"))
-        if frame_or_series is not DataFrame:
-            expected = expected["a"]
+        expected = tm.get_obj(expected, frame_or_series)
 
         assert result.index.tz.zone == "Europe/Berlin"
         tm.assert_equal(result, expected)
