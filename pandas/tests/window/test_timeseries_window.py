@@ -648,7 +648,8 @@ class TestRollingTS:
         # GH 15130
         # we don't need to validate monotonicity when grouping
 
-        # GH 43909 we should raise an error here to match behaviour of non-groupby rolling.
+        # GH 43909 we should raise an error here to match
+        # behaviour of non-groupby rolling.
 
         data = [
             ["David", "1/1/2015", 100],
@@ -678,7 +679,7 @@ class TestRollingTS:
     def test_non_monotonic_raises(self):
         # GH 13966 (similar to #15130, closed by #15175)
 
-        # superceded by 43909
+        # superseded by 43909
 
         dates = date_range(start="2016-01-01 09:30:00", periods=20, freq="s")
         df = DataFrame(
