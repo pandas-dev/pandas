@@ -757,13 +757,10 @@ def nanmedian(values, *, axis=None, skipna=True, mask=None):
         if mask is not None:
             values[mask] = np.nan
 
-    if axis is None:
-        values = values.ravel("K")
-
     notempty = values.size
 
     # an array from a frame
-    if values.ndim > 1:
+    if values.ndim > 1 and axis is not None:
 
         # there's a non-empty array to apply over otherwise numpy raises
         if notempty:
