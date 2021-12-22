@@ -465,7 +465,7 @@ class TestDataFrameIndexingWhere:
         df[df.abs() >= 5] = np.nan
         tm.assert_frame_equal(df, expected)
 
-    def test_where_axis(self):
+    def test_where_axis(self, using_array_manager):
         # GH 9736
         df = DataFrame(np.random.randn(2, 2))
         mask = DataFrame([[False, False], [False, False]])
@@ -503,8 +503,10 @@ class TestDataFrameIndexingWhere:
         assert return_value is None
         tm.assert_frame_equal(result, expected)
 
+        warn = FutureWarning if using_array_manager else None
         expected = DataFrame([[0, np.nan], [0, np.nan]])
-        result = df.where(mask, s, axis="columns")
+        with tm.assert_produces_warning(warn, match="Downcasting integer-dtype"):
+            result = df.where(mask, s, axis="columns")
         tm.assert_frame_equal(result, expected)
 
         expected = DataFrame(
