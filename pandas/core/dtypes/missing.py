@@ -640,6 +640,9 @@ def is_valid_na_for_dtype(obj, dtype: DtypeObj) -> bool:
         # Numeric
         return obj is not NaT and not isinstance(obj, (np.datetime64, np.timedelta64))
 
+    elif dtype == np.dtype(str):
+        return not isinstance(obj, (np.datetime64, np.timedelta64, Decimal, float))
+
     elif dtype == np.dtype("object"):
         # This is needed for Categorical, but is kind of weird
         return True
