@@ -1,6 +1,8 @@
 """
 missing types & inference
 """
+from __future__ import annotations
+
 from decimal import Decimal
 from functools import partial
 
@@ -17,6 +19,7 @@ from pandas._libs.tslibs import (
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
+    npt,
 )
 
 from pandas.core.dtypes.common import (
@@ -259,18 +262,22 @@ def _isna_array(values: ArrayLike, inf_as_na: bool = False):
     return result
 
 
-def _isna_string_dtype(values: np.ndarray, inf_as_na: bool) -> np.ndarray:
+def _isna_string_dtype(values: np.ndarray, inf_as_na: bool) -> npt.NDArray[np.bool_]:
     # Working around NumPy ticket 1542
     dtype = values.dtype
-    shape = values.shape
 
     if dtype.kind in ("S", "U"):
         result = np.zeros(values.shape, dtype=bool)
     else:
-        result = np.empty(shape, dtype=bool)
-        vec = libmissing.isnaobj(values.ravel(), inf_as_na=inf_as_na)
 
-        result[...] = vec.reshape(shape)
+        if values.ndim == 1:
+            result = libmissing.isnaobj(values, inf_as_na=inf_as_na)
+        elif values.ndim == 2:
+            result = libmissing.isnaobj2d(values, inf_as_na=inf_as_na)
+        else:
+            # 0-D, reached via e.g. mask_missing
+            result = libmissing.isnaobj(values.ravel(), inf_as_na=inf_as_na)
+            result = result.reshape(values.shape)
 
     return result
 
