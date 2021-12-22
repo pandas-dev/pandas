@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
+    Hashable,
     Iterable,
+    Literal,
     MutableMapping,
+    Type,
     overload,
 )
 
-from pandas._typing import Scalar
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.common import (
@@ -16,10 +19,15 @@ from pandas.core.dtypes.common import (
     is_list_like,
 )
 
-_writers: MutableMapping[str, str] = {}
+if TYPE_CHECKING:
+    from pandas.io.excel._base import ExcelWriter
+
+    ExcelWriter_t = Type[ExcelWriter]
+
+_writers: MutableMapping[str, ExcelWriter_t] = {}
 
 
-def register_writer(klass):
+def register_writer(klass: ExcelWriter_t) -> None:
     """
     Add engine to the excel writer registry.io.excel.
 
@@ -32,6 +40,8 @@ def register_writer(klass):
     if not callable(klass):
         raise ValueError("Can only register callables as engines")
     engine_name = klass.engine
+    # for mypy
+    assert isinstance(engine_name, str)
     _writers[engine_name] = klass
 
 
@@ -77,7 +87,7 @@ def get_default_engine(ext: str, mode: str = "reader") -> str:
         return _default_readers[ext]
 
 
-def get_writer(engine_name: str):
+def get_writer(engine_name: str) -> ExcelWriter_t:
     try:
         return _writers[engine_name]
     except KeyError as err:
@@ -160,7 +170,9 @@ def maybe_convert_usecols(usecols: list[str]) -> list[str]:
 
 
 @overload
-def maybe_convert_usecols(usecols: Callable) -> Callable:
+def maybe_convert_usecols(
+    usecols: Callable[[Hashable], object]
+) -> Callable[[Hashable], object]:
     ...
 
 
@@ -170,8 +182,8 @@ def maybe_convert_usecols(usecols: None) -> None:
 
 
 def maybe_convert_usecols(
-    usecols: str | list[int] | list[str] | Callable | None,
-) -> None | list[int] | list[str] | Callable:
+    usecols: str | list[int] | list[str] | Callable[[Hashable], object] | None,
+) -> None | list[int] | list[str] | Callable[[Hashable], object]:
     """
     Convert `usecols` into a compatible format for parsing in `parsers.py`.
 
@@ -200,7 +212,17 @@ def maybe_convert_usecols(
     return usecols
 
 
-def validate_freeze_panes(freeze_panes):
+@overload
+def validate_freeze_panes(freeze_panes: tuple[int, int]) -> Literal[True]:
+    ...
+
+
+@overload
+def validate_freeze_panes(freeze_panes: None) -> Literal[False]:
+    ...
+
+
+def validate_freeze_panes(freeze_panes: tuple[int, int] | None) -> bool:
     if freeze_panes is not None:
         if len(freeze_panes) == 2 and all(
             isinstance(item, int) for item in freeze_panes
@@ -218,8 +240,8 @@ def validate_freeze_panes(freeze_panes):
 
 
 def fill_mi_header(
-    row: list[Scalar], control_row: list[bool]
-) -> tuple[list[Scalar], list[bool]]:
+    row: list[Hashable], control_row: list[bool]
+) -> tuple[list[Hashable], list[bool]]:
     """
     Forward fill blank entries in row but only inside the same parent index.
 
@@ -253,8 +275,8 @@ def fill_mi_header(
 
 
 def pop_header_name(
-    row: list[Scalar], index_col: int | list[int]
-) -> tuple[Scalar | None, list[Scalar]]:
+    row: list[Hashable], index_col: int | list[int]
+) -> tuple[Hashable | None, list[Hashable]]:
     """
     Pop the header name for MultiIndex parsing.
 
