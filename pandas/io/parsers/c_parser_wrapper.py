@@ -232,7 +232,7 @@ class CParserWrapper(ParserBase):
         Sequence[Hashable] | MultiIndex,
         Mapping[Hashable, ArrayLike],
     ]:
-        index: Index | MultiIndex | Sequence[Hashable] | None
+        index: Index | MultiIndex | None
         column_names: Sequence[Hashable] | MultiIndex
         try:
             if self.low_memory:
@@ -300,6 +300,11 @@ class CParserWrapper(ParserBase):
 
             column_names, date_data = self._do_date_conversions(names, data)
 
+            # maybe create a mi on the columns
+            column_names = self._maybe_make_multi_index_columns(
+                column_names, self.col_names
+            )
+
         else:
             # rename dict keys
             data_tups = sorted(data.items())
@@ -323,11 +328,6 @@ class CParserWrapper(ParserBase):
 
             names, date_data = self._do_date_conversions(names, data)
             index, column_names = self._make_index(date_data, alldata, names)
-
-        # maybe create a mi on the columns
-        column_names = self._maybe_make_multi_index_columns(
-            column_names, self.col_names
-        )
 
         return index, column_names, date_data
 
