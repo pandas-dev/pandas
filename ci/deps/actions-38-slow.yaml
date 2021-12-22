@@ -34,3 +34,4 @@ dependencies:
   - xlsxwriter
   - xlwt
   - numba
+  - zstandard

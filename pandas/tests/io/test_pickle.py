@@ -35,6 +35,7 @@ from pandas.compat import (
     get_lzma_file,
     is_platform_little_endian,
 )
+from pandas.compat._optional import import_optional_dependency
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -45,6 +46,7 @@ from pandas import (
 )
 import pandas._testing as tm
 
+import pandas.io.common as icom
 from pandas.tseries.offsets import (
     Day,
     MonthEnd,
@@ -286,12 +288,8 @@ def get_random_path():
 
 class TestCompression:
 
-    _compression_to_extension = {
-        None: ".none",
-        "gzip": ".gz",
-        "bz2": ".bz2",
-        "zip": ".zip",
-        "xz": ".xz",
+    _extension_to_compression = {
+        ext: compression for compression, ext in icom._compression_to_extension.items()
     }
 
     def compress_file(self, src_path, dest_path, compression):
@@ -308,6 +306,8 @@ class TestCompression:
                 f.write(src_path, os.path.basename(src_path))
         elif compression == "xz":
             f = get_lzma_file()(dest_path, "w")
+        elif compression == "zstd":
+            f = import_optional_dependency("zstandard").open(dest_path, "wb")
         else:
             msg = f"Unrecognized compression type: {compression}"
             raise ValueError(msg)
@@ -344,16 +344,11 @@ class TestCompression:
                 df = tm.makeDataFrame()
                 df.to_pickle(path, compression=compression)
 
-    @pytest.mark.parametrize("ext", ["", ".gz", ".bz2", ".no_compress", ".xz"])
-    def test_write_infer(self, ext, get_random_path):
+    def test_write_infer(self, compression_ext, get_random_path):
         base = get_random_path
-        path1 = base + ext
+        path1 = base + compression_ext
         path2 = base + ".raw"
-        compression = None
-        for c in self._compression_to_extension:
-            if self._compression_to_extension[c] == ext:
-                compression = c
-                break
+        compression = self._extension_to_compression.get(compression_ext.lower())
 
         with tm.ensure_clean(path1) as p1, tm.ensure_clean(path2) as p2:
             df = tm.makeDataFrame()
@@ -390,16 +385,11 @@ class TestCompression:
 
             tm.assert_frame_equal(df, df2)
 
-    @pytest.mark.parametrize("ext", ["", ".gz", ".bz2", ".zip", ".no_compress", ".xz"])
-    def test_read_infer(self, ext, get_random_path):
+    def test_read_infer(self, compression_ext, get_random_path):
         base = get_random_path
         path1 = base + ".raw"
-        path2 = base + ext
-        compression = None
-        for c in self._compression_to_extension:
-            if self._compression_to_extension[c] == ext:
-                compression = c
-                break
+        path2 = base + compression_ext
+        compression = self._extension_to_compression.get(compression_ext.lower())
 
         with tm.ensure_clean(path1) as p1, tm.ensure_clean(path2) as p2:
             df = tm.makeDataFrame()

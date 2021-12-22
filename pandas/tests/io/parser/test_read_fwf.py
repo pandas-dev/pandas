@@ -22,6 +22,7 @@ from pandas import (
 )
 import pandas._testing as tm
 
+import pandas.io.common as icom
 from pandas.io.parsers import (
     read_csv,
     read_fwf,
@@ -655,7 +656,7 @@ def test_fwf_compression(compression_only, infer):
     3333333333""".strip()
 
     compression = compression_only
-    extension = "gz" if compression == "gzip" else compression
+    extension = icom._compression_to_extension[compression]
 
     kwargs = {"widths": [5, 5], "names": ["one", "two"]}
     expected = read_fwf(StringIO(data), **kwargs)

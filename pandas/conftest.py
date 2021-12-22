@@ -267,7 +267,16 @@ def other_closed(request):
     return request.param
 
 
-@pytest.fixture(params=[None, "gzip", "bz2", "zip", "xz"])
+@pytest.fixture(
+    params=[
+        None,
+        "gzip",
+        "bz2",
+        "zip",
+        "xz",
+        pytest.param("zstd", marks=td.skip_if_no("zstandard")),
+    ]
+)
 def compression(request):
     """
     Fixture for trying common compression types in compression tests.
@@ -275,7 +284,15 @@ def compression(request):
     return request.param
 
 
-@pytest.fixture(params=["gzip", "bz2", "zip", "xz"])
+@pytest.fixture(
+    params=[
+        "gzip",
+        "bz2",
+        "zip",
+        "xz",
+        pytest.param("zstd", marks=td.skip_if_no("zstandard")),
+    ]
+)
 def compression_only(request):
     """
     Fixture for trying common compression types in compression tests excluding

@@ -7,6 +7,8 @@ import pandas.util._test_decorators as td
 import pandas as pd
 import pandas._testing as tm
 
+import pandas.io.common as icom
+
 
 def test_compression_roundtrip(compression):
     df = pd.DataFrame(
@@ -97,13 +99,7 @@ def test_to_json_compression(compression_only, read_infer, to_infer):
 
     # We'll complete file extension subsequently.
     filename = "test."
-
-    if compression == "gzip":
-        filename += "gz"
-    else:
-        # xz --> .xz
-        # bz2 --> .bz2
-        filename += compression
+    filename += icom._compression_to_extension[compression]
 
     df = pd.DataFrame({"A": [1]})
 

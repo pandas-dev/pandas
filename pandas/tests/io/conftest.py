@@ -10,6 +10,7 @@ from pandas.compat import (
     is_platform_mac,
     is_platform_windows,
 )
+import pandas.util._test_decorators as td
 
 import pandas._testing as tm
 
@@ -184,3 +185,29 @@ def s3_resource(s3_base, tips_file, jsonl_file, feather_file):
     while cli.list_buckets()["Buckets"] and timeout > 0:
         time.sleep(0.1)
         timeout -= 0.1
+
+
+_compression_formats_params = [
+    (".no_compress", None),
+    ("", None),
+    (".gz", "gzip"),
+    (".GZ", "gzip"),
+    (".bz2", "bz2"),
+    (".BZ2", "bz2"),
+    (".zip", "zip"),
+    (".ZIP", "zip"),
+    (".xz", "xz"),
+    (".XZ", "xz"),
+    pytest.param((".zst", "zstd"), marks=td.skip_if_no("zstandard")),
+    pytest.param((".ZST", "zstd"), marks=td.skip_if_no("zstandard")),
+]
+
+
+@pytest.fixture(params=_compression_formats_params[1:])
+def compression_format(request):
+    return request.param
+
+
+@pytest.fixture(params=_compression_formats_params)
+def compression_ext(request):
+    return request.param[0]

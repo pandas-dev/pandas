@@ -21,6 +21,7 @@ from pandas.core.frame import (
 )
 from pandas.core.indexes.api import ensure_index
 
+import pandas.io.common as icom
 from pandas.io.parsers import read_csv
 from pandas.io.stata import (
     CategoricalConversionWarning,
@@ -1881,7 +1882,10 @@ def test_backward_compat(version, datapath):
 def test_compression(compression, version, use_dict, infer):
     file_name = "dta_inferred_compression.dta"
     if compression:
-        file_ext = "gz" if compression == "gzip" and not use_dict else compression
+        if use_dict:
+            file_ext = compression
+        else:
+            file_ext = icom._compression_to_extension[compression]
         file_name += f".{file_ext}"
     compression_arg = compression
     if infer:
@@ -1901,6 +1905,10 @@ def test_compression(compression, version, use_dict, infer):
                 fp = io.BytesIO(comp.read(comp.filelist[0]))
         elif compression == "bz2":
             with bz2.open(path, "rb") as comp:
+                fp = io.BytesIO(comp.read())
+        elif compression == "zstd":
+            zstd = pytest.importorskip("zstandard")
+            with zstd.open(path, "rb") as comp:
                 fp = io.BytesIO(comp.read())
         elif compression == "xz":
             lzma = pytest.importorskip("lzma")
@@ -2032,7 +2040,7 @@ def test_compression_roundtrip(compression):
 def test_stata_compression(compression_only, read_infer, to_infer):
     compression = compression_only
 
-    ext = "gz" if compression == "gzip" else compression
+    ext = icom._compression_to_extension[compression]
     filename = f"test.{ext}"
 
     df = DataFrame(

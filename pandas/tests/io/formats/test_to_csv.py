@@ -14,6 +14,8 @@ from pandas import (
 )
 import pandas._testing as tm
 
+import pandas.io.common as icom
+
 
 class TestToCSV:
     def test_to_csv_with_single_column(self):
@@ -531,13 +533,7 @@ z
 
         # We'll complete file extension subsequently.
         filename = "test."
-
-        if compression == "gzip":
-            filename += "gz"
-        else:
-            # xz --> .xz
-            # bz2 --> .bz2
-            filename += compression
+        filename += icom._compression_to_extension[compression]
 
         df = DataFrame({"A": [1]})
 
@@ -554,7 +550,11 @@ z
         method = compression_only
         df = DataFrame({"ABC": [1]})
         filename = "to_csv_compress_as_dict."
-        filename += "gz" if method == "gzip" else method
+        extension = {
+            "gzip": "gz",
+            "zstd": "zst",
+        }.get(method, method)
+        filename += extension
         with tm.ensure_clean(filename) as path:
             df.to_csv(path, compression={"method": method})
             read_df = pd.read_csv(path, index_col=0)

@@ -21,7 +21,7 @@ from pandas import (
     MultiIndex,
     get_option,
 )
-from pandas.core import generic
+from pandas.core.shared_docs import _shared_docs
 from pandas.util.version import Version
 
 from pandas.io.common import (
@@ -351,7 +351,7 @@ class FastParquetImpl(BaseImpl):
         return result
 
 
-@doc(storage_options=generic._shared_docs["storage_options"])
+@doc(storage_options=_shared_docs["storage_options"])
 def to_parquet(
     df: DataFrame,
     path: FilePath | WriteBuffer[bytes] | None = None,
@@ -434,7 +434,7 @@ def to_parquet(
         return None
 
 
-@doc(storage_options=generic._shared_docs["storage_options"])
+@doc(storage_options=_shared_docs["storage_options"])
 def read_parquet(
     path,
     engine: str = "auto",

@@ -15,6 +15,7 @@ from pandas._typing import (
     ReadPickleBuffer,
 )
 from pandas.compat import get_lzma_file
+from pandas.compat._optional import import_optional_dependency
 
 import pandas as pd
 from pandas._testing._random import rands
@@ -364,7 +365,7 @@ def write_to_compressed(compression, path, data, dest="test"):
 
     Parameters
     ----------
-    compression : {'gzip', 'bz2', 'zip', 'xz'}
+    compression : {'gzip', 'bz2', 'zip', 'xz', 'zstd'}
         The compression type to use.
     path : str
         The file path to write the data.
@@ -391,6 +392,8 @@ def write_to_compressed(compression, path, data, dest="test"):
         compress_method = gzip.GzipFile
     elif compression == "bz2":
         compress_method = bz2.BZ2File
+    elif compression == "zstd":
+        compress_method = import_optional_dependency("zstandard").open
     elif compression == "xz":
         compress_method = get_lzma_file()
     else:
