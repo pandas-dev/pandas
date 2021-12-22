@@ -16,6 +16,7 @@ import pandas.util._test_decorators as td
 from pandas import DataFrame
 import pandas._testing as tm
 
+import pandas.io.common as icom
 from pandas.io.feather_format import read_feather
 from pandas.io.parsers import read_csv
 
@@ -23,7 +24,7 @@ from pandas.io.parsers import read_csv
 @pytest.mark.network
 @pytest.mark.parametrize(
     "compress_type, extension",
-    [("gzip", ".gz"), ("bz2", ".bz2"), ("zip", ".zip"), ("xz", ".xz")],
+    icom._compression_to_extension.items(),
 )
 @pytest.mark.parametrize("mode", ["explicit", "infer"])
 @pytest.mark.parametrize("engine", ["python", "c"])
