@@ -542,9 +542,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
             try:
                 new_cats = new_cats.astype(dtype=dtype, copy=copy)
-                fill_value = lib.item_from_zerodim(
-                    np.array(self.categories._na_value).astype(dtype)
-                )
+                try:
+                    fill_value = lib.item_from_zerodim(
+                        np.array(self.categories._na_value).astype(dtype)
+                    )
+                except ValueError:
+                    fill_value = lib.item_from_zerodim(np.array(np.nan).astype(dtype))
             except (
                 TypeError,  # downstream error msg for CategoricalIndex is misleading
                 ValueError,
