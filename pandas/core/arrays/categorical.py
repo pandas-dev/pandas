@@ -368,7 +368,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         categories=None,
         ordered=None,
         dtype: Dtype | None = None,
-        fastpath=False,
+        fastpath: bool = False,
         copy: bool = True,
     ):
 
