@@ -8,33 +8,15 @@ jobs:
     vmImage: ${{ parameters.vmImage }}
   strategy:
     matrix:
-      py38_np18_1:
+      py38_windows:
         ENV_FILE: ci/deps/azure-windows-38.yaml
         CONDA_PY: "38"
         PATTERN: "not slow"
-        PYTEST_WORKERS: 2  # GH-42236
-        PYTEST_TARGET: "pandas/tests/[a-h]*"
 
-      py38_np18_2:
-        ENV_FILE: ci/deps/azure-windows-38.yaml
-        CONDA_PY: "38"
-        PATTERN: "not slow"
-        PYTEST_WORKERS: 2  # GH-42236
-        PYTEST_TARGET: "pandas/tests/[i-z]*"
-
-      py39_1:
+      py39_windows:
         ENV_FILE: ci/deps/azure-windows-39.yaml
         CONDA_PY: "39"
         PATTERN: "not slow and not high_memory"
-        PYTEST_WORKERS: 2  # GH-42236
-        PYTEST_TARGET: "pandas/tests/[a-h]*"
-
-      py39_2:
-        ENV_FILE: ci/deps/azure-windows-39.yaml
-        CONDA_PY: "39"
-        PATTERN: "not slow and not high_memory"
-        PYTEST_WORKERS: 2  # GH-42236
-        PYTEST_TARGET: "pandas/tests/[i-z]*"
 
   steps:
     - powershell: |
