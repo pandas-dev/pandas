@@ -43,7 +43,10 @@ by defining the staticmethods ``assert_frame_equal`` and
 """
 from pandas.tests.extension.base.casting import BaseCastingTests  # noqa
 from pandas.tests.extension.base.constructors import BaseConstructorsTests  # noqa
-from pandas.tests.extension.base.dim2 import Dim2CompatTests  # noqa
+from pandas.tests.extension.base.dim2 import (  # noqa
+    Dim2CompatTests,
+    NDArrayBacked2DTests,
+)
 from pandas.tests.extension.base.dtype import BaseDtypeTests  # noqa
 from pandas.tests.extension.base.getitem import BaseGetitemTests  # noqa
 from pandas.tests.extension.base.groupby import BaseGroupbyTests  # noqa
