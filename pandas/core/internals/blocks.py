@@ -2100,9 +2100,17 @@ def to_native_types(
     values = ensure_wrapped_if_datetimelike(values)
 
     if isinstance(values, (DatetimeArray, TimedeltaArray)):
-        result = values._format_native_types(na_rep=na_rep, **kwargs)
-        result = result.astype(object, copy=False)
-        return result
+        if values.ndim == 1:
+            result = values._format_native_types(na_rep=na_rep, **kwargs)
+            result = result.astype(object, copy=False)
+            return result
+
+        # GH#21734 Process every column separately, they might have different formats
+        results_converted = []
+        for i in range(len(values)):
+            result = values[i, :]._format_native_types(na_rep=na_rep, **kwargs)
+            results_converted.append(result.astype(object, copy=False))
+        return np.vstack(results_converted)
 
     elif isinstance(values, ExtensionArray):
         mask = isna(values)

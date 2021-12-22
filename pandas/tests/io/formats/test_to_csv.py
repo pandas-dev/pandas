@@ -282,6 +282,22 @@ $1$,$2$
         df_sec_grouped = df_sec.groupby([pd.Grouper(key="A", freq="1h"), "B"])
         assert df_sec_grouped.mean().to_csv(date_format="%Y-%m-%d") == expected_ymd_sec
 
+    def test_to_csv_different_datetime_formats(self):
+        # GH#21734
+        df = DataFrame(
+            {
+                "date": pd.to_datetime("1970-01-01"),
+                "datetime": pd.date_range("1970-01-01", periods=2, freq="H"),
+            }
+        )
+        expected_rows = [
+            "date,datetime",
+            "1970-01-01,1970-01-01 00:00:00",
+            "1970-01-01,1970-01-01 01:00:00",
+        ]
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
+        assert df.to_csv(index=False) == expected
+
     def test_to_csv_date_format_in_categorical(self):
         # GH#40754
         ser = pd.Series(pd.to_datetime(["2021-03-27", pd.NaT], format="%Y-%m-%d"))
