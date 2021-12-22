@@ -108,7 +108,6 @@ from pandas.core.base import (
 )
 import pandas.core.common as com
 from pandas.core.construction import (
-    ensure_wrapped_if_datetimelike,
     extract_array,
     sanitize_array,
 )
@@ -539,14 +538,13 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         else:
             # GH8628 (PERF): astype category codes instead of astyping array
-            if is_datetime64_dtype(self.categories):
-                new_cats = ensure_wrapped_if_datetimelike(self.categories._values)
-            else:
-                new_cats = np.asarray(self.categories)
+            new_cats = self.categories._values
 
             try:
                 new_cats = new_cats.astype(dtype=dtype, copy=copy)
-                fill_value = lib.item_from_zerodim(np.array(np.nan).astype(dtype))
+                fill_value = lib.item_from_zerodim(
+                    np.array(self.categories._na_value).astype(dtype)
+                )
             except (
                 TypeError,  # downstream error msg for CategoricalIndex is misleading
                 ValueError,
