@@ -670,3 +670,20 @@ def test_float64_index_equals():
 
     result = string_index.equals(float_index)
     assert result is False
+
+
+def test_map_dtype_inference_unsigned_to_signed():
+    # GH#44609 cases where we don't retain dtype
+    idx = UInt64Index([1, 2, 3])
+    result = idx.map(lambda x: -x)
+    expected = Int64Index([-1, -2, -3])
+    tm.assert_index_equal(result, expected)
+
+
+def test_map_dtype_inference_overflows():
+    # GH#44609 case where we have to upcast
+    idx = NumericIndex(np.array([1, 2, 3], dtype=np.int8))
+    result = idx.map(lambda x: x * 1000)
+    # TODO: we could plausibly try to infer down to int16 here
+    expected = NumericIndex([1000, 2000, 3000], dtype=np.int64)
+    tm.assert_index_equal(result, expected)

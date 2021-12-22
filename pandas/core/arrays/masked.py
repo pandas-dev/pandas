@@ -12,6 +12,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import (
+    iNaT,
     lib,
     missing as libmissing,
 )
@@ -39,9 +40,11 @@ from pandas.core.dtypes.common import (
     is_bool,
     is_bool_dtype,
     is_dtype_equal,
+    is_float,
     is_float_dtype,
     is_integer_dtype,
     is_list_like,
+    is_numeric_dtype,
     is_object_dtype,
     is_scalar,
     is_string_dtype,
@@ -466,13 +469,18 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 return IntegerArray(x, m)
             elif is_float_dtype(x.dtype):
                 m = mask.copy()
+                if x.dtype == np.float16:
+                    # reached in e.g. np.sqrt on BooleanArray
+                    # we don't support float16
+                    x = x.astype(np.float32)
                 return FloatingArray(x, m)
             else:
                 x[mask] = np.nan
             return x
 
         result = getattr(ufunc, method)(*inputs2, **kwargs)
-        if isinstance(result, tuple):
+        if ufunc.nout > 1:
+            # e.g. np.divmod
             return tuple(reconstruct(x) for x in result)
         else:
             return reconstruct(result)
@@ -538,6 +546,48 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             mask = self._mask | mask
 
         return BooleanArray(result, mask, copy=False)
+
+    def _maybe_mask_result(self, result, mask, other, op_name: str):
+        """
+        Parameters
+        ----------
+        result : array-like
+        mask : array-like bool
+        other : scalar or array-like
+        op_name : str
+        """
+        # if we have a float operand we are by-definition
+        # a float result
+        # or our op is a divide
+        if (
+            (is_float_dtype(other) or is_float(other))
+            or (op_name in ["rtruediv", "truediv"])
+            or (is_float_dtype(self.dtype) and is_numeric_dtype(result.dtype))
+        ):
+            from pandas.core.arrays import FloatingArray
+
+            return FloatingArray(result, mask, copy=False)
+
+        elif is_bool_dtype(result):
+            from pandas.core.arrays import BooleanArray
+
+            return BooleanArray(result, mask, copy=False)
+
+        elif result.dtype == "timedelta64[ns]":
+            # e.g. test_numeric_arr_mul_tdscalar_numexpr_path
+            from pandas.core.arrays import TimedeltaArray
+
+            result[mask] = iNaT
+            return TimedeltaArray._simple_new(result)
+
+        elif is_integer_dtype(result):
+            from pandas.core.arrays import IntegerArray
+
+            return IntegerArray(result, mask, copy=False)
+
+        else:
+            result[mask] = np.nan
+            return result
 
     def isna(self) -> np.ndarray:
         return self._mask.copy()
@@ -734,13 +784,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return out
 
     def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
-        if name in {"any", "all"}:
+        if name in {"any", "all", "min", "max", "sum", "prod"}:
             return getattr(self, name)(skipna=skipna, **kwargs)
 
         data = self._data
         mask = self._mask
 
-        if name in {"sum", "prod", "min", "max", "mean"}:
+        if name in {"mean"}:
             op = getattr(masked_reductions, name)
             result = op(data, mask, skipna=skipna, **kwargs)
             return result
@@ -750,6 +800,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if self._hasna:
             data = self.to_numpy("float64", na_value=np.nan)
 
+        # median, var, std, skew, kurt, idxmin, idxmax
         op = getattr(nanops, "nan" + name)
         result = op(data, axis=0, skipna=skipna, mask=mask, **kwargs)
 
@@ -757,6 +808,70 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             return libmissing.NA
 
         return result
+
+    def _wrap_reduction_result(self, name: str, result, skipna, **kwargs):
+        if isinstance(result, np.ndarray):
+            axis = kwargs["axis"]
+            if skipna:
+                # we only retain mask for all-NA rows/columns
+                mask = self._mask.all(axis=axis)
+            else:
+                mask = self._mask.any(axis=axis)
+
+            return self._maybe_mask_result(result, mask, other=None, op_name=name)
+        return result
+
+    def sum(self, *, skipna=True, min_count=0, axis: int | None = 0, **kwargs):
+        nv.validate_sum((), kwargs)
+
+        # TODO: do this in validate_sum?
+        if "out" in kwargs:
+            # np.sum; test_floating_array_numpy_sum
+            if kwargs["out"] is not None:
+                raise NotImplementedError
+            kwargs.pop("out")
+
+        result = masked_reductions.sum(
+            self._data,
+            self._mask,
+            skipna=skipna,
+            min_count=min_count,
+            axis=axis,
+        )
+        return self._wrap_reduction_result(
+            "sum", result, skipna=skipna, axis=axis, **kwargs
+        )
+
+    def prod(self, *, skipna=True, min_count=0, axis: int | None = 0, **kwargs):
+        nv.validate_prod((), kwargs)
+        result = masked_reductions.prod(
+            self._data,
+            self._mask,
+            skipna=skipna,
+            min_count=min_count,
+            axis=axis,
+        )
+        return self._wrap_reduction_result(
+            "prod", result, skipna=skipna, axis=axis, **kwargs
+        )
+
+    def min(self, *, skipna=True, axis: int | None = 0, **kwargs):
+        nv.validate_min((), kwargs)
+        return masked_reductions.min(
+            self._data,
+            self._mask,
+            skipna=skipna,
+            axis=axis,
+        )
+
+    def max(self, *, skipna=True, axis: int | None = 0, **kwargs):
+        nv.validate_max((), kwargs)
+        return masked_reductions.max(
+            self._data,
+            self._mask,
+            skipna=skipna,
+            axis=axis,
+        )
 
     def any(self, *, skipna: bool = True, **kwargs):
         """

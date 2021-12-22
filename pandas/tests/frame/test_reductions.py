@@ -1492,7 +1492,7 @@ class TestDataFrameReductions:
 
     def test_reductions_skipna_none_raises(self, frame_or_series, reduction_functions):
         if reduction_functions in ["count", "mad"]:
-            pytest.skip("Count does not accept skipna. Mad needs a depreaction cycle.")
+            pytest.skip("Count does not accept skipna. Mad needs a deprecation cycle.")
         obj = frame_or_series([1, 2, 3])
         msg = 'For argument "skipna" expected type bool, received type NoneType.'
         with pytest.raises(ValueError, match=msg):
@@ -1507,13 +1507,13 @@ class TestNuisanceColumns:
         df = ser.to_frame()
 
         # Double-check the Series behavior is to raise
-        with pytest.raises(TypeError, match="does not implement reduction"):
+        with pytest.raises(TypeError, match="does not support reduction"):
             getattr(ser, method)()
 
-        with pytest.raises(TypeError, match="does not implement reduction"):
+        with pytest.raises(TypeError, match="does not support reduction"):
             getattr(np, method)(ser)
 
-        with pytest.raises(TypeError, match="does not implement reduction"):
+        with pytest.raises(TypeError, match="does not support reduction"):
             getattr(df, method)(bool_only=False)
 
         # With bool_only=None, operating on this column raises and is ignored,
@@ -1537,10 +1537,10 @@ class TestNuisanceColumns:
         ser = df["A"]
 
         # Double-check the Series behavior is to raise
-        with pytest.raises(TypeError, match="does not implement reduction"):
+        with pytest.raises(TypeError, match="does not support reduction"):
             ser.median()
 
-        with pytest.raises(TypeError, match="does not implement reduction"):
+        with pytest.raises(TypeError, match="does not support reduction"):
             df.median(numeric_only=False)
 
         with tm.assert_produces_warning(
@@ -1553,7 +1553,7 @@ class TestNuisanceColumns:
         # same thing, but with an additional non-categorical column
         df["B"] = df["A"].astype(int)
 
-        with pytest.raises(TypeError, match="does not implement reduction"):
+        with pytest.raises(TypeError, match="does not support reduction"):
             df.median(numeric_only=False)
 
         with tm.assert_produces_warning(

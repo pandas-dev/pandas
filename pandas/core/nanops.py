@@ -756,13 +756,10 @@ def nanmedian(values, *, axis=None, skipna=True, mask=None):
         if mask is not None:
             values[mask] = np.nan
 
-    if axis is None:
-        values = values.ravel("K")
-
     notempty = values.size
 
     # an array from a frame
-    if values.ndim > 1:
+    if values.ndim > 1 and axis is not None:
 
         # there's a non-empty array to apply over otherwise numpy raises
         if notempty:
@@ -1390,14 +1387,10 @@ def _maybe_arg_null_out(
     if axis is None or not getattr(result, "ndim", False):
         if skipna:
             if mask.all():
-                # error: Incompatible types in assignment (expression has type
-                # "int", variable has type "ndarray")
-                result = -1  # type: ignore[assignment]
+                return -1
         else:
             if mask.any():
-                # error: Incompatible types in assignment (expression has type
-                # "int", variable has type "ndarray")
-                result = -1  # type: ignore[assignment]
+                return -1
     else:
         if skipna:
             na_mask = mask.all(axis)
