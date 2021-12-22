@@ -2906,6 +2906,27 @@ class DataFrame(NDFrame, OpsMixin):
         --------
         Styler.to_html : Render a DataFrame to HTML with conditional formatting.
         to_string : Convert DataFrame to a string.
+
+        Notes
+        -----
+        As of version 1.4.0, a warning is shown for the following use of keyword
+        arguments if they are non-default values, in order to align this function with
+        the formatting structure akin to ``Styler.to_html``.
+
+          - ``classes``, likely replaced by ``table_attributes``.
+          - ``sparsify``, likely separated to ``sparse_index``, ``sparse_columns``.
+          - ``max_cols``, likely replaced with ``max_columns`` consistently.
+          - ``formatters``, likely replaced with ``formatter``.
+          - ``float_format``, likely replaced by ``precision``, ``decimal``,
+            ``thousands``.
+          - ``border``, likely removed due to deprecated HTML specification.
+          - ``col_space``, likely removed in favour of CSS solutions.
+          - ``justify``, likely removed in favour of CSS solutions.
+          - ``render_links``, likely removed due to limited functionality.
+          - ``notebook``, likely removed due to legacy impact.
+          - ``show_dimensions``, likely removed in favour of caption solution.
+          - ``bold_rows``, likely replaced with ``bold_headers`` with index and column
+            control.
         """
         # Warnings are shown in 1.4.0 in preparation for signature changes in 2.0.0
         warnings_default_none = {
