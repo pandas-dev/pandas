@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas.core.dtypes.common import is_integer
 
 import pandas as pd
@@ -440,14 +438,9 @@ def test_where_categorical(frame_or_series):
     tm.assert_equal(exp, res)
 
 
-def test_where_datetimelike_categorical(request, tz_naive_fixture, using_array_manager):
+def test_where_datetimelike_categorical(request, tz_naive_fixture):
     # GH#37682
     tz = tz_naive_fixture
-
-    if using_array_manager and tz is None:
-        # TODO(ArrayManager) DataFrame.values not yet correctly returning datetime array
-        # for categorical with datetime categories
-        td.mark_array_manager_not_yet_implemented(request)
 
     dr = date_range("2001-01-01", periods=3, tz=tz)._with_freq(None)
     lvals = pd.DatetimeIndex([dr[0], dr[1], pd.NaT])
