@@ -166,8 +166,7 @@ class TestSample:
     def test_sample_random_state(self, func_str, arg, frame_or_series):
         # GH#32503
         obj = DataFrame({"col1": range(10, 20), "col2": range(20, 30)})
-        if frame_or_series is Series:
-            obj = obj["col1"]
+        obj = tm.get_obj(obj, frame_or_series)
         result = obj.sample(n=3, random_state=eval(func_str)(arg))
         expected = obj.sample(n=3, random_state=com.random_state(eval(func_str)(arg)))
         tm.assert_equal(result, expected)
@@ -192,8 +191,7 @@ class TestSample:
         # GH#27451
 
         obj = DataFrame({"A": list("abc")})
-        if frame_or_series is Series:
-            obj = obj["A"]
+        obj = tm.get_obj(obj, frame_or_series)
 
         msg = (
             "Replace has to be set to `True` when "
