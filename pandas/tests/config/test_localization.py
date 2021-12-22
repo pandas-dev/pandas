@@ -5,7 +5,6 @@ import os
 import pytest
 
 from pandas._config.localization import (
-    all_locals as _all_locales,
     can_set_locale,
     get_locales,
     set_locale,
@@ -16,6 +15,7 @@ from pandas.compat import is_platform_windows
 import pandas as pd
 import pandas._testing as tm
 
+_all_locales = get_locales() or []
 _current_locale = locale.getlocale()
 
 # Don't run any of these tests if we are on Windows or have no locales.
@@ -63,7 +63,7 @@ def test_get_locales_prefix():
 
 
 @_skip_if_only_one_locale
-@pytest.mark.parametrize("test_local", tm.testing_locales)
+@pytest.mark.parametrize("test_local", tm.TESTING_LOCALES)
 def test_set_locale(test_local):
     lang, enc = test_local.split(".")
     enc = codecs.lookup(enc).name

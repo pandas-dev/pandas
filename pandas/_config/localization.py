@@ -164,12 +164,3 @@ def get_locales(prefix=None, normalize=True, locale_getter=_default_locale_gette
     pattern = re.compile(f"{prefix}.*")
     found = pattern.findall("\n".join(out_locales))
     return _valid_locales(found, normalize)
-
-
-all_locals = get_locales() or []
-# Our Linux CI environments install the associated language packs
-testing_locales = [
-    locale
-    for locale in all_locals
-    if locale in {"en_US.UTF-8", "it_IT.UTF-8", "zh_CN.UTF-8"}
-]
