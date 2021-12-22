@@ -221,15 +221,15 @@ class PythonParser(ParserBase):
 
                 # since `line` was a string, lines will be a list containing
                 # only a single string
-                first_line: str = lines_str[0]
+                line = lines_str[0]
 
                 self.pos += 1
                 self.line_pos += 1
-                sniffed = csv.Sniffer().sniff(first_line)
+                sniffed = csv.Sniffer().sniff(line)
                 dia.delimiter = sniffed.delimiter
 
                 # Note: encoding is irrelevant here
-                line_rdr = csv.reader(StringIO(first_line), dialect=dia)
+                line_rdr = csv.reader(StringIO(line), dialect=dia)
                 self.buf.extend(list(line_rdr))
 
             # Note: encoding is irrelevant here
