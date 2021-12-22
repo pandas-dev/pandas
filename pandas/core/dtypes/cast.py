@@ -2096,6 +2096,9 @@ def maybe_cast_to_integer_array(
         )
         return casted
 
+    if all(np.dtype(i) is dtype for i in casted):
+        return casted
+
     # No known cases that get here, but raising explicitly to cover our bases.
     raise ValueError(f"values cannot be losslessly cast to {dtype}")
 

@@ -1810,6 +1810,18 @@ class TestSeriesConstructors:
         expected = Series(True, index=[0], dtype="bool")
         tm.assert_series_equal(result, expected)
 
+    def test_constructor_int64_dtype(self):
+        # GH-44923
+        result = Series(['1', '2'], dtype='int64')
+        expected = Series([1, 2])
+        tm.assert_series_equal(result, expected)
+
+    def test_constructor_float64_dtype(self):
+        # GH-44923
+        result = Series(['1', '2'], dtype='float64')
+        expected = Series([1.0, 2.0])
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.filterwarnings(
         "ignore:elementwise comparison failed:DeprecationWarning"
     )
