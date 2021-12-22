@@ -36,14 +36,15 @@ jobs:
     vmImage: ubuntu-18.04
 
   steps:
+    # TODO: GH#44980 https://github.com/pypa/setuptools/issues/2941
     - script: |
         docker pull quay.io/pypa/manylinux2014_i686
         docker run -v $(pwd):/pandas quay.io/pypa/manylinux2014_i686 \
         /bin/bash -xc "cd pandas && \
         /opt/python/cp38-cp38/bin/python -m venv ~/virtualenvs/pandas-dev && \
         . ~/virtualenvs/pandas-dev/bin/activate && \
-        python -m pip install --no-deps -U pip wheel setuptools && \
-        pip install cython numpy python-dateutil pytz pytest pytest-xdist hypothesis pytest-azurepipelines pytest-timeout && \
+        python -m pip install --no-deps -U pip wheel 'setuptools<60.0.0' && \
+        pip install cython numpy python-dateutil pytz pytest pytest-xdist hypothesis pytest-azurepipelines && \
         python setup.py build_ext -q -j2 && \
         python -m pip install --no-build-isolation -e . && \
         pytest -m 'not slow and not network and not clipboard' pandas --junitxml=test-data.xml"

@@ -1,6 +1,8 @@
 """
 missing types & inference
 """
+from __future__ import annotations
+
 from decimal import Decimal
 from functools import partial
 
@@ -17,6 +19,7 @@ from pandas._libs.tslibs import (
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
+    npt,
 )
 
 from pandas.core.dtypes.common import (
@@ -241,7 +244,10 @@ def _isna_array(values: ArrayLike, inf_as_na: bool = False):
         if inf_as_na and is_categorical_dtype(dtype):
             result = libmissing.isnaobj(values.to_numpy(), inf_as_na=inf_as_na)
         else:
-            result = values.isna()
+            # error: Incompatible types in assignment (expression has type
+            # "Union[ndarray[Any, Any], ExtensionArraySupportsAnyAll]", variable has
+            # type "ndarray[Any, dtype[bool_]]")
+            result = values.isna()  # type: ignore[assignment]
     elif is_string_or_object_np_dtype(values.dtype):
         result = _isna_string_dtype(values, inf_as_na=inf_as_na)
     elif needs_i8_conversion(dtype):
@@ -256,18 +262,22 @@ def _isna_array(values: ArrayLike, inf_as_na: bool = False):
     return result
 
 
-def _isna_string_dtype(values: np.ndarray, inf_as_na: bool) -> np.ndarray:
+def _isna_string_dtype(values: np.ndarray, inf_as_na: bool) -> npt.NDArray[np.bool_]:
     # Working around NumPy ticket 1542
     dtype = values.dtype
-    shape = values.shape
 
     if dtype.kind in ("S", "U"):
         result = np.zeros(values.shape, dtype=bool)
     else:
-        result = np.empty(shape, dtype=bool)
-        vec = libmissing.isnaobj(values.ravel(), inf_as_na=inf_as_na)
 
-        result[...] = vec.reshape(shape)
+        if values.ndim == 1:
+            result = libmissing.isnaobj(values, inf_as_na=inf_as_na)
+        elif values.ndim == 2:
+            result = libmissing.isnaobj2d(values, inf_as_na=inf_as_na)
+        else:
+            # 0-D, reached via e.g. mask_missing
+            result = libmissing.isnaobj(values.ravel(), inf_as_na=inf_as_na)
+            result = result.reshape(values.shape)
 
     return result
 
@@ -479,9 +489,17 @@ def _array_equivalent_datetimelike(left, right):
     return np.array_equal(left.view("i8"), right.view("i8"))
 
 
-def _array_equivalent_object(left, right, strict_nan):
+def _array_equivalent_object(left: np.ndarray, right: np.ndarray, strict_nan: bool):
     if not strict_nan:
         # isna considers NaN and None to be equivalent.
+
+        if left.flags["F_CONTIGUOUS"] and right.flags["F_CONTIGUOUS"]:
+            # we can improve performance by doing a copy-free ravel
+            # e.g. in frame_methods.Equals.time_frame_nonunique_equal
+            #  if we transposed the frames
+            left = left.ravel("K")
+            right = right.ravel("K")
+
         return lib.array_equivalent_object(
             ensure_object(left.ravel()), ensure_object(right.ravel())
         )
@@ -501,10 +519,7 @@ def _array_equivalent_object(left, right, strict_nan):
                 if np.any(np.asarray(left_value != right_value)):
                     return False
             except TypeError as err:
-                if "Cannot compare tz-naive" in str(err):
-                    # tzawareness compat failure, see GH#28507
-                    return False
-                elif "boolean value of NA is ambiguous" in str(err):
+                if "boolean value of NA is ambiguous" in str(err):
                     return False
                 raise
     return True

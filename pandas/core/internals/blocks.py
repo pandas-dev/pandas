@@ -46,6 +46,7 @@ from pandas.core.dtypes.cast import (
     soft_convert_objects,
 )
 from pandas.core.dtypes.common import (
+    ensure_platform_int,
     is_1d_only_ea_dtype,
     is_1d_only_ea_obj,
     is_dtype_equal,
@@ -58,6 +59,7 @@ from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     ExtensionDtype,
     PandasDtype,
+    PeriodDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -87,6 +89,7 @@ from pandas.core.array_algos.replace import (
     replace_regex,
     should_use_regex,
 )
+from pandas.core.array_algos.take import take_nd
 from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays import (
     Categorical,
@@ -639,31 +642,25 @@ class Block(PandasObject):
         to_replace,
         value,
         inplace: bool = False,
-        regex: bool = False,
+        # mask may be pre-computed if we're called from replace_list
+        mask: npt.NDArray[np.bool_] | None = None,
     ) -> list[Block]:
         """
         replace the to_replace value with value, possible to create new
-        blocks here this is just a call to putmask. regex is not used here.
-        It is used in ObjectBlocks.  It is here for API compatibility.
+        blocks here this is just a call to putmask.
         """
-        inplace = validate_bool_kwarg(inplace, "inplace")
 
         # Note: the checks we do in NDFrame.replace ensure we never get
         #  here with listlike to_replace or value, as those cases
-        #  go through _replace_list
+        #  go through replace_list
 
         values = self.values
 
         if isinstance(values, Categorical):
             # TODO: avoid special-casing
             blk = self if inplace else self.copy()
-            blk.values.replace(to_replace, value, inplace=True)
+            blk.values._replace(to_replace=to_replace, value=value, inplace=True)
             return [blk]
-
-        regex = should_use_regex(regex, to_replace)
-
-        if regex:
-            return self._replace_regex(to_replace, value, inplace=inplace)
 
         if not self._can_hold_element(to_replace):
             # We cannot hold `to_replace`, so we know immediately that
@@ -672,7 +669,8 @@ class Block(PandasObject):
             #  replace_list instead of replace.
             return [self] if inplace else [self.copy()]
 
-        mask = missing.mask_missing(values, to_replace)
+        if mask is None:
+            mask = missing.mask_missing(values, to_replace)
         if not mask.any():
             # Note: we get here with test_replace_extension_other incorrectly
             #  bc _can_hold_element is incorrect.
@@ -690,13 +688,13 @@ class Block(PandasObject):
                 to_replace=to_replace,
                 value=value,
                 inplace=True,
-                regex=regex,
+                mask=mask,
             )
 
         else:
             # split so that we only upcast where necessary
             return self.split_and_operate(
-                type(self).replace, to_replace, value, inplace=True, regex=regex
+                type(self).replace, to_replace, value, inplace=True
             )
 
     @final
@@ -739,10 +737,10 @@ class Block(PandasObject):
         replace_regex(new_values, rx, value, mask)
 
         block = self.make_block(new_values)
-        return [block]
+        return block.convert(numeric=False, copy=False)
 
     @final
-    def _replace_list(
+    def replace_list(
         self,
         src_list: Iterable[Any],
         dest_list: Sequence[Any],
@@ -750,15 +748,9 @@ class Block(PandasObject):
         regex: bool = False,
     ) -> list[Block]:
         """
-        See BlockManager._replace_list docstring.
+        See BlockManager.replace_list docstring.
         """
         values = self.values
-
-        # TODO: dont special-case Categorical
-        if isinstance(values, Categorical) and len(algos.unique(dest_list)) == 1:
-            # We likely got here by tiling value inside NDFrame.replace,
-            #  so un-tile here
-            return self.replace(src_list, dest_list[0], inplace, regex)
 
         # Exclude anything that we know we won't contain
         pairs = [
@@ -848,25 +840,18 @@ class Block(PandasObject):
         -------
         List[Block]
         """
-        if mask.any():
-            if not regex:
-                nb = self.coerce_to_target_dtype(value)
-                if nb is self and not inplace:
-                    nb = nb.copy()
-                putmask_inplace(nb.values, mask, value)
-                return [nb]
-            else:
-                regex = should_use_regex(regex, to_replace)
-                if regex:
-                    return self._replace_regex(
-                        to_replace,
-                        value,
-                        inplace=inplace,
-                        convert=False,
-                        mask=mask,
-                    )
-                return self.replace(to_replace, value, inplace=inplace, regex=False)
-        return [self]
+        if should_use_regex(regex, to_replace):
+            return self._replace_regex(
+                to_replace,
+                value,
+                inplace=inplace,
+                convert=False,
+                mask=mask,
+            )
+        else:
+            return self.replace(
+                to_replace=to_replace, value=value, inplace=inplace, mask=mask
+            )
 
     # ---------------------------------------------------------------------
 
@@ -1457,7 +1442,8 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
     def set_inplace(self, locs, values) -> None:
         # NB: This is a misnomer, is supposed to be inplace but is not,
         #  see GH#33457
-        assert locs.tolist() == [0]
+        # When an ndarray, we should have locs.tolist() == [0]
+        # When a BlockPlacement we should have list(locs) == [0]
         self.values = values
         try:
             # TODO(GH33457) this can be removed
@@ -1727,6 +1713,12 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
 
     values: NDArrayBackedExtensionArray
 
+    # error: Signature of "is_extension" incompatible with supertype "Block"
+    @cache_readonly
+    def is_extension(self) -> bool:  # type: ignore[override]
+        # i.e. datetime64tz, PeriodDtype
+        return not isinstance(self.dtype, np.dtype)
+
     @property
     def is_view(self) -> bool:
         """return a boolean if I am possibly a view"""
@@ -1755,6 +1747,9 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
         try:
             res_values = arr.T._where(cond, other).T
         except (ValueError, TypeError):
+            if isinstance(self.dtype, PeriodDtype):
+                # TODO: don't special-case
+                raise
             blk = self.coerce_to_target_dtype(other)
             nbs = blk.where(other, cond)
             return self._maybe_downcast(nbs, "infer")
@@ -1867,8 +1862,14 @@ class ObjectBlock(NumpyBlock):
         attempt to cast any object types to better types return a copy of
         the block (if copy = True) by definition we ARE an ObjectBlock!!!!!
         """
+        values = self.values
+        if values.ndim == 2:
+            # maybe_split ensures we only get here with values.shape[0] == 1,
+            # avoid doing .ravel as that might make a copy
+            values = values[0]
+
         res_values = soft_convert_objects(
-            self.values.ravel(),
+            values,
             datetime=datetime,
             numeric=numeric,
             timedelta=timedelta,
@@ -1948,6 +1949,8 @@ def get_block_type(dtype: DtypeObj):
         cls = CategoricalBlock
     elif vtype is Timestamp:
         cls = DatetimeTZBlock
+    elif isinstance(dtype, PeriodDtype):
+        cls = NDArrayBackedExtensionBlock
     elif isinstance(dtype, ExtensionDtype):
         # Note: need to be sure PandasArray is unwrapped before we get here
         cls = ExtensionBlock
@@ -2092,12 +2095,28 @@ def to_native_types(
     **kwargs,
 ) -> np.ndarray:
     """convert to our native types format"""
+    if isinstance(values, Categorical):
+        # GH#40754 Convert categorical datetimes to datetime array
+        values = take_nd(
+            values.categories._values,
+            ensure_platform_int(values._codes),
+            fill_value=na_rep,
+        )
+
     values = ensure_wrapped_if_datetimelike(values)
 
     if isinstance(values, (DatetimeArray, TimedeltaArray)):
-        result = values._format_native_types(na_rep=na_rep, **kwargs)
-        result = result.astype(object, copy=False)
-        return result
+        if values.ndim == 1:
+            result = values._format_native_types(na_rep=na_rep, **kwargs)
+            result = result.astype(object, copy=False)
+            return result
+
+        # GH#21734 Process every column separately, they might have different formats
+        results_converted = []
+        for i in range(len(values)):
+            result = values[i, :]._format_native_types(na_rep=na_rep, **kwargs)
+            results_converted.append(result.astype(object, copy=False))
+        return np.vstack(results_converted)
 
     elif isinstance(values, ExtensionArray):
         mask = isna(values)

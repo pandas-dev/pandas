@@ -558,18 +558,11 @@ cdef class TextReader:
         pass
 
     def __dealloc__(self):
-        self.close()
+        _close(self)
         parser_del(self.parser)
 
-    def close(self) -> None:
-        # also preemptively free all allocated memory
-        parser_free(self.parser)
-        if self.true_set:
-            kh_destroy_str_starts(self.true_set)
-            self.true_set = NULL
-        if self.false_set:
-            kh_destroy_str_starts(self.false_set)
-            self.false_set = NULL
+    def close(self):
+        _close(self)
 
     def _set_quoting(self, quote_char: str | bytes | None, quoting: int):
         if not isinstance(quoting, int):
@@ -1093,8 +1086,27 @@ cdef class TextReader:
                     break
 
         # we had a fallback parse on the dtype, so now try to cast
-        # only allow safe casts, eg. with a nan you cannot safely cast to int
         if col_res is not None and col_dtype is not None:
+            # If col_res is bool, it might actually be a bool array mixed with NaNs
+            # (see _try_bool_flex()). Usually this would be taken care of using
+            # _maybe_upcast(), but if col_dtype is a floating type we should just
+            # take care of that cast here.
+            if col_res.dtype == np.bool_ and is_float_dtype(col_dtype):
+                mask = col_res.view(np.uint8) == na_values[np.uint8]
+                col_res = col_res.astype(col_dtype)
+                np.putmask(col_res, mask, np.nan)
+                return col_res, na_count
+
+            # NaNs are already cast to True here, so can not use astype
+            if col_res.dtype == np.bool_ and is_integer_dtype(col_dtype):
+                if na_count > 0:
+                    raise ValueError(
+                        f"cannot safely convert passed user dtype of "
+                        f"{col_dtype} for {np.bool_} dtyped data in "
+                        f"column {i} due to NA values"
+                    )
+
+            # only allow safe casts, eg. with a nan you cannot safely cast to int
             try:
                 col_res = col_res.astype(col_dtype, casting='safe')
             except TypeError:
@@ -1290,6 +1302,21 @@ cdef class TextReader:
                     return self.header[0][j]
             else:
                 return None
+
+
+# Factor out code common to TextReader.__dealloc__ and TextReader.close
+# It cannot be a class method, since calling self.close() in __dealloc__
+# which causes a class attribute lookup and violates best parctices
+# https://cython.readthedocs.io/en/latest/src/userguide/special_methods.html#finalization-method-dealloc
+cdef _close(TextReader reader):
+    # also preemptively free all allocated memory
+    parser_free(reader.parser)
+    if reader.true_set:
+        kh_destroy_str_starts(reader.true_set)
+        reader.true_set = NULL
+    if reader.false_set:
+        kh_destroy_str_starts(reader.false_set)
+        reader.false_set = NULL
 
 
 cdef:

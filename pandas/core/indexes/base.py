@@ -443,7 +443,9 @@ class Index(IndexOpsMixin, PandasObject):
             return Index._simple_new(data, name=name)
 
         elif is_ea_or_datetimelike_dtype(data_dtype):
-            klass = cls._dtype_to_subclass(data_dtype)
+            # Argument 1 to "_dtype_to_subclass" of "Index" has incompatible type
+            # "Optional[Any]"; expected "Union[dtype[Any], ExtensionDtype]"  [arg-type]
+            klass = cls._dtype_to_subclass(data_dtype)  # type: ignore[arg-type]
             if klass is not Index:
                 result = klass(data, copy=copy, name=name, **kwargs)
                 if dtype is not None:
@@ -1066,6 +1068,8 @@ class Index(IndexOpsMixin, PandasObject):
     ):
         if kwargs:
             nv.validate_take((), kwargs)
+        if is_scalar(indices):
+            raise TypeError("Expected indices to be array-like")
         indices = ensure_platform_int(indices)
         allow_fill = self._maybe_disallow_fill(allow_fill, fill_value, indices)
 
@@ -1176,6 +1180,9 @@ class Index(IndexOpsMixin, PandasObject):
         names : list-like, optional
             Kept for compatibility with MultiIndex. Should not be used.
 
+            .. deprecated:: 1.4.0
+                use ``name`` instead.
+
         Returns
         -------
         Index
@@ -1186,6 +1193,14 @@ class Index(IndexOpsMixin, PandasObject):
         In most cases, there should be no functional difference from using
         ``deep``, but if ``deep`` is passed it will attempt to deepcopy.
         """
+        if names is not None:
+            warnings.warn(
+                "parameter names is deprecated and will be removed in a future "
+                "version. Use the name parameter instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
         name = self._validate_names(name=name, names=names, deep=deep)[0]
         if deep:
             new_data = self._data.copy()
@@ -1385,7 +1400,7 @@ class Index(IndexOpsMixin, PandasObject):
             values = values[slicer]
         return values._format_native_types(**kwargs)
 
-    def _format_native_types(self, na_rep="", quoting=None, **kwargs):
+    def _format_native_types(self, *, na_rep="", quoting=None, **kwargs):
         """
         Actually format specific types of the index.
         """
@@ -2721,13 +2736,18 @@ class Index(IndexOpsMixin, PandasObject):
         DataFrame.fillna : Fill NaN values of a DataFrame.
         Series.fillna : Fill NaN Values of a Series.
         """
+
         value = self._require_scalar(value)
         if self.hasnans:
             result = self.putmask(self._isnan, value)
             if downcast is None:
                 # no need to care metadata other than name
-                # because it can't have freq if
+                # because it can't have freq if it has NaTs
                 return Index._with_infer(result, name=self.name)
+            raise NotImplementedError(
+                f"{type(self).__name__}.fillna does not support 'downcast' "
+                "argument values other than 'None'."
+            )
         return self._view()
 
     def dropna(self: _IndexT, how: str_t = "any") -> _IndexT:
@@ -4922,7 +4942,8 @@ class Index(IndexOpsMixin, PandasObject):
         """
         getitem = self._data.__getitem__
 
-        if is_scalar(key):
+        if is_integer(key) or is_float(key):
+            # GH#44051 exclude bool, which would return a 2d ndarray
             key = com.cast_scalar_indexer(key, warn_float=True)
             return getitem(key)
 
