@@ -3950,7 +3950,7 @@ class Table(Fixed):
             new_name = name or f"values_block_{i}"
             data_converted = _maybe_convert_for_string_atom(
                 new_name,
-                blk,
+                blk.values,
                 existing_col=existing_col,
                 min_itemsize=min_itemsize,
                 nan_rep=nan_rep,
@@ -4933,7 +4933,7 @@ def _unconvert_index(data, kind: str, encoding: str, errors: str) -> np.ndarray 
 
 def _maybe_convert_for_string_atom(
     name: str,
-    block: Block,
+    bvalues: ArrayLike,
     existing_col,
     min_itemsize,
     nan_rep,
@@ -4941,10 +4941,11 @@ def _maybe_convert_for_string_atom(
     errors,
     columns: list[str],
 ):
-    bvalues = block.values
 
     if bvalues.dtype != object:
         return bvalues
+
+    bvalues = cast(np.ndarray, bvalues)
 
     dtype_name = bvalues.dtype.name
     inferred_type = lib.infer_dtype(bvalues, skipna=False)
@@ -4961,13 +4962,9 @@ def _maybe_convert_for_string_atom(
     elif not (inferred_type == "string" or dtype_name == "object"):
         return bvalues
 
-    blocks: list[Block] = block.fillna(nan_rep, downcast=False)
-    # Note: because block is always object dtype, fillna goes
-    #  through a path such that the result is always a 1-element list
-    assert len(blocks) == 1
-    block = blocks[0]
-
-    data = block.values
+    mask = isna(bvalues)
+    data = bvalues.copy()
+    data[mask] = nan_rep
 
     # see if we have a valid string type
     inferred_type = lib.infer_dtype(data, skipna=False)
@@ -4979,7 +4976,7 @@ def _maybe_convert_for_string_atom(
         # expected behaviour:
         # search block for a non-string object column by column
         for i in range(data.shape[0]):
-            col = block.iget(i)
+            col = data[i]
             inferred_type = lib.infer_dtype(col, skipna=False)
             if inferred_type != "string":
                 error_column_label = columns[i] if len(columns) > i else f"No.{i}"
@@ -4991,11 +4988,7 @@ def _maybe_convert_for_string_atom(
 
     # itemsize is the maximum length of a string (along any dimension)
 
-    # error: Argument 1 to "_convert_string_array" has incompatible type "Union[ndarray,
-    # ExtensionArray]"; expected "ndarray"
-    data_converted = _convert_string_array(
-        data, encoding, errors  # type: ignore[arg-type]
-    ).reshape(data.shape)
+    data_converted = _convert_string_array(data, encoding, errors).reshape(data.shape)
     itemsize = data_converted.itemsize
 
     # specified min_itemsize?
