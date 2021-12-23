@@ -285,9 +285,7 @@ def _get_hashtable_algo(values: np.ndarray):
     return htable, values
 
 
-def _get_values_for_rank(values: ArrayLike) -> np.ndarray:
-    if is_categorical_dtype(values):
-        values = cast("Categorical", values)._values_for_rank()
+def _get_values_for_rank(values: ArrayLike, special: bool = True) -> np.ndarray:
 
     values = _ensure_data(values)
     if values.dtype.kind in ["i", "u", "f"]:
@@ -298,7 +296,7 @@ def _get_values_for_rank(values: ArrayLike) -> np.ndarray:
 
 
 def get_data_algo(values: ArrayLike):
-    values = _get_values_for_rank(values)
+    values = _get_values_for_rank(values, False)
 
     ndtype = _check_object_for_strings(values)
     htable = _hashtables.get(ndtype, _hashtables["object"])
@@ -993,13 +991,13 @@ def rank(
     na_option: str = "keep",
     ascending: bool = True,
     pct: bool = False,
-) -> np.ndarray:
+) -> npt.NDArray[np.float64]:
     """
     Rank the values along a given axis.
 
     Parameters
     ----------
-    values : array-like
+    values : np.ndarray or ExtensionArray
         Array whose values will be ranked. The number of dimensions in this
         array must not exceed 2.
     axis : int, default 0
