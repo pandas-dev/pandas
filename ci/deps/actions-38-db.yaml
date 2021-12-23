@@ -45,9 +45,7 @@ dependencies:
   - xlrd
   - xlsxwriter
   - xlwt
-  - pip
-  - pip:
-    - brotlipy
-    - coverage
-    - pandas-datareader
-    - pyxlsb
+  - brotlipy
+  - coverage
+  - pandas-datareader
+  - pyxlsb

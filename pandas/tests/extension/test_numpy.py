@@ -459,5 +459,5 @@ class TestParsing(BaseNumPyTests, base.BaseParsingTests):
     pass
 
 
-class Test2DCompat(BaseNumPyTests, base.Dim2CompatTests):
+class Test2DCompat(BaseNumPyTests, base.NDArrayBacked2DTests):
     pass

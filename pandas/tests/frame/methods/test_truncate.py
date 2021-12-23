@@ -15,8 +15,7 @@ from pandas.core.api import Int64Index
 class TestDataFrameTruncate:
     def test_truncate(self, datetime_frame, frame_or_series):
         ts = datetime_frame[::3]
-        if frame_or_series is Series:
-            ts = ts.iloc[:, 0]
+        ts = tm.get_obj(ts, frame_or_series)
 
         start, end = datetime_frame.index[3], datetime_frame.index[6]
 
@@ -77,8 +76,7 @@ class TestDataFrameTruncate:
         # GH#17935
 
         obj = DataFrame({"A": ["a", "b", "c", "d", "e"]}, index=[5, 3, 2, 9, 0])
-        if frame_or_series is Series:
-            obj = obj["A"]
+        obj = tm.get_obj(obj, frame_or_series)
 
         msg = "truncate requires a sorted index"
         with pytest.raises(ValueError, match=msg):
@@ -135,8 +133,7 @@ class TestDataFrameTruncate:
         # GH 34564
         mi = pd.MultiIndex.from_product([[1, 2, 3, 4], ["A", "B"]], names=["L1", "L2"])
         s1 = DataFrame(range(mi.shape[0]), index=mi, columns=["col"])
-        if frame_or_series is Series:
-            s1 = s1["col"]
+        s1 = tm.get_obj(s1, frame_or_series)
 
         result = s1.truncate(before=2, after=3)
 
@@ -144,8 +141,7 @@ class TestDataFrameTruncate:
             {"L1": [2, 2, 3, 3], "L2": ["A", "B", "A", "B"], "col": [2, 3, 4, 5]}
         )
         expected = df.set_index(["L1", "L2"])
-        if frame_or_series is Series:
-            expected = expected["col"]
+        expected = tm.get_obj(expected, frame_or_series)
 
         tm.assert_equal(result, expected)
 

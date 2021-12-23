@@ -61,12 +61,12 @@ from pandas import (
     to_datetime,
     to_timedelta,
 )
-from pandas.core import generic
 from pandas.core.arrays.boolean import BooleanDtype
 from pandas.core.arrays.integer import _IntegerDtype
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.base import Index
 from pandas.core.series import Series
+from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import get_handle
 
@@ -109,19 +109,6 @@ chunksize : int, default None
     Return StataReader object for iterations, returns chunks with
     given number of lines."""
 
-_compression_params = f"""\
-compression : str or dict, default None
-    If string, specifies compression mode. If dict, value at key 'method'
-    specifies compression mode. Compression mode must be one of {{'infer',
-    'gzip', 'bz2', 'zip', 'xz', None}}. If compression mode is 'infer'
-    and `filepath_or_buffer` is path-like, then detect compression from
-    the following extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise
-    no compression). If dict and compression mode is one of
-    {{'zip', 'gzip', 'bz2'}}, or inferred as one of the above,
-    other entries passed as additional compression options.
-{generic._shared_docs["storage_options"]}"""
-
-
 _iterator_params = """\
 iterator : bool, default False
     Return StataReader object."""
@@ -153,7 +140,8 @@ filepath_or_buffer : str, path object or file-like object
 {_statafile_processing_params2}
 {_chunksize_params}
 {_iterator_params}
-{_compression_params}
+{_shared_docs["decompression_options"]}
+{_shared_docs["storage_options"]}
 
 Returns
 -------
@@ -216,7 +204,8 @@ path_or_buf : path (string), buffer or path object
 {_statafile_processing_params1}
 {_statafile_processing_params2}
 {_chunksize_params}
-{_compression_params}
+{_shared_docs["decompression_options"]}
+{_shared_docs["storage_options"]}
 
 {_reader_notes}
 """
@@ -2170,7 +2159,10 @@ def _dtype_to_default_stata_fmt(
         raise NotImplementedError(f"Data type {dtype} not supported.")
 
 
-@doc(storage_options=generic._shared_docs["storage_options"])
+@doc(
+    storage_options=_shared_docs["storage_options"],
+    compression_options=_shared_docs["compression_options"] % "fname",
+)
 class StataWriter(StataParser):
     """
     A class for writing Stata binary dta files
@@ -2202,17 +2194,11 @@ class StataWriter(StataParser):
     variable_labels : dict
         Dictionary containing columns as keys and variable labels as values.
         Each label must be 80 characters or smaller.
-    compression : str or dict, default 'infer'
-        For on-the-fly compression of the output dta. If string, specifies
-        compression mode. If dict, value at key 'method' specifies compression
-        mode. Compression mode must be one of {{'infer', 'gzip', 'bz2', 'zip',
-        'xz', None}}. If compression mode is 'infer' and `fname` is path-like,
-        then detect compression from the following extensions: '.gz', '.bz2',
-        '.zip', or '.xz' (otherwise no compression). If dict and compression
-        mode is one of {{'zip', 'gzip', 'bz2'}}, or inferred as one of the above,
-        other entries passed as additional compression options.
+    {compression_options}
 
         .. versionadded:: 1.1.0
+
+        .. versionchanged:: 1.4.0 Zstandard support.
 
     {storage_options}
 
@@ -3135,17 +3121,11 @@ class StataWriter117(StataWriter):
         Smaller columns can be converted by including the column name.  Using
         StrLs can reduce output file size when strings are longer than 8
         characters, and either frequently repeated or sparse.
-    compression : str or dict, default 'infer'
-        For on-the-fly compression of the output dta. If string, specifies
-        compression mode. If dict, value at key 'method' specifies compression
-        mode. Compression mode must be one of {'infer', 'gzip', 'bz2', 'zip',
-        'xz', None}. If compression mode is 'infer' and `fname` is path-like,
-        then detect compression from the following extensions: '.gz', '.bz2',
-        '.zip', or '.xz' (otherwise no compression). If dict and compression
-        mode is one of {'zip', 'gzip', 'bz2'}, or inferred as one of the above,
-        other entries passed as additional compression options.
+    {compression_options}
 
         .. versionadded:: 1.1.0
+
+        .. versionchanged:: 1.4.0 Zstandard support.
 
     value_labels : dict of dicts
         Dictionary containing columns as keys and dictionaries of column value
@@ -3535,17 +3515,11 @@ class StataWriterUTF8(StataWriter117):
         The dta version to use. By default, uses the size of data to determine
         the version. 118 is used if data.shape[1] <= 32767, and 119 is used
         for storing larger DataFrames.
-    compression : str or dict, default 'infer'
-        For on-the-fly compression of the output dta. If string, specifies
-        compression mode. If dict, value at key 'method' specifies compression
-        mode. Compression mode must be one of {'infer', 'gzip', 'bz2', 'zip',
-        'xz', None}. If compression mode is 'infer' and `fname` is path-like,
-        then detect compression from the following extensions: '.gz', '.bz2',
-        '.zip', or '.xz' (otherwise no compression). If dict and compression
-        mode is one of {'zip', 'gzip', 'bz2'}, or inferred as one of the above,
-        other entries passed as additional compression options.
+    {compression_options}
 
         .. versionadded:: 1.1.0
+
+        .. versionchanged:: 1.4.0 Zstandard support.
 
     value_labels : dict of dicts
         Dictionary containing columns as keys and dictionaries of column value
