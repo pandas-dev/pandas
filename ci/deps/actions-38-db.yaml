@@ -33,6 +33,7 @@ dependencies:
   - pyarrow>=1.0.1
   - pymysql
   - pytables
+  - pytorch
   - python-snappy
   - python-dateutil
   - pytz

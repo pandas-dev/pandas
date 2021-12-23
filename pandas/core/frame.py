@@ -702,11 +702,16 @@ class DataFrame(NDFrame, OpsMixin):
         # For data is list-like, or Iterable (will consume into list)
         elif is_list_like(data):
             if not isinstance(data, (abc.Sequence, ExtensionArray)):
-                data = list(data)
+                if hasattr(data, "__array__"):
+                    # GH#44616 big perf improvement for e.g. pytorch tensor
+                    data = np.asarray(data)
+                else:
+                    data = list(data)
             if len(data) > 0:
                 if is_dataclass(data[0]):
                     data = dataclasses_to_dicts(data)
-                if treat_as_nested(data):
+                if not isinstance(data, np.ndarray) and treat_as_nested(data):
+                    # exclude ndarray as we may have cast it a few lines above
                     if columns is not None:
                         # error: Argument 1 to "ensure_index" has incompatible type
                         # "Collection[Any]"; expected "Union[Union[Union[ExtensionArray,
