@@ -443,7 +443,9 @@ class Index(IndexOpsMixin, PandasObject):
             return Index._simple_new(data, name=name)
 
         elif is_ea_or_datetimelike_dtype(data_dtype):
-            klass = cls._dtype_to_subclass(data_dtype)
+            # Argument 1 to "_dtype_to_subclass" of "Index" has incompatible type
+            # "Optional[Any]"; expected "Union[dtype[Any], ExtensionDtype]"  [arg-type]
+            klass = cls._dtype_to_subclass(data_dtype)  # type: ignore[arg-type]
             if klass is not Index:
                 result = klass(data, copy=copy, name=name, **kwargs)
                 if dtype is not None:
@@ -4940,7 +4942,8 @@ class Index(IndexOpsMixin, PandasObject):
         """
         getitem = self._data.__getitem__
 
-        if is_scalar(key):
+        if is_integer(key) or is_float(key):
+            # GH#44051 exclude bool, which would return a 2d ndarray
             key = com.cast_scalar_indexer(key, warn_float=True)
             return getitem(key)
 
@@ -6635,10 +6638,9 @@ class Index(IndexOpsMixin, PandasObject):
     def __pos__(self):
         return self._unary_method(operator.pos)
 
-    def __inv__(self):
-        # TODO: why not operator.inv?
-        # TODO: __inv__ vs __invert__?
-        return self._unary_method(lambda x: -x)
+    def __invert__(self):
+        # GH#8875
+        return self._unary_method(operator.inv)
 
     # --------------------------------------------------------------------
     # Reductions

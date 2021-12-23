@@ -2,6 +2,7 @@
 
 import random
 
+import numpy as np
 import pytest
 
 import pandas as pd
@@ -296,3 +297,20 @@ def test_columns_on_iter():
     for _, dg in df.groupby(df.A < 4)[cols]:
         tm.assert_index_equal(dg.columns, pd.Index(cols))
         assert "C" not in dg.columns
+
+
+@pytest.mark.parametrize("func", [list, pd.Index, pd.Series, np.array])
+def test_groupby_duplicated_columns(func):
+    # GH#44924
+    df = pd.DataFrame(
+        {
+            "A": [1, 2],
+            "B": [3, 3],
+            "C": ["G", "G"],
+        }
+    )
+    result = df.groupby("C")[func(["A", "B", "A"])].mean()
+    expected = pd.DataFrame(
+        [[1.5, 3.0, 1.5]], columns=["A", "B", "A"], index=pd.Index(["G"], name="C")
+    )
+    tm.assert_frame_equal(result, expected)

@@ -48,6 +48,7 @@ conda config --set ssl_verify false
 conda config --set quiet true --set always_yes true --set changeps1 false
 conda install pip conda  # create conda to create a historical artifact for pip & setuptools
 conda update -n base conda
+conda install -y -c conda-forge mamba
 
 echo "conda info -a"
 conda info -a
@@ -62,8 +63,8 @@ conda list
 conda remove --all -q -y -n pandas-dev
 
 echo
-echo "conda env create -q --file=${ENV_FILE}"
-time conda env create -q --file="${ENV_FILE}"
+echo "mamba env create -q --file=${ENV_FILE}"
+time mamba env create -q --file="${ENV_FILE}"
 
 
 if [[ "$BITS32" == "yes" ]]; then
@@ -106,7 +107,8 @@ echo "[Build extensions]"
 python setup.py build_ext -q -j2
 
 echo "[Updating pip]"
-python -m pip install --no-deps -U pip wheel setuptools
+# TODO: GH#44980 https://github.com/pypa/setuptools/issues/2941
+python -m pip install --no-deps -U pip wheel "setuptools<60.0.0"
 
 echo "[Install pandas]"
 python -m pip install --no-build-isolation -e .

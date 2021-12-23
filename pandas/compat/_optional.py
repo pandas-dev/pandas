@@ -34,6 +34,7 @@ VERSIONS = {
     "xlwt": "1.3.0",
     "xlsxwriter": "1.2.2",
     "numba": "0.50.1",
+    "zstandard": "0.15.2",
 }
 
 # A mapping from import name to package name (on PyPI) for packages where
