@@ -956,21 +956,10 @@ def mode(values: ArrayLike, dropna: bool = True) -> ArrayLike:
     values = _ensure_arraylike(values)
     original = values
 
-    # categorical is a fast-path
-    if is_categorical_dtype(values.dtype):
-        return values.mode(dropna=dropna)
-
     if needs_i8_conversion(values.dtype):
+        # Got here with ndarray; dispatch to DatetimeArray/TimedeltaArray.
         values = ensure_wrapped_if_datetimelike(values)
-        if dropna:
-            mask = values.isna()
-            values = values[~mask]
-        modes = mode(values.view("i8"))
-        # We cast to PandasArray in order to use its .view method
-        #  to get back dt64tz or PeriodDtype
-        # TODO: do this in _reconstruct_data?
-        result = pd_array(modes, dtype=modes.dtype).view(original.dtype)
-        return result
+        return values._mode(dropna=dropna)
 
     values = _ensure_data(values)
 
