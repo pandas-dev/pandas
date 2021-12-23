@@ -629,7 +629,9 @@ class Block(PandasObject):
         """copy constructor"""
         values = self.values
         if deep:
-            values = values.copy()
+            # "K" -> retain 'order' where possible, can be significantly
+            #  faster than the default.
+            values = values.copy("K")
         return type(self)(values, placement=self._mgr_locs, ndim=self.ndim)
 
     # ---------------------------------------------------------------------
@@ -1421,6 +1423,15 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
             return (len(self.values),)
         return len(self._mgr_locs), len(self.values)
 
+    def copy(self, deep: bool = True):
+        """copy constructor"""
+        values = self.values
+        if deep:
+            # The base class method passes order="K", which is not part of
+            #  the EA API.
+            values = values.copy()
+        return type(self)(values, placement=self._mgr_locs, ndim=self.ndim)
+
     def iget(self, col):
 
         if self.ndim == 2 and isinstance(col, tuple):
@@ -1698,15 +1709,6 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
 
 class NumpyBlock(libinternals.NumpyBlock, Block):
     values: np.ndarray
-
-    def copy(self, deep: bool = True):
-        """copy constructor"""
-        values = self.values
-        if deep:
-            # "K" -> retain 'order' where possible, can be significantly
-            #  faster than the default.
-            values = values.copy("K")
-        return type(self)(values, placement=self._mgr_locs, ndim=self.ndim)
 
 
 class NumericBlock(NumpyBlock):
