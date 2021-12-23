@@ -1078,7 +1078,7 @@ class HDFStore:
         complevel: int | None = None,
         min_itemsize: int | dict[str, int] | None = None,
         nan_rep=None,
-        data_columns: list[str] | None = None,
+        data_columns: bool | list[str] | None = None,
         encoding=None,
         errors: str = "strict",
         track_times: bool = True,
@@ -1102,7 +1102,7 @@ class HDFStore:
                 subsets of the data.
         append : bool, default False
             This will force Table format, append the input data to the existing.
-        data_columns : list, default None
+        data_columns : list, bool,  default None
             List of columns to create as data columns, or True to use all columns.
             See `here
             <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__.
@@ -1208,7 +1208,7 @@ class HDFStore:
         chunksize=None,
         expectedrows=None,
         dropna: bool | None = None,
-        data_columns: list[str] | None = None,
+        data_columns: bool | list[str] | None = None,
         encoding=None,
         errors: str = "strict",
     ):
@@ -3263,8 +3263,7 @@ class Table(Fixed):
     values_axes   : a list of the columns which comprise the data of this
         table
     data_columns  : a list of the columns that we are allowing indexing
-        (these become single columns in values_axes), or True to force all
-        columns
+        (these become single columns in values_axes)
     nan_rep       : the string to use for nan representations for string
         objects
     levels        : the names of levels
