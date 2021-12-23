@@ -2735,6 +2735,13 @@ class Index(IndexOpsMixin, PandasObject):
         DataFrame.fillna : Fill NaN values of a DataFrame.
         Series.fillna : Fill NaN Values of a Series.
         """
+        if downcast is not None:
+            warnings.warn(
+                "Index.fillna 'downcast' keyword is deprecated and will be "
+                "removed in a future version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
 
         value = self._require_scalar(value)
         if self.hasnans:
