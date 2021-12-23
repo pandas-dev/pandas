@@ -929,11 +929,13 @@ class TextFileReader(abc.Iterator):
                 engine == "pyarrow"
                 and argname in _pyarrow_unsupported
                 and value != default
+                and value != getattr(value, "value", default)
             ):
-                if argname == "on_bad_lines" and kwds.get("warn_bad_lines"):
-                    argname = "warn_bad_lines"
-                elif argname == "on_bad_lines" and kwds.get("error_bad_lines"):
+                if argname == "on_bad_lines" and kwds.get("error_bad_lines"):
                     argname = "error_bad_lines"
+                elif argname == "on_bad_lines" and kwds.get("warn_bad_lines"):
+                    argname = "warn_bad_lines"
+
                 raise ValueError(
                     f"The {repr(argname)} option is not supported with the "
                     f"'pyarrow' engine"
