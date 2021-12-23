@@ -3804,7 +3804,7 @@ class MultiIndex(Index):
     __neg__ = make_invalid_op("__neg__")
     __pos__ = make_invalid_op("__pos__")
     __abs__ = make_invalid_op("__abs__")
-    __inv__ = make_invalid_op("__inv__")
+    __invert__ = make_invalid_op("__invert__")
 
 
 def _lexsort_depth(codes: list[np.ndarray], nlevels: int) -> int:
