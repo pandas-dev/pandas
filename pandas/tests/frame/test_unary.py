@@ -8,7 +8,7 @@ import pandas._testing as tm
 
 
 class TestDataFrameUnaryOperators:
-    # __pos__, __neg__, __inv__
+    # __pos__, __neg__, __invert__
 
     @pytest.mark.parametrize(
         "df,expected",
