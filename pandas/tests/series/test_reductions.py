@@ -25,10 +25,10 @@ def test_mode_extension_dtype(as_period):
     tm.assert_series_equal(res, ser)
 
     res = mode(ser._values)
-    tm.assert_series_equal(res, ser)
+    tm.assert_extension_array_equal(res, ser._values)
 
     res = mode(pd.Index(ser))
-    tm.assert_series_equal(res, ser)
+    tm.assert_extension_array_equal(res, ser._values)
 
 
 def test_reductions_td64_with_nat():
