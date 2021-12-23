@@ -26,14 +26,13 @@ jobs:
       matrix:
         settings: [
           [actions-38-minimum_versions.yaml, "not slow and not network and not clipboard", "", "", ""],
-          [actions-38-locale_slow.yaml, "slow", "xsel", "", ""],
-          [actions-38.yaml, "not slow and not clipboard", "", "", ""],
+          [actions-38-locale_clipboard.yaml, "not slow and not network", "language-pack-en language-pack-zh-hans language-pack-it xsel", "", ""],
           [actions-38-slow.yaml, "slow", "", "", ""],
-          [actions-38-locale.yaml, "not slow and not network", "xsel", "", ""],
           [actions-39-slow.yaml, "slow", "", "", ""],
+          [actions-38.yaml, "not slow and not clipboard", "", "", ""],
+          [actions-39.yaml, "not slow and not clipboard", "", "", ""],
           [actions-pypy-38.yaml, "not slow and not clipboard", "", "", "--max-worker-restart 0"],
           [actions-39-numpydev.yaml, "not slow and not network", "xsel", "deprecate", "-W error"],
-          [actions-39.yaml, "not slow and not clipboard", "", "", ""]
         ]
       fail-fast: false
     env:
@@ -76,7 +75,7 @@ jobs:
 
     - name: Extra installs
       # Install multiple language packs for localization tests
-      run: sudo apt-get update && sudo apt-get install -y libc6-dev-i386 language-pack-en language-pack-zh-hans language-pack-it ${{ env.EXTRA_APT }}
+      run: sudo apt-get update && sudo apt-get install -y libc6-dev-i386 ${{ env.EXTRA_APT }}
 
     - uses: conda-incubator/setup-miniconda@v2
       with:
