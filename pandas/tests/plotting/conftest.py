@@ -17,8 +17,9 @@ def clear_font_filehandles(request):
     lsof = subprocess.run(["lsof", "-d", "0-25"], capture_output=True).stdout.decode(
         "utf-8"
     )
-    for line in lsof.split("\n"):
-        if re.search(pat, line):
-            # sys.stderr for xdist
-            # https://github.com/pytest-dev/pytest/issues/1693#issuecomment-233282644
-            print(f"{request.node.name}: {line}", flush=True, file=sys.stderr)
+    print(f"{request.node.name}\n{lsof}", flush=True, file=sys.stderr)
+    # for line in lsof.split("\n"):
+    #     if re.search(pat, line):
+    #         # sys.stderr for xdist
+    #         # https://github.com/pytest-dev/pytest/issues/1693#issuecomment-233282644
+    #         print(f"{request.node.name}: {line}", flush=True, file=sys.stderr)
