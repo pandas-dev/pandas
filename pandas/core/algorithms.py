@@ -285,7 +285,7 @@ def _get_hashtable_algo(values: np.ndarray):
     return htable, values
 
 
-def _get_values_for_rank(values: ArrayLike, special: bool = True) -> np.ndarray:
+def _get_values_for_rank(values: ArrayLike) -> np.ndarray:
 
     values = _ensure_data(values)
     if values.dtype.kind in ["i", "u", "f"]:
@@ -296,7 +296,7 @@ def _get_values_for_rank(values: ArrayLike, special: bool = True) -> np.ndarray:
 
 
 def get_data_algo(values: ArrayLike):
-    values = _get_values_for_rank(values, False)
+    values = _get_values_for_rank(values)
 
     ndtype = _check_object_for_strings(values)
     htable = _hashtables.get(ndtype, _hashtables["object"])
