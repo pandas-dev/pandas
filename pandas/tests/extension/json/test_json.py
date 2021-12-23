@@ -153,6 +153,13 @@ class TestInterface(BaseJSON, base.BaseInterfaceTests):
         # GH-37867
         super().test_contains(data)
 
+    @pytest.mark.xfail(
+        reason="tm.shares_memory does not recognize JSONArray",
+        raises=NotImplementedError,
+    )
+    def test_copy_does_not_share_data(self, data):
+        super().test_copy_does_not_share_data(data)
+
 
 class TestConstructors(BaseJSON, base.BaseConstructorsTests):
     @pytest.mark.skip(reason="not implemented constructor from dtype")

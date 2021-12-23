@@ -353,15 +353,15 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
 
     def copy(self) -> ArrowStringArray:
         """
-        Return copy of the array.
+        Return shallow copy of the array.
+
+        Underlying ChunkedArray is immutable, so a deep copy is unnecessary.s
 
         Returns
         -------
         ArrowStringArray
         """
-        # ChunkedArray has no 'copy', so we work around that.
-        data = self._data.take(np.arange(len(self)))
-        return type(self)(data)
+        return type(self)(self._data)
 
     def _cmp_method(self, other, op):
         from pandas.arrays import BooleanArray

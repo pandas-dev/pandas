@@ -82,7 +82,12 @@ class TestDtype(base.BaseDtypeTests):
 
 
 class TestInterface(base.BaseInterfaceTests):
-    pass
+    @pytest.mark.xfail(
+        reason="tm.shares_memory does not recognize DecimalArray",
+        raises=NotImplementedError,
+    )
+    def test_copy_does_not_share_data(self, data):
+        super().test_copy_does_not_share_data(data)
 
 
 class TestConstructors(base.BaseConstructorsTests):

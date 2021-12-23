@@ -49,6 +49,15 @@ class TestInterface(BaseArrowTests, base.BaseInterfaceTests):
         # __setitem__ does not work, so we only have a smoke-test
         data.copy()
 
+    @pytest.mark.xfail(
+        reason="tm.shares_memory does not recognize ArrowBoolArray",
+        raises=NotImplementedError,
+    )
+    def test_copy_does_not_share_data(self, data):
+        result = data.copy()
+        # bc pyarrow array is immutable, we do NOT make a deep copy
+        assert tm.shares_memory(result, data)
+
     def test_view(self, data):
         # __setitem__ does not work, so we only have a smoke-test
         data.view()

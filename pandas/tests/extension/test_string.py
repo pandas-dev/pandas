@@ -19,6 +19,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.core.arrays import ArrowStringArray
 from pandas.core.arrays.string_ import StringDtype
 from pandas.tests.extension import base
@@ -106,6 +107,14 @@ class TestInterface(base.BaseInterfaceTests):
             mark = pytest.mark.xfail(reason="not implemented")
             request.node.add_marker(mark)
         super().test_view(data)
+
+    def test_copy_does_not_share_data(self, data):
+        if data.dtype.storage == "pyarrow":
+            result = data.copy()
+            # bc pyarrow array is immutable, we do NOT make a deep copy
+            assert tm.shares_memory(result, data)
+        else:
+            super().test_copy_does_not_share_data(data)
 
 
 class TestConstructors(base.BaseConstructorsTests):
