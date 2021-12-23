@@ -74,7 +74,6 @@ jobs:
           hashFiles('${{ env.ENV_FILE }}') }}
 
     - name: Extra installs
-      # Install multiple language packs for localization tests
       run: sudo apt-get update && sudo apt-get install -y libc6-dev-i386 ${{ env.EXTRA_APT }}
 
     - uses: conda-incubator/setup-miniconda@v2
