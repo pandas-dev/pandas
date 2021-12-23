@@ -1553,7 +1553,9 @@ class ExtensionArray:
         same type as self
             Sorted, if possible.
         """
-        return mode(self, dropna=dropna)
+        # error: Incompatible return value type (got "Union[ExtensionArray,
+        # ndarray[Any, Any]]", expected "ExtensionArrayT")
+        return mode(self, dropna=dropna)  # type: ignore[return-value]
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         if any(

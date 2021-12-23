@@ -1540,6 +1540,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         i8modes = mode(values.view("i8"))
         npmodes = i8modes.view(self._ndarray.dtype)
+        npmodes = cast(np.ndarray, npmodes)
         return self._from_backing_data(npmodes)
 
 

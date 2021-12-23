@@ -959,7 +959,9 @@ def mode(values: ArrayLike, dropna: bool = True) -> ArrayLike:
     if needs_i8_conversion(values.dtype):
         # Got here with ndarray; dispatch to DatetimeArray/TimedeltaArray.
         values = ensure_wrapped_if_datetimelike(values)
-        return values._mode(dropna=dropna)
+        # error: Item "ndarray[Any, Any]" of "Union[ExtensionArray,
+        # ndarray[Any, Any]]" has no attribute "_mode"
+        return values._mode(dropna=dropna)  # type: ignore[union-attr]
 
     values = _ensure_data(values)
 
