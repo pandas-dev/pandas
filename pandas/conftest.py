@@ -267,7 +267,16 @@ def other_closed(request):
     return request.param
 
 
-@pytest.fixture(params=[None, "gzip", "bz2", "zip", "xz"])
+@pytest.fixture(
+    params=[
+        None,
+        "gzip",
+        "bz2",
+        "zip",
+        "xz",
+        pytest.param("zstd", marks=td.skip_if_no("zstandard")),
+    ]
+)
 def compression(request):
     """
     Fixture for trying common compression types in compression tests.
@@ -275,7 +284,15 @@ def compression(request):
     return request.param
 
 
-@pytest.fixture(params=["gzip", "bz2", "zip", "xz"])
+@pytest.fixture(
+    params=[
+        "gzip",
+        "bz2",
+        "zip",
+        "xz",
+        pytest.param("zstd", marks=td.skip_if_no("zstandard")),
+    ]
+)
 def compression_only(request):
     """
     Fixture for trying common compression types in compression tests excluding
@@ -557,6 +574,21 @@ def index_flat(request):
 
 # Alias so we can test with cartesian product of index_flat
 index_flat2 = index_flat
+
+
+@pytest.fixture(
+    params=[
+        key
+        for key in indices_dict
+        if not isinstance(indices_dict[key], MultiIndex) and indices_dict[key].is_unique
+    ]
+)
+def index_flat_unique(request):
+    """
+    index_flat with uniqueness requirement.
+    """
+    key = request.param
+    return indices_dict[key].copy()
 
 
 @pytest.fixture(

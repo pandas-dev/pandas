@@ -327,7 +327,9 @@ class MultiIndex(Index):
         result._set_levels(levels, copy=copy, validate=False)
         result._set_codes(codes, copy=copy, validate=False)
 
-        result._names = [None] * len(levels)
+        # Incompatible types in assignment (expression has type "List[None]",
+        # variable has type "FrozenList")  [assignment]
+        result._names = [None] * len(levels)  # type: ignore[assignment]
         if names is not None:
             # handles name validation
             result._set_names(names)
@@ -736,11 +738,9 @@ class MultiIndex(Index):
         """
         from pandas import Series
 
+        names = com.fill_missing_names([level.name for level in self.levels])
         return Series(
-            {
-                f"level_{idx}" if level.name is None else level.name: level.dtype
-                for idx, level in enumerate(self.levels)
-            }
+            {names[idx]: level.dtype for idx, level in enumerate(self.levels)}
         )
 
     def __len__(self) -> int:
@@ -1283,7 +1283,7 @@ class MultiIndex(Index):
         formatter_funcs = [level._formatter_func for level in self.levels]
         return tuple(func(val) for func, val in zip(formatter_funcs, tup))
 
-    def _format_native_types(self, na_rep="nan", **kwargs):
+    def _format_native_types(self, *, na_rep="nan", **kwargs):
         new_levels = []
         new_codes = []
 
@@ -3804,7 +3804,7 @@ class MultiIndex(Index):
     __neg__ = make_invalid_op("__neg__")
     __pos__ = make_invalid_op("__pos__")
     __abs__ = make_invalid_op("__abs__")
-    __inv__ = make_invalid_op("__inv__")
+    __invert__ = make_invalid_op("__invert__")
 
 
 def _lexsort_depth(codes: list[np.ndarray], nlevels: int) -> int:

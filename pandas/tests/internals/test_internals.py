@@ -149,8 +149,10 @@ def create_block(typestr, placement, item_shape=None, num_offset=0, maker=new_bl
     elif typestr in ("category2",):
         values = Categorical(["a", "a", "a", "a", "b", "b", "c", "c", "c", "d"])
     elif typestr in ("sparse", "sparse_na"):
-        # FIXME: doesn't support num_rows != 10
-        assert shape[-1] == 10
+        if shape[-1] != 10:
+            # We also are implicitly assuming this in the category cases above
+            raise NotImplementedError
+
         assert all(s == 1 for s in shape[:-1])
         if typestr.endswith("_na"):
             fill_value = np.nan
@@ -492,15 +494,12 @@ class TestBlockManager:
 
     def test_sparse(self):
         mgr = create_mgr("a: sparse-1; b: sparse-2")
-        # what to test here?
         assert mgr.as_array().dtype == np.float64
 
     def test_sparse_mixed(self):
         mgr = create_mgr("a: sparse-1; b: sparse-2; c: f8")
         assert len(mgr.blocks) == 3
         assert isinstance(mgr, BlockManager)
-
-        # TODO: what to test here?
 
     @pytest.mark.parametrize(
         "mgr_string, dtype",
