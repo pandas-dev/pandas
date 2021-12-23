@@ -14,6 +14,8 @@ from pandas import (
 )
 import pandas._testing as tm
 
+import pandas.io.common as icom
+
 
 class TestToCSV:
     def test_to_csv_with_single_column(self):
@@ -282,6 +284,37 @@ $1$,$2$
         df_sec_grouped = df_sec.groupby([pd.Grouper(key="A", freq="1h"), "B"])
         assert df_sec_grouped.mean().to_csv(date_format="%Y-%m-%d") == expected_ymd_sec
 
+    def test_to_csv_different_datetime_formats(self):
+        # GH#21734
+        df = DataFrame(
+            {
+                "date": pd.to_datetime("1970-01-01"),
+                "datetime": pd.date_range("1970-01-01", periods=2, freq="H"),
+            }
+        )
+        expected_rows = [
+            "date,datetime",
+            "1970-01-01,1970-01-01 00:00:00",
+            "1970-01-01,1970-01-01 01:00:00",
+        ]
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
+        assert df.to_csv(index=False) == expected
+
+    def test_to_csv_date_format_in_categorical(self):
+        # GH#40754
+        ser = pd.Series(pd.to_datetime(["2021-03-27", pd.NaT], format="%Y-%m-%d"))
+        ser = ser.astype("category")
+        expected = tm.convert_rows_list_to_csv_str(["0", "2021-03-27", '""'])
+        assert ser.to_csv(index=False) == expected
+
+        ser = pd.Series(
+            pd.date_range(
+                start="2021-03-27", freq="D", periods=1, tz="Europe/Berlin"
+            ).append(pd.DatetimeIndex([pd.NaT]))
+        )
+        ser = ser.astype("category")
+        assert ser.to_csv(index=False, date_format="%Y-%m-%d") == expected
+
     def test_to_csv_multi_index(self):
         # see gh-6618
         df = DataFrame([1], columns=pd.MultiIndex.from_arrays([[1], [2]]))
@@ -498,18 +531,9 @@ z
         # see gh-15008
         compression = compression_only
 
-        if compression == "zip":
-            pytest.skip(f"{compression} is not supported for to_csv")
-
         # We'll complete file extension subsequently.
         filename = "test."
-
-        if compression == "gzip":
-            filename += "gz"
-        else:
-            # xz --> .xz
-            # bz2 --> .bz2
-            filename += compression
+        filename += icom._compression_to_extension[compression]
 
         df = DataFrame({"A": [1]})
 
@@ -526,7 +550,11 @@ z
         method = compression_only
         df = DataFrame({"ABC": [1]})
         filename = "to_csv_compress_as_dict."
-        filename += "gz" if method == "gzip" else method
+        extension = {
+            "gzip": "gz",
+            "zstd": "zst",
+        }.get(method, method)
+        filename += extension
         with tm.ensure_clean(filename) as path:
             df.to_csv(path, compression={"method": method})
             read_df = pd.read_csv(path, index_col=0)
