@@ -128,10 +128,12 @@ def ensure_python_int(value: int | np.integer) -> int:
     ------
     TypeError: if the value isn't an int or can't be converted to one.
     """
-    if not is_scalar(value):
-        raise TypeError(
-            f"Value needs to be a scalar value, was type {type(value).__name__}"
-        )
+    if not (is_integer(value) or is_float(value)):
+        if not is_scalar(value):
+            raise TypeError(
+                f"Value needs to be a scalar value, was type {type(value).__name__}"
+            )
+        raise TypeError(f"Wrong type {type(value)} for value {value}")
     try:
         new_value = int(value)
         assert new_value == value
@@ -613,7 +615,7 @@ def is_dtype_equal(source, target) -> bool:
                 src = get_dtype(source)
                 if isinstance(src, ExtensionDtype):
                     return src == target
-            except (TypeError, AttributeError):
+            except (TypeError, AttributeError, ImportError):
                 return False
     elif isinstance(source, str):
         return is_dtype_equal(target, source)
@@ -622,7 +624,7 @@ def is_dtype_equal(source, target) -> bool:
         source = get_dtype(source)
         target = get_dtype(target)
         return source == target
-    except (TypeError, AttributeError):
+    except (TypeError, AttributeError, ImportError):
 
         # invalid comparison
         # object == category will hit this
@@ -1318,7 +1320,7 @@ def is_bool_dtype(arr_or_dtype) -> bool:
     except (TypeError, ValueError):
         return False
 
-    if isinstance(arr_or_dtype, CategoricalDtype):
+    if isinstance(dtype, CategoricalDtype):
         arr_or_dtype = arr_or_dtype.categories
         # now we use the special definition for Index
 
@@ -1329,7 +1331,7 @@ def is_bool_dtype(arr_or_dtype) -> bool:
         # so its object, we need to infer to
         # guess this
         return arr_or_dtype.is_object() and arr_or_dtype.inferred_type == "boolean"
-    elif is_extension_array_dtype(arr_or_dtype):
+    elif isinstance(dtype, ExtensionDtype):
         return getattr(dtype, "_is_boolean", False)
 
     return issubclass(dtype.type, np.bool_)
@@ -1408,11 +1410,12 @@ def is_1d_only_ea_obj(obj: Any) -> bool:
     from pandas.core.arrays import (
         DatetimeArray,
         ExtensionArray,
+        PeriodArray,
         TimedeltaArray,
     )
 
     return isinstance(obj, ExtensionArray) and not isinstance(
-        obj, (DatetimeArray, TimedeltaArray)
+        obj, (DatetimeArray, TimedeltaArray, PeriodArray)
     )
 
 
@@ -1424,7 +1427,9 @@ def is_1d_only_ea_dtype(dtype: DtypeObj | None) -> bool:
     #  here too.
     # NB: need to check DatetimeTZDtype and not is_datetime64tz_dtype
     #  to exclude ArrowTimestampUSDtype
-    return isinstance(dtype, ExtensionDtype) and not isinstance(dtype, DatetimeTZDtype)
+    return isinstance(dtype, ExtensionDtype) and not isinstance(
+        dtype, (DatetimeTZDtype, PeriodDtype)
+    )
 
 
 def is_extension_array_dtype(arr_or_dtype) -> bool:
