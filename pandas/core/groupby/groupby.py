@@ -758,7 +758,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         Generator yielding sequence of (name, subsetted object)
         for each group
         """
-        return self.grouper.get_iterator(self.obj, axis=self.axis)
+        return self.grouper.get_iterator(self._selected_obj, axis=self.axis)
 
 
 # To track operations that expand dimensions, like ohlc
