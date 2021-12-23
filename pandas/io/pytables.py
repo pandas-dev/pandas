@@ -19,6 +19,7 @@ from typing import (
     Any,
     Callable,
     Hashable,
+    Literal,
     Sequence,
     cast,
 )
@@ -272,7 +273,7 @@ def to_hdf(
     min_itemsize: int | dict[str, int] | None = None,
     nan_rep=None,
     dropna: bool | None = None,
-    data_columns: bool | list[str] | None = None,
+    data_columns: Literal[True] | list[str] | None = None,
     errors: str = "strict",
     encoding: str = "UTF-8",
 ) -> None:
@@ -1078,7 +1079,7 @@ class HDFStore:
         complevel: int | None = None,
         min_itemsize: int | dict[str, int] | None = None,
         nan_rep=None,
-        data_columns: bool | list[str] | None = None,
+        data_columns: Literal[True] | list[str] | None = None,
         encoding=None,
         errors: str = "strict",
         track_times: bool = True,
@@ -1208,7 +1209,7 @@ class HDFStore:
         chunksize=None,
         expectedrows=None,
         dropna: bool | None = None,
-        data_columns: bool | list[str] | None = None,
+        data_columns: Literal[True] | list[str] | None = None,
         encoding=None,
         errors: str = "strict",
     ):
