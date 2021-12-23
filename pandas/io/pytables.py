@@ -1103,7 +1103,7 @@ class HDFStore:
                 subsets of the data.
         append : bool, default False
             This will force Table format, append the input data to the existing.
-        data_columns : list, bool,  default None
+        data_columns : list of columns or True, default None
             List of columns to create as data columns, or True to use all columns.
             See `here
             <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__.
