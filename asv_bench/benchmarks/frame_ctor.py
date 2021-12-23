@@ -185,7 +185,7 @@ class FromArrays:
 class From3rdParty:
     # GH#44616
 
-    def setup_cache(self):
+    def setup(self):
         try:
             import torch
         except ImportError:
