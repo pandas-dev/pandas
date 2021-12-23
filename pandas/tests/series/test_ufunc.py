@@ -4,6 +4,8 @@ import string
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.common import is_dtype_equal
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.arrays import SparseArray
@@ -279,7 +281,7 @@ def test_reduce(values, box, request):
             same_type = False
 
     warn = None
-    if values.dtype == "Sparse[int]" and box is pd.Index:
+    if is_dtype_equal(values.dtype, "Sparse[int]") and box is pd.Index:
         warn = FutureWarning
     with tm.assert_produces_warning(warn):
         obj = box(values)
