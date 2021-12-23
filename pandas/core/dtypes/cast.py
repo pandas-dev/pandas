@@ -2096,7 +2096,7 @@ def maybe_cast_to_integer_array(
         )
         return casted
 
-    if lib.infer_dtype(casted) is "integer":
+    if lib.infer_dtype(casted) == "integer":
         return casted
 
     # No known cases that get here, but raising explicitly to cover our bases.
