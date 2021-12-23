@@ -6638,10 +6638,9 @@ class Index(IndexOpsMixin, PandasObject):
     def __pos__(self):
         return self._unary_method(operator.pos)
 
-    def __inv__(self):
-        # TODO: why not operator.inv?
-        # TODO: __inv__ vs __invert__?
-        return self._unary_method(lambda x: -x)
+    def __invert__(self):
+        # GH#8875
+        return self._unary_method(operator.inv)
 
     # --------------------------------------------------------------------
     # Reductions
