@@ -2625,7 +2625,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         min_itemsize: int | dict[str, int] | None = None,
         nan_rep=None,
         dropna: bool_t | None = None,
-        data_columns: bool_t | list[str] | None = None,
+        data_columns: Literal[True] | list[str] | None = None,
         errors: str = "strict",
         encoding: str = "UTF-8",
     ) -> None:
