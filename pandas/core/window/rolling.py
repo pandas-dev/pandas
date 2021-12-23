@@ -1127,7 +1127,10 @@ class Window(BaseWindow):
         -------
         y : type of input
         """
-        window = self._scipy_weight_generator(self.window, **kwargs)
+        # "None" not callable  [misc]
+        window = self._scipy_weight_generator(  # type: ignore[misc]
+            self.window, **kwargs
+        )
         offset = (len(window) - 1) // 2 if self.center else 0
 
         def homogeneous_func(values: np.ndarray):
@@ -2626,8 +2629,9 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
     def _validate_monotonic(self):
         """
         Validate that on is monotonic;
-        in this case we have to check only for nans, because
-        monotonicity was already validated at a higher level.
         """
-        if self._on.hasnans:
+        if (
+            not (self._on.is_monotonic_increasing or self._on.is_monotonic_decreasing)
+            or self._on.hasnans
+        ):
             self._raise_monotonic_error()
