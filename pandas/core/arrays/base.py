@@ -611,7 +611,7 @@ class ExtensionArray:
 
         Some ExtensionArray subclasses may be able to optimize this check.
         """
-        return self.isna().any()
+        return bool(self.isna().any())
 
     def _values_for_argsort(self) -> np.ndarray:
         """
