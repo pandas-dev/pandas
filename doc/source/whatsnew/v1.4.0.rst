@@ -726,7 +726,7 @@ Missing
 - Bug in constructing a :class:`DataFrame` with a dictionary ``np.datetime64`` as a value and ``dtype='timedelta64[ns]'``, or vice-versa, incorrectly casting instead of raising (:issue:`??`)
 - Bug in :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` with ``inplace=True`` not writing to the underlying array(s) in-place (:issue:`44749`)
 - Bug in :meth:`Index.fillna` incorrectly returning an un-filled :class:`Index` when NA values are present and ``downcast`` argument is specified. This now raises ``NotImplementedError`` instead; do not pass ``downcast`` argument (:issue:`44873`)
--
+- Bug in :meth:`DataFrame.dropna` changing :class:`Index` even if no entries were dropped (:issue:`41965`)
 
 MultiIndex
 ^^^^^^^^^^
