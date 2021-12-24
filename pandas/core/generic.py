@@ -8519,11 +8519,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     pct=pct,
                 )
 
-            # error: Argument 1 to "NDFrame" has incompatible type "ndarray"; expected
-            # "Union[ArrayManager, BlockManager]"
-            ranks_obj = self._constructor(
-                ranks, **data._construct_axes_dict()  # type: ignore[arg-type]
-            )
+            ranks_obj = self._constructor(ranks, **data._construct_axes_dict())
             return ranks_obj.__finalize__(self, method="rank")
 
         # if numeric_only is None, and we can't get anything, we try with
