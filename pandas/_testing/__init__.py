@@ -192,9 +192,7 @@ EMPTY_STRING_PATTERN = re.compile("^$")
 
 # Our Linux CI environments install the associated language packs
 TESTING_LOCALES = [
-    loc
-    for loc in get_locales() or []
-    if any(loc == target for target in ("", "it_IT.UTF-8", "zh_CN.UTF-8"))
+    loc for loc in get_locales() or [] if loc in {"it_IT.UTF-8", "zh_CN.UTF-8"}
 ]
 
 # set testing_mode
