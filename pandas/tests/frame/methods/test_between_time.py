@@ -35,8 +35,8 @@ class TestBetweenTime:
         # GH#11818
         request.node.add_marker(
             pytest.mark.xfail(
-                "am" in time_string[0] and locale.getlocale()[0] != "en_US",
-                reason="Only passes with LC_ALL=en_US.utf8",
+                "am" in time_string[0] and locale.getlocale()[0] == "zh_CN",
+                reason="Does not pass with LC_ALL=zh_CN.utf8",
             )
         )
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")

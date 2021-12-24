@@ -302,8 +302,8 @@ class TestTimeConversionFormats:
     def test_to_datetime_format_time(self, request, cache, value, format, dt):
         request.node.add_marker(
             pytest.mark.xfail(
-                "%p" in format and locale.getlocale()[0] != "en_US",
-                reason="Only passes with LC_ALL=en_US.utf8",
+                "%p" in format and locale.getlocale()[0] == "zh_CN",
+                reason="Does not pass with LC_ALL=zh_CN.utf8",
             )
         )
         assert to_datetime(value, format=format, cache=cache) == dt
@@ -1898,7 +1898,7 @@ class TestToDatetimeMisc:
         tm.assert_index_equal(expected, idx5)
         tm.assert_index_equal(expected, idx6)
 
-    def test_dayfirst_warnings_valid_input(self):
+    def test_dayfirst_warnings_valid_input(self, request):
         # GH 12585
         warning_msg_day_first = (
             "Parsing '31/12/2014' in DD/MM/YYYY format. Provide "
@@ -1930,6 +1930,12 @@ class TestToDatetimeMisc:
 
         # D. infer_datetime_format=True overrides dayfirst default
         # no warning + correct result
+        request.node.add_marker(
+            pytest.mark.xfail(
+                locale.getlocale()[0] == "zh_CN",
+                reason="Does not pass with LC_ALL=zh_CN.utf8",
+            )
+        )
         res4 = to_datetime(arr, infer_datetime_format=True)
         tm.assert_index_equal(expected_consistent, res4)
 
@@ -1986,7 +1992,6 @@ class TestToDatetimeMisc:
 
 
 class TestGuessDatetimeFormat:
-    @td.skip_if_not_us_locale
     @pytest.mark.parametrize(
         "test_array",
         [
@@ -1999,7 +2004,13 @@ class TestGuessDatetimeFormat:
             ["2011-12-30 00:00:00.000000", "random_string"],
         ],
     )
-    def test_guess_datetime_format_for_array(self, test_array):
+    def test_guess_datetime_format_for_array(self, request, test_array):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                locale.getlocale()[0] == "zh_CN",
+                reason="Does not pass with LC_ALL=zh_CN.utf8",
+            )
+        )
         expected_format = "%Y-%m-%d %H:%M:%S.%f"
         assert tools._guess_datetime_format_for_array(test_array) == expected_format
 

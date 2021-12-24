@@ -877,7 +877,7 @@ def test_multi_index_parse_dates(request, all_parsers, index_col):
 """
     request.node.add_marker(
         pytest.mark.xfail(
-            locale.getlocale()[0] != "zh_CN" and index_col == [1, 0],
+            locale.getlocale()[0] == "it_IT" and index_col == ["index2", "index1"],
             reason="Only passes with LC_ALL=zh_CN.utf8",
         )
     )
@@ -1848,7 +1848,7 @@ def test_parse_dates_and_keep_orgin_column(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-def test_dayfirst_warnings():
+def test_dayfirst_warnings(request):
     # GH 12585
     warning_msg_day_first = (
         "Parsing '31/12/2014' in DD/MM/YYYY format. Provide "
@@ -1890,6 +1890,12 @@ def test_dayfirst_warnings():
 
     # D. infer_datetime_format=True overrides dayfirst default
     # no warning + correct result
+    request.node.add_marker(
+        pytest.mark.xfail(
+            locale.getlocale()[0] == "zh_CN",
+            reason="Does not pass with LC_ALL=zh_CN.utf8",
+        )
+    )
     res4 = read_csv(
         StringIO(input),
         parse_dates=["date"],
