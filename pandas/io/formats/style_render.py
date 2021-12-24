@@ -798,6 +798,7 @@ class StylerRenderer:
         decimal: str = ".",
         thousands: str | None = None,
         escape: str | None = None,
+        render_links: bool = False,
     ) -> StylerRenderer:
         r"""
         Format the text display value of cells.
@@ -841,6 +842,12 @@ class StylerRenderer:
             Escaping is done before ``formatter``.
 
             .. versionadded:: 1.3.0
+
+        render_links : bool, optional
+            Convert string patterns containing https://, http://, ftp:// or www. to
+            HTML <a> tags as clickable URL hyperlinks.
+
+            .. versionadded:: 1.4.0
 
         Returns
         -------
@@ -958,6 +965,7 @@ class StylerRenderer:
                 thousands is None,
                 na_rep is None,
                 escape is None,
+                render_links is False,
             )
         ):
             self._display_funcs.clear()
@@ -980,6 +988,7 @@ class StylerRenderer:
                 decimal=decimal,
                 thousands=thousands,
                 escape=escape,
+                render_links=render_links,
             )
             for ri in ris:
                 self._display_funcs[(ri, ci)] = format_func
@@ -996,6 +1005,7 @@ class StylerRenderer:
         decimal: str = ".",
         thousands: str | None = None,
         escape: str | None = None,
+        render_links: bool = False,
     ) -> StylerRenderer:
         r"""
         Format the text display value of index labels or column headers.
@@ -1027,6 +1037,9 @@ class StylerRenderer:
             ``{``, ``}``, ``~``, ``^``, and ``\`` in the cell display string with
             LaTeX-safe sequences.
             Escaping is done before ``formatter``.
+        render_links : bool, optional
+            Convert string patterns containing https://, http://, ftp:// or www. to
+            HTML <a> tags as clickable URL hyperlinks.
 
         Returns
         -------
@@ -1128,6 +1141,7 @@ class StylerRenderer:
                 thousands is None,
                 na_rep is None,
                 escape is None,
+                render_links is False,
             )
         ):
             display_funcs_.clear()
@@ -1149,6 +1163,7 @@ class StylerRenderer:
                 decimal=decimal,
                 thousands=thousands,
                 escape=escape,
+                render_links=render_links,
             )
 
             for idx in [(i, lvl) if axis == 0 else (lvl, i) for i in range(len(obj))]:
@@ -1391,6 +1406,15 @@ def _str_escape(x, escape):
     return x
 
 
+def _render_href(x):
+    """uses regex to detect a common URL pattern and converts to HTML <a> tag"""
+    if isinstance(x, str):
+        href = '<a href="{0}" target="_blank">{0}</a>'
+        pat = r"(https?:\/\/|ftp:\/\/|www.)[\w/\-?=%.]+\.[\w/\-&?=%.]+"
+        return re.sub(pat, lambda m: href.format(m.group(0)), x)
+    return x
+
+
 def _maybe_wrap_formatter(
     formatter: BaseFormatter | None = None,
     na_rep: str | None = None,
@@ -1398,6 +1422,7 @@ def _maybe_wrap_formatter(
     decimal: str = ".",
     thousands: str | None = None,
     escape: str | None = None,
+    render_links: bool = False,
 ) -> Callable:
     """
     Allows formatters to be expressed as str, callable or None, where None returns
@@ -1431,11 +1456,17 @@ def _maybe_wrap_formatter(
     else:
         func_2 = func_1
 
+    # Render links
+    if render_links:
+        func_3 = lambda x: func_2(_render_href(x))
+    else:
+        func_3 = func_2
+
     # Replace missing values if na_rep
     if na_rep is None:
-        return func_2
+        return func_3
     else:
-        return lambda x: na_rep if isna(x) else func_2(x)
+        return lambda x: na_rep if isna(x) else func_3(x)
 
 
 def non_reducing_slice(slice_: Subset):
