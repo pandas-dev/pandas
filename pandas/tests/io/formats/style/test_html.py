@@ -764,3 +764,33 @@ def test_hiding_index_columns_multiindex_trimming():
     )
 
     assert result == expected
+
+
+@pytest.mark.parametrize("type", ["data", "index"])
+@pytest.mark.parametrize(
+    "text, exp, found",
+    [
+        ("no link, just text", False, ""),
+        ("subdomain not www: sub.web.com", False, ""),
+        ("www subdomain: www.web.com other", True, "www.web.com"),
+        ("scheme full structure: http://www.web.com", True, "http://www.web.com"),
+        ("scheme no top-level: http://www.web", True, "http://www.web"),
+        ("no scheme, no top-level: www.web", False, "www.web"),
+        ("https scheme: https://www.web.com", True, "https://www.web.com"),
+        ("ftp scheme: ftp://www.web", True, "ftp://www.web"),
+        ("subdirectories: www.web.com/directory", True, "www.web.com/directory"),
+        ("Multiple domains: www.1.2.3.4", True, "www.1.2.3.4"),
+    ],
+)
+def test_rendered_links(type, text, exp, found):
+    if type == "data":
+        df = DataFrame([text])
+        styler = df.style.format(render_links=True)
+    else:
+        df = DataFrame([0], index=[text])
+        styler = df.style.format_index(render_links=True)
+
+    rendered = '<a href="{0}" target="_blank">{0}</a>'.format(found)
+    result = styler.to_html()
+    assert (rendered in result) is exp
+    assert (text in result) is not exp  # test conversion done when expected and not
