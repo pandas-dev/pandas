@@ -326,8 +326,12 @@ def tests_css_named_colors_valid():
 
 @td.skip_if_no_mpl
 def test_css_named_colors_from_mpl_present():
-    from matplotlib.colors import CSS4_COLORS as mpl_colors
+    import matplotlib as mpl
 
+    mpl_colors = mpl.colors.CSS4_COLORS
     pd_colors = CSSToExcelConverter.NAMED_COLORS
     for name, color in mpl_colors.items():
         assert name in pd_colors and pd_colors[name] == color[1:]
+
+    # https://github.com/matplotlib/matplotlib/issues/22017#issuecomment-998241017
+    mpl.font_manager._get_font.cache_clear()
