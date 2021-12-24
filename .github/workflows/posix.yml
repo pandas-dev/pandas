@@ -26,7 +26,7 @@ jobs:
       matrix:
         settings: [
           [actions-38-minimum_versions.yaml, "not slow and not network and not clipboard", "", "", ""],
-          [actions-38-locale_clipboard.yaml, "not slow and not network", "language-pack-en language-pack-zh-hans language-pack-it xsel", "", ""],
+          [actions-38-locale_clipboard.yaml, "not slow and not network", "language-pack-zh-hans language-pack-it xsel", "", ""],
           [actions-38-slow.yaml, "slow", "", "", ""],
           [actions-39-slow.yaml, "slow", "", "", ""],
           [actions-38.yaml, "not slow and not clipboard", "", "", ""],
