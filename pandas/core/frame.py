@@ -4378,7 +4378,7 @@ class DataFrame(NDFrame, OpsMixin):
         loc: int,
         column: Hashable,
         value: Scalar | AnyArrayLike,
-        allow_duplicates: bool = False,
+        allow_duplicates: bool | lib.NoDefault = lib.no_default,
     ) -> None:
         """
         Insert column into DataFrame at specified location.
@@ -4393,7 +4393,7 @@ class DataFrame(NDFrame, OpsMixin):
         column : str, number, or hashable object
             Label of the inserted column.
         value : Scalar, Series, or array-like
-        allow_duplicates : bool, optional default False
+        allow_duplicates : bool, optional, default lib.no_default
 
         See Also
         --------
@@ -4425,6 +4425,8 @@ class DataFrame(NDFrame, OpsMixin):
         0   NaN   100     1      99     3
         1   5.0   100     2      99     4
         """
+        if allow_duplicates is lib.no_default:
+            allow_duplicates = False
         if allow_duplicates and not self.flags.allows_duplicate_labels:
             raise ValueError(
                 "Cannot specify 'allow_duplicates=True' when "
@@ -5638,7 +5640,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: bool = False,
         col_level: Hashable = 0,
         col_fill: Hashable = "",
-        allow_duplicates: bool = False,
+        allow_duplicates: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame | None:
         """
         Reset the index, or a level of it.
@@ -5664,7 +5666,7 @@ class DataFrame(NDFrame, OpsMixin):
         col_fill : object, default ''
             If the columns have multiple levels, determines how the other
             levels are named. If None then the index name is repeated.
-        allow_duplicates : bool, default False
+        allow_duplicates : bool, optional, default lib.no_default
             Allow duplicate column labels to be created.
 
             .. versionadded:: 1.4.0
@@ -5796,8 +5798,8 @@ class DataFrame(NDFrame, OpsMixin):
             new_obj = self
         else:
             new_obj = self.copy()
-
-        allow_duplicates = validate_bool_kwarg(allow_duplicates, "allow_duplicates")
+        if allow_duplicates is not lib.no_default:
+            allow_duplicates = validate_bool_kwarg(allow_duplicates, "allow_duplicates")
 
         new_index = default_index(len(new_obj))
         if level is not None:
