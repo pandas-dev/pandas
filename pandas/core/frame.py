@@ -666,7 +666,7 @@ class DataFrame(NDFrame, OpsMixin):
                     typ=manager,
                 )
 
-        elif isinstance(data, (np.ndarray, Series, Index)):
+        elif isinstance(data, (np.ndarray, Series, Index, ExtensionArray)):
             if data.dtype.names:
                 # i.e. numpy structured array
                 data = cast(np.ndarray, data)
