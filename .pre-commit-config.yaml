@@ -41,7 +41,7 @@ repos:
     -   id: flake8
         additional_dependencies: &flake8_dependencies
         - flake8==4.0.1
-        - flake8-comprehensions==3.1.0
+        - flake8-comprehensions==3.7.0
         - flake8-bugbear==21.3.2
         - pandas-dev-flaker==0.2.0
     -   id: flake8
@@ -98,7 +98,7 @@ repos:
         entry: flake8-rst
         types: [rst]
         args: [--filename=*.rst]
-        additional_dependencies: [flake8-rst==0.7.0, flake8==3.7.9]
+        additional_dependencies: [flake8-rst==0.7.0, flake8==4.0.1]
     -   id: unwanted-patterns
         name: Unwanted patterns
         language: pygrep
