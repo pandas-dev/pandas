@@ -4258,6 +4258,7 @@ Keep all original rows and also all original values
 
     agg = aggregate
 
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     @doc(NDFrame.any, **_shared_doc_kwargs)
     def any(
         self: Series,
