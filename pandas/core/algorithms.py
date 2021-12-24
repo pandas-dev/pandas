@@ -219,9 +219,6 @@ def _reconstruct_data(
     elif is_bool_dtype(dtype):
         values = values.astype(dtype, copy=False)
 
-        # we only support object dtypes bool Index
-        if isinstance(original, ABCIndex):
-            values = values.astype(object, copy=False)
     elif dtype is not None:
         if is_datetime64_dtype(dtype):
             dtype = np.dtype("datetime64[ns]")

@@ -54,7 +54,8 @@ def test_drop_with_ignore_errors():
 
     # GH 8522
     s = Series([2, 3], index=[True, False])
-    assert s.index.is_object()
+    assert not s.index.is_object()
+    assert s.index.dtype == bool
     result = s.drop(True)
     expected = Series([3], index=[False])
     tm.assert_series_equal(result, expected)

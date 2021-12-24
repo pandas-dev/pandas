@@ -481,6 +481,10 @@ class Index(IndexOpsMixin, PandasObject):
             if data.dtype.kind in ["i", "u", "f"]:
                 # maybe coerce to a sub-class
                 arr = data
+            elif data.dtype.kind == "b":
+                # No special subclass, and Index._ensure_array won't do this
+                #  for us.
+                arr = np.asarray(data)
             else:
                 arr = com.asarray_tuplesafe(data, dtype=np.dtype("object"))
 
@@ -672,7 +676,7 @@ class Index(IndexOpsMixin, PandasObject):
             # "Union[ExtensionArray, ndarray[Any, Any]]"; expected
             # "ndarray[Any, Any]"
             values = lib.maybe_convert_objects(result._values)  # type: ignore[arg-type]
-            if values.dtype.kind in ["i", "u", "f"]:
+            if values.dtype.kind in ["i", "u", "f", "b"]:
                 return Index(values, name=result.name)
 
         return result
@@ -837,6 +841,8 @@ class Index(IndexOpsMixin, PandasObject):
         # to avoid a reference cycle, bind `target_values` to a local variable, so
         # `self` is not passed into the lambda.
         target_values = self._get_engine_target()
+        if target_values.dtype == bool:
+            return libindex.BoolEngine(target_values)
         return self._engine_type(target_values)
 
     @final
@@ -2548,6 +2554,8 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Whether or not the index values only consist of dates.
         """
+        if self.dtype.kind == "b":
+            return False
         return is_datetime_array(ensure_object(self._values))
 
     @cache_readonly
@@ -7048,7 +7056,7 @@ def _maybe_cast_data_without_dtype(
             FutureWarning,
             stacklevel=3,
         )
-    if result.dtype.kind in ["b", "c"]:
+    if result.dtype.kind in ["c"]:
         return subarr
     result = ensure_wrapped_if_datetimelike(result)
     return result
