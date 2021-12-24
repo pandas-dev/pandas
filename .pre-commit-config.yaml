@@ -98,7 +98,7 @@ repos:
         entry: flake8-rst
         types: [rst]
         args: [--filename=*.rst]
-        additional_dependencies: [flake8-rst==0.7.0, flake8==4.0.1]
+        additional_dependencies: [flake8-rst==0.7.0, flake8==3.7.9]
     -   id: unwanted-patterns
         name: Unwanted patterns
         language: pygrep
