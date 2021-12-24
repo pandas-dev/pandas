@@ -794,3 +794,13 @@ def test_rendered_links(type, text, exp, found):
     result = styler.to_html()
     assert (rendered in result) is exp
     assert (text in result) is not exp  # test conversion done when expected and not
+
+
+def test_multiple_rendered_links():
+    links = ("www.a.b", "http://a.c", "https://a.d", "ftp://a.e")
+    df = DataFrame(["text {} {} text {} {}".format(*links)])
+    result = df.style.format(render_links=True).to_html()
+    href = '<a href="{0}" target="_blank">{0}</a>'
+    for link in links:
+        assert href.format(link) in result
+    assert href.format("text") not in result
