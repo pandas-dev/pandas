@@ -35,12 +35,12 @@ repos:
         # we can lint all header files since they aren't "generated" like C files are.
         exclude: ^pandas/_libs/src/(klib|headers)/
         args: [--quiet, '--extensions=c,h', '--headers=h', --recursive, '--filter=-readability/casting,-runtime/int,-build/include_subdir']
--   repo: https://gitlab.com/pycqa/flake8
-    rev: 3.9.2
+-   repo: https://github.com/PyCQA/flake8
+    rev: 4.0.1
     hooks:
     -   id: flake8
         additional_dependencies: &flake8_dependencies
-        - flake8==3.9.2
+        - flake8==4.0.1
         - flake8-comprehensions==3.1.0
         - flake8-bugbear==21.3.2
         - pandas-dev-flaker==0.2.0
