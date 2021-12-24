@@ -641,6 +641,10 @@ class _LocationIndexer(NDFrameIndexerBase):
         if self.name == "loc":
             self._ensure_listlike_indexer(key)
 
+        if isinstance(key, tuple):
+            for x in key:
+                self._check_deprecated_indexers(x)
+
         if self.axis is not None:
             return self._convert_tuple(key)
 
@@ -698,6 +702,7 @@ class _LocationIndexer(NDFrameIndexerBase):
             )
 
     def __setitem__(self, key, value):
+        self._check_deprecated_indexers(key)
         if isinstance(key, tuple):
             key = tuple(list(x) if is_iterator(x) else x for x in key)
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
@@ -890,6 +895,9 @@ class _LocationIndexer(NDFrameIndexerBase):
         # we have a nested tuple so have at least 1 multi-index level
         # we should be able to match up the dimensionality here
 
+        for key in tup:
+            self._check_deprecated_indexers(key)
+
         # we have too many indexers for our dim, but have at least 1
         # multi-index dimension, try to see if we have something like
         # a tuple passed to a series with a multi-index
@@ -942,7 +950,32 @@ class _LocationIndexer(NDFrameIndexerBase):
     def _convert_to_indexer(self, key, axis: int):
         raise AbstractMethodError(self)
 
+    def _check_deprecated_indexers(self, key):
+        if (
+            isinstance(key, set)
+            or isinstance(key, tuple)
+            and any(isinstance(x, set) for x in key)
+        ):
+            warnings.warn(
+                "Passing a set as an indexer is deprecated and will raise in "
+                "a future version. Use a list instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        if (
+            isinstance(key, dict)
+            or isinstance(key, tuple)
+            and any(isinstance(x, dict) for x in key)
+        ):
+            warnings.warn(
+                "Passing a dict as an indexer is deprecated and will raise in "
+                "a future version. Use a list instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
     def __getitem__(self, key):
+        self._check_deprecated_indexers(key)
         if type(key) is tuple:
             key = tuple(list(x) if is_iterator(x) else x for x in key)
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)

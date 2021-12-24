@@ -938,7 +938,32 @@ class Series(base.IndexOpsMixin, NDFrame):
         #  _slice is *always* positional
         return self._get_values(slobj)
 
+    def _check_deprecated_indexers(self, key):
+        if (
+            isinstance(key, set)
+            or isinstance(key, tuple)
+            and any(isinstance(x, set) for x in key)
+        ):
+            warnings.warn(
+                "Passing a set as an indexer is deprecated and will raise in "
+                "a future version. Use a list instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        if (
+            isinstance(key, dict)
+            or isinstance(key, tuple)
+            and any(isinstance(x, dict) for x in key)
+        ):
+            warnings.warn(
+                "Passing a dict as an indexer is deprecated and will raise in "
+                "a future version. Use a list instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
     def __getitem__(self, key):
+        self._check_deprecated_indexers(key)
         key = com.apply_if_callable(key, self)
 
         if key is Ellipsis:
@@ -1065,6 +1090,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         return self.index._get_values_for_loc(self, loc, label)
 
     def __setitem__(self, key, value) -> None:
+        self._check_deprecated_indexers(key)
         key = com.apply_if_callable(key, self)
         cacher_needs_updating = self._check_is_chained_assignment_possible()
 
