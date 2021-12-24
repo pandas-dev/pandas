@@ -1157,6 +1157,14 @@ class TestiLocBaseIndependent:
         expected = DataFrame({"B": df["B"], "A": df["A"]})
         tm.assert_frame_equal(res, expected)
 
+    def test_iloc_setitem_2d_ndarray_into_ea_block(self):
+        # GH#44703
+        df = DataFrame({"status": ["a", "b", "c"]}, dtype="category")
+        df.iloc[np.array([0, 1]), np.array([0])] = np.array([["a"], ["a"]])
+
+        expected = DataFrame({"status": ["a", "a", "c"]}, dtype=df["status"].dtype)
+        tm.assert_frame_equal(df, expected)
+
 
 class TestILocErrors:
     # NB: this test should work for _any_ Series we can pass as
