@@ -1,16 +1,15 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import (
     DataFrame,
     IndexSlice,
     Series,
 )
 
-pytest.importorskip("matplotlib")
 pytest.importorskip("jinja2")
-
-import matplotlib as mpl
 
 from pandas.io.formats.style import Styler
 
@@ -260,18 +259,23 @@ def test_background_gradient_gmap_wrong_series(styler_blank):
         styler_blank.background_gradient(gmap=gmap, axis=None)._compute()
 
 
-@pytest.mark.parametrize("cmap", ["PuBu", mpl.cm.get_cmap("PuBu")])
-def test_bar_colormap(cmap):
-    data = DataFrame([[1, 2], [3, 4]])
-    ctx = data.style.bar(cmap=cmap, axis=None)._compute().ctx
-    pubu_colors = {
-        (0, 0): "#d0d1e6",
-        (1, 0): "#056faf",
-        (0, 1): "#73a9cf",
-        (1, 1): "#023858",
-    }
-    for k, v in pubu_colors.items():
-        assert v in ctx[k][1][1]
+@td.skip_if_no_mpl
+def test_bar_colormap():
+    import matplotlib as mpl
+
+    for cmap in ["PuBu", mpl.cm.get_cmap("PuBu")]:
+        data = DataFrame([[1, 2], [3, 4]])
+        ctx = data.style.bar(cmap=cmap, axis=None)._compute().ctx
+        pubu_colors = {
+            (0, 0): "#d0d1e6",
+            (1, 0): "#056faf",
+            (0, 1): "#73a9cf",
+            (1, 1): "#023858",
+        }
+        for k, v in pubu_colors.items():
+            assert v in ctx[k][1][1]
+    # https://github.com/matplotlib/matplotlib/issues/22017#issuecomment-998241017
+    mpl.font_manager._get_font.cache_clear()
 
 
 def test_bar_color_raises(df):
