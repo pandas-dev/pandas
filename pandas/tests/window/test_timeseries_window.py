@@ -648,6 +648,9 @@ class TestRollingTS:
         # GH 15130
         # we don't need to validate monotonicity when grouping
 
+        # GH 43909 we should raise an error here to match
+        # behaviour of non-groupby rolling.
+
         data = [
             ["David", "1/1/2015", 100],
             ["David", "1/5/2015", 500],
@@ -663,6 +666,7 @@ class TestRollingTS:
 
         df = DataFrame(data=data, columns=["name", "date", "amount"])
         df["date"] = to_datetime(df["date"])
+        df = df.sort_values("date")
 
         expected = (
             df.set_index("date")
@@ -672,8 +676,10 @@ class TestRollingTS:
         result = df.groupby("name").rolling("180D", on="date")["amount"].sum()
         tm.assert_series_equal(result, expected)
 
-    def test_non_monotonic(self):
+    def test_non_monotonic_raises(self):
         # GH 13966 (similar to #15130, closed by #15175)
+
+        # superseded by 43909
 
         dates = date_range(start="2016-01-01 09:30:00", periods=20, freq="s")
         df = DataFrame(
@@ -684,11 +690,13 @@ class TestRollingTS:
             }
         )
 
-        result = df.groupby("A").rolling("4s", on="B").C.mean()
         expected = (
             df.set_index("B").groupby("A").apply(lambda x: x.rolling("4s")["C"].mean())
         )
-        tm.assert_series_equal(result, expected)
+        with pytest.raises(ValueError, match=r".* must be monotonic"):
+            df.groupby("A").rolling(
+                "4s", on="B"
+            ).C.mean()  # should raise for non-monotonic t series
 
         df2 = df.sort_values("B")
         result = df2.groupby("A").rolling("4s", on="B").C.mean()

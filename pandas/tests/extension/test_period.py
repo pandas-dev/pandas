@@ -183,5 +183,5 @@ class TestParsing(BasePeriodTests, base.BaseParsingTests):
         super().test_EA_types(engine, data)
 
 
-class Test2DCompat(BasePeriodTests, base.Dim2CompatTests):
+class Test2DCompat(BasePeriodTests, base.NDArrayBacked2DTests):
     pass
