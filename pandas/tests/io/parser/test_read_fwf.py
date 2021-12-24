@@ -22,6 +22,7 @@ from pandas import (
 )
 import pandas._testing as tm
 
+import pandas.io.common as icom
 from pandas.io.parsers import (
     read_csv,
     read_fwf,
@@ -655,7 +656,7 @@ def test_fwf_compression(compression_only, infer):
     3333333333""".strip()
 
     compression = compression_only
-    extension = "gz" if compression == "gzip" else compression
+    extension = icom._compression_to_extension[compression]
 
     kwargs = {"widths": [5, 5], "names": ["one", "two"]}
     expected = read_fwf(StringIO(data), **kwargs)
@@ -699,15 +700,15 @@ def test_encoding_mmap(memory_map):
     GH 23254.
     """
     encoding = "iso8859_1"
-    data = BytesIO(" 1 A Ä 2\n".encode(encoding))
-    df = read_fwf(
-        data,
-        header=None,
-        widths=[2, 2, 2, 2],
-        encoding=encoding,
-        memory_map=memory_map,
-    )
-    data.seek(0)
+    with tm.ensure_clean() as path:
+        Path(path).write_bytes(" 1 A Ä 2\n".encode(encoding))
+        df = read_fwf(
+            path,
+            header=None,
+            widths=[2, 2, 2, 2],
+            encoding=encoding,
+            memory_map=memory_map,
+        )
     df_reference = DataFrame([[1, "A", "Ä", 2]])
     tm.assert_frame_equal(df, df_reference)
 

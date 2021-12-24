@@ -636,12 +636,12 @@ class TestPeriodIndexArithmetic:
         expected = pd.Index([pd.NaT, 0 * off, 0 * off, 0 * off, 0 * off])
         tm.assert_index_equal(result, expected)
 
-    def test_parr_sub_pi_mismatched_freq(self, box_with_array):
+    def test_parr_sub_pi_mismatched_freq(self, box_with_array, box_with_array2):
         rng = period_range("1/1/2000", freq="D", periods=5)
         other = period_range("1/6/2000", freq="H", periods=5)
-        # TODO: parametrize over boxes for other?
 
         rng = tm.box_expected(rng, box_with_array)
+        other = tm.box_expected(other, box_with_array2)
         msg = r"Input has different freq=[HD] from PeriodArray\(freq=[DH]\)"
         with pytest.raises(IncompatibleFrequency, match=msg):
             rng - other
@@ -998,58 +998,67 @@ class TestPeriodIndexArithmetic:
     # Timedelta-like (timedelta, timedelta64, Timedelta, Tick)
     # TODO: Some of these are misnomers because of non-Tick DateOffsets
 
-    def test_pi_add_timedeltalike_minute_gt1(self, three_days):
+    def test_parr_add_timedeltalike_minute_gt1(self, three_days, box_with_array):
         # GH#23031 adding a time-delta-like offset to a PeriodArray that has
         # minute frequency with n != 1.  A more general case is tested below
         # in test_pi_add_timedeltalike_tick_gt1, but here we write out the
         # expected result more explicitly.
         other = three_days
         rng = period_range("2014-05-01", periods=3, freq="2D")
+        rng = tm.box_expected(rng, box_with_array)
 
         expected = PeriodIndex(["2014-05-04", "2014-05-06", "2014-05-08"], freq="2D")
+        expected = tm.box_expected(expected, box_with_array)
 
         result = rng + other
-        tm.assert_index_equal(result, expected)
+        tm.assert_equal(result, expected)
 
         result = other + rng
-        tm.assert_index_equal(result, expected)
+        tm.assert_equal(result, expected)
 
         # subtraction
         expected = PeriodIndex(["2014-04-28", "2014-04-30", "2014-05-02"], freq="2D")
+        expected = tm.box_expected(expected, box_with_array)
         result = rng - other
-        tm.assert_index_equal(result, expected)
+        tm.assert_equal(result, expected)
 
         msg = "|".join(
             [
-                r"(:?bad operand type for unary -: 'PeriodArray')",
-                r"(:?cannot subtract PeriodArray from timedelta64\[[hD]\])",
+                r"bad operand type for unary -: 'PeriodArray'",
+                r"cannot subtract PeriodArray from timedelta64\[[hD]\]",
             ]
         )
         with pytest.raises(TypeError, match=msg):
             other - rng
 
     @pytest.mark.parametrize("freqstr", ["5ns", "5us", "5ms", "5s", "5T", "5h", "5d"])
-    def test_pi_add_timedeltalike_tick_gt1(self, three_days, freqstr):
+    def test_parr_add_timedeltalike_tick_gt1(self, three_days, freqstr, box_with_array):
         # GH#23031 adding a time-delta-like offset to a PeriodArray that has
         # tick-like frequency with n != 1
         other = three_days
         rng = period_range("2014-05-01", periods=6, freq=freqstr)
+        first = rng[0]
+        rng = tm.box_expected(rng, box_with_array)
 
-        expected = period_range(rng[0] + other, periods=6, freq=freqstr)
+        expected = period_range(first + other, periods=6, freq=freqstr)
+        expected = tm.box_expected(expected, box_with_array)
 
         result = rng + other
-        tm.assert_index_equal(result, expected)
+        tm.assert_equal(result, expected)
 
         result = other + rng
-        tm.assert_index_equal(result, expected)
+        tm.assert_equal(result, expected)
 
         # subtraction
-        expected = period_range(rng[0] - other, periods=6, freq=freqstr)
+        expected = period_range(first - other, periods=6, freq=freqstr)
+        expected = tm.box_expected(expected, box_with_array)
         result = rng - other
-        tm.assert_index_equal(result, expected)
-        msg = (
-            r"(:?bad operand type for unary -: 'PeriodArray')"
-            r"|(:?cannot subtract PeriodArray from timedelta64\[[hD]\])"
+        tm.assert_equal(result, expected)
+        msg = "|".join(
+            [
+                r"bad operand type for unary -: 'PeriodArray'",
+                r"cannot subtract PeriodArray from timedelta64\[[hD]\]",
+            ]
         )
         with pytest.raises(TypeError, match=msg):
             other - rng
@@ -1078,9 +1087,13 @@ class TestPeriodIndexArithmetic:
         rng -= other
         tm.assert_index_equal(rng, expected)
 
-    def test_pi_add_sub_timedeltalike_freq_mismatch_daily(self, not_daily):
+    def test_parr_add_sub_timedeltalike_freq_mismatch_daily(
+        self, not_daily, box_with_array
+    ):
         other = not_daily
         rng = period_range("2014-05-01", "2014-05-15", freq="D")
+        rng = tm.box_expected(rng, box_with_array)
+
         msg = "Input has different freq(=.+)? from Period.*?\\(freq=D\\)"
         with pytest.raises(IncompatibleFrequency, match=msg):
             rng + other
@@ -1102,9 +1115,12 @@ class TestPeriodIndexArithmetic:
         rng += other
         tm.assert_index_equal(rng, expected)
 
-    def test_pi_add_timedeltalike_mismatched_freq_hourly(self, not_hourly):
+    def test_parr_add_timedeltalike_mismatched_freq_hourly(
+        self, not_hourly, box_with_array
+    ):
         other = not_hourly
         rng = period_range("2014-01-01 10:00", "2014-01-05 10:00", freq="H")
+        rng = tm.box_expected(rng, box_with_array)
         msg = "Input has different freq(=.+)? from Period.*?\\(freq=H\\)"
 
         with pytest.raises(IncompatibleFrequency, match=msg):
@@ -1262,6 +1278,9 @@ class TestPeriodSeriesArithmetic:
         )
 
         obj = tm.box_expected(ser, box_with_array)
+        if box_with_array is pd.DataFrame:
+            assert (obj.dtypes == "Period[D]").all()
+
         expected = tm.box_expected(expected, box_with_array)
 
         result = obj + three_days

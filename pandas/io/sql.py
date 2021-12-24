@@ -44,6 +44,7 @@ from pandas.core.api import (
     Series,
 )
 from pandas.core.base import PandasObject
+import pandas.core.common as com
 from pandas.core.tools.datetimes import to_datetime
 from pandas.util.version import Version
 
@@ -1010,10 +1011,7 @@ class SQLTable(PandasObject):
             ):
                 return ["index"]
             else:
-                return [
-                    l if l is not None else f"level_{i}"
-                    for i, l in enumerate(self.frame.index.names)
-                ]
+                return com.fill_missing_names(self.frame.index.names)
 
         # for reading: index=(list of) string to specify column to set as index
         elif isinstance(index, str):

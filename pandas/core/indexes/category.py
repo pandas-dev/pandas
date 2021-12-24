@@ -16,7 +16,10 @@ from pandas._typing import (
     DtypeObj,
     npt,
 )
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    cache_readonly,
+    doc,
+)
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
@@ -179,6 +182,10 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
     @property
     def _can_hold_strings(self):
         return self.categories._can_hold_strings
+
+    @cache_readonly
+    def _should_fallback_to_positional(self) -> bool:
+        return self.categories._should_fallback_to_positional
 
     codes: np.ndarray
     categories: Index
@@ -376,20 +383,6 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
             return self.hasnans
 
         return contains(self, key, container=self._engine)
-
-    @doc(Index.fillna)
-    def fillna(self, value, downcast=None):
-        value = self._require_scalar(value)
-        try:
-            cat = self._data.fillna(value)
-        except (ValueError, TypeError):
-            # invalid fill_value
-            if not self.hasnans:
-                # nothing to fill, we can get away without casting
-                return self.copy()
-            return self.astype(object).fillna(value, downcast=downcast)
-
-        return type(self)._simple_new(cat, name=self.name)
 
     # TODO(2.0): remove reindex once non-unique deprecation is enforced
     def reindex(

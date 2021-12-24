@@ -248,7 +248,7 @@ def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLi
 
     if isinstance(dtype, str):
         if dtype == "infer":
-            inferred_type = lib.infer_dtype(ensure_object(result), skipna=False)
+            inferred_type = lib.infer_dtype(result, skipna=False)
             if inferred_type == "boolean":
                 dtype = "bool"
             elif inferred_type == "integer":
@@ -912,6 +912,10 @@ def maybe_upcast(
     # We get a copy in all cases _except_ (values.dtype == new_dtype and not copy)
     upcast_values = values.astype(new_dtype, copy=copy)
 
+    # error: Incompatible return value type (got "Tuple[ndarray[Any, dtype[Any]],
+    # Union[Union[str, int, float, bool] Union[Period, Timestamp, Timedelta, Any]]]",
+    # expected "Tuple[NumpyArrayT, Union[Union[str, int, float, bool], Union[Period,
+    # Timestamp, Timedelta, Any]]]")
     return upcast_values, fill_value  # type: ignore[return-value]
 
 

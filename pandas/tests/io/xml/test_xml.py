@@ -4,12 +4,15 @@ from io import (
     BytesIO,
     StringIO,
 )
+from lzma import LZMAError
 import os
 from urllib.error import HTTPError
+from zipfile import BadZipFile
 
 import numpy as np
 import pytest
 
+from pandas.compat._optional import import_optional_dependency
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame
@@ -1014,62 +1017,49 @@ def test_online_stylesheet():
 # COMPRESSION
 
 
-@pytest.mark.parametrize("comp", ["bz2", "gzip", "xz", "zip"])
-def test_compression_read(parser, comp):
+def test_compression_read(parser, compression_only):
     with tm.ensure_clean() as path:
-        geom_df.to_xml(path, index=False, parser=parser, compression=comp)
+        geom_df.to_xml(path, index=False, parser=parser, compression=compression_only)
 
-        xml_df = read_xml(path, parser=parser, compression=comp)
+        xml_df = read_xml(path, parser=parser, compression=compression_only)
 
     tm.assert_frame_equal(xml_df, geom_df)
 
 
-@pytest.mark.parametrize("comp", ["gzip", "xz", "zip"])
-def test_wrong_compression_bz2(parser, comp):
-    with tm.ensure_clean() as path:
-        geom_df.to_xml(path, parser=parser, compression=comp)
+def test_wrong_compression(parser, compression, compression_only):
+    actual_compression = compression
+    attempted_compression = compression_only
 
-        with pytest.raises(OSError, match="Invalid data stream"):
-            read_xml(path, parser=parser, compression="bz2")
+    if actual_compression == attempted_compression:
+        return
 
-
-@pytest.mark.parametrize("comp", ["bz2", "xz", "zip"])
-def test_wrong_compression_gz(parser, comp):
-    with tm.ensure_clean() as path:
-        geom_df.to_xml(path, parser=parser, compression=comp)
-
-        with pytest.raises(OSError, match="Not a gzipped file"):
-            read_xml(path, parser=parser, compression="gzip")
-
-
-@pytest.mark.parametrize("comp", ["bz2", "gzip", "zip"])
-def test_wrong_compression_xz(parser, comp):
-    lzma = pytest.importorskip("lzma")
+    errors = {
+        "bz2": (OSError, "Invalid data stream"),
+        "gzip": (OSError, "Not a gzipped file"),
+        "zip": (BadZipFile, "File is not a zip file"),
+    }
+    zstd = import_optional_dependency("zstandard", errors="ignore")
+    if zstd is not None:
+        errors["zstd"] = (zstd.ZstdError, "Unknown frame descriptor")
+    lzma = import_optional_dependency("lzma", errors="ignore")
+    if lzma is not None:
+        errors["xz"] = (LZMAError, "Input format not supported by decoder")
+    error_cls, error_str = errors[attempted_compression]
 
     with tm.ensure_clean() as path:
-        geom_df.to_xml(path, parser=parser, compression=comp)
+        geom_df.to_xml(path, parser=parser, compression=actual_compression)
 
-        with pytest.raises(
-            lzma.LZMAError, match="Input format not supported by decoder"
-        ):
-            read_xml(path, parser=parser, compression="xz")
-
-
-@pytest.mark.parametrize("comp", ["bz2", "gzip", "xz"])
-def test_wrong_compression_zip(parser, comp):
-    from zipfile import BadZipFile
-
-    with tm.ensure_clean() as path:
-        geom_df.to_xml(path, parser=parser, compression=comp)
-
-        with pytest.raises(BadZipFile, match="File is not a zip file"):
-            read_xml(path, parser=parser, compression="zip")
+        with pytest.raises(error_cls, match=error_str):
+            read_xml(path, parser=parser, compression=attempted_compression)
 
 
 def test_unsuported_compression(datapath, parser):
     with pytest.raises(ValueError, match="Unrecognized compression type"):
         with tm.ensure_clean() as path:
-            read_xml(path, parser=parser, compression="7z")
+            # error: Argument "compression" to "read_xml" has incompatible type
+            # "Literal['7z']"; expected "Union[Literal['infer'], Literal['gzip'],
+            # Literal['bz2'], Literal['zip'], Literal['xz'], Dict[str, Any], None]"
+            read_xml(path, parser=parser, compression="7z")  # type: ignore[arg-type]
 
 
 # STORAGE OPTIONS

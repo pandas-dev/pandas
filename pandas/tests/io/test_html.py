@@ -14,7 +14,6 @@ import numpy as np
 import pytest
 
 from pandas.compat import is_platform_windows
-from pandas.errors import ParserError
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -918,13 +917,8 @@ class TestReadHtml:
         assert np.allclose(result.loc["Alaska", ("Total area[2]", "sq mi")], 665384.04)
 
     def test_parser_error_on_empty_header_row(self):
-        msg = (
-            r"Passed header=\[0,1\] are too many "
-            r"rows for this multi_index of columns"
-        )
-        with pytest.raises(ParserError, match=msg):
-            self.read_html(
-                """
+        result = self.read_html(
+            """
                 <table>
                     <thead>
                         <tr><th></th><th></tr>
@@ -935,8 +929,15 @@ class TestReadHtml:
                     </tbody>
                 </table>
             """,
-                header=[0, 1],
-            )
+            header=[0, 1],
+        )
+        expected = DataFrame(
+            [["a", "b"]],
+            columns=MultiIndex.from_tuples(
+                [("Unnamed: 0_level_0", "A"), ("Unnamed: 1_level_0", "B")]
+            ),
+        )
+        tm.assert_frame_equal(result[0], expected)
 
     def test_decimal_rows(self):
         # GH 12907
@@ -1166,6 +1167,10 @@ class TestReadHtml:
         else:
             assert len(dfs) == 1  # Should not parse hidden table
 
+    @pytest.mark.filterwarnings(
+        "ignore:You provided Unicode markup but also provided a value for "
+        "from_encoding.*:UserWarning"
+    )
     def test_encode(self, html_encoding_file):
         base_path = os.path.basename(html_encoding_file)
         root = os.path.splitext(base_path)[0]

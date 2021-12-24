@@ -34,6 +34,7 @@ from pandas.io.common import (
 from pandas.io.parsers import TextParser
 
 
+@doc(decompression_options=_shared_docs["decompression_options"] % "path_or_buffer")
 class _XMLFrameParser:
     """
     Internal subclass to parse XML into DataFrames.
@@ -68,9 +69,9 @@ class _XMLFrameParser:
         URL, file, file-like object, or a raw string containing XSLT,
         `etree` does not support XSLT but retained for consistency.
 
-    compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
-        Compression type for on-the-fly decompression of on-disk data.
-        If 'infer', then use extension for gzip, bz2, zip or xz.
+    {decompression_options}
+
+        .. versionchanged:: 1.4.0 Zstandard support.
 
     storage_options : dict, optional
         Extra options that make sense for a particular storage connection,
@@ -105,8 +106,8 @@ class _XMLFrameParser:
         names,
         encoding,
         stylesheet,
-        compression,
-        storage_options,
+        compression: CompressionOptions,
+        storage_options: StorageOptions,
     ) -> None:
         self.path_or_buffer = path_or_buffer
         self.xpath = xpath
@@ -570,8 +571,8 @@ class _LxmlFrameParser(_XMLFrameParser):
 def get_data_from_filepath(
     filepath_or_buffer: FilePath | bytes | ReadBuffer[bytes] | ReadBuffer[str],
     encoding,
-    compression,
-    storage_options,
+    compression: CompressionOptions,
+    storage_options: StorageOptions,
 ) -> str | bytes | ReadBuffer[bytes] | ReadBuffer[str]:
     """
     Extract raw XML data.
@@ -666,8 +667,8 @@ def _parse(
     encoding,
     parser,
     stylesheet,
-    compression,
-    storage_options,
+    compression: CompressionOptions,
+    storage_options: StorageOptions,
     **kwargs,
 ) -> DataFrame:
     """
@@ -727,7 +728,10 @@ def _parse(
     return _data_to_frame(data=data_dicts, **kwargs)
 
 
-@doc(storage_options=_shared_docs["storage_options"])
+@doc(
+    storage_options=_shared_docs["storage_options"],
+    decompression_options=_shared_docs["decompression_options"] % "path_or_buffer",
+)
 def read_xml(
     path_or_buffer: FilePath | ReadBuffer[bytes] | ReadBuffer[str],
     xpath: str | None = "./*",
@@ -801,12 +805,9 @@ def read_xml(
         transformation and not the original XML document. Only XSLT 1.0
         scripts and not later versions is currently supported.
 
-    compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
-        For on-the-fly decompression of on-disk data. If 'infer', then use
-        gzip, bz2, zip or xz if path_or_buffer is a string ending in
-        '.gz', '.bz2', '.zip', or 'xz', respectively, and no decompression
-        otherwise. If using 'zip', the ZIP file must contain only one data
-        file to be read in. Set to None for no decompression.
+    {decompression_options}
+
+        .. versionchanged:: 1.4.0 Zstandard support.
 
     {storage_options}
 
