@@ -2686,11 +2686,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
               followed by fallback to "fixed".
         index : bool, default True
             Write DataFrame index as a column.
-        errors : str, default 'strict'
-            Specifies how encoding and decoding errors are to be handled.
-            See the errors argument for :func:`open` for a full list
-            of options.
-        encoding : str, default "UTF-8"
         min_itemsize : dict or int, optional
             Map column names to minimum string sizes for columns.
         nan_rep : Any, optional
@@ -2703,6 +2698,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             queries, or True to use all columns. By default only the axes
             of the object are indexed. See :ref:`io.hdf5-query-data-columns`.
             Applicable only to format='table'.
+        errors : str, default 'strict'
+            Specifies how encoding and decoding errors are to be handled.
+            See the errors argument for :func:`open` for a full list
+            of options.
+        encoding : str, default "UTF-8"
 
         See Also
         --------
