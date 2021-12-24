@@ -131,13 +131,7 @@ def coerce_to_array(
         inferred_type = lib.infer_dtype(values, skipna=True)
         if inferred_type == "empty":
             pass
-        elif inferred_type not in [
-            "floating",
-            "integer",
-            "mixed-integer",
-            "integer-na",
-            "mixed-integer-float",
-        ]:
+        elif inferred_type == "boolean":
             raise TypeError(f"{values.dtype} cannot be converted to a FloatingDtype")
 
     elif is_bool_dtype(values) and is_float_dtype(dtype):
