@@ -75,6 +75,7 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
       pandas/core \
       pandas/errors/ \
       pandas/io/ \
+      pandas/plotting/ \
       pandas/tseries/ \
       pandas/util/ \
       pandas/_typing.py \
