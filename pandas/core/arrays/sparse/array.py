@@ -181,9 +181,8 @@ def _sparse_array_op(
         ltype = SparseDtype(subtype, left.fill_value)
         rtype = SparseDtype(subtype, right.fill_value)
 
-        # TODO(GH-23092): pass copy=False. Need to fix astype_nansafe
-        left = left.astype(ltype)
-        right = right.astype(rtype)
+        left = left.astype(ltype, copy=False)
+        right = right.astype(rtype, copy=False)
         dtype = ltype.subtype
     else:
         dtype = ltype
@@ -221,6 +220,16 @@ def _sparse_array_op(
             left_sp_values = left.sp_values
             right_sp_values = right.sp_values
 
+        if (
+            name in ["floordiv", "mod"]
+            and (right == 0).any()
+            and left.dtype.kind in ["i", "u"]
+        ):
+            # Match the non-Sparse Series behavior
+            opname = f"sparse_{name}_float64"
+            left_sp_values = left_sp_values.astype("float64")
+            right_sp_values = right_sp_values.astype("float64")
+
         sparse_op = getattr(splib, opname)
 
         with np.errstate(all="ignore"):
@@ -232,6 +241,15 @@ def _sparse_array_op(
                 right.sp_index,
                 right.fill_value,
             )
+
+    if name == "divmod":
+        # result is a 2-tuple
+        # error: Incompatible return value type (got "Tuple[SparseArray,
+        # SparseArray]", expected "SparseArray")
+        return (  # type: ignore[return-value]
+            _wrap_result(name, result[0], index, fill[0], dtype=result_dtype),
+            _wrap_result(name, result[1], index, fill[1], dtype=result_dtype),
+        )
 
     if result_dtype is None:
         result_dtype = result.dtype
@@ -302,7 +320,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         3. ``data.dtype.fill_value`` if `fill_value` is None and `dtype`
            is not a ``SparseDtype`` and `data` is a ``SparseArray``.
 
-    kind : {'integer', 'block'}, default 'integer'
+    kind : str
+        Can be 'integer' or 'block', default is 'integer'.
         The type of storage for sparse locations.
 
         * 'block': Stores a `block` and `block_length` for each
@@ -1223,30 +1242,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             else:
                 return self.copy()
         dtype = self.dtype.update_dtype(dtype)
-        # error: Item "ExtensionDtype" of "Union[ExtensionDtype, str, dtype[Any],
-        # Type[str], Type[float], Type[int], Type[complex], Type[bool], Type[object],
-        # None]" has no attribute "_subtype_with_str"
-        # error: Item "str" of "Union[ExtensionDtype, str, dtype[Any], Type[str],
-        # Type[float], Type[int], Type[complex], Type[bool], Type[object], None]" has no
-        # attribute "_subtype_with_str"
-        # error: Item "dtype[Any]" of "Union[ExtensionDtype, str, dtype[Any], Type[str],
-        # Type[float], Type[int], Type[complex], Type[bool], Type[object], None]" has no
-        # attribute "_subtype_with_str"
-        # error: Item "ABCMeta" of "Union[ExtensionDtype, str, dtype[Any], Type[str],
-        # Type[float], Type[int], Type[complex], Type[bool], Type[object], None]" has no
-        # attribute "_subtype_with_str"
-        # error: Item "type" of "Union[ExtensionDtype, str, dtype[Any], Type[str],
-        # Type[float], Type[int], Type[complex], Type[bool], Type[object], None]" has no
-        # attribute "_subtype_with_str"
-        # error: Item "None" of "Union[ExtensionDtype, str, dtype[Any], Type[str],
-        # Type[float], Type[int], Type[complex], Type[bool], Type[object], None]" has no
-        # attribute "_subtype_with_str"
-        subtype = pandas_dtype(dtype._subtype_with_str)  # type: ignore[union-attr]
-        # TODO copy=False is broken for astype_nansafe with int -> float, so cannot
-        # passthrough copy keyword: https://github.com/pandas-dev/pandas/issues/34456
-        sp_values = astype_nansafe(self.sp_values, subtype, copy=True)
-        if sp_values is self.sp_values and copy:
-            sp_values = sp_values.copy()
+        subtype = pandas_dtype(dtype._subtype_with_str)
+        sp_values = astype_nansafe(self.sp_values, subtype, copy=copy)
 
         # error: Argument 1 to "_simple_new" of "SparseArray" has incompatible type
         # "ExtensionArray"; expected "ndarray"
@@ -1363,13 +1360,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         else:
             arr = self.dropna()
 
-        # we don't support these kwargs.
-        # They should only be present when called via pandas, so do it here.
-        # instead of in `any` / `all` (which will raise if they're present,
-        # thanks to nv.validate
-        kwargs.pop("filter_type", None)
-        kwargs.pop("numeric_only", None)
-        kwargs.pop("op", None)
         return getattr(arr, name)(**kwargs)
 
     def all(self, axis=None, *args, **kwargs):
@@ -1497,49 +1487,50 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             nsparse = self.sp_index.ngaps
             return (sp_sum + self.fill_value * nsparse) / (ct + nsparse)
 
-    def max(self, axis: int = 0, *args, **kwargs) -> Scalar:
+    def max(self, *, axis: int | None = None, skipna: bool = True):
         """
-        Max of non-NA/null values
+        Max of array values, ignoring NA values if specified.
 
         Parameters
         ----------
         axis : int, default 0
             Not Used. NumPy compatibility.
-        *args, **kwargs
-            Not Used. NumPy compatibility.
+        skipna : bool, default True
+            Whether to ignore NA values.
 
         Returns
         -------
         scalar
         """
-        nv.validate_max(args, kwargs)
-        return self._min_max("max")
+        nv.validate_minmax_axis(axis, self.ndim)
+        return self._min_max("max", skipna=skipna)
 
-    def min(self, axis: int = 0, *args, **kwargs) -> Scalar:
+    def min(self, *, axis: int | None = None, skipna: bool = True):
         """
-        Min of non-NA/null values
+        Min of array values, ignoring NA values if specified.
 
         Parameters
         ----------
         axis : int, default 0
             Not Used. NumPy compatibility.
-        *args, **kwargs
-            Not Used. NumPy compatibility.
+        skipna : bool, default True
+            Whether to ignore NA values.
 
         Returns
         -------
         scalar
         """
-        nv.validate_min(args, kwargs)
-        return self._min_max("min")
+        nv.validate_minmax_axis(axis, self.ndim)
+        return self._min_max("min", skipna=skipna)
 
-    def _min_max(self, kind: Literal["min", "max"]) -> Scalar:
+    def _min_max(self, kind: Literal["min", "max"], skipna: bool) -> Scalar:
         """
         Min/max of non-NA/null values
 
         Parameters
         ----------
         kind : {"min", "max"}
+        skipna : bool
 
         Returns
         -------
@@ -1547,6 +1538,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         """
         valid_vals = self._valid_sp_values
         has_nonnull_fill_vals = not self._null_fill_value and self.sp_index.ngaps > 0
+
         if len(valid_vals) > 0:
             sp_min_max = getattr(valid_vals, kind)()
 
@@ -1554,12 +1546,17 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             if has_nonnull_fill_vals:
                 func = max if kind == "max" else min
                 return func(sp_min_max, self.fill_value)
-            else:
+            elif skipna:
                 return sp_min_max
+            elif self.sp_index.ngaps == 0:
+                # No NAs present
+                return sp_min_max
+            else:
+                return na_value_for_dtype(self.dtype.subtype, compat=False)
         elif has_nonnull_fill_vals:
             return self.fill_value
         else:
-            return na_value_for_dtype(self.dtype.subtype)
+            return na_value_for_dtype(self.dtype.subtype, compat=False)
 
     # ------------------------------------------------------------------------
     # Ufuncs
@@ -1586,7 +1583,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             sp_values = getattr(ufunc, method)(self.sp_values, **kwargs)
             fill_value = getattr(ufunc, method)(self.fill_value, **kwargs)
 
-            if isinstance(sp_values, tuple):
+            if ufunc.nout > 1:
                 # multiple outputs. e.g. modf
                 arrays = tuple(
                     self._simple_new(
@@ -1595,7 +1592,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                     for sp_value, fv in zip(sp_values, fill_value)
                 )
                 return arrays
-            elif is_scalar(sp_values):
+            elif method == "reduce":
                 # e.g. reductions
                 return sp_values
 
@@ -1609,7 +1606,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 out = out[0]
             return out
 
-        if type(result) is tuple:
+        if ufunc.nout > 1:
             return tuple(type(self)(x) for x in result)
         elif method == "at":
             # no return value
@@ -1645,7 +1642,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         else:
             other = np.asarray(other)
             with np.errstate(all="ignore"):
-                # TODO: look into _wrap_result
                 if len(self) != len(other):
                     raise AssertionError(
                         f"length mismatch: {len(self)} vs. {len(other)}"

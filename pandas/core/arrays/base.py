@@ -425,7 +425,7 @@ class ExtensionArray:
             if not self._can_hold_na:
                 return False
             elif item is self.dtype.na_value or isinstance(item, self.dtype.type):
-                return self.isna().any()
+                return self._hasnans
             else:
                 return False
         else:
@@ -603,6 +603,16 @@ class ExtensionArray:
         """
         raise AbstractMethodError(self)
 
+    @property
+    def _hasnans(self) -> bool:
+        # GH#22680
+        """
+        Equivalent to `self.isna().any()`.
+
+        Some ExtensionArray subclasses may be able to optimize this check.
+        """
+        return bool(self.isna().any())
+
     def _values_for_argsort(self) -> np.ndarray:
         """
         Return values for sorting.
@@ -686,7 +696,7 @@ class ExtensionArray:
         ExtensionArray.argmax
         """
         validate_bool_kwarg(skipna, "skipna")
-        if not skipna and self.isna().any():
+        if not skipna and self._hasnans:
             raise NotImplementedError
         return nargminmax(self, "argmin")
 
@@ -710,7 +720,7 @@ class ExtensionArray:
         ExtensionArray.argmin
         """
         validate_bool_kwarg(skipna, "skipna")
-        if not skipna and self.isna().any():
+        if not skipna and self._hasnans:
             raise NotImplementedError
         return nargminmax(self, "argmax")
 
@@ -1352,7 +1362,13 @@ class ExtensionArray:
         ------
         TypeError : subclass does not define reductions
         """
-        raise TypeError(f"cannot perform {name} with type {self.dtype}")
+        meth = getattr(self, name, None)
+        if meth is None:
+            raise TypeError(
+                f"'{type(self).__name__}' with dtype {self.dtype} "
+                f"does not support reduction '{name}'"
+            )
+        return meth(skipna=skipna, **kwargs)
 
     # https://github.com/python/typeshed/issues/2148#issuecomment-520783318
     # Incompatible types in assignment (expression has type "None", base class

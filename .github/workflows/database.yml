@@ -31,8 +31,9 @@ jobs:
       fail-fast: false
 
     concurrency:
-      group: ${{ github.ref }}-${{ matrix.ENV_FILE }}
-      cancel-in-progress: ${{github.event_name == 'pull_request'}}
+      # https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.ENV_FILE }}
+      cancel-in-progress: true
 
     services:
       mysql:
@@ -62,6 +63,14 @@ jobs:
         ports:
           - 5432:5432
 
+      moto:
+        image: motoserver/moto
+        env:
+          AWS_ACCESS_KEY_ID: foobar_key
+          AWS_SECRET_ACCESS_KEY: foobar_secret
+        ports:
+          - 5000:5000
+
     steps:
     - name: Checkout
       uses: actions/checkout@v2
@@ -79,6 +88,8 @@ jobs:
 
     - uses: conda-incubator/setup-miniconda@v2
       with:
+        mamba-version: "*"
+        channels: conda-forge
         activate-environment: pandas-dev
         channel-priority: strict
         environment-file: ${{ matrix.ENV_FILE }}

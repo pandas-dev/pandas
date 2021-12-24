@@ -1,7 +1,13 @@
 from datetime import datetime
 
+from hypothesis import (
+    given,
+    settings,
+)
 import numpy as np
 import pytest
+
+from pandas.compat import np_version_under1p19
 
 from pandas.core.dtypes.common import is_scalar
 
@@ -16,6 +22,7 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
+from pandas._testing._hypothesis import OPTIONAL_ONE_OF_ALL
 
 
 @pytest.fixture(params=["default", "float_string", "mixed_float", "mixed_int"])
@@ -91,7 +98,7 @@ class TestDataFrameIndexingWhere:
 
         tm.assert_series_equal(result, expected)
 
-    def test_where_alignment(self, where_frame, float_string_frame):
+    def test_where_alignment(self, where_frame, float_string_frame, mixed_int_frame):
         # aligning
         def _check_align(df, cond, other, check_dtypes=True):
             rs = df.where(cond, other)
@@ -134,7 +141,11 @@ class TestDataFrameIndexingWhere:
 
         # check other is ndarray
         cond = df > 0
-        _check_align(df, cond, (_safe_add(df).values))
+        warn = None
+        if df is mixed_int_frame:
+            warn = FutureWarning
+        with tm.assert_produces_warning(warn, match="Downcasting integer-dtype"):
+            _check_align(df, cond, (_safe_add(df).values))
 
         # integers are upcast, so don't check the dtypes
         cond = df > 0
@@ -454,7 +465,7 @@ class TestDataFrameIndexingWhere:
         df[df.abs() >= 5] = np.nan
         tm.assert_frame_equal(df, expected)
 
-    def test_where_axis(self):
+    def test_where_axis(self, using_array_manager):
         # GH 9736
         df = DataFrame(np.random.randn(2, 2))
         mask = DataFrame([[False, False], [False, False]])
@@ -492,8 +503,10 @@ class TestDataFrameIndexingWhere:
         assert return_value is None
         tm.assert_frame_equal(result, expected)
 
+        warn = FutureWarning if using_array_manager else None
         expected = DataFrame([[0, np.nan], [0, np.nan]])
-        result = df.where(mask, s, axis="columns")
+        with tm.assert_produces_warning(warn, match="Downcasting integer-dtype"):
+            result = df.where(mask, s, axis="columns")
         tm.assert_frame_equal(result, expected)
 
         expected = DataFrame(
@@ -701,14 +714,30 @@ class TestDataFrameIndexingWhere:
 
 def test_where_try_cast_deprecated(frame_or_series):
     obj = DataFrame(np.random.randn(4, 3))
-    if frame_or_series is not DataFrame:
-        obj = obj[0]
+    obj = tm.get_obj(obj, frame_or_series)
 
     mask = obj > 0
 
     with tm.assert_produces_warning(FutureWarning):
         # try_cast keyword deprecated
         obj.where(mask, -1, try_cast=False)
+
+
+def test_where_int_downcasting_deprecated(using_array_manager):
+    # GH#44597
+    arr = np.arange(6).astype(np.int16).reshape(3, 2)
+    df = DataFrame(arr)
+
+    mask = np.zeros(arr.shape, dtype=bool)
+    mask[:, 0] = True
+
+    msg = "Downcasting integer-dtype"
+    warn = FutureWarning if not using_array_manager else None
+    with tm.assert_produces_warning(warn, match=msg):
+        res = df.where(mask, 2 ** 17)
+
+    expected = DataFrame({0: arr[:, 0], 1: np.array([2 ** 17] * 3, dtype=np.int32)})
+    tm.assert_frame_equal(res, expected)
 
 
 def test_where_copies_with_noop(frame_or_series):
@@ -797,3 +826,75 @@ def test_where_columns_casting():
     result = df.where(pd.notnull(df), None)
     # make sure dtypes don't change
     tm.assert_frame_equal(expected, result)
+
+
+@pytest.mark.parametrize("as_cat", [True, False])
+def test_where_period_invalid_na(frame_or_series, as_cat, request):
+    # GH#44697
+    idx = pd.period_range("2016-01-01", periods=3, freq="D")
+    if as_cat:
+        idx = idx.astype("category")
+    obj = frame_or_series(idx)
+
+    # NA value that we should *not* cast to Period dtype
+    tdnat = pd.NaT.to_numpy("m8[ns]")
+
+    mask = np.array([True, True, False], ndmin=obj.ndim).T
+
+    if as_cat:
+        msg = (
+            r"Cannot setitem on a Categorical with a new category \(NaT\), "
+            "set the categories first"
+        )
+        if np_version_under1p19:
+            mark = pytest.mark.xfail(
+                reason="When evaluating the f-string to generate the exception "
+                "message, numpy somehow ends up trying to cast None to int, so "
+                "ends up raising TypeError but with an unrelated message."
+            )
+            request.node.add_marker(mark)
+    else:
+        msg = "value should be a 'Period'"
+
+    with pytest.raises(TypeError, match=msg):
+        obj.where(mask, tdnat)
+
+    with pytest.raises(TypeError, match=msg):
+        obj.mask(mask, tdnat)
+
+
+def test_where_nullable_invalid_na(frame_or_series, any_numeric_ea_dtype):
+    # GH#44697
+    arr = pd.array([1, 2, 3], dtype=any_numeric_ea_dtype)
+    obj = frame_or_series(arr)
+
+    mask = np.array([True, True, False], ndmin=obj.ndim).T
+
+    msg = "|".join(
+        [
+            r"datetime64\[.{1,2}\] cannot be converted to an? (Integer|Floating)Dtype",
+            r"timedelta64\[.{1,2}\] cannot be converted to an? (Integer|Floating)Dtype",
+            r"int\(\) argument must be a string, a bytes-like object or a number, "
+            "not 'NaTType'",
+            "object cannot be converted to a FloatingDtype",
+            "'values' contains non-numeric NA",
+        ]
+    )
+
+    for null in tm.NP_NAT_OBJECTS + [pd.NaT]:
+        # NaT is an NA value that we should *not* cast to pd.NA dtype
+        with pytest.raises(TypeError, match=msg):
+            obj.where(mask, null)
+
+        with pytest.raises(TypeError, match=msg):
+            obj.mask(mask, null)
+
+
+@given(data=OPTIONAL_ONE_OF_ALL)
+@settings(deadline=None)  # GH 44969
+def test_where_inplace_casting(data):
+    # GH 22051
+    df = DataFrame({"a": data})
+    df_copy = df.where(pd.notnull(df), None).copy()
+    df.where(pd.notnull(df), None, inplace=True)
+    tm.assert_equal(df, df_copy)

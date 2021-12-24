@@ -1211,6 +1211,75 @@ class TestDataFrameIndexing:
         expected = DataFrame({"a": [np.zeros((2,))], "b": [np.zeros((2, 2))]})
         tm.assert_frame_equal(df, expected)
 
+    # with AM goes through split-path, loses dtype
+    @td.skip_array_manager_not_yet_implemented
+    def test_iloc_setitem_nullable_2d_values(self):
+        df = DataFrame({"A": [1, 2, 3]}, dtype="Int64")
+        orig = df.copy()
+
+        df.loc[:] = df.values[:, ::-1]
+        tm.assert_frame_equal(df, orig)
+
+        df.loc[:] = pd.core.arrays.PandasArray(df.values[:, ::-1])
+        tm.assert_frame_equal(df, orig)
+
+        df.iloc[:] = df.iloc[:, :]
+        tm.assert_frame_equal(df, orig)
+
+    @pytest.mark.parametrize(
+        "null", [pd.NaT, pd.NaT.to_numpy("M8[ns]"), pd.NaT.to_numpy("m8[ns]")]
+    )
+    def test_setting_mismatched_na_into_nullable_fails(
+        self, null, any_numeric_ea_dtype
+    ):
+        # GH#44514 don't cast mismatched nulls to pd.NA
+        df = DataFrame({"A": [1, 2, 3]}, dtype=any_numeric_ea_dtype)
+        ser = df["A"]
+        arr = ser._values
+
+        msg = "|".join(
+            [
+                r"int\(\) argument must be a string, a bytes-like object or a "
+                "(real )?number, not 'NaTType'",
+                r"timedelta64\[ns\] cannot be converted to an? (Floating|Integer)Dtype",
+                r"datetime64\[ns\] cannot be converted to an? (Floating|Integer)Dtype",
+                "object cannot be converted to a FloatingDtype",
+                "'values' contains non-numeric NA",
+            ]
+        )
+        with pytest.raises(TypeError, match=msg):
+            arr[0] = null
+
+        with pytest.raises(TypeError, match=msg):
+            arr[:2] = [null, null]
+
+        with pytest.raises(TypeError, match=msg):
+            ser[0] = null
+
+        with pytest.raises(TypeError, match=msg):
+            ser[:2] = [null, null]
+
+        with pytest.raises(TypeError, match=msg):
+            ser.iloc[0] = null
+
+        with pytest.raises(TypeError, match=msg):
+            ser.iloc[:2] = [null, null]
+
+        with pytest.raises(TypeError, match=msg):
+            df.iloc[0, 0] = null
+
+        with pytest.raises(TypeError, match=msg):
+            df.iloc[:2, 0] = [null, null]
+
+        # Multi-Block
+        df2 = df.copy()
+        df2["B"] = ser.copy()
+        with pytest.raises(TypeError, match=msg):
+            df2.iloc[0, 0] = null
+
+        with pytest.raises(TypeError, match=msg):
+            df2.iloc[:2, 0] = [null, null]
+
 
 class TestDataFrameIndexingUInt64:
     def test_setitem(self, uint64_frame):

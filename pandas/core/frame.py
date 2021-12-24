@@ -133,7 +133,6 @@ from pandas.core.dtypes.missing import (
 from pandas.core import (
     algorithms,
     common as com,
-    generic,
     nanops,
     ops,
 )
@@ -155,10 +154,7 @@ from pandas.core.construction import (
     sanitize_array,
     sanitize_masked_array,
 )
-from pandas.core.generic import (
-    NDFrame,
-    _shared_docs,
-)
+from pandas.core.generic import NDFrame
 from pandas.core.indexers import check_key_length
 from pandas.core.indexes.api import (
     DatetimeIndex,
@@ -194,6 +190,7 @@ from pandas.core.internals.construction import (
 )
 from pandas.core.reshape.melt import melt
 from pandas.core.series import Series
+from pandas.core.shared_docs import _shared_docs
 from pandas.core.sorting import (
     get_group_index,
     lexsort_indexer,
@@ -206,6 +203,7 @@ from pandas.io.formats import (
     format as fmt,
 )
 from pandas.io.formats.info import (
+    INFO_DOCSTRING,
     DataFrameInfo,
     frame_sub_kwargs,
 )
@@ -214,6 +212,7 @@ import pandas.plotting
 if TYPE_CHECKING:
 
     from pandas.core.groupby.generic import DataFrameGroupBy
+    from pandas.core.internals import SingleDataManager
     from pandas.core.resample import Resampler
 
     from pandas.io.formats.style import Styler
@@ -703,11 +702,16 @@ class DataFrame(NDFrame, OpsMixin):
         # For data is list-like, or Iterable (will consume into list)
         elif is_list_like(data):
             if not isinstance(data, (abc.Sequence, ExtensionArray)):
-                data = list(data)
+                if hasattr(data, "__array__"):
+                    # GH#44616 big perf improvement for e.g. pytorch tensor
+                    data = np.asarray(data)
+                else:
+                    data = list(data)
             if len(data) > 0:
                 if is_dataclass(data[0]):
                     data = dataclasses_to_dicts(data)
-                if treat_as_nested(data):
+                if not isinstance(data, np.ndarray) and treat_as_nested(data):
+                    # exclude ndarray as we may have cast it a few lines above
                     if columns is not None:
                         # error: Argument 1 to "ensure_index" has incompatible type
                         # "Collection[Any]"; expected "Union[Union[Union[ExtensionArray,
@@ -1100,7 +1104,7 @@ class DataFrame(NDFrame, OpsMixin):
         ...
 
     @Substitution(
-        header_type="bool or sequence of strings",
+        header_type="bool or sequence of str",
         header="Write out the column names. If a list of strings "
         "is given, it is assumed to be aliases for the "
         "column names",
@@ -2368,11 +2372,7 @@ class DataFrame(NDFrame, OpsMixin):
             index_names = list(self.index.names)
 
             if isinstance(self.index, MultiIndex):
-                count = 0
-                for i, n in enumerate(index_names):
-                    if n is None:
-                        index_names[i] = f"level_{count}"
-                        count += 1
+                index_names = com.fill_missing_names(index_names)
             elif index_names[0] is None:
                 index_names = ["index"]
 
@@ -2484,7 +2484,10 @@ class DataFrame(NDFrame, OpsMixin):
         )
         return cls(mgr)
 
-    @doc(storage_options=generic._shared_docs["storage_options"])
+    @doc(
+        storage_options=_shared_docs["storage_options"],
+        compression_options=_shared_docs["compression_options"] % "path",
+    )
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
     def to_stata(
         self,
@@ -2563,18 +2566,11 @@ class DataFrame(NDFrame, OpsMixin):
             format. Only available if version is 117.  Storing strings in the
             StrL format can produce smaller dta files if strings have more than
             8 characters and values are repeated.
-        compression : str or dict, default 'infer'
-            For on-the-fly compression of the output dta. If string, specifies
-            compression mode. If dict, value at key 'method' specifies
-            compression mode. Compression mode must be one of {{'infer', 'gzip',
-            'bz2', 'zip', 'xz', None}}. If compression mode is 'infer' and
-            `fname` is path-like, then detect compression from the following
-            extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise no
-            compression). If dict and compression mode is one of {{'zip',
-            'gzip', 'bz2'}}, or inferred as one of the above, other entries
-            passed as additional compression options.
+        {compression_options}
 
             .. versionadded:: 1.1.0
+
+            .. versionchanged:: 1.4.0 Zstandard support.
 
         {storage_options}
 
@@ -2636,8 +2632,7 @@ class DataFrame(NDFrame, OpsMixin):
             # Specifying the version is only supported for UTF8 (118 or 119)
             kwargs["version"] = version
 
-        # mypy: Too many arguments for "StataWriter"
-        writer = statawriter(  # type: ignore[call-arg]
+        writer = statawriter(
             path,
             self,
             convert_dates=convert_dates,
@@ -2736,7 +2731,7 @@ class DataFrame(NDFrame, OpsMixin):
             handles.handle.write(result)
         return None
 
-    @doc(storage_options=generic._shared_docs["storage_options"])
+    @doc(storage_options=_shared_docs["storage_options"])
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
     def to_parquet(
         self,
@@ -2941,7 +2936,10 @@ class DataFrame(NDFrame, OpsMixin):
             render_links=render_links,
         )
 
-    @doc(storage_options=generic._shared_docs["storage_options"])
+    @doc(
+        storage_options=_shared_docs["storage_options"],
+        compression_options=_shared_docs["compression_options"] % "path_or_buffer",
+    )
     def to_xml(
         self,
         path_or_buffer: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
@@ -3018,12 +3016,10 @@ class DataFrame(NDFrame, OpsMixin):
             layout of elements and attributes from original output. This
             argument requires ``lxml`` to be installed. Only XSLT 1.0
             scripts and not later versions is currently supported.
-        compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
-            For on-the-fly decompression of on-disk data. If 'infer', then use
-            gzip, bz2, zip or xz if path_or_buffer is a string ending in
-            '.gz', '.bz2', '.zip', or 'xz', respectively, and no decompression
-            otherwise. If using 'zip', the ZIP file must contain only one data
-            file to be read in. Set to None for no decompression.
+        {compression_options}
+
+            .. versionchanged:: 1.4.0 Zstandard support.
+
         {storage_options}
 
         Returns
@@ -3146,7 +3142,7 @@ class DataFrame(NDFrame, OpsMixin):
         return xml_formatter.write_output()
 
     # ----------------------------------------------------------------------
-    @doc(DataFrameInfo.render, **frame_sub_kwargs)
+    @doc(INFO_DOCSTRING, **frame_sub_kwargs)
     def info(
         self,
         verbose: bool | None = None,
@@ -3438,8 +3434,8 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             label = self.columns[i]
 
-            values = self._mgr.iget(i)
-            result = self._box_col_values(values, i)
+            col_mgr = self._mgr.iget(i)
+            result = self._box_col_values(col_mgr, i)
 
             # this is a cached value, mark it so
             result._set_as_cached(label, self)
@@ -3902,7 +3898,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             self._mgr = self._mgr.reindex_axis(index_copy, axis=1, fill_value=np.nan)
 
-    def _box_col_values(self, values, loc: int) -> Series:
+    def _box_col_values(self, values: SingleDataManager, loc: int) -> Series:
         """
         Provide boxed values for a column.
         """
@@ -3910,7 +3906,8 @@ class DataFrame(NDFrame, OpsMixin):
         #  we attach the Timestamp object as the name.
         name = self.columns[loc]
         klass = self._constructor_sliced
-        return klass(values, index=self.index, name=name, fastpath=True)
+        # We get index=self.index bc values is a SingleDataManager
+        return klass(values, name=name, fastpath=True)
 
     # ----------------------------------------------------------------------
     # Lookup Caching
@@ -3927,8 +3924,8 @@ class DataFrame(NDFrame, OpsMixin):
             #  pending resolution of GH#33047
 
             loc = self.columns.get_loc(item)
-            values = self._mgr.iget(loc)
-            res = self._box_col_values(values, loc).__finalize__(self)
+            col_mgr = self._mgr.iget(loc)
+            res = self._box_col_values(col_mgr, loc).__finalize__(self)
 
             cache[item] = res
             res._set_as_cached(item, self)
@@ -4330,27 +4327,18 @@ class DataFrame(NDFrame, OpsMixin):
 
         # convert the myriad valid dtypes object to a single representation
         def check_int_infer_dtype(dtypes):
-            converted_dtypes = []
+            converted_dtypes: list[type] = []
             for dtype in dtypes:
                 # Numpy maps int to different types (int32, in64) on Windows and Linux
                 # see https://github.com/numpy/numpy/issues/9464
                 if (isinstance(dtype, str) and dtype == "int") or (dtype is int):
                     converted_dtypes.append(np.int32)
-                    # error: Argument 1 to "append" of "list" has incompatible type
-                    # "Type[signedinteger[Any]]"; expected "Type[signedinteger[Any]]"
-                    converted_dtypes.append(np.int64)  # type: ignore[arg-type]
+                    converted_dtypes.append(np.int64)
                 elif dtype == "float" or dtype is float:
                     # GH#42452 : np.dtype("float") coerces to np.float64 from Numpy 1.20
-                    converted_dtypes.extend(
-                        [np.float64, np.float32]  # type: ignore[list-item]
-                    )
+                    converted_dtypes.extend([np.float64, np.float32])
                 else:
-                    # error: Argument 1 to "append" of "list" has incompatible type
-                    # "Union[dtype[Any], ExtensionDtype]"; expected
-                    # "Type[signedinteger[Any]]"
-                    converted_dtypes.append(
-                        infer_dtype_from_object(dtype)  # type: ignore[arg-type]
-                    )
+                    converted_dtypes.append(infer_dtype_from_object(dtype))
             return frozenset(converted_dtypes)
 
         include = check_int_infer_dtype(include)
@@ -5085,7 +5073,7 @@ class DataFrame(NDFrame, OpsMixin):
         2  2  5
         4  3  6
         """
-        return super().rename(
+        return super()._rename(
             mapper=mapper,
             index=index,
             columns=columns,
@@ -5802,10 +5790,7 @@ class DataFrame(NDFrame, OpsMixin):
         if not drop:
             to_insert: Iterable[tuple[Any, Any | None]]
             if isinstance(self.index, MultiIndex):
-                names = [
-                    (n if n is not None else f"level_{i}")
-                    for i, n in enumerate(self.index.names)
-                ]
+                names = com.fill_missing_names(self.index.names)
                 to_insert = zip(self.index.levels, self.index.codes)
             else:
                 default = "index" if "index" not in self else "level_0"
@@ -6004,21 +5989,25 @@ class DataFrame(NDFrame, OpsMixin):
                 raise KeyError(np.array(subset)[check].tolist())
             agg_obj = self.take(indices, axis=agg_axis)
 
-        count = agg_obj.count(axis=agg_axis)
-
         if thresh is not None:
+            count = agg_obj.count(axis=agg_axis)
             mask = count >= thresh
         elif how == "any":
-            mask = count == len(agg_obj._get_axis(agg_axis))
+            # faster equivalent to 'agg_obj.count(agg_axis) == self.shape[agg_axis]'
+            mask = notna(agg_obj).all(axis=agg_axis, bool_only=False)
         elif how == "all":
-            mask = count > 0
+            # faster equivalent to 'agg_obj.count(agg_axis) > 0'
+            mask = notna(agg_obj).any(axis=agg_axis, bool_only=False)
         else:
             if how is not None:
                 raise ValueError(f"invalid how option: {how}")
             else:
                 raise TypeError("must specify how or thresh")
 
-        result = self.loc(axis=axis)[mask]
+        if np.all(mask):
+            result = self.copy()
+        else:
+            result = self.loc(axis=axis)[mask]
 
         if inplace:
             self._update_inplace(result)
@@ -6796,7 +6785,8 @@ class DataFrame(NDFrame, OpsMixin):
             'columns' for column-wise."""
         ),
         examples=dedent(
-            """Examples
+            """\
+        Examples
         --------
         >>> df = pd.DataFrame(
         ...     {"Grade": ["A", "B", "A", "C"]},
@@ -9189,6 +9179,29 @@ NaN 12.3   33.0
         3  K3  A3  NaN
         4  K4  A4  NaN
         5  K5  A5  NaN
+
+        Using non-unique key values shows how they are matched.
+
+        >>> df = pd.DataFrame({'key': ['K0', 'K1', 'K1', 'K3', 'K0', 'K1'],
+        ...                    'A': ['A0', 'A1', 'A2', 'A3', 'A4', 'A5']})
+
+        >>> df
+          key   A
+        0  K0  A0
+        1  K1  A1
+        2  K1  A2
+        3  K3  A3
+        4  K0  A4
+        5  K1  A5
+
+        >>> df.join(other.set_index('key'), on='key')
+          key   A    B
+        0  K0  A0   B0
+        1  K1  A1   B1
+        2  K1  A2   B1
+        3  K3  A3  NaN
+        4  K0  A4   B0
+        5  K1  A5   B1
         """
         return self._join_compat(
             other, on=on, how=how, lsuffix=lsuffix, rsuffix=rsuffix, sort=sort
@@ -10016,6 +10029,34 @@ NaN 12.3   33.0
 
         result = self._constructor_sliced(result, index=labels)
         return result
+
+    def _reduce_axis1(self, name: str, func, skipna: bool) -> Series:
+        """
+        Special case for _reduce to try to avoid a potentially-expensive transpose.
+
+        Apply the reduction block-wise along axis=1 and then reduce the resulting
+        1D arrays.
+        """
+        if name == "all":
+            result = np.ones(len(self), dtype=bool)
+            ufunc = np.logical_and
+        elif name == "any":
+            result = np.zeros(len(self), dtype=bool)
+            # error: Incompatible types in assignment
+            # (expression has type "_UFunc_Nin2_Nout1[Literal['logical_or'],
+            # Literal[20], Literal[False]]", variable has type
+            # "_UFunc_Nin2_Nout1[Literal['logical_and'], Literal[20],
+            # Literal[True]]")
+            ufunc = np.logical_or  # type: ignore[assignment]
+        else:
+            raise NotImplementedError(name)
+
+        for arr in self._mgr.arrays:
+            middle = func(arr, axis=0, skipna=skipna)
+            result = ufunc(result, middle)
+
+        res_ser = self._constructor_sliced(result, index=self.index)
+        return res_ser
 
     def nunique(self, axis: Axis = 0, dropna: bool = True) -> Series:
         """
@@ -10854,7 +10895,7 @@ NaN 12.3   33.0
     def where(
         self,
         cond,
-        other=np.nan,
+        other=lib.no_default,
         inplace=False,
         axis=None,
         level=None,

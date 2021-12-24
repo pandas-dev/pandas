@@ -101,10 +101,7 @@ def data_for_grouping(dtype):
 
 
 class TestDtype(base.BaseDtypeTests):
-    @pytest.mark.skip(reason="using multiple dtypes")
-    def test_is_dtype_unboxes_dtype(self):
-        # we have multiple dtypes, so skip
-        pass
+    pass
 
 
 class TestArithmeticOps(base.BaseArithmeticOpsTests):
@@ -195,7 +192,21 @@ class TestMissing(base.BaseMissingTests):
 
 
 class TestMethods(base.BaseMethodsTests):
-    pass
+    # TODO(ExtensionIndex): re-enable
+    @pytest.mark.skip(reason="uses nullable integer")
+    @pytest.mark.parametrize("dropna", [True, False])
+    def test_value_counts(self, all_data, dropna):
+        all_data = all_data[:10]
+        if dropna:
+            other = np.array(all_data[~all_data.isna()])
+        else:
+            other = all_data
+
+        result = pd.Series(all_data).value_counts(dropna=dropna).sort_index()
+        expected = pd.Series(other).value_counts(dropna=dropna).sort_index()
+        expected.index = expected.index.astype(all_data.dtype)
+
+        self.assert_series_equal(result, expected)
 
 
 class TestCasting(base.BaseCastingTests):

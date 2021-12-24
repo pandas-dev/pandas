@@ -118,6 +118,7 @@ from pandas.core import (
     nanops,
 )
 import pandas.core.algorithms as algos
+from pandas.core.array_algos.replace import should_use_regex
 from pandas.core.arrays import ExtensionArray
 from pandas.core.base import PandasObject
 import pandas.core.common as com
@@ -989,7 +990,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # ----------------------------------------------------------------------
     # Rename
 
-    def rename(
+    def _rename(
         self: NDFrameT,
         mapper: Renamer | None = None,
         *,
@@ -2329,7 +2330,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
 
     @final
-    @doc(storage_options=_shared_docs["storage_options"])
+    @doc(
+        storage_options=_shared_docs["storage_options"],
+        compression_options=_shared_docs["compression_options"] % "path_or_buf",
+    )
     def to_json(
         self,
         path_or_buf: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
@@ -2405,12 +2409,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             If 'orient' is 'records' write out line-delimited json format. Will
             throw ValueError if incorrect 'orient' since others are not
             list-like.
+        {compression_options}
 
-        compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}
+            .. versionchanged:: 1.4.0 Zstandard support.
 
-            A string representing the compression to use in the output file,
-            only used when the first argument is a filename. By default, the
-            compression is inferred from the filename.
         index : bool, default True
             Whether to include the index values in the JSON string. Not
             including the index (``index=False``) is only supported when
@@ -2567,7 +2569,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "primaryKey": [
                     "index"
                 ],
-                "pandas_version": "0.20.0"
+                "pandas_version": "1.4.0"
             }},
             "data": [
                 {{
@@ -2623,7 +2625,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         min_itemsize: int | dict[str, int] | None = None,
         nan_rep=None,
         dropna: bool_t | None = None,
-        data_columns: bool_t | list[str] | None = None,
+        data_columns: Literal[True] | list[str] | None = None,
         errors: str = "strict",
         encoding: str = "UTF-8",
     ) -> None:
@@ -2709,32 +2711,27 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Examples
         --------
         >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]},
-        ...                   index=['a', 'b', 'c'])
-        >>> df.to_hdf('data.h5', key='df', mode='w')
+        ...                   index=['a', 'b', 'c'])  # doctest: +SKIP
+        >>> df.to_hdf('data.h5', key='df', mode='w')  # doctest: +SKIP
 
         We can add another object to the same file:
 
-        >>> s = pd.Series([1, 2, 3, 4])
-        >>> s.to_hdf('data.h5', key='s')
+        >>> s = pd.Series([1, 2, 3, 4])  # doctest: +SKIP
+        >>> s.to_hdf('data.h5', key='s')  # doctest: +SKIP
 
         Reading from HDF file:
 
-        >>> pd.read_hdf('data.h5', 'df')
+        >>> pd.read_hdf('data.h5', 'df')  # doctest: +SKIP
         A  B
         a  1  4
         b  2  5
         c  3  6
-        >>> pd.read_hdf('data.h5', 's')
+        >>> pd.read_hdf('data.h5', 's')  # doctest: +SKIP
         0    1
         1    2
         2    3
         3    4
         dtype: int64
-
-        Deleting file with data:
-
-        >>> import os
-        >>> os.remove('data.h5')
         """
         from pandas.io import pytables
 
@@ -2923,7 +2920,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
 
     @final
-    @doc(storage_options=_shared_docs["storage_options"])
+    @doc(
+        storage_options=_shared_docs["storage_options"],
+        compression_options=_shared_docs["compression_options"] % "path",
+    )
     def to_pickle(
         self,
         path,
@@ -2938,17 +2938,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         path : str
             File path where the pickled object will be stored.
-        compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, \
-        default 'infer'
-            A string representing the compression to use in the output file. By
-            default, infers from the file extension in specified path.
-            Compression mode may be any of the following possible
-            values: {{‘infer’, ‘gzip’, ‘bz2’, ‘zip’, ‘xz’, None}}. If compression
-            mode is ‘infer’ and path_or_buf is path-like, then detect
-            compression mode from the following extensions:
-            ‘.gz’, ‘.bz2’, ‘.zip’ or ‘.xz’. (otherwise no compression).
-            If dict given and mode is ‘zip’ or inferred as ‘zip’, other entries
-            passed as additional compression options.
+        {compression_options}
         protocol : int
             Int which indicates which protocol should be used by the pickler,
             default HIGHEST_PROTOCOL (see [1]_ paragraph 12.1.2). The possible
@@ -2970,28 +2960,25 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> original_df = pd.DataFrame({{"foo": range(5), "bar": range(5, 10)}})
-        >>> original_df
+        >>> original_df = pd.DataFrame({{"foo": range(5), "bar": range(5, 10)}})  # doctest: +SKIP
+        >>> original_df  # doctest: +SKIP
            foo  bar
         0    0    5
         1    1    6
         2    2    7
         3    3    8
         4    4    9
-        >>> original_df.to_pickle("./dummy.pkl")
+        >>> original_df.to_pickle("./dummy.pkl")  # doctest: +SKIP
 
-        >>> unpickled_df = pd.read_pickle("./dummy.pkl")
-        >>> unpickled_df
+        >>> unpickled_df = pd.read_pickle("./dummy.pkl")  # doctest: +SKIP
+        >>> unpickled_df  # doctest: +SKIP
            foo  bar
         0    0    5
         1    1    6
         2    2    7
         3    3    8
         4    4    9
-
-        >>> import os
-        >>> os.remove("./dummy.pkl")
-        """
+        """  # noqa: E501
         from pandas.io.pickle import to_pickle
 
         to_pickle(
@@ -3345,7 +3332,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
 
     @final
-    @doc(storage_options=_shared_docs["storage_options"])
+    @doc(
+        storage_options=_shared_docs["storage_options"],
+        compression_options=_shared_docs["compression_options"],
+    )
     def to_csv(
         self,
         path_or_buf: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
@@ -3411,19 +3401,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             A string representing the encoding to use in the output file,
             defaults to 'utf-8'. `encoding` is not supported if `path_or_buf`
             is a non-binary file object.
-        compression : str or dict, default 'infer'
-            If str, represents compression mode. If dict, value at 'method' is
-            the compression mode. Compression mode may be any of the following
-            possible values: {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}. If
-            compression mode is 'infer' and `path_or_buf` is path-like, then
-            detect compression mode from the following extensions: '.gz',
-            '.bz2', '.zip' or '.xz'. (otherwise no compression). If dict given
-            and mode is one of {{'zip', 'gzip', 'bz2'}}, or inferred as
-            one of the above, other entries passed as
-            additional compression options.
-            If `path_or_buf` is omitted or `None` or is a file opened in text
-            mode, this argument is ignored and an (uncompressed) string is
-            returned/written.
+        {compression_options}
 
             .. versionchanged:: 1.0.0
 
@@ -3434,8 +3412,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             .. versionchanged:: 1.1.0
 
                Passing compression options as keys in dict is
-               supported for compression modes 'gzip' and 'bz2'
-               as well as 'zip'.
+               supported for compression modes 'gzip', 'bz2', 'zstd', and 'zip'.
 
             .. versionchanged:: 1.2.0
 
@@ -3509,14 +3486,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         To write a csv file to a new folder or nested folder you will first
         need to create it using either Pathlib or os:
 
-        >>> from pathlib import Path
-        >>> filepath = Path('folder/subfolder/out.csv')
-        >>> filepath.parent.mkdir(parents=True, exist_ok=True)
-        >>> df.to_csv(filepath)
+        >>> from pathlib import Path  # doctest: +SKIP
+        >>> filepath = Path('folder/subfolder/out.csv')  # doctest: +SKIP
+        >>> filepath.parent.mkdir(parents=True, exist_ok=True)  # doctest: +SKIP
+        >>> df.to_csv(filepath)  # doctest: +SKIP
 
-        >>> import os
-        >>> os.makedirs('folder/subfolder', exist_ok=True)
-        >>> df.to_csv('folder/subfolder/out.csv')
+        >>> import os  # doctest: +SKIP
+        >>> os.makedirs('folder/subfolder', exist_ok=True)  # doctest: +SKIP
+        >>> df.to_csv('folder/subfolder/out.csv')  # doctest: +SKIP
         """
         df = self if isinstance(self, ABCDataFrame) else self.to_frame()
 
@@ -4418,7 +4395,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # expected "NDFrameT")
         # error: Argument 1 to "rename" of "NDFrame" has incompatible type
         # "**Dict[str, partial[str]]"; expected "Union[str, int, None]"
-        return self.rename(**mapper)  # type: ignore[return-value, arg-type]
+        return self._rename(**mapper)  # type: ignore[return-value, arg-type]
 
     @final
     def add_suffix(self: NDFrameT, suffix: str) -> NDFrameT:
@@ -4482,7 +4459,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # expected "NDFrameT")
         # error: Argument 1 to "rename" of "NDFrame" has incompatible type
         # "**Dict[str, partial[str]]"; expected "Union[str, int, None]"
-        return self.rename(**mapper)  # type: ignore[return-value, arg-type]
+        return self._rename(**mapper)  # type: ignore[return-value, arg-type]
 
     def sort_values(
         self,
@@ -5522,6 +5499,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 object.__setattr__(self, name, getattr(other, name, None))
 
         if method == "concat":
+            attrs = other.objs[0].attrs
+            check_attrs = all(objs.attrs == attrs for objs in other.objs[1:])
+            if check_attrs:
+                for name in attrs:
+                    self.attrs[name] = attrs[name]
+
             allows_duplicate_labels = all(
                 x.flags.allows_duplicate_labels for x in other.objs
             )
@@ -5890,6 +5873,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # GH 19920: retain column metadata after concat
         result = concat(results, axis=1, copy=False)
         result.columns = self.columns
+        result = result.__finalize__(self, method="astype")
         # https://github.com/python/mypy/issues/8354
         return cast(NDFrameT, result)
 
@@ -6025,7 +6009,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         timedelta: bool_t = False,
     ) -> NDFrameT:
         """
-        Attempt to infer better dtype for object columns
+        Attempt to infer better dtype for object columns.
 
         Parameters
         ----------
@@ -6254,7 +6238,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 for col_name, col in self.items()
             ]
             if len(results) > 0:
-                result = concat(results, axis=1, copy=False)
+                result = concat(results, axis=1, copy=False, keys=self.columns)
                 cons = cast(Type["DataFrame"], self._constructor)
                 result = cons(result)
                 result = result.__finalize__(self, method="convert_dtypes")
@@ -6689,9 +6673,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     return self._replace_columnwise(mapping, inplace, regex)
 
                 elif not is_list_like(value):  # NA -> 0
-                    new_data = self._mgr.replace(
-                        to_replace=to_replace, value=value, inplace=inplace, regex=regex
-                    )
+                    regex = should_use_regex(regex, to_replace)
+                    if regex:
+                        new_data = self._mgr.replace_regex(
+                            to_replace=to_replace,
+                            value=value,
+                            inplace=inplace,
+                        )
+                    else:
+                        new_data = self._mgr.replace(
+                            to_replace=to_replace, value=value, inplace=inplace
+                        )
                 else:
                     raise TypeError(
                         f'Invalid "to_replace" type: {repr(type(to_replace).__name__)}'
@@ -8937,7 +8929,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def _where(
         self,
         cond,
-        other=np.nan,
+        other=lib.no_default,
         inplace=False,
         axis=None,
         level=None,
@@ -10349,6 +10341,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 name, func, axis=0, bool_only=bool_only, skipna=skipna, **kwargs
             )
             return res._logical_func(name, func, skipna=skipna, **kwargs)
+
+        if (
+            self.ndim > 1
+            and axis == 1
+            and len(self._mgr.arrays) > 1
+            # TODO(EA2D): special-case not needed
+            and all(x.ndim == 2 for x in self._mgr.arrays)
+            and bool_only is not None
+            and not kwargs
+        ):
+            # Fastpath avoiding potentially expensive transpose
+            obj = self
+            if bool_only:
+                obj = self._get_bool_data()
+            return obj._reduce_axis1(name, func, skipna=skipna)
 
         return self._reduce(
             func,

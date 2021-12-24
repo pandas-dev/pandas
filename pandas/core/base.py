@@ -235,7 +235,7 @@ class SelectionMixin(Generic[NDFrameT]):
             raise IndexError(f"Column(s) {self._selection} already selected")
 
         if isinstance(key, (list, tuple, ABCSeries, ABCIndex, np.ndarray)):
-            if len(self.obj.columns.intersection(key)) != len(key):
+            if len(self.obj.columns.intersection(key)) != len(set(key)):
                 bad_keys = list(set(key).difference(self.obj.columns))
                 raise KeyError(f"Columns not found: {str(bad_keys)[1:-1]}")
             return self._gotitem(list(key), ndim=2)
@@ -527,10 +527,7 @@ class IndexOpsMixin(OpsMixin):
               dtype='datetime64[ns]')
         """
         if is_extension_array_dtype(self.dtype):
-            # error: Too many arguments for "to_numpy" of "ExtensionArray"
-            return self.array.to_numpy(  # type: ignore[call-arg]
-                dtype, copy=copy, na_value=na_value, **kwargs
-            )
+            return self.array.to_numpy(dtype, copy=copy, na_value=na_value, **kwargs)
         elif kwargs:
             bad_keys = list(kwargs.keys())[0]
             raise TypeError(

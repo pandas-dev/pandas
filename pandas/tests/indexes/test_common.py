@@ -49,15 +49,14 @@ class TestCommon:
         df = idx.to_frame(index=False, name=idx_name)
         assert df.index is not idx
 
-    def test_droplevel(self, index):
+    def test_droplevel(self, index_flat):
         # GH 21115
-        if isinstance(index, MultiIndex):
-            # Tested separately in test_multi.py
-            return
+        # MultiIndex is tested separately in test_multi.py
+        index = index_flat
 
         assert index.droplevel([]).equals(index)
 
-        for level in index.name, [index.name]:
+        for level in [index.name, [index.name]]:
             if isinstance(index.name, tuple) and level is index.name:
                 # GH 21121 : droplevel with tuple name
                 continue
@@ -174,8 +173,6 @@ class TestCommon:
     def test_copy_name2(self, index_flat):
         # GH#35592
         index = index_flat
-        if isinstance(index, MultiIndex):
-            return
 
         assert index.copy(name="mario").name == "mario"
 
@@ -192,7 +189,7 @@ class TestCommon:
 
         # GH 17896
         expected = index.drop_duplicates()
-        for level in 0, index.name, None:
+        for level in [0, index.name, None]:
             result = index.unique(level=level)
             tm.assert_index_equal(result, expected)
 
@@ -247,13 +244,17 @@ class TestCommon:
             result = i.unique()
             tm.assert_index_equal(result, expected)
 
-    def test_searchsorted_monotonic(self, index_flat):
+    def test_searchsorted_monotonic(self, index_flat, request):
         # GH17271
         index = index_flat
         # not implemented for tuple searches in MultiIndex
         # or Intervals searches in IntervalIndex
         if isinstance(index, pd.IntervalIndex):
-            pytest.skip("Skip check for MultiIndex/IntervalIndex")
+            mark = pytest.mark.xfail(
+                reason="IntervalIndex.searchsorted does not support Interval arg",
+                raises=NotImplementedError,
+            )
+            request.node.add_marker(mark)
 
         # nothing to test if the index is empty
         if index.empty:

@@ -199,8 +199,8 @@ class TestLoc(Base):
             assert res == exp
 
 
-class TestLoc2:
-    # TODO: better name, just separating out things that rely on base class
+class TestLocBaseIndependent:
+    # Tests for loc that do not depend on subclassing Base
     @pytest.mark.parametrize(
         "msg, key",
         [
@@ -1214,8 +1214,7 @@ class TestLoc2:
         mask = (rng.hour == 9) & (rng.minute == 30)
 
         obj = DataFrame(np.random.randn(len(rng), 3), index=rng)
-        if frame_or_series is Series:
-            obj = obj[0]
+        obj = tm.get_obj(obj, frame_or_series)
 
         result = obj.loc[time(9, 30)]
         exp = obj.loc[mask]

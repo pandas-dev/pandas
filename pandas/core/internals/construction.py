@@ -176,7 +176,7 @@ def rec_array_to_mgr(
     # essentially process a record array then fill it
     fdata = ma.getdata(data)
     if index is None:
-        index = _get_names_from_index(fdata)
+        index = default_index(len(fdata))
     else:
         index = ensure_index(index)
 
@@ -295,7 +295,7 @@ def ndarray_to_mgr(
     copy_on_sanitize = False if typ == "array" else copy
 
     vdtype = getattr(values, "dtype", None)
-    if is_1d_only_ea_dtype(vdtype) or isinstance(dtype, ExtensionDtype):
+    if is_1d_only_ea_dtype(vdtype) or is_1d_only_ea_dtype(dtype):
         # GH#19157
 
         if isinstance(values, (np.ndarray, ExtensionArray)) and values.ndim > 1:
@@ -318,7 +318,7 @@ def ndarray_to_mgr(
         return arrays_to_mgr(values, columns, index, dtype=dtype, typ=typ)
 
     elif is_extension_array_dtype(vdtype) and not is_1d_only_ea_dtype(vdtype):
-        # i.e. Datetime64TZ
+        # i.e. Datetime64TZ, PeriodDtype
         values = extract_array(values, extract_numpy=True)
         if copy:
             values = values.copy()
