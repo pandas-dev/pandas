@@ -843,7 +843,7 @@ class StylerRenderer:
 
             .. versionadded:: 1.3.0
 
-        render_links : bool, optional
+        render_links : bool
             Convert string patterns containing https://, http://, ftp:// or www. to
             HTML <a> tags as clickable URL hyperlinks.
 
@@ -1037,7 +1037,7 @@ class StylerRenderer:
             ``{``, ``}``, ``~``, ``^``, and ``\`` in the cell display string with
             LaTeX-safe sequences.
             Escaping is done before ``formatter``.
-        render_links : bool, optional
+        render_links : bool
             Convert string patterns containing https://, http://, ftp:// or www. to
             HTML <a> tags as clickable URL hyperlinks.
 
