@@ -426,7 +426,7 @@ class ExtensionArray:
             if not self._can_hold_na:
                 return False
             elif item is self.dtype.na_value or isinstance(item, self.dtype.type):
-                return self.isna().any()
+                return self._hasnans
             else:
                 return False
         else:
@@ -604,6 +604,16 @@ class ExtensionArray:
         """
         raise AbstractMethodError(self)
 
+    @property
+    def _hasnans(self) -> bool:
+        # GH#22680
+        """
+        Equivalent to `self.isna().any()`.
+
+        Some ExtensionArray subclasses may be able to optimize this check.
+        """
+        return bool(self.isna().any())
+
     def _values_for_argsort(self) -> np.ndarray:
         """
         Return values for sorting.
@@ -687,7 +697,7 @@ class ExtensionArray:
         ExtensionArray.argmax
         """
         validate_bool_kwarg(skipna, "skipna")
-        if not skipna and self.isna().any():
+        if not skipna and self._hasnans:
             raise NotImplementedError
         return nargminmax(self, "argmin")
 
@@ -711,7 +721,7 @@ class ExtensionArray:
         ExtensionArray.argmin
         """
         validate_bool_kwarg(skipna, "skipna")
-        if not skipna and self.isna().any():
+        if not skipna and self._hasnans:
             raise NotImplementedError
         return nargminmax(self, "argmax")
 
