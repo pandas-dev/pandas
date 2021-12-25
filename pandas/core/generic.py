@@ -6402,7 +6402,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     if not len(value):
                         # test_fillna_nonscalar
                         if inplace:
-                            return
+                            return None
                         return self.copy()
                     value = create_series_with_explicit_dtype(
                         value, dtype_if_empty=object
