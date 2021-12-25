@@ -407,19 +407,12 @@ like GroupBy where the order of a categorical variable is meaningful.
 Appending rows to a DataFrame
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can append a single row in form of a series to a ``DataFrame`` in-place
-using ``loc``.
+If you have a series that you want to append as a single row to a ``DataFrame``, you can convert the row into a
+``DataFrame`` and use ``concat``
 
 .. ipython:: python
 
    s2 = pd.Series(["X0", "X1", "X2", "X3"], index=["A", "B", "C", "D"])
-   df1.loc[len(df1)] = s2
-
-Alternatively, you can convert the row into a DataFrame and use ``concat``,
-which doesn't have a side-effect on df1.
-
-.. ipython:: python
-
    result = pd.concat([df1, s2.to_frame().T], ignore_index=True)
 
 .. ipython:: python
