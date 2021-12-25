@@ -191,6 +191,11 @@ pat = re.compile(r"python")
 @pytest.fixture(autouse=True)
 def lsof_check(request):
     yield
+    # https://github.com/matplotlib/matplotlib/issues/22017#issuecomment-998241017
+    if "matplotlib" in sys.modules:
+        import matplotlib
+
+        matplotlib.font_manager._get_font.cache_clear()
     lsof = subprocess.run(["lsof", "-d", "0-25"], capture_output=True).stdout.decode(
         "utf-8"
     )
