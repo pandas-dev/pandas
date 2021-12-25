@@ -547,7 +547,7 @@ Other Deprecations
 - Deprecated :meth:`Categorical.replace`, use :meth:`Series.replace` instead (:issue:`44929`)
 - Deprecated :meth:`Index.__getitem__` with a bool key; use ``index.values[key]`` to get the old behavior (:issue:`44051`)
 - Deprecated downcasting column-by-column in :meth:`DataFrame.where` with integer-dtypes (:issue:`44597`)
--
+- Deprecated :meth:`NaT.freq` (:issue:`??`)
 
 .. ---------------------------------------------------------------------------
 
