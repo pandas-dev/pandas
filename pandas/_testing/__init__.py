@@ -26,6 +26,7 @@ from pandas._config.localization import (  # noqa:F401
 )
 
 from pandas._typing import Dtype
+from pandas.compat import is_platform_linux
 
 from pandas.core.dtypes.common import (
     is_float_dtype,
@@ -191,9 +192,11 @@ NP_NAT_OBJECTS = [
 EMPTY_STRING_PATTERN = re.compile("^$")
 
 # Our Linux CI environments install the associated language packs
-TESTING_LOCALES = [
-    loc for loc in get_locales() or [] if loc in {"it_IT.UTF-8", "zh_CN.UTF-8"}
-]
+if os.environ.get("PANDAS_CI", "0") == "1" and is_platform_linux():
+    ci_locales = get_locales() or []
+else:
+    ci_locales = []
+TESTING_LOCALES = [loc for loc in ci_locales if loc in {"it_IT.UTF-8", "zh_CN.UTF-8"}]
 
 # set testing_mode
 _testing_mode_warnings = (DeprecationWarning, ResourceWarning)
