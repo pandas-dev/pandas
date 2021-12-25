@@ -798,7 +798,7 @@ class StylerRenderer:
         decimal: str = ".",
         thousands: str | None = None,
         escape: str | None = None,
-        render_links: bool = False,
+        hyperlinks: str | None = None,
     ) -> StylerRenderer:
         r"""
         Format the text display value of cells.
@@ -843,9 +843,10 @@ class StylerRenderer:
 
             .. versionadded:: 1.3.0
 
-        render_links : bool
+        hyperlinks : {"html", "latex"}, optional
             Convert string patterns containing https://, http://, ftp:// or www. to
-            HTML <a> tags as clickable URL hyperlinks.
+            HTML <a> tags as clickable URL hyperlinks if "html", or LaTeX \href
+            commands if "latex".
 
             .. versionadded:: 1.4.0
 
@@ -965,7 +966,7 @@ class StylerRenderer:
                 thousands is None,
                 na_rep is None,
                 escape is None,
-                render_links is False,
+                hyperlinks is None,
             )
         ):
             self._display_funcs.clear()
@@ -988,7 +989,7 @@ class StylerRenderer:
                 decimal=decimal,
                 thousands=thousands,
                 escape=escape,
-                render_links=render_links,
+                hyperlinks=hyperlinks,
             )
             for ri in ris:
                 self._display_funcs[(ri, ci)] = format_func
@@ -1005,7 +1006,7 @@ class StylerRenderer:
         decimal: str = ".",
         thousands: str | None = None,
         escape: str | None = None,
-        render_links: bool = False,
+        hyperlinks: str | None = None,
     ) -> StylerRenderer:
         r"""
         Format the text display value of index labels or column headers.
@@ -1037,9 +1038,10 @@ class StylerRenderer:
             ``{``, ``}``, ``~``, ``^``, and ``\`` in the cell display string with
             LaTeX-safe sequences.
             Escaping is done before ``formatter``.
-        render_links : bool
+        hyperlinks : {"html", "latex"}, optional
             Convert string patterns containing https://, http://, ftp:// or www. to
-            HTML <a> tags as clickable URL hyperlinks.
+            HTML <a> tags as clickable URL hyperlinks if "html", or LaTeX \href
+            commands if "latex".
 
         Returns
         -------
@@ -1141,7 +1143,7 @@ class StylerRenderer:
                 thousands is None,
                 na_rep is None,
                 escape is None,
-                render_links is False,
+                hyperlinks is None,
             )
         ):
             display_funcs_.clear()
@@ -1163,7 +1165,7 @@ class StylerRenderer:
                 decimal=decimal,
                 thousands=thousands,
                 escape=escape,
-                render_links=render_links,
+                hyperlinks=hyperlinks,
             )
 
             for idx in [(i, lvl) if axis == 0 else (lvl, i) for i in range(len(obj))]:
@@ -1406,10 +1408,15 @@ def _str_escape(x, escape):
     return x
 
 
-def _render_href(x):
-    """uses regex to detect a common URL pattern and converts to HTML <a> tag"""
+def _render_href(x, format):
+    """uses regex to detect a common URL pattern and converts to href tag in format."""
     if isinstance(x, str):
-        href = '<a href="{0}" target="_blank">{0}</a>'
+        if format == "html":
+            href = '<a href="{0}" target="_blank">{0}</a>'
+        elif format == "latex":
+            href = r"\href{{{0}}}{{{0}}}"
+        else:
+            raise ValueError("``hyperlinks`` format can only be 'html' or 'latex'")
         pat = r"(https?:\/\/|ftp:\/\/|www.)[\w/\-?=%.]+\.[\w/\-&?=%.]+"
         return re.sub(pat, lambda m: href.format(m.group(0)), x)
     return x
@@ -1422,7 +1429,7 @@ def _maybe_wrap_formatter(
     decimal: str = ".",
     thousands: str | None = None,
     escape: str | None = None,
-    render_links: bool = False,
+    hyperlinks: str | None = None,
 ) -> Callable:
     """
     Allows formatters to be expressed as str, callable or None, where None returns
@@ -1457,8 +1464,8 @@ def _maybe_wrap_formatter(
         func_2 = func_1
 
     # Render links
-    if render_links:
-        func_3 = lambda x: func_2(_render_href(x))
+    if hyperlinks is not None:
+        func_3 = lambda x: func_2(_render_href(x, format=hyperlinks))
     else:
         func_3 = func_2
 

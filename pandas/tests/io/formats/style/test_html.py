@@ -785,10 +785,10 @@ def test_hiding_index_columns_multiindex_trimming():
 def test_rendered_links(type, text, exp, found):
     if type == "data":
         df = DataFrame([text])
-        styler = df.style.format(render_links=True)
+        styler = df.style.format(hyperlinks="html")
     else:
         df = DataFrame([0], index=[text])
-        styler = df.style.format_index(render_links=True)
+        styler = df.style.format_index(hyperlinks="html")
 
     rendered = '<a href="{0}" target="_blank">{0}</a>'.format(found)
     result = styler.to_html()
@@ -799,7 +799,7 @@ def test_rendered_links(type, text, exp, found):
 def test_multiple_rendered_links():
     links = ("www.a.b", "http://a.c", "https://a.d", "ftp://a.e")
     df = DataFrame(["text {} {} text {} {}".format(*links)])
-    result = df.style.format(render_links=True).to_html()
+    result = df.style.format(hyperlinks="html").to_html()
     href = '<a href="{0}" target="_blank">{0}</a>'
     for link in links:
         assert href.format(link) in result
