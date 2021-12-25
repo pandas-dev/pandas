@@ -26,7 +26,7 @@ jobs:
       matrix:
         settings: [
           [actions-38-db-min.yaml, "((not slow and not network and not clipboard) or (single and db))", "", "", "", "", ""],
-          [actions-38-db.yaml, "((not slow and not network and not clipboard) or (single and db))", "", "", "", "", ""]
+          [actions-38-db.yaml, "((not slow and not network and not clipboard) or (single and db))", "", "", "", "", ""],
           [actions-38-minimum_versions.yaml, "not slow and not network and not clipboard", "", "", "", "", ""],
           [actions-38-locale_slow.yaml, "slow", "language-pack-it xsel", "it_IT.utf8", "it_IT.utf8", "", ""],
           [actions-38.yaml, "not slow and not clipboard", "", "", "", "", ""],
