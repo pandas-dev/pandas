@@ -3,6 +3,7 @@ channels:
   - conda-forge
 dependencies:
   - python=3.8
+  - pip
 
   # tools
   - cython>=0.29.24
@@ -33,7 +34,6 @@ dependencies:
   - pyarrow>=1.0.1
   - pymysql
   - pytables
-  - pytorch
   - python-snappy
   - python-dateutil
   - pytz
@@ -50,3 +50,5 @@ dependencies:
   - coverage
   - pandas-datareader
   - pyxlsb
+  - pip:
+    - torch
