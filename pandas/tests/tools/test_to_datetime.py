@@ -816,14 +816,14 @@ class TestToDatetime:
         # xref 8260
         import psycopg2
 
-        if Version(psycopg2.__version__) > Version("2.8.7"):
-            # https://www.psycopg.org/docs/news.html#what-s-new-in-psycopg-2-9
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=AttributeError,
-                    reason="psycopg2.tz is deprecated (and appears dropped) in 2.9",
-                )
+        # https://www.psycopg.org/docs/news.html#what-s-new-in-psycopg-2-9
+        request.node.add_marker(
+            pytest.mark.xfail(
+                Version(psycopg2.__version__) > Version("2.8.7"),
+                raises=AttributeError,
+                reason="psycopg2.tz is deprecated (and appears dropped) in 2.9",
             )
+        )
 
         # misc cases
         tz1 = psycopg2.tz.FixedOffsetTimezone(offset=-300, name=None)
