@@ -267,3 +267,10 @@ class TestDataFrameMissingData:
         expected = DataFrame({"A": [1.0], "B": ["a"], "C": [4.0]})
         result = df.dropna(subset=np.array(["A", "C"]))
         tm.assert_frame_equal(result, expected)
+
+    def test_no_nans_in_frame(self, axis):
+        # GH#41965
+        df = DataFrame([[1, 2], [3, 4]], columns=pd.RangeIndex(0, 2))
+        expected = df.copy()
+        result = df.dropna(axis=axis)
+        tm.assert_frame_equal(result, expected, check_index_type=True)

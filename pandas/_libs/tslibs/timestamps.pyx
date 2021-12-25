@@ -307,7 +307,6 @@ cdef class _Timestamp(ABCTimestamp):
         elif not isinstance(self, _Timestamp):
             # cython semantics, args have been switched and this is __radd__
             return other.__add__(self)
-
         return NotImplemented
 
     def __sub__(self, other):

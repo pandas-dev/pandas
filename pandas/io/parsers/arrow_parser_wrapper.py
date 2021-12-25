@@ -130,7 +130,11 @@ class ArrowParserWrapper(ParserBase):
                 frame.index.names = [None] * len(frame.index.names)
 
         if self.kwds.get("dtype") is not None:
-            frame = frame.astype(self.kwds.get("dtype"))
+            try:
+                frame = frame.astype(self.kwds.get("dtype"))
+            except TypeError as e:
+                # GH#44901 reraise to keep api consistent
+                raise ValueError(e)
         return frame
 
     def read(self) -> DataFrame:
