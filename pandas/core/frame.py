@@ -2867,16 +2867,29 @@ class DataFrame(NDFrame, OpsMixin):
         justify: str | None = None,
         max_rows: int | None = None,
         max_cols: int | None = None,
-        show_dimensions: bool | str = False,
+        show_dimensions: bool | str | None = None,
         decimal: str = ".",
-        bold_rows: bool = True,
+        bold_rows: bool | None = None,
         classes: str | list | tuple | None = None,
         escape: bool = True,
-        notebook: bool = False,
+        notebook: bool | None = None,
         border: int | None = None,
         table_id: str | None = None,
-        render_links: bool = False,
+        render_links: bool | None = None,
         encoding: str | None = None,
+        *,
+        table_attributes: str | None = None,
+        sparse_index: bool | None = None,
+        sparse_columns: bool | None = None,
+        caption: str | None = None,
+        max_columns: int | None = None,
+        doctype_html: bool | None = None,
+        formatter=None,
+        precision: int | None = None,
+        thousands: str | None = None,
+        hyperlinks: bool | None = None,
+        bold_headers: bool | None = None,
+        **kwargs,
     ):
         """
         Render a DataFrame as an HTML table.
@@ -2900,42 +2913,431 @@ class DataFrame(NDFrame, OpsMixin):
             Set character encoding.
 
             .. versionadded:: 1.0
+        table_attributes : str, optional
+            Attributes to assign within the `<table>` HTML element in the format:
+
+            ``<table .. <table_attributes> >``
+
+            .. versionadded:: 1.4.0
+
+        sparse_index : bool, optional
+            Whether to sparsify the display of a hierarchical index. Setting to False
+            will display each explicit level element in a hierarchical key for each row.
+            Defaults to ``pandas.options.styler.sparse.index`` value.
+
+            .. versionadded:: 1.4.0
+        sparse_columns : bool, optional
+            Whether to sparsify the display of a hierarchical index. Setting to False
+            will display each explicit level element in a hierarchical key for each
+            column. Defaults to ``pandas.options.styler.sparse.columns`` value.
+
+            .. versionadded:: 1.4.0
+        caption : str, optional
+            Set the HTML caption on Styler.
+
+            .. versionadded:: 1.4.0
+        max_columns : int, optional
+            The maximum number of columns that will be rendered. Defaults to
+            ``pandas.options.styler.render.max_columns``, which is None.
+
+            Rows and columns may be reduced if the number of total elements is
+            large. This value is set to ``pandas.options.styler.render.max_elements``,
+            which is 262144 (18 bit browser rendering).
+
+            .. versionadded:: 1.4.0
+        doctype_html : bool, default False
+            Whether to output a fully structured HTML file including all
+            HTML elements, or just the core ``<style>`` and ``<table>`` elements.
+
+            .. versionadded:: 1.4.0
+        formatter : str, callable, dict, optional
+            Object to define how values are displayed. See notes for ``Styler.format``.
+            Defaults to ``pandas.options.styler.format.formatter``, which is `None`.
+
+            .. versionadded:: 1.4.0
+        precision : int, optional
+            Floating point precision to use for display purposes, if not determined by
+            the specified ``formatter``. Defaults to
+            ``pandas.options.styler.format.precision``, which is 6.
+
+            .. versionadded:: 1.4.0
+        thousands : str, optional, default None
+            Character used as thousands separator for floats, complex and integers.
+            Defaults to ``pandas.options.styler.format.thousands``, which is `None`.
+
+            .. versionadded:: 1.4.0
+        hyperlinks : bool,
+            Convert string patterns containing https://, http://, ftp:// or www. to
+            HTML <a> tags as clickable URL hyperlinks.
+
+            .. versionadded:: 1.4.0
+        bold_headers : bool
+            Make the row labels and/or column headers bold in the output, using
+            CSS.
+
+            .. versionadded:: 1.4.0
+        **kwargs
+            Any additional keyword arguments are passed through to the jinja2
+            ``self.template.render`` process. This is useful when you need to provide
+            additional variables for a custom template.
+
+            .. versionadded:: 1.4.0
         %(returns)s
         See Also
         --------
+        Styler.to_html : Convert a DataFrame to HTML with conditional formatting.
         to_string : Convert DataFrame to a string.
-        """
-        if justify is not None and justify not in fmt._VALID_JUSTIFY_PARAMETERS:
-            raise ValueError("Invalid value for justify parameter")
 
-        formatter = fmt.DataFrameFormatter(
-            self,
-            columns=columns,
-            col_space=col_space,
-            na_rep=na_rep,
-            header=header,
-            index=index,
-            formatters=formatters,
-            float_format=float_format,
-            bold_rows=bold_rows,
-            sparsify=sparsify,
-            justify=justify,
-            index_names=index_names,
-            escape=escape,
-            decimal=decimal,
-            max_rows=max_rows,
-            max_cols=max_cols,
-            show_dimensions=show_dimensions,
+        Notes
+        -----
+        As of version 1.4.0 this method utilises the `Styler` implementation,
+        :meth:`Styler.to_html`, where possible. Where deprecated arguments are used,
+        or where none of the new `Styler` implementation arguments are used this method
+        falls back to its original implementation using the `DataFrameFormatter` and
+        `DataFrameRenderer`. If deprecated arguments are used as well as the new
+        arguments the new arguments will be ignored.
+
+        The following is a list of the deprecated arguments:
+
+          - ``col_space``: this will be removed since HTML is indifferent to whitespace,
+          - ``formatters``: this will be removed since the `Styler` implementation
+            uses its own :meth:`Styler.format` method with a changed signature using
+            the new ``formatter`` argument,
+          - ``float_format``: this will be removed as above and is replaced by a
+            variety of options using ``formatter``, ``precision``, ``decimal`` and
+            ``thousands``,
+          - ``sparsify``: this is replaced by ``sparse_index`` and ``sparse_columns``,
+          - ``justify``: this is removed and the suggested action is to create a
+            `Styler` object and add CSS styling to relevant rows, columns or datacells,
+          - ``max_cols``: this is replaced by ``max_columns`` for library consistency,
+          - ``show_dimension``: this is removed from the HTML result. A suggestion is
+            to utilise the new ``caption`` argument and populate it with information
+            such as `df.shape`,
+          - ``bold_rows``: this is replaced by ``bold_headers``, which implements a
+            CSS solution,
+          - ``classes``: this is replaced by ``table_attributes`` where the suggestion
+            is to set the new argument to `'class="my-cls my-other-cls"'`,
+          - ``notebook``: this is removed as a legacy argument,
+          - ``border``: this removed due to deprecated HTML functionality. The
+            suggested action is to create a `Styler` object and add CSS styling to the
+            relevant table, rows, columns, or datacells as required,
+          - ``render_links``: this is replaced by ``hyperlinks`` which has more
+            flexibility in detecting links contained within text,
+
+        The new arguments in 1.4.0 used exclusively with the Styler implementation are:
+
+          - ``table_attributes``,
+          - ``sparse_index`` and  ``sparse_columns``,
+          - ``caption``,
+          - ``max_columns``,
+          - ``doctype_html``,
+          - ``hyperlinks``,
+          - ``formatter``,
+          - ``precision``,
+          - ``thousands``,
+          - ``bold_headers``
+        """
+
+        depr_arg_used = any(
+            [
+                col_space is not None,
+                formatters is not None,
+                float_format is not None,
+                sparsify is not None,
+                justify is not None,
+                max_cols is not None,
+                show_dimensions is not None,
+                bold_rows is not None,
+                classes is not None,
+                notebook is not None,
+                border is not None,
+                render_links is not None,
+            ]
         )
-        # TODO: a generic formatter wld b in DataFrameFormatter
-        return fmt.DataFrameRenderer(formatter).to_html(
+
+        styler_arg_used = any(
+            [
+                table_attributes is not None,
+                sparse_index is not None,
+                sparse_columns is not None,
+                caption is not None,
+                max_columns is not None,
+                doctype_html is not None,
+                hyperlinks is not None,
+                formatter is not None,
+                precision is not None,
+                thousands is not None,
+                bold_headers is not None,
+            ]
+        )
+
+        # reset defaults
+        show_dimensions = False if show_dimensions is None else show_dimensions
+        bold_rows = True if bold_rows is None else bold_rows
+        notebook = False if notebook is None else notebook
+        render_links = False if render_links is None else render_links
+
+        doctype_html = False if doctype_html is None else doctype_html
+        hyperlinks = False if hyperlinks is None else hyperlinks
+        bold_headers = False if bold_headers is None else bold_headers
+
+        if depr_arg_used or not styler_arg_used:
+            # use original HTMLFormatter
+            if depr_arg_used:
+                warning_msg = (
+                    "You are using an argument which is deprecated or "
+                    "subject to change in `DataFrame.to_html`. Please "
+                    "review the documentation notes for further info on "
+                    "how to update the method usage. "
+                )
+                warnings.warn(warning_msg, FutureWarning, stacklevel=find_stack_level())
+
+            if justify is not None and justify not in fmt._VALID_JUSTIFY_PARAMETERS:
+                raise ValueError("Invalid value for justify parameter")
+
+            formatter = fmt.DataFrameFormatter(
+                self,
+                columns=columns,
+                col_space=col_space,
+                na_rep=na_rep,
+                header=header,
+                index=index,
+                formatters=formatters,
+                float_format=float_format,
+                bold_rows=bold_rows,
+                sparsify=sparsify,
+                justify=justify,
+                index_names=index_names,
+                escape=escape,
+                decimal=decimal,
+                max_rows=max_rows,
+                max_cols=max_cols,
+                show_dimensions=show_dimensions,
+            )
+            # TODO: a generic formatter wld b in DataFrameFormatter
+            return fmt.DataFrameRenderer(formatter).to_html(
+                buf=buf,
+                classes=classes,
+                notebook=notebook,
+                border=border,
+                encoding=encoding,
+                table_id=table_id,
+                render_links=render_links,
+            )
+
+        else:
+            # no deprecated args are used so use Styler implementation
+            return self._to_html_via_styler(
+                buf=buf,
+                table_id=table_id,
+                table_attributes=table_attributes,
+                sparse_index=sparse_index,
+                sparse_columns=sparse_columns,
+                index=index,
+                header=header,
+                index_names="all" if index_names else "none",
+                columns=columns,
+                caption=caption,
+                max_rows=max_rows,
+                max_columns=max_columns,
+                encoding=encoding,
+                doctype_html=doctype_html,
+                formatter=formatter,
+                precision=precision,
+                na_rep=na_rep,
+                decimal=decimal,
+                thousands=thousands,
+                escape=escape,
+                hyperlinks=hyperlinks,
+                bold_headers=bold_headers,
+                **kwargs,
+            )
+
+    def _to_html_via_styler(
+        self,
+        buf: FilePath | WriteBuffer[str] | None = None,
+        *,
+        table_id: str | None = None,
+        table_attributes: str | None = None,
+        sparse_index: bool | None = None,
+        sparse_columns: bool | None = None,
+        index: bool = True,
+        header: bool | list = True,
+        index_names: str = "all",
+        columns: list | None = None,
+        caption: str | None = None,
+        max_rows: int | None = None,
+        max_columns: int | None = None,
+        encoding: str | None = None,
+        doctype_html: bool = False,
+        formatter=None,
+        precision: int | None = None,
+        na_rep: str | None = None,
+        decimal: str | None = None,
+        thousands: str | None = None,
+        escape: bool | None = None,
+        hyperlinks: bool = False,
+        bold_headers: bool = False,
+        **kwargs,
+    ):
+        """
+        Render a DataFrame as an HTML table or file.
+
+        .. versionadded:: 1.4.0
+
+        Parameters
+        ----------
+        buf : str, Path or StringIO-like, optional
+            Buffer to write to. If `None`, the output is returned as a string.
+        table_id : str, optional
+            Id attribute assigned to the <table> HTML element in the format:
+
+            ``<table id="T_<table_id>" ..>``
+
+        table_attributes : str, optional
+            Attributes to assign within the `<table>` HTML element in the format:
+
+            ``<table .. <table_attributes> >``
+
+        sparse_index : bool, optional
+            Whether to sparsify the display of a hierarchical index. Setting to False
+            will display each explicit level element in a hierarchical key for each row.
+            Defaults to ``pandas.options.styler.sparse.index`` value.
+        sparse_columns : bool, optional
+            Whether to sparsify the display of a hierarchical index. Setting to False
+            will display each explicit level element in a hierarchical key for each
+            column. Defaults to ``pandas.options.styler.sparse.columns`` value.
+        index : bool
+            Whether to print index labels.
+        header : bool or list of str
+            Whether to print column headers. If a list of strings is given is assumed
+            to be aliases for the column names.
+        index_names : {{"all", "index", "columns", "none"}}
+            Which index names to include in the output.
+        columns : list of label, optional
+            The subset of columns to write. Writes all columns by default.
+        caption : str, optional
+            Set the HTML caption on Styler.
+        max_rows : int, optional
+            The maximum number of rows that will be rendered. Defaults to
+            ``pandas.options.styler.render.max_rows/max_columns``.
+        max_columns : int, optional
+            The maximum number of columns that will be rendered. Defaults to
+            ``pandas.options.styler.render.max_columns``, which is None.
+
+            Rows and columns may be reduced if the number of total elements is
+            large. This value is set to ``pandas.options.styler.render.max_elements``,
+            which is 262144 (18 bit browser rendering).
+        encoding : str, optional
+            Character encoding setting for file output, and HTML meta tags.
+            Defaults to ``pandas.options.styler.render.encoding`` value of "utf-8".
+        doctype_html : bool, default False
+            Whether to output a fully structured HTML file including all
+            HTML elements, or just the core ``<style>`` and ``<table>`` elements.
+        formatter : str, callable, dict, optional
+            Object to define how values are displayed. See notes for ``Styler.format``.
+            Defaults to ``pandas.options.styler.format.formatter``, which is `None`.
+        precision : int, optional
+            Floating point precision to use for display purposes, if not determined by
+            the specified ``formatter``. Defaults to
+            ``pandas.options.styler.format.precision``, which is 6.
+        na_rep : str, optional
+            Representation for missing values.
+            Defaults to ``pandas.options.styler.format.na_rep``, which is `None`.
+        decimal : str, default "."
+            Character used as decimal separator for floats, complex and integers.
+            Defaults to ``pandas.options.styler.format.decimal``, which is ".".
+        thousands : str, optional, default None
+            Character used as thousands separator for floats, complex and integers.
+            Defaults to ``pandas.options.styler.format.thousands``, which is `None`.
+        escape : bool, optional
+            Replaces the characters ``&``, ``<``, ``>``, ``'``, and ``"``
+            in cell display string with HTML-safe sequences.
+            Escaping is done before ``formatter``.
+            Defaults to (``pandas.options.styler.format.escape`` `=="html"`), which
+            is `False`.
+        hyperlinks : bool,
+            Convert string patterns containing https://, http://, ftp:// or www. to
+            HTML <a> tags as clickable URL hyperlinks.
+        bold_headers : bool
+            Make the row labels and/or column headers bold in the output, using
+            CSS.
+        **kwargs
+            Any additional keyword arguments are passed through to the jinja2
+            ``self.template.render`` process. This is useful when you need to provide
+            additional variables for a custom template.
+
+        Returns
+        -------
+        str or None
+            If `buf` is None, returns the result as a string. Otherwise returns `None`.
+        """
+        from pandas.io.formats.style import Styler
+
+        exclude_styles = True if not bold_headers else False
+
+        is_html_escape = (
+            escape is None and get_option("styler.format.escape") == "html"
+        ) or escape is True
+        escape = "html" if is_html_escape else None
+
+        # error: Argument 1 to "Styler" has incompatible type "NDFrame"; expected
+        # "Union[DataFrame, Series]"
+        styler = Styler(
+            self,  # type: ignore[arg-type]
+            cell_ids=False,
+        )
+        styler.format(
+            formatter=formatter,
+            na_rep=na_rep,
+            precision=precision,
+            decimal=decimal,
+            thousands=thousands,
+            escape=escape,
+            hyperlinks="html" if hyperlinks else None,
+        )
+
+        if header is False:
+            styler.hide(axis=1)
+        elif isinstance(header, list):
+            # use styler format to output the column name aliases
+            if len(header) != len(styler.columns):
+                raise ValueError(
+                    f"`header` gave {len(header)} aliases for {len(styler.columns)} "
+                    f"columns."
+                )
+
+            def disp(x, v):  # use partial to create a distinct, in loop runtime func
+                return f"{v}"
+
+            for i, val in enumerate(header):
+                styler._display_funcs_columns[(0, i)] = functools.partial(disp, v=val)
+            if isinstance(styler.columns, MultiIndex):
+                styler.hide(axis=1, level=list(range(1, styler.columns.nlevels)))
+        if not index:
+            styler.hide(axis=0)
+        if index_names is False or index_names in ["none", "columns"]:
+            styler.hide(axis=0, names=True)
+        if index_names is False or index_names in ["none", "index"]:
+            styler.hide(axis=1, names=True)
+        if columns:
+            hidden = [col for col in styler.columns if col not in columns]
+            styler.hide(axis=1, subset=hidden)
+
+        return styler.to_html(
             buf=buf,
-            classes=classes,
-            notebook=notebook,
-            border=border,
+            table_uuid=table_id,
+            table_attributes=table_attributes,
+            sparse_index=sparse_index,
+            sparse_columns=sparse_columns,
+            max_rows=max_rows,
+            max_columns=max_columns,
+            caption=caption,
             encoding=encoding,
-            table_id=table_id,
-            render_links=render_links,
+            doctype_html=doctype_html,
+            bold_headers=bold_headers,
+            exclude_styles=exclude_styles,
+            **kwargs,
         )
 
     @doc(storage_options=generic._shared_docs["storage_options"])
