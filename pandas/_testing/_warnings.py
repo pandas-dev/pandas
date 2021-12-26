@@ -164,7 +164,8 @@ def _assert_caught_no_extra_warnings(
                     lsof = subprocess.check_output(
                         ["lsof", "-d", "0-25", "-F", "n"]
                     ).decode("utf-8")
-                except subprocess.CalledProcessError:
+                except (subprocess.CalledProcessError, FileNotFoundError):
+                    # FileNotFoundError for Windows
                     lsof = ""
                 if re.search(r"\.ttf|\.ttc|\.otf", lsof):
                     continue
