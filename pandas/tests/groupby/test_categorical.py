@@ -81,7 +81,7 @@ def test_apply_use_categorical_name(df):
     assert result.index.names[0] == "C"
 
 
-def test_basic():
+def test_basic():  # TODO: split this test
 
     cats = Categorical(
         ["a", "a", "a", "b", "b", "b", "c", "c", "c"],
@@ -142,9 +142,24 @@ def test_basic():
         df.a.groupby(c, observed=False).transform(lambda xs: np.sum(xs)), df["a"]
     )
     tm.assert_frame_equal(df.groupby(c, observed=False).transform(sum), df[["a"]])
-    tm.assert_frame_equal(
-        df.groupby(c, observed=False).transform(lambda xs: np.max(xs)), df[["a"]]
-    )
+
+    gbc = df.groupby(c, observed=False)
+    with tm.assert_produces_warning(
+        FutureWarning, match="scalar maximum", check_stacklevel=False
+    ):
+        # stacklevel is thrown off (i think) bc the stack goes through numpy C code
+        result = gbc.transform(lambda xs: np.max(xs))
+    tm.assert_frame_equal(result, df[["a"]])
+
+    with tm.assert_produces_warning(None):
+        result2 = gbc.transform(lambda xs: np.max(xs, axis=0))
+        result3 = gbc.transform(max)
+        result4 = gbc.transform(np.maximum.reduce)
+        result5 = gbc.transform(lambda xs: np.maximum.reduce(xs))
+    tm.assert_frame_equal(result2, df[["a"]], check_dtype=False)
+    tm.assert_frame_equal(result3, df[["a"]], check_dtype=False)
+    tm.assert_frame_equal(result4, df[["a"]])
+    tm.assert_frame_equal(result5, df[["a"]])
 
     # Filter
     tm.assert_series_equal(df.a.groupby(c, observed=False).filter(np.all), df["a"])

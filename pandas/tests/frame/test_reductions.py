@@ -1765,3 +1765,25 @@ def test_prod_sum_min_count_mixed_object():
     msg = re.escape("unsupported operand type(s) for +: 'int' and 'str'")
     with pytest.raises(TypeError, match=msg):
         df.sum(axis=0, min_count=1, numeric_only=False)
+
+
+def test_min_max_axis_none_deprecation():
+    # GH#21597 deprecate axis=None defaulting to axis=0 so that we can change it
+    #  to reducing over all axes.
+
+    df = DataFrame(np.random.randn(4, 4))
+
+    msg = "scalar (maximum|minimum) over the entire DataFrame"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        res = df.max(axis=None)
+    with tm.assert_produces_warning(None):
+        expected = df.max()
+    tm.assert_series_equal(res, expected)
+    tm.assert_series_equal(res, df.max(axis=0))
+
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        res = df.min(axis=None)
+    with tm.assert_produces_warning(None):
+        expected = df.min()
+    tm.assert_series_equal(res, expected)
+    tm.assert_series_equal(res, df.min(axis=0))

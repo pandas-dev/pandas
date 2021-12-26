@@ -10546,24 +10546,55 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def min(
         self,
-        axis: Axis | None = None,
+        axis: Axis | None | lib.NoDefault = lib.no_default,
         skipna: bool_t = True,
         level: Level | None = None,
         numeric_only: bool_t | None = None,
         **kwargs,
     ):
+        if axis is None and level is None and self.ndim > 1:
+            # user must have explicitly passed axis=None
+            # GH#21597
+            warnings.warn(
+                "In a future version, DataFrame.min(axis=None) will return a scalar "
+                "minimum over the entire DataFrame. To retain the old behavior, "
+                "use 'frame.min(axis=0)' or just 'frame.min()'",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
+        if axis is lib.no_default:
+            # Until we can implement axis=None for all _stat_function methods,
+            #  we change back to axis=None here.
+            axis = None
         return self._stat_function(
             "min", nanops.nanmin, axis, skipna, level, numeric_only, **kwargs
         )
 
     def max(
         self,
-        axis: Axis | None = None,
+        axis: Axis | None | lib.NoDefault = lib.no_default,
         skipna: bool_t = True,
         level: Level | None = None,
         numeric_only: bool_t | None = None,
         **kwargs,
     ):
+        if axis is None and level is None and self.ndim > 1:
+            # user must have explicitly passed axis=None
+            # GH#21597
+            warnings.warn(
+                "In a future version, DataFrame.max(axis=None) will return a scalar "
+                "maximum over the entire DataFrame. To retain the old behavior, "
+                "use 'frame.max(axis=0)' or just 'frame.max()'",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
+        if axis is lib.no_default:
+            # Until we can implement axis=None for all _stat_function methods,
+            #  we change back to axis=None here.
+            axis = None
+
         return self._stat_function(
             "max", nanops.nanmax, axis, skipna, level, numeric_only, **kwargs
         )
@@ -10657,6 +10688,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 min_count=min_count,
                 numeric_only=numeric_only,
             )
+
         return self._reduce(
             func,
             name=name,
@@ -11065,7 +11097,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             see_also=_stat_func_see_also,
             examples=_max_examples,
         )
-        def max(self, axis=None, skipna=True, level=None, numeric_only=None, **kwargs):
+        def max(
+            self,
+            axis: int | None | lib.NoDefault = lib.no_default,
+            skipna=True,
+            level=None,
+            numeric_only=None,
+            **kwargs,
+        ):
             return NDFrame.max(self, axis, skipna, level, numeric_only, **kwargs)
 
         setattr(cls, "max", max)
@@ -11082,7 +11121,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             see_also=_stat_func_see_also,
             examples=_min_examples,
         )
-        def min(self, axis=None, skipna=True, level=None, numeric_only=None, **kwargs):
+        def min(
+            self,
+            axis: int | None | lib.NoDefault = lib.no_default,
+            skipna=True,
+            level=None,
+            numeric_only=None,
+            **kwargs,
+        ):
             return NDFrame.min(self, axis, skipna, level, numeric_only, **kwargs)
 
         setattr(cls, "min", min)
