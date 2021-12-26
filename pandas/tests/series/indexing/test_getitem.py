@@ -163,6 +163,27 @@ class TestSeriesGetitemScalars:
         result = ser[cats[0]]
         assert result == expected
 
+    def test_getitem_numeric_categorical_listlike_matches_scalar(self):
+        # GH#15470
+        ser = Series(["a", "b", "c"], index=pd.CategoricalIndex([2, 1, 0]))
+
+        # 0 is treated as a label
+        assert ser[0] == "c"
+
+        # the listlike analogue should also be treated as labels
+        res = ser[[0]]
+        expected = ser.iloc[-1:]
+        tm.assert_series_equal(res, expected)
+
+        res2 = ser[[0, 1, 2]]
+        tm.assert_series_equal(res2, ser.iloc[::-1])
+
+    def test_getitem_integer_categorical_not_positional(self):
+        # GH#14865
+        ser = Series(["a", "b", "c"], index=Index([1, 2, 3], dtype="category"))
+        assert ser.get(3) == "c"
+        assert ser[3] == "c"
+
     def test_getitem_str_with_timedeltaindex(self):
         rng = timedelta_range("1 day 10:11:12", freq="h", periods=500)
         ser = Series(np.arange(len(rng)), index=rng)

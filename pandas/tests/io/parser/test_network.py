@@ -22,14 +22,11 @@ from pandas.io.parsers import read_csv
 
 
 @pytest.mark.network
-@pytest.mark.parametrize(
-    "compress_type, extension",
-    icom._compression_to_extension.items(),
-)
 @pytest.mark.parametrize("mode", ["explicit", "infer"])
 @pytest.mark.parametrize("engine", ["python", "c"])
-def test_compressed_urls(salaries_table, compress_type, extension, mode, engine):
-    check_compressed_urls(salaries_table, compress_type, extension, mode, engine)
+def test_compressed_urls(salaries_table, mode, engine, compression_only):
+    extension = icom._compression_to_extension[compression_only]
+    check_compressed_urls(salaries_table, compression_only, extension, mode, engine)
 
 
 @tm.network
