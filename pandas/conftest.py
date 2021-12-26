@@ -30,9 +30,6 @@ from datetime import (
 from decimal import Decimal
 import operator
 import os
-import re
-import subprocess
-import sys
 
 from dateutil.tz import (
     tzlocal,
@@ -185,25 +182,25 @@ for name in "QuarterBegin QuarterEnd BQuarterBegin BQuarterEnd".split():
 # ----------------------------------------------------------------
 # Autouse fixtures
 # ----------------------------------------------------------------
-pat = re.compile(r"python")
-
-
-@pytest.fixture(autouse=True)
-def lsof_check(request):
-    yield
-    # https://github.com/matplotlib/matplotlib/issues/22017#issuecomment-998241017
-    if "matplotlib" in sys.modules:
-        import matplotlib
-
-        matplotlib.font_manager._get_font.cache_clear()
-    lsof = subprocess.run(["lsof", "-d", "0-25"], capture_output=True).stdout.decode(
-        "utf-8"
-    )
-    for line in lsof.split("\n"):
-        if re.search(pat, line):
-            # sys.stderr for xdist
-            # https://github.com/pytest-dev/pytest/issues/1693#issuecomment-233282644
-            print(f"{request.node.name}: {line}", flush=True, file=sys.stderr)
+# pat = re.compile(r"python")
+#
+#
+# @pytest.fixture(autouse=True)
+# def lsof_check(request):
+#     yield
+#     # https://github.com/matplotlib/matplotlib/issues/22017#issuecomment-998241017
+#     if "matplotlib" in sys.modules:
+#         import matplotlib
+#
+#         matplotlib.font_manager._get_font.cache_clear()
+#     lsof = subprocess.run(["lsof", "-d", "0-25"], capture_output=True).stdout.decode(
+#         "utf-8"
+#     )
+#     for line in lsof.split("\n"):
+#         if re.search(pat, line):
+#             # sys.stderr for xdist
+#             # https://github.com/pytest-dev/pytest/issues/1693#issuecomment-233282644
+#             print(f"{request.node.name}: {line}", flush=True, file=sys.stderr)
 
 
 @pytest.fixture(autouse=True)
