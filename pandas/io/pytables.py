@@ -1103,16 +1103,34 @@ class HDFStore:
                 subsets of the data.
         append : bool, default False
             This will force Table format, append the input data to the existing.
+        complib: {‘zlib’, ‘lzo’, ‘bzip2’, ‘blosc’}, default ‘zlib’
+            pecifies the compression library to be used.
+            As of v0.20.2 these additional compressors for Blosc are supported:
+            (default if no compressor specified: ‘blosc:blosclz’):
+            {‘blosc:blosclz’, ‘blosc:lz4’, ‘blosc:lz4hc’, ‘blosc:snappy’, ‘blosc:zlib’, ‘blosc:zstd’}.
+            Specifying a compression library which is not available issues a ValueError.
+        complevel : int|None, default None
+            Level of compression.
+        min_itemsize : int|dict(str,int])|None, default None:
+            Map column names to minimum string sizes for columns.
+        nan_rep : Any, optional
+            How to represent null values as str.
         data_columns : list of columns or True, default None
             List of columns to create as data columns, or True to use all columns.
             See `here
             <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__.
         encoding : str, default None
             Provide an encoding for strings.
+        errors : str, default 'Strict'
+            Specifies how encoding and decoding errors are to be handled.
+            See the errors argument for open() for a full list of options.
         track_times : bool, default True
             Parameter is propagated to 'create_table' method of 'PyTables'.
             If set to False it enables to have the same h5 files (same hashes)
             independent on creation time.
+        dropna: bool, default False
+            Determine if rows which contain missing values are removed.
+
 
             .. versionadded:: 1.1.0
         """
