@@ -10568,7 +10568,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             #  we change back to axis=None here.
             axis = None
         return self._stat_function(
-            "min", nanops.nanmin, axis, skipna, level, numeric_only, **kwargs
+            "min",
+            nanops.nanmin,
+            # error: Argument 3 to "_stat_function" of "NDFrame" has incompatible
+            # type "Union[Union[str, int], None, NoDefault]"; expected
+            # "Optional[Union[str, int]]"
+            axis,  # type: ignore[arg-type]
+            skipna,
+            level,
+            numeric_only,
+            **kwargs,
         )
 
     def max(
@@ -10594,9 +10603,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # Until we can implement axis=None for all _stat_function methods,
             #  we change back to axis=None here.
             axis = None
-
         return self._stat_function(
-            "max", nanops.nanmax, axis, skipna, level, numeric_only, **kwargs
+            "max",
+            nanops.nanmax,
+            # error: Argument 3 to "_stat_function" of "NDFrame" has incompatible
+            # type "Union[Union[str, int], None, NoDefault]"; expected
+            # "Optional[Union[str, int]]"
+            axis,  # type: ignore[arg-type]
+            skipna,
+            level,
+            numeric_only,
+            **kwargs,
         )
 
     def mean(
@@ -11085,7 +11102,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         setattr(cls, "median", median)
 
-        @doc(
+        # error: Untyped decorator makes function "max" untyped
+        @doc(  # type: ignore[misc]
             _num_doc,
             desc="Return the maximum of the values over the requested axis.\n\n"
             "If you want the *index* of the maximum, use ``idxmax``. This is "
@@ -11109,7 +11127,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         setattr(cls, "max", max)
 
-        @doc(
+        # error: Untyped decorator makes function "max" untyped
+        @doc(  # type: ignore[misc]
             _num_doc,
             desc="Return the minimum of the values over the requested axis.\n\n"
             "If you want the *index* of the minimum, use ``idxmin``. This is "
