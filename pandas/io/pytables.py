@@ -1104,13 +1104,13 @@ class HDFStore:
         append : bool, default False
             This will force Table format, append the input data to the existing.
         complib : {‘zlib’, ‘lzo’, ‘bzip2’, ‘blosc’}, default ‘zlib’
-            pecifies the compression library to be used.
+            Specifies the compression library to be used.
             As of v0.20.2 these additional compressors for Blosc are supported:
             (default if no compressor specified: ‘blosc:blosclz’):
             {‘blosc:blosclz’, ‘blosc:lz4’, ‘blosc:lz4hc’, ‘blosc:snappy’,
             ‘blosc:zlib’, ‘blosc:zstd’}.
             Specifying a compression library which is not available issues a ValueError.
-        complevel : int|None, default None
+        complevel : Optional int, default None
             Level of compression.
         min_itemsize : int|dict(str,int])|None, default None:
             Map column names to minimum string sizes for columns.
@@ -1129,9 +1129,8 @@ class HDFStore:
             Parameter is propagated to 'create_table' method of 'PyTables'.
             If set to False it enables to have the same h5 files (same hashes)
             independent on creation time.
-        dropna: bool, default False
+        dropna : bool, default False
             Determine if rows which contain missing values are removed.
-
 
             .. versionadded:: 1.1.0
         """
@@ -1249,11 +1248,11 @@ class HDFStore:
                 subsets of the data.
         axes         : Optional, specify rows or columns
         index        : bool, deafult True
-            Includes index values
+            Includes index values.
         append       : bool, default True
             Append the input data to the existing.
         complib      : {‘zlib’, ‘lzo’, ‘bzip2’, ‘blosc’}, default ‘zlib’
-            pecifies the compression library to be used.
+            Specifies the compression library to be used.
             As of v0.20.2 these additional compressors for Blosc are supported:
             (default if no compressor specified: ‘blosc:blosclz’):
             {‘blosc:blosclz’, ‘blosc:lz4’,
