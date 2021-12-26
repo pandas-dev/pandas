@@ -6,6 +6,7 @@ labels: [Docs, Needs Triage]
 body:
   - type: checkboxes
     attributes:
+      label: Pandas version checks
       options:
         - label: >
             I have checked that the issue still exists on the latest versions of the docs

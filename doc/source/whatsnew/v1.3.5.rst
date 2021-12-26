@@ -23,6 +23,7 @@ Fixed regressions
 - Fixed regression in :meth:`.GroupBy.sum` with ``timedelta64[ns]`` dtype containing ``NaT`` failing to treat that value as NA (:issue:`42659`)
 - Fixed regression in :meth:`.RollingGroupby.cov` and :meth:`.RollingGroupby.corr` when ``other`` had the same shape as each group would incorrectly return superfluous groups in the result (:issue:`42915`)
 
+
 .. ---------------------------------------------------------------------------
 
 .. _whatsnew_135.contributors:

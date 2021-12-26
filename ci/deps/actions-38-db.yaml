@@ -3,17 +3,17 @@ channels:
   - conda-forge
 dependencies:
   - python=3.8
+  - pip
 
   # tools
   - cython>=0.29.24
   - pytest>=6.0
   - pytest-xdist>=1.31
-  - pytest-timeout
   - hypothesis>=5.5.3
   - pytest-cov>=2.10.1  # this is only needed in the coverage build, ref: GH 35737
 
   # pandas dependencies
-  - aiobotocore<2.0.0
+  - aiobotocore<2.0.0  # GH#44311 pinned to fix docbuild
   - beautifulsoup4
   - boto3
   - botocore>=1.11
@@ -46,9 +46,9 @@ dependencies:
   - xlrd
   - xlsxwriter
   - xlwt
-  - pip
+  - brotlipy
+  - coverage
+  - pandas-datareader
+  - pyxlsb
   - pip:
-    - brotlipy
-    - coverage
-    - pandas-datareader
-    - pyxlsb
+    - torch

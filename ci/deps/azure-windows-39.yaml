@@ -9,7 +9,6 @@ dependencies:
   - cython>=0.29.24
   - pytest>=6.0
   - pytest-xdist>=1.31
-  - pytest-timeout
   - hypothesis>=5.5.3
   - pytest-azurepipelines
 
@@ -37,6 +36,5 @@ dependencies:
   - xlsxwriter
   - xlwt
   - pyreadstat
-  - pip
-  - pip:
-    - pyxlsb
+  - pyxlsb
+  - zstandard

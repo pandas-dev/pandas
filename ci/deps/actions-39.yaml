@@ -9,7 +9,6 @@ dependencies:
   - pytest>=6.0
   - pytest-cov
   - pytest-xdist>=1.31
-  - pytest-timeout
   - hypothesis>=5.5.3
 
   # pandas dependencies
@@ -22,11 +21,11 @@ dependencies:
   - jinja2
   - lxml
   - matplotlib
+  - numpy  # move up to solve before numba
   - numba
   - numexpr
-  - numpy
   - openpyxl
-  - pyarrow
+  - pyarrow>2.0.1
   - pytables
   - python-dateutil
   - pytz
@@ -37,6 +36,5 @@ dependencies:
   - xlsxwriter
   - xlwt
   - pyreadstat
-  - pip
-  - pip:
-    - pyxlsb
+  - pyxlsb
+  - zstandard
