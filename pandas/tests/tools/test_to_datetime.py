@@ -819,7 +819,7 @@ class TestToDatetime:
         # https://www.psycopg.org/docs/news.html#what-s-new-in-psycopg-2-9
         request.node.add_marker(
             pytest.mark.xfail(
-                Version(psycopg2.__version__) > Version("2.8.7"),
+                Version(psycopg2.__version__.split()[0]) > Version("2.8.7"),
                 raises=AttributeError,
                 reason="psycopg2.tz is deprecated (and appears dropped) in 2.9",
             )
