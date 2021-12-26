@@ -88,11 +88,6 @@ conda remove pandas -y --force || true
 pip uninstall -y pandas || true
 
 echo
-echo "remove postgres if has been installed with conda"
-echo "we use the one from the CI"
-conda remove postgresql -y --force || true
-
-echo
 echo "remove qt"
 echo "causes problems with the clipboard, we use xsel for that"
 conda remove qt -y --force || true
@@ -117,13 +112,4 @@ echo
 echo "conda list"
 conda list
 
-# Install DB for Linux
-
-if [[ -n ${SQL:0} ]]; then
-  echo "installing dbs"
-  mysql -e 'create database pandas_nosetest;'
-  psql -c 'create database pandas_nosetest;' -U postgres
-else
-   echo "not using dbs on non-linux Travis builds or Azure Pipelines"
-fi
 echo "done"
