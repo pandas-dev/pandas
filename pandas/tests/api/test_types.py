@@ -1,3 +1,5 @@
+import subprocess
+
 import pandas._testing as tm
 from pandas.api import types
 from pandas.tests.api.test_api import Base
@@ -57,7 +59,7 @@ class TestTypes(Base):
         self.check(types, self.allowed + self.dtypes + self.deprecated)
 
     def test_deprecated_from_api_types(self):
-
+        subprocess.check_output(["lsof", "-d", "0-25", "-F", "n"]).decode("utf-8")
         for t in self.deprecated:
             with tm.assert_produces_warning(FutureWarning):
                 getattr(types, t)(1)
