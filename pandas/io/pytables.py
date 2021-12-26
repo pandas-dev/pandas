@@ -1290,7 +1290,6 @@ class HDFStore:
             Specifies how encoding and decoding errors are to be handled.
             See the errors argument for open() for a full list of options.
 
-
         Notes
         -----
         Does *not* check if data being appended overlaps with existing
