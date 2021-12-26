@@ -1107,7 +1107,8 @@ class HDFStore:
             pecifies the compression library to be used.
             As of v0.20.2 these additional compressors for Blosc are supported:
             (default if no compressor specified: ‘blosc:blosclz’):
-            {‘blosc:blosclz’, ‘blosc:lz4’, ‘blosc:lz4hc’, ‘blosc:snappy’, ‘blosc:zlib’, ‘blosc:zstd’}.
+            {‘blosc:blosclz’, ‘blosc:lz4’, ‘blosc:lz4hc’, ‘blosc:snappy’,
+            ‘blosc:zlib’, ‘blosc:zstd’}.
             Specifying a compression library which is not available issues a ValueError.
         complevel : int|None, default None
             Level of compression.
@@ -1255,7 +1256,8 @@ class HDFStore:
             pecifies the compression library to be used.
             As of v0.20.2 these additional compressors for Blosc are supported:
             (default if no compressor specified: ‘blosc:blosclz’):
-            {‘blosc:blosclz’, ‘blosc:lz4’, ‘blosc:lz4hc’, ‘blosc:snappy’, ‘blosc:zlib’, ‘blosc:zstd’}.
+            {‘blosc:blosclz’, ‘blosc:lz4’,
+            ‘blosc:lz4hc’, ‘blosc:snappy’, ‘blosc:zlib’, ‘blosc:zstd’}.
             Specifying a compression library which is not available issues a ValueError.
         complevel    : int|None, default None
             Level of compression.
