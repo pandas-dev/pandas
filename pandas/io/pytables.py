@@ -1103,7 +1103,7 @@ class HDFStore:
                 subsets of the data.
         append : bool, default False
             This will force Table format, append the input data to the existing.
-        complib: {‘zlib’, ‘lzo’, ‘bzip2’, ‘blosc’}, default ‘zlib’
+        complib : {‘zlib’, ‘lzo’, ‘bzip2’, ‘blosc’}, default ‘zlib’
             pecifies the compression library to be used.
             As of v0.20.2 these additional compressors for Blosc are supported:
             (default if no compressor specified: ‘blosc:blosclz’):
@@ -1246,8 +1246,26 @@ class HDFStore:
                 Table format. Write as a PyTables Table structure which may perform
                 worse but allow more flexible operations like searching / selecting
                 subsets of the data.
+        axes         : Optional, specify rows or columns
+        index        : bool, deafult True
+            Includes index values
         append       : bool, default True
             Append the input data to the existing.
+        complib      : {‘zlib’, ‘lzo’, ‘bzip2’, ‘blosc’}, default ‘zlib’
+            pecifies the compression library to be used.
+            As of v0.20.2 these additional compressors for Blosc are supported:
+            (default if no compressor specified: ‘blosc:blosclz’):
+            {‘blosc:blosclz’, ‘blosc:lz4’, ‘blosc:lz4hc’, ‘blosc:snappy’, ‘blosc:zlib’, ‘blosc:zstd’}.
+            Specifying a compression library which is not available issues a ValueError.
+        complevel    : int|None, default None
+            Level of compression.
+        columns      : Optional, list of columns
+        min_itemsize : int|dict(str,int])|None, default None:
+            Map column names to minimum string sizes for columns.
+        nan_rep      : Any, optional
+            How to represent null values as str.
+        chunksize    : Optional, size to chunk the writing
+        expectedrows : Optional, expected TOTAL row size of this table
         data_columns : list of columns, or True, default None
             List of columns to create as indexed data columns for on-disk
             queries, or True to use all columns. By default only the axes
@@ -1261,6 +1279,16 @@ class HDFStore:
         dropna : bool, default False
             Do not write an ALL nan row to the store settable
             by the option 'io.hdf.dropna_table'.
+        data_columns : list of columns or True, default None
+            List of columns to create as data columns, or True to use all columns.
+            See `here
+            <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__.
+        encoding     : Optional str, default None
+            Provide an encoding for strings.
+        errors       : str, default 'Strict'
+            Specifies how encoding and decoding errors are to be handled.
+            See the errors argument for open() for a full list of options.
+
 
         Notes
         -----
