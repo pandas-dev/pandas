@@ -215,6 +215,10 @@ class ExtensionDtype:
 
         Analogous to numpy.empty.
 
+        Parameters
+        ----------
+        shape : int or tuple[int]
+
         Returns
         -------
         ExtensionArray
