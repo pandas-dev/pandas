@@ -1659,7 +1659,8 @@ class TestToDatetimeMisc:
         with pytest.raises(ValueError, match=msg):
             # if dayfirst is respected, then this would parse as month=13, which
             #  would raise
-            to_datetime("01-13-2012", dayfirst=True, cache=cache)
+            with tm.assert_produces_warning(UserWarning, match="Provide format"):
+                to_datetime("01-13-2012", dayfirst=True, cache=cache)
 
     def test_to_datetime_on_datetime64_series(self, cache):
         # #2699
