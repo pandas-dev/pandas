@@ -2,6 +2,8 @@
 This module tests the functionality of StringArray and ArrowStringArray.
 Tests for the str accessors are in pandas/tests/strings/test_string_array.py
 """
+from decimal import Decimal
+
 import numpy as np
 import pytest
 
@@ -272,7 +274,7 @@ def test_constructor_raises(cls):
         cls(np.array(["a", pd.NaT], dtype=object))
 
 
-@pytest.mark.parametrize("na", [np.nan, None, pd.NA])
+@pytest.mark.parametrize("na", [np.nan, np.float64("nan"), float("nan"), None, pd.NA])
 def test_constructor_nan_like(na):
     expected = pd.arrays.StringArray(np.array(["a", pd.NA]))
     tm.assert_extension_array_equal(
@@ -281,7 +283,7 @@ def test_constructor_nan_like(na):
 
 
 def test_invalid_coerce_raises():
-    data = np.array(["a", "b'"], dtype=object)
+    data = np.array(["a", "b"], dtype=object)
     with pytest.raises(
         ValueError,
         match="coerce argument must be one of "
@@ -296,6 +298,8 @@ def test_invalid_coerce_raises():
         np.array(["foo", "bar", pd.NA], dtype=object),
         np.array(["foo", "bar", np.nan], dtype=object),
         np.array(["foo", "bar", None], dtype=object),
+        np.array(["foo", "bar", float("nan")], dtype=object),
+        np.array(["foo", "bar", np.float64("nan")], dtype=object),
         BaseMaskedArray(
             np.array(["foo", "bar", "garbage"]), np.array([False, False, True])
         ),
@@ -313,7 +317,7 @@ def test_from_sequence_no_coerce(cls, values):
     [
         np.array(["foo", "bar", pd.NaT], dtype=object),
         np.array(["foo", "bar", np.datetime64("nat")], dtype=object),
-        np.array(["foo", "bar", float("nan")], dtype=object),
+        np.array(["foo", "bar", Decimal("nan")], dtype=object),
     ],
 )
 def test_from_sequence_no_coerce_invalid(cls, values):

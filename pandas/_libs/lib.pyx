@@ -679,6 +679,11 @@ ctypedef enum coerce_options:
     none = 4
 
 
+def strict_check_null(x):
+    # Cython doesn't let me define this in ensure_string_array :(
+    return x is None or x is C_NA or util.is_nan(x)
+
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cpdef ndarray[object] ensure_string_array(
@@ -729,15 +734,15 @@ cpdef ndarray[object] ensure_string_array(
     >>> import numpy as np
     >>> import pandas as pd
     >>> ensure_string_array(np.array([1,2,3, np.datetime64("nat")]), coerce="all")
-    array("1", "2", "3", np.nan)
+    array(['1', '2', '3', nan], dtype=object)
     >>> ensure_string_array(np.array([pd.NA, "a", None]), coerce="strict-null")
-    array(np.nan, "a", np.nan)
+    array([nan, 'a', nan], dtype=object)
     >>> ensure_string_array(np.array([pd.NaT, "1"]), coerce="null")
-    array(np.nan, "1")
+    array([nan, '1'], dtype=object)
     >>> ensure_string_array(np.array([1,2,3]), coerce="non-null")
-    array("1", "2", "3")
+    array(['1', '2', '3'], dtype=object)
     >>> ensure_string_array(np.array(["1", "2", "3"]), coerce=None)
-    array("1", "2", "3")
+    array(['1', '2', '3'], dtype=object)
     """
     cdef:
         Py_ssize_t i = 0, n = len(arr)
@@ -780,7 +785,7 @@ cpdef ndarray[object] ensure_string_array(
         # We don't use checknull, since NaT, Decimal("NaN"), etc. aren't valid
         # If they are present, they are treated like a regular Python object
         # and will either cause an exception to be raised or be coerced.
-        check_null = strict_na_values.__contains__
+        check_null = strict_check_null
     else:
         check_null = checknull
 
