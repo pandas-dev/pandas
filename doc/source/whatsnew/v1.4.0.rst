@@ -550,7 +550,7 @@ Other Deprecations
 - Deprecated :meth:`.Groupby.pad` in favor of :meth:`.Groupby.ffill` (:issue:`33396`)
 - Deprecated :meth:`.Groupby.backfill` in favor of :meth:`.Groupby.bfill` (:issue:`33396`)
 - Deprecated :meth:`.Resample.pad` in favor of :meth:`.Resample.ffill` (:issue:`33396`)
-- Deprecated :meth:`.Resample.pad` in favor of :meth:`.Resample.bfill` (:issue:`33396`)
+- Deprecated :meth:`.Resample.backfill` in favor of :meth:`.Resample.bfill` (:issue:`33396`)
 
 .. ---------------------------------------------------------------------------
 
