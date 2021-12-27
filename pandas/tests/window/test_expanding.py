@@ -350,7 +350,7 @@ def test_expanding_corr_pairwise(frame):
     "func,static_comp",
     [
         ("sum", np.sum),
-        ("mean", np.mean),
+        ("mean", lambda x: np.mean(x, axis=0)),
         ("max", lambda x: np.max(x, axis=0)),
         ("min", lambda x: np.min(x, axis=0)),
     ],
@@ -408,9 +408,11 @@ def test_expanding_apply(engine_and_raw, frame_or_series):
     assert isinstance(result, frame_or_series)
 
     if frame_or_series is Series:
-        tm.assert_almost_equal(result[9], np.mean(data[:11]))
+        tm.assert_almost_equal(result[9], np.mean(data[:11], axis=0))
     else:
-        tm.assert_series_equal(result.iloc[9], np.mean(data[:11]), check_names=False)
+        tm.assert_series_equal(
+            result.iloc[9], np.mean(data[:11], axis=0), check_names=False
+        )
 
 
 def test_expanding_min_periods_apply(engine_and_raw):

@@ -145,7 +145,7 @@ def test_basic():  # TODO: split this test
 
     gbc = df.groupby(c, observed=False)
     with tm.assert_produces_warning(
-        FutureWarning, match="scalar maximum", check_stacklevel=False
+        FutureWarning, match="scalar max", check_stacklevel=False
     ):
         # stacklevel is thrown off (i think) bc the stack goes through numpy C code
         result = gbc.transform(lambda xs: np.max(xs))

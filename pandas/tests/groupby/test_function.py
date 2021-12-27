@@ -83,7 +83,7 @@ def test_builtins_apply(keys, f):
         warn = FutureWarning
     else:
         warn = None
-    msg = "scalar (maximum|minimum) over the entire DataFrame"
+    msg = "scalar (max|min) over the entire DataFrame"
     with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
         # stacklevel can be thrown off because (i think) the stack
         #  goes through some of numpy's C code.
