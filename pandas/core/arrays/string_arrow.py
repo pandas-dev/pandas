@@ -355,6 +355,8 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
         """
         Return a shallow copy of the array.
 
+        Underlying ChunkedArray is immutable, so a deep copy is unnecessary.
+
         Returns
         -------
         ArrowStringArray
