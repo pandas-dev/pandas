@@ -1810,10 +1810,11 @@ class TestSeriesConstructors:
         expected = Series(True, index=[0], dtype="bool")
         tm.assert_series_equal(result, expected)
 
-    def test_constructor_int64_dtype(self):
+    @pytest.mark.parametrize("int_dtype", ["int64"])
+    def test_constructor_int64_dtype(self, int_dtype):
         # GH-44923
-        result = Series(["0", "1", "2"], dtype="int64")
-        expected = Series([0, 1, 2])
+        result = Series(["-1", "0", "1", "2"], dtype=int_dtype)
+        expected = Series([-1, 0, 1, 2])
         tm.assert_series_equal(result, expected)
 
     def test_constructor_float64_dtype(self):
