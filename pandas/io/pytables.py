@@ -1247,7 +1247,7 @@ class HDFStore:
                 worse but allow more flexible operations like searching / selecting
                 subsets of the data.
         axes         : Optional, specify rows or columns
-        index        : bool, deafult True
+        index        : bool, default True
             Includes index values.
         append       : bool, default True
             Append the input data to the existing.
