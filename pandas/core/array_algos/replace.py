@@ -80,7 +80,8 @@ def compare_or_regex_search(
                 f"Cannot compare types {repr(type_names[0])} and {repr(type_names[1])}"
             )
 
-    if not regex:
+    if not regex or not should_use_regex(regex, b):
+        # TODO: should use missing.mask_missing?
         op = lambda x: operator.eq(x, b)
     else:
         op = np.vectorize(

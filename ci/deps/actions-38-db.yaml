@@ -3,6 +3,7 @@ channels:
   - conda-forge
 dependencies:
   - python=3.8
+  - pip
 
   # tools
   - cython>=0.29.24
@@ -45,9 +46,9 @@ dependencies:
   - xlrd
   - xlsxwriter
   - xlwt
-  - pip
+  - brotlipy
+  - coverage
+  - pandas-datareader
+  - pyxlsb
   - pip:
-    - brotlipy
-    - coverage
-    - pandas-datareader
-    - pyxlsb
+    - torch

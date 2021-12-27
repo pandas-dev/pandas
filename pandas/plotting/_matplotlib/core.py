@@ -1671,9 +1671,7 @@ class PiePlot(MPLPlot):
             if labels is not None:
                 blabels = [blank_labeler(left, value) for left, value in zip(labels, y)]
             else:
-                # error: Incompatible types in assignment (expression has type "None",
-                # variable has type "List[Any]")
-                blabels = None  # type: ignore[assignment]
+                blabels = None
             results = ax.pie(y, labels=blabels, **kwds)
 
             if kwds.get("autopct", None) is not None:
