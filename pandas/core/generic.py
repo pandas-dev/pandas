@@ -6510,11 +6510,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def replace(
         self,
         to_replace=None,
-        value=None,
+        value=lib.no_default,
         inplace: bool_t = False,
         limit: int | None = None,
         regex=False,
-        method="pad",
+        method=lib.no_default,
     ):
         if not (
             is_scalar(to_replace)
@@ -6533,7 +6533,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         self._consolidate_inplace()
 
-        if value is None:
+        if value is lib.no_default or method is not lib.no_default:
+            # GH#36984 if the user explicitly passes value=None we want to
+            #  respect that. We have the corner case where the user explicitly
+            #  passes value=None *and* a method, which we interpret as meaning
+            #  they want the (documented) default behavior.
+            if method is lib.no_default:
+                # TODO: get this to show up as the default in the docs?
+                method = "pad"
+
             # passing a single value that is scalar like
             # when value is None (GH5319), for compat
             if not is_dict_like(to_replace) and not is_dict_like(regex):

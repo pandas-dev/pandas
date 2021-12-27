@@ -4902,11 +4902,11 @@ Keep all original rows and also all original values
     def replace(
         self,
         to_replace=None,
-        value=None,
+        value=lib.no_default,
         inplace=False,
         limit=None,
         regex=False,
-        method="pad",
+        method: str | lib.NoDefault = lib.no_default,
     ):
         return super().replace(
             to_replace=to_replace,
