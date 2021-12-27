@@ -1500,6 +1500,11 @@ class ExtensionArray:
     def _empty(cls, shape: Shape, dtype: ExtensionDtype):
         """
         Create an ExtensionArray with the given shape and dtype.
+
+        See also
+        --------
+        ExtensionDtype.empty
+            ExtensionDtype.empty is the 'official' public version of this API.
         """
         obj = cls._from_sequence([], dtype=dtype)
 

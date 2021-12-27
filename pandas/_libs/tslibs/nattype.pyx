@@ -357,9 +357,17 @@ class NaTType(_NaT):
 
         base = _NaT.__new__(cls, 1, 1, 1)
         base.value = NPY_NAT
-        base.freq = None
 
         return base
+
+    @property
+    def freq(self):
+        warnings.warn(
+            "NaT.freq is deprecated and will be removed in a future version.",
+            FutureWarning,
+            stacklevel=1,
+        )
+        return None
 
     def __reduce_ex__(self, protocol):
         # python 3.6 compat

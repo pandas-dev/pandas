@@ -718,3 +718,8 @@ def test_pickle():
     # GH#4606
     p = tm.round_trip_pickle(NaT)
     assert p is NaT
+
+
+def test_freq_deprecated():
+    with tm.assert_produces_warning(FutureWarning, match="deprecated"):
+        NaT.freq

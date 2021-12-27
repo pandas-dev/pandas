@@ -119,7 +119,7 @@ def _ensure_data(values: ArrayLike) -> np.ndarray:
     This will coerce:
     - ints -> int64
     - uint -> uint64
-    - bool -> uint64 (TODO this should be uint8)
+    - bool -> uint8
     - datetimelike -> i8
     - datetime64tz -> i8 (in local tz)
     - categorical -> codes
@@ -899,7 +899,6 @@ def value_counts_arraylike(values, dropna: bool):
     original = values
     values = _ensure_data(values)
 
-    # TODO: handle uint8
     keys, counts = htable.value_count(values, dropna)
 
     if needs_i8_conversion(original.dtype):
