@@ -5567,7 +5567,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: Literal[False] = ...,
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
-        allow_duplicates: bool = ...,
+        allow_duplicates: bool | lib.NoDefault = lib.no_default = ...,
     ) -> DataFrame:
         ...
 
@@ -5579,7 +5579,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: Literal[True],
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
-        allow_duplicates: bool = ...,
+        allow_duplicates: bool | lib.NoDefault = lib.no_default = ...,
     ) -> None:
         ...
 
@@ -5591,7 +5591,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: Literal[True],
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
-        allow_duplicates: bool = ...,
+        allow_duplicates: bool | lib.NoDefault = lib.no_default = ...,
     ) -> None:
         ...
 
@@ -5603,7 +5603,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: Literal[True],
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
-        allow_duplicates: bool = ...,
+        allow_duplicates: bool | lib.NoDefault = lib.no_default = ...,
     ) -> None:
         ...
 
@@ -5614,7 +5614,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: Literal[True],
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
-        allow_duplicates: bool = ...,
+        allow_duplicates: bool | lib.NoDefault = lib.no_default = ...,
     ) -> None:
         ...
 
@@ -5626,7 +5626,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: bool = ...,
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
-        allow_duplicates: bool = ...,
+        allow_duplicates: bool | lib.NoDefault = lib.no_default = ...,
     ) -> DataFrame | None:
         ...
 
