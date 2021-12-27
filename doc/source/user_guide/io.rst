@@ -116,6 +116,13 @@ index_col : int, str, sequence of int / str, or False, optional, default ``None`
   of the data file, then a default index is used.  If it is larger, then
   the first columns are used as index so that the remaining number of fields in
   the body are equal to the number of fields in the header.
+
+  The first row after the header is used to determine the number of columns,
+  which will go into the index. If the subsequent rows contain less columns
+  than the first row, they are filled with ``NaN``.
+
+  This can be avoided through ``usecols``. This ensures that the columns are
+  taken as is and the trailing data are ignored.
 usecols : list-like or callable, default ``None``
   Return a subset of the columns. If list-like, all elements must either
   be positional (i.e. integer indices into the document columns) or strings
@@ -143,11 +150,29 @@ usecols : list-like or callable, default ``None``
      pd.read_csv(StringIO(data))
      pd.read_csv(StringIO(data), usecols=lambda x: x.upper() in ["COL1", "COL3"])
 
-  Using this parameter results in much faster parsing time and lower memory usage.
+  Using this parameter results in much faster parsing time and lower memory usage
+  when using the c engine. The Python engine loads the data first before deciding
+  which columns to drop.
 squeeze : boolean, default ``False``
   If the parsed data only contains one column then return a ``Series``.
+
+  .. deprecated:: 1.4.0
+     Append ``.squeeze("columns")`` to the call to ``{func_name}`` to squeeze
+     the data.
 prefix : str, default ``None``
   Prefix to add to column numbers when no header, e.g. 'X' for X0, X1, ...
+
+  .. deprecated:: 1.4.0
+     Use a list comprehension on the DataFrame's columns after calling ``read_csv``.
+
+  .. ipython:: python
+
+     data = "col1,col2,col3\na,b,1"
+
+     df = pd.read_csv(StringIO(data))
+     df.columns = [f"pre_{col}" for col in df.columns]
+     df
+
 mangle_dupe_cols : boolean, default ``True``
   Duplicate columns will be specified as 'X', 'X.1'...'X.N', rather than 'X'...'X'.
   Passing in ``False`` will cause data to be overwritten if there are duplicate
@@ -291,14 +316,14 @@ chunksize : int, default ``None``
 Quoting, compression, and file format
 +++++++++++++++++++++++++++++++++++++
 
-compression : {``'infer'``, ``'gzip'``, ``'bz2'``, ``'zip'``, ``'xz'``, ``None``, ``dict``}, default ``'infer'``
+compression : {``'infer'``, ``'gzip'``, ``'bz2'``, ``'zip'``, ``'xz'``, ``'zstd'``, ``None``, ``dict``}, default ``'infer'``
   For on-the-fly decompression of on-disk data. If 'infer', then use gzip,
-  bz2, zip, or xz if ``filepath_or_buffer`` is path-like ending in '.gz', '.bz2',
-  '.zip', or '.xz', respectively, and no decompression otherwise. If using 'zip',
+  bz2, zip, xz, or zstandard if ``filepath_or_buffer`` is path-like ending in '.gz', '.bz2',
+  '.zip', '.xz', '.zst', respectively, and no decompression otherwise. If using 'zip',
   the ZIP file must contain only one data file to be read in.
   Set to ``None`` for no decompression. Can also be a dict with key ``'method'``
-  set to one of {``'zip'``, ``'gzip'``, ``'bz2'``} and other key-value pairs are
-  forwarded to ``zipfile.ZipFile``, ``gzip.GzipFile``, or ``bz2.BZ2File``.
+  set to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``} and other key-value pairs are
+  forwarded to ``zipfile.ZipFile``, ``gzip.GzipFile``, ``bz2.BZ2File``, or ``zstandard.ZstdDecompressor``.
   As an example, the following could be passed for faster compression and to
   create a reproducible gzip archive:
   ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
@@ -1293,6 +1318,20 @@ data that appear in some lines but not others:
     1  4  5   6
     2  8  9  10
 
+In case you want to keep all data including the lines with too many fields, you can
+specify a sufficient number of ``names``. This ensures that lines with not enough
+fields are filled with ``NaN``.
+
+.. code-block:: ipython
+
+   In [31]: pd.read_csv(StringIO(data), names=['a', 'b', 'c', 'd'])
+
+   Out[31]:
+       a  b   c  d
+    0  1  2   3  NaN
+    1  4  5   6  7
+    2  8  9  10  NaN
+
 .. _io.dialect:
 
 Dialect
@@ -1864,6 +1903,7 @@ with optional parameters:
      ``index``; dict like {index -> {column -> value}}
      ``columns``; dict like {column -> {index -> value}}
      ``values``; just the values array
+     ``table``; adhering to the JSON `Table Schema`_
 
 * ``date_format`` : string, type of date conversion, 'epoch' for timestamp, 'iso' for ISO8601.
 * ``double_precision`` : The number of decimal places to use when encoding floating point values, default 10.
@@ -2438,7 +2478,6 @@ A few notes on the generated table schema:
     * For ``MultiIndex``, ``mi.names`` is used. If any level has no name,
       then ``level_<i>`` is used.
 
-
 ``read_json`` also accepts ``orient='table'`` as an argument. This allows for
 the preservation of metadata such as dtypes and index names in a
 round-trippable manner.
@@ -2480,7 +2519,17 @@ indicate missing values and the subsequent read cannot distinguish the intent.
 
    os.remove("test.json")
 
+When using ``orient='table'`` along with user-defined ``ExtensionArray``,
+the generated schema will contain an additional ``extDtype`` key in the respective
+``fields`` element. This extra key is not standard but does enable JSON roundtrips
+for extension types (e.g. ``read_json(df.to_json(orient="table"), orient="table")``).
+
+The ``extDtype`` key carries the name of the extension, if you have properly registered
+the ``ExtensionDtype``, pandas will use said name to perform a lookup into the registry
+and re-convert the serialized data into your custom dtype.
+
 .. _Table Schema: https://specs.frictionlessdata.io/table-schema/
+
 
 HTML
 ----
@@ -3507,9 +3556,9 @@ with ``on_demand=True``.
 Specifying sheets
 +++++++++++++++++
 
-.. note :: The second argument is ``sheet_name``, not to be confused with ``ExcelFile.sheet_names``.
+.. note:: The second argument is ``sheet_name``, not to be confused with ``ExcelFile.sheet_names``.
 
-.. note :: An ExcelFile's attribute ``sheet_names`` provides access to a list of sheets.
+.. note:: An ExcelFile's attribute ``sheet_names`` provides access to a list of sheets.
 
 * The arguments ``sheet_name`` allows specifying the sheet or sheets to read.
 * The default value for ``sheet_name`` is 0, indicating to read the first sheet
@@ -3983,18 +4032,18 @@ Compressed pickle files
 '''''''''''''''''''''''
 
 :func:`read_pickle`, :meth:`DataFrame.to_pickle` and :meth:`Series.to_pickle` can read
-and write compressed pickle files. The compression types of ``gzip``, ``bz2``, ``xz`` are supported for reading and writing.
+and write compressed pickle files. The compression types of ``gzip``, ``bz2``, ``xz``, ``zstd`` are supported for reading and writing.
 The ``zip`` file format only supports reading and must contain only one data file
 to be read.
 
 The compression type can be an explicit parameter or be inferred from the file extension.
-If 'infer', then use ``gzip``, ``bz2``, ``zip``, or ``xz`` if filename ends in ``'.gz'``, ``'.bz2'``, ``'.zip'``, or
-``'.xz'``, respectively.
+If 'infer', then use ``gzip``, ``bz2``, ``zip``, ``xz``, ``zstd`` if filename ends in ``'.gz'``, ``'.bz2'``, ``'.zip'``,
+``'.xz'``, or ``'.zst'``, respectively.
 
 The compression parameter can also be a ``dict`` in order to pass options to the
 compression protocol. It must have a ``'method'`` key set to the name
 of the compression protocol, which must be one of
-{``'zip'``, ``'gzip'``, ``'bz2'``}. All other key-value pairs are passed to
+{``'zip'``, ``'gzip'``, ``'bz2'``, ``'xz'``, ``'zstd'``}. All other key-value pairs are passed to
 the underlying compression library.
 
 .. ipython:: python

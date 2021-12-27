@@ -345,7 +345,7 @@ SQL databases
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
-SQLAlchemy                1.3.11              SQL support for databases other than sqlite
+SQLAlchemy                1.4.0               SQL support for databases other than sqlite
 psycopg2                  2.8.4               PostgreSQL engine for sqlalchemy
 pymysql                   0.10.1              MySQL engine for sqlalchemy
 ========================= ================== =============================================================
@@ -401,4 +401,14 @@ PyQt4/PyQt5                                  Clipboard I/O
 qtpy                                         Clipboard I/O
 xclip                                        Clipboard I/O on linux
 xsel                                         Clipboard I/O on linux
+========================= ================== =============================================================
+
+
+Compression
+^^^^^^^^^^^
+
+========================= ================== =============================================================
+Dependency                Minimum Version    Notes
+========================= ================== =============================================================
+Zstandard                                    Zstandard compression
 ========================= ================== =============================================================

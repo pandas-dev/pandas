@@ -70,13 +70,16 @@ MIXED_INT_DTYPES = [
 
 
 class TestDataFrameConstructors:
-    def test_constructor_from_2d_datetimearray(self):
+    def test_constructor_from_2d_datetimearray(self, using_array_manager):
         dti = date_range("2016-01-01", periods=6, tz="US/Pacific")
         dta = dti._data.reshape(3, 2)
 
         df = DataFrame(dta)
         expected = DataFrame({0: dta[:, 0], 1: dta[:, 1]})
         tm.assert_frame_equal(df, expected)
+        if not using_array_manager:
+            # GH#44724 big performance hit if we de-consolidate
+            assert len(df._mgr.blocks) == 1
 
     def test_constructor_dict_with_tzaware_scalar(self):
         # GH#42505
@@ -264,12 +267,17 @@ class TestDataFrameConstructors:
         should_be_view[0][0] = 99
         assert df.values[0, 0] == 99
 
-    @td.skip_array_manager_invalid_test  # TODO(ArrayManager) keep view on 2D array?
-    def test_constructor_dtype_nocast_view_2d_array(self):
-        df = DataFrame([[1, 2]])
-        should_be_view = DataFrame(df.values, dtype=df[0].dtype)
-        should_be_view[0][0] = 97
-        assert df.values[0, 0] == 97
+    def test_constructor_dtype_nocast_view_2d_array(self, using_array_manager):
+        df = DataFrame([[1, 2], [3, 4]], dtype="int64")
+        if not using_array_manager:
+            should_be_view = DataFrame(df.values, dtype=df[0].dtype)
+            should_be_view[0][0] = 97
+            assert df.values[0, 0] == 97
+        else:
+            # INFO(ArrayManager) DataFrame(ndarray) doesn't necessarily preserve
+            # a view on the array to ensure contiguous 1D arrays
+            df2 = DataFrame(df.values, dtype=df[0].dtype)
+            assert df2._mgr.arrays[0].flags.c_contiguous
 
     @td.skip_array_manager_invalid_test
     def test_1d_object_array_does_not_copy(self):
@@ -2111,17 +2119,29 @@ class TestDataFrameConstructors:
         assert (cop["A"] == 5).all()
         assert not (float_frame["A"] == 5).all()
 
-    # TODO(ArrayManager) keep view on 2D array?
-    @td.skip_array_manager_not_yet_implemented
-    def test_constructor_ndarray_copy(self, float_frame):
-        df = DataFrame(float_frame.values)
+    def test_constructor_ndarray_copy(self, float_frame, using_array_manager):
+        if not using_array_manager:
+            df = DataFrame(float_frame.values)
 
-        float_frame.values[5] = 5
-        assert (df.values[5] == 5).all()
+            float_frame.values[5] = 5
+            assert (df.values[5] == 5).all()
 
-        df = DataFrame(float_frame.values, copy=True)
-        float_frame.values[6] = 6
-        assert not (df.values[6] == 6).all()
+            df = DataFrame(float_frame.values, copy=True)
+            float_frame.values[6] = 6
+            assert not (df.values[6] == 6).all()
+        else:
+            arr = float_frame.values.copy()
+            # default: copy to ensure contiguous arrays
+            df = DataFrame(arr)
+            assert df._mgr.arrays[0].flags.c_contiguous
+            arr[0, 0] = 100
+            assert df.iloc[0, 0] != 100
+
+            # manually specify copy=False
+            df = DataFrame(arr, copy=False)
+            assert not df._mgr.arrays[0].flags.c_contiguous
+            arr[0, 0] = 1000
+            assert df.iloc[0, 0] == 1000
 
     # TODO(ArrayManager) keep view on Series?
     @td.skip_array_manager_not_yet_implemented

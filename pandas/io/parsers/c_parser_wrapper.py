@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+from typing import (
+    Hashable,
+    Mapping,
+    Sequence,
+)
 import warnings
 
 import numpy as np
@@ -7,6 +12,8 @@ import numpy as np
 import pandas._libs.parsers as parsers
 from pandas._typing import (
     ArrayLike,
+    DtypeArg,
+    DtypeObj,
     FilePath,
     ReadCsvBuffer,
 )
@@ -20,6 +27,10 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.concat import union_categoricals
 from pandas.core.dtypes.dtypes import ExtensionDtype
 
+from pandas import (
+    Index,
+    MultiIndex,
+)
 from pandas.core.indexes.api import ensure_index_from_sequences
 
 from pandas.io.parsers.base_parser import (
@@ -193,7 +204,7 @@ class CParserWrapper(ParserBase):
         except ValueError:
             pass
 
-    def _set_noconvert_columns(self):
+    def _set_noconvert_columns(self) -> None:
         """
         Set the columns that should not undergo dtype conversions.
 
@@ -214,7 +225,14 @@ class CParserWrapper(ParserBase):
         for col in noconvert_columns:
             self._reader.set_noconvert(col)
 
-    def read(self, nrows=None):
+    def read(
+        self,
+        nrows: int | None = None,
+    ) -> tuple[
+        Index | MultiIndex | None,
+        Sequence[Hashable] | MultiIndex,
+        Mapping[Hashable, ArrayLike],
+    ]:
         try:
             if self.low_memory:
                 chunks = self._reader.read_low_memory(nrows)
@@ -279,7 +297,7 @@ class CParserWrapper(ParserBase):
             data_tups = sorted(data.items())
             data = {k: v for k, (i, v) in zip(names, data_tups)}
 
-            names, data = self._do_date_conversions(names, data)
+            names, date_data = self._do_date_conversions(names, data)
 
         else:
             # rename dict keys
@@ -302,15 +320,15 @@ class CParserWrapper(ParserBase):
 
             data = {k: v for k, (i, v) in zip(names, data_tups)}
 
-            names, data = self._do_date_conversions(names, data)
-            index, names = self._make_index(data, alldata, names)
+            names, date_data = self._do_date_conversions(names, data)
+            index, names = self._make_index(date_data, alldata, names)
 
         # maybe create a mi on the columns
-        names = self._maybe_make_multi_index_columns(names, self.col_names)
+        conv_names = self._maybe_make_multi_index_columns(names, self.col_names)
 
-        return index, names, data
+        return index, conv_names, date_data
 
-    def _filter_usecols(self, names):
+    def _filter_usecols(self, names: Sequence[Hashable]) -> Sequence[Hashable]:
         # hackish
         usecols = self._evaluate_usecols(self.usecols, names)
         if usecols is not None and len(names) != len(usecols):
@@ -395,13 +413,15 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
     return result
 
 
-def ensure_dtype_objs(dtype):
+def ensure_dtype_objs(
+    dtype: DtypeArg | dict[Hashable, DtypeArg] | None
+) -> DtypeObj | dict[Hashable, DtypeObj] | None:
     """
     Ensure we have either None, a dtype object, or a dictionary mapping to
     dtype objects.
     """
     if isinstance(dtype, dict):
-        dtype = {k: pandas_dtype(dtype[k]) for k in dtype}
+        return {k: pandas_dtype(dtype[k]) for k in dtype}
     elif dtype is not None:
-        dtype = pandas_dtype(dtype)
+        return pandas_dtype(dtype)
     return dtype

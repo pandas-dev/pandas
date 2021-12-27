@@ -22,6 +22,7 @@ from pandas import (
 )
 import pandas._testing as tm
 
+import pandas.io.common as icom
 from pandas.io.parsers import (
     read_csv,
     read_fwf,
@@ -218,7 +219,7 @@ bar2,12,13,14,15
     msg = "Each column specification must be.+"
 
     with pytest.raises(TypeError, match=msg):
-        read_fwf(StringIO(data), [("a", 1)])
+        read_fwf(StringIO(data), colspecs=[("a", 1)])
 
 
 @pytest.mark.parametrize(
@@ -655,7 +656,7 @@ def test_fwf_compression(compression_only, infer):
     3333333333""".strip()
 
     compression = compression_only
-    extension = "gz" if compression == "gzip" else compression
+    extension = icom._compression_to_extension[compression]
 
     kwargs = {"widths": [5, 5], "names": ["one", "two"]}
     expected = read_fwf(StringIO(data), **kwargs)
@@ -699,15 +700,15 @@ def test_encoding_mmap(memory_map):
     GH 23254.
     """
     encoding = "iso8859_1"
-    data = BytesIO(" 1 A Ä 2\n".encode(encoding))
-    df = read_fwf(
-        data,
-        header=None,
-        widths=[2, 2, 2, 2],
-        encoding=encoding,
-        memory_map=memory_map,
-    )
-    data.seek(0)
+    with tm.ensure_clean() as path:
+        Path(path).write_bytes(" 1 A Ä 2\n".encode(encoding))
+        df = read_fwf(
+            path,
+            header=None,
+            widths=[2, 2, 2, 2],
+            encoding=encoding,
+            memory_map=memory_map,
+        )
     df_reference = DataFrame([[1, "A", "Ä", 2]])
     tm.assert_frame_equal(df, df_reference)
 
@@ -876,4 +877,46 @@ def test_skip_rows_and_n_rows():
     """
     result = read_fwf(StringIO(data), nrows=4, skiprows=[2, 4])
     expected = DataFrame({"a": [1, 3, 5, 6], "b": ["a", "c", "e", "f"]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_skiprows_with_iterator():
+    # GH#10261
+    data = """0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+    """
+    df_iter = read_fwf(
+        StringIO(data),
+        colspecs=[(0, 2)],
+        names=["a"],
+        iterator=True,
+        chunksize=2,
+        skiprows=[0, 1, 2, 6, 9],
+    )
+    expected_frames = [
+        DataFrame({"a": [3, 4]}),
+        DataFrame({"a": [5, 7, 8]}, index=[2, 3, 4]),
+        DataFrame({"a": []}, index=[], dtype="object"),
+    ]
+    for i, result in enumerate(df_iter):
+        tm.assert_frame_equal(result, expected_frames[i])
+
+
+def test_skiprows_passing_as_positional_deprecated():
+    # GH#41485
+    data = """0
+1
+2
+"""
+    with tm.assert_produces_warning(FutureWarning, match="keyword-only"):
+        result = read_fwf(StringIO(data), [(0, 2)])
+    expected = DataFrame({"0": [1, 2]})
     tm.assert_frame_equal(result, expected)

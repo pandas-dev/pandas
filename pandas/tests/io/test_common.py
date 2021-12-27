@@ -7,6 +7,7 @@ from functools import partial
 from io import (
     BytesIO,
     StringIO,
+    UnsupportedOperation,
 )
 import mmap
 import os
@@ -99,22 +100,9 @@ bar2,12,13,14,15
             with fsspec.open(f"file://{path}", mode="wb") as fsspec_obj:
                 assert fsspec_obj == icom.stringify_path(fsspec_obj)
 
-    @pytest.mark.parametrize(
-        "extension,expected",
-        [
-            ("", None),
-            (".gz", "gzip"),
-            (".bz2", "bz2"),
-            (".zip", "zip"),
-            (".xz", "xz"),
-            (".GZ", "gzip"),
-            (".BZ2", "bz2"),
-            (".ZIP", "zip"),
-            (".XZ", "xz"),
-        ],
-    )
     @pytest.mark.parametrize("path_type", path_types)
-    def test_infer_compression_from_path(self, extension, expected, path_type):
+    def test_infer_compression_from_path(self, compression_format, path_type):
+        extension, expected = compression_format
         path = path_type("foo/bar.csv" + extension)
         compression = icom.infer_compression(path, compression="infer")
         assert compression == expected
@@ -607,3 +595,9 @@ def test_errno_attribute():
     with pytest.raises(FileNotFoundError, match="\\[Errno 2\\]") as err:
         pd.read_csv("doesnt_exist")
         assert err.errno == errno.ENOENT
+
+
+def test_fail_mmap():
+    with pytest.raises(UnsupportedOperation, match="fileno"):
+        with BytesIO() as buffer:
+            icom.get_handle(buffer, "rb", memory_map=True)
