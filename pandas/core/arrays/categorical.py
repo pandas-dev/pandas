@@ -108,6 +108,7 @@ from pandas.core.base import (
 )
 import pandas.core.common as com
 from pandas.core.construction import (
+    ensure_wrapped_if_datetimelike,
     extract_array,
     sanitize_array,
 )
@@ -367,7 +368,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         categories=None,
         ordered=None,
         dtype: Dtype | None = None,
-        fastpath=False,
+        fastpath: bool = False,
         copy: bool = True,
     ):
 
@@ -538,8 +539,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         else:
             # GH8628 (PERF): astype category codes instead of astyping array
-            try:
+            if is_datetime64_dtype(self.categories):
+                new_cats = ensure_wrapped_if_datetimelike(self.categories._values)
+            else:
                 new_cats = np.asarray(self.categories)
+
+            try:
                 new_cats = new_cats.astype(dtype=dtype, copy=copy)
                 fill_value = lib.item_from_zerodim(np.array(np.nan).astype(dtype))
             except (
@@ -1836,6 +1841,30 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         else:
             codes = self._codes[sorted_idx]
             return self._from_backing_data(codes)
+
+    def _rank(
+        self,
+        *,
+        axis: int = 0,
+        method: str = "average",
+        na_option: str = "keep",
+        ascending: bool = True,
+        pct: bool = False,
+    ):
+        """
+        See Series.rank.__doc__.
+        """
+        if axis != 0:
+            raise NotImplementedError
+        vff = self._values_for_rank()
+        return algorithms.rank(
+            vff,
+            axis=axis,
+            method=method,
+            na_option=na_option,
+            ascending=ascending,
+            pct=pct,
+        )
 
     def _values_for_rank(self):
         """

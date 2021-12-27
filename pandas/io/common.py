@@ -5,6 +5,7 @@ import bz2
 import codecs
 from collections import abc
 import dataclasses
+import functools
 import gzip
 from io import (
     BufferedIOBase,
@@ -17,6 +18,7 @@ from io import (
 import mmap
 import os
 from pathlib import Path
+import re
 from typing import (
     IO,
     Any,
@@ -49,12 +51,16 @@ from pandas._typing import (
 )
 from pandas.compat import get_lzma_file
 from pandas.compat._optional import import_optional_dependency
+from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_file_like
 
+from pandas.core.shared_docs import _shared_docs
+
 _VALID_URLS = set(uses_relative + uses_netloc + uses_params)
 _VALID_URLS.discard("")
+_RFC_3986_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9+\-+.]*://")
 
 BaseBufferT = TypeVar("BaseBufferT", bound=BaseBuffer)
 
@@ -240,11 +246,12 @@ def is_fsspec_url(url: FilePath | BaseBuffer) -> bool:
     """
     return (
         isinstance(url, str)
-        and "://" in url
+        and bool(_RFC_3986_PATTERN.match(url))
         and not url.startswith(("http://", "https://"))
     )
 
 
+@doc(compression_options=_shared_docs["compression_options"] % "filepath_or_buffer")
 def _get_filepath_or_buffer(
     filepath_or_buffer: FilePath | BaseBuffer,
     encoding: str = "utf-8",
@@ -260,7 +267,10 @@ def _get_filepath_or_buffer(
     ----------
     filepath_or_buffer : a url, filepath (str, py.path.local or pathlib.Path),
                          or buffer
-    compression : {{'gzip', 'bz2', 'zip', 'xz', None}}, optional
+    {compression_options}
+
+        .. versionchanged:: 1.4.0 Zstandard support.
+
     encoding : the encoding to use to decode bytes, default is 'utf-8'
     mode : str, optional
 
@@ -443,7 +453,13 @@ def file_path_to_url(path: str) -> str:
     return urljoin("file:", pathname2url(path))
 
 
-_compression_to_extension = {"gzip": ".gz", "bz2": ".bz2", "zip": ".zip", "xz": ".xz"}
+_compression_to_extension = {
+    "gzip": ".gz",
+    "bz2": ".bz2",
+    "zip": ".zip",
+    "xz": ".xz",
+    "zstd": ".zst",
+}
 
 
 def get_compression_method(
@@ -481,6 +497,7 @@ def get_compression_method(
     return compression_method, compression_args
 
 
+@doc(compression_options=_shared_docs["compression_options"] % "filepath_or_buffer")
 def infer_compression(
     filepath_or_buffer: FilePath | BaseBuffer, compression: str | None
 ) -> str | None:
@@ -494,10 +511,9 @@ def infer_compression(
     ----------
     filepath_or_buffer : str or file handle
         File path or object.
-    compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}
-        If 'infer' and `filepath_or_buffer` is path-like, then detect
-        compression from the following extensions: '.gz', '.bz2', '.zip',
-        or '.xz' (otherwise no compression).
+    {compression_options}
+
+        .. versionchanged:: 1.4.0 Zstandard support.
 
     Returns
     -------
@@ -585,6 +601,7 @@ def get_handle(
     ...
 
 
+@doc(compression_options=_shared_docs["compression_options"] % "path_or_buf")
 def get_handle(
     path_or_buf: FilePath | BaseBuffer,
     mode: str,
@@ -607,26 +624,18 @@ def get_handle(
         Mode to open path_or_buf with.
     encoding : str or None
         Encoding to use.
-    compression : str or dict, default None
-        If string, specifies compression mode. If dict, value at key 'method'
-        specifies compression mode. Compression mode must be one of {'infer',
-        'gzip', 'bz2', 'zip', 'xz', None}. If compression mode is 'infer'
-        and `filepath_or_buffer` is path-like, then detect compression from
-        the following extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise
-        no compression). If dict and compression mode is one of
-        {'zip', 'gzip', 'bz2'}, or inferred as one of the above,
-        other entries passed as additional compression options.
+    {compression_options}
 
         .. versionchanged:: 1.0.0
-
            May now be a dict with key 'method' as compression mode
            and other keys as compression options if compression
            mode is 'zip'.
 
         .. versionchanged:: 1.1.0
-
            Passing compression options as keys in dict is now
-           supported for compression modes 'gzip' and 'bz2' as well as 'zip'.
+           supported for compression modes 'gzip', 'bz2', 'zstd' and 'zip'.
+
+        .. versionchanged:: 1.4.0 Zstandard support.
 
     memory_map : bool, default False
         See parsers._parser_params for more information.
@@ -689,8 +698,13 @@ def get_handle(
         check_parent_directory(str(handle))
 
     if compression:
-        # compression libraries do not like an explicit text-mode
-        ioargs.mode = ioargs.mode.replace("t", "")
+        if compression != "zstd":
+            # compression libraries do not like an explicit text-mode
+            ioargs.mode = ioargs.mode.replace("t", "")
+        elif compression == "zstd" and "b" not in ioargs.mode:
+            # python-zstandard defaults to text mode, but we always expect
+            # compression libraries to use binary mode.
+            ioargs.mode += "b"
 
         # GZ Compression
         if compression == "gzip":
@@ -714,12 +728,10 @@ def get_handle(
 
         # BZ Compression
         elif compression == "bz2":
-            handle = bz2.BZ2File(
-                # Argument 1 to "BZ2File" has incompatible type "Union[str,
-                # Union[IO[Any], RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper,
-                # mmap]]"; expected "Union[Union[str, bytes, _PathLike[str],
-                # _PathLike[bytes]], IO[bytes]]"
-                handle,  # type: ignore[arg-type]
+            # No overload variant of "BZ2File" matches argument types
+            # "Union[str, BaseBuffer]", "str", "Dict[str, Any]"
+            handle = bz2.BZ2File(  # type: ignore[call-overload]
+                handle,
                 mode=ioargs.mode,
                 **compression_args,
             )
@@ -748,6 +760,19 @@ def get_handle(
         # XZ Compression
         elif compression == "xz":
             handle = get_lzma_file()(handle, ioargs.mode)
+
+        # Zstd Compression
+        elif compression == "zstd":
+            zstd = import_optional_dependency("zstandard")
+            if "r" in ioargs.mode:
+                open_args = {"dctx": zstd.ZstdDecompressor(**compression_args)}
+            else:
+                open_args = {"cctx": zstd.ZstdCompressor(**compression_args)}
+            handle = zstd.open(
+                handle,
+                mode=ioargs.mode,
+                **open_args,
+            )
 
         # Unrecognized Compression
         else:
@@ -1101,6 +1126,24 @@ def _is_binary_mode(handle: FilePath | BaseBuffer, mode: str) -> bool:
     if issubclass(type(handle), text_classes):
         return False
 
-    # classes that expect bytes
-    binary_classes = (BufferedIOBase, RawIOBase)
-    return isinstance(handle, binary_classes) or "b" in getattr(handle, "mode", mode)
+    return isinstance(handle, _get_binary_io_classes()) or "b" in getattr(
+        handle, "mode", mode
+    )
+
+
+@functools.lru_cache
+def _get_binary_io_classes() -> tuple[type, ...]:
+    """IO classes that that expect bytes"""
+    binary_classes: tuple[type, ...] = (BufferedIOBase, RawIOBase)
+
+    # python-zstandard doesn't use any of the builtin base classes; instead we
+    # have to use the `zstd.ZstdDecompressionReader` class for isinstance checks.
+    # Unfortunately `zstd.ZstdDecompressionReader` isn't exposed by python-zstandard
+    # so we have to get it from a `zstd.ZstdDecompressor` instance.
+    # See also https://github.com/indygreg/python-zstandard/pull/165.
+    zstd = import_optional_dependency("zstandard", errors="ignore")
+    if zstd is not None:
+        with zstd.ZstdDecompressor().stream_reader(b"") as reader:
+            binary_classes += (type(reader),)
+
+    return binary_classes

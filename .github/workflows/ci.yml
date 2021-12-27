@@ -41,6 +41,8 @@ jobs:
 
     - uses: conda-incubator/setup-miniconda@v2
       with:
+        mamba-version: "*"
+        channels: conda-forge
         activate-environment: pandas-dev
         channel-priority: strict
         environment-file: ${{ env.ENV_FILE }}
@@ -53,7 +55,7 @@ jobs:
 
     - name: Install pyright
       # note: keep version in sync with .pre-commit-config.yaml
-      run: npm install -g pyright@1.1.171
+      run: npm install -g pyright@1.1.200
 
     - name: Build Pandas
       uses: ./.github/actions/build_pandas
@@ -104,6 +106,8 @@ jobs:
 
     - uses: conda-incubator/setup-miniconda@v2
       with:
+        mamba-version: "*"
+        channels: conda-forge
         activate-environment: pandas-dev
         channel-priority: strict
         environment-file: ${{ env.ENV_FILE }}

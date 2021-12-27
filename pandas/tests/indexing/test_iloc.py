@@ -269,8 +269,7 @@ class TestiLocBaseIndependent:
         # GH 21982
 
         obj = DataFrame(np.arange(100).reshape(10, 10))
-        if frame_or_series is Series:
-            obj = obj[0]
+        obj = tm.get_obj(obj, frame_or_series)
 
         with pytest.raises(TypeError, match="Cannot index by location index"):
             obj.iloc["a"]
@@ -1157,6 +1156,14 @@ class TestiLocBaseIndependent:
         res = df.iloc[:, ::-1]
         expected = DataFrame({"B": df["B"], "A": df["A"]})
         tm.assert_frame_equal(res, expected)
+
+    def test_iloc_setitem_2d_ndarray_into_ea_block(self):
+        # GH#44703
+        df = DataFrame({"status": ["a", "b", "c"]}, dtype="category")
+        df.iloc[np.array([0, 1]), np.array([0])] = np.array([["a"], ["a"]])
+
+        expected = DataFrame({"status": ["a", "a", "c"]}, dtype=df["status"].dtype)
+        tm.assert_frame_equal(df, expected)
 
 
 class TestILocErrors:

@@ -15,10 +15,12 @@ from pandas._typing import (
     WriteBuffer,
 )
 from pandas.errors import AbstractMethodError
+from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import is_list_like
 
 from pandas.core.frame import DataFrame
+from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import get_handle
 from pandas.io.xml import (
@@ -27,6 +29,7 @@ from pandas.io.xml import (
 )
 
 
+@doc(compression_options=_shared_docs["compression_options"] % "path_or_buffer")
 class BaseXMLFormatter:
     """
     Subclass for formatting data in XML.
@@ -74,9 +77,9 @@ class BaseXMLFormatter:
     stylesheet : str or file-like
         A URL, file, file-like object, or a raw string containing XSLT.
 
-    compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
-        Compression type for on-the-fly decompression of on-disk data.
-        If 'infer', then use extension for gzip, bz2, zip or xz.
+    {compression_options}
+
+        .. versionchanged:: 1.4.0 Zstandard support.
 
     storage_options : dict, optional
         Extra options that make sense for a particular storage connection,

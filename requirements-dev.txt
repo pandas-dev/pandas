@@ -8,11 +8,11 @@ asv
 cython>=0.29.24
 black==21.5b2
 cpplint
-flake8==3.9.2
+flake8==4.0.1
 flake8-bugbear==21.3.2
-flake8-comprehensions==3.1.0
+flake8-comprehensions==3.7.0
 isort>=5.2.1
-mypy==0.910
+mypy==0.930
 pre-commit>=2.9.2
 pycodestyle
 pyupgrade
@@ -20,6 +20,11 @@ gitpython
 gitdb
 sphinx
 sphinx-panels
+numpydoc < 1.2
+types-python-dateutil
+types-PyMySQL
+types-pytz
+types-setuptools
 nbconvert>=5.4.1
 nbsphinx
 pandoc
@@ -65,7 +70,7 @@ xlsxwriter
 xlwt
 odfpy
 fastparquet>=0.4.0
-pyarrow>=1.0.1
+pyarrow>2.0.1
 python-snappy
 tables>=3.6.1
 s3fs>=0.4.0
@@ -79,11 +84,6 @@ pyreadstat
 tabulate>=0.8.3
 natsort
 git+https://github.com/pydata/pydata-sphinx-theme.git@master
-numpydoc < 1.2
 pandas-dev-flaker==0.2.0
-types-python-dateutil
-types-PyMySQL
-types-pytz
-types-setuptools
 pytest-cython
 setuptools>=51.0.0
