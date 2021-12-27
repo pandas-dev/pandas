@@ -138,13 +138,11 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
             return TimedeltaArray(arr.view("i8"), dtype=dtype)
 
-        # error: Incompatible return value type (got "ndarray", expected
-        # "ExtensionArray")
         # error: Argument "dtype" to "view" of "_ArrayOrScalarCommon" has incompatible
         # type "Union[ExtensionDtype, dtype[Any]]"; expected "Union[dtype[Any], None,
         # type, _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int,
         # Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
-        return arr.view(dtype=dtype)  # type: ignore[return-value,arg-type]
+        return arr.view(dtype=dtype)  # type: ignore[arg-type]
 
     def take(
         self: NDArrayBackedExtensionArrayT,
@@ -276,13 +274,9 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
                 return self._box_func(result)
             return self._from_backing_data(result)
 
-        # error: Value of type variable "AnyArrayLike" of "extract_array" cannot be
-        # "Union[int, slice, ndarray]"
         # error: Incompatible types in assignment (expression has type "ExtensionArray",
         # variable has type "Union[int, slice, ndarray]")
-        key = extract_array(  # type: ignore[type-var,assignment]
-            key, extract_numpy=True
-        )
+        key = extract_array(key, extract_numpy=True)  # type: ignore[assignment]
         key = check_array_indexer(self, key)
         result = self._ndarray[key]
         if lib.is_scalar(result):
