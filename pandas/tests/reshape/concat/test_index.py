@@ -262,5 +262,7 @@ class TestMultiIndexConcat:
         # GH#44786
         df = DataFrame({"col": ["a", "b", "c"]}, index=["1", "2", "2"])
         result = concat([df], keys=["X"])
+        expected_index = MultiIndex.from_arrays([["X", "X", "X"], ["1", "2", "2"]])
+        tm.assert_frame_equal(result.index.to_frame(), expected_index.to_frame())
         assert not result.index.is_unique
         assert result.index.has_duplicates
