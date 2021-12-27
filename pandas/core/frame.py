@@ -666,7 +666,7 @@ class DataFrame(NDFrame, OpsMixin):
                     typ=manager,
                 )
 
-        elif isinstance(data, (np.ndarray, Series, Index)):
+        elif isinstance(data, (np.ndarray, Series, Index, ExtensionArray)):
             if data.dtype.names:
                 # i.e. numpy structured array
                 data = cast(np.ndarray, data)
@@ -3261,9 +3261,10 @@ class DataFrame(NDFrame, OpsMixin):
             index=self.columns,
         )
         if index:
-            result = self._constructor_sliced(
+            index_memory_usage = self._constructor_sliced(
                 self.index.memory_usage(deep=deep), index=["Index"]
-            ).append(result)
+            )
+            result = index_memory_usage._append(result)
         return result
 
     def transpose(self, *args, copy: bool = False) -> DataFrame:
@@ -5847,6 +5848,9 @@ class DataFrame(NDFrame, OpsMixin):
 
     @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
     def isnull(self) -> DataFrame:
+        """
+        DataFrame.isnull is an alias for DataFrame.isna.
+        """
         return self.isna()
 
     @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])
@@ -5855,6 +5859,9 @@ class DataFrame(NDFrame, OpsMixin):
 
     @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])
     def notnull(self) -> DataFrame:
+        """
+        DataFrame.notnull is an alias for DataFrame.notna.
+        """
         return ~self.isna()
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
@@ -8997,6 +9004,23 @@ NaN 12.3   33.0
         3  3
         4  4
         """
+        warnings.warn(
+            "The frame.append method is deprecated "
+            "and will be removed from pandas in a future version. "
+            "Use pandas.concat instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
+        return self._append(other, ignore_index, verify_integrity, sort)
+
+    def _append(
+        self,
+        other,
+        ignore_index: bool = False,
+        verify_integrity: bool = False,
+        sort: bool = False,
+    ) -> DataFrame:
         combined_columns = None
         if isinstance(other, (Series, dict)):
             if isinstance(other, dict):
@@ -9722,7 +9746,9 @@ NaN 12.3   33.0
             idx_diff = result_index.difference(correl.index)
 
             if len(idx_diff) > 0:
-                correl = correl.append(Series([np.nan] * len(idx_diff), index=idx_diff))
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
 
         return correl
 

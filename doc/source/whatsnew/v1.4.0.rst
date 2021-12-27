@@ -275,7 +275,7 @@ ignored when finding the concatenated dtype.  These are now consistently *not* i
 
     df1 = pd.DataFrame({"bar": [pd.Timestamp("2013-01-01")]}, index=range(1))
     df2 = pd.DataFrame({"bar": np.nan}, index=range(1, 2))
-    res = df1.append(df2)
+    res = pd.concat([df1, df2])
 
 Previously, the float-dtype in ``df2`` would be ignored so the result dtype would be ``datetime64[ns]``. As a result, the ``np.nan`` would be cast to ``NaT``.
 
@@ -398,7 +398,7 @@ If installed, we now require:
 +-----------------+-----------------+----------+---------+
 | pytest (dev)    | 6.0             |          |         |
 +-----------------+-----------------+----------+---------+
-| mypy (dev)      | 0.920           |          |    X    |
+| mypy (dev)      | 0.930           |          |    X    |
 +-----------------+-----------------+----------+---------+
 
 For `optional libraries <https://pandas.pydata.org/docs/getting_started/install.html>`_ the general recommendation is to use the latest version.
@@ -510,6 +510,49 @@ when given numeric data, but in the future, a :class:`NumericIndex` will be retu
     Out [4]: NumericIndex([1, 2, 3], dtype='uint64')
 
 
+.. _whatsnew_140.deprecations.frame_series_append:
+
+Deprecated Frame.append and Series.append
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`DataFrame.append` and :meth:`Series.append` have been deprecated and will be removed in Pandas 2.0.
+Use :func:`pandas.concat` instead (:issue:`35407`).
+
+*Deprecated syntax*
+
+.. code-block:: ipython
+
+    In [1]: pd.Series([1, 2]).append(pd.Series([3, 4])
+    Out [1]:
+    <stdin>:1: FutureWarning: The series.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.
+    0    1
+    1    2
+    0    3
+    1    4
+    dtype: int64
+
+    In [2]: df1 = pd.DataFrame([[1, 2], [3, 4]], columns=list('AB'))
+    In [3]: df2 = pd.DataFrame([[5, 6], [7, 8]], columns=list('AB'))
+    In [4]: df1.append(df2)
+    Out [4]:
+    <stdin>:1: FutureWarning: The series.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.
+       A  B
+    0  1  2
+    1  3  4
+    0  5  6
+    1  7  8
+
+*Recommended syntax*
+
+.. ipython:: python
+
+    pd.concat([pd.Series([1, 2]), pd.Series([3, 4])])
+
+    df1 = pd.DataFrame([[1, 2], [3, 4]], columns=list('AB'))
+    df2 = pd.DataFrame([[5, 6], [7, 8]], columns=list('AB'))
+    pd.concat([df1, df2])
+
+
 .. _whatsnew_140.deprecations.other:
 
 Other Deprecations
@@ -537,7 +580,6 @@ Other Deprecations
 - Deprecated casting behavior when passing an item with mismatched-timezone to :meth:`DatetimeIndex.insert`, :meth:`DatetimeIndex.putmask`, :meth:`DatetimeIndex.where` :meth:`DatetimeIndex.fillna`, :meth:`Series.mask`, :meth:`Series.where`, :meth:`Series.fillna`, :meth:`Series.shift`, :meth:`Series.replace`, :meth:`Series.reindex` (and :class:`DataFrame` column analogues). In the past this has cast to object dtype. In a future version, these will cast the passed item to the index or series's timezone (:issue:`37605`,:issue:`44940`)
 - Deprecated the 'errors' keyword argument in :meth:`Series.where`, :meth:`DataFrame.where`, :meth:`Series.mask`, and :meth:`DataFrame.mask`; in a future version the argument will be removed (:issue:`44294`)
 - Deprecated the ``prefix`` keyword argument in :func:`read_csv` and :func:`read_table`, in a future version the argument will be removed (:issue:`43396`)
-- Deprecated :meth:`PeriodIndex.astype` to ``datetime64[ns]`` or ``DatetimeTZDtype``, use ``obj.to_timestamp(how).tz_localize(dtype.tz)`` instead (:issue:`44398`)
 - Deprecated passing non boolean argument to sort in :func:`concat` (:issue:`41518`)
 - Deprecated passing arguments as positional for :func:`read_fwf` other than ``filepath_or_buffer`` (:issue:`41485`):
 - Deprecated passing ``skipna=None`` for :meth:`DataFrame.mad` and :meth:`Series.mad`, pass ``skipna=True`` instead (:issue:`44580`)
@@ -547,6 +589,8 @@ Other Deprecations
 - Deprecated :meth:`Categorical.replace`, use :meth:`Series.replace` instead (:issue:`44929`)
 - Deprecated :meth:`Index.__getitem__` with a bool key; use ``index.values[key]`` to get the old behavior (:issue:`44051`)
 - Deprecated downcasting column-by-column in :meth:`DataFrame.where` with integer-dtypes (:issue:`44597`)
+- Deprecated ``numeric_only=None`` in :meth:`DataFrame.rank`; in a future version ``numeric_only`` must be either ``True`` or ``False`` (the default) (:issue:`45036`)
+- Deprecated :meth:`NaT.freq` (:issue:`45071`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -602,6 +646,7 @@ Performance improvements
 - Performance improvement in :func:`to_csv` when :class:`MultiIndex` contains a lot of unused levels (:issue:`37484`)
 - Performance improvement in :func:`read_csv` when ``index_col`` was set with a numeric column (:issue:`44158`)
 - Performance improvement in :func:`concat` (:issue:`43354`)
+- Performance improvement in :meth:`SparseArray.__getitem__` (:issue:`23122`)
 - Performance improvement in constructing a :class:`DataFrame` from array-like objects like a ``Pytorch`` tensor (:issue:`44616`)
 -
 
@@ -667,12 +712,14 @@ Conversion
 ^^^^^^^^^^
 - Bug in :class:`UInt64Index` constructor when passing a list containing both positive integers small enough to cast to int64 and integers too large too hold in int64 (:issue:`42201`)
 - Bug in :class:`Series` constructor returning 0 for missing values with dtype ``int64`` and ``False`` for dtype ``bool`` (:issue:`43017`, :issue:`43018`)
+- Bug in constructing a :class:`DataFrame` from a :class:`PandasArray` containing :class:`Series` objects behaving differently than an equivalent ``np.ndarray`` (:issue:`43986`)
 - Bug in :class:`IntegerDtype` not allowing coercion from string dtype (:issue:`25472`)
 - Bug in :func:`to_datetime` with ``arg:xr.DataArray`` and ``unit="ns"`` specified raises TypeError (:issue:`44053`)
 - Bug in :meth:`DataFrame.convert_dtypes` not returning the correct type when a subclass does not overload :meth:`_constructor_sliced` (:issue:`43201`)
 - Bug in :meth:`DataFrame.astype` not propagating ``attrs`` from the original :class:`DataFrame` (:issue:`44414`)
 - Bug in :meth:`DataFrame.convert_dtypes` result losing ``columns.names`` (:issue:`41435`)
 - Bug in constructing a ``IntegerArray`` from pyarrow data failing to validate dtypes (:issue:`44891`)
+- Bug in :meth:`Series.astype` not allowing converting from a ``PeriodDtype`` to ``datetime64`` dtype, inconsistent with the :class:`PeriodIndex` behavior (:issue:`45038`)
 -
 
 Strings
@@ -732,6 +779,8 @@ Missing
 - Bug in :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` with ``inplace=True`` not writing to the underlying array(s) in-place (:issue:`44749`)
 - Bug in :meth:`Index.fillna` incorrectly returning an un-filled :class:`Index` when NA values are present and ``downcast`` argument is specified. This now raises ``NotImplementedError`` instead; do not pass ``downcast`` argument (:issue:`44873`)
 - Bug in :meth:`DataFrame.dropna` changing :class:`Index` even if no entries were dropped (:issue:`41965`)
+- Bug in :meth:`Series.fillna` with an object-dtype incorrectly ignoring ``downcast="infer"`` (:issue:`44241`)
+-
 
 MultiIndex
 ^^^^^^^^^^
@@ -780,6 +829,7 @@ I/O
 - Bug in :func:`read_csv` not setting name of :class:`MultiIndex` columns correctly when ``index_col`` is not the first column (:issue:`38549`)
 - Bug in :func:`read_csv` silently ignoring errors when failing to create a memory-mapped file (:issue:`44766`)
 - Bug in :func:`read_csv` when passing a ``tempfile.SpooledTemporaryFile`` opened in binary mode (:issue:`44748`)
+- Bug in :func:`read_json` raising ``ValueError`` when attempting to parse json strings containing "://" (:issue:`36271`)
 -
 
 Period
@@ -848,6 +898,7 @@ Sparse
 - Bug in :meth:`DataFrame.sparse.to_coo` silently converting non-zero fill values to zero (:issue:`24817`)
 - Bug in :class:`SparseArray` comparison methods with an array-like operand of mismatched length raising ``AssertionError`` or unclear ``ValueError`` depending on the input (:issue:`43863`)
 - Bug in :class:`SparseArray` arithmetic methods ``floordiv`` and ``mod`` behaviors when dividing by zero not matching the non-sparse :class:`Series` behavior (:issue:`38172`)
+- Bug in :class:`SparseArray` unary methods as well as :meth:`SparseArray.isna` doesn't recalculate indexes (:issue:`44955`)
 -
 
 ExtensionArray

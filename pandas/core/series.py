@@ -2893,6 +2893,19 @@ Name: Max Speed, dtype: float64
         ...
         ValueError: Indexes have overlapping values: [0, 1, 2]
         """
+        warnings.warn(
+            "The series.append method is deprecated "
+            "and will be removed from pandas in a future version. "
+            "Use pandas.concat instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
+        return self._append(to_append, ignore_index, verify_integrity)
+
+    def _append(
+        self, to_append, ignore_index: bool = False, verify_integrity: bool = False
+    ):
         from pandas.core.reshape.concat import concat
 
         if isinstance(to_append, (list, tuple)):
@@ -5231,6 +5244,9 @@ Keep all original rows and also all original values
     # error: Cannot determine type of 'isna'
     @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
     def isnull(self) -> Series:
+        """
+        Series.isnull is an alias for Series.isna.
+        """
         return super().isnull()
 
     # error: Cannot determine type of 'notna'
@@ -5241,6 +5257,9 @@ Keep all original rows and also all original values
     # error: Cannot determine type of 'notna'
     @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
     def notnull(self) -> Series:
+        """
+        Series.notnull is an alias for Series.notna.
+        """
         return super().notnull()
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
