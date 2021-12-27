@@ -6399,6 +6399,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             if self.ndim == 1:
                 if isinstance(value, (dict, ABCSeries)):
+                    if not len(value):
+                        # test_fillna_nonscalar
+                        if inplace:
+                            return None
+                        return self.copy()
                     value = create_series_with_explicit_dtype(
                         value, dtype_if_empty=object
                     )
@@ -8401,7 +8406,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self: NDFrameT,
         axis=0,
         method: str = "average",
-        numeric_only: bool_t | None = None,
+        numeric_only: bool_t | None | lib.NoDefault = lib.no_default,
         na_option: str = "keep",
         ascending: bool_t = True,
         pct: bool_t = False,
@@ -8487,6 +8492,20 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3   spider          8.0           4.0       4.0        4.0     1.000
         4    snake          NaN           NaN       NaN        5.0       NaN
         """
+        warned = False
+        if numeric_only is None:
+            # GH#45036
+            warnings.warn(
+                f"'numeric_only=None' in {type(self).__name__}.rank is deprecated "
+                "and will raise in a future version. Pass either 'True' or "
+                "'False'. 'False' will be the default.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            warned = True
+        elif numeric_only is lib.no_default:
+            numeric_only = None
+
         axis = self._get_axis_number(axis)
 
         if na_option not in {"keep", "top", "bottom"}:
@@ -8494,19 +8513,32 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             raise ValueError(msg)
 
         def ranker(data):
-            ranks = algos.rank(
-                data.values,
-                axis=axis,
-                method=method,
-                ascending=ascending,
-                na_option=na_option,
-                pct=pct,
-            )
-            # error: Argument 1 to "NDFrame" has incompatible type "ndarray"; expected
-            # "Union[ArrayManager, BlockManager]"
-            ranks_obj = self._constructor(
-                ranks, **data._construct_axes_dict()  # type: ignore[arg-type]
-            )
+            if data.ndim == 2:
+                # i.e. DataFrame, we cast to ndarray
+                values = data.values
+            else:
+                # i.e. Series, can dispatch to EA
+                values = data._values
+
+            if isinstance(values, ExtensionArray):
+                ranks = values._rank(
+                    axis=axis,
+                    method=method,
+                    ascending=ascending,
+                    na_option=na_option,
+                    pct=pct,
+                )
+            else:
+                ranks = algos.rank(
+                    values,
+                    axis=axis,
+                    method=method,
+                    ascending=ascending,
+                    na_option=na_option,
+                    pct=pct,
+                )
+
+            ranks_obj = self._constructor(ranks, **data._construct_axes_dict())
             return ranks_obj.__finalize__(self, method="rank")
 
         # if numeric_only is None, and we can't get anything, we try with
@@ -8516,6 +8548,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 return ranker(self)
             except TypeError:
                 numeric_only = True
+                if not warned:
+                    # Only warn here if we didn't already issue a warning above
+                    # GH#45036
+                    warnings.warn(
+                        f"Dropping of nuisance columns in {type(self).__name__}.rank "
+                        "is deprecated; in a future version this will raise TypeError. "
+                        "Select only valid columns before calling rank.",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
 
         if numeric_only:
             data = self._get_numeric_data()
