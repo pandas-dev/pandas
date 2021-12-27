@@ -252,7 +252,7 @@ class StringArray(BaseStringArray, PandasArray):
            :meth:`pandas.array` with ``dtype="string"`` for a stable way of
            creating a `StringArray` from any sequence.
 
-        .. versionchanged:: 1.3
+        .. versionchanged:: 1.4.0
 
            StringArray now accepts nan-likes(``None``, ``np.nan``) for the
            ``values`` parameter in its constructor

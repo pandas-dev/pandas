@@ -671,6 +671,14 @@ def astype_intsafe(ndarray[object] arr, cnp.dtype new_dtype) -> ndarray:
     return result
 
 
+ctypedef enum coerce_options:
+    all = 0
+    strict_null = 1
+    null = 2
+    non_null = 3
+    none = 4
+
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cpdef ndarray[object] ensure_string_array(
@@ -689,11 +697,11 @@ cpdef ndarray[object] ensure_string_array(
         The values to be converted to str, if needed.
     na_value : Any, default np.nan
         The value to use for na. For example, np.nan or pd.NA.
-    coerce : {'all', 'null', 'non-null', None}, default 'all'
+    coerce : {'all', 'strict-null', 'null', 'non-null', None}, default 'all'
         Whether to coerce non-string elements to strings.
-            - 'all' will convert null values and non-null non-string values.
+            - 'all' will convert all non-string values.
             - 'strict-null' will only convert pd.NA, np.nan, or None to na_value
-              without converting other non-strings.
+              raising when encountering non-strings and other null values.
             - 'null' will convert nulls to na_value w/out converting other non-strings.
             - 'non-null' will only convert non-null non-string elements to string.
             - None will not convert anything.
@@ -715,13 +723,40 @@ cpdef ndarray[object] ensure_string_array(
     ValueError
         If an element is encountered that is not a string or valid NA value
         and element is not coerced.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> import pandas as pd
+    >>> ensure_string_array(np.array([1,2,3, np.datetime64("nat")]), coerce="all")
+    array("1", "2", "3", np.nan)
+    >>> ensure_string_array(np.array([pd.NA, "a", None]), coerce="strict-null")
+    array(np.nan, "a", np.nan)
+    >>> ensure_string_array(np.array([pd.NaT, "1"]), coerce="null")
+    array(np.nan, "1")
+    >>> ensure_string_array(np.array([1,2,3]), coerce="non-null")
+    array("1", "2", "3")
+    >>> ensure_string_array(np.array(["1", "2", "3"]), coerce=None)
+    array("1", "2", "3")
     """
-    if coerce not in {"all", "strict-null", "null", "non-null", None}:
-        raise ValueError("coerce argument must be one of "
-                         f"'all'|'strict-null'|'null'|'non-null'|None, not {coerce}")
     cdef:
         Py_ssize_t i = 0, n = len(arr)
         set strict_na_values = {C_NA, np.nan, None}
+        coerce_options coerce_val
+
+    if coerce == "all":
+        coerce_val = all
+    elif coerce == "strict-null":
+        coerce_val = strict_null
+    elif coerce == "null":
+        coerce_val = null
+    elif coerce == "non-null":
+        coerce_val = non_null
+    elif coerce is None:
+        coerce_val = none
+    else:
+        raise ValueError("coerce argument must be one of "
+                         f"'all'|'strict-null'|'null'|'non-null'|None, not {coerce}")
 
     if hasattr(arr, "to_numpy"):
 
@@ -741,7 +776,7 @@ cpdef ndarray[object] ensure_string_array(
     if copy and result is arr:
         result = result.copy()
 
-    if coerce == 'strict-null':
+    if coerce_val == strict_null:
         # We don't use checknull, since NaT, Decimal("NaN"), etc. aren't valid
         # If they are present, they are treated like a regular Python object
         # and will either cause an exception to be raised or be coerced.
@@ -756,7 +791,7 @@ cpdef ndarray[object] ensure_string_array(
             continue
 
         if not check_null(val):
-            if coerce =="all" or coerce == "non-null":
+            if coerce_val == all or coerce_val == non_null:
                 if not isinstance(val, np.floating):
                     # f"{val}" is faster than str(val)
                     result[i] = f"{val}"
@@ -768,7 +803,7 @@ cpdef ndarray[object] ensure_string_array(
                                  "If you want it to be coerced to a string,"
                                  "specify coerce='all'")
         else:
-            if coerce=="all" or coerce == "null" or coerce == 'strict-null':
+            if coerce_val != non_null and coerce_val != none:
                 val = na_value
             if skipna:
                 result[i] = val
