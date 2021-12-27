@@ -719,7 +719,11 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         # If null fill value, we want SparseDtype[bool, true]
         # to preserve the same memory usage.
         dtype = SparseDtype(bool, self._null_fill_value)
-        return type(self)._simple_new(isna(self.sp_values), self.sp_index, dtype)
+        if self._null_fill_value:
+            return type(self)._simple_new(isna(self.sp_values), self.sp_index, dtype)
+        mask = np.full(len(self), False, dtype=np.bool8)
+        mask[self.sp_index.indices] = isna(self.sp_values)
+        return type(self)(mask, fill_value=False, dtype=dtype)
 
     def fillna(
         self: SparseArrayT,
@@ -963,13 +967,20 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             )
 
         else:
-            # TODO: I think we can avoid densifying when masking a
-            # boolean SparseArray with another. Need to look at the
-            # key's fill_value for True / False, and then do an intersection
-            # on the indices of the sp_values.
             if isinstance(key, SparseArray):
+                # NOTE: If we guarantee that SparseDType(bool)
+                # has only fill_value - true, false or nan
+                # (see GH PR 44955)
+                # we can apply mask very fast:
                 if is_bool_dtype(key):
-                    key = key.to_dense()
+                    if isna(key.fill_value):
+                        return self.take(key.sp_index.indices[key.sp_values])
+                    if not key.fill_value:
+                        return self.take(key.sp_index.indices)
+                    n = len(self)
+                    mask = np.full(n, True, dtype=np.bool8)
+                    mask[key.sp_index.indices] = False
+                    return self.take(np.arange(n)[mask])
                 else:
                     key = np.asarray(key)
 
@@ -1684,9 +1695,14 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
     def _unary_method(self, op) -> SparseArray:
         fill_value = op(np.array(self.fill_value)).item()
-        values = op(self.sp_values)
-        dtype = SparseDtype(values.dtype, fill_value)
-        return type(self)._simple_new(values, self.sp_index, dtype)
+        dtype = SparseDtype(self.dtype.subtype, fill_value)
+        # NOTE: if fill_value doesn't change
+        # we just have to apply op to sp_values
+        if isna(self.fill_value) or fill_value == self.fill_value:
+            values = op(self.sp_values)
+            return type(self)._simple_new(values, self.sp_index, self.dtype)
+        # In the other case we have to recalc indexes
+        return type(self)(op(self.to_dense()), dtype=dtype)
 
     def __pos__(self) -> SparseArray:
         return self._unary_method(operator.pos)

@@ -5,7 +5,7 @@ import pytest
 
 from pandas.compat import (
     is_platform_windows,
-    np_version_under1p19,
+    np_version_under1p20,
 )
 
 import pandas as pd
@@ -56,7 +56,7 @@ def test_floating_array_disallows_float16(request):
     with pytest.raises(TypeError, match=msg):
         FloatingArray(arr, mask)
 
-    if np_version_under1p19 or (
+    if np_version_under1p20 or (
         locale.getlocale()[0] != "en_US" and not is_platform_windows()
     ):
         # the locale condition may need to be refined; this fails on
