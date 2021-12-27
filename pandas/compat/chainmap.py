@@ -1,8 +1,6 @@
 from typing import (
     ChainMap,
-    MutableMapping,
     TypeVar,
-    cast,
 )
 
 _KT = TypeVar("_KT")
