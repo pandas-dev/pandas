@@ -119,7 +119,7 @@ def _ensure_data(values: ArrayLike) -> np.ndarray:
     This will coerce:
     - ints -> int64
     - uint -> uint64
-    - bool -> uint64 (TODO this should be uint8)
+    - bool -> uint8
     - datetimelike -> i8
     - datetime64tz -> i8 (in local tz)
     - categorical -> codes
@@ -286,8 +286,6 @@ def _get_hashtable_algo(values: np.ndarray):
 
 
 def _get_values_for_rank(values: ArrayLike) -> np.ndarray:
-    if is_categorical_dtype(values):
-        values = cast("Categorical", values)._values_for_rank()
 
     values = _ensure_data(values)
     if values.dtype.kind in ["i", "u", "f"]:
@@ -899,7 +897,6 @@ def value_counts_arraylike(values, dropna: bool):
     original = values
     values = _ensure_data(values)
 
-    # TODO: handle uint8
     keys, counts = htable.value_count(values, dropna)
 
     if needs_i8_conversion(original.dtype):
@@ -993,13 +990,13 @@ def rank(
     na_option: str = "keep",
     ascending: bool = True,
     pct: bool = False,
-) -> np.ndarray:
+) -> npt.NDArray[np.float64]:
     """
     Rank the values along a given axis.
 
     Parameters
     ----------
-    values : array-like
+    values : np.ndarray or ExtensionArray
         Array whose values will be ranked. The number of dimensions in this
         array must not exceed 2.
     axis : int, default 0

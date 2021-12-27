@@ -388,10 +388,9 @@ def extract_array(
     ----------
     obj : object
         For Series / Index, the underlying ExtensionArray is unboxed.
-        For Numpy-backed ExtensionArrays, the ndarray is extracted.
 
     extract_numpy : bool, default False
-        Whether to extract the ndarray from a PandasArray
+        Whether to extract the ndarray from a PandasArray.
 
     extract_range : bool, default False
         If we have a RangeIndex, return range._values if True

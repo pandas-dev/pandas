@@ -105,6 +105,6 @@ class FrozenList(PandasObject, list):
         return f"{type(self).__name__}({str(self)})"
 
     __setitem__ = __setslice__ = _disabled  # type: ignore[assignment]
-    __delitem__ = __delslice__ = _disabled  # type: ignore[assignment]
-    pop = append = extend = _disabled  # type: ignore[assignment]
+    __delitem__ = __delslice__ = _disabled
+    pop = append = extend = _disabled
     remove = sort = insert = _disabled  # type: ignore[assignment]
