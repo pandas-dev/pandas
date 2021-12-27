@@ -164,10 +164,7 @@ class TestPeriodIndexAsType:
         assert res.freq == exp.freq
 
         exp = DatetimeIndex(["2011-01-01", "2011-02-01", "2011-03-01"], tz="US/Eastern")
-        msg = "Use `obj.to_timestamp"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            # GH#44398
-            res = pi.astype("datetime64[ns, US/Eastern]")
+        res = pi.astype("datetime64[ns, US/Eastern]")
         tm.assert_index_equal(res, exp)
         assert res.freq == exp.freq
 

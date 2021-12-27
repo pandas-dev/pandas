@@ -66,5 +66,12 @@ def test_astype_period():
 def test_astype_datetime(other):
     arr = period_array(["2000", "2001", None], freq="D")
     # slice off the [ns] so that the regex matches.
-    with pytest.raises(TypeError, match=other[:-4]):
-        arr.astype(other)
+    if other == "timedelta64[ns]":
+        with pytest.raises(TypeError, match=other[:-4]):
+            arr.astype(other)
+
+    else:
+        # GH#45038 allow period->dt64 because we allow dt64->period
+        result = arr.astype(other)
+        expected = pd.DatetimeIndex(["2000", "2001", pd.NaT])._data
+        tm.assert_datetime_array_equal(result, expected)
