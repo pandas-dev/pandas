@@ -23,7 +23,11 @@ def test_groupby_preserves_subclass(obj, groupby_func):
 
     if isinstance(obj, Series) and groupby_func in {"corrwith"}:
         pytest.skip("Not applicable")
-
+    # TODO(2.0) Remove after pad/backfill deprecation enforced
+    if groupby_func == "backfill":
+        groupby_func = "bfill"
+    elif groupby_func == "pad":
+        groupby_func = "ffill"
     grouped = obj.groupby(np.arange(0, 10))
 
     # Groups should preserve subclass type

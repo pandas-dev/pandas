@@ -245,7 +245,11 @@ def test_agg_cython_table_transform_frame(df, func, expected, axis):
 @pytest.mark.parametrize("op", series_transform_kernels)
 def test_transform_groupby_kernel_series(string_series, op):
     # GH 35964
-
+    # TODO(2.0) Remove after pad/backfill deprecation enforced
+    if op == "backfill":
+        op = "bfill"
+    elif op == "pad":
+        op = "ffill"
     args = [0.0] if op == "fillna" else []
     ones = np.ones(string_series.shape[0])
     expected = string_series.groupby(ones).transform(op, *args)
@@ -257,6 +261,11 @@ def test_transform_groupby_kernel_series(string_series, op):
 def test_transform_groupby_kernel_frame(
     axis, float_frame, op, using_array_manager, request
 ):
+    # TODO(2.0) Remove after pad/backfill deprecation enforced
+    if op == "backfill":
+        op = "bfill"
+    elif op == "pad":
+        op = "ffill"
     # GH 35964
     if using_array_manager and op == "pct_change" and axis in (1, "columns"):
         # TODO(ArrayManager) shift with axis=1

@@ -362,7 +362,11 @@ def test_transform_transformation_func(request, transformation_func):
         },
         index=date_range("2020-01-01", "2020-01-07"),
     )
-
+    # TODO(2.0) Remove after pad/backfill deprecation enforced
+    if transformation_func == "backfill":
+        transformation_func = "bfill"
+    elif transformation_func == "pad":
+        transformation_func = "ffill"
     if transformation_func == "cumcount":
         test_op = lambda x: x.transform("cumcount")
         mock_op = lambda x: Series(range(len(x)), x.index)

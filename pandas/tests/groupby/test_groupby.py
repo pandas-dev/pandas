@@ -2269,7 +2269,11 @@ def test_groupby_duplicate_index():
 def test_dup_labels_output_shape(groupby_func, idx):
     if groupby_func in {"size", "ngroup", "cumcount"}:
         pytest.skip("Not applicable")
-
+    # TODO(2.0) Remove after pad/backfill deprecation enforced
+    if groupby_func == "backfill":
+        groupby_func = "bfill"
+    elif groupby_func == "pad":
+        groupby_func = "ffill"
     df = DataFrame([[1, 1]], columns=idx)
     grp_by = df.groupby([0])
 
