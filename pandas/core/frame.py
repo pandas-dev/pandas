@@ -3299,21 +3299,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         if header is False:
             styler.hide(axis=1)
-        elif isinstance(header, list):
-            # use styler format to output the column name aliases
-            if len(header) != len(styler.columns):
-                raise ValueError(
-                    f"`header` gave {len(header)} aliases for {len(styler.columns)} "
-                    f"columns."
-                )
-
-            def disp(x, v):  # use partial to create a distinct, in loop runtime func
-                return f"{v}"
-
-            for i, val in enumerate(header):
-                styler._display_funcs_columns[(0, i)] = functools.partial(disp, v=val)
-            if isinstance(styler.columns, MultiIndex):
-                styler.hide(axis=1, level=list(range(1, styler.columns.nlevels)))
         if not index:
             styler.hide(axis=0)
         if index_names is False or index_names in ["none", "columns"]:

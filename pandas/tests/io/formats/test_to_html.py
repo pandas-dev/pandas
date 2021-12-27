@@ -888,3 +888,41 @@ def test_to_html_float_format_object_col(datapath):
     result = df.to_html(float_format=lambda x: f"{x:,.0f}")
     expected = expected_html(datapath, "gh40024_expected_output")
     assert result == expected
+
+
+#####
+# Tests for Styler Implementation of DataFrame.to_html:
+# styler implementation has its own tests.
+# these test only the parsing of the kwargs to df.to_html and the appropriate action.
+#####
+
+
+@pytest.mark.parametrize("header", [True])
+@pytest.mark.parametrize("index_names", [True])
+@pytest.mark.parametrize("index", [True])
+def test_to_html_styler_header(header, index_names, index):
+    df = DataFrame([[1]], index=["I"], columns=["C"])
+    df.columns.name, df.index.name = "Cname", "Iname"
+    result = df.to_html(
+        caption="styler_implementation",
+        index=index,
+        header=header,
+        index_names=index_names,
+    )
+
+    assert ("<th >Cname</th>" in result) is index_names
+    assert ("<th >Iname</th>" in result) is index_names
+    assert ("<th >C</th>" in result) is header
+    assert ("<th >I</th>" in result) is index
+
+    # check that the styler implementation was called..
+    assert result != df.to_html(index=index, header=header, index_name=index_names)
+
+
+def test_to_html_styler_columns_header():
+    df_base = DataFrame([[1]], index=["I"], columns=["C"])
+    df = DataFrame([[1, 1]], index=["I"], columns=["C", "D"])
+
+    # test column subset is applied
+    result = df.to_html(caption="styler_implementation", columns=["C"])
+    assert result == df_base.to_html(caption="styler_implementation")
