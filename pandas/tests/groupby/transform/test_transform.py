@@ -171,6 +171,11 @@ def test_transform_axis_1(request, transformation_func, using_array_manager):
         request.node.add_marker(
             pytest.mark.xfail(reason="ArrayManager: shift axis=1 not yet implemented")
         )
+    # TODO(2.0) Remove after pad/backfill deprecation enforced
+    if transformation_func == "backfill":
+        transformation_func = "bfill"
+    elif transformation_func == "pad":
+        transformation_func = "ffill"
     warn = None
     if transformation_func == "tshift":
         warn = FutureWarning
