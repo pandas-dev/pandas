@@ -2154,11 +2154,9 @@ def _factorize_keys(
         # variable has type "ExtensionArray")
         lk, _ = lk._values_for_factorize()
 
-        # error: Incompatible types in assignment (expression has type
-        # "ndarray", variable has type "ExtensionArray")
         # error: Item "ndarray" of "Union[Any, ndarray]" has no attribute
         # "_values_for_factorize"
-        rk, _ = rk._values_for_factorize()  # type: ignore[union-attr,assignment]
+        rk, _ = rk._values_for_factorize()  # type: ignore[union-attr]
 
     klass: type[libhashtable.Factorizer] | type[libhashtable.Int64Factorizer]
     if is_integer_dtype(lk.dtype) and is_integer_dtype(rk.dtype):
