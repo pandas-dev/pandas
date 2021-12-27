@@ -11,6 +11,7 @@ from pandas import (
     Series,
     Timedelta,
     Timestamp,
+    concat,
     date_range,
     period_range,
     timedelta_range,
@@ -79,6 +80,7 @@ def test_getitem_setitem_ellipsis():
     assert (result == 5).all()
 
 
+@pytest.mark.filterwarnings("ignore:.*append method is deprecated.*:FutureWarning")
 @pytest.mark.parametrize(
     "result_1, duplicate_item, expected_1",
     [
@@ -158,7 +160,7 @@ def test_setitem_ambiguous_keyerror(indexer_sl):
     # equivalent of an append
     s2 = s.copy()
     indexer_sl(s2)[1] = 5
-    expected = s.append(Series([5], index=[1]))
+    expected = concat([s, Series([5], index=[1])])
     tm.assert_series_equal(s2, expected)
 
 

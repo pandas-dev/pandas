@@ -478,7 +478,6 @@ Concatenating pandas objects together with :func:`concat`:
    a row requires a copy, and may be expensive. We recommend passing a
    pre-built list of records to the :class:`DataFrame` constructor instead
    of building a :class:`DataFrame` by iteratively appending records to it.
-   See :ref:`Appending to dataframe <merging.concatenation>` for more.
 
 Join
 ~~~~

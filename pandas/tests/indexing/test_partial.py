@@ -361,7 +361,7 @@ class TestPartialSetting:
 
         s = df.loc[1].copy()
         s.name = 2
-        expected = df.append(s)
+        expected = pd.concat([df, DataFrame(s).T.infer_objects()])
 
         df.loc[2] = df.loc[1]
         tm.assert_frame_equal(df, expected)
@@ -538,7 +538,8 @@ class TestPartialSetting:
         # allow object conversion here
         df = orig.copy()
         df.loc["a", :] = df.iloc[0]
-        exp = orig.append(Series(df.iloc[0], name="a"))
+        ser = Series(df.iloc[0], name="a")
+        exp = pd.concat([orig, DataFrame(ser).T.infer_objects()])
         tm.assert_frame_equal(df, exp)
         tm.assert_index_equal(df.index, Index(orig.index.tolist() + ["a"]))
         assert df.index.dtype == "object"

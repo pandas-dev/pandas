@@ -3,6 +3,7 @@ import pytest
 
 from pandas.core.dtypes.common import is_categorical_dtype
 
+import pandas as pd
 from pandas import (
     CategoricalIndex,
     DataFrame,
@@ -63,7 +64,7 @@ class TestCrosstab:
             }
         )
 
-        self.df = df.append(df, ignore_index=True)
+        self.df = pd.concat([df, df], ignore_index=True)
 
     def test_crosstab_single(self):
         df = self.df
@@ -142,14 +143,14 @@ class TestCrosstab:
         exp_cols = df.groupby(["a"]).size().astype("i8")
         # to keep index.name
         exp_margin = Series([len(df)], index=Index(["All"], name="a"))
-        exp_cols = exp_cols.append(exp_margin)
+        exp_cols = pd.concat([exp_cols, exp_margin])
         exp_cols.name = ("All", "")
 
         tm.assert_series_equal(all_cols, exp_cols)
 
         all_rows = result.loc["All"]
         exp_rows = df.groupby(["b", "c"]).size().astype("i8")
-        exp_rows = exp_rows.append(Series([len(df)], index=[("All", "")]))
+        exp_rows = pd.concat([exp_rows, Series([len(df)], index=[("All", "")])])
         exp_rows.name = "All"
 
         exp_rows = exp_rows.reindex(all_rows.index)
@@ -180,14 +181,14 @@ class TestCrosstab:
         exp_cols = df.groupby(["a"]).size().astype("i8")
         # to keep index.name
         exp_margin = Series([len(df)], index=Index(["TOTAL"], name="a"))
-        exp_cols = exp_cols.append(exp_margin)
+        exp_cols = pd.concat([exp_cols, exp_margin])
         exp_cols.name = ("TOTAL", "")
 
         tm.assert_series_equal(all_cols, exp_cols)
 
         all_rows = result.loc["TOTAL"]
         exp_rows = df.groupby(["b", "c"]).size().astype("i8")
-        exp_rows = exp_rows.append(Series([len(df)], index=[("TOTAL", "")]))
+        exp_rows = pd.concat([exp_rows, Series([len(df)], index=[("TOTAL", "")])])
         exp_rows.name = "TOTAL"
 
         exp_rows = exp_rows.reindex(all_rows.index)

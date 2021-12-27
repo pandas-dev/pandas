@@ -2427,7 +2427,7 @@ class TestSeriesFormatting:
 
         # nat in index
         s2 = Series(2, index=[Timestamp("20130111"), NaT])
-        s = s2.append(s)
+        s = pd.concat([s2, s])
         result = s.to_string()
         assert "NaT" in result
 

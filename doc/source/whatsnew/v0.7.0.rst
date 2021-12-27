@@ -19,7 +19,7 @@ New features
   intersection of the other axes. Improves performance of ``Series.append`` and
   ``DataFrame.append`` (:issue:`468`, :issue:`479`, :issue:`273`)
 
-- :ref:`Can <merging.concatenation>` pass multiple DataFrames to
+- Can pass multiple DataFrames to
   ``DataFrame.append`` to concatenate (stack) and multiple Series to
   ``Series.append`` too
 
