@@ -1528,6 +1528,21 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
+        "url",
+        [
+            "s3://example-fsspec/",
+            "gcs://another-fsspec/file.json",
+            "https://example-site.com/data",
+            "some-protocol://data.txt",
+        ],
+    )
+    def test_read_json_with_url_value(self, url):
+        # GH 36271
+        result = read_json(f'{{"url":{{"0":"{url}"}}}}')
+        expected = DataFrame({"url": [url]})
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
         "date_format,key", [("epoch", 86400000), ("iso", "P1DT0H0M0S")]
     )
     def test_timedelta_as_label(self, date_format, key):
