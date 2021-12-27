@@ -12,6 +12,7 @@ import re
 from typing import (
     Pattern,
     Sequence,
+    cast,
 )
 
 from pandas._typing import (
@@ -116,8 +117,7 @@ def _get_skiprows(skiprows: int | Sequence[int] | slice | None) -> int | Sequenc
         start, step = skiprows.start or 0, skiprows.step or 1
         return list(range(start, skiprows.stop, step))
     elif isinstance(skiprows, numbers.Integral) or is_list_like(skiprows):
-        assert skiprows is not None
-        return skiprows
+        return cast("int | Sequence[int]", skiprows)
     elif skiprows is None:
         return 0
     raise TypeError(f"{type(skiprows).__name__} is not a valid type for skipping rows")
