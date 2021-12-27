@@ -44,6 +44,7 @@ import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray
 from pandas.core.tools import datetimes as tools
 from pandas.core.tools.datetimes import start_caching_at
+from pandas.util.version import Version
 
 
 @pytest.fixture(params=[True, False])
@@ -810,10 +811,19 @@ class TestToDatetime:
         tm.assert_series_equal(result, expected)
 
     @td.skip_if_no("psycopg2")
-    def test_to_datetime_tz_psycopg2(self, cache):
+    def test_to_datetime_tz_psycopg2(self, request, cache):
 
         # xref 8260
         import psycopg2
+
+        # https://www.psycopg.org/docs/news.html#what-s-new-in-psycopg-2-9
+        request.node.add_marker(
+            pytest.mark.xfail(
+                Version(psycopg2.__version__.split()[0]) > Version("2.8.7"),
+                raises=AttributeError,
+                reason="psycopg2.tz is deprecated (and appears dropped) in 2.9",
+            )
+        )
 
         # misc cases
         tz1 = psycopg2.tz.FixedOffsetTimezone(offset=-300, name=None)
