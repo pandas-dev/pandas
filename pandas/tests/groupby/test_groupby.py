@@ -29,6 +29,7 @@ from pandas.core.arrays import (
 )
 from pandas.core.base import SpecificationError
 import pandas.core.common as com
+from pandas.core.groupby.base import maybe_normalize_deprecated_kernels
 
 
 def test_repr():
@@ -2270,10 +2271,7 @@ def test_dup_labels_output_shape(groupby_func, idx):
     if groupby_func in {"size", "ngroup", "cumcount"}:
         pytest.skip("Not applicable")
     # TODO(2.0) Remove after pad/backfill deprecation enforced
-    if groupby_func == "backfill":
-        groupby_func = "bfill"
-    elif groupby_func == "pad":
-        groupby_func = "ffill"
+    groupby_func = maybe_normalize_deprecated_kernels(groupby_func)
     df = DataFrame([[1, 1]], columns=idx)
     grp_by = df.groupby([0])
 

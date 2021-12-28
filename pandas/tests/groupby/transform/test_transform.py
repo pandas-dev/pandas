@@ -20,6 +20,7 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
+from pandas.core.groupby.base import maybe_normalize_deprecated_kernels
 from pandas.core.groupby.generic import (
     DataFrameGroupBy,
     SeriesGroupBy,
@@ -172,10 +173,8 @@ def test_transform_axis_1(request, transformation_func, using_array_manager):
             pytest.mark.xfail(reason="ArrayManager: shift axis=1 not yet implemented")
         )
     # TODO(2.0) Remove after pad/backfill deprecation enforced
-    if transformation_func == "backfill":
-        transformation_func = "bfill"
-    elif transformation_func == "pad":
-        transformation_func = "ffill"
+    transformation_func = maybe_normalize_deprecated_kernels(transformation_func)
+
     warn = None
     if transformation_func == "tshift":
         warn = FutureWarning
@@ -363,10 +362,7 @@ def test_transform_transformation_func(request, transformation_func):
         index=date_range("2020-01-01", "2020-01-07"),
     )
     # TODO(2.0) Remove after pad/backfill deprecation enforced
-    if transformation_func == "backfill":
-        transformation_func = "bfill"
-    elif transformation_func == "pad":
-        transformation_func = "ffill"
+    transformation_func = maybe_normalize_deprecated_kernels(transformation_func)
     if transformation_func == "cumcount":
         test_op = lambda x: x.transform("cumcount")
         mock_op = lambda x: Series(range(len(x)), x.index)
