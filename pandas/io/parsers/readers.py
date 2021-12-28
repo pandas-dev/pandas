@@ -931,9 +931,14 @@ class TextFileReader(abc.Iterator):
                 and value != default
                 and value != getattr(value, "value", default)
             ):
-                if argname == "on_bad_lines" and kwds.get("error_bad_lines"):
+                if (
+                    argname == "on_bad_lines"
+                    and kwds.get("error_bad_lines") is not None
+                ):
                     argname = "error_bad_lines"
-                elif argname == "on_bad_lines" and kwds.get("warn_bad_lines"):
+                elif (
+                    argname == "on_bad_lines" and kwds.get("warn_bad_lines") is not None
+                ):
                     argname = "warn_bad_lines"
 
                 raise ValueError(
