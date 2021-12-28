@@ -10556,7 +10556,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         name: str,
         func,
-        axis: Axis | None = None,
+        axis: Axis | None | lib.NoDefault = None,
         skipna: bool_t = True,
         level: Level | None = None,
         numeric_only: bool_t | None = None,
@@ -10584,6 +10584,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if axis is None:
             axis = self._stat_axis_number
+        axis = cast(Axis, axis)
         if level is not None:
             warnings.warn(
                 "Using the level keyword in DataFrame and Series aggregations is "
@@ -10610,10 +10611,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return self._stat_function(
             "min",
             nanops.nanmin,
-            # error: Argument 3 to "_stat_function" of "NDFrame" has incompatible
-            # type "Union[Union[str, int], None, NoDefault]"; expected
-            # "Optional[Union[str, int]]"
-            axis,  # type: ignore[arg-type]
+            axis,
             skipna,
             level,
             numeric_only,
@@ -10631,10 +10629,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return self._stat_function(
             "max",
             nanops.nanmax,
-            # error: Argument 3 to "_stat_function" of "NDFrame" has incompatible
-            # type "Union[Union[str, int], None, NoDefault]"; expected
-            # "Optional[Union[str, int]]"
-            axis,  # type: ignore[arg-type]
+            axis,
             skipna,
             level,
             numeric_only,
@@ -11120,7 +11115,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
         def kurt(
             self,
-            axis: int | None | lib.NoDefault = lib.no_default,
+            axis: Axis | None | lib.NoDefault = lib.no_default,
             skipna=True,
             level=None,
             numeric_only=None,
