@@ -348,7 +348,12 @@ def test_expanding_corr_pairwise(frame):
 
 @pytest.mark.parametrize(
     "func,static_comp",
-    [("sum", np.sum), ("mean", np.mean), ("max", np.max), ("min", np.min)],
+    [
+        ("sum", np.sum),
+        ("mean", lambda x: np.mean(x, axis=0)),
+        ("max", lambda x: np.max(x, axis=0)),
+        ("min", lambda x: np.min(x, axis=0)),
+    ],
     ids=["sum", "mean", "max", "min"],
 )
 def test_expanding_func(func, static_comp, frame_or_series):
@@ -356,12 +361,11 @@ def test_expanding_func(func, static_comp, frame_or_series):
     result = getattr(data.expanding(min_periods=1, axis=0), func)()
     assert isinstance(result, frame_or_series)
 
+    expected = static_comp(data[:11])
     if frame_or_series is Series:
-        tm.assert_almost_equal(result[10], static_comp(data[:11]))
+        tm.assert_almost_equal(result[10], expected)
     else:
-        tm.assert_series_equal(
-            result.iloc[10], static_comp(data[:11]), check_names=False
-        )
+        tm.assert_series_equal(result.iloc[10], expected, check_names=False)
 
 
 @pytest.mark.parametrize(
@@ -404,9 +408,11 @@ def test_expanding_apply(engine_and_raw, frame_or_series):
     assert isinstance(result, frame_or_series)
 
     if frame_or_series is Series:
-        tm.assert_almost_equal(result[9], np.mean(data[:11]))
+        tm.assert_almost_equal(result[9], np.mean(data[:11], axis=0))
     else:
-        tm.assert_series_equal(result.iloc[9], np.mean(data[:11]), check_names=False)
+        tm.assert_series_equal(
+            result.iloc[9], np.mean(data[:11], axis=0), check_names=False
+        )
 
 
 def test_expanding_min_periods_apply(engine_and_raw):
