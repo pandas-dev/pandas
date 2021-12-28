@@ -2083,21 +2083,23 @@ cpdef bint is_time_array(ndarray values, bint skipna=False):
 
 
 # FIXME: actually use skipna
-cdef bint is_period_array(ndarray[object] values, bint skipna=True):
+cdef bint is_period_array(ndarray values, bint skipna=True):
     """
     Is this an ndarray of Period objects (or NaT) with a single `freq`?
     """
+    # values should be object-dtype, but ndarray[object] assumes 1D, while
+    #  this _may_ be 2D.
     cdef:
-        Py_ssize_t i, n = len(values)
+        Py_ssize_t i, N = values.size
         int dtype_code = -10000  # i.e. c_FreqGroup.FR_UND
         object val
         flatiter it
 
-    if len(values) == 0:
+    if N == 0:
         return False
 
     it = PyArray_IterNew(values)
-    for i in range(n):
+    for i in range(N):
         # The PyArray_GETITEM and PyArray_ITER_NEXT are faster
         #  equivalents to `val = values[i]`
         val = PyArray_GETITEM(values, PyArray_ITER_DATA(it))
