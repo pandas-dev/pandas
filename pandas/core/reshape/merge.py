@@ -1650,7 +1650,9 @@ class _OrderedMerge(_MergeOperation):
         if self.fill_method == "ffill":
             if left_indexer is None:
                 raise TypeError("left_indexer cannot be None")
-            left_indexer, right_indexer = cast(np.ndarray, left_indexer), cast(np.ndarray, right_indexer)
+            left_indexer, right_indexer = cast(np.ndarray, left_indexer), cast(
+                np.ndarray, right_indexer
+            )
             left_join_indexer = libjoin.ffill_indexer(left_indexer)
             right_join_indexer = libjoin.ffill_indexer(right_indexer)
         else:
