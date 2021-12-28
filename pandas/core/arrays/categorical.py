@@ -2229,7 +2229,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             pointer = self._codes.max()
         return self._wrap_reduction_result(None, pointer)
 
-    def mode(self, dropna=True):
+    def mode(self, dropna: bool = True) -> Categorical:
         """
         Returns the mode(s) of the Categorical.
 
@@ -2244,6 +2244,15 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         -------
         modes : `Categorical` (sorted)
         """
+        warn(
+            "Categorical.mode is deprecated and will be removed in a future version. "
+            "Use Series.mode instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self._mode(dropna=dropna)
+
+    def _mode(self, dropna: bool = True) -> Categorical:
         codes = self._codes
         if dropna:
             good = self._codes != -1
