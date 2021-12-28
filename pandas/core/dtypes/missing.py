@@ -59,6 +59,8 @@ isneginf_scalar = libmissing.isneginf_scalar
 
 nan_checker = np.isnan
 INF_AS_NA = False
+_dtype_object = np.dtype("object")
+_dtype_str = np.dtype(str)
 
 
 def isna(obj):
@@ -647,7 +649,11 @@ def is_valid_na_for_dtype(obj, dtype: DtypeObj) -> bool:
         # Numeric
         return obj is not NaT and not isinstance(obj, (np.datetime64, np.timedelta64))
 
-    elif dtype == np.dtype("object"):
+    elif dtype == _dtype_str:
+        # numpy string dtypes to avoid float np.nan
+        return not isinstance(obj, (np.datetime64, np.timedelta64, Decimal, float))
+
+    elif dtype == _dtype_object:
         # This is needed for Categorical, but is kind of weird
         return True
 
