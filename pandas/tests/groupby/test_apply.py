@@ -1199,3 +1199,51 @@ def test_apply_index_key_error_bug(index_values):
         lambda df: Series([df["b"].mean()], index=["b_mean"])
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "arg,idx",
+    [
+        [
+            [
+                1,
+                2,
+                3,
+            ],
+            [
+                0.1,
+                0.3,
+                0.2,
+            ],
+        ],
+        [
+            [
+                1,
+                2,
+                3,
+            ],
+            [
+                0.1,
+                0.2,
+                0.3,
+            ],
+        ],
+        [
+            [
+                1,
+                4,
+                3,
+            ],
+            [
+                0.1,
+                0.4,
+                0.2,
+            ],
+        ],
+    ],
+)
+def test_apply_nonmonotonic_float_index(arg, idx):
+    # GH 34455
+    expected = DataFrame({"col": arg}, index=idx)
+    result = expected.groupby("col").apply(lambda x: x)
+    tm.assert_frame_equal(result, expected)
