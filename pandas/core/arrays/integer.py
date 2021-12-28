@@ -177,7 +177,7 @@ def coerce_to_array(
 
     values = np.array(values, copy=copy)
     inferred_type = None
-    if is_object_dtype(values) or is_string_dtype(values):
+    if is_object_dtype(values.dtype) or is_string_dtype(values.dtype):
         inferred_type = lib.infer_dtype(values, skipna=True)
         if inferred_type == "empty":
             pass
