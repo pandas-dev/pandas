@@ -221,9 +221,7 @@ def __internal_pivot_table(
         table = table.sort_index(axis=1)
 
     if fill_value is not None:
-        _table = table.fillna(fill_value, downcast="infer")
-        assert _table is not None  # needed for mypy
-        table = _table
+        table = table.fillna(fill_value, downcast="infer")
 
     if margins:
         if dropna:
@@ -289,7 +287,7 @@ def _add_margins(
     if not values and isinstance(table, ABCSeries):
         # If there are no values and the table is a series, then there is only
         # one column in the data. Compute grand margin and return it.
-        return table.append(Series({key: grand_margin[margins_name]}))
+        return table._append(Series({key: grand_margin[margins_name]}))
 
     elif values:
         marginal_result_set = _generate_marginal_results(
@@ -327,7 +325,7 @@ def _add_margins(
         margin_dummy[cols] = margin_dummy[cols].apply(
             maybe_downcast_to_dtype, args=(dtype,)
         )
-    result = result.append(margin_dummy)
+    result = result._append(margin_dummy)
     result.index.names = row_names
 
     return result
@@ -740,7 +738,7 @@ def _normalize(table, normalize, margins: bool, margins_name="All"):
 
         elif normalize == "index":
             index_margin = index_margin / index_margin.sum()
-            table = table.append(index_margin)
+            table = table._append(index_margin)
             table = table.fillna(0)
             table.index = table_index
 
@@ -749,7 +747,7 @@ def _normalize(table, normalize, margins: bool, margins_name="All"):
             index_margin = index_margin / index_margin.sum()
             index_margin.loc[margins_name] = 1
             table = concat([table, column_margin], axis=1)
-            table = table.append(index_margin)
+            table = table._append(index_margin)
 
             table = table.fillna(0)
             table.index = table_index

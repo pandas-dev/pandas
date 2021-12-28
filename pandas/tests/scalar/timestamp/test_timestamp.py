@@ -22,7 +22,6 @@ from pandas._libs.tslibs.timezones import (
     dateutil_gettz as gettz,
     get_timezone,
 )
-from pandas.compat import np_datetime64_compat
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -155,8 +154,9 @@ class TestTimestampProperties:
         "data",
         [Timestamp("2017-08-28 23:00:00"), Timestamp("2017-08-28 23:00:00", tz="EST")],
     )
+    # error: Unsupported operand types for + ("List[None]" and "List[str]")
     @pytest.mark.parametrize(
-        "time_locale", [None] if tm.get_locales() is None else [None] + tm.get_locales()
+        "time_locale", [None] + (tm.get_locales() or [])  # type: ignore[operator]
     )
     def test_names(self, data, time_locale):
         # GH 17354
@@ -492,7 +492,7 @@ class TestTimestampNsOperations:
         assert t.value == expected
         assert t.nanosecond == 5
 
-        t = Timestamp(np_datetime64_compat("2011-01-01 00:00:00.000000005Z"))
+        t = Timestamp("2011-01-01 00:00:00.000000005")
         assert repr(t) == "Timestamp('2011-01-01 00:00:00.000000005')"
         assert t.value == expected
         assert t.nanosecond == 5
@@ -508,7 +508,7 @@ class TestTimestampNsOperations:
         assert t.value == expected
         assert t.nanosecond == 10
 
-        t = Timestamp(np_datetime64_compat("2011-01-01 00:00:00.000000010Z"))
+        t = Timestamp("2011-01-01 00:00:00.000000010")
         assert repr(t) == "Timestamp('2011-01-01 00:00:00.000000010')"
         assert t.value == expected
         assert t.nanosecond == 10

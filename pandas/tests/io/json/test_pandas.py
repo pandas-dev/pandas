@@ -244,7 +244,8 @@ class TestPandasContainer:
 
     @pytest.mark.parametrize("convert_axes", [True, False])
     @pytest.mark.parametrize("numpy", [True, False])
-    def test_roundtrip_empty(self, orient, convert_axes, numpy, empty_frame):
+    def test_roundtrip_empty(self, orient, convert_axes, numpy):
+        empty_frame = DataFrame()
         data = empty_frame.to_json(orient=orient)
         result = read_json(data, orient=orient, convert_axes=convert_axes, numpy=numpy)
         expected = empty_frame.copy()
@@ -673,7 +674,8 @@ class TestPandasContainer:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("numpy", [True, False])
-    def test_series_roundtrip_empty(self, orient, numpy, empty_series):
+    def test_series_roundtrip_empty(self, orient, numpy):
+        empty_series = Series([], index=[], dtype=np.float64)
         data = empty_series.to_json(orient=orient)
         result = read_json(data, typ="series", orient=orient, numpy=numpy)
 
@@ -1321,10 +1323,9 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         tm.assert_frame_equal(read_json(result, lines=True), df)
 
     # TODO: there is a near-identical test for pytables; can we share?
+    @pytest.mark.xfail(reason="GH#13774 encoding kwarg not supported", raises=TypeError)
     def test_latin_encoding(self):
         # GH 13774
-        pytest.skip("encoding not implemented in .to_json(), xref #13774")
-
         values = [
             [b"E\xc9, 17", b"", b"a", b"b", b"c"],
             [b"E\xc9, 17", b"a", b"b", b"c"],
@@ -1527,6 +1528,21 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
+        "url",
+        [
+            "s3://example-fsspec/",
+            "gcs://another-fsspec/file.json",
+            "https://example-site.com/data",
+            "some-protocol://data.txt",
+        ],
+    )
+    def test_read_json_with_url_value(self, url):
+        # GH 36271
+        result = read_json(f'{{"url":{{"0":"{url}"}}}}')
+        expected = DataFrame({"url": [url]})
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
         "date_format,key", [("epoch", 86400000), ("iso", "P1DT0H0M0S")]
     )
     def test_timedelta_as_label(self, date_format, key):
@@ -1672,7 +1688,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         "primaryKey":[
             "index"
         ],
-        "pandas_version":"0.20.0"
+        "pandas_version":"1.4.0"
     },
     "data":[
         {

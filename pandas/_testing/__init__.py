@@ -28,17 +28,12 @@ from pandas._config.localization import (  # noqa:F401
 from pandas._typing import Dtype
 
 from pandas.core.dtypes.common import (
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
     is_float_dtype,
     is_integer_dtype,
-    is_period_dtype,
     is_sequence,
-    is_timedelta64_dtype,
     is_unsigned_integer_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import IntervalDtype
 
 import pandas as pd
 from pandas import (
@@ -94,7 +89,10 @@ from pandas._testing.asserters import (  # noqa:F401
     assert_timedelta_array_equal,
     raise_assert_detail,
 )
-from pandas._testing.compat import get_dtype  # noqa:F401
+from pandas._testing.compat import (  # noqa:F401
+    get_dtype,
+    get_obj,
+)
 from pandas._testing.contexts import (  # noqa:F401
     RNGContext,
     decompress_file,
@@ -112,14 +110,11 @@ from pandas.core.api import (
 )
 from pandas.core.arrays import (
     BaseMaskedArray,
-    DatetimeArray,
     ExtensionArray,
     PandasArray,
-    PeriodArray,
-    TimedeltaArray,
-    period_array,
 )
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
+from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
     from pandas import (
@@ -160,6 +155,17 @@ ALL_NUMPY_DTYPES = (
     + OBJECT_DTYPES
     + BYTES_DTYPES
 )
+
+NARROW_NP_DTYPES = [
+    np.float16,
+    np.float32,
+    np.int8,
+    np.int16,
+    np.int32,
+    np.uint8,
+    np.uint16,
+    np.uint32,
+]
 
 NULL_OBJECTS = [None, np.nan, pd.NaT, float("nan"), pd.NA, Decimal("NaN")]
 NP_NAT_OBJECTS = [
@@ -257,13 +263,6 @@ def box_expected(expected, box_cls, transpose=True):
             #  single-row special cases in datetime arithmetic
             expected = expected.T
             expected = pd.concat([expected] * 2, ignore_index=True)
-    elif box_cls is PeriodArray:
-        # the PeriodArray constructor is not as flexible as period_array
-        expected = period_array(expected)
-    elif box_cls is DatetimeArray:
-        expected = DatetimeArray(expected)
-    elif box_cls is TimedeltaArray:
-        expected = TimedeltaArray(expected)
     elif box_cls is np.ndarray or box_cls is np.array:
         expected = np.array(expected)
     elif box_cls is to_array:
@@ -274,21 +273,16 @@ def box_expected(expected, box_cls, transpose=True):
 
 
 def to_array(obj):
+    """
+    Similar to pd.array, but does not cast numpy dtypes to nullable dtypes.
+    """
     # temporary implementation until we get pd.array in place
     dtype = getattr(obj, "dtype", None)
 
-    if is_period_dtype(dtype):
-        return period_array(obj)
-    elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
-        return DatetimeArray._from_sequence(obj)
-    elif is_timedelta64_dtype(dtype):
-        return TimedeltaArray._from_sequence(obj)
-    elif isinstance(obj, pd.core.arrays.BooleanArray):
-        return obj
-    elif isinstance(dtype, IntervalDtype):
-        return pd.core.arrays.IntervalArray(obj)
-    else:
-        return np.array(obj)
+    if dtype is None:
+        return np.asarray(obj)
+
+    return extract_array(obj, extract_numpy=True)
 
 
 # -----------------------------------------------------------------------------
@@ -437,7 +431,7 @@ def _make_timeseries(start="2000-01-01", end="2000-12-31", freq="1D", seed=None)
 
     Examples
     --------
-    >>> _make_timeseries()
+    >>> _make_timeseries()  # doctest: +SKIP
                   id    name         x         y
     timestamp
     2000-01-01   982   Frank  0.031261  0.986727
@@ -1084,6 +1078,8 @@ def shares_memory(left, right) -> bool:
         return shares_memory(left._ndarray, right)
     if isinstance(left, pd.core.arrays.SparseArray):
         return shares_memory(left.sp_values, right)
+    if isinstance(left, pd.core.arrays.IntervalArray):
+        return shares_memory(left._left, right) or shares_memory(left._right, right)
 
     if isinstance(left, ExtensionArray) and left.dtype == "string[pyarrow]":
         # https://github.com/pandas-dev/pandas/pull/43930#discussion_r736862669
