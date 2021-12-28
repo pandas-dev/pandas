@@ -12,13 +12,9 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.tests.generic.test_generic import Generic
 
 
-class TestDataFrame(Generic):
-    _typ = DataFrame
-    _comparator = lambda self, x, y: tm.assert_frame_equal(x, y)
-
+class TestDataFrame:
     @pytest.mark.parametrize("func", ["_set_axis_name", "rename_axis"])
     def test_set_axis_name(self, func):
         df = DataFrame([[1, 2], [3, 4]])
@@ -76,7 +72,7 @@ class TestDataFrame(Generic):
             }
         )
         result = df.groupby("A").sum()
-        self.check_metadata(df, result)
+        tm.assert_metadata_equivalent(df, result)
 
     def test_metadata_propagation_indiv_resample(self):
         # resample
@@ -85,7 +81,7 @@ class TestDataFrame(Generic):
             index=date_range("20130101", periods=1000, freq="s"),
         )
         result = df.resample("1T")
-        self.check_metadata(df, result)
+        tm.assert_metadata_equivalent(df, result)
 
     def test_metadata_propagation_indiv(self, monkeypatch):
         # merging with override
@@ -148,7 +144,7 @@ class TestDataFrame(Generic):
         empty_frame = DataFrame(data=[], index=[], columns=["A"])
         empty_frame_copy = deepcopy(empty_frame)
 
-        self._compare(empty_frame_copy, empty_frame)
+        tm.assert_frame_equal(empty_frame_copy, empty_frame)
 
 
 # formerly in Generic but only test DataFrame
