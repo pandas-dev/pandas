@@ -292,12 +292,26 @@ class TestTimestamp:
         compare(Timestamp.utcnow(), datetime.utcnow())
         compare(Timestamp.today(), datetime.today())
         current_time = calendar.timegm(datetime.now().utctimetuple())
+        msg = "timezone-aware Timestamp with UTC"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            # GH#22451
+            ts_utc = Timestamp.utcfromtimestamp(current_time)
         compare(
-            Timestamp.utcfromtimestamp(current_time),
+            ts_utc,
             datetime.utcfromtimestamp(current_time),
         )
         compare(
             Timestamp.fromtimestamp(current_time), datetime.fromtimestamp(current_time)
+        )
+        compare(
+            # Support tz kwarg in Timestamp.fromtimestamp
+            Timestamp.fromtimestamp(current_time, "UTC"),
+            datetime.fromtimestamp(current_time, utc),
+        )
+        compare(
+            # Support tz kwarg in Timestamp.fromtimestamp
+            Timestamp.fromtimestamp(current_time, tz="UTC"),
+            datetime.fromtimestamp(current_time, utc),
         )
 
         date_component = datetime.utcnow()
@@ -322,8 +336,14 @@ class TestTimestamp:
         compare(Timestamp.utcnow(), datetime.utcnow())
         compare(Timestamp.today(), datetime.today())
         current_time = calendar.timegm(datetime.now().utctimetuple())
+
+        msg = "timezone-aware Timestamp with UTC"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            # GH#22451
+            ts_utc = Timestamp.utcfromtimestamp(current_time)
+
         compare(
-            Timestamp.utcfromtimestamp(current_time),
+            ts_utc,
             datetime.utcfromtimestamp(current_time),
         )
         compare(
