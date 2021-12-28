@@ -1842,6 +1842,30 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             codes = self._codes[sorted_idx]
             return self._from_backing_data(codes)
 
+    def _rank(
+        self,
+        *,
+        axis: int = 0,
+        method: str = "average",
+        na_option: str = "keep",
+        ascending: bool = True,
+        pct: bool = False,
+    ):
+        """
+        See Series.rank.__doc__.
+        """
+        if axis != 0:
+            raise NotImplementedError
+        vff = self._values_for_rank()
+        return algorithms.rank(
+            vff,
+            axis=axis,
+            method=method,
+            na_option=na_option,
+            ascending=ascending,
+            pct=pct,
+        )
+
     def _values_for_rank(self):
         """
         For correctly ranking ordered categorical data. See GH#15420
@@ -2205,7 +2229,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             pointer = self._codes.max()
         return self._wrap_reduction_result(None, pointer)
 
-    def mode(self, dropna=True):
+    def mode(self, dropna: bool = True) -> Categorical:
         """
         Returns the mode(s) of the Categorical.
 
@@ -2220,6 +2244,15 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         -------
         modes : `Categorical` (sorted)
         """
+        warn(
+            "Categorical.mode is deprecated and will be removed in a future version. "
+            "Use Series.mode instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self._mode(dropna=dropna)
+
+    def _mode(self, dropna: bool = True) -> Categorical:
         codes = self._codes
         if dropna:
             good = self._codes != -1

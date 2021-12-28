@@ -666,7 +666,7 @@ class DataFrame(NDFrame, OpsMixin):
                     typ=manager,
                 )
 
-        elif isinstance(data, (np.ndarray, Series, Index)):
+        elif isinstance(data, (np.ndarray, Series, Index, ExtensionArray)):
             if data.dtype.names:
                 # i.e. numpy structured array
                 data = cast(np.ndarray, data)
@@ -3261,9 +3261,10 @@ class DataFrame(NDFrame, OpsMixin):
             index=self.columns,
         )
         if index:
-            result = self._constructor_sliced(
+            index_memory_usage = self._constructor_sliced(
                 self.index.memory_usage(deep=deep), index=["Index"]
-            ).append(result)
+            )
+            result = index_memory_usage._append(result)
         return result
 
     def transpose(self, *args, copy: bool = False) -> DataFrame:
@@ -7996,13 +7997,13 @@ NaN 12.3   33.0
         ...                     aggfunc={'D': np.mean,
         ...                              'E': [min, max, np.mean]})
         >>> table
-                        D    E
-                    mean  max      mean  min
+                          D   E
+                       mean max      mean  min
         A   C
-        bar large  5.500000  9.0  7.500000  6.0
-            small  5.500000  9.0  8.500000  8.0
-        foo large  2.000000  5.0  4.500000  4.0
-            small  2.333333  6.0  4.333333  2.0
+        bar large  5.500000   9  7.500000    6
+            small  5.500000   9  8.500000    8
+        foo large  2.000000   5  4.500000    4
+            small  2.333333   6  4.333333    2
         """
 
     @Substitution("")
@@ -9003,6 +9004,23 @@ NaN 12.3   33.0
         3  3
         4  4
         """
+        warnings.warn(
+            "The frame.append method is deprecated "
+            "and will be removed from pandas in a future version. "
+            "Use pandas.concat instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
+        return self._append(other, ignore_index, verify_integrity, sort)
+
+    def _append(
+        self,
+        other,
+        ignore_index: bool = False,
+        verify_integrity: bool = False,
+        sort: bool = False,
+    ) -> DataFrame:
         combined_columns = None
         if isinstance(other, (Series, dict)):
             if isinstance(other, dict):
@@ -9728,7 +9746,9 @@ NaN 12.3   33.0
             idx_diff = result_index.difference(correl.index)
 
             if len(idx_diff) > 0:
-                correl = correl.append(Series([np.nan] * len(idx_diff), index=idx_diff))
+                correl = correl._append(
+                    Series([np.nan] * len(idx_diff), index=idx_diff)
+                )
 
         return correl
 
