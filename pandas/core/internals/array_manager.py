@@ -795,13 +795,7 @@ class ArrayManager(BaseArrayManager):
         Used in the JSON C code to access column arrays.
         """
 
-        def convert_array(arr: ArrayLike) -> ArrayLike:
-            if isinstance(arr, ExtensionArray):
-                return arr.to_numpy()
-            else:
-                return arr
-
-        return [convert_array(arr) for arr in self.arrays]
+        return [np.asarray(arr) for arr in self.arrays]
 
     def iset(
         self, loc: int | slice | np.ndarray, value: ArrayLike, inplace: bool = False
