@@ -63,27 +63,27 @@ jobs:
 
     - name: Run pre-commit
       uses: pre-commit/action@v2.0.0
-      if: ${{ steps.build.outputs.status == 'success' }}
+      if: ${{ steps.build.outcome == 'success' }}
 
     - name: Run checks on imported code
       run: ci/code_checks.sh code
-      if: ${{ steps.build.outputs.status == 'success' }}
+      if: ${{ steps.build.outcome == 'success' }}
 
     - name: Run doctests
       run: ci/code_checks.sh doctests
-      if: ${{ steps.build.outputs.status == 'success' }}
+      if: ${{ steps.build.outcome == 'success' }}
 
     - name: Run docstring validation
       run: ci/code_checks.sh docstrings
-      if: ${{ steps.build.outputs.status == 'success' }}
+      if: ${{ steps.build.outcome == 'success' }}
 
     - name: Run typing validation
       run: ci/code_checks.sh typing
-      if: ${{ steps.build.outputs.status == 'success' }}
+      if: ${{ steps.build.outcome == 'success' }}
 
     - name: Run docstring validation script tests
       run: pytest scripts
-      if: ${{ steps.build.outputs.status == 'success' }}
+      if: ${{ steps.build.outcome == 'success' }}
 
   asv-benchmarks:
     name: ASV Benchmarks
@@ -133,7 +133,7 @@ jobs:
         if grep "failed" benchmarks.log > /dev/null ; then
             exit 1
         fi
-      if: ${{ steps.build.outputs.status == 'success' }}
+      if: ${{ steps.build.outcome == 'success' }}
 
     - name: Publish benchmarks artifact
       uses: actions/upload-artifact@master
