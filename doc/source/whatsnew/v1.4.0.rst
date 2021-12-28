@@ -366,8 +366,8 @@ second column is instead renamed to ``a.2``.
 
 .. _whatsnew_140.notable_bug_fixes.unstack_pivot_int32_limit:
 
-unstack or pivot no longer raises ValueError for result that would exceed int32 limit
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+unstack and pivot_table no longer raises ValueError for result that would exceed int32 limit
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Previously :meth:`DataFrame.pivot_table` and :meth:`DataFrame.unstack` would raise a ``ValueError`` if the operation
 could produce a result with more than ``2**31 - 1`` elements. This operation now raises a :class:`errors.PerformanceWarning`
