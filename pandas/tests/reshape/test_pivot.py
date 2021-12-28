@@ -2077,11 +2077,12 @@ class TestPivotTable:
         with pytest.raises(KeyError, match="notpresent"):
             foo.pivot_table("notpresent", "X", "Y", aggfunc=agg)
 
-    def test_pivot_table_doctest_case(self):
-        # TODO: better name.  the relevant characteristic is that
-        #  the call to maybe_downcast_to_dtype(agged[v], data[v].dtype) in
+    def test_pivot_table_multiindex_columns_doctest_case(self):
+        # The relevant characteristic is that the call
+        #  to maybe_downcast_to_dtype(agged[v], data[v].dtype) in
         #  __internal_pivot_table has `agged[v]` a DataFrame instead of Series,
-        #  i.e agged.columns is not unique
+        #  In this case this is because agged.columns is a MultiIndex and 'v'
+        #  is only indexing on its first level.
         df = DataFrame(
             {
                 "A": ["foo", "foo", "foo", "foo", "foo", "bar", "bar", "bar", "bar"],
@@ -2124,6 +2125,8 @@ class TestPivotTable:
             ]
         )
         expected = DataFrame(vals, columns=cols, index=index)
+        expected[("E", "min")] = expected[("E", "min")].astype(np.int64)
+        expected[("E", "max")] = expected[("E", "max")].astype(np.int64)
         tm.assert_frame_equal(table, expected)
 
     def test_pivot_table_sort_false(self):

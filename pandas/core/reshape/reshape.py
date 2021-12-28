@@ -679,7 +679,7 @@ def _stack_multi_column_index(columns: MultiIndex) -> MultiIndex:
 
 
 def _stack_multi_columns(frame, level_num=-1, dropna=True):
-    def _convert_level_number(level_num, columns):
+    def _convert_level_number(level_num: int, columns):
         """
         Logic for converting the level number to something we can safely pass
         to swaplevel.
