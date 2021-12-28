@@ -109,7 +109,7 @@ def _get_path_or_handle(
 
 class BaseImpl:
     @staticmethod
-    def validate_dataframe(df: DataFrame):
+    def validate_dataframe(df: DataFrame) -> None:
 
         if not isinstance(df, DataFrame):
             raise ValueError("to_parquet only supports IO with DataFrames")
@@ -139,7 +139,7 @@ class BaseImpl:
     def write(self, df: DataFrame, path, compression, **kwargs):
         raise AbstractMethodError(self)
 
-    def read(self, path, columns=None, **kwargs):
+    def read(self, path, columns=None, **kwargs) -> DataFrame:
         raise AbstractMethodError(self)
 
 
@@ -164,7 +164,7 @@ class PyArrowImpl(BaseImpl):
         storage_options: StorageOptions = None,
         partition_cols: list[str] | None = None,
         **kwargs,
-    ):
+    ) -> None:
         self.validate_dataframe(df)
 
         from_pandas_kwargs: dict[str, Any] = {"schema": kwargs.pop("schema", None)}
@@ -206,7 +206,7 @@ class PyArrowImpl(BaseImpl):
         use_nullable_dtypes=False,
         storage_options: StorageOptions = None,
         **kwargs,
-    ):
+    ) -> DataFrame:
         kwargs["use_pandas_metadata"] = True
 
         to_pandas_kwargs = {}
@@ -266,7 +266,7 @@ class FastParquetImpl(BaseImpl):
         partition_cols=None,
         storage_options: StorageOptions = None,
         **kwargs,
-    ):
+    ) -> None:
         self.validate_dataframe(df)
         # thriftpy/protocol/compact.py:339:
         # DeprecationWarning: tostring() is deprecated.
@@ -309,7 +309,7 @@ class FastParquetImpl(BaseImpl):
 
     def read(
         self, path, columns=None, storage_options: StorageOptions = None, **kwargs
-    ):
+    ) -> DataFrame:
         parquet_kwargs: dict[str, Any] = {}
         use_nullable_dtypes = kwargs.pop("use_nullable_dtypes", False)
         if Version(self.api.__version__) >= Version("0.7.1"):
@@ -442,7 +442,7 @@ def read_parquet(
     storage_options: StorageOptions = None,
     use_nullable_dtypes: bool = False,
     **kwargs,
-):
+) -> DataFrame:
     """
     Load a parquet object from the file path, returning a DataFrame.
 

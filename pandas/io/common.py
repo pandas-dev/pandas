@@ -174,7 +174,7 @@ def _expand_user(filepath_or_buffer: str | BaseBufferT) -> str | BaseBufferT:
     return filepath_or_buffer
 
 
-def validate_header_arg(header) -> None:
+def validate_header_arg(header: object) -> None:
     if isinstance(header, bool):
         raise TypeError(
             "Passing a bool to header is invalid. Use header=None for no header or "
@@ -662,8 +662,7 @@ def get_handle(
         mode += "b"
 
     # validate encoding and errors
-    if isinstance(encoding, str):
-        codecs.lookup(encoding)
+    codecs.lookup(encoding)
     if isinstance(errors, str):
         codecs.lookup_error(errors)
 
