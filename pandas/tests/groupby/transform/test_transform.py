@@ -483,8 +483,15 @@ def test_transform_coercion():
     g = df.groupby("A")
 
     expected = g.transform(np.mean)
-    result = g.transform(lambda x: np.mean(x))
+
+    msg = "will return a scalar mean"
+    with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
+        result = g.transform(lambda x: np.mean(x))
     tm.assert_frame_equal(result, expected)
+
+    with tm.assert_produces_warning(None):
+        result2 = g.transform(lambda x: np.mean(x, axis=0))
+    tm.assert_frame_equal(result2, expected)
 
 
 def test_groupby_transform_with_int():

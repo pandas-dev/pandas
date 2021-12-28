@@ -111,6 +111,7 @@ Additionally there are specific enhancements to the HTML specific rendering:
   - :meth:`.Styler.to_html` introduces keyword arguments ``sparse_index``, ``sparse_columns``, ``bold_headers``, ``caption``, ``max_rows`` and ``max_columns`` (:issue:`41946`, :issue:`43149`, :issue:`42972`).
   - :meth:`.Styler.to_html` omits CSSStyle rules for hidden table elements as a performance enhancement (:issue:`43619`)
   - Custom CSS classes can now be directly specified without string replacement (:issue:`43686`)
+  - Ability to render hyperlinks automatically via a new ``hyperlinks`` formatting keyword argument (:issue:`45058`)
 
 There are also some LaTeX specific enhancements:
 
@@ -364,10 +365,29 @@ second column is instead renamed to ``a.2``.
 
     res
 
-.. _whatsnew_140.notable_bug_fixes.notable_bug_fix3:
+.. _whatsnew_140.notable_bug_fixes.unstack_pivot_int32_limit:
 
-notable_bug_fix3
-^^^^^^^^^^^^^^^^
+unstack and pivot_table no longer raises ValueError for result that would exceed int32 limit
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Previously :meth:`DataFrame.pivot_table` and :meth:`DataFrame.unstack` would raise a ``ValueError`` if the operation
+could produce a result with more than ``2**31 - 1`` elements. This operation now raises a :class:`errors.PerformanceWarning`
+instead (:issue:`26314`).
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+    In [3]: df = DataFrame({"ind1": np.arange(2 ** 16), "ind2": np.arange(2 ** 16), "count": 0})
+    In [4]: df.pivot_table(index="ind1", columns="ind2", values="count", aggfunc="count")
+    ValueError: Unstacked DataFrame is too big, causing int32 overflow
+
+*New behavior*:
+
+.. code-block:: python
+
+    In [4]: df.pivot_table(index="ind1", columns="ind2", values="count", aggfunc="count")
+    PerformanceWarning: The following operation may generate 4294967296 cells in the resulting pandas object.
 
 .. ---------------------------------------------------------------------------
 
@@ -590,6 +610,7 @@ Other Deprecations
 - Deprecated :meth:`Index.__getitem__` with a bool key; use ``index.values[key]`` to get the old behavior (:issue:`44051`)
 - Deprecated downcasting column-by-column in :meth:`DataFrame.where` with integer-dtypes (:issue:`44597`)
 - Deprecated ``numeric_only=None`` in :meth:`DataFrame.rank`; in a future version ``numeric_only`` must be either ``True`` or ``False`` (the default) (:issue:`45036`)
+- Deprecated the behavior of :meth:`Timestamp.utcfromtimestamp`, in the future it will return a timezone-aware UTC :class:`Timestamp` (:issue:`22451`)
 - Deprecated :meth:`NaT.freq` (:issue:`45071`)
 -
 
@@ -682,6 +703,7 @@ Datetimelike
 - Bug in :meth:`Index.insert` for inserting ``np.datetime64``, ``np.timedelta64`` or ``tuple`` into :class:`Index` with ``dtype='object'`` with negative loc adding ``None`` and replacing existing value (:issue:`44509`)
 - Bug in :meth:`Series.mode` with ``DatetimeTZDtype`` incorrectly returning timezone-naive and ``PeriodDtype`` incorrectly raising (:issue:`41927`)
 - Bug in :class:`DateOffset`` addition with :class:`Timestamp` where ``offset.nanoseconds`` would not be included in the result (:issue:`43968`, :issue:`36589`)
+- Bug in :meth:`Timestamp.fromtimestamp` not supporting the ``tz`` argument (:issue:`45083`)
 -
 
 Timedelta

@@ -147,7 +147,9 @@ class TestCategoricalAnalytics:
     )
     def test_mode(self, values, categories, exp_mode):
         s = Categorical(values, categories=categories, ordered=True)
-        res = s.mode()
+        msg = "Use Series.mode instead"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = s.mode()
         exp = Categorical(exp_mode, categories=categories, ordered=True)
         tm.assert_categorical_equal(res, exp)
 
