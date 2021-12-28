@@ -762,7 +762,7 @@ class Block(PandasObject):
 
         src_len = len(pairs) - 1
 
-        if is_string_dtype(values):
+        if is_string_dtype(values.dtype):
             # Calculate the mask once, prior to the call of comp
             # in order to avoid repeating the same computations
             mask = ~isna(values)
