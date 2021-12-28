@@ -111,6 +111,7 @@ Additionally there are specific enhancements to the HTML specific rendering:
   - :meth:`.Styler.to_html` introduces keyword arguments ``sparse_index``, ``sparse_columns``, ``bold_headers``, ``caption``, ``max_rows`` and ``max_columns`` (:issue:`41946`, :issue:`43149`, :issue:`42972`).
   - :meth:`.Styler.to_html` omits CSSStyle rules for hidden table elements as a performance enhancement (:issue:`43619`)
   - Custom CSS classes can now be directly specified without string replacement (:issue:`43686`)
+  - Ability to render hyperlinks automatically via a new ``hyperlinks`` formatting keyword argument (:issue:`45058`)
 
 There are also some LaTeX specific enhancements:
 
