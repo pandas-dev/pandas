@@ -5,12 +5,17 @@
 # https://github.com/pytest-dev/pytest/issues/1075
 export PYTHONHASHSEED=$(python -c 'import random; print(random.randint(1, 4294967295))')
 
+# May help reproduce flaky CI builds if set in subsequent runs
+echo PYTHONHASHSEED=$PYTHONHASHSEED
+
 if [[ "not network" == *"$PATTERN"* ]]; then
     export http_proxy=http://1.2.3.4 https_proxy=http://1.2.3.4;
 fi
 
-if [ "$COVERAGE" ]; then
+if [[ "$COVERAGE" == "true" ]]; then
     COVERAGE="-s --cov=pandas --cov-report=xml --cov-append"
+else
+    COVERAGE="" # We need to reset this for COVERAGE="false" case
 fi
 
 # If no X server is found, we use xvfb to emulate it

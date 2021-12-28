@@ -24,7 +24,9 @@ def switch_numexpr_min_elements(request):
 
 # ------------------------------------------------------------------
 
-
+# doctest with +SKIP for one fixture fails during setup with
+# 'DoctestItem' object has no attribute 'callspec'
+# due to switch_numexpr_min_elements fixture
 @pytest.fixture(params=[1, np.array(1, dtype=np.int64)])
 def one(request):
     """
@@ -37,11 +39,11 @@ def one(request):
 
     Examples
     --------
-    >>> dti = pd.date_range('2016-01-01', periods=2, freq='H')
-    >>> dti
+    dti = pd.date_range('2016-01-01', periods=2, freq='H')
+    dti
     DatetimeIndex(['2016-01-01 00:00:00', '2016-01-01 01:00:00'],
     dtype='datetime64[ns]', freq='H')
-    >>> dti + one
+    dti + one
     DatetimeIndex(['2016-01-01 01:00:00', '2016-01-01 02:00:00'],
     dtype='datetime64[ns]', freq='H')
     """
@@ -61,6 +63,9 @@ zeros.extend([np.array(-0.0, dtype=np.float64)])
 zeros.extend([0, 0.0, -0.0])
 
 
+# doctest with +SKIP for zero fixture fails during setup with
+# 'DoctestItem' object has no attribute 'callspec'
+# due to switch_numexpr_min_elements fixture
 @pytest.fixture(params=zeros)
 def zero(request):
     """
@@ -74,8 +79,8 @@ def zero(request):
 
     Examples
     --------
-    >>> arr = RangeIndex(5)
-    >>> arr / zeros
+    arr = RangeIndex(5)
+    arr / zeros
     Float64Index([nan, inf, inf, inf, inf], dtype='float64')
     """
     return request.param
@@ -107,15 +112,15 @@ def numeric_idx(request):
 
 @pytest.fixture(
     params=[
-        pd.Timedelta("5m4s").to_pytimedelta(),
-        pd.Timedelta("5m4s"),
-        pd.Timedelta("5m4s").to_timedelta64(),
+        pd.Timedelta("10m7s").to_pytimedelta(),
+        pd.Timedelta("10m7s"),
+        pd.Timedelta("10m7s").to_timedelta64(),
     ],
     ids=lambda x: type(x).__name__,
 )
 def scalar_td(request):
     """
-    Several variants of Timedelta scalars representing 5 minutes and 4 seconds
+    Several variants of Timedelta scalars representing 10 minutes and 7 seconds.
     """
     return request.param
 

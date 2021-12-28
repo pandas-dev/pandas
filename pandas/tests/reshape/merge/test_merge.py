@@ -597,7 +597,7 @@ class TestMerge:
         tm.assert_frame_equal(actual, expected)
 
     def test_merge_nosort(self):
-        # GH#2098, TODO: anything to do?
+        # GH#2098
 
         d = {
             "var1": np.random.randint(0, 10, size=10),
@@ -686,10 +686,12 @@ class TestMerge:
         # timedelta64 issues with join/merge
         # GH 5695
 
-        d = {"d": datetime(2013, 11, 5, 5, 56), "t": timedelta(0, 22500)}
+        d = DataFrame.from_dict(
+            {"d": [datetime(2013, 11, 5, 5, 56)], "t": [timedelta(0, 22500)]}
+        )
         df = DataFrame(columns=list("dt"))
-        df = df.append(d, ignore_index=True)
-        result = df.append(d, ignore_index=True)
+        df = concat([df, d], ignore_index=True)
+        result = concat([df, d], ignore_index=True)
         expected = DataFrame(
             {
                 "d": [datetime(2013, 11, 5, 5, 56), datetime(2013, 11, 5, 5, 56)],
@@ -1176,7 +1178,7 @@ class TestMerge:
         tm.assert_frame_equal(result, expected_3)
 
         # Dups on right
-        right_w_dups = right.append(DataFrame({"a": ["e"], "c": ["moo"]}, index=[4]))
+        right_w_dups = concat([right, DataFrame({"a": ["e"], "c": ["moo"]}, index=[4])])
         merge(
             left,
             right_w_dups,
@@ -1199,8 +1201,8 @@ class TestMerge:
             merge(left, right_w_dups, on="a", validate="one_to_one")
 
         # Dups on left
-        left_w_dups = left.append(
-            DataFrame({"a": ["a"], "c": ["cow"]}, index=[3]), sort=True
+        left_w_dups = concat(
+            [left, DataFrame({"a": ["a"], "c": ["cow"]}, index=[3])], sort=True
         )
         merge(
             left_w_dups,

@@ -5,16 +5,20 @@ import numpy as np
 import pytest
 
 from pandas._libs.missing import is_matching_na
-from pandas.compat import (
-    IS64,
-    is_platform_windows,
-)
 
 import pandas as pd
+from pandas.core.arrays.integer import INT_STR_TO_DTYPE
 from pandas.tests.extension.base.base import BaseExtensionTests
 
 
 class Dim2CompatTests(BaseExtensionTests):
+    def test_transpose(self, data):
+        arr2d = data.repeat(2).reshape(-1, 2)
+        shape = arr2d.shape
+        assert shape[0] != shape[-1]  # otherwise the rest of the test is useless
+
+        assert arr2d.T.shape == shape[::-1]
+
     def test_frame_from_2d_array(self, data):
         arr2d = data.repeat(2).reshape(-1, 2)
 
@@ -153,10 +157,7 @@ class Dim2CompatTests(BaseExtensionTests):
         self.assert_extension_array_equal(result, expected)
 
     @pytest.mark.parametrize("method", ["mean", "median", "var", "std", "sum", "prod"])
-    def test_reductions_2d_axis_none(self, data, method, request):
-        if not hasattr(data, method):
-            pytest.skip("test is not applicable for this type/dtype")
-
+    def test_reductions_2d_axis_none(self, data, method):
         arr2d = data.reshape(1, -1)
 
         err_expected = None
@@ -181,10 +182,7 @@ class Dim2CompatTests(BaseExtensionTests):
         assert is_matching_na(result, expected) or result == expected
 
     @pytest.mark.parametrize("method", ["mean", "median", "var", "std", "sum", "prod"])
-    def test_reductions_2d_axis0(self, data, method, request):
-        if not hasattr(data, method):
-            pytest.skip("test is not applicable for this type/dtype")
-
+    def test_reductions_2d_axis0(self, data, method):
         arr2d = data.reshape(1, -1)
 
         kwargs = {}
@@ -203,32 +201,29 @@ class Dim2CompatTests(BaseExtensionTests):
             else:
                 raise AssertionError("Both reductions should raise or neither")
 
+        def get_reduction_result_dtype(dtype):
+            # windows and 32bit builds will in some cases have int32/uint32
+            #  where other builds will have int64/uint64.
+            if dtype.itemsize == 8:
+                return dtype
+            elif dtype.kind in "ib":
+                return INT_STR_TO_DTYPE[np.dtype(int).name]
+            else:
+                # i.e. dtype.kind == "u"
+                return INT_STR_TO_DTYPE[np.dtype(np.uint).name]
+
         if method in ["mean", "median", "sum", "prod"]:
             # std and var are not dtype-preserving
             expected = data
-            if method in ["sum", "prod"] and data.dtype.kind in ["i", "u"]:
-                # FIXME: kludge
-                if data.dtype.kind == "i":
-                    if is_platform_windows() or not IS64:
-                        # FIXME: kludge for 32bit builds
-                        if result.dtype.itemsize == 4:
-                            dtype = pd.Int32Dtype()
-                        else:
-                            dtype = pd.Int64Dtype()
-                    else:
-                        dtype = pd.Int64Dtype()
-                else:
-                    if is_platform_windows() or not IS64:
-                        # FIXME: kludge for 32bit builds
-                        if result.dtype.itemsize == 4:
-                            dtype = pd.UInt32Dtype()
-                        else:
-                            dtype = pd.UInt64Dtype()
-                    else:
-                        dtype = pd.UInt64Dtype()
+            if method in ["sum", "prod"] and data.dtype.kind in "iub":
+                dtype = get_reduction_result_dtype(data.dtype)
 
                 expected = data.astype(dtype)
-                assert type(expected) == type(data), type(expected)
+                if data.dtype.kind == "b" and method in ["sum", "prod"]:
+                    # We get IntegerArray instead of BooleanArray
+                    pass
+                else:
+                    assert type(expected) == type(data), type(expected)
                 assert dtype == expected.dtype
 
             self.assert_extension_array_equal(result, expected)
@@ -237,10 +232,7 @@ class Dim2CompatTests(BaseExtensionTests):
         # punt on method == "var"
 
     @pytest.mark.parametrize("method", ["mean", "median", "var", "std", "sum", "prod"])
-    def test_reductions_2d_axis1(self, data, method, request):
-        if not hasattr(data, method):
-            pytest.skip("test is not applicable for this type/dtype")
-
+    def test_reductions_2d_axis1(self, data, method):
         arr2d = data.reshape(1, -1)
 
         try:
@@ -259,3 +251,51 @@ class Dim2CompatTests(BaseExtensionTests):
         expected_scalar = getattr(data, method)()
         res = result[0]
         assert is_matching_na(res, expected_scalar) or res == expected_scalar
+
+
+class NDArrayBacked2DTests(Dim2CompatTests):
+    # More specific tests for NDArrayBackedExtensionArray subclasses
+
+    def test_copy_order(self, data):
+        # We should be matching numpy semantics for the "order" keyword in 'copy'
+        arr2d = data.repeat(2).reshape(-1, 2)
+        assert arr2d._ndarray.flags["C_CONTIGUOUS"]
+
+        res = arr2d.copy()
+        assert res._ndarray.flags["C_CONTIGUOUS"]
+
+        res = arr2d[::2, ::2].copy()
+        assert res._ndarray.flags["C_CONTIGUOUS"]
+
+        res = arr2d.copy("F")
+        assert not res._ndarray.flags["C_CONTIGUOUS"]
+        assert res._ndarray.flags["F_CONTIGUOUS"]
+
+        res = arr2d.copy("K")
+        assert res._ndarray.flags["C_CONTIGUOUS"]
+
+        res = arr2d.T.copy("K")
+        assert not res._ndarray.flags["C_CONTIGUOUS"]
+        assert res._ndarray.flags["F_CONTIGUOUS"]
+
+        # order not accepted by numpy
+        msg = r"order must be one of 'C', 'F', 'A', or 'K' \(got 'Q'\)"
+        with pytest.raises(ValueError, match=msg):
+            arr2d.copy("Q")
+
+        # neither contiguity
+        arr_nc = arr2d[::2]
+        assert not arr_nc._ndarray.flags["C_CONTIGUOUS"]
+        assert not arr_nc._ndarray.flags["F_CONTIGUOUS"]
+
+        assert arr_nc.copy()._ndarray.flags["C_CONTIGUOUS"]
+        assert not arr_nc.copy()._ndarray.flags["F_CONTIGUOUS"]
+
+        assert arr_nc.copy("C")._ndarray.flags["C_CONTIGUOUS"]
+        assert not arr_nc.copy("C")._ndarray.flags["F_CONTIGUOUS"]
+
+        assert not arr_nc.copy("F")._ndarray.flags["C_CONTIGUOUS"]
+        assert arr_nc.copy("F")._ndarray.flags["F_CONTIGUOUS"]
+
+        assert arr_nc.copy("K")._ndarray.flags["C_CONTIGUOUS"]
+        assert not arr_nc.copy("K")._ndarray.flags["F_CONTIGUOUS"]

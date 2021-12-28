@@ -19,6 +19,7 @@ import pandas._libs.lib as lib
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._typing import (
     ArrayLike,
+    CompressionOptions,
     DtypeArg,
     FilePath,
     ReadCsvBuffer,
@@ -42,9 +43,9 @@ from pandas.core.dtypes.common import (
     is_list_like,
 )
 
-from pandas.core import generic
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.api import RangeIndex
+from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import validate_header_arg
 from pandas.io.parsers.arrow_parser_wrapper import ArrowParserWrapper
@@ -279,12 +280,10 @@ chunksize : int, optional
     .. versionchanged:: 1.2
 
        ``TextFileReader`` is a context manager.
-compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
-    For on-the-fly decompression of on-disk data. If 'infer' and
-    `filepath_or_buffer` is path-like, then detect compression from the
-    following extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise no
-    decompression). If using 'zip', the ZIP file must contain only one data
-    file to be read in. Set to None for no decompression.
+{decompression_options}
+
+    .. versionchanged:: 1.4.0 Zstandard support.
+
 thousands : str, optional
     Thousands separator.
 decimal : str, default '.'
@@ -576,7 +575,8 @@ def _read(
         func_name="read_csv",
         summary="Read a comma-separated values (csv) file into DataFrame.",
         _default_sep="','",
-        storage_options=generic._shared_docs["storage_options"],
+        storage_options=_shared_docs["storage_options"],
+        decompression_options=_shared_docs["decompression_options"],
     )
 )
 def read_csv(
@@ -618,7 +618,7 @@ def read_csv(
     iterator=False,
     chunksize=None,
     # Quoting, Compression, and File Format
-    compression="infer",
+    compression: CompressionOptions = "infer",
     thousands=None,
     decimal: str = ".",
     lineterminator=None,
@@ -674,7 +674,8 @@ def read_csv(
         func_name="read_table",
         summary="Read general delimited file into DataFrame.",
         _default_sep=r"'\\t' (tab-stop)",
-        storage_options=generic._shared_docs["storage_options"],
+        storage_options=_shared_docs["storage_options"],
+        decompression_options=_shared_docs["decompression_options"],
     )
 )
 def read_table(
@@ -716,7 +717,7 @@ def read_table(
     iterator=False,
     chunksize=None,
     # Quoting, Compression, and File Format
-    compression="infer",
+    compression: CompressionOptions = "infer",
     thousands=None,
     decimal: str = ".",
     lineterminator=None,
@@ -1169,8 +1170,7 @@ class TextFileReader(abc.Iterator):
             raise ValueError(
                 f"Unknown engine: {engine} (valid options are {mapping.keys()})"
             )
-        # error: Too many arguments for "ParserBase"
-        return mapping[engine](self.f, **self.options)  # type: ignore[call-arg]
+        return mapping[engine](self.f, **self.options)
 
     def _failover_to_python(self):
         raise AbstractMethodError(self)
@@ -1457,6 +1457,13 @@ def _refine_defaults_read(
         raise ValueError(
             "Specified a delimiter with both sep and "
             "delim_whitespace=True; you can only specify one."
+        )
+
+    if delimiter == "\n":
+        raise ValueError(
+            r"Specified \n as separator or delimiter. This forces the python engine "
+            "which does not accept a line terminator. Hence it is not allowed to use "
+            "the line terminator as separator.",
         )
 
     if delimiter is lib.no_default:

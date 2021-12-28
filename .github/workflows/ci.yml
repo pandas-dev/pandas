@@ -41,6 +41,8 @@ jobs:
 
     - uses: conda-incubator/setup-miniconda@v2
       with:
+        mamba-version: "*"
+        channels: conda-forge
         activate-environment: pandas-dev
         channel-priority: strict
         environment-file: ${{ env.ENV_FILE }}
@@ -53,7 +55,7 @@ jobs:
 
     - name: Install pyright
       # note: keep version in sync with .pre-commit-config.yaml
-      run: npm install -g pyright@1.1.171
+      run: npm install -g pyright@1.1.200
 
     - name: Build Pandas
       uses: ./.github/actions/build_pandas
@@ -77,6 +79,42 @@ jobs:
     - name: Testing docstring validation script
       run: pytest scripts
       if: always()
+
+  benchmarks:
+    name: Benchmarks
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    concurrency:
+      # https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-benchmarks
+      cancel-in-progress: true
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    - name: Cache conda
+      uses: actions/cache@v2
+      with:
+        path: ~/conda_pkgs_dir
+        key: ${{ runner.os }}-conda-${{ hashFiles('${{ env.ENV_FILE }}') }}
+
+    - uses: conda-incubator/setup-miniconda@v2
+      with:
+        mamba-version: "*"
+        channels: conda-forge
+        activate-environment: pandas-dev
+        channel-priority: strict
+        environment-file: ${{ env.ENV_FILE }}
+        use-only-tar-bz2: true
+
+    - name: Build Pandas
+      uses: ./.github/actions/build_pandas
 
     - name: Running benchmarks
       run: |

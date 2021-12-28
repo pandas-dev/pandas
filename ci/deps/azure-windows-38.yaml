@@ -32,3 +32,4 @@ dependencies:
   - xlrd
   - xlsxwriter
   - xlwt
+  - zstandard

@@ -328,12 +328,15 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
         reconstruct_kwargs = {}
 
     def reconstruct(result):
+        if ufunc.nout > 1:
+            # np.modf, np.frexp, np.divmod
+            return tuple(_reconstruct(x) for x in result)
+
+        return _reconstruct(result)
+
+    def _reconstruct(result):
         if lib.is_scalar(result):
             return result
-
-        if isinstance(result, tuple):
-            # np.modf, np.frexp, np.divmod
-            return tuple(reconstruct(x) for x in result)
 
         if result.ndim != self.ndim:
             if method == "outer":
@@ -369,10 +372,12 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
         return result
 
     if "out" in kwargs:
+        # e.g. test_multiindex_get_loc
         result = dispatch_ufunc_with_out(self, ufunc, method, *inputs, **kwargs)
         return reconstruct(result)
 
     if method == "reduce":
+        # e.g. test.series.test_ufunc.test_reduce
         result = dispatch_reduction_ufunc(self, ufunc, method, *inputs, **kwargs)
         if result is not NotImplemented:
             return result
@@ -518,10 +523,12 @@ def dispatch_reduction_ufunc(self, ufunc: np.ufunc, method: str, *inputs, **kwar
 
         if "axis" not in kwargs:
             # For DataFrame reductions we don't want the default axis=0
-            # FIXME: DataFrame.min ignores axis=None
-            # FIXME: np.minimum.reduce(df) gets here bc axis is not in kwargs,
-            #  but np.minimum.reduce(df.values) behaves as if axis=0
-            kwargs["axis"] = None
+            # Note: np.min is not a ufunc, but uses array_function_dispatch,
+            #  so calls DataFrame.min (without ever getting here) with the np.min
+            #  default of axis=None, which DataFrame.min catches and changes to axis=0.
+            # np.minimum.reduce(df) gets here bc axis is not in kwargs,
+            #  so we set axis=0 to match the behaviorof np.minimum.reduce(df.values)
+            kwargs["axis"] = 0
 
     # By default, numpy's reductions do not skip NaNs, so we have to
     #  pass skipna=False
