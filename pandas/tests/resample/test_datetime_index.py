@@ -438,7 +438,7 @@ def test_resample_upsample():
     s = Series(np.random.rand(len(dti)), dti)
 
     # to minutely, by padding
-    result = s.resample("Min").pad()
+    result = s.resample("Min").ffill()
     assert len(result) == 12961
     assert result[0] == s[0]
     assert result[-1] == s[-1]
@@ -1810,7 +1810,7 @@ def test_resample_calendar_day_with_dst(
 ):
     # GH 35219
     ts = Series(1.0, date_range(first, last, freq=freq_in, tz="Europe/Amsterdam"))
-    result = ts.resample(freq_out).pad()
+    result = ts.resample(freq_out).ffill()
     expected = Series(
         1.0, date_range(first, exp_last, freq=freq_out, tz="Europe/Amsterdam")
     )

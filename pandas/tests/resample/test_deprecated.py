@@ -305,3 +305,12 @@ def test_interpolate_posargs_deprecation():
 
     expected.index._data.freq = "3s"
     tm.assert_series_equal(result, expected)
+
+
+def test_pad_backfill_deprecation():
+    # GH 33396
+    s = Series([1, 2, 3], index=date_range("20180101", periods=3, freq="h"))
+    with tm.assert_produces_warning(FutureWarning, match="backfill"):
+        s.resample("30min").backfill()
+    with tm.assert_produces_warning(FutureWarning, match="pad"):
+        s.resample("30min").pad()

@@ -8,6 +8,7 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
+from pandas.core.groupby.base import maybe_normalize_deprecated_kernels
 
 
 @pytest.mark.parametrize(
@@ -23,7 +24,8 @@ def test_groupby_preserves_subclass(obj, groupby_func):
 
     if isinstance(obj, Series) and groupby_func in {"corrwith"}:
         pytest.skip("Not applicable")
-
+    # TODO(2.0) Remove after pad/backfill deprecation enforced
+    groupby_func = maybe_normalize_deprecated_kernels(groupby_func)
     grouped = obj.groupby(np.arange(0, 10))
 
     # Groups should preserve subclass type

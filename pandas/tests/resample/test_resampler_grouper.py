@@ -227,7 +227,7 @@ def test_methods():
         expected = g.B.apply(lambda x: getattr(x.resample("2s"), f)())
         tm.assert_series_equal(result, expected)
 
-    for f in ["nearest", "backfill", "ffill", "asfreq"]:
+    for f in ["nearest", "bfill", "ffill", "asfreq"]:
         result = getattr(r, f)()
         expected = g.apply(lambda x: getattr(x.resample("2s"), f)())
         tm.assert_frame_equal(result, expected)
