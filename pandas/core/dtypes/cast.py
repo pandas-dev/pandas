@@ -107,6 +107,8 @@ _int16_max = np.iinfo(np.int16).max
 _int32_max = np.iinfo(np.int32).max
 _int64_max = np.iinfo(np.int64).max
 
+_dtype_obj = np.dtype(object)
+
 NumpyArrayT = TypeVar("NumpyArrayT", bound=np.ndarray)
 
 
@@ -123,7 +125,7 @@ def maybe_convert_platform(
         #  or ExtensionArray here.
         arr = values
 
-    if arr.dtype == object:
+    if arr.dtype == _dtype_obj:
         arr = cast(np.ndarray, arr)
         arr = lib.maybe_convert_objects(arr)
 
@@ -159,7 +161,7 @@ def maybe_box_datetimelike(value: Scalar, dtype: Dtype | None = None) -> Scalar:
     -------
     scalar
     """
-    if dtype == object:
+    if dtype == _dtype_obj:
         pass
     elif isinstance(value, (np.datetime64, datetime)):
         value = Timestamp(value)
@@ -662,9 +664,7 @@ def _ensure_dtype_type(value, dtype: np.dtype):
     """
     # Start with exceptions in which we do _not_ cast to numpy types
 
-    # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-    # operand type: "Type[object_]")
-    if dtype == np.object_:  # type: ignore[comparison-overlap]
+    if dtype == _dtype_obj:
         return value
 
     # Note: before we get here we have already excluded isna(value)
@@ -1111,10 +1111,7 @@ def astype_nansafe(
         raise ValueError("dtype must be np.dtype or ExtensionDtype")
 
     if arr.dtype.kind in ["m", "M"] and (
-        issubclass(dtype.type, str)
-        # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-        # operand type: "Type[object]")
-        or dtype == object  # type: ignore[comparison-overlap]
+        issubclass(dtype.type, str) or dtype == _dtype_obj
     ):
         from pandas.core.construction import ensure_wrapped_if_datetimelike
 
@@ -1124,7 +1121,7 @@ def astype_nansafe(
     if issubclass(dtype.type, str):
         return lib.ensure_string_array(arr, skipna=skipna, convert_na_value=False)
 
-    elif is_datetime64_dtype(arr):
+    elif is_datetime64_dtype(arr.dtype):
         # Non-overlapping equality check (left operand type: "dtype[Any]", right
         # operand type: "Type[signedinteger[Any]]")
         if dtype == np.int64:  # type: ignore[comparison-overlap]
@@ -1146,7 +1143,7 @@ def astype_nansafe(
 
         raise TypeError(f"cannot astype a datetimelike from [{arr.dtype}] to [{dtype}]")
 
-    elif is_timedelta64_dtype(arr):
+    elif is_timedelta64_dtype(arr.dtype):
         # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
         # operand type: "Type[signedinteger[Any]]")
         if dtype == np.int64:  # type: ignore[comparison-overlap]
@@ -1170,7 +1167,7 @@ def astype_nansafe(
     elif np.issubdtype(arr.dtype, np.floating) and np.issubdtype(dtype, np.integer):
         return astype_float_to_int_nansafe(arr, dtype, copy)
 
-    elif is_object_dtype(arr):
+    elif is_object_dtype(arr.dtype):
 
         # work around NumPy brokenness, #1987
         if np.issubdtype(dtype.type, np.integer):
@@ -1718,7 +1715,7 @@ def maybe_cast_to_datetime(
             # and no coercion specified
             value = sanitize_to_nanoseconds(value)
 
-        elif value.dtype == object:
+        elif value.dtype == _dtype_obj:
             value = maybe_infer_to_datetimelike(value)
 
     elif isinstance(value, list):
@@ -1862,9 +1859,7 @@ def construct_2d_arraylike_from_scalar(
 
     if dtype.kind in ["m", "M"]:
         value = maybe_unbox_datetimelike_tz_deprecation(value, dtype)
-    # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-    # operand type: "Type[object]")
-    elif dtype == object:  # type: ignore[comparison-overlap]
+    elif dtype == _dtype_obj:
         if isinstance(value, (np.timedelta64, np.datetime64)):
             # calling np.array below would cast to pytimedelta/pydatetime
             out = np.empty(shape, dtype=object)
@@ -2190,9 +2185,7 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
         # ExtensionBlock._can_hold_element
         return True
 
-    # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-    # operand type: "Type[object]")
-    if dtype == object:  # type: ignore[comparison-overlap]
+    if dtype == _dtype_obj:
         return True
 
     tipo = maybe_infer_dtype_type(element)

@@ -55,6 +55,7 @@ from pandas.core.dtypes.missing import (
 
 from pandas.core import (
     algorithms,
+    nanops,
     ops,
 )
 from pandas.core.accessor import DirNamesMixin
@@ -70,7 +71,6 @@ from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
-import pandas.core.nanops as nanops
 
 if TYPE_CHECKING:
 
