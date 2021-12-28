@@ -215,6 +215,8 @@ class Base:
             # RangeIndex cannot be initialized from data
             # MultiIndex and CategoricalIndex are tested separately
             return
+        elif index.dtype == object and index.inferred_type == "boolean":
+            init_kwargs["dtype"] = index.dtype
 
         index_type = type(index)
         result = index_type(index.values, copy=True, **init_kwargs)

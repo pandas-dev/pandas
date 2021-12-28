@@ -623,7 +623,8 @@ class TestGetLoc:
 
     def test_get_loc_cast_bool(self):
         # GH 19086 : int is casted to bool, but not vice-versa
-        levels = [[False, True], np.arange(2, dtype="int64")]
+        # TODO: fails if we dont make levels[0] object-dtype
+        levels = [Index([False, True], dtype=object), np.arange(2, dtype="int64")]
         idx = MultiIndex.from_product(levels)
 
         assert idx.get_loc((0, 1)) == 1

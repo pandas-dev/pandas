@@ -370,7 +370,6 @@ class Index(IndexOpsMixin, PandasObject):
     _comparables: list[str] = ["name"]
     _attributes: list[str] = ["name"]
     _is_numeric_dtype: bool = False
-    _can_hold_na: bool = True
     _can_hold_strings: bool = True
 
     # Whether this index is a NumericIndex, but not a Int64Index, Float64Index,
@@ -2098,6 +2097,12 @@ class Index(IndexOpsMixin, PandasObject):
 
     # --------------------------------------------------------------------
     # Introspection Methods
+
+    @cache_readonly
+    def _can_hold_na(self) -> bool:
+        if self.dtype == bool:
+            return False
+        return True
 
     @final
     @property

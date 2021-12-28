@@ -819,7 +819,10 @@ def value_counts(
     -------
     Series
     """
-    from pandas.core.series import Series
+    from pandas import (
+        Index,
+        Series,
+    )
 
     name = getattr(values, "name", None)
 
@@ -857,7 +860,11 @@ def value_counts(
         else:
             keys, counts = value_counts_arraylike(values, dropna)
 
-            result = Series(counts, index=keys, name=name)
+            keys2 = keys
+            keys2 = Index._with_infer(keys)
+            if keys2.dtype.kind == "b" and keys.dtype == object:
+                keys2 = Index(keys, dtype=object)
+            result = Series(counts, index=keys2, name=name)
 
     if sort:
         result = result.sort_values(ascending=ascending)
