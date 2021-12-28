@@ -2,6 +2,7 @@ import numpy as np
 
 from pandas import (
     Categorical,
+    Index,
     NaT,
     Series,
     date_range,
@@ -326,3 +327,16 @@ class IsInWithLongTupples:
 
     def time_isin(self):
         self.series.isin(self.values)
+
+
+class IsInIndexes:
+    def setup(self):
+        self.range_idx = Index(range(1000))
+        self.index = Index(list(range(1000)))
+        self.series = Series(np.random.randint(100_000, size=1000))
+
+    def time_isin_range_index(self):
+        self.series.isin(self.range_idx)
+
+    def time_isin_index(self):
+        self.series.isin(self.index)
