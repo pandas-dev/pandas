@@ -43,9 +43,9 @@ from pandas.core.dtypes.common import (
     is_list_like,
 )
 
-from pandas.core import generic
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.api import RangeIndex
+from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import validate_header_arg
 from pandas.io.parsers.arrow_parser_wrapper import ArrowParserWrapper
@@ -280,12 +280,10 @@ chunksize : int, optional
     .. versionchanged:: 1.2
 
        ``TextFileReader`` is a context manager.
-compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}, default 'infer'
-    For on-the-fly decompression of on-disk data. If 'infer' and
-    `filepath_or_buffer` is path-like, then detect compression from the
-    following extensions: '.gz', '.bz2', '.zip', or '.xz' (otherwise no
-    decompression). If using 'zip', the ZIP file must contain only one data
-    file to be read in. Set to None for no decompression.
+{decompression_options}
+
+    .. versionchanged:: 1.4.0 Zstandard support.
+
 thousands : str, optional
     Thousands separator.
 decimal : str, default '.'
@@ -577,7 +575,8 @@ def _read(
         func_name="read_csv",
         summary="Read a comma-separated values (csv) file into DataFrame.",
         _default_sep="','",
-        storage_options=generic._shared_docs["storage_options"],
+        storage_options=_shared_docs["storage_options"],
+        decompression_options=_shared_docs["decompression_options"],
     )
 )
 def read_csv(
@@ -675,7 +674,8 @@ def read_csv(
         func_name="read_table",
         summary="Read general delimited file into DataFrame.",
         _default_sep=r"'\\t' (tab-stop)",
-        storage_options=generic._shared_docs["storage_options"],
+        storage_options=_shared_docs["storage_options"],
+        decompression_options=_shared_docs["decompression_options"],
     )
 )
 def read_table(

@@ -65,22 +65,8 @@ fi
 if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
     MSG='Doctests' ; echo $MSG
-    python -m pytest --doctest-modules \
-      pandas/_config/ \
-      pandas/_libs/ \
-      pandas/_testing/ \
-      pandas/api/ \
-      pandas/arrays/ \
-      pandas/compat/ \
-      pandas/core \
-      pandas/errors/ \
-      pandas/io/ \
-      pandas/tseries/ \
-      pandas/util/ \
-      pandas/_typing.py \
-      pandas/_version.py \
-      pandas/conftest.py \
-      pandas/testing.py
+    # Ignore test_*.py files or else the unit tests will run
+    python -m pytest --doctest-modules --ignore-glob="**/test_*.py" pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
     MSG='Cython Doctests' ; echo $MSG

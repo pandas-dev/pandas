@@ -188,5 +188,5 @@ class TestPrinting(BaseDatetimeTests, base.BasePrintingTests):
     pass
 
 
-class Test2DCompat(BaseDatetimeTests, base.Dim2CompatTests):
+class Test2DCompat(BaseDatetimeTests, base.NDArrayBacked2DTests):
     pass
