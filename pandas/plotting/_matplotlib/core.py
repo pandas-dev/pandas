@@ -648,7 +648,7 @@ class MPLPlot:
         self.legend_handles.append(handle)
         self.legend_labels.append(label)
 
-    def _make_legend(self):
+    def _make_legend(self) -> None:
         ax, leg = self._get_ax_legend(self.axes[0])
 
         handles = []
@@ -664,20 +664,11 @@ class MPLPlot:
 
             if self.legend:
                 if self.legend == "reverse":
-                    # error: Incompatible types in assignment (expression has type
-                    # "Iterator[Any]", variable has type "List[Any]")
-                    self.legend_handles = reversed(  # type: ignore[assignment]
-                        self.legend_handles
-                    )
-                    # error: Incompatible types in assignment (expression has type
-                    # "Iterator[Hashable]", variable has type
-                    # "List[Hashable]")
-                    self.legend_labels = reversed(  # type: ignore[assignment]
-                        self.legend_labels
-                    )
-
-                handles += self.legend_handles
-                labels += self.legend_labels
+                    handles += reversed(self.legend_handles)
+                    labels += reversed(self.legend_labels)
+                else:
+                    handles += self.legend_handles
+                    labels += self.legend_labels
 
                 if self.legend_title is not None:
                     title = self.legend_title
