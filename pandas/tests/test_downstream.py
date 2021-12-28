@@ -5,7 +5,7 @@ import importlib
 import subprocess
 import sys
 
-import numpy as np  # noqa:F401 needed in namespace for statsmodels
+import numpy as np
 import pytest
 
 import pandas.util._test_decorators as td
@@ -174,6 +174,20 @@ def test_pyarrow(df):
     table = pyarrow.Table.from_pandas(df)
     result = table.to_pandas()
     tm.assert_frame_equal(result, df)
+
+
+def test_torch_frame_construction(using_array_manager):
+    # GH#44616
+    torch = import_module("torch")
+    val_tensor = torch.randn(700, 64)
+
+    df = DataFrame(val_tensor)
+
+    if not using_array_manager:
+        assert np.shares_memory(df, val_tensor)
+
+    ser = pd.Series(val_tensor[0])
+    assert np.shares_memory(ser, val_tensor)
 
 
 def test_yaml_dump(df):

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import itertools
 from typing import TYPE_CHECKING
+import warnings
 
 import numpy as np
 
@@ -11,6 +12,7 @@ from pandas._typing import (
     Dtype,
     npt,
 )
+from pandas.errors import PerformanceWarning
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import maybe_promote
@@ -125,10 +127,15 @@ class _Unstacker:
         num_columns = self.removed_level.size
 
         # GH20601: This forces an overflow if the number of cells is too high.
-        num_cells = np.multiply(num_rows, num_columns, dtype=np.int32)
+        num_cells = num_rows * num_columns
 
-        if num_rows > 0 and num_columns > 0 and num_cells <= 0:
-            raise ValueError("Unstacked DataFrame is too big, causing int32 overflow")
+        # GH 26314: Previous ValueError raised was too restrictive for many users.
+        if num_cells > np.iinfo(np.int32).max:
+            warnings.warn(
+                f"The following operation may generate {num_cells} cells "
+                f"in the resulting pandas object.",
+                PerformanceWarning,
+            )
 
         self._make_selectors()
 
@@ -679,7 +686,7 @@ def _stack_multi_column_index(columns: MultiIndex) -> MultiIndex:
 
 
 def _stack_multi_columns(frame, level_num=-1, dropna=True):
-    def _convert_level_number(level_num, columns):
+    def _convert_level_number(level_num: int, columns):
         """
         Logic for converting the level number to something we can safely pass
         to swaplevel.

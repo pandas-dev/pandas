@@ -435,13 +435,14 @@ The equivalent in pandas:
 Adding a row
 ~~~~~~~~~~~~
 
-Assuming we are using a :class:`~pandas.RangeIndex` (numbered ``0``, ``1``, etc.), we can use :meth:`DataFrame.append` to add a row to the bottom of a ``DataFrame``.
+Assuming we are using a :class:`~pandas.RangeIndex` (numbered ``0``, ``1``, etc.), we can use :func:`concat` to add a row to the bottom of a ``DataFrame``.
 
 .. ipython:: python
 
     df
-    new_row = {"class": "E", "student_count": 51, "all_pass": True}
-    df.append(new_row, ignore_index=True)
+    new_row = pd.DataFrame([["E", 51, True]],
+                           columns=["class", "student_count", "all_pass"])
+    pd.concat([df, new_row])
 
 
 Find and Replace

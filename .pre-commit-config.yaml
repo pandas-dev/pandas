@@ -35,25 +35,15 @@ repos:
         # we can lint all header files since they aren't "generated" like C files are.
         exclude: ^pandas/_libs/src/(klib|headers)/
         args: [--quiet, '--extensions=c,h', '--headers=h', --recursive, '--filter=-readability/casting,-runtime/int,-build/include_subdir']
--   repo: https://gitlab.com/pycqa/flake8
-    rev: 3.9.2
+-   repo: https://github.com/PyCQA/flake8
+    rev: 4.0.1
     hooks:
     -   id: flake8
         additional_dependencies: &flake8_dependencies
-        - flake8==3.9.2
-        - flake8-comprehensions==3.1.0
+        - flake8==4.0.1
+        - flake8-comprehensions==3.7.0
         - flake8-bugbear==21.3.2
         - pandas-dev-flaker==0.2.0
-    -   id: flake8
-        alias: flake8-cython
-        name: flake8 (cython)
-        types: [cython]
-        args: [--append-config=flake8/cython.cfg]
-    -   id: flake8
-        name: flake8 (cython template)
-        files: \.pxi\.in$
-        types: [text]
-        args: [--append-config=flake8/cython-template.cfg]
 -   repo: https://github.com/PyCQA/isort
     rev: 5.10.1
     hooks:
@@ -88,7 +78,7 @@ repos:
         types: [python]
         stages: [manual]
         # note: keep version in sync with .github/workflows/ci.yml
-        additional_dependencies: ['pyright@1.1.171']
+        additional_dependencies: ['pyright@1.1.200']
 -   repo: local
     hooks:
     -   id: flake8-rst

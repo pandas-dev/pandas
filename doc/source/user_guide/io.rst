@@ -316,14 +316,14 @@ chunksize : int, default ``None``
 Quoting, compression, and file format
 +++++++++++++++++++++++++++++++++++++
 
-compression : {``'infer'``, ``'gzip'``, ``'bz2'``, ``'zip'``, ``'xz'``, ``None``, ``dict``}, default ``'infer'``
+compression : {``'infer'``, ``'gzip'``, ``'bz2'``, ``'zip'``, ``'xz'``, ``'zstd'``, ``None``, ``dict``}, default ``'infer'``
   For on-the-fly decompression of on-disk data. If 'infer', then use gzip,
-  bz2, zip, or xz if ``filepath_or_buffer`` is path-like ending in '.gz', '.bz2',
-  '.zip', or '.xz', respectively, and no decompression otherwise. If using 'zip',
+  bz2, zip, xz, or zstandard if ``filepath_or_buffer`` is path-like ending in '.gz', '.bz2',
+  '.zip', '.xz', '.zst', respectively, and no decompression otherwise. If using 'zip',
   the ZIP file must contain only one data file to be read in.
   Set to ``None`` for no decompression. Can also be a dict with key ``'method'``
-  set to one of {``'zip'``, ``'gzip'``, ``'bz2'``} and other key-value pairs are
-  forwarded to ``zipfile.ZipFile``, ``gzip.GzipFile``, or ``bz2.BZ2File``.
+  set to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``} and other key-value pairs are
+  forwarded to ``zipfile.ZipFile``, ``gzip.GzipFile``, ``bz2.BZ2File``, or ``zstandard.ZstdDecompressor``.
   As an example, the following could be passed for faster compression and to
   create a reproducible gzip archive:
   ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
@@ -4032,18 +4032,18 @@ Compressed pickle files
 '''''''''''''''''''''''
 
 :func:`read_pickle`, :meth:`DataFrame.to_pickle` and :meth:`Series.to_pickle` can read
-and write compressed pickle files. The compression types of ``gzip``, ``bz2``, ``xz`` are supported for reading and writing.
+and write compressed pickle files. The compression types of ``gzip``, ``bz2``, ``xz``, ``zstd`` are supported for reading and writing.
 The ``zip`` file format only supports reading and must contain only one data file
 to be read.
 
 The compression type can be an explicit parameter or be inferred from the file extension.
-If 'infer', then use ``gzip``, ``bz2``, ``zip``, or ``xz`` if filename ends in ``'.gz'``, ``'.bz2'``, ``'.zip'``, or
-``'.xz'``, respectively.
+If 'infer', then use ``gzip``, ``bz2``, ``zip``, ``xz``, ``zstd`` if filename ends in ``'.gz'``, ``'.bz2'``, ``'.zip'``,
+``'.xz'``, or ``'.zst'``, respectively.
 
 The compression parameter can also be a ``dict`` in order to pass options to the
 compression protocol. It must have a ``'method'`` key set to the name
 of the compression protocol, which must be one of
-{``'zip'``, ``'gzip'``, ``'bz2'``}. All other key-value pairs are passed to
+{``'zip'``, ``'gzip'``, ``'bz2'``, ``'xz'``, ``'zstd'``}. All other key-value pairs are passed to
 the underlying compression library.
 
 .. ipython:: python

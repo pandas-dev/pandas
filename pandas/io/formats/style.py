@@ -39,13 +39,13 @@ from pandas import (
     IndexSlice,
     RangeIndex,
 )
-from pandas.core import generic
 import pandas.core.common as com
 from pandas.core.frame import (
     DataFrame,
     Series,
 )
 from pandas.core.generic import NDFrame
+from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.formats.format import save_to_buffer
 
@@ -442,7 +442,7 @@ class Styler(StylerRenderer):
     @doc(
         NDFrame.to_excel,
         klass="Styler",
-        storage_options=generic._shared_docs["storage_options"],
+        storage_options=_shared_docs["storage_options"],
     )
     def to_excel(
         self,
