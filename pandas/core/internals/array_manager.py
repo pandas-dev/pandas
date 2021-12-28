@@ -794,7 +794,8 @@ class ArrayManager(BaseArrayManager):
         """
         Used in the JSON C code to access column arrays.
         """
-        return self.arrays
+
+        return [np.asarray(arr) for arr in self.arrays]
 
     def iset(
         self, loc: int | slice | np.ndarray, value: ArrayLike, inplace: bool = False
