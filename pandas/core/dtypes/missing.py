@@ -641,6 +641,7 @@ def is_valid_na_for_dtype(obj, dtype: DtypeObj) -> bool:
         return obj is not NaT and not isinstance(obj, (np.datetime64, np.timedelta64))
 
     elif dtype == np.dtype(str):
+        # numpy string dtypes to avoid float np.nan
         return not isinstance(obj, (np.datetime64, np.timedelta64, Decimal, float))
 
     elif dtype == np.dtype("object"):
