@@ -18,11 +18,6 @@ import pandas._testing as tm
 # Generic types test cases
 
 
-@pytest.fixture(params=[DataFrame, Series])
-def constructor(request):
-    return request.param
-
-
 def check_metadata(x, y=None):
     for m in x._metadata:
         v = getattr(x, m, None)
@@ -73,12 +68,12 @@ class Generic:
             Series({x: x.lower() for x in list("ABCD")}),
         ],
     )
-    def test_rename(self, constructor, func):
+    def test_rename(self, frame_or_series, func):
 
         # single axis
         idx = list("ABCD")
 
-        for axis in constructor._AXIS_ORDERS:
+        for axis in frame_or_series._AXIS_ORDERS:
             kwargs = {axis: idx}
             obj = construct(4, **kwargs)
 
@@ -88,12 +83,12 @@ class Generic:
             setattr(expected, axis, list("abcd"))
             tm.assert_equal(result, expected)
 
-    def test_get_numeric_data(self, constructor):
+    def test_get_numeric_data(self, frame_or_series):
 
         n = 4
         kwargs = {
-            constructor._get_axis_name(i): list(range(n))
-            for i in range(constructor._AXIS_LEN)
+            frame_or_series._get_axis_name(i): list(range(n))
+            for i in range(frame_or_series._AXIS_LEN)
         }
 
         # get the numeric data
@@ -115,12 +110,12 @@ class Generic:
         result = o._get_numeric_data()
         tm.assert_equal(result, o)
 
-    def test_nonzero(self, constructor):
+    def test_nonzero(self, frame_or_series):
 
         # GH 4633
         # look at the boolean/nonzero behavior for objects
-        obj = construct(constructor, shape=4)
-        msg = f"The truth value of a {constructor.__name__} is ambiguous"
+        obj = construct(frame_or_series, shape=4)
+        msg = f"The truth value of a {frame_or_series.__name__} is ambiguous"
         with pytest.raises(ValueError, match=msg):
             bool(obj == 0)
         with pytest.raises(ValueError, match=msg):
@@ -128,7 +123,7 @@ class Generic:
         with pytest.raises(ValueError, match=msg):
             bool(obj)
 
-        obj = construct(constructor, shape=4, value=1)
+        obj = construct(frame_or_series, shape=4, value=1)
         with pytest.raises(ValueError, match=msg):
             bool(obj == 0)
         with pytest.raises(ValueError, match=msg):
@@ -136,7 +131,7 @@ class Generic:
         with pytest.raises(ValueError, match=msg):
             bool(obj)
 
-        obj = construct(constructor, shape=4, value=np.nan)
+        obj = construct(frame_or_series, shape=4, value=np.nan)
         with pytest.raises(ValueError, match=msg):
             bool(obj == 0)
         with pytest.raises(ValueError, match=msg):
@@ -145,14 +140,14 @@ class Generic:
             bool(obj)
 
         # empty
-        obj = construct(constructor, shape=0)
+        obj = construct(frame_or_series, shape=0)
         with pytest.raises(ValueError, match=msg):
             bool(obj)
 
         # invalid behaviors
 
-        obj1 = construct(constructor, shape=4, value=1)
-        obj2 = construct(constructor, shape=4, value=1)
+        obj1 = construct(frame_or_series, shape=4, value=1)
+        obj2 = construct(frame_or_series, shape=4, value=1)
 
         with pytest.raises(ValueError, match=msg):
             if obj1:
@@ -165,16 +160,16 @@ class Generic:
         with pytest.raises(ValueError, match=msg):
             not obj1
 
-    def test_constructor_compound_dtypes(self, constructor):
+    def test_frame_or_series_compound_dtypes(self, frame_or_series):
         # see gh-5191
         # Compound dtypes should raise NotImplementedError.
 
         def f(dtype):
-            return construct(constructor, shape=3, value=1, dtype=dtype)
+            return construct(frame_or_series, shape=3, value=1, dtype=dtype)
 
         msg = (
             "compound dtypes are not implemented "
-            f"in the {constructor.__name__} constructor"
+            f"in the {frame_or_series.__name__} frame_or_series"
         )
 
         with pytest.raises(NotImplementedError, match=msg):
@@ -185,12 +180,12 @@ class Generic:
         f("float64")
         f("M8[ns]")
 
-    def test_metadata_propagation(self, constructor):
+    def test_metadata_propagation(self, frame_or_series):
         # check that the metadata matches up on the resulting ops
 
-        o = construct(constructor, shape=3)
+        o = construct(frame_or_series, shape=3)
         o.name = "foo"
-        o2 = construct(constructor, shape=3)
+        o2 = construct(frame_or_series, shape=3)
         o2.name = "bar"
 
         # ----------
@@ -236,23 +231,23 @@ class Generic:
             check_metadata(v1 & v2)
             check_metadata(v1 | v2)
 
-    def test_size_compat(self, constructor):
+    def test_size_compat(self, frame_or_series):
         # GH8846
         # size property should be defined
 
-        o = construct(constructor, shape=10)
+        o = construct(frame_or_series, shape=10)
         assert o.size == np.prod(o.shape)
         assert o.size == 10 ** len(o.axes)
 
-    def test_split_compat(self, constructor):
+    def test_split_compat(self, frame_or_series):
         # xref GH8846
-        o = construct(constructor, shape=10)
+        o = construct(frame_or_series, shape=10)
         assert len(np.array_split(o, 5)) == 5
         assert len(np.array_split(o, 2)) == 2
 
     # See gh-12301
-    def test_stat_unexpected_keyword(self, constructor):
-        obj = construct(constructor, 5)
+    def test_stat_unexpected_keyword(self, frame_or_series):
+        obj = construct(frame_or_series, 5)
         starwars = "Star Wars"
         errmsg = "unexpected keyword"
 
@@ -266,18 +261,18 @@ class Generic:
             obj.any(epic=starwars)  # logical_function
 
     @pytest.mark.parametrize("func", ["sum", "cumsum", "any", "var"])
-    def test_api_compat(self, func, constructor):
+    def test_api_compat(self, func, frame_or_series):
 
         # GH 12021
         # compat for __name__, __qualname__
 
-        obj = (constructor, 5)
+        obj = (frame_or_series, 5)
         f = getattr(obj, func)
         assert f.__name__ == func
         assert f.__qualname__.endswith(func)
 
-    def test_stat_non_defaults_args(self, constructor):
-        obj = construct(constructor, 5)
+    def test_stat_non_defaults_args(self, frame_or_series):
+        obj = construct(frame_or_series, 5)
         out = np.array([0])
         errmsg = "the 'out' parameter is not supported"
 
@@ -290,19 +285,19 @@ class Generic:
         with pytest.raises(ValueError, match=errmsg):
             obj.any(out=out)  # logical_function
 
-    def test_truncate_out_of_bounds(self, constructor):
+    def test_truncate_out_of_bounds(self, frame_or_series):
         # GH11382
 
         # small
-        shape = [2000] + ([1] * (constructor._AXIS_LEN - 1))
-        small = construct(constructor, shape, dtype="int8", value=1)
+        shape = [2000] + ([1] * (frame_or_series._AXIS_LEN - 1))
+        small = construct(frame_or_series, shape, dtype="int8", value=1)
         tm.assert_equal(small.truncate(), small)
         tm.assert_equal(small.truncate(before=0, after=3e3), small)
         tm.assert_equal(small.truncate(before=-1, after=2e3), small)
 
         # big
-        shape = [2_000_000] + ([1] * (constructor._AXIS_LEN - 1))
-        big = construct(constructor, shape, dtype="int8", value=1)
+        shape = [2_000_000] + ([1] * (frame_or_series._AXIS_LEN - 1))
+        big = construct(frame_or_series, shape, dtype="int8", value=1)
         tm.assert_equal(big.truncate(), big)
         tm.assert_equal(big.truncate(before=0, after=3e6), big)
         tm.assert_equal(big.truncate(before=-1, after=2e6), big)
@@ -312,9 +307,9 @@ class Generic:
         [copy, deepcopy, lambda x: x.copy(deep=False), lambda x: x.copy(deep=True)],
     )
     @pytest.mark.parametrize("shape", [0, 1, 2])
-    def test_copy_and_deepcopy(self, constructor, shape, func):
+    def test_copy_and_deepcopy(self, frame_or_series, shape, func):
         # GH 15444
-        obj = construct(constructor, shape)
+        obj = construct(frame_or_series, shape)
         obj_copy = func(obj)
         assert obj_copy is not obj
         tm.assert_equal(obj_copy, obj)
