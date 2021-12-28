@@ -5,6 +5,8 @@ import itertools
 import numpy as np
 import pytest
 
+from pandas.errors import PerformanceWarning
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -1819,11 +1821,17 @@ Thu,Lunch,Yes,51.51,17"""
     @pytest.mark.slow
     def test_unstack_number_of_levels_larger_than_int32(self):
         # GH#20601
+        # GH 26314: Change ValueError to PerformanceWarning
         df = DataFrame(
             np.random.randn(2 ** 16, 2), index=[np.arange(2 ** 16), np.arange(2 ** 16)]
         )
-        with pytest.raises(ValueError, match="int32 overflow"):
-            df.unstack()
+        msg = "The following operation may generate"
+        with tm.assert_produces_warning(PerformanceWarning, match=msg):
+            try:
+                df.unstack()
+            except MemoryError:
+                # Just checking the warning
+                return
 
     def test_stack_order_with_unsorted_levels(self):
         # GH#16323
