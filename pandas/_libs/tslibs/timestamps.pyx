@@ -342,10 +342,10 @@ cdef class _Timestamp(ABCTimestamp):
             else:
                 self = type(other)(self)
 
-            # validate tz's
-            if not tz_compare(self.tzinfo, other.tzinfo):
-                raise TypeError("Timestamp subtraction must have the "
-                                "same timezones or no timezones")
+            if (self.tzinfo is None) ^ (other.tzinfo is None):
+                raise TypeError(
+                    "Cannot subtract tz-naive and tz-aware datetime-like objects."
+                )
 
             # scalar Timestamp/datetime - Timestamp/datetime -> yields a
             # Timedelta
