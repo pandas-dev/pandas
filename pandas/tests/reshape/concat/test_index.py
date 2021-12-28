@@ -178,14 +178,14 @@ class TestIndexConcat:
         tm.assert_frame_equal(result.iloc[10:], df)
 
         # append
-        result = df.iloc[0:8, :].append(df.iloc[8:])
+        result = df.iloc[0:8, :]._append(df.iloc[8:])
         tm.assert_frame_equal(result, df)
 
-        result = df.iloc[0:8, :].append(df.iloc[8:9]).append(df.iloc[9:10])
+        result = df.iloc[0:8, :]._append(df.iloc[8:9])._append(df.iloc[9:10])
         tm.assert_frame_equal(result, df)
 
         expected = concat([df, df], axis=0)
-        result = df.append(df)
+        result = df._append(df)
         tm.assert_frame_equal(result, expected)
 
 
