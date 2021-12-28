@@ -131,9 +131,7 @@ class TestTableOrient:
             }
         )
 
-    def test_build_date_series(self, using_array_manager):
-        if using_array_manager:
-            pytest.skip("Segfault for array manager GH44994")
+    def test_build_date_series(self):
 
         s = Series(self.da, name="a")
         s.index.name = "id"
@@ -159,9 +157,7 @@ class TestTableOrient:
 
         assert result == expected
 
-    def test_build_decimal_series(self, using_array_manager):
-        if using_array_manager:
-            pytest.skip("Segfault for array manager GH44994")
+    def test_build_decimal_series(self):
 
         s = Series(self.dc, name="a")
         s.index.name = "id"
@@ -237,9 +233,7 @@ class TestTableOrient:
 
         assert result == expected
 
-    def test_to_json(self, using_array_manager):
-        if using_array_manager:
-            pytest.skip("Segfault for array manager GH44994")
+    def test_to_json(self):
 
         df = self.df.copy()
         df.index.name = "idx"
