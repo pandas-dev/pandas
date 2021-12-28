@@ -1,4 +1,4 @@
-name: Doc Build and Upload
+name: Data Manager
 
 on:
   push:
