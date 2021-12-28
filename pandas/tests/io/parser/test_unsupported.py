@@ -149,20 +149,3 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
                 kwargs[default] = "warn"
             with pytest.raises(ValueError, match=msg):
                 read_csv(StringIO(data), engine="pyarrow", **kwargs)
-
-    @pytest.mark.parametrize(
-        "kwds",
-        [{"on_bad_lines": "warn"}, {"error_bad_lines": True}, {"warn_bad_lines": True}],
-    )
-    def test_pyarrow_bad_lines_fails(self, pyarrow_parser_only, kwds):
-        # GH#
-        data = """a,b,c
-    1,2,3
-    """
-        parser = pyarrow_parser_only
-        msg = (
-            f"The '{list(kwds.keys())[0]}' option is not supported "
-            f"with the 'pyarrow' engine"
-        )
-        with pytest.raises(ValueError, match=msg):
-            parser.read_csv(StringIO(data), **kwds)
