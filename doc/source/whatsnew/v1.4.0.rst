@@ -364,10 +364,29 @@ second column is instead renamed to ``a.2``.
 
     res
 
-.. _whatsnew_140.notable_bug_fixes.notable_bug_fix3:
+.. _whatsnew_140.notable_bug_fixes.unstack_pivot_int32_limit:
 
-notable_bug_fix3
-^^^^^^^^^^^^^^^^
+unstack and pivot_table no longer raises ValueError for result that would exceed int32 limit
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Previously :meth:`DataFrame.pivot_table` and :meth:`DataFrame.unstack` would raise a ``ValueError`` if the operation
+could produce a result with more than ``2**31 - 1`` elements. This operation now raises a :class:`errors.PerformanceWarning`
+instead (:issue:`26314`).
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+    In [3]: df = DataFrame({"ind1": np.arange(2 ** 16), "ind2": np.arange(2 ** 16), "count": 0})
+    In [4]: df.pivot_table(index="ind1", columns="ind2", values="count", aggfunc="count")
+    ValueError: Unstacked DataFrame is too big, causing int32 overflow
+
+*New behavior*:
+
+.. code-block:: python
+
+    In [4]: df.pivot_table(index="ind1", columns="ind2", values="count", aggfunc="count")
+    PerformanceWarning: The following operation may generate 4294967296 cells in the resulting pandas object.
 
 .. ---------------------------------------------------------------------------
 
