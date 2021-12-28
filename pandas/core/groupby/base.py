@@ -90,6 +90,17 @@ reduction_kernels = frozenset(
 # List of transformation functions.
 # a transformation is a function that, for each group,
 # produces a result that has the same shape as the group.
+
+
+# TODO(2.0) Remove after pad/backfill deprecation enforced
+def maybe_normalize_deprecated_kernels(kernel):
+    if kernel == "backfill":
+        kernel = "bfill"
+    elif kernel == "pad":
+        kernel = "ffill"
+    return kernel
+
+
 transformation_kernels = frozenset(
     [
         "backfill",
