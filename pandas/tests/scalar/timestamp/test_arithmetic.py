@@ -310,3 +310,12 @@ class TestTimestampArithmetic:
         msg = r"unsupported operand type\(s\) for -: 'numpy.ndarray' and 'Timestamp'"
         with pytest.raises(TypeError, match=msg):
             other - ts
+
+    def test_subtract_different_utc_objects(self, utc_fixture, utc_fixture2):
+        # GH 32619
+        dt = datetime(2021, 1, 1)
+        ts1 = Timestamp(dt, tz=utc_fixture)
+        ts2 = Timestamp(dt, tz=utc_fixture2)
+        result = ts1 - ts2
+        expected = Timedelta(0)
+        assert result == expected
