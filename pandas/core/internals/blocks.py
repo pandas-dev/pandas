@@ -518,11 +518,11 @@ class Block(PandasObject):
     def _maybe_downcast(self, blocks: list[Block], downcast=None) -> list[Block]:
 
         if self.dtype == _dtype_obj:
-            # TODO: why is behavior different for object dtype?
-            if downcast is not None:
-                return blocks
-
+            # GH#44241 We downcast regardless of the argument;
+            #  respecting 'downcast=None' may be worthwhile at some point,
+            #  but ATM it breaks too much existing code.
             # split and convert the blocks
+
             return extend_blocks(
                 [blk.convert(datetime=True, numeric=False) for blk in blocks]
             )
@@ -1227,6 +1227,15 @@ class Block(PandasObject):
             if m.any():
                 taken = result.take(m.nonzero()[0], axis=axis)
                 r = maybe_downcast_numeric(taken, self.dtype)
+                if r.dtype != taken.dtype:
+                    warnings.warn(
+                        "Downcasting integer-dtype results in .where is "
+                        "deprecated and will change in a future version. "
+                        "To retain the old behavior, explicitly cast the results "
+                        "to the desired dtype.",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
                 nb = self.make_block(r.T, placement=self._mgr_locs[m])
                 result_blocks.append(nb)
 
@@ -1503,6 +1512,14 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
             # TODO(EA2D): not needed with 2D EAs
             # we are always 1-D
             indexer = indexer[0]
+            if isinstance(indexer, np.ndarray) and indexer.ndim == 2:
+                # GH#44703
+                if indexer.shape[1] != 1:
+                    raise NotImplementedError(
+                        "This should not be reached. Please report a bug at "
+                        "github.com/pandas-dev/pandas/"
+                    )
+                indexer = indexer[:, 0]
 
         # TODO(EA2D): not needed with 2D EAS
         if isinstance(value, (np.ndarray, ExtensionArray)) and value.ndim == 2:
@@ -1862,8 +1879,14 @@ class ObjectBlock(NumpyBlock):
         attempt to cast any object types to better types return a copy of
         the block (if copy = True) by definition we ARE an ObjectBlock!!!!!
         """
+        values = self.values
+        if values.ndim == 2:
+            # maybe_split ensures we only get here with values.shape[0] == 1,
+            # avoid doing .ravel as that might make a copy
+            values = values[0]
+
         res_values = soft_convert_objects(
-            self.values.ravel(),
+            values,
             datetime=datetime,
             numeric=numeric,
             timedelta=timedelta,

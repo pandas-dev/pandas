@@ -100,22 +100,9 @@ bar2,12,13,14,15
             with fsspec.open(f"file://{path}", mode="wb") as fsspec_obj:
                 assert fsspec_obj == icom.stringify_path(fsspec_obj)
 
-    @pytest.mark.parametrize(
-        "extension,expected",
-        [
-            ("", None),
-            (".gz", "gzip"),
-            (".bz2", "bz2"),
-            (".zip", "zip"),
-            (".xz", "xz"),
-            (".GZ", "gzip"),
-            (".BZ2", "bz2"),
-            (".ZIP", "zip"),
-            (".XZ", "xz"),
-        ],
-    )
     @pytest.mark.parametrize("path_type", path_types)
-    def test_infer_compression_from_path(self, extension, expected, path_type):
+    def test_infer_compression_from_path(self, compression_format, path_type):
+        extension, expected = compression_format
         path = path_type("foo/bar.csv" + extension)
         compression = icom.infer_compression(path, compression="infer")
         assert compression == expected
@@ -507,6 +494,11 @@ def test_is_fsspec_url():
     assert not icom.is_fsspec_url("random:pandas/somethingelse.com")
     assert not icom.is_fsspec_url("/local/path")
     assert not icom.is_fsspec_url("relative/local/path")
+    # fsspec URL in string should not be recognized
+    assert not icom.is_fsspec_url("this is not fsspec://url")
+    assert not icom.is_fsspec_url("{'url': 'gs://pandas/somethingelse.com'}")
+    # accept everything that conforms to RFC 3986 schema
+    assert icom.is_fsspec_url("RFC-3986+compliant.spec://something")
 
 
 @pytest.mark.parametrize("encoding", [None, "utf-8"])

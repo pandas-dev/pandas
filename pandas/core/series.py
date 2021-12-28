@@ -90,7 +90,6 @@ from pandas.core.dtypes.missing import (
 from pandas.core import (
     algorithms,
     base,
-    generic,
     missing,
     nanops,
     ops,
@@ -197,7 +196,7 @@ def _coerce_method(converter):
 # Series class
 
 
-class Series(base.IndexOpsMixin, generic.NDFrame):
+class Series(base.IndexOpsMixin, NDFrame):
     """
     One-dimensional ndarray with axis labels (including time series).
 
@@ -296,11 +295,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     _name: Hashable
     _metadata: list[str] = ["name"]
-    _internal_names_set = {"index"} | generic.NDFrame._internal_names_set
+    _internal_names_set = {"index"} | NDFrame._internal_names_set
     _accessors = {"dt", "cat", "str", "sparse"}
     _hidden_attrs = (
         base.IndexOpsMixin._hidden_attrs
-        | generic.NDFrame._hidden_attrs
+        | NDFrame._hidden_attrs
         | frozenset(["compress", "ptp"])
     )
 
@@ -455,7 +454,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 elif manager == "array":
                     data = SingleArrayManager.from_array(data, index)
 
-        generic.NDFrame.__init__(self, data)
+        NDFrame.__init__(self, data)
         self.name = name
         self._set_axis(0, index, fastpath=True)
 
@@ -891,7 +890,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # ----------------------------------------------------------------------
     # Indexing Methods
 
-    @Appender(generic.NDFrame.take.__doc__)
+    @Appender(NDFrame.take.__doc__)
     def take(self, indices, axis=0, is_copy=None, **kwargs) -> Series:
         if is_copy is not None:
             warnings.warn(
@@ -1579,7 +1578,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     @doc(
         klass=_shared_doc_kwargs["klass"],
-        storage_options=generic._shared_docs["storage_options"],
+        storage_options=_shared_docs["storage_options"],
         examples=dedent(
             """Examples
             --------
@@ -1872,7 +1871,7 @@ NaN   20.0
 Name: Max Speed, dtype: float64
 """
     )
-    @Appender(generic._shared_docs["groupby"] % _shared_doc_kwargs)
+    @Appender(_shared_docs["groupby"] % _shared_doc_kwargs)
     def groupby(
         self,
         by=None,
@@ -2894,6 +2893,19 @@ Name: Max Speed, dtype: float64
         ...
         ValueError: Indexes have overlapping values: [0, 1, 2]
         """
+        warnings.warn(
+            "The series.append method is deprecated "
+            "and will be removed from pandas in a future version. "
+            "Use pandas.concat instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
+        return self._append(to_append, ignore_index, verify_integrity)
+
+    def _append(
+        self, to_append, ignore_index: bool = False, verify_integrity: bool = False
+    ):
         from pandas.core.reshape.concat import concat
 
         if isinstance(to_append, (list, tuple)):
@@ -2981,7 +2993,7 @@ Name: Max Speed, dtype: float64
         return out
 
     @doc(
-        generic._shared_docs["compare"],
+        _shared_docs["compare"],
         """
 Returns
 -------
@@ -4237,7 +4249,7 @@ Keep all original rows and also all original values
     )
 
     @doc(
-        generic._shared_docs["aggregate"],
+        _shared_docs["aggregate"],
         klass=_shared_doc_kwargs["klass"],
         axis=_shared_doc_kwargs["axis"],
         see_also=_agg_see_also_doc,
@@ -4599,7 +4611,7 @@ Keep all original rows and also all original values
         axis_description_sub="",
         see_also_sub="",
     )
-    @Appender(generic.NDFrame.set_axis.__doc__)
+    @Appender(NDFrame.set_axis.__doc__)
     def set_axis(self, labels, axis: Axis = 0, inplace: bool = False):
         return super().set_axis(labels, axis=axis, inplace=inplace)
 
@@ -5227,11 +5239,14 @@ Keep all original rows and also all original values
     # error: Cannot determine type of 'isna'
     @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
     def isna(self) -> Series:
-        return generic.NDFrame.isna(self)
+        return NDFrame.isna(self)
 
     # error: Cannot determine type of 'isna'
     @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
     def isnull(self) -> Series:
+        """
+        Series.isnull is an alias for Series.isna.
+        """
         return super().isnull()
 
     # error: Cannot determine type of 'notna'
@@ -5242,6 +5257,9 @@ Keep all original rows and also all original values
     # error: Cannot determine type of 'notna'
     @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
     def notnull(self) -> Series:
+        """
+        Series.notnull is an alias for Series.notna.
+        """
         return super().notnull()
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
