@@ -18,15 +18,6 @@ import pandas._testing as tm
 # Generic types test cases
 
 
-def check_metadata(x, y=None):
-    for m in x._metadata:
-        v = getattr(x, m, None)
-        if y is None:
-            assert v is None
-        else:
-            assert v == getattr(y, m, None)
-
-
 def construct(box, shape, value=None, dtype=None, **kwargs):
     """
     construct an object for the given shape
@@ -195,23 +186,23 @@ class Generic:
         # simple ops with scalars
         for op in ["__add__", "__sub__", "__truediv__", "__mul__"]:
             result = getattr(o, op)(1)
-            check_metadata(o, result)
+            tm.assert_metadata_equivalent(o, result)
 
         # ops with like
         for op in ["__add__", "__sub__", "__truediv__", "__mul__"]:
             result = getattr(o, op)(o)
-            check_metadata(o, result)
+            tm.assert_metadata_equivalent(o, result)
 
         # simple boolean
         for op in ["__eq__", "__le__", "__ge__"]:
             v1 = getattr(o, op)(o)
-            check_metadata(o, v1)
-            check_metadata(o, v1 & v1)
-            check_metadata(o, v1 | v1)
+            tm.assert_metadata_equivalent(o, v1)
+            tm.assert_metadata_equivalent(o, v1 & v1)
+            tm.assert_metadata_equivalent(o, v1 | v1)
 
         # combine_first
         result = o.combine_first(o2)
-        check_metadata(o, result)
+        tm.assert_metadata_equivalent(o, result)
 
         # ---------------------------
         # non-preserving (by default)
@@ -219,7 +210,7 @@ class Generic:
 
         # add non-like
         result = o + o2
-        check_metadata(result)
+        tm.assert_metadata_equivalent(result)
 
         # simple boolean
         for op in ["__eq__", "__le__", "__ge__"]:
@@ -227,9 +218,9 @@ class Generic:
             # this is a name matching op
             v1 = getattr(o, op)(o)
             v2 = getattr(o, op)(o2)
-            check_metadata(v2)
-            check_metadata(v1 & v2)
-            check_metadata(v1 | v2)
+            tm.assert_metadata_equivalent(v2)
+            tm.assert_metadata_equivalent(v1 & v2)
+            tm.assert_metadata_equivalent(v1 | v2)
 
     def test_size_compat(self, frame_or_series):
         # GH8846

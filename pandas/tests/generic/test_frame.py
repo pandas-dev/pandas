@@ -12,7 +12,6 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.tests.generic.test_generic import check_metadata
 
 
 class TestDataFrame:
@@ -73,7 +72,7 @@ class TestDataFrame:
             }
         )
         result = df.groupby("A").sum()
-        check_metadata(df, result)
+        tm.assert_metadata_equivalent(df, result)
 
     def test_metadata_propagation_indiv_resample(self):
         # resample
@@ -82,7 +81,7 @@ class TestDataFrame:
             index=date_range("20130101", periods=1000, freq="s"),
         )
         result = df.resample("1T")
-        check_metadata(df, result)
+        tm.assert_metadata_equivalent(df, result)
 
     def test_metadata_propagation_indiv(self, monkeypatch):
         # merging with override

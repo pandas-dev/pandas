@@ -10,7 +10,6 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.tests.generic.test_generic import check_metadata
 
 
 class TestSeries:
@@ -98,13 +97,13 @@ class TestSeries:
             name="foo",
         )
         result = ts.resample("1T").mean()
-        check_metadata(ts, result)
+        tm.assert_metadata_equivalent(ts, result)
 
         result = ts.resample("1T").min()
-        check_metadata(ts, result)
+        tm.assert_metadata_equivalent(ts, result)
 
         result = ts.resample("1T").apply(lambda x: x.sum())
-        check_metadata(ts, result)
+        tm.assert_metadata_equivalent(ts, result)
 
     def test_metadata_propagation_indiv(self, monkeypatch):
         # check that the metadata matches up on the resulting ops
@@ -115,7 +114,7 @@ class TestSeries:
         ser2.name = "bar"
 
         result = ser.T
-        check_metadata(ser, result)
+        tm.assert_metadata_equivalent(ser, result)
 
         def finalize(self, other, method=None, **kwargs):
             for name in self._metadata:
