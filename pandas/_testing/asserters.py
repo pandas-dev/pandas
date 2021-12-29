@@ -1470,3 +1470,15 @@ def assert_indexing_slices_equivalent(ser: Series, l_slc: slice, i_slc: slice):
     if not ser.index.is_integer():
         # For integer indices, .loc and plain getitem are position-based.
         assert_series_equal(ser[l_slc], expected)
+
+
+def assert_metadata_equivalent(left, right):
+    """
+    Check that ._metadata attributes are equivalent.
+    """
+    for attr in left._metadata:
+        val = getattr(left, attr, None)
+        if right is None:
+            assert val is None
+        else:
+            assert val == getattr(right, attr, None)
