@@ -3,6 +3,8 @@ import io
 import numpy as np
 import pytest
 
+from pandas.compat._optional import VERSIONS
+
 from pandas import (
     DataFrame,
     date_range,
@@ -289,7 +291,18 @@ def test_stata_options(fsspectest):
 
 
 @td.skip_if_no("tabulate")
-def test_markdown_options(fsspectest):
+def test_markdown_options(request, fsspectest):
+    import fsspec
+    import tabulate
+
+    request.node.add_marker(
+        pytest.mark.xfail(
+            fsspec.__version__ == VERSIONS["fsspec"]
+            and tabulate.__version__ == VERSIONS["tabulate"],
+            reason="Fails on the min version build",
+            raises=KeyError,
+        )
+    )
     df = DataFrame({"a": [0]})
     df.to_markdown("testmem://afile", storage_options={"test": "md_write"})
     assert fsspectest.test[0] == "md_write"

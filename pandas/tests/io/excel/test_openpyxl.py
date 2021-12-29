@@ -4,6 +4,11 @@ import re
 import numpy as np
 import pytest
 
+from pandas.compat._optional import (
+    VERSIONS,
+    import_optional_dependency,
+)
+
 import pandas as pd
 from pandas import DataFrame
 import pandas._testing as tm
@@ -51,9 +56,22 @@ def test_to_excel_styleconverter(ext):
     assert kw["protection"] == protection
 
 
-def test_write_cells_merge_styled(ext):
+def test_write_cells_merge_styled(request, ext):
+    import openpyxl
+
     from pandas.io.formats.excel import ExcelCell
 
+    lxml = import_optional_dependency("lxml.etree", errors="ignore")
+    request.node.add_marker(
+        pytest.mark.xfail(
+            openpyxl.__version__ == VERSIONS["openpyxl"]
+            and ext == ".xlsx"
+            and lxml is not None
+            and lxml.__version__ == VERSIONS["lxml"],
+            reason="Fails on the min version build",
+            raises=TypeError,
+        )
+    )
     sheet_name = "merge_styled"
 
     sty_b1 = {"font": {"color": "00FF0000"}}
