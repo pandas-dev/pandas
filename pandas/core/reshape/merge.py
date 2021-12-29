@@ -820,6 +820,7 @@ class _MergeOperation:
             if (
                 self.orig_left._is_level_reference(left_key)
                 and self.orig_right._is_level_reference(right_key)
+                and left_key == right_key
                 and name not in result.index.names
             ):
 

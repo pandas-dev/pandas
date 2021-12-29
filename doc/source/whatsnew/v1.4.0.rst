@@ -915,6 +915,7 @@ Reshaping
 - Fixed metadata propagation in :meth:`Dataframe.apply` method, consequently fixing the same issue for :meth:`Dataframe.transform`, :meth:`Dataframe.nunique` and :meth:`Dataframe.mode` (:issue:`28283`)
 - Bug in :func:`concat` casting levels of :class:`MultiIndex` to float if the only consist of missing values (:issue:`44900`)
 - Bug in :meth:`DataFrame.stack` with ``ExtensionDtype`` columns incorrectly raising (:issue:`43561`)
+- Bug in :func:`merge` raising ``KeyError`` when joining over differently named indexes with on keywords (:issue:`45094`)
 - Bug in :meth:`Series.unstack` with object doing unwanted type inference on resulting columns (:issue:`44595`)
 - Bug in :class:`MultiIndex` failing join operations with overlapping ``IntervalIndex`` levels (:issue:`44096`)
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` results is different ``dtype`` based on ``regex`` parameter (:issue:`44864`)
