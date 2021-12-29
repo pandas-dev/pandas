@@ -2911,7 +2911,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             .. deprecated:: 1.4.0
                The future ``Styler`` implementation will use the new ``formatter``, and
-               associated arguments.
+               associated arguments. See notes.
         float_format : one-parameter function, optional
             Formatter function to apply to columns's elements if they are floats.
             This function must return a unicode string and will be applied only to
@@ -2921,14 +2921,14 @@ class DataFrame(NDFrame, OpsMixin):
 
             .. deprecated:: 1.4.0
                The ``Styler`` implementation will use the new ``precision`` and
-               associated arguments.
+               associated arguments. See notes.
         sparsify : bool, optional, default True
             Set to `False` for a DataFrame with a hierarchical index to print
             every multiindex key at each row.
 
             .. deprecated:: 1.4.0
                The ``Styler`` implementation will use the new ``sparse_index`` and
-               ``sparse_columns`` arguments.
+               ``sparse_columns`` arguments. See notes.
         index_names : bool, optional, default True
             Whether to display the names of the indexes.
         justify : str, default None
@@ -2949,8 +2949,7 @@ class DataFrame(NDFrame, OpsMixin):
               - unset
 
             .. deprecated:: 1.4.0
-               Use `Styler` instead and add CSS to control all the aspects of
-               text positioning.
+               See notes on using CSS to control aspects of text positioning.
         max_rows : int, optional
             Maximum number of rows to display in the console.
         min_rows : int, optional
@@ -2962,8 +2961,7 @@ class DataFrame(NDFrame, OpsMixin):
             Display the DataFrame dimensions (number or rows by columns)
 
             .. deprecated:: 1.4.0
-               Not included in the new `Styler` implementation. It is recommended
-               instead to set the ``caption`` arg as `f"Dimension: {df.shape}"`.
+               See notes for the recommendation to add a ``caption``.
         decimal : str, default "."
             Character recognized as the decimal separator, e.g. `,` in Europe.
         bold_rows : bool, default True
@@ -2975,8 +2973,7 @@ class DataFrame(NDFrame, OpsMixin):
             CSS class(es) to apply to the resulting html table.
 
             .. deprecated:: 1.4.0
-               Replaced by ``table_attributes`` where the recommendation is to
-               use `'class="<classes>"'`.
+               Replaced by ``table_attributes``. See notes.
         escape : bool, default True
             Convert the characters <, >, and & to HTML-safe sequences.
         notebook : {True, False}, default False
@@ -2988,8 +2985,7 @@ class DataFrame(NDFrame, OpsMixin):
             `<table>` tag. Default ``pd.options.display.html.border``.
 
             .. deprecated:: 1.4.0
-               This produces deprecated HTML. It is recommended to create a `Styler`
-               and add CSS to control borders.
+               This produces deprecated HTML. See notes.
         table_id : str, optional
             A css id is included in the opening `<table>` tag if specified.
         render_links : bool, default False
@@ -3090,7 +3086,7 @@ class DataFrame(NDFrame, OpsMixin):
         `DataFrameRenderer`. If deprecated arguments are used as well as the new
         arguments the new arguments will be ignored.
 
-        It is also possible to directly use the `Styler` implementation and all its
+        It is **also** possible to directly use the `Styler` implementation and all its
         associated features by converting from:
 
         .. code-block:: python
@@ -3104,7 +3100,10 @@ class DataFrame(NDFrame, OpsMixin):
            styler = df.style
            styler.to_html()
 
-        The following is a list of the deprecated arguments:
+        Options for customisation that are not directly available via the arguments to
+        this method may have a reasonably simple solution using the direct
+        `Styler` implementation. The following is a list of the deprecated arguments,
+        and how they can be emulated using `Styler`:
 
           - ``col_space``: this will be removed since a CSS solution is recommended.
 
@@ -3142,9 +3141,6 @@ class DataFrame(NDFrame, OpsMixin):
                 )
                 styler.to_html()
 
-          - ``justify``: this is removed and the suggested action is to create a
-            `Styler` object and add CSS styling to relevant rows, columns or datacells,
-
           - ``sparsify``: this is replaced by ``sparse_index`` and ``sparse_columns``,
             which control the sparsification of each index separately.
           - ``justify``: this will be removed since a CSS solution is recommended.
@@ -3171,22 +3167,47 @@ class DataFrame(NDFrame, OpsMixin):
                styler.to_html()
 
           - ``show_dimension``: this is removed from the HTML result. A suggestion is
-            to utilise the new ``caption`` argument and populate it with information
-            such as `df.shape`,
+            to utilise the new ``caption`` argument and populate it:
+
+            .. code-block:: python
+
+               styler.to_html(caption=f"dimensions: {df.shape}")
+
           - ``classes``: this is replaced by ``table_attributes`` where the suggestion
-            is to set the new argument to `'class="my-cls my-other-cls"'`,
+            is to set the new argument as follows:
+
+            .. code-block:: python
+
+               styler.to_html(table_attributes='class="my-cls other-cls"')
+
           - ``border``: this removed due to deprecated HTML functionality. The
             suggested action is to create a `Styler` object and add CSS styling to the
-            relevant table, rows, columns, or datacells as required,
+            relevant table, rows, columns, or data cells as required:
+
+            .. code-block:: python
+
+               styler.set_table_styles([
+                   {"selector": "", "props": "border: red solid 3px;"},
+                   {"selector": "th", "props": "border: green dashed 2px;"},
+                   {"selector": "td", "props": "border: blue dotted 1px;"},
+               ])
+               styler.to_html()
+
           - ``render_links``: this is replaced by ``hyperlinks`` which has more
             flexibility in detecting links contained within text,
+
+            .. code-block:: python
+
+               styler.format(hyperlinks="html")
+               styler.to_html()
+
           - ``max_cols``: this is directly replaced by ``max_columns`` for library
             naming consistency,
           - ``bold_rows``: this is directly replaced by ``bold_headers``, which
             implements a CSS solution,
           - ``notebook``: this is removed as a legacy argument,
 
-        The new arguments in 1.4.0 used exclusively with the Styler implementation are:
+        The new arguments in 1.4.0, which will invoke the Styler implementation are:
 
           - ``table_attributes``,
           - ``sparse_index`` and  ``sparse_columns``,
@@ -3324,7 +3345,7 @@ class DataFrame(NDFrame, OpsMixin):
         sparse_index: bool | None = None,
         sparse_columns: bool | None = None,
         index: bool = True,
-        header: bool | list = True,
+        header: bool = True,
         index_names: str = "all",
         columns: list | None = None,
         caption: str | None = None,
@@ -3371,9 +3392,8 @@ class DataFrame(NDFrame, OpsMixin):
             column. Defaults to ``pandas.options.styler.sparse.columns`` value.
         index : bool
             Whether to print index labels.
-        header : bool or list of str
-            Whether to print column headers. If a list of strings is given is assumed
-            to be aliases for the column names.
+        header : bool
+            Whether to print column headers.
         index_names : {{"all", "index", "columns", "none"}}
             Which index names to include in the output.
         columns : list of label, optional
@@ -3436,6 +3456,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         from pandas.io.formats.style import Styler
 
+        # css styles are needed to render certain features, otherwise exclude.
         exclude_styles = True if not bold_headers else False
 
         is_html_escape = (
