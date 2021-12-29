@@ -378,9 +378,6 @@ class NaTType(_NaT):
     def __reduce__(self):
         return (__nat_unpickle, (None, ))
 
-    def __rdiv__(self, other):
-        return _nat_rdivide_op(self, other)
-
     def __rtruediv__(self, other):
         return _nat_rdivide_op(self, other)
 

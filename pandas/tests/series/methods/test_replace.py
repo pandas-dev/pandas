@@ -9,6 +9,45 @@ from pandas.core.arrays import IntervalArray
 
 
 class TestSeriesReplace:
+    def test_replace_explicit_none(self):
+        # GH#36984 if the user explicitly passes value=None, give it to them
+        ser = pd.Series([0, 0, ""], dtype=object)
+        result = ser.replace("", None)
+        expected = pd.Series([0, 0, None], dtype=object)
+        tm.assert_series_equal(result, expected)
+
+        df = pd.DataFrame(np.zeros((3, 3)))
+        df.iloc[2, 2] = ""
+        result = df.replace("", None)
+        expected = pd.DataFrame(
+            {
+                0: np.zeros(3),
+                1: np.zeros(3),
+                2: np.array([0.0, 0.0, None], dtype=object),
+            }
+        )
+        assert expected.iloc[2, 2] is None
+        tm.assert_frame_equal(result, expected)
+
+        # GH#19998 same thing with object dtype
+        ser = pd.Series([10, 20, 30, "a", "a", "b", "a"])
+        result = ser.replace("a", None)
+        expected = pd.Series([10, 20, 30, None, None, "b", None])
+        assert expected.iloc[-1] is None
+        tm.assert_series_equal(result, expected)
+
+    def test_replace_noop_doesnt_downcast(self):
+        # GH#44498
+        ser = pd.Series([None, None, pd.Timestamp("2021-12-16 17:31")], dtype=object)
+        res = ser.replace({np.nan: None})  # should be a no-op
+        tm.assert_series_equal(res, ser)
+        assert res.dtype == object
+
+        # same thing but different calling convention
+        res = ser.replace(np.nan, None)
+        tm.assert_series_equal(res, ser)
+        assert res.dtype == object
+
     def test_replace(self):
         N = 100
         ser = pd.Series(np.random.randn(N))

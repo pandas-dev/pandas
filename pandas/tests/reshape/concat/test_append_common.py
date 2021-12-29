@@ -204,13 +204,16 @@ class TestConcatAppendCommon:
             #  instead of a list; we have separate dedicated tests for categorical
             return
 
+        warn = None
         # specify expected dtype
         if typ1 == "bool" and typ2 in ("int64", "float64"):
             # series coerces to numeric based on numpy rule
             # index doesn't because bool is object dtype
             exp_series_dtype = typ2
+            warn = FutureWarning
         elif typ2 == "bool" and typ1 in ("int64", "float64"):
             exp_series_dtype = typ1
+            warn = FutureWarning
         elif (
             typ1 == "datetime64[ns, US/Eastern]"
             or typ2 == "datetime64[ns, US/Eastern]"
@@ -238,23 +241,33 @@ class TestConcatAppendCommon:
         # ----- Series ----- #
 
         # series._append
-        res = Series(vals1)._append(Series(vals2), ignore_index=True)
+        with tm.assert_produces_warning(warn, match="concatenating bool-dtype"):
+            # GH#39817
+            res = Series(vals1)._append(Series(vals2), ignore_index=True)
         exp = Series(exp_data, dtype=exp_series_dtype)
         tm.assert_series_equal(res, exp, check_index_type=True)
 
         # concat
-        res = pd.concat([Series(vals1), Series(vals2)], ignore_index=True)
+        with tm.assert_produces_warning(warn, match="concatenating bool-dtype"):
+            # GH#39817
+            res = pd.concat([Series(vals1), Series(vals2)], ignore_index=True)
         tm.assert_series_equal(res, exp, check_index_type=True)
 
         # 3 elements
-        res = Series(vals1)._append([Series(vals2), Series(vals3)], ignore_index=True)
+        with tm.assert_produces_warning(warn, match="concatenating bool-dtype"):
+            # GH#39817
+            res = Series(vals1)._append(
+                [Series(vals2), Series(vals3)], ignore_index=True
+            )
         exp = Series(exp_data3, dtype=exp_series_dtype)
         tm.assert_series_equal(res, exp)
 
-        res = pd.concat(
-            [Series(vals1), Series(vals2), Series(vals3)],
-            ignore_index=True,
-        )
+        with tm.assert_produces_warning(warn, match="concatenating bool-dtype"):
+            # GH#39817
+            res = pd.concat(
+                [Series(vals1), Series(vals2), Series(vals3)],
+                ignore_index=True,
+            )
         tm.assert_series_equal(res, exp)
 
     def test_concatlike_common_coerce_to_pandas_object(self):

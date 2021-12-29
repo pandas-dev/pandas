@@ -434,10 +434,7 @@ _pyarrow_unsupported = {
     "dialect",
     "warn_bad_lines",
     "error_bad_lines",
-    # TODO(1.4)
-    # This doesn't error properly ATM, fix for release
-    # but not blocker for initial PR
-    # "on_bad_lines",
+    "on_bad_lines",
     "delim_whitespace",
     "quoting",
     "lineterminator",
@@ -932,7 +929,18 @@ class TextFileReader(abc.Iterator):
                 engine == "pyarrow"
                 and argname in _pyarrow_unsupported
                 and value != default
+                and value != getattr(value, "value", default)
             ):
+                if (
+                    argname == "on_bad_lines"
+                    and kwds.get("error_bad_lines") is not None
+                ):
+                    argname = "error_bad_lines"
+                elif (
+                    argname == "on_bad_lines" and kwds.get("warn_bad_lines") is not None
+                ):
+                    argname = "warn_bad_lines"
+
                 raise ValueError(
                     f"The {repr(argname)} option is not supported with the "
                     f"'pyarrow' engine"
