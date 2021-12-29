@@ -1268,7 +1268,16 @@ class Timedelta(_Timedelta):
 
             kwargs = {key: _to_py_int_float(kwargs[key]) for key in kwargs}
 
-            nano = convert_to_timedelta64(kwargs.pop('nanoseconds', 0), 'ns')
+            # GH43764, making sure any nanoseconds contributions from any kwarg is taken into consideration
+            nano = convert_to_timedelta64(
+                (
+                    kwargs.pop('nanoseconds', 0)
+                    + kwargs.pop('microseconds', 0) * 1000
+                    + kwargs.pop('milliseconds', 0) * 1000000
+                    + kwargs.pop('seconds', 0) * 1000000000
+                ), 'ns'
+            )
+
             try:
                 value = nano + convert_to_timedelta64(timedelta(**kwargs),
                                                       'ns')
@@ -1519,6 +1528,10 @@ class Timedelta(_Timedelta):
         # Naive implementation, room for optimization
         div = other // self
         return div, other - div * self
+
+    # GH40946
+    def total_seconds(self):
+        return self.value / 1e9
 
 
 cdef bint is_any_td_scalar(object obj):
