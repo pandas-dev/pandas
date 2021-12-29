@@ -18,7 +18,6 @@ from pandas.errors import (
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.cast import maybe_infer_dtype_type
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
@@ -694,23 +693,8 @@ class _LocationIndexer(NDFrameIndexerBase):
             # GH#38148
             keys = self.obj.columns.union(key, sort=False)
 
-            # Try to get the right dtype when we do this reindex.
-            fv = None
-            if not is_list_like(value):
-                fv = value
-            elif len(value) and not is_list_like(value[0]):
-                fv = value[0]
-            else:
-                dtype = maybe_infer_dtype_type(value)
-                if dtype is not None:
-                    fv = dtype.type(0)
-
             self.obj._mgr = self.obj._mgr.reindex_axis(
-                keys,
-                axis=0,
-                consolidate=False,
-                only_slice=True,
-                fill_value=fv,
+                keys, axis=0, consolidate=False, only_slice=True
             )
 
     def __setitem__(self, key, value):
@@ -1604,6 +1588,7 @@ class _iLocIndexer(_LocationIndexer):
                     # essentially this separates out the block that is needed
                     # to possibly be modified
                     if self.ndim > 1 and i == info_axis:
+
                         # add the new item, and set the value
                         # must have all defined axes if we have a scalar
                         # or a list-like on the non-info axes if we have a
@@ -1863,14 +1848,6 @@ class _iLocIndexer(_LocationIndexer):
         # multi-dim object
         # GH#6149 (null slice), GH#10408 (full bounds)
         if com.is_null_slice(pi) or com.is_full_slice(pi, len(self.obj)):
-            if not self.obj._uses_array_manager:
-                blk = ser._mgr.blocks[0]
-                if blk._can_hold_element(value) and is_scalar(value):
-                    # FIXME: ExtensionBlock._can_hold_element
-                    # We can do an inplace-setting, do it directly on _values
-                    #  to get our underlying
-                    ser._values[plane_indexer] = value
-                    return
             ser = value
         elif (
             is_array_like(value)
