@@ -405,7 +405,6 @@ def test_mixed_groupings(normalize, expected_label, expected_values):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(reason="Duplicate labels allowed")
 @pytest.mark.parametrize(
     "test, expected_names",
     [
@@ -414,7 +413,7 @@ def test_mixed_groupings(normalize, expected_label, expected_values):
     ],
 )
 @pytest.mark.parametrize("as_index", [False, True])
-def test_column_name_clashes(test, expected_names, as_index):
+def test_column_name_clashes(test, expected_names, as_index, request):
     df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6], "d": [7, 8], "e": [9, 10]})
     if test == "repeat":
         df.columns = list("abbde")
@@ -432,6 +431,7 @@ def test_column_name_clashes(test, expected_names, as_index):
         )
         tm.assert_series_equal(result, expected)
     else:
+        request.node.add_marker(pytest.mark.xfail(reason="Duplicate labels allowed"))
         with pytest.raises(ValueError, match="cannot insert"):
             df.groupby(["a", [0, 1], "d"], as_index=as_index).value_counts()
 
