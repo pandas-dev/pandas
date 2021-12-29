@@ -1473,7 +1473,7 @@ class _ConditionalEnabledMergeOperation(_MergeOperation):
         left: DataFrame | Series,
         right: DataFrame | Series,
         how: str = "inner",
-        on: IndexLabel | None = None,
+        on: IndexLabel | Callable | None = None,
         left_on: IndexLabel | None = None,
         right_on: IndexLabel | None = None,
         axis: int = 1,
@@ -1547,37 +1547,33 @@ class _ConditionalEnabledMergeOperation(_MergeOperation):
             self.is_conditional_merge = True
 
         else:
-            init_args = {
-                "left": left,
-                "right": right,
-                "how": how,
-                "on": on,
-                "left_on": left_on,
-                "right_on": right_on,
-                "axis": axis,
-                "left_index": left_index,
-                "right_index": right_index,
-                "sort": sort,
-                "suffixes": suffixes,
-                "copy": copy,
-                "indicator": indicator,
-                "validate": validate,
-            }
-            # enforce that all args are passed to super init, this is to ensure
-            # that _ConditionalEnabledMergeOperation stays in-sync with _MergeOperation
-            parent_arg_spec = inspect.getfullargspec(super().__init__)
-            unsupplied_args = set(parent_arg_spec.args[1:]) - set(init_args)
-            if unsupplied_args:
-                raise ValueError()
-            super().__init__(**init_args)
+            # TODO: enforce all args present in _MergeOperation __init__ are passed
+            #       through. Can check with inspect.getfullargspec + dict of args,
+            #       but passing in **dict doesn't play nicely with mypy
+            super().__init__(
+                left=left,
+                right=right,
+                how=how,
+                on=on,
+                left_on=left_on,
+                right_on=right_on,
+                axis=axis,
+                left_index=left_index,
+                right_index=right_index,
+                sort=sort,
+                suffixes=suffixes,
+                copy=copy,
+                indicator=indicator,
+                validate=validate,
+            )
 
     def get_result(self) -> DataFrame:
-        from pandas import DataFrame
+        from pandas.core.reshape.concat import concat
 
         if not self.is_conditional_merge:
             return super().get_result()
 
-        result = DataFrame()
+        result_chunks = []
         for chunk_left, chunk_right in self.chunk_pairs:
             chunk_result = merge(
                 chunk_left,
@@ -1595,9 +1591,9 @@ class _ConditionalEnabledMergeOperation(_MergeOperation):
             chunk_result_filtered = chunk_result.loc[
                 self.condition(chunk_result_left, chunk_result_right)
             ]
-            result = result.append(chunk_result_filtered)
+            result_chunks.append(chunk_result_filtered)
 
-        return result.reset_index(drop=True)
+        return concat(result_chunks).reset_index(drop=True)
 
 
 def get_join_indexers(
