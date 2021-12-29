@@ -46,7 +46,7 @@ def test_on_offset_implementations(dt, offset):
 
 
 @given(YQM_OFFSET)
-@settings(deadline=None)
+@settings(deadline=None)  # GH 45118
 def test_shift_across_dst(offset):
     # GH#18319 check that 1) timezone is correctly normalized and
     # 2) that hour is not incorrectly changed by this normalization
