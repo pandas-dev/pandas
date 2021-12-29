@@ -222,17 +222,6 @@ def mismatched_freq(request):
 
 
 @pytest.fixture(
-    params=[pd.Index, pd.Series, pd.DataFrame, pd.array], ids=lambda x: x.__name__
-)
-def box_with_array(request):
-    """
-    Fixture to test behavior for Index, Series, DataFrame, and pandas Array
-    classes
-    """
-    return request.param
-
-
-@pytest.fixture(
     params=[pd.Index, pd.Series, tm.to_array, np.array, list], ids=lambda x: x.__name__
 )
 def box_1d_array(request):
@@ -241,7 +230,3 @@ def box_1d_array(request):
     classes
     """
     return request.param
-
-
-# alias so we can use the same fixture for multiple parameters in a test
-box_with_array2 = box_with_array
