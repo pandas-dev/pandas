@@ -102,9 +102,8 @@ class NumericIndex(Index):
     _can_hold_strings = False
     _is_backward_compat_public_numeric_index: bool = True
 
-    # error: Signature of "_can_hold_na" incompatible with supertype "Index"
     @cache_readonly
-    def _can_hold_na(self) -> bool:  # type: ignore[override]
+    def _can_hold_na(self) -> bool:
         if is_float_dtype(self.dtype):
             return True
         else:
