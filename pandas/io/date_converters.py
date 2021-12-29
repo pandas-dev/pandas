@@ -103,13 +103,13 @@ def generic_parser(parse_func, *cols):
     return results
 
 
-def _maybe_cast(arr):
+def _maybe_cast(arr: np.ndarray) -> np.ndarray:
     if not arr.dtype.type == np.object_:
         arr = np.array(arr, dtype=object)
     return arr
 
 
-def _check_columns(cols):
+def _check_columns(cols) -> int:
     if not len(cols):
         raise AssertionError("There must be at least 1 column")
 

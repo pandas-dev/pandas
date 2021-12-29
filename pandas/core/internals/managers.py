@@ -388,12 +388,13 @@ class BaseBlockManager(DataManager):
             # GH#35488 we need to watch out for multi-block cases
             # We only get here with fill_value not-lib.no_default
             ncols = self.shape[0]
+            nper = abs(periods)
+            nper = min(nper, ncols)
             if periods > 0:
                 indexer = np.array(
-                    [-1] * periods + list(range(ncols - periods)), dtype=np.intp
+                    [-1] * nper + list(range(ncols - periods)), dtype=np.intp
                 )
             else:
-                nper = abs(periods)
                 indexer = np.array(
                     list(range(nper, ncols)) + [-1] * nper, dtype=np.intp
                 )
@@ -432,11 +433,17 @@ class BaseBlockManager(DataManager):
             timedelta=timedelta,
         )
 
-    def replace(self: T, to_replace, value, inplace: bool, regex: bool) -> T:
-        assert np.ndim(value) == 0, value
+    def replace(self: T, to_replace, value, inplace: bool) -> T:
+        inplace = validate_bool_kwarg(inplace, "inplace")
+        # NDFrame.replace ensures the not-is_list_likes here
+        assert not is_list_like(to_replace)
+        assert not is_list_like(value)
         return self.apply(
-            "replace", to_replace=to_replace, value=value, inplace=inplace, regex=regex
+            "replace", to_replace=to_replace, value=value, inplace=inplace
         )
+
+    def replace_regex(self, **kwargs):
+        return self.apply("_replace_regex", **kwargs)
 
     def replace_list(
         self: T,
@@ -449,7 +456,7 @@ class BaseBlockManager(DataManager):
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         bm = self.apply(
-            "_replace_list",
+            "replace_list",
             src_list=src_list,
             dest_list=dest_list,
             inplace=inplace,

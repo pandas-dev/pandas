@@ -41,7 +41,7 @@ class TestSeriesRepr:
         expected = "\n".join(expected)
         assert repr(ser) == expected
 
-    def test_name_printing(self):
+    def test_small_name_printing(self):
         # Test small Series.
         s = Series([0, 1, 2])
 
@@ -51,6 +51,7 @@ class TestSeriesRepr:
         s.name = None
         assert "Name:" not in repr(s)
 
+    def test_big_name_printing(self):
         # Test big Series (diff code path).
         s = Series(range(1000))
 
@@ -60,32 +61,39 @@ class TestSeriesRepr:
         s.name = None
         assert "Name:" not in repr(s)
 
+    def test_empty_name_printing(self):
         s = Series(index=date_range("20010101", "20020101"), name="test", dtype=object)
         assert "Name: test" in repr(s)
 
-    def test_repr(self, datetime_series, string_series, object_series):
-        str(datetime_series)
-        str(string_series)
-        str(string_series.astype(int))
-        str(object_series)
+    @pytest.mark.parametrize("args", [(), (0, -1)])
+    def test_float_range(self, args):
+        str(Series(np.random.randn(1000), index=np.arange(1000, *args)))
 
-        str(Series(np.random.randn(1000), index=np.arange(1000)))
-        str(Series(np.random.randn(1000), index=np.arange(1000, 0, step=-1)))
-
+    def test_empty_object(self):
         # empty
         str(Series(dtype=object))
+
+    def test_string(self, string_series):
+        str(string_series)
+        str(string_series.astype(int))
 
         # with NaNs
         string_series[5:7] = np.NaN
         str(string_series)
 
+    def test_object(self, object_series):
+        str(object_series)
+
+    def test_datetime(self, datetime_series):
+        str(datetime_series)
         # with Nones
         ots = datetime_series.astype("O")
         ots[::2] = None
         repr(ots)
 
-        # various names
-        for name in [
+    @pytest.mark.parametrize(
+        "name",
+        [
             "",
             1,
             1.2,
@@ -97,36 +105,43 @@ class TestSeriesRepr:
             ("foo", 1, 2.3),
             ("\u03B1", "\u03B2", "\u03B3"),
             ("\u03B1", "bar"),
-        ]:
-            string_series.name = name
-            repr(string_series)
+        ],
+    )
+    def test_various_names(self, name, string_series):
+        # various names
+        string_series.name = name
+        repr(string_series)
 
+    def test_tuple_name(self):
         biggie = Series(
             np.random.randn(1000), index=np.arange(1000), name=("foo", "bar", "baz")
         )
         repr(biggie)
 
-        # 0 as name
-        ser = Series(np.random.randn(100), name=0)
-        rep_str = repr(ser)
-        assert "Name: 0" in rep_str
-
+    @pytest.mark.parametrize("arg", [100, 1001])
+    def test_tidy_repr_name_0(self, arg):
         # tidy repr
-        ser = Series(np.random.randn(1001), name=0)
+        ser = Series(np.random.randn(arg), name=0)
         rep_str = repr(ser)
         assert "Name: 0" in rep_str
 
+    def test_newline(self):
         ser = Series(["a\n\r\tb"], name="a\n\r\td", index=["a\n\r\tf"])
         assert "\t" not in repr(ser)
         assert "\r" not in repr(ser)
         assert "a\n" not in repr(ser)
 
+    @pytest.mark.parametrize(
+        "name, expected",
+        [
+            ["foo", "Series([], Name: foo, dtype: int64)"],
+            [None, "Series([], dtype: int64)"],
+        ],
+    )
+    def test_empty_int64(self, name, expected):
         # with empty series (#4651)
-        s = Series([], dtype=np.int64, name="foo")
-        assert repr(s) == "Series([], Name: foo, dtype: int64)"
-
-        s = Series([], dtype=np.int64, name=None)
-        assert repr(s) == "Series([], dtype: int64)"
+        s = Series([], dtype=np.int64, name=name)
+        assert repr(s) == expected
 
     def test_tidy_repr(self):
         a = Series(["\u05d0"] * 1000)

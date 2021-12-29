@@ -2,7 +2,7 @@ from datetime import datetime
 
 from hypothesis import (
     given,
-    strategies as st,
+    settings,
 )
 import numpy as np
 import pytest
@@ -22,13 +22,7 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
-from pandas._testing._hypothesis import (
-    OPTIONAL_DICTS,
-    OPTIONAL_FLOATS,
-    OPTIONAL_INTS,
-    OPTIONAL_LISTS,
-    OPTIONAL_TEXT,
-)
+from pandas._testing._hypothesis import OPTIONAL_ONE_OF_ALL
 
 
 @pytest.fixture(params=["default", "float_string", "mixed_float", "mixed_int"])
@@ -104,7 +98,7 @@ class TestDataFrameIndexingWhere:
 
         tm.assert_series_equal(result, expected)
 
-    def test_where_alignment(self, where_frame, float_string_frame):
+    def test_where_alignment(self, where_frame, float_string_frame, mixed_int_frame):
         # aligning
         def _check_align(df, cond, other, check_dtypes=True):
             rs = df.where(cond, other)
@@ -147,7 +141,11 @@ class TestDataFrameIndexingWhere:
 
         # check other is ndarray
         cond = df > 0
-        _check_align(df, cond, (_safe_add(df).values))
+        warn = None
+        if df is mixed_int_frame:
+            warn = FutureWarning
+        with tm.assert_produces_warning(warn, match="Downcasting integer-dtype"):
+            _check_align(df, cond, (_safe_add(df).values))
 
         # integers are upcast, so don't check the dtypes
         cond = df > 0
@@ -467,7 +465,7 @@ class TestDataFrameIndexingWhere:
         df[df.abs() >= 5] = np.nan
         tm.assert_frame_equal(df, expected)
 
-    def test_where_axis(self):
+    def test_where_axis(self, using_array_manager):
         # GH 9736
         df = DataFrame(np.random.randn(2, 2))
         mask = DataFrame([[False, False], [False, False]])
@@ -505,8 +503,10 @@ class TestDataFrameIndexingWhere:
         assert return_value is None
         tm.assert_frame_equal(result, expected)
 
+        warn = FutureWarning if using_array_manager else None
         expected = DataFrame([[0, np.nan], [0, np.nan]])
-        result = df.where(mask, s, axis="columns")
+        with tm.assert_produces_warning(warn, match="Downcasting integer-dtype"):
+            result = df.where(mask, s, axis="columns")
         tm.assert_frame_equal(result, expected)
 
         expected = DataFrame(
@@ -714,14 +714,30 @@ class TestDataFrameIndexingWhere:
 
 def test_where_try_cast_deprecated(frame_or_series):
     obj = DataFrame(np.random.randn(4, 3))
-    if frame_or_series is not DataFrame:
-        obj = obj[0]
+    obj = tm.get_obj(obj, frame_or_series)
 
     mask = obj > 0
 
     with tm.assert_produces_warning(FutureWarning):
         # try_cast keyword deprecated
         obj.where(mask, -1, try_cast=False)
+
+
+def test_where_int_downcasting_deprecated(using_array_manager):
+    # GH#44597
+    arr = np.arange(6).astype(np.int16).reshape(3, 2)
+    df = DataFrame(arr)
+
+    mask = np.zeros(arr.shape, dtype=bool)
+    mask[:, 0] = True
+
+    msg = "Downcasting integer-dtype"
+    warn = FutureWarning if not using_array_manager else None
+    with tm.assert_produces_warning(warn, match=msg):
+        res = df.where(mask, 2 ** 17)
+
+    expected = DataFrame({0: arr[:, 0], 1: np.array([2 ** 17] * 3, dtype=np.int32)})
+    tm.assert_frame_equal(res, expected)
 
 
 def test_where_copies_with_noop(frame_or_series):
@@ -874,11 +890,8 @@ def test_where_nullable_invalid_na(frame_or_series, any_numeric_ea_dtype):
             obj.mask(mask, null)
 
 
-@given(
-    data=st.one_of(
-        OPTIONAL_DICTS, OPTIONAL_FLOATS, OPTIONAL_INTS, OPTIONAL_LISTS, OPTIONAL_TEXT
-    )
-)
+@given(data=OPTIONAL_ONE_OF_ALL)
+@settings(deadline=None)  # GH 44969
 def test_where_inplace_casting(data):
     # GH 22051
     df = DataFrame({"a": data})

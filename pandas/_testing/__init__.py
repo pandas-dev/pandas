@@ -82,6 +82,7 @@ from pandas._testing.asserters import (  # noqa:F401
     assert_interval_array_equal,
     assert_is_sorted,
     assert_is_valid_plot_return_object,
+    assert_metadata_equivalent,
     assert_numpy_array_equal,
     assert_period_array_equal,
     assert_series_equal,
@@ -89,7 +90,10 @@ from pandas._testing.asserters import (  # noqa:F401
     assert_timedelta_array_equal,
     raise_assert_detail,
 )
-from pandas._testing.compat import get_dtype  # noqa:F401
+from pandas._testing.compat import (  # noqa:F401
+    get_dtype,
+    get_obj,
+)
 from pandas._testing.contexts import (  # noqa:F401
     RNGContext,
     decompress_file,
@@ -428,7 +432,7 @@ def _make_timeseries(start="2000-01-01", end="2000-12-31", freq="1D", seed=None)
 
     Examples
     --------
-    >>> _make_timeseries()
+    >>> _make_timeseries()  # doctest: +SKIP
                   id    name         x         y
     timestamp
     2000-01-01   982   Frank  0.031261  0.986727
@@ -1075,6 +1079,8 @@ def shares_memory(left, right) -> bool:
         return shares_memory(left._ndarray, right)
     if isinstance(left, pd.core.arrays.SparseArray):
         return shares_memory(left.sp_values, right)
+    if isinstance(left, pd.core.arrays.IntervalArray):
+        return shares_memory(left._left, right) or shares_memory(left._right, right)
 
     if isinstance(left, ExtensionArray) and left.dtype == "string[pyarrow]":
         # https://github.com/pandas-dev/pandas/pull/43930#discussion_r736862669

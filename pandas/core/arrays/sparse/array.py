@@ -181,9 +181,8 @@ def _sparse_array_op(
         ltype = SparseDtype(subtype, left.fill_value)
         rtype = SparseDtype(subtype, right.fill_value)
 
-        # TODO(GH-23092): pass copy=False. Need to fix astype_nansafe
-        left = left.astype(ltype)
-        right = right.astype(rtype)
+        left = left.astype(ltype, copy=False)
+        right = right.astype(rtype, copy=False)
         dtype = ltype.subtype
     else:
         dtype = ltype
@@ -221,6 +220,16 @@ def _sparse_array_op(
             left_sp_values = left.sp_values
             right_sp_values = right.sp_values
 
+        if (
+            name in ["floordiv", "mod"]
+            and (right == 0).any()
+            and left.dtype.kind in ["i", "u"]
+        ):
+            # Match the non-Sparse Series behavior
+            opname = f"sparse_{name}_float64"
+            left_sp_values = left_sp_values.astype("float64")
+            right_sp_values = right_sp_values.astype("float64")
+
         sparse_op = getattr(splib, opname)
 
         with np.errstate(all="ignore"):
@@ -232,6 +241,15 @@ def _sparse_array_op(
                 right.sp_index,
                 right.fill_value,
             )
+
+    if name == "divmod":
+        # result is a 2-tuple
+        # error: Incompatible return value type (got "Tuple[SparseArray,
+        # SparseArray]", expected "SparseArray")
+        return (  # type: ignore[return-value]
+            _wrap_result(name, result[0], index, fill[0], dtype=result_dtype),
+            _wrap_result(name, result[1], index, fill[1], dtype=result_dtype),
+        )
 
     if result_dtype is None:
         result_dtype = result.dtype
@@ -701,7 +719,11 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         # If null fill value, we want SparseDtype[bool, true]
         # to preserve the same memory usage.
         dtype = SparseDtype(bool, self._null_fill_value)
-        return type(self)._simple_new(isna(self.sp_values), self.sp_index, dtype)
+        if self._null_fill_value:
+            return type(self)._simple_new(isna(self.sp_values), self.sp_index, dtype)
+        mask = np.full(len(self), False, dtype=np.bool8)
+        mask[self.sp_index.indices] = isna(self.sp_values)
+        return type(self)(mask, fill_value=False, dtype=dtype)
 
     def fillna(
         self: SparseArrayT,
@@ -945,13 +967,20 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             )
 
         else:
-            # TODO: I think we can avoid densifying when masking a
-            # boolean SparseArray with another. Need to look at the
-            # key's fill_value for True / False, and then do an intersection
-            # on the indices of the sp_values.
             if isinstance(key, SparseArray):
+                # NOTE: If we guarantee that SparseDType(bool)
+                # has only fill_value - true, false or nan
+                # (see GH PR 44955)
+                # we can apply mask very fast:
                 if is_bool_dtype(key):
-                    key = key.to_dense()
+                    if isna(key.fill_value):
+                        return self.take(key.sp_index.indices[key.sp_values])
+                    if not key.fill_value:
+                        return self.take(key.sp_index.indices)
+                    n = len(self)
+                    mask = np.full(n, True, dtype=np.bool8)
+                    mask[key.sp_index.indices] = False
+                    return self.take(np.arange(n)[mask])
                 else:
                     key = np.asarray(key)
 
@@ -1224,30 +1253,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             else:
                 return self.copy()
         dtype = self.dtype.update_dtype(dtype)
-        # error: Item "ExtensionDtype" of "Union[ExtensionDtype, str, dtype[Any],
-        # Type[str], Type[float], Type[int], Type[complex], Type[bool], Type[object],
-        # None]" has no attribute "_subtype_with_str"
-        # error: Item "str" of "Union[ExtensionDtype, str, dtype[Any], Type[str],
-        # Type[float], Type[int], Type[complex], Type[bool], Type[object], None]" has no
-        # attribute "_subtype_with_str"
-        # error: Item "dtype[Any]" of "Union[ExtensionDtype, str, dtype[Any], Type[str],
-        # Type[float], Type[int], Type[complex], Type[bool], Type[object], None]" has no
-        # attribute "_subtype_with_str"
-        # error: Item "ABCMeta" of "Union[ExtensionDtype, str, dtype[Any], Type[str],
-        # Type[float], Type[int], Type[complex], Type[bool], Type[object], None]" has no
-        # attribute "_subtype_with_str"
-        # error: Item "type" of "Union[ExtensionDtype, str, dtype[Any], Type[str],
-        # Type[float], Type[int], Type[complex], Type[bool], Type[object], None]" has no
-        # attribute "_subtype_with_str"
-        # error: Item "None" of "Union[ExtensionDtype, str, dtype[Any], Type[str],
-        # Type[float], Type[int], Type[complex], Type[bool], Type[object], None]" has no
-        # attribute "_subtype_with_str"
-        subtype = pandas_dtype(dtype._subtype_with_str)  # type: ignore[union-attr]
-        # TODO copy=False is broken for astype_nansafe with int -> float, so cannot
-        # passthrough copy keyword: https://github.com/pandas-dev/pandas/issues/34456
-        sp_values = astype_nansafe(self.sp_values, subtype, copy=True)
-        if sp_values is self.sp_values and copy:
-            sp_values = sp_values.copy()
+        subtype = pandas_dtype(dtype._subtype_with_str)
+        sp_values = astype_nansafe(self.sp_values, subtype, copy=copy)
 
         # error: Argument 1 to "_simple_new" of "SparseArray" has incompatible type
         # "ExtensionArray"; expected "ndarray"
@@ -1646,7 +1653,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         else:
             other = np.asarray(other)
             with np.errstate(all="ignore"):
-                # TODO: look into _wrap_result
                 if len(self) != len(other):
                     raise AssertionError(
                         f"length mismatch: {len(self)} vs. {len(other)}"
@@ -1689,9 +1695,14 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
     def _unary_method(self, op) -> SparseArray:
         fill_value = op(np.array(self.fill_value)).item()
-        values = op(self.sp_values)
-        dtype = SparseDtype(values.dtype, fill_value)
-        return type(self)._simple_new(values, self.sp_index, dtype)
+        dtype = SparseDtype(self.dtype.subtype, fill_value)
+        # NOTE: if fill_value doesn't change
+        # we just have to apply op to sp_values
+        if isna(self.fill_value) or fill_value == self.fill_value:
+            values = op(self.sp_values)
+            return type(self)._simple_new(values, self.sp_index, self.dtype)
+        # In the other case we have to recalc indexes
+        return type(self)(op(self.to_dense()), dtype=dtype)
 
     def __pos__(self) -> SparseArray:
         return self._unary_method(operator.pos)

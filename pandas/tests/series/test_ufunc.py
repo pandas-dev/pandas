@@ -177,9 +177,6 @@ def test_multiple_output_binary_ufuncs(
     # Test that
     #  the same conditions from binary_ufunc_scalar apply to
     #  ufuncs with multiple outputs.
-    if sparse and ufunc is np.divmod:
-        mark = pytest.mark.xfail(reason="sparse divmod not implemented")
-        request.node.add_marker(mark)
 
     a1, a2 = arrays_for_binary_ufunc
     # work around https://github.com/pandas-dev/pandas/issues/26987
@@ -252,9 +249,8 @@ def test_object_series_ok():
     tm.assert_series_equal(np.add(ser, Dummy(1)), pd.Series(np.add(ser, Dummy(1))))
 
 
-@pytest.mark.parametrize(
-    "values",
-    [
+@pytest.fixture(
+    params=[
         pd.array([1, 3, 2], dtype=np.int64),
         pd.array([1, 3, 2], dtype="Int64"),
         pd.array([1, 3, 2], dtype="Float32"),
@@ -267,41 +263,121 @@ def test_object_series_ok():
     ],
     ids=lambda x: str(x.dtype),
 )
-@pytest.mark.parametrize("box", [pd.array, pd.Index, pd.Series, pd.DataFrame])
-def test_reduce(values, box, request):
-    # TODO: cases with NAs
+def values_for_np_reduce(request):
+    # min/max tests assume that these are monotonic increasing
+    return request.param
 
-    same_type = True
 
-    if box is pd.Index:
-        if values.dtype.kind in ["i", "f"]:
+class TestNumpyReductions:
+    # TODO: cases with NAs, axis kwarg for DataFrame
+
+    def test_multiply(self, values_for_np_reduce, box_with_array, request):
+        box = box_with_array
+        values = values_for_np_reduce
+
+        obj = box(values)
+
+        if isinstance(values, pd.core.arrays.SparseArray) and box is not pd.Index:
+            mark = pytest.mark.xfail(reason="SparseArray has no 'mul'")
+            request.node.add_marker(mark)
+
+        if values.dtype.kind in "iuf":
+            result = np.multiply.reduce(obj)
+            if box is pd.DataFrame:
+                expected = obj.prod(numeric_only=False)
+                tm.assert_series_equal(result, expected)
+            elif box is pd.Index:
+                # Int64Index, Index has no 'prod'
+                expected = obj._values.prod()
+                assert result == expected
+            else:
+
+                expected = obj.prod()
+                assert result == expected
+        else:
+            msg = "|".join(
+                [
+                    "does not support reduction",
+                    "unsupported operand type",
+                    "ufunc 'multiply' cannot use operands",
+                ]
+            )
+            with pytest.raises(TypeError, match=msg):
+                np.multiply.reduce(obj)
+
+    def test_add(self, values_for_np_reduce, box_with_array):
+        box = box_with_array
+        values = values_for_np_reduce
+
+        obj = box(values)
+
+        if values.dtype.kind in "miuf":
+            result = np.add.reduce(obj)
+            if box is pd.DataFrame:
+                expected = obj.sum(numeric_only=False)
+                tm.assert_series_equal(result, expected)
+            elif box is pd.Index:
+                # Int64Index, Index has no 'sum'
+                expected = obj._values.sum()
+                assert result == expected
+            else:
+                expected = obj.sum()
+                assert result == expected
+        else:
+            msg = "|".join(
+                [
+                    "does not support reduction",
+                    "unsupported operand type",
+                    "ufunc 'add' cannot use operands",
+                ]
+            )
+            with pytest.raises(TypeError, match=msg):
+                np.add.reduce(obj)
+
+    def test_max(self, values_for_np_reduce, box_with_array):
+        box = box_with_array
+        values = values_for_np_reduce
+
+        same_type = True
+        if box is pd.Index and values.dtype.kind in ["i", "f"]:
             # ATM Index casts to object, so we get python ints/floats
             same_type = False
 
-    obj = box(values)
+        obj = box(values)
 
-    result = np.maximum.reduce(obj)
-    expected = values[1]
-    if box is pd.DataFrame:
-        # TODO: cases with axis kwarg
-        expected = obj.max(numeric_only=False)
-        tm.assert_series_equal(result, expected)
-    else:
-        assert result == expected
-        if same_type:
-            # check we have e.g. Timestamp instead of dt64
-            assert type(result) == type(expected)
+        result = np.maximum.reduce(obj)
+        if box is pd.DataFrame:
+            # TODO: cases with axis kwarg
+            expected = obj.max(numeric_only=False)
+            tm.assert_series_equal(result, expected)
+        else:
+            expected = values[1]
+            assert result == expected
+            if same_type:
+                # check we have e.g. Timestamp instead of dt64
+                assert type(result) == type(expected)
 
-    result = np.minimum.reduce(obj)
-    expected = values[0]
-    if box is pd.DataFrame:
-        expected = obj.min(numeric_only=False)
-        tm.assert_series_equal(result, expected)
-    else:
-        assert result == expected
-        if same_type:
-            # check we have e.g. Timestamp instead of dt64
-            assert type(result) == type(expected)
+    def test_min(self, values_for_np_reduce, box_with_array):
+        box = box_with_array
+        values = values_for_np_reduce
+
+        same_type = True
+        if box is pd.Index and values.dtype.kind in ["i", "f"]:
+            # ATM Index casts to object, so we get python ints/floats
+            same_type = False
+
+        obj = box(values)
+
+        result = np.minimum.reduce(obj)
+        if box is pd.DataFrame:
+            expected = obj.min(numeric_only=False)
+            tm.assert_series_equal(result, expected)
+        else:
+            expected = values[0]
+            assert result == expected
+            if same_type:
+                # check we have e.g. Timestamp instead of dt64
+                assert type(result) == type(expected)
 
 
 @pytest.mark.parametrize("type_", [list, deque, tuple])

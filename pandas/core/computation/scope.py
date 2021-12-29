@@ -232,8 +232,7 @@ class Scope:
 
         for mapping in maps:
             if old_key in mapping:
-                # error: Unsupported target for indexed assignment ("Mapping[Any, Any]")
-                mapping[new_key] = new_value  # type: ignore[index]
+                mapping[new_key] = new_value
                 return
 
     def _get_vars(self, stack, scopes: list[str]) -> None:

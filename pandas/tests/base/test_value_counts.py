@@ -4,8 +4,6 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-from pandas.compat import np_array_datetime64_compat
-
 import pandas as pd
 from pandas import (
     DatetimeIndex,
@@ -212,7 +210,7 @@ def test_value_counts_datetime64(index_or_series):
     expected_s = Series([3, 2, 1], index=idx)
     tm.assert_series_equal(s.value_counts(), expected_s)
 
-    expected = np_array_datetime64_compat(
+    expected = np.array(
         ["2010-01-01 00:00:00", "2009-01-01 00:00:00", "2008-09-09 00:00:00"],
         dtype="datetime64[ns]",
     )
