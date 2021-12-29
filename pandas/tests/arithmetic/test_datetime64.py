@@ -837,6 +837,61 @@ class TestDatetime64Arithmetic:
         rng -= two_hours
         tm.assert_equal(rng, expected)
 
+    def test_dt64_array_sub_dt_with_different_timezone(self, box_with_array):
+        t1 = date_range("20130101", periods=3).tz_localize("US/Eastern")
+        t1 = tm.box_expected(t1, box_with_array)
+        t2 = Timestamp("20130101").tz_localize("CET")
+        tnaive = Timestamp(20130101)
+
+        result = t1 - t2
+        expected = TimedeltaIndex(
+            ["0 days 06:00:00", "1 days 06:00:00", "2 days 06:00:00"]
+        )
+        expected = tm.box_expected(expected, box_with_array)
+        tm.assert_equal(result, expected)
+
+        result = t2 - t1
+        expected = TimedeltaIndex(
+            ["-1 days +18:00:00", "-2 days +18:00:00", "-3 days +18:00:00"]
+        )
+        expected = tm.box_expected(expected, box_with_array)
+        tm.assert_equal(result, expected)
+
+        msg = "Cannot subtract tz-naive and tz-aware datetime-like objects"
+        with pytest.raises(TypeError, match=msg):
+            t1 - tnaive
+
+        with pytest.raises(TypeError, match=msg):
+            tnaive - t1
+
+    def test_dt64_array_sub_dt64_array_with_different_timezone(self, box_with_array):
+        t1 = date_range("20130101", periods=3).tz_localize("US/Eastern")
+        t1 = tm.box_expected(t1, box_with_array)
+        t2 = date_range("20130101", periods=3).tz_localize("CET")
+        t2 = tm.box_expected(t2, box_with_array)
+        tnaive = date_range("20130101", periods=3)
+
+        result = t1 - t2
+        expected = TimedeltaIndex(
+            ["0 days 06:00:00", "0 days 06:00:00", "0 days 06:00:00"]
+        )
+        expected = tm.box_expected(expected, box_with_array)
+        tm.assert_equal(result, expected)
+
+        result = t2 - t1
+        expected = TimedeltaIndex(
+            ["-1 days +18:00:00", "-1 days +18:00:00", "-1 days +18:00:00"]
+        )
+        expected = tm.box_expected(expected, box_with_array)
+        tm.assert_equal(result, expected)
+
+        msg = "Cannot subtract tz-naive and tz-aware datetime-like objects"
+        with pytest.raises(TypeError, match=msg):
+            t1 - tnaive
+
+        with pytest.raises(TypeError, match=msg):
+            tnaive - t1
+
     def test_dt64arr_add_sub_td64_nat(self, box_with_array, tz_naive_fixture):
         # GH#23320 special handling for timedelta64("NaT")
         tz = tz_naive_fixture
@@ -979,7 +1034,7 @@ class TestDatetime64Arithmetic:
         dt64vals = dti.values
 
         dtarr = tm.box_expected(dti, box_with_array)
-        msg = "subtraction must have the same timezones or"
+        msg = "Cannot subtract tz-naive and tz-aware datetime"
         with pytest.raises(TypeError, match=msg):
             dtarr - dt64vals
         with pytest.raises(TypeError, match=msg):
@@ -2099,7 +2154,6 @@ class TestDatetimeIndexArithmetic:
 
         dti = date_range("20130101", periods=3)
         dti_tz = date_range("20130101", periods=3).tz_localize("US/Eastern")
-        dti_tz2 = date_range("20130101", periods=3).tz_localize("UTC")
         expected = TimedeltaIndex([0, 0, 0])
 
         result = dti - dti
@@ -2107,15 +2161,12 @@ class TestDatetimeIndexArithmetic:
 
         result = dti_tz - dti_tz
         tm.assert_index_equal(result, expected)
-        msg = "DatetimeArray subtraction must have the same timezones or"
+        msg = "Cannot subtract tz-naive and tz-aware datetime-like objects"
         with pytest.raises(TypeError, match=msg):
             dti_tz - dti
 
         with pytest.raises(TypeError, match=msg):
             dti - dti_tz
-
-        with pytest.raises(TypeError, match=msg):
-            dti_tz - dti_tz2
 
         # isub
         dti -= dti

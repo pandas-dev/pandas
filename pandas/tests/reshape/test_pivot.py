@@ -8,6 +8,8 @@ from itertools import product
 import numpy as np
 import pytest
 
+from pandas.errors import PerformanceWarning
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -1991,15 +1993,20 @@ class TestPivotTable:
     @pytest.mark.slow
     def test_pivot_number_of_levels_larger_than_int32(self):
         # GH 20601
+        # GH 26314: Change ValueError to PerformanceWarning
         df = DataFrame(
             {"ind1": np.arange(2 ** 16), "ind2": np.arange(2 ** 16), "count": 0}
         )
 
-        msg = "Unstacked DataFrame is too big, causing int32 overflow"
-        with pytest.raises(ValueError, match=msg):
-            df.pivot_table(
-                index="ind1", columns="ind2", values="count", aggfunc="count"
-            )
+        msg = "The following operation may generate"
+        with tm.assert_produces_warning(PerformanceWarning, match=msg):
+            try:
+                df.pivot_table(
+                    index="ind1", columns="ind2", values="count", aggfunc="count"
+                )
+            except MemoryError:
+                # Just checking the warning
+                return
 
     def test_pivot_table_aggfunc_dropna(self, dropna):
         # GH 22159
@@ -2077,11 +2084,12 @@ class TestPivotTable:
         with pytest.raises(KeyError, match="notpresent"):
             foo.pivot_table("notpresent", "X", "Y", aggfunc=agg)
 
-    def test_pivot_table_doctest_case(self):
-        # TODO: better name.  the relevant characteristic is that
-        #  the call to maybe_downcast_to_dtype(agged[v], data[v].dtype) in
+    def test_pivot_table_multiindex_columns_doctest_case(self):
+        # The relevant characteristic is that the call
+        #  to maybe_downcast_to_dtype(agged[v], data[v].dtype) in
         #  __internal_pivot_table has `agged[v]` a DataFrame instead of Series,
-        #  i.e agged.columns is not unique
+        #  In this case this is because agged.columns is a MultiIndex and 'v'
+        #  is only indexing on its first level.
         df = DataFrame(
             {
                 "A": ["foo", "foo", "foo", "foo", "foo", "bar", "bar", "bar", "bar"],
@@ -2124,6 +2132,8 @@ class TestPivotTable:
             ]
         )
         expected = DataFrame(vals, columns=cols, index=index)
+        expected[("E", "min")] = expected[("E", "min")].astype(np.int64)
+        expected[("E", "max")] = expected[("E", "max")].astype(np.int64)
         tm.assert_frame_equal(table, expected)
 
     def test_pivot_table_sort_false(self):

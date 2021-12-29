@@ -175,29 +175,32 @@ class TestDataFrameFormatting:
         repr(df)
         tm.reset_display_options()
 
-    def test_show_null_counts(self):
+    @pytest.mark.parametrize(
+        "row, columns, show_counts, result",
+        [
+            [20, 20, None, True],
+            [20, 20, True, True],
+            [20, 20, False, False],
+            [5, 5, None, False],
+            [5, 5, True, False],
+            [5, 5, False, False],
+        ],
+    )
+    def test_show_counts(self, row, columns, show_counts, result):
 
         df = DataFrame(1, columns=range(10), index=range(10))
         df.iloc[1, 1] = np.nan
 
-        def check(show_counts, result):
-            buf = StringIO()
-            df.info(buf=buf, show_counts=show_counts)
-            assert ("non-null" in buf.getvalue()) is result
-
         with option_context(
-            "display.max_info_rows", 20, "display.max_info_columns", 20
+            "display.max_info_rows", row, "display.max_info_columns", columns
         ):
-            check(None, True)
-            check(True, True)
-            check(False, False)
+            with StringIO() as buf:
+                df.info(buf=buf, show_counts=show_counts)
+                assert ("non-null" in buf.getvalue()) is result
 
-        with option_context("display.max_info_rows", 5, "display.max_info_columns", 5):
-            check(None, False)
-            check(True, False)
-            check(False, False)
-
+    def test_show_null_counts_deprecation(self):
         # GH37999
+        df = DataFrame(1, columns=range(10), index=range(10))
         with tm.assert_produces_warning(
             FutureWarning, match="null_counts is deprecated.+"
         ):
