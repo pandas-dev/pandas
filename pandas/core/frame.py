@@ -2939,21 +2939,59 @@ class DataFrame(NDFrame, OpsMixin):
               - start
               - end
               - inherit
+              - match-parent
+              - initial
+              - unset
+
+            .. deprecated:: 1.4.0
+               Use `Styler` instead and add CSS to control all the aspects of
+               text positioning.
+        max_rows : int, optional
+            Maximum number of rows to display in the console.
+        min_rows : int, optional
+            The number of rows in the console in a truncated repr
+            (when number of rows is above ``max_rows``).
+
+            .. deprecated:: 1.4.0
+        show_dimensions : bool, default False
+            Display the DataFrame dimensions (number or rows by columns)
+
+            .. deprecated:: 1.4.0
+               Not included in the new `Styler` implementation. It is recommended
+               instead to set the ``caption`` arg as `f"Dimension: {df.shape}"`.
+        decimal : str, default "."
+            Character recognized as the decimal separator, e.g. `,` in Europe.
         bold_rows : bool, default True
             Make the row labels bold in the output.
+
+            .. deprecated:: 1.4.0
+               Replaced by ``bold_headers``, in the `Styler` implementation.
         classes : str or list or tuple, default None
             CSS class(es) to apply to the resulting html table.
+
+            .. deprecated:: 1.4.0
+               Replaced by ``table_attributes`` where the recommendation is to
+               use `'class="<classes>"'`.
         escape : bool, default True
             Convert the characters <, >, and & to HTML-safe sequences.
         notebook : {True, False}, default False
             Whether the generated HTML is for IPython Notebook.
+
+            .. deprecated:: 1.4.0
         border : int
             A ``border=border`` attribute is included in the opening
             `<table>` tag. Default ``pd.options.display.html.border``.
+
+            .. deprecated:: 1.4.0
+               This produces deprecated HTML. It is recommended to create a `Styler`
+               and add CSS to control borders.
         table_id : str, optional
             A css id is included in the opening `<table>` tag if specified.
         render_links : bool, default False
             Convert URLs to HTML links.
+
+            .. deprecated:: 1.4.0
+               Repalced by ``hyperlinks`` in the `Styler` implementation.
         encoding : str, default "utf-8"
             Set character encoding.
 
@@ -2964,7 +3002,6 @@ class DataFrame(NDFrame, OpsMixin):
             ``<table .. <table_attributes> >``
 
             .. versionadded:: 1.4.0
-
         sparse_index : bool, optional
             Whether to sparsify the display of a hierarchical index. Setting to False
             will display each explicit level element in a hierarchical key for each row.
@@ -3012,8 +3049,8 @@ class DataFrame(NDFrame, OpsMixin):
 
             .. versionadded:: 1.4.0
         hyperlinks : bool,
-            Convert string patterns containing https://, http://, ftp:// or www. to
-            HTML <a> tags as clickable URL hyperlinks.
+            Convert string patterns containing `https://`, `http://`, `ftp://` or `www.`
+            to HTML <a> tags as clickable URL hyperlinks.
 
             .. versionadded:: 1.4.0
         bold_headers : bool
@@ -3027,7 +3064,13 @@ class DataFrame(NDFrame, OpsMixin):
             additional variables for a custom template.
 
             .. versionadded:: 1.4.0
-        %(returns)s
+
+        Returns
+        -------
+        str or None
+            If ``buf`` is `None`, returns the result as a string. Otherwise
+            returns `None`.
+
         See Also
         --------
         Styler.to_html : Convert a DataFrame to HTML with conditional formatting.
