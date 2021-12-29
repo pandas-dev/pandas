@@ -1108,7 +1108,7 @@ def from_dummies(
     """
     Create a categorical `DataFrame` from a `DataFrame` of dummy variables.
 
-    Inverts the operation performed by 'get_dummies'.
+    Inverts the operation performed by `get_dummies`.
 
     Parameters
     ----------
@@ -1128,6 +1128,22 @@ def from_dummies(
     -------
     DataFrame
         Categorical data decoded from the dummy input-data.
+
+    Raises
+    ------
+    ValueError
+        * When the input `DataFrame` `data` contains NA values.
+        * When the input `DataFrame` `data` contains column names with separators
+          that do not match the separator specified with `sep`.
+        * When a `dict` passed to `implied_category` does not include an implied
+          category for each prefix.
+        * When a value in `data` has more than one category assigned to it.
+        * When `implied_category=None` and a value in `data` has no category assigned
+          to it.
+    TypeError
+        * When the input `DataFrame` `data` contains non-dummy data.
+        * When the passed `sep` is of a wrong data type.
+        * When the passed `implied_category` is of a wrong data type.
 
     Notes
     -----
