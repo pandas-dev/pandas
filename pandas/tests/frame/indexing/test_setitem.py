@@ -1112,7 +1112,6 @@ class TestDataFrameSetitemCopyViewSemantics:
         df[["B"]] = value
 
         expected = DataFrame([[0, 1], [0, 1]], columns=cols)
-
         tm.assert_frame_equal(df, expected)
         tm.assert_frame_equal(df_view, df_copy)
 
