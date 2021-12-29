@@ -28,7 +28,6 @@ from pandas._libs.parsers import STR_NA_VALUES
 from pandas._typing import (
     DtypeArg,
     FilePath,
-    IntStrT,
     ReadBuffer,
     StorageOptions,
     WriteExcelBuffer,
@@ -387,7 +386,7 @@ def read_excel(
 @overload
 def read_excel(
     io,
-    sheet_name: list[IntStrT] | None,
+    sheet_name: list[int],
     header: int | Sequence[int] | None = ...,
     names=...,
     index_col: int | Sequence[int] | None = ...,
@@ -413,7 +412,40 @@ def read_excel(
     convert_float: bool | None = ...,
     mangle_dupe_cols: bool = ...,
     storage_options: StorageOptions = ...,
-) -> dict[IntStrT, DataFrame]:
+) -> dict[int, DataFrame]:
+    ...
+
+
+@overload
+def read_excel(
+    io,
+    sheet_name: list[str] | None,
+    header: int | Sequence[int] | None = ...,
+    names=...,
+    index_col: int | Sequence[int] | None = ...,
+    usecols=...,
+    squeeze: bool | None = ...,
+    dtype: DtypeArg | None = ...,
+    engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb"] | None = ...,
+    converters=...,
+    true_values: Iterable[Hashable] | None = ...,
+    false_values: Iterable[Hashable] | None = ...,
+    skiprows: Sequence[int] | int | Callable[[int], object] | None = ...,
+    nrows: int | None = ...,
+    na_values=...,
+    keep_default_na: bool = ...,
+    na_filter: bool = ...,
+    verbose: bool = ...,
+    parse_dates=...,
+    date_parser=...,
+    thousands: str | None = ...,
+    decimal: str = ...,
+    comment: str | None = ...,
+    skipfooter: int = ...,
+    convert_float: bool | None = ...,
+    mangle_dupe_cols: bool = ...,
+    storage_options: StorageOptions = ...,
+) -> dict[str, DataFrame]:
     ...
 
 
@@ -421,7 +453,7 @@ def read_excel(
 @Appender(_read_excel_doc)
 def read_excel(
     io,
-    sheet_name: str | int | list[IntStrT] | None = 0,
+    sheet_name: str | int | list[int] | list[str] | None = 0,
     header: int | Sequence[int] | None = 0,
     names=None,
     index_col: int | Sequence[int] | None = None,
@@ -447,7 +479,7 @@ def read_excel(
     convert_float: bool | None = None,
     mangle_dupe_cols: bool = True,
     storage_options: StorageOptions = None,
-) -> DataFrame | dict[IntStrT, DataFrame]:
+) -> DataFrame | dict[int, DataFrame] | dict[str, DataFrame]:
 
     should_close = False
     if not isinstance(io, ExcelFile):
