@@ -950,6 +950,8 @@ class ExcelWriter(metaclass=abc.ABCMeta):
                         stacklevel=find_stack_level(),
                     )
 
+            # for mypy
+            assert engine is not None
             cls = get_writer(engine)
 
         return object.__new__(cls)
