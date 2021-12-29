@@ -26,7 +26,6 @@ from typing import (
     Generic,
     Literal,
     Mapping,
-    Sequence,
     TypeVar,
     cast,
     overload,
@@ -175,7 +174,7 @@ def _expand_user(filepath_or_buffer: str | BaseBufferT) -> str | BaseBufferT:
     return filepath_or_buffer
 
 
-def validate_header_arg(header: int | Sequence[int] | None) -> None:
+def validate_header_arg(header: object) -> None:
     if isinstance(header, bool):
         raise TypeError(
             "Passing a bool to header is invalid. Use header=None for no header or "
