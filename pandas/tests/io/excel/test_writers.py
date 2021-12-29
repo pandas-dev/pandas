@@ -11,6 +11,10 @@ import re
 import numpy as np
 import pytest
 
+from pandas.compat._optional import (
+    VERSIONS,
+    import_optional_dependency,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -31,6 +35,17 @@ from pandas.io.excel import (
     _XlwtWriter,
     register_writer,
 )
+
+
+def has_min_lxml_and_openpyxl():
+    openpyxl = import_optional_dependency("openpyxl", errors="ignore")
+    lxml = import_optional_dependency("lxml.etree", errors="ignore")
+    return (
+        openpyxl is not None
+        and openpyxl.__version__ == VERSIONS["openpyxl"]
+        and lxml is not None
+        and lxml.__version__ == VERSIONS["lxml.etree"]
+    )
 
 
 @pytest.fixture
@@ -76,8 +91,15 @@ class TestRoundTrip:
         "header,expected",
         [(None, DataFrame([np.nan] * 4)), (0, DataFrame({"Unnamed: 0": [np.nan] * 3}))],
     )
-    def test_read_one_empty_col_no_header(self, ext, header, expected):
+    def test_read_one_empty_col_no_header(self, request, ext, header, expected):
         # xref gh-12292
+        request.node.add_marker(
+            pytest.mark.xfail(
+                ext == ".xlsm" and has_min_lxml_and_openpyxl(),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         filename = "no_header"
         df = DataFrame([["", 1, 100], ["", 2, 200], ["", 3, 300], ["", 4, 400]])
 
@@ -93,7 +115,14 @@ class TestRoundTrip:
         "header,expected",
         [(None, DataFrame([0] + [np.nan] * 4)), (0, DataFrame([np.nan] * 4))],
     )
-    def test_read_one_empty_col_with_header(self, ext, header, expected):
+    def test_read_one_empty_col_with_header(self, request, ext, header, expected):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                ext == ".xlsm" and has_min_lxml_and_openpyxl(),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         filename = "with_header"
         df = DataFrame([["", 1, 100], ["", 2, 200], ["", 3, 300], ["", 4, 400]])
 
@@ -105,9 +134,16 @@ class TestRoundTrip:
 
         tm.assert_frame_equal(result, expected)
 
-    def test_set_column_names_in_parameter(self, ext):
+    def test_set_column_names_in_parameter(self, request, ext):
         # GH 12870 : pass down column names associated with
         # keyword argument names
+        request.node.add_marker(
+            pytest.mark.xfail(
+                ext == ".xlsm" and has_min_lxml_and_openpyxl(),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         refdf = DataFrame([[1, "foo"], [2, "bar"], [3, "baz"]], columns=["a", "b"])
 
         with tm.ensure_clean(ext) as pth:
@@ -131,11 +167,19 @@ class TestRoundTrip:
             tm.assert_frame_equal(xlsdf_no_head, refdf)
             tm.assert_frame_equal(xlsdf_with_head, refdf)
 
-    def test_creating_and_reading_multiple_sheets(self, ext):
+    def test_creating_and_reading_multiple_sheets(self, request, ext):
         # see gh-9450
         #
         # Test reading multiple sheets, from a runtime
         # created Excel file with multiple sheets.
+        request.node.add_marker(
+            pytest.mark.xfail(
+                ext == ".xlsm" and has_min_lxml_and_openpyxl(),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
+
         def tdf(col_sheet_name):
             d, i = [11, 22, 33], [1, 2, 3]
             return DataFrame(d, i, columns=[col_sheet_name])
@@ -155,8 +199,15 @@ class TestRoundTrip:
             for s in sheets:
                 tm.assert_frame_equal(dfs[s], dfs_returned[s])
 
-    def test_read_excel_multiindex_empty_level(self, ext):
+    def test_read_excel_multiindex_empty_level(self, request, ext):
         # see gh-12453
+        request.node.add_marker(
+            pytest.mark.xfail(
+                ext == ".xlsm" and has_min_lxml_and_openpyxl(),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         with tm.ensure_clean(ext) as path:
             df = DataFrame(
                 {
@@ -209,6 +260,13 @@ class TestRoundTrip:
     def test_excel_multindex_roundtrip(
         self, ext, c_idx_names, r_idx_names, c_idx_levels, r_idx_levels, request
     ):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                ext == ".xlsm" and has_min_lxml_and_openpyxl(),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         # see gh-4679
         with tm.ensure_clean(ext) as pth:
             if (c_idx_levels == 1 and c_idx_names) and not (
@@ -255,8 +313,15 @@ class TestRoundTrip:
             )
             tm.assert_frame_equal(df, act, check_names=check_names)
 
-    def test_read_excel_parse_dates(self, ext):
+    def test_read_excel_parse_dates(self, request, ext):
         # see gh-11544, gh-12051
+        request.node.add_marker(
+            pytest.mark.xfail(
+                ext == ".xlsm" and has_min_lxml_and_openpyxl(),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         df = DataFrame(
             {"col": [1, 2, 3], "date_strings": pd.date_range("2012-01-01", periods=3)}
         )
@@ -278,8 +343,15 @@ class TestRoundTrip:
             )
             tm.assert_frame_equal(df, res)
 
-    def test_multiindex_interval_datetimes(self, ext):
+    def test_multiindex_interval_datetimes(self, request, ext):
         # GH 30986
+        request.node.add_marker(
+            pytest.mark.xfail(
+                ext == ".xlsm" and has_min_lxml_and_openpyxl(),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         midx = MultiIndex.from_arrays(
             [
                 range(4),
@@ -353,7 +425,16 @@ class TestExcelWriter:
         with pytest.raises(ValueError, match=msg):
             col_df.to_excel(path)
 
-    def test_excel_sheet_by_name_raise(self, path, engine):
+    def test_excel_sheet_by_name_raise(self, path, engine, request):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                ("xlsm" in path or "xlsx" in path)
+                and engine == "openpyxl"
+                and has_min_lxml_and_openpyxl(),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         gt = DataFrame(np.random.randn(10, 2))
         gt.to_excel(path)
 
@@ -366,7 +447,14 @@ class TestExcelWriter:
         with pytest.raises(ValueError, match=msg):
             pd.read_excel(xl, "0")
 
-    def test_excel_writer_context_manager(self, frame, path):
+    def test_excel_writer_context_manager(self, request, frame, path):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                ("xlsm" in path or "xlsx" in path) and has_min_lxml_and_openpyxl(),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         with ExcelWriter(path) as writer:
             frame.to_excel(writer, "Data1")
             frame2 = frame.copy()
