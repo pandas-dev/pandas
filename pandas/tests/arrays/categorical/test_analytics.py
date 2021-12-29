@@ -29,20 +29,32 @@ class TestCategoricalAnalytics:
         with pytest.raises(TypeError, match=msg):
             agg_func()
 
-    def test_min_max_ordered(self):
+        ufunc = np.minimum if aggregation == "min" else np.maximum
+        with pytest.raises(TypeError, match=msg):
+            ufunc.reduce(cat)
+
+    def test_min_max_ordered(self, index_or_series_or_array):
         cat = Categorical(["a", "b", "c", "d"], ordered=True)
-        _min = cat.min()
-        _max = cat.max()
+        obj = index_or_series_or_array(cat)
+        _min = obj.min()
+        _max = obj.max()
         assert _min == "a"
         assert _max == "d"
+
+        assert np.minimum.reduce(obj) == "a"
+        assert np.maximum.reduce(obj) == "d"
+        # TODO: raises if we pass axis=0  (on Index and Categorical, not Series)
 
         cat = Categorical(
             ["a", "b", "c", "d"], categories=["d", "c", "b", "a"], ordered=True
         )
-        _min = cat.min()
-        _max = cat.max()
+        obj = index_or_series_or_array(cat)
+        _min = obj.min()
+        _max = obj.max()
         assert _min == "d"
         assert _max == "a"
+        assert np.minimum.reduce(obj) == "d"
+        assert np.maximum.reduce(obj) == "a"
 
     @pytest.mark.parametrize(
         "categories,expected",

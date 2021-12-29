@@ -1416,7 +1416,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         return values.any().item()
 
-    def sum(self, axis: int = 0, min_count: int = 0, *args, **kwargs) -> Scalar:
+    def sum(
+        self, axis: int = 0, min_count: int = 0, skipna: bool = True, *args, **kwargs
+    ) -> Scalar:
         """
         Sum of non-NA/null values
 
@@ -1438,6 +1440,11 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         nv.validate_sum(args, kwargs)
         valid_vals = self._valid_sp_values
         sp_sum = valid_vals.sum()
+        has_na = self.sp_index.ngaps > 0 and not self._null_fill_value
+
+        if has_na and not skipna:
+            return na_value_for_dtype(self.dtype.subtype, compat=False)
+
         if self._null_fill_value:
             if check_below_min_count(valid_vals.shape, None, min_count):
                 return na_value_for_dtype(self.dtype.subtype, compat=False)
@@ -1596,6 +1603,14 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 self, ufunc, method, *inputs, **kwargs
             )
             return res
+
+        if method == "reduce":
+            result = arraylike.dispatch_reduction_ufunc(
+                self, ufunc, method, *inputs, **kwargs
+            )
+            if result is not NotImplemented:
+                # e.g. tests.series.test_ufunc.TestNumpyReductions
+                return result
 
         if len(inputs) == 1:
             # No alignment necessary.

@@ -85,7 +85,10 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
-from pandas.core import ops
+from pandas.core import (
+    arraylike,
+    ops,
+)
 from pandas.core.accessor import (
     PandasDelegate,
     delegate_names,
@@ -1515,6 +1518,14 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         )
         if result is not NotImplemented:
             return result
+
+        if method == "reduce":
+            # e.g. TestCategoricalAnalytics::test_min_max_ordered
+            result = arraylike.dispatch_reduction_ufunc(
+                self, ufunc, method, *inputs, **kwargs
+            )
+            if result is not NotImplemented:
+                return result
 
         # for all other cases, raise for now (similarly as what happens in
         # Series.__array_prepare__)
