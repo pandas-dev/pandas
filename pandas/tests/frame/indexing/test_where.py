@@ -504,8 +504,9 @@ class TestDataFrameIndexingWhere:
         tm.assert_frame_equal(result, expected)
 
         warn = FutureWarning if using_array_manager else None
+        msg = "Downcasting integer-dtype"
         expected = DataFrame([[0, np.nan], [0, np.nan]])
-        with tm.assert_produces_warning(warn, match="Downcasting integer-dtype"):
+        with tm.assert_produces_warning(warn, match=msg):
             result = df.where(mask, s, axis="columns")
         tm.assert_frame_equal(result, expected)
 

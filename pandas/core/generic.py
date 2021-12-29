@@ -6258,7 +6258,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis=None,
         inplace: bool_t = False,
         limit=None,
-        downcast=None,
+        downcast=lib.no_default,
     ) -> NDFrameT | None:
         """
         Fill NA/NaN values using the specified method.
@@ -6292,6 +6292,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             A dict of item->dtype of what to downcast if possible,
             or the string 'infer' which will try to downcast to an appropriate
             equal type (e.g. float64 to int64 if possible).
+
+            .. deprecated:: 1.4.0
 
         Returns
         -------
@@ -6372,6 +6374,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace = validate_bool_kwarg(inplace, "inplace")
         value, method = validate_fillna_kwargs(value, method)
 
+        if downcast is not lib.no_default:
+            warnings.warn(
+                f"{type(self).__name__}.fillna 'downcast' keyword is deprecated "
+                "and will be removed in a future version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            pass
+        else:
+            downcast = None
+
         self._consolidate_inplace()
 
         # set the default here, so functions examining the signaure
@@ -6435,7 +6448,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 for k, v in value.items():
                     if k not in result:
                         continue
-                    downcast_k = downcast if not is_dict else downcast.get(k)
+                    downcast_k = (
+                        downcast if not is_dict else downcast.get(k, lib.no_default)
+                    )
+                    if downcast_k is None:
+                        downcast_k = lib.no_default
                     result[k] = result[k].fillna(v, limit=limit, downcast=downcast_k)
                 return result if not inplace else None
 
@@ -6468,7 +6485,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = None,
         inplace: bool_t = False,
         limit: None | int = None,
-        downcast=None,
+        downcast=lib.no_default,
     ) -> NDFrameT | None:
         """
         Synonym for :meth:`DataFrame.fillna` with ``method='ffill'``.
@@ -6490,7 +6507,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = None,
         inplace: bool_t = False,
         limit: None | int = None,
-        downcast=None,
+        downcast=lib.no_default,
     ) -> NDFrameT | None:
         """
         Synonym for :meth:`DataFrame.fillna` with ``method='bfill'``.
@@ -9008,6 +9025,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # make sure we are boolean
         fill_value = bool(inplace)
         cond = cond.fillna(fill_value)
+        cond = cond.infer_objects()
 
         msg = "Boolean array expected for the condition, not {dtype}"
 

@@ -96,7 +96,8 @@ class TestDataFrameInterpolate:
         expected = Series([1.0, 2.0, 3.0, 4.0], name="A")
         tm.assert_series_equal(result, expected)
 
-        result = df["A"].interpolate(downcast="infer")
+        with tm.assert_produces_warning(FutureWarning, match="Casting behavior"):
+            result = df["A"].interpolate(downcast="infer")
         expected = Series([1, 2, 3, 4], name="A")
         tm.assert_series_equal(result, expected)
 
@@ -160,7 +161,8 @@ class TestDataFrameInterpolate:
         expected.loc[5, "A"] = 6
         tm.assert_frame_equal(result, expected)
 
-        result = df.interpolate(method="barycentric", downcast="infer")
+        with tm.assert_produces_warning(FutureWarning, match="Casting behavior"):
+            result = df.interpolate(method="barycentric", downcast="infer")
         tm.assert_frame_equal(result, expected.astype(np.int64))
 
         result = df.interpolate(method="krogh")
@@ -280,7 +282,8 @@ class TestDataFrameInterpolate:
         tm.assert_frame_equal(result, expected)
 
         result = df.copy()
-        return_value = result["a"].interpolate(inplace=True, downcast="infer")
+        with tm.assert_produces_warning(FutureWarning, match="Casting behavior"):
+            return_value = result["a"].interpolate(inplace=True, downcast="infer")
         assert return_value is None
         tm.assert_frame_equal(result, expected.astype("int64"))
 

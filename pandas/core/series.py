@@ -4876,7 +4876,7 @@ Keep all original rows and also all original values
         axis=None,
         inplace=False,
         limit=None,
-        downcast=None,
+        downcast=lib.no_default,
     ) -> Series | None:
         return super().fillna(
             value=value,
@@ -5475,7 +5475,7 @@ Keep all original rows and also all original values
         axis: None | Axis = None,
         inplace: bool = False,
         limit: None | int = None,
-        downcast=None,
+        downcast=lib.no_default,
     ) -> Series | None:
         return super().ffill(axis, inplace, limit, downcast)
 
@@ -5485,7 +5485,7 @@ Keep all original rows and also all original values
         axis: None | Axis = None,
         inplace: bool = False,
         limit: None | int = None,
-        downcast=None,
+        downcast=lib.no_default,
     ) -> Series | None:
         return super().bfill(axis, inplace, limit, downcast)
 

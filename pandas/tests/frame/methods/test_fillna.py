@@ -234,13 +234,15 @@ class TestFillNA:
         # GH#15277
         # infer int64 from float64
         df = DataFrame({"a": [1.0, np.nan]})
-        result = df.fillna(0, downcast="infer")
+        with tm.assert_produces_warning(FutureWarning, match="Casting behavior"):
+            result = df.fillna(0, downcast="infer")
         expected = DataFrame({"a": [1, 0]})
         tm.assert_frame_equal(result, expected)
 
         # infer int64 from float64 when fillna value is a dict
         df = DataFrame({"a": [1.0, np.nan]})
-        result = df.fillna({"a": 0}, downcast="infer")
+        with tm.assert_produces_warning(FutureWarning, match="Casting behavior"):
+            result = df.fillna({"a": 0}, downcast="infer")
         expected = DataFrame({"a": [1, 0]})
         tm.assert_frame_equal(result, expected)
 
@@ -563,7 +565,9 @@ class TestFillNA:
     def test_fillna_downcast_dict(self):
         # GH#40809
         df = DataFrame({"col1": [1, np.nan]})
-        result = df.fillna({"col1": 2}, downcast={"col1": "int64"})
+        msg = "fillna 'downcast' keyword"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.fillna({"col1": 2}, downcast={"col1": "int64"})
         expected = DataFrame({"col1": [1, 2]})
         tm.assert_frame_equal(result, expected)
 

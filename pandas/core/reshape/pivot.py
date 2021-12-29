@@ -23,6 +23,7 @@ from pandas.util._decorators import (
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
+    is_integer,
     is_integer_dtype,
     is_list_like,
     is_nested_list_like,
@@ -201,26 +202,30 @@ def __internal_pivot_table(
                 to_unstack.append(i)
             else:
                 to_unstack.append(name)
-        table = agged.unstack(to_unstack)
+
+        table = agged.unstack(to_unstack, fill_value=fill_value)
 
     if not dropna:
         if isinstance(table.index, MultiIndex):
             m = MultiIndex.from_arrays(
                 cartesian_product(table.index.levels), names=table.index.names
             )
-            table = table.reindex(m, axis=0)
+            table = table.reindex(m, axis=0, fill_value=fill_value)
 
         if isinstance(table.columns, MultiIndex):
             m = MultiIndex.from_arrays(
                 cartesian_product(table.columns.levels), names=table.columns.names
             )
-            table = table.reindex(m, axis=1)
+            table = table.reindex(m, axis=1, fill_value=fill_value)
 
     if isinstance(table, ABCDataFrame):
         table = table.sort_index(axis=1)
 
     if fill_value is not None:
-        table = table.fillna(fill_value, downcast="infer")
+        table = table.fillna(fill_value)
+        table = table.infer_objects()
+        if aggfunc is len and not observed and is_integer(fill_value):
+            table = table.astype(np.int64)
 
     if margins:
         if dropna:

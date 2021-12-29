@@ -5207,7 +5207,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis | None = None,
         inplace: bool = False,
         limit=None,
-        downcast=None,
+        downcast=lib.no_default,
     ) -> DataFrame | None:
         return super().fillna(
             value=value,
@@ -10862,7 +10862,7 @@ NaN 12.3   33.0
         axis: None | Axis = None,
         inplace: bool = False,
         limit: None | int = None,
-        downcast=None,
+        downcast=lib.no_default,
     ) -> DataFrame | None:
         return super().ffill(axis, inplace, limit, downcast)
 
@@ -10872,7 +10872,7 @@ NaN 12.3   33.0
         axis: None | Axis = None,
         inplace: bool = False,
         limit: None | int = None,
-        downcast=None,
+        downcast=lib.no_default,
     ) -> DataFrame | None:
         return super().bfill(axis, inplace, limit, downcast)
 

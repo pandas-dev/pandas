@@ -1242,7 +1242,8 @@ def test_seriesgroupby_observed_false_or_none(df_cat, observed, operation):
 
     expected = Series(data=[2, 4, np.nan, 1, np.nan, 3], index=index, name="C")
     if operation == "agg":
-        expected = expected.fillna(0, downcast="infer")
+        with tm.assert_produces_warning(FutureWarning, match="Casting behavior"):
+            expected = expected.fillna(0, downcast="infer")
     grouped = df_cat.groupby(["A", "B"], observed=observed)["C"]
     result = getattr(grouped, operation)(sum)
     tm.assert_series_equal(result, expected)

@@ -134,7 +134,8 @@ def test_reindex_pad():
     result = s.reindex(new_index).ffill()
     tm.assert_series_equal(result, expected.astype("float64"))
 
-    result = s.reindex(new_index).ffill(downcast="infer")
+    with tm.assert_produces_warning(FutureWarning, match="Casting behavior"):
+        result = s.reindex(new_index).ffill(downcast="infer")
     tm.assert_series_equal(result, expected)
 
     expected = Series([1, 5, 3, 5], index=new_index)

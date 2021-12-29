@@ -458,7 +458,7 @@ class Block(PandasObject):
         if self._can_hold_element(value):
             nb = self if inplace else self.copy()
             putmask_inplace(nb.values, mask, value)
-            return nb._maybe_downcast([nb], downcast)
+            return nb._maybe_downcast([nb], downcast, deprecate=True)
 
         if noop:
             # we can't process the value, but nothing to do
@@ -515,17 +515,19 @@ class Block(PandasObject):
         return res_blocks
 
     @final
-    def _maybe_downcast(self, blocks: list[Block], downcast=None) -> list[Block]:
+    def _maybe_downcast(
+        self, blocks: list[Block], downcast=None, deprecate: bool = False
+    ) -> list[Block]:
 
         if self.dtype == _dtype_obj:
             # GH#44241 We downcast regardless of the argument;
             #  respecting 'downcast=None' may be worthwhile at some point,
             #  but ATM it breaks too much existing code.
             # split and convert the blocks
-
-            return extend_blocks(
+            casted = extend_blocks(
                 [blk.convert(datetime=True, numeric=False) for blk in blocks]
             )
+            return casted
 
         if downcast is None:
             return blocks
@@ -534,7 +536,19 @@ class Block(PandasObject):
             # TODO: not reached, deprecate in favor of downcast=None
             return blocks
 
-        return extend_blocks([b._downcast_2d(downcast) for b in blocks])
+        casted = extend_blocks([b._downcast_2d(downcast) for b in blocks])
+        if deprecate and not all(is_dtype_equal(x.dtype, self.dtype) for x in casted):
+            # i.e. we did *some* casting
+            warnings.warn(
+                "Casting behavior of .fillna, .interpolate, .ffill, .bfill "
+                f"for {self.dtype}-dtype columns is deprecated. In a future version, "
+                "these columns will not be automatically downcast. To retain "
+                "the old behavior, explicitly cast the resulting columns "
+                "to the desired dtype.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        return casted
 
     @final
     @maybe_split
@@ -1077,7 +1091,7 @@ class Block(PandasObject):
         )
 
         nb = self.make_block_same_class(data)
-        return nb._maybe_downcast([nb], downcast)
+        return nb._maybe_downcast([nb], downcast, deprecate=True)
 
     def take_nd(
         self,
@@ -1807,6 +1821,11 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
     def fillna(
         self, value, limit=None, inplace: bool = False, downcast=None
     ) -> list[Block]:
+
+        if not self.values._hasnans:
+            # Avoid possible upcast
+            # TODO: respect 'inplace' keyword
+            return self.copy()
 
         if not self._can_hold_element(value) and self.dtype.kind != "m":
             # We support filling a DatetimeTZ with a `value` whose timezone
