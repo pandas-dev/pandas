@@ -73,6 +73,8 @@ from pandas.core import (
 from pandas.core.algorithms import (
     factorize_array,
     isin,
+    mode,
+    rank,
     unique,
 )
 from pandas.core.array_algos.quantile import quantile_with_mask
@@ -1496,6 +1498,32 @@ class ExtensionArray:
         self[mask] = new_values[mask]
         return
 
+    def _rank(
+        self,
+        *,
+        axis: int = 0,
+        method: str = "average",
+        na_option: str = "keep",
+        ascending: bool = True,
+        pct: bool = False,
+    ):
+        """
+        See Series.rank.__doc__.
+        """
+        if axis != 0:
+            raise NotImplementedError
+
+        # TODO: we only have tests that get here with dt64 and td64
+        # TODO: all tests that get here use the defaults for all the kwds
+        return rank(
+            self,
+            axis=axis,
+            method=method,
+            na_option=na_option,
+            ascending=ascending,
+            pct=pct,
+        )
+
     @classmethod
     def _empty(cls, shape: Shape, dtype: ExtensionDtype):
         """
@@ -1550,6 +1578,26 @@ class ExtensionArray:
             result = type(self)._from_sequence(res_values[0])
 
         return result
+
+    def _mode(self: ExtensionArrayT, dropna: bool = True) -> ExtensionArrayT:
+        """
+        Returns the mode(s) of the ExtensionArray.
+
+        Always returns `ExtensionArray` even if only one value.
+
+        Parameters
+        ----------
+        dropna : bool, default True
+            Don't consider counts of NA values.
+
+        Returns
+        -------
+        same type as self
+            Sorted, if possible.
+        """
+        # error: Incompatible return value type (got "Union[ExtensionArray,
+        # ndarray[Any, Any]]", expected "ExtensionArrayT")
+        return mode(self, dropna=dropna)  # type: ignore[return-value]
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         if any(
