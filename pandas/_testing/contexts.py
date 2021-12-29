@@ -29,7 +29,7 @@ def decompress_file(path, compression):
     path : str
         The path where the file is read from.
 
-    compression : {'gzip', 'bz2', 'zip', 'xz', None}
+    compression : {'gzip', 'bz2', 'zip', 'xz', 'zstd', None}
         Name of the decompression to use
 
     Returns

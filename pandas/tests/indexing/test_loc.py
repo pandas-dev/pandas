@@ -1214,8 +1214,7 @@ class TestLocBaseIndependent:
         mask = (rng.hour == 9) & (rng.minute == 30)
 
         obj = DataFrame(np.random.randn(len(rng), 3), index=rng)
-        if frame_or_series is Series:
-            obj = obj[0]
+        obj = tm.get_obj(obj, frame_or_series)
 
         result = obj.loc[time(9, 30)]
         exp = obj.loc[mask]

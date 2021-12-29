@@ -965,7 +965,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
     @property
     @abc.abstractmethod
-    def engine(self):
+    def engine(self) -> str:
         """Name of engine."""
         pass
 
