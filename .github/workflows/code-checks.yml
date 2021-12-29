@@ -30,7 +30,7 @@ jobs:
       uses: actions/setup-python@v2
 
     - name: Run pre-commit
-      uses: pre-commit/action@v2
+      uses: pre-commit/action@v2.0.3
 
   typing_and_docstring_validation:
     name: Docstring and typing validation
