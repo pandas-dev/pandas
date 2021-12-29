@@ -641,6 +641,10 @@ class _LocationIndexer(NDFrameIndexerBase):
         if self.name == "loc":
             self._ensure_listlike_indexer(key)
 
+        if isinstance(key, tuple):
+            for x in key:
+                check_deprecated_indexers(x)
+
         if self.axis is not None:
             return self._convert_tuple(key)
 
@@ -698,6 +702,7 @@ class _LocationIndexer(NDFrameIndexerBase):
             )
 
     def __setitem__(self, key, value):
+        check_deprecated_indexers(key)
         if isinstance(key, tuple):
             key = tuple(list(x) if is_iterator(x) else x for x in key)
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
@@ -890,6 +895,9 @@ class _LocationIndexer(NDFrameIndexerBase):
         # we have a nested tuple so have at least 1 multi-index level
         # we should be able to match up the dimensionality here
 
+        for key in tup:
+            check_deprecated_indexers(key)
+
         # we have too many indexers for our dim, but have at least 1
         # multi-index dimension, try to see if we have something like
         # a tuple passed to a series with a multi-index
@@ -943,6 +951,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         raise AbstractMethodError(self)
 
     def __getitem__(self, key):
+        check_deprecated_indexers(key)
         if type(key) is tuple:
             key = tuple(list(x) if is_iterator(x) else x for x in key)
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
@@ -1996,7 +2005,7 @@ class _iLocIndexer(_LocationIndexer):
                     df = df.infer_objects()
                 self.obj._mgr = df._mgr
             else:
-                self.obj._mgr = self.obj.append(value)._mgr
+                self.obj._mgr = self.obj._append(value)._mgr
             self.obj._maybe_update_cacher(clear=True)
 
     def _ensure_iterable_column_indexer(self, column_indexer):
@@ -2447,3 +2456,29 @@ def need_slice(obj: slice) -> bool:
         or obj.stop is not None
         or (obj.step is not None and obj.step != 1)
     )
+
+
+def check_deprecated_indexers(key) -> None:
+    """Checks if the key is a deprecated indexer."""
+    if (
+        isinstance(key, set)
+        or isinstance(key, tuple)
+        and any(isinstance(x, set) for x in key)
+    ):
+        warnings.warn(
+            "Passing a set as an indexer is deprecated and will raise in "
+            "a future version. Use a list instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+    if (
+        isinstance(key, dict)
+        or isinstance(key, tuple)
+        and any(isinstance(x, dict) for x in key)
+    ):
+        warnings.warn(
+            "Passing a dict as an indexer is deprecated and will raise in "
+            "a future version. Use a list instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )

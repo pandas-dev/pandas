@@ -8,6 +8,8 @@ from itertools import product
 import numpy as np
 import pytest
 
+from pandas.errors import PerformanceWarning
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -21,6 +23,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
+from pandas.core.reshape import reshape as reshape_lib
 from pandas.core.reshape.pivot import pivot_table
 
 
@@ -1989,17 +1992,27 @@ class TestPivotTable:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.slow
-    def test_pivot_number_of_levels_larger_than_int32(self):
+    def test_pivot_number_of_levels_larger_than_int32(self, monkeypatch):
         # GH 20601
-        df = DataFrame(
-            {"ind1": np.arange(2 ** 16), "ind2": np.arange(2 ** 16), "count": 0}
-        )
+        # GH 26314: Change ValueError to PerformanceWarning
+        class MockUnstacker(reshape_lib._Unstacker):
+            def __init__(self, *args, **kwargs):
+                # __init__ will raise the warning
+                super().__init__(*args, **kwargs)
+                raise Exception("Don't compute final result.")
 
-        msg = "Unstacked DataFrame is too big, causing int32 overflow"
-        with pytest.raises(ValueError, match=msg):
-            df.pivot_table(
-                index="ind1", columns="ind2", values="count", aggfunc="count"
+        with monkeypatch.context() as m:
+            m.setattr(reshape_lib, "_Unstacker", MockUnstacker)
+            df = DataFrame(
+                {"ind1": np.arange(2 ** 16), "ind2": np.arange(2 ** 16), "count": 0}
             )
+
+            msg = "The following operation may generate"
+            with tm.assert_produces_warning(PerformanceWarning, match=msg):
+                with pytest.raises(Exception, match="Don't compute final result."):
+                    df.pivot_table(
+                        index="ind1", columns="ind2", values="count", aggfunc="count"
+                    )
 
     def test_pivot_table_aggfunc_dropna(self, dropna):
         # GH 22159
@@ -2077,11 +2090,12 @@ class TestPivotTable:
         with pytest.raises(KeyError, match="notpresent"):
             foo.pivot_table("notpresent", "X", "Y", aggfunc=agg)
 
-    def test_pivot_table_doctest_case(self):
-        # TODO: better name.  the relevant characteristic is that
-        #  the call to maybe_downcast_to_dtype(agged[v], data[v].dtype) in
+    def test_pivot_table_multiindex_columns_doctest_case(self):
+        # The relevant characteristic is that the call
+        #  to maybe_downcast_to_dtype(agged[v], data[v].dtype) in
         #  __internal_pivot_table has `agged[v]` a DataFrame instead of Series,
-        #  i.e agged.columns is not unique
+        #  In this case this is because agged.columns is a MultiIndex and 'v'
+        #  is only indexing on its first level.
         df = DataFrame(
             {
                 "A": ["foo", "foo", "foo", "foo", "foo", "bar", "bar", "bar", "bar"],
@@ -2124,6 +2138,8 @@ class TestPivotTable:
             ]
         )
         expected = DataFrame(vals, columns=cols, index=index)
+        expected[("E", "min")] = expected[("E", "min")].astype(np.int64)
+        expected[("E", "max")] = expected[("E", "max")].astype(np.int64)
         tm.assert_frame_equal(table, expected)
 
     def test_pivot_table_sort_false(self):

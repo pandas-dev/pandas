@@ -79,10 +79,14 @@ def test_ufunc_numeric():
 
 @pytest.mark.parametrize("values", [[True, False], [True, None]])
 def test_ufunc_reduce_raises(values):
-    a = pd.array(values, dtype="boolean")
-    msg = "The 'reduce' method is not supported"
-    with pytest.raises(NotImplementedError, match=msg):
-        np.add.reduce(a)
+    arr = pd.array(values, dtype="boolean")
+
+    res = np.add.reduce(arr)
+    if arr[-1] is pd.NA:
+        expected = pd.NA
+    else:
+        expected = arr._data.sum()
+    tm.assert_almost_equal(res, expected)
 
 
 def test_value_counts_na():

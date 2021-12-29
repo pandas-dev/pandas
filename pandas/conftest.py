@@ -412,6 +412,18 @@ def index_or_series_or_array(request):
     return request.param
 
 
+@pytest.fixture(params=[Index, Series, DataFrame, pd.array], ids=lambda x: x.__name__)
+def box_with_array(request):
+    """
+    Fixture to test behavior for Index, Series, DataFrame, and pandas Array
+    classes
+    """
+    return request.param
+
+
+box_with_array2 = box_with_array
+
+
 @pytest.fixture
 def dict_subclass():
     """

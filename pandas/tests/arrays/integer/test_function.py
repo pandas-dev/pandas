@@ -79,10 +79,11 @@ def test_ufunc_binary_output():
 
 @pytest.mark.parametrize("values", [[0, 1], [0, None]])
 def test_ufunc_reduce_raises(values):
-    a = pd.array(values)
-    msg = r"The 'reduce' method is not supported."
-    with pytest.raises(NotImplementedError, match=msg):
-        np.add.reduce(a)
+    arr = pd.array(values)
+
+    res = np.add.reduce(arr)
+    expected = arr.sum(skipna=False)
+    tm.assert_almost_equal(res, expected)
 
 
 @pytest.mark.parametrize(
