@@ -335,7 +335,6 @@ class TestResetIndex:
             request.node.add_marker(
                 pytest.mark.xfail(reason="Duplicate labels allowed")
             )
-            
 
         df = DataFrame(
             [[1, 2], [3, 4]],
@@ -379,9 +378,7 @@ class TestResetIndex:
         tm.assert_frame_equal(result, df)
 
         # GH#16120: already existing column
-        request.node.add_marker(
-            pytest.mark.xfail(reason="Duplicate labels allowed")
-        )
+        request.node.add_marker(pytest.mark.xfail(reason="Duplicate labels allowed"))
         msg = r"cannot insert \('A', ''\), already exists"
         with pytest.raises(ValueError, match=msg):
             df.rename_axis("A").reset_index()
