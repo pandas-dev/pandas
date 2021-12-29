@@ -481,7 +481,8 @@ def dict_to_mgr(
             #  only EA arrays
             arrays = [x.copy() if isinstance(x, ExtensionArray) else x for x in arrays]
         else:
-            arrays = [x.copy() for x in arrays]
+            # dtype check to exclude e.g. range objects, scalars
+            arrays = [x.copy() if hasattr(x, "dtype") else x for x in arrays]
 
     return arrays_to_mgr(arrays, columns, index, dtype=dtype, typ=typ, consolidate=copy)
 
