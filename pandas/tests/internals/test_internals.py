@@ -254,14 +254,18 @@ class TestBlock:
         int32block = create_block("i4", [0])
         assert int32block.dtype == np.int32
 
-    def test_pickle(self):
-        def _check(blk):
-            assert_block_equal(tm.round_trip_pickle(blk), blk)
-
-        _check(self.fblock)
-        _check(self.cblock)
-        _check(self.oblock)
-        _check(self.bool_block)
+    @pytest.mark.parametrize(
+        "typ, data",
+        [
+            ["float", [0, 2, 4]],
+            ["complex", [7]],
+            ["object", [1, 3]],
+            ["bool", [5]],
+        ],
+    )
+    def test_pickle(self, typ, data):
+        blk = create_block(typ, data)
+        assert_block_equal(tm.round_trip_pickle(blk), blk)
 
     def test_mgr_locs(self):
         assert isinstance(self.fblock.mgr_locs, BlockPlacement)

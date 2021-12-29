@@ -219,37 +219,35 @@ def test_put_mixed_type(setup_path):
         tm.assert_frame_equal(expected, df)
 
 
-def test_store_index_types(setup_path):
+@pytest.mark.parametrize(
+    "format, index",
+    [
+        ["table", tm.makeFloatIndex],
+        ["table", tm.makeStringIndex],
+        ["table", tm.makeIntIndex],
+        ["table", tm.makeDateIndex],
+        ["fixed", tm.makeFloatIndex],
+        ["fixed", tm.makeStringIndex],
+        ["fixed", tm.makeIntIndex],
+        ["fixed", tm.makeDateIndex],
+        ["table", tm.makePeriodIndex],  # GH#7796
+        ["fixed", tm.makePeriodIndex],
+        ["table", tm.makeUnicodeIndex],
+        ["fixed", tm.makeUnicodeIndex],
+    ],
+)
+def test_store_index_types(setup_path, format, index):
     # GH5386
     # test storing various index types
 
     with ensure_clean_store(setup_path) as store:
 
-        def check(format, index):
-            df = DataFrame(np.random.randn(10, 2), columns=list("AB"))
-            df.index = index(len(df))
+        df = DataFrame(np.random.randn(10, 2), columns=list("AB"))
+        df.index = index(len(df))
 
-            _maybe_remove(store, "df")
-            store.put("df", df, format=format)
-            tm.assert_frame_equal(df, store["df"])
-
-        for index in [
-            tm.makeFloatIndex,
-            tm.makeStringIndex,
-            tm.makeIntIndex,
-            tm.makeDateIndex,
-        ]:
-
-            check("table", index)
-            check("fixed", index)
-
-        check("fixed", tm.makePeriodIndex)
-        check("table", tm.makePeriodIndex)  # GH#7796
-
-        # unicode
-        index = tm.makeUnicodeIndex
-        check("table", index)
-        check("fixed", index)
+        _maybe_remove(store, "df")
+        store.put("df", df, format=format)
+        tm.assert_frame_equal(df, store["df"])
 
 
 def test_column_multiindex(setup_path):

@@ -1421,50 +1421,57 @@ class TestStackUnstackMultiLevel:
         # stack with negative number
         result = ymd.unstack(0).stack(-2)
         expected = ymd.unstack(0).stack(0)
+        tm.assert_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "idx, columns, exp_idx",
+        [
+            [
+                list("abab"),
+                ["1st", "2nd", "3rd"],
+                MultiIndex(
+                    levels=[["a", "b"], ["1st", "2nd", "3rd"]],
+                    codes=[
+                        np.tile(np.arange(2).repeat(3), 2),
+                        np.tile(np.arange(3), 4),
+                    ],
+                ),
+            ],
+            [
+                list("abab"),
+                ["1st", "2nd", "1st"],
+                MultiIndex(
+                    levels=[["a", "b"], ["1st", "2nd"]],
+                    codes=[np.tile(np.arange(2).repeat(3), 2), np.tile([0, 1, 0], 4)],
+                ),
+            ],
+            [
+                MultiIndex.from_tuples((("a", 2), ("b", 1), ("a", 1), ("b", 2))),
+                ["1st", "2nd", "1st"],
+                MultiIndex(
+                    levels=[["a", "b"], [1, 2], ["1st", "2nd"]],
+                    codes=[
+                        np.tile(np.arange(2).repeat(3), 2),
+                        np.repeat([1, 0, 1], [3, 6, 3]),
+                        np.tile([0, 1, 0], 4),
+                    ],
+                ),
+            ],
+        ],
+    )
+    def test_stack_duplicate_index(self, idx, columns, exp_idx):
         # GH10417
-        def check(left, right):
-            tm.assert_series_equal(left, right)
-            assert left.index.is_unique is False
-            li, ri = left.index, right.index
-            tm.assert_index_equal(li, ri)
-
         df = DataFrame(
             np.arange(12).reshape(4, 3),
-            index=list("abab"),
-            columns=["1st", "2nd", "3rd"],
+            index=idx,
+            columns=columns,
         )
-
-        mi = MultiIndex(
-            levels=[["a", "b"], ["1st", "2nd", "3rd"]],
-            codes=[np.tile(np.arange(2).repeat(3), 2), np.tile(np.arange(3), 4)],
-        )
-
-        left, right = df.stack(), Series(np.arange(12), index=mi)
-        check(left, right)
-
-        df.columns = ["1st", "2nd", "1st"]
-        mi = MultiIndex(
-            levels=[["a", "b"], ["1st", "2nd"]],
-            codes=[np.tile(np.arange(2).repeat(3), 2), np.tile([0, 1, 0], 4)],
-        )
-
-        left, right = df.stack(), Series(np.arange(12), index=mi)
-        check(left, right)
-
-        tpls = ("a", 2), ("b", 1), ("a", 1), ("b", 2)
-        df.index = MultiIndex.from_tuples(tpls)
-        mi = MultiIndex(
-            levels=[["a", "b"], [1, 2], ["1st", "2nd"]],
-            codes=[
-                np.tile(np.arange(2).repeat(3), 2),
-                np.repeat([1, 0, 1], [3, 6, 3]),
-                np.tile([0, 1, 0], 4),
-            ],
-        )
-
-        left, right = df.stack(), Series(np.arange(12), index=mi)
-        check(left, right)
+        result = df.stack()
+        expected = Series(np.arange(12), index=exp_idx)
+        tm.assert_series_equal(result, expected)
+        assert result.index.is_unique is False
+        li, ri = result.index, expected.index
+        tm.assert_index_equal(li, ri)
 
     def test_unstack_odd_failure(self):
         data = """day,time,smoker,sum,len
