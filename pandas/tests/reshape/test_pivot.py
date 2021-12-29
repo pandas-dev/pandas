@@ -23,6 +23,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
+from pandas.core.reshape import reshape as reshape_lib
 from pandas.core.reshape.pivot import pivot_table
 
 
@@ -1991,22 +1992,27 @@ class TestPivotTable:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.slow
-    def test_pivot_number_of_levels_larger_than_int32(self):
+    def test_pivot_number_of_levels_larger_than_int32(self, monkeypatch):
         # GH 20601
         # GH 26314: Change ValueError to PerformanceWarning
-        df = DataFrame(
-            {"ind1": np.arange(2 ** 16), "ind2": np.arange(2 ** 16), "count": 0}
-        )
+        class MockUnstacker(reshape_lib._Unstacker):
+            def __init__(self, *args, **kwargs):
+                # __init__ will raise the warning
+                super().__init__(*args, **kwargs)
+                raise Exception("Don't compute final result.")
 
-        msg = "The following operation may generate"
-        with tm.assert_produces_warning(PerformanceWarning, match=msg):
-            try:
-                df.pivot_table(
-                    index="ind1", columns="ind2", values="count", aggfunc="count"
-                )
-            except MemoryError:
-                # Just checking the warning
-                return
+        with monkeypatch.context() as m:
+            m.setattr(reshape_lib, "_Unstacker", MockUnstacker)
+            df = DataFrame(
+                {"ind1": np.arange(2 ** 16), "ind2": np.arange(2 ** 16), "count": 0}
+            )
+
+            msg = "The following operation may generate"
+            with tm.assert_produces_warning(PerformanceWarning, match=msg):
+                with pytest.raises(Exception, match="Don't compute final result."):
+                    df.pivot_table(
+                        index="ind1", columns="ind2", values="count", aggfunc="count"
+                    )
 
     def test_pivot_table_aggfunc_dropna(self, dropna):
         # GH 22159
