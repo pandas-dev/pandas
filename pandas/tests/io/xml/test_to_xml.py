@@ -1308,6 +1308,7 @@ def test_filename_and_suffix_comp(parser, compression_only):
     assert geom_xml == output.strip()
 
 
+@td.skip_if_no("lxml")
 def test_ea_dtypes(any_numeric_ea_dtype):
     # GH#43903
     expected = """<?xml version='1.0' encoding='utf-8'?>
