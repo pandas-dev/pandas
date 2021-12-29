@@ -2840,16 +2840,6 @@ class DataFrame(NDFrame, OpsMixin):
             **kwargs,
         )
 
-    @Substitution(
-        header_type="bool",
-        header="Whether to print column labels, default True",
-        col_space_type="str or int, list or dict of int or str",
-        col_space="The minimum width of each column in CSS length "
-        "units.  An int is assumed to be px units.\n\n"
-        "            .. versionadded:: 0.25.0\n"
-        "                Ability to use str",
-    )
-    @Substitution(shared_params=fmt.common_docstring, returns=fmt.return_docstring)
     def to_html(
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
@@ -2891,7 +2881,64 @@ class DataFrame(NDFrame, OpsMixin):
     ):
         """
         Render a DataFrame as an HTML table.
-        %(shared_params)s
+
+        Parameters
+        ----------
+        buf : str, Path or StringIO-like, optional, default None
+            Buffer to write to. If None, the output is returned as a string
+        columns : sequence, optional, default None
+            The subset of columns to write. Writes all by default.
+        col_space : str or int, list or dict of int or str, optional
+            The minimum width of each column in CSS length units. An int is assumed
+            to be px units.
+
+            .. versionadded:: 0.25.0
+               Ability to use str.
+        header : bool, optional, default True
+            Whether to print column labels.
+        index : bool, optional, default True
+            Whether to print index (row) labels.
+        na_rep : str, optional
+            String representation of `NaN` to use.
+        formatters : list, tuple or dict of one-parameter functions, optional
+            Formatter functions to apply to columns' elements by position or
+            name. The result of each function must be a unicode string. List or
+            tuple must be equal to the number of columns.
+
+            .. deprecated:: 1.4.0
+               The ``Styler`` implementation will use the new ``formatter`` and
+               associated arguments.
+        float_format : one-parameter function, optional
+            Formatter function to apply to columns's elements if they are floats.
+            This function must return a unicode string and will be applied only to
+            the non-NaN elements, with NaN being handled by ``na_rep``.
+
+            .. versionchanged:: 1.2.0
+
+            .. deprecated:: 1.4.0
+               The ``Styler`` implementation will use the new ``precision`` and
+               associated arguments.
+        sparsify : bool, optional, default True
+            Set to `False` for a DataFrame with a hierarchical index to print
+            every multiindex key at each row.
+
+            .. deprecated:: 1.4.0
+               The ``Styler`` implementation will use the new ``sparse_index`` and
+               ``sparse_columns`` arguments.
+        index_names : bool, optional, default True
+            Whether to display the names of the indexes.
+        justify : str, default None
+            How to justify the column labels. If None uses the option from the
+            print configuration (controlled by set_option), `right` by default.
+            Valid values are:
+              - left
+              - right
+              - center
+              - justify
+              - justify-all
+              - start
+              - end
+              - inherit
         bold_rows : bool, default True
             Make the row labels bold in the output.
         classes : str or list or tuple, default None
