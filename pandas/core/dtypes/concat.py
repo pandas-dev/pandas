@@ -5,6 +5,7 @@ from typing import (
     TYPE_CHECKING,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -12,6 +13,7 @@ from pandas._typing import (
     ArrayLike,
     DtypeObj,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     astype_array,
@@ -144,8 +146,20 @@ def concat_compat(to_concat, axis: int = 0, ea_compat_axis: bool = False):
             else:
                 # coerce to object
                 to_concat = [x.astype("object") for x in to_concat]
+                kinds = {"o"}
 
-    return np.concatenate(to_concat, axis=axis)
+    result = np.concatenate(to_concat, axis=axis)
+    if "b" in kinds and result.dtype.kind in ["i", "u", "f"]:
+        # GH#39817
+        warnings.warn(
+            "Behavior when concatenating bool-dtype and numeric-dtype arrays is "
+            "deprecated; in a future version these will cast to object dtype "
+            "(instead of coercing bools to numeric values). To retain the old "
+            "behavior, explicitly cast bool-dtype arrays to numeric dtype.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+    return result
 
 
 def union_categoricals(
