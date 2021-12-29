@@ -693,18 +693,30 @@ _shared_docs[
     4    None
     dtype: object
 
-    When ``value=None`` and `to_replace` is a scalar, list or
-    tuple, `replace` uses the method parameter (default 'pad') to do the
+    When ``value`` is not explicitly passed and `to_replace` is a scalar, list
+    or tuple, `replace` uses the method parameter (default 'pad') to do the
     replacement. So this is why the 'a' values are being replaced by 10
     in rows 1 and 2 and 'b' in row 4 in this case.
-    The command ``s.replace('a', None)`` is actually equivalent to
-    ``s.replace(to_replace='a', value=None, method='pad')``:
 
-    >>> s.replace('a', None)
+    >>> s.replace('a')
     0    10
     1    10
     2    10
     3     b
     4     b
     dtype: object
+
+    On the other hand, if ``None`` is explicitly passed for ``value``, it will
+    be respected:
+
+    >>> s.replace('a', None)
+    0      10
+    1    None
+    2    None
+    3       b
+    4    None
+    dtype: object
+
+        .. versionchanged:: 1.4.0
+            Previously the explicit ``None`` was silently ignored.
 """
