@@ -824,6 +824,9 @@ def test_head_tail_dropna_true():
     result = df.groupby(["X", "Y"]).tail(n=1)
     tm.assert_frame_equal(result, expected)
 
+    result = df.groupby(["X", "Y"]).nth(n=0).reset_index()
+    tm.assert_frame_equal(result, expected)
+
 
 def test_head_tail_dropna_false():
     # GH#45089
@@ -834,4 +837,7 @@ def test_head_tail_dropna_false():
     tm.assert_frame_equal(result, expected)
 
     result = df.groupby(["X", "Y"], dropna=False).tail(n=1)
+    tm.assert_frame_equal(result, expected)
+
+    result = df.groupby(["X", "Y"], dropna=False).nth(n=0).reset_index()
     tm.assert_frame_equal(result, expected)
