@@ -16,8 +16,14 @@ from pandas import (
         (Timedelta(minutes=-7), -7 * 60 * 1e9),
         (Timedelta(minutes=-7).to_pytimedelta(), -7 * 60 * 1e9),
         (Timedelta(seconds=1234e-9), 1234),  # GH43764, GH40946
-        (Timedelta(seconds=1e-9, milliseconds=1e-5, microseconds=1e-1), 111),  # GH43764, GH40946
-        (Timedelta(days=1, seconds=1e-9, milliseconds=1e-5, microseconds=1e-1), 24 * 3600e9 + 111),  # GH43764, GH40946
+        (
+            Timedelta(seconds=1e-9, milliseconds=1e-5, microseconds=1e-1),
+            111,
+        ),  # GH43764, GH40946
+        (
+            Timedelta(days=1, seconds=1e-9, milliseconds=1e-5, microseconds=1e-1),
+            24 * 3600e9 + 111,
+        ),  # GH43764, GH40946
         (offsets.Nano(125), 125),
         (1, 1),
         (np.int64(2), 2),
