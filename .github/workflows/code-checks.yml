@@ -28,6 +28,8 @@ jobs:
 
     - name: Install Python
       uses: actions/setup-python@v2
+      with:
+        python-version: '3.9.7'
 
     - name: Run pre-commit
       uses: pre-commit/action@v2.0.3
