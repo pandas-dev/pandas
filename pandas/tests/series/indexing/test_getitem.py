@@ -696,3 +696,19 @@ def test_duplicated_index_getitem_positional_indexer(index_vals):
     s = Series(range(5), index=list(index_vals))
     result = s[3]
     assert result == 3
+
+
+class TestGetitemDeprecatedIndexers:
+    @pytest.mark.parametrize("key", [{1}, {1: 1}])
+    def test_getitem_dict_and_set_deprecated(self, key):
+        # GH#42825
+        ser = Series([1, 2, 3])
+        with tm.assert_produces_warning(FutureWarning):
+            ser[key]
+
+    @pytest.mark.parametrize("key", [{1}, {1: 1}])
+    def test_setitem_dict_and_set_deprecated(self, key):
+        # GH#42825
+        ser = Series([1, 2, 3])
+        with tm.assert_produces_warning(FutureWarning):
+            ser[key] = 1

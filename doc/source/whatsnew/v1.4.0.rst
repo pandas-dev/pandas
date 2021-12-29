@@ -608,6 +608,7 @@ Other Deprecations
 - A deprecation warning is now shown for :meth:`DataFrame.to_latex` indicating the arguments signature may change and emulate more the arguments to :meth:`.Styler.to_latex` in future versions (:issue:`44411`)
 - Deprecated behavior of :func:`concat` between objects with bool-dtype and numeric-dtypes; in a future version these will cast to object dtype instead of coercing bools to numeric values (:issue:`39817`)
 - Deprecated :meth:`Categorical.replace`, use :meth:`Series.replace` instead (:issue:`44929`)
+- Deprecated passing ``set`` or ``dict`` as indexer for :meth:`DataFrame.loc.__setitem__`, :meth:`DataFrame.loc.__getitem__`, :meth:`Series.loc.__setitem__`, :meth:`Series.loc.__getitem__`, :meth:`DataFrame.__getitem__`, :meth:`Series.__getitem__` and :meth:`Series.__setitem__` (:issue:`42825`)
 - Deprecated :meth:`Index.__getitem__` with a bool key; use ``index.values[key]`` to get the old behavior (:issue:`44051`)
 - Deprecated downcasting column-by-column in :meth:`DataFrame.where` with integer-dtypes (:issue:`44597`)
 - Deprecated :meth:`DatetimeIndex.union_many`, use :meth:`DatetimeIndex.union` instead (:issue:`44091`)
