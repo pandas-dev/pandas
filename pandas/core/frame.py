@@ -5265,11 +5265,11 @@ class DataFrame(NDFrame, OpsMixin):
     def replace(
         self,
         to_replace=None,
-        value=None,
+        value=lib.no_default,
         inplace: bool = False,
         limit=None,
         regex: bool = False,
-        method: str = "pad",
+        method: str | lib.NoDefault = lib.no_default,
     ):
         return super().replace(
             to_replace=to_replace,

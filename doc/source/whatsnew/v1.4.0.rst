@@ -606,6 +606,7 @@ Other Deprecations
 - Deprecated :meth:`DateOffset.apply`, use ``offset + other`` instead (:issue:`44522`)
 - Deprecated parameter ``names`` in :meth:`Index.copy` (:issue:`44916`)
 - A deprecation warning is now shown for :meth:`DataFrame.to_latex` indicating the arguments signature may change and emulate more the arguments to :meth:`.Styler.to_latex` in future versions (:issue:`44411`)
+- Deprecated behavior of :func:`concat` between objects with bool-dtype and numeric-dtypes; in a future version these will cast to object dtype instead of coercing bools to numeric values (:issue:`39817`)
 - Deprecated :meth:`Categorical.replace`, use :meth:`Series.replace` instead (:issue:`44929`)
 - Deprecated :meth:`Index.__getitem__` with a bool key; use ``index.values[key]`` to get the old behavior (:issue:`44051`)
 - Deprecated downcasting column-by-column in :meth:`DataFrame.where` with integer-dtypes (:issue:`44597`)
@@ -939,6 +940,8 @@ ExtensionArray
 - Bug in :func:`array` incorrectly raising when passed a ``ndarray`` with ``float16`` dtype (:issue:`44715`)
 - Bug in calling ``np.sqrt`` on :class:`BooleanArray` returning a malformed :class:`FloatingArray` (:issue:`44715`)
 - Bug in :meth:`Series.where` with ``ExtensionDtype`` when ``other`` is a NA scalar incompatible with the series dtype (e.g. ``NaT`` with a numeric dtype) incorrectly casting to a compatible NA value (:issue:`44697`)
+- Fixed bug in :meth:`Series.replace` where explicitly passing ``value=None`` is treated as if no ``value`` was passed, and ``None`` not being in the result (:issue:`36984`, :issue:`19998`)
+- Fixed bug in :meth:`Series.replace` with unwanted downcasting being done in no-op replacements (:issue:`44498`)
 - Fixed bug in :meth:`Series.replace` with ``FloatDtype``, ``string[python]``, or ``string[pyarrow]`` dtype not being preserved when possible (:issue:`33484`, :issue:`40732`, :issue:`31644`, :issue:`41215`, :issue:`25438`)
 -
 
