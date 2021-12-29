@@ -25,6 +25,8 @@ from pandas.core.ops.common import unpack_zerodim_and_defer
 REDUCTION_ALIASES = {
     "maximum": "max",
     "minimum": "min",
+    "add": "sum",
+    "multiply": "prod",
 }
 
 

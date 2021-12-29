@@ -67,10 +67,11 @@ def test_ufuncs_binary_float(ufunc):
 
 @pytest.mark.parametrize("values", [[0, 1], [0, None]])
 def test_ufunc_reduce_raises(values):
-    a = pd.array(values, dtype="Float64")
-    msg = r"The 'reduce' method is not supported."
-    with pytest.raises(NotImplementedError, match=msg):
-        np.add.reduce(a)
+    arr = pd.array(values, dtype="Float64")
+
+    res = np.add.reduce(arr)
+    expected = arr.sum(skipna=False)
+    tm.assert_almost_equal(res, expected)
 
 
 @pytest.mark.skipif(not IS64, reason="GH 36579: fail on 32-bit system")
