@@ -2882,6 +2882,10 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Render a DataFrame as an HTML table.
 
+        .. versionchanged:: 1.4.0
+           An alternative `Styler` implementation is invoked in certain cases.
+           See notes.
+
         Parameters
         ----------
         buf : str, Path or StringIO-like, optional, default None
@@ -2892,8 +2896,8 @@ class DataFrame(NDFrame, OpsMixin):
             The minimum width of each column in CSS length units. An int is assumed
             to be px units.
 
-            .. versionadded:: 0.25.0
-               Ability to use str.
+            .. deprecated:: 1.4.0
+               See notes for using CSS to control column width.
         header : bool, optional, default True
             Whether to print column labels.
         index : bool, optional, default True
@@ -2906,7 +2910,7 @@ class DataFrame(NDFrame, OpsMixin):
             tuple must be equal to the number of columns.
 
             .. deprecated:: 1.4.0
-               The ``Styler`` implementation will use the new ``formatter`` and
+               The future ``Styler`` implementation will use the new ``formatter``, and
                associated arguments.
         float_format : one-parameter function, optional
             Formatter function to apply to columns's elements if they are floats.
@@ -2931,6 +2935,7 @@ class DataFrame(NDFrame, OpsMixin):
             How to justify the column labels. If None uses the option from the
             print configuration (controlled by set_option), `right` by default.
             Valid values are:
+
               - left
               - right
               - center
@@ -3085,32 +3090,101 @@ class DataFrame(NDFrame, OpsMixin):
         `DataFrameRenderer`. If deprecated arguments are used as well as the new
         arguments the new arguments will be ignored.
 
+        It is also possible to directly use the `Styler` implementation and all its
+        associated features by converting from:
+
+        .. code-block:: python
+
+           df.to_html()
+
+        to:
+
+        .. code-block:: python
+
+           styler = df.style
+           styler.to_html()
+
         The following is a list of the deprecated arguments:
 
-          - ``col_space``: this will be removed since HTML is indifferent to whitespace,
-          - ``formatters``: this will be removed since the `Styler` implementation
-            uses its own :meth:`Styler.format` method with a changed signature using
-            the new ``formatter`` argument,
-          - ``float_format``: this will be removed as above and is replaced by a
-            variety of options using ``formatter``, ``precision``, ``decimal`` and
-            ``thousands``,
-          - ``sparsify``: this is replaced by ``sparse_index`` and ``sparse_columns``,
+          - ``col_space``: this will be removed since a CSS solution is recommended.
+
+            To control the width of all columns one possible option is:
+
+            .. code-block:: python
+
+               styler.set_table_styles([{"selector": "th", "props": "min-width:50px;"}])
+               styler.to_html()
+
+            To control the width of individual columns one option is:
+
+            .. code-block:: python
+
+               styler.set_table_styles({
+                   "my col name": [{"selector": "th", "props": "min-width:50px;"}],
+                   "other col name": [{"selector": "th", "props": "min-width:75px;"}],
+               })
+               styler.to_html()
+
+          - ``formatters`` and ``float_format``: these will be removed since the
+            `Styler` implementation uses its own :meth:`Styler.format` method with
+            a changed signature using the new ``formatter`` argument.
+
+            One option to control a specific string column and all other float/int
+            columns is the following:
+
+            .. code-block:: python
+
+               styler.format(
+                   formatter={"my string column": str.upper},
+                   precision=2,
+                   decimal=",",
+                   thousands="."
+                )
+                styler.to_html()
+
           - ``justify``: this is removed and the suggested action is to create a
             `Styler` object and add CSS styling to relevant rows, columns or datacells,
-          - ``max_cols``: this is replaced by ``max_columns`` for library consistency,
+
+          - ``sparsify``: this is replaced by ``sparse_index`` and ``sparse_columns``,
+            which control the sparsification of each index separately.
+          - ``justify``: this will be removed since a CSS solution is recommended.
+
+            As an example of left aligning the index labels:
+
+            .. code-block:: python
+
+               styler.set_table_styles([
+                   {"selector": "tbody th", "props": "text-align: left;"}
+               ])
+
+            Here is an example of a more specifically targeted alignment:
+
+            .. code-block:: python
+
+               number_css = {"selector": "td", "props": "text-align: right;"}
+               string_css = {"selector": "td", "props": "text-align: left;"}
+               custom_styles = {
+                   col: [number_css if df[col].dtype == float else string_css]
+                   for col in df.columns
+               }
+               styler.set_table_styles(custom_styles)
+               styler.to_html()
+
           - ``show_dimension``: this is removed from the HTML result. A suggestion is
             to utilise the new ``caption`` argument and populate it with information
             such as `df.shape`,
-          - ``bold_rows``: this is replaced by ``bold_headers``, which implements a
-            CSS solution,
           - ``classes``: this is replaced by ``table_attributes`` where the suggestion
             is to set the new argument to `'class="my-cls my-other-cls"'`,
-          - ``notebook``: this is removed as a legacy argument,
           - ``border``: this removed due to deprecated HTML functionality. The
             suggested action is to create a `Styler` object and add CSS styling to the
             relevant table, rows, columns, or datacells as required,
           - ``render_links``: this is replaced by ``hyperlinks`` which has more
             flexibility in detecting links contained within text,
+          - ``max_cols``: this is directly replaced by ``max_columns`` for library
+            naming consistency,
+          - ``bold_rows``: this is directly replaced by ``bold_headers``, which
+            implements a CSS solution,
+          - ``notebook``: this is removed as a legacy argument,
 
         The new arguments in 1.4.0 used exclusively with the Styler implementation are:
 
