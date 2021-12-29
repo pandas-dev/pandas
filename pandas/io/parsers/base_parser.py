@@ -77,52 +77,6 @@ from pandas.io.common import (
 )
 from pandas.io.date_converters import generic_parser
 
-parser_defaults = {
-    "delimiter": None,
-    "escapechar": None,
-    "quotechar": '"',
-    "quoting": csv.QUOTE_MINIMAL,
-    "doublequote": True,
-    "skipinitialspace": False,
-    "lineterminator": None,
-    "header": "infer",
-    "index_col": None,
-    "names": None,
-    "prefix": None,
-    "skiprows": None,
-    "skipfooter": 0,
-    "nrows": None,
-    "na_values": None,
-    "keep_default_na": True,
-    "true_values": None,
-    "false_values": None,
-    "converters": None,
-    "dtype": None,
-    "cache_dates": True,
-    "thousands": None,
-    "comment": None,
-    "decimal": ".",
-    # 'engine': 'c',
-    "parse_dates": False,
-    "keep_date_col": False,
-    "dayfirst": False,
-    "date_parser": None,
-    "usecols": None,
-    # 'iterator': False,
-    "chunksize": None,
-    "verbose": False,
-    "encoding": None,
-    "squeeze": None,
-    "compression": None,
-    "mangle_dupe_cols": True,
-    "infer_datetime_format": False,
-    "skip_blank_lines": True,
-    "encoding_errors": "strict",
-    "on_bad_lines": "error",
-    "error_bad_lines": None,
-    "warn_bad_lines": None,
-}
-
 
 class ParserBase:
     class BadLineHandleMethod(Enum):
@@ -1176,6 +1130,53 @@ def _make_date_converter(
                     return generic_parser(date_parser, *date_cols)
 
     return converter
+
+
+parser_defaults = {
+    "delimiter": None,
+    "escapechar": None,
+    "quotechar": '"',
+    "quoting": csv.QUOTE_MINIMAL,
+    "doublequote": True,
+    "skipinitialspace": False,
+    "lineterminator": None,
+    "header": "infer",
+    "index_col": None,
+    "names": None,
+    "prefix": None,
+    "skiprows": None,
+    "skipfooter": 0,
+    "nrows": None,
+    "na_values": None,
+    "keep_default_na": True,
+    "true_values": None,
+    "false_values": None,
+    "converters": None,
+    "dtype": None,
+    "cache_dates": True,
+    "thousands": None,
+    "comment": None,
+    "decimal": ".",
+    # 'engine': 'c',
+    "parse_dates": False,
+    "keep_date_col": False,
+    "dayfirst": False,
+    "date_parser": None,
+    "usecols": None,
+    # 'iterator': False,
+    "chunksize": None,
+    "verbose": False,
+    "encoding": None,
+    "squeeze": None,
+    "compression": None,
+    "mangle_dupe_cols": True,
+    "infer_datetime_format": False,
+    "skip_blank_lines": True,
+    "encoding_errors": "strict",
+    "on_bad_lines": ParserBase.BadLineHandleMethod.ERROR,
+    "error_bad_lines": None,
+    "warn_bad_lines": None,
+}
 
 
 def _process_date_conversion(
