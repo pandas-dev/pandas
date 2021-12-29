@@ -293,14 +293,17 @@ def test_stata_options(fsspectest):
 @td.skip_if_no("tabulate")
 def test_markdown_options(request, fsspectest):
     import fsspec
-    import tabulate
+
+    # error: Library stubs not installed for "tabulate"
+    # (or incompatible with Python 3.8)
+    import tabulate  # type: ignore[import]
 
     request.node.add_marker(
         pytest.mark.xfail(
             fsspec.__version__ == VERSIONS["fsspec"]
             and tabulate.__version__ == VERSIONS["tabulate"],
             reason="Fails on the min version build",
-            raises=KeyError,
+            raises=FileNotFoundError,
         )
     )
     df = DataFrame({"a": [0]})
