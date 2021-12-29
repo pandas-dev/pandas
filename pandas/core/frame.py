@@ -4377,7 +4377,7 @@ class DataFrame(NDFrame, OpsMixin):
         loc: int,
         column: Hashable,
         value: Scalar | AnyArrayLike,
-        allow_duplicates: bool = False,
+        allow_duplicates: bool | None = None,
     ) -> None:
         """
         Insert column into DataFrame at specified location.
@@ -4424,7 +4424,9 @@ class DataFrame(NDFrame, OpsMixin):
         0   NaN   100     1      99     3
         1   5.0   100     2      99     4
         """
-        if allow_duplicates and not self.flags.allows_duplicate_labels:
+        if allow_duplicates is None:
+            allow_duplicates = self.flags.allows_duplicate_labels
+        elif allow_duplicates and not self.flags.allows_duplicate_labels:
             raise ValueError(
                 "Cannot specify 'allow_duplicates=True' when "
                 "'self.flags.allows_duplicate_labels' is False."

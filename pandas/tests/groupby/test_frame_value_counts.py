@@ -404,7 +404,7 @@ def test_mixed_groupings(normalize, expected_label, expected_values):
     )
     tm.assert_frame_equal(result, expected)
 
-
+@pytest.mark.xfail(reason="Duplicate labels allowed")
 @pytest.mark.parametrize(
     "test, expected_names",
     [
