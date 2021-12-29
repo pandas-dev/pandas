@@ -303,6 +303,7 @@ def test_column_multiindex(setup_path):
             store["df1"], expected, check_index_type=True, check_column_type=True
         )
 
+
 @pytest.mark.xfail(reason="Duplicate labels allowed")
 def test_store_multiindex(setup_path):
 
