@@ -775,16 +775,6 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(result, expected)
 
     def test_constructor_dict_multiindex(self):
-        def check(result, expected):
-            return tm.assert_frame_equal(
-                result,
-                expected,
-                check_dtype=True,
-                check_index_type=True,
-                check_column_type=True,
-                check_names=True,
-            )
-
         d = {
             ("a", "a"): {("i", "i"): 0, ("i", "j"): 1, ("j", "i"): 2},
             ("b", "a"): {("i", "i"): 6, ("i", "j"): 5, ("j", "i"): 4},
@@ -796,7 +786,10 @@ class TestDataFrameConstructors:
             [x[1] for x in _d], index=MultiIndex.from_tuples([x[0] for x in _d])
         ).T
         expected.index = MultiIndex.from_tuples(expected.index)
-        check(df, expected)
+        tm.assert_frame_equal(
+            df,
+            expected,
+        )
 
         d["z"] = {"y": 123.0, ("i", "i"): 111, ("i", "j"): 111, ("j", "i"): 111}
         _d.insert(0, ("z", d["z"]))
@@ -806,7 +799,7 @@ class TestDataFrameConstructors:
         expected.index = Index(expected.index, tupleize_cols=False)
         df = DataFrame(d)
         df = df.reindex(columns=expected.columns, index=expected.index)
-        check(df, expected)
+        tm.assert_frame_equal(df, expected)
 
     def test_constructor_dict_datetime64_index(self):
         # GH 10160
@@ -2167,44 +2160,38 @@ class TestDataFrameConstructors:
 
         assert not (series["A"] == 5).all()
 
-    def test_constructor_with_nas(self):
+    @pytest.mark.parametrize(
+        "df",
+        [
+            DataFrame([[1, 2, 3], [4, 5, 6]], index=[1, np.nan]),
+            DataFrame([[1, 2, 3], [4, 5, 6]], columns=[1.1, 2.2, np.nan]),
+            DataFrame([[0, 1, 2, 3], [4, 5, 6, 7]], columns=[np.nan, 1.1, 2.2, np.nan]),
+            DataFrame(
+                [[0.0, 1, 2, 3.0], [4, 5, 6, 7]], columns=[np.nan, 1.1, 2.2, np.nan]
+            ),
+            DataFrame([[0.0, 1, 2, 3.0], [4, 5, 6, 7]], columns=[np.nan, 1, 2, 2]),
+        ],
+    )
+    def test_constructor_with_nas(self, df):
         # GH 5016
         # na's in indices
-
-        def check(df):
-            for i in range(len(df.columns)):
-                df.iloc[:, i]
-
-            indexer = np.arange(len(df.columns))[isna(df.columns)]
-
-            # No NaN found -> error
-            if len(indexer) == 0:
-                with pytest.raises(KeyError, match="^nan$"):
-                    df.loc[:, np.nan]
-            # single nan should result in Series
-            elif len(indexer) == 1:
-                tm.assert_series_equal(df.iloc[:, indexer[0]], df.loc[:, np.nan])
-            # multiple nans should result in DataFrame
-            else:
-                tm.assert_frame_equal(df.iloc[:, indexer], df.loc[:, np.nan])
-
-        df = DataFrame([[1, 2, 3], [4, 5, 6]], index=[1, np.nan])
-        check(df)
-
-        df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=[1.1, 2.2, np.nan])
-        check(df)
-
-        df = DataFrame([[0, 1, 2, 3], [4, 5, 6, 7]], columns=[np.nan, 1.1, 2.2, np.nan])
-        check(df)
-
-        df = DataFrame(
-            [[0.0, 1, 2, 3.0], [4, 5, 6, 7]], columns=[np.nan, 1.1, 2.2, np.nan]
-        )
-        check(df)
-
         # GH 21428 (non-unique columns)
-        df = DataFrame([[0.0, 1, 2, 3.0], [4, 5, 6, 7]], columns=[np.nan, 1, 2, 2])
-        check(df)
+
+        for i in range(len(df.columns)):
+            df.iloc[:, i]
+
+        indexer = np.arange(len(df.columns))[isna(df.columns)]
+
+        # No NaN found -> error
+        if len(indexer) == 0:
+            with pytest.raises(KeyError, match="^nan$"):
+                df.loc[:, np.nan]
+        # single nan should result in Series
+        elif len(indexer) == 1:
+            tm.assert_series_equal(df.iloc[:, indexer[0]], df.loc[:, np.nan])
+        # multiple nans should result in DataFrame
+        else:
+            tm.assert_frame_equal(df.iloc[:, indexer], df.loc[:, np.nan])
 
     def test_constructor_lists_to_object_dtype(self):
         # from #1074
