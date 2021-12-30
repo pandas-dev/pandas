@@ -120,8 +120,8 @@ dependencies:
   - tabulate>=0.8.3  # DataFrame.to_markdown
   - natsort  # DataFrame.sort_values
   - pip:
-      #issue with building environment in conda with issue link: https://github.com/pandas-dev/pandas/issues/45123
-      #issue with pydata-sphix-theme issue link: https://github.com/pydata/pydata-sphinx-theme/issues/523
+      #issue with building environment in conda on windowswith. Issue: https://github.com/pandas-dev/pandas/issues/45123
+      #issue with pydata-sphix-theme on windows. Issue: https://github.com/pydata/pydata-sphinx-theme/issues/523
       #using this last stable version as workaround
     - git+https://github.com/pydata/pydata-sphinx-theme.git@41764f5
     - pandas-dev-flaker==0.2.0
