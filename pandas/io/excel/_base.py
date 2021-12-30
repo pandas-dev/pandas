@@ -354,6 +354,7 @@ Comment lines in the excel input file can be skipped using the `comment` kwarg
 @overload
 def read_excel(
     io,
+    # sheet name is str or int -> DataFrame
     sheet_name: str | int,
     header: int | Sequence[int] | None = ...,
     names=...,
@@ -387,6 +388,7 @@ def read_excel(
 @overload
 def read_excel(
     io,
+    # sheet name is list or None -> dict[IntStrT, DataFrame]
     sheet_name: list[IntStrT] | None,
     header: int | Sequence[int] | None = ...,
     names=...,
