@@ -55,7 +55,6 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     ensure_int64,
-    ensure_object,
     ensure_platform_int,
     is_categorical_dtype,
     is_datetime64_dtype,
@@ -96,7 +95,6 @@ from pandas.core.accessor import (
 import pandas.core.algorithms as algorithms
 from pandas.core.algorithms import (
     factorize,
-    get_data_algo,
     take_nd,
     unique1d,
 )
@@ -2760,8 +2758,6 @@ def _get_codes_for_values(values, categories: Index) -> np.ndarray:
 
     If `values` is known to be a Categorical, use recode_for_categories instead.
     """
-    dtype_equal = is_dtype_equal(values.dtype, categories.dtype)
-
     if values.ndim > 1:
         flat = values.ravel()
         codes = _get_codes_for_values(flat, categories)
@@ -2773,30 +2769,9 @@ def _get_codes_for_values(values, categories: Index) -> np.ndarray:
         # Categorical(array[Period, Period], categories=PeriodIndex(...))
         cls = categories.dtype.construct_array_type()
         values = maybe_cast_to_extension_array(cls, values)
-        if not isinstance(values, cls):
-            # exception raised in _from_sequence
-            values = ensure_object(values)
-            # error: Incompatible types in assignment (expression has type
-            # "ndarray", variable has type "Index")
-            categories = ensure_object(categories)  # type: ignore[assignment]
-    elif not dtype_equal:
-        values = ensure_object(values)
-        # error: Incompatible types in assignment (expression has type "ndarray",
-        # variable has type "Index")
-        categories = ensure_object(categories)  # type: ignore[assignment]
 
-    if isinstance(categories, ABCIndex):
-        return coerce_indexer_dtype(categories.get_indexer_for(values), categories)
-
-    # Only hit here when we've already coerced to object dtypee.
-
-    hash_klass, vals = get_data_algo(values)
-    # pandas/core/arrays/categorical.py:2661: error: Argument 1 to "get_data_algo" has
-    # incompatible type "Index"; expected "Union[ExtensionArray, ndarray]"  [arg-type]
-    _, cats = get_data_algo(categories)  # type: ignore[arg-type]
-    t = hash_klass(len(cats))
-    t.map_locations(cats)
-    return coerce_indexer_dtype(t.lookup(vals), cats)
+    codes = categories.get_indexer_for(values)
+    return coerce_indexer_dtype(codes, categories)
 
 
 def recode_for_categories(
