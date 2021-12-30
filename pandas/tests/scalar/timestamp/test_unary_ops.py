@@ -414,7 +414,7 @@ class TestTimestampUnaryOps:
 
         # datetime.timestamp() converts in the local timezone
         with tm.set_timezone("UTC"):
-            assert result_dt.timestamp() == result_pd.timestamp()
+            assert result_dt.timestamp() == result_pd.unixtime
 
         assert result_dt == result_pd
         assert result_dt == result_pd.to_pydatetime()
@@ -424,7 +424,7 @@ class TestTimestampUnaryOps:
 
         # datetime.timestamp() converts in the local timezone
         with tm.set_timezone("UTC"):
-            assert result_dt.timestamp() == result_pd.timestamp()
+            assert result_dt.timestamp() == result_pd.unixtime
 
         assert result_dt == result_pd
         assert result_dt == result_pd.to_pydatetime()
@@ -495,24 +495,31 @@ class TestTimestampUnaryOps:
 
     @td.skip_if_windows
     def test_timestamp(self, fixed_now_ts):
+        """Calling ts.timestamp() depcrecated in favour of ts.unixtime()"""
+        ts = fixed_now_ts
+        with pytest.deprecated_call():
+            ts.timestamp()
+            
+
+    @td.skip_if_windows
+    def test_unixtime(self, fixed_now_ts):
         # GH#17329
         # tz-naive --> treat it as if it were UTC for purposes of timestamp()
         ts = fixed_now_ts
         uts = ts.replace(tzinfo=utc)
-        assert ts.timestamp() == uts.timestamp()
+        assert ts.unixtime == uts.unixtime
 
         tsc = Timestamp("2014-10-11 11:00:01.12345678", tz="US/Central")
         utsc = tsc.tz_convert("UTC")
 
         # utsc is a different representation of the same time
-        assert tsc.timestamp() == utsc.timestamp()
+        assert tsc.unixtime == utsc.unixtime
 
         # datetime.timestamp() converts in the local timezone
         with tm.set_timezone("UTC"):
             # should agree with datetime.timestamp method
             dt = ts.to_pydatetime()
-            assert dt.timestamp() == ts.timestamp()
-
+            assert dt.timestamp() == ts.unixtime
 
 @pytest.mark.parametrize("fold", [0, 1])
 def test_replace_preserves_fold(fold):

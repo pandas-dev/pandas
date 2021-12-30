@@ -859,6 +859,21 @@ cdef class _Timestamp(ABCTimestamp):
         """
         return np.datetime64(self.value, 'ns')
 
+    @property
+    def unixtime(self):
+        """
+        Return POSIX timestamp as float.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548')
+        >>> ts.unixtime
+        1584199972.192548
+        """
+        # GH 17329
+        # Note: Naive timestamps will not match datetime.stdlib
+        return round(self.value / 1e9, 6)
+
     def timestamp(self):
         """
         Return POSIX timestamp as float.
@@ -871,7 +886,13 @@ cdef class _Timestamp(ABCTimestamp):
         """
         # GH 17329
         # Note: Naive timestamps will not match datetime.stdlib
-        return round(self.value / 1e9, 6)
+        warnings.warn(
+                    "The timestamp() method is deprecated and will be removed in a future "
+                    "version. Use unixtime property instead",
+                    DeprecationWarning,
+                    stacklevel=1,
+                )     
+        return self.unixtime
 
     cpdef datetime to_pydatetime(_Timestamp self, bint warn=True):
         """
