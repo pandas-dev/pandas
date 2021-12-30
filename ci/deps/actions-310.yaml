@@ -1,36 +1,40 @@
 name: pandas-dev
 channels:
-  - defaults
   - conda-forge
 dependencies:
-  - python=3.8
+  - python=3.10
 
   # tools
   - cython>=0.29.24
   - pytest>=6.0
+  - pytest-cov
   - pytest-xdist>=1.31
   - hypothesis>=5.5.3
-  - pytest-azurepipelines
 
   # pandas dependencies
   - beautifulsoup4
   - bottleneck
+  - boto3
+  - fsspec>=0.8.0
+  - gcsfs
   - html5lib
   - jinja2
   - lxml
-  - matplotlib=3.3.2
-  - nomkl
+  - matplotlib
+  - numpy  # move up to solve before numba
+  - numba
   - numexpr
-  - numpy=1.18.5
   - openpyxl
-  - pyarrow=1.0.1
-  - pyreadstat
+  - pyarrow>2.0.1
   - pytables
-  - python-dateutil==2.8.1
+  - python-dateutil
   - pytz
-  - pyxlsb
-  - xarray
+  - s3fs>=0.4.2
+  - scipy
+  - sqlalchemy
   - xlrd
   - xlsxwriter
   - xlwt
+  - pyreadstat
+  - pyxlsb
   - zstandard
