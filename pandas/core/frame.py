@@ -2992,7 +2992,7 @@ class DataFrame(NDFrame, OpsMixin):
             Convert URLs to HTML links.
 
             .. deprecated:: 1.4.0
-               Repalced by ``hyperlinks`` in the `Styler` implementation.
+               Replaced by ``hyperlinks`` in the `Styler` implementation.
         encoding : str, default "utf-8"
             Set character encoding.
 
@@ -3143,14 +3143,16 @@ class DataFrame(NDFrame, OpsMixin):
 
           - ``sparsify``: this is replaced by ``sparse_index`` and ``sparse_columns``,
             which control the sparsification of each index separately.
-          - ``justify``: this will be removed since a CSS solution is recommended.
+          - ``justify``: this will be removed since a CSS solution is recommended, and
+            more flexible.
 
-            As an example of left aligning the index labels:
+            As an example of vertically and horizontally aligning the index labels:
 
             .. code-block:: python
 
                styler.set_table_styles([
-                   {"selector": "tbody th", "props": "text-align: left;"}
+                   {"selector": "tbody th",
+                    "props": "text-align: left; vertical-align: top;"}
                ])
 
             Here is an example of a more specifically targeted alignment:
