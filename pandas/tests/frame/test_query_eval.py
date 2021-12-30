@@ -173,7 +173,7 @@ class TestDataFrameEval:
         # Both input and default index/column resolvers should be usable
         result = df.eval("a + b * c", resolvers=[dict1])
 
-        expected = df[["a"]] + df[["b"]] * dict1["c"]
+        expected = df["a"] + df["b"] * dict1["c"]
         tm.assert_series_equal(result, expected)
 
     def test_eval_object_dtype_binop(self):
