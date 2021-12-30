@@ -18,6 +18,7 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.missing import isna
 
 from pandas.core.frame import DataFrame
 from pandas.core.shared_docs import _shared_docs
@@ -571,9 +572,7 @@ class LxmlXMLFormatter(BaseXMLFormatter):
             elem_name = f"{self.prefix_uri}{flat_col}"
             try:
                 val = (
-                    None
-                    if self.d[col] in [None, ""] or self.d[col] != self.d[col]
-                    else str(self.d[col])
+                    None if isna(self.d[col]) or self.d[col] == "" else str(self.d[col])
                 )
                 SubElement(self.elem_row, elem_name).text = val
             except KeyError:
