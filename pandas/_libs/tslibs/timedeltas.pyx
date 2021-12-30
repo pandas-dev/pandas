@@ -1539,6 +1539,10 @@ class Timedelta(_Timedelta):
         div = other // self
         return div, other - div * self
 
+    def total_seconds(self):
+        """Total seconds in the duration."""
+        return self.value / 1_000_000_000
+
 
 cdef bint is_any_td_scalar(object obj):
     """

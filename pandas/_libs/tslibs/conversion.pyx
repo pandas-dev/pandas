@@ -504,7 +504,7 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, tzinfo tz,
 
     if obj.tzinfo is not None and not is_utc(obj.tzinfo):
         offset = get_utcoffset(obj.tzinfo, ts)
-        obj.value -= int(offset.total_seconds() * 1e9)
+        obj.value -= int(offset.total_seconds() * 1_000_000_000)
 
     if isinstance(ts, ABCTimestamp):
         obj.value += <int64_t>ts.nanosecond
