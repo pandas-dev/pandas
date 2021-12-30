@@ -46,11 +46,27 @@ def test_union_same_types(index):
     assert idx1.union(idx2).dtype == idx1.dtype
 
 
-def test_union_different_types(index_flat, index_flat2):
+def test_union_different_types(index_flat, index_flat2, request):
     # This test only considers combinations of indices
     # GH 23525
     idx1 = index_flat
     idx2 = index_flat2
+
+    if (
+        not idx1.is_unique
+        and idx1.dtype.kind == "i"
+        and idx2.dtype.kind == "b"
+        and (idx1.has_duplicates and idx2.has_duplicates)
+    ) or (
+        not idx2.is_unique
+        and idx2.dtype.kind == "i"
+        and idx1.dtype.kind == "b"
+        and (idx1.has_duplicates and idx2.has_duplicates)
+    ):
+        mark = pytest.mark.xfail(
+            reason="GH#44000 True==1", raises=ValueError, strict=False
+        )
+        request.node.add_marker(mark)
 
     common_dtype = find_common_type([idx1.dtype, idx2.dtype])
 
@@ -217,7 +233,11 @@ class TestSetOps:
     def test_difference_base(self, sort, index):
         first = index[2:]
         second = index[:4]
-        if isinstance(index, CategoricalIndex) or index.is_boolean():
+        if index.is_boolean():
+            # i think (TODO: be sure) there assumptions baked in about
+            #  the index fixture that don't hold here?
+            answer = set(first).difference(set(second))
+        elif isinstance(index, CategoricalIndex):
             answer = []
         else:
             answer = index[4:]
