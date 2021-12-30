@@ -775,16 +775,6 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(result, expected)
 
     def test_constructor_dict_multiindex(self):
-        def check(result, expected):
-            return tm.assert_frame_equal(
-                result,
-                expected,
-                check_dtype=True,
-                check_index_type=True,
-                check_column_type=True,
-                check_names=True,
-            )
-
         d = {
             ("a", "a"): {("i", "i"): 0, ("i", "j"): 1, ("j", "i"): 2},
             ("b", "a"): {("i", "i"): 6, ("i", "j"): 5, ("j", "i"): 4},
@@ -796,7 +786,10 @@ class TestDataFrameConstructors:
             [x[1] for x in _d], index=MultiIndex.from_tuples([x[0] for x in _d])
         ).T
         expected.index = MultiIndex.from_tuples(expected.index)
-        check(df, expected)
+        tm.assert_frame_equal(
+            df,
+            expected,
+        )
 
         d["z"] = {"y": 123.0, ("i", "i"): 111, ("i", "j"): 111, ("j", "i"): 111}
         _d.insert(0, ("z", d["z"]))
@@ -806,7 +799,7 @@ class TestDataFrameConstructors:
         expected.index = Index(expected.index, tupleize_cols=False)
         df = DataFrame(d)
         df = df.reindex(columns=expected.columns, index=expected.index)
-        check(df, expected)
+        tm.assert_frame_equal(df, expected)
 
     def test_constructor_dict_datetime64_index(self):
         # GH 10160
@@ -2167,44 +2160,38 @@ class TestDataFrameConstructors:
 
         assert not (series["A"] == 5).all()
 
-    def test_constructor_with_nas(self):
+    @pytest.mark.parametrize(
+        "df",
+        [
+            DataFrame([[1, 2, 3], [4, 5, 6]], index=[1, np.nan]),
+            DataFrame([[1, 2, 3], [4, 5, 6]], columns=[1.1, 2.2, np.nan]),
+            DataFrame([[0, 1, 2, 3], [4, 5, 6, 7]], columns=[np.nan, 1.1, 2.2, np.nan]),
+            DataFrame(
+                [[0.0, 1, 2, 3.0], [4, 5, 6, 7]], columns=[np.nan, 1.1, 2.2, np.nan]
+            ),
+            DataFrame([[0.0, 1, 2, 3.0], [4, 5, 6, 7]], columns=[np.nan, 1, 2, 2]),
+        ],
+    )
+    def test_constructor_with_nas(self, df):
         # GH 5016
         # na's in indices
-
-        def check(df):
-            for i in range(len(df.columns)):
-                df.iloc[:, i]
-
-            indexer = np.arange(len(df.columns))[isna(df.columns)]
-
-            # No NaN found -> error
-            if len(indexer) == 0:
-                with pytest.raises(KeyError, match="^nan$"):
-                    df.loc[:, np.nan]
-            # single nan should result in Series
-            elif len(indexer) == 1:
-                tm.assert_series_equal(df.iloc[:, indexer[0]], df.loc[:, np.nan])
-            # multiple nans should result in DataFrame
-            else:
-                tm.assert_frame_equal(df.iloc[:, indexer], df.loc[:, np.nan])
-
-        df = DataFrame([[1, 2, 3], [4, 5, 6]], index=[1, np.nan])
-        check(df)
-
-        df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=[1.1, 2.2, np.nan])
-        check(df)
-
-        df = DataFrame([[0, 1, 2, 3], [4, 5, 6, 7]], columns=[np.nan, 1.1, 2.2, np.nan])
-        check(df)
-
-        df = DataFrame(
-            [[0.0, 1, 2, 3.0], [4, 5, 6, 7]], columns=[np.nan, 1.1, 2.2, np.nan]
-        )
-        check(df)
-
         # GH 21428 (non-unique columns)
-        df = DataFrame([[0.0, 1, 2, 3.0], [4, 5, 6, 7]], columns=[np.nan, 1, 2, 2])
-        check(df)
+
+        for i in range(len(df.columns)):
+            df.iloc[:, i]
+
+        indexer = np.arange(len(df.columns))[isna(df.columns)]
+
+        # No NaN found -> error
+        if len(indexer) == 0:
+            with pytest.raises(KeyError, match="^nan$"):
+                df.loc[:, np.nan]
+        # single nan should result in Series
+        elif len(indexer) == 1:
+            tm.assert_series_equal(df.iloc[:, indexer[0]], df.loc[:, np.nan])
+        # multiple nans should result in DataFrame
+        else:
+            tm.assert_frame_equal(df.iloc[:, indexer], df.loc[:, np.nan])
 
     def test_constructor_lists_to_object_dtype(self):
         # from #1074
@@ -2666,6 +2653,50 @@ class TestDataFrameConstructorIndexInference:
         exp = pd.period_range("1/1/1980", "1/1/2012", freq="M")
         tm.assert_index_equal(df.index, exp)
 
+    def test_frame_from_dict_with_mixed_tzaware_indexes(self):
+        # GH#44091
+        dti = date_range("2016-01-01", periods=3)
+
+        ser1 = Series(range(3), index=dti)
+        ser2 = Series(range(3), index=dti.tz_localize("UTC"))
+        ser3 = Series(range(3), index=dti.tz_localize("US/Central"))
+        ser4 = Series(range(3))
+
+        # no tz-naive, but we do have mixed tzs and a non-DTI
+        df1 = DataFrame({"A": ser2, "B": ser3, "C": ser4})
+        exp_index = Index(
+            list(ser2.index) + list(ser3.index) + list(ser4.index), dtype=object
+        )
+        tm.assert_index_equal(df1.index, exp_index)
+
+        df2 = DataFrame({"A": ser2, "C": ser4, "B": ser3})
+        exp_index3 = Index(
+            list(ser2.index) + list(ser4.index) + list(ser3.index), dtype=object
+        )
+        tm.assert_index_equal(df2.index, exp_index3)
+
+        df3 = DataFrame({"B": ser3, "A": ser2, "C": ser4})
+        exp_index3 = Index(
+            list(ser3.index) + list(ser2.index) + list(ser4.index), dtype=object
+        )
+        tm.assert_index_equal(df3.index, exp_index3)
+
+        df4 = DataFrame({"C": ser4, "B": ser3, "A": ser2})
+        exp_index4 = Index(
+            list(ser4.index) + list(ser3.index) + list(ser2.index), dtype=object
+        )
+        tm.assert_index_equal(df4.index, exp_index4)
+
+        # TODO: not clear if these raising is desired (no extant tests),
+        #  but this is de facto behavior 2021-12-22
+        msg = "Cannot join tz-naive with tz-aware DatetimeIndex"
+        with pytest.raises(TypeError, match=msg):
+            DataFrame({"A": ser2, "B": ser3, "C": ser4, "D": ser1})
+        with pytest.raises(TypeError, match=msg):
+            DataFrame({"A": ser2, "B": ser3, "D": ser1})
+        with pytest.raises(TypeError, match=msg):
+            DataFrame({"D": ser1, "A": ser2, "B": ser3})
+
 
 class TestDataFrameConstructorWithDtypeCoercion:
     def test_floating_values_integer_dtype(self):
@@ -2911,7 +2942,7 @@ class TestDataFrameConstructorWithDatetimeTZ:
             DataFrame(arr2, columns=["foo", "bar"])
 
 
-def get1(obj):
+def get1(obj):  # TODO: make a helper in tm?
     if isinstance(obj, Series):
         return obj.iloc[0]
     else:
