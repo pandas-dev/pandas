@@ -78,7 +78,7 @@ repos:
         types: [python]
         stages: [manual]
         # note: keep version in sync with .github/workflows/ci.yml
-        additional_dependencies: ['pyright@1.1.200']
+        additional_dependencies: ['pyright@1.1.202']
 -   repo: local
     hooks:
     -   id: flake8-rst

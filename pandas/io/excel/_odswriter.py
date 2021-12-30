@@ -140,7 +140,7 @@ class ODSWriter(ExcelWriter):
             attributes["numbercolumnsspanned"] = cell.mergeend
         return attributes
 
-    def _make_table_cell(self, cell) -> tuple[str, Any]:
+    def _make_table_cell(self, cell) -> tuple[object, Any]:
         """Convert cell data to an OpenDocument spreadsheet cell
 
         Parameters
