@@ -712,6 +712,7 @@ Datetimelike
 - Bug in :class:`DateOffset`` addition with :class:`Timestamp` where ``offset.nanoseconds`` would not be included in the result (:issue:`43968`, :issue:`36589`)
 - Bug in :meth:`Timestamp.fromtimestamp` not supporting the ``tz`` argument (:issue:`45083`)
 - Bug in :class:`DataFrame` construction from dict of :class:`Series` with mismatched index dtypes sometimes raising depending on the ordering of the passed dict (:issue:`44091`)
+- Bug in :class:`Timestamp` hashing during some DST transitions caused a segmentation fault (:issue:`33931`)
 -
 
 Timedelta
