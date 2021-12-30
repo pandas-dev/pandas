@@ -260,7 +260,7 @@ class BaseXMLFormatter:
         """
 
         if not self.attr_cols:
-            return
+            return elem_row
 
         for col in self.attr_cols:
             attr_name = self._get_flat_col_name(col)
@@ -348,10 +348,7 @@ class EtreeXMLFormatter(BaseXMLFormatter):
                 self.build_elems(d, elem_row)
 
             else:
-                build_elem_row = self.build_attribs(d, elem_row)
-                if build_elem_row is not None:
-                    elem_row = build_elem_row
-
+                elem_row = self.build_attribs(d, elem_row)
                 self.build_elems(d, elem_row)
 
         self.out_xml = tostring(self.root, method="xml", encoding=self.encoding)
@@ -469,10 +466,7 @@ class LxmlXMLFormatter(BaseXMLFormatter):
                 self.build_elems(d, elem_row)
 
             else:
-                build_elem_row = self.build_attribs(d, elem_row)
-                if build_elem_row is not None:
-                    elem_row = build_elem_row
-
+                elem_row = self.build_attribs(d, elem_row)
                 self.build_elems(d, elem_row)
 
         self.out_xml = tostring(
