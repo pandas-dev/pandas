@@ -257,13 +257,18 @@ class StylerRenderer:
         head = self._translate_header(sparse_cols, max_cols)
         d.update({"head": head})
 
+        idx_lengths = _get_level_lengths(
+            self.index, sparse_index, max_rows, self.hidden_rows
+        )
+        d.update({"index_lengths": idx_lengths})
+
         self.cellstyle_map: DefaultDict[tuple[CSSPair, ...], list[str]] = defaultdict(
             list
         )
         self.cellstyle_map_index: DefaultDict[
             tuple[CSSPair, ...], list[str]
         ] = defaultdict(list)
-        body = self._translate_body(sparse_index, max_rows, max_cols)
+        body = self._translate_body(idx_lengths, max_rows, max_cols)
         d.update({"body": body})
 
         ctx_maps = {
@@ -515,7 +520,7 @@ class StylerRenderer:
 
         return index_names + column_blanks
 
-    def _translate_body(self, sparsify_index: bool, max_rows: int, max_cols: int):
+    def _translate_body(self, idx_lengths: dict, max_rows: int, max_cols: int):
         """
         Build each <tr> within table <body> as a list
 
@@ -538,10 +543,6 @@ class StylerRenderer:
             The associated HTML elements needed for template rendering.
         """
         # for sparsifying a MultiIndex
-        idx_lengths = _get_level_lengths(
-            self.index, sparsify_index, max_rows, self.hidden_rows
-        )
-
         rlabels = self.data.index.tolist()
         if not isinstance(self.data.index, MultiIndex):
             rlabels = [[x] for x in rlabels]
