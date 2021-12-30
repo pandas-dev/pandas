@@ -1309,7 +1309,7 @@ def test_filename_and_suffix_comp(parser, compression_only):
 
 
 @td.skip_if_no("lxml")
-def test_ea_dtypes(any_numeric_ea_dtype):
+def test_ea_dtypes(any_numeric_ea_dtype, parser):
     # GH#43903
     expected = """<?xml version='1.0' encoding='utf-8'?>
 <data>
@@ -1319,8 +1319,8 @@ def test_ea_dtypes(any_numeric_ea_dtype):
   </row>
 </data>"""
     df = DataFrame({"a": [NA]}).astype(any_numeric_ea_dtype)
-    result = df.to_xml()
-    assert result.strip() == expected
+    result = df.to_xml(parser=parser)
+    assert equalize_decl(result).strip() == expected
 
 
 def test_unsuported_compression(datapath, parser):
