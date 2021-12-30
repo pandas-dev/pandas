@@ -776,7 +776,7 @@ def read_xml(
         expressions. For more complex XPath, use ``lxml`` which requires
         installation.
 
-    namespaces : dict, list of dicts, optional
+    namespaces : dict, optional
         The namespaces defined in XML document as dicts with key being
         namespace prefix and value the URI. There is no need to include all
         namespaces in XML, only the ones used in ``xpath`` expression.
