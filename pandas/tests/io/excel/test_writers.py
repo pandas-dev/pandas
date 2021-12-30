@@ -1596,7 +1596,7 @@ class TestExcelWriter:
         request.node.add_marker(
             pytest.mark.xfail(
                 openpyxl_installed_and_xlsx_xlsm(ext)
-                and not xlswriter_and_xlsx(path, request.getfixturevalue("engine")),
+                and not xlswriter_and_xlsx(ext, request.getfixturevalue("engine")),
                 reason="Fails on the min version build",
                 raises=TypeError,
             )
@@ -1612,7 +1612,7 @@ class TestExcelWriter:
         request.node.add_marker(
             pytest.mark.xfail(
                 openpyxl_installed_and_xlsx_xlsm(ext)
-                and not xlswriter_and_xlsx(path, request.getfixturevalue("engine")),
+                and not xlswriter_and_xlsx(ext, request.getfixturevalue("engine")),
                 reason="Fails on the min version build",
                 raises=TypeError,
             )
@@ -1689,7 +1689,8 @@ class TestExcelWriter:
         # GH#39695
         request.node.add_marker(
             pytest.mark.xfail(
-                openpyxl_installed_and_xlsx_xlsm(path),
+                openpyxl_installed_and_xlsx_xlsm(path)
+                and not xlswriter_and_xlsx(path, request.getfixturevalue("engine")),
                 reason="Fails on the min version build",
                 raises=TypeError,
             )
