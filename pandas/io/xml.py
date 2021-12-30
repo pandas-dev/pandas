@@ -5,12 +5,14 @@
 from __future__ import annotations
 
 import io
+from typing import Iterable
 
 from pandas._typing import (
     CompressionOptions,
     FilePath,
     ReadBuffer,
     StorageOptions,
+    XMLParsers,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
@@ -98,17 +100,17 @@ class _XMLFrameParser:
 
     def __init__(
         self,
-        path_or_buffer,
-        xpath,
-        namespaces,
-        elems_only,
-        attrs_only,
-        names,
-        encoding,
-        stylesheet,
+        path_or_buffer: FilePath | ReadBuffer[bytes] | ReadBuffer[str],
+        xpath: str,
+        namespaces: dict | list[dict] | None,
+        elems_only: bool,
+        attrs_only: bool,
+        names: Iterable[str] | None,
+        encoding: str | None,
+        stylesheet: FilePath | ReadBuffer[bytes] | ReadBuffer[str] | None,
         compression: CompressionOptions,
         storage_options: StorageOptions,
-    ) -> None:
+    ):
         self.path_or_buffer = path_or_buffer
         self.xpath = xpath
         self.namespaces = namespaces
@@ -371,9 +373,6 @@ class _LxmlFrameParser(_XMLFrameParser):
     XPath 1.0 and XSLT 1.0.
     """
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-
     def parse_data(self) -> list[dict[str, str | None]]:
         """
         Parse xml data.
@@ -570,7 +569,7 @@ class _LxmlFrameParser(_XMLFrameParser):
 
 def get_data_from_filepath(
     filepath_or_buffer: FilePath | bytes | ReadBuffer[bytes] | ReadBuffer[str],
-    encoding,
+    encoding: str | None,
     compression: CompressionOptions,
     storage_options: StorageOptions,
 ) -> str | bytes | ReadBuffer[bytes] | ReadBuffer[str]:
@@ -658,15 +657,15 @@ def _data_to_frame(data, **kwargs) -> DataFrame:
 
 
 def _parse(
-    path_or_buffer,
-    xpath,
-    namespaces,
-    elems_only,
-    attrs_only,
-    names,
-    encoding,
-    parser,
-    stylesheet,
+    path_or_buffer: FilePath | ReadBuffer[bytes] | ReadBuffer[str],
+    xpath: str,
+    namespaces: dict | list[dict] | None,
+    elems_only: bool,
+    attrs_only: bool,
+    names: Iterable[str] | None,
+    encoding: str | None,
+    parser: XMLParsers,
+    stylesheet: FilePath | ReadBuffer[bytes] | ReadBuffer[str] | None,
     compression: CompressionOptions,
     storage_options: StorageOptions,
     **kwargs,
@@ -686,11 +685,11 @@ def _parse(
         * If parser is not lxml or etree.
     """
 
-    lxml = import_optional_dependency("lxml.etree", errors="ignore")
-
     p: _EtreeFrameParser | _LxmlFrameParser
 
     if parser == "lxml":
+        lxml = import_optional_dependency("lxml.etree", errors="ignore")
+
         if lxml is not None:
             p = _LxmlFrameParser(
                 path_or_buffer,
@@ -734,13 +733,13 @@ def _parse(
 )
 def read_xml(
     path_or_buffer: FilePath | ReadBuffer[bytes] | ReadBuffer[str],
-    xpath: str | None = "./*",
+    xpath: str = "./*",
     namespaces: dict | list[dict] | None = None,
-    elems_only: bool | None = False,
-    attrs_only: bool | None = False,
-    names: list[str] | None = None,
+    elems_only: bool = False,
+    attrs_only: bool = False,
+    names: Iterable[str] | None = None,
     encoding: str | None = "utf-8",
-    parser: str | None = "lxml",
+    parser: XMLParsers = "lxml",
     stylesheet: FilePath | ReadBuffer[bytes] | ReadBuffer[str] | None = None,
     compression: CompressionOptions = "infer",
     storage_options: StorageOptions = None,
@@ -765,7 +764,7 @@ def read_xml(
         expressions. For more complex XPath, use ``lxml`` which requires
         installation.
 
-    namespaces : dict, optional
+    namespaces : dict, list of dicts, optional
         The namespaces defined in XML document as dicts with key being
         namespace prefix and value the URI. There is no need to include all
         namespaces in XML, only the ones used in ``xpath`` expression.
