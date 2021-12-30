@@ -29,71 +29,64 @@ from pandas.io.pytables import (
 pytestmark = pytest.mark.single
 
 
-def test_mode(setup_path):
+@pytest.mark.parametrize("mode", ["r", "r+", "a", "w"])
+def test_mode(setup_path, mode):
 
     df = tm.makeTimeDataFrame()
+    msg = r"[\S]* does not exist"
+    with ensure_clean_path(setup_path) as path:
 
-    def check(mode):
+        # constructor
+        if mode in ["r", "r+"]:
+            with pytest.raises(OSError, match=msg):
+                HDFStore(path, mode=mode)
 
-        msg = r"[\S]* does not exist"
-        with ensure_clean_path(setup_path) as path:
+        else:
+            store = HDFStore(path, mode=mode)
+            assert store._handle.mode == mode
+            store.close()
 
-            # constructor
-            if mode in ["r", "r+"]:
-                with pytest.raises(OSError, match=msg):
-                    HDFStore(path, mode=mode)
+    with ensure_clean_path(setup_path) as path:
 
-            else:
-                store = HDFStore(path, mode=mode)
-                assert store._handle.mode == mode
-                store.close()
-
-        with ensure_clean_path(setup_path) as path:
-
-            # context
-            if mode in ["r", "r+"]:
-                with pytest.raises(OSError, match=msg):
-                    with HDFStore(path, mode=mode) as store:
-                        pass
-            else:
+        # context
+        if mode in ["r", "r+"]:
+            with pytest.raises(OSError, match=msg):
                 with HDFStore(path, mode=mode) as store:
-                    assert store._handle.mode == mode
+                    pass
+        else:
+            with HDFStore(path, mode=mode) as store:
+                assert store._handle.mode == mode
 
-        with ensure_clean_path(setup_path) as path:
+    with ensure_clean_path(setup_path) as path:
 
-            # conv write
-            if mode in ["r", "r+"]:
-                with pytest.raises(OSError, match=msg):
-                    df.to_hdf(path, "df", mode=mode)
-                df.to_hdf(path, "df", mode="w")
-            else:
+        # conv write
+        if mode in ["r", "r+"]:
+            with pytest.raises(OSError, match=msg):
                 df.to_hdf(path, "df", mode=mode)
-
-            # conv read
-            if mode in ["w"]:
-                msg = (
-                    "mode w is not allowed while performing a read. "
-                    r"Allowed modes are r, r\+ and a."
-                )
-                with pytest.raises(ValueError, match=msg):
-                    read_hdf(path, "df", mode=mode)
-            else:
-                result = read_hdf(path, "df", mode=mode)
-                tm.assert_frame_equal(result, df)
-
-    def check_default_mode():
-
-        # read_hdf uses default mode
-        with ensure_clean_path(setup_path) as path:
             df.to_hdf(path, "df", mode="w")
-            result = read_hdf(path, "df")
+        else:
+            df.to_hdf(path, "df", mode=mode)
+
+        # conv read
+        if mode in ["w"]:
+            msg = (
+                "mode w is not allowed while performing a read. "
+                r"Allowed modes are r, r\+ and a."
+            )
+            with pytest.raises(ValueError, match=msg):
+                read_hdf(path, "df", mode=mode)
+        else:
+            result = read_hdf(path, "df", mode=mode)
             tm.assert_frame_equal(result, df)
 
-    check("r")
-    check("r+")
-    check("a")
-    check("w")
-    check_default_mode()
+
+def test_default_mode(setup_path):
+    # read_hdf uses default mode
+    df = tm.makeTimeDataFrame()
+    with ensure_clean_path(setup_path) as path:
+        df.to_hdf(path, "df", mode="w")
+        result = read_hdf(path, "df")
+        tm.assert_frame_equal(result, df)
 
 
 def test_reopen_handle(setup_path):
