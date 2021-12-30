@@ -1343,6 +1343,7 @@ class EABackedBlock(Block):
 
         icond, noop = validate_putmask(arr, ~cond)
         if noop:
+            # GH#44181, GH#45135
             # Avoid a) raising for Interval/PeriodDtype and b) unnecessary object upcast
             return self.copy()
 

@@ -870,7 +870,7 @@ Period
 - Bug in :meth:`PeriodIndex.to_timestamp` when the index has ``freq="B"`` inferring ``freq="D"`` for its result instead of ``freq="B"`` (:issue:`44105`)
 - Bug in :class:`Period` constructor incorrectly allowing ``np.timedelta64("NaT")`` (:issue:`44507`)
 - Bug in :meth:`PeriodIndex.to_timestamp` giving incorrect values for indexes with non-contiguous data (:issue:`44100`)
-- Bug in :meth:`Series.where` with ``PeriodDtype`` incorrectly raising when the ``where`` call should not replace anything (:issue:`44181`)
+- Bug in :meth:`Series.where` with ``PeriodDtype`` incorrectly raising when the ``where`` call should not replace anything (:issue:`45135`)
 
 -
 

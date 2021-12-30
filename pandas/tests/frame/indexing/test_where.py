@@ -721,7 +721,7 @@ class TestDataFrameIndexingWhere:
         ],
     )
     def test_where_datetimelike_noop(self, dtype):
-        # GH#44181 analogue for Period don't raise on no-op
+        # GH#45135, analogue to GH#44181 for Period don't raise on no-op
         # For td64/dt64/dt64tz we already don't raise, but also are
         #  checking that we don't unnecessarily upcast to object.
         ser = Series(np.arange(3) * 10 ** 9).view(dtype)
