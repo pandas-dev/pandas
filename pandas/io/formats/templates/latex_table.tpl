@@ -31,16 +31,17 @@
 \{{toprule}}
 {% endif %}
 {% for row in head %}
-{% for c in row %}{%- if not loop.first %} & {% endif %}{{parse_header(c, multirow_align, multicol_align, siunitx, convert_css)}}{% endfor %} \\
+{% for col in row %}{%- if not loop.first %} & {% endif %}{{parse_header(col, multirow_align, multicol_align, siunitx, convert_css)}}{% endfor %} \\
 {% endfor %}
 {% set midrule = parse_table(table_styles, 'midrule') %}
 {% if midrule is not none %}
 \{{midrule}}
 {% endif %}
 {% for row in body %}
-{% for c in row %}{% if not loop.first %} & {% endif %}
-  {%- if c.type == 'th' %}{{parse_header(c, multirow_align, multicol_align, False, convert_css)}}{% else %}{{parse_cell(c.cellstyle, c.display_value, convert_css)}}{% endif %}
+{% for col in row %}{% if not loop.first %} & {% endif %}
+  {%- if col.type == 'th' %}{{parse_header(col, multirow_align, multicol_align, False, convert_css)}}{% else %}{{parse_cell(col.cellstyle, col.display_value, convert_css)}}{% endif %}
 {%- endfor %} \\
+{% for cline in clines[loop.index] %}{% if not loop.first %} {% endif %}{{ cline }}{% endfor %}
 {% endfor %}
 {% set bottomrule = parse_table(table_styles, 'bottomrule') %}
 {% if bottomrule is not none %}

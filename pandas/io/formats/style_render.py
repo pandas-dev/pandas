@@ -790,6 +790,18 @@ class StylerRenderer:
             body.append(row_body_headers + row_body_cells)
         d["body"] = body
 
+        d["clines"] = defaultdict(list)
+        rlabels, row_count = self.data.index.tolist(), 0
+        for r, _ in enumerate(rlabels):
+            if r not in self.hidden_rows:
+                row_count += 1
+                for idx_lvl in range(index_levels):
+                    idx_len = d["index_lengths"].get((idx_lvl, r), None)
+                    if idx_len is not None:  # sparsified entry
+                        d["clines"][row_count - 1 + idx_len].append(
+                            fr"\cline{{{idx_lvl+1}-{index_levels}}}"
+                        )
+
     def format(
         self,
         formatter: ExtFormatter | None = None,
