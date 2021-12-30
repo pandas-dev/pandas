@@ -322,9 +322,7 @@ class _Unstacker:
 
             new_codes = [lab.take(propagator) for lab in value_columns.codes]
         else:
-            # error: Incompatible types in assignment (expression has type "List[Any]",
-            # variable has type "FrozenList")
-            new_levels = [  # type: ignore[assignment]
+            new_levels = [
                 value_columns,
                 self.removed_level_full,
             ]
