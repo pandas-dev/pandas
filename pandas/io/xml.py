@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 import io
-from typing import Iterable
+from typing import Sequence
 
 from pandas._typing import (
     CompressionOptions,
@@ -102,10 +102,10 @@ class _XMLFrameParser:
         self,
         path_or_buffer: FilePath | ReadBuffer[bytes] | ReadBuffer[str],
         xpath: str,
-        namespaces: dict | list[dict] | None,
+        namespaces: dict | None,
         elems_only: bool,
         attrs_only: bool,
-        names: Iterable[str] | None,
+        names: Sequence[str] | None,
         encoding: str | None,
         stylesheet: FilePath | ReadBuffer[bytes] | ReadBuffer[str] | None,
         compression: CompressionOptions,
@@ -543,6 +543,11 @@ class _LxmlFrameParser(_XMLFrameParser):
             curr_parser = XMLParser(encoding=self.encoding)
 
             if isinstance(xml_data, io.StringIO):
+                if self.encoding is None:
+                    raise TypeError(
+                        "Can not pass encoding None when input is StringIO."
+                    )
+
                 doc = fromstring(
                     xml_data.getvalue().encode(self.encoding), parser=curr_parser
                 )
@@ -659,10 +664,10 @@ def _data_to_frame(data, **kwargs) -> DataFrame:
 def _parse(
     path_or_buffer: FilePath | ReadBuffer[bytes] | ReadBuffer[str],
     xpath: str,
-    namespaces: dict | list[dict] | None,
+    namespaces: dict | None,
     elems_only: bool,
     attrs_only: bool,
-    names: Iterable[str] | None,
+    names: Sequence[str] | None,
     encoding: str | None,
     parser: XMLParsers,
     stylesheet: FilePath | ReadBuffer[bytes] | ReadBuffer[str] | None,
@@ -734,10 +739,11 @@ def _parse(
 def read_xml(
     path_or_buffer: FilePath | ReadBuffer[bytes] | ReadBuffer[str],
     xpath: str = "./*",
-    namespaces: dict | list[dict] | None = None,
+    namespaces: dict | None = None,
     elems_only: bool = False,
     attrs_only: bool = False,
-    names: Iterable[str] | None = None,
+    names: Sequence[str] | None = None,
+    # encoding can not be None for lxml and StringIO input
     encoding: str | None = "utf-8",
     parser: XMLParsers = "lxml",
     stylesheet: FilePath | ReadBuffer[bytes] | ReadBuffer[str] | None = None,
