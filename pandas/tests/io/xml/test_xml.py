@@ -783,6 +783,19 @@ def test_read_xml_passing_as_positional_deprecated(datapath):
 
 
 @td.skip_if_no("lxml")
+def test_wrong_encoding_for_lxml():
+    # GH#45133
+    data = """<data>
+  <row>
+    <a>c</a>
+  </row>
+</data>
+"""
+    with pytest.raises(TypeError, match="encoding None"):
+        read_xml(StringIO(data), parser="lxml", encoding=None)
+
+
+@td.skip_if_no("lxml")
 def test_stylesheet_file_like(datapath, mode):
     kml = datapath("io", "data", "xml", "cta_rail_lines.kml")
     xsl = datapath("io", "data", "xml", "flatten_doc.xsl")
