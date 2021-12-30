@@ -809,3 +809,35 @@ def test_nth_slices_with_column_axis(
     }[method](start, stop)
     expected = DataFrame([expected_values], columns=expected_columns)
     tm.assert_frame_equal(result, expected)
+
+
+def test_head_tail_dropna_true():
+    # GH#45089
+    df = DataFrame(
+        [["a", "z"], ["b", np.nan], ["c", np.nan], ["c", np.nan]], columns=["X", "Y"]
+    )
+    expected = DataFrame([["a", "z"]], columns=["X", "Y"])
+
+    result = df.groupby(["X", "Y"]).head(n=1)
+    tm.assert_frame_equal(result, expected)
+
+    result = df.groupby(["X", "Y"]).tail(n=1)
+    tm.assert_frame_equal(result, expected)
+
+    result = df.groupby(["X", "Y"]).nth(n=0).reset_index()
+    tm.assert_frame_equal(result, expected)
+
+
+def test_head_tail_dropna_false():
+    # GH#45089
+    df = DataFrame([["a", "z"], ["b", np.nan], ["c", np.nan]], columns=["X", "Y"])
+    expected = DataFrame([["a", "z"], ["b", np.nan], ["c", np.nan]], columns=["X", "Y"])
+
+    result = df.groupby(["X", "Y"], dropna=False).head(n=1)
+    tm.assert_frame_equal(result, expected)
+
+    result = df.groupby(["X", "Y"], dropna=False).tail(n=1)
+    tm.assert_frame_equal(result, expected)
+
+    result = df.groupby(["X", "Y"], dropna=False).nth(n=0).reset_index()
+    tm.assert_frame_equal(result, expected)
