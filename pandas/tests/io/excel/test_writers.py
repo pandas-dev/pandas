@@ -1455,9 +1455,10 @@ class TestExcelWriter:
 
     def test_bytes_io(self, request, engine):
         # see gh-7074
+        ext = request.getfixturevalue("ext")
         request.node.add_marker(
             pytest.mark.xfail(
-                xlsx_xlsm_fails(path),
+                xlsx_xlsm_fails(ext),
                 reason="Fails on the min version build",
                 raises=TypeError,
             )
