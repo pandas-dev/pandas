@@ -959,77 +959,68 @@ class TestAdditionSubtraction:
                 assert (df + df).equals(df)
                 tm.assert_frame_equal(df + df, df)
 
-    # TODO: taken from tests.series.test_operators; needs cleanup
-    def test_series_operators(self):
-        def _check_op(series, other, op, pos_only=False):
-            left = np.abs(series) if pos_only else series
-            right = np.abs(other) if pos_only else other
+    @pytest.mark.parametrize(
+        "func",
+        [lambda x: x * 2, lambda x: x[::2], lambda x: 5],
+        ids=["multiply", "slice", "constant"],
+    )
+    def test_series_operators_arithmetic(self, all_arithmetic_functions, func):
+        op = all_arithmetic_functions
+        series = tm.makeTimeSeries().rename("ts")
+        other = func(series)
+        left = np.abs(series) if op in (ops.rpow, operator.pow) else series
+        right = np.abs(other) if op in (ops.rpow, operator.pow) else other
 
-            cython_or_numpy = op(left, right)
-            python = left.combine(right, op)
-            if isinstance(other, Series) and not other.index.equals(series.index):
-                python.index = python.index._with_freq(None)
-            tm.assert_series_equal(cython_or_numpy, python)
+        cython_or_numpy = op(left, right)
+        python = left.combine(right, op)
+        if isinstance(other, Series) and not other.index.equals(series.index):
+            python.index = python.index._with_freq(None)
+        tm.assert_series_equal(cython_or_numpy, python)
 
-        def check(series, other):
-            simple_ops = ["add", "sub", "mul", "truediv", "floordiv", "mod"]
+    @pytest.mark.parametrize(
+        "func", [lambda x: x + 1, lambda x: 5], ids=["add", "constant"]
+    )
+    def test_series_operators_compare(self, comparison_op, func):
+        op = comparison_op
+        series = tm.makeTimeSeries().rename("ts")
+        other = func(series)
+        left = series
+        right = other
 
-            for opname in simple_ops:
-                _check_op(series, other, getattr(operator, opname))
+        cython_or_numpy = op(left, right)
+        python = left.combine(right, op)
+        if isinstance(other, Series) and not other.index.equals(series.index):
+            python.index = python.index._with_freq(None)
+        tm.assert_series_equal(cython_or_numpy, python)
 
-            _check_op(series, other, operator.pow, pos_only=True)
+    @pytest.mark.parametrize(
+        "func",
+        [lambda x: x * 2, lambda x: x[::2], lambda x: 5],
+        ids=["multiply", "slice", "constant"],
+    )
+    def test_divmod(self, func):
+        series = tm.makeTimeSeries().rename("ts")
+        other = func(series)
+        results = divmod(series, other)
+        if isinstance(other, abc.Iterable) and len(series) != len(other):
+            # if the lengths don't match, this is the test where we use
+            # `tser[::2]`. Pad every other value in `other_np` with nan.
+            other_np = []
+            for n in other:
+                other_np.append(n)
+                other_np.append(np.nan)
+        else:
+            other_np = other
+        other_np = np.asarray(other_np)
+        with np.errstate(all="ignore"):
+            expecteds = divmod(series.values, np.asarray(other_np))
 
-            _check_op(series, other, ops.radd)
-            _check_op(series, other, ops.rsub)
-            _check_op(series, other, ops.rtruediv)
-            _check_op(series, other, ops.rfloordiv)
-            _check_op(series, other, ops.rmul)
-            _check_op(series, other, ops.rpow, pos_only=True)
-            _check_op(series, other, ops.rmod)
+        for result, expected in zip(results, expecteds):
+            # check the values, name, and index separately
+            tm.assert_almost_equal(np.asarray(result), expected)
 
-        tser = tm.makeTimeSeries().rename("ts")
-        check(tser, tser * 2)
-        check(tser, tser[::2])
-        check(tser, 5)
-
-        def check_comparators(series, other):
-            _check_op(series, other, operator.gt)
-            _check_op(series, other, operator.ge)
-            _check_op(series, other, operator.eq)
-            _check_op(series, other, operator.lt)
-            _check_op(series, other, operator.le)
-
-        check_comparators(tser, 5)
-        check_comparators(tser, tser + 1)
-
-    # TODO: taken from tests.series.test_operators; needs cleanup
-    def test_divmod(self):
-        def check(series, other):
-            results = divmod(series, other)
-            if isinstance(other, abc.Iterable) and len(series) != len(other):
-                # if the lengths don't match, this is the test where we use
-                # `tser[::2]`. Pad every other value in `other_np` with nan.
-                other_np = []
-                for n in other:
-                    other_np.append(n)
-                    other_np.append(np.nan)
-            else:
-                other_np = other
-            other_np = np.asarray(other_np)
-            with np.errstate(all="ignore"):
-                expecteds = divmod(series.values, np.asarray(other_np))
-
-            for result, expected in zip(results, expecteds):
-                # check the values, name, and index separately
-                tm.assert_almost_equal(np.asarray(result), expected)
-
-                assert result.name == series.name
-                tm.assert_index_equal(result.index, series.index._with_freq(None))
-
-        tser = tm.makeTimeSeries().rename("ts")
-        check(tser, tser * 2)
-        check(tser, tser[::2])
-        check(tser, 5)
+            assert result.name == series.name
+            tm.assert_index_equal(result.index, series.index._with_freq(None))
 
     def test_series_divmod_zero(self):
         # Check that divmod uses pandas convention for division by zero,
