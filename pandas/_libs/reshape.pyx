@@ -87,7 +87,7 @@ def explode(ndarray[object] values):
 
     Parameters
     ----------
-    values : object ndarray
+    values : ndarray[object]
 
     Returns
     -------
