@@ -452,6 +452,33 @@ class TestTimestamp:
         stamp = Timestamp(datetime(2011, 1, 1))
         assert d[stamp] == 5
 
+    @pytest.mark.parametrize(
+        "timezone, year, month, day, hour",
+        [["America/Chicago", 2013, 11, 3, 1], ["America/Santiago", 2021, 4, 3, 23]],
+    )
+    def test_hash_timestamp_with_fold(self, timezone, year, month, day, hour):
+        # see gh-33931
+        test_timezone = gettz(timezone)
+        transition_1 = Timestamp(
+            year=year,
+            month=month,
+            day=day,
+            hour=hour,
+            minute=0,
+            fold=0,
+            tzinfo=test_timezone,
+        )
+        transition_2 = Timestamp(
+            year=year,
+            month=month,
+            day=day,
+            hour=hour,
+            minute=0,
+            fold=1,
+            tzinfo=test_timezone,
+        )
+        assert hash(transition_1) == hash(transition_2)
+
     def test_tz_conversion_freq(self, tz_naive_fixture):
         # GH25241
         with tm.assert_produces_warning(FutureWarning, match="freq"):

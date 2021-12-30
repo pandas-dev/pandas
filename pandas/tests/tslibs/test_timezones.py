@@ -166,24 +166,3 @@ def test_maybe_get_tz_offset_only():
 
     tz = timezones.maybe_get_tz("UTC-02:45")
     assert tz == timezone(-timedelta(hours=2, minutes=45))
-
-
-def test_hash_timestamp_with_fold():
-    # see gh-33931
-    america_chicago = dateutil.tz.gettz("America/Chicago")
-    transition_1 = Timestamp(
-        year=2013, month=11, day=3, hour=1, minute=0, tzinfo=america_chicago
-    )
-    transition_2 = Timestamp(
-        year=2013, month=11, day=3, hour=1, minute=0, fold=1, tzinfo=america_chicago
-    )
-    assert hash(transition_1) == hash(transition_2)
-
-    america_santiago = dateutil.tz.gettz("America/Santiago")
-    transition_3 = Timestamp(
-        year=2021, month=4, day=3, hour=23, minute=0, tz=america_santiago
-    )
-    transition_4 = Timestamp(
-        year=2021, month=4, day=3, hour=23, minute=0, fold=1, tz=america_santiago
-    )
-    assert hash(transition_3) == hash(transition_4)
