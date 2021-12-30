@@ -251,7 +251,7 @@ class BaseXMLFormatter:
 
         return nmsp_dict
 
-    def build_attribs(self, d: dict[str, Any], elem_row: Any) -> None:
+    def build_attribs(self, d: dict[str, Any], elem_row: Any) -> Any:
         """
         Create attributes of row.
 
@@ -270,6 +270,7 @@ class BaseXMLFormatter:
                     elem_row.attrib[attr_name] = val
             except KeyError:
                 raise KeyError(f"no valid column, {col}")
+        return elem_row
 
     def _get_flat_col_name(self, col: str | tuple) -> str:
         flat_col = col
@@ -347,7 +348,10 @@ class EtreeXMLFormatter(BaseXMLFormatter):
                 self.build_elems(d, elem_row)
 
             else:
-                self.build_attribs(d, elem_row)
+                build_elem_row = self.build_attribs(d, elem_row)
+                if build_elem_row is not None:
+                    elem_row = build_elem_row
+
                 self.build_elems(d, elem_row)
 
         self.out_xml = tostring(self.root, method="xml", encoding=self.encoding)
@@ -465,7 +469,10 @@ class LxmlXMLFormatter(BaseXMLFormatter):
                 self.build_elems(d, elem_row)
 
             else:
-                self.build_attribs(d, elem_row)
+                build_elem_row = self.build_attribs(d, elem_row)
+                if build_elem_row is not None:
+                    elem_row = build_elem_row
+
                 self.build_elems(d, elem_row)
 
         self.out_xml = tostring(
