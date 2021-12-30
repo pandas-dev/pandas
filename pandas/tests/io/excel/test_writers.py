@@ -48,6 +48,10 @@ def has_min_lxml_and_openpyxl():
     )
 
 
+def xlsx_xlsm_fails(path):
+    return ("xlsm" in path or "xlsx" in path) and has_min_lxml_and_openpyxl()
+
+
 @pytest.fixture
 def path(ext):
     """
@@ -428,9 +432,7 @@ class TestExcelWriter:
     def test_excel_sheet_by_name_raise(self, path, engine, request):
         request.node.add_marker(
             pytest.mark.xfail(
-                ("xlsm" in path or "xlsx" in path)
-                and engine == "openpyxl"
-                and has_min_lxml_and_openpyxl(),
+                xlsx_xlsm_fails(path) and engine == "openpyxl",
                 reason="Fails on the min version build",
                 raises=TypeError,
             )
@@ -448,9 +450,12 @@ class TestExcelWriter:
             pd.read_excel(xl, "0")
 
     def test_excel_writer_context_manager(self, request, frame, path):
+        option_name = f"io.excel.{path.split('.')[-1]}.writer"
+        curr_engine = get_option(option_name)
+        xlsxwriter_and_xlsx = curr_engine == "xlsxwriter" and "xlsx" in path
         request.node.add_marker(
             pytest.mark.xfail(
-                ("xlsm" in path or "xlsx" in path) and has_min_lxml_and_openpyxl(),
+                xlsx_xlsm_fails(path) and not xlsxwriter_and_xlsx,
                 reason="Fails on the min version build",
                 raises=TypeError,
             )
@@ -468,7 +473,14 @@ class TestExcelWriter:
             tm.assert_frame_equal(found_df, frame)
             tm.assert_frame_equal(found_df2, frame2)
 
-    def test_roundtrip(self, frame, path):
+    def test_roundtrip(self, request, frame, path):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(path),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         frame = frame.copy()
         frame["A"][:5] = np.nan
 
@@ -517,7 +529,14 @@ class TestExcelWriter:
         recons = pd.read_excel(path, index_col=0)
         tm.assert_frame_equal(s.to_frame(), recons)
 
-    def test_mixed(self, frame, path):
+    def test_mixed(self, request, frame, path):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(path),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         mixed_frame = frame.copy()
         mixed_frame["foo"] = "bar"
 
@@ -526,7 +545,14 @@ class TestExcelWriter:
             recons = pd.read_excel(reader, sheet_name="test1", index_col=0)
         tm.assert_frame_equal(mixed_frame, recons)
 
-    def test_ts_frame(self, tsframe, path):
+    def test_ts_frame(self, request, tsframe, path):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(path),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         df = tsframe
 
         # freq doesn't round-trip
@@ -538,7 +564,14 @@ class TestExcelWriter:
             recons = pd.read_excel(reader, sheet_name="test1", index_col=0)
         tm.assert_frame_equal(df, recons)
 
-    def test_basics_with_nan(self, frame, path):
+    def test_basics_with_nan(self, request, frame, path):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(path),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         frame = frame.copy()
         frame["A"][:5] = np.nan
         frame.to_excel(path, "test1")
@@ -547,7 +580,14 @@ class TestExcelWriter:
         frame.to_excel(path, "test1", index=False)
 
     @pytest.mark.parametrize("np_type", [np.int8, np.int16, np.int32, np.int64])
-    def test_int_types(self, np_type, path):
+    def test_int_types(self, request, np_type, path):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(path),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         # Test np.int values read come back as int
         # (rather than float which is Excel's format).
         df = DataFrame(np.random.randint(-10, 10, size=(10, 2)), dtype=np_type)
@@ -575,7 +615,14 @@ class TestExcelWriter:
         tm.assert_frame_equal(recons, float_frame)
 
     @pytest.mark.parametrize("np_type", [np.float16, np.float32, np.float64])
-    def test_float_types(self, np_type, path):
+    def test_float_types(self, request, np_type, path):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(path),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         # Test np.float values read come back as float.
         df = DataFrame(np.random.random_sample(10), dtype=np_type)
         df.to_excel(path, "test1")
@@ -588,7 +635,14 @@ class TestExcelWriter:
         tm.assert_frame_equal(df, recons)
 
     @pytest.mark.parametrize("np_type", [np.bool8, np.bool_])
-    def test_bool_types(self, np_type, path):
+    def test_bool_types(self, request, np_type, path):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(path),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         # Test np.bool8 and np.bool_ values read come back as float.
         df = DataFrame([1, 0, True, False], dtype=np_type)
         df.to_excel(path, "test1")
@@ -600,7 +654,14 @@ class TestExcelWriter:
 
         tm.assert_frame_equal(df, recons)
 
-    def test_inf_roundtrip(self, path):
+    def test_inf_roundtrip(self, request, path):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(path),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         df = DataFrame([(1, np.inf), (2, 3), (5, -np.inf)])
         df.to_excel(path, "test1")
 
@@ -609,8 +670,14 @@ class TestExcelWriter:
 
         tm.assert_frame_equal(df, recons)
 
-    def test_sheets(self, frame, tsframe, path):
-
+    def test_sheets(self, request, frame, tsframe, path):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(path),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         # freq doesn't round-trip
         index = pd.DatetimeIndex(np.asarray(tsframe.index), freq=None)
         tsframe.index = index
@@ -636,7 +703,14 @@ class TestExcelWriter:
         assert "test1" == reader.sheet_names[0]
         assert "test2" == reader.sheet_names[1]
 
-    def test_colaliases(self, frame, path):
+    def test_colaliases(self, request, frame, path):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(path),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         frame = frame.copy()
         frame["A"][:5] = np.nan
 
@@ -654,7 +728,14 @@ class TestExcelWriter:
         xp.columns = col_aliases
         tm.assert_frame_equal(xp, rs)
 
-    def test_roundtrip_indexlabels(self, merge_cells, frame, path):
+    def test_roundtrip_indexlabels(self, request, merge_cells, frame, path):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(path),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         frame = frame.copy()
         frame["A"][:5] = np.nan
 
@@ -711,7 +792,14 @@ class TestExcelWriter:
             recons = pd.read_excel(reader, sheet_name="test1", index_col=[0, 1])
         tm.assert_frame_equal(df, recons)
 
-    def test_excel_roundtrip_indexname(self, merge_cells, path):
+    def test_excel_roundtrip_indexname(self, request, merge_cells, path):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(path),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         df = DataFrame(np.random.randn(10, 4))
         df.index.name = "foo"
 
@@ -723,10 +811,17 @@ class TestExcelWriter:
         tm.assert_frame_equal(result, df)
         assert result.index.name == "foo"
 
-    def test_excel_roundtrip_datetime(self, merge_cells, tsframe, path):
+    def test_excel_roundtrip_datetime(self, request, merge_cells, tsframe, path):
         # datetime.date, not sure what to test here exactly
 
         # freq does not round-trip
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(path),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         index = pd.DatetimeIndex(np.asarray(tsframe.index), freq=None)
         tsframe.index = index
 
@@ -740,10 +835,17 @@ class TestExcelWriter:
 
         tm.assert_frame_equal(tsframe, recons)
 
-    def test_excel_date_datetime_format(self, engine, ext, path):
+    def test_excel_date_datetime_format(self, request, engine, ext, path):
         # see gh-4133
         #
         # Excel output format strings
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(path),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         df = DataFrame(
             [
                 [date(2014, 1, 31), date(1999, 9, 24)],
@@ -784,10 +886,17 @@ class TestExcelWriter:
         # we need to use df_expected to check the result.
         tm.assert_frame_equal(rs2, df_expected)
 
-    def test_to_excel_interval_no_labels(self, path):
+    def test_to_excel_interval_no_labels(self, request, path):
         # see gh-19242
         #
         # Test writing Interval without labels.
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(path),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         df = DataFrame(np.random.randint(-10, 10, size=(20, 1)), dtype=np.int64)
         expected = df.copy()
 
@@ -799,10 +908,17 @@ class TestExcelWriter:
             recons = pd.read_excel(reader, sheet_name="test1", index_col=0)
         tm.assert_frame_equal(expected, recons)
 
-    def test_to_excel_interval_labels(self, path):
+    def test_to_excel_interval_labels(self, request, path):
         # see gh-19242
         #
         # Test writing Interval with labels.
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(path),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         df = DataFrame(np.random.randint(-10, 10, size=(20, 1)), dtype=np.int64)
         expected = df.copy()
         intervals = pd.cut(
@@ -816,10 +932,17 @@ class TestExcelWriter:
             recons = pd.read_excel(reader, sheet_name="test1", index_col=0)
         tm.assert_frame_equal(expected, recons)
 
-    def test_to_excel_timedelta(self, path):
+    def test_to_excel_timedelta(self, request, path):
         # see gh-19242, gh-9155
         #
         # Test writing timedelta to xls.
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(path),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         df = DataFrame(
             np.random.randint(-10, 10, size=(20, 1)), columns=["A"], dtype=np.int64
         )
@@ -835,7 +958,14 @@ class TestExcelWriter:
             recons = pd.read_excel(reader, sheet_name="test1", index_col=0)
         tm.assert_frame_equal(expected, recons)
 
-    def test_to_excel_periodindex(self, tsframe, path):
+    def test_to_excel_periodindex(self, request, tsframe, path):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(path),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         xp = tsframe.resample("M", kind="period").mean()
 
         xp.to_excel(path, "sht1")
@@ -844,7 +974,14 @@ class TestExcelWriter:
             rs = pd.read_excel(reader, sheet_name="sht1", index_col=0)
         tm.assert_frame_equal(xp, rs.to_period("M"))
 
-    def test_to_excel_multiindex(self, merge_cells, frame, path):
+    def test_to_excel_multiindex(self, request, merge_cells, frame, path):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(path),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         arrays = np.arange(len(frame.index) * 2).reshape(2, -1)
         new_index = MultiIndex.from_arrays(arrays, names=["first", "second"])
         frame.index = new_index
@@ -859,7 +996,14 @@ class TestExcelWriter:
         tm.assert_frame_equal(frame, df)
 
     # GH13511
-    def test_to_excel_multiindex_nan_label(self, merge_cells, path):
+    def test_to_excel_multiindex_nan_label(self, request, merge_cells, path):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(path),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         df = DataFrame({"A": [None, 2, 3], "B": [10, 20, 30], "C": np.random.sample(3)})
         df = df.set_index(["A", "B"])
 
@@ -870,7 +1014,14 @@ class TestExcelWriter:
     # Test for Issue 11328. If column indices are integers, make
     # sure they are handled correctly for either setting of
     # merge_cells
-    def test_to_excel_multiindex_cols(self, merge_cells, frame, path):
+    def test_to_excel_multiindex_cols(self, request, merge_cells, frame, path):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(path),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         arrays = np.arange(len(frame.index) * 2).reshape(2, -1)
         new_index = MultiIndex.from_arrays(arrays, names=["first", "second"])
         frame.index = new_index
@@ -892,8 +1043,15 @@ class TestExcelWriter:
             frame.columns = [".".join(map(str, q)) for q in zip(*fm)]
         tm.assert_frame_equal(frame, df)
 
-    def test_to_excel_multiindex_dates(self, merge_cells, tsframe, path):
+    def test_to_excel_multiindex_dates(self, request, merge_cells, tsframe, path):
         # try multiindex with dates
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(path),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         new_index = [tsframe.index, np.arange(len(tsframe.index))]
         tsframe.index = MultiIndex.from_arrays(new_index)
 
@@ -905,8 +1063,15 @@ class TestExcelWriter:
         tm.assert_frame_equal(tsframe, recons)
         assert recons.index.names == ("time", "foo")
 
-    def test_to_excel_multiindex_no_write_index(self, path):
+    def test_to_excel_multiindex_no_write_index(self, request, path):
         # Test writing and re-reading a MI without the index. GH 5616.
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(path),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
 
         # Initial non-MI frame.
         frame1 = DataFrame({"a": [10, 20], "b": [30, 40], "c": [50, 60]})
@@ -926,7 +1091,14 @@ class TestExcelWriter:
         # Test that it is the same as the initial frame.
         tm.assert_frame_equal(frame1, frame3)
 
-    def test_to_excel_float_format(self, path):
+    def test_to_excel_float_format(self, request, path):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(path),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         df = DataFrame(
             [[0.123456, 0.234567, 0.567567], [12.32112, 123123.2, 321321.2]],
             index=["A", "B"],
@@ -944,7 +1116,7 @@ class TestExcelWriter:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_to_excel_output_encoding(self, ext):
+    def test_to_excel_output_encoding(self, request, ext):
         # Avoid mixed inferred_type.
         df = DataFrame(
             [["\u0192", "\u0193", "\u0194"], ["\u0195", "\u0196", "\u0197"]],
@@ -953,11 +1125,25 @@ class TestExcelWriter:
         )
 
         with tm.ensure_clean("__tmp_to_excel_float_format__." + ext) as filename:
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    xlsx_xlsm_fails(filename),
+                    reason="Fails on the min version build",
+                    raises=TypeError,
+                )
+            )
             df.to_excel(filename, sheet_name="TestSheet", encoding="utf8")
             result = pd.read_excel(filename, sheet_name="TestSheet", index_col=0)
             tm.assert_frame_equal(result, df)
 
-    def test_to_excel_unicode_filename(self, ext, path):
+    def test_to_excel_unicode_filename(self, request, ext, path):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(path),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         with tm.ensure_clean("\u0192u." + ext) as filename:
             try:
                 f = open(filename, "wb")
@@ -987,8 +1173,16 @@ class TestExcelWriter:
     @pytest.mark.parametrize("r_idx_nlevels", [1, 2, 3])
     @pytest.mark.parametrize("c_idx_nlevels", [1, 2, 3])
     def test_excel_010_hemstring(
-        self, merge_cells, c_idx_nlevels, r_idx_nlevels, use_headers, path
+        self, request, merge_cells, c_idx_nlevels, r_idx_nlevels, use_headers, path
     ):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(path),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
+
         def roundtrip(data, header=True, parser_hdr=0, index=True):
             data.to_excel(path, header=header, merge_cells=merge_cells, index=index)
 
@@ -1038,8 +1232,15 @@ class TestExcelWriter:
                 for c in range(len(res.columns)):
                     assert res.iloc[r, c] is not np.nan
 
-    def test_duplicated_columns(self, path):
+    def test_duplicated_columns(self, request, path):
         # see gh-5235
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(path),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         df = DataFrame([[1, 2, 3], [1, 2, 3], [1, 2, 3]], columns=["A", "B", "B"])
         df.to_excel(path, "test1")
         expected = DataFrame(
@@ -1077,8 +1278,15 @@ class TestExcelWriter:
         with pytest.raises(ValueError, match=msg):
             pd.read_excel(path, sheet_name="test1", header=None, mangle_dupe_cols=False)
 
-    def test_swapped_columns(self, path):
+    def test_swapped_columns(self, request, path):
         # Test for issue #5427.
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(path),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         write_frame = DataFrame({"A": [1, 1, 1], "B": [2, 2, 2]})
         write_frame.to_excel(path, "test1", columns=["B", "A"])
 
@@ -1106,8 +1314,17 @@ class TestExcelWriter:
             (False, None),  # Dont include index in write to file
         ],
     )
-    def test_write_subset_columns(self, path, to_excel_index, read_excel_index_col):
+    def test_write_subset_columns(
+        self, request, path, to_excel_index, read_excel_index_col
+    ):
         # GH 31677
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(path),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         write_frame = DataFrame({"A": [1, 1, 1], "B": [2, 2, 2], "C": [3, 3, 3]})
         write_frame.to_excel(
             path, "col_subset_bug", columns=["A", "B"], index=to_excel_index
@@ -1120,11 +1337,17 @@ class TestExcelWriter:
 
         tm.assert_frame_equal(expected, read_frame)
 
-    def test_comment_arg(self, path):
+    def test_comment_arg(self, request, path):
         # see gh-18735
         #
         # Test the comment argument functionality to pd.read_excel.
-
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(path),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         # Create file to read in.
         df = DataFrame({"A": ["one", "#one", "one"], "B": ["two", "two", "#two"]})
         df.to_excel(path, "test_c")
@@ -1139,10 +1362,16 @@ class TestExcelWriter:
         result2 = pd.read_excel(path, sheet_name="test_c", comment="#", index_col=0)
         tm.assert_frame_equal(result1, result2)
 
-    def test_comment_default(self, path):
+    def test_comment_default(self, request, path):
         # Re issue #18735
         # Test the comment argument default to pd.read_excel
-
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(path),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         # Create file to read in
         df = DataFrame({"A": ["one", "#one", "one"], "B": ["two", "two", "#two"]})
         df.to_excel(path, "test_c")
@@ -1152,11 +1381,17 @@ class TestExcelWriter:
         result2 = pd.read_excel(path, sheet_name="test_c", comment=None)
         tm.assert_frame_equal(result1, result2)
 
-    def test_comment_used(self, path):
+    def test_comment_used(self, request, path):
         # see gh-18735
         #
         # Test the comment argument is working as expected when used.
-
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(path),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         # Create file to read in.
         df = DataFrame({"A": ["one", "#one", "one"], "B": ["two", "two", "#two"]})
         df.to_excel(path, "test_c")
@@ -1166,10 +1401,16 @@ class TestExcelWriter:
         result = pd.read_excel(path, sheet_name="test_c", comment="#", index_col=0)
         tm.assert_frame_equal(result, expected)
 
-    def test_comment_empty_line(self, path):
+    def test_comment_empty_line(self, request, path):
         # Re issue #18735
         # Test that pd.read_excel ignores commented lines at the end of file
-
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(path),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         df = DataFrame({"a": ["1", "#2"], "b": ["2", "3"]})
         df.to_excel(path, index=False)
 
@@ -1178,8 +1419,14 @@ class TestExcelWriter:
         result = pd.read_excel(path, comment="#")
         tm.assert_frame_equal(result, expected)
 
-    def test_datetimes(self, path):
-
+    def test_datetimes(self, request, path):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(path),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         # Test writing and reading datetimes. For issue #9139. (xref #9185)
         datetimes = [
             datetime(2013, 1, 13, 1, 2, 3),
@@ -1206,8 +1453,15 @@ class TestExcelWriter:
 
         tm.assert_series_equal(write_frame["A"], read_frame["A"])
 
-    def test_bytes_io(self, engine):
+    def test_bytes_io(self, request, engine):
         # see gh-7074
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(path),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         with BytesIO() as bio:
             df = DataFrame(np.random.randn(10, 2))
 
@@ -1219,8 +1473,15 @@ class TestExcelWriter:
             reread_df = pd.read_excel(bio, index_col=0)
             tm.assert_frame_equal(df, reread_df)
 
-    def test_write_lists_dict(self, path):
+    def test_write_lists_dict(self, request, path):
         # see gh-8188.
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(path),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         df = DataFrame(
             {
                 "mixed": ["a", ["b", "c"], {"d": "e", "f": 2}],
@@ -1237,16 +1498,30 @@ class TestExcelWriter:
 
         tm.assert_frame_equal(read, expected)
 
-    def test_render_as_column_name(self, path):
+    def test_render_as_column_name(self, request, path):
         # see gh-34331
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(path),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         df = DataFrame({"render": [1, 2], "data": [3, 4]})
         df.to_excel(path, "Sheet1")
         read = pd.read_excel(path, "Sheet1", index_col=0)
         expected = df
         tm.assert_frame_equal(read, expected)
 
-    def test_true_and_false_value_options(self, path):
+    def test_true_and_false_value_options(self, request, path):
         # see gh-13347
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(path),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         df = DataFrame([["foo", "bar"]], columns=["col1", "col2"])
         expected = df.replace({"foo": True, "bar": False})
 
@@ -1256,15 +1531,29 @@ class TestExcelWriter:
         )
         tm.assert_frame_equal(read_frame, expected)
 
-    def test_freeze_panes(self, path):
+    def test_freeze_panes(self, request, path):
         # see gh-15160
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(path),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         expected = DataFrame([[1, 2], [3, 4]], columns=["col1", "col2"])
         expected.to_excel(path, "Sheet1", freeze_panes=(1, 1))
 
         result = pd.read_excel(path, index_col=0)
         tm.assert_frame_equal(result, expected)
 
-    def test_path_path_lib(self, engine, ext):
+    def test_path_path_lib(self, request, engine, ext):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(ext),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         df = tm.makeDataFrame()
         writer = partial(df.to_excel, engine=engine)
 
@@ -1272,7 +1561,14 @@ class TestExcelWriter:
         result = tm.round_trip_pathlib(writer, reader, path=f"foo{ext}")
         tm.assert_frame_equal(result, df)
 
-    def test_path_local_path(self, engine, ext):
+    def test_path_local_path(self, request, engine, ext):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(ext),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         df = tm.makeDataFrame()
         writer = partial(df.to_excel, engine=engine)
 
@@ -1280,8 +1576,15 @@ class TestExcelWriter:
         result = tm.round_trip_localpath(writer, reader, path=f"foo{ext}")
         tm.assert_frame_equal(result, df)
 
-    def test_merged_cell_custom_objects(self, merge_cells, path):
+    def test_merged_cell_custom_objects(self, request, merge_cells, path):
         # see GH-27006
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(path),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         mi = MultiIndex.from_tuples(
             [
                 (pd.Period("2018"), pd.Period("2018Q1")),
@@ -1290,8 +1593,15 @@ class TestExcelWriter:
         )
         expected = DataFrame(np.ones((2, 2)), columns=mi)
         expected.to_excel(path)
+        option_name = f"io.excel.{path.split('.')[-1]}.writer"
+        curr_engine = get_option(option_name)
+        xlsxwriter_and_xlsx_produces_resourcewarnings = (
+            curr_engine == "xlsxwriter" and "xlsx" in path
+        )
         with tm.assert_produces_warning(
-            FutureWarning, match="convert_float is deprecated"
+            FutureWarning,
+            match="convert_float is deprecated",
+            raise_on_extra_warnings=not xlsxwriter_and_xlsx_produces_resourcewarnings,
         ):
             result = pd.read_excel(
                 path, header=[0, 1], index_col=0, convert_float=False
@@ -1305,8 +1615,15 @@ class TestExcelWriter:
         tm.assert_frame_equal(expected, result)
 
     @pytest.mark.parametrize("dtype", [None, object])
-    def test_raise_when_saving_timezones(self, dtype, tz_aware_fixture, path):
+    def test_raise_when_saving_timezones(self, request, dtype, tz_aware_fixture, path):
         # GH 27008, GH 7056
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(path),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         tz = tz_aware_fixture
         data = pd.Timestamp("2019", tz=tz)
         df = DataFrame([data], dtype=dtype)
@@ -1318,8 +1635,15 @@ class TestExcelWriter:
         with pytest.raises(ValueError, match="Excel does not support"):
             df.to_excel(path)
 
-    def test_excel_duplicate_columns_with_names(self, path):
+    def test_excel_duplicate_columns_with_names(self, request, path):
         # GH#39695
+        request.node.add_marker(
+            pytest.mark.xfail(
+                xlsx_xlsm_fails(path),
+                reason="Fails on the min version build",
+                raises=TypeError,
+            )
+        )
         df = DataFrame({"A": [0, 1], "B": [10, 11]})
         df.to_excel(path, columns=["A", "B", "A"], index=False)
 

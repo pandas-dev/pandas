@@ -44,6 +44,7 @@ def test_styler_to_excel_unstyled(request, engine):
             and lxml.__version__ == VERSIONS["lxml.etree"],
             reason="Fails on the min version build",
             raises=TypeError,
+            strict=False,  # But passes on other builds
         )
     )
     df = DataFrame(np.random.randn(2, 2))
@@ -103,6 +104,7 @@ def test_styler_to_excel_basic(request, engine, css, attrs, expected):
             and lxml.__version__ == VERSIONS["lxml.etree"],
             reason="Fails on the min version build",
             raises=TypeError,
+            strict=False,  # But passes on other builds
         )
     )
     df = DataFrame(np.random.randn(1, 1))
@@ -135,8 +137,20 @@ def test_styler_to_excel_basic(request, engine, css, attrs, expected):
     ["xlsxwriter", "openpyxl"],
 )
 @pytest.mark.parametrize("css, attrs, expected", shared_style_params)
-def test_styler_to_excel_basic_indexes(engine, css, attrs, expected):
-    pytest.importorskip(engine)
+def test_styler_to_excel_basic_indexes(request, engine, css, attrs, expected):
+    mod = pytest.importorskip(engine)
+    lxml = import_optional_dependency("lxml.etree", errors="ignore")
+    request.node.add_marker(
+        pytest.mark.xfail(
+            engine == "openpyxl",
+            mod.__version__ == VERSIONS["openpyxl"]
+            and lxml is not None
+            and lxml.__version__ == VERSIONS["lxml.etree"],
+            reason="Fails on the min version build",
+            raises=TypeError,
+            strict=False,  # But passes on other builds
+        )
+    )
     df = DataFrame(np.random.randn(1, 1))
 
     styler = df.style
