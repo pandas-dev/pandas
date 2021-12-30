@@ -19,7 +19,10 @@ from pandas.errors import (
     AbstractMethodError,
     ParserError,
 )
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    deprecate_nonkeyword_arguments,
+    doc,
+)
 
 from pandas.core.dtypes.common import is_list_like
 
@@ -732,6 +735,9 @@ def _parse(
     return _data_to_frame(data=data_dicts, **kwargs)
 
 
+@deprecate_nonkeyword_arguments(
+    version=None, allowed_args=["path_or_buffer"], stacklevel=2
+)
 @doc(
     storage_options=_shared_docs["storage_options"],
     decompression_options=_shared_docs["decompression_options"] % "path_or_buffer",

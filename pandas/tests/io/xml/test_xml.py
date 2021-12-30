@@ -769,6 +769,18 @@ def test_stylesheet_file(datapath):
     tm.assert_frame_equal(df_kml, df_style)
 
 
+def test_read_xml_passing_as_positional_deprecated(datapath):
+    # GH#45133
+    kml = datapath("io", "data", "xml", "cta_rail_lines.kml")
+
+    with tm.assert_produces_warning(FutureWarning, match="keyword-only"):
+        read_xml(
+            kml,
+            ".//k:Placemark",
+            namespaces={"k": "http://www.opengis.net/kml/2.2"},
+        )
+
+
 @td.skip_if_no("lxml")
 def test_stylesheet_file_like(datapath, mode):
     kml = datapath("io", "data", "xml", "cta_rail_lines.kml")
