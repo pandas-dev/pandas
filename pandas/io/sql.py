@@ -862,8 +862,8 @@ class SQLTable(PandasObject):
 
         data = [dict(zip(keys, row)) for row in data_iter]
         stmt = insert(self.table).values(data)
-        conn.execute(stmt)
-        return conn.rowcount
+        result = conn.execute(stmt)
+        return result.rowcount
 
     def insert_data(self):
         if self.index is not None:
