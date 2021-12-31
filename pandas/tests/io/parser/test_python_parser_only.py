@@ -329,3 +329,62 @@ def test_python_engine_file_no_next(python_parser_only):
             return self.data
 
     parser.read_csv(NoNextBuffer("a\n1"))
+
+
+@pytest.mark.parametrize("bad_line_func", [lambda x: ["2", "3"], lambda x: x[:2]])
+def test_on_bad_lines_callable(python_parser_only, bad_line_func):
+    # GH 5686
+    parser = python_parser_only
+    bad_sio = StringIO("a,b\n1,2\n2,3,4,5,6\n3,4")
+    result = parser.read_csv(bad_sio, on_bad_lines=bad_line_func)
+    expected = DataFrame({"a": [1, 2, 3], "b": [2, 3, 4]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_on_bad_lines_callable_write_to_external_list(python_parser_only):
+    # GH 5686
+    parser = python_parser_only
+    bad_sio = StringIO("a,b\n1,2\n2,3,4,5,6\n3,4")
+    lst = []
+
+    def bad_line_func(bad_line):
+        lst.append(bad_line)
+        return ["2", "3"]
+
+    result = parser.read_csv(bad_sio, on_bad_lines=bad_line_func)
+    expected = DataFrame({"a": [1, 2, 3], "b": [2, 3, 4]})
+    tm.assert_frame_equal(result, expected)
+    assert lst == [["2", "3", "4", "5", "6"]]
+
+
+@pytest.mark.parametrize("bad_line_func", [lambda x: ["foo", "bar"], lambda x: x[:2]])
+@pytest.mark.parametrize("sep", [",", "111"])
+def test_on_bad_lines_callable_iterator_true(python_parser_only, bad_line_func, sep):
+    # GH 5686
+    # iterator=True has a separate code path than iterator=False
+    parser = python_parser_only
+    bad_sio = StringIO(f"0{sep}1\nhi{sep}there\nfoo{sep}bar{sep}baz\ngood{sep}bye")
+    result_iter = parser.read_csv(
+        bad_sio, on_bad_lines=bad_line_func, chunksize=1, iterator=True, sep=sep
+    )
+    expecteds = [
+        {"0": "hi", "1": "there"},
+        {"0": "foo", "1": "bar"},
+        {"0": "good", "1": "bye"},
+    ]
+    for i, (result, expected) in enumerate(zip(result_iter, expecteds)):
+        expected = DataFrame(expected, index=range(i, i + 1))
+        tm.assert_frame_equal(result, expected)
+
+
+def test_on_bad_lines_callable_dont_swallow_errors(python_parser_only):
+    # GH 5686
+    parser = python_parser_only
+    bad_sio = StringIO("a,b\n1,2\n2,3,4,5,6\n3,4")
+    msg = "This function is buggy."
+
+    def bad_line_func(bad_line):
+        raise ValueError(msg)
+
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(bad_sio, on_bad_lines=bad_line_func)

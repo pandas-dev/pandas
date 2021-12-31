@@ -1305,14 +1305,29 @@ You can elect to skip bad lines:
     0  1  2   3
     1  8  9  10
 
+Or pass a callable function to handle the bad line if ``engine="python"``.
+The bad line will be a list of strings that was split by the ``sep``:
+
+.. code-block:: ipython
+
+    In [30]: pd.read_csv(StringIO(data), on_bad_lines=lambda x: x[-3:], engine="python")
+    Out[30]:
+       a  b   c
+    0  1  2   3
+    1  5  6   7
+    2  8  9  10
+
+    .. versionadded:: 1.4.0
+
+
 You can also use the ``usecols`` parameter to eliminate extraneous column
 data that appear in some lines but not others:
 
 .. code-block:: ipython
 
-   In [30]: pd.read_csv(StringIO(data), usecols=[0, 1, 2])
+   In [31]: pd.read_csv(StringIO(data), usecols=[0, 1, 2])
 
-    Out[30]:
+    Out[31]:
        a  b   c
     0  1  2   3
     1  4  5   6
@@ -1324,9 +1339,9 @@ fields are filled with ``NaN``.
 
 .. code-block:: ipython
 
-   In [31]: pd.read_csv(StringIO(data), names=['a', 'b', 'c', 'd'])
+   In [32]: pd.read_csv(StringIO(data), names=['a', 'b', 'c', 'd'])
 
-   Out[31]:
+   Out[32]:
        a  b   c  d
     0  1  2   3  NaN
     1  4  5   6  7

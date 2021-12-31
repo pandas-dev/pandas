@@ -365,9 +365,9 @@ on_bad_lines : string, default 'error'
 
     .. versionadded:: 1.3.0
 
-        - callable, function with signature ``(bad_line: str) -> str`` that will
-          process a single bad line. Only supported when ``engine="python"``
-          and
+        - callable, function with signature ``(bad_line: list[str]) -> list[str]``
+          that will process a single bad line. ``bad_line`` is a list of strings
+          split by the ``sep``. Only supported when ``engine="python"``
 
     .. versionadded:: 1.4.0
 
