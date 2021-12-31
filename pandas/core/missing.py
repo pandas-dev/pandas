@@ -92,14 +92,15 @@ def mask_missing(arr: ArrayLike, values_to_mask) -> npt.NDArray[np.bool_]:
             # GH#29553 prevent numpy deprecation warnings
             pass
         else:
-            mask |= arr == x
+            new_mask = arr == x
+            if not isinstance(new_mask, np.ndarray):
+                # usually BooleanArray
+                new_mask = new_mask.to_numpy(dtype=bool, na_value=False)
+            mask |= new_mask
 
     if na_mask.any():
         mask |= isna(arr)
 
-    if not isinstance(mask, np.ndarray):
-        # e.g. if arr is IntegerArray, then mask is BooleanArray
-        mask = mask.to_numpy(dtype=bool, na_value=False)
     return mask
 
 
