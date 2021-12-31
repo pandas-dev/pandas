@@ -117,6 +117,7 @@ There are also some LaTeX specific enhancements:
 
   - :meth:`.Styler.to_latex` introduces keyword argument ``environment``, which also allows a specific "longtable" entry through a separate jinja2 template (:issue:`41866`).
   - Naive sparsification is now possible for LaTeX without the necessity of including the multirow package (:issue:`43369`)
+  - *cline* support has been added for MultiIndex row sparsification through a keyword argument (:issue:`45138`)
 
 .. _whatsnew_140.enhancements.pyarrow_csv_engine:
 
