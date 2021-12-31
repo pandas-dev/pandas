@@ -807,7 +807,7 @@ class StylerRenderer:
                 for idx_lvl in range(idx_range):
                     idx_len = d["index_lengths"].get((idx_lvl, r), None)
                     if idx_len is not None:  # sparsified entry
-                        d["clines"][rn - 1 + idx_len].append(
+                        d["clines"][rn + idx_len].append(
                             f"\\cline{{{idx_lvl+1}-{index_levels+data_len}}}"
                         )
 
