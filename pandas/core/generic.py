@@ -2830,7 +2830,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             attribute of ``sqlite3.Cursor`` or SQLAlchemy connectable which may not
             reflect the exact number of written rows as stipulated in the
             `sqlite3 <https://docs.python.org/3/library/sqlite3.html#sqlite3.Cursor.rowcount>`__ or
-            `SQLAlchemy <https://docs.sqlalchemy.org/en/14/core/connections.html#sqlalchemy.engine.BaseCursorResult.rowcount>`__
+            `SQLAlchemy <https://docs.sqlalchemy.org/en/14/core/connections.html#sqlalchemy.engine.BaseCursorResult.rowcount>`__.
 
             .. versionadded:: 1.4.0
 
