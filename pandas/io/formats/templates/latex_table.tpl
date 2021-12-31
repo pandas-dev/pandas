@@ -31,15 +31,15 @@
 \{{toprule}}
 {% endif %}
 {% for row in head %}
-{% for col in row %}{%- if not loop.first %} & {% endif %}{{parse_header(col, multirow_align, multicol_align, siunitx, convert_css)}}{% endfor %} \\
+{% for c in row %}{%- if not loop.first %} & {% endif %}{{parse_header(c, multirow_align, multicol_align, siunitx, convert_css)}}{% endfor %} \\
 {% endfor %}
 {% set midrule = parse_table(table_styles, 'midrule') %}
 {% if midrule is not none %}
 \{{midrule}}
 {% endif %}
 {% for row in body %}
-{% for col in row %}{% if not loop.first %} & {% endif %}
-  {%- if col.type == 'th' %}{{parse_header(col, multirow_align, multicol_align, False, convert_css)}}{% else %}{{parse_cell(col.cellstyle, col.display_value, convert_css)}}{% endif %}
+{% for c in row %}{% if not loop.first %} & {% endif %}
+  {%- if c.type == 'th' %}{{parse_header(c, multirow_align, multicol_align, False, convert_css)}}{% else %}{{parse_cell(c.cellstyle, c.display_value, convert_css)}}{% endif %}
 {%- endfor %} \\
 {% if clines and clines[loop.index] | length > 0 %}
   {%- for cline in clines[loop.index] %}{% if not loop.first %} {% endif %}{{ cline }}{% endfor %}
