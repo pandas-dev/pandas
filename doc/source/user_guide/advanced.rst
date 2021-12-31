@@ -855,7 +855,6 @@ Int64Index and RangeIndex
     In pandas 2.0, :class:`Index` will become the default index type for numeric types
     instead of ``Int64Index``, ``Float64Index`` and ``UInt64Index`` and those index types
     are therefore deprecated and will be removed in a futire version.
-    See :ref:`here <advanced.numericindex>` for more.
     ``RangeIndex`` will not be removed, as it represents an optimized version of an integer index.
 
 :class:`Int64Index` is a fundamental basic index in pandas. This is an immutable array
@@ -873,7 +872,6 @@ Float64Index
     :class:`Index` will become the default index type for numeric types in the future
     instead of ``Int64Index``, ``Float64Index`` and ``UInt64Index`` and those index types
     are therefore deprecated and will be removed in a future version of Pandas.
-    See :ref:`here <advanced.numericindex>` for more.
     ``RangeIndex`` will not be removed as it represents an optimized version of an integer index.
 
 By default a :class:`Float64Index` will be automatically created when passing floating, or mixed-integer-floating values in index creation.
