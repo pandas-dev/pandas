@@ -210,6 +210,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     is_year_end
     is_leap_year
     inferred_freq
+    unixtime
 
     Methods
     -------
@@ -867,6 +868,20 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         mask = join_op(lop(start_micros, time_micros), rop(time_micros, end_micros))
 
         return mask.nonzero()[0]
+
+    @property
+    def unixtime(self):
+        """
+        Return POSIX timestamp as float.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548')
+        >>> ts.unixtime
+        1584199972.192548
+        """
+        unixtime_ns = self._data.view(np.int64)
+        return np.round(unixtime_ns/ 1e9, 6)
 
 
 def date_range(

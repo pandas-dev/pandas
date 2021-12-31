@@ -63,6 +63,13 @@ def test_to_native_types():
     tm.assert_numpy_array_equal(result, expected)
 
 
+def test_unixtime():
+    index = pd.date_range("2011-09-18 15:30", "2011-09-18 17:30", freq='D')
+    assert len(index) == 1
+    ux = index.unixtime 
+    assert len(ux) == 1
+
+
 class TestDatetimeIndexRendering:
     def test_dti_repr_short(self):
         dr = pd.date_range(start="1/1/2012", periods=1)
