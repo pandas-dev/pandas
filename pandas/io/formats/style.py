@@ -548,8 +548,8 @@ class Styler(StylerRenderer):
             Possible values are:
 
               - `None`: no cline commands are added (default).
-              - `"all-data"`: a cline is added for every index value the width of the
-                table, including data entries.
+              - `"all-data"`: a cline is added for every index value extending the
+                width of the table, including data entries.
               - `"all-index"`: as above with lines extending only the width of the
                 index entries.
               - `"skip-last-data": a cline is added for each index value except the last
