@@ -180,7 +180,7 @@ cpdef int64_t delta_to_nanoseconds(delta) except? -1:
     if PyDelta_Check(delta):
         try:
             return (
-                delta.days * 24 * 60 * 60 * 1_000_000
+                delta.days * 24 * 3600 * 1_000_000
                 + delta.seconds * 1_000_000
                 + delta.microseconds
             ) * 1000
@@ -1257,6 +1257,9 @@ class Timedelta(_Timedelta):
     truncated to nanoseconds.
     """
 
+    _req_any_kwargs_new = {"weeks", "days", "hours", "minutes", "seconds",
+                           "milliseconds", "microseconds", "nanoseconds"}
+
     def __new__(cls, object value=_no_input, unit=None, **kwargs):
         cdef _Timedelta td_base
 
@@ -1267,28 +1270,33 @@ class Timedelta(_Timedelta):
                                  "(days,seconds....)")
 
             kwargs = {key: _to_py_int_float(kwargs[key]) for key in kwargs}
-
-            # GH43764, making sure any nanoseconds contributions from any kwarg
-            # is taken into consideration
-            nano = convert_to_timedelta64(
-                (
-                    kwargs.pop('nanoseconds', 0)
-                    + kwargs.pop('microseconds', 0) * 1000
-                    + kwargs.pop('milliseconds', 0) * 1000000
-                    + kwargs.pop('seconds', 0) * 1000000000
-                ), 'ns'
-            )
-
-            try:
-                value = nano + convert_to_timedelta64(timedelta(**kwargs),
-                                                      'ns')
-            except TypeError as e:
+            if not cls._req_any_kwargs_new.intersection(kwargs):
                 raise ValueError(
                     "cannot construct a Timedelta from the passed arguments, "
                     "allowed keywords are "
                     "[weeks, days, hours, minutes, seconds, "
                     "milliseconds, microseconds, nanoseconds]"
                 )
+
+            # GH43764, making sure any nanoseconds contributions from any kwarg
+            # is taken into consideration
+            seconds = int((
+                (
+                    (kwargs.get('days', 0) + kwargs.get('weeks', 0) * 7) * 24
+                    + kwargs.get('hours', 0)
+                ) * 3600
+                + kwargs.get('minutes', 0) * 60
+                + kwargs.get('seconds', 0)
+                ) * 1_000_000_000
+            )
+
+            value = convert_to_timedelta64(
+                kwargs.get('nanoseconds', 0)
+                + int(kwargs.get('microseconds', 0) * 1_000)
+                + int(kwargs.get('milliseconds', 0) * 1_000_000)
+                + seconds
+                , 'ns'
+            )
 
         if unit in {'Y', 'y', 'M'}:
             raise ValueError(

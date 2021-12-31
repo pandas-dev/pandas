@@ -19,11 +19,11 @@ from pandas import (
         (
             Timedelta(seconds=1e-9, milliseconds=1e-5, microseconds=1e-1),
             111,
-        ),  # GH43764, GH40946
+        ),  # GH43764
         (
             Timedelta(days=1, seconds=1e-9, milliseconds=1e-5, microseconds=1e-1),
             24 * 3600e9 + 111,
-        ),  # GH43764, GH40946
+        ),  # GH43764
         (offsets.Nano(125), 125),
         (1, 1),
         (np.int64(2), 2),
