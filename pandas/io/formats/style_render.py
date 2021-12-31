@@ -800,16 +800,16 @@ class StylerRenderer:
             data_len = len(row_body_cells) if "data" in clines else 0
 
             d["clines"] = defaultdict(list)
-            row_count = 0
-            for r in range(len(self.data.index)):
-                if r not in self.hidden_rows:
-                    row_count += 1
-                    for idx_lvl in range(idx_range):
-                        idx_len = d["index_lengths"].get((idx_lvl, r), None)
-                        if idx_len is not None:  # sparsified entry
-                            d["clines"][row_count - 1 + idx_len].append(
-                                f"\\cline{{{idx_lvl+1}-{index_levels+data_len}}}"
-                            )
+            visible_row_indexes = [
+                r for r in range(len(self.data.index)) if r not in self.hidden_rows
+            ]
+            for rn, r in enumerate(visible_row_indexes):
+                for idx_lvl in range(idx_range):
+                    idx_len = d["index_lengths"].get((idx_lvl, r), None)
+                    if idx_len is not None:  # sparsified entry
+                        d["clines"][rn - 1 + idx_len].append(
+                            f"\\cline{{{idx_lvl+1}-{index_levels+data_len}}}"
+                        )
 
     def format(
         self,
