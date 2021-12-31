@@ -236,7 +236,7 @@ Other enhancements
 - :meth:`is_list_like` now identifies duck-arrays as list-like unless ``.ndim == 0`` (:issue:`35131`)
 - :class:`ExtensionDtype` and :class:`ExtensionArray` are now (de)serialized when exporting a :class:`DataFrame` with :meth:`DataFrame.to_json` using ``orient='table'`` (:issue:`20612`, :issue:`44705`).
 - Add support for `Zstandard <http://facebook.github.io/zstd/>`_ compression to :meth:`DataFrame.to_pickle`/:meth:`read_pickle` and friends (:issue:`43925`)
--
+- :meth:`DataFrame.to_sql` now returns an ``int`` of the number of written rows (:issue:`23998`)
 
 
 .. ---------------------------------------------------------------------------
