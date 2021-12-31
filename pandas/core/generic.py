@@ -2883,6 +2883,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...     df1 = pd.DataFrame({'name' : ['User 4', 'User 5']})
         ...     df1.to_sql('users', con=connection, if_exists='append')
         2
+
         This is allowed to support operations that require that the same
         DBAPI connection is used for the entire operation.
 
