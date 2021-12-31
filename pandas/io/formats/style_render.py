@@ -164,14 +164,16 @@ class StylerRenderer:
             html_style_tpl=self.template_html_style,
         )
 
-    def _render_latex(self, sparse_index: bool, sparse_columns: bool, **kwargs) -> str:
+    def _render_latex(
+        self, sparse_index: bool, sparse_columns: bool, clines: str | None, **kwargs
+    ) -> str:
         """
         Render a Styler in latex format
         """
         self._compute()
 
         d = self._translate(sparse_index, sparse_columns, blank="")
-        self._translate_latex(d)
+        self._translate_latex(d, clines=clines)
 
         self.template_latex.globals["parse_wrap"] = _parse_latex_table_wrapping
         self.template_latex.globals["parse_table"] = _parse_latex_table_styles
@@ -739,7 +741,7 @@ class StylerRenderer:
 
         return index_headers + data
 
-    def _translate_latex(self, d: dict) -> None:
+    def _translate_latex(self, d: dict, clines: str | None) -> None:
         r"""
         Post-process the default render dict for the LaTeX template format.
 
@@ -790,17 +792,24 @@ class StylerRenderer:
             body.append(row_body_headers + row_body_cells)
         d["body"] = body
 
-        d["clines"] = defaultdict(list)
-        rlabels, row_count = self.data.index.tolist(), 0
-        for r, _ in enumerate(rlabels):
-            if r not in self.hidden_rows:
-                row_count += 1
-                for idx_lvl in range(index_levels):
-                    idx_len = d["index_lengths"].get((idx_lvl, r), None)
-                    if idx_len is not None:  # sparsified entry
-                        d["clines"][row_count - 1 + idx_len].append(
-                            f"\\cline{{{idx_lvl+1}-{index_levels}}}"
-                        )
+        # clines are determined from info on index_lengths and hidden_rows and input
+        # to a dict defining which row clines should be added in the template.
+        if clines is not None:
+            # define cline construction from kwarg input
+            idx_range = index_levels if "all" in clines else index_levels - 1
+            data_len = len(row_body_cells) if "data" in clines else 0
+
+            d["clines"] = defaultdict(list)
+            row_count = 0
+            for r in range(len(self.data.index)):
+                if r not in self.hidden_rows:
+                    row_count += 1
+                    for idx_lvl in range(idx_range):
+                        idx_len = d["index_lengths"].get((idx_lvl, r), None)
+                        if idx_len is not None:  # sparsified entry
+                            d["clines"][row_count - 1 + idx_len].append(
+                                f"\\cline{{{idx_lvl+1}-{index_levels+data_len}}}"
+                            )
 
     def format(
         self,
