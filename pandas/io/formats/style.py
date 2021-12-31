@@ -548,13 +548,13 @@ class Styler(StylerRenderer):
             Possible values are:
 
               - `None`: no cline commands are added (default).
-              - `"all-data"`: a cline is added for every index value extending the
+              - `"all;data"`: a cline is added for every index value extending the
                 width of the table, including data entries.
-              - `"all-index"`: as above with lines extending only the width of the
+              - `"all;index"`: as above with lines extending only the width of the
                 index entries.
-              - `"skip-last-data": a cline is added for each index value except the last
+              - `"skip-last;data": a cline is added for each index value except the last
                 level (which is never sparsified), extending the widtn of the table.
-              - `"skip-last-index"`: as above with lines extending only the width of the
+              - `"skip-last;index"`: as above with lines extending only the width of the
                 index entries.
 
             .. versionadded:: 1.4.0

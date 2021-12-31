@@ -858,10 +858,10 @@ def test_rendered_links():
 @pytest.mark.parametrize(
     "clines, exp",
     [
-        ("all-index", "\n\\cline{1-1}"),
-        ("all-data", "\n\\cline{1-2}"),
-        ("skip-last-index", ""),
-        ("skip-last-data", ""),
+        ("all;index", "\n\\cline{1-1}"),
+        ("all;data", "\n\\cline{1-2}"),
+        ("skip-last;index", ""),
+        ("skip-last;data", ""),
         (None, ""),
     ],
 )
@@ -893,7 +893,7 @@ def test_clines_index(clines, exp, env):
             ),
         ),
         (
-            "skip-last-index",
+            "skip-last;index",
             dedent(
                 """\
             \\multirow[c]{2}{*}{A} & X & 1 \\\\
@@ -906,7 +906,7 @@ def test_clines_index(clines, exp, env):
             ),
         ),
         (
-            "skip-last-data",
+            "skip-last;data",
             dedent(
                 """\
             \\multirow[c]{2}{*}{A} & X & 1 \\\\
@@ -919,7 +919,7 @@ def test_clines_index(clines, exp, env):
             ),
         ),
         (
-            "all-index",
+            "all;index",
             dedent(
                 """\
             \\multirow[c]{2}{*}{A} & X & 1 \\\\
@@ -934,7 +934,7 @@ def test_clines_index(clines, exp, env):
             ),
         ),
         (
-            "all-data",
+            "all;data",
             dedent(
                 """\
             \\multirow[c]{2}{*}{A} & X & 1 \\\\
