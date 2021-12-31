@@ -404,9 +404,9 @@ def assert_index_equal(
     # skip exact index checking when `check_categorical` is False
     if check_exact and check_categorical:
         if not left.equals(right):
-            diff = (
-                np.sum((left._values != right._values).astype(int)) * 100.0 / len(left)
-            )
+            mismatch = left._values != right._values
+
+            diff = np.sum(mismatch.astype(int)) * 100.0 / len(left)
             msg = f"{obj} values are different ({np.round(diff, 5)} %)"
             raise_assert_detail(obj, msg, left, right)
     else:
@@ -1470,3 +1470,15 @@ def assert_indexing_slices_equivalent(ser: Series, l_slc: slice, i_slc: slice):
     if not ser.index.is_integer():
         # For integer indices, .loc and plain getitem are position-based.
         assert_series_equal(ser[l_slc], expected)
+
+
+def assert_metadata_equivalent(left, right):
+    """
+    Check that ._metadata attributes are equivalent.
+    """
+    for attr in left._metadata:
+        val = getattr(left, attr, None)
+        if right is None:
+            assert val is None
+        else:
+            assert val == getattr(right, attr, None)

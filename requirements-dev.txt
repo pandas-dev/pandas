@@ -8,11 +8,11 @@ asv
 cython>=0.29.24
 black==21.5b2
 cpplint
-flake8==3.9.2
+flake8==4.0.1
 flake8-bugbear==21.3.2
-flake8-comprehensions==3.1.0
+flake8-comprehensions==3.7.0
 isort>=5.2.1
-mypy==0.920
+mypy==0.930
 pre-commit>=2.9.2
 pycodestyle
 pyupgrade
@@ -83,7 +83,7 @@ cftime
 pyreadstat
 tabulate>=0.8.3
 natsort
-git+https://github.com/pydata/pydata-sphinx-theme.git@master
+git+https://github.com/pydata/pydata-sphinx-theme.git@41764f5
 pandas-dev-flaker==0.2.0
 pytest-cython
 setuptools>=51.0.0

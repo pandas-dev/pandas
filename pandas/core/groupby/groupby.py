@@ -2547,7 +2547,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @Substitution(name="groupby")
-    def pad(self, limit=None):
+    def ffill(self, limit=None):
         """
         Forward fill the values.
 
@@ -2563,18 +2563,27 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        Series.pad: Returns Series with minimum number of char in object.
-        DataFrame.pad: Object with missing values filled or None if inplace=True.
+        Series.ffill: Returns Series with minimum number of char in object.
+        DataFrame.ffill: Object with missing values filled or None if inplace=True.
         Series.fillna: Fill NaN values of a Series.
         DataFrame.fillna: Fill NaN values of a DataFrame.
         """
         return self._fill("ffill", limit=limit)
 
-    ffill = pad
+    def pad(self, limit=None):
+        warnings.warn(
+            "pad is deprecated and will be removed in a future version. "
+            "Use ffill instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self.ffill(limit=limit)
+
+    pad.__doc__ = ffill.__doc__
 
     @final
     @Substitution(name="groupby")
-    def backfill(self, limit=None):
+    def bfill(self, limit=None):
         """
         Backward fill the values.
 
@@ -2590,14 +2599,23 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        Series.backfill :  Backward fill the missing values in the dataset.
-        DataFrame.backfill:  Backward fill the missing values in the dataset.
+        Series.bfill :  Backward fill the missing values in the dataset.
+        DataFrame.bfill:  Backward fill the missing values in the dataset.
         Series.fillna: Fill NaN values of a Series.
         DataFrame.fillna: Fill NaN values of a DataFrame.
         """
         return self._fill("bfill", limit=limit)
 
-    bfill = backfill
+    def backfill(self, limit=None):
+        warnings.warn(
+            "backfill is deprecated and will be removed in a future version. "
+            "Use bfill instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self.bfill(limit=limit)
+
+    backfill.__doc__ = bfill.__doc__
 
     @final
     @Substitution(name="groupby")
@@ -3435,7 +3453,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def pct_change(self, periods=1, fill_method="pad", limit=None, freq=None, axis=0):
+    def pct_change(self, periods=1, fill_method="ffill", limit=None, freq=None, axis=0):
         """
         Calculate pct_change of each value to previous entry in group.
 
@@ -3457,7 +3475,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 )
             )
         if fill_method is None:  # GH30463
-            fill_method = "pad"
+            fill_method = "ffill"
             limit = 0
         filled = getattr(self, fill_method)(limit=limit)
         fill_grp = filled.groupby(self.grouper.codes, axis=self.axis)
@@ -3562,6 +3580,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
             Filtered _selected_obj.
         """
+        ids = self.grouper.group_info[0]
+        mask = mask & (ids != -1)
+
         if self.axis == 0:
             return self._selected_obj[mask]
         else:

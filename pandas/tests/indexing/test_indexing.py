@@ -99,6 +99,13 @@ class TestFancy:
             msgs.append("Data must be 1-dimensional")
         if len(index) == 0 or isinstance(index, pd.MultiIndex):
             msgs.append("positional indexers are out-of-bounds")
+        if type(index) is Index and not isinstance(index._values, np.ndarray):
+            # e.g. Int64
+            msgs.append("values must be a 1D array")
+
+            # string[pyarrow]
+            msgs.append("only handle 1-dimensional arrays")
+
         msg = "|".join(msgs)
 
         potential_errors = (IndexError, ValueError, NotImplementedError)

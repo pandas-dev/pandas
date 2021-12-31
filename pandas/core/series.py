@@ -62,10 +62,10 @@ from pandas.util._validators import (
 )
 
 from pandas.core.dtypes.cast import (
+    can_hold_element,
     convert_dtypes,
     maybe_box_native,
     maybe_cast_pointwise_result,
-    validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -124,7 +124,10 @@ from pandas.core.indexes.api import (
     ensure_index,
 )
 import pandas.core.indexes.base as ibase
-from pandas.core.indexing import check_bool_indexer
+from pandas.core.indexing import (
+    check_bool_indexer,
+    check_deprecated_indexers,
+)
 from pandas.core.internals import (
     SingleArrayManager,
     SingleBlockManager,
@@ -939,6 +942,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         return self._get_values(slobj)
 
     def __getitem__(self, key):
+        check_deprecated_indexers(key)
         key = com.apply_if_callable(key, self)
 
         if key is Ellipsis:
@@ -1065,6 +1069,7 @@ class Series(base.IndexOpsMixin, NDFrame):
         return self.index._get_values_for_loc(self, loc, label)
 
     def __setitem__(self, key, value) -> None:
+        check_deprecated_indexers(key)
         key = com.apply_if_callable(key, self)
         cacher_needs_updating = self._check_is_chained_assignment_possible()
 
@@ -1138,9 +1143,9 @@ class Series(base.IndexOpsMixin, NDFrame):
 
     def _set_with_engine(self, key, value) -> None:
         loc = self.index.get_loc(key)
-        # error: Argument 1 to "validate_numeric_casting" has incompatible type
-        # "Union[dtype, ExtensionDtype]"; expected "dtype"
-        validate_numeric_casting(self.dtype, value)  # type: ignore[arg-type]
+        if not can_hold_element(self._values, value):
+            raise ValueError
+
         # this is equivalent to self._values[key] = value
         self._mgr.setitem_inplace(loc, value)
 
@@ -1999,7 +2004,16 @@ Name: Max Speed, dtype: float64
             Modes of the Series in sorted order.
         """
         # TODO: Add option for bins like value_counts()
-        return algorithms.mode(self, dropna=dropna)
+        values = self._values
+        if isinstance(values, np.ndarray):
+            res_values = algorithms.mode(values, dropna=dropna)
+        else:
+            res_values = values._mode(dropna=dropna)
+
+        # Ensure index is type stable (should always use int index)
+        return self._constructor(
+            res_values, index=range(len(res_values)), name=self.name
+        )
 
     def unique(self) -> ArrayLike:
         """
@@ -2893,6 +2907,19 @@ Name: Max Speed, dtype: float64
         ...
         ValueError: Indexes have overlapping values: [0, 1, 2]
         """
+        warnings.warn(
+            "The series.append method is deprecated "
+            "and will be removed from pandas in a future version. "
+            "Use pandas.concat instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
+        return self._append(to_append, ignore_index, verify_integrity)
+
+    def _append(
+        self, to_append, ignore_index: bool = False, verify_integrity: bool = False
+    ):
         from pandas.core.reshape.concat import concat
 
         if isinstance(to_append, (list, tuple)):
@@ -4902,11 +4929,11 @@ Keep all original rows and also all original values
     def replace(
         self,
         to_replace=None,
-        value=None,
+        value=lib.no_default,
         inplace=False,
         limit=None,
         regex=False,
-        method="pad",
+        method: str | lib.NoDefault = lib.no_default,
     ):
         return super().replace(
             to_replace=to_replace,
@@ -5231,6 +5258,9 @@ Keep all original rows and also all original values
     # error: Cannot determine type of 'isna'
     @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
     def isnull(self) -> Series:
+        """
+        Series.isnull is an alias for Series.isna.
+        """
         return super().isnull()
 
     # error: Cannot determine type of 'notna'
@@ -5241,6 +5271,9 @@ Keep all original rows and also all original values
     # error: Cannot determine type of 'notna'
     @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
     def notnull(self) -> Series:
+        """
+        Series.notnull is an alias for Series.notna.
+        """
         return super().notnull()
 
     @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])

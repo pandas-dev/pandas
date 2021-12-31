@@ -20,11 +20,11 @@ dependencies:
   # code checks
   - black=21.5b2
   - cpplint
-  - flake8=3.9.2
+  - flake8=4.0.1
   - flake8-bugbear=21.3.2  # used by flake8, find likely bugs
-  - flake8-comprehensions=3.1.0  # used by flake8, linting of unnecessary comprehensions
+  - flake8-comprehensions=3.7.0  # used by flake8, linting of unnecessary comprehensions
   - isort>=5.2.1  # check that imports are in the right order
-  - mypy=0.920
+  - mypy=0.930
   - pre-commit>=2.9.2
   - pycodestyle  # used by flake8
   - pyupgrade
@@ -120,6 +120,9 @@ dependencies:
   - tabulate>=0.8.3  # DataFrame.to_markdown
   - natsort  # DataFrame.sort_values
   - pip:
-    - git+https://github.com/pydata/pydata-sphinx-theme.git@master
+      #issue with building environment in conda on windows. Issue: https://github.com/pandas-dev/pandas/issues/45123
+      #issue with pydata-sphix-theme on windows. Issue: https://github.com/pydata/pydata-sphinx-theme/issues/523
+      #using previous stable version as workaround
+    - git+https://github.com/pydata/pydata-sphinx-theme.git@41764f5
     - pandas-dev-flaker==0.2.0
     - pytest-cython

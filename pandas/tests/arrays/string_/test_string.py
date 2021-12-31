@@ -462,18 +462,18 @@ def test_arrow_load_from_zero_chunks(dtype, string_storage2):
 def test_value_counts_na(dtype):
     arr = pd.array(["a", "b", "a", pd.NA], dtype=dtype)
     result = arr.value_counts(dropna=False)
-    expected = pd.Series([2, 1, 1], index=["a", "b", pd.NA])
+    expected = pd.Series([2, 1, 1], index=arr[[0, 1, 3]])
     tm.assert_series_equal(result, expected)
 
     result = arr.value_counts(dropna=True)
-    expected = pd.Series([2, 1], index=["a", "b"])
+    expected = pd.Series([2, 1], index=arr[:2])
     tm.assert_series_equal(result, expected)
 
 
 def test_value_counts_with_normalize(dtype):
     ser = pd.Series(["a", "b", "a", pd.NA], dtype=dtype)
     result = ser.value_counts(normalize=True)
-    expected = pd.Series([2, 1], index=["a", "b"]) / 3
+    expected = pd.Series([2, 1], index=ser[:2]) / 3
     tm.assert_series_equal(result, expected)
 
 

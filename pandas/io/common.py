@@ -18,6 +18,7 @@ from io import (
 import mmap
 import os
 from pathlib import Path
+import re
 from typing import (
     IO,
     Any,
@@ -59,6 +60,7 @@ from pandas.core.shared_docs import _shared_docs
 
 _VALID_URLS = set(uses_relative + uses_netloc + uses_params)
 _VALID_URLS.discard("")
+_RFC_3986_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9+\-+.]*://")
 
 BaseBufferT = TypeVar("BaseBufferT", bound=BaseBuffer)
 
@@ -172,7 +174,7 @@ def _expand_user(filepath_or_buffer: str | BaseBufferT) -> str | BaseBufferT:
     return filepath_or_buffer
 
 
-def validate_header_arg(header) -> None:
+def validate_header_arg(header: object) -> None:
     if isinstance(header, bool):
         raise TypeError(
             "Passing a bool to header is invalid. Use header=None for no header or "
@@ -244,7 +246,7 @@ def is_fsspec_url(url: FilePath | BaseBuffer) -> bool:
     """
     return (
         isinstance(url, str)
-        and "://" in url
+        and bool(_RFC_3986_PATTERN.match(url))
         and not url.startswith(("http://", "https://"))
     )
 
@@ -660,8 +662,7 @@ def get_handle(
         mode += "b"
 
     # validate encoding and errors
-    if isinstance(encoding, str):
-        codecs.lookup(encoding)
+    codecs.lookup(encoding)
     if isinstance(errors, str):
         codecs.lookup_error(errors)
 
