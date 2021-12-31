@@ -452,43 +452,59 @@ def test_to_html_invalid_justify(justify):
         df.to_html(justify=justify)
 
 
-def test_to_html_index(datapath):
-    # TODO: split this test
-    index = ["foo", "bar", "baz"]
-    df = DataFrame(
-        {"A": [1, 2, 3], "B": [1.2, 3.4, 5.6], "C": ["one", "two", np.nan]},
-        columns=["A", "B", "C"],
-        index=index,
-    )
-    expected_with_index = expected_html(datapath, "index_1")
-    assert df.to_html() == expected_with_index
+class TestHTMLIndex:
+    @pytest.fixture
+    def df(self):
+        index = ["foo", "bar", "baz"]
+        df = DataFrame(
+            {"A": [1, 2, 3], "B": [1.2, 3.4, 5.6], "C": ["one", "two", np.nan]},
+            columns=["A", "B", "C"],
+            index=index,
+        )
+        return df
 
-    expected_without_index = expected_html(datapath, "index_2")
-    result = df.to_html(index=False)
-    for i in index:
-        assert i not in result
-    assert result == expected_without_index
-    df.index = Index(["foo", "bar", "baz"], name="idx")
-    expected_with_index = expected_html(datapath, "index_3")
-    assert df.to_html() == expected_with_index
-    assert df.to_html(index=False) == expected_without_index
+    @pytest.fixture
+    def expected_without_index(self, datapath):
+        return expected_html(datapath, "index_2")
 
-    tuples = [("foo", "car"), ("foo", "bike"), ("bar", "car")]
-    df.index = MultiIndex.from_tuples(tuples)
+    def test_to_html_flat_index_without_name(
+        self, datapath, df, expected_without_index
+    ):
+        expected_with_index = expected_html(datapath, "index_1")
+        assert df.to_html() == expected_with_index
 
-    expected_with_index = expected_html(datapath, "index_4")
-    assert df.to_html() == expected_with_index
+        result = df.to_html(index=False)
+        for i in df.index:
+            assert i not in result
+        assert result == expected_without_index
 
-    result = df.to_html(index=False)
-    for i in ["foo", "bar", "car", "bike"]:
-        assert i not in result
-    # must be the same result as normal index
-    assert result == expected_without_index
+    def test_to_html_flat_index_with_name(self, datapath, df, expected_without_index):
+        df.index = Index(["foo", "bar", "baz"], name="idx")
+        expected_with_index = expected_html(datapath, "index_3")
+        assert df.to_html() == expected_with_index
+        assert df.to_html(index=False) == expected_without_index
 
-    df.index = MultiIndex.from_tuples(tuples, names=["idx1", "idx2"])
-    expected_with_index = expected_html(datapath, "index_5")
-    assert df.to_html() == expected_with_index
-    assert df.to_html(index=False) == expected_without_index
+    def test_to_html_multiindex_without_names(
+        self, datapath, df, expected_without_index
+    ):
+        tuples = [("foo", "car"), ("foo", "bike"), ("bar", "car")]
+        df.index = MultiIndex.from_tuples(tuples)
+
+        expected_with_index = expected_html(datapath, "index_4")
+        assert df.to_html() == expected_with_index
+
+        result = df.to_html(index=False)
+        for i in ["foo", "bar", "car", "bike"]:
+            assert i not in result
+        # must be the same result as normal index
+        assert result == expected_without_index
+
+    def test_to_html_multiindex_with_names(self, datapath, df, expected_without_index):
+        tuples = [("foo", "car"), ("foo", "bike"), ("bar", "car")]
+        df.index = MultiIndex.from_tuples(tuples, names=["idx1", "idx2"])
+        expected_with_index = expected_html(datapath, "index_5")
+        assert df.to_html() == expected_with_index
+        assert df.to_html(index=False) == expected_without_index
 
 
 @pytest.mark.parametrize("classes", ["sortable draggable", ["sortable", "draggable"]])

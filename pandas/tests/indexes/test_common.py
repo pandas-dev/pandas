@@ -244,13 +244,17 @@ class TestCommon:
             result = i.unique()
             tm.assert_index_equal(result, expected)
 
-    def test_searchsorted_monotonic(self, index_flat):
+    def test_searchsorted_monotonic(self, index_flat, request):
         # GH17271
         index = index_flat
         # not implemented for tuple searches in MultiIndex
         # or Intervals searches in IntervalIndex
         if isinstance(index, pd.IntervalIndex):
-            pytest.skip("Skip check for MultiIndex/IntervalIndex")
+            mark = pytest.mark.xfail(
+                reason="IntervalIndex.searchsorted does not support Interval arg",
+                raises=NotImplementedError,
+            )
+            request.node.add_marker(mark)
 
         # nothing to test if the index is empty
         if index.empty:
@@ -389,9 +393,6 @@ class TestCommon:
         ):
             # This astype is deprecated in favor of tz_localize
             warn = FutureWarning
-        elif isinstance(index, PeriodIndex) and dtype == "datetime64[ns]":
-            # Deprecated in favor of to_timestamp GH#44398
-            warn = FutureWarning
         try:
             # Some of these conversions cannot succeed so we use a try / except
             with tm.assert_produces_warning(warn):
@@ -464,7 +465,9 @@ def test_sort_values_with_missing(index_with_missing, na_position):
         sorted_values = np.concatenate([[None] * missing_count, sorted_values])
     else:
         sorted_values = np.concatenate([sorted_values, [None] * missing_count])
-    expected = type(index_with_missing)(sorted_values)
+
+    # Explicitly pass dtype needed for Index backed by EA e.g. IntegerArray
+    expected = type(index_with_missing)(sorted_values, dtype=index_with_missing.dtype)
 
     result = index_with_missing.sort_values(na_position=na_position)
     tm.assert_index_equal(result, expected)

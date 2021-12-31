@@ -93,6 +93,10 @@ class TestGetitem(BaseInterval, base.BaseGetitemTests):
     pass
 
 
+class TestIndex(base.BaseIndexTests):
+    pass
+
+
 class TestGrouping(BaseInterval, base.BaseGroupbyTests):
     pass
 
