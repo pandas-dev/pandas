@@ -105,7 +105,7 @@ class _XMLFrameParser:
         self,
         path_or_buffer: FilePath | ReadBuffer[bytes] | ReadBuffer[str],
         xpath: str,
-        namespaces: dict | None,
+        namespaces: dict[str, str] | None,
         elems_only: bool,
         attrs_only: bool,
         names: Sequence[str] | None,
@@ -667,7 +667,7 @@ def _data_to_frame(data, **kwargs) -> DataFrame:
 def _parse(
     path_or_buffer: FilePath | ReadBuffer[bytes] | ReadBuffer[str],
     xpath: str,
-    namespaces: dict | None,
+    namespaces: dict[str, str] | None,
     elems_only: bool,
     attrs_only: bool,
     names: Sequence[str] | None,
@@ -745,7 +745,7 @@ def _parse(
 def read_xml(
     path_or_buffer: FilePath | ReadBuffer[bytes] | ReadBuffer[str],
     xpath: str = "./*",
-    namespaces: dict | None = None,
+    namespaces: dict[str, str] | None = None,
     elems_only: bool = False,
     attrs_only: bool = False,
     names: Sequence[str] | None = None,

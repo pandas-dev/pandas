@@ -729,6 +729,32 @@ def test_parser_consistency_with_encoding(datapath):
     tm.assert_frame_equal(df_lxml, df_etree)
 
 
+@td.skip_if_no("lxml")
+def test_wrong_encoding_for_lxml():
+    # GH#45133
+    data = """<data>
+  <row>
+    <a>c</a>
+  </row>
+</data>
+"""
+    with pytest.raises(TypeError, match="encoding None"):
+        read_xml(StringIO(data), parser="lxml", encoding=None)
+
+
+def test_none_encoding_etree():
+    # GH#45133
+    data = """<data>
+  <row>
+    <a>c</a>
+  </row>
+</data>
+"""
+    result = read_xml(StringIO(data), parser="etree", encoding=None)
+    expected = DataFrame({"a": ["c"]})
+    tm.assert_frame_equal(result, expected)
+
+
 # PARSER
 
 
@@ -780,19 +806,6 @@ def test_read_xml_passing_as_positional_deprecated(datapath):
             ".//k:Placemark",
             namespaces={"k": "http://www.opengis.net/kml/2.2"},
         )
-
-
-@td.skip_if_no("lxml")
-def test_wrong_encoding_for_lxml():
-    # GH#45133
-    data = """<data>
-  <row>
-    <a>c</a>
-  </row>
-</data>
-"""
-    with pytest.raises(TypeError, match="encoding None"):
-        read_xml(StringIO(data), parser="lxml", encoding=None)
 
 
 @td.skip_if_no("lxml")
