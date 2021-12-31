@@ -1047,6 +1047,7 @@ class TestDataFrameReshape:
             ),
             columns=Index(["B", "C"], name="Upper"),
         )
+        expected[0] = expected[0].astype(df.dtypes[0])  # need on 32bit builds
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("ordered", [False, True])
