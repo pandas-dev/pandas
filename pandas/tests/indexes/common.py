@@ -34,6 +34,7 @@ from pandas.core.api import (  # noqa:F401
     Int64Index,
     UInt64Index,
 )
+from pandas.core.arrays import BaseMaskedArray
 
 
 class Base:
@@ -232,6 +233,28 @@ class Base:
         elif isinstance(index, IntervalIndex):
             # checked in test_interval.py
             pass
+        elif type(index) is Index and not isinstance(index.dtype, np.dtype):
+            result = index_type(index.values, copy=False, **init_kwargs)
+            tm.assert_index_equal(result, index)
+
+            if isinstance(index._values, BaseMaskedArray):
+                assert np.shares_memory(index._values._data, result._values._data)
+                tm.assert_numpy_array_equal(
+                    index._values._data, result._values._data, check_same="same"
+                )
+                assert np.shares_memory(index._values._mask, result._values._mask)
+                tm.assert_numpy_array_equal(
+                    index._values._mask, result._values._mask, check_same="same"
+                )
+            elif index.dtype == "string[python]":
+                assert np.shares_memory(index._values._ndarray, result._values._ndarray)
+                tm.assert_numpy_array_equal(
+                    index._values._ndarray, result._values._ndarray, check_same="same"
+                )
+            elif index.dtype == "string[pyarrow]":
+                assert tm.shares_memory(result._values, index._values)
+            else:
+                raise NotImplementedError(index.dtype)
         else:
             result = index_type(index.values, copy=False, **init_kwargs)
             tm.assert_numpy_array_equal(index.values, result.values, check_same="same")
@@ -251,7 +274,10 @@ class Base:
 
         # RangeIndex, IntervalIndex
         # don't have engines
-        if not isinstance(index, (RangeIndex, IntervalIndex)):
+        # Index[EA] has engine but it does not have a Hashtable .mapping
+        if not isinstance(index, (RangeIndex, IntervalIndex)) and not (
+            type(index) is Index and not isinstance(index.dtype, np.dtype)
+        ):
             assert result2 > result
 
         if index.inferred_type == "object":
@@ -398,7 +424,9 @@ class Base:
 
         assert index.equals(index)
         assert index.equals(index.copy())
-        assert index.equals(index.astype(object))
+        if not (type(index) is Index and not isinstance(index.dtype, np.dtype)):
+            # doesn't hold for e.g. IntegerDtype
+            assert index.equals(index.astype(object))
 
         assert not index.equals(list(index))
         assert not index.equals(np.array(index))

@@ -1810,55 +1810,51 @@ class TestTimestampSeriesArithmetic:
     # TODO: This next block of tests came from tests.series.test_operators,
     # needs to be de-duplicated and parametrized over `box` classes
 
-    def test_operators_datetimelike_invalid(self, all_arithmetic_operators):
-        # these are all TypeEror ops
+    @pytest.mark.parametrize(
+        "left, right, op_fail",
+        [
+            [
+                [Timestamp("20111230"), Timestamp("20120101"), NaT],
+                [Timestamp("20111231"), Timestamp("20120102"), Timestamp("20120104")],
+                ["__sub__", "__rsub__"],
+            ],
+            [
+                [Timestamp("20111230"), Timestamp("20120101"), NaT],
+                [timedelta(minutes=5, seconds=3), timedelta(minutes=5, seconds=3), NaT],
+                ["__add__", "__radd__", "__sub__"],
+            ],
+            [
+                [
+                    Timestamp("20111230", tz="US/Eastern"),
+                    Timestamp("20111230", tz="US/Eastern"),
+                    NaT,
+                ],
+                [timedelta(minutes=5, seconds=3), NaT, timedelta(minutes=5, seconds=3)],
+                ["__add__", "__radd__", "__sub__"],
+            ],
+        ],
+    )
+    def test_operators_datetimelike_invalid(
+        self, left, right, op_fail, all_arithmetic_operators
+    ):
+        # these are all TypeError ops
         op_str = all_arithmetic_operators
-
-        def check(get_ser, test_ser):
-
-            # check that we are getting a TypeError
-            # with 'operate' (from core/ops.py) for the ops that are not
-            # defined
-            op = getattr(get_ser, op_str, None)
-            # Previously, _validate_for_numeric_binop in core/indexes/base.py
-            # did this for us.
+        arg1 = Series(left)
+        arg2 = Series(right)
+        # check that we are getting a TypeError
+        # with 'operate' (from core/ops.py) for the ops that are not
+        # defined
+        op = getattr(arg1, op_str, None)
+        # Previously, _validate_for_numeric_binop in core/indexes/base.py
+        # did this for us.
+        if op_str not in op_fail:
             with pytest.raises(
                 TypeError, match="operate|[cC]annot|unsupported operand"
             ):
-                op(test_ser)
-
-        # ## timedelta64 ###
-        td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
-        td1.iloc[2] = np.nan
-
-        # ## datetime64 ###
-        dt1 = Series(
-            [Timestamp("20111230"), Timestamp("20120101"), Timestamp("20120103")]
-        )
-        dt1.iloc[2] = np.nan
-        dt2 = Series(
-            [Timestamp("20111231"), Timestamp("20120102"), Timestamp("20120104")]
-        )
-        if op_str not in ["__sub__", "__rsub__"]:
-            check(dt1, dt2)
-
-        # ## datetime64 with timetimedelta ###
-        # TODO(jreback) __rsub__ should raise?
-        if op_str not in ["__add__", "__radd__", "__sub__"]:
-            check(dt1, td1)
-
-        # 8260, 10763
-        # datetime64 with tz
-        tz = "US/Eastern"
-        dt1 = Series(date_range("2000-01-01 09:00:00", periods=5, tz=tz), name="foo")
-        dt2 = dt1.copy()
-        dt2.iloc[2] = np.nan
-        td1 = Series(pd.timedelta_range("1 days 1 min", periods=5, freq="H"))
-        td2 = td1.copy()
-        td2.iloc[1] = np.nan
-
-        if op_str not in ["__add__", "__radd__", "__sub__", "__rsub__"]:
-            check(dt2, td2)
+                op(arg2)
+        else:
+            # Smoke test
+            op(arg2)
 
     def test_sub_single_tz(self):
         # GH#12290
@@ -2107,7 +2103,7 @@ class TestDatetimeIndexArithmetic:
         np.subtract(out, tdi, out=out)
         tm.assert_datetime_array_equal(out, expected._data)
 
-        msg = "cannot subtract .* from a TimedeltaArray"
+        msg = "cannot subtract a datelike from a TimedeltaArray"
         with pytest.raises(TypeError, match=msg):
             tdi -= dti
 
@@ -2116,11 +2112,9 @@ class TestDatetimeIndexArithmetic:
         result -= tdi.values
         tm.assert_index_equal(result, expected)
 
-        msg = "cannot subtract DatetimeArray from ndarray"
         with pytest.raises(TypeError, match=msg):
             tdi.values -= dti
 
-        msg = "cannot subtract a datelike from a TimedeltaArray"
         with pytest.raises(TypeError, match=msg):
             tdi._values -= dti
 

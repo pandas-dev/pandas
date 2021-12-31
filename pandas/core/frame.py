@@ -92,6 +92,7 @@ from pandas.util._validators import (
 )
 
 from pandas.core.dtypes.cast import (
+    can_hold_element,
     construct_1d_arraylike_from_scalar,
     construct_2d_arraylike_from_scalar,
     find_common_type,
@@ -99,7 +100,6 @@ from pandas.core.dtypes.cast import (
     invalidate_string_dtypes,
     maybe_box_native,
     maybe_downcast_to_dtype,
-    validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -170,6 +170,7 @@ from pandas.core.indexes.multi import (
 )
 from pandas.core.indexing import (
     check_bool_indexer,
+    check_deprecated_indexers,
     convert_to_index_sliceable,
 )
 from pandas.core.internals import (
@@ -3458,6 +3459,7 @@ class DataFrame(NDFrame, OpsMixin):
             yield self._get_column_array(i)
 
     def __getitem__(self, key):
+        check_deprecated_indexers(key)
         key = lib.item_from_zerodim(key)
         key = com.apply_if_callable(key, self)
 
@@ -3863,7 +3865,9 @@ class DataFrame(NDFrame, OpsMixin):
 
             series = self._get_item_cache(col)
             loc = self.index.get_loc(index)
-            validate_numeric_casting(series.dtype, value)
+            if not can_hold_element(series._values, value):
+                # We'll go through loc and end up casting.
+                raise TypeError
 
             series._mgr.setitem_inplace(loc, value)
             # Note: trying to use series._set_value breaks tests in
@@ -5265,11 +5269,11 @@ class DataFrame(NDFrame, OpsMixin):
     def replace(
         self,
         to_replace=None,
-        value=None,
+        value=lib.no_default,
         inplace: bool = False,
         limit=None,
         regex: bool = False,
-        method: str = "pad",
+        method: str | lib.NoDefault = lib.no_default,
     ):
         return super().replace(
             to_replace=to_replace,

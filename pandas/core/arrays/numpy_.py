@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import numbers
-
 import numpy as np
 
 from pandas._libs import lib
@@ -129,8 +127,6 @@ class PandasArray(
 
     def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
         return np.asarray(self._ndarray, dtype=dtype)
-
-    _HANDLED_TYPES = (np.ndarray, numbers.Number)
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # Lightly modified version of
