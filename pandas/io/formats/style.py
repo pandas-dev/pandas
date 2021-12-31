@@ -552,8 +552,9 @@ class Styler(StylerRenderer):
                 width of the table, including data entries.
               - `"all;index"`: as above with lines extending only the width of the
                 index entries.
-              - `"skip-last;data": a cline is added for each index value except the last
-                level (which is never sparsified), extending the widtn of the table.
+              - `"skip-last;data"`: a cline is added for each index value except the
+                last level (which is never sparsified), extending the widtn of the
+                table.
               - `"skip-last;index"`: as above with lines extending only the width of the
                 index entries.
 
