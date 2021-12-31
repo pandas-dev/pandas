@@ -495,7 +495,13 @@ def pivot(
         )
     else:
         if index is None:
-            index_list = [Series(data.index, name=data.index.name)]
+            if isinstance(data.index, MultiIndex):
+                # GH 23955
+                index_list = [
+                    data.index.get_level_values(i) for i in range(data.index.nlevels)
+                ]
+            else:
+                index_list = [Series(data.index, name=data.index.name)]
         else:
             index_list = [data[idx] for idx in com.convert_to_list_like(index)]
 

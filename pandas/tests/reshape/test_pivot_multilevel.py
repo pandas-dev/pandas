@@ -228,3 +228,25 @@ def test_pivot_multiindexed_rows_and_cols(using_array_manager):
         expected = expected.astype("float64")
 
     tm.assert_frame_equal(res, expected)
+
+
+def test_pivot_df_multiindex_index_none():
+    # GH 23955
+    df = pd.DataFrame(
+        [
+            ["A", "A1", "label1", 1],
+            ["A", "A2", "label2", 2],
+            ["B", "A1", "label1", 3],
+            ["B", "A2", "label2", 4],
+        ],
+        columns=["index_1", "index_2", "label", "value"],
+    )
+    df = df.set_index(["index_1", "index_2"])
+
+    result = df.pivot(index=None, columns="label", values="value")
+    expected = pd.DataFrame(
+        [[1.0, np.nan], [np.nan, 2.0], [3.0, np.nan], [np.nan, 4.0]],
+        index=df.index,
+        columns=Index(["label1", "label2"], name="label"),
+    )
+    tm.assert_frame_equal(result, expected)
