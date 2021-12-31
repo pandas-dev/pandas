@@ -259,6 +259,7 @@ class StylerRenderer:
         head = self._translate_header(sparse_cols, max_cols)
         d.update({"head": head})
 
+        # for sparsifying a MultiIndex and for use with latex clines
         idx_lengths = _get_level_lengths(
             self.index, sparse_index, max_rows, self.hidden_rows
         )
@@ -544,7 +545,6 @@ class StylerRenderer:
         body : list
             The associated HTML elements needed for template rendering.
         """
-        # for sparsifying a MultiIndex
         rlabels = self.data.index.tolist()
         if not isinstance(self.data.index, MultiIndex):
             rlabels = [[x] for x in rlabels]
