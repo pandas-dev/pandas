@@ -1,3 +1,5 @@
+import warnings
+
 import cython
 
 from cpython.datetime cimport (
@@ -516,7 +518,7 @@ cpdef array_to_datetime(
                     if string_to_dts_failed:
                         # An error at this point is a _parsing_ error
                         # specifically _not_ OutOfBoundsDatetime
-                        if _parse_today_now(val, &iresult[i]):
+                        if _parse_today_now(val, &iresult[i], utc):
                             continue
                         elif require_iso8601:
                             # if requiring iso8601 strings, skip trying
@@ -755,14 +757,23 @@ cdef _array_to_datetime_object(
     return oresult, None
 
 
-cdef inline bint _parse_today_now(str val, int64_t* iresult):
+cdef inline bint _parse_today_now(str val, int64_t* iresult, bint utc):
     # We delay this check for as long as possible
     # because it catches relatively rare cases
-    if val == 'now':
-        # Note: this is *not* the same as Timestamp('now')
+    if val == "now":
         iresult[0] = Timestamp.utcnow().value
+        if not utc:
+            # GH#18705 make sure to_datetime("now") matches Timestamp("now")
+            warnings.warn(
+                "The parsing of 'now' in pd.to_datetime without `utc=True` is "
+                "deprecated. In a future version, this will match Timestamp('now') "
+                "and Timestamp.now()",
+                FutureWarning,
+                stacklevel=1,
+            )
+
         return True
-    elif val == 'today':
+    elif val == "today":
         iresult[0] = Timestamp.today().value
         return True
     return False
