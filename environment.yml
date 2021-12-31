@@ -120,6 +120,6 @@ dependencies:
   - tabulate>=0.8.3  # DataFrame.to_markdown
   - natsort  # DataFrame.sort_values
   - pip:
-    - pydata-sphinx-theme==0.7.1
+    - pydata-sphinx-theme==0.7.0
     - pandas-dev-flaker==0.2.0
     - pytest-cython
