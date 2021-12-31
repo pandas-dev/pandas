@@ -757,6 +757,8 @@ Timedelta
 ^^^^^^^^^
 - Bug in division of all-``NaT`` :class:`TimeDeltaIndex`, :class:`Series` or :class:`DataFrame` column with object-dtype arraylike of numbers failing to infer the result as timedelta64-dtype (:issue:`39750`)
 - Bug in floor division of ``timedelta64[ns]`` data with a scalar returning garbage values (:issue:`44466`)
+- Bug in :class:`Timedelta` now properly taking into account any nanoseconds contribution of any kwarg (:issue:`43764`)
+-
 
 Timezones
 ^^^^^^^^^
@@ -917,7 +919,7 @@ Period
 Plotting
 ^^^^^^^^
 - When given non-numeric data, :meth:`DataFrame.boxplot` now raises a ``ValueError`` rather than a cryptic ``KeyError`` or ``ZeroDivisionError``, in line with other plotting functions like :meth:`DataFrame.hist`. (:issue:`43480`)
--
+- Bug in :meth:`DataFrame.plot.barh` that prevented labeling the x-axis and ``xlabel`` updating the y-axis label (:issue:`45144`)
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -966,6 +968,7 @@ Reshaping
 - Bug in :meth:`Series.unstack` with object doing unwanted type inference on resulting columns (:issue:`44595`)
 - Bug in :class:`MultiIndex` failing join operations with overlapping ``IntervalIndex`` levels (:issue:`44096`)
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` results is different ``dtype`` based on ``regex`` parameter (:issue:`44864`)
+- Bug in :meth:`DataFrame.pivot` with ``index=None`` when the :class:`DataFrame` index was a :class:`MultiIndex` (:issue:`23955`)
 
 Sparse
 ^^^^^^
