@@ -1449,6 +1449,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 selection=colname,
                 grouper=self.grouper,
                 exclusions=self.exclusions,
+                observed=self.observed,
             )
 
     def _apply_to_column_groupbys(self, func, obj: DataFrame | Series) -> DataFrame:
