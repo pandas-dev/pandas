@@ -2922,7 +2922,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         >>> engine.execute("SELECT * FROM integers").fetchall()
         [(1,), (None,), (2,)]
-        """  # noqa: 501
+        """  # noqa:E501
         from pandas.io import sql
 
         return sql.to_sql(
