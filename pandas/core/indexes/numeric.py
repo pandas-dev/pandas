@@ -240,7 +240,7 @@ class NumericIndex(Index):
             return False
 
     @doc(Index.astype)
-    def astype(self, dtype, copy=True):
+    def astype(self, dtype, copy: bool = True):
         dtype = pandas_dtype(dtype)
         if is_float_dtype(self.dtype):
             if needs_i8_conversion(dtype):
