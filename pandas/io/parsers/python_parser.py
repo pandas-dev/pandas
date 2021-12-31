@@ -197,6 +197,7 @@ class PythonParser(ParserBase):
                 skipinitialspace = self.skipinitialspace
                 quoting = self.quoting
                 lineterminator = "\n"
+                strict = not isinstance(self.on_bad_lines, callable)
 
             dia = MyDialect
 
@@ -990,7 +991,9 @@ class PythonParser(ParserBase):
                 actual_len = len(l)
 
                 if actual_len > col_len:
-                    if (
+                    if callable(self.on_bad_lines):
+                        content.append(self.on_bad_lines(l))
+                    elif (
                         self.on_bad_lines == self.BadLineHandleMethod.ERROR
                         or self.on_bad_lines == self.BadLineHandleMethod.WARN
                     ):
