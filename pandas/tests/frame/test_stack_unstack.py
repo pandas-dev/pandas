@@ -1046,7 +1046,7 @@ class TestDataFrameReshape:
                 names=[None, "Lower"],
             ),
             columns=Index(["B", "C"], name="Upper"),
-            dtype=df.dtypes[0],
+            # dtype=df.dtypes[0],
         )
         tm.assert_frame_equal(result, expected)
 
