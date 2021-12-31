@@ -266,9 +266,8 @@ class BaseXMLFormatter:
         for col in self.attr_cols:
             attr_name = self._get_flat_col_name(col)
             try:
-                val = None if isna(d[col]) else str(d[col])
-                if val is not None:
-                    elem_row.attrib[attr_name] = val
+                if not isna(d[col]):
+                    elem_row.attrib[attr_name] = str(d[col])
             except KeyError:
                 raise KeyError(f"no valid column, {col}")
         return elem_row
