@@ -790,6 +790,7 @@ Conversion
 - Bug in :meth:`DataFrame.convert_dtypes` result losing ``columns.names`` (:issue:`41435`)
 - Bug in constructing a ``IntegerArray`` from pyarrow data failing to validate dtypes (:issue:`44891`)
 - Bug in :meth:`Series.astype` not allowing converting from a ``PeriodDtype`` to ``datetime64`` dtype, inconsistent with the :class:`PeriodIndex` behavior (:issue:`45038`)
+- Bug in constructing a :class:`Series` from a float-containing list or a floating-dtype ndarray-like (e.g. ``dask.Array``) and an integer dtype raising instead of casting like we would with an ``np.ndarray`` (:issue:`40110`)
 -
 
 Strings
