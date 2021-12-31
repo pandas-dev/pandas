@@ -58,6 +58,17 @@ def adjust_negative_zero(zero, expected):
     return expected
 
 
+def compare_op(series, other, op):
+    left = np.abs(series) if op in (ops.rpow, operator.pow) else series
+    right = np.abs(other) if op in (ops.rpow, operator.pow) else other
+
+    cython_or_numpy = op(left, right)
+    python = left.combine(right, op)
+    if isinstance(other, Series) and not other.index.equals(series.index):
+        python.index = python.index._with_freq(None)
+    tm.assert_series_equal(cython_or_numpy, python)
+
+
 # TODO: remove this kludge once mypy stops giving false positives here
 # List comprehension has incompatible type List[PandasObject]; expected List[RangeIndex]
 #  See GH#29725
@@ -968,14 +979,7 @@ class TestAdditionSubtraction:
         op = all_arithmetic_functions
         series = tm.makeTimeSeries().rename("ts")
         other = func(series)
-        left = np.abs(series) if op in (ops.rpow, operator.pow) else series
-        right = np.abs(other) if op in (ops.rpow, operator.pow) else other
-
-        cython_or_numpy = op(left, right)
-        python = left.combine(right, op)
-        if isinstance(other, Series) and not other.index.equals(series.index):
-            python.index = python.index._with_freq(None)
-        tm.assert_series_equal(cython_or_numpy, python)
+        compare_op(series, other, op)
 
     @pytest.mark.parametrize(
         "func", [lambda x: x + 1, lambda x: 5], ids=["add", "constant"]
@@ -984,14 +988,7 @@ class TestAdditionSubtraction:
         op = comparison_op
         series = tm.makeTimeSeries().rename("ts")
         other = func(series)
-        left = series
-        right = other
-
-        cython_or_numpy = op(left, right)
-        python = left.combine(right, op)
-        if isinstance(other, Series) and not other.index.equals(series.index):
-            python.index = python.index._with_freq(None)
-        tm.assert_series_equal(cython_or_numpy, python)
+        compare_op(series, other, op)
 
     @pytest.mark.parametrize(
         "func",

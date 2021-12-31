@@ -1822,7 +1822,7 @@ class TestTimestampSeriesArithmetic:
                 [Timestamp("20111230"), Timestamp("20120101"), NaT],
                 [timedelta(minutes=5, seconds=3), timedelta(minutes=5, seconds=3), NaT],
                 ["__add__", "__radd__", "__sub__"],
-            ],  # TODO(jreback) __rsub__ should raise?
+            ],
             [
                 [
                     Timestamp("20111230", tz="US/Eastern"),
@@ -1835,15 +1835,10 @@ class TestTimestampSeriesArithmetic:
         ],
     )
     def test_operators_datetimelike_invalid(
-        self, request, left, right, op_fail, all_arithmetic_operators
+        self, left, right, op_fail, all_arithmetic_operators
     ):
         # these are all TypeError ops
         op_str = all_arithmetic_operators
-        request.node.add_marker(
-            pytest.mark.xfail(
-                op_str in op_fail, reason=f"{op_str} doesn't raise TypeError"
-            )
-        )
         arg1 = Series(left)
         arg2 = Series(right)
         # check that we are getting a TypeError
@@ -1852,7 +1847,13 @@ class TestTimestampSeriesArithmetic:
         op = getattr(arg1, op_str, None)
         # Previously, _validate_for_numeric_binop in core/indexes/base.py
         # did this for us.
-        with pytest.raises(TypeError, match="operate|[cC]annot|unsupported operand"):
+        if op_str not in op_fail:
+            with pytest.raises(
+                TypeError, match="operate|[cC]annot|unsupported operand"
+            ):
+                op(arg2)
+        else:
+            # Smoke test
             op(arg2)
 
     def test_sub_single_tz(self):
