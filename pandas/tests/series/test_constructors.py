@@ -652,8 +652,10 @@ class TestSeriesConstructors:
         s = Series(np.array([1.0, 1.0, 8.0]), dtype="i8")
         assert s.dtype == np.dtype("i8")
 
-        s = Series(np.array([1.0, 1.0, np.nan]), copy=True, dtype="i8")
-        assert s.dtype == np.dtype("f8")
+        msg = "float-dtype values containing NaN and an integer dtype"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ser = Series(np.array([1.0, 1.0, np.nan]), copy=True, dtype="i8")
+        assert ser.dtype == np.dtype("f8")
 
     def test_constructor_copy(self):
         # GH15125

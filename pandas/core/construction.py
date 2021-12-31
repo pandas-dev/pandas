@@ -535,6 +535,15 @@ def sanitize_array(
             try:
                 subarr = _try_cast(data, dtype, copy, True)
             except IntCastingNaNError:
+                warnings.warn(
+                    "In a future version, passing float-dtype values containing NaN "
+                    "and an integer dtype will raise IntCastingNaNError "
+                    "(subclass of ValueError) instead of silently ignoring the "
+                    "passed dtype. To retain the old behavior, call Series(arr) or "
+                    "DataFrame(arr) without passing a dtype.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
                 subarr = np.array(data, copy=copy)
             except ValueError:
                 if not raise_cast_failure:
