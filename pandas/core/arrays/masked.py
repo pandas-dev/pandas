@@ -714,10 +714,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         data = self._data[~self._mask]
         value_counts = Index(data).value_counts()
 
-        # TODO(ExtensionIndex)
-        # if we have allow Index to hold an ExtensionArray
-        # this is easier
-        index = value_counts.index._values.astype(object)
+        index = value_counts.index
 
         # if we want nans, count the mask
         if dropna:
@@ -727,10 +724,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             counts[:-1] = value_counts
             counts[-1] = self._mask.sum()
 
-            index = Index(
-                np.concatenate([index, np.array([self.dtype.na_value], dtype=object)]),
-                dtype=object,
-            )
+            index = index.insert(len(index), self.dtype.na_value)
+
+        index = index.astype(self.dtype)
 
         mask = np.zeros(len(counts), dtype="bool")
         counts = IntegerArray(counts, mask)
