@@ -23,6 +23,21 @@ openpyxl = pytest.importorskip("openpyxl")
 pytestmark = pytest.mark.parametrize("ext", [".xlsx"])
 
 
+def has_min_lxml_and_openpyxl():
+    openpyxl = import_optional_dependency("openpyxl", errors="ignore")
+    lxml = import_optional_dependency("lxml.etree", errors="ignore")
+    return (
+        openpyxl is not None
+        and openpyxl.__version__ == VERSIONS["openpyxl"]
+        and lxml is not None
+        and lxml.__version__ == VERSIONS["lxml.etree"]
+    )
+
+
+def openpyxl_installed_and_xlsx_xlsm(path):
+    return ("xlsm" in path or "xlsx" in path) and has_min_lxml_and_openpyxl()
+
+
 def test_to_excel_styleconverter(ext):
     from openpyxl import styles
 
@@ -57,17 +72,11 @@ def test_to_excel_styleconverter(ext):
 
 
 def test_write_cells_merge_styled(request, ext):
-    import openpyxl
-
     from pandas.io.formats.excel import ExcelCell
 
-    lxml = import_optional_dependency("lxml.etree", errors="ignore")
     request.node.add_marker(
         pytest.mark.xfail(
-            openpyxl.__version__ == VERSIONS["openpyxl"]
-            and ext == ".xlsx"
-            and lxml is not None
-            and lxml.__version__ == VERSIONS["lxml.etree"],
+            openpyxl_installed_and_xlsx_xlsm(ext),
             reason="Fails on the min version build",
             raises=TypeError,
         )
@@ -106,15 +115,9 @@ def test_write_cells_merge_styled(request, ext):
 @pytest.mark.parametrize("iso_dates", [True, False])
 def test_kwargs(request, ext, iso_dates):
     # GH 42286 GH 43445
-    import openpyxl
-
-    lxml = import_optional_dependency("lxml.etree", errors="ignore")
     request.node.add_marker(
         pytest.mark.xfail(
-            openpyxl.__version__ == VERSIONS["openpyxl"]
-            and ext == ".xlsx"
-            and lxml is not None
-            and lxml.__version__ == VERSIONS["lxml.etree"],
+            openpyxl_installed_and_xlsx_xlsm(ext),
             reason="Fails on the min version build",
             raises=TypeError,
         )
@@ -132,15 +135,9 @@ def test_kwargs(request, ext, iso_dates):
 @pytest.mark.parametrize("iso_dates", [True, False])
 def test_engine_kwargs_write(request, ext, iso_dates):
     # GH 42286 GH 43445
-    import openpyxl
-
-    lxml = import_optional_dependency("lxml.etree", errors="ignore")
     request.node.add_marker(
         pytest.mark.xfail(
-            openpyxl.__version__ == VERSIONS["openpyxl"]
-            and ext == ".xlsx"
-            and lxml is not None
-            and lxml.__version__ == VERSIONS["lxml.etree"],
+            openpyxl_installed_and_xlsx_xlsm(ext),
             reason="Fails on the min version build",
             raises=TypeError,
         )
@@ -176,15 +173,9 @@ def test_engine_kwargs_append_data_only(request, ext, data_only, expected):
     # GH 43445
     # tests whether the data_only engine_kwarg actually works well for
     # openpyxl's load_workbook
-    import openpyxl
-
-    lxml = import_optional_dependency("lxml.etree", errors="ignore")
     request.node.add_marker(
         pytest.mark.xfail(
-            openpyxl.__version__ == VERSIONS["openpyxl"]
-            and ext == ".xlsx"
-            and lxml is not None
-            and lxml.__version__ == VERSIONS["lxml.etree"],
+            openpyxl_installed_and_xlsx_xlsm(ext),
             reason="Fails on the min version build",
             raises=TypeError,
         )
@@ -203,15 +194,9 @@ def test_engine_kwargs_append_data_only(request, ext, data_only, expected):
     "mode,expected", [("w", ["baz"]), ("a", ["foo", "bar", "baz"])]
 )
 def test_write_append_mode(request, ext, mode, expected):
-    import openpyxl
-
-    lxml = import_optional_dependency("lxml.etree", errors="ignore")
     request.node.add_marker(
         pytest.mark.xfail(
-            openpyxl.__version__ == VERSIONS["openpyxl"]
-            and ext == ".xlsx"
-            and lxml is not None
-            and lxml.__version__ == VERSIONS["lxml.etree"],
+            openpyxl_installed_and_xlsx_xlsm(ext),
             reason="Fails on the min version build",
             raises=TypeError,
         )
@@ -249,15 +234,9 @@ def test_if_sheet_exists_append_modes(
     request, ext, if_sheet_exists, num_sheets, expected
 ):
     # GH 40230
-    import openpyxl
-
-    lxml = import_optional_dependency("lxml.etree", errors="ignore")
     request.node.add_marker(
         pytest.mark.xfail(
-            openpyxl.__version__ == VERSIONS["openpyxl"]
-            and ext == ".xlsx"
-            and lxml is not None
-            and lxml.__version__ == VERSIONS["lxml.etree"],
+            openpyxl_installed_and_xlsx_xlsm(ext),
             reason="Fails on the min version build",
             raises=TypeError,
         )
@@ -295,15 +274,9 @@ def test_if_sheet_exists_append_modes(
 def test_append_overlay_startrow_startcol(
     request, ext, startrow, startcol, greeting, goodbye
 ):
-    import openpyxl
-
-    lxml = import_optional_dependency("lxml.etree", errors="ignore")
     request.node.add_marker(
         pytest.mark.xfail(
-            openpyxl.__version__ == VERSIONS["openpyxl"]
-            and ext == ".xlsx"
-            and lxml is not None
-            and lxml.__version__ == VERSIONS["lxml.etree"],
+            openpyxl_installed_and_xlsx_xlsm(ext),
             reason="Fails on the min version build",
             raises=TypeError,
         )
@@ -351,15 +324,9 @@ def test_append_overlay_startrow_startcol(
 )
 def test_if_sheet_exists_raises(request, ext, if_sheet_exists, msg):
     # GH 40230
-    import openpyxl
-
-    lxml = import_optional_dependency("lxml.etree", errors="ignore")
     request.node.add_marker(
         pytest.mark.xfail(
-            openpyxl.__version__ == VERSIONS["openpyxl"]
-            and ext == ".xlsx"
-            and lxml is not None
-            and lxml.__version__ == VERSIONS["lxml.etree"],
+            openpyxl_installed_and_xlsx_xlsm(ext),
             reason="Fails on the min version build",
             raises=TypeError,
         )
@@ -376,15 +343,9 @@ def test_if_sheet_exists_raises(request, ext, if_sheet_exists, msg):
 
 def test_to_excel_with_openpyxl_engine(request, ext):
     # GH 29854
-    import openpyxl
-
-    lxml = import_optional_dependency("lxml.etree", errors="ignore")
     request.node.add_marker(
         pytest.mark.xfail(
-            openpyxl.__version__ == VERSIONS["openpyxl"]
-            and ext == ".xlsx"
-            and lxml is not None
-            and lxml.__version__ == VERSIONS["lxml.etree"],
+            openpyxl_installed_and_xlsx_xlsm(ext),
             reason="Fails on the min version build",
             raises=TypeError,
         )
@@ -448,15 +409,9 @@ def test_read_with_bad_dimension(
 
 def test_append_mode_file(request, ext):
     # GH 39576
-    import openpyxl
-
-    lxml = import_optional_dependency("lxml.etree", errors="ignore")
     request.node.add_marker(
         pytest.mark.xfail(
-            openpyxl.__version__ == VERSIONS["openpyxl"]
-            and ext == ".xlsx"
-            and lxml is not None
-            and lxml.__version__ == VERSIONS["lxml.etree"],
+            openpyxl_installed_and_xlsx_xlsm(ext),
             reason="Fails on the min version build",
             raises=TypeError,
         )
