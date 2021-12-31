@@ -83,7 +83,7 @@ cftime
 pyreadstat
 tabulate>=0.8.3
 natsort
-pydata-sphinx-theme==0.7.0
+git+https://github.com/pydata/pydata-sphinx-theme.git@41764f5
 pandas-dev-flaker==0.2.0
 pytest-cython
 setuptools>=51.0.0
