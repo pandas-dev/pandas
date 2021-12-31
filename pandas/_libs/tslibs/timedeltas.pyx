@@ -1278,8 +1278,10 @@ class Timedelta(_Timedelta):
                     "milliseconds, microseconds, nanoseconds]"
                 )
 
-            # GH43764, making sure any nanoseconds contributions from any kwarg
-            # is taken into consideration
+            # GH43764, convert any input to nanoseconds first and then
+            # create the timestamp. This ensures that any potential
+            # nanosecond contributions from kwargs parsed as floats
+            # are taken into consideration.
             seconds = int((
                 (
                     (kwargs.get('days', 0) + kwargs.get('weeks', 0) * 7) * 24
@@ -1290,12 +1292,11 @@ class Timedelta(_Timedelta):
                 ) * 1_000_000_000
             )
 
-            value = convert_to_timedelta64(
-                kwargs.get('nanoseconds', 0)
+            value = np.timedelta64(
+                int(kwargs.get('nanoseconds', 0))
                 + int(kwargs.get('microseconds', 0) * 1_000)
                 + int(kwargs.get('milliseconds', 0) * 1_000_000)
                 + seconds
-                , 'ns'
             )
 
         if unit in {'Y', 'y', 'M'}:
