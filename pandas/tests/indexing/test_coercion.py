@@ -110,15 +110,9 @@ class TestSetitemCoercion(CoercionBase):
         "val,exp_dtype",
         [(1, np.int64), (1.1, np.float64), (1 + 1j, np.complex128), (True, object)],
     )
-    def test_setitem_series_int64(self, val, exp_dtype, request):
+    def test_setitem_series_int64(self, val, exp_dtype):
         obj = pd.Series([1, 2, 3, 4])
         assert obj.dtype == np.int64
-
-        if exp_dtype is np.float64:
-            exp = pd.Series([1, 1, 3, 4])
-            self._assert_setitem_series_conversion(obj, 1.1, exp, np.int64)
-            mark = pytest.mark.xfail(reason="GH12747 The result must be float")
-            request.node.add_marker(mark)
 
         exp = pd.Series([1, val, 3, 4])
         self._assert_setitem_series_conversion(obj, val, exp, exp_dtype)
@@ -126,22 +120,16 @@ class TestSetitemCoercion(CoercionBase):
     @pytest.mark.parametrize(
         "val,exp_dtype", [(np.int32(1), np.int8), (np.int16(2 ** 9), np.int16)]
     )
-    def test_setitem_series_int8(self, val, exp_dtype, request):
+    def test_setitem_series_int8(self, val, exp_dtype):
         obj = pd.Series([1, 2, 3, 4], dtype=np.int8)
         assert obj.dtype == np.int8
-
-        if exp_dtype is np.int16:
-            exp = pd.Series([1, 0, 3, 4], dtype=np.int8)
-            self._assert_setitem_series_conversion(obj, val, exp, np.int8)
-            mark = pytest.mark.xfail(
-                reason="BUG: it must be pd.Series([1, 1, 3, 4], dtype=np.int16"
-            )
-            request.node.add_marker(mark)
 
         warn = None if exp_dtype is np.int8 else FutureWarning
         msg = "Values are too large to be losslessly cast to int8"
         with tm.assert_produces_warning(warn, match=msg):
             exp = pd.Series([1, val, 3, 4], dtype=np.int8)
+
+        exp = pd.Series([1, val, 3, 4], dtype=exp_dtype)
         self._assert_setitem_series_conversion(obj, val, exp, exp_dtype)
 
     @pytest.mark.parametrize(

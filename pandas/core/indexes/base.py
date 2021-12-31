@@ -69,7 +69,6 @@ from pandas.core.dtypes.cast import (
     find_common_type,
     infer_dtype_from,
     maybe_cast_pointwise_result,
-    validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
     ensure_int64,
@@ -5643,7 +5642,8 @@ class Index(IndexOpsMixin, PandasObject):
             stacklevel=find_stack_level(),
         )
         loc = self._engine.get_loc(key)
-        validate_numeric_casting(arr.dtype, value)
+        if not can_hold_element(arr, value):
+            raise ValueError
         arr[loc] = value
 
     _index_shared_docs[
