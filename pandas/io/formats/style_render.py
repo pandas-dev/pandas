@@ -795,20 +795,23 @@ class StylerRenderer:
         # clines are determined from info on index_lengths and hidden_rows and input
         # to a dict defining which row clines should be added in the template.
         if clines is not None:
-            # define cline construction from kwarg input
-            idx_range = index_levels if "all" in clines else index_levels - 1
             data_len = len(row_body_cells) if "data" in clines else 0
 
             d["clines"] = defaultdict(list)
             visible_row_indexes = [
                 r for r in range(len(self.data.index)) if r not in self.hidden_rows
             ]
+            visible_index_levels = [
+                i for i in range(index_levels) if not self.hide_index_[i]
+            ]
             for rn, r in enumerate(visible_row_indexes):
-                for idx_lvl in range(idx_range):
-                    idx_len = d["index_lengths"].get((idx_lvl, r), None)
-                    if idx_len is not None:  # sparsified entry
+                for lvln, lvl in enumerate(visible_index_levels):
+                    if lvl == index_levels - 1 and "skip-last" in clines:
+                        continue
+                    idx_len = d["index_lengths"].get((lvl, r), None)
+                    if idx_len is not None:  # i.e. not a sparsified entry
                         d["clines"][rn + idx_len].append(
-                            f"\\cline{{{idx_lvl+1}-{index_levels+data_len}}}"
+                            f"\\cline{{{lvln+1}-{len(visible_index_levels)+data_len}}}"
                         )
 
     def format(
