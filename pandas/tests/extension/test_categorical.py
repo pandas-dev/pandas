@@ -144,6 +144,10 @@ class TestSetitem(base.BaseSetitemTests):
     pass
 
 
+class TestIndex(base.BaseIndexTests):
+    pass
+
+
 class TestMissing(base.BaseMissingTests):
     @pytest.mark.skip(reason="Not implemented")
     def test_fillna_limit_pad(self, data_missing):

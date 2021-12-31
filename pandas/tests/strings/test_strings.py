@@ -363,9 +363,6 @@ def test_len_mixed():
 def test_index(
     method, sub, start, end, index_or_series, any_string_dtype, expected, request
 ):
-    if index_or_series is Index and not any_string_dtype == "object":
-        mark = pytest.mark.xfail(reason="Need EA-backed Index")
-        request.node.add_marker(mark)
 
     obj = index_or_series(
         ["ABCDEFG", "BCDEFEF", "DEFGHIJEF", "EFGHEF"], dtype=any_string_dtype

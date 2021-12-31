@@ -530,21 +530,20 @@ class TestIndex(Base):
             # Cannot map duplicated index
             return
 
+        rng = np.arange(len(index), 0, -1)
+
         if index.empty:
             # to match proper result coercion for uints
             expected = Index([])
         elif index._is_backward_compat_public_numeric_index:
-            expected = index._constructor(
-                np.arange(len(index), 0, -1), dtype=index.dtype
-            )
+            expected = index._constructor(rng, dtype=index.dtype)
         elif type(index) is Index and index.dtype != object:
             # i.e. EA-backed, for now just Nullable
-            expected = Index(np.arange(len(index), 0, -1), dtype=index.dtype)
+            expected = Index(rng, dtype=index.dtype)
         elif index.dtype.kind == "u":
-            # TODO: case where e.g. we cannot hold result in UInt8?
-            expected = Index(np.arange(len(index), 0, -1), dtype=index.dtype)
+            expected = Index(rng, dtype=index.dtype)
         else:
-            expected = Index(np.arange(len(index), 0, -1))
+            expected = Index(rng)
 
         result = index.map(mapper(expected, index))
         tm.assert_index_equal(result, expected)

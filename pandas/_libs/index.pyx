@@ -33,7 +33,9 @@ from pandas._libs import (
     hashtable as _hash,
 )
 
+from pandas._libs.lib cimport eq_NA_compat
 from pandas._libs.missing cimport (
+    C_NA as NA,
     checknull,
     is_matching_na,
 )
@@ -62,7 +64,7 @@ cdef ndarray _get_bool_indexer(ndarray values, object val):
     if values.descr.type_num == cnp.NPY_OBJECT:
         # i.e. values.dtype == object
         if not checknull(val):
-            indexer = values == val
+            indexer = eq_NA_compat(values, val)
 
         else:
             # We need to check for _matching_ NA values

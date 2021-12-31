@@ -1325,12 +1325,8 @@ def is_bool_dtype(arr_or_dtype) -> bool:
         # now we use the special definition for Index
 
     if isinstance(arr_or_dtype, ABCIndex):
-
-        # TODO(jreback)
-        # we don't have a boolean Index class
-        # so its object, we need to infer to
-        # guess this
-        return arr_or_dtype.is_object() and arr_or_dtype.inferred_type == "boolean"
+        # Allow Index[object] that is all-bools or Index["boolean"]
+        return arr_or_dtype.inferred_type == "boolean"
     elif isinstance(dtype, ExtensionDtype):
         return getattr(dtype, "_is_boolean", False)
 

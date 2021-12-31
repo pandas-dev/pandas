@@ -3050,6 +3050,27 @@ def is_bool_list(obj: list) -> bool:
     return True
 
 
+cpdef ndarray eq_NA_compat(ndarray[object] arr, object key):
+    """
+    Check for `arr == key`, treating all values as not-equal to pd.NA.
+
+    key is assumed to have `not isna(key)`
+    """
+    cdef:
+        ndarray[uint8_t, cast=True] result = np.empty(len(arr), dtype=bool)
+        Py_ssize_t i
+        object item
+
+    for i in range(len(arr)):
+        item = arr[i]
+        if item is C_NA:
+            result[i] = False
+        else:
+            result[i] = item == key
+
+    return result
+
+
 def dtypes_all_equal(list types not None) -> bool:
     """
     Faster version for:

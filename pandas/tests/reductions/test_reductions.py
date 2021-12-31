@@ -79,13 +79,9 @@ class TestReductions:
             ("boolean", True),
         ],
     )
-    def test_nanminmax(self, opname, dtype, val, index_or_series, request):
+    def test_nanminmax(self, opname, dtype, val, index_or_series):
         # GH#7261
         klass = index_or_series
-
-        if dtype in ["Int64", "boolean"] and klass == Index:
-            mark = pytest.mark.xfail(reason="Need EA-backed Index")
-            request.node.add_marker(mark)
 
         def check_missing(res):
             if dtype == "datetime64[ns]":

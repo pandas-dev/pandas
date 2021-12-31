@@ -196,6 +196,10 @@ class TestGetitem(BaseJSON, base.BaseGetitemTests):
     pass
 
 
+class TestIndex(BaseJSON, base.BaseIndexTests):
+    pass
+
+
 class TestMissing(BaseJSON, base.BaseMissingTests):
     @pytest.mark.skip(reason="Setting a dict as a scalar")
     def test_fillna_series(self):
@@ -304,6 +308,20 @@ class TestGroupby(BaseJSON, base.BaseGroupbyTests):
 
         I suspect that once we support Index[ExtensionArray],
         we'll be able to dispatch unique.
+        """
+
+    @unhashable
+    def test_groupby_extension_agg(self):
+        """
+        This fails when we get to tm.assert_series_equal when left.index
+        contains dictionaries, which are not hashable.
+        """
+
+    @unhashable
+    def test_groupby_extension_no_sort(self):
+        """
+        This fails when we get to tm.assert_series_equal when left.index
+        contains dictionaries, which are not hashable.
         """
 
     @pytest.mark.xfail(reason="GH#39098: Converts agg result to object")

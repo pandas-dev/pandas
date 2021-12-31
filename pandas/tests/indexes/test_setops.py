@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 
 from pandas.core.dtypes.cast import find_common_type
+from pandas.core.dtypes.common import is_dtype_equal
 
 from pandas import (
     CategoricalIndex,
@@ -46,11 +47,23 @@ def test_union_same_types(index):
     assert idx1.union(idx2).dtype == idx1.dtype
 
 
-def test_union_different_types(index_flat, index_flat2):
+def test_union_different_types(index_flat, index_flat2, request):
     # This test only considers combinations of indices
     # GH 23525
     idx1 = index_flat
     idx2 = index_flat2
+
+    if (
+        not idx1.is_unique
+        and idx1.dtype.kind == "i"
+        and is_dtype_equal(idx2.dtype, "boolean")
+    ) or (
+        not idx2.is_unique
+        and idx2.dtype.kind == "i"
+        and is_dtype_equal(idx1.dtype, "boolean")
+    ):
+        mark = pytest.mark.xfail(reason="GH#44000 True==1", raises=ValueError)
+        request.node.add_marker(mark)
 
     common_dtype = find_common_type([idx1.dtype, idx2.dtype])
 
@@ -195,6 +208,7 @@ class TestSetOps:
         first = index[3:]
         second = index[:5]
         everything = index
+
         union = first.union(second)
         assert tm.equalContents(union, everything)
 

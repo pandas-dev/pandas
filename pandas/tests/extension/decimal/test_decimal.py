@@ -101,6 +101,10 @@ class TestGetitem(base.BaseGetitemTests):
         self.assert_extension_array_equal(result, expected)
 
 
+class TestIndex(base.BaseIndexTests):
+    pass
+
+
 class TestMissing(base.BaseMissingTests):
     pass
 

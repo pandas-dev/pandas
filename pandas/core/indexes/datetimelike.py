@@ -24,7 +24,6 @@ from pandas._libs import (
 )
 from pandas._libs.tslibs import (
     BaseOffset,
-    NaTType,
     Resolution,
     Tick,
     parsing,
@@ -153,9 +152,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         return True
 
     _can_hold_na = True
-
-    _na_value: NaTType = NaT
-    """The expected NA value to use with this index."""
 
     def _convert_tolerance(self, tolerance, target):
         tolerance = np.asarray(to_timedelta(tolerance).to_numpy())
