@@ -406,19 +406,15 @@ def test_mixed_groupings(normalize, expected_label, expected_values):
 
 
 @pytest.mark.parametrize(
-    "test, expected_names",
+    "test, columns, expected_names",
     [
-        ("repeat", ["a", None, "d", "b", "b", "e"]),
-        ("level", ["a", None, "d", "b", "c", "level_1"]),
+        ("repeat", list("abbde"), ["a", None, "d", "b", "b", "e"]),
+        ("level", list("abcd") + ["level_1"], ["a", None, "d", "b", "c", "level_1"]),
     ],
 )
 @pytest.mark.parametrize("as_index", [False, True])
-def test_column_name_clashes(test, expected_names, as_index):
-    df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6], "d": [7, 8], "e": [9, 10]})
-    if test == "repeat":
-        df.columns = list("abbde")
-    else:
-        df.columns = list("abcd") + ["level_1"]
+def test_column_name_clashes(test, columns, expected_names, as_index):
+    df = DataFrame([[1, 3, 5, 7, 9], [2, 4, 6, 8, 10]], columns=columns)
 
     if as_index:
         result = df.groupby(["a", [0, 1], "d"], as_index=as_index).value_counts()
