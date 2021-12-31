@@ -886,11 +886,15 @@ def test_where_period_invalid_na(frame_or_series, as_cat, request):
     else:
         msg = "value should be a 'Period'"
 
+    warn = None if as_cat else FutureWarning
+    wmsg = "The fallback behavior of .where with PeriodDtype"
     with pytest.raises(TypeError, match=msg):
-        obj.where(mask, tdnat)
+        with tm.assert_produces_warning(warn, match=wmsg):
+            obj.where(mask, tdnat)
 
     with pytest.raises(TypeError, match=msg):
-        obj.mask(mask, tdnat)
+        with tm.assert_produces_warning(warn, match=wmsg):
+            obj.mask(mask, tdnat)
 
 
 def test_where_nullable_invalid_na(frame_or_series, any_numeric_ea_dtype):

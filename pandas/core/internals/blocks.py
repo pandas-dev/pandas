@@ -1369,9 +1369,16 @@ class EABackedBlock(Block):
                 # NB: not (yet) the same as
                 #  isinstance(values, NDArrayBackedExtensionArray)
                 if isinstance(self.dtype, PeriodDtype):
-                    # TODO: don't special-case
-                    # Note: this is the main place where the fallback logic
-                    #  is different from EABackedBlock.putmask.
+                    # TODO(2.0): once this deprecation is enforced, we can
+                    #  share fallback logic with EABackedBlock.putmask.
+                    warnings.warn(
+                        "The fallback behavior of .where and .mask with PeriodDtype is "
+                        "deprecated. In a future version, when an incompatible "
+                        "value is passed, the array will be upcast to a common dtype "
+                        "(matching the behavior of other datetimelike dtypes).",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
                     raise
                 blk = self.coerce_to_target_dtype(other)
                 nbs = blk.where(other, cond)
