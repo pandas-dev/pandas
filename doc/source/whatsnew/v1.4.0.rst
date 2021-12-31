@@ -842,7 +842,8 @@ Indexing
 - Fixed regression where a single column ``np.matrix`` was no longer coerced to a 1d ``np.ndarray`` when added to a :class:`DataFrame` (:issue:`42376`)
 - Bug in :meth:`Series.__getitem__` with a :class:`CategoricalIndex` of integers treating lists of integers as positional indexers, inconsistent with the behavior with a single scalar integer (:issue:`15470`, :issue:`14865`)
 - Bug in :meth:`Series.__setitem__` when setting floats or integers into integer-dtype series failing to upcast when necessary to retain precision (:issue:`45121`)
--
+- Bug in :meth:`DataFrame.iloc.__setitem__` ignores axis argument (:issue:`45032`)
+- 
 
 Missing
 ^^^^^^^
