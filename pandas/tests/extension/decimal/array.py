@@ -25,6 +25,7 @@ from pandas.api.types import (
     is_list_like,
     is_scalar,
 )
+from pandas.core import arraylike
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import (
     ExtensionArray,
@@ -120,6 +121,13 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
 
         inputs = tuple(x._data if isinstance(x, DecimalArray) else x for x in inputs)
         result = getattr(ufunc, method)(*inputs, **kwargs)
+
+        if method == "reduce":
+            result = arraylike.dispatch_reduction_ufunc(
+                self, ufunc, method, *inputs, **kwargs
+            )
+            if result is not NotImplemented:
+                return result
 
         def reconstruct(x):
             if isinstance(x, (decimal.Decimal, numbers.Number)):

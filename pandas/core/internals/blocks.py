@@ -518,11 +518,11 @@ class Block(PandasObject):
     def _maybe_downcast(self, blocks: list[Block], downcast=None) -> list[Block]:
 
         if self.dtype == _dtype_obj:
-            # TODO: why is behavior different for object dtype?
-            if downcast is not None:
-                return blocks
-
+            # GH#44241 We downcast regardless of the argument;
+            #  respecting 'downcast=None' may be worthwhile at some point,
+            #  but ATM it breaks too much existing code.
             # split and convert the blocks
+
             return extend_blocks(
                 [blk.convert(datetime=True, numeric=False) for blk in blocks]
             )
@@ -679,7 +679,12 @@ class Block(PandasObject):
         elif self._can_hold_element(value):
             blk = self if inplace else self.copy()
             putmask_inplace(blk.values, mask, value)
-            blocks = blk.convert(numeric=False, copy=False)
+            if not (self.is_object and value is None):
+                # if the user *explicitly* gave None, we keep None, otherwise
+                #  may downcast to NaN
+                blocks = blk.convert(numeric=False, copy=False)
+            else:
+                blocks = [blk]
             return blocks
 
         elif self.ndim == 1 or self.shape[0] == 1:
@@ -762,7 +767,7 @@ class Block(PandasObject):
 
         src_len = len(pairs) - 1
 
-        if is_string_dtype(values):
+        if is_string_dtype(values.dtype):
             # Calculate the mask once, prior to the call of comp
             # in order to avoid repeating the same computations
             mask = ~isna(values)
@@ -802,7 +807,8 @@ class Block(PandasObject):
                     inplace=inplace,
                     regex=regex,
                 )
-                if convert and blk.is_object:
+                if convert and blk.is_object and not all(x is None for x in dest_list):
+                    # GH#44498 avoid unwanted cast-back
                     result = extend_blocks(
                         [b.convert(numeric=False, copy=True) for b in result]
                     )
@@ -1227,6 +1233,15 @@ class Block(PandasObject):
             if m.any():
                 taken = result.take(m.nonzero()[0], axis=axis)
                 r = maybe_downcast_numeric(taken, self.dtype)
+                if r.dtype != taken.dtype:
+                    warnings.warn(
+                        "Downcasting integer-dtype results in .where is "
+                        "deprecated and will change in a future version. "
+                        "To retain the old behavior, explicitly cast the results "
+                        "to the desired dtype.",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
                 nb = self.make_block(r.T, placement=self._mgr_locs[m])
                 result_blocks.append(nb)
 
@@ -1314,6 +1329,59 @@ class EABackedBlock(Block):
     """
 
     values: ExtensionArray
+
+    def where(self, other, cond) -> list[Block]:
+        arr = self.values.T
+
+        cond = extract_bool_array(cond)
+
+        other = self._maybe_squeeze_arg(other)
+        cond = self._maybe_squeeze_arg(cond)
+
+        if other is lib.no_default:
+            other = self.fill_value
+
+        icond, noop = validate_putmask(arr, ~cond)
+        if noop:
+            # GH#44181, GH#45135
+            # Avoid a) raising for Interval/PeriodDtype and b) unnecessary object upcast
+            return self.copy()
+
+        try:
+            res_values = arr._where(cond, other).T
+        except (ValueError, TypeError) as err:
+            if isinstance(err, ValueError):
+                # TODO(2.0): once DTA._validate_setitem_value deprecation
+                #  is enforced, stop catching ValueError here altogether
+                if "Timezones don't match" not in str(err):
+                    raise
+
+            if is_interval_dtype(self.dtype):
+                # TestSetitemFloatIntervalWithIntIntervalValues
+                blk = self.coerce_to_target_dtype(other)
+                if blk.dtype == _dtype_obj:
+                    # For now at least only support casting e.g.
+                    #  Interval[int64]->Interval[float64]
+                    raise
+                return blk.where(other, cond)
+
+            elif isinstance(self, NDArrayBackedExtensionBlock):
+                # NB: not (yet) the same as
+                #  isinstance(values, NDArrayBackedExtensionArray)
+                if isinstance(self.dtype, PeriodDtype):
+                    # TODO: don't special-case
+                    # Note: this is the main place where the fallback logic
+                    #  is different from EABackedBlock.putmask.
+                    raise
+                blk = self.coerce_to_target_dtype(other)
+                nbs = blk.where(other, cond)
+                return self._maybe_downcast(nbs, "infer")
+
+            else:
+                raise
+
+        nb = self.make_block_same_class(res_values)
+        return [nb]
 
     def putmask(self, mask, new) -> list[Block]:
         """
@@ -1503,6 +1571,14 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
             # TODO(EA2D): not needed with 2D EAs
             # we are always 1-D
             indexer = indexer[0]
+            if isinstance(indexer, np.ndarray) and indexer.ndim == 2:
+                # GH#44703
+                if indexer.shape[1] != 1:
+                    raise NotImplementedError(
+                        "This should not be reached. Please report a bug at "
+                        "github.com/pandas-dev/pandas/"
+                    )
+                indexer = indexer[:, 0]
 
         # TODO(EA2D): not needed with 2D EAS
         if isinstance(value, (np.ndarray, ExtensionArray)) and value.ndim == 2:
@@ -1625,36 +1701,6 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         new_values = self.values.shift(periods=periods, fill_value=fill_value)
         return [self.make_block_same_class(new_values)]
 
-    def where(self, other, cond) -> list[Block]:
-
-        cond = extract_bool_array(cond)
-        assert not isinstance(other, (ABCIndex, ABCSeries, ABCDataFrame))
-
-        other = self._maybe_squeeze_arg(other)
-        cond = self._maybe_squeeze_arg(cond)
-
-        if other is lib.no_default:
-            other = self.fill_value
-
-        icond, noop = validate_putmask(self.values, ~cond)
-        if noop:
-            return self.copy()
-
-        try:
-            result = self.values._where(cond, other)
-        except TypeError:
-            if is_interval_dtype(self.dtype):
-                # TestSetitemFloatIntervalWithIntIntervalValues
-                blk = self.coerce_to_target_dtype(other)
-                if blk.dtype == _dtype_obj:
-                    # For now at least only support casting e.g.
-                    #  Interval[int64]->Interval[float64]
-                    raise
-                return blk.where(other, cond)
-            raise
-
-        return [self.make_block_same_class(result)]
-
     def _unstack(
         self,
         unstacker,
@@ -1736,26 +1782,6 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
             values = values.T
         values[indexer] = value
         return self
-
-    def where(self, other, cond) -> list[Block]:
-        arr = self.values
-
-        cond = extract_bool_array(cond)
-        if other is lib.no_default:
-            other = self.fill_value
-
-        try:
-            res_values = arr.T._where(cond, other).T
-        except (ValueError, TypeError):
-            if isinstance(self.dtype, PeriodDtype):
-                # TODO: don't special-case
-                raise
-            blk = self.coerce_to_target_dtype(other)
-            nbs = blk.where(other, cond)
-            return self._maybe_downcast(nbs, "infer")
-
-        nb = self.make_block_same_class(res_values)
-        return [nb]
 
     def diff(self, n: int, axis: int = 0) -> list[Block]:
         """

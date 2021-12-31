@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import itertools
 from typing import TYPE_CHECKING
+import warnings
 
 import numpy as np
 
@@ -11,6 +12,7 @@ from pandas._typing import (
     Dtype,
     npt,
 )
+from pandas.errors import PerformanceWarning
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import maybe_promote
@@ -37,6 +39,7 @@ from pandas.core.indexes.api import (
     Index,
     MultiIndex,
 )
+from pandas.core.indexes.frozen import FrozenList
 from pandas.core.series import Series
 from pandas.core.sorting import (
     compress_group_index,
@@ -125,10 +128,15 @@ class _Unstacker:
         num_columns = self.removed_level.size
 
         # GH20601: This forces an overflow if the number of cells is too high.
-        num_cells = np.multiply(num_rows, num_columns, dtype=np.int32)
+        num_cells = num_rows * num_columns
 
-        if num_rows > 0 and num_columns > 0 and num_cells <= 0:
-            raise ValueError("Unstacked DataFrame is too big, causing int32 overflow")
+        # GH 26314: Previous ValueError raised was too restrictive for many users.
+        if num_cells > np.iinfo(np.int32).max:
+            warnings.warn(
+                f"The following operation may generate {num_cells} cells "
+                f"in the resulting pandas object.",
+                PerformanceWarning,
+            )
 
         self._make_selectors()
 
@@ -309,15 +317,16 @@ class _Unstacker:
         stride = len(self.removed_level) + self.lift
         width = len(value_columns)
         propagator = np.repeat(np.arange(width), stride)
+
+        new_levels: FrozenList | list[Index]
+
         if isinstance(value_columns, MultiIndex):
             new_levels = value_columns.levels + (self.removed_level_full,)
             new_names = value_columns.names + (self.removed_name,)
 
             new_codes = [lab.take(propagator) for lab in value_columns.codes]
         else:
-            # error: Incompatible types in assignment (expression has type "List[Any]",
-            # variable has type "FrozenList")
-            new_levels = [  # type: ignore[assignment]
+            new_levels = [
                 value_columns,
                 self.removed_level_full,
             ]
@@ -679,7 +688,7 @@ def _stack_multi_column_index(columns: MultiIndex) -> MultiIndex:
 
 
 def _stack_multi_columns(frame, level_num=-1, dropna=True):
-    def _convert_level_number(level_num, columns):
+    def _convert_level_number(level_num: int, columns):
         """
         Logic for converting the level number to something we can safely pass
         to swaplevel.

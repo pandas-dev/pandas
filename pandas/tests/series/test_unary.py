@@ -5,7 +5,7 @@ import pandas._testing as tm
 
 
 class TestSeriesUnaryOps:
-    # __neg__, __pos__, __inv__
+    # __neg__, __pos__, __invert__
 
     def test_neg(self):
         ser = tm.makeStringSeries()

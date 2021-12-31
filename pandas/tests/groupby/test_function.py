@@ -69,20 +69,33 @@ def test_builtins_apply(keys, f):
     df = DataFrame(np.random.randint(1, 50, (1000, 2)), columns=["jim", "joe"])
     df["jolie"] = np.random.randn(1000)
 
+    gb = df.groupby(keys)
+
     fname = f.__name__
-    result = df.groupby(keys).apply(f)
+    result = gb.apply(f)
     ngroups = len(df.drop_duplicates(subset=keys))
 
     assert_msg = f"invalid frame shape: {result.shape} (expected ({ngroups}, 3))"
     assert result.shape == (ngroups, 3), assert_msg
 
-    tm.assert_frame_equal(
-        result,  # numpy's equivalent function
-        df.groupby(keys).apply(getattr(np, fname)),
-    )
+    npfunc = getattr(np, fname)  # numpy's equivalent function
+    if f in [max, min]:
+        warn = FutureWarning
+    else:
+        warn = None
+    msg = "scalar (max|min) over the entire DataFrame"
+    with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
+        # stacklevel can be thrown off because (i think) the stack
+        #  goes through some of numpy's C code.
+        expected = gb.apply(npfunc)
+    tm.assert_frame_equal(result, expected)
+
+    with tm.assert_produces_warning(None):
+        expected2 = gb.apply(lambda x: npfunc(x, axis=0))
+    tm.assert_frame_equal(result, expected2)
 
     if f != sum:
-        expected = df.groupby(keys).agg(fname).reset_index()
+        expected = gb.agg(fname).reset_index()
         expected.set_index(keys, inplace=True, drop=False)
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
@@ -1123,7 +1136,7 @@ def test_apply_to_nullable_integer_returns_float(values, function):
     # https://github.com/pandas-dev/pandas/issues/32219
     output = 0.5 if function == "var" else 1.5
     arr = np.array([output] * 3, dtype=float)
-    idx = Index([1, 2, 3], name="a")
+    idx = Index([1, 2, 3], name="a", dtype="Int64")
     expected = DataFrame({"b": arr}, index=idx).astype("Float64")
 
     groups = DataFrame(values, dtype="Int64").groupby("a")
@@ -1143,7 +1156,7 @@ def test_groupby_sum_below_mincount_nullable_integer():
     # https://github.com/pandas-dev/pandas/issues/32861
     df = DataFrame({"a": [0, 1, 2], "b": [0, 1, 2], "c": [0, 1, 2]}, dtype="Int64")
     grouped = df.groupby("a")
-    idx = Index([0, 1, 2], name="a")
+    idx = Index([0, 1, 2], name="a", dtype="Int64")
 
     result = grouped["b"].sum(min_count=2)
     expected = Series([pd.NA] * 3, dtype="Int64", index=idx, name="b")
