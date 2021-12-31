@@ -495,7 +495,7 @@ class TestTimestampUnaryOps:
 
     @td.skip_if_windows
     def test_timestamp(self, fixed_now_ts):
-        """Calling ts.timestamp() depcrecated in favour of ts.unixtime()"""
+        """Calling ts.timestamp() depcrecated in favour of ts.unixtime"""
         ts = fixed_now_ts
         with pytest.deprecated_call():
             ts.timestamp()
@@ -504,7 +504,7 @@ class TestTimestampUnaryOps:
     @td.skip_if_windows
     def test_unixtime(self, fixed_now_ts):
         # GH#17329
-        # tz-naive --> treat it as if it were UTC for purposes of timestamp()
+        # tz-naive --> treat it as if it were UTC 
         ts = fixed_now_ts
         uts = ts.replace(tzinfo=utc)
         assert ts.unixtime == uts.unixtime
