@@ -1371,6 +1371,7 @@ class EABackedBlock(Block):
                 if isinstance(self.dtype, PeriodDtype):
                     # TODO(2.0): once this deprecation is enforced, we can
                     #  share fallback logic with EABackedBlock.putmask.
+                    # GH#45148
                     warnings.warn(
                         "The fallback behavior of .where and .mask with PeriodDtype is "
                         "deprecated. In a future version, when an incompatible "
