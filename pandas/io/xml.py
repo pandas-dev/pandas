@@ -11,7 +11,6 @@ from pandas._typing import (
     FilePath,
     ReadBuffer,
     StorageOptions,
-    WriteBuffer,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
@@ -570,18 +569,11 @@ class _LxmlFrameParser(_XMLFrameParser):
 
 
 def get_data_from_filepath(
-    filepath_or_buffer: FilePath
-    | bytes
-    | ReadBuffer[bytes]
-    | ReadBuffer[str]
-    | WriteBuffer[bytes]
-    | WriteBuffer[str],
+    filepath_or_buffer: FilePath | bytes | ReadBuffer[bytes] | ReadBuffer[str],
     encoding,
     compression: CompressionOptions,
     storage_options: StorageOptions,
-) -> str | bytes | ReadBuffer[bytes] | ReadBuffer[str] | WriteBuffer[
-    bytes
-] | WriteBuffer[str]:
+) -> str | bytes | ReadBuffer[bytes] | ReadBuffer[str]:
     """
     Extract raw XML data.
 
@@ -613,7 +605,10 @@ def get_data_from_filepath(
             storage_options=storage_options,
         ) as handle_obj:
             filepath_or_buffer = (
-                handle_obj.handle.read()
+                # error: Incompatible types in assignment (expression has type
+                # "Union[str, IO[str]]", variable has type "Union[Union[str,
+                # PathLike[str]], bytes, ReadBuffer[bytes], ReadBuffer[str]]")
+                handle_obj.handle.read()  # type: ignore[assignment]
                 if hasattr(handle_obj.handle, "read")
                 else handle_obj.handle
             )

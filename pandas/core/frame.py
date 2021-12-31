@@ -63,6 +63,7 @@ from pandas._typing import (
     IndexLabel,
     Level,
     PythonFuncType,
+    ReadBuffer,
     Renamer,
     Scalar,
     StorageOptions,
@@ -2956,7 +2957,7 @@ class DataFrame(NDFrame, OpsMixin):
         xml_declaration: bool | None = True,
         pretty_print: bool | None = True,
         parser: str | None = "lxml",
-        stylesheet: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
+        stylesheet: FilePath | ReadBuffer[str] | None = None,
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
     ) -> str | None:

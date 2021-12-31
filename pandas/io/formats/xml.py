@@ -10,6 +10,7 @@ from typing import Any
 from pandas._typing import (
     CompressionOptions,
     FilePath,
+    ReadBuffer,
     StorageOptions,
     WriteBuffer,
 )
@@ -107,7 +108,7 @@ class BaseXMLFormatter:
         encoding: str = "utf-8",
         xml_declaration: bool | None = True,
         pretty_print: bool | None = True,
-        stylesheet: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
+        stylesheet: FilePath | ReadBuffer[str] | None = None,
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
     ) -> None:
