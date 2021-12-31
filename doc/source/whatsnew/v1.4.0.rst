@@ -90,6 +90,43 @@ be removed in the future, see :ref:`here <whatsnew_140.deprecations.int64_uint64
 
 See :ref:`here <advanced.numericindex>` for more about :class:`NumericIndex`.
 
+
+.. _whatsnew_140.enhancements.ExtensionIndex:
+
+Index can hold arbitrary ExtensionArrays
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Until now, passing a custom :class:`ExtensionArray` to ``pd.Index`` would cast the
+array to ``object`` dtype. Now :class:`Index` can directly hold arbitrary ExtensionArrays (:issue:`43930`).
+
+*Previous behavior*:
+
+.. ipython:: python
+
+   arr = pd.array([1, 2, pd.NA])
+   idx = pd.Index(arr)
+
+In the old behavior, ``idx`` would be object-dtype:
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+   In [1]: idx
+   Out[1]: Index([1, 2, <NA>], dtype='object')
+
+With the new behavior, we keep the original dtype:
+
+*New behavior*:
+
+.. ipython:: python
+
+   idx
+
+One exception to this is ``SparseArray``, which will continue to cast to numpy
+dtype until pandas 2.0. At that point it will retain its dtype like other
+ExtensionArrays.
+
 .. _whatsnew_140.enhancements.styler:
 
 Styler
@@ -800,6 +837,7 @@ Indexing
 - Bug in :meth:`IntervalIndex.get_indexer_non_unique` not handling targets of ``dtype`` 'object' with NaNs correctly (:issue:`44482`)
 - Fixed regression where a single column ``np.matrix`` was no longer coerced to a 1d ``np.ndarray`` when added to a :class:`DataFrame` (:issue:`42376`)
 - Bug in :meth:`Series.__getitem__` with a :class:`CategoricalIndex` of integers treating lists of integers as positional indexers, inconsistent with the behavior with a single scalar integer (:issue:`15470`, :issue:`14865`)
+- Bug in :meth:`Series.__setitem__` when setting floats or integers into integer-dtype series failing to upcast when necessary to retain precision (:issue:`45121`)
 -
 
 Missing
@@ -870,6 +908,8 @@ Period
 - Bug in :meth:`PeriodIndex.to_timestamp` when the index has ``freq="B"`` inferring ``freq="D"`` for its result instead of ``freq="B"`` (:issue:`44105`)
 - Bug in :class:`Period` constructor incorrectly allowing ``np.timedelta64("NaT")`` (:issue:`44507`)
 - Bug in :meth:`PeriodIndex.to_timestamp` giving incorrect values for indexes with non-contiguous data (:issue:`44100`)
+- Bug in :meth:`Series.where` with ``PeriodDtype`` incorrectly raising when the ``where`` call should not replace anything (:issue:`45135`)
+
 -
 
 Plotting
@@ -940,6 +980,7 @@ ExtensionArray
 - Bug in :func:`array` failing to preserve :class:`PandasArray` (:issue:`43887`)
 - NumPy ufuncs ``np.abs``, ``np.positive``, ``np.negative`` now correctly preserve dtype when called on ExtensionArrays that implement ``__abs__, __pos__, __neg__``, respectively. In particular this is fixed for :class:`TimedeltaArray` (:issue:`43899`, :issue:`23316`)
 - NumPy ufuncs ``np.minimum.reduce`` ``np.maximum.reduce``, ``np.add.reduce``, and ``np.prod.reduce`` now work correctly instead of raising ``NotImplementedError`` on :class:`Series` with ``IntegerDtype`` or ``FloatDtype`` (:issue:`43923`, :issue:`44793`)
+- NumPy ufuncs with ``out`` keyword are now supported by arrays with ``IntegerDtype`` and ``FloatingDtype`` (:issue:`??`)
 - Avoid raising ``PerformanceWarning`` about fragmented DataFrame when using many columns with an extension dtype (:issue:`44098`)
 - Bug in :class:`IntegerArray` and :class:`FloatingArray` construction incorrectly coercing mismatched NA values (e.g. ``np.timedelta64("NaT")``) to numeric NA (:issue:`44514`)
 - Bug in :meth:`BooleanArray.__eq__` and :meth:`BooleanArray.__ne__` raising ``TypeError`` on comparison with an incompatible type (like a string). This caused :meth:`DataFrame.replace` to sometimes raise a ``TypeError`` if a nullable boolean column was included (:issue:`44499`)
