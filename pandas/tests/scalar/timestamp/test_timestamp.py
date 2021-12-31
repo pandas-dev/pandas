@@ -510,8 +510,10 @@ class TestTimestamp:
             .set_index("index")
             .reindex(["1", "2"])
         )
-        assert df.index.values[0] == "1"
-        assert df.index.values[1] == "2"
+        tm.assert_frame_equal(
+            df,
+            DataFrame({"index": ["1", "2"], "vals": [None, None]}).set_index("index"),
+        )
 
     def test_tz_conversion_freq(self, tz_naive_fixture):
         # GH25241
