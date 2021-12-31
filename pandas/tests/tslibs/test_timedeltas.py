@@ -46,3 +46,23 @@ def test_huge_nanoseconds_overflow():
     # GH 32402
     assert delta_to_nanoseconds(Timedelta(1e10)) == 1e10
     assert delta_to_nanoseconds(Timedelta(nanoseconds=1e10)) == 1e10
+
+
+# GH40946
+@pytest.mark.parametrize(
+    "obj, expected",
+    [
+        (Timedelta("1us"), 1e-6),
+        (Timedelta("500ns"), 5e-7),
+        (Timedelta(nanoseconds=500), 5e-7),
+        (Timedelta(seconds=1, nanoseconds=500), 1 + 5e-7),
+        # require GH45108
+        # (Timedelta(seconds=1e-9, milliseconds=1e-5, microseconds=1e-1), 111e-9),
+        # (
+        #     Timedelta(days=1, seconds=1e-9, milliseconds=1e-5, microseconds=1e-1),
+        #     24 * 3600 + 111e-9
+        # )
+    ],
+)
+def test_total_seconds(obj, expected):
+    assert obj.total_seconds() == expected
