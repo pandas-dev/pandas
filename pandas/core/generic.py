@@ -2882,12 +2882,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> with engine.begin() as connection:
         ...     df1 = pd.DataFrame({'name' : ['User 4', 'User 5']})
         ...     df1.to_sql('users', con=connection, if_exists='append')
-
+        2
         This is allowed to support operations that require that the same
         DBAPI connection is used for the entire operation.
 
         >>> df2 = pd.DataFrame({'name' : ['User 6', 'User 7']})
         >>> df2.to_sql('users', con=engine, if_exists='append')
+        2
         >>> engine.execute("SELECT * FROM users").fetchall()
         [(0, 'User 1'), (1, 'User 2'), (2, 'User 3'),
          (0, 'User 4'), (1, 'User 5'), (0, 'User 6'),
@@ -2897,6 +2898,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         >>> df2.to_sql('users', con=engine, if_exists='replace',
         ...            index_label='id')
+        2
         >>> engine.execute("SELECT * FROM users").fetchall()
         [(0, 'User 6'), (1, 'User 7')]
 
@@ -2915,6 +2917,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> from sqlalchemy.types import Integer
         >>> df.to_sql('integers', con=engine, index=False,
         ...           dtype={"A": Integer()})
+        3
 
         >>> engine.execute("SELECT * FROM integers").fetchall()
         [(1,), (None,), (2,)]
