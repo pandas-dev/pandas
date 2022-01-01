@@ -16,7 +16,6 @@ from pandas import (
     DataFrame,
     DatetimeIndex,
     IntervalIndex,
-    NumericIndex,
     PeriodIndex,
     RangeIndex,
     Series,
@@ -28,6 +27,7 @@ import pandas._testing as tm
 from pandas.core.api import (
     Float64Index,
     Int64Index,
+    NumericIndex,
     UInt64Index,
 )
 from pandas.core.indexes.api import (

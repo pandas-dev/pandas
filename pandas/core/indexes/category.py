@@ -291,7 +291,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
 
     @doc(Index.astype)
     def astype(self, dtype: Dtype, copy: bool = True) -> Index:
-        from pandas import NumericIndex
+        from pandas.core.api import NumericIndex
 
         dtype = pandas_dtype(dtype)
 

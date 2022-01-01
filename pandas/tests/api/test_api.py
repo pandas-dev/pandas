@@ -65,7 +65,6 @@ class TestPDApi(Base):
         "Index",
         "Int64Index",
         "MultiIndex",
-        "NumericIndex",
         "Period",
         "PeriodIndex",
         "RangeIndex",
