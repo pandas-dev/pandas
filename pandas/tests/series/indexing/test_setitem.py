@@ -20,6 +20,7 @@ from pandas import (
     Series,
     Timedelta,
     Timestamp,
+    concat,
     date_range,
     period_range,
 )
@@ -477,7 +478,7 @@ class TestSetitemWithExpansion:
         ser["foobar"] = 1
 
         app = Series([1], index=["foobar"], name="series")
-        expected = string_series.append(app)
+        expected = concat([string_series, app])
         tm.assert_series_equal(ser, expected)
 
 

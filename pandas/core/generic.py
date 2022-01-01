@@ -6515,11 +6515,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def replace(
         self,
         to_replace=None,
-        value=None,
+        value=lib.no_default,
         inplace: bool_t = False,
         limit: int | None = None,
         regex=False,
-        method="pad",
+        method=lib.no_default,
     ):
         if not (
             is_scalar(to_replace)
@@ -6538,7 +6538,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         self._consolidate_inplace()
 
-        if value is None:
+        if value is lib.no_default or method is not lib.no_default:
+            # GH#36984 if the user explicitly passes value=None we want to
+            #  respect that. We have the corner case where the user explicitly
+            #  passes value=None *and* a method, which we interpret as meaning
+            #  they want the (documented) default behavior.
+            if method is lib.no_default:
+                # TODO: get this to show up as the default in the docs?
+                method = "pad"
+
             # passing a single value that is scalar like
             # when value is None (GH5319), for compat
             if not is_dict_like(to_replace) and not is_dict_like(regex):
@@ -10556,7 +10564,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         name: str,
         func,
-        axis: Axis | None = None,
+        axis: Axis | None | lib.NoDefault = None,
         skipna: bool_t = True,
         level: Level | None = None,
         numeric_only: bool_t | None = None,
@@ -10569,8 +10577,22 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         validate_bool_kwarg(skipna, "skipna", none_allowed=False)
 
+        if axis is None and level is None and self.ndim > 1:
+            # user must have explicitly passed axis=None
+            # GH#21597
+            warnings.warn(
+                f"In a future version, DataFrame.{name}(axis=None) will return a "
+                f"scalar {name} over the entire DataFrame. To retain the old "
+                f"behavior, use 'frame.{name}(axis=0)' or just 'frame.{name}()'",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        if axis is lib.no_default:
+            axis = None
+
         if axis is None:
             axis = self._stat_axis_number
+        axis = cast(Axis, axis)
         if level is not None:
             warnings.warn(
                 "Using the level keyword in DataFrame and Series aggregations is "
@@ -10588,31 +10610,43 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def min(
         self,
-        axis: Axis | None = None,
+        axis: Axis | None | lib.NoDefault = lib.no_default,
         skipna: bool_t = True,
         level: Level | None = None,
         numeric_only: bool_t | None = None,
         **kwargs,
     ):
         return self._stat_function(
-            "min", nanops.nanmin, axis, skipna, level, numeric_only, **kwargs
+            "min",
+            nanops.nanmin,
+            axis,
+            skipna,
+            level,
+            numeric_only,
+            **kwargs,
         )
 
     def max(
         self,
-        axis: Axis | None = None,
+        axis: Axis | None | lib.NoDefault = lib.no_default,
         skipna: bool_t = True,
         level: Level | None = None,
         numeric_only: bool_t | None = None,
         **kwargs,
     ):
         return self._stat_function(
-            "max", nanops.nanmax, axis, skipna, level, numeric_only, **kwargs
+            "max",
+            nanops.nanmax,
+            axis,
+            skipna,
+            level,
+            numeric_only,
+            **kwargs,
         )
 
     def mean(
         self,
-        axis: Axis | None = None,
+        axis: Axis | None | lib.NoDefault = lib.no_default,
         skipna: bool_t = True,
         level: Level | None = None,
         numeric_only: bool_t | None = None,
@@ -10624,7 +10658,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def median(
         self,
-        axis: Axis | None = None,
+        axis: Axis | None | lib.NoDefault = lib.no_default,
         skipna: bool_t = True,
         level: Level | None = None,
         numeric_only: bool_t | None = None,
@@ -10636,7 +10670,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def skew(
         self,
-        axis: Axis | None = None,
+        axis: Axis | None | lib.NoDefault = lib.no_default,
         skipna: bool_t = True,
         level: Level | None = None,
         numeric_only: bool_t | None = None,
@@ -10648,7 +10682,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def kurt(
         self,
-        axis: Axis | None = None,
+        axis: Axis | None | lib.NoDefault = lib.no_default,
         skipna: bool_t = True,
         level: Level | None = None,
         numeric_only: bool_t | None = None,
@@ -10699,6 +10733,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 min_count=min_count,
                 numeric_only=numeric_only,
             )
+
         return self._reduce(
             func,
             name=name,
@@ -11039,7 +11074,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             see_also="",
             examples="",
         )
-        def mean(self, axis=None, skipna=True, level=None, numeric_only=None, **kwargs):
+        def mean(
+            self,
+            axis: int | None | lib.NoDefault = lib.no_default,
+            skipna=True,
+            level=None,
+            numeric_only=None,
+            **kwargs,
+        ):
             return NDFrame.mean(self, axis, skipna, level, numeric_only, **kwargs)
 
         setattr(cls, "mean", mean)
@@ -11054,7 +11096,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             see_also="",
             examples="",
         )
-        def skew(self, axis=None, skipna=True, level=None, numeric_only=None, **kwargs):
+        def skew(
+            self,
+            axis: int | None | lib.NoDefault = lib.no_default,
+            skipna=True,
+            level=None,
+            numeric_only=None,
+            **kwargs,
+        ):
             return NDFrame.skew(self, axis, skipna, level, numeric_only, **kwargs)
 
         setattr(cls, "skew", skew)
@@ -11072,7 +11121,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             see_also="",
             examples="",
         )
-        def kurt(self, axis=None, skipna=True, level=None, numeric_only=None, **kwargs):
+        def kurt(
+            self,
+            axis: Axis | None | lib.NoDefault = lib.no_default,
+            skipna=True,
+            level=None,
+            numeric_only=None,
+            **kwargs,
+        ):
             return NDFrame.kurt(self, axis, skipna, level, numeric_only, **kwargs)
 
         setattr(cls, "kurt", kurt)
@@ -11089,13 +11145,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             examples="",
         )
         def median(
-            self, axis=None, skipna=True, level=None, numeric_only=None, **kwargs
+            self,
+            axis: int | None | lib.NoDefault = lib.no_default,
+            skipna=True,
+            level=None,
+            numeric_only=None,
+            **kwargs,
         ):
             return NDFrame.median(self, axis, skipna, level, numeric_only, **kwargs)
 
         setattr(cls, "median", median)
 
-        @doc(
+        # error: Untyped decorator makes function "max" untyped
+        @doc(  # type: ignore[misc]
             _num_doc,
             desc="Return the maximum of the values over the requested axis.\n\n"
             "If you want the *index* of the maximum, use ``idxmax``. This is "
@@ -11107,12 +11169,20 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             see_also=_stat_func_see_also,
             examples=_max_examples,
         )
-        def max(self, axis=None, skipna=True, level=None, numeric_only=None, **kwargs):
+        def max(
+            self,
+            axis: int | None | lib.NoDefault = lib.no_default,
+            skipna=True,
+            level=None,
+            numeric_only=None,
+            **kwargs,
+        ):
             return NDFrame.max(self, axis, skipna, level, numeric_only, **kwargs)
 
         setattr(cls, "max", max)
 
-        @doc(
+        # error: Untyped decorator makes function "max" untyped
+        @doc(  # type: ignore[misc]
             _num_doc,
             desc="Return the minimum of the values over the requested axis.\n\n"
             "If you want the *index* of the minimum, use ``idxmin``. This is "
@@ -11124,7 +11194,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             see_also=_stat_func_see_also,
             examples=_min_examples,
         )
-        def min(self, axis=None, skipna=True, level=None, numeric_only=None, **kwargs):
+        def min(
+            self,
+            axis: int | None | lib.NoDefault = lib.no_default,
+            skipna=True,
+            level=None,
+            numeric_only=None,
+            **kwargs,
+        ):
             return NDFrame.min(self, axis, skipna, level, numeric_only, **kwargs)
 
         setattr(cls, "min", min)

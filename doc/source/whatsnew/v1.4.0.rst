@@ -111,6 +111,7 @@ Additionally there are specific enhancements to the HTML specific rendering:
   - :meth:`.Styler.to_html` introduces keyword arguments ``sparse_index``, ``sparse_columns``, ``bold_headers``, ``caption``, ``max_rows`` and ``max_columns`` (:issue:`41946`, :issue:`43149`, :issue:`42972`).
   - :meth:`.Styler.to_html` omits CSSStyle rules for hidden table elements as a performance enhancement (:issue:`43619`)
   - Custom CSS classes can now be directly specified without string replacement (:issue:`43686`)
+  - Ability to render hyperlinks automatically via a new ``hyperlinks`` formatting keyword argument (:issue:`45058`)
 
 There are also some LaTeX specific enhancements:
 
@@ -275,7 +276,7 @@ ignored when finding the concatenated dtype.  These are now consistently *not* i
 
     df1 = pd.DataFrame({"bar": [pd.Timestamp("2013-01-01")]}, index=range(1))
     df2 = pd.DataFrame({"bar": np.nan}, index=range(1, 2))
-    res = df1.append(df2)
+    res = pd.concat([df1, df2])
 
 Previously, the float-dtype in ``df2`` would be ignored so the result dtype would be ``datetime64[ns]``. As a result, the ``np.nan`` would be cast to ``NaT``.
 
@@ -364,10 +365,29 @@ second column is instead renamed to ``a.2``.
 
     res
 
-.. _whatsnew_140.notable_bug_fixes.notable_bug_fix3:
+.. _whatsnew_140.notable_bug_fixes.unstack_pivot_int32_limit:
 
-notable_bug_fix3
-^^^^^^^^^^^^^^^^
+unstack and pivot_table no longer raises ValueError for result that would exceed int32 limit
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Previously :meth:`DataFrame.pivot_table` and :meth:`DataFrame.unstack` would raise a ``ValueError`` if the operation
+could produce a result with more than ``2**31 - 1`` elements. This operation now raises a :class:`errors.PerformanceWarning`
+instead (:issue:`26314`).
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+    In [3]: df = DataFrame({"ind1": np.arange(2 ** 16), "ind2": np.arange(2 ** 16), "count": 0})
+    In [4]: df.pivot_table(index="ind1", columns="ind2", values="count", aggfunc="count")
+    ValueError: Unstacked DataFrame is too big, causing int32 overflow
+
+*New behavior*:
+
+.. code-block:: python
+
+    In [4]: df.pivot_table(index="ind1", columns="ind2", values="count", aggfunc="count")
+    PerformanceWarning: The following operation may generate 4294967296 cells in the resulting pandas object.
 
 .. ---------------------------------------------------------------------------
 
@@ -510,6 +530,49 @@ when given numeric data, but in the future, a :class:`NumericIndex` will be retu
     Out [4]: NumericIndex([1, 2, 3], dtype='uint64')
 
 
+.. _whatsnew_140.deprecations.frame_series_append:
+
+Deprecated Frame.append and Series.append
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`DataFrame.append` and :meth:`Series.append` have been deprecated and will be removed in Pandas 2.0.
+Use :func:`pandas.concat` instead (:issue:`35407`).
+
+*Deprecated syntax*
+
+.. code-block:: ipython
+
+    In [1]: pd.Series([1, 2]).append(pd.Series([3, 4])
+    Out [1]:
+    <stdin>:1: FutureWarning: The series.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.
+    0    1
+    1    2
+    0    3
+    1    4
+    dtype: int64
+
+    In [2]: df1 = pd.DataFrame([[1, 2], [3, 4]], columns=list('AB'))
+    In [3]: df2 = pd.DataFrame([[5, 6], [7, 8]], columns=list('AB'))
+    In [4]: df1.append(df2)
+    Out [4]:
+    <stdin>:1: FutureWarning: The series.append method is deprecated and will be removed from pandas in a future version. Use pandas.concat instead.
+       A  B
+    0  1  2
+    1  3  4
+    0  5  6
+    1  7  8
+
+*Recommended syntax*
+
+.. ipython:: python
+
+    pd.concat([pd.Series([1, 2]), pd.Series([3, 4])])
+
+    df1 = pd.DataFrame([[1, 2], [3, 4]], columns=list('AB'))
+    df2 = pd.DataFrame([[5, 6], [7, 8]], columns=list('AB'))
+    pd.concat([df1, df2])
+
+
 .. _whatsnew_140.deprecations.other:
 
 Other Deprecations
@@ -543,10 +606,17 @@ Other Deprecations
 - Deprecated :meth:`DateOffset.apply`, use ``offset + other`` instead (:issue:`44522`)
 - Deprecated parameter ``names`` in :meth:`Index.copy` (:issue:`44916`)
 - A deprecation warning is now shown for :meth:`DataFrame.to_latex` indicating the arguments signature may change and emulate more the arguments to :meth:`.Styler.to_latex` in future versions (:issue:`44411`)
+- Deprecated behavior of :func:`concat` between objects with bool-dtype and numeric-dtypes; in a future version these will cast to object dtype instead of coercing bools to numeric values (:issue:`39817`)
 - Deprecated :meth:`Categorical.replace`, use :meth:`Series.replace` instead (:issue:`44929`)
 - Deprecated :meth:`Index.__getitem__` with a bool key; use ``index.values[key]`` to get the old behavior (:issue:`44051`)
 - Deprecated downcasting column-by-column in :meth:`DataFrame.where` with integer-dtypes (:issue:`44597`)
+- Deprecated :meth:`DatetimeIndex.union_many`, use :meth:`DatetimeIndex.union` instead (:issue:`44091`)
+- Deprecated :meth:`.Groupby.pad` in favor of :meth:`.Groupby.ffill` (:issue:`33396`)
+- Deprecated :meth:`.Groupby.backfill` in favor of :meth:`.Groupby.bfill` (:issue:`33396`)
+- Deprecated :meth:`.Resample.pad` in favor of :meth:`.Resample.ffill` (:issue:`33396`)
+- Deprecated :meth:`.Resample.backfill` in favor of :meth:`.Resample.bfill` (:issue:`33396`)
 - Deprecated ``numeric_only=None`` in :meth:`DataFrame.rank`; in a future version ``numeric_only`` must be either ``True`` or ``False`` (the default) (:issue:`45036`)
+- Deprecated the behavior of :meth:`Timestamp.utcfromtimestamp`, in the future it will return a timezone-aware UTC :class:`Timestamp` (:issue:`22451`)
 - Deprecated :meth:`NaT.freq` (:issue:`45071`)
 -
 
@@ -639,6 +709,8 @@ Datetimelike
 - Bug in :meth:`Index.insert` for inserting ``np.datetime64``, ``np.timedelta64`` or ``tuple`` into :class:`Index` with ``dtype='object'`` with negative loc adding ``None`` and replacing existing value (:issue:`44509`)
 - Bug in :meth:`Series.mode` with ``DatetimeTZDtype`` incorrectly returning timezone-naive and ``PeriodDtype`` incorrectly raising (:issue:`41927`)
 - Bug in :class:`DateOffset`` addition with :class:`Timestamp` where ``offset.nanoseconds`` would not be included in the result (:issue:`43968`, :issue:`36589`)
+- Bug in :meth:`Timestamp.fromtimestamp` not supporting the ``tz`` argument (:issue:`45083`)
+- Bug in :class:`DataFrame` construction from dict of :class:`Series` with mismatched index dtypes sometimes raising depending on the ordering of the passed dict (:issue:`44091`)
 -
 
 Timedelta
@@ -650,6 +722,7 @@ Timezones
 ^^^^^^^^^
 - Bug in :func:`to_datetime` with ``infer_datetime_format=True`` failing to parse zero UTC offset (``Z``) correctly (:issue:`41047`)
 - Bug in :meth:`Series.dt.tz_convert` resetting index in a :class:`Series` with :class:`CategoricalIndex` (:issue:`43080`)
+- Bug in ``Timestamp`` and ``DatetimeIndex`` incorrectly raising a ``TypeError`` when subtracting two timezone-aware objects with mismatched timezones (:issue:`31793`)
 -
 
 Numeric
@@ -669,6 +742,7 @@ Conversion
 ^^^^^^^^^^
 - Bug in :class:`UInt64Index` constructor when passing a list containing both positive integers small enough to cast to int64 and integers too large too hold in int64 (:issue:`42201`)
 - Bug in :class:`Series` constructor returning 0 for missing values with dtype ``int64`` and ``False`` for dtype ``bool`` (:issue:`43017`, :issue:`43018`)
+- Bug in constructing a :class:`DataFrame` from a :class:`PandasArray` containing :class:`Series` objects behaving differently than an equivalent ``np.ndarray`` (:issue:`43986`)
 - Bug in :class:`IntegerDtype` not allowing coercion from string dtype (:issue:`25472`)
 - Bug in :func:`to_datetime` with ``arg:xr.DataArray`` and ``unit="ns"`` specified raises TypeError (:issue:`44053`)
 - Bug in :meth:`DataFrame.convert_dtypes` not returning the correct type when a subclass does not overload :meth:`_constructor_sliced` (:issue:`43201`)
@@ -843,6 +917,7 @@ Reshaping
 - Fixed metadata propagation in :meth:`Dataframe.apply` method, consequently fixing the same issue for :meth:`Dataframe.transform`, :meth:`Dataframe.nunique` and :meth:`Dataframe.mode` (:issue:`28283`)
 - Bug in :func:`concat` casting levels of :class:`MultiIndex` to float if the only consist of missing values (:issue:`44900`)
 - Bug in :meth:`DataFrame.stack` with ``ExtensionDtype`` columns incorrectly raising (:issue:`43561`)
+- Bug in :func:`merge` raising ``KeyError`` when joining over differently named indexes with on keywords (:issue:`45094`)
 - Bug in :meth:`Series.unstack` with object doing unwanted type inference on resulting columns (:issue:`44595`)
 - Bug in :class:`MultiIndex` failing join operations with overlapping ``IntervalIndex`` levels (:issue:`44096`)
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` results is different ``dtype`` based on ``regex`` parameter (:issue:`44864`)
@@ -861,13 +936,15 @@ ExtensionArray
 ^^^^^^^^^^^^^^
 - Bug in :func:`array` failing to preserve :class:`PandasArray` (:issue:`43887`)
 - NumPy ufuncs ``np.abs``, ``np.positive``, ``np.negative`` now correctly preserve dtype when called on ExtensionArrays that implement ``__abs__, __pos__, __neg__``, respectively. In particular this is fixed for :class:`TimedeltaArray` (:issue:`43899`, :issue:`23316`)
-- NumPy ufuncs ``np.minimum.reduce`` and ``np.maximum.reduce`` now work correctly instead of raising ``NotImplementedError`` on :class:`Series` with ``IntegerDtype`` or ``FloatDtype`` (:issue:`43923`)
+- NumPy ufuncs ``np.minimum.reduce`` ``np.maximum.reduce``, ``np.add.reduce``, and ``np.prod.reduce`` now work correctly instead of raising ``NotImplementedError`` on :class:`Series` with ``IntegerDtype`` or ``FloatDtype`` (:issue:`43923`, :issue:`44793`)
 - Avoid raising ``PerformanceWarning`` about fragmented DataFrame when using many columns with an extension dtype (:issue:`44098`)
 - Bug in :class:`IntegerArray` and :class:`FloatingArray` construction incorrectly coercing mismatched NA values (e.g. ``np.timedelta64("NaT")``) to numeric NA (:issue:`44514`)
 - Bug in :meth:`BooleanArray.__eq__` and :meth:`BooleanArray.__ne__` raising ``TypeError`` on comparison with an incompatible type (like a string). This caused :meth:`DataFrame.replace` to sometimes raise a ``TypeError`` if a nullable boolean column was included (:issue:`44499`)
 - Bug in :func:`array` incorrectly raising when passed a ``ndarray`` with ``float16`` dtype (:issue:`44715`)
 - Bug in calling ``np.sqrt`` on :class:`BooleanArray` returning a malformed :class:`FloatingArray` (:issue:`44715`)
 - Bug in :meth:`Series.where` with ``ExtensionDtype`` when ``other`` is a NA scalar incompatible with the series dtype (e.g. ``NaT`` with a numeric dtype) incorrectly casting to a compatible NA value (:issue:`44697`)
+- Fixed bug in :meth:`Series.replace` where explicitly passing ``value=None`` is treated as if no ``value`` was passed, and ``None`` not being in the result (:issue:`36984`, :issue:`19998`)
+- Fixed bug in :meth:`Series.replace` with unwanted downcasting being done in no-op replacements (:issue:`44498`)
 - Fixed bug in :meth:`Series.replace` with ``FloatDtype``, ``string[python]``, or ``string[pyarrow]`` dtype not being preserved when possible (:issue:`33484`, :issue:`40732`, :issue:`31644`, :issue:`41215`, :issue:`25438`)
 -
 

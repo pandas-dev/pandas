@@ -241,7 +241,7 @@ class TestConcatenate:
             columns=columns,
         )
 
-        appended = df1.append(df2, ignore_index=True)
+        appended = concat([df1, df2], ignore_index=True)
         expected = DataFrame(
             np.concatenate([df1.values, df2.values], axis=0), columns=columns
         )

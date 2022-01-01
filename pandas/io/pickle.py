@@ -30,7 +30,7 @@ def to_pickle(
     compression: CompressionOptions = "infer",
     protocol: int = pickle.HIGHEST_PROTOCOL,
     storage_options: StorageOptions = None,
-):
+) -> None:
     """
     Pickle (serialize) object to file.
 

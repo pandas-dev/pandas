@@ -820,6 +820,7 @@ class _MergeOperation:
             if (
                 self.orig_left._is_level_reference(left_key)
                 and self.orig_right._is_level_reference(right_key)
+                and left_key == right_key
                 and name not in result.index.names
             ):
 
@@ -1648,16 +1649,13 @@ class _OrderedMerge(_MergeOperation):
         right_join_indexer: np.ndarray | None
 
         if self.fill_method == "ffill":
-            # error: Argument 1 to "ffill_indexer" has incompatible type
-            # "Optional[ndarray]"; expected "ndarray"
-            left_join_indexer = libjoin.ffill_indexer(
-                left_indexer  # type: ignore[arg-type]
+            if left_indexer is None:
+                raise TypeError("left_indexer cannot be None")
+            left_indexer, right_indexer = cast(np.ndarray, left_indexer), cast(
+                np.ndarray, right_indexer
             )
-            # error: Argument 1 to "ffill_indexer" has incompatible type
-            # "Optional[ndarray]"; expected "ndarray"
-            right_join_indexer = libjoin.ffill_indexer(
-                right_indexer  # type: ignore[arg-type]
-            )
+            left_join_indexer = libjoin.ffill_indexer(left_indexer)
+            right_join_indexer = libjoin.ffill_indexer(right_indexer)
         else:
             left_join_indexer = left_indexer
             right_join_indexer = right_indexer

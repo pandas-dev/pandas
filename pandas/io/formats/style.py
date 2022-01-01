@@ -623,6 +623,7 @@ class Styler(StylerRenderer):
                               | \\sisetup{detect-all = true}  *(within {document})*
         environment           \\usepackage{longtable} if arg is "longtable"
                               | or any other relevant environment package
+        hyperlinks            \\usepackage{hyperref}
         ===================== ==========================================================
 
         **Cell Styles**

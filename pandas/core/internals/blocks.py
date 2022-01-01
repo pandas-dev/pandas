@@ -679,7 +679,12 @@ class Block(PandasObject):
         elif self._can_hold_element(value):
             blk = self if inplace else self.copy()
             putmask_inplace(blk.values, mask, value)
-            blocks = blk.convert(numeric=False, copy=False)
+            if not (self.is_object and value is None):
+                # if the user *explicitly* gave None, we keep None, otherwise
+                #  may downcast to NaN
+                blocks = blk.convert(numeric=False, copy=False)
+            else:
+                blocks = [blk]
             return blocks
 
         elif self.ndim == 1 or self.shape[0] == 1:
@@ -762,7 +767,7 @@ class Block(PandasObject):
 
         src_len = len(pairs) - 1
 
-        if is_string_dtype(values):
+        if is_string_dtype(values.dtype):
             # Calculate the mask once, prior to the call of comp
             # in order to avoid repeating the same computations
             mask = ~isna(values)
@@ -802,7 +807,8 @@ class Block(PandasObject):
                     inplace=inplace,
                     regex=regex,
                 )
-                if convert and blk.is_object:
+                if convert and blk.is_object and not all(x is None for x in dest_list):
+                    # GH#44498 avoid unwanted cast-back
                     result = extend_blocks(
                         [b.convert(numeric=False, copy=True) for b in result]
                     )
