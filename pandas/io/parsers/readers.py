@@ -355,7 +355,7 @@ warn_bad_lines : bool, optional, default ``None``
     .. deprecated:: 1.3.0
        The ``on_bad_lines`` parameter should be used instead to specify behavior upon
        encountering a bad line instead.
-on_bad_lines : string or callable, default 'error'
+on_bad_lines : str or callable, default 'error'
     Specifies what to do upon encountering a bad line (a line with too many fields).
     Allowed values are :
 
