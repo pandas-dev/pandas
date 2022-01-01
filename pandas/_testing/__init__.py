@@ -44,7 +44,6 @@ from pandas import (
     Index,
     IntervalIndex,
     MultiIndex,
-    NumericIndex,
     RangeIndex,
     Series,
     bdate_range,
@@ -107,6 +106,7 @@ from pandas._testing.contexts import (  # noqa:F401
 from pandas.core.api import (
     Float64Index,
     Int64Index,
+    NumericIndex,
     UInt64Index,
 )
 from pandas.core.arrays import (
