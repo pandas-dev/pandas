@@ -796,14 +796,16 @@ class TestSeriesConstructors:
         expected = Series([1, 2, 3.5]).astype(float_numpy_dtype)
         tm.assert_series_equal(s, expected)
 
-    # RuntimeWarning issued for unsigned dtypes with numpy==1.18.5
-    @pytest.mark.filterwarnings(
-        "ignore:invalid value encountered in less:RuntimeWarning"
-    )
-    def test_constructor_invalid_coerce_ints_with_float_nan(self, any_int_numpy_dtype):
+    def test_constructor_invalid_coerce_ints_with_float_nan(
+        self, any_int_numpy_dtype, request
+    ):
         # GH 22585
         # Updated: make sure we treat this list the same as we would treat the
         #  equivalent ndarray
+        if np_version_under1p19 and np.dtype(any_int_numpy_dtype).kind == "u":
+            mark = pytest.mark.xfail(reason="Produces an extra RuntimeWarning")
+            request.node.add_marker(mark)
+
         vals = [1, 2, np.nan]
 
         msg = "In a future version, passing float-dtype values containing NaN"
