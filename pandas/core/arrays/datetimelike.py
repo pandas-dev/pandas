@@ -14,6 +14,7 @@ from typing import (
     TypeVar,
     Union,
     cast,
+    final,
     overload,
 )
 import warnings
@@ -1138,6 +1139,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         return type(self)(new_values, dtype=self.dtype)
 
+    @final
     def _add_nat(self):
         """
         Add pd.NaT to self
@@ -1153,6 +1155,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         result.fill(iNaT)
         return type(self)(result, dtype=self.dtype, freq=None)
 
+    @final
     def _sub_nat(self):
         """
         Subtract pd.NaT from self
@@ -1589,7 +1592,7 @@ class DatelikeOps(DatetimeLikeArrayMixin):
               dtype='object')
         """
         result = self._format_native_types(date_format=date_format, na_rep=np.nan)
-        return result.astype(object)
+        return result.astype(object, copy=False)
 
 
 _round_doc = """

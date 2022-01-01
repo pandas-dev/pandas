@@ -651,6 +651,7 @@ class TestGetIndexer:
             ([date(9999, 1, 1), date(9999, 1, 1)], [-1, -1]),
         ],
     )
+    @pytest.mark.filterwarnings("ignore:Comparison of Timestamp.*:FutureWarning")
     def test_get_indexer_out_of_bounds_date(self, target, positions):
         values = DatetimeIndex([Timestamp("2020-01-01"), Timestamp("2020-01-02")])
 

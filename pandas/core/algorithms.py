@@ -108,8 +108,6 @@ if TYPE_CHECKING:
         TimedeltaArray,
     )
 
-_shared_docs: dict[str, str] = {}
-
 
 # --------------- #
 # dtype access    #

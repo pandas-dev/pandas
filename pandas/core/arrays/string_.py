@@ -413,7 +413,7 @@ class StringArray(BaseStringArray, PandasArray):
 
         super().__setitem__(key, value)
 
-    def astype(self, dtype, copy=True):
+    def astype(self, dtype, copy: bool = True):
         dtype = pandas_dtype(dtype)
 
         if is_dtype_equal(dtype, self.dtype):

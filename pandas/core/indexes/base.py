@@ -1000,7 +1000,7 @@ class Index(IndexOpsMixin, PandasObject):
             result._id = self._id
         return result
 
-    def astype(self, dtype, copy=True):
+    def astype(self, dtype, copy: bool = True):
         """
         Create an Index with values cast to dtypes.
 

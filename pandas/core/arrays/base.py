@@ -68,7 +68,7 @@ from pandas.core.dtypes.missing import isna
 from pandas.core import (
     arraylike,
     missing,
-    ops,
+    roperator,
 )
 from pandas.core.algorithms import (
     factorize_array,
@@ -1644,21 +1644,23 @@ class ExtensionOpsMixin:
     @classmethod
     def _add_arithmetic_ops(cls):
         setattr(cls, "__add__", cls._create_arithmetic_method(operator.add))
-        setattr(cls, "__radd__", cls._create_arithmetic_method(ops.radd))
+        setattr(cls, "__radd__", cls._create_arithmetic_method(roperator.radd))
         setattr(cls, "__sub__", cls._create_arithmetic_method(operator.sub))
-        setattr(cls, "__rsub__", cls._create_arithmetic_method(ops.rsub))
+        setattr(cls, "__rsub__", cls._create_arithmetic_method(roperator.rsub))
         setattr(cls, "__mul__", cls._create_arithmetic_method(operator.mul))
-        setattr(cls, "__rmul__", cls._create_arithmetic_method(ops.rmul))
+        setattr(cls, "__rmul__", cls._create_arithmetic_method(roperator.rmul))
         setattr(cls, "__pow__", cls._create_arithmetic_method(operator.pow))
-        setattr(cls, "__rpow__", cls._create_arithmetic_method(ops.rpow))
+        setattr(cls, "__rpow__", cls._create_arithmetic_method(roperator.rpow))
         setattr(cls, "__mod__", cls._create_arithmetic_method(operator.mod))
-        setattr(cls, "__rmod__", cls._create_arithmetic_method(ops.rmod))
+        setattr(cls, "__rmod__", cls._create_arithmetic_method(roperator.rmod))
         setattr(cls, "__floordiv__", cls._create_arithmetic_method(operator.floordiv))
-        setattr(cls, "__rfloordiv__", cls._create_arithmetic_method(ops.rfloordiv))
+        setattr(
+            cls, "__rfloordiv__", cls._create_arithmetic_method(roperator.rfloordiv)
+        )
         setattr(cls, "__truediv__", cls._create_arithmetic_method(operator.truediv))
-        setattr(cls, "__rtruediv__", cls._create_arithmetic_method(ops.rtruediv))
+        setattr(cls, "__rtruediv__", cls._create_arithmetic_method(roperator.rtruediv))
         setattr(cls, "__divmod__", cls._create_arithmetic_method(divmod))
-        setattr(cls, "__rdivmod__", cls._create_arithmetic_method(ops.rdivmod))
+        setattr(cls, "__rdivmod__", cls._create_arithmetic_method(roperator.rdivmod))
 
     @classmethod
     def _create_comparison_method(cls, op):
@@ -1680,16 +1682,16 @@ class ExtensionOpsMixin:
     @classmethod
     def _add_logical_ops(cls):
         setattr(cls, "__and__", cls._create_logical_method(operator.and_))
-        setattr(cls, "__rand__", cls._create_logical_method(ops.rand_))
+        setattr(cls, "__rand__", cls._create_logical_method(roperator.rand_))
         setattr(cls, "__or__", cls._create_logical_method(operator.or_))
-        setattr(cls, "__ror__", cls._create_logical_method(ops.ror_))
+        setattr(cls, "__ror__", cls._create_logical_method(roperator.ror_))
         setattr(cls, "__xor__", cls._create_logical_method(operator.xor))
-        setattr(cls, "__rxor__", cls._create_logical_method(ops.rxor))
+        setattr(cls, "__rxor__", cls._create_logical_method(roperator.rxor))
 
 
 class ExtensionScalarOpsMixin(ExtensionOpsMixin):
     """
-    A mixin for defining  ops on an ExtensionArray.
+    A mixin for defining ops on an ExtensionArray.
 
     It is assumed that the underlying scalar objects have the operators
     already defined.
