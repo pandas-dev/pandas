@@ -208,7 +208,9 @@ class TestIndex(base.BaseIndexTests):
     #  the sparse dtype
     @pytest.mark.xfail(reason="Index cannot yet store sparse dtype")
     def test_index_from_listlike_with_dtype(self, data):
-        super().test_index_from_listlike_with_dtype(data)
+        msg = "passing a SparseArray to pd.Index"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            super().test_index_from_listlike_with_dtype(data)
 
 
 class TestMissing(BaseSparseTests, base.BaseMissingTests):
