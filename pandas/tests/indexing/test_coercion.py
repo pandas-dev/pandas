@@ -88,13 +88,9 @@ class TestSetitemCoercion(CoercionBase):
         # check dtype explicitly for sure
         assert temp.dtype == expected_dtype
 
-        # AFAICT the problem is in Series.__setitem__ where with integer dtype
-        #  ser[1] = 2.2 casts 2.2 to 2 instead of casting the ser to floating
-        # FIXME: dont leave commented-out
-        # .loc works different rule, temporary disable
-        # temp = original_series.copy()
-        # temp.loc[1] = loc_value
-        # tm.assert_series_equal(temp, expected_series)
+        temp = original_series.copy()
+        temp.loc[1] = loc_value
+        tm.assert_series_equal(temp, expected_series)
 
     @pytest.mark.parametrize(
         "val,exp_dtype", [(1, object), (1.1, object), (1 + 1j, object), (True, object)]

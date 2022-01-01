@@ -82,13 +82,6 @@ class NumericIndex(Index):
     An NumericIndex instance can **only** contain numpy int64/32/16/8, uint64/32/16/8 or
     float64/32/16 dtype. In particular, ``NumericIndex`` *can not* hold Pandas numeric
     dtypes (:class:`Int64Dtype`, :class:`Int32Dtype` etc.).
-
-    Examples
-    --------
-    >>> pd.NumericIndex([1, 2, 3], dtype="int8")
-    NumericIndex([1, 2, 3], dtype='int8')
-    >>> pd.NumericIndex([1, 2, 3], dtype="float32")
-    NumericIndex([1.0, 2.0, 3.0], dtype='float32')
     """
 
     _typ = "numericindex"
@@ -240,7 +233,7 @@ class NumericIndex(Index):
             return False
 
     @doc(Index.astype)
-    def astype(self, dtype, copy=True):
+    def astype(self, dtype, copy: bool = True):
         dtype = pandas_dtype(dtype)
         if is_float_dtype(self.dtype):
             if needs_i8_conversion(dtype):
