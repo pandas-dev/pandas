@@ -170,7 +170,6 @@ Numeric Index
    :toctree: api/
    :template: autosummary/class_without_autosummary.rst
 
-   NumericIndex
    RangeIndex
    Int64Index
    UInt64Index
