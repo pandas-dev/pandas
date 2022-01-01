@@ -89,6 +89,14 @@ class TestSeriesClip:
         tm.assert_series_equal(s.clip(lower, upper), Series([1.0, 2.0, 3.5]))
         tm.assert_series_equal(s.clip(1.5, upper), Series([1.5, 1.5, 3.5]))
 
+    def test_clip_against_series_ea_int_dtype(self, any_int_ea_dtype):
+        # GH#44785
+        ser = Series([1, 1], dtype=any_int_ea_dtype)
+        bounds = Series([pd.NA, 1], dtype=any_int_ea_dtype)
+        expected = ser.copy()
+        result = ser.clip(bounds)
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize("inplace", [True, False])
     @pytest.mark.parametrize("upper", [[1, 2, 3], np.asarray([1, 2, 3])])
     def test_clip_against_list_like(self, inplace, upper):
@@ -136,6 +144,14 @@ class TestSeriesClip:
         result = ser.clip(lower=Timestamp.min, upper=Timestamp.max)
         expected = Series([Timestamp.min, Timestamp.max], dtype="object")
 
+        tm.assert_series_equal(result, expected)
+
+    def test_clip_timestamp_and_na(self):
+        # GH#44785
+        ser = Series([Timestamp("1970-01-01")] * 2)
+        bounds = Series([pd.NaT, Timestamp("1970-01-01")])
+        expected = ser.copy()
+        result = ser.clip(bounds)
         tm.assert_series_equal(result, expected)
 
     def test_clip_pos_args_deprecation(self):
