@@ -147,15 +147,16 @@ class TestSeriesClip:
 
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "bound_values",
-        [[pd.NaT, Timestamp("1970-01-01")], [Timestamp("1970-01-01"), pd.NaT]],
-    )
-    def test_clip_timestamp_and_na(self, bound_values):
+    def test_clip_timestamp_and_na(self, tz_naive_fixture):
         # GH#44785
-        ser = Series([Timestamp("1970-01-01")] * 2)
-        bounds = Series(bound_values)
+        ser = Series([Timestamp("1970-01-01", tz=tz_naive_fixture)] * 2)
         expected = ser.copy()
+
+        bounds = Series([pd.NaT, Timestamp("1970-01-01", tz=tz_naive_fixture)])
+        result = ser.clip(bounds)
+        tm.assert_series_equal(result, expected)
+
+        bounds = Series([Timestamp("1970-01-01", tz=tz_naive_fixture), pd.NaT])
         result = ser.clip(bounds)
         tm.assert_series_equal(result, expected)
 

@@ -7382,9 +7382,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # Treat missing thresholds as no bounds, not clipping the values
         if is_list_like(threshold):
             method_name_le = method.__name__ == "le"
-            if self.ndim == 1 and is_datetime64_any_dtype(self.dtype):
-                fill_value = Timestamp.max if method_name_le else Timestamp.min
-            elif self.ndim == 1 and is_extension_array_dtype(self.dtype):
+            if self.ndim == 1 and (
+                is_extension_array_dtype(self.dtype)
+                or is_datetime64_any_dtype(self.dtype)
+            ):
                 fill_value = self.max() if method_name_le else self.min()
             else:
                 fill_value = np.inf if method_name_le else -np.inf
