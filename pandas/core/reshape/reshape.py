@@ -39,6 +39,7 @@ from pandas.core.indexes.api import (
     Index,
     MultiIndex,
 )
+from pandas.core.indexes.frozen import FrozenList
 from pandas.core.series import Series
 from pandas.core.sorting import (
     compress_group_index,
@@ -316,15 +317,16 @@ class _Unstacker:
         stride = len(self.removed_level) + self.lift
         width = len(value_columns)
         propagator = np.repeat(np.arange(width), stride)
+
+        new_levels: FrozenList | list[Index]
+
         if isinstance(value_columns, MultiIndex):
             new_levels = value_columns.levels + (self.removed_level_full,)
             new_names = value_columns.names + (self.removed_name,)
 
             new_codes = [lab.take(propagator) for lab in value_columns.codes]
         else:
-            # error: Incompatible types in assignment (expression has type "List[Any]",
-            # variable has type "FrozenList")
-            new_levels = [  # type: ignore[assignment]
+            new_levels = [
                 value_columns,
                 self.removed_level_full,
             ]

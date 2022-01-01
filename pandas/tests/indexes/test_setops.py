@@ -54,14 +54,16 @@ def test_union_different_types(index_flat, index_flat2, request):
 
     if (
         not idx1.is_unique
+        and not idx2.is_unique
+        and not idx2.is_monotonic_decreasing
         and idx1.dtype.kind == "i"
         and idx2.dtype.kind == "b"
-        and (idx1.has_duplicates and idx2.has_duplicates)
     ) or (
         not idx2.is_unique
+        and not idx1.is_unique
+        and not idx1.is_monotonic_decreasing
         and idx2.dtype.kind == "i"
         and idx1.dtype.kind == "b"
-        and (idx1.has_duplicates and idx2.has_duplicates)
     ):
         mark = pytest.mark.xfail(
             reason="GH#44000 True==1", raises=ValueError, strict=False
@@ -211,6 +213,7 @@ class TestSetOps:
         first = index[3:]
         second = index[:5]
         everything = index
+
         union = first.union(second)
         assert tm.equalContents(union, everything)
 
