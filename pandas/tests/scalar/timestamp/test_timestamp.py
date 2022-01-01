@@ -25,7 +25,6 @@ from pandas._libs.tslibs.timezones import (
 import pandas.util._test_decorators as td
 
 from pandas import (
-    DataFrame,
     NaT,
     Timedelta,
     Timestamp,
@@ -479,41 +478,6 @@ class TestTimestamp:
             tzinfo=test_timezone,
         )
         assert hash(transition_1) == hash(transition_2)
-
-    @pytest.mark.parametrize(
-        "timezone, year, month, day, hour",
-        [["America/Chicago", 2013, 11, 3, 1], ["America/Santiago", 2021, 4, 3, 23]],
-    )
-    def test_reindex_timestamp_with_fold(self, timezone, year, month, day, hour):
-        # see gh-40817
-        test_timezone = gettz(timezone)
-        transition_1 = Timestamp(
-            year=year,
-            month=month,
-            day=day,
-            hour=hour,
-            minute=0,
-            fold=0,
-            tzinfo=test_timezone,
-        )
-        transition_2 = Timestamp(
-            year=year,
-            month=month,
-            day=day,
-            hour=hour,
-            minute=0,
-            fold=1,
-            tzinfo=test_timezone,
-        )
-        df = (
-            DataFrame({"index": [transition_1, transition_2], "vals": ["a", "b"]})
-            .set_index("index")
-            .reindex(["1", "2"])
-        )
-        tm.assert_frame_equal(
-            df,
-            DataFrame({"index": ["1", "2"], "vals": [None, None]}).set_index("index"),
-        )
 
     def test_tz_conversion_freq(self, tz_naive_fixture):
         # GH25241
