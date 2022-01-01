@@ -5,13 +5,15 @@ from pandas import (
     CategoricalIndex,
     DatetimeIndex,
     Index,
-    NumericIndex,
     PeriodIndex,
     TimedeltaIndex,
     isna,
 )
 import pandas._testing as tm
-from pandas.core.api import Float64Index
+from pandas.core.api import (
+    Float64Index,
+    NumericIndex,
+)
 from pandas.core.arrays import BooleanArray
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 
