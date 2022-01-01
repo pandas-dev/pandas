@@ -53,7 +53,9 @@ dependencies:
   - dask
   - ipython
   - geopandas
+  - pg8000
   - python-snappy
+  - seaborn
   - scikit-learn
   - statsmodels
   - brotlipy
@@ -61,4 +63,5 @@ dependencies:
   - pandas-datareader
   - pyyaml
   - pip:
+    - py
     - torch
