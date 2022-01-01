@@ -8,6 +8,7 @@ import pytest
 from pandas import (
     DataFrame,
     IndexSlice,
+    MultiIndex,
     Series,
     Timedelta,
     Timestamp,
@@ -318,3 +319,33 @@ def test_frozenset_index():
     assert s[idx1] == 2
     s[idx1] = 3
     assert s[idx1] == 3
+
+
+class TestDepreactedIndexers:
+    @pytest.mark.parametrize("key", [{1}, {1: 1}])
+    def test_getitem_dict_and_set_deprecated(self, key):
+        # GH#42825
+        ser = Series([1, 2])
+        with tm.assert_produces_warning(FutureWarning):
+            ser.loc[key]
+
+    @pytest.mark.parametrize("key", [{1}, {1: 1}, ({1}, 2), ({1: 1}, 2)])
+    def test_getitem_dict_and_set_deprecated_multiindex(self, key):
+        # GH#42825
+        ser = Series([1, 2], index=MultiIndex.from_tuples([(1, 2), (3, 4)]))
+        with tm.assert_produces_warning(FutureWarning):
+            ser.loc[key]
+
+    @pytest.mark.parametrize("key", [{1}, {1: 1}])
+    def test_setitem_dict_and_set_deprecated(self, key):
+        # GH#42825
+        ser = Series([1, 2])
+        with tm.assert_produces_warning(FutureWarning):
+            ser.loc[key] = 1
+
+    @pytest.mark.parametrize("key", [{1}, {1: 1}, ({1}, 2), ({1: 1}, 2)])
+    def test_setitem_dict_and_set_deprecated_multiindex(self, key):
+        # GH#42825
+        ser = Series([1, 2], index=MultiIndex.from_tuples([(1, 2), (3, 4)]))
+        with tm.assert_produces_warning(FutureWarning):
+            ser.loc[key] = 1

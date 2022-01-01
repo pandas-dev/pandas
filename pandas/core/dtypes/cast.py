@@ -2209,6 +2209,12 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
                 # Anything other than integer we cannot hold
                 return False
             elif dtype.itemsize < tipo.itemsize:
+                if is_integer(element):
+                    # e.g. test_setitem_series_int8 if we have a python int 1
+                    #  tipo may be np.int32, despite the fact that it will fit
+                    #  in smaller int dtypes.
+                    info = np.iinfo(dtype)
+                    return info.min <= element <= info.max
                 return False
             elif not isinstance(tipo, np.dtype):
                 # i.e. nullable IntegerDtype; we can put this into an ndarray

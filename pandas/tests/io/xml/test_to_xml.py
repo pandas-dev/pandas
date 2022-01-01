@@ -12,6 +12,7 @@ import pytest
 import pandas.util._test_decorators as td
 
 from pandas import (
+    NA,
     DataFrame,
     Index,
 )
@@ -1307,15 +1308,24 @@ def test_filename_and_suffix_comp(parser, compression_only):
     assert geom_xml == output.strip()
 
 
+def test_ea_dtypes(any_numeric_ea_dtype, parser):
+    # GH#43903
+    expected = """<?xml version='1.0' encoding='utf-8'?>
+<data>
+  <row>
+    <index>0</index>
+    <a/>
+  </row>
+</data>"""
+    df = DataFrame({"a": [NA]}).astype(any_numeric_ea_dtype)
+    result = df.to_xml(parser=parser)
+    assert equalize_decl(result).strip() == expected
+
+
 def test_unsuported_compression(datapath, parser):
     with pytest.raises(ValueError, match="Unrecognized compression type"):
         with tm.ensure_clean() as path:
-            # Argument "compression" to "to_xml" of "DataFrame" has incompatible type
-            # "Literal['7z']"; expected "Union[Literal['infer'], Literal['gzip'],
-            # Literal['bz2'], Literal['zip'], Literal['xz'], Dict[str, Any], None]"
-            geom_df.to_xml(
-                path, parser=parser, compression="7z"  # type: ignore[arg-type]
-            )
+            geom_df.to_xml(path, parser=parser, compression="7z")
 
 
 # STORAGE OPTIONS

@@ -18,6 +18,7 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
+from pandas.core.reshape import reshape as reshape_lib
 
 
 class TestDataFrameReshape:
@@ -1045,8 +1046,8 @@ class TestDataFrameReshape:
                 names=[None, "Lower"],
             ),
             columns=Index(["B", "C"], name="Upper"),
-            dtype=df.dtypes[0],
         )
+        expected["B"] = expected["B"].astype(df.dtypes[0])
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("ordered", [False, True])
@@ -1826,19 +1827,26 @@ Thu,Lunch,Yes,51.51,17"""
         tm.assert_frame_equal(recons, df)
 
     @pytest.mark.slow
-    def test_unstack_number_of_levels_larger_than_int32(self):
+    def test_unstack_number_of_levels_larger_than_int32(self, monkeypatch):
         # GH#20601
         # GH 26314: Change ValueError to PerformanceWarning
-        df = DataFrame(
-            np.random.randn(2 ** 16, 2), index=[np.arange(2 ** 16), np.arange(2 ** 16)]
-        )
-        msg = "The following operation may generate"
-        with tm.assert_produces_warning(PerformanceWarning, match=msg):
-            try:
-                df.unstack()
-            except MemoryError:
-                # Just checking the warning
-                return
+
+        class MockUnstacker(reshape_lib._Unstacker):
+            def __init__(self, *args, **kwargs):
+                # __init__ will raise the warning
+                super().__init__(*args, **kwargs)
+                raise Exception("Don't compute final result.")
+
+        with monkeypatch.context() as m:
+            m.setattr(reshape_lib, "_Unstacker", MockUnstacker)
+            df = DataFrame(
+                np.random.randn(2 ** 16, 2),
+                index=[np.arange(2 ** 16), np.arange(2 ** 16)],
+            )
+            msg = "The following operation may generate"
+            with tm.assert_produces_warning(PerformanceWarning, match=msg):
+                with pytest.raises(Exception, match="Don't compute final result."):
+                    df.unstack()
 
     def test_stack_order_with_unsorted_levels(self):
         # GH#16323
