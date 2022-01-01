@@ -2383,6 +2383,10 @@ class Styler(StylerRenderer):
         -------
         self : Styler
 
+        See Also
+        --------
+        Styler.show: Show specific rows / columns.
+
         Notes
         -----
         This method has multiple functionality depending upon the combination
@@ -2538,6 +2542,78 @@ class Styler(StylerRenderer):
         if names:
             setattr(self, f"hide_{obj}_names", True)
         return self
+
+    def show(
+        self,
+        subset: Subset | None = None,
+        axis: Axis = 0,
+        head: int | None = None,
+        tail: int | None = None,
+    ) -> Styler:
+        """
+        Show specific rows / columns in the display.
+
+        .. versionadded:: 1.4.0
+
+        Parameters
+        ----------
+        subset : label, array-like, IndexSlice, optional
+            A valid 1d input or single key along the axis within
+            `DataFrame.loc[<subset>, :]` or `DataFrame.loc[:, <subset>]` depending
+            upon ``axis``, to limit ``data`` to select specific rows / columns.
+        axis : {"index", 0, "columns", 1}
+            Apply to the index or columns.
+        head : int, optional
+            The number of rows / columns at the start of the axis-index to show.
+        tail : int, optional
+            The number of rows / columns at the end of the axis-index to show.
+
+        Returns
+        -------
+        self : Styler
+
+        See Also
+        --------
+        Styler.hide: Hide the entire index / columns, or specific rows / columns.
+
+        Notes
+        -----
+        This is a wrapper of :meth:`Styler.hide`, where the inputs are internally
+        restructured to a call to `Styler.hide`. It is recommended to use `Styler.show`
+        exclusively, and with only one call per axis, as a form of convenient
+        data exploration. For more specific control of removing items from the
+        display it is recommended to use `Styler.hide`, with as many successive calls
+        as is required.
+
+        The technical explanation for this recommendation is that at instantiation
+        `Styler` is configured to display all datapoints and all aspects of the
+        index and column headers of a DataFrame,
+        but `Styler.hide` can be called to selectively, and successively, remove
+        items from that default display.
+
+        For example, given an index of `[0, 1, 2, 3]`, calling:
+
+        .. code-block:: python
+
+           styler.hide([0, 1]).hide([2, 3])
+
+        will first hide the first 2 index labels and then, subsequently, also hide the
+        final 2 labels, resulting in hiding all of the rows and displaying none.
+
+        In this case `styler.show([0, 1])` is refactored as the call
+        `styler.hide([v for v in styler.index if v not in [0, 1]])` which is
+        equivalently `styler.hide([2, 3])` so performing:
+
+        .. code-block:: python
+
+           styler.hide([0, 1]).show([0, 1])
+
+        is effectively the same as the above and will also result in all rows hidden.
+
+        `Styler.hide` will always only add items to the set that is considered hidden.
+        It never removes items, that have been previously added, from that set.
+        """
+        pass
 
     # -----------------------------------------------------------------------
     # A collection of "builtin" styles
