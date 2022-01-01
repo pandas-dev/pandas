@@ -89,10 +89,11 @@ class TestSeriesClip:
         tm.assert_series_equal(s.clip(lower, upper), Series([1.0, 2.0, 3.5]))
         tm.assert_series_equal(s.clip(1.5, upper), Series([1.5, 1.5, 3.5]))
 
-    def test_clip_against_series_ea_int_dtype(self, any_int_ea_dtype):
+    @pytest.mark.parametrize("bound_values", [[pd.NA, 1], [1, pd.NA]])
+    def test_clip_against_series_ea_int_dtype(self, any_int_ea_dtype, bound_values):
         # GH#44785
         ser = Series([1, 1], dtype=any_int_ea_dtype)
-        bounds = Series([pd.NA, 1], dtype=any_int_ea_dtype)
+        bounds = Series(bound_values, dtype=any_int_ea_dtype)
         expected = ser.copy()
         result = ser.clip(bounds)
         tm.assert_series_equal(result, expected)
@@ -146,10 +147,14 @@ class TestSeriesClip:
 
         tm.assert_series_equal(result, expected)
 
-    def test_clip_timestamp_and_na(self):
+    @pytest.mark.parametrize(
+        "bound_values",
+        [[pd.NaT, Timestamp("1970-01-01")], [Timestamp("1970-01-01"), pd.NaT]],
+    )
+    def test_clip_timestamp_and_na(self, bound_values):
         # GH#44785
         ser = Series([Timestamp("1970-01-01")] * 2)
-        bounds = Series([pd.NaT, Timestamp("1970-01-01")])
+        bounds = Series(bound_values)
         expected = ser.copy()
         result = ser.clip(bounds)
         tm.assert_series_equal(result, expected)
