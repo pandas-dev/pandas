@@ -2029,7 +2029,7 @@ def maybe_cast_to_integer_array(
 
     Also, if you try to coerce float values to integers, it raises:
 
-    >>> pd.Series([1, 2, 3.5], dtype="int64")
+    >>> maybe_cast_to_integer_array([1, 2, 3.5], dtype=np.dtype("int64"))
     Traceback (most recent call last):
         ...
     ValueError: Trying to coerce float values to integers
