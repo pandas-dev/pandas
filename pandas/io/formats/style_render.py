@@ -794,7 +794,17 @@ class StylerRenderer:
 
         # clines are determined from info on index_lengths and hidden_rows and input
         # to a dict defining which row clines should be added in the template.
-        if clines is not None:
+        if clines is not None and (
+            not ("data" in clines or "index" in clines)
+            or not ("all" in clines or "skip-last" in clines)
+        ):
+            raise AttributeError(
+                f"`clines` value of {clines} is invalid. Should"
+                f"contain either 'index' or 'data' for determining the"
+                f"line endpoint, and either 'all' or 'skip-last' to "
+                f"determine the index levels applied, e.g. 'all;data'"
+            )
+        elif clines is not None:
             data_len = len(row_body_cells) if "data" in clines else 0
 
             d["clines"] = defaultdict(list)

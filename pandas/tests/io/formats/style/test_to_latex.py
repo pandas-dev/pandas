@@ -855,6 +855,13 @@ def test_rendered_links():
     assert r"text \href{www.domain.com}{www.domain.com} text" in result
 
 
+@pytest.mark.parametrize("clines", ["bad", "index", "skip-last", "all", "data"])
+def test_clines_validation(clines, styler):
+    msg = f"`clines` value of {clines} is invalid."
+    with pytest.raises(AttributeError, match=msg):
+        styler.to_latex(clines=clines)
+
+
 @pytest.mark.parametrize(
     "clines, exp",
     [
