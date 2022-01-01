@@ -1,11 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat._optional import (
-    VERSIONS,
-    import_optional_dependency,
-)
-
 from pandas import DataFrame
 import pandas._testing as tm
 
@@ -32,21 +27,9 @@ def assert_equal_cell_styles(cell1, cell2):
     "engine",
     ["xlsxwriter", "openpyxl"],
 )
-def test_styler_to_excel_unstyled(request, engine):
+def test_styler_to_excel_unstyled(engine):
     # compare DataFrame.to_excel and Styler.to_excel when no styles applied
-    mod = pytest.importorskip(engine)
-    lxml = import_optional_dependency("lxml.etree", errors="ignore")
-    request.node.add_marker(
-        pytest.mark.xfail(
-            engine == "openpyxl",
-            mod.__version__ == VERSIONS["openpyxl"]
-            and lxml is not None
-            and lxml.__version__ == VERSIONS["lxml.etree"],
-            reason="Fails on the min version build",
-            raises=TypeError,
-            strict=False,  # But passes on other builds
-        )
-    )
+    pytest.importorskip(engine)
     df = DataFrame(np.random.randn(2, 2))
     with tm.ensure_clean(".xlsx") as path:
         with ExcelWriter(path, engine=engine) as writer:
@@ -93,20 +76,8 @@ shared_style_params = [
     ["xlsxwriter", "openpyxl"],
 )
 @pytest.mark.parametrize("css, attrs, expected", shared_style_params)
-def test_styler_to_excel_basic(request, engine, css, attrs, expected):
-    mod = pytest.importorskip(engine)
-    lxml = import_optional_dependency("lxml.etree", errors="ignore")
-    request.node.add_marker(
-        pytest.mark.xfail(
-            engine == "openpyxl",
-            mod.__version__ == VERSIONS["openpyxl"]
-            and lxml is not None
-            and lxml.__version__ == VERSIONS["lxml.etree"],
-            reason="Fails on the min version build",
-            raises=TypeError,
-            strict=False,  # But passes on other builds
-        )
-    )
+def test_styler_to_excel_basic(engine, css, attrs, expected):
+    pytest.importorskip(engine)
     df = DataFrame(np.random.randn(1, 1))
     styler = df.style.applymap(lambda x: css)
 
@@ -137,20 +108,8 @@ def test_styler_to_excel_basic(request, engine, css, attrs, expected):
     ["xlsxwriter", "openpyxl"],
 )
 @pytest.mark.parametrize("css, attrs, expected", shared_style_params)
-def test_styler_to_excel_basic_indexes(request, engine, css, attrs, expected):
-    mod = pytest.importorskip(engine)
-    lxml = import_optional_dependency("lxml.etree", errors="ignore")
-    request.node.add_marker(
-        pytest.mark.xfail(
-            engine == "openpyxl",
-            mod.__version__ == VERSIONS["openpyxl"]
-            and lxml is not None
-            and lxml.__version__ == VERSIONS["lxml.etree"],
-            reason="Fails on the min version build",
-            raises=TypeError,
-            strict=False,  # But passes on other builds
-        )
-    )
+def test_styler_to_excel_basic_indexes(engine, css, attrs, expected):
+    pytest.importorskip(engine)
     df = DataFrame(np.random.randn(1, 1))
 
     styler = df.style
@@ -190,18 +149,8 @@ def test_styler_to_excel_basic_indexes(request, engine, css, attrs, expected):
             assert sc_cell == expected
 
 
-def test_styler_custom_converter(request):
+def test_styler_custom_converter():
     openpyxl = pytest.importorskip("openpyxl")
-    lxml = import_optional_dependency("lxml.etree", errors="ignore")
-    request.node.add_marker(
-        pytest.mark.xfail(
-            openpyxl.__version__ == VERSIONS["openpyxl"]
-            and lxml is not None
-            and lxml.__version__ == VERSIONS["lxml.etree"],
-            reason="Fails on the min version build",
-            raises=TypeError,
-        )
-    )
 
     def custom_converter(css):
         return {"font": {"color": {"rgb": "111222"}}}
