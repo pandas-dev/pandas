@@ -1542,7 +1542,6 @@ class _iLocIndexer(_LocationIndexer):
         if is_iterator(key):
             key = list(key)
 
-        # GH#45032 handle iloc(axis=1)
         if self.axis is not None:
             return self._convert_tuple(key)
 
