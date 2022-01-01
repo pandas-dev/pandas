@@ -230,6 +230,10 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
         if data is None and ordinal is None:
             # range-based.
+            if not fields:
+                # test_pickle_compat_construction
+                raise cls._scalar_data_error(None)
+
             data, freq2 = PeriodArray._generate_range(None, None, None, freq, fields)
             # PeriodArray._generate range does validation that fields is
             # empty when really using the range-based constructor.
@@ -354,14 +358,9 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
         if is_datetime64_any_dtype(dtype):
             # 'how' is index-specific, isn't part of the EA interface.
-            # GH#44398 deprecate astype(dt64), matching Series behavior
-            warnings.warn(
-                f"Converting {type(self).__name__} to DatetimeIndex with "
-                "'astype' is deprecated and will raise in a future version. "
-                "Use `obj.to_timestamp(how).tz_localize(dtype.tz)` instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
+            # GH#45038 implement this for PeriodArray (but without "how")
+            #  once the "how" deprecation is enforced we can just dispatch
+            #  directly to PeriodArray.
             tz = getattr(dtype, "tz", None)
             return self.to_timestamp(how=how).tz_localize(tz)
 

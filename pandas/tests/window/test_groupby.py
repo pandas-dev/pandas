@@ -122,8 +122,33 @@ class TestRolling:
         expected.index = expected_index
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("f, expected_val", [["corr", 1], ["cov", 0.5]])
+    def test_rolling_corr_cov_other_same_size_as_groups(self, f, expected_val):
+        # GH 42915
+        df = DataFrame(
+            {"value": range(10), "idx1": [1] * 5 + [2] * 5, "idx2": [1, 2, 3, 4, 5] * 2}
+        ).set_index(["idx1", "idx2"])
+        other = DataFrame({"value": range(5), "idx2": [1, 2, 3, 4, 5]}).set_index(
+            "idx2"
+        )
+        result = getattr(df.groupby(level=0).rolling(2), f)(other)
+        expected_data = ([np.nan] + [expected_val] * 4) * 2
+        expected = DataFrame(
+            expected_data,
+            columns=["value"],
+            index=MultiIndex.from_arrays(
+                [
+                    [1] * 5 + [2] * 5,
+                    [1] * 5 + [2] * 5,
+                    list(range(1, 6)) * 2,
+                ],
+                names=["idx1", "idx1", "idx2"],
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize("f", ["corr", "cov"])
-    def test_rolling_corr_cov(self, f):
+    def test_rolling_corr_cov_other_diff_size_as_groups(self, f):
         g = self.frame.groupby("A")
         r = g.rolling(window=4)
 
@@ -137,6 +162,11 @@ class TestRolling:
         # (groupby.apply inserts 0s for cov)
         expected["A"] = np.nan
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("f", ["corr", "cov"])
+    def test_rolling_corr_cov_pairwise(self, f):
+        g = self.frame.groupby("A")
+        r = g.rolling(window=4)
 
         result = getattr(r.B, f)(pairwise=True)
 
@@ -837,6 +867,33 @@ class TestRolling:
             index=df.index,
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_nan_and_zero_endpoints(self):
+        # https://github.com/twosigma/pandas/issues/53
+        size = 1000
+        idx = np.repeat(0, size)
+        idx[-1] = 1
+
+        val = 5e25
+        arr = np.repeat(val, size)
+        arr[0] = np.nan
+        arr[-1] = 0
+
+        df = DataFrame(
+            {
+                "index": idx,
+                "adl2": arr,
+            }
+        ).set_index("index")
+        result = df.groupby("index")["adl2"].rolling(window=10, min_periods=1).mean()
+        expected = Series(
+            arr,
+            name="adl2",
+            index=MultiIndex.from_arrays(
+                [[0] * 999 + [1], [0] * 999 + [1]], names=["index", "index"]
+            ),
+        )
+        tm.assert_series_equal(result, expected)
 
 
 class TestExpanding:

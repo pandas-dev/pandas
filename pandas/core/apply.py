@@ -57,7 +57,6 @@ from pandas.core.base import (
 )
 import pandas.core.common as com
 from pandas.core.construction import (
-    array as pd_array,
     create_series_with_explicit_dtype,
     ensure_wrapped_if_datetimelike,
 )
@@ -1142,9 +1141,9 @@ class SeriesApply(NDFrameApply):
                 )
 
         if len(mapped) and isinstance(mapped[0], ABCSeries):
-            # GH 25959 use pd.array instead of tolist
-            # so extension arrays can be used
-            return obj._constructor_expanddim(pd_array(mapped), index=obj.index)
+            # GH#43986 Need to do list(mapped) in order to get treated as nested
+            #  See also GH#25959 regarding EA support
+            return obj._constructor_expanddim(list(mapped), index=obj.index)
         else:
             return obj._constructor(mapped, index=obj.index).__finalize__(
                 obj, method="apply"

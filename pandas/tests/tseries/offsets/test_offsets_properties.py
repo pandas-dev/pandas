@@ -10,8 +10,8 @@ tests, or when trying to pin down the bugs exposed by the tests below.
 from hypothesis import (
     assume,
     given,
+    settings,
 )
-from hypothesis.errors import Flaky
 import pytest
 import pytz
 
@@ -45,8 +45,8 @@ def test_on_offset_implementations(dt, offset):
     assert offset.is_on_offset(dt) == (compare == dt)
 
 
-@pytest.mark.xfail(strict=False, raises=Flaky, reason="unreliable test timings")
 @given(YQM_OFFSET)
+@settings(deadline=None)  # GH 45118
 def test_shift_across_dst(offset):
     # GH#18319 check that 1) timezone is correctly normalized and
     # 2) that hour is not incorrectly changed by this normalization

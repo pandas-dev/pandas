@@ -10,6 +10,7 @@ from pandas.compat import (
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
+    is_dtype_equal,
     is_object_dtype,
 )
 
@@ -18,6 +19,20 @@ from pandas import (
     Index,
     Series,
 )
+import pandas._testing as tm
+
+
+def test_isnull_notnull_docstrings():
+    # GH#41855 make sure its clear these are aliases
+    doc = pd.DataFrame.notnull.__doc__
+    assert doc.startswith("\nDataFrame.notnull is an alias for DataFrame.notna.\n")
+    doc = pd.DataFrame.isnull.__doc__
+    assert doc.startswith("\nDataFrame.isnull is an alias for DataFrame.isna.\n")
+
+    doc = Series.notnull.__doc__
+    assert doc.startswith("\nSeries.notnull is an alias for Series.notna.\n")
+    doc = Series.isnull.__doc__
+    assert doc.startswith("\nSeries.isnull is an alias for Series.isna.\n")
 
 
 @pytest.mark.parametrize(
@@ -76,11 +91,15 @@ def test_memory_usage(index_or_series_obj):
     res = obj.memory_usage()
     res_deep = obj.memory_usage(deep=True)
 
+    is_ser = isinstance(obj, Series)
     is_object = is_object_dtype(obj) or (
         isinstance(obj, Series) and is_object_dtype(obj.index)
     )
     is_categorical = is_categorical_dtype(obj.dtype) or (
         isinstance(obj, Series) and is_categorical_dtype(obj.index.dtype)
+    )
+    is_object_string = is_dtype_equal(obj, "string[python]") or (
+        is_ser and is_dtype_equal(obj.index.dtype, "string[python]")
     )
 
     if len(obj) == 0:
@@ -89,7 +108,7 @@ def test_memory_usage(index_or_series_obj):
         else:
             expected = 108 if IS64 else 64
         assert res_deep == res == expected
-    elif is_object or is_categorical:
+    elif is_object or is_categorical or is_object_string:
         # only deep will pick them up
         assert res_deep > res
     else:
@@ -109,8 +128,9 @@ def test_memory_usage_components_series(series_with_simple_index):
     assert total_usage == non_index_usage + index_usage
 
 
-def test_memory_usage_components_narrow_series(narrow_series):
-    series = narrow_series
+@pytest.mark.parametrize("dtype", tm.NARROW_NP_DTYPES)
+def test_memory_usage_components_narrow_series(dtype):
+    series = tm.makeFloatSeries(name="a").astype(dtype)
     total_usage = series.memory_usage(index=True)
     non_index_usage = series.memory_usage(index=False)
     index_usage = series.index.memory_usage()
@@ -149,6 +169,8 @@ def test_access_by_position(index_flat):
     assert index[-1] == index[size - 1]
 
     msg = f"index {size} is out of bounds for axis 0 with size {size}"
+    if is_dtype_equal(index.dtype, "string[pyarrow]"):
+        msg = "index out of bounds"
     with pytest.raises(IndexError, match=msg):
         index[size]
     msg = "single positional indexer is out-of-bounds"

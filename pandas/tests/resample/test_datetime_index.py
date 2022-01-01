@@ -438,7 +438,7 @@ def test_resample_upsample():
     s = Series(np.random.rand(len(dti)), dti)
 
     # to minutely, by padding
-    result = s.resample("Min").pad()
+    result = s.resample("Min").ffill()
     assert len(result) == 12961
     assert result[0] == s[0]
     assert result[-1] == s[-1]
@@ -1810,7 +1810,7 @@ def test_resample_calendar_day_with_dst(
 ):
     # GH 35219
     ts = Series(1.0, date_range(first, last, freq=freq_in, tz="Europe/Amsterdam"))
-    result = ts.resample(freq_out).pad()
+    result = ts.resample(freq_out).ffill()
     expected = Series(
         1.0, date_range(first, exp_last, freq=freq_out, tz="Europe/Amsterdam")
     )
@@ -1828,3 +1828,27 @@ def test_resample_aggregate_functions_min_count(func):
         index=DatetimeIndex(["2020-03-31"], dtype="datetime64[ns]", freq="Q-DEC"),
     )
     tm.assert_series_equal(result, expected)
+
+
+def test_resample_unsigned_int(any_unsigned_int_numpy_dtype):
+    # gh-43329
+    df = DataFrame(
+        index=date_range(start="2000-01-01", end="2000-01-03 23", freq="12H"),
+        columns=["x"],
+        data=[0, 1, 0] * 2,
+        dtype=any_unsigned_int_numpy_dtype,
+    )
+    df = df.loc[(df.index < "2000-01-02") | (df.index > "2000-01-03"), :]
+
+    if any_unsigned_int_numpy_dtype == "uint64":
+        with pytest.raises(RuntimeError, match="empty group with uint64_t"):
+            result = df.resample("D").max()
+    else:
+        result = df.resample("D").max()
+
+        expected = DataFrame(
+            [1, np.nan, 0],
+            columns=["x"],
+            index=date_range(start="2000-01-01", end="2000-01-03 23", freq="D"),
+        )
+        tm.assert_frame_equal(result, expected)

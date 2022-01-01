@@ -25,18 +25,20 @@ jobs:
     strategy:
       matrix:
         settings: [
+          [actions-38-db-min.yaml, "((not slow and not network and not clipboard) or (single and db))", "", "", "", "", ""],
+          [actions-38-db.yaml, "((not slow and not network and not clipboard) or (single and db))", "", "", "", "", ""],
           [actions-38-minimum_versions.yaml, "not slow and not network and not clipboard", "", "", "", "", ""],
           [actions-38-locale_slow.yaml, "slow", "language-pack-it xsel", "it_IT.utf8", "it_IT.utf8", "", ""],
           [actions-38.yaml, "not slow and not clipboard", "", "", "", "", ""],
           [actions-38-slow.yaml, "slow", "", "", "", "", ""],
           [actions-38-locale.yaml, "not slow and not network", "language-pack-zh-hans xsel", "zh_CN.utf8", "zh_CN.utf8", "", ""],
           [actions-39-slow.yaml, "slow", "", "", "", "", ""],
+          [actions-pypy-38.yaml, "not slow and not clipboard", "", "", "", "", "--max-worker-restart 0"],
           [actions-39-numpydev.yaml, "not slow and not network", "xsel", "", "", "deprecate", "-W error"],
           [actions-39.yaml, "not slow and not clipboard", "", "", "", "", ""]
         ]
       fail-fast: false
     env:
-      COVERAGE: true
       ENV_FILE: ci/deps/${{ matrix.settings[0] }}
       PATTERN: ${{ matrix.settings[1] }}
       EXTRA_APT: ${{ matrix.settings[2] }}
@@ -45,11 +47,42 @@ jobs:
       PANDAS_TESTING_MODE: ${{ matrix.settings[5] }}
       TEST_ARGS: ${{ matrix.settings[6] }}
       PYTEST_TARGET:  pandas
+      IS_PYPY: ${{ contains(matrix.settings[0], 'pypy') }}
+      # TODO: re-enable coverage on pypy, its slow
+      COVERAGE: ${{ !contains(matrix.settings[0], 'pypy') }}
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.settings[0] }}
       cancel-in-progress: true
+
     services:
+      mysql:
+        image: mysql
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: pandas
+        options: >-
+          --health-cmd "mysqladmin ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 3306:3306
+
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: pandas
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
       moto:
         image: motoserver/moto
         env:
@@ -78,16 +111,35 @@ jobs:
 
     - uses: conda-incubator/setup-miniconda@v2
       with:
+        mamba-version: "*"
+        channels: conda-forge
         activate-environment: pandas-dev
         channel-priority: flexible
         environment-file: ${{ env.ENV_FILE }}
         use-only-tar-bz2: true
+      if: ${{ env.IS_PYPY == 'false' }} # No pypy3.8 support
+
+    - name: Setup PyPy
+      uses: actions/setup-python@v2.3.1
+      with:
+        python-version: "pypy-3.8"
+      if: ${{ env.IS_PYPY == 'true' }}
+
+    - name: Setup PyPy dependencies
+      shell: bash
+      run: |
+        # TODO: re-enable cov, its slowing the tests down though
+        # TODO: Unpin Cython, the new Cython 0.29.26 is causing compilation errors
+        pip install Cython==0.29.25 numpy python-dateutil pytz pytest>=6.0 pytest-xdist>=1.31.0 hypothesis>=5.5.3
+      if: ${{ env.IS_PYPY == 'true' }}
 
     - name: Build Pandas
       uses: ./.github/actions/build_pandas
 
     - name: Test
       run: ci/run_tests.sh
+      # TODO: Don't continue on error for PyPy
+      continue-on-error: ${{ env.IS_PYPY == 'true' }}
       if: always()
 
     - name: Build Version

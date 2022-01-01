@@ -99,6 +99,13 @@ class TestFancy:
             msgs.append("Data must be 1-dimensional")
         if len(index) == 0 or isinstance(index, pd.MultiIndex):
             msgs.append("positional indexers are out-of-bounds")
+        if type(index) is Index and not isinstance(index._values, np.ndarray):
+            # e.g. Int64
+            msgs.append("values must be a 1D array")
+
+            # string[pyarrow]
+            msgs.append("only handle 1-dimensional arrays")
+
         msg = "|".join(msgs)
 
         potential_errors = (IndexError, ValueError, NotImplementedError)
@@ -712,8 +719,8 @@ class TestMisc:
                 ser, SLC[idx[9] : idx[13] : -1], SLC[:0]
             )
 
-    def test_slice_with_zero_step_raises(self, indexer_sl, frame_or_series):
-        obj = frame_or_series(np.arange(20), index=_mklbl("A", 20))
+    def test_slice_with_zero_step_raises(self, index, indexer_sl, frame_or_series):
+        obj = frame_or_series(np.arange(len(index)), index=index)
         with pytest.raises(ValueError, match="slice step cannot be zero"):
             indexer_sl(obj)[::0]
 
