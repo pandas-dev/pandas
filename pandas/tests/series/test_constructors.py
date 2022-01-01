@@ -1810,18 +1810,19 @@ class TestSeriesConstructors:
         expected = Series(True, index=[0], dtype="bool")
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("any_int_dtype", ["int64"])
+    @pytest.mark.parametrize("any_int_dtype", ["int", "int8", "int16", "int32", "int64"])
     def test_constructor_int64_dtype(self, any_int_dtype):
         # GH-44923
-        result = Series(["-1", "0", "1", "2"], dtype=any_int_dtype)
-        expected = Series([-1, 0, 1, 2])
+        result = Series(["0", "1", "2"], dtype=any_int_dtype)
+        expected = Series([0, 1, 2], dtype=any_int_dtype)
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("any_float_dtype", ["float64"])
     def test_constructor_float64_dtype(self, any_float_dtype):
         # GH-44923
-        result = Series(["0", "1", "2"], dtype=any_float_dtype)
-        expected = Series([0.0, 1.0, 2.0])
+        if any_float_dtype in ["Float32", "Float64"]:
+            pytest.xfail(reason="Cannot be casted to FloatDtype Series")
+        result = Series(["-1", "0", "1", "2"], dtype=any_float_dtype)
+        expected = Series([-1.0, 0.0, 1.0, 2.0], dtype=any_float_dtype)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.filterwarnings(
