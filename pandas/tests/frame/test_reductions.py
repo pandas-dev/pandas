@@ -1069,7 +1069,7 @@ class TestDataFrameAnalytics:
         result = getattr(df, op)()
         expected = DataFrame(
             {"value": expected_value},
-            index=Index([100, 200], name="ID"),
+            index=Index([100, 200], name="ID", dtype="Int64"),
         )
         tm.assert_frame_equal(result, expected)
 

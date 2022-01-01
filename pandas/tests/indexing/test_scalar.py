@@ -47,31 +47,39 @@ class TestScalar(Base):
             _check(f, "at")
 
     @pytest.mark.parametrize("kind", ["series", "frame"])
-    def test_at_and_iat_set(self, kind):
-        def _check(f, func, values=False):
+    @pytest.mark.parametrize("col", ["ints", "uints"])
+    def test_iat_set_ints(self, kind, col):
+        f = getattr(self, kind)[col]
+        if f is not None:
+            indices = self.generate_indices(f, True)
+            for i in indices:
+                f.iat[i] = 1
+                expected = self.get_value("iat", f, i, True)
+                tm.assert_almost_equal(expected, 1)
 
-            if f is not None:
-                indices = self.generate_indices(f, values)
+    @pytest.mark.parametrize("kind", ["series", "frame"])
+    @pytest.mark.parametrize("col", ["labels", "ts", "floats"])
+    def test_iat_set_other(self, kind, col):
+        f = getattr(self, kind)[col]
+        if f is not None:
+            msg = "iAt based indexing can only have integer indexers"
+            with pytest.raises(ValueError, match=msg):
+                indices = self.generate_indices(f, False)
                 for i in indices:
-                    getattr(f, func)[i] = 1
-                    expected = self.get_value(func, f, i, values)
+                    f.iat[i] = 1
+                    expected = self.get_value("iat", f, i, False)
                     tm.assert_almost_equal(expected, 1)
 
-        d = getattr(self, kind)
-
-        # iat
-        for f in [d["ints"], d["uints"]]:
-            _check(f, "iat", values=True)
-
-        for f in [d["labels"], d["ts"], d["floats"]]:
-            if f is not None:
-                msg = "iAt based indexing can only have integer indexers"
-                with pytest.raises(ValueError, match=msg):
-                    _check(f, "iat")
-
-        # at
-        for f in [d["ints"], d["uints"], d["labels"], d["ts"], d["floats"]]:
-            _check(f, "at")
+    @pytest.mark.parametrize("kind", ["series", "frame"])
+    @pytest.mark.parametrize("col", ["ints", "uints", "labels", "ts", "floats"])
+    def test_at_set_ints_other(self, kind, col):
+        f = getattr(self, kind)[col]
+        if f is not None:
+            indices = self.generate_indices(f, False)
+            for i in indices:
+                f.at[i] = 1
+                expected = self.get_value("at", f, i, False)
+                tm.assert_almost_equal(expected, 1)
 
 
 class TestAtAndiAT:
