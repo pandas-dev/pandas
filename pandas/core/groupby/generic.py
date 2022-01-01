@@ -26,7 +26,10 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import reduction as libreduction
+from pandas._libs import (
+    lib,
+    reduction as libreduction,
+)
 from pandas._typing import (
     ArrayLike,
     Manager,
@@ -1730,7 +1733,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 observed=self.observed,
                 dropna=self.dropna,
             )
-            result = cast(Series, gb.size())
+            result = gb.size()
 
             if normalize:
                 # Normalize the results by dividing by the original group sizes.
@@ -1749,13 +1752,32 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             if sort:
                 # Sort the values and then resort by the main grouping
                 index_level = range(len(self.grouper.groupings))
-                result = result.sort_values(ascending=ascending).sort_index(
-                    level=index_level, sort_remaining=False
+                result = (
+                    cast(Series, result)
+                    .sort_values(ascending=ascending)
+                    .sort_index(level=index_level, sort_remaining=False)
                 )
 
             if not self.as_index:
                 # Convert to frame
-                result = result.reset_index(name="proportion" if normalize else "count")
+                name = "proportion" if normalize else "count"
+                columns = result.index.names
+                if name in columns:
+                    raise ValueError(
+                        f"Column label '{name}' is duplicate of result column"
+                    )
+                columns = com.fill_missing_names(columns)
+                values = result.values
+                result_frame = DataFrame()
+                for i, column in enumerate(columns):
+                    level_values = result.index.get_level_values(i)._values
+                    if level_values.dtype == np.object_:
+                        level_values = lib.maybe_convert_objects(
+                            cast(np.ndarray, level_values)
+                        )
+                    result_frame.insert(i, column, level_values, allow_duplicates=True)
+                result = result_frame.assign(**{name: values})
+
             return result.__finalize__(self.obj, method="value_counts")
 
 
