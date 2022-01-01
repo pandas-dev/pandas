@@ -304,8 +304,11 @@ def test_reindex_fill_value():
 
 @pytest.mark.parametrize("dtype", ["datetime64[ns]", "timedelta64[ns]"])
 @pytest.mark.parametrize("fill_value", ["string", 0, Timedelta(0)])
-def test_reindex_fill_value_datetimelike_upcast(dtype, fill_value):
+def test_reindex_fill_value_datetimelike_upcast(dtype, fill_value, using_array_manager):
     # https://github.com/pandas-dev/pandas/issues/42921
+    if using_array_manager:
+        pytest.skip("Array manager does not promote dtype, hence we fail")
+
     if dtype == "timedelta64[ns]" and fill_value == Timedelta(0):
         # use the scalar that is not compatible with the dtype for this test
         fill_value = Timestamp(0)
