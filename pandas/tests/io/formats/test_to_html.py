@@ -901,6 +901,8 @@ def test_to_html_float_format_object_col(datapath):
 @pytest.mark.parametrize("index_names", [True])
 @pytest.mark.parametrize("index", [True])
 def test_to_html_styler_header(header, index_names, index):
+    pytest.importorskip("jinja2")
+
     df = DataFrame([[1]], index=["I"], columns=["C"])
     df.columns.name, df.index.name = "Cname", "Iname"
     result = df.to_html(
@@ -920,6 +922,8 @@ def test_to_html_styler_header(header, index_names, index):
 
 
 def test_to_html_styler_columns_header():
+    pytest.importorskip("jinja2")
+
     df_base = DataFrame([[1]], index=["I"], columns=["C"])
     df = DataFrame([[1, 1]], index=["I"], columns=["C", "D"])
 
