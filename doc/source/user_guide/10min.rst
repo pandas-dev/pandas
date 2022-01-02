@@ -113,7 +113,7 @@ columns with different data types, which comes down to a fundamental difference
 between pandas and NumPy: **NumPy arrays have one dtype for the entire array,
 while pandas DataFrames have one dtype per column**. When you call
 :meth:`DataFrame.to_numpy`, pandas will find the NumPy dtype that can hold *all*
-of the dtypes in the DataFrame. This may end up being ``object``, which requires
+of the dtypes in the DataFrame. This may end up being an ``object``, which requires
 casting every value to a Python object.
 
 For ``df``, our :class:`DataFrame` of all floating-point values,
