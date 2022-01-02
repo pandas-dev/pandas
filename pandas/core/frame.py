@@ -2891,7 +2891,7 @@ class DataFrame(NDFrame, OpsMixin):
         Parameters
         ----------
         buf : str, Path or StringIO-like, optional, default None
-            Buffer to write to. If None, the output is returned as a string
+            Buffer to write to. If None, the output is returned as a string.
         columns : sequence, optional, default None
             The subset of columns to write. Writes all by default.
         col_space : str or int, list or dict of int or str, optional
@@ -2960,7 +2960,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             .. deprecated:: 1.4.0
         show_dimensions : bool, default False
-            Display the DataFrame dimensions (number or rows by columns)
+            Display the DataFrame dimensions (number or rows by columns).
 
             .. deprecated:: 1.4.0
                See notes for the recommendation to add a ``caption``.
@@ -3002,7 +3002,7 @@ class DataFrame(NDFrame, OpsMixin):
         table_attributes : str, optional
             Attributes to assign within the `<table>` HTML element in the format:
 
-            ``<table .. <table_attributes> >``
+            ``<table .. <table_attributes> >``.
 
             .. versionadded:: 1.4.0
         sparse_index : bool, optional
