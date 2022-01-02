@@ -4,8 +4,8 @@ import pytest
 from pandas.core.dtypes.common import is_datetime64tz_dtype
 
 import pandas as pd
-from pandas import NumericIndex
 import pandas._testing as tm
+from pandas.core.api import NumericIndex
 from pandas.tests.base.common import allow_na_ops
 
 

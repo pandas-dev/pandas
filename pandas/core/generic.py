@@ -2767,7 +2767,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         chunksize=None,
         dtype: DtypeArg | None = None,
         method=None,
-    ) -> None:
+    ) -> int | None:
         """
         Write records stored in a DataFrame to a SQL database.
 
@@ -2820,6 +2820,20 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Details and a sample callable implementation can be found in the
             section :ref:`insert method <io.sql.method>`.
 
+        Returns
+        -------
+        None or int
+            Number of rows affected by to_sql. None is returned if the callable
+            passed into ``method`` does not return the number of rows.
+
+            The number of returned rows affected is the sum of the ``rowcount``
+            attribute of ``sqlite3.Cursor`` or SQLAlchemy connectable which may not
+            reflect the exact number of written rows as stipulated in the
+            `sqlite3 <https://docs.python.org/3/library/sqlite3.html#sqlite3.Cursor.rowcount>`__ or
+            `SQLAlchemy <https://docs.sqlalchemy.org/en/14/core/connections.html#sqlalchemy.engine.BaseCursorResult.rowcount>`__.
+
+            .. versionadded:: 1.4.0
+
         Raises
         ------
         ValueError
@@ -2859,6 +2873,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2  User 3
 
         >>> df.to_sql('users', con=engine)
+        3
         >>> engine.execute("SELECT * FROM users").fetchall()
         [(0, 'User 1'), (1, 'User 2'), (2, 'User 3')]
 
@@ -2867,12 +2882,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> with engine.begin() as connection:
         ...     df1 = pd.DataFrame({'name' : ['User 4', 'User 5']})
         ...     df1.to_sql('users', con=connection, if_exists='append')
+        2
 
         This is allowed to support operations that require that the same
         DBAPI connection is used for the entire operation.
 
         >>> df2 = pd.DataFrame({'name' : ['User 6', 'User 7']})
         >>> df2.to_sql('users', con=engine, if_exists='append')
+        2
         >>> engine.execute("SELECT * FROM users").fetchall()
         [(0, 'User 1'), (1, 'User 2'), (2, 'User 3'),
          (0, 'User 4'), (1, 'User 5'), (0, 'User 6'),
@@ -2882,6 +2899,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         >>> df2.to_sql('users', con=engine, if_exists='replace',
         ...            index_label='id')
+        2
         >>> engine.execute("SELECT * FROM users").fetchall()
         [(0, 'User 6'), (1, 'User 7')]
 
@@ -2900,13 +2918,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> from sqlalchemy.types import Integer
         >>> df.to_sql('integers', con=engine, index=False,
         ...           dtype={"A": Integer()})
+        3
 
         >>> engine.execute("SELECT * FROM integers").fetchall()
         [(1,), (None,), (2,)]
-        """
+        """  # noqa:E501
         from pandas.io import sql
 
-        sql.to_sql(
+        return sql.to_sql(
             self,
             name,
             con,
@@ -6515,11 +6534,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def replace(
         self,
         to_replace=None,
-        value=None,
+        value=lib.no_default,
         inplace: bool_t = False,
         limit: int | None = None,
         regex=False,
-        method="pad",
+        method=lib.no_default,
     ):
         if not (
             is_scalar(to_replace)
@@ -6538,7 +6557,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         self._consolidate_inplace()
 
-        if value is None:
+        if value is lib.no_default or method is not lib.no_default:
+            # GH#36984 if the user explicitly passes value=None we want to
+            #  respect that. We have the corner case where the user explicitly
+            #  passes value=None *and* a method, which we interpret as meaning
+            #  they want the (documented) default behavior.
+            if method is lib.no_default:
+                # TODO: get this to show up as the default in the docs?
+                method = "pad"
+
             # passing a single value that is scalar like
             # when value is None (GH5319), for compat
             if not is_dict_like(to_replace) and not is_dict_like(regex):

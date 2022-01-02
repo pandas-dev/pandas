@@ -413,7 +413,7 @@ class StringArray(BaseStringArray, PandasArray):
 
         super().__setitem__(key, value)
 
-    def astype(self, dtype, copy=True):
+    def astype(self, dtype, copy: bool = True):
         dtype = pandas_dtype(dtype)
 
         if is_dtype_equal(dtype, self.dtype):
@@ -470,7 +470,9 @@ class StringArray(BaseStringArray, PandasArray):
     def value_counts(self, dropna: bool = True):
         from pandas import value_counts
 
-        return value_counts(self._ndarray, dropna=dropna).astype("Int64")
+        result = value_counts(self._ndarray, dropna=dropna).astype("Int64")
+        result.index = result.index.astype(self.dtype)
+        return result
 
     def memory_usage(self, deep: bool = False) -> int:
         result = self._ndarray.nbytes

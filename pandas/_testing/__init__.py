@@ -44,7 +44,6 @@ from pandas import (
     Index,
     IntervalIndex,
     MultiIndex,
-    NumericIndex,
     RangeIndex,
     Series,
     bdate_range,
@@ -82,6 +81,7 @@ from pandas._testing.asserters import (  # noqa:F401
     assert_interval_array_equal,
     assert_is_sorted,
     assert_is_valid_plot_return_object,
+    assert_metadata_equivalent,
     assert_numpy_array_equal,
     assert_period_array_equal,
     assert_series_equal,
@@ -106,6 +106,7 @@ from pandas._testing.contexts import (  # noqa:F401
 from pandas.core.api import (
     Float64Index,
     Int64Index,
+    NumericIndex,
     UInt64Index,
 )
 from pandas.core.arrays import (

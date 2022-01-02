@@ -419,9 +419,6 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # For MaskedArray inputs, we apply the ufunc to ._data
         # and mask the result.
-        if method == "reduce" and ufunc not in [np.maximum, np.minimum]:
-            # Not clear how to handle missing values in reductions. Raise.
-            raise NotImplementedError("The 'reduce' method is not supported.")
 
         out = kwargs.get("out", ())
 
@@ -435,6 +432,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         )
         if result is not NotImplemented:
             return result
+
+        if "out" in kwargs:
+            # e.g. test_ufunc_with_out
+            return arraylike.dispatch_ufunc_with_out(
+                self, ufunc, method, *inputs, **kwargs
+            )
 
         if method == "reduce":
             result = arraylike.dispatch_reduction_ufunc(
@@ -482,6 +485,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if ufunc.nout > 1:
             # e.g. np.divmod
             return tuple(reconstruct(x) for x in result)
+        elif method == "reduce":
+            # e.g. np.add.reduce; test_ufunc_reduce_raises
+            if self._mask.any():
+                return self._na_value
+            return result
         else:
             return reconstruct(result)
 
@@ -712,10 +720,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         data = self._data[~self._mask]
         value_counts = Index(data).value_counts()
 
-        # TODO(ExtensionIndex)
-        # if we have allow Index to hold an ExtensionArray
-        # this is easier
-        index = value_counts.index._values.astype(object)
+        index = value_counts.index
 
         # if we want nans, count the mask
         if dropna:
@@ -725,10 +730,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             counts[:-1] = value_counts
             counts[-1] = self._mask.sum()
 
-            index = Index(
-                np.concatenate([index, np.array([self.dtype.na_value], dtype=object)]),
-                dtype=object,
-            )
+            index = index.insert(len(index), self.dtype.na_value)
+
+        index = index.astype(self.dtype)
 
         mask = np.zeros(len(counts), dtype="bool")
         counts = IntegerArray(counts, mask)

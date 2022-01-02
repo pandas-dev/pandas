@@ -684,9 +684,7 @@ def test_names_option_wrong_type(datapath, parser):
     filename = datapath("io", "data", "xml", "books.xml")
 
     with pytest.raises(TypeError, match=("is not a valid type for names")):
-        read_xml(
-            filename, names="Col1, Col2, Col3", parser=parser  # type: ignore[arg-type]
-        )
+        read_xml(filename, names="Col1, Col2, Col3", parser=parser)
 
 
 # ENCODING
@@ -1056,10 +1054,7 @@ def test_wrong_compression(parser, compression, compression_only):
 def test_unsuported_compression(datapath, parser):
     with pytest.raises(ValueError, match="Unrecognized compression type"):
         with tm.ensure_clean() as path:
-            # error: Argument "compression" to "read_xml" has incompatible type
-            # "Literal['7z']"; expected "Union[Literal['infer'], Literal['gzip'],
-            # Literal['bz2'], Literal['zip'], Literal['xz'], Dict[str, Any], None]"
-            read_xml(path, parser=parser, compression="7z")  # type: ignore[arg-type]
+            read_xml(path, parser=parser, compression="7z")
 
 
 # STORAGE OPTIONS
