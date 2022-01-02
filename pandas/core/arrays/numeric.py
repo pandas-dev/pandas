@@ -21,6 +21,7 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_integer_dtype,
     is_list_like,
+    pandas_dtype,
 )
 
 from pandas.core.arrays.masked import (
@@ -49,6 +50,16 @@ class NumericDtype(BaseMaskedDtype):
 
         pyarrow_type = pyarrow.from_numpy_dtype(self.type)
         if not array.type.equals(pyarrow_type):
+            # test_from_arrow_type_error raise for string, but allow
+            #  through itemsize conversion GH#31896
+            rt_dtype = pandas_dtype(array.type.to_pandas_dtype())
+            if rt_dtype.kind not in ["i", "u", "f"]:
+                # Could allow "c" or potentially disallow float<->int conversion,
+                #  but at the moment we specifically test that uint<->int works
+                raise TypeError(
+                    f"Expected array of {self} type, got {array.type} instead"
+                )
+
             array = array.cast(pyarrow_type)
 
         if isinstance(array, pyarrow.Array):

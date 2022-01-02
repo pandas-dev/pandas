@@ -180,7 +180,7 @@ cpdef int64_t delta_to_nanoseconds(delta) except? -1:
     if PyDelta_Check(delta):
         try:
             return (
-                delta.days * 24 * 60 * 60 * 1_000_000
+                delta.days * 24 * 3600 * 1_000_000
                 + delta.seconds * 1_000_000
                 + delta.microseconds
             ) * 1000
@@ -1257,6 +1257,9 @@ class Timedelta(_Timedelta):
     truncated to nanoseconds.
     """
 
+    _req_any_kwargs_new = {"weeks", "days", "hours", "minutes", "seconds",
+                           "milliseconds", "microseconds", "nanoseconds"}
+
     def __new__(cls, object value=_no_input, unit=None, **kwargs):
         cdef _Timedelta td_base
 
@@ -1267,18 +1270,34 @@ class Timedelta(_Timedelta):
                                  "(days,seconds....)")
 
             kwargs = {key: _to_py_int_float(kwargs[key]) for key in kwargs}
-
-            nano = convert_to_timedelta64(kwargs.pop('nanoseconds', 0), 'ns')
-            try:
-                value = nano + convert_to_timedelta64(timedelta(**kwargs),
-                                                      'ns')
-            except TypeError as e:
+            if not cls._req_any_kwargs_new.intersection(kwargs):
                 raise ValueError(
                     "cannot construct a Timedelta from the passed arguments, "
                     "allowed keywords are "
                     "[weeks, days, hours, minutes, seconds, "
                     "milliseconds, microseconds, nanoseconds]"
                 )
+
+            # GH43764, convert any input to nanoseconds first and then
+            # create the timestamp. This ensures that any potential
+            # nanosecond contributions from kwargs parsed as floats
+            # are taken into consideration.
+            seconds = int((
+                (
+                    (kwargs.get('days', 0) + kwargs.get('weeks', 0) * 7) * 24
+                    + kwargs.get('hours', 0)
+                ) * 3600
+                + kwargs.get('minutes', 0) * 60
+                + kwargs.get('seconds', 0)
+                ) * 1_000_000_000
+            )
+
+            value = np.timedelta64(
+                int(kwargs.get('nanoseconds', 0))
+                + int(kwargs.get('microseconds', 0) * 1_000)
+                + int(kwargs.get('milliseconds', 0) * 1_000_000)
+                + seconds
+            )
 
         if unit in {'Y', 'y', 'M'}:
             raise ValueError(
@@ -1401,7 +1420,6 @@ class Timedelta(_Timedelta):
     # Arithmetic Methods
     # TODO: Can some of these be defined in the cython class?
 
-    __inv__ = _op_unary_method(lambda x: -x, '__inv__')
     __neg__ = _op_unary_method(lambda x: -x, '__neg__')
     __pos__ = _op_unary_method(lambda x: x, '__pos__')
     __abs__ = _op_unary_method(lambda x: abs(x), '__abs__')

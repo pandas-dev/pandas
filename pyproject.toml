@@ -159,6 +159,7 @@ reportImportCycles = false
 reportIncompatibleMethodOverride = false
 reportIncompatibleVariableOverride = false
 reportMissingModuleSource = false
+reportMissingParameterType = false
 reportMissingTypeArgument = false
 reportMissingTypeStubs = false
 reportOptionalCall = false
