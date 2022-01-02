@@ -5776,6 +5776,20 @@ class DataFrame(NDFrame, OpsMixin):
         lion           mammal   80.5     run
         monkey         mammal    NaN    jump
         """
+        return self._reset_index(level, drop, inplace, col_level, col_fill)
+
+    def _reset_index(
+        self,
+        level: Hashable | Sequence[Hashable] | None = None,
+        drop: bool = False,
+        inplace: bool = False,
+        col_level: Hashable = 0,
+        col_fill: Hashable = "",
+        allow_duplicates: bool = False,
+    ) -> DataFrame | None:
+        """
+        Private version of reset_index with additional allow_duplicates parameter
+        """
         inplace = validate_bool_kwarg(inplace, "inplace")
         self._check_inplace_and_allows_duplicate_labels(inplace)
         if inplace:
@@ -5833,7 +5847,7 @@ class DataFrame(NDFrame, OpsMixin):
                         level_values, lab, allow_fill=True, fill_value=lev._na_value
                     )
 
-                new_obj.insert(0, name, level_values)
+                new_obj.insert(0, name, level_values, allow_duplicates=allow_duplicates)
 
         new_obj.index = new_index
         if not inplace:

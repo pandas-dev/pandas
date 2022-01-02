@@ -1462,6 +1462,19 @@ class Series(base.IndexOpsMixin, NDFrame):
         2  baz  one    2
         3  baz  two    3
         """
+        return self._reset_index(level, drop, name, inplace)
+
+    def _reset_index(
+        self,
+        level: Hashable | Sequence[Hashable] | None = None,
+        drop: bool = False,
+        name: Hashable | lib.NoDefault = lib.no_default,
+        inplace: bool = False,
+        allow_duplicates: bool = False,
+    ) -> Series | DataFrame | None:
+        """
+        Private version of reset_index with additional allow_duplicates parameter
+        """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if drop:
             new_index = default_index(len(self))
@@ -1492,7 +1505,11 @@ class Series(base.IndexOpsMixin, NDFrame):
                     name = self.name
 
             df = self.to_frame(name)
-            return df.reset_index(level=level, drop=drop)
+            return df._reset_index(
+                level=level, drop=drop, allow_duplicates=allow_duplicates
+            )
+
+        return None
 
     # ----------------------------------------------------------------------
     # Rendering Methods
