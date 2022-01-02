@@ -13,7 +13,10 @@ from io import (
 
 import pytest
 
-from pandas.errors import ParserError
+from pandas.errors import (
+    ParserError,
+    ParserWarning,
+)
 
 from pandas import (
     DataFrame,
@@ -388,3 +391,14 @@ def test_on_bad_lines_callable_dont_swallow_errors(python_parser_only):
 
     with pytest.raises(ValueError, match=msg):
         parser.read_csv(bad_sio, on_bad_lines=bad_line_func)
+
+
+def test_on_bad_lines_callable_not_expected_length(python_parser_only):
+    # GH 5686
+    parser = python_parser_only
+    bad_sio = StringIO("a,b\n1,2\n2,3,4,5,6\n3,4")
+
+    with tm.assert_produces_warning(ParserWarning, match="Length of header or names"):
+        result = parser.read_csv(bad_sio, on_bad_lines=lambda x: x)
+    expected = DataFrame({"a": [1, 2, 3], "b": [2, 3, 4]})
+    tm.assert_frame_equal(result, expected)
