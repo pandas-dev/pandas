@@ -2186,7 +2186,7 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
         return True
 
     try:
-        np_can_hold_element(arr.dtype, element)
+        np_can_hold_element(dtype, element)
         return True
     except (TypeError, ValueError):
         return False
