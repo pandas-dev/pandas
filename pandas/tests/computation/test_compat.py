@@ -9,7 +9,7 @@ from pandas.util.version import Version
 
 
 def test_compat():
-    # test we have compat with our version of nu
+    # test we have compat with our version of numexpr
 
     from pandas.core.computation.check import NUMEXPR_INSTALLED
 
@@ -25,11 +25,8 @@ def test_compat():
 @pytest.mark.parametrize("engine", ENGINES)
 @pytest.mark.parametrize("parser", expr.PARSERS)
 def test_invalid_numexpr_version(engine, parser):
-    def testit():
-        a, b = 1, 2  # noqa:F841
-        res = pd.eval("a + b", engine=engine, parser=parser)
-        assert res == 3
-
     if engine == "numexpr":
         pytest.importorskip("numexpr")
-    testit()
+    a, b = 1, 2  # noqa:F841
+    res = pd.eval("a + b", engine=engine, parser=parser)
+    assert res == 3
