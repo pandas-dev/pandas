@@ -2847,7 +2847,7 @@ class DataFrame(NDFrame, OpsMixin):
         buf: FilePath | WriteBuffer[str] | None = None,
         columns: Sequence[str] | None = None,
         col_space: ColspaceArgType | None = None,
-        header: bool | Sequence[str] = True,
+        header: bool = True,
         index: bool = True,
         na_rep: str = "NaN",
         formatters: FormattersType | None = None,
@@ -3351,7 +3351,7 @@ class DataFrame(NDFrame, OpsMixin):
         index: bool = True,
         header: bool = True,
         index_names: str = "all",
-        columns: list | None = None,
+        columns: Sequence[str] | None = None,
         caption: str | None = None,
         max_rows: int | None = None,
         max_columns: int | None = None,
@@ -3360,7 +3360,7 @@ class DataFrame(NDFrame, OpsMixin):
         formatter=None,
         precision: int | None = None,
         na_rep: str | None = None,
-        decimal: str | None = None,
+        decimal: str = ".",
         thousands: str | None = None,
         escape: bool | None = None,
         hyperlinks: bool = False,
@@ -3466,12 +3466,10 @@ class DataFrame(NDFrame, OpsMixin):
         is_html_escape = (
             escape is None and get_option("styler.format.escape") == "html"
         ) or escape is True
-        escape = "html" if is_html_escape else None
+        escape_: str | None = "html" if is_html_escape else None
 
-        # error: Argument 1 to "Styler" has incompatible type "NDFrame"; expected
-        # "Union[DataFrame, Series]"
         styler = Styler(
-            self,  # type: ignore[arg-type]
+            self,
             cell_ids=False,
         )
         styler.format(
@@ -3480,7 +3478,7 @@ class DataFrame(NDFrame, OpsMixin):
             precision=precision,
             decimal=decimal,
             thousands=thousands,
-            escape=escape,
+            escape=escape_,
             hyperlinks="html" if hyperlinks else None,
         )
 
@@ -3488,9 +3486,9 @@ class DataFrame(NDFrame, OpsMixin):
             styler.hide(axis=1)
         if not index:
             styler.hide(axis=0)
-        if index_names is False or index_names in ["none", "columns"]:
+        if index_names in ["none", "columns"]:
             styler.hide(axis=0, names=True)
-        if index_names is False or index_names in ["none", "index"]:
+        if index_names in ["none", "index"]:
             styler.hide(axis=1, names=True)
         if columns:
             hidden = [col for col in styler.columns if col not in columns]
