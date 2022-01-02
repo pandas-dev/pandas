@@ -65,25 +65,21 @@ def test_agg_ser_multi_key(df):
 def test_agg_different_partials():
     # for issue 28570
 
-    def add_top_column(df, top_col):
-        df.columns = pd.MultiIndex.from_product([[top_col], df.columns])
-        return df
-
     quant50 = partial(np.percentile, q=50)
     quant50.__name__ = "quant50"
     quant70 = partial(np.percentile, q=70)
     quant70.__name__ = "quant70"
 
-    test = pd.DataFrame({"col1": ["a", "a", "b", "b", "b"], "col2": [1, 2, 3, 4, 5]})
-    test = test.groupby("col1").agg({"col2": [quant50, quant70]})
+    df = pd.DataFrame({"col1": ["a", "a", "b", "b", "b"], "col2": [1, 2, 3, 4, 5]})
+    result = df.groupby("col1").agg({"col2": [quant50, quant70]})
 
-    expected_df = pd.DataFrame(
+    expected = pd.DataFrame(
         {"col1": ["a", "b"], "quant50": [1.5, 4.0], "quant70": [1.7, 4.4]}
     )
-    expected_df = expected_df.set_index("col1")
-    expected_df = add_top_column(expected_df, "col2")
+    expected = expected.set_index("col1")
+    expected.columns = pd.MultiIndex.from_product([["col2"], expected.columns])
 
-    tm.assert_frame_equal(test, expected_df)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_groupby_aggregation_mixed_dtype():
