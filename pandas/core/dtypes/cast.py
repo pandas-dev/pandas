@@ -2185,80 +2185,129 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
         # ExtensionBlock._can_hold_element
         return True
 
-    if dtype == _dtype_obj:
+    try:
+        np_can_hold_element(arr.dtype, element)
         return True
+    except (TypeError, ValueError):
+        return False
+
+
+def np_can_hold_element(dtype: np.dtype, element: Any):
+    """
+    Raise if we cannot losslessly set this element into an ndarray with this dtype.
+
+    Specifically about places where we disagree with numpy.  i.e. there are
+    cases where numpy will raise in doing the setitem that we do not check
+    for here, e.g. setting str "X" into a numeric ndarray.
+
+    Returns the element, potentially cast to the dtype.
+
+    Raises
+    ------
+    ValueError : If we cannot losslessly store this element with this dtype.
+    """
+    if dtype == _dtype_obj:
+        return element
 
     tipo = maybe_infer_dtype_type(element)
 
     if dtype.kind in ["i", "u"]:
         if isinstance(element, range):
-            return _dtype_can_hold_range(element, dtype)
+            if _dtype_can_hold_range(element, dtype):
+                return element
+            raise ValueError
 
         if tipo is not None:
             if tipo.kind not in ["i", "u"]:
                 if is_float(element) and element.is_integer():
-                    return True
+                    return element
 
                 if isinstance(element, np.ndarray) and element.dtype.kind == "f":
                     # If all can be losslessly cast to integers, then we can hold them
                     #  We do something similar in putmask_smart
                     casted = element.astype(dtype)
                     comp = casted == element
-                    return comp.all()
+                    if comp.all():
+                        return element
+                    raise ValueError
 
                 # Anything other than integer we cannot hold
-                return False
+                raise ValueError
             elif dtype.itemsize < tipo.itemsize:
                 if is_integer(element):
                     # e.g. test_setitem_series_int8 if we have a python int 1
                     #  tipo may be np.int32, despite the fact that it will fit
                     #  in smaller int dtypes.
                     info = np.iinfo(dtype)
-                    return info.min <= element <= info.max
-                return False
+                    if info.min <= element <= info.max:
+                        return element
+                    raise ValueError
+                raise ValueError
             elif not isinstance(tipo, np.dtype):
                 # i.e. nullable IntegerDtype; we can put this into an ndarray
                 #  losslessly iff it has no NAs
-                return not element._mask.any()
+                hasnas = element._mask.any()
+                # TODO: don't rely on implementation detail
+                if hasnas:
+                    raise ValueError
+                return element
 
-            return True
+            return element
 
         # We have not inferred an integer from the dtype
         # check if we have a builtin int or a float equal to an int
-        return is_integer(element) or (is_float(element) and element.is_integer())
+        if is_integer(element) or (is_float(element) and element.is_integer()):
+            return element
+        raise ValueError
 
     elif dtype.kind == "f":
         if tipo is not None:
             # TODO: itemsize check?
             if tipo.kind not in ["f", "i", "u"]:
                 # Anything other than float/integer we cannot hold
-                return False
+                raise ValueError
             elif not isinstance(tipo, np.dtype):
                 # i.e. nullable IntegerDtype or FloatingDtype;
                 #  we can put this into an ndarray losslessly iff it has no NAs
-                return not element._mask.any()
-            return True
+                hasnas = element._mask.any()
+                # TODO: don't rely on implementation detail
+                if hasnas:
+                    raise ValueError
+                return element
+            return element
 
-        return lib.is_integer(element) or lib.is_float(element)
+        if lib.is_integer(element) or lib.is_float(element):
+            return element
+        raise ValueError
 
     elif dtype.kind == "c":
         if tipo is not None:
-            return tipo.kind in ["c", "f", "i", "u"]
-        return (
-            lib.is_integer(element) or lib.is_complex(element) or lib.is_float(element)
-        )
+            if tipo.kind in ["c", "f", "i", "u"]:
+                return element
+            raise ValueError
+        if lib.is_integer(element) or lib.is_complex(element) or lib.is_float(element):
+            return element
+        raise ValueError
 
     elif dtype.kind == "b":
         if tipo is not None:
-            return tipo.kind == "b"
-        return lib.is_bool(element)
+            if tipo.kind == "b":  # FIXME: wrong with BooleanArray?
+                return element
+            raise ValueError
+        if lib.is_bool(element):
+            return element
+        raise ValueError
 
     elif dtype.kind == "S":
         # TODO: test tests.frame.methods.test_replace tests get here,
         #  need more targeted tests.  xref phofl has a PR about this
         if tipo is not None:
-            return tipo.kind == "S" and tipo.itemsize <= dtype.itemsize
-        return isinstance(element, bytes) and len(element) <= dtype.itemsize
+            if tipo.kind == "S" and tipo.itemsize <= dtype.itemsize:
+                return element
+            raise ValueError
+        if isinstance(element, bytes) and len(element) <= dtype.itemsize:
+            return element
+        raise ValueError
 
     raise NotImplementedError(dtype)
 
