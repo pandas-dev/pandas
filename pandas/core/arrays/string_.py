@@ -310,11 +310,11 @@ class StringArray(BaseStringArray, PandasArray):
         values = extract_array(values)
 
         super().__init__(values, copy=copy)
+        if not isinstance(values, type(self)):
+            self._validate()
         # error: Incompatible types in assignment (expression has type "StringDtype",
         # variable has type "PandasDtype")
         NDArrayBacked.__init__(self, self._ndarray, StringDtype(storage="python"))
-        if not isinstance(values, type(self)):
-            self._validate()
 
     def _validate(self):
         """Validate that we only store NA or strings."""
@@ -325,6 +325,8 @@ class StringArray(BaseStringArray, PandasArray):
                 "StringArray requires a sequence of strings or pandas.NA. Got "
                 f"'{self._ndarray.dtype}' dtype instead."
             )
+        # Check to see if need to convert Na values to pd.NA
+        lib.convert_nans_to_NA(self._ndarray)
 
     @classmethod
     def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy=False):
