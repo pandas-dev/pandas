@@ -16,6 +16,8 @@ import pandas._testing as tm
 
 import pandas.io.formats.format as fmt
 
+pytestmark = pytest.mark.filterwarnings("ignore:You are using an arg:FutureWarning")
+
 lorem_ipsum = (
     "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod "
     "tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim "
@@ -888,6 +890,52 @@ def test_to_html_float_format_object_col(datapath):
     result = df.to_html(float_format=lambda x: f"{x:,.0f}")
     expected = expected_html(datapath, "gh40024_expected_output")
     assert result == expected
+
+
+@pytest.mark.parametrize(
+    "kwarg",
+    [
+        {"col_space": 10},
+        {"formatters": ["{:.1f}".format]},
+        {"float_format": lambda x: x},
+        {"sparsify": True},
+        {"justify": "left"},
+        {"show_dimensions": False},
+        {"bold_rows": True},
+        {"classes": "my-cls"},
+        {"notebook": False},
+        {"border": 1},
+        {"render_links": False},
+    ],
+)
+def test_future_warning(kwarg):
+    # deprecation tests for 1.4.0
+    df = DataFrame([[1]])
+    msg = "You are using an argument which is deprecated"
+
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.to_html(**kwarg)
+
+
+@pytest.mark.parametrize(
+    "kwarg",
+    [
+        {"columns": [0]},
+        {"header": False},
+        {"index": False},
+        {"na_rep": "NAN"},
+        {"index_names": False},
+        {"max_rows": 10},
+        {"decimal": ","},
+        {"escape": False},
+        {"table_id": "my_id"},
+    ],
+)
+def test_no_future_warning(kwarg):
+    # deprecation tests for 1.4.0
+    df = DataFrame([[1]])
+    with tm.assert_produces_warning(None):
+        df.to_html(**kwarg)
 
 
 #####

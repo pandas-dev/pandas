@@ -2954,11 +2954,6 @@ class DataFrame(NDFrame, OpsMixin):
                See notes on using CSS to control aspects of text positioning.
         max_rows : int, optional
             Maximum number of rows to display in the console.
-        min_rows : int, optional
-            The number of rows in the console in a truncated repr
-            (when number of rows is above ``max_rows``).
-
-            .. deprecated:: 1.4.0
         show_dimensions : bool, default False
             Display the DataFrame dimensions (number or rows by columns).
 
