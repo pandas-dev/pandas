@@ -2725,7 +2725,7 @@ def test_loc_getitem_nullable_index_with_duplicates():
     assert df2.index.dtype == "Int64"
 
     res = df2.loc[1]
-    expected = Series([1, 5], index=df2.columns, dtype="Int64")
+    expected = Series([1, 5], index=df2.columns, dtype="Int64", name=1)
     tm.assert_series_equal(res, expected)
 
     # pd.NA and duplicates in an object-dtype Index
