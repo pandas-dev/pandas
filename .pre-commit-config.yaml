@@ -175,3 +175,9 @@ repos:
         entry: python scripts/pandas_errors_documented.py
         language: python
         files: ^pandas/errors/__init__.py$
+    -   id: pg8000-not-installed-CI
+        name: Check for pg8000 not installed on CI for test_pg8000_sqlalchemy_passthrough_error
+        language: pygrep
+        entry: 'pg8000'
+        files: ^ci/deps
+        types: [yaml]
