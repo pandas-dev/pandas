@@ -2578,12 +2578,12 @@ class Styler(StylerRenderer):
 
         Notes
         -----
-        This is a wrapper of :meth:`Styler.hide`, where the inputs are internally
-        restructured to a call to `Styler.hide`. It is recommended to use `Styler.show`
-        exclusively, and with only one call per axis, as a form of convenient
-        data exploration. For more specific control of removing items from the
-        display it is recommended to use `Styler.hide`, with as many successive calls
-        as is required.
+        This is a simplified wrapper of :meth:`Styler.hide`, where the inputs are
+        internally restructured to a call to `Styler.hide`. It is recommended to
+        use `Styler.show` exclusively, and with only one call per axis, as a form of
+        convenient data exploration. For more specific control of removing items from
+        the display it is recommended to use `Styler.hide`, with as many successive
+        calls as is required.
 
         The technical explanation for this recommendation is that at instantiation
         `Styler` is configured to display all datapoints and all aspects of the
@@ -2612,7 +2612,7 @@ class Styler(StylerRenderer):
 
         `Styler.hide` will always only add items to the set that is considered hidden.
         It never removes items, that have been previously added, from that set to make
-        them visible again.
+        them visible again. This is done to provide consistent method chaining.
         """
         axis = self.data._get_axis_number(axis)
         obj = "index" if axis == 0 else "columns"
