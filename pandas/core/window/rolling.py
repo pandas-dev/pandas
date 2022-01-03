@@ -1421,7 +1421,7 @@ class RollingAndExpandingMixin(BaseWindow):
                 from pandas.core._numba.kernels import sliding_min_max
 
                 return self._numba_apply(
-                    sliding_min_max, "rolling_max", engine_kwargs, False
+                    sliding_min_max, "rolling_min", engine_kwargs, False
                 )
         window_func = window_aggregations.roll_min
         return self._apply(window_func, name="min", **kwargs)
