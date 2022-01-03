@@ -297,7 +297,8 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
         # so this ends up just being x1.index | x2.index, but we write
         # it to handle *args.
 
-        if any([isinstance(t, DataFrame) for t in types]) and any([isinstance(t, Series) for t in types]):
+        if (any([isinstance(t, DataFrame) for t in types]) and
+                any([isinstance(t, Series) for t in types])):
             # We currently don't handle ufunc(DataFrame, Series)
             # well. Previously this raised an internal ValueError. We might
             # support it someday, so raise a NotImplementedError.
