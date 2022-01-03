@@ -23,7 +23,7 @@ dependencies:
   - matplotlib
   - numba
   - numexpr
-  - numpy<1.22.0
+  - numpy
   - openpyxl
   - pyarrow
   - pytables
