@@ -152,14 +152,14 @@ class TestEngine:
 
         engine_kwargs = {"nopython": nopython, "nogil": nogil, "parallel": parallel}
         df = DataFrame({"value": [0, 0, 0]})
-        result = getattr(df, window)(**window_kwargs).apply(
-            add, raw=True, engine="numba", args=(1,), **engine_kwargs
+        result = getattr(df, window)(method=method, **window_kwargs).apply(
+            add, raw=True, engine="numba", engine_kwargs=engine_kwargs, args=(1,)
         )
         expected = DataFrame({"value": [1.0, 1.0, 1.0]})
         tm.assert_frame_equal(result, expected)
 
         result = getattr(df, window)(method=method, **window_kwargs).apply(
-            add, raw=True, engine="numba", args=(2,), **engine_kwargs
+            add, raw=True, engine="numba", engine_kwargs=engine_kwargs, args=(2,)
         )
         expected = DataFrame({"value": [2.0, 2.0, 2.0]})
         tm.assert_frame_equal(result, expected)
