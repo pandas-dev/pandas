@@ -2611,9 +2611,24 @@ class Styler(StylerRenderer):
         is effectively the same as the above and will also result in all rows hidden.
 
         `Styler.hide` will always only add items to the set that is considered hidden.
-        It never removes items, that have been previously added, from that set.
+        It never removes items, that have been previously added, from that set to make
+        them visible again.
         """
-        pass
+        axis = self.data._get_axis_number(axis)
+        obj = "index" if axis == 0 else "columns"
+
+        unhidden = []
+        if head is not None:
+            unhidden.extend(getattr(self, obj)[:head])
+        if tail is not None:
+            unhidden.extend(getattr(self, obj)[-tail:])
+        if subset is not None:
+            subset_ = IndexSlice[subset, :] if axis == 0 else IndexSlice[:, subset]
+            unhidden.extend(getattr(self.data.loc[non_reducing_slice(subset_)], obj))
+
+        return self.hide(
+            subset=[v for v in getattr(self, obj) if v not in unhidden], axis=axis
+        )
 
     # -----------------------------------------------------------------------
     # A collection of "builtin" styles

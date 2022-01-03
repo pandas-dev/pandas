@@ -1547,3 +1547,25 @@ def test_col_trimming_hide_columns():
         assert ctx["head"][0][c + 2]["is_visible"] == vals[1]
 
     assert len(ctx["body"][0]) == 6  # index + 2 hidden + 2 visible + trimming col
+
+
+@pytest.mark.parametrize(
+    "kwargs, exp",
+    [
+        ({"head": 2}, [3, 4]),
+        ({"tail": 2}, [1, 2]),
+        ({"subset": [2, 3]}, [1, 4]),
+        ({"head": 1, "tail": 1}, [2, 3]),
+        ({"head": 2, "subset": [2, 3]}, [4]),
+        ({"tail": 2, "subset": [2, 3]}, [1]),
+        ({"tail": 1, "subset": [2, 3], "head": 1}, []),
+    ],
+)
+@pytest.mark.parametrize("axis", ["index", "columns"])
+def test_show(kwargs, exp, axis):
+    df = DataFrame(np.random.randn(4, 4), index=[1, 2, 3, 4], columns=[1, 2, 3, 4])
+    styler = Styler(df, uuid_len=0)
+    result = styler.show(axis=axis, **kwargs)._translate(True, True)
+    styler2 = Styler(df, uuid_len=0)
+    expected = styler2.hide(subset=exp, axis=axis)._translate(True, True)
+    assert result == expected
