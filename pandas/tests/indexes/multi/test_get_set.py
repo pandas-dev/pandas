@@ -69,7 +69,7 @@ def test_get_dtypes_no_level_name():
 
 def test_get_dtypes_duplicate_level_names():
     # Test MultiIndex.dtypes with non-unique level names (# GH45174 )
-    result = pd.MultiIndex.from_arrays([[1], [2]], names=[1, 1]).dtypes
+    result = MultiIndex.from_arrays([[1], [2]], names=[1, 1]).dtypes
     expected = pd.Series([np.dtype("int64"), np.dtype("int64")], index=[1, 1])
     tm.assert_series_equal(result, expected)
 
