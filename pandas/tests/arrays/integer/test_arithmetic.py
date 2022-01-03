@@ -55,7 +55,7 @@ def test_div(dtype):
 
 @pytest.mark.parametrize("zero, negative", [(0, False), (0.0, False), (-0.0, True)])
 def test_divide_by_zero(zero, negative):
-    # https://github.com/pandas-dev/pandas/issues/27398
+    # https://github.com/pandas-dev/pandas/issues/27398, GH#22793
     a = pd.array([0, 1, -1, None], dtype="Int64")
     result = a / zero
     expected = FloatingArray(
