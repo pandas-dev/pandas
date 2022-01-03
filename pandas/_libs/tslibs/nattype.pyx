@@ -442,7 +442,32 @@ class NaTType(_NaT):
         Monday == 1 ... Sunday == 7.
         """,
     )
-    total_seconds = _make_nan_func("total_seconds", timedelta.total_seconds.__doc__)
+    total_seconds = _make_nan_func(
+        "total_seconds",
+        """
+        Total seconds in the duration with default us precision
+        (for compatibility with `datetime.timedelta`).
+
+        Parameters
+        ----------
+        ns_precision : bool, default False
+            Return the duration with ns precision.
+
+        Examples
+        --------
+        >>> td = pd.Timedelta(days=6, minutes=50, seconds=3,
+        ...                   milliseconds=10, microseconds=10, nanoseconds=12)
+        >>> td
+        Timedelta('6 days 00:50:03.010010012')
+
+        >>> td.total_seconds()
+        521403.01001
+
+        >>> td.total_seconds(ns_precision=True)
+        521403.010010012
+
+        """
+    )
     month_name = _make_nan_func(
         "month_name",
         """

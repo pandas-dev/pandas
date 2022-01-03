@@ -50,19 +50,20 @@ def test_huge_nanoseconds_overflow():
 
 # GH40946
 @pytest.mark.parametrize(
-    "obj, expected",
+    "obj, expected_ns, expected_us",
     [
-        (Timedelta("1us"), 1e-6),
-        (Timedelta("500ns"), 5e-7),
-        (Timedelta(nanoseconds=500), 5e-7),
-        (Timedelta(seconds=1, nanoseconds=500), 1 + 5e-7),
-        # require GH45108
-        # (Timedelta(seconds=1e-9, milliseconds=1e-5, microseconds=1e-1), 111e-9),
-        # (
-        #     Timedelta(days=1, seconds=1e-9, milliseconds=1e-5, microseconds=1e-1),
-        #     24 * 3600 + 111e-9
-        # )
+        (Timedelta("1us"), 1e-6, 1e-6),
+        (Timedelta("500ns"), 5e-7, 0.0),
+        (Timedelta(nanoseconds=500), 5e-7, 0.0),
+        (Timedelta(seconds=1, nanoseconds=500), 1 + 5e-7, 1.0),
+        (Timedelta(seconds=1e-9, milliseconds=1e-5, microseconds=1e-1), 111e-9, 0.0),
+        (
+            Timedelta(days=1, seconds=1e-9, milliseconds=1e-5, microseconds=1e-1),
+            24 * 3600 + 111e-9,
+            24 * 3600,
+        ),
     ],
 )
-def test_total_seconds(obj, expected):
-    assert obj.total_seconds() == expected
+def test_total_seconds(obj: Timedelta, expected_ns, expected_us):
+    assert obj.total_seconds() == expected_us
+    assert obj.total_seconds(ns_precision=True) == expected_ns

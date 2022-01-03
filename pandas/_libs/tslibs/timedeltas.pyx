@@ -1539,9 +1539,34 @@ class Timedelta(_Timedelta):
         div = other // self
         return div, other - div * self
 
-    def total_seconds(self):
-        """Total seconds in the duration."""
-        return self.value / 1_000_000_000
+    # GH45129
+    def total_seconds(self, *, ns_precision=False) -> float:
+        """
+        Total seconds in the duration with default us precision
+        (for compatibility with `datetime.timedelta`).
+
+        Parameters
+        ----------
+        ns_precision : bool, default False
+            Return the duration with ns precision.
+
+        Examples
+        --------
+        >>> td = pd.Timedelta(days=6, minutes=50, seconds=3,
+        ...                   milliseconds=10, microseconds=10, nanoseconds=12)
+        >>> td
+        Timedelta('6 days 00:50:03.010010012')
+
+        >>> td.total_seconds()
+        521403.01001
+
+        >>> td.total_seconds(ns_precision=True)
+        521403.010010012
+
+        """
+        if ns_precision:
+            return self.value / 1_000_000_000
+        return super().total_seconds()
 
 
 cdef bint is_any_td_scalar(object obj):
