@@ -2734,7 +2734,7 @@ For simple application the following pattern is sufficient:
    print(df.style.to_html())  # raw html
 
 To format values before output, chain the :meth:`Styler.format <pandas.io.formats.style.Styler.format>`
-and :meth:`Styler.format_index <pandas.io.formats.style.Styler.format_index>`methods.
+and :meth:`Styler.format_index <pandas.io.formats.style.Styler.format_index>` methods.
 
 .. ipython:: python
 
