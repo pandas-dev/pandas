@@ -2192,7 +2192,7 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
         return False
 
 
-def np_can_hold_element(dtype: np.dtype, element: Any):
+def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
     """
     Raise if we cannot losslessly set this element into an ndarray with this dtype.
 
@@ -2200,7 +2200,10 @@ def np_can_hold_element(dtype: np.dtype, element: Any):
     cases where numpy will raise in doing the setitem that we do not check
     for here, e.g. setting str "X" into a numeric ndarray.
 
-    Returns the element, potentially cast to the dtype.
+    Returns
+    -------
+    Any
+        The element, potentially cast to the dtype.
 
     Raises
     ------
