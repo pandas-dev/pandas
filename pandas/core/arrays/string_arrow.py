@@ -313,6 +313,13 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
         elif isinstance(item, tuple):
             item = unpack_tuple_and_ellipses(item)
 
+        # error: Non-overlapping identity check (left operand type:
+        # "Union[Union[int, integer[Any]], Union[slice, List[int],
+        # ndarray[Any, Any]]]", right operand type: "ellipsis")
+        if item is Ellipsis:  # type: ignore[comparison-overlap]
+            # TODO: should be handled by pyarrow?
+            item = slice(None)
+
         if is_scalar(item) and not is_integer(item):
             # e.g. "foo" or 2.5
             # exception message copied from numpy
@@ -354,6 +361,8 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
     def copy(self) -> ArrowStringArray:
         """
         Return a shallow copy of the array.
+
+        Underlying ChunkedArray is immutable, so a deep copy is unnecessary.
 
         Returns
         -------
@@ -613,12 +622,11 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
         # No missing values so we can adhere to the interface and return a numpy array.
         counts = np.array(counts)
 
-        # Index cannot hold ExtensionArrays yet
-        index = Index(type(self)(values)).astype(object)
+        index = Index(type(self)(values))
 
         return Series(counts, index=index).astype("Int64")
 
-    def astype(self, dtype, copy=True):
+    def astype(self, dtype, copy: bool = True):
         dtype = pandas_dtype(dtype)
 
         if is_dtype_equal(dtype, self.dtype):
@@ -673,12 +681,10 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
                 mask.view("uint8"),
                 convert=False,
                 na_value=na_value,
-                # error: Value of type variable "_DTypeScalar" of "dtype" cannot be
-                # "object"
                 # error: Argument 1 to "dtype" has incompatible type
                 # "Union[ExtensionDtype, str, dtype[Any], Type[object]]"; expected
                 # "Type[object]"
-                dtype=np.dtype(dtype),  # type: ignore[type-var,arg-type]
+                dtype=np.dtype(dtype),  # type: ignore[arg-type]
             )
 
             if not na_value_is_na:

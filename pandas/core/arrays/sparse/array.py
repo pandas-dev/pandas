@@ -73,6 +73,7 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
+from pandas.core import arraylike
 import pandas.core.algorithms as algos
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
@@ -219,6 +220,16 @@ def _sparse_array_op(
             opname = f"sparse_{name}_{dtype}"
             left_sp_values = left.sp_values
             right_sp_values = right.sp_values
+
+        if (
+            name in ["floordiv", "mod"]
+            and (right == 0).any()
+            and left.dtype.kind in ["i", "u"]
+        ):
+            # Match the non-Sparse Series behavior
+            opname = f"sparse_{name}_float64"
+            left_sp_values = left_sp_values.astype("float64")
+            right_sp_values = right_sp_values.astype("float64")
 
         sparse_op = getattr(splib, opname)
 
@@ -709,7 +720,11 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         # If null fill value, we want SparseDtype[bool, true]
         # to preserve the same memory usage.
         dtype = SparseDtype(bool, self._null_fill_value)
-        return type(self)._simple_new(isna(self.sp_values), self.sp_index, dtype)
+        if self._null_fill_value:
+            return type(self)._simple_new(isna(self.sp_values), self.sp_index, dtype)
+        mask = np.full(len(self), False, dtype=np.bool8)
+        mask[self.sp_index.indices] = isna(self.sp_values)
+        return type(self)(mask, fill_value=False, dtype=dtype)
 
     def fillna(
         self: SparseArrayT,
@@ -953,13 +968,20 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             )
 
         else:
-            # TODO: I think we can avoid densifying when masking a
-            # boolean SparseArray with another. Need to look at the
-            # key's fill_value for True / False, and then do an intersection
-            # on the indices of the sp_values.
             if isinstance(key, SparseArray):
+                # NOTE: If we guarantee that SparseDType(bool)
+                # has only fill_value - true, false or nan
+                # (see GH PR 44955)
+                # we can apply mask very fast:
                 if is_bool_dtype(key):
-                    key = key.to_dense()
+                    if isna(key.fill_value):
+                        return self.take(key.sp_index.indices[key.sp_values])
+                    if not key.fill_value:
+                        return self.take(key.sp_index.indices)
+                    n = len(self)
+                    mask = np.full(n, True, dtype=np.bool8)
+                    mask[key.sp_index.indices] = False
+                    return self.take(np.arange(n)[mask])
                 else:
                     key = np.asarray(key)
 
@@ -1394,7 +1416,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         return values.any().item()
 
-    def sum(self, axis: int = 0, min_count: int = 0, *args, **kwargs) -> Scalar:
+    def sum(
+        self, axis: int = 0, min_count: int = 0, skipna: bool = True, *args, **kwargs
+    ) -> Scalar:
         """
         Sum of non-NA/null values
 
@@ -1416,6 +1440,11 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         nv.validate_sum(args, kwargs)
         valid_vals = self._valid_sp_values
         sp_sum = valid_vals.sum()
+        has_na = self.sp_index.ngaps > 0 and not self._null_fill_value
+
+        if has_na and not skipna:
+            return na_value_for_dtype(self.dtype.subtype, compat=False)
+
         if self._null_fill_value:
             if check_below_min_count(valid_vals.shape, None, min_count):
                 return na_value_for_dtype(self.dtype.subtype, compat=False)
@@ -1568,6 +1597,21 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if result is not NotImplemented:
             return result
 
+        if "out" in kwargs:
+            # e.g. tests.arrays.sparse.test_arithmetics.test_ndarray_inplace
+            res = arraylike.dispatch_ufunc_with_out(
+                self, ufunc, method, *inputs, **kwargs
+            )
+            return res
+
+        if method == "reduce":
+            result = arraylike.dispatch_reduction_ufunc(
+                self, ufunc, method, *inputs, **kwargs
+            )
+            if result is not NotImplemented:
+                # e.g. tests.series.test_ufunc.TestNumpyReductions
+                return result
+
         if len(inputs) == 1:
             # No alignment necessary.
             sp_values = getattr(ufunc, method)(self.sp_values, **kwargs)
@@ -1590,7 +1634,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 sp_values, self.sp_index, SparseDtype(sp_values.dtype, fill_value)
             )
 
-        result = getattr(ufunc, method)(*(np.asarray(x) for x in inputs), **kwargs)
+        new_inputs = tuple(np.asarray(x) for x in inputs)
+        result = getattr(ufunc, method)(*new_inputs, **kwargs)
         if out:
             if len(out) == 1:
                 out = out[0]
@@ -1674,9 +1719,14 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
     def _unary_method(self, op) -> SparseArray:
         fill_value = op(np.array(self.fill_value)).item()
-        values = op(self.sp_values)
-        dtype = SparseDtype(values.dtype, fill_value)
-        return type(self)._simple_new(values, self.sp_index, dtype)
+        dtype = SparseDtype(self.dtype.subtype, fill_value)
+        # NOTE: if fill_value doesn't change
+        # we just have to apply op to sp_values
+        if isna(self.fill_value) or fill_value == self.fill_value:
+            values = op(self.sp_values)
+            return type(self)._simple_new(values, self.sp_index, self.dtype)
+        # In the other case we have to recalc indexes
+        return type(self)(op(self.to_dense()), dtype=dtype)
 
     def __pos__(self) -> SparseArray:
         return self._unary_method(operator.pos)

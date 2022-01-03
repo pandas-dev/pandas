@@ -392,8 +392,8 @@ macros.append(("NPY_NO_DEPRECATED_API", "0"))
 # ----------------------------------------------------------------------
 # Specification of Dependencies
 
-# TODO: Need to check to see if e.g. `linetrace` has changed and possibly
-# re-compile.
+# TODO(cython#4518): Need to check to see if e.g. `linetrace` has changed and
+#  possibly re-compile.
 def maybe_cythonize(extensions, *args, **kwargs):
     """
     Render tempita templates before calling cythonize. This is skipped for

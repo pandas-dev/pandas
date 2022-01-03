@@ -20,6 +20,7 @@ from pandas import (
     Series,
     Timedelta,
     Timestamp,
+    concat,
     date_range,
     period_range,
 )
@@ -107,7 +108,7 @@ class TestSetitemDT64Values:
         tm.assert_series_equal(ser, exp)
 
     def test_setitem_with_tz_dst(self, indexer_sli):
-        # GH XXX TODO: fill in GH ref
+        # GH#14146 trouble setting values near DST boundary
         tz = "US/Eastern"
         orig = Series(date_range("2016-11-06", freq="H", periods=3, tz=tz))
         assert orig.dtype == f"datetime64[ns, {tz}]"
@@ -477,7 +478,7 @@ class TestSetitemWithExpansion:
         ser["foobar"] = 1
 
         app = Series([1], index=["foobar"], name="series")
-        expected = string_series.append(app)
+        expected = concat([string_series, app])
         tm.assert_series_equal(ser, expected)
 
 
