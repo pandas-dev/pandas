@@ -2717,11 +2717,11 @@ Writing to HTML files
 .. note::
 
    DataFrame *and* Styler objects currently have a ``to_html`` method. We recommend
-   using the `Styler.to_html() <../reference/api/pandas.io.formats.style.Styler.to_html.rst>`__ method
-   over `DataFrame.to_html() <../reference/api/pandas.DataFrame.to_html.rst>`__ due to the former's greater flexibility with
+   using the :meth:`Styler.to_html <pandas.io.formats.style.Styler.to_html>` method
+   over :meth:`DataFrame.to_html` due to the former's greater flexibility with
    conditional styling, and the latter's possible argument signature change and/or future deprecation.
 
-Review the documentation for `Styler.to_html <../reference/api/pandas.io.formats.style.Styler.to_html.rst>`__,
+Review the documentation for :meth:`Styler.to_html <pandas.io.formats.style.Styler.to_html>`,
 which gives examples of conditional styling and explains the operation of its keyword
 arguments. The ``to_html`` methods render the contents of the ``DataFrame`` as an HTML table.
 
@@ -2733,8 +2733,8 @@ For simple application the following pattern is sufficient:
    df
    print(df.style.to_html())  # raw html
 
-To format values before output, chain the `Styler.format <../reference/api/pandas.io.formats.style.Styler.format.rst>`__
-method.
+To format values before output, chain the :meth:`Styler.format <pandas.io.formats.style.Styler.format>`
+and :meth:`Styler.format_index <pandas.io.formats.style.Styler.format_index>`methods.
 
 .. ipython:: python
 
