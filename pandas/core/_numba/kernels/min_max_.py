@@ -25,8 +25,8 @@ def sliding_min_max(
     output = np.empty(N, dtype=np.float64)
     # Use deque once numba supports it
     # https://github.com/numba/numba/issues/7417
-    Q = []
-    W = []
+    Q: list = []
+    W: list = []
     for i in range(N):
 
         curr_win_size = end[i] - start[i]
