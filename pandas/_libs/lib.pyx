@@ -669,25 +669,38 @@ def astype_intsafe(ndarray[object] arr, cnp.dtype new_dtype) -> ndarray:
 
     return result
 
+ctypedef fused ndarr_object:
+    ndarray[object, ndim=1]
+    ndarray[object, ndim=2]
+
 # TODO: get rid of this in StringArray and modify
 #  and go through ensure_string_array instead
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def convert_nans_to_NA(ndarray[object] arr) -> ndarray:
+def convert_nans_to_NA(ndarr_object arr) -> ndarray:
     """
     Helper for StringArray that converts null values that
     are not pd.NA(e.g. np.nan, None) to pd.NA. Assumes elements
     have already been validated as null.
     """
     cdef:
-        Py_ssize_t i, n = len(arr)
+        Py_ssize_t i, m, n
         object val
-        ndarray[object] result
+        ndarr_object result
     result = np.asarray(arr, dtype="object")
-    for i in range(n):
-        val = arr[i]
-        if not isinstance(val, str):
-            result[i] = <object>C_NA
+    if arr.ndim == 2:
+        m,n = arr.shape[0], arr.shape[1]
+        for i in range(m):
+            for j in range(n):
+                val = arr[i][j]
+                if not isinstance(val, str):
+                    result[i][j] = <object>C_NA
+    else:
+        n = len(arr)
+        for i in range(n):
+            val = arr[i]
+            if not isinstance(val, str):
+                result[i] = <object>C_NA
     return result
 
 
