@@ -748,16 +748,17 @@ class StylerRenderer:
           - Remove hidden indexes or reinsert missing th elements if part of multiindex
             or multirow sparsification (so that \multirow and \multicol work correctly).
         """
+        index_levels = self.index.nlevels
+        visible_index_levels = index_levels - sum(self.hide_index_)
         d["head"] = [
             [
-                {**col, "cellstyle": self.ctx_columns[r, c - self.index.nlevels]}
+                {**col, "cellstyle": self.ctx_columns[r, c - visible_index_levels]}
                 for c, col in enumerate(row)
                 if col["is_visible"]
             ]
             for r, row in enumerate(d["head"])
         ]
         body = []
-        index_levels = self.data.index.nlevels
         for r, row in zip(
             [r for r in range(len(self.data.index)) if r not in self.hidden_rows],
             d["body"],
