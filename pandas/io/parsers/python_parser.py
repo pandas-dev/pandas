@@ -197,7 +197,6 @@ class PythonParser(ParserBase):
                 skipinitialspace = self.skipinitialspace
                 quoting = self.quoting
                 lineterminator = "\n"
-                strict = not callable(self.on_bad_lines)
 
             dia = MyDialect
 

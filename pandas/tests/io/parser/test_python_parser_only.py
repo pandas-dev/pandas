@@ -338,7 +338,12 @@ def test_python_engine_file_no_next(python_parser_only):
 def test_on_bad_lines_callable(python_parser_only, bad_line_func):
     # GH 5686
     parser = python_parser_only
-    bad_sio = StringIO("a,b\n1,2\n2,3,4,5,6\n3,4")
+    data = """a,b
+1,2
+2,3,4,5,6
+3,4
+"""
+    bad_sio = StringIO(data)
     result = parser.read_csv(bad_sio, on_bad_lines=bad_line_func)
     expected = DataFrame({"a": [1, 2, 3], "b": [2, 3, 4]})
     tm.assert_frame_equal(result, expected)
@@ -347,7 +352,12 @@ def test_on_bad_lines_callable(python_parser_only, bad_line_func):
 def test_on_bad_lines_callable_write_to_external_list(python_parser_only):
     # GH 5686
     parser = python_parser_only
-    bad_sio = StringIO("a,b\n1,2\n2,3,4,5,6\n3,4")
+    data = """a,b
+1,2
+2,3,4,5,6
+3,4
+"""
+    bad_sio = StringIO(data)
     lst = []
 
     def bad_line_func(bad_line):
@@ -366,7 +376,13 @@ def test_on_bad_lines_callable_iterator_true(python_parser_only, bad_line_func, 
     # GH 5686
     # iterator=True has a separate code path than iterator=False
     parser = python_parser_only
-    bad_sio = StringIO(f"0{sep}1\nhi{sep}there\nfoo{sep}bar{sep}baz\ngood{sep}bye")
+    data = f"""
+0{sep}1
+hi{sep}there
+foo{sep}bar{sep}baz
+good{sep}bye
+"""
+    bad_sio = StringIO(data)
     result_iter = parser.read_csv(
         bad_sio, on_bad_lines=bad_line_func, chunksize=1, iterator=True, sep=sep
     )
@@ -383,7 +399,12 @@ def test_on_bad_lines_callable_iterator_true(python_parser_only, bad_line_func, 
 def test_on_bad_lines_callable_dont_swallow_errors(python_parser_only):
     # GH 5686
     parser = python_parser_only
-    bad_sio = StringIO("a,b\n1,2\n2,3,4,5,6\n3,4")
+    data = """a,b
+1,2
+2,3,4,5,6
+3,4
+"""
+    bad_sio = StringIO(data)
     msg = "This function is buggy."
 
     def bad_line_func(bad_line):
@@ -396,7 +417,12 @@ def test_on_bad_lines_callable_dont_swallow_errors(python_parser_only):
 def test_on_bad_lines_callable_not_expected_length(python_parser_only):
     # GH 5686
     parser = python_parser_only
-    bad_sio = StringIO("a,b\n1,2\n2,3,4,5,6\n3,4")
+    data = """a,b
+1,2
+2,3,4,5,6
+3,4
+"""
+    bad_sio = StringIO(data)
 
     with tm.assert_produces_warning(ParserWarning, match="Length of header or names"):
         result = parser.read_csv(bad_sio, on_bad_lines=lambda x: x)

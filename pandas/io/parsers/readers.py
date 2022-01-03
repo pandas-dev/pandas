@@ -355,7 +355,7 @@ warn_bad_lines : bool, optional, default ``None``
     .. deprecated:: 1.3.0
        The ``on_bad_lines`` parameter should be used instead to specify behavior upon
        encountering a bad line instead.
-on_bad_lines : str or callable, default 'error'
+on_bad_lines : {{'error', 'warn', 'skip'}} or callable, default 'error'
     Specifies what to do upon encountering a bad line (a line with too many fields).
     Allowed values are :
 
@@ -367,7 +367,10 @@ on_bad_lines : str or callable, default 'error'
 
         - callable, function with signature ``(bad_line: list[str]) -> list[str]``
           that will process a single bad line. ``bad_line`` is a list of strings
-          split by the ``sep``. Only supported when ``engine="python"``
+          split by the ``sep``. If the function returns a new list of strings
+          with more elements than expected, a ``ParserWarning`` will be emitted
+          while dropping extra elements.
+          Only supported when ``engine="python"``
 
     .. versionadded:: 1.4.0
 
