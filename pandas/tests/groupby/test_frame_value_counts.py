@@ -414,6 +414,7 @@ def test_mixed_groupings(normalize, expected_label, expected_values):
 )
 @pytest.mark.parametrize("as_index", [False, True])
 def test_column_label_duplicates(test, columns, expected_names, as_index):
+    # GH 44992
     # Test for duplicate input column labels and generated duplicate labels
     df = DataFrame([[1, 3, 5, 7, 9], [2, 4, 6, 8, 10]], columns=columns)
     expected_data = [(1, 0, 7, 3, 5, 9), (2, 1, 8, 4, 6, 10)]
