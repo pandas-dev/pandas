@@ -687,7 +687,7 @@ def convert_nans_to_NA(ndarray[object] arr) -> ndarray:
     for i in range(n):
         val = arr[i]
         if not isinstance(val, str):
-            result[i] = C_NA
+            result[i] = <object>C_NA
     return result
 
 
