@@ -549,15 +549,18 @@ def test_explicit_encoding(io_class, mode, msg):
 
 @pytest.mark.parametrize("encoding_errors", [None, "strict", "replace"])
 @pytest.mark.parametrize("format", ["csv", "json"])
-def test_encoding_errors(encoding_errors, format):
+def test_encoding_errors(encoding_errors, format, request):
     # GH39450
     msg = "'utf-8' codec can't decode byte"
     bad_encoding = b"\xe4"
 
     if format == "csv":
-        return
         content = bad_encoding + b"\n" + bad_encoding
         reader = pd.read_csv
+        if encoding_errors == "replace":
+            request.applymarker(
+                pytest.mark.xfail(reason="Should work but needs more time to debug.")
+            )
     else:
         content = (
             b'{"'
