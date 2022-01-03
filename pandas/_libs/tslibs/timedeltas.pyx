@@ -1562,7 +1562,6 @@ class Timedelta(_Timedelta):
 
         >>> td.total_seconds(ns_precision=True)
         521403.010010012
-
         """
         if ns_precision:
             return self.value / 1_000_000_000

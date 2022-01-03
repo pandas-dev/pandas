@@ -465,7 +465,6 @@ class NaTType(_NaT):
 
         >>> td.total_seconds(ns_precision=True)
         521403.010010012
-
         """
     )
     month_name = _make_nan_func(
