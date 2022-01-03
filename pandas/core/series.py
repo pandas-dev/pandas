@@ -1084,7 +1084,9 @@ class Series(base.IndexOpsMixin, NDFrame):
 
         try:
             self._set_with_engine(key, value)
-        except (KeyError, ValueError):
+        except KeyError:
+            # We have a scalar (or for MultiIndex or object-dtype, scalar-like)
+            #  key that is not present in self.index.
             if is_integer(key) and self.index.inferred_type != "integer":
                 # positional setter
                 if not self.index._should_fallback_to_positional:
@@ -1104,7 +1106,7 @@ class Series(base.IndexOpsMixin, NDFrame):
                 # GH#12862 adding a new key to the Series
                 self.loc[key] = value
 
-        except (InvalidIndexError, TypeError) as err:
+        except (InvalidIndexError, TypeError, ValueError) as err:
             if isinstance(key, tuple) and not isinstance(self.index, MultiIndex):
                 # cases with MultiIndex don't get here bc they raise KeyError
                 raise KeyError(
@@ -1175,7 +1177,13 @@ class Series(base.IndexOpsMixin, NDFrame):
 
     def _set_labels(self, key, value) -> None:
         key = com.asarray_tuplesafe(key)
-        indexer: np.ndarray = self.index.get_indexer(key)
+        try:
+            indexer: np.ndarray = self.index.get_indexer(key)
+        except InvalidIndexError:
+            # self.index is not unique, e.g. test_setitem_non_bool_into_bool
+            self.loc[key] = value
+            return
+
         mask = indexer == -1
         if mask.any():
             raise KeyError(f"{key[mask]} not in index")
