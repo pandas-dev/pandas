@@ -2617,17 +2617,17 @@ class Styler(StylerRenderer):
         axis = self.data._get_axis_number(axis)
         obj = "index" if axis == 0 else "columns"
 
-        unhidden = []
+        visible = []
         if head is not None:
-            unhidden.extend(getattr(self, obj)[:head])
+            visible.extend(getattr(self, obj)[:head])
         if tail is not None:
-            unhidden.extend(getattr(self, obj)[-tail:])
+            visible.extend(getattr(self, obj)[-tail:])
         if subset is not None:
             subset_ = IndexSlice[subset, :] if axis == 0 else IndexSlice[:, subset]
-            unhidden.extend(getattr(self.data.loc[non_reducing_slice(subset_)], obj))
+            visible.extend(getattr(self.data.loc[non_reducing_slice(subset_)], obj))
 
         return self.hide(
-            subset=[v for v in getattr(self, obj) if v not in unhidden], axis=axis
+            subset=[v for v in getattr(self, obj) if v not in visible], axis=axis
         )
 
     # -----------------------------------------------------------------------
