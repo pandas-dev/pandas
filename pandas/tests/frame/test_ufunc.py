@@ -3,6 +3,7 @@ from functools import partial
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import np_version_is1p22
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -252,7 +253,7 @@ def test_alignment_deprecation():
 
 
 @td.skip_if_no("numba")
-def test_alignment_deprecation_many_inputs():
+def test_alignment_deprecation_many_inputs(request):
     # https://github.com/pandas-dev/pandas/issues/39184
     # test that the deprecation also works with > 2 inputs -> using a numba
     # written ufunc for this because numpy itself doesn't have such ufuncs
@@ -260,6 +261,13 @@ def test_alignment_deprecation_many_inputs():
         float64,
         vectorize,
     )
+
+    if np_version_is1p22:
+        mark = pytest.mark.xfail(
+            reason="ufunc 'my_ufunc' did not contain a loop with signature matching "
+            "types",
+        )
+        request.node.add_marker(mark)
 
     @vectorize([float64(float64, float64, float64)])
     def my_ufunc(x, y, z):
