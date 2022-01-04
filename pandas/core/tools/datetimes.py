@@ -1117,7 +1117,7 @@ def _assemble_from_unit_mappings(arg, errors, tz):
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
 
         - If :const:`'raise'`, then invalid parsing will raise an exception
-        - If :const:`'coerce'`, then invalid parsing will be set as NaT
+        - If :const:`'coerce'`, then invalid parsing will be set as :const:`NaT`
         - If :const:`'ignore'`, then invalid parsing will return the input
     tz : None or 'utc'
 
