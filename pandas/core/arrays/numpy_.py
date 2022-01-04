@@ -371,11 +371,14 @@ class PandasArray(
     ) -> np.ndarray:
         result = np.asarray(self._ndarray, dtype=dtype)
 
-        if (copy or na_value is not lib.no_default) and result is self._ndarray:
-            result = result.copy()
+        if copy or na_value is not lib.no_default:
+            # The numpy.asarray function might have already copied the array,
+            # so only copy if the result is a reference to the input array.
+            if result is self._ndarray:
+                result = result.copy()
 
-        if na_value is not lib.no_default:
-            result[self.isna()] = na_value
+            if na_value is not lib.no_default:
+                result[self.isna()] = na_value
 
         return result
 

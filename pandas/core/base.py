@@ -537,9 +537,11 @@ class IndexOpsMixin(OpsMixin):
             )
 
         result = np.asarray(self._values, dtype=dtype)
-        # TODO(GH-24345): Avoid potential double copy
         if copy or na_value is not lib.no_default:
-            result = result.copy()
+            # The numpy.asarray function might have already copied the array,
+            # so only copy if the result is a reference to the input array.
+            if result is self._values:
+                result = result.copy()
             if na_value is not lib.no_default:
                 result[self.isna()] = na_value
         return result

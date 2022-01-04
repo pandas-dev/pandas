@@ -488,9 +488,15 @@ class ExtensionArray:
         """
         result = np.asarray(self, dtype=dtype)
         if copy or na_value is not lib.no_default:
-            result = result.copy()
-        if na_value is not lib.no_default:
-            result[self.isna()] = na_value
+            # We only consider copying if `self` implements a custom numpy
+            # array container, i.e. if the __array__function in implemented. If
+            # not, copying is done anyway by numpy.asarray. Also, numpy.asarray
+            # might copy the __array__() nonetheless if the dtype didn't match,
+            # so we only copy if the result is a reference to the input array.
+            if hasattr(self, "__array__") and result is self.__array__():
+                result = result.copy()
+            if na_value is not lib.no_default:
+                result[self.isna()] = na_value
         return result
 
     # ------------------------------------------------------------------------
