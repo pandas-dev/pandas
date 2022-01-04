@@ -855,6 +855,29 @@ def test_rendered_links():
     assert r"text \href{www.domain.com}{www.domain.com} text" in result
 
 
+def test_apply_index_hidden_levels():
+    # gh 45156
+    styler = DataFrame(
+        [[1]],
+        index=MultiIndex.from_tuples([(0, 1)], names=["l0", "l1"]),
+        columns=MultiIndex.from_tuples([(0, 1)], names=["c0", "c1"]),
+    ).style
+    styler.hide(level=1)
+    styler.applymap_index(lambda v: "color: red;", level=0, axis=1)
+    result = styler.to_latex(convert_css=True)
+    expected = dedent(
+        """\
+        \\begin{tabular}{lr}
+        c0 & \\color{red} 0 \\\\
+        c1 & 1 \\\\
+        l0 &  \\\\
+        0 & 1 \\\\
+        \\end{tabular}
+        """
+    )
+    assert result == expected
+
+
 @pytest.mark.parametrize("clines", ["bad", "index", "skip-last", "all", "data"])
 def test_clines_validation(clines, styler):
     msg = f"`clines` value of {clines} is invalid."

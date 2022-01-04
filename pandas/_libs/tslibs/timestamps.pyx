@@ -180,6 +180,8 @@ cdef class _Timestamp(ABCTimestamp):
     def __hash__(_Timestamp self):
         if self.nanosecond:
             return hash(self.value)
+        if self.fold:
+            return datetime.__hash__(self.replace(fold=0))
         return datetime.__hash__(self)
 
     def __richcmp__(_Timestamp self, object other, int op):
