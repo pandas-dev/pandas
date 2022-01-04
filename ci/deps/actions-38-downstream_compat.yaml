@@ -61,6 +61,6 @@ dependencies:
   - coverage
   - pandas-datareader
   - pyyaml
+  - py
   - pip:
-    - py
     - torch
