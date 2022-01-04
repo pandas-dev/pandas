@@ -43,9 +43,9 @@ from pandas.core.dtypes.common import (
     is_list_like,
 )
 
-from pandas.core import generic
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.api import RangeIndex
+from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import validate_header_arg
 from pandas.io.parsers.arrow_parser_wrapper import ArrowParserWrapper
@@ -280,12 +280,10 @@ chunksize : int, optional
     .. versionchanged:: 1.2
 
        ``TextFileReader`` is a context manager.
-compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', 'tar', None}}, default 'infer'
-    For on-the-fly decompression of on-disk data. If 'infer' and
-    `filepath_or_buffer` is path-like, then detect compression from the
-    following extensions: '.gz', '.bz2', '.zip', '.tar', '.xz' (otherwise no
-    decompression). If using 'zip' or 'tar', the archive must contain only one data
-    file to be read in. Set to None for no decompression.
+{decompression_options}
+
+    .. versionchanged:: 1.4.0 Zstandard support.
+
 thousands : str, optional
     Thousands separator.
 decimal : str, default '.'
@@ -436,10 +434,7 @@ _pyarrow_unsupported = {
     "dialect",
     "warn_bad_lines",
     "error_bad_lines",
-    # TODO(1.4)
-    # This doesn't error properly ATM, fix for release
-    # but not blocker for initial PR
-    # "on_bad_lines",
+    "on_bad_lines",
     "delim_whitespace",
     "quoting",
     "lineterminator",
@@ -577,7 +572,8 @@ def _read(
         func_name="read_csv",
         summary="Read a comma-separated values (csv) file into DataFrame.",
         _default_sep="','",
-        storage_options=generic._shared_docs["storage_options"],
+        storage_options=_shared_docs["storage_options"],
+        decompression_options=_shared_docs["decompression_options"],
     )
 )
 def read_csv(
@@ -675,7 +671,8 @@ def read_csv(
         func_name="read_table",
         summary="Read general delimited file into DataFrame.",
         _default_sep=r"'\\t' (tab-stop)",
-        storage_options=generic._shared_docs["storage_options"],
+        storage_options=_shared_docs["storage_options"],
+        decompression_options=_shared_docs["decompression_options"],
     )
 )
 def read_table(
@@ -932,7 +929,18 @@ class TextFileReader(abc.Iterator):
                 engine == "pyarrow"
                 and argname in _pyarrow_unsupported
                 and value != default
+                and value != getattr(value, "value", default)
             ):
+                if (
+                    argname == "on_bad_lines"
+                    and kwds.get("error_bad_lines") is not None
+                ):
+                    argname = "error_bad_lines"
+                elif (
+                    argname == "on_bad_lines" and kwds.get("warn_bad_lines") is not None
+                ):
+                    argname = "warn_bad_lines"
+
                 raise ValueError(
                     f"The {repr(argname)} option is not supported with the "
                     f"'pyarrow' engine"
@@ -1170,8 +1178,7 @@ class TextFileReader(abc.Iterator):
             raise ValueError(
                 f"Unknown engine: {engine} (valid options are {mapping.keys()})"
             )
-        # error: Too many arguments for "ParserBase"
-        return mapping[engine](self.f, **self.options)  # type: ignore[call-arg]
+        return mapping[engine](self.f, **self.options)
 
     def _failover_to_python(self):
         raise AbstractMethodError(self)
@@ -1458,6 +1465,13 @@ def _refine_defaults_read(
         raise ValueError(
             "Specified a delimiter with both sep and "
             "delim_whitespace=True; you can only specify one."
+        )
+
+    if delimiter == "\n":
+        raise ValueError(
+            r"Specified \n as separator or delimiter. This forces the python engine "
+            "which does not accept a line terminator. Hence it is not allowed to use "
+            "the line terminator as separator.",
         )
 
     if delimiter is lib.no_default:

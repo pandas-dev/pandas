@@ -16,7 +16,6 @@ from pandas import (
     DataFrame,
     DatetimeIndex,
     IntervalIndex,
-    NumericIndex,
     PeriodIndex,
     RangeIndex,
     Series,
@@ -28,6 +27,7 @@ import pandas._testing as tm
 from pandas.core.api import (
     Float64Index,
     Int64Index,
+    NumericIndex,
     UInt64Index,
 )
 from pandas.core.indexes.api import (
@@ -530,21 +530,20 @@ class TestIndex(Base):
             # Cannot map duplicated index
             return
 
+        rng = np.arange(len(index), 0, -1)
+
         if index.empty:
             # to match proper result coercion for uints
             expected = Index([])
         elif index._is_backward_compat_public_numeric_index:
-            expected = index._constructor(
-                np.arange(len(index), 0, -1), dtype=index.dtype
-            )
+            expected = index._constructor(rng, dtype=index.dtype)
         elif type(index) is Index and index.dtype != object:
             # i.e. EA-backed, for now just Nullable
-            expected = Index(np.arange(len(index), 0, -1), dtype=index.dtype)
+            expected = Index(rng, dtype=index.dtype)
         elif index.dtype.kind == "u":
-            # TODO: case where e.g. we cannot hold result in UInt8?
-            expected = Index(np.arange(len(index), 0, -1), dtype=index.dtype)
+            expected = Index(rng, dtype=index.dtype)
         else:
-            expected = Index(np.arange(len(index), 0, -1))
+            expected = Index(rng)
 
         result = index.map(mapper(expected, index))
         tm.assert_index_equal(result, expected)
@@ -1260,12 +1259,18 @@ class TestMixedIntIndex(Base):
         assert index.name == "MyName"
         assert index2.name == "NewName"
 
-        index3 = index.copy(names=["NewName"])
+        with tm.assert_produces_warning(FutureWarning):
+            index3 = index.copy(names=["NewName"])
         tm.assert_index_equal(index, index3, check_names=False)
         assert index.name == "MyName"
         assert index.names == ["MyName"]
         assert index3.name == "NewName"
         assert index3.names == ["NewName"]
+
+    def test_copy_names_deprecated(self, simple_index):
+        # GH44916
+        with tm.assert_produces_warning(FutureWarning):
+            simple_index.copy(names=["a"])
 
     def test_unique_na(self):
         idx = Index([2, np.nan, 2, 1], name="my_index")

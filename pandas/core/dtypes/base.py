@@ -17,6 +17,7 @@ import numpy as np
 from pandas._libs.hashtable import object_hash
 from pandas._typing import (
     DtypeObj,
+    Shape,
     npt,
     type_t,
 )
@@ -207,6 +208,23 @@ class ExtensionDtype:
         type
         """
         raise AbstractMethodError(cls)
+
+    def empty(self, shape: Shape) -> type_t[ExtensionArray]:
+        """
+        Construct an ExtensionArray of this dtype with the given shape.
+
+        Analogous to numpy.empty.
+
+        Parameters
+        ----------
+        shape : int or tuple[int]
+
+        Returns
+        -------
+        ExtensionArray
+        """
+        cls = self.construct_array_type()
+        return cls._empty(shape, dtype=self)
 
     @classmethod
     def construct_from_string(
