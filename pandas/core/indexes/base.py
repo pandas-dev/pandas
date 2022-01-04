@@ -3601,7 +3601,9 @@ class Index(IndexOpsMixin, PandasObject):
             except KeyError as err:
                 raise KeyError(key) from err
             except TypeError:
-                # If we have a listlike key, raise InvalidIndexError instead
+                # If we have a listlike key, _check_indexing_error will raise
+                #  InvalidIndexError. Otherwise we fall through and re-raise
+                #  the TypeError.
                 self._check_indexing_error(key)
                 raise
 
