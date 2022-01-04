@@ -2062,8 +2062,13 @@ def maybe_cast_to_integer_array(
     # doesn't handle `uint64` correctly.
     arr = np.asarray(arr)
 
-    if is_unsigned_integer_dtype(dtype) and (arr < 0).any():
-        raise OverflowError("Trying to coerce negative values to unsigned integers")
+    if is_unsigned_integer_dtype(dtype):
+        try:
+            if (arr < 0).any():
+                raise OverflowError("Trying to coerce negative values to unsigned integers")
+        except TypeError as err:
+            if (casted < 0).any():
+                raise OverflowError("Trying to coerce negative values to unsigned integers")
 
     if is_float_dtype(arr.dtype):
         if not np.isfinite(arr).all():
