@@ -705,7 +705,7 @@ def to_datetime(
         - If :const:`'coerce'`, then invalid parsing will be set as :const:`NaT`.
         - If :const:`'ignore'`, then invalid parsing will return the input.
     dayfirst : bool, default False
-        Specify a date parse order if `arg` is str or its list-like.
+        Specify a date parse order if `arg` is str or is list-like.
         If :const:`True`, parses dates with the day first, e.g. :const:`"10/11/12"`
         is parsed as :const:`2012-11-10`.
 
