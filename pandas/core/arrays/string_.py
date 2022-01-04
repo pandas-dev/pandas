@@ -326,7 +326,11 @@ class StringArray(BaseStringArray, PandasArray):
                 f"'{self._ndarray.dtype}' dtype instead."
             )
         # Check to see if need to convert Na values to pd.NA
-        lib.convert_nans_to_NA(self._ndarray)
+        if self._ndarray.ndim > 2:
+            # Ravel if ndims > 2 b/c no cythonized version available
+            lib.convert_nans_to_NA(self._ndarray.ravel("K"))
+        else:
+            lib.convert_nans_to_NA(self._ndarray)
 
     @classmethod
     def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy=False):
