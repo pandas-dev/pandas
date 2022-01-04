@@ -807,6 +807,7 @@ class _MergeOperation:
             with these constructs as well?
             """
             chunk_result_filtered = chunk_result.loc[
+                # TODO: method that only accepts boolean mask?
                 self.on(chunk_result_left, chunk_result_right)
             ]
             result_chunks.append(chunk_result_filtered)

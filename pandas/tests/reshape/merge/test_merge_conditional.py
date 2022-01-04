@@ -56,4 +56,48 @@ def test_merge_conditional_non_cross(how):
         "Other merge types will be available in a future version."
     )
     with pytest.raises(NotImplementedError, match=error_msg):
-        m.merge(DataFrame(), DataFrame(), on=lambda dfx: None, how=how)
+        merge(DataFrame(), DataFrame(), on=lambda l, r: None, how=how)
+
+
+def test_merge_conditional_bad_args():
+    error_msg = (
+        "Cannot define any of (`left_on`, `right_on`, `left_index`, "
+        "`right_index`) in a conditional merge"
+    )
+    with pytest.raises(ValueError, match=error_msg):
+        merge(
+            DataFrame(columns=['A']),
+            DataFrame(columns=['A']),
+            on=lambda l, r: None,
+            left_on='A'
+        )
+
+    error_msg = "Conditional merge must use `axis=1`"
+    with pytest.raises(ValueError, match=error_msg):
+        merge(DataFrame(), DataFrame(), on=lambda l, r: None, axis=0)
+
+    error_msg = "Conditional merge must use `copy=True`"
+    with pytest.raises(ValueError, match=error_msg):
+        merge(DataFrame(), DataFrame(), on=lambda l, r: None, copy=False)
+
+    error_msg = "Conditional merge does not support validation"
+    with pytest.raises(NotImplementedError, match=error_msg):
+        merge(DataFrame(), DataFrame(), on=lambda l, r: None, validate=True)
+
+    error_msg = "Cannot sort on join keys in a conditional merge"
+    with pytest.raises(ValueError, match=error_msg):
+        merge(DataFrame(), DataFrame(), on=lambda l, r: None, sort=True)
+
+
+def test_merge_conditional_bad_on_func():
+    # too few on func args
+    with pytest.raises(TypeError):
+        merge(DataFrame(), DataFrame(), on=lambda l: None)
+
+    # too many on func args
+    with pytest.raises(TypeError):
+        merge(DataFrame(), DataFrame(), on=lambda l, r, x: None)
+
+    # bad on func return value
+    with pytest.raises(Exception):
+        merge(DataFrame(), DataFrame(), on=lambda l, r: object())
