@@ -10,7 +10,10 @@ module is imported, register them here rather than in the module.
 
 """
 import os
-from typing import Callable
+from typing import (
+    Any,
+    Callable,
+)
 import warnings
 
 import pandas._config.config as cf
@@ -972,15 +975,9 @@ def int_greater_than_0(x: Any):
 
 with cf.config_prefix("conditional_merge"):
     cf.register_option(
-        "left_chunk_size",
-        1000,
-        merge_chunk_size_doc,
-        int_greater_than_0
+        "left_chunk_size", 1000, merge_chunk_size_doc, int_greater_than_0
     )
 
     cf.register_option(
-        "right_chunk_size",
-        1000,
-        merge_chunk_size_doc,
-        int_greater_than_0
+        "right_chunk_size", 1000, merge_chunk_size_doc, int_greater_than_0
     )

@@ -1,8 +1,11 @@
 import pytest
 
-from pandas import DataFrame, option_context
-from pandas.core.reshape.merge import merge
+from pandas import (
+    DataFrame,
+    option_context,
+)
 import pandas._testing as tm
+from pandas.core.reshape.merge import merge
 
 
 # choose chunk sizes such that the merges will happen with a single
@@ -12,8 +15,10 @@ def test_merge_conditional(chunk_size):
     # GH#8962
 
     with option_context(
-        "conditional_merge.left_chunk_size", chunk_size,
-        "conditional_merge.right_chunk_size", chunk_size,
+        "conditional_merge.left_chunk_size",
+        chunk_size,
+        "conditional_merge.right_chunk_size",
+        chunk_size,
     ):
         left = DataFrame({"timestep": range(5)})
         right = DataFrame(
@@ -66,10 +71,10 @@ def test_merge_conditional_bad_args():
     )
     with pytest.raises(ValueError, match=error_msg):
         merge(
-            DataFrame(columns=['A']),
-            DataFrame(columns=['A']),
+            DataFrame(columns=["A"]),
+            DataFrame(columns=["A"]),
             on=lambda l, r: None,
-            left_on='A'
+            left_on="A",
         )
 
     error_msg = "Conditional merge must use `axis=1`"
@@ -91,13 +96,13 @@ def test_merge_conditional_bad_args():
 
 def test_merge_conditional_bad_on_func():
     # too few on func args
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match=".*"):
         merge(DataFrame(), DataFrame(), on=lambda l: None)
 
     # too many on func args
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match=".*"):
         merge(DataFrame(), DataFrame(), on=lambda l, r, x: None)
 
     # bad on func return value
-    with pytest.raises(Exception):
+    with pytest.raises(Exception, match=".*"):
         merge(DataFrame(), DataFrame(), on=lambda l, r: object())

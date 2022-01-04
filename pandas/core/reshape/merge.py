@@ -19,6 +19,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs import (
     Timedelta,
     hashtable as libhashtable,
@@ -1495,9 +1497,7 @@ class _MergeOperation:
         if self.validate:
             # Reason is that validation cannot be performed on a chunked basis
             # TODO: validate on the final result of the chunked merge result?
-            raise NotImplementedError(
-                "Conditional merge does not support validation"
-            )
+            raise NotImplementedError("Conditional merge does not support validation")
 
         if self.sort:
             # Reason is that there is no definitive sort order when using a
