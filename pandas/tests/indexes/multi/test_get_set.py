@@ -75,15 +75,11 @@ def test_get_dtypes_duplicate_level_names():
             ["a", "b", "c"],
             pd.date_range("20200101", periods=2, tz="UTC"),
         ],
-        names=["A", "A", "A"]
+        names=["A", "A", "A"],
     ).dtypes
     expected = pd.Series(
-        [
-                np.dtype("int64"),
-                np.dtype("O"),
-                DatetimeTZDtype(tz="utc")
-        ],
-        index=["A", "A", "A"]
+        [np.dtype("int64"), np.dtype("O"), DatetimeTZDtype(tz="utc")],
+        index=["A", "A", "A"],
     )
     tm.assert_series_equal(result, expected)
 
