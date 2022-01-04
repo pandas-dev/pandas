@@ -747,6 +747,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     @categories.setter
     def categories(self, categories):
         warn(
+            # GH#45186
             "Changing the categories of a Categorical in-place is deprecated and "
             "will raise in a future version. Use "
             "obj.rename_categories(categories) instead.",
