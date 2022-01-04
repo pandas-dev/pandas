@@ -5,19 +5,24 @@
 from __future__ import annotations
 
 import io
+from typing import Sequence
 
 from pandas._typing import (
     CompressionOptions,
     FilePath,
     ReadBuffer,
     StorageOptions,
+    XMLParsers,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
     AbstractMethodError,
     ParserError,
 )
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    deprecate_nonkeyword_arguments,
+    doc,
+)
 
 from pandas.core.dtypes.common import is_list_like
 
@@ -98,17 +103,17 @@ class _XMLFrameParser:
 
     def __init__(
         self,
-        path_or_buffer,
-        xpath,
-        namespaces,
-        elems_only,
-        attrs_only,
-        names,
-        encoding,
-        stylesheet,
+        path_or_buffer: FilePath | ReadBuffer[bytes] | ReadBuffer[str],
+        xpath: str,
+        namespaces: dict[str, str] | None,
+        elems_only: bool,
+        attrs_only: bool,
+        names: Sequence[str] | None,
+        encoding: str | None,
+        stylesheet: FilePath | ReadBuffer[bytes] | ReadBuffer[str] | None,
         compression: CompressionOptions,
         storage_options: StorageOptions,
-    ) -> None:
+    ):
         self.path_or_buffer = path_or_buffer
         self.xpath = xpath
         self.namespaces = namespaces
@@ -371,9 +376,6 @@ class _LxmlFrameParser(_XMLFrameParser):
     XPath 1.0 and XSLT 1.0.
     """
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-
     def parse_data(self) -> list[dict[str, str | None]]:
         """
         Parse xml data.
@@ -544,6 +546,11 @@ class _LxmlFrameParser(_XMLFrameParser):
             curr_parser = XMLParser(encoding=self.encoding)
 
             if isinstance(xml_data, io.StringIO):
+                if self.encoding is None:
+                    raise TypeError(
+                        "Can not pass encoding None when input is StringIO."
+                    )
+
                 doc = fromstring(
                     xml_data.getvalue().encode(self.encoding), parser=curr_parser
                 )
@@ -570,7 +577,7 @@ class _LxmlFrameParser(_XMLFrameParser):
 
 def get_data_from_filepath(
     filepath_or_buffer: FilePath | bytes | ReadBuffer[bytes] | ReadBuffer[str],
-    encoding,
+    encoding: str | None,
     compression: CompressionOptions,
     storage_options: StorageOptions,
 ) -> str | bytes | ReadBuffer[bytes] | ReadBuffer[str]:
@@ -658,15 +665,15 @@ def _data_to_frame(data, **kwargs) -> DataFrame:
 
 
 def _parse(
-    path_or_buffer,
-    xpath,
-    namespaces,
-    elems_only,
-    attrs_only,
-    names,
-    encoding,
-    parser,
-    stylesheet,
+    path_or_buffer: FilePath | ReadBuffer[bytes] | ReadBuffer[str],
+    xpath: str,
+    namespaces: dict[str, str] | None,
+    elems_only: bool,
+    attrs_only: bool,
+    names: Sequence[str] | None,
+    encoding: str | None,
+    parser: XMLParsers,
+    stylesheet: FilePath | ReadBuffer[bytes] | ReadBuffer[str] | None,
     compression: CompressionOptions,
     storage_options: StorageOptions,
     **kwargs,
@@ -686,11 +693,11 @@ def _parse(
         * If parser is not lxml or etree.
     """
 
-    lxml = import_optional_dependency("lxml.etree", errors="ignore")
-
     p: _EtreeFrameParser | _LxmlFrameParser
 
     if parser == "lxml":
+        lxml = import_optional_dependency("lxml.etree", errors="ignore")
+
         if lxml is not None:
             p = _LxmlFrameParser(
                 path_or_buffer,
@@ -728,19 +735,23 @@ def _parse(
     return _data_to_frame(data=data_dicts, **kwargs)
 
 
+@deprecate_nonkeyword_arguments(
+    version=None, allowed_args=["path_or_buffer"], stacklevel=2
+)
 @doc(
     storage_options=_shared_docs["storage_options"],
     decompression_options=_shared_docs["decompression_options"] % "path_or_buffer",
 )
 def read_xml(
     path_or_buffer: FilePath | ReadBuffer[bytes] | ReadBuffer[str],
-    xpath: str | None = "./*",
-    namespaces: dict | list[dict] | None = None,
-    elems_only: bool | None = False,
-    attrs_only: bool | None = False,
-    names: list[str] | None = None,
+    xpath: str = "./*",
+    namespaces: dict[str, str] | None = None,
+    elems_only: bool = False,
+    attrs_only: bool = False,
+    names: Sequence[str] | None = None,
+    # encoding can not be None for lxml and StringIO input
     encoding: str | None = "utf-8",
-    parser: str | None = "lxml",
+    parser: XMLParsers = "lxml",
     stylesheet: FilePath | ReadBuffer[bytes] | ReadBuffer[str] | None = None,
     compression: CompressionOptions = "infer",
     storage_options: StorageOptions = None,

@@ -246,6 +246,7 @@ CompressionDict = Dict[str, Any]
 CompressionOptions = Optional[
     Union[Literal["infer", "gzip", "bz2", "zip", "xz", "zstd"], CompressionDict]
 ]
+XMLParsers = Literal["lxml", "etree"]
 
 
 # types in DataFrameFormatter
