@@ -444,6 +444,18 @@ class TestiLocBaseIndependent:
         expected = Series([0, 1, 0], index=[4, 5, 6])
         tm.assert_series_equal(s, expected)
 
+    def test_iloc_setitem_axis_argument(self):
+        # GH45032
+        df = DataFrame([[6, "c", 10], [7, "d", 11], [8, "e", 12]])
+        expected = DataFrame([[6, "c", 10], [7, "d", 11], [5, 5, 5]])
+        df.iloc(axis=0)[2] = 5
+        tm.assert_frame_equal(df, expected)
+
+        df = DataFrame([[6, "c", 10], [7, "d", 11], [8, "e", 12]])
+        expected = DataFrame([[6, "c", 5], [7, "d", 5], [8, "e", 5]])
+        df.iloc(axis=1)[2] = 5
+        tm.assert_frame_equal(df, expected)
+
     def test_iloc_setitem_list(self):
 
         # setitem with an iloc list
