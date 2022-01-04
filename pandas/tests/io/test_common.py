@@ -549,7 +549,7 @@ def test_explicit_encoding(io_class, mode, msg):
 
 @pytest.mark.parametrize("encoding_errors", [None, "strict", "replace"])
 @pytest.mark.parametrize("format", ["csv", "json"])
-def test_encoding_errors(encoding_errors, format, request):
+def test_encoding_errors(encoding_errors, format):
     # GH39450
     msg = "'utf-8' codec can't decode byte"
     bad_encoding = b"\xe4"
