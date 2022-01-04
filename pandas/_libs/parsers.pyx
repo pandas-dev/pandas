@@ -375,6 +375,8 @@ cdef class TextReader:
         # set encoding for native Python and C library
         if isinstance(encoding_errors, str):
             encoding_errors = encoding_errors.encode("utf-8")
+        elif encoding_errors is None:
+            encoding_errors = b"strict"
         Py_INCREF(encoding_errors)
         self.encoding_errors = PyBytes_AsString(encoding_errors)
 
