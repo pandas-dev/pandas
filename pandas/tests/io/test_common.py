@@ -555,12 +555,8 @@ def test_encoding_errors(encoding_errors, format, request):
     bad_encoding = b"\xe4"
 
     if format == "csv":
-        content = bad_encoding + b"\n" + bad_encoding
-        reader = pd.read_csv
-        if encoding_errors == "replace":
-            request.applymarker(
-                pytest.mark.xfail(reason="Should work but needs more time to debug.")
-            )
+        content = b"," + bad_encoding + b"\n" + bad_encoding * 2 + b"," + bad_encoding
+        reader = partial(pd.read_csv, index_col=0)
     else:
         content = (
             b'{"'
