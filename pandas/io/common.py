@@ -874,6 +874,13 @@ def get_handle(
 
 
 class _BytesTarFile(tarfile.TarFile, BytesIO):
+    """
+    Wrapper for standard library class TarFile and allow the returned file-like
+    handle to accept byte strings via `write` method.
+
+    BytesIO provides attributes of file-like object and TarFile.addfile writes
+    bytes strings into a member of the archive.
+    """
 
     # GH 17778
     def __init__(
