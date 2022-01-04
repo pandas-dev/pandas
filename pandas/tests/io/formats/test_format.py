@@ -2874,6 +2874,18 @@ class TestFloatArrayFormatter:
             expected_output = "0     840\n1    4200\ndtype: float64"
             assert str(s) == expected_output
 
+    @pytest.mark.parametrize(
+        "value", [[9.4444], [0.49], [10.9999], [9.5444, 9.6], [0.46, 0.78, -9.9999]]
+    )
+    def test_set_option_precision(self, value):
+        # Issue #30122
+        # Precision was incorrectly shown
+
+        with option_context("display.precision", 0):
+
+            df = DataFrame(value)
+            assert str(df) == str(DataFrame(value).round(1))
+
     def test_output_significant_digits(self):
         # Issue #9764
 
