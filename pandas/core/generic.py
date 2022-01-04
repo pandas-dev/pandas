@@ -6278,6 +6278,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace: bool_t = False,
         limit=None,
         downcast=None,
+        errors=lib.no_default,
     ) -> NDFrameT | None:
         """
         Fill NA/NaN values using the specified method.
@@ -6311,6 +6312,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             A dict of item->dtype of what to downcast if possible,
             or the string 'infer' which will try to downcast to an appropriate
             equal type (e.g. float64 to int64 if possible).
+        errors : {{'raise', 'coerce'}}
+            If the given value cannot be filled into an array with this dtype,
+            do we raise or coerce to a common dtype?
+            Default depends on dtype for backward compatibility. For most dtypes,
+            the default is to coerce. In a future version, the default will be
+            to coerce for all dtypes.
+
+            .. versionadded:: 1.4.0
 
         Returns
         -------
@@ -6390,6 +6399,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         value, method = validate_fillna_kwargs(value, method)
+        if errors not in ["raise", "coerce", lib.no_default]:
+            raise ValueError("'errors' must be either 'raise' or 'coerce'")
 
         self._consolidate_inplace()
 
@@ -6403,7 +6414,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if not self._mgr.is_single_block and axis == 1:
                 if inplace:
                     raise NotImplementedError()
-                result = self.T.fillna(method=method, limit=limit).T
+                result = self.T.fillna(method=method, limit=limit, errors=errors).T
 
                 return result
 
@@ -6413,7 +6424,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 limit=limit,
                 inplace=inplace,
                 coerce=True,
-                downcast=downcast,
+                downcast=downcast,  # TODO: errors
             )
         else:
             if self.ndim == 1:
@@ -6438,7 +6449,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     )
 
                 new_data = self._mgr.fillna(
-                    value=value, limit=limit, inplace=inplace, downcast=downcast
+                    value=value,
+                    limit=limit,
+                    inplace=inplace,
+                    downcast=downcast,
+                    errors=errors,
                 )
 
             elif isinstance(value, (dict, ABCSeries)):
@@ -6455,23 +6470,29 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     if k not in result:
                         continue
                     downcast_k = downcast if not is_dict else downcast.get(k)
-                    result[k] = result[k].fillna(v, limit=limit, downcast=downcast_k)
+                    result[k] = result[k].fillna(
+                        v, limit=limit, downcast=downcast_k, errors=errors
+                    )
                 return result if not inplace else None
 
             elif not is_list_like(value):
                 if not self._mgr.is_single_block and axis == 1:
 
-                    result = self.T.fillna(value=value, limit=limit).T
+                    result = self.T.fillna(value=value, limit=limit, errors=errors).T
 
                     new_data = result
                 else:
 
                     new_data = self._mgr.fillna(
-                        value=value, limit=limit, inplace=inplace, downcast=downcast
+                        value=value,
+                        limit=limit,
+                        inplace=inplace,
+                        downcast=downcast,
+                        errors=errors,
                     )
             elif isinstance(value, ABCDataFrame) and self.ndim == 2:
 
-                new_data = self.where(self.notna(), value)._mgr
+                new_data = self.where(self.notna(), value)._mgr  # TODO: errors
             else:
                 raise ValueError(f"invalid fill value with a {type(value)}")
 

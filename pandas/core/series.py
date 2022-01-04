@@ -4765,6 +4765,7 @@ Keep all original rows and also all original values
         inplace: Literal[False] = ...,
         limit=...,
         downcast=...,
+        errors=...,
     ) -> Series:
         ...
 
@@ -4777,6 +4778,7 @@ Keep all original rows and also all original values
         inplace: Literal[True],
         limit=...,
         downcast=...,
+        errors=...,
     ) -> None:
         ...
 
@@ -4787,6 +4789,7 @@ Keep all original rows and also all original values
         inplace: Literal[True],
         limit=...,
         downcast=...,
+        errors=...,
     ) -> None:
         ...
 
@@ -4798,6 +4801,7 @@ Keep all original rows and also all original values
         inplace: Literal[True],
         limit=...,
         downcast=...,
+        errors=...,
     ) -> None:
         ...
 
@@ -4809,6 +4813,7 @@ Keep all original rows and also all original values
         inplace: Literal[True],
         limit=...,
         downcast=...,
+        errors=...,
     ) -> None:
         ...
 
@@ -4820,6 +4825,7 @@ Keep all original rows and also all original values
         inplace: Literal[True],
         limit=...,
         downcast=...,
+        errors=...,
     ) -> None:
         ...
 
@@ -4832,6 +4838,7 @@ Keep all original rows and also all original values
         inplace: Literal[True],
         limit=...,
         downcast=...,
+        errors=...,
     ) -> None:
         ...
 
@@ -4844,6 +4851,7 @@ Keep all original rows and also all original values
         inplace: Literal[True],
         limit=...,
         downcast=...,
+        errors=...,
     ) -> None:
         ...
 
@@ -4856,6 +4864,7 @@ Keep all original rows and also all original values
         inplace: Literal[True],
         limit=...,
         downcast=...,
+        errors=...,
     ) -> None:
         ...
 
@@ -4868,6 +4877,7 @@ Keep all original rows and also all original values
         inplace: bool = ...,
         limit=...,
         downcast=...,
+        errors=...,
     ) -> Series | None:
         ...
 
@@ -4882,6 +4892,7 @@ Keep all original rows and also all original values
         inplace=False,
         limit=None,
         downcast=None,
+        errors=lib.no_default,
     ) -> Series | None:
         return super().fillna(
             value=value,
@@ -4890,6 +4901,7 @@ Keep all original rows and also all original values
             inplace=inplace,
             limit=limit,
             downcast=downcast,
+            errors=errors,
         )
 
     def pop(self, item: Hashable) -> Any:

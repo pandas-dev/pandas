@@ -434,7 +434,12 @@ class Block(PandasObject):
         return [nb]
 
     def fillna(
-        self, value, limit=None, inplace: bool = False, downcast=None
+        self,
+        value,
+        limit=None,
+        inplace: bool = False,
+        downcast=None,
+        errors=lib.no_default,
     ) -> list[Block]:
         """
         fillna on the block with the value. If we fail, then convert to
@@ -455,7 +460,7 @@ class Block(PandasObject):
             else:
                 return [self.copy()]
 
-        if self._can_hold_element(value):
+        if self._can_hold_element(value) or errors == "raise":
             nb = self if inplace else self.copy()
             putmask_inplace(nb.values, mask, value)
             return nb._maybe_downcast([nb], downcast)
@@ -1673,9 +1678,35 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         return type(self)(new_values, self._mgr_locs, ndim=self.ndim)
 
     def fillna(
-        self, value, limit=None, inplace: bool = False, downcast=None
+        self,
+        value,
+        limit=None,
+        inplace: bool = False,
+        downcast=None,
+        errors=lib.no_default,
     ) -> list[Block]:
-        values = self.values.fillna(value=value, limit=limit)
+        try:
+            values = self.values.fillna(value=value, limit=limit)
+        except (ValueError, TypeError):
+            if errors is lib.no_default:
+                warnings.warn(
+                    f"The default behavior of fillna with {self.dtype} is "
+                    "deprecated. In a future version, when the specified value "
+                    "cannot be held in an array, the value and array will be "
+                    "coerced to a common dtype. This is consistent with the "
+                    "behavior with numpy dtypes. To retain the old behavior, "
+                    "pass `errors='raise'` to obj.fillna. To get the future "
+                    "behavior, pass `errors='coerce'`.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+                errors = "raise"
+            if errors == "coerce":
+                blk = self.coerce_to_target_dtype(value)
+                return blk.fillna(value, limit=limit, inplace=True, downcast=downcast)
+            else:
+                raise
+
         return [self.make_block_same_class(values=values)]
 
     def diff(self, n: int, axis: int = 1) -> list[Block]:
@@ -1814,18 +1845,43 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
         return [self.make_block_same_class(new_values)]
 
     def fillna(
-        self, value, limit=None, inplace: bool = False, downcast=None
+        self,
+        value,
+        limit=None,
+        inplace: bool = False,
+        downcast=None,
+        errors=lib.no_default,
     ) -> list[Block]:
 
-        if not self._can_hold_element(value) and self.dtype.kind != "m":
-            # We support filling a DatetimeTZ with a `value` whose timezone
-            #  is different by coercing to object.
-            # TODO: don't special-case td64
-            return self.coerce_to_target_dtype(value).fillna(
-                value, limit, inplace, downcast
-            )
+        try:
+            new_values = self.values.fillna(value=value, limit=limit)
+        except (ValueError, TypeError) as err:
+            if isinstance(err, ValueError) and "Timezones don't match" not in str(err):
+                # TODO(2.0): remove catching ValueError at all since
+                #  DTA raising here is deprecated
+                raise
 
-        new_values = self.values.fillna(value=value, limit=limit)
+            if errors is lib.no_default and self.dtype.kind == "m":
+                # Deprecating special-casing of td64
+                warnings.warn(
+                    f"The default behavior of fillna with {self.dtype} is "
+                    "deprecated. In a future version, when the specified value "
+                    "cannot be held in an array, the value and array will be "
+                    "coerced to a common dtype. This is consistent with the "
+                    "behavior with numpy dtypes. To retain the old behavior, "
+                    "pass `errors='raise'` to obj.fillna. To get the future "
+                    "behavior, pass `errors='coerce'`.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+                raise
+            elif errors == "coerce" or errors is lib.no_default:
+                # for non-td64, the default is already to coerce.
+                blk = self.coerce_to_target_dtype(value)
+                return blk.fillna(value, limit, inplace, downcast)
+            else:
+                raise
+
         return [self.make_block_same_class(values=new_values)]
 
 

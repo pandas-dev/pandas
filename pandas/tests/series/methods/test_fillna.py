@@ -254,7 +254,7 @@ class TestSeriesFillNA:
         # interpreted as seconds, no longer supported
         msg = "value should be a 'Timedelta', 'NaT', or array of those. Got 'int'"
         with pytest.raises(TypeError, match=msg):
-            obj.fillna(1)
+            obj.fillna(1, errors="raise")
 
         result = obj.fillna(Timedelta(seconds=1))
         expected = Series(
@@ -723,29 +723,29 @@ class TestSeriesFillNA:
 
         msg = "Cannot setitem on a Categorical with a new category"
         with pytest.raises(TypeError, match=msg):
-            ser.fillna("d")
+            ser.fillna("d", errors="raise")
 
         msg2 = "Length of 'value' does not match."
         with pytest.raises(ValueError, match=msg2):
             cat.fillna(Series("d"))
 
         with pytest.raises(TypeError, match=msg):
-            ser.fillna({1: "d", 3: "a"})
+            ser.fillna({1: "d", 3: "a"}, errors="raise")
 
         msg = '"value" parameter must be a scalar or dict, but you passed a "list"'
         with pytest.raises(TypeError, match=msg):
-            ser.fillna(["a", "b"])
+            ser.fillna(["a", "b"], errors="raise")
 
         msg = '"value" parameter must be a scalar or dict, but you passed a "tuple"'
         with pytest.raises(TypeError, match=msg):
-            ser.fillna(("a", "b"))
+            ser.fillna(("a", "b"), errors="raise")
 
         msg = (
             '"value" parameter must be a scalar, dict '
             'or Series, but you passed a "DataFrame"'
         )
         with pytest.raises(TypeError, match=msg):
-            ser.fillna(DataFrame({1: ["a"], 3: ["b"]}))
+            ser.fillna(DataFrame({1: ["a"], 3: ["b"]}), errors="raise")
 
     @pytest.mark.parametrize("dtype", [float, "float32", "float64"])
     @pytest.mark.parametrize("fill_type", tm.ALL_REAL_NUMPY_DTYPES)

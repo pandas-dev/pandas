@@ -382,9 +382,14 @@ class BaseArrayManager(DataManager):
             "shift", periods=periods, axis=axis, fill_value=fill_value
         )
 
-    def fillna(self: T, value, limit, inplace: bool, downcast) -> T:
+    def fillna(self: T, value, limit, inplace: bool, downcast, errors) -> T:
         return self.apply_with_block(
-            "fillna", value=value, limit=limit, inplace=inplace, downcast=downcast
+            "fillna",
+            value=value,
+            limit=limit,
+            inplace=inplace,
+            downcast=downcast,
+            errors=errors,
         )
 
     def astype(self: T, dtype, copy: bool = False, errors: str = "raise") -> T:
