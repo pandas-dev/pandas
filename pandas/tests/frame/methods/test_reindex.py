@@ -8,6 +8,8 @@ from itertools import permutations
 import numpy as np
 import pytest
 
+from pandas._libs.tslibs.timezones import dateutil_gettz as gettz
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -77,6 +79,41 @@ class TestReindexSetIndex:
         df2["d"] = []
         result = df2.reset_index()
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "timezone, year, month, day, hour",
+        [["America/Chicago", 2013, 11, 3, 1], ["America/Santiago", 2021, 4, 3, 23]],
+    )
+    def test_reindex_timestamp_with_fold(self, timezone, year, month, day, hour):
+        # see gh-40817
+        test_timezone = gettz(timezone)
+        transition_1 = pd.Timestamp(
+            year=year,
+            month=month,
+            day=day,
+            hour=hour,
+            minute=0,
+            fold=0,
+            tzinfo=test_timezone,
+        )
+        transition_2 = pd.Timestamp(
+            year=year,
+            month=month,
+            day=day,
+            hour=hour,
+            minute=0,
+            fold=1,
+            tzinfo=test_timezone,
+        )
+        df = (
+            DataFrame({"index": [transition_1, transition_2], "vals": ["a", "b"]})
+            .set_index("index")
+            .reindex(["1", "2"])
+        )
+        tm.assert_frame_equal(
+            df,
+            DataFrame({"index": ["1", "2"], "vals": [None, None]}).set_index("index"),
+        )
 
 
 class TestDataFrameSelectReindex:
