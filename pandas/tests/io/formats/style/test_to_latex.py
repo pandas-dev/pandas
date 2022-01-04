@@ -881,7 +881,7 @@ def test_apply_index_hidden_levels():
 @pytest.mark.parametrize("clines", ["bad", "index", "skip-last", "all", "data"])
 def test_clines_validation(clines, styler):
     msg = f"`clines` value of {clines} is invalid."
-    with pytest.raises(AttributeError, match=msg):
+    with pytest.raises(ValueError, match=msg):
         styler.to_latex(clines=clines)
 
 
