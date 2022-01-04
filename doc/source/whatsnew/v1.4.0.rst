@@ -40,55 +40,43 @@ This made it difficult to determine where the warning was being generated from. 
     A value is trying to be set on a copy of a slice from a DataFrame.
 
 
-.. _whatsnew_140.enhancements.numeric_index:
 
-More flexible numeric dtypes for indexes
+
+.. _whatsnew_140.enhancements.ExtensionIndex:
+
+Index can hold arbitrary ExtensionArrays
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Until now, it has only been possible to create numeric indexes with int64/float64/uint64 dtypes.
-It is now possible to create an index of any numpy int/uint/float dtype using the new :class:`NumericIndex` index type (:issue:`41153`):
+Until now, passing a custom :class:`ExtensionArray` to ``pd.Index`` would cast the
+array to ``object`` dtype. Now :class:`Index` can directly hold arbitrary ExtensionArrays (:issue:`43930`).
+
+*Previous behavior*:
 
 .. ipython:: python
 
-    pd.NumericIndex([1, 2, 3], dtype="int8")
-    pd.NumericIndex([1, 2, 3], dtype="uint32")
-    pd.NumericIndex([1, 2, 3], dtype="float32")
+   arr = pd.array([1, 2, pd.NA])
+   idx = pd.Index(arr)
 
-In order to maintain backwards compatibility, calls to the base :class:`Index` will currently
-return :class:`Int64Index`, :class:`UInt64Index` and :class:`Float64Index`, where relevant.
-For example, the code below returns an ``Int64Index`` with dtype ``int64``:
+In the old behavior, ``idx`` would be object-dtype:
 
-.. code-block:: ipython
-
-    In [1]: pd.Index([1, 2, 3], dtype="int8")
-    Int64Index([1, 2, 3], dtype='int64')
-
-but will in a future version return a :class:`NumericIndex` with dtype ``int8``.
-
-More generally, currently, all operations that until now have
-returned :class:`Int64Index`, :class:`UInt64Index` and :class:`Float64Index` will
-continue to so. This means, that in order to use ``NumericIndex`` in the current version, you
-will have to call ``NumericIndex`` explicitly. For example the below series will have an ``Int64Index``:
+*Previous behavior*:
 
 .. code-block:: ipython
 
-    In [2]: ser = pd.Series([1, 2, 3], index=[1, 2, 3])
-    In [3]: ser.index
-    Int64Index([1, 2, 3], dtype='int64')
+   In [1]: idx
+   Out[1]: Index([1, 2, <NA>], dtype='object')
 
-Instead, if you want to use a ``NumericIndex``, you should do:
+With the new behavior, we keep the original dtype:
+
+*New behavior*:
 
 .. ipython:: python
 
-    idx = pd.NumericIndex([1, 2, 3], dtype="int8")
-    ser = pd.Series([1, 2, 3], index=idx)
-    ser.index
+   idx
 
-In a future version of Pandas, :class:`NumericIndex` will become the default numeric index type and
-``Int64Index``, ``UInt64Index`` and ``Float64Index`` are therefore deprecated and will
-be removed in the future, see :ref:`here <whatsnew_140.deprecations.int64_uint64_float64index>` for more.
-
-See :ref:`here <advanced.numericindex>` for more about :class:`NumericIndex`.
+One exception to this is ``SparseArray``, which will continue to cast to numpy
+dtype until pandas 2.0. At that point it will retain its dtype like other
+ExtensionArrays.
 
 .. _whatsnew_140.enhancements.styler:
 
@@ -236,7 +224,7 @@ Other enhancements
 - :meth:`is_list_like` now identifies duck-arrays as list-like unless ``.ndim == 0`` (:issue:`35131`)
 - :class:`ExtensionDtype` and :class:`ExtensionArray` are now (de)serialized when exporting a :class:`DataFrame` with :meth:`DataFrame.to_json` using ``orient='table'`` (:issue:`20612`, :issue:`44705`).
 - Add support for `Zstandard <http://facebook.github.io/zstd/>`_ compression to :meth:`DataFrame.to_pickle`/:meth:`read_pickle` and friends (:issue:`43925`)
--
+- :meth:`DataFrame.to_sql` now returns an ``int`` of the number of written rows (:issue:`23998`)
 
 
 .. ---------------------------------------------------------------------------
@@ -504,12 +492,33 @@ Deprecations
 
 Deprecated Int64Index, UInt64Index & Float64Index
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 :class:`Int64Index`, :class:`UInt64Index` and :class:`Float64Index` have been deprecated
-in favor of the new :class:`NumericIndex` and will be removed in Pandas 2.0 (:issue:`43028`).
+in favor of the base :class:`Index` class and will be removed in Pandas 2.0 (:issue:`43028`).
+
+For constructing a numeric index, you can use the base :class:`Index` class instead
+specifying the data type (which will also work on older pandas releases):
+
+.. code-block:: python
+
+    # replace
+    pd.Int64Index([1, 2, 3])
+    # with
+    pd.Index([1, 2, 3], dtype="int64")
+
+For checking the data type of an index object, you can replace ``isinstance``
+checks with checking the ``dtype``:
+
+.. code-block:: python
+
+    # replace
+    isinstance(idx, pd.Int64Index)
+    # with
+    idx.dtype == "int64"
 
 Currently, in order to maintain backward compatibility, calls to
 :class:`Index` will continue to return :class:`Int64Index`, :class:`UInt64Index` and :class:`Float64Index`
-when given numeric data, but in the future, a :class:`NumericIndex` will be returned.
+when given numeric data, but in the future, an :class:`Index` will be returned.
 
 *Current behavior*:
 
@@ -525,9 +534,9 @@ when given numeric data, but in the future, a :class:`NumericIndex` will be retu
 .. code-block:: ipython
 
     In [3]: pd.Index([1, 2, 3], dtype="int32")
-    Out [3]: NumericIndex([1, 2, 3], dtype='int32')
+    Out [3]: Index([1, 2, 3], dtype='int32')
     In [4]: pd.Index([1, 2, 3], dtype="uint64")
-    Out [4]: NumericIndex([1, 2, 3], dtype='uint64')
+    Out [4]: Index([1, 2, 3], dtype='uint64')
 
 
 .. _whatsnew_140.deprecations.frame_series_append:
@@ -602,7 +611,9 @@ Other Deprecations
 - Deprecated the ``prefix`` keyword argument in :func:`read_csv` and :func:`read_table`, in a future version the argument will be removed (:issue:`43396`)
 - Deprecated passing non boolean argument to sort in :func:`concat` (:issue:`41518`)
 - Deprecated passing arguments as positional for :func:`read_fwf` other than ``filepath_or_buffer`` (:issue:`41485`):
+- Deprecated passing arguments as positional for :func:`read_xml` other than ``path_or_buffer`` (:issue:`45133`):
 - Deprecated passing ``skipna=None`` for :meth:`DataFrame.mad` and :meth:`Series.mad`, pass ``skipna=True`` instead (:issue:`44580`)
+- Deprecated the behavior of :func:`to_datetime` with the string "now" with ``utc=False``; in a future version this will match ``Timestamp("now")``, which in turn matches :meth:`Timestamp.now` returning the local time (:issue:`18705`)
 - Deprecated :meth:`DateOffset.apply`, use ``offset + other`` instead (:issue:`44522`)
 - Deprecated parameter ``names`` in :meth:`Index.copy` (:issue:`44916`)
 - A deprecation warning is now shown for :meth:`DataFrame.to_latex` indicating the arguments signature may change and emulate more the arguments to :meth:`.Styler.to_latex` in future versions (:issue:`44411`)
@@ -619,7 +630,9 @@ Other Deprecations
 - Deprecated ``numeric_only=None`` in :meth:`DataFrame.rank`; in a future version ``numeric_only`` must be either ``True`` or ``False`` (the default) (:issue:`45036`)
 - Deprecated the behavior of :meth:`Timestamp.utcfromtimestamp`, in the future it will return a timezone-aware UTC :class:`Timestamp` (:issue:`22451`)
 - Deprecated :meth:`NaT.freq` (:issue:`45071`)
+- Deprecated behavior of :class:`Series` and :class:`DataFrame` construction when passed float-dtype data containing ``NaN`` and an integer dtype ignoring the dtype argument; in a future version this will raise (:issue:`40110`)
 -
+
 
 .. ---------------------------------------------------------------------------
 
@@ -712,12 +725,15 @@ Datetimelike
 - Bug in :class:`DateOffset`` addition with :class:`Timestamp` where ``offset.nanoseconds`` would not be included in the result (:issue:`43968`, :issue:`36589`)
 - Bug in :meth:`Timestamp.fromtimestamp` not supporting the ``tz`` argument (:issue:`45083`)
 - Bug in :class:`DataFrame` construction from dict of :class:`Series` with mismatched index dtypes sometimes raising depending on the ordering of the passed dict (:issue:`44091`)
+- Bug in :class:`Timestamp` hashing during some DST transitions caused a segmentation fault (:issue:`33931` and :issue:`40817`)
 -
 
 Timedelta
 ^^^^^^^^^
 - Bug in division of all-``NaT`` :class:`TimeDeltaIndex`, :class:`Series` or :class:`DataFrame` column with object-dtype arraylike of numbers failing to infer the result as timedelta64-dtype (:issue:`39750`)
 - Bug in floor division of ``timedelta64[ns]`` data with a scalar returning garbage values (:issue:`44466`)
+- Bug in :class:`Timedelta` now properly taking into account any nanoseconds contribution of any kwarg (:issue:`43764`)
+-
 
 Timezones
 ^^^^^^^^^
@@ -800,6 +816,8 @@ Indexing
 - Bug in :meth:`IntervalIndex.get_indexer_non_unique` not handling targets of ``dtype`` 'object' with NaNs correctly (:issue:`44482`)
 - Fixed regression where a single column ``np.matrix`` was no longer coerced to a 1d ``np.ndarray`` when added to a :class:`DataFrame` (:issue:`42376`)
 - Bug in :meth:`Series.__getitem__` with a :class:`CategoricalIndex` of integers treating lists of integers as positional indexers, inconsistent with the behavior with a single scalar integer (:issue:`15470`, :issue:`14865`)
+- Bug in :meth:`Series.__setitem__` when setting floats or integers into integer-dtype series failing to upcast when necessary to retain precision (:issue:`45121`)
+- Bug in :meth:`DataFrame.iloc.__setitem__` ignores axis argument (:issue:`45032`)
 -
 
 Missing
@@ -870,6 +888,8 @@ Period
 - Bug in :meth:`PeriodIndex.to_timestamp` when the index has ``freq="B"`` inferring ``freq="D"`` for its result instead of ``freq="B"`` (:issue:`44105`)
 - Bug in :class:`Period` constructor incorrectly allowing ``np.timedelta64("NaT")`` (:issue:`44507`)
 - Bug in :meth:`PeriodIndex.to_timestamp` giving incorrect values for indexes with non-contiguous data (:issue:`44100`)
+- Bug in :meth:`Series.where` with ``PeriodDtype`` incorrectly raising when the ``where`` call should not replace anything (:issue:`45135`)
+
 -
 
 Plotting
@@ -899,6 +919,7 @@ Groupby/resample/rolling
 - Bug in :meth:`GroupBy.nth` failing on ``axis=1`` (:issue:`43926`)
 - Fixed bug in :meth:`Series.rolling` and :meth:`DataFrame.rolling` not respecting right bound on centered datetime-like windows, if the index contain duplicates (:issue:`3944`)
 - Bug in :meth:`Series.rolling` and :meth:`DataFrame.rolling` when using a :class:`pandas.api.indexers.BaseIndexer` subclass that returned unequal start and end arrays would segfault instead of raising a ``ValueError`` (:issue:`44470`)
+- Bug in :meth:`Groupby.nunique` not respecting ``observed=True`` for Categorical grouping columns (:issue:`45128`)
 - Bug in :meth:`GroupBy.head` and :meth:`GroupBy.tail` not dropping groups with ``NaN`` when ``dropna=True`` (:issue:`45089`)
 - Fixed bug in :meth:`GroupBy.__iter__` after selecting a subset of columns in a :class:`GroupBy` object, which returned all columns instead of the chosen subset (:issue:`#44821`)
 - Bug in :meth:`Groupby.rolling` when non-monotonic data passed, fails to correctly raise ``ValueError`` (:issue:`43909`)
@@ -924,6 +945,7 @@ Reshaping
 - Bug in :meth:`Series.unstack` with object doing unwanted type inference on resulting columns (:issue:`44595`)
 - Bug in :class:`MultiIndex` failing join operations with overlapping ``IntervalIndex`` levels (:issue:`44096`)
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` results is different ``dtype`` based on ``regex`` parameter (:issue:`44864`)
+- Bug in :meth:`DataFrame.pivot` with ``index=None`` when the :class:`DataFrame` index was a :class:`MultiIndex` (:issue:`23955`)
 
 Sparse
 ^^^^^^
@@ -940,6 +962,7 @@ ExtensionArray
 - Bug in :func:`array` failing to preserve :class:`PandasArray` (:issue:`43887`)
 - NumPy ufuncs ``np.abs``, ``np.positive``, ``np.negative`` now correctly preserve dtype when called on ExtensionArrays that implement ``__abs__, __pos__, __neg__``, respectively. In particular this is fixed for :class:`TimedeltaArray` (:issue:`43899`, :issue:`23316`)
 - NumPy ufuncs ``np.minimum.reduce`` ``np.maximum.reduce``, ``np.add.reduce``, and ``np.prod.reduce`` now work correctly instead of raising ``NotImplementedError`` on :class:`Series` with ``IntegerDtype`` or ``FloatDtype`` (:issue:`43923`, :issue:`44793`)
+- NumPy ufuncs with ``out`` keyword are now supported by arrays with ``IntegerDtype`` and ``FloatingDtype`` (:issue:`45122`)
 - Avoid raising ``PerformanceWarning`` about fragmented DataFrame when using many columns with an extension dtype (:issue:`44098`)
 - Bug in :class:`IntegerArray` and :class:`FloatingArray` construction incorrectly coercing mismatched NA values (e.g. ``np.timedelta64("NaT")``) to numeric NA (:issue:`44514`)
 - Bug in :meth:`BooleanArray.__eq__` and :meth:`BooleanArray.__ne__` raising ``TypeError`` on comparison with an incompatible type (like a string). This caused :meth:`DataFrame.replace` to sometimes raise a ``TypeError`` if a nullable boolean column was included (:issue:`44499`)

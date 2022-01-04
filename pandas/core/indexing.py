@@ -1003,7 +1003,10 @@ class _LocIndexer(_LocationIndexer):
         # slice of labels (where start-end in labels)
         # slice of integers (only if in the labels)
         # boolean not in slice and with boolean index
-        if isinstance(key, bool) and not is_bool_dtype(self.obj._get_axis(axis)):
+        if isinstance(key, bool) and not (
+            is_bool_dtype(self.obj._get_axis(axis))
+            or self.obj._get_axis(axis).dtype.name == "boolean"
+        ):
             raise KeyError(
                 f"{key}: boolean label can not be used without a boolean index"
             )
@@ -1537,7 +1540,11 @@ class _iLocIndexer(_LocationIndexer):
     def _get_setitem_indexer(self, key):
         # GH#32257 Fall through to let numpy do validation
         if is_iterator(key):
-            return list(key)
+            key = list(key)
+
+        if self.axis is not None:
+            return self._convert_tuple(key)
+
         return key
 
     # -------------------------------------------------------------------
