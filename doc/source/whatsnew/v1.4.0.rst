@@ -839,6 +839,7 @@ MultiIndex
 - Bug in :meth:`MultiIndex.get_loc` raising ``TypeError`` instead of ``KeyError`` on nested tuple (:issue:`42440`)
 - Bug in :meth:`MultiIndex.union` setting wrong ``sortorder`` causing errors in subsequent indexing operations with slices (:issue:`44752`)
 - Bug in :meth:`MultiIndex.putmask` where the other value was also a :class:`MultiIndex` (:issue:`43212`)
+- Bug in :meth:`MultiIndex.dtypes` duplicate level names returned only one dtype per name (:issue:`45174`)
 -
 
 I/O
@@ -881,6 +882,7 @@ I/O
 - Bug in :func:`read_csv` silently ignoring errors when failing to create a memory-mapped file (:issue:`44766`)
 - Bug in :func:`read_csv` when passing a ``tempfile.SpooledTemporaryFile`` opened in binary mode (:issue:`44748`)
 - Bug in :func:`read_json` raising ``ValueError`` when attempting to parse json strings containing "://" (:issue:`36271`)
+- Bug in :func:`read_csv` when ``engine="c"`` and ``encoding_errors=None`` which caused a segfault (:issue:`45180`)
 -
 
 Period
@@ -1001,6 +1003,7 @@ Other
 - Bug in :meth:`DataFrame.diff` when passing a NumPy integer object instead of an ``int`` object (:issue:`44572`)
 - Bug in :meth:`Series.replace` raising ``ValueError`` when using ``regex=True`` with a :class:`Series` containing ``np.nan`` values (:issue:`43344`)
 - Bug in :meth:`DataFrame.to_records` where an incorrect ``n`` was used when missing names were replaced by ``level_n`` (:issue:`44818`)
+- Bug in :meth:`DataFrame.eval` where ``resolvers`` argument was overriding the default resolvers (:issue:`34966`)
 
 .. ***DO NOT USE THIS SECTION***
 
