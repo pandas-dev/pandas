@@ -763,10 +763,12 @@ def get_handle(
 
         # TAR Encoding
         elif compression == "tar":
+            if "mode" not in compression_args:
+                compression_args["mode"] = ioargs.mode
             if is_path:
-                handle = _BytesTarFile.open(name=handle, mode=ioargs.mode)
+                handle = _BytesTarFile.open(name=handle, **compression_args)
             else:
-                handle = _BytesTarFile.open(fileobj=handle, mode=ioargs.mode)
+                handle = _BytesTarFile.open(fileobj=handle, **compression_args)
             if handle.mode == "r":
                 handles.append(handle)
                 files = handle.getnames()

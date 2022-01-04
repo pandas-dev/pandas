@@ -30,13 +30,11 @@ def flip(my_dict: dict):
 )
 @pytest.mark.parametrize("method", ["to_pickle", "to_json", "to_csv"])
 def test_compression_size(obj, method, compression_only):
-    kwargs = {}
-
     if compression_only == "tar":
-        kwargs["mode"] = "w:gz"
+        compression_only = {"method": "tar", "mode": "w:gz"}
 
     with tm.ensure_clean() as path:
-        getattr(obj, method)(path, compression=compression_only, **kwargs)
+        getattr(obj, method)(path, compression=compression_only)
         compressed_size = os.path.getsize(path)
         getattr(obj, method)(path, compression=None)
         uncompressed_size = os.path.getsize(path)
