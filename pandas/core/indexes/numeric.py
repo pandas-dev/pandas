@@ -27,7 +27,6 @@ from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_extension_array_dtype,
-    is_float,
     is_float_dtype,
     is_integer_dtype,
     is_numeric_dtype,
@@ -215,22 +214,6 @@ class NumericIndex(Index):
         else:
             # dtype for Int64Index, UInt64Index etc. Needed for backwards compat.
             return cls._default_dtype
-
-    def __contains__(self, key) -> bool:
-        """
-        Check if key is a float and has a decimal. If it has, return False.
-        """
-        if not is_integer_dtype(self.dtype):
-            return super().__contains__(key)
-
-        hash(key)
-        try:
-            if is_float(key) and int(key) != key:
-                # otherwise the `key in self._engine` check casts e.g. 1.1 -> 1
-                return False
-            return key in self._engine
-        except (OverflowError, TypeError, ValueError):
-            return False
 
     @doc(Index.astype)
     def astype(self, dtype, copy: bool = True):
