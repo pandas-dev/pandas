@@ -106,7 +106,7 @@ def merge(
     indicator: bool = False,
     validate: str | None = None,
 ) -> DataFrame:
-    op = _ConditionalEnabledMergeOperation(
+    op = _MergeOperation(
         left,
         right,
         how=how,
@@ -600,6 +600,11 @@ def merge_asof(
     return op.get_result()
 
 
+def _chunks(lst, n):
+    for i in range(0, len(lst), n):
+        yield lst[i : i + n]
+
+
 # TODO: transformations??
 # TODO: only copy DataFrames when modification necessary
 class _MergeOperation:
@@ -615,7 +620,7 @@ class _MergeOperation:
         left: DataFrame | Series,
         right: DataFrame | Series,
         how: str = "inner",
-        on: IndexLabel | None = None,
+        on: IndexLabel | Callable | None = None,
         left_on: IndexLabel | None = None,
         right_on: IndexLabel | None = None,
         axis: int = 1,
@@ -681,6 +686,30 @@ class _MergeOperation:
             # (and not DataFrame.join)
             warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
 
+        self._is_conditional_merge = False
+        if callable(on):
+            # We want to keep v1 conditional merge implementation within
+            # _MergeOperation. However, keep as untangled as possible in anticipation
+            # of feature optimization refactor
+            self._is_conditional_merge = True
+            self.on = on  # set originally passed in `on`
+            self.axis = axis  # set original passed in `axis`
+
+            self._validate_specification()
+
+            self.left_join_keys = None
+            self.right_join_keys = None
+            self.join_names = None
+
+            # TODO: dynamically determine optimal default chunk size
+            left_chunk_size = get_option("conditional_merge.left_chunk_size")
+            right_chunk_size = get_option("conditional_merge.right_chunk_size")
+
+            left_chunks = _chunks(left, n=left_chunk_size)
+            right_chunks = _chunks(right, n=right_chunk_size)
+            self._chunk_pairs = itertools.product(left_chunks, right_chunks)
+            return
+
         self._validate_specification()
 
         cross_col = None
@@ -712,6 +741,9 @@ class _MergeOperation:
             self._validate(validate)
 
     def get_result(self) -> DataFrame:
+        if self._is_conditional_merge:
+            return self._get_chunked_conditional_merge_result()
+
         if self.indicator:
             self.left, self.right = self._indicator_pre_merge(self.left, self.right)
 
@@ -744,6 +776,42 @@ class _MergeOperation:
         self._maybe_drop_cross_column(result, self._cross)
 
         return result.__finalize__(self, method="merge")
+
+    # TODO: perform conditional merge as optimized cython,
+    #       rather than chunked/filtered cross merge
+    def _get_chunked_conditional_merge_result(self):
+        from pandas.core.reshape.concat import concat
+
+        result_chunks = []
+        for chunk_left, chunk_right in self._chunk_pairs:
+            chunk_result = merge(
+                chunk_left,
+                chunk_right,
+                how="cross",
+                suffixes=self.suffixes,
+                indicator=self.indicator,
+            )
+
+            chunk_result_left = chunk_result.iloc[:, : len(chunk_left.columns)]
+            chunk_result_left.columns = chunk_left.columns
+            chunk_result_right = chunk_result.iloc[:, len(chunk_left.columns) :]
+            chunk_result_right.columns = chunk_right.columns
+
+            """
+            Note: Callable `on` function should respect future desired interface.
+            Currently the function "could" make use of df specific logic
+            to return a boolean mask (e.g. left.time.dt.date == right.time.dt.date),
+            but eventually when this implementation is replaced we might not have
+            that ability. Should we (1) restrict those cases now? (2) allow them and
+            fail in the future? or (3) plan to develop future implementation to work
+            with these constructs as well?
+            """
+            chunk_result_filtered = chunk_result.loc[
+                self.on(chunk_result_left, chunk_result_right)
+            ]
+            result_chunks.append(chunk_result_filtered)
+
+        return concat(result_chunks).reset_index(drop=True)
 
     def _maybe_drop_cross_column(
         self, result: DataFrame, cross_col: str | None
@@ -1319,6 +1387,9 @@ class _MergeOperation:
         )
 
     def _validate_specification(self) -> None:
+        if self._is_conditional_merge:
+            return self._validate_conditional_merge_specification()
+
         if self.how == "cross":
             if (
                 self.left_index
@@ -1405,6 +1476,40 @@ class _MergeOperation:
         if self.how != "cross" and len(self.right_on) != len(self.left_on):
             raise ValueError("len(right_on) must equal len(left_on)")
 
+    def _validate_conditional_merge_specification(self):
+        if any([self.left_on, self.right_on, self.left_index, self.right_index]):
+            raise ValueError(
+                "Cannot define any of (`left_on`, `right_on`, `left_index`, "
+                "`right_index`) in a conditional merge"
+            )
+
+        if self.axis != 1:
+            raise ValueError("Conditional merge must use `axis=1`")
+
+        if not self.copy:
+            # Reason is that due to the initial chunked implementation,
+            # non-trivial to guarantee that copy=False is respected
+            raise ValueError("Conditional merge must use `copy=True`")
+
+        if self.validate:
+            # Reason is that validation cannot be performed on a chunked basis
+            # TODO: validate on the final result of the chunked merge result?
+            raise NotImplementedError(
+                "Conditional merge does not support validation"
+            )
+
+        if self.sort:
+            # Reason is that there is no definitive sort order when using a
+            # custom merge condition
+            raise ValueError("Cannot sort on join keys in a conditional merge")
+
+        if self.how != "inner":
+            raise NotImplementedError(
+                '`Conditional merge is currently only available for how="inner". '
+                "Other merge types will be available in a future version."
+            )
+        return
+
     def _validate(self, validate: str) -> None:
 
         # Check uniqueness of each
@@ -1452,147 +1557,6 @@ class _MergeOperation:
 
         else:
             raise ValueError("Not a valid argument for validate")
-
-
-def _chunks(lst, n):
-    for i in range(0, len(lst), n):
-        yield lst[i : i + n]
-
-
-_DEFAULT_LEFT_CHUNK_SIZE = _DEFAULT_RIGHT_CHUNK_SIZE = 1000
-
-
-# TODO: perform conditional merge as optimized cython,
-#       rather than chunked/filtered cross merge, also
-#       incorporate v2 conditional merge logic into _MergeOperation,
-#       rather than the subclass below
-class _ConditionalEnabledMergeOperation(_MergeOperation):
-    def __init__(
-        self,
-        left: DataFrame | Series,
-        right: DataFrame | Series,
-        how: str = "inner",
-        on: IndexLabel | Callable | None = None,
-        left_on: IndexLabel | None = None,
-        right_on: IndexLabel | None = None,
-        axis: int = 1,
-        left_index: bool = False,
-        right_index: bool = False,
-        sort: bool = True,
-        suffixes: Suffixes = ("_x", "_y"),
-        copy: bool = True,
-        indicator: bool = False,
-        validate: str | None = None,
-        left_chunk_size: int | None = None,
-        right_chunk_size: int | None = None,
-    ):
-        """
-        Note: Callable `on` function should respect future desired interface.
-        Currently the function "could" make use of df specific logic
-        to return a boolean mask (e.g. left.time.dt.date == right.time.dt.date),
-        but eventually when this implementation is replaced we might not have
-        that ability. Should we (1) restrict those cases now? (2) allow them and
-        fail in the future? or (3) plan to develop future implementation to work
-        with these constructs as well?
-        """
-        self.is_conditional_merge = False
-        if callable(on):
-            if any([left_on, right_on, left_index, right_index]):
-                raise ValueError(
-                    "Cannot define any of (`left_on`, `right_on`, `left_index`, "
-                    "`right_index`) in a conditional merge"
-                )
-
-            if axis != 1:
-                raise ValueError("Conditional merge must use `axis=1`")
-
-            if not copy:
-                # Reason is that due to the initial chunked implementation,
-                # non-trivial to guarantee that copy=False is respected
-                raise ValueError("Conditional merge must use `copy=True`")
-
-            if validate:
-                # Reason is that validation cannot be performed on a chunked basis
-                # TODO: validate on the final result of the chunked merge result?
-                raise NotImplementedError(
-                    "Conditional merge does not support validation"
-                )
-
-            if sort:
-                # Reason is that there is no definitive sort order when using a
-                # custom merge condition
-                raise ValueError("Cannot sort on join keys in a conditional merge")
-
-            if how != "inner":
-                raise NotImplementedError(
-                    '`Conditional merge is currently only available for how="inner". '
-                    "Other merge types will be available in a future version."
-                )
-
-            self.condition = on
-            self.suffixes = suffixes
-            self.indicator = indicator
-
-            # TODO: dynamically determine optimal default chunk size
-            if (not left_chunk_size) or left_chunk_size < 1:
-                left_chunk_size = _DEFAULT_LEFT_CHUNK_SIZE
-
-            if (not right_chunk_size) or right_chunk_size < 1:
-                right_chunk_size = _DEFAULT_RIGHT_CHUNK_SIZE
-
-            left_chunks = _chunks(left, n=left_chunk_size)
-            right_chunks = _chunks(right, n=right_chunk_size)
-            self.chunk_pairs = itertools.product(left_chunks, right_chunks)
-            self.is_conditional_merge = True
-
-        else:
-            # TODO: enforce all args present in _MergeOperation __init__ are passed
-            #       through. Can check with inspect.getfullargspec + dict of args,
-            #       but passing in **dict doesn't play nicely with mypy
-            super().__init__(
-                left=left,
-                right=right,
-                how=how,
-                on=on,
-                left_on=left_on,
-                right_on=right_on,
-                axis=axis,
-                left_index=left_index,
-                right_index=right_index,
-                sort=sort,
-                suffixes=suffixes,
-                copy=copy,
-                indicator=indicator,
-                validate=validate,
-            )
-
-    def get_result(self) -> DataFrame:
-        from pandas.core.reshape.concat import concat
-
-        if not self.is_conditional_merge:
-            return super().get_result()
-
-        result_chunks = []
-        for chunk_left, chunk_right in self.chunk_pairs:
-            chunk_result = merge(
-                chunk_left,
-                chunk_right,
-                how="cross",
-                suffixes=self.suffixes,
-                indicator=self.indicator,
-            )
-
-            chunk_result_left = chunk_result.iloc[:, : len(chunk_left.columns)]
-            chunk_result_left.columns = chunk_left.columns
-            chunk_result_right = chunk_result.iloc[:, len(chunk_left.columns) :]
-            chunk_result_right.columns = chunk_right.columns
-
-            chunk_result_filtered = chunk_result.loc[
-                self.condition(chunk_result_left, chunk_result_right)
-            ]
-            result_chunks.append(chunk_result_filtered)
-
-        return concat(result_chunks).reset_index(drop=True)
 
 
 def get_join_indexers(

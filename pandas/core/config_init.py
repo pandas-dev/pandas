@@ -957,3 +957,30 @@ with cf.config_prefix("styler"):
         styler_environment,
         validator=is_instance_factory([type(None), str]),
     )
+
+
+merge_chunk_size_doc = """
+: int (> 0)
+    Conditional merge chunked cross merge with deferred filter, chunk size
+"""
+
+
+def int_greater_than_0(x: Any):
+    if not (isinstance(x, int) and x > 0):
+        raise ValueError("option must be an int greater than 0")
+
+
+with cf.config_prefix("conditional_merge"):
+    cf.register_option(
+        "left_chunk_size",
+        1000,
+        merge_chunk_size_doc,
+        int_greater_than_0
+    )
+
+    cf.register_option(
+        "right_chunk_size",
+        1000,
+        merge_chunk_size_doc,
+        int_greater_than_0
+    )

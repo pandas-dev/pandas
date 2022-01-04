@@ -1,24 +1,20 @@
 import pytest
 
-from pandas import DataFrame
+from pandas import DataFrame, option_context
+from pandas.core.reshape.merge import merge
 import pandas._testing as tm
-import pandas.core.reshape.merge as m
 
 
 # choose chunk sizes such that the merges will happen with a single
 # chunk or multiple chunks
 @pytest.mark.parametrize("chunk_size", [2, 4, 10])
-def test_merge_conditional(monkeypatch, chunk_size):
+def test_merge_conditional(chunk_size):
     # GH#8962
 
-    with monkeypatch.context() as context:
-        context.setattr(
-            "pandas.core.reshape.merge._DEFAULT_LEFT_CHUNK_SIZE", chunk_size
-        )
-        context.setattr(
-            "pandas.core.reshape.merge._DEFAULT_RIGHT_CHUNK_SIZE", chunk_size
-        )
-
+    with option_context(
+        "conditional_merge.left_chunk_size", chunk_size,
+        "conditional_merge.right_chunk_size", chunk_size,
+    ):
         left = DataFrame({"timestep": range(5)})
         right = DataFrame(
             {
@@ -31,7 +27,7 @@ def test_merge_conditional(monkeypatch, chunk_size):
         right_copy = right.copy()
 
         result = (
-            m.merge(
+            merge(
                 left,
                 right,
                 on=lambda l, r: (r.timestart <= l.timestep) & (l.timestep <= r.timeend),
@@ -40,7 +36,7 @@ def test_merge_conditional(monkeypatch, chunk_size):
             .reset_index(drop=True)
         )
         expected = (
-            m.merge(left, right, how="cross")
+            merge(left, right, how="cross")
             .loc[
                 lambda dfx: (dfx.timestart <= dfx.timestep)
                 & (dfx.timestep <= dfx.timeend)
