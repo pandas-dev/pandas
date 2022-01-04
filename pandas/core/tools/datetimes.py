@@ -700,9 +700,9 @@ def to_datetime(
         The object to convert to a datetime. If a :class:`DataFrame` is provided, the
         method expects minimally the following columns: "year", "month", "day".
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
-        - If 'raise', then invalid parsing will raise an exception.
-        - If 'coerce', then invalid parsing will be set as :const:`NaT`.
-        - If 'ignore', then invalid parsing will return the input.
+        - If :const:`'raise'`, then invalid parsing will raise an exception.
+        - If :const:`'coerce'`, then invalid parsing will be set as :const:`NaT`.
+        - If :const:`'ignore'`, then invalid parsing will return the input.
     dayfirst : bool, default False
         Specify a date parse order if `arg` is str or its list-likes.
         If :const:`True`, parses dates with the day first, eg 10/11/12 is parsed
