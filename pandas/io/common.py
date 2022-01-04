@@ -19,8 +19,8 @@ from io import (
 import mmap
 import os
 from pathlib import Path
-import tarfile
 import re
+import tarfile
 from typing import (
     IO,
     Any,
