@@ -751,20 +751,13 @@ class TestDataFrameReshape:
         expected = df.unstack(["i3"]).unstack(["i2"])
         tm.assert_frame_equal(result, expected)
 
-    def test_unstack_nan_index1(self):
+    @pytest.mark.parametrize("idx", [("jim", "joe"), ("joe", "jim")])
+    @pytest.mark.parametrize("lev", list(range(2)))
+    def test_unstack_nan_index1(self, idx, lev):
         # GH7466
         def cast(val):
             val_str = "" if val != val else val
             return f"{val_str:1}"
-
-        def verify(df):
-            mk_list = lambda a: list(a) if isinstance(a, tuple) else [a]
-            rows, cols = df.notna().values.nonzero()
-            for i, j in zip(rows, cols):
-                left = sorted(df.iloc[i, j].split("."))
-                right = mk_list(df.index[i]) + mk_list(df.columns[j])
-                right = sorted(map(cast, right))
-                assert left == right
 
         df = DataFrame(
             {
@@ -778,12 +771,24 @@ class TestDataFrameReshape:
         right = df.set_index(["joe", "jim"]).unstack()["jolie"].T
         tm.assert_frame_equal(left, right)
 
-        for idx in itertools.permutations(df.columns[:2]):
-            mi = df.set_index(list(idx))
-            for lev in range(2):
-                udf = mi.unstack(level=lev)
-                assert udf.notna().values.sum() == len(df)
-                verify(udf["jolie"])
+        mi = df.set_index(list(idx))
+        udf = mi.unstack(level=lev)
+        assert udf.notna().values.sum() == len(df)
+        mk_list = lambda a: list(a) if isinstance(a, tuple) else [a]
+        rows, cols = udf["jolie"].notna().values.nonzero()
+        for i, j in zip(rows, cols):
+            left = sorted(udf["jolie"].iloc[i, j].split("."))
+            right = mk_list(udf["jolie"].index[i]) + mk_list(udf["jolie"].columns[j])
+            right = sorted(map(cast, right))
+            assert left == right
+
+    @pytest.mark.parametrize("idx", itertools.permutations(["1st", "2nd", "3rd"]))
+    @pytest.mark.parametrize("lev", list(range(3)))
+    @pytest.mark.parametrize("col", ["4th", "5th"])
+    def test_unstack_nan_index_repeats(self, idx, lev, col):
+        def cast(val):
+            val_str = "" if val != val else val
+            return f"{val_str:1}"
 
         df = DataFrame(
             {
@@ -830,13 +835,16 @@ class TestDataFrameReshape:
             df.apply(lambda r: ".".join(map(cast, r.iloc[::-1])), axis=1),
         )
 
-        for idx in itertools.permutations(["1st", "2nd", "3rd"]):
-            mi = df.set_index(list(idx))
-            for lev in range(3):
-                udf = mi.unstack(level=lev)
-                assert udf.notna().values.sum() == 2 * len(df)
-                for col in ["4th", "5th"]:
-                    verify(udf[col])
+        mi = df.set_index(list(idx))
+        udf = mi.unstack(level=lev)
+        assert udf.notna().values.sum() == 2 * len(df)
+        mk_list = lambda a: list(a) if isinstance(a, tuple) else [a]
+        rows, cols = udf[col].notna().values.nonzero()
+        for i, j in zip(rows, cols):
+            left = sorted(udf[col].iloc[i, j].split("."))
+            right = mk_list(udf[col].index[i]) + mk_list(udf[col].columns[j])
+            right = sorted(map(cast, right))
+            assert left == right
 
     def test_unstack_nan_index2(self):
         # GH7403
