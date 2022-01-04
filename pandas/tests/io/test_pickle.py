@@ -289,9 +289,7 @@ def get_random_path():
 
 class TestCompression:
 
-    _extension_to_compression = {
-        ext: compression for compression, ext in icom._compression_to_extension.items()
-    }
+    _extension_to_compression = icom._extension_to_compression
 
     def compress_file(self, src_path, dest_path, compression):
         if compression is None:
@@ -550,7 +548,7 @@ def test_pickle_binary_object_compression(compression):
     buffer.seek(0)
 
     # gzip  and zip safe the filename: cannot compare the compressed content
-    assert buffer.getvalue() == reference or compression in ("gzip", "zip")
+    assert buffer.getvalue() == reference or compression in ("gzip", "zip", "tar")
 
     # read
     read_df = pd.read_pickle(buffer, compression=compression)
