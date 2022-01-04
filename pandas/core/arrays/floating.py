@@ -4,14 +4,16 @@ from typing import overload
 
 import numpy as np
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+    missing as libmissing,
+)
 from pandas._typing import (
     ArrayLike,
     AstypeArg,
     DtypeObj,
     npt,
 )
-from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import astype_nansafe
@@ -27,7 +29,6 @@ from pandas.core.dtypes.dtypes import (
     ExtensionDtype,
     register_extension_dtype,
 )
-from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.numeric import (
@@ -126,11 +127,10 @@ def coerce_to_array(
         return values, mask
 
     values = np.array(values, copy=copy)
-    if is_object_dtype(values):
+    if is_object_dtype(values.dtype):
         inferred_type = lib.infer_dtype(values, skipna=True)
         if inferred_type == "empty":
-            values = np.empty(len(values))
-            values.fill(np.nan)
+            pass
         elif inferred_type not in [
             "floating",
             "integer",
@@ -146,13 +146,15 @@ def coerce_to_array(
     elif not (is_integer_dtype(values) or is_float_dtype(values)):
         raise TypeError(f"{values.dtype} cannot be converted to a FloatingDtype")
 
+    if values.ndim != 1:
+        raise TypeError("values must be a 1D list-like")
+
     if mask is None:
-        mask = isna(values)
+        mask = libmissing.is_numeric_na(values)
+
     else:
         assert len(mask) == len(values)
 
-    if not values.ndim == 1:
-        raise TypeError("values must be a 1D list-like")
     if not mask.ndim == 1:
         raise TypeError("mask must be a 1D list-like")
 
@@ -251,6 +253,10 @@ class FloatingArray(NumericArray):
                 "values should be floating numpy array. Use "
                 "the 'pd.array' function instead"
             )
+        if values.dtype == np.float16:
+            # If we don't raise here, then accessing self.dtype would raise
+            raise TypeError("FloatingArray does not support np.float16 dtype.")
+
         super().__init__(values, mask, copy=copy)
 
     @classmethod
@@ -330,43 +336,6 @@ class FloatingArray(NumericArray):
 
     def _values_for_argsort(self) -> np.ndarray:
         return self._data
-
-    def sum(self, *, skipna=True, min_count=0, axis: int | None = 0, **kwargs):
-        nv.validate_sum((), kwargs)
-        return super()._reduce("sum", skipna=skipna, min_count=min_count, axis=axis)
-
-    def prod(self, *, skipna=True, min_count=0, axis: int | None = 0, **kwargs):
-        nv.validate_prod((), kwargs)
-        return super()._reduce("prod", skipna=skipna, min_count=min_count, axis=axis)
-
-    def min(self, *, skipna=True, axis: int | None = 0, **kwargs):
-        nv.validate_min((), kwargs)
-        return super()._reduce("min", skipna=skipna, axis=axis)
-
-    def max(self, *, skipna=True, axis: int | None = 0, **kwargs):
-        nv.validate_max((), kwargs)
-        return super()._reduce("max", skipna=skipna, axis=axis)
-
-    def _maybe_mask_result(self, result, mask, other, op_name: str):
-        """
-        Parameters
-        ----------
-        result : array-like
-        mask : array-like bool
-        other : scalar or array-like
-        op_name : str
-        """
-        # TODO are there cases we don't end up with float?
-        # if we have a float operand we are by-definition
-        # a float result
-        # or our op is a divide
-        # if (is_float_dtype(other) or is_float(other)) or (
-        #     op_name in ["rtruediv", "truediv"]
-        # ):
-        #     result[mask] = np.nan
-        #     return result
-
-        return type(self)(result, mask, copy=False)
 
 
 _dtype_docstring = """

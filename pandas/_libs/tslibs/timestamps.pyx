@@ -180,6 +180,8 @@ cdef class _Timestamp(ABCTimestamp):
     def __hash__(_Timestamp self):
         if self.nanosecond:
             return hash(self.value)
+        if self.fold:
+            return datetime.__hash__(self.replace(fold=0))
         return datetime.__hash__(self)
 
     def __richcmp__(_Timestamp self, object other, int op):
@@ -307,7 +309,6 @@ cdef class _Timestamp(ABCTimestamp):
         elif not isinstance(self, _Timestamp):
             # cython semantics, args have been switched and this is __radd__
             return other.__add__(self)
-
         return NotImplemented
 
     def __sub__(self, other):
@@ -343,10 +344,10 @@ cdef class _Timestamp(ABCTimestamp):
             else:
                 self = type(other)(self)
 
-            # validate tz's
-            if not tz_compare(self.tzinfo, other.tzinfo):
-                raise TypeError("Timestamp subtraction must have the "
-                                "same timezones or no timezones")
+            if (self.tzinfo is None) ^ (other.tzinfo is None):
+                raise TypeError(
+                    "Cannot subtract tz-naive and tz-aware datetime-like objects."
+                )
 
             # scalar Timestamp/datetime - Timestamp/datetime -> yields a
             # Timedelta
@@ -1162,13 +1163,23 @@ class Timestamp(_Timestamp):
 
         Examples
         --------
-        >>> pd.Timestamp.fromtimestamp(1584199972)
+        >>> pd.Timestamp.utcfromtimestamp(1584199972)
         Timestamp('2020-03-14 15:32:52')
         """
+        # GH#22451
+        warnings.warn(
+            "The behavior of Timestamp.utcfromtimestamp is deprecated, in a "
+            "future version will return a timezone-aware Timestamp with UTC "
+            "timezone. To keep the old behavior, use "
+            "Timestamp.utcfromtimestamp(ts).tz_localize(None). "
+            "To get the future behavior, use Timestamp.fromtimestamp(ts, 'UTC')",
+            FutureWarning,
+            stacklevel=1,
+        )
         return cls(datetime.utcfromtimestamp(ts))
 
     @classmethod
-    def fromtimestamp(cls, ts):
+    def fromtimestamp(cls, ts, tz=None):
         """
         Timestamp.fromtimestamp(ts)
 
@@ -1176,12 +1187,13 @@ class Timestamp(_Timestamp):
 
         Examples
         --------
-        >>> pd.Timestamp.utcfromtimestamp(1584199972)
+        >>> pd.Timestamp.fromtimestamp(1584199972)
         Timestamp('2020-03-14 15:32:52')
 
         Note that the output may change depending on your local time.
         """
-        return cls(datetime.fromtimestamp(ts))
+        tz = maybe_get_tz(tz)
+        return cls(datetime.fromtimestamp(ts, tz))
 
     def strftime(self, format):
         """

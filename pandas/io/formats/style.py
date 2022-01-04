@@ -39,13 +39,13 @@ from pandas import (
     IndexSlice,
     RangeIndex,
 )
-from pandas.core import generic
 import pandas.core.common as com
 from pandas.core.frame import (
     DataFrame,
     Series,
 )
 from pandas.core.generic import NDFrame
+from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.formats.format import save_to_buffer
 
@@ -442,7 +442,7 @@ class Styler(StylerRenderer):
     @doc(
         NDFrame.to_excel,
         klass="Styler",
-        storage_options=generic._shared_docs["storage_options"],
+        storage_options=_shared_docs["storage_options"],
     )
     def to_excel(
         self,
@@ -623,6 +623,7 @@ class Styler(StylerRenderer):
                               | \\sisetup{detect-all = true}  *(within {document})*
         environment           \\usepackage{longtable} if arg is "longtable"
                               | or any other relevant environment package
+        hyperlinks            \\usepackage{hyperref}
         ===================== ==========================================================
 
         **Cell Styles**
@@ -753,8 +754,8 @@ class Styler(StylerRenderer):
         **Formatting**
 
         To format values :meth:`Styler.format` should be used prior to calling
-        `Styler.to_latex`, as well as other methods such as :meth:`Styler.hide_index`
-        or :meth:`Styler.hide_columns`, for example:
+        `Styler.to_latex`, as well as other methods such as :meth:`Styler.hide`
+        for example:
 
         >>> s.clear()
         >>> s.table_styles = []
@@ -1176,7 +1177,7 @@ class Styler(StylerRenderer):
         >>> df = pd.DataFrame([[1]])
         >>> css = pd.DataFrame([["other-class"]])
         >>> s = Styler(df, uuid="_", cell_ids=False).set_td_classes(css)
-        >>> s.hide_index().to_html()  # doctest: +SKIP
+        >>> s.hide(axis=0).to_html()  # doctest: +SKIP
         '<style type="text/css"></style>'
         '<table id="T__">'
         '  <thead>'
@@ -1879,7 +1880,7 @@ class Styler(StylerRenderer):
 
         >>> styler = DataFrame([[1, 2], [3, 4]]).style
         >>> styler2 = DataFrame([[9, 9, 9]]).style
-        >>> styler.hide_index().highlight_max(axis=1)  # doctest: +SKIP
+        >>> styler.hide(axis=0).highlight_max(axis=1)  # doctest: +SKIP
         >>> export = styler.export()
         >>> styler2.use(export)  # doctest: +SKIP
         """
@@ -1931,7 +1932,7 @@ class Styler(StylerRenderer):
 
         >>> styler = DataFrame([[1, 2], [3, 4]]).style
         >>> styler2 = DataFrame([[9, 9, 9]]).style
-        >>> styler.hide_index().highlight_max(axis=1)  # doctest: +SKIP
+        >>> styler.hide(axis=0).highlight_max(axis=1)  # doctest: +SKIP
         >>> export = styler.export()
         >>> styler2.use(export)  # doctest: +SKIP
         """
@@ -2040,8 +2041,8 @@ class Styler(StylerRenderer):
         This method uses the CSS 'position: sticky;' property to display. It is
         designed to work with visible axes, therefore both:
 
-          - `styler.set_sticky(axis="index").hide_index()`
-          - `styler.set_sticky(axis="columns").hide_columns()`
+          - `styler.set_sticky(axis="index").hide(axis="index")`
+          - `styler.set_sticky(axis="columns").hide(axis="columns")`
 
         may produce strange behaviour due to CSS controls with missing elements.
         """
@@ -2335,7 +2336,7 @@ class Styler(StylerRenderer):
         .. versionchanged:: 1.3.0
 
         .. deprecated:: 1.4.0
-           This method should be replaced by ``hide(axis="columns", **kwargs)``
+           This method should be replaced by ``hide(axis="index", **kwargs)``
 
         Parameters
         ----------

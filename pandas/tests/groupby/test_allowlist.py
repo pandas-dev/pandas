@@ -10,8 +10,6 @@ import pytest
 
 from pandas import (
     DataFrame,
-    Index,
-    MultiIndex,
     Series,
     date_range,
 )
@@ -90,16 +88,6 @@ def s_allowlist_fixture(request):
 
 
 @pytest.fixture
-def mframe():
-    index = MultiIndex(
-        levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
-        codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
-        names=["first", "second"],
-    )
-    return DataFrame(np.random.randn(10, 3), index=index, columns=["A", "B", "C"])
-
-
-@pytest.fixture
 def df():
     return DataFrame(
         {
@@ -174,18 +162,11 @@ def test_groupby_frame_allowlist(df_letters, df_allowlist_fixture):
 
 
 @pytest.fixture
-def raw_frame():
-    index = MultiIndex(
-        levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
-        codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
-        names=["first", "second"],
-    )
-    raw_frame = DataFrame(
-        np.random.randn(10, 3), index=index, columns=Index(["A", "B", "C"], name="exp")
-    )
-    raw_frame.iloc[1, [1, 2]] = np.nan
-    raw_frame.iloc[7, [0, 1]] = np.nan
-    return raw_frame
+def raw_frame(multiindex_dataframe_random_data):
+    df = multiindex_dataframe_random_data
+    df.iloc[1, [1, 2]] = np.nan
+    df.iloc[7, [0, 1]] = np.nan
+    return df
 
 
 @pytest.mark.parametrize("op", AGG_FUNCTIONS)
@@ -338,6 +319,7 @@ def test_tab_completion(mframe):
         "pipe",
         "sample",
         "ewm",
+        "value_counts",
     }
     assert results == expected
 

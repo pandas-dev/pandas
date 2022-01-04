@@ -26,6 +26,13 @@ from pandas.tseries.offsets import (
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
 
+def test_union_many_deprecated():
+    dti = date_range("2016-01-01", periods=3)
+
+    with tm.assert_produces_warning(FutureWarning):
+        dti.union_many([dti, dti])
+
+
 class TestDatetimeIndexSetOps:
     tz = [
         None,

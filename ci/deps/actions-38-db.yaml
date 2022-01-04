@@ -3,6 +3,7 @@ channels:
   - conda-forge
 dependencies:
   - python=3.8
+  - pip
 
   # tools
   - cython>=0.29.24
@@ -12,8 +13,9 @@ dependencies:
   - pytest-cov>=2.10.1  # this is only needed in the coverage build, ref: GH 35737
 
   # pandas dependencies
-  - aiobotocore<2.0.0
+  - aiobotocore<2.0.0  # GH#44311 pinned to fix docbuild
   - beautifulsoup4
+  - boto3
   - botocore>=1.11
   - dask
   - fastparquet>=0.4.0
@@ -22,8 +24,6 @@ dependencies:
   - geopandas
   - html5lib
   - matplotlib
-  - moto>=1.3.14
-  - flask
   - nomkl
   - numexpr
   - numpy=1.18
@@ -46,9 +46,9 @@ dependencies:
   - xlrd
   - xlsxwriter
   - xlwt
-  - pip
+  - brotlipy
+  - coverage
+  - pandas-datareader
+  - pyxlsb
   - pip:
-    - brotlipy
-    - coverage
-    - pandas-datareader
-    - pyxlsb
+    - torch

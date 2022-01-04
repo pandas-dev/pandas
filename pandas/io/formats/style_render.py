@@ -767,16 +767,17 @@ class StylerRenderer:
           - Remove hidden indexes or reinsert missing th elements if part of multiindex
             or multirow sparsification (so that \multirow and \multicol work correctly).
         """
+        index_levels = self.index.nlevels
+        visible_index_levels = index_levels - sum(self.hide_index_)
         d["head"] = [
             [
-                {**col, "cellstyle": self.ctx_columns[r, c - self.index.nlevels]}
+                {**col, "cellstyle": self.ctx_columns[r, c - visible_index_levels]}
                 for c, col in enumerate(row)
                 if col["is_visible"]
             ]
             for r, row in enumerate(d["head"])
         ]
         body = []
-        index_levels = self.data.index.nlevels
         for r, row in zip(
             [r for r in range(len(self.data.index)) if r not in self.hidden_rows],
             d["body"],
@@ -817,6 +818,7 @@ class StylerRenderer:
         decimal: str = ".",
         thousands: str | None = None,
         escape: str | None = None,
+        hyperlinks: str | None = None,
     ) -> StylerRenderer:
         r"""
         Format the text display value of cells.
@@ -860,6 +862,13 @@ class StylerRenderer:
             Escaping is done before ``formatter``.
 
             .. versionadded:: 1.3.0
+
+        hyperlinks : {"html", "latex"}, optional
+            Convert string patterns containing https://, http://, ftp:// or www. to
+            HTML <a> tags as clickable URL hyperlinks if "html", or LaTeX \href
+            commands if "latex".
+
+            .. versionadded:: 1.4.0
 
         Returns
         -------
@@ -977,6 +986,7 @@ class StylerRenderer:
                 thousands is None,
                 na_rep is None,
                 escape is None,
+                hyperlinks is None,
             )
         ):
             self._display_funcs.clear()
@@ -999,6 +1009,7 @@ class StylerRenderer:
                 decimal=decimal,
                 thousands=thousands,
                 escape=escape,
+                hyperlinks=hyperlinks,
             )
             for ri in ris:
                 self._display_funcs[(ri, ci)] = format_func
@@ -1015,6 +1026,7 @@ class StylerRenderer:
         decimal: str = ".",
         thousands: str | None = None,
         escape: str | None = None,
+        hyperlinks: str | None = None,
     ) -> StylerRenderer:
         r"""
         Format the text display value of index labels or column headers.
@@ -1046,6 +1058,10 @@ class StylerRenderer:
             ``{``, ``}``, ``~``, ``^``, and ``\`` in the cell display string with
             LaTeX-safe sequences.
             Escaping is done before ``formatter``.
+        hyperlinks : {"html", "latex"}, optional
+            Convert string patterns containing https://, http://, ftp:// or www. to
+            HTML <a> tags as clickable URL hyperlinks if "html", or LaTeX \href
+            commands if "latex".
 
         Returns
         -------
@@ -1081,7 +1097,7 @@ class StylerRenderer:
         --------
         Using ``na_rep`` and ``precision`` with the default ``formatter``
 
-        >>> df = pd.DataFrame([[1, 2, 3]], columns=[2.0, np.nan, 4.0]])
+        >>> df = pd.DataFrame([[1, 2, 3]], columns=[2.0, np.nan, 4.0])
         >>> df.style.format_index(axis=1, na_rep='MISS', precision=3)  # doctest: +SKIP
             2.000    MISS   4.000
         0       1       2       3
@@ -1115,6 +1131,7 @@ class StylerRenderer:
 
         >>> df = pd.DataFrame([[1, 2, 3]], columns=['"A"', 'A&B', None])
         >>> s = df.style.format_index('$ {0}', axis=1, escape="html", na_rep="NA")
+        ...  # doctest: +SKIP
         <th .. >$ &#34;A&#34;</th>
         <th .. >$ A&amp;B</th>
         <th .. >NA</td>
@@ -1146,6 +1163,7 @@ class StylerRenderer:
                 thousands is None,
                 na_rep is None,
                 escape is None,
+                hyperlinks is None,
             )
         ):
             display_funcs_.clear()
@@ -1167,6 +1185,7 @@ class StylerRenderer:
                 decimal=decimal,
                 thousands=thousands,
                 escape=escape,
+                hyperlinks=hyperlinks,
             )
 
             for idx in [(i, lvl) if axis == 0 else (lvl, i) for i in range(len(obj))]:
@@ -1409,6 +1428,20 @@ def _str_escape(x, escape):
     return x
 
 
+def _render_href(x, format):
+    """uses regex to detect a common URL pattern and converts to href tag in format."""
+    if isinstance(x, str):
+        if format == "html":
+            href = '<a href="{0}" target="_blank">{0}</a>'
+        elif format == "latex":
+            href = r"\href{{{0}}}{{{0}}}"
+        else:
+            raise ValueError("``hyperlinks`` format can only be 'html' or 'latex'")
+        pat = r"(https?:\/\/|ftp:\/\/|www.)[\w/\-?=%.]+\.[\w/\-&?=%.]+"
+        return re.sub(pat, lambda m: href.format(m.group(0)), x)
+    return x
+
+
 def _maybe_wrap_formatter(
     formatter: BaseFormatter | None = None,
     na_rep: str | None = None,
@@ -1416,6 +1449,7 @@ def _maybe_wrap_formatter(
     decimal: str = ".",
     thousands: str | None = None,
     escape: str | None = None,
+    hyperlinks: str | None = None,
 ) -> Callable:
     """
     Allows formatters to be expressed as str, callable or None, where None returns
@@ -1449,11 +1483,17 @@ def _maybe_wrap_formatter(
     else:
         func_2 = func_1
 
+    # Render links
+    if hyperlinks is not None:
+        func_3 = lambda x: func_2(_render_href(x, format=hyperlinks))
+    else:
+        func_3 = func_2
+
     # Replace missing values if na_rep
     if na_rep is None:
-        return func_2
+        return func_3
     else:
-        return lambda x: na_rep if isna(x) else func_2(x)
+        return lambda x: na_rep if isna(x) else func_3(x)
 
 
 def non_reducing_slice(slice_: Subset):
@@ -1830,7 +1870,7 @@ def _parse_latex_header_span(
 
     Examples
     --------
-    >>> cell = {'display_value':'text', 'attributes': 'colspan="3"'}
+    >>> cell = {'cellstyle': '', 'display_value':'text', 'attributes': 'colspan="3"'}
     >>> _parse_latex_header_span(cell, 't', 'c')
     '\\multicolumn{3}{c}{text}'
     """

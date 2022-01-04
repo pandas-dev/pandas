@@ -13,7 +13,6 @@ import pytest
 
 from pandas._config import get_option
 
-from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
     pa_version_under2p0,
     pa_version_under5p0,
@@ -596,13 +595,16 @@ class TestBasic(Base):
         msg = r"parquet must have string column names"
         self.check_error_on_write(df, engine, ValueError, msg)
 
-    def test_use_nullable_dtypes(self, engine):
+    def test_use_nullable_dtypes(self, engine, request):
         import pyarrow.parquet as pq
 
         if engine == "fastparquet":
             # We are manually disabling fastparquet's
             # nullable dtype support pending discussion
-            pytest.skip("Fastparquet nullable dtype support is disabled")
+            mark = pytest.mark.xfail(
+                reason="Fastparquet nullable dtype support is disabled"
+            )
+            request.node.add_marker(mark)
 
         table = pyarrow.table(
             {
@@ -646,7 +648,15 @@ class TestBasic(Base):
             "object",
             "datetime64[ns, UTC]",
             "float",
-            "period[D]",
+            pytest.param(
+                "period[D]",
+                # Note: I don't know exactly what version the cutoff is;
+                #  On the CI it fails with 1.0.1
+                marks=pytest.mark.xfail(
+                    pa_version_under2p0,
+                    reason="pyarrow uses pandas internal API incorrectly",
+                ),
+            ),
             "Float64",
             "string",
         ],
@@ -735,11 +745,6 @@ class TestParquetPyArrow(Base):
 
         check_round_trip(df, pa)
 
-    @pytest.mark.xfail(
-        is_platform_windows(),
-        reason="localhost connection rejected",
-        strict=False,
-    )
     def test_s3_roundtrip_explicit_fs(self, df_compat, s3_resource, pa, s3so):
         s3fs = pytest.importorskip("s3fs")
         s3 = s3fs.S3FileSystem(**s3so)
@@ -890,6 +895,9 @@ class TestParquetPyArrow(Base):
             check_round_trip(df, pa, expected=df.astype(f"string[{string_storage}]"))
 
     @td.skip_if_no("pyarrow")
+    @pytest.mark.xfail(
+        pa_version_under2p0, reason="pyarrow uses pandas internal API incorrectly"
+    )
     def test_additional_extension_types(self, pa):
         # test additional ExtensionArrays that are supported through the
         # __arrow_array__ protocol + by defining a custom ExtensionType

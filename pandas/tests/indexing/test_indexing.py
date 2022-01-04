@@ -99,6 +99,13 @@ class TestFancy:
             msgs.append("Data must be 1-dimensional")
         if len(index) == 0 or isinstance(index, pd.MultiIndex):
             msgs.append("positional indexers are out-of-bounds")
+        if type(index) is Index and not isinstance(index._values, np.ndarray):
+            # e.g. Int64
+            msgs.append("values must be a 1D array")
+
+            # string[pyarrow]
+            msgs.append("only handle 1-dimensional arrays")
+
         msg = "|".join(msgs)
 
         potential_errors = (IndexError, ValueError, NotImplementedError)
@@ -232,11 +239,11 @@ class TestFancy:
         df.head()
         str(df)
         result = DataFrame([[1, 2, 1.0, 2.0, 3.0, "foo", "bar"]])
-        result.columns = list("aaaaaaa")
+        result.columns = list("aaaaaaa")  # GH#3468
 
-        # TODO(wesm): unused?
-        df_v = df.iloc[:, 4]  # noqa
-        res_v = result.iloc[:, 4]  # noqa
+        # GH#3509 smoke tests for indexing with duplicate columns
+        df.iloc[:, 4]
+        result.iloc[:, 4]
 
         tm.assert_frame_equal(df, result)
 
@@ -276,8 +283,6 @@ class TestFancy:
             ),
         ):
             dfnu.loc[["E"]]
-
-        # TODO: check_index_type can be True after GH 11497
 
     @pytest.mark.parametrize("vals", [[0, 1, 2], list("abc")])
     def test_dups_fancy_indexing_missing_label(self, vals):
@@ -714,8 +719,8 @@ class TestMisc:
                 ser, SLC[idx[9] : idx[13] : -1], SLC[:0]
             )
 
-    def test_slice_with_zero_step_raises(self, indexer_sl, frame_or_series):
-        obj = frame_or_series(np.arange(20), index=_mklbl("A", 20))
+    def test_slice_with_zero_step_raises(self, index, indexer_sl, frame_or_series):
+        obj = frame_or_series(np.arange(len(index)), index=index)
         with pytest.raises(ValueError, match="slice step cannot be zero"):
             indexer_sl(obj)[::0]
 

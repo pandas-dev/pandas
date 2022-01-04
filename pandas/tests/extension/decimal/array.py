@@ -25,6 +25,7 @@ from pandas.api.types import (
     is_list_like,
     is_scalar,
 )
+from pandas.core import arraylike
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import (
     ExtensionArray,
@@ -67,8 +68,11 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
 
     def __init__(self, values, dtype=None, copy=False, context=None):
         for i, val in enumerate(values):
-            if is_float(val) and np.isnan(val):
-                values[i] = DecimalDtype.na_value
+            if is_float(val):
+                if np.isnan(val):
+                    values[i] = DecimalDtype.na_value
+                else:
+                    values[i] = DecimalDtype.type(val)
             elif not isinstance(val, decimal.Decimal):
                 raise TypeError("All values must be of type " + str(decimal.Decimal))
         values = np.asarray(values, dtype=object)
@@ -118,13 +122,20 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
         inputs = tuple(x._data if isinstance(x, DecimalArray) else x for x in inputs)
         result = getattr(ufunc, method)(*inputs, **kwargs)
 
+        if method == "reduce":
+            result = arraylike.dispatch_reduction_ufunc(
+                self, ufunc, method, *inputs, **kwargs
+            )
+            if result is not NotImplemented:
+                return result
+
         def reconstruct(x):
             if isinstance(x, (decimal.Decimal, numbers.Number)):
                 return x
             else:
                 return DecimalArray._from_sequence(x)
 
-        if isinstance(result, tuple):
+        if ufunc.nout > 1:
             return tuple(reconstruct(x) for x in result)
         else:
             return reconstruct(result)
