@@ -86,7 +86,6 @@ from pandas.core.indexes.api import (
     MultiIndex,
     all_indexes_same,
 )
-from pandas.core.reshape.concat import concat
 from pandas.core.series import Series
 from pandas.core.util.numba_ import maybe_use_numba
 
