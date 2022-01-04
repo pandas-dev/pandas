@@ -67,6 +67,23 @@ def test_get_dtypes_no_level_name():
     tm.assert_series_equal(expected, idx_multitype.dtypes)
 
 
+def test_get_dtypes_duplicate_level_names():
+    # Test MultiIndex.dtypes with non-unique level names (# GH45174)
+    result = MultiIndex.from_product(
+        [
+            [1, 2, 3],
+            ["a", "b", "c"],
+            pd.date_range("20200101", periods=2, tz="UTC"),
+        ],
+        names=["A", "A", "A"],
+    ).dtypes
+    expected = pd.Series(
+        [np.dtype("int64"), np.dtype("O"), DatetimeTZDtype(tz="utc")],
+        index=["A", "A", "A"],
+    )
+    tm.assert_series_equal(result, expected)
+
+
 def test_get_level_number_out_of_bounds(multiindex_dataframe_random_data):
     frame = multiindex_dataframe_random_data
 
