@@ -107,6 +107,8 @@ _int16_max = np.iinfo(np.int16).max
 _int32_max = np.iinfo(np.int32).max
 _int64_max = np.iinfo(np.int64).max
 
+_dtype_obj = np.dtype(object)
+
 NumpyArrayT = TypeVar("NumpyArrayT", bound=np.ndarray)
 
 
@@ -123,7 +125,7 @@ def maybe_convert_platform(
         #  or ExtensionArray here.
         arr = values
 
-    if arr.dtype == object:
+    if arr.dtype == _dtype_obj:
         arr = cast(np.ndarray, arr)
         arr = lib.maybe_convert_objects(arr)
 
@@ -159,7 +161,7 @@ def maybe_box_datetimelike(value: Scalar, dtype: Dtype | None = None) -> Scalar:
     -------
     scalar
     """
-    if dtype == object:
+    if dtype == _dtype_obj:
         pass
     elif isinstance(value, (np.datetime64, datetime)):
         value = Timestamp(value)
@@ -248,7 +250,7 @@ def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLi
 
     if isinstance(dtype, str):
         if dtype == "infer":
-            inferred_type = lib.infer_dtype(ensure_object(result), skipna=False)
+            inferred_type = lib.infer_dtype(result, skipna=False)
             if inferred_type == "boolean":
                 dtype = "bool"
             elif inferred_type == "integer":
@@ -662,9 +664,7 @@ def _ensure_dtype_type(value, dtype: np.dtype):
     """
     # Start with exceptions in which we do _not_ cast to numpy types
 
-    # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-    # operand type: "Type[object_]")
-    if dtype == np.object_:  # type: ignore[comparison-overlap]
+    if dtype == _dtype_obj:
         return value
 
     # Note: before we get here we have already excluded isna(value)
@@ -1111,10 +1111,7 @@ def astype_nansafe(
         raise ValueError("dtype must be np.dtype or ExtensionDtype")
 
     if arr.dtype.kind in ["m", "M"] and (
-        issubclass(dtype.type, str)
-        # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-        # operand type: "Type[object]")
-        or dtype == object  # type: ignore[comparison-overlap]
+        issubclass(dtype.type, str) or dtype == _dtype_obj
     ):
         from pandas.core.construction import ensure_wrapped_if_datetimelike
 
@@ -1124,7 +1121,7 @@ def astype_nansafe(
     if issubclass(dtype.type, str):
         return lib.ensure_string_array(arr, skipna=skipna, convert_na_value=False)
 
-    elif is_datetime64_dtype(arr):
+    elif is_datetime64_dtype(arr.dtype):
         # Non-overlapping equality check (left operand type: "dtype[Any]", right
         # operand type: "Type[signedinteger[Any]]")
         if dtype == np.int64:  # type: ignore[comparison-overlap]
@@ -1133,7 +1130,6 @@ def astype_nansafe(
                 "is deprecated and will raise in a future version. "
                 "Use .view(...) instead.",
                 FutureWarning,
-                # stacklevel chosen to be correct when reached via Series.astype
                 stacklevel=find_stack_level(),
             )
             if isna(arr).any():
@@ -1146,7 +1142,7 @@ def astype_nansafe(
 
         raise TypeError(f"cannot astype a datetimelike from [{arr.dtype}] to [{dtype}]")
 
-    elif is_timedelta64_dtype(arr):
+    elif is_timedelta64_dtype(arr.dtype):
         # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
         # operand type: "Type[signedinteger[Any]]")
         if dtype == np.int64:  # type: ignore[comparison-overlap]
@@ -1155,7 +1151,6 @@ def astype_nansafe(
                 "is deprecated and will raise in a future version. "
                 "Use .view(...) instead.",
                 FutureWarning,
-                # stacklevel chosen to be correct when reached via Series.astype
                 stacklevel=find_stack_level(),
             )
             if isna(arr).any():
@@ -1170,7 +1165,7 @@ def astype_nansafe(
     elif np.issubdtype(arr.dtype, np.floating) and np.issubdtype(dtype, np.integer):
         return astype_float_to_int_nansafe(arr, dtype, copy)
 
-    elif is_object_dtype(arr):
+    elif is_object_dtype(arr.dtype):
 
         # work around NumPy brokenness, #1987
         if np.issubdtype(dtype.type, np.integer):
@@ -1718,7 +1713,7 @@ def maybe_cast_to_datetime(
             # and no coercion specified
             value = sanitize_to_nanoseconds(value)
 
-        elif value.dtype == object:
+        elif value.dtype == _dtype_obj:
             value = maybe_infer_to_datetimelike(value)
 
     elif isinstance(value, list):
@@ -1794,8 +1789,22 @@ def ensure_nanosecond_dtype(dtype: DtypeObj) -> DtypeObj:
     return dtype
 
 
-# TODO: overload to clarify that if all types are np.dtype then result is np.dtype
+@overload
+def find_common_type(types: list[np.dtype]) -> np.dtype:
+    ...
+
+
+@overload
+def find_common_type(types: list[ExtensionDtype]) -> DtypeObj:
+    ...
+
+
+@overload
 def find_common_type(types: list[DtypeObj]) -> DtypeObj:
+    ...
+
+
+def find_common_type(types):
     """
     Find a common data type among the given dtypes.
 
@@ -1847,11 +1856,7 @@ def find_common_type(types: list[DtypeObj]) -> DtypeObj:
             if is_integer_dtype(t) or is_float_dtype(t) or is_complex_dtype(t):
                 return np.dtype("object")
 
-    # error: Argument 1 to "find_common_type" has incompatible type
-    # "List[Union[dtype, ExtensionDtype]]"; expected "Sequence[Union[dtype,
-    # None, type, _SupportsDtype, str, Tuple[Any, int], Tuple[Any, Union[int,
-    # Sequence[int]]], List[Any], _DtypeDict, Tuple[Any, Any]]]"
-    return np.find_common_type(types, [])  # type: ignore[arg-type]
+    return np.find_common_type(types, [])
 
 
 def construct_2d_arraylike_from_scalar(
@@ -1862,9 +1867,7 @@ def construct_2d_arraylike_from_scalar(
 
     if dtype.kind in ["m", "M"]:
         value = maybe_unbox_datetimelike_tz_deprecation(value, dtype)
-    # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-    # operand type: "Type[object]")
-    elif dtype == object:  # type: ignore[comparison-overlap]
+    elif dtype == _dtype_obj:
         if isinstance(value, (np.timedelta64, np.datetime64)):
             # calling np.array below would cast to pytimedelta/pydatetime
             out = np.empty(shape, dtype=object)
@@ -2190,76 +2193,132 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
         # ExtensionBlock._can_hold_element
         return True
 
-    # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-    # operand type: "Type[object]")
-    if dtype == object:  # type: ignore[comparison-overlap]
+    try:
+        np_can_hold_element(dtype, element)
         return True
+    except (TypeError, ValueError):
+        return False
+
+
+def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
+    """
+    Raise if we cannot losslessly set this element into an ndarray with this dtype.
+
+    Specifically about places where we disagree with numpy.  i.e. there are
+    cases where numpy will raise in doing the setitem that we do not check
+    for here, e.g. setting str "X" into a numeric ndarray.
+
+    Returns
+    -------
+    Any
+        The element, potentially cast to the dtype.
+
+    Raises
+    ------
+    ValueError : If we cannot losslessly store this element with this dtype.
+    """
+    if dtype == _dtype_obj:
+        return element
 
     tipo = maybe_infer_dtype_type(element)
 
     if dtype.kind in ["i", "u"]:
         if isinstance(element, range):
-            return _dtype_can_hold_range(element, dtype)
+            if _dtype_can_hold_range(element, dtype):
+                return element
+            raise ValueError
 
         if tipo is not None:
             if tipo.kind not in ["i", "u"]:
                 if is_float(element) and element.is_integer():
-                    return True
+                    return element
 
                 if isinstance(element, np.ndarray) and element.dtype.kind == "f":
                     # If all can be losslessly cast to integers, then we can hold them
                     #  We do something similar in putmask_smart
                     casted = element.astype(dtype)
                     comp = casted == element
-                    return comp.all()
+                    if comp.all():
+                        return element
+                    raise ValueError
 
                 # Anything other than integer we cannot hold
-                return False
+                raise ValueError
             elif dtype.itemsize < tipo.itemsize:
-                return False
+                if is_integer(element):
+                    # e.g. test_setitem_series_int8 if we have a python int 1
+                    #  tipo may be np.int32, despite the fact that it will fit
+                    #  in smaller int dtypes.
+                    info = np.iinfo(dtype)
+                    if info.min <= element <= info.max:
+                        return element
+                    raise ValueError
+                raise ValueError
             elif not isinstance(tipo, np.dtype):
                 # i.e. nullable IntegerDtype; we can put this into an ndarray
                 #  losslessly iff it has no NAs
-                return not element._mask.any()
+                hasnas = element._mask.any()
+                # TODO: don't rely on implementation detail
+                if hasnas:
+                    raise ValueError
+                return element
 
-            return True
+            return element
 
         # We have not inferred an integer from the dtype
         # check if we have a builtin int or a float equal to an int
-        return is_integer(element) or (is_float(element) and element.is_integer())
+        if is_integer(element) or (is_float(element) and element.is_integer()):
+            return element
+        raise ValueError
 
     elif dtype.kind == "f":
         if tipo is not None:
             # TODO: itemsize check?
             if tipo.kind not in ["f", "i", "u"]:
                 # Anything other than float/integer we cannot hold
-                return False
+                raise ValueError
             elif not isinstance(tipo, np.dtype):
                 # i.e. nullable IntegerDtype or FloatingDtype;
                 #  we can put this into an ndarray losslessly iff it has no NAs
-                return not element._mask.any()
-            return True
+                hasnas = element._mask.any()
+                # TODO: don't rely on implementation detail
+                if hasnas:
+                    raise ValueError
+                return element
+            return element
 
-        return lib.is_integer(element) or lib.is_float(element)
+        if lib.is_integer(element) or lib.is_float(element):
+            return element
+        raise ValueError
 
     elif dtype.kind == "c":
         if tipo is not None:
-            return tipo.kind in ["c", "f", "i", "u"]
-        return (
-            lib.is_integer(element) or lib.is_complex(element) or lib.is_float(element)
-        )
+            if tipo.kind in ["c", "f", "i", "u"]:
+                return element
+            raise ValueError
+        if lib.is_integer(element) or lib.is_complex(element) or lib.is_float(element):
+            return element
+        raise ValueError
 
     elif dtype.kind == "b":
         if tipo is not None:
-            return tipo.kind == "b"
-        return lib.is_bool(element)
+            if tipo.kind == "b":  # FIXME: wrong with BooleanArray?
+                return element
+            raise ValueError
+        if lib.is_bool(element):
+            return element
+        raise ValueError
 
     elif dtype.kind == "S":
         # TODO: test tests.frame.methods.test_replace tests get here,
         #  need more targeted tests.  xref phofl has a PR about this
         if tipo is not None:
-            return tipo.kind == "S" and tipo.itemsize <= dtype.itemsize
-        return isinstance(element, bytes) and len(element) <= dtype.itemsize
+            if tipo.kind == "S" and tipo.itemsize <= dtype.itemsize:
+                return element
+            raise ValueError
+        if isinstance(element, bytes) and len(element) <= dtype.itemsize:
+            return element
+        raise ValueError
 
     raise NotImplementedError(dtype)
 

@@ -21,7 +21,6 @@ import pytz
 
 from pandas._libs.tslibs import parsing
 from pandas._libs.tslibs.parsing import parse_datetime_string
-from pandas.compat import np_array_datetime64_compat
 from pandas.compat.pyarrow import pa_version_under6p0
 
 import pandas as pd
@@ -1541,7 +1540,7 @@ date,time,prn,rxstatus
 """
 
     def date_parser(dt, time):
-        return np_array_datetime64_compat(dt + "T" + time + "Z", dtype="datetime64[s]")
+        return np.array(dt + "T" + time, dtype="datetime64[s]")
 
     result = parser.read_csv(
         StringIO(data),
@@ -1550,9 +1549,7 @@ date,time,prn,rxstatus
         index_col=["datetime", "prn"],
     )
 
-    datetimes = np_array_datetime64_compat(
-        ["2013-11-03T19:00:00Z"] * 3, dtype="datetime64[s]"
-    )
+    datetimes = np.array(["2013-11-03T19:00:00"] * 3, dtype="datetime64[s]")
     expected = DataFrame(
         data={"rxstatus": ["00E80000"] * 3},
         index=MultiIndex.from_tuples(

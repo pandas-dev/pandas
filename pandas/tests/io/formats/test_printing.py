@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 import pandas._config.config as cf
 
@@ -119,6 +120,9 @@ c        ff         いいい"""
 
 
 class TestTableSchemaRepr:
+    @pytest.mark.filterwarnings(
+        "ignore:.*signature may therefore change.*:FutureWarning"
+    )
     def test_publishes(self, ip):
         ipython = ip.instance(config=ip.config)
         df = pd.DataFrame({"A": [1, 2]})

@@ -95,10 +95,9 @@ class SparseDtype(ExtensionDtype):
         if fill_value is None:
             fill_value = na_value_for_dtype(dtype)
 
-        if not is_scalar(fill_value):
-            raise ValueError(f"fill_value must be a scalar. Got {fill_value} instead")
         self._dtype = dtype
         self._fill_value = fill_value
+        self._check_fill_value()
 
     def __hash__(self):
         # Python3 doesn't inherit __hash__ when a base class overrides
@@ -148,6 +147,24 @@ class SparseDtype(ExtensionDtype):
            ``SparseArray.fill_value`` directly.
         """
         return self._fill_value
+
+    def _check_fill_value(self):
+        if not is_scalar(self._fill_value):
+            raise ValueError(
+                f"fill_value must be a scalar. Got {self._fill_value} instead"
+            )
+        # TODO: Right now we can use Sparse boolean array
+        #       with any fill_value. Here was an attempt
+        #       to allow only 3 value: True, False or nan
+        #       but plenty test has failed.
+        # see pull 44955
+        # if self._is_boolean and not (
+        #    is_bool(self._fill_value) or isna(self._fill_value)
+        # ):
+        #    raise ValueError(
+        #        "fill_value must be True, False or nan "
+        #        f"for boolean type. Got {self._fill_value} instead"
+        #    )
 
     @property
     def _is_na_fill_value(self) -> bool:
@@ -292,7 +309,7 @@ class SparseDtype(ExtensionDtype):
             return True
         return isinstance(dtype, np.dtype) or dtype == "Sparse"
 
-    def update_dtype(self, dtype):
+    def update_dtype(self, dtype) -> SparseDtype:
         """
         Convert the SparseDtype to a new dtype.
 
