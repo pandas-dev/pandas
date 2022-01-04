@@ -1000,6 +1000,7 @@ Other
 - Bug in :meth:`DataFrame.diff` when passing a NumPy integer object instead of an ``int`` object (:issue:`44572`)
 - Bug in :meth:`Series.replace` raising ``ValueError`` when using ``regex=True`` with a :class:`Series` containing ``np.nan`` values (:issue:`43344`)
 - Bug in :meth:`DataFrame.to_records` where an incorrect ``n`` was used when missing names were replaced by ``level_n`` (:issue:`44818`)
+- Bug in :meth:`DataFrame.eval` where ``resolvers`` argument was overriding the default resolvers (:issue:`34966`)
 
 .. ***DO NOT USE THIS SECTION***
 
