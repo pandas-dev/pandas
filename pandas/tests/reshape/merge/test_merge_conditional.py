@@ -1,3 +1,5 @@
+import re
+
 import pytest
 
 from pandas import (
@@ -65,7 +67,7 @@ def test_merge_conditional_non_cross(how):
 
 
 def test_merge_conditional_bad_args():
-    error_msg = (
+    error_msg = re.escape(
         "Cannot define any of (`left_on`, `right_on`, `left_index`, "
         "`right_index`) in a conditional merge"
     )

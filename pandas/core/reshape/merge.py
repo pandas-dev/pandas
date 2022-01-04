@@ -696,6 +696,7 @@ class _MergeOperation:
             self._is_conditional_merge = True
             self.on = on  # set originally passed in `on`
             self.axis = axis  # set original passed in `axis`
+            self.validate = validate
 
             self._validate_specification()
 
