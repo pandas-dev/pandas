@@ -1130,7 +1130,6 @@ def astype_nansafe(
                 "is deprecated and will raise in a future version. "
                 "Use .view(...) instead.",
                 FutureWarning,
-                # stacklevel chosen to be correct when reached via Series.astype
                 stacklevel=find_stack_level(),
             )
             if isna(arr).any():
@@ -1152,7 +1151,6 @@ def astype_nansafe(
                 "is deprecated and will raise in a future version. "
                 "Use .view(...) instead.",
                 FutureWarning,
-                # stacklevel chosen to be correct when reached via Series.astype
                 stacklevel=find_stack_level(),
             )
             if isna(arr).any():
@@ -1791,8 +1789,22 @@ def ensure_nanosecond_dtype(dtype: DtypeObj) -> DtypeObj:
     return dtype
 
 
-# TODO: overload to clarify that if all types are np.dtype then result is np.dtype
+@overload
+def find_common_type(types: list[np.dtype]) -> np.dtype:
+    ...
+
+
+@overload
+def find_common_type(types: list[ExtensionDtype]) -> DtypeObj:
+    ...
+
+
+@overload
 def find_common_type(types: list[DtypeObj]) -> DtypeObj:
+    ...
+
+
+def find_common_type(types):
     """
     Find a common data type among the given dtypes.
 
@@ -1844,11 +1856,7 @@ def find_common_type(types: list[DtypeObj]) -> DtypeObj:
             if is_integer_dtype(t) or is_float_dtype(t) or is_complex_dtype(t):
                 return np.dtype("object")
 
-    # error: Argument 1 to "find_common_type" has incompatible type
-    # "List[Union[dtype, ExtensionDtype]]"; expected "Sequence[Union[dtype,
-    # None, type, _SupportsDtype, str, Tuple[Any, int], Tuple[Any, Union[int,
-    # Sequence[int]]], List[Any], _DtypeDict, Tuple[Any, Any]]]"
-    return np.find_common_type(types, [])  # type: ignore[arg-type]
+    return np.find_common_type(types, [])
 
 
 def construct_2d_arraylike_from_scalar(

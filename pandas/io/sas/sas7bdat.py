@@ -798,8 +798,8 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
             name = self.column_names[j]
 
             if self._column_types[j] == b"d":
-                rslt[name] = self._byte_chunk[jb, :].view(dtype=self.byte_order + "d")
-                rslt[name] = pd.Series(rslt[name], dtype=np.float64, index=ix)
+                col_arr = self._byte_chunk[jb, :].view(dtype=self.byte_order + "d")
+                rslt[name] = pd.Series(col_arr, dtype=np.float64, index=ix)
                 if self.convert_dates:
                     if self.column_formats[j] in const.sas_date_formats:
                         rslt[name] = _convert_datetimes(rslt[name], "d")
