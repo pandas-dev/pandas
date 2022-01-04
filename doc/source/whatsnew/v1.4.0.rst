@@ -835,7 +835,7 @@ MultiIndex
 - Bug in :meth:`MultiIndex.get_loc` raising ``TypeError`` instead of ``KeyError`` on nested tuple (:issue:`42440`)
 - Bug in :meth:`MultiIndex.union` setting wrong ``sortorder`` causing errors in subsequent indexing operations with slices (:issue:`44752`)
 - Bug in :meth:`MultiIndex.putmask` where the other value was also a :class:`MultiIndex` (:issue:`43212`)
-- Bug in :meth:`MultiIndex.dtypes` when duplicate level names returned only one dtype (:issue:`45174`)
+- Bug in :meth:`MultiIndex.dtypes` duplicate level names returned only one dtype per name (:issue:`45174`)
 -
 
 I/O

@@ -735,9 +735,6 @@ class MultiIndex(Index):
     def dtypes(self) -> Series:
         """
         Return the dtypes as a Series for the underlying MultiIndex.
-
-        .. versionchanged:: 1.4.0
-            Correct result when there are duplicated level names.
         """
         from pandas import Series
 
