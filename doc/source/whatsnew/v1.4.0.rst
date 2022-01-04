@@ -631,6 +631,7 @@ Other Deprecations
 - Deprecated the behavior of :meth:`Timestamp.utcfromtimestamp`, in the future it will return a timezone-aware UTC :class:`Timestamp` (:issue:`22451`)
 - Deprecated :meth:`NaT.freq` (:issue:`45071`)
 - Deprecated behavior of :class:`Series` and :class:`DataFrame` construction when passed float-dtype data containing ``NaN`` and an integer dtype ignoring the dtype argument; in a future version this will raise (:issue:`40110`)
+- Deprecating setting the ``categories`` attribute of a :class:`Categorical` object; use :meth:`Categorical.rename_categories` instead (:issue:`??`)
 -
 
 

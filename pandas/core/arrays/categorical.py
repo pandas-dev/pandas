@@ -746,6 +746,14 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     @categories.setter
     def categories(self, categories):
+        warn(
+            "Changing the categories of a Categorical in-place is deprecated and "
+            "will raise in a future version. Use "
+            "obj.rename_categories(categories) instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
         new_dtype = CategoricalDtype(categories, ordered=self.ordered)
         if self.dtype.categories is not None and len(self.dtype.categories) != len(
             new_dtype.categories
@@ -1062,11 +1070,19 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         cat = self if inplace else self.copy()
 
         if is_dict_like(new_categories):
-            cat.categories = [new_categories.get(item, item) for item in cat.categories]
+            with catch_warnings():
+                simplefilter("ignore")
+                cat.categories = [
+                    new_categories.get(item, item) for item in cat.categories
+                ]
         elif callable(new_categories):
-            cat.categories = [new_categories(item) for item in cat.categories]
+            with catch_warnings():
+                simplefilter("ignore")
+                cat.categories = [new_categories(item) for item in cat.categories]
         else:
-            cat.categories = new_categories
+            with catch_warnings():
+                simplefilter("ignore")
+                cat.categories = new_categories
         if not inplace:
             return cat
 

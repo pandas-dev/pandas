@@ -1925,7 +1925,7 @@ the string values returned are correct."""
                     categories = list(vl.values())
                 try:
                     # Try to catch duplicate categories
-                    cat_data.categories = categories
+                    cat_data = cat_data.rename_categories(categories)
                 except ValueError as err:
                     vc = Series(categories).value_counts()
                     repeated_cats = list(vc.index[vc > 1])

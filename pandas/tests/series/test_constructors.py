@@ -480,7 +480,9 @@ class TestSeriesConstructors:
         cat = Categorical(["a", "b", "c", "a"])
         s = Series(cat, copy=True)
         assert s.cat is not cat
-        s.cat.categories = [1, 2, 3]
+        msg = "Changing the categories of a Categorical in-place"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            s.cat.categories = [1, 2, 3]
         exp_s = np.array([1, 2, 3, 1], dtype=np.int64)
         exp_cat = np.array(["a", "b", "c", "a"], dtype=np.object_)
         tm.assert_numpy_array_equal(s.__array__(), exp_s)
@@ -497,7 +499,8 @@ class TestSeriesConstructors:
         cat = Categorical(["a", "b", "c", "a"])
         s = Series(cat)
         assert s.values is cat
-        s.cat.categories = [1, 2, 3]
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            s.cat.categories = [1, 2, 3]
         exp_s = np.array([1, 2, 3, 1], dtype=np.int64)
         tm.assert_numpy_array_equal(s.__array__(), exp_s)
         tm.assert_numpy_array_equal(cat.__array__(), exp_s)

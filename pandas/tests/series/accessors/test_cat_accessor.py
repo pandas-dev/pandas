@@ -110,7 +110,9 @@ class TestCatAccessor:
         ser = Series(Categorical(["a", "b", "c", "a"], ordered=True))
         exp_categories = Index(["a", "b", "c"])
         tm.assert_index_equal(ser.cat.categories, exp_categories)
-        ser.cat.categories = [1, 2, 3]
+        msg = "Changing the categories of a Categorical in-place"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ser.cat.categories = [1, 2, 3]
         exp_categories = Index([1, 2, 3])
         tm.assert_index_equal(ser.cat.categories, exp_categories)
 
@@ -266,9 +268,11 @@ class TestCatAccessor:
 
         df = DataFrame({"Survived": [1, 0, 1], "Sex": [0, 1, 1]}, dtype="category")
 
-        # change the dtype in-place
-        df["Survived"].cat.categories = ["No", "Yes"]
-        df["Sex"].cat.categories = ["female", "male"]
+        msg = "Changing the categories of a Categorical in-place"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            # change the dtype in-place
+            df["Survived"].cat.categories = ["No", "Yes"]
+            df["Sex"].cat.categories = ["female", "male"]
 
         # values should not be coerced to NaN
         assert list(df["Sex"]) == ["female", "male", "male"]

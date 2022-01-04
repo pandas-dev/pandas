@@ -191,7 +191,9 @@ class TestCategoricalIndexing:
     def test_categories_assignments(self):
         s = Categorical(["a", "b", "c", "a"])
         exp = np.array([1, 2, 3, 1], dtype=np.int64)
-        s.categories = [1, 2, 3]
+        msg = "Changing the categories of a Categorical in-place"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            s.categories = [1, 2, 3]
         tm.assert_numpy_array_equal(s.__array__(), exp)
         tm.assert_index_equal(s.categories, Index([1, 2, 3]))
 
@@ -202,8 +204,10 @@ class TestCategoricalIndexing:
             "new categories need to have the same number of items "
             "as the old categories!"
         )
+        warn_msg = "Changing the categories of a Categorical in-place"
         with pytest.raises(ValueError, match=msg):
-            cat.categories = new_categories
+            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+                cat.categories = new_categories
 
     # Combinations of sorted/unique:
     @pytest.mark.parametrize(
