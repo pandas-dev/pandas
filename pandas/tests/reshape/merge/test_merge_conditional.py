@@ -79,10 +79,6 @@ def test_merge_conditional_bad_args():
             left_on="A",
         )
 
-    error_msg = "Conditional merge must use `axis=1`"
-    with pytest.raises(ValueError, match=error_msg):
-        merge(DataFrame(), DataFrame(), on=lambda l, r: None, axis=0)
-
     error_msg = "Conditional merge must use `copy=True`"
     with pytest.raises(ValueError, match=error_msg):
         merge(DataFrame(), DataFrame(), on=lambda l, r: None, copy=False)
@@ -99,12 +95,24 @@ def test_merge_conditional_bad_args():
 def test_merge_conditional_bad_on_func():
     # too few on func args
     with pytest.raises(TypeError, match=".*"):
-        merge(DataFrame(), DataFrame(), on=lambda l: None)
+        merge(
+            DataFrame([[1, 2]], columns=["A", "B"]),
+            DataFrame([[1, 2]], columns=["A", "B"]),
+            on=lambda l: None,
+        )
 
     # too many on func args
     with pytest.raises(TypeError, match=".*"):
-        merge(DataFrame(), DataFrame(), on=lambda l, r, x: None)
+        merge(
+            DataFrame([[1, 2]], columns=["A", "B"]),
+            DataFrame([[1, 2]], columns=["A", "B"]),
+            on=lambda l, r, x: None,
+        )
 
     # bad on func return value
     with pytest.raises(Exception, match=".*"):
-        merge(DataFrame(), DataFrame(), on=lambda l, r: object())
+        merge(
+            DataFrame([[1, 2]], columns=["A", "B"]),
+            DataFrame([[1, 2]], columns=["A", "B"]),
+            on=lambda l, r: object(),
+        )

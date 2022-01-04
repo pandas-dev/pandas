@@ -695,7 +695,6 @@ class _MergeOperation:
             # of feature optimization refactor
             self._is_conditional_merge = True
             self.on = on  # set originally passed in `on`
-            self.axis = axis  # set original passed in `axis`
             self.validate = validate
 
             self._validate_specification()
@@ -1486,9 +1485,6 @@ class _MergeOperation:
                 "Cannot define any of (`left_on`, `right_on`, `left_index`, "
                 "`right_index`) in a conditional merge"
             )
-
-        if self.axis != 1:
-            raise ValueError("Conditional merge must use `axis=1`")
 
         if not self.copy:
             # Reason is that due to the initial chunked implementation,
