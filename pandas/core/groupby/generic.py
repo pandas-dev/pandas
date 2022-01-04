@@ -86,6 +86,7 @@ from pandas.core.indexes.api import (
     MultiIndex,
     all_indexes_same,
 )
+from pandas.core.reshape.concat import concat
 from pandas.core.series import Series
 from pandas.core.util.numba_ import maybe_use_numba
 
@@ -1768,7 +1769,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                         f"Column label '{name}' is duplicate of result column"
                     )
                 columns = com.fill_missing_names(columns)
-                result_frame = DataFrame()
+                result_frame = DataFrame(index=result.index)
                 for i, column in enumerate(columns):
                     level_values = result.index.get_level_values(i)._values
                     if level_values.dtype == np.object_:
@@ -1776,8 +1777,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                             cast(np.ndarray, level_values)
                         )
                     result_frame.insert(i, column, level_values, allow_duplicates=True)
-                result_frame = result_frame.assign(**{name: result._values})
-                return result_frame.__finalize__(self.obj, method="value_counts")
+                result.name = name
+                return (
+                    concat([result_frame, result], axis=1)
+                    .reset_index(drop=True)
+                    .__finalize__(self.obj, method="value_counts")
+                )
 
 
 def _wrap_transform_general_frame(
