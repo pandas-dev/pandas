@@ -612,6 +612,7 @@ Other Deprecations
 - Deprecated the ``prefix`` keyword argument in :func:`read_csv` and :func:`read_table`, in a future version the argument will be removed (:issue:`43396`)
 - Deprecated passing non boolean argument to sort in :func:`concat` (:issue:`41518`)
 - Deprecated passing arguments as positional for :func:`read_fwf` other than ``filepath_or_buffer`` (:issue:`41485`):
+- Deprecated passing arguments as positional for :func:`read_xml` other than ``path_or_buffer`` (:issue:`45133`):
 - Deprecated passing ``skipna=None`` for :meth:`DataFrame.mad` and :meth:`Series.mad`, pass ``skipna=True`` instead (:issue:`44580`)
 - Deprecated the behavior of :func:`to_datetime` with the string "now" with ``utc=False``; in a future version this will match ``Timestamp("now")``, which in turn matches :meth:`Timestamp.now` returning the local time (:issue:`18705`)
 - Deprecated :meth:`DateOffset.apply`, use ``offset + other`` instead (:issue:`44522`)
@@ -725,6 +726,7 @@ Datetimelike
 - Bug in :class:`DateOffset`` addition with :class:`Timestamp` where ``offset.nanoseconds`` would not be included in the result (:issue:`43968`, :issue:`36589`)
 - Bug in :meth:`Timestamp.fromtimestamp` not supporting the ``tz`` argument (:issue:`45083`)
 - Bug in :class:`DataFrame` construction from dict of :class:`Series` with mismatched index dtypes sometimes raising depending on the ordering of the passed dict (:issue:`44091`)
+- Bug in :class:`Timestamp` hashing during some DST transitions caused a segmentation fault (:issue:`33931` and :issue:`40817`)
 -
 
 Timedelta
@@ -837,6 +839,7 @@ MultiIndex
 - Bug in :meth:`MultiIndex.get_loc` raising ``TypeError`` instead of ``KeyError`` on nested tuple (:issue:`42440`)
 - Bug in :meth:`MultiIndex.union` setting wrong ``sortorder`` causing errors in subsequent indexing operations with slices (:issue:`44752`)
 - Bug in :meth:`MultiIndex.putmask` where the other value was also a :class:`MultiIndex` (:issue:`43212`)
+- Bug in :meth:`MultiIndex.dtypes` duplicate level names returned only one dtype per name (:issue:`45174`)
 -
 
 I/O
@@ -879,6 +882,7 @@ I/O
 - Bug in :func:`read_csv` silently ignoring errors when failing to create a memory-mapped file (:issue:`44766`)
 - Bug in :func:`read_csv` when passing a ``tempfile.SpooledTemporaryFile`` opened in binary mode (:issue:`44748`)
 - Bug in :func:`read_json` raising ``ValueError`` when attempting to parse json strings containing "://" (:issue:`36271`)
+- Bug in :func:`read_csv` when ``engine="c"`` and ``encoding_errors=None`` which caused a segfault (:issue:`45180`)
 -
 
 Period
@@ -999,6 +1003,7 @@ Other
 - Bug in :meth:`DataFrame.diff` when passing a NumPy integer object instead of an ``int`` object (:issue:`44572`)
 - Bug in :meth:`Series.replace` raising ``ValueError`` when using ``regex=True`` with a :class:`Series` containing ``np.nan`` values (:issue:`43344`)
 - Bug in :meth:`DataFrame.to_records` where an incorrect ``n`` was used when missing names were replaced by ``level_n`` (:issue:`44818`)
+- Bug in :meth:`DataFrame.eval` where ``resolvers`` argument was overriding the default resolvers (:issue:`34966`)
 
 .. ***DO NOT USE THIS SECTION***
 
