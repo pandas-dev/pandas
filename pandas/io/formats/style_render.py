@@ -752,10 +752,10 @@ class StylerRenderer:
             or multirow sparsification (so that \multirow and \multicol work correctly).
         """
         index_levels = self.index.nlevels
-        visible_index_levels = index_levels - sum(self.hide_index_)
+        visible_index_level_n = index_levels - sum(self.hide_index_)
         d["head"] = [
             [
-                {**col, "cellstyle": self.ctx_columns[r, c - visible_index_levels]}
+                {**col, "cellstyle": self.ctx_columns[r, c - visible_index_level_n]}
                 for c, col in enumerate(row)
                 if col["is_visible"]
             ]
@@ -810,10 +810,10 @@ class StylerRenderer:
             data_len = len(row_body_cells) if "data" in clines else 0
 
             d["clines"] = defaultdict(list)
-            visible_row_indexes = [
+            visible_row_indexes: list[int] = [
                 r for r in range(len(self.data.index)) if r not in self.hidden_rows
             ]
-            visible_index_levels = [
+            visible_index_levels: list[int] = [
                 i for i in range(index_levels) if not self.hide_index_[i]
             ]
             for rn, r in enumerate(visible_row_indexes):
