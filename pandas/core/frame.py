@@ -512,7 +512,7 @@ Conditional merge on with an equality and range condition
 ...     }
 ... )
 >>> right = pd.DataFrame(
->>>     {
+...     {
 ...         'permno': [22, 59, 75],
 ...         'namedt': pd.DatetimeIndex(['1968-01-02', '1972-12-14', '1991-10-30']),
 ...         'nameenddt': pd.DatetimeIndex(['2014-12-31', '2014-12-31', '1992-08-17']),
