@@ -5,10 +5,7 @@ ExtensionArrays.
 import datetime
 from functools import partial
 import operator
-from typing import (
-    Any,
-    cast,
-)
+from typing import Any
 
 import numpy as np
 
@@ -94,8 +91,6 @@ def _masked_arith_op(x: np.ndarray, y, op):
     assert isinstance(x, np.ndarray), type(x)
     if isinstance(y, np.ndarray):
         dtype = find_common_type([x.dtype, y.dtype])
-        # x and y are both ndarrays -> common_dtype is np.dtype
-        dtype = cast(np.dtype, dtype)
         result = np.empty(x.size, dtype=dtype)
 
         if len(x) != len(y):

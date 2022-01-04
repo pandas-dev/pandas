@@ -1698,13 +1698,13 @@ the string values returned are correct."""
             data = DataFrame(columns=self.varlist)
         else:
             data = DataFrame.from_records(raw_data)
-            data.columns = self.varlist
+            data.columns = Index(self.varlist)
 
         # If index is not specified, use actual row number rather than
         # restarting at 0 for each chunk.
         if index_col is None:
-            ix = np.arange(self._lines_read - read_lines, self._lines_read)
-            data.index = ix  # set attr instead of set_index to avoid copy
+            rng = np.arange(self._lines_read - read_lines, self._lines_read)
+            data.index = Index(rng)  # set attr instead of set_index to avoid copy
 
         if columns is not None:
             try:
