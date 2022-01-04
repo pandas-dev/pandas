@@ -698,15 +698,16 @@ def to_datetime(
     ----------
     arg : int, float, str, datetime, list, tuple, 1-d array, Series, DataFrame/dict-like
         The object to convert to a datetime. If a :class:`DataFrame` is provided, the
-        method expects minimally the following columns: "year", "month", "day".
+        method expects minimally the following columns: :const:`"year"`,
+        :const:`"month"`, :const:`"day"`.
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
         - If :const:`'raise'`, then invalid parsing will raise an exception.
         - If :const:`'coerce'`, then invalid parsing will be set as :const:`NaT`.
         - If :const:`'ignore'`, then invalid parsing will return the input.
     dayfirst : bool, default False
-        Specify a date parse order if `arg` is str or its list-likes.
-        If :const:`True`, parses dates with the day first, e.g. 10/11/12 is parsed
-        as 2012-11-10.
+        Specify a date parse order if `arg` is str or its list-like.
+        If :const:`True`, parses dates with the day first, e.g. :const:`"10/11/12"`
+        is parsed as :const:`2012-11-10`.
 
         .. warning::
 
@@ -716,12 +717,12 @@ def to_datetime(
             ``to_datetime(['31-12-2021'])``, then a warning will be shown.
 
     yearfirst : bool, default False
-        Specify a date parse order if `arg` is str or its list-likes.
+        Specify a date parse order if `arg` is str or is list-like.
 
-        - If :const:`True` parses dates with the year first, e.g. 10/11/12 is
-          parsed as 2010-11-12.
-        - If both dayfirst and yearfirst are :const:`True`, yearfirst is preceded
-          (same as dateutil).
+        - If :const:`True` parses dates with the year first, e.g.
+          :const:`"10/11/12"` is parsed as :const:`2010-11-12`.
+        - If both `dayfirst` and `yearfirst` are :const:`True`, `yearfirst` is
+          preceded (same as :mod:`dateutil`).
 
         .. warning::
 
@@ -748,14 +749,16 @@ def to_datetime(
         #time-zone-handling>`_.
 
     format : str, default None
-        The strftime to parse time, e.g. ``"%d/%m/%Y"``. Note that "%f" will parse
-        all the way up to nanoseconds. See `strftime documentation
+        The strftime to parse time, e.g. :const:`"%d/%m/%Y"`. Note that
+        :const:`"%f"` will parse all the way up to nanoseconds. See
+        `strftime documentation
         <https://docs.python.org/3/library/datetime.html
         #strftime-and-strptime-behavior>`_ for more information on choices.
     exact : bool, default True
-        Behaves as:
-        - If :const:`True`, require an exact format match.
-        - If :const:`False`, allow the format to match anywhere in the target
+        Control how `format` is used:
+
+        - If :const:`True`, require an exact `format` match.
+        - If :const:`False`, allow the `format` to match anywhere in the target
           string.
 
     unit : str, default 'ns'
@@ -764,18 +767,18 @@ def to_datetime(
         Example, with ``unit='ms'`` and ``origin='unix'`` (the default), this
         would calculate the number of milliseconds to the unix epoch start.
     infer_datetime_format : bool, default False
-        If :const:`True` and no `format` is given, attempt to infer the format of
-        the datetime strings based on the first non-NaN element,
+        If :const:`True` and no `format` is given, attempt to infer the format
+        of the datetime strings based on the first non-NaN element,
         and if it can be inferred, switch to a faster method of parsing them.
         In some cases this can increase the parsing speed by ~5-10x.
     origin : scalar, default 'unix'
         Define the reference date. The numeric values would be parsed as number
         of units (defined by `unit`) since this reference date.
 
-        - If ``'unix'`` (or POSIX) time; origin is set to 1970-01-01.
-        - If ``'julian'``, unit must be ``'D'``, and origin is set to beginning
-          of Julian Calendar. Julian day number 0 is assigned to the day starting
-          at noon on January 1, 4713 BC.
+        - If :const:`'unix'` (or POSIX) time; origin is set to 1970-01-01.
+        - If :const:`'julian'`, unit must be :const:`'D'`, and origin is set to
+          beginning of Julian Calendar. Julian day number :const:`0` is assigned
+          to the day starting at noon on January 1, 4713 BC.
         - If Timestamp convertible, origin is set to Timestamp identified by
           origin.
     cache : bool, default True
@@ -787,7 +790,7 @@ def to_datetime(
         parsing.
 
         .. versionchanged:: 0.25.0
-            - changed default value from :const:`False` to :const:`True`.
+            changed default value from :const:`False` to :const:`True`.
 
     Returns
     -------
@@ -800,10 +803,10 @@ def to_datetime(
         - scalar: :class:`Timestamp` (or :class:`datetime.datetime`)
         - array-like: :class:`DatetimeIndex` (or :class:`Series` with
           :class:`object` dtype containing :class:`datetime.datetime`)
-        - :class:`Series`: :class:`Series` of :class:`datetime64` dtype (or
+        - Series: :class:`Series` of :class:`datetime64` dtype (or
           :class:`Series` of :class:`object` dtype containing
           :class:`datetime.datetime`)
-        - :class:`DataFrame`: :class:`Series` of :class:`datetime64` dtype (or
+        - DataFrame: :class:`Series` of :class:`datetime64` dtype (or
           :class:`Series` of :class:`object` dtype containing
           :class:`datetime.datetime`)
 
@@ -813,9 +816,9 @@ def to_datetime(
         When parsing a date from string fails.
     ValueError
         When another datetime conversion error happens. For example when one
-        of 'year', 'month', day' is missing in a :class:`DataFrame`, or when
-        a Timezone-aware :class:`datetime.datetime` is found in an array-like of
-        mixed time offsets, and ``utc=False``.
+        of 'year', 'month', day' columns is missing in a :class:`DataFrame`, or
+        when a Timezone-aware :class:`datetime.datetime` is found in an array-like
+        of mixed time offsets, and ``utc=False``.
 
     See Also
     --------
@@ -828,23 +831,23 @@ def to_datetime(
 
     Many input types are supported, and lead to different output types:
 
-    - scalars can be int, float, str, datetime object (from stdlib :mod:`datetime`
+    - **scalars** can be int, float, str, datetime object (from stdlib :mod:`datetime`
       module or :mod:`numpy`). They are converted to :class:`Timestamp` when
       possible, otherwise they are converted to :class:`datetime.datetime`.
       None/NaN/null scalars are converted to :const:`NaT`.
 
-    - array-like can contain int, float, str, datetime objects. They are
+    - **array-like** can contain int, float, str, datetime objects. They are
       converted to :class:`DatetimeIndex` when possible, otherwise they are
       converted to :class:`Index` with :class:`object` dtype, containing
       :class:`datetime.datetime`. None/NaN/null entries are converted to
       :const:`NaT` in both cases.
 
-    - :class:`Series` are converted to :class:`Series` with :class:`datetime64`
+    - **Series** are converted to :class:`Series` with :class:`datetime64`
       dtype when possible, otherwise they are converted to :class:`Series` with
       :class:`object` dtype, containing :class:`datetime.datetime`. None/NaN/null
       entries are converted to :const:`NaT` in both cases.
 
-    - :class:`DataFrame`/dict-like are converted to :class:`Series` with
+    - **DataFrame/dict-like** are converted to :class:`Series` with
       :class:`datetime64` dtype. For each row a datetime is created from assembling
       the various dataframe columns. Column keys can be common abbreviations
       like [‘year’, ‘month’, ‘day’, ‘minute’, ‘second’, ‘ms’, ‘us’, ‘ns’]) or
@@ -923,7 +926,7 @@ def to_datetime(
 
     If a date does not meet the `timestamp limitations
     <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html
-    #timeseries-timestamp-limits>`_, passing errors='ignore'
+    #timeseries-timestamp-limits>`_, passing ``errors='ignore'``
     will return the original input instead of raising any exception.
 
     Passing ``errors='coerce'`` will force an out-of-bounds date to :const:`NaT`,
