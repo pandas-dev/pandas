@@ -1116,9 +1116,9 @@ def _assemble_from_unit_mappings(arg, errors, tz):
     arg : DataFrame
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
 
-        - If 'raise', then invalid parsing will raise an exception
-        - If 'coerce', then invalid parsing will be set as NaT
-        - If 'ignore', then invalid parsing will return the input
+        - If :const:`'raise'`, then invalid parsing will raise an exception
+        - If :const:`'coerce'`, then invalid parsing will be set as NaT
+        - If :const:`'ignore'`, then invalid parsing will return the input
     tz : None or 'utc'
 
     Returns
