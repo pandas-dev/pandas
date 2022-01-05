@@ -187,10 +187,6 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
         """
         return self._dtype
 
-    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
-        """Correctly construct numpy arrays when passed to `np.asarray()`."""
-        return self.to_numpy(dtype=dtype)
-
     def __arrow_array__(self, type=None):
         """Convert myself to a pyarrow Array or ChunkedArray."""
         return self._data

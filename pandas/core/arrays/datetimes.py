@@ -612,12 +612,12 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods
 
-    def __array__(self, dtype=None) -> np.ndarray:
+    def _to_numpy(self, dtype=None) -> Tuple[np.ndarray, bool]:
         if dtype is None and self.tz:
             # The default for tz-aware is object, to preserve tz info
             dtype = object
 
-        return super().__array__(dtype=dtype)
+        return super()._to_numpy(dtype=dtype)
 
     def __iter__(self):
         """

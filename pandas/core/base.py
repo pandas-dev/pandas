@@ -542,7 +542,7 @@ class IndexOpsMixin(OpsMixin):
             # The pandas-internal _to_numpy function is just like __array__,
             # but returns also a second value indicating if copying happened,
             # so we don't need to do guesswork like in the other cases below.
-            result, copied = self._values._to_numpy(dtype=dtype, copy=copy)
+            result, copied = self._values._to_numpy(dtype=dtype)
         else:
             result = np.asarray(self._values, dtype=dtype)
             copied = True

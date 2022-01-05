@@ -1410,7 +1410,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     # ---------------------------------------------------------------------
     # Conversion
 
-    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
+    def _to_numpy(self, dtype: NpDtype | None = None) -> Tuple[np.ndarray, bool]:
         """
         Return the IntervalArray's data as a numpy array of Interval
         objects (with dtype='object')
@@ -1426,7 +1426,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 result[i] = np.nan
             else:
                 result[i] = Interval(left[i], right[i], closed)
-        return result
+        return result, True
 
     def __arrow_array__(self, type=None):
         """

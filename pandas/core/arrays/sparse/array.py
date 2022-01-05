@@ -577,12 +577,12 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         return cls._simple_new(arr, index, dtype)
 
-    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
+    def _to_numpy(self, dtype: NpDtype | None = None) -> Tuple[np.ndarray, bool]:
         fill_value = self.fill_value
 
         if self.sp_index.ngaps == 0:
             # Compat for na dtype and int values.
-            return self.sp_values
+            return self.sp_values, False
         if dtype is None:
             # Can NumPy represent this type?
             # If not, `np.result_type` will raise. We catch that
@@ -600,7 +600,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         out = np.full(self.shape, fill_value, dtype=dtype)
         out[self.sp_index.indices] = self.sp_values
-        return out
+        return out, True
 
     def __setitem__(self, key, value):
         # I suppose we could allow setting of non-fill_value elements.

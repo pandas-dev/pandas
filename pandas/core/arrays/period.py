@@ -350,14 +350,14 @@ class PeriodArray(dtl.DatelikeOps):
         """
         return self.dtype.freq
 
-    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
+    def _to_numpy(self, dtype: NpDtype | None = None) -> Tuple[np.ndarray, bool]:
         if dtype == "i8":
-            return self.asi8
+            return self.asi8, False
         elif dtype == bool:
-            return ~self._isnan
+            return ~self._isnan, True
 
         # This will raise TypeError for non-object dtypes
-        return np.array(list(self), dtype=object)
+        return np.array(list(self), dtype=object), True
 
     def __arrow_array__(self, type=None):
         """

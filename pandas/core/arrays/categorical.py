@@ -1490,7 +1490,16 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     # -------------------------------------------------------------
 
     @ravel_compat
-    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
+    def _to_numpy_impl(self, dtype=None) -> np.ndarray:
+        ret = take_nd(self.categories._values, self._codes)
+        if dtype and not is_dtype_equal(dtype, self.categories.dtype):
+            return np.asarray(ret, dtype)
+        # When we're a Categorical[ExtensionArray], like Interval,
+        # we need to ensure __array__ gets all the way to an
+        # ndarray.
+        return np.asarray(ret)
+
+    def _to_numpy(self, dtype=None) -> Tuple[np.ndarray, bool]:
         """
         The numpy array interface.
 
@@ -1501,13 +1510,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             if dtype==None (default), the same dtype as
             categorical.categories.dtype.
         """
-        ret = take_nd(self.categories._values, self._codes)
-        if dtype and not is_dtype_equal(dtype, self.categories.dtype):
-            return np.asarray(ret, dtype)
-        # When we're a Categorical[ExtensionArray], like Interval,
-        # we need to ensure __array__ gets all the way to an
-        # ndarray.
-        return np.asarray(ret)
+        return self._to_numpy_impl(dtype=dtype), True
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # for binary ops, use our custom dunder methods

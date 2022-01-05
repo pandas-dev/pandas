@@ -16,6 +16,7 @@ from typing import (
     Iterator,
     Literal,
     Sequence,
+    Tuple,
     TypeVar,
     cast,
     overload,
@@ -455,6 +456,9 @@ class ExtensionArray:
         """
         return ~(self == other)
 
+    def _to_numpy(self, dtype=None) -> Tuple[np.ndarray, bool]:
+        return np.asarray(list(self), dtype=dtype), True
+
     def to_numpy(
         self,
         dtype: npt.DTypeLike | None = None,
@@ -486,32 +490,12 @@ class ExtensionArray:
         -------
         numpy.ndarray
         """
-
         fill_na = na_value is not lib.no_default
-
-        if hasattr(self, "_to_numpy"):
-            # The pandas-internal _to_numpy function is just like __array__,
-            # but returns also a second value indicating if copying happened,
-            # so we don't need to do guesswork like in the other cases below.
-            result, copied = self._to_numpy(dtype=dtype, copy=copy)
-            # TODO: if this approach with _to_numpy is deemed as acceptable, a
-            # _to_numpy function will be implemented for all ExtensionArrays
-            # that also implement __array__.
-        else:
-            result = np.asarray(self, dtype=dtype)
-            copied = True
-            if hasattr(self._values, "__array__"):
-                # This extension array implements the __array__ interface used
-                # by np.asarray. We have no clue what __array__ did, so we
-                # cant't assume no copy happened.
-                copied = False
-
+        result, copied = self._to_numpy(dtype=dtype)
         if (copy or fill_na) and not copied:
             result = result.copy()
-
         if fill_na:
             result[self.isna()] = na_value
-
         return result
 
     # ------------------------------------------------------------------------
@@ -1632,6 +1616,10 @@ class ExtensionArray:
         # error: Incompatible return value type (got "Union[ExtensionArray,
         # ndarray[Any, Any]]", expected "ExtensionArrayT")
         return mode(self, dropna=dropna)  # type: ignore[return-value]
+
+    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
+        """Correctly construct numpy arrays when passed to `np.asarray()`."""
+        return self.to_numpy(dtype=dtype)
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         if any(

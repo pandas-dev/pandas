@@ -125,9 +125,6 @@ class PandasArray(
     # ------------------------------------------------------------------------
     # NumPy Array Interface
 
-    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
-        return np.asarray(self._ndarray, dtype=dtype)
-
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # Lightly modified version of
         # https://numpy.org/doc/stable/reference/generated/numpy.lib.mixins.NDArrayOperatorsMixin.html
@@ -363,24 +360,10 @@ class PandasArray(
     # ------------------------------------------------------------------------
     # Additional Methods
 
-    def to_numpy(
-        self,
-        dtype: npt.DTypeLike | None = None,
-        copy: bool = False,
-        na_value=lib.no_default,
-    ) -> np.ndarray:
-        result = np.asarray(self._ndarray, dtype=dtype)
-
-        if copy or na_value is not lib.no_default:
-            # The numpy.asarray function might have already copied the array,
-            # so only copy if the result is a reference to the input array.
-            if result is self._ndarray:
-                result = result.copy()
-
-            if na_value is not lib.no_default:
-                result[self.isna()] = na_value
-
-        return result
+    def _to_numpy(self, dtype: npt.DTypeLike | None = None) -> Tuple[np.ndarray, bool]:
+        arr = np.asarray(self._ndarray, dtype=dtype)
+        copied = arr is not self._ndarray
+        return arr, copied
 
     # ------------------------------------------------------------------------
     # Ops
