@@ -128,10 +128,12 @@ def ensure_python_int(value: int | np.integer) -> int:
     ------
     TypeError: if the value isn't an int or can't be converted to one.
     """
-    if not is_scalar(value):
-        raise TypeError(
-            f"Value needs to be a scalar value, was type {type(value).__name__}"
-        )
+    if not (is_integer(value) or is_float(value)):
+        if not is_scalar(value):
+            raise TypeError(
+                f"Value needs to be a scalar value, was type {type(value).__name__}"
+            )
+        raise TypeError(f"Wrong type {type(value)} for value {value}")
     try:
         new_value = int(value)
         assert new_value == value
@@ -1318,18 +1320,14 @@ def is_bool_dtype(arr_or_dtype) -> bool:
     except (TypeError, ValueError):
         return False
 
-    if isinstance(arr_or_dtype, CategoricalDtype):
+    if isinstance(dtype, CategoricalDtype):
         arr_or_dtype = arr_or_dtype.categories
         # now we use the special definition for Index
 
     if isinstance(arr_or_dtype, ABCIndex):
-
-        # TODO(jreback)
-        # we don't have a boolean Index class
-        # so its object, we need to infer to
-        # guess this
-        return arr_or_dtype.is_object() and arr_or_dtype.inferred_type == "boolean"
-    elif is_extension_array_dtype(arr_or_dtype):
+        # Allow Index[object] that is all-bools or Index["boolean"]
+        return arr_or_dtype.inferred_type == "boolean"
+    elif isinstance(dtype, ExtensionDtype):
         return getattr(dtype, "_is_boolean", False)
 
     return issubclass(dtype.type, np.bool_)

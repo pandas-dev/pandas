@@ -107,6 +107,10 @@ class TestGetitem(BaseDatetimeTests, base.BaseGetitemTests):
     pass
 
 
+class TestIndex(base.BaseIndexTests):
+    pass
+
+
 class TestMethods(BaseDatetimeTests, base.BaseMethodsTests):
     def test_combine_add(self, data_repeated):
         # Timestamp.__add__(Timestamp) not defined
@@ -188,5 +192,5 @@ class TestPrinting(BaseDatetimeTests, base.BasePrintingTests):
     pass
 
 
-class Test2DCompat(BaseDatetimeTests, base.Dim2CompatTests):
+class Test2DCompat(BaseDatetimeTests, base.NDArrayBacked2DTests):
     pass

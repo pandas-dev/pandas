@@ -269,7 +269,6 @@ def test_categorical_coerces_timestamp(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
 def test_categorical_coerces_timedelta(all_parsers):
     parser = all_parsers
     dtype = {"b": CategoricalDtype(pd.to_timedelta(["1H", "2H", "3H"]))}

@@ -191,22 +191,40 @@ class TestGetitem(BaseSparseTests, base.BaseGetitemTests):
 # Skipping TestSetitem, since we don't implement it.
 
 
+class TestIndex(base.BaseIndexTests):
+    def test_index_from_array(self, data):
+        msg = "will store that array directly"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            idx = pd.Index(data)
+
+        if data.dtype.subtype == "f":
+            assert idx.dtype == np.float64
+        elif data.dtype.subtype == "i":
+            assert idx.dtype == np.int64
+        else:
+            assert idx.dtype == data.dtype.subtype
+
+    # TODO(2.0): should pass once SparseArray is stored directly in Index.
+    @pytest.mark.xfail(reason="Index cannot yet store sparse dtype")
+    def test_index_from_listlike_with_dtype(self, data):
+        msg = "passing a SparseArray to pd.Index"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            super().test_index_from_listlike_with_dtype(data)
+
+
 class TestMissing(BaseSparseTests, base.BaseMissingTests):
     def test_isna(self, data_missing):
+        sarr = SparseArray(data_missing)
         expected_dtype = SparseDtype(bool, pd.isna(data_missing.dtype.fill_value))
         expected = SparseArray([True, False], dtype=expected_dtype)
+        result = sarr.isna()
+        tm.assert_sp_array_equal(result, expected)
 
-        result = pd.isna(data_missing)
-        self.assert_equal(result, expected)
-
-        result = pd.Series(data_missing).isna()
-        expected = pd.Series(expected)
-        self.assert_series_equal(result, expected)
-
-        # GH 21189
-        result = pd.Series(data_missing).drop([0, 1]).isna()
-        expected = pd.Series([], dtype=expected_dtype)
-        self.assert_series_equal(result, expected)
+        # test isna for arr without na
+        sarr = sarr.fillna(0)
+        expected_dtype = SparseDtype(bool, pd.isna(data_missing.dtype.fill_value))
+        expected = SparseArray([False, False], fill_value=False, dtype=expected_dtype)
+        self.assert_equal(sarr.isna(), expected)
 
     def test_fillna_limit_pad(self, data_missing):
         with tm.assert_produces_warning(PerformanceWarning):
@@ -255,6 +273,14 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
 
 
 class TestMethods(BaseSparseTests, base.BaseMethodsTests):
+    @pytest.mark.parametrize("ascending", [True, False])
+    def test_sort_values_frame(self, data_for_sorting, ascending):
+        msg = "will store that array directly"
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
+            super().test_sort_values_frame(data_for_sorting, ascending)
+
     def test_combine_le(self, data_repeated):
         # We return a Series[SparseArray].__le__ returns a
         # Series[Sparse[bool]]
@@ -429,6 +455,10 @@ class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):
             mark = pytest.mark.xfail(reason="result dtype.fill_value mismatch")
             request.node.add_marker(mark)
         super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
+
+    def _check_divmod_op(self, ser, op, other, exc=NotImplementedError):
+        # We implement divmod
+        super()._check_divmod_op(ser, op, other, exc=None)
 
 
 class TestComparisonOps(BaseSparseTests, base.BaseComparisonOpsTests):

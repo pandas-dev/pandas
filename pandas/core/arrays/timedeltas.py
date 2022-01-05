@@ -426,7 +426,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     @dtl.ravel_compat
     def _format_native_types(
-        self, na_rep="NaT", date_format=None, **kwargs
+        self, *, na_rep="NaT", date_format=None, **kwargs
     ) -> np.ndarray:
         from pandas.io.formats.format import get_format_timedelta64
 
@@ -748,12 +748,8 @@ class TimedeltaArray(dtl.TimelikeOps):
             return result
 
         elif is_object_dtype(other.dtype):
-            # error: Incompatible types in assignment (expression has type
-            # "List[Any]", variable has type "ndarray")
-            result = [  # type: ignore[assignment]
-                other[n] // self[n] for n in range(len(self))
-            ]
-            result = np.array(result)
+            result_list = [other[n] // self[n] for n in range(len(self))]
+            result = np.array(result_list)
             return result
 
         else:
