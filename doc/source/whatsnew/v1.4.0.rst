@@ -384,6 +384,13 @@ instead (:issue:`26314`).
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. _whatsnew_140.api_breaking.python:
+
+Increased minimum version for Python
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+pandas 1.4.0 supports Python 3.8 and higher.
+
 .. _whatsnew_140.api_breaking.deps:
 
 Increased minimum versions for dependencies
