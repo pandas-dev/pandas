@@ -3,7 +3,7 @@ trigger:
   branches:
     include:
     - master
-    - 1.3.x
+    - 1.4.x
   paths:
     exclude:
     - 'doc/*'
@@ -13,7 +13,7 @@ pr:
   branches:
     include:
     - master
-    - 1.3.x
+    - 1.4.x
 
 variables:
   PYTEST_WORKERS: auto
