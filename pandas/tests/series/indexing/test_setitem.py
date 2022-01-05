@@ -689,8 +689,8 @@ class SetitemCastingEquivalents:
         self._check_inplace(is_inplace, orig, arr, obj)
 
     def test_index_where(self, obj, key, expected, val, request):
-        if Index(obj).dtype != obj.dtype:
-            # TODO(ExtensionIndex): Should become unreachable
+        if obj.dtype == bool:
+            # TODO(GH#45061): Should become unreachable
             pytest.skip("test not applicable for this dtype")
 
         mask = np.zeros(obj.shape, dtype=bool)
@@ -700,8 +700,8 @@ class SetitemCastingEquivalents:
         tm.assert_index_equal(res, Index(expected))
 
     def test_index_putmask(self, obj, key, expected, val):
-        if Index(obj).dtype != obj.dtype:
-            # TODO(ExtensionIndex): Should become unreachable
+        if obj.dtype == bool:
+            # TODO(GH#45061): Should become unreachable
             pytest.skip("test not applicable for this dtype")
 
         mask = np.zeros(obj.shape, dtype=bool)
