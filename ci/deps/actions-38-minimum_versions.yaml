@@ -32,8 +32,8 @@ dependencies:
   - matplotlib=3.3.2
   - numba=0.50.1
   - numexpr=2.7.1
-  - openpyxl=3.0.3
   - odfpy=1.4.1
+  - openpyxl=3.0.3
   - pandas-gbq=0.14.0
   - psycopg2=2.8.4
   - pymysql=0.10.1
