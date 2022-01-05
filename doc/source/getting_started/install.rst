@@ -291,7 +291,7 @@ Dependency                Minimum Version    Notes
 xlrd                      2.0.1              Reading Excel
 xlwt                      1.3.0              Writing Excel
 xlsxwriter                1.2.2              Writing Excel
-openpyxl                  3.0.2              Reading / writing for xlsx files
+openpyxl                  3.0.3              Reading / writing for xlsx files
 pyxlsb                    1.0.6              Reading for xlsb files
 ========================= ================== =============================================================
 

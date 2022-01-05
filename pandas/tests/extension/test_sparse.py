@@ -204,11 +204,12 @@ class TestIndex(base.BaseIndexTests):
         else:
             assert idx.dtype == data.dtype.subtype
 
-    # TODO(ExtensionIndex) this is failing because it doesn't recognize
-    #  the sparse dtype
+    # TODO(2.0): should pass once SparseArray is stored directly in Index.
     @pytest.mark.xfail(reason="Index cannot yet store sparse dtype")
     def test_index_from_listlike_with_dtype(self, data):
-        super().test_index_from_listlike_with_dtype(data)
+        msg = "passing a SparseArray to pd.Index"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            super().test_index_from_listlike_with_dtype(data)
 
 
 class TestMissing(BaseSparseTests, base.BaseMissingTests):
