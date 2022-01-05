@@ -536,13 +536,29 @@ class IndexOpsMixin(OpsMixin):
                 f"to_numpy() got an unexpected keyword argument '{bad_keys}'"
             )
 
+        fill_na = na_value is not lib.no_default
+
         result = np.asarray(self._values, dtype=dtype)
-        if copy or na_value is not lib.no_default:
-            # The numpy.asarray function might have already copied the array,
-            # so only copy if the result is a reference to the input array.
-            if result is self._values:
+        if copy or fill_na:
+            do_copy = True
+            if isinstance(self._values, np.ndarray):
+                # The numpy.asarray function might have already copied the
+                # array even if the input was already a numpy array, e.g. if
+                # the dype didn't match.
+                if result is not self._values:
+                    do_copy = False
+            elif not hasattr(self._values, "__array__"):
+                # If self._values was not a numpy array, numpy.asarray
+                # generally copies already *except* if self._values implements
+                # the __array__ function that is called by numpy.asarray
+                # internally. In that case, we have no idea if a copy already
+                # happened in that custom __array__ function or not, so we need
+                # to copy ourselves to be sure.
+                do_copy = False
+
+            if do_copy:
                 result = result.copy()
-            if na_value is not lib.no_default:
+            if fill_na:
                 result[self.isna()] = na_value
         return result
 
