@@ -9010,14 +9010,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
-        if errors is not lib.no_default:
-            warnings.warn(
-                f"The 'errors' keyword in {type(self).__name__}.where and mask is "
-                "deprecated and will be removed in a future version.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-
         if axis is not None:
             axis = self._get_axis_number(axis)
 
@@ -9135,6 +9127,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 other=other,
                 cond=cond,
                 align=align,
+                errors=errors,
             )
             result = self._constructor(new_data)
             return result.__finalize__(self)

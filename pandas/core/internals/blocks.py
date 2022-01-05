@@ -932,7 +932,7 @@ class Block(PandasObject):
 
         return self
 
-    def putmask(self, mask, new) -> list[Block]:
+    def putmask(self, mask, new, errors) -> list[Block]:
         """
         putmask the data to the block; it is possible that we may create a
         new dtype of block
@@ -960,7 +960,7 @@ class Block(PandasObject):
         if not self.is_object and is_valid_na_for_dtype(new, self.dtype):
             new = self.fill_value
 
-        if self._can_hold_element(new):
+        if self._can_hold_element(new) or errors == "raise":
             putmask_without_repeat(values.T, mask, new)
             return [self]
 
@@ -968,7 +968,7 @@ class Block(PandasObject):
             # using putmask with object dtype will incorrectly cast to object
             # Having excluded self._can_hold_element, we know we cannot operate
             #  in-place, so we are safe using `where`
-            return self.where(new, ~mask)
+            return self.where(new, ~mask, errors=errors)
 
         elif noop:
             return [self]
@@ -978,7 +978,8 @@ class Block(PandasObject):
 
             if not is_list_like(new):
                 # putmask_smart can't save us the need to cast
-                return self.coerce_to_target_dtype(new).putmask(mask, new)
+                blk = self.coerce_to_target_dtype(new)
+                return blk.putmask(mask, new, errors=errors)
 
             # This differs from
             #  `self.coerce_to_target_dtype(new).putmask(mask, new)`
@@ -999,7 +1000,7 @@ class Block(PandasObject):
                     n = new[:, i : i + 1]
 
                 submask = orig_mask[:, i : i + 1]
-                rbs = nb.putmask(submask, n)
+                rbs = nb.putmask(submask, n, errors=errors)
                 res_blocks.extend(rbs)
             return res_blocks
 
@@ -1141,7 +1142,7 @@ class Block(PandasObject):
 
         return [self.make_block(new_values)]
 
-    def where(self, other, cond) -> list[Block]:
+    def where(self, other, cond, errors) -> list[Block]:
         """
         evaluate the block; return result block(s) from the result
 
@@ -1178,10 +1179,10 @@ class Block(PandasObject):
             # GH-39595: Always return a copy
             result = values.copy()
 
-        elif not self._can_hold_element(other):
+        elif not self._can_hold_element(other) and errors != "raise":
             # we cannot coerce, return a compat dtype
             block = self.coerce_to_target_dtype(other)
-            blocks = block.where(orig_other, cond)
+            blocks = block.where(orig_other, cond, errors=errors)
             return self._maybe_downcast(blocks, "infer")
 
         else:
@@ -1330,7 +1331,7 @@ class EABackedBlock(Block):
 
     values: ExtensionArray
 
-    def where(self, other, cond) -> list[Block]:
+    def where(self, other, cond, errors) -> list[Block]:
         arr = self.values.T
 
         cond = extract_bool_array(cond)
@@ -1350,6 +1351,9 @@ class EABackedBlock(Block):
         try:
             res_values = arr._where(cond, other).T
         except (ValueError, TypeError) as err:
+            if errors == "raise":
+                raise
+
             if isinstance(err, ValueError):
                 # TODO(2.0): once DTA._validate_setitem_value deprecation
                 #  is enforced, stop catching ValueError here altogether
@@ -1362,8 +1366,24 @@ class EABackedBlock(Block):
                 if blk.dtype == _dtype_obj:
                     # For now at least only support casting e.g.
                     #  Interval[int64]->Interval[float64]
-                    raise
-                return blk.where(other, cond)
+                    if errors is lib.no_default:
+                        # TODO: no tests get here 2022-01-04
+                        warnings.warn(
+                            "The default behavior of 'where' when setting an "
+                            f"incompatible value into an array with dtype={self.dtype} "
+                            "is deprecated. In a future version, the array and "
+                            "value will be coerced to a common dtype (matching "
+                            "the behavior of other dtypes). To retain the old "
+                            "behavior, pass `errors='raise'`. To get the future "
+                            "behavior, pass `errors='coerce'`.",
+                            FutureWarning,
+                            stacklevel=find_stack_level(),
+                        )
+                        raise
+                    else:
+                        # "raise" case handled above
+                        assert errors == "coerce"
+                return blk.where(other, cond, errors=errors)
 
             elif isinstance(self, NDArrayBackedExtensionBlock):
                 # NB: not (yet) the same as
@@ -1372,18 +1392,51 @@ class EABackedBlock(Block):
                     # TODO: don't special-case
                     # Note: this is the main place where the fallback logic
                     #  is different from EABackedBlock.putmask.
-                    raise
+                    if errors is lib.no_default:
+                        warnings.warn(
+                            "The default behavior of 'where' when setting an "
+                            f"incompatible value into an array with dtype={self.dtype} "
+                            "is deprecated. In a future version, the array and "
+                            "value will be coerced to a common dtype (matching "
+                            "the behavior of other dtypes). To retain the old "
+                            "behavior, pass `errors='raise'`. To get the future "
+                            "behavior, pass `errors='coerce'`.",
+                            FutureWarning,
+                            stacklevel=find_stack_level(),
+                        )
+                        raise
+                    else:
+                        # "raise" case handled above
+                        assert errors == "coerce"
                 blk = self.coerce_to_target_dtype(other)
-                nbs = blk.where(other, cond)
+                nbs = blk.where(other, cond, errors=errors)
                 return self._maybe_downcast(nbs, "infer")
 
             else:
-                raise
+                if errors is lib.no_default:
+                    warnings.warn(
+                        "The default behavior of 'where' when setting an "
+                        f"incompatible value into an array with dtype={self.dtype} "
+                        "is deprecated. In a future version, the array and value "
+                        "will be coerced to a common dtype (matching the behavior "
+                        "of other dtypes). To retain the old behavior, pass "
+                        "`errors='raise'`. To get the future behavior, pass "
+                        "`errors='coerce'`.",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
+                    raise
+                else:
+                    # "raise" case handled above
+                    assert errors == "coerce"
+                    blk = self.coerce_to_target_dtype(other)
+                    nbs = blk.where(other, cond, errors=errors)
+                    return self._maybe_downcast(nbs, "infer")
 
         nb = self.make_block_same_class(res_values)
         return [nb]
 
-    def putmask(self, mask, new) -> list[Block]:
+    def putmask(self, mask, new, errors) -> list[Block]:
         """
         See Block.putmask.__doc__
         """
@@ -1397,6 +1450,9 @@ class EABackedBlock(Block):
             # Caller is responsible for ensuring matching lengths
             values._putmask(mask, new)
         except (TypeError, ValueError) as err:
+            if errors == "raise":
+                raise
+
             if isinstance(err, ValueError) and "Timezones don't match" not in str(err):
                 # TODO(2.0): remove catching ValueError at all since
                 #  DTA raising here is deprecated
@@ -1409,17 +1465,51 @@ class EABackedBlock(Block):
                 if blk.dtype == _dtype_obj:
                     # For now at least, only support casting e.g.
                     #  Interval[int64]->Interval[float64],
-                    raise
-                return blk.putmask(mask, new)
+                    if errors is lib.no_default:
+                        # TODO: no tests get here 2022-01-04
+                        warnings.warn(
+                            "The default behavior of 'putmask' when setting an "
+                            f"incompatible value into an array with dtype={self.dtype} "
+                            "is deprecated. In a future version, the array and "
+                            "value will be coerced to a common dtype (matching "
+                            "the behavior of other dtypes). To retain the old "
+                            "behavior, pass `errors='raise'`. To get the future "
+                            "behavior, pass `errors='coerce'`.",
+                            FutureWarning,
+                            stacklevel=find_stack_level(),
+                        )
+                        raise
+                    else:
+                        # "raise" case handled above
+                        assert errors == "coerce"
+                return blk.putmask(mask, new, errors=errors)
 
             elif isinstance(self, NDArrayBackedExtensionBlock):
                 # NB: not (yet) the same as
                 #  isinstance(values, NDArrayBackedExtensionArray)
                 blk = self.coerce_to_target_dtype(new)
-                return blk.putmask(mask, new)
+                return blk.putmask(mask, new, errors=errors)
 
             else:
-                raise
+                if errors is lib.no_default:
+                    warnings.warn(
+                        "The default behavior of 'putmask' when setting an "
+                        f"incompatible value into an array with dtype={self.dtype} "
+                        "is deprecated. In a future version, the array and value "
+                        "will be coerced to a common dtype (matching the behavior "
+                        "of other dtypes). To retain the old behavior, pass "
+                        "`errors='raise'`. To get the future behavior, pass "
+                        "`errors='coerce'`.",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
+                    raise
+                else:
+                    # "raise" case handled above
+                    assert errors == "coerce"
+                    # TODO: no tests get here 2022-01-04
+                    blk = self.coerce_to_target_dtype(new)
+                    return blk.putmask(mask, new, errors=errors)
 
         return [self]
 

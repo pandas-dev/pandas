@@ -886,11 +886,18 @@ def test_where_period_invalid_na(frame_or_series, as_cat, request):
     else:
         msg = "value should be a 'Period'"
 
+    warn_msg = "The default behavior of '(where|putmask)' when"
     with pytest.raises(TypeError, match=msg):
-        obj.where(mask, tdnat)
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            obj.where(mask, tdnat)
+    with pytest.raises(TypeError, match=msg):
+        obj.where(mask, tdnat, errors="raise")
 
     with pytest.raises(TypeError, match=msg):
-        obj.mask(mask, tdnat)
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            obj.mask(mask, tdnat)
+    with pytest.raises(TypeError, match=msg):
+        obj.mask(mask, tdnat, errors="raise")
 
 
 def test_where_nullable_invalid_na(frame_or_series, any_numeric_ea_dtype):
@@ -911,13 +918,21 @@ def test_where_nullable_invalid_na(frame_or_series, any_numeric_ea_dtype):
         ]
     )
 
+    warn_msg = "The default behavior of '(putmask|where)' when setting"
+
     for null in tm.NP_NAT_OBJECTS + [pd.NaT]:
         # NaT is an NA value that we should *not* cast to pd.NA dtype
         with pytest.raises(TypeError, match=msg):
-            obj.where(mask, null)
+            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+                obj.where(mask, null)
+        with pytest.raises(TypeError, match=msg):
+            obj.where(mask, null, errors="raise")
 
         with pytest.raises(TypeError, match=msg):
-            obj.mask(mask, null)
+            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+                obj.mask(mask, null)
+        with pytest.raises(TypeError, match=msg):
+            obj.mask(mask, null, errors="raise")
 
 
 @given(data=OPTIONAL_ONE_OF_ALL)

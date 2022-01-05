@@ -260,8 +260,12 @@ class TestCategoricalIndexing:
     def test_where_new_category_raises(self):
         ser = Series(Categorical(["a", "b", "c"]))
         msg = "Cannot setitem on a Categorical with a new category"
+        warn_msg = "The default behavior of 'where' when"
         with pytest.raises(TypeError, match=msg):
-            ser.where([True, False, True], "d")
+            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+                ser.where([True, False, True], "d")
+        with pytest.raises(TypeError, match=msg):
+            ser.where([True, False, True], "d", errors="raise")
 
     def test_where_ordered_differs_rasies(self):
         ser = Series(
@@ -270,8 +274,12 @@ class TestCategoricalIndexing:
         other = Categorical(
             ["b", "c", "a"], categories=["a", "c", "b", "d"], ordered=True
         )
+        warn_msg = "The default behavior of 'where' when"
         with pytest.raises(TypeError, match="without identical categories"):
-            ser.where([True, False, True], other)
+            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+                ser.where([True, False, True], other)
+        with pytest.raises(TypeError, match="without identical categories"):
+            ser.where([True, False, True], other, errors="raise")
 
 
 class TestContains:
