@@ -581,7 +581,11 @@ class SetitemCastingEquivalents:
         """
         Whether we expect the setting to be in-place or not.
         """
-        return expected.dtype == obj.dtype
+        try:
+            return expected.dtype == obj.dtype
+        except TypeError:
+            # older numpys
+            return False
 
     def check_indexer(self, obj, key, expected, val, indexer, is_inplace):
         orig = obj
@@ -1048,13 +1052,9 @@ class TestSetitemFloatNDarrayIntoIntegerSeries(SetitemCastingEquivalents):
         return slice(0, 2)
 
     @pytest.fixture
-    def is_inplace(self, val):
-        # NB: this condition is based on currently-harcoded "val" cases
-        return val[0] == 2
-
-    @pytest.fixture
-    def expected(self, val, is_inplace):
-        if is_inplace:
+    def expected(self, val):
+        if val[0] == 2:
+            # NB: this condition is based on currently-harcoded "val" cases
             dtype = np.int64
         else:
             dtype = np.float64
