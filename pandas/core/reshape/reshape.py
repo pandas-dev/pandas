@@ -1198,7 +1198,7 @@ def from_dummies(
 
     # index data with a list of all columns that are dummies
     try:
-        data_to_decode = data.astype("boolean")
+        data_to_decode = data.astype("boolean", copy=False)
     except TypeError:
         raise TypeError("Passed DataFrame contains non-dummy data")
 
