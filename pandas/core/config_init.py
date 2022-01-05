@@ -964,11 +964,11 @@ with cf.config_prefix("styler"):
 
 merge_chunk_size_doc = """
 : int | tuple[int, int]
-    Conditional merge chunked cross merge with deferred filter, chunk size.
+    Chunk size of merge when `on` is a callable.
     If `int`, the int represents equal left and right chunksizes, and will be
     converted to a tuple with 2 ints equal to the provided int. If `tuple`,
     the tuple must be 2 ints, representing the left and right chunksizes.
-    All chunksizes must be greater than 0.
+    All chunksizes must be greater than 0. Default is `(1000, 1000)`.
 """
 
 
@@ -984,9 +984,8 @@ def chunksize_validator(x: Any):
     elif isinstance(x, tuple):
         if len(x) != 2:
             raise exc
-        for i in x:
-            if not (isinstance(i, int) and i > 0):
-                raise exc
+        if any(not (isinstance(i, int) and i > 0) for i in x):
+            raise exc
     else:
         raise exc
 

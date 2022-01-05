@@ -9,6 +9,7 @@ from functools import partial
 import hashlib
 import itertools
 import string
+from collections import Sized
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -602,7 +603,7 @@ def merge_asof(
     return op.get_result()
 
 
-def _chunks(lst, n):
+def _chunks(lst: Sized, n: int):
     for i in range(0, len(lst), n):
         yield lst[i : i + n]
 
@@ -796,15 +797,13 @@ class _MergeOperation:
             chunk_result_right = chunk_result.iloc[:, len(chunk_left.columns) :]
             chunk_result_right.columns = chunk_right.columns
 
-            """
-            Note: Callable `on` function should respect future desired interface.
-            Currently the function "could" make use of df specific logic
-            to return a boolean mask (e.g. left.time.dt.date == right.time.dt.date),
-            but eventually when this implementation is replaced we might not have
-            that ability. Should we (1) restrict those cases now? (2) allow them and
-            fail in the future? or (3) plan to develop future implementation to work
-            with these constructs as well?
-            """
+            # Note: Callable `on` function should respect future desired interface.
+            # Currently the function "could" make use of df specific logic
+            # to return a boolean mask (e.g. left.time.dt.date == right.time.dt.date),
+            # but eventually when this implementation is replaced we might not have
+            # that ability. Should we (1) restrict those cases now? (2) allow them and
+            # fail in the future? or (3) plan to develop future implementation to work
+            # with these constructs as well?
             mask = self.on(chunk_result_left, chunk_result_right)
             # check explicitly since a non-bool mask could be a valid indexer
             # for the dataframe index

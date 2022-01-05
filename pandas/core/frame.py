@@ -302,7 +302,8 @@ on : label or list, or Callable
     must return a boolean mask. Callable `on` is currently implemented as a
     chunked cross-join and filtered by the callable provided. Left and right
     chunk sizes can be set with the `get_option("conditional_merge.chunk_size")`
-    option. Callable `on` currently only supports `how=inner`.
+    option, and defaults to 1000 rows. Callable `on` currently only supports
+    `how=inner`.
 left_on : label or list, or array-like
     Column or index level names to join on in the left DataFrame. Can also
     be an array or list of arrays of the length of the left DataFrame.
