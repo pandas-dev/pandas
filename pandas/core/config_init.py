@@ -965,8 +965,8 @@ with cf.config_prefix("styler"):
 merge_chunk_size_doc = """
 : int | tuple[int, int]
     Conditional merge chunked cross merge with deferred filter, chunk size.
-    If `int`, the int represents equal left and right chunksizes, and will be 
-    converted to a tuple with 2 ints equal to the provided int. If `tuple`, 
+    If `int`, the int represents equal left and right chunksizes, and will be
+    converted to a tuple with 2 ints equal to the provided int. If `tuple`,
     the tuple must be 2 ints, representing the left and right chunksizes.
     All chunksizes must be greater than 0.
 """
@@ -983,7 +983,7 @@ def chunksize_validator(x: Any):
             raise exc
     elif isinstance(x, tuple):
         if len(x) != 2:
-            raise ValueError(error_msg)
+            raise exc
         for i in x:
             if not (isinstance(i, int) and i > 0):
                 raise exc
@@ -992,7 +992,11 @@ def chunksize_validator(x: Any):
 
 
 def _cast_chunksize_to_tuple(key):
-    from pandas._config import get_option, set_option
+    from pandas._config import (
+        get_option,
+        set_option,
+    )
+
     size = get_option(key)
     if isinstance(size, int):
         set_option(key, (size, size))
@@ -1004,5 +1008,5 @@ with cf.config_prefix("conditional_merge"):
         (1000, 1000),
         doc=merge_chunk_size_doc,
         validator=chunksize_validator,
-        cb=_cast_chunksize_to_tuple
+        cb=_cast_chunksize_to_tuple,
     )

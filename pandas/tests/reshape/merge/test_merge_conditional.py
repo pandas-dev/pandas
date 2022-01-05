@@ -4,8 +4,8 @@ import pytest
 
 from pandas import (
     DataFrame,
+    get_option,
     option_context,
-    get_option
 )
 import pandas._testing as tm
 from pandas.core.reshape.merge import merge
@@ -132,18 +132,18 @@ def test_chunk_size():
 @pytest.mark.parametrize(
     "option",
     [
-        0
+        0,
         (1,),
-        ('a',),
-        (1, 'a'),
-        ('a', 'b'),
+        ("a",),
+        (1, "a"),
+        ("a", "b"),
         (1, 2, 123),
         (-1, -12),
         object(),
         (-1, 1),
-        'a',
+        "a",
         -1,
-    ]
+    ],
 )
 def test_chunk_size_option_bad(option):
     error_msg = (

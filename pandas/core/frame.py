@@ -301,7 +301,7 @@ on : label or list, or Callable
     provide a custom match condition for the join. The callable takes 2
     arguments, which represent the left and right sides of the merge, and
     must return a boolean mask. Callable `on` is currently implemented as a
-    chunked cross-join and filtered by the callable provided. Left and right 
+    chunked cross-join and filtered by the callable provided. Left and right
     chunk sizes can be set with the `get_option("conditional_merge.chunk_size")`
     option. Callable `on` currently only supports `how=inner`.
 left_on : label or list, or array-like
