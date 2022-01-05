@@ -909,7 +909,7 @@ def test_to_html_float_format_object_col(datapath):
     ],
 )
 def test_future_warning(kwarg):
-    # deprecation tests for 1.4.0
+    # deprecation tests for 1.5.0
     df = DataFrame([[1]])
     msg = "You are using an argument which is deprecated"
 
@@ -932,7 +932,7 @@ def test_future_warning(kwarg):
     ],
 )
 def test_no_future_warning(kwarg):
-    # deprecation tests for 1.4.0
+    # deprecation tests for 1.5.0
     df = DataFrame([[1]])
     with tm.assert_produces_warning(None):
         df.to_html(**kwarg)
