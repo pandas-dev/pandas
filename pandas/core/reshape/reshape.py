@@ -1108,7 +1108,7 @@ def from_dummies(
     """
     Create a categorical `DataFrame` from a `DataFrame` of dummy variables.
 
-    Inverts the operation performed by `get_dummies`.
+    Inverts the operation performed by :func:`~pandas.get_dummies`.
 
     Parameters
     ----------
