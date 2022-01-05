@@ -2646,7 +2646,9 @@ class Index(IndexOpsMixin, PandasObject):
     @cache_readonly
     def hasnans(self) -> bool:
         """
-        Return if I have any nans; enables various perf speedups.
+        Return True if there are any NaNs.
+
+        Enables various performance speedups.
         """
         if self._can_hold_na:
             return bool(self._isnan.any())
