@@ -704,8 +704,9 @@ class _MergeOperation:
             self.join_names = None
 
             # TODO: dynamically determine optimal default chunk size
-            left_chunk_size = get_option("conditional_merge.left_chunk_size")
-            right_chunk_size = get_option("conditional_merge.right_chunk_size")
+            left_chunk_size, right_chunk_size = get_option(
+                "conditional_merge.chunk_size"
+            )
 
             left_chunks = _chunks(left, n=left_chunk_size)
             right_chunks = _chunks(right, n=right_chunk_size)
@@ -808,10 +809,14 @@ class _MergeOperation:
             fail in the future? or (3) plan to develop future implementation to work
             with these constructs as well?
             """
-            chunk_result_filtered = chunk_result.loc[
-                # TODO: method that only accepts boolean mask?
-                self.on(chunk_result_left, chunk_result_right)
-            ]
+            mask = self.on(chunk_result_left, chunk_result_right)
+            # check explicitly since a non-bool mask could be a valid indexer
+            # for the dataframe index
+            if getattr(mask, "dtype", None) != "bool":
+                raise ValueError(
+                    'Callable `on` condition must return a mask of dtype="bool"'
+                )
+            chunk_result_filtered = chunk_result.loc[mask]
             result_chunks.append(chunk_result_filtered)
 
         return concat(result_chunks).reset_index(drop=True)
@@ -1503,8 +1508,7 @@ class _MergeOperation:
 
         if self.how != "inner":
             raise NotImplementedError(
-                '`Conditional merge is currently only available for how="inner". '
-                "Other merge types will be available in a future version."
+                'Conditional merge is currently only available for how="inner".'
             )
         return
 

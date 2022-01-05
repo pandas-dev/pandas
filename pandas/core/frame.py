@@ -300,10 +300,10 @@ on : label or list, or Callable
     If Callable this will perform a conditional merge. This allows you to
     provide a custom match condition for the join. The callable takes 2
     arguments, which represent the left and right sides of the merge, and
-    must return a boolean. Callable `on` is currently implemented as a chunked
-    cross-join and filtered by the callable provided. Left and right chunk
-    sizes can be set with the `conditional_merge.<left|right>_chunk_size`
-    options. Callable `on` currently only supports `how=inner`.
+    must return a boolean mask. Callable `on` is currently implemented as a
+    chunked cross-join and filtered by the callable provided. Left and right 
+    chunk sizes can be set with the `get_option("conditional_merge.chunk_size")`
+    option. Callable `on` currently only supports `how=inner`.
 left_on : label or list, or array-like
     Column or index level names to join on in the left DataFrame. Can also
     be an array or list of arrays of the length of the left DataFrame.
@@ -507,43 +507,43 @@ Conditional merge on with an equality and range condition
 
 >>> left = pd.DataFrame(
 ...     {
-...         'fdate': pd.DatetimeIndex(['1982-06-30'] * 5),
-...         'cusip': [564, 576, 577, 602, 753]
+...         'date': pd.DatetimeIndex(['1982-06-30'] * 5),
+...         'id': [564, 576, 577, 602, 753]
 ...     }
 ... )
 >>> right = pd.DataFrame(
 ...     {
-...         'permno': [22, 59, 75],
-...         'namedt': pd.DatetimeIndex(['1968-01-02', '1972-12-14', '1991-10-30']),
-...         'nameenddt': pd.DatetimeIndex(['2014-12-31', '2014-12-31', '1992-08-17']),
-...         'ncusip': [564, 577, 564]
+...         'pid': [564, 577, 564],
+...         'sdate': pd.DatetimeIndex(['1968-01-02', '1972-12-14', '1991-10-30']),
+...         'edate': pd.DatetimeIndex(['2014-12-31', '2014-12-31', '1992-08-17']),
+...         'value': [22, 59, 75]
 ...     }
 ... )
 >>> left
-       fdate  cusip
-0 1982-06-30    564
-1 1982-06-30    576
-2 1982-06-30    577
-3 1982-06-30    602
-4 1982-06-30    753
+        date   id
+0 1982-06-30  564
+1 1982-06-30  576
+2 1982-06-30  577
+3 1982-06-30  602
+4 1982-06-30  753
 
 >>> right
-   permno     namedt  nameenddt  ncusip
-0      22 1968-01-02 2014-12-31     564
-1      59 1972-12-14 2014-12-31     577
-2      75 1991-10-30 1992-08-17     564
+   pid      sdate      edate  value
+0  564 1968-01-02 2014-12-31     22
+1  577 1972-12-14 2014-12-31     59
+2  564 1991-10-30 1992-08-17     75
 
 >>> merge = left.merge(
 ...     right,
-...     on=lambda left, right: (left.cusip == right.ncusip)
-...                            & (left.fdate >= right.namedt)
-...                            & (left.fdate <= right.nameenddt)
+...     on=lambda left, right: (left.id == right.pid)
+...                            & (left.date >= right.sdate)
+...                            & (left.date <= right.edate)
 ... )
 
 >>> merge
-        fdate  cusip  permno     namedt  nameenddt  ncusip
-0  1982-06-30    564      22 1968-01-02 2014-12-31     564
-12 1982-06-30    577      59 1972-12-14 2014-12-31     577
+        date   id  pid      sdate      edate  value
+0 1982-06-30  564  564 1968-01-02 2014-12-31     22
+1 1982-06-30  577  577 1972-12-14 2014-12-31     59
 """
 
 

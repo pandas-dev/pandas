@@ -963,21 +963,46 @@ with cf.config_prefix("styler"):
 
 
 merge_chunk_size_doc = """
-: int (> 0)
-    Conditional merge chunked cross merge with deferred filter, chunk size
+: int | tuple[int, int]
+    Conditional merge chunked cross merge with deferred filter, chunk size.
+    If `int`, the int represents equal left and right chunksizes, and will be 
+    converted to a tuple with 2 ints equal to the provided int. If `tuple`, 
+    the tuple must be 2 ints, representing the left and right chunksizes.
+    All chunksizes must be greater than 0.
 """
 
 
-def int_greater_than_0(x: Any):
-    if not (isinstance(x, int) and x > 0):
-        raise ValueError("option must be an int greater than 0")
+def chunksize_validator(x: Any):
+
+    exc = ValueError(
+        "option must be an int greater than 0, or a tuple of 2 ints, "
+        "both greater than 0"
+    )
+    if isinstance(x, int):
+        if x <= 0:
+            raise exc
+    elif isinstance(x, tuple):
+        if len(x) != 2:
+            raise ValueError(error_msg)
+        for i in x:
+            if not (isinstance(i, int) and i > 0):
+                raise exc
+    else:
+        raise exc
+
+
+def _cast_chunksize_to_tuple(key):
+    from pandas._config import get_option, set_option
+    size = get_option(key)
+    if isinstance(size, int):
+        set_option(key, (size, size))
 
 
 with cf.config_prefix("conditional_merge"):
     cf.register_option(
-        "left_chunk_size", 1000, merge_chunk_size_doc, int_greater_than_0
-    )
-
-    cf.register_option(
-        "right_chunk_size", 1000, merge_chunk_size_doc, int_greater_than_0
+        "chunk_size",
+        (1000, 1000),
+        doc=merge_chunk_size_doc,
+        validator=chunksize_validator,
+        cb=_cast_chunksize_to_tuple
     )
