@@ -1106,9 +1106,15 @@ class Series(base.IndexOpsMixin, NDFrame):
                 # GH#12862 adding a new key to the Series
                 self.loc[key] = value
 
-        except (InvalidIndexError, TypeError, ValueError) as err:
+        except (TypeError, ValueError):
+            # The key was OK, but we cannot set the value losslessly
+            indexer = self.index.get_loc(key)
+            self._set_values(indexer, value)
+
+        except InvalidIndexError as err:
             if isinstance(key, tuple) and not isinstance(self.index, MultiIndex):
                 # cases with MultiIndex don't get here bc they raise KeyError
+                # e.g. test_basic_getitem_setitem_corner
                 raise KeyError(
                     "key of type tuple not found and not a MultiIndex"
                 ) from err
@@ -1163,27 +1169,23 @@ class Series(base.IndexOpsMixin, NDFrame):
             # Without this, the call to infer_dtype will consume the generator
             key = list(key)
 
-        key_type = lib.infer_dtype(key, skipna=False)
+        if not self.index._should_fallback_to_positional:
+            # Regardless of the key type, we're treating it as labels
+            self._set_labels(key, value)
 
-        # Note: key_type == "boolean" should not occur because that
-        #  should be caught by the is_bool_indexer check in __setitem__
-        if key_type == "integer":
-            if not self.index._should_fallback_to_positional:
-                self._set_labels(key, value)
-            else:
-                self._set_values(key, value)
         else:
-            self.loc[key] = value
+            # Note: key_type == "boolean" should not occur because that
+            #  should be caught by the is_bool_indexer check in __setitem__
+            key_type = lib.infer_dtype(key, skipna=False)
+
+            if key_type == "integer":
+                self._set_values(key, value)
+            else:
+                self._set_labels(key, value)
 
     def _set_labels(self, key, value) -> None:
         key = com.asarray_tuplesafe(key)
-        try:
-            indexer: np.ndarray = self.index.get_indexer(key)
-        except InvalidIndexError:
-            # self.index is not unique, e.g. test_setitem_non_bool_into_bool
-            self.loc[key] = value
-            return
-
+        indexer: np.ndarray = self.index.get_indexer(key)
         mask = indexer == -1
         if mask.any():
             raise KeyError(f"{key[mask]} not in index")
