@@ -3,7 +3,7 @@ SQL-style merge routines
 """
 from __future__ import annotations
 
-from collections import Sized
+from collections.abc import Sized
 import copy
 import datetime
 from functools import partial
