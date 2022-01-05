@@ -206,7 +206,14 @@ class TestGetLoc:
         exc = KeyError
         if isinstance(
             index,
-            (DatetimeIndex, TimedeltaIndex, PeriodIndex, RangeIndex, IntervalIndex),
+            (
+                DatetimeIndex,
+                TimedeltaIndex,
+                PeriodIndex,
+                RangeIndex,
+                IntervalIndex,
+                MultiIndex,
+            ),
         ):
             # TODO: make these more consistent?
             exc = InvalidIndexError

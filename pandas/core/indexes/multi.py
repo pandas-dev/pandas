@@ -2815,7 +2815,7 @@ class MultiIndex(Index):
                 "currently supported for MultiIndex"
             )
 
-        hash(key)
+        self._check_indexing_error(key)
 
         def _maybe_to_slice(loc):
             """convert integer indexer to boolean mask or slice if possible"""

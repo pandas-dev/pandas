@@ -966,7 +966,9 @@ class Series(base.IndexOpsMixin, NDFrame):
 
                 return result
 
-            except (KeyError, TypeError):
+            except (KeyError, TypeError, InvalidIndexError):
+                # InvalidIndexError for e.g. generator
+                #  see test_series_getitem_corner_generator
                 if isinstance(key, tuple) and isinstance(self.index, MultiIndex):
                     # We still have the corner case where a tuple is a key
                     # in the first level of our MultiIndex

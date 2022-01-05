@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import InvalidIndexError
+
 from pandas import (
     Index,
     RangeIndex,
@@ -41,10 +43,12 @@ class TestGetLoc:
         index = Index([0, 1, 2])
         if method:
             msg = "not supported between"
+            err = TypeError
         else:
-            msg = "invalid key"
+            msg = r"\[1, 2\]"
+            err = InvalidIndexError
 
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(err, match=msg):
             index.get_loc([1, 2], method=method)
 
     @pytest.mark.parametrize(
@@ -141,7 +145,7 @@ class TestGetLoc:
             idx.get_loc(3)
         with pytest.raises(KeyError, match="^nan$"):
             idx.get_loc(np.nan)
-        with pytest.raises(TypeError, match=r"'\[nan\]' is an invalid key"):
+        with pytest.raises(InvalidIndexError, match=r"\[nan\]"):
             # listlike/non-hashable raises TypeError
             idx.get_loc([np.nan])
 

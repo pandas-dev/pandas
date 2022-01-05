@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import iNaT
+from pandas.errors import InvalidIndexError
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer
@@ -1171,7 +1172,7 @@ class TestDataFrameIndexing:
         dg = DataFrame(
             [[1, 1, 2, 2], [3, 3, 4, 4]], columns=mi, index=Index([0, 1], name="i")
         )
-        with pytest.raises(TypeError, match="unhashable type"):
+        with pytest.raises(InvalidIndexError, match="slice"):
             dg[:, 0]
 
         index = Index(range(2), name="i")

@@ -652,7 +652,7 @@ class TestGetLoc:
             idx.get_loc(3)
         with pytest.raises(KeyError, match=r"^nan$"):
             idx.get_loc(np.nan)
-        with pytest.raises(TypeError, match="unhashable type: 'list'"):
+        with pytest.raises(InvalidIndexError, match=r"\[nan\]"):
             # listlike/non-hashable raises TypeError
             idx.get_loc([np.nan])
 
@@ -699,8 +699,8 @@ class TestGetLoc:
     def test_multiindex_get_loc_list_raises(self):
         # GH#35878
         idx = MultiIndex.from_tuples([("a", 1), ("b", 2)])
-        msg = "unhashable type"
-        with pytest.raises(TypeError, match=msg):
+        msg = r"\[\]"
+        with pytest.raises(InvalidIndexError, match=msg):
             idx.get_loc([])
 
     def test_get_loc_nested_tuple_raises_keyerror(self):
