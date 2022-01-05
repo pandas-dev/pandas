@@ -164,14 +164,16 @@ class StylerRenderer:
             html_style_tpl=self.template_html_style,
         )
 
-    def _render_latex(self, sparse_index: bool, sparse_columns: bool, **kwargs) -> str:
+    def _render_latex(
+        self, sparse_index: bool, sparse_columns: bool, clines: str | None, **kwargs
+    ) -> str:
         """
         Render a Styler in latex format
         """
         self._compute()
 
         d = self._translate(sparse_index, sparse_columns, blank="")
-        self._translate_latex(d)
+        self._translate_latex(d, clines=clines)
 
         self.template_latex.globals["parse_wrap"] = _parse_latex_table_wrapping
         self.template_latex.globals["parse_table"] = _parse_latex_table_styles
@@ -257,13 +259,19 @@ class StylerRenderer:
         head = self._translate_header(sparse_cols, max_cols)
         d.update({"head": head})
 
+        # for sparsifying a MultiIndex and for use with latex clines
+        idx_lengths = _get_level_lengths(
+            self.index, sparse_index, max_rows, self.hidden_rows
+        )
+        d.update({"index_lengths": idx_lengths})
+
         self.cellstyle_map: DefaultDict[tuple[CSSPair, ...], list[str]] = defaultdict(
             list
         )
         self.cellstyle_map_index: DefaultDict[
             tuple[CSSPair, ...], list[str]
         ] = defaultdict(list)
-        body = self._translate_body(sparse_index, max_rows, max_cols)
+        body = self._translate_body(idx_lengths, max_rows, max_cols)
         d.update({"body": body})
 
         ctx_maps = {
@@ -515,7 +523,7 @@ class StylerRenderer:
 
         return index_names + column_blanks
 
-    def _translate_body(self, sparsify_index: bool, max_rows: int, max_cols: int):
+    def _translate_body(self, idx_lengths: dict, max_rows: int, max_cols: int):
         """
         Build each <tr> within table <body> as a list
 
@@ -537,11 +545,6 @@ class StylerRenderer:
         body : list
             The associated HTML elements needed for template rendering.
         """
-        # for sparsifying a MultiIndex
-        idx_lengths = _get_level_lengths(
-            self.index, sparsify_index, max_rows, self.hidden_rows
-        )
-
         rlabels = self.data.index.tolist()
         if not isinstance(self.data.index, MultiIndex):
             rlabels = [[x] for x in rlabels]
@@ -738,7 +741,7 @@ class StylerRenderer:
 
         return index_headers + data
 
-    def _translate_latex(self, d: dict) -> None:
+    def _translate_latex(self, d: dict, clines: str | None) -> None:
         r"""
         Post-process the default render dict for the LaTeX template format.
 
@@ -749,10 +752,10 @@ class StylerRenderer:
             or multirow sparsification (so that \multirow and \multicol work correctly).
         """
         index_levels = self.index.nlevels
-        visible_index_levels = index_levels - sum(self.hide_index_)
+        visible_index_level_n = index_levels - sum(self.hide_index_)
         d["head"] = [
             [
-                {**col, "cellstyle": self.ctx_columns[r, c - visible_index_levels]}
+                {**col, "cellstyle": self.ctx_columns[r, c - visible_index_level_n]}
                 for c, col in enumerate(row)
                 if col["is_visible"]
             ]
@@ -789,6 +792,39 @@ class StylerRenderer:
 
             body.append(row_body_headers + row_body_cells)
         d["body"] = body
+
+        # clines are determined from info on index_lengths and hidden_rows and input
+        # to a dict defining which row clines should be added in the template.
+        if clines not in [
+            None,
+            "all;data",
+            "all;index",
+            "skip-last;data",
+            "skip-last;index",
+        ]:
+            raise ValueError(
+                f"`clines` value of {clines} is invalid. Should either be None or one "
+                f"of 'all;data', 'all;index', 'skip-last;data', 'skip-last;index'."
+            )
+        elif clines is not None:
+            data_len = len(row_body_cells) if "data" in clines else 0
+
+            d["clines"] = defaultdict(list)
+            visible_row_indexes: list[int] = [
+                r for r in range(len(self.data.index)) if r not in self.hidden_rows
+            ]
+            visible_index_levels: list[int] = [
+                i for i in range(index_levels) if not self.hide_index_[i]
+            ]
+            for rn, r in enumerate(visible_row_indexes):
+                for lvln, lvl in enumerate(visible_index_levels):
+                    if lvl == index_levels - 1 and "skip-last" in clines:
+                        continue
+                    idx_len = d["index_lengths"].get((lvl, r), None)
+                    if idx_len is not None:  # i.e. not a sparsified entry
+                        d["clines"][rn + idx_len].append(
+                            f"\\cline{{{lvln+1}-{len(visible_index_levels)+data_len}}}"
+                        )
 
     def format(
         self,
