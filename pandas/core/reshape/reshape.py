@@ -1155,14 +1155,14 @@ def from_dummies(
         * When the passed `sep` is of a wrong data type.
         * When the passed `base_category` is of a wrong data type.
 
+    See Also
+    --------
+    :func:`~pandas.get_dummies` : Convert `Series` or `DataFrame` to dummy codes.
+
     Notes
     -----
     The columns of the passed dummy data should only include 1's and 0's,
     or boolean values.
-
-    See Also
-    --------
-    get_dummies : Convert `Series` or `DataFrame` to dummy codes.
 
     Examples
     --------
