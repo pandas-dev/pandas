@@ -3,13 +3,13 @@ SQL-style merge routines
 """
 from __future__ import annotations
 
+from collections import Sized
 import copy
 import datetime
 from functools import partial
 import hashlib
 import itertools
 import string
-from collections import Sized
 from typing import (
     TYPE_CHECKING,
     Callable,

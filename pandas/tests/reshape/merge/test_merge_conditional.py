@@ -119,13 +119,7 @@ def test_on_func_bad_return_value():
         )
 
 
-@pytest.mark.parametrize(
-    "option, exp_result",
-    [
-        (1, (1, 1)),
-        ((1, 1), (1, 1))
-    ]
-)
+@pytest.mark.parametrize("option, exp_result", [(1, (1, 1)), ((1, 1), (1, 1))])
 def test_chunk_size(option, exp_result):
     option_name = "conditional_merge.chunk_size"
 
