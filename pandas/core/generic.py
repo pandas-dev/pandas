@@ -5433,7 +5433,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         **kwargs,
     ) -> T:
         r"""
-        Apply chainable functions that expected Series or DataFrames.
+        Apply chainable functions that expect Series or DataFrames.
 
         Parameters
         ----------
