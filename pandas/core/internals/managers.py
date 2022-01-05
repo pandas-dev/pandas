@@ -1090,6 +1090,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             #  containing (self._blknos[loc], BlockPlacement(slice(0, 1, 1)))
 
             # Check if we can use _iset_single fastpath
+            loc = cast(int, loc)
             blkno = self.blknos[loc]
             blk = self.blocks[blkno]
             if len(blk._mgr_locs) == 1:  # TODO: fastest way to check this?
