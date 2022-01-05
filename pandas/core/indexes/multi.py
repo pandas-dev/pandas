@@ -1647,10 +1647,7 @@ class MultiIndex(Index):
         """
         Return vector of label values for requested level.
 
-        Length of returned vector is equal to the length of the index. Note
-        that if the level contains missing values, the result may be casted to
-        ``float`` with missing values specified as ``NaN``. This is because
-        the level is converted to a regular ``Index``.
+        Length of returned vector is equal to the length of the index.
 
         Parameters
         ----------
@@ -1663,6 +1660,12 @@ class MultiIndex(Index):
         values : Index
             Values is a level of this MultiIndex converted to
             a single :class:`Index` (or subclass thereof).
+
+        Notes
+        -----
+        If the level contains missing values, the result may be casted to
+        ``float`` with missing values specified as ``NaN``. This is because
+        the level is converted to a regular ``Index``.
 
         Examples
         --------
