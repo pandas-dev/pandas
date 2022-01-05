@@ -141,8 +141,7 @@ def test_transform_bad_dtype(op, frame_or_series, request):
         )
 
     obj = DataFrame({"A": 3 * [object]})  # DataFrame that will fail on most transforms
-    if frame_or_series is not DataFrame:
-        obj = obj["A"]
+    obj = tm.get_obj(obj, frame_or_series)
 
     # tshift is deprecated
     warn = None if op != "tshift" else FutureWarning

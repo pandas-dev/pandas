@@ -32,3 +32,12 @@ class TestConvertDtypes:
         # Empty DataFrame can pass convert_dtypes, see GH#40393
         empty_df = pd.DataFrame()
         tm.assert_frame_equal(empty_df, empty_df.convert_dtypes())
+
+    def test_convert_dtypes_retain_column_names(self):
+        # GH#41435
+        df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+        df.columns.name = "cols"
+
+        result = df.convert_dtypes()
+        tm.assert_index_equal(result.columns, df.columns)
+        assert result.columns.name == "cols"

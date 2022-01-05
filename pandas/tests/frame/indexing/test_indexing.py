@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import iNaT
+from pandas.errors import InvalidIndexError
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer
@@ -1171,7 +1172,7 @@ class TestDataFrameIndexing:
         dg = DataFrame(
             [[1, 1, 2, 2], [3, 3, 4, 4]], columns=mi, index=Index([0, 1], name="i")
         )
-        with pytest.raises(TypeError, match="unhashable type"):
+        with pytest.raises(InvalidIndexError, match="slice"):
             dg[:, 0]
 
         index = Index(range(2), name="i")
@@ -1526,3 +1527,65 @@ class TestLocILocDataFrameCategorical:
         # "c" not part of the categories
         with pytest.raises(TypeError, match=msg1):
             indexer(df)[key] = ["c", "c"]
+
+
+class TestDepreactedIndexers:
+    @pytest.mark.parametrize(
+        "key", [{1}, {1: 1}, ({1}, "a"), ({1: 1}, "a"), (1, {"a"}), (1, {"a": "a"})]
+    )
+    def test_getitem_dict_and_set_deprecated(self, key):
+        # GH#42825
+        df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
+        with tm.assert_produces_warning(FutureWarning):
+            df.loc[key]
+
+    @pytest.mark.parametrize(
+        "key",
+        [
+            {1},
+            {1: 1},
+            (({1}, 2), "a"),
+            (({1: 1}, 2), "a"),
+            ((1, 2), {"a"}),
+            ((1, 2), {"a": "a"}),
+        ],
+    )
+    def test_getitem_dict_and_set_deprecated_multiindex(self, key):
+        # GH#42825
+        df = DataFrame(
+            [[1, 2], [3, 4]],
+            columns=["a", "b"],
+            index=MultiIndex.from_tuples([(1, 2), (3, 4)]),
+        )
+        with tm.assert_produces_warning(FutureWarning):
+            df.loc[key]
+
+    @pytest.mark.parametrize(
+        "key", [{1}, {1: 1}, ({1}, "a"), ({1: 1}, "a"), (1, {"a"}), (1, {"a": "a"})]
+    )
+    def test_setitem_dict_and_set_deprecated(self, key):
+        # GH#42825
+        df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
+        with tm.assert_produces_warning(FutureWarning):
+            df.loc[key] = 1
+
+    @pytest.mark.parametrize(
+        "key",
+        [
+            {1},
+            {1: 1},
+            (({1}, 2), "a"),
+            (({1: 1}, 2), "a"),
+            ((1, 2), {"a"}),
+            ((1, 2), {"a": "a"}),
+        ],
+    )
+    def test_setitem_dict_and_set_deprecated_multiindex(self, key):
+        # GH#42825
+        df = DataFrame(
+            [[1, 2], [3, 4]],
+            columns=["a", "b"],
+            index=MultiIndex.from_tuples([(1, 2), (3, 4)]),
+        )
+        with tm.assert_produces_warning(FutureWarning):
+            df.loc[key] = 1

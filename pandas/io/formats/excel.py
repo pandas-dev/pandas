@@ -38,8 +38,8 @@ from pandas import (
     MultiIndex,
     PeriodIndex,
 )
-from pandas.core import generic
 import pandas.core.common as com
+from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.formats._color_data import CSS4_COLORS
 from pandas.io.formats.css import (
@@ -828,7 +828,7 @@ class ExcelFormatter:
             cell.val = self._format_value(cell.val)
             yield cell
 
-    @doc(storage_options=generic._shared_docs["storage_options"])
+    @doc(storage_options=_shared_docs["storage_options"])
     def write(
         self,
         writer,

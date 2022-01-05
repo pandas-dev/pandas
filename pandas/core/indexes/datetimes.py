@@ -387,6 +387,13 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         A bit of a hack to accelerate unioning a collection of indexes.
         """
+        warnings.warn(
+            "DatetimeIndex.union_many is deprecated and will be removed in "
+            "a future version. Use obj.union instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
         this = self
 
         for other in others:
