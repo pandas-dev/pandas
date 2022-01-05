@@ -107,7 +107,10 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
     def to_numpy(
         self, dtype=None, copy: bool = False, na_value=no_default, decimals=None
     ) -> np.ndarray:
-        result = np.asarray(self, dtype=dtype)
+        if decimals is not None:
+            # make sure to copy when numbers are rounded
+            copy = True
+        result = super().to_numpy(dtype=dtype, copy=copy, na_value=na_value)
         if decimals is not None:
             result = np.asarray([round(x, decimals) for x in result])
         return result
