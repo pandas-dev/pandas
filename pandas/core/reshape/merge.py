@@ -699,10 +699,6 @@ class _MergeOperation:
 
             self._validate_specification()
 
-            self.left_join_keys = None
-            self.right_join_keys = None
-            self.join_names = None
-
             # TODO: dynamically determine optimal default chunk size
             left_chunk_size, right_chunk_size = get_option(
                 "conditional_merge.chunk_size"
