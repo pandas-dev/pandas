@@ -2884,7 +2884,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Render a DataFrame as an HTML table.
 
-        .. versionchanged:: 1.4.0
+        .. versionchanged:: 1.5.0
            An alternative `Styler` implementation is invoked in certain cases.
            See notes.
 
@@ -2898,7 +2898,7 @@ class DataFrame(NDFrame, OpsMixin):
             The minimum width of each column in CSS length units. An int is assumed
             to be px units.
 
-            .. deprecated:: 1.4.0
+            .. deprecated:: 1.5.0
                See notes for using CSS to control column width.
         header : bool, optional, default True
             Whether to print column labels.
@@ -2911,7 +2911,7 @@ class DataFrame(NDFrame, OpsMixin):
             name. The result of each function must be a unicode string. List or
             tuple must be equal to the number of columns.
 
-            .. deprecated:: 1.4.0
+            .. deprecated:: 1.5.0
                The future ``Styler`` implementation will use the new ``formatter``, and
                associated arguments. See notes.
         float_format : one-parameter function, optional
@@ -2921,14 +2921,14 @@ class DataFrame(NDFrame, OpsMixin):
 
             .. versionchanged:: 1.2.0
 
-            .. deprecated:: 1.4.0
+            .. deprecated:: 1.5.0
                The ``Styler`` implementation will use the new ``precision`` and
                associated arguments. See notes.
         sparsify : bool, optional, default True
             Set to `False` for a DataFrame with a hierarchical index to print
             every multiindex key at each row.
 
-            .. deprecated:: 1.4.0
+            .. deprecated:: 1.5.0
                The ``Styler`` implementation will use the new ``sparse_index`` and
                ``sparse_columns`` arguments. See notes.
         index_names : bool, optional, default True
@@ -2950,45 +2950,45 @@ class DataFrame(NDFrame, OpsMixin):
               - initial
               - unset
 
-            .. deprecated:: 1.4.0
+            .. deprecated:: 1.5.0
                See notes on using CSS to control aspects of text positioning.
         max_rows : int, optional
             Maximum number of rows to display in the console.
         show_dimensions : bool, default False
             Display the DataFrame dimensions (number or rows by columns).
 
-            .. deprecated:: 1.4.0
+            .. deprecated:: 1.5.0
                See notes for the recommendation to add a ``caption``.
         decimal : str, default "."
             Character recognized as the decimal separator, e.g. `,` in Europe.
         bold_rows : bool, default True
             Make the row labels bold in the output.
 
-            .. deprecated:: 1.4.0
+            .. deprecated:: 1.5.0
                Replaced by ``bold_headers``, in the `Styler` implementation.
         classes : str or list or tuple, default None
             CSS class(es) to apply to the resulting html table.
 
-            .. deprecated:: 1.4.0
+            .. deprecated:: 1.5.0
                Replaced by ``table_attributes``. See notes.
         escape : bool, default True
             Convert the characters <, >, and & to HTML-safe sequences.
         notebook : {True, False}, default False
             Whether the generated HTML is for IPython Notebook.
 
-            .. deprecated:: 1.4.0
+            .. deprecated:: 1.5.0
         border : int
             A ``border=border`` attribute is included in the opening
             `<table>` tag. Default ``pd.options.display.html.border``.
 
-            .. deprecated:: 1.4.0
+            .. deprecated:: 1.5.0
                This produces deprecated HTML. See notes.
         table_id : str, optional
             A css id is included in the opening `<table>` tag if specified.
         render_links : bool, default False
             Convert URLs to HTML links.
 
-            .. deprecated:: 1.4.0
+            .. deprecated:: 1.5.0
                Replaced by ``hyperlinks`` in the `Styler` implementation.
         encoding : str, default "utf-8"
             Set character encoding.
@@ -2999,23 +2999,23 @@ class DataFrame(NDFrame, OpsMixin):
 
             ``<table .. <table_attributes> >``.
 
-            .. versionadded:: 1.4.0
+            .. versionadded:: 1.5.0
         sparse_index : bool, optional
             Whether to sparsify the display of a hierarchical index. Setting to False
             will display each explicit level element in a hierarchical key for each row.
             Defaults to ``pandas.options.styler.sparse.index`` value.
 
-            .. versionadded:: 1.4.0
+            .. versionadded:: 1.5.0
         sparse_columns : bool, optional
             Whether to sparsify the display of a hierarchical index. Setting to False
             will display each explicit level element in a hierarchical key for each
             column. Defaults to ``pandas.options.styler.sparse.columns`` value.
 
-            .. versionadded:: 1.4.0
+            .. versionadded:: 1.5.0
         caption : str, optional
             Set the HTML caption on Styler.
 
-            .. versionadded:: 1.4.0
+            .. versionadded:: 1.5.0
         max_columns : int, optional
             The maximum number of columns that will be rendered. Defaults to
             ``pandas.options.styler.render.max_columns``, which is None.
@@ -3024,44 +3024,44 @@ class DataFrame(NDFrame, OpsMixin):
             large. This value is set to ``pandas.options.styler.render.max_elements``,
             which is 262144 (18 bit browser rendering).
 
-            .. versionadded:: 1.4.0
+            .. versionadded:: 1.5.0
         doctype_html : bool, default False
             Whether to output a fully structured HTML file including all
             HTML elements, or just the core ``<style>`` and ``<table>`` elements.
 
-            .. versionadded:: 1.4.0
+            .. versionadded:: 1.5.0
         formatter : str, callable, dict, optional
             Object to define how values are displayed. See notes for ``Styler.format``.
             Defaults to ``pandas.options.styler.format.formatter``, which is `None`.
 
-            .. versionadded:: 1.4.0
+            .. versionadded:: 1.5.0
         precision : int, optional
             Floating point precision to use for display purposes, if not determined by
             the specified ``formatter``. Defaults to
             ``pandas.options.styler.format.precision``, which is 6.
 
-            .. versionadded:: 1.4.0
+            .. versionadded:: 1.5.0
         thousands : str, optional, default None
             Character used as thousands separator for floats, complex and integers.
             Defaults to ``pandas.options.styler.format.thousands``, which is `None`.
 
-            .. versionadded:: 1.4.0
+            .. versionadded:: 1.5.0
         hyperlinks : bool,
             Convert string patterns containing `https://`, `http://`, `ftp://` or `www.`
             to HTML <a> tags as clickable URL hyperlinks.
 
-            .. versionadded:: 1.4.0
+            .. versionadded:: 1.5.0
         bold_headers : bool
             Make the row labels and/or column headers bold in the output, using
             CSS.
 
-            .. versionadded:: 1.4.0
+            .. versionadded:: 1.5.0
         **kwargs
             Any additional keyword arguments are passed through to the jinja2
             ``self.template.render`` process. This is useful when you need to provide
             additional variables for a custom template.
 
-            .. versionadded:: 1.4.0
+            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -3076,7 +3076,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Notes
         -----
-        As of version 1.4.0 this method utilises the `Styler` implementation,
+        As of version 1.5.0 this method utilises the `Styler` implementation,
         :meth:`Styler.to_html`, where possible. Where deprecated arguments are used,
         or where none of the new `Styler` implementation arguments are used this method
         falls back to its original implementation using the `DataFrameFormatter` and
@@ -3206,7 +3206,7 @@ class DataFrame(NDFrame, OpsMixin):
             implements a CSS solution,
           - ``notebook``: this is removed as a legacy argument,
 
-        The new arguments in 1.4.0, which will invoke the Styler implementation are:
+        The new arguments in 1.5.0, which will invoke the Styler implementation are:
 
           - ``table_attributes``,
           - ``sparse_index`` and  ``sparse_columns``,
@@ -3365,7 +3365,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Render a DataFrame as an HTML table or file.
 
-        .. versionadded:: 1.4.0
+        .. versionadded:: 1.5.0
 
         Parameters
         ----------
