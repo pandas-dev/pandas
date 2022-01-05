@@ -886,7 +886,7 @@ cdef class _Timedelta(timedelta):
 
     cpdef timedelta to_pytimedelta(_Timedelta self):
         """
-        Convert a pandas Timedelta object into a python timedelta object.
+        Convert a pandas Timedelta object into a python ``datetime.timedelta`` object.
 
         Timedelta objects are internally saved as numpy datetime64[ns] dtype.
         Use to_pytimedelta() to convert to object dtype.
