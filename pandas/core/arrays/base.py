@@ -486,17 +486,32 @@ class ExtensionArray:
         -------
         numpy.ndarray
         """
-        result = np.asarray(self, dtype=dtype)
-        if copy or na_value is not lib.no_default:
-            # We only consider copying if `self` implements a custom numpy
-            # array container, i.e. if the __array__function in implemented. If
-            # not, copying is done anyway by numpy.asarray. Also, numpy.asarray
-            # might copy the __array__() nonetheless if the dtype didn't match,
-            # so we only copy if the result is a reference to the input array.
-            if hasattr(self, "__array__") and result is self.__array__():
-                result = result.copy()
-            if na_value is not lib.no_default:
-                result[self.isna()] = na_value
+
+        fill_na = na_value is not lib.no_default
+
+        if hasattr(self, "_to_numpy"):
+            # The pandas-internal _to_numpy function is just like __array__,
+            # but returns also a second value indicating if copying happened,
+            # so we don't need to do guesswork like in the other cases below.
+            result, copied = self._to_numpy(dtype=dtype, copy=copy)
+            # TODO: if this approach with _to_numpy is deemed as acceptable, a
+            # _to_numpy function will be implemented for all ExtensionArrays
+            # that also implement __array__.
+        else:
+            result = np.asarray(self, dtype=dtype)
+            copied = True
+            if hasattr(self._values, "__array__"):
+                # This extension array implements the __array__ interface used
+                # by np.asarray. We have no clue what __array__ did, so we
+                # cant't assume no copy happened.
+                copied = False
+
+        if (copy or fill_na) and not copied:
+            result = result.copy()
+
+        if fill_na:
+            result[self.isna()] = na_value
+
         return result
 
     # ------------------------------------------------------------------------

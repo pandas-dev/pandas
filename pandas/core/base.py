@@ -538,28 +538,31 @@ class IndexOpsMixin(OpsMixin):
 
         fill_na = na_value is not lib.no_default
 
-        result = np.asarray(self._values, dtype=dtype)
-        if copy or fill_na:
-            do_copy = True
+        if hasattr(self._values, "_to_numpy"):
+            # The pandas-internal _to_numpy function is just like __array__,
+            # but returns also a second value indicating if copying happened,
+            # so we don't need to do guesswork like in the other cases below.
+            result, copied = self._values._to_numpy(dtype=dtype, copy=copy)
+        else:
+            result = np.asarray(self._values, dtype=dtype)
+            copied = True
             if isinstance(self._values, np.ndarray):
-                # The numpy.asarray function might have already copied the
-                # array even if the input was already a numpy array, e.g. if
-                # the dype didn't match.
-                if result is not self._values:
-                    do_copy = False
-            elif not hasattr(self._values, "__array__"):
-                # If self._values was not a numpy array, numpy.asarray
-                # generally copies already *except* if self._values implements
-                # the __array__ function that is called by numpy.asarray
-                # internally. In that case, we have no idea if a copy already
-                # happened in that custom __array__ function or not, so we need
-                # to copy ourselves to be sure.
-                do_copy = False
+                # The np.asarray function might not have created a new object,
+                # e.g. if the dtype was already the same.
+                if result is self._values:
+                    copied = False
+            elif hasattr(self._values, "__array__"):
+                # Here, self._values was not a numpy array, but it implemented
+                # the __array__ interface used by np.asarray. We have no clue
+                # what __array__ did, so we cant't assume a copy happened.
+                copied = False
 
-            if do_copy:
-                result = result.copy()
-            if fill_na:
-                result[self.isna()] = na_value
+        if (copy or fill_na) and not copied:
+            result = result.copy()
+
+        if fill_na:
+            result[self.isna()] = na_value
+
         return result
 
     @property

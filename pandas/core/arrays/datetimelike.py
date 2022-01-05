@@ -11,6 +11,7 @@ from typing import (
     Callable,
     Literal,
     Sequence,
+    Tuple,
     TypeVar,
     Union,
     cast,
@@ -311,11 +312,19 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods
 
+    def _to_numpy(self, dtype=None, copy=False) -> Tuple[np.ndarray, bool]:
+        if is_object_dtype(dtype):
+            return np.array(list(self), dtype=object), True
+        arr = np.asarray(self._ndarray, dtype=dtype)
+        copied = arr is not self._ndarray
+        if copy and not copied:
+            arr = arr.copy()
+            copied = True
+        return arr, copied
+
     def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
         # used for Timedelta/DatetimeArray, overwritten by PeriodArray
-        if is_object_dtype(dtype):
-            return np.array(list(self), dtype=object)
-        return self._ndarray
+        return self._to_numpy(dtype)[0]
 
     @overload
     def __getitem__(self, item: ScalarIndexer) -> DTScalarOrNaT:
