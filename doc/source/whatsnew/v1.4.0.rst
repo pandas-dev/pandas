@@ -431,7 +431,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+---------+
 | numba           | 0.50.1          |    X    |
 +-----------------+-----------------+---------+
-| openpyxl        | 3.0.2           |    X    |
+| openpyxl        | 3.0.3           |    X    |
 +-----------------+-----------------+---------+
 | pyarrow         | 1.0.1           |    X    |
 +-----------------+-----------------+---------+
@@ -666,7 +666,7 @@ Performance improvements
 - :meth:`SparseArray.min` and :meth:`SparseArray.max` no longer require converting to a dense array (:issue:`43526`)
 - Indexing into a :class:`SparseArray` with a ``slice`` with ``step=1`` no longer requires converting to a dense array (:issue:`43777`)
 - Performance improvement in :meth:`SparseArray.take` with ``allow_fill=False`` (:issue:`43654`)
-- Performance improvement in :meth:`.Rolling.mean`, :meth:`.Expanding.mean`, :meth:`.Rolling.sum`, :meth:`.Expanding.sum` with ``engine="numba"`` (:issue:`43612`, :issue:`44176`)
+- Performance improvement in :meth:`.Rolling.mean`, :meth:`.Expanding.mean`, :meth:`.Rolling.sum`, :meth:`.Expanding.sum`, :meth:`.Rolling.max`, :meth:`.Expanding.max`, :meth:`.Rolling.min` and :meth:`.Expanding.min` with ``engine="numba"`` (:issue:`43612`, :issue:`44176`, :issue:`45170`)
 - Improved performance of :meth:`pandas.read_csv` with ``memory_map=True`` when file encoding is UTF-8 (:issue:`43787`)
 - Performance improvement in :meth:`RangeIndex.sort_values` overriding :meth:`Index.sort_values` (:issue:`43666`)
 - Performance improvement in :meth:`RangeIndex.insert` (:issue:`43988`)
