@@ -2,9 +2,9 @@
 
 .. _api.arrays:
 
-=============
-pandas arrays
-=============
+======================================
+pandas arrays, scalars, and data types
+======================================
 
 .. currentmodule:: pandas
 
@@ -141,11 +141,11 @@ Methods
    Timestamp.weekday
 
 A collection of timestamps may be stored in a :class:`arrays.DatetimeArray`.
-For timezone-aware data, the ``.dtype`` of a ``DatetimeArray`` is a
+For timezone-aware data, the ``.dtype`` of a :class:`arrays.DatetimeArray` is a
 :class:`DatetimeTZDtype`. For timezone-naive data, ``np.dtype("datetime64[ns]")``
 is used.
 
-If the data are tz-aware, then every value in the array must have the same timezone.
+If the data are timezone-aware, then every value in the array must have the same timezone.
 
 .. autosummary::
    :toctree: api/
@@ -206,7 +206,7 @@ Methods
    Timedelta.to_numpy
    Timedelta.total_seconds
 
-A collection of timedeltas may be stored in a :class:`TimedeltaArray`.
+A collection of :class:`Timedelta` may be stored in a :class:`TimedeltaArray`.
 
 .. autosummary::
    :toctree: api/
@@ -267,8 +267,8 @@ Methods
    Period.strftime
    Period.to_timestamp
 
-A collection of timedeltas may be stored in a :class:`arrays.PeriodArray`.
-Every period in a ``PeriodArray`` must have the same ``freq``.
+A collection of :class:`Period` may be stored in a :class:`arrays.PeriodArray`.
+Every period in a :class:`arrays.PeriodArray` must have the same ``freq``.
 
 .. autosummary::
    :toctree: api/
@@ -383,8 +383,8 @@ Categorical data
 ----------------
 
 pandas defines a custom data type for representing data that can take only a
-limited, fixed set of values. The dtype of a ``Categorical`` can be described by
-a :class:`pandas.api.types.CategoricalDtype`.
+limited, fixed set of values. The dtype of a :class:`Categorical` can be described by
+a :class:`CategoricalDtype`.
 
 .. autosummary::
    :toctree: api/
@@ -414,7 +414,7 @@ have the categories and integer codes already:
 
    Categorical.from_codes
 
-The dtype information is available on the ``Categorical``
+The dtype information is available on the :class:`Categorical`
 
 .. autosummary::
    :toctree: api/
@@ -425,21 +425,21 @@ The dtype information is available on the ``Categorical``
    Categorical.codes
 
 ``np.asarray(categorical)`` works by implementing the array interface. Be aware, that this converts
-the Categorical back to a NumPy array, so categories and order information is not preserved!
+the :class:`Categorical` back to a NumPy array, so categories and order information is not preserved!
 
 .. autosummary::
    :toctree: api/
 
    Categorical.__array__
 
-A ``Categorical`` can be stored in a ``Series`` or ``DataFrame``.
+A :class:`Categorical` can be stored in a :class:`Series` or :class:`DataFrame`.
 To create a Series of dtype ``category``, use ``cat = s.astype(dtype)`` or
 ``Series(..., dtype=dtype)`` where ``dtype`` is either
 
 * the string ``'category'``
-* an instance of :class:`~pandas.api.types.CategoricalDtype`.
+* an instance of :class:`CategoricalDtype`.
 
-If the Series is of dtype ``CategoricalDtype``, ``Series.cat`` can be used to change the categorical
+If the :class:`Series` is of dtype :class:`CategoricalDtype`, ``Series.cat`` can be used to change the categorical
 data. See :ref:`api.series.cat` for more.
 
 .. _api.arrays.sparse:
@@ -488,7 +488,7 @@ we recommend using :class:`StringDtype` (with the alias ``"string"``).
 
    StringDtype
 
-The ``Series.str`` accessor is available for ``Series`` backed by a :class:`arrays.StringArray`.
+The ``Series.str`` accessor is available for :class:`Series` backed by a :class:`arrays.StringArray`.
 See :ref:`api.series.str` for more.
 
 
@@ -498,7 +498,7 @@ Boolean data with missing values
 --------------------------------
 
 The boolean dtype (with the alias ``"boolean"``) provides support for storing
-boolean data (True, False values) with missing values, which is not possible
+boolean data (``True``, ``False``) with missing values, which is not possible
 with a bool :class:`numpy.ndarray`.
 
 .. autosummary::
