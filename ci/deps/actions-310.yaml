@@ -22,7 +22,8 @@ dependencies:
   - lxml
   - matplotlib
   - numpy  # move up to solve before numba
-  - numba
+  # TODO: uncomment after numba supports py310
+  #- numba
   - numexpr
   - openpyxl
   - pyarrow>2.0.1
