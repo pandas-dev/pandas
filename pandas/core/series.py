@@ -1693,6 +1693,12 @@ class Series(base.IndexOpsMixin, NDFrame):
 
     @Appender(items.__doc__)
     def iteritems(self) -> Iterable[tuple[Hashable, Any]]:
+        warnings.warn(
+            "iteritems is deprecated and will be removed in a future version. "
+            "Use .items instead.",
+            DeprecationWarning,
+            stacklevel=find_stack_level(),
+        )
         return self.items()
 
     # ----------------------------------------------------------------------
@@ -1707,6 +1713,12 @@ class Series(base.IndexOpsMixin, NDFrame):
         Index
             Index of the Series.
         """
+        warnings.warn(
+            "keys is deprecated and will be removed in a future version. "
+            "Use .index instead.",
+            DeprecationWarning,
+            stacklevel=find_stack_level(),
+        )
         return self.index
 
     def to_dict(self, into=dict):
