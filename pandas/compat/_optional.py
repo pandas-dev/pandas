@@ -22,6 +22,7 @@ VERSIONS = {
     "openpyxl": "3.0.3",
     "pandas_gbq": "0.14.0",
     "pyarrow": "1.0.1",
+    "pyreadstat": "1.1.0",
     "pytest": "6.0",
     "pyxlsb": "1.0.6",
     "s3fs": "0.4.0",

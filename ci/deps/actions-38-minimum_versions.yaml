@@ -39,7 +39,7 @@ dependencies:
   - pymysql=0.10.1
   - pytables=3.6.1
   - pyarrow=1.0.1
-  - pyreadstat
+  - pyreadstat=1.1.0
   - pyxlsb=1.0.6
   - s3fs=0.4.0
   - scipy=1.4.1

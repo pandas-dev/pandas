@@ -12,9 +12,10 @@ This is meant to be run as a pre-commit hook - to run it manually, you can do:
 """
 from __future__ import annotations
 
-# import argparse
 import ast
 import pathlib
+
+import yaml
 
 # import re
 # import sys
@@ -26,7 +27,7 @@ CI_PATH = next(
 CODE_PATH = pathlib.Path("pandas/compat/_optional.py").resolve()
 
 
-def get_versions_from_optional(content: str) -> dict[str, str]:
+def get_versions_from_code(content: str) -> dict[str, str]:
     num_dicts = 0
     for node in ast.walk(ast.parse(content)):
         if isinstance(node, ast.Dict):
@@ -34,16 +35,28 @@ def get_versions_from_optional(content: str) -> dict[str, str]:
                 version_dict_ast = node
                 num_dicts += 1
             elif num_dicts == 1:
-                install_map_ast = node
+                install_map = {k.value: v.value for k, v in zip(node.keys, node.values)}
                 break
-    install_map = {
-        k.value: v.value for k, v in zip(install_map_ast.keys, install_map_ast.values)
-    }
     return {
         install_map.get(k.value, k.value): v.value
         for k, v in zip(version_dict_ast.keys, version_dict_ast.values)
     }
 
 
+def get_versions_from_ci(fle) -> dict[str, str]:
+    yml_content = yaml.safe_load(fle)
+    yml_version = {}
+    for dependency in reversed(yml_content["dependencies"]):
+        if "=" not in dependency:
+            break
+        package, version = dependency.split("=")
+        yml_version[package] = version
+    return yml_version
+
+
 if __name__ == "__main__":
+    with open(CODE_PATH) as f:
+        code_versions = get_versions_from_code(f.read())
+    with open(CI_PATH) as f:
+        yml_content = get_versions_from_ci(f)
     pass
