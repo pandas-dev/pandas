@@ -139,7 +139,9 @@ class TestReshaping(BaseSparseTests, base.BaseReshapingTests):
         dfs = [df1, df2, df3]
 
         # dataframes
-        result = pd.concat(dfs)
+        msg = "passing a SparseArray to pd.Index"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = pd.concat(dfs)
         expected = pd.concat(
             [x.apply(lambda s: np.asarray(s).astype(object)) for x in dfs]
         )
