@@ -1044,6 +1044,7 @@ class StylerRenderer:
         thousands: str | None = None,
         escape: str | None = None,
         hyperlinks: str | None = None,
+        aliases: list[str] | None = None,
     ) -> StylerRenderer:
         r"""
         Format the text display value of index labels or column headers.
@@ -1055,9 +1056,10 @@ class StylerRenderer:
         formatter : str, callable, dict or None
             Object to define how values are displayed. See notes.
         axis : {0, "index", 1, "columns"}
-            Whether to apply the formatter to the index or column headers.
+            Whether to apply the ``formatter`` or ``aliases`` to the index or column
+            headers.
         level : int, str, list
-            The level(s) over which to apply the generic formatter.
+            The level(s) over which to apply the generic ``formatter``, or ``aliases``.
         na_rep : str, optional
             Representation for missing values.
             If ``na_rep`` is None, no special formatting is applied.
@@ -1079,6 +1081,14 @@ class StylerRenderer:
             Convert string patterns containing https://, http://, ftp:// or www. to
             HTML <a> tags as clickable URL hyperlinks if "html", or LaTeX \href
             commands if "latex".
+        aliases : list of strings
+            This list will replace the existing index or column headers. It will also
+            collapse a MultiIndex to a single level displaying the alias,
+            which is specified by the ``level`` argument.
+            Cannot be used simultaneously with ``formatter`` and the associated
+            arguments; ``thousands``, ``decimal``, ``escape``, ``hyperlinks``,
+            ``na_rep`` and ``precision``.
+            Must be of length equal to the number of visible columns, see examples.
 
         Returns
         -------
@@ -1163,6 +1173,11 @@ class StylerRenderer:
         {} & {\textbf{123}} & {\textbf{\textasciitilde }} & {\textbf{\$\%\#}} \\
         0 & 1 & 2 & 3 \\
         \end{tabular}
+
+        Using ``aliases`` to overwrite column names.
+        >>> df = pd.DataFrame([[1, 2, 3]], columns=[1, 2, 3])
+        >>> df.style.format_index(axis=1, aliases=["A", "B", "C"])
+
         """
         axis = self.data._get_axis_number(axis)
         if axis == 0:
@@ -1171,10 +1186,9 @@ class StylerRenderer:
             display_funcs_, obj = self._display_funcs_columns, self.columns
         levels_ = refactor_levels(level, obj)
 
-        if all(
+        formatting_args_unset = all(
             (
                 formatter is None,
-                level is None,
                 precision is None,
                 decimal == ".",
                 thousands is None,
@@ -1182,9 +1196,24 @@ class StylerRenderer:
                 escape is None,
                 hyperlinks is None,
             )
-        ):
+        )
+
+        aliases_unset = aliases is None
+
+        if formatting_args_unset and level is None and aliases_unset:
             display_funcs_.clear()
             return self  # clear the formatter / revert to default and avoid looping
+
+        if not aliases_unset:
+            if not formatting_args_unset:
+                raise ValueError(
+                    "``aliases`` cannot be supplied together with any of "
+                    "``formatter``, ``precision``, ``decimal``, ``na_rep``, "
+                    "``escape``, or ``hyperlinks``."
+                )
+            else:
+                pass
+                # do the alias formatting
 
         if not isinstance(formatter, dict):
             formatter = {level: formatter for level in levels_}
