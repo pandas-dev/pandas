@@ -1091,7 +1091,11 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
             # Check if we can use _iset_single fastpath
             blkno = self.blknos[loc]
-            blk = self.blocks[blkno]
+            # No overload variant of "__getitem__" of "tuple" matches argument type
+            # "ndarray[Any, dtype[signedinteger[Any]]]"  [call-overload]
+            blk = self.blocks[blkno]  # type: ignore[call-overload]
+            # Argument "blkno" to "_iset_single" of "BlockManager" has incompatible
+            # type "ndarray[Any, dtype[signedinteger[Any]]]"; expected "int"
             if len(blk._mgr_locs) == 1:  # TODO: fastest way to check this?
                 return self._iset_single(
                     # error: Argument 1 to "_iset_single" of "BlockManager" has
@@ -1100,7 +1104,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                     loc,  # type:ignore[arg-type]
                     value,
                     inplace=inplace,
-                    blkno=blkno,
+                    blkno=blkno,  # type: ignore[arg-type]
                     blk=blk,
                 )
 
@@ -1127,8 +1131,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         unfit_mgr_locs = []
         unfit_val_locs = []
         removed_blknos = []
-        for blkno, val_locs in libinternals.get_blkno_placements(blknos, group=True):
-            blk = self.blocks[blkno]
+        for blkno_loop, val_locs in libinternals.get_blkno_placements(blknos, group=True):
+            blk = self.blocks[blkno_loop]
             blk_locs = blklocs[val_locs.indexer]
             if inplace and blk.should_store(value):
                 blk.set_inplace(blk_locs, value_getitem(val_locs))
@@ -1138,7 +1142,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
                 # If all block items are unfit, schedule the block for removal.
                 if len(val_locs) == len(blk.mgr_locs):
-                    removed_blknos.append(blkno)
+                    removed_blknos.append(blkno_loop)
                 else:
                     blk.delete(blk_locs)
                     self._blklocs[blk.mgr_locs.indexer] = np.arange(len(blk))

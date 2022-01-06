@@ -1022,6 +1022,7 @@ def _get_dummies_1d(
         raise ValueError("dtype=object is not a valid dtype for get_dummies")
 
     def get_empty_frame(data) -> DataFrame:
+        index: Index | np.ndarray
         if isinstance(data, Series):
             index = data.index
         else:
@@ -1035,7 +1036,9 @@ def _get_dummies_1d(
     codes = codes.copy()
     if dummy_na:
         codes[codes == -1] = len(levels)
-        levels = np.append(levels, np.nan)
+        # Incompatible types in assignment (expression has type
+        # "ndarray[Any, dtype[Any]]", variable has type "Index")
+        levels = np.append(levels, np.nan)  # type: ignore[assignment]
 
     # if dummy_na, we just fake a nan level. drop_first will drop it again
     if drop_first and len(levels) == 1:
