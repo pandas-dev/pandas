@@ -64,9 +64,9 @@ def test_to_native_types():
 
 
 def test_unixtime():
-    index = pd.date_range("2011-09-18 15:30", "2011-09-18 17:30", freq='D')
+    index = pd.date_range("2011-09-18 15:30", "2011-09-18 17:30", freq="D")
     assert len(index) == 1
-    ux = index.unixtime 
+    ux = index.unixtime
     assert len(ux) == 1
 
 

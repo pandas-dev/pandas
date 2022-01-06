@@ -499,12 +499,11 @@ class TestTimestampUnaryOps:
         ts = fixed_now_ts
         with pytest.deprecated_call():
             ts.timestamp()
-            
 
     @td.skip_if_windows
     def test_unixtime(self, fixed_now_ts):
         # GH#17329
-        # tz-naive --> treat it as if it were UTC 
+        # tz-naive --> treat it as if it were UTC
         ts = fixed_now_ts
         uts = ts.replace(tzinfo=utc)
         assert ts.unixtime == uts.unixtime
@@ -520,6 +519,7 @@ class TestTimestampUnaryOps:
             # should agree with datetime.timestamp method
             dt = ts.to_pydatetime()
             assert dt.timestamp() == ts.unixtime
+
 
 @pytest.mark.parametrize("fold", [0, 1])
 def test_replace_preserves_fold(fold):
