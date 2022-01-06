@@ -4,6 +4,7 @@ stated as a Python-specific issue, the goal is to eventually move as many of
 these tests out of this module as soon as the C parser can accept further
 arguments when parsing.
 """
+from __future__ import annotations
 
 import csv
 from io import (
@@ -360,7 +361,7 @@ def test_on_bad_lines_callable_write_to_external_list(python_parser_only):
     bad_sio = StringIO(data)
     lst = []
 
-    def bad_line_func(bad_line):
+    def bad_line_func(bad_line: list[str]) -> list[str]:
         lst.append(bad_line)
         return ["2", "3"]
 
