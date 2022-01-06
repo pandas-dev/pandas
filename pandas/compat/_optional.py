@@ -25,7 +25,7 @@ VERSIONS = {
     "odfpy": "1.4.1",
     "openpyxl": "3.0.3",
     "pandas_gbq": "0.14.0",
-    "psycopg2": "2.8.4",
+    "psycopg2": "2.8.4",  # (dt dec pq3 ext lo64)
     "pymysql": "0.10.1",
     "pyarrow": "1.0.1",
     "pyreadstat": "1.1.0",
@@ -66,7 +66,8 @@ def get_version(module: types.ModuleType) -> str:
 
     if version is None:
         raise ImportError(f"Can't determine version for {module.__name__}")
-    return version
+    # psycopg2 appends " (dt dec pq3 ext lo64)" to it's version
+    return version.split()[0]
 
 
 def import_optional_dependency(
