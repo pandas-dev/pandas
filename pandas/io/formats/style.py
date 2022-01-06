@@ -1791,7 +1791,8 @@ class Styler(StylerRenderer):
 
         Can be applied to a second Styler with ``Styler.use``.
 
-        .. versionchanged:: 1.4.0
+        .. versionchanged:: 1.5.0
+           Adds ``descriptors`` to the exported items.
 
         Returns
         -------
@@ -1853,7 +1854,8 @@ class Styler(StylerRenderer):
 
         Possibly uses styles from ``Styler.export``.
 
-        .. versionchanged:: 1.4.0
+        .. versionchanged:: 1.5.0
+           Adds ``descriptors`` to the used items.
 
         Parameters
         ----------
@@ -1872,7 +1874,7 @@ class Styler(StylerRenderer):
               - "hide_index_names": whether index names are hidden.
               - "hide_column_names": whether column header names are hidden.
               - "css": the css class names used.
-              - "descriptos": list of descriptors, typically added with
+              - "descriptors": list of descriptors, typically added with
                 ``set_descriptors``.
 
         Returns
@@ -2256,7 +2258,7 @@ class Styler(StylerRenderer):
         """
         Add header-level calculations to the output which describes the data.
 
-        .. versionadded:: 1.4.0
+        .. versionadded:: 1.5.0
 
         Parameters
         ----------

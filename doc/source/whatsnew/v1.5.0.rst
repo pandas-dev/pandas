@@ -14,10 +14,12 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
-.. _whatsnew_150.enhancements.enhancement1:
+.. _whatsnew_150.enhancements.styler:
 
-enhancement1
-^^^^^^^^^^^^
+Styler
+^^^^^^
+
+  - Added a new method :meth:`.Styler.set_descriptors` which allows adding customised header rows to explore and make calculations on the data, e.g. totals and counts etc. (:issue:`43875`)
 
 .. _whatsnew_150.enhancements.enhancement2:
 
