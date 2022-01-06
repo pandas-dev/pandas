@@ -494,6 +494,7 @@ class Styler(StylerRenderer):
         position: str | None = None,
         position_float: str | None = None,
         hrules: bool | None = None,
+        clines: str | None = None,
         label: str | None = None,
         caption: str | tuple | None = None,
         sparse_index: bool | None = None,
@@ -542,6 +543,22 @@ class Styler(StylerRenderer):
             Defaults to ``pandas.options.styler.latex.hrules``, which is `False`.
 
             .. versionchanged:: 1.4.0
+        clines : str, optional
+            Use to control adding \\cline commands for the index labels separation.
+            Possible values are:
+
+              - `None`: no cline commands are added (default).
+              - `"all;data"`: a cline is added for every index value extending the
+                width of the table, including data entries.
+              - `"all;index"`: as above with lines extending only the width of the
+                index entries.
+              - `"skip-last;data"`: a cline is added for each index value except the
+                last level (which is never sparsified), extending the widtn of the
+                table.
+              - `"skip-last;index"`: as above with lines extending only the width of the
+                index entries.
+
+            .. versionadded:: 1.4.0
         label : str, optional
             The LaTeX label included as: \\label{<label>}.
             This is used with \\ref{<label>} in the main .tex file.
@@ -754,8 +771,8 @@ class Styler(StylerRenderer):
         **Formatting**
 
         To format values :meth:`Styler.format` should be used prior to calling
-        `Styler.to_latex`, as well as other methods such as :meth:`Styler.hide_index`
-        or :meth:`Styler.hide_columns`, for example:
+        `Styler.to_latex`, as well as other methods such as :meth:`Styler.hide`
+        for example:
 
         >>> s.clear()
         >>> s.table_styles = []
@@ -911,6 +928,7 @@ class Styler(StylerRenderer):
             environment=environment,
             convert_css=convert_css,
             siunitx=siunitx,
+            clines=clines,
         )
 
         encoding = encoding or get_option("styler.render.encoding")
@@ -1106,7 +1124,7 @@ class Styler(StylerRenderer):
         >>> df = pd.DataFrame([[1]])
         >>> css = pd.DataFrame([["other-class"]])
         >>> s = Styler(df, uuid="_", cell_ids=False).set_td_classes(css)
-        >>> s.hide_index().to_html()  # doctest: +SKIP
+        >>> s.hide(axis=0).to_html()  # doctest: +SKIP
         '<style type="text/css"></style>'
         '<table id="T__">'
         '  <thead>'
@@ -1809,7 +1827,7 @@ class Styler(StylerRenderer):
 
         >>> styler = DataFrame([[1, 2], [3, 4]]).style
         >>> styler2 = DataFrame([[9, 9, 9]]).style
-        >>> styler.hide_index().highlight_max(axis=1)  # doctest: +SKIP
+        >>> styler.hide(axis=0).highlight_max(axis=1)  # doctest: +SKIP
         >>> export = styler.export()
         >>> styler2.use(export)  # doctest: +SKIP
         """
@@ -1861,7 +1879,7 @@ class Styler(StylerRenderer):
 
         >>> styler = DataFrame([[1, 2], [3, 4]]).style
         >>> styler2 = DataFrame([[9, 9, 9]]).style
-        >>> styler.hide_index().highlight_max(axis=1)  # doctest: +SKIP
+        >>> styler.hide(axis=0).highlight_max(axis=1)  # doctest: +SKIP
         >>> export = styler.export()
         >>> styler2.use(export)  # doctest: +SKIP
         """
@@ -1970,8 +1988,8 @@ class Styler(StylerRenderer):
         This method uses the CSS 'position: sticky;' property to display. It is
         designed to work with visible axes, therefore both:
 
-          - `styler.set_sticky(axis="index").hide_index()`
-          - `styler.set_sticky(axis="columns").hide_columns()`
+          - `styler.set_sticky(axis="index").hide(axis="index")`
+          - `styler.set_sticky(axis="columns").hide(axis="columns")`
 
         may produce strange behaviour due to CSS controls with missing elements.
         """
@@ -2265,7 +2283,7 @@ class Styler(StylerRenderer):
         .. versionchanged:: 1.3.0
 
         .. deprecated:: 1.4.0
-           This method should be replaced by ``hide(axis="columns", **kwargs)``
+           This method should be replaced by ``hide(axis="index", **kwargs)``
 
         Parameters
         ----------
