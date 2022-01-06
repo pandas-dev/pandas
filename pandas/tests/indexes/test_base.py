@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import IS64
+from pandas.errors import InvalidIndexError
 from pandas.util._test_decorators import async_mark
 
 import pandas as pd
@@ -16,7 +17,6 @@ from pandas import (
     DataFrame,
     DatetimeIndex,
     IntervalIndex,
-    NumericIndex,
     PeriodIndex,
     RangeIndex,
     Series,
@@ -28,6 +28,7 @@ import pandas._testing as tm
 from pandas.core.api import (
     Float64Index,
     Int64Index,
+    NumericIndex,
     UInt64Index,
 )
 from pandas.core.indexes.api import (
@@ -398,11 +399,15 @@ class TestIndex(Base):
         left = Index([1, 2, 3])
         right = Index([True, False])
 
-        msg = "'<' not supported between instances"
+        msg = "Cannot compare dtypes int64 and object"
         with pytest.raises(TypeError, match=msg):
+            left.asof(right[0])
+        # TODO: should right.asof(left[0]) also raise?
+
+        with pytest.raises(InvalidIndexError, match=re.escape(str(right))):
             left.asof(right)
 
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(InvalidIndexError, match=re.escape(str(left))):
             right.asof(left)
 
     @pytest.mark.parametrize("index", ["string"], indirect=True)
@@ -530,21 +535,20 @@ class TestIndex(Base):
             # Cannot map duplicated index
             return
 
+        rng = np.arange(len(index), 0, -1)
+
         if index.empty:
             # to match proper result coercion for uints
             expected = Index([])
         elif index._is_backward_compat_public_numeric_index:
-            expected = index._constructor(
-                np.arange(len(index), 0, -1), dtype=index.dtype
-            )
+            expected = index._constructor(rng, dtype=index.dtype)
         elif type(index) is Index and index.dtype != object:
             # i.e. EA-backed, for now just Nullable
-            expected = Index(np.arange(len(index), 0, -1), dtype=index.dtype)
+            expected = Index(rng, dtype=index.dtype)
         elif index.dtype.kind == "u":
-            # TODO: case where e.g. we cannot hold result in UInt8?
-            expected = Index(np.arange(len(index), 0, -1), dtype=index.dtype)
+            expected = Index(rng, dtype=index.dtype)
         else:
-            expected = Index(np.arange(len(index), 0, -1))
+            expected = Index(rng)
 
         result = index.map(mapper(expected, index))
         tm.assert_index_equal(result, expected)

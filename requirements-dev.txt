@@ -1,7 +1,7 @@
 # This file is auto-generated from environment.yml, do not modify.
 # See that file for comments about the need/usage of each dependency.
 
-numpy>=1.18.5
+numpy>=1.18.5, <1.22.0
 python-dateutil>=2.8.1
 pytz
 asv

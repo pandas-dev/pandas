@@ -191,6 +191,27 @@ class TestGetitem(BaseSparseTests, base.BaseGetitemTests):
 # Skipping TestSetitem, since we don't implement it.
 
 
+class TestIndex(base.BaseIndexTests):
+    def test_index_from_array(self, data):
+        msg = "will store that array directly"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            idx = pd.Index(data)
+
+        if data.dtype.subtype == "f":
+            assert idx.dtype == np.float64
+        elif data.dtype.subtype == "i":
+            assert idx.dtype == np.int64
+        else:
+            assert idx.dtype == data.dtype.subtype
+
+    # TODO(2.0): should pass once SparseArray is stored directly in Index.
+    @pytest.mark.xfail(reason="Index cannot yet store sparse dtype")
+    def test_index_from_listlike_with_dtype(self, data):
+        msg = "passing a SparseArray to pd.Index"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            super().test_index_from_listlike_with_dtype(data)
+
+
 class TestMissing(BaseSparseTests, base.BaseMissingTests):
     def test_isna(self, data_missing):
         sarr = SparseArray(data_missing)
@@ -252,6 +273,14 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
 
 
 class TestMethods(BaseSparseTests, base.BaseMethodsTests):
+    @pytest.mark.parametrize("ascending", [True, False])
+    def test_sort_values_frame(self, data_for_sorting, ascending):
+        msg = "will store that array directly"
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
+            super().test_sort_values_frame(data_for_sorting, ascending)
+
     def test_combine_le(self, data_repeated):
         # We return a Series[SparseArray].__le__ returns a
         # Series[Sparse[bool]]

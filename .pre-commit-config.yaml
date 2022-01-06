@@ -8,8 +8,15 @@ repos:
     hooks:
     -   id: absolufy-imports
         files: ^pandas/
+-   repo: https://github.com/jendrikseipp/vulture
+    rev: 'v2.3'
+    hooks:
+      - id: vulture
+        entry: python scripts/run_vulture.py
+        pass_filenames: true
+        require_serial: false
 -   repo: https://github.com/python/black
-    rev: 21.11b1
+    rev: 21.12b0
     hooks:
     -   id: black
 -   repo: https://github.com/codespell-project/codespell
@@ -19,7 +26,7 @@ repos:
         types_or: [python, rst, markdown]
         files: ^(pandas|doc)/
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.0.1
+    rev: v4.1.0
     hooks:
     -   id: debug-statements
     -   id: end-of-file-fixer
@@ -49,7 +56,7 @@ repos:
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v2.29.1
+    rev: v2.31.0
     hooks:
     -   id: pyupgrade
         args: [--py38-plus]
@@ -78,7 +85,7 @@ repos:
         types: [python]
         stages: [manual]
         # note: keep version in sync with .github/workflows/ci.yml
-        additional_dependencies: ['pyright@1.1.200']
+        additional_dependencies: ['pyright@1.1.202']
 -   repo: local
     hooks:
     -   id: flake8-rst
@@ -175,3 +182,9 @@ repos:
         entry: python scripts/pandas_errors_documented.py
         language: python
         files: ^pandas/errors/__init__.py$
+    -   id: pg8000-not-installed-CI
+        name: Check for pg8000 not installed on CI for test_pg8000_sqlalchemy_passthrough_error
+        language: pygrep
+        entry: 'pg8000'
+        files: ^ci/deps
+        types: [yaml]

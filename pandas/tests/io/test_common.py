@@ -555,9 +555,8 @@ def test_encoding_errors(encoding_errors, format):
     bad_encoding = b"\xe4"
 
     if format == "csv":
-        return
-        content = bad_encoding + b"\n" + bad_encoding
-        reader = pd.read_csv
+        content = b"," + bad_encoding + b"\n" + bad_encoding * 2 + b"," + bad_encoding
+        reader = partial(pd.read_csv, index_col=0)
     else:
         content = (
             b'{"'

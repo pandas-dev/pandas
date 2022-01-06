@@ -63,6 +63,7 @@ from pandas._typing import (
     IndexLabel,
     Level,
     PythonFuncType,
+    ReadBuffer,
     Renamer,
     Scalar,
     StorageOptions,
@@ -92,6 +93,7 @@ from pandas.util._validators import (
 )
 
 from pandas.core.dtypes.cast import (
+    can_hold_element,
     construct_1d_arraylike_from_scalar,
     construct_2d_arraylike_from_scalar,
     find_common_type,
@@ -99,7 +101,6 @@ from pandas.core.dtypes.cast import (
     invalidate_string_dtypes,
     maybe_box_native,
     maybe_downcast_to_dtype,
-    validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -2948,15 +2949,15 @@ class DataFrame(NDFrame, OpsMixin):
         root_name: str | None = "data",
         row_name: str | None = "row",
         na_rep: str | None = None,
-        attr_cols: str | list[str] | None = None,
-        elem_cols: str | list[str] | None = None,
+        attr_cols: list[str] | None = None,
+        elem_cols: list[str] | None = None,
         namespaces: dict[str | None, str] | None = None,
         prefix: str | None = None,
         encoding: str = "utf-8",
         xml_declaration: bool | None = True,
         pretty_print: bool | None = True,
         parser: str | None = "lxml",
-        stylesheet: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
+        stylesheet: FilePath | ReadBuffer[str] | ReadBuffer[bytes] | None = None,
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
     ) -> str | None:
@@ -3463,7 +3464,8 @@ class DataFrame(NDFrame, OpsMixin):
         key = lib.item_from_zerodim(key)
         key = com.apply_if_callable(key, self)
 
-        if is_hashable(key):
+        if is_hashable(key) and not is_iterator(key):
+            # is_iterator to exclude generator e.g. test_getitem_listlike
             # shortcut if the key is in columns
             if self.columns.is_unique and key in self.columns:
                 if isinstance(self.columns, MultiIndex):
@@ -3865,7 +3867,9 @@ class DataFrame(NDFrame, OpsMixin):
 
             series = self._get_item_cache(col)
             loc = self.index.get_loc(index)
-            validate_numeric_casting(series.dtype, value)
+            if not can_hold_element(series._values, value):
+                # We'll go through loc and end up casting.
+                raise TypeError
 
             series._mgr.setitem_inplace(loc, value)
             # Note: trying to use series._set_value breaks tests in
@@ -4221,15 +4225,13 @@ class DataFrame(NDFrame, OpsMixin):
         from pandas.core.computation.eval import eval as _eval
 
         inplace = validate_bool_kwarg(inplace, "inplace")
-        resolvers = kwargs.pop("resolvers", None)
         kwargs["level"] = kwargs.pop("level", 0) + 1
-        if resolvers is None:
-            index_resolvers = self._get_index_resolvers()
-            column_resolvers = self._get_cleaned_column_resolvers()
-            resolvers = column_resolvers, index_resolvers
+        index_resolvers = self._get_index_resolvers()
+        column_resolvers = self._get_cleaned_column_resolvers()
+        resolvers = column_resolvers, index_resolvers
         if "target" not in kwargs:
             kwargs["target"] = self
-        kwargs["resolvers"] = kwargs.get("resolvers", ()) + tuple(resolvers)
+        kwargs["resolvers"] = tuple(kwargs.get("resolvers", ())) + resolvers
 
         return _eval(expr, inplace=inplace, **kwargs)
 

@@ -62,10 +62,10 @@ from pandas.util._validators import (
 )
 
 from pandas.core.dtypes.cast import (
+    can_hold_element,
     convert_dtypes,
     maybe_box_native,
     maybe_cast_pointwise_result,
-    validate_numeric_casting,
 )
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -966,7 +966,9 @@ class Series(base.IndexOpsMixin, NDFrame):
 
                 return result
 
-            except (KeyError, TypeError):
+            except (KeyError, TypeError, InvalidIndexError):
+                # InvalidIndexError for e.g. generator
+                #  see test_series_getitem_corner_generator
                 if isinstance(key, tuple) and isinstance(self.index, MultiIndex):
                     # We still have the corner case where a tuple is a key
                     # in the first level of our MultiIndex
@@ -1143,9 +1145,9 @@ class Series(base.IndexOpsMixin, NDFrame):
 
     def _set_with_engine(self, key, value) -> None:
         loc = self.index.get_loc(key)
-        # error: Argument 1 to "validate_numeric_casting" has incompatible type
-        # "Union[dtype, ExtensionDtype]"; expected "dtype"
-        validate_numeric_casting(self.dtype, value)  # type: ignore[arg-type]
+        if not can_hold_element(self._values, value):
+            raise ValueError
+
         # this is equivalent to self._values[key] = value
         self._mgr.setitem_inplace(loc, value)
 

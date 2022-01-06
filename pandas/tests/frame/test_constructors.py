@@ -97,12 +97,14 @@ class TestDataFrameConstructors:
     def test_construct_ndarray_with_nas_and_int_dtype(self):
         # GH#26919 match Series by not casting np.nan to meaningless int
         arr = np.array([[1, np.nan], [2, 3]])
-        df = DataFrame(arr, dtype="i8")
+        with tm.assert_produces_warning(FutureWarning):
+            df = DataFrame(arr, dtype="i8")
         assert df.values.dtype == arr.dtype
         assert isna(df.iloc[0, 1])
 
         # check this matches Series behavior
-        ser = Series(arr[0], dtype="i8", name=0)
+        with tm.assert_produces_warning(FutureWarning):
+            ser = Series(arr[0], dtype="i8", name=0)
         expected = df.iloc[0]
         tm.assert_series_equal(ser, expected)
 
@@ -937,7 +939,11 @@ class TestDataFrameConstructors:
         assert len(frame.index) == 3
         assert len(frame.columns) == 1
 
-        frame = DataFrame(mat, columns=["A", "B", "C"], index=[1, 2], dtype=np.int64)
+        warn = None if empty is np.ones else FutureWarning
+        with tm.assert_produces_warning(warn):
+            frame = DataFrame(
+                mat, columns=["A", "B", "C"], index=[1, 2], dtype=np.int64
+            )
         if empty is np.ones:
             # passing dtype casts
             assert frame.values.dtype == np.int64
@@ -1279,8 +1285,7 @@ class TestDataFrameConstructors:
 
         # Empty generator: list(empty_gen()) == []
         def empty_gen():
-            return
-            yield
+            yield from ()
 
         df = DataFrame(empty_gen(), columns=["A", "B"])
         tm.assert_frame_equal(df, expected)
@@ -1766,7 +1771,9 @@ class TestDataFrameConstructors:
             DataFrame({"A": float_frame["A"], "B": list(float_frame["B"])[:-2]})
 
     def test_constructor_miscast_na_int_dtype(self):
-        df = DataFrame([[np.nan, 1], [1, 0]], dtype=np.int64)
+        msg = "float-dtype values containing NaN and an integer dtype"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df = DataFrame([[np.nan, 1], [1, 0]], dtype=np.int64)
         expected = DataFrame([[np.nan, 1], [1, 0]])
         tm.assert_frame_equal(df, expected)
 
@@ -2713,10 +2720,19 @@ class TestDataFrameConstructorWithDtypeCoercion:
             # if they can be cast losslessly, no warning
             DataFrame(arr.round(), dtype="i8")
 
-        # with NaNs, we already have the correct behavior, so no warning
+        # with NaNs, we go through a different path with a different warning
         arr[0, 0] = np.nan
-        with tm.assert_produces_warning(None):
+        msg = "passing float-dtype values containing NaN"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             DataFrame(arr, dtype="i8")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            Series(arr[0], dtype="i8")
+        # The future (raising) behavior matches what we would get via astype:
+        msg = r"Cannot convert non-finite values \(NA or inf\) to integer"
+        with pytest.raises(ValueError, match=msg):
+            DataFrame(arr).astype("i8")
+        with pytest.raises(ValueError, match=msg):
+            Series(arr[0]).astype("i8")
 
 
 class TestDataFrameConstructorWithDatetimeTZ:
