@@ -1221,9 +1221,12 @@ class SQLTable(PandasObject):
             DateTime,
             Float,
             Integer,
+            Numeric,
         )
 
         if isinstance(sqltype, Float):
+            return float
+        elif isinstance(sqltype, Numeric):
             return float
         elif isinstance(sqltype, Integer):
             # TODO: Refine integer size.

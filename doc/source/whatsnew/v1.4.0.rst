@@ -752,6 +752,7 @@ Numeric
 - Bug in arithmetic operations involving :class:`Series` where the result could have the incorrect ``name`` when the operands having matching NA or matching tuple names (:issue:`44459`)
 - Bug in division with ``IntegerDtype`` or ``BooleanDtype`` array and NA scalar incorrectly raising (:issue:`44685`)
 - Bug in multiplying a :class:`Series` with ``FloatingDtype`` with a timedelta-like scalar incorrectly raising (:issue:`44772`)
+- Bug in :meth:`SQLTable._get_dtype` treating ``sqlalchemy.dialects.oracle.NUMBER`` as ``sqlalchemy.types.Integer`` which results in lost precision (:issue:`34988`)
 
 Conversion
 ^^^^^^^^^^
