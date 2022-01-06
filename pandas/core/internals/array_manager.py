@@ -23,8 +23,8 @@ from pandas._typing import (
 )
 from pandas.util._validators import validate_bool_kwarg
 
+from pandas.core.dtypes.astype import astype_array_safe
 from pandas.core.dtypes.cast import (
-    astype_array_safe,
     ensure_dtype_can_hold_na,
     infer_dtype_from_scalar,
     soft_convert_objects,
