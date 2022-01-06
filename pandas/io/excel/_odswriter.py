@@ -8,7 +8,7 @@ from typing import (
 )
 
 import pandas._libs.json as json
-from pandas._typing import StorageOptions
+from pandas._typing import StorageOptions, FilePath, WriteExcelBuffer
 
 from pandas.io.excel._base import ExcelWriter
 from pandas.io.excel._util import (
@@ -24,9 +24,9 @@ class ODSWriter(ExcelWriter):
 
     def __init__(
         self,
-        path: str,
+        path: FilePath | WriteExcelBuffer | ExcelWriter,
         engine: str | None = None,
-        date_format=None,
+        date_format: str | None = None,
         datetime_format=None,
         mode: str = "w",
         storage_options: StorageOptions = None,
