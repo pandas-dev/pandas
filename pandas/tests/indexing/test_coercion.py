@@ -83,7 +83,7 @@ class TestSetitemCoercion(CoercionBase):
 
     # disable comprehensiveness tests, as most of these have been moved to
     #  tests.series.indexing.test_setitem in SetitemCastingEquivalents subclasses.
-    klasses = []
+    klasses: list[str] = []
 
     def test_setitem_series_no_coercion_from_values_list(self):
         # GH35865 - int casted to str when internally calling np.array(ser.values)
