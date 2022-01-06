@@ -1295,41 +1295,57 @@ too many fields will raise an error by default:
 
 You can elect to skip bad lines:
 
-.. ipython:: ipython
+.. code-block:: ipython
 
-    pd.read_csv(StringIO(data), on_bad_lines="warn")
+    In [29]: pd.read_csv(StringIO(data), on_bad_lines="warn")
+    Skipping line 3: expected 3 fields, saw 4
+
+    Out[29]:
+       a  b   c
+    0  1  2   3
+    1  8  9  10
 
 Or pass a callable function to handle the bad line if ``engine="python"``.
 The bad line will be a list of strings that was split by the ``sep``:
 
-.. versionadded:: 1.4.0
+.. code-block:: ipython
 
-.. ipython:: ipython
+    In [30]: pd.read_csv(StringIO(data), on_bad_lines=lambda x: x[-3:], engine="python")
+    Out[30]:
+       a  b   c
+    0  1  2   3
+    1  5  6   7
+    2  8  9  10
 
-    external_list = []
+    .. versionadded:: 1.4.0
 
-    def func(line):
-        external_list.append(line)
-        return line[-3:]
-
-    pd.read_csv(StringIO(data), on_bad_lines=func, engine="python")
-
-    external_list
 
 You can also use the ``usecols`` parameter to eliminate extraneous column
 data that appear in some lines but not others:
 
-.. ipython:: ipython
+.. code-block:: ipython
 
-   pd.read_csv(StringIO(data), usecols=[0, 1, 2])
+   In [31]: pd.read_csv(StringIO(data), usecols=[0, 1, 2])
+
+    Out[31]:
+       a  b   c
+    0  1  2   3
+    1  4  5   6
+    2  8  9  10
 
 In case you want to keep all data including the lines with too many fields, you can
 specify a sufficient number of ``names``. This ensures that lines with not enough
 fields are filled with ``NaN``.
 
-.. ipython:: ipython
+.. code-block:: ipython
 
-   pd.read_csv(StringIO(data), names=['a', 'b', 'c', 'd'])
+   In [32]: pd.read_csv(StringIO(data), names=['a', 'b', 'c', 'd'])
+
+   Out[32]:
+       a  b   c  d
+    0  1  2   3  NaN
+    1  4  5   6  7
+    2  8  9  10  NaN
 
 .. _io.dialect:
 
