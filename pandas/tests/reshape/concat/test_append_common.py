@@ -727,9 +727,9 @@ class TestConcatAppendCommon:
 
         # different dtype, but all castable (bc empty) => category (GH#41626)
         tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), s1)
-        tm.assert_series_equal(s1.append(s2, ignore_index=True), s1)
+        tm.assert_series_equal(s1._append(s2, ignore_index=True), s1)
         tm.assert_series_equal(pd.concat([s2, s1], ignore_index=True), s1)
-        tm.assert_series_equal(s2.append(s1, ignore_index=True), s1)
+        tm.assert_series_equal(s2._append(s1, ignore_index=True), s1)
 
         s1 = Series([], dtype="category")
         s2 = Series([np.nan, np.nan])
