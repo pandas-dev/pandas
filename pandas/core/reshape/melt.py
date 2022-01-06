@@ -257,7 +257,9 @@ def wide_to_long(
     df: DataFrame, stubnames, i, j, sep: str = "", suffix: str = r"\d+"
 ) -> DataFrame:
     r"""
-    Wide panel to long format. Less flexible but more user-friendly than melt.
+    Unpivot a DataFrame from wide to long format.
+
+    Less flexible but more user-friendly than melt.
 
     With stubnames ['A', 'B'], this function expects to find one or more
     group of columns with format
