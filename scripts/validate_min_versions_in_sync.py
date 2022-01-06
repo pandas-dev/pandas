@@ -2,9 +2,10 @@
 """
 Check pandas required and optional dependencies are synced across:
 
-doc/source/getting_started/install.rst
 ci/deps/actions-.*-minimum_versions.yaml
 pandas/compat/_optional.py
+
+TODO: doc/source/getting_started/install.rst
 
 This is meant to be run as a pre-commit hook - to run it manually, you can do:
 
@@ -32,11 +33,11 @@ def get_versions_from_code(content: str) -> dict[str, str]:
                 num_dicts += 1
             elif num_dicts == 1:
                 install_map = {k.value: v.value for k, v in zip(node.keys, node.values)}
-                break
-    return {
-        install_map.get(k.value, k.value): v.value
-        for k, v in zip(version_dict_ast.keys, version_dict_ast.values)
-    }
+                return {
+                    install_map.get(k.value, k.value).casefold(): v.value
+                    for k, v in zip(version_dict_ast.keys, version_dict_ast.values)
+                    if k.value != "pytest"
+                }
 
 
 def get_versions_from_ci(content: list[str]) -> tuple[dict[str, str], dict[str, str]]:
@@ -60,18 +61,20 @@ def get_versions_from_ci(content: list[str]) -> tuple[dict[str, str], dict[str, 
     return required_deps, optional_deps
 
 
-def get_versions_from_doc(content: str, ci_verions: dict[str, str]) -> dict[str, str]:
-    pass
-
-
 def main():
-    # The CI file is our source of truth since it's what we're testing.
     with open(CI_PATH) as f:
-        ci_required, ci_optional = get_versions_from_ci(f.readlines())
+        _, ci_optional = get_versions_from_ci(f.readlines())
     with open(CODE_PATH) as f:
-        code_versions = get_versions_from_code(f.read())
-    with open(DOC_PATH) as f:
-        doc_verions = get_versions_from_doc(f.read(), ci_versions)
+        code_optional = get_versions_from_code(f.read())
+    diff = set(ci_optional.items()).symmetric_difference(code_optional.items())
+    if diff:
+        sys.stdout.write(
+            f"The follow minimum version differences were found between  "
+            f"{CI_PATH} and {CODE_PATH}. Please ensure these are aligned: "
+            f"{diff}"
+        )
+        sys.exit(1)
+    sys.exit(0)
 
 
 if __name__ == "__main__":
