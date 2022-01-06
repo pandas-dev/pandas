@@ -570,7 +570,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     @property
     def tz(self) -> tzinfo | None:
         """
-        Return timezone, if any.
+        Return the timezone.
 
         Returns
         -------
@@ -1278,7 +1278,9 @@ default 'raise'
     @property
     def time(self) -> npt.NDArray[np.object_]:
         """
-        Returns numpy array of datetime.time. The time part of the Timestamps.
+        Returns numpy array of :class:`datetime.time`.
+
+        The time part of the Timestamps.
         """
         # If the Timestamps have a timezone that is not UTC,
         # convert them into their i8 representation while
@@ -1290,16 +1292,19 @@ default 'raise'
     @property
     def timetz(self) -> npt.NDArray[np.object_]:
         """
-        Returns numpy array of datetime.time also containing timezone
-        information. The time part of the Timestamps.
+        Returns numpy array of :class:`datetime.time` also containing timezone
+        information.
+
+        The time part of the Timestamps.
         """
         return ints_to_pydatetime(self.asi8, self.tz, box="time")
 
     @property
     def date(self) -> npt.NDArray[np.object_]:
         """
-        Returns numpy array of python datetime.date objects (namely, the date
-        part of Timestamps without timezone information).
+        Returns numpy array of python :class:`datetime.date` objects.
+
+        Namely, the date part of Timestamps without timezone information.
         """
         # If the Timestamps have a timezone that is not UTC,
         # convert them into their i8 representation while
