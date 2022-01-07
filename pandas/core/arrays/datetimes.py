@@ -1278,7 +1278,7 @@ default 'raise'
     @property
     def time(self) -> npt.NDArray[np.object_]:
         """
-        Returns numpy array of :class:`datetime.time`.
+        Returns numpy array of :class:`datetime.time` objects.
 
         The time part of the Timestamps.
         """
@@ -1304,7 +1304,8 @@ default 'raise'
         """
         Returns numpy array of python :class:`datetime.date` objects.
 
-        Namely, the date part of Timestamps without timezone information.
+        Namely, the date part of Timestamps without time and
+        timezone information.
         """
         # If the Timestamps have a timezone that is not UTC,
         # convert them into their i8 representation while
