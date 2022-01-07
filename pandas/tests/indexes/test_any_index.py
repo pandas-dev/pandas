@@ -3,7 +3,10 @@ Tests that can be parametrized over _any_ Index object.
 """
 import re
 
+import numpy as np
 import pytest
+
+from pandas.errors import InvalidIndexError
 
 import pandas._testing as tm
 
@@ -129,6 +132,16 @@ class TestRoundTrips:
 
 
 class TestIndexing:
+    def test_get_loc_listlike_raises_invalid_index_error(self, index):
+        # and never TypeError
+        key = np.array([0, 1], dtype=np.intp)
+
+        with pytest.raises(InvalidIndexError, match=r"\[0 1\]"):
+            index.get_loc(key)
+
+        with pytest.raises(InvalidIndexError, match=r"\[False  True\]"):
+            index.get_loc(key.astype(bool))
+
     def test_getitem_ellipsis(self, index):
         # GH#21282
         result = index[...]

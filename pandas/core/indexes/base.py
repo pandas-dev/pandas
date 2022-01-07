@@ -2659,7 +2659,9 @@ class Index(IndexOpsMixin, PandasObject):
     @cache_readonly
     def hasnans(self) -> bool:
         """
-        Return if I have any nans; enables various perf speedups.
+        Return True if there are any NaNs.
+
+        Enables various performance speedups.
         """
         if self._can_hold_na:
             return bool(self._isnan.any())
@@ -3197,7 +3199,6 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         Index
         """
-        # TODO(EA): setops-refactor, clean all this up
         lvals = self._values
         rvals = other._values
 
@@ -3257,11 +3258,13 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             result = self._shallow_copy(result, name=name)
 
-        # TODO(ExtensionIndex): revert this astype; it is a kludge to make
-        #  it possible to split ExtensionEngine from ExtensionIndex PR.
-        return result.astype(self.dtype, copy=False)
+        if type(self) is Index and self.dtype != object:
+            # i.e. ExtensionArray-backed
+            # TODO(ExtensionIndex): revert this astype; it is a kludge to make
+            #  it possible to split ExtensionEngine from ExtensionIndex PR.
+            return result.astype(self.dtype, copy=False)
+        return result
 
-    # TODO: standardize return type of non-union setops type(self vs other)
     @final
     def intersection(self, other, sort=False):
         """
@@ -3612,6 +3615,12 @@ class Index(IndexOpsMixin, PandasObject):
                 return self._engine.get_loc(casted_key)
             except KeyError as err:
                 raise KeyError(key) from err
+            except TypeError:
+                # If we have a listlike key, _check_indexing_error will raise
+                #  InvalidIndexError. Otherwise we fall through and re-raise
+                #  the TypeError.
+                self._check_indexing_error(key)
+                raise
 
         # GH#42269
         warnings.warn(
@@ -6550,8 +6559,6 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         new_index : Index
         """
-        # Note: this method is overridden by all ExtensionIndex subclasses,
-        #  so self is never backed by an EA.
         item = lib.item_from_zerodim(item)
         if is_valid_na_for_dtype(item, self.dtype) and self.dtype != object:
             item = self._na_value
