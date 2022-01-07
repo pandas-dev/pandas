@@ -98,6 +98,11 @@ props = """
             is not used.
 """
 
+color = """
+        color : str, default 'yellow'
+            Background color to use for highlighting.
+"""
+
 #
 ###
 
@@ -2949,7 +2954,7 @@ class Styler(StylerRenderer):
             props = f"background-color: {null_color};"
         return self.apply(f, axis=None, subset=subset, props=props)
 
-    @Substitution(subset=subset, props=props)
+    @Substitution(subset=subset, color=color, props=props)
     def highlight_max(
         self,
         subset: Subset | None = None,
@@ -2963,8 +2968,7 @@ class Styler(StylerRenderer):
         Parameters
         ----------
         %(subset)s
-        color : str, default 'yellow'
-            Background color to use for highlighting.
+        %(color)s
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
@@ -2993,7 +2997,7 @@ class Styler(StylerRenderer):
             props=props,
         )
 
-    @Substitution(subset=subset, props=props)
+    @Substitution(subset=subset, color=color, props=props)
     def highlight_min(
         self,
         subset: Subset | None = None,
@@ -3007,8 +3011,7 @@ class Styler(StylerRenderer):
         Parameters
         ----------
         %(subset)s
-        color : str, default 'yellow'
-            Background color to use for highlighting.
+        %(color)s
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
@@ -3037,7 +3040,7 @@ class Styler(StylerRenderer):
             props=props,
         )
 
-    @Substitution(subset=subset, props=props)
+    @Substitution(subset=subset, color=color, props=props)
     def highlight_between(
         self,
         subset: Subset | None = None,
@@ -3056,8 +3059,7 @@ class Styler(StylerRenderer):
         Parameters
         ----------
         %(subset)s
-        color : str, default 'yellow'
-            Background color to use for highlighting.
+        %(color)s
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             If ``left`` or ``right`` given as sequence, axis along which to apply those
             boundaries. See examples.
@@ -3141,7 +3143,7 @@ class Styler(StylerRenderer):
             inclusive=inclusive,
         )
 
-    @Substitution(subset=subset, props=props)
+    @Substitution(subset=subset, color=color, props=props)
     def highlight_quantile(
         self,
         subset: Subset | None = None,
@@ -3161,8 +3163,7 @@ class Styler(StylerRenderer):
         Parameters
         ----------
         %(subset)s
-        color : str, default 'yellow'
-            Background color to use for highlighting.
+        %(color)s
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             Axis along which to determine and highlight quantiles. If ``None`` quantiles
             are measured over the entire DataFrame. See examples.
