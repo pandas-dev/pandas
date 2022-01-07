@@ -1180,6 +1180,7 @@ class TestiLocBaseIndependent:
 
     @td.skip_array_manager_not_yet_implemented
     def test_iloc_getitem_int_single_ea_block_view(self):
+        # GH#45241
         # TODO: make an extension interface test for this?
         arr = interval_range(1, 10.0)._values
         df = DataFrame(arr)
