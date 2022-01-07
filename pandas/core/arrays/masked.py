@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Any,
+    Literal,
     Sequence,
     TypeVar,
     overload,
@@ -78,6 +79,10 @@ from pandas.core.ops import invalid_comparison
 if TYPE_CHECKING:
     from pandas import Series
     from pandas.core.arrays import BooleanArray
+    from pandas._typing import (
+        NumpySorter,
+        NumpyValueArrayLike,
+    )
 
 from pandas.compat.numpy import function as nv
 
@@ -680,6 +685,23 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         data = data.copy()
         mask = mask.copy()
         return type(self)(data, mask, copy=False)
+
+    @doc(ExtensionArray.searchsorted)
+    def searchsorted(
+        self,
+        value: NumpyValueArrayLike | ExtensionArray,
+        side: Literal["left", "right"] = "left",
+        sorter: NumpySorter = None,
+    ) -> npt.NDArray[np.intp] | np.intp:
+        if self._hasna:
+            raise ValueError(
+                "searchsorted requires array to be sorted, which is impossible "
+                "with NAs present."
+            )
+        if isinstance(value, ExtensionArray):
+            value = value.astype(object)
+        # Base class searchsorted would cast to object, which is *much* slower.
+        return self._data.searchsorted(value, side=side, sorter=sorter)
 
     @doc(ExtensionArray.factorize)
     def factorize(self, na_sentinel: int = -1) -> tuple[np.ndarray, ExtensionArray]:
