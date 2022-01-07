@@ -307,7 +307,9 @@ class Block(PandasObject):
     def __len__(self) -> int:
         return len(self.values)
 
-    def _slice(self, slicer) -> ArrayLike:
+    def _slice(
+        self, slicer: slice | npt.NDArray[np.bool_] | npt.NDArray[np.intp]
+    ) -> ArrayLike:
         """return a slice of my values"""
 
         return self.values[slicer]
@@ -319,8 +321,13 @@ class Block(PandasObject):
 
         Only supports slices that preserve dimensionality.
         """
-        axis0_slicer = slicer[0] if isinstance(slicer, tuple) else slicer
-        new_mgr_locs = self._mgr_locs[axis0_slicer]
+        # Note: the only place where we are called with ndarray[intp]
+        #  is from internals.concat, and we can verify that never happens
+        #  with 1-column blocks, i.e. never for ExtensionBlock.
+
+        # Invalid index type "Union[slice, ndarray[Any, dtype[signedinteger[Any]]]]"
+        # for "BlockPlacement"; expected type "Union[slice, Sequence[int]]"
+        new_mgr_locs = self._mgr_locs[slicer]  # type: ignore[index]
 
         new_values = self._slice(slicer)
 
@@ -1622,43 +1629,43 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
 
         return self.make_block_same_class(new_values, new_mgr_locs)
 
-    def _slice(self, slicer) -> ExtensionArray:
+    def _slice(
+        self, slicer: slice | npt.NDArray[np.bool_] | npt.NDArray[np.intp]
+    ) -> ExtensionArray:
         """
         Return a slice of my values.
 
         Parameters
         ----------
-        slicer : slice, ndarray[int], or a tuple of these
+        slicer : slice, ndarray[int], or ndarray[bool]
             Valid (non-reducing) indexer for self.values.
 
         Returns
         -------
         ExtensionArray
         """
+        # Notes: ndarray[bool] is only reachable when via getitem_mgr, which
+        #  is only for Series, i.e. self.ndim == 1.
+
         # return same dims as we currently have
-        if not isinstance(slicer, tuple) and self.ndim == 2:
+        if self.ndim == 2:
             # reached via getitem_block via _slice_take_blocks_ax0
             # TODO(EA2D): won't be necessary with 2D EAs
-            slicer = (slicer, slice(None))
 
-        if isinstance(slicer, tuple) and len(slicer) == 2:
-            first = slicer[0]
-            if not isinstance(first, slice):
+            if not isinstance(slicer, slice):
                 raise AssertionError(
-                    "invalid slicing for a 1-ndim ExtensionArray", first
+                    "invalid slicing for a 1-ndim ExtensionArray", slicer
                 )
             # GH#32959 only full-slicers along fake-dim0 are valid
             # TODO(EA2D): won't be necessary with 2D EAs
             # range(1) instead of self._mgr_locs to avoid exception on [::-1]
             #  see test_iloc_getitem_slice_negative_step_ea_block
-            new_locs = range(1)[first]
-            if len(new_locs):
-                # effectively slice(None)
-                slicer = slicer[1]
-            else:
+            new_locs = range(1)[slicer]
+            if not len(new_locs):
                 raise AssertionError(
                     "invalid slicing for a 1-ndim ExtensionArray", slicer
                 )
+            slicer = slice(None)
 
         return self.values[slicer]
 
