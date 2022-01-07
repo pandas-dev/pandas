@@ -7,7 +7,6 @@ from typing import (
     Any,
     Callable,
     Iterable,
-    Literal,
     Sequence,
     cast,
     final,
@@ -356,9 +355,14 @@ class Block(PandasObject):
     def dtype(self) -> DtypeObj:
         return self.values.dtype
 
-    def iget(self, i: int | tuple[int, int] | tuple[Literal[slice(None)], int]):
+    def iget(self, i: int | tuple[int, int] | tuple[slice, int]):
+        # In the case where we have a tuple[slice, int], the slice will always
+        #  be slice(None)
         # Note: only reached with self.ndim == 2
-        return self.values[i]
+        # Invalid index type "Union[int, Tuple[int, int], Tuple[slice, int]]"
+        # for "Union[ndarray[Any, Any], ExtensionArray]"; expected type
+        # "Union[int, integer[Any]]"
+        return self.values[i]  # type: ignore[index]
 
     def set_inplace(self, locs, values) -> None:
         """
@@ -1483,11 +1487,14 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
             return (len(self.values),)
         return len(self._mgr_locs), len(self.values)
 
-    def iget(self, col: int | tuple[int, int] | tuple[Literal[slice(None)], int]):
-        # Note: only reached with self.ndim == 2
-        # We _could_ make the annotation more specific, but mypy would#
+    def iget(self, col: int | tuple[int, int] | tuple[slice, int]):
+        # In the case where we have a tuple[slice, int], the slice will always
+        #  be slice(None)
+        # We _could_ make the annotation more specific, but mypy would
         #  complain about override mismatch:
-        #  Literal[0] | tuple[Literal[0], int] | tuple[Literal[slice(None)], int]
+        #  Literal[0] | tuple[Literal[0], int] | tuple[slice, int]
+
+        # Note: only reached with self.ndim == 2
 
         if isinstance(col, tuple):
             # TODO(EA2D): unnecessary with 2D EAs
