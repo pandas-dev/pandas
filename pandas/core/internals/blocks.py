@@ -1182,7 +1182,7 @@ class Block(PandasObject):
         if is_valid_na_for_dtype(other, self.dtype) and self.dtype != _dtype_obj:
             other = self.fill_value
 
-        elif not self._can_hold_element(other):
+        if not self._can_hold_element(other):
             # we cannot coerce, return a compat dtype
             block = self.coerce_to_target_dtype(other)
             blocks = block.where(orig_other, cond)
