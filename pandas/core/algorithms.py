@@ -859,11 +859,13 @@ def value_counts(
         else:
             keys, counts = value_counts_arraylike(values, dropna)
 
-            keys2 = keys
-            keys2 = Index._with_infer(keys)
-            if keys2.dtype.kind == "b" and keys.dtype == object:
-                keys2 = Index(keys, dtype=object)
-            result = Series(counts, index=keys2, name=name)
+            # For backwards compatibility, we let Index do its normal type
+            #  inference, _except_ for if if infers from object to bool.
+            idx = Index._with_infer(keys)
+            if idx.dtype == bool and keys.dtype == object:
+                idx = idx.astype(object)
+
+            result = Series(counts, index=idx, name=name)
 
     if sort:
         result = result.sort_values(ascending=ascending)

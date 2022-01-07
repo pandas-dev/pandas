@@ -91,9 +91,9 @@ class TestCommon:
 
     def test_constructor_unwraps_index(self, index_flat):
         a = index_flat
-        b = type(a)(a)
-        if a.dtype == object and b.dtype == bool:
-            b = b.astype(object)  # FIXME: kludge
+        # Passing dtype is necessary for Index([True, False], dtype=object)
+        #  case.
+        b = type(a)(a, dtype=a.dtype)
         tm.assert_equal(a._data, b._data)
 
     def test_to_flat_index(self, index_flat):
@@ -462,8 +462,6 @@ def test_sort_values_with_missing(index_with_missing, na_position):
 
     if isinstance(index_with_missing, CategoricalIndex):
         pytest.skip("missing value sorting order not well-defined")
-    if index_with_missing.dtype == bool:
-        pytest.skip("index_with_missing doesn't actually have missing")
 
     missing_count = np.sum(index_with_missing.isna())
     not_na_vals = index_with_missing[index_with_missing.notna()].values

@@ -522,11 +522,10 @@ class Base:
         # GH 11343
         if len(index) == 0:
             return
-        elif (
-            isinstance(index, NumericIndex)
-            and is_integer_dtype(index.dtype)
-            or index.dtype == bool
-        ):
+        elif index.dtype == bool:
+            # can't hold NAs
+            return
+        elif isinstance(index, NumericIndex) and is_integer_dtype(index.dtype):
             return
         elif isinstance(index, MultiIndex):
             idx = index.copy(deep=True)

@@ -625,7 +625,7 @@ def index_flat_unique(request):
         key
         for key in indices_dict
         if not (
-            key in ["int", "uint", "range", "empty", "repeats"]
+            key in ["int", "uint", "range", "empty", "repeats", "bool-dtype"]
             or key.startswith("num_")
         )
         and not isinstance(indices_dict[key], MultiIndex)

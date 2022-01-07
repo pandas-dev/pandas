@@ -265,7 +265,7 @@ class TestGroupby(base.BaseGroupbyTests):
         _, uniques = pd.factorize(data_for_grouping, sort=True)
 
         if as_index:
-            index = pd.Index(uniques, name="B", dtype=bool)
+            index = pd.Index(uniques, name="B")
             expected = pd.Series([3.0, 1.0], index=index, name="A")
             self.assert_series_equal(result, expected)
         else:
