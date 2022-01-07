@@ -583,6 +583,8 @@ class StringMethods(NoNewAttributesMixin):
                 return sep.join(data[~na_mask])
             elif na_rep is not None and na_mask.any():
                 return sep.join(np.where(na_mask, na_rep, data))
+            else:
+                return sep.join(data)
 
         try:
             # turn anything in "others" into lists of Series
