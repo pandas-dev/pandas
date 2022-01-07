@@ -1086,7 +1086,7 @@ class Styler(StylerRenderer):
         """
         Write Styler to a file, buffer or string in text format.
 
-        .. versionadded:: 1.4.0
+        .. versionadded:: 1.5.0
 
         Parameters
         ----------
@@ -1120,10 +1120,6 @@ class Styler(StylerRenderer):
         -------
         str or None
             If `buf` is None, returns the result as a string. Otherwise returns `None`.
-
-        See Also
-        --------
-        DataFrame.to_html: Write a DataFrame to a file, buffer or string in HTML format.
         """
         obj = self._copy(deepcopy=True)
 
