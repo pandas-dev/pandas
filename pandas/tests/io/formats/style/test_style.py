@@ -1570,7 +1570,7 @@ def test_descriptors(mi_styler):
             result = {k: col[k] for k in ["type", "is_visible", "value"]}
             assert (
                 result.items() <= ctx["head"][2][c + 2].items()
-            )  # check all calcs same
+            )  # test rows 3,4,5 are equivalent to row 2 in value, type and visibility
             assert col["class"] == f"descriptor_value descriptor{r} col{c}"  # test css
 
         assert row[1]["value"] == exp_labels[r]  # test label is printed
