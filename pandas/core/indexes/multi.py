@@ -366,7 +366,7 @@ class MultiIndex(Index):
         null_mask = isna(level)
         if np.any(null_mask):
             # Incompatible types in assignment (expression has type
-            # "ndarray[Any, dtype[Any]]", variable has type "List[Any]")  [assignment]
+            # "ndarray[Any, dtype[Any]]", variable has type "List[Any]")
             code = np.where(null_mask[code], -1, code)  # type: ignore[assignment]
         return code
 
@@ -1088,9 +1088,9 @@ class MultiIndex(Index):
         # equivalent to sorting lexicographically the codes themselves. Notice
         # that each level needs to be shifted by the number of bits needed to
         # represent the _previous_ ones:
-        offsets = np.concatenate(
-            [lev_bits[1:], [0]]  # type: ignore[arg-type]
-        ).astype("uint64")
+        offsets = np.concatenate([lev_bits[1:], [0]]).astype(  # type: ignore[arg-type]
+            "uint64"
+        )
 
         # Check the total number of bits needed for our representation:
         if lev_bits[0] > 64:
