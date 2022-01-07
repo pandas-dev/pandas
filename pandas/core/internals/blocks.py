@@ -1487,7 +1487,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
             return (len(self.values),)
         return len(self._mgr_locs), len(self.values)
 
-    def iget(self, col: int | tuple[int, int] | tuple[slice, int]):
+    def iget(self, i: int | tuple[int, int] | tuple[slice, int]):
         # In the case where we have a tuple[slice, int], the slice will always
         #  be slice(None)
         # We _could_ make the annotation more specific, but mypy would
@@ -1496,9 +1496,9 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
 
         # Note: only reached with self.ndim == 2
 
-        if isinstance(col, tuple):
+        if isinstance(i, tuple):
             # TODO(EA2D): unnecessary with 2D EAs
-            col, loc = col
+            col, loc = i
             if not com.is_null_slice(col) and col != 0:
                 raise IndexError(f"{self} only contains one item")
             elif isinstance(col, slice):
@@ -1507,7 +1507,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
                 return self.values[[loc]]
             return self.values[loc]
         else:
-            if col != 0:
+            if i != 0:
                 raise IndexError(f"{self} only contains one item")
             return self.values
 
