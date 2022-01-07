@@ -1292,7 +1292,7 @@ default 'raise'
     @property
     def timetz(self) -> npt.NDArray[np.object_]:
         """
-        Returns numpy array of :class:`datetime.time` also containing timezone
+        Returns numpy array of :class:`datetime.time` objects with timezone
         information.
 
         The time part of the Timestamps.

@@ -193,7 +193,7 @@ class DatetimeProperties(Properties):
 
     def to_pydatetime(self) -> np.ndarray:
         """
-        Return the data as an array of :class:`datetime.datetime`.
+        Return the data as an array of :class:`datetime.datetime` objects.
 
         Timezone information is retained if present.
 
