@@ -85,23 +85,17 @@ def _mpl(func: Callable):
 ####
 # Shared Doc Strings
 
-subset = """
-        subset : label, array-like, IndexSlice, optional
+subset = """subset : label, array-like, IndexSlice, optional
             A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
             or single key, to `DataFrame.loc[:, <subset>]` where the columns are
-            prioritised, to limit ``data`` to *before* applying the function.
-"""
+            prioritised, to limit ``data`` to *before* applying the function."""
 
-props = """
-        props : str, default None
-            CSS properties to use for highlighting. If ``props`` is given, ``color``
-            is not used.
-"""
+props = """props : str, default None
+           CSS properties to use for highlighting. If ``props`` is given, ``color``
+           is not used."""
 
-color = """
-        color : str, default 'yellow'
-            Background color to use for highlighting.
-"""
+color = """color : str, default 'yellow'
+           Background color to use for highlighting."""
 
 #
 ###
@@ -2931,8 +2925,11 @@ class Styler(StylerRenderer):
         ----------
         null_color : str, default 'red'
         %(subset)s
+
             .. versionadded:: 1.1.0
+
         %(props)s
+
             .. versionadded:: 1.3.0
 
         Returns
@@ -2974,6 +2971,7 @@ class Styler(StylerRenderer):
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
         %(props)s
+
             .. versionadded:: 1.3.0
 
         Returns
@@ -3017,6 +3015,7 @@ class Styler(StylerRenderer):
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
         %(props)s
+
             .. versionadded:: 1.3.0
 
         Returns
@@ -3070,6 +3069,7 @@ class Styler(StylerRenderer):
         inclusive : {'both', 'neither', 'left', 'right'}
             Identify whether bounds are closed or open.
         %(props)s
+
         Returns
         -------
         self : Styler
@@ -3177,6 +3177,7 @@ class Styler(StylerRenderer):
         inclusive : {'both', 'neither', 'left', 'right'}
             Identify whether quantile bounds are closed or open.
         %(props)s
+
         Returns
         -------
         self : Styler

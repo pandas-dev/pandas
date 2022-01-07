@@ -257,13 +257,13 @@ class CSSToExcelConverter:
         #       'thick'
         #       'thin'
         if width is None and style is None:
-            return None
+            return "none"
         if style == "none" or style == "hidden":
-            return None
+            return "none"
 
         width_name = self._get_width_name(width)
         if width_name is None:
-            return None
+            return "none"
 
         if style in (None, "groove", "ridge", "inset", "outset", "solid"):
             # not handled
