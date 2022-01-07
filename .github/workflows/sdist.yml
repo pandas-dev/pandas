@@ -4,11 +4,11 @@ on:
   push:
     branches:
       - master
-      - 1.3.x
+      - 1.4.x
   pull_request:
     branches:
       - master
-      - 1.3.x
+      - 1.4.x
     paths-ignore:
       - "doc/**"
 

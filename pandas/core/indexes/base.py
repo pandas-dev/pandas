@@ -2646,7 +2646,9 @@ class Index(IndexOpsMixin, PandasObject):
     @cache_readonly
     def hasnans(self) -> bool:
         """
-        Return if I have any nans; enables various perf speedups.
+        Return True if there are any NaNs.
+
+        Enables various performance speedups.
         """
         if self._can_hold_na:
             return bool(self._isnan.any())
@@ -3600,6 +3602,12 @@ class Index(IndexOpsMixin, PandasObject):
                 return self._engine.get_loc(casted_key)
             except KeyError as err:
                 raise KeyError(key) from err
+            except TypeError:
+                # If we have a listlike key, _check_indexing_error will raise
+                #  InvalidIndexError. Otherwise we fall through and re-raise
+                #  the TypeError.
+                self._check_indexing_error(key)
+                raise
 
         # GH#42269
         warnings.warn(
